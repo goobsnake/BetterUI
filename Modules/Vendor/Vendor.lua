@@ -158,13 +158,6 @@ local function BuildFallbackVendorTabs()
     return tabs
 end
 
-local function GetNativeActiveModeSet()
-    if Vendor.ModePolicy and Vendor.ModePolicy.GetNativeActiveModeSet then
-        return Vendor.ModePolicy.GetNativeActiveModeSet(rawget(_G, "STORE_WINDOW_GAMEPAD"))
-    end
-    return {}
-end
-
 ---@return boolean
 local function IsNativeStableModeActive()
     if Vendor.ModePolicy and Vendor.ModePolicy.IsNativeStableModeActive then
@@ -2174,12 +2167,18 @@ function BETTERUI.Vendor.Init()
                     { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT") or "SI_BETTERUI_BANKING_COLUMN_STAT"),  key = "stat" },
                     { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE") or "SI_BETTERUI_BANKING_COLUMN_VALUE"), key = "value", defaultDirection = "descending" },
                 },
-                onSortChangedCallback = function()
-                    Vendor.instance:RefreshList()
-                end,
-                controllerField = "sortController",
-                controllerAliasFields = { "headerSortController" },
-                keybindDescriptor = Vendor.instance.coreKeybinds,
+                callbacks = {
+                    onSortChanged = function()
+                        Vendor.instance:RefreshList()
+                    end,
+                },
+                controllerContract = {
+                    field = "sortController",
+                    aliasFields = { "headerSortController" },
+                },
+                keybinds = {
+                    mainDescriptor = Vendor.instance.coreKeybinds,
+                },
                 autoEnterOnListStart = true,
             })
             BETTERUI.CIM.UI.HeaderSortIntegration.EnsureController(integration)

@@ -49,12 +49,18 @@ function Companions.SetupSort(instance)
                     { name = GetString(SI_BETTERUI_INV_HEADER_STAT), key = "stat" },
                     { name = GetString(SI_BETTERUI_INV_HEADER_VALUE), key = "value", defaultDirection = "descending" },
                 },
-                onSortChangedCallback = function()
-                    instance:RefreshList()
-                end,
-                controllerField = "sortController",
-                controllerAliasFields = { "headerSortController" },
-                keybindDescriptor = instance.coreKeybinds,
+                callbacks = {
+                    onSortChanged = function()
+                        instance:RefreshList()
+                    end,
+                },
+                controllerContract = {
+                    field = "sortController",
+                    aliasFields = { "headerSortController" },
+                },
+                keybinds = {
+                    mainDescriptor = instance.coreKeybinds,
+                },
                 autoEnterOnListStart = true,
             })
             BETTERUI.CIM.UI.HeaderSortIntegration.EnsureController(integration)

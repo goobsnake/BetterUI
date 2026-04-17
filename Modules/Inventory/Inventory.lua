@@ -34,6 +34,18 @@ local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 -- Dialog names (namespaced to avoid global collision)
 if not BETTERUI.Inventory.Dialogs then BETTERUI.Inventory.Dialogs = {} end
 BETTERUI.Inventory.Dialogs.EQUIP_SLOT = "BETTERUI_EQUIP_SLOT_DIALOG"
+
+function BETTERUI.Inventory.InvokeDialog(methodName, ...)
+    local dialogs = BETTERUI.Inventory and BETTERUI.Inventory.Dialogs
+    local dialogFn = dialogs and dialogs[methodName]
+    if type(dialogFn) ~= "function" then
+        return false
+    end
+
+    dialogFn(...)
+    return true
+end
+
 -- Backward compatibility alias
 BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.Dialogs.EQUIP_SLOT
 
@@ -492,4 +504,3 @@ function BETTERUI.Inventory.Class:BETTERUI_IsSlotLocked(inventorySlot)
 	end
 	return false
 end
-

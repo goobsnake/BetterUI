@@ -11,17 +11,6 @@ local function GetBankingTransferHelper(helperName)
     return helpers and helpers[helperName]
 end
 
-local function InvokeInventoryDialog(methodName, ...)
-    local dialogs = BETTERUI.Inventory and BETTERUI.Inventory.Dialogs
-    local dialogFn = dialogs and dialogs[methodName]
-    if type(dialogFn) ~= "function" then
-        return false
-    end
-
-    dialogFn(...)
-    return true
-end
-
 -- SHARED ITEM ACTION HELPERS
 -- These functions provide common item action implementations used by
 -- Inventory and Banking modules. They handle secure API calls.
@@ -218,7 +207,8 @@ end
 function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
     local stowCallback = function()
         -- Use quantity dialog for stacked items
-        if not InvokeInventoryDialog("TryStowWithQuantity", inventorySlot) then
+        local invokeInventoryDialog = BETTERUI.Inventory and BETTERUI.Inventory.InvokeDialog
+        if not (invokeInventoryDialog and invokeInventoryDialog("TryStowWithQuantity", inventorySlot)) then
             BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
         end
     end

@@ -14,7 +14,7 @@ local CompareNils = BETTERUI.CIM.Utils.CompareNils
 --- @field sortKey string Data field used for comparisons
 --- @field defaultDirection? string "ascending" or "descending"
 
---- @type SortColumnDef[]
+--- @type BetterUIHeaderSortColumnDef[]
 local INVENTORY_SORT_COLUMNS = {
     { name = "NAME",  key = "name",  sortKey = "name" },
     { name = "TYPE",  key = "type",  sortKey = "bestGamepadItemCategoryName" },
@@ -22,6 +22,31 @@ local INVENTORY_SORT_COLUMNS = {
     { name = "STAT",  key = "stat",  sortKey = "stat" },
     { name = "VALUE", key = "value", sortKey = "value", defaultDirection = "descending" },
 }
+
+---@param instance BETTERUI.Inventory.Class
+---@return BetterUIHeaderSortInstallOptions
+local function BuildInventoryHeaderSortInstallOptions(instance)
+    local INVENTORY_ITEM_LIST = "itemList"
+
+    return {
+        listFn = function()
+            return instance:GetCurrentList()
+        end,
+        keybinds = {
+            mainDescriptor = instance.mainKeybindStripDescriptor,
+        },
+        controllerContract = {
+            field = "headerSortController",
+            resolve = function()
+                local listType = instance.currentListType or INVENTORY_ITEM_LIST
+                return instance.headerSortControllers[listType]
+            end,
+            initialize = function()
+                instance:InitializeHeaderSortController()
+            end,
+        },
+    }
+end
 
 --- Helper: Get trait display name for sorting (alphabetical with blanks last)
 --- @param data table Item data or dataSource wrapper
@@ -226,15 +251,7 @@ function Class:InitializeHeaderSortController()
 
     local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
     if HeaderSortIntegration and HeaderSortIntegration.Install then
-        HeaderSortIntegration.Install(self, {
-            listFn = function() return self:GetCurrentList() end,
-            keybindDescriptor = self.mainKeybindStripDescriptor,
-            headerControllerFn = function()
-                local listType = self.currentListType or INVENTORY_ITEM_LIST
-                return self.headerSortControllers[listType]
-            end,
-            initControllerFn = function() self:InitializeHeaderSortController() end,
-        })
+        HeaderSortIntegration.Install(self, BuildInventoryHeaderSortInstallOptions(self))
     end
 
     self:LinkColumnLabels()

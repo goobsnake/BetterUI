@@ -46,8 +46,8 @@ local sourceChecks = {
     {
         path = "Modules/CIM/Actions/GenericSlotActions.lua",
         forbidden = 'TryCall%("Inventory%.Dialogs%.TryStowWithQuantity"',
-        required = "local%s+function%s+InvokeInventoryDialog%(",
-        label = "generic slot actions use typed inventory dialog seam",
+        required = "BETTERUI%.Inventory%s+and%s+BETTERUI%.Inventory%.InvokeDialog",
+        label = "generic slot actions use shared inventory dialog seam",
     },
     {
         path = "Modules/CIM/UI/UnifiedFooter.lua",
@@ -58,14 +58,14 @@ local sourceChecks = {
     {
         path = "Modules/Inventory/Actions/ItemActionHandlers.lua",
         forbidden = 'TryCall%("Inventory%.Dialogs%.StowFullStack"',
-        required = "local%s+function%s+InvokeInventoryDialog%(",
-        label = "item action handlers avoid string-path craft-bag dialog dispatch",
+        required = "BETTERUI%.Inventory%.InvokeDialog",
+        label = "item action handlers use shared inventory dialog dispatch",
     },
     {
         path = "Modules/Inventory/Actions/SlotActions.lua",
         forbidden = 'TryCall%("Inventory%.Dialogs%.TryRetrieveWithQuantity"',
-        required = "local%s+function%s+InvokeInventoryDialog%(",
-        label = "slot actions avoid string-path retrieve dialog dispatch",
+        required = "BETTERUI%.Inventory%s+and%s+BETTERUI%.Inventory%.InvokeDialog",
+        label = "slot actions use shared inventory dialog dispatch",
     },
     {
         path = "Modules/Inventory/Module.lua",

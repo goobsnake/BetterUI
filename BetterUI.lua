@@ -693,22 +693,24 @@ function BETTERUI.Initialize(event, addon)
 	BETTERUI.InitModuleOptions()
 	BETTERUI.UpdateCIMState()
 
-	local setupSucceeded
+	local function SetupInitialModuleState()
+		-- Load modules if in gamepad mode
+		if IsInGamepadPreferredMode() then
+			return BETTERUI.LoadModules()
+		end
 
-	-- Load modules if in gamepad mode
-	if IsInGamepadPreferredMode() then
-		setupSucceeded = BETTERUI.LoadModules()
-	else
 		BETTERUI._initialized = false
 		-- Keyboard mode: register ALL module settings panels so users on "Automatic"
 		-- input can always access addon configuration regardless of current UI mode.
 		-- NOTE: Only LAM settings panels are registered here. Gameplay hooks (inventory
 		-- destroy/action hooks, etc.) remain in LoadModules() and only activate
 		-- when gamepad mode is entered.
-		local failedModules
-		setupSucceeded, failedModules = SetupKeyboardModeModules()
+		local keyboardSetupSucceeded, failedModules = SetupKeyboardModeModules()
 		ReportModuleSetupFailures(failedModules, "keyboard")
+		return keyboardSetupSucceeded
 	end
+
+	local setupSucceeded = SetupInitialModuleState()
 
 	-- Ensure companion equip patch is queued even if modules didn't hook above
 	if BETTERUI.Inventory and BETTERUI.Inventory.EnsureCompanionEquipPatched then

@@ -116,6 +116,73 @@ BETTERUI.CIM.Types = {}
 ---@field visible function|nil Optional visibility predicate
 ---@field enabled function|nil Optional enabled predicate
 
+---@class BetterUIHeaderSortColumnDef
+---@field name string Display name shown in the header row
+---@field key string Stable column identifier
+---@field sortKey string|nil Data field used for comparisons
+---@field defaultDirection SortDirection|nil Preferred initial direction
+
+---@class BetterUIHeaderSortControllerContract
+---@field instance table|nil Existing controller instance to reuse
+---@field field string|nil Primary owner field that stores the controller
+---@field aliasFields string[]|nil Additional owner fields that mirror the controller
+---@field resolve fun(owner: table): table|nil Optional resolver for dynamic controller ownership
+---@field initialize fun(owner: table)|nil Optional initializer that prepares controller state before resolution
+
+---@class BetterUIHeaderSortKeybindContract
+---@field mainDescriptor table|nil Owner keybind descriptor restored after header mode exits
+
+---@class BetterUIHeaderSortNavigationContract
+---@field deactivate fun(owner: table)|nil Callback that suspends owner navigation before header mode
+---@field reactivate fun(owner: table)|nil Callback that restores owner navigation after header mode
+---@field suspendTabBar boolean|nil When true, use the shared tab-bar suspend/restore behavior
+
+---@class BetterUIHeaderSortCallbackContract
+---@field onSortChanged fun(columnKey: string, direction: SortDirection, sortFn: function|nil)|nil
+---@field onControllerCreated fun(owner: table, controller: table, list: table|nil)|nil
+---@field onEnterHeaderMode fun(owner: table, controller: table, list: table|nil)|nil
+---@field onExitHeaderMode fun(owner: table, controller: table|nil)|nil
+
+---@class BetterUIHeaderSortInstallOptions
+---@field list table|nil Static list owned by the integration
+---@field listFn fun(owner: table): table|nil Optional list resolver for dynamic list owners
+---@field columns BetterUIHeaderSortColumnDef[]|nil Column descriptors used to build controllers
+---@field controllerContract BetterUIHeaderSortControllerContract|nil Controller ownership contract
+---@field keybinds BetterUIHeaderSortKeybindContract|nil Owner keybind contract
+---@field navigation BetterUIHeaderSortNavigationContract|nil Navigation suspend/restore contract
+---@field callbacks BetterUIHeaderSortCallbackContract|nil Shared lifecycle callbacks
+---@field createControllerFn fun(owner: table, list: table|nil): table|nil Optional controller factory override
+---@field autoEnterOnListStart boolean|nil Whether hitting the top of the list should enter header mode
+---@field controller table|nil Legacy flat controller instance field
+---@field controllerField string|nil Legacy flat controller owner field
+---@field controllerAliasFields string[]|nil Legacy flat controller alias fields
+---@field headerControllerFn fun(owner: table): table|nil Legacy flat controller resolver
+---@field initControllerFn fun(owner: table)|nil Legacy flat controller initializer
+---@field keybindDescriptor table|nil Legacy flat owner keybind descriptor
+---@field mainKeybindDescriptor table|nil Legacy flat owner keybind descriptor alias
+---@field deactivateNavigationFn fun(owner: table)|nil Legacy flat navigation suspend callback
+---@field reactivateNavigationFn fun(owner: table)|nil Legacy flat navigation restore callback
+---@field onSortChangedCallback fun(columnKey: string, direction: SortDirection, sortFn: function|nil)|nil Legacy flat sort callback
+---@field onControllerCreated fun(owner: table, controller: table, list: table|nil)|nil Legacy flat controller-created callback
+---@field onEnterHeaderMode fun(owner: table, controller: table, list: table|nil)|nil Legacy flat enter callback
+---@field onExitHeaderMode fun(owner: table, controller: table|nil)|nil Legacy flat exit callback
+---@field suspendTabBar boolean|nil Legacy flat tab-bar suspend flag
+
+---@class BetterUIHeaderSortIntegration
+---@field owner table Owner instance receiving the header-sort contract
+---@field list table|nil Static list reference
+---@field listFn fun(owner: table): table|nil Dynamic list resolver
+---@field controller table|nil Active header sort controller
+---@field controllerContract BetterUIHeaderSortControllerContract
+---@field columns BetterUIHeaderSortColumnDef[]|nil Column descriptors
+---@field callbacks BetterUIHeaderSortCallbackContract
+---@field keybinds BetterUIHeaderSortKeybindContract
+---@field navigation BetterUIHeaderSortNavigationContract
+---@field createControllerFn fun(owner: table, list: table|nil): table|nil
+---@field autoEnterOnListStart boolean
+---@field isActive boolean
+---@field activeKeybindDescriptor table|nil
+
 -- CALLBACK EVENT NAMES
 
 ---@alias BetterUIEvent

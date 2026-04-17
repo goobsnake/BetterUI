@@ -135,16 +135,22 @@ do
         columns = {
             { key = "name" },
         },
-        onSortChangedCallback = function() end,
-        controllerField = "sortController",
-        controllerAliasFields = { "headerSortController" },
-        keybindDescriptor = owner.coreKeybinds,
-        onControllerCreated = function(instance, controller, list)
-            onControllerCreatedCalls = onControllerCreatedCalls + 1
-            assert_true(instance == owner, "controller created callback receives owner")
-            assert_true(controller ~= nil, "controller created callback receives controller")
-            assert_true(list == owner.list, "controller created callback receives list")
-        end,
+        callbacks = {
+            onSortChanged = function() end,
+            onControllerCreated = function(instance, controller, list)
+                onControllerCreatedCalls = onControllerCreatedCalls + 1
+                assert_true(instance == owner, "controller created callback receives owner")
+                assert_true(controller ~= nil, "controller created callback receives controller")
+                assert_true(list == owner.list, "controller created callback receives list")
+            end,
+        },
+        controllerContract = {
+            field = "sortController",
+            aliasFields = { "headerSortController" },
+        },
+        keybinds = {
+            mainDescriptor = owner.coreKeybinds,
+        },
     })
 
     local controller = HeaderSortIntegration.EnsureController(integration)
@@ -163,10 +169,18 @@ do
         columns = {
             { key = "value", defaultDirection = "descending" },
         },
-        onSortChangedCallback = function() end,
-        controllerField = "headerSortController",
-        keybindDescriptor = owner.coreKeybinds,
-        suspendTabBar = true,
+        callbacks = {
+            onSortChanged = function() end,
+        },
+        controllerContract = {
+            field = "headerSortController",
+        },
+        keybinds = {
+            mainDescriptor = owner.coreKeybinds,
+        },
+        navigation = {
+            suspendTabBar = true,
+        },
     })
 
     local controller = HeaderSortIntegration.EnsureController(integration)
@@ -189,6 +203,26 @@ do
     local legacyController = { id = "legacy" }
     assert_true(HeaderSortIntegration.GetController({ sortController = legacyController }) == legacyController,
         "get controller falls back to legacy sortController")
+end
+
+do
+    local owner = buildOwner()
+    local integration = HeaderSortIntegration.Install(owner, {
+        list = owner.list,
+        columns = {
+            { key = "name" },
+        },
+        onSortChangedCallback = function() end,
+        controllerField = "headerSortController",
+        keybindDescriptor = owner.coreKeybinds,
+        suspendTabBar = true,
+    })
+
+    assert_eq(integration.controllerContract.field, "headerSortController",
+        "legacy controller field is normalized into the controller contract")
+    assert_true(integration.navigation.suspendTabBar, "legacy suspendTabBar is normalized into navigation")
+    assert_true(integration.keybinds.mainDescriptor == owner.coreKeybinds,
+        "legacy keybind descriptor is normalized into the keybind contract")
 end
 
 print(string.format("Passed: %d", passed))

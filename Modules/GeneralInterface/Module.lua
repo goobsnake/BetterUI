@@ -8,7 +8,7 @@
       Setup.lua     - Module Setup() lifecycle and LAM panel aggregation
 
     Namespaces: BETTERUI.GeneralInterface (tooltips), BETTERUI.Nameplates (font hooks)
-    Dependencies: CIM (cross-cutting utilities via TryCall/TryResolve)
+    Dependencies: CIM (cross-cutting utilities, defaults, and shared integration helpers)
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end

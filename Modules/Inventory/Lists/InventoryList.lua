@@ -423,9 +423,9 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
             if entry then
                 local itemData = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
                 if itemData then
-                    local resolvedCategoryResolver = self.categorizationFunction or
+                    local resolvedItemCategoryResolver = self.categorizationFunction or
                         GetBestItemCategoryDescription
-                    ApplyInventoryCategoryFields(itemData, resolvedCategoryResolver)
+                    ApplyInventoryCategoryFields(itemData, resolvedItemCategoryResolver)
                     SetEntryListModuleName(itemData, self.listModuleName)
                     if bagId ~= BAG_VIRTUAL then -- virtual items don't have any champion points associated with them
                         itemData.requiredChampionPoints = GetItemLinkRequiredChampionPoints(itemData)

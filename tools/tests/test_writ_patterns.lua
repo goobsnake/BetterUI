@@ -163,9 +163,9 @@ local function resetUiState()
     safeExecuteContexts = {}
 end
 
-dofile("Modules/WritUnit/Constants.lua")
-dofile("Modules/WritUnit/Core/Writ.lua")
-dofile("Modules/WritUnit/Module.lua")
+dofile("Modules/Writs/Constants.lua")
+dofile("Modules/Writs/Core/Writ.lua")
+dofile("Modules/Writs/Module.lua")
 
 print("[Writ constants]")
 

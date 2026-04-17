@@ -5,8 +5,6 @@ Purpose: Row setup callback for vendor list entries.
          Populates columns: ItemType, Trait, Stat, Value with vendor-appropriate data.
 ]]
 
-local Vendor = BETTERUI.Vendor
-
 ---@param ds table|nil
 ---@return boolean
 local function IsStableTrainingRow(ds)

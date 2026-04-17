@@ -20,6 +20,10 @@ local function assert_true(value, label)
     end
 end
 
+local function assert_eq(actual, expected, label)
+    assert_true(actual == expected, string.format("%s (expected %s, got %s)", label, tostring(expected), tostring(actual)))
+end
+
 local function read_file(path)
     local handle = assert(io.open(path, "r"))
     local content = handle:read("*a")
@@ -36,6 +40,12 @@ assert_true(typesSource:find('---@class BetterUIModuleRootContract') ~= nil,
     "Types defines the BetterUIModuleRootContract type")
 assert_true(typesSource:find('---@class KeybindDescriptor') ~= nil,
     "Types defines the shared keybind descriptor type")
+assert_true(typesSource:find('---@class BetterUIHeaderSortControllerContract') ~= nil,
+    "Types defines the shared header sort controller contract")
+assert_true(typesSource:find('---@class BetterUIHeaderSortInstallOptions') ~= nil,
+    "Types defines the shared header sort installer contract")
+assert_true(typesSource:find('---@class BetterUIHeaderSortIntegration') ~= nil,
+    "Types defines the shared header sort integration type")
 
 local developerDebug = read_file("Modules/CIM/Core/Diagnostics/DeveloperDebug.lua")
 assert_true(developerDebug:find("BETTERUI%.CIM%.Debug = %{%}") ~= nil,
@@ -127,6 +137,255 @@ assert_true(keybindHelpers:find("KEYBIND_STRIP:AddKeybindButtonGroup%(descriptor
     "KeybindHelpers adds missing keybind groups")
 assert_true(keybindHelpers:find("KEYBIND_STRIP:UpdateKeybindButtonGroup%(descriptor%)") ~= nil,
     "KeybindHelpers refreshes keybind groups after ensuring them")
+
+local headerSortIntegration = read_file("Modules/CIM/UI/HeaderSortIntegration.lua")
+assert_true(headerSortIntegration:find("local function NormalizeControllerContract%(options%)") ~= nil,
+    "HeaderSortIntegration normalizes the shared controller contract")
+assert_true(headerSortIntegration:find("local function NormalizeKeybindContract%(options%)") ~= nil,
+    "HeaderSortIntegration normalizes the shared keybind contract")
+assert_true(headerSortIntegration:find("local function NormalizeNavigationContract%(options%)") ~= nil,
+    "HeaderSortIntegration normalizes the shared navigation contract")
+assert_true(headerSortIntegration:find("controllerContract = controllerContract") ~= nil,
+    "HeaderSortIntegration stores the normalized controller contract on the integration")
+
+local safeExecute = read_file("Modules/CIM/Core/Diagnostics/SafeExecute.lua")
+assert_true(safeExecute:find("local function ResolveOptionalBetterUIPath%(path%)") ~= nil,
+    "SafeExecute keeps optional BETTERUI path resolution private")
+assert_true(safeExecute:find("local function CallOptionalBetterUIPath%(path, %.%.%.%)") ~= nil,
+    "SafeExecute keeps optional BETTERUI dispatch private")
+assert_true(safeExecute:find("function BETTERUI%.CIM%.TryResolve") == nil,
+    "SafeExecute no longer exports TryResolve")
+assert_true(safeExecute:find("function BETTERUI%.CIM%.TryCall") == nil,
+    "SafeExecute no longer exports TryCall")
+assert_true(safeExecute:find("function BETTERUI%.CIM%.SafeCall%(path, %.%.%.%)") ~= nil,
+    "SafeExecute keeps SafeCall as the public optional dispatch seam")
+
+local generalInterfaceModule = read_file("Modules/GeneralInterface/Module.lua")
+assert_true(generalInterfaceModule:find("TryCall/TryResolve") == nil,
+    "GeneralInterface module docs no longer advertise TryCall/TryResolve dependencies")
+
+BETTERUI = {
+    name = "BetterUI",
+    version = "1.0",
+    CIM = {
+        CONST = {
+            SEARCH_CHILD_NAMES = {},
+        },
+        UI = {},
+        Settings = {},
+    },
+    Interface = {},
+}
+
+LibAddonMenu2 = {
+    panelCalls = {},
+    optionCalls = {},
+    RegisterAddonPanel = function(self, panelId, panelData)
+        table.insert(self.panelCalls, { panelId = panelId, panelData = panelData })
+    end,
+    RegisterOptionControls = function(self, panelId, optionsData)
+        table.insert(self.optionCalls, { panelId = panelId, optionsData = optionsData })
+    end,
+}
+
+KEYBIND_STRIP = {
+    added = {},
+    removed = {},
+    AddKeybindButtonGroup = function(self, descriptor)
+        table.insert(self.added, descriptor)
+    end,
+    RemoveKeybindButtonGroup = function(self, descriptor)
+        table.insert(self.removed, descriptor)
+    end,
+    UpdateKeybindButtonGroup = function() end,
+}
+
+KEYBIND_STRIP_ALIGN_LEFT = 1
+KEYBIND_STRIP_ALIGN_RIGHT = 2
+SOUNDS = {
+    GAMEPAD_MENU_FORWARD = "forward",
+    GAMEPAD_MENU_BACK = "back",
+}
+SI_GAMEPAD_SELECT_OPTION = "Select"
+SI_BETTERUI_CLEAR_SEARCH = "Clear"
+SI_GAMEPAD_BACK_OPTION = "Back"
+SI_GAMEPAD_SCRIPTS_KEYBIND_DOWN = "Down"
+
+function PlaySound(_)
+end
+
+function GetString(value)
+    return tostring(value)
+end
+
+function zo_strlower(value)
+    return string.lower(value)
+end
+
+BETTERUI.CIM.UI.HeaderSortController = {
+    New = function(_, list, columns, onSortChanged)
+        local controller = {
+            list = list,
+            columns = columns,
+            onSortChanged = onSortChanged,
+            enterCalls = 0,
+            exitCalls = 0,
+            active = false,
+        }
+
+        function controller:CreateKeybindDescriptor(exitCallback)
+            self.exitCallback = exitCallback
+            return {
+                controller = self,
+                exitCallback = exitCallback,
+            }
+        end
+
+        function controller:EnterHeaderMode()
+            self.enterCalls = self.enterCalls + 1
+            self.active = true
+        end
+
+        function controller:ExitHeaderMode()
+            self.exitCalls = self.exitCalls + 1
+            self.active = false
+        end
+
+        return controller
+    end,
+}
+
+dofile("Modules/CIM/UI/HeaderSortIntegration.lua")
+dofile("Modules/CIM/Core/Data/SearchManager.lua")
+dofile("Modules/CIM/Core/Settings/SettingsFactory.lua")
+
+do
+    local owner = {
+        list = {
+            GetNumItems = function()
+                return 3
+            end,
+        },
+        coreKeybinds = { id = "main" },
+    }
+
+    local integration = BETTERUI.CIM.UI.HeaderSortIntegration.Install(owner, {
+        list = owner.list,
+        columns = {
+            { key = "name" },
+        },
+        controllerContract = {
+            field = "headerSortController",
+        },
+        keybinds = {
+            mainDescriptor = owner.coreKeybinds,
+        },
+    })
+
+    local firstController = BETTERUI.CIM.UI.HeaderSortIntegration.EnsureController(integration)
+    local secondController = BETTERUI.CIM.UI.HeaderSortIntegration.EnsureController(integration)
+    assert_true(firstController == secondController, "HeaderSortIntegration reuses the same controller instance")
+
+    BETTERUI.CIM.UI.HeaderSortIntegration.EnterHeaderMode(integration)
+    BETTERUI.CIM.UI.HeaderSortIntegration.ExitHeaderMode(integration)
+    assert_eq(#KEYBIND_STRIP.added, 2, "HeaderSortIntegration swaps header keybinds in and owner keybinds back")
+    assert_eq(#KEYBIND_STRIP.removed, 1, "HeaderSortIntegration removes the temporary header keybind group")
+end
+
+do
+    local lifecycleCalls = {}
+    local searchContext = {
+        SEARCH_LIFECYCLE = {
+            clear = "ClearSearchInput",
+            exit = "ExitSearchMode",
+            headerActive = "IsHeaderFocused",
+            requestEnter = "RequestHeaderFocus",
+            onEnter = "OnHeaderEntered",
+        },
+        searchQuery = "widgets",
+        textSearchHeaderControl = {
+            IsHidden = function()
+                return false
+            end,
+        },
+        ClearSearchInput = function(self)
+            table.insert(lifecycleCalls, "clear")
+            self.searchQuery = ""
+        end,
+        ExitSearchMode = function()
+            table.insert(lifecycleCalls, "exit")
+        end,
+        IsHeaderFocused = function()
+            return false
+        end,
+        RequestHeaderFocus = function()
+            table.insert(lifecycleCalls, "requestEnter")
+        end,
+        OnHeaderEntered = function()
+            table.insert(lifecycleCalls, "onEnter")
+        end,
+    }
+
+    local descriptors = BETTERUI.Interface.CreateSearchKeybindDescriptor(searchContext)
+    descriptors[1].callback()
+    descriptors[2].callback()
+    searchContext.searchQuery = ""
+    descriptors[2].callback()
+
+    local requestMethod, requestName = BETTERUI.Interface.SearchMixin.GetSearchLifecycleMethod(searchContext, "requestEnter")
+    assert_true(type(requestMethod) == "function", "SearchMixin resolves the canonical requestEnter lifecycle method")
+    assert_eq(requestName, "RequestHeaderFocus", "SearchMixin returns the canonical requestEnter method name")
+
+    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(searchContext, "requestEnter")
+    assert_true(not BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(searchContext),
+        "SearchMixin reports header lifecycle inactive when the canonical callback returns false")
+
+    local editBox = {
+        text = "search text",
+        handlers = {},
+        GetHandler = function(self, name)
+            return self.handlers[name]
+        end,
+        SetHandler = function(self, name, handler)
+            self.handlers[name] = handler
+        end,
+        GetText = function(self)
+            return self.text
+        end,
+    }
+    searchContext.textSearchHeaderFocus = {
+        GetEditBox = function()
+            return editBox
+        end,
+    }
+
+    BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(searchContext, {
+        isSceneShowing = function()
+            return true
+        end,
+    })
+    editBox.handlers.OnFocusGained(editBox)
+
+    assert_eq(table.concat(lifecycleCalls, ","), "exit,clear,exit,requestEnter,requestEnter",
+        "SearchMixin routes search descriptor callbacks and focus registration through the canonical lifecycle")
+end
+
+do
+    local panelId = BETTERUI.CIM.Settings.RegisterModulePanel("Inventory", { name = "Inventory Panel" }, {
+        { type = "submenu", name = "Zulu" },
+        { type = "submenu", name = "Alpha" },
+        { type = "checkbox", name = "Beta" },
+        { type = "checkbox", name = "Alpha" },
+    })
+
+    assert_eq(panelId, "BETTERUI_Inventory", "SettingsFactory normalizes module names to canonical panel IDs")
+    assert_eq(LibAddonMenu2.panelCalls[#LibAddonMenu2.panelCalls].panelId, "BETTERUI_Inventory",
+        "SettingsFactory registers the normalized panel ID")
+    assert_eq(LibAddonMenu2.optionCalls[#LibAddonMenu2.optionCalls].optionsData[1].name, "Alpha",
+        "SettingsFactory sorts top-level submenu registrations alphabetically")
+    assert_eq(LibAddonMenu2.optionCalls[#LibAddonMenu2.optionCalls].optionsData[3].name, "Alpha",
+        "SettingsFactory sorts contiguous setting controls alphabetically before registration")
+end
 
 if failed > 0 then
     error(string.format("test_cim_integration_support_source.lua failed with %d failure(s)", failed))

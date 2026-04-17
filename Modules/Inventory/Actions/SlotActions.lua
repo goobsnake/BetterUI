@@ -111,17 +111,6 @@ local function CanMarkSlotAsJunk(inventorySlot)
     return true
 end
 
-local function InvokeInventoryDialog(methodName, ...)
-    local dialogs = BETTERUI.Inventory and BETTERUI.Inventory.Dialogs
-    local dialogFn = dialogs and dialogs[methodName]
-    if type(dialogFn) ~= "function" then
-        return false
-    end
-
-    dialogFn(...)
-    return true
-end
-
 local function IsSlotMarkedAsJunk(inventorySlot)
     if not inventorySlot or not IsItemJunk then
         return false
@@ -418,7 +407,8 @@ local function SetupPrimaryAction(actionsList, actionName, inventorySlot)
     elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
         BETTERUI.CIM.SetupSecureAction(actionsList, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
             function(...)
-                if not InvokeInventoryDialog("TryRetrieveWithQuantity", inventorySlot) then
+                local invokeInventoryDialog = BETTERUI.Inventory and BETTERUI.Inventory.InvokeDialog
+                if not (invokeInventoryDialog and invokeInventoryDialog("TryRetrieveWithQuantity", inventorySlot)) then
                     TryMoveToInventoryOrCraftBag(inventorySlot, BAG_BACKPACK)
                 end
             end, inventorySlot)

@@ -116,6 +116,7 @@ end
 -- HEADER SORT MODE
 -- Column definitions for header sort navigation (matches Inventory)
 -- Each column has a name (for display), key (internal), sortKey, and optional defaultDirection
+---@type BetterUIHeaderSortColumnDef[]
 local BANKING_SORT_COLUMNS = {
     { name = "NAME",  key = "name",  sortKey = "name" },
     { name = "TYPE",  key = "type",  sortKey = "bestGamepadItemCategoryName" },
@@ -332,6 +333,29 @@ local function CreateColumnSortComparator(sortKey, ascending)
 end
 
 --- Initializes the header sort controller for this banking instance.
+---@param instance BETTERUI.Banking.Class
+---@return BetterUIHeaderSortInstallOptions
+local function BuildBankingHeaderSortInstallOptions(instance)
+    return {
+        list = instance.list,
+        columns = BANKING_SORT_COLUMNS,
+        callbacks = {
+            onSortChanged = function(columnKey, direction)
+                instance:OnHeaderSortChanged(columnKey, direction)
+            end,
+        },
+        controllerContract = {
+            field = "headerSortController",
+        },
+        keybinds = {
+            mainDescriptor = instance.coreKeybinds,
+        },
+        navigation = {
+            suspendTabBar = true,
+        },
+    }
+end
+
 function BETTERUI.Banking.Class:InitializeHeaderSortController()
     local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
     if not (HeaderSortIntegration and HeaderSortIntegration.Install) then
@@ -343,16 +367,7 @@ function BETTERUI.Banking.Class:InitializeHeaderSortController()
     end
 
     if not self._headerSortIntegration then
-        HeaderSortIntegration.Install(self, {
-            list = self.list,
-            keybindDescriptor = self.coreKeybinds,
-            columns = BANKING_SORT_COLUMNS,
-            onSortChangedCallback = function(columnKey, direction)
-                self:OnHeaderSortChanged(columnKey, direction)
-            end,
-            controllerField = "headerSortController",
-            suspendTabBar = true,
-        })
+        HeaderSortIntegration.Install(self, BuildBankingHeaderSortInstallOptions(self))
     end
 
     self.headerSortController = HeaderSortIntegration.EnsureController(self._headerSortIntegration)

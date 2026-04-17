@@ -12,6 +12,54 @@ BETTERUI.CIM.UI.HeaderSortIntegration = {}
 
 local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
 
+---@param options BetterUIHeaderSortInstallOptions|table|nil
+---@return BetterUIHeaderSortControllerContract
+local function NormalizeControllerContract(options)
+    local contract = (options and options.controllerContract) or {}
+    return {
+        instance = contract.instance or (options and options.controller) or nil,
+        field = contract.field or (options and options.controllerField) or "headerSortController",
+        aliasFields = contract.aliasFields or (options and options.controllerAliasFields) or {},
+        resolve = contract.resolve or (options and options.headerControllerFn) or nil,
+        initialize = contract.initialize or (options and options.initControllerFn) or nil,
+    }
+end
+
+---@param options BetterUIHeaderSortInstallOptions|table|nil
+---@return BetterUIHeaderSortKeybindContract
+local function NormalizeKeybindContract(options)
+    local contract = (options and options.keybinds) or {}
+    return {
+        mainDescriptor = contract.mainDescriptor
+            or (options and options.keybindDescriptor)
+            or (options and options.mainKeybindDescriptor)
+            or nil,
+    }
+end
+
+---@param options BetterUIHeaderSortInstallOptions|table|nil
+---@return BetterUIHeaderSortNavigationContract
+local function NormalizeNavigationContract(options)
+    local contract = (options and options.navigation) or {}
+    return {
+        deactivate = contract.deactivate or (options and options.deactivateNavigationFn) or nil,
+        reactivate = contract.reactivate or (options and options.reactivateNavigationFn) or nil,
+        suspendTabBar = contract.suspendTabBar == true or (options and options.suspendTabBar) == true,
+    }
+end
+
+---@param options BetterUIHeaderSortInstallOptions|table|nil
+---@return BetterUIHeaderSortCallbackContract
+local function NormalizeCallbackContract(options)
+    local contract = (options and options.callbacks) or {}
+    return {
+        onSortChanged = contract.onSortChanged or (options and options.onSortChangedCallback) or nil,
+        onControllerCreated = contract.onControllerCreated or (options and options.onControllerCreated) or nil,
+        onEnterHeaderMode = contract.onEnterHeaderMode or (options and options.onEnterHeaderMode) or nil,
+        onExitHeaderMode = contract.onExitHeaderMode or (options and options.onExitHeaderMode) or nil,
+    }
+end
+
 local function ResolveList(integration)
     if integration.listFn then
         return integration.listFn(integration.owner)
@@ -20,18 +68,21 @@ local function ResolveList(integration)
     return integration.list or (integration.owner and (integration.owner.list or integration.owner.itemList))
 end
 
+---@param integration BetterUIHeaderSortIntegration
+---@param controller table|nil
 local function AssignController(integration, controller)
     if not controller then
         return nil
     end
 
     local owner = integration.owner
-    local controllerField = integration.controllerField
+    local controllerContract = integration.controllerContract
+    local controllerField = controllerContract.field
     if owner and controllerField then
         owner[controllerField] = controller
     end
 
-    for _, aliasField in ipairs(integration.controllerAliasFields or {}) do
+    for _, aliasField in ipairs(controllerContract.aliasFields or {}) do
         if owner and aliasField then
             owner[aliasField] = controller
         end
@@ -39,13 +90,14 @@ local function AssignController(integration, controller)
 
     integration.controller = controller
 
-    if integration.onControllerCreated then
-        integration.onControllerCreated(owner, controller, ResolveList(integration))
+    if integration.callbacks.onControllerCreated then
+        integration.callbacks.onControllerCreated(owner, controller, ResolveList(integration))
     end
 
     return controller
 end
 
+---@param integration BetterUIHeaderSortIntegration
 local function BuildController(integration)
     local list = ResolveList(integration)
     if integration.createControllerFn then
@@ -55,30 +107,32 @@ local function BuildController(integration)
     if integration.columns then
         local controllerClass = BETTERUI.CIM and BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController
         if controllerClass and controllerClass.New then
-            return controllerClass:New(list, integration.columns, integration.onSortChangedCallback)
+            return controllerClass:New(list, integration.columns, integration.callbacks.onSortChanged)
         end
     end
 
     return nil
 end
 
+---@param integration BetterUIHeaderSortIntegration
 local function ResolveController(integration)
     if integration.controller then
         return integration.controller
     end
 
     local owner = integration.owner
-    if owner and integration.controllerField and owner[integration.controllerField] then
-        integration.controller = owner[integration.controllerField]
+    local controllerContract = integration.controllerContract
+    if owner and controllerContract.field and owner[controllerContract.field] then
+        integration.controller = owner[controllerContract.field]
         return integration.controller
     end
 
-    if integration.initControllerFn then
-        integration.initControllerFn(integration.owner)
+    if controllerContract.initialize then
+        controllerContract.initialize(integration.owner)
     end
 
-    if integration.headerControllerFn then
-        local resolvedController = integration.headerControllerFn(integration.owner)
+    if controllerContract.resolve then
+        local resolvedController = controllerContract.resolve(integration.owner)
         if resolvedController then
             return AssignController(integration, resolvedController)
         end
@@ -127,37 +181,38 @@ end
 
 --- Installs the shared header sort owner contract.
 ---@param owner table
----@param options table?
----@return table integration
+---@param options BetterUIHeaderSortInstallOptions|table|nil
+---@return BetterUIHeaderSortIntegration integration
 function HeaderSortIntegration.Install(owner, options)
     options = options or {}
+
+    local controllerContract = NormalizeControllerContract(options)
+    local keybinds = NormalizeKeybindContract(options)
+    local navigation = NormalizeNavigationContract(options)
+    local callbacks = NormalizeCallbackContract(options)
 
     local integration = {
         owner = owner,
         list = options.list,
         listFn = options.listFn,
-        controller = options.controller,
-        headerControllerFn = options.headerControllerFn,
-        initControllerFn = options.initControllerFn,
-        controllerField = options.controllerField or "headerSortController",
-        controllerAliasFields = options.controllerAliasFields or {},
+        controller = controllerContract.instance,
+        controllerContract = controllerContract,
         columns = options.columns,
-        onSortChangedCallback = options.onSortChangedCallback,
+        callbacks = callbacks,
         createControllerFn = options.createControllerFn,
-        onControllerCreated = options.onControllerCreated,
-        keybindDescriptor = options.keybindDescriptor or options.mainKeybindDescriptor,
-        deactivateNavigationFn = options.deactivateNavigationFn,
-        reactivateNavigationFn = options.reactivateNavigationFn,
-        onEnterHeaderMode = options.onEnterHeaderMode,
-        onExitHeaderMode = options.onExitHeaderMode,
+        keybinds = keybinds,
+        keybindDescriptor = keybinds.mainDescriptor,
+        navigation = navigation,
+        controllerField = controllerContract.field,
+        controllerAliasFields = controllerContract.aliasFields,
         autoEnterOnListStart = options.autoEnterOnListStart == true,
         isActive = false,
         activeKeybindDescriptor = nil,
     }
 
-    if options.suspendTabBar == true then
-        integration.deactivateNavigationFn = integration.deactivateNavigationFn or SuspendOwnerTabBar
-        integration.reactivateNavigationFn = integration.reactivateNavigationFn or RestoreOwnerTabBar
+    if navigation.suspendTabBar then
+        navigation.deactivate = navigation.deactivate or SuspendOwnerTabBar
+        navigation.reactivate = navigation.reactivate or RestoreOwnerTabBar
     end
 
     owner._headerSortIntegration = integration
@@ -187,8 +242,8 @@ end
 --- Backward-compatible wrapper for older static-list callers.
 ---@param list table
 ---@param controller table
----@param options table?
----@return table integration
+---@param options BetterUIHeaderSortInstallOptions|table|nil
+---@return BetterUIHeaderSortIntegration integration
 function HeaderSortIntegration.Setup(list, controller, options)
     options = options or {}
     local owner = options.owner or { list = list }
@@ -201,7 +256,7 @@ function HeaderSortIntegration.Setup(list, controller, options)
 end
 
 --- Enters header sort navigation mode.
----@param integration table
+---@param integration BetterUIHeaderSortIntegration
 ---@return boolean
 function HeaderSortIntegration.EnterHeaderMode(integration)
     if integration.isActive then
@@ -210,30 +265,30 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
 
     local owner = integration.owner
     local navigationSuspended = false
-    if integration.deactivateNavigationFn then
-        integration.deactivateNavigationFn(owner)
+    if integration.navigation.deactivate then
+        integration.navigation.deactivate(owner)
         navigationSuspended = true
     end
 
     local list = ResolveList(integration)
     if not list or not list.GetNumItems or list:GetNumItems() == 0 then
-        if navigationSuspended and integration.reactivateNavigationFn then
-            integration.reactivateNavigationFn(owner)
+        if navigationSuspended and integration.navigation.reactivate then
+            integration.navigation.reactivate(owner)
         end
         return false
     end
 
     local controller = ResolveController(integration)
     if not controller or not controller.EnterHeaderMode then
-        if navigationSuspended and integration.reactivateNavigationFn then
-            integration.reactivateNavigationFn(owner)
+        if navigationSuspended and integration.navigation.reactivate then
+            integration.navigation.reactivate(owner)
         end
         return false
     end
 
     if controller:EnterHeaderMode() == false then
-        if navigationSuspended and integration.reactivateNavigationFn then
-            integration.reactivateNavigationFn(owner)
+        if navigationSuspended and integration.navigation.reactivate then
+            integration.navigation.reactivate(owner)
         end
         return false
     end
@@ -253,15 +308,15 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
         KEYBIND_STRIP:AddKeybindButtonGroup(integration.activeKeybindDescriptor)
     end
 
-    if integration.onEnterHeaderMode then
-        integration.onEnterHeaderMode(owner, controller, list)
+    if integration.callbacks.onEnterHeaderMode then
+        integration.callbacks.onEnterHeaderMode(owner, controller, list)
     end
 
     return true
 end
 
 --- Exits header sort navigation mode and returns to the list.
----@param integration table
+---@param integration BetterUIHeaderSortIntegration
 ---@return boolean
 function HeaderSortIntegration.ExitHeaderMode(integration)
     if not integration.isActive then
@@ -285,10 +340,10 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
         integration.activeKeybindDescriptor = nil
     end
 
-    if integration.keybindDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
-        KEYBIND_STRIP:AddKeybindButtonGroup(integration.keybindDescriptor)
+    if integration.keybinds.mainDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
+        KEYBIND_STRIP:AddKeybindButtonGroup(integration.keybinds.mainDescriptor)
         if KEYBIND_STRIP.UpdateKeybindButtonGroup then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.keybindDescriptor)
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.keybinds.mainDescriptor)
         end
     end
 
@@ -296,18 +351,18 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
         owner:EnsureHeaderKeybindsActive()
     end
 
-    if integration.reactivateNavigationFn then
-        integration.reactivateNavigationFn(owner)
+    if integration.navigation.reactivate then
+        integration.navigation.reactivate(owner)
     end
 
-    if integration.onExitHeaderMode then
-        integration.onExitHeaderMode(owner, controller)
+    if integration.callbacks.onExitHeaderMode then
+        integration.callbacks.onExitHeaderMode(owner, controller)
     end
 
     return true
 end
 
----@param integration table?
+---@param integration BetterUIHeaderSortIntegration|nil
 ---@return table?
 function HeaderSortIntegration.EnsureController(integration)
     if not integration then
@@ -330,7 +385,7 @@ function HeaderSortIntegration.GetController(owner)
     return owner.headerSortController or owner.sortController
 end
 
----@param integration table?
+---@param integration BetterUIHeaderSortIntegration|nil
 ---@return boolean
 function HeaderSortIntegration.IsActive(integration)
     return integration and integration.isActive or false
@@ -338,7 +393,7 @@ end
 
 --- Backward-compatible wrapper around the unified installer.
 ---@param instance table
----@param config table
+---@param config BetterUIHeaderSortInstallOptions|table
 ---@return table?
 function HeaderSortIntegration.ApplyMixin(instance, config)
     if not instance or not config then

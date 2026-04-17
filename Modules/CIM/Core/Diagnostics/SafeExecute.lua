@@ -39,7 +39,7 @@ end
 
 ---@param path string Dot-separated path relative to BETTERUI for optional lookup only (e.g. "ExternalAddon.Callback")
 ---@return any|nil value The resolved value, or nil if any segment is missing
-function BETTERUI.CIM.TryResolve(path)
+local function ResolveOptionalBetterUIPath(path)
     local node = BETTERUI
     for segment in path:gmatch("[^%.]+") do
         node = node[segment]
@@ -52,13 +52,13 @@ end
 ---@param ... any Arguments to pass to the resolved function
 ---@return boolean ok true if the function was found and called
 ---@return any|nil result The function's return value, or nil if not found
-function BETTERUI.CIM.TryCall(path, ...)
-    local fn = BETTERUI.CIM.TryResolve(path)
+local function CallOptionalBetterUIPath(path, ...)
+    local fn = ResolveOptionalBetterUIPath(path)
     if type(fn) ~= "function" then return false, nil end
     return true, fn(...)
 end
 
---- Optional dispatch helper for BETTERUI path lookups.
+--- Optional add-on dispatch helper for BETTERUI path lookups.
 --- Stable internal BetterUI seams should be invoked directly instead of by string path.
 --- Unlike SafeExecute, this only skips missing targets; it does not wrap errors.
 ---@param path string Dot-separated path to an optional function on BETTERUI
@@ -66,7 +66,7 @@ end
 ---@return boolean ok true if the function was found and called
 ---@return any|nil result The function's return value, or nil if not found
 function BETTERUI.CIM.SafeCall(path, ...)
-    return BETTERUI.CIM.TryCall(path, ...)
+    return CallOptionalBetterUIPath(path, ...)
 end
 
 --- Unified user-facing error notification with structured logging.
