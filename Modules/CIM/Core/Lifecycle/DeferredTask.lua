@@ -86,6 +86,25 @@ function BETTERUI.CIM.DeferredTask.CreateManager()
     return DeferredTaskManager:New()
 end
 
+function BETTERUI.CIM.DeferredTask.CreateLazyManagerProxy(factory)
+    return setmetatable({}, {
+        __index = function(_, key)
+            local manager = factory()
+            local value = manager and manager[key]
+            if type(value) == "function" then
+                return function(_, ...)
+                    return value(manager, ...)
+                end
+            end
+            return value
+        end,
+        __newindex = function(_, key, value)
+            local manager = factory()
+            manager[key] = value
+        end,
+    })
+end
+
 function BETTERUI.CIM.DeferredTask.GetSharedManager()
     return BETTERUI.CIM.Tasks
 end

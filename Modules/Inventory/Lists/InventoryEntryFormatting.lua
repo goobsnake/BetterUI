@@ -91,12 +91,6 @@ local function ShouldShowMarketPrice()
         return generalInterfaceSettings.showMarketPrice
     end
 
-    -- Legacy fallback for pre-migration saved variables.
-    local inventorySettings = GetModuleSettings("Inventory")
-    if inventorySettings.showMarketPrice ~= nil then
-        return inventorySettings.showMarketPrice
-    end
-
     return true
 end
 

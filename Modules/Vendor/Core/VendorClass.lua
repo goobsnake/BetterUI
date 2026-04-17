@@ -494,8 +494,16 @@ local function ResolveHeaderColumnOffset(columnIndex)
 end
 
 -- MODULE-SCOPE TASK MANAGER (for coalescing list refreshes)
-assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before Vendor/Core/VendorClass")
-BETTERUI.Vendor.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
+local VendorDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
+    "BetterUI: CIM.DeferredTask must load before Vendor/Core/VendorClass")
+local function EnsureVendorTaskManager()
+    if not BETTERUI.Vendor._taskManager then
+        BETTERUI.Vendor._taskManager = VendorDeferredTask.CreateManager()
+    end
+    return BETTERUI.Vendor._taskManager
+end
+BETTERUI.Vendor.EnsureTaskManager = EnsureVendorTaskManager
+BETTERUI.Vendor.Tasks = BETTERUI.Vendor.Tasks or VendorDeferredTask.CreateLazyManagerProxy(EnsureVendorTaskManager)
 
 -- CLASS DEFINITION
 

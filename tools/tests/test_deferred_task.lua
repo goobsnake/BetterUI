@@ -108,17 +108,36 @@ local sharedTasks = BETTERUI.CIM.DeferredTask.EnsureSharedManager()
 assert_true(sharedTasks ~= nil, "EnsureSharedManager creates the shared manager")
 assert_equal(sharedTasks, BETTERUI.CIM.DeferredTask.GetSharedManager(), "Shared manager becomes discoverable")
 
--- Test 1: Schedule creates pending task
-print("Test: Schedule creates pending task")
+-- Test 1: Lazy manager proxy defers manager creation until first use
+print("\nTest: Lazy manager proxy defers manager creation")
+resetScheduler()
+local createdManagerCount = 0
+local proxiedManager = nil
+local lazyProxy = BETTERUI.CIM.DeferredTask.CreateLazyManagerProxy(function()
+    if proxiedManager == nil then
+        createdManagerCount = createdManagerCount + 1
+        proxiedManager = BETTERUI.CIM.DeferredTask.Manager:New()
+    end
+    return proxiedManager
+end)
+assert_equal(0, createdManagerCount, "Proxy does not allocate a manager at creation time")
+lazyProxy:Schedule("lazyTask", 100, function() end)
+scheduledId = getOnlyScheduledId()
+assert_equal(1, createdManagerCount, "Proxy allocates exactly once on first task access")
+assert_true(scheduledId ~= nil, "Proxy forwards Schedule to the created manager")
+assert_true(lazyProxy:IsPending("lazyTask"), "Proxy forwards IsPending to the created manager")
+
+-- Test 2: Schedule creates pending task
+print("\nTest: Schedule creates pending task")
 resetScheduler()
 local tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 tasks:Schedule("myTask", 100, function() end)
-local scheduledId = getOnlyScheduledId()
+scheduledId = getOnlyScheduledId()
 assert_true(scheduledId ~= nil, "Task created a deferred callback")
 assert_true(tasks:IsPending("myTask"), "Task is pending")
 assert_equal(1, tasks:GetPendingCount(), "Pending count is 1")
 
--- Test 2: Pending task clears after callback runs
+-- Test 3: Pending task clears after callback runs
 print("\nTest: Pending task clears after callback runs")
 local callbackCount = 0
 resetScheduler()
@@ -132,7 +151,7 @@ assert_equal(1, callbackCount, "Callback executed once")
 assert_false(tasks:IsPending("runTask"), "Task no longer pending after execution")
 assert_equal(0, tasks:GetPendingCount(), "Pending count returns to 0")
 
--- Test 3: Cancel removes task
+-- Test 4: Cancel removes task
 print("\nTest: Cancel removes task")
 resetScheduler()
 tasks = BETTERUI.CIM.DeferredTask.Manager:New()
@@ -142,12 +161,12 @@ tasks:Cancel("myTask")
 assert_true(removedCallbacks[scheduledId] == true, "Cancel removes the scheduled callback")
 assert_false(tasks:IsPending("myTask"), "Task is no longer pending")
 
--- Test 4: Cancel non-existent task is harmless
+-- Test 5: Cancel non-existent task is harmless
 print("\nTest: Cancel non-existent task is harmless")
 tasks:Cancel("nonexistent")
 assert_equal(0, tasks:GetPendingCount(), "Cancel on missing task leaves state unchanged")
 
--- Test 5: CancelAll clears all tasks
+-- Test 6: CancelAll clears all tasks
 print("\nTest: CancelAll clears all tasks")
 resetScheduler()
 tasks = BETTERUI.CIM.DeferredTask.Manager:New()
@@ -163,7 +182,7 @@ assert_false(tasks:IsPending("task2"), "task2 cleared")
 assert_false(tasks:IsPending("task3"), "task3 cleared")
 assert_equal(0, tasks:GetPendingCount(), "Pending count returns to 0 after CancelAll")
 
--- Test 6: Reschedule replaces existing callback
+-- Test 7: Reschedule replaces existing callback
 print("\nTest: Reschedule replaces existing callback")
 resetScheduler()
 tasks = BETTERUI.CIM.DeferredTask.Manager:New()
@@ -180,7 +199,7 @@ scheduledCallbacks[secondId].callback()
 assert_equal(0, firstCount, "Original callback never ran")
 assert_equal(1, secondCount, "Replacement callback ran once")
 
--- Test 7: EnsureSharedManager is idempotent
+-- Test 8: EnsureSharedManager is idempotent
 print("\nTest: EnsureSharedManager reuses the same shared manager")
 resetScheduler()
 local firstShared = BETTERUI.CIM.DeferredTask.EnsureSharedManager()

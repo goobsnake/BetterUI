@@ -166,18 +166,14 @@ function MarketIntegration.GetMarketPriceInfo(itemLink, stackCount)
     if not itemLink then
         return EMPTY_MARKET_PRICE_INFO
     end
-    -- Support both GeneralInterface (new) and Tooltips (legacy) settings keys
-    local tooltipSettings = BETTERUI.GetModuleSettings("GeneralInterface")
-    if not tooltipSettings or not next(tooltipSettings) then
-        tooltipSettings = BETTERUI.GetModuleSettings("Tooltips")
-    end
+    local generalInterfaceSettings = BETTERUI.GetModuleSettings("GeneralInterface") or {}
     stackCount = stackCount or 1
 
-    local sourceOrder = MarketIntegration.GetPriorityOrder(tooltipSettings)
+    local sourceOrder = MarketIntegration.GetPriorityOrder(generalInterfaceSettings)
     for _, sourceKey in ipairs(sourceOrder) do
         local fetcher = SOURCE_FETCHERS[sourceKey]
         if type(fetcher) == "function" then
-            local priceInfo = fetcher(itemLink, stackCount, tooltipSettings)
+            local priceInfo = fetcher(itemLink, stackCount, generalInterfaceSettings)
             if priceInfo and priceInfo.price and priceInfo.price > 0 then
                 return priceInfo
             end

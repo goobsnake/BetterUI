@@ -489,6 +489,14 @@ local function ReportModuleSetupFailures(failedModules, contextLabel)
 	return true
 end
 
+local function LoadSavedVarsWithFallback(loaderName, loader)
+	local ok, result = pcall(loader, ZO_SavedVars, "BetterUISavedVars", SAVED_VARS_SCHEMA_VERSION, nil, BETTERUI.DefaultSettings)
+	if not ok then
+		BETTERUI.Debug(string.format("[SavedVars] %s failed, using defaults: %s", loaderName, tostring(result)))
+	end
+	return ok and result or BETTERUI.DefaultSettings
+end
+
 local function ShouldSetupKeyboardModeModule(entry)
 	if entry.name == "CIM" then
 		return false
@@ -592,7 +600,7 @@ end
 --- Loads and initializes all enabled modules.
 ---
 --- Purpose: Orchestrates the loading of sub-modules when in Gamepad mode.
---- Mechanics: Calls RuntimeSetup.Apply() for API patches and settings migrations.
+--- Mechanics: Assumes runtime setup already ran during Initialize().
 ---            Validates modules using CIM.Interfaces before calling Setup.
 ---            Initializes research data and module-specific setups (Inventory, Banking, Writs, etc.).
 --- References: Called on initialization and when switching to Gamepad mode.
@@ -601,13 +609,6 @@ function BETTERUI.LoadModules()
 	if BETTERUI._initialized then return true end
 
 	BETTERUI.Debug("Initializing BETTERUI...")
-
-	-- Apply runtime safety patches and settings migrations
-	-- (Extracted to Modules/CIM/RuntimeSetup.lua for cleaner separation)
-	local runtimeSetup = BETTERUI.CIM and BETTERUI.CIM.RuntimeSetup
-	if runtimeSetup and runtimeSetup.Apply then
-		runtimeSetup.Apply(BETTERUI.Settings)
-	end
 
 	-- Initialize research data once
 	BETTERUI.GetResearch()
@@ -636,16 +637,19 @@ function BETTERUI.Initialize(event, addon)
 	-- Load saved variables
 	-- Changed version to 2.89 to prevent issues with prior saved variables
 	-- Wrap in pcall so corrupted SavedVars don't crash the entire addon
-	local ok, result = pcall(ZO_SavedVars.New, ZO_SavedVars, "BetterUISavedVars", SAVED_VARS_SCHEMA_VERSION, nil, BETTERUI.DefaultSettings)
-	BETTERUI.SavedVars = ok and result or BETTERUI.DefaultSettings
-	local okGlobal, resultGlobal = pcall(ZO_SavedVars.NewAccountWide, ZO_SavedVars, "BetterUISavedVars", SAVED_VARS_SCHEMA_VERSION, nil, BETTERUI.DefaultSettings)
-	BETTERUI.GlobalVars = okGlobal and resultGlobal or BETTERUI.DefaultSettings
+	BETTERUI.SavedVars = LoadSavedVarsWithFallback("ZO_SavedVars.New", ZO_SavedVars.New)
+	BETTERUI.GlobalVars = LoadSavedVarsWithFallback("ZO_SavedVars.NewAccountWide", ZO_SavedVars.NewAccountWide)
 
 	-- Determine which settings to use
 	if BETTERUI.SavedVars.useAccountWide then
 		BETTERUI.Settings = BETTERUI.GlobalVars
 	else
 		BETTERUI.Settings = BETTERUI.SavedVars
+	end
+
+	local runtimeSetup = BETTERUI.CIM and BETTERUI.CIM.RuntimeSetup
+	if runtimeSetup and runtimeSetup.Apply then
+		runtimeSetup.Apply(BETTERUI.Settings)
 	end
 
 	-- Initialize or update module settings with defaults

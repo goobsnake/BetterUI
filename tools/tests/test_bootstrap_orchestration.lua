@@ -31,6 +31,18 @@ local function assert_true(value, label)
     assert_eq(value, true, label)
 end
 
+local function deepcopy(value)
+    if type(value) ~= "table" then
+        return value
+    end
+
+    local copy = {}
+    for key, nestedValue in pairs(value) do
+        copy[deepcopy(key)] = deepcopy(nestedValue)
+    end
+    return copy
+end
+
 local function post_hook(control, methodName, callback)
     local original = control[methodName]
     control[methodName] = function(self, ...)
@@ -55,6 +67,7 @@ local addonPanels = {}
 local optionControls = {}
 local registeredEvents = {}
 local runtimeSetupCalls = 0
+local ensureLifecycleRuntimeStateCalls = 0
 local ensurePatchCalls = 0
 local researchCalls = 0
 local inventoryHookCalls = 0
@@ -140,25 +153,67 @@ function GetString(value)
     return stringMap[value] or tostring(value)
 end
 
+ZO_Object = {}
+
+function ZO_Object:Subclass()
+    local subclass = {}
+    subclass.__index = subclass
+    return setmetatable(subclass, { __index = self })
+end
+
+function ZO_Object.New(class)
+    return setmetatable({}, class)
+end
+
+local scheduledCallId = 0
+
+function zo_callLater(callback, _)
+    scheduledCallId = scheduledCallId + 1
+    return scheduledCallId
+end
+
+function zo_removeCallLater(_) end
+
+function GetCVar(key)
+    if key == "language.2" then
+        return "en"
+    end
+    return nil
+end
+
+local savedVarsFailures = {
+    character = nil,
+    accountWide = nil,
+}
+local nextSavedVarsResult = nil
+local nextGlobalVarsResult = nil
+
 ZO_SavedVars = {
     New = function()
-        return {
+        if savedVarsFailures.character ~= nil then
+            error(savedVarsFailures.character)
+        end
+        return deepcopy(nextSavedVarsResult or {
             useAccountWide = false,
             firstInstall = false,
             Modules = {},
-        }
+        })
     end,
     NewAccountWide = function()
-        return {
+        if savedVarsFailures.accountWide ~= nil then
+            error(savedVarsFailures.accountWide)
+        end
+        return deepcopy(nextGlobalVarsResult or {
             useAccountWide = false,
             firstInstall = false,
             Modules = {},
-        }
+        })
     end,
 }
 
 EVENT_ADD_ON_LOADED = 1
 EVENT_GAMEPAD_PREFERRED_MODE_CHANGED = 2
+EVENT_PLAYER_ACTIVATED = 3
 
 local inGamepadPreferredMode = false
 
@@ -193,11 +248,19 @@ BETTERUI.Init_ModulePanel = function(moduleName, moduleDesc)
         moduleDesc = moduleDesc,
     }
 end
-BETTERUI.CIM.RuntimeSetup = {
-    Apply = function()
-        runtimeSetupCalls = runtimeSetupCalls + 1
+
+BETTERUI.CIM.EventRegistry = {
+    EnsureRuntimeState = function()
+        ensureLifecycleRuntimeStateCalls = ensureLifecycleRuntimeStateCalls + 1
     end,
 }
+dofile("Modules/CIM/Core/Lifecycle/DeferredTask.lua")
+dofile("Modules/CIM/Core/Lifecycle/RuntimeSetup.lua")
+local applyRuntimeSetup = BETTERUI.CIM.RuntimeSetup.Apply
+BETTERUI.CIM.RuntimeSetup.Apply = function(settings)
+    runtimeSetupCalls = runtimeSetupCalls + 1
+    return applyRuntimeSetup(settings)
+end
 BETTERUI.CIM.TryCall = function(path)
     error("unexpected internal string-path dispatch: " .. tostring(path))
 end
@@ -238,6 +301,38 @@ BETTERUI.GeneralInterface = makeModule("GeneralInterface")
 BETTERUI.Nameplates = makeModule("Nameplates")
 BETTERUI.ResourceOrbFrames = makeModule("ResourceOrbFrames")
 
+local setupModuleNamespaces = {
+    "CIM",
+    "Inventory",
+    "Banking",
+    "Vendor",
+    "TradingHouse",
+    "Companions",
+    "Writs",
+    "GeneralInterface",
+    "Nameplates",
+    "ResourceOrbFrames",
+}
+
+local function setSavedVarsResults(savedVars, globalVars)
+    nextSavedVarsResult = deepcopy(savedVars)
+    nextGlobalVarsResult = deepcopy(globalVars)
+    savedVarsFailures.character = nil
+    savedVarsFailures.accountWide = nil
+end
+
+local function resetSetupState()
+    BETTERUI._initialized = false
+    BETTERUI._sessionDisabledModules = nil
+    BETTERUI.CIM.Tasks = nil
+    for _, namespace in ipairs(setupModuleNamespaces) do
+        local moduleTable = BETTERUI[namespace]
+        if type(moduleTable) == "table" then
+            moduleTable._setupComplete = nil
+        end
+    end
+end
+
 print("[Bootstrap orchestration]")
 
 BETTERUI.InitModuleOptions()
@@ -262,7 +357,7 @@ local firstLoadSucceeded = BETTERUI.LoadModules()
 local secondLoadSucceeded = BETTERUI.LoadModules()
 assert_true(firstLoadSucceeded, "initial load returns success when all modules setup")
 assert_true(secondLoadSucceeded, "repeat load short-circuits as successful once initialized")
-assert_eq(runtimeSetupCalls, 1, "runtime setup runs once per bootstrap")
+assert_eq(runtimeSetupCalls, 0, "LoadModules assumes runtime setup already ran during initialize")
 assert_eq(researchCalls, 1, "research cache warms once per bootstrap")
 assert_eq(inventoryHookCalls, 1, "inventory pre-setup hook runs once")
 assert_eq(inventoryActionHookCalls, 1, "inventory action hook runs once")
@@ -280,9 +375,126 @@ inGamepadPreferredMode = false
 local gamepadCallback = registeredEvents["BetterUI_Gamepad"]
 assert_true(type(gamepadCallback) == "function", "gamepad mode callback is registered")
 gamepadCallback(nil, true)
-assert_eq(runtimeSetupCalls, 2, "switching into gamepad mode triggers bootstrap automatically")
 assert_eq(setupCounts.Companions, 2, "gamepad mode switch reloads companions when bootstrap resets")
 assert_eq(setupCounts.TradingHouse, 2, "gamepad mode switch reloads trading house when bootstrap resets")
+
+print("\nTest: Keyboard initialize runs runtime setup on character settings before keyboard setup")
+runtimeSetupCalls = 0
+ensureLifecycleRuntimeStateCalls = 0
+researchCalls = 0
+setupCounts = {}
+inventoryHookCalls = 0
+inventoryActionHookCalls = 0
+setSavedVarsResults({
+    useAccountWide = false,
+    firstInstall = false,
+    Modules = {
+        Tooltips = {
+            showMarketPrice = true,
+            m_enabled = true,
+        },
+        Inventory = {
+            showMarketPrice = false,
+        },
+    },
+}, {
+    useAccountWide = false,
+    firstInstall = false,
+    Modules = {},
+})
+resetSetupState()
+inGamepadPreferredMode = false
+local keyboardBootstrapResult = BETTERUI.Initialize(EVENT_ADD_ON_LOADED, BETTERUI.name)
+assert_true(keyboardBootstrapResult, "keyboard initialize succeeds with healthy modules")
+assert_eq(runtimeSetupCalls, 1, "keyboard initialize runs runtime setup before keyboard-only setup")
+assert_eq(ensureLifecycleRuntimeStateCalls, 1, "keyboard initialize ensures runtime lifecycle state")
+assert_eq(BETTERUI.Settings, BETTERUI.SavedVars, "character settings remain the active bootstrap target")
+assert_eq(BETTERUI.Settings.Modules.GeneralInterface.showMarketPrice, true,
+    "keyboard initialize migrates Tooltips settings onto GeneralInterface")
+assert_eq(BETTERUI.Settings.Modules.Inventory.showMarketPrice, nil,
+    "keyboard initialize clears the legacy Inventory market-price key")
+assert_eq(BETTERUI.Settings.Modules.Tooltips, nil,
+    "keyboard initialize removes the legacy Tooltips module key")
+
+print("\nTest: Gamepad initialize runs runtime setup on selected account-wide settings")
+runtimeSetupCalls = 0
+ensureLifecycleRuntimeStateCalls = 0
+researchCalls = 0
+setupCounts = {}
+inventoryHookCalls = 0
+inventoryActionHookCalls = 0
+setSavedVarsResults({
+    useAccountWide = true,
+    firstInstall = false,
+    Modules = {},
+}, {
+    useAccountWide = false,
+    firstInstall = false,
+    Modules = {
+        Inventory = {
+            showMarketPrice = false,
+        },
+    },
+})
+resetSetupState()
+inGamepadPreferredMode = true
+local gamepadBootstrapResult = BETTERUI.Initialize(EVENT_ADD_ON_LOADED, BETTERUI.name)
+assert_true(gamepadBootstrapResult, "gamepad initialize succeeds with healthy modules")
+assert_eq(BETTERUI.Settings, BETTERUI.GlobalVars, "account-wide selection is resolved before runtime setup runs")
+assert_eq(runtimeSetupCalls, 1, "gamepad initialize runs runtime setup before module loading")
+assert_eq(ensureLifecycleRuntimeStateCalls, 1, "gamepad initialize ensures runtime lifecycle state")
+assert_eq(researchCalls, 1, "gamepad initialize still warms research during module loading")
+assert_eq(BETTERUI.GlobalVars.Modules.GeneralInterface.showMarketPrice, false,
+    "gamepad initialize migrates market-price visibility on the active account-wide settings")
+assert_eq(BETTERUI.GlobalVars.Modules.Inventory.showMarketPrice, nil,
+    "gamepad initialize clears the legacy account-wide Inventory market-price key")
+assert_eq(setupCounts.Companions, 1, "gamepad initialize continues through the normal module-loading path")
+
+print("\nTest: SavedVars failures are logged before defaults are used")
+runtimeSetupCalls = 0
+ensureLifecycleRuntimeStateCalls = 0
+researchCalls = 0
+setupCounts = {}
+inventoryHookCalls = 0
+inventoryActionHookCalls = 0
+savedVarsFailures.character = "character saved vars exploded"
+savedVarsFailures.accountWide = "account-wide saved vars exploded"
+nextSavedVarsResult = nil
+nextGlobalVarsResult = nil
+BETTERUI.DefaultSettings = {
+    firstInstall = false,
+    useAccountWide = false,
+    Modules = {},
+}
+resetSetupState()
+inGamepadPreferredMode = false
+local debugStart = #debugMessages
+local fallbackBootstrapResult = BETTERUI.Initialize(EVENT_ADD_ON_LOADED, BETTERUI.name)
+assert_true(fallbackBootstrapResult, "bootstrap continues when both SavedVars stores fall back to defaults")
+assert_eq(runtimeSetupCalls, 1, "fallback bootstrap still runs runtime setup on the default settings table")
+assert_eq(ensureLifecycleRuntimeStateCalls, 1, "fallback bootstrap still ensures runtime lifecycle state")
+
+local characterFallbackLogCount = 0
+local accountWideFallbackLogCount = 0
+for i = debugStart + 1, #debugMessages do
+    if debugMessages[i]:find("ZO_SavedVars.New failed, using defaults:", 1, true)
+        and debugMessages[i]:find("character saved vars exploded", 1, true) then
+        characterFallbackLogCount = characterFallbackLogCount + 1
+    end
+    if debugMessages[i]:find("ZO_SavedVars.NewAccountWide failed, using defaults:", 1, true)
+        and debugMessages[i]:find("account-wide saved vars exploded", 1, true) then
+        accountWideFallbackLogCount = accountWideFallbackLogCount + 1
+    end
+end
+assert_eq(characterFallbackLogCount, 1, "character SavedVars failures are logged before falling back")
+assert_eq(accountWideFallbackLogCount, 1, "account-wide SavedVars failures are logged before falling back")
+savedVarsFailures.character = nil
+savedVarsFailures.accountWide = nil
+BETTERUI.DefaultSettings = {
+    firstInstall = true,
+    useAccountWide = false,
+    Modules = {},
+}
 
 local originalBankingSetup = BETTERUI.Banking.Setup
 BETTERUI._initialized = false

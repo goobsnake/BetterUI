@@ -19,9 +19,16 @@ BETTERUI.Companions.COMPANION_INTERACTION = {
 }
 
 -- MODULE-SCOPE TASK MANAGER
-assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
+local CompanionsDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
     "BetterUI: CIM.DeferredTask must load before Companions/Core/CompanionsClass")
-BETTERUI.Companions.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
+local function EnsureCompanionsTaskManager()
+    if not BETTERUI.Companions._taskManager then
+        BETTERUI.Companions._taskManager = CompanionsDeferredTask.CreateManager()
+    end
+    return BETTERUI.Companions._taskManager
+end
+BETTERUI.Companions.EnsureTaskManager = EnsureCompanionsTaskManager
+BETTERUI.Companions.Tasks = BETTERUI.Companions.Tasks or CompanionsDeferredTask.CreateLazyManagerProxy(EnsureCompanionsTaskManager)
 
 ---@class BETTERUI.Companions.Class : BETTERUI.CIM.GenericWindow
 BETTERUI.Companions.Class = BETTERUI.CIM.GenericWindow:Subclass()

@@ -32,9 +32,16 @@ BETTERUI.TradingHouse.MODE = {
 }
 
 -- MODULE-SCOPE TASK MANAGER (for coalescing list refreshes)
-assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
+local TradingHouseDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
     "BetterUI: CIM.DeferredTask must load before TradingHouse/Core/TradingHouseClass")
-BETTERUI.TradingHouse.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
+local function EnsureTradingHouseTaskManager()
+    if not BETTERUI.TradingHouse._taskManager then
+        BETTERUI.TradingHouse._taskManager = TradingHouseDeferredTask.CreateManager()
+    end
+    return BETTERUI.TradingHouse._taskManager
+end
+BETTERUI.TradingHouse.EnsureTaskManager = EnsureTradingHouseTaskManager
+BETTERUI.TradingHouse.Tasks = BETTERUI.TradingHouse.Tasks or TradingHouseDeferredTask.CreateLazyManagerProxy(EnsureTradingHouseTaskManager)
 
 -- CLASS DEFINITION
 

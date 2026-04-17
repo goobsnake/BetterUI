@@ -284,6 +284,14 @@ BETTERUI.Utils.IsBankingSceneShowing = function()
     return false
 end
 
+print("\nTest: Market-price visibility only reads GeneralInterface settings")
+moduleSettings.GeneralInterface.showMarketPrice = nil
+moduleSettings.Inventory.showMarketPrice = false
+assert_true(BETTERUI.Inventory._EntryFormatting.ShouldShowMarketPrice(),
+    "Entry formatting ignores the migrated Inventory.showMarketPrice legacy key")
+moduleSettings.GeneralInterface.showMarketPrice = true
+moduleSettings.Inventory.showMarketPrice = nil
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================

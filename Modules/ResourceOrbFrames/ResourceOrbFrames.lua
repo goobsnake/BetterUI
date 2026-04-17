@@ -40,9 +40,17 @@ local m_foodTracker = nil
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
-assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before ResourceOrbFrames")
-local ROFTasks = BETTERUI.CIM.DeferredTask.Manager:New()
-ResourceOrbFrames.Tasks = ROFTasks
+local ROFDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
+    "BetterUI: CIM.DeferredTask must load before ResourceOrbFrames")
+local function EnsureResourceOrbFramesTaskManager()
+    if not ResourceOrbFrames._taskManager then
+        ResourceOrbFrames._taskManager = ROFDeferredTask.CreateManager()
+    end
+    return ResourceOrbFrames._taskManager
+end
+ResourceOrbFrames.EnsureTaskManager = EnsureResourceOrbFramesTaskManager
+ResourceOrbFrames.Tasks = ResourceOrbFrames.Tasks or ROFDeferredTask.CreateLazyManagerProxy(EnsureResourceOrbFramesTaskManager)
+local ROFTasks = ResourceOrbFrames.Tasks
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local SettingsUtils = Utils.Settings

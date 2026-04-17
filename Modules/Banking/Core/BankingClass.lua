@@ -44,8 +44,16 @@ end
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
-assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before Banking/Core/BankingClass")
-BETTERUI.Banking.Tasks                         = BETTERUI.CIM.DeferredTask.Manager:New()
+local BankingDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
+    "BetterUI: CIM.DeferredTask must load before Banking/Core/BankingClass")
+local function EnsureBankingTaskManager()
+    if not BETTERUI.Banking._taskManager then
+        BETTERUI.Banking._taskManager = BankingDeferredTask.CreateManager()
+    end
+    return BETTERUI.Banking._taskManager
+end
+BETTERUI.Banking.EnsureTaskManager             = EnsureBankingTaskManager
+BETTERUI.Banking.Tasks                         = BETTERUI.Banking.Tasks or BankingDeferredTask.CreateLazyManagerProxy(EnsureBankingTaskManager)
 local CompareNils = BETTERUI.CIM.Utils.CompareNils
 
 -- SHARED CATEGORY REFERENCES
