@@ -278,13 +278,24 @@ end
 local ACTION_KEY = 1
 local VISIBILITY_FUNCTION = 4
 
+local function ExecuteVisibilityFunction(actionName, visibilityFunction)
+    local cim = BETTERUI and BETTERUI.CIM
+    local safeExecute = cim and cim.SafeExecute
+    if type(safeExecute) == "function" then
+        local ok, visible = safeExecute("SlotActions.visibility:" .. tostring(actionName), visibilityFunction)
+        return ok and visible == true
+    end
+
+    local ok, visible = pcall(visibilityFunction)
+    return ok and visible == true
+end
+
 local function IsActionEntryVisible(actionEntry)
     local visibilityFunction = actionEntry and actionEntry[VISIBILITY_FUNCTION]
     if not visibilityFunction then
         return true
     end
-    local ok, visible = pcall(visibilityFunction)
-    return ok and visible == true
+    return ExecuteVisibilityFunction(actionEntry and actionEntry[ACTION_KEY], visibilityFunction)
 end
 
 local function HasVisibleActionByName(slotActions, actionName)

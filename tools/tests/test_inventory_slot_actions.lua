@@ -32,6 +32,7 @@ SI_ITEM_ACTION_START_SKILL_RESPEC = 9
 SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC = 10
 SI_ITEM_ACTION_SPLIT_STACK = 11
 SI_ITEM_ACTION_LINK_TO_CHAT = 12
+SI_ITEM_ACTION_DESTROY = 13
 
 local stringMap = {
     [SI_ITEM_ACTION_USE] = "Use",
@@ -46,6 +47,7 @@ local stringMap = {
     [SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC] = "Open Attributes",
     [SI_ITEM_ACTION_SPLIT_STACK] = "Split Stack",
     [SI_ITEM_ACTION_LINK_TO_CHAT] = "Link to Chat",
+    [SI_ITEM_ACTION_DESTROY] = "Destroy",
 }
 
 function GetString(id)
@@ -73,10 +75,17 @@ GAMEPAD_INVENTORY = {
 
 SCENE_MANAGER = { scenes = {} }
 
+local safeExecuteCalls = {}
+
 -- CIM helpers called from SlotActions
 BETTERUI.CIM.SafeExecute = function(_, fn, ...)
     if type(fn) ~= "function" then return false, "No function" end
-    return true, fn(...)
+    safeExecuteCalls[#safeExecuteCalls + 1] = _
+    local ok, result = pcall(fn, ...)
+    if not ok then
+        return false, result
+    end
+    return true, result
 end
 BETTERUI.CIM.SecureOpenSkills = function() end
 BETTERUI.CIM.ResolveCraftBagState = function(_, _, primaryAction)
@@ -170,6 +179,41 @@ end)
 assert_true(ok2, "Second call does not crash (cached lookup path)")
 
 assert_true((slotActionsStub._setupCalls or 0) >= 1, "SetupSecureAction was invoked for replacement action")
+
+local visibilityStub = {
+    m_slotActions = {
+        { "Link to Chat", function() end },
+        { "Destroy", function() end, "secondary", function() error("visibility exploded") end },
+        { "Inspect", function() end, "secondary", function() return true end },
+    },
+    Clear = function(self)
+        self.m_slotActions = {
+            { "Link to Chat", function() end },
+            { "Destroy", function() end, "secondary", function() error("visibility exploded") end },
+            { "Inspect", function() end, "secondary", function() return true end },
+        }
+    end,
+    SetInventorySlot = function(self, slot)
+        self._inventorySlot = slot
+    end,
+    GetPrimaryActionName = function()
+        return "Link to Chat"
+    end,
+    AddSlotAction = function(self, name, callback, actionType, visibilityFunction, options)
+        self.m_slotActions[#self.m_slotActions + 1] = { name, callback, actionType, visibilityFunction, options }
+    end,
+}
+
+local visibilityController = setmetatable({ slotActions = visibilityStub }, { __index = BETTERUI.Inventory.SlotActions })
+local ok3 = pcall(function()
+    visibilityController:ActivatePrimaryCommand(inventorySlot)
+end)
+assert_true(ok3, "Visibility callback failures stay fail-closed without crashing primary-action resolution")
+assert_equal("Inspect", visibilityController.actionName,
+    "Primary-action fallback skips actions whose visibility callback raises")
+assert_true(safeExecuteCalls[#safeExecuteCalls] == "SlotActions.visibility:Inspect"
+        or safeExecuteCalls[#safeExecuteCalls - 1] == "SlotActions.visibility:Destroy",
+    "Visibility checks route through CIM.SafeExecute with action-specific context")
 end
 
 -- ============================================================================
