@@ -2166,27 +2166,6 @@ function BETTERUI.Vendor.Init()
         })
     end
 
-    -- Sort Controller
-    if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
-        RunVendorSetupStep("Sort controller init", function()
-            local sortColumns = {
-                { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME") or "SI_BETTERUI_BANKING_COLUMN_NAME"),  key = "name" },
-                { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE") or "SI_BETTERUI_BANKING_COLUMN_TYPE"),  key = "type" },
-                { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TRAIT") or "SI_BETTERUI_BANKING_COLUMN_TRAIT"), key = "trait" },
-                { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT") or "SI_BETTERUI_BANKING_COLUMN_STAT"),  key = "stat" },
-                { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE") or "SI_BETTERUI_BANKING_COLUMN_VALUE"), key = "value", defaultDirection = "descending" },
-            }
-            local sortController = BETTERUI.CIM.UI.HeaderSortController:New(
-                Vendor.instance.list,
-                sortColumns,
-                function()
-                    Vendor.instance:RefreshList()
-                end
-            )
-            Vendor.instance.sortController = sortController
-        end)
-    end
-
     -- Build keybinds
     Vendor.instance.coreKeybinds = BuildCoreKeybinds(Vendor.instance)
 
@@ -2203,14 +2182,26 @@ function BETTERUI.Vendor.Init()
     Vendor.instance.multiSelectManager = Vendor.multiSelectManager
 
     -- Header Sort Integration
-    if Vendor.instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Install then
+    if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Install then
         RunVendorSetupStep("Header sort integration setup", function()
-            BETTERUI.CIM.UI.HeaderSortIntegration.Install(Vendor.instance, {
+            local integration = BETTERUI.CIM.UI.HeaderSortIntegration.Install(Vendor.instance, {
                 list = Vendor.instance.list,
-                controller = Vendor.instance.sortController,
+                columns = {
+                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME") or "SI_BETTERUI_BANKING_COLUMN_NAME"),  key = "name" },
+                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE") or "SI_BETTERUI_BANKING_COLUMN_TYPE"),  key = "type" },
+                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TRAIT") or "SI_BETTERUI_BANKING_COLUMN_TRAIT"), key = "trait" },
+                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT") or "SI_BETTERUI_BANKING_COLUMN_STAT"),  key = "stat" },
+                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE") or "SI_BETTERUI_BANKING_COLUMN_VALUE"), key = "value", defaultDirection = "descending" },
+                },
+                onSortChangedCallback = function()
+                    Vendor.instance:RefreshList()
+                end,
+                controllerField = "sortController",
+                controllerAliasFields = { "headerSortController" },
                 keybindDescriptor = Vendor.instance.coreKeybinds,
                 autoEnterOnListStart = true,
             })
+            BETTERUI.CIM.UI.HeaderSortIntegration.EnsureController(integration)
         end)
     end
 

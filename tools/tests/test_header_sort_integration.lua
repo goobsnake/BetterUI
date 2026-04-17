@@ -1,10 +1,32 @@
 --[[
 File: tools/tests/test_header_sort_integration.lua
-Purpose: Regression tests for shared header sort owner integration hooks.
+Purpose: Regression tests for the shared header sort installation contract.
 
 Usage:
   lua tools/tests/test_header_sort_integration.lua
 ]]
+
+if false then
+    dofile("Modules/CIM/UI/HeaderSortIntegration.lua")
+end
+
+local passed = 0
+local failed = 0
+
+local function assert_eq(actual, expected, label)
+    if actual == expected then
+        passed = passed + 1
+    else
+        failed = failed + 1
+        print(string.format("  FAIL: %s -- expected %s, got %s", label, tostring(expected), tostring(actual)))
+    end
+end
+
+local function assert_true(value, label)
+    assert_eq(value, true, label)
+end
+
+local createdControllers = {}
 
 BETTERUI = {
     CIM = {
@@ -15,198 +37,163 @@ BETTERUI = {
 KEYBIND_STRIP = {
     added = {},
     removed = {},
-    removedAll = 0,
+    AddKeybindButtonGroup = function(self, descriptor)
+        table.insert(self.added, descriptor)
+    end,
+    RemoveKeybindButtonGroup = function(self, descriptor)
+        table.insert(self.removed, descriptor)
+    end,
 }
-
-function KEYBIND_STRIP:AddKeybindButtonGroup(group)
-    self.added[#self.added + 1] = group
-end
-
-function KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
-    self.removed[#self.removed + 1] = group
-end
-
-function KEYBIND_STRIP:RemoveAllKeyButtonGroups()
-    self.removedAll = self.removedAll + 1
-end
-
-function KEYBIND_STRIP:UpdateKeybindButtonGroup(_)
-end
 
 SOUNDS = {
     GAMEPAD_MENU_FORWARD = "forward",
     GAMEPAD_MENU_BACK = "back",
 }
 
-local playedSounds = {}
-function PlaySound(sound)
-    playedSounds[#playedSounds + 1] = sound
+function PlaySound(_)
 end
 
-local passed = 0
-local failed = 0
+BETTERUI.CIM.UI.HeaderSortController = {
+    New = function(_, list, columns, onSortChangedCallback)
+        local controller = {
+            list = list,
+            columns = columns,
+            onSortChangedCallback = onSortChangedCallback,
+            enterCalls = 0,
+            exitCalls = 0,
+            active = false,
+        }
 
-local function assertEqual(expected, actual, message)
-    if expected == actual then
-        passed = passed + 1
-        print("  [OK] " .. message)
-    else
-        failed = failed + 1
-        print("  [X] " .. message)
-        print("    Expected: " .. tostring(expected))
-        print("    Actual:   " .. tostring(actual))
-    end
-end
+        function controller:CreateKeybindDescriptor(exitCallback)
+            self.exitCallback = exitCallback
+            return {
+                controller = self,
+                exitCallback = exitCallback,
+            }
+        end
 
-local function resetKeybindStrip()
-    KEYBIND_STRIP.added = {}
-    KEYBIND_STRIP.removed = {}
-    KEYBIND_STRIP.removedAll = 0
-    playedSounds = {}
-end
+        function controller:EnterHeaderMode()
+            self.enterCalls = self.enterCalls + 1
+            self.active = true
+        end
+
+        function controller:ExitHeaderMode()
+            self.exitCalls = self.exitCalls + 1
+            self.active = false
+        end
+
+        function controller:IsActive()
+            return self.active
+        end
+
+        table.insert(createdControllers, controller)
+        return controller
+    end,
+}
 
 dofile("Modules/CIM/UI/HeaderSortIntegration.lua")
 
 local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
 
-local function newList(itemCount)
-    local list = {
-        itemCount = itemCount or 1,
+local function buildOwner()
+    return {
+        list = {
+            activateCalls = 0,
+            GetNumItems = function()
+                return 3
+            end,
+            Activate = function(self)
+                self.activateCalls = self.activateCalls + 1
+            end,
+        },
+        headerGeneric = {
+            tabBar = {
+                active = true,
+                deactivateCalls = 0,
+                activateCalls = 0,
+                Deactivate = function(self)
+                    self.active = false
+                    self.deactivateCalls = self.deactivateCalls + 1
+                end,
+                Activate = function(self)
+                    self.active = true
+                    self.activateCalls = self.activateCalls + 1
+                end,
+            },
+        },
+        coreKeybinds = {
+            id = "main",
+        },
     }
-
-    function list:GetNumItems()
-        return self.itemCount
-    end
-
-    function list:SetOnHitBeginningOfListCallback(callback)
-        self.onHitBeginning = callback
-    end
-
-    return list
 end
-
-local function newController()
-    local controller = {
-        enterCount = 0,
-        exitCount = 0,
-    }
-
-    function controller:EnterHeaderMode()
-        self.enterCount = self.enterCount + 1
-    end
-
-    function controller:ExitHeaderMode()
-        self.exitCount = self.exitCount + 1
-    end
-
-    function controller:CreateKeybindDescriptor(exitCallback)
-        return {
-            exitCallback = exitCallback,
-        }
-    end
-
-    return controller
-end
-
-print("\n=== Header Sort Integration Tests ===\n")
 
 do
-    resetKeybindStrip()
-
-    local navigationTransitions = {}
-    local owner = {
-        mainKeybindStripDescriptor = { id = "main" },
-        list = newList(3),
-    }
-
-    local controller = newController()
-
+    local owner = buildOwner()
+    local onControllerCreatedCalls = 0
     local integration = HeaderSortIntegration.Install(owner, {
         list = owner.list,
-        keybindDescriptor = owner.mainKeybindStripDescriptor,
-        headerControllerFn = function()
-            return controller
-        end,
-        deactivateNavigationFn = function(instance)
-            navigationTransitions[#navigationTransitions + 1] = "deactivate:" .. tostring(instance == owner)
-        end,
-        reactivateNavigationFn = function(instance)
-            navigationTransitions[#navigationTransitions + 1] = "reactivate:" .. tostring(instance == owner)
+        columns = {
+            { key = "name" },
+        },
+        onSortChangedCallback = function() end,
+        controllerField = "sortController",
+        controllerAliasFields = { "headerSortController" },
+        keybindDescriptor = owner.coreKeybinds,
+        onControllerCreated = function(instance, controller, list)
+            onControllerCreatedCalls = onControllerCreatedCalls + 1
+            assert_true(instance == owner, "controller created callback receives owner")
+            assert_true(controller ~= nil, "controller created callback receives controller")
+            assert_true(list == owner.list, "controller created callback receives list")
         end,
     })
 
-    owner:EnterHeaderSortMode()
-
-    assertEqual(integration, owner._headerSortIntegration, "install stores the shared integration on the owner")
-    assertEqual("deactivate:true", navigationTransitions[1], "enter deactivates external navigation through shared hook")
-    assertEqual(true, owner.isInHeaderSortMode, "enter toggles shared header sort mode")
-    assertEqual(1, controller.enterCount, "enter delegates to controller")
-    assertEqual(1, KEYBIND_STRIP.removedAll, "enter clears stale keybind groups")
-    assertEqual(1, #KEYBIND_STRIP.added, "enter installs header keybind descriptor")
-
-    owner:ExitHeaderSortMode()
-
-    assertEqual(false, owner.isInHeaderSortMode, "exit clears shared header sort mode")
-    assertEqual(1, controller.exitCount, "exit delegates to controller")
-    assertEqual("reactivate:true", navigationTransitions[2], "exit restores external navigation through shared hook")
-    assertEqual(owner.mainKeybindStripDescriptor, KEYBIND_STRIP.added[#KEYBIND_STRIP.added], "exit restores main keybind descriptor")
+    local controller = HeaderSortIntegration.EnsureController(integration)
+    assert_true(controller == owner.sortController, "ensure controller assigns primary field")
+    assert_true(controller == owner.headerSortController, "ensure controller assigns alias field")
+    assert_eq(controller.columns[1].key, "name", "ensure controller preserves columns")
+    assert_eq(onControllerCreatedCalls, 1, "ensure controller triggers callback once")
+    assert_true(HeaderSortIntegration.GetController(owner) == controller, "get controller resolves integration-owned controller")
+    assert_true(HeaderSortIntegration.EnsureController(integration) == controller, "ensure controller reuses created controller")
 end
 
 do
-    resetKeybindStrip()
-
-    local navigationTransitions = {}
-    local owner = {
-        mainKeybindStripDescriptor = { id = "main-empty" },
-        list = newList(0),
-    }
-
-    HeaderSortIntegration.Install(owner, {
+    local owner = buildOwner()
+    local integration = HeaderSortIntegration.Install(owner, {
         list = owner.list,
-        headerControllerFn = function()
-            return newController()
-        end,
-        deactivateNavigationFn = function()
-            navigationTransitions[#navigationTransitions + 1] = "deactivate"
-        end,
-        reactivateNavigationFn = function()
-            navigationTransitions[#navigationTransitions + 1] = "reactivate"
-        end,
+        columns = {
+            { key = "value", defaultDirection = "descending" },
+        },
+        onSortChangedCallback = function() end,
+        controllerField = "headerSortController",
+        keybindDescriptor = owner.coreKeybinds,
+        suspendTabBar = true,
     })
 
-    owner:EnterHeaderSortMode()
+    local controller = HeaderSortIntegration.EnsureController(integration)
+    HeaderSortIntegration.EnterHeaderMode(integration)
+    assert_eq(owner.headerGeneric.tabBar.deactivateCalls, 1, "enter header mode suspends tab bar")
+    assert_eq(#KEYBIND_STRIP.added, 1, "enter header mode adds header keybinds")
+    assert_eq(controller.enterCalls, 1, "enter header mode delegates to controller")
+    assert_true(integration.isActive, "enter header mode marks integration active")
 
-    assertEqual("deactivate", navigationTransitions[1], "empty-list enter still uses shared deactivate hook")
-    assertEqual("reactivate", navigationTransitions[2], "empty-list enter reactivates navigation when header mode does not start")
-    assertEqual(false, owner.isInHeaderSortMode == true, "empty-list enter leaves header mode inactive")
-    assertEqual(0, #KEYBIND_STRIP.added, "empty-list enter does not install header keybinds")
+    HeaderSortIntegration.ExitHeaderMode(integration)
+    assert_eq(owner.headerGeneric.tabBar.activateCalls, 1, "exit header mode restores tab bar")
+    assert_eq(owner.list.activateCalls, 0, "exit header mode leaves list activation to owner callbacks")
+    assert_eq(#KEYBIND_STRIP.removed, 1, "exit header mode removes header keybinds")
+    assert_eq(controller.exitCalls, 1, "exit header mode delegates to controller")
+    assert_true(not integration.isActive, "exit header mode clears integration active flag")
+    assert_eq(#KEYBIND_STRIP.added, 2, "exit header mode restores owner keybinds")
 end
 
 do
-    resetKeybindStrip()
-
-    local owner = {
-        list = newList(2),
-        mainKeybindStripDescriptor = { id = "main-hit-beginning" },
-    }
-    local controller = newController()
-
-    HeaderSortIntegration.Install(owner, {
-        list = owner.list,
-        keybindDescriptor = owner.mainKeybindStripDescriptor,
-        headerControllerFn = function()
-            return controller
-        end,
-        autoEnterOnListStart = true,
-    })
-
-    owner.list.onHitBeginning()
-
-    assertEqual(true, owner.isInHeaderSortMode, "hit-beginning callback enters shared header sort mode through unified installer")
-    assertEqual(1, controller.enterCount, "hit-beginning callback reuses the shared owner contract")
+    local legacyController = { id = "legacy" }
+    assert_true(HeaderSortIntegration.GetController({ sortController = legacyController }) == legacyController,
+        "get controller falls back to legacy sortController")
 end
 
-print(string.format("\nPassed: %d  Failed: %d", passed, failed))
+print(string.format("Passed: %d", passed))
 if failed > 0 then
+    print(string.format("Failed: %d", failed))
     os.exit(1)
 end
+print("OK")

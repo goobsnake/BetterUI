@@ -328,53 +328,29 @@ end
 
 --- Initializes the header sort controller for this banking instance.
 function BETTERUI.Banking.Class:InitializeHeaderSortController()
-    if self.headerSortController then return end
-
-    local controllerClass = BETTERUI.CIM.UI.HeaderSortController
-    if not controllerClass then return end
-
-    -- Create controller with column definitions and sort callback
-    self.headerSortController = controllerClass:New(
-        self.list,
-        BANKING_SORT_COLUMNS,
-        function(columnKey, direction, sortFn)
-            self:OnHeaderSortChanged(columnKey, direction)
-        end
-    )
-
-    -- Initialize horizontal movement controller for L/R navigation
-    self.horizontalMovementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_HORIZONTAL)
-
-    -- Apply CIM mixin to inject EnterHeaderSortMode and ExitHeaderSortMode methods
     local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
-    if HeaderSortIntegration and HeaderSortIntegration.Install then
+    if not (HeaderSortIntegration and HeaderSortIntegration.Install) then
+        return
+    end
+
+    if not self.horizontalMovementController then
+        self.horizontalMovementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_HORIZONTAL)
+    end
+
+    if not self._headerSortIntegration then
         HeaderSortIntegration.Install(self, {
             list = self.list,
             keybindDescriptor = self.coreKeybinds,
-            headerControllerFn = function() return self.headerSortController end,
-            initControllerFn = function() self:InitializeHeaderSortController() end,
-            deactivateNavigationFn = function(instance)
-                local tabBar = instance.headerGeneric and instance.headerGeneric.tabBar
-                instance._reactivateTabBarAfterHeaderSort = false
-                if tabBar and tabBar.active and tabBar.Deactivate then
-                    tabBar:Deactivate()
-                    instance._reactivateTabBarAfterHeaderSort = true
-                end
+            columns = BANKING_SORT_COLUMNS,
+            onSortChangedCallback = function(columnKey, direction)
+                self:OnHeaderSortChanged(columnKey, direction)
             end,
-            reactivateNavigationFn = function(instance)
-                if not instance._reactivateTabBarAfterHeaderSort then
-                    return
-                end
-                instance._reactivateTabBarAfterHeaderSort = false
-                local tabBar = instance.headerGeneric and instance.headerGeneric.tabBar
-                if tabBar and tabBar.Activate then
-                    tabBar:Activate()
-                end
-            end,
+            controllerField = "headerSortController",
+            suspendTabBar = true,
         })
     end
 
-    -- Note: Column labels are linked separately via LinkColumnLabels() after AddColumn() calls
+    self.headerSortController = HeaderSortIntegration.EnsureController(self._headerSortIntegration)
 end
 
 --- Links column header labels to the sort controller for visual feedback.

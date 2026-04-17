@@ -88,40 +88,29 @@ local function RefreshVisibleCompanionScene(screen, options)
 end
 
 local function SetupCompanionSort(instance)
-    if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
+    if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Install then
         local ok, err = pcall(function()
-            local sortColumns = {
-                { name = GetString(SI_BETTERUI_INV_HEADER_NAME),  key = "name" },
-                { name = GetString(SI_BETTERUI_INV_HEADER_TYPE),  key = "type" },
-                { name = GetString(SI_BETTERUI_INV_HEADER_TRAIT), key = "trait" },
-                { name = GetString(SI_BETTERUI_INV_HEADER_STAT),  key = "stat" },
-                { name = GetString(SI_BETTERUI_INV_HEADER_VALUE), key = "value", defaultDirection = "descending" },
-            }
-            local sortController = BETTERUI.CIM.UI.HeaderSortController:New(
-                instance.list,
-                sortColumns,
-                function()
-                    instance:RefreshList()
-                end
-            )
-            instance.sortController = sortController
-        end)
-        if not ok and BETTERUI.Debug then
-            BETTERUI.Debug("[Companions] Sort controller init failed: " .. tostring(err))
-        end
-    end
-
-    if instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Install then
-        local ok, err = pcall(function()
-            BETTERUI.CIM.UI.HeaderSortIntegration.Install(instance, {
+            local integration = BETTERUI.CIM.UI.HeaderSortIntegration.Install(instance, {
                 list = instance.list,
-                controller = instance.sortController,
+                columns = {
+                    { name = GetString(SI_BETTERUI_INV_HEADER_NAME),  key = "name" },
+                    { name = GetString(SI_BETTERUI_INV_HEADER_TYPE),  key = "type" },
+                    { name = GetString(SI_BETTERUI_INV_HEADER_TRAIT), key = "trait" },
+                    { name = GetString(SI_BETTERUI_INV_HEADER_STAT),  key = "stat" },
+                    { name = GetString(SI_BETTERUI_INV_HEADER_VALUE), key = "value", defaultDirection = "descending" },
+                },
+                onSortChangedCallback = function()
+                    instance:RefreshList()
+                end,
+                controllerField = "sortController",
+                controllerAliasFields = { "headerSortController" },
                 keybindDescriptor = instance.coreKeybinds,
                 autoEnterOnListStart = true,
             })
+            BETTERUI.CIM.UI.HeaderSortIntegration.EnsureController(integration)
         end)
         if not ok and BETTERUI.Debug then
-            BETTERUI.Debug("[Companions] Header sort integration setup failed: " .. tostring(err))
+            BETTERUI.Debug("[Companions] Header sort setup failed: " .. tostring(err))
         end
     end
 end

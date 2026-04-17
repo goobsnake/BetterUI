@@ -20,16 +20,95 @@ local function ResolveList(integration)
     return integration.list or (integration.owner and (integration.owner.list or integration.owner.itemList))
 end
 
+local function AssignController(integration, controller)
+    if not controller then
+        return nil
+    end
+
+    local owner = integration.owner
+    local controllerField = integration.controllerField
+    if owner and controllerField then
+        owner[controllerField] = controller
+    end
+
+    for _, aliasField in ipairs(integration.controllerAliasFields or {}) do
+        if owner and aliasField then
+            owner[aliasField] = controller
+        end
+    end
+
+    integration.controller = controller
+
+    if integration.onControllerCreated then
+        integration.onControllerCreated(owner, controller, ResolveList(integration))
+    end
+
+    return controller
+end
+
+local function BuildController(integration)
+    local list = ResolveList(integration)
+    if integration.createControllerFn then
+        return integration.createControllerFn(integration.owner, list)
+    end
+
+    if integration.columns then
+        local controllerClass = BETTERUI.CIM and BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController
+        if controllerClass and controllerClass.New then
+            return controllerClass:New(list, integration.columns, integration.onSortChangedCallback)
+        end
+    end
+
+    return nil
+end
+
 local function ResolveController(integration)
+    if integration.controller then
+        return integration.controller
+    end
+
+    local owner = integration.owner
+    if owner and integration.controllerField and owner[integration.controllerField] then
+        integration.controller = owner[integration.controllerField]
+        return integration.controller
+    end
+
     if integration.initControllerFn then
         integration.initControllerFn(integration.owner)
     end
 
     if integration.headerControllerFn then
-        return integration.headerControllerFn(integration.owner)
+        local resolvedController = integration.headerControllerFn(integration.owner)
+        if resolvedController then
+            return AssignController(integration, resolvedController)
+        end
     end
 
-    return integration.controller
+    return AssignController(integration, BuildController(integration))
+end
+
+local function SuspendOwnerTabBar(owner)
+    if not owner then
+        return
+    end
+    local tabBar = owner and owner.headerGeneric and owner.headerGeneric.tabBar
+    owner._reactivateTabBarAfterHeaderSort = false
+    if tabBar and tabBar.active and tabBar.Deactivate then
+        tabBar:Deactivate()
+        owner._reactivateTabBarAfterHeaderSort = true
+    end
+end
+
+local function RestoreOwnerTabBar(owner)
+    if not owner or not owner._reactivateTabBarAfterHeaderSort then
+        return
+    end
+
+    owner._reactivateTabBarAfterHeaderSort = false
+    local tabBar = owner.headerGeneric and owner.headerGeneric.tabBar
+    if tabBar and tabBar.Activate then
+        tabBar:Activate()
+    end
 end
 
 local function GetHeaderKeybindDescriptor(integration, controller)
@@ -60,6 +139,12 @@ function HeaderSortIntegration.Install(owner, options)
         controller = options.controller,
         headerControllerFn = options.headerControllerFn,
         initControllerFn = options.initControllerFn,
+        controllerField = options.controllerField or "headerSortController",
+        controllerAliasFields = options.controllerAliasFields or {},
+        columns = options.columns,
+        onSortChangedCallback = options.onSortChangedCallback,
+        createControllerFn = options.createControllerFn,
+        onControllerCreated = options.onControllerCreated,
         keybindDescriptor = options.keybindDescriptor or options.mainKeybindDescriptor,
         deactivateNavigationFn = options.deactivateNavigationFn,
         reactivateNavigationFn = options.reactivateNavigationFn,
@@ -69,6 +154,11 @@ function HeaderSortIntegration.Install(owner, options)
         isActive = false,
         activeKeybindDescriptor = nil,
     }
+
+    if options.suspendTabBar == true then
+        integration.deactivateNavigationFn = integration.deactivateNavigationFn or SuspendOwnerTabBar
+        integration.reactivateNavigationFn = integration.reactivateNavigationFn or RestoreOwnerTabBar
+    end
 
     owner._headerSortIntegration = integration
 
@@ -215,6 +305,29 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
     end
 
     return true
+end
+
+---@param integration table?
+---@return table?
+function HeaderSortIntegration.EnsureController(integration)
+    if not integration then
+        return nil
+    end
+    return ResolveController(integration)
+end
+
+---@param owner table?
+---@return table?
+function HeaderSortIntegration.GetController(owner)
+    if not owner then
+        return nil
+    end
+
+    if owner._headerSortIntegration then
+        return ResolveController(owner._headerSortIntegration)
+    end
+
+    return owner.headerSortController or owner.sortController
 end
 
 ---@param integration table?

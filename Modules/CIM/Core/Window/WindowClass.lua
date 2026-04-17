@@ -243,9 +243,12 @@ function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     label:SetHandler("OnMouseUp", function(control, button, upInside)
         if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
             local owner = control.owner
-            if owner and owner.headerSortController then
+            local headerSortIntegration = BETTERUI.CIM and BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration
+            local controller = headerSortIntegration and headerSortIntegration.GetController and headerSortIntegration.GetController(owner)
+                or (owner and (owner.headerSortController or owner.sortController))
+            if controller then
                 -- Toggle sort for this specific column (UpdateVisuals called internally)
-                owner.headerSortController:ToggleSortForColumn(control.columnIndex)
+                controller:ToggleSortForColumn(control.columnIndex)
                 PlaySound(SOUNDS.DEFAULT_CLICK)
             end
         end
