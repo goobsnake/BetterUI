@@ -1,0 +1,110 @@
+--[[
+File: tools/tests/test_inventory_list_support_source.lua
+Purpose: Source-level regression checks for inventory list, loader, and lifecycle support modules.
+
+Usage:
+  lua tools/tests/test_inventory_list_support_source.lua
+]]
+
+local passed = 0
+local failed = 0
+
+local function assert_true(value, label)
+    if value then
+        passed = passed + 1
+    else
+        failed = failed + 1
+        io.stderr:write("Assertion failed: " .. label .. "\n")
+    end
+end
+
+local function read_file(path)
+    local handle = assert(io.open(path, "r"))
+    local content = handle:read("*a")
+    handle:close()
+    return content
+end
+
+local inventoryKeybindsSource = read_file("Modules/Inventory/Keybinds/InventoryKeybinds.lua")
+assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.IsQuickslottable = IsQuickslottable") ~= nil,
+    "InventoryKeybinds exposes IsQuickslottable")
+assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.GetXButtonActionContext = GetXButtonActionContext") ~= nil,
+    "InventoryKeybinds exposes GetXButtonActionContext")
+assert_true(inventoryKeybindsSource:find("function BETTERUI%.Inventory%.Class:InitializeKeybindStrip%(%)") ~= nil,
+    "InventoryKeybinds exposes InitializeKeybindStrip")
+
+local categoryListSource = read_file("Modules/Inventory/Lists/CategoryListManager.lua")
+assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:InitializeCategoryList%(%)") ~= nil,
+    "CategoryListManager exposes InitializeCategoryList")
+assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:NewCategoryItem%(filterType, iconFile, FilterFunct%)") ~= nil,
+    "CategoryListManager exposes NewCategoryItem")
+assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:RefreshCategoryList%(%)") ~= nil,
+    "CategoryListManager exposes RefreshCategoryList")
+
+local craftBagListSource = read_file("Modules/Inventory/Lists/CraftBagListManager.lua")
+assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:InitializeCraftBagList%(%)") ~= nil,
+    "CraftBagListManager exposes InitializeCraftBagList")
+assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:RefreshCraftBagList%(%)") ~= nil,
+    "CraftBagListManager exposes RefreshCraftBagList")
+assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:GetCraftBagCategoryItemCount%(filterType%)") ~= nil,
+    "CraftBagListManager exposes GetCraftBagCategoryItemCount")
+
+local craftListSource = read_file("Modules/Inventory/Lists/CraftList.lua")
+assert_true(craftListSource:find("BETTERUI%.Inventory%.CraftList = BETTERUI%.Inventory%.List:Subclass%(%)") ~= nil,
+    "CraftList subclasses the shared inventory list class")
+assert_true(craftListSource:find("function GetFilterComparator%(filterType%)") ~= nil,
+    "CraftList exposes the craft bag filter comparator")
+assert_true(craftListSource:find("function BETTERUI%.Inventory%.CraftList:RefreshList%(filterType, searchQuery%)") ~= nil,
+    "CraftList exposes RefreshList")
+assert_true(craftListSource:find("function BETTERUI%.Inventory%.CraftList:ProcessBatch%(%)") ~= nil,
+    "CraftList exposes ProcessBatch")
+
+local itemListFilteringSource = read_file("Modules/Inventory/Lists/ItemListFiltering.lua")
+assert_true(itemListFilteringSource:find("function BETTERUI%.Inventory%.Class:GetItemDataFilterComparator%(filteredEquipSlot, nonEquipableFilterType%)") ~= nil,
+    "ItemListFiltering exposes GetItemDataFilterComparator")
+assert_true(itemListFilteringSource:find("function BETTERUI%.Inventory%.Class:RefreshItemList%(%)") ~= nil,
+    "ItemListFiltering exposes RefreshItemList")
+assert_true(itemListFilteringSource:find("function BETTERUI%.Inventory%.Class:UpdateItemLeftTooltip%(selectedData%)") ~= nil,
+    "ItemListFiltering exposes UpdateItemLeftTooltip")
+
+local itemListManagerSource = read_file("Modules/Inventory/Lists/ItemListManager.lua")
+assert_true(itemListManagerSource:find("function BETTERUI%.Inventory%.Class:InitializeItemList%(%)") ~= nil,
+    "ItemListManager exposes InitializeItemList")
+assert_true(itemListManagerSource:find("function BETTERUI%.Inventory%.Class:IsItemListEmpty%(filteredEquipSlot, nonEquipableFilterType%)") ~= nil,
+    "ItemListManager exposes IsItemListEmpty")
+assert_true(itemListManagerSource:find("function BETTERUI%.Inventory%.Class:GetCategoryItemCount%(nonEquipableFilterType%)") ~= nil,
+    "ItemListManager exposes GetCategoryItemCount")
+assert_true(itemListManagerSource:find("function BETTERUI%.Inventory%.Class:PopulateInventoryCategoryFields%(itemData%)") ~= nil,
+    "ItemListManager exposes PopulateInventoryCategoryFields")
+
+local loaderSource = read_file("Modules/Inventory/Loader.lua")
+assert_true(loaderSource:find("BETTERUI%.Inventory%.ClassMixins = %{%}") ~= nil,
+    "Inventory loader initializes ClassMixins")
+assert_true(loaderSource:find("function BETTERUI%.Inventory%.RegisterMixin%(name, func%)") ~= nil,
+    "Inventory loader exposes RegisterMixin")
+
+local moduleSource = read_file("Modules/Inventory/Module.lua")
+assert_true(moduleSource:find("Inventory%.ROOT_CONTRACT = %{%s*") ~= nil,
+    "Inventory module defines the root contract")
+assert_true(moduleSource:find("function Inventory%.InitModule%(m_options%)") ~= nil,
+    "Inventory module exposes InitModule")
+assert_true(moduleSource:find("function Inventory%.Setup%(%)") ~= nil,
+    "Inventory module exposes Setup")
+
+local sceneSource = read_file("Modules/Inventory/Scene/InventorySceneLifecycle.lua")
+assert_true(sceneSource:find("function BETTERUI%.Inventory%.Class:OnStateChanged%(oldState, newState%)") ~= nil,
+    "InventorySceneLifecycle exposes OnStateChanged")
+
+local currencySource = read_file("Modules/Inventory/Settings/CurrencySettings.lua")
+assert_true(currencySource:find("local CURRENCY_DATA = %{%s*") ~= nil,
+    "CurrencySettings defines the shared currency metadata table")
+assert_true(currencySource:find("function BETTERUI%.ApplyCurrencyPreset%(presetName%)") ~= nil,
+    "CurrencySettings exposes ApplyCurrencyPreset")
+assert_true(currencySource:find("function BETTERUI%.Inventory%.Settings%.GetCurrencyOptions%(%)") ~= nil,
+    "CurrencySettings exposes GetCurrencyOptions")
+
+if failed > 0 then
+    error(string.format("test_inventory_list_support_source.lua failed with %d failure(s)", failed))
+end
+
+print(string.format("test_inventory_list_support_source.lua: %d passed", passed))
