@@ -4,15 +4,16 @@ Purpose: Centralized configuration for inventory categories and craft bag filter
          Used by Inventory module to populate category lists dynamically instead of
          hardcoding definitions in multiple places.
 
-         Also provides shared category definitions for Banking module to eliminate
-         duplication between Banking.lua's BANK_CATEGORY_DEFS and Inventory categories.
+         Keeps compatibility aliases for shared category helpers while the neutral
+         category taxonomy itself lives in the CIM shared boundary.
 
-         Shared by: Inventory (owns it), Banking (reads categories + helpers),
-         Vendor (reads helpers via inherited formatters).
+         Shared by: Inventory (helpers + compatibility aliases), Banking (reads
+         shared helpers), Vendor (reads helpers via inherited formatters).
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Inventory.Categories = {}
+assert(BETTERUI.CIM and BETTERUI.CIM.ItemTaxonomy, "BetterUI: CIM.ItemTaxonomy must load before Inventory/Core/CategoryDefinitions")
 
 -- Craft Bag Categories
 -- Ordered list of categories to display when the user opens the Craft Bag
@@ -82,23 +83,9 @@ BETTERUI.Inventory.Categories.CraftBag = {
 }
 
 -- SHARED BANKING CATEGORY DEFINITIONS
--- These definitions are shared between Banking and Inventory modules to ensure
--- consistent category handling and eliminate code duplication.
-
-BETTERUI.Inventory.Categories.Bank = {
-    { key = "all",        nameStringId = SI_BETTERUI_INV_ITEM_ALL,        filterType = nil,                          iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
-    { key = "weapons",    nameStringId = SI_BETTERUI_INV_ITEM_WEAPONS,    filterType = ITEMFILTERTYPE_WEAPONS,       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_weapons.dds" },
-    { key = "apparel",    nameStringId = SI_BETTERUI_INV_ITEM_APPAREL,    filterType = ITEMFILTERTYPE_ARMOR,         iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds" },
-    { key = "jewelry",    nameStringId = SI_BETTERUI_INV_ITEM_JEWELRY,    filterType = ITEMFILTERTYPE_JEWELRY,       iconFile = "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds" },
-    { key = "consumable", nameStringId = SI_BETTERUI_INV_ITEM_CONSUMABLE, filterType = ITEMFILTERTYPE_CONSUMABLE,    iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds" },
-    { key = "materials",  nameStringId = SI_BETTERUI_INV_ITEM_MATERIALS,  filterType = ITEMFILTERTYPE_CRAFTING,      iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds" },
-    { key = "furnishing", nameStringId = SI_BETTERUI_INV_ITEM_FURNISHING, filterType = ITEMFILTERTYPE_FURNISHING,    iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
-    { key = "misc",       nameStringId = SI_BETTERUI_INV_ITEM_MISC,       filterType = ITEMFILTERTYPE_MISCELLANEOUS, iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds" },
-    -- Companion items exist only on newer APIs; guard with presence check when building
-    { key = "companion",  nameStringId = SI_ITEMFILTERTYPE_COMPANION,     filterType = ITEMFILTERTYPE_COMPANION,     iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds", optional = true },
-    -- Junk is not a filterType; handled specially in DoesItemMatchCategory
-    { key = "junk",       nameStringId = SI_BETTERUI_INV_ITEM_JUNK,       filterType = nil,                          special = "junk",                                                              iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds" },
-}
+-- Compatibility alias for legacy Inventory consumers. The neutral source of truth
+-- lives under BETTERUI.CIM.ItemTaxonomy so Banking and Vendor can read the same seam.
+BETTERUI.Inventory.Categories.Bank = BETTERUI.CIM.ItemTaxonomy.BANK_CATEGORY_DEFS
 
 -- Inventory Categories (Backpack)
 -- Ordered list of categories for the main inventory

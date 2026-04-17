@@ -206,7 +206,7 @@ function BETTERUI.Inventory.ShowComparisonOnTooltip(container, result)
 
         local compLabel = container._betterUiComparison
         local compDivider = container._betterUiComparisonDivider
-        local fontSize = BETTERUI.GetTooltipFontSize()
+        local fontSize = BETTERUI.GeneralInterface.Tooltips.GetTooltipFontSize()
         local compFontSize = math.floor(fontSize * 0.75)
         compLabel:SetFont("$(MEDIUM_FONT)|" .. compFontSize .. "|shadow")
         compLabel:SetText(BETTERUI.Inventory.StatComparison.FormatForTooltip(result))
@@ -254,4 +254,3 @@ function BETTERUI.Inventory.ShowComparisonOnTooltip(container, result)
         end
     end
 end
-

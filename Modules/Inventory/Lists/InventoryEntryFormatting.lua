@@ -70,6 +70,18 @@ local function GetActiveListModuleName()
     return "Inventory"
 end
 
+--- @param data table|nil
+--- @return string moduleName
+local function ResolveEntryModuleName(data)
+    local itemData = data and (data.dataSource or data) or nil
+    local moduleName = (itemData and (itemData.listModuleName or itemData.moduleName))
+        or (data and (data.listModuleName or data.moduleName))
+    if type(moduleName) == "string" and moduleName ~= "" then
+        return moduleName
+    end
+    return GetActiveListModuleName()
+end
+
 local GetModuleSettings = BETTERUI.GetModuleSettings
 
 --- @return boolean show Whether market prices should be shown
@@ -133,7 +145,7 @@ end
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
     if label then
         -- Determine active module context (Inventory vs Banking)
-        local moduleName = GetActiveListModuleName()
+        local moduleName = ResolveEntryModuleName(data)
         local moduleSettings = GetModuleSettings(moduleName)
         local nameFontSize = GetActiveNameFontSize(moduleName)
 
@@ -447,6 +459,7 @@ end
 -- These must be accessible as upvalues are file-scoped.
 BETTERUI.Inventory._EntryFormatting = {
     GetActiveListModuleName = GetActiveListModuleName,
+    ResolveEntryModuleName = ResolveEntryModuleName,
     GetModuleSettings = GetModuleSettings,
     ShouldShowMarketPrice = ShouldShowMarketPrice,
     GetActiveNameFontSize = GetActiveNameFontSize,

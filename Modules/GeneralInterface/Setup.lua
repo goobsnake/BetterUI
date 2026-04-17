@@ -3,9 +3,26 @@
 -- Module Setup() lifecycle: builds the LAM settings panel, registers tooltip
 -- hooks, and initializes Nameplates. Aggregates settings from Tooltips/ and
 -- Nameplates/ subdirectories.
-local LAM = LibAddonMenu2
 
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
+
+local GeneralInterface = BETTERUI.GeneralInterface
+
+local function GetGeneralInterfaceOptions()
+	if type(GeneralInterface.GetSettingsOptions) ~= "function" then
+		return nil
+	end
+
+	return GeneralInterface.GetSettingsOptions()
+end
+
+local function GetNameplateOptions()
+	if not BETTERUI.Nameplates or type(BETTERUI.Nameplates.GetSettingsOptions) ~= "function" then
+		return nil
+	end
+
+	return BETTERUI.Nameplates.GetSettingsOptions()
+end
 
 --- Initializes the settings panel for General Interface options.
 ---
@@ -23,8 +40,8 @@ local function Init(mId, moduleName)
 	local optionsTable = {}
 
 	-- General Interface settings (flat section, consistent with Inventory/Banking)
-	local getSettingsOpts = BETTERUI.CIM.TryResolve("GeneralInterface.GetSettingsOptions")
-	if getSettingsOpts then
+	local generalOptions = GetGeneralInterfaceOptions()
+	if generalOptions then
 		table.insert(optionsTable, {
 			type = "header",
 			name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER")),
@@ -36,32 +53,22 @@ local function Init(mId, moduleName)
 			width = "full",
 		})
 
-		local generalOptions = BETTERUI.GeneralInterface.GetSettingsOptions()
-		if generalOptions then
-			for _, option in ipairs(generalOptions) do
-				table.insert(optionsTable, option)
-			end
+		for _, option in ipairs(generalOptions) do
+			table.insert(optionsTable, option)
 		end
 	end
 
 	-- Nameplate Settings Submenu
-	local getNameplateOpts = BETTERUI.CIM.TryResolve("Nameplates.GetSettingsOptions")
-	if getNameplateOpts then
+	local nameplateOptions = GetNameplateOptions()
+	if nameplateOptions then
 		table.insert(optionsTable, {
 			type = "submenu",
 			name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_HEADER")),
-			controls = BETTERUI.Nameplates.GetSettingsOptions()
+			controls = nameplateOptions
 		})
 	end
 
-	-- Alphabetize top-level submenu rows (e.g., Enhanced Nameplates / Enhanced Tooltips).
-	BETTERUI.CIM.TryCall("CIM.Settings.SortTopLevelSubmenusAlphabetically", optionsTable)
-
-	-- Alphabetize top-level General settings and all submenu settings.
-	BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsTable, true)
-
-	LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
-	LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)
+	BETTERUI.CIM.Settings.RegisterModulePanel(mId, panelData, optionsTable)
 end
 
 
@@ -79,7 +86,8 @@ end
 ---
 --- References: Called by the core Addon initialization.
 ---
-function BETTERUI.GeneralInterface.Setup()
+---@type BetterUIModuleSetupHook
+function GeneralInterface.Setup()
 	Init("General", "General Interface")
 
 	-- Only apply hooks/logic if Tooltips module is enabled
@@ -110,36 +118,16 @@ function BETTERUI.GeneralInterface.Setup()
 		end
 	end)
 
-	BETTERUI.InventoryHook({
-		tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP),
-		tooltipType    = GAMEPAD_LEFT_TOOLTIP,
-		method         = "LayoutItem",
-		linkFunc       = BETTERUI.ReturnItemLink,
-		method2        = "LayoutBagItem",
-		linkFunc2      = BETTERUI.ReturnSelectedData,
-		method3        = "LayoutGuildStoreSearchResult",
-		linkFunc3      = BETTERUI.ReturnStoreSearch,
-	})
-	BETTERUI.InventoryHook({
-		tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP),
-		tooltipType    = GAMEPAD_RIGHT_TOOLTIP,
-		method         = "LayoutItem",
-		linkFunc       = BETTERUI.ReturnItemLink,
-		method2        = "LayoutBagItem",
-		linkFunc2      = BETTERUI.ReturnSelectedData,
-		method3        = "LayoutGuildStoreSearchResult",
-		linkFunc3      = BETTERUI.ReturnStoreSearch,
-	})
-	BETTERUI.InventoryHook({
-		tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_MOVABLE_TOOLTIP),
-		tooltipType    = GAMEPAD_MOVABLE_TOOLTIP,
-		method         = "LayoutItem",
-		linkFunc       = BETTERUI.ReturnItemLink,
-		method2        = "LayoutBagItem",
-		linkFunc2      = BETTERUI.ReturnSelectedData,
-		method3        = "LayoutGuildStoreSearchResult",
-		linkFunc3      = BETTERUI.ReturnStoreSearch,
-	})
+	local tooltipHelpers = GeneralInterface.Tooltips
+	if tooltipHelpers
+		and type(tooltipHelpers.InventoryHook) == "function"
+		and type(tooltipHelpers.CreateInventoryHookConfig) == "function" then
+		local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
+		for _, tooltipType in ipairs(tooltipTypes) do
+			local tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
+			tooltipHelpers.InventoryHook(tooltipHelpers.CreateInventoryHookConfig(tooltipControl, tooltipType))
+		end
+	end
 
 	-- Hook LayoutStoreWindowItem on each tooltip control to capture item links
 	-- for merchant/NPC store items. These use LayoutStoreItemFromLink → LayoutItem
@@ -211,18 +199,22 @@ function BETTERUI.GeneralInterface.Setup()
 			end
 			if newState == SCENE_SHOWING then
 				EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-				BETTERUI.CIM._gsErrorSuppress = 1
+				if tooltipHelpers and type(tooltipHelpers.SetGuildStoreErrorSuppressed) == "function" then
+					tooltipHelpers.SetGuildStoreErrorSuppressed(true)
+				end
 			elseif newState == SCENE_HIDDEN then
 				EVENT_MANAGER:RegisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-				BETTERUI.CIM._gsErrorSuppress = 0
+				if tooltipHelpers and type(tooltipHelpers.SetGuildStoreErrorSuppressed) == "function" then
+					tooltipHelpers.SetGuildStoreErrorSuppressed(false)
+				end
 			end
 		end)
 	end
 
 	-- Invalidate researchable trait cache on inventory changes
 	local function invalidateCacheOnUpdate(_, bagId)
-		if BETTERUI and BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.InvalidateResearchableTraitCache then
-			BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
+		if type(GeneralInterface.InvalidateResearchableTraitCache) == "function" then
+			GeneralInterface.InvalidateResearchableTraitCache(bagId)
 		end
 	end
 

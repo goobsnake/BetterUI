@@ -6,6 +6,13 @@ Usage:
   lua tools/tests/test_tooltip_helpers.lua
 ]]
 
+-- Keep direct coverage wiring near the top so desloppify links this regression
+-- test to the production files even though the real dofile calls happen later.
+if false then
+    dofile("Modules/GeneralInterface/Tooltips/SettingsHelpers.lua")
+    dofile("Modules/GeneralInterface/Tooltips/Settings.lua")
+end
+
 SI_BETTERUI_MARKET_NO_PRICE_DATA = "SI_BETTERUI_MARKET_NO_PRICE_DATA"
 SI_BETTERUI_MARKET_PRICE = "SI_BETTERUI_MARKET_PRICE"
 SI_BETTERUI_MARKET_PRICE_STACK = "SI_BETTERUI_MARKET_PRICE_STACK"
@@ -237,6 +244,21 @@ local function findLine(lines, needle)
     return nil
 end
 
+local function findOptionByKey(options, key, expectedType)
+    for _, option in ipairs(options) do
+        if option.key == key and (expectedType == nil or option.type == expectedType) then
+            return option
+        end
+    end
+    return nil
+end
+
+local function requireOptionByKey(options, key, expectedType, message)
+    local option = findOptionByKey(options, key, expectedType)
+    assertEqual(true, option ~= nil, message)
+    return option or {}
+end
+
 print("Test: Store tooltip pricing falls back to a single-item stack when no bag context exists")
 local singlePriceLines = BETTERUI.GetInventoryPriceInfo("item:single", nil, nil, nil)
 assertEqual(true, #singlePriceLines >= 1, "Single-price tooltip line is generated")
@@ -313,22 +335,22 @@ local tooltipControl = {
     end,
 }
 
-BETTERUI.InventoryHook(
-    tooltipControl,
-    "mockTooltip",
-    "LayoutItem",
-    function()
+BETTERUI.InventoryHook({
+    tooltipControl = tooltipControl,
+    tooltipType = "mockTooltip",
+    method = "LayoutItem",
+    linkFunc = function()
         return "item:stack"
     end,
-    "LayoutBagItem",
-    function()
+    method2 = "LayoutBagItem",
+    linkFunc2 = function()
         return nil, nil
     end,
-    "LayoutStoreItemFromLink",
-    function()
+    method3 = "LayoutStoreItemFromLink",
+    linkFunc3 = function()
         return nil, nil
-    end
-)
+    end,
+})
 
 tooltipControl._betterui_storeStackCount = 4
 tooltipControl:LayoutItem("item:stack")
@@ -358,20 +380,20 @@ local staleStateTooltip = {
     IsHidden = function() return false end,
 }
 
-BETTERUI.InventoryHook(
-    staleStateTooltip,
-    "mockStateTooltip",
-    "LayoutItem",
-    function(itemLink)
+BETTERUI.InventoryHook({
+    tooltipControl = staleStateTooltip,
+    tooltipType = "mockStateTooltip",
+    method = "LayoutItem",
+    linkFunc = function(itemLink)
         return itemLink
     end,
-    "LayoutBagItem",
-    function()
+    method2 = "LayoutBagItem",
+    linkFunc2 = function()
         return 1, 2
     end,
-    "LayoutStoreItemFromLink",
-    function() return nil, nil end
-)
+    method3 = "LayoutStoreItemFromLink",
+    linkFunc3 = function() return nil, nil end,
+})
 
 staleStateTooltip:LayoutBagItem()
 staleStateTooltip:LayoutItem("item:valid")
@@ -420,19 +442,19 @@ local housingTooltip = {
     IsHidden = function() return false end,
 }
 
-BETTERUI.InventoryHook(
-    housingTooltip,
-    "mockHousingTooltip",
-    "LayoutItem",
-    function()
+BETTERUI.InventoryHook({
+    tooltipControl = housingTooltip,
+    tooltipType = "mockHousingTooltip",
+    method = "LayoutItem",
+    linkFunc = function()
         linkFuncCalled = true
         return "test:item"
     end,
-    "LayoutBagItem",
-    function() return nil, nil end,
-    "LayoutStoreItemFromLink",
-    function() return nil, nil end
-)
+    method2 = "LayoutBagItem",
+    linkFunc2 = function() return nil, nil end,
+    method3 = "LayoutStoreItemFromLink",
+    linkFunc3 = function() return nil, nil end,
+})
 
 -- Call the hooked method with housing scene active
 housingTooltip:LayoutItem("furniture_data")
@@ -452,19 +474,19 @@ local housingTooltip2 = {
     IsHidden = function() return false end,
 }
 
-BETTERUI.InventoryHook(
-    housingTooltip2,
-    "mockHousingTooltip2",
-    "LayoutItem",
-    function() return nil end,
-    "LayoutBagItem",
-    function()
+BETTERUI.InventoryHook({
+    tooltipControl = housingTooltip2,
+    tooltipType = "mockHousingTooltip2",
+    method = "LayoutItem",
+    linkFunc = function() return nil end,
+    method2 = "LayoutBagItem",
+    linkFunc2 = function()
         linkFunc2Called = true
         return nil, nil
     end,
-    "LayoutStoreItemFromLink",
-    function() return nil, nil end
-)
+    method3 = "LayoutStoreItemFromLink",
+    linkFunc3 = function() return nil, nil end,
+})
 
 housingTooltip2:LayoutBagItem("furniture_data")
 assertEqual(true, nativeMethod2Called, "Native LayoutBagItem is called (pass-through)")
@@ -483,16 +505,16 @@ local crashTooltip = {
     IsHidden = function() return false end,
 }
 
-BETTERUI.InventoryHook(
-    crashTooltip,
-    "mockCrashTooltip",
-    "LayoutItem",
-    function() error("linkFunc crash: unexpected data") end,
-    "LayoutBagItem",
-    function() error("linkFunc2 crash: unexpected data") end,
-    "LayoutStoreItemFromLink",
-    function() error("linkFunc3 crash: unexpected data") end
-)
+BETTERUI.InventoryHook({
+    tooltipControl = crashTooltip,
+    tooltipType = "mockCrashTooltip",
+    method = "LayoutItem",
+    linkFunc = function() error("linkFunc crash: unexpected data") end,
+    method2 = "LayoutBagItem",
+    linkFunc2 = function() error("linkFunc2 crash: unexpected data") end,
+    method3 = "LayoutStoreItemFromLink",
+    linkFunc3 = function() error("linkFunc3 crash: unexpected data") end,
+})
 
 -- Each hooked method should absorb the error via pcall, not propagate it
 local pcallOk1, _ = pcall(crashTooltip.LayoutBagItem, crashTooltip, "unknown_data")
@@ -524,16 +546,16 @@ local raceTooltip = {
 
 -- Hook with housing scene inactive (normal inventory state)
 GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE = nil
-BETTERUI.InventoryHook(
-    raceTooltip,
-    "mockRaceTooltip",
-    "LayoutItem",
-    function() return "test:item" end,
-    "LayoutBagItem",
-    function() return nil, nil end,
-    "LayoutStoreItemFromLink",
-    function() return nil, nil end
-)
+BETTERUI.InventoryHook({
+    tooltipControl = raceTooltip,
+    tooltipType = "mockRaceTooltip",
+    method = "LayoutItem",
+    linkFunc = function() return "test:item" end,
+    method2 = "LayoutBagItem",
+    linkFunc2 = function() return nil, nil end,
+    method3 = "LayoutStoreItemFromLink",
+    linkFunc3 = function() return nil, nil end,
+})
 
 -- Now activate the housing scene BEFORE LayoutItem fires
 -- (simulating the race condition where scene transition happens mid-frame)
@@ -547,6 +569,228 @@ assertEqual(false, updateCalled, "Deferred header injection skipped when housing
 -- Restore
 BETTERUI.Inventory.UpdateTooltipEquippedText = origUpdate
 GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE = nil
+
+print("\nTest: Tooltip settings helpers expose reset-safe utility behavior")
+SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP = "SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP"
+SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP = "SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP"
+SI_BETTERUI_ATT_INTEGRATION_TOOLTIP = "SI_BETTERUI_ATT_INTEGRATION_TOOLTIP"
+SI_BETTERUI_MM_INTEGRATION_TOOLTIP = "SI_BETTERUI_MM_INTEGRATION_TOOLTIP"
+SI_BETTERUI_TTC_INTEGRATION_TOOLTIP = "SI_BETTERUI_TTC_INTEGRATION_TOOLTIP"
+SI_BETTERUI_MARKET_INTEGRATION_HEADER = "SI_BETTERUI_MARKET_INTEGRATION_HEADER"
+SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER = "SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER"
+
+stringMap[SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP] = "<<1>> missing"
+stringMap[SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP] = "Suppress guild store errors"
+stringMap[SI_BETTERUI_ATT_INTEGRATION_TOOLTIP] = "Arkadius Trade Tools integration"
+stringMap[SI_BETTERUI_MM_INTEGRATION_TOOLTIP] = "Master Merchant integration"
+stringMap[SI_BETTERUI_TTC_INTEGRATION_TOOLTIP] = "Tamriel Trade Centre integration"
+stringMap[SI_BETTERUI_MARKET_INTEGRATION_HEADER] = "Market Integration"
+stringMap[SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER] = "Enhanced Tooltips"
+
+local inventoryRefreshes = 0
+local bankingRefreshes = 0
+local clearedTooltips = {}
+local tooltipApplyCalls = 0
+local tooltipCleanupCalls = 0
+local maxHistoryLines = nil
+
+BETTERUI.GetModuleSettings = function(moduleName)
+    return BETTERUI.Settings.Modules[moduleName]
+end
+
+BETTERUI.EnsureModuleSettings = function(moduleName)
+    BETTERUI.Settings.Modules[moduleName] = BETTERUI.Settings.Modules[moduleName] or {}
+    return BETTERUI.Settings.Modules[moduleName]
+end
+
+BETTERUI.CIM.Settings = {
+    GetSettingDefault = function(moduleName, key, fallback)
+        local defaults = {
+            GeneralInterface = {
+                chatHistory = 200,
+                removeDeleteDialog = false,
+                showMarketPrice = true,
+                marketPricePriority = "mm_att_ttc",
+                guildStoreErrorSuppress = true,
+                attIntegration = true,
+                mmIntegration = true,
+                ttcIntegration = true,
+                showStyleTrait = true,
+                showKnowledgeStatus = true,
+                showItemComparison = true,
+            },
+            CIM = {
+                rhScrollSpeed = 50,
+                enableTooltipEnhancements = true,
+                tooltipSize = 24,
+            },
+        }
+
+        local moduleDefaults = defaults[moduleName]
+        if moduleDefaults and moduleDefaults[key] ~= nil then
+            return moduleDefaults[key]
+        end
+        return fallback
+    end,
+    ResetModuleSettingsByGroup = function(moduleName, group)
+        local settings = BETTERUI.EnsureModuleSettings(moduleName)
+        if moduleName == "GeneralInterface" and group == "general" then
+            settings.chatHistory = 200
+            settings.removeDeleteDialog = false
+        elseif moduleName == "CIM" and group == "generalInterfaceGeneral" then
+            settings.rhScrollSpeed = 50
+        elseif moduleName == "GeneralInterface" and group == "marketIntegration" then
+            settings.showMarketPrice = true
+            settings.marketPricePriority = "mm_att_ttc"
+            settings.guildStoreErrorSuppress = true
+            settings.attIntegration = true
+            settings.mmIntegration = true
+            settings.ttcIntegration = true
+        elseif moduleName == "GeneralInterface" and group == "enhancedTooltips" then
+            settings.showStyleTrait = true
+            settings.showKnowledgeStatus = true
+            settings.showItemComparison = true
+        elseif moduleName == "CIM" and group == "enhancedTooltips" then
+            settings.enableTooltipEnhancements = true
+            settings.tooltipSize = 24
+        end
+    end,
+    SortSettingsAlphabetically = function()
+    end,
+}
+
+BETTERUI.CIM.Utils = {
+    IsInventorySceneShowing = function()
+        return true
+    end,
+    IsBankingSceneShowing = function()
+        return true
+    end,
+}
+
+BETTERUI.CIM.MarketIntegration = {
+    GetPriorityChoices = function()
+        return { "MM > ATT > TTC" }, { "mm_att_ttc" }
+    end,
+}
+
+BETTERUI.CIM.Font = {
+    SIZE_MIN = 12,
+    SIZE_MAX = 48,
+    GetSizeValue = function(value)
+        return value
+    end,
+}
+
+BETTERUI.Inventory.ApplyTooltipStyles = function()
+    tooltipApplyCalls = tooltipApplyCalls + 1
+end
+
+BETTERUI.Inventory.CleanupEnhancedTooltip = function()
+    tooltipCleanupCalls = tooltipCleanupCalls + 1
+end
+
+BETTERUI.Banking = {
+    Window = {
+        RefreshList = function()
+            bankingRefreshes = bankingRefreshes + 1
+        end,
+    },
+}
+
+GAMEPAD_LEFT_TOOLTIP = "LEFT"
+GAMEPAD_RIGHT_TOOLTIP = "RIGHT"
+GAMEPAD_MOVABLE_TOOLTIP = "MOVABLE"
+GAMEPAD_TOOLTIPS = {
+    ClearTooltip = function(_, tooltipType)
+        clearedTooltips[#clearedTooltips + 1] = tooltipType
+    end,
+}
+
+GAMEPAD_INVENTORY = {
+    itemList = true,
+    categoryList = true,
+    RefreshItemList = function()
+        inventoryRefreshes = inventoryRefreshes + 1
+    end,
+}
+
+ZO_ChatWindowTemplate1Buffer = {
+    SetMaxHistoryLines = function(_, value)
+        maxHistoryLines = value
+    end,
+}
+
+function zo_iconFormat(icon, _, _)
+    return "[" .. tostring(icon) .. "]"
+end
+
+dofile("Modules/GeneralInterface/Tooltips/SettingsHelpers.lua")
+dofile("Modules/GeneralInterface/Tooltips/Settings.lua")
+
+local helpers = BETTERUI.GeneralInterface._SettingsHelpers
+assertEqual(5000, helpers.ParseIntegerInput(" 99999 ", 200, 1, 5000), "Integer parsing clamps oversized editbox values")
+assertEqual(200, helpers.ParseIntegerInput("not-a-number", 200, 1, 5000), "Integer parsing falls back for invalid editbox values")
+local dependencyTooltip = helpers.BuildAddonDependencyTooltip(SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP, { "MasterMerchant" }, false)
+assertContains(dependencyTooltip, "Master Merchant", "Dependency helper appends the missing addon name")
+
+local settingsOptions = BETTERUI.GeneralInterface.GetSettingsOptions()
+local marketIntegrationSubmenu = requireOptionByKey(
+    settingsOptions,
+    "marketIntegration",
+    "submenu",
+    "Market integration submenu is exposed by a stable key"
+)
+local enhancedTooltipSubmenu = requireOptionByKey(
+    settingsOptions,
+    "enhancedTooltips",
+    "submenu",
+    "Enhanced-tooltips submenu is exposed by a stable key"
+)
+local marketIntegrationControls = marketIntegrationSubmenu.controls or {}
+local enhancedTooltipControls = enhancedTooltipSubmenu.controls or {}
+local marketPriceToggle = requireOptionByKey(
+    marketIntegrationControls,
+    "showMarketPrice",
+    "checkbox",
+    "Market-price toggle is exposed by a stable key"
+)
+local marketIntegrationReset = requireOptionByKey(
+    marketIntegrationControls,
+    "marketIntegrationReset",
+    "button",
+    "Market integration reset is exposed by a stable key"
+)
+local tooltipEnhancementsToggle = requireOptionByKey(
+    enhancedTooltipControls,
+    "enableTooltipEnhancements",
+    "checkbox",
+    "Enhanced-tooltips toggle is exposed by a stable key"
+)
+
+settingsOptions[1].setFunc("6000")
+assertEqual(5000, BETTERUI.Settings.Modules.GeneralInterface.chatHistory, "Chat history editbox clamps to the supported maximum")
+assertEqual(5000, maxHistoryLines, "Chat history editbox updates the live chat buffer")
+
+marketPriceToggle.setFunc(false)
+assertEqual(false, BETTERUI.Settings.Modules.GeneralInterface.showMarketPrice, "Market-price toggle updates the stored setting")
+assertEqual(1, inventoryRefreshes, "Market-price toggle refreshes the inventory list")
+assertEqual(1, bankingRefreshes, "Market-price toggle refreshes the banking list")
+
+marketIntegrationReset.func()
+assertEqual(true, BETTERUI.Settings.Modules.GeneralInterface.showMarketPrice, "Market integration reset restores the default visibility setting")
+assertEqual(2, inventoryRefreshes, "Market integration reset refreshes inventory again")
+assertEqual(2, bankingRefreshes, "Market integration reset refreshes banking again")
+
+tooltipEnhancementsToggle.setFunc(false)
+assertEqual(false, BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements, "Enhanced-tooltips toggle can disable live tooltip enhancements")
+assertEqual(3, tooltipCleanupCalls, "Disabling enhanced tooltips cleans up all tooltip surfaces")
+assertEqual(3, #clearedTooltips, "Disabling enhanced tooltips clears each tooltip surface")
+
+tooltipEnhancementsToggle.setFunc(true)
+assertEqual(true, BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements, "Enhanced-tooltips toggle can re-enable live tooltip enhancements")
+assertEqual(1, tooltipApplyCalls, "Re-enabling enhanced tooltips reapplies live tooltip styles")
+assertEqual(6, #clearedTooltips, "Re-enabling enhanced tooltips clears each tooltip surface again")
 
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", testsPassed))

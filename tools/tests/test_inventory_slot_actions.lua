@@ -97,7 +97,9 @@ end
 -- IMPORT MODULE UNDER TEST
 -- ============================================================================
 
-dofile("Modules/Inventory/Actions/SlotActions.lua")
+local moduleLoaded, moduleLoadError = pcall(function()
+    dofile("Modules/Inventory/Actions/SlotActions.lua")
+end)
 
 -- ============================================================================
 -- TEST HARNESS
@@ -127,6 +129,13 @@ end
 -- ============================================================================
 
 print("\n=== Inventory SlotActions Regression Tests ===\n")
+
+assert_true(moduleLoaded, "SlotActions module loads when optional action-string constants are missing")
+if not moduleLoaded then
+    print("    Load error: " .. tostring(moduleLoadError))
+end
+
+if moduleLoaded then
 
 local slotActionsStub = {
     m_slotActions = {
@@ -161,6 +170,7 @@ end)
 assert_true(ok2, "Second call does not crash (cached lookup path)")
 
 assert_true((slotActionsStub._setupCalls or 0) >= 1, "SetupSecureAction was invoked for replacement action")
+end
 
 -- ============================================================================
 -- SUMMARY

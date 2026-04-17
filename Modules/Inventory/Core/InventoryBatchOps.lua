@@ -37,8 +37,15 @@ local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
     return true
 end
 
-local function ResolveInventoryDepositTargetBag(bagId, slotIndex)
-    local targetBankBag = BETTERUI.Banking and BETTERUI.Banking.GetCurrentBank() or BAG_BANK
+local function GetCurrentInventoryBankBag()
+    local banking = BETTERUI.Banking
+    if banking and banking.GetCurrentBank then
+        return banking.GetCurrentBank()
+    end
+    return BAG_BANK
+end
+
+local function ResolveInventoryDepositTargetBag(targetBankBag, bagId, slotIndex)
     if targetBankBag == BAG_BANK then
         if DoesBagHaveSpaceFor(BAG_BANK, bagId, slotIndex) then
             return BAG_BANK
@@ -235,10 +242,10 @@ function Class:BatchDeposit()
     if not selectedItems or #selectedItems == 0 then return end
 
     local items = {}
+    local targetBankBag = GetCurrentInventoryBankBag()
     for _, itemData in ipairs(selectedItems) do
         local bagId, slotIndex = ExtractSlot(itemData)
         if bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) then
-            local targetBankBag = BETTERUI.Banking and BETTERUI.Banking.GetCurrentBank() or BAG_BANK
             if IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then
                 items[#items + 1] = itemData
             end
@@ -248,9 +255,8 @@ function Class:BatchDeposit()
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
         if not HasItemAtSlot(bagId, slotIndex) then return true end
-        local targetBankBag = BETTERUI.Banking and BETTERUI.Banking.GetCurrentBank() or BAG_BANK
         if not IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then return true end
-        local destinationBag = ResolveInventoryDepositTargetBag(bagId, slotIndex)
+        local destinationBag = ResolveInventoryDepositTargetBag(targetBankBag, bagId, slotIndex)
         if not destinationBag then return false end
         local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
         if not stackCount then return true end

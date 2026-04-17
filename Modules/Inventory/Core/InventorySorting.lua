@@ -26,30 +26,63 @@ local INVENTORY_SORT_COLUMNS = {
 --- Helper: Get trait display name for sorting (alphabetical with blanks last)
 --- @param data table Item data or dataSource wrapper
 --- @return string|nil traitName Uppercased trait name or nil
+local function GetCachedTraitSortName(data, itemData)
+    local cachedTrait = itemData.cached_traitName or data.cached_traitName
+    if cachedTrait and cachedTrait ~= "-" and cachedTrait ~= "" then
+        return cachedTrait
+    end
+    return nil
+end
+
+local function ResolveTraitSortType(data, itemData)
+    local traitType = itemData.traitType or itemData.traitInformation or data.traitType
+    if traitType and traitType ~= 0 then
+        return traitType
+    end
+
+    local bagId = itemData.bagId or data.bagId
+    local slotIndex = itemData.slotIndex or data.slotIndex
+    if bagId ~= nil and slotIndex ~= nil and GetItemTrait then
+        return GetItemTrait(bagId, slotIndex)
+    end
+
+    return nil
+end
+
+local function GetTraitSortNameFromType(traitType)
+    if not traitType or traitType == ITEM_TRAIT_TYPE_NONE or traitType == 0 then
+        return nil
+    end
+
+    local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
+    if traitName == nil or traitName == "" then
+        return nil
+    end
+
+    return traitName:upper()
+end
+
+local function CacheTraitSortName(data, itemData, traitName)
+    itemData.cached_traitName = traitName
+    if data ~= itemData then
+        data.cached_traitName = traitName
+    end
+end
+
 local function GetTraitSortValue(data)
     if not data then return nil end
     local itemData = data.dataSource or data
-    local cachedTrait = itemData.cached_traitName or data.cached_traitName
-    if cachedTrait and cachedTrait ~= "-" and cachedTrait ~= "" then
-        return cachedTrait:upper()
+
+    local cachedTrait = GetCachedTraitSortName(data, itemData)
+    if cachedTrait then
+        return cachedTrait
     end
-    local traitType = itemData.traitType or itemData.traitInformation or data.traitType
-    if not traitType or traitType == 0 then
-        local bagId = itemData.bagId or data.bagId
-        local slotIndex = itemData.slotIndex or data.slotIndex
-        if bagId and slotIndex and GetItemTrait then
-            traitType = GetItemTrait(bagId, slotIndex)
-        end
+
+    local traitName = GetTraitSortNameFromType(ResolveTraitSortType(data, itemData))
+    if traitName then
+        CacheTraitSortName(data, itemData, traitName)
     end
-    if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE and traitType ~= 0 then
-        local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
-        if traitName and traitName ~= "" then
-            local result = traitName:upper()
-            itemData.cached_traitName = result
-            return result
-        end
-    end
-    return nil
+    return traitName
 end
 
 --- Helper: Get stat sort value (alphabetical first, then numeric, blanks last)
@@ -82,11 +115,12 @@ local function GetValueSortValue(data)
     if itemData.cached_marketPrice then
         return itemData.cached_marketPrice
     end
-    if BETTERUI.GetMarketPrice then
+    local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
+    if marketIntegration and type(marketIntegration.GetMarketPrice) == "function" then
         local itemLink = itemData.itemLink or itemData.cached_itemLink or
             (itemData.bagId and itemData.slotIndex and GetItemLink(itemData.bagId, itemData.slotIndex))
         if itemLink then
-            local marketPrice = BETTERUI.GetMarketPrice(itemLink, itemData.stackCount or 1)
+            local marketPrice = marketIntegration.GetMarketPrice(itemLink, itemData.stackCount or 1)
             if marketPrice and marketPrice > 0 then
                 itemData.cached_marketPrice = marketPrice
                 return marketPrice

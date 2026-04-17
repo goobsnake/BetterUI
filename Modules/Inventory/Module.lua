@@ -4,7 +4,21 @@ Purpose: Entry point and settings configuration for the Inventory module.
 ]]
 
 -- Module initialization
+---@type BetterUIModuleRoot
 BETTERUI.Inventory = BETTERUI.Inventory or {}
+local Inventory = BETTERUI.Inventory
+
+Inventory.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleRootContract
+Inventory.ROOT_CONTRACT = {
+    name = "Inventory",
+    archetype = Inventory.ARCHETYPE,
+    initOwner = "Modules/Inventory/Module.lua",
+    setupOwner = "Modules/Inventory/Module.lua",
+    runtimeOwner = "Modules/Inventory/Core/ + Modules/Inventory/Lists/ + Modules/Inventory/Dialogs/",
+    settingsOwner = "Modules/Inventory/Module.lua + Modules/Inventory/Settings/",
+    notes = "Module.lua owns defaults and scene bootstrap, while list behavior, dialogs, and reusable helpers live under Core/, Lists/, and Dialogs/.",
+}
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.RegisterModuleAccessors("Inventory")
@@ -19,12 +33,13 @@ BETTERUI.CIM.RegisterModuleAccessors("Inventory")
 --- Wrapper Function (caller in BetterUI.lua):
 ---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 ---
----@param m_options table|nil Module options table
----@return table m_options Initialized options with defaults applied
-function BETTERUI.Inventory.InitModule(m_options)
+---@param m_options BetterUIModuleOptions|nil Module options table
+---@return BetterUIModuleOptions m_options Initialized options with defaults applied
+---@type BetterUIModuleInitHook
+function Inventory.InitModule(m_options)
     m_options = m_options or {}
-    ---@cast m_options table
-    local defaults = BETTERUI.Inventory.DEFAULTS
+    ---@cast m_options BetterUIModuleOptions
+    local defaults = Inventory.DEFAULTS
     local fallbackDefaults = {
         quickDestroy = false,
         enableBatchDestroy = false,
@@ -110,17 +125,18 @@ end
 
 --- Lifecycle hook: registers settings and initializes the Inventory module.
 --- Registers settings, replaces native GAMEPAD_INVENTORY, and configures tooltips.
-function BETTERUI.Inventory.Setup()
-	BETTERUI.Inventory.Settings.RegisterPanel("Inventory", "Inventory")
+---@type BetterUIModuleSetupHook
+function Inventory.Setup()
+	Inventory.Settings.RegisterPanel("Inventory", "Inventory")
 
-	BETTERUI.Inventory.NativeGlobals = BETTERUI.Inventory.NativeGlobals or {}
-	local native = BETTERUI.Inventory.NativeGlobals
+	Inventory.NativeGlobals = Inventory.NativeGlobals or {}
+	local native = Inventory.NativeGlobals
 	if native.gamepadInventoryFragment == nil then
 		native.gamepadInventoryFragment = GAMEPAD_INVENTORY_FRAGMENT
 	end
 
 	-- Replace the native GAMEPAD_INVENTORY global with our custom class
-	GAMEPAD_INVENTORY = BETTERUI.Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
+	GAMEPAD_INVENTORY = Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
 
 	-- Create the replacement scene fragment using our custom top level control
 	GAMEPAD_INVENTORY_FRAGMENT = ZO_SimpleSceneFragment:New(BETTERUI_GamepadInventoryTopLevel)
@@ -151,18 +167,18 @@ function BETTERUI.Inventory.Setup()
 
 	-- Hook ZO_StackSplit_SplitItem to prevent duplicate dialogs using a lock flag.
 	-- Uses ZO_PreHook instead of replacing the global function.
-	if not BETTERUI.Inventory._splitStackHookInstalled and type(ZO_PreHook) == "function" then
+	if not Inventory._splitStackHookInstalled and type(ZO_PreHook) == "function" then
 		ZO_PreHook("ZO_StackSplit_SplitItem", function(inventorySlotControl)
-			if BETTERUI.Inventory._splitStackLock then
+			if Inventory._splitStackLock then
 				return true
 			end
 
-			BETTERUI.Inventory._splitStackLock = true
+			Inventory._splitStackLock = true
 
 			local retriesRemaining = 20
 			local function ReleaseSplitLockIfNoDialog()
 				if ZO_Dialogs_IsShowing and not ZO_Dialogs_IsShowing(ZO_GAMEPAD_SPLIT_STACK_DIALOG) then
-					BETTERUI.Inventory._splitStackLock = nil
+					Inventory._splitStackLock = nil
 					local inventorySceneShowing = BETTERUI.CIM and BETTERUI.CIM.Utils
 						and BETTERUI.CIM.Utils.IsInventorySceneShowing
 						and BETTERUI.CIM.Utils.IsInventorySceneShowing()
@@ -175,26 +191,26 @@ function BETTERUI.Inventory.Setup()
 				retriesRemaining = retriesRemaining - 1
 				if retriesRemaining <= 0 then
 					-- Safety release to avoid persistent lock if dialog lifecycle callbacks are missed.
-					BETTERUI.Inventory._splitStackLock = nil
+					Inventory._splitStackLock = nil
 					return
 				end
 
-				if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
-					BETTERUI.Inventory.Tasks:Schedule("splitStackLockFallbackRelease", 100, ReleaseSplitLockIfNoDialog)
+				if Inventory.Tasks and Inventory.Tasks.Schedule then
+					Inventory.Tasks:Schedule("splitStackLockFallbackRelease", 100, ReleaseSplitLockIfNoDialog)
 				else
 					zo_callLater(ReleaseSplitLockIfNoDialog, 100)
 				end
 			end
 
-			if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
-				BETTERUI.Inventory.Tasks:Schedule("splitStackLockFallbackRelease", 120, ReleaseSplitLockIfNoDialog)
+			if Inventory.Tasks and Inventory.Tasks.Schedule then
+				Inventory.Tasks:Schedule("splitStackLockFallbackRelease", 120, ReleaseSplitLockIfNoDialog)
 			else
 				zo_callLater(ReleaseSplitLockIfNoDialog, 120)
 			end
 
 			return false
 		end)
-		BETTERUI.Inventory._splitStackHookInstalled = true
+		Inventory._splitStackHookInstalled = true
 	end
 
 	-- Configure tooltip appearance and behavior
@@ -203,10 +219,10 @@ function BETTERUI.Inventory.Setup()
 
 	-- Only apply custom tooltip styles (font scaling) if enhancements are enabled
 	if BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false then
-		BETTERUI.Inventory.ApplyTooltipStyles()
+		Inventory.ApplyTooltipStyles()
 	end
 
-	BETTERUI.Inventory.EnableTooltipMouseWheel()
+	Inventory.EnableTooltipMouseWheel()
 
 	-- Register custom dialog for Bind on Equip protection (if SaveEquip addon is not handling it)
 	if not SaveEquip then

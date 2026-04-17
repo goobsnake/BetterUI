@@ -1,8 +1,21 @@
 -- Enriches item tooltips with market pricing, research status, and font scaling.
 -- Integrates with TTC, Master Merchant, and Arkadius Trade Tools.
 
--- Guild store error suppression flag (namespaced to avoid _G pollution)
-BETTERUI.CIM._gsErrorSuppress = 0
+BETTERUI.CIM = BETTERUI.CIM or {}
+BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
+BETTERUI.GeneralInterface.Tooltips = BETTERUI.GeneralInterface.Tooltips or {}
+
+local Tooltips = BETTERUI.GeneralInterface.Tooltips
+local TooltipRuntime = Tooltips._runtime or {}
+Tooltips._runtime = TooltipRuntime
+
+local function SetGuildStoreErrorSuppressed(isSuppressed)
+    TooltipRuntime.guildStoreErrorSuppressed = isSuppressed == true
+    BETTERUI.CIM._gsErrorSuppress = TooltipRuntime.guildStoreErrorSuppressed and 1 or 0
+end
+
+Tooltips.SetGuildStoreErrorSuppressed = SetGuildStoreErrorSuppressed
+SetGuildStoreErrorSuppressed(TooltipRuntime.guildStoreErrorSuppressed == true)
 
 -- RESEARCH TRAIT CACHING
 -- Performance optimization for trait research lookups. Building research info is expensive
@@ -94,10 +107,12 @@ end
 -- HELPERS
 
 --- Retrieves the user-configured tooltip font size.
-function BETTERUI.GetTooltipFontSize()
+function Tooltips.GetTooltipFontSize()
     local size = BETTERUI.GetSetting("CIM", "tooltipSize", DEFAULT_FONT_SIZE)
     return size
 end
+
+BETTERUI.GetTooltipFontSize = Tooltips.GetTooltipFontSize
 
 --- Generic helper to retrieve pricing from a specific trading addon.
 ---
@@ -145,7 +160,7 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
         if stackCount == nil or stackCount < 1 then
             stackCount = 1
         end
-        local fontSize = BETTERUI.GetTooltipFontSize()
+        local fontSize = Tooltips.GetTooltipFontSize()
         local iconSize = math.floor(fontSize * 0.7)
 
         -- TTC Integration (custom format to show both Avg and Suggested prices)
@@ -265,7 +280,7 @@ function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
 
     local colors = BETTERUI.CIM.CONST.COLORS
     local icons  = BETTERUI.CIM.CONST.ICONS
-    local fontSize = BETTERUI.GetTooltipFontSize()
+    local fontSize = Tooltips.GetTooltipFontSize()
     local iconSize = math.floor(fontSize * 1.0)
     local iconSizeFmt = iconSize .. ":" .. iconSize
 
@@ -373,33 +388,32 @@ local function ClearTooltipEnhancementState(tooltipControl, tooltipType)
 end
 
 
-function BETTERUI.InventoryHook(config, tooltipTypeArg, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
-    local tooltipControl, tooltipType
-    local layoutItemName, layoutItemDataFn
-    local layoutBagName, layoutBagDataFn
-    local layoutStoreName, layoutStoreDataFn
+function Tooltips.CreateInventoryHookConfig(tooltipControl, tooltipType)
+    return {
+        tooltipControl = tooltipControl,
+        tooltipType = tooltipType,
+        method = "LayoutItem",
+        linkFunc = Tooltips.ReturnItemLink,
+        method2 = "LayoutBagItem",
+        linkFunc2 = Tooltips.ReturnSelectedData,
+        method3 = "LayoutGuildStoreSearchResult",
+        linkFunc3 = Tooltips.ReturnStoreSearch,
+    }
+end
 
-    if type(config) == "table" and config.tooltipControl then
-        -- New table-based call
-        tooltipControl = config.tooltipControl
-        tooltipType = config.tooltipType
-        layoutItemName = config.method or "LayoutItem"
-        layoutItemDataFn = config.linkFunc
-        layoutBagName = config.method2 or "LayoutBagItem"
-        layoutBagDataFn = config.linkFunc2
-        layoutStoreName = config.method3 or "LayoutGuildStoreSearchResult"
-        layoutStoreDataFn = config.linkFunc3
-    else
-        -- Legacy positional call (backward compatibility)
-        tooltipControl = config
-        tooltipType = tooltipTypeArg
-        layoutItemName = method or "LayoutItem"
-        layoutItemDataFn = linkFunc
-        layoutBagName = method2 or "LayoutBagItem"
-        layoutBagDataFn = linkFunc2
-        layoutStoreName = method3 or "LayoutGuildStoreSearchResult"
-        layoutStoreDataFn = linkFunc3
+function Tooltips.InventoryHook(config)
+    if type(config) ~= "table" or not config.tooltipControl then
+        return
     end
+
+    local tooltipControl = config.tooltipControl
+    local tooltipType = config.tooltipType
+    local layoutItemName = config.method or "LayoutItem"
+    local layoutItemDataFn = config.linkFunc
+    local layoutBagName = config.method2 or "LayoutBagItem"
+    local layoutBagDataFn = config.linkFunc2
+    local layoutStoreName = config.method3 or "LayoutGuildStoreSearchResult"
+    local layoutStoreDataFn = config.linkFunc3
 
     if not (tooltipControl and (layoutItemName or layoutBagName or layoutStoreName)) then
         return
@@ -567,7 +581,7 @@ function BETTERUI.InventoryHook(config, tooltipTypeArg, method, linkFunc, method
 
         local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
 
-        local fontSize = BETTERUI.GetTooltipFontSize()
+        local fontSize = Tooltips.GetTooltipFontSize()
         local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
         for i = 1, self:GetNumChildren() do
             local child = self:GetChild(i)
@@ -637,17 +651,22 @@ function BETTERUI.InventoryHook(config, tooltipTypeArg, method, linkFunc, method
 end
 
 -- Passthrough helpers for tooltip hook data extraction
-function BETTERUI.ReturnItemLink(itemLink)
+function Tooltips.ReturnItemLink(itemLink)
     return itemLink
 end
 
-function BETTERUI.ReturnSelectedData(bagId, slotIndex)
+function Tooltips.ReturnSelectedData(bagId, slotIndex)
     return bagId, slotIndex
 end
 
-function BETTERUI.ReturnStoreSearch(storeItemLink, storeStackCount)
+function Tooltips.ReturnStoreSearch(storeItemLink, storeStackCount)
     return storeItemLink, storeStackCount
 end
+
+BETTERUI.InventoryHook = Tooltips.InventoryHook
+BETTERUI.ReturnItemLink = Tooltips.ReturnItemLink
+BETTERUI.ReturnSelectedData = Tooltips.ReturnSelectedData
+BETTERUI.ReturnStoreSearch = Tooltips.ReturnStoreSearch
 
 -- EVENT HANDLERS
 

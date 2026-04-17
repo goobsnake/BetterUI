@@ -42,8 +42,63 @@ end
 -- Import shared helpers from InventoryEntryFormatting.lua (loaded before this file)
 local _fmt = BETTERUI.Inventory._EntryFormatting
 local GetActiveListModuleName = _fmt.GetActiveListModuleName
+local ResolveEntryModuleName = _fmt.ResolveEntryModuleName or GetActiveListModuleName
 local ShouldShowMarketPrice = _fmt.ShouldShowMarketPrice
 local GetActiveNameFontSize = _fmt.GetActiveNameFontSize
+
+local function GetEntryDataSource(data)
+    return data and (data.dataSource or data) or nil
+end
+
+local function SetEntryListModuleName(target, moduleName)
+    if target and moduleName then
+        target.listModuleName = moduleName
+    end
+end
+
+local function AssignEntryListModuleName(data, moduleName)
+    if not data or not moduleName then
+        return
+    end
+
+    SetEntryListModuleName(data, moduleName)
+
+    local itemData = GetEntryDataSource(data)
+    if itemData and itemData ~= data then
+        SetEntryListModuleName(itemData, moduleName)
+    end
+end
+
+local function ApplyInventoryCategoryFields(itemData, categorizationFunction)
+    local categoryName = categorizationFunction(itemData)
+    local itemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
+
+    itemData.bestGamepadItemCategoryName = categoryName
+    itemData.bestItemCategoryName = categoryName
+    itemData.itemCategoryName = categoryName
+    itemData.bestItemTypeName = itemTypeName
+end
+
+local function NormalizeInventoryTypes(inventoryType)
+    if type(inventoryType) == "table" then
+        return inventoryType
+    end
+    return { inventoryType }
+end
+
+local function TracksInventoryType(list, bagId)
+    if bagId == nil then
+        return false
+    end
+
+    for _, inventoryType in ipairs(list.inventoryTypes or {}) do
+        if inventoryType == bagId then
+            return true
+        end
+    end
+
+    return false
+end
 
 --- Configures a shared gamepad inventory entry (row).
 --- Purpose: The main render function. Populates all displayed data for a row.
@@ -56,20 +111,23 @@ local GetActiveNameFontSize = _fmt.GetActiveNameFontSize
 ---@return nil
 function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
-    local moduleName = GetActiveListModuleName()
+    local moduleName = ResolveEntryModuleName(data)
+    local itemData = GetEntryDataSource(data)
 
     -- Use cached values for performance
-    local bagId = data.bagId or (data.dataSource and data.dataSource.bagId)
-    local slotIndex = data.slotIndex or (data.dataSource and data.dataSource.slotIndex)
+    local bagId = itemData and itemData.bagId or nil
+    local slotIndex = itemData and itemData.slotIndex or nil
 
     -- Early return for non-item entries (currency rows, headers)
     -- These have .label but no bagId/slotIndex for item data
-    if not bagId and not slotIndex then
+    if bagId == nil or slotIndex == nil then
         return
     end
 
-    local itemLink = data.cached_itemLink or (bagId and slotIndex and GetItemLink(bagId, slotIndex))
-    local itemType = data.cached_itemType or (itemLink and GetItemLinkItemType(itemLink))
+    local itemLink = (itemData.cached_itemLink or data.cached_itemLink)
+        or (bagId and slotIndex and GetItemLink(bagId, slotIndex))
+    local itemType = (itemData.cached_itemType or data.cached_itemType)
+        or (itemLink and GetItemLinkItemType(itemLink))
 
     -- Determine which scene is active and use appropriate column font settings
     local columnFont
@@ -101,13 +159,17 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     itemTypeControl:SetText(string.upper(data.bestItemTypeName))
 
     -- Set trait information
-    local traitName = data.cached_traitName
+    local traitName = itemData.cached_traitName or data.cached_traitName
     if not traitName then
         local traitType = GetItemTrait(bagId, slotIndex)
         if traitType ~= ITEM_TRAIT_TYPE_NONE then
             traitName = string.upper(GetString("SI_ITEMTRAITTYPE", traitType))
         else
             traitName = "-"
+        end
+        itemData.cached_traitName = traitName
+        if itemData ~= data then
+            data.cached_traitName = traitName
         end
     end
     traitControl:SetText(traitName)
@@ -129,7 +191,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         statText = isKnown and GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_KNOWN")) or
             GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_UNKNOWN"))
     else
-        local statValue = data.dataSource and data.dataSource.statValue
+        local statValue = itemData.statValue
         if statValue == nil then
             statText = "-"
         else
@@ -141,7 +203,11 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     -- Handle market price display
     if ShouldShowMarketPrice() and
         (BETTERUI.Utils.IsBankingSceneShowing() or BETTERUI.Utils.IsInventorySceneShowing()) then
-        local marketPrice, isAverage = BETTERUI.GetMarketPrice(itemLink, data.stackCount)
+        local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
+        local marketPrice, isAverage = 0, false
+        if marketIntegration and type(marketIntegration.GetMarketPrice) == "function" then
+            marketPrice, isAverage = marketIntegration.GetMarketPrice(itemLink, itemData.stackCount or data.stackCount)
+        end
         if marketPrice and marketPrice > 0 then
             valueControl:SetColor(isAverage and 1 or 1, isAverage and 0.5 or 0.75, isAverage and 0.5 or 0, 1)
             valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(math.floor(marketPrice)))
@@ -240,6 +306,13 @@ end
 -- Class: BETTERUI.Inventory.List (extends ZO_GamepadInventoryList)
 BETTERUI.Inventory.List = ZO_GamepadInventoryList:Subclass()
 
+--- Sets the list sort function, falling back to the standard inventory comparator.
+---@param sortFunction function|nil Sort comparator function
+---@return nil
+function BETTERUI.Inventory.List:SetSortFunction(sortFunction)
+    self.sortFunction = sortFunction or BETTERUI_Inventory_DefaultItemSortComparator
+end
+
 --- Creates a new Inventory List instance.
 ---@param ... any Arguments forwarded to ZO_GamepadInventoryList.New
 ---@return table object New list instance
@@ -268,25 +341,23 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     self.selectedDataCallback = selectedDataCallback
     self.entrySetupCallback = entrySetupCallback
     self.categorizationFunction = categorizationFunction
-    self.sortFunction = BETTERUI_Inventory_DefaultItemSortComparator
+    self.listModuleName = "Inventory"
+    self:SetSortFunction(sortFunction)
     self.dataBySlotIndex = {}
     self.isDirty = true
     self.useTriggers = (useTriggers ~= false) -- nil => true
     self.template = template or DEFAULT_TEMPLATE
 
-    if type(inventoryType) == "table" then
-        self.inventoryTypes = inventoryType
-    else
-        self.inventoryTypes = { inventoryType }
-    end
+    self.inventoryTypes = NormalizeInventoryTypes(inventoryType)
 
-    local function VendorEntryTemplateSetup(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
+    local function InventoryEntryTemplateSetup(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
         ZO_Inventory_BindSlot(data, slotType, data.slotIndex, data.bagId)
+        AssignEntryListModuleName(data, self.listModuleName)
         BETTERUI_SharedGamepadEntry_OnSetup(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
     end
 
     self.list = BETTERUI_VerticalParametricScrollList:New(self.control)
-    self.list:AddDataTemplate(self.template, templateSetupFunction or VendorEntryTemplateSetup,
+    self.list:AddDataTemplate(self.template, templateSetupFunction or InventoryEntryTemplateSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction)
     self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
@@ -345,19 +416,22 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     end
 
     local function OnInventoryUpdated(bagId)
-        if bagId == self.inventoryType then
+        if TracksInventoryType(self, bagId) then
             self:RefreshList()
         end
     end
 
     local function OnSingleSlotInventoryUpdate(bagId, slotIndex)
-        if bagId == self.inventoryType then
+        if TracksInventoryType(self, bagId) then
             local entry = self.dataBySlotIndex[slotIndex]
             if entry then
-                local itemData = SHARED_INVENTORY:GenerateSingleSlotData(self.inventoryType, slotIndex)
+                local itemData = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
                 if itemData then
-                    itemData.bestGamepadItemCategoryName = GetBestItemCategoryDescription(itemData)
-                    if self.inventoryType ~= BAG_VIRTUAL then -- virtual items don't have any champion points associated with them
+                    local categorizationFunction = self.categorizationFunction or
+                        BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
+                    ApplyInventoryCategoryFields(itemData, categorizationFunction)
+                    SetEntryListModuleName(itemData, self.listModuleName)
+                    if bagId ~= BAG_VIRTUAL then -- virtual items don't have any champion points associated with them
                         itemData.requiredChampionPoints = GetItemLinkRequiredChampionPoints(itemData)
                     end
                     self:SetupItemEntry(entry, itemData)
@@ -393,9 +467,8 @@ function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, s
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
     if slotData then
         if (not itemFilterFunction) or itemFilterFunction(slotData) then
-            -- itemData is shared in several places and can write their own value of bestItemCategoryName.
-            -- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
-            slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
+            ApplyInventoryCategoryFields(slotData, categorizationFunction)
+            SetEntryListModuleName(slotData, self.listModuleName)
 
             table.insert(slotsTable, slotData)
         end
@@ -416,6 +489,7 @@ function BETTERUI.Inventory.List:RefreshList()
     self.dataBySlotIndex = {}
 
     local slots = self:GenerateSlotTable()
+    table.sort(slots, self.sortFunction or BETTERUI_Inventory_DefaultItemSortComparator)
     local currentBestCategoryName
     for i, itemData in ipairs(slots) do
         local entry = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)

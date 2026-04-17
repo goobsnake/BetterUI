@@ -67,32 +67,9 @@ BETTERUI.Inventory.CONST.BATCH_SIZE_REMAINING = BETTERUI.CIM.CONST.TIMING.BATCH_
 -- SEARCH BAR POSITIONING (delegate to CIM shared constants)
 -- Controls the position of the search input field in inventory headers
 
--- Use centralized CIM search bar constants (eliminates duplication with Banking)
-local searchConst = BETTERUI.CIM.GetSearchBarConstants("INVENTORY")
-
---[[
-Constant: BETTERUI.Inventory.CONST.SEARCH_X_OFFSET
-Description: Horizontal offset from left edge for search bar.
-Direction: Positive (+) moves RIGHT.
-Used By: Inventory.lua
-]]
-BETTERUI.Inventory.CONST.SEARCH_X_OFFSET = searchConst.X_OFFSET
-
---[[
-Constant: BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET
-Description: Vertical offset from header bottom for search bar.
-Direction: Positive (+) moves DOWN.
-Used By: Inventory.lua
-]]
-BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET = searchConst.Y_OFFSET
-
---[[
-Constant: BETTERUI.Inventory.CONST.SEARCH_RIGHT_INSET
-Description: Right edge inset for search bar width.
-Direction: Negative (-) moves LEFT (narrower).
-Used By: Inventory.lua
-]]
-BETTERUI.Inventory.CONST.SEARCH_RIGHT_INSET = searchConst.RIGHT_INSET
+function BETTERUI.Inventory.CONST.GetSearchConstants()
+    return BETTERUI.CIM.SearchBar.GetConstants("INVENTORY")
+end
 
 -- LIST ENTRY ICON SCALING
 -- Used in InventoryList.lua for dynamic icon sizing based on font settings

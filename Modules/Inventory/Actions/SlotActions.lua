@@ -232,26 +232,30 @@ local function IsPrimaryAction(actionName, actionStringId)
 end
 
 --- Table of action string IDs that should trigger a primary action replacement.
-local PRIMARY_ACTION_REPLACEMENTS = {
-    [SI_ITEM_ACTION_USE] = true,
-    [SI_ITEM_ACTION_EQUIP] = true,
-    [SI_ITEM_ACTION_UNEQUIP] = true,
-    [SI_ITEM_ACTION_BANK_WITHDRAW] = true,
-    [SI_ITEM_ACTION_BANK_DEPOSIT] = true,
-    [SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG] = true,
-    [SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG] = true,
-    [SI_ITEM_ACTION_SHOW_MAP] = true,
-    [SI_ITEM_ACTION_START_SKILL_RESPEC] = true,
-    [SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC] = true,
-    [SI_ITEM_ACTION_PLACE_FURNITURE] = true,
-    [SI_ITEM_ACTION_LINK_TO_CHAT] = true,
-    [SI_ITEM_ACTION_MARK_AS_JUNK] = true,
-    [SI_ITEM_ACTION_UNMARK_AS_JUNK] = true,
-    [SI_ITEM_ACTION_DESTROY] = true,
-}
-if SI_ITEM_ACTION_DELETE then
-    PRIMARY_ACTION_REPLACEMENTS[SI_ITEM_ACTION_DELETE] = true
+local PRIMARY_ACTION_REPLACEMENTS = {}
+
+local function AddPrimaryActionReplacement(actionId)
+    if actionId then
+        PRIMARY_ACTION_REPLACEMENTS[actionId] = true
+    end
 end
+
+AddPrimaryActionReplacement(SI_ITEM_ACTION_USE)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_EQUIP)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_UNEQUIP)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_BANK_WITHDRAW)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_BANK_DEPOSIT)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_SHOW_MAP)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_START_SKILL_RESPEC)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_PLACE_FURNITURE)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_LINK_TO_CHAT)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_MARK_AS_JUNK)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_UNMARK_AS_JUNK)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_DESTROY)
+AddPrimaryActionReplacement(SI_ITEM_ACTION_DELETE)
 
 local primaryActionReplacementLookup = nil
 

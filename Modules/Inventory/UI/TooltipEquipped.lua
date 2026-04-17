@@ -41,7 +41,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
     -- Check Setting (consistent pattern: nil/missing → true, explicit false → false)
     local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
 
-    local fontSize = BETTERUI.GetTooltipFontSize()
+    local fontSize = BETTERUI.GeneralInterface.Tooltips.GetTooltipFontSize()
     local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
     local scrollTooltip = container and container:GetNamedChild("Tip")
     local nativeBottomRail = container and (container.bottomRail or container:GetNamedChild("BottomRail"))

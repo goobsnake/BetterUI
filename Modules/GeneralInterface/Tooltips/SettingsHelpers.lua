@@ -8,24 +8,32 @@
 if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
+local SettingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
+assert(SettingsApi and SettingsApi.GetSettingDefault and SettingsApi.ResetModuleSettingsByGroup,
+    "BetterUI: CIM.Settings metadata helpers must load before GeneralInterface tooltip settings helpers")
+
 --- Applies tooltip visual settings from the current configuration.
 local function ApplyTooltipVisualSettings()
-    BETTERUI.CIM.TryCall("Inventory.ApplyTooltipStyles")
+    if BETTERUI.Inventory and type(BETTERUI.Inventory.ApplyTooltipStyles) == "function" then
+        BETTERUI.Inventory.ApplyTooltipStyles()
+    end
 end
 
 --- Cleans up tooltip enhancement artifacts from all tooltip controls.
 local function CleanupTooltipEnhancementArtifacts()
     if not (BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip) then return end
-    BETTERUI.CIM.TryCall("Inventory.CleanupEnhancedTooltip", GAMEPAD_LEFT_TOOLTIP)
-    BETTERUI.CIM.TryCall("Inventory.CleanupEnhancedTooltip", GAMEPAD_RIGHT_TOOLTIP)
-    BETTERUI.CIM.TryCall("Inventory.CleanupEnhancedTooltip", GAMEPAD_MOVABLE_TOOLTIP)
+    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
+    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_MOVABLE_TOOLTIP)
 end
 
 --- Refreshes the inventory and banking lists if their scenes are showing.
 local function RefreshInventoryAndBankingLists()
     local inventoryWindow = GAMEPAD_INVENTORY
-    local _, inventorySceneShowing = BETTERUI.CIM.TryCall("CIM.Utils.IsInventorySceneShowing")
-    if inventorySceneShowing == nil then inventorySceneShowing = true end
+    local inventorySceneShowing = true
+    if BETTERUI.CIM.Utils and type(BETTERUI.CIM.Utils.IsInventorySceneShowing) == "function" then
+        inventorySceneShowing = BETTERUI.CIM.Utils.IsInventorySceneShowing()
+    end
 
     if inventorySceneShowing
         and inventoryWindow
@@ -36,8 +44,10 @@ local function RefreshInventoryAndBankingLists()
     end
 
     local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
-    local _, bankingSceneShowing = BETTERUI.CIM.TryCall("CIM.Utils.IsBankingSceneShowing")
-    if bankingSceneShowing == nil then bankingSceneShowing = true end
+    local bankingSceneShowing = true
+    if BETTERUI.CIM.Utils and type(BETTERUI.CIM.Utils.IsBankingSceneShowing) == "function" then
+        bankingSceneShowing = BETTERUI.CIM.Utils.IsBankingSceneShowing()
+    end
 
     if bankingSceneShowing and bankingWindow and bankingWindow.RefreshList then
         bankingWindow:RefreshList()
@@ -46,8 +56,10 @@ end
 
 --- Gets the default value for a setting from metadata.
 local function GetMetadataDefault(moduleName, settingKey, fallback)
-    local ok, result = BETTERUI.CIM.TryCall("CIM.Settings.GetSettingDefault", moduleName, settingKey, fallback)
-    if ok then return result end
+    local result = SettingsApi.GetSettingDefault(moduleName, settingKey, fallback)
+    if result ~= nil then
+        return result
+    end
     return fallback
 end
 
@@ -125,20 +137,8 @@ end
 
 --- Resets the general settings for the GeneralInterface module.
 local function ResetGeneralInterfaceGeneralSettings()
-    local ok = BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "GeneralInterface", "general")
-    if ok then
-        BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "CIM", "generalInterfaceGeneral")
-    else
-        local generalInterfaceSettings = EnsureModuleSettings("GeneralInterface")
-        local cimSettings = EnsureModuleSettings("CIM")
-        if generalInterfaceSettings then
-            generalInterfaceSettings.chatHistory = 200
-            generalInterfaceSettings.removeDeleteDialog = false
-        end
-        if cimSettings then
-            cimSettings.rhScrollSpeed = 50
-        end
-    end
+    SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "general")
+    SettingsApi.ResetModuleSettingsByGroup("CIM", "generalInterfaceGeneral")
 
     local generalInterfaceSettings = GetModuleSettings("GeneralInterface")
     if ZO_ChatWindowTemplate1Buffer ~= nil then
@@ -150,50 +150,15 @@ end
 
 --- Resets the market integration settings to defaults.
 local function ResetMarketIntegrationSettings()
-    if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "GeneralInterface", "marketIntegration") then
-        local generalInterfaceSettings = EnsureModuleSettings("GeneralInterface")
-        if generalInterfaceSettings then
-            generalInterfaceSettings.showMarketPrice =
-                GetMetadataDefault("GeneralInterface", "showMarketPrice", true)
-            generalInterfaceSettings.marketPricePriority =
-                GetMetadataDefault("GeneralInterface", "marketPricePriority", "mm_att_ttc")
-            generalInterfaceSettings.guildStoreErrorSuppress =
-                GetMetadataDefault("GeneralInterface", "guildStoreErrorSuppress", true)
-            generalInterfaceSettings.attIntegration =
-                GetMetadataDefault("GeneralInterface", "attIntegration", true)
-            generalInterfaceSettings.mmIntegration =
-                GetMetadataDefault("GeneralInterface", "mmIntegration", true)
-            generalInterfaceSettings.ttcIntegration =
-                GetMetadataDefault("GeneralInterface", "ttcIntegration", true)
-        end
-    end
+    SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "marketIntegration")
 
     RefreshInventoryAndBankingLists()
 end
 
 --- Resets the enhanced tooltip settings to defaults.
 local function ResetEnhancedTooltipSettings()
-    local ok = BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "GeneralInterface", "enhancedTooltips")
-    if ok then
-        BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "CIM", "enhancedTooltips")
-    else
-        local generalInterfaceSettings = EnsureModuleSettings("GeneralInterface")
-        local cimSettings = EnsureModuleSettings("CIM")
-        if generalInterfaceSettings then
-            generalInterfaceSettings.showStyleTrait =
-                GetMetadataDefault("GeneralInterface", "showStyleTrait", true)
-            generalInterfaceSettings.showKnowledgeStatus =
-                GetMetadataDefault("GeneralInterface", "showKnowledgeStatus", true)
-            generalInterfaceSettings.showItemComparison =
-                GetMetadataDefault("GeneralInterface", "showItemComparison", true)
-        end
-        if cimSettings then
-            cimSettings.enableTooltipEnhancements =
-                GetMetadataDefault("CIM", "enableTooltipEnhancements", true)
-            cimSettings.tooltipSize =
-                GetMetadataDefault("CIM", "tooltipSize", 24)
-        end
-    end
+    SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "enhancedTooltips")
+    SettingsApi.ResetModuleSettingsByGroup("CIM", "enhancedTooltips")
 
     local cimSettings = GetModuleSettings("CIM")
     if cimSettings and cimSettings.enableTooltipEnhancements == true then

@@ -96,6 +96,10 @@ function GetItemLinkItemType()
     return 0
 end
 
+function IsItemBound()
+    return true
+end
+
 SCENE_MANAGER = {
     scenes = {},
     GetScene = function(self, sceneName)
@@ -244,6 +248,38 @@ moduleSettings.Banking.nameFontSize = 28
 label = makeLabel()
 BETTERUI_SharedGamepadEntryLabelSetup(label, itemData, false)
 assert_equal("BankingFont", label.font, "Banking font descriptor used when banking scene is active")
+BETTERUI.Utils.IsBankingSceneShowing = function()
+    return false
+end
+
+print("\nTest: Explicit list module context overrides scene fallback")
+BETTERUI.Utils.IsBankingSceneShowing = function()
+    return true
+end
+label = makeLabel()
+local vendorContextData = {
+    text = "Vendor Item",
+    stolen = false,
+    stackCount = 1,
+    quality = 1,
+    cached_itemLink = "|H1:item:2|h",
+    cached_isRecipeAndUnknown = false,
+    cached_isBookAndUnknown = false,
+    cached_isTraitResearchable = false,
+    cached_isUnbound = false,
+    listModuleName = "Vendor",
+    meetsUsageRequirements = true,
+    GetNameColor = function()
+        return makeColor(1, 1, 1, 1)
+    end,
+    dataSource = {
+        bagId = 1,
+        slotIndex = 3,
+        listModuleName = "Vendor",
+    },
+}
+BETTERUI_SharedGamepadEntryLabelSetup(label, vendorContextData, false)
+assert_equal("VendorFont", label.font, "Explicit row ownership is preferred over scene fallback")
 BETTERUI.Utils.IsBankingSceneShowing = function()
     return false
 end

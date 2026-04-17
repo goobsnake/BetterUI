@@ -67,6 +67,7 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
         false,
         "BETTERUI_GamepadItemSubEntryTemplate"
     )
+    self.craftBagList.listModuleName = "Inventory"
     self.craftBagList:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY")))
     self.craftBagList:SetAlignToScreenCenter(true, 30)
 

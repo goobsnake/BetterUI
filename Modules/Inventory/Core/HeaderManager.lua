@@ -4,14 +4,23 @@ Purpose: Manages the inventory header, tab switches, and search focus integratio
 ]]
 
 local INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY
+local INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
 local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
+
+--- @param self BetterUI_InventoryClass
+--- @return integer stringId
+local function GetActiveInventoryActionStringId(self)
+    local activeListType = self.currentListType or INVENTORY_ITEM_LIST
+    if activeListType == INVENTORY_CRAFT_BAG_LIST then
+        return SI_BETTERUI_INV_ACTION_CB
+    end
+    return SI_BETTERUI_INV_ACTION_INV
+end
 
 --- @param self BetterUI_InventoryClass
 local function InitializeHeader(self)
     local function UpdateTitleText()
-        return GetString(
-            self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_CB or SI_BETTERUI_INV_ACTION_INV
-        )
+        return GetString(GetActiveInventoryActionStringId(self))
     end
 
     local tabBarEntries = {

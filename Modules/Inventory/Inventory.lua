@@ -416,10 +416,11 @@ function BETTERUI.Inventory.Class:ClearTextSearch()
 	-- Ensure internal state is cleared
 	self.searchQuery = ""
 	-- Prefer shared helper if available
-	if not BETTERUI.CIM.TryCall("Interface.Window.ClearSearchText", self) then
-		if self.ClearSearchText then
-			self:ClearSearchText()
-		end
+	local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+	if searchMixin and searchMixin.ClearSearchText then
+		searchMixin.ClearSearchText(self)
+	elseif self.ClearSearchText then
+		self:ClearSearchText()
 	end
 end
 
@@ -491,5 +492,4 @@ function BETTERUI.Inventory.Class:BETTERUI_IsSlotLocked(inventorySlot)
 	end
 	return false
 end
-
 

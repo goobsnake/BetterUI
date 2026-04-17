@@ -436,11 +436,11 @@ function BETTERUI.Inventory.Class:Initialize(control)
     control:SetHandler("OnUpdate", OnUpdate)
 
     -- Add gamepad text search support using the shared helper
-    local addSearch = BETTERUI.CIM.TryResolve("Interface.Window.AddSearch")
-    if addSearch then
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    if searchMixin and searchMixin.AddSearch then
         self.textSearchKeybindStripDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor(self)
 
-        addSearch(self, self.textSearchKeybindStripDescriptor, function(editOrText)
+        searchMixin.AddSearch(self, self.textSearchKeybindStripDescriptor, function(editOrText)
             -- Normalize the OnTextChanged argument like Banking does
             local query
             if type(editOrText) == "string" then
@@ -466,7 +466,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
         end)
         -- Use consolidated SearchFocusMixin for edit box handlers
         -- This replaces ~60 lines of duplicate code (previously duplicated in Banking.lua)
-        BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, {
+        searchMixin.SetupEditBoxHandlers(self, {
             isSceneShowing = function()
                 return self.scene and self.scene:IsShowing()
             end,
@@ -615,18 +615,19 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
 
     local parentForAnchor = titleContainer or self.header
     if parentForAnchor then
-        -- Search bar position configured in BetterUI.Constants.lua
-        local xOffset = BETTERUI.Inventory.CONST.SEARCH_X_OFFSET
-        local yOffset = BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET
-        local rightInset = BETTERUI.Inventory.CONST.SEARCH_RIGHT_INSET
+        local searchConst = BETTERUI.Inventory.CONST.GetSearchConstants()
+        local xOffset = searchConst.X_OFFSET
+        local yOffset = searchConst.Y_OFFSET
+        local rightInset = searchConst.RIGHT_INSET
         -- TOPLEFT uses xOffset, TOPRIGHT uses rightInset so the control width is constrained
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
     else
+        local searchConst = BETTERUI.Inventory.CONST.GetSearchConstants()
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0,
-            BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET)
+            searchConst.Y_OFFSET)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0,
-            BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET)
+            searchConst.Y_OFFSET)
     end
     self.textSearchHeaderControl:SetHidden(false)
 end

@@ -8,10 +8,7 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 
 -- Localize frequently used globals
 local GetItemLink = GetItemLink
-local zo_strformat = zo_strformat
 local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
-local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
-local Id64ToString = Id64ToString
 
 --- @param itemData table
 --- @return boolean
@@ -50,40 +47,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     if self:IsBatchProcessing() then
         return
     end
-    -- Capture current selection before clearing
-    -- Priority: _splitStackUniqueId > _preserveUniqueId > uniqueId > savedIndex
-    local targetUniqueId = nil
-    local targetIndex = nil
-
-    -- Priority 1: Split stack specific (set in dialog callback)
-    if self._splitStackUniqueId then
-        targetUniqueId = Id64ToString(self._splitStackUniqueId)
-        self._splitStackUniqueId = nil
-        -- Priority 2: Global preserve uniqueId (set in OnInventoryUpdated before callbacks fire)
-    elseif self._preserveUniqueId then
-        targetUniqueId = Id64ToString(self._preserveUniqueId)
-        self._preserveUniqueId = nil
-    elseif self.currentlySelectedData then
-        -- Priority 3: Use saved uniqueId from currentlySelectedData if available
-        if self.currentlySelectedData.uniqueId then
-            targetUniqueId = Id64ToString(self.currentlySelectedData.uniqueId)
-        end
-        -- Priority 4: Use saved index from ToSavedPosition (per-category)
-        if self.currentlySelectedData.savedIndex then
-            targetIndex = self.currentlySelectedData.savedIndex
-        end
-    end
-
-    -- Capture current active index before clearing as an ultimate fallback
-    if not targetIndex and self.itemList:GetSelectedIndex() then
-        targetIndex = self.itemList:GetSelectedIndex()
-    end
-
-    -- Priority fallback: Global preserve index (when item leaves list after equip/consume)
-    if not targetIndex and self._preserveIndex then
-        targetIndex = self._preserveIndex
-    end
-    self._preserveIndex = nil -- Clear after capturing
+    local targetUniqueId, targetIndex = self:CaptureItemListRefreshTarget()
 
     -- Update empty-state text based on search context
     if self.searchQuery and tostring(self.searchQuery) ~= "" then
@@ -198,31 +162,10 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     self.pendingContext = nil
 
     -- Pre-compute sortPriorityName for all items BEFORE sorting.
-    -- DefaultSortComparator uses sortPriorityName as the primary key, so it must be
-    -- populated before table.sort. Without this, first-load has nil values (falling
-    -- through to tiebreakers) while subsequent refreshes have stale values from batch
-    -- processing, producing inconsistent sort order.
+    -- Populate the canonical display and sort metadata before table.sort so full
+    -- refreshes and live updates use the same category/type source fields.
     for i = 1, #filteredDataTable do
-        local itemData = filteredDataTable[i]
-        if not itemData.sortPriorityName then
-            local bestCategoryDesc = itemData.cachedBestCategoryDesc
-            if not bestCategoryDesc then
-                bestCategoryDesc = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
-                itemData.cachedBestCategoryDesc = bestCategoryDesc
-            end
-            if AutoCategory and AutoCategory.Inited then
-                local customCategory, matched, catName, catPriority = BETTERUI.GetCustomCategory(itemData)
-                if customCategory and not matched then
-                    itemData.sortPriorityName = string.format("%03d%s", 999, catName)
-                elseif customCategory then
-                    itemData.sortPriorityName = string.format("%03d%s", 100 - catPriority, catName)
-                else
-                    itemData.sortPriorityName = bestCategoryDesc
-                end
-            else
-                itemData.sortPriorityName = bestCategoryDesc
-            end
-        end
+        self:PopulateInventoryCategoryFields(filteredDataTable[i])
     end
 
     -- Use the list's custom sort function if set, otherwise fall back to default

@@ -27,6 +27,18 @@ local function IsNameplateEnabled()
     return settings and settings.m_enabled == true
 end
 
+local function NotifyNameplateToggleChanged(value)
+    if BETTERUI.Nameplates and type(BETTERUI.Nameplates.OnEnabledChanged) == "function" then
+        BETTERUI.Nameplates.OnEnabledChanged(value)
+    end
+end
+
+local function ApplyCurrentNameplateSettings()
+    if BETTERUI.Nameplates and type(BETTERUI.Nameplates.ApplyCurrentSettings) == "function" then
+        BETTERUI.Nameplates.ApplyCurrentSettings()
+    end
+end
+
 --- Returns the table of LAM settings options for Nameplates.
 function BETTERUI.Nameplates.GetSettingsOptions()
     return {
@@ -52,7 +64,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 if not settings then return end
 
                 settings.m_enabled = value
-                BETTERUI.CIM.TryCall("Nameplates.OnEnabledChanged", value)
+                NotifyNameplateToggleChanged(value)
             end,
             width = "full",
         },
@@ -79,7 +91,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 if not settings then return end
 
                 settings.font = value
-                BETTERUI.CIM.TryCall("Nameplates.ApplyCurrentSettings")
+                ApplyCurrentNameplateSettings()
             end,
             disabled = function() return not IsNameplateEnabled() end,
             width = "full",
@@ -102,7 +114,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 if not settings then return end
 
                 settings.style = value
-                BETTERUI.CIM.TryCall("Nameplates.ApplyCurrentSettings")
+                ApplyCurrentNameplateSettings()
             end,
             disabled = function() return not IsNameplateEnabled() end,
             width = "full",
@@ -126,7 +138,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 if not settings then return end
 
                 settings.size = value
-                BETTERUI.CIM.TryCall("Nameplates.ApplyCurrentSettings")
+                ApplyCurrentNameplateSettings()
             end,
             disabled = function() return not IsNameplateEnabled() end,
             width = "full",

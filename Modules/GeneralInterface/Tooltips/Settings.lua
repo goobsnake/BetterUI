@@ -9,37 +9,41 @@ if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 -- Import shared helpers from SettingsHelpers.lua
-local H = BETTERUI.GeneralInterface._SettingsHelpers or {}
-local ApplyTooltipVisualSettings = H.ApplyTooltipVisualSettings or function() end
-local CleanupTooltipEnhancementArtifacts = H.CleanupTooltipEnhancementArtifacts or function() end
-local RefreshInventoryAndBankingLists = H.RefreshInventoryAndBankingLists or function() end
-local GetMetadataDefault = H.GetMetadataDefault or function(_, _, fallback) return fallback end
-local BuildAddonDependencyTooltip = H.BuildAddonDependencyTooltip or function(id) return GetString(id) end
-local GetModuleSettings = H.GetModuleSettings or function() return nil end
-local EnsureModuleSettings = H.EnsureModuleSettings or function() return nil end
-local IsCIMEnabled = H.IsCIMEnabled or function() return false end
-local ParseIntegerInput = H.ParseIntegerInput or function(_, fallback) return fallback end
-local ResetGeneralInterfaceGeneralSettings = H.ResetGeneralInterfaceGeneralSettings or function() end
-local ResetMarketIntegrationSettings = H.ResetMarketIntegrationSettings or function() end
-local ResetEnhancedTooltipSettings = H.ResetEnhancedTooltipSettings or function() end
+local H = assert(BETTERUI.GeneralInterface._SettingsHelpers,
+    "BetterUI: load GeneralInterface/Tooltips/SettingsHelpers.lua before Settings.lua")
+local ApplyTooltipVisualSettings = H.ApplyTooltipVisualSettings
+local CleanupTooltipEnhancementArtifacts = H.CleanupTooltipEnhancementArtifacts
+local RefreshInventoryAndBankingLists = H.RefreshInventoryAndBankingLists
+local GetMetadataDefault = H.GetMetadataDefault
+local BuildAddonDependencyTooltip = H.BuildAddonDependencyTooltip
+local GetModuleSettings = H.GetModuleSettings
+local EnsureModuleSettings = H.EnsureModuleSettings
+local IsCIMEnabled = H.IsCIMEnabled
+local ParseIntegerInput = H.ParseIntegerInput
+local ResetGeneralInterfaceGeneralSettings = H.ResetGeneralInterfaceGeneralSettings
+local ResetMarketIntegrationSettings = H.ResetMarketIntegrationSettings
+local ResetEnhancedTooltipSettings = H.ResetEnhancedTooltipSettings
 
 --- Returns the table of LAM settings options for General Interface.
 function BETTERUI.GeneralInterface.GetSettingsOptions()
     local styleTraitIcon = ""
-    local traitIcon = BETTERUI.CIM.TryResolve("CIM.CONST.ICONS.RESEARCHABLE_TRAIT")
+    local icons = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS
+    local traitIcon = icons and icons.RESEARCHABLE_TRAIT
     if traitIcon then
         styleTraitIcon = zo_iconFormat(traitIcon, 24, 24) .. " "
     end
     local knowledgeStatusIcon = ""
-    local bookIcon = BETTERUI.CIM.TryResolve("CIM.CONST.ICONS.BOOK_UNKNOWN")
+    local bookIcon = icons and icons.BOOK_UNKNOWN
     if bookIcon then
         knowledgeStatusIcon = zo_iconFormat(bookIcon, 24, 24) .. " "
     end
 
     local marketPriorityChoices = {}
     local marketPriorityValues = {}
-    local ok, choices, values = BETTERUI.CIM.TryCall("CIM.MarketIntegration.GetPriorityChoices")
-    if ok then
+    if BETTERUI.CIM
+        and BETTERUI.CIM.MarketIntegration
+        and type(BETTERUI.CIM.MarketIntegration.GetPriorityChoices) == "function" then
+        local choices, values = BETTERUI.CIM.MarketIntegration.GetPriorityChoices()
         marketPriorityChoices = choices
         marketPriorityValues = values
     end
@@ -153,6 +157,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
+            key = "showMarketPrice",
             name = GetString(rawget(_G, "SI_BETTERUI_SHOW_MARKET_PRICE")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP")),
             getFunc = function()
@@ -317,6 +322,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
+            key = "enableTooltipEnhancements",
             name = GetString(rawget(_G, "SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP")),
             sortAlwaysFirst = true,
@@ -460,7 +466,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                     val = settings.tooltipSize or val
                 end
 
-                if BETTERUI.CIM.TryResolve("CIM.Font.GetSizeValue") then
+                if BETTERUI.CIM.Font and type(BETTERUI.CIM.Font.GetSizeValue) == "function" then
                     return BETTERUI.CIM.Font.GetSizeValue(val)
                 end
                 return val
@@ -493,6 +499,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 
     table.insert(marketIntegrationControls, {
         type = "button",
+        key = "marketIntegrationReset",
         name = GetString(rawget(_G, "SI_BETTERUI_MARKET_INTEGRATION_RESET")),
         tooltip = GetString(rawget(_G, "SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP")),
         func = function()
@@ -501,18 +508,22 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         width = "half",
     })
 
-    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", generalControls, false)
-    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", marketIntegrationControls, false)
-    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", enhancedTooltipControls, false)
+    if BETTERUI.CIM.Settings and type(BETTERUI.CIM.Settings.SortSettingsAlphabetically) == "function" then
+        BETTERUI.CIM.Settings.SortSettingsAlphabetically(generalControls, false)
+        BETTERUI.CIM.Settings.SortSettingsAlphabetically(marketIntegrationControls, false)
+        BETTERUI.CIM.Settings.SortSettingsAlphabetically(enhancedTooltipControls, false)
+    end
 
     table.insert(generalControls, {
         type = "submenu",
+        key = "marketIntegration",
         name = GetString(rawget(_G, "SI_BETTERUI_MARKET_INTEGRATION_HEADER")),
         controls = marketIntegrationControls,
     })
 
     table.insert(generalControls, {
         type = "submenu",
+        key = "enhancedTooltips",
         name = GetString(rawget(_G, "SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER")),
         controls = enhancedTooltipControls,
     })
