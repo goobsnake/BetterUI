@@ -4,6 +4,16 @@ Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
 
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
+local function GetCurrentBank()
+    if BETTERUI.Banking.GetCurrentBank then
+        return BETTERUI.Banking.GetCurrentBank()
+    end
+    local currentUsedBank = BETTERUI.Banking and BETTERUI.Banking.currentUsedBank or nil
+    if currentUsedBank == nil or currentUsedBank == 0 then
+        return BAG_BANK
+    end
+    return currentUsedBank
+end
 
 
 --- Finds the first empty slot in a personal or house bank bag.
@@ -11,7 +21,7 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 ---@return integer? bag The bank bag ID, or nil if no space
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank()
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    local currentUsedBank = GetCurrentBank()
     if currentUsedBank == BAG_BANK then
         local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
         if emptySlotIndexBank ~= nil then
@@ -99,7 +109,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
-    local targetBankBag = BETTERUI.Banking.currentUsedBank or BAG_BANK
+    local targetBankBag = GetCurrentBank()
     if quantity == nil then
         quantity = 1
     end
@@ -209,7 +219,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         else
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
             if IsHouseBankBag(GetBankingBag()) then
-                banks = { BETTERUI.Banking.currentUsedBank }
+                banks = { targetBankBag }
             end
 
             for _, bank in ipairs(banks) do

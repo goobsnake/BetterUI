@@ -37,20 +37,10 @@ BETTERUI.Banking.CONST.CAROUSEL = {
 -- Controls the position of the search input field in banking headers
 
 -- Use centralized CIM search bar constants (eliminates duplication with Inventory)
-assert(BETTERUI.CIM and BETTERUI.CIM.GetSearchBarConstants, "BetterUI: CIM must load before Banking/Constants")
-local searchConst = BETTERUI.CIM.GetSearchBarConstants("BANKING")
-
---[[
-Table: BETTERUI.Banking.CONST.SEARCH
-Description: Search bar positioning constants for Banking module.
-             Delegates to CIM shared constants for single source of truth.
-Used By: Banking.lua
-]]
-BETTERUI.Banking.CONST.SEARCH = {
-    X_OFFSET = searchConst.X_OFFSET,       -- Horizontal position from header left (+ right, - left).
-    Y_OFFSET = searchConst.Y_OFFSET,       -- Vertical drop from header anchor (+ down, - up).
-    RIGHT_INSET = searchConst.RIGHT_INSET, -- Right-edge inset for width (- left = narrower box).
-}
+assert(BETTERUI.CIM and BETTERUI.CIM.SearchBar and BETTERUI.CIM.SearchBar.GetConstants, "BetterUI: CIM must load before Banking/Constants")
+function BETTERUI.Banking.CONST.GetSearchConstants()
+    return BETTERUI.CIM.SearchBar.GetConstants("BANKING")
+end
 
 
 -- CURRENCY TEXTURES

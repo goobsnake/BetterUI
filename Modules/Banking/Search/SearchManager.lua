@@ -7,13 +7,22 @@ Purpose: Canonical search/header focus boundary for BETTERUI.Banking.Class.
 -- SHARED CONSTANTS
 local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
 
+BETTERUI.Banking.Class.SEARCH_LIFECYCLE = {
+    clear = "ClearSearchInput",
+    exit = "ExitSearchMode",
+    headerActive = "IsHeaderFocused",
+    requestEnter = "RequestHeaderFocus",
+    onEnter = "OnHeaderEntered",
+}
+
 --- Clears the text search input and resets the query.
 function BETTERUI.Banking.Class:ClearSearchInput()
     self.searchQuery = ""
-    if not BETTERUI.CIM.TryCall("Interface.Window.ClearSearchText", self) then
-        if self.ClearSearchText then
-            self:ClearSearchText()
-        end
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    if searchMixin and searchMixin.ClearSearchText then
+        searchMixin.ClearSearchText(self)
+    elseif self.ClearSearchText then
+        self:ClearSearchText()
     end
 end
 
@@ -124,9 +133,10 @@ function BETTERUI.Banking.Class:PositionSearchControl()
 
     local parentForAnchor = titleContainer or anchorTarget
     if parentForAnchor then
-        local xOffset = BETTERUI.Banking.CONST.SEARCH.X_OFFSET
-        local yOffset = BETTERUI.Banking.CONST.SEARCH.Y_OFFSET
-        local rightInset = BETTERUI.Banking.CONST.SEARCH.RIGHT_INSET
+        local searchConst = BETTERUI.Banking.CONST.GetSearchConstants()
+        local xOffset = searchConst.X_OFFSET
+        local yOffset = searchConst.Y_OFFSET
+        local rightInset = searchConst.RIGHT_INSET
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
     else
@@ -152,10 +162,6 @@ function BETTERUI.Banking.Class:OnHeaderEntered()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()
 
-        if BETTERUI.CIM.TryResolve("Interface.Window.OnEnterHeader") then
-            BETTERUI.Interface.Window.OnEnterHeader(self)
-        end
-
         BETTERUI.Banking.Tasks:Schedule("searchKeybindCleanup", 20, function()
             if not self._searchModeActive or not KEYBIND_STRIP then return end
 
@@ -173,8 +179,6 @@ function BETTERUI.Banking.Class:OnHeaderEntered()
                 EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
             end
         end)
-    else
-        BETTERUI.CIM.TryCall("Interface.Window.OnEnterHeader", self)
     end
 end
 

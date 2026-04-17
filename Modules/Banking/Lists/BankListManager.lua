@@ -6,7 +6,7 @@ Purpose: Manages banking list categories, filtering, sorting, and refresh logic.
 
 -- SHARED CONSTANTS & STATE
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
+local BANK_CATEGORY_DEFS = BETTERUI.CIM.ItemTaxonomy.BANK_CATEGORY_DEFS
 
 -- HELPER FUNCTIONS
 
@@ -91,7 +91,7 @@ local function ResolveBagsAndSlotType(self)
     end
 
     -- Withdraw from personal bank (includes subscriber bank)
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
     local bags = (currentUsedBank == BAG_BANK)
         and { BAG_BANK, BAG_SUBSCRIBER_BANK }
         or  { currentUsedBank }
@@ -111,7 +111,7 @@ function BETTERUI.Banking.Class:RefreshList()
         return
     end
 
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
     if self._suppressListUpdates or self.isBatchProcessing then
         return
     end
@@ -217,11 +217,15 @@ function BETTERUI.Banking.Class:RefreshList()
     local isItemLinkBookKnown = IsItemLinkBookKnown
     local isItemBound = IsItemBound
     local showJunkCategory = (activeCategory and activeCategory.key == "junk") or false
+    local autoCategoryIntegration = BETTERUI.CIM and BETTERUI.CIM.AutoCategoryIntegration
 
     for i = 1, #filteredDataTable do
         local itemData = filteredDataTable[i]
         if not activeCategory or DoesItemMatchBankCategory(itemData, activeCategory) then
-            local customCategory, matched, categoryName, categoryPriority = BETTERUI.GetCustomCategory(itemData)
+            local customCategory, matched, categoryName, categoryPriority
+            if autoCategoryIntegration and type(autoCategoryIntegration.GetCustomCategory) == "function" then
+                customCategory, matched, categoryName, categoryPriority = autoCategoryIntegration.GetCustomCategory(itemData)
+            end
             if customCategory and not matched then
                 itemData.bestItemTypeName = zoStrformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
                 itemData.bestItemCategoryName = AC_UNGROUPED_NAME

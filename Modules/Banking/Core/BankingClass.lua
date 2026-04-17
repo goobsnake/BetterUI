@@ -20,16 +20,26 @@ BETTERUI.Banking.LIST_WITHDRAW                 = 1
 BETTERUI.Banking.LIST_DEPOSIT                  = 2
 
 -- Module-scope state tracking (accessed via BETTERUI.Banking namespace)
-BETTERUI.Banking.lastUsedBank                  = 0
-BETTERUI.Banking.currentUsedBank               = 0
+BETTERUI.Banking.lastUsedBank                  = BAG_BANK
+BETTERUI.Banking.currentUsedBank               = BAG_BANK
 BETTERUI.Banking.lastOpenedBankBag             = BAG_BANK
 BETTERUI.Banking.esoSubscriber                 = nil
+
+--- Normalizes a banking bag value to BetterUI's explicit banking contract.
+---@param bankBagId number|nil
+---@return number
+function BETTERUI.Banking.ResolveBankBag(bankBagId)
+    if bankBagId == nil or bankBagId == 0 then
+        return BAG_BANK
+    end
+    return bankBagId
+end
 
 --- Returns the currently active bank bag ID, falling back to BAG_BANK if unset.
 --- Cross-module callers should use this instead of reading currentUsedBank directly.
 ---@return number bankBagId The active bank bag constant (e.g., BAG_BANK, BAG_SUBSCRIBER_BANK, BAG_GUILDBANK)
 function BETTERUI.Banking.GetCurrentBank()
-    return BETTERUI.Banking.currentUsedBank or BAG_BANK
+    return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
 end
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
@@ -41,10 +51,10 @@ local CompareNils = BETTERUI.CIM.Utils.CompareNils
 -- SHARED CATEGORY REFERENCES
 -- Use centralized category definitions from CIM module to eliminate duplication.
 -- These were previously defined locally as BANK_CATEGORY_DEFS and BANK_CATEGORY_ICONS.
--- See: Modules/CIM/CategoryDefinitions.lua for the source definitions.
-assert(BETTERUI.Inventory and BETTERUI.Inventory.Categories, "BetterUI: Inventory.Categories must load before Banking/Core/BankingClass")
+-- See: Modules/CIM/Core/Data/ItemTaxonomy.lua for the source definitions.
+assert(BETTERUI.CIM and BETTERUI.CIM.ItemTaxonomy, "BetterUI: CIM.ItemTaxonomy must load before Banking/Core/BankingClass")
 assert(BETTERUI.CIM and BETTERUI.CIM.GenericWindow, "BetterUI: CIM.GenericWindow must load before Banking/Core/BankingClass")
-BETTERUI.Banking.CATEGORY_DEFS                 = BETTERUI.Inventory.Categories.Bank
+BETTERUI.Banking.CATEGORY_DEFS                 = BETTERUI.CIM.ItemTaxonomy.BANK_CATEGORY_DEFS
 
 -- Reference to shared interface utilities
 BETTERUI.Banking.EnsureKeybindGroupAdded       = BETTERUI.Interface.EnsureKeybindGroupAdded
@@ -59,7 +69,7 @@ BETTERUI.Banking.CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearch
 ---@field currentUsedBank number Currently active bank bag ID
 ---@field esoSubscriber boolean|nil Whether player has ESO+ subscription
 ---@field Tasks DeferredTaskManager Module-specific deferred task manager
----@field CATEGORY_DEFS table Category definitions from Inventory.Categories.Bank
+---@field CATEGORY_DEFS table Category definitions from BETTERUI.CIM.ItemTaxonomy
 ---@field headerSortController table|nil Header sort controller instance
 ---@field horizontalMovementController table|nil Movement controller for L/R navigation
 ---@field multiSelectManager table|nil Multi-select manager instance
@@ -179,11 +189,12 @@ local function GetValueSortValue(data)
     end
 
     -- Try to get market price first
-    if BETTERUI.GetMarketPrice then
+    local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
+    if marketIntegration and type(marketIntegration.GetMarketPrice) == "function" then
         local itemLink = itemData.itemLink or itemData.cached_itemLink or
         (itemData.bagId and itemData.slotIndex and GetItemLink(itemData.bagId, itemData.slotIndex))
         if itemLink then
-            local marketPrice = BETTERUI.GetMarketPrice(itemLink, itemData.stackCount or 1)
+            local marketPrice = marketIntegration.GetMarketPrice(itemLink, itemData.stackCount or 1)
             if marketPrice and marketPrice > 0 then
                 itemData.cached_marketPrice = marketPrice
                 return marketPrice

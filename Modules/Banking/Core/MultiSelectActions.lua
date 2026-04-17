@@ -12,6 +12,22 @@ local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
 
 local MultiSelectMixin                = BETTERUI.CIM.MultiSelectMixin
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
+local function ResolveBankBag(bankBagId)
+    if BETTERUI.Banking.ResolveBankBag then
+        return BETTERUI.Banking.ResolveBankBag(bankBagId)
+    end
+    if bankBagId == nil or bankBagId == 0 then
+        return BAG_BANK
+    end
+    return bankBagId
+end
+
+local function GetCurrentBank()
+    if BETTERUI.Banking.GetCurrentBank then
+        return BETTERUI.Banking.GetCurrentBank()
+    end
+    return ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+end
 
 local ExtractSlot = BETTERUI.CIM.BatchActions.ExtractSlot
 local HasItemAtSlot = BETTERUI.CIM.BatchActions.HasItemAtSlot
@@ -71,7 +87,7 @@ local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
         return "skip"
     end
 
-    local targetBankBag = currentUsedBank or BAG_BANK
+    local targetBankBag = ResolveBankBag(currentUsedBank)
 
     if targetBankBag == BAG_BANK then
         -- DoesBagHaveSpaceFor(BAG_BANK) natively returns true if BAG_SUBSCRIBER_BANK has space,
@@ -139,7 +155,7 @@ function BETTERUI.Banking.Class:BatchTransfer()
     if not selectedItems or #selectedItems == 0 then return end
 
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank or BAG_BANK
+    local currentUsedBank = GetCurrentBank()
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
         currentUsedBank = BAG_GUILDBANK
@@ -260,7 +276,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     -- Use shared mixin to analyze selected items
     local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank or BAG_BANK
+    local currentUsedBank = GetCurrentBank()
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
         currentUsedBank = BAG_GUILDBANK

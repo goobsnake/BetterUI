@@ -9,6 +9,7 @@ local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 -- Module identifier constants from CIM
 local MODULES       = BETTERUI.CIM.CONST.MODULES
+local ResolveBankBag = BETTERUI.Banking.ResolveBankBag
 
 -- HELPER FUNCTIONS (local)
 
@@ -54,12 +55,12 @@ end
 
 --- Updates the currentUsedBank state.
 function BETTERUI.Banking.Class:CurrentUsedBank()
-    BETTERUI.Banking.currentUsedBank = GetCurrentBankBag()
+    BETTERUI.Banking.currentUsedBank = ResolveBankBag(GetCurrentBankBag())
 end
 
 --- Updates the lastUsedBank state.
 function BETTERUI.Banking.Class:LastUsedBank()
-    BETTERUI.Banking.lastUsedBank = GetCurrentBankBag()
+    BETTERUI.Banking.lastUsedBank = ResolveBankBag(GetCurrentBankBag())
 end
 
 -- POSITION PERSISTENCE

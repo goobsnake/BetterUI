@@ -7,6 +7,16 @@ Purpose: Manages keybind descriptors and registration for the Banking module.
 -- SHARED CONSTANTS & STATE
 local LIST_WITHDRAW           = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
+local function GetCurrentBank()
+    if BETTERUI.Banking and BETTERUI.Banking.GetCurrentBank then
+        return BETTERUI.Banking.GetCurrentBank()
+    end
+    local currentUsedBank = BETTERUI.Banking and BETTERUI.Banking.currentUsedBank or nil
+    if currentUsedBank == nil or currentUsedBank == 0 then
+        return BAG_BANK
+    end
+    return currentUsedBank
+end
 
 -- Import EnsureKeybindGroupAdded from Banking.lua (or where it lives)
 local function GetEntryBagAndSlot(entryData)
@@ -36,9 +46,10 @@ local function IsActionableListEntry(entryData)
 end
 
 local function IsMainBankContext()
-    local currentUsedBank = BETTERUI.Banking and BETTERUI.Banking.currentUsedBank or nil
+    local currentUsedBank = GetCurrentBank()
     if currentUsedBank == nil and GetBankingBag then
-        currentUsedBank = GetBankingBag()
+        local liveBankBag = GetBankingBag()
+        currentUsedBank = (liveBankBag == nil or liveBankBag == 0) and BAG_BANK or liveBankBag
     end
     return currentUsedBank == BAG_BANK
 end
@@ -281,7 +292,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 if self:IsBatchProcessing() then
                     return
                 end
-                local currentUsedBank = BETTERUI.Banking.currentUsedBank
+                local currentUsedBank = GetCurrentBank()
                 if self.currentMode == LIST_WITHDRAW then
                     if currentUsedBank == BAG_BANK then
                         StackBag(BAG_BANK)
