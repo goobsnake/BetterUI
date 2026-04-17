@@ -5,6 +5,14 @@ Purpose: Companion list, category tabs, tooltip updates, and scroll indicator wi
 
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 
+local function WrapCompanionError(operation, err)
+    local companions = BETTERUI and BETTERUI.Companions
+    if companions and type(companions.WrapRuntimeError) == "function" then
+        return companions.WrapRuntimeError(operation, err)
+    end
+    return string.format("[Companions] %s failed: %s", operation, tostring(err))
+end
+
 -- ---------------------------------------------------------------------------
 -- Directional-Input Utilities
 -- Mirrors the proven patterns from Vendor (tribal-knowledge 2026-04-11).
@@ -62,7 +70,8 @@ local function ReleaseDirectionalInputRegistrations(obj, includeMovementControll
 end
 
 ---@param header table|nil
-local function ReleaseHeaderDirectionalInput(header)
+---@param errors table|nil
+local function ReleaseHeaderDirectionalInput(header, errors)
     if not header then return end
     local candidates = {
         header.headerFocus,
@@ -72,7 +81,10 @@ local function ReleaseHeaderDirectionalInput(header)
     for _, candidate in ipairs(candidates) do
         if candidate then
             if candidate.Deactivate then
-                pcall(candidate.Deactivate, candidate)
+                local ok, err = pcall(candidate.Deactivate, candidate)
+                if not ok and errors then
+                    errors[#errors + 1] = tostring(err)
+                end
             end
             ReleaseDirectionalInputRegistrations(candidate, true)
         end
@@ -461,7 +473,7 @@ function BETTERUI.Companions.Class:PositionSearchControl()
     end
 
     local parentForAnchor = titleContainer or anchorTarget
-    local searchConst = BETTERUI.CIM.GetSearchBarConstants and BETTERUI.CIM.GetSearchBarConstants("BANKING")
+    local searchConst = BETTERUI.CIM.SearchBar and BETTERUI.CIM.SearchBar.GetConstants and BETTERUI.CIM.SearchBar.GetConstants("BANKING")
     local xOffset = searchConst and searchConst.X_OFFSET or 55
     local yOffset = searchConst and searchConst.Y_OFFSET or 15
     local rightInset = searchConst and searchConst.RIGHT_INSET or -8
@@ -580,6 +592,8 @@ function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
         return
     end
 
+    local errors = {}
+
     local function SafeDeactivate(obj, includeMovementController, disableDirectionalInput)
         if not obj then return end
         if disableDirectionalInput and obj.SetDirectionalInputEnabled then
@@ -587,7 +601,10 @@ function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
         end
         if obj.Deactivate then
             if not obj.IsActive or obj:IsActive() or IsDirectionalInputListening(obj) then
-                pcall(obj.Deactivate, obj)
+                local ok, err = pcall(obj.Deactivate, obj)
+                if not ok then
+                    errors[#errors + 1] = tostring(err)
+                end
             end
         end
         ReleaseDirectionalInputRegistrations(obj, includeMovementController)
@@ -595,10 +612,14 @@ function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
 
     SafeDeactivate(self, true)
     SafeDeactivate(self.list, true, true)
-    ReleaseHeaderDirectionalInput(self.headerGeneric)
-    ReleaseHeaderDirectionalInput(self.header)
+    ReleaseHeaderDirectionalInput(self.headerGeneric, errors)
+    ReleaseHeaderDirectionalInput(self.header, errors)
     SafeDeactivate(self.textSearchHeaderFocus, true)
     SafeDeactivate(self.textSearchHeaderControl, true)
+
+    if #errors > 0 then
+        error(WrapCompanionError("ForceReleaseDirectionalInput", table.concat(errors, "; ")), 0)
+    end
 end
 
 ---@return nil

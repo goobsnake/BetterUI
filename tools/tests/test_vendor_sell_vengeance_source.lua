@@ -41,8 +41,9 @@ assert_contains(vendorClass, "ZO_MODE_STORE_SELL_VENGEANCE", "vendor class resol
 assert_contains(vendorClass, "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE", "vendor class resolves vengeance mode label")
 assert_contains(vendorClass, "VENDOR_SELL_VENGEANCE", "vendor class maps vengeance mode to a position key")
 
-assert_contains(vendorLua, "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE", "vendor tab definitions include SellVengeance label")
+assert_contains(vendorLua, "Vendor.ResolveModeName(mode)", "vendor tab definitions delegate SellVengeance label lookup to VendorClass")
 assert_contains(vendorLua, "MODE.SELL_VENGEANCE", "vendor tab definitions include SellVengeance mode")
+assert_contains(vendorLua, "IsModeTabAvailable(tab.mode)", "vendor tab wiring gates SellVengeance tab availability")
 assert_contains(vendorLua, "Vendor.SellVengeanceComponent", "vendor init references SellVengeance component")
 assert_contains(vendorLua, "RegisterComponent(MODE.SELL_VENGEANCE, Vendor.SellVengeanceComponent)", "vendor init registers SellVengeance component")
 

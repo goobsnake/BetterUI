@@ -10,7 +10,21 @@ ESO Reference: ZO_CompanionEquipment_Gamepad in
   equippable companion items. Scene: "companionEquipmentGamepad".
 ]]
 
+---@type BetterUIModuleRoot
 BETTERUI.Companions = BETTERUI.Companions or {}
+local Companions = BETTERUI.Companions
+
+Companions.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleRootContract
+Companions.ROOT_CONTRACT = {
+    name = "Companions",
+    archetype = Companions.ARCHETYPE,
+    initOwner = "Modules/Companions/Module.lua",
+    setupOwner = "Modules/Companions/Module.lua",
+    runtimeOwner = "Modules/Companions/Module.lua + Modules/Companions/Core/ + Modules/Companions/Actions/ + Modules/Companions/Dialogs/",
+    settingsOwner = "Modules/Companions/Module.lua + Modules/Companions/Settings/",
+    notes = "Module.lua owns Init/Setup wiring and companion runtime orchestration, delegates module-setting defaults to DefaultsRegistry, and keeps shared CIM font defaults while Core/, Actions/, and Dialogs/ implement list behavior, actions, and dialog flow.",
+}
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 if BETTERUI.CIM and BETTERUI.CIM.RegisterModuleAccessors then
@@ -18,40 +32,229 @@ if BETTERUI.CIM and BETTERUI.CIM.RegisterModuleAccessors then
 end
 
 -- LOCAL STATE
-local Companions   = BETTERUI.Companions
 local EVENT_NS     = "BetterUI_Companions"
+local OnCompanionActivated
+local OnCompanionDeactivated
+local OnInventoryUpdated
+
+local function WrapCompanionRuntimeError(operation, err)
+    return string.format("[Companions] %s failed: %s", operation, tostring(err))
+end
+
+Companions.WrapRuntimeError = WrapCompanionRuntimeError
+
+local function RegisterCompanionsPanel()
+    if Companions._panelRegistered
+        or not Companions.Settings
+        or not Companions.Settings.RegisterPanel then
+        return
+    end
+
+    local ok, err = pcall(Companions.Settings.RegisterPanel, "Companions", "Companions")
+    if ok then
+        Companions._panelRegistered = true
+    elseif BETTERUI.Debug then
+        BETTERUI.Debug("[Companions] Settings panel registration failed: " .. tostring(err))
+    end
+end
+
+local function RefreshVisibleCompanionScene(screen, options)
+    if not screen or not screen.IsSceneShowing or not screen:IsSceneShowing() then
+        return false
+    end
+
+    screen:RefreshCategories()
+    screen:RefreshList()
+    screen:RefreshCompanionFooter()
+
+    if options and options.refreshTitle then
+        screen:RefreshCategoryTitle()
+    end
+    if options and options.ensureColumns then
+        screen:EnsureColumnHeadersVisible()
+    end
+    if options and options.ensureHeaderKeybinds then
+        screen:EnsureHeaderKeybindsActive()
+    end
+
+    screen:EnsureListInputActive()
+
+    if options and options.positionSearch and screen.PositionSearchControl then
+        screen:PositionSearchControl()
+    end
+
+    screen:UpdateItemTooltips(screen.list and screen.list:GetTargetData())
+    return true
+end
+
+local function SetupCompanionSort(instance)
+    if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
+        local ok, err = pcall(function()
+            local sortController = BETTERUI.CIM.UI.HeaderSortController:New(instance)
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), "name")
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), "type")
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), "trait")
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), "stat")
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), "value")
+            sortController:SetSortChangedCallback(function()
+                instance:RefreshList()
+            end)
+            instance.sortController = sortController
+        end)
+        if not ok and BETTERUI.Debug then
+            BETTERUI.Debug("[Companions] Sort controller init failed: " .. tostring(err))
+        end
+    end
+
+    if instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Setup then
+        local ok, err = pcall(function()
+            BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
+                instance.list,
+                instance.sortController,
+                {
+                    keybindStrip = true,
+                    mainKeybindDescriptor = instance.coreKeybinds,
+                    onSortChanged = function()
+                        instance:RefreshList()
+                    end,
+                }
+            )
+        end)
+        if not ok and BETTERUI.Debug then
+            BETTERUI.Debug("[Companions] Header sort integration setup failed: " .. tostring(err))
+        end
+    end
+end
+
+local function CreateCompanionScene(instance)
+    instance.fragment = ZO_SimpleSceneFragment:New(instance.control)
+    instance.fragment:SetHideOnSceneHidden(true)
+
+    local companionFooterDummy = BETTERUI.WindowManager:CreateControl(
+        "BETTERUI_CompanionFooterDummy", GuiRoot, CT_CONTROL)
+    companionFooterDummy:SetHidden(true)
+    instance.footerFragment = ZO_SimpleSceneFragment:New(companionFooterDummy)
+    instance.footerFragment:SetHideOnSceneHidden(true)
+
+    local scene = ZO_InteractScene:New(BETTERUI_COMPANION_EQUIP_SCENE_NAME, SCENE_MANAGER, Companions.COMPANION_INTERACTION)
+    instance.scene = scene
+
+    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+    scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
+    scene:AddFragment(instance.fragment)
+    scene:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
+    scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+    scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
+    scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
+    scene:AddFragment(instance.footerFragment)
+
+    scene:RegisterCallback("StateChange", function(_, newState)
+        if not Companions.instance then return end
+        if newState == SCENE_SHOWN then
+            Companions.instance:EnsureColumnHeadersVisible()
+            Companions.instance:EnsureListInputActive()
+            Companions.instance:UpdateItemTooltips(Companions.instance.list and Companions.instance.list:GetTargetData())
+        end
+    end)
+
+    SCENE_MANAGER.scenes["companionEquipmentGamepad"] = scene
+    COMPANION_EQUIPMENT_GAMEPAD_SCENE = scene
+    COMPANION_EQUIPMENT_GAMEPAD = instance
+    return scene
+end
+
+local function RegisterCompanionSceneLifecycle(instance)
+    BETTERUI.CIM.SceneLifecycle.Register(instance, {
+        keybinds = { instance.coreKeybinds },
+        taskManager = Companions.Tasks,
+        onShowing = function(screen)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
+            RefreshVisibleCompanionScene(screen, {
+                refreshTitle = true,
+                ensureColumns = true,
+                ensureHeaderKeybinds = true,
+                positionSearch = true,
+            })
+        end,
+        onHiding = function(screen)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+            screen:DeactivateListInput()
+            screen:DeactivateHeaderKeybinds()
+            if screen.ForceReleaseDirectionalInput then
+                screen:ForceReleaseDirectionalInput()
+            end
+            if Companions.multiSelectManager then
+                Companions.multiSelectManager:ExitSelectionMode()
+            end
+            if Companions.instance and Companions.instance.ExitSearchFocus then
+                Companions.instance:ExitSearchFocus()
+            end
+            local category = screen:GetCurrentCategory()
+            if category and screen.list then
+                BETTERUI.CIM.PositionManager.SavePosition("Companions", category.key, screen.list)
+            end
+            if GAMEPAD_TOOLTIPS then
+                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
+            end
+        end,
+        onHidden = function(screen)
+            screen:DeactivateListInput()
+            screen:DeactivateHeaderKeybinds()
+            if screen.ForceReleaseDirectionalInput then
+                screen:ForceReleaseDirectionalInput()
+            end
+        end,
+    })
+end
+
+local function RegisterCompanionEvents(eventManager)
+    if not eventManager then
+        return
+    end
+
+    if EVENT_COMPANION_ACTIVATED then
+        eventManager:RegisterForEvent(EVENT_NS .. "_CompActivated",
+            EVENT_COMPANION_ACTIVATED, OnCompanionActivated)
+    end
+    if EVENT_COMPANION_DEACTIVATED then
+        eventManager:RegisterForEvent(EVENT_NS .. "_CompDeactivated",
+            EVENT_COMPANION_DEACTIVATED, OnCompanionDeactivated)
+    end
+    eventManager:RegisterForEvent(EVENT_NS .. "_InvUpdate",
+        EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventoryUpdated)
+    eventManager:RegisterForEvent(EVENT_NS .. "_InvFull",
+        EVENT_INVENTORY_FULL_UPDATE, OnInventoryUpdated)
+end
 
 --- Initializes defaults and applies fallback values for saved variables.
----@param m_options table|nil Module options from saved variables
----@return table m_options Initialized options with defaults applied
+---
+--- INIT CONTRACT: This function implements the standard InitModule signature.
+--- It is called by BETTERUI.ModuleOptions() via pcall with only m_options.
+---
+--- Standard InitModule Signature (consistent across all modules):
+---
+--- Wrapper Function (caller in BetterUI.lua):
+---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
+---
+---@param m_options BetterUIModuleOptions|nil Module options table
+---@return BetterUIModuleOptions m_options Initialized options with defaults applied
+---@type BetterUIModuleInitHook
 function BETTERUI.Companions.InitModule(m_options)
     m_options = m_options or {}
+    ---@cast m_options BetterUIModuleOptions
     local defaults = BETTERUI.Companions.DEFAULTS
-    local fallbackDefaults = {
-        enableCompanionEquipment = true,
-        quickDestroy = false,
-        batchDestroy = true,
-        bindOnEquipProtection = true,
-        enableCompanionJunk = true,
-    }
+    local moduleDefaults = BETTERUI.Defaults and BETTERUI.Defaults.GetModuleDefaults
+        and BETTERUI.Defaults.GetModuleDefaults("Companions") or nil
 
-    m_options = BETTERUI.CIM.InitModuleDefaults("Companions", m_options, defaults, fallbackDefaults)
+    m_options = BETTERUI.CIM.InitModuleDefaults("Companions", m_options, defaults, moduleDefaults)
     return m_options
 end
 
 --- Lifecycle hook: registers settings panel and initializes the module.
 --- Called by BETTERUI.LoadModules() via MODULE_REGISTRY.
 function BETTERUI.Companions.Setup()
-    if not BETTERUI.Companions._panelRegistered
-        and BETTERUI.Companions.Settings
-        and BETTERUI.Companions.Settings.RegisterPanel then
-        local ok, err = pcall(BETTERUI.Companions.Settings.RegisterPanel, "Companions", "Companions")
-        if ok then
-            BETTERUI.Companions._panelRegistered = true
-        elseif BETTERUI.Debug then
-            BETTERUI.Debug("[Companions] Settings panel registration failed: " .. tostring(err))
-        end
-    end
+    RegisterCompanionsPanel()
 
     if BETTERUI.Companions.GetSetting("enableCompanionEquipment") == false then
         return
@@ -247,37 +450,24 @@ end
 
 -- EVENT HANDLERS
 
-local function OnCompanionActivated()
-    if not Companions.instance then return end
-    if Companions.instance:IsSceneShowing() then
-        Companions.instance:RefreshCategories()
-        Companions.instance:RefreshList()
-        Companions.instance:RefreshCompanionFooter()
-        Companions.instance:EnsureListInputActive()
-        Companions.instance:UpdateItemTooltips(Companions.instance.list and Companions.instance.list:GetTargetData())
-    end
+function OnCompanionActivated()
+    RefreshVisibleCompanionScene(Companions.instance)
 end
 
-local function OnCompanionDeactivated()
+function OnCompanionDeactivated()
     if not Companions.instance then return end
     if Companions.instance:IsSceneShowing() then
         SCENE_MANAGER:HideCurrentScene()
     end
 end
 
-local function OnInventoryUpdated()
+function OnInventoryUpdated()
     if not Companions.instance then return end
     if not Companions.instance:IsSceneShowing() then return end
 
     Companions.Tasks:Cancel("listRefresh")
     Companions.Tasks:Schedule("listRefresh", 100, function()
-        if Companions.instance and Companions.instance:IsSceneShowing() then
-            Companions.instance:RefreshCategories()
-            Companions.instance:RefreshList()
-            Companions.instance:RefreshCompanionFooter()
-            Companions.instance:EnsureListInputActive()
-            Companions.instance:UpdateItemTooltips(Companions.instance.list and Companions.instance.list:GetTargetData())
-        end
+        RefreshVisibleCompanionScene(Companions.instance)
     end)
 end
 
@@ -394,133 +584,11 @@ function BETTERUI.Companions.Init()
         end
     end
 
-    -- Sort Controller
-    if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
-        local ok, err = pcall(function()
-            local sortController = BETTERUI.CIM.UI.HeaderSortController:New(Companions.instance)
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), "name")
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), "type")
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), "trait")
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), "stat")
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), "value")
-            sortController:SetSortChangedCallback(function()
-                Companions.instance:RefreshList()
-            end)
-            Companions.instance.sortController = sortController
-        end)
-        if not ok and BETTERUI.Debug then
-            BETTERUI.Debug("[Companions] Sort controller init failed: " .. tostring(err))
-        end
-    end
-
     -- Keybinds
     Companions.instance.coreKeybinds = BuildCoreKeybinds(Companions.instance)
-
-    -- Header Sort Integration
-    if Companions.instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Setup then
-        local ok, err = pcall(function()
-            BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
-                Companions.instance.list,
-                Companions.instance.sortController,
-                {
-                    keybindStrip = true,
-                    mainKeybindDescriptor = Companions.instance.coreKeybinds,
-                    onSortChanged = function()
-                        Companions.instance:RefreshList()
-                    end,
-                }
-            )
-        end)
-        if not ok and BETTERUI.Debug then
-            BETTERUI.Debug("[Companions] Header sort integration setup failed: " .. tostring(err))
-        end
-    end
-
-    -- Fragments
-    Companions.instance.fragment = ZO_SimpleSceneFragment:New(Companions.instance.control)
-    Companions.instance.fragment:SetHideOnSceneHidden(true)
-    local companionFooterDummy = BETTERUI.WindowManager:CreateControl(
-        "BETTERUI_CompanionFooterDummy", GuiRoot, CT_CONTROL)
-    companionFooterDummy:SetHidden(true)
-    Companions.instance.footerFragment = ZO_SimpleSceneFragment:New(companionFooterDummy)
-    Companions.instance.footerFragment:SetHideOnSceneHidden(true)
-
-    -- Scene
-    local sceneName = BETTERUI_COMPANION_EQUIP_SCENE_NAME
-    local scene = ZO_InteractScene:New(sceneName, SCENE_MANAGER, Companions.COMPANION_INTERACTION)
-    Companions.instance.scene = scene
-
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
-    scene:AddFragment(Companions.instance.fragment)
-    scene:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
-    scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
-    scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
-    scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
-    scene:AddFragment(Companions.instance.footerFragment)
-
-    -- Scene lifecycle
-    BETTERUI.CIM.SceneLifecycle.Register(Companions.instance, {
-        keybinds = { Companions.instance.coreKeybinds },
-        taskManager = Companions.Tasks,
-        onShowing = function(screen, wasPushed)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
-            screen:RefreshCategories()
-            screen:RefreshList()
-            screen:RefreshCompanionFooter()
-            screen:RefreshCategoryTitle()
-            screen:EnsureColumnHeadersVisible()
-            screen:EnsureHeaderKeybindsActive()
-            screen:EnsureListInputActive()
-            if screen.PositionSearchControl then
-                screen:PositionSearchControl()
-            end
-            screen:UpdateItemTooltips(screen.list and screen.list:GetTargetData())
-        end,
-        onHiding = function(screen)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
-            screen:DeactivateListInput()
-            screen:DeactivateHeaderKeybinds()
-            if screen.ForceReleaseDirectionalInput then
-                screen:ForceReleaseDirectionalInput()
-            end
-            if Companions.multiSelectManager then
-                Companions.multiSelectManager:ExitSelectionMode()
-            end
-            if Companions.instance and Companions.instance.ExitSearchFocus then
-                Companions.instance:ExitSearchFocus()
-            end
-            local category = screen:GetCurrentCategory()
-            if category and screen.list then
-                BETTERUI.CIM.PositionManager.SavePosition("Companions", category.key, screen.list)
-            end
-            if GAMEPAD_TOOLTIPS then
-                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
-            end
-        end,
-        onHidden = function(screen)
-            screen:DeactivateListInput()
-            screen:DeactivateHeaderKeybinds()
-            if screen.ForceReleaseDirectionalInput then
-                screen:ForceReleaseDirectionalInput()
-            end
-        end,
-    })
-
-    scene:RegisterCallback("StateChange", function(_, newState)
-        if not Companions.instance then return end
-        if newState == SCENE_SHOWN then
-            Companions.instance:EnsureColumnHeadersVisible()
-            Companions.instance:EnsureListInputActive()
-            Companions.instance:UpdateItemTooltips(Companions.instance.list and Companions.instance.list:GetTargetData())
-        end
-    end)
-
-    -- Alias
-    SCENE_MANAGER.scenes["companionEquipmentGamepad"] = scene
-    COMPANION_EQUIPMENT_GAMEPAD_SCENE = scene
-    COMPANION_EQUIPMENT_GAMEPAD = Companions.instance
+    SetupCompanionSort(Companions.instance)
+    CreateCompanionScene(Companions.instance)
+    RegisterCompanionSceneLifecycle(Companions.instance)
 
     Companions.instance:InitCompanionFooter()
 
@@ -533,22 +601,7 @@ function BETTERUI.Companions.Init()
         )
     end
 
-    -- Events
-    local em = EVENT_MANAGER
-    if em then
-        if EVENT_COMPANION_ACTIVATED then
-            em:RegisterForEvent(EVENT_NS .. "_CompActivated",
-                EVENT_COMPANION_ACTIVATED, OnCompanionActivated)
-        end
-        if EVENT_COMPANION_DEACTIVATED then
-            em:RegisterForEvent(EVENT_NS .. "_CompDeactivated",
-                EVENT_COMPANION_DEACTIVATED, OnCompanionDeactivated)
-        end
-        em:RegisterForEvent(EVENT_NS .. "_InvUpdate",
-            EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventoryUpdated)
-        em:RegisterForEvent(EVENT_NS .. "_InvFull",
-            EVENT_INVENTORY_FULL_UPDATE, OnInventoryUpdated)
-    end
+    RegisterCompanionEvents(EVENT_MANAGER)
 
     Companions.initialized = true
 end

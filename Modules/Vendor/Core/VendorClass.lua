@@ -33,49 +33,16 @@ BETTERUI.Vendor.MODE = {
     SELL_VENGEANCE = 8,
 }
 
+local MODE = Vendor.MODE
 local DEFAULT_VENDOR_CATEGORY_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
 
-local function ResolveNativeStoreMode(mode)
-    if mode == BETTERUI.Vendor.MODE.BUY then
-        return rawget(_G, "ZO_MODE_STORE_BUY")
-    elseif mode == BETTERUI.Vendor.MODE.SELL then
-        return rawget(_G, "ZO_MODE_STORE_SELL")
-    elseif mode == BETTERUI.Vendor.MODE.SELL_VENGEANCE then
-        return rawget(_G, "ZO_MODE_STORE_SELL_VENGEANCE")
-    elseif mode == BETTERUI.Vendor.MODE.REPAIR then
-        return rawget(_G, "ZO_MODE_STORE_REPAIR")
-    elseif mode == BETTERUI.Vendor.MODE.BUYBACK then
-        return rawget(_G, "ZO_MODE_STORE_BUY_BACK")
-    elseif mode == BETTERUI.Vendor.MODE.FENCE_SELL then
-        return rawget(_G, "ZO_MODE_STORE_SELL_STOLEN")
-    elseif mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER then
-        return rawget(_G, "ZO_MODE_STORE_LAUNDER")
-    elseif mode == BETTERUI.Vendor.MODE.STABLE then
-        return rawget(_G, "ZO_MODE_STORE_STABLE")
-    end
-    return nil
-end
-
-local function ResolveModeName(mode)
-    if mode == BETTERUI.Vendor.MODE.BUY then
-        return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY") or "SI_BETTERUI_VENDOR_TAB_BUY")
-    elseif mode == BETTERUI.Vendor.MODE.SELL then
-        return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL") or "SI_BETTERUI_VENDOR_TAB_SELL")
-    elseif mode == BETTERUI.Vendor.MODE.SELL_VENGEANCE then
-        return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE") or "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE")
-    elseif mode == BETTERUI.Vendor.MODE.REPAIR then
-        return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_REPAIR") or "SI_BETTERUI_VENDOR_TAB_REPAIR")
-    elseif mode == BETTERUI.Vendor.MODE.BUYBACK then
-        return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUYBACK") or "SI_BETTERUI_VENDOR_TAB_BUYBACK")
-    elseif mode == BETTERUI.Vendor.MODE.FENCE_SELL then
-        return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_SELL") or "SI_BETTERUI_VENDOR_TAB_FENCE_SELL")
-    elseif mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER then
-        return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER") or "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")
-    elseif mode == BETTERUI.Vendor.MODE.STABLE then
-        return GetString(rawget(_G, "SI_STABLE_STABLES_TAB") or "SI_STABLE_STABLES_TAB")
-    end
-    return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TITLE") or "SI_BETTERUI_VENDOR_TITLE")
-end
+local SEARCH_LIFECYCLE = {
+    clear = "ClearSearchInput",
+    exit = "ExitSearchMode",
+    headerActive = "IsHeaderFocused",
+    requestEnter = "RequestHeaderFocus",
+    onEnter = "OnHeaderEntered",
+}
 
 local function ResolveStableInteractionIcon()
     if BETTERUI.Vendor and BETTERUI.Vendor.GetStableInteractionIcon then
@@ -84,25 +51,130 @@ local function ResolveStableInteractionIcon()
     return "EsoUI/Art/Collections/Default/collections_default_mount.dds"
 end
 
+local MODE_DESCRIPTORS = {
+    [MODE.BUY] = {
+        nameStringId = "SI_BETTERUI_VENDOR_TAB_BUY",
+        iconFile = "EsoUI/Art/Vendor/vendor_tabIcon_buy_up.dds",
+        nativeModeGlobalKey = "ZO_MODE_STORE_BUY",
+        moduleKeyField = "VENDOR_BUY",
+        regularPaneRole = "first",
+        stablePaneRole = "first",
+    },
+    [MODE.SELL] = {
+        nameStringId = "SI_BETTERUI_VENDOR_TAB_SELL",
+        iconFile = "EsoUI/Art/Vendor/vendor_tabIcon_sell_up.dds",
+        nativeModeGlobalKey = "ZO_MODE_STORE_SELL",
+        moduleKeyField = "VENDOR_SELL",
+        regularPaneRole = "second",
+    },
+    [MODE.SELL_VENGEANCE] = {
+        nameStringId = "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE",
+        iconFile = "EsoUI/Art/Vendor/vendor_tabIcon_sell_up.dds",
+        nativeModeGlobalKey = "ZO_MODE_STORE_SELL_VENGEANCE",
+        moduleKeyField = "VENDOR_SELL_VENGEANCE",
+        regularPaneRole = "second",
+    },
+    [MODE.REPAIR] = {
+        nameStringId = "SI_BETTERUI_VENDOR_TAB_REPAIR",
+        iconFile = "EsoUI/Art/Vendor/vendor_tabIcon_repair_up.dds",
+        nativeModeGlobalKey = "ZO_MODE_STORE_REPAIR",
+        moduleKeyField = "VENDOR_REPAIR",
+        emptyStateStringId = "SI_BETTERUI_VENDOR_NO_REPAIR_ITEMS",
+        titleUsesItemsSuffix = true,
+        stablePaneRole = "first",
+    },
+    [MODE.BUYBACK] = {
+        nameStringId = "SI_BETTERUI_VENDOR_TAB_BUYBACK",
+        iconFile = "EsoUI/Art/Vendor/vendor_tabIcon_buyBack_up.dds",
+        nativeModeGlobalKey = "ZO_MODE_STORE_BUY_BACK",
+        moduleKeyField = "VENDOR_BUYBACK",
+        emptyStateStringId = "SI_BETTERUI_VENDOR_NO_BUYBACK_ITEMS",
+        titleUsesItemsSuffix = true,
+    },
+    [MODE.FENCE_SELL] = {
+        nameStringId = "SI_BETTERUI_VENDOR_TAB_FENCE_SELL",
+        iconFile = "EsoUI/Art/Vendor/vendor_tabIcon_sell_up.dds",
+        nativeModeGlobalKey = "ZO_MODE_STORE_SELL_STOLEN",
+        moduleKeyField = "VENDOR_FENCE_SELL",
+        fencePaneRole = "first",
+    },
+    [MODE.FENCE_LAUNDER] = {
+        nameStringId = "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER",
+        iconFile = "EsoUI/Art/Vendor/vendor_tabIcon_fence_up.dds",
+        nativeModeGlobalKey = "ZO_MODE_STORE_LAUNDER",
+        moduleKeyField = "VENDOR_FENCE_LAUNDER",
+        fencePaneRole = "second",
+    },
+    [MODE.STABLE] = {
+        nameStringId = "SI_STABLE_STABLES_TAB",
+        iconResolver = ResolveStableInteractionIcon,
+        nativeModeGlobalKey = "ZO_MODE_STORE_STABLE",
+        moduleKeyField = "VENDOR_STABLE",
+        stablePaneRole = "second",
+    },
+}
+
+local function GetModeDescriptor(mode)
+    return MODE_DESCRIPTORS[mode]
+end
+
+Vendor.GetModeDescriptor = GetModeDescriptor
+
+local function ResolveModeName(mode)
+    local descriptor = GetModeDescriptor(mode)
+    local stringId = descriptor and descriptor.nameStringId or "SI_BETTERUI_VENDOR_TITLE"
+    return GetString(rawget(_G, stringId) or stringId)
+end
+
+local function ResolveNativeStoreMode(mode)
+    local descriptor = GetModeDescriptor(mode)
+    return descriptor and rawget(_G, descriptor.nativeModeGlobalKey) or nil
+end
+
 local function ResolveModeIcon(mode)
-    if mode == BETTERUI.Vendor.MODE.BUY then
-        return "EsoUI/Art/Vendor/vendor_tabIcon_buy_up.dds"
-    elseif mode == BETTERUI.Vendor.MODE.SELL then
-        return "EsoUI/Art/Vendor/vendor_tabIcon_sell_up.dds"
-    elseif mode == BETTERUI.Vendor.MODE.SELL_VENGEANCE then
-        return "EsoUI/Art/Vendor/vendor_tabIcon_sell_up.dds"
-    elseif mode == BETTERUI.Vendor.MODE.REPAIR then
-        return "EsoUI/Art/Vendor/vendor_tabIcon_repair_up.dds"
-    elseif mode == BETTERUI.Vendor.MODE.BUYBACK then
-        return "EsoUI/Art/Vendor/vendor_tabIcon_buyBack_up.dds"
-    elseif mode == BETTERUI.Vendor.MODE.FENCE_SELL then
-        return "EsoUI/Art/Vendor/vendor_tabIcon_sell_up.dds"
-    elseif mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER then
-        return "EsoUI/Art/Vendor/vendor_tabIcon_fence_up.dds"
-    elseif mode == BETTERUI.Vendor.MODE.STABLE then
-        return ResolveStableInteractionIcon()
+    local descriptor = GetModeDescriptor(mode)
+    if descriptor then
+        if descriptor.iconResolver then
+            return descriptor.iconResolver()
+        end
+        if descriptor.iconFile then
+            return descriptor.iconFile
+        end
     end
     return DEFAULT_VENDOR_CATEGORY_ICON
+end
+
+Vendor.ResolveModeName = ResolveModeName
+Vendor.ResolveModeIcon = ResolveModeIcon
+Vendor.ResolveNativeStoreMode = ResolveNativeStoreMode
+
+local function DoesModeUseItemsTitle(mode)
+    local descriptor = GetModeDescriptor(mode)
+    return descriptor and descriptor.titleUsesItemsSuffix == true or false
+end
+
+local function ResolveModeEmptyStateText(mode)
+    local descriptor = GetModeDescriptor(mode)
+    if not (descriptor and descriptor.emptyStateStringId) then
+        return nil
+    end
+    local stringId = descriptor.emptyStateStringId
+    return GetString(rawget(_G, stringId) or stringId)
+end
+
+local function ResolveModePaneRole(mode, isStableInteraction, isFenceInteraction)
+    local descriptor = GetModeDescriptor(mode)
+    if not descriptor then
+        return nil
+    end
+
+    if isFenceInteraction then
+        return descriptor.fencePaneRole
+    end
+    if isStableInteraction then
+        return descriptor.stablePaneRole
+    end
+    return descriptor.regularPaneRole
 end
 
 ---@param activeTabs table[]|nil
@@ -133,6 +205,28 @@ local function IsSellBuybackOnlyTabs(activeTabs)
     return hasSell and hasBuyback and not hasBuy and not hasRepair
 end
 
+local function IsUnifiedBuyHeaderMode(mode)
+    return mode == BETTERUI.Vendor.MODE.BUY
+        or mode == BETTERUI.Vendor.MODE.REPAIR
+        or mode == BETTERUI.Vendor.MODE.BUYBACK
+end
+
+local function ShouldIncludeHeaderModeTab(mode, currentMode, isStableInteraction, isSellBuybackOnly)
+    if not mode then
+        return false
+    end
+    if isSellBuybackOnly then
+        return mode == BETTERUI.Vendor.MODE.SELL or mode == BETTERUI.Vendor.MODE.BUYBACK
+    end
+    if not IsUnifiedBuyHeaderMode(currentMode) then
+        return false
+    end
+    if isStableInteraction then
+        return mode == BETTERUI.Vendor.MODE.REPAIR
+    end
+    return mode == BETTERUI.Vendor.MODE.REPAIR or mode == BETTERUI.Vendor.MODE.BUYBACK
+end
+
 -- Forward declare; BuildHeaderModeTabs is defined before the function body.
 local IsStableInteractionActive
 
@@ -142,26 +236,12 @@ local function BuildHeaderModeTabs(activeTabs, currentMode)
     local isStableInteraction = IsStableInteractionActive()
     local isSellBuybackOnly = IsSellBuybackOnlyTabs(activeTabs)
     currentMode = currentMode or BETTERUI.Vendor.MODE.BUY
-    local onUnifiedBuyScene = currentMode == BETTERUI.Vendor.MODE.BUY
-        or currentMode == BETTERUI.Vendor.MODE.REPAIR
-        or currentMode == BETTERUI.Vendor.MODE.BUYBACK
 
     for _, tab in ipairs(activeTabs or {}) do
         if isFenceInteraction then
             -- Fence uses footer buttons + keybind toggle; no mode tabs in header
-        elseif isSellBuybackOnly then
-            if tab.mode == BETTERUI.Vendor.MODE.SELL or tab.mode == BETTERUI.Vendor.MODE.BUYBACK then
-                modeTabs[#modeTabs + 1] = tab
-            end
-        elseif onUnifiedBuyScene then
-            if isStableInteraction then
-                if tab.mode == BETTERUI.Vendor.MODE.REPAIR then
-                    modeTabs[#modeTabs + 1] = tab
-                end
-            elseif tab.mode == BETTERUI.Vendor.MODE.REPAIR
-                or tab.mode == BETTERUI.Vendor.MODE.BUYBACK then
-                modeTabs[#modeTabs + 1] = tab
-            end
+        elseif ShouldIncludeHeaderModeTab(tab.mode, currentMode, isStableInteraction, isSellBuybackOnly) then
+            modeTabs[#modeTabs + 1] = tab
         end
     end
 
@@ -211,7 +291,7 @@ local function ShouldShowVendorHeaderTabBar(headerEntryCount)
     return (headerEntryCount or 0) > 0
 end
 
-local function SafeCall(context, fn, ...)
+local function ExecuteSafely(context, fn, ...)
     if type(fn) ~= "function" then
         return false, nil
     end
@@ -224,7 +304,7 @@ local function SafeCall(context, fn, ...)
     return ok, result
 end
 
-Vendor.SafeCall = SafeCall
+Vendor.ExecuteSafely = ExecuteSafely
 
 local function LogVendorDebug(flagName, category, message)
     if BETTERUI.Vendor and BETTERUI.Vendor.DebugLog then
@@ -302,10 +382,10 @@ local function ReleaseSpinnerDirectionalInput(spinner)
     end
 
     if spinner.DetachFromListEntry then
-        SafeCall("Vendor.ReleaseSpinnerDirectionalInput:DetachFromListEntry", spinner.DetachFromListEntry, spinner)
+        ExecuteSafely("Vendor.ReleaseSpinnerDirectionalInput:DetachFromListEntry", spinner.DetachFromListEntry, spinner)
     end
     if spinner.Deactivate then
-        SafeCall("Vendor.ReleaseSpinnerDirectionalInput:Deactivate", spinner.Deactivate, spinner)
+        ExecuteSafely("Vendor.ReleaseSpinnerDirectionalInput:Deactivate", spinner.Deactivate, spinner)
     end
     if spinner.SetHidden then
         spinner:SetHidden(true)
@@ -315,7 +395,7 @@ local function ReleaseSpinnerDirectionalInput(spinner)
 
     if spinner.spinner then
         if spinner.spinner.Deactivate then
-            SafeCall("Vendor.ReleaseSpinnerDirectionalInput:DeactivateNestedSpinner", spinner.spinner.Deactivate, spinner.spinner)
+            ExecuteSafely("Vendor.ReleaseSpinnerDirectionalInput:DeactivateNestedSpinner", spinner.spinner.Deactivate, spinner.spinner)
         end
         ReleaseDirectionalInputRegistrations(spinner.spinner, true)
     end
@@ -347,7 +427,7 @@ local function ReleaseHeaderDirectionalInput(header, context)
 
     ForEachHeaderDirectionalInputCandidate(header, function(candidate)
         if candidate.Deactivate then
-            SafeCall(context or "Vendor.ReleaseHeaderDirectionalInput:Deactivate", candidate.Deactivate, candidate)
+            ExecuteSafely(context or "Vendor.ReleaseHeaderDirectionalInput:Deactivate", candidate.Deactivate, candidate)
         end
         releasedCount = releasedCount + ReleaseDirectionalInputRegistrations(candidate, true)
     end)
@@ -430,6 +510,7 @@ BETTERUI.Vendor.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 ---@field _isDirty boolean Whether list needs refresh after suppression ends
 ---@field unifiedFooterController table|nil Footer controller reference
 BETTERUI.Vendor.Class = BETTERUI.CIM.GenericWindow:Subclass()
+BETTERUI.Vendor.Class.SEARCH_LIFECYCLE = SEARCH_LIFECYCLE
 
 ---@param ... any Arguments forwarded to GenericWindow:New
 ---@return BETTERUI.Vendor.Class
@@ -492,7 +573,7 @@ function BETTERUI.Vendor.Class:ReleaseNativeStoreInputOwnership()
     )
 
     if type(storeManager.DeactivateActiveComponent) == "function" then
-        SafeCall(
+        ExecuteSafely(
             "Vendor.ReleaseNativeStoreInputOwnership:DeactivateActiveComponent",
             storeManager.DeactivateActiveComponent,
             storeManager,
@@ -501,7 +582,7 @@ function BETTERUI.Vendor.Class:ReleaseNativeStoreInputOwnership()
     end
 
     if type(storeManager.DeactivateTextSearch) == "function" then
-        SafeCall("Vendor.ReleaseNativeStoreInputOwnership:DeactivateTextSearch", storeManager.DeactivateTextSearch, storeManager)
+        ExecuteSafely("Vendor.ReleaseNativeStoreInputOwnership:DeactivateTextSearch", storeManager.DeactivateTextSearch, storeManager)
     end
 
     local headerFocus = storeManager.headerFocus
@@ -511,13 +592,13 @@ function BETTERUI.Vendor.Class:ReleaseNativeStoreInputOwnership()
         -- ZO_GamepadFocus:SetActive(false) checks `self.active ~= active` and is a no-op
         -- when active is already false, so also call DIRECTIONAL_INPUT:Deactivate directly.
         if headerFocus.Deactivate then
-            SafeCall("Vendor.ReleaseNativeStoreInputOwnership:HeaderFocusDeactivate", headerFocus.Deactivate, headerFocus)
+            ExecuteSafely("Vendor.ReleaseNativeStoreInputOwnership:HeaderFocusDeactivate", headerFocus.Deactivate, headerFocus)
         end
         ReleaseDirectionalInputRegistrations(headerFocus)
     end
 
     if type(storeManager.RemoveListKeybinds) == "function" then
-        SafeCall("Vendor.ReleaseNativeStoreInputOwnership:RemoveListKeybinds", storeManager.RemoveListKeybinds, storeManager)
+        ExecuteSafely("Vendor.ReleaseNativeStoreInputOwnership:RemoveListKeybinds", storeManager.RemoveListKeybinds, storeManager)
     end
 
     if storeManager.keybindStripDescriptor and KEYBIND_STRIP then
@@ -525,7 +606,7 @@ function BETTERUI.Vendor.Class:ReleaseNativeStoreInputOwnership()
     end
 
     if type(storeManager.Deactivate) == "function" then
-        SafeCall("Vendor.ReleaseNativeStoreInputOwnership:Deactivate", storeManager.Deactivate, storeManager)
+        ExecuteSafely("Vendor.ReleaseNativeStoreInputOwnership:Deactivate", storeManager.Deactivate, storeManager)
     end
 
     -- Direct DIRECTIONAL_INPUT:Deactivate on storeManager — bypasses the
@@ -653,10 +734,10 @@ function BETTERUI.Vendor.Class:DetachUnexpectedSearchHeaderFocus(reason)
 
     if focusObject then
         if focusObject.SetFocused then
-            SafeCall("Vendor.DetachUnexpectedSearchHeaderFocus:SetFocused", focusObject.SetFocused, focusObject, false)
+            ExecuteSafely("Vendor.DetachUnexpectedSearchHeaderFocus:SetFocused", focusObject.SetFocused, focusObject, false)
         end
         if focusObject.Deactivate then
-            SafeCall("Vendor.DetachUnexpectedSearchHeaderFocus:DeactivateFocus", focusObject.Deactivate, focusObject)
+            ExecuteSafely("Vendor.DetachUnexpectedSearchHeaderFocus:DeactivateFocus", focusObject.Deactivate, focusObject)
         end
         ReleaseDirectionalInputRegistrations(focusObject, true)
     end
@@ -830,13 +911,13 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
     if type(SetStoreMode) == "function" then
         local currentMode = nil
         if type(GetStoreMode) == "function" then
-            local okGetMode, modeResult = SafeCall("Vendor.ApplyNativeStoreMode:GetStoreMode", GetStoreMode)
+            local okGetMode, modeResult = ExecuteSafely("Vendor.ApplyNativeStoreMode:GetStoreMode", GetStoreMode)
             if okGetMode then
                 currentMode = modeResult
             end
         end
         if currentMode ~= targetMode then
-            SafeCall("Vendor.ApplyNativeStoreMode:SetStoreMode", SetStoreMode, targetMode)
+            ExecuteSafely("Vendor.ApplyNativeStoreMode:SetStoreMode", SetStoreMode, targetMode)
         end
     end
 
@@ -867,7 +948,7 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
     local hasTargetMode = false
     for _, component in ipairs(activeComponents) do
         if component and type(component.GetStoreMode) == "function" then
-            local okMode, componentMode = SafeCall("Vendor.ApplyNativeStoreMode:ComponentMode", component.GetStoreMode, component)
+            local okMode, componentMode = ExecuteSafely("Vendor.ApplyNativeStoreMode:ComponentMode", component.GetStoreMode, component)
             if okMode and componentMode == targetMode then
                 hasTargetMode = true
                 break
@@ -882,7 +963,7 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
             if type(activeComponents) == "table" and #activeComponents > 0 then
                 for _, component in ipairs(activeComponents) do
                     if component and type(component.GetStoreMode) == "function" then
-                        local okMode, componentMode = SafeCall("Vendor.ApplyNativeStoreMode:ComponentModeRetry", component.GetStoreMode, component)
+                        local okMode, componentMode = ExecuteSafely("Vendor.ApplyNativeStoreMode:ComponentModeRetry", component.GetStoreMode, component)
                         if okMode and componentMode == targetMode then
                             hasTargetMode = true
                             break
@@ -900,14 +981,14 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
 
     local currentMode = nil
     if type(storeManager.GetCurrentMode) == "function" then
-        local okCurrent, currentResult = SafeCall("Vendor.ApplyNativeStoreMode:GetCurrentMode", storeManager.GetCurrentMode, storeManager)
+        local okCurrent, currentResult = ExecuteSafely("Vendor.ApplyNativeStoreMode:GetCurrentMode", storeManager.GetCurrentMode, storeManager)
         if okCurrent then
             currentMode = currentResult
         end
     end
 
     if currentMode ~= targetMode then
-        SafeCall("Vendor.ApplyNativeStoreMode:StoreManagerSetMode", storeManager.SetMode, storeManager, targetMode)
+        ExecuteSafely("Vendor.ApplyNativeStoreMode:StoreManagerSetMode", storeManager.SetMode, storeManager, targetMode)
     end
 
     ReleaseNativeInputIfNeeded()
@@ -994,17 +1075,15 @@ end
 ---@return string moduleKey PositionManager module key for this mode
 local function GetVendorModeModuleKey(mode)
     local MODULES = BETTERUI.CIM.CONST.MODULES
-    if mode == BETTERUI.Vendor.MODE.BUY then return MODULES.VENDOR_BUY
-    elseif mode == BETTERUI.Vendor.MODE.SELL then return MODULES.VENDOR_SELL
-    elseif mode == BETTERUI.Vendor.MODE.SELL_VENGEANCE then return MODULES.VENDOR_SELL_VENGEANCE
-    elseif mode == BETTERUI.Vendor.MODE.REPAIR then return MODULES.VENDOR_REPAIR
-    elseif mode == BETTERUI.Vendor.MODE.BUYBACK then return MODULES.VENDOR_BUYBACK
-    elseif mode == BETTERUI.Vendor.MODE.FENCE_SELL then return MODULES.VENDOR_FENCE_SELL
-    elseif mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER then return MODULES.VENDOR_FENCE_LAUNDER
-    elseif mode == BETTERUI.Vendor.MODE.STABLE then return MODULES.VENDOR_STABLE
+    local descriptor = GetModeDescriptor(mode)
+    if descriptor and descriptor.moduleKeyField and MODULES[descriptor.moduleKeyField] then
+        return MODULES[descriptor.moduleKeyField]
     end
     return "Vendor"
 end
+
+Vendor.GetModeModuleKey = GetVendorModeModuleKey
+Vendor.ResolveModePaneRole = ResolveModePaneRole
 
 ---@param self BETTERUI.Vendor.Class
 ---@return string categoryKey PositionManager category key for the active category
@@ -1046,10 +1125,11 @@ end
 ---@return nil
 function BETTERUI.Vendor.Class:ClearSearchInput()
     self.searchQuery = ""
-    if not BETTERUI.CIM.TryCall("Interface.Window.ClearSearchText", self) then
-        if self.ClearSearchText then
-            self:ClearSearchText()
-        end
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    if searchMixin and searchMixin.ClearSearchText then
+        searchMixin.ClearSearchText(self)
+    elseif self.ClearSearchText then
+        self:ClearSearchText()
     end
 end
 
@@ -1105,7 +1185,7 @@ function BETTERUI.Vendor.Class:PositionSearchControl()
     end
 
     local parentForAnchor = titleContainer or anchorTarget
-    local searchConst = BETTERUI.CIM.GetSearchBarConstants and BETTERUI.CIM.GetSearchBarConstants("BANKING")
+    local searchConst = BETTERUI.CIM.SearchBar and BETTERUI.CIM.SearchBar.GetConstants and BETTERUI.CIM.SearchBar.GetConstants("BANKING")
     local xOffset = (searchConst and searchConst.X_OFFSET) or 55
     local yOffset = (searchConst and searchConst.Y_OFFSET) or 15
     local rightInset = (searchConst and searchConst.RIGHT_INSET) or -8
@@ -1223,10 +1303,6 @@ function BETTERUI.Vendor.Class:OnHeaderEntered()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()
 
-        if BETTERUI.CIM.TryResolve("Interface.Window.OnEnterHeader") then
-            BETTERUI.Interface.Window.OnEnterHeader(self)
-        end
-
         BETTERUI.Vendor.Tasks:Schedule("searchKeybindCleanup", 20, function()
             if not self._searchModeActive or not KEYBIND_STRIP then
                 return
@@ -1246,8 +1322,6 @@ function BETTERUI.Vendor.Class:OnHeaderEntered()
                 BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
             end
         end)
-    else
-        BETTERUI.CIM.TryCall("Interface.Window.OnEnterHeader", self)
     end
 end
 
@@ -1544,11 +1618,7 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
     local activeTabs = (BETTERUI.Vendor.GetActiveTabs and BETTERUI.Vendor.GetActiveTabs()) or {}
     local modeTabs = BuildHeaderModeTabs(activeTabs, mode)
     local isSellBuybackOnly = IsSellBuybackOnlyTabs(activeTabs)
-    local useUnifiedBuyHeader = (not isSellBuybackOnly)
-        and mode ~= BETTERUI.Vendor.MODE.SELL
-        and mode ~= BETTERUI.Vendor.MODE.STABLE
-        and mode ~= BETTERUI.Vendor.MODE.FENCE_SELL
-        and mode ~= BETTERUI.Vendor.MODE.FENCE_LAUNDER
+    local useUnifiedBuyHeader = (not isSellBuybackOnly) and IsUnifiedBuyHeaderMode(mode)
     local categoryMode = useUnifiedBuyHeader and BETTERUI.Vendor.MODE.BUY or mode
     local categories = self:GetModeCategories(categoryMode)
     if useUnifiedBuyHeader
@@ -1631,7 +1701,7 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
         if mode == BETTERUI.Vendor.MODE.STABLE then
             return ResolveModeName(mode)
         end
-        if mode == BETTERUI.Vendor.MODE.BUYBACK or mode == BETTERUI.Vendor.MODE.REPAIR then
+        if DoesModeUseItemsTitle(mode) then
             return zo_strformat("<<1>> - <<2>>", ResolveModeName(mode), "Items")
         end
         if showCategoryEntries and selectedCategory and selectedCategory.name and selectedCategory.name ~= "" then
@@ -2013,12 +2083,11 @@ function BETTERUI.Vendor.Class:RefreshList()
 
     local hasSearchQuery = BETTERUI.Vendor.NormalizeSearchQuery and BETTERUI.Vendor.NormalizeSearchQuery(self.searchQuery) ~= nil
     if self.list.SetNoItemText then
+        local modeEmptyStateText = ResolveModeEmptyStateText(currentMode)
         if hasSearchQuery then
             self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
-        elseif currentMode == BETTERUI.Vendor.MODE.REPAIR then
-            self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_REPAIR_ITEMS")))
-        elseif currentMode == BETTERUI.Vendor.MODE.BUYBACK then
-            self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_BUYBACK_ITEMS")))
+        elseif modeEmptyStateText then
+            self.list:SetNoItemText(modeEmptyStateText)
         else
             self.list:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_EMPTY")))
         end
@@ -2590,17 +2659,9 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
     local isStableInteraction = IsStableInteractionActive()
     local isFenceInteraction = BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
 
-    local isSecondMode, isFirstListMode
-    if isFenceInteraction then
-        isSecondMode    = currentMode == BETTERUI.Vendor.MODE.FENCE_LAUNDER
-        isFirstListMode = currentMode == BETTERUI.Vendor.MODE.FENCE_SELL
-    else
-        local secondListMode = isStableInteraction and BETTERUI.Vendor.MODE.STABLE or BETTERUI.Vendor.MODE.SELL
-        isSecondMode    = currentMode == secondListMode
-            or (not isStableInteraction and currentMode == BETTERUI.Vendor.MODE.SELL_VENGEANCE)
-        isFirstListMode = currentMode == BETTERUI.Vendor.MODE.BUY
-            or (isStableInteraction and currentMode == BETTERUI.Vendor.MODE.REPAIR)
-    end
+    local paneRole = ResolveModePaneRole(currentMode, isStableInteraction, isFenceInteraction)
+    local isSecondMode = paneRole == "second"
+    local isFirstListMode = paneRole == "first"
     local isTwoPaneMode = isFirstListMode or isSecondMode
     local activeColor   = { 1, 1, 1, 1 }
     local inactiveColor = BETTERUI_BANK_INACTIVE_LABEL_COLOR or { 0.35, 0.35, 0.35, 1 }

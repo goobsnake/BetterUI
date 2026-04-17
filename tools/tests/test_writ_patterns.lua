@@ -1,203 +1,293 @@
 --[[
 File: tools/tests/test_writ_patterns.lua
-Purpose: Unit tests for writ pattern matching in WritUnit/Constants.lua.
-         Tests run standalone with a Lua interpreter (no ESO environment).
-]]
+Purpose: Regression tests for the WritUnit constants, quest parsing, and module lifecycle.
 
--- ============================================================================
--- MINIMAL ESO STUBS
--- ============================================================================
+Usage:
+  lua tools/tests/test_writ_patterns.lua
+]]
 
 CRAFTING_TYPE_BLACKSMITHING = 1
 CRAFTING_TYPE_CLOTHIER = 2
-CRAFTING_TYPE_WOODWORKING = 6
 CRAFTING_TYPE_ENCHANTING = 3
 CRAFTING_TYPE_PROVISIONING = 4
 CRAFTING_TYPE_ALCHEMY = 5
+CRAFTING_TYPE_WOODWORKING = 6
 CRAFTING_TYPE_JEWELRYCRAFTING = 7
 
-BETTERUI = { Writs = {} }
+QUEST_TYPE_CRAFTING = 11
+EVENT_CRAFTING_STATION_INTERACT = 101
+EVENT_END_CRAFTING_STATION_INTERACT = 102
+EVENT_CRAFT_COMPLETED = 103
+MAX_JOURNAL_QUESTS = 10
 
--- Mock language CVar
 local mockLanguage = "en"
-function GetCVar(name)
-    if name == "language.2" then return mockLanguage end
-    return nil
-end
-
--- ============================================================================
--- LOAD CONSTANTS UNDER TEST (replicated from WritUnit/Constants.lua)
--- ============================================================================
-
-BETTERUI.Writs.CONST = {
-    COLORS = {
-        COMPLETE = "00FF00",
-        INCOMPLETE = "CCCCCC",
-    },
-    PATTERNS_LOCALIZED = {
-        ["en"] = {
-            { pattern = "blacksmith", craftType = CRAFTING_TYPE_BLACKSMITHING },
-            { pattern = "cloth",      craftType = CRAFTING_TYPE_CLOTHIER },
-            { pattern = "woodwork",   craftType = CRAFTING_TYPE_WOODWORKING },
-            { pattern = "enchant",    craftType = CRAFTING_TYPE_ENCHANTING },
-            { pattern = "provision",  craftType = CRAFTING_TYPE_PROVISIONING },
-            { pattern = "alchemist",  craftType = CRAFTING_TYPE_ALCHEMY },
-            { pattern = "jewelry",    craftType = CRAFTING_TYPE_JEWELRYCRAFTING },
-            { pattern = "witches",    craftType = CRAFTING_TYPE_PROVISIONING },
-        },
-        ["de"] = {
-            { pattern = "schmied",    craftType = CRAFTING_TYPE_BLACKSMITHING },
-            { pattern = "schneider",  craftType = CRAFTING_TYPE_CLOTHIER },
-            { pattern = "schreiner",  craftType = CRAFTING_TYPE_WOODWORKING },
-            { pattern = "verzauber",  craftType = CRAFTING_TYPE_ENCHANTING },
-            { pattern = "versorger",  craftType = CRAFTING_TYPE_PROVISIONING },
-            { pattern = "alchemist",  craftType = CRAFTING_TYPE_ALCHEMY },
-            { pattern = "schmuck",    craftType = CRAFTING_TYPE_JEWELRYCRAFTING },
-        },
-        ["fr"] = {
-            { pattern = "forgeron",   craftType = CRAFTING_TYPE_BLACKSMITHING },
-            { pattern = "couturi",    craftType = CRAFTING_TYPE_CLOTHIER },
-            { pattern = "travail du bois", craftType = CRAFTING_TYPE_WOODWORKING },
-            { pattern = "enchant",    craftType = CRAFTING_TYPE_ENCHANTING },
-            { pattern = "cuisine",    craftType = CRAFTING_TYPE_PROVISIONING },
-            { pattern = "alchimiste", craftType = CRAFTING_TYPE_ALCHEMY },
-            { pattern = "joaillerie", craftType = CRAFTING_TYPE_JEWELRYCRAFTING },
-        },
-    },
-    PATTERNS = {
-        { pattern = "blacksmith", craftType = CRAFTING_TYPE_BLACKSMITHING },
-        { pattern = "cloth",      craftType = CRAFTING_TYPE_CLOTHIER },
-        { pattern = "woodwork",   craftType = CRAFTING_TYPE_WOODWORKING },
-        { pattern = "enchant",    craftType = CRAFTING_TYPE_ENCHANTING },
-        { pattern = "provision",  craftType = CRAFTING_TYPE_PROVISIONING },
-        { pattern = "alchemist",  craftType = CRAFTING_TYPE_ALCHEMY },
-        { pattern = "jewelry",    craftType = CRAFTING_TYPE_JEWELRYCRAFTING },
-        { pattern = "witches",    craftType = CRAFTING_TYPE_PROVISIONING },
-    },
-}
-
-function BETTERUI.Writs.CONST.GetLocalizedPatterns()
-    local lang = GetCVar("language.2") or "en"
-    return BETTERUI.Writs.CONST.PATTERNS_LOCALIZED[lang] or BETTERUI.Writs.CONST.PATTERNS_LOCALIZED["en"]
-end
-
--- ============================================================================
--- TEST INFRASTRUCTURE
--- ============================================================================
+local moduleEnabled = true
+local questJournal = {}
+local safeExecuteContexts = {}
+local registeredEvents = {}
 
 local passed, failed = 0, 0
+
+local writNameText = nil
+local writDescText = nil
+local writPanelHidden = nil
+
+local writNameLabel = {
+    SetText = function(_, value)
+        writNameText = value
+    end,
+}
+
+local writDescLabel = {
+    SetText = function(_, value)
+        writDescText = value
+    end,
+}
+
+local writPanel = {
+    SetHidden = function(_, value)
+        writPanelHidden = value
+    end,
+}
+
+BETTERUI_WritsPanelSlotContainerExtractionSlotWritName = writNameLabel
+BETTERUI_WritsPanelSlotContainerExtractionSlotWritDesc = writDescLabel
+BETTERUI_WritsPanel = writPanel
 
 local function assert_eq(actual, expected, label)
     if actual == expected then
         passed = passed + 1
     else
         failed = failed + 1
-        print(string.format("  FAIL: %s — expected %s, got %s", label, tostring(expected), tostring(actual)))
+        print(string.format("  FAIL: %s -- expected %s, got %s", label, tostring(expected), tostring(actual)))
     end
 end
 
 local function assert_true(value, label)
-    if value then
-        passed = passed + 1
-    else
-        failed = failed + 1
-        print(string.format("  FAIL: %s — expected true, got %s", label, tostring(value)))
+    assert_eq(value, true, label)
+end
+
+local function assert_contains(haystack, needle, label)
+    local matched = type(haystack) == "string" and haystack:find(needle, 1, true) ~= nil
+    assert_eq(matched, true, label)
+end
+
+function GetCVar(name)
+    if name == "language.2" then
+        return mockLanguage
     end
+    return nil
 end
 
--- ============================================================================
--- TESTS: GetLocalizedPatterns
--- ============================================================================
-
-print("[GetLocalizedPatterns]")
-
--- English patterns
-mockLanguage = "en"
-do
-    local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-    assert_eq(#patterns, 8, "en: 8 patterns")
-    assert_eq(patterns[1].pattern, "blacksmith", "en: first pattern is blacksmith")
-    assert_eq(patterns[1].craftType, CRAFTING_TYPE_BLACKSMITHING, "en: blacksmith craftType")
-    assert_eq(patterns[7].pattern, "jewelry", "en: jewelry pattern exists")
-    assert_eq(patterns[8].pattern, "witches", "en: witches festival pattern")
-    assert_eq(patterns[8].craftType, CRAFTING_TYPE_PROVISIONING, "en: witches maps to provisioning")
+function zo_strformat(fmt, ...)
+    local values = { ... }
+    return (tostring(fmt):gsub("<<(%d+)>>", function(index)
+        return tostring(values[tonumber(index)] or "")
+    end))
 end
 
--- German patterns
-mockLanguage = "de"
-do
-    local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-    assert_eq(#patterns, 7, "de: 7 patterns")
-    assert_eq(patterns[1].pattern, "schmied", "de: first pattern is schmied")
-    assert_eq(patterns[1].craftType, CRAFTING_TYPE_BLACKSMITHING, "de: schmied craftType")
-    assert_eq(patterns[7].pattern, "schmuck", "de: schmuck (jewelry) pattern")
+function IsValidQuestIndex(questId)
+    return questJournal[questId] ~= nil
 end
 
--- French patterns
-mockLanguage = "fr"
-do
-    local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-    assert_eq(#patterns, 7, "fr: 7 patterns")
-    assert_eq(patterns[1].pattern, "forgeron", "fr: first pattern is forgeron")
-    assert_eq(patterns[3].pattern, "travail du bois", "fr: woodwork is multi-word")
+function GetJournalQuestType(questId)
+    local quest = questJournal[questId]
+    return quest and quest.questType or nil
 end
 
--- Unknown language falls back to English
-mockLanguage = "jp"
-do
-    local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-    assert_eq(#patterns, 8, "jp: falls back to en (8 patterns)")
-    assert_eq(patterns[1].pattern, "blacksmith", "jp: fallback has blacksmith")
+function GetJournalQuestInfo(questId)
+    local quest = questJournal[questId]
+    return quest and quest.name or nil
 end
 
--- Nil language falls back to English
-mockLanguage = nil
-do
-    local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-    assert_eq(#patterns, 8, "nil lang: falls back to en")
+function GetJournalQuestNumConditions(questId)
+    local quest = questJournal[questId]
+    return #(quest and quest.conditions or {})
 end
 
--- ============================================================================
--- TESTS: Pattern matching simulation
--- ============================================================================
-
-print("[Pattern matching]")
-
--- Simulate the writ quest name matching algorithm (last match wins)
-local function matchQuestName(questName, patterns)
-    local matched = nil
-    for _, entry in ipairs(patterns) do
-        if string.find(string.lower(questName), entry.pattern, 1, true) then
-            matched = entry.craftType
-        end
+function GetJournalQuestConditionInfo(questId, _, lineId)
+    local condition = questJournal[questId] and questJournal[questId].conditions[lineId]
+    if not condition then
+        return "", 0, 0, false, false, nil, false
     end
-    return matched
+    return condition.line or "",
+        condition.current or 0,
+        condition.maximum or 0,
+        condition.isFailCondition or false,
+        condition.complete or false,
+        nil,
+        condition.isVisible
 end
 
+BETTERUI = {
+    name = "BetterUI",
+    Writs = {},
+    CIM = {
+        SafeExecute = function(context, fn, ...)
+            safeExecuteContexts[#safeExecuteContexts + 1] = context
+            return fn(...)
+        end,
+    },
+    WindowManager = {
+        CreateTopLevelWindow = function(_, name)
+            return { name = name }
+        end,
+        CreateControlFromVirtual = function(_, name)
+            assert_eq(name, "BETTERUI_WritsPanel", "writ setup creates the expected virtual panel")
+            return writPanel
+        end,
+    },
+}
+
+function BETTERUI.GetModuleEnabled(moduleName)
+    if moduleName == "Writs" then
+        return moduleEnabled
+    end
+    return true
+end
+
+EVENT_MANAGER = {}
+
+function EVENT_MANAGER:RegisterForEvent(name, eventCode, callback)
+    registeredEvents[name .. ":" .. tostring(eventCode)] = callback
+end
+
+local function getEventCallback(eventCode)
+    return registeredEvents["BetterUI_Writs:" .. tostring(eventCode)]
+end
+
+local function resetUiState()
+    writNameText = nil
+    writDescText = nil
+    writPanelHidden = nil
+    safeExecuteContexts = {}
+end
+
+dofile("Modules/WritUnit/Constants.lua")
+dofile("Modules/WritUnit/Core/Writ.lua")
+dofile("Modules/WritUnit/Module.lua")
+
+print("[Writ constants]")
+
+do
+    mockLanguage = "en"
+    local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
+    assert_eq(#patterns, 8, "english pattern list loads")
+    assert_eq(patterns[1].pattern, "blacksmith", "english patterns preserve ordering")
+    assert_eq(patterns[#patterns].pattern, "witches", "english festival fallback stays last")
+end
+
+do
+    mockLanguage = "de"
+    local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
+    assert_eq(#patterns, 7, "german pattern list loads")
+    assert_eq(patterns[1].craftType, CRAFTING_TYPE_BLACKSMITHING, "german blacksmith pattern maps correctly")
+end
+
+do
+    mockLanguage = "jp"
+    local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
+    assert_eq(#patterns, 8, "unknown locale falls back to english")
+    assert_eq(patterns[1].pattern, "blacksmith", "fallback locale reuses english patterns")
+end
+
+print("[Writ objective formatting]")
+
+questJournal = {
+    [1] = {
+        name = "Blacksmith Writ",
+        questType = QUEST_TYPE_CRAFTING,
+        conditions = {
+            { line = "Forge Rubedite Sword", current = 1, maximum = 1, complete = true, isVisible = true },
+            { line = "Deliver weapons", current = 0, maximum = 1, complete = false, isVisible = true },
+            { line = "", current = 0, maximum = 1, complete = false, isVisible = true },
+            { line = "Hidden objective", current = 0, maximum = 1, complete = false, isVisible = false },
+            { line = "Fail condition", current = 0, maximum = 1, complete = false, isVisible = true, isFailCondition = true },
+        },
+    },
+}
+
+do
+    local formatted = BETTERUI.Writs.Get(1)
+    assert_contains(formatted, "|c00FF00", "completed writ lines use the completion color")
+    assert_contains(formatted, "|cCCCCCC", "incomplete writ lines use the incomplete color")
+    assert_true(formatted:find("Hidden objective", 1, true) == nil, "hidden objectives are excluded")
+    assert_true(formatted:find("Fail condition", 1, true) == nil, "fail conditions are excluded")
+end
+
+print("[Writ update and panel display]")
+
+questJournal = {
+    [1] = {
+        name = "Blacksmith Writ",
+        questType = QUEST_TYPE_CRAFTING,
+        conditions = {
+            { line = "Forge Rubedite Sword", current = 1, maximum = 1, complete = true, isVisible = true },
+        },
+    },
+    [2] = {
+        name = "Witches Festival Cloth Donation",
+        questType = QUEST_TYPE_CRAFTING,
+        conditions = {
+            { line = "Cook the festival dish", current = 0, maximum = 1, complete = false, isVisible = true },
+        },
+    },
+    [3] = {
+        name = "Unrelated Story Quest",
+        questType = 999,
+        conditions = {
+            { line = "Talk to the quest giver", current = 0, maximum = 1, complete = false, isVisible = true },
+        },
+    },
+}
+
 mockLanguage = "en"
-local enPatterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-assert_eq(matchQuestName("Blacksmith Writ", enPatterns), CRAFTING_TYPE_BLACKSMITHING, "match: Blacksmith Writ")
-assert_eq(matchQuestName("Clothier Certification", enPatterns), CRAFTING_TYPE_CLOTHIER, "match: Clothier Certification")
-assert_eq(matchQuestName("Enchanting Daily", enPatterns), CRAFTING_TYPE_ENCHANTING, "match: Enchanting Daily")
-assert_eq(matchQuestName("Jewelry Crafting Writ", enPatterns), CRAFTING_TYPE_JEWELRYCRAFTING, "match: Jewelry Crafting Writ")
-assert_eq(matchQuestName("Witches Festival Recipe", enPatterns), CRAFTING_TYPE_PROVISIONING, "match: Witches Festival")
-assert_eq(matchQuestName("Random Unrelated Quest", enPatterns), nil, "match: no match returns nil")
+BETTERUI.Writs.CacheControls()
+resetUiState()
+BETTERUI.Writs.Update()
+assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_BLACKSMITHING].id, 1, "blacksmith writ is indexed by craft type")
+assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_PROVISIONING].id, 2, "last matching pattern wins for witches festival writs")
 
--- ============================================================================
--- TESTS: Constants structure
--- ============================================================================
+BETTERUI.Writs.Show(CRAFTING_TYPE_BLACKSMITHING)
+assert_contains(writNameText, "Blacksmith Writ", "show writes the active writ title")
+assert_contains(writDescText, "Forge Rubedite Sword", "show writes the formatted objective text")
+assert_eq(writPanelHidden, false, "show reveals the writ panel")
 
-print("[Constants structure]")
-assert_eq(BETTERUI.Writs.CONST.COLORS.COMPLETE, "00FF00", "COMPLETE color is green")
-assert_eq(BETTERUI.Writs.CONST.COLORS.INCOMPLETE, "CCCCCC", "INCOMPLETE color is grey")
-assert_eq(#BETTERUI.Writs.CONST.PATTERNS, 8, "legacy PATTERNS has 8 entries")
-assert_true(BETTERUI.Writs.CONST.PATTERNS_LOCALIZED["en"] ~= nil, "en locale exists")
-assert_true(BETTERUI.Writs.CONST.PATTERNS_LOCALIZED["de"] ~= nil, "de locale exists")
-assert_true(BETTERUI.Writs.CONST.PATTERNS_LOCALIZED["fr"] ~= nil, "fr locale exists")
+BETTERUI.Writs.Hide()
+assert_eq(writPanelHidden, true, "hide conceals the writ panel")
 
--- ============================================================================
--- RESULTS
--- ============================================================================
+print("[Writ module lifecycle]")
+
+resetUiState()
+moduleEnabled = true
+BETTERUI.Writs.List = {}
+BETTERUI.Writs.Setup()
+assert_eq(writPanelHidden, true, "setup hides the writ panel by default")
+assert_true(type(getEventCallback(EVENT_CRAFTING_STATION_INTERACT)) == "function", "setup registers craft-station enter handler")
+assert_true(type(getEventCallback(EVENT_END_CRAFTING_STATION_INTERACT)) == "function", "setup registers craft-station exit handler")
+assert_true(type(getEventCallback(EVENT_CRAFT_COMPLETED)) == "function", "setup registers craft-completed handler")
+
+resetUiState()
+getEventCallback(EVENT_CRAFTING_STATION_INTERACT)(nil, tostring(CRAFTING_TYPE_BLACKSMITHING))
+assert_eq(safeExecuteContexts[1], "Writs:OnCraftStation", "entering a station runs through SafeExecute")
+assert_contains(writNameText, "Blacksmith Writ", "entering a station shows the matching writ")
+
+resetUiState()
+moduleEnabled = false
+getEventCallback(EVENT_CRAFTING_STATION_INTERACT)(nil, tostring(CRAFTING_TYPE_BLACKSMITHING))
+assert_eq(#safeExecuteContexts, 0, "disabled writ module ignores craft-station entry")
+
+moduleEnabled = true
+resetUiState()
+getEventCallback(EVENT_CRAFT_COMPLETED)(nil, tostring(CRAFTING_TYPE_PROVISIONING))
+assert_eq(safeExecuteContexts[1], "Writs:OnCraftItem", "craft completion refreshes writ display through SafeExecute")
+assert_contains(writNameText, "Witches Festival Cloth Donation", "craft completion refreshes the current station writ")
+
+resetUiState()
+writPanelHidden = false
+getEventCallback(EVENT_END_CRAFTING_STATION_INTERACT)(nil)
+assert_eq(safeExecuteContexts[1], "Writs:OnCloseCraftStation", "closing a station routes through SafeExecute")
+assert_eq(writPanelHidden, true, "closing a station hides the writ panel")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

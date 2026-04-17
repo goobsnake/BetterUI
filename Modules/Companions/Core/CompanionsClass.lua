@@ -25,6 +25,13 @@ BETTERUI.Companions.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 
 ---@class BETTERUI.Companions.Class : BETTERUI.CIM.GenericWindow
 BETTERUI.Companions.Class = BETTERUI.CIM.GenericWindow:Subclass()
+BETTERUI.Companions.Class.SEARCH_LIFECYCLE = {
+    clear = "ClearSearchInput",
+    exit = "ExitSearchMode",
+    headerActive = "IsHeaderFocused",
+    requestEnter = "RequestHeaderFocus",
+    onEnter = "OnHeaderEntered",
+}
 
 function BETTERUI.Companions.Class:New(...)
     local obj = BETTERUI.CIM.GenericWindow.New(self, ...)
@@ -89,7 +96,7 @@ end
 
 -- SEARCH FOCUS HELPERS
 
-function BETTERUI.Companions.Class:EnterSearchFocus()
+function BETTERUI.Companions.Class:EnterSearchMode()
     if not self.textSearchHeaderControl or self.textSearchHeaderControl:IsHidden() then return end
     if self.textSearchHeaderFocus then
         self.textSearchHeaderFocus:Activate()
@@ -102,10 +109,11 @@ function BETTERUI.Companions.Class:EnterSearchFocus()
         KEYBIND_STRIP:AddKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
     self._searchModeActive = true
+    self._searchHeaderActive = true
 end
 
-function BETTERUI.Companions.Class:ExitSearchFocus()
-    if not self._searchModeActive then return end
+function BETTERUI.Companions.Class:ExitSearchMode()
+    if not self._searchModeActive and not self._searchHeaderActive then return end
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
@@ -119,19 +127,19 @@ function BETTERUI.Companions.Class:ExitSearchFocus()
         self:SetTextSearchFocused(false)
     end
     self._searchModeActive = false
+    self._searchHeaderActive = false
     self:EnsureListInputActive()
     if self.coreKeybinds and KEYBIND_STRIP then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
     end
 end
 
--- Aliases matching Banking/Vendor pattern for SetupEditBoxHandlers compatibility
-function BETTERUI.Companions.Class:EnterSearchMode()
-    self:EnterSearchFocus()
+function BETTERUI.Companions.Class:EnterSearchFocus()
+    self:EnterSearchMode()
 end
 
-function BETTERUI.Companions.Class:ExitSearchMode()
-    self:ExitSearchFocus()
+function BETTERUI.Companions.Class:ExitSearchFocus()
+    self:ExitSearchMode()
 end
 
 function BETTERUI.Companions.Class:IsHeaderFocused()
@@ -148,8 +156,8 @@ end
 function BETTERUI.Companions.Class:RequestHeaderFocus()
     if self.OnHeaderEntered then
         self:OnHeaderEntered()
-    elseif self.EnterSearchFocus then
-        self:EnterSearchFocus()
+    elseif self.EnterSearchMode then
+        self:EnterSearchMode()
     end
 end
 
@@ -163,7 +171,7 @@ function BETTERUI.Companions.Class:OnHeaderEntered()
     if not (self.textSearchHeaderControl and not self.textSearchHeaderControl:IsHidden()) then
         return
     end
-    self:EnterSearchFocus()
+    self:EnterSearchMode()
 
     BETTERUI.Companions.Tasks:Schedule("searchKeybindCleanup", 20, function()
         if not self._searchModeActive or not KEYBIND_STRIP then return end
@@ -187,10 +195,15 @@ function BETTERUI.Companions.Class:OnEnterHeader()
     self:OnHeaderEntered()
 end
 
-function BETTERUI.Companions.Class:ClearTextSearch()
+function BETTERUI.Companions.Class:ClearSearchInput()
+    self.searchQuery = ""
     if self.ClearSearchText then
         self:ClearSearchText()
     end
+end
+
+function BETTERUI.Companions.Class:ClearTextSearch()
+    self:ClearSearchInput()
 end
 
 --- Refreshes companion footer values (companion name, bag capacity).

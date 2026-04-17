@@ -40,65 +40,109 @@ local function IsSellVengeanceModeAvailable()
         and IsCurrentCampaignVengeanceRuleset()
 end
 
+local function DefaultExecuteSafely(context, fn, ...)
+    if type(fn) ~= "function" then
+        return false, nil
+    end
+
+    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute then
+        return BETTERUI.CIM.SafeExecute(context, fn, ...)
+    end
+
+    local ok, result = pcall(fn, ...)
+    return ok, result
+end
+
+SafeCall = type(Vendor.ExecuteSafely) == "function" and Vendor.ExecuteSafely or DefaultExecuteSafely
+
+local function HasVendorBuyInventory(context)
+    if type(IsStoreEmpty) == "function" then
+        local okStoreEmpty, isStoreEmpty = SafeCall(context .. ":IsStoreEmpty", IsStoreEmpty)
+        if okStoreEmpty then
+            return not isStoreEmpty
+        end
+    end
+
+    if type(GetNumStoreItems) == "function" then
+        local okStoreCount, storeCount = SafeCall(context .. ":GetNumStoreItems", GetNumStoreItems)
+        if okStoreCount and type(storeCount) == "number" then
+            return storeCount > 0
+        end
+    end
+
+    return false
+end
+
+local function RunVendorSetupStep(stepName, setupFn)
+    local ok, err = SafeCall("Vendor.Init:" .. tostring(stepName), setupFn)
+    if not ok and BETTERUI.Debug then
+        BETTERUI.Debug(string.format("[Vendor] %s failed: %s", tostring(stepName), tostring(err)))
+    end
+    return ok, err
+end
+
 -- TAB DEFINITIONS
 
 ---@alias VendorTabDef {mode: number, name: fun(): string}
 
+local function ResolveNativeModeForVendorMode(mode)
+    if Vendor.ResolveNativeStoreMode then
+        return Vendor.ResolveNativeStoreMode(mode)
+    end
+    return nil
+end
+
+local function BuildModeTab(mode)
+    return {
+        mode = mode,
+        name = function()
+            if Vendor.ResolveModeName then
+                return Vendor.ResolveModeName(mode)
+            end
+            return tostring(mode)
+        end,
+    }
+end
+
+local function BuildModeTabs(modes)
+    local tabs = {}
+    for _, mode in ipairs(modes or {}) do
+        tabs[#tabs + 1] = BuildModeTab(mode)
+    end
+    return tabs
+end
+
+local function IsModeTabAvailable(mode)
+    return mode ~= MODE.SELL_VENGEANCE or IsSellVengeanceModeAvailable()
+end
+
 -- Regular vendor tabs (Buy, Sell, Repair, Buyback)
 ---@type VendorTabDef[]
-local VENDOR_TABS = {
-    { mode = MODE.BUY,     name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY")) end },
-    { mode = MODE.SELL,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL")) end },
-    { mode = MODE.SELL_VENGEANCE, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE")) end },
-    { mode = MODE.REPAIR,  name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_REPAIR")) end },
-    { mode = MODE.STABLE,  name = function() return GetString(rawget(_G, "SI_STABLE_STABLES_TAB")) end },
-    { mode = MODE.BUYBACK, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUYBACK")) end },
-}
+local VENDOR_TABS = BuildModeTabs({
+    MODE.BUY,
+    MODE.SELL,
+    MODE.SELL_VENGEANCE,
+    MODE.REPAIR,
+    MODE.STABLE,
+    MODE.BUYBACK,
+})
 
 ---@type VendorTabDef[]
-local STABLE_TABS = {
-    { mode = MODE.BUY,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY")) end },
-    { mode = MODE.REPAIR, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_REPAIR")) end },
-    { mode = MODE.STABLE, name = function() return GetString(rawget(_G, "SI_STABLE_STABLES_TAB")) end },
-}
+local STABLE_TABS = BuildModeTabs({ MODE.BUY, MODE.REPAIR, MODE.STABLE })
 
 -- Fence tabs (Sell Stolen, Launder)
 ---@type VendorTabDef[]
-local FENCE_TABS = {
-    { mode = MODE.FENCE_SELL,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_SELL")) end },
-    { mode = MODE.FENCE_LAUNDER, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")) end },
-}
+local FENCE_TABS = BuildModeTabs({ MODE.FENCE_SELL, MODE.FENCE_LAUNDER })
 
 ---@return VendorTabDef[]
 local function BuildFallbackVendorTabs()
     local tabs = {}
     for _, tab in ipairs(VENDOR_TABS) do
-        if tab.mode ~= MODE.SELL_VENGEANCE or IsSellVengeanceModeAvailable() then
+        if IsModeTabAvailable(tab.mode) then
             tabs[#tabs + 1] = tab
         end
     end
     return tabs
-end
-
-local function ResolveNativeModeForVendorMode(mode)
-    if mode == MODE.BUY then
-        return rawget(_G, "ZO_MODE_STORE_BUY")
-    elseif mode == MODE.SELL then
-        return rawget(_G, "ZO_MODE_STORE_SELL")
-    elseif mode == MODE.SELL_VENGEANCE then
-        return rawget(_G, "ZO_MODE_STORE_SELL_VENGEANCE")
-    elseif mode == MODE.REPAIR then
-        return rawget(_G, "ZO_MODE_STORE_REPAIR")
-    elseif mode == MODE.BUYBACK then
-        return rawget(_G, "ZO_MODE_STORE_BUY_BACK")
-    elseif mode == MODE.FENCE_SELL then
-        return rawget(_G, "ZO_MODE_STORE_SELL_STOLEN")
-    elseif mode == MODE.FENCE_LAUNDER then
-        return rawget(_G, "ZO_MODE_STORE_LAUNDER")
-    elseif mode == MODE.STABLE then
-        return rawget(_G, "ZO_MODE_STORE_STABLE")
-    end
-    return nil
 end
 
 local function GetNativeActiveModeSet()
@@ -155,14 +199,16 @@ local function GetActiveTabs()
     local sourceTabs = isStableInteraction and STABLE_TABS or VENDOR_TABS
     local tabs = {}
     for _, tab in ipairs(sourceTabs) do
-        local nativeMode = ResolveNativeModeForVendorMode(tab.mode)
-        local includeStableRepair = isStableInteraction
-            and tab.mode == MODE.REPAIR
-            and (type(CanStoreRepair) ~= "function" or CanStoreRepair())
-        if (nativeMode and activeModeSet[nativeMode])
-            or (tab.mode == MODE.BUY and includeBuyFromSession)
-            or includeStableRepair then
-            tabs[#tabs + 1] = tab
+        if IsModeTabAvailable(tab.mode) then
+            local nativeMode = ResolveNativeModeForVendorMode(tab.mode)
+            local includeStableRepair = isStableInteraction
+                and tab.mode == MODE.REPAIR
+                and (type(CanStoreRepair) ~= "function" or CanStoreRepair())
+            if (nativeMode and activeModeSet[nativeMode])
+                or (tab.mode == MODE.BUY and includeBuyFromSession)
+                or includeStableRepair then
+                tabs[#tabs + 1] = tab
+            end
         end
     end
 
@@ -180,10 +226,6 @@ end
 ---@param tabs VendorTabDef[]|nil
 ---@return table<number, boolean>
 local function BuildActiveModeSet(tabs)
-    if Vendor.BuildActiveModeSet then
-        return Vendor.BuildActiveModeSet(tabs)
-    end
-
     local fallbackModeSet = {}
     for _, tab in ipairs(tabs or {}) do
         if tab and tab.mode then
@@ -196,10 +238,6 @@ end
 ---@param modeSet table<number, boolean>|nil
 ---@return boolean
 local function IsSellBuybackOnlyModeSet(modeSet)
-    if Vendor.IsSellBuybackOnlyModeSet then
-        return Vendor.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
-    end
-
     local fallback = modeSet or {}
     local hasSell = fallback[MODE.SELL] == true
     local hasBuyback = fallback[MODE.BUYBACK] == true
@@ -308,24 +346,10 @@ local function ResolveInitialStoreMode(tabs)
         end
     end
 
-    if nativeModesReady and modeSet[MODE.BUY] then
-        local hasBuyList = false
-        if type(IsStoreEmpty) == "function" then
-            local okStoreEmpty, isStoreEmpty = SafeCall("Vendor.ResolveInitialStoreMode:IsStoreEmpty", IsStoreEmpty)
-            if okStoreEmpty then
-                hasBuyList = not isStoreEmpty
-            end
-        end
-        if not hasBuyList and type(GetNumStoreItems) == "function" then
-            local okStoreCount, storeCount = SafeCall("Vendor.ResolveInitialStoreMode:GetNumStoreItems", GetNumStoreItems)
-            if okStoreCount and type(storeCount) == "number" then
-                hasBuyList = storeCount > 0
-            end
-        end
-        if hasBuyList then
-            Vendor._sessionHasBuyMode = true
-            return MODE.BUY
-        end
+    if nativeModesReady and modeSet[MODE.BUY]
+        and HasVendorBuyInventory("Vendor.ResolveInitialStoreMode") then
+        Vendor._sessionHasBuyMode = true
+        return MODE.BUY
     end
 
     if modeSet[MODE.SELL] then
@@ -361,19 +385,6 @@ local function AliasStoreSceneToBetterUI()
     if Vendor.instance and Vendor.instance.scene then
         SetStoreSceneAlias(Vendor.instance.scene)
     end
-end
-
-function SafeCall(context, fn, ...)
-    if type(fn) ~= "function" then
-        return false, nil
-    end
-
-    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute then
-        return BETTERUI.CIM.SafeExecute(context, fn, ...)
-    end
-
-    local ok, result = pcall(fn, ...)
-    return ok, result
 end
 
 local function LogVendorDebug(flagName, category, message)
@@ -443,17 +454,8 @@ local function EnsureNativeStoreComponents(searchContext)
     local componentTable, seenActiveModes = GetActiveModes()
     local includeBuy = Vendor._sessionHasBuyMode == true
         or (buyMode ~= nil and seenActiveModes[buyMode] == true)
-    if not includeBuy and type(IsStoreEmpty) == "function" then
-        local okStoreEmpty, isStoreEmpty = SafeCall("Vendor.EnsureNativeStoreComponents:IsStoreEmpty", IsStoreEmpty)
-        if okStoreEmpty then
-            includeBuy = not isStoreEmpty
-        end
-    end
-    if not includeBuy and type(GetNumStoreItems) == "function" then
-        local okStoreCount, storeCount = SafeCall("Vendor.EnsureNativeStoreComponents:GetNumStoreItems", GetNumStoreItems)
-        if okStoreCount and type(storeCount) == "number" then
-            includeBuy = storeCount > 0
-        end
+    if not includeBuy then
+        includeBuy = HasVendorBuyInventory("Vendor.EnsureNativeStoreComponents")
     end
     if includeBuy then
         Vendor._sessionHasBuyMode = true
@@ -1408,7 +1410,10 @@ function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
             elseif processedCount < totalItems then
                 completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PARTIAL_SUCCESS")), processedCount, totalItems)
             end
-            BatchOverlay.Show(actionName, completeText)
+            BatchOverlay.ShowStatus({
+                displayName = actionName,
+                bodyText = completeText,
+            })
             BatchOverlay.Hide((stopReason and 4000) or 2000)
         else
             BatchOverlay.Hide()
@@ -2160,7 +2165,7 @@ function BETTERUI.Vendor.Init()
 
     -- Sort Controller
     if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
-        local ok, err = pcall(function()
+        RunVendorSetupStep("Sort controller init", function()
             local sortController = BETTERUI.CIM.UI.HeaderSortController:New(Vendor.instance)
             sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME") or "SI_BETTERUI_BANKING_COLUMN_NAME"), "name")
             sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE") or "SI_BETTERUI_BANKING_COLUMN_TYPE"), "type")
@@ -2172,9 +2177,6 @@ function BETTERUI.Vendor.Init()
             end)
             Vendor.instance.sortController = sortController
         end)
-        if not ok and BETTERUI.Debug then
-            BETTERUI.Debug("[Vendor] Sort controller init failed: " .. tostring(err))
-        end
     end
 
     -- Build keybinds
@@ -2194,7 +2196,7 @@ function BETTERUI.Vendor.Init()
 
     -- Header Sort Integration
     if Vendor.instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Setup then
-        local ok, err = pcall(function()
+        RunVendorSetupStep("Header sort integration setup", function()
             BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
                 Vendor.instance.list,
                 Vendor.instance.sortController,
@@ -2207,9 +2209,6 @@ function BETTERUI.Vendor.Init()
                 }
             )
         end)
-        if not ok and BETTERUI.Debug then
-            BETTERUI.Debug("[Vendor] Header sort integration setup failed: " .. tostring(err))
-        end
     end
 
     -- Initialize scene fragments manually — vendor does not use BETTERUI_BankingFooterBar
@@ -2446,7 +2445,9 @@ function BETTERUI.Vendor.Init()
 
     -- Expose helpers for use in Vendor module
     Vendor.GetActiveTabs = GetActiveTabs
+    Vendor.BuildActiveModeSet = BuildActiveModeSet
     Vendor.GetToggleModePair = GetToggleModePair
+    Vendor.IsSellBuybackOnlyModeSet = IsSellBuybackOnlyModeSet
     Vendor.IsSellBuybackOnlyStore = IsSellBuybackOnlyStore
     Vendor.IsFenceInteraction = function() return isFenceInteraction end
     Vendor.GetStableInteractionIcon = ResolveStableInteractionIcon

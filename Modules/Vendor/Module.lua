@@ -8,32 +8,46 @@ descriptor factories for the name and column rendering.
 
 
 -- Module initialization
+---@type BetterUIModuleRoot
 BETTERUI.Vendor = BETTERUI.Vendor or {}
+local Vendor = BETTERUI.Vendor
+
+Vendor.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleRootContract
+Vendor.ROOT_CONTRACT = {
+	name = "Vendor",
+	archetype = Vendor.ARCHETYPE,
+	initOwner = "Modules/Vendor/Module.lua",
+	setupOwner = "Modules/Vendor/Module.lua",
+	runtimeOwner = "Modules/Vendor/Module.lua + Modules/Vendor/Vendor.lua + Modules/Vendor/Core/ + Modules/Vendor/Components/ + Modules/Vendor/Scene/",
+	settingsOwner = "Modules/Vendor/Module.lua + Modules/Vendor/Settings/",
+	notes = "Module.lua owns Init/Setup wiring and shared vendor helpers, delegates module-setting defaults to DefaultsRegistry, and keeps shared CIM font defaults while Vendor.lua, Core/, Components/, and Scene/ implement runtime flow.",
+}
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.RegisterModuleAccessors("Vendor")
 
--- Initializes defaults and migrates legacy settings for the Vendor module.
--- Called by BETTERUI.ModuleOptions() via pcall with m_options.
----@param m_options table|nil Module options from saved variables
----@return table m_options Initialized options with defaults applied
+--- Initializes defaults and migrates legacy settings for the Vendor module.
+---
+--- INIT CONTRACT: This function implements the standard InitModule signature.
+--- It is called by BETTERUI.ModuleOptions() via pcall with only m_options.
+---
+--- Standard InitModule Signature (consistent across all modules):
+---
+--- Wrapper Function (caller in BetterUI.lua):
+---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
+---
+---@param m_options BetterUIModuleOptions|nil Module options table
+---@return BetterUIModuleOptions m_options Initialized options with defaults applied
+---@type BetterUIModuleInitHook
 function BETTERUI.Vendor.InitModule(m_options)
 	m_options = m_options or {}
-	---@cast m_options table
+	---@cast m_options BetterUIModuleOptions
 	local defaults = BETTERUI.Vendor.DEFAULTS
-	local fallbackDefaults = {
-		showIconEnchantment = true,
-		showIconSetGear = true,
-		showIconUnboundItem = true,
-		showIconResearchableTrait = true,
-		showIconUnknownRecipe = true,
-		showIconUnknownBook = true,
-		enableCarousel = true,
-		enableBatchJunkSell = true,
-		abbreviateVendorCurrency = true,
-	}
+	local moduleDefaults = BETTERUI.Defaults and BETTERUI.Defaults.GetModuleDefaults
+		and BETTERUI.Defaults.GetModuleDefaults("Vendor") or nil
 
-	m_options = BETTERUI.CIM.InitModuleDefaults("Vendor", m_options, defaults, fallbackDefaults)
+	m_options = BETTERUI.CIM.InitModuleDefaults("Vendor", m_options, defaults, moduleDefaults)
 	return m_options
 end
 

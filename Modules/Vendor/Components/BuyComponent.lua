@@ -20,54 +20,7 @@ local Vendor = BETTERUI.Vendor
 Vendor.BuyComponent = {}
 local Buy = Vendor.BuyComponent
 
-local BUY_CATEGORY_DEFS = {
-    {
-        key = "all",
-        nameStringId = "SI_BETTERUI_INV_ITEM_ALL",
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
-    },
-    {
-        key = "weapons",
-        nameStringId = "SI_BETTERUI_INV_ITEM_WEAPONS",
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_weapons.dds",
-        filterType = ITEMFILTERTYPE_WEAPONS,
-    },
-    {
-        key = "apparel",
-        nameStringId = "SI_BETTERUI_INV_ITEM_APPAREL",
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds",
-        filterType = ITEMFILTERTYPE_ARMOR,
-    },
-    {
-        key = "jewelry",
-        nameStringId = "SI_BETTERUI_INV_ITEM_JEWELRY",
-        iconFile = "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds",
-        filterType = ITEMFILTERTYPE_JEWELRY,
-    },
-    {
-        key = "consumable",
-        nameStringId = "SI_BETTERUI_INV_ITEM_CONSUMABLE",
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds",
-        filterType = ITEMFILTERTYPE_CONSUMABLE,
-    },
-    {
-        key = "materials",
-        nameStringId = "SI_BETTERUI_INV_ITEM_MATERIALS",
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds",
-        filterType = ITEMFILTERTYPE_CRAFTING,
-    },
-    {
-        key = "furnishing",
-        nameStringId = "SI_BETTERUI_INV_ITEM_FURNISHING",
-        iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds",
-        filterType = ITEMFILTERTYPE_FURNISHING,
-    },
-    {
-        key = "misc",
-        nameStringId = "SI_BETTERUI_INV_ITEM_MISC",
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds",
-    },
-}
+local BUY_CATEGORY_DEFS = BETTERUI.CIM.ItemTaxonomy.VENDOR_BUY_CATEGORY_DEFS
 
 local function GetStoreFilterData(entryIndex)
     if type(GetStoreEntryTypeInfo) ~= "function" then
@@ -110,7 +63,7 @@ local function MatchesCategory(itemData, category)
     return true
 end
 
-local SafeCall = Vendor.SafeCall
+local ExecuteSafely = Vendor.ExecuteSafely
 
 local function BuildStoreRowFromDataSource(ds)
     if not ds then
@@ -165,7 +118,7 @@ local function BuildRowsFromNativeBuyComponent()
     end
 
     if buyList.UpdateList then
-        local ok = SafeCall("Vendor.Buy:NativeBuyListUpdate", buyList.UpdateList, buyList)
+        local ok = ExecuteSafely("Vendor.Buy:NativeBuyListUpdate", buyList.UpdateList, buyList)
         if not ok then
             return {}
         end
@@ -187,7 +140,7 @@ local function BuildRowsFromStoreManager()
         return {}
     end
 
-    local ok, storeItems = SafeCall("Vendor.Buy:StoreManagerItems", ZO_StoreManager_GetStoreItems)
+    local ok, storeItems = ExecuteSafely("Vendor.Buy:StoreManagerItems", ZO_StoreManager_GetStoreItems)
     if not ok then
         return {}
     end

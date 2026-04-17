@@ -6,6 +6,13 @@ Purpose: Tooltip, list-refresh, and row-construction logic for companion equipme
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 local Companions = BETTERUI.Companions
 
+local function WrapCompanionError(operation, err)
+    if Companions and type(Companions.WrapRuntimeError) == "function" then
+        return Companions.WrapRuntimeError(operation, err)
+    end
+    return string.format("[Companions] %s failed: %s", operation, tostring(err))
+end
+
 function BETTERUI.Companions.Class:UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
     if ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText then
         ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot, GAMEPLAY_ACTOR_CATEGORY_COMPANION)
@@ -185,7 +192,7 @@ function BETTERUI.Companions.Class:RefreshList()
     end)
     self._isRefreshing = false
     if not ok then
-        error(err)
+        error(WrapCompanionError("RefreshList", err), 0)
     end
 end
 

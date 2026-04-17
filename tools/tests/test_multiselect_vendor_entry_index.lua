@@ -34,7 +34,7 @@ end
 
 BETTERUI = { CIM = {} }
 
-dofile("Modules/CIM/Core/Data/MultiSelectManager.lua")
+dofile("Modules/CIM/Core/Batching/MultiSelectManager.lua")
 
 local MultiSelectManager = BETTERUI.CIM.MultiSelectManager
 

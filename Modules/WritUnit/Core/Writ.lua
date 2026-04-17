@@ -1,48 +1,28 @@
--- BetterUI - Writ Logic
+-- BetterUI - Writs quest helpers
 --
--- File: Modules/WritUnit/Writ.lua
--- Purpose: Handles the data retrieval and formatting for daily writ quests.
+-- File: Modules/WritUnit/Core/Writ.lua
+-- Purpose: Tracks active crafting writs and formats the panel text shown at stations.
 --
--- This file handles the retrieval and formatting of writ quest objectives.
--- It scans the quest journal for crafting writs, formats their completion status (color coding),
--- and updates the UI panel with the relevant information for the current crafting station.
---
--- Writ detection patterns are defined in Constants.lua for centralized maintenance.
--- New crafting types can be added via BETTERUI.Writs.CONST.PATTERNS_LOCALIZED in Constants.lua
--- Last Modified: 2026-01-28
-
-
 -- Cached control references (populated by CacheControls during addon init)
 local m_writNameLabel = nil
 local m_writDescLabel = nil
 local m_writsPanel = nil
 local WRIT_CONTEXT_UPDATE = "Writs:Update"
 local WRIT_CONTEXT_SHOW = "Writs:Show"
+local Writs = BETTERUI.Writs
 
---- Caches control references for performance.
----
---- Purpose: Avoids repeated global lookups in Show() each time panel is displayed.
---- Mechanics: Stores references to UI controls at startup.
---- References: Called during addon initialization.
+--- Caches the writ panel controls used by Show and Hide.
 ---@return nil
-function BETTERUI.Writs.CacheControls()
+function Writs.CacheControls()
 	m_writNameLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritName
 	m_writDescLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritDesc
 	m_writsPanel = BETTERUI_WritsPanel
 end
 
---- Gets formatted writ conditions for a specific quest.
----
---- Purpose: Formats quest objectives for display.
---- Mechanics:
---- - Iterates through all conditions of the quest.
---- - Compares `current` vs `maximum` counts.
---- - Applies **Green** (00FF00) if complete, **Grey** (CCCCCC) if incomplete.
---- - Returns a concatenated string of objectives.
----
+--- Returns the formatted objective lines for a writ quest.
 ---@param questId number Quest journal index
 ---@return string writConcate Formatted color-coded objectives string
-function BETTERUI.Writs.Get(questId)
+function Writs.Get(questId)
 	local writLines = {}
 	local writConcate = ''
 	for lineId = 1, GetJournalQuestNumConditions(questId, 1) do
@@ -51,9 +31,9 @@ function BETTERUI.Writs.Get(questId)
 		if writLine ~= '' and isVisible ~= false and not isFailCondition then
 			local colour
 			if complete then
-				colour = BETTERUI.Writs.CONST.COLORS.COMPLETE
+				colour = Writs.CONST.COLORS.COMPLETE
 			else
-				colour = BETTERUI.Writs.CONST.COLORS.INCOMPLETE
+				colour = Writs.CONST.COLORS.INCOMPLETE
 			end
 			writLines[#writLines + 1] = { line = zo_strformat("|c<<1>><<2>>|r", colour, writLine), cur = current, max = maximum }
 		end
@@ -66,26 +46,20 @@ function BETTERUI.Writs.Get(questId)
 	return writConcate
 end
 
---- Scans the quest journal for active Writ quests.
----
---- Purpose: Identifies which crafting writs the player currently has.
---- Mechanics:
---- - Iterates `MAX_JOURNAL_QUESTS`.
---- - Matches Quest Name against patterns defined in Constants.lua.
---- - Maps the matching Quest ID to the corresponding `CRAFTING_TYPE_XXX` constant in `BETTERUI.Writs.List`.
+--- Rebuilds the active writ lookup from the quest journal.
 ---@return nil
-function BETTERUI.Writs.Update()
-	BETTERUI.Writs.List = {}
+function Writs.Update()
+	Writs.List = {}
 	BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_UPDATE, function()
 		-- Resolve localized patterns once per scan (not per quest) — avoids
 		-- repeated GetCVar("language.2") calls inside a hot loop
-		local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
+		local patterns = Writs.CONST.GetLocalizedPatterns()
 		for questId = 1, MAX_JOURNAL_QUESTS do
 			if IsValidQuestIndex(questId) then
 				if GetJournalQuestType(questId) == QUEST_TYPE_CRAFTING then
 				local questName, _, _, _, _, _ = GetJournalQuestInfo(questId)
-					local currentWrit                       = -1
-					local questNameLower                    = string.lower(questName or "")
+					local currentWrit = -1
+					local questNameLower = string.lower(questName or "")
 					-- Use patterns from Constants.lua for maintainability
 					-- Order matters: last match wins as in the original chain
 					for i = 1, #patterns do
@@ -97,7 +71,7 @@ function BETTERUI.Writs.Update()
 					end
 
 					if currentWrit ~= -1 then
-						BETTERUI.Writs.List[currentWrit] = { id = questId, writLines = BETTERUI.Writs.Get(questId) }
+						Writs.List[currentWrit] = { id = questId, writLines = Writs.Get(questId) }
 					end
 				end
 			end
@@ -105,29 +79,21 @@ function BETTERUI.Writs.Update()
 	end)
 end
 
---- Shows the Writ panel for a specific crafting station type.
----
---- Purpose: Displays writ requirements for the current station.
---- Mechanics:
---- - Calls `Update` to refresh data.
---- - LOOKUP: Checks `BETTERUI.Writs.List` for the given `writType` (station type).
---- - If found, updates cached controls with quest name and objectives.
---- - Sets Panel to Visible.
----
+--- Shows writ progress for the current crafting station.
 ---@param writType number CRAFTING_TYPE_* constant for the station
 ---@return nil
-function BETTERUI.Writs.Show(writType)
+function Writs.Show(writType)
 	BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_SHOW, function()
-		BETTERUI.Writs.Update()
-		if BETTERUI.Writs.List[writType] == nil then return end
+		Writs.Update()
+		if Writs.List[writType] == nil then return end
 
-		local questName, _, _, _, _, _ = GetJournalQuestInfo(BETTERUI.Writs.List[writType].id)
+		local questName, _, _, _, _, _ = GetJournalQuestInfo(Writs.List[writType].id)
 		-- Use cached control references for performance
 		if m_writNameLabel then
 			m_writNameLabel:SetText(zo_strformat("|c0066ff[BETTERUI]|r <<1>>", questName))
 		end
 		if m_writDescLabel then
-			m_writDescLabel:SetText(zo_strformat("<<1>>", BETTERUI.Writs.List[writType].writLines))
+			m_writDescLabel:SetText(zo_strformat("<<1>>", Writs.List[writType].writLines))
 		end
 		if m_writsPanel then
 			m_writsPanel:SetHidden(false)
@@ -135,11 +101,9 @@ function BETTERUI.Writs.Show(writType)
 	end)
 end
 
---- Hides the Writ panel.
----
---- Purpose: Cleanly removes the UI overlay.
+--- Hides the writ panel.
 ---@return nil
-function BETTERUI.Writs.Hide()
+function Writs.Hide()
 	if m_writsPanel then
 		m_writsPanel:SetHidden(true)
 	else

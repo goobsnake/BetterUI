@@ -7,31 +7,46 @@ font descriptor factories for the name and column rendering.
 ]]
 
 -- Module initialization
+---@type BetterUIModuleRoot
 BETTERUI.TradingHouse = BETTERUI.TradingHouse or {}
+local TradingHouse = BETTERUI.TradingHouse
+
+TradingHouse.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleRootContract
+TradingHouse.ROOT_CONTRACT = {
+    name = "TradingHouse",
+    archetype = TradingHouse.ARCHETYPE,
+    initOwner = "Modules/TradingHouse/Module.lua",
+    setupOwner = "Modules/TradingHouse/Module.lua",
+    runtimeOwner = "Modules/TradingHouse/Module.lua + Modules/TradingHouse/TradingHouse.lua + Modules/TradingHouse/Core/ + Modules/TradingHouse/Components/",
+    settingsOwner = "Modules/TradingHouse/Module.lua + Modules/TradingHouse/Settings/",
+    notes = "Module.lua owns Init/Setup wiring and shared trading-house helpers, delegates module-setting defaults to DefaultsRegistry, and keeps shared CIM font defaults while TradingHouse.lua, Core/, and Components/ implement runtime flow.",
+}
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.RegisterModuleAccessors("TradingHouse")
 
--- Initializes defaults and migrates legacy settings for the TradingHouse module.
--- Called by BETTERUI.ModuleOptions() via pcall with m_options.
----@param m_options table|nil Module options from saved variables
----@return table m_options Initialized options with defaults applied
+--- Initializes defaults and migrates legacy settings for the TradingHouse module.
+---
+--- INIT CONTRACT: This function implements the standard InitModule signature.
+--- It is called by BETTERUI.ModuleOptions() via pcall with only m_options.
+---
+--- Standard InitModule Signature (consistent across all modules):
+---
+--- Wrapper Function (caller in BetterUI.lua):
+---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
+---
+---@param m_options BetterUIModuleOptions|nil Module options table
+---@return BetterUIModuleOptions m_options Initialized options with defaults applied
+---@type BetterUIModuleInitHook
 function BETTERUI.TradingHouse.InitModule(m_options)
     m_options = m_options or {}
-    ---@cast m_options table
+    ---@cast m_options BetterUIModuleOptions
     local defaults = BETTERUI.TradingHouse.DEFAULTS
-    local fallbackDefaults = {
-        showIconEnchantment = true,
-        showIconSetGear = true,
-        showIconUnboundItem = true,
-        showIconResearchableTrait = true,
-        showIconUnknownRecipe = true,
-        showIconUnknownBook = true,
-        enableCarousel = true,
-        searchPresets = {},
-    }
+    local moduleDefaults = BETTERUI.Defaults and BETTERUI.Defaults.GetModuleDefaults
+        and BETTERUI.Defaults.GetModuleDefaults("TradingHouse") or nil
 
-    m_options = BETTERUI.CIM.InitModuleDefaults("TradingHouse", m_options, defaults, fallbackDefaults)
+    m_options = BETTERUI.CIM.InitModuleDefaults("TradingHouse", m_options, defaults, moduleDefaults)
 
     -- Backfill legacy saved vars that predate canonical module toggles.
     -- Respect explicit user choices (false/true) when already present.

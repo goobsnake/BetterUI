@@ -1,6 +1,6 @@
 --[[
 File: Modules/WritUnit/Module.lua
-Purpose: Entry point for the Writ tracking module.
+Purpose: Entry point for the Writs module.
          Displays daily writ progress when the user interacts with a crafting station.
 
 Key Responsibilities:
@@ -15,7 +15,7 @@ local function SafeExecuteWrits(context, fn, ...)
         return safeExecute(context, fn, ...)
     end
     -- CIM.SafeExecute unavailable — fail safely instead of calling fn() unprotected
-    d("[BetterUI] WritUnit: SafeExecute unavailable for " .. tostring(context))
+    d("[BetterUI] Writs: SafeExecute unavailable for " .. tostring(context))
     return false, "safe_execute_unavailable"
 end
 
@@ -23,24 +23,8 @@ local function IsWritsModuleEnabled()
     return BETTERUI.GetModuleEnabled("Writs")
 end
 
---- Initializes the Writs module settings.
----
---- Purpose: Callback for module initialization.
---- Mechanics: Pass-through; module is controlled by Master Settings m_enabled.
----
----@param m_options table Module options table
----@return table m_options Unchanged options table
-function BETTERUI.Writs.InitModule(m_options)
-    return m_options
-end
-
---- Event handler for crafting station interaction (Start).
----
---- Purpose: Triggered when user enters a crafting station.
---- Mechanics: Calls BETTERUI.Writs.Show with the station's craft ID.
---- Note: eventCode check removed - ESO events never pass 0.
----
-local function OnCraftStation(eventCode, craftId, sameStation)
+--- Shows the writ overlay when the player enters a crafting station.
+local function OnCraftStation(_, craftId)
     if not IsWritsModuleEnabled() then return end
 
     local id = craftId and tonumber(craftId)
@@ -49,22 +33,13 @@ local function OnCraftStation(eventCode, craftId, sameStation)
     SafeExecuteWrits("Writs:OnCraftStation", BETTERUI.Writs.Show, id)
 end
 
---- Event handler for crafting station interaction (End).
----
---- Purpose: Triggered when user exits a crafting station.
---- Mechanics: Calls `BETTERUI.Writs.Hide` to remove the overlay.
----
-local function OnCloseCraftStation(eventCode)
+--- Hides the writ overlay when the player leaves a crafting station.
+local function OnCloseCraftStation(_)
     SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.Hide)
 end
 
---- Event handler for crafting completion.
----
---- Purpose: Triggered when an item is crafted.
---- Mechanics: Calls BETTERUI.Writs.Show to refresh progress (e.g., 1/3 -> 2/3).
---- Note: eventCode check removed - ESO events never pass 0.
----
-local function OnCraftItem(eventCode, craftId)
+--- Refreshes writ progress after an item is crafted.
+local function OnCraftItem(_, craftId)
     if not IsWritsModuleEnabled() then return end
 
     local id = craftId and tonumber(craftId)
@@ -73,16 +48,7 @@ local function OnCraftItem(eventCode, craftId)
     SafeExecuteWrits("Writs:OnCraftItem", BETTERUI.Writs.Show, id)
 end
 
--- Sets up Writs module: creates UI and registers event handlers
---- Sets up the Writs module.
----
---- Purpose: Module Entry Point.
---- Mechanics:
---- 1. Creates top-level `BETTERUI_Writs_TLW`.
---- 2. Instantiates `BETTERUI_WritsPanel` from template.
---- 3. Registers callbacks for Station Interact (Start/End) and Craft Completed.
---- 4. Hides panel initially.
---- References: Called from `BetterUI.lua` during addon initialization.
+--- Creates the writ panel and registers its station event handlers.
 ---@return nil
 function BETTERUI.Writs.Setup()
     local tlw = BETTERUI.WindowManager:CreateTopLevelWindow("BETTERUI_Writs_TLW")

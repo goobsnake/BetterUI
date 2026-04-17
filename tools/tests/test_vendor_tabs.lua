@@ -8,7 +8,7 @@ Purpose: Unit tests for tab resolution logic in Vendor/Vendor.lua.
 -- MINIMAL ESO STUBS
 -- ============================================================================
 
-BETTERUI = { Vendor = { MODE = { BUY = 1, SELL = 2, REPAIR = 3, BUYBACK = 4, FENCE_SELL = 5, FENCE_LAUNDER = 6 } } }
+BETTERUI = { Vendor = { MODE = { BUY = 1, SELL = 2, REPAIR = 3, BUYBACK = 4, FENCE_SELL = 5, FENCE_LAUNDER = 6, STABLE = 7, SELL_VENGEANCE = 8 } } }
 function GetString(s) return tostring(s or "") end
 function rawget(t, k) return t[k] end
 
@@ -18,22 +18,66 @@ function rawget(t, k) return t[k] end
 
 local MODE = BETTERUI.Vendor.MODE
 
-local VENDOR_TABS = {
-    { mode = MODE.BUY,     name = function() return "Buy" end },
-    { mode = MODE.SELL,    name = function() return "Sell" end },
-    { mode = MODE.REPAIR,  name = function() return "Repair" end },
-    { mode = MODE.BUYBACK, name = function() return "Buyback" end },
+local MODE_LABELS = {
+    [MODE.BUY] = "Buy",
+    [MODE.SELL] = "Sell",
+    [MODE.REPAIR] = "Repair",
+    [MODE.BUYBACK] = "Buyback",
+    [MODE.FENCE_SELL] = "Fence Sell",
+    [MODE.FENCE_LAUNDER] = "Fence Launder",
+    [MODE.STABLE] = "Stable",
+    [MODE.SELL_VENGEANCE] = "Sell Vengeance",
 }
 
-local FENCE_TABS = {
-    { mode = MODE.FENCE_SELL,    name = function() return "Fence Sell" end },
-    { mode = MODE.FENCE_LAUNDER, name = function() return "Fence Launder" end },
-}
+local function BuildTab(mode)
+    return {
+        mode = mode,
+        nativeMode = mode,
+        name = function()
+            return MODE_LABELS[mode]
+        end,
+    }
+end
+
+local function BuildTabs(modeOrder)
+    local tabs = {}
+    for _, mode in ipairs(modeOrder or {}) do
+        tabs[#tabs + 1] = BuildTab(mode)
+    end
+    return tabs
+end
+
+local VENDOR_TABS = BuildTabs({
+    MODE.BUY,
+    MODE.SELL,
+    MODE.SELL_VENGEANCE,
+    MODE.REPAIR,
+    MODE.STABLE,
+    MODE.BUYBACK,
+})
+
+local STABLE_TABS = BuildTabs({
+    MODE.BUY,
+    MODE.REPAIR,
+    MODE.STABLE,
+})
+
+local FENCE_TABS = BuildTabs({
+    MODE.FENCE_SELL,
+    MODE.FENCE_LAUNDER,
+})
 
 -- State variables (mirroring Vendor.lua locals)
 local isFenceInteraction = false
+local isStableInteraction = false
 local fenceEnableSell = false
 local fenceEnableLaunder = false
+local sessionHasBuyMode = false
+local activeModeSet = {}
+
+local function BuildFallbackVendorTabs()
+    return VENDOR_TABS
+end
 
 local function GetActiveTabs()
     if isFenceInteraction then
@@ -49,7 +93,26 @@ local function GetActiveTabs()
         end
         return tabs
     end
-    return VENDOR_TABS
+
+    local sourceTabs = isStableInteraction and STABLE_TABS or VENDOR_TABS
+    local tabs = {}
+    for _, tab in ipairs(sourceTabs) do
+        local includeStableRepair = isStableInteraction and tab.mode == MODE.REPAIR
+        if activeModeSet[tab.nativeMode]
+            or (tab.mode == MODE.BUY and sessionHasBuyMode)
+            or includeStableRepair then
+            tabs[#tabs + 1] = tab
+        end
+    end
+
+    if #tabs == 0 then
+        if isStableInteraction then
+            return STABLE_TABS
+        end
+        return BuildFallbackVendorTabs()
+    end
+
+    return tabs
 end
 
 local function BuildActiveModeSet(tabs)
@@ -76,11 +139,18 @@ end
 
 local function GetToggleModePair()
     if isFenceInteraction then
-        return nil, nil
+        return MODE.FENCE_SELL, MODE.FENCE_LAUNDER
+    end
+
+    if isStableInteraction then
+        return MODE.BUY, MODE.STABLE
     end
 
     local modeSet = BuildActiveModeSet(GetActiveTabs())
     if modeSet[MODE.BUY] and modeSet[MODE.SELL] then
+        return MODE.BUY, MODE.SELL
+    end
+    if modeSet[MODE.SELL] and sessionHasBuyMode then
         return MODE.BUY, MODE.SELL
     end
     if IsSellBuybackOnlyModeSet(modeSet) then
@@ -487,14 +557,38 @@ end
 -- Helpers to set state for tests
 local function setRegularStore()
     isFenceInteraction = false
+    isStableInteraction = false
     fenceEnableSell = false
     fenceEnableLaunder = false
+    sessionHasBuyMode = false
+    activeModeSet = {
+        [MODE.BUY] = true,
+        [MODE.SELL] = true,
+        [MODE.REPAIR] = true,
+        [MODE.BUYBACK] = true,
+    }
+end
+
+local function setStableStore()
+    isFenceInteraction = false
+    isStableInteraction = true
+    fenceEnableSell = false
+    fenceEnableLaunder = false
+    sessionHasBuyMode = true
+    activeModeSet = {
+        [MODE.BUY] = true,
+        [MODE.REPAIR] = true,
+        [MODE.STABLE] = true,
+    }
 end
 
 local function setFence(sell, launder)
     isFenceInteraction = true
+    isStableInteraction = false
     fenceEnableSell = sell
     fenceEnableLaunder = launder
+    sessionHasBuyMode = false
+    activeModeSet = {}
 end
 
 local function withMockedTabs(mockTabs, fn)
@@ -539,6 +633,23 @@ do
     assert_eq(tabs[2].mode, MODE.SELL, "regular store: second tab is SELL")
     assert_eq(tabs[3].mode, MODE.REPAIR, "regular store: third tab is REPAIR")
     assert_eq(tabs[4].mode, MODE.BUYBACK, "regular store: fourth tab is BUYBACK")
+end
+
+setStableStore()
+do
+    local tabs = GetActiveTabs()
+    assert_eq(#tabs, 3, "stable store: 3 tabs")
+    assert_eq(tabs[1].mode, MODE.BUY, "stable store: first tab is BUY")
+    assert_eq(tabs[2].mode, MODE.REPAIR, "stable store: second tab is REPAIR")
+    assert_eq(tabs[3].mode, MODE.STABLE, "stable store: third tab is STABLE")
+end
+
+setRegularStore()
+do
+    activeModeSet[MODE.SELL_VENGEANCE] = true
+    local tabs = GetActiveTabs()
+    assert_eq(#tabs, 5, "vengeance store: 5 tabs when sell vengeance is active")
+    assert_eq(tabs[3].mode, MODE.SELL_VENGEANCE, "vengeance store: third tab is SELL_VENGEANCE")
 end
 
 -- Fence with both sell and launder
@@ -593,8 +704,15 @@ end
 setFence(true, true)
 do
     local firstMode, secondMode = GetToggleModePair()
-    assert_eq(firstMode, nil, "fence toggle: first mode nil")
-    assert_eq(secondMode, nil, "fence toggle: second mode nil")
+    assert_eq(firstMode, MODE.FENCE_SELL, "fence toggle: first mode FENCE_SELL")
+    assert_eq(secondMode, MODE.FENCE_LAUNDER, "fence toggle: second mode FENCE_LAUNDER")
+end
+
+setStableStore()
+do
+    local firstMode, secondMode = GetToggleModePair()
+    assert_eq(firstMode, MODE.BUY, "stable toggle: first mode BUY")
+    assert_eq(secondMode, MODE.STABLE, "stable toggle: second mode STABLE")
 end
 
 setRegularStore()

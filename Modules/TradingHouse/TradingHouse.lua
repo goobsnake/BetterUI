@@ -22,6 +22,13 @@ KEY MECHANICS:
 local TH         = BETTERUI.TradingHouse
 local MODE       = TH.MODE
 local EVENT_NS   = "BetterUI_TradingHouse"
+local OnOpenTradingHouse
+local OnCloseTradingHouse
+local OnSearchResultsReceived
+local OnSearchCooldownUpdate
+local OnTradingHouseResponse
+local OnGuildSelfJoinedGuild
+local OnListingOperation
 
 -- TAB DEFINITIONS
 
@@ -53,6 +60,14 @@ local function SetTHSystemGamepadRootScene(sceneObject)
     system.gamepadRootScene = sceneObject
 end
 
+local function SetTradingHouseSceneOwnership(sceneObject)
+    if not sceneObject then
+        return
+    end
+    SetTHSceneAlias(sceneObject)
+    SetTHSystemGamepadRootScene(sceneObject)
+end
+
 local function RestoreNativeTHSceneAlias()
     if TH.nativeTHScene then
         SetTHSceneAlias(TH.nativeTHScene)
@@ -64,9 +79,200 @@ end
 
 local function AliasTHSceneToBetterUI()
     if TH.instance and TH.instance.scene then
-        SetTHSceneAlias(TH.instance.scene)
-        SetTHSystemGamepadRootScene(TH.instance.scene)
+        SetTradingHouseSceneOwnership(TH.instance.scene)
     end
+end
+
+local function ResetTradingHouseBrowseState()
+    if TH.BrowseComponent then
+        TH.BrowseComponent.currentPage = 0
+        TH.BrowseComponent.searchPending = false
+    end
+end
+
+local function ShowTradingHouseScene()
+    if SCENE_MANAGER then
+        SCENE_MANAGER:Show(BETTERUI_TRADING_HOUSE_SCENE_NAME)
+    end
+end
+
+local function RefreshVisibleTradingHouseScene()
+    if not TH.instance or not TH.instance:IsSceneShowing() then
+        return
+    end
+    TH.instance:RefreshList()
+    TH.instance:RefreshTHFooter()
+end
+
+local function ScheduleTradingHouseOwnershipReassert()
+    local function ReassertTradingHouseOwnership()
+        local currentInteraction = GetInteractionType and GetInteractionType() or nil
+        if currentInteraction and currentInteraction ~= INTERACTION_TRADINGHOUSE then
+            return
+        end
+        AliasTHSceneToBetterUI()
+        ShowTradingHouseScene()
+    end
+
+    if TH.Tasks then
+        TH.Tasks:Cancel("sceneOwnershipOpen")
+        TH.Tasks:Schedule("sceneOwnershipOpen", 30, ReassertTradingHouseOwnership)
+    elseif type(zo_callLater) == "function" then
+        zo_callLater(ReassertTradingHouseOwnership, 30)
+    end
+end
+
+local function ScheduleTradingHouseListRefresh()
+    if not TH.instance or not TH.instance:IsSceneShowing() then
+        return
+    end
+
+    if TH.Tasks then
+        TH.Tasks:Cancel("listRefresh")
+        TH.Tasks:Schedule("listRefresh", 100, RefreshVisibleTradingHouseScene)
+    else
+        RefreshVisibleTradingHouseScene()
+    end
+end
+
+local function RegisterTradingHouseComponents(instance)
+    if TH.BrowseComponent then
+        instance:RegisterComponent(MODE.BROWSE, TH.BrowseComponent)
+    end
+    if TH.SellComponent then
+        instance:RegisterComponent(MODE.SELL, TH.SellComponent)
+    end
+    if TH.ListingsComponent then
+        instance:RegisterComponent(MODE.LISTINGS, TH.ListingsComponent)
+    end
+end
+
+local function SetupTradingHouseSelectionTooltip(instance)
+    if instance.list and instance.list.SetOnSelectedDataChangedCallback then
+        instance.list:SetOnSelectedDataChangedCallback(function(_, selectedData)
+            if not GAMEPAD_TOOLTIPS then return end
+            local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+            if ds and ds.bagId and ds.slotIndex then
+                GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
+            else
+                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+            end
+            GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+        end)
+    end
+end
+
+local function TakeOverNativeTradingHouse()
+    local nativeTH = rawget(_G, "TRADING_HOUSE_GAMEPAD")
+    if not nativeTH then
+        return
+    end
+
+    if nativeTH.control then
+        nativeTH.control:UnregisterForEvent(EVENT_OPEN_TRADING_HOUSE)
+        nativeTH.control:UnregisterForEvent(EVENT_CLOSE_TRADING_HOUSE)
+    end
+    if ZO_TRADING_HOUSE_SYSTEM_NAME then
+        EVENT_MANAGER:UnregisterForEvent(ZO_TRADING_HOUSE_SYSTEM_NAME, EVENT_OPEN_TRADING_HOUSE)
+        EVENT_MANAGER:UnregisterForEvent(ZO_TRADING_HOUSE_SYSTEM_NAME, EVENT_CLOSE_TRADING_HOUSE)
+    end
+    if nativeTH.sceneName then
+        nativeTH.sceneName = "betterui_native_th_blocked"
+    end
+    nativeTH.OpenTradingHouse = function(_)
+        OnOpenTradingHouse()
+    end
+    nativeTH.CloseTradingHouse = function(_)
+        OnCloseTradingHouse()
+    end
+end
+
+local function CreateTradingHouseScene(instance)
+    instance.fragment = ZO_SimpleSceneFragment:New(instance.control)
+    instance.fragment:SetHideOnSceneHidden(true)
+
+    local thFooterDummy = BETTERUI.WindowManager:CreateControl(
+        "BETTERUI_THFooterDummy", GuiRoot, CT_CONTROL)
+    thFooterDummy:SetHidden(true)
+    instance.footerFragment = ZO_SimpleSceneFragment:New(thFooterDummy)
+    instance.footerFragment:SetHideOnSceneHidden(true)
+
+    local scene = ZO_InteractScene:New(BETTERUI_TRADING_HOUSE_SCENE_NAME, SCENE_MANAGER, TH.TH_INTERACTION)
+    instance.scene = scene
+
+    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+    scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
+    scene:AddFragment(instance.fragment)
+    scene:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
+    scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+    scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
+    scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
+    scene:AddFragment(instance.footerFragment)
+    return scene
+end
+
+local function RegisterTradingHouseSceneLifecycle(instance)
+    BETTERUI.CIM.SceneLifecycle.Register(instance, {
+        keybinds = { instance.coreKeybinds, instance.tabKeybinds },
+        taskManager = TH.Tasks,
+        onShowing = function(screen)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
+            screen:RefreshTHFooter()
+            screen:RefreshList()
+            screen:UpdateTabHeader()
+            if screen.list and GAMEPAD_TOOLTIPS then
+                local selectedData = screen.list:GetTargetData()
+                local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+                if ds and ds.bagId and ds.slotIndex then
+                    GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
+                else
+                    GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+                end
+                GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+            end
+        end,
+        onHiding = function(screen)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+            screen._suppressListUpdates = false
+            screen._isDirty = false
+        end,
+        onHidden = function(screen)
+            local component = screen:GetActiveComponent()
+            if component and component.Deactivate then
+                component:Deactivate(screen)
+            end
+        end,
+    })
+end
+
+local function RegisterTradingHouseEvents(eventManager)
+    if not eventManager then
+        return
+    end
+
+    eventManager:RegisterForEvent(EVENT_NS .. "_Open",
+        EVENT_OPEN_TRADING_HOUSE, OnOpenTradingHouse)
+    eventManager:RegisterForEvent(EVENT_NS .. "_Close",
+        EVENT_CLOSE_TRADING_HOUSE, OnCloseTradingHouse)
+    eventManager:RegisterForEvent(EVENT_NS .. "_SearchResults",
+        EVENT_TRADING_HOUSE_SEARCH_RESULTS_RECEIVED, OnSearchResultsReceived)
+    eventManager:RegisterForEvent(EVENT_NS .. "_Cooldown",
+        EVENT_TRADING_HOUSE_SEARCH_COOLDOWN_UPDATE, OnSearchCooldownUpdate)
+    eventManager:RegisterForEvent(EVENT_NS .. "_Response",
+        EVENT_TRADING_HOUSE_RESPONSE_RECEIVED, OnTradingHouseResponse)
+    eventManager:RegisterForEvent(EVENT_NS .. "_ListingOp",
+        EVENT_TRADING_HOUSE_CONFIRM_ITEM_PURCHASE, OnListingOperation)
+    eventManager:RegisterForEvent(EVENT_NS .. "_GuildJoin",
+        EVENT_GUILD_SELF_JOINED_GUILD, OnGuildSelfJoinedGuild)
+    eventManager:RegisterForEvent(EVENT_NS .. "_GuildLeave",
+        EVENT_GUILD_SELF_LEFT_GUILD, OnGuildSelfJoinedGuild)
+    eventManager:RegisterForEvent(EVENT_NS .. "_InvUpdate",
+        EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
+            if TH.instance and TH.instance:IsSceneShowing() and
+               TH.instance:GetCurrentMode() == MODE.SELL then
+                OnListingOperation()
+            end
+        end)
 end
 
 -- KEYBINDS
@@ -451,7 +657,7 @@ end
 
 -- EVENT HANDLERS
 
-local function OnOpenTradingHouse()
+function OnOpenTradingHouse()
     if not TH.instance then return end
 
     -- Guard: only take ownership for genuine trading house interactions
@@ -462,44 +668,14 @@ local function OnOpenTradingHouse()
     end
 
     AliasTHSceneToBetterUI()
-
-    -- Default to Browse tab
     TH.instance:SetMode(MODE.BROWSE)
     TH.instance:UpdateTabHeader()
-
-    -- Reset browse state
-    if TH.BrowseComponent then
-        TH.BrowseComponent.currentPage = 0
-        TH.BrowseComponent.searchPending = false
-    end
-
-    -- Show the scene
-    if SCENE_MANAGER then
-        SCENE_MANAGER:Show(BETTERUI_TRADING_HOUSE_SCENE_NAME)
-    end
-
-    -- Native trading-house handlers may also request a scene show in this event.
-    -- Re-assert ownership shortly after dispatch so BetterUI remains the active scene.
-    local function ReassertTradingHouseOwnership()
-        local currentInteraction = GetInteractionType and GetInteractionType() or nil
-        if currentInteraction and currentInteraction ~= INTERACTION_TRADINGHOUSE then
-            return
-        end
-        AliasTHSceneToBetterUI()
-        if SCENE_MANAGER then
-            SCENE_MANAGER:Show(BETTERUI_TRADING_HOUSE_SCENE_NAME)
-        end
-    end
-
-    if TH.Tasks then
-        TH.Tasks:Cancel("sceneOwnershipOpen")
-        TH.Tasks:Schedule("sceneOwnershipOpen", 30, ReassertTradingHouseOwnership)
-    elseif type(zo_callLater) == "function" then
-        zo_callLater(ReassertTradingHouseOwnership, 30)
-    end
+    ResetTradingHouseBrowseState()
+    ShowTradingHouseScene()
+    ScheduleTradingHouseOwnershipReassert()
 end
 
-local function OnCloseTradingHouse()
+function OnCloseTradingHouse()
     if TH.Tasks then
         TH.Tasks:Cancel("sceneOwnershipOpen")
     end
@@ -516,55 +692,42 @@ local function OnCloseTradingHouse()
     AliasTHSceneToBetterUI()
 end
 
-local function OnSearchResultsReceived()
+function OnSearchResultsReceived()
     if TH.BrowseComponent then
         TH.BrowseComponent:OnSearchResultsReceived(TH.instance)
     end
 end
 
-local function OnSearchCooldownUpdate()
+function OnSearchCooldownUpdate()
     -- Update keybinds to reflect search button enabled/disabled state
     if TH.instance and TH.instance:IsSceneShowing() then
         KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
     end
 end
 
-local function OnTradingHouseResponse(_, responseType, result)
+function OnTradingHouseResponse(_, responseType, result)
     if not TH.instance then return end
     if not TH.instance:IsSceneShowing() then return end
 
     -- Refresh after successful operations
     if result == TRADING_HOUSE_RESULT_SUCCESS then
-        -- Coalesce rapid updates
-        TH.Tasks:Cancel("listRefresh")
-        TH.Tasks:Schedule("listRefresh", 100, function()
-            if TH.instance and TH.instance:IsSceneShowing() then
-                TH.instance:RefreshList()
-                TH.instance:RefreshTHFooter()
-            end
-        end)
+        ScheduleTradingHouseListRefresh()
     end
 end
 
-local function OnGuildSelfJoinedGuild()
+function OnGuildSelfJoinedGuild()
     -- Could change available guilds; update header
     if TH.instance and TH.instance:IsSceneShowing() then
         TH.instance:UpdateTabHeader()
     end
 end
 
-local function OnListingOperation()
+function OnListingOperation()
     -- Refresh listings after posting or cancelling
     if not TH.instance then return end
     if not TH.instance:IsSceneShowing() then return end
 
-    TH.Tasks:Cancel("listRefresh")
-    TH.Tasks:Schedule("listRefresh", 100, function()
-        if TH.instance and TH.instance:IsSceneShowing() then
-            TH.instance:RefreshList()
-            TH.instance:RefreshTHFooter()
-        end
-    end)
+    ScheduleTradingHouseListRefresh()
 end
 
 -- INITIALIZATION
@@ -581,35 +744,14 @@ function BETTERUI.TradingHouse.Init()
     TH.instance:SetTitle("|c0066FF" ..
         GetString(rawget(_G, "SI_BETTERUI_TH_TITLE")) .. "|r")
 
-    -- Register components
-    if TH.BrowseComponent then
-        TH.instance:RegisterComponent(MODE.BROWSE, TH.BrowseComponent)
-    end
-    if TH.SellComponent then
-        TH.instance:RegisterComponent(MODE.SELL, TH.SellComponent)
-    end
-    if TH.ListingsComponent then
-        TH.instance:RegisterComponent(MODE.LISTINGS, TH.ListingsComponent)
-    end
+    RegisterTradingHouseComponents(TH.instance)
 
     -- Register the item list template with our TH-specific row setup
     TH.instance:SetupList(
         "BETTERUI_GamepadItemSubEntryTemplate",
         BETTERUI.TradingHouse.THEntrySetup
     )
-    -- Wire tooltip update on list selection change (Sell tab items have bagId/slotIndex)
-    if TH.instance.list and TH.instance.list.SetOnSelectedDataChangedCallback then
-        TH.instance.list:SetOnSelectedDataChangedCallback(function(_, selectedData)
-            if not GAMEPAD_TOOLTIPS then return end
-            local ds = selectedData and (selectedData.dataSource or selectedData) or nil
-            if ds and ds.bagId and ds.slotIndex then
-                GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
-            else
-                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-            end
-            GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
-        end)
-    end
+    SetupTradingHouseSelectionTooltip(TH.instance)
 
     -- Add column headers (matching Inventory/Banking/Vendor layout)
     local COL = BETTERUI.CIM.CONST.LAYOUT.COLUMNS
@@ -623,96 +765,12 @@ function BETTERUI.TradingHouse.Init()
     TH.instance.coreKeybinds = BuildCoreKeybinds(TH.instance)
     TH.instance.tabKeybinds  = BuildTabKeybinds(TH.instance)
 
-    -- Initialize scene fragments
-    TH.instance.fragment = ZO_SimpleSceneFragment:New(TH.instance.control)
-    TH.instance.fragment:SetHideOnSceneHidden(true)
-
-    local thFooterDummy = BETTERUI.WindowManager:CreateControl(
-        "BETTERUI_THFooterDummy", GuiRoot, CT_CONTROL)
-    thFooterDummy:SetHidden(true)
-    TH.instance.footerFragment = ZO_SimpleSceneFragment:New(thFooterDummy)
-    TH.instance.footerFragment:SetHideOnSceneHidden(true)
-
-    -- Create the scene
-    local sceneName = BETTERUI_TRADING_HOUSE_SCENE_NAME
-    local scene = ZO_InteractScene:New(sceneName, SCENE_MANAGER, TH.TH_INTERACTION)
-    TH.instance.scene = scene
+    CreateTradingHouseScene(TH.instance)
 
     -- Capture native TH scene so we can restore it if needed
     TH.nativeTHScene = TH.nativeTHScene or (SCENE_MANAGER and SCENE_MANAGER:GetScene("gamepad_trading_house"))
-
-    -- Suppress native trading house manager interference.
-    -- The native OnOpenTradingHouse handler shows the native scene which conflicts
-    -- with BetterUI's scene. Unregister native handlers and redirect sceneName
-    -- so the native system cannot show its UI.
-    local nativeTH = rawget(_G, "TRADING_HOUSE_GAMEPAD")
-    if nativeTH then
-        if nativeTH.control then
-            nativeTH.control:UnregisterForEvent(EVENT_OPEN_TRADING_HOUSE)
-            nativeTH.control:UnregisterForEvent(EVENT_CLOSE_TRADING_HOUSE)
-        end
-        -- Also unregister the primary native handlers registered on EVENT_MANAGER
-        if ZO_TRADING_HOUSE_SYSTEM_NAME then
-            EVENT_MANAGER:UnregisterForEvent(ZO_TRADING_HOUSE_SYSTEM_NAME, EVENT_OPEN_TRADING_HOUSE)
-            EVENT_MANAGER:UnregisterForEvent(ZO_TRADING_HOUSE_SYSTEM_NAME, EVENT_CLOSE_TRADING_HOUSE)
-        end
-        -- Redirect native sceneName so any native ShowComponent checks fail
-        if nativeTH.sceneName then
-            nativeTH.sceneName = "betterui_native_th_blocked"
-        end
-        -- Override the native system object methods so any engine path that calls
-        -- OpenTradingHouse/CloseTradingHouse routes to BetterUI instead.
-        nativeTH.OpenTradingHouse = function(_)
-            OnOpenTradingHouse()
-        end
-        nativeTH.CloseTradingHouse = function(_)
-            OnCloseTradingHouse()
-        end
-    end
-
-    -- Add standard fragment groups (matching Vendor/Banking pattern)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
-    scene:AddFragment(TH.instance.fragment)
-    scene:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
-    scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
-    scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
-    scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
-    scene:AddFragment(TH.instance.footerFragment)
-
-    -- Register unified scene lifecycle with both keybind groups
-    BETTERUI.CIM.SceneLifecycle.Register(TH.instance, {
-        keybinds = { TH.instance.coreKeybinds, TH.instance.tabKeybinds },
-        taskManager = TH.Tasks,
-        onShowing = function(screen, wasPushed)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
-            screen:RefreshTHFooter()
-            screen:RefreshList()
-            screen:UpdateTabHeader()
-            -- Update tooltip for currently-selected item
-            if screen.list and GAMEPAD_TOOLTIPS then
-                local selectedData = screen.list:GetTargetData()
-                local ds = selectedData and (selectedData.dataSource or selectedData) or nil
-                if ds and ds.bagId and ds.slotIndex then
-                    GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
-                else
-                    GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-                end
-                GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
-            end
-        end,
-        onHiding = function(screen)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
-            screen._suppressListUpdates = false
-            screen._isDirty = false
-        end,
-        onHidden = function(screen)
-            local component = screen:GetActiveComponent()
-            if component and component.Deactivate then
-                component:Deactivate(screen)
-            end
-        end,
-    })
+    TakeOverNativeTradingHouse()
+    RegisterTradingHouseSceneLifecycle(TH.instance)
 
     -- Keep BetterUI alias by default so EVENT_OPEN_TRADING_HOUSE resolves here.
     AliasTHSceneToBetterUI()
@@ -720,34 +778,7 @@ function BETTERUI.TradingHouse.Init()
     -- Set up footer (gold + bag capacity)
     TH.instance:InitTHFooter()
 
-    -- Register events
-    local em = EVENT_MANAGER
-    if em then
-        em:RegisterForEvent(EVENT_NS .. "_Open",
-            EVENT_OPEN_TRADING_HOUSE, OnOpenTradingHouse)
-        em:RegisterForEvent(EVENT_NS .. "_Close",
-            EVENT_CLOSE_TRADING_HOUSE, OnCloseTradingHouse)
-        em:RegisterForEvent(EVENT_NS .. "_SearchResults",
-            EVENT_TRADING_HOUSE_SEARCH_RESULTS_RECEIVED, OnSearchResultsReceived)
-        em:RegisterForEvent(EVENT_NS .. "_Cooldown",
-            EVENT_TRADING_HOUSE_SEARCH_COOLDOWN_UPDATE, OnSearchCooldownUpdate)
-        em:RegisterForEvent(EVENT_NS .. "_Response",
-            EVENT_TRADING_HOUSE_RESPONSE_RECEIVED, OnTradingHouseResponse)
-        em:RegisterForEvent(EVENT_NS .. "_ListingOp",
-            EVENT_TRADING_HOUSE_CONFIRM_ITEM_PURCHASE, OnListingOperation)
-        em:RegisterForEvent(EVENT_NS .. "_GuildJoin",
-            EVENT_GUILD_SELF_JOINED_GUILD, OnGuildSelfJoinedGuild)
-        em:RegisterForEvent(EVENT_NS .. "_GuildLeave",
-            EVENT_GUILD_SELF_LEFT_GUILD, OnGuildSelfJoinedGuild)
-        -- Inventory changes while posting
-        em:RegisterForEvent(EVENT_NS .. "_InvUpdate",
-            EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
-                if TH.instance and TH.instance:IsSceneShowing() and
-                   TH.instance:GetCurrentMode() == MODE.SELL then
-                    OnListingOperation()
-                end
-            end)
-    end
+    RegisterTradingHouseEvents(EVENT_MANAGER)
 
     -- Expose helpers
     TH.GetTabs = function() return TH_TABS end
