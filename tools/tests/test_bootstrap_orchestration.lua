@@ -746,6 +746,48 @@ BETTERUI.GeneralInterface.GetSettingsOptions = function()
 end
 
 dofile("Modules/GeneralInterface/Setup.lua")
+local setupInstallers = BETTERUI.GeneralInterface._SetupInstallers or {}
+assert_true(type(setupInstallers.InstallMailDeleteHook) == "function",
+    "GeneralInterface.Setup exports the mail installer helper")
+assert_true(type(setupInstallers.InstallInventoryTooltipHooks) == "function",
+    "GeneralInterface.Setup exports the inventory-tooltip installer helper")
+assert_true(type(setupInstallers.InstallStoreTooltipHooks) == "function",
+    "GeneralInterface.Setup exports the store-tooltip installer helper")
+assert_true(type(setupInstallers.InstallTopLineSuppressionHooks) == "function",
+    "GeneralInterface.Setup exports the top-line suppression installer helper")
+assert_true(type(setupInstallers.RegisterGuildStoreSuppression) == "function",
+    "GeneralInterface.Setup exports the guild-store suppression installer helper")
+assert_true(type(setupInstallers.RegisterTooltipCacheInvalidation) == "function",
+    "GeneralInterface.Setup exports the tooltip-cache installer helper")
+assert_true(type(setupInstallers.ApplyChatHistoryLimit) == "function",
+    "GeneralInterface.Setup exports the chat-history installer helper")
+
+setupInstallers.InstallInventoryTooltipHooks(BETTERUI.GeneralInterface.Tooltips)
+assert_eq(3, #inventoryHooks, "Inventory-tooltip installer wires all three gamepad tooltips")
+inventoryHooks = {}
+
+setupInstallers.InstallStoreTooltipHooks()
+assert_true(storeTooltipControls[GAMEPAD_LEFT_TOOLTIP]._betteruiStoreLayoutHookInstalled == true,
+    "Store-tooltip installer marks its hook installation")
+
+setupInstallers.InstallTopLineSuppressionHooks()
+assert_true(storeTooltipControls[GAMEPAD_LEFT_TOOLTIP]._betteruiTopLinesHookInstalled == true,
+    "Top-line installer marks its hook installation")
+
+registeredSceneCallback = nil
+setupInstallers.RegisterGuildStoreSuppression(BETTERUI.GeneralInterface.Tooltips)
+assert_true(registeredSceneCallback ~= nil, "Guild-store installer registers its scene callback")
+
+setupInstallers.RegisterTooltipCacheInvalidation()
+assert_true(eventManager.handlers["BETTERUI_Tooltips_InvSingle"] ~= nil,
+    "Tooltip-cache installer registers the single-slot invalidation event")
+assert_true(eventManager.handlers["BETTERUI_Tooltips_InvFull"] ~= nil,
+    "Tooltip-cache installer registers the full-inventory invalidation event")
+
+lastChatHistoryLines = nil
+setupInstallers.ApplyChatHistoryLimit()
+assert_eq(321, lastChatHistoryLines, "Chat-history installer reapplies the saved history limit")
+
 BETTERUI.GeneralInterface.Setup()
 
 assert_eq(panelRegistration.moduleId, "General", "GeneralInterface.Setup registers the General settings panel")

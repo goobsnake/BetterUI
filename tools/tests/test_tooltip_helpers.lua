@@ -211,6 +211,7 @@ ArkadiusTradeTools = {
     },
 }
 
+local safeExecuteContexts = {}
 local testsPassed = 0
 local testsFailed = 0
 
@@ -234,6 +235,11 @@ end
 print("\n=== Tooltip Helper Tests ===\n")
 
 dofile("Modules/GeneralInterface/Tooltips/Tooltips.lua")
+
+BETTERUI.CIM.SafeExecute = function(context, fn, ...)
+    safeExecuteContexts[#safeExecuteContexts + 1] = context
+    return pcall(fn, ...)
+end
 
 -- Helper to find a line containing a specific substring from a list
 local function findLine(lines, needle)
@@ -259,6 +265,41 @@ local function requireOptionByKey(options, key, expectedType, message)
     assertEqual(true, option ~= nil, message)
     return option or {}
 end
+
+print("\nTest: Inventory hook runtime exposes explicit helper seams")
+local hookHelpers = BETTERUI.GeneralInterface.Tooltips._InventoryHookHelpers or {}
+assertEqual(true, type(hookHelpers.EnsureInventoryHookState) == "function",
+    "Inventory hook exposes a state-installer helper")
+assertEqual(true, type(hookHelpers.ResetInventoryHookState) == "function",
+    "Inventory hook exposes a state-reset helper")
+assertEqual(true, type(hookHelpers.ResolveHookBagContext) == "function",
+    "Inventory hook exposes a bag-context extractor helper")
+assertEqual(true, type(hookHelpers.ResolveHookItemLink) == "function",
+    "Inventory hook exposes an item-link extractor helper")
+
+local helperTooltip = {}
+local helperState = hookHelpers.EnsureInventoryHookState(helperTooltip)
+helperState.bagId = 7
+helperState.slotIndex = 9
+helperState.pendingItemLink = "item:stale"
+hookHelpers.ResetInventoryHookState(helperState)
+assertEqual(nil, helperState.bagId, "State-reset helper clears bag context")
+assertEqual(nil, helperState.pendingItemLink, "State-reset helper clears pending item links")
+
+local resolvedBagId, resolvedSlotIndex = hookHelpers.ResolveHookBagContext(function()
+    return 12, 34
+end)
+assertEqual(12, resolvedBagId, "Bag-context helper returns the extracted bag id")
+assertEqual(34, resolvedSlotIndex, "Bag-context helper returns the extracted slot index")
+
+local resolvedItemLink = hookHelpers.ResolveHookItemLink({}, function()
+    return "item:explicit"
+end)
+assertEqual("item:explicit", resolvedItemLink, "Item-link helper returns the extracted item link")
+assertContains(safeExecuteContexts[#safeExecuteContexts - 1], "Tooltips:InventoryHook:path-recovery",
+    "Bag-context helper routes through the explicit SafeExecute hook context")
+assertContains(safeExecuteContexts[#safeExecuteContexts], "Tooltips:InventoryHook:link-extraction",
+    "Item-link helper routes through the explicit SafeExecute hook context")
 
 print("Test: Store tooltip pricing falls back to a single-item stack when no bag context exists")
 local singlePriceLines = BETTERUI.GetInventoryPriceInfo("item:single", nil, nil, nil)
