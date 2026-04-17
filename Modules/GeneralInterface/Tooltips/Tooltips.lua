@@ -15,6 +15,9 @@ local function SetGuildStoreErrorSuppressed(isSuppressed)
 end
 
 Tooltips.SetGuildStoreErrorSuppressed = SetGuildStoreErrorSuppressed
+Tooltips.GuildStoreSuppression = {
+    SetErrorSuppressed = SetGuildStoreErrorSuppressed,
+}
 SetGuildStoreErrorSuppressed(TooltipRuntime.guildStoreErrorSuppressed == true)
 
 -- RESEARCH TRAIT CACHING
@@ -152,6 +155,10 @@ local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settin
             BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)) .. " " .. coinIcon)
     end
 end
+
+Tooltips.PriceProviders = {
+    GetAddonPriceDisplay = GetAddonPriceDisplay,
+}
 
 --- Gets trading addon price info strings (TTC, MM, ATT).
 function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCount)
@@ -559,6 +566,126 @@ local function ClearTooltipEnhancementState(tooltipControl, tooltipType)
     end
 end
 
+local function InstallClearLinesHook(tooltipControl, state, tooltipType)
+    if not tooltipControl.ClearLines or state.clearLinesHookInstalled then
+        return
+    end
+
+    ZO_PostHook(tooltipControl, "ClearLines", function(self, ...)
+        ClearTooltipEnhancementState(self, tooltipType)
+        ResetInventoryHookState(state)
+    end)
+    state.clearLinesHookInstalled = true
+end
+
+local function InstallBagLayoutHook(tooltipControl, layoutBagName, state, tooltipType, layoutBagDataFn)
+    ZO_PreHook(tooltipControl, layoutBagName, function(self, ...)
+        if IsIncompatibleSceneActive() then
+            state.skipEnhancementForLayout = true
+            ClearTooltipEnhancementState(self, tooltipType)
+            ResetInventoryHookState(state)
+            return
+        end
+
+        CaptureBagLayoutState(state, layoutBagDataFn, ...)
+    end)
+end
+
+local function InstallStoreLayoutHook(tooltipControl, layoutStoreName, state, tooltipType, layoutStoreDataFn)
+    ZO_PreHook(tooltipControl, layoutStoreName, function(self, ...)
+        if IsIncompatibleSceneActive() then
+            state.skipEnhancementForLayout = true
+            ClearTooltipEnhancementState(self, tooltipType)
+            ResetInventoryHookState(state)
+            return
+        end
+
+        CaptureStoreLayoutState(state, layoutStoreDataFn, ...)
+    end)
+end
+
+local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, tooltipType, layoutItemDataFn)
+    ZO_PreHook(tooltipControl, layoutItemName, function(self, ...)
+        state.skipEnhancementForLayout = IsIncompatibleSceneActive()
+        state.pendingItemLink = nil
+        state.pendingTooltipType = nil
+
+        if state.skipEnhancementForLayout then
+            ClearTooltipEnhancementState(self, tooltipType)
+            return
+        end
+
+        local itemLink = ResolveHookItemLink(state, layoutItemDataFn, ...)
+
+        if state.bagId ~= nil and state.slotIndex ~= nil
+            and not DoesBagContextMatchItemLink(state.bagId, state.slotIndex, itemLink) then
+            state.bagId = nil
+            state.slotIndex = nil
+        end
+
+        if not IsLikelyItemLink(itemLink) then
+            state.skipEnhancementForLayout = true
+            ClearTooltipEnhancementState(self, tooltipType)
+            return
+        end
+
+        CaptureTooltipLayoutState(self, state, itemLink)
+        state.storeItemLink = nil
+        state.storeStackCount = nil
+        state.pendingItemLink = itemLink
+        state.pendingTooltipType = tooltipType
+    end)
+
+    ZO_PostHook(tooltipControl, layoutItemName, function(self, ...)
+        local itemLink = state.pendingItemLink
+        local capturedTooltipType = state.pendingTooltipType
+        state.pendingItemLink = nil
+        state.pendingTooltipType = nil
+
+        if state.skipEnhancementForLayout then
+            state.skipEnhancementForLayout = false
+            return
+        end
+
+        local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
+
+        ApplyTooltipLabelFonts(self)
+        ScheduleTooltipEquippedRefresh(self, itemLink, capturedTooltipType)
+
+        if enhancementsEnabled then
+            ScheduleDuplicateAddonCleanup(self)
+        end
+    end)
+end
+
+Tooltips.InventoryHookValidation = {
+    IsLikelyItemLink = IsLikelyItemLink,
+    DoesBagContextMatchItemLink = DoesBagContextMatchItemLink,
+}
+
+Tooltips.InventoryHookState = {
+    Create = CreateInventoryHookState,
+    Ensure = EnsureInventoryHookState,
+    Reset = ResetInventoryHookState,
+    ClearTooltipEnhancementState = ClearTooltipEnhancementState,
+}
+
+Tooltips.InventoryHookContext = {
+    ResolveHookBagContext = ResolveHookBagContext,
+    ResolveHookStoreContext = ResolveHookStoreContext,
+    ResolveHookItemLink = ResolveHookItemLink,
+    CaptureBagLayoutState = CaptureBagLayoutState,
+    CaptureStoreLayoutState = CaptureStoreLayoutState,
+    CaptureTooltipLayoutState = CaptureTooltipLayoutState,
+}
+
+Tooltips.InventoryHookOrchestrator = {
+    InstallClearLinesHook = InstallClearLinesHook,
+    InstallBagLayoutHook = InstallBagLayoutHook,
+    InstallStoreLayoutHook = InstallStoreLayoutHook,
+    InstallItemLayoutHooks = InstallItemLayoutHooks,
+}
+
 Tooltips._InventoryHookHelpers = {
     CreateInventoryHookState = CreateInventoryHookState,
     EnsureInventoryHookState = EnsureInventoryHookState,
@@ -573,6 +700,11 @@ Tooltips._InventoryHookHelpers = {
     HideDuplicateAddonLabels = HideDuplicateAddonLabels,
     ScheduleTooltipEquippedRefresh = ScheduleTooltipEquippedRefresh,
     ScheduleDuplicateAddonCleanup = ScheduleDuplicateAddonCleanup,
+    InstallClearLinesHook = InstallClearLinesHook,
+    InstallBagLayoutHook = InstallBagLayoutHook,
+    InstallStoreLayoutHook = InstallStoreLayoutHook,
+    InstallItemLayoutHooks = InstallItemLayoutHooks,
+    ClearTooltipEnhancementState = ClearTooltipEnhancementState,
 }
 
 
@@ -614,95 +746,19 @@ function Tooltips.InventoryHook(config)
         return
     end
 
-    local state = EnsureInventoryHookState(tooltipControl)
+    local stateHelpers = Tooltips.InventoryHookState
+    local hookRuntime = Tooltips.InventoryHookOrchestrator
+    local state = stateHelpers.Ensure(tooltipControl)
     local hookKey = string.format("%s|%s|%s|%s", tostring(layoutItemName), tostring(layoutBagName), tostring(layoutStoreName), tostring(tooltipType))
     if state.installedHooks[hookKey] then
         return
     end
     state.installedHooks[hookKey] = true
 
-    if tooltipControl.ClearLines and not state.clearLinesHookInstalled then
-        ZO_PostHook(tooltipControl, "ClearLines", function(self, ...)
-            ClearTooltipEnhancementState(self, tooltipType)
-            ResetInventoryHookState(state)
-        end)
-        state.clearLinesHookInstalled = true
-    end
-
-    ZO_PreHook(tooltipControl, layoutBagName, function(self, ...)
-        if IsIncompatibleSceneActive() then
-            state.skipEnhancementForLayout = true
-            ClearTooltipEnhancementState(self, tooltipType)
-            ResetInventoryHookState(state)
-            return
-        end
-
-        CaptureBagLayoutState(state, layoutBagDataFn, ...)
-    end)
-
-    ZO_PreHook(tooltipControl, layoutStoreName, function(self, ...)
-        if IsIncompatibleSceneActive() then
-            state.skipEnhancementForLayout = true
-            ClearTooltipEnhancementState(self, tooltipType)
-            ResetInventoryHookState(state)
-            return
-        end
-
-        CaptureStoreLayoutState(state, layoutStoreDataFn, ...)
-    end)
-
-    ZO_PreHook(tooltipControl, layoutItemName, function(self, ...)
-        state.skipEnhancementForLayout = IsIncompatibleSceneActive()
-        state.pendingItemLink = nil
-        state.pendingTooltipType = nil
-
-        if state.skipEnhancementForLayout then
-            ClearTooltipEnhancementState(self, tooltipType)
-            return
-        end
-
-        local itemLink = ResolveHookItemLink(state, layoutItemDataFn, ...)
-
-        -- Never reuse stale bag context from unrelated tooltip layouts.
-        if state.bagId ~= nil and state.slotIndex ~= nil
-            and not DoesBagContextMatchItemLink(state.bagId, state.slotIndex, itemLink) then
-            state.bagId = nil
-            state.slotIndex = nil
-        end
-
-        if not IsLikelyItemLink(itemLink) then
-            state.skipEnhancementForLayout = true
-            ClearTooltipEnhancementState(self, tooltipType)
-            return
-        end
-
-        CaptureTooltipLayoutState(self, state, itemLink)
-        state.storeItemLink = nil
-        state.storeStackCount = nil
-        state.pendingItemLink = itemLink
-        state.pendingTooltipType = tooltipType
-    end)
-
-    ZO_PostHook(tooltipControl, layoutItemName, function(self, ...)
-        local itemLink = state.pendingItemLink
-        local capturedTooltipType = state.pendingTooltipType
-        state.pendingItemLink = nil
-        state.pendingTooltipType = nil
-
-        if state.skipEnhancementForLayout then
-            state.skipEnhancementForLayout = false
-            return
-        end
-
-        local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
-
-        ApplyTooltipLabelFonts(self)
-        ScheduleTooltipEquippedRefresh(self, itemLink, capturedTooltipType)
-
-        if enhancementsEnabled then
-            ScheduleDuplicateAddonCleanup(self)
-        end
-    end)
+    hookRuntime.InstallClearLinesHook(tooltipControl, state, tooltipType)
+    hookRuntime.InstallBagLayoutHook(tooltipControl, layoutBagName, state, tooltipType, layoutBagDataFn)
+    hookRuntime.InstallStoreLayoutHook(tooltipControl, layoutStoreName, state, tooltipType, layoutStoreDataFn)
+    hookRuntime.InstallItemLayoutHooks(tooltipControl, layoutItemName, state, tooltipType, layoutItemDataFn)
 end
 
 -- Passthrough helpers for tooltip hook data extraction

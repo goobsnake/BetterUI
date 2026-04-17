@@ -51,6 +51,9 @@ local currentBank = BAG_BANK
 local currentBankingBag = BAG_BANK
 local depositAllowed = true
 local depositReason = nil
+local guildTransferAllowed = true
+local guildTransferReason = nil
+local guildTransferNotifyWithText = false
 local sceneHiddenCount = 0
 local platformDialogsShown = {}
 local keybindOps = {}
@@ -89,6 +92,9 @@ local function resetState()
     currentBankingBag = BAG_BANK
     depositAllowed = true
     depositReason = nil
+    guildTransferAllowed = true
+    guildTransferReason = nil
+    guildTransferNotifyWithText = false
     sceneHiddenCount = 0
     platformDialogsShown = {}
     keybindOps = {}
@@ -227,6 +233,23 @@ BETTERUI = {
         _TransferHelpers = {
             IsDepositSupportedForBank = function()
                 return depositAllowed, depositReason
+            end,
+            ResolveTransferDeniedStringId = function(_, denyReason)
+                if denyReason == "stolen" then
+                    return SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
+                end
+                return nil
+            end,
+            NotifyGuildBankTransferDenied = function(_, _, _, _)
+                if guildTransferAllowed then
+                    return true, nil
+                end
+                if guildTransferNotifyWithText then
+                    BETTERUI.CIM.UserAlertText("GuildTransfer", guildTransferReason)
+                else
+                    BETTERUI.CIM.UserNotify("GuildTransfer", guildTransferReason)
+                end
+                return false, guildTransferReason
             end,
         },
         Tasks = {
@@ -374,6 +397,17 @@ assertEqual(100, scheduledTasks[1].delay, "Guild withdraw schedules a coalesced 
 scheduledTasks[1].callback()
 assertEqual(1, window.rebuiltHeaders, "Coalesced refresh rebuilds header categories")
 assertEqual(1, window.refreshedLists, "Coalesced refresh refreshes the list")
+
+resetState()
+window = createWindow()
+selectedData = { bagId = BAG_BACKPACK, slotIndex = 7 }
+currentBankingBag = BAG_GUILDBANK
+window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
+guildTransferAllowed = false
+guildTransferReason = SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
+window:MoveItem(window.list, 1)
+assertEqual(0, #guildDepositCalls, "Denied guild-bank deposits do not call TransferToGuildBank")
+assertEqual(SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE, userNotifies[1], "Denied guild-bank deposits use the shared denial notifier")
 
 resetState()
 window = createWindow()

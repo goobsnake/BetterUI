@@ -268,6 +268,11 @@ end
 
 print("\nTest: Inventory hook runtime exposes explicit helper seams")
 local hookHelpers = BETTERUI.GeneralInterface.Tooltips._InventoryHookHelpers or {}
+local hookStateHelpers = BETTERUI.GeneralInterface.Tooltips.InventoryHookState or {}
+local hookValidation = BETTERUI.GeneralInterface.Tooltips.InventoryHookValidation or {}
+local hookOrchestrator = BETTERUI.GeneralInterface.Tooltips.InventoryHookOrchestrator or {}
+local priceProviders = BETTERUI.GeneralInterface.Tooltips.PriceProviders or {}
+local guildStoreSuppression = BETTERUI.GeneralInterface.Tooltips.GuildStoreSuppression or {}
 assertEqual(true, type(hookHelpers.EnsureInventoryHookState) == "function",
     "Inventory hook exposes a state-installer helper")
 assertEqual(true, type(hookHelpers.ResetInventoryHookState) == "function",
@@ -276,6 +281,16 @@ assertEqual(true, type(hookHelpers.ResolveHookBagContext) == "function",
     "Inventory hook exposes a bag-context extractor helper")
 assertEqual(true, type(hookHelpers.ResolveHookItemLink) == "function",
     "Inventory hook exposes an item-link extractor helper")
+assertEqual(true, type(hookStateHelpers.Ensure) == "function",
+    "Inventory hook exposes named state helpers on Tooltips")
+assertEqual(true, type(hookValidation.DoesBagContextMatchItemLink) == "function",
+    "Inventory hook exposes bag-link validation on Tooltips")
+assertEqual(true, type(hookOrchestrator.InstallItemLayoutHooks) == "function",
+    "Inventory hook exposes named hook-orchestration helpers on Tooltips")
+assertEqual(true, type(priceProviders.GetAddonPriceDisplay) == "function",
+    "Tooltip pricing exposes an explicit price-provider helper")
+assertEqual(true, type(guildStoreSuppression.SetErrorSuppressed) == "function",
+    "Guild-store suppression is routed through an explicit Tooltips helper")
 
 local helperTooltip = {}
 local helperState = hookHelpers.EnsureInventoryHookState(helperTooltip)

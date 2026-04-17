@@ -51,6 +51,25 @@ function BETTERUI.CIM.UnifiedScreen:Initialize(control, createTabBar, activateOn
     end
 end
 
+--- Initializes a window-backed screen through the shared UnifiedScreen seam.
+--- This stages legacy BETTERUI.Interface.Window users onto the same footer/bootstrap
+--- contract as Inventory without forcing an inheritance rewrite in one step.
+---@param screen BetterUIWindow
+---@param tlwName string
+---@param sceneName string
+---@param footerMode integer?
+---@param virtualTemplate string?
+function BETTERUI.CIM.UnifiedScreen.InitializeWindowShell(screen, tlwName, sceneName, footerMode, virtualTemplate)
+    BETTERUI.Interface.Window.Initialize(screen, tlwName, sceneName, virtualTemplate)
+
+    screen.footerMode = footerMode or MODE.CURRENCY
+    screen.unifiedFooterController = nil
+
+    if screen.SetupUnifiedFooter then
+        screen:SetupUnifiedFooter()
+    end
+end
+
 --- Links to the UnifiedFooter controller and sets initial mode.
 function BETTERUI.CIM.UnifiedScreen:SetupUnifiedFooter()
     local footerContainer = self.control.container and self.control.container:GetNamedChild("FooterContainer")

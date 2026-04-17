@@ -59,7 +59,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- Configuration for directional input fix timing uses centralized constant
     -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS
 
-    BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name)
+    BETTERUI.CIM.UnifiedScreen.InitializeWindowShell(
+        self,
+        tlw_name,
+        scene_name,
+        BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_BANKING
+    )
     self.taskManager = BETTERUI.Banking.Tasks
 
     -- Create banking scene

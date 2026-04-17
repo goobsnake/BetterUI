@@ -6,6 +6,11 @@ Purpose: Shared slot action helpers for Inventory and Banking modules.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
+local function GetBankingTransferHelper(helperName)
+    local helpers = BETTERUI.Banking and BETTERUI.Banking._TransferHelpers
+    return helpers and helpers[helperName]
+end
+
 local function InvokeInventoryDialog(methodName, ...)
     local dialogs = BETTERUI.Inventory and BETTERUI.Inventory.Dialogs
     local dialogFn = dialogs and dialogs[methodName]
@@ -63,9 +68,18 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     if not PLAYER_INVENTORY:IsBanking() then return false, "not_banking" end
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    local GuildBank = BETTERUI.Banking and BETTERUI.Banking.GuildBank
+    local notifyGuildBankTransferDenied = GetBankingTransferHelper("NotifyGuildBankTransferDenied")
+    local isGuildBankMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode()
     local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
     if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
         -- Withdraw
+        if isGuildBankMode and notifyGuildBankTransferDenied then
+            local canTransfer, denyReason = notifyGuildBankTransferDenied("TryTransferItem:GuildWithdraw", BETTERUI.Banking.LIST_WITHDRAW, bag, index)
+            if not canTransfer then
+                return false, denyReason
+            end
+        end
         if DoesBagHaveSpaceFor(BAG_BACKPACK, bag, index) then
             CallSecureProtected("PickupInventoryItem", bag, index)
             CallSecureProtected("PlaceInTransfer")
@@ -77,6 +91,12 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     else
         -- Deposit
         local bankingBag = GetBankingBag()
+        if isGuildBankMode and notifyGuildBankTransferDenied then
+            local canTransfer, denyReason = notifyGuildBankTransferDenied("TryTransferItem:GuildDeposit", BETTERUI.Banking.LIST_DEPOSIT, bag, index)
+            if not canTransfer then
+                return false, denyReason
+            end
+        end
         local isTargetFurnitureVault = IsFurnitureVault and IsFurnitureVault(bankingBag)
         if isTargetFurnitureVault and HOUSING_EDITOR_STATE and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault and
             not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault() then

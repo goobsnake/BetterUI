@@ -159,104 +159,57 @@ local function BuildFallbackVendorTabs()
 end
 
 local function GetNativeActiveModeSet()
-    local modeSet = {}
-    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
-    local activeComponents = storeManager and storeManager.activeComponents
-    if type(activeComponents) ~= "table" then
-        return modeSet
+    if Vendor.ModePolicy and Vendor.ModePolicy.GetNativeActiveModeSet then
+        return Vendor.ModePolicy.GetNativeActiveModeSet(rawget(_G, "STORE_WINDOW_GAMEPAD"))
     end
-
-    for _, component in ipairs(activeComponents) do
-        if component and type(component.GetStoreMode) == "function" then
-            local mode = component:GetStoreMode()
-            if mode then
-                modeSet[mode] = true
-            end
-        end
-    end
-    return modeSet
+    return {}
 end
 
 ---@return boolean
 local function IsNativeStableModeActive()
-    local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
-    if not stableMode then
-        return false
+    if Vendor.ModePolicy and Vendor.ModePolicy.IsNativeStableModeActive then
+        return Vendor.ModePolicy.IsNativeStableModeActive(rawget(_G, "STORE_WINDOW_GAMEPAD"))
     end
-    local nativeModeSet = GetNativeActiveModeSet()
-    return nativeModeSet[stableMode] == true
-end
-
--- GET ACTIVE TABS
-
---- Returns the tab list for the current interaction type.
----@return VendorTabDef[] tabs Active tab definitions
-local function GetActiveTabs()
-    if isFenceInteraction then
-        local tabs = {}
-        if fenceEnableSell then
-            tabs[#tabs + 1] = FENCE_TABS[1]
-        end
-        if fenceEnableLaunder then
-            tabs[#tabs + 1] = FENCE_TABS[2]
-        end
-        -- Safety: if no tabs enabled, fall back to sell
-        if #tabs == 0 then
-            tabs[1] = FENCE_TABS[1]
-        end
-        return tabs
-    end
-
-    local activeModeSet = GetNativeActiveModeSet()
-    local includeBuyFromSession = Vendor._sessionHasBuyMode == true
-    local sourceTabs = isStableInteraction and STABLE_TABS or VENDOR_TABS
-    local tabs = {}
-    for _, tab in ipairs(sourceTabs) do
-        if IsModeTabAvailable(tab.mode) then
-            local nativeMode = ResolveNativeModeForVendorMode(tab.mode)
-            local includeStableRepair = isStableInteraction
-                and tab.mode == MODE.REPAIR
-                and (type(CanStoreRepair) ~= "function" or CanStoreRepair())
-            if (nativeMode and activeModeSet[nativeMode])
-                or (tab.mode == MODE.BUY and includeBuyFromSession)
-                or includeStableRepair then
-                tabs[#tabs + 1] = tab
-            end
-        end
-    end
-
-    if #tabs == 0 then
-        -- Fall back to legacy behavior when native components are not ready yet.
-        if isStableInteraction then
-            return STABLE_TABS
-        end
-        return BuildFallbackVendorTabs()
-    end
-
-    return tabs
+    return false
 end
 
 ---@param tabs VendorTabDef[]|nil
 ---@return BetterUIVendorModeSet
 local function BuildActiveModeSet(tabs)
-    local fallbackModeSet = {}
-    for _, tab in ipairs(tabs or {}) do
-        if tab and tab.mode then
-            fallbackModeSet[tab.mode] = true
-        end
+    if Vendor.ModePolicy and Vendor.ModePolicy.BuildActiveModeSet then
+        return Vendor.ModePolicy.BuildActiveModeSet(tabs)
     end
-    return fallbackModeSet
+    return {}
 end
 
 ---@param modeSet BetterUIVendorModeSet|nil
 ---@return boolean
 local function IsSellBuybackOnlyModeSet(modeSet)
-    local fallback = modeSet or {}
-    local hasSell = fallback[MODE.SELL] == true
-    local hasBuyback = fallback[MODE.BUYBACK] == true
-    local hasBuy = fallback[MODE.BUY] == true
-    local hasRepair = fallback[MODE.REPAIR] == true
-    return (not isFenceInteraction) and hasSell and hasBuyback and not hasBuy and not hasRepair
+    if Vendor.ModePolicy and Vendor.ModePolicy.IsSellBuybackOnlyModeSet then
+        return Vendor.ModePolicy.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
+    end
+    return false
+end
+
+-- GET ACTIVE TABS
+
+---@return VendorTabDef[] tabs Active tab definitions
+local function GetActiveTabs()
+    if Vendor.ModePolicy and Vendor.ModePolicy.GetActiveTabs then
+        return Vendor.ModePolicy.GetActiveTabs({
+            isFenceInteraction = isFenceInteraction,
+            isStableInteraction = isStableInteraction,
+            fenceEnableSell = fenceEnableSell,
+            fenceEnableLaunder = fenceEnableLaunder,
+            sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
+            vendorTabs = VENDOR_TABS,
+            stableTabs = STABLE_TABS,
+            fenceTabs = FENCE_TABS,
+            isModeTabAvailable = IsModeTabAvailable,
+            storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD"),
+        })
+    end
+    return BuildFallbackVendorTabs()
 end
 
 ---@return boolean
@@ -268,25 +221,14 @@ end
 ---@return number|nil firstMode
 ---@return number|nil secondMode
 local function GetToggleModePair()
-    if isFenceInteraction then
-        return MODE.FENCE_SELL, MODE.FENCE_LAUNDER
+    if Vendor.ModePolicy and Vendor.ModePolicy.GetToggleModePair then
+        return Vendor.ModePolicy.GetToggleModePair({
+            isFenceInteraction = isFenceInteraction,
+            isStableInteraction = isStableInteraction,
+            sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
+            tabs = GetActiveTabs(),
+        })
     end
-
-    if isStableInteraction then
-        return MODE.BUY, MODE.STABLE
-    end
-
-    local modeSet = BuildActiveModeSet(GetActiveTabs())
-    if modeSet[MODE.BUY] and modeSet[MODE.SELL] then
-        return MODE.BUY, MODE.SELL
-    end
-    if modeSet[MODE.SELL] and Vendor._sessionHasBuyMode == true then
-        return MODE.BUY, MODE.SELL
-    end
-    if IsSellBuybackOnlyModeSet(modeSet) then
-        return MODE.SELL, MODE.BUYBACK
-    end
-
     return nil, nil
 end
 
@@ -308,77 +250,24 @@ end
 ---@param tabs VendorTabDef[]|nil
 ---@return number targetMode
 local function ResolveInitialStoreMode(tabs)
-    tabs = tabs or {}
-
-    local modeSet = BuildActiveModeSet(tabs)
-    local nativeModeSet = GetNativeActiveModeSet()
-    local nativeModesReady = next(nativeModeSet) ~= nil
-    if nativeModesReady then
-        modeSet = {}
-        for _, tab in ipairs(VENDOR_TABS) do
-            local nativeMode = ResolveNativeModeForVendorMode(tab.mode)
-            if nativeMode and nativeModeSet[nativeMode] then
-                modeSet[tab.mode] = true
-            end
-        end
-        if modeSet[MODE.BUY] then
+    if Vendor.ModePolicy and Vendor.ModePolicy.ResolveInitialStoreMode then
+        local targetMode, shouldRememberBuyMode = Vendor.ModePolicy.ResolveInitialStoreMode({
+            tabs = tabs or {},
+            vendorTabs = VENDOR_TABS,
+            isFenceInteraction = isFenceInteraction,
+            isStableInteraction = isStableInteraction,
+            storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD"),
+            hasVendorBuyInventory = function()
+                return HasVendorBuyInventory("Vendor.ResolveInitialStoreMode")
+            end,
+        })
+        if shouldRememberBuyMode then
             Vendor._sessionHasBuyMode = true
         end
+        return targetMode
     end
 
-    if IsSellBuybackOnlyModeSet(modeSet) then
-        return MODE.SELL
-    end
-
-    if isStableInteraction then
-        if modeSet[MODE.BUY] then
-            Vendor._sessionHasBuyMode = true
-            return MODE.BUY
-        end
-        local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
-        if nativeModesReady and stableMode and nativeModeSet[stableMode] then
-            return MODE.STABLE
-        end
-        if modeSet[MODE.REPAIR] then
-            return MODE.REPAIR
-        end
-        return MODE.BUY
-    end
-
-    -- When native components are not ready yet, do not trust transient buy-state APIs.
-    -- Defaulting to SELL prevents opening personal vendors on an empty BUY list.
-    if not nativeModesReady then
-        if modeSet[MODE.SELL] then
-            return MODE.SELL
-        end
-        if modeSet[MODE.BUYBACK] then
-            return MODE.BUYBACK
-        end
-        if modeSet[MODE.REPAIR] then
-            return MODE.REPAIR
-        end
-    end
-
-    if nativeModesReady and modeSet[MODE.BUY]
-        and HasVendorBuyInventory("Vendor.ResolveInitialStoreMode") then
-        Vendor._sessionHasBuyMode = true
-        return MODE.BUY
-    end
-
-    if modeSet[MODE.SELL] then
-        return MODE.SELL
-    end
-    if modeSet[MODE.SELL_VENGEANCE] then
-        return MODE.SELL_VENGEANCE
-    end
-    if modeSet[MODE.BUYBACK] then
-        return MODE.BUYBACK
-    end
-    if modeSet[MODE.REPAIR] then
-        return MODE.REPAIR
-    end
-
-    return (tabs[1] and tabs[1].mode) or MODE.SELL
+    return (tabs and tabs[1] and tabs[1].mode) or MODE.SELL
 end
 
 local function SetStoreSceneAlias(sceneObject)
@@ -431,10 +320,29 @@ local function LogNativeStoreInputState(context, storeManager)
     )
 end
 
-local function EnsureNativeStoreComponents(searchContext)
+local function GetActiveNativeStoreModes(storeManager)
+    local modes = {}
+    local seen = {}
+    local activeComponents = storeManager.activeComponents
+    if type(activeComponents) ~= "table" then
+        return modes, seen
+    end
+    for _, component in ipairs(activeComponents) do
+        if component and type(component.GetStoreMode) == "function" then
+            local okMode, mode = SafeCall("Vendor.EnsureNativeStoreComponents:GetActiveMode", component.GetStoreMode, component)
+            if okMode and mode and not seen[mode] then
+                seen[mode] = true
+                modes[#modes + 1] = mode
+            end
+        end
+    end
+    return modes, seen
+end
+
+local function BuildNativeStoreComponentSnapshot(searchContext)
     local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
     if not storeManager or type(storeManager.SetActiveComponents) ~= "function" then
-        return
+        return nil
     end
 
     local buyMode = rawget(_G, "ZO_MODE_STORE_BUY")
@@ -443,28 +351,8 @@ local function EnsureNativeStoreComponents(searchContext)
     local buyBackMode = rawget(_G, "ZO_MODE_STORE_BUY_BACK")
     local repairMode = rawget(_G, "ZO_MODE_STORE_REPAIR")
     local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
-    local availableComponents = storeManager.components or {}
 
-    local function GetActiveModes()
-        local modes = {}
-        local seen = {}
-        local activeComponents = storeManager.activeComponents
-        if type(activeComponents) ~= "table" then
-            return modes, seen
-        end
-        for _, component in ipairs(activeComponents) do
-            if component and type(component.GetStoreMode) == "function" then
-                local okMode, mode = SafeCall("Vendor.EnsureNativeStoreComponents:GetActiveMode", component.GetStoreMode, component)
-                if okMode and mode and not seen[mode] then
-                    seen[mode] = true
-                    modes[#modes + 1] = mode
-                end
-            end
-        end
-        return modes, seen
-    end
-
-    local componentTable, seenActiveModes = GetActiveModes()
+    local componentTable, seenActiveModes = GetActiveNativeStoreModes(storeManager)
     local includeBuy = Vendor._sessionHasBuyMode == true
         or (buyMode ~= nil and seenActiveModes[buyMode] == true)
     if not includeBuy then
@@ -486,159 +374,184 @@ local function EnsureNativeStoreComponents(searchContext)
             or (not isFenceInteraction and includeBuy and buyMode ~= nil and not seenActiveModes[buyMode])
             or (stableMode ~= nil and seenActiveModes[stableMode])
     end
-    LogVendorDebug(
-        "DIRECTIONAL_INPUT",
-        "VendorDI",
-        string.format(
-            "EnsureNativeStoreComponents(%s): rebuild=%s includeBuy=%s activeModes=%d",
-            tostring(searchContext or "storeTextSearch"),
-            tostring(needRebuild),
-            tostring(includeBuy),
-            #componentTable
-        )
-    )
-    if not needRebuild then
-        -- Even when no rebuild is needed, sweep the storeManager off DI.
-        -- An earlier SetActiveComponents call or native code path may have
-        -- registered it via DIRECTIONAL_INPUT:Activate directly (bypassing the
-        -- object's active flag), so obj:Deactivate() alone is not reliable.
-        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Deactivate then
-            if DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT:IsListening(storeManager) then
-                DIRECTIONAL_INPUT:Deactivate(storeManager)
-            end
-        end
-        LogNativeStoreInputState("EnsureNativeStoreComponents:skipRebuild", storeManager)
+
+    return {
+        storeManager = storeManager,
+        searchContext = searchContext or "storeTextSearch",
+        availableComponents = storeManager.components or {},
+        componentTable = componentTable,
+        includeBuy = includeBuy,
+        needRebuild = needRebuild,
+        isStableInteraction = isStableInteraction,
+        buyMode = buyMode,
+        sellMode = sellMode,
+        sellVengeanceMode = sellVengeanceMode,
+        buyBackMode = buyBackMode,
+        repairMode = repairMode,
+        stableMode = stableMode,
+    }
+end
+
+local function SweepNativeStoreDirectionalInput(storeManager, includeComponentLists)
+    if not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Deactivate) then
         return
     end
+    if DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT:IsListening(storeManager) then
+        DIRECTIONAL_INPUT:Deactivate(storeManager)
+    end
+    if not includeComponentLists then
+        return
+    end
+    local activeComps = storeManager.activeComponents
+    if type(activeComps) == "table" then
+        for _, comp in ipairs(activeComps) do
+            if comp and comp.list and DIRECTIONAL_INPUT.IsListening
+                and DIRECTIONAL_INPUT:IsListening(comp.list) then
+                DIRECTIONAL_INPUT:Deactivate(comp.list)
+            end
+        end
+    end
+    if storeManager._currentList and DIRECTIONAL_INPUT.IsListening
+        and DIRECTIONAL_INPUT:IsListening(storeManager._currentList) then
+        DIRECTIONAL_INPUT:Deactivate(storeManager._currentList)
+    end
+    if storeManager.headerFocus and DIRECTIONAL_INPUT.IsListening
+        and DIRECTIONAL_INPUT:IsListening(storeManager.headerFocus) then
+        DIRECTIONAL_INPUT:Deactivate(storeManager.headerFocus)
+    end
+end
 
+local function BuildNativeStoreRebuildPlan(snapshot)
     local modeSet = {}
     local rebuiltModes = {}
+
     local function AddMode(mode)
-        if mode and not modeSet[mode] and availableComponents[mode] then
+        if mode and not modeSet[mode] and snapshot.availableComponents[mode] then
             modeSet[mode] = true
             rebuiltModes[#rebuiltModes + 1] = mode
         end
     end
 
-    -- Rebuild from vanilla rules when active components are missing or incomplete.
-    if isStableInteraction then
-        if includeBuy then
-            AddMode(buyMode)
+    if snapshot.isStableInteraction then
+        if snapshot.includeBuy then
+            AddMode(snapshot.buyMode)
         end
-        AddMode(stableMode)
-        if repairMode and (type(CanStoreRepair) ~= "function" or CanStoreRepair()) then
-            AddMode(repairMode)
+        AddMode(snapshot.stableMode)
+        if snapshot.repairMode and (type(CanStoreRepair) ~= "function" or CanStoreRepair()) then
+            AddMode(snapshot.repairMode)
         end
     else
-        if includeBuy then
-            AddMode(buyMode)
+        if snapshot.includeBuy then
+            AddMode(snapshot.buyMode)
         end
-        AddMode(sellMode)
-        if sellVengeanceMode and IsSellVengeanceModeAvailable() then
-            AddMode(sellVengeanceMode)
+        AddMode(snapshot.sellMode)
+        if snapshot.sellVengeanceMode and IsSellVengeanceModeAvailable() then
+            AddMode(snapshot.sellVengeanceMode)
         end
-        AddMode(buyBackMode)
-        if repairMode and (type(CanStoreRepair) ~= "function" or CanStoreRepair()) then
-            AddMode(repairMode)
+        AddMode(snapshot.buyBackMode)
+        if snapshot.repairMode and (type(CanStoreRepair) ~= "function" or CanStoreRepair()) then
+            AddMode(snapshot.repairMode)
         end
     end
 
-    for _, mode in ipairs(componentTable) do
-        if isStableInteraction then
-            if mode == buyMode
-                or mode == repairMode
-                or mode == stableMode then
+    for _, mode in ipairs(snapshot.componentTable) do
+        if snapshot.isStableInteraction then
+            if mode == snapshot.buyMode
+                or mode == snapshot.repairMode
+                or mode == snapshot.stableMode then
                 AddMode(mode)
             end
-        elseif mode ~= stableMode then
+        elseif mode ~= snapshot.stableMode then
             AddMode(mode)
         end
     end
 
-    if #rebuiltModes > 0 then
-        -- Ensure storeManager.sceneName is redirected before SetActiveComponents.
-        -- SetActiveComponents \u2192 RebuildHeaderTabs \u2192 Commit() triggers ShowComponent
-        -- via the SelectedDataChanged callback chain; the redirected sceneName makes
-        -- ShowComponent's IsShowing check fail so no native lists are activated on DI.
-        if storeManager.sceneName ~= "betterui_native_store_blocked" then
-            storeManager.sceneName = "betterui_native_store_blocked"
-        end
+    return {
+        modeSet = modeSet,
+        rebuiltModes = rebuiltModes,
+    }
+end
 
-        SafeCall("Vendor.EnsureNativeStoreComponents:SetActiveComponents",
-            storeManager.SetActiveComponents, storeManager, rebuiltModes, searchContext or "storeTextSearch")
+local function NeutralizeNativeStoreHeaderCallbacks(storeManager)
+    local nativeHeader = storeManager.header
+    if not (nativeHeader and nativeHeader.tabBar) then
+        return
+    end
 
-        -- Neutralize native tabBar callbacks that SetActiveComponents just installed.
-        -- RebuildHeaderTabs sets an activatedCallback (ShowComponent) and a
-        -- SelectedDataChanged callback (OnCategoryChanged \u2192 ShowComponent) on the
-        -- native header's tabBar. Clear both so no future activation/selection change
-        -- can re-activate native lists on DIRECTIONAL_INPUT.
-        local nativeHeader = storeManager.header
-        if nativeHeader and nativeHeader.tabBar then
-            local nativeTabBar = nativeHeader.tabBar
-            if nativeTabBar.SetOnActivatedChangedFunction then
-                nativeTabBar:SetOnActivatedChangedFunction(nil)
-            end
-            if nativeTabBar.RemoveAllOnSelectedDataChangedCallbacks then
-                nativeTabBar:RemoveAllOnSelectedDataChangedCallbacks()
-            end
-            -- Deactivate the native tabBar if SetActiveComponents activated it.
-            if nativeTabBar.IsActive and nativeTabBar:IsActive() and nativeTabBar.Deactivate then
-                nativeTabBar:Deactivate()
-            end
-        end
-        -- Deactivate any native list that ShowComponent may have activated before
-        -- the sceneName redirect took effect (timing edge on very first open).
-        if storeManager._currentList and storeManager._currentList.Deactivate then
-            if not storeManager._currentList.IsActive or storeManager._currentList:IsActive() then
-                storeManager._currentList:Deactivate()
-            end
-        end
+    local nativeTabBar = nativeHeader.tabBar
+    if nativeTabBar.SetOnActivatedChangedFunction then
+        nativeTabBar:SetOnActivatedChangedFunction(nil)
+    end
+    if nativeTabBar.RemoveAllOnSelectedDataChangedCallbacks then
+        nativeTabBar:RemoveAllOnSelectedDataChangedCallbacks()
+    end
+    if nativeTabBar.IsActive and nativeTabBar:IsActive() and nativeTabBar.Deactivate then
+        nativeTabBar:Deactivate()
+    end
+end
 
-        if buyMode and modeSet[buyMode] then
-            if type(SetStoreMode) == "function" then
-                SafeCall("Vendor.EnsureNativeStoreComponents:SetStoreMode", SetStoreMode, buyMode)
-            end
-            if type(storeManager.SetMode) == "function" then
-                SafeCall("Vendor.EnsureNativeStoreComponents:StoreManagerSetMode", storeManager.SetMode, storeManager, buyMode)
-            end
-        end
-        if type(storeManager.InitializeStore) == "function" then
-            SafeCall("Vendor.EnsureNativeStoreComponents:InitializeStore", storeManager.InitializeStore, storeManager)
-        end
+local function ApplyNativeStoreRebuildPlan(snapshot, rebuildPlan)
+    if #rebuildPlan.rebuiltModes == 0 then
+        return false
+    end
 
-        -- Final DI sweep: deactivate the native storeManager and every native
-        -- component list from DIRECTIONAL_INPUT using direct API calls.  This
-        -- bypasses the objects' internal active-flag guards (Deactivate() is a
-        -- no-op when .active is already false) and catches any code path inside
-        -- SetActiveComponents / SetMode / InitializeStore that may have
-        -- registered objects via DIRECTIONAL_INPUT:Activate directly.
-        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Deactivate then
-            if DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT:IsListening(storeManager) then
-                DIRECTIONAL_INPUT:Deactivate(storeManager)
-            end
-            -- Sweep native component lists — component:Refresh() may have
-            -- activated them via OnEffectivelyShown handlers.
-            local activeComps = storeManager.activeComponents
-            if type(activeComps) == "table" then
-                for _, comp in ipairs(activeComps) do
-                    if comp and comp.list and DIRECTIONAL_INPUT.IsListening
-                        and DIRECTIONAL_INPUT:IsListening(comp.list) then
-                        DIRECTIONAL_INPUT:Deactivate(comp.list)
-                    end
-                end
-            end
-            -- Also sweep _currentList if it differs from any component list.
-            if storeManager._currentList and DIRECTIONAL_INPUT.IsListening
-                and DIRECTIONAL_INPUT:IsListening(storeManager._currentList) then
-                DIRECTIONAL_INPUT:Deactivate(storeManager._currentList)
-            end
-            -- Sweep headerFocus.
-            if storeManager.headerFocus and DIRECTIONAL_INPUT.IsListening
-                and DIRECTIONAL_INPUT:IsListening(storeManager.headerFocus) then
-                DIRECTIONAL_INPUT:Deactivate(storeManager.headerFocus)
-            end
+    local storeManager = snapshot.storeManager
+    if storeManager.sceneName ~= "betterui_native_store_blocked" then
+        storeManager.sceneName = "betterui_native_store_blocked"
+    end
+
+    SafeCall("Vendor.EnsureNativeStoreComponents:SetActiveComponents",
+        storeManager.SetActiveComponents, storeManager, rebuildPlan.rebuiltModes, snapshot.searchContext)
+
+    NeutralizeNativeStoreHeaderCallbacks(storeManager)
+    if storeManager._currentList and storeManager._currentList.Deactivate then
+        if not storeManager._currentList.IsActive or storeManager._currentList:IsActive() then
+            storeManager._currentList:Deactivate()
         end
-        LogNativeStoreInputState("EnsureNativeStoreComponents:postSweep", storeManager)
+    end
+
+    if snapshot.buyMode and rebuildPlan.modeSet[snapshot.buyMode] then
+        if type(SetStoreMode) == "function" then
+            SafeCall("Vendor.EnsureNativeStoreComponents:SetStoreMode", SetStoreMode, snapshot.buyMode)
+        end
+        if type(storeManager.SetMode) == "function" then
+            SafeCall("Vendor.EnsureNativeStoreComponents:StoreManagerSetMode", storeManager.SetMode, storeManager, snapshot.buyMode)
+        end
+    end
+    if type(storeManager.InitializeStore) == "function" then
+        SafeCall("Vendor.EnsureNativeStoreComponents:InitializeStore", storeManager.InitializeStore, storeManager)
+    end
+
+    return true
+end
+
+local function EnsureNativeStoreComponents(searchContext)
+    local snapshot = BuildNativeStoreComponentSnapshot(searchContext)
+    if not snapshot then
+        return
+    end
+
+    LogVendorDebug(
+        "DIRECTIONAL_INPUT",
+        "VendorDI",
+        string.format(
+            "EnsureNativeStoreComponents(%s): rebuild=%s includeBuy=%s activeModes=%d",
+            tostring(snapshot.searchContext),
+            tostring(snapshot.needRebuild),
+            tostring(snapshot.includeBuy),
+            #snapshot.componentTable
+        )
+    )
+    if not snapshot.needRebuild then
+        SweepNativeStoreDirectionalInput(snapshot.storeManager, false)
+        LogNativeStoreInputState("EnsureNativeStoreComponents:skipRebuild", snapshot.storeManager)
+        return
+    end
+
+    local rebuildPlan = BuildNativeStoreRebuildPlan(snapshot)
+    if ApplyNativeStoreRebuildPlan(snapshot, rebuildPlan) then
+        SweepNativeStoreDirectionalInput(snapshot.storeManager, true)
+        LogNativeStoreInputState("EnsureNativeStoreComponents:postSweep", snapshot.storeManager)
     end
 end
 
@@ -1324,6 +1237,7 @@ function Vendor.ExecuteBatchAction(mode, itemData)
 end
 
 -- VENDOR BATCH OPTIONS (server-bound throttling, matching banking/inventory pacing)
+-- VENDOR BATCH OPTIONS (server-bound throttling, matching banking/inventory pacing)
 local VENDOR_BATCH_OPTIONS = {
     serverBound          = true,
     minServerDelayMs     = 145,
@@ -1335,23 +1249,242 @@ local VENDOR_BATCH_OPTIONS = {
     jitterMs             = 18,
 }
 
+---@param mode number
+---@return string
+local function ResolveVendorBatchActionName(mode)
+    if mode == MODE.BUY then
+        return GetString(rawget(_G, "SI_ITEM_ACTION_BUY") or "SI_ITEM_ACTION_BUY")
+    elseif mode == MODE.SELL or mode == MODE.FENCE_SELL then
+        return GetString(rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL")
+    elseif mode == MODE.FENCE_LAUNDER then
+        return GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER")
+    elseif mode == MODE.BUYBACK then
+        return GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK") or "SI_ITEM_ACTION_BUYBACK")
+    end
+    return GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS") or "SI_BETTERUI_BATCH_ACTIONS")
+end
+
+---@param totalItems integer
+---@return table
+local function ResolveVendorBatchDelayPolicy(totalItems)
+    local BatchConfig = BETTERUI.CIM.BatchConfig
+    local throttleProfile = BatchConfig.ResolveBatchThrottleProfile(totalItems)
+    local opts = VENDOR_BATCH_OPTIONS
+    local minDelay = opts.minServerDelayMs or 145
+
+    return {
+        BatchConfig = BatchConfig,
+        baseDelayMs = zo_max(throttleProfile.DELAY_MS or 100, minDelay),
+        showProgress = throttleProfile.SHOW_PROGRESS == true or totalItems >= 10,
+        minDelay = minDelay,
+        maxDelay = opts.maxServerDelayMs or 330,
+        cooldownEvery = opts.cooldownEvery or 18,
+        cooldownMs = opts.cooldownMs or 1200,
+        chunkCostUnits = opts.chunkCostUnits or 32,
+        chunkPauseMs = opts.chunkPauseMs or 1000,
+        jitterMs = opts.jitterMs or 18,
+    }
+end
+
+---@param mode number
+---@param items BetterUIVendorBatchItem[]
+---@param onComplete function|nil
+---@return table
+local function CreateVendorBatchRunner(mode, items, onComplete)
+    local BatchOverlay = BETTERUI.CIM.BatchOverlay
+    local delayPolicy = ResolveVendorBatchDelayPolicy(#items)
+    local runner = {
+        mode = mode,
+        items = items,
+        onComplete = onComplete,
+        totalItems = #items,
+        actionName = ResolveVendorBatchActionName(mode),
+        BatchOverlay = BatchOverlay,
+        BatchConfig = delayPolicy.BatchConfig,
+        delayPolicy = delayPolicy,
+        showProgress = delayPolicy.showProgress,
+        processedCount = 0,
+        index = 0,
+        stopReason = nil,
+        nextCooldownAt = delayPolicy.cooldownEvery > 0 and delayPolicy.cooldownEvery or nil,
+        nextChunkAt = delayPolicy.chunkCostUnits > 0 and delayPolicy.chunkCostUnits or nil,
+    }
+
+    function runner:IsSceneActive()
+        return Vendor.instance and Vendor.instance.IsSceneShowing and Vendor.instance:IsSceneShowing()
+    end
+
+    function runner:BuildProgressMainText()
+        return string.format("Processing (%d/%d)", self.processedCount, self.totalItems)
+    end
+
+    function runner:BuildProgressSecondaryText()
+        return string.format("Please Wait - Press %s to abort", self.BatchConfig.ResolveBatchAbortBindingMarkup())
+    end
+
+    function runner:Finish()
+        Vendor._batchProcessing = false
+        Vendor._batchAbortRequested = false
+
+        if self.showProgress or self.stopReason then
+            local completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PROCESSING_COMPLETE")),
+                self.processedCount)
+            if self.stopReason == "bagFull" then
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_BAG_FULL")), self.processedCount,
+                    self.totalItems)
+            elseif self.stopReason == "sceneExit" then
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT")), "Vendor",
+                    self.processedCount, self.totalItems)
+            elseif self.stopReason == "aborted" then
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_COMPLETE")),
+                    self.processedCount, self.totalItems)
+            elseif self.processedCount < self.totalItems then
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PARTIAL_SUCCESS")),
+                    self.processedCount, self.totalItems)
+            end
+            self.BatchOverlay.ShowStatus({
+                displayName = self.actionName,
+                bodyText = completeText,
+            })
+            self.BatchOverlay.Hide((self.stopReason and 4000) or 2000)
+        else
+            self.BatchOverlay.Hide()
+        end
+
+        if self.onComplete then
+            self.onComplete(self.stopReason)
+        end
+    end
+
+    function runner:RecordServerAction()
+        if self.BatchConfig.RecordServerAction then
+            self.BatchConfig.RecordServerAction(self.BatchConfig.GetNowMs(), self.BatchConfig.SERVER_RATE_WINDOW_MS)
+        end
+    end
+
+    function runner:UpdateProgress()
+        if self.showProgress then
+            self.BatchOverlay.Show(
+                self.actionName,
+                function() return self:BuildProgressMainText() end,
+                function() return self:BuildProgressSecondaryText() end
+            )
+        end
+    end
+
+    function runner:ResolveDelayMs()
+        local delayMs = self.delayPolicy.baseDelayMs
+        local jitterMs = self.delayPolicy.jitterMs
+        local minDelay = self.delayPolicy.minDelay
+        local maxDelay = self.delayPolicy.maxDelay
+
+        if jitterMs > 0 and self.BatchConfig.ResolveSignedJitter then
+            delayMs = zo_clamp(delayMs + self.BatchConfig.ResolveSignedJitter(jitterMs), minDelay, maxDelay)
+        else
+            delayMs = zo_clamp(delayMs, minDelay, maxDelay)
+        end
+
+        if self.delayPolicy.cooldownMs > 0 and self.nextCooldownAt and self.processedCount >= self.nextCooldownAt then
+            delayMs = delayMs + self.delayPolicy.cooldownMs
+            while self.nextCooldownAt and self.processedCount >= self.nextCooldownAt do
+                self.nextCooldownAt = self.nextCooldownAt + self.delayPolicy.cooldownEvery
+            end
+        end
+
+        if self.delayPolicy.chunkPauseMs > 0 and self.nextChunkAt and self.processedCount >= self.nextChunkAt then
+            delayMs = delayMs + self.delayPolicy.chunkPauseMs
+            while self.nextChunkAt and self.processedCount >= self.nextChunkAt do
+                self.nextChunkAt = self.nextChunkAt + self.delayPolicy.chunkCostUnits
+            end
+        end
+
+        return delayMs
+    end
+
+    function runner:Step()
+        if not self:IsSceneActive() then
+            self.stopReason = "sceneExit"
+            self:Finish()
+            return
+        end
+
+        if Vendor._batchAbortRequested then
+            self.stopReason = "aborted"
+            self:Finish()
+            return
+        end
+
+        self.index = self.index + 1
+        if self.index > self.totalItems then
+            self:Finish()
+            return
+        end
+
+        Vendor.ExecuteBatchAction(self.mode, self.items[self.index])
+        self.processedCount = self.processedCount + 1
+
+        if self.mode == MODE.BUY or self.mode == MODE.BUYBACK then
+            local vendorInstance = Vendor.instance
+            if vendorInstance and vendorInstance.HasInventorySpace and not vendorInstance:HasInventorySpace() then
+                self.stopReason = "bagFull"
+                self:Finish()
+                return
+            end
+        end
+
+        self:RecordServerAction()
+        self:UpdateProgress()
+        zo_callLater(function() self:Step() end, self:ResolveDelayMs())
+    end
+
+    function runner:StartAfterDialogDismiss(remainingMs)
+        if not Vendor._batchProcessing then
+            return
+        end
+        if Vendor._batchAbortRequested then
+            self.stopReason = "aborted"
+            self:Finish()
+            return
+        end
+        if not self:IsSceneActive() then
+            self.stopReason = "sceneExit"
+            self:Finish()
+            return
+        end
+
+        if self.BatchOverlay.IsAnyBatchActionDialogShowing and self.BatchOverlay.IsAnyBatchActionDialogShowing() and remainingMs > 0 then
+            zo_callLater(function() self:StartAfterDialogDismiss(remainingMs - 25) end, 25)
+            return
+        end
+
+        zo_callLater(function()
+            if not Vendor._batchProcessing then
+                return
+            end
+            self:UpdateProgress()
+            self:Step()
+        end, 160)
+    end
+
+    function runner:Start()
+        self:StartAfterDialogDismiss(1800)
+    end
+
+    return runner
+end
+
 --- Processes vendor batch actions through a throttled pipeline with overlay progress.
 --- Works for all vendor modes including BUY/BUYBACK (which lack bagId/slotIndex).
 ---@param mode number Vendor mode constant (MODE.BUY, MODE.SELL, etc.)
 ---@param items BetterUIVendorBatchItem[] Array of selected item data tables
 ---@param onComplete function|nil Callback invoked when processing finishes
 function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
-    local BatchOverlay = BETTERUI.CIM.BatchOverlay
-    local BatchConfig = BETTERUI.CIM.BatchConfig
-
     local totalItems = #items
     if totalItems == 0 then
         if onComplete then onComplete() end
         return
     end
 
-    -- BUYBACK FIX: Process highest entryIndex first so removals don't
-    -- invalidate lower indices that haven't been processed yet.
     if mode == MODE.BUYBACK then
         table.sort(items, function(a, b)
             local dsA = a.dataSource or a
@@ -1360,179 +1493,14 @@ function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
         end)
     end
 
-    -- Prevent re-entry
-    if Vendor._batchProcessing then return end
+    if Vendor._batchProcessing then
+        return
+    end
     Vendor._batchProcessing = true
     Vendor._batchAbortRequested = false
 
-    -- Resolve display name for the overlay
-    local actionName
-    if mode == MODE.BUY then
-        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_BUY") or "SI_ITEM_ACTION_BUY")
-    elseif mode == MODE.SELL or mode == MODE.FENCE_SELL then
-        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL")
-    elseif mode == MODE.FENCE_LAUNDER then
-        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER")
-    elseif mode == MODE.BUYBACK then
-        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK") or "SI_ITEM_ACTION_BUYBACK")
-    else
-        actionName = GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS") or "SI_BETTERUI_BATCH_ACTIONS")
-    end
-
-    -- Resolve throttle profile
-    local throttleProfile = BatchConfig.ResolveBatchThrottleProfile(totalItems)
-    local baseDelayMs = throttleProfile.DELAY_MS or 100
-    local showProgress = throttleProfile.SHOW_PROGRESS == true or totalItems >= 10
-    local opts = VENDOR_BATCH_OPTIONS
-    local minDelay = opts.minServerDelayMs or 145
-    local maxDelay = opts.maxServerDelayMs or 330
-    local cooldownEvery = opts.cooldownEvery or 18
-    local cooldownMs = opts.cooldownMs or 1200
-    local chunkCostUnits = opts.chunkCostUnits or 32
-    local chunkPauseMs = opts.chunkPauseMs or 1000
-    local jitterMs = opts.jitterMs or 18
-    baseDelayMs = zo_max(baseDelayMs, minDelay)
-
-    local index = 0
-    local processedCount = 0
-    local stopReason = nil
-    local nextCooldownAt = cooldownEvery > 0 and cooldownEvery or nil
-    local nextChunkAt = chunkCostUnits > 0 and chunkCostUnits or nil
-
-    local function IsSceneActive()
-        return Vendor.instance and Vendor.instance.IsSceneShowing and Vendor.instance:IsSceneShowing()
-    end
-
-    local function BuildProgressMainText()
-        return string.format("Processing (%d/%d)", processedCount, totalItems)
-    end
-
-    local function BuildProgressSecondaryText()
-        return string.format("Please Wait - Press %s to abort", BatchConfig.ResolveBatchAbortBindingMarkup())
-    end
-
-    local function FinishBatch()
-        Vendor._batchProcessing = false
-        Vendor._batchAbortRequested = false
-
-        if showProgress or stopReason then
-            local completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PROCESSING_COMPLETE")), processedCount)
-            if stopReason == "bagFull" then
-                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_BAG_FULL")), processedCount, totalItems)
-            elseif stopReason == "sceneExit" then
-                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT")), "Vendor", processedCount, totalItems)
-            elseif stopReason == "aborted" then
-                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_COMPLETE")), processedCount, totalItems)
-            elseif processedCount < totalItems then
-                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PARTIAL_SUCCESS")), processedCount, totalItems)
-            end
-            BatchOverlay.ShowStatus({
-                displayName = actionName,
-                bodyText = completeText,
-            })
-            BatchOverlay.Hide((stopReason and 4000) or 2000)
-        else
-            BatchOverlay.Hide()
-        end
-
-        if onComplete then onComplete(stopReason) end
-    end
-
-    local processNext
-    processNext = function()
-        -- Scene exit check
-        if not IsSceneActive() then
-            stopReason = "sceneExit"
-            FinishBatch()
-            return
-        end
-
-        -- Abort check
-        if Vendor._batchAbortRequested then
-            stopReason = "aborted"
-            FinishBatch()
-            return
-        end
-
-        index = index + 1
-        if index > totalItems then
-            FinishBatch()
-            return
-        end
-
-        -- Execute the action for this item
-        Vendor.ExecuteBatchAction(mode, items[index])
-        processedCount = processedCount + 1
-
-        -- Abort batch when bag is full during BUY or BUYBACK operations
-        if mode == MODE.BUY or mode == MODE.BUYBACK then
-            local vi = Vendor.instance
-            if vi and vi.HasInventorySpace and not vi:HasInventorySpace() then
-                stopReason = "bagFull"
-                FinishBatch()
-                return
-            end
-        end
-
-        -- Record server action for shared rate tracking
-        if BatchConfig.RecordServerAction then
-            BatchConfig.RecordServerAction(BatchConfig.GetNowMs(), BatchConfig.SERVER_RATE_WINDOW_MS)
-        end
-
-        -- Update progress overlay
-        if showProgress then
-            BatchOverlay.Show(actionName, BuildProgressMainText, BuildProgressSecondaryText)
-        end
-
-        -- Calculate delay with cooldown and chunk pauses
-        local delayMs = baseDelayMs
-        if jitterMs > 0 and BatchConfig.ResolveSignedJitter then
-            delayMs = zo_clamp(delayMs + BatchConfig.ResolveSignedJitter(jitterMs), minDelay, maxDelay)
-        else
-            delayMs = zo_clamp(delayMs, minDelay, maxDelay)
-        end
-
-        -- Cooldown pause every N items
-        if cooldownMs > 0 and nextCooldownAt and processedCount >= nextCooldownAt then
-            delayMs = delayMs + cooldownMs
-            while nextCooldownAt and processedCount >= nextCooldownAt do
-                nextCooldownAt = nextCooldownAt + cooldownEvery
-            end
-        end
-
-        -- Chunk pause at cost boundaries
-        if chunkPauseMs > 0 and nextChunkAt and processedCount >= nextChunkAt then
-            delayMs = delayMs + chunkPauseMs
-            while nextChunkAt and processedCount >= nextChunkAt do
-                nextChunkAt = nextChunkAt + chunkCostUnits
-            end
-        end
-
-        zo_callLater(processNext, delayMs)
-    end
-
-    -- Wait for the dialog to dismiss before starting
-    local function StartAfterDialogDismiss(remainingMs)
-        if not Vendor._batchProcessing then return end
-        if Vendor._batchAbortRequested then stopReason = "aborted"; FinishBatch(); return end
-        if not IsSceneActive() then stopReason = "sceneExit"; FinishBatch(); return end
-
-        if BatchOverlay.IsAnyBatchActionDialogShowing and BatchOverlay.IsAnyBatchActionDialogShowing() and remainingMs > 0 then
-            zo_callLater(function() StartAfterDialogDismiss(remainingMs - 25) end, 25)
-            return
-        end
-
-        -- Small settle delay after dialog closes
-        zo_callLater(function()
-            if not Vendor._batchProcessing then return end
-            if showProgress then
-                BatchOverlay.Show(actionName, BuildProgressMainText, BuildProgressSecondaryText)
-            end
-            processNext()
-        end, 160)
-    end
-
-    StartAfterDialogDismiss(1800)
+    local runner = CreateVendorBatchRunner(mode, items, onComplete)
+    runner:Start()
 end
 
 --- Requests abort of the current vendor batch operation.

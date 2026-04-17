@@ -58,6 +58,18 @@ for _, moduleEntry in ipairs(moduleFiles) do
         moduleEntry.moduleName .. " Module.lua avoids inline fallback default tables")
 end
 
+local writsSource = read_file("Modules/Writs/Module.lua")
+assert_true(writsSource:find('GetModuleDefaults%("Writs"%)') ~= nil,
+    "Writs InitModule reads DefaultsRegistry module defaults")
+assert_true(writsSource:find('ApplyModuleDefaults%("Writs",%s*m_options%)') ~= nil,
+    "Writs InitModule applies DefaultsRegistry directly")
+assert_true(writsSource:find('BETTERUI%.CIM%.InitModuleDefaults%("Writs"') == nil,
+    "Writs InitModule avoids the CIM defaults helper")
+assert_true(writsSource:find('RegisterModuleAccessors%("Writs"%)') == nil,
+    "Writs root avoids CIM accessor registration")
+assert_true(writsSource:find("local%s+fallbackDefaults%s*=%s*%{") == nil,
+    "Writs Module.lua avoids inline fallback default tables")
+
 local cimSource = read_file("Modules/CIM/Module.lua")
 assert_true(cimSource:find('local%s+defaultsApi%s*=%s*BETTERUI%.Defaults') ~= nil,
     "CIM InitModule binds DefaultsRegistry directly")

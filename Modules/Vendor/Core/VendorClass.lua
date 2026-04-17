@@ -120,33 +120,9 @@ end
 
 Vendor.GetModeDescriptor = GetModeDescriptor
 
-local function ResolveModeName(mode)
-    local descriptor = GetModeDescriptor(mode)
-    local stringId = descriptor and descriptor.nameStringId or "SI_BETTERUI_VENDOR_TITLE"
-    return GetString(rawget(_G, stringId) or stringId)
-end
-
-local function ResolveNativeStoreMode(mode)
-    local descriptor = GetModeDescriptor(mode)
-    return descriptor and rawget(_G, descriptor.nativeModeGlobalKey) or nil
-end
-
-local function ResolveModeIcon(mode)
-    local descriptor = GetModeDescriptor(mode)
-    if descriptor then
-        if descriptor.iconResolver then
-            return descriptor.iconResolver()
-        end
-        if descriptor.iconFile then
-            return descriptor.iconFile
-        end
-    end
-    return DEFAULT_VENDOR_CATEGORY_ICON
-end
-
-Vendor.ResolveModeName = ResolveModeName
-Vendor.ResolveModeIcon = ResolveModeIcon
-Vendor.ResolveNativeStoreMode = ResolveNativeStoreMode
+local ResolveModeName = assert(Vendor.ResolveModeName, "Vendor mode policy must load before VendorClass")
+local ResolveModeIcon = assert(Vendor.ResolveModeIcon, "Vendor mode policy must load before VendorClass")
+local ResolveNativeStoreMode = assert(Vendor.ResolveNativeStoreMode, "Vendor mode policy must load before VendorClass")
 
 local function DoesModeUseItemsTitle(mode)
     local descriptor = GetModeDescriptor(mode)
@@ -289,6 +265,310 @@ end
 
 local function ShouldShowVendorHeaderTabBar(headerEntryCount)
     return (headerEntryCount or 0) > 0
+end
+
+local function BuildVendorHeaderModel(instance)
+    local mode = instance:GetCurrentMode()
+    local activeTabs = (BETTERUI.Vendor.GetActiveTabs and BETTERUI.Vendor.GetActiveTabs()) or {}
+    local modeTabs = BuildHeaderModeTabs(activeTabs, mode)
+    local isSellBuybackOnly = IsSellBuybackOnlyTabs(activeTabs)
+    local useUnifiedBuyHeader = (not isSellBuybackOnly) and IsUnifiedBuyHeaderMode(mode)
+    local categoryMode = useUnifiedBuyHeader and BETTERUI.Vendor.MODE.BUY or mode
+    local categories = instance:GetModeCategories(categoryMode)
+    if useUnifiedBuyHeader
+        and categoryMode == BETTERUI.Vendor.MODE.BUY
+        and #categories <= 1
+        and instance._cachedBuyCategories
+        and #instance._cachedBuyCategories > 1 then
+        categories = instance._cachedBuyCategories
+        instance.modeCategories[BETTERUI.Vendor.MODE.BUY] = categories
+    end
+
+    local showCategoryEntries = not isSellBuybackOnly
+    if not showCategoryEntries and #modeTabs == 0 then
+        showCategoryEntries = true
+    end
+
+    local selectedCategoryIndex = (instance.categoryIndexByMode and instance.categoryIndexByMode[categoryMode]) or 1
+    selectedCategoryIndex = zo_clamp(selectedCategoryIndex, 1, #categories)
+    local selectedCategory = categories[selectedCategoryIndex]
+
+    local modeEntryCount = #modeTabs
+    local selectedHeaderIndex
+    if showCategoryEntries then
+        selectedHeaderIndex = modeEntryCount + selectedCategoryIndex
+        if useUnifiedBuyHeader and mode ~= BETTERUI.Vendor.MODE.BUY then
+            for modeEntryIndex, tab in ipairs(modeTabs) do
+                if tab.mode == mode then
+                    selectedHeaderIndex = modeEntryIndex
+                    break
+                end
+            end
+        end
+    else
+        selectedHeaderIndex = 1
+        for modeEntryIndex, tab in ipairs(modeTabs) do
+            if tab.mode == mode then
+                selectedHeaderIndex = modeEntryIndex
+                break
+            end
+        end
+    end
+
+    local preferredModeSelection = instance._preferredModeHeaderSelectionMode
+    if preferredModeSelection and modeEntryCount > 0 then
+        for modeEntryIndex, tab in ipairs(modeTabs) do
+            if tab.mode == preferredModeSelection then
+                selectedHeaderIndex = modeEntryIndex
+                break
+            end
+        end
+    end
+
+    local headerEntries = {}
+    for _, tab in ipairs(modeTabs) do
+        headerEntries[#headerEntries + 1] = {
+            modeSwitchMode = tab.mode,
+            name = ResolveModeName(tab.mode),
+            iconFile = ResolveModeIcon(tab.mode),
+        }
+    end
+    if showCategoryEntries then
+        for categoryIndex, category in ipairs(categories) do
+            headerEntries[#headerEntries + 1] = {
+                categoryIndex = categoryIndex,
+                categoryMode = categoryMode,
+                name = category.name,
+                iconFile = category.iconFile or DEFAULT_VENDOR_CATEGORY_ICON,
+                filterType = category.filterType,
+                itemCount = category.itemCount,
+            }
+        end
+    end
+
+    return {
+        mode = mode,
+        useUnifiedBuyHeader = useUnifiedBuyHeader,
+        categoryMode = categoryMode,
+        selectedCategoryIndex = selectedCategoryIndex,
+        selectedCategory = selectedCategory,
+        headerEntries = headerEntries,
+        selectedHeaderIndex = selectedHeaderIndex,
+        modeEntryCount = modeEntryCount,
+        categoryCount = showCategoryEntries and #categories or 0,
+        headerEntryCount = #headerEntries,
+        shouldShowHeaderTabBar = ShouldShowVendorHeaderTabBar(#headerEntries),
+    }
+end
+
+local function ApplyVendorHeaderModelState(instance, headerModel)
+    instance.categoryIndexByMode[headerModel.categoryMode] = headerModel.selectedCategoryIndex
+    instance.currentCategoryIndex = headerModel.selectedCategoryIndex
+    instance._preferredModeHeaderSelectionMode = nil
+    instance._vendorHeaderModeEntryCount = headerModel.modeEntryCount
+    instance._vendorHeaderCategoryCount = headerModel.categoryCount
+    instance._vendorHeaderCategoryMode = headerModel.categoryMode
+    instance._vendorHeaderEntryCount = headerModel.headerEntryCount
+end
+
+local function BuildVendorHeaderData(instance, headerModel, onSelectedChanged)
+    local carouselStartOffset = (BETTERUI.Banking and BETTERUI.Banking.CONST and BETTERUI.Banking.CONST.CAROUSEL and BETTERUI.Banking.CONST.CAROUSEL.startOffset)
+        or BETTERUI.CIM.CONST.CAROUSEL.startOffset
+    local carouselVerticalOffset = (BETTERUI.Banking and BETTERUI.Banking.CONST and BETTERUI.Banking.CONST.CAROUSEL and BETTERUI.Banking.CONST.CAROUSEL.verticalOffset)
+        or BETTERUI.CIM.CONST.CAROUSEL.verticalOffset
+
+    return {
+        titleText = function()
+            local mode = headerModel.mode
+            if mode == BETTERUI.Vendor.MODE.STABLE then
+                return ResolveModeName(mode)
+            end
+            if DoesModeUseItemsTitle(mode) then
+                return zo_strformat("<<1>> - <<2>>", ResolveModeName(mode), "Items")
+            end
+            if headerModel.selectedCategory and headerModel.selectedCategory.name and headerModel.selectedCategory.name ~= "" then
+                return zo_strformat("<<1>> - <<2>>", ResolveModeName(mode), headerModel.selectedCategory.name)
+            end
+            return ResolveModeName(mode)
+        end,
+        tabBarData = { parent = instance },
+        carouselConfig = {
+            enabled = (not BETTERUI.Vendor.GetSetting) or (BETTERUI.Vendor.GetSetting("enableCarousel") ~= false),
+            startOffset = carouselStartOffset,
+            verticalOffset = carouselVerticalOffset,
+            itemSpacing = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing,
+        },
+        onSelectedChanged = onSelectedChanged,
+    }
+end
+
+local function CreateVendorHeaderSelectionHandler(instance, headerModel, headerNavigation, navigationState)
+    local coalescedCategoryHandler = nil
+    if headerNavigation and headerNavigation.CreateCoalescedHandler then
+        coalescedCategoryHandler = headerNavigation.CreateCoalescedHandler({
+            delay = BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS,
+            onSave = function(screen)
+                screen:SaveListPosition()
+            end,
+            onApply = function(screen, headerIndex)
+                local appliedHeaderIndex = zo_clamp(headerIndex or 1, 1, #headerModel.headerEntries)
+                local appliedEntry = headerModel.headerEntries[appliedHeaderIndex]
+                if not appliedEntry then
+                    return
+                end
+
+                local categoryIndex = appliedEntry.categoryIndex or 1
+                local selectedCategoryMode = appliedEntry.categoryMode or screen:GetCurrentMode()
+                local shouldSwitchToBuy = headerModel.useUnifiedBuyHeader
+                    and screen:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY
+                    and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY
+                if screen.categoryIndexByMode[selectedCategoryMode] == categoryIndex and not shouldSwitchToBuy then
+                    if screen.UpdateVendorHeaderTitle then
+                        screen:UpdateVendorHeaderTitle()
+                    end
+                    return
+                end
+
+                screen.categoryIndexByMode[selectedCategoryMode] = categoryIndex
+                screen.currentCategoryIndex = categoryIndex
+                if screen.UpdateVendorHeaderTitle then
+                    screen:UpdateVendorHeaderTitle()
+                end
+
+                if shouldSwitchToBuy then
+                    screen:SetMode(BETTERUI.Vendor.MODE.BUY)
+                    return
+                end
+
+                screen:RefreshList()
+            end,
+            sceneCheck = function()
+                if instance.IsSceneShowing then
+                    return instance:IsSceneShowing()
+                end
+                if instance.IsSceneActiveOrShowing then
+                    return instance:IsSceneActiveOrShowing()
+                end
+                return true
+            end,
+        })
+    end
+
+    return function(list)
+        if instance._suppressVendorHeaderSelection then
+            return
+        end
+
+        local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(instance) or nil
+        if navigationState and state and navigationState.ShouldSuppressCallback and navigationState.ShouldSuppressCallback(state) then
+            return
+        end
+
+        local index = list and list.selectedIndex or headerModel.selectedHeaderIndex
+        index = zo_clamp(index, 1, #headerModel.headerEntries)
+        local selectedEntry = headerModel.headerEntries[index]
+        if not selectedEntry then
+            return
+        end
+
+        if selectedEntry.modeSwitchMode then
+            local targetMode = selectedEntry.modeSwitchMode
+            if targetMode ~= headerModel.mode then
+                instance._preferredModeHeaderSelectionMode = targetMode
+                instance:SetMode(targetMode)
+            end
+            return
+        end
+
+        if coalescedCategoryHandler then
+            coalescedCategoryHandler(instance, list, selectedEntry)
+            return
+        end
+
+        local categoryIndex = selectedEntry.categoryIndex or 1
+        local selectedCategoryMode = selectedEntry.categoryMode or headerModel.mode
+        local shouldSwitchToBuy = headerModel.useUnifiedBuyHeader
+            and headerModel.mode ~= BETTERUI.Vendor.MODE.BUY
+            and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY
+        if instance.categoryIndexByMode[selectedCategoryMode] == categoryIndex and not shouldSwitchToBuy then
+            return
+        end
+
+        instance.categoryIndexByMode[selectedCategoryMode] = categoryIndex
+        instance.currentCategoryIndex = categoryIndex
+        if shouldSwitchToBuy then
+            instance:SetMode(BETTERUI.Vendor.MODE.BUY)
+            return
+        end
+        instance:RefreshList()
+    end
+end
+
+local function RenderVendorHeader(instance, headerGeneric, headerModel)
+    instance._suppressVendorHeaderSelection = true
+    if not headerGeneric.tabBar then
+        BETTERUI.GenericHeader.Refresh(headerGeneric, instance.vendorHeaderData, false)
+    end
+    if headerGeneric.tabBar then
+        headerGeneric.tabBar:Clear()
+    end
+
+    for _, entryInfo in ipairs(headerModel.headerEntries) do
+        local entryData = ZO_GamepadEntryData:New(entryInfo.name, entryInfo.iconFile or DEFAULT_VENDOR_CATEGORY_ICON)
+        entryData.filterType = entryInfo.filterType
+        entryData.itemCount = entryInfo.itemCount
+        entryData.countBadgeOffsetY = 3
+        entryData.modeSwitchMode = entryInfo.modeSwitchMode
+        entryData.categoryIndex = entryInfo.categoryIndex
+        entryData:SetIconTintOnSelection(true)
+        BETTERUI.GenericHeader.AddToList(headerGeneric, entryData)
+    end
+
+    BETTERUI.GenericHeader.Refresh(headerGeneric, instance.vendorHeaderData, false)
+
+    local tabBarControl = headerGeneric:GetNamedChild("TabBar")
+    if tabBarControl then
+        tabBarControl:SetHidden(not headerModel.shouldShowHeaderTabBar)
+    end
+end
+
+local function RestoreVendorHeaderInteraction(instance, headerGeneric, headerModel, headerNavigation)
+    if headerGeneric.tabBar and headerModel.shouldShowHeaderTabBar then
+        local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(instance) or nil
+        if state and state.justToggledMode then
+            headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(headerModel.selectedHeaderIndex, true, true)
+        else
+            if state then
+                state.suppressHeaderCallback = true
+            end
+            headerGeneric.tabBar:SetSelectedIndex(headerModel.selectedHeaderIndex, true, true)
+            if state then
+                state.suppressHeaderCallback = false
+            end
+        end
+        instance:RefreshVendorHeaderCarouselLayout()
+    elseif headerGeneric.tabBar then
+        SetTabBarVisualActive(headerGeneric.tabBar, false)
+        ReleaseDirectionalInputRegistrations(headerGeneric.tabBar, true)
+    end
+
+    local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(instance) or nil
+    if state then
+        state.justToggledMode = false
+    end
+    instance._suppressVendorHeaderSelection = false
+    if instance.PositionSearchControl then
+        instance:PositionSearchControl()
+    end
+
+    if instance:IsSceneShowing() then
+        instance:EnsureHeaderKeybindsActive()
+        if not instance._searchModeActive and not instance._searchHeaderActive then
+            instance:EnsureListInputActive()
+        end
+    end
+
+    instance:EnsureColumnHeadersVisible()
 end
 
 local function ExecuteSafely(context, fn, ...)
@@ -1073,9 +1353,7 @@ function BETTERUI.Vendor.Class:GetCurrentCategory()
     local selectedIndex = (self.categoryIndexByMode and self.categoryIndexByMode[mode]) or 1
     if selectedIndex < 1 or selectedIndex > #categories then
         selectedIndex = 1
-        self.categoryIndexByMode[mode] = selectedIndex
     end
-    self.currentCategoryIndex = selectedIndex
     return categories[selectedIndex]
 end
 
@@ -1621,274 +1899,12 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
 
     local headerNavigation = BETTERUI.CIM and BETTERUI.CIM.HeaderNavigation or nil
     local navigationState = BETTERUI.CIM and BETTERUI.CIM.NavigationState or nil
-
-    local mode = self:GetCurrentMode()
-    local activeTabs = (BETTERUI.Vendor.GetActiveTabs and BETTERUI.Vendor.GetActiveTabs()) or {}
-    local modeTabs = BuildHeaderModeTabs(activeTabs, mode)
-    local isSellBuybackOnly = IsSellBuybackOnlyTabs(activeTabs)
-    local useUnifiedBuyHeader = (not isSellBuybackOnly) and IsUnifiedBuyHeaderMode(mode)
-    local categoryMode = useUnifiedBuyHeader and BETTERUI.Vendor.MODE.BUY or mode
-    local categories = self:GetModeCategories(categoryMode)
-    if useUnifiedBuyHeader
-        and categoryMode == BETTERUI.Vendor.MODE.BUY
-        and #categories <= 1
-        and self._cachedBuyCategories
-        and #self._cachedBuyCategories > 1 then
-        categories = self._cachedBuyCategories
-        self.modeCategories[BETTERUI.Vendor.MODE.BUY] = categories
-    end
-    local showCategoryEntries = not isSellBuybackOnly
-    if not showCategoryEntries and #modeTabs == 0 then
-        showCategoryEntries = true
-    end
-    local selectedIndex = (self.categoryIndexByMode and self.categoryIndexByMode[categoryMode]) or 1
-    selectedIndex = zo_clamp(selectedIndex, 1, #categories)
-    self.categoryIndexByMode[categoryMode] = selectedIndex
-    self.currentCategoryIndex = selectedIndex
-
-    local selectedCategory = categories[selectedIndex]
-    local modeEntryCount = #modeTabs
-    local selectedHeaderIndex
-    if showCategoryEntries then
-        selectedHeaderIndex = modeEntryCount + selectedIndex
-        if useUnifiedBuyHeader and mode ~= BETTERUI.Vendor.MODE.BUY then
-            for modeEntryIndex, tab in ipairs(modeTabs) do
-                if tab.mode == mode then
-                    selectedHeaderIndex = modeEntryIndex
-                    break
-                end
-            end
-        end
-    else
-        selectedHeaderIndex = 1
-        for modeEntryIndex, tab in ipairs(modeTabs) do
-            if tab.mode == mode then
-                selectedHeaderIndex = modeEntryIndex
-                break
-            end
-        end
-    end
-    local preferredModeSelection = self._preferredModeHeaderSelectionMode
-    if preferredModeSelection and modeEntryCount > 0 then
-        for modeEntryIndex, tab in ipairs(modeTabs) do
-            if tab.mode == preferredModeSelection then
-                selectedHeaderIndex = modeEntryIndex
-                break
-            end
-        end
-    end
-    self._preferredModeHeaderSelectionMode = nil
-    local headerEntries = {}
-    for _, tab in ipairs(modeTabs) do
-        headerEntries[#headerEntries + 1] = {
-            modeSwitchMode = tab.mode,
-            name = ResolveModeName(tab.mode),
-            iconFile = ResolveModeIcon(tab.mode),
-        }
-    end
-    if showCategoryEntries then
-        for categoryIndex, category in ipairs(categories) do
-            headerEntries[#headerEntries + 1] = {
-                categoryIndex = categoryIndex,
-                categoryMode = categoryMode,
-                name = category.name,
-                iconFile = category.iconFile or DEFAULT_VENDOR_CATEGORY_ICON,
-                filterType = category.filterType,
-                itemCount = category.itemCount,
-            }
-        end
-    end
-    self._vendorHeaderModeEntryCount = modeEntryCount
-    self._vendorHeaderCategoryCount = showCategoryEntries and #categories or 0
-    self._vendorHeaderCategoryMode = categoryMode
-    self._vendorHeaderEntryCount = #headerEntries
-    local shouldShowHeaderTabBar = ShouldShowVendorHeaderTabBar(self._vendorHeaderEntryCount)
-
-    self.vendorHeaderData = self.vendorHeaderData or {}
-    self.vendorHeaderData.titleText = function()
-        if mode == BETTERUI.Vendor.MODE.STABLE then
-            return ResolveModeName(mode)
-        end
-        if DoesModeUseItemsTitle(mode) then
-            return zo_strformat("<<1>> - <<2>>", ResolveModeName(mode), "Items")
-        end
-        if showCategoryEntries and selectedCategory and selectedCategory.name and selectedCategory.name ~= "" then
-            return zo_strformat("<<1>> - <<2>>", ResolveModeName(mode), selectedCategory.name)
-        end
-        return ResolveModeName(mode)
-    end
-    self.vendorHeaderData.tabBarData = { parent = self }
-    local carouselStartOffset = (BETTERUI.Banking and BETTERUI.Banking.CONST and BETTERUI.Banking.CONST.CAROUSEL and BETTERUI.Banking.CONST.CAROUSEL.startOffset)
-        or BETTERUI.CIM.CONST.CAROUSEL.startOffset
-    local carouselVerticalOffset = (BETTERUI.Banking and BETTERUI.Banking.CONST and BETTERUI.Banking.CONST.CAROUSEL and BETTERUI.Banking.CONST.CAROUSEL.verticalOffset)
-        or BETTERUI.CIM.CONST.CAROUSEL.verticalOffset
-    self.vendorHeaderData.carouselConfig = {
-        enabled = (not BETTERUI.Vendor.GetSetting) or (BETTERUI.Vendor.GetSetting("enableCarousel") ~= false),
-        startOffset = carouselStartOffset,
-        verticalOffset = carouselVerticalOffset,
-        itemSpacing = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing,
-    }
-    local coalescedCategoryHandler = nil
-    if headerNavigation and headerNavigation.CreateCoalescedHandler then
-        coalescedCategoryHandler = headerNavigation.CreateCoalescedHandler({
-            delay = BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS,
-            onSave = function(instance)
-                instance:SaveListPosition()
-            end,
-            onApply = function(instance, headerIndex)
-                local appliedHeaderIndex = zo_clamp(headerIndex or 1, 1, #headerEntries)
-                local appliedEntry = headerEntries[appliedHeaderIndex]
-                if not appliedEntry then
-                    return
-                end
-
-                local categoryIndex = appliedEntry.categoryIndex or 1
-                local selectedCategoryMode = appliedEntry.categoryMode or instance:GetCurrentMode()
-                local shouldSwitchToBuy = useUnifiedBuyHeader
-                    and instance:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY
-                    and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY
-                if instance.categoryIndexByMode[selectedCategoryMode] == categoryIndex and not shouldSwitchToBuy then
-                    if instance.UpdateVendorHeaderTitle then
-                        instance:UpdateVendorHeaderTitle()
-                    end
-                    return
-                end
-
-                instance.categoryIndexByMode[selectedCategoryMode] = categoryIndex
-                instance.currentCategoryIndex = categoryIndex
-                if instance.UpdateVendorHeaderTitle then
-                    instance:UpdateVendorHeaderTitle()
-                end
-
-                if shouldSwitchToBuy then
-                    instance:SetMode(BETTERUI.Vendor.MODE.BUY)
-                    return
-                end
-
-                instance:RefreshList()
-            end,
-            sceneCheck = function()
-                if self.IsSceneShowing then
-                    return self:IsSceneShowing()
-                end
-                if self.IsSceneActiveOrShowing then
-                    return self:IsSceneActiveOrShowing()
-                end
-                return true
-            end,
-        })
-    end
-    self.vendorHeaderData.onSelectedChanged = function(list)
-        if self._suppressVendorHeaderSelection then
-            return
-        end
-
-        local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(self) or nil
-        if navigationState and state and navigationState.ShouldSuppressCallback and navigationState.ShouldSuppressCallback(state) then
-            return
-        end
-
-        local index = list and list.selectedIndex or selectedHeaderIndex
-        index = zo_clamp(index, 1, #headerEntries)
-        local selectedEntry = headerEntries[index]
-        if not selectedEntry then
-            return
-        end
-
-        if selectedEntry.modeSwitchMode then
-            local targetMode = selectedEntry.modeSwitchMode
-            if targetMode ~= mode then
-                self._preferredModeHeaderSelectionMode = targetMode
-                self:SetMode(targetMode)
-                return
-            end
-            return
-        end
-
-        if coalescedCategoryHandler then
-            coalescedCategoryHandler(self, list, selectedEntry)
-            return
-        end
-
-        local categoryIndex = selectedEntry.categoryIndex or 1
-        local selectedCategoryMode = selectedEntry.categoryMode or mode
-        local shouldSwitchToBuy = useUnifiedBuyHeader
-            and mode ~= BETTERUI.Vendor.MODE.BUY
-            and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY
-        if self.categoryIndexByMode[selectedCategoryMode] == categoryIndex and not shouldSwitchToBuy then
-            return
-        end
-
-        self.categoryIndexByMode[selectedCategoryMode] = categoryIndex
-        self.currentCategoryIndex = categoryIndex
-        if shouldSwitchToBuy then
-            self:SetMode(BETTERUI.Vendor.MODE.BUY)
-            return
-        end
-        self:RefreshList()
-    end
-
-    self._suppressVendorHeaderSelection = true
-    if not headerGeneric.tabBar then
-        BETTERUI.GenericHeader.Refresh(headerGeneric, self.vendorHeaderData, false)
-    end
-    if headerGeneric.tabBar then
-        headerGeneric.tabBar:Clear()
-    end
-
-    for _, entryInfo in ipairs(headerEntries) do
-        local entryData = ZO_GamepadEntryData:New(entryInfo.name, entryInfo.iconFile or DEFAULT_VENDOR_CATEGORY_ICON)
-        entryData.filterType = entryInfo.filterType
-        entryData.itemCount = entryInfo.itemCount
-        entryData.countBadgeOffsetY = 3
-        entryData.modeSwitchMode = entryInfo.modeSwitchMode
-        entryData.categoryIndex = entryInfo.categoryIndex
-        entryData:SetIconTintOnSelection(true)
-        BETTERUI.GenericHeader.AddToList(headerGeneric, entryData)
-    end
-
-    BETTERUI.GenericHeader.Refresh(headerGeneric, self.vendorHeaderData, false)
-
-    local tabBarControl = headerGeneric:GetNamedChild("TabBar")
-    if tabBarControl then
-        tabBarControl:SetHidden(not shouldShowHeaderTabBar)
-    end
-
-    if headerGeneric.tabBar and shouldShowHeaderTabBar then
-        local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(self) or nil
-        if state and state.justToggledMode then
-            headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(selectedHeaderIndex, true, true)
-        else
-            if state then
-                state.suppressHeaderCallback = true
-            end
-            headerGeneric.tabBar:SetSelectedIndex(selectedHeaderIndex, true, true)
-            if state then
-                state.suppressHeaderCallback = false
-            end
-        end
-        self:RefreshVendorHeaderCarouselLayout()
-    elseif headerGeneric.tabBar then
-        SetTabBarVisualActive(headerGeneric.tabBar, false)
-        ReleaseDirectionalInputRegistrations(headerGeneric.tabBar, true)
-    end
-    local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(self) or nil
-    if state then
-        state.justToggledMode = false
-    end
-    self._suppressVendorHeaderSelection = false
-    if self.PositionSearchControl then
-        self:PositionSearchControl()
-    end
-
-    if self:IsSceneShowing() then
-        self:EnsureHeaderKeybindsActive()
-        if not self._searchModeActive and not self._searchHeaderActive then
-            self:EnsureListInputActive()
-        end
-    end
-
-    self:EnsureColumnHeadersVisible()
+    local headerModel = BuildVendorHeaderModel(self)
+    ApplyVendorHeaderModelState(self, headerModel)
+    local onSelectedChanged = CreateVendorHeaderSelectionHandler(self, headerModel, headerNavigation, navigationState)
+    self.vendorHeaderData = BuildVendorHeaderData(self, headerModel, onSelectedChanged)
+    RenderVendorHeader(self, headerGeneric, headerModel)
+    RestoreVendorHeaderInteraction(self, headerGeneric, headerModel, headerNavigation)
 end
 
 ---@return nil

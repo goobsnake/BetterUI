@@ -93,40 +93,6 @@ function BETTERUI.Vendor.MatchesSearchQuery(normalizedQuery, text)
 	return string.find(haystack, normalizedQuery, 1, true) ~= nil
 end
 
----@param tabs table[]|nil
----@return table<number, boolean> modeSet
-function BETTERUI.Vendor.BuildActiveModeSet(tabs)
-	local modeSet = {}
-	for _, tab in ipairs(tabs or {}) do
-		if tab and tab.mode then
-			modeSet[tab.mode] = true
-		end
-	end
-	return modeSet
-end
-
----@param modeSet table<number, boolean>|nil
----@param isFenceInteraction boolean|nil
----@return boolean
-function BETTERUI.Vendor.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
-	if isFenceInteraction then
-		return false
-	end
-
-	local mode = BETTERUI.Vendor.MODE or {}
-	local sellMode = mode.SELL or 2
-	local buybackMode = mode.BUYBACK or 4
-	local buyMode = mode.BUY or 1
-	local repairMode = mode.REPAIR or 3
-
-	modeSet = modeSet or {}
-	local hasSell = modeSet[sellMode] == true
-	local hasBuyback = modeSet[buybackMode] == true
-	local hasBuy = modeSet[buyMode] == true
-	local hasRepair = modeSet[repairMode] == true
-	return hasSell and hasBuyback and not hasBuy and not hasRepair
-end
-
 ---@param flagName string|nil
 ---@return boolean
 function BETTERUI.Vendor.IsDebugFlagEnabled(flagName)

@@ -83,6 +83,11 @@ BETTERUI.Banking.CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearch
 ---@field multiSelectManager table|nil Multi-select manager instance
 ---@field itemSortComparator function|nil Active sort comparator for item rows
 ---@field unifiedFooterController table|nil Unified footer controller instance
+---@field coreKeybinds BetterUIKeybindDescriptorGroup|nil Primary banking navigation keybinds
+---@field withdrawDepositKeybinds BetterUIKeybindDescriptorGroup|nil Item-transfer keybinds
+---@field currencySelectorKeybinds BetterUIKeybindDescriptorGroup|nil Currency amount selector keybinds
+---@field currencyKeybinds BetterUIKeybindDescriptorGroup|nil Currency row interaction keybinds
+---@field textSearchKeybindStripDescriptor BetterUIKeybindDescriptorGroup|nil Active search keybind group
 BETTERUI.Banking.Class = BETTERUI.CIM.GenericWindow:Subclass()
 
 function BETTERUI.Banking.Class:New(...)

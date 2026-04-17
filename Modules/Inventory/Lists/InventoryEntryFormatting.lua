@@ -284,14 +284,26 @@ end
 ---@param data table ZO_GamepadEntryData with dataSource
 ---@return nil
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
+    local function ClearStatusIndicator()
+        if statusIndicator and statusIndicator.ClearIcons then
+            statusIndicator:ClearIcons()
+        end
+    end
+
+    local function HideEquippedIcon()
+        if equippedIcon and equippedIcon.SetHidden then
+            equippedIcon:SetHidden(true)
+        end
+    end
+
     -- Guard against non-item entries (currency rows, headers)
     if not data or not data.dataSource then
-        if statusIndicator then statusIndicator:ClearIcons() end
-        if equippedIcon then equippedIcon:SetHidden(true) end
+        ClearStatusIndicator()
+        HideEquippedIcon()
         return
     end
 
-    statusIndicator:ClearIcons()
+    ClearStatusIndicator()
 
     local isItemNew
     if type(data.brandNew) == "function" then
@@ -300,7 +312,7 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
         isItemNew = data.brandNew
     end
 
-    if isItemNew and data.enabled then
+    if isItemNew and data.enabled and statusIndicator then
         statusIndicator:SetTexture(BETTERUI.CIM.CONST.ICONS.NEW_ITEM)
         statusIndicator:SetHidden(false)
     end
@@ -308,17 +320,19 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     if data.isEquippedInCurrentCategory or data.isEquippedInAnotherCategory then
         local slotIndex = data.dataSource.slotIndex
         local equipType = data.dataSource.equipType
-        if slotIndex == EQUIP_SLOT_BACKUP_MAIN or slotIndex == EQUIP_SLOT_BACKUP_OFF or slotIndex == EQUIP_SLOT_RING2 or slotIndex == EQUIP_SLOT_TRINKET2 or slotIndex == EQUIP_SLOT_BACKUP_POISON then
-            equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_BACKUP)
-        else
-            equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_MAIN)
+        if equippedIcon then
+            if slotIndex == EQUIP_SLOT_BACKUP_MAIN or slotIndex == EQUIP_SLOT_BACKUP_OFF or slotIndex == EQUIP_SLOT_RING2 or slotIndex == EQUIP_SLOT_TRINKET2 or slotIndex == EQUIP_SLOT_BACKUP_POISON then
+                equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_BACKUP)
+            else
+                equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_MAIN)
+            end
+            if equipType == EQUIP_TYPE_INVALID then
+                equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_SLOT)
+            end
+            equippedIcon:SetHidden(false)
         end
-        if equipType == EQUIP_TYPE_INVALID then
-            equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_SLOT)
-        end
-        equippedIcon:SetHidden(false)
     else
-        equippedIcon:SetHidden(true)
+        HideEquippedIcon()
     end
 end
 

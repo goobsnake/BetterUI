@@ -1,8 +1,9 @@
 --[[
-File: tools/tests/test_trading_house_scene_alias.lua
-Purpose: Regression tests for Trading House scene alias ownership lifecycle.
+File: tools/tests/test_trading_house_callbacks.lua
+Purpose: Regression tests for Trading House callback-driven runtime flow using
+         the production coordinator load path.
 Usage:
-  lua tools/tests/test_trading_house_scene_alias.lua
+  lua tools/tests/test_trading_house_callbacks.lua
 ]]
 
 BETTERUI = {
@@ -29,23 +30,22 @@ local function NewScene(name)
         name = name,
         showing = false,
     }
+
     function scene:IsShowing()
         return self.showing
     end
-    function scene:GetName()
-        return self.name
-    end
+
     function scene:AddFragmentGroup(_)
     end
+
     function scene:AddFragment(_)
     end
+
     return scene
 end
 
 SCENE_MANAGER = {
     scenes = {},
-    lastShown = nil,
-    lastHidden = nil,
 }
 
 function SCENE_MANAGER:GetScene(name)
@@ -53,7 +53,6 @@ function SCENE_MANAGER:GetScene(name)
 end
 
 function SCENE_MANAGER:Show(name)
-    self.lastShown = name
     local scene = self.scenes[name]
     if scene then
         scene.showing = true
@@ -61,7 +60,6 @@ function SCENE_MANAGER:Show(name)
 end
 
 function SCENE_MANAGER:Hide(name)
-    self.lastHidden = name
     local scene = self.scenes[name]
     if scene then
         scene.showing = false
@@ -81,10 +79,7 @@ end
 
 local function getRegisteredCallback(name)
     local entry = EVENT_MANAGER.handlers[name]
-    if entry then
-        return entry.callback
-    end
-    return nil
+    return entry and entry.callback or nil
 end
 
 ZO_SimpleSceneFragment = {}
@@ -130,9 +125,12 @@ BETTERUI.CIM.CONST = {
 }
 
 KEYBIND_STRIP = {
-    UpdateCurrentKeybindButtonGroups = function()
-    end,
+    updateCount = 0,
 }
+
+function KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+    self.updateCount = self.updateCount + 1
+end
 
 TH.MODE = {
     BROWSE = 1,
@@ -146,19 +144,37 @@ TH.TH_INTERACTION = {
 }
 
 TH.Tasks = {
-    Cancel = function()
-    end,
-    Schedule = function(_, _, _, callback)
-        if callback then
-            callback()
-        end
-    end,
+    scheduled = {},
+    cancelled = {},
 }
 
+function TH.Tasks:Cancel(key)
+    self.cancelled[#self.cancelled + 1] = key
+end
+
+function TH.Tasks:Schedule(key, delay, callback)
+    self.scheduled[#self.scheduled + 1] = { key = key, delay = delay }
+    if callback then
+        callback()
+    end
+end
+
 TH.BrowseComponent = {
-    currentPage = 99,
-    searchPending = true,
+    currentPage = 0,
+    searchPending = false,
+    searchResultsCount = 0,
+    lastInstance = nil,
 }
+
+function TH.BrowseComponent:OnSearchResultsReceived(instance)
+    self.searchResultsCount = self.searchResultsCount + 1
+    self.lastInstance = instance
+end
+
+TH.SellComponent = {}
+TH.ListingsComponent = {}
+TH.THEntrySetup = function()
+end
 
 local Class = {}
 
@@ -168,6 +184,8 @@ function Class:New(windowName, sceneName)
         sceneName = sceneName,
         control = {},
         currentMode = TH.MODE.BROWSE,
+        refreshListCount = 0,
+        refreshFooterCount = 0,
         list = {
             Clear = function()
             end,
@@ -176,37 +194,54 @@ function Class:New(windowName, sceneName)
             GetTargetData = function()
                 return nil
             end,
+            GetSelectedData = function()
+                return nil
+            end,
         },
     }
 
     function obj:SetTitle(_)
     end
+
     function obj:RegisterComponent(_, _)
     end
+
     function obj:SetupList(_, _)
     end
+
     function obj:AddColumn(_, _)
     end
+
     function obj:InitTHFooter()
     end
+
     function obj:SetMode(mode)
         self.currentMode = mode
     end
+
     function obj:GetCurrentMode()
         return self.currentMode
     end
+
     function obj:UpdateTabHeader()
     end
+
     function obj:GetActiveComponent()
         return nil
     end
+
     function obj:RefreshList()
+        self.refreshListCount = self.refreshListCount + 1
     end
+
     function obj:RefreshTHFooter()
+        self.refreshFooterCount = self.refreshFooterCount + 1
     end
+
     function obj:GetTitle()
         return "Trading House"
     end
+
     function obj:IsSceneShowing()
         local scene = SCENE_MANAGER:GetScene(BETTERUI_TRADING_HOUSE_SCENE_NAME)
         return scene and scene:IsShowing()
@@ -250,14 +285,7 @@ EVENT_INVENTORY_SINGLE_SLOT_UPDATE = 9
 
 TRADING_HOUSE_RESULT_SUCCESS = 1
 INTERACTION_TRADINGHOUSE = 100
-INTERACTION_VENDOR = 200
 ZO_TRADING_HOUSE_SYSTEM_NAME = "tradingHouse"
-
-local interactionType
-
-function GetInteractionType()
-    return interactionType
-end
 
 function GetString(stringId)
     if stringId == nil then
@@ -273,7 +301,6 @@ end
 function ZO_Dialogs_RegisterCustomDialog(_, _)
 end
 
--- Ensure native scene exists before init so native capture is valid.
 local nativeScene = NewScene("gamepad_trading_house")
 SCENE_MANAGER.scenes["gamepad_trading_house"] = nativeScene
 
@@ -300,45 +327,81 @@ dofile("Modules/TradingHouse/TradingHouse.lua")
 
 TH.Init()
 
-local openCallback = getRegisteredCallback("BetterUI_TradingHouse_Open")
-local closeCallback = getRegisteredCallback("BetterUI_TradingHouse_Close")
+local searchResultsCallback = getRegisteredCallback("BetterUI_TradingHouse_SearchResults")
+local cooldownCallback = getRegisteredCallback("BetterUI_TradingHouse_Cooldown")
+local responseCallback = getRegisteredCallback("BetterUI_TradingHouse_Response")
+local listingCallback = getRegisteredCallback("BetterUI_TradingHouse_ListingOp")
+local inventoryUpdateCallback = getRegisteredCallback("BetterUI_TradingHouse_InvUpdate")
 
-print("[TradingHouse scene alias ownership]")
+local scene = SCENE_MANAGER:GetScene(BETTERUI_TRADING_HOUSE_SCENE_NAME)
+scene.showing = true
 
-assert_eq(type(openCallback), "function", "open callback is registered")
-assert_eq(type(closeCallback), "function", "close callback is registered")
+print("[TradingHouse callback flow]")
 
-assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], TH.instance.scene,
-    "init keeps BetterUI scene aliased by default")
-assert_eq(SYSTEMS:GetSystem(ZO_TRADING_HOUSE_SYSTEM_NAME).gamepadRootScene, TH.instance.scene,
-    "init redirects trading-house system gamepad root scene to BetterUI")
+assert_eq(type(searchResultsCallback), "function", "search results callback is registered")
+assert_eq(type(cooldownCallback), "function", "cooldown callback is registered")
+assert_eq(type(responseCallback), "function", "response callback is registered")
+assert_eq(type(listingCallback), "function", "listing callback is registered")
+assert_eq(type(inventoryUpdateCallback), "function", "inventory update callback is registered")
 
--- Non-trading interactions should restore native alias and abort BetterUI show.
-interactionType = INTERACTION_VENDOR
-openCallback()
-assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], nativeScene,
-    "non-trading interaction restores native trading-house alias")
-assert_eq(SYSTEMS:GetSystem(ZO_TRADING_HOUSE_SYSTEM_NAME).gamepadRootScene, nativeScene,
-    "non-trading interaction restores native system root scene")
+searchResultsCallback()
+assert_eq(TH.BrowseComponent.searchResultsCount, 1,
+    "search results callback delegates to BrowseComponent")
+assert_eq(TH.BrowseComponent.lastInstance, TH.instance,
+    "search results callback passes the Trading House instance")
 
--- Interaction type can be nil briefly; BetterUI must still claim ownership.
-interactionType = nil
-openCallback()
-assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], TH.instance.scene,
-    "nil interaction still aliases trading-house scene to BetterUI")
-assert_eq(SYSTEMS:GetSystem(ZO_TRADING_HOUSE_SYSTEM_NAME).gamepadRootScene, TH.instance.scene,
-    "nil interaction still redirects system root scene to BetterUI")
-assert_eq(SCENE_MANAGER.lastShown, BETTERUI_TRADING_HOUSE_SCENE_NAME,
-    "open callback shows BetterUI trading-house scene")
+cooldownCallback()
+assert_eq(KEYBIND_STRIP.updateCount, 1,
+    "cooldown callback refreshes keybind state while scene is showing")
 
--- Close should keep BetterUI alias for the next open cycle.
-closeCallback()
-assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], TH.instance.scene,
-    "close callback keeps BetterUI alias for next open")
-assert_eq(SYSTEMS:GetSystem(ZO_TRADING_HOUSE_SYSTEM_NAME).gamepadRootScene, TH.instance.scene,
-    "close callback keeps BetterUI system root ownership for next open")
-assert_eq(SCENE_MANAGER.lastHidden, BETTERUI_TRADING_HOUSE_SCENE_NAME,
-    "close callback hides BetterUI trading-house scene when showing")
+local scheduleCount = #TH.Tasks.scheduled
+responseCallback(nil, 0, TRADING_HOUSE_RESULT_SUCCESS)
+assert_eq(#TH.Tasks.scheduled, scheduleCount + 1,
+    "successful response schedules a list refresh")
+assert_eq(TH.Tasks.scheduled[#TH.Tasks.scheduled].key, "listRefresh",
+    "successful response uses the listRefresh task key")
+assert_eq(TH.instance.refreshListCount, 1,
+    "successful response refreshes the list")
+assert_eq(TH.instance.refreshFooterCount, 1,
+    "successful response refreshes the footer")
+
+scheduleCount = #TH.Tasks.scheduled
+responseCallback(nil, 0, 999)
+assert_eq(#TH.Tasks.scheduled, scheduleCount,
+    "non-success response does not schedule a refresh")
+
+scheduleCount = #TH.Tasks.scheduled
+listingCallback()
+assert_eq(#TH.Tasks.scheduled, scheduleCount + 1,
+    "listing callback schedules a refresh when scene is showing")
+assert_eq(TH.instance.refreshListCount, 2,
+    "listing callback refreshes the list")
+assert_eq(TH.instance.refreshFooterCount, 2,
+    "listing callback refreshes the footer")
+
+TH.instance:SetMode(TH.MODE.SELL)
+scheduleCount = #TH.Tasks.scheduled
+inventoryUpdateCallback()
+assert_eq(#TH.Tasks.scheduled, scheduleCount + 1,
+    "inventory updates in sell mode schedule a listing refresh")
+assert_eq(TH.instance.refreshListCount, 3,
+    "inventory updates in sell mode refresh the list")
+
+TH.instance:SetMode(TH.MODE.BROWSE)
+scheduleCount = #TH.Tasks.scheduled
+inventoryUpdateCallback()
+assert_eq(#TH.Tasks.scheduled, scheduleCount,
+    "inventory updates outside sell mode do not schedule listing refresh")
+
+scene.showing = false
+scheduleCount = #TH.Tasks.scheduled
+listingCallback()
+cooldownCallback()
+responseCallback(nil, 0, TRADING_HOUSE_RESULT_SUCCESS)
+assert_eq(#TH.Tasks.scheduled, scheduleCount,
+    "hidden scene blocks callback-driven refresh scheduling")
+assert_eq(KEYBIND_STRIP.updateCount, 1,
+    "hidden scene blocks cooldown keybind refresh")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

@@ -12,6 +12,7 @@ end
 
 BAG_BACKPACK = 1
 BAG_BANK = 2
+BAG_GUILDBANK = 3
 BAG_SUBSCRIBER_BANK = 6
 CURT_MONEY = 10
 CURRENCY_LOCATION_CHARACTER = 1
@@ -33,6 +34,7 @@ SI_BETTERUI_SELECT_WITH_COUNT = "SI_BETTERUI_SELECT_WITH_COUNT (%d)"
 SI_BETTERUI_BANKING_WITHDRAW = "SI_BETTERUI_BANKING_WITHDRAW"
 SI_BETTERUI_BANKING_DEPOSIT = "SI_BETTERUI_BANKING_DEPOSIT"
 SI_BETTERUI_CONFIRM_AMOUNT = "SI_BETTERUI_CONFIRM_AMOUNT"
+SI_GAMEPAD_GUILD_BANK_NO_PERMISSION = "SI_GAMEPAD_GUILD_BANK_NO_PERMISSION"
 
 local testsPassed = 0
 local testsFailed = 0
@@ -51,6 +53,7 @@ local stringValues = {
     [SI_BETTERUI_BANKING_WITHDRAW] = "Withdraw",
     [SI_BETTERUI_BANKING_DEPOSIT] = "Deposit",
     [SI_BETTERUI_CONFIRM_AMOUNT] = "Confirm Amount",
+    [SI_GAMEPAD_GUILD_BANK_NO_PERMISSION] = "No guild permission",
 }
 
 local slotStacks = {}
@@ -72,6 +75,8 @@ local nextBankUpgradePrice = 1000
 local carriedCurrency = 5000
 local guildCount = 2
 local batchProcessing = false
+local guildTransferAllowed = true
+local guildTransferDenialText = nil
 
 local function assertTrue(condition, message)
     if condition then
@@ -118,6 +123,8 @@ local function resetGlobals()
     carriedCurrency = 5000
     guildCount = 2
     batchProcessing = false
+    guildTransferAllowed = true
+    guildTransferDenialText = nil
 end
 
 function GetString(id)
@@ -239,6 +246,11 @@ BETTERUI = {
             end,
             IsLoading = function()
                 return guildBankLoading
+            end,
+        },
+        _TransferHelpers = {
+            ResolveGuildBankTransferDecision = function()
+                return guildTransferAllowed, guildTransferDenialText and "denied" or nil, guildTransferDenialText, nil
             end,
         },
         Class = {},
@@ -510,6 +522,15 @@ assertEqual("Cannot afford", userAlerts[1], "Personal bank right-stick alerts wh
 currentBank = 99
 assertTrue(not rightStick.visible(), "Bank upgrade keybind hides outside the main bank")
 assertTrue(not rightStick.enabled(), "Bank upgrade keybind disables outside the main bank")
+
+guildBankMode = true
+currentBank = BAG_GUILDBANK
+guildTransferAllowed = false
+guildTransferDenialText = "No guild permission"
+window.list.selectedData = { bagId = BAG_BACKPACK, slotIndex = 1, stackCount = 1 }
+slotStacks["1:1"] = 1
+assertEqual("No guild permission", primary.name(), "Primary transfer keybind reuses the shared denial text in guild-bank mode")
+assertTrue(not primary.enabled(), "Primary transfer keybind disables when the shared guild-bank gate denies transfer")
 
 window.multiSelectManager.active = false
 window.list.selectedData = { bagId = BAG_BANK, slotIndex = 1, stackCount = 4 }

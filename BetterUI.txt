@@ -220,16 +220,18 @@ Modules\Banking\Banking.lua
 Modules\Banking\Settings\SettingsPanel.lua
 Modules\Banking\Module.lua
 
-; Module: Writ Unit
-Modules\WritUnit\Constants.lua
-Modules\WritUnit\Templates\WritsPanel.xml
-Modules\WritUnit\Core\Writ.lua
-Modules\WritUnit\Module.lua
+; Module: Writs
+Modules\Writs\Constants.lua
+Modules\Writs\Templates\WritsPanel.xml
+Modules\Writs\Core\Writ.lua
+Modules\Writs\Module.lua
 
 ; Module: Trading House (TH-001)
 Modules\TradingHouse\Module.lua
 Modules\TradingHouse\Core\TradingHouseClass.lua
 Modules\TradingHouse\Core\TradingHouseRowSetup.lua
+Modules\TradingHouse\Core\TradingHouseRuntime.lua
+Modules\TradingHouse\Core\TradingHouseRuntimeFlow.lua
 Modules\TradingHouse\Components\BrowseComponent.lua
 Modules\TradingHouse\Components\SellComponent.lua
 Modules\TradingHouse\Components\ListingsComponent.lua
@@ -239,6 +241,7 @@ Modules\TradingHouse\Settings\SettingsPanel.lua
 
 ; Module: Vendor (ECO-002)
 Modules\Vendor\Module.lua
+Modules\Vendor\Core\VendorModePolicy.lua
 Modules\Vendor\Core\VendorClass.lua
 Modules\Vendor\Core\VendorRowSetup.lua
 Modules\Vendor\Core\BatchActionCounts.lua
@@ -254,6 +257,7 @@ Modules\Vendor\Settings\SettingsPanel.lua
 
 ; Module: Companions (INV-004)
 Modules\Companions\Core\CompanionsClass.lua
+Modules\Companions\Core\CompanionsRuntime.lua
 Modules\Companions\Core\CompanionListManager.lua
 Modules\Companions\Core\CompanionItemList.lua
 Modules\Companions\Actions\CompanionActions.lua

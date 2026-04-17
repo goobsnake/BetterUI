@@ -324,19 +324,19 @@ end
 ---@param slotType number Slot type constant
 ---@param selectedDataCallback function|nil Callback for selection changes
 ---@param entrySetupCallback function|nil Entry setup function
----@param categorizationFunction function|nil Category assignment function
+---@param categoryResolver function|nil Category assignment function
 ---@param sortFunction function|nil Sort comparator function
 ---@param useTriggers boolean|nil Whether to use trigger keybinds
 ---@param template string|nil Entry template name
 ---@param templateSetupFunction function|nil Template setup function
 ---@return nil
 function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
-                                            categorizationFunction, sortFunction, useTriggers, template,
+                                            categoryResolver, sortFunction, useTriggers, template,
                                             templateSetupFunction)
     self.control = control
     self.selectedDataCallback = selectedDataCallback
     self.entrySetupCallback = entrySetupCallback
-    self.categorizationFunction = categorizationFunction
+    self.categorizationFunction = categoryResolver
     self.listModuleName = "Inventory"
     self:SetSortFunction(sortFunction)
     self.dataBySlotIndex = {}
@@ -423,9 +423,9 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
             if entry then
                 local itemData = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
                 if itemData then
-                    local categorizationFunction = self.categorizationFunction or
+                    local resolvedCategoryResolver = self.categorizationFunction or
                         GetBestItemCategoryDescription
-                    ApplyInventoryCategoryFields(itemData, categorizationFunction)
+                    ApplyInventoryCategoryFields(itemData, resolvedCategoryResolver)
                     SetEntryListModuleName(itemData, self.listModuleName)
                     if bagId ~= BAG_VIRTUAL then -- virtual items don't have any champion points associated with them
                         itemData.requiredChampionPoints = GetItemLinkRequiredChampionPoints(itemData)
@@ -458,12 +458,12 @@ end
 ---@return nil
 function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
-    local categorizationFunction = self.categorizationFunction or
+    local resolvedCategoryResolver = self.categorizationFunction or
         GetBestItemCategoryDescription
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
     if slotData then
         if (not itemFilterFunction) or itemFilterFunction(slotData) then
-            ApplyInventoryCategoryFields(slotData, categorizationFunction)
+            ApplyInventoryCategoryFields(slotData, resolvedCategoryResolver)
             SetEntryListModuleName(slotData, self.listModuleName)
 
             table.insert(slotsTable, slotData)

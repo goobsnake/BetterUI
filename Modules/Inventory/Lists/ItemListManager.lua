@@ -38,12 +38,6 @@ local function SetupItemList(list)
     )
 end
 
---- @param itemData table
---- @return boolean
-local function IsStolenItem(itemData)
-    return itemData.stolen
-end
-
 --- @param filteredEquipSlot number|nil
 --- @param nonEquipableFilterType number|nil ITEMFILTERTYPE_* constant
 --- @return fun(itemData: table): boolean

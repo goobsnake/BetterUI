@@ -20,7 +20,7 @@ TradingHouse.ROOT_CONTRACT = {
     setupOwner = "Modules/TradingHouse/Module.lua",
     runtimeOwner = "Modules/TradingHouse/Module.lua + Modules/TradingHouse/TradingHouse.lua + Modules/TradingHouse/Core/ + Modules/TradingHouse/Components/",
     settingsOwner = "Modules/TradingHouse/Module.lua + Modules/TradingHouse/Settings/",
-    notes = "Module.lua owns Init/Setup wiring and shared trading-house helpers, delegates module-setting defaults to DefaultsRegistry, and keeps shared CIM font defaults while TradingHouse.lua, Core/, and Components/ implement runtime flow.",
+    notes = "Module.lua owns Init/Setup wiring and shared trading-house helpers, delegates module-setting defaults to DefaultsRegistry, keeps shared CIM font defaults, and relies on Core/TradingHouseRuntime.lua plus TradingHouse.lua/Components for runtime flow.",
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors

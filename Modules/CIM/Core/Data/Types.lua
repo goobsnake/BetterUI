@@ -67,7 +67,7 @@ BETTERUI.CIM.Types = {}
 ---| "Inventory"
 ---| "Banking"
 ---| "ResourceOrbFrames"
----| "WritUnit"
+---| "Writs"
 ---| "CIM"
 ---| "Vendor"
 ---| "GeneralInterface"
@@ -143,4 +143,3 @@ BETTERUI.CIM.Types = {}
 ---@field FONTSTYLE_CHOICES string[] Available font style names
 ---@field FONTSTYLE_VALUES string[] Font style identifiers
 ---@field DEFAULTS table Default font settings
-

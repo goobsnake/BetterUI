@@ -229,7 +229,6 @@ function BETTERUI.Companions.Class:GetCurrentCategory()
     end
 
     local index = zo_clamp(self.currentCategoryIndex or 1, 1, #categories)
-    self.currentCategoryIndex = index
     return categories[index]
 end
 

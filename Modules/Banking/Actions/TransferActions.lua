@@ -63,9 +63,13 @@ local function IsActionableBankSlotEntry(entryData)
     return stackCount > 0
 end
 
--- MultiSelectActions.lua loads before this file (see BetterUI.txt manifest),
--- so _TransferHelpers is already populated.
-local IsDepositAllowedForCurrentBank = BETTERUI.Banking._TransferHelpers.IsDepositSupportedForBank
+local function GetRequiredTransferHelper(helperName)
+    local helpers = BETTERUI.Banking and BETTERUI.Banking._TransferHelpers
+    local helper = helpers and helpers[helperName] or nil
+    assert(type(helper) == "function",
+        "BetterUI: Banking._TransferHelpers." .. helperName .. " must load before Banking/Actions/TransferActions")
+    return helper
+end
 
 ---@param targetBankBag number
 ---@param denyReason string|nil
@@ -75,22 +79,8 @@ local function NotifyDepositBlocked(targetBankBag, denyReason)
         return
     end
 
-    local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY or {}
-    local errorStringId = nil
-
-    if denyReason == "furniture_vault_locked" then
-        errorStringId = IsESOPlusSubscriber and IsESOPlusSubscriber()
-            and SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE
-            or SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS
-    elseif denyReason == deny.STOLEN then
-        local targetIsFurnitureVault = IsFurnitureVault and IsFurnitureVault(targetBankBag)
-        errorStringId = targetIsFurnitureVault
-            and SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE
-            or SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
-    elseif denyReason == deny.CROWN_GEMMABLE then
-        errorStringId = SI_FURNITURE_VAULT_ERROR_GEMMABLE_FURNITURE
-    end
-
+    local resolveTransferDeniedStringId = GetRequiredTransferHelper("ResolveTransferDeniedStringId")
+    local errorStringId = resolveTransferDeniedStringId(targetBankBag, denyReason)
     if errorStringId ~= nil then
         ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
     end
@@ -110,6 +100,8 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
     local targetBankBag = GetCurrentBank()
+    local isDepositAllowedForCurrentBank = GetRequiredTransferHelper("IsDepositSupportedForBank")
+    local notifyGuildBankTransferDenied = GetRequiredTransferHelper("NotifyGuildBankTransferDenied")
     if quantity == nil then
         quantity = 1
     end
@@ -158,6 +150,13 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
+        local bagId = fromBag
+        local slotIndex = fromBagIndex
+        local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
+        local canTransfer = notifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, bagId, slotIndex)
+        if not canTransfer then
+            return
+        end
         if self.currentMode == LIST_WITHDRAW then
             if GetNumBagFreeSlots(BAG_BACKPACK) > 0 then
                 local soundCategory = GetItemSoundCategory(fromBag, fromBagIndex)
@@ -190,7 +189,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         toBag = BAG_BACKPACK
         toBagEmptyIndex = FindFirstEmptySlotInBag(toBag)
     else
-        local canDeposit, denyReason = IsDepositAllowedForCurrentBank(fromBag, fromBagIndex, targetBankBag)
+        local canDeposit, denyReason = isDepositAllowedForCurrentBank(fromBag, fromBagIndex, targetBankBag)
         if not canDeposit then
             NotifyDepositBlocked(targetBankBag, denyReason)
             return

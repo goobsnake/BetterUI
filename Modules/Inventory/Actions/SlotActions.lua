@@ -289,17 +289,32 @@ end
 local ACTION_KEY = 1
 local VISIBILITY_FUNCTION = 4
 
+local function LogVisibilityFailure(actionName, err)
+    if BETTERUI and type(BETTERUI.Debug) == "function" then
+        BETTERUI.Debug(string.format("[Inventory] visibility check failed for %s: %s", tostring(actionName), tostring(err)))
+    end
+end
+
 local function ExecuteVisibilityFunction(actionName, visibilityFunction)
+    local context = "SlotActions.visibility:" .. tostring(actionName)
     local cim = BETTERUI and BETTERUI.CIM
     local safeExecute = cim and cim.SafeExecute
     if type(safeExecute) == "function" then
-        local ok, visible = safeExecute("SlotActions.visibility:" .. tostring(actionName), visibilityFunction)
+        local ok, visible = safeExecute(context, visibilityFunction)
         return ok and visible == true
     end
 
-    local ok, visible = pcall(visibilityFunction)
+    local ok, visible = xpcall(visibilityFunction, function(err)
+        LogVisibilityFailure(actionName, err)
+        return err
+    end)
     return ok and visible == true
 end
+
+BETTERUI.Inventory.SlotActionsVisibilityHelpers = {
+    ExecuteVisibilityFunction = ExecuteVisibilityFunction,
+    LogVisibilityFailure = LogVisibilityFailure,
+}
 
 local function IsActionEntryVisible(actionEntry)
     local visibilityFunction = actionEntry and actionEntry[VISIBILITY_FUNCTION]

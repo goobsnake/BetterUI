@@ -7,6 +7,8 @@ Purpose: Manages keybind descriptors and registration for the Banking module.
 -- SHARED CONSTANTS & STATE
 local LIST_WITHDRAW           = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
+---@alias BetterUIBankingKeybindGroup BetterUIKeybindDescriptorGroup
+---@alias BetterUIBankingListSource table|fun(): table|nil
 local function GetCurrentBank()
     if BETTERUI.Banking and BETTERUI.Banking.GetCurrentBank then
         return BETTERUI.Banking.GetCurrentBank()
@@ -54,73 +56,69 @@ local function IsMainBankContext()
     return currentUsedBank == BAG_BANK
 end
 
---[[
-Function: BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors
-Description: Creates trigger keybinds for fast scrolling the list.
-Note: Delegates to shared CIM factory for consistency.
-param: list (table) - The list control.
-return: table, table - Left and Right trigger keybind descriptors.
-]]
-function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
-    -- Pass Banking-specific speed getter and enabled getter so the saved settings are used
-    return BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list, nil, function()
-        return BETTERUI.Banking.GetSetting("triggerSpeed")
-    end, function()
-        return BETTERUI.Banking.GetSetting("useTriggersForSkip")
-    end)
+local function IsGuildBankMode()
+    local GuildBank = BETTERUI.Banking.GuildBank
+    return GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() or false
 end
 
---- Updates the active item actions based on current selection.
-function BETTERUI.Banking.Class:UpdateActions()
-    -- Skip itemActions updates when in header sort mode to prevent keybind flicker
-    -- itemActions:SetInventorySlot directly manipulates KEYBIND_STRIP, bypassing guards
-    if self.isInHeaderSortMode then
-        return
-    end
-
-    local targetData = self:GetList() and self:GetList().selectedData or nil
-    if not targetData then
-        self.itemActions:SetInventorySlot(nil)
-        return
-    end
-
-    -- Set itemActions only for actionable inventory items.
-    -- Faux rows (currency/header/empty labels) can crash ESO slot action discovery.
-    if not IsActionableListEntry(targetData) then
-        self.itemActions:SetInventorySlot(nil)
-    else
-        self.itemActions:SetInventorySlot(targetData)
-    end
+local function GetSelectedBankEntry(self)
+    local list = self.list or (self.GetList and self:GetList()) or nil
+    return list and list:GetSelectedData() or nil
 end
 
---- Registers the banking keybind groups.
-function BETTERUI.Banking.Class:AddKeybinds()
-    if self.textSearchKeybindStripDescriptor then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-    end
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
-    self:UpdateActions()
-    self:EnsureHeaderKeybindsActive()
+local function IsCurrencyEntry(entryData)
+    return ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated and
+        ZO_GamepadBanking.IsEntryDataCurrencyRelated(entryData) == true
 end
 
---- Unregisters the banking keybind groups.
-function BETTERUI.Banking.Class:RemoveKeybinds()
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+local function IsSelectionToggleMode(self)
+    return self.multiSelectManager and self.multiSelectManager:IsActive() or false
 end
 
---- Initializes the keybind descriptors for the banking module.
---- Wires coreKeybinds (navigation), withdrawDepositKeybinds (item moves),
---- currencyKeybinds (currency selector), and text search keybinds.
-function BETTERUI.Banking.Class:InitializeKeybind()
-    if not BETTERUI.GetModuleEnabled("Banking") then
-        return
+local ResolveGuildBankTransferKeybindState
+
+local function GetPrimaryTransferLabel(self)
+    if IsSelectionToggleMode(self) then
+        local target = GetSelectedBankEntry(self)
+        if IsCurrencyEntry(target) then
+            return ""
+        end
+        if target and self.multiSelectManager:IsSelected(target) then
+            return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM"))
+        end
+        local count = self.multiSelectManager:GetSelectedCount()
+        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")), count)
     end
 
-    self.coreKeybinds = {
+    local label = self.currentMode == LIST_WITHDRAW
+        and GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW"))
+        or GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
+    local allowed, denialText = ResolveGuildBankTransferKeybindState(self)
+    if not allowed and denialText then
+        return denialText
+    end
+    return label or ""
+end
+
+local function CanUsePrimaryTransfer(self)
+    if self:IsBatchProcessing() then
+        return false
+    end
+    if IsSelectionToggleMode(self) then
+        local target = GetSelectedBankEntry(self)
+        return target ~= nil and not IsCurrencyEntry(target)
+    end
+
+    local hasSelection = self.list and not self.list:IsEmpty() and GetSelectedBankEntry(self) ~= nil and
+        GetSelectedBankEntry(self).bagId ~= nil
+    if not hasSelection then
+        return false
+    end
+    return ResolveGuildBankTransferKeybindState(self)
+end
+
+local function CreateCoreNavigationKeybinds(self)
+    return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
             name = GetString(rawget(_G, "SI_BETTERUI_BANKING_TOGGLE_LIST")),
@@ -136,9 +134,6 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             end,
             enabled = true,
         },
-
-        -- Quaternary for Clear Search (CIM Factory)
-        -- Only visible when search has text
         BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(
             function()
                 if not (self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())) then return end
@@ -162,19 +157,15 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
             end,
             function()
-                -- Only show Clear Search when there is actually text to clear
                 return self.searchQuery and self.searchQuery ~= ""
             end
         ),
         {
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             name = function()
-                -- Guild bank mode: show guild selector
-                local GuildBank = BETTERUI.Banking.GuildBank
-                if GuildBank and GuildBank.IsGuildBankMode() then
+                if IsGuildBankMode() then
                     return GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL")) or "Select Guild"
                 end
-                -- Bank-space upgrades are only valid in the player bank, not house banks/furniture vault.
                 if not IsMainBankContext() then
                     return ""
                 end
@@ -193,15 +184,14 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 return text or ""
             end,
             visible = function()
-                local GuildBank = BETTERUI.Banking.GuildBank
-                if GuildBank and GuildBank.IsGuildBankMode() then
+                if IsGuildBankMode() then
                     return GetNumGuilds() > 1 and not self:IsBatchProcessing()
                 end
                 return IsMainBankContext() and IsBankUpgradeAvailable() and not self:IsBatchProcessing()
             end,
             enabled = function()
-                local GuildBank = BETTERUI.Banking.GuildBank
-                if GuildBank and GuildBank.IsGuildBankMode() then
+                if IsGuildBankMode() then
+                    local GuildBank = BETTERUI.Banking.GuildBank
                     return not GuildBank.IsLoading()
                 end
                 if not IsMainBankContext() then
@@ -214,8 +204,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 if self:IsBatchProcessing() then
                     return
                 end
-                local GuildBank = BETTERUI.Banking.GuildBank
-                if GuildBank and GuildBank.IsGuildBankMode() then
+                if IsGuildBankMode() then
                     ZO_Dialogs_ShowGamepadDialog("BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD")
                     return
                 end
@@ -234,15 +223,12 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 end
             end
         },
-        -- Y-button Actions menu (or Batch Actions in multi-select mode)
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
                 if self:IsBatchProcessing() then
                     return GetString(rawget(_G, "SI_BETTERUI_ABORT_ACTION"))
                 end
-
-                -- Always show "Actions" label - selection count is on A button
                 return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND"))
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
@@ -250,38 +236,28 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 if self:IsBatchProcessing() then
                     return true
                 end
-
-                -- In multi-select mode, show when items are selected
-                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                if IsSelectionToggleMode(self) then
                     return self.multiSelectManager:HasSelections()
                 end
-                local selectedData = self:GetList() and self:GetList().selectedData
-                if not IsActionableListEntry(selectedData) then
-                    return false
-                end
-                return true
+                return IsActionableListEntry(GetSelectedBankEntry(self))
             end,
             callback = function()
                 if self:IsBatchProcessing() then
                     self:RequestBatchAbort()
                     return
                 end
-
-                if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    -- Show batch actions dialog in multi-select mode
+                if IsSelectionToggleMode(self) then
                     self:ShowBatchActionsMenu()
-                else
-                    -- Normal Y menu
-                    local selectedData = self:GetList() and self:GetList().selectedData
-                    if not IsActionableListEntry(selectedData) then
-                        return
-                    end
-                    self:SaveListPosition()
-                    self:ShowActions()
+                    return
                 end
+                local selectedData = GetSelectedBankEntry(self)
+                if not IsActionableListEntry(selectedData) then
+                    return
+                end
+                self:SaveListPosition()
+                self:ShowActions()
             end,
         },
-        -- L-Stick Stack All using custom logic for dual-bank stacking
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = GetString(rawget(_G, "SI_ITEM_ACTION_STACK_ALL")),
@@ -306,33 +282,25 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 else
                     StackBag(BAG_BACKPACK)
                 end
-                -- No manual refresh needed - SHARED_INVENTORY callbacks will
-                -- automatically refresh the list when the cache is updated
             end,
         },
-        -- Y-Hold (QUINARY) for Multi-Select Mode
-        -- Dedicated entry point for multi-select functionality
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT")),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
-                -- Must have items available.
-                -- Hide when already in multi-select mode or batch processing.
-                local selectedData = self.list and self.list:GetSelectedData()
+                local selectedData = GetSelectedBankEntry(self)
                 if not IsActionableListEntry(selectedData) then
                     return false
                 end
-
-                local managerActive = self.multiSelectManager and self.multiSelectManager:IsActive()
                 return self.list and not self.list:IsEmpty()
-                    and not managerActive
+                    and not IsSelectionToggleMode(self)
                     and not self:IsBatchProcessing()
             end,
             callback = function()
                 if not self:IsBatchProcessing() and not self:IsInSelectionMode() then
-                    local target = self.list and self.list:GetSelectedData()
-                    if not target or ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
+                    local target = GetSelectedBankEntry(self)
+                    if not target or IsCurrencyEntry(target) then
                         return
                     end
                     self:SaveListPosition()
@@ -341,40 +309,23 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             end,
         },
     }
-    self.withdrawDepositKeybinds = {
+end
+
+local function CreateTransferKeybinds(self)
+    return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
             name = function()
-                -- In multi-select mode, show "Deselect" or "Select (count)"
-                if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    local target = self.list and self.list:GetSelectedData()
-                    -- Skip currency rows
-                    if target and ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
-                        return ""
-                    end
-                    if target and self.multiSelectManager:IsSelected(target) then
-                        return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM"))
-                    else
-                        local count = self.multiSelectManager:GetSelectedCount()
-                        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")), count)
-                    end
-                end
-
-                local n = (self.currentMode == LIST_WITHDRAW) and GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW")) or
-                    GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
-                return n or ""
+                return GetPrimaryTransferLabel(self)
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
                 if self:IsBatchProcessing() then
                     return
                 end
-
-                -- In multi-select mode, toggle selection
-                if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    local target = self.list and self.list:GetSelectedData()
-                    -- Skip currency rows
-                    if target and ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
+                if IsSelectionToggleMode(self) then
+                    local target = GetSelectedBankEntry(self)
+                    if IsCurrencyEntry(target) then
                         return
                     end
                     if target then
@@ -385,17 +336,13 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                     return
                 end
 
-                -- Normal mode: withdraw/deposit
                 self:SaveListPosition()
-                local selectedData = self.list and self.list:GetSelectedData()
+                local selectedData = GetSelectedBankEntry(self)
                 if selectedData then
                     local stackCount = selectedData.stackCount or 1
                     if stackCount > 1 then
-                        -- For stacked items, show quantity dialog
-                        local isDeposit = (self.currentMode == LIST_DEPOSIT)
-                        self:ShowQuantityDialog(isDeposit)
+                        self:ShowQuantityDialog(self.currentMode == LIST_DEPOSIT)
                     else
-                        -- For single items, move directly
                         self:MoveItem(self.list, 1)
                     end
                 end
@@ -404,34 +351,22 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 if self:IsBatchProcessing() then
                     return false
                 end
-                -- In multi-select mode, hide for currency rows
-                if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    local target = self.list and self.list:GetSelectedData()
-                    if target and ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
-                        return false
-                    end
-                    return target ~= nil
+                if IsSelectionToggleMode(self) then
+                    local target = GetSelectedBankEntry(self)
+                    return target ~= nil and not IsCurrencyEntry(target)
                 end
-                return self.list and not self.list:IsEmpty() and self.list:GetSelectedData() ~= nil and
-                    self.list:GetSelectedData().bagId ~= nil
+                return self.list and not self.list:IsEmpty() and GetSelectedBankEntry(self) ~= nil and
+                    GetSelectedBankEntry(self).bagId ~= nil
             end,
             enabled = function()
-                if self:IsBatchProcessing() then
-                    return false
-                end
-                -- In multi-select mode, always enabled for valid targets
-                if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    local target = self.list and self.list:GetSelectedData()
-                    return target ~= nil and not ZO_GamepadBanking.IsEntryDataCurrencyRelated(target)
-                end
-                return self.list and not self.list:IsEmpty() and self.list:GetSelectedData() ~= nil and
-                    self.list:GetSelectedData().bagId ~= nil
+                return CanUsePrimaryTransfer(self)
             end,
         },
     }
+end
 
-    self.currencySelectorKeybinds =
-    {
+local function CreateCurrencySelectorKeybinds(self)
+    return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
             name = GetString(rawget(_G, "SI_BETTERUI_CONFIRM_AMOUNT")),
@@ -442,17 +377,14 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             callback = function()
                 local amount = self.selector:GetValue()
                 local currencyType = self:GetList().selectedData.currencyType
-                local GuildBank = BETTERUI.Banking.GuildBank
-                if GuildBank and GuildBank.IsGuildBankMode() then
-                    -- Guild bank: use TransferCurrency with guild bank locations
+                if IsGuildBankMode() then
                     if self.currentMode == LIST_WITHDRAW then
                         TransferCurrency(currencyType, amount, CURRENCY_LOCATION_GUILD_BANK, CURRENCY_LOCATION_CHARACTER)
                     else
                         TransferCurrency(currencyType, amount, CURRENCY_LOCATION_CHARACTER, CURRENCY_LOCATION_GUILD_BANK)
                     end
                 else
-                    -- Personal bank: use standard bank currency functions
-                    if (self.currentMode == LIST_WITHDRAW) then
+                    if self.currentMode == LIST_WITHDRAW then
                         WithdrawCurrencyFromBank(currencyType, amount)
                     else
                         DepositCurrencyIntoBank(currencyType, amount)
@@ -464,8 +396,10 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             end,
         }
     }
+end
 
-    self.currencyKeybinds = {
+local function CreateCurrencyRowKeybinds(self)
+    return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
             name = function()
@@ -509,6 +443,113 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             end,
         },
     }
+end
+
+local function GetBankingTransferHelper(helperName)
+    local helpers = BETTERUI.Banking and BETTERUI.Banking._TransferHelpers
+    return helpers and helpers[helperName]
+end
+
+ResolveGuildBankTransferKeybindState = function(self)
+    local GuildBank = BETTERUI.Banking.GuildBank
+    local selectedData = self.list and self.list:GetSelectedData()
+    if not (GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() and IsActionableListEntry(selectedData)) then
+        return true, nil
+    end
+
+    local resolveDecision = GetBankingTransferHelper("ResolveGuildBankTransferDecision")
+    if type(resolveDecision) ~= "function" then
+        return true, nil
+    end
+
+    local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
+    local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
+    local allowed, _, denialText = resolveDecision(mode, bagId, slotIndex)
+    return allowed, denialText
+end
+
+--[[
+Function: BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors
+Description: Creates trigger keybinds for fast scrolling the list.
+Note: Delegates to shared CIM factory for consistency.
+param: list (table) - The list control.
+return: table, table - Left and Right trigger keybind descriptors.
+]]
+---@param self BetterUIBankingClass
+---@param list BetterUIBankingListSource|nil
+---@return BetterUIKeybindDescriptor leftTrigger
+---@return BetterUIKeybindDescriptor rightTrigger
+function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
+    -- Pass Banking-specific speed getter and enabled getter so the saved settings are used
+    return BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list, nil, function()
+        return BETTERUI.Banking.GetSetting("triggerSpeed")
+    end, function()
+        return BETTERUI.Banking.GetSetting("useTriggersForSkip")
+    end)
+end
+
+--- Updates the active item actions based on current selection.
+---@param self BetterUIBankingClass
+---@return nil
+function BETTERUI.Banking.Class:UpdateActions()
+    -- Skip itemActions updates when in header sort mode to prevent keybind flicker
+    -- itemActions:SetInventorySlot directly manipulates KEYBIND_STRIP, bypassing guards
+    if self.isInHeaderSortMode then
+        return
+    end
+
+    local targetData = self:GetList() and self:GetList().selectedData or nil
+    if not targetData then
+        self.itemActions:SetInventorySlot(nil)
+        return
+    end
+
+    -- Set itemActions only for actionable inventory items.
+    -- Faux rows (currency/header/empty labels) can crash ESO slot action discovery.
+    if not IsActionableListEntry(targetData) then
+        self.itemActions:SetInventorySlot(nil)
+    else
+        self.itemActions:SetInventorySlot(targetData)
+    end
+end
+
+--- Registers the banking keybind groups.
+---@param self BetterUIBankingClass
+---@return nil
+function BETTERUI.Banking.Class:AddKeybinds()
+    if self.textSearchKeybindStripDescriptor then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    end
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+    KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
+    KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+    self:UpdateActions()
+    self:EnsureHeaderKeybindsActive()
+end
+
+--- Unregisters the banking keybind groups.
+---@param self BetterUIBankingClass
+---@return nil
+function BETTERUI.Banking.Class:RemoveKeybinds()
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+end
+
+--- Initializes the keybind descriptors for the banking module.
+--- Wires coreKeybinds (navigation), withdrawDepositKeybinds (item moves),
+--- currencyKeybinds (currency selector), and text search keybinds.
+---@param self BetterUIBankingClass
+---@return nil
+function BETTERUI.Banking.Class:InitializeKeybind()
+    if not BETTERUI.GetModuleEnabled("Banking") then
+        return
+    end
+
+    self.coreKeybinds = CreateCoreNavigationKeybinds(self)
+    self.withdrawDepositKeybinds = CreateTransferKeybinds(self)
+    self.currencySelectorKeybinds = CreateCurrencySelectorKeybinds(self)
+    self.currencyKeybinds = CreateCurrencyRowKeybinds(self)
 
 
     -- Custom Back button: Exit multi-select mode first, then normal back behavior
@@ -532,6 +573,8 @@ function BETTERUI.Banking.Class:InitializeKeybind()
 end
 
 --- Triggers the selection callback to update keybinds for the current selection.
+---@param self BetterUIBankingClass
+---@return nil
 function BETTERUI.Banking.Class:RefreshActiveKeybinds()
     if not (self.selectedDataCallback and self.list) then return end
     local selectedControl = nil

@@ -302,6 +302,7 @@ function BETTERUI.Companions.Class:New(_, _)
     return obj
 end
 
+dofile("Modules/Companions/Core/CompanionsRuntime.lua")
 dofile("Modules/Companions/Module.lua")
 
 print("[Companions scene lifecycle]")

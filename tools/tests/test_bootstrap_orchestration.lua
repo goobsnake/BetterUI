@@ -747,6 +747,8 @@ end
 
 dofile("Modules/GeneralInterface/Setup.lua")
 local setupInstallers = BETTERUI.GeneralInterface._SetupInstallers or {}
+assert_true(type(setupInstallers.InitPanel) == "function",
+    "GeneralInterface.Setup exports the panel installer helper")
 assert_true(type(setupInstallers.InstallMailDeleteHook) == "function",
     "GeneralInterface.Setup exports the mail installer helper")
 assert_true(type(setupInstallers.InstallInventoryTooltipHooks) == "function",
@@ -761,6 +763,9 @@ assert_true(type(setupInstallers.RegisterTooltipCacheInvalidation) == "function"
     "GeneralInterface.Setup exports the tooltip-cache installer helper")
 assert_true(type(setupInstallers.ApplyChatHistoryLimit) == "function",
     "GeneralInterface.Setup exports the chat-history installer helper")
+
+setupInstallers.InitPanel("General", "General Interface")
+assert_eq(panelRegistration.moduleId, "General", "Panel installer registers the General settings panel directly")
 
 setupInstallers.InstallInventoryTooltipHooks(BETTERUI.GeneralInterface.Tooltips)
 assert_eq(3, #inventoryHooks, "Inventory-tooltip installer wires all three gamepad tooltips")

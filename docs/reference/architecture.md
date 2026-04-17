@@ -62,7 +62,7 @@
 │  ├── TradingHouse/      (Trading House scaffold/runtime surface)        │
 │  ├── Companions/        (Companion gear and inventory surfaces)         │
 │  ├── ResourceOrbFrames/ (Custom Health/Magicka/Stamina Orbs + SkillBar) │
-│  └── WritUnit/          (Writ quest tracking panel; registry key=Writs) │
+│  └── Writs/             (Writ quest tracking panel)                     │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -196,7 +196,7 @@ The ESO client loads files in the order specified in `BetterUI.txt`. **Order mat
 | 2. Localization | `lang/en.lua`, `lang/$(language).lua` | String tables |
 | 3. Shared Infrastructure | `Modules/CIM/*` | Namespace init, runtime setup, batching, shared UI/services |
 | 4. Interface Enhancements | `Modules/GeneralInterface/*` | Tooltip + nameplate surfaces |
-| 5. Feature Modules | `ResourceOrbFrames` → `Inventory` → `Banking` → `WritUnit` → `TradingHouse` → `Vendor` → `Companions` | Runtime surfaces loaded in manifest order |
+| 5. Feature Modules | `ResourceOrbFrames` → `Inventory` → `Banking` → `Writs` → `TradingHouse` → `Vendor` → `Companions` | Runtime surfaces loaded in manifest order |
 
 > **Critical**: `BetterUI.lua` loads first, then `BETTERUI.LoadModules()` applies `CIM.RuntimeSetup.Apply()`, walks `MODULE_REGISTRY`, and validates each `Setup()` hook before invoking it. `SetupKeyboardModeModules()` only wires keyboard-safe modules, while `ResourceOrbFrames` handles its own keyboard/gamepad transition after setup.
 
@@ -259,7 +259,7 @@ BETTERUI = {
 | **TradingHouse** | Module, TradingHouse | Core, Components, Settings | Requires CIM | Trading House scaffold/runtime surface |
 | **Companions** | Module | Core, Actions, Dialogs, Settings | Requires CIM | Companion gear and inventory surfaces |
 | **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core, SkillBar, Settings, Templates, Textures | Requires CIM | Custom resource orbs and skill bar runtime |
-| **Writs / WritUnit** | Constants, Module | Core, Templates | Registry-independent | Writ quest tracker |
+| **Writs** | Constants, Module | Core, Templates | Registry-independent | Writ quest tracker |
 
 ---
 

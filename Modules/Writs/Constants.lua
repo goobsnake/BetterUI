@@ -1,5 +1,5 @@
 --[[
-File: Modules/WritUnit/Constants.lua
+File: Modules/Writs/Constants.lua
 Purpose: Constants for the Daily Writ Module.
          Includes pattern matching definitions for writ quest detection.
 ]]

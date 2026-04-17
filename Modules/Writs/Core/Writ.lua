@@ -1,6 +1,6 @@
 -- BetterUI - Writs quest helpers
 --
--- File: Modules/WritUnit/Core/Writ.lua
+-- File: Modules/Writs/Core/Writ.lua
 -- Purpose: Tracks active crafting writs and formats the panel text shown at stations.
 --
 -- Cached control references (populated by CacheControls during addon init)

@@ -69,7 +69,7 @@ local MODULE_REGISTRY = {
 
 	-- Independent modules
 	{ name = "Writs", namespace = "Writs" },
-	{ name = "GeneralInterface", namespace = "GeneralInterface" },
+	{ name = "GeneralInterface", namespace = "GeneralInterface", dependsOnCIM = true },
 	{
 		name = "Nameplates",
 		namespace = "Nameplates",
@@ -77,6 +77,16 @@ local MODULE_REGISTRY = {
 	},
 	{ name = "ResourceOrbFrames", namespace = "ResourceOrbFrames", dependsOnCIM = true },
 }
+
+local function ModuleDependsOnCIM(moduleName)
+	for _, entry in ipairs(MODULE_REGISTRY) do
+		if entry.name == moduleName then
+			return entry.dependsOnCIM == true
+		end
+	end
+
+	return false
+end
 
 -- Core addon metadata
 BETTERUI.name = "BetterUI"
@@ -118,18 +128,20 @@ BETTERUI.DefaultSettings = {
 
 --- Updates the Common Interface Module (CIM) state based on dependents.
 ---
---- Purpose: Ensures CIM is enabled if any module requiring it is active.
---- Mechanics: Checks settings for GeneralInterface, Inventory, Banking, Vendor, and Companions.
+--- Purpose: Ensures CIM is enabled if any registry-declared dependent module is active.
+--- Mechanics: Checks the module registry for entries marked dependsOnCIM and turns
+---            CIM on whenever any of those modules are enabled.
 ---            Updates the CIM m_enabled setting accordingly.
 --- References: Called when toggling module settings in the options panel.
 ---
 function BETTERUI.UpdateCIMState()
-	local shouldEnable = BETTERUI.GetModuleEnabled("GeneralInterface") or
-		BETTERUI.GetModuleEnabled("Inventory") or
-		BETTERUI.GetModuleEnabled("Banking") or
-		BETTERUI.GetModuleEnabled("Vendor") or
-		BETTERUI.GetModuleEnabled("TradingHouse") or
-		BETTERUI.GetModuleEnabled("Companions")
+	local shouldEnable = false
+	for _, entry in ipairs(MODULE_REGISTRY) do
+		if entry.dependsOnCIM and BETTERUI.GetModuleEnabled(entry.name) then
+			shouldEnable = true
+			break
+		end
+	end
 	BETTERUI.SetSetting("CIM", "m_enabled", shouldEnable)
 end
 
@@ -195,6 +207,9 @@ local function BuildModuleToggleOptions()
 	for _, blueprint in ipairs(MODULE_TOGGLE_BLUEPRINTS) do
 		local moduleName = blueprint.moduleName
 		local updatesCIM = blueprint.updatesCIM
+		if updatesCIM == nil then
+			updatesCIM = ModuleDependsOnCIM(moduleName)
+		end
 		local toggleName = GetStringByName(blueprint.nameStringId)
 		local tooltip = GetStringByName(blueprint.tooltipStringId)
 
@@ -678,7 +693,7 @@ function BETTERUI.Initialize(event, addon)
 	BETTERUI.InitModuleOptions()
 	BETTERUI.UpdateCIMState()
 
-	local setupSucceeded = true
+	local setupSucceeded
 
 	-- Load modules if in gamepad mode
 	if IsInGamepadPreferredMode() then
