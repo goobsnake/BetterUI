@@ -122,12 +122,9 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local moduleName = ResolveEntryModuleName(data)
     local itemData = GetEntryDataSource(data)
 
-    -- Use cached values for performance
     local bagId = itemData and itemData.bagId or nil
     local slotIndex = itemData and itemData.slotIndex or nil
 
-    -- Early return for non-item entries (currency rows, headers)
-    -- These have .label but no bagId/slotIndex for item data
     if bagId == nil or slotIndex == nil then
         return
     end
@@ -216,7 +213,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     BETTERUI_SharedGamepadEntryIconSetup(control.icon, control.stackCountLabel, data, selected)
 
-    -- Hide original highlight - we use our custom gradient selection bar instead
+    -- Suppress the stock highlight so CIM's custom gradient bar is the only active selection UI.
     if control.highlight then
         control.highlight:SetHidden(true)
     end
@@ -243,42 +240,35 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         end
     end
 
-    -- Handle SelectionBar color based on multi-select state
-    -- Reset color when NOT multi-selected to handle control recycling.
-    -- Controls are pooled and reused - the green color would persist on recycled controls otherwise.
+    -- Controls are pooled/reused; always restore the non-multiselect color path to prevent green bleed-through.
     if selectionBar then
         if isMultiSelected then
             selectionBar:SetHidden(false)
-            selectionBar:SetColor(0.2, 0.8, 0.3, 0.6) -- Green tint for multi-selected
+            selectionBar:SetColor(0.2, 0.8, 0.3, 0.6)
         elseif selected then
-            -- Reset to default gold color for focused non-multi-selected items
-            -- Default gold from XML: #C4A64D = (196/255, 166/255, 77/255) ≈ (0.77, 0.65, 0.30)
+            -- Match the template's gold highlight color (XML #C4A64D) when focused but not multi-selected.
             selectionBar:SetColor(0.77, 0.65, 0.30, 0.45)
         end
-        -- Note: When not selected and not multi-selected, SelectionHighlight.Setup already hides the bar
     end
 
     BETTERUI_CooldownSetup(control, data)
     BETTERUI_IconSetup(control:GetNamedChild("StatusIndicator"), control:GetNamedChild("EquippedMain"), data)
 
-    -- Adjust icon dimensions based on active scene/module name font size setting
     local iconControl = control:GetNamedChild("Icon")
     local equipIconControl = control:GetNamedChild("EquippedMain")
     local fontSize = GetActiveNameFontSize(moduleName)
 
 
-    -- Calculate icon dimensions based on font size (scales proportionally from default of 24px = 34px icon)
     local iconSize = math.floor(BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_SIZE *
         (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) +
         0.5)
-    -- Calculate equip icon dimensions (scales proportionally with font size)
     local equipIconWidth = math.floor(BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_WIDTH *
         (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
     local equipIconHeight = math.floor(BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_HEIGHT *
         (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
     local iconOffset = math.floor(BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_OFFSET +
         (fontSize - BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) *
-        BETTERUI.Inventory.CONST.LIST_ENTRY_ICON_OFFSET_FACTOR + 0.5) -- Adjust offset as font grows
+        BETTERUI.Inventory.CONST.LIST_ENTRY_ICON_OFFSET_FACTOR + 0.5)
 
     iconControl:SetDimensions(iconSize, iconSize)
     iconControl:ClearAnchors()
