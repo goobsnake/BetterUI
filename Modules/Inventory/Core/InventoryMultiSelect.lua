@@ -35,17 +35,18 @@ function Class:ShowBatchActionsMenu()
     local canDestroyCount = 0
     -- Resolve CanDestroyInventoryItem from the class (set by InventoryBatchOps)
     local canDestroyFn = BETTERUI.Inventory.CanDestroyInventoryItem
+    local protectionPolicy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
     for _, itemData in ipairs(selectedItems) do
         local rawData = itemData.dataSource or itemData
         local bagId = rawData.bagId or itemData.bagId
         local slotIndex = rawData.slotIndex or itemData.slotIndex
         if bagId and slotIndex then
             local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
-            if stackCount > 0
-                and HasCraftBagAccess()
-                and CanItemBeVirtual(bagId, slotIndex)
-                and not IsItemStolen(bagId, slotIndex)
-            then
+            local canStow = stackCount > 0
+                and protectionPolicy
+                and protectionPolicy.CanStowToCraftBag
+                and protectionPolicy.CanStowToCraftBag(bagId, slotIndex)
+            if canStow then
                 canStowCount = canStowCount + 1
             end
         end
