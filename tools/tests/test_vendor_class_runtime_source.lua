@@ -19,6 +19,12 @@ local function assert_contains(haystack, needle, label)
     end
 end
 
+local function assert_not_contains(haystack, needle, label)
+    if haystack:find(needle, 1, true) then
+        error(label .. "\nUnexpected: " .. needle)
+    end
+end
+
 print("test_vendor_class_runtime_source")
 
 local classSource = read_file("Modules/Vendor/Core/VendorClass.lua")
@@ -32,6 +38,8 @@ assert_contains(classSource, 'local ExecuteSafely = assert(Vendor.ExecuteSafely,
     "VendorClass depends on the shared safe-execute helper instead of defining its own wrapper")
 assert_contains(classSource, 'local VendorControllerRuntime = assert(Vendor.ControllerRuntime, "Vendor controller runtime must load before VendorClass")',
     "VendorClass requires the controller runtime collaborator")
+assert_contains(classSource, 'local VendorModePolicy = assert(Vendor.ModePolicy, "Vendor mode policy must load before VendorClass")',
+    "VendorClass requires the shared vendor mode-policy collaborator")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorSafeExecute.lua",
     "Vendor manifest loads the shared safe-execute helper before VendorClass")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorControllerRuntime.lua",
@@ -52,6 +60,14 @@ assert_contains(classSource, "VendorControllerRuntime.SetMode(self, mode)",
     "VendorClass.SetMode delegates to the controller runtime collaborator")
 assert_contains(classSource, "VendorControllerRuntime.RefreshList(self, {",
     "VendorClass.RefreshList delegates to the controller runtime collaborator")
+assert_contains(classSource, "local modeSet = VendorModePolicy.BuildActiveModeSet(activeTabs)",
+    "VendorClass builds active-mode sets through VendorModePolicy directly")
+assert_contains(classSource, "return VendorModePolicy.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)",
+    "VendorClass evaluates sell/buyback-only state through VendorModePolicy directly")
+assert_not_contains(classSource, "BETTERUI.Vendor.BuildActiveModeSet",
+    "VendorClass no longer reaches through the root vendor table for mode-set helpers")
+assert_not_contains(classSource, "BETTERUI.Vendor.IsSellBuybackOnlyModeSet",
+    "VendorClass no longer reaches through the root vendor table for sell/buyback helper state")
 assert_contains(classSource, "getModeModuleKey = GetVendorModeModuleKey,",
     "VendorClass supplies mode position keys through the controller runtime contract")
 assert_contains(classSource, "getCategoryKey = GetVendorCategoryKey,",

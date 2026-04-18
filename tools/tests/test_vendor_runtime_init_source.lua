@@ -29,6 +29,7 @@ print("test_vendor_runtime_init_source")
 
 local vendorSource = read_file("Modules/Vendor/Vendor.lua")
 local safeExecuteSource = read_file("Modules/Vendor/Core/VendorSafeExecute.lua")
+local modePolicySource = read_file("Modules/Vendor/Core/VendorModePolicy.lua")
 local bridgeSource = read_file("Modules/Vendor/Core/VendorNativeStoreBridge.lua")
 local bootstrapRuntimeSource = read_file("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
 local componentCatalogSource = read_file("Modules/Vendor/Core/VendorComponentCatalog.lua")
@@ -86,6 +87,10 @@ assert_not_contains(vendorSource, "local VendorEventBridge = assert(Vendor.Event
     "Vendor root no longer asserts the event bridge at import time")
 assert_not_contains(vendorSource, "local VendorInteractionRuntime = assert(Vendor.InteractionRuntime",
     "Vendor root no longer asserts the interaction runtime at import time")
+assert_not_contains(vendorSource, "Vendor.BuildActiveModeSet = BuildActiveModeSet",
+    "Vendor root no longer re-exports mode-set construction helpers")
+assert_not_contains(vendorSource, "Vendor.IsSellBuybackOnlyModeSet = IsSellBuybackOnlyModeSet",
+    "Vendor root no longer re-exports sell/buyback-only helpers")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorSafeExecute.lua",
     "Vendor manifest loads the shared safe-execute helper before other runtime collaborators")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorNativeStoreBridge.lua",
@@ -103,6 +108,10 @@ assert_contains(safeExecuteSource, "function Vendor.ExecuteSafely(context, fn, .
     "Vendor safe-execute helper owns the shared execution wrapper")
 assert_contains(safeExecuteSource, 'BETTERUI.CIM.UserNotify(context, tostring(result))',
     "Vendor safe-execute helper routes fallback failures through the shared notifier")
+assert_not_contains(modePolicySource, "Vendor.BuildActiveModeSet = ModePolicy.BuildActiveModeSet",
+    "Vendor mode policy no longer exports mode-set construction on the root vendor table")
+assert_not_contains(modePolicySource, "Vendor.IsSellBuybackOnlyModeSet = ModePolicy.IsSellBuybackOnlyModeSet",
+    "Vendor mode policy no longer exports sell/buyback helper state on the root vendor table")
 assert_contains(bridgeSource, "local function GetVendorExecuteSafely()",
     "Vendor native-store bridge resolves the shared safe-execute helper through a named getter")
 assert_not_contains(bridgeSource, "local function SafeCall(context, fn, ...)",

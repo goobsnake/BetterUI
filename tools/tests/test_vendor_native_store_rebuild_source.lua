@@ -27,25 +27,28 @@ end
 
 print("test_vendor_native_store_rebuild_source")
 
-local source = read_file("Modules/Vendor/Vendor.lua")
+local vendorSource = read_file("Modules/Vendor/Vendor.lua")
+local bridgeSource = read_file("Modules/Vendor/Core/VendorNativeStoreBridge.lua")
 
-assert_contains(source, "local function BuildNativeStoreComponentSnapshot(searchContext)",
+assert_contains(bridgeSource, "local function BuildComponentSnapshot(searchContext)",
     "Vendor native store rebuild extracts active-state snapshotting")
-assert_contains(source, "local function BuildNativeStoreRebuildPlan(snapshot)",
+assert_contains(bridgeSource, "local function BuildRebuildPlan(snapshot)",
     "Vendor native store rebuild extracts plan construction")
-assert_contains(source, "local function NeutralizeNativeStoreHeaderCallbacks(storeManager)",
+assert_contains(bridgeSource, "local function NeutralizeHeaderCallbacks(storeManager)",
     "Vendor native store rebuild extracts header neutralization")
-assert_contains(source, "local function SweepNativeStoreDirectionalInput(storeManager, includeComponentLists)",
+assert_contains(bridgeSource, "local function SweepDirectionalInput(storeManager, includeComponentLists)",
     "Vendor native store rebuild extracts DI cleanup")
-assert_contains(source, "local function ApplyNativeStoreRebuildPlan(snapshot, rebuildPlan)",
+assert_contains(bridgeSource, "local function ApplyRebuildPlan(snapshot, rebuildPlan)",
     "Vendor native store rebuild extracts the rebuild application phase")
-assert_contains(source, "local snapshot = BuildNativeStoreComponentSnapshot(searchContext)",
-    "EnsureNativeStoreComponents delegates snapshot construction")
-assert_contains(source, "local rebuildPlan = BuildNativeStoreRebuildPlan(snapshot)",
-    "EnsureNativeStoreComponents delegates rebuild-plan selection")
-assert_contains(source, "if ApplyNativeStoreRebuildPlan(snapshot, rebuildPlan) then",
-    "EnsureNativeStoreComponents delegates rebuild application")
-assert_not_contains(source, "local function GetActiveModes()",
-    "EnsureNativeStoreComponents no longer nests its active-mode snapshot helper inline")
+assert_contains(bridgeSource, "local snapshot = BuildComponentSnapshot(searchContext)",
+    "NativeStoreBridge.EnsureComponents delegates snapshot construction")
+assert_contains(bridgeSource, "local rebuildPlan = BuildRebuildPlan(snapshot)",
+    "NativeStoreBridge.EnsureComponents delegates rebuild-plan selection")
+assert_contains(bridgeSource, "if ApplyRebuildPlan(snapshot, rebuildPlan) then",
+    "NativeStoreBridge.EnsureComponents delegates rebuild application")
+assert_not_contains(bridgeSource, "local function GetActiveModes()",
+    "NativeStoreBridge no longer nests its active-mode snapshot helper inline")
+assert_contains(vendorSource, "GetVendorNativeStoreBridge().EnsureComponents(searchContext)",
+    "Vendor runtime delegates native-store component reconciliation to NativeStoreBridge")
 
 print("  OK")

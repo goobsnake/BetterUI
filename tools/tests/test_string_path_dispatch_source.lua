@@ -46,8 +46,8 @@ local sourceChecks = {
     {
         path = "Modules/CIM/Actions/GenericSlotActions.lua",
         forbidden = 'TryCall%("Inventory%.Dialogs%.TryStowWithQuantity"',
-        required = "BETTERUI%.Inventory%s+and%s+BETTERUI%.Inventory%.InvokeDialog",
-        label = "generic slot actions use shared inventory dialog seam",
+        required = "BETTERUI%.CIM%.InvokeInventoryDialog",
+        label = "generic slot actions use the shared CIM inventory dialog seam",
     },
     {
         path = "Modules/CIM/UI/UnifiedFooter.lua",

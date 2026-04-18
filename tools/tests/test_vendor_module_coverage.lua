@@ -5,6 +5,20 @@ Purpose: Smoke coverage for the live Vendor modules still flagged by desloppify.
 
 if false then
     dofile("Modules/Vendor/Module.lua")
+    dofile("Modules/Vendor/Core/VendorModePolicy.lua")
+    dofile("Modules/Vendor/Core/VendorSelectionRuntime.lua")
+    dofile("Modules/Vendor/Core/VendorSafeExecute.lua")
+    dofile("Modules/Vendor/Core/VendorNativeStoreBridge.lua")
+    dofile("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
+    dofile("Modules/Vendor/Core/VendorComponentCatalog.lua")
+    dofile("Modules/Vendor/Core/VendorEventBridge.lua")
+    dofile("Modules/Vendor/Core/VendorInteractionRuntime.lua")
+    dofile("Modules/Vendor/Core/VendorBatchRuntime.lua")
+    dofile("Modules/Vendor/Core/VendorControllerRuntime.lua")
+    dofile("Modules/Vendor/Core/VendorPresentationRuntime.lua")
+    dofile("Modules/Vendor/Core/VendorClass.lua")
+    dofile("Modules/Vendor/Core/VendorRowSetup.lua")
+    dofile("Modules/Vendor/Core/BatchActionCounts.lua")
     dofile("Modules/Vendor/Components/BuyComponent.lua")
     dofile("Modules/Vendor/Components/BuybackComponent.lua")
     dofile("Modules/Vendor/Components/FenceLaunderComponent.lua")
@@ -12,17 +26,25 @@ if false then
     dofile("Modules/Vendor/Components/RepairComponent.lua")
     dofile("Modules/Vendor/Components/SellComponent.lua")
     dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
-    dofile("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorControllerRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorInteractionRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorModePolicy.lua")
-    dofile("Modules/Vendor/Core/VendorPresentationRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorClass.lua")
-    dofile("Modules/Vendor/Core/VendorRowSetup.lua")
+    dofile("Modules/Vendor/Vendor.lua")
 end
 
 local vendorCoverageTargets = {
     "Modules/Vendor/Module.lua",
+    "Modules/Vendor/Core/VendorModePolicy.lua",
+    "Modules/Vendor/Core/VendorSelectionRuntime.lua",
+    "Modules/Vendor/Core/VendorSafeExecute.lua",
+    "Modules/Vendor/Core/VendorNativeStoreBridge.lua",
+    "Modules/Vendor/Core/VendorBootstrapRuntime.lua",
+    "Modules/Vendor/Core/VendorComponentCatalog.lua",
+    "Modules/Vendor/Core/VendorEventBridge.lua",
+    "Modules/Vendor/Core/VendorInteractionRuntime.lua",
+    "Modules/Vendor/Core/VendorBatchRuntime.lua",
+    "Modules/Vendor/Core/VendorControllerRuntime.lua",
+    "Modules/Vendor/Core/VendorPresentationRuntime.lua",
+    "Modules/Vendor/Core/VendorClass.lua",
+    "Modules/Vendor/Core/VendorRowSetup.lua",
+    "Modules/Vendor/Core/BatchActionCounts.lua",
     "Modules/Vendor/Components/BuyComponent.lua",
     "Modules/Vendor/Components/BuybackComponent.lua",
     "Modules/Vendor/Components/FenceLaunderComponent.lua",
@@ -30,13 +52,7 @@ local vendorCoverageTargets = {
     "Modules/Vendor/Components/RepairComponent.lua",
     "Modules/Vendor/Components/SellComponent.lua",
     "Modules/Vendor/Components/SellVengeanceComponent.lua",
-    "Modules/Vendor/Core/VendorBootstrapRuntime.lua",
-    "Modules/Vendor/Core/VendorControllerRuntime.lua",
-    "Modules/Vendor/Core/VendorInteractionRuntime.lua",
-    "Modules/Vendor/Core/VendorModePolicy.lua",
-    "Modules/Vendor/Core/VendorPresentationRuntime.lua",
-    "Modules/Vendor/Core/VendorClass.lua",
-    "Modules/Vendor/Core/VendorRowSetup.lua",
+    "Modules/Vendor/Vendor.lua",
 }
 
 local testsPassed = 0
@@ -55,7 +71,7 @@ local function assertEqual(expected, actual, message)
     assertTrue(expected == actual, string.format("%s (expected=%s, actual=%s)", message, tostring(expected), tostring(actual)))
 end
 
-assertEqual(15, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor desloppify queue")
+assertEqual(23, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor manifest-backed runtime surface")
 
 BETTERUI = {
     Vendor = {
@@ -90,6 +106,10 @@ BETTERUI = {
                 })
             end,
         },
+        SafeExecute = function(_, fn, ...)
+            return true, fn(...)
+        end,
+        UserNotify = function() end,
         ApplyModuleSharedSettingsStatics = function() end,
         TryRegisterModulePanel = function() end,
         GenericWindow = {

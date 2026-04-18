@@ -69,7 +69,9 @@ assert_not_contains(classSource, "instance.modeCategories[",
 assert_not_contains(classSource, "instance._cachedBuyCategories",
     "VendorClass no longer reads or writes the cached buy-category field directly")
 
-assert_contains(vendorSource, "Vendor.ModePolicy.ResetCategoryState(Vendor.instance)",
+assert_contains(vendorSource, "if Vendor.ModePolicy and Vendor.ModePolicy.ResetCategoryState then",
+    "Vendor runtime checks for the mode-policy reset seam before clearing category caches")
+assert_contains(vendorSource, "Vendor.ModePolicy.ResetCategoryState(instance)",
     "Vendor runtime clears category caches through VendorModePolicy")
 
 print("  OK")

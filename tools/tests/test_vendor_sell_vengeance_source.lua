@@ -3,10 +3,6 @@ File: tools/tests/test_vendor_sell_vengeance_source.lua
 Purpose: Source-level regression checks for SellVengeance vendor integration.
 ]]
 
-if false then
-    dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
-end
-
 local passed = 0
 local failed = 0
 
@@ -34,6 +30,7 @@ print("[Vendor SellVengeance source integration]")
 
 local vendorLua = read_file("Modules/Vendor/Vendor.lua")
 local vendorClass = read_file("Modules/Vendor/Core/VendorClass.lua")
+local catalogLua = read_file("Modules/Vendor/Core/VendorComponentCatalog.lua")
 local constantsLua = read_file("Modules/CIM/Constants.lua")
 local batchCountsLua = read_file("Modules/Vendor/Core/BatchActionCounts.lua")
 local componentLua = read_file("Modules/Vendor/Components/SellVengeanceComponent.lua")
@@ -45,14 +42,9 @@ assert_contains(vendorClass, "ZO_MODE_STORE_SELL_VENGEANCE", "vendor class resol
 assert_contains(vendorClass, "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE", "vendor class resolves vengeance mode label")
 assert_contains(vendorClass, "VENDOR_SELL_VENGEANCE", "vendor class maps vengeance mode to a position key")
 
-assert_contains(vendorLua, "Vendor.ResolveModeName(mode)", "vendor tab definitions delegate SellVengeance label lookup to VendorClass")
 assert_contains(vendorLua, "MODE.SELL_VENGEANCE", "vendor tab definitions include SellVengeance mode")
-assert_contains(vendorLua, "IsModeTabAvailable(tab.mode)", "vendor tab wiring gates SellVengeance tab availability")
-assert_contains(vendorLua, "Vendor.SellVengeanceComponent", "vendor init references SellVengeance component")
-assert_contains(vendorLua, "{ mode = MODE.SELL_VENGEANCE, component = Vendor.SellVengeanceComponent }",
-    "vendor init includes SellVengeance in the component registration list")
-assert_contains(vendorLua, "instance:RegisterComponent(registration.mode, registration.component)",
-    "vendor init registers components through the shared registration loop")
+assert_contains(catalogLua, "Vendor.SellVengeanceComponent", "component catalog references SellVengeance component")
+assert_contains(catalogLua, "{ mode = MODE.SELL_VENGEANCE, component = Vendor.SellVengeanceComponent }", "component catalog includes SellVengeance in the registration list")
 
 assert_contains(constantsLua, "VENDOR_SELL_VENGEANCE", "shared module constants include SellVengeance key")
 assert_contains(batchCountsLua, "MODE.SELL_VENGEANCE", "batch action counts treat SellVengeance as sell-capable")
