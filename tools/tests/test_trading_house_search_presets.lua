@@ -130,7 +130,7 @@ local function assert_not_nil(value, label)
     assert_eq(value ~= nil, true, label)
 end
 
-dofile("Modules/TradingHouse/Components/SearchPresets.lua")
+dofile("Modules/TradingHouse/Core/SearchPresets.lua")
 local Presets = BETTERUI.TradingHouse.SearchPresets
 
 print("[SearchPresets.GetAll]")

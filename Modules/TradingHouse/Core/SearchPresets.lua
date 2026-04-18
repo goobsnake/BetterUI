@@ -1,5 +1,5 @@
 --[[
-File: Modules/TradingHouse/Components/SearchPresets.lua
+File: Modules/TradingHouse/Core/SearchPresets.lua
 Purpose: Named search preset save/load system for the Trading House.
 
 TH-001: Search presets for quick access to common guild store searches.
