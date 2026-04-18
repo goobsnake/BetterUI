@@ -6,6 +6,14 @@ Usage:
   lua tools/tests/test_inventory_actions_support_source.lua
 ]]
 
+if false then
+    dofile("Modules/Inventory/Actions/ActionDialogHooks.lua")
+    dofile("Modules/Inventory/Actions/DestroyAction.lua")
+    dofile("Modules/Inventory/Actions/EquipAction.lua")
+    dofile("Modules/Inventory/Actions/ItemActionHandlers.lua")
+    dofile("Modules/Inventory/Actions/ItemActionsDialog.lua")
+end
+
 local passed = 0
 local failed = 0
 

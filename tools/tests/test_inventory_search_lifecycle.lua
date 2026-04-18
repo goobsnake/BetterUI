@@ -31,6 +31,18 @@ BETTERUI = {
             },
         },
     },
+    CIM = {
+        SharedItemSupport = {
+            UpdateTooltipEquippedText = function() end,
+            IsItemComparisonEnabled = function()
+                return false
+            end,
+            CompareItem = function()
+                return nil
+            end,
+            ShowComparisonOnTooltip = function() end,
+        },
+    },
     Interface = {
         SearchMixin = {},
     },

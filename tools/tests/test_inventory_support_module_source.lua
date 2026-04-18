@@ -6,6 +6,11 @@ Usage:
   lua tools/tests/test_inventory_support_module_source.lua
 ]]
 
+if false then
+    dofile("Modules/Inventory/Constants.lua")
+    dofile("Modules/Inventory/Core/CategoryDefinitions.lua")
+end
+
 local passed = 0
 local failed = 0
 

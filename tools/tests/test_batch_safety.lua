@@ -26,6 +26,16 @@ BETTERUI = {
         BatchActions = {},
         Utils = {},
         ProtectionPolicy = {},
+        SharedItemSupport = {
+            UpdateTooltipEquippedText = function() end,
+            IsItemComparisonEnabled = function()
+                return false
+            end,
+            CompareItem = function()
+                return nil
+            end,
+            ShowComparisonOnTooltip = function() end,
+        },
         Dialogs = {
             Register = function() end,
         },

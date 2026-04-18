@@ -34,6 +34,14 @@ BETTERUI = {
                     return {}
                 end,
             },
+            CreateLazyManagerProxy = function(factory)
+                return setmetatable({}, {
+                    __index = function(_, key)
+                        local manager = factory()
+                        return manager and manager[key]
+                    end,
+                })
+            end,
         },
     },
 }
