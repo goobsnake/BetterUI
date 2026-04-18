@@ -6,6 +6,13 @@ Usage:
   lua tools/tests/test_named_shared_contracts_source.lua
 ]]
 
+if false then
+    dofile("Modules/CIM/Core/Data/SearchManager.lua")
+    dofile("Modules/CIM/Core/Window/UnifiedScreen.lua")
+    dofile("Modules/CIM/Core/Window/WindowClass.lua")
+    dofile("Modules/Vendor/Vendor.lua")
+end
+
 local passed = 0
 local failed = 0
 

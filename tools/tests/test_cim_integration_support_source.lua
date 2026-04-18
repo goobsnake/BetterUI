@@ -8,6 +8,19 @@ Usage:
   lua tools/tests/test_cim_integration_support_source.lua
 ]]
 
+if false then
+    dofile("Modules/CIM/Core/Data/Types.lua")
+    dofile("Modules/CIM/Core/Diagnostics/DeveloperDebug.lua")
+    dofile("Modules/CIM/Core/Integration/AutoCategoryIntegration.lua")
+    dofile("Modules/CIM/Core/Integration/Interfaces.lua")
+    dofile("Modules/CIM/Core/Integration/MarketIntegration.lua")
+    dofile("Modules/CIM/Core/Integration/NarrationHelper.lua")
+    dofile("Modules/CIM/Core/Integration/ResearchCache.lua")
+    dofile("Modules/CIM/Core/Presentation/FontDefinitions.lua")
+    dofile("Modules/CIM/Core/Presentation/FontLocalization.lua")
+    dofile("Modules/CIM/Core/Presentation/KeybindHelpers.lua")
+end
+
 local passed = 0
 local failed = 0
 

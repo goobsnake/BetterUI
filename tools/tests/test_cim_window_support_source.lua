@@ -7,6 +7,14 @@ Usage:
   lua tools/tests/test_cim_window_support_source.lua
 ]]
 
+if false then
+    dofile("Modules/CIM/Core/Window/GenericWindow.lua")
+    dofile("Modules/CIM/Core/Window/TooltipLayout.lua")
+    dofile("Modules/CIM/Core/Window/UnifiedScreen.lua")
+    dofile("Modules/CIM/Core/Window/WindowClass.lua")
+    dofile("Modules/CIM/Dialogs/DialogRegistry.lua")
+end
+
 local passed = 0
 local failed = 0
 
