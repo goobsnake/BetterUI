@@ -26,6 +26,10 @@ local function assert_true(value, label)
     end
 end
 
+local function assert_false(value, label)
+    assert_true(not value, label)
+end
+
 local function read_file(path)
     local handle = assert(io.open(path, "r"))
     local content = handle:read("*a")
@@ -96,6 +100,21 @@ assert_true(eventsSource:find("function Events%.SetupLoopEvents%(rootFrame, pool
     "OrbEvents exposes SetupLoopEvents")
 assert_true(eventsSource:find("function Events%.SetupSceneHandlers%(rootFrame%)") ~= nil,
     "OrbEvents exposes SetupSceneHandlers")
+
+local resourceOrbFramesSource = read_file("Modules/ResourceOrbFrames/ResourceOrbFrames.lua")
+assert_true(resourceOrbFramesSource:find("local function GetROFDeferredTaskRuntime%(%)") ~= nil,
+    "ROF root resolves DeferredTask through a lazy runtime getter")
+assert_true(resourceOrbFramesSource:find("local function GetROFTasks%(%)") ~= nil,
+    "ROF root resolves its lazy task proxy through a helper")
+assert_false(resourceOrbFramesSource:find("local ROFDeferredTask = assert%(BETTERUI%.CIM and BETTERUI%.CIM%.DeferredTask,") ~= nil,
+    "ROF root no longer asserts CIM.DeferredTask at import time")
+assert_true(resourceOrbFramesSource:find("ResourceOrbFrames%.Tasks = ResourceOrbFrames%.Tasks or GetROFDeferredTaskRuntime%(%)%.CreateLazyManagerProxy%(EnsureResourceOrbFramesTaskManager%)") ~= nil,
+    "ROF root builds the task proxy only when the helper first resolves runtime services")
+assert_true(resourceOrbFramesSource:find("GetROFTasks%(%):Schedule%(") ~= nil,
+    "ROF deferred scheduling flows through the lazy task accessor")
+
+assert_true(resourceOrbFramesSource:find("ResourceOrbFrames%.EnsureTaskManager = EnsureResourceOrbFramesTaskManager") ~= nil,
+    "ROF root still exposes EnsureTaskManager after the lazy-binding refactor")
 
 if failed > 0 then
     error(string.format("test_resource_orbframes_core_support_source.lua failed with %d failure(s)", failed))

@@ -19,6 +19,12 @@ local function assert_contains(haystack, needle, label)
     end
 end
 
+local function assert_not_contains(haystack, needle, label)
+    if haystack:find(needle, 1, true) then
+        error(label .. "\nUnexpected: " .. needle)
+    end
+end
+
 print("test_vendor_runtime_init_source")
 
 local vendorSource = read_file("Modules/Vendor/Vendor.lua")
@@ -51,16 +57,30 @@ assert_contains(vendorSource, "local function BuildVendorOpenFenceDeps()",
     "Vendor runtime builds fence-open workflow deps through a named helper")
 assert_contains(vendorSource, "local function BuildVendorCloseStoreDeps()",
     "Vendor runtime builds close-store workflow deps through a named helper")
-assert_contains(vendorSource, "local NativeStoreBridge = assert(Vendor.NativeStoreBridge",
-    "Vendor runtime requires the native-store bridge before orchestration starts")
-assert_contains(vendorSource, "local VendorBootstrapRuntime = assert(Vendor.BootstrapRuntime",
-    "Vendor runtime requires the bootstrap runtime collaborator before orchestration starts")
-assert_contains(vendorSource, "local VendorComponentCatalog = assert(Vendor.ComponentCatalog",
-    "Vendor runtime requires the component catalog collaborator before orchestration starts")
-assert_contains(vendorSource, "local VendorEventBridge = assert(Vendor.EventBridge",
-    "Vendor runtime requires the event-bridge collaborator before orchestration starts")
-assert_contains(vendorSource, "local VendorInteractionRuntime = assert(Vendor.InteractionRuntime",
-    "Vendor runtime requires the interaction runtime collaborator before orchestration starts")
+assert_contains(vendorSource, "local function ResolveVendorRuntimeDependency(fieldName, label)",
+    "Vendor root resolves runtime collaborators through a shared dependency helper")
+assert_contains(vendorSource, "local function GetVendorNativeStoreBridge()",
+    "Vendor root exposes a lazy getter for the native-store bridge")
+assert_contains(vendorSource, "local function GetVendorBootstrapRuntime()",
+    "Vendor root exposes a lazy getter for the bootstrap runtime")
+assert_contains(vendorSource, "local function GetVendorComponentCatalog()",
+    "Vendor root exposes a lazy getter for the component catalog")
+assert_contains(vendorSource, "local function GetVendorEventBridge()",
+    "Vendor root exposes a lazy getter for the event bridge")
+assert_contains(vendorSource, "local function GetVendorInteractionRuntime()",
+    "Vendor root exposes a lazy getter for the interaction runtime")
+assert_contains(vendorSource, "local function GetVendorBatchRuntime()",
+    "Vendor root exposes a lazy getter for the batch runtime")
+assert_not_contains(vendorSource, "local NativeStoreBridge = assert(Vendor.NativeStoreBridge",
+    "Vendor root no longer asserts the native-store bridge at import time")
+assert_not_contains(vendorSource, "local VendorBootstrapRuntime = assert(Vendor.BootstrapRuntime",
+    "Vendor root no longer asserts the bootstrap runtime at import time")
+assert_not_contains(vendorSource, "local VendorComponentCatalog = assert(Vendor.ComponentCatalog",
+    "Vendor root no longer asserts the component catalog at import time")
+assert_not_contains(vendorSource, "local VendorEventBridge = assert(Vendor.EventBridge",
+    "Vendor root no longer asserts the event bridge at import time")
+assert_not_contains(vendorSource, "local VendorInteractionRuntime = assert(Vendor.InteractionRuntime",
+    "Vendor root no longer asserts the interaction runtime at import time")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorNativeStoreBridge.lua",
     "Vendor manifest loads the native-store bridge before runtime setup")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorBootstrapRuntime.lua",
@@ -99,33 +119,33 @@ assert_contains(interactionRuntimeSource, "function InteractionRuntime.OnCloseSt
 
 assert_contains(vendorSource, "RegisterVendorComponents(instance)",
     "Vendor.Init delegates component registration to the helper")
-assert_contains(vendorSource, "VendorComponentCatalog.Register(instance)",
+assert_contains(vendorSource, "GetVendorComponentCatalog().Register(instance)",
     "Vendor component registration delegates to the component catalog collaborator")
 assert_contains(vendorSource, "InitializeVendorList(instance)",
     "Vendor.Init delegates list setup to the helper")
-assert_contains(vendorSource, "VendorBootstrapRuntime.InitializeList(instance, {",
+assert_contains(vendorSource, "GetVendorBootstrapRuntime().InitializeList(instance, {",
     "Vendor list helper delegates plumbing to the bootstrap runtime collaborator")
 assert_contains(vendorSource, "InitializeVendorSearch(instance)",
     "Vendor.Init delegates search setup to the helper")
-assert_contains(vendorSource, "VendorBootstrapRuntime.InitializeSearch(instance, {",
+assert_contains(vendorSource, "GetVendorBootstrapRuntime().InitializeSearch(instance, {",
     "Vendor search helper delegates plumbing to the bootstrap runtime collaborator")
 assert_contains(vendorSource, "InitializeVendorInteractiveSurfaces(instance)",
     "Vendor.Init delegates keybind and sort setup to the helper")
-assert_contains(vendorSource, "VendorBootstrapRuntime.InitializeInteractiveSurfaces(instance, {",
+assert_contains(vendorSource, "GetVendorBootstrapRuntime().InitializeInteractiveSurfaces(instance, {",
     "Vendor interactive-surface helper delegates plumbing to the bootstrap runtime collaborator")
 assert_contains(vendorSource, "CreateVendorScene(instance)",
     "Vendor.Init delegates scene creation to the helper")
-assert_contains(vendorSource, "VendorBootstrapRuntime.CreateScene(instance, {",
+assert_contains(vendorSource, "GetVendorBootstrapRuntime().CreateScene(instance, {",
     "Vendor scene helper delegates scene construction to the bootstrap runtime collaborator")
 assert_contains(vendorSource, "TakeOverNativeStoreScene(instance)",
     "Vendor.Init delegates native store takeover to the helper")
 assert_contains(vendorSource, "RegisterVendorSceneLifecycle(instance)",
     "Vendor.Init delegates scene lifecycle registration to the helper")
-assert_contains(vendorSource, "VendorBootstrapRuntime.RegisterSceneLifecycle(instance, {",
+assert_contains(vendorSource, "GetVendorBootstrapRuntime().RegisterSceneLifecycle(instance, {",
     "Vendor scene lifecycle helper delegates registration to the bootstrap runtime collaborator")
 assert_contains(vendorSource, "RegisterVendorEvents(EVENT_MANAGER)",
     "Vendor.Init delegates event registration to the helper")
-assert_contains(vendorSource, "VendorEventBridge.Register(eventManager, EVENT_NS, {",
+assert_contains(vendorSource, "GetVendorEventBridge().Register(eventManager, EVENT_NS, {",
     "Vendor event helper delegates registration plumbing to the event-bridge collaborator")
 
 assert_contains(vendorSource, "ResetVendorInteractionState()",
@@ -138,21 +158,21 @@ assert_contains(interactionRuntimeSource, "deps.applyVendorResolvedMode(targetMo
     "OnOpenStore applies the target mode through the shared helper")
 assert_contains(vendorSource, "ScheduleVendorOpenStoreSync(targetMode, 120)",
     "OnOpenStore schedules native-store resync through the shared helper")
-assert_contains(vendorSource, "ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenStore(SnapshotVendorInteractionState(), BuildVendorOpenStoreDeps()))",
+assert_contains(vendorSource, "ApplyVendorInteractionState(GetVendorInteractionRuntime().OnOpenStore(SnapshotVendorInteractionState(), BuildVendorOpenStoreDeps()))",
     "Vendor open-store handler delegates orchestration to the interaction runtime collaborator")
-assert_contains(vendorSource, "ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenFence(SnapshotVendorInteractionState(), BuildVendorOpenFenceDeps(), enableSell, enableLaunder))",
+assert_contains(vendorSource, "ApplyVendorInteractionState(GetVendorInteractionRuntime().OnOpenFence(SnapshotVendorInteractionState(), BuildVendorOpenFenceDeps(), enableSell, enableLaunder))",
     "Vendor fence-open handler delegates orchestration to the interaction runtime collaborator")
-assert_contains(vendorSource, "ApplyVendorInteractionState(VendorInteractionRuntime.OnCloseStore(SnapshotVendorInteractionState(), BuildVendorCloseStoreDeps()))",
+assert_contains(vendorSource, "ApplyVendorInteractionState(GetVendorInteractionRuntime().OnCloseStore(SnapshotVendorInteractionState(), BuildVendorCloseStoreDeps()))",
     "Vendor close-store handler delegates orchestration to the interaction runtime collaborator")
-assert_contains(vendorSource, "NativeStoreBridge.TakeOverScene(instance)",
+assert_contains(vendorSource, "GetVendorNativeStoreBridge().TakeOverScene(instance)",
     "Vendor scene takeover delegates to the native-store bridge")
-assert_contains(vendorSource, "NativeStoreBridge.ScheduleOpenStoreSync(targetMode, delayMs)",
+assert_contains(vendorSource, "GetVendorNativeStoreBridge().ScheduleOpenStoreSync(targetMode, delayMs)",
     "Vendor deferred store sync delegates scheduling to the native-store bridge")
-assert_contains(vendorSource, "NativeStoreBridge.ResolveTargetMode()",
+assert_contains(vendorSource, "GetVendorNativeStoreBridge().ResolveTargetMode()",
     "Vendor target-mode resolution delegates to the native-store bridge")
-assert_contains(vendorSource, "NativeStoreBridge.ApplyResolvedMode(targetMode, refreshList)",
+assert_contains(vendorSource, "GetVendorNativeStoreBridge().ApplyResolvedMode(targetMode, refreshList)",
     "Vendor mode application delegates to the native-store bridge")
-assert_contains(vendorSource, "NativeStoreBridge.UpdateSceneManagerStoreAlias(Vendor.instance)",
+assert_contains(vendorSource, "GetVendorNativeStoreBridge().UpdateSceneManagerStoreAlias(Vendor.instance)",
     "Vendor scene-alias updates delegate to the native-store bridge")
 
 print("  OK")

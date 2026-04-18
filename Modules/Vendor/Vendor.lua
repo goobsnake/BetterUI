@@ -9,12 +9,6 @@ local Vendor      = BETTERUI.Vendor
 local MODE        = Vendor.MODE
 local EVENT_NS    = "BetterUI_Vendor"
 local SafeCall
-local NativeStoreBridge = assert(Vendor.NativeStoreBridge, "Vendor native store bridge must load before Vendor.lua")
-local VendorBootstrapRuntime = assert(Vendor.BootstrapRuntime, "Vendor bootstrap runtime must load before Vendor.lua")
-local VendorComponentCatalog = assert(Vendor.ComponentCatalog, "Vendor component catalog must load before Vendor.lua")
-local VendorEventBridge = assert(Vendor.EventBridge, "Vendor event bridge must load before Vendor.lua")
-local VendorInteractionRuntime = assert(Vendor.InteractionRuntime, "Vendor interaction runtime must load before Vendor.lua")
-local VendorBatchRuntime = assert(Vendor.BatchRuntime, "Vendor batch runtime must load before Vendor.lua")
 
 -- Tracks whether current interaction is fence (true) or regular store (false)
 local isFenceInteraction = false
@@ -26,6 +20,36 @@ local fenceEnableLaunder = false
 Vendor._sessionHasBuyMode = false
 
 local SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME = "BETTERUI_VENDOR_SELL_ALL_JUNK_DIALOG"
+
+local function ResolveVendorRuntimeDependency(fieldName, label)
+    local dependency = Vendor[fieldName]
+    assert(dependency, string.format("Vendor %s must load before Vendor runtime use", label))
+    return dependency
+end
+
+local function GetVendorNativeStoreBridge()
+    return ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge")
+end
+
+local function GetVendorBootstrapRuntime()
+    return ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime")
+end
+
+local function GetVendorComponentCatalog()
+    return ResolveVendorRuntimeDependency("ComponentCatalog", "component catalog")
+end
+
+local function GetVendorEventBridge()
+    return ResolveVendorRuntimeDependency("EventBridge", "event bridge")
+end
+
+local function GetVendorInteractionRuntime()
+    return ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
+end
+
+local function GetVendorBatchRuntime()
+    return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime")
+end
 
 local function IsSellVengeanceModeAvailable()
     return rawget(_G, "BAG_VENGEANCE") ~= nil
@@ -256,11 +280,11 @@ local function ResolveInitialStoreMode(tabs)
 end
 
 local function RestoreNativeStoreSceneAlias()
-    NativeStoreBridge.RestoreSceneAlias()
+    GetVendorNativeStoreBridge().RestoreSceneAlias()
 end
 
 local function AliasStoreSceneToBetterUI()
-    NativeStoreBridge.AliasSceneToBetterUI(Vendor.instance)
+    GetVendorNativeStoreBridge().AliasSceneToBetterUI(Vendor.instance)
 end
 
 local function LogVendorDebug(flagName, category, message)
@@ -277,7 +301,7 @@ local function IsDirectionalInputListening(obj)
 end
 
 local function EnsureNativeStoreComponents(searchContext)
-    NativeStoreBridge.EnsureComponents(searchContext)
+    GetVendorNativeStoreBridge().EnsureComponents(searchContext)
 end
 
 Vendor.EnsureNativeStoreComponents = EnsureNativeStoreComponents
@@ -372,17 +396,17 @@ local function ApplyVendorInteractionState(nextState)
 end
 
 local function ApplyVendorResolvedMode(targetMode, refreshList)
-    NativeStoreBridge.ApplyResolvedMode(targetMode, refreshList)
+    GetVendorNativeStoreBridge().ApplyResolvedMode(targetMode, refreshList)
 end
 
 local function ResolveVendorTargetMode()
-    return NativeStoreBridge.ResolveTargetMode()
+    return GetVendorNativeStoreBridge().ResolveTargetMode()
 end
 
 local ScheduleVendorOpenStoreSync
 
 ScheduleVendorOpenStoreSync = function(targetMode, delayMs)
-    NativeStoreBridge.ScheduleOpenStoreSync(targetMode, delayMs)
+    GetVendorNativeStoreBridge().ScheduleOpenStoreSync(targetMode, delayMs)
 end
 
 local function ShowVendorScene()
@@ -1006,19 +1030,19 @@ CanMultiSelectInCurrentMode = function()
 end
 
 function Vendor.ExecuteBatchAction(mode, itemData)
-    VendorBatchRuntime.ExecuteBatchAction(mode, itemData)
+    GetVendorBatchRuntime().ExecuteBatchAction(mode, itemData)
 end
 
 ---@param mode number
 ---@return string
 local function ResolveVendorBatchActionName(mode)
-    return VendorBatchRuntime.ResolveBatchActionName(mode)
+    return GetVendorBatchRuntime().ResolveBatchActionName(mode)
 end
 
 ---@param totalItems integer
 ---@return table
 local function ResolveVendorBatchDelayPolicy(totalItems)
-    return VendorBatchRuntime.ResolveBatchDelayPolicy(totalItems)
+    return GetVendorBatchRuntime().ResolveBatchDelayPolicy(totalItems)
 end
 
 ---@param mode number
@@ -1026,7 +1050,7 @@ end
 ---@param onComplete function|nil
 ---@return table
 local function CreateVendorBatchRunner(mode, items, onComplete)
-    return VendorBatchRuntime.CreateBatchRunner(mode, items, onComplete)
+    return GetVendorBatchRuntime().CreateBatchRunner(mode, items, onComplete)
 end
 
 --- Processes vendor batch actions through a throttled pipeline with overlay progress.
@@ -1035,12 +1059,12 @@ end
 ---@param items BetterUIVendorBatchItem[] Array of selected item data tables
 ---@param onComplete function|nil Callback invoked when processing finishes
 function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
-    VendorBatchRuntime.ExecuteBatchThrottled(mode, items, onComplete)
+    GetVendorBatchRuntime().ExecuteBatchThrottled(mode, items, onComplete)
 end
 
 --- Requests abort of the current vendor batch operation.
 function Vendor.RequestBatchAbort()
-    VendorBatchRuntime.RequestBatchAbort()
+    GetVendorBatchRuntime().RequestBatchAbort()
 end
 
 local function RegisterVendorSellAllJunkDialog()
@@ -1260,7 +1284,7 @@ end
 
 local function OnOpenStore()
     ResetVendorInteractionState()
-    ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenStore(SnapshotVendorInteractionState(), BuildVendorOpenStoreDeps()))
+    ApplyVendorInteractionState(GetVendorInteractionRuntime().OnOpenStore(SnapshotVendorInteractionState(), BuildVendorOpenStoreDeps()))
 end
 
 ---@param _ any Unused event code
@@ -1268,7 +1292,7 @@ end
 ---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
     ResetVendorInteractionState()
-    ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenFence(SnapshotVendorInteractionState(), BuildVendorOpenFenceDeps(), enableSell, enableLaunder))
+    ApplyVendorInteractionState(GetVendorInteractionRuntime().OnOpenFence(SnapshotVendorInteractionState(), BuildVendorOpenFenceDeps(), enableSell, enableLaunder))
 end
 
 local function OnStableInteractStart()
@@ -1283,7 +1307,7 @@ local function OnCloseStore()
     Vendor._isClosing = true
     Vendor._sessionHasBuyMode = false
     Vendor._openStoreSyncAttempt = 0
-    ApplyVendorInteractionState(VendorInteractionRuntime.OnCloseStore(SnapshotVendorInteractionState(), BuildVendorCloseStoreDeps()))
+    ApplyVendorInteractionState(GetVendorInteractionRuntime().OnCloseStore(SnapshotVendorInteractionState(), BuildVendorCloseStoreDeps()))
 end
 
 local function OnInventoryUpdated()
@@ -1335,7 +1359,7 @@ end
 -- INITIALIZATION
 
 local function RegisterVendorComponents(instance)
-    VendorComponentCatalog.Register(instance)
+    GetVendorComponentCatalog().Register(instance)
 end
 
 local function AddVendorColumns(instance)
@@ -1348,42 +1372,42 @@ local function AddVendorColumns(instance)
 end
 
 local function InitializeVendorList(instance)
-    VendorBootstrapRuntime.InitializeList(instance, {
+    GetVendorBootstrapRuntime().InitializeList(instance, {
         rowSetup = BETTERUI.Vendor.VendorEntrySetup,
         addColumns = AddVendorColumns,
     })
 end
 
 local function InitializeVendorSearch(instance)
-    VendorBootstrapRuntime.InitializeSearch(instance, {
+    GetVendorBootstrapRuntime().InitializeSearch(instance, {
         createSearchKeybindDescriptor = BETTERUI.Interface and BETTERUI.Interface.CreateSearchKeybindDescriptor,
         setupEditBoxHandlers = BETTERUI.Interface and BETTERUI.Interface.SearchMixin and BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers,
     })
 end
 
 local function InitializeVendorInteractiveSurfaces(instance)
-    VendorBootstrapRuntime.InitializeInteractiveSurfaces(instance, {
+    GetVendorBootstrapRuntime().InitializeInteractiveSurfaces(instance, {
         buildCoreKeybinds = BuildCoreKeybinds,
         runVendorSetupStep = RunVendorSetupStep,
     })
 end
 
 local function CreateVendorScene(instance)
-    VendorBootstrapRuntime.CreateScene(instance, {})
+    GetVendorBootstrapRuntime().CreateScene(instance, {})
 end
 
 local function TakeOverNativeStoreScene(instance)
-    NativeStoreBridge.TakeOverScene(instance)
+    GetVendorNativeStoreBridge().TakeOverScene(instance)
 end
 
 local function RegisterVendorSceneLifecycle(instance)
-    VendorBootstrapRuntime.RegisterSceneLifecycle(instance, {
+    GetVendorBootstrapRuntime().RegisterSceneLifecycle(instance, {
         taskManager = Vendor.Tasks,
     })
 end
 
 local function RegisterVendorEvents(eventManager)
-    VendorEventBridge.Register(eventManager, EVENT_NS, {
+    GetVendorEventBridge().Register(eventManager, EVENT_NS, {
         onStableInteractStart = OnStableInteractStart,
         onStableInteractEnd = OnStableInteractEnd,
         onOpenStore = OnOpenStore,
@@ -1410,7 +1434,7 @@ local function ExposeVendorRuntimeHelpers()
     Vendor.HasVendorBuyInventory = HasVendorBuyInventory
     Vendor.ResolveInitialStoreMode = ResolveInitialStoreMode
     Vendor.UpdateSceneManagerStoreAlias = function()
-        NativeStoreBridge.UpdateSceneManagerStoreAlias(Vendor.instance)
+        GetVendorNativeStoreBridge().UpdateSceneManagerStoreAlias(Vendor.instance)
     end
 end
 

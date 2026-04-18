@@ -40,17 +40,25 @@ local m_foodTracker = nil
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
-local ROFDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
-    "BetterUI: CIM.DeferredTask must load before ResourceOrbFrames")
+local function GetROFDeferredTaskRuntime()
+    local deferredTask = BETTERUI.CIM and BETTERUI.CIM.DeferredTask
+    assert(deferredTask, "BetterUI: CIM.DeferredTask must load before ResourceOrbFrames runtime use")
+    return deferredTask
+end
+
 local function EnsureResourceOrbFramesTaskManager()
     if not ResourceOrbFrames._taskManager then
-        ResourceOrbFrames._taskManager = ROFDeferredTask.CreateManager()
+        ResourceOrbFrames._taskManager = GetROFDeferredTaskRuntime().CreateManager()
     end
     return ResourceOrbFrames._taskManager
 end
+
+local function GetROFTasks()
+    ResourceOrbFrames.Tasks = ResourceOrbFrames.Tasks or GetROFDeferredTaskRuntime().CreateLazyManagerProxy(EnsureResourceOrbFramesTaskManager)
+    return ResourceOrbFrames.Tasks
+end
+
 ResourceOrbFrames.EnsureTaskManager = EnsureResourceOrbFramesTaskManager
-ResourceOrbFrames.Tasks = ResourceOrbFrames.Tasks or ROFDeferredTask.CreateLazyManagerProxy(EnsureResourceOrbFramesTaskManager)
-local ROFTasks = ResourceOrbFrames.Tasks
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local SettingsUtils = Utils.Settings
@@ -267,7 +275,7 @@ local function RegisterDynamicEvents(control)
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED,
         function()
             SkillBar.WeaponSwapAnimation(control)
-            ROFTasks:Schedule("weaponSwapLayout", BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
+            GetROFTasks():Schedule("weaponSwapLayout", BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
                 function() ApplyLayout(false, true) end)
         end)
 
@@ -292,7 +300,7 @@ local function RegisterDynamicEvents(control)
             if cfg and cfg.m_enabled then
                 SkillBar.UpdateFrontBarCompanion(control)
             end
-            ROFTasks:Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, ApplyFullLayout)
+            GetROFTasks():Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, ApplyFullLayout)
         end)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED,
@@ -316,7 +324,7 @@ local function RegisterDynamicEvents(control)
     -- Zone change cleanup (for subsequent zones after initial setup)
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED,
         function()
-            ROFTasks:Schedule("playerActivatedRefresh", BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS, function()
+            GetROFTasks():Schedule("playerActivatedRefresh", BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS, function()
                 SuppressNativeBars()
                 ApplyFullLayout()
                 RefreshAllData()
@@ -408,7 +416,7 @@ function ResourceOrbFrames.Initialize(control)
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
 
-        ROFTasks:Schedule("initModuleSetup", BETTERUI.CIM.CONST.TIMING.DEFERRED_INIT_MS, function()
+        GetROFTasks():Schedule("initModuleSetup", BETTERUI.CIM.CONST.TIMING.DEFERRED_INIT_MS, function()
             local settings = GetSettings()
             if not settings or not settings.m_enabled then
                 m_rootFrame:SetHidden(true)
