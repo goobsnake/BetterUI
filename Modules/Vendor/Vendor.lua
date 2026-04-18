@@ -385,6 +385,85 @@ ScheduleVendorOpenStoreSync = function(targetMode, delayMs)
     NativeStoreBridge.ScheduleOpenStoreSync(targetMode, delayMs)
 end
 
+local function ShowVendorScene()
+    if SCENE_MANAGER then
+        SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
+    end
+end
+
+local function HideVendorScene()
+    if not SCENE_MANAGER then
+        return
+    end
+
+    local scene = SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
+    if scene and scene.IsShowing and scene:IsShowing() then
+        SCENE_MANAGER:Hide(BETTERUI_VENDOR_SCENE_NAME)
+    end
+end
+
+local function GetVendorStoreManager()
+    return rawget(_G, "STORE_WINDOW_GAMEPAD")
+end
+
+local function CancelVendorRuntimeTasks()
+    if Vendor.Tasks then
+        Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
+        Vendor.Tasks:Cancel("buyActivateRefresh")
+        Vendor.Tasks:Cancel("buyListRetry")
+        Vendor.Tasks:Cancel("listRefresh")
+        Vendor.Tasks:Cancel("footerRefresh")
+        Vendor.Tasks:Cancel("directionalInputNormalize")
+    end
+end
+
+local function BuildVendorOpenStoreDeps()
+    return {
+        resetInteractionState = ResetVendorInteractionState,
+        instance = Vendor.instance,
+        resetRuntimeState = ResetActiveVendorRuntimeState,
+        getInteractionType = GetInteractionType,
+        interactionVendor = INTERACTION_VENDOR,
+        interactionStable = INTERACTION_STABLE,
+        isNativeStableModeActive = IsNativeStableModeActive,
+        logVendorDebug = LogVendorDebug,
+        restoreNativeStoreSceneAlias = RestoreNativeStoreSceneAlias,
+        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
+        ensureNativeStoreComponents = EnsureNativeStoreComponents,
+        resolveVendorTargetMode = ResolveVendorTargetMode,
+        applyVendorResolvedMode = ApplyVendorResolvedMode,
+        showScene = ShowVendorScene,
+        scheduleVendorOpenStoreSync = ScheduleVendorOpenStoreSync,
+    }
+end
+
+local function BuildVendorOpenFenceDeps()
+    return {
+        resetInteractionState = ResetVendorInteractionState,
+        instance = Vendor.instance,
+        resetRuntimeState = ResetActiveVendorRuntimeState,
+        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
+        logVendorDebug = LogVendorDebug,
+        sellMode = MODE.FENCE_SELL,
+        fenceLaunderMode = MODE.FENCE_LAUNDER,
+        showScene = ShowVendorScene,
+    }
+end
+
+local function BuildVendorCloseStoreDeps()
+    return {
+        instance = Vendor.instance,
+        resetRuntimeState = ResetActiveVendorRuntimeState,
+        cancelRuntimeTasks = CancelVendorRuntimeTasks,
+        logVendorDebug = LogVendorDebug,
+        hideScene = HideVendorScene,
+        getStoreManager = GetVendorStoreManager,
+        logNativeStoreInputState = LogNativeStoreInputState,
+        safeCall = SafeCall,
+        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
+    }
+end
+
 local function PrepareVendorOpenStoreMode()
     local targetMode = ResolveVendorTargetMode()
     ApplyVendorResolvedMode(targetMode, false)
@@ -1181,27 +1260,7 @@ end
 
 local function OnOpenStore()
     ResetVendorInteractionState()
-    ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenStore(SnapshotVendorInteractionState(), {
-        resetInteractionState = ResetVendorInteractionState,
-        instance = Vendor.instance,
-        resetRuntimeState = ResetActiveVendorRuntimeState,
-        getInteractionType = GetInteractionType,
-        interactionVendor = INTERACTION_VENDOR,
-        interactionStable = INTERACTION_STABLE,
-        isNativeStableModeActive = IsNativeStableModeActive,
-        logVendorDebug = LogVendorDebug,
-        restoreNativeStoreSceneAlias = RestoreNativeStoreSceneAlias,
-        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
-        ensureNativeStoreComponents = EnsureNativeStoreComponents,
-        resolveVendorTargetMode = ResolveVendorTargetMode,
-        applyVendorResolvedMode = ApplyVendorResolvedMode,
-        showScene = function()
-            if SCENE_MANAGER then
-                SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
-            end
-        end,
-        scheduleVendorOpenStoreSync = ScheduleVendorOpenStoreSync,
-    }))
+    ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenStore(SnapshotVendorInteractionState(), BuildVendorOpenStoreDeps()))
 end
 
 ---@param _ any Unused event code
@@ -1209,20 +1268,7 @@ end
 ---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
     ResetVendorInteractionState()
-    ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenFence(SnapshotVendorInteractionState(), {
-        resetInteractionState = ResetVendorInteractionState,
-        instance = Vendor.instance,
-        resetRuntimeState = ResetActiveVendorRuntimeState,
-        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
-        logVendorDebug = LogVendorDebug,
-        sellMode = MODE.FENCE_SELL,
-        fenceLaunderMode = MODE.FENCE_LAUNDER,
-        showScene = function()
-            if SCENE_MANAGER then
-                SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
-            end
-        end,
-    }, enableSell, enableLaunder))
+    ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenFence(SnapshotVendorInteractionState(), BuildVendorOpenFenceDeps(), enableSell, enableLaunder))
 end
 
 local function OnStableInteractStart()
@@ -1237,33 +1283,7 @@ local function OnCloseStore()
     Vendor._isClosing = true
     Vendor._sessionHasBuyMode = false
     Vendor._openStoreSyncAttempt = 0
-    ApplyVendorInteractionState(VendorInteractionRuntime.OnCloseStore(SnapshotVendorInteractionState(), {
-        instance = Vendor.instance,
-        resetRuntimeState = ResetActiveVendorRuntimeState,
-        cancelRuntimeTasks = function()
-            if Vendor.Tasks then
-                Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
-                Vendor.Tasks:Cancel("buyActivateRefresh")
-                Vendor.Tasks:Cancel("buyListRetry")
-                Vendor.Tasks:Cancel("listRefresh")
-                Vendor.Tasks:Cancel("footerRefresh")
-                Vendor.Tasks:Cancel("directionalInputNormalize")
-            end
-        end,
-        logVendorDebug = LogVendorDebug,
-        hideScene = function()
-            if SCENE_MANAGER then
-                local scene = SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
-                if scene and scene.IsShowing and scene:IsShowing() then
-                    SCENE_MANAGER:Hide(BETTERUI_VENDOR_SCENE_NAME)
-                end
-            end
-        end,
-        getStoreManager = function() return rawget(_G, "STORE_WINDOW_GAMEPAD") end,
-        logNativeStoreInputState = LogNativeStoreInputState,
-        safeCall = SafeCall,
-        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
-    }))
+    ApplyVendorInteractionState(VendorInteractionRuntime.OnCloseStore(SnapshotVendorInteractionState(), BuildVendorCloseStoreDeps()))
 end
 
 local function OnInventoryUpdated()

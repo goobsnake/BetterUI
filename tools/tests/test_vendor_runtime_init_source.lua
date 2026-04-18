@@ -45,6 +45,12 @@ assert_contains(vendorSource, "local function ApplyVendorResolvedMode(targetMode
     "Vendor runtime owns mode application through a shared helper")
 assert_contains(vendorSource, "ScheduleVendorOpenStoreSync = function(targetMode, delayMs)",
     "Vendor runtime schedules open-store retries through a named helper")
+assert_contains(vendorSource, "local function BuildVendorOpenStoreDeps()",
+    "Vendor runtime builds open-store workflow deps through a named helper")
+assert_contains(vendorSource, "local function BuildVendorOpenFenceDeps()",
+    "Vendor runtime builds fence-open workflow deps through a named helper")
+assert_contains(vendorSource, "local function BuildVendorCloseStoreDeps()",
+    "Vendor runtime builds close-store workflow deps through a named helper")
 assert_contains(vendorSource, "local NativeStoreBridge = assert(Vendor.NativeStoreBridge",
     "Vendor runtime requires the native-store bridge before orchestration starts")
 assert_contains(vendorSource, "local VendorBootstrapRuntime = assert(Vendor.BootstrapRuntime",
@@ -132,11 +138,11 @@ assert_contains(interactionRuntimeSource, "deps.applyVendorResolvedMode(targetMo
     "OnOpenStore applies the target mode through the shared helper")
 assert_contains(vendorSource, "ScheduleVendorOpenStoreSync(targetMode, 120)",
     "OnOpenStore schedules native-store resync through the shared helper")
-assert_contains(vendorSource, "ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenStore(",
+assert_contains(vendorSource, "ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenStore(SnapshotVendorInteractionState(), BuildVendorOpenStoreDeps()))",
     "Vendor open-store handler delegates orchestration to the interaction runtime collaborator")
-assert_contains(vendorSource, "ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenFence(",
+assert_contains(vendorSource, "ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenFence(SnapshotVendorInteractionState(), BuildVendorOpenFenceDeps(), enableSell, enableLaunder))",
     "Vendor fence-open handler delegates orchestration to the interaction runtime collaborator")
-assert_contains(vendorSource, "ApplyVendorInteractionState(VendorInteractionRuntime.OnCloseStore(",
+assert_contains(vendorSource, "ApplyVendorInteractionState(VendorInteractionRuntime.OnCloseStore(SnapshotVendorInteractionState(), BuildVendorCloseStoreDeps()))",
     "Vendor close-store handler delegates orchestration to the interaction runtime collaborator")
 assert_contains(vendorSource, "NativeStoreBridge.TakeOverScene(instance)",
     "Vendor scene takeover delegates to the native-store bridge")
