@@ -9,10 +9,6 @@ local LIST_WITHDRAW           = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
 ---@alias BetterUIBankingKeybindGroup BetterUIKeybindDescriptorGroup
 ---@alias BetterUIBankingListSource table|fun(): table|nil
-local GetCurrentBank = assert(BETTERUI.Banking.GetCurrentBank,
-    "BetterUI: Banking.GetCurrentBank must load before Banking/Keybinds/KeybindManager")
-local GetActiveBankBag = assert(BETTERUI.Banking.GetActiveBankBag,
-    "BetterUI: Banking.GetActiveBankBag must load before Banking/Keybinds/KeybindManager")
 
 -- Import EnsureKeybindGroupAdded from Banking.lua (or where it lives)
 local function GetEntryBagAndSlot(entryData)
@@ -42,7 +38,7 @@ local function IsActionableListEntry(entryData)
 end
 
 local function IsMainBankContext()
-    return GetActiveBankBag() == BAG_BANK
+    return BETTERUI.Banking.GetActiveBankBag() == BAG_BANK
 end
 
 local function IsGuildBankMode()
@@ -260,7 +256,7 @@ local function CreateCoreNavigationKeybinds(self)
                 if self:IsBatchProcessing() then
                     return
                 end
-                local currentUsedBank = GetCurrentBank()
+                local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
                 if self.currentMode == LIST_WITHDRAW then
                     if currentUsedBank == BAG_BANK then
                         StackBag(BAG_BANK)

@@ -4,10 +4,6 @@ Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
 
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
-local GetCurrentBank = assert(BETTERUI.Banking.GetCurrentBank,
-    "BetterUI: Banking.GetCurrentBank must load before Banking/Actions/TransferActions")
-local GetActiveBankBag = assert(BETTERUI.Banking.GetActiveBankBag,
-    "BetterUI: Banking.GetActiveBankBag must load before Banking/Actions/TransferActions")
 
 
 --- Finds the first empty slot in a personal or house bank bag.
@@ -15,7 +11,7 @@ local GetActiveBankBag = assert(BETTERUI.Banking.GetActiveBankBag,
 ---@return integer? bag The bank bag ID, or nil if no space
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank()
-    local currentUsedBank = GetCurrentBank()
+    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
     if currentUsedBank == BAG_BANK then
         local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
         if emptySlotIndexBank ~= nil then
@@ -93,7 +89,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
-    local targetBankBag = GetCurrentBank()
+    local targetBankBag = BETTERUI.Banking.GetCurrentBank()
     local isDepositAllowedForCurrentBank = GetRequiredTransferHelper("IsDepositSupportedForBank")
     local notifyGuildBankTransferDenied = GetRequiredTransferHelper("NotifyGuildBankTransferDenied")
     if quantity == nil then
@@ -211,7 +207,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
         else
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            if IsHouseBankBag(GetActiveBankBag()) then
+            if IsHouseBankBag(BETTERUI.Banking.GetActiveBankBag()) then
                 banks = { targetBankBag }
             end
 

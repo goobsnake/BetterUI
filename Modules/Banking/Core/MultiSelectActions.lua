@@ -17,10 +17,6 @@ local BatchStepQueued = BatchConfig.BatchStepQueued
 local BatchStepSkipped = BatchConfig.BatchStepSkipped
 local BatchStepStopped = BatchConfig.BatchStepStopped
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
-local ResolveBankBag = assert(BETTERUI.Banking.ResolveBankBag,
-    "BetterUI: Banking.ResolveBankBag must load before Banking/Core/MultiSelectActions")
-local GetCurrentBank = assert(BETTERUI.Banking.GetCurrentBank,
-    "BetterUI: Banking.GetCurrentBank must load before Banking/Core/MultiSelectActions")
 
 local function GetBankingWindow()
     return BETTERUI.Banking and BETTERUI.Banking.Window
@@ -151,7 +147,7 @@ local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
         return "skip"
     end
 
-    local targetBankBag = ResolveBankBag(currentUsedBank)
+    local targetBankBag = BETTERUI.Banking.ResolveBankBag(currentUsedBank)
 
     if targetBankBag == BAG_BANK then
         -- DoesBagHaveSpaceFor(BAG_BANK) natively returns true if BAG_SUBSCRIBER_BANK has space,
@@ -228,7 +224,7 @@ function BETTERUI.Banking.Class:BatchTransfer()
     if not selectedItems or #selectedItems == 0 then return end
 
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
-    local currentUsedBank = GetCurrentBank()
+    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
         currentUsedBank = BAG_GUILDBANK
@@ -357,7 +353,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     -- Use shared mixin to analyze selected items
     local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
-    local currentUsedBank = GetCurrentBank()
+    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
         currentUsedBank = BAG_GUILDBANK

@@ -289,7 +289,7 @@ assertTrue(headerManager:match("function BETTERUI%.Banking%.Class:RebuildHeaderC
     "HeaderManager owns RebuildHeaderCategories")
 
 local multiSelectActions = readFile("Modules/Banking/Core/MultiSelectActions.lua")
-assertTrue(multiSelectActions:match("local currentUsedBank = GetCurrentBank%(%)") ~= nil,
+assertTrue(multiSelectActions:match("local currentUsedBank = BETTERUI%.Banking%.GetCurrentBank%(%)") ~= nil,
     "MultiSelectActions uses GetCurrentBank for banking transfers and menus")
 assertTrue(multiSelectActions:match("currentUsedBank or BAG_BANK") == nil,
     "MultiSelectActions no longer bypasses the normalized bank helper")

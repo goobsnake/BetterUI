@@ -6,8 +6,6 @@ Purpose: Manages the banking footer UI (capacity info, currency display).
 
 -- SHARED CONSTANTS & STATE
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-local GetCurrentBank = assert(BETTERUI.Banking.GetCurrentBank,
-    "BetterUI: Banking.GetCurrentBank must load before Banking/UI/FooterManager")
 
 --[[
 Function: BETTERUI.Banking.Class:RefreshFooter
@@ -15,7 +13,7 @@ Description: Updates the footer information (bag capacity, currency).
 ]]
 function BETTERUI.Banking.Class:RefreshFooter()
     if not self.footer or not self.footer.footer then return end
-    local currentUsedBank = GetCurrentBank()
+    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
     local GuildBank = BETTERUI.Banking.GuildBank
     local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
 
