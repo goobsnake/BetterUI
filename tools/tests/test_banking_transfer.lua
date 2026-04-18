@@ -65,6 +65,15 @@ BETTERUI = {
     Banking = {
         LIST_WITHDRAW = 1,
         LIST_DEPOSIT = 2,
+        ResolveBankBag = function(bankBagId)
+            if bankBagId == nil or bankBagId == 0 then
+                return BAG_BANK
+            end
+            return bankBagId
+        end,
+        GetCurrentBank = function()
+            return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+        end,
         GuildBank = {
             IsGuildBankMode = function() return false end,
             GetDepositTargetBag = function() return BAG_GUILDBANK end,
@@ -73,6 +82,24 @@ BETTERUI = {
         Class = {},
     },
     CIM = {
+        BatchConfig = {
+            BatchStepHandled = function() return "handled" end,
+            BatchStepQueued = function() return "queued" end,
+            BatchStepSkipped = function() return "skipped" end,
+            BatchStepStopped = function(reason) return "stopped", reason end,
+            ComposeBatchOptions = function(...)
+                return { ... }
+            end,
+            WithServer = function(options)
+                return options
+            end,
+            WithAck = function(options)
+                return options
+            end,
+            WithPacing = function(options)
+                return options
+            end,
+        },
         ProtectionPolicy = {
             DENY = {
                 STOLEN = "stolen",

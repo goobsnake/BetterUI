@@ -42,6 +42,16 @@ function BETTERUI.Banking.GetCurrentBank()
     return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
 end
 
+--- Returns the live scene bank bag when available; otherwise returns the current banking state bag.
+--- Cross-module callers should use this instead of reading GetBankingBag directly.
+---@return number bankBagId The active live bank bag constant.
+function BETTERUI.Banking.GetActiveBankBag()
+    if GetBankingBag then
+        return BETTERUI.Banking.ResolveBankBag(GetBankingBag())
+    end
+    return BETTERUI.Banking.GetCurrentBank()
+end
+
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
 local BankingDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,

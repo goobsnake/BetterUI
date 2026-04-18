@@ -233,6 +233,9 @@ BETTERUI = {
         GetCurrentBank = function()
             return currentBank
         end,
+        GetActiveBankBag = function()
+            return (currentBank == nil or currentBank == 0) and BAG_BANK or currentBank
+        end,
         GetSetting = function(key)
             local values = {
                 triggerSpeed = 25,

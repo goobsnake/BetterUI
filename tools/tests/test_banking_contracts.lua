@@ -146,6 +146,7 @@ dofile("Modules/Banking/Core/BankingClass.lua")
 
 assertTrue(type(BETTERUI.Banking.ResolveBankBag) == "function", "ResolveBankBag helper is exposed")
 assertTrue(type(BETTERUI.Banking.GetCurrentBank) == "function", "GetCurrentBank helper is exposed")
+assertTrue(type(BETTERUI.Banking.GetActiveBankBag) == "function", "GetActiveBankBag helper is exposed")
 assertEqual(BAG_BANK, BETTERUI.Banking.lastUsedBank, "lastUsedBank starts aligned with the normalized default bank")
 assertEqual(BETTERUI.CIM.MultiSelectMixin.OnSelectionCountChanged, BETTERUI.Banking.Class.OnSelectionCountChanged,
     "BankingClass aliases OnSelectionCountChanged directly to the shared multi-select mixin")
@@ -176,6 +177,20 @@ assertEqual(BAG_BANK, BETTERUI.Banking.GetCurrentBank(), "GetCurrentBank hides t
 
 BETTERUI.Banking.currentUsedBank = BAG_GUILDBANK
 assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetCurrentBank(), "GetCurrentBank preserves active non-default banks")
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetActiveBankBag(),
+    "GetActiveBankBag falls back to current bank when GetBankingBag is unavailable")
+
+local originalGetBankingBag = GetBankingBag
+GetBankingBag = function()
+    return 0
+end
+assertEqual(BAG_BANK, BETTERUI.Banking.GetActiveBankBag(), "GetActiveBankBag normalizes a zero banking bag")
+GetBankingBag = function()
+    return BAG_GUILDBANK
+end
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetActiveBankBag(),
+    "GetActiveBankBag uses the live banking bag when available")
+GetBankingBag = originalGetBankingBag
 
 local newWindow = BETTERUI.Banking.Class:New("BETTERUI_BankingWindow", "betterui_banking")
 assertEqual("BETTERUI_BankingWindow", newWindow._newArgs[1], "BankingClass:New forwards the top-level window name")

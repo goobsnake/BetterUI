@@ -4,16 +4,10 @@ Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
 
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
-local function GetCurrentBank()
-    if BETTERUI.Banking.GetCurrentBank then
-        return BETTERUI.Banking.GetCurrentBank()
-    end
-    local currentUsedBank = BETTERUI.Banking and BETTERUI.Banking.currentUsedBank or nil
-    if currentUsedBank == nil or currentUsedBank == 0 then
-        return BAG_BANK
-    end
-    return currentUsedBank
-end
+local GetCurrentBank = assert(BETTERUI.Banking.GetCurrentBank,
+    "BetterUI: Banking.GetCurrentBank must load before Banking/Actions/TransferActions")
+local GetActiveBankBag = assert(BETTERUI.Banking.GetActiveBankBag,
+    "BetterUI: Banking.GetActiveBankBag must load before Banking/Actions/TransferActions")
 
 
 --- Finds the first empty slot in a personal or house bank bag.
@@ -217,7 +211,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
         else
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            if IsHouseBankBag(GetBankingBag()) then
+            if IsHouseBankBag(GetActiveBankBag()) then
                 banks = { targetBankBag }
             end
 

@@ -17,22 +17,10 @@ local BatchStepQueued = BatchConfig.BatchStepQueued
 local BatchStepSkipped = BatchConfig.BatchStepSkipped
 local BatchStepStopped = BatchConfig.BatchStepStopped
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
-local function ResolveBankBag(bankBagId)
-    if BETTERUI.Banking.ResolveBankBag then
-        return BETTERUI.Banking.ResolveBankBag(bankBagId)
-    end
-    if bankBagId == nil or bankBagId == 0 then
-        return BAG_BANK
-    end
-    return bankBagId
-end
-
-local function GetCurrentBank()
-    if BETTERUI.Banking.GetCurrentBank then
-        return BETTERUI.Banking.GetCurrentBank()
-    end
-    return ResolveBankBag(BETTERUI.Banking.currentUsedBank)
-end
+local ResolveBankBag = assert(BETTERUI.Banking.ResolveBankBag,
+    "BetterUI: Banking.ResolveBankBag must load before Banking/Core/MultiSelectActions")
+local GetCurrentBank = assert(BETTERUI.Banking.GetCurrentBank,
+    "BetterUI: Banking.GetCurrentBank must load before Banking/Core/MultiSelectActions")
 
 local function GetBankingWindow()
     return BETTERUI.Banking and BETTERUI.Banking.Window

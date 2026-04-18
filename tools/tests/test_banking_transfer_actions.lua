@@ -230,6 +230,9 @@ BETTERUI = {
         GetCurrentBank = function()
             return currentBank
         end,
+        GetActiveBankBag = function()
+            return (currentBankingBag == nil or currentBankingBag == 0) and BAG_BANK or currentBankingBag
+        end,
         _TransferHelpers = {
             IsDepositSupportedForBank = function()
                 return depositAllowed, depositReason
