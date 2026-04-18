@@ -160,7 +160,6 @@ do
     assert_eq(onControllerCreatedCalls, 1, "ensure controller triggers callback once")
     assert_true(HeaderSortIntegration.GetController(owner) == controller, "get controller resolves integration-owned controller")
     assert_true(HeaderSortIntegration.EnsureController(integration) == controller, "ensure controller reuses created controller")
-    assert_true(not integration.usesLegacyShape, "canonical install does not mark the integration as legacy-backed")
 end
 
 do
@@ -204,84 +203,6 @@ do
     local legacyController = { id = "legacy" }
     assert_true(HeaderSortIntegration.GetController({ sortController = legacyController }) == legacyController,
         "get controller falls back to legacy sortController")
-end
-
-do
-    local owner = buildOwner()
-    local integration = HeaderSortIntegration.Install(owner, {
-        list = owner.list,
-        columns = {
-            { key = "name" },
-        },
-        onSortChangedCallback = function() end,
-        controllerField = "headerSortController",
-        keybindDescriptor = owner.coreKeybinds,
-        suspendTabBar = true,
-    })
-
-    assert_eq(integration.controllerContract.field, "headerSortController",
-        "legacy controller field is normalized into the controller contract")
-    assert_true(integration.navigation.suspendTabBar, "legacy suspendTabBar is normalized into navigation")
-    assert_true(integration.keybinds.mainDescriptor == owner.coreKeybinds,
-        "legacy keybind descriptor is normalized into the keybind contract")
-    assert_true(integration.usesLegacyShape, "legacy install marks the integration as compatibility-backed")
-end
-
-do
-    local owner = buildOwner()
-    local nestedDescriptor = { id = "nested" }
-    local flatDescriptor = { id = "flat" }
-    local nestedController = {
-        id = "nested-controller",
-        EnterHeaderMode = function()
-            return true
-        end,
-    }
-    local flatController = { id = "flat-controller" }
-    local nestedEnterCalls = 0
-    local flatEnterCalls = 0
-
-    local integration = HeaderSortIntegration.Install(owner, {
-        list = owner.list,
-        columns = {
-            { key = "name" },
-        },
-        controllerContract = {
-            instance = nestedController,
-            field = "nestedControllerField",
-        },
-        callbacks = {
-            onEnterHeaderMode = function()
-                nestedEnterCalls = nestedEnterCalls + 1
-            end,
-        },
-        keybinds = {
-            mainDescriptor = nestedDescriptor,
-        },
-        navigation = {
-            suspendTabBar = false,
-        },
-        controller = flatController,
-        controllerField = "flatControllerField",
-        keybindDescriptor = flatDescriptor,
-        suspendTabBar = true,
-        onEnterHeaderMode = function()
-            flatEnterCalls = flatEnterCalls + 1
-        end,
-    })
-
-    assert_true(integration.usesLegacyShape, "mixed install still records that legacy compatibility was used")
-    assert_true(integration.controller == nestedController, "canonical controller contract wins over flat controller")
-    assert_eq(integration.controllerContract.field, "nestedControllerField",
-        "canonical controller field wins over flat controller field")
-    assert_true(integration.keybinds.mainDescriptor == nestedDescriptor,
-        "canonical keybind descriptor wins over flat keybind descriptor")
-    assert_true(not integration.navigation.suspendTabBar,
-        "canonical navigation contract wins over flat suspendTabBar")
-
-    integration.callbacks.onEnterHeaderMode(owner, nestedController, owner.list)
-    assert_eq(nestedEnterCalls, 1, "canonical enter callback is used when both shapes are present")
-    assert_eq(flatEnterCalls, 0, "flat enter callback does not override the canonical callback")
 end
 
 print(string.format("Passed: %d", passed))

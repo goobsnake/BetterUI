@@ -42,8 +42,12 @@ assert_true(protectionPolicy:find("function Policy%.CanVendorAction%(actionType,
     "ProtectionPolicy exposes CanVendorAction for shared vendor authorization")
 assert_true(protectionPolicy:find("local FALLBACK_VENDOR_ACTION", 1, true) == nil,
     "ProtectionPolicy no longer duplicates vendor action-id tables")
+assert_true(protectionPolicy:find("BuildFallbackVendorActionId", 1, true) == nil,
+    "ProtectionPolicy no longer defines a local fallback vendor action-id builder")
 assert_true(protectionPolicy:find("vendor.ResolveActionId", 1, true) ~= nil,
     "ProtectionPolicy resolves vendor action ids through the canonical vendor resolver when available")
+assert_true(protectionPolicy:find('return "vendor_"', 1, true) == nil and protectionPolicy:find('return "fence_"', 1, true) == nil,
+    "ProtectionPolicy no longer owns raw vendor action-id string construction")
 
 local moduleLua = read_file("Modules/Vendor/Module.lua")
 assert_true(moduleLua:find("local function EnsureVendorActionIds%(%s*%)") ~= nil,

@@ -184,6 +184,12 @@ assertTrue(type(BETTERUI.Vendor.BootstrapRuntime) == "table", "vendor bootstrap 
 assertTrue(type(BETTERUI.Vendor.ControllerRuntime) == "table", "vendor controller runtime loads")
 assertTrue(type(BETTERUI.Vendor.InteractionRuntime) == "table", "vendor interaction runtime loads")
 assertTrue(type(BETTERUI.Vendor.PresentationRuntime) == "table", "vendor presentation runtime loads")
+assertEqual("vendor_sell", BETTERUI.Vendor.ResolveActionId("SELL"), "vendor action resolver exposes SELL")
+assertEqual("vendor_sell_junk", BETTERUI.Vendor.ResolveActionId("SELL_JUNK"), "vendor action resolver exposes SELL_JUNK")
+assertEqual("vendor_sell_vengeance", BETTERUI.Vendor.ResolveActionId("SELL_VENGEANCE"), "vendor action resolver exposes SELL_VENGEANCE")
+assertEqual("fence_sell", BETTERUI.Vendor.ResolveActionId("FENCE_SELL"), "vendor action resolver exposes FENCE_SELL")
+assertEqual("fence_launder", BETTERUI.Vendor.ResolveActionId("FENCE_LAUNDER"), "vendor action resolver exposes FENCE_LAUNDER")
+assertEqual(nil, BETTERUI.Vendor.ResolveActionId("UNKNOWN"), "vendor action resolver rejects unknown keys")
 
 setmetatable(_G, originalGlobalMetatable)
 
