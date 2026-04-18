@@ -7,11 +7,11 @@ Purpose: Centralized loader for applying mixins to the Inventory Class.
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
 
 -- Purpose: Apply all registered mixins to BETTERUI.Inventory.Class
--- Called via BetterUI.txt load order AFTER all mixin files
+-- Called during InventoryClass:Initialize after the current module load set is present.
 --- Applies all registered mixins to the Inventory Class.
 ---@return nil
 function BETTERUI.Inventory.ApplyAllMixins()
-    if not BETTERUI.Inventory.ClassMixins then return end
+    BETTERUI.Inventory.ClassMixins = BETTERUI.Inventory.ClassMixins or {}
 
     if not BETTERUI.Inventory.Class then
         BETTERUI.Debug("[BetterUI] Error: Inventory Class not initialized before applying mixins")
@@ -26,6 +26,5 @@ function BETTERUI.Inventory.ApplyAllMixins()
         BETTERUI.Inventory.Class.SEARCH_LIFECYCLE = BETTERUI.Inventory.SEARCH_LIFECYCLE
     end
 
-    -- Clear to prevent double-application
-    BETTERUI.Inventory.ClassMixins = nil
+    BETTERUI.Inventory._mixinsApplied = true
 end

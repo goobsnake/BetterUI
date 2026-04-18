@@ -444,14 +444,14 @@ end
 
 --- Initializes the multi-select manager and applies the shared mixin.
 function BETTERUI.Banking.Class:InitializeMultiSelectManager()
-    if self.multiSelectManager then return end
-
-    self.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(
-        self.list,
-        function(selectedCount)
-            self:OnSelectionCountChanged(selectedCount)
-        end
-    )
+    if not self.multiSelectManager then
+        self.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(
+            self.list,
+            function(selectedCount)
+                self:OnSelectionCountChanged(selectedCount)
+            end
+        )
+    end
 
     -- Apply the shared mixin with Banking-specific hooks
     local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin

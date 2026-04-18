@@ -81,36 +81,36 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 self:OnSelectionCountChanged(selectedCount)
             end
         )
-
-        BETTERUI.CIM.MultiSelectMixin.Apply(self, {
-            getList = function(s)
-                return s.itemList
-            end,
-            refreshList = function(s)
-                s:RefreshItemList()
-            end,
-            isSceneShowing = function()
-                return BETTERUI.Utils.IsInventorySceneShowing()
-            end,
-            getSceneExitLabel = function()
-                return GetString(rawget(_G, "SI_BETTERUI_SCENE_INVENTORY"))
-            end,
-            refreshKeybinds = function(s)
-                if s.isInHeaderSortMode then
-                    return
-                end
-
-                if s:IsBatchProcessing() then
-                    if s.mainKeybindStripDescriptor then
-                        KEYBIND_STRIP:UpdateKeybindButtonGroup(s.mainKeybindStripDescriptor)
-                    end
-                    return
-                end
-
-                s:RefreshKeybinds()
-            end,
-        })
     end
+
+    BETTERUI.CIM.MultiSelectMixin.Apply(self, {
+        getList = function(s)
+            return s.itemList
+        end,
+        refreshList = function(s)
+            s:RefreshItemList()
+        end,
+        isSceneShowing = function()
+            return BETTERUI.Utils.IsInventorySceneShowing()
+        end,
+        getSceneExitLabel = function()
+            return GetString(rawget(_G, "SI_BETTERUI_SCENE_INVENTORY"))
+        end,
+        refreshKeybinds = function(s)
+            if s.isInHeaderSortMode then
+                return
+            end
+
+            if s:IsBatchProcessing() then
+                if s.mainKeybindStripDescriptor then
+                    KEYBIND_STRIP:UpdateKeybindButtonGroup(s.mainKeybindStripDescriptor)
+                end
+                return
+            end
+
+            s:RefreshKeybinds()
+        end,
+    })
 
     self.mainKeybindStripDescriptor = {
         {

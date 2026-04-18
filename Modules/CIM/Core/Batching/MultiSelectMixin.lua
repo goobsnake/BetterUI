@@ -16,9 +16,44 @@ local BatchActions = BETTERUI.CIM.BatchActions
 
 -- MIXIN APPLICATION
 
+local function Noop()
+end
+
+local function DefaultGetList(self)
+    if type(self) ~= "table" then
+        return nil
+    end
+
+    return self.list or self.itemList
+end
+
+local function NormalizeConfig(config)
+    local rawConfig = type(config) == "table" and config or {}
+
+    return {
+        getList = type(rawConfig.getList) == "function" and rawConfig.getList or DefaultGetList,
+        refreshList = type(rawConfig.refreshList) == "function" and rawConfig.refreshList or Noop,
+        refreshKeybinds = type(rawConfig.refreshKeybinds) == "function" and rawConfig.refreshKeybinds or Noop,
+        isSceneShowing = type(rawConfig.isSceneShowing) == "function" and rawConfig.isSceneShowing or nil,
+        getSceneExitLabel = type(rawConfig.getSceneExitLabel) == "function" and rawConfig.getSceneExitLabel or nil,
+    }
+end
+
+local function GetConfig(self)
+    if type(self) ~= "table" or type(self._multiSelectConfig) ~= "table" then
+        return nil
+    end
+
+    return self._multiSelectConfig
+end
+
 --- Applies the multi-select mixin to a module class instance.
 function Mixin.Apply(target, config)
-    target._multiSelectConfig = config
+    if type(target) ~= "table" then
+        return
+    end
+
+    target._multiSelectConfig = NormalizeConfig(config)
 end
 
 --- Binds a set of pure delegate methods from the shared mixin onto a target table.
@@ -42,11 +77,13 @@ end
 function Mixin.EnterSelectionMode(self)
     if self.isInSelectionMode then return end
     if not self.multiSelectManager then return end
+    local config = GetConfig(self)
+    if not config then return end
 
     self.isInSelectionMode = true
     self.multiSelectManager:EnterSelectionMode()
 
-    local list = self._multiSelectConfig.getList(self)
+    local list = config.getList(self)
     local target = nil
     if list then
         if list.GetSelectedData then
@@ -59,8 +96,8 @@ function Mixin.EnterSelectionMode(self)
         self.multiSelectManager:ToggleSelection(target)
     end
 
-    self._multiSelectConfig.refreshKeybinds(self)
-    self._multiSelectConfig.refreshList(self)
+    config.refreshKeybinds(self)
+    config.refreshList(self)
 end
 
 function Mixin.ExitSelectionMode(self)
@@ -70,6 +107,7 @@ function Mixin.ExitSelectionMode(self)
     end
 
     if not self.isInSelectionMode then return end
+    local config = GetConfig(self)
 
     self.isInSelectionMode = false
     self.hadSelections = nil
@@ -78,13 +116,15 @@ function Mixin.ExitSelectionMode(self)
         self.multiSelectManager:ExitSelectionMode()
     end
 
-    if BatchConfig.IsBatchSceneShowing(self) then
-        self._multiSelectConfig.refreshKeybinds(self)
-        self._multiSelectConfig.refreshList(self)
+    if config and BatchConfig.IsBatchSceneShowing(self) then
+        config.refreshKeybinds(self)
+        config.refreshList(self)
     end
 end
 
 function Mixin.OnSelectionCountChanged(self, selectedCount)
+    local config = GetConfig(self)
+
     if self.isInSelectionMode and selectedCount > 0 then
         self.selectedCount = selectedCount
         self.hadSelections = true
@@ -98,8 +138,8 @@ function Mixin.OnSelectionCountChanged(self, selectedCount)
         return
     end
 
-    if BatchConfig.IsBatchSceneShowing(self) then
-        self._multiSelectConfig.refreshKeybinds(self)
+    if config and BatchConfig.IsBatchSceneShowing(self) then
+        config.refreshKeybinds(self)
     end
 end
 

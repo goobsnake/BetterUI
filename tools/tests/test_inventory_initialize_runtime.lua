@@ -12,10 +12,17 @@ local function assert_eq(actual, expected, message)
     end
 end
 
+local applyAllMixinsCalls = 0
+
 BETTERUI = {
     Inventory = {
-        ClassMixins = {},
+        ClassMixins = {
+            TestMixin = function()
+            end,
+        },
+        _mixinsApplied = false,
         ApplyAllMixins = function()
+            applyAllMixinsCalls = applyAllMixinsCalls + 1
         end,
     },
     CIM = {
@@ -61,6 +68,8 @@ EVENT_VISUAL_LAYER_CHANGED = 1
 
 dofile("Modules/Inventory/Core/InventoryClass.lua")
 
+assert_eq(BETTERUI.Inventory.Class.TestMixin, nil, "InventoryClass no longer eagerly applies mixins during file load")
+
 local initializeItemActionsCalls = 0
 local initializeActionsDialogCalls = 0
 local initializeSplitStackDialogCalls = 0
@@ -94,6 +103,7 @@ local instance = setmetatable({
 
 instance:Initialize(control)
 
+assert_eq(applyAllMixinsCalls, 1, "InventoryClass.Initialize owns mixin application")
 assert_eq(initializeItemActionsCalls, 0, "InventoryClass.Initialize defers item-action setup")
 assert_eq(initializeActionsDialogCalls, 0, "InventoryClass.Initialize defers action-dialog setup")
 assert_eq(initializeSplitStackDialogCalls, 1, "InventoryClass.Initialize still wires split-stack support immediately")

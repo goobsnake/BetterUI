@@ -40,13 +40,6 @@ ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 -- List type identifiers sourced from BETTERUI.Inventory.CONST.LIST_TYPES (see Inventory/Constants.lua)
 -- The global aliases (INVENTORY_CATEGORY_LIST, etc.) are created there for backward compatibility.
 
--- Apply Mixins (populated by other modules like PositionManager)
-if BETTERUI.Inventory.ClassMixins then
-    for name, func in pairs(BETTERUI.Inventory.ClassMixins) do
-        BETTERUI.Inventory.Class[name] = func
-    end
-end
-
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
 local InventoryDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
