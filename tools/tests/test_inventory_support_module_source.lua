@@ -9,6 +9,11 @@ Usage:
 if false then
     dofile("Modules/Inventory/Constants.lua")
     dofile("Modules/Inventory/Core/CategoryDefinitions.lua")
+    dofile("Modules/Inventory/Core/InventoryMultiSelect.lua")
+    dofile("Modules/Inventory/Core/Utils.lua")
+    dofile("Modules/Inventory/Dialogs/CraftBagQuantityDialog.lua")
+    dofile("Modules/Inventory/Dialogs/InventoryDialogs.lua")
+    dofile("Modules/Inventory/Keybinds/CraftBagKeybinds.lua")
 end
 
 local passed = 0

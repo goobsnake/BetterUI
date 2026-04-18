@@ -75,7 +75,7 @@ end
 
 BETTERUI.CIM.UI.HeaderSortController = HeaderSortController
 BETTERUI.CIM.UI.HeaderSortIntegration = {
-    ApplyMixin = function(_, config)
+    Install = function(_, config)
         appliedMixinConfig = config
     end,
 }
@@ -186,10 +186,10 @@ do
     assert_equal(instance.itemList, controllerInstances[1].list, "Item controller receives item list")
     assert_equal(instance.craftBagList, controllerInstances[2].list, "Craft controller receives craft bag list")
     assert_equal("horizontal", instance.horizontalMovementController.direction, "Horizontal movement controller created")
-    assert_equal(instance.mainKeybindStripDescriptor, appliedMixinConfig.keybindDescriptor,
-        "Header sort mixin uses inventory keybind descriptor")
-    assert_equal(controllerInstances[1], appliedMixinConfig.headerControllerFn(),
-        "Header controller callback resolves the active item-list controller")
+    assert_equal(instance.mainKeybindStripDescriptor, appliedMixinConfig.keybinds.mainDescriptor,
+        "Header sort integration uses the inventory keybind descriptor")
+    assert_equal(controllerInstances[1], appliedMixinConfig.controllerContract.resolve(),
+        "Header controller contract resolves the active item-list controller")
 end
 
 print("\n-- LinkColumnLabels falls back to ColumnBar children when direct labels are missing --")

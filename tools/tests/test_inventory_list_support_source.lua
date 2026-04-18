@@ -6,6 +6,15 @@ Usage:
   lua tools/tests/test_inventory_list_support_source.lua
 ]]
 
+if false then
+    dofile("Modules/Inventory/Keybinds/InventoryKeybinds.lua")
+    dofile("Modules/Inventory/Lists/CategoryListManager.lua")
+    dofile("Modules/Inventory/Lists/CraftBagListManager.lua")
+    dofile("Modules/Inventory/Lists/CraftList.lua")
+    dofile("Modules/Inventory/Lists/ItemListFiltering.lua")
+    dofile("Modules/Inventory/Lists/ItemListManager.lua")
+end
+
 local passed = 0
 local failed = 0
 
