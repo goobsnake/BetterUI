@@ -28,8 +28,10 @@ assert_true(source:find('setupOwner = "Modules/Inventory/Module.lua %+ Modules/I
     "Inventory root contract documents both setup owners")
 assert_true(source:find("local function NotifyInventorySetupFailure%(context, messageText%)") ~= nil,
     "Inventory module exposes a shared setup failure notifier")
-assert_true(source:find('BETTERUI%.CIM and BETTERUI%.CIM%.UserNotifyText') ~= nil,
+assert_true(source:find('BETTERUI%.CIM and BETTERUI%.CIM%.UserNotify') ~= nil,
     "Inventory setup failure notifier prefers the shared CIM notifier")
+assert_true(source:find('BETTERUI%.CIM%.UserNotify%(context, messageText%)') ~= nil,
+    "Inventory setup failure notifier routes text failures through the canonical shared notifier")
 assert_true(source:find('d%("%[BetterUI%] Inventory: CraftBagQuantityDialog init failed"%)') == nil,
     "Inventory module no longer uses bare debug logging for craft bag setup failure")
 assert_true(source:find('d%("%[BetterUI%] Inventory: Narration registration failed"%)') == nil,

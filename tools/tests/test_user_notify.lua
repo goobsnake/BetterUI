@@ -148,39 +148,43 @@ assert_equal(1, #alertCalls, "ZO_Alert still called")
 assert_equal(1, #debugOutput, "Debug still logged")
 
 -- ============================================================================
--- UserNotifyText Tests (pre-resolved text strings)
+-- UserNotify text payload Tests
 -- ============================================================================
 
-print("\n=== UserNotifyText Tests ===\n")
+print("\n=== UserNotify text payload Tests ===\n")
 
--- Test 9: UserNotifyText calls ZO_Alert with text string
-print("Test: UserNotifyText calls ZO_Alert with text string")
+-- Test 9: UserNotify calls ZO_Alert with text string
+print("Test: UserNotify calls ZO_Alert with text string")
 reset()
-BETTERUI.CIM.UserNotifyText("EquipAction:Equip", "Item cannot be equipped")
+BETTERUI.CIM.UserNotify("EquipAction:Equip", "Item cannot be equipped")
 assert_equal(1, #alertCalls, "One ZO_Alert call made")
 assert_equal(UI_ALERT_CATEGORY_ERROR, alertCalls[1].category, "Category is ERROR")
 assert_equal("Item cannot be equipped", alertCalls[1].messageStringId, "Text string passed to ZO_Alert")
 
--- Test 10: UserNotifyText default sound is NEGATIVE_CLICK
-print("\nTest: UserNotifyText default sound")
+-- Test 10: UserNotify default sound remains NEGATIVE_CLICK for text
+print("\nTest: UserNotify default sound for text payload")
 reset()
-BETTERUI.CIM.UserNotifyText("Test:Text", "Some error")
+BETTERUI.CIM.UserNotify("Test:Text", "Some error")
 assert_equal(SOUNDS.NEGATIVE_CLICK, alertCalls[1].sound, "Default sound is NEGATIVE_CLICK")
 
--- Test 11: UserNotifyText custom sound
-print("\nTest: UserNotifyText custom sound")
+-- Test 11: UserNotify custom sound for text payload
+print("\nTest: UserNotify custom sound for text payload")
 reset()
-BETTERUI.CIM.UserNotifyText("Test:Text", "Some error", SOUNDS.GENERAL_ALERT_ERROR)
+BETTERUI.CIM.UserNotify("Test:Text", "Some error", SOUNDS.GENERAL_ALERT_ERROR)
 assert_equal(SOUNDS.GENERAL_ALERT_ERROR, alertCalls[1].sound, "Custom sound used")
 
--- Test 12: UserNotifyText debug log contains context and text
-print("\nTest: UserNotifyText debug log")
+-- Test 12: UserNotify debug log contains context and text for text payloads
+print("\nTest: UserNotify debug log for text payload")
 reset()
-BETTERUI.CIM.UserNotifyText("EquipAction:Equip", "Cannot equip while stunned")
+BETTERUI.CIM.UserNotify("EquipAction:Equip", "Cannot equip while stunned")
 assert_equal(1, #debugOutput, "One debug message logged")
 assert_contains(debugOutput[1], "EquipAction:Equip", "Context appears in log")
 assert_contains(debugOutput[1], "Cannot equip while stunned", "Text appears in log")
 assert_contains(debugOutput[1], "[UserNotify]", "Log has UserNotify prefix")
+
+-- Test 13: UserNotifyText is no longer exported publicly
+print("\nTest: UserNotifyText export removed")
+assert_equal(nil, BETTERUI.CIM.UserNotifyText, "UserNotifyText export removed")
 
 -- ============================================================================
 -- SUMMARY

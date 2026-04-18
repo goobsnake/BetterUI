@@ -43,8 +43,8 @@ local function TryRegisterInventoryNarration(...)
 end
 
 local function NotifyInventorySetupFailure(context, messageText)
-    if BETTERUI.CIM and BETTERUI.CIM.UserNotifyText then
-        BETTERUI.CIM.UserNotifyText(context, messageText)
+    if BETTERUI.CIM and BETTERUI.CIM.UserNotify then
+        BETTERUI.CIM.UserNotify(context, messageText)
         return
     end
 

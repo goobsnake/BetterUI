@@ -240,7 +240,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
                     BAG_COMPANION_WORN
                 RequestEquipItem(bagId, slotIndex, wornBag)
             else
-                BETTERUI.CIM.UserNotifyText("EquipAction:Equip",
+                BETTERUI.CIM.UserNotify("EquipAction:Equip",
                     possibleError or GetString(rawget(_G, "SI_INVENTORY_ERROR_ITEM_CANNOT_BE_EQUIPPED")))
             end
         end)

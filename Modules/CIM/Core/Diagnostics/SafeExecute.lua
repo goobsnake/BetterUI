@@ -59,24 +59,15 @@ local function CallOptionalBetterUIPath(path, ...)
 end
 
 --- Unified user-facing error notification with structured logging.
---- Combines ZO_Alert for user feedback with SafeExecute infrastructure for logging.
---- Use this instead of calling ZO_Alert(UI_ALERT_CATEGORY_ERROR, ...) directly.
+--- Accepts either a string ID or pre-resolved text so callers do not need a
+--- second text-only helper for the same error path.
 ---@param context string Descriptive label for error logging (e.g., "EquipAction:Equip")
----@param messageStringId number String ID for the user-facing alert message
+---@param message number|string String ID or resolved alert message text
 ---@param sound? number Sound constant (default: SOUNDS.NEGATIVE_CLICK)
-function BETTERUI.CIM.UserNotify(context, messageStringId, sound)
-    BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(GetString(messageStringId))))
-    ZO_Alert(UI_ALERT_CATEGORY_ERROR, sound or SOUNDS.NEGATIVE_CLICK, messageStringId)
-end
-
---- Unified user-facing error notification for pre-resolved text strings.
---- Use when the error message is already a string (e.g., from IsEquipable's error return).
----@param context string Descriptive label for error logging
----@param messageText string The user-facing alert message text
----@param sound? number Sound constant (default: SOUNDS.NEGATIVE_CLICK)
-function BETTERUI.CIM.UserNotifyText(context, messageText, sound)
-    BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(messageText)))
-    ZO_Alert(UI_ALERT_CATEGORY_ERROR, sound or SOUNDS.NEGATIVE_CLICK, messageText)
+function BETTERUI.CIM.UserNotify(context, message, sound)
+    local resolvedMessage = type(message) == "number" and GetString(message) or message
+    BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(resolvedMessage)))
+    ZO_Alert(UI_ALERT_CATEGORY_ERROR, sound or SOUNDS.NEGATIVE_CLICK, message)
 end
 
 --- Unified user-facing informational notification (non-error).
