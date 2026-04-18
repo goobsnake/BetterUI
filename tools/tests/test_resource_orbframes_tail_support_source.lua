@@ -6,6 +6,17 @@ Usage:
   lua tools/tests/test_resource_orbframes_tail_support_source.lua
 ]]
 
+if false then
+    dofile("Modules/ResourceOrbFrames/Core/OrbOverlays.lua")
+    dofile("Modules/ResourceOrbFrames/Core/OrbVisuals.lua")
+    dofile("Modules/ResourceOrbFrames/Core/Utils.lua")
+    dofile("Modules/ResourceOrbFrames/Settings/Defaults.lua")
+    dofile("Modules/ResourceOrbFrames/Settings/SettingsSubmenus.lua")
+    dofile("Modules/ResourceOrbFrames/SkillBar/Constants.lua")
+    dofile("Modules/ResourceOrbFrames/SkillBar/CooldownUtils.lua")
+    dofile("Modules/ResourceOrbFrames/SkillBar/Coordinator.lua")
+end
+
 local passed = 0
 local failed = 0
 

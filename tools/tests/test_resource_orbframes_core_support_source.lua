@@ -11,6 +11,7 @@ if false then
     dofile("Modules/ResourceOrbFrames/Core/OrbAnimations.lua")
     dofile("Modules/ResourceOrbFrames/Core/OrbBarUpdates.lua")
     dofile("Modules/ResourceOrbFrames/Core/OrbCombatIndicators.lua")
+    dofile("Modules/ResourceOrbFrames/Core/OrbEvents.lua")
 end
 
 local passed = 0
