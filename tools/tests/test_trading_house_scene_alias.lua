@@ -130,7 +130,9 @@ BETTERUI.CIM.CONST = {
 }
 
 KEYBIND_STRIP = {
+    updateCount = 0,
     UpdateCurrentKeybindButtonGroups = function()
+        KEYBIND_STRIP.updateCount = KEYBIND_STRIP.updateCount + 1
     end,
 }
 
@@ -146,9 +148,18 @@ TH.TH_INTERACTION = {
 }
 
 TH.Tasks = {
-    Cancel = function()
+    cancelCalls = {},
+    scheduleCalls = {},
+    Cancel = function(_, key)
+        if key ~= nil then
+            TH.Tasks.cancelCalls[#TH.Tasks.cancelCalls + 1] = key
+        end
     end,
-    Schedule = function(_, _, _, callback)
+    Schedule = function(_, key, delayMs, callback)
+        TH.Tasks.scheduleCalls[#TH.Tasks.scheduleCalls + 1] = {
+            key = key,
+            delayMs = delayMs,
+        }
         if callback then
             callback()
         end
@@ -158,6 +169,12 @@ TH.Tasks = {
 TH.BrowseComponent = {
     currentPage = 99,
     searchPending = true,
+    onSearchResultsReceivedCount = 0,
+    lastSearchResultsInstance = nil,
+    OnSearchResultsReceived = function(self, instance)
+        self.onSearchResultsReceivedCount = self.onSearchResultsReceivedCount + 1
+        self.lastSearchResultsInstance = instance
+    end,
 }
 
 local Class = {}
@@ -201,8 +218,10 @@ function Class:New(windowName, sceneName)
         return nil
     end
     function obj:RefreshList()
+        self.refreshListCalls = (self.refreshListCalls or 0) + 1
     end
     function obj:RefreshTHFooter()
+        self.refreshFooterCalls = (self.refreshFooterCalls or 0) + 1
     end
     function obj:GetTitle()
         return "Trading House"
@@ -302,11 +321,21 @@ TH.Init()
 
 local openCallback = getRegisteredCallback("BetterUI_TradingHouse_Open")
 local closeCallback = getRegisteredCallback("BetterUI_TradingHouse_Close")
+local searchResultsCallback = getRegisteredCallback("BetterUI_TradingHouse_SearchResults")
+local cooldownCallback = getRegisteredCallback("BetterUI_TradingHouse_Cooldown")
+local responseCallback = getRegisteredCallback("BetterUI_TradingHouse_Response")
+local listingOpCallback = getRegisteredCallback("BetterUI_TradingHouse_ListingOp")
+local inventoryUpdateCallback = getRegisteredCallback("BetterUI_TradingHouse_InvUpdate")
 
 print("[TradingHouse scene alias ownership]")
 
 assert_eq(type(openCallback), "function", "open callback is registered")
 assert_eq(type(closeCallback), "function", "close callback is registered")
+assert_eq(type(searchResultsCallback), "function", "search results callback is registered")
+assert_eq(type(cooldownCallback), "function", "cooldown callback is registered")
+assert_eq(type(responseCallback), "function", "response callback is registered")
+assert_eq(type(listingOpCallback), "function", "listing operation callback is registered")
+assert_eq(type(inventoryUpdateCallback), "function", "inventory slot callback is registered")
 
 assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], TH.instance.scene,
     "init keeps BetterUI scene aliased by default")
@@ -339,6 +368,63 @@ assert_eq(SYSTEMS:GetSystem(ZO_TRADING_HOUSE_SYSTEM_NAME).gamepadRootScene, TH.i
     "close callback keeps BetterUI system root ownership for next open")
 assert_eq(SCENE_MANAGER.lastHidden, BETTERUI_TRADING_HOUSE_SCENE_NAME,
     "close callback hides BetterUI trading-house scene when showing")
+
+print("[TradingHouse live callbacks]")
+
+interactionType = nil
+openCallback()
+
+searchResultsCallback()
+assert_eq(TH.BrowseComponent.onSearchResultsReceivedCount, 1,
+    "search results callback delegates to BrowseComponent")
+assert_eq(TH.BrowseComponent.lastSearchResultsInstance, TH.instance,
+    "search results callback passes the live trading-house instance")
+
+cooldownCallback()
+assert_eq(KEYBIND_STRIP.updateCount, 1,
+    "cooldown callback refreshes live keybind state while scene is showing")
+
+local baselineRefreshListCalls = TH.instance.refreshListCalls or 0
+local baselineRefreshFooterCalls = TH.instance.refreshFooterCalls or 0
+responseCallback(nil, 123, TRADING_HOUSE_RESULT_SUCCESS)
+assert_eq(TH.Tasks.scheduleCalls[#TH.Tasks.scheduleCalls].key, "listRefresh",
+    "successful trading-house responses schedule a list refresh")
+assert_eq(TH.instance.refreshListCalls, baselineRefreshListCalls + 1,
+    "successful trading-house responses refresh the live list")
+assert_eq(TH.instance.refreshFooterCalls, baselineRefreshFooterCalls + 1,
+    "successful trading-house responses refresh the live footer")
+
+baselineRefreshListCalls = TH.instance.refreshListCalls
+responseCallback(nil, 123, 999)
+assert_eq(TH.instance.refreshListCalls, baselineRefreshListCalls,
+    "non-success responses do not refresh the live list")
+
+baselineRefreshListCalls = TH.instance.refreshListCalls
+listingOpCallback()
+assert_eq(TH.instance.refreshListCalls, baselineRefreshListCalls + 1,
+    "listing operations refresh the live list while scene is showing")
+
+TH.instance.currentMode = TH.MODE.SELL
+baselineRefreshListCalls = TH.instance.refreshListCalls
+inventoryUpdateCallback()
+assert_eq(TH.instance.refreshListCalls, baselineRefreshListCalls + 1,
+    "inventory updates refresh listings when the sell tab is active")
+
+TH.instance.currentMode = TH.MODE.BROWSE
+baselineRefreshListCalls = TH.instance.refreshListCalls
+inventoryUpdateCallback()
+assert_eq(TH.instance.refreshListCalls, baselineRefreshListCalls,
+    "inventory updates do not refresh listings outside the sell tab")
+
+closeCallback()
+baselineRefreshListCalls = TH.instance.refreshListCalls
+cooldownCallback()
+listingOpCallback()
+responseCallback(nil, 123, TRADING_HOUSE_RESULT_SUCCESS)
+assert_eq(KEYBIND_STRIP.updateCount, 1,
+    "cooldown callback does not refresh keybinds after the scene hides")
+assert_eq(TH.instance.refreshListCalls, baselineRefreshListCalls,
+    "hidden scene callbacks do not refresh the live list")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

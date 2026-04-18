@@ -26,6 +26,11 @@ BETTERUI = {
         },
         Class = {},
     },
+    CIM = {
+        SafeExecute = function(_, fn, ...)
+            return true, fn(...)
+        end,
+    },
 }
 
 local shownGamepadDialogs = {}
@@ -65,6 +70,7 @@ SI_SELL_ALL_JUNK = "Sell all junk?"
 SI_SELL_ALL_JUNK_CONFIRM = "Sell"
 SI_DIALOG_CANCEL = "Cancel"
 
+dofile("Modules/Vendor/Core/VendorSafeExecute.lua")
 dofile("Modules/Vendor/Vendor.lua")
 
 do

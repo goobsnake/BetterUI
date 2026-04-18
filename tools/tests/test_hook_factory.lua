@@ -13,6 +13,30 @@ Usage:
 
 BETTERUI = {}
 
+function ZO_PreHook(control, methodName, callback)
+    local original = control[methodName]
+    control[methodName] = function(self, ...)
+        if callback(self, ...) then
+            return
+        end
+        return original(self, ...)
+    end
+end
+
+function ZO_PostHook(control, methodName, callback)
+    local original = control[methodName]
+    control[methodName] = function(self, ...)
+        local results = { original(self, ...) }
+        callback(self, ...)
+        local unpack_fn = table.unpack or unpack
+        return unpack_fn(results)
+    end
+end
+
+function SecurePostHook(control, methodName, callback)
+    return ZO_PostHook(control, methodName, callback)
+end
+
 -- ============================================================================
 -- IMPORT MODULE UNDER TEST
 -- ============================================================================

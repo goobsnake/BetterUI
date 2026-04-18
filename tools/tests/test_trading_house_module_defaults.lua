@@ -32,6 +32,9 @@ BETTERUI.CIM.InitModuleDefaults = function(_, opts, _, fallbackDefaults)
     return opts
 end
 
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics = function()
+end
+
 BETTERUI.CIM.RegisterModuleAccessors = function(_)
 end
 

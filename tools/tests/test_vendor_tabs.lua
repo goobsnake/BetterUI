@@ -1,22 +1,47 @@
 --[[
 File: tools/tests/test_vendor_tabs.lua
-Purpose: Unit tests for tab resolution logic in Vendor/Vendor.lua.
-         Tests run standalone with a Lua interpreter (no ESO environment).
+Purpose: Unit tests for vendor tab resolution and runtime guard helpers using
+         the live VendorModePolicy seam under a standalone Lua harness.
 ]]
 
 -- ============================================================================
 -- MINIMAL ESO STUBS
 -- ============================================================================
 
-BETTERUI = { Vendor = { MODE = { BUY = 1, SELL = 2, REPAIR = 3, BUYBACK = 4, FENCE_SELL = 5, FENCE_LAUNDER = 6, STABLE = 7, SELL_VENGEANCE = 8 } } }
+BETTERUI = {
+    Vendor = {
+        MODE = {
+            BUY = 1,
+            SELL = 2,
+            REPAIR = 3,
+            BUYBACK = 4,
+            FENCE_SELL = 5,
+            FENCE_LAUNDER = 6,
+            STABLE = 7,
+            SELL_VENGEANCE = 8,
+        },
+    },
+}
+
+ZO_MODE_STORE_BUY = 10
+ZO_MODE_STORE_SELL = 20
+ZO_MODE_STORE_REPAIR = 30
+ZO_MODE_STORE_BUY_BACK = 40
+ZO_MODE_STORE_SELL_STOLEN = 50
+ZO_MODE_STORE_LAUNDER = 60
+ZO_MODE_STORE_STABLE = 70
+ZO_MODE_STORE_SELL_VENGEANCE = 80
+
 function GetString(s) return tostring(s or "") end
 function rawget(t, k) return t[k] end
+function CanStoreRepair() return true end
 
 -- ============================================================================
--- REPLICATE VENDOR TAB LOGIC UNDER TEST
+-- LIVE VENDOR MODE-POLICY SEAM
 -- ============================================================================
 
-local MODE = BETTERUI.Vendor.MODE
+local Vendor = BETTERUI.Vendor
+local MODE = Vendor.MODE
 
 local MODE_LABELS = {
     [MODE.BUY] = "Buy",
@@ -32,7 +57,6 @@ local MODE_LABELS = {
 local function BuildTab(mode)
     return {
         mode = mode,
-        nativeMode = mode,
         name = function()
             return MODE_LABELS[mode]
         end,
@@ -67,100 +91,100 @@ local FENCE_TABS = BuildTabs({
     MODE.FENCE_LAUNDER,
 })
 
+dofile("Modules/Vendor/Core/VendorModePolicy.lua")
+
+Vendor.GetModeDescriptor = function(mode)
+    local descriptors = {
+        [MODE.BUY] = {
+            nameStringId = "BUY",
+            nativeModeGlobalKey = "ZO_MODE_STORE_BUY",
+        },
+        [MODE.SELL] = {
+            nameStringId = "SELL",
+            nativeModeGlobalKey = "ZO_MODE_STORE_SELL",
+        },
+        [MODE.REPAIR] = {
+            nameStringId = "REPAIR",
+            nativeModeGlobalKey = "ZO_MODE_STORE_REPAIR",
+        },
+        [MODE.BUYBACK] = {
+            nameStringId = "BUYBACK",
+            nativeModeGlobalKey = "ZO_MODE_STORE_BUY_BACK",
+        },
+        [MODE.FENCE_SELL] = {
+            nameStringId = "FENCE_SELL",
+            nativeModeGlobalKey = "ZO_MODE_STORE_SELL_STOLEN",
+        },
+        [MODE.FENCE_LAUNDER] = {
+            nameStringId = "FENCE_LAUNDER",
+            nativeModeGlobalKey = "ZO_MODE_STORE_LAUNDER",
+        },
+        [MODE.STABLE] = {
+            nameStringId = "STABLE",
+            nativeModeGlobalKey = "ZO_MODE_STORE_STABLE",
+        },
+        [MODE.SELL_VENGEANCE] = {
+            nameStringId = "SELL_VENGEANCE",
+            nativeModeGlobalKey = "ZO_MODE_STORE_SELL_VENGEANCE",
+        },
+    }
+    return descriptors[mode]
+end
+
 -- State variables (mirroring Vendor.lua locals)
 local isFenceInteraction = false
 local isStableInteraction = false
 local fenceEnableSell = false
 local fenceEnableLaunder = false
 local sessionHasBuyMode = false
-local activeModeSet = {}
+local activeNativeModes = {}
+local sellVengeanceAvailable = true
 
-local function BuildFallbackVendorTabs()
-    return VENDOR_TABS
+local function IsModeTabAvailable(mode)
+    return mode ~= MODE.SELL_VENGEANCE or sellVengeanceAvailable
 end
 
 local function GetActiveTabs()
-    if isFenceInteraction then
-        local tabs = {}
-        if fenceEnableSell then
-            tabs[#tabs + 1] = FENCE_TABS[1]
-        end
-        if fenceEnableLaunder then
-            tabs[#tabs + 1] = FENCE_TABS[2]
-        end
-        if #tabs == 0 then
-            tabs[1] = FENCE_TABS[1]
-        end
-        return tabs
+    local storeManager = { activeComponents = {} }
+    for nativeMode in pairs(activeNativeModes) do
+        storeManager.activeComponents[#storeManager.activeComponents + 1] = {
+            GetStoreMode = function()
+                return nativeMode
+            end,
+        }
     end
 
-    local sourceTabs = isStableInteraction and STABLE_TABS or VENDOR_TABS
-    local tabs = {}
-    for _, tab in ipairs(sourceTabs) do
-        local includeStableRepair = isStableInteraction and tab.mode == MODE.REPAIR
-        if activeModeSet[tab.nativeMode]
-            or (tab.mode == MODE.BUY and sessionHasBuyMode)
-            or includeStableRepair then
-            tabs[#tabs + 1] = tab
-        end
-    end
-
-    if #tabs == 0 then
-        if isStableInteraction then
-            return STABLE_TABS
-        end
-        return BuildFallbackVendorTabs()
-    end
-
-    return tabs
+    return Vendor.ModePolicy.GetActiveTabs({
+        isFenceInteraction = isFenceInteraction,
+        isStableInteraction = isStableInteraction,
+        fenceEnableSell = fenceEnableSell,
+        fenceEnableLaunder = fenceEnableLaunder,
+        sessionHasBuyMode = sessionHasBuyMode,
+        vendorTabs = VENDOR_TABS,
+        stableTabs = STABLE_TABS,
+        fenceTabs = FENCE_TABS,
+        isModeTabAvailable = IsModeTabAvailable,
+        storeManager = storeManager,
+    })
 end
 
 local function BuildActiveModeSet(tabs)
-    local modeSet = {}
-    for _, tab in ipairs(tabs or {}) do
-        if tab and tab.mode then
-            modeSet[tab.mode] = true
-        end
-    end
-    return modeSet
+    return Vendor.ModePolicy.BuildActiveModeSet(tabs)
 end
 
 local function IsSellBuybackOnlyModeSet(modeSet)
-    if isFenceInteraction then
-        return false
-    end
-    modeSet = modeSet or {}
-    local hasSell = modeSet[MODE.SELL] == true
-    local hasBuyback = modeSet[MODE.BUYBACK] == true
-    local hasBuy = modeSet[MODE.BUY] == true
-    local hasRepair = modeSet[MODE.REPAIR] == true
-    return hasSell and hasBuyback and not hasBuy and not hasRepair
+    return Vendor.ModePolicy.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
 end
 
 local function GetToggleModePair()
-    if isFenceInteraction then
-        return MODE.FENCE_SELL, MODE.FENCE_LAUNDER
-    end
-
-    if isStableInteraction then
-        return MODE.BUY, MODE.STABLE
-    end
-
-    local modeSet = BuildActiveModeSet(GetActiveTabs())
-    if modeSet[MODE.BUY] and modeSet[MODE.SELL] then
-        return MODE.BUY, MODE.SELL
-    end
-    if modeSet[MODE.SELL] and sessionHasBuyMode then
-        return MODE.BUY, MODE.SELL
-    end
-    if IsSellBuybackOnlyModeSet(modeSet) then
-        return MODE.SELL, MODE.BUYBACK
-    end
-
-    return nil, nil
+    return Vendor.ModePolicy.GetToggleModePair({
+        isFenceInteraction = isFenceInteraction,
+        isStableInteraction = isStableInteraction,
+        sessionHasBuyMode = sessionHasBuyMode,
+        tabs = GetActiveTabs(),
+    })
 end
 
-local Vendor = {}
 Vendor.instance = nil
 Vendor._isClosing = false
 
@@ -561,11 +585,11 @@ local function setRegularStore()
     fenceEnableSell = false
     fenceEnableLaunder = false
     sessionHasBuyMode = false
-    activeModeSet = {
-        [MODE.BUY] = true,
-        [MODE.SELL] = true,
-        [MODE.REPAIR] = true,
-        [MODE.BUYBACK] = true,
+    activeNativeModes = {
+        [ZO_MODE_STORE_BUY] = true,
+        [ZO_MODE_STORE_SELL] = true,
+        [ZO_MODE_STORE_REPAIR] = true,
+        [ZO_MODE_STORE_BUY_BACK] = true,
     }
 end
 
@@ -575,10 +599,10 @@ local function setStableStore()
     fenceEnableSell = false
     fenceEnableLaunder = false
     sessionHasBuyMode = true
-    activeModeSet = {
-        [MODE.BUY] = true,
-        [MODE.REPAIR] = true,
-        [MODE.STABLE] = true,
+    activeNativeModes = {
+        [ZO_MODE_STORE_BUY] = true,
+        [ZO_MODE_STORE_REPAIR] = true,
+        [ZO_MODE_STORE_STABLE] = true,
     }
 end
 
@@ -588,7 +612,7 @@ local function setFence(sell, launder)
     fenceEnableSell = sell
     fenceEnableLaunder = launder
     sessionHasBuyMode = false
-    activeModeSet = {}
+    activeNativeModes = {}
 end
 
 local function withMockedTabs(mockTabs, fn)
@@ -646,7 +670,7 @@ end
 
 setRegularStore()
 do
-    activeModeSet[MODE.SELL_VENGEANCE] = true
+    activeNativeModes[ZO_MODE_STORE_SELL_VENGEANCE] = true
     local tabs = GetActiveTabs()
     assert_eq(#tabs, 5, "vengeance store: 5 tabs when sell vengeance is active")
     assert_eq(tabs[3].mode, MODE.SELL_VENGEANCE, "vengeance store: third tab is SELL_VENGEANCE")
