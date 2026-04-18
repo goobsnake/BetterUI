@@ -1,7 +1,7 @@
 --[[
 File: tools/tests/test_vendor_mode_policy_source.lua
-Purpose: Guards the shared Vendor mode-policy surface so mode translation,
-         active-tab selection, and initial-mode choice stay centralized.
+Purpose: Guards the vendor mode-policy boundary so category ownership and
+         cache resets stay centralized in VendorModePolicy.
 Usage:
   lua tools/tests/test_vendor_mode_policy_source.lua
 ]]
@@ -19,22 +19,53 @@ local function assert_contains(haystack, needle, label)
     end
 end
 
+local function assert_not_contains(haystack, needle, label)
+    if haystack:find(needle, 1, true) then
+        error(label .. "\nUnexpected: " .. needle)
+    end
+end
+
 print("test_vendor_mode_policy_source")
 
 local policySource = read_file("Modules/Vendor/Core/VendorModePolicy.lua")
+local classSource = read_file("Modules/Vendor/Core/VendorClass.lua")
 local vendorSource = read_file("Modules/Vendor/Vendor.lua")
 
-assert_contains(policySource, "function ModePolicy.ResolveNativeStoreMode(mode)",
-    "Vendor mode policy owns native-mode translation")
-assert_contains(policySource, "function ModePolicy.GetActiveTabs(context)",
-    "Vendor mode policy owns active-tab selection")
-assert_contains(policySource, "function ModePolicy.ResolveInitialStoreMode(context)",
-    "Vendor mode policy owns initial-mode selection")
-assert_contains(vendorSource, "return Vendor.ModePolicy.GetActiveTabs({",
-    "Vendor runtime delegates active-tab selection to the shared mode policy")
-assert_contains(vendorSource, "Vendor.ModePolicy.ResolveInitialStoreMode({",
-    "Vendor runtime delegates initial-mode selection to the shared mode policy")
-assert_contains(vendorSource, "Vendor.ModePolicy.GetToggleModePair({",
-    "Vendor runtime delegates toggle-mode pairing to the shared mode policy")
+assert_contains(policySource, "function ModePolicy.GetModeCategories(owner, mode)",
+    "VendorModePolicy owns category lookup")
+assert_contains(policySource, "function ModePolicy.SetModeCategories(owner, mode, categories)",
+    "VendorModePolicy owns category updates")
+assert_contains(policySource, "function ModePolicy.GetSelectedCategoryIndex(owner, mode)",
+    "VendorModePolicy owns category selection indexes")
+assert_contains(policySource, "function ModePolicy.ResetCategoryState(owner)",
+    "VendorModePolicy owns category cache resets")
+assert_contains(policySource, "local function CloneTabs(tabs)",
+    "VendorModePolicy owns tab snapshot cloning")
+assert_contains(policySource, "return CloneTabs(context.stableTabs or {})",
+    "VendorModePolicy clones stable fallback tabs before returning them")
+assert_contains(policySource, "return CloneTabs(tabs)",
+    "VendorModePolicy always returns owned tab snapshots")
+
+assert_contains(classSource, 'local VendorModePolicy = assert(Vendor.ModePolicy, "Vendor mode policy must load before VendorClass")',
+    "VendorClass requires the mode policy boundary")
+assert_contains(classSource, "return VendorModePolicy.GetModeCategories(self, mode)",
+    "VendorClass delegates category lookup to VendorModePolicy")
+assert_contains(classSource, "local previousCategories, normalizedCategories, selectedIndex = VendorModePolicy.SetModeCategories(self, mode, categories)",
+    "VendorClass delegates category updates to VendorModePolicy")
+assert_contains(classSource, "return VendorModePolicy.GetCurrentCategory(self, mode)",
+    "VendorClass delegates current category reads to VendorModePolicy")
+assert_contains(classSource, "local cachedBuyCategories = VendorModePolicy.GetCachedBuyCategories(instance)",
+    "VendorClass reads cached buy categories through VendorModePolicy")
+assert_contains(classSource, "local selectedCategoryIndex = VendorModePolicy.GetSelectedCategoryIndex(instance, categoryMode)",
+    "VendorClass reads selected category state through VendorModePolicy")
+assert_not_contains(classSource, "instance.categoryIndexByMode[",
+    "VendorClass no longer mutates selected category indexes directly")
+assert_not_contains(classSource, "instance.modeCategories[",
+    "VendorClass no longer mutates mode categories directly")
+assert_not_contains(classSource, "instance._cachedBuyCategories",
+    "VendorClass no longer reads or writes the cached buy-category field directly")
+
+assert_contains(vendorSource, "Vendor.ModePolicy.ResetCategoryState(Vendor.instance)",
+    "Vendor runtime clears category caches through VendorModePolicy")
 
 print("  OK")

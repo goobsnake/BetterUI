@@ -123,6 +123,7 @@ Vendor.GetModeDescriptor = GetModeDescriptor
 local ResolveModeName = assert(Vendor.ResolveModeName, "Vendor mode policy must load before VendorClass")
 local ResolveModeIcon = assert(Vendor.ResolveModeIcon, "Vendor mode policy must load before VendorClass")
 local ResolveNativeStoreMode = assert(Vendor.ResolveNativeStoreMode, "Vendor mode policy must load before VendorClass")
+local VendorModePolicy = assert(Vendor.ModePolicy, "Vendor mode policy must load before VendorClass")
 
 local function DoesModeUseItemsTitle(mode)
     local descriptor = GetModeDescriptor(mode)
@@ -224,15 +225,6 @@ local function BuildHeaderModeTabs(activeTabs, currentMode)
     return modeTabs
 end
 
-local function BuildFallbackCategory()
-    return {
-        key = "all",
-        name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL") or "SI_BETTERUI_INV_ITEM_ALL"),
-        iconFile = DEFAULT_VENDOR_CATEGORY_ICON,
-        itemCount = 0,
-    }
-end
-
 ---@param left table[]|nil
 ---@param right table[]|nil
 ---@return boolean
@@ -275,13 +267,14 @@ local function BuildVendorHeaderModel(instance)
     local useUnifiedBuyHeader = (not isSellBuybackOnly) and IsUnifiedBuyHeaderMode(mode)
     local categoryMode = useUnifiedBuyHeader and BETTERUI.Vendor.MODE.BUY or mode
     local categories = instance:GetModeCategories(categoryMode)
+    local cachedBuyCategories = VendorModePolicy.GetCachedBuyCategories(instance)
     if useUnifiedBuyHeader
         and categoryMode == BETTERUI.Vendor.MODE.BUY
         and #categories <= 1
-        and instance._cachedBuyCategories
-        and #instance._cachedBuyCategories > 1 then
-        categories = instance._cachedBuyCategories
-        instance.modeCategories[BETTERUI.Vendor.MODE.BUY] = categories
+        and cachedBuyCategories
+        and #cachedBuyCategories > 1 then
+        categories = cachedBuyCategories
+        VendorModePolicy.SetModeCategories(instance, BETTERUI.Vendor.MODE.BUY, categories)
     end
 
     local showCategoryEntries = not isSellBuybackOnly
@@ -289,7 +282,7 @@ local function BuildVendorHeaderModel(instance)
         showCategoryEntries = true
     end
 
-    local selectedCategoryIndex = (instance.categoryIndexByMode and instance.categoryIndexByMode[categoryMode]) or 1
+    local selectedCategoryIndex = VendorModePolicy.GetSelectedCategoryIndex(instance, categoryMode)
     selectedCategoryIndex = zo_clamp(selectedCategoryIndex, 1, #categories)
     local selectedCategory = categories[selectedCategoryIndex]
 
@@ -362,7 +355,7 @@ local function BuildVendorHeaderModel(instance)
 end
 
 local function ApplyVendorHeaderModelState(instance, headerModel)
-    instance.categoryIndexByMode[headerModel.categoryMode] = headerModel.selectedCategoryIndex
+    VendorModePolicy.SetSelectedCategoryIndex(instance, headerModel.categoryMode, headerModel.selectedCategoryIndex)
     instance.currentCategoryIndex = headerModel.selectedCategoryIndex
     instance._preferredModeHeaderSelectionMode = nil
     instance._vendorHeaderModeEntryCount = headerModel.modeEntryCount
@@ -422,14 +415,15 @@ local function CreateVendorHeaderSelectionHandler(instance, headerModel, headerN
                 local shouldSwitchToBuy = headerModel.useUnifiedBuyHeader
                     and screen:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY
                     and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY
-                if screen.categoryIndexByMode[selectedCategoryMode] == categoryIndex and not shouldSwitchToBuy then
+                local currentCategoryIndex = VendorModePolicy.GetSelectedCategoryIndex(screen, selectedCategoryMode)
+                if currentCategoryIndex == categoryIndex and not shouldSwitchToBuy then
                     if screen.UpdateVendorHeaderTitle then
                         screen:UpdateVendorHeaderTitle()
                     end
                     return
                 end
 
-                screen.categoryIndexByMode[selectedCategoryMode] = categoryIndex
+                VendorModePolicy.SetSelectedCategoryIndex(screen, selectedCategoryMode, categoryIndex)
                 screen.currentCategoryIndex = categoryIndex
                 if screen.UpdateVendorHeaderTitle then
                     screen:UpdateVendorHeaderTitle()
@@ -490,11 +484,12 @@ local function CreateVendorHeaderSelectionHandler(instance, headerModel, headerN
         local shouldSwitchToBuy = headerModel.useUnifiedBuyHeader
             and headerModel.mode ~= BETTERUI.Vendor.MODE.BUY
             and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY
-        if instance.categoryIndexByMode[selectedCategoryMode] == categoryIndex and not shouldSwitchToBuy then
+        local currentCategoryIndex = VendorModePolicy.GetSelectedCategoryIndex(instance, selectedCategoryMode)
+        if currentCategoryIndex == categoryIndex and not shouldSwitchToBuy then
             return
         end
 
-        instance.categoryIndexByMode[selectedCategoryMode] = categoryIndex
+        VendorModePolicy.SetSelectedCategoryIndex(instance, selectedCategoryMode, categoryIndex)
         instance.currentCategoryIndex = categoryIndex
         if shouldSwitchToBuy then
             instance:SetMode(BETTERUI.Vendor.MODE.BUY)
@@ -1289,8 +1284,7 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:InitializeCategoryHeader()
-    self.modeCategories = self.modeCategories or {}
-    self.categoryIndexByMode = self.categoryIndexByMode or {}
+    VendorModePolicy.GetModeCategories(self, self:GetCurrentMode())
 
     self.headerGeneric = (self.header and self.header:GetNamedChild("Header")) or self.header
     if not self.headerGeneric then
@@ -1303,41 +1297,18 @@ end
 ---@param mode number
 ---@return table[] categories
 function BETTERUI.Vendor.Class:GetModeCategories(mode)
-    self.modeCategories = self.modeCategories or {}
-    local categories = self.modeCategories[mode]
-    if not categories or #categories == 0 then
-        categories = { BuildFallbackCategory() }
-        self.modeCategories[mode] = categories
-    end
-    return categories
+    return VendorModePolicy.GetModeCategories(self, mode)
 end
 
 ---@param mode number
 ---@param categories table[]|nil
 ---@return nil
 function BETTERUI.Vendor.Class:SetModeCategories(mode, categories)
-    self.modeCategories = self.modeCategories or {}
-    self.categoryIndexByMode = self.categoryIndexByMode or {}
-    local previousCategories = self.modeCategories[mode]
-
-    if not categories or #categories == 0 then
-        categories = { BuildFallbackCategory() }
-    end
-
-    self.modeCategories[mode] = categories
-    if mode == BETTERUI.Vendor.MODE.BUY and #categories > 0 then
-        self._cachedBuyCategories = categories
-    end
-
-    local selectedIndex = self.categoryIndexByMode[mode] or 1
-    if selectedIndex < 1 or selectedIndex > #categories then
-        selectedIndex = 1
-    end
-    self.categoryIndexByMode[mode] = selectedIndex
+    local previousCategories, normalizedCategories, selectedIndex = VendorModePolicy.SetModeCategories(self, mode, categories)
 
     if mode == self:GetCurrentMode() then
         self.currentCategoryIndex = selectedIndex
-        local shouldRebuildHeader = self.vendorHeaderData == nil or not AreVendorCategoriesEquivalent(previousCategories, categories)
+        local shouldRebuildHeader = self.vendorHeaderData == nil or not AreVendorCategoriesEquivalent(previousCategories, normalizedCategories)
         if shouldRebuildHeader then
             self:RebuildCategoryHeader()
         elseif self.UpdateVendorHeaderTitle then
@@ -1349,12 +1320,7 @@ end
 ---@return table category
 function BETTERUI.Vendor.Class:GetCurrentCategory()
     local mode = self:GetCurrentMode()
-    local categories = self:GetModeCategories(mode)
-    local selectedIndex = (self.categoryIndexByMode and self.categoryIndexByMode[mode]) or 1
-    if selectedIndex < 1 or selectedIndex > #categories then
-        selectedIndex = 1
-    end
-    return categories[selectedIndex]
+    return VendorModePolicy.GetCurrentCategory(self, mode)
 end
 
 ---@param mode number Vendor mode constant
@@ -2426,122 +2392,8 @@ end
 ---@param selectedData table|nil
 ---@return nil
 function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
-    if not GAMEPAD_TOOLTIPS then
-        return
-    end
-
-    if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip then
-        BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
-        BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
-    end
-
-    local ds = selectedData and (selectedData.dataSource or selectedData) or nil
-    if not ds then
-        if IsStableInteractionActive() then
-            self:UpdateStablePreview()
-        else
-            self:UpdateVendorStorePreview(nil)
-        end
-        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
-        self:RefreshVendorActionKeybinds()
-        return
-    end
-
-    local mode = self:GetCurrentMode()
-    GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
-    if IsStableInteractionActive()
-        and mode == BETTERUI.Vendor.MODE.BUY
-        and ITEM_PREVIEW_GAMEPAD
-        and ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled
-        and ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
-        self:UpdateStablePreview()
-        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
-        self:RefreshVendorActionKeybinds()
-        return
-    end
-
-    if mode == BETTERUI.Vendor.MODE.STABLE and ds.trainingType and GAMEPAD_TOOLTIPS.LayoutRidingSkill then
-        GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_LEFT_TOOLTIP)
-        GAMEPAD_TOOLTIPS:LayoutRidingSkill(
-            GAMEPAD_LEFT_TOOLTIP,
-            ds.trainingType,
-            ds.bonus or 0,
-            ds.maxBonus or 0
-        )
-        local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-        if tooltip then
-            tooltip._betterui_itemLink = nil
-            tooltip._betterui_bagId = nil
-            tooltip._betterui_slotIndex = nil
-            tooltip._betterui_storeStackCount = nil
-            tooltip._betterui_priceRendered = true
-        end
-    elseif (mode == BETTERUI.Vendor.MODE.BUY or mode == BETTERUI.Vendor.MODE.BUYBACK) and GAMEPAD_TOOLTIPS.LayoutStoreWindowItem then
-        if mode == BETTERUI.Vendor.MODE.BUY
-            and not IsStableInteractionActive()
-            and ITEM_PREVIEW_GAMEPAD
-            and ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled
-            and ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
-            local targetData = self.list and self.list.GetTargetData and self.list:GetTargetData() or selectedData
-            self:UpdateVendorStorePreview(targetData)
-            GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-            GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
-            self:RefreshVendorActionKeybinds()
-            return
-        end
-
-        if ds.dataSource == nil then
-            ds.dataSource = ds
-        end
-        GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_LEFT_TOOLTIP)
-        GAMEPAD_TOOLTIPS:LayoutStoreWindowItem(GAMEPAD_LEFT_TOOLTIP, ds)
-        local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-        if tooltip then
-            tooltip._betterui_itemLink = ds.itemLink or ((GetStoreItemLink and ds.entryIndex) and GetStoreItemLink(ds.entryIndex)) or nil
-            tooltip._betterui_bagId = nil
-            tooltip._betterui_slotIndex = nil
-            tooltip._betterui_storeStackCount = ds.stackCount or ds.stack or 1
-            tooltip._betterui_priceRendered = false
-        end
-    elseif ds.bagId and ds.slotIndex and GAMEPAD_TOOLTIPS.LayoutBagItem then
-        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
-        local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-        if tooltip then
-            tooltip._betterui_bagId = ds.bagId
-            tooltip._betterui_slotIndex = ds.slotIndex
-            tooltip._betterui_itemLink = GetItemLink(ds.bagId, ds.slotIndex)
-            tooltip._betterui_storeStackCount = nil
-            tooltip._betterui_priceRendered = false
-        end
-    else
-        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-    end
-
-    if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText then
-        BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
-    end
-
-    -- Vendor uses a single visible tooltip panel. Force the right tooltip
-    -- inactive so equipped-comparison content cannot overlap the primary panel.
-    local rightTooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP)
-    if rightTooltip then
-        rightTooltip._betterui_itemLink = nil
-        rightTooltip._betterui_bagId = nil
-        rightTooltip._betterui_slotIndex = nil
-        rightTooltip._betterui_storeStackCount = nil
-        rightTooltip._betterui_priceRendered = true
-    end
-    if GAMEPAD_TOOLTIPS.ClearStatusLabel then
-        GAMEPAD_TOOLTIPS:ClearStatusLabel(GAMEPAD_RIGHT_TOOLTIP)
-    end
-    if IsStableInteractionActive() then
-        self:UpdateStablePreview()
-    else
-        self:UpdateVendorStorePreview(selectedData)
-    end
-    self:RefreshVendorActionKeybinds()
+    local selectionRuntime = assert(BETTERUI.Vendor.SelectionRuntime, "Vendor selection runtime must load before selection updates")
+    selectionRuntime.HandleSelection(self, selectedData, IsStableInteractionActive())
 end
 
 --- Suppresses list refreshes until FlushListUpdates is called.

@@ -10,6 +10,71 @@ Vendor.ModePolicy = Vendor.ModePolicy or {}
 local ModePolicy = Vendor.ModePolicy
 local DEFAULT_VENDOR_CATEGORY_ICON = "BetterUI/Modules/Vendor/Images/vendor.dds"
 
+local function BuildFallbackCategory()
+    return {
+        key = "all",
+        name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL") or "SI_BETTERUI_INV_ITEM_ALL"),
+        iconFile = DEFAULT_VENDOR_CATEGORY_ICON,
+        itemCount = 0,
+    }
+end
+
+local function CloneCategory(category)
+    local snapshot = {}
+    for key, value in pairs(category or {}) do
+        snapshot[key] = value
+    end
+    return snapshot
+end
+
+local function CloneCategories(categories)
+    local snapshots = {}
+    for index, category in ipairs(categories or {}) do
+        snapshots[index] = CloneCategory(category)
+    end
+    return snapshots
+end
+
+local function CloneTab(tab)
+    local snapshot = {}
+    for key, value in pairs(tab or {}) do
+        snapshot[key] = value
+    end
+    return snapshot
+end
+
+local function CloneTabs(tabs)
+    local snapshots = {}
+    for index, tab in ipairs(tabs or {}) do
+        snapshots[index] = CloneTab(tab)
+    end
+    return snapshots
+end
+
+local function EnsureCategoryState(owner)
+    owner._modeCategoryState = owner._modeCategoryState or {
+        categoriesByMode = owner.modeCategories or {},
+        selectedIndexByMode = owner.categoryIndexByMode or {},
+        cachedBuyCategories = owner._cachedBuyCategories and CloneCategories(owner._cachedBuyCategories) or nil,
+    }
+
+    local state = owner._modeCategoryState
+    owner.modeCategories = state.categoriesByMode
+    owner.categoryIndexByMode = state.selectedIndexByMode
+    owner._cachedBuyCategories = state.cachedBuyCategories
+    return state
+end
+
+local function EnsureStoredCategories(owner, mode)
+    local state = EnsureCategoryState(owner)
+    local categories = state.categoriesByMode[mode]
+    if not categories or #categories == 0 then
+        categories = { BuildFallbackCategory() }
+        state.categoriesByMode[mode] = categories
+    end
+    return state, categories
+end
+
 local function GetModeDescriptor(mode)
     local resolver = Vendor.GetModeDescriptor
     if type(resolver) ~= "function" then
@@ -40,6 +105,86 @@ end
 function ModePolicy.ResolveNativeStoreMode(mode)
     local descriptor = GetModeDescriptor(mode)
     return descriptor and rawget(_G, descriptor.nativeModeGlobalKey) or nil
+end
+
+function ModePolicy.BuildFallbackCategory()
+    return BuildFallbackCategory()
+end
+
+function ModePolicy.GetModeCategories(owner, mode)
+    local _, categories = EnsureStoredCategories(owner, mode)
+    return CloneCategories(categories)
+end
+
+function ModePolicy.GetCachedBuyCategories(owner)
+    local state = EnsureCategoryState(owner)
+    if not state.cachedBuyCategories or #state.cachedBuyCategories == 0 then
+        return nil
+    end
+    return CloneCategories(state.cachedBuyCategories)
+end
+
+function ModePolicy.GetSelectedCategoryIndex(owner, mode)
+    local state, categories = EnsureStoredCategories(owner, mode)
+    local selectedIndex = state.selectedIndexByMode[mode] or 1
+    if selectedIndex < 1 or selectedIndex > #categories then
+        selectedIndex = 1
+        state.selectedIndexByMode[mode] = selectedIndex
+    end
+    owner.categoryIndexByMode = state.selectedIndexByMode
+    return selectedIndex
+end
+
+function ModePolicy.SetSelectedCategoryIndex(owner, mode, selectedIndex)
+    local state, categories = EnsureStoredCategories(owner, mode)
+    if selectedIndex < 1 or selectedIndex > #categories then
+        selectedIndex = 1
+    end
+    state.selectedIndexByMode[mode] = selectedIndex
+    owner.categoryIndexByMode = state.selectedIndexByMode
+    return selectedIndex
+end
+
+function ModePolicy.SetModeCategories(owner, mode, categories)
+    local state = EnsureCategoryState(owner)
+    local previousCategories = CloneCategories(state.categoriesByMode[mode] or {})
+    local normalized = CloneCategories(categories)
+    if #normalized == 0 then
+        normalized = { BuildFallbackCategory() }
+    end
+
+    state.categoriesByMode[mode] = normalized
+    if mode == (Vendor.MODE and Vendor.MODE.BUY) and #normalized > 0 then
+        state.cachedBuyCategories = CloneCategories(normalized)
+    end
+
+    local selectedIndex = state.selectedIndexByMode[mode] or 1
+    if selectedIndex < 1 or selectedIndex > #normalized then
+        selectedIndex = 1
+    end
+    state.selectedIndexByMode[mode] = selectedIndex
+
+    owner.modeCategories = state.categoriesByMode
+    owner.categoryIndexByMode = state.selectedIndexByMode
+    owner._cachedBuyCategories = state.cachedBuyCategories
+
+    return previousCategories, CloneCategories(normalized), selectedIndex
+end
+
+function ModePolicy.GetCurrentCategory(owner, mode)
+    local categories = ModePolicy.GetModeCategories(owner, mode)
+    local selectedIndex = ModePolicy.GetSelectedCategoryIndex(owner, mode)
+    return categories[selectedIndex]
+end
+
+function ModePolicy.ResetCategoryState(owner)
+    if not owner then
+        return
+    end
+    owner._modeCategoryState = nil
+    owner.modeCategories = nil
+    owner.categoryIndexByMode = nil
+    owner._cachedBuyCategories = nil
 end
 
 function ModePolicy.BuildActiveModeSet(tabs)
@@ -112,7 +257,7 @@ function ModePolicy.GetActiveTabs(context)
         if #tabs == 0 and fenceTabs[1] then
             tabs[1] = fenceTabs[1]
         end
-        return tabs
+        return CloneTabs(tabs)
     end
 
     local activeModeSet = ModePolicy.GetNativeActiveModeSet(context.storeManager)
@@ -135,18 +280,16 @@ function ModePolicy.GetActiveTabs(context)
 
     if #tabs == 0 then
         if context.isStableInteraction then
-            return context.stableTabs or {}
+            return CloneTabs(context.stableTabs or {})
         end
-        local fallbackTabs = {}
         for _, tab in ipairs(context.vendorTabs or {}) do
             if not context.isModeTabAvailable or context.isModeTabAvailable(tab.mode) then
-                fallbackTabs[#fallbackTabs + 1] = tab
+                tabs[#tabs + 1] = tab
             end
         end
-        return fallbackTabs
     end
 
-    return tabs
+    return CloneTabs(tabs)
 end
 
 function ModePolicy.GetToggleModePair(context)
