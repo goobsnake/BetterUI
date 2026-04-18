@@ -13,8 +13,23 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.BatchActions = BETTERUI.CIM.BatchActions or {}
 
 local BatchActions = BETTERUI.CIM.BatchActions
-local ProtectionPolicy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
 local BatchConfig = BETTERUI.CIM.BatchConfig
+local BatchStepHandled = BatchConfig.BatchStepHandled
+local BatchStepQueued = BatchConfig.BatchStepQueued
+
+local function GetProtectionPolicy()
+    return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+end
+
+local function CanJunkItem(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    return not policy or policy.CanJunkItem(bagId, slotIndex)
+end
+
+local function CanUnjunkItem(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    return not policy or policy.CanUnjunkItem(bagId, slotIndex)
+end
 
 -- HELPERS
 
@@ -90,14 +105,14 @@ function BatchActions.BatchLock(self)
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex)
         if not HasItemAtSlot(bagId, slotIndex) then
-            return true
+            return BatchStepHandled()
         end
         if not CanItemBePlayerLocked(bagId, slotIndex) or IsItemPlayerLocked(bagId, slotIndex) then
-            return true
+            return BatchStepHandled()
         end
 
         SetItemIsPlayerLocked(bagId, slotIndex, true)
-        return "queued"
+        return BatchStepQueued()
     end, function()
         self:ExitSelectionMode()
     end, GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED")), LOCK_TOGGLE_BATCH_OPTIONS)
@@ -122,14 +137,14 @@ function BatchActions.BatchUnlock(self)
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex)
         if not HasItemAtSlot(bagId, slotIndex) then
-            return true
+            return BatchStepHandled()
         end
         if not IsItemPlayerLocked(bagId, slotIndex) then
-            return true
+            return BatchStepHandled()
         end
 
         SetItemIsPlayerLocked(bagId, slotIndex, false)
-        return "queued"
+        return BatchStepQueued()
     end, function()
         self:ExitSelectionMode()
     end, GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_LOCKED")), LOCK_TOGGLE_BATCH_OPTIONS)
@@ -146,7 +161,7 @@ function BatchActions.BatchMarkAsJunk(self)
         if bagId and slotIndex then
             if HasItemAtSlot(bagId, slotIndex)
                 and not IsItemJunk(bagId, slotIndex)
-                and (not ProtectionPolicy or ProtectionPolicy.CanJunkItem(bagId, slotIndex))
+                and CanJunkItem(bagId, slotIndex)
             then
                 table.insert(items, itemData)
             end
@@ -156,16 +171,16 @@ function BatchActions.BatchMarkAsJunk(self)
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex)
         if not HasItemAtSlot(bagId, slotIndex) then
-            return true
+            return BatchStepHandled()
         end
         if IsItemJunk(bagId, slotIndex)
-            or (ProtectionPolicy and not ProtectionPolicy.CanJunkItem(bagId, slotIndex))
+            or not CanJunkItem(bagId, slotIndex)
         then
-            return true
+            return BatchStepHandled()
         end
 
         SetItemIsJunk(bagId, slotIndex, true)
-        return "queued"
+        return BatchStepQueued()
     end, function()
         self:ExitSelectionMode()
     end, GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK")), JUNK_TOGGLE_BATCH_OPTIONS)
@@ -182,7 +197,7 @@ function BatchActions.BatchUnmarkAsJunk(self)
         if bagId and slotIndex
             and HasItemAtSlot(bagId, slotIndex)
             and IsItemJunk(bagId, slotIndex)
-            and (not ProtectionPolicy or ProtectionPolicy.CanUnjunkItem(bagId, slotIndex))
+            and CanUnjunkItem(bagId, slotIndex)
         then
             table.insert(items, itemData)
         end
@@ -191,16 +206,16 @@ function BatchActions.BatchUnmarkAsJunk(self)
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex)
         if not HasItemAtSlot(bagId, slotIndex) then
-            return true
+            return BatchStepHandled()
         end
         if not IsItemJunk(bagId, slotIndex)
-            or (ProtectionPolicy and not ProtectionPolicy.CanUnjunkItem(bagId, slotIndex))
+            or not CanUnjunkItem(bagId, slotIndex)
         then
-            return true
+            return BatchStepHandled()
         end
 
         SetItemIsJunk(bagId, slotIndex, false)
-        return "queued"
+        return BatchStepQueued()
     end, function()
         self:ExitSelectionMode()
     end, GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_JUNK")), JUNK_TOGGLE_BATCH_OPTIONS)
@@ -239,8 +254,8 @@ function BatchActions.AnalyzeSelectedItems(selectedItems)
             end
 
             local isJunk = IsItemJunk(bagId, slotIndex)
-            local canMarkAsJunk = not ProtectionPolicy or ProtectionPolicy.CanJunkItem(bagId, slotIndex)
-            local canUnmarkAsJunk = not ProtectionPolicy or ProtectionPolicy.CanUnjunkItem(bagId, slotIndex)
+            local canMarkAsJunk = CanJunkItem(bagId, slotIndex)
+            local canUnmarkAsJunk = CanUnjunkItem(bagId, slotIndex)
             if isJunk then
                 if canUnmarkAsJunk then
                     counts.canUnmarkJunkCount = counts.canUnmarkJunkCount + 1

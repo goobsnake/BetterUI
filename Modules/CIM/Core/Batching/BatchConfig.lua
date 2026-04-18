@@ -51,6 +51,10 @@ local BatchConfig = BETTERUI.CIM.BatchConfig
 ---@field cooldownUntilMs number
 ---@field serverActionTimes number[]
 
+---@class BetterUIBatchStepResult
+---@field status string
+---@field reason string|nil
+
 -- THROTTLE TIER CONFIGURATION
 
 local DEFAULT_BATCH_THROTTLE_TIERS = {
@@ -242,6 +246,60 @@ end
 
 function BatchConfig.WithScene(options)
     return { scene = options or {} }
+end
+
+BatchConfig.BATCH_STEP_STATUS = {
+    HANDLED = "handled",
+    QUEUED = "queued",
+    SKIPPED = "skipped",
+    STOPPED = "stopped",
+}
+
+---@return BetterUIBatchStepResult
+function BatchConfig.BatchStepHandled()
+    return { status = BatchConfig.BATCH_STEP_STATUS.HANDLED }
+end
+
+---@return BetterUIBatchStepResult
+function BatchConfig.BatchStepQueued()
+    return { status = BatchConfig.BATCH_STEP_STATUS.QUEUED }
+end
+
+---@return BetterUIBatchStepResult
+function BatchConfig.BatchStepSkipped()
+    return { status = BatchConfig.BATCH_STEP_STATUS.SKIPPED }
+end
+
+---@param reason string
+---@return BetterUIBatchStepResult
+function BatchConfig.BatchStepStopped(reason)
+    return {
+        status = BatchConfig.BATCH_STEP_STATUS.STOPPED,
+        reason = reason,
+    }
+end
+
+---@param result BetterUIBatchStepResult|boolean|string|nil
+---@return BetterUIBatchStepResult
+function BatchConfig.NormalizeBatchStepResult(result)
+    if type(result) == "table" and type(result.status) == "string" then
+        return result
+    end
+
+    if result == false then
+        return BatchConfig.BatchStepStopped("bagFull")
+    end
+    if result == "skip" then
+        return BatchConfig.BatchStepSkipped()
+    end
+    if type(result) == "string" and result ~= "" and result ~= "queued" then
+        return BatchConfig.BatchStepStopped(result)
+    end
+    if result == "queued" then
+        return BatchConfig.BatchStepQueued()
+    end
+
+    return BatchConfig.BatchStepHandled()
 end
 
 local FLAT_BATCH_OPTION_MAP = {

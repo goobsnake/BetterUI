@@ -5,6 +5,9 @@
 local Class = BETTERUI.Inventory.Class
 local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 local BatchConfig = BETTERUI.CIM.BatchConfig
+local BatchStepHandled = BatchConfig.BatchStepHandled
+local BatchStepQueued = BatchConfig.BatchStepQueued
+local BatchStepStopped = BatchConfig.BatchStepStopped
 local BLOCK_TABBAR_CALLBACK = true
 
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
@@ -202,18 +205,18 @@ function Class:BatchRetrieve()
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
         if not HasItemAtSlot(bagId, slotIndex) then
-            return true
+            return BatchStepHandled()
         end
         if not DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
-            return false
+            return BatchStepStopped("bagFull")
         end
         local stackSize = ResolveStackCount(itemData, bagId, slotIndex)
-        if not stackSize then return true end
+        if not stackSize then return BatchStepHandled() end
         local targetSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
-        if targetSlot == nil then return false end
+        if targetSlot == nil then return BatchStepStopped("bagFull") end
         CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
         CallSecureProtected("PlaceInInventory", BAG_BACKPACK, targetSlot)
-        return "queued"
+        return BatchStepQueued()
     end, function()
         self:ExitCraftBagSelectionMode()
     end, GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG")), CRAFT_BAG_RETRIEVE_BATCH_OPTIONS)
@@ -238,15 +241,15 @@ function Class:BatchStow()
     if #items == 0 then return end
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
-        if not HasItemAtSlot(bagId, slotIndex) then return true end
+        if not HasItemAtSlot(bagId, slotIndex) then return BatchStepHandled() end
         if not BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag(bagId, slotIndex) then
-            return true
+            return BatchStepHandled()
         end
         local stackSize = ResolveStackCount(itemData, bagId, slotIndex)
-        if not stackSize then return true end
+        if not stackSize then return BatchStepHandled() end
         CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
         CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0)
-        return "queued"
+        return BatchStepQueued()
     end, function()
         self:ExitSelectionMode()
     end, GetString(rawget(_G, "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG")), CRAFT_BAG_STOW_BATCH_OPTIONS)
@@ -271,16 +274,16 @@ function Class:BatchDeposit()
     if #items == 0 then return end
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
-        if not HasItemAtSlot(bagId, slotIndex) then return true end
-        if not IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then return true end
+        if not HasItemAtSlot(bagId, slotIndex) then return BatchStepHandled() end
+        if not IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then return BatchStepHandled() end
         local destinationBag = ResolveInventoryDepositTargetBag(targetBankBag, bagId, slotIndex)
-        if not destinationBag then return false end
+        if not destinationBag then return BatchStepStopped("bagFull") end
         local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
-        if not stackCount then return true end
+        if not stackCount then return BatchStepHandled() end
         local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, destinationBag)
-        if destinationSlot == nil then return false end
+        if destinationSlot == nil then return BatchStepStopped("bagFull") end
         CallSecureProtected("RequestMoveItem", bagId, slotIndex, destinationBag, destinationSlot, stackCount)
-        return "queued"
+        return BatchStepQueued()
     end, function()
         self:ExitSelectionMode()
     end, "Depositing", BANK_DEPOSIT_BATCH_OPTIONS)

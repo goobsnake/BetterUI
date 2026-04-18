@@ -564,17 +564,15 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             local skipToNext = false
 
             if bagId and slotIndex then
-                local result = actionFn(bagId, slotIndex, itemData)
-                if result == false then
-                    stopReason = "bagFull"
-                elseif result == "skip" then
+                local stepResult = BatchConfig.NormalizeBatchStepResult(actionFn(bagId, slotIndex, itemData))
+                if stepResult.status == BatchConfig.BATCH_STEP_STATUS.STOPPED then
+                    stopReason = stepResult.reason or "bagFull"
+                elseif stepResult.status == BatchConfig.BATCH_STEP_STATUS.SKIPPED then
                     consecutiveQueuedActions = 0; skipToNext = true
-                elseif type(result) == "string" and result ~= "" and result ~= "queued" then
-                    stopReason = result
                 else
                     processedCount = processedCount + 1
                     processedCost = processedCost + actionCost
-                    actionQueued = (result == "queued")
+                    actionQueued = (stepResult.status == BatchConfig.BATCH_STEP_STATUS.QUEUED)
                     consecutiveQueuedActions = actionQueued and (consecutiveQueuedActions + 1) or 0
                     if isServerBound and enforceRateWindow and (actionQueued or countTowardRateOnSuccess) then
                         BatchConfig.RecordServerAction(BatchConfig.GetNowMs(), rateLimitWindowMs)

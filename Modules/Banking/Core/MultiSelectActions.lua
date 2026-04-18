@@ -12,6 +12,10 @@ local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
 
 local MultiSelectMixin                = BETTERUI.CIM.MultiSelectMixin
 local BatchConfig = BETTERUI.CIM.BatchConfig
+local BatchStepHandled = BatchConfig.BatchStepHandled
+local BatchStepQueued = BatchConfig.BatchStepQueued
+local BatchStepSkipped = BatchConfig.BatchStepSkipped
+local BatchStepStopped = BatchConfig.BatchStepStopped
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 local function ResolveBankBag(bankBagId)
     if BETTERUI.Banking.ResolveBankBag then
@@ -262,12 +266,12 @@ function BETTERUI.Banking.Class:BatchTransfer()
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
         if not HasItemAtSlot(bagId, slotIndex) then
-            return true
+            return BatchStepHandled()
         end
 
         local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
         if not stackCount then
-            return "skip"
+            return BatchStepSkipped()
         end
 
         -- Guild bank uses dedicated transfer APIs
@@ -275,23 +279,23 @@ function BETTERUI.Banking.Class:BatchTransfer()
         if GuildBankAdapter and GuildBankAdapter.IsGuildBankMode() then
             local canTransfer = ResolveGuildBankTransferDecision(isWithdraw and LIST_WITHDRAW or LIST_DEPOSIT, bagId, slotIndex)
             if not canTransfer then
-                return "skip"
+                return BatchStepSkipped()
             end
             if isWithdraw then
                 if GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
-                    return false -- Backpack full
+                    return BatchStepStopped("bagFull")
                 end
                 TransferFromGuildBank(slotIndex)
             else
                 if not IsDepositSupportedForBank(bagId, slotIndex, BAG_GUILDBANK) then
-                    return "skip"
+                    return BatchStepSkipped()
                 end
                 if GetNumBagUsedSlots(BAG_GUILDBANK) >= GetBagSize(BAG_GUILDBANK) then
-                    return false -- Guild bank full
+                    return BatchStepStopped("bagFull")
                 end
                 TransferToGuildBank(bagId, slotIndex)
             end
-            return "queued"
+            return BatchStepQueued()
         end
 
         -- Personal/house bank: existing RequestMoveItem logic
@@ -300,34 +304,34 @@ function BETTERUI.Banking.Class:BatchTransfer()
             if destinationSlot == nil then
                 local freeSlots = GetBagUseableSize(BAG_BACKPACK) - GetNumBagUsedSlots(BAG_BACKPACK)
                 if freeSlots == 0 then
-                    return false
+                    return BatchStepStopped("bagFull")
                 end
-                return "skip"
+                return BatchStepSkipped()
             end
 
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, destinationSlot, stackCount)
         else
             if not IsDepositSupportedForBank(bagId, slotIndex, currentUsedBank) then
-                return "skip"
+                return BatchStepSkipped()
             end
 
             local targetBag = ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
             if not targetBag or targetBag == "skip" then
-                return false
+                return BatchStepStopped("bagFull")
             end
             if targetBag == "unbankable" then
-                return "skip"
+                return BatchStepSkipped()
             end
 
             ---@cast targetBag number
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag)
             if destinationSlot == nil then
-                return "skip"
+                return BatchStepSkipped()
             end
 
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, targetBag, destinationSlot, stackCount)
         end
-        return "queued"
+        return BatchStepQueued()
     end, function()
         self:ExitSelectionMode()
     end, actionName, BANK_TRANSFER_BATCH_OPTIONS)

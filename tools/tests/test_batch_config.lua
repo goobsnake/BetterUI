@@ -259,6 +259,27 @@ do
     assert_equal("Scene", label, "SceneExitLabel: default fallback")
 end
 
+-- NormalizeBatchStepResult
+print("\n-- NormalizeBatchStepResult --")
+do
+    local handled = BC.NormalizeBatchStepResult(true)
+    assert_equal(BC.BATCH_STEP_STATUS.HANDLED, handled.status, "NormalizeBatchStepResult: legacy true becomes handled")
+
+    local queued = BC.NormalizeBatchStepResult("queued")
+    assert_equal(BC.BATCH_STEP_STATUS.QUEUED, queued.status, "NormalizeBatchStepResult: legacy queued string becomes queued")
+
+    local skipped = BC.NormalizeBatchStepResult("skip")
+    assert_equal(BC.BATCH_STEP_STATUS.SKIPPED, skipped.status, "NormalizeBatchStepResult: legacy skip string becomes skipped")
+
+    local stopped = BC.NormalizeBatchStepResult(false)
+    assert_equal(BC.BATCH_STEP_STATUS.STOPPED, stopped.status, "NormalizeBatchStepResult: legacy false becomes stopped")
+    assert_equal("bagFull", stopped.reason, "NormalizeBatchStepResult: legacy false keeps bagFull reason")
+
+    local explicitStop = BC.NormalizeBatchStepResult(BC.BatchStepStopped("sceneExit"))
+    assert_equal(BC.BATCH_STEP_STATUS.STOPPED, explicitStop.status, "NormalizeBatchStepResult: explicit stop stays structured")
+    assert_equal("sceneExit", explicitStop.reason, "NormalizeBatchStepResult: explicit stop preserves reason")
+end
+
 -- ============================================================================
 -- RESULTS
 -- ============================================================================
