@@ -28,6 +28,7 @@ end
 print("test_vendor_runtime_init_source")
 
 local vendorSource = read_file("Modules/Vendor/Vendor.lua")
+local safeExecuteSource = read_file("Modules/Vendor/Core/VendorSafeExecute.lua")
 local bridgeSource = read_file("Modules/Vendor/Core/VendorNativeStoreBridge.lua")
 local bootstrapRuntimeSource = read_file("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
 local componentCatalogSource = read_file("Modules/Vendor/Core/VendorComponentCatalog.lua")
@@ -45,8 +46,6 @@ assert_contains(vendorSource, "local function TakeOverNativeStoreScene(instance)
     "Vendor init owns native store scene takeover through a named helper")
 assert_contains(vendorSource, "local function RegisterVendorEvents(eventManager)",
     "Vendor init owns event registration through a named helper")
-assert_contains(vendorSource, 'BETTERUI.CIM.UserNotify(context, tostring(result))',
-    "Vendor fallback routes missing SafeExecute failures through the shared notifier")
 assert_contains(vendorSource, "local function ApplyVendorResolvedMode(targetMode, refreshList)",
     "Vendor runtime owns mode application through a shared helper")
 assert_contains(vendorSource, "ScheduleVendorOpenStoreSync = function(targetMode, delayMs)",
@@ -71,6 +70,12 @@ assert_contains(vendorSource, "local function GetVendorInteractionRuntime()",
     "Vendor root exposes a lazy getter for the interaction runtime")
 assert_contains(vendorSource, "local function GetVendorBatchRuntime()",
     "Vendor root exposes a lazy getter for the batch runtime")
+assert_contains(vendorSource, "local function GetVendorExecuteSafely()",
+    "Vendor root resolves its safe-execute helper through a named getter")
+assert_not_contains(vendorSource, "local function DefaultExecuteSafely(context, fn, ...)",
+    "Vendor root no longer duplicates safe-execute fallback implementation")
+assert_not_contains(vendorSource, "SafeCall = type(Vendor.ExecuteSafely) == \"function\" and Vendor.ExecuteSafely or DefaultExecuteSafely",
+    "Vendor root no longer rebinds a local SafeCall wrapper around Vendor.ExecuteSafely")
 assert_not_contains(vendorSource, "local NativeStoreBridge = assert(Vendor.NativeStoreBridge",
     "Vendor root no longer asserts the native-store bridge at import time")
 assert_not_contains(vendorSource, "local VendorBootstrapRuntime = assert(Vendor.BootstrapRuntime",
@@ -81,6 +86,8 @@ assert_not_contains(vendorSource, "local VendorEventBridge = assert(Vendor.Event
     "Vendor root no longer asserts the event bridge at import time")
 assert_not_contains(vendorSource, "local VendorInteractionRuntime = assert(Vendor.InteractionRuntime",
     "Vendor root no longer asserts the interaction runtime at import time")
+assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorSafeExecute.lua",
+    "Vendor manifest loads the shared safe-execute helper before other runtime collaborators")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorNativeStoreBridge.lua",
     "Vendor manifest loads the native-store bridge before runtime setup")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorBootstrapRuntime.lua",
@@ -92,6 +99,14 @@ assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorEventBridge.lua",
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorInteractionRuntime.lua",
     "Vendor manifest loads the interaction runtime collaborator before runtime setup")
 
+assert_contains(safeExecuteSource, "function Vendor.ExecuteSafely(context, fn, ...)",
+    "Vendor safe-execute helper owns the shared execution wrapper")
+assert_contains(safeExecuteSource, 'BETTERUI.CIM.UserNotify(context, tostring(result))',
+    "Vendor safe-execute helper routes fallback failures through the shared notifier")
+assert_contains(bridgeSource, "local function GetVendorExecuteSafely()",
+    "Vendor native-store bridge resolves the shared safe-execute helper through a named getter")
+assert_not_contains(bridgeSource, "local function SafeCall(context, fn, ...)",
+    "Vendor native-store bridge no longer duplicates a local SafeCall implementation")
 assert_contains(bridgeSource, "function NativeStoreBridge.TakeOverScene(instance)",
     "Vendor native-store bridge owns scene takeover")
 assert_contains(bridgeSource, "function NativeStoreBridge.EnsureComponents(searchContext)",
@@ -174,5 +189,9 @@ assert_contains(vendorSource, "GetVendorNativeStoreBridge().ApplyResolvedMode(ta
     "Vendor mode application delegates to the native-store bridge")
 assert_contains(vendorSource, "GetVendorNativeStoreBridge().UpdateSceneManagerStoreAlias(Vendor.instance)",
     "Vendor scene-alias updates delegate to the native-store bridge")
+assert_contains(vendorSource, "GetVendorExecuteSafely()(context .. \":IsStoreEmpty\", IsStoreEmpty)",
+    "Vendor root routes store-availability probes through the shared safe-execute helper")
+assert_contains(vendorSource, "GetVendorExecuteSafely()(\"Vendor.Init:\" .. tostring(stepName), setupFn)",
+    "Vendor setup steps route through the shared safe-execute helper")
 
 print("  OK")

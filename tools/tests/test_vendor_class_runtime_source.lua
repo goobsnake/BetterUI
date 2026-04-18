@@ -22,11 +22,18 @@ end
 print("test_vendor_class_runtime_source")
 
 local classSource = read_file("Modules/Vendor/Core/VendorClass.lua")
+local safeExecuteSource = read_file("Modules/Vendor/Core/VendorSafeExecute.lua")
 local controllerRuntimeSource = read_file("Modules/Vendor/Core/VendorControllerRuntime.lua")
 local manifestSource = read_file("BetterUI.txt")
 
+assert_contains(safeExecuteSource, "function Vendor.ExecuteSafely(context, fn, ...)",
+    "Vendor safe-execute helper defines the shared vendor execution wrapper")
+assert_contains(classSource, 'local ExecuteSafely = assert(Vendor.ExecuteSafely, "Vendor safe execute helper must load before VendorClass")',
+    "VendorClass depends on the shared safe-execute helper instead of defining its own wrapper")
 assert_contains(classSource, 'local VendorControllerRuntime = assert(Vendor.ControllerRuntime, "Vendor controller runtime must load before VendorClass")',
     "VendorClass requires the controller runtime collaborator")
+assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorSafeExecute.lua",
+    "Vendor manifest loads the shared safe-execute helper before VendorClass")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorControllerRuntime.lua",
     "Vendor manifest loads the controller runtime collaborator before VendorClass")
 

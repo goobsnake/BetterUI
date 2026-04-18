@@ -243,6 +243,7 @@ Modules\TradingHouse\Settings\SettingsPanel.lua
 Modules\Vendor\Module.lua
 Modules\Vendor\Core\VendorModePolicy.lua
 Modules\Vendor\Core\VendorSelectionRuntime.lua
+Modules\Vendor\Core\VendorSafeExecute.lua
 Modules\Vendor\Core\VendorNativeStoreBridge.lua
 Modules\Vendor\Core\VendorBootstrapRuntime.lua
 Modules\Vendor\Core\VendorComponentCatalog.lua

@@ -8,7 +8,6 @@ Purpose: Vendor orchestration surface for scene lifecycle, event wiring, and
 local Vendor      = BETTERUI.Vendor
 local MODE        = Vendor.MODE
 local EVENT_NS    = "BetterUI_Vendor"
-local SafeCall
 
 -- Tracks whether current interaction is fence (true) or regular store (false)
 local isFenceInteraction = false
@@ -51,6 +50,10 @@ local function GetVendorBatchRuntime()
     return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime")
 end
 
+local function GetVendorExecuteSafely()
+    return ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")
+end
+
 local function IsSellVengeanceModeAvailable()
     return rawget(_G, "BAG_VENGEANCE") ~= nil
         and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") == true
@@ -58,36 +61,16 @@ local function IsSellVengeanceModeAvailable()
         and IsCurrentCampaignVengeanceRuleset()
 end
 
-local function DefaultExecuteSafely(context, fn, ...)
-    if type(fn) ~= "function" then
-        return false, nil
-    end
-
-    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute then
-        return BETTERUI.CIM.SafeExecute(context, fn, ...)
-    end
-
-    local ok, result = pcall(fn, ...)
-    if not ok then
-        assert(BETTERUI and BETTERUI.CIM and BETTERUI.CIM.UserNotify,
-            "Vendor fallback error handling requires BETTERUI.CIM.UserNotify")
-        BETTERUI.CIM.UserNotify(context, tostring(result))
-    end
-    return ok, result
-end
-
-SafeCall = type(Vendor.ExecuteSafely) == "function" and Vendor.ExecuteSafely or DefaultExecuteSafely
-
 local function HasVendorBuyInventory(context)
     if type(IsStoreEmpty) == "function" then
-        local okStoreEmpty, isStoreEmpty = SafeCall(context .. ":IsStoreEmpty", IsStoreEmpty)
+        local okStoreEmpty, isStoreEmpty = GetVendorExecuteSafely()(context .. ":IsStoreEmpty", IsStoreEmpty)
         if okStoreEmpty then
             return not isStoreEmpty
         end
     end
 
     if type(GetNumStoreItems) == "function" then
-        local okStoreCount, storeCount = SafeCall(context .. ":GetNumStoreItems", GetNumStoreItems)
+        local okStoreCount, storeCount = GetVendorExecuteSafely()(context .. ":GetNumStoreItems", GetNumStoreItems)
         if okStoreCount and type(storeCount) == "number" then
             return storeCount > 0
         end
@@ -97,7 +80,7 @@ local function HasVendorBuyInventory(context)
 end
 
 local function RunVendorSetupStep(stepName, setupFn)
-    local ok, err = SafeCall("Vendor.Init:" .. tostring(stepName), setupFn)
+    local ok, err = GetVendorExecuteSafely()("Vendor.Init:" .. tostring(stepName), setupFn)
     if not ok and BETTERUI.Debug then
         BETTERUI.Debug(string.format("[Vendor] %s failed: %s", tostring(stepName), tostring(err)))
     end
@@ -483,7 +466,7 @@ local function BuildVendorCloseStoreDeps()
         hideScene = HideVendorScene,
         getStoreManager = GetVendorStoreManager,
         logNativeStoreInputState = LogNativeStoreInputState,
-        safeCall = SafeCall,
+        safeCall = GetVendorExecuteSafely(),
         aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
     }
 end
@@ -894,7 +877,7 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
-                    SafeCall("Vendor.RegisterBatchDialog", RegisterVendorBatchDialog)
+                    GetVendorExecuteSafely()("Vendor.RegisterBatchDialog", RegisterVendorBatchDialog)
                     if ZO_Dialogs_ShowGamepadDialog then
                         ZO_Dialogs_ShowGamepadDialog("BETTERUI_VENDOR_BATCH_DIALOG")
                     end
@@ -1121,7 +1104,7 @@ function Vendor.ShowSellAllJunkDialog(vendorInstance, component)
     }
 
     if ZO_Dialogs_ShowGamepadDialog then
-        local ok = SafeCall("Vendor.RegisterSellAllJunkDialog", RegisterVendorSellAllJunkDialog)
+        local ok = GetVendorExecuteSafely()("Vendor.RegisterSellAllJunkDialog", RegisterVendorSellAllJunkDialog)
         if ok and (not ZO_Dialogs_IsDialogRegistered or ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME)) then
             ZO_Dialogs_ShowGamepadDialog(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME, dialogData)
             return true

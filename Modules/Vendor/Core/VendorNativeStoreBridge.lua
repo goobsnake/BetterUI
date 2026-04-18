@@ -15,16 +15,10 @@ local function LogVendorDebug(flagName, category, message)
     end
 end
 
-local function SafeCall(context, fn, ...)
+local function GetVendorExecuteSafely()
     local executor = Vendor.ExecuteSafely
-    if type(executor) == "function" then
-        return executor(context, fn, ...)
-    end
-    if type(fn) ~= "function" then
-        return false, nil
-    end
-    local ok, result = pcall(fn, ...)
-    return ok, result
+    assert(type(executor) == "function", "Vendor safe execute helper must load before NativeStoreBridge use")
+    return executor
 end
 
 local function IsDirectionalInputListening(obj)
@@ -61,7 +55,7 @@ local function GetActiveNativeStoreModes(storeManager)
     end
     for _, component in ipairs(activeComponents) do
         if component and type(component.GetStoreMode) == "function" then
-            local okMode, mode = SafeCall("Vendor.NativeStoreBridge:GetActiveMode", component.GetStoreMode, component)
+            local okMode, mode = GetVendorExecuteSafely()("Vendor.NativeStoreBridge:GetActiveMode", component.GetStoreMode, component)
             if okMode and mode and not seen[mode] then
                 seen[mode] = true
                 modes[#modes + 1] = mode
@@ -234,7 +228,7 @@ local function ApplyRebuildPlan(snapshot, rebuildPlan)
         storeManager.sceneName = "betterui_native_store_blocked"
     end
 
-    SafeCall("Vendor.NativeStoreBridge:SetActiveComponents",
+    GetVendorExecuteSafely()("Vendor.NativeStoreBridge:SetActiveComponents",
         storeManager.SetActiveComponents, storeManager, rebuildPlan.rebuiltModes, snapshot.searchContext)
 
     NeutralizeHeaderCallbacks(storeManager)
@@ -246,14 +240,14 @@ local function ApplyRebuildPlan(snapshot, rebuildPlan)
 
     if snapshot.buyMode and rebuildPlan.modeSet[snapshot.buyMode] then
         if type(SetStoreMode) == "function" then
-            SafeCall("Vendor.NativeStoreBridge:SetStoreMode", SetStoreMode, snapshot.buyMode)
+            GetVendorExecuteSafely()("Vendor.NativeStoreBridge:SetStoreMode", SetStoreMode, snapshot.buyMode)
         end
         if type(storeManager.SetMode) == "function" then
-            SafeCall("Vendor.NativeStoreBridge:StoreManagerSetMode", storeManager.SetMode, storeManager, snapshot.buyMode)
+            GetVendorExecuteSafely()("Vendor.NativeStoreBridge:StoreManagerSetMode", storeManager.SetMode, storeManager, snapshot.buyMode)
         end
     end
     if type(storeManager.InitializeStore) == "function" then
-        SafeCall("Vendor.NativeStoreBridge:InitializeStore", storeManager.InitializeStore, storeManager)
+        GetVendorExecuteSafely()("Vendor.NativeStoreBridge:InitializeStore", storeManager.InitializeStore, storeManager)
     end
 
     return true
@@ -402,7 +396,7 @@ function NativeStoreBridge.GetCurrentMode()
         return nil
     end
 
-    local okMode, modeResult = SafeCall("Vendor.NativeStoreBridge:GetCurrentMode", storeManager.GetCurrentMode, storeManager)
+    local okMode, modeResult = GetVendorExecuteSafely()("Vendor.NativeStoreBridge:GetCurrentMode", storeManager.GetCurrentMode, storeManager)
     if okMode then
         return modeResult
     end

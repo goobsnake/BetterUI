@@ -568,20 +568,7 @@ local function RestoreVendorHeaderInteraction(instance, headerGeneric, headerMod
     instance:EnsureColumnHeadersVisible()
 end
 
-local function ExecuteSafely(context, fn, ...)
-    if type(fn) ~= "function" then
-        return false, nil
-    end
-
-    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute then
-        return BETTERUI.CIM.SafeExecute(context, fn, ...)
-    end
-
-    local ok, result = pcall(fn, ...)
-    return ok, result
-end
-
-Vendor.ExecuteSafely = ExecuteSafely
+local ExecuteSafely = assert(Vendor.ExecuteSafely, "Vendor safe execute helper must load before VendorClass")
 
 local function LogVendorDebug(flagName, category, message)
     if BETTERUI.Vendor and BETTERUI.Vendor.DebugLog then
