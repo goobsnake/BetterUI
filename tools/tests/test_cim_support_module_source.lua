@@ -107,6 +107,13 @@ assert_true(batchActions:find("function BatchActions%.AnalyzeSelectedItems%(sele
 local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")
 assert_true(genericSlotActions:find("BETTERUI%.CIM%.InvokeInventoryDialog%(\"TryStowWithQuantity\", inventorySlot%)") ~= nil,
     "GenericSlotActions routes craft-bag quantity dialogs through the shared CIM dialog seam")
+assert_true(genericSlotActions:find("local function CanStowToCraftBagWithPolicy%(bagId, slotIndex%)") ~= nil,
+    "GenericSlotActions centralizes craft-bag stow authorization through a policy helper")
+assert_true(genericSlotActions:find("policy and policy%.CanStowToCraftBag") ~= nil,
+    "GenericSlotActions checks stow eligibility via ProtectionPolicy.CanStowToCraftBag when available")
+assert_true(genericSlotActions:find(
+    "function BETTERUI%.CIM%.TryMoveToCraftBag%(inventorySlot, targetBag, quantity%)") ~= nil,
+    "GenericSlotActions supports quantity-aware transfer calls through the shared craft-bag move seam")
 
 if failed > 0 then
     error(string.format("test_cim_support_module_source.lua failed with %d failure%(s%)", failed))
