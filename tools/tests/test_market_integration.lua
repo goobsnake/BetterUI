@@ -22,6 +22,31 @@ local function assert_eq(actual, expected, label)
     end
 end
 
+local function assert_contains(haystack, needle, label)
+    if haystack and haystack:find(needle, 1, true) then
+        passed = passed + 1
+    else
+        failed = failed + 1
+        print(string.format("  FAIL: %s -- missing %s", label, tostring(needle)))
+    end
+end
+
+local function assert_not_contains(haystack, needle, label)
+    if haystack and not haystack:find(needle, 1, true) then
+        passed = passed + 1
+    else
+        failed = failed + 1
+        print(string.format("  FAIL: %s -- unexpected %s", label, tostring(needle)))
+    end
+end
+
+local function read_file(path)
+    local handle = assert(io.open(path, "r"))
+    local content = handle:read("*a")
+    handle:close()
+    return content
+end
+
 local moduleSettings = {
     GeneralInterface = {},
     Tooltips = {},
@@ -66,8 +91,21 @@ ArkadiusTradeTools = {
 }
 
 TamrielTradeCentre = true
+TamrielTradeCentre_ItemInfo = {
+    New = function(_, itemLink)
+        return {
+            itemLink = itemLink,
+        }
+    end,
+}
 TamrielTradeCentrePrice = {
-    GetPriceInfo = function()
+    GetPriceInfo = function(_, itemRef)
+        if type(itemRef) == "table" and itemRef.itemLink then
+            return {
+                Avg = 3,
+                SuggestedPrice = 4,
+            }
+        end
         return {
             Avg = 3,
         }
@@ -98,6 +136,23 @@ moduleSettings.Tooltips = {
 priceInfo = BETTERUI.CIM.MarketIntegration.GetMarketPriceInfo("|H1:item:1|h", 2)
 assert_eq(priceInfo.sourceKey, "att", "GeneralInterface priority stays authoritative for runtime market prices")
 assert_eq(priceInfo.price, 10, "GeneralInterface integration toggles drive runtime fetch selection")
+
+local ttcInfo = BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo("ttc", "|H1:item:1|h", 2,
+    moduleSettings.GeneralInterface)
+assert_eq(ttcInfo.averagePrice, 3, "source price info exposes TTC average pricing through the shared adapter")
+assert_eq(ttcInfo.suggestedPrice, 4, "source price info preserves TTC suggested pricing for tooltip formatting")
+assert_eq(ttcInfo.enabled, true, "source price info reports GeneralInterface enablement")
+assert_eq(ttcInfo.available, true, "source price info reports addon availability")
+
+local tooltipSource = read_file("Modules/GeneralInterface/Tooltips/Tooltips.lua")
+assert_contains(tooltipSource, "marketIntegration.GetSourcePriceInfo(",
+    "tooltips route market source lookups through MarketIntegration")
+assert_not_contains(tooltipSource, "MasterMerchant:itemStats(",
+    "tooltips no longer read Master Merchant directly")
+assert_not_contains(tooltipSource, "ArkadiusTradeTools.Modules.Sales:GetAveragePricePerItem(",
+    "tooltips no longer read Arkadius pricing directly")
+assert_not_contains(tooltipSource, "TamrielTradeCentrePrice:GetPriceInfo(",
+    "tooltips no longer read TTC pricing directly")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

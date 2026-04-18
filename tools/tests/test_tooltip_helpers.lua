@@ -182,6 +182,10 @@ function BETTERUI.GetSetting(moduleName, key, fallback)
     return fallback
 end
 
+function BETTERUI.GetModuleSettings(moduleName)
+    return BETTERUI.Settings.Modules[moduleName] or {}
+end
+
 function BETTERUI.GetTooltipFontSize()
     return 24
 end
@@ -234,6 +238,7 @@ end
 
 print("\n=== Tooltip Helper Tests ===\n")
 
+dofile("Modules/CIM/Core/Integration/MarketIntegration.lua")
 dofile("Modules/GeneralInterface/Tooltips/Tooltips.lua")
 
 BETTERUI.CIM.SafeExecute = function(context, fn, ...)
@@ -287,7 +292,7 @@ assertEqual(true, type(hookValidation.DoesBagContextMatchItemLink) == "function"
     "Inventory hook exposes bag-link validation on Tooltips")
 assertEqual(true, type(hookOrchestrator.InstallItemLayoutHooks) == "function",
     "Inventory hook exposes named hook-orchestration helpers on Tooltips")
-assertEqual(true, type(priceProviders.GetAddonPriceDisplay) == "function",
+assertEqual(true, type(priceProviders.GetSourcePriceDisplay) == "function",
     "Tooltip pricing exposes an explicit price-provider helper")
 assertEqual(true, type(guildStoreSuppression.SetErrorSuppressed) == "function",
     "Guild-store suppression is routed through an explicit Tooltips helper")

@@ -121,21 +121,21 @@ end
 
 BETTERUI.GetTooltipFontSize = Tooltips.GetTooltipFontSize
 
---- Generic helper to retrieve pricing from a specific trading addon.
+--- Generic helper to format pricing from the canonical market integration seam.
 ---
---- Purpose: Eliminates boilerplate for MM, TTC, ATT, and future integrations.
+--- Purpose: Eliminates boilerplate once MarketIntegration has resolved source
+--- availability, settings, and price lookup.
 --- Mechanics:
---- 1. Checks if addon exists and is enabled in settings.
---- 2. Executes getPriceFunc.
---- 3. Formats result with currency icon and stack calculations.
+--- 1. Checks if the source is enabled and available through MarketIntegration.
+--- 2. Formats result with currency icon and stack calculations.
 ---
-local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settingKey, itemLink, stackCount, iconSize)
-    if addonGlobal == nil or not BETTERUI.GetSetting("GeneralInterface", settingKey, false) then
+local function GetSourcePriceDisplay(addonName, sourceInfo, stackCount, iconSize)
+    if not sourceInfo or not sourceInfo.enabled or not sourceInfo.available then
         return nil
     end
 
-    local avgPrice = getPriceFunc(itemLink)
-    if not avgPrice or avgPrice == 0 then
+    local unitPrice = sourceInfo.unitPrice
+    if not unitPrice or unitPrice == 0 then
         return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_NO_PRICE_DATA")), addonName)
     end
 
@@ -144,20 +144,20 @@ local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settin
             BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)))
         return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_PRICE_STACK")),
             addonName,
-            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)) .. " " .. coinIcon,
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(unitPrice, 2)) .. " " .. coinIcon,
             stackCount,
-            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2)) .. " " .. coinIcon)
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(unitPrice * stackCount, 2)) .. " " .. coinIcon)
     else
         local coinIcon = string.format("|t%d:%d:%s|t", iconSize, iconSize,
             BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)))
         return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_PRICE")),
             addonName,
-            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)) .. " " .. coinIcon)
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(unitPrice, 2)) .. " " .. coinIcon)
     end
 end
 
 Tooltips.PriceProviders = {
-    GetAddonPriceDisplay = GetAddonPriceDisplay,
+    GetSourcePriceDisplay = GetSourcePriceDisplay,
 }
 
 --- Gets trading addon price info strings (TTC, MM, ATT).
@@ -173,14 +173,26 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
         end
         local fontSize = Tooltips.GetTooltipFontSize()
         local iconSize = math.floor(fontSize * 0.7)
+        local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
+        local generalInterfaceSettings = {}
+        if type(BETTERUI.GetModuleSettings) == "function" then
+            generalInterfaceSettings = BETTERUI.GetModuleSettings("GeneralInterface") or {}
+        elseif BETTERUI.Settings and BETTERUI.Settings.Modules then
+            generalInterfaceSettings = BETTERUI.Settings.Modules.GeneralInterface or {}
+        end
+        local function GetSourceInfo(sourceKey)
+            if not marketIntegration or type(marketIntegration.GetSourcePriceInfo) ~= "function" then
+                return nil
+            end
+            return marketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, generalInterfaceSettings)
+        end
 
         -- TTC Integration (custom format to show both Avg and Suggested prices)
-        if TamrielTradeCentre and BETTERUI.GetSetting("GeneralInterface", "ttcIntegration", false) then
-            local itemInfo = TamrielTradeCentre_ItemInfo:New(itemLink)
-            local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemInfo)
-            if priceInfo then
-                local avgPrice = priceInfo.Avg
-                local sugPrice = priceInfo.SuggestedPrice
+        local ttcInfo = GetSourceInfo("ttc")
+        if ttcInfo and ttcInfo.enabled and ttcInfo.available then
+            if ttcInfo.hasData then
+                local avgPrice = ttcInfo.averagePrice
+                local sugPrice = ttcInfo.suggestedPrice
                 local coinIcon = BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))
                 local coinIconStr = string.format("|t%d:%d:%s|t", iconSize, iconSize, coinIcon)
                 local ttcLine
@@ -220,22 +232,16 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
                     table.insert(lines, stackLine)
                 end
             else
-                -- priceInfo is nil — TTC has no data for this item at all
                 table.insert(lines, zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_NO_PRICE_DATA")), "TTC"))
             end
         end
 
         -- MM Integration
-        local mmLine = GetAddonPriceDisplay("MM", MasterMerchant, function(link)
-            local mmData = MasterMerchant:itemStats(link, false)
-            return mmData and mmData.avgPrice
-        end, "mmIntegration", itemLink, stackCount, iconSize)
+        local mmLine = GetSourcePriceDisplay("MM", GetSourceInfo("mm"), stackCount, iconSize)
         if mmLine then table.insert(lines, mmLine) end
 
         -- ATT Integration
-        local attLine = GetAddonPriceDisplay("ATT", ArkadiusTradeTools, function(link)
-            return ArkadiusTradeTools.Modules.Sales:GetAveragePricePerItem(link, nil, nil)
-        end, "attIntegration", itemLink, stackCount, iconSize)
+        local attLine = GetSourcePriceDisplay("ATT", GetSourceInfo("att"), stackCount, iconSize)
         if attLine then table.insert(lines, attLine) end
     end
     return lines

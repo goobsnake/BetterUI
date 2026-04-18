@@ -21,7 +21,14 @@ local TH_TABS = {
 }
 
 function TH.GetTabs()
-    return TH_TABS
+    local tabs = {}
+    for index, tab in ipairs(TH_TABS) do
+        tabs[index] = {
+            mode = tab.mode,
+            name = tab.name,
+        }
+    end
+    return tabs
 end
 
 function TH.RegisterComponents(instance)

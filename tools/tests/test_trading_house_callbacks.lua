@@ -143,6 +143,13 @@ TH.TH_INTERACTION = {
     interactTypes = { 1 },
 }
 
+function TH.GetSetting(_, fallback)
+    if fallback ~= nil then
+        return fallback
+    end
+    return true
+end
+
 TH.Tasks = {
     scheduled = {},
     cancelled = {},
@@ -199,6 +206,7 @@ function Class:New(windowName, sceneName)
             end,
         },
     }
+    setmetatable(obj, { __index = self })
 
     function obj:SetTitle(_)
     end
@@ -343,6 +351,27 @@ assert_eq(type(cooldownCallback), "function", "cooldown callback is registered")
 assert_eq(type(responseCallback), "function", "response callback is registered")
 assert_eq(type(listingCallback), "function", "listing callback is registered")
 assert_eq(type(inventoryUpdateCallback), "function", "inventory update callback is registered")
+
+local tabsCopy = TH.GetTabs()
+tabsCopy[1].mode = TH.MODE.LISTINGS
+tabsCopy[2].name = function()
+    return "Hijacked"
+end
+tabsCopy[#tabsCopy + 1] = {
+    mode = 999,
+    name = function()
+        return "Injected"
+    end,
+}
+local canonicalTabs = TH.GetTabs()
+assert_eq(#canonicalTabs, 3, "GetTabs returns a copied tab list")
+assert_eq(canonicalTabs[1].mode, TH.MODE.BROWSE, "GetTabs copy mutation does not alter canonical tab modes")
+assert_eq(canonicalTabs[2].name() == "Hijacked", false, "GetTabs copy mutation does not alter canonical tab names")
+
+TH.instance:SetMode(TH.MODE.BROWSE)
+TH.instance:CycleTabs(1)
+assert_eq(TH.instance:GetCurrentMode(), TH.MODE.SELL,
+    "tab cycling still follows the canonical tab order after caller mutations")
 
 searchResultsCallback()
 assert_eq(TH.BrowseComponent.searchResultsCount, 1,
