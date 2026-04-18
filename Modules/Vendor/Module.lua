@@ -13,13 +13,45 @@ BETTERUI.Vendor = BETTERUI.Vendor or {}
 local Vendor = BETTERUI.Vendor
 
 Vendor.ARCHETYPE = "runtime-coordinator"
-Vendor.ACTION = Vendor.ACTION or {
-	SELL = "vendor_sell",
-	SELL_JUNK = "vendor_sell_junk",
-	SELL_VENGEANCE = "vendor_sell_vengeance",
-	FENCE_SELL = "fence_sell",
-	FENCE_LAUNDER = "fence_launder",
-}
+
+local function BuildDefaultVendorActionId(actionKey)
+	if type(actionKey) ~= "string" then
+		return nil
+	end
+	if actionKey == "SELL" or actionKey == "SELL_JUNK" or actionKey == "SELL_VENGEANCE" then
+		return "vendor_" .. string.lower(actionKey)
+	end
+	if actionKey == "FENCE_SELL" or actionKey == "FENCE_LAUNDER" then
+		return "fence_" .. string.lower(string.sub(actionKey, 7))
+	end
+	return nil
+end
+
+local function EnsureVendorActionIds()
+	local actionIds = Vendor.ACTION
+	if type(actionIds) ~= "table" then
+		actionIds = {}
+	end
+
+	actionIds.SELL = actionIds.SELL or BuildDefaultVendorActionId("SELL")
+	actionIds.SELL_JUNK = actionIds.SELL_JUNK or BuildDefaultVendorActionId("SELL_JUNK")
+	actionIds.SELL_VENGEANCE = actionIds.SELL_VENGEANCE or BuildDefaultVendorActionId("SELL_VENGEANCE")
+	actionIds.FENCE_SELL = actionIds.FENCE_SELL or BuildDefaultVendorActionId("FENCE_SELL")
+	actionIds.FENCE_LAUNDER = actionIds.FENCE_LAUNDER or BuildDefaultVendorActionId("FENCE_LAUNDER")
+
+	Vendor.ACTION = actionIds
+	return actionIds
+end
+
+---@param actionKey string
+---@return string|nil actionId
+function BETTERUI.Vendor.ResolveActionId(actionKey)
+	local actionIds = EnsureVendorActionIds()
+	return actionIds[actionKey] or BuildDefaultVendorActionId(actionKey)
+end
+
+EnsureVendorActionIds()
+
 Vendor.MODE = Vendor.MODE or {
 	BUY = 1,
 	SELL = 2,

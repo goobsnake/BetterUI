@@ -38,21 +38,34 @@ Policy.DENY = {
     INVALID_ACTION  = "invalid_action",
 }
 
-local FALLBACK_VENDOR_ACTION = {
-    SELL = "vendor_sell",
-    SELL_JUNK = "vendor_sell_junk",
-    SELL_VENGEANCE = "vendor_sell_vengeance",
-    FENCE_SELL = "fence_sell",
-    FENCE_LAUNDER = "fence_launder",
-}
+local function BuildFallbackVendorActionId(actionKey)
+    if type(actionKey) ~= "string" then
+        return nil
+    end
+    if actionKey == "SELL" or actionKey == "SELL_JUNK" or actionKey == "SELL_VENGEANCE" then
+        return "vendor_" .. string.lower(actionKey)
+    end
+    if actionKey == "FENCE_SELL" or actionKey == "FENCE_LAUNDER" then
+        return "fence_" .. string.lower(string.sub(actionKey, 7))
+    end
+    return nil
+end
 
 local function ResolveVendorAction(actionKey)
-    local vendorAction = BETTERUI.Vendor and BETTERUI.Vendor.ACTION
+    local vendor = BETTERUI.Vendor
+    if vendor and vendor.ResolveActionId then
+        local resolvedAction = vendor.ResolveActionId(actionKey)
+        if resolvedAction then
+            return resolvedAction
+        end
+    end
+
+    local vendorAction = vendor and vendor.ACTION
     if vendorAction and vendorAction[actionKey] then
         return vendorAction[actionKey]
     end
 
-    return FALLBACK_VENDOR_ACTION[actionKey]
+    return BuildFallbackVendorActionId(actionKey)
 end
 
 -- LOCAL HELPERS

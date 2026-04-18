@@ -40,10 +40,16 @@ end
 local protectionPolicy = read_file("Modules/CIM/Actions/ProtectionPolicy.lua")
 assert_true(protectionPolicy:find("function Policy%.CanVendorAction%(actionType, bagId, slotIndex, context%)") ~= nil,
     "ProtectionPolicy exposes CanVendorAction for shared vendor authorization")
+assert_true(protectionPolicy:find("local FALLBACK_VENDOR_ACTION", 1, true) == nil,
+    "ProtectionPolicy no longer duplicates vendor action-id tables")
+assert_true(protectionPolicy:find("vendor.ResolveActionId", 1, true) ~= nil,
+    "ProtectionPolicy resolves vendor action ids through the canonical vendor resolver when available")
 
 local moduleLua = read_file("Modules/Vendor/Module.lua")
-assert_true(moduleLua:find("Vendor%.ACTION = Vendor%.ACTION or %{%s*") ~= nil,
-    "Vendor module defines shared action identifiers")
+assert_true(moduleLua:find("local function EnsureVendorActionIds%(%s*%)") ~= nil,
+    "Vendor module centralizes shared action-id initialization")
+assert_true(moduleLua:find("function BETTERUI%.Vendor%.ResolveActionId%(actionKey%)") ~= nil,
+    "Vendor module exposes canonical action-id resolution")
 assert_true(moduleLua:find("function BETTERUI%.Vendor%.AuthorizeInventoryAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
     "Vendor module exposes shared authorization seam")
 

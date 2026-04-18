@@ -1166,7 +1166,7 @@ function BETTERUI.Vendor.Class:SetModeCategories(mode, categories)
     end
 end
 
----@return table category
+---@return table|nil category
 function BETTERUI.Vendor.Class:GetCurrentCategory()
     local mode = self:GetCurrentMode()
     return VendorModePolicy.GetCurrentCategory(self, mode)

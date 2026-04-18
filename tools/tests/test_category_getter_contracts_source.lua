@@ -63,6 +63,11 @@ assert_contains(
     "function BETTERUI.Vendor.Class:GetCurrentCategory()",
     "Vendor still exposes GetCurrentCategory"
 )
+assert_contains(
+    vendorSource,
+    "---@return table|nil category",
+    "Vendor GetCurrentCategory contract truthfully documents nullable category output"
+)
 assert_not_contains(
     vendorGetter,
     "self.categoryIndexByMode[mode] = selectedIndex",
