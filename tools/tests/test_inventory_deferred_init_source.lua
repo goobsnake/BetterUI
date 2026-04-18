@@ -28,6 +28,7 @@ end
 print("test_inventory_deferred_init_source")
 
 local inventory = read_file("Modules/Inventory/Inventory.lua")
+local inventoryClass = read_file("Modules/Inventory/Core/InventoryClass.lua")
 local equipAction = read_file("Modules/Inventory/Actions/EquipAction.lua")
 
 assert_contains(inventory, "local function InitializeDeferredInventoryState(self)",
@@ -52,6 +53,10 @@ assert_contains(inventory, "RegisterDeferredInventoryCallbacks(self, RefreshHead
     "OnDeferredInitialize delegates callback wiring through the helper")
 assert_contains(inventory, "BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.GetEquipSlotDialogName()",
     "the legacy global alias is assigned from the canonical dialog accessor")
+assert_not_contains(inventoryClass, "self:InitializeItemActions()",
+    "InventoryClass.Initialize no longer performs item-action setup before deferred readiness")
+assert_not_contains(inventoryClass, "self:InitializeActionsDialog()",
+    "InventoryClass.Initialize no longer performs action-dialog setup before deferred readiness")
 
 assert_contains(equipAction, "BETTERUI.Inventory.GetEquipSlotDialogName()",
     "EquipAction uses the canonical namespaced dialog accessor")

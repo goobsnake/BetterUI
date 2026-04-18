@@ -399,23 +399,6 @@ function BETTERUI.Inventory.Class:Initialize(control)
         BETTERUI.Inventory.InitializeSecureWheelHooks()
     end
 
-    -- Initialize the actions object (using BetterUI custom subclass if available)
-    if self.InitializeItemActions then
-        self:InitializeItemActions()
-    else
-        self.itemActions = ZO_InventorySlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
-        -- Prevent ESO's slot-action controller from adding its own UI_SHORTCUT_PRIMARY
-        -- keybind group behind our back. BetterUI manages keybinds via mainKeybindStripDescriptor.
-        if self.itemActions.SetUseKeybindStrip then
-            self.itemActions:SetUseKeybindStrip(false)
-        end
-    end
-
-    -- Hook the Action Dialog (Y-Menu) logic
-    if self.InitializeActionsDialog then
-        self:InitializeActionsDialog()
-    end
-
     self:InitializeSplitStackDialog()
 
     -- Guard update loop so we only process while the inventory scene is visible.
