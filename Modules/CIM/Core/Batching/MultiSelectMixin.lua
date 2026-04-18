@@ -21,6 +21,22 @@ function Mixin.Apply(target, config)
     target._multiSelectConfig = config
 end
 
+--- Binds a set of pure delegate methods from the shared mixin onto a target table.
+---@param target table
+---@param methodNames string[]
+function Mixin.BindDelegates(target, methodNames)
+    if type(target) ~= "table" or type(methodNames) ~= "table" then
+        return
+    end
+
+    for _, methodName in ipairs(methodNames) do
+        local delegateFn = Mixin[methodName]
+        if type(delegateFn) == "function" then
+            target[methodName] = delegateFn
+        end
+    end
+end
+
 -- SELECTION MODE LIFECYCLE
 
 function Mixin.EnterSelectionMode(self)

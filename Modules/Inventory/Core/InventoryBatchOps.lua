@@ -175,11 +175,17 @@ local DESTROY_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
 
 -- THROTTLED BATCH PROCESSING (delegates to CIM.MultiSelectMixin)
 
--- Pure delegates are assigned directly to avoid repetitive pass-through wrappers.
-Class.IsBatchProcessing = MultiSelectMixin.IsBatchProcessing
-Class.CanAbortBatch = MultiSelectMixin.CanAbortBatch
-Class.RequestBatchAbort = MultiSelectMixin.RequestBatchAbort
-Class.ProcessBatchThrottled = MultiSelectMixin.ProcessBatchThrottled
+-- Canonical pure delegate binding point for inventory batch lifecycle/actions.
+MultiSelectMixin.BindDelegates(Class, {
+    "IsBatchProcessing",
+    "CanAbortBatch",
+    "RequestBatchAbort",
+    "ProcessBatchThrottled",
+    "BatchLock",
+    "BatchUnlock",
+    "BatchMarkAsJunk",
+    "BatchUnmarkAsJunk",
+})
 
 -- BATCH INVENTORY ACTIONS
 
@@ -283,12 +289,6 @@ function Class:BatchDeposit()
         self:ExitSelectionMode()
     end, "Depositing", BANK_DEPOSIT_BATCH_OPTIONS)
 end
-
--- Common batch operations delegate to CIM.MultiSelectMixin
-Class.BatchLock = MultiSelectMixin.BatchLock
-Class.BatchUnlock = MultiSelectMixin.BatchUnlock
-Class.BatchMarkAsJunk = MultiSelectMixin.BatchMarkAsJunk
-Class.BatchUnmarkAsJunk = MultiSelectMixin.BatchUnmarkAsJunk
 
 --- Performs batch destroy on all selected items (with confirmation).
 function Class:BatchDestroy()

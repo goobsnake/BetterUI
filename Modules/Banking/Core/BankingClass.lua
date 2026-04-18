@@ -500,15 +500,17 @@ function BETTERUI.Banking.Class:ExitSelectionMode()
     end
 end
 
--- Pure delegates are assigned directly to avoid repetitive pass-through wrappers.
-BETTERUI.Banking.Class.OnSelectionCountChanged = MultiSelectMixin.OnSelectionCountChanged
-BETTERUI.Banking.Class.IsInSelectionMode = MultiSelectMixin.IsInSelectionMode
-BETTERUI.Banking.Class.IsBatchProcessing = MultiSelectMixin.IsBatchProcessing
-BETTERUI.Banking.Class.CanAbortBatch = MultiSelectMixin.CanAbortBatch
-BETTERUI.Banking.Class.RequestBatchAbort = MultiSelectMixin.RequestBatchAbort
-BETTERUI.Banking.Class.ProcessBatchThrottled = MultiSelectMixin.ProcessBatchThrottled
-BETTERUI.Banking.Class.BatchLock = MultiSelectMixin.BatchLock
-BETTERUI.Banking.Class.BatchUnlock = MultiSelectMixin.BatchUnlock
+-- Canonical pure delegate binding point for banking multi-select surface.
+MultiSelectMixin.BindDelegates(BETTERUI.Banking.Class, {
+    "OnSelectionCountChanged",
+    "IsInSelectionMode",
+    "IsBatchProcessing",
+    "CanAbortBatch",
+    "RequestBatchAbort",
+    "ProcessBatchThrottled",
+    "BatchLock",
+    "BatchUnlock",
+})
 
 --- Marks all selected items as junk.
 function BETTERUI.Banking.Class:BatchMarkAsJunk()

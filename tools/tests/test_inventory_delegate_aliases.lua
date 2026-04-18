@@ -26,6 +26,11 @@ BETTERUI = {
     },
     CIM = {
         MultiSelectMixin = {
+            BindDelegates = function(target, methodNames)
+                for _, methodName in ipairs(methodNames or {}) do
+                    target[methodName] = BETTERUI.CIM.MultiSelectMixin[methodName]
+                end
+            end,
             EnterSelectionMode = function() end,
             ExitSelectionMode = function() end,
             OnSelectionCountChanged = function() end,

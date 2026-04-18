@@ -8,11 +8,13 @@ local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 -- MULTI-SELECT MODE (delegates to CIM.MultiSelectMixin)
 -- The mixin is applied during InitializeKeybindStrip (InventoryKeybinds.lua).
 
--- Pure delegates are assigned directly to avoid repetitive pass-through wrappers.
-Class.EnterSelectionMode = MultiSelectMixin.EnterSelectionMode
-Class.ExitSelectionMode = MultiSelectMixin.ExitSelectionMode
-Class.OnSelectionCountChanged = MultiSelectMixin.OnSelectionCountChanged
-Class.IsInSelectionMode = MultiSelectMixin.IsInSelectionMode
+-- Canonical pure delegate binding point for inventory selection lifecycle.
+MultiSelectMixin.BindDelegates(Class, {
+    "EnterSelectionMode",
+    "ExitSelectionMode",
+    "OnSelectionCountChanged",
+    "IsInSelectionMode",
+})
 
 --- Shows the batch actions menu for multi-selected items.
 ---@return nil
