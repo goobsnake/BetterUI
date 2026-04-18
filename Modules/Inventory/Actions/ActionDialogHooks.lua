@@ -6,6 +6,28 @@ Purpose: Hooks the native "Y-Action" dialog (ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
 
 -- DIALOG HOOKS (System Integration)
 
+local function CanDestroyTargetWithPolicy(targetData)
+    if not targetData then
+        return false
+    end
+    local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(targetData)
+    if not bagId or not slotIndex then
+        return false
+    end
+
+    local ds = targetData.dataSource or targetData
+    local slotType = ds and ds.slotType or targetData.slotType
+    if BETTERUI.Inventory and BETTERUI.Inventory.CanDestroyItemWithPolicy then
+        return BETTERUI.Inventory.CanDestroyItemWithPolicy(bagId, slotIndex, slotType)
+    end
+
+    local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    if policy and policy.CanDestroyItem then
+        return policy.CanDestroyItem(bagId, slotIndex, slotType) == true
+    end
+    return true
+end
+
 --- Hooks the native Y-button Action Dialog.
 ---
 --- Purpose: Replaces or extends the `ZO_GAMEPAD_INVENTORY_ACTION_DIALOG`.
@@ -175,6 +197,9 @@ function BETTERUI.Inventory.HookActionDialog()
                             if targetData then
                                 local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
                                 if bag and slot then
+                                    if not CanDestroyTargetWithPolicy(targetData) then
+                                        return
+                                    end
                                     ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                                     local itemLink = GetItemLink(bag, slot)
                                     local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true

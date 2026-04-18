@@ -32,6 +32,27 @@ local function NotifyTransferDenied(context, targetBag, denyReason)
     BETTERUI.CIM.UserNotify(context, errorStringId)
 end
 
+local function GetProtectionPolicy()
+    return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+end
+
+local function CanStowToCraftBagWithPolicy(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    if policy and policy.CanStowToCraftBag then
+        return policy.CanStowToCraftBag(bagId, slotIndex)
+    end
+    if not HasCraftBagAccess() then
+        return false, "no_craft_access"
+    end
+    if not CanItemBeVirtual(bagId, slotIndex) then
+        return false, "not_craftable"
+    end
+    if IsItemStolen and IsItemStolen(bagId, slotIndex) then
+        return false, "stolen"
+    end
+    return true
+end
+
 -- SHARED ITEM ACTION HELPERS
 -- These functions provide common item action implementations used by
 -- Inventory and Banking modules. They handle secure API calls.
@@ -143,9 +164,13 @@ end
 
 --- @param inventorySlot table the slot data table
 --- @param targetBag number destination bag constant (BAG_VIRTUAL, BAG_BACKPACK, etc.)
+--- @param quantity number|nil optional quantity override (defaults to full stack)
 --- @return boolean ok true if the item was moved
 --- @return string|nil reason denial reason on failure
-function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
+function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
+    if not inventorySlot then
+        return false, "no_slot"
+    end
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     if not bag then return false, "no_slot" end
 
@@ -153,12 +178,29 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
     local MAX_STACK_TRANSFER = 200
 
     local stackSize, maxStackSize = GetSlotStackSize(bag, index)
-    if stackSize >= maxStackSize then
+    if not stackSize or stackSize <= 0 then
+        return false, "no_item"
+    end
+    if maxStackSize and stackSize >= maxStackSize then
         stackSize = maxStackSize
+    end
+    if quantity and quantity > 0 then
+        if zo_clamp then
+            stackSize = zo_clamp(quantity, 1, stackSize)
+        else
+            stackSize = math.max(1, math.min(quantity, stackSize))
+        end
     end
     -- Cap at max transfer limit
     if stackSize > MAX_STACK_TRANSFER then
         stackSize = MAX_STACK_TRANSFER
+    end
+
+    if targetBag == BAG_VIRTUAL then
+        local canStow, denyReason = CanStowToCraftBagWithPolicy(bag, index)
+        if not canStow then
+            return false, denyReason
+        end
     end
 
     if targetBag ~= BAG_VIRTUAL then
@@ -186,7 +228,11 @@ end
 ---@return boolean canMove true if item can transfer to craft bag
 function BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
+    if not bag or not index then
+        return false
+    end
+    local canStow = CanStowToCraftBagWithPolicy(bag, index)
+    return canStow == true
 end
 
 -- SHARED ACTION SETUP HELPERS

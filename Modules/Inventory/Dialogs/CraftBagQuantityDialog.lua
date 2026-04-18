@@ -178,24 +178,19 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                     local isStow = data.isStow
 
                     if bagId and slotIndex then
+                        local inventorySlot = {
+                            bagId = bagId,
+                            slotIndex = slotIndex,
+                        }
+                        local moved
                         if isStow then
-                            CallSecureProtected("PickupInventoryItem", bagId, slotIndex, quantity)
-                            CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0)
+                            moved = BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL, quantity)
                         else
-                            if DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
-                                local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex,
-                                    BAG_BACKPACK)
-                                if destinationSlot == nil then
-                                    BETTERUI.CIM.UserNotify("CraftBagDialog:NoSlot",
-                                        SI_INVENTORY_ERROR_INVENTORY_FULL)
-                                    return
-                                end
-                                CallSecureProtected("PickupInventoryItem", bagId, slotIndex, quantity)
-                                CallSecureProtected("PlaceInInventory", BAG_BACKPACK, destinationSlot)
-                            else
-                                BETTERUI.CIM.UserNotify("CraftBagDialog:Full",
-                                    SI_INVENTORY_ERROR_INVENTORY_FULL)
-                            end
+                            moved = BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_BACKPACK, quantity)
+                        end
+
+                        if not moved then
+                            return
                         end
 
                         CALLBACK_MANAGER:FireCallbacks(BETTERUI_EVENT_CRAFTBAG_QUANTITY_DIALOG_FINISHED)

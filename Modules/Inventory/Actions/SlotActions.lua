@@ -217,19 +217,33 @@ local function TryUnmarkAsJunk(inventorySlot)
     end
 end
 
+local function CanDestroySlotWithPolicy(inventorySlot, bag, slot)
+    if BETTERUI.Inventory and BETTERUI.Inventory.CanDestroyItemWithPolicy then
+        return BETTERUI.Inventory.CanDestroyItemWithPolicy(bag, slot, inventorySlot and inventorySlot.slotType)
+    end
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    if policy and policy.CanDestroyItem then
+        return policy.CanDestroyItem(bag, slot, inventorySlot and inventorySlot.slotType) == true
+    end
+    return true
+end
+
 local function TryDestroyPrimaryAction(inventorySlot)
     if not inventorySlot then
         return
     end
 
     PreserveSelectionForAction(inventorySlot)
-    if ZO_InventorySlot_InitiateDestroyItem then
-        ZO_InventorySlot_InitiateDestroyItem(inventorySlot)
+    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if not bag or not slot then
+        return
+    end
+    if not CanDestroySlotWithPolicy(inventorySlot, bag, slot) then
         return
     end
 
-    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    if not bag or not slot then
+    if ZO_InventorySlot_InitiateDestroyItem then
+        ZO_InventorySlot_InitiateDestroyItem(inventorySlot)
         return
     end
 

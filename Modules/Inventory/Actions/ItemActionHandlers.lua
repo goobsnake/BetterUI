@@ -76,6 +76,28 @@ local function ResolveCurrentTarget(self)
     return nil
 end
 
+local function CanDestroyTargetData(targetData)
+    if not targetData then
+        return false
+    end
+    local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(targetData)
+    if not bagId or not slotIndex then
+        return false
+    end
+
+    local ds = targetData.dataSource or targetData
+    local slotType = ds and ds.slotType or targetData.slotType
+    if BETTERUI.Inventory and BETTERUI.Inventory.CanDestroyItemWithPolicy then
+        return BETTERUI.Inventory.CanDestroyItemWithPolicy(bagId, slotIndex, slotType)
+    end
+
+    local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    if policy and policy.CanDestroyItem then
+        return policy.CanDestroyItem(bagId, slotIndex, slotType) == true
+    end
+    return true
+end
+
 -- ActionDialogSetup
 
 --- Populates the Y-menu action dialog with contextual actions for the selected item.
@@ -141,6 +163,8 @@ function ActionHandlers.OnSetup(self, dialog, data)
         end
     end
 
+    local canDestroyTarget = target and CanDestroyTargetData(target) or false
+
     if not isQuestItem then
         local isJunk = false
         if target and target.bagId and target.slotIndex and IsItemJunk then
@@ -192,7 +216,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
         local action = actions:GetSlotAction(i)
         local actionName = actions:GetRawActionName(action)
 
-        local hideDestroy = BETTERUI.Utils.IsBankingSceneShowing()
+        local hideDestroy = BETTERUI.Utils.IsBankingSceneShowing() or (target and not canDestroyTarget)
         local isDestroy = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")))
             or (SI_ITEM_ACTION_DELETE and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE")))
         local hideMarkJunk = false
@@ -465,6 +489,9 @@ function ActionHandlers.OnConfirm(self, dialog)
         end
         local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
         if bag and slot then
+            if not CanDestroyTargetData(targetData) then
+                return
+            end
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             local link = GetItemLink(bag, slot)
             local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
@@ -496,6 +523,9 @@ function ActionHandlers.OnConfirm(self, dialog)
         local targetData = ResolveCurrentTarget(self)
         local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
         if bag and slot then
+            if not CanDestroyTargetData(targetData) then
+                return
+            end
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             local link = GetItemLink(bag, slot)
             local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true

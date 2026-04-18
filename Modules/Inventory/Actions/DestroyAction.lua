@@ -8,6 +8,29 @@ Purpose: Handles item destruction logic, offering a safer replacement for the en
 
 local BLOCK_TABBAR_CALLBACK = true
 
+local function CanForceDestroyItem(bagId, slotIndex)
+    local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    if policy and policy.CanDestroyItem then
+        return policy.CanDestroyItem(bagId, slotIndex)
+    end
+
+    return true
+end
+
+local function GetProtectionPolicy()
+    return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+end
+
+local function CanDestroyItemWithPolicy(bagId, slotIndex, slotType)
+    local policy = GetProtectionPolicy()
+    if policy and policy.CanDestroyItem then
+        return policy.CanDestroyItem(bagId, slotIndex, slotType) == true
+    end
+    return true
+end
+
+BETTERUI.Inventory.CanDestroyItemWithPolicy = CanDestroyItemWithPolicy
+
 ---@param bagId number Bag ID containing the item
 ---@param slotIndex number Slot index of the item
 ---@return boolean ok Whether destruction succeeded
@@ -39,9 +62,17 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRe
     if not bagId or not slotIndex then
         return false
     end
+    if not CanDestroyItemWithPolicy(bagId, slotIndex) then
+        return false
+    end
     -- Only destroy immediately when explicitly forced (quickDestroy setting)
     -- Junk items still get the confirmation dialog for safety
     if force then
+        local canDestroy = CanForceDestroyItem(bagId, slotIndex)
+        if not canDestroy then
+            return false
+        end
+
         -- Direct engine destroy path (matches the original working hook behavior)
         if not ForceDestroyItemSafely(bagId, slotIndex) then
             return false
@@ -95,6 +126,10 @@ function BETTERUI.Inventory.HookDestroyItem()
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
         if not bag or not index then
             return false
+        end
+        local slotType = inventorySlot and inventorySlot.slotType or nil
+        if not CanDestroyItemWithPolicy(bag, index, slotType) then
+            return true
         end
 
         local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
