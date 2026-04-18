@@ -91,8 +91,8 @@ assert_true(defaultsSource:find("BETTERUI%.ResourceOrbFrames%.InitializeDefaults
     "ROF Defaults exports InitializeDefaults")
 assert_true(defaultsSource:find("BETTERUI%.ResourceOrbFrames%.GetDefaults = GetDefaults") ~= nil,
     "ROF Defaults exports GetDefaults")
-assert_true(defaultsSource:find("BETTERUI%.CIM%.RegisterModuleAccessors%(BETTERUI%.ResourceOrbFrames, %\"ResourceOrbFrames%\"%)") ~= nil,
-    "ROF Defaults registers module accessors")
+assert_true(defaultsSource:find("Delegated defaults helper for ResourceOrbFrames%.InitModule%.") ~= nil,
+    "ROF Defaults documents that Module.lua owns the public init hook")
 
 local settingsSubmenusSource = read_file("Modules/ResourceOrbFrames/Settings/SettingsSubmenus.lua")
 assert_true(settingsSubmenusSource:find("BETTERUI%.ResourceOrbFrames%.SettingsSubmenus = %{%}") ~= nil,

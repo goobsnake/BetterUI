@@ -132,18 +132,10 @@ local function NormalizeNumericSettings(m_options, defaults)
     m_options.ultimateTextSize = ClampInteger(m_options.ultimateTextSize, 12, 30, defaults.ultimateTextSize or 27)
 end
 
---- Initializes ResourceOrbFrames default settings.
+--- Delegated defaults helper for ResourceOrbFrames.InitModule.
 ---
---- INIT CONTRACT: This function implements the standard InitModule signature.
---- It is called by BETTERUI.ModuleOptions() via pcall with only m_options.
----
---- Standard InitModule Signature (consistent across all modules):
----
---- Wrapper Function (caller in BetterUI.lua):
----   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
----
---- Purpose: Defines defaults for scale, offset, colors, and visibility of orb elements.
---- Mechanics: Checks each setting key; if missing, assigns default value.
+--- Called from ResourceOrbFrames.InitModule after Module.lua exposes the public
+--- module entrypoint and root contract.
 ---
 ---@param m_options table|nil Module options table (created if nil)
 ---@return table m_options Options table with defaults applied

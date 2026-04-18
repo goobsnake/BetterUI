@@ -44,6 +44,9 @@ local function DefaultExecuteSafely(context, fn, ...)
     end
 
     local ok, result = pcall(fn, ...)
+    if not ok and BETTERUI and BETTERUI.Debug then
+        BETTERUI.Debug(string.format("[Vendor.SafeExecuteFallback] %s: %s", context, tostring(result)))
+    end
     return ok, result
 end
 

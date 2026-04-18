@@ -14,6 +14,7 @@ if false then
     dofile("Modules/Vendor/Components/FenceSellComponent.lua")
     dofile("Modules/Vendor/Components/FenceLaunderComponent.lua")
     dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
+    dofile("Modules/Vendor/Core/VendorBatchRuntime.lua")
     dofile("Modules/Vendor/Vendor.lua")
 end
 
@@ -64,12 +65,12 @@ local sellVengeance = read_file("Modules/Vendor/Components/SellVengeanceComponen
 assert_true(sellVengeance:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.SELL_VENGEANCE, bagId, slotIndex, vendorInstance%)") ~= nil,
     "Sell vengeance component routes primary sell through shared authorization seam")
 
-local vendorLua = read_file("Modules/Vendor/Vendor.lua")
-assert_true(vendorLua:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.SELL, bagId, slotIndex, Vendor%.instance%)") ~= nil,
+local batchRuntimeLua = read_file("Modules/Vendor/Core/VendorBatchRuntime.lua")
+assert_true(batchRuntimeLua:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.SELL, bagId, slotIndex, Vendor%.instance%)") ~= nil,
     "Vendor batch sell path routes through shared authorization seam")
-assert_true(vendorLua:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.FENCE_SELL, bagId, slotIndex, Vendor%.instance%)") ~= nil,
+assert_true(batchRuntimeLua:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.FENCE_SELL, bagId, slotIndex, Vendor%.instance%)") ~= nil,
     "Vendor batch fence sell path routes through shared authorization seam")
-assert_true(vendorLua:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.FENCE_LAUNDER, bagId, slotIndex, Vendor%.instance%)") ~= nil,
+assert_true(batchRuntimeLua:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.FENCE_LAUNDER, bagId, slotIndex, Vendor%.instance%)") ~= nil,
     "Vendor batch fence launder path routes through shared authorization seam")
 
 if failed > 0 then
