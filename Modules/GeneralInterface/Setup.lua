@@ -7,6 +7,7 @@
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local GeneralInterface = BETTERUI.GeneralInterface
+GeneralInterface.Settings = GeneralInterface.Settings or {}
 
 local function GetGeneralInterfaceOptions()
 	if type(GeneralInterface.GetSettingsOptions) ~= "function" then
@@ -70,6 +71,8 @@ local function Init(mId, moduleName)
 
 	BETTERUI.CIM.Settings.RegisterModulePanel(mId, panelData, optionsTable)
 end
+
+GeneralInterface.Settings.RegisterPanel = Init
 
 local function InstallMailDeleteHook()
 	BETTERUI.PostHook(ZO_MailInbox_Gamepad, 'InitializeKeybindDescriptors', function(self)
@@ -205,7 +208,7 @@ GeneralInterface._SetupInstallers = {
 ---
 --- Purpose: Registers hooks and event handlers for tooltip enhancements.
 --- Mechanics:
---- 1. Calls local `Init` to build the settings menu.
+--- 1. Uses the shared setup-time panel seam to build/register the settings menu once.
 --- 2. Avoids global helper overrides to prevent protected-callstack taint.
 --- 3. Hooks `ZO_MailInbox_Gamepad` to allow 'X' keybind for deletion if enabled.
 --- 4. Hooks Gamepad Tooltips (`LayoutItem`, `LayoutBagItem`, etc.) to inject custom data.
@@ -217,7 +220,7 @@ GeneralInterface._SetupInstallers = {
 ---
 ---@type BetterUIModuleSetupHook
 function GeneralInterface.Setup()
-	Init("General", "General Interface")
+	BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")
 
 	-- Only apply hooks/logic if Tooltips module is enabled
 	if not BETTERUI.GetModuleEnabled("GeneralInterface") then return end

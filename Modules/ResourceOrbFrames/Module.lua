@@ -7,6 +7,7 @@ Purpose: Configuration module for Resource Orb Frames.
 ---@type BetterUIModuleRoot
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 local ResourceOrbFrames = BETTERUI.ResourceOrbFrames
+ResourceOrbFrames.Settings = ResourceOrbFrames.Settings or {}
 
 ResourceOrbFrames.ARCHETYPE = "settings-owner"
 ---@type BetterUIModuleRootContract
@@ -281,9 +282,12 @@ local function InitSettingsPanel(mId, moduleName)
     BETTERUI.CIM.Settings.RegisterModulePanel(mId, panelData, optionsTable)
 end
 
+ResourceOrbFrames.Settings.RegisterPanel = InitSettingsPanel
+
 --- Sets up the Resource Orb Frames module.
 ---@type BetterUIModuleSetupHook
 function ResourceOrbFrames.Setup()
     EnsureResourceOrbFramesSetupContracts()
-    InitSettingsPanel("ResourceOrbFrames", "Resource Orb Frames")
+    BETTERUI.CIM.TryRegisterModulePanel(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",
+        "Resource Orb Frames")
 end

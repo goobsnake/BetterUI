@@ -178,6 +178,27 @@ local generalInterfaceModule = read_file("Modules/GeneralInterface/Module.lua")
 assert_true(generalInterfaceModule:find("TryCall/TryResolve") == nil,
     "GeneralInterface module docs no longer advertise TryCall/TryResolve dependencies")
 
+local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
+assert_true(generalInterfaceSetup:find("GeneralInterface%.Settings = GeneralInterface%.Settings or %{%}") ~= nil,
+    "GeneralInterface setup exposes the settings panel registration seam")
+assert_true(generalInterfaceSetup:find("GeneralInterface%.Settings%.RegisterPanel = Init") ~= nil,
+    "GeneralInterface setup binds panel construction to the settings seam")
+assert_true(
+    generalInterfaceSetup:find(
+        'BETTERUI%.CIM%.TryRegisterModulePanel%(GeneralInterface, "GeneralInterface", "General", "General Interface"%)') ~=
+    nil,
+    "GeneralInterface setup routes panel registration through the lifecycle-safe seam")
+
+local resourceOrbFramesModule = read_file("Modules/ResourceOrbFrames/Module.lua")
+assert_true(resourceOrbFramesModule:find("ResourceOrbFrames%.Settings = ResourceOrbFrames%.Settings or %{%}") ~= nil,
+    "ResourceOrbFrames exposes the settings panel registration seam")
+assert_true(resourceOrbFramesModule:find("ResourceOrbFrames%.Settings%.RegisterPanel = InitSettingsPanel") ~= nil,
+    "ResourceOrbFrames binds panel construction to the settings seam")
+assert_true(
+    resourceOrbFramesModule:find(
+        'BETTERUI%.CIM%.TryRegisterModulePanel%(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",') ~= nil,
+    "ResourceOrbFrames setup routes panel registration through the lifecycle-safe seam")
+
 BETTERUI = {
     name = "BetterUI",
     version = "1.0",

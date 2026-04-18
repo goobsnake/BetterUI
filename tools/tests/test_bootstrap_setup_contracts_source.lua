@@ -35,6 +35,7 @@ local companionsModule = read_file("Modules/Companions/Module.lua")
 local bankingModule = read_file("Modules/Banking/Module.lua")
 local tradingHouseModule = read_file("Modules/TradingHouse/Module.lua")
 local resourceOrbModule = read_file("Modules/ResourceOrbFrames/Module.lua")
+local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
 local inventoryFormatting = read_file("Modules/Inventory/Lists/InventoryEntryFormatting.lua")
 
 assert_contains(accessorSource, "function BETTERUI.CIM.ApplyModuleSharedSettingsStatics(",
@@ -91,10 +92,24 @@ assert_contains(tradingHouseModule, 'local function EnsureTradingHouseSetupContr
     "TradingHouse defines an explicit setup-time bootstrap helper")
 assert_contains(tradingHouseModule, 'BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")',
     "TradingHouse registers accessors during setup")
+assert_contains(generalInterfaceSetup, 'GeneralInterface.Settings = GeneralInterface.Settings or {}',
+    "GeneralInterface setup exposes a settings panel registration seam")
+assert_contains(generalInterfaceSetup, 'GeneralInterface.Settings.RegisterPanel = Init',
+    "GeneralInterface setup binds panel construction to the settings seam")
+assert_contains(generalInterfaceSetup,
+    'BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")',
+    "GeneralInterface setup uses the shared panel registration helper")
 assert_contains(resourceOrbModule, 'local function EnsureResourceOrbFramesSetupContracts()',
     "ResourceOrbFrames defines an explicit setup-time bootstrap helper")
 assert_contains(resourceOrbModule, 'BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")',
     "ResourceOrbFrames registers accessors during setup")
+assert_contains(resourceOrbModule, 'ResourceOrbFrames.Settings = ResourceOrbFrames.Settings or {}',
+    "ResourceOrbFrames exposes a settings panel registration seam")
+assert_contains(resourceOrbModule, 'ResourceOrbFrames.Settings.RegisterPanel = InitSettingsPanel',
+    "ResourceOrbFrames binds panel construction to the settings seam")
+assert_contains(resourceOrbModule,
+    'BETTERUI.CIM.TryRegisterModulePanel(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",',
+    "ResourceOrbFrames setup uses the shared panel registration helper")
 
 assert_contains(inventoryFormatting, 'local function IsModuleSceneShowing(moduleRoot)',
     "Inventory entry formatting resolves active modules through live module instances")
