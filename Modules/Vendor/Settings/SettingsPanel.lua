@@ -144,28 +144,25 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
         columnReset = SI_BETTERUI_COLUMN_FONT_RESET,
         columnResetTooltip = SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP,
     }
-    local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions(
-        "Vendor",
-        Vendor.DEFAULTS,
-        Vendor.FONT_CHOICES,
-        Vendor.FONT_VALUES,
-        Vendor.FONTSTYLE_CHOICES,
-        Vendor.FONTSTYLE_VALUES,
-        fontStrings,
-        RefreshVendorWindow
-    )
+    local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions({
+        moduleName = "Vendor",
+        defaults = Vendor.DEFAULTS,
+        fontChoices = Vendor.FONT_CHOICES,
+        fontValues = Vendor.FONT_VALUES,
+        styleChoices = Vendor.FONTSTYLE_CHOICES,
+        styleValues = Vendor.FONTSTYLE_VALUES,
+        strings = fontStrings,
+        refreshFn = RefreshVendorWindow,
+    })
     for _, opt in ipairs(fontOptions) do
         optionsData[#optionsData + 1] = opt
     end
 
-    -- Register panel with LibAddonMenu2
     if BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
         BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsData, true)
     end
 
-    local LAM = LibAddonMenu2
-    if LAM then
-        LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
-        LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsData)
+    if BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.RegisterModulePanel then
+        BETTERUI.CIM.Settings.RegisterModulePanel("BETTERUI_" .. mId, panelData, optionsData)
     end
 end

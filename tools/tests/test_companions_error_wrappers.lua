@@ -86,6 +86,7 @@ function DIRECTIONAL_INPUT:Deactivate(obj)
     end
 end
 
+dofile("Modules/Companions/Core/CompanionsRuntime.lua")
 dofile("Modules/Companions/Core/CompanionListManager.lua")
 dofile("Modules/Companions/Core/CompanionItemList.lua")
 dofile("Modules/Companions/Module.lua")
@@ -100,9 +101,7 @@ local refreshHarness = setmetatable({
     },
 }, { __index = BETTERUI.Companions.Class })
 
-local refreshOk, refreshErr = pcall(function()
-    refreshHarness:RefreshList()
-end)
+local refreshOk, refreshErr = refreshHarness:RefreshList()
 assert_eq(refreshOk, false, "RefreshList surfaces failures instead of swallowing them")
 assert_contains(refreshErr, "[Companions] RefreshList failed:", "RefreshList wraps errors with a stable companion context")
 assert_eq(refreshHarness._isRefreshing, false, "RefreshList clears the refreshing guard after failure")
@@ -123,9 +122,7 @@ local teardownHarness = setmetatable({
     list = list,
 }, { __index = BETTERUI.Companions.Class })
 
-local teardownOk, teardownErr = pcall(function()
-    teardownHarness:ForceReleaseDirectionalInput()
-end)
+local teardownOk, teardownErr = teardownHarness:ForceReleaseDirectionalInput()
 assert_eq(teardownOk, false, "ForceReleaseDirectionalInput preserves teardown failures")
 assert_contains(teardownErr, "[Companions] ForceReleaseDirectionalInput failed:", "teardown failures use the same stable wrapper contract")
 assert_eq(countRegistrations(list), 0, "ForceReleaseDirectionalInput still releases directional input registrations")

@@ -6,12 +6,9 @@ Purpose: Tooltip, list-refresh, and row-construction logic for companion equipme
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 local Companions = BETTERUI.Companions
 
-local function WrapCompanionError(operation, err)
-    if Companions and type(Companions.WrapRuntimeError) == "function" then
-        return Companions.WrapRuntimeError(operation, err)
-    end
-    return string.format("[Companions] %s failed: %s", operation, tostring(err))
-end
+local BoundaryHelpers = Companions.EnsureBoundaryHelpers and Companions.EnsureBoundaryHelpers() or Companions.BoundaryHelpers
+local WrapCompanionError = BoundaryHelpers and BoundaryHelpers.WrapError
+local ExecuteCompanionBoundary = BoundaryHelpers and BoundaryHelpers.ExecuteBoundary
 
 function BETTERUI.Companions.Class:UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
     if ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText then
@@ -159,10 +156,15 @@ function BETTERUI.Companions.Class:ApplySortToList()
     table.sort(self.list.dataList, comparator)
 end
 
+---@return boolean ok
+---@return string|nil errorMessage
 function BETTERUI.Companions.Class:RefreshList()
-    if not self.list then return end
+    if not self.list then
+        return true
+    end
+
     self._isRefreshing = true
-    local ok, err = pcall(function()
+    local ok, result = ExecuteCompanionBoundary("Companions.RefreshList", function()
         self.list:Clear()
 
         local currentCategory = self:GetCurrentCategory()
@@ -191,8 +193,10 @@ function BETTERUI.Companions.Class:RefreshList()
     end)
     self._isRefreshing = false
     if not ok then
-        error(WrapCompanionError("RefreshList", err), 0)
+        return false, WrapCompanionError("RefreshList", result)
     end
+
+    return true
 end
 
 function BETTERUI.Companions.Class:BuildEquippedItems(filterType)

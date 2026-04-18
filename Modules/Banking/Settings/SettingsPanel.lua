@@ -4,8 +4,6 @@ Purpose: Extracted LAM settings panel for Banking module.
          Matches Inventory's structure with dedicated Settings folder.
 ]]
 
-local LAM = LibAddonMenu2
-
 BETTERUI.Banking = BETTERUI.Banking or {}
 BETTERUI.Banking.Settings = BETTERUI.Banking.Settings or {}
 
@@ -170,16 +168,16 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     local fontRefreshFn = function()
         RefreshBankingWindowList()
     end
-    local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions(
-        "Banking",
-        BETTERUI.Banking.DEFAULTS,
-        BETTERUI.Banking.FONT_CHOICES,
-        BETTERUI.Banking.FONT_VALUES,
-        BETTERUI.Banking.FONTSTYLE_CHOICES,
-        BETTERUI.Banking.FONTSTYLE_VALUES,
-        fontStrings,
-        fontRefreshFn
-    )
+    local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions({
+        moduleName = "Banking",
+        defaults = BETTERUI.Banking.DEFAULTS,
+        fontChoices = BETTERUI.Banking.FONT_CHOICES,
+        fontValues = BETTERUI.Banking.FONT_VALUES,
+        styleChoices = BETTERUI.Banking.FONTSTYLE_CHOICES,
+        styleValues = BETTERUI.Banking.FONTSTYLE_VALUES,
+        strings = fontStrings,
+        refreshFn = fontRefreshFn,
+    })
     for _, opt in ipairs(fontOptions) do
         table.insert(optionsTable, opt)
     end
@@ -189,6 +187,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
         BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
     end
 
-    LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
-    LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)
+    if BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.RegisterModulePanel then
+        BETTERUI.CIM.Settings.RegisterModulePanel("BETTERUI_" .. mId, panelData, optionsTable)
+    end
 end

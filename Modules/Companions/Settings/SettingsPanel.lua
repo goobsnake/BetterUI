@@ -144,16 +144,16 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
         columnReset = SI_BETTERUI_COLUMN_FONT_RESET,
         columnResetTooltip = SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP,
     }
-    local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions(
-        "Companions",
-        Companions.DEFAULTS,
-        Companions.FONT_CHOICES,
-        Companions.FONT_VALUES,
-        Companions.FONTSTYLE_CHOICES,
-        Companions.FONTSTYLE_VALUES,
-        fontStrings,
-        RefreshCompanionWindow
-    )
+    local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions({
+        moduleName = "Companions",
+        defaults = Companions.DEFAULTS,
+        fontChoices = Companions.FONT_CHOICES,
+        fontValues = Companions.FONT_VALUES,
+        styleChoices = Companions.FONTSTYLE_CHOICES,
+        styleValues = Companions.FONTSTYLE_VALUES,
+        strings = fontStrings,
+        refreshFn = RefreshCompanionWindow,
+    })
     for _, opt in ipairs(fontOptions) do
         optionsData[#optionsData + 1] = opt
     end
@@ -162,9 +162,7 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
         BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsData, true)
     end
 
-    local LAM = LibAddonMenu2
-    if LAM then
-        LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
-        LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsData)
+    if BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.RegisterModulePanel then
+        BETTERUI.CIM.Settings.RegisterModulePanel("BETTERUI_" .. mId, panelData, optionsData)
     end
 end

@@ -270,21 +270,35 @@ end
 --[[
 Function: BETTERUI.CIM.Settings.CreateFontSubmenuOptions
 Creates LAM submenu options for font customization.
-  1. Creates "Name Font" submenu with dropdown, size slider, style dropdown, reset button
-  2. Creates "Column Font" submenu with dropdown, size slider, style dropdown, reset button
-  3. Uses shared BETTERUI.CIM.Font definitions
-param: moduleName (string) - The module name key (e.g., "Banking", "Inventory")
-param: defaults (table) - Module-specific defaults with nameFont, nameFontSize, nameFontStyle, columnFont, columnFontSize, columnFontStyle
-param: fontChoices (table) - Font name choices array
-param: fontValues (table) - Font path values array
-param: styleChoices (table) - Font style choices array
-param: styleValues (table) - Font style values array
-param: strings (table) - Localization string IDs { header, desc, nameSubmenu, nameFont, nameFontTooltip, nameFontSize, nameFontSizeTooltip, nameFontStyle, nameFontStyleTooltip, nameReset, nameResetTooltip, columnSubmenu, columnFont, columnFontTooltip, columnFontSize, columnFontSizeTooltip, columnFontStyle, columnFontStyleTooltip, columnReset, columnResetTooltip }
-param: refreshFn (function|nil) - Optional live refresh callback
+Required contract:
+{
+    moduleName = string,
+    defaults = table,
+    fontChoices = table,
+    fontValues = table,
+    styleChoices = table,
+    styleValues = table,
+    strings = table,
+    refreshFn = function|nil
+}
+1. Creates "Name Font" submenu with dropdown, size slider, style dropdown, reset button
+2. Creates "Column Font" submenu with dropdown, size slider, style dropdown, reset button
+3. Uses shared BETTERUI.CIM.Font definitions
 return: table - Array of LAM options (header, description, 2 submenus)
 ]]
-function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fontChoices, fontValues, styleChoices,
-                                                        styleValues, strings, refreshFn)
+function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(args)
+    if type(args) ~= "table" then
+        return {}
+    end
+
+    local moduleName = args.moduleName
+    local defaults = args.defaults
+    local fontChoices = args.fontChoices
+    local fontValues = args.fontValues
+    local styleChoices = args.styleChoices
+    local styleValues = args.styleValues
+    local strings = args.strings
+    local refreshFn = args.refreshFn or args.refresh
     -- Apply language-based font filtering (non-English users only see compatible fonts)
     local Localization = BETTERUI.CIM.Font.Localization
     local filteredChoices, filteredValues = Localization.GetFilteredFontArrays(fontChoices, fontValues)

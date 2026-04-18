@@ -101,24 +101,42 @@ function TH.Settings.RegisterPanel(mId, moduleName)
         text = GetString(rawget(_G, "SI_BETTERUI_TH_FONT_DESC")),
     }
 
-    -- Name Column Font
-    optionsData[#optionsData + 1] = {
-        type = "submenu",
-        name = GetString(rawget(_G, "SI_BETTERUI_FONT_NAME_COLUMN")),
-        controls = BETTERUI.CIM.Settings.CreateFontOptions("TradingHouse", "Name", function()
-            RefreshTHWindow()
-        end),
+    local fontStrings = {
+        header = SI_BETTERUI_TH_FONT_HEADER,
+        desc = SI_BETTERUI_TH_FONT_DESC,
+        nameSubmenu = SI_BETTERUI_FONT_NAME_COLUMN,
+        nameFont = SI_BETTERUI_BANK_NAME_FONT,
+        nameFontTooltip = SI_BETTERUI_BANK_NAME_FONT_TOOLTIP,
+        nameFontSize = SI_BETTERUI_BANK_NAME_FONT_SIZE,
+        nameFontSizeTooltip = SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP,
+        nameFontStyle = SI_BETTERUI_BANK_NAME_FONT_STYLE,
+        nameFontStyleTooltip = SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP,
+        nameReset = SI_BETTERUI_NAME_FONT_RESET,
+        nameResetTooltip = SI_BETTERUI_NAME_FONT_RESET_TOOLTIP,
+        columnSubmenu = SI_BETTERUI_FONT_OTHER_COLUMNS,
+        columnFont = SI_BETTERUI_BANK_COLUMN_FONT,
+        columnFontTooltip = SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP,
+        columnFontSize = SI_BETTERUI_BANK_COLUMN_FONT_SIZE,
+        columnFontSizeTooltip = SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP,
+        columnFontStyle = SI_BETTERUI_BANK_COLUMN_FONT_STYLE,
+        columnFontStyleTooltip = SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP,
+        columnReset = SI_BETTERUI_COLUMN_FONT_RESET,
+        columnResetTooltip = SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP,
     }
-
-    -- Other Columns Font
-    optionsData[#optionsData + 1] = {
-        type = "submenu",
-        name = GetString(rawget(_G, "SI_BETTERUI_FONT_OTHER_COLUMNS")),
-        controls = BETTERUI.CIM.Settings.CreateFontOptions("TradingHouse", "Column", function()
-            RefreshTHWindow()
-        end),
-    }
+    local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions({
+        moduleName = "TradingHouse",
+        defaults = TH.DEFAULTS,
+        fontChoices = TH.FONT_CHOICES,
+        fontValues = TH.FONT_VALUES,
+        styleChoices = TH.FONTSTYLE_CHOICES,
+        styleValues = TH.FONTSTYLE_VALUES,
+        strings = fontStrings,
+        refreshFn = RefreshTHWindow,
+    })
+    for _, option in ipairs(fontOptions) do
+        optionsData[#optionsData + 1] = option
+    end
 
     -- REGISTER PANEL
-    BETTERUI.CIM.Settings.RegisterModulePanel(panelData, optionsData)
+    BETTERUI.CIM.Settings.RegisterModulePanel("BETTERUI_" .. mId, panelData, optionsData)
 end

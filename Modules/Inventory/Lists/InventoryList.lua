@@ -137,7 +137,6 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local itemType = (itemData.cached_itemType or data.cached_itemType)
         or (itemLink and GetItemLinkItemType(itemLink))
 
-    -- Determine which scene is active and use appropriate column font settings
     local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
     local columnFont = sharedItemSupport
         and sharedItemSupport.ResolveColumnFontDescriptor(moduleName, "Inventory")
@@ -149,16 +148,13 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local valueControl = control:GetNamedChild("Value")
     if not itemTypeControl or not traitControl or not statControl or not valueControl then return end
 
-    -- Apply column font
     itemTypeControl:SetFont(columnFont)
     traitControl:SetFont(columnFont)
     statControl:SetFont(columnFont)
     valueControl:SetFont(columnFont)
 
-    -- Set item type
     itemTypeControl:SetText(string.upper(data.bestItemTypeName))
 
-    -- Set trait information
     local traitName = itemData.cached_traitName or data.cached_traitName
     if not traitName then
         local traitType = GetItemTrait(bagId, slotIndex)
@@ -174,7 +170,6 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     end
     traitControl:SetText(traitName)
 
-    -- Set stat information based on item type
     local statText
     if itemType == ITEMTYPE_RECIPE then
         local isUnknown = data.cached_isRecipeAndUnknown
@@ -200,7 +195,6 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     end
     statControl:SetText(statText)
 
-    -- Handle market price display
     if ShouldShowMarketPrice() and
         (BETTERUI.Utils.IsBankingSceneShowing() or BETTERUI.Utils.IsInventorySceneShowing()) then
         local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
@@ -220,7 +214,6 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(data.stackSellPrice))
     end
 
-    -- Setup remaining UI elements
     BETTERUI_SharedGamepadEntryIconSetup(control.icon, control.stackCountLabel, data, selected)
 
     -- Hide original highlight - we use our custom gradient selection bar instead
@@ -228,16 +221,13 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         control.highlight:SetHidden(true)
     end
 
-    -- Apply gradient selection bar
     BETTERUI.CIM.SelectionHighlight.Setup(control, selected)
 
 
-    -- Show selection indicator for multi-selected items
     local selectionIndicator = control:GetNamedChild("SelectionIndicator")
     local selectionBar = control:GetNamedChild("SelectionBar")
     local isMultiSelected = false
 
-    -- Check with MultiSelectManager if available
     local multiSelectManager = BETTERUI.CIM.MultiSelectManager
     if multiSelectManager and multiSelectManager.GetActiveInstance then
         local manager = multiSelectManager.GetActiveInstance()
@@ -246,11 +236,9 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         end
     end
 
-    -- Handle selection indicator (checkmark)
     if selectionIndicator then
         selectionIndicator:SetHidden(not isMultiSelected)
         if isMultiSelected then
-            -- Color the checkmark green for visibility
             selectionIndicator:SetColor(0.2, 0.9, 0.2, 1)
         end
     end

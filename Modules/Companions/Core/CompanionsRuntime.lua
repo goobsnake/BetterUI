@@ -8,6 +8,38 @@ Purpose: Runtime scene, event, and keybind orchestration for the Companions modu
 local Companions = BETTERUI.Companions
 local EVENT_NS = "BetterUI_Companions"
 
+---@return table helpers
+local function EnsureCompanionBoundaryHelpers()
+    Companions.BoundaryHelpers = Companions.BoundaryHelpers or {}
+    local helpers = Companions.BoundaryHelpers
+
+    if type(helpers.WrapError) ~= "function" then
+        helpers.WrapError = function(operation, err)
+            if Companions and type(Companions.WrapRuntimeError) == "function" then
+                return Companions.WrapRuntimeError(operation, err)
+            end
+            return string.format("[Companions] %s failed: %s", operation, tostring(err))
+        end
+    end
+
+    if type(helpers.ExecuteBoundary) ~= "function" then
+        helpers.ExecuteBoundary = function(context, fn, ...)
+            if BETTERUI.CIM and type(BETTERUI.CIM.SafeExecute) == "function" then
+                return BETTERUI.CIM.SafeExecute(context, fn, ...)
+            end
+            if type(fn) ~= "function" then
+                return false, "No function provided"
+            end
+            return pcall(fn, ...)
+        end
+    end
+
+    return helpers
+end
+
+Companions.EnsureBoundaryHelpers = Companions.EnsureBoundaryHelpers or EnsureCompanionBoundaryHelpers
+Companions.EnsureBoundaryHelpers()
+
 local function RefreshVisibleCompanionScene(screen, options)
     if not screen or not screen.IsSceneShowing or not screen:IsSceneShowing() then
         return false

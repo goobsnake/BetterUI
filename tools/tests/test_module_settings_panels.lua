@@ -248,15 +248,14 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions()
     return {}
 end
 
-function BETTERUI.CIM.Settings.CreateFontOptions()
-    return {}
-end
-
-function BETTERUI.CIM.Settings.RegisterModulePanel(panelData, optionsData)
+function BETTERUI.CIM.Settings.RegisterModulePanel(panelId, panelData, optionsData)
     registeredModulePanel = {
+        panelId = panelId,
         panelData = panelData,
         optionsData = optionsData,
     }
+    addonPanels[panelId] = panelData
+    optionControls[panelId] = optionsData
 end
 
 function GetString(value)
@@ -287,6 +286,22 @@ SI_BETTERUI_TH_FONT_HEADER = "Trading House Fonts"
 SI_BETTERUI_TH_FONT_DESC = "Trading House Fonts Desc"
 SI_BETTERUI_FONT_NAME_COLUMN = "Name Column"
 SI_BETTERUI_FONT_OTHER_COLUMNS = "Other Columns"
+SI_BETTERUI_BANK_NAME_FONT = "Font"
+SI_BETTERUI_BANK_NAME_FONT_TOOLTIP = "Font Tooltip"
+SI_BETTERUI_BANK_NAME_FONT_SIZE = "Size"
+SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP = "Size Tooltip"
+SI_BETTERUI_BANK_NAME_FONT_STYLE = "Style"
+SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP = "Style Tooltip"
+SI_BETTERUI_NAME_FONT_RESET = "Reset Name Font"
+SI_BETTERUI_NAME_FONT_RESET_TOOLTIP = "Reset Name Font Tooltip"
+SI_BETTERUI_BANK_COLUMN_FONT = "Column Font"
+SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP = "Column Font Tooltip"
+SI_BETTERUI_BANK_COLUMN_FONT_SIZE = "Column Size"
+SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP = "Column Size Tooltip"
+SI_BETTERUI_BANK_COLUMN_FONT_STYLE = "Column Style"
+SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP = "Column Style Tooltip"
+SI_BETTERUI_COLUMN_FONT_RESET = "Reset Column Font"
+SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP = "Reset Column Font Tooltip"
 SI_BETTERUI_COMPANIONS_GENERAL_HEADER = "Companions General"
 SI_BETTERUI_COMPANIONS_GENERAL_DESC = "Companions General Desc"
 SI_BETTERUI_COMPANIONS_ENABLE_EQUIPMENT = "Enable Companion Equipment"
@@ -320,6 +335,9 @@ local function assertTrue(value, message)
 end
 
 local function findControl(controls, name)
+    if type(controls) ~= "table" then
+        return nil
+    end
     for _, control in ipairs(controls) do
         if control.name == name then
             return control
