@@ -163,6 +163,10 @@ BETTERUI.CIM.Utils.ResolveMoveDestinationSlot = function()
     return 1
 end
 
+BETTERUI.CIM.Utils.GetActiveBankTargetBag = function()
+    return BAG_BANK
+end
+
 BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function()
     return true
 end
@@ -205,6 +209,8 @@ SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG = "Stow"
 dofile("Modules/CIM/Core/Batching/BatchConfig.lua")
 dofile("Modules/CIM/Core/Batching/MultiSelectMixin.lua")
 dofile("Modules/Inventory/Core/InventoryBatchOps.lua")
+
+local BatchStepQueued = BETTERUI.CIM.BatchConfig.BatchStepQueued
 
 local testsPassed = 0
 local testsFailed = 0
@@ -313,7 +319,7 @@ BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
     makeBatchItems(2),
     function()
         reentryCalls = reentryCalls + 1
-        return "queued"
+        return BatchStepQueued()
     end,
     nil,
     "Depositing",
@@ -325,7 +331,7 @@ BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
     makeBatchItems(1),
     function()
         reentryCalls = reentryCalls + 1
-        return "queued"
+        return BatchStepQueued()
     end,
     nil,
     "Depositing",
@@ -345,7 +351,7 @@ BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
     makeBatchItems(2),
     function()
         tokenActionCalls = tokenActionCalls + 1
-        return "queued"
+        return BatchStepQueued()
     end,
     nil,
     "Depositing",
@@ -364,7 +370,7 @@ BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
     adaptiveInstance,
     makeBatchItems(9),
     function()
-        return "queued"
+        return BatchStepQueued()
     end,
     nil,
     "Depositing",

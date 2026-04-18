@@ -243,9 +243,9 @@ end
 -- ResolveSceneExitLabel
 print("\n-- ResolveSceneExitLabel --")
 do
-    -- From batchOptions
-    local label = BC.ResolveSceneExitLabel({}, { sceneExitLabel = "My Scene" })
-    assert_equal("My Scene", label, "SceneExitLabel: from batchOptions")
+    -- From grouped scene options
+    local label = BC.ResolveSceneExitLabel({}, { scene = { sceneExitLabel = "My Scene" } })
+    assert_equal("My Scene", label, "SceneExitLabel: from grouped scene options")
 
     -- From config callback
     local selfWithConfig = {
@@ -259,25 +259,44 @@ do
     assert_equal("Scene", label, "SceneExitLabel: default fallback")
 end
 
+-- NormalizeBatchOptions
+print("\n-- NormalizeBatchOptions --")
+do
+    local normalized = BC.NormalizeBatchOptions({
+        server = { serverBound = true },
+        pacing = { minServerDelayMs = 222 },
+    })
+    assert_true(normalized.server.serverBound == true, "NormalizeBatchOptions: grouped server options are applied")
+    assert_equal(222, normalized.pacing.minServerDelayMs, "NormalizeBatchOptions: grouped pacing options are applied")
+
+    normalized = BC.NormalizeBatchOptions({ serverBound = true, minServerDelayMs = 444 })
+    assert_false(normalized.server.serverBound, "NormalizeBatchOptions: flat serverBound is ignored")
+    assert_equal(BC.SERVER_MIN_DELAY_MS, normalized.pacing.minServerDelayMs,
+        "NormalizeBatchOptions: flat pacing fields no longer override grouped defaults")
+end
+
 -- NormalizeBatchStepResult
 print("\n-- NormalizeBatchStepResult --")
 do
-    local handled = BC.NormalizeBatchStepResult(true)
-    assert_equal(BC.BATCH_STEP_STATUS.HANDLED, handled.status, "NormalizeBatchStepResult: legacy true becomes handled")
+    local handled = BC.NormalizeBatchStepResult(BC.BatchStepHandled())
+    assert_equal(BC.BATCH_STEP_STATUS.HANDLED, handled.status,
+        "NormalizeBatchStepResult: explicit handled stays structured")
 
-    local queued = BC.NormalizeBatchStepResult("queued")
-    assert_equal(BC.BATCH_STEP_STATUS.QUEUED, queued.status, "NormalizeBatchStepResult: legacy queued string becomes queued")
+    local queued = BC.NormalizeBatchStepResult(BC.BatchStepQueued())
+    assert_equal(BC.BATCH_STEP_STATUS.QUEUED, queued.status,
+        "NormalizeBatchStepResult: explicit queued stays structured")
 
-    local skipped = BC.NormalizeBatchStepResult("skip")
-    assert_equal(BC.BATCH_STEP_STATUS.SKIPPED, skipped.status, "NormalizeBatchStepResult: legacy skip string becomes skipped")
-
-    local stopped = BC.NormalizeBatchStepResult(false)
-    assert_equal(BC.BATCH_STEP_STATUS.STOPPED, stopped.status, "NormalizeBatchStepResult: legacy false becomes stopped")
-    assert_equal("bagFull", stopped.reason, "NormalizeBatchStepResult: legacy false keeps bagFull reason")
+    local skipped = BC.NormalizeBatchStepResult(BC.BatchStepSkipped())
+    assert_equal(BC.BATCH_STEP_STATUS.SKIPPED, skipped.status,
+        "NormalizeBatchStepResult: explicit skipped stays structured")
 
     local explicitStop = BC.NormalizeBatchStepResult(BC.BatchStepStopped("sceneExit"))
     assert_equal(BC.BATCH_STEP_STATUS.STOPPED, explicitStop.status, "NormalizeBatchStepResult: explicit stop stays structured")
     assert_equal("sceneExit", explicitStop.reason, "NormalizeBatchStepResult: explicit stop preserves reason")
+
+    local legacyQueued = BC.NormalizeBatchStepResult("queued")
+    assert_equal(BC.BATCH_STEP_STATUS.HANDLED, legacyQueued.status,
+        "NormalizeBatchStepResult: legacy scalar outcomes now normalize to handled")
 end
 
 -- ============================================================================

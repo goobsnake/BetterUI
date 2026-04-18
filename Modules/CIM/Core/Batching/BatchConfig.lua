@@ -279,74 +279,24 @@ function BatchConfig.BatchStepStopped(reason)
     }
 end
 
----@param result BetterUIBatchStepResult|boolean|string|nil
+---@param result BetterUIBatchStepResult|nil
 ---@return BetterUIBatchStepResult
 function BatchConfig.NormalizeBatchStepResult(result)
     if type(result) == "table" and type(result.status) == "string" then
-        return result
-    end
-
-    if result == false then
-        return BatchConfig.BatchStepStopped("bagFull")
-    end
-    if result == "skip" then
-        return BatchConfig.BatchStepSkipped()
-    end
-    if type(result) == "string" and result ~= "" and result ~= "queued" then
-        return BatchConfig.BatchStepStopped(result)
-    end
-    if result == "queued" then
-        return BatchConfig.BatchStepQueued()
+        local status = result.status
+        if status == BatchConfig.BATCH_STEP_STATUS.HANDLED
+            or status == BatchConfig.BATCH_STEP_STATUS.QUEUED
+            or status == BatchConfig.BATCH_STEP_STATUS.SKIPPED
+            or status == BatchConfig.BATCH_STEP_STATUS.STOPPED
+        then
+            return result
+        end
     end
 
     return BatchConfig.BatchStepHandled()
 end
 
-local FLAT_BATCH_OPTION_MAP = {
-    serverBound = { "server", "serverBound" },
-    suppressUiUpdates = { "ui", "suppressUiUpdates" },
-    costPerItem = { "server", "costPerItem" },
-    awaitInventoryAck = { "ack", "awaitInventoryAck" },
-    ackTimeoutMs = { "ack", "ackTimeoutMs" },
-    minServerDelayMs = { "pacing", "minServerDelayMs" },
-    maxServerDelayMs = { "pacing", "maxServerDelayMs" },
-    cooldownEvery = { "pacing", "cooldownEvery" },
-    cooldownMs = { "pacing", "cooldownMs" },
-    chunkCostUnits = { "pacing", "chunkCostUnits" },
-    chunkPauseMs = { "pacing", "chunkPauseMs" },
-    adaptiveDelay = { "pacing", "adaptiveDelay" },
-    adaptiveThreshold = { "pacing", "adaptiveThreshold" },
-    adaptiveStepMs = { "pacing", "adaptiveStepMs" },
-    jitterMs = { "pacing", "jitterMs" },
-    skipInterBatchCooldown = { "server", "skipInterBatchCooldown" },
-    postBatchCooldownBaseMs = { "postBatch", "postBatchCooldownBaseMs" },
-    postBatchCooldownThreshold = { "postBatch", "postBatchCooldownThreshold" },
-    postBatchCooldownPerCostMs = { "postBatch", "postBatchCooldownPerCostMs" },
-    postBatchCooldownMaxMs = { "postBatch", "postBatchCooldownMaxMs" },
-    enforceRateWindow = { "rateLimit", "enforceRateWindow" },
-    rateLimitWindowMs = { "rateLimit", "rateLimitWindowMs" },
-    rateLimitMaxActions = { "rateLimit", "rateLimitMaxActions" },
-    countTowardRateOnSuccess = { "ack", "countTowardRateOnSuccess" },
-    sceneExitLabel = { "ui", "sceneExitLabel" },
-}
-
-local function MergeFlatBatchOptions(source, target)
-    if not source then
-        return
-    end
-
-    for sourceKey, groupSpec in pairs(FLAT_BATCH_OPTION_MAP) do
-        local sourceValue = source[sourceKey]
-        if sourceValue ~= nil and type(groupSpec) == "table" then
-            local groupName = groupSpec[1]
-            local fieldName = groupSpec[2]
-            target[groupName] = target[groupName] or {}
-            target[groupName][fieldName] = sourceValue
-        end
-    end
-end
-
---- Normalizes legacy or new-style batch options into a resolved grouped contract.
+--- Normalizes grouped batch options into a resolved grouped contract.
 ---@param batchOptions table|nil Batch options
 ---@return BatchOptions normalizedOptions
 function BatchConfig.NormalizeBatchOptions(batchOptions)
@@ -357,7 +307,6 @@ function BatchConfig.NormalizeBatchOptions(batchOptions)
     end
 
     MergeBatchOptionsInto(normalized, batchOptions)
-    MergeFlatBatchOptions(batchOptions, normalized)
 
     return normalized
 end
@@ -512,9 +461,6 @@ end
 ---@return string label Human-readable scene exit label
 function BatchConfig.ResolveSceneExitLabel(self, batchOptions)
     if batchOptions then
-        if type(batchOptions.sceneExitLabel) == "string" and batchOptions.sceneExitLabel ~= "" then
-            return batchOptions.sceneExitLabel
-        end
         if type(batchOptions.scene) == "table" and type(batchOptions.scene.sceneExitLabel) == "string" and batchOptions.scene.sceneExitLabel ~= "" then
             return batchOptions.scene.sceneExitLabel
         end

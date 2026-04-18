@@ -175,6 +175,12 @@ end
 -- THROTTLED BATCH PROCESSING
 
 --- Processes selected items through a throttled batch pipeline.
+---@param self table
+---@param items table[]
+---@param actionFn fun(bagId:number, slotIndex:number, itemData:table):BetterUIBatchStepResult
+---@param onComplete function|nil
+---@param actionName string|nil
+---@param batchOptions BatchOptions|nil
 function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
     items = BatchConfig.NormalizeBatchItems(items or {})
     local totalItems = #items

@@ -352,13 +352,13 @@ function Class:InitializeBatchDestroyDialog()
 
                         inventoryInstance:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
                             if not CanDestroyInventoryItem(itemData) then
-                                return true
+                                return BatchStepHandled()
                             end
                             local destroyed = BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, true)
                             if not destroyed then
-                                return "aborted"
+                                return BatchStepStopped("aborted")
                             end
-                            return "queued"
+                            return BatchStepQueued()
                         end, function()
                             inventoryInstance:ExitSelectionMode()
                             if BETTERUI.Utils.IsInventorySceneShowing() then

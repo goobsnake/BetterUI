@@ -36,6 +36,11 @@ local function assertTrue(value, message)
     assertEqual(true, value, message)
 end
 
+local function assertBatchStatus(expectedStatus, result, message)
+    local actualStatus = type(result) == "table" and result.status or nil
+    assertEqual(expectedStatus, actualStatus, message)
+end
+
 local function resetRecords()
     secureCalls = {}
     dialogCalls = {}
@@ -147,6 +152,28 @@ function BETTERUI.CIM.BatchConfig.ComposeBatchOptions(...)
         end
     end
     return merged
+end
+
+BETTERUI.CIM.BatchConfig.BATCH_STEP_STATUS = {
+    HANDLED = "handled",
+    QUEUED = "queued",
+    SKIPPED = "skipped",
+    STOPPED = "stopped",
+}
+
+function BETTERUI.CIM.BatchConfig.BatchStepHandled()
+    return { status = BETTERUI.CIM.BatchConfig.BATCH_STEP_STATUS.HANDLED }
+end
+
+function BETTERUI.CIM.BatchConfig.BatchStepQueued()
+    return { status = BETTERUI.CIM.BatchConfig.BATCH_STEP_STATUS.QUEUED }
+end
+
+function BETTERUI.CIM.BatchConfig.BatchStepStopped(reason)
+    return {
+        status = BETTERUI.CIM.BatchConfig.BATCH_STEP_STATUS.STOPPED,
+        reason = reason,
+    }
 end
 
 function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(_, _, destinationBag)
@@ -497,7 +524,8 @@ setSlotStack(BAG_VIRTUAL, 40, 2)
 craftBagInstance:BatchRetrieve()
 assertEqual(1, #craftBagInstance.capturedBatch.items, "BatchRetrieve forwards selected craft-bag items")
 assertEqual("Retrieve", craftBagInstance.capturedBatch.actionName, "BatchRetrieve uses the shipped action label")
-assertEqual("queued", craftBagInstance.capturedBatch.actionFn(BAG_VIRTUAL, 40, craftBagInstance.capturedBatch.items[1]), "BatchRetrieve action queues a pickup/place workflow")
+assertBatchStatus("queued", craftBagInstance.capturedBatch.actionFn(BAG_VIRTUAL, 40, craftBagInstance.capturedBatch.items[1]),
+    "BatchRetrieve action queues a pickup/place workflow")
 craftBagInstance.capturedBatch.onComplete()
 assertEqual("PickupInventoryItem", secureCalls[1].name, "BatchRetrieve uses the live pickup call")
 assertEqual("PlaceInInventory", secureCalls[2].name, "BatchRetrieve deposits into the backpack with the live secure call")
@@ -515,7 +543,8 @@ stowInstance.multiSelectManager = {
 setSlotStack(BAG_BACKPACK, 41, 3)
 stowInstance:BatchStow()
 assertEqual(1, #stowInstance.capturedBatch.items, "BatchStow forwards selected backpack items")
-assertEqual("queued", stowInstance.capturedBatch.actionFn(BAG_BACKPACK, 41, stowInstance.capturedBatch.items[1]), "BatchStow action queues a pickup/place workflow")
+assertBatchStatus("queued", stowInstance.capturedBatch.actionFn(BAG_BACKPACK, 41, stowInstance.capturedBatch.items[1]),
+    "BatchStow action queues a pickup/place workflow")
 stowInstance.capturedBatch.onComplete()
 assertEqual(BAG_VIRTUAL, secureCalls[2].args[1], "BatchStow places items into the craft bag")
 assertTrue(stowInstance.exitedSelection == true, "BatchStow completion exits selection mode")
@@ -533,7 +562,8 @@ depositInstance.multiSelectManager = {
 setSlotStack(BAG_BACKPACK, 50, 4)
 depositInstance:BatchDeposit()
 assertEqual("Depositing", depositInstance.capturedBatch.actionName, "BatchDeposit preserves its production action label")
-assertEqual("queued", depositInstance.capturedBatch.actionFn(BAG_BACKPACK, 50, depositInstance.capturedBatch.items[1]), "BatchDeposit queues a live RequestMoveItem call")
+assertBatchStatus("queued", depositInstance.capturedBatch.actionFn(BAG_BACKPACK, 50, depositInstance.capturedBatch.items[1]),
+    "BatchDeposit queues a live RequestMoveItem call")
 assertEqual("RequestMoveItem", secureCalls[1].name, "BatchDeposit uses the production move request")
 assertEqual(BAG_BANK, secureCalls[1].args[3], "BatchDeposit targets the active bank bag")
 
