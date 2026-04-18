@@ -41,8 +41,10 @@ assert_true(actionDialogUtils:find("function BETTERUI%.CIM%.InvokeInventoryDialo
     "ActionDialogUtils exposes the shared inventory dialog invoker")
 
 local protectionPolicy = read_file("Modules/CIM/Actions/ProtectionPolicy.lua")
-assert_true(protectionPolicy:find("BETTERUI%.CIM%.ProtectionPolicy = %{%}") ~= nil,
-    "ProtectionPolicy initializes the shared protection-policy table")
+assert_true(protectionPolicy:find("BETTERUI%.CIM%.ProtectionPolicy = BETTERUI%.CIM%.ProtectionPolicy or %{%}") ~= nil,
+    "ProtectionPolicy preserves shared protection-policy table identity across loads")
+assert_true(protectionPolicy:find("BETTERUI%.CIM%.ProtectionPolicy = %{%}") == nil,
+    "ProtectionPolicy does not rebind the shared protection-policy table")
 assert_true(protectionPolicy:find("Policy%.DENY = %{%s*") ~= nil,
     "ProtectionPolicy defines deny reason codes")
 assert_true(protectionPolicy:find("function Policy%.CanDestroyItem%(bagId, slotIndex, slotType%)") ~= nil,
@@ -85,6 +87,10 @@ assert_true(constantsUi:find("BETTERUI_SUBMENU_LABEL_OFFSET_X = BETTERUI%.CIM%.C
 local batchActions = read_file("Modules/CIM/Core/Batching/BatchActions.lua")
 assert_true(batchActions:find("BETTERUI%.CIM%.BatchActions = BETTERUI%.CIM%.BatchActions or %{%}") ~= nil,
     "BatchActions initializes the shared batch-action module")
+assert_true(batchActions:find("local function GetProtectionPolicy%(%s*%)") ~= nil,
+    "BatchActions resolves ProtectionPolicy through an accessor seam")
+assert_true(batchActions:find("local ProtectionPolicy = BETTERUI%.CIM and BETTERUI%.CIM%.ProtectionPolicy") == nil,
+    "BatchActions avoids import-time ProtectionPolicy snapshots")
 assert_true(batchActions:find("local function ExtractSlot%(itemData%)") ~= nil,
     "BatchActions defines the shared ExtractSlot helper")
 assert_true(batchActions:find("function BatchActions%.BatchLock%(self%)") ~= nil,

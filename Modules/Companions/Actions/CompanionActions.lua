@@ -5,7 +5,34 @@ Purpose: Companion item actions (equip, destroy, lock, junk, split) with BoE pro
 
 if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
-local ProtectionPolicy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+local function GetProtectionPolicy()
+    return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+end
+
+local function CanDestroyItem(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    return not policy or policy.CanDestroyItem(bagId, slotIndex)
+end
+
+local function CanLockItem(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    return not policy or policy.CanLockItem(bagId, slotIndex)
+end
+
+local function CanUnlockItem(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    return not policy or policy.CanUnlockItem(bagId, slotIndex)
+end
+
+local function CanJunkItem(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    return not policy or policy.CanJunkItem(bagId, slotIndex)
+end
+
+local function CanUnjunkItem(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    return not policy or policy.CanUnjunkItem(bagId, slotIndex)
+end
 
 local function SetCompanionItemLockState(bagId, slotIndex, locked)
     if SetItemIsPlayerLocked then
@@ -33,15 +60,15 @@ function Companions.CanExecuteAction(actionId, selectedData)
     elseif actionId == "unequip" then
         return ds ~= nil and slotIndex ~= nil and ds.isEquipped == true
     elseif actionId == "destroy" then
-        return not ProtectionPolicy or ProtectionPolicy.CanDestroyItem(bagId, slotIndex)
+        return CanDestroyItem(bagId, slotIndex)
     elseif actionId == "lock" then
-        return not ProtectionPolicy or ProtectionPolicy.CanLockItem(bagId, slotIndex)
+        return CanLockItem(bagId, slotIndex)
     elseif actionId == "unlock" then
-        return not ProtectionPolicy or ProtectionPolicy.CanUnlockItem(bagId, slotIndex)
+        return CanUnlockItem(bagId, slotIndex)
     elseif actionId == "junk" then
-        return not ProtectionPolicy or ProtectionPolicy.CanJunkItem(bagId, slotIndex)
+        return CanJunkItem(bagId, slotIndex)
     elseif actionId == "unjunk" then
-        return not ProtectionPolicy or ProtectionPolicy.CanUnjunkItem(bagId, slotIndex)
+        return CanUnjunkItem(bagId, slotIndex)
     elseif actionId == "split" then
         return ds ~= nil and (ds.stackCount or 1) > 1
     end
@@ -125,14 +152,7 @@ end
 
 function Companions.ToggleCompanionItemLock(bagId, slotIndex)
     local locked = Companions.IsCompanionItemLocked(bagId, slotIndex)
-    local canToggle = true
-    if ProtectionPolicy then
-        if locked then
-            canToggle = ProtectionPolicy.CanUnlockItem(bagId, slotIndex)
-        else
-            canToggle = ProtectionPolicy.CanLockItem(bagId, slotIndex)
-        end
-    end
+    local canToggle = locked and CanUnlockItem(bagId, slotIndex) or CanLockItem(bagId, slotIndex)
     if not canToggle then
         return false
     end
@@ -152,14 +172,7 @@ function Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     end
 
     local junk = Companions.IsCompanionItemJunk(bagId, slotIndex)
-    local canToggle = true
-    if ProtectionPolicy then
-        if junk then
-            canToggle = ProtectionPolicy.CanUnjunkItem(bagId, slotIndex)
-        else
-            canToggle = ProtectionPolicy.CanJunkItem(bagId, slotIndex)
-        end
-    end
+    local canToggle = junk and CanUnjunkItem(bagId, slotIndex) or CanJunkItem(bagId, slotIndex)
     if not canToggle then
         return false
     end
@@ -169,7 +182,7 @@ function Companions.ToggleCompanionItemJunk(bagId, slotIndex)
 end
 
 function Companions.ShowCompanionDestroyDialog(bagId, slotIndex)
-    if ProtectionPolicy and not ProtectionPolicy.CanDestroyItem(bagId, slotIndex) then
+    if not CanDestroyItem(bagId, slotIndex) then
         return false
     end
     local itemLink = GetItemLink(bagId, slotIndex)

@@ -6,7 +6,7 @@ Purpose: Centralized item protection policy checks for inventory, banking, and b
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
-BETTERUI.CIM.ProtectionPolicy = {}
+BETTERUI.CIM.ProtectionPolicy = BETTERUI.CIM.ProtectionPolicy or {}
 
 local Policy = BETTERUI.CIM.ProtectionPolicy
 

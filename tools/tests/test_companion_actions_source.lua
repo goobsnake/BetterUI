@@ -49,13 +49,17 @@ assert_true(source:find("function Companions%.BuildActionList%(selectedData%)") 
     "CompanionActions exposes BuildActionList")
 assert_true(source:find("function Companions%.ExecuteAction%(actionId, selectedData%)") ~= nil,
     "CompanionActions exposes ExecuteAction")
-assert_true(source:find("ProtectionPolicy%.CanLockItem%(bagId, slotIndex%)") ~= nil,
+assert_true(source:find("local function GetProtectionPolicy%(%s*%)") ~= nil,
+    "CompanionActions resolves ProtectionPolicy through an accessor seam")
+assert_true(source:find("local ProtectionPolicy = BETTERUI%.CIM and BETTERUI%.CIM%.ProtectionPolicy") == nil,
+    "CompanionActions avoids import-time ProtectionPolicy snapshots")
+assert_true(source:find("policy%.CanLockItem%(bagId, slotIndex%)") ~= nil,
     "Companion lock actions consult the shared protection policy")
-assert_true(source:find("ProtectionPolicy%.CanJunkItem%(bagId, slotIndex%)") ~= nil,
+assert_true(source:find("policy%.CanJunkItem%(bagId, slotIndex%)") ~= nil,
     "Companion junk actions consult the shared protection policy")
-assert_true(source:find("ProtectionPolicy%.CanUnjunkItem%(bagId, slotIndex%)") ~= nil,
+assert_true(source:find("policy%.CanUnjunkItem%(bagId, slotIndex%)") ~= nil,
     "Companion unjunk actions consult the shared protection policy")
-assert_true(source:find("ProtectionPolicy%.CanDestroyItem%(bagId, slotIndex%)") ~= nil,
+assert_true(source:find("policy%.CanDestroyItem%(bagId, slotIndex%)") ~= nil,
     "Companion destroy actions consult the shared protection policy")
 assert_true(source:find('table.insert%(actions, %{%s*id = "equip", name = GetString%(SI_ITEM_ACTION_EQUIP%) %}%)') ~= nil,
     "CompanionActions offers equip action entries")
