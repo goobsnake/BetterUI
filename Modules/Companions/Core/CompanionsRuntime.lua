@@ -39,11 +39,14 @@ end
 
 Companions.EnsureBoundaryHelpers = Companions.EnsureBoundaryHelpers or EnsureCompanionBoundaryHelpers
 Companions.EnsureBoundaryHelpers()
+Companions.GetBoundary = Companions.GetBoundary or function()
+    return Companions.EnsureBoundaryHelpers()
+end
 Companions.WrapBoundaryError = Companions.WrapBoundaryError or function(operation, err)
-    return Companions.EnsureBoundaryHelpers().WrapError(operation, err)
+    return Companions.GetBoundary().WrapError(operation, err)
 end
 Companions.ExecuteBoundary = Companions.ExecuteBoundary or function(context, fn, ...)
-    return Companions.EnsureBoundaryHelpers().ExecuteBoundary(context, fn, ...)
+    return Companions.GetBoundary().ExecuteBoundary(context, fn, ...)
 end
 
 local function RefreshVisibleCompanionScene(screen, options)

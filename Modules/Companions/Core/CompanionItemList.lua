@@ -6,8 +6,9 @@ Purpose: Tooltip, list-refresh, and row-construction logic for companion equipme
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 local Companions = BETTERUI.Companions
 
-local WrapCompanionError = Companions.WrapBoundaryError
-local ExecuteCompanionBoundary = Companions.ExecuteBoundary
+local function GetCompanionBoundary()
+    return Companions.GetBoundary()
+end
 
 function BETTERUI.Companions.Class:UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
     if ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText then
@@ -163,7 +164,8 @@ function BETTERUI.Companions.Class:RefreshList()
     end
 
     self._isRefreshing = true
-    local ok, result = ExecuteCompanionBoundary("Companions.RefreshList", function()
+    local boundary = GetCompanionBoundary()
+    local ok, result = boundary.ExecuteBoundary("Companions.RefreshList", function()
         self.list:Clear()
 
         local currentCategory = self:GetCurrentCategory()
@@ -192,7 +194,7 @@ function BETTERUI.Companions.Class:RefreshList()
     end)
     self._isRefreshing = false
     if not ok then
-        return false, WrapCompanionError("RefreshList", result)
+        return false, boundary.WrapError("RefreshList", result)
     end
 
     return true

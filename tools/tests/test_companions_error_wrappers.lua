@@ -95,6 +95,13 @@ print("[Companions error wrappers]")
 
 assert_eq(type(BETTERUI.Companions.WrapBoundaryError), "function",
     "Companions runtime exposes WrapBoundaryError as a callable alias")
+assert_eq(type(BETTERUI.Companions.GetBoundary), "function",
+    "Companions runtime exposes a shared boundary accessor")
+local boundary = BETTERUI.Companions.GetBoundary()
+assert_eq(type(boundary and boundary.WrapError), "function",
+    "Companions shared boundary accessor returns WrapError")
+assert_eq(type(boundary and boundary.ExecuteBoundary), "function",
+    "Companions shared boundary accessor returns ExecuteBoundary")
 assert_eq(BETTERUI.Companions.WrapBoundaryError("RefreshList", "boom"), "[Companions] RefreshList failed: boom",
     "WrapBoundaryError preserves the shared companion error format")
 local boundaryOk, boundaryValue = BETTERUI.Companions.ExecuteBoundary("Companions alias test", function(left, right)

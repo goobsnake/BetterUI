@@ -6,8 +6,9 @@ Purpose: Companion list, category tabs, tooltip updates, and scroll indicator wi
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 
 local Companions = BETTERUI.Companions
-local WrapCompanionError = Companions.WrapBoundaryError
-local ExecuteCompanionBoundary = Companions.ExecuteBoundary
+local function GetCompanionBoundary()
+    return Companions.GetBoundary()
+end
 
 -- ---------------------------------------------------------------------------
 -- Directional-Input Utilities
@@ -69,6 +70,7 @@ end
 ---@param errors table|nil
 local function ReleaseHeaderDirectionalInput(header, errors)
     if not header then return end
+    local boundary = GetCompanionBoundary()
     local candidates = {
         header.headerFocus,
         header.tabBar,
@@ -77,20 +79,20 @@ local function ReleaseHeaderDirectionalInput(header, errors)
     for _, candidate in ipairs(candidates) do
         if candidate then
             local candidateLabel = candidate == header.headerFocus and "headerFocus" or candidate == header.tabBar and "tabBar" or "tabBarControl"
-            local ok, err = ExecuteCompanionBoundary("Companions.ForceReleaseDirectionalInput." .. candidateLabel .. ".Deactivate", function()
+            local ok, err = boundary.ExecuteBoundary("Companions.ForceReleaseDirectionalInput." .. candidateLabel .. ".Deactivate", function()
                 if candidate.Deactivate and (not candidate.IsActive or candidate:IsActive()) then
                     candidate:Deactivate()
                 end
             end)
             if not ok and errors then
-                errors[#errors + 1] = WrapCompanionError(candidateLabel, err)
+                errors[#errors + 1] = boundary.WrapError(candidateLabel, err)
             end
 
-            ok, err = ExecuteCompanionBoundary("Companions.ForceReleaseDirectionalInput." .. candidateLabel .. ".ReleaseRegistrations", function()
+            ok, err = boundary.ExecuteBoundary("Companions.ForceReleaseDirectionalInput." .. candidateLabel .. ".ReleaseRegistrations", function()
                 ReleaseDirectionalInputRegistrations(candidate, true)
             end)
             if not ok and errors then
-                errors[#errors + 1] = WrapCompanionError(candidateLabel, err)
+                errors[#errors + 1] = boundary.WrapError(candidateLabel, err)
             end
         end
     end
@@ -600,26 +602,27 @@ function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
     end
 
     local errors = {}
+    local boundary = GetCompanionBoundary()
 
     local function SafeDeactivate(context, obj, includeMovementController, disableDirectionalInput)
         if not obj then return end
         if disableDirectionalInput and obj.SetDirectionalInputEnabled then
             obj:SetDirectionalInputEnabled(false)
         end
-        local ok, err = ExecuteCompanionBoundary("Companions.ForceReleaseDirectionalInput." .. context .. ".Deactivate", function()
+        local ok, err = boundary.ExecuteBoundary("Companions.ForceReleaseDirectionalInput." .. context .. ".Deactivate", function()
             if obj.Deactivate and (not obj.IsActive or obj:IsActive() or IsDirectionalInputListening(obj)) then
                 obj:Deactivate()
             end
         end)
         if not ok then
-            errors[#errors + 1] = WrapCompanionError(context, err)
+            errors[#errors + 1] = boundary.WrapError(context, err)
         end
 
-        ok, err = ExecuteCompanionBoundary("Companions.ForceReleaseDirectionalInput." .. context .. ".ReleaseRegistrations", function()
+        ok, err = boundary.ExecuteBoundary("Companions.ForceReleaseDirectionalInput." .. context .. ".ReleaseRegistrations", function()
             ReleaseDirectionalInputRegistrations(obj, includeMovementController)
         end)
         if not ok then
-            errors[#errors + 1] = WrapCompanionError(context, err)
+            errors[#errors + 1] = boundary.WrapError(context, err)
         end
     end
 
@@ -631,7 +634,7 @@ function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
     SafeDeactivate("textSearchHeaderControl", self.textSearchHeaderControl, true)
 
     if #errors > 0 then
-        return false, WrapCompanionError("ForceReleaseDirectionalInput", table.concat(errors, "; "))
+        return false, boundary.WrapError("ForceReleaseDirectionalInput", table.concat(errors, "; "))
     end
 
     return true
