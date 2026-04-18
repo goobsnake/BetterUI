@@ -39,11 +39,7 @@ local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
 end
 
 local function GetCurrentInventoryBankBag()
-    local banking = BETTERUI.Banking
-    if banking and banking.GetCurrentBank then
-        return banking.GetCurrentBank()
-    end
-    return BAG_BANK
+    return BETTERUI.CIM.Utils.GetActiveBankTargetBag()
 end
 
 local function ResolveInventoryDepositTargetBag(targetBankBag, bagId, slotIndex)

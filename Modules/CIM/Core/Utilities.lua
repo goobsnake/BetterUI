@@ -161,6 +161,34 @@ function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(fromBagId, fromSlotIndex,
     return FindFirstEmptySlotInBag(toBagId)
 end
 
+---@return number bankBagId Active banking target bag, or BAG_BANK when banking is unavailable
+function BETTERUI.CIM.Utils.GetActiveBankTargetBag()
+    local banking = BETTERUI.Banking
+    if banking and type(banking.GetCurrentBank) == "function" then
+        return banking.GetCurrentBank()
+    end
+
+    return BAG_BANK
+end
+
+---@return table|nil context Shared banking sort context with list and owner, or nil when unavailable
+function BETTERUI.CIM.Utils.GetBankingSortEntryContext()
+    if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+        return nil
+    end
+
+    local banking = BETTERUI.Banking
+    local bankingClass = banking and banking.Class or nil
+    if bankingClass and bankingClass.list then
+        return {
+            list = bankingClass.list,
+            sortContext = bankingClass,
+        }
+    end
+
+    return nil
+end
+
 function BETTERUI.CIM.Utils.SetExternalToolbarHidden(hidden)
     if wykkydsToolbar then
         wykkydsToolbar:SetHidden(hidden)
@@ -202,3 +230,4 @@ BETTERUI.Utils = BETTERUI.Utils or {}
 BETTERUI.Utils.IsBankingSceneShowing = BETTERUI.CIM.Utils.IsBankingSceneShowing
 BETTERUI.Utils.IsInventorySceneShowing = BETTERUI.CIM.Utils.IsInventorySceneShowing
 BETTERUI.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData
+BETTERUI.Utils.GetActiveBankTargetBag = BETTERUI.CIM.Utils.GetActiveBankTargetBag

@@ -54,6 +54,7 @@ BETTERUI = {
     Debug = function() end,
     CIM = {
         BatchActions = {},
+        BatchConfig = {},
         Dialogs = {
             Register = function(_, data)
                 currentDialogData = data
@@ -72,6 +73,11 @@ BETTERUI = {
             ShowComparisonOnTooltip = function() end,
         },
         MultiSelectMixin = {
+            BindDelegates = function(target, methodNames)
+                for _, methodName in ipairs(methodNames or {}) do
+                    target[methodName] = BETTERUI.CIM.MultiSelectMixin[methodName]
+                end
+            end,
             IsBatchProcessing = function(self)
                 return self.isBatchProcessing == true
             end,
@@ -117,8 +123,38 @@ function BETTERUI.CIM.BatchActions.HasItemAtSlot(bagId, slotIndex)
     return (GetSlotStackSize(bagId, slotIndex) or 0) > 0
 end
 
+function BETTERUI.CIM.BatchConfig.WithServer(options)
+    return { server = options }
+end
+
+function BETTERUI.CIM.BatchConfig.WithUi(options)
+    return { ui = options }
+end
+
+function BETTERUI.CIM.BatchConfig.WithAck(options)
+    return { ack = options }
+end
+
+function BETTERUI.CIM.BatchConfig.WithPacing(options)
+    return { pacing = options }
+end
+
+function BETTERUI.CIM.BatchConfig.ComposeBatchOptions(...)
+    local merged = {}
+    for _, section in ipairs({ ... }) do
+        for key, value in pairs(section) do
+            merged[key] = value
+        end
+    end
+    return merged
+end
+
 function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(_, _, destinationBag)
     return destinationBag == BAG_BANK and 12 or 7
+end
+
+function BETTERUI.CIM.Utils.GetActiveBankTargetBag()
+    return BAG_BANK
 end
 
 function BETTERUI.CIM.ProtectionPolicy.CanTransferItem()

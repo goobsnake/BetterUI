@@ -32,9 +32,21 @@ BETTERUI = {
             Legacy = { enabled = true },
         },
     },
+    Banking = {
+        GetCurrentBank = function()
+            return BAG_SUBSCRIBER_BANK
+        end,
+        Class = {
+            list = {
+                marker = "bank-list",
+            },
+        },
+    },
 }
 
 SCENE_MANAGER = { scenes = {} }
+BAG_BANK = 1
+BAG_SUBSCRIBER_BANK = 2
 
 function d(msg)
     table.insert(debugOutput, msg)
@@ -152,6 +164,33 @@ assert_equal("", BETTERUI.SafeIcon(""), "Empty string unchanged")
 print("\nTest: Debug prefixes messages")
 local debugMessage = BETTERUI.Debug("hello")
 assert_true(debugMessage:find("BETTERUI") ~= nil, "Debug output contains addon prefix")
+
+-- ============================================================================
+-- TESTS: Banking context seam helpers
+-- ============================================================================
+
+print("\n=== Banking Context Helpers ===\n")
+
+assert_equal(BAG_SUBSCRIBER_BANK, BETTERUI.CIM.Utils.GetActiveBankTargetBag(),
+    "bank target helper delegates through the shared banking getter")
+
+SCENE_MANAGER.scenes["gamepad_banking"] = {
+    IsShowing = function()
+        return true
+    end,
+}
+
+do
+    local sortContext = BETTERUI.CIM.Utils.GetBankingSortEntryContext()
+    assert_equal(BETTERUI.Banking.Class.list, sortContext.list,
+        "banking sort helper exposes the active banking list")
+    assert_equal(BETTERUI.Banking.Class, sortContext.sortContext,
+        "banking sort helper exposes the owning sort context")
+end
+
+SCENE_MANAGER.scenes["gamepad_banking"] = nil
+assert_nil(BETTERUI.CIM.Utils.GetBankingSortEntryContext(),
+    "banking sort helper returns nil when the banking scene is hidden")
 
 -- ============================================================================
 -- SUMMARY

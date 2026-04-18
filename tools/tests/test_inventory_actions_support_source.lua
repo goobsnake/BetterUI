@@ -66,6 +66,10 @@ assert_true(itemActionHandlers:find("function ActionHandlers%.OnFinish%(self%)")
     "ItemActionHandlers exposes OnFinish")
 assert_true(itemActionHandlers:find("function ActionHandlers%.OnConfirm%(self, dialog%)") ~= nil,
     "ItemActionHandlers exposes OnConfirm")
+assert_true(itemActionHandlers:find("BETTERUI%.CIM%.Utils%.GetBankingSortEntryContext") ~= nil,
+    "ItemActionHandlers resolves banking sort context through the shared CIM seam")
+assert_true(itemActionHandlers:find("BETTERUI%.Banking%.Class") == nil,
+    "ItemActionHandlers no longer reaches into Banking.Class directly")
 
 local itemActionsDialog = read_file("Modules/Inventory/Actions/ItemActionsDialog.lua")
 assert_true(itemActionsDialog:find("function BETTERUI%.Inventory%.Class:InitializeItemActions%(%)") ~= nil,
