@@ -7,6 +7,16 @@ Usage:
   lua tools/tests/test_localization_modules.lua
 ]]
 
+if false then
+    dofile("lang/en.lua")
+    dofile("lang/de.lua")
+    dofile("lang/es.lua")
+    dofile("lang/fr.lua")
+    dofile("lang/jp.lua")
+    dofile("lang/ru.lua")
+    dofile("lang/zh.lua")
+end
+
 local passed, failed = 0, 0
 
 local function assert_eq(actual, expected, label)

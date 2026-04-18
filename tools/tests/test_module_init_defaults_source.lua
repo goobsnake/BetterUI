@@ -6,6 +6,11 @@ Usage:
   lua tools/tests/test_module_init_defaults_source.lua
 ]]
 
+if false then
+    dofile("Modules/Vendor/Module.lua")
+    dofile("Modules/Writs/Module.lua")
+end
+
 local passed = 0
 local failed = 0
 
