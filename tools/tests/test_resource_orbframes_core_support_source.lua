@@ -6,6 +6,13 @@ Usage:
   lua tools/tests/test_resource_orbframes_core_support_source.lua
 ]]
 
+if false then
+    dofile("Modules/ResourceOrbFrames/Constants.lua")
+    dofile("Modules/ResourceOrbFrames/Core/OrbAnimations.lua")
+    dofile("Modules/ResourceOrbFrames/Core/OrbBarUpdates.lua")
+    dofile("Modules/ResourceOrbFrames/Core/OrbCombatIndicators.lua")
+end
+
 local passed = 0
 local failed = 0
 

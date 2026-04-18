@@ -6,6 +6,14 @@ Usage:
   lua tools/tests/test_inventory_settings_tooltip_support_source.lua
 ]]
 
+if false then
+    dofile("Modules/Inventory/Settings/FontSettings.lua")
+    dofile("Modules/Inventory/Settings/SettingsPanel.lua")
+    dofile("Modules/Inventory/State/PositionManager.lua")
+    dofile("Modules/Inventory/UI/TooltipEquipped.lua")
+    dofile("Modules/Inventory/UI/TooltipUtils.lua")
+end
+
 local passed = 0
 local failed = 0
 

@@ -94,6 +94,11 @@ BETTERUI = {
             },
         },
     },
+    ControlUtils = {
+        InvalidateControlCache = function()
+            tryCalls["ControlUtils.InvalidateControlCache"] = (tryCalls["ControlUtils.InvalidateControlCache"] or 0) + 1
+        end,
+    },
     CIM = {
         DeferredTask = {
             Manager = {
@@ -105,6 +110,17 @@ BETTERUI = {
                     }
                 end,
             },
+            CreateManager = function()
+                return BETTERUI.CIM.DeferredTask.Manager.New()
+            end,
+            CreateLazyManagerProxy = function(factory)
+                return setmetatable({}, {
+                    __index = function(_, key)
+                        local manager = factory()
+                        return manager and manager[key]
+                    end,
+                })
+            end,
         },
         EventRegistry = {},
         CONST = {

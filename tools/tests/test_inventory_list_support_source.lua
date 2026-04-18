@@ -7,12 +7,16 @@ Usage:
 ]]
 
 if false then
+    dofile("Modules/Inventory/Loader.lua")
+    dofile("Modules/Inventory/Module.lua")
     dofile("Modules/Inventory/Keybinds/InventoryKeybinds.lua")
     dofile("Modules/Inventory/Lists/CategoryListManager.lua")
     dofile("Modules/Inventory/Lists/CraftBagListManager.lua")
     dofile("Modules/Inventory/Lists/CraftList.lua")
     dofile("Modules/Inventory/Lists/ItemListFiltering.lua")
     dofile("Modules/Inventory/Lists/ItemListManager.lua")
+    dofile("Modules/Inventory/Scene/InventorySceneLifecycle.lua")
+    dofile("Modules/Inventory/Settings/CurrencySettings.lua")
 end
 
 local passed = 0

@@ -4,6 +4,10 @@ Purpose: Unit tests for pure functions in ResourceOrbFrames/Core/OrbBars.lua.
          Tests run standalone with a Lua interpreter (no ESO environment).
 ]]
 
+if false then
+    dofile("Modules/ResourceOrbFrames/Core/OrbBars.lua")
+end
+
 -- ============================================================================
 -- MINIMAL ESO STUBS
 -- ============================================================================
