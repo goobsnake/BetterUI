@@ -159,29 +159,9 @@ end
 ---@param activeTabs table[]|nil
 ---@return boolean
 local function IsSellBuybackOnlyTabs(activeTabs)
-    local modeSet
-    if BETTERUI.Vendor.BuildActiveModeSet then
-        modeSet = BETTERUI.Vendor.BuildActiveModeSet(activeTabs)
-    else
-        modeSet = {}
-        for _, tab in ipairs(activeTabs or {}) do
-            if tab and tab.mode then
-                modeSet[tab.mode] = true
-            end
-        end
-    end
-
-    if BETTERUI.Vendor.IsSellBuybackOnlyModeSet then
-        local isFenceInteraction = BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
-        return BETTERUI.Vendor.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
-    end
-
-    modeSet = modeSet or {}
-    local hasSell = modeSet[BETTERUI.Vendor.MODE.SELL] == true
-    local hasBuyback = modeSet[BETTERUI.Vendor.MODE.BUYBACK] == true
-    local hasBuy = modeSet[BETTERUI.Vendor.MODE.BUY] == true
-    local hasRepair = modeSet[BETTERUI.Vendor.MODE.REPAIR] == true
-    return hasSell and hasBuyback and not hasBuy and not hasRepair
+    local modeSet = VendorModePolicy.BuildActiveModeSet(activeTabs)
+    local isFenceInteraction = BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
+    return VendorModePolicy.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
 end
 
 local function IsUnifiedBuyHeaderMode(mode)

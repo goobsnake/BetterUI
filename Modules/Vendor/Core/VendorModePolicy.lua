@@ -394,5 +394,3 @@ end
 Vendor.ResolveModeName = ModePolicy.ResolveModeName
 Vendor.ResolveModeIcon = ModePolicy.ResolveModeIcon
 Vendor.ResolveNativeStoreMode = ModePolicy.ResolveNativeStoreMode
-Vendor.BuildActiveModeSet = ModePolicy.BuildActiveModeSet
-Vendor.IsSellBuybackOnlyModeSet = ModePolicy.IsSellBuybackOnlyModeSet

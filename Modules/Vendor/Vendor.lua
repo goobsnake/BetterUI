@@ -165,24 +165,6 @@ local function IsNativeStableModeActive()
     return false
 end
 
----@param tabs VendorTabDef[]|nil
----@return BetterUIVendorModeSet
-local function BuildActiveModeSet(tabs)
-    if Vendor.ModePolicy and Vendor.ModePolicy.BuildActiveModeSet then
-        return Vendor.ModePolicy.BuildActiveModeSet(tabs)
-    end
-    return {}
-end
-
----@param modeSet BetterUIVendorModeSet|nil
----@return boolean
-local function IsSellBuybackOnlyModeSet(modeSet)
-    if Vendor.ModePolicy and Vendor.ModePolicy.IsSellBuybackOnlyModeSet then
-        return Vendor.ModePolicy.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
-    end
-    return false
-end
-
 -- GET ACTIVE TABS
 
 ---@return VendorTabDef[] tabs Active tab definitions
@@ -206,8 +188,11 @@ end
 
 ---@return boolean
 local function IsSellBuybackOnlyStore()
-    local modeSet = BuildActiveModeSet(GetActiveTabs())
-    return IsSellBuybackOnlyModeSet(modeSet)
+    if not (Vendor.ModePolicy and Vendor.ModePolicy.BuildActiveModeSet and Vendor.ModePolicy.IsSellBuybackOnlyModeSet) then
+        return false
+    end
+    local modeSet = Vendor.ModePolicy.BuildActiveModeSet(GetActiveTabs())
+    return Vendor.ModePolicy.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
 end
 
 ---@return number|nil firstMode
@@ -1406,9 +1391,7 @@ local function ExposeVendorRuntimeHelpers()
     Vendor.DebugLog = LogVendorDebug
     Vendor.IsDirectionalInputListening = IsDirectionalInputListening
     Vendor.GetActiveTabs = GetActiveTabs
-    Vendor.BuildActiveModeSet = BuildActiveModeSet
     Vendor.GetToggleModePair = GetToggleModePair
-    Vendor.IsSellBuybackOnlyModeSet = IsSellBuybackOnlyModeSet
     Vendor.IsSellBuybackOnlyStore = IsSellBuybackOnlyStore
     Vendor.IsFenceInteraction = function() return isFenceInteraction end
     Vendor.GetStableInteractionIcon = ResolveStableInteractionIcon
