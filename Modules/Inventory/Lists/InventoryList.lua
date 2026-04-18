@@ -346,7 +346,6 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
 
-    -- Use BetterUI custom trigger keybinds with Inventory-specific speed and enabled getters
     local leftTrigger, rightTrigger = BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(
         self.list, nil, function()
             return BETTERUI.Inventory.GetSetting("triggerSpeed")
@@ -356,10 +355,7 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     )
     self.triggerKeybinds = { leftTrigger, rightTrigger }
 
-    -- Initialize scroll indicator on the list's internal control
-    -- offsetX=5, offsetTopY=-8 (above list top), offsetBottomY=-10 (above footer top)
-    -- Note: List BOTTOMRIGHT is anchored 10px below FooterContainerFooter's top,
-    -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
+    -- The bottom offset compensates for the list anchor sitting 10px below the footer container.
     local listScrollControl = self.list and self.list.control
     if listScrollControl then
         BETTERUI.CIM.ScrollIndicator.Initialize(listScrollControl, 5, -8, -10, self.list)
@@ -372,9 +368,6 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
         if selectedData then
             BETTERUI.Inventory.NewItemTracker.PrepareFromSelectedData(selectedData)
             self:GetParametricList():RefreshVisible()
-            -- Update scroll indicator position
-            -- Use targetSelectedIndex (the intended final position) rather than GetSelectedIndex()
-            -- (the animated intermediate) to prevent the thumb from stopping short of the bottom
             local listCtrl = self.list and self.list.control
             if listCtrl then
                 local currentIndex = list.targetSelectedIndex or list:GetSelectedIndex() or 1
@@ -438,8 +431,7 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", OnSingleSlotInventoryUpdate)
 end
 
---- Populates the slot table with item data from the inventory.
---- Purpose: Filters and accepts items for the list.
+--- Populates the slot table with accepted item data for the list.
 ---@param slotsTable BetterUIInventoryRowData[] Array to insert slot data into
 ---@param inventoryType number Inventory type constant
 ---@param slotIndex number Slot index to query
@@ -459,8 +451,7 @@ function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, s
     end
 end
 
---- Refreshes the inventory list.
---- Purpose: Rebuilds the visual list from source data.
+--- Refreshes the inventory list from current source data.
 ---@return nil
 function BETTERUI.Inventory.List:RefreshList()
     if self.control:IsHidden() then
@@ -492,8 +483,6 @@ function BETTERUI.Inventory.List:RefreshList()
 
     self.list:Commit()
 
-    -- Update scroll indicator after list refresh
-    -- Use targetSelectedIndex for the intended position rather than animated intermediate
     local listCtrl = self.list and self.list.control
     if listCtrl then
         local currentIndex = self.list.targetSelectedIndex or self.list:GetSelectedIndex() or 1

@@ -5,6 +5,7 @@
 ## Contributers: prasoc, RockingDice
 ## Version: 3.06
 ## DependsOn: LibAddonMenu-2.0>=41
+## OptionalDependsOn: MasterMerchant ArkadiusTradeTools TamrielTradeCentre AutoCategory
 ## SavedVariables: BetterUISavedVars
  
 ; Core Initialization (Must load first)
