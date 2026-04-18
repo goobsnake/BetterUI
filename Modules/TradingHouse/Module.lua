@@ -24,7 +24,11 @@ TradingHouse.ROOT_CONTRACT = {
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
-BETTERUI.CIM.RegisterModuleAccessors("TradingHouse")
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics(TradingHouse, "TradingHouse")
+
+local function EnsureTradingHouseSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")
+end
 
 --- Initializes defaults and migrates legacy settings for the TradingHouse module.
 ---
@@ -74,6 +78,7 @@ References: Called by BETTERUI.LoadModules() in BetterUI.lua.
 ]]
 ---@return nil
 function BETTERUI.TradingHouse.Setup()
+    EnsureTradingHouseSetupContracts()
     BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")
     BETTERUI.TradingHouse.Init()
 end

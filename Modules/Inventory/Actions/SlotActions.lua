@@ -89,6 +89,13 @@ local function CanMarkSlotAsJunk(inventorySlot)
     if not bag or not slot then
         return false
     end
+    if IsItemJunk and IsItemJunk(bag, slot) then
+        return false
+    end
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    if policy and policy.CanJunkItem then
+        return policy.CanJunkItem(bag, slot) == true
+    end
     if bag == BAG_VIRTUAL then
         return false
     end
@@ -120,6 +127,24 @@ local function IsSlotMarkedAsJunk(inventorySlot)
         return false
     end
     return IsItemJunk(bag, slot) == true
+end
+
+local function CanUnmarkSlotAsJunk(inventorySlot)
+    if not IsSlotMarkedAsJunk(inventorySlot) then
+        return false
+    end
+
+    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if not bag or not slot then
+        return false
+    end
+
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    if policy and policy.CanUnjunkItem then
+        return policy.CanUnjunkItem(bag, slot) == true
+    end
+
+    return true
 end
 
 local function TryUnequipItem(inventorySlot)
@@ -157,7 +182,7 @@ local function TryMarkAsJunk(inventorySlot)
 end
 
 local function TryUnmarkAsJunk(inventorySlot)
-    if not IsSlotMarkedAsJunk(inventorySlot) then
+    if not CanUnmarkSlotAsJunk(inventorySlot) then
         return
     end
     local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -334,7 +359,7 @@ local function ResolvePreferredPrimaryAction(slotActions, primaryAction, invento
         return primaryAction
     end
 
-    if IsSlotMarkedAsJunk(inventorySlot) then
+    if CanUnmarkSlotAsJunk(inventorySlot) then
         return GetActionString(SI_ITEM_ACTION_UNMARK_AS_JUNK)
     end
     if CanMarkSlotAsJunk(inventorySlot) then

@@ -32,6 +32,9 @@ BETTERUI = {
             STABLE = 7,
             SELL_VENGEANCE = 8,
         },
+        ACTION = {
+            SELL_VENGEANCE = "vendor_sell_vengeance",
+        },
     },
     CIM = {
         SharedItemSupport = {
@@ -47,6 +50,7 @@ BETTERUI = {
 }
 
 local Vendor = BETTERUI.Vendor
+local authorizationCalls = 0
 
 SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE = "Sell Vengeance"
 SI_STATS_RIDING_SKILL = "Riding Skill"
@@ -90,6 +94,11 @@ end
 
 function IsCurrentCampaignVengeanceRuleset()
     return true
+end
+
+function Vendor.AuthorizeInventoryAction(actionType, bagId, slotIndex)
+    authorizationCalls = authorizationCalls + 1
+    return actionType == Vendor.ACTION.SELL_VENGEANCE and bagId ~= nil and slotIndex ~= nil
 end
 
 local soldItems = {}
@@ -282,6 +291,8 @@ do
     assert_eq(categories[1].itemCount, 1, "sell vengeance category count follows live bag rows")
     assert_true(Vendor.SellVengeanceComponent:IsPrimaryActionEnabled(vendorInstance),
         "sell vengeance primary action enables for the live selected row")
+    assert_eq(authorizationCalls > 0, true,
+        "sell vengeance primary action consults shared vendor authorization seam")
 
     Vendor.SellVengeanceComponent:BuildList(vendorInstance)
     assert_eq(#listEntries, 1, "sell vengeance build list emits the live row")

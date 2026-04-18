@@ -6,6 +6,10 @@ Usage:
   lua tools/tests/test_banking_guild_transfer_gate_source.lua
 ]]
 
+if false then
+    dofile("Modules/CIM/Actions/GenericSlotActions.lua")
+end
+
 local passed = 0
 local failed = 0
 
@@ -38,6 +42,8 @@ assert_true(transferActions:find("NotifyGuildBankTransferDenied") ~= nil,
 local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")
 assert_true(genericSlotActions:find("NotifyGuildBankTransferDenied") ~= nil,
     "GenericSlotActions checks the shared guild-bank denial helper before PlaceInTransfer")
+assert_true(genericSlotActions:find("IsDepositSupportedForBank") ~= nil,
+    "GenericSlotActions routes single-item bank deposits through shared transfer policy helper")
 
 local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 assert_true(keybindManager:find("ResolveGuildBankTransferKeybindState") ~= nil,

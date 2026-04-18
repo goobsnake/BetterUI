@@ -142,7 +142,13 @@ function Sell:IsPrimaryActionEnabled(vendorInstance)
 
     -- Check that item has a sell price
     local sellPrice = ds.sellPrice or ds.stackSellPrice or 0
-    return sellPrice > 0
+    if sellPrice <= 0 then
+        return false
+    end
+
+    return Vendor.AuthorizeInventoryAction
+        and Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL, ds.bagId, ds.slotIndex, vendorInstance)
+        or true
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -154,6 +160,13 @@ function Sell:OnPrimaryAction(vendorInstance)
     local bagId = ds.bagId
     local slotIndex = ds.slotIndex
     if bagId == nil or slotIndex == nil then return end
+
+    if Vendor.AuthorizeInventoryAction then
+        local canSell = Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL, bagId, slotIndex, vendorInstance)
+        if not canSell then
+            return
+        end
+    end
 
     -- Validate the slot still has items
     local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
@@ -180,9 +193,15 @@ function Sell:SellAllJunk(vendorInstance)
     local bagSize = GetBagSize(BAG_BACKPACK) or 0
     for slot = 0, bagSize - 1 do
         if IsItemJunk(BAG_BACKPACK, slot) then
-            local stack = GetSlotStackSize(BAG_BACKPACK, slot) or 1
-            if stack > 0 then
-                SellInventoryItem(BAG_BACKPACK, slot, stack)
+            local canSell = true
+            if Vendor.AuthorizeInventoryAction then
+                canSell = Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL_JUNK, BAG_BACKPACK, slot, vendorInstance)
+            end
+            if canSell then
+                local stack = GetSlotStackSize(BAG_BACKPACK, slot) or 1
+                if stack > 0 then
+                    SellInventoryItem(BAG_BACKPACK, slot, stack)
+                end
             end
         end
     end

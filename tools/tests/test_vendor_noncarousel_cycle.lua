@@ -22,6 +22,12 @@ BETTERUI = {
         },
     },
     Vendor = {
+        CONST = {
+            CAROUSEL = {
+                startOffset = 705,
+                verticalOffset = -1,
+            },
+        },
         MODE = {
             BUY = 1,
             SELL = 2,
@@ -163,8 +169,8 @@ end
 local function buildVendorCarouselConfig()
     return {
         enabled = Vendor.GetSetting("enableCarousel") ~= false,
-        startOffset = BETTERUI.Banking.CONST.CAROUSEL.startOffset,
-        verticalOffset = BETTERUI.Banking.CONST.CAROUSEL.verticalOffset,
+        startOffset = BETTERUI.Vendor.CONST.CAROUSEL.startOffset,
+        verticalOffset = BETTERUI.Vendor.CONST.CAROUSEL.verticalOffset,
         itemSpacing = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing,
     }
 end
@@ -317,8 +323,8 @@ end
 
 do
     local carouselConfig = buildVendorCarouselConfig()
-    assertEq(carouselConfig.startOffset, BETTERUI.Banking.CONST.CAROUSEL.startOffset, "vendor header restores the previous banking-style start offset")
-    assertEq(carouselConfig.verticalOffset, BETTERUI.Banking.CONST.CAROUSEL.verticalOffset, "vendor header restores the previous banking-style vertical offset")
+    assertEq(carouselConfig.startOffset, BETTERUI.Vendor.CONST.CAROUSEL.startOffset, "vendor header uses the vendor-owned start offset")
+    assertEq(carouselConfig.verticalOffset, BETTERUI.Vendor.CONST.CAROUSEL.verticalOffset, "vendor header uses the vendor-owned vertical offset")
     assertEq(carouselConfig.startOffset == BETTERUI.CIM.CONST.CAROUSEL.startOffset, false, "vendor header does not use the inventory default offset")
 end
 

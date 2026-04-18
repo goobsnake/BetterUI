@@ -13,6 +13,28 @@ BETTERUI.Vendor = BETTERUI.Vendor or {}
 local Vendor = BETTERUI.Vendor
 
 Vendor.ARCHETYPE = "runtime-coordinator"
+Vendor.ACTION = Vendor.ACTION or {
+	SELL = "vendor_sell",
+	SELL_JUNK = "vendor_sell_junk",
+	SELL_VENGEANCE = "vendor_sell_vengeance",
+	FENCE_SELL = "fence_sell",
+	FENCE_LAUNDER = "fence_launder",
+}
+Vendor.MODE = Vendor.MODE or {
+	BUY = 1,
+	SELL = 2,
+	REPAIR = 3,
+	BUYBACK = 4,
+	FENCE_SELL = 5,
+	FENCE_LAUNDER = 6,
+	STABLE = 7,
+	SELL_VENGEANCE = 8,
+}
+Vendor.CONST = Vendor.CONST or {}
+Vendor.CONST.CAROUSEL = Vendor.CONST.CAROUSEL or {
+	startOffset = 705,
+	verticalOffset = -1,
+}
 ---@type BetterUIModuleRootContract
 Vendor.ROOT_CONTRACT = {
 	name = "Vendor",
@@ -159,6 +181,37 @@ function BETTERUI.Vendor.ReleaseDirectionalInputRegistrations(obj, includeMoveme
 	end
 
 	return releasedCount
+end
+
+--- Shared vendor authorization seam for primary and batch sell/launder actions.
+---@param actionType string
+---@param bagId number
+---@param slotIndex number
+---@param vendorInstance BETTERUI.Vendor.Class|nil
+---@return boolean allowed
+---@return string|nil reason
+function BETTERUI.Vendor.AuthorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+	local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+	if policy and policy.CanVendorAction then
+		local context = nil
+		if vendorInstance and vendorInstance.CanAfford then
+			context = {
+				canAfford = function(cost)
+					return vendorInstance:CanAfford(cost)
+				end,
+			}
+		end
+		return policy.CanVendorAction(actionType, bagId, slotIndex, context)
+	end
+
+	if not bagId or slotIndex == nil then
+		return false, "no_item"
+	end
+	local stackSize = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+	if stackSize <= 0 then
+		return false, "no_item"
+	end
+	return true
 end
 
 --- Gets junk sell value summary for batch sell UX.

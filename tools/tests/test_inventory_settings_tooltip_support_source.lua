@@ -36,8 +36,10 @@ end
 local fontSettingsSource = read_file("Modules/Inventory/Settings/FontSettings.lua")
 assert_true(fontSettingsSource:find("BETTERUI%.Inventory%.FONT_CHOICES = BETTERUI%.CIM%.Font%.CHOICES") ~= nil,
     "FontSettings reuses the shared CIM font choices")
-assert_true(fontSettingsSource:find("BETTERUI%.Inventory%.GetNameFontDescriptor = descriptors%.name") ~= nil,
-    "FontSettings exposes the inventory name font descriptor")
+assert_true(fontSettingsSource:find("local function GetInventoryFontDescriptors%(%)") ~= nil,
+    "FontSettings lazily resolves inventory font descriptors")
+assert_true(fontSettingsSource:find("function BETTERUI%.Inventory%.GetNameFontDescriptor%(%)") ~= nil,
+    "FontSettings exposes the inventory name font descriptor through a lazy helper")
 assert_true(fontSettingsSource:find("function BETTERUI%.Inventory%.Settings%.GetFontOptions%(%)") ~= nil,
     "FontSettings exposes GetFontOptions")
 

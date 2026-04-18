@@ -76,7 +76,9 @@ function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     if not (ds.bagId and ds.slotIndex) then return true end
     if IsArtifactItem(ds.bagId, ds.slotIndex) then return false end
 
-    return true
+    return Vendor.AuthorizeInventoryAction
+        and Vendor.AuthorizeInventoryAction(Vendor.ACTION.FENCE_SELL, ds.bagId, ds.slotIndex, vendorInstance)
+        or true
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -94,6 +96,17 @@ function FenceSell:OnPrimaryAction(vendorInstance)
     if IsArtifactItem(bagId, slotIndex) then
         ZO_Dialogs_ShowGamepadDialog("CANT_BUYBACK_FROM_FENCE", { bag = bagId, slot = slotIndex })
         return
+    end
+
+    if Vendor.AuthorizeInventoryAction then
+        local canSell, denyReason = Vendor.AuthorizeInventoryAction(Vendor.ACTION.FENCE_SELL, bagId, slotIndex, vendorInstance)
+        if not canSell then
+            local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
+            if denyReason == (deny and deny.ARTIFACT) then
+                ZO_Dialogs_ShowGamepadDialog("CANT_BUYBACK_FROM_FENCE", { bag = bagId, slot = slotIndex })
+            end
+            return
+        end
     end
 
     -- Re-check remaining fence sells

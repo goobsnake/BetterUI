@@ -22,6 +22,11 @@ local MODE        = Vendor.MODE
 local EVENT_NS    = "BetterUI_Vendor"
 local SafeCall
 local NativeStoreBridge = assert(Vendor.NativeStoreBridge, "Vendor native store bridge must load before Vendor.lua")
+local VendorBootstrapRuntime = assert(Vendor.BootstrapRuntime, "Vendor bootstrap runtime must load before Vendor.lua")
+local VendorComponentCatalog = assert(Vendor.ComponentCatalog, "Vendor component catalog must load before Vendor.lua")
+local VendorEventBridge = assert(Vendor.EventBridge, "Vendor event bridge must load before Vendor.lua")
+local VendorInteractionRuntime = assert(Vendor.InteractionRuntime, "Vendor interaction runtime must load before Vendor.lua")
+local VendorBatchRuntime = assert(Vendor.BatchRuntime, "Vendor batch runtime must load before Vendor.lua")
 
 -- Tracks whether current interaction is fence (true) or regular store (false)
 local isFenceInteraction = false
@@ -347,6 +352,32 @@ local function ResetVendorRuntimeState(instance)
     end
 end
 
+local function ResetActiveVendorRuntimeState()
+    if Vendor.instance then
+        ResetVendorRuntimeState(Vendor.instance)
+    end
+end
+
+local function SnapshotVendorInteractionState()
+    return {
+        isFenceInteraction = isFenceInteraction,
+        isStableInteraction = isStableInteraction,
+        fenceEnableSell = fenceEnableSell,
+        fenceEnableLaunder = fenceEnableLaunder,
+    }
+end
+
+local function ApplyVendorInteractionState(nextState)
+    if not nextState then
+        return
+    end
+
+    isFenceInteraction = nextState.isFenceInteraction == true
+    isStableInteraction = nextState.isStableInteraction == true
+    fenceEnableSell = nextState.fenceEnableSell == true
+    fenceEnableLaunder = nextState.fenceEnableLaunder == true
+end
+
 local function ApplyVendorResolvedMode(targetMode, refreshList)
     NativeStoreBridge.ApplyResolvedMode(targetMode, refreshList)
 end
@@ -359,6 +390,13 @@ local ScheduleVendorOpenStoreSync
 
 ScheduleVendorOpenStoreSync = function(targetMode, delayMs)
     NativeStoreBridge.ScheduleOpenStoreSync(targetMode, delayMs)
+end
+
+local function PrepareVendorOpenStoreMode()
+    local targetMode = ResolveVendorTargetMode()
+    ApplyVendorResolvedMode(targetMode, false)
+    ScheduleVendorOpenStoreSync(targetMode, 120)
+    return targetMode
 end
 
 local STABLE_TRAIN_ORDER = {
@@ -896,128 +934,19 @@ CanMultiSelectInCurrentMode = function()
 end
 
 function Vendor.ExecuteBatchAction(mode, itemData)
-    local ds = itemData.dataSource or itemData
-    if mode == MODE.BUY then
-        local entryIndex = ds.entryIndex or ds.slotIndex
-        if not entryIndex then return end
-        local vendorInstance = Vendor.instance
-        if vendorInstance then
-            local price = ds.price or 0
-            local currencyType = ds.currencyType or ds.currencyType1 or CURT_MONEY
-            if currencyType == CURT_NONE then
-                currencyType = CURT_MONEY
-            end
-            if not vendorInstance:CanAfford(price, currencyType) then return end
-            if not vendorInstance:HasInventorySpace() then return end
-        end
-        BuyStoreItem(entryIndex, 1)
-    elseif mode == MODE.SELL then
-        local bagId = ds.bagId
-        local slotIndex = ds.slotIndex
-        if bagId and slotIndex then
-            local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
-            if stackSize > 0 then
-                SellInventoryItem(bagId, slotIndex, stackSize)
-            end
-        end
-    elseif mode == MODE.FENCE_SELL then
-        local bagId = ds.bagId
-        local slotIndex = ds.slotIndex
-        if bagId and slotIndex then
-            local funcQuality = GetItemFunctionalQuality and GetItemFunctionalQuality(bagId, slotIndex)
-            if funcQuality and funcQuality >= ITEM_FUNCTIONAL_QUALITY_ARTIFACT then
-                return
-            end
-            local remaining = 0
-            if GetFenceSellTransactionInfo then
-                local totalSells, sellsUsed = GetFenceSellTransactionInfo()
-                remaining = zo_max((totalSells or 0) - (sellsUsed or 0), 0)
-            end
-            if remaining <= 0 then return end
-            local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
-            if stackSize > 0 then
-                SellInventoryItem(bagId, slotIndex, stackSize)
-            end
-        end
-    elseif mode == MODE.FENCE_LAUNDER then
-        local bagId = ds.bagId
-        local slotIndex = ds.slotIndex
-        if bagId and slotIndex then
-            local remaining = 0
-            if GetFenceLaunderTransactionInfo then
-                local totalLaunders, laundersUsed = GetFenceLaunderTransactionInfo()
-                remaining = zo_max((totalLaunders or 0) - (laundersUsed or 0), 0)
-            end
-            if remaining <= 0 then return end
-            local cost = GetItemLaunderPrice and GetItemLaunderPrice(bagId, slotIndex) or 0
-            if Vendor.instance and not Vendor.instance:CanAfford(cost) then return end
-            local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
-            if stackSize > 0 then
-                LaunderItem(bagId, slotIndex, stackSize)
-            end
-        end
-    elseif mode == MODE.BUYBACK then
-        local entryIndex = ds.entryIndex
-        if entryIndex then
-            local vendorInstance = Vendor.instance
-            if vendorInstance then
-                local price = ds.price or 0
-                if not vendorInstance:CanAfford(price) then return end
-                if not vendorInstance:HasInventorySpace() then return end
-            end
-            BuybackItem(entryIndex)
-        end
-    end
+    VendorBatchRuntime.ExecuteBatchAction(mode, itemData)
 end
-
--- VENDOR BATCH OPTIONS (server-bound throttling, matching banking/inventory pacing)
--- VENDOR BATCH OPTIONS (server-bound throttling, matching banking/inventory pacing)
-local VENDOR_BATCH_OPTIONS = {
-    serverBound          = true,
-    minServerDelayMs     = 145,
-    maxServerDelayMs     = 330,
-    cooldownEvery        = 18,
-    cooldownMs           = 1200,
-    chunkCostUnits       = 32,
-    chunkPauseMs         = 1000,
-    jitterMs             = 18,
-}
 
 ---@param mode number
 ---@return string
 local function ResolveVendorBatchActionName(mode)
-    if mode == MODE.BUY then
-        return GetString(rawget(_G, "SI_ITEM_ACTION_BUY") or "SI_ITEM_ACTION_BUY")
-    elseif mode == MODE.SELL or mode == MODE.FENCE_SELL then
-        return GetString(rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL")
-    elseif mode == MODE.FENCE_LAUNDER then
-        return GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER")
-    elseif mode == MODE.BUYBACK then
-        return GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK") or "SI_ITEM_ACTION_BUYBACK")
-    end
-    return GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS") or "SI_BETTERUI_BATCH_ACTIONS")
+    return VendorBatchRuntime.ResolveBatchActionName(mode)
 end
 
 ---@param totalItems integer
 ---@return table
 local function ResolveVendorBatchDelayPolicy(totalItems)
-    local BatchConfig = BETTERUI.CIM.BatchConfig
-    local throttleProfile = BatchConfig.ResolveBatchThrottleProfile(totalItems)
-    local opts = VENDOR_BATCH_OPTIONS
-    local minDelay = opts.minServerDelayMs or 145
-
-    return {
-        BatchConfig = BatchConfig,
-        baseDelayMs = zo_max(throttleProfile.DELAY_MS or 100, minDelay),
-        showProgress = throttleProfile.SHOW_PROGRESS == true or totalItems >= 10,
-        minDelay = minDelay,
-        maxDelay = opts.maxServerDelayMs or 330,
-        cooldownEvery = opts.cooldownEvery or 18,
-        cooldownMs = opts.cooldownMs or 1200,
-        chunkCostUnits = opts.chunkCostUnits or 32,
-        chunkPauseMs = opts.chunkPauseMs or 1000,
-        jitterMs = opts.jitterMs or 18,
-    }
+    return VendorBatchRuntime.ResolveBatchDelayPolicy(totalItems)
 end
 
 ---@param mode number
@@ -1025,186 +954,7 @@ end
 ---@param onComplete function|nil
 ---@return table
 local function CreateVendorBatchRunner(mode, items, onComplete)
-    local BatchOverlay = BETTERUI.CIM.BatchOverlay
-    local delayPolicy = ResolveVendorBatchDelayPolicy(#items)
-    local runner = {
-        mode = mode,
-        items = items,
-        onComplete = onComplete,
-        totalItems = #items,
-        actionName = ResolveVendorBatchActionName(mode),
-        BatchOverlay = BatchOverlay,
-        BatchConfig = delayPolicy.BatchConfig,
-        delayPolicy = delayPolicy,
-        showProgress = delayPolicy.showProgress,
-        processedCount = 0,
-        index = 0,
-        stopReason = nil,
-        nextCooldownAt = delayPolicy.cooldownEvery > 0 and delayPolicy.cooldownEvery or nil,
-        nextChunkAt = delayPolicy.chunkCostUnits > 0 and delayPolicy.chunkCostUnits or nil,
-    }
-
-    function runner:IsSceneActive()
-        return Vendor.instance and Vendor.instance.IsSceneShowing and Vendor.instance:IsSceneShowing()
-    end
-
-    function runner:BuildProgressMainText()
-        return string.format("Processing (%d/%d)", self.processedCount, self.totalItems)
-    end
-
-    function runner:BuildProgressSecondaryText()
-        return string.format("Please Wait - Press %s to abort", self.BatchConfig.ResolveBatchAbortBindingMarkup())
-    end
-
-    function runner:Finish()
-        Vendor._batchProcessing = false
-        Vendor._batchAbortRequested = false
-
-        if self.showProgress or self.stopReason then
-            local completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PROCESSING_COMPLETE")),
-                self.processedCount)
-            if self.stopReason == "bagFull" then
-                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_BAG_FULL")), self.processedCount,
-                    self.totalItems)
-            elseif self.stopReason == "sceneExit" then
-                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT")), "Vendor",
-                    self.processedCount, self.totalItems)
-            elseif self.stopReason == "aborted" then
-                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_COMPLETE")),
-                    self.processedCount, self.totalItems)
-            elseif self.processedCount < self.totalItems then
-                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PARTIAL_SUCCESS")),
-                    self.processedCount, self.totalItems)
-            end
-            self.BatchOverlay.ShowStatus({
-                displayName = self.actionName,
-                bodyText = completeText,
-            })
-            self.BatchOverlay.Hide((self.stopReason and 4000) or 2000)
-        else
-            self.BatchOverlay.Hide()
-        end
-
-        if self.onComplete then
-            self.onComplete(self.stopReason)
-        end
-    end
-
-    function runner:RecordServerAction()
-        if self.BatchConfig.RecordServerAction then
-            self.BatchConfig.RecordServerAction(self.BatchConfig.GetNowMs(), self.BatchConfig.SERVER_RATE_WINDOW_MS)
-        end
-    end
-
-    function runner:UpdateProgress()
-        if self.showProgress then
-            self.BatchOverlay.Show(
-                self.actionName,
-                function() return self:BuildProgressMainText() end,
-                function() return self:BuildProgressSecondaryText() end
-            )
-        end
-    end
-
-    function runner:ResolveDelayMs()
-        local delayMs = self.delayPolicy.baseDelayMs
-        local jitterMs = self.delayPolicy.jitterMs
-        local minDelay = self.delayPolicy.minDelay
-        local maxDelay = self.delayPolicy.maxDelay
-
-        if jitterMs > 0 and self.BatchConfig.ResolveSignedJitter then
-            delayMs = zo_clamp(delayMs + self.BatchConfig.ResolveSignedJitter(jitterMs), minDelay, maxDelay)
-        else
-            delayMs = zo_clamp(delayMs, minDelay, maxDelay)
-        end
-
-        if self.delayPolicy.cooldownMs > 0 and self.nextCooldownAt and self.processedCount >= self.nextCooldownAt then
-            delayMs = delayMs + self.delayPolicy.cooldownMs
-            while self.nextCooldownAt and self.processedCount >= self.nextCooldownAt do
-                self.nextCooldownAt = self.nextCooldownAt + self.delayPolicy.cooldownEvery
-            end
-        end
-
-        if self.delayPolicy.chunkPauseMs > 0 and self.nextChunkAt and self.processedCount >= self.nextChunkAt then
-            delayMs = delayMs + self.delayPolicy.chunkPauseMs
-            while self.nextChunkAt and self.processedCount >= self.nextChunkAt do
-                self.nextChunkAt = self.nextChunkAt + self.delayPolicy.chunkCostUnits
-            end
-        end
-
-        return delayMs
-    end
-
-    function runner:Step()
-        if not self:IsSceneActive() then
-            self.stopReason = "sceneExit"
-            self:Finish()
-            return
-        end
-
-        if Vendor._batchAbortRequested then
-            self.stopReason = "aborted"
-            self:Finish()
-            return
-        end
-
-        self.index = self.index + 1
-        if self.index > self.totalItems then
-            self:Finish()
-            return
-        end
-
-        Vendor.ExecuteBatchAction(self.mode, self.items[self.index])
-        self.processedCount = self.processedCount + 1
-
-        if self.mode == MODE.BUY or self.mode == MODE.BUYBACK then
-            local vendorInstance = Vendor.instance
-            if vendorInstance and vendorInstance.HasInventorySpace and not vendorInstance:HasInventorySpace() then
-                self.stopReason = "bagFull"
-                self:Finish()
-                return
-            end
-        end
-
-        self:RecordServerAction()
-        self:UpdateProgress()
-        zo_callLater(function() self:Step() end, self:ResolveDelayMs())
-    end
-
-    function runner:StartAfterDialogDismiss(remainingMs)
-        if not Vendor._batchProcessing then
-            return
-        end
-        if Vendor._batchAbortRequested then
-            self.stopReason = "aborted"
-            self:Finish()
-            return
-        end
-        if not self:IsSceneActive() then
-            self.stopReason = "sceneExit"
-            self:Finish()
-            return
-        end
-
-        if self.BatchOverlay.IsAnyBatchActionDialogShowing and self.BatchOverlay.IsAnyBatchActionDialogShowing() and remainingMs > 0 then
-            zo_callLater(function() self:StartAfterDialogDismiss(remainingMs - 25) end, 25)
-            return
-        end
-
-        zo_callLater(function()
-            if not Vendor._batchProcessing then
-                return
-            end
-            self:UpdateProgress()
-            self:Step()
-        end, 160)
-    end
-
-    function runner:Start()
-        self:StartAfterDialogDismiss(1800)
-    end
-
-    return runner
+    return VendorBatchRuntime.CreateBatchRunner(mode, items, onComplete)
 end
 
 --- Processes vendor batch actions through a throttled pipeline with overlay progress.
@@ -1213,35 +963,12 @@ end
 ---@param items BetterUIVendorBatchItem[] Array of selected item data tables
 ---@param onComplete function|nil Callback invoked when processing finishes
 function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
-    local totalItems = #items
-    if totalItems == 0 then
-        if onComplete then onComplete() end
-        return
-    end
-
-    if mode == MODE.BUYBACK then
-        table.sort(items, function(a, b)
-            local dsA = a.dataSource or a
-            local dsB = b.dataSource or b
-            return (dsA.entryIndex or 0) > (dsB.entryIndex or 0)
-        end)
-    end
-
-    if Vendor._batchProcessing then
-        return
-    end
-    Vendor._batchProcessing = true
-    Vendor._batchAbortRequested = false
-
-    local runner = CreateVendorBatchRunner(mode, items, onComplete)
-    runner:Start()
+    VendorBatchRuntime.ExecuteBatchThrottled(mode, items, onComplete)
 end
 
 --- Requests abort of the current vendor batch operation.
 function Vendor.RequestBatchAbort()
-    if Vendor._batchProcessing then
-        Vendor._batchAbortRequested = true
-    end
+    VendorBatchRuntime.RequestBatchAbort()
 end
 
 local function RegisterVendorSellAllJunkDialog()
@@ -1461,48 +1188,27 @@ end
 
 local function OnOpenStore()
     ResetVendorInteractionState()
-
-    if not Vendor.instance then return end
-    ResetVendorRuntimeState(Vendor.instance)
-
-    local interactionType = GetInteractionType and GetInteractionType() or nil
-    local allowNativeStableFallback = interactionType == nil
-    isStableInteraction = isStableInteraction
-        or interactionType == INTERACTION_STABLE
-        or (allowNativeStableFallback and IsNativeStableModeActive())
-    LogVendorDebug(
-        "SCENE_TRANSITIONS",
-        "VendorScene",
-        string.format("OnOpenStore interaction=%s fence=%s stable=%s", tostring(interactionType), tostring(isFenceInteraction), tostring(isStableInteraction))
-    )
-
-    if interactionType and interactionType ~= INTERACTION_VENDOR and interactionType ~= INTERACTION_STABLE then
-        RestoreNativeStoreSceneAlias()
-        return
-    end
-
-    AliasStoreSceneToBetterUI()
-    if Vendor.instance.ReleaseNativeStoreInputOwnership then
-        Vendor.instance:ReleaseNativeStoreInputOwnership()
-    end
-    EnsureNativeStoreComponents("storeTextSearch")
-    if not isStableInteraction and allowNativeStableFallback and IsNativeStableModeActive() then
-        -- Some clients open stablemaster as generic vendor interaction.
-        -- Re-detect using native modes and rebuild with stable tab policy.
-        isStableInteraction = true
-        EnsureNativeStoreComponents("storeTextSearch")
-    end
-
-    local targetMode = ResolveVendorTargetMode()
-    ApplyVendorResolvedMode(targetMode, false)
-
-    if SCENE_MANAGER then
-        SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
-    end
-
-    -- Keep one short native sync window after scene show so the buy component can
-    -- populate from the native store manager without fighting scene ownership.
-    ScheduleVendorOpenStoreSync(targetMode, 120)
+    ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenStore(SnapshotVendorInteractionState(), {
+        resetInteractionState = ResetVendorInteractionState,
+        instance = Vendor.instance,
+        resetRuntimeState = ResetActiveVendorRuntimeState,
+        getInteractionType = GetInteractionType,
+        interactionVendor = INTERACTION_VENDOR,
+        interactionStable = INTERACTION_STABLE,
+        isNativeStableModeActive = IsNativeStableModeActive,
+        logVendorDebug = LogVendorDebug,
+        restoreNativeStoreSceneAlias = RestoreNativeStoreSceneAlias,
+        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
+        ensureNativeStoreComponents = EnsureNativeStoreComponents,
+        resolveVendorTargetMode = ResolveVendorTargetMode,
+        applyVendorResolvedMode = ApplyVendorResolvedMode,
+        showScene = function()
+            if SCENE_MANAGER then
+                SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
+            end
+        end,
+        scheduleVendorOpenStoreSync = ScheduleVendorOpenStoreSync,
+    }))
 end
 
 ---@param _ any Unused event code
@@ -1510,32 +1216,20 @@ end
 ---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
     ResetVendorInteractionState()
-    isFenceInteraction = true
-    fenceEnableSell = (enableSell ~= false)     -- default true
-    fenceEnableLaunder = (enableLaunder ~= false) -- default true
-    LogVendorDebug(
-        "SCENE_TRANSITIONS",
-        "VendorScene",
-        string.format("OnOpenFence sell=%s launder=%s", tostring(fenceEnableSell), tostring(fenceEnableLaunder))
-    )
-
-    if not Vendor.instance then return end
-    ResetVendorRuntimeState(Vendor.instance)
-    AliasStoreSceneToBetterUI()
-    if Vendor.instance.ReleaseNativeStoreInputOwnership then
-        Vendor.instance:ReleaseNativeStoreInputOwnership()
-    end
-
-    -- Set mode to first available fence tab
-    if fenceEnableSell then
-        Vendor.instance:SetMode(MODE.FENCE_SELL)
-    elseif fenceEnableLaunder then
-        Vendor.instance:SetMode(MODE.FENCE_LAUNDER)
-    end
-    -- Show BetterUI vendor scene directly; native manager sceneName is remapped above.
-    if SCENE_MANAGER then
-        SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
-    end
+    ApplyVendorInteractionState(VendorInteractionRuntime.OnOpenFence(SnapshotVendorInteractionState(), {
+        resetInteractionState = ResetVendorInteractionState,
+        instance = Vendor.instance,
+        resetRuntimeState = ResetActiveVendorRuntimeState,
+        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
+        logVendorDebug = LogVendorDebug,
+        sellMode = MODE.FENCE_SELL,
+        fenceLaunderMode = MODE.FENCE_LAUNDER,
+        showScene = function()
+            if SCENE_MANAGER then
+                SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
+            end
+        end,
+    }, enableSell, enableLaunder))
 end
 
 local function OnStableInteractStart()
@@ -1548,63 +1242,35 @@ end
 
 local function OnCloseStore()
     Vendor._isClosing = true
-    isFenceInteraction = false
-    isStableInteraction = false
-    fenceEnableSell = false
-    fenceEnableLaunder = false
     Vendor._sessionHasBuyMode = false
     Vendor._openStoreSyncAttempt = 0
-    if Vendor.instance then
-        if Vendor.ModePolicy and Vendor.ModePolicy.ResetCategoryState then
-            Vendor.ModePolicy.ResetCategoryState(Vendor.instance)
-        else
-            Vendor.instance._cachedBuyCategories = nil
-        end
-        if Vendor.instance.DisableStablePreviewMode then
-            Vendor.instance:DisableStablePreviewMode()
-        end
-    end
-
-    if Vendor.Tasks then
-        Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
-        Vendor.Tasks:Cancel("buyActivateRefresh")
-        Vendor.Tasks:Cancel("buyListRetry")
-        Vendor.Tasks:Cancel("listRefresh")
-        Vendor.Tasks:Cancel("footerRefresh")
-        Vendor.Tasks:Cancel("directionalInputNormalize")
-    end
-
-    LogVendorDebug("SCENE_TRANSITIONS", "VendorScene", "OnCloseStore begin")
-
-    local sceneName = BETTERUI_VENDOR_SCENE_NAME
-    if SCENE_MANAGER then
-        local scene = SCENE_MANAGER:GetScene(sceneName)
-        if scene and scene.IsShowing and scene:IsShowing() then
-            SCENE_MANAGER:Hide(sceneName)
-        end
-    end
-
-    if Vendor.instance and Vendor.instance.ReleaseNativeStoreInputOwnership then
-        Vendor.instance:ReleaseNativeStoreInputOwnership()
-    end
-    if Vendor.instance and Vendor.instance.ForceReleaseDirectionalInput then
-        Vendor.instance:ForceReleaseDirectionalInput()
-    end
-
-    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
-    LogNativeStoreInputState("OnCloseStore:beforeSweep", storeManager)
-    if storeManager and type(storeManager.OnHide) == "function" then
-        SafeCall("Vendor.OnCloseStore:NativeOnHide", storeManager.OnHide, storeManager)
-    end
-    if storeManager then
-        -- Clear native mode residue so the next vendor open does not inherit stale stable tabs.
-        storeManager.activeComponents = {}
-    end
-    LogNativeStoreInputState("OnCloseStore:afterSweep", storeManager)
-    LogVendorDebug("SCENE_TRANSITIONS", "VendorScene", "OnCloseStore complete")
-
-    -- Keep BetterUI as default owner so vendor opens route directly here.
-    AliasStoreSceneToBetterUI()
+    ApplyVendorInteractionState(VendorInteractionRuntime.OnCloseStore(SnapshotVendorInteractionState(), {
+        instance = Vendor.instance,
+        resetRuntimeState = ResetActiveVendorRuntimeState,
+        cancelRuntimeTasks = function()
+            if Vendor.Tasks then
+                Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
+                Vendor.Tasks:Cancel("buyActivateRefresh")
+                Vendor.Tasks:Cancel("buyListRetry")
+                Vendor.Tasks:Cancel("listRefresh")
+                Vendor.Tasks:Cancel("footerRefresh")
+                Vendor.Tasks:Cancel("directionalInputNormalize")
+            end
+        end,
+        logVendorDebug = LogVendorDebug,
+        hideScene = function()
+            if SCENE_MANAGER then
+                local scene = SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
+                if scene and scene.IsShowing and scene:IsShowing() then
+                    SCENE_MANAGER:Hide(BETTERUI_VENDOR_SCENE_NAME)
+                end
+            end
+        end,
+        getStoreManager = function() return rawget(_G, "STORE_WINDOW_GAMEPAD") end,
+        logNativeStoreInputState = LogNativeStoreInputState,
+        safeCall = SafeCall,
+        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
+    }))
 end
 
 local function OnInventoryUpdated()
@@ -1656,22 +1322,7 @@ end
 -- INITIALIZATION
 
 local function RegisterVendorComponents(instance)
-    local componentRegistrations = {
-        { mode = MODE.BUY, component = Vendor.BuyComponent },
-        { mode = MODE.SELL, component = Vendor.SellComponent },
-        { mode = MODE.SELL_VENGEANCE, component = Vendor.SellVengeanceComponent },
-        { mode = MODE.REPAIR, component = Vendor.RepairComponent },
-        { mode = MODE.STABLE, component = Vendor.StableTrainingComponent },
-        { mode = MODE.BUYBACK, component = Vendor.BuybackComponent },
-        { mode = MODE.FENCE_SELL, component = Vendor.FenceSellComponent },
-        { mode = MODE.FENCE_LAUNDER, component = Vendor.FenceLaunderComponent },
-    }
-
-    for _, registration in ipairs(componentRegistrations) do
-        if registration.component then
-            instance:RegisterComponent(registration.mode, registration.component)
-        end
-    end
+    VendorComponentCatalog.Register(instance)
 end
 
 local function AddVendorColumns(instance)
@@ -1684,169 +1335,28 @@ local function AddVendorColumns(instance)
 end
 
 local function InitializeVendorList(instance)
-    instance:SetupList(
-        "BETTERUI_GamepadItemSubEntryTemplate",
-        BETTERUI.Vendor.VendorEntrySetup
-    )
-    instance:AddTemplate(
-        "BETTERUI_GamepadStableTrainingEntryTemplate",
-        BETTERUI.Vendor.VendorEntrySetup
-    )
-    instance.list:SetOnSelectedDataChangedCallback(function(list, selectedData)
-        if instance._searchModeActive and instance.list
-            and instance.list.IsActive and instance.list:IsActive() then
-            instance:OnItemSelectedChange(list, selectedData)
-            instance:UpdateScrollIndicator(list)
-            instance:OnSearchFocusLost()
-            return
-        end
-        instance:OnItemSelectedChange(list, selectedData)
-        instance:UpdateScrollIndicator(list)
-    end)
-    if instance.list then
-        instance.list.owner = instance
-        if instance.list.MovePrevious then
-            local originalMovePrevious = instance.list.MovePrevious
-            instance.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
-                local didMove = originalMovePrevious(list, allowWrapping, suppressFailSound)
-                if didMove then
-                    return true
-                end
-
-                if instance.OnHeaderEntered then
-                    instance:OnHeaderEntered()
-                elseif instance.RequestHeaderFocus then
-                    instance:RequestHeaderFocus()
-                end
-                return true
-            end
-        end
-    end
-
-    AddVendorColumns(instance)
-    instance:InitializeCategoryHeader()
-    instance:InitializeScrollIndicator()
-    instance.searchQuery = ""
+    VendorBootstrapRuntime.InitializeList(instance, {
+        rowSetup = BETTERUI.Vendor.VendorEntrySetup,
+        addColumns = AddVendorColumns,
+    })
 end
 
 local function InitializeVendorSearch(instance)
-    local searchCallbackRevision = 0
-    local searchHandlerRevision = 0
-
-    local function HandleVendorSearchChanged(editOrText)
-        if instance.OnSearchTextChanged then
-            instance:OnSearchTextChanged(editOrText)
-        else
-            instance.searchQuery = tostring(editOrText or "")
-            instance:RefreshList()
-        end
-        searchCallbackRevision = searchCallbackRevision + 1
-    end
-
-    instance.textSearchKeybindStripDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor(instance)
-    if instance.AddSearch then
-        instance:AddSearch(instance.textSearchKeybindStripDescriptor, HandleVendorSearchChanged)
-        if instance.PositionSearchControl then
-            instance:PositionSearchControl()
-        end
-    end
-    if BETTERUI.Interface.SearchMixin and BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers then
-        BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(instance, {
-            isSceneShowing = function()
-                return instance.IsSceneShowing and instance:IsSceneShowing() or false
-            end,
-            onTextChanged = function(window, txt)
-                -- Fallback: if the native AddSearch callback did not fire, refresh here.
-                if searchHandlerRevision == searchCallbackRevision then
-                    if window.OnSearchTextChanged then
-                        window:OnSearchTextChanged(txt or "")
-                    else
-                        window.searchQuery = txt or ""
-                        if window.RefreshList then
-                            window:RefreshList()
-                        end
-                    end
-                end
-                searchHandlerRevision = searchCallbackRevision
-                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
-            end,
-            enterHeaderFn = function(window)
-                if window.RequestHeaderFocus then
-                    window:RequestHeaderFocus()
-                else
-                    window:EnterSearchMode()
-                end
-            end,
-        })
-    end
+    VendorBootstrapRuntime.InitializeSearch(instance, {
+        createSearchKeybindDescriptor = BETTERUI.Interface and BETTERUI.Interface.CreateSearchKeybindDescriptor,
+        setupEditBoxHandlers = BETTERUI.Interface and BETTERUI.Interface.SearchMixin and BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers,
+    })
 end
 
 local function InitializeVendorInteractiveSurfaces(instance)
-    instance.coreKeybinds = BuildCoreKeybinds(instance)
-
-    if BETTERUI.CIM and BETTERUI.CIM.MultiSelectManager and BETTERUI.CIM.MultiSelectManager.Create then
-        Vendor.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(instance.list, function()
-            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-            end
-        end)
-    else
-        Vendor.multiSelectManager = nil
-    end
-    instance.multiSelectManager = Vendor.multiSelectManager
-
-    if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Install then
-        RunVendorSetupStep("Header sort integration setup", function()
-            local integration = BETTERUI.CIM.UI.HeaderSortIntegration.Install(instance, {
-                list = instance.list,
-                columns = {
-                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME") or "SI_BETTERUI_BANKING_COLUMN_NAME"),  key = "name" },
-                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE") or "SI_BETTERUI_BANKING_COLUMN_TYPE"),  key = "type" },
-                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TRAIT") or "SI_BETTERUI_BANKING_COLUMN_TRAIT"), key = "trait" },
-                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT") or "SI_BETTERUI_BANKING_COLUMN_STAT"),  key = "stat" },
-                    { name = GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE") or "SI_BETTERUI_BANKING_COLUMN_VALUE"), key = "value", defaultDirection = "descending" },
-                },
-                callbacks = {
-                    onSortChanged = function()
-                        instance:RefreshList()
-                    end,
-                },
-                controllerContract = {
-                    field = "sortController",
-                    aliasFields = { "headerSortController" },
-                },
-                keybinds = {
-                    mainDescriptor = instance.coreKeybinds,
-                },
-                autoEnterOnListStart = true,
-            })
-            BETTERUI.CIM.UI.HeaderSortIntegration.EnsureController(integration)
-        end)
-    end
+    VendorBootstrapRuntime.InitializeInteractiveSurfaces(instance, {
+        buildCoreKeybinds = BuildCoreKeybinds,
+        runVendorSetupStep = RunVendorSetupStep,
+    })
 end
 
 local function CreateVendorScene(instance)
-    instance.fragment = ZO_SimpleSceneFragment:New(instance.control)
-    instance.fragment:SetHideOnSceneHidden(true)
-
-    local vendorFooterDummy = BETTERUI.WindowManager:CreateControl(
-        "BETTERUI_VendorFooterDummy", GuiRoot, CT_CONTROL)
-    vendorFooterDummy:SetHidden(true)
-    instance.footerFragment = ZO_SimpleSceneFragment:New(vendorFooterDummy)
-    instance.footerFragment:SetHideOnSceneHidden(true)
-
-    local scene = ZO_InteractScene:New(BETTERUI_VENDOR_SCENE_NAME, SCENE_MANAGER, Vendor.VENDOR_INTERACTION)
-    instance.scene = scene
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
-    scene:AddFragment(instance.fragment)
-    scene:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
-    scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
-    scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
-    scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
-    scene:AddFragment(instance.footerFragment)
+    VendorBootstrapRuntime.CreateScene(instance, {})
 end
 
 local function TakeOverNativeStoreScene(instance)
@@ -1854,144 +1364,22 @@ local function TakeOverNativeStoreScene(instance)
 end
 
 local function RegisterVendorSceneLifecycle(instance)
-    BETTERUI.CIM.SceneLifecycle.Register(instance, {
-        keybinds = { instance.coreKeybinds },
+    VendorBootstrapRuntime.RegisterSceneLifecycle(instance, {
         taskManager = Vendor.Tasks,
-        onShowing = function(screen, wasPushed)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
-            if screen.ReleaseNativeStoreInputOwnership then
-                screen:ReleaseNativeStoreInputOwnership()
-            end
-            if screen.ForceReleaseDirectionalInput then
-                screen:ForceReleaseDirectionalInput()
-            end
-            screen:ApplyNativeStoreMode(screen:GetCurrentMode())
-            screen:RefreshVendorFooter()
-            screen:InitializeScrollIndicator()
-            screen:RefreshList()
-            screen:EnsureHeaderKeybindsActive()
-            screen:EnsureColumnHeadersVisible()
-            if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.RegisterCallback then
-                if not screen.onItemPreviewRefreshActionsCallback then
-                    screen.onItemPreviewRefreshActionsCallback = function()
-                        if screen.RefreshVendorActionKeybinds then
-                            screen:RefreshVendorActionKeybinds()
-                        elseif KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                        end
-                    end
-                end
-                ITEM_PREVIEW_GAMEPAD:RegisterCallback("RefreshActions", screen.onItemPreviewRefreshActionsCallback)
-            end
-            if screen.list then
-                screen:OnItemSelectedChange(screen.list, screen.list:GetTargetData())
-                screen:UpdateScrollIndicator(screen.list)
-            end
-            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-            end
-        end,
-        onHiding = function(screen)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
-            if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.UnregisterCallback and screen.onItemPreviewRefreshActionsCallback then
-                ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", screen.onItemPreviewRefreshActionsCallback)
-            end
-            local currentMode = screen:GetCurrentMode()
-            if currentMode and screen.list then
-                screen:SaveListPosition()
-            end
-            if Vendor.multiSelectManager then
-                Vendor.multiSelectManager:ExitSelectionMode()
-            end
-            screen._suppressListUpdates = false
-            screen._isDirty = false
-            if screen.DisableStablePreviewMode then
-                screen:DisableStablePreviewMode()
-            end
-            if screen.ReleaseNativeStoreInputOwnership then
-                screen:ReleaseNativeStoreInputOwnership()
-            end
-            if screen.ForceReleaseDirectionalInput then
-                screen:ForceReleaseDirectionalInput()
-            end
-            screen:DeactivateHeaderKeybinds()
-            screen:DeactivateListInput()
-            if BETTERUI.CIM and BETTERUI.CIM.SceneCleanup then
-                BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
-                BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
-                BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
-            end
-            if GAMEPAD_TOOLTIPS then
-                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-                GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
-            end
-            if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip then
-                BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
-                BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
-            end
-            if screen.list and screen.list.control and BETTERUI.CIM and BETTERUI.CIM.ScrollIndicator then
-                BETTERUI.CIM.ScrollIndicator.Hide(screen.list.control)
-            end
-        end,
-        onHidden = function(screen)
-            if screen.DisableStablePreviewMode then
-                screen:DisableStablePreviewMode()
-            end
-            if screen.ReleaseNativeStoreInputOwnership then
-                screen:ReleaseNativeStoreInputOwnership()
-            end
-            if screen.ForceReleaseDirectionalInput then
-                screen:ForceReleaseDirectionalInput()
-            end
-            if BETTERUI.CIM and BETTERUI.CIM.SceneCleanup then
-                BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
-                BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
-                BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
-            end
-            local component = screen:GetActiveComponent()
-            if component and component.Deactivate then
-                component:Deactivate(screen)
-            end
-        end,
     })
 end
 
 local function RegisterVendorEvents(eventManager)
-    if not eventManager then
-        return
-    end
-
-    if EVENT_STABLE_INTERACT_START then
-        eventManager:RegisterForEvent(EVENT_NS .. "_StableStart", EVENT_STABLE_INTERACT_START, OnStableInteractStart)
-    end
-    if EVENT_STABLE_INTERACT_END then
-        eventManager:RegisterForEvent(EVENT_NS .. "_StableEnd", EVENT_STABLE_INTERACT_END, OnStableInteractEnd)
-    end
-    eventManager:RegisterForEvent(EVENT_NS .. "_Open", EVENT_OPEN_STORE, OnOpenStore)
-    eventManager:RegisterForEvent(EVENT_NS .. "_OpenFence", EVENT_OPEN_FENCE, OnOpenFence)
-    eventManager:RegisterForEvent(EVENT_NS .. "_Close", EVENT_CLOSE_STORE, OnCloseStore)
-    eventManager:RegisterForEvent(EVENT_NS .. "_InvUpdate",
-        EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventoryUpdated)
-    eventManager:RegisterForEvent(EVENT_NS .. "_InvFull",
-        EVENT_INVENTORY_FULL_UPDATE, OnInventoryUpdated)
-    eventManager:RegisterForEvent(EVENT_NS .. "_SellReceipt",
-        EVENT_SELL_RECEIPT, OnSellReceipt)
-    eventManager:RegisterForEvent(EVENT_NS .. "_BuyReceipt",
-        EVENT_BUY_RECEIPT, OnInventoryUpdated)
-    eventManager:RegisterForEvent(EVENT_NS .. "_BuybackReceipt",
-        EVENT_BUYBACK_RECEIPT, OnInventoryUpdated)
-    eventManager:RegisterForEvent(EVENT_NS .. "_RepairItem",
-        EVENT_ITEM_REPAIR_ALREADY_APPLIED_CONFIRMATION, OnInventoryUpdated)
-    eventManager:RegisterForEvent(EVENT_NS .. "_ItemLaunder",
-        EVENT_ITEM_LAUNDER_RESULT, OnInventoryUpdated)
-    eventManager:RegisterForEvent(EVENT_NS .. "_FenceUpdate",
-        EVENT_JUSTICE_FENCE_UPDATE, OnInventoryUpdated)
-    eventManager:RegisterForEvent(EVENT_NS .. "_MoneyUpdate",
-        EVENT_MONEY_UPDATE, OnMoneyUpdated)
-    if EVENT_CURRENCY_UPDATE then
-        eventManager:RegisterForEvent(EVENT_NS .. "_CurrencyUpdate",
-            EVENT_CURRENCY_UPDATE, OnMoneyUpdated)
-    end
+    VendorEventBridge.Register(eventManager, EVENT_NS, {
+        onStableInteractStart = OnStableInteractStart,
+        onStableInteractEnd = OnStableInteractEnd,
+        onOpenStore = OnOpenStore,
+        onOpenFence = OnOpenFence,
+        onCloseStore = OnCloseStore,
+        onInventoryUpdated = OnInventoryUpdated,
+        onSellReceipt = OnSellReceipt,
+        onMoneyUpdated = OnMoneyUpdated,
+    })
 end
 
 local function ExposeVendorRuntimeHelpers()

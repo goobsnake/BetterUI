@@ -59,6 +59,14 @@ local function EnsureInventorySetupContracts()
         })
         Inventory._inventoryActionModesRegistered = true
     end
+
+    if Inventory._inventoryDialogInvokerRegistered ~= true
+        and BETTERUI.CIM
+        and BETTERUI.CIM.RegisterInventoryDialogInvoker
+    then
+        BETTERUI.CIM.RegisterInventoryDialogInvoker(Inventory.InvokeDialog)
+        Inventory._inventoryDialogInvokerRegistered = true
+    end
 end
 
 --- Initializes defaults and migrates legacy settings for the Inventory module.

@@ -13,6 +13,7 @@ if not BETTERUI then BETTERUI = {} end
 ---@overload fun(moduleName: "Companions", defaults: BetterUICompanionsSettings|nil): BetterUICompanionsSettings
 ---@overload fun(moduleName: "GeneralInterface", defaults: BetterUIGeneralInterfaceSettings|nil): BetterUIGeneralInterfaceSettings
 ---@overload fun(moduleName: "Nameplates", defaults: BetterUINameplatesSettings|nil): BetterUINameplatesSettings
+---@overload fun(moduleName: "ResourceOrbFrames", defaults: BetterUIResourceOrbFramesSettings|nil): BetterUIResourceOrbFramesSettings
 ---@param moduleName ModuleName|string Module name key (e.g. "Inventory", "Banking")
 ---@param defaults BetterUIModuleSettings|nil Fallback table if module settings are absent
 ---@return BetterUIModuleSettings settings The module's settings table, or defaults
@@ -33,6 +34,7 @@ end
 ---@overload fun(moduleName: "Companions"): BetterUICompanionsSettings
 ---@overload fun(moduleName: "GeneralInterface"): BetterUIGeneralInterfaceSettings
 ---@overload fun(moduleName: "Nameplates"): BetterUINameplatesSettings
+---@overload fun(moduleName: "ResourceOrbFrames"): BetterUIResourceOrbFramesSettings
 ---@param moduleName ModuleName|string Module name key
 ---@return BetterUIModuleSettings settings The module settings table (always non-nil)
 function BETTERUI.EnsureModuleSettings(moduleName)
@@ -68,10 +70,18 @@ local function ResolveSettingDefault(moduleName, key, fallback)
     return fallback
 end
 
+---@overload fun(moduleName: "Inventory", key: BetterUIInventorySettingKey, default: BetterUIInventorySettingValue|nil): BetterUIInventorySettingValue|nil
+---@overload fun(moduleName: "Banking", key: BetterUIBankingSettingKey, default: BetterUIBankingSettingValue|nil): BetterUIBankingSettingValue|nil
+---@overload fun(moduleName: "Vendor", key: BetterUIVendorSettingKey, default: BetterUIVendorSettingValue|nil): BetterUIVendorSettingValue|nil
+---@overload fun(moduleName: "TradingHouse", key: BetterUITradingHouseSettingKey, default: BetterUITradingHouseSettingValue|nil): BetterUITradingHouseSettingValue|nil
+---@overload fun(moduleName: "Companions", key: BetterUICompanionsSettingKey, default: BetterUICompanionsSettingValue|nil): BetterUICompanionsSettingValue|nil
+---@overload fun(moduleName: "GeneralInterface", key: BetterUIGeneralInterfaceSettingKey, default: BetterUIGeneralInterfaceSettingValue|nil): BetterUIGeneralInterfaceSettingValue|nil
+---@overload fun(moduleName: "Nameplates", key: BetterUINameplatesSettingKey, default: BetterUINameplatesSettingValue|nil): BetterUINameplatesSettingValue|nil
+---@overload fun(moduleName: "ResourceOrbFrames", key: BetterUIResourceOrbFramesSettingKey, default: BetterUIResourceOrbFramesSettingValue|nil): BetterUIResourceOrbFramesSettingValue|nil
 ---@param moduleName ModuleName|string Module name key
----@param key string Setting key within the module
----@param default any Fallback value if the setting is nil
----@return any value The setting value, or default
+---@param key BetterUIModuleSettingKey|string Setting key within the module
+---@param default BetterUIModuleSettingValue|nil Fallback value if the setting is nil
+---@return BetterUIModuleSettingValue|nil value The setting value, or default
 function BETTERUI.GetSetting(moduleName, key, default)
     local settings = BETTERUI.GetModuleSettings(moduleName)
     if settings[key] ~= nil then
@@ -80,9 +90,17 @@ function BETTERUI.GetSetting(moduleName, key, default)
     return default
 end
 
+---@overload fun(moduleName: "Inventory", key: BetterUIInventorySettingKey, value: BetterUIInventorySettingValue): boolean
+---@overload fun(moduleName: "Banking", key: BetterUIBankingSettingKey, value: BetterUIBankingSettingValue): boolean
+---@overload fun(moduleName: "Vendor", key: BetterUIVendorSettingKey, value: BetterUIVendorSettingValue): boolean
+---@overload fun(moduleName: "TradingHouse", key: BetterUITradingHouseSettingKey, value: BetterUITradingHouseSettingValue): boolean
+---@overload fun(moduleName: "Companions", key: BetterUICompanionsSettingKey, value: BetterUICompanionsSettingValue): boolean
+---@overload fun(moduleName: "GeneralInterface", key: BetterUIGeneralInterfaceSettingKey, value: BetterUIGeneralInterfaceSettingValue): boolean
+---@overload fun(moduleName: "Nameplates", key: BetterUINameplatesSettingKey, value: BetterUINameplatesSettingValue): boolean
+---@overload fun(moduleName: "ResourceOrbFrames", key: BetterUIResourceOrbFramesSettingKey, value: BetterUIResourceOrbFramesSettingValue): boolean
 ---@param moduleName ModuleName|string Module name key
----@param key string Setting key to write (must not be nil)
----@param value any Value to store
+---@param key BetterUIModuleSettingKey|string Setting key to write (must not be nil)
+---@param value BetterUIModuleSettingValue Value to store
 ---@return boolean success True when the value was written
 function BETTERUI.SetSetting(moduleName, key, value)
     if type(moduleName) ~= "string" or moduleName == "" or key == nil then

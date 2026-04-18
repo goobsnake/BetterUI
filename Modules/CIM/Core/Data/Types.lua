@@ -80,7 +80,7 @@ BETTERUI.CIM.Types = {}
 ---| "settings-owner"
 ---| "thin-entrypoint"
 
----@alias BetterUIModuleOptions table<string, any>
+---@alias BetterUIModuleOptions table<string, BetterUIModuleSettingValue|nil>
 ---@alias BetterUIModuleInitHook fun(m_options: BetterUIModuleOptions|nil): BetterUIModuleOptions
 ---@alias BetterUIModuleSetupHook fun()
 
@@ -98,8 +98,8 @@ BETTERUI.CIM.Types = {}
 ---@field ROOT_CONTRACT BetterUIModuleRootContract
 ---@field InitModule BetterUIModuleInitHook|nil
 ---@field Setup BetterUIModuleSetupHook|nil
----@field GetSetting fun(key: string): any|nil
----@field SetSetting fun(key: string, value: any)|nil
+---@field GetSetting fun(key: BetterUIModuleSettingKey): BetterUIModuleSettingValue|nil
+---@field SetSetting fun(key: BetterUIModuleSettingKey, value: BetterUIModuleSettingValue): boolean|nil
 ---@field DEFAULTS table|nil
 
 -- SCENE & LIFECYCLE TYPES
@@ -277,6 +277,225 @@ BETTERUI.CIM.Types = {}
 ---@field style number|string|nil
 ---@field size number|nil
 
+---@class BetterUIResourceOrbFramesFrontBarOffsetSettings
+---@field offsetX number|nil
+---@field offsetY number|nil
+
+---@class BetterUIResourceOrbFramesFrontBarLayoutSettings
+---@field buttonSize number|nil
+---@field spacing number|nil
+---@field ultimateSize number|nil
+
+---@class BetterUIResourceOrbFramesFrontBarSettings
+---@field m_enabled boolean|nil
+---@field offsetX number|nil
+---@field offsetY number|nil
+---@field ultimate BetterUIResourceOrbFramesFrontBarOffsetSettings|nil
+---@field quickslotButton BetterUIResourceOrbFramesFrontBarOffsetSettings|nil
+---@field companionButton BetterUIResourceOrbFramesFrontBarOffsetSettings|nil
+---@field gamepad BetterUIResourceOrbFramesFrontBarLayoutSettings|nil
+---@field keyboard BetterUIResourceOrbFramesFrontBarLayoutSettings|nil
+
+---@class BetterUIResourceOrbFramesSettings
+---@field m_enabled boolean|nil
+---@field scale number|nil
+---@field offsetX number|nil
+---@field offsetY number|nil
+---@field centerBarType string|nil
+---@field healthTextSize number|nil
+---@field healthTextColor table|nil
+---@field magickaTextSize number|nil
+---@field magickaTextColor table|nil
+---@field staminaTextSize number|nil
+---@field staminaTextColor table|nil
+---@field shieldTextSize number|nil
+---@field shieldTextColor table|nil
+---@field xpBarEnabled boolean|nil
+---@field xpBarTextSize number|nil
+---@field xpBarTextColor table|nil
+---@field castBarEnabled boolean|nil
+---@field castBarAlwaysShow boolean|nil
+---@field castBarTextSize number|nil
+---@field castBarTextColor table|nil
+---@field mountStaminaBarEnabled boolean|nil
+---@field mountStaminaBarTextSize number|nil
+---@field mountStaminaBarTextColor table|nil
+---@field orbAnimFlow boolean|nil
+---@field cooldownTextSize number|nil
+---@field cooldownTextColor table|nil
+---@field quickslotTextSize number|nil
+---@field quickslotTextColor table|nil
+---@field weaponSwapAnimation boolean|nil
+---@field showUltimateNumber boolean|nil
+---@field ultimateTextSize number|nil
+---@field ultimateTextColor table|nil
+---@field showQuickslotCooldown boolean|nil
+---@field showQuickslotCount boolean|nil
+---@field showCombatGlow boolean|nil
+---@field showCombatIcon boolean|nil
+---@field playCombatAudio boolean|nil
+---@field backBarOpacity number|nil
+---@field hideBackBar boolean|nil
+---@field hideLeftOrnament boolean|nil
+---@field hideRightOrnament boolean|nil
+---@field leftOrbSizeScale number|nil
+---@field rightOrbSizeScale number|nil
+---@field customFrontBar BetterUIResourceOrbFramesFrontBarSettings|nil
+
+---@alias BetterUISharedFontSettingKey
+---| "nameFont"
+---| "nameFontSize"
+---| "nameFontStyle"
+---| "columnFont"
+---| "columnFontSize"
+---| "columnFontStyle"
+---| "showIconEnchantment"
+---| "showIconSetGear"
+---| "showIconUnboundItem"
+---| "showIconResearchableTrait"
+---| "showIconUnknownRecipe"
+---| "showIconUnknownBook"
+
+---@alias BetterUISharedFontSettingValue string|number|boolean|nil
+
+---@alias BetterUIInventorySettingKey
+---| BetterUISharedFontSettingKey
+---| "quickDestroy"
+---| "enableBatchDestroy"
+---| "enableCarousel"
+---| "useTriggersForSkip"
+---| "triggerSpeed"
+---| "bindOnEquipProtection"
+---| "enableCompanionJunk"
+---| "currencyPreset"
+---| "currencyOrder"
+
+---@alias BetterUIInventorySettingValue BetterUISharedFontSettingValue
+
+---@alias BetterUIBankingSettingKey
+---| BetterUISharedFontSettingKey
+---| "enableGuildBank"
+---| "enableCarousel"
+---| "useTriggersForSkip"
+---| "triggerSpeed"
+
+---@alias BetterUIBankingSettingValue BetterUISharedFontSettingValue
+
+---@alias BetterUIVendorSettingKey
+---| BetterUISharedFontSettingKey
+---| "enableCarousel"
+---| "enableBatchJunkSell"
+---| "abbreviateVendorCurrency"
+
+---@alias BetterUIVendorSettingValue BetterUISharedFontSettingValue
+
+---@alias BetterUITradingHouseSettingKey
+---| BetterUISharedFontSettingKey
+---| "enableCarousel"
+---| "searchPresets"
+
+---@alias BetterUITradingHouseSettingValue BetterUISharedFontSettingValue|table
+
+---@alias BetterUICompanionsSettingKey
+---| BetterUISharedFontSettingKey
+---| "enableCompanionEquipment"
+---| "quickDestroy"
+---| "batchDestroy"
+---| "bindOnEquipProtection"
+---| "enableCompanionJunk"
+
+---@alias BetterUICompanionsSettingValue BetterUISharedFontSettingValue
+
+---@alias BetterUIGeneralInterfaceSettingKey
+---| "showMarketPrice"
+---| "marketPricePriority"
+---| "showStyleTrait"
+---| "showKnowledgeStatus"
+---| "chatHistory"
+---| "attIntegration"
+---| "mmIntegration"
+---| "ttcIntegration"
+---| "guildStoreErrorSuppress"
+---| "removeDeleteDialog"
+
+---@alias BetterUIGeneralInterfaceSettingValue string|number|boolean|nil
+
+---@alias BetterUINameplatesSettingKey
+---| "m_enabled"
+---| "font"
+---| "style"
+---| "size"
+
+---@alias BetterUINameplatesSettingValue string|number|boolean|nil
+
+---@alias BetterUIResourceOrbFramesSettingKey
+---| "m_enabled"
+---| "scale"
+---| "offsetX"
+---| "offsetY"
+---| "centerBarType"
+---| "healthTextSize"
+---| "healthTextColor"
+---| "magickaTextSize"
+---| "magickaTextColor"
+---| "staminaTextSize"
+---| "staminaTextColor"
+---| "shieldTextSize"
+---| "shieldTextColor"
+---| "xpBarEnabled"
+---| "xpBarTextSize"
+---| "xpBarTextColor"
+---| "castBarEnabled"
+---| "castBarAlwaysShow"
+---| "castBarTextSize"
+---| "castBarTextColor"
+---| "mountStaminaBarEnabled"
+---| "mountStaminaBarTextSize"
+---| "mountStaminaBarTextColor"
+---| "orbAnimFlow"
+---| "cooldownTextSize"
+---| "cooldownTextColor"
+---| "quickslotTextSize"
+---| "quickslotTextColor"
+---| "weaponSwapAnimation"
+---| "showUltimateNumber"
+---| "ultimateTextSize"
+---| "ultimateTextColor"
+---| "showQuickslotCooldown"
+---| "showQuickslotCount"
+---| "showCombatGlow"
+---| "showCombatIcon"
+---| "playCombatAudio"
+---| "backBarOpacity"
+---| "hideBackBar"
+---| "hideLeftOrnament"
+---| "hideRightOrnament"
+---| "leftOrbSizeScale"
+---| "rightOrbSizeScale"
+---| "customFrontBar"
+
+---@alias BetterUIResourceOrbFramesSettingValue string|number|boolean|table|nil
+
+---@alias BetterUIModuleSettingKey
+---| BetterUIInventorySettingKey
+---| BetterUIBankingSettingKey
+---| BetterUIVendorSettingKey
+---| BetterUITradingHouseSettingKey
+---| BetterUICompanionsSettingKey
+---| BetterUIGeneralInterfaceSettingKey
+---| BetterUINameplatesSettingKey
+---| BetterUIResourceOrbFramesSettingKey
+
+---@alias BetterUIModuleSettingValue
+---| BetterUIInventorySettingValue
+---| BetterUIBankingSettingValue
+---| BetterUIVendorSettingValue
+---| BetterUITradingHouseSettingValue
+---| BetterUICompanionsSettingValue
+---| BetterUIGeneralInterfaceSettingValue
+---| BetterUINameplatesSettingValue
+---| BetterUIResourceOrbFramesSettingValue
+
 ---@alias BetterUIListModuleSettings
 ---| BetterUIInventorySettings
 ---| BetterUIBankingSettings
@@ -292,11 +511,12 @@ BETTERUI.CIM.Types = {}
 ---| BetterUICompanionsSettings
 ---| BetterUIGeneralInterfaceSettings
 ---| BetterUINameplatesSettings
----| table<string, any>
+---| BetterUIResourceOrbFramesSettings
+---| table<string, BetterUIModuleSettingValue|nil>
 
 ---@class ModuleSettings
----@field GetSetting fun(key: string): any Get a module setting value
----@field SetSetting fun(key: string, value: any) Set a module setting value
+---@field GetSetting fun(key: BetterUIModuleSettingKey): BetterUIModuleSettingValue|nil Get a module setting value
+---@field SetSetting fun(key: BetterUIModuleSettingKey, value: BetterUIModuleSettingValue): boolean Set a module setting value
 ---@field FONT_CHOICES string[] Available font display names
 ---@field FONT_VALUES string[] Font internal identifiers
 ---@field FONTSTYLE_CHOICES string[] Available font style names

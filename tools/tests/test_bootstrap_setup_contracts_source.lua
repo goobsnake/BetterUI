@@ -34,6 +34,7 @@ local vendorModule = read_file("Modules/Vendor/Module.lua")
 local companionsModule = read_file("Modules/Companions/Module.lua")
 local bankingModule = read_file("Modules/Banking/Module.lua")
 local tradingHouseModule = read_file("Modules/TradingHouse/Module.lua")
+local resourceOrbModule = read_file("Modules/ResourceOrbFrames/Module.lua")
 local inventoryFormatting = read_file("Modules/Inventory/Lists/InventoryEntryFormatting.lua")
 
 assert_contains(accessorSource, "function BETTERUI.CIM.ApplyModuleSharedSettingsStatics(",
@@ -74,8 +75,26 @@ assert_contains(companionsModule, 'BETTERUI.CIM.TryRegisterModulePanel(Companion
 
 assert_contains(bankingModule, 'BETTERUI.CIM.TryRegisterModulePanel(Banking, "Banking", "Bank", "Banking")',
     "Banking setup uses the shared panel registration helper")
+assert_contains(bankingModule, 'BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Banking, "Banking")',
+    "Banking keeps only shared settings statics at import time")
+assert_contains(bankingModule, 'local function EnsureBankingSetupContracts()',
+    "Banking defines an explicit setup-time bootstrap helper")
+assert_contains(bankingModule, 'BETTERUI.CIM.RegisterModuleAccessors(Banking, "Banking")',
+    "Banking registers accessors during setup")
+assert_contains(bankingModule, 'RegisterBankingModeLabels({',
+    "Banking narration labels register during setup-time bootstrap")
 assert_contains(tradingHouseModule, 'BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")',
     "TradingHouse setup uses the shared panel registration helper")
+assert_contains(tradingHouseModule, 'BETTERUI.CIM.ApplyModuleSharedSettingsStatics(TradingHouse, "TradingHouse")',
+    "TradingHouse keeps only shared settings statics at import time")
+assert_contains(tradingHouseModule, 'local function EnsureTradingHouseSetupContracts()',
+    "TradingHouse defines an explicit setup-time bootstrap helper")
+assert_contains(tradingHouseModule, 'BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")',
+    "TradingHouse registers accessors during setup")
+assert_contains(resourceOrbModule, 'local function EnsureResourceOrbFramesSetupContracts()',
+    "ResourceOrbFrames defines an explicit setup-time bootstrap helper")
+assert_contains(resourceOrbModule, 'BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")',
+    "ResourceOrbFrames registers accessors during setup")
 
 assert_contains(inventoryFormatting, 'local function IsModuleSceneShowing(moduleRoot)',
     "Inventory entry formatting resolves active modules through live module instances")

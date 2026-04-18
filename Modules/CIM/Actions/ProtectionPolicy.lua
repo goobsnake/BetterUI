@@ -29,6 +29,13 @@ Policy.DENY = {
     NOT_CRAFTABLE   = "not_craftable",
     CROWN_GEMMABLE  = "crown_gemmable",
     GUILD_TRADEABLE = "guild_tradeable",
+    NO_VALUE        = "no_value",
+    NOT_STOLEN      = "not_stolen",
+    NOT_JUNK        = "not_junk",
+    FENCE_LIMIT     = "fence_limit",
+    ARTIFACT        = "artifact",
+    CANNOT_AFFORD   = "cannot_afford",
+    INVALID_ACTION  = "invalid_action",
 }
 
 -- LOCAL HELPERS
@@ -44,6 +51,45 @@ end
 
 local function IsCompanionJunkEnabled()
     return BETTERUI.GetSetting("Inventory", "enableCompanionJunk", false) == true
+end
+
+local function ResolveItemSellValue(bagId, slotIndex)
+    local sellValue = GetItemSellValueWithBonuses and GetItemSellValueWithBonuses(bagId, slotIndex) or nil
+    if sellValue == nil and GetItemInfo then
+        local _, _, fallbackSellValue = GetItemInfo(bagId, slotIndex)
+        sellValue = fallbackSellValue
+    end
+    return sellValue or 0
+end
+
+local function HasRemainingFenceTransactions(actionType)
+    if actionType == "fence_sell" then
+        if not GetFenceSellTransactionInfo then
+            return true
+        end
+        local totalSells, sellsUsed = GetFenceSellTransactionInfo()
+        local remaining = (totalSells or 0) - (sellsUsed or 0)
+        remaining = zo_max and zo_max(remaining, 0) or math.max(remaining, 0)
+        return remaining > 0
+    end
+    if actionType == "fence_launder" then
+        if not GetFenceLaunderTransactionInfo then
+            return true
+        end
+        local totalLaunders, laundersUsed = GetFenceLaunderTransactionInfo()
+        local remaining = (totalLaunders or 0) - (laundersUsed or 0)
+        remaining = zo_max and zo_max(remaining, 0) or math.max(remaining, 0)
+        return remaining > 0
+    end
+    return true
+end
+
+local function IsArtifactItem(bagId, slotIndex)
+    if GetItemFunctionalQuality then
+        local functionalQuality = GetItemFunctionalQuality(bagId, slotIndex)
+        return functionalQuality ~= nil and functionalQuality >= ITEM_FUNCTIONAL_QUALITY_ARTIFACT
+    end
+    return false
 end
 
 -- PROTECTION CHECKS
@@ -218,6 +264,80 @@ function Policy.CanStowToCraftBag(bagId, slotIndex)
         return false, Policy.DENY.STOLEN
     end
     return true
+end
+
+--- Shared authorization gate for vendor-related item actions.
+---@param actionType "vendor_sell"|"vendor_sell_junk"|"vendor_sell_vengeance"|"fence_sell"|"fence_launder"
+---@param bagId number
+---@param slotIndex number
+---@param context table|nil Optional execution context
+---@return boolean allowed
+---@return string|nil reason
+function Policy.CanVendorAction(actionType, bagId, slotIndex, context)
+    if not actionType then
+        return false, Policy.DENY.INVALID_ACTION
+    end
+    if not bagId or slotIndex == nil or not HasItemAtSlot(bagId, slotIndex) then
+        return false, Policy.DENY.NO_ITEM
+    end
+
+    local isStolen = IsItemStolen and IsItemStolen(bagId, slotIndex) or false
+    local sellValue = ResolveItemSellValue(bagId, slotIndex)
+
+    if actionType == "vendor_sell" or actionType == "vendor_sell_vengeance" then
+        if isStolen then
+            return false, Policy.DENY.STOLEN
+        end
+        if sellValue <= 0 then
+            return false, Policy.DENY.NO_VALUE
+        end
+        return true
+    end
+
+    if actionType == "vendor_sell_junk" then
+        if not (IsItemJunk and IsItemJunk(bagId, slotIndex)) then
+            return false, Policy.DENY.NOT_JUNK
+        end
+        if isStolen then
+            return false, Policy.DENY.STOLEN
+        end
+        if sellValue <= 0 then
+            return false, Policy.DENY.NO_VALUE
+        end
+        return true
+    end
+
+    if actionType == "fence_sell" then
+        if not isStolen then
+            return false, Policy.DENY.NOT_STOLEN
+        end
+        if IsArtifactItem(bagId, slotIndex) then
+            return false, Policy.DENY.ARTIFACT
+        end
+        if not HasRemainingFenceTransactions(actionType) then
+            return false, Policy.DENY.FENCE_LIMIT
+        end
+        if sellValue <= 0 then
+            return false, Policy.DENY.NO_VALUE
+        end
+        return true
+    end
+
+    if actionType == "fence_launder" then
+        if not isStolen then
+            return false, Policy.DENY.NOT_STOLEN
+        end
+        if not HasRemainingFenceTransactions(actionType) then
+            return false, Policy.DENY.FENCE_LIMIT
+        end
+        local cost = GetItemLaunderPrice and GetItemLaunderPrice(bagId, slotIndex) or 0
+        if context and context.canAfford and not context.canAfford(cost) then
+            return false, Policy.DENY.CANNOT_AFFORD
+        end
+        return true
+    end
+
+    return false, Policy.DENY.INVALID_ACTION
 end
 
 function Policy.IsItemPlayerLocked(bagId, slotIndex)

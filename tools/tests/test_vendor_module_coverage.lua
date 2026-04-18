@@ -4,6 +4,7 @@ Purpose: Smoke coverage for the live Vendor modules still flagged by desloppify.
 ]]
 
 if false then
+    dofile("Modules/Vendor/Module.lua")
     dofile("Modules/Vendor/Components/BuyComponent.lua")
     dofile("Modules/Vendor/Components/BuybackComponent.lua")
     dofile("Modules/Vendor/Components/FenceLaunderComponent.lua")
@@ -11,13 +12,17 @@ if false then
     dofile("Modules/Vendor/Components/RepairComponent.lua")
     dofile("Modules/Vendor/Components/SellComponent.lua")
     dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
+    dofile("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
+    dofile("Modules/Vendor/Core/VendorControllerRuntime.lua")
+    dofile("Modules/Vendor/Core/VendorInteractionRuntime.lua")
     dofile("Modules/Vendor/Core/VendorModePolicy.lua")
+    dofile("Modules/Vendor/Core/VendorPresentationRuntime.lua")
     dofile("Modules/Vendor/Core/VendorClass.lua")
     dofile("Modules/Vendor/Core/VendorRowSetup.lua")
-    dofile("Modules/Vendor/Module.lua")
 end
 
 local vendorCoverageTargets = {
+    "Modules/Vendor/Module.lua",
     "Modules/Vendor/Components/BuyComponent.lua",
     "Modules/Vendor/Components/BuybackComponent.lua",
     "Modules/Vendor/Components/FenceLaunderComponent.lua",
@@ -25,10 +30,13 @@ local vendorCoverageTargets = {
     "Modules/Vendor/Components/RepairComponent.lua",
     "Modules/Vendor/Components/SellComponent.lua",
     "Modules/Vendor/Components/SellVengeanceComponent.lua",
+    "Modules/Vendor/Core/VendorBootstrapRuntime.lua",
+    "Modules/Vendor/Core/VendorControllerRuntime.lua",
+    "Modules/Vendor/Core/VendorInteractionRuntime.lua",
     "Modules/Vendor/Core/VendorModePolicy.lua",
+    "Modules/Vendor/Core/VendorPresentationRuntime.lua",
     "Modules/Vendor/Core/VendorClass.lua",
     "Modules/Vendor/Core/VendorRowSetup.lua",
-    "Modules/Vendor/Module.lua",
 }
 
 local testsPassed = 0
@@ -47,7 +55,7 @@ local function assertEqual(expected, actual, message)
     assertTrue(expected == actual, string.format("%s (expected=%s, actual=%s)", message, tostring(expected), tostring(actual)))
 end
 
-assertEqual(11, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor desloppify queue")
+assertEqual(15, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor desloppify queue")
 
 BETTERUI = {
     Vendor = {
@@ -152,6 +160,10 @@ assertTrue(type(BETTERUI.Vendor.FenceSellComponent) == "table", "fence sell comp
 assertTrue(type(BETTERUI.Vendor.RepairComponent) == "table", "repair component loads")
 assertTrue(type(BETTERUI.Vendor.SellComponent) == "table", "sell component loads")
 assertTrue(type(BETTERUI.Vendor.SellVengeanceComponent) == "table", "sell vengeance component loads")
+assertTrue(type(BETTERUI.Vendor.BootstrapRuntime) == "table", "vendor bootstrap runtime loads")
+assertTrue(type(BETTERUI.Vendor.ControllerRuntime) == "table", "vendor controller runtime loads")
+assertTrue(type(BETTERUI.Vendor.InteractionRuntime) == "table", "vendor interaction runtime loads")
+assertTrue(type(BETTERUI.Vendor.PresentationRuntime) == "table", "vendor presentation runtime loads")
 
 setmetatable(_G, originalGlobalMetatable)
 

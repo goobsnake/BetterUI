@@ -178,3 +178,27 @@ function BETTERUI.CIM.HandleLinkToChat(targetData)
     end
     return false
 end
+
+--- Registers the setup-owned inventory dialog invoker used by shared CIM actions.
+---@param invokeDialog fun(methodName: string, ...: any): boolean
+---@return boolean
+function BETTERUI.CIM.RegisterInventoryDialogInvoker(invokeDialog)
+    if type(invokeDialog) ~= "function" then
+        return false
+    end
+
+    BETTERUI.CIM._inventoryDialogInvoker = invokeDialog
+    return true
+end
+
+--- Calls the registered inventory dialog invoker when available.
+---@param methodName string
+---@return boolean
+function BETTERUI.CIM.InvokeInventoryDialog(methodName, ...)
+    local invokeDialog = BETTERUI.CIM._inventoryDialogInvoker
+    if type(invokeDialog) ~= "function" then
+        return false
+    end
+
+    return invokeDialog(methodName, ...)
+end

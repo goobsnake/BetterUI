@@ -20,6 +20,10 @@ ResourceOrbFrames.ROOT_CONTRACT = {
     notes = "Module.lua owns the public entrypoints and settings panel, while Settings/Defaults.lua owns defaults data and ResourceOrbFrames.lua/SkillBar/ own runtime behavior.",
 }
 
+local function EnsureResourceOrbFramesSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")
+end
+
 --- Re-exposes the standard module init contract from Module.lua while delegating
 --- the actual defaults work to Settings/Defaults.lua.
 ---@param m_options BetterUIModuleOptions|nil Module options table
@@ -280,5 +284,6 @@ end
 --- Sets up the Resource Orb Frames module.
 ---@type BetterUIModuleSetupHook
 function ResourceOrbFrames.Setup()
+    EnsureResourceOrbFramesSetupContracts()
     InitSettingsPanel("ResourceOrbFrames", "Resource Orb Frames")
 end

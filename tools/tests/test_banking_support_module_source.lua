@@ -8,6 +8,7 @@ Usage:
 ]]
 
 if false then
+    dofile("Modules/CIM/Actions/ActionDialogUtils.lua")
     dofile("Modules/Banking/Categories/CategoryManager.lua")
     dofile("Modules/Banking/Constants.lua")
     dofile("Modules/Banking/Core/GuildBankAdapter.lua")
@@ -126,8 +127,12 @@ assert_true(bankRowSetup:find("function BETTERUI%.Banking%.Class%.SetupCurrencyT
 local bankingModule = read_file("Modules/Banking/Module.lua")
 assert_true(bankingModule:find("Banking%.ROOT_CONTRACT = %{%s*") ~= nil,
     "Banking module declares a root contract")
-assert_true(bankingModule:find('BETTERUI%.CIM%.RegisterModuleAccessors%("Banking"%)') ~= nil,
-    "Banking module registers shared Banking accessors")
+assert_true(bankingModule:find('BETTERUI%.CIM%.ApplyModuleSharedSettingsStatics%(Banking, "Banking"%)') ~= nil,
+    "Banking module keeps only shared settings statics at import time")
+assert_true(bankingModule:find("local function EnsureBankingSetupContracts%(%)") ~= nil,
+    "Banking module defines setup-time Banking contract registration")
+assert_true(bankingModule:find('BETTERUI%.CIM%.RegisterModuleAccessors%(Banking, "Banking"%)') ~= nil,
+    "Banking module registers shared Banking accessors during setup")
 assert_true(bankingModule:find("function Banking%.InitModule%(m_options%)") ~= nil,
     "Banking module exposes InitModule")
 assert_true(bankingModule:find("function Banking%.Setup%(%)") ~= nil,

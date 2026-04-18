@@ -177,4 +177,3 @@ end
 -- Export defaults for use by OptionsBuilder
 BETTERUI.ResourceOrbFrames.InitializeDefaults = InitializeDefaults
 BETTERUI.ResourceOrbFrames.GetDefaults = GetDefaults
-BETTERUI.CIM.RegisterModuleAccessors(BETTERUI.ResourceOrbFrames, "ResourceOrbFrames")

@@ -21,21 +21,49 @@ end
 
 print("test_vendor_batch_runner_source")
 
-local source = read_file("Modules/Vendor/Vendor.lua")
+local vendorSource = read_file("Modules/Vendor/Vendor.lua")
+local batchRuntimeSource = read_file("Modules/Vendor/Core/VendorBatchRuntime.lua")
+local manifestSource = read_file("BetterUI.txt")
 
-assert_contains(source, "local function ResolveVendorBatchActionName(mode)",
-    "Vendor batch runner extracts action-name resolution")
-assert_contains(source, "local function ResolveVendorBatchDelayPolicy(totalItems)",
-    "Vendor batch runner extracts delay-policy resolution")
-assert_contains(source, "local function CreateVendorBatchRunner(mode, items, onComplete)",
-    "Vendor batch runner uses an explicit runner table")
-assert_contains(source, "function runner:Start()",
-    "Vendor batch runner exposes a named start phase")
-assert_contains(source, "function runner:Step()",
-    "Vendor batch runner exposes a named step phase")
-assert_contains(source, "function runner:Finish()",
-    "Vendor batch runner exposes a named finish phase")
-assert_contains(source, "local runner = CreateVendorBatchRunner(mode, items, onComplete)",
-    "Vendor.ExecuteBatchThrottled delegates to the explicit runner object")
+assert_contains(vendorSource, "local VendorBatchRuntime = assert(Vendor.BatchRuntime",
+    "Vendor runtime requires the batch runtime collaborator")
+assert_contains(vendorSource, "function Vendor.ExecuteBatchAction(mode, itemData)",
+    "Vendor exposes the batch-action facade for component callers")
+assert_contains(vendorSource, "VendorBatchRuntime.ExecuteBatchAction(mode, itemData)",
+    "Vendor batch-action facade delegates execution to the collaborator")
+assert_contains(vendorSource, "local function ResolveVendorBatchActionName(mode)",
+    "Vendor keeps a helper seam for action-name resolution delegation")
+assert_contains(vendorSource, "return VendorBatchRuntime.ResolveBatchActionName(mode)",
+    "Vendor action-name helper delegates to the collaborator")
+assert_contains(vendorSource, "local function ResolveVendorBatchDelayPolicy(totalItems)",
+    "Vendor keeps a helper seam for delay-policy delegation")
+assert_contains(vendorSource, "return VendorBatchRuntime.ResolveBatchDelayPolicy(totalItems)",
+    "Vendor delay-policy helper delegates to the collaborator")
+assert_contains(vendorSource, "local function CreateVendorBatchRunner(mode, items, onComplete)",
+    "Vendor keeps a helper seam for explicit runner delegation")
+assert_contains(vendorSource, "return VendorBatchRuntime.CreateBatchRunner(mode, items, onComplete)",
+    "Vendor runner helper delegates to the collaborator")
+assert_contains(vendorSource, "VendorBatchRuntime.ExecuteBatchThrottled(mode, items, onComplete)",
+    "Vendor.ExecuteBatchThrottled delegates to the collaborator")
+assert_contains(vendorSource, "VendorBatchRuntime.RequestBatchAbort()",
+    "Vendor.RequestBatchAbort delegates to the collaborator")
+
+assert_contains(batchRuntimeSource, "function BatchRuntime.ResolveBatchActionName(mode)",
+    "Batch runtime owns action-name resolution")
+assert_contains(batchRuntimeSource, "function BatchRuntime.ResolveBatchDelayPolicy(totalItems)",
+    "Batch runtime owns delay-policy resolution")
+assert_contains(batchRuntimeSource, "function BatchRuntime.CreateBatchRunner(mode, items, onComplete)",
+    "Batch runtime owns explicit runner construction")
+assert_contains(batchRuntimeSource, "function runner:Start()",
+    "Batch runtime runner exposes a named start phase")
+assert_contains(batchRuntimeSource, "function runner:Step()",
+    "Batch runtime runner exposes a named step phase")
+assert_contains(batchRuntimeSource, "function runner:Finish()",
+    "Batch runtime runner exposes a named finish phase")
+assert_contains(batchRuntimeSource, "local runner = BatchRuntime.CreateBatchRunner(mode, items, onComplete)",
+    "Batch runtime executes throttled work via the explicit runner object")
+
+assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorBatchRuntime.lua",
+    "Vendor manifest loads the batch runtime collaborator")
 
 print("  OK")

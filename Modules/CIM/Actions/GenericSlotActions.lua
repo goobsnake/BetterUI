@@ -11,6 +11,27 @@ local function GetBankingTransferHelper(helperName)
     return helpers and helpers[helperName]
 end
 
+local function NotifyTransferDenied(context, targetBag, denyReason)
+    if not denyReason then
+        return
+    end
+    local resolveTransferDeniedStringId = GetBankingTransferHelper("ResolveTransferDeniedStringId")
+    if not resolveTransferDeniedStringId then
+        return
+    end
+    local errorStringId = resolveTransferDeniedStringId(targetBag, denyReason)
+    if not errorStringId then
+        return
+    end
+
+    if denyReason == "furniture_vault_locked" or (IsFurnitureVault and IsFurnitureVault(targetBag)) then
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
+        return
+    end
+
+    BETTERUI.CIM.UserNotify(context, errorStringId)
+end
+
 -- SHARED ITEM ACTION HELPERS
 -- These functions provide common item action implementations used by
 -- Inventory and Banking modules. They handle secure API calls.
@@ -59,6 +80,7 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     local GuildBank = BETTERUI.Banking and BETTERUI.Banking.GuildBank
     local notifyGuildBankTransferDenied = GetBankingTransferHelper("NotifyGuildBankTransferDenied")
+    local isDepositSupportedForBank = GetBankingTransferHelper("IsDepositSupportedForBank")
     local isGuildBankMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode()
     local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
     if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
@@ -86,48 +108,35 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
                 return false, denyReason
             end
         end
-        local isTargetFurnitureVault = IsFurnitureVault and IsFurnitureVault(bankingBag)
-        if isTargetFurnitureVault and HOUSING_EDITOR_STATE and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault and
-            not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault() then
-            local blockedReason = IsESOPlusSubscriber and IsESOPlusSubscriber()
-                and SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE
-                or SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS
-            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, blockedReason)
-            return false, "furniture_vault_locked"
+        local canDeposit, denyReason = true, nil
+        if isDepositSupportedForBank then
+            canDeposit, denyReason = isDepositSupportedForBank(bag, index, bankingBag)
+        else
+            local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+            if policy and policy.CanTransferItem then
+                canDeposit, denyReason = policy.CanTransferItem(bag, index, bankingBag)
+            end
+        end
+        if not canDeposit then
+            NotifyTransferDenied("TryTransferItem:Deposit", bankingBag, denyReason)
+            return false, denyReason
         end
 
-        if IsItemStolen(bag, index) then
-            if isTargetFurnitureVault then
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE)
-            else
-                BETTERUI.CIM.UserNotify("TryTransferItem:Deposit", SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
-            end
-            return false, "stolen"
+        local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
+        if DoesBagHaveSpaceFor(bankingBag, bag, index) or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
+            CallSecureProtected("PickupInventoryItem", bag, index)
+            CallSecureProtected("PlaceInTransfer")
+            return true
         else
-            local isGemmableFurniture = isTargetFurnitureVault and CROWN_GEMIFICATION_MANAGER and
-                CROWN_GEMIFICATION_MANAGER.IsItemGemmable and
-                CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(bag), tonumber(index))
-            if isGemmableFurniture then
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_FURNITURE_VAULT_ERROR_GEMMABLE_FURNITURE)
-                return false, "furniture_vault_gemmable"
-            end
-
-            local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
-            if DoesBagHaveSpaceFor(bankingBag, bag, index) or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
-                CallSecureProtected("PickupInventoryItem", bag, index)
-                CallSecureProtected("PlaceInTransfer")
-                return true
-            else
-                if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
-                    if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
-                        TriggerTutorial(TUTORIAL_TRIGGER_BANK_OVERFULL)
-                    else
-                        TriggerTutorial(TUTORIAL_TRIGGER_BANK_FULL_NO_ESO_PLUS)
-                    end
+            if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
+                if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
+                    TriggerTutorial(TUTORIAL_TRIGGER_BANK_OVERFULL)
+                else
+                    TriggerTutorial(TUTORIAL_TRIGGER_BANK_FULL_NO_ESO_PLUS)
                 end
-                ZO_AlertEvent(EVENT_BANK_IS_FULL)
-                return false, "bank_full"
             end
+            ZO_AlertEvent(EVENT_BANK_IS_FULL)
+            return false, "bank_full"
         end
     end
 end
@@ -207,8 +216,7 @@ end
 function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
     local stowCallback = function()
         -- Use quantity dialog for stacked items
-        local invokeInventoryDialog = BETTERUI.Inventory and BETTERUI.Inventory.InvokeDialog
-        if not (invokeInventoryDialog and invokeInventoryDialog("TryStowWithQuantity", inventorySlot)) then
+        if not BETTERUI.CIM.InvokeInventoryDialog("TryStowWithQuantity", inventorySlot) then
             BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
         end
     end

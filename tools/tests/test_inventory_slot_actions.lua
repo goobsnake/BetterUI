@@ -36,6 +36,8 @@ SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC = 10
 SI_ITEM_ACTION_SPLIT_STACK = 11
 SI_ITEM_ACTION_LINK_TO_CHAT = 12
 SI_ITEM_ACTION_DESTROY = 13
+SI_ITEM_ACTION_MARK_AS_JUNK = 14
+SI_ITEM_ACTION_UNMARK_AS_JUNK = 15
 
 local stringMap = {
     [SI_ITEM_ACTION_USE] = "Use",
@@ -51,6 +53,8 @@ local stringMap = {
     [SI_ITEM_ACTION_SPLIT_STACK] = "Split Stack",
     [SI_ITEM_ACTION_LINK_TO_CHAT] = "Link to Chat",
     [SI_ITEM_ACTION_DESTROY] = "Destroy",
+    [SI_ITEM_ACTION_MARK_AS_JUNK] = "Mark as Junk",
+    [SI_ITEM_ACTION_UNMARK_AS_JUNK] = "Unmark as Junk",
 }
 
 function GetString(id)
@@ -74,9 +78,19 @@ end
 
 GAMEPAD_INVENTORY = {
     TryEquipItem = function() end,
+    InvalidateSlotDataCache = function()
+        invalidateSlotDataCacheCalls = (invalidateSlotDataCacheCalls or 0) + 1
+    end,
 }
 
 SCENE_MANAGER = { scenes = {} }
+BAG_VIRTUAL = 9001
+
+local canMarkAsJunk = false
+local isItemJunk = false
+local setJunkCalls = {}
+local protectionAllowsJunk = true
+local protectionAllowsUnjunk = true
 
 local safeExecuteCalls = {}
 
@@ -103,6 +117,39 @@ BETTERUI.CIM.IsSlotInCraftBag = function() return false end
 BETTERUI.CIM.TryCall = function() return false end
 BETTERUI.CIM.SetupSecureAction = function(actionsList)
     actionsList._setupCalls = (actionsList._setupCalls or 0) + 1
+end
+BETTERUI.CIM.ProtectionPolicy = {
+    CanJunkItem = function()
+        return protectionAllowsJunk
+    end,
+    CanUnjunkItem = function()
+        return protectionAllowsUnjunk
+    end,
+}
+
+function ZO_Inventory_GetBagAndIndex(inventorySlot)
+    return inventorySlot and inventorySlot.bagId, inventorySlot and inventorySlot.slotIndex
+end
+
+function CanItemBeMarkedAsJunk()
+    return canMarkAsJunk
+end
+
+function IsItemJunk()
+    return isItemJunk
+end
+
+function IsItemPlayerLocked()
+    return false
+end
+
+function SetItemIsJunk(bagId, slotIndex, junkState)
+    setJunkCalls[#setJunkCalls + 1] = {
+        bagId = bagId,
+        slotIndex = slotIndex,
+        isJunk = junkState,
+    }
+    isItemJunk = junkState == true
 end
 
 -- ============================================================================
@@ -136,6 +183,15 @@ local function assert_true(value, message)
     assert_equal(true, value, message)
 end
 
+local function resetJunkState()
+    canMarkAsJunk = true
+    isItemJunk = false
+    setJunkCalls = {}
+    protectionAllowsJunk = true
+    protectionAllowsUnjunk = true
+    invalidateSlotDataCacheCalls = 0
+end
+
 -- ============================================================================
 -- TESTS
 -- ============================================================================
@@ -164,6 +220,11 @@ local slotActionsStub = {
     end,
     AddSlotAction = function(self, name, callback, actionType, visibilityFunction, options)
         self.m_slotActions[#self.m_slotActions + 1] = { name, callback, actionType, visibilityFunction, options }
+    end,
+    AddSlotPrimaryAction = function(self, name, callback, actionType, visibilityFunction, options)
+        self._betterui_primaryOverride = callback
+        self._betterui_primaryName = name
+        table.insert(self.m_slotActions, 1, { name, callback, actionType, visibilityFunction, options })
     end,
 }
 
@@ -208,6 +269,9 @@ local visibilityStub = {
 }
 
 local visibilityController = setmetatable({ slotActions = visibilityStub }, { __index = BETTERUI.Inventory.SlotActions })
+canMarkAsJunk = false
+protectionAllowsJunk = false
+protectionAllowsUnjunk = false
 local ok3 = pcall(function()
     visibilityController:ActivatePrimaryCommand(inventorySlot)
 end)
@@ -229,6 +293,54 @@ assert_true(type(debugMessages[#debugMessages]) == "string"
         and debugMessages[#debugMessages]:find("visibility check failed for Destroy", 1, true) ~= nil,
     "Visibility fallback logs the failure context when SafeExecute is unavailable")
 BETTERUI.CIM.SafeExecute = originalSafeExecute
+
+local junkStub = {
+    m_slotActions = {
+        { "Link to Chat", function() end }
+    },
+    Clear = function(self)
+        self.m_slotActions = {
+            { "Link to Chat", function() end }
+        }
+        self._betterui_primaryOverride = nil
+        self._betterui_primaryName = nil
+    end,
+    SetInventorySlot = function(self, slot)
+        self._inventorySlot = slot
+    end,
+    GetPrimaryActionName = function()
+        return "Link to Chat"
+    end,
+    AddSlotAction = function(self, name, callback, actionType, visibilityFunction, options)
+        self.m_slotActions[#self.m_slotActions + 1] = { name, callback, actionType, visibilityFunction, options }
+    end,
+    AddSlotPrimaryAction = function(self, name, callback, actionType, visibilityFunction, options)
+        self._betterui_primaryOverride = callback
+        self._betterui_primaryName = name
+        table.insert(self.m_slotActions, 1, { name, callback, actionType, visibilityFunction, options })
+    end,
+}
+
+local junkController = setmetatable({ slotActions = junkStub }, { __index = BETTERUI.Inventory.SlotActions })
+
+resetJunkState()
+protectionAllowsJunk = false
+junkController:ActivatePrimaryCommand(inventorySlot)
+assert_equal(nil, junkController.actionName,
+    "Primary action does not offer mark-as-junk when ProtectionPolicy denies junking")
+assert_equal(nil, junkStub._betterui_primaryOverride,
+    "No junk callback is installed when ProtectionPolicy denies junking")
+assert_equal(0, #setJunkCalls, "Denied junk path does not mutate junk state")
+
+resetJunkState()
+isItemJunk = true
+protectionAllowsUnjunk = false
+junkController:ActivatePrimaryCommand(inventorySlot)
+assert_equal(nil, junkController.actionName,
+    "Primary action does not offer unmark-as-junk when ProtectionPolicy denies unjunking")
+assert_equal(nil, junkStub._betterui_primaryOverride,
+    "No unjunk callback is installed when ProtectionPolicy denies unjunking")
+assert_equal(0, #setJunkCalls, "Denied unjunk path does not mutate junk state")
 end
 
 -- ============================================================================

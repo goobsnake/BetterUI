@@ -7,6 +7,14 @@ Usage:
   lua tools/tests/test_cim_support_module_source.lua
 ]]
 
+if false then
+    dofile("Modules/CIM/Actions/ActionDialogUtils.lua")
+    dofile("Modules/CIM/Actions/ProtectionPolicy.lua")
+    dofile("Modules/CIM/Constants.lua")
+    dofile("Modules/CIM/ConstantsUI.lua")
+    dofile("Modules/CIM/Core/Batching/BatchActions.lua")
+end
+
 local passed = 0
 local failed = 0
 
@@ -26,6 +34,12 @@ local function read_file(path)
     return content
 end
 
+local actionDialogUtils = read_file("Modules/CIM/Actions/ActionDialogUtils.lua")
+assert_true(actionDialogUtils:find("function BETTERUI%.CIM%.RegisterInventoryDialogInvoker%(invokeDialog%)") ~= nil,
+    "ActionDialogUtils exposes the setup-owned inventory dialog registration seam")
+assert_true(actionDialogUtils:find("function BETTERUI%.CIM%.InvokeInventoryDialog%(methodName, %.%.%.%)") ~= nil,
+    "ActionDialogUtils exposes the shared inventory dialog invoker")
+
 local protectionPolicy = read_file("Modules/CIM/Actions/ProtectionPolicy.lua")
 assert_true(protectionPolicy:find("BETTERUI%.CIM%.ProtectionPolicy = %{%}") ~= nil,
     "ProtectionPolicy initializes the shared protection-policy table")
@@ -39,6 +53,8 @@ assert_true(protectionPolicy:find("function Policy%.CanDepositToFurnitureVault%(
     "ProtectionPolicy exposes CanDepositToFurnitureVault")
 assert_true(protectionPolicy:find("function Policy%.CanStowToCraftBag%(bagId, slotIndex%)") ~= nil,
     "ProtectionPolicy exposes CanStowToCraftBag")
+assert_true(protectionPolicy:find("function Policy%.CanVendorAction%(actionType, bagId, slotIndex, context%)") ~= nil,
+    "ProtectionPolicy exposes shared vendor action authorization")
 assert_true(protectionPolicy:find("function Policy%.IsProtected%(bagId, slotIndex%)") ~= nil,
     "ProtectionPolicy exposes IsProtected")
 
@@ -81,6 +97,10 @@ assert_true(batchActions:find("function BatchActions%.BatchUnmarkAsJunk%(self%)"
     "BatchActions exposes BatchUnmarkAsJunk")
 assert_true(batchActions:find("function BatchActions%.AnalyzeSelectedItems%(selectedItems%)") ~= nil,
     "BatchActions exposes AnalyzeSelectedItems")
+
+local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")
+assert_true(genericSlotActions:find("BETTERUI%.CIM%.InvokeInventoryDialog%(\"TryStowWithQuantity\", inventorySlot%)") ~= nil,
+    "GenericSlotActions routes craft-bag quantity dialogs through the shared CIM dialog seam")
 
 if failed > 0 then
     error(string.format("test_cim_support_module_source.lua failed with %d failure%(s%)", failed))

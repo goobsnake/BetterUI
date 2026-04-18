@@ -83,7 +83,13 @@ function SellVengeance:IsPrimaryActionEnabled(vendorInstance)
 
     local ds = selectedData.dataSource or selectedData
     local sellPrice = ds.sellPrice or ds.stackSellPrice or 0
-    return ds.bagId ~= nil and ds.slotIndex ~= nil and sellPrice > 0
+    if ds.bagId == nil or ds.slotIndex == nil or sellPrice <= 0 then
+        return false
+    end
+
+    return Vendor.AuthorizeInventoryAction
+        and Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL_VENGEANCE, ds.bagId, ds.slotIndex, vendorInstance)
+        or true
 end
 
 function SellVengeance:OnPrimaryAction(vendorInstance)
@@ -101,6 +107,13 @@ function SellVengeance:OnPrimaryAction(vendorInstance)
     local slotIndex = ds.slotIndex
     if bagId == nil or slotIndex == nil then
         return
+    end
+
+    if Vendor.AuthorizeInventoryAction then
+        local canSell = Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL_VENGEANCE, bagId, slotIndex, vendorInstance)
+        if not canSell then
+            return
+        end
     end
 
     local stackSize = GetSlotStackSize(bagId, slotIndex) or 0

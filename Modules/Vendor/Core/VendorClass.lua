@@ -22,7 +22,7 @@ BETTERUI.Vendor.FENCE_INTERACTION = {
 
 -- MODE CONSTANTS
 
-BETTERUI.Vendor.MODE = {
+BETTERUI.Vendor.MODE = BETTERUI.Vendor.MODE or {
     BUY           = 1,
     SELL          = 2,
     REPAIR        = 3,
@@ -124,6 +124,8 @@ local ResolveModeName = assert(Vendor.ResolveModeName, "Vendor mode policy must 
 local ResolveModeIcon = assert(Vendor.ResolveModeIcon, "Vendor mode policy must load before VendorClass")
 local ResolveNativeStoreMode = assert(Vendor.ResolveNativeStoreMode, "Vendor mode policy must load before VendorClass")
 local VendorModePolicy = assert(Vendor.ModePolicy, "Vendor mode policy must load before VendorClass")
+local VendorControllerRuntime = assert(Vendor.ControllerRuntime, "Vendor controller runtime must load before VendorClass")
+local VendorPresentationRuntime = assert(Vendor.PresentationRuntime, "Vendor presentation runtime must load before VendorClass")
 
 local function DoesModeUseItemsTitle(mode)
     local descriptor = GetModeDescriptor(mode)
@@ -365,9 +367,9 @@ local function ApplyVendorHeaderModelState(instance, headerModel)
 end
 
 local function BuildVendorHeaderData(instance, headerModel, onSelectedChanged)
-    local carouselStartOffset = (BETTERUI.Banking and BETTERUI.Banking.CONST and BETTERUI.Banking.CONST.CAROUSEL and BETTERUI.Banking.CONST.CAROUSEL.startOffset)
+    local carouselStartOffset = (BETTERUI.Vendor and BETTERUI.Vendor.CONST and BETTERUI.Vendor.CONST.CAROUSEL and BETTERUI.Vendor.CONST.CAROUSEL.startOffset)
         or BETTERUI.CIM.CONST.CAROUSEL.startOffset
-    local carouselVerticalOffset = (BETTERUI.Banking and BETTERUI.Banking.CONST and BETTERUI.Banking.CONST.CAROUSEL and BETTERUI.Banking.CONST.CAROUSEL.verticalOffset)
+    local carouselVerticalOffset = (BETTERUI.Vendor and BETTERUI.Vendor.CONST and BETTERUI.Vendor.CONST.CAROUSEL and BETTERUI.Vendor.CONST.CAROUSEL.verticalOffset)
         or BETTERUI.CIM.CONST.CAROUSEL.verticalOffset
 
     return {
@@ -837,145 +839,25 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:ReleaseNativeStoreInputOwnership()
-    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
-    if not storeManager then
-        return
-    end
-
-    ReleaseSpinnerDirectionalInput(storeManager.spinner)
-
-    LogVendorDebug(
-        "DIRECTIONAL_INPUT",
-        "VendorDI",
-        string.format(
-            "ReleaseNativeStoreInputOwnership store=%s headerFocus=%s currentList=%s",
-            tostring(IsDirectionalInputListening(storeManager)),
-            tostring(IsDirectionalInputListening(storeManager.headerFocus)),
-            tostring(IsDirectionalInputListening(storeManager._currentList))
-        )
-    )
-
-    if type(storeManager.DeactivateActiveComponent) == "function" then
-        ExecuteSafely(
-            "Vendor.ReleaseNativeStoreInputOwnership:DeactivateActiveComponent",
-            storeManager.DeactivateActiveComponent,
-            storeManager,
-            false
-        )
-    end
-
-    if type(storeManager.DeactivateTextSearch) == "function" then
-        ExecuteSafely("Vendor.ReleaseNativeStoreInputOwnership:DeactivateTextSearch", storeManager.DeactivateTextSearch, storeManager)
-    end
-
-    local headerFocus = storeManager.headerFocus
-    if headerFocus then
-        -- Deactivate unconditionally — headerFocus may be registered on DIRECTIONAL_INPUT
-        -- even when IsActive() returns false (inconsistent state from external deactivation).
-        -- ZO_GamepadFocus:SetActive(false) checks `self.active ~= active` and is a no-op
-        -- when active is already false, so also call DIRECTIONAL_INPUT:Deactivate directly.
-        if headerFocus.Deactivate then
-            ExecuteSafely("Vendor.ReleaseNativeStoreInputOwnership:HeaderFocusDeactivate", headerFocus.Deactivate, headerFocus)
-        end
-        ReleaseDirectionalInputRegistrations(headerFocus)
-    end
-
-    if type(storeManager.RemoveListKeybinds) == "function" then
-        ExecuteSafely("Vendor.ReleaseNativeStoreInputOwnership:RemoveListKeybinds", storeManager.RemoveListKeybinds, storeManager)
-    end
-
-    if storeManager.keybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(storeManager.keybindStripDescriptor)
-    end
-
-    if type(storeManager.Deactivate) == "function" then
-        ExecuteSafely("Vendor.ReleaseNativeStoreInputOwnership:Deactivate", storeManager.Deactivate, storeManager)
-    end
-
-    -- Direct DIRECTIONAL_INPUT:Deactivate on storeManager — bypasses the
-    -- DisableCurrentList → SetDirectionalInputEnabled chain which may have
-    -- already run, leaving the storeManager's active flag false while it
-    -- is still registered on the DI stack.
-    ReleaseDirectionalInputRegistrations(storeManager)
-
-    -- Deactivate the native store's header tabBar — the native scene's SCENE_HIDDEN
-    -- handler (which calls ZO_GamepadGenericHeader_Deactivate) never fires because
-    -- BetterUI replaces the scene alias, leaving the native tabBar orphaned on the
-    -- DIRECTIONAL_INPUT stack.
-    local nativeHeader = storeManager.header
-    if nativeHeader then
-        ReleaseHeaderDirectionalInput(nativeHeader, "Vendor.ReleaseNativeStoreInputOwnership:NativeHeader")
-
-        local nativeTabBar = nativeHeader.tabBar
-        if nativeTabBar then
-            if nativeTabBar.Deactivate then
-                nativeTabBar:Deactivate()
-            end
-            ReleaseDirectionalInputRegistrations(nativeTabBar)
-        end
-    end
-
-    -- Deactivate the native store's current list — use direct DI calls in case
-    -- the list's .active flag is already false (ZO_ParametricScrollList:Deactivate
-    -- is a no-op when self.active ~= false is false).
-    if storeManager._currentList then
-        if storeManager._currentList.Deactivate then
-            storeManager._currentList:Deactivate()
-        end
-        if storeManager._currentList.SetDirectionalInputEnabled then
-            storeManager._currentList:SetDirectionalInputEnabled(false)
-        end
-        ReleaseDirectionalInputRegistrations(storeManager._currentList, true)
-    end
-
-    -- Sweep all native component lists off DI — component:Refresh() during
-    -- SetActiveComponents may have triggered OnEffectivelyShown handlers that
-    -- call list:Activate(), registering them on the DI stack.
-    local activeComps = storeManager.activeComponents
-    if type(activeComps) == "table" then
-        for _, comp in ipairs(activeComps) do
-            if comp and comp.list then
-                if comp.list.SetDirectionalInputEnabled then
-                    comp.list:SetDirectionalInputEnabled(false)
-                end
-                ReleaseDirectionalInputRegistrations(comp.list, true)
-            end
-        end
-    end
+    VendorControllerRuntime.ReleaseNativeStoreInputOwnership(self, {
+        isDirectionalInputListening = IsDirectionalInputListening,
+        releaseSpinnerDirectionalInput = ReleaseSpinnerDirectionalInput,
+        logVendorDebug = LogVendorDebug,
+        executeSafely = ExecuteSafely,
+        releaseDirectionalInputRegistrations = ReleaseDirectionalInputRegistrations,
+        releaseHeaderDirectionalInput = ReleaseHeaderDirectionalInput,
+    })
 end
 
 ---@return nil
 function BETTERUI.Vendor.Class:ForceReleaseDirectionalInput()
-    if not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT.Deactivate) then
-        return
-    end
-
-    LogVendorDebug("DIRECTIONAL_INPUT", "VendorDI", "ForceReleaseDirectionalInput invoked")
-
-    -- Use proper Deactivate methods where possible so object state (e.g.
-    -- tabBar.active, list:IsActive()) stays consistent with DIRECTIONAL_INPUT.
-    local function SafeDeactivate(obj, includeMovementController, disableDirectionalInput)
-        if not obj then return end
-        if disableDirectionalInput and obj.SetDirectionalInputEnabled then
-            obj:SetDirectionalInputEnabled(false)
-        end
-        if obj.Deactivate then
-            if not obj.IsActive or obj:IsActive() or IsDirectionalInputListening(obj)
-                or (includeMovementController and IsDirectionalInputListening(obj.movementController)) then
-                obj:Deactivate()
-            end
-        end
-        ReleaseDirectionalInputRegistrations(obj, includeMovementController)
-    end
-
-    SafeDeactivate(self, true)
-    SafeDeactivate(self.list, true, true)
-    ReleaseSpinnerDirectionalInput(self.spinner)
-    ReleaseHeaderDirectionalInput(self.headerGeneric, "Vendor.ForceReleaseDirectionalInput:HeaderGeneric")
-    ReleaseHeaderDirectionalInput(self.header, "Vendor.ForceReleaseDirectionalInput:Header")
-    SafeDeactivate(self.textSearchHeaderFocus, true)
-    SafeDeactivate(self.headerFocus, true)
-    SafeDeactivate(self.textSearchHeaderControl, true)
+    VendorControllerRuntime.ForceReleaseDirectionalInput(self, {
+        isDirectionalInputListening = IsDirectionalInputListening,
+        releaseSpinnerDirectionalInput = ReleaseSpinnerDirectionalInput,
+        releaseDirectionalInputRegistrations = ReleaseDirectionalInputRegistrations,
+        releaseHeaderDirectionalInput = ReleaseHeaderDirectionalInput,
+        logVendorDebug = LogVendorDebug,
+    })
 end
 
 ---@param reason string|nil
@@ -1347,14 +1229,10 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:SaveListPosition()
-    local currentMode = self:GetCurrentMode()
-    if not currentMode or not self.list then
-        return
-    end
-
-    local moduleKey = GetVendorModeModuleKey(currentMode)
-    local categoryKey = GetVendorCategoryKey(self)
-    BETTERUI.CIM.PositionManager.SavePosition(moduleKey, categoryKey, self.list)
+    VendorControllerRuntime.SaveListPosition(self, {
+        getModeModuleKey = GetVendorModeModuleKey,
+        getCategoryKey = GetVendorCategoryKey,
+    })
 end
 
 ---@return nil
@@ -1875,83 +1753,20 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:ToggleBuySellMode()
-    local firstMode, secondMode = nil, nil
-    if BETTERUI.Vendor.GetToggleModePair then
-        firstMode, secondMode = BETTERUI.Vendor.GetToggleModePair()
-    end
-    if not firstMode or not secondMode then
-        return
-    end
-
-    local mode = self:GetCurrentMode()
-    if IsStableInteractionActive()
-        and firstMode == BETTERUI.Vendor.MODE.BUY
-        and secondMode == BETTERUI.Vendor.MODE.STABLE then
-        if mode == secondMode then
-            self:SetMode(firstMode)
-        else
-            self:SetMode(secondMode)
-        end
-        return
-    end
-
-    if mode == firstMode then
-        self:SetMode(secondMode)
-    elseif mode == secondMode then
-        self:SetMode(firstMode)
-    else
-        self:SetMode(firstMode)
-    end
+    VendorControllerRuntime.ToggleBuySellMode(self, {
+        getToggleModePair = function()
+            if BETTERUI.Vendor.GetToggleModePair then
+                return BETTERUI.Vendor.GetToggleModePair()
+            end
+            return nil, nil
+        end,
+        isStableInteractionActive = IsStableInteractionActive,
+    })
 end
 
 ---@param mode number Vendor mode constant from BETTERUI.Vendor.MODE
 function BETTERUI.Vendor.Class:SetMode(mode)
-    if not mode then return end
-    if self.currentMode == mode then return end
-
-    local headerNavigation = BETTERUI.CIM and BETTERUI.CIM.HeaderNavigation or nil
-    local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(self) or nil
-    if state then
-        state.justToggledMode = true
-    end
-
-    -- Save position for outgoing mode
-    self:SaveListPosition()
-
-    -- Deactivate the current component if any
-    local oldComponent = self:GetActiveComponent()
-    if oldComponent and oldComponent.Deactivate then
-        oldComponent:Deactivate(self)
-    end
-
-    self.currentMode = mode
-
-    if Vendor.multiSelectManager then
-        Vendor.multiSelectManager:ExitSelectionMode()
-    end
-
-    if mode ~= BETTERUI.Vendor.MODE.BUY and self.DisableStablePreviewMode then
-        self:DisableStablePreviewMode()
-    end
-    if mode ~= BETTERUI.Vendor.MODE.BUY and self.DisableVendorStorePreviewMode then
-        self:DisableVendorStorePreviewMode()
-    end
-
-    self:ApplyNativeStoreMode(mode)
-
-    -- Activate the new component
-    local newComponent = self:GetActiveComponent()
-    if newComponent and newComponent.Activate then
-        newComponent:Activate(self)
-    end
-
-    -- Update keybinds for new mode
-    if self:IsSceneShowing() then
-        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-    end
-
-    self:RebuildCategoryHeader()
-    self:RefreshVendorFooter()
+    VendorControllerRuntime.SetMode(self, mode)
 end
 
 ---@return VendorComponent|nil component The currently active component, or nil
@@ -1970,422 +1785,79 @@ end
 
 -- LIST MANAGEMENT
 
-local VENDOR_SORT_COMPARATORS = {
-    name = function(a, b)
-        local nameA = tostring((a.dataSource and a.dataSource.name) or a.name or "")
-        local nameB = tostring((b.dataSource and b.dataSource.name) or b.name or "")
-        return nameA < nameB
-    end,
-    type = function(a, b)
-        local typeA = tostring((a.dataSource and a.dataSource.bestItemTypeName) or "")
-        local typeB = tostring((b.dataSource and b.dataSource.bestItemTypeName) or "")
-        if typeA == typeB then
-            return VENDOR_SORT_COMPARATORS.name(a, b)
-        end
-        return typeA < typeB
-    end,
-    trait = function(a, b)
-        local traitA = tostring((a.dataSource and a.dataSource.traitName) or "")
-        local traitB = tostring((b.dataSource and b.dataSource.traitName) or "")
-        local blankA = traitA == "" and 1 or 0
-        local blankB = traitB == "" and 1 or 0
-        if blankA ~= blankB then
-            return blankA < blankB
-        end
-        if traitA == traitB then
-            return VENDOR_SORT_COMPARATORS.name(a, b)
-        end
-        return traitA < traitB
-    end,
-    stat = function(a, b)
-        local statA = (a.dataSource and a.dataSource.statValue) or ""
-        local statB = (b.dataSource and b.dataSource.statValue) or ""
-        local numA = tonumber(statA)
-        local numB = tonumber(statB)
-        if numA and numB then
-            if numA ~= numB then
-                return numA > numB
-            end
-        elseif statA ~= statB then
-            return tostring(statA) < tostring(statB)
-        end
-        return VENDOR_SORT_COMPARATORS.name(a, b)
-    end,
-    value = function(a, b)
-        local valA = (a.dataSource and (a.dataSource.price or a.dataSource.repairCost or a.dataSource.launderCost or a.dataSource.stackSellPrice or a.dataSource.sellPrice or 0)) or 0
-        local valB = (b.dataSource and (b.dataSource.price or b.dataSource.repairCost or b.dataSource.launderCost or b.dataSource.stackSellPrice or b.dataSource.sellPrice or 0)) or 0
-        if valA ~= valB then
-            return valA > valB
-        end
-        return VENDOR_SORT_COMPARATORS.name(a, b)
-    end,
-}
-
 function BETTERUI.Vendor.Class:ApplySortToList()
-    if not self.list or not self.list.dataList then return end
-    local sortKey = "name"
-    local sortOrder = ZO_SORT_ORDER_UP
-    if self.sortController and self.sortController.GetActiveSortColumn then
-        local column, direction = self.sortController:GetActiveSortColumn()
-        if column and direction and direction ~= BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION.NONE then
-            sortKey = column.key or sortKey
-            if direction == BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION.DESCENDING then
-                sortOrder = ZO_SORT_ORDER_DOWN
-            end
-        end
-    end
-    local comparator = VENDOR_SORT_COMPARATORS[sortKey] or VENDOR_SORT_COMPARATORS.name
-    if sortOrder == ZO_SORT_ORDER_DOWN then
-        local base = comparator
-        comparator = function(a, b) return base(b, a) end
-    end
-    table.sort(self.list.dataList, comparator)
+    VendorControllerRuntime.ApplySortToList(self)
 end
 
 --- Clears and rebuilds the list from the active component's BuildList.
 ---@return nil
 function BETTERUI.Vendor.Class:RefreshList()
-    if self._suppressListUpdates then
-        self._isDirty = true
-        return
-    end
-
-    if not self.list then return end
-
-    self:ApplyListLayoutTuning()
-
-    local component = self:GetActiveComponent()
-    if component and component.GetCategories then
-        self:SetModeCategories(self:GetCurrentMode(), component:GetCategories(self))
-    else
-        self:SetModeCategories(self:GetCurrentMode(), nil)
-    end
-
-    -- Clear existing data
-    self.list:Clear()
-
-    -- Delegate to the active component's BuildList
-    if component and component.BuildList then
-        component:BuildList(self)
-    end
-
-    local currentMode = self:GetCurrentMode()
-
-    local hasSearchQuery = BETTERUI.Vendor.NormalizeSearchQuery and BETTERUI.Vendor.NormalizeSearchQuery(self.searchQuery) ~= nil
-    if self.list.SetNoItemText then
-        local modeEmptyStateText = ResolveModeEmptyStateText(currentMode)
-        if hasSearchQuery then
-            self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
-        elseif modeEmptyStateText then
-            self.list:SetNoItemText(modeEmptyStateText)
-        else
-            self.list:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_EMPTY")))
-        end
-    end
-
-    self:ApplySortToList()
-    self.list:Commit()
-    self._isDirty = false
-
-    -- Restore list position for current mode and category
-    if currentMode and self.list and self.list.dataList and #self.list.dataList > 0 then
-        local moduleKey = GetVendorModeModuleKey(currentMode)
-        local categoryKey = GetVendorCategoryKey(self)
-        local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition(moduleKey, categoryKey, self.list, self.list.dataList)
-        if self.list.SetSelectedIndexWithoutAnimation then
-            self.list:SetSelectedIndexWithoutAnimation(targetIndex, true, false)
-        elseif self.list.SetSelectedIndex then
-            self.list:SetSelectedIndex(targetIndex)
-        end
-    end
-
-    if Vendor.multiSelectManager then
-        Vendor.multiSelectManager:RefreshSelections()
-    end
-
-    self:EnsureColumnHeadersVisible()
-    if self:IsSceneShowing() then
-        if not self._searchModeActive and not self._searchHeaderActive then
-            self:EnsureListInputActive()
-        end
-        self:OnItemSelectedChange(self.list, self.list:GetTargetData())
-        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-        end
-    end
-    self:UpdateScrollIndicator(self.list)
-
-    if self:GetCurrentMode() == BETTERUI.Vendor.MODE.BUY then
-        local entryCount = (self.list.dataList and #self.list.dataList) or 0
-        if entryCount == 0 and self:IsSceneActiveOrShowing() then
-            local retryCount = (self._buyListRetryCount or 0) + 1
-            self._buyListRetryCount = retryCount
-            if retryCount <= 20 then
-                BETTERUI.Vendor.Tasks:Cancel("buyListRetry")
-                BETTERUI.Vendor.Tasks:Schedule("buyListRetry", 180, function()
-                    if BETTERUI.Vendor and BETTERUI.Vendor.ShouldAbortDeferredVendorRefresh
-                        and BETTERUI.Vendor.ShouldAbortDeferredVendorRefresh(self, BETTERUI.Vendor.MODE.BUY) then
-                        return
-                    end
-                    if BETTERUI.Vendor and BETTERUI.Vendor.EnsureNativeStoreComponents then
-                        BETTERUI.Vendor.EnsureNativeStoreComponents("storeTextSearch")
-                    end
-                    self:ApplyNativeStoreMode(BETTERUI.Vendor.MODE.BUY)
-                    self:RefreshList()
-                end)
-            end
-        else
-            self._buyListRetryCount = 0
-        end
-    else
-        self._buyListRetryCount = 0
-    end
+    VendorControllerRuntime.RefreshList(self, {
+        getModeModuleKey = GetVendorModeModuleKey,
+        getCategoryKey = GetVendorCategoryKey,
+        resolveModeEmptyStateText = ResolveModeEmptyStateText,
+    })
 end
 
 ---@param selectedData table|nil
 ---@return boolean
 function BETTERUI.Vendor.Class:CanPreviewStableStoreEntry(selectedData)
-    if not (ITEM_PREVIEW_GAMEPAD and ZO_StoreManager_DoPreviewAction and IsCharacterPreviewingAvailable) then
-        return false
-    end
-    if not IsCharacterPreviewingAvailable() then
-        return false
-    end
-
-    local ds = selectedData and (selectedData.dataSource or selectedData) or nil
-    local storeEntryIndex = ds and (ds.slotIndex or ds.entryIndex) or nil
-    if not storeEntryIndex then
-        return false
-    end
-
-    local validateAction = rawget(_G, "ZO_STORE_MANAGER_PREVIEW_ACTION_VALIDATE")
-    if validateAction == nil then
-        return false
-    end
-    return ZO_StoreManager_DoPreviewAction(validateAction, storeEntryIndex) == true
+    return VendorPresentationRuntime.CanPreviewStableStoreEntry(self, selectedData)
 end
 
 ---@param shouldActivateVendorBlur boolean
 ---@return nil
 function BETTERUI.Vendor.Class:SetVendorPreviewBlurActive(shouldActivateVendorBlur)
-    if not FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT then
-        return
-    end
-
-    if shouldActivateVendorBlur then
-        SCENE_MANAGER:AddFragment(FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT)
-    else
-        SCENE_MANAGER:RemoveFragmentImmediately(FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT)
-    end
+    VendorPresentationRuntime.SetVendorPreviewBlurActive(self, shouldActivateVendorBlur)
 end
 
 ---@param hidden boolean
 ---@return nil
 function BETTERUI.Vendor.Class:SetVendorStorePreviewUiHidden(hidden)
-    if self.SetStablePreviewUiHidden then
-        self:SetStablePreviewUiHidden(hidden)
-    end
+    VendorPresentationRuntime.SetVendorStorePreviewUiHidden(self, hidden)
 end
 
 ---@param selectedData table|nil
 ---@return boolean
 function BETTERUI.Vendor.Class:CanPreviewVendorStoreEntry(selectedData)
-    if IsStableInteractionActive() or self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
-        return false
-    end
-    if not (ITEM_PREVIEW_GAMEPAD and ZO_StoreManager_DoPreviewAction and IsCharacterPreviewingAvailable) then
-        return false
-    end
-    if not IsCharacterPreviewingAvailable() then
-        return false
-    end
-
-    local ds = selectedData and (selectedData.dataSource or selectedData) or nil
-    local storeEntryIndex = ds and (ds.slotIndex or ds.entryIndex) or nil
-    local validateAction = rawget(_G, "ZO_STORE_MANAGER_PREVIEW_ACTION_VALIDATE")
-    if not storeEntryIndex or validateAction == nil then
-        return false
-    end
-
-    return ZO_StoreManager_DoPreviewAction(validateAction, storeEntryIndex) == true
+    return VendorPresentationRuntime.CanPreviewVendorStoreEntry(self, selectedData, IsStableInteractionActive)
 end
 
 ---@return nil
 function BETTERUI.Vendor.Class:DisableVendorStorePreviewMode()
-    self:SetVendorPreviewBlurActive(false)
-    self:SetVendorStorePreviewUiHidden(false)
-
-    if not ITEM_PREVIEW_GAMEPAD or not ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled then
-        return
-    end
-    if not ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
-        return
-    end
-
-    ITEM_PREVIEW_GAMEPAD:SetInteractionCameraPreviewEnabled(
-        false,
-        FRAME_TARGET_STORE_GAMEPAD_FRAGMENT,
-        FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT,
-        GAMEPAD_NAV_QUADRANT_3_4_ITEM_PREVIEW_OPTIONS_FRAGMENT
-    )
+    VendorPresentationRuntime.DisableVendorStorePreviewMode(self)
 end
 
 ---@param selectedData table|nil
 ---@return nil
 function BETTERUI.Vendor.Class:UpdateVendorStorePreview(selectedData)
-    if IsStableInteractionActive() then
-        return
-    end
-    if not (ITEM_PREVIEW_GAMEPAD and ZO_StoreManager_DoPreviewAction) then
-        return
-    end
-    if self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
-        self:DisableVendorStorePreviewMode()
-        return
-    end
-    if not ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
-        self:SetVendorPreviewBlurActive(false)
-        self:SetVendorStorePreviewUiHidden(false)
-        return
-    end
-
-    if self:CanPreviewVendorStoreEntry(selectedData) then
-        local ds = selectedData and (selectedData.dataSource or selectedData) or nil
-        local storeEntryIndex = ds and (ds.slotIndex or ds.entryIndex) or nil
-        local executeAction = rawget(_G, "ZO_STORE_MANAGER_PREVIEW_ACTION_EXECUTE")
-        if storeEntryIndex and executeAction ~= nil then
-            ZO_StoreManager_DoPreviewAction(executeAction, storeEntryIndex)
-        end
-        self:SetVendorPreviewBlurActive(true)
-        self:SetVendorStorePreviewUiHidden(true)
-    else
-        self:DisableVendorStorePreviewMode()
-    end
+    VendorPresentationRuntime.UpdateVendorStorePreview(self, selectedData, IsStableInteractionActive)
 end
 
 ---@return nil
 function BETTERUI.Vendor.Class:ToggleVendorStorePreviewMode()
-    if IsStableInteractionActive() or self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
-        return
-    end
-    if not ITEM_PREVIEW_GAMEPAD then
-        return
-    end
-
-    local willPreviewBeDisabled = ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled()
-    self:SetVendorPreviewBlurActive(willPreviewBeDisabled)
-    ITEM_PREVIEW_GAMEPAD:ToggleInteractionCameraPreview(
-        FRAME_TARGET_STORE_GAMEPAD_FRAGMENT,
-        FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT,
-        GAMEPAD_NAV_QUADRANT_3_4_ITEM_PREVIEW_OPTIONS_FRAGMENT
-    )
-
-    local targetData = self.list and self.list.GetTargetData and self.list:GetTargetData() or nil
-    self:UpdateVendorStorePreview(targetData)
+    VendorPresentationRuntime.ToggleVendorStorePreviewMode(self, IsStableInteractionActive)
 end
 
 ---@param hidden boolean
 ---@return nil
 function BETTERUI.Vendor.Class:SetStablePreviewUiHidden(hidden)
-    if self._stablePreviewUiHidden == hidden then
-        return
-    end
-    self._stablePreviewUiHidden = hidden
-
-    if self.control and self.control.SetHidden then
-        self.control:SetHidden(hidden)
-    end
-
-    local scene = self.scene
-        or (SCENE_MANAGER and SCENE_MANAGER.GetScene and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME))
-    if scene and GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT then
-        if hidden then
-            scene:RemoveFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
-        else
-            scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
-        end
-    end
-
-    if GAMEPAD_TOOLTIPS then
-        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
-        local leftTooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-        local rightTooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP)
-        if leftTooltip and leftTooltip.SetHidden then
-            leftTooltip:SetHidden(hidden)
-        end
-        if rightTooltip and rightTooltip.SetHidden then
-            rightTooltip:SetHidden(hidden)
-        end
-    end
+    VendorPresentationRuntime.SetStablePreviewUiHidden(self, hidden)
 end
 
 ---@return nil
 function BETTERUI.Vendor.Class:DisableStablePreviewMode()
-    self:SetStablePreviewUiHidden(false)
-
-    if not ITEM_PREVIEW_GAMEPAD then
-        return
-    end
-    if not ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
-        return
-    end
-
-    ITEM_PREVIEW_GAMEPAD:SetInteractionCameraPreviewEnabled(
-        false,
-        FRAME_TARGET_STORE_GAMEPAD_FRAGMENT,
-        FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT,
-        GAMEPAD_NAV_QUADRANT_3_4_ITEM_PREVIEW_OPTIONS_FRAGMENT
-    )
+    VendorPresentationRuntime.DisableStablePreviewMode(self)
 end
 
 ---@return nil
 function BETTERUI.Vendor.Class:ToggleStablePreviewMode()
-    if not ITEM_PREVIEW_GAMEPAD then
-        return
-    end
-    if not IsStableInteractionActive() or self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
-        return
-    end
-
-    ITEM_PREVIEW_GAMEPAD:ToggleInteractionCameraPreview(
-        FRAME_TARGET_STORE_GAMEPAD_FRAGMENT,
-        FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT,
-        GAMEPAD_NAV_QUADRANT_3_4_ITEM_PREVIEW_OPTIONS_FRAGMENT
-    )
-
-    local isPreviewActive = ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled()
-    self:SetStablePreviewUiHidden(isPreviewActive)
-    self:UpdateStablePreview()
+    VendorPresentationRuntime.ToggleStablePreviewMode(self, IsStableInteractionActive)
 end
 
 ---@return nil
 function BETTERUI.Vendor.Class:UpdateStablePreview()
-    if not (ITEM_PREVIEW_GAMEPAD and ZO_StoreManager_DoPreviewAction) then
-        return
-    end
-    if not IsStableInteractionActive() or self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
-        self:DisableStablePreviewMode()
-        return
-    end
-
-    if not ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
-        self:SetStablePreviewUiHidden(false)
-        return
-    end
-
-    local selectedData = self.list and self.list:GetTargetData() or nil
-    if self:CanPreviewStableStoreEntry(selectedData) then
-        local ds = selectedData and (selectedData.dataSource or selectedData) or nil
-        local storeEntryIndex = ds and (ds.slotIndex or ds.entryIndex) or nil
-        local executeAction = rawget(_G, "ZO_STORE_MANAGER_PREVIEW_ACTION_EXECUTE")
-        if storeEntryIndex and executeAction ~= nil then
-            ZO_StoreManager_DoPreviewAction(executeAction, storeEntryIndex)
-        end
-        self:SetStablePreviewUiHidden(true)
-    else
-        self:DisableStablePreviewMode()
-    end
+    VendorPresentationRuntime.UpdateStablePreview(self, IsStableInteractionActive)
 end
 
 ---@param _list table
@@ -2452,195 +1924,19 @@ end
 --- Called once during Init after the window is created.
 ---@return nil
 function BETTERUI.Vendor.Class:InitVendorFooter()
-    local footerRoot = self.footer and self.footer:GetNamedChild("Footer")
-    if not footerRoot then return end
-
-    -- Keep centre divider visible for buy/sell list switching.
-    local dividerCentre = footerRoot:GetNamedChild("DividerCentre")
-    if dividerCentre then dividerCentre:SetHidden(false) end
-
-    -- LEFT SIDE: Relabel "WITHDRAW" -> Buy list
-    local withdraw = footerRoot:GetNamedChild("Withdraw")
-    if withdraw then
-        local btn = withdraw:GetNamedChild("Button")
-        if btn then
-            btn:SetHandler("OnClicked", function()
-                if BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction() then
-                    self:SetMode(BETTERUI.Vendor.MODE.FENCE_SELL)
-                    return
-                end
-                self:SetMode(BETTERUI.Vendor.MODE.BUY)
-            end)
-
-            local label = btn:GetNamedChild("Label")
-            if label then
-                label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY") or "SI_BETTERUI_VENDOR_TAB_BUY"))
-            end
-        end
-        -- Keep current icon style.
-        local icon = withdraw:GetNamedChild("Icon")
-        if icon then
-            icon:SetTexture("esoui/art/currency/currency_gold_64.dds")
-        end
-    end
-
-    -- RIGHT SIDE: Relabel "DEPOSIT" -> Sell list
-    local deposit = footerRoot:GetNamedChild("Deposit")
-    if deposit then
-        local btn = deposit:GetNamedChild("Button")
-        if btn then
-            btn:SetHandler("OnClicked", function()
-                if BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction() then
-                    self:SetMode(BETTERUI.Vendor.MODE.FENCE_LAUNDER)
-                    return
-                end
-                if IsStableInteractionActive() then
-                    self:SetMode(BETTERUI.Vendor.MODE.STABLE)
-                else
-                    self:SetMode(BETTERUI.Vendor.MODE.SELL)
-                end
-            end)
-
-            local label = btn:GetNamedChild("Label")
-            if label then
-                if IsStableInteractionActive() then
-                    label:SetText(GetString(rawget(_G, "SI_STABLE_STABLES_TAB") or "SI_STABLE_STABLES_TAB"))
-                else
-                    label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL") or "SI_BETTERUI_VENDOR_TAB_SELL"))
-                end
-            end
-        end
-        -- Keep current icon style.
-        local icon = deposit:GetNamedChild("Icon")
-        if icon then
-            if IsStableInteractionActive() then
-                icon:SetTexture(ResolveStableInteractionIcon())
-            else
-                icon:SetTexture("esoui/art/inventory/gamepad/gp_inventory_icon_all.dds")
-            end
-        end
-    end
-
-    self:RefreshVendorFooter()
+    VendorPresentationRuntime.InitVendorFooter(self, IsStableInteractionActive)
 end
 
 --- Refreshes the vendor footer values (gold amount, bag capacity, or fence transaction counts).
 --- Called on scene showing and after inventory changes.
 ---@return nil
 function BETTERUI.Vendor.Class:RefreshVendorFooter()
-    local footerRoot = self.footer and self.footer:GetNamedChild("Footer")
-    if not footerRoot then return end
-
-    local currentMode = self:GetCurrentMode()
-    local isStableInteraction = IsStableInteractionActive()
-    local isFenceInteraction = BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
-
-    local paneRole = ResolveModePaneRole(currentMode, isStableInteraction, isFenceInteraction)
-    local isSecondMode = paneRole == "second"
-    local isFirstListMode = paneRole == "first"
-    local isTwoPaneMode = isFirstListMode or isSecondMode
-    local activeColor   = { 1, 1, 1, 1 }
-    local inactiveColor = BETTERUI_BANK_INACTIVE_LABEL_COLOR or { 0.35, 0.35, 0.35, 1 }
-
-    local selectBg = footerRoot:GetNamedChild("SelectBg")
-    if selectBg then
-        local rotation = 0
-        if isSecondMode then
-            rotation = BETTERUI_BANK_DEPOSIT_ARROW_ROTATION or 0
-        end
-        selectBg:SetTextureRotation(rotation)
-    end
-
-    -- LEFT SIDE: Gold amount (regular/stable) or fence sell transaction count
-    local withdraw = footerRoot:GetNamedChild("Withdraw")
-    if withdraw then
-        local btn = withdraw:GetNamedChild("Button")
-        if btn then
-            local label = btn:GetNamedChild("Label")
-            if label then
-                if isFenceInteraction then
-                    label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_SELL")
-                        or "SI_BETTERUI_VENDOR_TAB_FENCE_SELL"))
-                else
-                    label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY") or "SI_BETTERUI_VENDOR_TAB_BUY"))
-                end
-                if isTwoPaneMode then
-                    label:SetColor(unpack(isSecondMode and inactiveColor or activeColor))
-                else
-                    label:SetColor(unpack(activeColor))
-                end
-            end
-
-            local spaceLabel = btn:GetNamedChild("SpaceLabel")
-            if spaceLabel then
-                if isFenceInteraction then
-                    local fenceSellComp = self.components and self.components[BETTERUI.Vendor.MODE.FENCE_SELL]
-                    if fenceSellComp and fenceSellComp.GetFooterText then
-                        spaceLabel:SetText(fenceSellComp:GetFooterText())
-                    else
-                        spaceLabel:SetText("")
-                    end
-                else
-                    local gold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
-                    spaceLabel:SetText("|t24:24:esoui/art/currency/currency_gold_32.dds|t " ..
-                        BETTERUI.DisplayNumber(gold))
-                end
-            end
-        end
-    end
-
-    -- RIGHT SIDE: Bag capacity (regular/stable) or fence launder transaction count
-    local deposit = footerRoot:GetNamedChild("Deposit")
-    if deposit then
-        local btn = deposit:GetNamedChild("Button")
-        if btn then
-            local label = btn:GetNamedChild("Label")
-            if label then
-                if isFenceInteraction then
-                    label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")
-                        or "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER"))
-                else
-                    label:SetText(isStableInteraction
-                        and GetString(rawget(_G, "SI_STABLE_STABLES_TAB") or "SI_STABLE_STABLES_TAB")
-                        or GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL") or "SI_BETTERUI_VENDOR_TAB_SELL"))
-                end
-                if isTwoPaneMode then
-                    label:SetColor(unpack(isSecondMode and activeColor or inactiveColor))
-                else
-                    label:SetColor(unpack(activeColor))
-                end
-            end
-
-            local spaceLabel = btn:GetNamedChild("SpaceLabel")
-            if spaceLabel then
-                if isFenceInteraction then
-                    spaceLabel:SetHidden(false)
-                    local fenceLaunderComp = self.components and self.components[BETTERUI.Vendor.MODE.FENCE_LAUNDER]
-                    if fenceLaunderComp and fenceLaunderComp.GetFooterText then
-                        spaceLabel:SetText(fenceLaunderComp:GetFooterText())
-                    else
-                        spaceLabel:SetText("")
-                    end
-                elseif isStableInteraction then
-                    spaceLabel:SetHidden(true)
-                    spaceLabel:SetText("")
-                else
-                    spaceLabel:SetHidden(false)
-                    spaceLabel:SetText(
-                        "|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t " ..
-                        zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
-                            GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK)))
-                end
-            end
-        end
-
-        local icon = deposit:GetNamedChild("Icon")
-        if icon then
-            if isStableInteraction then
-                icon:SetTexture(ResolveStableInteractionIcon())
-            else
-                icon:SetTexture("esoui/art/inventory/gamepad/gp_inventory_icon_all.dds")
-            end
-        end
-    end
+    VendorPresentationRuntime.RefreshVendorFooter(self, {
+        isStableInteractionActive = IsStableInteractionActive,
+        isFenceInteraction = function()
+            return BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
+        end,
+        resolveModePaneRole = ResolveModePaneRole,
+        resolveStableInteractionIcon = ResolveStableInteractionIcon,
+    })
 end

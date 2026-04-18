@@ -56,11 +56,23 @@ local function RefreshInventoryList()
     end
 end
 
--- Font descriptor closures via CIM factory (see CIM/Core/FontDefinitions.lua)
-do
-    local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors("Inventory")
-    BETTERUI.Inventory.GetNameFontDescriptor = descriptors.name
-    BETTERUI.Inventory.GetColumnFontDescriptor = descriptors.column
+local function GetInventoryFontDescriptors()
+    local descriptors = BETTERUI.Inventory._fontDescriptors
+    if descriptors ~= nil then
+        return descriptors
+    end
+
+    descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors("Inventory")
+    BETTERUI.Inventory._fontDescriptors = descriptors
+    return descriptors
+end
+
+function BETTERUI.Inventory.GetNameFontDescriptor()
+    return GetInventoryFontDescriptors().name()
+end
+
+function BETTERUI.Inventory.GetColumnFontDescriptor()
+    return GetInventoryFontDescriptors().column()
 end
 
 --- Returns the LAM control list for Font Customization.
