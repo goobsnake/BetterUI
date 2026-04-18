@@ -1,11 +1,5 @@
 -- BetterUI English Localization
 
---
----
---- Purpose: Defines localized string constants for English.
---- Mechanics: Registers string IDs with the ESO localization system (ZO_CreateStringId).
----
-
 -- String IDs for UI labels, tooltips, and messages
 
 -- UI Labels (Resource Orb Frames)

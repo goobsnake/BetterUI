@@ -1,23 +1,3 @@
---[[
-File: Modules/Inventory/Lists/CraftList.lua
-Purpose: Implements the specific list logic for the ESO Plus Craft Bag.
-         Subclasses BETTERUI.Inventory.List.
-
-KEY RESPONSIBILITIES:
-1.  Filtering (GetFilterComparator):
-    *   Generates filter functions based on item types (Alchemy, Blacksmithing, etc.).
-    *   Supports complex filters (tables of filter types) or "All" mode.
-
-2.  List Refresh (RefreshList):
-    *   Rebuilds the craft bag list based on the current filter and search query.
-    *   Applies text search filtering (name only) to narrow down results.
-    *   Sorts items using BETTERUI_CraftList_DefaultItemSortComparator.
-
-3.  Data Generation:
-    *   AddSlotDataToTable: Populates the list with cached category information.
-]]
-
--- Class: BETTERUI.Inventory.CraftList (extends BETTERUI.Inventory.List)
 BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()
 
 --- Sets the sort function for the craft bag list.
@@ -28,14 +8,6 @@ function BETTERUI.Inventory.CraftList:SetSortFunction(sortFunction)
     self.sortFunction = sortFunction
 end
 
---- Creates a filter comparator for craft bag items.
----
---- Purpose: Generates a closure to filter items.
---- Mechanics:
---- - If `filterType` is a table: Matches ANY of the contained types (OR logic).
---- - If `filterType` is a number: Matches that specific type.
---- - If `filterType` is nil/false: Matches EVERYTHING ("All" category).
----
 ---@param filterType table|number|nil Filter type constant, table of filter types, or nil for all
 ---@return function comparator Filter function accepting itemData and returning boolean
 function GetFilterComparator(filterType)
@@ -73,24 +45,11 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
     uniqueId = { isId64 = true },
 }
 
---- Default item sort comparator for craft list.
----
---- Purpose: Sorts craft bag items.
---- Mechanics: Category Name -> Type Name -> Name -> Level, etc.
----
 local function BETTERUI_CraftList_DefaultItemSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT,
         ZO_SORT_ORDER_UP)
 end
 
---- Adds slot data to the table if it passes the filter.
----
---- Purpose: Populates the list cache with valid items.
---- Mechanics:
---- - Generates slot data via `SHARED_INVENTORY`.
---- - Applies `itemFilterFunction`.
---- - Calculates and caches `bestGamepadItemCategoryName` and `bestItemTypeName`.
----
 function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or
@@ -110,18 +69,6 @@ function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryTy
     end
 end
 
---- Refreshes the craft list with filtered and sorted items.
----
---- Purpose: Rebuilds the Craft Bag list.
---- Mechanics:
---- 1. Updates Filter Function.
---- 2. Generates Slot Table (full or filtered).
---- 3. **Text Search**: Filter by name (case-insensitive substring).
----    - *Optimization*: Excludes category names to ensure precise matching for short strings.
---- 4. **Sort**: Applies default comparator.
---- 5. **Entries**: Creates `ZO_GamepadEntryData`, sets headers on category change, and adds to list.
---- 6. **Commit**: Renders the list.
----
 function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     -- Update empty-state text based on search context
     if searchQuery and tostring(searchQuery) ~= "" then

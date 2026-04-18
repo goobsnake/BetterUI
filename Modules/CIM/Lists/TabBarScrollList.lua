@@ -1,9 +1,3 @@
---[[
-File: Modules/CIM/Lists/TabBarScrollList.lua
-Purpose: Tab Bar (Carousel) Scroll List implementation.
-         Handles circular navigation and LB/RB shoulder button logic.
-]]
-
 local TABBAR_MOVEMENT_TYPES = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BETTERUI.CIM.ListGlobals.TABBAR_MOVEMENT_TYPES) or
 {
     PAGE_FORWARD = ZO_PARAMETRIC_MOVEMENT_TYPES.LAST,
@@ -11,9 +5,6 @@ local TABBAR_MOVEMENT_TYPES = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BET
     PAGE_NAVIGATION_FAILED = ZO_PARAMETRIC_MOVEMENT_TYPES.LAST + 2,
 }
 
--- CLASS: BETTERUI_TabBarScrollList
--- The heart of BetterUI's category navigation using LB/RB.
--- Implements Carousel Mode where items rotate circularly.
 BETTERUI_TabBarScrollList = BETTERUI_HorizontalParametricScrollList:Subclass()
 
 ---@return boolean
@@ -23,22 +14,6 @@ function BETTERUI_TabBarScrollList:ShouldWrapShoulderNavigation()
     return true
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:New
-Creates a new tab bar scroll list instance with LB/RB navigation icons.
-  1. Extends HorizontalParametricScrollList.
-  2. Adds Left/Right shoulder button icons.
-  3. Enables "Carousel Mode" (circular scrolling around a fixed selection).
-  4. Sets up keybinds for shoulder navigation.
-param: control (table) - The list control.
-param: leftIcon (table) - The visual control for the left icon.
-param: rightIcon (table) - The visual control for the right icon.
-param: data (table) - Configuration data (attachedTo, parent, callbacks).
-param: onActivatedChangedFunction (function) - Callback for activation changes.
-param: onCommitWithItemsFunction (function) - Callback for commit.
-param: onClearedFunction (function) - Callback for clear.
-return: table - The new tab bar list instance.
-]]
 function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onActivatedChangedFunction,
                                        onCommitWithItemsFunction, onClearedFunction)
     local list = BETTERUI_HorizontalParametricScrollList.New(self, control, onActivatedChangedFunction,

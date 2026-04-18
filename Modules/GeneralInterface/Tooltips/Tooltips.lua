@@ -20,30 +20,12 @@ Tooltips.GuildStoreSuppression = {
 }
 SetGuildStoreErrorSuppressed(TooltipRuntime.guildStoreErrorSuppressed == true)
 
--- RESEARCH TRAIT CACHING
--- Performance optimization for trait research lookups. Building research info is expensive
--- (requires iterating all items in a bag), so we cache results and invalidate on changes.
---
--- Uses EVENT_INVENTORY_SINGLE_SLOT_UPDATE for targeted bag-specific invalidation
--- instead of clearing the entire cache. See OnInventorySlotUpdate handler at end of file.
---
--- BAG_VIRTUAL (craft bag) is fully supported via the generic bagId parameter.
--- SHARED_INVENTORY:GenerateFullSlotData handles virtual bag iteration transparently.
+-- Trait research lookups iterate bag contents, so cache them per bag and
+-- invalidate on targeted slot updates instead of rebuilding everything.
 local ResearchableTraitCache = {}
 local DEFAULT_FONT_SIZE = 24
 
 
---- Builds the cache of researchable trait counts for a specific bag.
----
---- Purpose: Performance optimization to avoid iterating large bags repeatedly.
---- Mechanics:
---- - Uses `SHARED_INVENTORY:GenerateFullSlotData` to get populated slots.
---- - Checks items for researchability (`CanItemLinkBeTraitResearched`).
---- - Aggregates counts by trait type.
---- - Stores result in `ResearchableTraitCache[bagId]`.
----
---- References: Called by GetCachedResearchableTraitMatches.
----
 local function BuildBagResearchCache(bagId)
     local counts = {}
     -- Prefer SHARED_INVENTORY cache to iterate only used slots
@@ -61,16 +43,6 @@ local function BuildBagResearchCache(bagId)
     ResearchableTraitCache[bagId] = counts
 end
 
---- Returns count of researchable items matching itemLink's trait in specified bag.
----
---- Purpose: checks if the player has other items with the same trait in a specific bag.
---- Mechanics:
---- - Checks if item has a valid trait.
---- - Rebuilds cache for bag if missing.
---- - Returns cached count.
----
---- References: Used by AddInventoryPreInfo to display where other copies are found.
----
 function BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, bagId)
     if not itemLink or not bagId then return 0 end
     local traitType = GetItemLinkTraitInfo(itemLink)
@@ -85,15 +57,6 @@ if BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.RegisterResearchab
     BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches)
 end
 
---- Invalidates the researchable trait cache for a specific bag or all bags.
----
---- Purpose: Ensures cache coherency after inventory updates.
---- Mechanics:
---- - If `bagId` provided: clears entry for that bag.
---- - If `bagId` nil: clears entire cache.
----
---- References: Called by Item/Inventory Update Event Handlers.
----
 function BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
     if bagId then
         if ResearchableTraitCache and ResearchableTraitCache[bagId] then
@@ -104,15 +67,6 @@ function BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
     end
 end
 
--- TRADING ADDON INTEGRATION
--- This section integrates with popular trading addons to show market prices in tooltips:
---   - TTC (Tamriel Trade Centre): Most popular, uses web-scraped listing data
---   - MM (Master Merchant): Guild store sales history
---   - ATT (Arkadius Trade Tools): Alternative sales tracker
---
-
--- HELPERS
-
 --- Retrieves the user-configured tooltip font size.
 function Tooltips.GetTooltipFontSize()
     local size = BETTERUI.GetSetting("CIM", "tooltipSize", DEFAULT_FONT_SIZE)
@@ -121,14 +75,6 @@ end
 
 BETTERUI.GetTooltipFontSize = Tooltips.GetTooltipFontSize
 
---- Generic helper to format pricing from the canonical market integration seam.
----
---- Purpose: Eliminates boilerplate once MarketIntegration has resolved source
---- availability, settings, and price lookup.
---- Mechanics:
---- 1. Checks if the source is enabled and available through MarketIntegration.
---- 2. Formats result with currency icon and stack calculations.
----
 local function GetSourcePriceDisplay(addonName, sourceInfo, stackCount, iconSize)
     if not sourceInfo or not sourceInfo.enabled or not sourceInfo.available then
         return nil
