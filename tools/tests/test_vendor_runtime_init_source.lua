@@ -39,8 +39,8 @@ assert_contains(vendorSource, "local function TakeOverNativeStoreScene(instance)
     "Vendor init owns native store scene takeover through a named helper")
 assert_contains(vendorSource, "local function RegisterVendorEvents(eventManager)",
     "Vendor init owns event registration through a named helper")
-assert_contains(vendorSource, 'BETTERUI.Debug(string.format("[Vendor.SafeExecuteFallback] %s: %s", context, tostring(result)))',
-    "Vendor fallback preserves context when SafeExecute is unavailable")
+assert_contains(vendorSource, 'BETTERUI.CIM.UserNotify(context, tostring(result))',
+    "Vendor fallback routes missing SafeExecute failures through the shared notifier")
 assert_contains(vendorSource, "local function ApplyVendorResolvedMode(targetMode, refreshList)",
     "Vendor runtime owns mode application through a shared helper")
 assert_contains(vendorSource, "ScheduleVendorOpenStoreSync = function(targetMode, delayMs)",

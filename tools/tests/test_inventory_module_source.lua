@@ -32,6 +32,8 @@ assert_true(source:find('BETTERUI%.CIM and BETTERUI%.CIM%.UserNotify') ~= nil,
     "Inventory setup failure notifier prefers the shared CIM notifier")
 assert_true(source:find('BETTERUI%.CIM%.UserNotify%(context, messageText%)') ~= nil,
     "Inventory setup failure notifier routes text failures through the canonical shared notifier")
+assert_true(source:find('d%("%[BetterUI%] " %.%. tostring%(messageText%)%)') == nil,
+    "Inventory setup failure notifier no longer degrades to a local debug-only fallback")
 assert_true(source:find('d%("%[BetterUI%] Inventory: CraftBagQuantityDialog init failed"%)') == nil,
     "Inventory module no longer uses bare debug logging for craft bag setup failure")
 assert_true(source:find('d%("%[BetterUI%] Inventory: Narration registration failed"%)') == nil,

@@ -36,6 +36,10 @@ assert_contains(types, '---@class BetterUIInventoryRowData: SlotData',
     "typed inventory row payload exists")
 assert_contains(types, '---@class BetterUIInventoryEntryData',
     "typed inventory entry payload exists")
+assert_contains(types, '---@alias BetterUIControlModifyTextType',
+    "inventory modify-text uses a named control contract")
+assert_contains(types, '---@field modifyTextType BetterUIControlModifyTextType|nil',
+    "inventory payloads stop using raw any for modifyTextType")
 assert_contains(types, '---@alias BetterUIListModuleSettings',
     "shared list-module settings union exists")
 

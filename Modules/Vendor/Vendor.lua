@@ -44,8 +44,10 @@ local function DefaultExecuteSafely(context, fn, ...)
     end
 
     local ok, result = pcall(fn, ...)
-    if not ok and BETTERUI and BETTERUI.Debug then
-        BETTERUI.Debug(string.format("[Vendor.SafeExecuteFallback] %s: %s", context, tostring(result)))
+    if not ok then
+        assert(BETTERUI and BETTERUI.CIM and BETTERUI.CIM.UserNotify,
+            "Vendor fallback error handling requires BETTERUI.CIM.UserNotify")
+        BETTERUI.CIM.UserNotify(context, tostring(result))
     end
     return ok, result
 end

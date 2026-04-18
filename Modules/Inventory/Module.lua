@@ -43,12 +43,9 @@ local function TryRegisterInventoryNarration(...)
 end
 
 local function NotifyInventorySetupFailure(context, messageText)
-    if BETTERUI.CIM and BETTERUI.CIM.UserNotify then
-        BETTERUI.CIM.UserNotify(context, messageText)
-        return
-    end
-
-    d("[BetterUI] " .. tostring(messageText))
+    assert(BETTERUI.CIM and BETTERUI.CIM.UserNotify,
+        "Inventory setup failure handling requires BETTERUI.CIM.UserNotify")
+    BETTERUI.CIM.UserNotify(context, messageText)
 end
 
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Inventory, "Inventory")

@@ -23,6 +23,10 @@ local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 if not BETTERUI.Inventory.Dialogs then BETTERUI.Inventory.Dialogs = {} end
 BETTERUI.Inventory.Dialogs.EQUIP_SLOT = "BETTERUI_EQUIP_SLOT_DIALOG"
 
+function BETTERUI.Inventory.GetEquipSlotDialogName()
+    return BETTERUI.Inventory.Dialogs.EQUIP_SLOT
+end
+
 function BETTERUI.Inventory.InvokeDialog(methodName, ...)
     local dialogs = BETTERUI.Inventory and BETTERUI.Inventory.Dialogs
     local dialogFn = dialogs and dialogs[methodName]
@@ -34,8 +38,11 @@ function BETTERUI.Inventory.InvokeDialog(methodName, ...)
     return true
 end
 
--- Backward compatibility alias
-BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.Dialogs.EQUIP_SLOT
+local function EnsureLegacyEquipSlotDialogAlias()
+    BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.GetEquipSlotDialogName()
+end
+
+EnsureLegacyEquipSlotDialogAlias()
 
 -- SECURE SYSTEM HOOKS
 local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
@@ -166,14 +173,11 @@ end
 --- - Registers for Engine Events (Money, Inventory Updates).
 --- References: Called by `OnStateChanged`.
 ---
-function BETTERUI.Inventory.Class:OnDeferredInitialize()
-	if self.isDeferredInitialized then return end
-	self.isDeferredInitialized = true
-
-	local SAVED_VAR_DEFAULTS = {
+local function InitializeDeferredInventoryState(self)
+	local savedVarDefaults = {
 		useStatComparisonTooltip = true,
 	}
-	self.savedVars = ZO_SavedVars:NewAccountWide("ZO_Ingame_SavedVariables", 2, "GamepadInventory", SAVED_VAR_DEFAULTS)
+	self.savedVars = ZO_SavedVars:NewAccountWide("ZO_Ingame_SavedVariables", 2, "GamepadInventory", savedVarDefaults)
 	self.switchInfo = false
 
 	-- Inventory uses custom trigger keybinds on the active list instead of
@@ -185,35 +189,157 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.populatedCategoryPos = false
 	self.populatedCraftPos = false
 	self.isPrimaryWeapon = true
+end
 
+local function InitializeDeferredInventoryLists(self)
 	self:InitializeCategoryList()
 	self:InitializeHeader()
 	self:InitializeCraftBagList()
-
 	self:InitializeItemList()
 
-	-- Initialize Header Sort Controller for column-based sorting
-	-- Must be called after InitializeItemList (needs self.itemList) and InitializeHeader (needs self.header)
 	if self.InitializeHeaderSortController then
 		self:InitializeHeaderSortController()
 	end
 
 	self:InitializeKeybindStrip()
+	self:RefreshCategoryList()
+	self.savedInventoryCategoryIndex = self.categoryList and self.categoryList.selectedIndex or 1
+	self.savedInventoryCategoryKey = nil
+	self.savedInventoryPositionsByKey = self.savedInventoryPositionsByKey or {}
+	self.savedInventorySelectedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey or {}
+	self.savedCraftBagCategoryIndex = nil
+	self.savedCraftBagCategoryKey = nil
+	self.savedCraftBagPositionsByKey = self.savedCraftBagPositionsByKey or {}
+	self.savedCraftBagSelectedItemUniqueByKey = self.savedCraftBagSelectedItemUniqueByKey or {}
 
+	self:SetSelectedItemUniqueId(self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)))
+	self:RefreshHeader()
+	self:ActivateHeader()
+end
+
+local function InitializeDeferredInventoryDialogs(self)
 	self:InitializeConfirmDestroyDialog()
 	self:InitializeConfirmDestroyArmoryItemDialog()
 	self:InitializeBatchDestroyDialog()
 	self:InitializeEquipSlotDialog()
-
 	self:InitializeItemActions()
 	self:InitializeActionsDialog()
 
-
-	-- Initialize Footer using shared GenericFooter
 	if BETTERUI.GenericFooter then
 		BETTERUI.GenericFooter.control = self.control
 		BETTERUI.GenericFooter:Initialize()
 	end
+end
+
+local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSelectedData)
+	self.control:RegisterForEvent(EVENT_MONEY_UPDATE, refreshHeader)
+	self.control:RegisterForEvent(EVENT_ALLIANCE_POINT_UPDATE, refreshHeader)
+	self.control:RegisterForEvent(EVENT_TELVAR_STONE_UPDATE, refreshHeader)
+	if EVENT_CURRENCY_UPDATE then
+		self.control:RegisterForEvent(EVENT_CURRENCY_UPDATE, refreshHeader)
+	end
+
+	local function OnBagSpaceChanged()
+		if self.control:IsHidden() then
+			return
+		end
+
+		-- Keep utility categories (e.g., bag upgrade) in sync with current capacity.
+		-- This mirrors native behavior where bag-space purchases immediately update
+		-- category availability without waiting for inventory slot updates.
+		self:RefreshCategoryList()
+		self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+		if self.RefreshKeybinds then
+			self:RefreshKeybinds()
+		end
+	end
+	self.control:RegisterForEvent(EVENT_INVENTORY_BOUGHT_BAG_SPACE, OnBagSpaceChanged)
+	self.control:RegisterForEvent(EVENT_INVENTORY_BAG_CAPACITY_CHANGED, OnBagSpaceChanged)
+	self.control:RegisterForEvent(EVENT_PLAYER_DEAD, refreshSelectedData)
+	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, refreshSelectedData)
+
+	local function OnInventoryUpdated(bagId, slotIndex)
+		-- POSITION PRESERVATION: Capture current uniqueId AND index BEFORE any callbacks overwrite data
+		-- This is a global fix that works for all inventory actions (Use, Equip, Split, etc.)
+		-- When item leaves list (equip to BAG_WORN, consume), uniqueId fails so index is fallback
+		if not self._preserveUniqueId then
+			local currentData = self.currentlySelectedData
+			if currentData then
+				local uid = (currentData.dataSource and currentData.dataSource.uniqueId) or currentData.uniqueId
+				if uid then
+					self._preserveUniqueId = uid
+				end
+			end
+			if self.itemList and self.itemList.selectedIndex then
+				self._preserveIndex = self.itemList.selectedIndex
+			end
+		end
+
+		self:InvalidateSlotDataCache()
+		if self.InvalidateItemMeta then
+			self:InvalidateItemMeta(bagId, slotIndex)
+		end
+		self:MarkDirty()
+		if GetFrameTimeSeconds then
+			self.nextUpdateTimeSeconds = GetFrameTimeSeconds() + 0.05
+		else
+			self.nextUpdateTimeSeconds = nil
+		end
+
+		if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
+			return
+		end
+
+		local currentList = self:GetCurrentList()
+		if self.scene:IsShowing() then
+			if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+				self:OnUpdate()
+			else
+				refreshSelectedData()
+				if currentList == self.itemList and not self.pendingBatchData then
+					self:RefreshKeybinds()
+				end
+				self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+			end
+
+			local timeSinceShow = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneShowedTime or 0)) or 999
+			if not self._pendingCategoryListRefresh and timeSinceShow > 0.2 then
+				self._pendingCategoryListRefresh = true
+				local function TryRefreshCategoriesAfterBatch()
+					if not self.scene:IsShowing() then
+						self._pendingCategoryListRefresh = false
+						return
+					end
+
+					if self:IsBatchProcessing() then
+						BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
+							BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, TryRefreshCategoriesAfterBatch)
+						return
+					end
+
+					self._pendingCategoryListRefresh = false
+					self:RefreshCategoryList()
+				end
+
+				BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
+					BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, TryRefreshCategoriesAfterBatch)
+			end
+		end
+	end
+
+	self._inventoryUpdateCallback = OnInventoryUpdated
+	SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
+	SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
+	SHARED_INVENTORY:RegisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
+end
+
+function BETTERUI.Inventory.Class:OnDeferredInitialize()
+	if self.isDeferredInitialized then return end
+	self.isDeferredInitialized = true
+
+	InitializeDeferredInventoryState(self)
+	InitializeDeferredInventoryLists(self)
+	InitializeDeferredInventoryDialogs(self)
 
 	local function RefreshHeader()
 		if not self.control:IsHidden() then
@@ -240,8 +366,6 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 				selectedData = self.currentlySelectedData
 			end
 
-			-- Avoid transient clears while list rebuilds; selected-data callbacks will
-			-- sync itemActions as soon as a stable row exists.
 			if selectedData then
 				self:SetSelectedInventoryData(selectedData)
 			elseif not inPrimaryActionTransition then
@@ -250,155 +374,17 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 		end
 	end
 
-	self:RefreshCategoryList()
-	-- Initialize saved category indices and keys for inventory and craft bag
-	self.savedInventoryCategoryIndex = self.categoryList and self.categoryList.selectedIndex or 1
-	self.savedInventoryCategoryKey = nil
-	self.savedInventoryPositionsByKey = self.savedInventoryPositionsByKey or {}
-	self.savedInventorySelectedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey or {}
-	self.savedCraftBagCategoryIndex = nil
-	self.savedCraftBagCategoryKey = nil
-	self.savedCraftBagPositionsByKey = self.savedCraftBagPositionsByKey or {}
-	self.savedCraftBagSelectedItemUniqueByKey = self.savedCraftBagSelectedItemUniqueByKey or {}
+	RegisterDeferredInventoryCallbacks(self, RefreshHeader, RefreshSelectedData)
 
-	self:SetSelectedItemUniqueId(self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)))
-	self:RefreshHeader()
-	self:ActivateHeader()
-
-	self.control:RegisterForEvent(EVENT_MONEY_UPDATE, RefreshHeader)
-	self.control:RegisterForEvent(EVENT_ALLIANCE_POINT_UPDATE, RefreshHeader)
-	self.control:RegisterForEvent(EVENT_TELVAR_STONE_UPDATE, RefreshHeader)
-	if EVENT_CURRENCY_UPDATE then
-		self.control:RegisterForEvent(EVENT_CURRENCY_UPDATE, RefreshHeader)
-	end
-	local function OnBagSpaceChanged()
-		if self.control:IsHidden() then
-			return
-		end
-
-		-- Keep utility categories (e.g., bag upgrade) in sync with current capacity.
-		-- This mirrors native behavior where bag-space purchases immediately update
-		-- category availability without waiting for inventory slot updates.
-		self:RefreshCategoryList()
-		self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-		if self.RefreshKeybinds then
-			self:RefreshKeybinds()
-		end
-	end
-	self.control:RegisterForEvent(EVENT_INVENTORY_BOUGHT_BAG_SPACE, OnBagSpaceChanged)
-	self.control:RegisterForEvent(EVENT_INVENTORY_BAG_CAPACITY_CHANGED, OnBagSpaceChanged)
-	self.control:RegisterForEvent(EVENT_PLAYER_DEAD, RefreshSelectedData)
-	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, RefreshSelectedData)
-
-	local function OnInventoryUpdated(bagId, slotIndex)
-		-- POSITION PRESERVATION: Capture current uniqueId AND index BEFORE any callbacks overwrite data
-		-- This is a global fix that works for all inventory actions (Use, Equip, Split, etc.)
-		-- When item leaves list (equip to BAG_WORN, consume), uniqueId fails so index is fallback
-		if not self._preserveUniqueId then
-			local currentData = self.currentlySelectedData
-			if currentData then
-				-- Extract uniqueId from wrapped data or direct property
-				local uid = (currentData.dataSource and currentData.dataSource.uniqueId) or currentData.uniqueId
-				if uid then
-					self._preserveUniqueId = uid
-				end
-			end
-			-- Also save current index for fallback when item is removed from list
-			if self.itemList and self.itemList.selectedIndex then
-				self._preserveIndex = self.itemList.selectedIndex
-			end
-		end
-
-		self:InvalidateSlotDataCache()
-		if self.InvalidateItemMeta then
-			self:InvalidateItemMeta(bagId, slotIndex)
-		end
-		self:MarkDirty()
-		-- Debounce heavy updates to the next frame to batch rapid changes
-		if GetFrameTimeSeconds then
-			self.nextUpdateTimeSeconds = GetFrameTimeSeconds() + 0.05
-		else
-			self.nextUpdateTimeSeconds = nil
-		end
-
-		-- Batch destroy can trigger one slot-update callback per item. During that flow,
-		-- skip per-item UI refresh churn and rely on the final post-batch refresh.
-		if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
-			return
-		end
-
-		local currentList = self:GetCurrentList()
-		if self.scene:IsShowing() then
-			-- If an action dialog is open, keep the immediate update for correctness
-			if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
-				self:OnUpdate() -- immediate to keep dialog/keybinds consistent
-			else
-				RefreshSelectedData()
-				-- RefreshKeybinds() is protected by InventoryClass override.
-				-- Run after selected-data sync and skip while item list batches are pending
-				-- to reduce remove/re-add keybind strip churn.
-				if currentList == self.itemList and not self.pendingBatchData then
-					self:RefreshKeybinds()
-				end
-				self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-			end
-			-- Coalesce a category refresh so new tabs (Junk/Stolen) appear promptly.
-			-- This runs OUTSIDE the dialog if/else because SetItemIsJunk is asynchronous:
-			-- IsItemJunk() returns false immediately after SetItemIsJunk(), so any
-			-- immediate RefreshCategoryList call in MarkAsJunk/UnmarkAsJunk finds 0 junk.
-			-- The engine only updates IsItemJunk after processing EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-			-- which fires this OnInventoryUpdated callback. At that point, IsItemJunk is correct
-			-- and the coalesced RefreshCategoryList will create/remove the Junk tab.
-			-- Skip if we just opened the scene (within 200ms) since SwitchActiveList already refreshed.
-			local timeSinceShow = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneShowedTime or 0)) or
-				999
-			if not self._pendingCategoryListRefresh and timeSinceShow > 0.2 then
-				self._pendingCategoryListRefresh = true
-				local function TryRefreshCategoriesAfterBatch()
-					if not self.scene:IsShowing() then
-						self._pendingCategoryListRefresh = false
-						return
-					end
-
-					-- RefreshCategoryList intentionally skips while batch processing is active.
-					-- Keep this coalesced refresh pending until batch completion so dynamic tabs
-					-- (Junk/Stolen) are rebuilt from post-batch item state.
-					if self:IsBatchProcessing() then
-						BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
-							BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, TryRefreshCategoriesAfterBatch)
-						return
-					end
-
-					self._pendingCategoryListRefresh = false
-					self:RefreshCategoryList()
-				end
-
-				BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
-					BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, TryRefreshCategoriesAfterBatch)
-			end
-		end
-	end
-
-	-- Store callback reference for scene-based registration/unregistration
-	-- Actual registration happens in OnStateChanged SCENE_SHOWING
-	self._inventoryUpdateCallback = OnInventoryUpdated
-	-- Initial registration (will be unregistered on SCENE_HIDDEN and re-registered on SCENE_SHOWING)
-	SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
-	SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
-	SHARED_INVENTORY:RegisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
-
-	-- Keybind refresh - protected by RefreshKeybinds() override
 	if self.RefreshKeybinds then
 		self:RefreshKeybinds()
 	elseif self.mainKeybindStripDescriptor then
 		KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
-		-- Ensure the main group is active on initial load to prevent missing shoulder navigation.
 		if self.SetActiveKeybinds then
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 		end
 	end
 
-	-- Set the active list to ItemList by default
 	self:SwitchActiveList(INVENTORY_ITEM_LIST)
 end
 

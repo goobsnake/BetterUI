@@ -46,8 +46,9 @@ local companionEquipPatchQueued = false
 local companionEquipPatchRetryPending = false
 
 local function GetEquipSlotDialogName()
-    return (BETTERUI.Inventory and BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.EQUIP_SLOT)
-        or "BETTERUI_EQUIP_SLOT_DIALOG"
+    assert(BETTERUI.Inventory and BETTERUI.Inventory.GetEquipSlotDialogName,
+        "BetterUI: Inventory.GetEquipSlotDialogName must load before EquipAction")
+    return BETTERUI.Inventory.GetEquipSlotDialogName()
 end
 
 -- Installs a prehook on ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling

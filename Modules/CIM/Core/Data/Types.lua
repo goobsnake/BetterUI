@@ -523,6 +523,9 @@ BETTERUI.CIM.Types = {}
 ---@field FONTSTYLE_VALUES string[] Font style identifiers
 ---@field DEFAULTS BetterUISharedFontSettings Default shared font settings
 
+---@alias BetterUIControlModifyTextType integer
+--- Accepted value passed to ZO_Control:SetModifyTextType / ZO_GamepadEntryData:SetModifyTextType.
+
 ---@class BetterUIInventoryRowData: SlotData
 ---@field listModuleName BetterUIListModuleName|nil
 ---@field moduleName BetterUIListModuleName|nil
@@ -548,7 +551,7 @@ BETTERUI.CIM.Types = {}
 ---@field isBoPTradeable boolean|nil
 ---@field isEquippedInCurrentCategory boolean|nil
 ---@field isEquippedInAnotherCategory boolean|nil
----@field modifyTextType any
+---@field modifyTextType BetterUIControlModifyTextType|nil
 ---@field labelColor table|nil
 
 ---@class BetterUIInventoryEntryData
@@ -577,6 +580,6 @@ BETTERUI.CIM.Types = {}
 ---@field isBoPTradeable boolean|nil
 ---@field isEquippedInCurrentCategory boolean|nil
 ---@field isEquippedInAnotherCategory boolean|nil
----@field modifyTextType any
+---@field modifyTextType BetterUIControlModifyTextType|nil
 
 ---@alias BetterUIInventoryEntryLike BetterUIInventoryEntryData|BetterUIInventoryRowData
