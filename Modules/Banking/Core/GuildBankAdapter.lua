@@ -59,7 +59,8 @@ end
 
 -- PERMISSION CHECKS
 
---- Checks whether the player has deposit permission in the selected guild bank.
+--- Checks whether the current banking context permits deposits.
+--- Returns true for personal banks and enforces guild permissions in guild-bank mode.
 ---@return boolean
 function GuildBank.CanDeposit()
     if not GuildBank.IsGuildBankMode() then
@@ -73,7 +74,8 @@ function GuildBank.CanDeposit()
     return false
 end
 
---- Checks whether the player has withdrawal permission in the selected guild bank.
+--- Checks whether the current banking context permits withdrawals.
+--- Returns true for personal banks and enforces guild permissions in guild-bank mode.
 ---@return boolean
 function GuildBank.CanWithdraw()
     if not GuildBank.IsGuildBankMode() then
@@ -123,9 +125,10 @@ function GuildBank.GetSourceBags(mode)
             local currentUsedBank = BETTERUI.Banking.currentUsedBank
             if currentUsedBank == BAG_BANK then
                 return { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            else
+            elseif currentUsedBank ~= nil then
                 return { currentUsedBank }
             end
+            return { BAG_BANK, BAG_SUBSCRIBER_BANK }
         else
             return { BAG_BACKPACK }
         end

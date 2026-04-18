@@ -487,6 +487,9 @@ assertEqual(nil, BETTERUI.Banking.GuildBank.GetPermissionDenialReason(BETTERUI.B
 resetGuildBankState()
 assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
     "Personal main bank withdraw sources both bank bags")
+BETTERUI.Banking.currentUsedBank = nil
+assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
+    "Personal withdraw falls back to both bank bags when runtime state is missing")
 BETTERUI.Banking.currentUsedBank = 88
 assertTableEquals({ 88 }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
     "House bank withdraw sources current bank only")
