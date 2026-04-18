@@ -15,6 +15,8 @@ if false then
     dofile("Modules/ResourceOrbFrames/SkillBar/Constants.lua")
     dofile("Modules/ResourceOrbFrames/SkillBar/CooldownUtils.lua")
     dofile("Modules/ResourceOrbFrames/SkillBar/Coordinator.lua")
+    dofile("Modules/ResourceOrbFrames/SkillBar/TooltipManager.lua")
+    dofile("Modules/ResourceOrbFrames/SkillBar/UltimateManager.lua")
 end
 
 local passed = 0

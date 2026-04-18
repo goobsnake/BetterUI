@@ -3,6 +3,10 @@ File: tools/tests/test_vendor_sell_vengeance_source.lua
 Purpose: Source-level regression checks for SellVengeance vendor integration.
 ]]
 
+if false then
+    dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
+end
+
 local passed = 0
 local failed = 0
 
@@ -45,7 +49,10 @@ assert_contains(vendorLua, "Vendor.ResolveModeName(mode)", "vendor tab definitio
 assert_contains(vendorLua, "MODE.SELL_VENGEANCE", "vendor tab definitions include SellVengeance mode")
 assert_contains(vendorLua, "IsModeTabAvailable(tab.mode)", "vendor tab wiring gates SellVengeance tab availability")
 assert_contains(vendorLua, "Vendor.SellVengeanceComponent", "vendor init references SellVengeance component")
-assert_contains(vendorLua, "RegisterComponent(MODE.SELL_VENGEANCE, Vendor.SellVengeanceComponent)", "vendor init registers SellVengeance component")
+assert_contains(vendorLua, "{ mode = MODE.SELL_VENGEANCE, component = Vendor.SellVengeanceComponent }",
+    "vendor init includes SellVengeance in the component registration list")
+assert_contains(vendorLua, "instance:RegisterComponent(registration.mode, registration.component)",
+    "vendor init registers components through the shared registration loop")
 
 assert_contains(constantsLua, "VENDOR_SELL_VENGEANCE", "shared module constants include SellVengeance key")
 assert_contains(batchCountsLua, "MODE.SELL_VENGEANCE", "batch action counts treat SellVengeance as sell-capable")

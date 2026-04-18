@@ -6,6 +6,14 @@ Usage:
   lua tools/tests/test_trading_house_components_source.lua
 ]]
 
+if false then
+    dofile("Modules/TradingHouse/Components/BrowseComponent.lua")
+    dofile("Modules/TradingHouse/Components/ListingsComponent.lua")
+    dofile("Modules/TradingHouse/Components/SellComponent.lua")
+    dofile("Modules/TradingHouse/Core/TradingHouseClass.lua")
+    dofile("Modules/TradingHouse/Core/TradingHouseRowSetup.lua")
+end
+
 local passed = 0
 local failed = 0
 

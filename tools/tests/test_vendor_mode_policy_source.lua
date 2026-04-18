@@ -6,6 +6,10 @@ Usage:
   lua tools/tests/test_vendor_mode_policy_source.lua
 ]]
 
+if false then
+    dofile("Modules/Vendor/Core/VendorModePolicy.lua")
+end
+
 local function read_file(path)
     local handle = assert(io.open(path, "r"))
     local content = handle:read("*a")

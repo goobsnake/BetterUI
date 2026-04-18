@@ -7,6 +7,12 @@ Usage:
   lua tools/tests/test_trading_house_runtime_source.lua
 ]]
 
+if false then
+    dofile("Modules/TradingHouse/Core/TradingHouseRuntime.lua")
+    dofile("Modules/TradingHouse/Core/TradingHouseRuntimeFlow.lua")
+    dofile("Modules/TradingHouse/TradingHouse.lua")
+end
+
 local function read_file(path)
     local handle = assert(io.open(path, "r"))
     local content = handle:read("*a")

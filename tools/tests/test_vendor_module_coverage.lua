@@ -11,6 +11,7 @@ if false then
     dofile("Modules/Vendor/Components/RepairComponent.lua")
     dofile("Modules/Vendor/Components/SellComponent.lua")
     dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
+    dofile("Modules/Vendor/Core/VendorModePolicy.lua")
     dofile("Modules/Vendor/Core/VendorClass.lua")
     dofile("Modules/Vendor/Core/VendorRowSetup.lua")
     dofile("Modules/Vendor/Module.lua")
@@ -24,6 +25,7 @@ local vendorCoverageTargets = {
     "Modules/Vendor/Components/RepairComponent.lua",
     "Modules/Vendor/Components/SellComponent.lua",
     "Modules/Vendor/Components/SellVengeanceComponent.lua",
+    "Modules/Vendor/Core/VendorModePolicy.lua",
     "Modules/Vendor/Core/VendorClass.lua",
     "Modules/Vendor/Core/VendorRowSetup.lua",
     "Modules/Vendor/Module.lua",
@@ -45,7 +47,7 @@ local function assertEqual(expected, actual, message)
     assertTrue(expected == actual, string.format("%s (expected=%s, actual=%s)", message, tostring(expected), tostring(actual)))
 end
 
-assertEqual(10, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor desloppify queue")
+assertEqual(11, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor desloppify queue")
 
 BETTERUI = {
     Vendor = {
@@ -65,7 +67,23 @@ BETTERUI = {
                     }
                 end,
             },
+            CreateLazyManagerProxy = function(factory)
+                return setmetatable({}, {
+                    __index = function(_, key)
+                        local manager = factory()
+                        local value = manager[key]
+                        if type(value) == "function" then
+                            return function(_, ...)
+                                return value(manager, ...)
+                            end
+                        end
+                        return value
+                    end,
+                })
+            end,
         },
+        ApplyModuleSharedSettingsStatics = function() end,
+        TryRegisterModulePanel = function() end,
         GenericWindow = {
             New = function(self, ...)
                 return setmetatable({ args = { ... } }, { __index = self })
