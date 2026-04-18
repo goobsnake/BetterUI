@@ -7,6 +7,23 @@ Usage:
   lua tools/tests/test_banking_support_module_source.lua
 ]]
 
+if false then
+    dofile("Modules/Banking/Categories/CategoryManager.lua")
+    dofile("Modules/Banking/Constants.lua")
+    dofile("Modules/Banking/Core/GuildBankAdapter.lua")
+    dofile("Modules/Banking/Core/RefreshIntegration.lua")
+    dofile("Modules/Banking/Currency/CurrencySelector.lua")
+    dofile("Modules/Banking/Dialogs/QuantityDialog.lua")
+    dofile("Modules/Banking/Lists/BankListManager.lua")
+    dofile("Modules/Banking/Lists/BankRowSetup.lua")
+    dofile("Modules/Banking/Module.lua")
+    dofile("Modules/Banking/Scene/BankingSceneLifecycle.lua")
+    dofile("Modules/Banking/Search/SearchManager.lua")
+    dofile("Modules/Banking/State/StateManager.lua")
+    dofile("Modules/Banking/UI/FooterManager.lua")
+    dofile("Modules/Banking/UI/HeaderManager.lua")
+end
+
 local passed = 0
 local failed = 0
 

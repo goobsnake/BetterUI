@@ -6,6 +6,10 @@ Usage:
   lua tools/tests/test_banking_unified_screen_source.lua
 ]]
 
+if false then
+    dofile("Modules/Banking/Banking.lua")
+end
+
 local function read_file(path)
     local file = assert(io.open(path, "r"))
     local content = file:read("*a")
