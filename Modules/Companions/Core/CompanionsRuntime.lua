@@ -37,6 +37,149 @@ local function RefreshVisibleCompanionScene(screen, options)
     return true
 end
 
+local function CallCompanionSearchLifecycle(instance, action)
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    if searchMixin and searchMixin.CallSearchLifecycle then
+        return searchMixin.CallSearchLifecycle(instance, action)
+    end
+
+    local lifecycle = instance and instance.SEARCH_LIFECYCLE
+    local methodName = lifecycle and lifecycle[action]
+    local method = methodName and instance and instance[methodName]
+    if type(method) == "function" then
+        return method(instance)
+    end
+    return nil
+end
+
+local function PatchCompanionListMovePrevious(instance)
+    if not (instance and instance.list and instance.list.MovePrevious) then
+        return
+    end
+
+    local originalMovePrevious = instance.list.MovePrevious
+    instance.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
+        local didMove = originalMovePrevious(list, allowWrapping, suppressFailSound)
+        if didMove then
+            return true
+        end
+        CallCompanionSearchLifecycle(instance, "requestEnter")
+        return true
+    end
+end
+
+local function ConfigureCompanionListLayout(instance)
+    local listControl = instance.list and instance.list.control
+    local headerGeneric = instance.headerGeneric
+    if not (listControl and headerGeneric) then
+        return
+    end
+
+    local container = instance.control and instance.control:GetNamedChild("Container")
+    local footer = container and container:GetNamedChild("Footer")
+    local footerFooter = footer and footer:GetNamedChild("Footer")
+    listControl:ClearAnchors()
+    listControl:SetAnchor(TOPLEFT, headerGeneric, BOTTOMLEFT, 20, 15)
+    if footerFooter then
+        listControl:SetAnchor(BOTTOMRIGHT, footerFooter, TOPRIGHT, 0, -8)
+    end
+end
+
+local function InitializeCompanionMultiSelect(instance)
+    if BETTERUI.CIM and BETTERUI.CIM.MultiSelectManager and BETTERUI.CIM.MultiSelectManager.Create then
+        Companions.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(instance.list, function()
+            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+            end
+        end)
+    else
+        Companions.multiSelectManager = nil
+    end
+end
+
+local function InitializeCompanionSearch(instance)
+    if not (BETTERUI.Interface.SearchMixin and instance.AddSearch) then
+        return
+    end
+
+    instance:AddSearch(
+        BETTERUI.Interface.CreateSearchKeybindDescriptor(instance),
+        function(queryOrControl)
+            local query = type(queryOrControl) == "string" and queryOrControl
+                or (queryOrControl and queryOrControl.GetText and queryOrControl:GetText())
+                or ""
+            instance.searchQuery = query
+            instance:RefreshList()
+        end
+    )
+
+    if BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers then
+        BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(instance, {
+            isSceneShowing = function()
+                return instance and instance:IsSceneShowing()
+            end,
+            enterHeaderFn = function(window)
+                CallCompanionSearchLifecycle(window, "requestEnter")
+            end,
+        })
+    end
+end
+
+local function InitializeCompanionList(instance)
+    instance:SetupList(
+        "BETTERUI_GamepadItemSubEntryTemplate",
+        BETTERUI_SharedGamepadEntry_OnSetup
+    )
+    instance:InitializeListPresentation()
+    PatchCompanionListMovePrevious(instance)
+    instance:InitializeCategoryHeader()
+
+    local headerColumns = BETTERUI.CIM.CONST.HEADER_LAYOUT.COLUMNS
+    instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), headerColumns.NAME)
+    instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), headerColumns.TYPE)
+    instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), headerColumns.TRAIT)
+    instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), headerColumns.STAT)
+    instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), headerColumns.VALUE)
+    instance:RefreshCategories()
+    instance:EnsureColumnHeadersVisible()
+    ConfigureCompanionListLayout(instance)
+end
+
+local function RegisterCompanionNarration()
+    if BETTERUI.CIM.Narration and BETTERUI.CIM.Narration.RegisterListNarration then
+        BETTERUI.CIM.Narration.RegisterListNarration(
+            BETTERUI_COMPANION_EQUIP_SCENE_NAME,
+            function() return Companions.instance and Companions.instance.list and Companions.instance.list:GetTargetData() end,
+            function() return Companions.instance and Companions.instance:GetTitle() end
+        )
+    end
+end
+
+function Companions.InitializeRuntime()
+    Companions.RegisterDialogs()
+
+    local instance = Companions.Class:New(
+        "BETTERUI_CompanionWindow", BETTERUI_COMPANION_EQUIP_SCENE_NAME)
+    Companions.instance = instance
+    instance:SetTitle(
+        "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE") .. "|r")
+
+    InitializeCompanionList(instance)
+    InitializeCompanionMultiSelect(instance)
+    instance.multiSelectManager = Companions.multiSelectManager
+    InitializeCompanionSearch(instance)
+
+    instance.coreKeybinds = Companions.BuildCoreKeybinds(instance)
+    Companions.SetupSort(instance)
+    Companions.CreateScene(instance)
+    Companions.RegisterSceneLifecycle(instance)
+    instance:InitCompanionFooter()
+    RegisterCompanionNarration()
+    Companions.RegisterEvents(EVENT_MANAGER)
+
+    return instance
+end
+
 function Companions.SetupSort(instance)
     if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Install then
         local ok, err = pcall(function()
@@ -133,12 +276,7 @@ function Companions.RegisterSceneLifecycle(instance)
             if Companions.multiSelectManager then
                 Companions.multiSelectManager:ExitSelectionMode()
             end
-            local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
-            if searchMixin and searchMixin.CallSearchLifecycle and Companions.instance then
-                searchMixin.CallSearchLifecycle(Companions.instance, "exit")
-            elseif Companions.instance and Companions.instance.ExitSearchMode then
-                Companions.instance:ExitSearchMode()
-            end
+            CallCompanionSearchLifecycle(Companions.instance, "exit")
             local category = screen:GetCurrentCategory()
             if category and screen.list then
                 BETTERUI.CIM.PositionManager.SavePosition("Companions", category.key, screen.list)
@@ -336,11 +474,9 @@ function Companions.BuildCoreKeybinds(instance)
             end,
             callback = function()
                 if instance.searchQuery and instance.searchQuery ~= "" then
-                    if instance.ClearTextSearch then
-                        instance:ClearTextSearch()
-                    end
+                    CallCompanionSearchLifecycle(instance, "clear")
                 else
-                    instance:EnterSearchFocus()
+                    CallCompanionSearchLifecycle(instance, "requestEnter")
                 end
                 if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()

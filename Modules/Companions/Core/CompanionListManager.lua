@@ -91,6 +91,40 @@ local function ReleaseHeaderDirectionalInput(header, errors)
     end
 end
 
+local function EnsureListDirectionalInputRegistration(list, listRegistrationCount)
+    local isActive = list.IsActive and list:IsActive()
+    local listListening = listRegistrationCount > 0
+
+    if isActive then
+        if listListening then
+            list.directionalInputEnabled = true
+        elseif list.SetDirectionalInputEnabled then
+            list:SetDirectionalInputEnabled(true)
+        end
+        return
+    end
+
+    if list.SetDirectionalInputEnabled then
+        list.directionalInputEnabled = true
+    end
+    if list.Activate then
+        list:Activate()
+    end
+end
+
+local function ReleaseListDirectionalInput(list)
+    if not list then
+        return
+    end
+    if list.SetDirectionalInputEnabled then
+        list:SetDirectionalInputEnabled(false)
+    end
+    if list.Deactivate and (not list.IsActive or list:IsActive()) then
+        list:Deactivate()
+    end
+    ReleaseDirectionalInputRegistrations(list, true)
+end
+
 local CATEGORY_DEFINITIONS = {
     {
         key = "all",
@@ -542,44 +576,13 @@ function BETTERUI.Companions.Class:EnsureListInputActive()
         listRegistrationCount = 0
     end
 
-    local isActive = list.IsActive and list:IsActive()
-    local listListening = listRegistrationCount > 0
-
-    if isActive then
-        -- List is already activated.
-        if listListening then
-            -- Exactly one registration — correct state. Ensure flag is set.
-            list.directionalInputEnabled = true
-        elseif list.SetDirectionalInputEnabled then
-            -- Active but not registered on DI (stale state after cleanup).
-            -- Use the public mutator to re-register.
-            list:SetDirectionalInputEnabled(true)
-        end
-    else
-        -- List needs activation. Set the internal field directly and let
-        -- Activate() perform the single DI registration (avoids the
-        -- double-register from calling SetDirectionalInputEnabled(true)
-        -- followed by Activate() — vendor incident root cause #4).
-        if list.SetDirectionalInputEnabled then
-            list.directionalInputEnabled = true
-        end
-        if list.Activate then
-            list:Activate()
-        end
-    end
+    EnsureListDirectionalInputRegistration(list, listRegistrationCount)
 end
 
 ---@return nil
 function BETTERUI.Companions.Class:DeactivateListInput()
     local list = self.list
-    if not list then return end
-    if list.SetDirectionalInputEnabled then
-        list:SetDirectionalInputEnabled(false)
-    end
-    if list.Deactivate and (not list.IsActive or list:IsActive()) then
-        list:Deactivate()
-    end
-    ReleaseDirectionalInputRegistrations(list, true)
+    ReleaseListDirectionalInput(list)
 end
 
 --- Full directional-input release for the Companions scene.
@@ -638,7 +641,17 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
     if self.list.SetOnSelectedDataChangedCallback then
         self.list:SetOnSelectedDataChangedCallback(function(list, selectedData)
             if self._searchModeActive and not self._isRefreshing and self.list and self.list.IsActive and self.list:IsActive() then
-                self:ExitSearchFocus()
+                local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+                if searchMixin and searchMixin.CallSearchLifecycle then
+                    searchMixin.CallSearchLifecycle(self, "exit")
+                else
+                    local lifecycle = self.SEARCH_LIFECYCLE
+                    local exitMethodName = lifecycle and lifecycle.exit
+                    local exitMethod = exitMethodName and self[exitMethodName]
+                    if type(exitMethod) == "function" then
+                        exitMethod(self)
+                    end
+                end
                 return
             end
             if self:IsSceneShowing() then

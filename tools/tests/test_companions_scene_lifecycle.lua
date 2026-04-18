@@ -59,6 +59,7 @@ BETTERUI = {
                 },
             },
         },
+        ApplyModuleSharedSettingsStatics = function() end,
         RegisterModuleAccessors = function() end,
         InitModuleDefaults = function(_, options)
             return options

@@ -30,8 +30,11 @@ print("test_companions_runtime_source")
 
 local moduleSource = read_file("Modules/Companions/Module.lua")
 local runtimeSource = read_file("Modules/Companions/Core/CompanionsRuntime.lua")
+local listManagerSource = read_file("Modules/Companions/Core/CompanionListManager.lua")
 local manifestSource = read_file("BetterUI.txt")
 
+assert_contains(runtimeSource, "function Companions.InitializeRuntime()",
+    "Companions runtime helper owns the single runtime bootstrap entrypoint")
 assert_contains(runtimeSource, "function Companions.CreateScene(instance)",
     "Companions runtime helper owns scene creation")
 assert_contains(runtimeSource, "function Companions.RegisterSceneLifecycle(instance)",
@@ -51,13 +54,25 @@ assert_not_contains(moduleSource, "local function RegisterCompanionEvents(",
     "Companions Module.lua no longer defines event registration directly")
 assert_not_contains(moduleSource, "function BETTERUI.Companions.Class:TryEquipItem(inventorySlot)",
     "Companions Module.lua no longer defines TryEquipItem directly")
-assert_contains(moduleSource, "Companions.CreateScene(Companions.instance)",
-    "Companions Module.lua delegates scene creation to the runtime helper")
-assert_contains(moduleSource, "Companions.RegisterSceneLifecycle(Companions.instance)",
-    "Companions Module.lua delegates scene lifecycle to the runtime helper")
-assert_contains(moduleSource, "Companions.RegisterEvents(EVENT_MANAGER)",
-    "Companions Module.lua delegates event registration to the runtime helper")
+assert_contains(moduleSource, "Companions.InitializeRuntime()",
+    "Companions Module.lua delegates runtime bootstrap to the runtime helper")
+assert_not_contains(moduleSource, "Companions.instance:SetupList(",
+    "Companions Module.lua no longer wires list setup directly")
+assert_not_contains(moduleSource, "Companions.instance:AddSearch(",
+    "Companions Module.lua no longer wires search setup directly")
+assert_not_contains(moduleSource, "Companions.instance.coreKeybinds =",
+    "Companions Module.lua no longer wires runtime keybinds directly")
 assert_contains(manifestSource, "Modules\\Companions\\Core\\CompanionsRuntime.lua",
     "Addon manifest loads the new Companions runtime helper")
+assert_contains(runtimeSource, "CallCompanionSearchLifecycle(instance, \"clear\")",
+    "Companions runtime keybinds clear search through the canonical search lifecycle")
+assert_contains(runtimeSource, "CallCompanionSearchLifecycle(instance, \"requestEnter\")",
+    "Companions runtime keybinds enter search through the canonical search lifecycle")
+assert_contains(listManagerSource, "searchMixin.CallSearchLifecycle(self, \"exit\")",
+    "Companion list manager exits search through the canonical lifecycle")
+assert_contains(listManagerSource, "local function EnsureListDirectionalInputRegistration(list, listRegistrationCount)",
+    "Companion list manager keeps list input activation in a focused helper")
+assert_contains(listManagerSource, "local function ReleaseListDirectionalInput(list)",
+    "Companion list manager keeps list input release in a focused helper")
 
 print("  OK")
