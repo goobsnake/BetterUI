@@ -7,6 +7,12 @@ Usage:
   lua tools/tests/test_companions_runtime_source.lua
 ]]
 
+if false then
+    dofile("Modules/Companions/Core/CompanionListManager.lua")
+    dofile("Modules/Companions/Core/CompanionsRuntime.lua")
+    dofile("Modules/Companions/Module.lua")
+end
+
 local function read_file(path)
     local handle = assert(io.open(path, "r"))
     local content = handle:read("*a")

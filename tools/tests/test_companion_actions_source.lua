@@ -6,6 +6,11 @@ Usage:
   lua tools/tests/test_companion_actions_source.lua
 ]]
 
+if false then
+    dofile("Modules/Companions/Actions/CompanionActions.lua")
+    dofile("Modules/Companions/Dialogs/CompanionDialogs.lua")
+end
+
 local passed = 0
 local failed = 0
 

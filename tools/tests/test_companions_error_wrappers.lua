@@ -56,6 +56,8 @@ ITEMFILTERTYPE_FURNISHING = 6
 ITEMFILTERTYPE_MISCELLANEOUS = 7
 
 BETTERUI.CIM.RegisterModuleAccessors = function() end
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics = function() end
+BETTERUI.CIM.TryRegisterModulePanel = function() end
 
 local function countRegistrations(obj)
     local count = 0

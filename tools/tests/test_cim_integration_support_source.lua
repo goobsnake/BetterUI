@@ -14,6 +14,7 @@ if false then
     dofile("Modules/CIM/Core/Integration/AutoCategoryIntegration.lua")
     dofile("Modules/CIM/Core/Integration/Interfaces.lua")
     dofile("Modules/CIM/Core/Integration/MarketIntegration.lua")
+    dofile("Modules/CIM/UI/HeaderSortIntegration.lua")
     dofile("Modules/CIM/Core/Integration/NarrationHelper.lua")
     dofile("Modules/CIM/Core/Integration/ResearchCache.lua")
     dofile("Modules/CIM/Core/Presentation/FontDefinitions.lua")

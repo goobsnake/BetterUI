@@ -6,6 +6,10 @@ Usage:
   lua tools/tests/test_companions_class_source.lua
 ]]
 
+if false then
+    dofile("Modules/Companions/Core/CompanionsClass.lua")
+end
+
 local passed = 0
 local failed = 0
 

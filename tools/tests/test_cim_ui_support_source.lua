@@ -9,6 +9,12 @@ Usage:
 if false then
     dofile("Modules/CIM/UI/GenericFooter.lua")
     dofile("Modules/CIM/UI/GenericHeader.lua")
+    dofile("Modules/CIM/UI/HeaderNavigation.lua")
+    dofile("Modules/CIM/UI/HeaderSortController.lua")
+    dofile("Modules/CIM/UI/HeaderSortKeybinds.lua")
+    dofile("Modules/CIM/UI/ScrollIndicator.lua")
+    dofile("Modules/CIM/UI/SelectionHighlight.lua")
+    dofile("Modules/CIM/UI/UnifiedFooter.lua")
 end
 
 local passed = 0

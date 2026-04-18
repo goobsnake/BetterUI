@@ -94,8 +94,37 @@ BETTERUI = {
                 { id = "link", name = "Link" },
             }
         end,
+        CanExecuteAction = function(actionId, selectedData)
+            local data = selectedData.dataSource or selectedData
+            if not data or not data.bagId or not data.slotIndex then
+                return false
+            end
+            return actionId == "lock"
+                or actionId == "unlock"
+                or actionId == "junk"
+                or actionId == "unjunk"
+                or actionId == "destroy"
+        end,
         ExecuteAction = function(actionId, selectedData)
             table.insert(executedActions, { actionId = actionId, selectedData = selectedData })
+            local data = selectedData.dataSource or selectedData
+            local bagId = data and data.bagId
+            local slotIndex = data and data.slotIndex
+            if actionId == "lock" then
+                SetItemPlayerLocked(bagId, slotIndex, true)
+            elseif actionId == "unlock" then
+                SetItemPlayerLocked(bagId, slotIndex, false)
+            elseif actionId == "junk" then
+                SetItemIsJunk(bagId, slotIndex, true)
+            elseif actionId == "unjunk" then
+                SetItemIsJunk(bagId, slotIndex, false)
+            elseif actionId == "destroy" then
+                if BETTERUI.Companions.settings.quickDestroy then
+                    DestroyItem(bagId, slotIndex)
+                else
+                    BETTERUI.Companions.ShowCompanionDestroyDialog(bagId, slotIndex)
+                end
+            end
         end,
         GetSetting = function(key)
             return BETTERUI.Companions.settings[key]
