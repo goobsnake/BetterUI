@@ -40,6 +40,7 @@ local repeatedPaths = {
     "Modules/Inventory/Module.lua",
     "Modules/TradingHouse/Module.lua",
     "Modules/Vendor/Module.lua",
+    "Modules/Writs/Module.lua",
 }
 
 for _, path in ipairs(repeatedPaths) do

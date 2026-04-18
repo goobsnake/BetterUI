@@ -86,7 +86,6 @@ end
 --- Initializes defaults and migrates legacy settings for the Writs module.
 ---
 --- INIT CONTRACT: This function implements the standard InitModule signature.
---- It is called by BETTERUI.ModuleOptions() via pcall with only m_options.
 ---
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Initialized options with defaults applied
