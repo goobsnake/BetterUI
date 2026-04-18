@@ -6,6 +6,11 @@ Usage:
   lua tools/tests/test_cim_ui_support_source.lua
 ]]
 
+if false then
+    dofile("Modules/CIM/UI/GenericFooter.lua")
+    dofile("Modules/CIM/UI/GenericHeader.lua")
+end
+
 local passed = 0
 local failed = 0
 

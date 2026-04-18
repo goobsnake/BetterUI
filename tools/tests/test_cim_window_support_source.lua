@@ -13,6 +13,8 @@ if false then
     dofile("Modules/CIM/Core/Window/UnifiedScreen.lua")
     dofile("Modules/CIM/Core/Window/WindowClass.lua")
     dofile("Modules/CIM/Dialogs/DialogRegistry.lua")
+    dofile("Modules/CIM/Keybinds/GenericKeybinds.lua")
+    dofile("Modules/CIM/Lists/BatchProcessor.lua")
 end
 
 local passed = 0

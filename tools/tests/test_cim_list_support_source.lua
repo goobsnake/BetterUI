@@ -7,6 +7,19 @@ Usage:
   lua tools/tests/test_cim_list_support_source.lua
 ]]
 
+if false then
+    dofile("Modules/CIM/Lists/GenericListManager.lua")
+    dofile("Modules/CIM/Lists/HorizontalScrollList.lua")
+    dofile("Modules/CIM/Lists/ItemDataProcessor.lua")
+    dofile("Modules/CIM/Lists/ListRefreshManager.lua")
+    dofile("Modules/CIM/Lists/ParametricListScreen.lua")
+    dofile("Modules/CIM/Lists/ParametricScrollListTemplates.lua")
+    dofile("Modules/CIM/Lists/SubList.lua")
+    dofile("Modules/CIM/Lists/VerticalScrollList.lua")
+    dofile("Modules/CIM/Module.lua")
+    dofile("Modules/CIM/UI/CurrencyManager.lua")
+end
+
 local passed = 0
 local failed = 0
 
