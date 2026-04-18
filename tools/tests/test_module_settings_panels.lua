@@ -39,6 +39,16 @@ local companionsState = {
     enableCompanionJunk = false,
 }
 
+local inventoryState = {
+    quickDestroy = false,
+    enableBatchDestroy = false,
+    enableCarousel = false,
+    useTriggersForSkip = true,
+    triggerSpeed = 5,
+    bindOnEquipProtection = false,
+    enableCompanionJunk = false,
+}
+
 local bankingWindow = {
     refreshListCount = 0,
     refreshKeybindCount = 0,
@@ -126,6 +136,42 @@ function companionsInstance:RefreshCompanionFooter()
     self.refreshFooterCount = self.refreshFooterCount + 1
 end
 
+local inventoryWindow = {
+    refreshListCount = 0,
+    refreshHeaderCount = 0,
+    refreshItemActionsCount = 0,
+    refreshKeybindCount = 0,
+    triggerModeValue = nil,
+    scene = {
+        IsShowing = function()
+            return true
+        end,
+    },
+    categoryHeaderData = {
+        carouselConfig = {},
+    },
+}
+
+function inventoryWindow:RefreshItemList()
+    self.refreshListCount = self.refreshListCount + 1
+end
+
+function inventoryWindow:RefreshHeader()
+    self.refreshHeaderCount = self.refreshHeaderCount + 1
+end
+
+function inventoryWindow:RefreshItemActions()
+    self.refreshItemActionsCount = self.refreshItemActionsCount + 1
+end
+
+function inventoryWindow:RefreshKeybinds()
+    self.refreshKeybindCount = self.refreshKeybindCount + 1
+end
+
+function inventoryWindow:SetListsUseTriggerKeybinds(value)
+    self.triggerModeValue = value
+end
+
 LibAddonMenu2 = {
     RegisterAddonPanel = function(_, panelId, panelData)
         addonPanels[panelId] = panelData
@@ -173,6 +219,9 @@ BETTERUI = {
         FONTSTYLE_CHOICES = {},
         FONTSTYLE_VALUES = {},
     },
+    Inventory = {
+        Settings = {},
+    },
     Utils = {},
     CIM = {
         Settings = {},
@@ -192,12 +241,24 @@ function BETTERUI.Utils.IsBankingSceneShowing()
     return bankingSceneShowing
 end
 
+function BETTERUI.Utils.IsInventorySceneShowing()
+    return true
+end
+
 function BETTERUI.Banking.GetSetting(key)
     return bankingState[key]
 end
 
 function BETTERUI.Banking.SetSetting(key, value)
     bankingState[key] = value
+end
+
+function BETTERUI.Inventory.GetSetting(key)
+    return inventoryState[key]
+end
+
+function BETTERUI.Inventory.SetSetting(key, value)
+    inventoryState[key] = value
 end
 
 function BETTERUI.Vendor.GetSetting(key)
@@ -247,6 +308,8 @@ end
 function BETTERUI.CIM.Settings.CreateFontSubmenuOptions()
     return {}
 end
+
+GAMEPAD_INVENTORY = inventoryWindow
 
 function BETTERUI.CIM.Settings.RegisterModulePanel(panelId, panelData, optionsData)
     registeredModulePanel = {
@@ -306,6 +369,18 @@ SI_BETTERUI_COMPANIONS_GENERAL_HEADER = "Companions General"
 SI_BETTERUI_COMPANIONS_GENERAL_DESC = "Companions General Desc"
 SI_BETTERUI_COMPANIONS_ENABLE_EQUIPMENT = "Enable Companion Equipment"
 SI_BETTERUI_COMPANIONS_ENABLE_EQUIPMENT_TOOLTIP = "Enable Companion Equipment Tooltip"
+SI_BETTERUI_INV_GENERAL_HEADER = "Inventory General"
+SI_BETTERUI_INV_GENERAL_DESC = "Inventory General Desc"
+SI_BETTERUI_QUICK_DESTROY = "Quick Destroy"
+SI_BETTERUI_QUICK_DESTROY_TOOLTIP = "Quick Destroy Tooltip"
+SI_BETTERUI_QUICK_DESTROY_WARNING = "Quick Destroy Warning"
+SI_BETTERUI_ENABLE_BATCH_DESTROY = "Batch Destroy"
+SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP = "Batch Destroy Tooltip"
+SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING = "Batch Destroy Warning"
+SI_BETTERUI_BOE_PROTECTION = "Bind-on-Equip Protection"
+SI_BETTERUI_BOE_PROTECTION_TOOLTIP = "Bind-on-Equip Protection Tooltip"
+SI_BETTERUI_ENABLE_COMPANION_JUNK = "Enable Companion Junk"
+SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP = "Enable Companion Junk Tooltip"
 SI_BETTERUI_INV_QUICK_DESTROY = "Quick Destroy"
 SI_BETTERUI_INV_QUICK_DESTROY_TOOLTIP = "Quick Destroy Tooltip"
 SI_BETTERUI_INV_BATCH_DESTROY = "Batch Destroy"
@@ -350,6 +425,7 @@ print("\n=== Module Settings Panel Tests ===\n")
 
 dofile("Modules/Banking/Settings/SettingsPanel.lua")
 dofile("Modules/Vendor/Settings/SettingsPanel.lua")
+dofile("Modules/Inventory/Settings/SettingsPanel.lua")
 dofile("Modules/TradingHouse/Settings/SettingsPanel.lua")
 dofile("Modules/Companions/Settings/SettingsPanel.lua")
 
@@ -403,6 +479,27 @@ assertTrue(thReset ~= nil, "Trading House reset button registered")
 tradingHouseState.enableCarousel = false
 thReset.func()
 assertEqual(true, tradingHouseState.enableCarousel, "Trading House reset restores carousel")
+
+print("\nTest: Inventory settings panel uses shared registration seam and reset callback")
+BETTERUI.Inventory.Settings.GetCurrencyOptions = function()
+    return nil
+end
+BETTERUI.Inventory.Settings.GetFontOptions = function()
+    return nil
+end
+BETTERUI.Inventory.Settings.RegisterPanel("Inventory", "Inventory")
+local inventoryControls = optionControls["BETTERUI_Inventory"]
+local inventoryReset = findControl(inventoryControls, SI_BETTERUI_GENERAL_RESET)
+assertTrue(inventoryReset ~= nil, "Inventory reset button registered")
+inventoryState.enableCarousel = false
+inventoryState.useTriggersForSkip = true
+inventoryState.triggerSpeed = 2
+inventoryState.bindOnEquipProtection = false
+inventoryReset.func()
+assertEqual(true, inventoryState.enableCarousel, "Inventory reset restores carousel")
+assertEqual(false, inventoryState.useTriggersForSkip, "Inventory reset restores trigger mode")
+assertEqual(10, inventoryState.triggerSpeed, "Inventory reset restores trigger speed")
+assertEqual(true, inventoryState.bindOnEquipProtection, "Inventory reset restores bind-on-equip protection")
 
 print("\nTest: Companions settings panel refreshes junk toggle and reset callback")
 BETTERUI.Companions.Settings.RegisterPanel("Companions", "Companions")

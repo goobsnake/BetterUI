@@ -6,9 +6,8 @@ Purpose: Tooltip, list-refresh, and row-construction logic for companion equipme
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 local Companions = BETTERUI.Companions
 
-local BoundaryHelpers = Companions.EnsureBoundaryHelpers and Companions.EnsureBoundaryHelpers() or Companions.BoundaryHelpers
-local WrapCompanionError = BoundaryHelpers and BoundaryHelpers.WrapError
-local ExecuteCompanionBoundary = BoundaryHelpers and BoundaryHelpers.ExecuteBoundary
+local WrapCompanionError = Companions.WrapBoundaryError
+local ExecuteCompanionBoundary = Companions.ExecuteBoundary
 
 function BETTERUI.Companions.Class:UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
     if ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText then

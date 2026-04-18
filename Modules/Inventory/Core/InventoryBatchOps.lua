@@ -175,25 +175,11 @@ local DESTROY_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
 
 -- THROTTLED BATCH PROCESSING (delegates to CIM.MultiSelectMixin)
 
---- Checks if a batch operation is currently processing.
-function Class:IsBatchProcessing()
-    return MultiSelectMixin.IsBatchProcessing(self)
-end
-
---- Checks if the current batch can be aborted.
-function Class:CanAbortBatch()
-    return MultiSelectMixin.CanAbortBatch(self)
-end
-
---- Requests abort of the current batch operation.
-function Class:RequestBatchAbort()
-    return MultiSelectMixin.RequestBatchAbort(self)
-end
-
---- Processes a batch of items with throttling.
-function Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
-    MultiSelectMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
-end
+-- Pure delegates are assigned directly to avoid repetitive pass-through wrappers.
+Class.IsBatchProcessing = MultiSelectMixin.IsBatchProcessing
+Class.CanAbortBatch = MultiSelectMixin.CanAbortBatch
+Class.RequestBatchAbort = MultiSelectMixin.RequestBatchAbort
+Class.ProcessBatchThrottled = MultiSelectMixin.ProcessBatchThrottled
 
 -- BATCH INVENTORY ACTIONS
 
@@ -299,25 +285,10 @@ function Class:BatchDeposit()
 end
 
 -- Common batch operations delegate to CIM.MultiSelectMixin
---- Performs batch lock on all selected items.
-function Class:BatchLock()
-    MultiSelectMixin.BatchLock(self)
-end
-
---- Performs batch unlock on all selected items.
-function Class:BatchUnlock()
-    MultiSelectMixin.BatchUnlock(self)
-end
-
---- Performs batch mark as junk on all selected items.
-function Class:BatchMarkAsJunk()
-    MultiSelectMixin.BatchMarkAsJunk(self)
-end
-
---- Performs batch unmark as junk on all selected items.
-function Class:BatchUnmarkAsJunk()
-    MultiSelectMixin.BatchUnmarkAsJunk(self)
-end
+Class.BatchLock = MultiSelectMixin.BatchLock
+Class.BatchUnlock = MultiSelectMixin.BatchUnlock
+Class.BatchMarkAsJunk = MultiSelectMixin.BatchMarkAsJunk
+Class.BatchUnmarkAsJunk = MultiSelectMixin.BatchUnmarkAsJunk
 
 --- Performs batch destroy on all selected items (with confirmation).
 function Class:BatchDestroy()

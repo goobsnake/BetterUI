@@ -93,6 +93,16 @@ dofile("Modules/Companions/Module.lua")
 
 print("[Companions error wrappers]")
 
+assert_eq(type(BETTERUI.Companions.WrapBoundaryError), "function",
+    "Companions runtime exposes WrapBoundaryError as a callable alias")
+assert_eq(BETTERUI.Companions.WrapBoundaryError("RefreshList", "boom"), "[Companions] RefreshList failed: boom",
+    "WrapBoundaryError preserves the shared companion error format")
+local boundaryOk, boundaryValue = BETTERUI.Companions.ExecuteBoundary("Companions alias test", function(left, right)
+    return left + right
+end, 2, 3)
+assert_eq(boundaryOk, true, "ExecuteBoundary alias preserves successful execution results")
+assert_eq(boundaryValue, 5, "ExecuteBoundary alias forwards varargs to the shared boundary helper")
+
 local refreshHarness = setmetatable({
     list = {
         Clear = function()

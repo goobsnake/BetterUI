@@ -500,40 +500,15 @@ function BETTERUI.Banking.Class:ExitSelectionMode()
     end
 end
 
---- Called when the selection count changes.
-function BETTERUI.Banking.Class:OnSelectionCountChanged(selectedCount)
-    MultiSelectMixin.OnSelectionCountChanged(self, selectedCount)
-end
-
-function BETTERUI.Banking.Class:IsInSelectionMode()
-    return MultiSelectMixin.IsInSelectionMode(self)
-end
-
-function BETTERUI.Banking.Class:IsBatchProcessing()
-    return MultiSelectMixin.IsBatchProcessing(self)
-end
-
-function BETTERUI.Banking.Class:CanAbortBatch()
-    return MultiSelectMixin.CanAbortBatch(self)
-end
-
-function BETTERUI.Banking.Class:RequestBatchAbort()
-    return MultiSelectMixin.RequestBatchAbort(self)
-end
-
-function BETTERUI.Banking.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
-    MultiSelectMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
-end
-
---- Locks all selected items.
-function BETTERUI.Banking.Class:BatchLock()
-    MultiSelectMixin.BatchLock(self)
-end
-
---- Unlocks all selected items.
-function BETTERUI.Banking.Class:BatchUnlock()
-    MultiSelectMixin.BatchUnlock(self)
-end
+-- Pure delegates are assigned directly to avoid repetitive pass-through wrappers.
+BETTERUI.Banking.Class.OnSelectionCountChanged = MultiSelectMixin.OnSelectionCountChanged
+BETTERUI.Banking.Class.IsInSelectionMode = MultiSelectMixin.IsInSelectionMode
+BETTERUI.Banking.Class.IsBatchProcessing = MultiSelectMixin.IsBatchProcessing
+BETTERUI.Banking.Class.CanAbortBatch = MultiSelectMixin.CanAbortBatch
+BETTERUI.Banking.Class.RequestBatchAbort = MultiSelectMixin.RequestBatchAbort
+BETTERUI.Banking.Class.ProcessBatchThrottled = MultiSelectMixin.ProcessBatchThrottled
+BETTERUI.Banking.Class.BatchLock = MultiSelectMixin.BatchLock
+BETTERUI.Banking.Class.BatchUnlock = MultiSelectMixin.BatchUnlock
 
 --- Marks all selected items as junk.
 function BETTERUI.Banking.Class:BatchMarkAsJunk()

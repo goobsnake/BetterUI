@@ -39,6 +39,12 @@ end
 
 Companions.EnsureBoundaryHelpers = Companions.EnsureBoundaryHelpers or EnsureCompanionBoundaryHelpers
 Companions.EnsureBoundaryHelpers()
+Companions.WrapBoundaryError = Companions.WrapBoundaryError or function(operation, err)
+    return Companions.EnsureBoundaryHelpers().WrapError(operation, err)
+end
+Companions.ExecuteBoundary = Companions.ExecuteBoundary or function(context, fn, ...)
+    return Companions.EnsureBoundaryHelpers().ExecuteBoundary(context, fn, ...)
+end
 
 local function RefreshVisibleCompanionScene(screen, options)
     if not screen or not screen.IsSceneShowing or not screen:IsSceneShowing() then

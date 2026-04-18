@@ -72,6 +72,29 @@ BETTERUI = {
                 },
             },
         },
+        MultiSelectMixin = {
+            Apply = function() end,
+            EnterSelectionMode = function() end,
+            ExitSelectionMode = function() end,
+            OnSelectionCountChanged = function() end,
+            IsInSelectionMode = function()
+                return false
+            end,
+            IsBatchProcessing = function()
+                return false
+            end,
+            CanAbortBatch = function()
+                return false
+            end,
+            RequestBatchAbort = function()
+                return false
+            end,
+            ProcessBatchThrottled = function() end,
+            BatchLock = function() end,
+            BatchUnlock = function() end,
+            BatchMarkAsJunk = function() end,
+            BatchUnmarkAsJunk = function() end,
+        },
     },
     Interface = {
         EnsureKeybindGroupAdded = function() end,
@@ -119,6 +142,22 @@ dofile("Modules/Banking/Core/BankingClass.lua")
 assertTrue(type(BETTERUI.Banking.ResolveBankBag) == "function", "ResolveBankBag helper is exposed")
 assertTrue(type(BETTERUI.Banking.GetCurrentBank) == "function", "GetCurrentBank helper is exposed")
 assertEqual(BAG_BANK, BETTERUI.Banking.lastUsedBank, "lastUsedBank starts aligned with the normalized default bank")
+assertEqual(BETTERUI.CIM.MultiSelectMixin.OnSelectionCountChanged, BETTERUI.Banking.Class.OnSelectionCountChanged,
+    "BankingClass aliases OnSelectionCountChanged directly to the shared multi-select mixin")
+assertEqual(BETTERUI.CIM.MultiSelectMixin.IsInSelectionMode, BETTERUI.Banking.Class.IsInSelectionMode,
+    "BankingClass aliases IsInSelectionMode directly to the shared multi-select mixin")
+assertEqual(BETTERUI.CIM.MultiSelectMixin.IsBatchProcessing, BETTERUI.Banking.Class.IsBatchProcessing,
+    "BankingClass aliases IsBatchProcessing directly to the shared multi-select mixin")
+assertEqual(BETTERUI.CIM.MultiSelectMixin.CanAbortBatch, BETTERUI.Banking.Class.CanAbortBatch,
+    "BankingClass aliases CanAbortBatch directly to the shared multi-select mixin")
+assertEqual(BETTERUI.CIM.MultiSelectMixin.RequestBatchAbort, BETTERUI.Banking.Class.RequestBatchAbort,
+    "BankingClass aliases RequestBatchAbort directly to the shared multi-select mixin")
+assertEqual(BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled, BETTERUI.Banking.Class.ProcessBatchThrottled,
+    "BankingClass aliases ProcessBatchThrottled directly to the shared multi-select mixin")
+assertEqual(BETTERUI.CIM.MultiSelectMixin.BatchLock, BETTERUI.Banking.Class.BatchLock,
+    "BankingClass aliases BatchLock directly to the shared multi-select mixin")
+assertEqual(BETTERUI.CIM.MultiSelectMixin.BatchUnlock, BETTERUI.Banking.Class.BatchUnlock,
+    "BankingClass aliases BatchUnlock directly to the shared multi-select mixin")
 
 if type(BETTERUI.Banking.ResolveBankBag) == "function" then
     assertEqual(BAG_BANK, BETTERUI.Banking.ResolveBankBag(nil), "ResolveBankBag falls back from nil")

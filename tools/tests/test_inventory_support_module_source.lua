@@ -54,8 +54,8 @@ assert_true(categorySource:find("function BETTERUI%.Inventory%.Categories%.GetCa
     "CategoryDefinitions exposes GetCategoryTypeFromWeaponType")
 
 local multiSelectSource = read_file("Modules/Inventory/Core/InventoryMultiSelect.lua")
-assert_true(multiSelectSource:find("function Class:EnterSelectionMode%(%)") ~= nil,
-    "InventoryMultiSelect exposes EnterSelectionMode")
+assert_true(multiSelectSource:find("Class%.EnterSelectionMode = MultiSelectMixin%.EnterSelectionMode") ~= nil,
+    "InventoryMultiSelect wires EnterSelectionMode through the shared mixin delegate")
 assert_true(multiSelectSource:find("function Class:ShowBatchActionsMenu%(%)") ~= nil,
     "InventoryMultiSelect exposes ShowBatchActionsMenu")
 assert_true(multiSelectSource:find("function Class:EnterCraftBagSelectionMode%(%)") ~= nil,

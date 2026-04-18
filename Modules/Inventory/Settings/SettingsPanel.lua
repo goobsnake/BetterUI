@@ -4,8 +4,6 @@ Purpose: Handles the LAM settings panel construction for the Inventory module.
          Aggregates settings from FontSettings, CurrencySettings, and internal general settings.
 ]]
 
-local LAM = LibAddonMenu2
-
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Inventory.Settings = BETTERUI.Inventory.Settings or {}
 
@@ -231,6 +229,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 		BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
 	end
 
-	LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
-	LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)
+	if BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.RegisterModulePanel then
+		BETTERUI.CIM.Settings.RegisterModulePanel("BETTERUI_" .. mId, panelData, optionsTable)
+	end
 end
