@@ -317,6 +317,15 @@ BETTERUI = {
         GUILD_BANK_INTERACTION = "guild",
         BANKING_INTERACTION = "bank",
         CONST = {},
+        ResolveBankBag = function(bankBagId)
+            if bankBagId == nil or bankBagId == 0 then
+                return BAG_BANK
+            end
+            return bankBagId
+        end,
+        GetCurrentBank = function()
+            return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+        end,
         Class = {
             New = function()
                 activeWindow = createWindow()
@@ -490,6 +499,9 @@ assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.
 BETTERUI.Banking.currentUsedBank = nil
 assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
     "Personal withdraw falls back to both bank bags when runtime state is missing")
+BETTERUI.Banking.currentUsedBank = 0
+assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
+    "Personal withdraw normalizes the zero bank sentinel before building source bags")
 BETTERUI.Banking.currentUsedBank = 88
 assertTableEquals({ 88 }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
     "House bank withdraw sources current bank only")

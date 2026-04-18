@@ -122,7 +122,9 @@ function GuildBank.GetSourceBags(mode)
     if not GuildBank.IsGuildBankMode() then
         -- Personal/house bank: reuse existing logic
         if mode == LIST_WITHDRAW then
-            local currentUsedBank = BETTERUI.Banking.currentUsedBank
+            local currentUsedBank = BETTERUI.Banking.GetCurrentBank and BETTERUI.Banking.GetCurrentBank()
+                or BETTERUI.Banking.ResolveBankBag and BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+                or BETTERUI.Banking.currentUsedBank
             if currentUsedBank == BAG_BANK then
                 return { BAG_BANK, BAG_SUBSCRIBER_BANK }
             elseif currentUsedBank ~= nil then

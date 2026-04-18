@@ -12,51 +12,152 @@ BETTERUI.CIM.UI.HeaderSortIntegration = {}
 
 local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
 
----@param options BetterUIHeaderSortInstallOptions|table|nil
+local function HasLegacyValue(value)
+    if value == nil then
+        return false
+    end
+
+    if type(value) == "boolean" then
+        return value
+    end
+
+    return true
+end
+
+---@param options BetterUIHeaderSortInstallOptions|BetterUIHeaderSortLegacyInstallOptions|table|nil
+---@return boolean
+local function HasLegacyInstallShape(options)
+    if not options then
+        return false
+    end
+
+    return HasLegacyValue(options.controller)
+        or HasLegacyValue(options.controllerField)
+        or HasLegacyValue(options.controllerAliasFields)
+        or HasLegacyValue(options.headerControllerFn)
+        or HasLegacyValue(options.initControllerFn)
+        or HasLegacyValue(options.keybindDescriptor)
+        or HasLegacyValue(options.mainKeybindDescriptor)
+        or HasLegacyValue(options.deactivateNavigationFn)
+        or HasLegacyValue(options.reactivateNavigationFn)
+        or HasLegacyValue(options.onSortChangedCallback)
+        or HasLegacyValue(options.onControllerCreated)
+        or HasLegacyValue(options.onEnterHeaderMode)
+        or HasLegacyValue(options.onExitHeaderMode)
+        or HasLegacyValue(options.suspendTabBar)
+end
+
+---@param options BetterUIHeaderSortInstallOptions|BetterUIHeaderSortLegacyInstallOptions|table|nil
+---@return BetterUIHeaderSortInstallOptions
+local function NormalizeInstallOptions(options)
+    options = options or {}
+
+    local controllerContract = options.controllerContract or {}
+    local keybinds = options.keybinds or {}
+    local navigation = options.navigation or {}
+    local callbacks = options.callbacks or {}
+
+    local normalized = {
+        list = options.list,
+        listFn = options.listFn,
+        columns = options.columns,
+        controllerContract = {
+            instance = controllerContract.instance,
+            field = controllerContract.field or "headerSortController",
+            aliasFields = controllerContract.aliasFields or {},
+            resolve = controllerContract.resolve,
+            initialize = controllerContract.initialize,
+        },
+        keybinds = {
+            mainDescriptor = keybinds.mainDescriptor,
+        },
+        navigation = {
+            deactivate = navigation.deactivate,
+            reactivate = navigation.reactivate,
+            suspendTabBar = navigation.suspendTabBar,
+        },
+        callbacks = {
+            onSortChanged = callbacks.onSortChanged,
+            onControllerCreated = callbacks.onControllerCreated,
+            onEnterHeaderMode = callbacks.onEnterHeaderMode,
+            onExitHeaderMode = callbacks.onExitHeaderMode,
+        },
+        createControllerFn = options.createControllerFn,
+        autoEnterOnListStart = options.autoEnterOnListStart == true,
+        usesLegacyShape = false,
+    }
+
+    if not HasLegacyInstallShape(options) then
+        return normalized
+    end
+
+    normalized.usesLegacyShape = true
+    normalized.controllerContract.instance = normalized.controllerContract.instance or options.controller
+    normalized.controllerContract.field = controllerContract.field or options.controllerField or normalized.controllerContract.field
+    normalized.controllerContract.aliasFields = controllerContract.aliasFields or options.controllerAliasFields or normalized.controllerContract.aliasFields
+    normalized.controllerContract.resolve = controllerContract.resolve or options.headerControllerFn
+    normalized.controllerContract.initialize = controllerContract.initialize or options.initControllerFn
+
+    normalized.keybinds.mainDescriptor = normalized.keybinds.mainDescriptor
+        or options.keybindDescriptor
+        or options.mainKeybindDescriptor
+
+    normalized.navigation.deactivate = normalized.navigation.deactivate or options.deactivateNavigationFn
+    normalized.navigation.reactivate = normalized.navigation.reactivate or options.reactivateNavigationFn
+    if normalized.navigation.suspendTabBar == nil then
+        normalized.navigation.suspendTabBar = options.suspendTabBar == true
+    end
+
+    normalized.callbacks.onSortChanged = normalized.callbacks.onSortChanged or options.onSortChangedCallback
+    normalized.callbacks.onControllerCreated = normalized.callbacks.onControllerCreated or options.onControllerCreated
+    normalized.callbacks.onEnterHeaderMode = normalized.callbacks.onEnterHeaderMode or options.onEnterHeaderMode
+    normalized.callbacks.onExitHeaderMode = normalized.callbacks.onExitHeaderMode or options.onExitHeaderMode
+
+    return normalized
+end
+
+---@param options BetterUIHeaderSortInstallOptions|nil
 ---@return BetterUIHeaderSortControllerContract
 local function NormalizeControllerContract(options)
-    local contract = (options and options.controllerContract) or {}
+    local contract = options and options.controllerContract or {}
     return {
-        instance = contract.instance or (options and options.controller) or nil,
-        field = contract.field or (options and options.controllerField) or "headerSortController",
-        aliasFields = contract.aliasFields or (options and options.controllerAliasFields) or {},
-        resolve = contract.resolve or (options and options.headerControllerFn) or nil,
-        initialize = contract.initialize or (options and options.initControllerFn) or nil,
+        instance = contract.instance or nil,
+        field = contract.field or "headerSortController",
+        aliasFields = contract.aliasFields or {},
+        resolve = contract.resolve or nil,
+        initialize = contract.initialize or nil,
     }
 end
 
----@param options BetterUIHeaderSortInstallOptions|table|nil
+---@param options BetterUIHeaderSortInstallOptions|nil
 ---@return BetterUIHeaderSortKeybindContract
 local function NormalizeKeybindContract(options)
-    local contract = (options and options.keybinds) or {}
+    local contract = options and options.keybinds or {}
     return {
-        mainDescriptor = contract.mainDescriptor
-            or (options and options.keybindDescriptor)
-            or (options and options.mainKeybindDescriptor)
-            or nil,
+        mainDescriptor = contract.mainDescriptor or nil,
     }
 end
 
----@param options BetterUIHeaderSortInstallOptions|table|nil
+---@param options BetterUIHeaderSortInstallOptions|nil
 ---@return BetterUIHeaderSortNavigationContract
 local function NormalizeNavigationContract(options)
-    local contract = (options and options.navigation) or {}
+    local contract = options and options.navigation or {}
     return {
-        deactivate = contract.deactivate or (options and options.deactivateNavigationFn) or nil,
-        reactivate = contract.reactivate or (options and options.reactivateNavigationFn) or nil,
-        suspendTabBar = contract.suspendTabBar == true or (options and options.suspendTabBar) == true,
+        deactivate = contract.deactivate or nil,
+        reactivate = contract.reactivate or nil,
+        suspendTabBar = contract.suspendTabBar == true,
     }
 end
 
----@param options BetterUIHeaderSortInstallOptions|table|nil
+---@param options BetterUIHeaderSortInstallOptions|nil
 ---@return BetterUIHeaderSortCallbackContract
 local function NormalizeCallbackContract(options)
-    local contract = (options and options.callbacks) or {}
+    local contract = options and options.callbacks or {}
     return {
-        onSortChanged = contract.onSortChanged or (options and options.onSortChangedCallback) or nil,
-        onControllerCreated = contract.onControllerCreated or (options and options.onControllerCreated) or nil,
-        onEnterHeaderMode = contract.onEnterHeaderMode or (options and options.onEnterHeaderMode) or nil,
-        onExitHeaderMode = contract.onExitHeaderMode or (options and options.onExitHeaderMode) or nil,
+        onSortChanged = contract.onSortChanged or nil,
+        onControllerCreated = contract.onControllerCreated or nil,
+        onEnterHeaderMode = contract.onEnterHeaderMode or nil,
+        onExitHeaderMode = contract.onExitHeaderMode or nil,
     }
 end
 
@@ -181,31 +282,32 @@ end
 
 --- Installs the shared header sort owner contract.
 ---@param owner table
----@param options BetterUIHeaderSortInstallOptions|table|nil
+---@param options BetterUIHeaderSortInstallOptions|BetterUIHeaderSortLegacyInstallOptions|table|nil
 ---@return BetterUIHeaderSortIntegration integration
 function HeaderSortIntegration.Install(owner, options)
-    options = options or {}
+    local installOptions = NormalizeInstallOptions(options)
 
-    local controllerContract = NormalizeControllerContract(options)
-    local keybinds = NormalizeKeybindContract(options)
-    local navigation = NormalizeNavigationContract(options)
-    local callbacks = NormalizeCallbackContract(options)
+    local controllerContract = NormalizeControllerContract(installOptions)
+    local keybinds = NormalizeKeybindContract(installOptions)
+    local navigation = NormalizeNavigationContract(installOptions)
+    local callbacks = NormalizeCallbackContract(installOptions)
 
     local integration = {
         owner = owner,
-        list = options.list,
-        listFn = options.listFn,
+        list = installOptions.list,
+        listFn = installOptions.listFn,
         controller = controllerContract.instance,
         controllerContract = controllerContract,
-        columns = options.columns,
+        columns = installOptions.columns,
         callbacks = callbacks,
-        createControllerFn = options.createControllerFn,
+        createControllerFn = installOptions.createControllerFn,
         keybinds = keybinds,
         keybindDescriptor = keybinds.mainDescriptor,
         navigation = navigation,
         controllerField = controllerContract.field,
         controllerAliasFields = controllerContract.aliasFields,
-        autoEnterOnListStart = options.autoEnterOnListStart == true,
+        autoEnterOnListStart = installOptions.autoEnterOnListStart == true,
+        usesLegacyShape = installOptions.usesLegacyShape == true,
         isActive = false,
         activeKeybindDescriptor = nil,
     }
@@ -242,7 +344,7 @@ end
 --- Backward-compatible wrapper for older static-list callers.
 ---@param list table
 ---@param controller table
----@param options BetterUIHeaderSortInstallOptions|table|nil
+---@param options BetterUIHeaderSortLegacyInstallOptions|BetterUIHeaderSortInstallOptions|table|nil
 ---@return BetterUIHeaderSortIntegration integration
 function HeaderSortIntegration.Setup(list, controller, options)
     options = options or {}
@@ -393,7 +495,7 @@ end
 
 --- Backward-compatible wrapper around the unified installer.
 ---@param instance table
----@param config BetterUIHeaderSortInstallOptions|table
+---@param config BetterUIHeaderSortLegacyInstallOptions|BetterUIHeaderSortInstallOptions|table
 ---@return table?
 function HeaderSortIntegration.ApplyMixin(instance, config)
     if not instance or not config then
