@@ -29,6 +29,9 @@ local function getScriptDir()
     return path
 end
 
+local scriptDir = getScriptDir()
+local RunnerSupport = dofile(scriptDir .. "lib/TestRunnerSupport.lua")
+
 -- List files matching pattern in directory
 local function listFiles(dir, pattern)
     local files = {}
@@ -60,6 +63,24 @@ local function listFiles(dir, pattern)
     return files
 end
 
+local function readFile(path)
+    local handle = io.open(path, "r")
+    if not handle then
+        return ""
+    end
+    local content = handle:read("*a") or ""
+    handle:close()
+    return content
+end
+
+local function runCommandCapture(command)
+    local outputPath = os.tmpname()
+    local commandOk, statusType, statusCode = os.execute(command .. ' > "' .. outputPath .. '" 2>&1')
+    local output = readFile(outputPath)
+    os.remove(outputPath)
+    return output, commandOk, statusType, statusCode
+end
+
 -- ============================================================================
 -- MAIN TEST RUNNER
 -- ============================================================================
@@ -70,7 +91,6 @@ print("  BetterUI Test Runner")
 print(string.rep("=", 60))
 print("")
 
-local scriptDir = getScriptDir()
 local testFiles = listFiles(scriptDir, TEST_PATTERN)
 
 -- Filter out this runner script
@@ -102,27 +122,9 @@ for _, file in ipairs(testFiles) do
     io.flush()
 
     local fullPath = scriptDir .. file
-    -- Capture output to prevent interleaving
-    local cmd = 'lua "' .. fullPath .. '" 2>&1'
-    local handle = io.popen(cmd)
-    local output = handle and handle:read("*a") or ""
-    local closeResult = handle and handle:close()
-
-    -- Determine success from output and close result
-    local success = false
-    if type(closeResult) == "boolean" then
-        success = closeResult
-    elseif type(closeResult) == "number" then
-        success = (closeResult == 0)
-    else
-        -- Check output for failure indicators
-        success = not output:match("FAILED") and not output:match("Failed:")
-    end
-
-    -- Also check for "All tests passed" as positive indicator
-    if output:match("All tests passed") then
-        success = true
-    end
+    local cmd = 'lua "' .. fullPath .. '"'
+    local output, commandOk, statusType, statusCode = runCommandCapture(cmd)
+    local success = RunnerSupport.DidTestPass(output, commandOk, statusType, statusCode)
 
     if success then
         passedCount = passedCount + 1
