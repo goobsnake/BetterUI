@@ -4,6 +4,7 @@
 
 local Class = BETTERUI.Inventory.Class
 local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
+local BatchConfig = BETTERUI.CIM.BatchConfig
 local BLOCK_TABBAR_CALLBACK = true
 
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
@@ -80,69 +81,97 @@ BETTERUI.Inventory.CanDestroyInventoryItem = CanDestroyInventoryItem
 
 -- BATCH OPTION PRESETS
 
-local CRAFT_BAG_RETRIEVE_BATCH_OPTIONS = {
-    serverBound = true,
-    suppressUiUpdates = true,
-    costPerItem = 2,
-    awaitInventoryAck = true,
-    minServerDelayMs = 150,
-    maxServerDelayMs = 340,
-    cooldownEvery = 18,
-    cooldownMs = 1250,
-    chunkCostUnits = 30,
-    chunkPauseMs = 1050,
-    adaptiveDelay = true,
-    adaptiveThreshold = 6,
-    adaptiveStepMs = 18,
-    jitterMs = 20,
-}
+local CRAFT_BAG_RETRIEVE_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
+    BatchConfig.WithServer({
+        serverBound = true,
+        costPerItem = 2,
+    }),
+    BatchConfig.WithUi({
+        suppressUiUpdates = true,
+    }),
+    BatchConfig.WithAck({
+        awaitInventoryAck = true,
+    }),
+    BatchConfig.WithPacing({
+        minServerDelayMs = 150,
+        maxServerDelayMs = 340,
+        cooldownEvery = 18,
+        cooldownMs = 1250,
+        chunkCostUnits = 30,
+        chunkPauseMs = 1050,
+        adaptiveDelay = true,
+        adaptiveThreshold = 6,
+        adaptiveStepMs = 18,
+        jitterMs = 20,
+    })
+)
 
-local CRAFT_BAG_STOW_BATCH_OPTIONS = {
-    serverBound = true,
-    costPerItem = 2,
-    awaitInventoryAck = true,
-    minServerDelayMs = 145,
-    maxServerDelayMs = 330,
-    cooldownEvery = 18,
-    cooldownMs = 1200,
-    chunkCostUnits = 30,
-    chunkPauseMs = 1000,
-    adaptiveDelay = true,
-    adaptiveThreshold = 6,
-    adaptiveStepMs = 16,
-    jitterMs = 20,
-}
+local CRAFT_BAG_STOW_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
+    BatchConfig.WithServer({
+        serverBound = true,
+        costPerItem = 2,
+    }),
+    BatchConfig.WithAck({
+        awaitInventoryAck = true,
+    }),
+    BatchConfig.WithPacing({
+        minServerDelayMs = 145,
+        maxServerDelayMs = 330,
+        cooldownEvery = 18,
+        cooldownMs = 1200,
+        chunkCostUnits = 30,
+        chunkPauseMs = 1000,
+        adaptiveDelay = true,
+        adaptiveThreshold = 6,
+        adaptiveStepMs = 16,
+        jitterMs = 20,
+    })
+)
 
-local BANK_DEPOSIT_BATCH_OPTIONS = {
-    serverBound = true,
-    awaitInventoryAck = true,
-    minServerDelayMs = 145,
-    maxServerDelayMs = 330,
-    cooldownEvery = 18,
-    cooldownMs = 1200,
-    chunkCostUnits = 32,
-    chunkPauseMs = 1000,
-    adaptiveDelay = true,
-    adaptiveThreshold = 6,
-    adaptiveStepMs = 16,
-    jitterMs = 18,
-}
+local BANK_DEPOSIT_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
+    BatchConfig.WithServer({
+        serverBound = true,
+    }),
+    BatchConfig.WithAck({
+        awaitInventoryAck = true,
+    }),
+    BatchConfig.WithPacing({
+        minServerDelayMs = 145,
+        maxServerDelayMs = 330,
+        cooldownEvery = 18,
+        cooldownMs = 1200,
+        chunkCostUnits = 32,
+        chunkPauseMs = 1000,
+        adaptiveDelay = true,
+        adaptiveThreshold = 6,
+        adaptiveStepMs = 16,
+        jitterMs = 18,
+    })
+)
 
-local DESTROY_BATCH_OPTIONS = {
-    serverBound = true,
-    suppressUiUpdates = true,
-    awaitInventoryAck = true,
-    minServerDelayMs = 165,
-    maxServerDelayMs = 360,
-    cooldownEvery = 14,
-    cooldownMs = 1400,
-    chunkCostUnits = 24,
-    chunkPauseMs = 1150,
-    adaptiveDelay = true,
-    adaptiveThreshold = 5,
-    adaptiveStepMs = 20,
-    jitterMs = 20,
-}
+local DESTROY_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
+    BatchConfig.WithServer({
+        serverBound = true,
+    }),
+    BatchConfig.WithUi({
+        suppressUiUpdates = true,
+    }),
+    BatchConfig.WithAck({
+        awaitInventoryAck = true,
+    }),
+    BatchConfig.WithPacing({
+        minServerDelayMs = 165,
+        maxServerDelayMs = 360,
+        cooldownEvery = 14,
+        cooldownMs = 1400,
+        chunkCostUnits = 24,
+        chunkPauseMs = 1150,
+        adaptiveDelay = true,
+        adaptiveThreshold = 5,
+        adaptiveStepMs = 20,
+        jitterMs = 20,
+    })
+)
 
 -- THROTTLED BATCH PROCESSING (delegates to CIM.MultiSelectMixin)
 

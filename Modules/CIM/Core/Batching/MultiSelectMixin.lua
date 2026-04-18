@@ -143,54 +143,64 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     local batchDelayMs = throttleProfile.DELAY_MS or 75
     local showProgress = throttleProfile.SHOW_PROGRESS == true
     local showEta = totalItems >= BatchConfig.BATCH_ETA_THRESHOLD
-    local options = batchOptions or {}
-    local isServerBound = options.serverBound == true
+    local options = BatchConfig.NormalizeBatchOptions(batchOptions)
+    local isServerBound = options.server.serverBound == true
     if isServerBound then showProgress = true end
-    local suppressUiUpdates = options.suppressUiUpdates == true
+    local suppressUiUpdates = options.ui.suppressUiUpdates == true
     local sceneExitLabel = BatchConfig.ResolveSceneExitLabel(self, options)
-    local requestedCost = tonumber(options.costPerItem)
+    local requestedCost = tonumber(options.server.costPerItem)
     local actionCost = BatchConfig.DEFAULT_ACTION_COST_UNITS
     if requestedCost and requestedCost > 0 then
         actionCost = zo_max(BatchConfig.DEFAULT_ACTION_COST_UNITS, zo_ceil(requestedCost))
     end
     local totalCostUnits = totalItems * actionCost
-    local cooldownEvery, cooldownMs = 0, 0
-    local minServerDelayMs, maxServerDelayMs = 0, 0
-    local awaitInventoryAck, ackTimeoutMs = false, 0
-    local chunkCostUnits, chunkPauseMs = 0, 0
-    local adaptiveDelay, adaptiveThreshold, adaptiveStepMs = false, 0, 0
-    local jitterMs = 0
-    local skipInterBatchCooldown
-    local postBatchCooldownBaseMs, postBatchCooldownThreshold = 0, 0
-    local postBatchCooldownPerCostMs, postBatchCooldownMaxMs = 0, 0
-    local enforceRateWindow, rateLimitWindowMs, rateLimitMaxActions = false, 0, 0
-    local countTowardRateOnSuccess = false
+    local cooldownEvery = options.pacing.cooldownEvery or 0
+    local cooldownMs = options.pacing.cooldownMs or 0
+    local minServerDelayMs = options.pacing.minServerDelayMs or 0
+    local maxServerDelayMs = options.pacing.maxServerDelayMs or 0
+    local awaitInventoryAck = BatchConfig.ResolveBooleanOption(options.ack.awaitInventoryAck, false)
+    local ackTimeoutMs = options.ack.ackTimeoutMs or 0
+    local chunkCostUnits = options.pacing.chunkCostUnits or 0
+    local chunkPauseMs = options.pacing.chunkPauseMs or 0
+    local adaptiveDelay = BatchConfig.ResolveBooleanOption(options.pacing.adaptiveDelay, false)
+    local adaptiveThreshold = options.pacing.adaptiveThreshold or 0
+    local adaptiveStepMs = options.pacing.adaptiveStepMs or 0
+    local jitterMs = options.pacing.jitterMs or 0
+    local skipInterBatchCooldown = BatchConfig.ResolveBooleanOption(options.server.skipInterBatchCooldown, false)
+    local postBatchCooldownBaseMs = options.postBatch.postBatchCooldownBaseMs or 0
+    local postBatchCooldownThreshold = options.postBatch.postBatchCooldownThreshold or 0
+    local postBatchCooldownPerCostMs = options.postBatch.postBatchCooldownPerCostMs or 0
+    local postBatchCooldownMaxMs = options.postBatch.postBatchCooldownMaxMs or 0
+    local enforceRateWindow = BatchConfig.ResolveBooleanOption(options.rateLimit.enforceRateWindow, false)
+    local rateLimitWindowMs = options.rateLimit.rateLimitWindowMs or 0
+    local rateLimitMaxActions = options.rateLimit.rateLimitMaxActions or 0
+    local countTowardRateOnSuccess = BatchConfig.ResolveBooleanOption(options.ack.countTowardRateOnSuccess, false)
     local startupDelayMs = 0
     local nextCooldownAt, nextChunkAt = nil, nil
 
     if isServerBound then
-        cooldownEvery = BatchConfig.ResolvePositiveIntOption(options.cooldownEvery, BatchConfig.SERVER_COOLDOWN_EVERY)
-        cooldownMs = BatchConfig.ResolvePositiveIntOption(options.cooldownMs, BatchConfig.SERVER_COOLDOWN_MS)
-        minServerDelayMs = BatchConfig.ResolvePositiveIntOption(options.minServerDelayMs, BatchConfig.SERVER_MIN_DELAY_MS)
-        maxServerDelayMs = BatchConfig.ResolvePositiveIntOption(options.maxServerDelayMs, BatchConfig.SERVER_MAX_DELAY_MS)
+        cooldownEvery = BatchConfig.ResolvePositiveIntOption(cooldownEvery, BatchConfig.SERVER_COOLDOWN_EVERY)
+        cooldownMs = BatchConfig.ResolvePositiveIntOption(cooldownMs, BatchConfig.SERVER_COOLDOWN_MS)
+        minServerDelayMs = BatchConfig.ResolvePositiveIntOption(minServerDelayMs, BatchConfig.SERVER_MIN_DELAY_MS)
+        maxServerDelayMs = BatchConfig.ResolvePositiveIntOption(maxServerDelayMs, BatchConfig.SERVER_MAX_DELAY_MS)
         maxServerDelayMs = zo_max(maxServerDelayMs, minServerDelayMs)
-        awaitInventoryAck = BatchConfig.ResolveBooleanOption(options.awaitInventoryAck, BatchConfig.SERVER_AWAIT_INVENTORY_ACK)
-        ackTimeoutMs = BatchConfig.ResolvePositiveIntOption(options.ackTimeoutMs, BatchConfig.SERVER_ACK_TIMEOUT_MS)
-        chunkCostUnits = BatchConfig.ResolvePositiveIntOption(options.chunkCostUnits, BatchConfig.SERVER_CHUNK_COST_UNITS)
-        chunkPauseMs = BatchConfig.ResolvePositiveIntOption(options.chunkPauseMs, BatchConfig.SERVER_CHUNK_PAUSE_MS)
-        adaptiveDelay = BatchConfig.ResolveBooleanOption(options.adaptiveDelay, BatchConfig.SERVER_ADAPTIVE_DELAY)
-        adaptiveThreshold = BatchConfig.ResolvePositiveIntOption(options.adaptiveThreshold, BatchConfig.SERVER_ADAPTIVE_THRESHOLD)
-        adaptiveStepMs = BatchConfig.ResolvePositiveIntOption(options.adaptiveStepMs, BatchConfig.SERVER_ADAPTIVE_STEP_MS)
-        jitterMs = BatchConfig.ResolvePositiveIntOption(options.jitterMs, BatchConfig.SERVER_JITTER_MS)
-        skipInterBatchCooldown = BatchConfig.ResolveBooleanOption(options.skipInterBatchCooldown, false)
-        postBatchCooldownBaseMs = BatchConfig.ResolvePositiveIntOption(options.postBatchCooldownBaseMs, BatchConfig.SERVER_POST_BATCH_COOLDOWN_BASE_MS)
-        postBatchCooldownThreshold = BatchConfig.ResolvePositiveIntOption(options.postBatchCooldownThreshold, BatchConfig.SERVER_POST_BATCH_COOLDOWN_THRESHOLD)
-        postBatchCooldownPerCostMs = BatchConfig.ResolvePositiveIntOption(options.postBatchCooldownPerCostMs, BatchConfig.SERVER_POST_BATCH_COOLDOWN_PER_COST_MS)
-        postBatchCooldownMaxMs = BatchConfig.ResolvePositiveIntOption(options.postBatchCooldownMaxMs, BatchConfig.SERVER_POST_BATCH_COOLDOWN_MAX_MS)
-        enforceRateWindow = BatchConfig.ResolveBooleanOption(options.enforceRateWindow, true)
-        rateLimitWindowMs = BatchConfig.ResolvePositiveIntOption(options.rateLimitWindowMs, BatchConfig.SERVER_RATE_WINDOW_MS)
-        rateLimitMaxActions = BatchConfig.ResolvePositiveIntOption(options.rateLimitMaxActions, BatchConfig.SERVER_RATE_MAX_ACTIONS)
-        countTowardRateOnSuccess = BatchConfig.ResolveBooleanOption(options.countTowardRateOnSuccess, true)
+        awaitInventoryAck = BatchConfig.ResolveBooleanOption(awaitInventoryAck, BatchConfig.SERVER_AWAIT_INVENTORY_ACK)
+        ackTimeoutMs = BatchConfig.ResolvePositiveIntOption(ackTimeoutMs, BatchConfig.SERVER_ACK_TIMEOUT_MS)
+        chunkCostUnits = BatchConfig.ResolvePositiveIntOption(chunkCostUnits, BatchConfig.SERVER_CHUNK_COST_UNITS)
+        chunkPauseMs = BatchConfig.ResolvePositiveIntOption(chunkPauseMs, BatchConfig.SERVER_CHUNK_PAUSE_MS)
+        adaptiveDelay = BatchConfig.ResolveBooleanOption(adaptiveDelay, BatchConfig.SERVER_ADAPTIVE_DELAY)
+        adaptiveThreshold = BatchConfig.ResolvePositiveIntOption(adaptiveThreshold, BatchConfig.SERVER_ADAPTIVE_THRESHOLD)
+        adaptiveStepMs = BatchConfig.ResolvePositiveIntOption(adaptiveStepMs, BatchConfig.SERVER_ADAPTIVE_STEP_MS)
+        jitterMs = BatchConfig.ResolvePositiveIntOption(jitterMs, BatchConfig.SERVER_JITTER_MS)
+        skipInterBatchCooldown = BatchConfig.ResolveBooleanOption(skipInterBatchCooldown, false)
+        postBatchCooldownBaseMs = BatchConfig.ResolvePositiveIntOption(postBatchCooldownBaseMs, BatchConfig.SERVER_POST_BATCH_COOLDOWN_BASE_MS)
+        postBatchCooldownThreshold = BatchConfig.ResolvePositiveIntOption(postBatchCooldownThreshold, BatchConfig.SERVER_POST_BATCH_COOLDOWN_THRESHOLD)
+        postBatchCooldownPerCostMs = BatchConfig.ResolvePositiveIntOption(postBatchCooldownPerCostMs, BatchConfig.SERVER_POST_BATCH_COOLDOWN_PER_COST_MS)
+        postBatchCooldownMaxMs = BatchConfig.ResolvePositiveIntOption(postBatchCooldownMaxMs, BatchConfig.SERVER_POST_BATCH_COOLDOWN_MAX_MS)
+        enforceRateWindow = BatchConfig.ResolveBooleanOption(enforceRateWindow, true)
+        rateLimitWindowMs = BatchConfig.ResolvePositiveIntOption(rateLimitWindowMs, BatchConfig.SERVER_RATE_WINDOW_MS)
+        rateLimitMaxActions = BatchConfig.ResolvePositiveIntOption(rateLimitMaxActions, BatchConfig.SERVER_RATE_MAX_ACTIONS)
+        countTowardRateOnSuccess = BatchConfig.ResolveBooleanOption(countTowardRateOnSuccess, true)
 
         if not SHARED_INVENTORY then awaitInventoryAck = false end
         if cooldownEvery > 0 then nextCooldownAt = cooldownEvery end

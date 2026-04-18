@@ -243,35 +243,46 @@ function ModePolicy.IsNativeStableModeActive(storeManager)
     return nativeModeSet[stableMode] == true
 end
 
-function ModePolicy.GetActiveTabs(context)
-    context = context or {}
-    if context.isFenceInteraction then
-        local tabs = {}
-        local fenceTabs = context.fenceTabs or {}
-        if context.fenceEnableSell then
-            tabs[#tabs + 1] = fenceTabs[1]
+local function CollectAvailableTabs(sourceTabs, isModeTabAvailable)
+    local availableTabs = {}
+    for _, tab in ipairs(sourceTabs or {}) do
+        if not isModeTabAvailable or isModeTabAvailable(tab.mode) then
+            availableTabs[#availableTabs + 1] = tab
         end
-        if context.fenceEnableLaunder then
-            tabs[#tabs + 1] = fenceTabs[2]
-        end
-        if #tabs == 0 and fenceTabs[1] then
-            tabs[1] = fenceTabs[1]
-        end
-        return CloneTabs(tabs)
     end
+    return availableTabs
+end
 
-    local activeModeSet = ModePolicy.GetNativeActiveModeSet(context.storeManager)
-    local includeBuyFromSession = context.sessionHasBuyMode == true
-    local sourceTabs = context.isStableInteraction and (context.stableTabs or {}) or (context.vendorTabs or {})
+function ModePolicy.GetFenceActiveTabs(request)
+    request = request or {}
+    local tabs = {}
+    local fenceTabs = request.fenceTabs or {}
+    if request.enableSell then
+        tabs[#tabs + 1] = fenceTabs[1]
+    end
+    if request.enableLaunder then
+        tabs[#tabs + 1] = fenceTabs[2]
+    end
+    if #tabs == 0 and fenceTabs[1] then
+        tabs[1] = fenceTabs[1]
+    end
+    return CloneTabs(tabs)
+end
+
+function ModePolicy.GetStoreActiveTabs(request)
+    request = request or {}
+    local activeModeSet = ModePolicy.GetNativeActiveModeSet(request.storeManager)
+    local sourceTabs = request.sourceTabs or {}
+    local fallbackTabs = request.fallbackTabs or sourceTabs
     local tabs = {}
     for _, tab in ipairs(sourceTabs) do
-        if not context.isModeTabAvailable or context.isModeTabAvailable(tab.mode) then
+        if not request.isModeTabAvailable or request.isModeTabAvailable(tab.mode) then
             local nativeMode = ModePolicy.ResolveNativeStoreMode(tab.mode)
-            local includeStableRepair = context.isStableInteraction
+            local includeStableRepair = request.includeStableRepair == true
                 and tab.mode == Vendor.MODE.REPAIR
                 and (type(CanStoreRepair) ~= "function" or CanStoreRepair())
             if (nativeMode and activeModeSet[nativeMode])
-                or (tab.mode == Vendor.MODE.BUY and includeBuyFromSession)
+                or (tab.mode == Vendor.MODE.BUY and request.includeBuyFromSession == true)
                 or includeStableRepair then
                 tabs[#tabs + 1] = tab
             end
@@ -279,50 +290,46 @@ function ModePolicy.GetActiveTabs(context)
     end
 
     if #tabs == 0 then
-        if context.isStableInteraction then
-            return CloneTabs(context.stableTabs or {})
-        end
-        for _, tab in ipairs(context.vendorTabs or {}) do
-            if not context.isModeTabAvailable or context.isModeTabAvailable(tab.mode) then
-                tabs[#tabs + 1] = tab
-            end
-        end
+        return CloneTabs(fallbackTabs)
     end
 
     return CloneTabs(tabs)
 end
 
-function ModePolicy.GetToggleModePair(context)
-    context = context or {}
+function ModePolicy.GetFenceToggleModePair()
     local mode = Vendor.MODE or {}
-    if context.isFenceInteraction then
-        return mode.FENCE_SELL, mode.FENCE_LAUNDER
-    end
-    if context.isStableInteraction then
-        return mode.BUY, mode.STABLE
-    end
+    return mode.FENCE_SELL, mode.FENCE_LAUNDER
+end
 
-    local modeSet = ModePolicy.BuildActiveModeSet(context.tabs)
+function ModePolicy.GetStableToggleModePair()
+    local mode = Vendor.MODE or {}
+    return mode.BUY, mode.STABLE
+end
+
+function ModePolicy.GetStoreToggleModePair(request)
+    request = request or {}
+    local mode = Vendor.MODE or {}
+    local modeSet = ModePolicy.BuildActiveModeSet(request.tabs)
     if modeSet[mode.BUY] and modeSet[mode.SELL] then
         return mode.BUY, mode.SELL
     end
-    if modeSet[mode.SELL] and context.sessionHasBuyMode == true then
+    if modeSet[mode.SELL] and request.sessionHasBuyMode == true then
         return mode.BUY, mode.SELL
     end
-    if ModePolicy.IsSellBuybackOnlyModeSet(modeSet, context.isFenceInteraction) then
+    if ModePolicy.IsSellBuybackOnlyModeSet(modeSet, false) then
         return mode.SELL, mode.BUYBACK
     end
 
     return nil, nil
 end
 
-function ModePolicy.ResolveInitialStoreMode(context)
-    context = context or {}
+function ModePolicy.ResolveVendorInitialStoreMode(request)
+    request = request or {}
     local mode = Vendor.MODE or {}
-    local tabs = context.tabs or {}
-    local vendorTabs = context.vendorTabs or tabs
+    local tabs = request.tabs or {}
+    local vendorTabs = request.vendorTabs or tabs
     local modeSet = ModePolicy.BuildActiveModeSet(tabs)
-    local nativeModeSet = ModePolicy.GetNativeActiveModeSet(context.storeManager)
+    local nativeModeSet = ModePolicy.GetNativeActiveModeSet(request.storeManager)
     local nativeModesReady = next(nativeModeSet) ~= nil
     local shouldRememberBuyMode = false
 
@@ -339,22 +346,8 @@ function ModePolicy.ResolveInitialStoreMode(context)
         end
     end
 
-    if ModePolicy.IsSellBuybackOnlyModeSet(modeSet, context.isFenceInteraction) then
+    if ModePolicy.IsSellBuybackOnlyModeSet(modeSet, false) then
         return mode.SELL, shouldRememberBuyMode
-    end
-
-    if context.isStableInteraction then
-        if modeSet[mode.BUY] then
-            return mode.BUY, true
-        end
-        local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
-        if nativeModesReady and stableMode and nativeModeSet[stableMode] then
-            return mode.STABLE, shouldRememberBuyMode
-        end
-        if modeSet[mode.REPAIR] then
-            return mode.REPAIR, shouldRememberBuyMode
-        end
-        return mode.BUY, shouldRememberBuyMode
     end
 
     if not nativeModesReady then
@@ -371,8 +364,8 @@ function ModePolicy.ResolveInitialStoreMode(context)
 
     if nativeModesReady
         and modeSet[mode.BUY]
-        and type(context.hasVendorBuyInventory) == "function"
-        and context.hasVendorBuyInventory() then
+        and type(request.hasVendorBuyInventory) == "function"
+        and request.hasVendorBuyInventory() then
         return mode.BUY, true
     end
     if modeSet[mode.SELL] then
@@ -389,6 +382,84 @@ function ModePolicy.ResolveInitialStoreMode(context)
     end
 
     return (tabs[1] and tabs[1].mode) or mode.SELL, shouldRememberBuyMode
+end
+
+function ModePolicy.ResolveStableInitialStoreMode(request)
+    request = request or {}
+    local mode = Vendor.MODE or {}
+    local modeSet = ModePolicy.BuildActiveModeSet(request.tabs)
+    local nativeModeSet = ModePolicy.GetNativeActiveModeSet(request.storeManager)
+    local nativeModesReady = next(nativeModeSet) ~= nil
+    local shouldRememberBuyMode = nativeModesReady and modeSet[mode.BUY] == true or false
+
+    if modeSet[mode.BUY] then
+        return mode.BUY, true
+    end
+    local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
+    if nativeModesReady and stableMode and nativeModeSet[stableMode] then
+        return mode.STABLE, shouldRememberBuyMode
+    end
+    if modeSet[mode.REPAIR] then
+        return mode.REPAIR, shouldRememberBuyMode
+    end
+
+    return mode.BUY, shouldRememberBuyMode
+end
+
+function ModePolicy.GetActiveTabs(context)
+    context = context or {}
+    if context.isFenceInteraction then
+        return ModePolicy.GetFenceActiveTabs({
+            fenceTabs = context.fenceTabs,
+            enableSell = context.fenceEnableSell == true,
+            enableLaunder = context.fenceEnableLaunder == true,
+        })
+    end
+
+    local sourceTabs = context.isStableInteraction and (context.stableTabs or {}) or (context.vendorTabs or {})
+    local fallbackTabs = context.isStableInteraction
+        and (context.stableTabs or {})
+        or CollectAvailableTabs(context.vendorTabs or {}, context.isModeTabAvailable)
+    return ModePolicy.GetStoreActiveTabs({
+        sourceTabs = sourceTabs,
+        fallbackTabs = fallbackTabs,
+        includeBuyFromSession = context.sessionHasBuyMode == true,
+        includeStableRepair = context.isStableInteraction == true,
+        isModeTabAvailable = context.isModeTabAvailable,
+        storeManager = context.storeManager,
+    })
+end
+
+function ModePolicy.GetToggleModePair(context)
+    context = context or {}
+    if context.isFenceInteraction then
+        return ModePolicy.GetFenceToggleModePair()
+    end
+    if context.isStableInteraction then
+        return ModePolicy.GetStableToggleModePair()
+    end
+
+    return ModePolicy.GetStoreToggleModePair({
+        tabs = context.tabs,
+        sessionHasBuyMode = context.sessionHasBuyMode == true,
+    })
+end
+
+function ModePolicy.ResolveInitialStoreMode(context)
+    context = context or {}
+    if context.isStableInteraction then
+        return ModePolicy.ResolveStableInitialStoreMode({
+            tabs = context.tabs,
+            storeManager = context.storeManager,
+        })
+    end
+
+    return ModePolicy.ResolveVendorInitialStoreMode({
+        tabs = context.tabs,
+        vendorTabs = context.vendorTabs or context.tabs,
+        storeManager = context.storeManager,
+        hasVendorBuyInventory = context.hasVendorBuyInventory,
+    })
 end
 
 Vendor.ResolveModeName = ModePolicy.ResolveModeName

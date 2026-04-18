@@ -11,6 +11,7 @@ local LIST_WITHDRAW          = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
 
 local MultiSelectMixin                = BETTERUI.CIM.MultiSelectMixin
+local BatchConfig = BETTERUI.CIM.BatchConfig
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 local function ResolveBankBag(bankBagId)
     if BETTERUI.Banking.ResolveBankBag then
@@ -204,20 +205,26 @@ BETTERUI.Banking._TransferHelpers = {
     ResolveDepositTargetBag = ResolveDepositTargetBag,
 }
 
-local BANK_TRANSFER_BATCH_OPTIONS = {
-    serverBound = true,
-    awaitInventoryAck = true,
-    minServerDelayMs = 145,
-    maxServerDelayMs = 330,
-    cooldownEvery = 18,
-    cooldownMs = 1200,
-    chunkCostUnits = 32,
-    chunkPauseMs = 1000,
-    adaptiveDelay = true,
-    adaptiveThreshold = 6,
-    adaptiveStepMs = 16,
-    jitterMs = 18,
-}
+local BANK_TRANSFER_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
+    BatchConfig.WithServer({
+        serverBound = true,
+    }),
+    BatchConfig.WithAck({
+        awaitInventoryAck = true,
+    }),
+    BatchConfig.WithPacing({
+        minServerDelayMs = 145,
+        maxServerDelayMs = 330,
+        cooldownEvery = 18,
+        cooldownMs = 1200,
+        chunkCostUnits = 32,
+        chunkPauseMs = 1000,
+        adaptiveDelay = true,
+        adaptiveThreshold = 6,
+        adaptiveStepMs = 16,
+        jitterMs = 18,
+    })
+)
 
 -- BANKING-SPECIFIC BATCH OPERATIONS
 

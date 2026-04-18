@@ -38,6 +38,23 @@ Policy.DENY = {
     INVALID_ACTION  = "invalid_action",
 }
 
+local FALLBACK_VENDOR_ACTION = {
+    SELL = "vendor_sell",
+    SELL_JUNK = "vendor_sell_junk",
+    SELL_VENGEANCE = "vendor_sell_vengeance",
+    FENCE_SELL = "fence_sell",
+    FENCE_LAUNDER = "fence_launder",
+}
+
+local function ResolveVendorAction(actionKey)
+    local vendorAction = BETTERUI.Vendor and BETTERUI.Vendor.ACTION
+    if vendorAction and vendorAction[actionKey] then
+        return vendorAction[actionKey]
+    end
+
+    return FALLBACK_VENDOR_ACTION[actionKey]
+end
+
 -- LOCAL HELPERS
 
 local function HasItemAtSlot(bagId, slotIndex)
@@ -63,7 +80,8 @@ local function ResolveItemSellValue(bagId, slotIndex)
 end
 
 local function HasRemainingFenceTransactions(actionType)
-    if actionType == "fence_sell" then
+    local fenceSellAction = ResolveVendorAction("FENCE_SELL")
+    if actionType == fenceSellAction then
         if not GetFenceSellTransactionInfo then
             return true
         end
@@ -72,7 +90,8 @@ local function HasRemainingFenceTransactions(actionType)
         remaining = zo_max and zo_max(remaining, 0) or math.max(remaining, 0)
         return remaining > 0
     end
-    if actionType == "fence_launder" then
+    local fenceLaunderAction = ResolveVendorAction("FENCE_LAUNDER")
+    if actionType == fenceLaunderAction then
         if not GetFenceLaunderTransactionInfo then
             return true
         end
@@ -267,7 +286,7 @@ function Policy.CanStowToCraftBag(bagId, slotIndex)
 end
 
 --- Shared authorization gate for vendor-related item actions.
----@param actionType "vendor_sell"|"vendor_sell_junk"|"vendor_sell_vengeance"|"fence_sell"|"fence_launder"
+---@param actionType string
 ---@param bagId number
 ---@param slotIndex number
 ---@param context table|nil Optional execution context
@@ -283,8 +302,13 @@ function Policy.CanVendorAction(actionType, bagId, slotIndex, context)
 
     local isStolen = IsItemStolen and IsItemStolen(bagId, slotIndex) or false
     local sellValue = ResolveItemSellValue(bagId, slotIndex)
+    local vendorSellAction = ResolveVendorAction("SELL")
+    local vendorSellJunkAction = ResolveVendorAction("SELL_JUNK")
+    local vendorSellVengeanceAction = ResolveVendorAction("SELL_VENGEANCE")
+    local fenceSellAction = ResolveVendorAction("FENCE_SELL")
+    local fenceLaunderAction = ResolveVendorAction("FENCE_LAUNDER")
 
-    if actionType == "vendor_sell" or actionType == "vendor_sell_vengeance" then
+    if actionType == vendorSellAction or actionType == vendorSellVengeanceAction then
         if isStolen then
             return false, Policy.DENY.STOLEN
         end
@@ -294,7 +318,7 @@ function Policy.CanVendorAction(actionType, bagId, slotIndex, context)
         return true
     end
 
-    if actionType == "vendor_sell_junk" then
+    if actionType == vendorSellJunkAction then
         if not (IsItemJunk and IsItemJunk(bagId, slotIndex)) then
             return false, Policy.DENY.NOT_JUNK
         end
@@ -307,7 +331,7 @@ function Policy.CanVendorAction(actionType, bagId, slotIndex, context)
         return true
     end
 
-    if actionType == "fence_sell" then
+    if actionType == fenceSellAction then
         if not isStolen then
             return false, Policy.DENY.NOT_STOLEN
         end
@@ -323,7 +347,7 @@ function Policy.CanVendorAction(actionType, bagId, slotIndex, context)
         return true
     end
 
-    if actionType == "fence_launder" then
+    if actionType == fenceLaunderAction then
         if not isStolen then
             return false, Policy.DENY.NOT_STOLEN
         end

@@ -169,19 +169,40 @@ end
 
 ---@return VendorTabDef[] tabs Active tab definitions
 local function GetActiveTabs()
-    if Vendor.ModePolicy and Vendor.ModePolicy.GetActiveTabs then
-        return Vendor.ModePolicy.GetActiveTabs({
-            isFenceInteraction = isFenceInteraction,
-            isStableInteraction = isStableInteraction,
-            fenceEnableSell = fenceEnableSell,
-            fenceEnableLaunder = fenceEnableLaunder,
-            sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
-            vendorTabs = VENDOR_TABS,
-            stableTabs = STABLE_TABS,
-            fenceTabs = FENCE_TABS,
-            isModeTabAvailable = IsModeTabAvailable,
-            storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD"),
-        })
+    if Vendor.ModePolicy then
+        if isFenceInteraction and Vendor.ModePolicy.GetFenceActiveTabs then
+            return Vendor.ModePolicy.GetFenceActiveTabs({
+                fenceTabs = FENCE_TABS,
+                enableSell = fenceEnableSell == true,
+                enableLaunder = fenceEnableLaunder == true,
+            })
+        end
+        if Vendor.ModePolicy.GetStoreActiveTabs then
+            local sourceTabs = isStableInteraction and STABLE_TABS or VENDOR_TABS
+            local fallbackTabs = isStableInteraction and STABLE_TABS or BuildFallbackVendorTabs()
+            return Vendor.ModePolicy.GetStoreActiveTabs({
+                sourceTabs = sourceTabs,
+                fallbackTabs = fallbackTabs,
+                includeBuyFromSession = Vendor._sessionHasBuyMode == true,
+                includeStableRepair = isStableInteraction == true,
+                isModeTabAvailable = IsModeTabAvailable,
+                storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD"),
+            })
+        end
+        if Vendor.ModePolicy.GetActiveTabs then
+            return Vendor.ModePolicy.GetActiveTabs({
+                isFenceInteraction = isFenceInteraction,
+                isStableInteraction = isStableInteraction,
+                fenceEnableSell = fenceEnableSell,
+                fenceEnableLaunder = fenceEnableLaunder,
+                sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
+                vendorTabs = VENDOR_TABS,
+                stableTabs = STABLE_TABS,
+                fenceTabs = FENCE_TABS,
+                isModeTabAvailable = IsModeTabAvailable,
+                storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD"),
+            })
+        end
     end
     return BuildFallbackVendorTabs()
 end
@@ -198,13 +219,27 @@ end
 ---@return number|nil firstMode
 ---@return number|nil secondMode
 local function GetToggleModePair()
-    if Vendor.ModePolicy and Vendor.ModePolicy.GetToggleModePair then
-        return Vendor.ModePolicy.GetToggleModePair({
-            isFenceInteraction = isFenceInteraction,
-            isStableInteraction = isStableInteraction,
-            sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
-            tabs = GetActiveTabs(),
-        })
+    if Vendor.ModePolicy then
+        if isFenceInteraction and Vendor.ModePolicy.GetFenceToggleModePair then
+            return Vendor.ModePolicy.GetFenceToggleModePair()
+        end
+        if isStableInteraction and Vendor.ModePolicy.GetStableToggleModePair then
+            return Vendor.ModePolicy.GetStableToggleModePair()
+        end
+        if Vendor.ModePolicy.GetStoreToggleModePair then
+            return Vendor.ModePolicy.GetStoreToggleModePair({
+                tabs = GetActiveTabs(),
+                sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
+            })
+        end
+        if Vendor.ModePolicy.GetToggleModePair then
+            return Vendor.ModePolicy.GetToggleModePair({
+                isFenceInteraction = isFenceInteraction,
+                isStableInteraction = isStableInteraction,
+                sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
+                tabs = GetActiveTabs(),
+            })
+        end
     end
     return nil, nil
 end
@@ -227,21 +262,33 @@ end
 ---@param tabs VendorTabDef[]|nil
 ---@return number targetMode
 local function ResolveInitialStoreMode(tabs)
-    if Vendor.ModePolicy and Vendor.ModePolicy.ResolveInitialStoreMode then
-        local targetMode, shouldRememberBuyMode = Vendor.ModePolicy.ResolveInitialStoreMode({
+    if Vendor.ModePolicy then
+        local request = {
             tabs = tabs or {},
-            vendorTabs = VENDOR_TABS,
-            isFenceInteraction = isFenceInteraction,
-            isStableInteraction = isStableInteraction,
             storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD"),
             hasVendorBuyInventory = function()
                 return HasVendorBuyInventory("Vendor.ResolveInitialStoreMode")
             end,
-        })
-        if shouldRememberBuyMode then
-            Vendor._sessionHasBuyMode = true
+        }
+        local resolver = nil
+        if isStableInteraction and Vendor.ModePolicy.ResolveStableInitialStoreMode then
+            resolver = Vendor.ModePolicy.ResolveStableInitialStoreMode
+        elseif Vendor.ModePolicy.ResolveVendorInitialStoreMode then
+            request.vendorTabs = VENDOR_TABS
+            resolver = Vendor.ModePolicy.ResolveVendorInitialStoreMode
+        elseif Vendor.ModePolicy.ResolveInitialStoreMode then
+            request.isFenceInteraction = isFenceInteraction
+            request.isStableInteraction = isStableInteraction
+            resolver = Vendor.ModePolicy.ResolveInitialStoreMode
         end
-        return targetMode
+
+        if resolver then
+            local targetMode, shouldRememberBuyMode = resolver(request)
+            if shouldRememberBuyMode then
+                Vendor._sessionHasBuyMode = true
+            end
+            return targetMode
+        end
     end
 
     return (tabs and tabs[1] and tabs[1].mode) or MODE.SELL

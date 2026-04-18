@@ -45,8 +45,12 @@ assert_contains(policySource, "function ModePolicy.ResetCategoryState(owner)",
     "VendorModePolicy owns category cache resets")
 assert_contains(policySource, "local function CloneTabs(tabs)",
     "VendorModePolicy owns tab snapshot cloning")
-assert_contains(policySource, "return CloneTabs(context.stableTabs or {})",
-    "VendorModePolicy clones stable fallback tabs before returning them")
+assert_contains(policySource, "function ModePolicy.GetFenceActiveTabs(request)",
+    "VendorModePolicy splits fence tab derivation into a dedicated helper")
+assert_contains(policySource, "function ModePolicy.GetStoreActiveTabs(request)",
+    "VendorModePolicy splits store/stable tab derivation into a dedicated helper")
+assert_contains(policySource, "return CloneTabs(fallbackTabs)",
+    "VendorModePolicy clones explicit fallback tabs before returning them")
 assert_contains(policySource, "return CloneTabs(tabs)",
     "VendorModePolicy always returns owned tab snapshots")
 

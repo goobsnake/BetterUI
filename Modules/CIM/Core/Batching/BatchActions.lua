@@ -14,6 +14,7 @@ BETTERUI.CIM.BatchActions = BETTERUI.CIM.BatchActions or {}
 
 local BatchActions = BETTERUI.CIM.BatchActions
 local ProtectionPolicy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+local BatchConfig = BETTERUI.CIM.BatchConfig
 
 -- HELPERS
 
@@ -41,18 +42,28 @@ BatchActions.HasItemAtSlot = HasItemAtSlot
 
 
 --- Options for lock/unlock batch operations
-local LOCK_TOGGLE_BATCH_OPTIONS = {
-    serverBound = true,
-    awaitInventoryAck = false,
-    minServerDelayMs = 140,
-    maxServerDelayMs = 240,
-    cooldownEvery = 22,
-    cooldownMs = 1200,
-    chunkCostUnits = 45,
-    chunkPauseMs = 900,
-    adaptiveDelay = false,
-    jitterMs = 14,
-}
+local LOCK_TOGGLE_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
+    BatchConfig.WithServer({
+        serverBound = true,
+        skipInterBatchCooldown = false,
+    }),
+    BatchConfig.WithUi({
+        suppressUiUpdates = false,
+    }),
+    BatchConfig.WithPacing({
+        minServerDelayMs = 140,
+        maxServerDelayMs = 240,
+        cooldownEvery = 22,
+        cooldownMs = 1200,
+        chunkCostUnits = 45,
+        chunkPauseMs = 900,
+        adaptiveDelay = false,
+        jitterMs = 14,
+    }),
+    BatchConfig.WithAck({
+        awaitInventoryAck = false,
+    })
+)
 
 --- Options for junk toggle batch operations (same as lock options)
 local JUNK_TOGGLE_BATCH_OPTIONS = LOCK_TOGGLE_BATCH_OPTIONS

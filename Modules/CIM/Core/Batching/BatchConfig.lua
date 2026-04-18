@@ -29,12 +29,23 @@ BETTERUI.CIM.BatchConfig = BETTERUI.CIM.BatchConfig or {}
 ---@field SERVER_RATE_WINDOW_MS number
 ---@field SERVER_RATE_MAX_ACTIONS number
 ---@field SERVER_BATCH_RECOVERY_STATE BatchRecoveryState
+---@field BATCH_OPTIONS table
 local BatchConfig = BETTERUI.CIM.BatchConfig
 
 ---@class BatchThrottleTier
 ---@field MIN_ITEMS number
 ---@field DELAY_MS number
 ---@field SHOW_PROGRESS boolean
+
+---@class BatchOptions
+---@field ui table
+---@field server table
+---@field pacing table
+---@field ack table
+---@field rateLimit table
+---@field postBatch table
+---@field lifecycle table
+---@field scene table
 
 ---@class BatchRecoveryState
 ---@field cooldownUntilMs number
@@ -123,6 +134,175 @@ BatchConfig.SERVER_BATCH_RECOVERY_STATE = {
     cooldownUntilMs = 0,
     serverActionTimes = {},
 }
+
+local function ResolveInitialValue(value, defaultValue)
+    if value == nil then
+        return defaultValue
+    end
+    return value
+end
+
+local function BuildDefaultBatchOptions()
+    return {
+        ui = {
+            suppressUiUpdates = false,
+            sceneExitLabel = nil,
+        },
+        server = {
+            serverBound = false,
+            costPerItem = BatchConfig.DEFAULT_ACTION_COST_UNITS,
+            skipInterBatchCooldown = false,
+        },
+        pacing = {
+            cooldownEvery = 0,
+            cooldownMs = 0,
+            minServerDelayMs = ResolveInitialValue(BatchConfig.SERVER_MIN_DELAY_MS, 0),
+            maxServerDelayMs = ResolveInitialValue(BatchConfig.SERVER_MAX_DELAY_MS, 0),
+            chunkCostUnits = ResolveInitialValue(BatchConfig.SERVER_CHUNK_COST_UNITS, 0),
+            chunkPauseMs = ResolveInitialValue(BatchConfig.SERVER_CHUNK_PAUSE_MS, 0),
+            adaptiveDelay = ResolveInitialValue(BatchConfig.SERVER_ADAPTIVE_DELAY, false),
+            adaptiveThreshold = ResolveInitialValue(BatchConfig.SERVER_ADAPTIVE_THRESHOLD, 0),
+            adaptiveStepMs = ResolveInitialValue(BatchConfig.SERVER_ADAPTIVE_STEP_MS, 0),
+            jitterMs = ResolveInitialValue(BatchConfig.SERVER_JITTER_MS, 0),
+        },
+        ack = {
+            awaitInventoryAck = ResolveInitialValue(BatchConfig.SERVER_AWAIT_INVENTORY_ACK, false),
+            ackTimeoutMs = ResolveInitialValue(BatchConfig.SERVER_ACK_TIMEOUT_MS, 0),
+            countTowardRateOnSuccess = true,
+        },
+        rateLimit = {
+            enforceRateWindow = true,
+            rateLimitWindowMs = ResolveInitialValue(BatchConfig.SERVER_RATE_WINDOW_MS, 0),
+            rateLimitMaxActions = ResolveInitialValue(BatchConfig.SERVER_RATE_MAX_ACTIONS, 0),
+        },
+        postBatch = {
+            postBatchCooldownBaseMs = ResolveInitialValue(BatchConfig.SERVER_POST_BATCH_COOLDOWN_BASE_MS, 0),
+            postBatchCooldownThreshold = ResolveInitialValue(BatchConfig.SERVER_POST_BATCH_COOLDOWN_THRESHOLD, 0),
+            postBatchCooldownPerCostMs = ResolveInitialValue(BatchConfig.SERVER_POST_BATCH_COOLDOWN_PER_COST_MS, 0),
+            postBatchCooldownMaxMs = ResolveInitialValue(BatchConfig.SERVER_POST_BATCH_COOLDOWN_MAX_MS, 0),
+        },
+        lifecycle = {},
+        scene = {},
+    }
+end
+
+local function MergeBatchOptionsInto(target, source)
+    if type(source) ~= "table" then
+        return
+    end
+
+    for group, values in pairs(source) do
+        if type(values) == "table" and type(target[group]) == "table" then
+            for key, value in pairs(values) do
+                target[group][key] = value
+            end
+        else
+            target[group] = values
+        end
+    end
+end
+
+--- Creates a composed options table with known groups.
+---@return BatchOptions empty
+function BatchConfig.ComposeBatchOptions(...)
+    local options = BuildDefaultBatchOptions()
+    for i = 1, select("#", ...) do
+        MergeBatchOptionsInto(options, select(i, ...))
+    end
+    return options
+end
+
+function BatchConfig.WithUi(options)
+    return { ui = options or {} }
+end
+
+function BatchConfig.WithServer(options)
+    return { server = options or {} }
+end
+
+function BatchConfig.WithPacing(options)
+    return { pacing = options or {} }
+end
+
+function BatchConfig.WithAck(options)
+    return { ack = options or {} }
+end
+
+function BatchConfig.WithRateLimit(options)
+    return { rateLimit = options or {} }
+end
+
+function BatchConfig.WithPostBatch(options)
+    return { postBatch = options or {} }
+end
+
+function BatchConfig.WithLifecycle(options)
+    return { lifecycle = options or {} }
+end
+
+function BatchConfig.WithScene(options)
+    return { scene = options or {} }
+end
+
+local FLAT_BATCH_OPTION_MAP = {
+    serverBound = { "server", "serverBound" },
+    suppressUiUpdates = { "ui", "suppressUiUpdates" },
+    costPerItem = { "server", "costPerItem" },
+    awaitInventoryAck = { "ack", "awaitInventoryAck" },
+    ackTimeoutMs = { "ack", "ackTimeoutMs" },
+    minServerDelayMs = { "pacing", "minServerDelayMs" },
+    maxServerDelayMs = { "pacing", "maxServerDelayMs" },
+    cooldownEvery = { "pacing", "cooldownEvery" },
+    cooldownMs = { "pacing", "cooldownMs" },
+    chunkCostUnits = { "pacing", "chunkCostUnits" },
+    chunkPauseMs = { "pacing", "chunkPauseMs" },
+    adaptiveDelay = { "pacing", "adaptiveDelay" },
+    adaptiveThreshold = { "pacing", "adaptiveThreshold" },
+    adaptiveStepMs = { "pacing", "adaptiveStepMs" },
+    jitterMs = { "pacing", "jitterMs" },
+    skipInterBatchCooldown = { "server", "skipInterBatchCooldown" },
+    postBatchCooldownBaseMs = { "postBatch", "postBatchCooldownBaseMs" },
+    postBatchCooldownThreshold = { "postBatch", "postBatchCooldownThreshold" },
+    postBatchCooldownPerCostMs = { "postBatch", "postBatchCooldownPerCostMs" },
+    postBatchCooldownMaxMs = { "postBatch", "postBatchCooldownMaxMs" },
+    enforceRateWindow = { "rateLimit", "enforceRateWindow" },
+    rateLimitWindowMs = { "rateLimit", "rateLimitWindowMs" },
+    rateLimitMaxActions = { "rateLimit", "rateLimitMaxActions" },
+    countTowardRateOnSuccess = { "ack", "countTowardRateOnSuccess" },
+    sceneExitLabel = { "ui", "sceneExitLabel" },
+}
+
+local function MergeFlatBatchOptions(source, target)
+    if not source then
+        return
+    end
+
+    for sourceKey, groupSpec in pairs(FLAT_BATCH_OPTION_MAP) do
+        local sourceValue = source[sourceKey]
+        if sourceValue ~= nil and type(groupSpec) == "table" then
+            local groupName = groupSpec[1]
+            local fieldName = groupSpec[2]
+            target[groupName] = target[groupName] or {}
+            target[groupName][fieldName] = sourceValue
+        end
+    end
+end
+
+--- Normalizes legacy or new-style batch options into a resolved grouped contract.
+---@param batchOptions table|nil Batch options
+---@return BatchOptions normalizedOptions
+function BatchConfig.NormalizeBatchOptions(batchOptions)
+    local normalized = BatchConfig.ComposeBatchOptions()
+
+    if type(batchOptions) ~= "table" then
+        return normalized
+    end
+
+    MergeBatchOptionsInto(normalized, batchOptions)
+    MergeFlatBatchOptions(batchOptions, normalized)
+
+    return normalized
+end
 
 -- UTILITY FUNCTIONS
 
@@ -270,11 +450,16 @@ end
 
 --- Resolves the label shown when a batch is aborted due to scene exit.
 ---@param self table Module instance with optional _multiSelectConfig
----@param batchOptions table|nil Batch options with optional sceneExitLabel
+---@param batchOptions table|nil Batch options with optional scene group or sceneExitLabel.
 ---@return string label Human-readable scene exit label
 function BatchConfig.ResolveSceneExitLabel(self, batchOptions)
-    if batchOptions and type(batchOptions.sceneExitLabel) == "string" and batchOptions.sceneExitLabel ~= "" then
-        return batchOptions.sceneExitLabel
+    if batchOptions then
+        if type(batchOptions.sceneExitLabel) == "string" and batchOptions.sceneExitLabel ~= "" then
+            return batchOptions.sceneExitLabel
+        end
+        if type(batchOptions.scene) == "table" and type(batchOptions.scene.sceneExitLabel) == "string" and batchOptions.scene.sceneExitLabel ~= "" then
+            return batchOptions.scene.sceneExitLabel
+        end
     end
 
     if self and self._multiSelectConfig and type(self._multiSelectConfig.getSceneExitLabel) == "function" then
