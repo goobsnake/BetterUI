@@ -123,55 +123,10 @@ local ok6, result6 = BETTERUI.CIM.SafeExecute("NilReturn", fn6)
 assert_true(ok6, "SafeExecute returns true")
 assert_equal(nil, result6, "Result is nil as expected")
 
--- Test 7: TryCall resolves dotted path and calls function
-print("\nTest: TryCall resolves dotted path and calls function")
+-- Test 7: SafeCall is no longer exposed publicly
+print("\nTest: SafeCall is no longer exposed publicly")
 reset()
-BETTERUI.TestModule = { GetValue = function() return 42 end }
-local called7, result7 = BETTERUI.CIM.TryCall("TestModule.GetValue")
-assert_true(called7, "TryCall returns true for existing path")
-assert_equal(42, result7, "TryCall returns function result")
-BETTERUI.TestModule = nil
-
--- Test 8: TryCall returns false for missing path
-print("\nTest: TryCall returns false for missing path")
-reset()
-local called8, result8 = BETTERUI.CIM.TryCall("NonExistent.Missing")
-assert_false(called8, "TryCall returns false for missing path")
-assert_equal(nil, result8, "Result is nil for missing path")
-
--- Test 9: TryCall returns false for non-function leaf
-print("\nTest: TryCall returns false for non-function leaf")
-reset()
-BETTERUI.TestTable = { value = 123 }
-local called9, result9 = BETTERUI.CIM.TryCall("TestTable.value")
-assert_false(called9, "TryCall returns false for non-function leaf")
-assert_equal(nil, result9, "Result is nil for non-function leaf")
-BETTERUI.TestTable = nil
-
--- Test 10: TryCall forwards arguments
-print("\nTest: TryCall forwards arguments")
-reset()
-BETTERUI.TestArgs = { Add = function(a, b) return a + b end }
-local called10, result10 = BETTERUI.CIM.TryCall("TestArgs.Add", 3, 7)
-assert_true(called10, "TryCall returns true")
-assert_equal(10, result10, "Arguments forwarded correctly (3 + 7 = 10)")
-BETTERUI.TestArgs = nil
-
--- Test 11: SafeCall mirrors TryCall for optional dispatch
-print("\nTest: SafeCall mirrors TryCall for optional dispatch")
-reset()
-BETTERUI.TestSafeCall = { GetValue = function() return "ok" end }
-local called11, result11 = BETTERUI.CIM.SafeCall("TestSafeCall.GetValue")
-assert_true(called11, "SafeCall returns true for existing path")
-assert_equal("ok", result11, "SafeCall returns resolved function result")
-BETTERUI.TestSafeCall = nil
-
--- Test 12: SafeCall returns false for missing path
-print("\nTest: SafeCall returns false for missing path")
-reset()
-local called12, result12 = BETTERUI.CIM.SafeCall("Missing.Module")
-assert_false(called12, "SafeCall returns false when the path is missing")
-assert_equal(nil, result12, "SafeCall returns nil result for missing path")
+assert_equal(nil, BETTERUI.CIM.SafeCall, "SafeCall is not exported on BETTERUI.CIM")
 
 -- ============================================================================
 -- SUMMARY

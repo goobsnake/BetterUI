@@ -1,19 +1,7 @@
 --[[
 File: Modules/Vendor/Vendor.lua
-Purpose: Main orchestrator for the Vendor module.
-
-This file handles:
-1. Creating the Vendor class instance and scene
-2. Registering all components (Buy, Sell, Repair, Buyback, FenceSell, FenceLaunder)
-3. Wiring EVENT_OPEN_STORE / EVENT_OPEN_FENCE / EVENT_CLOSE_STORE
-4. Tab navigation (carousel or tab-bar)
-5. Scene alias so BetterUI replaces the native gamepad_store scene
-
-KEY MECHANICS:
-  - EVENT_OPEN_STORE: Opens in BUY mode with Buy/Sell/Repair/Buyback tabs
-  - EVENT_OPEN_FENCE: Opens with FenceSell/FenceLaunder tabs (no Buy/Repair/Buyback)
-  - Tab switching calls VendorClass:SetMode() which routes to component Activate/Deactivate
-  - Scene is created as ZO_InteractScene and aliased to gamepad_store
+Purpose: Vendor orchestration surface for scene lifecycle, event wiring, and
+         runtime coordination across the extracted vendor services.
 ]]
 
 -- LOCAL STATE

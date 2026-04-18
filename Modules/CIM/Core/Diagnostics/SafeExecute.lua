@@ -58,17 +58,6 @@ local function CallOptionalBetterUIPath(path, ...)
     return true, fn(...)
 end
 
---- Optional add-on dispatch helper for BETTERUI path lookups.
---- Stable internal BetterUI seams should be invoked directly instead of by string path.
---- Unlike SafeExecute, this only skips missing targets; it does not wrap errors.
----@param path string Dot-separated path to an optional function on BETTERUI
----@param ... any Arguments to pass to the resolved function
----@return boolean ok true if the function was found and called
----@return any|nil result The function's return value, or nil if not found
-function BETTERUI.CIM.SafeCall(path, ...)
-    return CallOptionalBetterUIPath(path, ...)
-end
-
 --- Unified user-facing error notification with structured logging.
 --- Combines ZO_Alert for user feedback with SafeExecute infrastructure for logging.
 --- Use this instead of calling ZO_Alert(UI_ALERT_CATEGORY_ERROR, ...) directly.

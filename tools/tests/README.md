@@ -202,15 +202,15 @@ BetterUI uses `SafeExecute` as its primary runtime safety net. All module bounda
 ### Usage Pattern
 ```lua
 -- Wrap module entry points
-BETTERUI.CIM.SafeExecute(function()
+BETTERUI.CIM.SafeExecute("ModuleName.Init", function()
     -- Module initialization code
-end, "ModuleName.Init")
+end)
 
 -- Wrap event handlers
 EVENT_MANAGER:RegisterCallback(EVENT_NAME, function(...)
-    BETTERUI.CIM.SafeExecute(function(...)
+    BETTERUI.CIM.SafeExecute("ModuleName.EventHandler", function(...)
         -- Event handling code
-    end, "ModuleName.EventHandler")
+    end, ...)
 end)
 ```
 

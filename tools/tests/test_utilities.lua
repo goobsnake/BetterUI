@@ -122,38 +122,12 @@ assert_equal(1, BETTERUI.CIM.Utils.WrapValue(1, 5), "1 stays 1")
 assert_equal(5, BETTERUI.CIM.Utils.WrapValue(5, 5), "5 stays 5")
 
 -- ============================================================================
--- TESTS: SafeCall
+-- TESTS: Reflective SafeCall surface removed
 -- ============================================================================
 
-print("\n=== SafeCall Tests ===\n")
-
--- Test 6: Nil object returns nil
-print("Test: Nil object returns nil")
-local result1 = BETTERUI.CIM.Utils.SafeCall(nil, "DoSomething")
-assert_nil(result1, "Nil object returns nil")
-
--- Test 7: Missing method returns nil
-print("\nTest: Missing method returns nil")
-local obj1 = { name = "Test" }
-local result2 = BETTERUI.CIM.Utils.SafeCall(obj1, "MissingMethod")
-assert_nil(result2, "Missing method returns nil")
-
--- Test 8: Method exists and is called
-print("\nTest: Method exists and is called")
-local obj2 = {
-    value = 10,
-    GetValue = function(self) return self.value end
-}
-local result3 = BETTERUI.CIM.Utils.SafeCall(obj2, "GetValue")
-assert_equal(10, result3, "Method called and returned value")
-
--- Test 9: Arguments passed through
-print("\nTest: Arguments passed through")
-local obj3 = {
-    Add = function(self, a, b) return a + b end
-}
-local result4 = BETTERUI.CIM.Utils.SafeCall(obj3, "Add", 3, 7)
-assert_equal(10, result4, "Arguments passed (3 + 7 = 10)")
+print("\n=== SafeCall Surface Tests ===\n")
+assert_nil(BETTERUI.CIM.Utils.SafeCall, "CIM utility surface no longer exports reflective SafeCall")
+assert_nil(BETTERUI.Utils.SafeCall, "Root BetterUI utility surface no longer re-exports SafeCall")
 
 -- ============================================================================
 -- TESTS: SafeIcon

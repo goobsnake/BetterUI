@@ -14,10 +14,10 @@ Inventory.ROOT_CONTRACT = {
     name = "Inventory",
     archetype = Inventory.ARCHETYPE,
     initOwner = "Modules/Inventory/Module.lua",
-    setupOwner = "Modules/Inventory/Module.lua",
+    setupOwner = "Modules/Inventory/Module.lua + Modules/Inventory/Core/InventoryClass.lua",
     runtimeOwner = "Modules/Inventory/Core/ + Modules/Inventory/Lists/ + Modules/Inventory/Dialogs/",
     settingsOwner = "Modules/Inventory/Module.lua + Modules/Inventory/Settings/",
-    notes = "Module.lua owns defaults and scene bootstrap, while list behavior, dialogs, and reusable helpers live under Core/, Lists/, and Dialogs/.",
+    notes = "Module.lua owns defaults, scene takeover, and setup-time bootstrap; InventoryClass.Initialize owns instance-bound runtime registrations after the scene is replaced.",
 }
 
 local function TryInitializeCraftBagQuantityDialog()
@@ -40,6 +40,15 @@ local function TryRegisterInventoryNarration(...)
 
     registerNarration(...)
     return true
+end
+
+local function NotifyInventorySetupFailure(context, messageText)
+    if BETTERUI.CIM and BETTERUI.CIM.UserNotifyText then
+        BETTERUI.CIM.UserNotifyText(context, messageText)
+        return
+    end
+
+    d("[BetterUI] " .. tostring(messageText))
 end
 
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Inventory, "Inventory")
@@ -209,7 +218,8 @@ function Inventory.Setup()
 	-- Initialize the Craft Bag quantity dialog for stow/retrieve operations
 	local dialogOk = TryInitializeCraftBagQuantityDialog()
 	if not dialogOk then
-		d("[BetterUI] Inventory: CraftBagQuantityDialog init failed")
+		NotifyInventorySetupFailure("Inventory.Setup:CraftBagQuantityDialog",
+            "Inventory craft bag quantity dialog init failed")
 	end
 
 	-- Hook ZO_StackSplit_SplitItem to prevent duplicate dialogs using a lock flag.
@@ -308,6 +318,6 @@ function Inventory.Setup()
 		end
 	)
 	if not narrOk then
-		d("[BetterUI] Inventory: Narration registration failed")
+		NotifyInventorySetupFailure("Inventory.Setup:Narration", "Inventory narration registration failed")
 	end
 end

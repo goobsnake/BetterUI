@@ -80,7 +80,7 @@ local function PreserveSelectionForAction(inventorySlot)
     end
 end
 
-local function CanMarkSlotAsJunk(inventorySlot)
+local function CanMarkSlotAsJunkWithPolicy(inventorySlot)
     if not inventorySlot or not CanItemBeMarkedAsJunk then
         return false
     end
@@ -95,6 +95,18 @@ local function CanMarkSlotAsJunk(inventorySlot)
     local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
     if policy and policy.CanJunkItem then
         return policy.CanJunkItem(bag, slot) == true
+    end
+    return false
+end
+
+local function CanMarkSlotAsJunkWithoutPolicy(inventorySlot)
+    if not inventorySlot or not CanItemBeMarkedAsJunk then
+        return false
+    end
+
+    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if not bag or not slot then
+        return false
     end
     if bag == BAG_VIRTUAL then
         return false
@@ -116,6 +128,14 @@ local function CanMarkSlotAsJunk(inventorySlot)
         return false
     end
     return true
+end
+
+local function CanMarkSlotAsJunk(inventorySlot)
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    if policy and policy.CanJunkItem then
+        return CanMarkSlotAsJunkWithPolicy(inventorySlot)
+    end
+    return CanMarkSlotAsJunkWithoutPolicy(inventorySlot)
 end
 
 local function IsSlotMarkedAsJunk(inventorySlot)

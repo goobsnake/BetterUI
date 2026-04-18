@@ -171,8 +171,8 @@ assert_true(safeExecute:find("function BETTERUI%.CIM%.TryResolve") == nil,
     "SafeExecute no longer exports TryResolve")
 assert_true(safeExecute:find("function BETTERUI%.CIM%.TryCall") == nil,
     "SafeExecute no longer exports TryCall")
-assert_true(safeExecute:find("function BETTERUI%.CIM%.SafeCall%(path, %.%.%.%)") ~= nil,
-    "SafeExecute keeps SafeCall as the public optional dispatch seam")
+assert_true(safeExecute:find("function BETTERUI%.CIM%.SafeCall%(path, %.%.%.%)") == nil,
+    "SafeExecute no longer exports SafeCall")
 
 local generalInterfaceModule = read_file("Modules/GeneralInterface/Module.lua")
 assert_true(generalInterfaceModule:find("TryCall/TryResolve") == nil,

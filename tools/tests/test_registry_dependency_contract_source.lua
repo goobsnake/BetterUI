@@ -23,6 +23,8 @@ print("test_registry_dependency_contract_source")
 
 local source = read_file("BetterUI.lua")
 
+assert_contains(source, '---@field dependsOnCIM boolean|nil Whether the module requires the CIM shared platform',
+    "ModuleRegistryEntry documents dependsOnCIM")
 assert_contains(source, '{ name = "GeneralInterface", namespace = "GeneralInterface", dependsOnCIM = true },',
     "GeneralInterface registry entry declares its CIM dependency")
 assert_contains(source, '{ name = "Writs", namespace = "Writs" },',

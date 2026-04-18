@@ -1,19 +1,7 @@
 --[[
 File: Modules/Inventory/Inventory.lua
-Purpose: Orchestration layer for BetterUI Inventory system.
-         Routes to extracted modules for specific functionality.
-
-         Module Structure (POST-DECOMPOSITION):
-         - Core/InventoryClass.lua - Initialize, caching, header
-         - Lists/ItemListManager.lua - Item list refresh, tooltips
-         - Lists/CraftBagListManager.lua - Craft bag logic
-         - Lists/CategoryListManager.lua - Category tabs
-         - Actions/EquipAction.lua - TryEquipItem, equip dialogs
-         - Actions/ItemActionsDialog.lua - Y-menu customization
-
-         - Keybinds/InventoryKeybinds.lua - Keybind strip
-         - State/PositionManager.lua - Position save/restore
-         - State/ListStateManager.lua - SwitchActiveList
+Purpose: Inventory orchestration surface for shared runtime helpers and
+         remaining class behavior that has not yet moved into focused files.
 ]]
 
 
@@ -49,17 +37,9 @@ end
 -- Backward compatibility alias
 BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.Dialogs.EQUIP_SLOT
 
--- COMPANION EQUIP PATCH
--- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
--- EnsureCompanionEquipPatched is defined and exported in Actions/EquipAction.lua
-
 -- SECURE SYSTEM HOOKS
 local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
--- ESO secure environment: utility wheel slot assignment uses CallSecureProtected(),
--- which requires the callstack to originate from trusted (engine-side) code. Add-on
--- keybinds produce untrusted callstacks that crash the native TryAssignPendingToSelectedEntry.
--- This hook intercepts the call, re-issues it via CallSecureProtected(), and returns true
--- to cancel the original unprotected native execution path.
+-- Re-issue utility wheel slot assignment through the secure engine call path.
 --- Initializes secure wheel hooks for the assignable utility wheel.
 ---@return nil
 function BETTERUI.Inventory.InitializeSecureWheelHooks()

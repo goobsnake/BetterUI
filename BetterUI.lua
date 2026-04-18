@@ -35,6 +35,7 @@ local SAVED_VARS_SCHEMA_VERSION = 2.89
 ---@field name string The unique name of the module (used for settings keys)
 ---@field namespace string The namespace key in BETTERUI table
 ---@field required boolean|nil Whether this module is required (always enabled)
+---@field dependsOnCIM boolean|nil Whether the module requires the CIM shared platform
 ---@field condition function|nil Optional condition function that must return true to load
 ---@field preSetup function|nil Optional function to call before Setup (e.g., for hooks)
 ---@field depends string|nil Name of another module that must be enabled for this to load
