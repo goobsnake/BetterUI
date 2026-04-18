@@ -503,13 +503,6 @@ local function BuildVendorCloseStoreDeps()
     }
 end
 
-local function PrepareVendorOpenStoreMode()
-    local targetMode = ResolveVendorTargetMode()
-    ApplyVendorResolvedMode(targetMode, false)
-    ScheduleVendorOpenStoreSync(targetMode, 120)
-    return targetMode
-end
-
 local STABLE_TRAIN_ORDER = {
     RIDING_TRAIN_SPEED,
     RIDING_TRAIN_STAMINA,
@@ -1046,26 +1039,6 @@ end
 
 function Vendor.ExecuteBatchAction(mode, itemData)
     GetVendorBatchRuntime().ExecuteBatchAction(mode, itemData)
-end
-
----@param mode number
----@return string
-local function ResolveVendorBatchActionName(mode)
-    return GetVendorBatchRuntime().ResolveBatchActionName(mode)
-end
-
----@param totalItems integer
----@return table
-local function ResolveVendorBatchDelayPolicy(totalItems)
-    return GetVendorBatchRuntime().ResolveBatchDelayPolicy(totalItems)
-end
-
----@param mode number
----@param items BetterUIVendorBatchItem[]
----@param onComplete function|nil
----@return table
-local function CreateVendorBatchRunner(mode, items, onComplete)
-    return GetVendorBatchRuntime().CreateBatchRunner(mode, items, onComplete)
 end
 
 --- Processes vendor batch actions through a throttled pipeline with overlay progress.

@@ -191,6 +191,47 @@ assertEqual("fence_sell", BETTERUI.Vendor.ResolveActionId("FENCE_SELL"), "vendor
 assertEqual("fence_launder", BETTERUI.Vendor.ResolveActionId("FENCE_LAUNDER"), "vendor action resolver exposes FENCE_LAUNDER")
 assertEqual(nil, BETTERUI.Vendor.ResolveActionId("UNKNOWN"), "vendor action resolver rejects unknown keys")
 
+do
+    local originalBatchRuntime = BETTERUI.Vendor.BatchRuntime
+    local observed = {
+        completed = 0,
+    }
+    local sampleItem = { id = "sample-item" }
+    local sampleItems = { sampleItem }
+
+    BETTERUI.Vendor.BatchRuntime = {
+        ExecuteBatchAction = function(mode, itemData)
+            observed.actionMode = mode
+            observed.actionItem = itemData
+        end,
+        ExecuteBatchThrottled = function(mode, items, onComplete)
+            observed.throttledMode = mode
+            observed.throttledItems = items
+            if onComplete then
+                onComplete()
+            end
+        end,
+        RequestBatchAbort = function()
+            observed.abortRequested = true
+        end,
+    }
+
+    BETTERUI.Vendor.ExecuteBatchAction(BETTERUI.Vendor.MODE.SELL, sampleItem)
+    BETTERUI.Vendor.ExecuteBatchThrottled(BETTERUI.Vendor.MODE.FENCE_SELL, sampleItems, function()
+        observed.completed = observed.completed + 1
+    end)
+    BETTERUI.Vendor.RequestBatchAbort()
+
+    assertEqual(BETTERUI.Vendor.MODE.SELL, observed.actionMode, "vendor batch-action facade delegates the requested mode")
+    assertTrue(observed.actionItem == sampleItem, "vendor batch-action facade forwards the selected item payload")
+    assertEqual(BETTERUI.Vendor.MODE.FENCE_SELL, observed.throttledMode, "vendor throttled facade delegates the requested mode")
+    assertTrue(observed.throttledItems == sampleItems, "vendor throttled facade forwards the selected item list")
+    assertEqual(1, observed.completed, "vendor throttled facade preserves completion callbacks")
+    assertTrue(observed.abortRequested == true, "vendor abort facade delegates to the batch runtime collaborator")
+
+    BETTERUI.Vendor.BatchRuntime = originalBatchRuntime
+end
+
 setmetatable(_G, originalGlobalMetatable)
 
 if testsFailed > 0 then
