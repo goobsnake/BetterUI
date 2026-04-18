@@ -38,41 +38,39 @@ local INLINE_STATUS_ICON_WEIGHT = {
     BOOK_UNKNOWN = 1.0,
 }
 
---- Returns the active module name based on which scene is showing.
---- @return string moduleName "Banking", "Vendor", "Companions", or "Inventory"
-local function IsNamedSceneShowing(sceneName)
-    if not sceneName or not SCENE_MANAGER or not SCENE_MANAGER.GetScene then
+--- Returns whether a BetterUI module instance currently owns a visible scene.
+--- @param moduleRoot BetterUIModuleRoot|table|nil
+--- @return boolean showing
+local function IsModuleSceneShowing(moduleRoot)
+    local instance = moduleRoot and moduleRoot.instance
+    local isSceneShowing = instance and instance.IsSceneShowing
+    if type(isSceneShowing) ~= "function" then
         return false
     end
-
-    local scene = SCENE_MANAGER:GetScene(sceneName)
-    if scene and scene.IsShowing then
-        return scene:IsShowing()
-    end
-
-    local byName = SCENE_MANAGER.scenes and SCENE_MANAGER.scenes[sceneName]
-    return byName and byName.IsShowing and byName:IsShowing() or false
+    return instance:IsSceneShowing()
 end
 
+--- @return BetterUIListModuleName moduleName
 local function GetActiveListModuleName()
     if BETTERUI.Utils.IsBankingSceneShowing() then
         return "Banking"
     end
-    if IsNamedSceneShowing(rawget(_G, "BETTERUI_VENDOR_SCENE_NAME")) then
+    if IsModuleSceneShowing(BETTERUI.Vendor) then
         return "Vendor"
     end
-    if IsNamedSceneShowing(rawget(_G, "BETTERUI_COMPANION_EQUIP_SCENE_NAME")) then
+    if IsModuleSceneShowing(BETTERUI.Companions) then
         return "Companions"
     end
-    if IsNamedSceneShowing(rawget(_G, "BETTERUI_TRADING_HOUSE_SCENE_NAME")) then
+    if IsModuleSceneShowing(BETTERUI.TradingHouse) then
         return "TradingHouse"
     end
     return "Inventory"
 end
 
---- @param data table|nil
---- @return string moduleName
+--- @param data BetterUIInventoryEntryLike|nil
+--- @return BetterUIListModuleName moduleName
 local function ResolveEntryModuleName(data)
+    ---@type BetterUIInventoryEntryLike|nil
     local itemData = data and (data.dataSource or data) or nil
     local moduleName = (itemData and (itemData.listModuleName or itemData.moduleName))
         or (data and (data.listModuleName or data.moduleName))
@@ -86,6 +84,7 @@ local GetModuleSettings = BETTERUI.GetModuleSettings
 
 --- @return boolean show Whether market prices should be shown
 local function ShouldShowMarketPrice()
+    ---@type BetterUIGeneralInterfaceSettings
     local generalInterfaceSettings = GetModuleSettings("GeneralInterface")
     if generalInterfaceSettings.showMarketPrice ~= nil then
         return generalInterfaceSettings.showMarketPrice
@@ -94,9 +93,10 @@ local function ShouldShowMarketPrice()
     return true
 end
 
---- @param moduleName string Module name ("Inventory" or "Banking")
+--- @param moduleName BetterUIListModuleName Module name for the active list surface
 --- @return number fontSize
 local function GetActiveNameFontSize(moduleName)
+    ---@type BetterUIListModuleSettings
     local settings = GetModuleSettings(moduleName)
     if settings and settings.nameFontSize then
         return settings.nameFontSize
@@ -121,7 +121,7 @@ local function BuildInlineIconTag(texturePath, iconSize)
     return "|t" .. iconSize .. ":" .. iconSize .. ":" .. texturePath .. "|t"
 end
 
---- @param moduleSettings table Module settings table
+--- @param moduleSettings BetterUIListModuleSettings|nil Module settings table
 --- @param key string Setting key
 --- @param defaultValue boolean Default value if not set
 --- @return boolean
@@ -134,12 +134,13 @@ end
 
 --- Sets up the label for a shared gamepad entry, including styling, icons, and colors.
 --- @param label table UI label control
---- @param data table ZO_GamepadEntryData with dataSource
+--- @param data BetterUIInventoryEntryData ZO_GamepadEntryData with dataSource
 --- @param selected boolean Whether the entry is currently selected
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
     if label then
         -- Determine active module context (Inventory vs Banking)
         local moduleName = ResolveEntryModuleName(data)
+        ---@type BetterUIListModuleSettings
         local moduleSettings = GetModuleSettings(moduleName)
         local nameFontSize = GetActiveNameFontSize(moduleName)
 
@@ -156,6 +157,7 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 
         -- Early return for non-item entries (currency rows, headers)
         -- These don't have dataSource and would cause nil errors
+        ---@type BetterUIInventoryRowData|nil
         local dS = data.dataSource
         if not dS then
             -- Simple setup for currency/label entries
@@ -281,7 +283,7 @@ end
 --- Purpose: Visual feedback for item state.
 ---@param statusIndicator table Status indicator control
 ---@param equippedIcon table Equipped icon control
----@param data table ZO_GamepadEntryData with dataSource
+---@param data BetterUIInventoryEntryData ZO_GamepadEntryData with dataSource
 ---@return nil
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     local function ClearStatusIndicator()
@@ -340,7 +342,7 @@ end
 --- Purpose: Renders the primary item icon.
 ---@param icon table Icon control element
 ---@param stackCountLabel table Stack count label control
----@param data table ZO_GamepadEntryData with icon, tinting, and desaturation data
+---@param data BetterUIInventoryEntryData ZO_GamepadEntryData with icon, tinting, and desaturation data
 ---@param selected boolean Whether the entry is currently selected
 ---@return nil
 function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selected)
@@ -433,7 +435,7 @@ end
 
 --- High-level setup for cooldown indicators on an item entry.
 ---@param control table UI control with a .cooldown child
----@param data table Entry data containing cooldownRemaining, cooldownDuration, cooldownIcon
+---@param data BetterUIInventoryEntryData Entry data containing cooldownRemaining, cooldownDuration, cooldownIcon
 ---@return nil
 function BETTERUI_CooldownSetup(control, data)
     local GAMEPAD_DEFAULT_COOLDOWN_TEXTURE = "EsoUI/Art/Mounts/timer_icon.dds"

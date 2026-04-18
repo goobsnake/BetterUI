@@ -27,9 +27,7 @@ Companions.ROOT_CONTRACT = {
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
-if BETTERUI.CIM and BETTERUI.CIM.RegisterModuleAccessors then
-    BETTERUI.CIM.RegisterModuleAccessors("Companions")
-end
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, "Companions")
 
 local function WrapCompanionRuntimeError(operation, err)
     return string.format("[Companions] %s failed: %s", operation, tostring(err))
@@ -37,19 +35,8 @@ end
 
 Companions.WrapRuntimeError = WrapCompanionRuntimeError
 
-local function RegisterCompanionsPanel()
-    if Companions._panelRegistered
-        or not Companions.Settings
-        or not Companions.Settings.RegisterPanel then
-        return
-    end
-
-    local ok, err = pcall(Companions.Settings.RegisterPanel, "Companions", "Companions")
-    if ok then
-        Companions._panelRegistered = true
-    elseif BETTERUI.Debug then
-        BETTERUI.Debug("[Companions] Settings panel registration failed: " .. tostring(err))
-    end
+local function EnsureCompanionsSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(Companions, "Companions")
 end
 
 --- Initializes defaults and applies fallback values for saved variables.
@@ -79,7 +66,8 @@ end
 --- Lifecycle hook: registers settings panel and initializes the module.
 --- Called by BETTERUI.LoadModules() via MODULE_REGISTRY.
 function BETTERUI.Companions.Setup()
-    RegisterCompanionsPanel()
+    EnsureCompanionsSetupContracts()
+    BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")
 
     if BETTERUI.Companions.GetSetting("enableCompanionEquipment") == false then
         return

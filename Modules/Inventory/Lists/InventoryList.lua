@@ -31,8 +31,8 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
 
 --- Default item sort comparator for gamepad inventory.
 --- Purpose: Sorts items based on Best Category Name -> Name -> Level -> Champion Points -> Icon -> ID.
----@param left table Left item data
----@param right table Right item data
+---@param left BetterUIInventoryRowData Left item data
+---@param right BetterUIInventoryRowData Right item data
 ---@return boolean result True if left should come before right
 function BETTERUI_Inventory_DefaultItemSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT,
@@ -46,16 +46,22 @@ local ResolveEntryModuleName = _fmt.ResolveEntryModuleName or GetActiveListModul
 local ShouldShowMarketPrice = _fmt.ShouldShowMarketPrice
 local GetActiveNameFontSize = _fmt.GetActiveNameFontSize
 
+---@param data BetterUIInventoryEntryLike|nil
+---@return BetterUIInventoryRowData|BetterUIInventoryEntryData|nil
 local function GetEntryDataSource(data)
     return data and (data.dataSource or data) or nil
 end
 
+---@param target BetterUIInventoryEntryLike|nil
+---@param moduleName BetterUIListModuleName|nil
 local function SetEntryListModuleName(target, moduleName)
     if target and moduleName then
         target.listModuleName = moduleName
     end
 end
 
+---@param data BetterUIInventoryEntryLike|nil
+---@param moduleName BetterUIListModuleName|nil
 local function AssignEntryListModuleName(data, moduleName)
     if not data or not moduleName then
         return
@@ -69,6 +75,8 @@ local function AssignEntryListModuleName(data, moduleName)
     end
 end
 
+---@param itemData BetterUIInventoryRowData
+---@param categorizationFunction fun(itemData: BetterUIInventoryRowData): string
 local function ApplyInventoryCategoryFields(itemData, categorizationFunction)
     local categoryName = categorizationFunction(itemData)
     local itemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
@@ -103,7 +111,7 @@ end
 --- Configures a shared gamepad inventory entry (row).
 --- Purpose: The main render function. Populates all displayed data for a row.
 ---@param control table UI control for the entry row
----@param data table Entry data with bagId, slotIndex, cached_itemLink, etc.
+---@param data BetterUIInventoryEntryData Entry data with bagId, slotIndex, cached_itemLink, etc.
 ---@param selected boolean Whether this entry is currently selected
 ---@param reselectingDuringRebuild boolean Whether reselecting during list rebuild
 ---@param enabled boolean Whether the entry is enabled
@@ -311,7 +319,7 @@ end
 
 --- Creates a new Inventory List instance.
 ---@param ... any Arguments forwarded to ZO_GamepadInventoryList.New
----@return table object New list instance
+---@return BETTERUI.Inventory.List object New list instance
 function BETTERUI.Inventory.List:New(...)
     local object = ZO_GamepadInventoryList.New(self, ...)
     return object
@@ -320,7 +328,7 @@ end
 --- Initializes the inventory list.
 --- Purpose: Sets up the parametric scroll list, data templates, and update callbacks.
 ---@param control table UI control for the list container
----@param inventoryType number|table Inventory type constant(s)
+---@param inventoryType number|number[] Inventory type constant(s)
 ---@param slotType number Slot type constant
 ---@param selectedDataCallback function|nil Callback for selection changes
 ---@param entrySetupCallback function|nil Entry setup function
@@ -346,6 +354,8 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
 
     self.inventoryTypes = NormalizeInventoryTypes(inventoryType)
 
+    ---@param rowControl table
+    ---@param data BetterUIInventoryEntryData
     local function InventoryEntryTemplateSetup(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
         ZO_Inventory_BindSlot(data, slotType, data.slotIndex, data.bagId)
         AssignEntryListModuleName(data, self.listModuleName)
@@ -452,7 +462,7 @@ end
 
 --- Populates the slot table with item data from the inventory.
 --- Purpose: Filters and accepts items for the list.
----@param slotsTable table Array to insert slot data into
+---@param slotsTable BetterUIInventoryRowData[] Array to insert slot data into
 ---@param inventoryType number Inventory type constant
 ---@param slotIndex number Slot index to query
 ---@return nil

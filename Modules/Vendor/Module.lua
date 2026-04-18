@@ -25,7 +25,11 @@ Vendor.ROOT_CONTRACT = {
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
-BETTERUI.CIM.RegisterModuleAccessors("Vendor")
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Vendor, "Vendor")
+
+local function EnsureVendorSetupContracts()
+	BETTERUI.CIM.RegisterModuleAccessors(Vendor, "Vendor")
+end
 
 --- Initializes defaults and migrates legacy settings for the Vendor module.
 ---
@@ -196,16 +200,7 @@ References: Called by BETTERUI.LoadModules() in BetterUI.lua.
 ]]
 ---@return nil
 function BETTERUI.Vendor.Setup()
-	-- Keep functional scene ownership resilient even when settings UI registration fails.
-	-- A panel error should not force fallback to the native vendor scene.
+	EnsureVendorSetupContracts()
+	BETTERUI.CIM.TryRegisterModulePanel(Vendor, "Vendor", "Vendor", "Vendor")
 	BETTERUI.Vendor.Init()
-
-	if not BETTERUI.Vendor._panelRegistered then
-		local ok, err = pcall(BETTERUI.Vendor.Settings.RegisterPanel, "Vendor", "Vendor")
-		if ok then
-			BETTERUI.Vendor._panelRegistered = true
-		elseif BETTERUI.Debug then
-			BETTERUI.Debug("[Vendor] Settings panel registration failed: " .. tostring(err))
-		end
-	end
 end

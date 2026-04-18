@@ -6,9 +6,16 @@ Purpose: Provides safe module settings access with automatic nil-checking.
 
 if not BETTERUI then BETTERUI = {} end
 
----@param moduleName string Module name key (e.g. "Inventory", "Banking")
----@param defaults table|nil Fallback table if module settings are absent
----@return table settings The module's settings table, or defaults
+---@overload fun(moduleName: "Inventory", defaults: BetterUIInventorySettings|nil): BetterUIInventorySettings
+---@overload fun(moduleName: "Banking", defaults: BetterUIBankingSettings|nil): BetterUIBankingSettings
+---@overload fun(moduleName: "Vendor", defaults: BetterUIVendorSettings|nil): BetterUIVendorSettings
+---@overload fun(moduleName: "TradingHouse", defaults: BetterUITradingHouseSettings|nil): BetterUITradingHouseSettings
+---@overload fun(moduleName: "Companions", defaults: BetterUICompanionsSettings|nil): BetterUICompanionsSettings
+---@overload fun(moduleName: "GeneralInterface", defaults: BetterUIGeneralInterfaceSettings|nil): BetterUIGeneralInterfaceSettings
+---@overload fun(moduleName: "Nameplates", defaults: BetterUINameplatesSettings|nil): BetterUINameplatesSettings
+---@param moduleName ModuleName|string Module name key (e.g. "Inventory", "Banking")
+---@param defaults BetterUIModuleSettings|nil Fallback table if module settings are absent
+---@return BetterUIModuleSettings settings The module's settings table, or defaults
 function BETTERUI.GetModuleSettings(moduleName, defaults)
     if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules[moduleName] then
         return BETTERUI.Settings.Modules[moduleName]
@@ -19,8 +26,15 @@ end
 --- Ensures the settings table exists for a module, creating it if necessary.
 --- Unlike GetModuleSettings, the returned reference is persisted in BETTERUI.Settings.Modules,
 --- so callers may write through it. Use this for mutation patterns; use GetModuleSettings for reads.
----@param moduleName string Module name key
----@return table settings The module settings table (always non-nil)
+---@overload fun(moduleName: "Inventory"): BetterUIInventorySettings
+---@overload fun(moduleName: "Banking"): BetterUIBankingSettings
+---@overload fun(moduleName: "Vendor"): BetterUIVendorSettings
+---@overload fun(moduleName: "TradingHouse"): BetterUITradingHouseSettings
+---@overload fun(moduleName: "Companions"): BetterUICompanionsSettings
+---@overload fun(moduleName: "GeneralInterface"): BetterUIGeneralInterfaceSettings
+---@overload fun(moduleName: "Nameplates"): BetterUINameplatesSettings
+---@param moduleName ModuleName|string Module name key
+---@return BetterUIModuleSettings settings The module settings table (always non-nil)
 function BETTERUI.EnsureModuleSettings(moduleName)
     if not BETTERUI.Settings then
         BETTERUI.Settings = {}
@@ -54,7 +68,7 @@ local function ResolveSettingDefault(moduleName, key, fallback)
     return fallback
 end
 
----@param moduleName string Module name key
+---@param moduleName ModuleName|string Module name key
 ---@param key string Setting key within the module
 ---@param default any Fallback value if the setting is nil
 ---@return any value The setting value, or default
@@ -66,7 +80,7 @@ function BETTERUI.GetSetting(moduleName, key, default)
     return default
 end
 
----@param moduleName string Module name key
+---@param moduleName ModuleName|string Module name key
 ---@param key string Setting key to write (must not be nil)
 ---@param value any Value to store
 ---@return boolean success True when the value was written
@@ -199,21 +213,38 @@ local function ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
     return nil, moduleName
 end
 
-function BETTERUI.CIM.RegisterModuleAccessors(moduleOrNamespace, moduleName)
-    local ns, resolvedModuleName = ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
-    if not ns or type(resolvedModuleName) ~= "string" or resolvedModuleName == "" then
-        return
-    end
-
-    assert(BETTERUI.CIM.Font,
-        "BetterUI: CIM.Font must load before RegisterModuleAccessors is called for " .. resolvedModuleName)
-
-    -- Font aliases
+local function ApplyModuleSharedSettingsStatics(ns)
     ns.FONT_CHOICES = BETTERUI.CIM.Font.CHOICES
     ns.FONT_VALUES = BETTERUI.CIM.Font.VALUES
     ns.FONTSTYLE_CHOICES = BETTERUI.CIM.Font.STYLE_CHOICES
     ns.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
     ns.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
+end
+
+function BETTERUI.CIM.ApplyModuleSharedSettingsStatics(moduleOrNamespace, moduleName)
+    local ns, resolvedModuleName = ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
+    if not ns or type(resolvedModuleName) ~= "string" or resolvedModuleName == "" then
+        return false
+    end
+
+    assert(BETTERUI.CIM.Font,
+        "BetterUI: CIM.Font must load before module settings statics are applied for " .. resolvedModuleName)
+
+    ApplyModuleSharedSettingsStatics(ns)
+    return true
+end
+
+function BETTERUI.CIM.RegisterModuleAccessors(moduleOrNamespace, moduleName)
+    local ns, resolvedModuleName = ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
+    if not ns or type(resolvedModuleName) ~= "string" or resolvedModuleName == "" then
+        return false
+    end
+
+    if ns._sharedAccessorsRegistered == true then
+        return true
+    end
+
+    BETTERUI.CIM.ApplyModuleSharedSettingsStatics(ns, resolvedModuleName)
 
     -- Font descriptor closures
     local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors(resolvedModuleName)
@@ -230,4 +261,38 @@ function BETTERUI.CIM.RegisterModuleAccessors(moduleOrNamespace, moduleName)
     ns.SetSetting = function(key, value)
         return BETTERUI.SetSetting(resolvedModuleName, key, value)
     end
+
+    ns._sharedAccessorsRegistered = true
+    return true
+end
+
+function BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, panelId, panelLabel)
+    local ns, resolvedModuleName = ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
+    if not ns or type(resolvedModuleName) ~= "string" or resolvedModuleName == "" then
+        return false
+    end
+
+    if ns._panelRegistered == true then
+        return true
+    end
+
+    local settings = ns.Settings
+    local registerPanel = settings and settings.RegisterPanel
+    if type(registerPanel) ~= "function" then
+        if BETTERUI.Debug then
+            BETTERUI.Debug(string.format("[%s] Settings panel registration seam unavailable", resolvedModuleName))
+        end
+        return false
+    end
+
+    local ok, err = pcall(registerPanel, panelId, panelLabel)
+    if ok then
+        ns._panelRegistered = true
+        return true
+    end
+
+    if BETTERUI.Debug then
+        BETTERUI.Debug(string.format("[%s] Settings panel registration failed: %s", resolvedModuleName, tostring(err)))
+    end
+    return false
 end

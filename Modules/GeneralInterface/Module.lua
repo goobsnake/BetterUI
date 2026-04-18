@@ -23,9 +23,9 @@ GeneralInterface.ROOT_CONTRACT = {
     archetype = GeneralInterface.ARCHETYPE,
     initOwner = "Modules/GeneralInterface/Module.lua",
     setupOwner = "Modules/GeneralInterface/Setup.lua",
-    runtimeOwner = "Modules/GeneralInterface/Tooltips/ + Modules/GeneralInterface/Nameplates/",
+    runtimeOwner = "Modules/GeneralInterface/Tooltips/",
     settingsOwner = "Modules/GeneralInterface/Module.lua + Modules/GeneralInterface/Setup.lua",
-    notes = "Module.lua owns defaults, while Setup.lua aggregates settings and runtime hooks from Tooltips/ and Nameplates/.",
+    notes = "Module.lua owns GeneralInterface defaults; Setup.lua aggregates the tooltip settings surface and nests the separate Nameplates submenu.",
 }
 
 --- Initializes General Interface default settings.

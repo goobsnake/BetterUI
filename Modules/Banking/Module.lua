@@ -64,6 +64,6 @@ end
 --- Lifecycle hook: registers settings and starts the Banking class.
 ---@type BetterUIModuleSetupHook
 function Banking.Setup()
-	Banking.Settings.RegisterPanel("Bank", "Banking")
+    BETTERUI.CIM.TryRegisterModulePanel(Banking, "Banking", "Bank", "Banking")
 	Banking.Init()
 end

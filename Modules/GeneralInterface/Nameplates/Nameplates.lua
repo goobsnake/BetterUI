@@ -10,9 +10,22 @@
 -- Note: ESO Update 41+ uses .slug fonts; only built-in ESO fonts supported
 
 BETTERUI.Nameplates = BETTERUI.Nameplates or {}
+local Nameplates = BETTERUI.Nameplates
+
+Nameplates.ARCHETYPE = "settings-owner"
+---@type BetterUIModuleRootContract
+Nameplates.ROOT_CONTRACT = {
+    name = "Nameplates",
+    archetype = Nameplates.ARCHETYPE,
+    initOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua",
+    setupOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua",
+    runtimeOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua",
+    settingsOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua + Modules/GeneralInterface/Nameplates/Settings.lua",
+    notes = "Nameplates is a first-class BetterUI module whose code lives under the GeneralInterface tree while reusing the aggregated GeneralInterface settings panel.",
+}
 
 -- Available ESO built-in fonts
-BETTERUI.Nameplates.FONT_CHOICES = {
+Nameplates.FONT_CHOICES = {
     "System Default (Localized)", -- Uses ESO's language-appropriate bold font
     "Antique (Localized)",        -- Stylized serif, localized for CJK
     "Handwritten (Localized)",    -- Handwritten style, localized for CJK
@@ -29,7 +42,7 @@ BETTERUI.Nameplates.FONT_CHOICES = {
     "Consolas",
 }
 
-BETTERUI.Nameplates.FONT_VALUES = {
+Nameplates.FONT_VALUES = {
     "$(BOLD_FONT)",         -- ESO's localized bold font
     "$(ANTIQUE_FONT)",      -- Resolves to ProseAntique (Western) or KafuPenji (JP) or MYoyo (ZH)
     "$(HANDWRITTEN_FONT)",  -- Resolves to Handwritten_Bold (Western) or localized equivalent
@@ -47,7 +60,7 @@ BETTERUI.Nameplates.FONT_VALUES = {
 }
 
 -- Font style options (ESO FONT_STYLE_* constants)
-BETTERUI.Nameplates.FONTSTYLE_CHOICES = {
+Nameplates.FONTSTYLE_CHOICES = {
     "Normal",
     "Outline",
     "Thick Outline",
@@ -56,7 +69,7 @@ BETTERUI.Nameplates.FONTSTYLE_CHOICES = {
     "Soft Shadow (Thin)",
 }
 
-BETTERUI.Nameplates.FONTSTYLE_VALUES = {
+Nameplates.FONTSTYLE_VALUES = {
     FONT_STYLE_NORMAL or 0,
     FONT_STYLE_OUTLINE or 1,
     FONT_STYLE_THICK_OUTLINE or 2,
@@ -66,7 +79,7 @@ BETTERUI.Nameplates.FONTSTYLE_VALUES = {
 }
 
 -- Default nameplate settings
-BETTERUI.Nameplates.DEFAULTS = {
+Nameplates.DEFAULTS = {
     m_enabled = false,
     font = "$(BOLD_FONT)", -- Uses ESO's localized font for CJK support
     style = FONT_STYLE_SOFT_SHADOW_THIN or 5,
@@ -100,7 +113,7 @@ local function GetSettings()
         end
         return settings
     end
-    return BETTERUI.Nameplates.DEFAULTS
+    return Nameplates.DEFAULTS
 end
 
 local originalKeyboardFont = nil

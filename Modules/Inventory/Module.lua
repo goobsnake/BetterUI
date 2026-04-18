@@ -42,17 +42,23 @@ local function TryRegisterInventoryNarration(...)
     return true
 end
 
--- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
-BETTERUI.CIM.RegisterModuleAccessors("Inventory")
-if BETTERUI.CIM
-    and BETTERUI.CIM.Keybinds
-    and BETTERUI.CIM.Keybinds.RegisterInventoryActionModes
-then
-    BETTERUI.CIM.Keybinds.RegisterInventoryActionModes({
-        itemList = Inventory.CONST.ITEM_LIST_ACTION_MODE,
-        craftBag = Inventory.CONST.CRAFT_BAG_ACTION_MODE,
-        category = Inventory.CONST.CATEGORY_ITEM_ACTION_MODE,
-    })
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Inventory, "Inventory")
+
+local function EnsureInventorySetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(Inventory, "Inventory")
+
+    if Inventory._inventoryActionModesRegistered ~= true
+        and BETTERUI.CIM
+        and BETTERUI.CIM.Keybinds
+        and BETTERUI.CIM.Keybinds.RegisterInventoryActionModes
+    then
+        BETTERUI.CIM.Keybinds.RegisterInventoryActionModes({
+            itemList = Inventory.CONST.ITEM_LIST_ACTION_MODE,
+            craftBag = Inventory.CONST.CRAFT_BAG_ACTION_MODE,
+            category = Inventory.CONST.CATEGORY_ITEM_ACTION_MODE,
+        })
+        Inventory._inventoryActionModesRegistered = true
+    end
 end
 
 --- Initializes defaults and migrates legacy settings for the Inventory module.
@@ -159,7 +165,8 @@ end
 --- Registers settings, replaces native GAMEPAD_INVENTORY, and configures tooltips.
 ---@type BetterUIModuleSetupHook
 function Inventory.Setup()
-	Inventory.Settings.RegisterPanel("Inventory", "Inventory")
+    EnsureInventorySetupContracts()
+    BETTERUI.CIM.TryRegisterModulePanel(Inventory, "Inventory", "Inventory", "Inventory")
 
 	Inventory.NativeGlobals = Inventory.NativeGlobals or {}
 	local native = Inventory.NativeGlobals

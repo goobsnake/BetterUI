@@ -70,7 +70,10 @@ BETTERUI.CIM.Types = {}
 ---| "Writs"
 ---| "CIM"
 ---| "Vendor"
+---| "TradingHouse"
+---| "Companions"
 ---| "GeneralInterface"
+---| "Nameplates"
 
 ---@alias BetterUIModuleArchetype
 ---| "runtime-coordinator"
@@ -202,6 +205,95 @@ BETTERUI.CIM.Types = {}
 
 -- SETTINGS TYPES
 
+---@alias BetterUIListModuleName
+---| "Inventory"
+---| "Banking"
+---| "Vendor"
+---| "TradingHouse"
+---| "Companions"
+
+---@class BetterUISharedFontSettings
+---@field nameFont string|nil
+---@field nameFontSize number|nil
+---@field nameFontStyle string|number|nil
+---@field columnFont string|nil
+---@field columnFontSize number|nil
+---@field columnFontStyle string|number|nil
+---@field showIconEnchantment boolean|nil
+---@field showIconSetGear boolean|nil
+---@field showIconUnboundItem boolean|nil
+---@field showIconResearchableTrait boolean|nil
+---@field showIconUnknownRecipe boolean|nil
+---@field showIconUnknownBook boolean|nil
+
+---@class BetterUIInventorySettings: BetterUISharedFontSettings
+---@field quickDestroy boolean|nil
+---@field enableBatchDestroy boolean|nil
+---@field enableCarousel boolean|nil
+---@field useTriggersForSkip boolean|nil
+---@field triggerSpeed number|nil
+---@field bindOnEquipProtection boolean|nil
+---@field enableCompanionJunk boolean|nil
+---@field currencyPreset string|nil
+---@field currencyOrder string|nil
+
+---@class BetterUIBankingSettings: BetterUISharedFontSettings
+---@field enableGuildBank boolean|nil
+---@field enableCarousel boolean|nil
+---@field useTriggersForSkip boolean|nil
+---@field triggerSpeed number|nil
+
+---@class BetterUIVendorSettings: BetterUISharedFontSettings
+---@field enableCarousel boolean|nil
+---@field enableBatchJunkSell boolean|nil
+---@field abbreviateVendorCurrency boolean|nil
+
+---@class BetterUITradingHouseSettings: BetterUISharedFontSettings
+---@field enableCarousel boolean|nil
+---@field searchPresets table|nil
+
+---@class BetterUICompanionsSettings: BetterUISharedFontSettings
+---@field enableCompanionEquipment boolean|nil
+---@field quickDestroy boolean|nil
+---@field batchDestroy boolean|nil
+---@field bindOnEquipProtection boolean|nil
+---@field enableCompanionJunk boolean|nil
+
+---@class BetterUIGeneralInterfaceSettings
+---@field showMarketPrice boolean|nil
+---@field marketPricePriority string|nil
+---@field showStyleTrait boolean|nil
+---@field showKnowledgeStatus boolean|nil
+---@field chatHistory number|nil
+---@field attIntegration boolean|nil
+---@field mmIntegration boolean|nil
+---@field ttcIntegration boolean|nil
+---@field guildStoreErrorSuppress boolean|nil
+---@field removeDeleteDialog boolean|nil
+
+---@class BetterUINameplatesSettings
+---@field m_enabled boolean|nil
+---@field font string|nil
+---@field style number|string|nil
+---@field size number|nil
+
+---@alias BetterUIListModuleSettings
+---| BetterUIInventorySettings
+---| BetterUIBankingSettings
+---| BetterUIVendorSettings
+---| BetterUITradingHouseSettings
+---| BetterUICompanionsSettings
+
+---@alias BetterUIModuleSettings
+---| BetterUIInventorySettings
+---| BetterUIBankingSettings
+---| BetterUIVendorSettings
+---| BetterUITradingHouseSettings
+---| BetterUICompanionsSettings
+---| BetterUIGeneralInterfaceSettings
+---| BetterUINameplatesSettings
+---| table<string, any>
+
 ---@class ModuleSettings
 ---@field GetSetting fun(key: string): any Get a module setting value
 ---@field SetSetting fun(key: string, value: any) Set a module setting value
@@ -209,4 +301,62 @@ BETTERUI.CIM.Types = {}
 ---@field FONT_VALUES string[] Font internal identifiers
 ---@field FONTSTYLE_CHOICES string[] Available font style names
 ---@field FONTSTYLE_VALUES string[] Font style identifiers
----@field DEFAULTS table Default font settings
+---@field DEFAULTS BetterUISharedFontSettings Default shared font settings
+
+---@class BetterUIInventoryRowData: SlotData
+---@field listModuleName BetterUIListModuleName|nil
+---@field moduleName BetterUIListModuleName|nil
+---@field bestGamepadItemCategoryName string|nil
+---@field bestItemCategoryName string|nil
+---@field itemCategoryName string|nil
+---@field bestItemTypeName string|nil
+---@field cached_itemLink ItemLink|nil
+---@field cached_itemType number|nil
+---@field cached_traitName string|nil
+---@field cached_setItem boolean|nil
+---@field cached_hasEnchantment boolean|nil
+---@field cached_isRecipeAndUnknown boolean|nil
+---@field cached_isBook boolean|nil
+---@field cached_isBookKnown boolean|nil
+---@field cached_isBookAndUnknown boolean|nil
+---@field cached_isTraitResearchable boolean|nil
+---@field cached_isUnbound boolean|nil
+---@field stackSellPrice number|nil
+---@field text string|nil
+---@field label string|nil
+---@field stolen boolean|nil
+---@field isBoPTradeable boolean|nil
+---@field isEquippedInCurrentCategory boolean|nil
+---@field isEquippedInAnotherCategory boolean|nil
+---@field modifyTextType any
+---@field labelColor table|nil
+
+---@class BetterUIInventoryEntryData
+---@field dataSource BetterUIInventoryRowData|nil
+---@field listModuleName BetterUIListModuleName|nil
+---@field moduleName BetterUIListModuleName|nil
+---@field text string|nil
+---@field label string|nil
+---@field name string|nil
+---@field iconFile string|nil
+---@field stackCount number|nil
+---@field stackSellPrice number|nil
+---@field labelColor table|nil
+---@field cached_itemLink ItemLink|nil
+---@field cached_itemType number|nil
+---@field cached_traitName string|nil
+---@field cached_setItem boolean|nil
+---@field cached_hasEnchantment boolean|nil
+---@field cached_isRecipeAndUnknown boolean|nil
+---@field cached_isBook boolean|nil
+---@field cached_isBookKnown boolean|nil
+---@field cached_isBookAndUnknown boolean|nil
+---@field cached_isTraitResearchable boolean|nil
+---@field cached_isUnbound boolean|nil
+---@field stolen boolean|nil
+---@field isBoPTradeable boolean|nil
+---@field isEquippedInCurrentCategory boolean|nil
+---@field isEquippedInAnotherCategory boolean|nil
+---@field modifyTextType any
+
+---@alias BetterUIInventoryEntryLike BetterUIInventoryEntryData|BetterUIInventoryRowData

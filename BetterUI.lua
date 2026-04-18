@@ -73,6 +73,7 @@ local MODULE_REGISTRY = {
 	{
 		name = "Nameplates",
 		namespace = "Nameplates",
+		dependsOnCIM = true,
 		depends = "GeneralInterface"
 	},
 	{ name = "ResourceOrbFrames", namespace = "ResourceOrbFrames", dependsOnCIM = true },
