@@ -17,6 +17,16 @@ local function SafeGetTargetData(list)
     return nil
 end
 
+local function CountEligibleActionTargets(actionId, items)
+    local eligibleCount = 0
+    for _, itemData in ipairs(items or {}) do
+        if Companions.CanExecuteAction and Companions.CanExecuteAction(actionId, itemData) then
+            eligibleCount = eligibleCount + 1
+        end
+    end
+    return eligibleCount
+end
+
 -- ACTION DIALOG
 
 local function RegisterCompanionActionDialog()
@@ -98,22 +108,31 @@ local function RegisterCompanionBatchDialog()
                         BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_BETTERUI_INV_ACTION_DESELECT_ALL or "Deselect All"), "deselectAll"))
                 end
 
-                -- Junk toggle
-                if Companions.GetSetting("enableCompanionJunk") ~= false then
+                local junkCount = CountEligibleActionTargets("junk", items)
+                local unjunkCount = CountEligibleActionTargets("unjunk", items)
+                local lockCount = CountEligibleActionTargets("lock", items)
+                local unlockCount = CountEligibleActionTargets("unlock", items)
+                local destroyCount = CountEligibleActionTargets("destroy", items)
+
+                if junkCount > 0 then
                     table.insert(parametricList,
                         BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_MARK_AS_JUNK), "junk"))
+                end
+                if unjunkCount > 0 then
                     table.insert(parametricList,
                         BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK), "unjunk"))
                 end
 
-                -- Lock toggle
-                table.insert(parametricList,
-                    BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_MARK_AS_LOCKED), "lock"))
-                table.insert(parametricList,
-                    BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED), "unlock"))
+                if lockCount > 0 then
+                    table.insert(parametricList,
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_MARK_AS_LOCKED), "lock"))
+                end
+                if unlockCount > 0 then
+                    table.insert(parametricList,
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED), "unlock"))
+                end
 
-                -- Destroy
-                if Companions.GetSetting("batchDestroy") ~= false then
+                if destroyCount > 0 and Companions.GetSetting("batchDestroy") ~= false then
                     table.insert(parametricList,
                         BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_DESTROY), "destroy"))
                 end
@@ -152,21 +171,7 @@ local function RegisterCompanionBatchDialog()
                         local slotIndex = ds.slotIndex
                         if bagId and slotIndex then
                             zo_callLater(function()
-                                if actionId == "destroy" then
-                                    if Companions.GetSetting("quickDestroy") == true then
-                                        DestroyItem(bagId, slotIndex)
-                                    else
-                                        Companions.ShowCompanionDestroyDialog(bagId, slotIndex)
-                                    end
-                                elseif actionId == "lock" then
-                                    if SetItemPlayerLocked then SetItemPlayerLocked(bagId, slotIndex, true) end
-                                elseif actionId == "unlock" then
-                                    if SetItemPlayerLocked then SetItemPlayerLocked(bagId, slotIndex, false) end
-                                elseif actionId == "junk" then
-                                    if SetItemIsJunk then SetItemIsJunk(bagId, slotIndex, true) end
-                                elseif actionId == "unjunk" then
-                                    if SetItemIsJunk then SetItemIsJunk(bagId, slotIndex, false) end
-                                end
+                                Companions.ExecuteAction(actionId, itemData)
                             end, delay)
                             delay = delay + 80
                         end

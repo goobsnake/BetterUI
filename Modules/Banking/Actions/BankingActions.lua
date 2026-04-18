@@ -151,10 +151,15 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         if self:IsFurnitureVaultContext() then
             return false
         end
-        if IsItemPlayerLocked and IsItemPlayerLocked(targetData.bagId, targetData.slotIndex) then
-            return false
+        local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+        if not policy then
+            return true
         end
-        return true
+        local isJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex) == true
+        if isJunk then
+            return policy.CanUnjunkItem(targetData.bagId, targetData.slotIndex)
+        end
+        return policy.CanJunkItem(targetData.bagId, targetData.slotIndex)
     end
 
     local function ToggleBankingItemJunk(targetData, shouldMarkAsJunk)
@@ -164,22 +169,15 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         if self:IsFurnitureVaultContext() then
             return false
         end
-        if IsItemPlayerLocked and IsItemPlayerLocked(targetData.bagId, targetData.slotIndex) then
-            return false
-        end
 
         local isCurrentlyJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex)
-        if shouldMarkAsJunk then
-            if isCurrentlyJunk then
+        local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+        if shouldMarkAsJunk == true then
+            if isCurrentlyJunk or (policy and not policy.CanJunkItem(targetData.bagId, targetData.slotIndex)) then
                 return false
             end
-            if not CanItemBeMarkedAsJunk or not CanItemBeMarkedAsJunk(targetData.bagId, targetData.slotIndex) then
-                return false
-            end
-        else
-            if not isCurrentlyJunk then
-                return false
-            end
+        elseif not isCurrentlyJunk or (policy and not policy.CanUnjunkItem(targetData.bagId, targetData.slotIndex)) then
+            return false
         end
 
         SetItemIsJunk(targetData.bagId, targetData.slotIndex, shouldMarkAsJunk)
@@ -242,7 +240,8 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 
             if CanShowBankingJunkActions(targetData) then
                 local isJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex)
-                local canMarkAsJunk = CanItemBeMarkedAsJunk and CanItemBeMarkedAsJunk(targetData.bagId, targetData.slotIndex)
+                local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+                local canMarkAsJunk = policy and policy.CanJunkItem(targetData.bagId, targetData.slotIndex)
                 local junkActionName = nil
                 local markAsJunk = false
                 if isJunk then

@@ -13,6 +13,7 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.BatchActions = BETTERUI.CIM.BatchActions or {}
 
 local BatchActions = BETTERUI.CIM.BatchActions
+local ProtectionPolicy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
 
 -- HELPERS
 
@@ -133,9 +134,8 @@ function BatchActions.BatchMarkAsJunk(self)
         local bagId, slotIndex = ExtractSlot(itemData)
         if bagId and slotIndex then
             if HasItemAtSlot(bagId, slotIndex)
-                and CanItemBeMarkedAsJunk(bagId, slotIndex)
-                and not IsItemPlayerLocked(bagId, slotIndex)
                 and not IsItemJunk(bagId, slotIndex)
+                and (not ProtectionPolicy or ProtectionPolicy.CanJunkItem(bagId, slotIndex))
             then
                 table.insert(items, itemData)
             end
@@ -147,9 +147,8 @@ function BatchActions.BatchMarkAsJunk(self)
         if not HasItemAtSlot(bagId, slotIndex) then
             return true
         end
-        if not CanItemBeMarkedAsJunk(bagId, slotIndex)
-            or IsItemPlayerLocked(bagId, slotIndex)
-            or IsItemJunk(bagId, slotIndex)
+        if IsItemJunk(bagId, slotIndex)
+            or (ProtectionPolicy and not ProtectionPolicy.CanJunkItem(bagId, slotIndex))
         then
             return true
         end
@@ -172,7 +171,7 @@ function BatchActions.BatchUnmarkAsJunk(self)
         if bagId and slotIndex
             and HasItemAtSlot(bagId, slotIndex)
             and IsItemJunk(bagId, slotIndex)
-            and not IsItemPlayerLocked(bagId, slotIndex)
+            and (not ProtectionPolicy or ProtectionPolicy.CanUnjunkItem(bagId, slotIndex))
         then
             table.insert(items, itemData)
         end
@@ -183,7 +182,9 @@ function BatchActions.BatchUnmarkAsJunk(self)
         if not HasItemAtSlot(bagId, slotIndex) then
             return true
         end
-        if IsItemPlayerLocked(bagId, slotIndex) or not IsItemJunk(bagId, slotIndex) then
+        if not IsItemJunk(bagId, slotIndex)
+            or (ProtectionPolicy and not ProtectionPolicy.CanUnjunkItem(bagId, slotIndex))
+        then
             return true
         end
 
@@ -227,13 +228,14 @@ function BatchActions.AnalyzeSelectedItems(selectedItems)
             end
 
             local isJunk = IsItemJunk(bagId, slotIndex)
-            local canBeJunked = CanItemBeMarkedAsJunk(bagId, slotIndex)
-            if canBeJunked and not isLocked then
-                if isJunk then
+            local canMarkAsJunk = not ProtectionPolicy or ProtectionPolicy.CanJunkItem(bagId, slotIndex)
+            local canUnmarkAsJunk = not ProtectionPolicy or ProtectionPolicy.CanUnjunkItem(bagId, slotIndex)
+            if isJunk then
+                if canUnmarkAsJunk then
                     counts.canUnmarkJunkCount = counts.canUnmarkJunkCount + 1
-                else
-                    counts.canMarkJunkCount = counts.canMarkJunkCount + 1
                 end
+            elseif canMarkAsJunk then
+                    counts.canMarkJunkCount = counts.canMarkJunkCount + 1
             end
         end
     end

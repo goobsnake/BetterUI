@@ -24,8 +24,15 @@ local function ToggleJunkState(self, isJunk)
     local target = BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
     if not target then return end
 
-    if isJunk then
-        if not BETTERUI.CIM.ProtectionPolicy.CanJunkItem(target.bagId, target.slotIndex) then
+    local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    if policy then
+        local canToggleJunk
+        if isJunk then
+            canToggleJunk = policy.CanJunkItem(target.bagId, target.slotIndex)
+        else
+            canToggleJunk = policy.CanUnjunkItem(target.bagId, target.slotIndex)
+        end
+        if not canToggleJunk then
             return
         end
     end

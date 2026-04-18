@@ -23,6 +23,8 @@ Policy.DENY = {
     CRAFT_BAG       = "craft_bag",
     COMPANION       = "companion",
     NO_JUNK         = "no_junk",
+    NO_LOCK         = "no_lock",
+    NOT_LOCKED      = "not_locked",
     NO_CRAFT_ACCESS = "no_craft_access",
     NOT_CRAFTABLE   = "not_craftable",
     CROWN_GEMMABLE  = "crown_gemmable",
@@ -102,9 +104,43 @@ function Policy.CanUnjunkItem(bagId, slotIndex)
     if not bagId or not slotIndex then
         return false, Policy.DENY.NO_ITEM
     end
+    if not HasItemAtSlot(bagId, slotIndex) then
+        return false, Policy.DENY.NO_ITEM
+    end
     -- Craft bag items cannot be junked/unjunked
     if bagId == BAG_VIRTUAL then
         return false, Policy.DENY.CRAFT_BAG
+    end
+    return true
+end
+
+---@param bagId number
+---@param slotIndex number
+---@return boolean allowed
+---@return string|nil reason
+function Policy.CanLockItem(bagId, slotIndex)
+    if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
+        return false, Policy.DENY.NO_ITEM
+    end
+    if not CanItemBePlayerLocked or not CanItemBePlayerLocked(bagId, slotIndex) then
+        return false, Policy.DENY.NO_LOCK
+    end
+    if IsItemPlayerLocked and IsItemPlayerLocked(bagId, slotIndex) then
+        return false, Policy.DENY.PLAYER_LOCKED
+    end
+    return true
+end
+
+---@param bagId number
+---@param slotIndex number
+---@return boolean allowed
+---@return string|nil reason
+function Policy.CanUnlockItem(bagId, slotIndex)
+    if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
+        return false, Policy.DENY.NO_ITEM
+    end
+    if not IsItemPlayerLocked or not IsItemPlayerLocked(bagId, slotIndex) then
+        return false, Policy.DENY.NOT_LOCKED
     end
     return true
 end
