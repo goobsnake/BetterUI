@@ -392,8 +392,6 @@ function BETTERUI_TabBar_OnLeftIconClicked(buttonControl)
         local allowWrapping = true
         if scrollList.ShouldWrapShoulderNavigation then
             allowWrapping = scrollList:ShouldWrapShoulderNavigation()
-        elseif scrollList.carouselMode == false then
-            allowWrapping = false
         end
         scrollList:MovePrevious(allowWrapping)
     end
@@ -408,8 +406,6 @@ function BETTERUI_TabBar_OnRightIconClicked(buttonControl)
         local allowWrapping = true
         if scrollList.ShouldWrapShoulderNavigation then
             allowWrapping = scrollList:ShouldWrapShoulderNavigation()
-        elseif scrollList.carouselMode == false then
-            allowWrapping = false
         end
         scrollList:MoveNext(allowWrapping)
     end
