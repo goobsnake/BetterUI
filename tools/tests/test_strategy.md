@@ -29,45 +29,29 @@ BetterUI implements a 4-layer testing pyramid:
 - **Script**: `tools/tests/validate_manifest.sh`
 - **Purpose**: Ensure referenced files exist on disk
 
-### L3: SafeExecute Boundary Testing
-- **Mechanism**: Runtime error wrapping
-- **Coverage**: Every public entry point
-- **Key File**: `Modules/CIM/Core/SafeExecute.lua`
-- **Purpose**: Graceful error handling without UI breakage
+### L3: Standalone Lua Runtime Tests
+- **Mechanism**: Headless Lua harnesses with focused ESO stubs
+- **Coverage**: Shared seams, module boundaries, and regression-prone flows
+- **Key Files**: `tools/tests/test_inventory_scene_harness.lua`,
+  `tools/tests/test_market_integration.lua`,
+  `tools/tests/test_vendor_live_runtime_boundaries.lua`
+- **Purpose**: Exercise production-backed behavior without mirroring module
+  logic in local test copies
 
-### L4: Integration Testing
-- **Method**: In-game load verification + manual testing
+### L4: In-game Integration Testing
+- **Method**: ESO load verification + manual testing
 - **Coverage**: Critical user paths
-- **Purpose**: Verify addon works in actual ESO environment
+- **Purpose**: Verify addon works in the real client/runtime environment
 
-## SafeExecute as Test Infrastructure
+## Runner and suite shape
 
-BetterUI uses SafeExecute as its primary runtime safety net.
-All module boundaries, event handlers, and keybind callbacks
-are wrapped with SafeExecute to catch and report errors.
-
-### Implementation Pattern
-
-```lua
--- Module initialization
-BETTERUI.CIM.SafeExecute(function()
-    Module.Initialize()
-end, "ModuleName.Initialize")
-
--- Event handler registration
-EVENT_MANAGER:RegisterForEvent("EventName", function(eventCode, ...)
-    BETTERUI.CIM.SafeExecute(function(...)
-        Module.HandleEvent(...)
-    end, "ModuleName.HandleEvent")
-end)
-```
-
-### Error Handling Behavior
-
-1. **Catch**: All errors are caught via `pcall`
-2. **Log**: Errors are logged with context (module/function name)
-3. **Report**: Stack traces are preserved for debugging
-4. **Recover**: Execution continues; addon remains functional
+- `lua tools/tests/run_all_tests.lua` auto-discovers every `test_*.lua` file
+  under `tools/tests/` except the runner itself.
+- The runner now combines command status with failure signatures such as
+  `lua:`, `stack traceback:`, `FAILED`, and `Failed:` instead of trusting a
+  success banner alone.
+- Shared test-only helpers live under `tools/tests/lib/`; keep this surface
+  small and oriented around reusable infrastructure rather than feature logic.
 
 ## Coverage Strategy
 
@@ -100,7 +84,7 @@ bash tools/tests/run_syntax_check.sh
 bash tools/tests/validate_manifest.sh
 bash tools/tests/validate_types.sh
 
-# Run unit tests
+# Run standalone Lua tests
 lua tools/tests/run_all_tests.lua
 ```
 
@@ -122,13 +106,13 @@ test:
 |--------|---------|--------|
 | Syntax Coverage | 100% | 100% |
 | Manifest Coverage | 100% | 100% |
-| SafeExecute Coverage | ~75% | 100% |
+| Runtime Harness Coverage | Growing | Critical flows covered |
 | EmmyLua Annotation | ~60% | 90% |
 | Unit Test Coverage | ~41% | 70% |
 
 ### Tracking
 - Syntax/Manifest: Automated in CI
-- SafeExecute: Manual audit per module
+- Runtime harnesses: Tracked via `run_all_tests.lua`
 - EmmyLua: Tracked via `validate_types.sh`
 - Unit Tests: Tracked via test runner output
 

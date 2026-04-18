@@ -2,7 +2,9 @@
 
 ## Overview
 
-This directory contains the test infrastructure for BetterUI, covering syntax validation, manifest consistency, and runtime safety verification.
+This directory contains the BetterUI test infrastructure: standalone Lua tests,
+static validation scripts, and a small shared helper surface for test-only
+runner support.
 
 ## Testing Pyramid
 
@@ -73,7 +75,7 @@ BetterUI follows a 4-level testing strategy:
 
 ## How to Run Tests
 
-### Run All Tests
+### Run Static Validation
 ```bash
 bash tools/tests/run_syntax_check.sh
 bash tools/tests/validate_manifest.sh
@@ -92,6 +94,11 @@ lua tools/tests/test_deferred_task.lua
 lua tools/tests/run_all_tests.lua
 ```
 
+`run_all_tests.lua` auto-discovers every `test_*.lua` file under
+`tools/tests/` except the runner itself. It captures per-test output and uses
+both command status and failure signatures (`lua:`, `stack traceback:`,
+`FAILED`, `Failed:`) when classifying results.
+
 ## How to Add New Tests
 
 ### Adding a Syntax/Manifest Test
@@ -100,16 +107,16 @@ No changes needed - these are automatically generated from the file structure.
 ### Adding a Unit Test
 
 1. Create a new test file: `tools/tests/test_<feature_name>.lua`
-2. Follow the test template:
+2. Prefer direct runtime/import coverage over mirrored implementation logic.
+3. Follow the local test style used by the suite:
 
 ```lua
 --[[
-Test: <Feature Name>
+File: tools/tests/test_<feature_name>.lua
 Purpose: <What this test validates>
+Usage:
+  lua tools/tests/test_<feature_name>.lua
 ]]
-
--- Load test utilities if needed
-local testUtils = require("tools.tests.lib.test_utils")
 
 -- Test counter
 local passed = 0
@@ -119,27 +126,34 @@ local failed = 0
 local function assertEqual(actual, expected, message)
     if actual == expected then
         passed = passed + 1
-        print("  ✓ " .. message)
     else
         failed = failed + 1
-        print("  ✗ " .. message)
-        print("    Expected: " .. tostring(expected))
-        print("    Actual: " .. tostring(actual))
+        print(string.format("  FAIL: %s -- expected %s, got %s", message, tostring(expected), tostring(actual)))
     end
 end
 
 -- Run tests
-print("Testing <Feature Name>...")
+print("[<Feature Name>]")
 
 -- Add your test cases here
 -- assertEqual(actual, expected, "Test description")
 
--- Summary
-print(string.format("\nResults: %d passed, %d failed", passed, failed))
-os.exit(failed > 0 and 1 or 0)
+if failed > 0 then
+    error(string.format("test_<feature_name>.lua failed with %d failure(s)", failed))
+end
+
+print(string.format("test_<feature_name>.lua: %d passed", passed))
 ```
 
-3. Add the test to `run_all_tests.lua` if it should run in the batch
+No manual registration is needed; `run_all_tests.lua` auto-discovers
+`test_*.lua`.
+
+### Shared helpers
+
+Shared test-only helpers live under `tools/tests/lib/`. Keep this surface
+small and focused on infrastructure that is reused across the suite (for
+example, the runner classification helpers in
+`tools/tests/lib/TestRunnerSupport.lua`).
 
 ### Coverage wiring for delayed imports
 
