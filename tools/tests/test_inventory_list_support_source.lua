@@ -91,10 +91,19 @@ assert_true(itemListManagerSource:find("function BETTERUI%.Inventory%.Class:Popu
     "ItemListManager exposes PopulateInventoryCategoryFields")
 
 local loaderSource = read_file("Modules/Inventory/Loader.lua")
-assert_true(loaderSource:find("BETTERUI%.Inventory%.ClassMixins = %{%}") ~= nil,
-    "Inventory loader initializes ClassMixins")
-assert_true(loaderSource:find("function BETTERUI%.Inventory%.RegisterMixin%(name, func%)") ~= nil,
-    "Inventory loader exposes RegisterMixin")
+assert_true(loaderSource:find("Deferred class installers") == nil,
+    "Inventory loader no longer declares deferred installer seams")
+
+local manifestSource = read_file("BetterUI.txt")
+local loaderIndex = manifestSource:find("Modules\\Inventory\\Loader.lua", 1, true)
+local classIndex = manifestSource:find("Modules\\Inventory\\Core\\InventoryClass.lua", 1, true)
+local positionIndex = manifestSource:find("Modules\\Inventory\\State\\PositionManager.lua", 1, true)
+local listStateIndex = manifestSource:find("Modules\\Inventory\\State\\ListStateManager.lua", 1, true)
+assert_true(loaderIndex ~= nil and classIndex ~= nil and positionIndex ~= nil and listStateIndex ~= nil
+        and loaderIndex < classIndex and classIndex < positionIndex and positionIndex < listStateIndex,
+    "Inventory manifest loads InventoryClass before state helpers attach methods")
+assert_true(manifestSource:find("Modules\\Inventory\\Core\\MixinLoader.lua", 1, true) == nil,
+    "Inventory manifest no longer uses MixinLoader")
 
 local moduleSource = read_file("Modules/Inventory/Module.lua")
 assert_true(moduleSource:find("Inventory%.ROOT_CONTRACT = %{%s*") ~= nil,

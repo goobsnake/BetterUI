@@ -273,18 +273,16 @@ local function OnHeaderEntered(self)
     OnEnterHeader(self)
 end
 
--- Register mixins
-if BETTERUI.Inventory.RegisterMixin then
-    BETTERUI.Inventory.RegisterMixin("InitializeHeader", InitializeHeader)
-    BETTERUI.Inventory.RegisterMixin("OnCategoryClicked", OnCategoryClicked)
-    BETTERUI.Inventory.RegisterMixin("ActivateHeader", ActivateHeader)
-    BETTERUI.Inventory.RegisterMixin("OnEnterHeader", OnEnterHeader)
-    BETTERUI.Inventory.RegisterMixin("OnHeaderEntered", OnHeaderEntered)
-    BETTERUI.Inventory.RegisterMixin("OnLeaveHeader", OnLeaveHeader)
-    BETTERUI.Inventory.RegisterMixin("EnsureHeaderKeybindsActive", EnsureHeaderKeybindsActive)
-    BETTERUI.Inventory.RegisterMixin("ClearSearchInput", ClearSearchInput)
-    BETTERUI.Inventory.RegisterMixin("ExitSearchMode", ExitSearchMode)
-    BETTERUI.Inventory.RegisterMixin("IsHeaderFocused", IsHeaderFocused)
-    BETTERUI.Inventory.RegisterMixin("RequestHeaderFocus", RequestHeaderFocus)
-    BETTERUI.Inventory.RegisterMixin("ExitSearchFocus", ExitSearchFocus)
-end
+BETTERUI.Inventory.Class.InitializeHeader = InitializeHeader
+BETTERUI.Inventory.Class.OnCategoryClicked = OnCategoryClicked
+BETTERUI.Inventory.Class.ActivateHeader = ActivateHeader
+BETTERUI.Inventory.Class.OnEnterHeader = OnEnterHeader
+BETTERUI.Inventory.Class.OnHeaderEntered = OnHeaderEntered
+BETTERUI.Inventory.Class.OnLeaveHeader = OnLeaveHeader
+BETTERUI.Inventory.Class.EnsureHeaderKeybindsActive = EnsureHeaderKeybindsActive
+BETTERUI.Inventory.Class.ClearSearchInput = ClearSearchInput
+BETTERUI.Inventory.Class.ExitSearchMode = ExitSearchMode
+BETTERUI.Inventory.Class.IsHeaderFocused = IsHeaderFocused
+BETTERUI.Inventory.Class.RequestHeaderFocus = RequestHeaderFocus
+BETTERUI.Inventory.Class.ExitSearchFocus = ExitSearchFocus
+BETTERUI.Inventory.Class.SEARCH_LIFECYCLE = BETTERUI.Inventory.SEARCH_LIFECYCLE

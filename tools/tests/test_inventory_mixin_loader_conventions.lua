@@ -1,7 +1,6 @@
 --[[
 File: tools/tests/test_inventory_mixin_loader_conventions.lua
-Purpose: Keeps the inventory mixin registry safe after the first apply so
-         Initialize remains the canonical apply point without breaking late mixins.
+Purpose: Verifies Inventory helper modules bind methods directly onto the class.
 Usage:
   lua tools/tests/test_inventory_mixin_loader_conventions.lua
 ]]
@@ -24,40 +23,49 @@ end
 
 BETTERUI = {
     Inventory = {},
+    CIM = {
+        CONST = {
+            MODULES = {},
+        },
+    },
+    Interface = {
+        SearchMixin = {
+            IsSearchHeaderActive = function()
+                return false
+            end,
+        },
+    },
 }
 
 function BETTERUI.Debug()
 end
 
+BETTERUI.Inventory.CONST = {
+    LIST_TYPES = {
+        CATEGORY = 1,
+        ITEM = 2,
+        CRAFT_BAG = 3,
+    },
+}
+
 dofile("Modules/Inventory/Loader.lua")
 
 BETTERUI.Inventory.Class = {}
 
-dofile("Modules/Inventory/Core/MixinLoader.lua")
+dofile("Modules/Inventory/State/PositionManager.lua")
+dofile("Modules/Inventory/State/ListStateManager.lua")
+dofile("Modules/Inventory/Core/HeaderManager.lua")
 
-local alpha = function()
-    return "alpha"
-end
-local beta = function()
-    return "beta"
-end
-
-BETTERUI.Inventory.RegisterMixin("Alpha", alpha)
-BETTERUI.Inventory.ApplyAllMixins()
-
-assert_equal(BETTERUI.Inventory.Class.Alpha, alpha, "ApplyAllMixins binds registered mixins onto the class")
-assert_true(BETTERUI.Inventory._mixinsApplied, "ApplyAllMixins marks the registry as applied")
-assert_true(type(BETTERUI.Inventory.ClassMixins) == "table", "ApplyAllMixins keeps the mixin registry available")
-
-BETTERUI.Inventory.RegisterMixin("Beta", beta)
-
-assert_equal(BETTERUI.Inventory.Class.Beta, beta, "RegisterMixin applies late mixins immediately once the class is live")
-assert_equal(BETTERUI.Inventory.ClassMixins.Beta, beta, "RegisterMixin preserves late mixins in the registry")
-
-BETTERUI.Inventory.ApplyAllMixins()
-
-assert_equal(BETTERUI.Inventory.Class.Alpha, alpha, "Reapplying mixins keeps the original binding intact")
-assert_equal(BETTERUI.Inventory.Class.Beta, beta, "Reapplying mixins keeps late registrations intact")
+assert_true(type(BETTERUI.Inventory.Class.ToSavedPosition) == "function",
+    "PositionManager binds ToSavedPosition directly onto Inventory.Class")
+assert_true(type(BETTERUI.Inventory.Class.SaveListPosition) == "function",
+    "PositionManager binds SaveListPosition directly onto Inventory.Class")
+assert_true(type(BETTERUI.Inventory.Class.SwitchActiveList) == "function",
+    "ListStateManager binds SwitchActiveList directly onto Inventory.Class")
+assert_true(type(BETTERUI.Inventory.Class.InitializeHeader) == "function",
+    "HeaderManager binds InitializeHeader directly onto Inventory.Class")
+assert_equal(BETTERUI.Inventory.Class.SEARCH_LIFECYCLE.clear, "ClearSearchInput",
+    "HeaderManager binds the canonical search lifecycle directly onto Inventory.Class")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

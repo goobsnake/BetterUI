@@ -366,7 +366,6 @@ end
 --- Sets up the root scene, registers update loops, and hooks into visual layer changes.
 --- References: Called by Module.lua.
 function BETTERUI.Inventory.Class:Initialize(control)
-    BETTERUI.Inventory.ApplyAllMixins()
     BETTERUI.Inventory.NativeGlobals = BETTERUI.Inventory.NativeGlobals or {}
     local native = BETTERUI.Inventory.NativeGlobals
     if native.gamepadInventoryRootScene == nil then
@@ -599,7 +598,7 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
 
     local parentForAnchor = titleContainer or self.header
     if parentForAnchor then
-        local searchConst = BETTERUI.Inventory.CONST.GetSearchConstants()
+        local searchConst = BETTERUI.CIM.SearchBar.GetConstants("INVENTORY")
         local xOffset = searchConst.X_OFFSET
         local yOffset = searchConst.Y_OFFSET
         local rightInset = searchConst.RIGHT_INSET
@@ -607,7 +606,7 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
     else
-        local searchConst = BETTERUI.Inventory.CONST.GetSearchConstants()
+        local searchConst = BETTERUI.CIM.SearchBar.GetConstants("INVENTORY")
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0,
             searchConst.Y_OFFSET)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0,

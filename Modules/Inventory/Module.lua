@@ -15,9 +15,6 @@ Inventory.ROOT_CONTRACT = {
     archetype = Inventory.ARCHETYPE,
     initOwner = "Modules/Inventory/Module.lua",
     setupOwner = "Modules/Inventory/Module.lua + Modules/Inventory/Core/InventoryClass.lua",
-    runtimeOwner = "Modules/Inventory/Core/ + Modules/Inventory/Lists/ + Modules/Inventory/Dialogs/",
-    settingsOwner = "Modules/Inventory/Module.lua + Modules/Inventory/Settings/",
-    notes = "Module.lua owns defaults, scene takeover, and setup-time bootstrap; InventoryClass.Initialize owns instance-bound runtime registrations after the scene is replaced.",
 }
 
 local function TryInitializeCraftBagQuantityDialog()
@@ -50,34 +47,7 @@ end
 
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Inventory, "Inventory")
 
-local function EnsureInventorySetupContracts()
-    BETTERUI.CIM.RegisterModuleAccessors(Inventory, "Inventory")
-
-    if Inventory._inventoryActionModesRegistered ~= true
-        and BETTERUI.CIM
-        and BETTERUI.CIM.Keybinds
-        and BETTERUI.CIM.Keybinds.RegisterInventoryActionModes
-    then
-        BETTERUI.CIM.Keybinds.RegisterInventoryActionModes({
-            itemList = Inventory.CONST.ITEM_LIST_ACTION_MODE,
-            craftBag = Inventory.CONST.CRAFT_BAG_ACTION_MODE,
-            category = Inventory.CONST.CATEGORY_ITEM_ACTION_MODE,
-        })
-        Inventory._inventoryActionModesRegistered = true
-    end
-
-    if Inventory._inventoryDialogInvokerRegistered ~= true
-        and BETTERUI.CIM
-        and BETTERUI.CIM.RegisterInventoryDialogInvoker
-    then
-        BETTERUI.CIM.RegisterInventoryDialogInvoker(Inventory.InvokeDialog)
-        Inventory._inventoryDialogInvokerRegistered = true
-    end
-end
-
 --- Initializes defaults and migrates legacy settings for the Inventory module.
----
---- INIT CONTRACT: This function implements the standard InitModule signature.
 ---
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Initialized options with defaults applied
@@ -167,13 +137,29 @@ function Inventory.InitModule(m_options)
     return m_options
 end
 
--- MODULE SETUP
-
---- Lifecycle hook: registers settings and initializes the Inventory module.
---- Registers settings, replaces native GAMEPAD_INVENTORY, and configures tooltips.
 ---@type BetterUIModuleSetupHook
 function Inventory.Setup()
-    EnsureInventorySetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(Inventory, "Inventory")
+    if Inventory._inventoryActionModesRegistered ~= true
+        and BETTERUI.CIM
+        and BETTERUI.CIM.Keybinds
+        and BETTERUI.CIM.Keybinds.RegisterInventoryActionModes
+    then
+        BETTERUI.CIM.Keybinds.RegisterInventoryActionModes({
+            itemList = Inventory.CONST.ITEM_LIST_ACTION_MODE,
+            craftBag = Inventory.CONST.CRAFT_BAG_ACTION_MODE,
+            category = Inventory.CONST.CATEGORY_ITEM_ACTION_MODE,
+        })
+        Inventory._inventoryActionModesRegistered = true
+    end
+
+    if Inventory._inventoryDialogInvokerRegistered ~= true
+        and BETTERUI.CIM
+        and BETTERUI.CIM.RegisterInventoryDialogInvoker
+    then
+        BETTERUI.CIM.RegisterInventoryDialogInvoker(Inventory.InvokeDialog)
+        Inventory._inventoryDialogInvokerRegistered = true
+    end
     BETTERUI.CIM.TryRegisterModulePanel(Inventory, "Inventory", "Inventory", "Inventory")
 
 	Inventory.NativeGlobals = Inventory.NativeGlobals or {}

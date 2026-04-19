@@ -182,7 +182,4 @@ local function SwitchActiveList(self, listDescriptor)
     end
 end
 
--- Register mixins
-if BETTERUI.Inventory.RegisterMixin then
-    BETTERUI.Inventory.RegisterMixin("SwitchActiveList", SwitchActiveList)
-end
+BETTERUI.Inventory.Class.SwitchActiveList = SwitchActiveList

@@ -192,6 +192,5 @@ function BETTERUI.Inventory.SaveListPosition(self)
     end
 end
 
--- Register mixins for Core to pick up
-BETTERUI.Inventory.RegisterMixin("ToSavedPosition", BETTERUI.Inventory.ToSavedPosition)
-BETTERUI.Inventory.RegisterMixin("SaveListPosition", BETTERUI.Inventory.SaveListPosition)
+BETTERUI.Inventory.Class.ToSavedPosition = BETTERUI.Inventory.ToSavedPosition
+BETTERUI.Inventory.Class.SaveListPosition = BETTERUI.Inventory.SaveListPosition

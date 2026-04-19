@@ -56,10 +56,7 @@ dofile("Modules/Inventory/Loader.lua")
 
 BETTERUI.Inventory.Class = {}
 
-dofile("Modules/Inventory/Core/MixinLoader.lua")
 dofile("Modules/Inventory/Core/HeaderManager.lua")
-
-BETTERUI.Inventory.ApplyAllMixins()
 
 print("[Inventory canonical search lifecycle]")
 

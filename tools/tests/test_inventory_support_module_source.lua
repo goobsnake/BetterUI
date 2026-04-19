@@ -38,10 +38,10 @@ end
 local constantsSource = read_file("Modules/Inventory/Constants.lua")
 assert_true(constantsSource:find("BETTERUI%.Inventory%.CONST%.LIST_TYPES = %{%s*") ~= nil,
     "Inventory constants define shared list type identifiers")
-assert_true(constantsSource:find("function BETTERUI%.Inventory%.CONST%.GetSearchConstants%(%)") ~= nil,
-    "Inventory constants expose GetSearchConstants")
-assert_true(constantsSource:find("function BETTERUI%.Inventory%.DefaultSortComparator%(left, right%)") ~= nil,
-    "Inventory constants expose DefaultSortComparator")
+assert_true(constantsSource:find("GetSearchConstants") == nil,
+    "Inventory constants no longer expose a one-hop search constant wrapper")
+assert_true(constantsSource:find("BETTERUI%.Inventory%.DefaultSortComparator = BETTERUI%.CIM%.Utils%.DefaultSortComparator") ~= nil,
+    "Inventory constants alias DefaultSortComparator directly to the shared CIM comparator")
 
 local categorySource = read_file("Modules/Inventory/Core/CategoryDefinitions.lua")
 assert_true(categorySource:find("BETTERUI%.Inventory%.Categories%.CraftBag = %{%s*") ~= nil,

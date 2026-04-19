@@ -12,19 +12,8 @@ local function assert_eq(actual, expected, message)
     end
 end
 
-local applyAllMixinsCalls = 0
-
 BETTERUI = {
-    Inventory = {
-        ClassMixins = {
-            TestMixin = function()
-            end,
-        },
-        _mixinsApplied = false,
-        ApplyAllMixins = function()
-            applyAllMixinsCalls = applyAllMixinsCalls + 1
-        end,
-    },
+    Inventory = {},
     CIM = {
         DeferredTask = {
             CreateManager = function()
@@ -103,7 +92,6 @@ local instance = setmetatable({
 
 instance:Initialize(control)
 
-assert_eq(applyAllMixinsCalls, 1, "InventoryClass.Initialize owns mixin application")
 assert_eq(initializeItemActionsCalls, 0, "InventoryClass.Initialize defers item-action setup")
 assert_eq(initializeActionsDialogCalls, 0, "InventoryClass.Initialize defers action-dialog setup")
 assert_eq(initializeSplitStackDialogCalls, 1, "InventoryClass.Initialize still wires split-stack support immediately")

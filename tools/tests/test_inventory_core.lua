@@ -24,7 +24,6 @@ BETTERUI = {
             ITEM_LIST_ACTION_MODE = 2,
             CRAFT_BAG_ACTION_MODE = 3,
         },
-        ClassMixins = {},
         Utils = {},
     },
     CIM = {

@@ -27,7 +27,7 @@ BETTERUI = {
             CRAFT_BAG_ACTION_MODE = 3,
         },
         Class = {},
-        ClassMixins = {},
+        State = {},
         _EntryFormatting = {
             GetActiveListModuleName = function()
                 return "Inventory"
@@ -63,10 +63,6 @@ BETTERUI = {
 }
 
 function BETTERUI.Debug() end
-
-function BETTERUI.Inventory.RegisterMixin(name, fn)
-    BETTERUI.Inventory.ClassMixins[name] = fn
-end
 
 function BETTERUI.Inventory.GetSetting(key)
     if key == "triggerSpeed" then
@@ -285,7 +281,6 @@ GAMEPAD_TOOLTIPS = {
 
 dofile("Modules/Inventory/Lists/InventoryList.lua")
 dofile("Modules/Inventory/State/ListStateManager.lua")
-BETTERUI.Inventory.Class.SwitchActiveList = BETTERUI.Inventory.ClassMixins.SwitchActiveList
 
 local tests_passed = 0
 local tests_failed = 0

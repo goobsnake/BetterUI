@@ -7,8 +7,7 @@ Purpose: Inventory orchestration surface for shared runtime helpers and
 
 -- CONSTANTS & GLOBALS
 
--- Apply Class Mixins (from PositionManager, etc.)
--- Mixins are now applied in Initialize() via MixinLoader
+-- State and header helpers attach their class methods when their files load.
 
 -- Action mode constants
 -- Action mode constants (must match other files)
