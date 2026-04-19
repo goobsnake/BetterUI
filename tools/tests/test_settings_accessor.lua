@@ -139,6 +139,11 @@ do
     assert_equal(42, BETTERUI.GetSetting("Inv", "missing", 42), "returns default for missing key")
 end
 
+do
+    reset_settings()
+    assert_equal(77, BETTERUI.GetSetting("Mod", "missingViaMetadata"), "generic getter reads metadata-backed default")
+end
+
 -- ============================================================================
 -- SetSetting
 -- ============================================================================

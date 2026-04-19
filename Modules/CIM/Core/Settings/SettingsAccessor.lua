@@ -93,7 +93,7 @@ function BETTERUI.GetSetting(moduleName, key, default)
     if settings[key] ~= nil then
         return settings[key]
     end
-    return default
+    return ResolveSettingDefault(moduleName, key, default)
 end
 
 ---@overload fun(moduleName: "Inventory", key: BetterUIInventorySettingKey, value: BetterUIInventorySettingValue): boolean
