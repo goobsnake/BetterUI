@@ -17,8 +17,8 @@ Banking.ARCHETYPE = "runtime-coordinator"
 Banking.ROOT_CONTRACT = {
 	name = "Banking",
 	archetype = Banking.ARCHETYPE,
-	initOwner = "Modules/Banking/Module.lua",
-	setupOwner = "Modules/Banking/Module.lua",
+	init = true,
+	setup = true,
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors

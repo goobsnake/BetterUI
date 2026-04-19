@@ -16,8 +16,8 @@ TradingHouse.ARCHETYPE = "runtime-coordinator"
 TradingHouse.ROOT_CONTRACT = {
     name = "TradingHouse",
     archetype = TradingHouse.ARCHETYPE,
-    initOwner = "Modules/TradingHouse/Module.lua",
-    setupOwner = "Modules/TradingHouse/Module.lua",
+    init = true,
+    setup = true,
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors

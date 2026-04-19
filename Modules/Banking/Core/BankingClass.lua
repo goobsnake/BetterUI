@@ -148,6 +148,22 @@ function BETTERUI.Banking.GetActiveTransferContext()
     }
 end
 
+--- Resolves the shared transfer support table from the canonical Banking seam.
+---@return table|nil transferSupport
+function BETTERUI.Banking.ResolveTransferSupport()
+    local getTransferSupport = BETTERUI.Banking.GetTransferSupport
+    if type(getTransferSupport) ~= "function" then
+        return nil
+    end
+
+    local transferSupport = getTransferSupport()
+    if type(transferSupport) ~= "table" then
+        return nil
+    end
+
+    return transferSupport
+end
+
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
 local BankingDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,

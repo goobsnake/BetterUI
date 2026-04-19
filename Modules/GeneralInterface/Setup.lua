@@ -14,11 +14,12 @@ local function GetGeneralInterfaceOptions()
 end
 
 local function GetNameplateOptions()
-	if not BETTERUI.Nameplates or type(BETTERUI.Nameplates.GetSettingsOptions) ~= "function" then
+	local nameplates = GeneralInterface.Nameplates or BETTERUI.Nameplates
+	if not nameplates or type(nameplates.GetSettingsOptions) ~= "function" then
 		return nil
 	end
 
-	return BETTERUI.Nameplates.GetSettingsOptions()
+	return nameplates.GetSettingsOptions()
 end
 
 local function Init(mId, moduleName)

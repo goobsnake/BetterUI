@@ -1,11 +1,4 @@
---[[
-File: Modules/TradingHouse/Components/BrowseComponent.lua
-Purpose: Browse tab component for the Trading House module.
-
-Displays guild store search results and handles purchasing.
-Uses ExecuteTradingHouseSearch / GetTradingHouseSearchResultItemInfo.
-Supports pagination through result pages.
-]]
+-- Trading House browse tab component.
 
 local TH = BETTERUI.TradingHouse
 
@@ -17,16 +10,12 @@ local TH = BETTERUI.TradingHouse
 ---@field OnPrimaryAction fun(self: THComponent, thInstance: BETTERUI.TradingHouse.Class)
 ---@field BuildList fun(self: THComponent, thInstance: BETTERUI.TradingHouse.Class)
 
--- COMPONENT TABLE
 TH.BrowseComponent = {}
 local Browse = TH.BrowseComponent
 
--- Search state
 Browse.currentPage = 0
 Browse.hasMorePages = false
 Browse.searchPending = false
-
--- ACTIVATE / DEACTIVATE
 
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Browse:Activate(thInstance)
@@ -35,10 +24,7 @@ end
 
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Browse:Deactivate(thInstance)
-    -- No cleanup needed
 end
-
--- PRIMARY ACTION
 
 ---@return string name Localized action label
 function Browse:GetPrimaryActionName()
@@ -66,7 +52,6 @@ function Browse:OnPrimaryAction(thInstance)
     local price = ds.purchasePrice or 0
     if not tradingHouseIndex or price <= 0 then return end
 
-    -- Validate affordability
     if not thInstance:CanAfford(price) then
         BETTERUI.CIM.UserAlertText("TH:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
@@ -79,14 +64,11 @@ function Browse:OnPrimaryAction(thInstance)
         return
     end
 
-    -- Show purchase confirmation dialog
     ZO_Dialogs_ShowGamepadDialog("CONFIRM_TRADING_HOUSE_PURCHASE", {
         purchaseIndex = tradingHouseIndex,
         price = price,
     })
 end
-
--- SEARCH
 
 --- Initiates a guild store search.
 function Browse:ExecuteSearch()

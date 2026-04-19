@@ -51,6 +51,27 @@ local function CloneTabs(tabs)
     return snapshots
 end
 
+local function ReadCategoryState(owner)
+    if type(owner) ~= "table" then
+        return nil
+    end
+
+    local state = owner._modeCategoryState
+    if type(state) == "table" then
+        return {
+            categoriesByMode = state.categoriesByMode or {},
+            selectedIndexByMode = state.selectedIndexByMode or {},
+            cachedBuyCategories = state.cachedBuyCategories,
+        }
+    end
+
+    return {
+        categoriesByMode = owner.modeCategories or {},
+        selectedIndexByMode = owner.categoryIndexByMode or {},
+        cachedBuyCategories = owner._cachedBuyCategories,
+    }
+end
+
 local function EnsureCategoryState(owner)
     owner._modeCategoryState = owner._modeCategoryState or {
         categoriesByMode = owner.modeCategories or {},
@@ -73,6 +94,24 @@ local function EnsureStoredCategories(owner, mode)
         state.categoriesByMode[mode] = categories
     end
     return state, categories
+end
+
+local function ResolveStoredCategories(owner, mode)
+    local state = ReadCategoryState(owner)
+    local categories = state and state.categoriesByMode and state.categoriesByMode[mode] or nil
+    if not categories or #categories == 0 then
+        return { BuildFallbackCategory() }
+    end
+    return categories
+end
+
+local function ResolveSelectedCategoryIndex(owner, mode, categoryCount)
+    local state = ReadCategoryState(owner)
+    local selectedIndex = (state and state.selectedIndexByMode and state.selectedIndexByMode[mode]) or 1
+    if selectedIndex < 1 or selectedIndex > categoryCount then
+        selectedIndex = 1
+    end
+    return selectedIndex
 end
 
 local function GetModeDescriptor(mode)
@@ -111,14 +150,19 @@ function ModePolicy.BuildFallbackCategory()
     return BuildFallbackCategory()
 end
 
-function ModePolicy.GetModeCategories(owner, mode)
+function ModePolicy.EnsureModeCategories(owner, mode)
     local _, categories = EnsureStoredCategories(owner, mode)
     return CloneCategories(categories)
 end
 
+function ModePolicy.GetModeCategories(owner, mode)
+    local categories = ResolveStoredCategories(owner, mode)
+    return CloneCategories(categories)
+end
+
 function ModePolicy.GetCachedBuyCategories(owner)
-    local state = EnsureCategoryState(owner)
-    if not state.cachedBuyCategories or #state.cachedBuyCategories == 0 then
+    local state = ReadCategoryState(owner)
+    if not state or not state.cachedBuyCategories or #state.cachedBuyCategories == 0 then
         return nil
     end
     return CloneCategories(state.cachedBuyCategories)
@@ -173,7 +217,7 @@ end
 
 function ModePolicy.GetCurrentCategory(owner, mode)
     local categories = ModePolicy.GetModeCategories(owner, mode)
-    local selectedIndex = ModePolicy.GetSelectedCategoryIndex(owner, mode)
+    local selectedIndex = ResolveSelectedCategoryIndex(owner, mode, #categories)
     return categories[selectedIndex]
 end
 

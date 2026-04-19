@@ -1,9 +1,4 @@
---[[
-File: Modules/TradingHouse/TradingHouse.lua
-Purpose: Trading House runtime entrypoint focused on module lifecycle wiring and
-         public API. Scene ownership, keybinds, dialogs, and event routing live
-         in Core/TradingHouseRuntime.lua.
-]]
+-- Trading House runtime entrypoint.
 
 local TH = BETTERUI.TradingHouse
 
@@ -54,19 +49,10 @@ function BETTERUI.TradingHouse.Init()
     TH.initialized = true
 end
 
--- PUBLIC API
-
---- Check if the Trading House module has been initialized.
----@return boolean initialized True if Init() has completed
 function BETTERUI.TradingHouse.IsInitialized()
     return TH.initialized == true
 end
 
---- Check if the trading house is currently open.
----@return boolean isOpen True if the TH scene is showing
 function BETTERUI.TradingHouse.IsTradingHouseOpen()
-    if TH.instance and TH.instance:IsSceneShowing() then
-        return true
-    end
-    return false
+    return TH.instance ~= nil and TH.instance:IsSceneShowing()
 end

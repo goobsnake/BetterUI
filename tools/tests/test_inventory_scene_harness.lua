@@ -116,6 +116,11 @@ BETTERUI = {
         GetCurrentBank = function()
             return BAG_BANK
         end,
+        GetActiveTransferContext = function()
+            return {
+                targetBag = BAG_BANK,
+            }
+        end,
     },
 }
 
@@ -178,10 +183,6 @@ end
 
 function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(_, _, destinationBag)
     return destinationBag == BAG_BANK and 12 or 7
-end
-
-function BETTERUI.CIM.Utils.GetActiveBankTargetBag()
-    return BAG_BANK
 end
 
 function BETTERUI.CIM.ProtectionPolicy.CanTransferItem()

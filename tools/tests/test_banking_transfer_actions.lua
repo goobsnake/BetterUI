@@ -246,7 +246,7 @@ BETTERUI = {
                 isGuildBank = sourceBag == BAG_GUILDBANK,
             }
         end,
-        _TransferHelpers = {
+        transferSupport = {
             IsDepositSupportedForBank = function()
                 return depositAllowed, depositReason
             end,
@@ -269,7 +269,10 @@ BETTERUI = {
             end,
         },
         GetTransferSupport = function()
-            return BETTERUI.Banking._TransferHelpers
+            return BETTERUI.Banking.transferSupport
+        end,
+        ResolveTransferSupport = function()
+            return BETTERUI.Banking.transferSupport
         end,
         Tasks = {
             Schedule = function(_, _, delayMs, callback)

@@ -2,7 +2,7 @@
 File: tools/tests/test_banking_transfer.lua
 Purpose: Tests for Banking transfer logic: ResolveStackCount, ResolveDepositTargetBag,
          IsDepositSupportedForBank. These local functions are exposed via
-         BETTERUI.Banking.TransferHelpers (legacy fallback: _TransferHelpers) for testability.
+         BETTERUI.Banking.GetTransferSupport() for testability.
 
 Usage:
   lua tools/tests/test_banking_transfer.lua
@@ -228,10 +228,7 @@ local function resetState()
     BETTERUI.Banking.GuildBank.GetPermissionDenial = function() return nil end
 end
 
--- Grab exposed helpers (prefer explicit public seam, fallback to legacy aliases)
-local Helpers = (BETTERUI.Banking.GetTransferSupport and BETTERUI.Banking.GetTransferSupport())
-    or BETTERUI.Banking.TransferHelpers
-    or BETTERUI.Banking._TransferHelpers
+local Helpers = BETTERUI.Banking.GetTransferSupport and BETTERUI.Banking.GetTransferSupport()
 
 -- ============================================================================
 -- TESTS: ResolveStackCount
@@ -510,8 +507,6 @@ assertEqual("skip", result, "Returns 'skip' when guild bank completely full")
 print("\n=== API Exposure ===\n")
 
 assertNotNil(BETTERUI.Banking.GetTransferSupport, "GetTransferSupport accessor exists")
-assertNotNil(BETTERUI.Banking._TransferHelpers, "_TransferHelpers table exists")
-assertNotNil(BETTERUI.Banking.TransferHelpers, "TransferHelpers seam table exists")
 assertEqual(Helpers, BETTERUI.Banking.GetTransferSupport(), "GetTransferSupport returns the shared transfer support table")
 assertNotNil(Helpers.ResolveStackCount, "ResolveStackCount exposed")
 assertNotNil(Helpers.IsDepositSupportedForBank, "IsDepositSupportedForBank exposed")

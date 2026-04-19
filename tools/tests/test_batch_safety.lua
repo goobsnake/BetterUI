@@ -47,6 +47,11 @@ BETTERUI = {
         GetCurrentBank = function()
             return BAG_BANK
         end,
+        GetActiveTransferContext = function()
+            return {
+                targetBag = BAG_BANK,
+            }
+        end,
     },
 }
 
@@ -161,10 +166,6 @@ BETTERUI.CIM.BatchActions.AppendCommonBatchEntries = function() end
 
 BETTERUI.CIM.Utils.ResolveMoveDestinationSlot = function()
     return 1
-end
-
-BETTERUI.CIM.Utils.GetActiveBankTargetBag = function()
-    return BAG_BANK
 end
 
 BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function()

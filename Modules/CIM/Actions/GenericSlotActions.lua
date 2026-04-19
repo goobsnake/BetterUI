@@ -9,26 +9,25 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 local TRANSFER_DENIAL_ALERT = 1
 
 local function GetBankingTransferSupport()
-    local banking = BETTERUI.Banking
-    if not banking then
-        return nil
+    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    if utils and type(utils.GetBankingTransferSupport) == "function" then
+        return utils.GetBankingTransferSupport()
     end
-    if type(banking.GetTransferSupport) == "function" then
-        return banking.GetTransferSupport()
-    end
-    return banking.TransferHelpers or banking._TransferHelpers
-end
 
-local function GetBankingTransferHelper(helperName)
-    local helpers = GetBankingTransferSupport()
-    return helpers and helpers[helperName]
+    local banking = BETTERUI.Banking
+    if banking and type(banking.ResolveTransferSupport) == "function" then
+        return banking.ResolveTransferSupport()
+    end
+
+    return nil
 end
 
 local function NotifyTransferDenied(context, targetBag, denyReason)
     if not denyReason then
         return
     end
-    local resolveTransferDeniedNotification = GetBankingTransferHelper("ResolveTransferDeniedNotification")
+    local transferSupport = GetBankingTransferSupport()
+    local resolveTransferDeniedNotification = transferSupport and transferSupport.ResolveTransferDeniedNotification or nil
     if resolveTransferDeniedNotification then
         local notification = resolveTransferDeniedNotification(targetBag, denyReason)
         if type(notification) == "table" and notification.stringId then
@@ -41,7 +40,7 @@ local function NotifyTransferDenied(context, targetBag, denyReason)
         end
     end
 
-    local resolveTransferDeniedStringId = GetBankingTransferHelper("ResolveTransferDeniedStringId")
+    local resolveTransferDeniedStringId = transferSupport and transferSupport.ResolveTransferDeniedStringId or nil
     if not resolveTransferDeniedStringId then
         return
     end
@@ -124,8 +123,9 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     local GuildBank = BETTERUI.Banking and BETTERUI.Banking.GuildBank
-    local notifyGuildBankTransferDenied = GetBankingTransferHelper("NotifyGuildBankTransferDenied")
-    local isDepositSupportedForBank = GetBankingTransferHelper("IsDepositSupportedForBank")
+    local transferSupport = GetBankingTransferSupport()
+    local notifyGuildBankTransferDenied = transferSupport and transferSupport.NotifyGuildBankTransferDenied or nil
+    local isDepositSupportedForBank = transferSupport and transferSupport.IsDepositSupportedForBank or nil
     local isGuildBankMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode()
     local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
     if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
@@ -146,7 +146,7 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
         end
     else
         -- Deposit
-        local transferContext = BETTERUI.Banking and BETTERUI.Banking.GetActiveTransferContext
+        local transferContext = BETTERUI.Banking and type(BETTERUI.Banking.GetActiveTransferContext) == "function"
             and BETTERUI.Banking.GetActiveTransferContext() or nil
         local bankingBag = transferContext and transferContext.targetBag or BAG_BANK
         if isGuildBankMode and notifyGuildBankTransferDenied then

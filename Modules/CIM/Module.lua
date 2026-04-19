@@ -32,8 +32,8 @@ CIM.ARCHETYPE = "runtime-coordinator"
 CIM.ROOT_CONTRACT = {
     name = "CIM",
     archetype = CIM.ARCHETYPE,
-    initOwner = "Modules/CIM/Module.lua",
-    setupOwner = nil,
+    init = true,
+    setup = false,
 }
 
 ---@param m_options BetterUIModuleOptions|nil Raw settings table to initialize

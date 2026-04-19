@@ -9,16 +9,19 @@
 
 -- Note: ESO Update 41+ uses .slug fonts; only built-in ESO fonts supported
 
-BETTERUI.Nameplates = BETTERUI.Nameplates or {}
-local Nameplates = BETTERUI.Nameplates
+BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
+BETTERUI.GeneralInterface.Nameplates = BETTERUI.GeneralInterface.Nameplates or BETTERUI.Nameplates or {}
+BETTERUI.Nameplates = BETTERUI.GeneralInterface.Nameplates
+
+local Nameplates = BETTERUI.GeneralInterface.Nameplates
 
 Nameplates.ARCHETYPE = "settings-owner"
 ---@type BetterUIModuleRootContract
 Nameplates.ROOT_CONTRACT = {
     name = "Nameplates",
     archetype = Nameplates.ARCHETYPE,
-    initOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua",
-    setupOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua",
+    init = true,
+    setup = true,
 }
 
 -- Available ESO built-in fonts
@@ -178,12 +181,12 @@ local function ResetToDefaults()
         return
     end
 
-    local defaults = BETTERUI.Nameplates.DEFAULTS
+    local defaults = Nameplates.DEFAULTS
     ApplyNameplateFont(defaults.font, defaults.style, defaults.size)
 end
 
 --- Applies the saved nameplate settings when the module starts enabled.
-function BETTERUI.Nameplates.Setup()
+function Nameplates.Setup()
     local settings = GetSettings()
     if settings.m_enabled then
         ApplyNameplateFont(settings.font, settings.style, settings.size)
@@ -192,7 +195,7 @@ function BETTERUI.Nameplates.Setup()
 end
 
 --- Applies or removes the Nameplates font override when the setting changes.
-function BETTERUI.Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
+function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
     SetupEvents(m_enabled, suppressCleanupLog)
     if m_enabled then
         local settings = GetSettings()
@@ -203,12 +206,12 @@ function BETTERUI.Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
 end
 
 --- Returns whether the Nameplates module is enabled.
-function BETTERUI.Nameplates.IsEnabled()
+function Nameplates.IsEnabled()
     return GetSettings().m_enabled
 end
 
 --- Reapplies the current font settings immediately when the module is enabled.
-function BETTERUI.Nameplates.ApplyCurrentSettings()
+function Nameplates.ApplyCurrentSettings()
     local settings = GetSettings()
     if settings.m_enabled then
         ApplyNameplateFont(settings.font, settings.style, settings.size)

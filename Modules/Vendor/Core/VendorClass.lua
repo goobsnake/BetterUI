@@ -1133,7 +1133,7 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:InitializeCategoryHeader()
-    VendorModePolicy.GetModeCategories(self, self:GetCurrentMode())
+    VendorModePolicy.EnsureModeCategories(self, self:GetCurrentMode())
 
     self.headerGeneric = (self.header and self.header:GetNamedChild("Header")) or self.header
     if not self.headerGeneric then

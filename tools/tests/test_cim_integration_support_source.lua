@@ -96,24 +96,24 @@ assert_true(interfaces:find("function BETTERUI%.CIM%.Interfaces%.ValidateModule%
     "Interfaces exposes ValidateModule")
 assert_true(interfaces:find('return false, "Module%.ROOT_CONTRACT must be a table"') ~= nil,
     "Interfaces enforces the root contract presence for real module validation")
-assert_true(interfaces:find('initOwner must be a string or nil') ~= nil,
-    "Interfaces allows modules to omit initOwner when bootstrap should skip InitModule")
-assert_true(interfaces:find('initOwner is set but Module%.InitModule must be a function') ~= nil,
-    "Interfaces enforces InitModule only when initOwner is declared")
-assert_true(interfaces:find('setupOwner is set but Module%.Setup must be a function') ~= nil,
-    "Interfaces enforces Setup only when setupOwner is declared")
+assert_true(interfaces:find('init must be a boolean') ~= nil,
+    "Interfaces requires an explicit init lifecycle flag")
+assert_true(interfaces:find('init is true but Module%.InitModule must be a function') ~= nil,
+    "Interfaces enforces InitModule only when init is enabled")
+assert_true(interfaces:find('setup is true but Module%.Setup must be a function') ~= nil,
+    "Interfaces enforces Setup only when setup is enabled")
 
 local betterUISource = read_file("BetterUI.lua")
 assert_true(betterUISource:find("local valid, err = validateFn%(moduleNamespace, nil, moduleName%)") ~= nil,
     "Bootstrap validates real module namespaces instead of synthetic temp tables")
-assert_true(betterUISource:find("if moduleContract and moduleContract%.initOwner == nil then") ~= nil,
-    "Bootstrap derives init execution from root contract initOwner")
+assert_true(betterUISource:find("local shouldCallInit = moduleContract == nil or moduleContract%.init ~= false") ~= nil,
+    "Bootstrap derives init execution from the root contract init flag")
 assert_true(betterUISource:find("if shouldCallInit then") ~= nil,
     "Bootstrap only calls InitModule for modules that opt into init execution")
-assert_true(betterUISource:find("if moduleContract and moduleContract%.setupOwner == nil then") ~= nil,
-    "Bootstrap derives setup execution from root contract setupOwner")
+assert_true(betterUISource:find("local shouldCallSetup = moduleContract == nil or moduleContract%.setup ~= false") ~= nil,
+    "Bootstrap derives setup execution from the root contract setup flag")
 assert_true(betterUISource:find("if not shouldCallSetup then") ~= nil,
-    "Bootstrap skips Setup calls for modules that intentionally omit setupOwner")
+    "Bootstrap skips Setup calls for modules that intentionally disable setup")
 
 local marketIntegration = read_file("Modules/CIM/Core/Integration/MarketIntegration.lua")
 assert_true(marketIntegration:find("BETTERUI%.CIM%.MarketIntegration = BETTERUI%.CIM%.MarketIntegration or %{%}") ~= nil,

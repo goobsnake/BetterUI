@@ -19,8 +19,8 @@ Companions.ARCHETYPE = "runtime-coordinator"
 Companions.ROOT_CONTRACT = {
     name = "Companions",
     archetype = Companions.ARCHETYPE,
-    initOwner = "Modules/Companions/Module.lua",
-    setupOwner = "Modules/Companions/Module.lua",
+    init = true,
+    setup = true,
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors

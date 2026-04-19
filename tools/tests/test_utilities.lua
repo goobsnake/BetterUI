@@ -36,6 +36,11 @@ BETTERUI = {
         GetCurrentBank = function()
             return BAG_SUBSCRIBER_BANK
         end,
+        GetActiveTransferContext = function()
+            return {
+                targetBag = BAG_SUBSCRIBER_BANK,
+            }
+        end,
         Class = {
             list = {
                 marker = "bank-list",
@@ -171,8 +176,8 @@ assert_true(debugMessage:find("BETTERUI") ~= nil, "Debug output contains addon p
 
 print("\n=== Banking Context Helpers ===\n")
 
-assert_equal(BAG_SUBSCRIBER_BANK, BETTERUI.CIM.Utils.GetActiveBankTargetBag(),
-    "bank target helper delegates through the shared banking getter")
+assert_equal(BAG_SUBSCRIBER_BANK, BETTERUI.Banking.GetActiveTransferContext().targetBag,
+    "bank target access resolves through the shared banking context seam")
 
 SCENE_MANAGER.scenes["gamepad_banking"] = {
     IsShowing = function()

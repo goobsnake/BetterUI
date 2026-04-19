@@ -5,7 +5,11 @@
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end
-if BETTERUI.Nameplates == nil then BETTERUI.Nameplates = {} end
+BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
+BETTERUI.GeneralInterface.Nameplates = BETTERUI.GeneralInterface.Nameplates or BETTERUI.Nameplates or {}
+BETTERUI.Nameplates = BETTERUI.GeneralInterface.Nameplates
+
+local Nameplates = BETTERUI.GeneralInterface.Nameplates
 
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
@@ -40,7 +44,7 @@ local function ApplyCurrentNameplateSettings()
 end
 
 --- Returns the table of LAM settings options for Nameplates.
-function BETTERUI.Nameplates.GetSettingsOptions()
+function Nameplates.GetSettingsOptions()
     return {
         {
             type = "description",
@@ -174,7 +178,7 @@ end
 ---
 --- References: Called during module initialization.
 ---
-function BETTERUI.Nameplates.InitModule(m_options)
+function Nameplates.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.Nameplates.DEFAULTS
     -- Only set defaults if not already present (preserve existing settings)

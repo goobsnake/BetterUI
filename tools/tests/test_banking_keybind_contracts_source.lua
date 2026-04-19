@@ -33,20 +33,20 @@ local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 
 assert_contains(
     transferActions,
-    "local function GetRequiredTransferHelper(helperName)",
-    "TransferActions resolves transfer helpers through a live helper getter"
+    "local function GetRequiredTransferSupport()",
+    "TransferActions resolves transfer support through one canonical accessor"
 )
 
 assert_contains(
     transferActions,
-    "GetTransferSupport",
+    "ResolveTransferSupport",
     "TransferActions resolves helpers through the bounded transfer-support accessor"
 )
 
 assert_contains(
     transferActions,
-    "GetRequiredTransferHelper(\"NotifyGuildBankTransferDenied\")",
-    "TransferActions resolves guild-bank denial helper at call time"
+    "local notifyGuildBankTransferDenied = transferSupport.NotifyGuildBankTransferDenied",
+    "TransferActions binds guild-bank denial support from the resolved support table"
 )
 
 assert_not_contains(
@@ -57,8 +57,8 @@ assert_not_contains(
 
 assert_not_contains(
     keybindManager,
-    "BETTERUI.Banking.TransferHelpers or BETTERUI.Banking._TransferHelpers",
-    "KeybindManager no longer reads Banking transfer helper tables directly"
+    "GetBankingTransferHelper(",
+    "KeybindManager no longer dispatches transfer helpers by string name"
 )
 
 assert_contains(

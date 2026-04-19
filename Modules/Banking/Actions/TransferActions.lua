@@ -53,14 +53,13 @@ local function IsActionableBankSlotEntry(entryData)
     return stackCount > 0
 end
 
-local function GetRequiredTransferHelper(helperName)
+local function GetRequiredTransferSupport()
     local banking = BETTERUI.Banking
-    local helpers = banking and type(banking.GetTransferSupport) == "function"
-        and banking.GetTransferSupport()
-    local helper = helpers and helpers[helperName] or nil
-    assert(type(helper) == "function",
-        "BetterUI: Banking transfer support." .. helperName .. " must load before Banking/Actions/TransferActions")
-    return helper
+    local transferSupport = banking and type(banking.ResolveTransferSupport) == "function"
+        and banking.ResolveTransferSupport()
+    assert(type(transferSupport) == "table",
+        "BetterUI: Banking transfer support must load before Banking/Actions/TransferActions")
+    return transferSupport
 end
 
 ---@param targetBankBag number
@@ -71,7 +70,10 @@ local function NotifyDepositBlocked(targetBankBag, denyReason)
         return
     end
 
-    local resolveTransferDeniedStringId = GetRequiredTransferHelper("ResolveTransferDeniedStringId")
+    local transferSupport = GetRequiredTransferSupport()
+    local resolveTransferDeniedStringId = transferSupport.ResolveTransferDeniedStringId
+    assert(type(resolveTransferDeniedStringId) == "function",
+        "BetterUI: Banking transfer support.ResolveTransferDeniedStringId must load before Banking/Actions/TransferActions")
     local errorStringId = resolveTransferDeniedStringId(targetBankBag, denyReason)
     if errorStringId ~= nil then
         ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
@@ -93,8 +95,13 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
     local transferContext = BETTERUI.Banking.GetActiveTransferContext()
     local targetBankBag = transferContext.targetBag
-    local isDepositAllowedForCurrentBank = GetRequiredTransferHelper("IsDepositSupportedForBank")
-    local notifyGuildBankTransferDenied = GetRequiredTransferHelper("NotifyGuildBankTransferDenied")
+    local transferSupport = GetRequiredTransferSupport()
+    local isDepositAllowedForCurrentBank = transferSupport.IsDepositSupportedForBank
+    local notifyGuildBankTransferDenied = transferSupport.NotifyGuildBankTransferDenied
+    assert(type(isDepositAllowedForCurrentBank) == "function",
+        "BetterUI: Banking transfer support.IsDepositSupportedForBank must load before Banking/Actions/TransferActions")
+    assert(type(notifyGuildBankTransferDenied) == "function",
+        "BetterUI: Banking transfer support.NotifyGuildBankTransferDenied must load before Banking/Actions/TransferActions")
     if quantity == nil then
         quantity = 1
     end

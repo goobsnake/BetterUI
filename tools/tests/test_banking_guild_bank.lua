@@ -531,33 +531,32 @@ assertEqual(nil, BETTERUI.Banking.GuildBank.GetPermissionDenial(BETTERUI.Banking
     "Personal bank has no structured permission denial")
 
 resetGuildBankState()
-assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
+assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GetActiveTransferContext().withdrawSourceBags,
     "Personal main bank withdraw sources both bank bags")
 BETTERUI.Banking.currentUsedBank = nil
-assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
+assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GetActiveTransferContext().withdrawSourceBags,
     "Personal withdraw falls back to both bank bags when runtime state is missing")
 BETTERUI.Banking.currentUsedBank = 0
-assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
+assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GetActiveTransferContext().withdrawSourceBags,
     "Personal withdraw normalizes the zero bank sentinel before building source bags")
 BETTERUI.Banking.currentUsedBank = 88
 bankingBag = 88
-assertTableEquals({ 88 }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
+assertTableEquals({ 88 }, BETTERUI.Banking.GetActiveTransferContext().withdrawSourceBags,
     "House bank withdraw sources current bank only")
-assertTableEquals({ BAG_BACKPACK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_DEPOSIT),
-    "Personal deposit sources backpack")
+BETTERUI.Banking.currentUsedBank = BAG_BANK
+bankingBag = BAG_BANK
+assertEqual(BAG_BANK, BETTERUI.Banking.GetActiveTransferContext().targetBag, "Personal deposit target is main bank")
 bankingBag = BAG_GUILDBANK
-assertTableEquals({ BAG_GUILDBANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
+assertTableEquals({ BAG_GUILDBANK }, BETTERUI.Banking.GetActiveTransferContext().withdrawSourceBags,
     "Guild withdraw sources guild bank")
-assertTableEquals({ BAG_BACKPACK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_DEPOSIT),
-    "Guild deposit sources backpack")
+BETTERUI.Banking.currentUsedBank = BAG_GUILDBANK
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetActiveTransferContext().targetBag, "Guild deposit target is guild bank bag")
 
 resetGuildBankState()
-assertEqual(BAG_BANK, BETTERUI.Banking.GuildBank.GetDepositTargetBag(), "Personal deposit target is main bank")
 assertEqual("|c0066FFBank|r", BETTERUI.Banking.GuildBank.GetHeaderTitle(), "Personal header title uses bank title")
 bankingBag = BAG_GUILDBANK
 selectedGuildId = 55
 guildNames[55] = "Guild One"
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GuildBank.GetDepositTargetBag(), "Guild deposit target is guild bank bag")
 assertEqual("|c0066FFGuild One Bank|r", BETTERUI.Banking.GuildBank.GetHeaderTitle(), "Guild header includes guild name")
 
 resetGuildBankState()

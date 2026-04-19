@@ -430,16 +430,16 @@ local function CreateCurrencyRowKeybinds(self)
 end
 
 local function GetBankingTransferSupport()
+    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    if utils and type(utils.GetBankingTransferSupport) == "function" then
+        return utils.GetBankingTransferSupport()
+    end
+
     local banking = BETTERUI.Banking
-    if not banking or type(banking.GetTransferSupport) ~= "function" then
+    if not banking or type(banking.ResolveTransferSupport) ~= "function" then
         return nil
     end
-    return banking.GetTransferSupport()
-end
-
-local function GetBankingTransferHelper(helperName)
-    local helpers = GetBankingTransferSupport()
-    return helpers and helpers[helperName]
+    return banking.ResolveTransferSupport()
 end
 
 ResolveGuildBankTransferKeybindState = function(self)
@@ -449,7 +449,8 @@ ResolveGuildBankTransferKeybindState = function(self)
         return true, nil
     end
 
-    local resolveDecision = GetBankingTransferHelper("ResolveGuildBankTransferDecision")
+    local transferSupport = GetBankingTransferSupport()
+    local resolveDecision = transferSupport and transferSupport.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
         return true, nil
     end

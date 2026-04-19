@@ -7,11 +7,8 @@ Writs.ARCHETYPE = "thin-entrypoint"
 Writs.ROOT_CONTRACT = {
     name = "Writs",
     archetype = Writs.ARCHETYPE,
-    initOwner = "Modules/Writs/Module.lua",
-    setupOwner = "Modules/Writs/Module.lua",
-    runtimeOwner = "Modules/Writs/Module.lua + Modules/Writs/Core/Writ.lua",
-    settingsOwner = "Modules/CIM/Core/Settings/DefaultsRegistry.lua",
-    notes = "Module.lua owns the Writs entrypoint contract and crafting-station event wiring, while Core/Writ.lua formats active writ state and DefaultsRegistry remains the canonical settings owner.",
+    init = true,
+    setup = true,
 }
 
 local function ApplyWritsDefaults(m_options)

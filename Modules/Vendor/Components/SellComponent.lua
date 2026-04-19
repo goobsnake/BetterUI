@@ -1,14 +1,7 @@
---[[
-File: Modules/Vendor/Components/SellComponent.lua
-Purpose: Sell tab component for the Vendor module.
-
-Handles listing inventory items that can be sold and selling them.
-Includes batch junk sell support (Sell All Junk keybind).
-]]
+-- Vendor sell tab component.
 
 local Vendor = BETTERUI.Vendor
 
--- COMPONENT TABLE
 Vendor.SellComponent = {}
 local Sell = Vendor.SellComponent
 
@@ -110,8 +103,6 @@ function Sell:GetCategories(vendorInstance)
     return categories
 end
 
--- ACTIVATE / DEACTIVATE
-
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Sell:Activate(vendorInstance)
     vendorInstance:RefreshList()
@@ -119,10 +110,7 @@ end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Sell:Deactivate(vendorInstance)
-    -- No cleanup needed
 end
-
--- PRIMARY ACTION
 
 ---@return string name Localized sell action label
 function Sell:GetPrimaryActionName()
@@ -140,7 +128,6 @@ function Sell:IsPrimaryActionEnabled(vendorInstance)
     local isStolen = ds.stolen == true
     if isStolen then return false end
 
-    -- Check that item has a sell price
     local sellPrice = ds.sellPrice or ds.stackSellPrice or 0
     if sellPrice <= 0 then
         return false
@@ -168,15 +155,11 @@ function Sell:OnPrimaryAction(vendorInstance)
         end
     end
 
-    -- Validate the slot still has items
     local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
     if stackSize <= 0 then return end
 
-    -- Use full stack for sell
     SellInventoryItem(bagId, slotIndex, stackSize)
 end
-
--- BATCH JUNK SELL
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Sell:SellAllJunk(vendorInstance)
@@ -187,7 +170,6 @@ function Sell:SellAllJunk(vendorInstance)
         return
     end
 
-    -- Suppress list updating during batch sell, then flush
     vendorInstance:SuppressListUpdates()
 
     local bagSize = GetBagSize(BAG_BACKPACK) or 0
@@ -208,9 +190,6 @@ function Sell:SellAllJunk(vendorInstance)
 
     vendorInstance:FlushListUpdates()
 end
-
-
--- LIST BUILDING
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Sell:BuildList(vendorInstance)

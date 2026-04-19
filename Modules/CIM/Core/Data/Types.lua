@@ -91,14 +91,14 @@ BETTERUI.CIM.Types = {}
 ---@class BetterUIModuleRootContract
 ---@field name ModuleName
 ---@field archetype BetterUIModuleArchetype
----@field initOwner string|nil Source owner for InitModule; nil means the bootstrap phase should not call InitModule
----@field setupOwner string|nil Source owner for Setup; nil means the bootstrap phase should not call Setup
+---@field init boolean True when bootstrap must call InitModule for this module
+---@field setup boolean True when bootstrap must call Setup for this module
 
 ---@class BetterUIModuleRoot
 ---@field ARCHETYPE BetterUIModuleArchetype
 ---@field ROOT_CONTRACT BetterUIModuleRootContract
----@field InitModule BetterUIModuleInitHook|nil Required when ROOT_CONTRACT.initOwner is non-nil
----@field Setup BetterUIModuleSetupHook|nil Required when ROOT_CONTRACT.setupOwner is non-nil
+---@field InitModule BetterUIModuleInitHook|nil Required when ROOT_CONTRACT.init is true
+---@field Setup BetterUIModuleSetupHook|nil Required when ROOT_CONTRACT.setup is true
 ---@field GetSetting fun(key: BetterUIModuleSettingKey): BetterUIModuleSettingValue|nil
 ---@field SetSetting fun(key: BetterUIModuleSettingKey, value: BetterUIModuleSettingValue): boolean|nil
 ---@field DEFAULTS table|nil

@@ -1,14 +1,7 @@
---[[
-File: Modules/Vendor/Components/BuybackComponent.lua
-Purpose: Buyback tab component for the Vendor module.
-
-Handles listing items the player recently sold and buying them back.
-Uses GetNumBuybackItems/GetBuybackItemInfo to populate the list.
-]]
+-- Vendor buyback tab component.
 
 local Vendor = BETTERUI.Vendor
 
--- COMPONENT TABLE
 Vendor.BuybackComponent = {}
 local Buyback = Vendor.BuybackComponent
 
@@ -27,8 +20,6 @@ local function GetBuybackItemCategoryName(itemLink)
     return ""
 end
 
--- ACTIVATE / DEACTIVATE
-
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Buyback:Activate(vendorInstance)
     vendorInstance:RefreshList()
@@ -36,10 +27,7 @@ end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Buyback:Deactivate(vendorInstance)
-    -- No cleanup needed
 end
-
--- PRIMARY ACTION
 
 ---@return string name Localized buyback action label
 function Buyback:GetPrimaryActionName()
@@ -66,7 +54,6 @@ function Buyback:OnPrimaryAction(vendorInstance)
     local entryIndex = ds.entryIndex
     if not entryIndex then return end
 
-    -- Validate affordability
     local price = ds.price or 0
     if not vendorInstance:CanAfford(price) then
         BETTERUI.CIM.UserAlertText("Buyback:CannotAfford",
@@ -83,8 +70,6 @@ function Buyback:OnPrimaryAction(vendorInstance)
     BuybackItem(entryIndex)
 end
 
--- LIST BUILDING
-
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Buyback:BuildList(vendorInstance)
     local list = vendorInstance.list
@@ -95,8 +80,6 @@ function Buyback:BuildList(vendorInstance)
 
     local searchQuery = Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery) or nil
     for entryIndex = 1, numItems do
-        -- GetBuybackItemInfo returns: icon, name, stackCount, price,
-        -- functionalQuality, meetsRequirementsToEquip, displayQuality
         local icon, name, stackCount, price, functionalQuality,
               meetsRequirements, displayQuality = GetBuybackItemInfo(entryIndex)
 
@@ -104,7 +87,6 @@ function Buyback:BuildList(vendorInstance)
             and (not Vendor.MatchesSearchQuery or Vendor.MatchesSearchQuery(searchQuery, name))
         then
             local itemLink = GetBuybackItemLink and GetBuybackItemLink(entryIndex) or nil
-            -- Prefer displayQuality for color; functionalQuality for artifact guard
             local quality = displayQuality or functionalQuality or ITEM_DISPLAY_QUALITY_NORMAL
 
             local entryData = {

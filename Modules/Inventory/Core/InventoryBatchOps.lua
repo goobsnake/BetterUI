@@ -42,7 +42,16 @@ local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
 end
 
 local function GetCurrentInventoryBankBag()
-    return BETTERUI.CIM.Utils.GetActiveBankTargetBag()
+    local banking = BETTERUI.Banking
+    if banking and type(banking.GetActiveTransferContext) == "function" then
+        local transferContext = banking.GetActiveTransferContext()
+        local targetBag = transferContext and transferContext.targetBag or nil
+        if targetBag ~= nil then
+            return targetBag
+        end
+    end
+
+    return BAG_BANK
 end
 
 local function ResolveInventoryDepositTargetBag(targetBankBag, bagId, slotIndex)

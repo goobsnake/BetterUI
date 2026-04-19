@@ -13,8 +13,8 @@ Inventory.ARCHETYPE = "runtime-coordinator"
 Inventory.ROOT_CONTRACT = {
     name = "Inventory",
     archetype = Inventory.ARCHETYPE,
-    initOwner = "Modules/Inventory/Module.lua",
-    setupOwner = "Modules/Inventory/Module.lua + Modules/Inventory/Core/InventoryClass.lua",
+    init = true,
+    setup = true,
 }
 
 local function TryInitializeCraftBagQuantityDialog()

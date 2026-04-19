@@ -1,22 +1,7 @@
---[[
-File: Modules/Banking/Core/RefreshIntegration.lua
-Purpose: Integrates ListRefreshManager with Banking module for unified refresh handling.
-
-Used By: Banking.lua, BankListManager.lua
-Dependencies: CIM/Lists/ListRefreshManager.lua
-]]
+-- Banking refresh-manager integration.
 
 if not BETTERUI.Banking then BETTERUI.Banking = {} end
 
--- REFRESH MANAGER INITIALIZATION
-
---[[
-Function: BETTERUI.Banking.InitializeRefreshManager
-Description: Creates and configures a ListRefreshManager instance for Banking.
-  - Creates instance with Banking-specific coalesce delay
-  - Stores in BETTERUI.Banking.RefreshManager for access by other Banking files
-]]
----@return nil
 function BETTERUI.Banking.InitializeRefreshManager()
     if BETTERUI.CIM.Lists.ListRefreshManager then
         BETTERUI.Banking.RefreshManager = BETTERUI.CIM.Lists.ListRefreshManager:New({

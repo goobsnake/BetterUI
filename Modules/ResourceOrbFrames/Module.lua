@@ -9,11 +9,8 @@ ResourceOrbFrames.ARCHETYPE = "settings-owner"
 ResourceOrbFrames.ROOT_CONTRACT = {
     name = "ResourceOrbFrames",
     archetype = ResourceOrbFrames.ARCHETYPE,
-    initOwner = "Modules/ResourceOrbFrames/Module.lua",
-    setupOwner = "Modules/ResourceOrbFrames/Module.lua",
-    runtimeOwner = "Modules/ResourceOrbFrames/ResourceOrbFrames.lua + Modules/ResourceOrbFrames/SkillBar/",
-    settingsOwner = "Modules/ResourceOrbFrames/Module.lua + Modules/ResourceOrbFrames/Settings/",
-    notes = "Module.lua owns the public entrypoints and settings panel, while Settings/Defaults.lua owns defaults data and ResourceOrbFrames.lua/SkillBar/ own runtime behavior.",
+    init = true,
+    setup = true,
 }
 
 ---@param m_options BetterUIModuleOptions|nil Module options table

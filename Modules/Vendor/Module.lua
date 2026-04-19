@@ -71,8 +71,8 @@ Vendor.CONST.CAROUSEL = Vendor.CONST.CAROUSEL or {
 Vendor.ROOT_CONTRACT = {
 	name = "Vendor",
 	archetype = Vendor.ARCHETYPE,
-	initOwner = "Modules/Vendor/Module.lua",
-	setupOwner = "Modules/Vendor/Module.lua",
+	init = true,
+	setup = true,
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors

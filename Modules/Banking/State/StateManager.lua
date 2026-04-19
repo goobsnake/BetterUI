@@ -14,18 +14,13 @@ local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
 
--- BANK STATE TRACKING
-
---- Updates the currentUsedBank state.
-function BETTERUI.Banking.Class:CurrentUsedBank()
+local function GetActiveSourceBankBag()
     local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    BETTERUI.Banking.currentUsedBank = transferContext.sourceBag
-end
-
---- Updates the lastUsedBank state.
-function BETTERUI.Banking.Class:LastUsedBank()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    BETTERUI.Banking.lastUsedBank = transferContext.sourceBag
+    local sourceBag = transferContext and transferContext.sourceBag or nil
+    if sourceBag ~= nil then
+        return sourceBag
+    end
+    return BETTERUI.Banking.currentUsedBank or BAG_BANK
 end
 
 -- POSITION PERSISTENCE
@@ -107,11 +102,11 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         self:SaveListPosition()
         self.currentMode = LIST_WITHDRAW
-        self:LastUsedBank()
+        BETTERUI.Banking.lastUsedBank = GetActiveSourceBankBag()
         self:RefreshList()
     else
         -- Switch to withdraw mode
-        self:LastUsedBank()
+        BETTERUI.Banking.lastUsedBank = GetActiveSourceBankBag()
         self.currentMode = LIST_WITHDRAW
         self:ToggleList(true)
     end
@@ -120,7 +115,7 @@ end
 
 --- Restores the saved list position.
 function BETTERUI.Banking.Class:ReturnToSaved()
-    self:CurrentUsedBank()
+    BETTERUI.Banking.currentUsedBank = GetActiveSourceBankBag()
 
     -- Handle empty list
     if self:HandleEmptyList() then

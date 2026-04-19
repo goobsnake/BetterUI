@@ -1020,56 +1020,23 @@ function Vendor.ExecuteBatchAction(mode, itemData)
     return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ExecuteBatchAction(mode, itemData)
 end
 
----@param requestOrMode BetterUIVendorBatchRequest|number
----@param items BetterUIVendorBatchItem[]|nil
----@param onComplete BetterUIBatchCompletionCallback|nil
----@param batchOptions BatchOptions|table|nil
+---@param request BetterUIVendorBatchRequest|table
 ---@return BetterUIVendorBatchRequest
-local function ResolveVendorBatchRequest(requestOrMode, items, onComplete, batchOptions)
-    if type(requestOrMode) ~= "table" then
-        return {
-            mode = requestOrMode,
-            items = items,
-            onComplete = onComplete,
-            options = batchOptions,
-        }
-    end
-
-    local hasNamedShape = type(items) ~= "function" and (
-        requestOrMode.mode ~= nil
-        or requestOrMode.items ~= nil
-        or requestOrMode.onComplete ~= nil
-        or requestOrMode.options ~= nil
-        or requestOrMode.batchOptions ~= nil
-        or requestOrMode.actionName ~= nil
-    )
-
-    if hasNamedShape then
-        return {
-            mode = requestOrMode.mode,
-            items = requestOrMode.items,
-            onComplete = requestOrMode.onComplete,
-            options = requestOrMode.options or requestOrMode.batchOptions,
-            actionName = requestOrMode.actionName,
-        }
-    end
-
+local function ResolveVendorBatchRequest(request)
+    assert(type(request) == "table", "Vendor.ExecuteBatchThrottled expects BetterUIVendorBatchRequest table")
     return {
-        mode = requestOrMode,
-        items = items,
-        onComplete = onComplete,
-        options = batchOptions,
+        mode = request.mode,
+        items = request.items,
+        onComplete = request.onComplete,
+        options = request.options or request.batchOptions,
+        actionName = request.actionName,
     }
 end
 
 --- Processes vendor batch actions through a throttled pipeline with overlay progress.
---- Prefer the named `BetterUIVendorBatchRequest` contract; the positional signature is retained for legacy callers.
----@param requestOrMode BetterUIVendorBatchRequest|number Vendor mode constant or request contract
----@param items BetterUIVendorBatchItem[]|nil Legacy positional item list
----@param onComplete BetterUIBatchCompletionCallback|nil Legacy positional completion callback
----@param batchOptions BatchOptions|table|nil Legacy positional grouped batch options
-function Vendor.ExecuteBatchThrottled(requestOrMode, items, onComplete, batchOptions)
-    local request = ResolveVendorBatchRequest(requestOrMode, items, onComplete, batchOptions)
+---@param request BetterUIVendorBatchRequest|table
+function Vendor.ExecuteBatchThrottled(request)
+    request = ResolveVendorBatchRequest(request)
     ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ExecuteBatchThrottled(request)
 end
 

@@ -138,37 +138,17 @@ function BatchRuntime.ResolveBatchOptions(batchOptions)
     return batchConfig.ComposeBatchOptions(GetVendorBatchOptionsTemplate(), normalizedOverride)
 end
 
---- Normalizes either a request object or legacy positional signature.
----@param modeOrRequest BetterUIVendorBatchRequest|number
----@param items BetterUIVendorBatchItem[]|nil
----@param onComplete BetterUIBatchCompletionCallback|nil
----@param batchOptions BatchOptions|table|nil
+--- Normalizes the named vendor batch request contract.
+---@param request BetterUIVendorBatchRequest|table
 ---@return BetterUIVendorBatchRequest
-local function ResolveBatchRuntimeRequest(modeOrRequest, items, onComplete, batchOptions)
-    if type(modeOrRequest) == "table" and type(items) ~= "function" then
-        local hasNamedShape = modeOrRequest.mode ~= nil
-            or modeOrRequest.items ~= nil
-            or modeOrRequest.onComplete ~= nil
-            or modeOrRequest.options ~= nil
-            or modeOrRequest.batchOptions ~= nil
-            or modeOrRequest.actionName ~= nil
-
-        if hasNamedShape then
-            return {
-                mode = modeOrRequest.mode,
-                items = modeOrRequest.items,
-                onComplete = modeOrRequest.onComplete,
-                options = modeOrRequest.options or modeOrRequest.batchOptions,
-                actionName = modeOrRequest.actionName,
-            }
-        end
-    end
-
+local function NormalizeBatchRuntimeRequest(request)
+    assert(type(request) == "table", "Vendor batch runtime expects BetterUIVendorBatchRequest table")
     return {
-        mode = modeOrRequest,
-        items = items or {},
-        onComplete = onComplete,
-        options = batchOptions,
+        mode = request.mode,
+        items = request.items or {},
+        onComplete = request.onComplete,
+        options = request.options or request.batchOptions,
+        actionName = request.actionName,
     }
 end
 ---@return BatchOptions
@@ -527,13 +507,9 @@ function BatchRuntime.CreateBatchRunner(mode, items, onComplete, batchOptions)
     return runner
 end
 
----@param modeOrRequest BetterUIVendorBatchRequest|number
----@param items BetterUIVendorBatchItem[]|nil
----@param onComplete BetterUIBatchCompletionCallback|nil
----@param batchOptions BatchOptions|table|nil
----@return nil
-function BatchRuntime.ExecuteBatchThrottled(modeOrRequest, items, onComplete, batchOptions)
-    local request = ResolveBatchRuntimeRequest(modeOrRequest, items, onComplete, batchOptions)
+---@param request BetterUIVendorBatchRequest|table
+function BatchRuntime.ExecuteBatchThrottled(request)
+    request = NormalizeBatchRuntimeRequest(request)
     local mode = request.mode
     local batchItems = request.items or {}
     local totalItems = #batchItems

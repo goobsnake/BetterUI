@@ -339,10 +339,7 @@ end
 ---@return table|nil Module namespace table on success, nil on failure.
 function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 	local moduleContract = type(m_namespace) == "table" and type(m_namespace.ROOT_CONTRACT) == "table" and m_namespace.ROOT_CONTRACT or nil
-	local shouldCallInit = true
-	if moduleContract and moduleContract.initOwner == nil then
-		shouldCallInit = false
-	end
+	local shouldCallInit = moduleContract == nil or moduleContract.init ~= false
 	if shouldCallInit then
 		if not (m_namespace and m_namespace.InitModule) then
 			local name = moduleName or "unknown"
@@ -404,10 +401,7 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules
 	local interfaces = BETTERUI.CIM and BETTERUI.CIM.Interfaces
 	local validateFn = interfaces and interfaces.ValidateModule
 	local moduleContract = type(moduleNamespace.ROOT_CONTRACT) == "table" and moduleNamespace.ROOT_CONTRACT or nil
-	local shouldCallSetup = true
-	if moduleContract and moduleContract.setupOwner == nil then
-		shouldCallSetup = false
-	end
+	local shouldCallSetup = moduleContract == nil or moduleContract.setup ~= false
 	if validateFn then
 		local valid, err = validateFn(moduleNamespace, nil, moduleName)
 		if not valid then

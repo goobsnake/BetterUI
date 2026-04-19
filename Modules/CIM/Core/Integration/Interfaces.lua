@@ -55,18 +55,18 @@ function BETTERUI.CIM.Interfaces.ValidateModule(module, requiredFields, expected
             return false, "Module.ROOT_CONTRACT.archetype must match Module.ARCHETYPE"
         end
 
-        if contract.initOwner ~= nil and type(contract.initOwner) ~= "string" then
-            return false, "Module.ROOT_CONTRACT.initOwner must be a string or nil"
+        if type(contract.init) ~= "boolean" then
+            return false, "Module.ROOT_CONTRACT.init must be a boolean"
         end
-        if contract.initOwner ~= nil and contract.initOwner ~= "" and type(module.InitModule) ~= "function" then
-            return false, "Module.ROOT_CONTRACT.initOwner is set but Module.InitModule must be a function"
+        if contract.init and type(module.InitModule) ~= "function" then
+            return false, "Module.ROOT_CONTRACT.init is true but Module.InitModule must be a function"
         end
 
-        if contract.setupOwner ~= nil and type(contract.setupOwner) ~= "string" then
-            return false, "Module.ROOT_CONTRACT.setupOwner must be a string or nil"
+        if type(contract.setup) ~= "boolean" then
+            return false, "Module.ROOT_CONTRACT.setup must be a boolean"
         end
-        if contract.setupOwner ~= nil and contract.setupOwner ~= "" and type(module.Setup) ~= "function" then
-            return false, "Module.ROOT_CONTRACT.setupOwner is set but Module.Setup must be a function"
+        if contract.setup and type(module.Setup) ~= "function" then
+            return false, "Module.ROOT_CONTRACT.setup is true but Module.Setup must be a function"
         end
     end
 

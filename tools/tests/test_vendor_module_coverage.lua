@@ -208,23 +208,14 @@ do
             observed.actionItem = itemData
             return { status = "handled" }
         end,
-        ExecuteBatchThrottled = function(modeOrRequest, items, onComplete, batchOptions)
-            if type(modeOrRequest) == "table" then
-                observed.throttledRequest = modeOrRequest
-                observed.throttledRequests[#observed.throttledRequests + 1] = modeOrRequest
-                observed.throttledMode = modeOrRequest.mode
-                observed.throttledItems = modeOrRequest.items
-                observed.throttledOptions = modeOrRequest.options or modeOrRequest.batchOptions
-                if modeOrRequest.onComplete then
-                    onComplete = modeOrRequest.onComplete
-                end
-            else
-                observed.throttledMode = modeOrRequest
-                observed.throttledItems = items
-                observed.throttledOptions = batchOptions
-            end
-            if onComplete then
-                onComplete()
+        ExecuteBatchThrottled = function(request)
+            observed.throttledRequest = request
+            observed.throttledRequests[#observed.throttledRequests + 1] = request
+            observed.throttledMode = request.mode
+            observed.throttledItems = request.items
+            observed.throttledOptions = request.options or request.batchOptions
+            if request.onComplete then
+                request.onComplete()
             end
         end,
         RequestBatchAbort = function()
@@ -249,9 +240,14 @@ do
         end,
         options = sampleOptions,
     })
-    BETTERUI.Vendor.ExecuteBatchThrottled(BETTERUI.Vendor.MODE.BUYBACK, sampleItems, function()
-        observed.completed = observed.completed + 1
-    end, sampleOptions)
+    BETTERUI.Vendor.ExecuteBatchThrottled({
+        mode = BETTERUI.Vendor.MODE.BUYBACK,
+        items = sampleItems,
+        onComplete = function()
+            observed.completed = observed.completed + 1
+        end,
+        options = sampleOptions,
+    })
     BETTERUI.Vendor.RequestBatchAbort()
     local observedDefaultOptions = BETTERUI.Vendor.GetDefaultBatchOptions()
     local observedResolvedOptions = BETTERUI.Vendor.ResolveBatchOptions(sampleOptions)
@@ -262,8 +258,8 @@ do
     assertEqual(BETTERUI.Vendor.MODE.FENCE_SELL, observed.throttledRequests[1].mode, "vendor throttled facade accepts named batch requests")
     assertTrue(observed.throttledItems == sampleItems, "vendor throttled facade forwards the selected item list")
     assertTrue(observed.throttledOptions == sampleOptions, "vendor throttled facade forwards explicit batch options")
-    assertEqual(BETTERUI.Vendor.MODE.BUYBACK, observed.throttledRequests[2].mode, "vendor throttled facade normalizes positional overload into a batch request")
-    assertEqual(2, observed.completed, "vendor throttled facade preserves completion callbacks across overload modes")
+    assertEqual(BETTERUI.Vendor.MODE.BUYBACK, observed.throttledRequests[2].mode, "vendor throttled facade accepts repeated named batch requests")
+    assertEqual(2, observed.completed, "vendor throttled facade preserves completion callbacks for named requests")
     assertTrue(observed.abortRequested == true, "vendor abort facade delegates to the batch runtime collaborator")
     assertTrue(observed.defaultOptionsRequested == true, "vendor batch-options facade delegates default option retrieval")
     assertTrue(observed.resolveOptionsInput == sampleOptions, "vendor batch-options facade delegates option normalization input")

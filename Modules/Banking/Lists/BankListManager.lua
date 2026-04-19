@@ -79,23 +79,25 @@ local GetBestItemCategoryDescription = BETTERUI.CIM.SharedItemSupport.GetBestIte
 local function ResolveBagsAndSlotType(self)
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
     local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    local transferSourceBag = transferContext.sourceBag
+    local transferSourceBag = transferContext and transferContext.sourceBag or nil
 
     -- Deposit always reads from backpack
     if not isWithdraw then
         return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
     end
 
-    -- Withdraw from guild bank
-    if transferContext.isGuildBank then
-        return { BAG_GUILDBANK }, SLOT_TYPE_GUILD_BANK_ITEM
+    local withdrawSourceBags = transferContext and transferContext.withdrawSourceBags or nil
+    if type(withdrawSourceBags) == "table" and #withdrawSourceBags > 0 then
+        local slotType = transferContext and transferContext.isGuildBank and SLOT_TYPE_GUILD_BANK_ITEM
+            or SLOT_TYPE_BANK_ITEM
+        return withdrawSourceBags, slotType
     end
 
-    -- Withdraw from personal bank (includes subscriber bank)
-    local bags = transferContext.isSourceMainBank
-        and { BAG_BANK, BAG_SUBSCRIBER_BANK }
-        or  { transferSourceBag }
-    return bags, SLOT_TYPE_BANK_ITEM
+    if transferSourceBag ~= nil then
+        return { transferSourceBag }, SLOT_TYPE_BANK_ITEM
+    end
+
+    return { BAG_BANK, BAG_SUBSCRIBER_BANK }, SLOT_TYPE_BANK_ITEM
 end
 
 -- Expose helpers for use by CategoryManager (loads later)
