@@ -300,7 +300,8 @@ end
 -- SELECTION + TEMPLATE REGISTRATION
 
 function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext and BETTERUI.Banking.GetActiveTransferContext() or nil
+    local transferTargetBankBag = transferContext and transferContext.targetBag or BAG_BANK
     if not BETTERUI.Utils.IsBankingSceneShowing() then
         return
     end
@@ -316,7 +317,7 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
 
     local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     local GuildBank = BETTERUI.Banking.GuildBank
-    local isGuildBankOrPersonalBank = (currentUsedBank == BAG_BANK) or (GuildBank and GuildBank.IsGuildBankMode())
+    local isGuildBankOrPersonalBank = (transferTargetBankBag == BAG_BANK) or (GuildBank and GuildBank.IsGuildBankMode())
     if isGuildBankOrPersonalBank then
         local isCurrencyRow = ZO_GamepadBanking
             and ZO_GamepadBanking.IsEntryDataCurrencyRelated

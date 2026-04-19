@@ -25,6 +25,22 @@ BETTERUI.Banking.currentUsedBank               = BAG_BANK
 BETTERUI.Banking.lastOpenedBankBag             = BAG_BANK
 BETTERUI.Banking.esoSubscriber                 = nil
 
+local function IsHousingStorageBag(bankBagId)
+    if not bankBagId then
+        return false
+    end
+
+    if IsFurnitureVault and IsFurnitureVault(bankBagId) then
+        return true
+    end
+
+    if IsHouseBankBag and IsHouseBankBag(bankBagId) then
+        return true
+    end
+
+    return false
+end
+
 --- Normalizes a banking bag value to BetterUI's explicit banking contract.
 ---@param bankBagId number|nil
 ---@return number
@@ -35,21 +51,59 @@ function BETTERUI.Banking.ResolveBankBag(bankBagId)
     return bankBagId
 end
 
---- Returns the currently active bank bag ID, falling back to BAG_BANK if unset.
---- Cross-module callers should use this instead of reading currentUsedBank directly.
----@return number bankBagId The active bank bag constant (e.g., BAG_BANK, BAG_SUBSCRIBER_BANK, BAG_GUILDBANK)
-function BETTERUI.Banking.GetCurrentBank()
+--- Returns the effective transfer source bag for the current banking context.
+---@return number bankBagId
+function BETTERUI.Banking.GetTransferSourceBankBag()
+    if GetBankingBag then
+        local bankingBag = BETTERUI.Banking.ResolveBankBag(GetBankingBag())
+        if bankingBag == BAG_BANK then
+            local openedBankBag = BETTERUI.Banking.lastOpenedBankBag
+            if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
+                return openedBankBag
+            end
+            return BAG_BANK
+        end
+        if IsHousingStorageBag(bankingBag) then
+            return bankingBag
+        end
+        return bankingBag
+    end
+
     return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
 end
 
---- Returns the live scene bank bag when available; otherwise returns the current banking state bag.
---- Cross-module callers should use this instead of reading GetBankingBag directly.
----@return number bankBagId The active live bank bag constant.
-function BETTERUI.Banking.GetActiveBankBag()
-    if GetBankingBag then
-        return BETTERUI.Banking.ResolveBankBag(GetBankingBag())
+--- Returns the effective transfer destination bank bag for the current banking context.
+---@return number bankBagId
+function BETTERUI.Banking.GetTransferDestinationBankBag()
+    local transferSourceBankBag = BETTERUI.Banking.GetTransferSourceBankBag()
+    if transferSourceBankBag == BAG_GUILDBANK or IsHousingStorageBag(transferSourceBankBag) then
+        return transferSourceBankBag
     end
-    return BETTERUI.Banking.GetCurrentBank()
+
+    return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+end
+
+---@class BetterUIBankingTransferContext
+---@field sourceBag number Active source bag for transfer and withdraw flows
+---@field targetBag number Active destination bag for deposit and list updates
+---@field isMainBank boolean True when the active source bag is the personal bank
+---@field isGuildBank boolean True when guild-bank mode is active
+
+--- Returns the active banking transfer context so callers do not reinterpret bag helpers.
+---@return BetterUIBankingTransferContext context
+function BETTERUI.Banking.GetActiveTransferContext()
+    local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
+    local targetBag = BETTERUI.Banking.GetTransferDestinationBankBag()
+    local GuildBank = BETTERUI.Banking.GuildBank
+    local isGuildBank = sourceBag == BAG_GUILDBANK
+        or (GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() or false)
+
+    return {
+        sourceBag = sourceBag,
+        targetBag = targetBag,
+        isMainBank = sourceBag == BAG_BANK,
+        isGuildBank = isGuildBank,
+    }
 end
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)

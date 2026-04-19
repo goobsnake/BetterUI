@@ -133,7 +133,7 @@ function BETTERUI.Banking.Class:PositionSearchControl()
 
     local parentForAnchor = titleContainer or anchorTarget
     if parentForAnchor then
-        local searchConst = BETTERUI.Banking.CONST.GetSearchConstants()
+        local searchConst = BETTERUI.CIM.SearchBar.GetConstants("BANKING")
         local xOffset = searchConst.X_OFFSET
         local yOffset = searchConst.Y_OFFSET
         local rightInset = searchConst.RIGHT_INSET

@@ -1,34 +1,3 @@
---[[
-File: Modules/Banking/Banking.lua
-Purpose: Implements the comprehensive banking interface for BetterUI.
-
-This module completely replaces the default gamepad banking interface with a feature-rich,
-inventory-like experience. It supports advanced filtering, searching, custom categories,
-and seamless currency transfers.
-
-KEY MECHANICS:
-1.  **List Management**:
-    *   Unified `RefreshList` logic handling both Withdraw (Bank/SubBank) and Deposit (Backpack).
-    *   Integrates `SHARED_INVENTORY` for optimized data retrieval.
-    *   Supports "All Items" mode with dedicated currency transfer rows.
-2.  **Item Movement**:
-    *   `MoveItem`: Securely transfers items using `CallSecureProtected("RequestMoveItem")`.
-    *   Smart Stacking: Automatically finds stackable items in the destination bag to merge stacks.
-3.  **Currency Transfer**:
-    *   Dedicated `ZO_CurrencySelector_Gamepad` integration for Gold, Tel Var, AP, and Vouchers.
-4.  **Category System**:
-    *   Tabbed navigation (All, Weapons, Apparel, Materials, etc.) mirroring the Inventory module.
-    *   Dynamic filtering based on item type and "Furniture Vault" status.
-5.  **Search**:
-    *   Integrated text search filtering by name.
-
-
-]]
-
-
--- LOCAL REFERENCES TO NAMESPACE CONSTANTS
--- These reference values from Core/BankingClass.lua (loaded first in manifest).
--- Using locals for performance in frequently-called functions.
 local LIST_WITHDRAW                 = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
 local CURRENCY_UI_REFRESH_DELAY_MS  = 40
@@ -56,9 +25,6 @@ end
 ---@param scene_name string Scene name for banking interface
 ---@return nil
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
-    -- Configuration for directional input fix timing uses centralized constant
-    -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS
-
     BETTERUI.CIM.UnifiedScreen.InitializeWindowShell(
         self,
         tlw_name,
@@ -67,7 +33,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     )
     self.taskManager = BETTERUI.Banking.Tasks
 
-    -- Create banking scene
     BETTERUI_BANKING_SCENE = ZO_InteractScene:New(
         BETTERUI_BANKING_SCENE_NAME,
         SCENE_MANAGER,
@@ -82,8 +47,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.itemActions:SetUseKeybindStrip(false)
     self:InitializeActionsDialog()
 
-    -- NOTE: List anchoring is handled by the BETTERUI_GenericInterface template in InterfaceLibrary.xml
-    -- The template uses offsetX=-50, offsetY=-25 to match Inventory's positioning
 
     self.list.maxOffset = BETTERUI_BANK_LIST_MAX_OFFSET
     self.list:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE,
@@ -93,11 +56,9 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- Move selected item position up to align with tooltip arrow (matches Inventory)
     self.list:SetFixedCenterOffset(-50)
 
-    -- Setup data templates of the lists
     BETTERUI.Banking.Class.SetupItemList(self.list)
     self:AddTemplate("BETTERUI_HeaderRow_Template", BETTERUI.Banking.Class.SetupLabelListing)
 
-    -- Initialize scroll indicator for banking list
     -- offsetX=25, offsetTopY=-5 (above list top), offsetBottomY=-10 (above footer top)
     -- Note: List BOTTOMRIGHT is anchored 10px below FooterContainerFooter's top,
     -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
@@ -108,38 +69,26 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     self.currentMode = LIST_WITHDRAW
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
-    -- Per-category selection persistence (shared across modes in a session)
     self.lastPositionsByCategory = {}
 
-    -- Initialize categories (Stage 1)
     self:CurrentUsedBank()
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 
-    -- Base header title (used as fallback); header title will show selected category like inventory
     self.headerBaseTitle = GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE"))
 
-    -- Initialize the banking header with a tab bar similar to inventory
     self.headerGeneric = self.header:GetNamedChild("Header") or self.header
     BETTERUI.GenericHeader.Initialize(self.headerGeneric, ZO_GAMEPAD_HEADER_TABBAR_CREATE)
     self:RebuildHeaderCategories()
 
-    -- Initialize Header Sort Controller for column-based sorting
-    -- Must be called after headerGeneric is set (needs self.headerGeneric for column labels)
     if self.InitializeHeaderSortController then
         self:InitializeHeaderSortController()
     end
 
-    -- Add gamepad text search support; callback updates searchQuery and refreshes the list
-    -- Uses the AddSearch helper added to BETTERUI.Interface.Window
-    -- Provide a dedicated keybind group for the text-search header so that when
-    -- the search is focused we can temporarily replace the main banking keybinds.
     self.textSearchKeybindStripDescriptor = CreateSearchKeybindDescriptor(self)
 
     if self.AddSearch then
-        -- Register search. Pass our descriptor so AddSearch can wire keybinds appropriately.
         self:AddSearch(self.textSearchKeybindStripDescriptor, function(editOrText)
-            -- Normalize the OnTextChanged argument: engine passes the editBox control, others may pass a string.
             local query
             if type(editOrText) == "string" then
                 query = editOrText
@@ -157,18 +106,14 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             end
 
             self.searchQuery = query or ""
-            -- When search changes, reset selection to top and refresh
             self:SaveListPosition()
             self:RefreshList()
         end)
-        -- Position the search control appropriately beneath the header/title
         if self.PositionSearchControl then
             self:PositionSearchControl()
         end
     end
 
-    -- Hook into the actual edit box using the consolidated SearchFocusMixin
-    -- This replaces ~70 lines of duplicate code (previously duplicated in InventoryClass.lua)
     BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, {
         isSceneShowing = BETTERUI.Utils.IsBankingSceneShowing,
         onTextChanged = function(window, txt)
@@ -184,26 +129,14 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end,
     })
 
-    -- EnsureHeaderKeybindsActive is defined on the class below; keep calls here
-
     self.selectedDataCallback = BETTERUI.Banking.Class.OnItemSelectedChange
 
-    -- this is essentially a way to encapsulate a function which allows us to override "selectedDataCallback" but still keep some logic code
-    -- Callback when a list item is selected via d-pad/stick.
-    -- Purpose: Handles updating the footer keybinds and tooltips.
-    -- Mechanics:
-    -- 1. Checks if Search Focus is active (if so, maintains search keybinds).
-    -- 2. Fires the `selectedDataCallback` to notify listeners (e.g., footer updates).
-    -- 3. Clears "New" status on the item if applicable.
     local function SelectionChangedCallback(list, selectedData)
         if self._searchModeActive and self.list and self.list.IsActive and self.list:IsActive() then
-            -- Process the keybind update for currency rows BEFORE exiting search focus
-            -- This ensures the correct keybinds (currencyKeybinds or withdrawDepositKeybinds) are applied
             if selectedData and self.selectedDataCallback then
                 local selectedControl = list:GetSelectedControl()
                 self:selectedDataCallback(selectedControl, selectedData)
             end
-            -- Now exit search focus
             self:OnSearchFocusLost()
             return
         end
@@ -213,9 +146,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             self:selectedDataCallback(selectedControl, selectedData)
         end
 
-        -- Update scroll indicator position
-        -- Use targetSelectedIndex (the intended final position) rather than GetSelectedIndex()
-        -- (the animated intermediate) to prevent the thumb from stopping short of the bottom
         if list and list.control and BETTERUI.CIM.ScrollIndicator then
             local totalItems = list:GetNumItems() or 0
             local currentIndex = list.targetSelectedIndex or list:GetSelectedIndex() or 1
@@ -223,8 +153,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             BETTERUI.CIM.ScrollIndicator.Update(list.control, currentIndex, totalItems, visibleItems)
         end
 
-        -- Refresh item actions so Y-menu shows correct actions for new selection
-        -- Fixes caching issue when scrolling from Withdraw Gold to actual items
         if selectedData then
             self:RefreshItemActions()
         end
@@ -234,17 +162,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
     end
 
-    -- these are event handlers which are specific to the banking interface. Handling the events this way encapsulates the banking interface
-    -- these local functions are essentially just router functions to other functions within this class. it is done in this way to allow for
-    -- us to access this classes' members (through "self")
-
     local function UpdateCurrency_Handler()
-        -- Only update UI/keybinds when the banking scene is actually visible
         if not BETTERUI.Utils.IsBankingSceneShowing() then
             return
         end
 
-        -- Currency transfers emit both carried+banked events; coalesce to one UI refresh.
         BETTERUI.Banking.Tasks:Schedule("currencyUiRefresh", CURRENCY_UI_REFRESH_DELAY_MS, function()
             if not BETTERUI.Utils.IsBankingSceneShowing() then
                 return
@@ -297,7 +219,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
     end
 
-    -- Always-running event listeners
     local OPEN_BANK_TRACKER_EVENT_NAME = "BETTERUI_BANKING_TRACK_OPEN_BAG"
     local CLOSE_BANK_TRACKER_EVENT_NAME = "BETTERUI_BANKING_TRACK_CLOSE_BAG"
 
@@ -317,16 +238,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
 end
 
---- Global initialization for the Banking module using BetterUI.Window.
 ---@return nil
 function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_BankingWindow", BETTERUI_BANKING_SCENE_NAME)
     BETTERUI.Banking.Window:SetTitle("|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r")
 
-    -- Initialize header with categories & selection immediately
     BETTERUI.Banking.Window:RebuildHeaderCategories()
 
-    -- Set the column headings up using shared CIM constants
     local COLS = BETTERUI.CIM.CONST.HEADER_LAYOUT.COLUMNS
     BETTERUI.Banking.Window:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME")), COLS.NAME)
     BETTERUI.Banking.Window:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE")), COLS.TYPE)
@@ -334,7 +252,6 @@ function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT")), COLS.STAT)
     BETTERUI.Banking.Window:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE")), COLS.VALUE)
 
-    -- Link column labels to sort controller AFTER columns are created
     if BETTERUI.Banking.Window.LinkColumnLabels then
         BETTERUI.Banking.Window:LinkColumnLabels()
     end
@@ -343,19 +260,12 @@ function BETTERUI.Banking.Init()
 
     SyncGamepadBankingSceneGlobal()
 
-    -- Register guild bank scene only if the setting is enabled.
-    -- When disabled, the vanilla guild bank UI is used instead.
     if BETTERUI.Banking.GetSetting("enableGuildBank") ~= false then
-        -- Register guild bank scene: reuses the same Banking Window but with
-        -- INTERACTION_GUILDBANK interaction type. GuildBankAdapter handles
-        -- permission checks and bag routing at runtime.
         BETTERUI_GUILD_BANKING_SCENE = ZO_InteractScene:New(
             BETTERUI_GUILD_BANKING_SCENE_NAME,
             SCENE_MANAGER,
             BETTERUI.Banking.GUILD_BANK_INTERACTION
         )
-        -- Add all required fragment groups (matching InitializeScene for the personal bank).
-        -- Without these the scene shows dimmed with locked input.
         BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
         BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
         local bankingFragment = BETTERUI.Banking.Window.fragment
@@ -369,8 +279,6 @@ function BETTERUI.Banking.Init()
         if BETTERUI.Banking.Window.footerFragment then
             BETTERUI_GUILD_BANKING_SCENE:AddFragment(BETTERUI.Banking.Window.footerFragment)
         end
-        -- Register lifecycle callbacks so OnSceneShowing/OnSceneHidden fire for guild bank.
-        -- We temporarily swap self.scene so SceneLifecycle.Register picks up the guild bank scene.
         local personalScene = BETTERUI.Banking.Window.scene
         BETTERUI.Banking.Window.scene = BETTERUI_GUILD_BANKING_SCENE
         BETTERUI.CIM.SceneLifecycle.Register(BETTERUI.Banking.Window, {
@@ -394,38 +302,27 @@ function BETTERUI.Banking.Init()
                 end
             end,
         })
-        BETTERUI.Banking.Window.scene = personalScene -- restore personal bank as the primary scene ref
-        -- Alias guild bank scene: vanilla's ZO_GuildBank_Gamepad_Initialize() has
-        -- already created GAMEPAD_GUILD_BANK_SCENE at "gamepad_guild_bank" (XML
-        -- OnInitialized runs before addon EVENT_ADD_ON_LOADED). We just overwrite
-        -- the scene entry so vanilla's EVENT_OPEN_GUILD_BANK handler shows our
-        -- scene instead. This matches the exact pattern used for personal bank above.
+        -- Restore personal bank scene after registration, then remap the global guild scene key.
+        BETTERUI.Banking.Window.scene = personalScene
         SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
     end
 
-    -- Initialize the refresh manager for unified list refresh handling
     if BETTERUI.Banking.InitializeRefreshManager then
         BETTERUI.Banking.InitializeRefreshManager()
     end
 
-    -- Initialize the quantity selection dialog (replaces inline spinner)
     BETTERUI.Banking.InitializeQuantityDialog()
 
-    -- Configure unified footer for BANKING mode
     BETTERUI.Banking.Window:SetupUnifiedFooter()
 
-    -- Install keyboard shortcut interception (from BankingSceneLifecycle.lua)
     BETTERUI.Banking.SetupSceneInterception()
 
-    -- Register narration for Banking and Guild Bank scenes (ACC-001)
     if BETTERUI.CIM.Narration and BETTERUI.CIM.Narration.RegisterListNarration then
-        -- Personal bank
         BETTERUI.CIM.Narration.RegisterListNarration(
             BETTERUI_BANKING_SCENE_NAME,
             function() return BETTERUI.Banking.Window and BETTERUI.Banking.Window:GetParametricList():GetTargetData() end,
             function() return BETTERUI.Banking.Window and BETTERUI.Banking.Window:GetTitle() end
         )
-        -- Guild bank
         BETTERUI.CIM.Narration.RegisterListNarration(
             BETTERUI_GUILD_BANKING_SCENE_NAME,
             function() return BETTERUI.Banking.Window and BETTERUI.Banking.Window:GetParametricList():GetTargetData() end,

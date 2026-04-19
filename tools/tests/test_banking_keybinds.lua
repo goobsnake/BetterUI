@@ -230,11 +230,21 @@ BETTERUI = {
         LIST_WITHDRAW = 1,
         LIST_DEPOSIT = 2,
         currentUsedBank = BAG_BANK,
-        GetCurrentBank = function()
+        GetTransferDestinationBankBag = function()
             return currentBank
         end,
-        GetActiveBankBag = function()
+        GetTransferSourceBankBag = function()
             return (currentBank == nil or currentBank == 0) and BAG_BANK or currentBank
+        end,
+        GetActiveTransferContext = function()
+            local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
+            local targetBag = BETTERUI.Banking.GetTransferDestinationBankBag()
+            return {
+                sourceBag = sourceBag,
+                targetBag = targetBag,
+                isMainBank = sourceBag == BAG_BANK,
+                isGuildBank = guildBankMode or sourceBag == BAG_GUILDBANK,
+            }
         end,
         GetSetting = function(key)
             local values = {

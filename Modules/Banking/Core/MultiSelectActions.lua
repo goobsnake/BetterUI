@@ -18,6 +18,14 @@ local BatchStepSkipped = BatchConfig.BatchStepSkipped
 local BatchStepStopped = BatchConfig.BatchStepStopped
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 
+local TRANSFER_DENIAL_ALERT = 1
+local TRANSFER_DENIAL_TOAST = 2
+
+local function GetDenyReasonCode(key, fallback)
+    local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
+    return (deny and deny[key]) or fallback
+end
+
 local function GetBankingWindow()
     return BETTERUI.Banking and BETTERUI.Banking.Window
 end
@@ -41,7 +49,7 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
         and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault
         and not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
     then
-        return false, "furniture_vault_locked"
+        return false, GetDenyReasonCode("FURNITURE_VAULT_LOCKED", "furniture_vault_locked")
     end
 
     -- Use shared protection policy for transfer validation
@@ -56,8 +64,7 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
         and CROWN_GEMIFICATION_MANAGER
         and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
         and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(bagId, slotIndex) then
-        local deny = BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
-        return false, (deny and deny.CROWN_GEMMABLE) or "crown_gemmable"
+        return false, GetDenyReasonCode("CROWN_GEMMABLE", "crown_gemmable")
     end
 
     return true
@@ -68,25 +75,40 @@ local function ResolveTransferDeniedStringId(targetBankBag, denyReason)
         return nil
     end
 
-    local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY or {}
-    if denyReason == "furniture_vault_locked" then
+    if denyReason == GetDenyReasonCode("FURNITURE_VAULT_LOCKED", "furniture_vault_locked") then
         return IsESOPlusSubscriber and IsESOPlusSubscriber()
             and SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE
             or SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS
     end
-    if denyReason == deny.STOLEN then
+    if denyReason == GetDenyReasonCode("STOLEN", "stolen") then
         local targetIsFurnitureVault = IsFurnitureVault and IsFurnitureVault(targetBankBag)
         return targetIsFurnitureVault
             and SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE
             or SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
     end
-    if denyReason == deny.CROWN_GEMMABLE then
+    if denyReason == GetDenyReasonCode("CROWN_GEMMABLE", "crown_gemmable") then
         return SI_FURNITURE_VAULT_ERROR_GEMMABLE_FURNITURE
     end
-    if targetBankBag == BAG_GUILDBANK then
+    if denyReason == GetDenyReasonCode("GUILD_PERMISSION", "guild_permission") then
         return rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_PERMISSION")
     end
     return nil
+end
+
+local function ResolveTransferDeniedNotification(targetBankBag, denyReason)
+    local stringId = ResolveTransferDeniedStringId(targetBankBag, denyReason)
+    if not stringId then
+        return nil
+    end
+
+    local isFurnitureTransfer
+        = denyReason == GetDenyReasonCode("FURNITURE_VAULT_LOCKED", "furniture_vault_locked")
+        or (IsFurnitureVault and IsFurnitureVault(targetBankBag))
+
+    return {
+        stringId = stringId,
+        mode = isFurnitureTransfer and TRANSFER_DENIAL_ALERT or TRANSFER_DENIAL_TOAST,
+    }
 end
 
 local function ResolveGuildBankTransferDecision(mode, bagId, slotIndex)
@@ -95,9 +117,12 @@ local function ResolveGuildBankTransferDecision(mode, bagId, slotIndex)
         return true, nil, nil, nil
     end
 
-    local denialText = GuildBank.GetPermissionDenialReason and GuildBank.GetPermissionDenialReason(mode)
-    if denialText then
-        return false, "guild_permission", denialText, nil
+    local permissionDenial = GuildBank.GetPermissionDenial and GuildBank.GetPermissionDenial(mode)
+    if permissionDenial then
+        return false,
+            permissionDenial.reason or GetDenyReasonCode("GUILD_PERMISSION", "guild_permission"),
+            permissionDenial.text,
+            permissionDenial.stringId
     end
 
     local targetBag = mode == LIST_WITHDRAW and BAG_BACKPACK or BAG_GUILDBANK
@@ -133,9 +158,9 @@ end
 --- Resolves where to deposit an item, returning a bag ID or a sentinel string.
 ---@param bagId number Source bag ID
 ---@param slotIndex number Source slot index
----@param currentUsedBank number|nil Target bank bag (defaults to BAG_BANK)
+---@param transferBankBag number|nil Resolved destination bank bag (defaults to BAG_BANK)
 ---@return number|"unbankable"|"skip" targetBag Bag constant, or "unbankable"/"skip" sentinel
-local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
+local function ResolveDepositTargetBag(bagId, slotIndex, transferBankBag)
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
         local targetBag = GuildBank.GetDepositTargetBag()
@@ -147,9 +172,9 @@ local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
         return "skip"
     end
 
-    local targetBankBag = BETTERUI.Banking.ResolveBankBag(currentUsedBank)
+    local destinationBankBag = BETTERUI.Banking.ResolveBankBag(transferBankBag or BAG_BANK)
 
-    if targetBankBag == BAG_BANK then
+    if destinationBankBag == BAG_BANK then
         -- DoesBagHaveSpaceFor(BAG_BANK) natively returns true if BAG_SUBSCRIBER_BANK has space,
         -- even if BAG_BANK is completely full. We must explicitly verify a slot resolves.
         if BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BANK) then
@@ -171,11 +196,11 @@ local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
         return "skip"
     end
 
-    if BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBankBag) then
-        return targetBankBag
+    if BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, destinationBankBag) then
+        return destinationBankBag
     end
 
-    local freeSlots = GetBagUseableSize(targetBankBag) - GetNumBagUsedSlots(targetBankBag)
+    local freeSlots = GetBagUseableSize(destinationBankBag) - GetNumBagUsedSlots(destinationBankBag)
     if freeSlots > 0 then
         return "unbankable"
     end
@@ -184,14 +209,25 @@ local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
 end
 
 -- Expose helpers for unit testing (tools/tests/test_banking_transfer.lua)
-BETTERUI.Banking._TransferHelpers = {
+local TransferSupport = {
     ResolveStackCount = ResolveStackCount,
     IsDepositSupportedForBank = IsDepositSupportedForBank,
     ResolveTransferDeniedStringId = ResolveTransferDeniedStringId,
+    ResolveTransferDeniedNotification = ResolveTransferDeniedNotification,
+    TRANSFER_DENIAL_ALERT = TRANSFER_DENIAL_ALERT,
+    TRANSFER_DENIAL_TOAST = TRANSFER_DENIAL_TOAST,
     ResolveGuildBankTransferDecision = ResolveGuildBankTransferDecision,
     NotifyGuildBankTransferDenied = NotifyGuildBankTransferDenied,
     ResolveDepositTargetBag = ResolveDepositTargetBag,
 }
+
+function BETTERUI.Banking.GetTransferSupport()
+    return TransferSupport
+end
+
+-- Compatibility seams: keep the helper tables for existing tests and older call sites.
+BETTERUI.Banking.TransferHelpers = TransferSupport
+BETTERUI.Banking._TransferHelpers = TransferSupport
 
 local BANK_TRANSFER_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
     BatchConfig.WithServer({
@@ -224,11 +260,9 @@ function BETTERUI.Banking.Class:BatchTransfer()
     if not selectedItems or #selectedItems == 0 then return end
 
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
-    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
+    local transferDestinationBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
     local GuildBank = BETTERUI.Banking.GuildBank
-    if GuildBank and GuildBank.IsGuildBankMode() then
-        currentUsedBank = BAG_GUILDBANK
-    end
+    local isGuildMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() or false
     local actionName = isWithdraw
         and GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW"))
         or GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
@@ -237,8 +271,8 @@ function BETTERUI.Banking.Class:BatchTransfer()
     for _, itemData in ipairs(selectedItems) do
         local bagId, slotIndex = ExtractSlot(itemData)
         if bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) then
-            local canTransfer = isWithdraw or IsDepositSupportedForBank(bagId, slotIndex, currentUsedBank)
-            if GuildBank and GuildBank.IsGuildBankMode() then
+            local canTransfer = isWithdraw or IsDepositSupportedForBank(bagId, slotIndex, transferDestinationBankBag)
+            if isGuildMode then
                 canTransfer = ResolveGuildBankTransferDecision(isWithdraw and LIST_WITHDRAW or LIST_DEPOSIT, bagId, slotIndex)
             end
             if canTransfer then
@@ -248,77 +282,83 @@ function BETTERUI.Banking.Class:BatchTransfer()
     end
     if #items == 0 then return end
 
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
-        if not HasItemAtSlot(bagId, slotIndex) then
-            return BatchStepHandled()
-        end
+    self:ProcessBatchThrottled({
+        items = items,
+        step = function(bagId, slotIndex, itemData)
+            if not HasItemAtSlot(bagId, slotIndex) then
+                return BatchStepHandled()
+            end
 
-        local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
-        if not stackCount then
-            return BatchStepSkipped()
-        end
-
-        -- Guild bank uses dedicated transfer APIs
-        local GuildBankAdapter = BETTERUI.Banking.GuildBank
-        if GuildBankAdapter and GuildBankAdapter.IsGuildBankMode() then
-            local canTransfer = ResolveGuildBankTransferDecision(isWithdraw and LIST_WITHDRAW or LIST_DEPOSIT, bagId, slotIndex)
-            if not canTransfer then
+            local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
+            if not stackCount then
                 return BatchStepSkipped()
             end
-            if isWithdraw then
-                if GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
-                    return BatchStepStopped("bagFull")
-                end
-                TransferFromGuildBank(slotIndex)
-            else
-                if not IsDepositSupportedForBank(bagId, slotIndex, BAG_GUILDBANK) then
+
+            -- Guild bank uses dedicated transfer APIs
+            local GuildBankAdapter = BETTERUI.Banking.GuildBank
+            if GuildBankAdapter and GuildBankAdapter.IsGuildBankMode() then
+                local canTransfer = ResolveGuildBankTransferDecision(isWithdraw and LIST_WITHDRAW or LIST_DEPOSIT, bagId, slotIndex)
+                if not canTransfer then
                     return BatchStepSkipped()
                 end
-                if GetNumBagUsedSlots(BAG_GUILDBANK) >= GetBagSize(BAG_GUILDBANK) then
+                if isWithdraw then
+                    if GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
+                        return BatchStepStopped("bagFull")
+                    end
+                    TransferFromGuildBank(slotIndex)
+                else
+                    if not IsDepositSupportedForBank(bagId, slotIndex, BAG_GUILDBANK) then
+                        return BatchStepSkipped()
+                    end
+                    if GetNumBagUsedSlots(BAG_GUILDBANK) >= GetBagSize(BAG_GUILDBANK) then
+                        return BatchStepStopped("bagFull")
+                    end
+                    TransferToGuildBank(bagId, slotIndex)
+                end
+                return BatchStepQueued()
+            end
+
+            -- Personal/house bank: existing RequestMoveItem logic
+            if isWithdraw then
+                local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
+                if destinationSlot == nil then
+                    local freeSlots = GetBagUseableSize(BAG_BACKPACK) - GetNumBagUsedSlots(BAG_BACKPACK)
+                    if freeSlots == 0 then
+                        return BatchStepStopped("bagFull")
+                    end
+                    return BatchStepSkipped()
+                end
+
+                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, destinationSlot, stackCount)
+            else
+                if not IsDepositSupportedForBank(bagId, slotIndex, transferDestinationBankBag) then
+                    return BatchStepSkipped()
+                end
+
+                local targetBag = ResolveDepositTargetBag(bagId, slotIndex, transferDestinationBankBag)
+                if not targetBag or targetBag == "skip" then
                     return BatchStepStopped("bagFull")
                 end
-                TransferToGuildBank(bagId, slotIndex)
+                if targetBag == "unbankable" then
+                    return BatchStepSkipped()
+                end
+
+                ---@cast targetBag number
+                local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag)
+                if destinationSlot == nil then
+                    return BatchStepSkipped()
+                end
+
+                CallSecureProtected("RequestMoveItem", bagId, slotIndex, targetBag, destinationSlot, stackCount)
             end
             return BatchStepQueued()
-        end
-
-        -- Personal/house bank: existing RequestMoveItem logic
-        if isWithdraw then
-            local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
-            if destinationSlot == nil then
-                local freeSlots = GetBagUseableSize(BAG_BACKPACK) - GetNumBagUsedSlots(BAG_BACKPACK)
-                if freeSlots == 0 then
-                    return BatchStepStopped("bagFull")
-                end
-                return BatchStepSkipped()
-            end
-
-            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, destinationSlot, stackCount)
-        else
-            if not IsDepositSupportedForBank(bagId, slotIndex, currentUsedBank) then
-                return BatchStepSkipped()
-            end
-
-            local targetBag = ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
-            if not targetBag or targetBag == "skip" then
-                return BatchStepStopped("bagFull")
-            end
-            if targetBag == "unbankable" then
-                return BatchStepSkipped()
-            end
-
-            ---@cast targetBag number
-            local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag)
-            if destinationSlot == nil then
-                return BatchStepSkipped()
-            end
-
-            CallSecureProtected("RequestMoveItem", bagId, slotIndex, targetBag, destinationSlot, stackCount)
-        end
-        return BatchStepQueued()
-    end, function()
-        self:ExitSelectionMode()
-    end, actionName, BANK_TRANSFER_BATCH_OPTIONS)
+        end,
+        onComplete = function()
+            self:ExitSelectionMode()
+        end,
+        actionName = actionName,
+        options = BANK_TRANSFER_BATCH_OPTIONS,
+    })
 end
 
 --- Selects all items in the current list.
@@ -353,19 +393,17 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     -- Use shared mixin to analyze selected items
     local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
-    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
+    local transferDestinationBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
     local GuildBank = BETTERUI.Banking.GuildBank
-    if GuildBank and GuildBank.IsGuildBankMode() then
-        currentUsedBank = BAG_GUILDBANK
-    end
+    local isGuildMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() or false
     local transferCount = 0
     local firstTransferDeniedLabel = nil
 
     for _, itemData in ipairs(selectedItems) do
         local bagId, slotIndex = ExtractSlot(itemData)
         if bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) then
-            local canTransfer = not isDepositMode or IsDepositSupportedForBank(bagId, slotIndex, currentUsedBank)
-            if GuildBank and GuildBank.IsGuildBankMode() then
+            local canTransfer = not isDepositMode or IsDepositSupportedForBank(bagId, slotIndex, transferDestinationBankBag)
+            if isGuildMode then
                 local _, _, denialText = ResolveGuildBankTransferDecision(
                     isDepositMode and LIST_DEPOSIT or LIST_WITHDRAW,
                     bagId,

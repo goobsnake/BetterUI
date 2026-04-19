@@ -182,6 +182,28 @@ BETTERUI = {
         LIST_WITHDRAW = 1,
         LIST_DEPOSIT = 2,
         currentUsedBank = BAG_BANK,
+        ResolveBankBag = function(bankBagId)
+            if bankBagId == nil or bankBagId == 0 then
+                return BAG_BANK
+            end
+            return bankBagId
+        end,
+        GetTransferDestinationBankBag = function()
+            return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+        end,
+        GetTransferSourceBankBag = function()
+            return BETTERUI.Banking.ResolveBankBag(bankingBag)
+        end,
+        GetActiveTransferContext = function()
+            local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
+            local targetBag = BETTERUI.Banking.GetTransferDestinationBankBag()
+            return {
+                sourceBag = sourceBag,
+                targetBag = targetBag,
+                isMainBank = sourceBag == BAG_BANK,
+                isGuildBank = sourceBag == BAG_GUILDBANK,
+            }
+        end,
         Tasks = {
             Schedule = function(_, name, delayMs, callback)
                 scheduledTasks[name] = { delay = delayMs, callback = callback }
@@ -338,11 +360,8 @@ window:RefreshItemActions()
 assertEqual(0, #window.itemActions.slots, "RefreshItemActions is skipped in header sort mode")
 
 window = createWindow()
-BETTERUI.Banking.currentUsedBank = BAG_FURNITURE_VAULT
-assertTrue(window:IsFurnitureVaultContext(), "Furniture vault context is detected from current bank")
-BETTERUI.Banking.currentUsedBank = nil
 bankingBag = BAG_FURNITURE_VAULT
-assertTrue(window:IsFurnitureVaultContext(), "Furniture vault context falls back to live banking bag")
+assertTrue(window:IsFurnitureVaultContext(), "Furniture vault context is detected from the live interaction bag")
 
 resetState()
 window = createWindow()

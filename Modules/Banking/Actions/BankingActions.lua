@@ -27,11 +27,10 @@ function BETTERUI.Banking.Class:RefreshItemActions()
 end
 
 function BETTERUI.Banking.Class:IsFurnitureVaultContext()
-    local currentUsedBank = BETTERUI.Banking and BETTERUI.Banking.currentUsedBank or nil
-    if currentUsedBank == nil and GetBankingBag then
-        currentUsedBank = GetBankingBag()
-    end
-    return currentUsedBank ~= nil and IsFurnitureVault and IsFurnitureVault(currentUsedBank)
+    local transferContext = BETTERUI.Banking and BETTERUI.Banking.GetActiveTransferContext
+        and BETTERUI.Banking.GetActiveTransferContext() or nil
+    local interactionBankBag = transferContext and transferContext.sourceBag or nil
+    return interactionBankBag ~= nil and IsFurnitureVault and IsFurnitureVault(interactionBankBag)
 end
 
 function BETTERUI.Banking.Class:RequestJunkCategoryRefresh(delayMs, preferredCategoryKey)
@@ -219,7 +218,10 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 table.insert(parametricList, 1, moveMaxAction)
             end
 
-            local bankingBag = GetBankingBag and GetBankingBag() or nil
+            local transferContext = BETTERUI.Banking and BETTERUI.Banking.GetActiveTransferContext
+                and BETTERUI.Banking.GetActiveTransferContext() or nil
+            local bankingBag = transferContext and transferContext.sourceBag or nil
+                or nil
             local canShowStowAllFurniture = (self.currentMode == LIST_DEPOSIT)
                 and IsFurnitureVault
                 and IsFurnitureVault(bankingBag)

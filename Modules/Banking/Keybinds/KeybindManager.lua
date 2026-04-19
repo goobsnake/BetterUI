@@ -38,7 +38,7 @@ local function IsActionableListEntry(entryData)
 end
 
 local function IsMainBankContext()
-    return BETTERUI.Banking.GetActiveBankBag() == BAG_BANK
+    return BETTERUI.Banking.GetActiveTransferContext().isMainBank
 end
 
 local function IsGuildBankMode()
@@ -256,13 +256,13 @@ local function CreateCoreNavigationKeybinds(self)
                 if self:IsBatchProcessing() then
                     return
                 end
-                local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
+                local transferSourceBankBag = BETTERUI.Banking.GetActiveTransferContext().sourceBag
                 if self.currentMode == LIST_WITHDRAW then
-                    if currentUsedBank == BAG_BANK then
+                    if transferSourceBankBag == BAG_BANK then
                         StackBag(BAG_BANK)
                         StackBag(BAG_SUBSCRIBER_BANK)
                     else
-                        StackBag(currentUsedBank)
+                        StackBag(transferSourceBankBag)
                     end
                 else
                     StackBag(BAG_BACKPACK)
@@ -430,8 +430,19 @@ local function CreateCurrencyRowKeybinds(self)
     }
 end
 
+local function GetBankingTransferSupport()
+    local banking = BETTERUI.Banking
+    if not banking then
+        return nil
+    end
+    if type(banking.GetTransferSupport) == "function" then
+        return banking.GetTransferSupport()
+    end
+    return banking.TransferHelpers or banking._TransferHelpers
+end
+
 local function GetBankingTransferHelper(helperName)
-    local helpers = BETTERUI.Banking and BETTERUI.Banking._TransferHelpers
+    local helpers = GetBankingTransferSupport()
     return helpers and helpers[helperName]
 end
 

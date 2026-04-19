@@ -11,42 +11,6 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local MODULES       = BETTERUI.CIM.CONST.MODULES
 local ResolveBankBag = BETTERUI.Banking.ResolveBankBag
 
--- HELPER FUNCTIONS (local)
-
-local function IsHousingStorageBag(bagId)
-    if not bagId then
-        return false
-    end
-
-    if IsFurnitureVault and IsFurnitureVault(bagId) then
-        return true
-    end
-
-    if IsHouseBankBag and IsHouseBankBag(bagId) then
-        return true
-    end
-
-    return false
-end
-
-local function GetCurrentBankBag()
-    local bankingBag = GetBankingBag()
-    local openedBankBag = BETTERUI.Banking.lastOpenedBankBag
-
-    if bankingBag == BAG_BANK then
-        if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
-            return openedBankBag
-        end
-        return BAG_BANK
-    end
-
-    if IsHousingStorageBag(bankingBag) then
-        return bankingBag
-    end
-
-    return BAG_BANK
-end
-
 local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
@@ -55,12 +19,14 @@ end
 
 --- Updates the currentUsedBank state.
 function BETTERUI.Banking.Class:CurrentUsedBank()
-    BETTERUI.Banking.currentUsedBank = ResolveBankBag(GetCurrentBankBag())
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    BETTERUI.Banking.currentUsedBank = ResolveBankBag(transferContext.sourceBag)
 end
 
 --- Updates the lastUsedBank state.
 function BETTERUI.Banking.Class:LastUsedBank()
-    BETTERUI.Banking.lastUsedBank = ResolveBankBag(GetCurrentBankBag())
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    BETTERUI.Banking.lastUsedBank = ResolveBankBag(transferContext.sourceBag)
 end
 
 -- POSITION PERSISTENCE

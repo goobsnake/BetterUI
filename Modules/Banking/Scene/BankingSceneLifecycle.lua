@@ -46,8 +46,8 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         self:SetTitle(GuildBank.GetHeaderTitle())
 
         -- Check base permissions on scene entry
-        local depositDenied = GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_DEPOSIT)
-        local withdrawDenied = GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_WITHDRAW)
+        local depositDenied = GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT)
+        local withdrawDenied = GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_WITHDRAW)
         if depositDenied and withdrawDenied then
             -- Cannot deposit or withdraw — show warning but allow viewing
             BETTERUI.CIM.Debug.Log("Guild bank: no deposit or withdraw permission", "GuildBank")
@@ -142,15 +142,16 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 
     local function OnInventoryUpdated(bagId, slotIndex)
         if not BETTERUI.Utils.IsBankingSceneShowing() then return end
-        local currentUsedBank = BETTERUI.Banking.currentUsedBank
+        local transferContext = BETTERUI.Banking.GetActiveTransferContext and BETTERUI.Banking.GetActiveTransferContext() or nil
+        local transferTargetBankBag = transferContext and transferContext.targetBag or BAG_BANK
         local relevantBags
         if self.currentMode == LIST_WITHDRAW then
             if GuildBank and GuildBank.IsGuildBankMode() then
                 relevantBags = { BAG_GUILDBANK }
-            elseif currentUsedBank == BAG_BANK then
+            elseif transferTargetBankBag == BAG_BANK then
                 relevantBags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
             else
-                relevantBags = { currentUsedBank }
+                relevantBags = { transferTargetBankBag }
             end
         else
             relevantBags = { BAG_BACKPACK }

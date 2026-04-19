@@ -227,11 +227,21 @@ BETTERUI = {
         LIST_WITHDRAW = 1,
         LIST_DEPOSIT = 2,
         currentUsedBank = BAG_BANK,
-        GetCurrentBank = function()
+        GetTransferDestinationBankBag = function()
             return currentBank
         end,
-        GetActiveBankBag = function()
+        GetTransferSourceBankBag = function()
             return (currentBankingBag == nil or currentBankingBag == 0) and BAG_BANK or currentBankingBag
+        end,
+        GetActiveTransferContext = function()
+            local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
+            local targetBag = BETTERUI.Banking.GetTransferDestinationBankBag()
+            return {
+                sourceBag = sourceBag,
+                targetBag = targetBag,
+                isMainBank = sourceBag == BAG_BANK,
+                isGuildBank = sourceBag == BAG_GUILDBANK,
+            }
         end,
         _TransferHelpers = {
             IsDepositSupportedForBank = function()
@@ -255,6 +265,9 @@ BETTERUI = {
                 return false, guildTransferReason
             end,
         },
+        GetTransferSupport = function()
+            return BETTERUI.Banking._TransferHelpers
+        end,
         Tasks = {
             Schedule = function(_, _, delayMs, callback)
                 table.insert(scheduledTasks, { delay = delayMs, callback = callback })

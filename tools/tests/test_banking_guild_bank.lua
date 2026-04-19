@@ -22,6 +22,7 @@ GUILD_PERMISSION_BANK_WITHDRAW = 12
 SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER = "SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER"
 SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS = "SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS"
 SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS = "SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS"
+SI_GAMEPAD_GUILD_BANK_NO_PERMISSION = "SI_GAMEPAD_GUILD_BANK_NO_PERMISSION"
 SI_BETTERUI_BANK_TITLE = "SI_BETTERUI_BANK_TITLE"
 SI_TRADING_HOUSE_GUILD_LABEL = "SI_TRADING_HOUSE_GUILD_LABEL"
 SI_GAMEPAD_SELECT_OPTION = "SI_GAMEPAD_SELECT_OPTION"
@@ -51,6 +52,7 @@ local stringValues = {
     [SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER] = "Guild Bank",
     [SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS] = "No withdraw",
     [SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS] = "No deposit %s",
+    [SI_GAMEPAD_GUILD_BANK_NO_PERMISSION] = "No guild permission",
     [SI_BETTERUI_BANK_TITLE] = "Bank",
     [SI_TRADING_HOUSE_GUILD_LABEL] = "Select Guild",
     [SI_GAMEPAD_SELECT_OPTION] = "Select",
@@ -323,8 +325,22 @@ BETTERUI = {
             end
             return bankBagId
         end,
-        GetCurrentBank = function()
+        GetTransferDestinationBankBag = function()
             return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+        end,
+        GetTransferSourceBankBag = function()
+            return BETTERUI.Banking.ResolveBankBag(bankingBag)
+        end,
+        GetActiveTransferContext = function()
+            local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
+            local targetBag = BETTERUI.Banking.GetTransferDestinationBankBag()
+            return {
+                sourceBag = sourceBag,
+                targetBag = targetBag,
+                isMainBank = sourceBag == BAG_BANK,
+                isGuildBank = sourceBag == BAG_GUILDBANK
+                    or (BETTERUI_GUILD_BANKING_SCENE and BETTERUI_GUILD_BANKING_SCENE.isShowing == true),
+            }
         end,
         Class = {
             New = function()
@@ -352,6 +368,11 @@ BETTERUI = {
         end,
     },
     CIM = {
+        ProtectionPolicy = {
+            DENY = {
+                GUILD_PERMISSION = "guild_permission",
+            },
+        },
         SceneLifecycle = {
             Register = function(screen, callbacks)
                 table.insert(lifecycleRegistrations, {
@@ -484,12 +505,28 @@ permissionMatrix[90] = {
 assertTrue(BETTERUI.Banking.GuildBank.CanDeposit(), "Guild deposit permission is respected")
 assertFalse(BETTERUI.Banking.GuildBank.CanWithdraw(), "Guild withdraw permission is respected")
 
+local withdrawDenial = BETTERUI.Banking.GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_WITHDRAW)
+assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.GUILD_PERMISSION, withdrawDenial.reason,
+    "Structured withdraw denial uses shared guild-permission reason")
+assertEqual(SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS, withdrawDenial.stringId,
+    "Structured withdraw denial keeps withdraw-specific string id")
+assertEqual("No withdraw", withdrawDenial.text,
+    "Structured withdraw denial includes localized text")
 assertEqual("No withdraw", BETTERUI.Banking.GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_WITHDRAW),
     "Withdraw denial reason is localized")
 permissionMatrix[90][GUILD_PERMISSION_BANK_DEPOSIT] = false
+local depositDenial = BETTERUI.Banking.GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT)
+assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.GUILD_PERMISSION, depositDenial.reason,
+    "Structured deposit denial uses shared guild-permission reason")
+assertEqual(SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS, depositDenial.stringId,
+    "Structured deposit denial keeps deposit-specific string id")
+assertEqual("No deposit 10", depositDenial.text,
+    "Structured deposit denial includes localized text with member requirement")
 assertEqual("No deposit 10", BETTERUI.Banking.GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_DEPOSIT),
     "Deposit denial reason includes minimum members")
 bankingBag = BAG_BANK
+assertEqual(nil, BETTERUI.Banking.GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT),
+    "Personal bank has no structured permission denial")
 assertEqual(nil, BETTERUI.Banking.GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_DEPOSIT),
     "Personal bank has no denial reason")
 

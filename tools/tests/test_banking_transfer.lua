@@ -2,7 +2,7 @@
 File: tools/tests/test_banking_transfer.lua
 Purpose: Tests for Banking transfer logic: ResolveStackCount, ResolveDepositTargetBag,
          IsDepositSupportedForBank. These local functions are exposed via
-         BETTERUI.Banking._TransferHelpers for testability.
+         BETTERUI.Banking.TransferHelpers (legacy fallback: _TransferHelpers) for testability.
 
 Usage:
   lua tools/tests/test_banking_transfer.lua
@@ -20,6 +20,11 @@ BAG_FURNITURE_VAULT = 100
 BIND_TYPE_ON_PICKUP_BACKPACK = 3
 BIND_TYPE_NONE = 0
 BIND_TYPE_ON_EQUIP = 1
+SI_GAMEPAD_GUILD_BANK_NO_PERMISSION = "SI_GAMEPAD_GUILD_BANK_NO_PERMISSION"
+SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS = "SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS"
+SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS = "SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS"
+SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS = "SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS"
+SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE = "SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE"
 
 -- Configurable stub state
 local slotStacks = {}
@@ -27,6 +32,13 @@ local itemBindTypes = {}
 local bagSizes = {}
 local bagUsed = {}
 local esoPlus = false
+local stringValues = {
+    [SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS] = "Furniture vault requires ESO+",
+    [SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE] = "Furniture vault requires collectible",
+    [SI_GAMEPAD_GUILD_BANK_NO_PERMISSION] = "No guild permission",
+    [SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS] = "No withdraw",
+    [SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS] = "No deposit %s",
+}
 
 function GetSlotStackSize(bagId, slotIndex)
     return slotStacks[bagId .. ":" .. slotIndex] or 0
@@ -46,6 +58,10 @@ end
 
 function IsESOPlusSubscriber()
     return esoPlus
+end
+
+function GetString(id)
+    return stringValues[id] or tostring(id)
 end
 
 function zo_clamp(value, min, max)
@@ -77,6 +93,8 @@ BETTERUI = {
         GuildBank = {
             IsGuildBankMode = function() return false end,
             GetDepositTargetBag = function() return BAG_GUILDBANK end,
+            GetPermissionDenial = function() return nil end,
+            GetPermissionDenialReason = function() return nil end,
         },
         currentUsedBank = BAG_BANK,
         Class = {},
@@ -104,6 +122,8 @@ BETTERUI = {
             DENY = {
                 STOLEN = "stolen",
                 CROWN_GEMMABLE = "crown_gemmable",
+                FURNITURE_VAULT_LOCKED = "furniture_vault_locked",
+                GUILD_PERMISSION = "guild_permission",
             },
             CanTransferItem = function() return true end,
             CanDepositToFurnitureVault = function() return true end,
@@ -191,10 +211,14 @@ local function resetState()
     BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function() return true end
     BETTERUI.CIM.ProtectionPolicy.CanDepositToFurnitureVault = function() return true end
     BETTERUI.Banking.GuildBank.IsGuildBankMode = function() return false end
+    BETTERUI.Banking.GuildBank.GetPermissionDenial = function() return nil end
+    BETTERUI.Banking.GuildBank.GetPermissionDenialReason = function() return nil end
 end
 
--- Grab exposed helpers
-local Helpers = BETTERUI.Banking._TransferHelpers
+-- Grab exposed helpers (prefer explicit public seam, fallback to legacy aliases)
+local Helpers = (BETTERUI.Banking.GetTransferSupport and BETTERUI.Banking.GetTransferSupport())
+    or BETTERUI.Banking.TransferHelpers
+    or BETTERUI.Banking._TransferHelpers
 
 -- ============================================================================
 -- TESTS: ResolveStackCount
@@ -296,6 +320,65 @@ CROWN_GEMIFICATION_MANAGER = { IsItemGemmable = function() return false end }
 assertTrue(Helpers.IsDepositSupportedForBank(1, 5, BAG_FURNITURE_VAULT),
     "Furniture vault deposit allowed for non-gemmable item")
 CROWN_GEMIFICATION_MANAGER = nil
+
+resetState()
+print("\\n-- Furniture vault denied when vault access is locked --")
+HOUSING_EDITOR_STATE = {
+    CanDepositIntoFurnitureVault = function()
+        return false
+    end,
+}
+allowed, reason = Helpers.IsDepositSupportedForBank(1, 5, BAG_FURNITURE_VAULT)
+assertFalse(allowed, "Furniture vault deposit denied when vault is locked")
+assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED, reason,
+    "Returns shared furniture-vault-locked deny reason")
+HOUSING_EDITOR_STATE = nil
+
+-- ============================================================================
+-- TESTS: Guild-bank denial reason flow
+-- ============================================================================
+
+print("\\n=== Guild-bank denial reason flow ===\\n")
+
+resetState()
+BETTERUI.Banking.GuildBank.IsGuildBankMode = function() return true end
+BETTERUI.Banking.GuildBank.GetPermissionDenial = function()
+    return {
+        reason = BETTERUI.CIM.ProtectionPolicy.DENY.GUILD_PERMISSION,
+        stringId = SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS,
+        text = "No withdraw",
+    }
+end
+local canTransfer, denyReason, denialText, denialStringId = Helpers.ResolveGuildBankTransferDecision(
+    BETTERUI.Banking.LIST_WITHDRAW, BAG_GUILDBANK, 5
+)
+assertFalse(canTransfer, "Structured guild denial blocks transfer")
+assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.GUILD_PERMISSION, denyReason,
+    "Structured guild denial returns shared guild-permission reason")
+assertEqual("No withdraw", denialText, "Structured guild denial preserves localized text")
+assertEqual(SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS, denialStringId,
+    "Structured guild denial preserves the shared string ID")
+
+resetState()
+assertNil(Helpers.ResolveTransferDeniedStringId(BAG_GUILDBANK, "unknown_reason"),
+    "Unknown guild-bank deny reasons do not collapse into a generic permission string")
+
+print("\n=== Transfer denial notification contract ===\n")
+
+assertNotNil(Helpers.ResolveTransferDeniedNotification, "ResolveTransferDeniedNotification exported")
+assertNotNil(Helpers.TRANSFER_DENIAL_ALERT, "Transfer denial alert mode constant exposed")
+assertNotNil(Helpers.TRANSFER_DENIAL_TOAST, "Transfer denial toast mode constant exposed")
+assertEqual(1, Helpers.TRANSFER_DENIAL_ALERT, "Transfer denial alert mode is explicit")
+assertEqual(2, Helpers.TRANSFER_DENIAL_TOAST, "Transfer denial toast mode is explicit")
+
+local vaultDeniedNotification = Helpers.ResolveTransferDeniedNotification(
+    BAG_FURNITURE_VAULT,
+    BETTERUI.CIM.ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED
+)
+assertNotNil(vaultDeniedNotification, "Furniture vault denial resolves to structured notification")
+assertEqual(Helpers.TRANSFER_DENIAL_ALERT, vaultDeniedNotification.mode,
+    "Furniture vault denial uses alert mode")
+assertNotNil(vaultDeniedNotification.stringId, "Furniture vault denial resolves string ID")
 
 -- ============================================================================
 -- TESTS: ResolveDepositTargetBag
@@ -413,10 +496,14 @@ assertEqual("skip", result, "Returns 'skip' when guild bank completely full")
 
 print("\n=== API Exposure ===\n")
 
+assertNotNil(BETTERUI.Banking.GetTransferSupport, "GetTransferSupport accessor exists")
 assertNotNil(BETTERUI.Banking._TransferHelpers, "_TransferHelpers table exists")
+assertNotNil(BETTERUI.Banking.TransferHelpers, "TransferHelpers seam table exists")
+assertEqual(Helpers, BETTERUI.Banking.GetTransferSupport(), "GetTransferSupport returns the shared transfer support table")
 assertNotNil(Helpers.ResolveStackCount, "ResolveStackCount exposed")
 assertNotNil(Helpers.IsDepositSupportedForBank, "IsDepositSupportedForBank exposed")
 assertNotNil(Helpers.ResolveDepositTargetBag, "ResolveDepositTargetBag exposed")
+assertNotNil(Helpers.ResolveTransferDeniedNotification, "ResolveTransferDeniedNotification exposed")
 
 -- ============================================================================
 -- SUMMARY

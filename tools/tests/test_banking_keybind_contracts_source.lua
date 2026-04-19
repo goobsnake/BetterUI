@@ -39,8 +39,8 @@ assert_contains(
 
 assert_contains(
     transferActions,
-    "GetRequiredTransferHelper(\"IsDepositSupportedForBank\")",
-    "TransferActions resolves deposit support helper at call time"
+    "GetTransferSupport",
+    "TransferActions resolves helpers through the bounded transfer-support accessor"
 )
 
 assert_contains(
@@ -53,6 +53,12 @@ assert_not_contains(
     transferActions,
     "local IsDepositAllowedForCurrentBank = BETTERUI.Banking._TransferHelpers.IsDepositSupportedForBank",
     "TransferActions no longer captures deposit helpers at file scope"
+)
+
+assert_not_contains(
+    keybindManager,
+    "BETTERUI.Banking.TransferHelpers or BETTERUI.Banking._TransferHelpers",
+    "KeybindManager no longer reads Banking transfer helper tables directly"
 )
 
 assert_contains(

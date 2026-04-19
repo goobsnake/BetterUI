@@ -34,8 +34,8 @@ local function BuildAllBankCategories(isFurnitureVault)
     return out
 end
 
-local function GetWithdrawStorageLabel(currentUsedBank, isEmpty)
-    if IsFurnitureVault and IsFurnitureVault(currentUsedBank) then
+local function GetWithdrawStorageLabel(transferSourceBankBag, isEmpty)
+    if IsFurnitureVault and IsFurnitureVault(transferSourceBankBag) then
         local furnitureVaultName = GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_STACK_COUNT_BAG_FURNITURE_VAULT"))
         if isEmpty then
             return GetString(rawget(_G, "SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY"))
@@ -78,7 +78,8 @@ local GetBestItemCategoryDescription = BETTERUI.CIM.SharedItemSupport.GetBestIte
 
 local function ResolveBagsAndSlotType(self)
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
-    local GuildBank = BETTERUI.Banking.GuildBank
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferSourceBag = transferContext.sourceBag
 
     -- Deposit always reads from backpack
     if not isWithdraw then
@@ -86,15 +87,14 @@ local function ResolveBagsAndSlotType(self)
     end
 
     -- Withdraw from guild bank
-    if GuildBank and GuildBank.IsGuildBankMode() then
+    if transferContext.isGuildBank then
         return { BAG_GUILDBANK }, SLOT_TYPE_GUILD_BANK_ITEM
     end
 
     -- Withdraw from personal bank (includes subscriber bank)
-    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
-    local bags = (currentUsedBank == BAG_BANK)
+    local bags = (transferSourceBag == BAG_BANK)
         and { BAG_BANK, BAG_SUBSCRIBER_BANK }
-        or  { currentUsedBank }
+        or  { transferSourceBag }
     return bags, SLOT_TYPE_BANK_ITEM
 end
 
@@ -111,7 +111,9 @@ function BETTERUI.Banking.Class:RefreshList()
         return
     end
 
-    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferSourceBankBag = transferContext.sourceBag
+    local transferTargetBankBag = transferContext.targetBag
     if self._suppressListUpdates or self.isBatchProcessing then
         return
     end
@@ -135,7 +137,7 @@ function BETTERUI.Banking.Class:RefreshList()
     local GuildBankAdapter = BETTERUI.Banking.GuildBank
     local isGuildBankActive = GuildBankAdapter and GuildBankAdapter.IsGuildBankMode()
 
-    if currentUsedBank == BAG_BANK or isGuildBankActive then
+    if transferSourceBankBag == BAG_BANK or isGuildBankActive then
         if not activeCategory or activeCategory.key == "all" then
             local labelByCurrency = {
                 [CURT_MONEY] = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_GOLD")),
@@ -171,9 +173,9 @@ function BETTERUI.Banking.Class:RefreshList()
             end
         end
     elseif self.currentMode == LIST_WITHDRAW then
-        local isStorageEmpty = (GetNumBagUsedSlots(currentUsedBank) == 0)
+        local isStorageEmpty = (GetNumBagUsedSlots(transferSourceBankBag) == 0)
         self.list:AddEntry("BETTERUI_HeaderRow_Template",
-            { label = "|cFFFFFF" .. GetWithdrawStorageLabel(currentUsedBank, isStorageEmpty) .. "|r" })
+            { label = "|cFFFFFF" .. GetWithdrawStorageLabel(transferSourceBankBag, isStorageEmpty) .. "|r" })
     else
         if GetNumBagUsedSlots(BAG_BACKPACK) == 0 then
             self.list:AddEntry("BETTERUI_HeaderRow_Template",
@@ -287,7 +289,7 @@ function BETTERUI.Banking.Class:RefreshList()
 
     local currentBestCategoryName
     local useHeaders = AutoCategory
-        and ((GetNumBagUsedSlots(currentUsedBank) ~= 0) or (GetNumBagUsedSlots(BAG_BACKPACK) ~= 0))
+        and ((GetNumBagUsedSlots(transferSourceBankBag) ~= 0) or (GetNumBagUsedSlots(BAG_BACKPACK) ~= 0))
 
     for _, itemData in ipairs(filteredDataTable) do
         local entryData = BETTERUI.CIM.CreateItemEntryData(itemData, {

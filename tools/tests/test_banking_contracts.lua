@@ -145,8 +145,9 @@ print("\n=== Banking contract cleanup tests ===\n")
 dofile("Modules/Banking/Core/BankingClass.lua")
 
 assertTrue(type(BETTERUI.Banking.ResolveBankBag) == "function", "ResolveBankBag helper is exposed")
-assertTrue(type(BETTERUI.Banking.GetCurrentBank) == "function", "GetCurrentBank helper is exposed")
-assertTrue(type(BETTERUI.Banking.GetActiveBankBag) == "function", "GetActiveBankBag helper is exposed")
+assertTrue(type(BETTERUI.Banking.GetTransferDestinationBankBag) == "function", "GetTransferDestinationBankBag helper is exposed")
+assertTrue(type(BETTERUI.Banking.GetTransferSourceBankBag) == "function", "GetTransferSourceBankBag helper is exposed")
+assertTrue(type(BETTERUI.Banking.GetActiveTransferContext) == "function", "GetActiveTransferContext helper is exposed")
 assertEqual(BAG_BANK, BETTERUI.Banking.lastUsedBank, "lastUsedBank starts aligned with the normalized default bank")
 assertEqual(BETTERUI.CIM.MultiSelectMixin.OnSelectionCountChanged, BETTERUI.Banking.Class.OnSelectionCountChanged,
     "BankingClass aliases OnSelectionCountChanged directly to the shared multi-select mixin")
@@ -173,24 +174,31 @@ if type(BETTERUI.Banking.ResolveBankBag) == "function" then
 end
 
 BETTERUI.Banking.currentUsedBank = 0
-assertEqual(BAG_BANK, BETTERUI.Banking.GetCurrentBank(), "GetCurrentBank hides the zero sentinel")
+assertEqual(BAG_BANK, BETTERUI.Banking.GetTransferDestinationBankBag(), "GetTransferDestinationBankBag hides the zero sentinel")
 
 BETTERUI.Banking.currentUsedBank = BAG_GUILDBANK
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetCurrentBank(), "GetCurrentBank preserves active non-default banks")
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetActiveBankBag(),
-    "GetActiveBankBag falls back to current bank when GetBankingBag is unavailable")
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetTransferDestinationBankBag(),
+    "GetTransferDestinationBankBag preserves active non-default banks")
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetTransferSourceBankBag(),
+    "GetTransferSourceBankBag falls back to current banking state when GetBankingBag is unavailable")
 
 local originalGetBankingBag = GetBankingBag
 GetBankingBag = function()
     return 0
 end
-assertEqual(BAG_BANK, BETTERUI.Banking.GetActiveBankBag(), "GetActiveBankBag normalizes a zero banking bag")
+assertEqual(BAG_BANK, BETTERUI.Banking.GetTransferSourceBankBag(), "GetTransferSourceBankBag normalizes a zero banking bag")
 GetBankingBag = function()
     return BAG_GUILDBANK
 end
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetActiveBankBag(),
-    "GetActiveBankBag uses the live banking bag when available")
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetTransferSourceBankBag(),
+    "GetTransferSourceBankBag uses the live banking bag when available")
 GetBankingBag = originalGetBankingBag
+
+local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+assertEqual(BAG_GUILDBANK, transferContext.sourceBag, "GetActiveTransferContext exposes the normalized source bag")
+assertEqual(BAG_GUILDBANK, transferContext.targetBag, "GetActiveTransferContext exposes the normalized target bag")
+assertEqual(false, transferContext.isMainBank, "GetActiveTransferContext tracks when banking is not in personal-bank mode")
+assertEqual(true, transferContext.isGuildBank, "GetActiveTransferContext tracks guild-bank mode from the active source bag")
 
 local newWindow = BETTERUI.Banking.Class:New("BETTERUI_BankingWindow", "betterui_banking")
 assertEqual("BETTERUI_BankingWindow", newWindow._newArgs[1], "BankingClass:New forwards the top-level window name")
@@ -289,14 +297,14 @@ assertTrue(headerManager:match("function BETTERUI%.Banking%.Class:RebuildHeaderC
     "HeaderManager owns RebuildHeaderCategories")
 
 local multiSelectActions = readFile("Modules/Banking/Core/MultiSelectActions.lua")
-assertTrue(multiSelectActions:match("local currentUsedBank = BETTERUI%.Banking%.GetCurrentBank%(%)") ~= nil,
-    "MultiSelectActions uses GetCurrentBank for banking transfers and menus")
-assertTrue(multiSelectActions:match("currentUsedBank or BAG_BANK") == nil,
-    "MultiSelectActions no longer bypasses the normalized bank helper")
+assertTrue(multiSelectActions:match("BETTERUI%.Banking%.GetActiveTransferContext%(%)%.targetBag") ~= nil,
+    "MultiSelectActions uses GetActiveTransferContext for banking transfers and menus")
+assertTrue(multiSelectActions:match("transferTargetBankBag or BAG_BANK") == nil,
+    "MultiSelectActions no longer bypasses the transfer context helper")
 
 local bankListManager = readFile("Modules/Banking/Lists/BankListManager.lua")
-assertTrue(bankListManager:match("local currentUsedBank = BETTERUI%.Banking%.GetCurrentBank%(%)") ~= nil,
-    "BankListManager resolves bank bags through GetCurrentBank")
+assertTrue(bankListManager:match("local transferContext = BETTERUI%.Banking%.GetActiveTransferContext%(%)") ~= nil,
+    "BankListManager resolves bag state through GetActiveTransferContext")
 assertTrue(bankListManager:match("BETTERUI%.Banking%.currentUsedBank") == nil,
     "BankListManager no longer reads the raw currentUsedBank field directly")
 assertTrue(bankListManager:match("BETTERUI%.CIM%.Utils%.DefaultSortComparator") ~= nil,
@@ -307,6 +315,40 @@ assertTrue(bankListManager:match("BETTERUI%.CIM%.InitializeSharedItemVisualData"
     "BankListManager uses the neutral shared item visual initializer")
 assertTrue(bankListManager:match("BETTERUI%.Inventory%.Class%.InitializeInventoryVisualData") == nil,
     "BankListManager no longer reaches through Inventory for row visual setup")
+
+local bankingActions = readFile("Modules/Banking/Actions/BankingActions.lua")
+assertTrue(bankingActions:match("BETTERUI%.Banking%.GetActiveTransferContext") ~= nil,
+    "BankingActions resolves furniture-vault checks through GetActiveTransferContext")
+assertTrue(bankingActions:match("BETTERUI%.Banking%.currentUsedBank") == nil,
+    "BankingActions no longer reads the raw currentUsedBank field directly")
+assertTrue(bankingActions:match("GetBankingBag%(") == nil,
+    "BankingActions no longer bypasses bank-state helpers via GetBankingBag")
+
+local bankingSceneLifecycle = readFile("Modules/Banking/Scene/BankingSceneLifecycle.lua")
+assertTrue(bankingSceneLifecycle:match("BETTERUI%.Banking%.GetActiveTransferContext") ~= nil,
+    "BankingSceneLifecycle resolves inventory updates through GetActiveTransferContext")
+assertTrue(bankingSceneLifecycle:match("BETTERUI%.Banking%.currentUsedBank") == nil,
+    "BankingSceneLifecycle no longer reads the raw currentUsedBank field directly")
+
+local bankRowSetup = readFile("Modules/Banking/Lists/BankRowSetup.lua")
+assertTrue(bankRowSetup:match("BETTERUI%.Banking%.GetActiveTransferContext") ~= nil,
+    "BankRowSetup resolves selection context through GetActiveTransferContext")
+assertTrue(bankRowSetup:match("BETTERUI%.Banking%.currentUsedBank") == nil,
+    "BankRowSetup no longer reads the raw currentUsedBank field directly")
+
+local currencySelector = readFile("Modules/Banking/Currency/CurrencySelector.lua")
+assertTrue(currencySelector:match("BETTERUI%.Banking%.GetActiveTransferContext") ~= nil,
+    "CurrencySelector resolves personal-bank checks through GetActiveTransferContext")
+assertTrue(currencySelector:match("GetBankingBag%(") == nil,
+    "CurrencySelector no longer bypasses bank-state helpers via GetBankingBag")
+
+local guildBankAdapter = readFile("Modules/Banking/Core/GuildBankAdapter.lua")
+assertTrue(guildBankAdapter:match("BETTERUI%.Banking%.GetActiveTransferContext") ~= nil,
+    "GuildBankAdapter resolves personal withdraw sources and guild-mode detection through GetActiveTransferContext")
+assertTrue(guildBankAdapter:match("BETTERUI%.Banking%.currentUsedBank") == nil,
+    "GuildBankAdapter no longer reads the raw currentUsedBank field directly")
+assertTrue(guildBankAdapter:match("GetBankingBag%(") == nil,
+    "GuildBankAdapter no longer bypasses bank-state helpers via GetBankingBag")
 
 local itemDataProcessor = readFile("Modules/CIM/Lists/ItemDataProcessor.lua")
 assertTrue(itemDataProcessor:match("function BETTERUI%.CIM%.InitializeSharedItemVisualData") ~= nil,

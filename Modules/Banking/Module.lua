@@ -12,41 +12,23 @@ descriptor factories for the name and column rendering.
 BETTERUI.Banking = BETTERUI.Banking or {}
 local Banking = BETTERUI.Banking
 
+local MODULE_NAME = "Banking"
+local MODULE_OWNER_FILE = "Modules/Banking/Module.lua"
+local ROOT_CONTRACT_INIT_OWNER = MODULE_OWNER_FILE
+local ROOT_CONTRACT_SETUP_OWNER = MODULE_OWNER_FILE
+
 Banking.ARCHETYPE = "runtime-coordinator"
 ---@type BetterUIModuleRootContract
 Banking.ROOT_CONTRACT = {
-	name = "Banking",
+	name = MODULE_NAME,
 	archetype = Banking.ARCHETYPE,
-	initOwner = "Modules/Banking/Module.lua",
-	setupOwner = "Modules/Banking/Module.lua",
-	runtimeOwner = "Modules/Banking/Banking.lua + Modules/Banking/Core/ + Modules/Banking/Scene/ + Modules/Banking/UI/",
-	settingsOwner = "Modules/Banking/Module.lua + Modules/Banking/Settings/",
-	notes = "Module.lua owns Init/Setup wiring, delegates module-setting defaults to DefaultsRegistry, and uses shared CIM font defaults while runtime flow lives under Banking.lua, Core/, Scene/, and UI/.",
+	initOwner = ROOT_CONTRACT_INIT_OWNER,
+	setupOwner = ROOT_CONTRACT_SETUP_OWNER,
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Banking, "Banking")
 
-local function EnsureBankingSetupContracts()
-    BETTERUI.CIM.RegisterModuleAccessors(Banking, "Banking")
-
-    if Banking._narrationLabelsRegistered ~= true
-        and BETTERUI.CIM
-        and BETTERUI.CIM.Narration
-        and BETTERUI.CIM.Narration.RegisterBankingModeLabels
-    then
-        BETTERUI.CIM.Narration.RegisterBankingModeLabels({
-            [Banking.LIST_DEPOSIT] = rawget(_G, "SI_BANK_DEPOSIT"),
-            [Banking.LIST_WITHDRAW] = rawget(_G, "SI_BANK_WITHDRAW"),
-        })
-        Banking._narrationLabelsRegistered = true
-    end
-end
-
---- Initializes defaults and migrates legacy settings for the Banking module.
----
---- INIT CONTRACT: This function implements the standard InitModule signature.
----
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Initialized options with defaults applied
 ---@type BetterUIModuleInitHook
@@ -62,10 +44,24 @@ function Banking.InitModule(m_options)
 	return m_options
 end
 
---- Lifecycle hook: registers settings and starts the Banking class.
+local function EnsureBankingSetupContracts()
+	BETTERUI.CIM.RegisterModuleAccessors(Banking, "Banking")
+	if Banking._narrationLabelsRegistered ~= true
+		and BETTERUI.CIM
+		and BETTERUI.CIM.Narration
+		and BETTERUI.CIM.Narration.RegisterBankingModeLabels
+	then
+		BETTERUI.CIM.Narration.RegisterBankingModeLabels({
+			[Banking.LIST_DEPOSIT] = rawget(_G, "SI_BANK_DEPOSIT"),
+			[Banking.LIST_WITHDRAW] = rawget(_G, "SI_BANK_WITHDRAW"),
+		})
+		Banking._narrationLabelsRegistered = true
+	end
+	BETTERUI.CIM.TryRegisterModulePanel(Banking, "Banking", "Bank", "Banking")
+end
+
 ---@type BetterUIModuleSetupHook
 function Banking.Setup()
-    EnsureBankingSetupContracts()
-    BETTERUI.CIM.TryRegisterModulePanel(Banking, "Banking", "Bank", "Banking")
+	EnsureBankingSetupContracts()
 	Banking.Init()
 end

@@ -11,8 +11,8 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 ---@return integer? bag The bank bag ID, or nil if no space
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank()
-    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
-    if currentUsedBank == BAG_BANK then
+    local transferTargetBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
+    if transferTargetBankBag == BAG_BANK then
         local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
         if emptySlotIndexBank ~= nil then
             return BAG_BANK, emptySlotIndexBank
@@ -26,9 +26,9 @@ local function FindEmptySlotInBank()
         return nil, nil
     end
 
-    local emptySlotIndex = FindFirstEmptySlotInBag(currentUsedBank)
+    local emptySlotIndex = FindFirstEmptySlotInBag(transferTargetBankBag)
     if emptySlotIndex ~= nil then
-        return currentUsedBank, emptySlotIndex
+        return transferTargetBankBag, emptySlotIndex
     end
     return nil, nil
 end
@@ -54,10 +54,13 @@ local function IsActionableBankSlotEntry(entryData)
 end
 
 local function GetRequiredTransferHelper(helperName)
-    local helpers = BETTERUI.Banking and BETTERUI.Banking._TransferHelpers
+    local banking = BETTERUI.Banking
+    local helpers = banking and type(banking.GetTransferSupport) == "function"
+        and banking.GetTransferSupport()
+        or (banking and (banking.TransferHelpers or banking._TransferHelpers) or nil)
     local helper = helpers and helpers[helperName] or nil
     assert(type(helper) == "function",
-        "BetterUI: Banking._TransferHelpers." .. helperName .. " must load before Banking/Actions/TransferActions")
+        "BetterUI: Banking transfer support." .. helperName .. " must load before Banking/Actions/TransferActions")
     return helper
 end
 
@@ -89,7 +92,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
-    local targetBankBag = BETTERUI.Banking.GetCurrentBank()
+    local targetBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
     local isDepositAllowedForCurrentBank = GetRequiredTransferHelper("IsDepositSupportedForBank")
     local notifyGuildBankTransferDenied = GetRequiredTransferHelper("NotifyGuildBankTransferDenied")
     if quantity == nil then
@@ -207,7 +210,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
         else
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            if IsHouseBankBag(BETTERUI.Banking.GetActiveBankBag()) then
+            if IsHouseBankBag(BETTERUI.Banking.GetActiveTransferContext().sourceBag) then
                 banks = { targetBankBag }
             end
 

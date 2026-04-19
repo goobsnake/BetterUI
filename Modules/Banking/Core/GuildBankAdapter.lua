@@ -6,7 +6,7 @@ Purpose: Guild bank detection, permission checks, and mode switching.
 
 KEY MECHANICS:
 1.  **Detection**: Detects when the player interacts with a guild banker
-    by checking `GetBankingBag() == BAG_GUILDBANK`.
+    by checking the active banking bag state.
 2.  **Permission Checks**: Wraps `DoesPlayerHaveGuildPermission()` to
     verify deposit/withdraw rights before allowing item transfers.
 3.  **Guild Selection**: Tracks the active guild bank ID via ZO_GuildSelector.
@@ -27,7 +27,9 @@ function GuildBank.IsGuildBankMode()
     if BETTERUI_GUILD_BANKING_SCENE and BETTERUI_GUILD_BANKING_SCENE:IsShowing() then
         return true
     end
-    return GetBankingBag() == BAG_GUILDBANK
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext and BETTERUI.Banking.GetActiveTransferContext() or nil
+    local interactionBankBag = transferContext and transferContext.sourceBag or nil
+    return interactionBankBag == BAG_GUILDBANK
 end
 
 --- Returns the currently selected guild's ID for guild bank operations.
@@ -89,23 +91,47 @@ function GuildBank.CanWithdraw()
     return false
 end
 
+--- Returns structured guild-bank permission denial details, or nil if no denial.
+---@param mode integer LIST_WITHDRAW or LIST_DEPOSIT constant
+---@return table|nil denial { reason: string, stringId: any, text: string } or nil
+function GuildBank.GetPermissionDenial(mode)
+    if not GuildBank.IsGuildBankMode() then
+        return nil
+    end
+
+    local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
+    local LIST_DEPOSIT = BETTERUI.Banking.LIST_DEPOSIT
+    local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY or {}
+    local reasonCode = deny.GUILD_PERMISSION or "guild_permission"
+
+    if mode == LIST_WITHDRAW and not GuildBank.CanWithdraw() then
+        local stringId = rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS")
+        return {
+            reason = reasonCode,
+            stringId = stringId,
+            text = GetString(stringId),
+        }
+    end
+
+    if mode == LIST_DEPOSIT and not GuildBank.CanDeposit() then
+        local minMembers = GetGuildBankMinDepositMembers and GetGuildBankMinDepositMembers() or 10
+        local stringId = rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS")
+        return {
+            reason = reasonCode,
+            stringId = stringId,
+            text = zo_strformat(GetString(stringId), minMembers),
+        }
+    end
+
+    return nil
+end
+
 --- Returns a user-facing permission denial reason, or nil if no denial.
 ---@param mode integer LIST_WITHDRAW or LIST_DEPOSIT constant
 ---@return string? reason Localized denial message, or nil if permitted
 function GuildBank.GetPermissionDenialReason(mode)
-    if not GuildBank.IsGuildBankMode() then return nil end
-
-    local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-    local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
-
-    if mode == LIST_WITHDRAW and not GuildBank.CanWithdraw() then
-        return GetString(rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS"))
-    elseif mode == LIST_DEPOSIT and not GuildBank.CanDeposit() then
-        local minMembers = GetGuildBankMinDepositMembers and GetGuildBankMinDepositMembers() or 10
-        return zo_strformat(GetString(rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS")), minMembers)
-    end
-
-    return nil
+    local denial = GuildBank.GetPermissionDenial(mode)
+    return denial and denial.text or nil
 end
 
 -- BAG RESOLUTION
@@ -122,13 +148,12 @@ function GuildBank.GetSourceBags(mode)
     if not GuildBank.IsGuildBankMode() then
         -- Personal/house bank: reuse existing logic
         if mode == LIST_WITHDRAW then
-            local currentUsedBank = BETTERUI.Banking.GetCurrentBank and BETTERUI.Banking.GetCurrentBank()
-                or BETTERUI.Banking.ResolveBankBag and BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
-                or BETTERUI.Banking.currentUsedBank
-            if currentUsedBank == BAG_BANK then
+            local transferContext = BETTERUI.Banking.GetActiveTransferContext and BETTERUI.Banking.GetActiveTransferContext() or nil
+            local transferTargetBankBag = transferContext and transferContext.targetBag or nil
+            if transferTargetBankBag == BAG_BANK then
                 return { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            elseif currentUsedBank ~= nil then
-                return { currentUsedBank }
+            elseif transferTargetBankBag ~= nil then
+                return { transferTargetBankBag }
             end
             return { BAG_BANK, BAG_SUBSCRIBER_BANK }
         else

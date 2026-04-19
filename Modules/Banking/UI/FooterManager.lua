@@ -13,7 +13,7 @@ Description: Updates the footer information (bag capacity, currency).
 ]]
 function BETTERUI.Banking.Class:RefreshFooter()
     if not self.footer or not self.footer.footer then return end
-    local currentUsedBank = BETTERUI.Banking.GetCurrentBank()
+    local transferTargetBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
     local GuildBank = BETTERUI.Banking.GuildBank
     local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
 
@@ -28,7 +28,7 @@ function BETTERUI.Banking.Class:RefreshFooter()
             "|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t <<1>>",
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_GUILDBANK),
                 GetBagUseableSize(BAG_GUILDBANK))))
-    elseif currentUsedBank == BAG_BANK then
+    elseif transferTargetBankBag == BAG_BANK then
         self.footer.footer:GetNamedChild("WithdrawButtonSpaceLabel"):SetText(zo_strformat(
             "|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t <<1>>",
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
@@ -38,8 +38,8 @@ function BETTERUI.Banking.Class:RefreshFooter()
         -- House bank
         self.footer.footer:GetNamedChild("WithdrawButtonSpaceLabel"):SetText(zo_strformat(
             "|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t <<1>>",
-            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(currentUsedBank),
-                GetBagUseableSize(currentUsedBank))))
+            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(transferTargetBankBag),
+                GetBagUseableSize(transferTargetBankBag))))
     end
 
     -- Currency display — varies by bank type and mode
@@ -54,7 +54,7 @@ function BETTERUI.Banking.Class:RefreshFooter()
                 GetCarriedCurrencyAmount(CURT_MONEY)))
             self.footerFragment.control:GetNamedChild("Data2Value"):SetText("")
         end
-    elseif (self.currentMode == LIST_WITHDRAW) and (currentUsedBank == BAG_BANK) then
+    elseif (self.currentMode == LIST_WITHDRAW) and (transferTargetBankBag == BAG_BANK) then
         self.footerFragment.control:GetNamedChild("Data1Value"):SetText(BETTERUI.DisplayNumber(GetBankedCurrencyAmount(
             CURT_MONEY)))
         self.footerFragment.control:GetNamedChild("Data2Value"):SetText(BETTERUI.DisplayNumber(GetBankedCurrencyAmount(

@@ -57,8 +57,8 @@ assert_true(categoryManager:find("function BETTERUI%.Banking%.Class%.ComputeVisi
 local constants = read_file("Modules/Banking/Constants.lua")
 assert_true(constants:find("BETTERUI%.Banking%.CONST%.CAROUSEL") ~= nil,
     "Banking constants define carousel overrides")
-assert_true(constants:find("function BETTERUI%.Banking%.CONST%.GetSearchConstants%(%)") ~= nil,
-    "Banking constants expose the shared search constant getter")
+assert_true(constants:find("SearchBar and BETTERUI%.CIM%.SearchBar%.GetConstants") ~= nil,
+    "Banking constants depend directly on the shared search constant provider instead of a wrapper")
 assert_true(constants:find("BETTERUI%.Banking%.CONST%.CURRENCY_TEXTURES") ~= nil,
     "Banking constants define currency selector textures")
 assert_true(constants:find("BETTERUI_BANK_MOVE_COALESCE_DELAY_MS") ~= nil,
@@ -71,6 +71,8 @@ assert_true(guildBankAdapter:find("function GuildBank%.CanDeposit%(%)") ~= nil,
     "GuildBankAdapter exposes deposit permission checks")
 assert_true(guildBankAdapter:find("function GuildBank%.CanWithdraw%(%)") ~= nil,
     "GuildBankAdapter exposes withdraw permission checks")
+assert_true(guildBankAdapter:find("function GuildBank%.GetPermissionDenial%(mode%)") ~= nil,
+    "GuildBankAdapter exposes structured permission denial details")
 assert_true(guildBankAdapter:find("function GuildBank%.GetPermissionDenialReason%(mode%)") ~= nil,
     "GuildBankAdapter exposes denial-reason formatting")
 assert_true(guildBankAdapter:find("function GuildBank%.GetSourceBags%(mode%)") ~= nil,
@@ -129,8 +131,6 @@ assert_true(bankingModule:find("Banking%.ROOT_CONTRACT = %{%s*") ~= nil,
     "Banking module declares a root contract")
 assert_true(bankingModule:find('BETTERUI%.CIM%.ApplyModuleSharedSettingsStatics%(Banking, "Banking"%)') ~= nil,
     "Banking module keeps only shared settings statics at import time")
-assert_true(bankingModule:find("local function EnsureBankingSetupContracts%(%)") ~= nil,
-    "Banking module defines setup-time Banking contract registration")
 assert_true(bankingModule:find('BETTERUI%.CIM%.RegisterModuleAccessors%(Banking, "Banking"%)') ~= nil,
     "Banking module registers shared Banking accessors during setup")
 assert_true(bankingModule:find("function Banking%.InitModule%(m_options%)") ~= nil,
