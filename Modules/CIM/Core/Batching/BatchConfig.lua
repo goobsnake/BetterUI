@@ -55,6 +55,24 @@ local BatchConfig = BETTERUI.CIM.BatchConfig
 ---@field status string
 ---@field reason string|nil
 
+---@alias BetterUIBatchCompletionReason
+---| "bagFull"
+---| "sceneExit"
+---| "aborted"
+---| "stopped"
+
+---@alias BetterUIBatchCompletionCallback fun(stopReason: BetterUIBatchCompletionReason|nil)
+
+---@class BetterUIBatchRequest
+---@field items table[]
+---@field step fun(bagId:number, slotIndex:number, itemData:table):BetterUIBatchStepResult|nil
+---@field onComplete BetterUIBatchCompletionCallback|nil
+---@field actionName string|nil
+---@field options BatchOptions|table|nil
+
+---@class BetterUIVendorBatchRequest: BetterUIBatchRequest
+---@field mode number
+
 -- THROTTLE TIER CONFIGURATION
 
 local DEFAULT_BATCH_THROTTLE_TIERS = {

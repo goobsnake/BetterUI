@@ -1,17 +1,8 @@
---[[
-File: Modules/Inventory/Actions/ItemActionsDialog.lua
-Purpose: Wires up the "Y-Action" menu (Action Dialog) for inventory items.
-         Hooks the native ZO_GAMEPAD_INVENTORY_ACTION_DIALOG.
-         Handler implementations live in ItemActionHandlers.lua (loaded before this file).
-]]
+-- Inventory action-dialog wiring.
 
 
 -- SLOT ACTIONS HELPER
 
---- Initializes the action slot manager for item interactions.
----
---- Purpose: Creates the helper object for "Y" button actions.
---- Mechanics: Instantiates `BETTERUI.Inventory.SlotActions`.
 --- Initializes the action slot manager for item interactions.
 ---@return nil
 function BETTERUI.Inventory.Class:InitializeItemActions()

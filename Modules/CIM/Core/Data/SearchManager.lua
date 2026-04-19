@@ -1,13 +1,4 @@
---[[
-File: Modules/CIM/Core/SearchManager.lua
-Purpose: Text search functionality for gamepad windows.
-
-
-Contains:
-  - CreateSearchKeybindDescriptor function
-  - Local helpers for mouse interactivity and narration
-  - SearchMixin table applied to Window class by WindowClass.lua
-]]
+-- Shared gamepad text-search helpers.
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
@@ -39,7 +30,6 @@ BETTERUI.Interface = BETTERUI.Interface or {}
 -- LOCAL HELPERS
 
 --- Makes the search control and its children interactive for mouse users.
----
 local function PatchMouseInteractivity(searchControl, focusHandler)
     if searchControl.SetMouseEnabled then
         searchControl:SetMouseEnabled(true)
@@ -73,10 +63,7 @@ local function PatchMouseInteractivity(searchControl, focusHandler)
     end
 end
 
---- Registers narration logic for the search header and list items.
----
---- Purpose: Enhanced to provide accessibility for item selection and actions.
----
+--- Registers narration logic for the search header and selected list items.
 local function RegisterNarrationHandler(window, focusHandler)
     if SCREEN_NARRATION_MANAGER and focusHandler then
         local textSearchHeaderNarrationInfo =
@@ -99,19 +86,16 @@ local function RegisterNarrationHandler(window, focusHandler)
                 end
                 return narrations
             end,
-            -- Enhanced: Add selected item narration for list items
             selectedItemNarrationFunction = function()
                 local narrations = {}
                 local currentList = window:GetList()
                 if currentList and currentList.selectedData then
                     local data = currentList.selectedData
 
-                    -- Narrate item name
                     if data.name then
                         ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(data.name))
                     end
 
-                    -- Narrate quality if available
                     if data.quality and GetString then
                         local qualityString = GetString("SI_ITEMQUALITY", data.quality)
                         if qualityString and qualityString ~= "" then
@@ -119,24 +103,20 @@ local function RegisterNarrationHandler(window, focusHandler)
                         end
                     end
 
-                    -- Narrate stack count for stacked items
                     if data.stackCount and data.stackCount > 1 then
                         local stackText = zo_strformat("Stack of <<1>>", data.stackCount)
                         ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(stackText))
                     end
 
-                    -- Narrate category
                     if data.bestItemCategoryName then
                         ZO_AppendNarration(narrations,
                             SCREEN_NARRATION_MANAGER:CreateNarratableObject(data.bestItemCategoryName))
                     end
 
-                    -- Narrate equipped status
                     if data.isEquippedInCurrentCategory then
                         ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject("Equipped"))
                     end
 
-                    -- Narrate junk status
                     if data.isJunk then
                         ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject("Marked as junk"))
                     end
@@ -281,15 +261,6 @@ function BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(self)
 end
 
 --- Integrates text search capability into the window.
----
---- Purpose: Creates and configures text search UI components.
---- Mechanics:
---- 1. Creates a header editbox control using 'ZO_Gamepad_TextSearch_HeaderEditbox'.
---- 2. Wraps it in `ZO_TextSearch_Header_Gamepad` for logic handling.
---- 3. Registers keybinds and focus management.
---- 4. Patches the control to be mouse-interactive using `PatchMouseInteractivity`.
---- 5. Registers with SCREEN_NARRATION_MANAGER using `RegisterNarrationHandler`.
---- Integrates text search capability into the window.
 ---@param self BetterUISearchContext
 ---@param textSearchKeybindStripDescriptor BetterUIKeybindDescriptorGroup
 ---@param onTextSearchTextChangedCallback fun(text: string)?
@@ -432,12 +403,6 @@ end
 -- Consolidated edit box handlers previously duplicated in Banking.lua and InventoryClass.lua
 
 --- Sets up focus, text change, and navigation handlers for the search edit box.
----
---- Purpose: Configures edit box event handlers.
---- Mechanics:
---- 1. Wraps existing handlers to preserve original behavior.
---- 2. Adds scene guards to prevent processing when scene is hidden.
---- 3. Handles D-pad/stick navigation to exit search on Down press.
 ---@param self BetterUISearchContext
 ---@param options {isSceneShowing: fun(): boolean, onTextChanged: fun(self: BetterUISearchContext, text: string)?, onExitFocus: fun(self: BetterUISearchContext)?, enterHeaderFn: fun(self: BetterUISearchContext)?}?
 function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)

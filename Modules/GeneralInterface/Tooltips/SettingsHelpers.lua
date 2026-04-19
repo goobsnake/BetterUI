@@ -31,7 +31,9 @@ end
 local function RefreshInventoryAndBankingLists()
     local inventoryWindow = GAMEPAD_INVENTORY
     local inventorySceneShowing = true
-    if BETTERUI.CIM.Utils and type(BETTERUI.CIM.Utils.IsInventorySceneShowing) == "function" then
+    if BETTERUI.Utils and type(BETTERUI.Utils.IsInventorySceneShowing) == "function" then
+        inventorySceneShowing = BETTERUI.Utils.IsInventorySceneShowing()
+    elseif BETTERUI.CIM.Utils and type(BETTERUI.CIM.Utils.IsInventorySceneShowing) == "function" then
         inventorySceneShowing = BETTERUI.CIM.Utils.IsInventorySceneShowing()
     end
 
@@ -45,7 +47,9 @@ local function RefreshInventoryAndBankingLists()
 
     local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
     local bankingSceneShowing = true
-    if BETTERUI.CIM.Utils and type(BETTERUI.CIM.Utils.IsBankingSceneShowing) == "function" then
+    if BETTERUI.Utils and type(BETTERUI.Utils.IsBankingSceneShowing) == "function" then
+        bankingSceneShowing = BETTERUI.Utils.IsBankingSceneShowing()
+    elseif BETTERUI.CIM.Utils and type(BETTERUI.CIM.Utils.IsBankingSceneShowing) == "function" then
         bankingSceneShowing = BETTERUI.CIM.Utils.IsBankingSceneShowing()
     end
 

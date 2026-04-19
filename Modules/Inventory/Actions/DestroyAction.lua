@@ -1,8 +1,4 @@
---[[
-File: Modules/Inventory/Actions/DestroyAction.lua
-Purpose: Handles item destruction logic, offering a safer replacement for the engine's DestroyItem
-         by respecting "Junk" status and "Quick Destroy" settings.
-]]
+-- Inventory destroy-action helpers.
 
 -- DESTROY ITEM LOGIC
 
@@ -105,14 +101,6 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRe
 end
 
 --- Hooks the native destroy logic (RS-button and engine action callbacks).
----
---- Purpose: Redirects engine destruction calls to BetterUI's destroy flow.
---- Mechanics:
---- - Uses `ZO_PreHook` for `ZO_InventorySlot_InitiateDestroyItem` (no global replacement).
---- - If quickDestroy is enabled, destroys immediately via `TryDestroyItem`.
---- - Otherwise, shows `BETTERUI_CONFIRM_DESTROY_DIALOG` for user confirmation.
---- - Always returns true to prevent the engine's cursor-based destroy flow
----   from showing a second (native) confirmation dialog.
 ---@return nil
 function BETTERUI.Inventory.HookDestroyItem()
     if BETTERUI.Inventory._destroyHookInstalled then

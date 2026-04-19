@@ -1,8 +1,4 @@
 -- BetterUI - General Interface Setup
---
--- Module Setup() lifecycle: builds the LAM settings panel, registers tooltip
--- hooks, and initializes Nameplates. Aggregates settings from Tooltips/ and
--- Nameplates/ subdirectories.
 
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
@@ -25,16 +21,6 @@ local function GetNameplateOptions()
 	return BETTERUI.Nameplates.GetSettingsOptions()
 end
 
---- Initializes the settings panel for General Interface options.
----
---- Purpose: Creates a LibAddonMenu panel with all configurable options.
---- Mechanics:
---- - Aggregates settings from separate settings files.
---- - Defines `optionsTable` with checkboxes, sliders, and submenus.
---- - Uses `LAM:RegisterAddonPanel` and `LAM:RegisterOptionControls`.
----
---- References: Called during module setup.
----
 local function Init(mId, moduleName)
 	local panelData = BETTERUI.Init_ModulePanel(moduleName, "General Interface Settings")
 
@@ -204,20 +190,6 @@ GeneralInterface._SetupInstallers = {
 }
 
 
---- Sets up the General Interface (Tooltips) module.
----
---- Purpose: Registers hooks and event handlers for tooltip enhancements.
---- Mechanics:
---- 1. Uses the shared setup-time panel seam to build/register the settings menu once.
---- 2. Avoids global helper overrides to prevent protected-callstack taint.
---- 3. Hooks `ZO_MailInbox_Gamepad` to allow 'X' keybind for deletion if enabled.
---- 4. Hooks Gamepad Tooltips (`LayoutItem`, `LayoutBagItem`, etc.) to inject custom data.
---- 5. Manages Guild Store error suppression based on scene state (`gamepad_trading_house`).
---- 6. Registers inventory update events to invalidate trait caches.
---- 7. Applies chat history limit.
----
---- References: Called by the core Addon initialization.
----
 ---@type BetterUIModuleSetupHook
 function GeneralInterface.Setup()
 	BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")

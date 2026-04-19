@@ -34,9 +34,6 @@ CIM.ROOT_CONTRACT = {
     archetype = CIM.ARCHETYPE,
     initOwner = "Modules/CIM/Module.lua",
     setupOwner = nil,
-    runtimeOwner = "Modules/CIM/Core/",
-    settingsOwner = "Modules/CIM/Core/Settings/",
-    notes = "Module.lua owns saved-variable normalization for shared infrastructure; Core/ owns runtime helpers and public services.",
 }
 
 ---@param m_options BetterUIModuleOptions|nil Raw settings table to initialize

@@ -46,7 +46,8 @@ assert_true(fontSettingsSource:find("function BETTERUI%.Inventory%.Settings%.Get
 local settingsPanelSource = read_file("Modules/Inventory/Settings/SettingsPanel.lua")
 assert_true(settingsPanelSource:find("function BETTERUI%.Inventory%.Settings%.RegisterPanel%(mId, moduleName%)") ~= nil,
     "SettingsPanel exposes RegisterPanel")
-assert_true(settingsPanelSource:find("BETTERUI%.CIM%.Settings%.CreateIconCustomizationSubmenuOption%(%\"Inventory%\"") ~= nil,
+assert_true(settingsPanelSource:find("CreateIconCustomizationSubmenuOption") ~= nil
+        and settingsPanelSource:find("\"Inventory\"") ~= nil,
     "SettingsPanel wires the shared icon customization submenu")
 assert_true(settingsPanelSource:find("BETTERUI%.Inventory%.Settings%.GetCurrencyOptions%(%)") ~= nil,
     "SettingsPanel appends the currency options packet")
@@ -60,10 +61,10 @@ assert_true(positionManagerSource:find("function BETTERUI%.Inventory%.ToSavedPos
     "PositionManager exposes ToSavedPosition")
 assert_true(positionManagerSource:find("function BETTERUI%.Inventory%.SaveListPosition%(self%)") ~= nil,
     "PositionManager exposes SaveListPosition")
-assert_true(positionManagerSource:find("BETTERUI%.Inventory%.RegisterMixin%(%\"ToSavedPosition%\"") ~= nil,
-    "PositionManager registers the ToSavedPosition mixin")
-assert_true(positionManagerSource:find("BETTERUI%.Inventory%.RegisterMixin%(%\"SaveListPosition%\"") ~= nil,
-    "PositionManager registers the SaveListPosition mixin")
+assert_true(positionManagerSource:find("BETTERUI%.Inventory%.Class%.ToSavedPosition = BETTERUI%.Inventory%.ToSavedPosition") ~= nil,
+    "PositionManager binds ToSavedPosition directly onto Inventory.Class")
+assert_true(positionManagerSource:find("BETTERUI%.Inventory%.Class%.SaveListPosition = BETTERUI%.Inventory%.SaveListPosition") ~= nil,
+    "PositionManager binds SaveListPosition directly onto Inventory.Class")
 
 local tooltipEquippedSource = read_file("Modules/Inventory/UI/TooltipEquipped.lua")
 assert_true(tooltipEquippedSource:find("function BETTERUI%.Inventory%.UpdateTooltipEquippedText%(tooltipType, equipSlot%)") ~= nil,

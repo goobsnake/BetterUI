@@ -1,8 +1,3 @@
---[[
-File: Modules/ResourceOrbFrames/Module.lua
-Purpose: Configuration module for Resource Orb Frames.
-         Manages LibAddonMenu settings panel and default values.
-]]
 
 ---@type BetterUIModuleRoot
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
@@ -21,12 +16,6 @@ ResourceOrbFrames.ROOT_CONTRACT = {
     notes = "Module.lua owns the public entrypoints and settings panel, while Settings/Defaults.lua owns defaults data and ResourceOrbFrames.lua/SkillBar/ own runtime behavior.",
 }
 
-local function EnsureResourceOrbFramesSetupContracts()
-    BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")
-end
-
---- Re-exposes the standard module init contract from Module.lua while delegating
---- the actual defaults work to Settings/Defaults.lua.
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Options table with defaults applied
 ---@type BetterUIModuleInitHook
@@ -38,17 +27,7 @@ function ResourceOrbFrames.InitModule(m_options)
     return m_options or {}
 end
 
---- Initializes the settings panel for Resource Orb Frames.
----
---- Purpose: Creates a LibAddonMenu panel with all configurable options.
---- Note: This is the LAM panel setup function, NOT the defaults-initialization
----       function. Public InitModule is exposed from this file and delegates to
----       Settings/Defaults.lua.
---- Attributes:
---- - Settings for scale, offset, and textures.
---- - Toggle options for ornaments, skill bar features, and overlays.
---- - Customization for fonts (size/color) on all elements.
----
+--- Initializes ResourceOrbFrames settings panel.
 local function InitSettingsPanel(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Resource Orb Frames Settings")
 
@@ -81,12 +60,6 @@ local function InitSettingsPanel(mId, moduleName)
 
     local CloneColor = BETTERUI.CloneColor
 
-    --[[
-    Function: ResetSettingsGroup
-    Description: Resets a group of settings keys to their defaults and applies changes.
-    Rationale: Extracted from 3 duplicated reset-button function bodies to eliminate boilerplate.
-    param: keyDefaults (table) - Array of {key, value?, isColor?, colorFallback?} entries.
-    ]]
     local function ResetSettingsGroup(keyDefaults)
         local settings = EnsureResourceOrbSettings()
         if not settings then return end
@@ -100,7 +73,6 @@ local function InitSettingsPanel(mId, moduleName)
         Apply()
     end
 
-    -- Accessor with live update
     local GetSet = BETTERUI.CreateSettingAccessors("ResourceOrbFrames", Apply)
     local GetColorSet = BETTERUI.CreateColorSettingAccessors("ResourceOrbFrames", Apply)
 
@@ -287,7 +259,7 @@ ResourceOrbFrames.Settings.RegisterPanel = InitSettingsPanel
 --- Sets up the Resource Orb Frames module.
 ---@type BetterUIModuleSetupHook
 function ResourceOrbFrames.Setup()
-    EnsureResourceOrbFramesSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")
     BETTERUI.CIM.TryRegisterModulePanel(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",
         "Resource Orb Frames")
 end

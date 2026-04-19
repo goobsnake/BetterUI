@@ -1,21 +1,11 @@
---[[
-File: Modules/Inventory/Dialogs/CraftBagQuantityDialog.lua
-Purpose: Manages the quantity dialog for Craft Bag stow/retrieve operations.
-         Displays a slider allowing users to select how many items to stow or retrieve.
-]]
-
--- Dialog name constant
 BETTERUI_CRAFTBAG_QUANTITY_DIALOG = "BETTERUI_CRAFTBAG_QUANTITY_DIALOG"
 
--- Event fired when the dialog completes
 BETTERUI_EVENT_CRAFTBAG_QUANTITY_DIALOG_FINISHED = "BETTERUI_EVENT_CRAFTBAG_QUANTITY_DIALOG_FINISHED"
 
--- Initialize the namespace
 if not BETTERUI.Inventory.Dialogs then
     BETTERUI.Inventory.Dialogs = {}
 end
 
--- Maximum items that can be transferred in a single operation (ESO game limit)
 local MAX_STACK_TRANSFER = 200
 
 local function SetupSliderKeybindHints(dialog)
@@ -25,7 +15,6 @@ local function SetupSliderKeybindHints(dialog)
     if not itemSlider then return end
 
     if not dialog._minIconLabel then
-        -- Button icons above the item icons
         local minIcon = WINDOW_MANAGER:CreateControl(nil, itemSlider, CT_LABEL)
         minIcon:SetFont("ZoFontGamepad27")
         minIcon:SetColor(ZO_NORMAL_TEXT:UnpackRGBA())
@@ -40,7 +29,6 @@ local function SetupSliderKeybindHints(dialog)
         maxIcon:SetAnchor(BOTTOM, dialog.icon2, TOP, 0, -11)
         dialog._maxIconLabel = maxIcon
 
-        -- Auto-size number values and center under icons
         if dialog.sliderValue1 then
             dialog.sliderValue1:ClearAnchors()
             dialog.sliderValue1:SetWidth(0)
@@ -54,7 +42,6 @@ local function SetupSliderKeybindHints(dialog)
             dialog.sliderValue2:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         end
 
-        -- Contextual label text to the left of the numbers
         local minText = WINDOW_MANAGER:CreateControl(nil, itemSlider, CT_LABEL)
         minText:SetFont("ZoFontGamepad34")
         minText:SetColor(ZO_NORMAL_TEXT:UnpackRGBA())
@@ -78,7 +65,6 @@ local function SetupSliderKeybindHints(dialog)
     dialog._minIconLabel:SetText(xIcon or "")
     dialog._maxIconLabel:SetText(yIcon or "")
 
-    -- Contextual labels based on action type
     local isStow = dialog.data and dialog.data.isStow
     local leftLabel = isStow
         and GetString(rawget(_G, "SI_BETTERUI_SLIDER_KEEPS"))
@@ -89,17 +75,14 @@ local function SetupSliderKeybindHints(dialog)
     dialog._minTextLabel:SetText(leftLabel .. ":")
     dialog._maxTextLabel:SetText(rightLabel .. ":")
 
-    -- Ensure controls are visible (split stack dialog hides them on the shared template)
     dialog._minIconLabel:SetHidden(false)
     dialog._maxIconLabel:SetHidden(false)
     dialog._minTextLabel:SetHidden(false)
     dialog._maxTextLabel:SetHidden(false)
 end
 
---- Registers the quantity selection dialog for Craft Bag operations.
 ---@return nil
 function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
-    -- Only register once (CIM registry handles duplicate check)
     if BETTERUI.CIM.Dialogs.IsRegistered(BETTERUI_CRAFTBAG_QUANTITY_DIALOG) then
         return
     end
@@ -109,21 +92,15 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.ITEM_SLIDER,
         },
-        -- Restore keybind strip after dialog closes (both confirm and cancel).
-        -- The A button callback clears itemActions.actionName before opening this dialog
-        -- (FLICKER FIX in InventoryKeybinds.lua). Without re-populating it after close,
-        -- the A button shows with no text because actionName stays nil.
         finishedCallback = function()
             local inv = GAMEPAD_INVENTORY
             if inv and inv.SetSelectedInventoryData and inv.scene and inv.scene:IsShowing() then
-                -- Determine the currently selected item data based on action mode
                 local selectedData
                 if inv.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(inv.craftBagList)
                 elseif inv.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(inv.itemList)
                 end
-                -- Re-trigger PrimaryCommandActivate to restore actionName
                 inv:SetSelectedInventoryData(selectedData)
             end
         end,
@@ -228,7 +205,6 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
     })
 end
 
---- Displays the quantity selection dialog for stow/retrieve operations.
 ---@param inventorySlot table|nil Inventory slot control reference
 ---@param isStow boolean Whether the operation is stowing (true) or retrieving (false)
 ---@return nil
@@ -240,7 +216,6 @@ function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, is
 
     local stackCount = GetSlotStackSize(bagId, slotIndex) or 1
 
-    -- If only 1 item, just move it directly without dialog
     if stackCount <= 1 then
         if isStow then
             BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
@@ -265,21 +240,18 @@ function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, is
     })
 end
 
---- Attempts to stow an item to the Craft Bag, prompting for quantity if stacked.
 ---@param inventorySlot table|nil Inventory slot control reference
 ---@return nil
 function BETTERUI.Inventory.Dialogs.TryStowWithQuantity(inventorySlot)
     BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, true)
 end
 
---- Attempts to retrieve an item from the Craft Bag, prompting for quantity if stacked.
 ---@param inventorySlot table|nil Inventory slot control reference
 ---@return nil
 function BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity(inventorySlot)
     BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, false)
 end
 
---- Immediately stows the full stack to the Craft Bag without prompting.
 ---@param inventorySlot table|nil Inventory slot control reference
 ---@return nil
 function BETTERUI.Inventory.Dialogs.StowFullStack(inventorySlot)
@@ -287,7 +259,6 @@ function BETTERUI.Inventory.Dialogs.StowFullStack(inventorySlot)
     BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
 end
 
---- Immediately retrieves the full stack from the Craft Bag without prompting.
 ---@param inventorySlot table|nil Inventory slot control reference
 ---@return nil
 function BETTERUI.Inventory.Dialogs.RetrieveFullStack(inventorySlot)

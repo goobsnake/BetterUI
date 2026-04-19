@@ -112,18 +112,40 @@ local function BuildController(integration)
 end
 
 ---@param integration BetterUIHeaderSortIntegration
-local function ResolveController(integration)
+---@return table|nil
+local function PeekController(integration)
+    if not integration then
+        return nil
+    end
+
     if integration.controller then
         return integration.controller
     end
 
     local owner = integration.owner
-    local controllerContract = integration.controllerContract
+    local controllerContract = integration.controllerContract or {}
     if owner and controllerContract.field and owner[controllerContract.field] then
-        integration.controller = owner[controllerContract.field]
-        return integration.controller
+        return owner[controllerContract.field]
     end
 
+    for _, aliasField in ipairs(controllerContract.aliasFields or {}) do
+        if owner and aliasField and owner[aliasField] then
+            return owner[aliasField]
+        end
+    end
+
+    return nil
+end
+
+---@param integration BetterUIHeaderSortIntegration
+local function ResolveController(integration)
+    local existingController = PeekController(integration)
+    if existingController then
+        integration.controller = existingController
+        return existingController
+    end
+
+    local controllerContract = integration.controllerContract
     if controllerContract.initialize then
         controllerContract.initialize(integration.owner)
     end
@@ -354,7 +376,7 @@ end
 
 ---@param owner table?
 ---@return table?
-function HeaderSortIntegration.GetController(owner)
+function HeaderSortIntegration.EnsureControllerForOwner(owner)
     if not owner then
         return nil
     end
@@ -364,6 +386,26 @@ function HeaderSortIntegration.GetController(owner)
     end
 
     return owner.headerSortController or owner.sortController
+end
+
+---@param owner table?
+---@return table?
+function HeaderSortIntegration.PeekController(owner)
+    if not owner then
+        return nil
+    end
+
+    if owner._headerSortIntegration then
+        return PeekController(owner._headerSortIntegration)
+    end
+
+    return owner.headerSortController or owner.sortController
+end
+
+---@param owner table?
+---@return table?
+function HeaderSortIntegration.GetController(owner)
+    return HeaderSortIntegration.PeekController(owner)
 end
 
 ---@param integration BetterUIHeaderSortIntegration|nil

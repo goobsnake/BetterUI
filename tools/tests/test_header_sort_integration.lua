@@ -153,13 +153,20 @@ do
         },
     })
 
-    local controller = HeaderSortIntegration.EnsureController(integration)
+    assert_true(HeaderSortIntegration.PeekController(owner) == nil, "peek controller does not initialize integration state")
+    assert_true(HeaderSortIntegration.GetController(owner) == nil, "get controller remains side-effect-free before ensure")
+    assert_eq(onControllerCreatedCalls, 0, "get/peek do not trigger controller creation callbacks")
+
+    local controller = HeaderSortIntegration.EnsureControllerForOwner(owner)
+    assert_true(controller ~= nil, "ensure controller for owner initializes controller")
     assert_true(controller == owner.sortController, "ensure controller assigns primary field")
     assert_true(controller == owner.headerSortController, "ensure controller assigns alias field")
     assert_eq(controller.columns[1].key, "name", "ensure controller preserves columns")
     assert_eq(onControllerCreatedCalls, 1, "ensure controller triggers callback once")
+    assert_true(HeaderSortIntegration.PeekController(owner) == controller, "peek controller returns initialized controller")
     assert_true(HeaderSortIntegration.GetController(owner) == controller, "get controller resolves integration-owned controller")
     assert_true(HeaderSortIntegration.EnsureController(integration) == controller, "ensure controller reuses created controller")
+    assert_true(HeaderSortIntegration.EnsureControllerForOwner(owner) == controller, "owner ensure reuses created controller")
 end
 
 do

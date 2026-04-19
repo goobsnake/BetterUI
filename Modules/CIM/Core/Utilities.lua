@@ -164,8 +164,11 @@ end
 ---@return number bankBagId Active banking target bag, or BAG_BANK when banking is unavailable
 function BETTERUI.CIM.Utils.GetActiveBankTargetBag()
     local banking = BETTERUI.Banking
-    if banking and type(banking.GetCurrentBank) == "function" then
-        return banking.GetCurrentBank()
+    if banking and type(banking.GetActiveTransferContext) == "function" then
+        return banking.GetActiveTransferContext().targetBag
+    end
+    if banking and type(banking.GetTransferDestinationBankBag) == "function" then
+        return banking.GetTransferDestinationBankBag()
     end
 
     return BAG_BANK
@@ -173,7 +176,7 @@ end
 
 ---@return table|nil context Shared banking sort context with list and owner, or nil when unavailable
 function BETTERUI.CIM.Utils.GetBankingSortEntryContext()
-    if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+    if not IsBankingSceneShowing() then
         return nil
     end
 
@@ -210,7 +213,7 @@ function BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink)
     return total
 end
 
-function BETTERUI.CIM.Utils.IsBankingSceneShowing()
+local function IsBankingSceneShowing()
     local scene = SCENE_MANAGER.scenes['gamepad_banking']
     if scene and scene:IsShowing() then return true end
     -- Also check the guild banking scene
@@ -218,16 +221,17 @@ function BETTERUI.CIM.Utils.IsBankingSceneShowing()
     return guildScene and guildScene:IsShowing()
 end
 
-function BETTERUI.CIM.Utils.IsInventorySceneShowing()
+local function IsInventorySceneShowing()
     local scene = SCENE_MANAGER.scenes['gamepad_inventory_root']
     return scene and scene:IsShowing()
 end
 
--- Root-level facade: scene-check utilities promoted out of CIM namespace.
--- Consumers should use BETTERUI.Utils.* instead of BETTERUI.CIM.Utils.* for
--- cross-module utilities that don't logically belong to CIM's scope.
+-- Canonical helper ownership moved to BETTERUI.Utils first.
+BETTERUI.CIM.Utils.IsBankingSceneShowing = IsBankingSceneShowing
+BETTERUI.CIM.Utils.IsInventorySceneShowing = IsInventorySceneShowing
+
 BETTERUI.Utils = BETTERUI.Utils or {}
-BETTERUI.Utils.IsBankingSceneShowing = BETTERUI.CIM.Utils.IsBankingSceneShowing
-BETTERUI.Utils.IsInventorySceneShowing = BETTERUI.CIM.Utils.IsInventorySceneShowing
+BETTERUI.Utils.IsBankingSceneShowing = IsBankingSceneShowing
+BETTERUI.Utils.IsInventorySceneShowing = IsInventorySceneShowing
 BETTERUI.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData
 BETTERUI.Utils.GetActiveBankTargetBag = BETTERUI.CIM.Utils.GetActiveBankTargetBag

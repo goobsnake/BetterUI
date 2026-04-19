@@ -26,34 +26,6 @@ local function ResolveVendorRuntimeDependency(fieldName, label)
     return dependency
 end
 
-local function GetVendorNativeStoreBridge()
-    return ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge")
-end
-
-local function GetVendorBootstrapRuntime()
-    return ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime")
-end
-
-local function GetVendorComponentCatalog()
-    return ResolveVendorRuntimeDependency("ComponentCatalog", "component catalog")
-end
-
-local function GetVendorEventBridge()
-    return ResolveVendorRuntimeDependency("EventBridge", "event bridge")
-end
-
-local function GetVendorInteractionRuntime()
-    return ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
-end
-
-local function GetVendorBatchRuntime()
-    return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime")
-end
-
-local function GetVendorExecuteSafely()
-    return ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")
-end
-
 local function IsSellVengeanceModeAvailable()
     return rawget(_G, "BAG_VENGEANCE") ~= nil
         and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") == true
@@ -62,15 +34,16 @@ local function IsSellVengeanceModeAvailable()
 end
 
 local function HasVendorBuyInventory(context)
+    local executeSafely = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")
     if type(IsStoreEmpty) == "function" then
-        local okStoreEmpty, isStoreEmpty = GetVendorExecuteSafely()(context .. ":IsStoreEmpty", IsStoreEmpty)
+        local okStoreEmpty, isStoreEmpty = executeSafely(context .. ":IsStoreEmpty", IsStoreEmpty)
         if okStoreEmpty then
             return not isStoreEmpty
         end
     end
 
     if type(GetNumStoreItems) == "function" then
-        local okStoreCount, storeCount = GetVendorExecuteSafely()(context .. ":GetNumStoreItems", GetNumStoreItems)
+        local okStoreCount, storeCount = executeSafely(context .. ":GetNumStoreItems", GetNumStoreItems)
         if okStoreCount and type(storeCount) == "number" then
             return storeCount > 0
         end
@@ -80,7 +53,10 @@ local function HasVendorBuyInventory(context)
 end
 
 local function RunVendorSetupStep(stepName, setupFn)
-    local ok, err = GetVendorExecuteSafely()("Vendor.Init:" .. tostring(stepName), setupFn)
+    local ok, err = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
+        "Vendor.Init:" .. tostring(stepName),
+        setupFn
+    )
     if not ok and BETTERUI.Debug then
         BETTERUI.Debug(string.format("[Vendor] %s failed: %s", tostring(stepName), tostring(err)))
     end
@@ -295,11 +271,11 @@ local function ResolveInitialStoreMode(tabs)
 end
 
 local function RestoreNativeStoreSceneAlias()
-    GetVendorNativeStoreBridge().RestoreSceneAlias()
+    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").RestoreSceneAlias()
 end
 
 local function AliasStoreSceneToBetterUI()
-    GetVendorNativeStoreBridge().AliasSceneToBetterUI(Vendor.instance)
+    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").AliasSceneToBetterUI(Vendor.instance)
 end
 
 local function LogVendorDebug(flagName, category, message)
@@ -316,7 +292,7 @@ local function IsDirectionalInputListening(obj)
 end
 
 local function EnsureNativeStoreComponents(searchContext)
-    GetVendorNativeStoreBridge().EnsureComponents(searchContext)
+    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").EnsureComponents(searchContext)
 end
 
 Vendor.EnsureNativeStoreComponents = EnsureNativeStoreComponents
@@ -411,17 +387,17 @@ local function ApplyVendorInteractionState(nextState)
 end
 
 local function ApplyVendorResolvedMode(targetMode, refreshList)
-    GetVendorNativeStoreBridge().ApplyResolvedMode(targetMode, refreshList)
+    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").ApplyResolvedMode(targetMode, refreshList)
 end
 
 local function ResolveVendorTargetMode()
-    return GetVendorNativeStoreBridge().ResolveTargetMode()
+    return ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").ResolveTargetMode()
 end
 
 local ScheduleVendorOpenStoreSync
 
 ScheduleVendorOpenStoreSync = function(targetMode, delayMs)
-    GetVendorNativeStoreBridge().ScheduleOpenStoreSync(targetMode, delayMs)
+    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").ScheduleOpenStoreSync(targetMode, delayMs)
 end
 
 local function ShowVendorScene()
@@ -498,7 +474,7 @@ local function BuildVendorCloseStoreDeps()
         hideScene = HideVendorScene,
         getStoreManager = GetVendorStoreManager,
         logNativeStoreInputState = LogNativeStoreInputState,
-        safeCall = GetVendorExecuteSafely(),
+        safeCall = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper"),
         aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
     }
 end
@@ -902,7 +878,10 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
-                    GetVendorExecuteSafely()("Vendor.RegisterBatchDialog", RegisterVendorBatchDialog)
+                    ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
+                        "Vendor.RegisterBatchDialog",
+                        RegisterVendorBatchDialog
+                    )
                     if ZO_Dialogs_ShowGamepadDialog then
                         ZO_Dialogs_ShowGamepadDialog("BETTERUI_VENDOR_BATCH_DIALOG")
                     end
@@ -1038,21 +1017,76 @@ CanMultiSelectInCurrentMode = function()
 end
 
 function Vendor.ExecuteBatchAction(mode, itemData)
-    GetVendorBatchRuntime().ExecuteBatchAction(mode, itemData)
+    return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ExecuteBatchAction(mode, itemData)
+end
+
+---@param requestOrMode BetterUIVendorBatchRequest|number
+---@param items BetterUIVendorBatchItem[]|nil
+---@param onComplete BetterUIBatchCompletionCallback|nil
+---@param batchOptions BatchOptions|table|nil
+---@return BetterUIVendorBatchRequest
+local function ResolveVendorBatchRequest(requestOrMode, items, onComplete, batchOptions)
+    if type(requestOrMode) ~= "table" then
+        return {
+            mode = requestOrMode,
+            items = items,
+            onComplete = onComplete,
+            options = batchOptions,
+        }
+    end
+
+    local hasNamedShape = type(items) ~= "function" and (
+        requestOrMode.mode ~= nil
+        or requestOrMode.items ~= nil
+        or requestOrMode.onComplete ~= nil
+        or requestOrMode.options ~= nil
+        or requestOrMode.batchOptions ~= nil
+        or requestOrMode.actionName ~= nil
+    )
+
+    if hasNamedShape then
+        return {
+            mode = requestOrMode.mode,
+            items = requestOrMode.items,
+            onComplete = requestOrMode.onComplete,
+            options = requestOrMode.options or requestOrMode.batchOptions,
+            actionName = requestOrMode.actionName,
+        }
+    end
+
+    return {
+        mode = requestOrMode,
+        items = items,
+        onComplete = onComplete,
+        options = batchOptions,
+    }
 end
 
 --- Processes vendor batch actions through a throttled pipeline with overlay progress.
---- Works for all vendor modes including BUY/BUYBACK (which lack bagId/slotIndex).
----@param mode number Vendor mode constant (MODE.BUY, MODE.SELL, etc.)
----@param items BetterUIVendorBatchItem[] Array of selected item data tables
----@param onComplete function|nil Callback invoked when processing finishes
-function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
-    GetVendorBatchRuntime().ExecuteBatchThrottled(mode, items, onComplete)
+--- Prefer the named `BetterUIVendorBatchRequest` contract; the positional signature is retained for legacy callers.
+---@param requestOrMode BetterUIVendorBatchRequest|number Vendor mode constant or request contract
+---@param items BetterUIVendorBatchItem[]|nil Legacy positional item list
+---@param onComplete BetterUIBatchCompletionCallback|nil Legacy positional completion callback
+---@param batchOptions BatchOptions|table|nil Legacy positional grouped batch options
+function Vendor.ExecuteBatchThrottled(requestOrMode, items, onComplete, batchOptions)
+    local request = ResolveVendorBatchRequest(requestOrMode, items, onComplete, batchOptions)
+    ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ExecuteBatchThrottled(request)
 end
 
 --- Requests abort of the current vendor batch operation.
 function Vendor.RequestBatchAbort()
-    GetVendorBatchRuntime().RequestBatchAbort()
+    ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").RequestBatchAbort()
+end
+
+---@return BatchOptions
+function Vendor.GetDefaultBatchOptions()
+    return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").GetDefaultBatchOptions()
+end
+
+---@param batchOptions BatchOptions|table|nil
+---@return BatchOptions
+function Vendor.ResolveBatchOptions(batchOptions)
+    return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ResolveBatchOptions(batchOptions)
 end
 
 local function RegisterVendorSellAllJunkDialog()
@@ -1109,7 +1143,10 @@ function Vendor.ShowSellAllJunkDialog(vendorInstance, component)
     }
 
     if ZO_Dialogs_ShowGamepadDialog then
-        local ok = GetVendorExecuteSafely()("Vendor.RegisterSellAllJunkDialog", RegisterVendorSellAllJunkDialog)
+                local ok = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
+                    "Vendor.RegisterSellAllJunkDialog",
+                    RegisterVendorSellAllJunkDialog
+                )
         if ok and (not ZO_Dialogs_IsDialogRegistered or ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME)) then
             ZO_Dialogs_ShowGamepadDialog(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME, dialogData)
             return true
@@ -1214,17 +1251,21 @@ RegisterVendorBatchDialog = function()
 
                     local currentMode = Vendor.instance and Vendor.instance:GetCurrentMode()
                     local items = ms:GetSelectedItems()
-                    Vendor.ExecuteBatchThrottled(currentMode, items, function()
-                        if ms then ms:ClearSelections() end
-                        if Vendor.instance then
-                            Vendor.instance:SaveListPosition()
-                            Vendor.instance:RefreshList()
-                            Vendor.instance:EnsureListInputActive()
-                        end
-                        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                        end
-                    end)
+                    Vendor.ExecuteBatchThrottled({
+                        mode = currentMode,
+                        items = items,
+                        onComplete = function()
+                            if ms then ms:ClearSelections() end
+                            if Vendor.instance then
+                                Vendor.instance:SaveListPosition()
+                                Vendor.instance:RefreshList()
+                                Vendor.instance:EnsureListInputActive()
+                            end
+                            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                            end
+                        end,
+                    })
                 end,
             },
         },
@@ -1272,7 +1313,10 @@ end
 
 local function OnOpenStore()
     ResetVendorInteractionState()
-    ApplyVendorInteractionState(GetVendorInteractionRuntime().OnOpenStore(SnapshotVendorInteractionState(), BuildVendorOpenStoreDeps()))
+    ApplyVendorInteractionState(
+        ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
+            .OnOpenStore(SnapshotVendorInteractionState(), BuildVendorOpenStoreDeps())
+    )
 end
 
 ---@param _ any Unused event code
@@ -1280,7 +1324,15 @@ end
 ---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
     ResetVendorInteractionState()
-    ApplyVendorInteractionState(GetVendorInteractionRuntime().OnOpenFence(SnapshotVendorInteractionState(), BuildVendorOpenFenceDeps(), enableSell, enableLaunder))
+    ApplyVendorInteractionState(
+        ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
+            .OnOpenFence(
+                SnapshotVendorInteractionState(),
+                BuildVendorOpenFenceDeps(),
+                enableSell,
+                enableLaunder
+            )
+    )
 end
 
 local function OnStableInteractStart()
@@ -1295,7 +1347,10 @@ local function OnCloseStore()
     Vendor._isClosing = true
     Vendor._sessionHasBuyMode = false
     Vendor._openStoreSyncAttempt = 0
-    ApplyVendorInteractionState(GetVendorInteractionRuntime().OnCloseStore(SnapshotVendorInteractionState(), BuildVendorCloseStoreDeps()))
+    ApplyVendorInteractionState(
+        ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
+            .OnCloseStore(SnapshotVendorInteractionState(), BuildVendorCloseStoreDeps())
+    )
 end
 
 local function OnInventoryUpdated()
@@ -1347,7 +1402,7 @@ end
 -- INITIALIZATION
 
 local function RegisterVendorComponents(instance)
-    GetVendorComponentCatalog().Register(instance)
+    ResolveVendorRuntimeDependency("ComponentCatalog", "component catalog").Register(instance)
 end
 
 local function AddVendorColumns(instance)
@@ -1360,42 +1415,42 @@ local function AddVendorColumns(instance)
 end
 
 local function InitializeVendorList(instance)
-    GetVendorBootstrapRuntime().InitializeList(instance, {
+    ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").InitializeList(instance, {
         rowSetup = BETTERUI.Vendor.VendorEntrySetup,
         addColumns = AddVendorColumns,
     })
 end
 
 local function InitializeVendorSearch(instance)
-    GetVendorBootstrapRuntime().InitializeSearch(instance, {
+    ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").InitializeSearch(instance, {
         createSearchKeybindDescriptor = BETTERUI.Interface and BETTERUI.Interface.CreateSearchKeybindDescriptor,
         setupEditBoxHandlers = BETTERUI.Interface and BETTERUI.Interface.SearchMixin and BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers,
     })
 end
 
 local function InitializeVendorInteractiveSurfaces(instance)
-    GetVendorBootstrapRuntime().InitializeInteractiveSurfaces(instance, {
+    ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").InitializeInteractiveSurfaces(instance, {
         buildCoreKeybinds = BuildCoreKeybinds,
         runVendorSetupStep = RunVendorSetupStep,
     })
 end
 
 local function CreateVendorScene(instance)
-    GetVendorBootstrapRuntime().CreateScene(instance, {})
+    ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").CreateScene(instance, {})
 end
 
 local function TakeOverNativeStoreScene(instance)
-    GetVendorNativeStoreBridge().TakeOverScene(instance)
+    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").TakeOverScene(instance)
 end
 
 local function RegisterVendorSceneLifecycle(instance)
-    GetVendorBootstrapRuntime().RegisterSceneLifecycle(instance, {
+    ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").RegisterSceneLifecycle(instance, {
         taskManager = Vendor.Tasks,
     })
 end
 
 local function RegisterVendorEvents(eventManager)
-    GetVendorEventBridge().Register(eventManager, EVENT_NS, {
+    ResolveVendorRuntimeDependency("EventBridge", "event bridge").Register(eventManager, EVENT_NS, {
         onStableInteractStart = OnStableInteractStart,
         onStableInteractEnd = OnStableInteractEnd,
         onOpenStore = OnOpenStore,
@@ -1420,7 +1475,8 @@ local function ExposeVendorRuntimeHelpers()
     Vendor.HasVendorBuyInventory = HasVendorBuyInventory
     Vendor.ResolveInitialStoreMode = ResolveInitialStoreMode
     Vendor.UpdateSceneManagerStoreAlias = function()
-        GetVendorNativeStoreBridge().UpdateSceneManagerStoreAlias(Vendor.instance)
+        ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge")
+            .UpdateSceneManagerStoreAlias(Vendor.instance)
     end
 end
 

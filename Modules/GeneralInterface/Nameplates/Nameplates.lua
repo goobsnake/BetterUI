@@ -19,9 +19,6 @@ Nameplates.ROOT_CONTRACT = {
     archetype = Nameplates.ARCHETYPE,
     initOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua",
     setupOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua",
-    runtimeOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua",
-    settingsOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua + Modules/GeneralInterface/Nameplates/Settings.lua",
-    notes = "Nameplates is a first-class BetterUI module whose code lives under the GeneralInterface tree while reusing the aggregated GeneralInterface settings panel.",
 }
 
 -- Available ESO built-in fonts

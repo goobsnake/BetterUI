@@ -26,9 +26,10 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     -- which is immediately undone by the subsequent DeactivateLists() call.
     screen.isInHeaderSortMode = false
     local headerSortIntegration = BETTERUI.CIM and BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration
-    local singleHeaderSortController = headerSortIntegration
-        and headerSortIntegration.GetController
-        and headerSortIntegration.GetController(screen)
+    local resolveController = headerSortIntegration
+        and (headerSortIntegration.PeekController or headerSortIntegration.GetController)
+    local singleHeaderSortController = resolveController
+        and resolveController(screen)
         or screen.headerSortController
         or screen.sortController
     if singleHeaderSortController and singleHeaderSortController.ExitHeaderMode then

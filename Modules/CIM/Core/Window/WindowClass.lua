@@ -263,7 +263,9 @@ function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
         if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
             local owner = control.owner
             local headerSortIntegration = BETTERUI.CIM and BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration
-            local controller = headerSortIntegration and headerSortIntegration.GetController and headerSortIntegration.GetController(owner)
+            local controller = (headerSortIntegration
+                and headerSortIntegration.EnsureControllerForOwner
+                and headerSortIntegration.EnsureControllerForOwner(owner))
                 or (owner and (owner.headerSortController or owner.sortController))
             if controller then
                 -- Toggle sort for this specific column (UpdateVisuals called internally)
