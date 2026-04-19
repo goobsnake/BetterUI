@@ -38,11 +38,11 @@ local function IsActionableListEntry(entryData)
 end
 
 local function IsMainBankContext()
-    return BETTERUI.Banking.GetActiveTransferContext().isMainBank
+    return BETTERUI.Banking.IsMainBankTransferSource()
 end
 
 local function IsGuildBankMode()
-    return BETTERUI.Banking.GetActiveTransferContext().isGuildBank == true
+    return BETTERUI.Banking.IsGuildBankTransferMode()
 end
 
 local function GetSelectedBankEntry(self)
@@ -255,7 +255,7 @@ local function CreateCoreNavigationKeybinds(self)
                 if self:IsBatchProcessing() then
                     return
                 end
-                local transferSourceBankBag = BETTERUI.Banking.GetActiveTransferContext().sourceBag
+                local transferSourceBankBag = BETTERUI.Banking.GetTransferSourceBankBag()
                 if self.currentMode == LIST_WITHDRAW then
                     if transferSourceBankBag == BAG_BANK then
                         StackBag(BAG_BANK)
@@ -430,15 +430,13 @@ local function CreateCurrencyRowKeybinds(self)
 end
 
 ResolveGuildBankTransferKeybindState = function(self)
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
     local selectedData = self.list and self.list:GetSelectedData()
-    if not (transferContext.isGuildBank == true and IsActionableListEntry(selectedData)) then
+    if not (BETTERUI.Banking.IsGuildBankTransferMode() and IsActionableListEntry(selectedData)) then
         return true, nil
     end
 
-    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
-    local getBankingTransferSupport = utils and utils.GetBankingTransferSupport
-    local transferSupport = type(getBankingTransferSupport) == "function" and getBankingTransferSupport() or nil
+    local resolveTransferSupport = BETTERUI.Banking.ResolveTransferSupport
+    local transferSupport = type(resolveTransferSupport) == "function" and resolveTransferSupport() or nil
     local resolveDecision = transferSupport and transferSupport.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
         return true, nil

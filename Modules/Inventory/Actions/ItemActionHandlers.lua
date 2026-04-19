@@ -1,23 +1,9 @@
---[[
-File: Modules/Inventory/Actions/ItemActionHandlers.lua
-Purpose: Action dialog callback handlers (Setup, Finish, Confirm) for the Y-button inventory menu.
-         Extracted from ItemActionsDialog.lua to keep both files under 600 lines.
-         All handlers take `self` (the Inventory.Class instance) as their first argument.
-]]
-
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
 if not BETTERUI.Inventory.ActionHandlers then BETTERUI.Inventory.ActionHandlers = {} end
 
 local ActionHandlers = BETTERUI.Inventory.ActionHandlers
 
--- LOCAL HELPERS (shared by all handlers)
-
---- Silently toggle junk state for an item target and update UI.
----@param self table Inventory class instance
----@param isJunk boolean Whether to mark or unmark as junk
----@return nil
 local function ToggleJunkState(self, isJunk)
-    -- Guard: craft bag items cannot be marked as junk
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
         return
     end
@@ -37,7 +23,6 @@ local function ToggleJunkState(self, isJunk)
         end
     end
 
-    -- SetItemIsJunk is ASYNCHRONOUS: category refresh is handled by OnInventoryUpdated coalesced timer.
     SetItemIsJunk(target.bagId, target.slotIndex, isJunk)
 
     if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
@@ -60,9 +45,6 @@ local function ToggleJunkState(self, isJunk)
     end
 end
 
---- Resolve the current item target based on action mode.
----@param self table Inventory class instance
----@return table|nil target Current inventory slot data or nil
 local function ResolveCurrentTarget(self)
     local actionMode = self.actionMode
     if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
@@ -98,14 +80,6 @@ local function CanDestroyTargetData(targetData)
     return true
 end
 
--- ActionDialogSetup
-
---- Populates the Y-menu action dialog with contextual actions for the selected item.
---- Called via BETTERUI_EVENT_ACTION_DIALOG_SETUP callback.
----@param self table Inventory class instance
----@param dialog table Dialog control
----@param data table Dialog data
----@return nil
 function ActionHandlers.OnSetup(self, dialog, data)
     if not self.scene:IsShowing() then return end
 
@@ -146,7 +120,6 @@ function ActionHandlers.OnSetup(self, dialog, data)
     local headerData = { titleText = titleText }
     ZO_GamepadGenericHeader_RefreshData(dialog.header, headerData)
 
-    -- Determine junk/lock visibility using shared protection policy
     local isLocked = target and target.bagId and target.slotIndex
         and BETTERUI.CIM.ProtectionPolicy.IsItemPlayerLocked(target.bagId, target.slotIndex)
         or false
@@ -171,8 +144,6 @@ function ActionHandlers.OnSetup(self, dialog, data)
             isJunk = IsItemJunk(target.bagId, target.slotIndex) == true
         end
 
-        -- Always expose a single synthetic junk-toggle entry in the Y menu.
-        -- Unmark remains available for junk items even if locked.
         if isJunk then
             showJunkToggleEntry = true
             junkToggleEntryText = betterUnmarkAsJunkName
@@ -184,7 +155,6 @@ function ActionHandlers.OnSetup(self, dialog, data)
         end
     end
 
-    -- Wrap engine Lock/Unlock callbacks to release dialog first
     do
         local actions = self.itemActions:GetSlotActions()
         local numActions = actions:GetNumSlotActions()
@@ -209,7 +179,6 @@ function ActionHandlers.OnSetup(self, dialog, data)
         end
     end
 
-    -- Populate parametric list from discovered actions, apply filters
     local actions = self.itemActions:GetSlotActions()
     local numActions = actions:GetNumSlotActions()
     for i = 1, numActions do
@@ -260,7 +229,6 @@ function ActionHandlers.OnSetup(self, dialog, data)
         table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = junkToggleEntry })
     end
 
-    -- Stow Stack entry (Inventory mode)
     if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
         local itemTarget = self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
         if itemTarget and itemTarget.bagId and itemTarget.slotIndex then
@@ -277,7 +245,6 @@ function ActionHandlers.OnSetup(self, dialog, data)
         end
     end
 
-    -- Retrieve Stack entry (Craft Bag mode)
     if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
         local craftBagTarget = self.craftBagList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
         if craftBagTarget and craftBagTarget.bagId and craftBagTarget.slotIndex then
@@ -293,7 +260,6 @@ function ActionHandlers.OnSetup(self, dialog, data)
         end
     end
 
-    -- Sort entry
     local showSortEntry = false
     local currentList = nil
     local sortContext = nil
@@ -325,7 +291,6 @@ function ActionHandlers.OnSetup(self, dialog, data)
         table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = sortEntry })
     end
 
-    -- Move "Get Help" to end
     local getHelpName = GetString(rawget(_G, "SI_ITEM_ACTION_REPORT_ITEM"))
     local getHelpIndex = nil
     for i, entry in ipairs(parametricList) do
@@ -342,12 +307,6 @@ function ActionHandlers.OnSetup(self, dialog, data)
     dialog:setupFunc()
 end
 
--- ActionDialogFinish
-
---- Restores keybinds and refreshes state after the Y-menu dialog closes.
---- Called via BETTERUI_EVENT_ACTION_DIALOG_FINISH callback.
----@param self table Inventory class instance
----@return nil
 function ActionHandlers.OnFinish(self)
     local function RestoreInventoryAfterDialog()
         if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
@@ -416,17 +375,9 @@ function ActionHandlers.OnFinish(self)
     RetryRestore()
 end
 
--- ActionDialogButtonConfirm
-
---- Handles A-button press inside the Y-menu dialog to execute the selected action.
---- Called via BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM callback.
----@param self table Inventory class instance
----@param dialog table Dialog control
----@return nil
 function ActionHandlers.OnConfirm(self, dialog)
     if not (self.scene and self.scene:IsShowing()) then return end
 
-    -- Preserve selection before action executes
     local currentList = self:GetCurrentList()
     if currentList and currentList.selectedIndex then
         local targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(currentList)
@@ -438,7 +389,6 @@ function ActionHandlers.OnConfirm(self, dialog)
 
     local selectedRow = dialog.entryList and BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
 
-    -- Sort action
     if selectedRow and selectedRow.isSortAction then
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         local sortContext = selectedRow.sortContext or self
@@ -448,7 +398,6 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    -- Stow Stack action
     if selectedRow and selectedRow.isStowStackAction then
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         local itemTarget = selectedRow.itemTarget
@@ -458,7 +407,6 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    -- Retrieve Stack action
     if selectedRow and selectedRow.isRetrieveStackAction then
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         local itemTarget = selectedRow.itemTarget
@@ -476,9 +424,7 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    -- BetterUI synthetic Destroy
     if selectedRow and selectedRow.isBetterUIDestroy then
-        -- Use dialog.data.target first (set by engine), then fallback chain
         local targetData
         if dialog and dialog.data and dialog.data.target then
             targetData = dialog.data.target
@@ -507,7 +453,6 @@ function ActionHandlers.OnConfirm(self, dialog)
 
     local selectedActionName = selectedRow and selectedRow.text or nil
 
-    -- Split stack (use native split dialog flow and exit actions dialog first)
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_SPLIT_STACK")) then
         local targetData = ResolveCurrentTarget(self)
         if targetData and ZO_InventorySlot_TrySplitStack then
@@ -517,7 +462,6 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    -- Intercept engine Destroy/Delete
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY"))
         or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE"))) then
         local targetData = ResolveCurrentTarget(self)
@@ -539,7 +483,6 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    -- Link to Chat
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")) then
         local isCompanionScene = SCENE_MANAGER and SCENE_MANAGER.scenes
             and SCENE_MANAGER.scenes["companionEquipmentGamepad"]
@@ -556,7 +499,6 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    -- Equip (use fresh target data to avoid stale references)
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_EQUIP")) then
         local targetData = ResolveCurrentTarget(self)
         if targetData and targetData.dataSource then
@@ -566,7 +508,6 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    -- Use / Show Map / Respec actions (require trusted callstack)
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
         or selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_SHOW_MAP"))
         or selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_SKILL_RESPEC"))
@@ -591,7 +532,6 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    -- Place Furniture
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_PLACE_FURNITURE")) then
         local targetData = ResolveCurrentTarget(self)
         if targetData then
@@ -605,7 +545,6 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    -- Fallback: execute engine-discovered action
     if selectedRow and selectedRow.action then
         local slotActions = self.itemActions and self.itemActions:GetSlotActions()
         if slotActions then

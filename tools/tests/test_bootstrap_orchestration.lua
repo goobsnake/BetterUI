@@ -626,6 +626,15 @@ BETTERUI.CIM.Settings = {
         }
     end,
 }
+BETTERUI.CIM.TryRegisterModulePanel = function(moduleNamespace, _, moduleId, moduleName)
+    if type(moduleNamespace) ~= "table" then return false end
+    local settings = moduleNamespace.Settings
+    if type(settings) ~= "table" or type(settings.RegisterPanel) ~= "function" then
+        return false
+    end
+    settings.RegisterPanel(moduleId, moduleName)
+    return true
+end
 
 BETTERUI.CIM.TryCall = function(path)
     if path == "Defaults.ApplyModuleDefaults" then
@@ -733,6 +742,10 @@ eventManager.UnregisterForEvent = function(self, name)
 end
 
 dofile("Modules/GeneralInterface/Module.lua")
+assert_true(BETTERUI.GeneralInterface.Nameplates == BETTERUI.Nameplates,
+    "GeneralInterface module keeps Nameplates rooted under GeneralInterface with BETTERUI alias compatibility")
+assert_true(BETTERUI.GeneralInterface.GetNameplatesNamespace() == BETTERUI.GeneralInterface.Nameplates,
+    "GeneralInterface.GetNameplatesNamespace returns the canonical GeneralInterface-owned Nameplates table")
 
 local defaultOptions = BETTERUI.GeneralInterface.InitModule({})
 assert_eq(defaultOptions.chatHistory, 200, "GeneralInterface.InitModule backfills chat history")
@@ -825,6 +838,72 @@ eventManager.handlers["BETTERUI_Tooltips_InvSingle"].callback(nil, 123)
 eventManager.handlers["BETTERUI_Tooltips_InvFull"].callback(nil, 456)
 assert_eq(invalidatedBags[1], 123, "Single-slot inventory updates invalidate the trait cache")
 assert_eq(invalidatedBags[2], 456, "Full inventory updates invalidate the trait cache")
+
+print("[Archetype contract validation]")
+dofile("Modules/CIM/Core/Integration/Interfaces.lua")
+local validateModule = BETTERUI.CIM.Interfaces.ValidateModule
+
+local validSettingsOwnerModule = {
+    ARCHETYPE = "settings-owner",
+    ROOT_CONTRACT = {
+        name = "ResourceOrbFrames",
+        archetype = "settings-owner",
+        init = true,
+        setup = true,
+    },
+    InitModule = function(options) return options end,
+    Setup = function() end,
+    Settings = {
+        RegisterPanel = function() end,
+    },
+}
+local validSettingsOwner, validSettingsOwnerErr = validateModule(validSettingsOwnerModule, nil, "ResourceOrbFrames")
+assert_true(validSettingsOwner and validSettingsOwnerErr == nil,
+    "settings-owner contract passes when it exposes a settings registration surface")
+
+local missingSettingsSurfaceModule = {
+    ARCHETYPE = "settings-owner",
+    ROOT_CONTRACT = {
+        name = "ResourceOrbFrames",
+        archetype = "settings-owner",
+        init = true,
+        setup = true,
+    },
+    InitModule = function(options) return options end,
+    Setup = function() end,
+}
+local missingSettingsSurfaceValid = validateModule(missingSettingsSurfaceModule, nil, "ResourceOrbFrames")
+assert_true(missingSettingsSurfaceValid == false,
+    "settings-owner contract rejects modules that do not expose settings surfaces")
+
+local invalidThinEntrypointModule = {
+    ARCHETYPE = "thin-entrypoint",
+    ROOT_CONTRACT = {
+        name = "GeneralInterface",
+        archetype = "thin-entrypoint",
+        init = true,
+        setup = false,
+    },
+    InitModule = function(options) return options end,
+}
+local invalidThinEntrypoint = validateModule(invalidThinEntrypointModule, nil, "GeneralInterface")
+assert_true(invalidThinEntrypoint == false,
+    "thin-entrypoint contract rejects modules that disable setup")
+
+local unsupportedArchetypeModule = {
+    ARCHETYPE = "experimental",
+    ROOT_CONTRACT = {
+        name = "GeneralInterface",
+        archetype = "experimental",
+        init = true,
+        setup = true,
+    },
+    InitModule = function(options) return options end,
+    Setup = function() end,
+}
+local unsupportedArchetypeValid = validateModule(unsupportedArchetypeModule, nil, "GeneralInterface")
+assert_true(unsupportedArchetypeValid == false,
+    "module validation rejects unsupported archetype values")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

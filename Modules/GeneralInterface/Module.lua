@@ -5,11 +5,15 @@ local GeneralInterface = BETTERUI.GeneralInterface
 
 local function GetNameplatesNamespace()
     local nameplates = GeneralInterface.Nameplates
-    if nameplates == nil then
-        nameplates = BETTERUI.Nameplates or {}
+    if type(nameplates) ~= "table" then
+        if type(BETTERUI.Nameplates) == "table" then
+            nameplates = BETTERUI.Nameplates
+        else
+            nameplates = {}
+        end
         GeneralInterface.Nameplates = nameplates
     end
-    BETTERUI.Nameplates = nameplates
+    BETTERUI.Nameplates = nameplates -- compatibility alias
     return nameplates
 end
 

@@ -140,15 +140,80 @@ function BETTERUI.Banking.GetActiveTransferContext()
     }
 end
 
+--- Returns the active transfer source bag.
+---@return number sourceBag
+function BETTERUI.Banking.GetTransferSourceBankBag()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    return transferContext and transferContext.sourceBag or BAG_BANK
+end
+
+--- Returns the active transfer destination bag.
+---@return number targetBag
+function BETTERUI.Banking.GetTransferDestinationBankBag()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    return transferContext and transferContext.targetBag or BAG_BANK
+end
+
+--- Returns the normalized withdraw source-bag list.
+---@return number[] withdrawSourceBags
+function BETTERUI.Banking.GetTransferWithdrawSourceBags()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local withdrawSourceBags = transferContext and transferContext.withdrawSourceBags or nil
+    if type(withdrawSourceBags) == "table" and #withdrawSourceBags > 0 then
+        return withdrawSourceBags
+    end
+    return { BAG_BANK, BAG_SUBSCRIBER_BANK }
+end
+
+--- Returns whether guild-bank transfer mode is active.
+---@return boolean isGuildBank
+function BETTERUI.Banking.IsGuildBankTransferMode()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    return transferContext and transferContext.isGuildBank == true or false
+end
+
+--- Returns whether the transfer source resolves to the main bank.
+---@return boolean isMainBank
+function BETTERUI.Banking.IsMainBankTransferSource()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    return transferContext and transferContext.isSourceMainBank == true or false
+end
+
+--- Returns whether the transfer destination resolves to the main bank.
+---@return boolean isMainBank
+function BETTERUI.Banking.IsMainBankTransferTarget()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    return transferContext and transferContext.isTargetMainBank == true or false
+end
+
+--- Returns whether the transfer source resolves to a house bank bag.
+---@return boolean isHouseBank
+function BETTERUI.Banking.IsHouseBankTransferSource()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    return transferContext and transferContext.isSourceHouseBank == true or false
+end
+
+--- Returns whether the transfer source resolves to furniture vault storage.
+---@return boolean isFurnitureVault
+function BETTERUI.Banking.IsFurnitureVaultTransferSource()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    return transferContext and transferContext.isSourceFurnitureVault == true or false
+end
+
 --- Resolves the shared transfer support table from the canonical Banking seam.
 ---@return table|nil transferSupport
 function BETTERUI.Banking.ResolveTransferSupport()
+    local transferSupport = BETTERUI.Banking.transferSupport
+    if type(transferSupport) == "table" then
+        return transferSupport
+    end
+
     local getTransferSupport = BETTERUI.Banking.GetTransferSupport
     if type(getTransferSupport) ~= "function" then
         return nil
     end
 
-    local transferSupport = getTransferSupport()
+    transferSupport = getTransferSupport()
     if type(transferSupport) ~= "table" then
         return nil
     end

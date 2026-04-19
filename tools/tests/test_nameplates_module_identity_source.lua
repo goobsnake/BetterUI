@@ -34,9 +34,15 @@ assert_contains(bootstrap, 'namespace = "Nameplates",',
     "The Nameplates registry entry points at the dedicated namespace")
 assert_contains(bootstrap, 'depends = "GeneralInterface"',
     "The Nameplates registry entry preserves the GeneralInterface enablement dependency")
+assert_contains(bootstrap, "BETTERUI.GeneralInterface.Nameplates = BETTERUI.GeneralInterface.Nameplates or BETTERUI.Nameplates or {}",
+    "Bootstrap establishes GeneralInterface as the canonical Nameplates namespace owner")
+assert_contains(bootstrap, "BETTERUI.Nameplates = BETTERUI.GeneralInterface.Nameplates",
+    "Bootstrap keeps BETTERUI.Nameplates as a compatibility alias")
 
 assert_contains(generalInterface, 'GeneralInterface.GetNameplatesNamespace = GetNameplatesNamespace',
     "GeneralInterface exposes one canonical Nameplates namespace seam")
+assert_contains(generalInterface, 'local nameplates = GeneralInterface.Nameplates',
+    "GeneralInterface resolves Nameplates from the canonical root first")
 
 assert_contains(nameplates, 'Nameplates.ARCHETYPE = "settings-owner"',
     "Nameplates declares its own module archetype")
@@ -46,5 +52,7 @@ assert_contains(nameplates, 'name = "Nameplates",',
     "The Nameplates root contract uses the canonical module name")
 assert_contains(nameplates, 'GeneralInterface.GetNameplatesNamespace',
     "Nameplates runtime binds through the shared GeneralInterface namespace seam")
+assert_contains(nameplates, 'BETTERUI.Nameplates = Nameplates',
+    "Nameplates runtime only republishes BETTERUI.Nameplates as compatibility alias")
 
 print("  OK")

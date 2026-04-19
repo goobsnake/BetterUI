@@ -3,9 +3,10 @@
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
-BETTERUI.GeneralInterface.Tooltips = BETTERUI.GeneralInterface.Tooltips or {}
+local GeneralInterface = BETTERUI.GeneralInterface
+GeneralInterface.Tooltips = GeneralInterface.Tooltips or {}
 
-local Tooltips = BETTERUI.GeneralInterface.Tooltips
+local Tooltips = GeneralInterface.Tooltips
 local TooltipRuntime = Tooltips._runtime or {}
 Tooltips._runtime = TooltipRuntime
 
@@ -43,7 +44,7 @@ local function BuildBagResearchCache(bagId)
     ResearchableTraitCache[bagId] = counts
 end
 
-function BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, bagId)
+function GeneralInterface.GetCachedResearchableTraitMatches(itemLink, bagId)
     if not itemLink or not bagId then return 0 end
     local traitType = GetItemLinkTraitInfo(itemLink)
     if not traitType or traitType == 0 then return 0 end
@@ -54,10 +55,10 @@ function BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, b
 end
 
 if BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher then
-    BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches)
+    BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher(GeneralInterface.GetCachedResearchableTraitMatches)
 end
 
-function BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
+function GeneralInterface.InvalidateResearchableTraitCache(bagId)
     if bagId then
         if ResearchableTraitCache and ResearchableTraitCache[bagId] then
             ResearchableTraitCache[bagId] = nil

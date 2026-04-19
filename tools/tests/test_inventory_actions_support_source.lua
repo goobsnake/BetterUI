@@ -44,7 +44,7 @@ assert_true(actionDialogHooks:find("CanDestroyTargetWithPolicy%(targetData%)") ~
     "ActionDialogHooks guards synthetic destroy actions with the shared destroy-policy seam")
 
 local destroyAction = read_file("Modules/Inventory/Actions/DestroyAction.lua")
-assert_true(destroyAction:find("function BETTERUI%.Inventory%.TryDestroyItem%(bagId, slotIndex, force, suppressUiRefresh%)") ~= nil,
+assert_true(destroyAction:find("function BETTERUI%.Inventory%.TryDestroyItem%(bagId, slotIndex, force, suppressUiRefresh, slotType%)") ~= nil,
     "DestroyAction exposes TryDestroyItem")
 assert_true(destroyAction:find("function BETTERUI%.Inventory%.HookDestroyItem%(%)") ~= nil,
     "DestroyAction exposes HookDestroyItem")

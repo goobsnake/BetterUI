@@ -15,7 +15,16 @@ local function ResolveNameplatesNamespace()
 	if type(GeneralInterface.GetNameplatesNamespace) == "function" then
 		return GeneralInterface.GetNameplatesNamespace()
 	end
-	return GeneralInterface.Nameplates or BETTERUI.Nameplates
+
+	local nameplates = GeneralInterface.Nameplates
+	if type(nameplates) ~= "table" and type(BETTERUI.Nameplates) == "table" then
+		nameplates = BETTERUI.Nameplates
+		GeneralInterface.Nameplates = nameplates
+	end
+	if type(nameplates) == "table" then
+		BETTERUI.Nameplates = nameplates
+	end
+	return nameplates
 end
 
 local function GetNameplateOptions()

@@ -96,6 +96,14 @@ assert_true(craftBagKeybindsSource:find("function InventoryKeybinds%.HasStableAc
     "CraftBagKeybinds exposes HasStableActionsTarget")
 assert_true(craftBagKeybindsSource:find("function InventoryKeybinds%.GetPrimaryKeybindName%(self%)") ~= nil,
     "CraftBagKeybinds exposes GetPrimaryKeybindName")
+assert_true(craftBagKeybindsSource:find("self%._lastResolvedPrimaryActionName = multiSelectActionName") == nil,
+    "CraftBagKeybinds keeps primary keybind name getter free of multi-select cache side effects")
+assert_true(craftBagKeybindsSource:find("self%._lastResolvedPrimaryActionName = baseName") == nil,
+    "CraftBagKeybinds keeps primary keybind name getter free of fallback cache side effects")
+assert_true(craftBagKeybindsSource:find("self%._lastSecondaryActionName = name") == nil,
+    "CraftBagKeybinds keeps secondary keybind name getter free of cache side effects")
+assert_true(craftBagKeybindsSource:find("local function StartSecondaryActionTransition%(self, actionName%)") ~= nil,
+    "CraftBagKeybinds uses an explicit secondary transition helper instead of stateful getters")
 
 if failed > 0 then
     error(string.format("test_inventory_support_module_source.lua failed with %d failure(s)", failed))

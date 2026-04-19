@@ -59,8 +59,12 @@ assert_true(source:find("policy%.CanJunkItem%(bagId, slotIndex%)") ~= nil,
     "Companion junk actions consult the shared protection policy")
 assert_true(source:find("policy%.CanUnjunkItem%(bagId, slotIndex%)") ~= nil,
     "Companion unjunk actions consult the shared protection policy")
-assert_true(source:find("policy%.CanDestroyItem%(bagId, slotIndex%)") ~= nil,
-    "Companion destroy actions consult the shared protection policy")
+assert_true(source:find("BETTERUI%.Inventory and BETTERUI%.Inventory%.CanDestroyItemWithPolicy") ~= nil,
+    "Companion destroy checks prefer the canonical inventory destroy-policy helper")
+assert_true(source:find("policy%.CanDestroyItem%(bagId, slotIndex, slotType%)") ~= nil,
+    "Companion destroy policy fallback includes slot-type context")
+assert_true(source:find("BETTERUI%.Inventory and BETTERUI%.Inventory%.TryDestroyItem") ~= nil,
+    "Companion quick-destroy routes through the canonical inventory destroy executor")
 assert_true(source:find('table.insert%(actions, %{%s*id = "equip", name = GetString%(SI_ITEM_ACTION_EQUIP%) %}%)') ~= nil,
     "CompanionActions offers equip action entries")
 assert_true(source:find('table.insert%(actions, %{%s*id = "destroy", name = GetString%(SI_ITEM_ACTION_DESTROY%) %}%)') ~= nil,

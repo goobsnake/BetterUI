@@ -1,9 +1,3 @@
---[[
-File: Modules/Inventory/Keybinds/CraftBagKeybinds.lua
-Purpose: Hosts craft bag and cross-list keybind helpers used by the
-         main inventory keybind strip.
-]]
-
 local InventoryKeybinds = BETTERUI.Inventory.Keybinds
 local InventoryConst = BETTERUI.Inventory.CONST
 local InventoryUtils = BETTERUI.Inventory.Utils
@@ -111,6 +105,22 @@ local function StartPrimaryActionTransition(self, actionName)
         self._lastResolvedPrimaryActionName = resolvedActionName
     end
     self._primaryActionTransitionExpiresMs = GetNowMilliseconds() + GetPrimaryActionTransitionWindowMs(resolvedActionName)
+end
+
+local function IsSecondaryActionTransitionActive(self)
+    if not self or not self._secondaryActionTransitionName or not self._secondaryActionTransitionExpiresMs then
+        return false
+    end
+    return GetNowMilliseconds() <= self._secondaryActionTransitionExpiresMs
+end
+
+local function StartSecondaryActionTransition(self, actionName)
+    local resolvedActionName = NormalizeActionName(actionName)
+    if not self or not resolvedActionName then
+        return
+    end
+    self._secondaryActionTransitionName = resolvedActionName
+    self._secondaryActionTransitionExpiresMs = GetNowMilliseconds() + PRIMARY_ACTION_TRANSITION_WINDOW_MS
 end
 
 local function IsBagUpgradeAvailable()
@@ -273,17 +283,11 @@ function InventoryKeybinds.GetPrimaryKeybindName(self)
             return ""
         end
         local multiSelectActionName = ResolveMultiSelectActionName(self, target, false, false)
-        if multiSelectActionName then
-            self._lastResolvedPrimaryActionName = multiSelectActionName
-        end
         return multiSelectActionName or ""
     end
 
     if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
         local multiSelectActionName = ResolveMultiSelectActionName(self, target, true, false)
-        if multiSelectActionName then
-            self._lastResolvedPrimaryActionName = multiSelectActionName
-        end
         return multiSelectActionName or ""
     end
 
@@ -305,9 +309,6 @@ function InventoryKeybinds.GetPrimaryKeybindName(self)
     end
 
     baseName = NormalizeActionName(baseName)
-    if baseName then
-        self._lastResolvedPrimaryActionName = baseName
-    end
     return baseName or ""
 end
 
@@ -536,8 +537,8 @@ end
 ---@param self table Inventory class instance
 ---@return string name Localized keybind label for secondary action
 function InventoryKeybinds.GetSecondaryKeybindName(self)
-    if IsPrimaryActionTransitionActive(self) and self._lastSecondaryActionName then
-        return self._lastSecondaryActionName
+    if IsSecondaryActionTransitionActive(self) then
+        return self._secondaryActionTransitionName
     end
 
     local name
@@ -565,11 +566,7 @@ function InventoryKeybinds.GetSecondaryKeybindName(self)
         end
     end
 
-    name = name or ""
-    if name ~= "" then
-        self._lastSecondaryActionName = name
-    end
-    return name
+    return name or ""
 end
 
 ---@param self table Inventory class instance
@@ -620,6 +617,7 @@ function InventoryKeybinds.HandleSecondaryKeybind(self)
         local slotNum = GetAssignedQuickslot(actionContext.target, actionContext.isQuestItem)
 
         if slotNum then
+            StartSecondaryActionTransition(self, InventoryKeybinds.GetSecondaryKeybindName(self))
             CallSecureProtected("ClearSlot", slotNum, hotbarCategory)
             if SOUNDS and PlaySound then
                 PlaySound(SOUNDS.GAMEPAD_MENU_BACK)

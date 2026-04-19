@@ -1,19 +1,7 @@
---[[
-File: Modules/Companions/Core/CompanionListManager.lua
-Purpose: Companion list, category tabs, tooltip updates, and scroll indicator wiring.
-]]
-
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 
 local Companions = BETTERUI.Companions
 
--- ---------------------------------------------------------------------------
--- Directional-Input Utilities
--- Mirrors the proven patterns from Vendor (tribal-knowledge 2026-04-11).
--- ---------------------------------------------------------------------------
-
----@param obj table|nil
----@return boolean
 local function IsDirectionalInputListening(obj)
     if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening) then
         return false
@@ -21,8 +9,6 @@ local function IsDirectionalInputListening(obj)
     return DIRECTIONAL_INPUT:IsListening(obj)
 end
 
----@param obj table|nil
----@return number registrationCount
 local function CountDirectionalInputRegistrations(obj)
     if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.inputObjects) then
         return 0
@@ -36,9 +22,6 @@ local function CountDirectionalInputRegistrations(obj)
     return count
 end
 
----@param obj table|nil
----@param includeMovementController boolean|nil
----@return number releasedCount
 local function ReleaseDirectionalInputRegistrations(obj, includeMovementController)
     if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT.Deactivate) then
         return 0
@@ -63,8 +46,6 @@ local function ReleaseDirectionalInputRegistrations(obj, includeMovementControll
     return releasedCount
 end
 
----@param header table|nil
----@param errors table|nil
 local function ReleaseHeaderDirectionalInput(header, errors)
     if not header then return end
     local boundary = Companions.GetBoundary()
@@ -198,7 +179,6 @@ local CATEGORY_DEFINITIONS = {
     },
 }
 
----@param callback fun(bagId:number, slotIndex:number)
 local function ForEachCompanionItem(callback)
     if not callback then return end
 
@@ -219,10 +199,6 @@ local function ForEachCompanionItem(callback)
     end
 end
 
---- @param bagId number
---- @param slotIndex number
---- @param filterType number|nil
---- @return boolean
 function BETTERUI.Companions.Class:DoesSlotMatchFilterType(bagId, slotIndex, filterType)
     if not filterType then
         return true
@@ -259,7 +235,6 @@ function BETTERUI.Companions.Class:DoesSlotMatchFilterType(bagId, slotIndex, fil
     return true
 end
 
----@return table|nil
 function BETTERUI.Companions.Class:GetCurrentCategory()
     local categories = self.companionCategories or {}
     if #categories == 0 then
@@ -270,7 +245,6 @@ function BETTERUI.Companions.Class:GetCurrentCategory()
     return categories[index]
 end
 
----@return nil
 function BETTERUI.Companions.Class:InitializeCategoryHeader()
     self.headerGeneric = (self.header and self.header:GetNamedChild("Header")) or self.header
     if not self.headerGeneric then
@@ -281,7 +255,6 @@ function BETTERUI.Companions.Class:InitializeCategoryHeader()
     self.currentCategoryIndex = self.currentCategoryIndex or 1
 end
 
----@return nil
 function BETTERUI.Companions.Class:RefreshCategoryTitle()
     if not self.headerGeneric then return end
     local cat = self:GetCurrentCategory()
@@ -296,7 +269,6 @@ function BETTERUI.Companions.Class:RefreshCategoryTitle()
     end
 end
 
----@return nil
 function BETTERUI.Companions.Class:RefreshCategories()
     local previousCategory = self:GetCurrentCategory()
     local previousKey = previousCategory and previousCategory.key
@@ -346,7 +318,6 @@ function BETTERUI.Companions.Class:RefreshCategories()
     self:RebuildCategoryHeader()
 end
 
----@return nil
 function BETTERUI.Companions.Class:RebuildCategoryHeader()
     local headerGeneric = self.headerGeneric
     local categories = self.companionCategories or {}
@@ -379,7 +350,6 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
             return
         end
 
-        -- Save position for outgoing category
         local outgoingCategory = self:GetCurrentCategory()
         if outgoingCategory and self.list then
             BETTERUI.CIM.PositionManager.SavePosition("Companions", outgoingCategory.key, self.list)
@@ -425,8 +395,6 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
     end
 end
 
----@param delta number
----@return nil
 function BETTERUI.Companions.Class:CycleCategory(delta)
     local categories = self.companionCategories or {}
     if #categories <= 1 then
@@ -464,15 +432,12 @@ function BETTERUI.Companions.Class:OnTabPrev()
     self:CycleCategory(-1)
 end
 
----@return nil
 function BETTERUI.Companions.Class:EnsureHeaderKeybindsActive()
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if not tabBar then
         return
     end
 
-    -- Scene-gate: never activate header DI owners unless scene is showing
-    -- (tribal-knowledge root cause #1: premature header activation).
     if self.scene and not self.scene:IsShowing() then
         return
     end
@@ -486,7 +451,6 @@ function BETTERUI.Companions.Class:EnsureHeaderKeybindsActive()
     end
 end
 
----@return nil
 function BETTERUI.Companions.Class:DeactivateHeaderKeybinds()
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if not tabBar then return end
@@ -498,7 +462,6 @@ function BETTERUI.Companions.Class:DeactivateHeaderKeybinds()
     end
 end
 
----@return nil
 function BETTERUI.Companions.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
 
@@ -525,7 +488,6 @@ function BETTERUI.Companions.Class:PositionSearchControl()
     self.textSearchHeaderControl:SetHidden(false)
 end
 
----@return nil
 function BETTERUI.Companions.Class:EnsureColumnHeadersVisible()
     if not (self.header and self.header.columns) then
         return
@@ -537,8 +499,7 @@ function BETTERUI.Companions.Class:EnsureColumnHeadersVisible()
         or (self.headerGeneric and self.headerGeneric:GetNamedChild("TabBar"))
         or (self.header and self.header:GetNamedChild("HeaderColumnBar"))
 
-    -- Companions uses a custom list anchor, so the header labels need an
-    -- additional empirical offset to stay aligned with the row content.
+    -- Companions uses a custom list anchor; this offset keeps labels aligned with row content.
     local COLUMN_OFFSET_DELTA = 24
 
     for _, label in ipairs(self.header.columns) do
@@ -559,21 +520,17 @@ function BETTERUI.Companions.Class:EnsureColumnHeadersVisible()
     end
 end
 
----@return nil
 function BETTERUI.Companions.Class:EnsureListInputActive()
     local list = self.list
     if not list then
         return
     end
 
-    -- Scene-gate: never activate DI owners unless the scene is actually showing.
     if self.scene and not self.scene:IsShowing() then
         return
     end
 
-    -- Deduplicate stale DI registrations — only clear when there are DUPLICATES
-    -- (tribal-knowledge root cause #4: duplicate registrations = accelerated scrolling).
-    -- A single registration is the correct steady-state.
+    -- Clear only duplicate registrations; a single registration is the expected steady-state.
     local listRegistrationCount = CountDirectionalInputRegistrations(list)
     if listRegistrationCount > 1 then
         ReleaseDirectionalInputRegistrations(list, true)
@@ -583,16 +540,11 @@ function BETTERUI.Companions.Class:EnsureListInputActive()
     EnsureListDirectionalInputRegistration(list, listRegistrationCount)
 end
 
----@return nil
 function BETTERUI.Companions.Class:DeactivateListInput()
     local list = self.list
     ReleaseListDirectionalInput(list)
 end
 
---- Full directional-input release for the Companions scene.
---- Sweeps self, list, header, tab bar, search focus — everything that could
---- be orphaned on the global DIRECTIONAL_INPUT stack.
----@return nil
 function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
     if not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT.Deactivate) then
         return true
@@ -637,7 +589,6 @@ function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
     return true
 end
 
----@return nil
 function BETTERUI.Companions.Class:InitializeListPresentation()
     if not self.list then
         return
@@ -682,8 +633,6 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
     end
 end
 
----@param list table|nil
----@return nil
 function BETTERUI.Companions.Class:UpdateScrollIndicator(list)
     local targetList = list or self.list
     local listControl = targetList and targetList.control

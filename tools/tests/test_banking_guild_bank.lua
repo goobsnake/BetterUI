@@ -348,6 +348,25 @@ BETTERUI = {
                 isGuildBank = isGuildBank,
             }
         end,
+        GetTransferWithdrawSourceBags = function()
+            return BETTERUI.Banking.GetActiveTransferContext().withdrawSourceBags
+        end,
+        IsGuildBankTransferMode = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isGuildBank == true
+        end,
+        IsMainBankTransferSource = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isSourceMainBank == true
+        end,
+        IsMainBankTransferTarget = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isTargetMainBank == true
+        end,
+        IsHouseBankTransferSource = function()
+            local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
+            return sourceBag ~= BAG_BANK and sourceBag ~= BAG_GUILDBANK
+        end,
+        IsFurnitureVaultTransferSource = function()
+            return false
+        end,
         Class = {
             New = function()
                 activeWindow = createWindow()

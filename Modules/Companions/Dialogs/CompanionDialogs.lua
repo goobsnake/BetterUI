@@ -1,8 +1,3 @@
---[[
-File: Modules/Companions/Dialogs/CompanionDialogs.lua
-Purpose: Registers parametric dialogs for companion item actions and batch operations.
-]]
-
 if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
 
@@ -26,8 +21,6 @@ local function CountEligibleActionTargets(actionId, items)
     end
     return eligibleCount
 end
-
--- ACTION DIALOG
 
 local function RegisterCompanionActionDialog()
     if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered("BETTERUI_COMPANION_ACTION_DIALOG") then
@@ -79,8 +72,6 @@ local function RegisterCompanionActionDialog()
         },
     })
 end
-
--- BATCH ACTION DIALOG
 
 local function RegisterCompanionBatchDialog()
     if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered("BETTERUI_COMPANION_BATCH_DIALOG") then

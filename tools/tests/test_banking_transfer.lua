@@ -105,6 +105,30 @@ BETTERUI = {
                 withdrawSourceBags = isGuildBank and { BAG_GUILDBANK } or { BAG_BANK, BAG_SUBSCRIBER_BANK },
             }
         end,
+        GetTransferSourceBankBag = function()
+            return BETTERUI.Banking.GetActiveTransferContext().sourceBag
+        end,
+        GetTransferDestinationBankBag = function()
+            return BETTERUI.Banking.GetActiveTransferContext().targetBag
+        end,
+        GetTransferWithdrawSourceBags = function()
+            return BETTERUI.Banking.GetActiveTransferContext().withdrawSourceBags
+        end,
+        IsGuildBankTransferMode = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isGuildBank == true
+        end,
+        IsMainBankTransferSource = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isSourceMainBank == true
+        end,
+        IsMainBankTransferTarget = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isTargetMainBank == true
+        end,
+        IsHouseBankTransferSource = function()
+            return false
+        end,
+        IsFurnitureVaultTransferSource = function()
+            return false
+        end,
         GuildBank = {
             IsGuildBankMode = function() return false end,
             GetDepositTargetBag = function() return BAG_GUILDBANK end,

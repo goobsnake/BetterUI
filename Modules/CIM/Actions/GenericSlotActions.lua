@@ -9,13 +9,13 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 local TRANSFER_DENIAL_ALERT = 1
 
 local function GetBankingTransferSupport()
-    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
-    local getBankingTransferSupport = utils and utils.GetBankingTransferSupport
-    if type(getBankingTransferSupport) ~= "function" then
+    local banking = BETTERUI.Banking
+    local resolveTransferSupport = banking and banking.ResolveTransferSupport
+    if type(resolveTransferSupport) ~= "function" then
         return nil
     end
 
-    return getBankingTransferSupport()
+    return resolveTransferSupport()
 end
 
 local function NotifyTransferDenied(context, targetBag, denyReason)
@@ -142,9 +142,9 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
         end
     else
         -- Deposit
-        local transferContext = BETTERUI.Banking and type(BETTERUI.Banking.GetActiveTransferContext) == "function"
-            and BETTERUI.Banking.GetActiveTransferContext() or nil
-        local bankingBag = transferContext and transferContext.targetBag or BAG_BANK
+        local banking = BETTERUI.Banking
+        local getTransferDestinationBankBag = banking and banking.GetTransferDestinationBankBag
+        local bankingBag = type(getTransferDestinationBankBag) == "function" and getTransferDestinationBankBag() or BAG_BANK
         if isGuildBankMode and notifyGuildBankTransferDenied then
             local canTransfer, denyReason = notifyGuildBankTransferDenied("TryTransferItem:GuildDeposit", BETTERUI.Banking.LIST_DEPOSIT, bag, index)
             if not canTransfer then

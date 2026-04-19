@@ -1,17 +1,16 @@
---[[
-File: Modules/Companions/Actions/CompanionActions.lua
-Purpose: Companion item actions (equip, destroy, lock, junk, split) with BoE protection.
-]]
-
 if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
 local function GetProtectionPolicy()
     return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
 end
 
-local function CanDestroyItem(bagId, slotIndex)
+local function CanDestroyItem(bagId, slotIndex, slotType)
+    if BETTERUI.Inventory and BETTERUI.Inventory.CanDestroyItemWithPolicy then
+        return BETTERUI.Inventory.CanDestroyItemWithPolicy(bagId, slotIndex, slotType) == true
+    end
+
     local policy = GetProtectionPolicy()
-    return not policy or policy.CanDestroyItem(bagId, slotIndex)
+    return not policy or policy.CanDestroyItem(bagId, slotIndex, slotType)
 end
 
 local function CanLockItem(bagId, slotIndex)
@@ -50,17 +49,18 @@ local function ResolveCompanionActionTarget(selectedData)
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
     local bagId = ds and ds.bagId or nil
     local slotIndex = ds and ds.slotIndex or nil
-    return ds, bagId, slotIndex
+    local slotType = ds and ds.slotType or nil
+    return ds, bagId, slotIndex, slotType
 end
 
 function Companions.CanExecuteAction(actionId, selectedData)
-    local ds, bagId, slotIndex = ResolveCompanionActionTarget(selectedData)
+    local ds, bagId, slotIndex, slotType = ResolveCompanionActionTarget(selectedData)
     if actionId == "equip" then
         return ds ~= nil and bagId ~= nil and slotIndex ~= nil and not ds.isEquipped
     elseif actionId == "unequip" then
         return ds ~= nil and slotIndex ~= nil and ds.isEquipped == true
     elseif actionId == "destroy" then
-        return CanDestroyItem(bagId, slotIndex)
+        return CanDestroyItem(bagId, slotIndex, slotType)
     elseif actionId == "lock" then
         return CanLockItem(bagId, slotIndex)
     elseif actionId == "unlock" then
@@ -74,8 +74,6 @@ function Companions.CanExecuteAction(actionId, selectedData)
     end
     return false
 end
-
--- EQUIP
 
 function Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
     local equipType = GetItemEquipType and GetItemEquipType(bagId, slotIndex) or nil
@@ -141,8 +139,6 @@ function Companions.TryUnequipCompanionItem(slotIndex)
     return false
 end
 
--- BASIC ACTIONS
-
 function Companions.IsCompanionItemLocked(bagId, slotIndex)
     if IsItemPlayerLocked then
         return IsItemPlayerLocked(bagId, slotIndex)
@@ -181,8 +177,8 @@ function Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     return true
 end
 
-function Companions.ShowCompanionDestroyDialog(bagId, slotIndex)
-    if not CanDestroyItem(bagId, slotIndex) then
+function Companions.ShowCompanionDestroyDialog(bagId, slotIndex, slotType)
+    if not CanDestroyItem(bagId, slotIndex, slotType) then
         return false
     end
     local itemLink = GetItemLink(bagId, slotIndex)
@@ -197,8 +193,6 @@ function Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
         ZO_Dialogs_ShowGamepadDialog("ZO_GAMEPAD_SPLIT_STACK_DIALOG", { bag = bagId, slot = slotIndex, stack = stackSize })
     end
 end
-
--- ACTION DIALOG BUILDER
 
 function Companions.BuildActionList(selectedData)
     local actions = {}
@@ -249,7 +243,7 @@ end
 
 function Companions.ExecuteAction(actionId, selectedData)
     if not selectedData then return false end
-    local ds, bagId, slotIndex = ResolveCompanionActionTarget(selectedData)
+    local ds, bagId, slotIndex, slotType = ResolveCompanionActionTarget(selectedData)
     if not Companions.CanExecuteAction(actionId, ds) then
         return false
     end
@@ -259,11 +253,18 @@ function Companions.ExecuteAction(actionId, selectedData)
     elseif actionId == "unequip" then
         return Companions.TryUnequipCompanionItem(slotIndex)
     elseif actionId == "destroy" then
+        if not CanDestroyItem(bagId, slotIndex, slotType) then
+            return false
+        end
+
         if Companions.GetSetting("quickDestroy") == true then
+            if BETTERUI.Inventory and BETTERUI.Inventory.TryDestroyItem then
+                return BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, false, slotType)
+            end
             DestroyItem(bagId, slotIndex)
             return true
         else
-            return Companions.ShowCompanionDestroyDialog(bagId, slotIndex)
+            return Companions.ShowCompanionDestroyDialog(bagId, slotIndex, slotType)
         end
     elseif actionId == "lock" then
         return Companions.ToggleCompanionItemLock(bagId, slotIndex)

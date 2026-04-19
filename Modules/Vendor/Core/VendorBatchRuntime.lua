@@ -49,104 +49,15 @@ local function GetVendorBatchOptionsTemplate()
     return VendorBatchOptionsTemplate
 end
 
-local function TranslateLegacyBatchOptions(batchOptions)
-    if type(batchOptions) ~= "table" then
-        return nil
-    end
-
-    local legacyKeys = {
-        "serverBound",
-        "costPerItem",
-        "skipInterBatchCooldown",
-        "minServerDelayMs",
-        "maxServerDelayMs",
-        "cooldownEvery",
-        "cooldownMs",
-        "chunkCostUnits",
-        "chunkPauseMs",
-        "adaptiveDelay",
-        "adaptiveThreshold",
-        "adaptiveStepMs",
-        "jitterMs",
-        "awaitInventoryAck",
-        "ackTimeoutMs",
-        "countTowardRateOnSuccess",
-        "enforceRateWindow",
-        "rateLimitWindowMs",
-        "rateLimitMaxActions",
-        "postBatchCooldownBaseMs",
-        "postBatchCooldownThreshold",
-        "postBatchCooldownPerCostMs",
-        "postBatchCooldownMaxMs",
-    }
-
-    local hasLegacyShape = false
-    for _, key in ipairs(legacyKeys) do
-        if batchOptions[key] ~= nil then
-            hasLegacyShape = true
-            break
-        end
-    end
-    if not hasLegacyShape then
-        return nil
-    end
-
-    local batchConfig = GetBatchConfig()
-    return batchConfig.ComposeBatchOptions(
-        batchConfig.WithServer({
-            serverBound = batchOptions.serverBound,
-            costPerItem = batchOptions.costPerItem,
-            skipInterBatchCooldown = batchOptions.skipInterBatchCooldown,
-        }),
-        batchConfig.WithPacing({
-            minServerDelayMs = batchOptions.minServerDelayMs,
-            maxServerDelayMs = batchOptions.maxServerDelayMs,
-            cooldownEvery = batchOptions.cooldownEvery,
-            cooldownMs = batchOptions.cooldownMs,
-            chunkCostUnits = batchOptions.chunkCostUnits,
-            chunkPauseMs = batchOptions.chunkPauseMs,
-            adaptiveDelay = batchOptions.adaptiveDelay,
-            adaptiveThreshold = batchOptions.adaptiveThreshold,
-            adaptiveStepMs = batchOptions.adaptiveStepMs,
-            jitterMs = batchOptions.jitterMs,
-        }),
-        batchConfig.WithAck({
-            awaitInventoryAck = batchOptions.awaitInventoryAck,
-            ackTimeoutMs = batchOptions.ackTimeoutMs,
-            countTowardRateOnSuccess = batchOptions.countTowardRateOnSuccess,
-        }),
-        batchConfig.WithRateLimit({
-            enforceRateWindow = batchOptions.enforceRateWindow,
-            rateLimitWindowMs = batchOptions.rateLimitWindowMs,
-            rateLimitMaxActions = batchOptions.rateLimitMaxActions,
-        }),
-        batchConfig.WithPostBatch({
-            postBatchCooldownBaseMs = batchOptions.postBatchCooldownBaseMs,
-            postBatchCooldownThreshold = batchOptions.postBatchCooldownThreshold,
-            postBatchCooldownPerCostMs = batchOptions.postBatchCooldownPerCostMs,
-            postBatchCooldownMaxMs = batchOptions.postBatchCooldownMaxMs,
-        })
-    )
-end
-
 ---@param batchOptions table|nil
 ---@return BatchOptions
 function BatchRuntime.ResolveBatchOptions(batchOptions)
     local batchConfig = GetBatchConfig()
-    local translatedLegacyOptions = TranslateLegacyBatchOptions(batchOptions)
-    local normalizedOverride = batchConfig.NormalizeBatchOptions(translatedLegacyOptions or batchOptions)
-    return batchConfig.ComposeBatchOptions(GetVendorBatchOptionsTemplate(), normalizedOverride)
-end
-
---- Resolves internal options for batch runtime requests.
---- Keeps the legacy `batchOptions` compatibility shim private to runtime internals.
----@param request BetterUIVendorBatchRequest|table
----@return BatchOptions|table|nil
-local function ResolveBatchRuntimeRequestOptions(request)
-    if request.options ~= nil then
-        return request.options
+    if type(batchOptions) ~= "table" then
+        return batchConfig.ComposeBatchOptions(GetVendorBatchOptionsTemplate())
     end
-    return request.batchOptions
+
+    return batchConfig.ComposeBatchOptions(GetVendorBatchOptionsTemplate(), batchOptions)
 end
 
 --- Normalizes the named vendor batch request contract.
@@ -154,11 +65,13 @@ end
 ---@return BetterUIVendorBatchRequest
 local function NormalizeBatchRuntimeRequest(request)
     assert(type(request) == "table", "Vendor batch runtime expects BetterUIVendorBatchRequest table")
+    assert(request.batchOptions == nil,
+        "Vendor batch runtime expects request.options; legacy request.batchOptions is not part of the runtime contract")
     return {
         mode = request.mode,
         items = request.items or {},
         onComplete = request.onComplete,
-        options = ResolveBatchRuntimeRequestOptions(request),
+        options = request.options,
         actionName = request.actionName,
     }
 end

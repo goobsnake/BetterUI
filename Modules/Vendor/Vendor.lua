@@ -1029,6 +1029,45 @@ local function AssertVendorBatchRequest(request)
     return request
 end
 
+local LEGACY_BATCH_OPTION_KEYS = {
+    "serverBound",
+    "costPerItem",
+    "skipInterBatchCooldown",
+    "minServerDelayMs",
+    "maxServerDelayMs",
+    "cooldownEvery",
+    "cooldownMs",
+    "chunkCostUnits",
+    "chunkPauseMs",
+    "adaptiveDelay",
+    "adaptiveThreshold",
+    "adaptiveStepMs",
+    "jitterMs",
+    "awaitInventoryAck",
+    "ackTimeoutMs",
+    "countTowardRateOnSuccess",
+    "enforceRateWindow",
+    "rateLimitWindowMs",
+    "rateLimitMaxActions",
+    "postBatchCooldownBaseMs",
+    "postBatchCooldownThreshold",
+    "postBatchCooldownPerCostMs",
+    "postBatchCooldownMaxMs",
+}
+
+local function AssertPublicBatchOptionsContract(batchOptions)
+    if type(batchOptions) ~= "table" then
+        return batchOptions
+    end
+
+    for _, key in ipairs(LEGACY_BATCH_OPTION_KEYS) do
+        assert(batchOptions[key] == nil,
+            string.format("Vendor.ResolveBatchOptions expects grouped options; legacy flat key `%s` is no longer part of the public contract", key))
+    end
+
+    return batchOptions
+end
+
 --- Processes vendor batch actions through a throttled pipeline with overlay progress.
 ---@param request BetterUIVendorBatchRequest
 function Vendor.ExecuteBatchThrottled(request)
@@ -1049,6 +1088,7 @@ end
 ---@param batchOptions BatchOptions|table|nil
 ---@return BatchOptions
 function Vendor.ResolveBatchOptions(batchOptions)
+    batchOptions = AssertPublicBatchOptionsContract(batchOptions)
     return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ResolveBatchOptions(batchOptions)
 end
 

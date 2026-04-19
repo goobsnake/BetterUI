@@ -80,9 +80,9 @@ BETTERUI.CIM.Types = {}
 ---| "Nameplates"
 
 ---@alias BetterUIModuleArchetype
----| "runtime-coordinator"
----| "settings-owner"
----| "thin-entrypoint"
+---| "runtime-coordinator" -- Enforced: init=true
+---| "settings-owner" -- Enforced: init=true, setup=true, and settings surface
+---| "thin-entrypoint" -- Enforced: init=true and setup=true
 
 ---@alias BetterUIModuleOptions table<string, BetterUIModuleSettingValue|nil>
 ---@alias BetterUIModuleInitHook fun(m_options: BetterUIModuleOptions|nil): BetterUIModuleOptions
@@ -90,7 +90,7 @@ BETTERUI.CIM.Types = {}
 
 ---@class BetterUIModuleRootContract
 ---@field name ModuleName
----@field archetype BetterUIModuleArchetype
+---@field archetype BetterUIModuleArchetype Enforced lifecycle behavior profile
 ---@field init boolean True when bootstrap must call InitModule for this module
 ---@field setup boolean True when bootstrap must call Setup for this module
 

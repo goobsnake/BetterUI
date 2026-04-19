@@ -9,6 +9,48 @@ BETTERUI.CIM.Interfaces = BETTERUI.CIM.Interfaces or {}
 
 -- INTERFACE DEFINITIONS
 
+local SUPPORTED_ARCHETYPES = {
+    ["runtime-coordinator"] = true,
+    ["settings-owner"] = true,
+    ["thin-entrypoint"] = true,
+}
+
+local function HasSettingsSurface(module)
+    if type(module.GetSettingsOptions) == "function" then
+        return true
+    end
+    local settings = module.Settings
+    return type(settings) == "table" and type(settings.RegisterPanel) == "function"
+end
+
+local function ValidateArchetypeBehavior(module, contract)
+    local archetype = contract.archetype
+    if not SUPPORTED_ARCHETYPES[archetype] then
+        return false, "Module.ROOT_CONTRACT.archetype must be a supported BetterUIModuleArchetype"
+    end
+
+    if archetype == "runtime-coordinator" then
+        if contract.init ~= true then
+            return false, "runtime-coordinator modules must set Module.ROOT_CONTRACT.init to true"
+        end
+        return true
+    end
+
+    if archetype == "settings-owner" then
+        if contract.init ~= true or contract.setup ~= true then
+            return false, "settings-owner modules must enable both Module.ROOT_CONTRACT.init and Module.ROOT_CONTRACT.setup"
+        end
+        if not HasSettingsSurface(module) then
+            return false, "settings-owner modules must expose GetSettingsOptions or Settings.RegisterPanel"
+        end
+        return true
+    end
+
+    if contract.init ~= true or contract.setup ~= true then
+        return false, "thin-entrypoint modules must enable both Module.ROOT_CONTRACT.init and Module.ROOT_CONTRACT.setup"
+    end
+    return true
+end
 
 -- INTERFACE VALIDATION
 
@@ -67,6 +109,11 @@ function BETTERUI.CIM.Interfaces.ValidateModule(module, requiredFields, expected
         end
         if contract.setup and type(module.Setup) ~= "function" then
             return false, "Module.ROOT_CONTRACT.setup is true but Module.Setup must be a function"
+        end
+
+        local archetypeValid, archetypeErr = ValidateArchetypeBehavior(module, contract)
+        if not archetypeValid then
+            return false, archetypeErr
         end
     end
 

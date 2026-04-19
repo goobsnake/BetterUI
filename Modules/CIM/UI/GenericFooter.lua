@@ -1,13 +1,3 @@
---[[
-File: Modules/CIM/UI/GenericFooter.lua
-Purpose: Manages the Gamepad Bottom Bar (Footer) logic.
-         Displays bag/bank capacity and various currencies (Gold, AP, Tel Var, etc.).
-]]
-
-
--- LOCAL ALIASES
--- Reference CurrencyManager functions for cleaner code
-
 local Currency = nil -- Will be set after load order verification
 
 local function EnsureCurrencyManager()
@@ -17,36 +7,16 @@ local function EnsureCurrencyManager()
     return Currency
 end
 
--- HELPER FUNCTIONS
-
---- Retrieves a label control from the footer by name.
---- Delegates to CurrencyManager's implementation for consistency.
----
 local function GetLabelControl(footer, labelName)
     return EnsureCurrencyManager().GetLabelControl(footer, labelName)
 end
 
--- PUBLIC API
-
---- Initializes the footer control reference.
---- Triggers an initial refresh if the control is ready.
----@return nil
 function BETTERUI.GenericFooter:Initialize()
     if (self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 
     if (self.footer.GoldLabel ~= nil) then BETTERUI.GenericFooter.Refresh(self) end
 end
 
---- Refreshes the footer content and layout.
----
---- Purpose: Updates footer display with current bag/bank and currency info.
---- Mechanics:
---- 1. Updates Capacity Labels (Backpack and Bank).
---- 2. Delegates currency updates to CurrencyManager.
---- 3. Dynamically positions currency labels based on user-defined order.
----
---- References: Called on inventory updates (EVENT_INVENTORY_SINGLE_SLOT_UPDATE) and initialization.
----@return nil
 function BETTERUI.GenericFooter:Refresh()
     local invSettings = BETTERUI.GetModuleSettings("Inventory")
     local footer = self.footer
@@ -55,7 +25,6 @@ function BETTERUI.GenericFooter:Refresh()
     local stringsChanged = false
     local CurrencyMgr = EnsureCurrencyManager()
 
-    -- Update capacity labels (works for both direct property and named child access)
     local cwLabel = GetLabelControl(footer, "CWLabel")
     local bankLabel = GetLabelControl(footer, "BankLabel")
 
@@ -85,12 +54,8 @@ function BETTERUI.GenericFooter:Refresh()
         end
     end
 
-    -- Delegate currency updates to CurrencyManager
     local currenciesChanged = CurrencyMgr.UpdateLabels(footer, invSettings)
 
-    -- Position labels only if something changed
-    -- Note: Initial sizing/positioning might need to run at least once,
-    -- but Initialize calls Refresh which will trigger updates as internal caches start empty.
     if stringsChanged or currenciesChanged then
         CurrencyMgr.PositionLabels(footer, invSettings)
     end

@@ -246,6 +246,24 @@ BETTERUI = {
                 isGuildBank = sourceBag == BAG_GUILDBANK,
             }
         end,
+        GetTransferWithdrawSourceBags = function()
+            return BETTERUI.Banking.GetActiveTransferContext().withdrawSourceBags
+        end,
+        IsGuildBankTransferMode = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isGuildBank == true
+        end,
+        IsMainBankTransferSource = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isSourceMainBank == true
+        end,
+        IsMainBankTransferTarget = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isTargetMainBank == true
+        end,
+        IsHouseBankTransferSource = function()
+            return false
+        end,
+        IsFurnitureVaultTransferSource = function()
+            return false
+        end,
         transferSupport = {
             IsDepositSupportedForBank = function()
                 return depositAllowed, depositReason

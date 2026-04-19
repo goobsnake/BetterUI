@@ -1,13 +1,11 @@
 -- Inventory destroy-action helpers.
 
--- DESTROY ITEM LOGIC
-
 local BLOCK_TABBAR_CALLBACK = true
 
-local function CanForceDestroyItem(bagId, slotIndex)
+local function CanForceDestroyItem(bagId, slotIndex, slotType)
     local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
     if policy and policy.CanDestroyItem then
-        return policy.CanDestroyItem(bagId, slotIndex)
+        return policy.CanDestroyItem(bagId, slotIndex, slotType) == true
     end
 
     return true
@@ -27,9 +25,6 @@ end
 
 BETTERUI.Inventory.CanDestroyItemWithPolicy = CanDestroyItemWithPolicy
 
----@param bagId number Bag ID containing the item
----@param slotIndex number Slot index of the item
----@return boolean ok Whether destruction succeeded
 local function ForceDestroyItemSafely(bagId, slotIndex)
     if SetCursorItemSoundsEnabled then
         SetCursorItemSoundsEnabled(false)
@@ -47,24 +42,16 @@ local function ForceDestroyItemSafely(bagId, slotIndex)
     return ok
 end
 
---- Safer replacement for raw DestroyItem. Destroys immediately when forced,
---- otherwise returns false to signal that a confirmation dialog is needed.
----@param bagId number|nil Bag ID
----@param slotIndex number|nil Slot index
----@param force boolean|nil Whether to destroy without confirmation
----@param suppressUiRefresh boolean|nil Whether to skip UI refresh after destroy
----@return boolean success Whether the item was destroyed
-function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRefresh)
+function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRefresh, slotType)
     if not bagId or not slotIndex then
         return false
     end
-    if not CanDestroyItemWithPolicy(bagId, slotIndex) then
+    if not CanDestroyItemWithPolicy(bagId, slotIndex, slotType) then
         return false
     end
-    -- Only destroy immediately when explicitly forced (quickDestroy setting)
-    -- Junk items still get the confirmation dialog for safety
+
     if force then
-        local canDestroy = CanForceDestroyItem(bagId, slotIndex)
+        local canDestroy = CanForceDestroyItem(bagId, slotIndex, slotType)
         if not canDestroy then
             return false
         end
@@ -75,11 +62,9 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRe
         end
 
         if not suppressUiRefresh then
-            -- Proactively refresh inventory caches to reflect removal
             if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
                 SHARED_INVENTORY:PerformFullUpdateOnBagCache(bagId)
             end
-            -- UI refreshes (safe if scene present)
             BETTERUI.Inventory.Tasks:Schedule("destroyItemRefresh", 80, function()
                 if GAMEPAD_INVENTORY then
                     if GAMEPAD_INVENTORY.RefreshItemList then
@@ -100,8 +85,6 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRe
     return false
 end
 
---- Hooks the native destroy logic (RS-button and engine action callbacks).
----@return nil
 function BETTERUI.Inventory.HookDestroyItem()
     if BETTERUI.Inventory._destroyHookInstalled then
         return
@@ -122,14 +105,10 @@ function BETTERUI.Inventory.HookDestroyItem()
 
         local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
 
-        -- TryDestroyItem handles junk and force-destroy cases (returns true if destroyed)
-        if BETTERUI.Inventory.TryDestroyItem(bag, index, quick) then
+        if BETTERUI.Inventory.TryDestroyItem(bag, index, quick, false, slotType) then
             return true
         end
 
-        -- Non-junk, non-quickDestroy: show BetterUI's confirmation dialog
-        -- This prevents the engine's own cursor-based destroy dialog from appearing
-        -- Dismiss the action dialog first if it's still showing (safety against stacked dialogs)
         if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         end

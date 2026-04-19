@@ -192,6 +192,34 @@ assertEqual("fence_launder", BETTERUI.Vendor.ResolveActionId("FENCE_LAUNDER"), "
 assertEqual(nil, BETTERUI.Vendor.ResolveActionId("UNKNOWN"), "vendor action resolver rejects unknown keys")
 
 do
+    local modePolicy = BETTERUI.Vendor.ModePolicy
+    local mode = BETTERUI.Vendor.MODE and BETTERUI.Vendor.MODE.SELL or 2
+    local readOnlyOwner = {
+        modeCategories = {
+            [mode] = {
+                { key = "all" },
+            },
+        },
+        categoryIndexByMode = {
+            [mode] = 2,
+        },
+    }
+
+    local selectedIndex = modePolicy.GetSelectedCategoryIndex(readOnlyOwner, mode)
+    assertEqual(1, selectedIndex, "vendor selected-category getter clamps to a valid index")
+    assertTrue(readOnlyOwner._modeCategoryState == nil,
+        "vendor selected-category getter remains read-only and does not initialize category state")
+    assertEqual(2, readOnlyOwner.categoryIndexByMode[mode],
+        "vendor selected-category getter does not mutate stored index state")
+
+    local statelessOwner = {}
+    assertEqual(1, modePolicy.GetSelectedCategoryIndex(statelessOwner, mode),
+        "vendor selected-category getter resolves defaults without mutating stateless owners")
+    assertTrue(statelessOwner._modeCategoryState == nil and statelessOwner.categoryIndexByMode == nil,
+        "vendor selected-category getter keeps stateless owner tables untouched")
+end
+
+do
     local originalBatchRuntime = BETTERUI.Vendor.BatchRuntime
     local observed = {
         completed = 0,
@@ -267,6 +295,13 @@ do
     assertTrue(observed.resolveOptionsInput == sampleOptions, "vendor batch-options facade delegates option normalization input")
     assertTrue(observedDefaultOptions == sampleOptions, "vendor default batch-options facade preserves collaborator return value")
     assertTrue(observedResolvedOptions == resolvedOptions, "vendor resolved batch-options facade preserves collaborator return value")
+    local acceptedLegacyPublicOptions, _ = pcall(function()
+        BETTERUI.Vendor.ResolveBatchOptions({
+            serverBound = false,
+        })
+    end)
+    assertTrue(acceptedLegacyPublicOptions == false,
+        "vendor batch-options facade rejects legacy flat option keys on the public contract")
 
     BETTERUI.Vendor.BatchRuntime = originalBatchRuntime
 end

@@ -82,7 +82,8 @@ BETTERUI.Companions = BETTERUI.Companions or {}
 BETTERUI.Writs = BETTERUI.Writs or {}
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
-BETTERUI.Nameplates = BETTERUI.Nameplates or {}
+BETTERUI.GeneralInterface.Nameplates = BETTERUI.GeneralInterface.Nameplates or BETTERUI.Nameplates or {}
+BETTERUI.Nameplates = BETTERUI.GeneralInterface.Nameplates -- compatibility alias
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 
 BETTERUI.GenericHeader = BETTERUI.GenericHeader or {}

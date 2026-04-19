@@ -4,10 +4,17 @@ local Nameplates
 if type(GeneralInterface.GetNameplatesNamespace) == "function" then
     Nameplates = GeneralInterface.GetNameplatesNamespace()
 else
-    Nameplates = GeneralInterface.Nameplates or BETTERUI.Nameplates or {}
+    Nameplates = GeneralInterface.Nameplates
+    if type(Nameplates) ~= "table" then
+        if type(BETTERUI.Nameplates) == "table" then
+            Nameplates = BETTERUI.Nameplates
+        else
+            Nameplates = {}
+        end
+    end
     GeneralInterface.Nameplates = Nameplates
-    BETTERUI.Nameplates = Nameplates
 end
+BETTERUI.Nameplates = Nameplates -- compatibility alias
 
 Nameplates.ARCHETYPE = "settings-owner"
 ---@type BetterUIModuleRootContract

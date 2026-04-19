@@ -39,14 +39,14 @@ assert_contains(
 
 assert_contains(
     transferActions,
-    "GetBankingTransferSupport",
-    "TransferActions resolves helpers through the shared CIM transfer-support seam"
+    "local resolveTransferSupport = banking and banking.ResolveTransferSupport",
+    "TransferActions resolves helpers through the owned Banking transfer-support seam"
 )
 
 assert_not_contains(
     transferActions,
-    "banking.ResolveTransferSupport()",
-    "TransferActions no longer probes Banking.ResolveTransferSupport directly"
+    "GetBankingTransferSupport",
+    "TransferActions no longer resolves transfer support through the CIM wrapper chain"
 )
 
 assert_contains(
@@ -65,6 +65,12 @@ assert_not_contains(
     keybindManager,
     "GetBankingTransferHelper(",
     "KeybindManager no longer dispatches transfer helpers by string name"
+)
+
+assert_not_contains(
+    keybindManager,
+    "GetBankingTransferSupport",
+    "KeybindManager no longer resolves transfer support through the CIM wrapper chain"
 )
 
 assert_contains(

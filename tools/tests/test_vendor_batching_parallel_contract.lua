@@ -142,18 +142,18 @@ assertEqual(true, defaults.ack.awaitInventoryAck, "Default options keep inventor
 assertEqual(nil, defaults.serverBound, "Default options no longer expose flat legacy keys")
 
 resetState()
-local translated = BatchRuntime.ResolveBatchOptions({
+local strictContract = BatchRuntime.ResolveBatchOptions({
     serverBound = false,
     minServerDelayMs = 210,
     maxServerDelayMs = 240,
     cooldownEvery = 5,
     awaitInventoryAck = false,
 })
-assertEqual(false, translated.server.serverBound, "Legacy flat serverBound translates into grouped server options")
-assertEqual(210, translated.pacing.minServerDelayMs, "Legacy flat min delay translates into grouped pacing options")
-assertEqual(240, translated.pacing.maxServerDelayMs, "Legacy flat max delay translates into grouped pacing options")
-assertEqual(5, translated.pacing.cooldownEvery, "Legacy flat cooldownEvery translates into grouped pacing options")
-assertEqual(false, translated.ack.awaitInventoryAck, "Legacy flat awaitInventoryAck translates into grouped ack options")
+assertEqual(true, strictContract.server.serverBound, "Public runtime contract ignores flat legacy serverBound keys")
+assertEqual(145, strictContract.pacing.minServerDelayMs, "Public runtime contract keeps default minimum delay when flat keys are provided")
+assertEqual(330, strictContract.pacing.maxServerDelayMs, "Public runtime contract keeps default maximum delay when flat keys are provided")
+assertEqual(18, strictContract.pacing.cooldownEvery, "Public runtime contract keeps default cooldown cadence when flat keys are provided")
+assertEqual(true, strictContract.ack.awaitInventoryAck, "Public runtime contract keeps grouped ACK defaults when flat keys are provided")
 
 resetState()
 local grouped = BatchRuntime.ResolveBatchOptions({
@@ -253,6 +253,16 @@ assertTrue(batchRuntimeCall.items[1].entryIndex == 5 and batchRuntimeCall.items[
 assertTrue(batchRuntimeCall.batchOptions and batchRuntimeCall.batchOptions.server and batchRuntimeCall.batchOptions.server.serverBound == false,
     "Vendor batch runtime forwards resolved options from the request/options contract")
 assertEqual(true, batchRuntimeCall.started, "Vendor batch runtime still starts the runner contract after request parsing")
+
+resetState()
+local legacyRequestAccepted, _ = pcall(function()
+    BatchRuntime.ExecuteBatchThrottled({
+        mode = MODE.SELL,
+        items = { { bagId = BAG_BACKPACK, slotIndex = 1 } },
+        batchOptions = { server = { serverBound = false } },
+    })
+end)
+assertEqual(false, legacyRequestAccepted, "Vendor batch runtime rejects legacy request.batchOptions contract shape")
 
 print("\n=== Test Summary ===")
 print("Passed: " .. testsPassed)
