@@ -38,16 +38,12 @@ local function EnsureCompanionBoundaryHelpers()
 end
 
 Companions.EnsureBoundaryHelpers = Companions.EnsureBoundaryHelpers or EnsureCompanionBoundaryHelpers
-Companions.EnsureBoundaryHelpers()
+local companionsBoundaryHelpers = Companions.EnsureBoundaryHelpers()
 Companions.GetBoundary = Companions.GetBoundary or function()
-    return Companions.EnsureBoundaryHelpers()
+    return companionsBoundaryHelpers
 end
-Companions.WrapBoundaryError = Companions.WrapBoundaryError or function(operation, err)
-    return Companions.GetBoundary().WrapError(operation, err)
-end
-Companions.ExecuteBoundary = Companions.ExecuteBoundary or function(context, fn, ...)
-    return Companions.GetBoundary().ExecuteBoundary(context, fn, ...)
-end
+Companions.WrapBoundaryError = Companions.WrapBoundaryError or companionsBoundaryHelpers.WrapError
+Companions.ExecuteBoundary = Companions.ExecuteBoundary or companionsBoundaryHelpers.ExecuteBoundary
 
 local function RefreshVisibleCompanionScene(screen, options)
     if not screen or not screen.IsSceneShowing or not screen:IsSceneShowing() then

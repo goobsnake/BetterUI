@@ -14,20 +14,22 @@ ESO Reference: ZO_CompanionEquipment_Gamepad in
 BETTERUI.Companions = BETTERUI.Companions or {}
 local Companions = BETTERUI.Companions
 
+local MODULE_NAME = "Companions"
+local MODULE_OWNER_FILE = "Modules/Companions/Module.lua"
+local ROOT_CONTRACT_INIT_OWNER = MODULE_OWNER_FILE
+local ROOT_CONTRACT_SETUP_OWNER = MODULE_OWNER_FILE
+
 Companions.ARCHETYPE = "runtime-coordinator"
 ---@type BetterUIModuleRootContract
 Companions.ROOT_CONTRACT = {
-    name = "Companions",
+    name = MODULE_NAME,
     archetype = Companions.ARCHETYPE,
-    initOwner = "Modules/Companions/Module.lua",
-    setupOwner = "Modules/Companions/Module.lua",
-    runtimeOwner = "Modules/Companions/Core/CompanionsRuntime.lua + Modules/Companions/Core/ + Modules/Companions/Actions/ + Modules/Companions/Dialogs/",
-    settingsOwner = "Modules/Companions/Module.lua + Modules/Companions/Settings/",
-    notes = "Module.lua owns the public Init/Setup contract and settings-panel wiring, while CompanionsRuntime.lua plus Core/, Actions/, and Dialogs/ implement the live companion scene, events, keybinds, and dialog flow.",
+    initOwner = ROOT_CONTRACT_INIT_OWNER,
+    setupOwner = ROOT_CONTRACT_SETUP_OWNER,
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
-BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, "Companions")
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, MODULE_NAME)
 
 local function WrapCompanionRuntimeError(operation, err)
     return string.format("[Companions] %s failed: %s", operation, tostring(err))
@@ -35,14 +37,6 @@ end
 
 Companions.WrapRuntimeError = WrapCompanionRuntimeError
 
-local function EnsureCompanionsSetupContracts()
-    BETTERUI.CIM.RegisterModuleAccessors(Companions, "Companions")
-end
-
---- Initializes defaults and applies fallback values for saved variables.
----
---- INIT CONTRACT: This function implements the standard InitModule signature.
----
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Initialized options with defaults applied
 ---@type BetterUIModuleInitHook
@@ -57,11 +51,14 @@ function BETTERUI.Companions.InitModule(m_options)
     return m_options
 end
 
---- Lifecycle hook: registers settings panel and initializes the module.
---- Called by BETTERUI.LoadModules() via MODULE_REGISTRY.
+local function EnsureCompanionsSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(Companions, "Companions")
+    BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")
+end
+
+---@type BetterUIModuleSetupHook
 function BETTERUI.Companions.Setup()
     EnsureCompanionsSetupContracts()
-    BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")
 
     if BETTERUI.Companions.GetSetting("enableCompanionEquipment") == false then
         return

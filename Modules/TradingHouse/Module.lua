@@ -11,29 +11,23 @@ font descriptor factories for the name and column rendering.
 BETTERUI.TradingHouse = BETTERUI.TradingHouse or {}
 local TradingHouse = BETTERUI.TradingHouse
 
+local MODULE_NAME = "TradingHouse"
+local MODULE_OWNER_FILE = "Modules/TradingHouse/Module.lua"
+local ROOT_CONTRACT_INIT_OWNER = MODULE_OWNER_FILE
+local ROOT_CONTRACT_SETUP_OWNER = MODULE_OWNER_FILE
+
 TradingHouse.ARCHETYPE = "runtime-coordinator"
 ---@type BetterUIModuleRootContract
 TradingHouse.ROOT_CONTRACT = {
-    name = "TradingHouse",
+    name = MODULE_NAME,
     archetype = TradingHouse.ARCHETYPE,
-    initOwner = "Modules/TradingHouse/Module.lua",
-    setupOwner = "Modules/TradingHouse/Module.lua",
-    runtimeOwner = "Modules/TradingHouse/Module.lua + Modules/TradingHouse/TradingHouse.lua + Modules/TradingHouse/Core/ + Modules/TradingHouse/Components/",
-    settingsOwner = "Modules/TradingHouse/Module.lua + Modules/TradingHouse/Settings/",
-    notes = "Module.lua owns Init/Setup wiring and shared trading-house helpers, delegates module-setting defaults to DefaultsRegistry, keeps shared CIM font defaults, and relies on Core/TradingHouseRuntime.lua plus TradingHouse.lua/Components for runtime flow.",
+    initOwner = ROOT_CONTRACT_INIT_OWNER,
+    setupOwner = ROOT_CONTRACT_SETUP_OWNER,
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(TradingHouse, "TradingHouse")
 
-local function EnsureTradingHouseSetupContracts()
-    BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")
-end
-
---- Initializes defaults and migrates legacy settings for the TradingHouse module.
----
---- INIT CONTRACT: This function implements the standard InitModule signature.
----
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Initialized options with defaults applied
 ---@type BetterUIModuleInitHook
@@ -55,7 +49,6 @@ function BETTERUI.TradingHouse.InitModule(m_options)
     return m_options
 end
 
---- Formats unit price for display.
 ---@param totalPrice number Total cost of the stack
 ---@param quantity number Stack size
 ---@return string formatted Human-readable unit price string
@@ -65,14 +58,13 @@ function BETTERUI.TradingHouse.FormatUnitPrice(totalPrice, quantity)
     return BETTERUI.DisplayNumber(unitPrice) .. "g ea"
 end
 
---[[
-Function: BETTERUI.TradingHouse.Setup
-Lifecycle hook to setup the Trading House module.
-References: Called by BETTERUI.LoadModules() in BetterUI.lua.
-]]
----@return nil
+local function EnsureTradingHouseSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")
+    BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")
+end
+
+---@type BetterUIModuleSetupHook
 function BETTERUI.TradingHouse.Setup()
     EnsureTradingHouseSetupContracts()
-    BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")
     BETTERUI.TradingHouse.Init()
 end

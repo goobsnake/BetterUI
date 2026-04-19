@@ -47,8 +47,8 @@ assert_contains(accessorSource, "ns._sharedAccessorsRegistered = true",
 
 assert_contains(inventoryModule, 'BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Inventory, "Inventory")',
     "Inventory keeps only pure shared settings statics at import time")
-assert_contains(inventoryModule, 'local function EnsureInventorySetupContracts()',
-    "Inventory defines an explicit setup-time bootstrap helper")
+assert_contains(inventoryModule, 'function Inventory.Setup()',
+    "Inventory exposes an explicit setup-time hook")
 assert_contains(inventoryModule, 'BETTERUI.CIM.RegisterModuleAccessors(Inventory, "Inventory")',
     "Inventory registers accessors during setup")
 assert_contains(inventoryModule, 'BETTERUI.CIM.Keybinds.RegisterInventoryActionModes({',
@@ -58,14 +58,14 @@ assert_contains(inventoryModule, 'BETTERUI.CIM.TryRegisterModulePanel(Inventory,
 
 assert_contains(vendorModule, 'BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Vendor, "Vendor")',
     "Vendor keeps only pure shared settings statics at import time")
-assert_contains(vendorModule, 'local function EnsureVendorSetupContracts()',
-    "Vendor defines an explicit setup-time bootstrap helper")
+assert_contains(vendorModule, 'function BETTERUI.Vendor.Setup()',
+    "Vendor exposes an explicit setup-time hook")
 assert_contains(vendorModule, 'BETTERUI.CIM.RegisterModuleAccessors(Vendor, "Vendor")',
     "Vendor registers accessors during setup")
 assert_contains(vendorModule, 'BETTERUI.CIM.TryRegisterModulePanel(Vendor, "Vendor", "Vendor", "Vendor")',
     "Vendor setup uses the shared panel registration helper")
 
-assert_contains(companionsModule, 'BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, "Companions")',
+assert_contains(companionsModule, 'BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, MODULE_NAME)',
     "Companions keeps only pure shared settings statics at import time")
 assert_contains(companionsModule, 'local function EnsureCompanionsSetupContracts()',
     "Companions defines an explicit setup-time bootstrap helper")
@@ -99,8 +99,8 @@ assert_contains(generalInterfaceSetup, 'GeneralInterface.Settings.RegisterPanel 
 assert_contains(generalInterfaceSetup,
     'BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")',
     "GeneralInterface setup uses the shared panel registration helper")
-assert_contains(resourceOrbModule, 'local function EnsureResourceOrbFramesSetupContracts()',
-    "ResourceOrbFrames defines an explicit setup-time bootstrap helper")
+assert_contains(resourceOrbModule, 'function ResourceOrbFrames.Setup()',
+    "ResourceOrbFrames exposes an explicit setup-time hook")
 assert_contains(resourceOrbModule, 'BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")',
     "ResourceOrbFrames registers accessors during setup")
 assert_contains(resourceOrbModule, 'ResourceOrbFrames.Settings = ResourceOrbFrames.Settings or {}',

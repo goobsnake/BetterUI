@@ -73,22 +73,11 @@ Vendor.ROOT_CONTRACT = {
 	archetype = Vendor.ARCHETYPE,
 	initOwner = "Modules/Vendor/Module.lua",
 	setupOwner = "Modules/Vendor/Module.lua",
-	runtimeOwner = "Modules/Vendor/Module.lua + Modules/Vendor/Vendor.lua + Modules/Vendor/Core/ + Modules/Vendor/Components/ + Modules/Vendor/Scene/",
-	settingsOwner = "Modules/Vendor/Module.lua + Modules/Vendor/Settings/",
-	notes = "Module.lua owns Init/Setup wiring and shared vendor helpers, delegates module-setting defaults to DefaultsRegistry, and keeps shared CIM font defaults while Vendor.lua, Core/, Components/, and Scene/ implement runtime flow.",
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Vendor, "Vendor")
 
-local function EnsureVendorSetupContracts()
-	BETTERUI.CIM.RegisterModuleAccessors(Vendor, "Vendor")
-end
-
---- Initializes defaults and migrates legacy settings for the Vendor module.
----
---- INIT CONTRACT: This function implements the standard InitModule signature.
----
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Initialized options with defaults applied
 ---@type BetterUIModuleInitHook
@@ -106,7 +95,7 @@ end
 --- Normalizes search text for case-insensitive list filtering.
 ---@param query any
 ---@return string|nil normalized
-function BETTERUI.Vendor.NormalizeSearchQuery(query)
+local function NormalizeSearchText(query)
 	if query == nil then
 		return nil
 	end
@@ -120,11 +109,25 @@ function BETTERUI.Vendor.NormalizeSearchQuery(query)
 	return (zo_strlower and zo_strlower(text)) or string.lower(text)
 end
 
+---@param query any
+---@return string|nil normalized
+function BETTERUI.Vendor.NormalizeSearchQuery(query)
+	return NormalizeSearchText(query)
+end
+
 --- Returns the active normalized search query for a vendor instance.
 ---@param vendorInstance table|nil
 ---@return string|nil normalized
 function BETTERUI.Vendor.GetNormalizedSearchQuery(vendorInstance)
-	return BETTERUI.Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery)
+	if type(vendorInstance) ~= "table" then
+		return nil
+	end
+
+	if vendorInstance.searchQuery == nil then
+		return nil
+	end
+
+	return NormalizeSearchText(vendorInstance.searchQuery)
 end
 
 --- Checks whether text matches the active normalized search query.
@@ -272,14 +275,9 @@ function BETTERUI.Vendor.FormatCurrency(value)
 	return tostring(value)
 end
 
---[[
-Function: BETTERUI.Vendor.Setup
-Lifecycle hook to setup the Vendor module.
-References: Called by BETTERUI.LoadModules() in BetterUI.lua.
-]]
----@return nil
+---@type BetterUIModuleSetupHook
 function BETTERUI.Vendor.Setup()
-	EnsureVendorSetupContracts()
+	BETTERUI.CIM.RegisterModuleAccessors(Vendor, "Vendor")
 	BETTERUI.CIM.TryRegisterModulePanel(Vendor, "Vendor", "Vendor", "Vendor")
 	BETTERUI.Vendor.Init()
 end

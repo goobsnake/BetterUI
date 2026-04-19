@@ -16,16 +16,17 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local GeneralInterface = BETTERUI.GeneralInterface
 
+local MODULE_NAME = "GeneralInterface"
+local INIT_OWNER_FILE = "Modules/GeneralInterface/Module.lua"
+local SETUP_OWNER_FILE = "Modules/GeneralInterface/Setup.lua"
+
 GeneralInterface.ARCHETYPE = "thin-entrypoint"
 ---@type BetterUIModuleRootContract
 GeneralInterface.ROOT_CONTRACT = {
-    name = "GeneralInterface",
+    name = MODULE_NAME,
     archetype = GeneralInterface.ARCHETYPE,
-    initOwner = "Modules/GeneralInterface/Module.lua",
-    setupOwner = "Modules/GeneralInterface/Setup.lua",
-    runtimeOwner = "Modules/GeneralInterface/Tooltips/",
-    settingsOwner = "Modules/GeneralInterface/Module.lua + Modules/GeneralInterface/Setup.lua",
-    notes = "Module.lua owns GeneralInterface defaults; Setup.lua aggregates the tooltip settings surface and nests the separate Nameplates submenu.",
+    initOwner = INIT_OWNER_FILE,
+    setupOwner = SETUP_OWNER_FILE,
 }
 
 --- Initializes General Interface default settings.

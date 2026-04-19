@@ -6,9 +6,6 @@ Purpose: Companion list, category tabs, tooltip updates, and scroll indicator wi
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 
 local Companions = BETTERUI.Companions
-local function GetCompanionBoundary()
-    return Companions.GetBoundary()
-end
 
 -- ---------------------------------------------------------------------------
 -- Directional-Input Utilities
@@ -70,7 +67,7 @@ end
 ---@param errors table|nil
 local function ReleaseHeaderDirectionalInput(header, errors)
     if not header then return end
-    local boundary = GetCompanionBoundary()
+    local boundary = Companions.GetBoundary()
     local candidates = {
         header.headerFocus,
         header.tabBar,
@@ -602,7 +599,7 @@ function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
     end
 
     local errors = {}
-    local boundary = GetCompanionBoundary()
+    local boundary = Companions.GetBoundary()
 
     local function SafeDeactivate(context, obj, includeMovementController, disableDirectionalInput)
         if not obj then return end

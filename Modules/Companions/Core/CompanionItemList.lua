@@ -6,10 +6,6 @@ Purpose: Tooltip, list-refresh, and row-construction logic for companion equipme
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 local Companions = BETTERUI.Companions
 
-local function GetCompanionBoundary()
-    return Companions.GetBoundary()
-end
-
 function BETTERUI.Companions.Class:UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
     if ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText then
         ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot, GAMEPLAY_ACTOR_CATEGORY_COMPANION)
@@ -164,7 +160,7 @@ function BETTERUI.Companions.Class:RefreshList()
     end
 
     self._isRefreshing = true
-    local boundary = GetCompanionBoundary()
+    local boundary = Companions.GetBoundary()
     local ok, result = boundary.ExecuteBoundary("Companions.RefreshList", function()
         self.list:Clear()
 
