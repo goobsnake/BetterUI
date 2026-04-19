@@ -73,8 +73,8 @@ assert_true(guildBankAdapter:find("function GuildBank%.CanWithdraw%(%)") ~= nil,
     "GuildBankAdapter exposes withdraw permission checks")
 assert_true(guildBankAdapter:find("function GuildBank%.GetPermissionDenial%(mode%)") ~= nil,
     "GuildBankAdapter exposes structured permission denial details")
-assert_true(guildBankAdapter:find("function GuildBank%.GetPermissionDenialReason%(mode%)") ~= nil,
-    "GuildBankAdapter exposes denial-reason formatting")
+assert_true(guildBankAdapter:find("function GuildBank%.GetPermissionDenialReason%(mode%)") == nil,
+    "GuildBankAdapter no longer exposes a text-only permission denial seam")
 assert_true(guildBankAdapter:find("function GuildBank%.GetSourceBags%(mode%)") ~= nil,
     "GuildBankAdapter exposes source bag resolution")
 assert_true(guildBankAdapter:find("function GuildBank%.GetDepositTargetBag%(%)") ~= nil,

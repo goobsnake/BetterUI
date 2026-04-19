@@ -200,7 +200,12 @@ BETTERUI = {
             return {
                 sourceBag = sourceBag,
                 targetBag = targetBag,
+                withdrawSourceBags = targetBag == BAG_BANK and { BAG_BANK, BAG_SUBSCRIBER_BANK } or { targetBag },
                 isMainBank = sourceBag == BAG_BANK,
+                isSourceMainBank = sourceBag == BAG_BANK,
+                isSourceFurnitureVault = sourceBag == BAG_FURNITURE_VAULT,
+                isTargetMainBank = targetBag == BAG_BANK,
+                isTargetFurnitureVault = targetBag == BAG_FURNITURE_VAULT,
                 isGuildBank = sourceBag == BAG_GUILDBANK,
             }
         end,

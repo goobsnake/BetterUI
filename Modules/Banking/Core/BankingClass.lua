@@ -41,10 +41,21 @@ local function IsHousingStorageBag(bankBagId)
     return false
 end
 
+local function IsGuildBankSceneShowing()
+    local guildBankScene = BETTERUI_GUILD_BANKING_SCENE
+    if not guildBankScene then
+        return false
+    end
+    if guildBankScene.IsShowing then
+        return guildBankScene:IsShowing() == true
+    end
+    return guildBankScene.isShowing == true
+end
+
 --- Normalizes a banking bag value to BetterUI's explicit banking contract.
 ---@param bankBagId number|nil
 ---@return number
-function BETTERUI.Banking.ResolveBankBag(bankBagId)
+local function ResolveBankBag(bankBagId)
     if bankBagId == nil or bankBagId == 0 then
         return BAG_BANK
     end
@@ -53,9 +64,9 @@ end
 
 --- Returns the effective transfer source bag for the current banking context.
 ---@return number bankBagId
-function BETTERUI.Banking.GetTransferSourceBankBag()
+local function GetTransferSourceBankBag()
     if GetBankingBag then
-        local bankingBag = BETTERUI.Banking.ResolveBankBag(GetBankingBag())
+        local bankingBag = ResolveBankBag(GetBankingBag())
         if bankingBag == BAG_BANK then
             local openedBankBag = BETTERUI.Banking.lastOpenedBankBag
             if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
@@ -69,40 +80,71 @@ function BETTERUI.Banking.GetTransferSourceBankBag()
         return bankingBag
     end
 
-    return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+    return ResolveBankBag(BETTERUI.Banking.currentUsedBank)
 end
 
 --- Returns the effective transfer destination bank bag for the current banking context.
 ---@return number bankBagId
-function BETTERUI.Banking.GetTransferDestinationBankBag()
-    local transferSourceBankBag = BETTERUI.Banking.GetTransferSourceBankBag()
+local function GetTransferDestinationBankBag()
+    local transferSourceBankBag = GetTransferSourceBankBag()
     if transferSourceBankBag == BAG_GUILDBANK or IsHousingStorageBag(transferSourceBankBag) then
         return transferSourceBankBag
     end
 
-    return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+    return ResolveBankBag(BETTERUI.Banking.currentUsedBank)
 end
 
 ---@class BetterUIBankingTransferContext
 ---@field sourceBag number Active source bag for transfer and withdraw flows
 ---@field targetBag number Active destination bag for deposit and list updates
+---@field withdrawSourceBags number[] Normalized source bags for withdraw-list operations
 ---@field isMainBank boolean True when the active source bag is the personal bank
+---@field isSourceMainBank boolean True when source bag is BAG_BANK
+---@field isSourceHouseBank boolean True when source bag is a house bank storage bag (including furniture vault)
+---@field isSourceFurnitureVault boolean True when source bag is a furniture vault
+---@field isSourceGuildBank boolean True when source bag is BAG_GUILDBANK
 ---@field isGuildBank boolean True when guild-bank mode is active
+---@field isGuildBankSceneShowing boolean True when guild-bank scene visibility drives context before bag updates
+---@field isTargetMainBank boolean True when the target bag is BAG_BANK
+---@field isTargetHouseBank boolean True when target bag is a house bank storage bag (including furniture vault)
+---@field isTargetFurnitureVault boolean True when target bag is a furniture vault
+---@field isTargetGuildBank boolean True when target bag is BAG_GUILDBANK
 
 --- Returns the active banking transfer context so callers do not reinterpret bag helpers.
 ---@return BetterUIBankingTransferContext context
 function BETTERUI.Banking.GetActiveTransferContext()
-    local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
-    local targetBag = BETTERUI.Banking.GetTransferDestinationBankBag()
-    local GuildBank = BETTERUI.Banking.GuildBank
-    local isGuildBank = sourceBag == BAG_GUILDBANK
-        or (GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() or false)
+    local sourceBag = GetTransferSourceBankBag()
+    local targetBag = GetTransferDestinationBankBag()
+    local isGuildBankSceneShowing = IsGuildBankSceneShowing()
+    local isGuildBank = sourceBag == BAG_GUILDBANK or isGuildBankSceneShowing
+    local withdrawSourceBags
+    if isGuildBank then
+        withdrawSourceBags = { BAG_GUILDBANK }
+    elseif targetBag == BAG_BANK then
+        withdrawSourceBags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
+    else
+        withdrawSourceBags = { targetBag }
+    end
+    local isSourceFurnitureVault = sourceBag ~= nil and IsFurnitureVault and IsFurnitureVault(sourceBag)
+    local isSourceHouseBank = sourceBag ~= nil and IsHouseBankBag and IsHouseBankBag(sourceBag)
+    local isTargetFurnitureVault = targetBag ~= nil and IsFurnitureVault and IsFurnitureVault(targetBag)
+    local isTargetHouseBank = targetBag ~= nil and IsHouseBankBag and IsHouseBankBag(targetBag)
 
     return {
         sourceBag = sourceBag,
         targetBag = targetBag,
+        withdrawSourceBags = withdrawSourceBags,
         isMainBank = sourceBag == BAG_BANK,
+        isSourceMainBank = sourceBag == BAG_BANK,
+        isSourceHouseBank = isSourceHouseBank,
+        isSourceFurnitureVault = isSourceFurnitureVault,
+        isSourceGuildBank = isGuildBank,
+        isTargetMainBank = targetBag == BAG_BANK,
+        isTargetHouseBank = isTargetHouseBank,
+        isTargetFurnitureVault = isTargetFurnitureVault,
+        isTargetGuildBank = targetBag == BAG_GUILDBANK,
         isGuildBank = isGuildBank,
+        isGuildBankSceneShowing = isGuildBankSceneShowing,
     }
 end
 

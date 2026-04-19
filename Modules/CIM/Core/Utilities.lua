@@ -167,9 +167,6 @@ function BETTERUI.CIM.Utils.GetActiveBankTargetBag()
     if banking and type(banking.GetActiveTransferContext) == "function" then
         return banking.GetActiveTransferContext().targetBag
     end
-    if banking and type(banking.GetTransferDestinationBankBag) == "function" then
-        return banking.GetTransferDestinationBankBag()
-    end
 
     return BAG_BANK
 end

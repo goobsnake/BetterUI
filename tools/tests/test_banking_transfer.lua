@@ -90,11 +90,25 @@ BETTERUI = {
         GetCurrentBank = function()
             return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
         end,
+        GetActiveTransferContext = function()
+            local isGuildBank = BETTERUI.Banking.GuildBank
+                and BETTERUI.Banking.GuildBank.IsGuildBankMode
+                and BETTERUI.Banking.GuildBank.IsGuildBankMode()
+                or false
+            local targetBag = isGuildBank and BAG_GUILDBANK
+                or BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+            return {
+                sourceBag = isGuildBank and BAG_GUILDBANK or BAG_BANK,
+                targetBag = targetBag,
+                isGuildBank = isGuildBank,
+                isSourceMainBank = not isGuildBank and targetBag == BAG_BANK,
+                withdrawSourceBags = isGuildBank and { BAG_GUILDBANK } or { BAG_BANK, BAG_SUBSCRIBER_BANK },
+            }
+        end,
         GuildBank = {
             IsGuildBankMode = function() return false end,
             GetDepositTargetBag = function() return BAG_GUILDBANK end,
             GetPermissionDenial = function() return nil end,
-            GetPermissionDenialReason = function() return nil end,
         },
         currentUsedBank = BAG_BANK,
         Class = {},
@@ -212,7 +226,6 @@ local function resetState()
     BETTERUI.CIM.ProtectionPolicy.CanDepositToFurnitureVault = function() return true end
     BETTERUI.Banking.GuildBank.IsGuildBankMode = function() return false end
     BETTERUI.Banking.GuildBank.GetPermissionDenial = function() return nil end
-    BETTERUI.Banking.GuildBank.GetPermissionDenialReason = function() return nil end
 end
 
 -- Grab exposed helpers (prefer explicit public seam, fallback to legacy aliases)

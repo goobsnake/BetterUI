@@ -9,7 +9,6 @@ local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 -- Module identifier constants from CIM
 local MODULES       = BETTERUI.CIM.CONST.MODULES
-local ResolveBankBag = BETTERUI.Banking.ResolveBankBag
 
 local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
@@ -20,13 +19,13 @@ end
 --- Updates the currentUsedBank state.
 function BETTERUI.Banking.Class:CurrentUsedBank()
     local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    BETTERUI.Banking.currentUsedBank = ResolveBankBag(transferContext.sourceBag)
+    BETTERUI.Banking.currentUsedBank = transferContext.sourceBag
 end
 
 --- Updates the lastUsedBank state.
 function BETTERUI.Banking.Class:LastUsedBank()
     local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    BETTERUI.Banking.lastUsedBank = ResolveBankBag(transferContext.sourceBag)
+    BETTERUI.Banking.lastUsedBank = transferContext.sourceBag
 end
 
 -- POSITION PERSISTENCE

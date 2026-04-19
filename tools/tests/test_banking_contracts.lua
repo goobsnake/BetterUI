@@ -144,9 +144,11 @@ print("\n=== Banking contract cleanup tests ===\n")
 
 dofile("Modules/Banking/Core/BankingClass.lua")
 
-assertTrue(type(BETTERUI.Banking.ResolveBankBag) == "function", "ResolveBankBag helper is exposed")
-assertTrue(type(BETTERUI.Banking.GetTransferDestinationBankBag) == "function", "GetTransferDestinationBankBag helper is exposed")
-assertTrue(type(BETTERUI.Banking.GetTransferSourceBankBag) == "function", "GetTransferSourceBankBag helper is exposed")
+assertTrue(BETTERUI.Banking.ResolveBankBag == nil, "ResolveBankBag is no longer a public banking helper")
+assertTrue(BETTERUI.Banking.GetTransferDestinationBankBag == nil,
+    "GetTransferDestinationBankBag is no longer a public banking helper")
+assertTrue(BETTERUI.Banking.GetTransferSourceBankBag == nil,
+    "GetTransferSourceBankBag is no longer a public banking helper")
 assertTrue(type(BETTERUI.Banking.GetActiveTransferContext) == "function", "GetActiveTransferContext helper is exposed")
 assertEqual(BAG_BANK, BETTERUI.Banking.lastUsedBank, "lastUsedBank starts aligned with the normalized default bank")
 assertEqual(BETTERUI.CIM.MultiSelectMixin.OnSelectionCountChanged, BETTERUI.Banking.Class.OnSelectionCountChanged,
@@ -166,32 +168,29 @@ assertEqual(BETTERUI.CIM.MultiSelectMixin.BatchLock, BETTERUI.Banking.Class.Batc
 assertEqual(BETTERUI.CIM.MultiSelectMixin.BatchUnlock, BETTERUI.Banking.Class.BatchUnlock,
     "BankingClass aliases BatchUnlock directly to the shared multi-select mixin")
 
-if type(BETTERUI.Banking.ResolveBankBag) == "function" then
-    assertEqual(BAG_BANK, BETTERUI.Banking.ResolveBankBag(nil), "ResolveBankBag falls back from nil")
-    assertEqual(BAG_BANK, BETTERUI.Banking.ResolveBankBag(0), "ResolveBankBag falls back from zero sentinel")
-    assertEqual(BAG_SUBSCRIBER_BANK, BETTERUI.Banking.ResolveBankBag(BAG_SUBSCRIBER_BANK),
-        "ResolveBankBag preserves explicit bank bags")
-end
-
 BETTERUI.Banking.currentUsedBank = 0
-assertEqual(BAG_BANK, BETTERUI.Banking.GetTransferDestinationBankBag(), "GetTransferDestinationBankBag hides the zero sentinel")
+local normalizedMainContext = BETTERUI.Banking.GetActiveTransferContext()
+assertEqual(BAG_BANK, normalizedMainContext.targetBag, "GetActiveTransferContext hides the zero sentinel on the target bag")
 
 BETTERUI.Banking.currentUsedBank = BAG_GUILDBANK
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetTransferDestinationBankBag(),
-    "GetTransferDestinationBankBag preserves active non-default banks")
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetTransferSourceBankBag(),
-    "GetTransferSourceBankBag falls back to current banking state when GetBankingBag is unavailable")
+local guildFallbackContext = BETTERUI.Banking.GetActiveTransferContext()
+assertEqual(BAG_GUILDBANK, guildFallbackContext.targetBag,
+    "GetActiveTransferContext preserves active non-default target banks")
+assertEqual(BAG_GUILDBANK, guildFallbackContext.sourceBag,
+    "GetActiveTransferContext falls back to current banking state when GetBankingBag is unavailable")
 
 local originalGetBankingBag = GetBankingBag
 GetBankingBag = function()
     return 0
 end
-assertEqual(BAG_BANK, BETTERUI.Banking.GetTransferSourceBankBag(), "GetTransferSourceBankBag normalizes a zero banking bag")
+local normalizedSourceContext = BETTERUI.Banking.GetActiveTransferContext()
+assertEqual(BAG_BANK, normalizedSourceContext.sourceBag, "GetActiveTransferContext normalizes a zero banking bag")
 GetBankingBag = function()
     return BAG_GUILDBANK
 end
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetTransferSourceBankBag(),
-    "GetTransferSourceBankBag uses the live banking bag when available")
+local liveSourceContext = BETTERUI.Banking.GetActiveTransferContext()
+assertEqual(BAG_GUILDBANK, liveSourceContext.sourceBag,
+    "GetActiveTransferContext uses the live banking bag when available")
 GetBankingBag = originalGetBankingBag
 
 local transferContext = BETTERUI.Banking.GetActiveTransferContext()
@@ -297,7 +296,8 @@ assertTrue(headerManager:match("function BETTERUI%.Banking%.Class:RebuildHeaderC
     "HeaderManager owns RebuildHeaderCategories")
 
 local multiSelectActions = readFile("Modules/Banking/Core/MultiSelectActions.lua")
-assertTrue(multiSelectActions:match("BETTERUI%.Banking%.GetActiveTransferContext%(%)%.targetBag") ~= nil,
+assertTrue(multiSelectActions:match("local transferDestinationBankBag = BETTERUI%.Banking%.GetActiveTransferContext%(%)%.targetBag") ~= nil
+        or multiSelectActions:match("local transferContext = BETTERUI%.Banking%.GetActiveTransferContext%(%)") ~= nil,
     "MultiSelectActions uses GetActiveTransferContext for banking transfers and menus")
 assertTrue(multiSelectActions:match("transferTargetBankBag or BAG_BANK") == nil,
     "MultiSelectActions no longer bypasses the transfer context helper")

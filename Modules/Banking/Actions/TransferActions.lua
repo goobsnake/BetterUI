@@ -92,7 +92,8 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
-    local targetBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local targetBankBag = transferContext.targetBag
     local isDepositAllowedForCurrentBank = GetRequiredTransferHelper("IsDepositSupportedForBank")
     local notifyGuildBankTransferDenied = GetRequiredTransferHelper("NotifyGuildBankTransferDenied")
     if quantity == nil then
@@ -141,8 +142,9 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 
     -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
+    local isGuildBank = transferContext.isGuildBank
     local GuildBank = BETTERUI.Banking.GuildBank
-    if GuildBank and GuildBank.IsGuildBankMode() then
+    if isGuildBank then
         local bagId = fromBag
         local slotIndex = fromBagIndex
         local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
@@ -210,7 +212,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
         else
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            if IsHouseBankBag(BETTERUI.Banking.GetActiveTransferContext().sourceBag) then
+            if transferContext.isSourceHouseBank then
                 banks = { targetBankBag }
             end
 
@@ -253,8 +255,8 @@ end
 ---@return nil
 function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     local currency_max
-    local GuildBank = BETTERUI.Banking.GuildBank
-    local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local isGuildBank = transferContext and transferContext.isGuildBank == true
 
     if GetMaxCurrencyTransfer then
         local fromLocation

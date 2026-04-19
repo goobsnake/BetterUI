@@ -334,12 +334,18 @@ BETTERUI = {
         GetActiveTransferContext = function()
             local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
             local targetBag = BETTERUI.Banking.GetTransferDestinationBankBag()
+            local isGuildBank = sourceBag == BAG_GUILDBANK
+                or (BETTERUI_GUILD_BANKING_SCENE and BETTERUI_GUILD_BANKING_SCENE.isShowing == true)
+            local isSourceMainBank = sourceBag == BAG_BANK
             return {
                 sourceBag = sourceBag,
                 targetBag = targetBag,
-                isMainBank = sourceBag == BAG_BANK,
-                isGuildBank = sourceBag == BAG_GUILDBANK
-                    or (BETTERUI_GUILD_BANKING_SCENE and BETTERUI_GUILD_BANKING_SCENE.isShowing == true),
+                withdrawSourceBags = isGuildBank and { BAG_GUILDBANK }
+                    or (targetBag == BAG_BANK and { BAG_BANK, BAG_SUBSCRIBER_BANK } or { targetBag }),
+                isMainBank = isSourceMainBank,
+                isSourceMainBank = isSourceMainBank,
+                isTargetMainBank = targetBag == BAG_BANK,
+                isGuildBank = isGuildBank,
             }
         end,
         Class = {
@@ -512,8 +518,6 @@ assertEqual(SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS, withdrawDenial.string
     "Structured withdraw denial keeps withdraw-specific string id")
 assertEqual("No withdraw", withdrawDenial.text,
     "Structured withdraw denial includes localized text")
-assertEqual("No withdraw", BETTERUI.Banking.GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_WITHDRAW),
-    "Withdraw denial reason is localized")
 permissionMatrix[90][GUILD_PERMISSION_BANK_DEPOSIT] = false
 local depositDenial = BETTERUI.Banking.GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT)
 assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.GUILD_PERMISSION, depositDenial.reason,
@@ -522,13 +526,9 @@ assertEqual(SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS, depositDenial.stringId
     "Structured deposit denial keeps deposit-specific string id")
 assertEqual("No deposit 10", depositDenial.text,
     "Structured deposit denial includes localized text with member requirement")
-assertEqual("No deposit 10", BETTERUI.Banking.GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_DEPOSIT),
-    "Deposit denial reason includes minimum members")
 bankingBag = BAG_BANK
 assertEqual(nil, BETTERUI.Banking.GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT),
     "Personal bank has no structured permission denial")
-assertEqual(nil, BETTERUI.Banking.GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_DEPOSIT),
-    "Personal bank has no denial reason")
 
 resetGuildBankState()
 assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
@@ -540,6 +540,7 @@ BETTERUI.Banking.currentUsedBank = 0
 assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
     "Personal withdraw normalizes the zero bank sentinel before building source bags")
 BETTERUI.Banking.currentUsedBank = 88
+bankingBag = 88
 assertTableEquals({ 88 }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_WITHDRAW),
     "House bank withdraw sources current bank only")
 assertTableEquals({ BAG_BACKPACK }, BETTERUI.Banking.GuildBank.GetSourceBags(BETTERUI.Banking.LIST_DEPOSIT),

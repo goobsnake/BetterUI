@@ -13,9 +13,9 @@ Description: Updates the footer information (bag capacity, currency).
 ]]
 function BETTERUI.Banking.Class:RefreshFooter()
     if not self.footer or not self.footer.footer then return end
-    local transferTargetBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
-    local GuildBank = BETTERUI.Banking.GuildBank
-    local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local isGuildBank = transferContext and transferContext.isGuildBank == true
+    local transferTargetBankBag = transferContext and transferContext.targetBag or nil
 
     -- Deposit side (player inventory) — always the same
     self.footer.footer:GetNamedChild("DepositButtonSpaceLabel"):SetText(zo_strformat(
@@ -28,7 +28,7 @@ function BETTERUI.Banking.Class:RefreshFooter()
             "|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t <<1>>",
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_GUILDBANK),
                 GetBagUseableSize(BAG_GUILDBANK))))
-    elseif transferTargetBankBag == BAG_BANK then
+    elseif transferContext.isTargetMainBank then
         self.footer.footer:GetNamedChild("WithdrawButtonSpaceLabel"):SetText(zo_strformat(
             "|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t <<1>>",
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
@@ -54,7 +54,7 @@ function BETTERUI.Banking.Class:RefreshFooter()
                 GetCarriedCurrencyAmount(CURT_MONEY)))
             self.footerFragment.control:GetNamedChild("Data2Value"):SetText("")
         end
-    elseif (self.currentMode == LIST_WITHDRAW) and (transferTargetBankBag == BAG_BANK) then
+    elseif (self.currentMode == LIST_WITHDRAW) and transferContext.isTargetMainBank then
         self.footerFragment.control:GetNamedChild("Data1Value"):SetText(BETTERUI.DisplayNumber(GetBankedCurrencyAmount(
             CURT_MONEY)))
         self.footerFragment.control:GetNamedChild("Data2Value"):SetText(BETTERUI.DisplayNumber(GetBankedCurrencyAmount(

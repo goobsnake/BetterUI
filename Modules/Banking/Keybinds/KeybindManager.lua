@@ -42,8 +42,7 @@ local function IsMainBankContext()
 end
 
 local function IsGuildBankMode()
-    local GuildBank = BETTERUI.Banking.GuildBank
-    return GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() or false
+    return BETTERUI.Banking.GetActiveTransferContext().isGuildBank == true
 end
 
 local function GetSelectedBankEntry(self)
@@ -447,9 +446,9 @@ local function GetBankingTransferHelper(helperName)
 end
 
 ResolveGuildBankTransferKeybindState = function(self)
-    local GuildBank = BETTERUI.Banking.GuildBank
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
     local selectedData = self.list and self.list:GetSelectedData()
-    if not (GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() and IsActionableListEntry(selectedData)) then
+    if not (transferContext.isGuildBank == true and IsActionableListEntry(selectedData)) then
         return true, nil
     end
 

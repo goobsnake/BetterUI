@@ -12,8 +12,8 @@ local function DoesItemMatchBankCategory(itemData, category)
 end
 
 function CategoryManager.ComputeVisibleBankCategories(self)
-    local transferTargetBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
-    local isFurnitureVault = IsFurnitureVault and IsFurnitureVault(transferTargetBankBag)
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local isFurnitureVault = transferContext and transferContext.isTargetFurnitureVault == true
     local allCategories = BETTERUI.Banking.BuildAllBankCategories(isFurnitureVault)
     local visibility = {}
     local itemCounts = {}

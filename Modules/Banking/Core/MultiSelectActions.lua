@@ -17,14 +17,18 @@ local BatchStepQueued = BatchConfig.BatchStepQueued
 local BatchStepSkipped = BatchConfig.BatchStepSkipped
 local BatchStepStopped = BatchConfig.BatchStepStopped
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
+local DENY = assert(
+    BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY,
+    "BetterUI: CIM.ProtectionPolicy.DENY must load before Banking/Core/MultiSelectActions"
+)
+assert(type(DENY.STOLEN) == "string", "BetterUI: ProtectionPolicy.DENY.STOLEN must be defined")
+assert(type(DENY.CROWN_GEMMABLE) == "string", "BetterUI: ProtectionPolicy.DENY.CROWN_GEMMABLE must be defined")
+assert(type(DENY.FURNITURE_VAULT_LOCKED) == "string",
+    "BetterUI: ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED must be defined")
+assert(type(DENY.GUILD_PERMISSION) == "string", "BetterUI: ProtectionPolicy.DENY.GUILD_PERMISSION must be defined")
 
 local TRANSFER_DENIAL_ALERT = 1
 local TRANSFER_DENIAL_TOAST = 2
-
-local function GetDenyReasonCode(key, fallback)
-    local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
-    return (deny and deny[key]) or fallback
-end
 
 local function GetBankingWindow()
     return BETTERUI.Banking and BETTERUI.Banking.Window
@@ -49,7 +53,7 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
         and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault
         and not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
     then
-        return false, GetDenyReasonCode("FURNITURE_VAULT_LOCKED", "furniture_vault_locked")
+        return false, DENY.FURNITURE_VAULT_LOCKED
     end
 
     -- Use shared protection policy for transfer validation
@@ -64,7 +68,7 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
         and CROWN_GEMIFICATION_MANAGER
         and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
         and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(bagId, slotIndex) then
-        return false, GetDenyReasonCode("CROWN_GEMMABLE", "crown_gemmable")
+        return false, DENY.CROWN_GEMMABLE
     end
 
     return true
@@ -75,21 +79,21 @@ local function ResolveTransferDeniedStringId(targetBankBag, denyReason)
         return nil
     end
 
-    if denyReason == GetDenyReasonCode("FURNITURE_VAULT_LOCKED", "furniture_vault_locked") then
+    if denyReason == DENY.FURNITURE_VAULT_LOCKED then
         return IsESOPlusSubscriber and IsESOPlusSubscriber()
             and SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE
             or SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS
     end
-    if denyReason == GetDenyReasonCode("STOLEN", "stolen") then
+    if denyReason == DENY.STOLEN then
         local targetIsFurnitureVault = IsFurnitureVault and IsFurnitureVault(targetBankBag)
         return targetIsFurnitureVault
             and SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE
             or SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
     end
-    if denyReason == GetDenyReasonCode("CROWN_GEMMABLE", "crown_gemmable") then
+    if denyReason == DENY.CROWN_GEMMABLE then
         return SI_FURNITURE_VAULT_ERROR_GEMMABLE_FURNITURE
     end
-    if denyReason == GetDenyReasonCode("GUILD_PERMISSION", "guild_permission") then
+    if denyReason == DENY.GUILD_PERMISSION then
         return rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_PERMISSION")
     end
     return nil
@@ -102,7 +106,7 @@ local function ResolveTransferDeniedNotification(targetBankBag, denyReason)
     end
 
     local isFurnitureTransfer
-        = denyReason == GetDenyReasonCode("FURNITURE_VAULT_LOCKED", "furniture_vault_locked")
+        = denyReason == DENY.FURNITURE_VAULT_LOCKED
         or (IsFurnitureVault and IsFurnitureVault(targetBankBag))
 
     return {
@@ -112,15 +116,16 @@ local function ResolveTransferDeniedNotification(targetBankBag, denyReason)
 end
 
 local function ResolveGuildBankTransferDecision(mode, bagId, slotIndex)
-    local GuildBank = BETTERUI.Banking.GuildBank
-    if not (GuildBank and GuildBank.IsGuildBankMode()) then
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    if not (transferContext and transferContext.isGuildBank == true) then
         return true, nil, nil, nil
     end
 
+    local GuildBank = BETTERUI.Banking.GuildBank
     local permissionDenial = GuildBank.GetPermissionDenial and GuildBank.GetPermissionDenial(mode)
     if permissionDenial then
         return false,
-            permissionDenial.reason or GetDenyReasonCode("GUILD_PERMISSION", "guild_permission"),
+            permissionDenial.reason or DENY.GUILD_PERMISSION,
             permissionDenial.text,
             permissionDenial.stringId
     end
@@ -161,9 +166,9 @@ end
 ---@param transferBankBag number|nil Resolved destination bank bag (defaults to BAG_BANK)
 ---@return number|"unbankable"|"skip" targetBag Bag constant, or "unbankable"/"skip" sentinel
 local function ResolveDepositTargetBag(bagId, slotIndex, transferBankBag)
-    local GuildBank = BETTERUI.Banking.GuildBank
-    if GuildBank and GuildBank.IsGuildBankMode() then
-        local targetBag = GuildBank.GetDepositTargetBag()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    if transferContext and transferContext.isGuildBank == true then
+        local targetBag = transferContext.targetBag or BAG_GUILDBANK
         if BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag) then
             return targetBag
         end
@@ -172,7 +177,10 @@ local function ResolveDepositTargetBag(bagId, slotIndex, transferBankBag)
         return "skip"
     end
 
-    local destinationBankBag = BETTERUI.Banking.ResolveBankBag(transferBankBag or BAG_BANK)
+    local destinationBankBag = transferBankBag
+    if destinationBankBag == nil or destinationBankBag == 0 then
+        destinationBankBag = BAG_BANK
+    end
 
     if destinationBankBag == BAG_BANK then
         -- DoesBagHaveSpaceFor(BAG_BANK) natively returns true if BAG_SUBSCRIBER_BANK has space,
@@ -260,9 +268,9 @@ function BETTERUI.Banking.Class:BatchTransfer()
     if not selectedItems or #selectedItems == 0 then return end
 
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
-    local transferDestinationBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
-    local GuildBank = BETTERUI.Banking.GuildBank
-    local isGuildMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() or false
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferDestinationBankBag = transferContext.targetBag
+    local isGuildMode = transferContext.isGuildBank == true
     local actionName = isWithdraw
         and GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW"))
         or GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
@@ -295,8 +303,8 @@ function BETTERUI.Banking.Class:BatchTransfer()
             end
 
             -- Guild bank uses dedicated transfer APIs
-            local GuildBankAdapter = BETTERUI.Banking.GuildBank
-            if GuildBankAdapter and GuildBankAdapter.IsGuildBankMode() then
+            local activeTransferContext = BETTERUI.Banking.GetActiveTransferContext()
+            if activeTransferContext and activeTransferContext.isGuildBank == true then
                 local canTransfer = ResolveGuildBankTransferDecision(isWithdraw and LIST_WITHDRAW or LIST_DEPOSIT, bagId, slotIndex)
                 if not canTransfer then
                     return BatchStepSkipped()
@@ -393,9 +401,9 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     -- Use shared mixin to analyze selected items
     local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
-    local transferDestinationBankBag = BETTERUI.Banking.GetActiveTransferContext().targetBag
-    local GuildBank = BETTERUI.Banking.GuildBank
-    local isGuildMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode() or false
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferDestinationBankBag = transferContext.targetBag
+    local isGuildMode = transferContext.isGuildBank == true
     local transferCount = 0
     local firstTransferDeniedLabel = nil
 
