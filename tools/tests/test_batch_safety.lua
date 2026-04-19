@@ -287,13 +287,15 @@ local function captureDepositBatchOptions()
         self.exitedSelection = true
     end
 
-    function harness:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
-        capturedOptions = batchOptions
+    function harness:ProcessBatchThrottled(request)
+        request = request or {}
+        capturedOptions = request.options
+        local items = request.items or {}
         assertEqual(1, #items, "BatchDeposit forwards the selected inventory item")
-        assertTrue(type(actionFn) == "function", "BatchDeposit provides the live action closure")
-        assertEqual("Depositing", actionName, "BatchDeposit preserves its shipped action label")
-        if onComplete then
-            onComplete()
+        assertTrue(type(request.step) == "function", "BatchDeposit provides the live action closure")
+        assertEqual("Depositing", request.actionName, "BatchDeposit preserves its shipped action label")
+        if request.onComplete then
+            request.onComplete()
         end
     end
 
@@ -316,26 +318,30 @@ local reentryCalls = 0
 local reentryOptions = depositBatchOptions
 BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
     reentryInstance,
-    makeBatchItems(2),
-    function()
-        reentryCalls = reentryCalls + 1
-        return BatchStepQueued()
-    end,
-    nil,
-    "Depositing",
-    reentryOptions
+    {
+        items = makeBatchItems(2),
+        step = function()
+            reentryCalls = reentryCalls + 1
+            return BatchStepQueued()
+        end,
+        onComplete = nil,
+        actionName = "Depositing",
+        options = reentryOptions,
+    }
 )
 local initialToken = reentryInstance.batchPipelineToken
 BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
     reentryInstance,
-    makeBatchItems(1),
-    function()
-        reentryCalls = reentryCalls + 1
-        return BatchStepQueued()
-    end,
-    nil,
-    "Depositing",
-    reentryOptions
+    {
+        items = makeBatchItems(1),
+        step = function()
+            reentryCalls = reentryCalls + 1
+            return BatchStepQueued()
+        end,
+        onComplete = nil,
+        actionName = "Depositing",
+        options = reentryOptions,
+    }
 )
 assertEqual(initialToken, reentryInstance.batchPipelineToken, "Re-entry does not create a second pipeline token")
 assertEqual(0, reentryCalls, "Deferred batch has not executed its first action yet")
@@ -348,14 +354,16 @@ local tokenInstance = createBatchInstance()
 local tokenActionCalls = 0
 BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
     tokenInstance,
-    makeBatchItems(2),
-    function()
-        tokenActionCalls = tokenActionCalls + 1
-        return BatchStepQueued()
-    end,
-    nil,
-    "Depositing",
-    reentryOptions
+    {
+        items = makeBatchItems(2),
+        step = function()
+            tokenActionCalls = tokenActionCalls + 1
+            return BatchStepQueued()
+        end,
+        onComplete = nil,
+        actionName = "Depositing",
+        options = reentryOptions,
+    }
 )
 runNextScheduled()
 assertEqual(1, tokenActionCalls, "First scheduled continuation processes the first item")
@@ -368,13 +376,15 @@ resetEnvironment()
 local adaptiveInstance = createBatchInstance()
 BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
     adaptiveInstance,
-    makeBatchItems(9),
-    function()
-        return BatchStepQueued()
-    end,
-    nil,
-    "Depositing",
-    reentryOptions
+    {
+        items = makeBatchItems(9),
+        step = function()
+            return BatchStepQueued()
+        end,
+        onComplete = nil,
+        actionName = "Depositing",
+        options = reentryOptions,
+    }
 )
 runAllScheduled(50)
 assertEqual(160, scheduledDelayHistory[1], "Initial settle delay uses the shipped batch dialog settle timing")

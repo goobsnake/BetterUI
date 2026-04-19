@@ -14,6 +14,8 @@ if not BETTERUI then BETTERUI = {} end
 ---@overload fun(moduleName: "GeneralInterface", defaults: BetterUIGeneralInterfaceSettings|nil): BetterUIGeneralInterfaceSettings
 ---@overload fun(moduleName: "Nameplates", defaults: BetterUINameplatesSettings|nil): BetterUINameplatesSettings
 ---@overload fun(moduleName: "ResourceOrbFrames", defaults: BetterUIResourceOrbFramesSettings|nil): BetterUIResourceOrbFramesSettings
+---@overload fun(moduleName: "CIM", defaults: BetterUICIMSettings|nil): BetterUICIMSettings
+---@overload fun(moduleName: "Writs", defaults: BetterUIWritsSettings|nil): BetterUIWritsSettings
 ---@param moduleName ModuleName|string Module name key (e.g. "Inventory", "Banking")
 ---@param defaults BetterUIModuleSettings|nil Fallback table if module settings are absent
 ---@return BetterUIModuleSettings settings The module's settings table, or defaults
@@ -35,6 +37,8 @@ end
 ---@overload fun(moduleName: "GeneralInterface"): BetterUIGeneralInterfaceSettings
 ---@overload fun(moduleName: "Nameplates"): BetterUINameplatesSettings
 ---@overload fun(moduleName: "ResourceOrbFrames"): BetterUIResourceOrbFramesSettings
+---@overload fun(moduleName: "CIM"): BetterUICIMSettings
+---@overload fun(moduleName: "Writs"): BetterUIWritsSettings
 ---@param moduleName ModuleName|string Module name key
 ---@return BetterUIModuleSettings settings The module settings table (always non-nil)
 function BETTERUI.EnsureModuleSettings(moduleName)
@@ -78,6 +82,8 @@ end
 ---@overload fun(moduleName: "GeneralInterface", key: BetterUIGeneralInterfaceSettingKey, default: BetterUIGeneralInterfaceSettingValue|nil): BetterUIGeneralInterfaceSettingValue|nil
 ---@overload fun(moduleName: "Nameplates", key: BetterUINameplatesSettingKey, default: BetterUINameplatesSettingValue|nil): BetterUINameplatesSettingValue|nil
 ---@overload fun(moduleName: "ResourceOrbFrames", key: BetterUIResourceOrbFramesSettingKey, default: BetterUIResourceOrbFramesSettingValue|nil): BetterUIResourceOrbFramesSettingValue|nil
+---@overload fun(moduleName: "CIM", key: BetterUICIMSettingKey, default: BetterUICIMSettingValue|nil): BetterUICIMSettingValue|nil
+---@overload fun(moduleName: "Writs", key: BetterUIWritsSettingKey, default: BetterUIWritsSettingValue|nil): BetterUIWritsSettingValue|nil
 ---@param moduleName ModuleName|string Module name key
 ---@param key BetterUIModuleSettingKey|string Setting key within the module
 ---@param default BetterUIModuleSettingValue|nil Fallback value if the setting is nil
@@ -98,6 +104,8 @@ end
 ---@overload fun(moduleName: "GeneralInterface", key: BetterUIGeneralInterfaceSettingKey, value: BetterUIGeneralInterfaceSettingValue): boolean
 ---@overload fun(moduleName: "Nameplates", key: BetterUINameplatesSettingKey, value: BetterUINameplatesSettingValue): boolean
 ---@overload fun(moduleName: "ResourceOrbFrames", key: BetterUIResourceOrbFramesSettingKey, value: BetterUIResourceOrbFramesSettingValue): boolean
+---@overload fun(moduleName: "CIM", key: BetterUICIMSettingKey, value: BetterUICIMSettingValue): boolean
+---@overload fun(moduleName: "Writs", key: BetterUIWritsSettingKey, value: BetterUIWritsSettingValue): boolean
 ---@param moduleName ModuleName|string Module name key
 ---@param key BetterUIModuleSettingKey|string Setting key to write (must not be nil)
 ---@param value BetterUIModuleSettingValue Value to store

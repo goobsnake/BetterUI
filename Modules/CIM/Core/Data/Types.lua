@@ -59,7 +59,11 @@ BETTERUI.CIM.Types = {}
 ---| "trait"
 ---| "status"
 
----@alias SortDirection "asc"|"desc"
+---@alias HeaderSortDefaultDirection
+---| "ascending"
+---| "descending"
+---@alias SortDirection HeaderSortDefaultDirection
+---@alias HeaderSortState integer
 
 -- MODULE TYPES
 
@@ -87,17 +91,14 @@ BETTERUI.CIM.Types = {}
 ---@class BetterUIModuleRootContract
 ---@field name ModuleName
 ---@field archetype BetterUIModuleArchetype
----@field initOwner string
----@field setupOwner string|nil
----@field runtimeOwner string
----@field settingsOwner string|nil
----@field notes string
+---@field initOwner string|nil Source owner for InitModule; nil means the bootstrap phase should not call InitModule
+---@field setupOwner string|nil Source owner for Setup; nil means the bootstrap phase should not call Setup
 
 ---@class BetterUIModuleRoot
 ---@field ARCHETYPE BetterUIModuleArchetype
 ---@field ROOT_CONTRACT BetterUIModuleRootContract
----@field InitModule BetterUIModuleInitHook|nil
----@field Setup BetterUIModuleSetupHook|nil
+---@field InitModule BetterUIModuleInitHook|nil Required when ROOT_CONTRACT.initOwner is non-nil
+---@field Setup BetterUIModuleSetupHook|nil Required when ROOT_CONTRACT.setupOwner is non-nil
 ---@field GetSetting fun(key: BetterUIModuleSettingKey): BetterUIModuleSettingValue|nil
 ---@field SetSetting fun(key: BetterUIModuleSettingKey, value: BetterUIModuleSettingValue): boolean|nil
 ---@field DEFAULTS table|nil
@@ -123,7 +124,7 @@ BETTERUI.CIM.Types = {}
 ---@field name string Display name shown in the header row
 ---@field key string Stable column identifier
 ---@field sortKey string|nil Data field used for comparisons
----@field defaultDirection SortDirection|nil Preferred initial direction
+---@field defaultDirection HeaderSortDefaultDirection|nil Preferred initial direction
 
 ---@class BetterUIHeaderSortControllerContract
 ---@field instance table|nil Existing controller instance to reuse
@@ -141,7 +142,7 @@ BETTERUI.CIM.Types = {}
 ---@field suspendTabBar boolean|nil When true, use the shared tab-bar suspend/restore behavior
 
 ---@class BetterUIHeaderSortCallbackContract
----@field onSortChanged fun(columnKey: string, direction: SortDirection, sortFn: function|nil)|nil
+---@field onSortChanged fun(columnKey: string, direction: HeaderSortState, sortFn: function|nil)|nil
 ---@field onControllerCreated fun(owner: table, controller: table, list: table|nil)|nil
 ---@field onEnterHeaderMode fun(owner: table, controller: table, list: table|nil)|nil
 ---@field onExitHeaderMode fun(owner: table, controller: table|nil)|nil
@@ -245,6 +246,13 @@ BETTERUI.CIM.Types = {}
 ---@field bindOnEquipProtection boolean|nil
 ---@field enableCompanionJunk boolean|nil
 
+---@class BetterUICIMSettings
+---@field rhScrollSpeed number|nil
+---@field tooltipSize number|nil
+---@field enableTooltipEnhancements boolean|nil
+---@field enhanceCompat boolean|nil
+---@field m_enabled boolean|nil
+
 ---@class BetterUIGeneralInterfaceSettings
 ---@field showMarketPrice boolean|nil
 ---@field marketPricePriority string|nil
@@ -262,6 +270,9 @@ BETTERUI.CIM.Types = {}
 ---@field font string|nil
 ---@field style number|string|nil
 ---@field size number|nil
+
+---@class BetterUIWritsSettings
+---@field m_enabled boolean|nil
 
 ---@class BetterUIResourceOrbFramesFrontBarOffsetSettings
 ---@field offsetX number|nil
@@ -392,6 +403,15 @@ BETTERUI.CIM.Types = {}
 
 ---@alias BetterUICompanionsSettingValue BetterUISharedFontSettingValue
 
+---@alias BetterUICIMSettingKey
+---| "rhScrollSpeed"
+---| "tooltipSize"
+---| "enableTooltipEnhancements"
+---| "enhanceCompat"
+---| "m_enabled"
+
+---@alias BetterUICIMSettingValue number|boolean|nil
+
 ---@alias BetterUIGeneralInterfaceSettingKey
 ---| "showMarketPrice"
 ---| "marketPricePriority"
@@ -413,6 +433,11 @@ BETTERUI.CIM.Types = {}
 ---| "size"
 
 ---@alias BetterUINameplatesSettingValue string|number|boolean|nil
+
+---@alias BetterUIWritsSettingKey
+---| "m_enabled"
+
+---@alias BetterUIWritsSettingValue boolean|nil
 
 ---@alias BetterUIResourceOrbFramesSettingKey
 ---| "m_enabled"
@@ -470,6 +495,8 @@ BETTERUI.CIM.Types = {}
 ---| BetterUICompanionsSettingKey
 ---| BetterUIGeneralInterfaceSettingKey
 ---| BetterUINameplatesSettingKey
+---| BetterUICIMSettingKey
+---| BetterUIWritsSettingKey
 ---| BetterUIResourceOrbFramesSettingKey
 
 ---@alias BetterUIModuleSettingValue
@@ -480,6 +507,8 @@ BETTERUI.CIM.Types = {}
 ---| BetterUICompanionsSettingValue
 ---| BetterUIGeneralInterfaceSettingValue
 ---| BetterUINameplatesSettingValue
+---| BetterUICIMSettingValue
+---| BetterUIWritsSettingValue
 ---| BetterUIResourceOrbFramesSettingValue
 
 ---@alias BetterUIListModuleSettings
@@ -497,6 +526,8 @@ BETTERUI.CIM.Types = {}
 ---| BetterUICompanionsSettings
 ---| BetterUIGeneralInterfaceSettings
 ---| BetterUINameplatesSettings
+---| BetterUICIMSettings
+---| BetterUIWritsSettings
 ---| BetterUIResourceOrbFramesSettings
 ---| table<string, BetterUIModuleSettingValue|nil>
 

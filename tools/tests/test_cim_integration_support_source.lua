@@ -52,6 +52,12 @@ assert_true(typesSource:find('---@alias ModuleName') ~= nil,
     "Types defines the shared ModuleName alias")
 assert_true(typesSource:find('---@class BetterUIModuleRootContract') ~= nil,
     "Types defines the BetterUIModuleRootContract type")
+assert_true(typesSource:find('---@field runtimeOwner string') == nil,
+    "Types trims documentary runtimeOwner metadata from the shared module contract")
+assert_true(typesSource:find('---@field settingsOwner string|nil') == nil,
+    "Types trims documentary settingsOwner metadata from the shared module contract")
+assert_true(typesSource:find('---@field notes string') == nil,
+    "Types trims documentary notes metadata from the shared module contract")
 assert_true(typesSource:find('---@class KeybindDescriptor') ~= nil,
     "Types defines the shared keybind descriptor type")
 assert_true(typesSource:find('---@class BetterUIHeaderSortControllerContract') ~= nil,
@@ -84,12 +90,30 @@ assert_true(autoCategory:find("BETTERUI%.GetCustomCategory = AutoCategoryIntegra
     "AutoCategoryIntegration publishes the shared GetCustomCategory alias")
 
 local interfaces = read_file("Modules/CIM/Core/Integration/Interfaces.lua")
-assert_true(interfaces:find("BETTERUI%.CIM%.Interfaces = %{%}") ~= nil,
+assert_true(interfaces:find("BETTERUI%.CIM%.Interfaces = BETTERUI%.CIM%.Interfaces or %{%}") ~= nil,
     "Interfaces initializes the shared interface validator table")
-assert_true(interfaces:find("function BETTERUI%.CIM%.Interfaces%.ValidateModule%(module, requiredFields%)") ~= nil,
+assert_true(interfaces:find("function BETTERUI%.CIM%.Interfaces%.ValidateModule%(module, requiredFields, expectedName%)") ~= nil,
     "Interfaces exposes ValidateModule")
-assert_true(interfaces:find('return false, "Module%.Setup must be a function"') ~= nil,
-    "Interfaces guards the Setup contract")
+assert_true(interfaces:find('return false, "Module%.ROOT_CONTRACT must be a table"') ~= nil,
+    "Interfaces enforces the root contract presence for real module validation")
+assert_true(interfaces:find('initOwner must be a string or nil') ~= nil,
+    "Interfaces allows modules to omit initOwner when bootstrap should skip InitModule")
+assert_true(interfaces:find('initOwner is set but Module%.InitModule must be a function') ~= nil,
+    "Interfaces enforces InitModule only when initOwner is declared")
+assert_true(interfaces:find('setupOwner is set but Module%.Setup must be a function') ~= nil,
+    "Interfaces enforces Setup only when setupOwner is declared")
+
+local betterUISource = read_file("BetterUI.lua")
+assert_true(betterUISource:find("local valid, err = validateFn%(moduleNamespace, nil, moduleName%)") ~= nil,
+    "Bootstrap validates real module namespaces instead of synthetic temp tables")
+assert_true(betterUISource:find("if moduleContract and moduleContract%.initOwner == nil then") ~= nil,
+    "Bootstrap derives init execution from root contract initOwner")
+assert_true(betterUISource:find("if shouldCallInit then") ~= nil,
+    "Bootstrap only calls InitModule for modules that opt into init execution")
+assert_true(betterUISource:find("if moduleContract and moduleContract%.setupOwner == nil then") ~= nil,
+    "Bootstrap derives setup execution from root contract setupOwner")
+assert_true(betterUISource:find("if not shouldCallSetup then") ~= nil,
+    "Bootstrap skips Setup calls for modules that intentionally omit setupOwner")
 
 local marketIntegration = read_file("Modules/CIM/Core/Integration/MarketIntegration.lua")
 assert_true(marketIntegration:find("BETTERUI%.CIM%.MarketIntegration = BETTERUI%.CIM%.MarketIntegration or %{%}") ~= nil,
@@ -161,6 +185,12 @@ assert_true(headerSortIntegration:find("local function NormalizeNavigationContra
     "HeaderSortIntegration normalizes the shared navigation contract")
 assert_true(headerSortIntegration:find("controllerContract = controllerContract") ~= nil,
     "HeaderSortIntegration stores the normalized controller contract on the integration")
+assert_true(headerSortIntegration:find("function HeaderSortIntegration%.EnsureControllerForOwner%(owner%)") ~= nil,
+    "HeaderSortIntegration exposes explicit owner-level ensure semantics")
+assert_true(headerSortIntegration:find("function HeaderSortIntegration%.PeekController%(owner%)") ~= nil,
+    "HeaderSortIntegration exposes side-effect-free controller peek semantics")
+assert_true(headerSortIntegration:find("return HeaderSortIntegration%.PeekController%(owner%)") ~= nil,
+    "HeaderSortIntegration getter delegates to side-effect-free peek behavior")
 
 local safeExecute = read_file("Modules/CIM/Core/Diagnostics/SafeExecute.lua")
 assert_true(safeExecute:find("local function ResolveOptionalBetterUIPath%(path%)") ~= nil,

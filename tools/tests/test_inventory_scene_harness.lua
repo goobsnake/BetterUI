@@ -92,9 +92,9 @@ BETTERUI = {
             RequestBatchAbort = function()
                 return false
             end,
-            ProcessBatchThrottled = function(self, items, actionFn, onComplete, actionName, batchOptions)
+            ProcessBatchThrottled = function(self, request)
                 if self._testCaptureBatch then
-                    return self:_testCaptureBatch(items, actionFn, onComplete, actionName, batchOptions)
+                    return self:_testCaptureBatch(request)
                 end
             end,
             BatchLock = function() end,
@@ -433,13 +433,14 @@ local function makeInventoryInstance()
         self.exitedSelection = true
     end
 
-    function instance:_testCaptureBatch(items, actionFn, onComplete, actionName, batchOptions)
+    function instance:_testCaptureBatch(request)
+        request = request or {}
         self.capturedBatch = {
-            items = items,
-            actionFn = actionFn,
-            onComplete = onComplete,
-            actionName = actionName,
-            batchOptions = batchOptions,
+            items = request.items,
+            actionFn = request.step,
+            onComplete = request.onComplete,
+            actionName = request.actionName,
+            batchOptions = request.options,
         }
     end
 

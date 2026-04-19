@@ -1,20 +1,4 @@
---[[
-File: BetterUI.lua
-Purpose: Main entry point for the BetterUI addon.
-         Handles module initialization and event registration.
-Mechanics: Listens for EVENT_ADD_ON_LOADED to initialize itself.
-           Manages the loading of sub-modules based on Gamepad mode.
-           Runtime patches and settings migrations are delegated to CIM/RuntimeSetup.lua.
-Author: BetterUI Team
-Last Modified: 2026-02-08
-
--- NOTE(ARCHITECTURE): Modules are now registered declaratively via MODULE_REGISTRY.
--- This reduces boilerplate and makes the loading order and conditions explicit.
--- See the registry definition below for module configuration.
-]]
-
 ---@class BETTERUI
---- Lifecycle: Addon load -> EVENT_ADD_ON_LOADED -> Initialize() -> LoadModules() -> per-module setup.
 
 local LAM = LibAddonMenu2
 local ZO_STRLOWER = rawget(_G, "zo_strlower")
@@ -40,8 +24,6 @@ local SAVED_VARS_SCHEMA_VERSION = 2.89
 ---@field preSetup function|nil Optional function to call before Setup (e.g., for hooks)
 ---@field depends string|nil Name of another module that must be enabled for this to load
 
---- Declarative module registry. Add new modules here to include them in loading.
---- The order of entries determines initialization order.
 ---@type ModuleRegistryEntry[]
 local MODULE_REGISTRY = {
 	-- Core infrastructure (required by other modules)
@@ -53,7 +35,6 @@ local MODULE_REGISTRY = {
 		namespace = "Inventory",
 		dependsOnCIM = true,
 		preSetup = function()
-			-- Pre-Setup hooks (must run before Setup)
 			if BETTERUI.Inventory and BETTERUI.Inventory.HookDestroyItem then
 				BETTERUI.Inventory.HookDestroyItem()
 			end
@@ -90,11 +71,9 @@ local function ModuleDependsOnCIM(moduleName)
 	return false
 end
 
--- Core addon metadata
 BETTERUI.name = "BetterUI"
 BETTERUI.version = "3.06"
 
--- Module namespace tables
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Banking = BETTERUI.Banking or {}
 BETTERUI.Vendor = BETTERUI.Vendor or {}
@@ -106,18 +85,15 @@ BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
 BETTERUI.Nameplates = BETTERUI.Nameplates or {}
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 
--- UI Component namespaces
 BETTERUI.GenericHeader = BETTERUI.GenericHeader or {}
 BETTERUI.GenericFooter = BETTERUI.GenericFooter or {}
 BETTERUI.Interface = BETTERUI.Interface or {}
 
--- Engine helper references
 ---@type userdata
 BETTERUI.WindowManager = GetWindowManager()
 ---@type userdata
 BETTERUI.EventManager = GetEventManager()
 
--- Research traits cache (populated by CIM/Core/ResearchCache.lua)
 BETTERUI.ResearchTraits = BETTERUI.ResearchTraits or {}
 
 -- Default settings structure
@@ -128,14 +104,7 @@ BETTERUI.DefaultSettings = {
 }
 
 
---- Updates the Common Interface Module (CIM) state based on dependents.
----
---- Purpose: Ensures CIM is enabled if any registry-declared dependent module is active.
---- Mechanics: Checks the module registry for entries marked dependsOnCIM and turns
----            CIM on whenever any of those modules are enabled.
----            Updates the CIM m_enabled setting accordingly.
---- References: Called when toggling module settings in the options panel.
----
+--- Update CIM enabled state from dependent module settings.
 function BETTERUI.UpdateCIMState()
 	local shouldEnable = false
 	for _, entry in ipairs(MODULE_REGISTRY) do
@@ -261,7 +230,6 @@ local function InitializeRegisteredModuleSettings()
 	end
 end
 
---- Initializes the module options panel in the settings menu.
 function BETTERUI.InitModuleOptions()
 	local panelData = BETTERUI.Init_ModulePanel("Master", GetStringByName("SI_BETTERUI_MASTER_SETTINGS_TITLE"))
 
@@ -290,7 +258,6 @@ function BETTERUI.InitModuleOptions()
 		table.insert(optionsTable, control)
 	end
 
-	-- Developer-only feature flag controls (hidden for normal users)
 	local cimDebug = BETTERUI.CIM and BETTERUI.CIM.Debug
 	local showDeveloperSettings = cimDebug
 		and cimDebug.ShouldShowDeveloperSettings
@@ -314,7 +281,6 @@ function BETTERUI.InitModuleOptions()
 				},
 			}
 
-			-- Sort flag names for consistent ordering
 			local sortedFlags = {}
 			for name in pairs(allFlags) do
 				table.insert(sortedFlags, name)
@@ -339,7 +305,6 @@ function BETTERUI.InitModuleOptions()
 				})
 			end
 
-			-- Append flag controls to options table
 			for _, control in ipairs(flagControls) do
 				table.insert(optionsTable, control)
 			end
@@ -367,63 +332,44 @@ function BETTERUI.InitModuleOptions()
 	LAM:RegisterOptionControls("BETTERUI_" .. "Modules", optionsTable)
 end
 
---- Calls a module's InitModule function to set up default options.
----
---- Purpose: Standardizes the initialization of module-specific settings.
---- Mechanics: Checks if the module has an InitModule function and calls it with provided options.
----   On failure, disables the module to prevent cascading errors.
---- References: Called by BETTERUI.Initialize for each registered module (Inventory, Banking, etc.).
----
---- INIT CONTRACT: BETTERUI.ModuleOptions (Wrapper) vs Module InitModule (Callee)
---- ============================================================================
---- This function is the WRAPPER that orchestrates module initialization.
---- It receives the full context but passes only m_options to the module.
----
---- Wrapper Signature (this function):
----   - m_namespace (table): The module's namespace table (e.g., BETTERUI.Inventory)
----   - m_options (table): The raw settings table to populate with defaults
----   - moduleName (string): Optional name for error reporting (e.g., "Inventory")
----   - Returns (table|nil): Returns m_namespace on success, nil on failure
----
---- Module InitModule Signature (called via pcall):
----   - m_options (table|nil): The raw settings table to be initialized
----   - Returns (table): The modified options table with defaults applied
----
---- Why the signatures differ:
----   - ModuleOptions needs m_namespace and moduleName for error context and return
----   - InitModule only needs m_options because modules access their namespace
----     directly via the global BETTERUI table (e.g., BETTERUI.CIM.CONST)
----
---- See: CIM.InitModule, Inventory.InitModule, Banking.InitModule, Vendor.InitModule,
----      ResourceOrbFrames.InitModule
----
---- @param m_namespace table The module's namespace table (e.g., BETTERUI.Inventory)
---- @param m_options table The raw settings table to populate with defaults
---- @param moduleName string|nil Optional name for error reporting (e.g., "Inventory")
---- @return table|nil Returns m_namespace on success, nil on failure
+--- Wrap module initialization and isolate failures.
+---@param m_namespace table Module namespace.
+---@param m_options table Module settings table.
+---@param moduleName string|nil Module name for diagnostics.
+---@return table|nil Module namespace table on success, nil on failure.
 function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
-	if m_namespace and m_namespace.InitModule then
-		-- Wrap in pcall to prevent one module's error from breaking the entire addon
-		local success, result = pcall(m_namespace.InitModule, m_options)
-		if success then
-			-- InitModule mutates/persists module settings; return value is not used here.
-		else
+	local moduleContract = type(m_namespace) == "table" and type(m_namespace.ROOT_CONTRACT) == "table" and m_namespace.ROOT_CONTRACT or nil
+	local shouldCallInit = true
+	if moduleContract and moduleContract.initOwner == nil then
+		shouldCallInit = false
+	end
+	if shouldCallInit then
+		if not (m_namespace and m_namespace.InitModule) then
 			local name = moduleName or "unknown"
-			BETTERUI.Debug("[Error] InitModule failed for " .. name .. ": " .. tostring(result))
-			-- Session-only disable: skip module for this session without persisting to SavedVars
-			-- so the module recovers on next /reloadui instead of being permanently broken
+			BETTERUI.Debug("[Validation] Module has no InitModule: " .. name)
 			if moduleName then
 				BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
 				BETTERUI._sessionDisabledModules[moduleName] = true
 				BETTERUI.Debug("[Recovery] Module skipped for this session (will retry on reload): " .. name)
 			end
-			return nil -- Signal to caller that init failed
+			return nil
+		end
+		local success, result = pcall(m_namespace.InitModule, m_options)
+		if success then
+		else
+			local name = moduleName or "unknown"
+			BETTERUI.Debug("[Error] InitModule failed for " .. name .. ": " .. tostring(result))
+			if moduleName then
+				BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
+				BETTERUI._sessionDisabledModules[moduleName] = true
+				BETTERUI.Debug("[Recovery] Module skipped for this session (will retry on reload): " .. name)
+			end
+			return nil
 		end
 	end
 	return m_namespace
 end
 
---- Validates and calls Setup() on a module. Falls back to basic check if CIM validation unavailable.
 local function RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
 	if moduleNamespace then
 		moduleNamespace._setupComplete = nil
@@ -444,7 +390,6 @@ local function RecordModuleSetupFailure(failedModules, moduleName, moduleNamespa
 		end
 	end
 end
-
 local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules)
 	if not moduleNamespace then
 		BETTERUI.Debug(string.format("[Validation] Module '%s' namespace is nil", moduleName))
@@ -458,26 +403,33 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules
 	-- Validate using CIM interface validation if available
 	local interfaces = BETTERUI.CIM and BETTERUI.CIM.Interfaces
 	local validateFn = interfaces and interfaces.ValidateModule
+	local moduleContract = type(moduleNamespace.ROOT_CONTRACT) == "table" and moduleNamespace.ROOT_CONTRACT or nil
+	local shouldCallSetup = true
+	if moduleContract and moduleContract.setupOwner == nil then
+		shouldCallSetup = false
+	end
 	if validateFn then
-		-- Temporarily add name for validation (modules don't store their own name)
-		local tempModule = { name = moduleName, Setup = moduleNamespace.Setup }
-		local valid, err = validateFn(tempModule)
+		local valid, err = validateFn(moduleNamespace, nil, moduleName)
 		if not valid then
 			BETTERUI.Debug(string.format("[Validation] Module '%s' failed validation: %s", moduleName, tostring(err)))
 			RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
 			return false
 		end
 	else
-		-- Fallback: basic Setup check
-		if type(moduleNamespace.Setup) ~= "function" then
+		-- Fallback: basic Setup check for modules that opt into setup.
+		if shouldCallSetup and type(moduleNamespace.Setup) ~= "function" then
 			BETTERUI.Debug(string.format("[Validation] Module '%s' has no Setup function", moduleName))
 			RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
 			return false
 		end
 	end
 
-	-- Module is valid, call Setup
-	-- Wrap in pcall so one module failure doesn't cascade-kill subsequent modules
+	if not shouldCallSetup then
+		moduleNamespace._setupComplete = true
+		return true
+	end
+
+	-- Wrap Setup in pcall so one module failure does not cascade into later modules.
 	local success, setupResult, setupDetail = pcall(moduleNamespace.Setup)
 	if not success then
 		BETTERUI.Debug(string.format("[Error] Setup() failed for '%s': %s", moduleName, tostring(setupResult)))
@@ -548,39 +500,31 @@ local function SetupKeyboardModeModules()
 	return allModulesLoaded, failedModules
 end
 
---- Checks if a module should be loaded based on registry entry.
---- Evaluates conditions, dependencies, and CIM requirements.
 ---@param entry ModuleRegistryEntry The registry entry to evaluate
 ---@return boolean Whether the module should be loaded
 local function ShouldLoadModule(entry)
 	local moduleNamespace = BETTERUI[entry.namespace]
 
-	-- Check if namespace exists
 	if not moduleNamespace then
 		return false
 	end
 
-	-- Required modules always load
 	if entry.required then
 		return true
 	end
 
-	-- Check if module is enabled in settings
 	if not BETTERUI.GetModuleEnabled(entry.name) then
 		return false
 	end
 
-	-- Check custom condition function if present
 	if entry.condition and not entry.condition() then
 		return false
 	end
 
-	-- Check dependency if present
 	if entry.depends and not BETTERUI.GetModuleEnabled(entry.depends) then
 		return false
 	end
 
-	-- CIM-dependent modules require CIM to be enabled
 	if entry.dependsOnCIM and not BETTERUI.GetModuleEnabled("CIM") then
 		return false
 	end
@@ -614,20 +558,12 @@ local function LoadConfiguredModules()
 	return allModulesLoaded, failedModules
 end
 
---- Loads and initializes all enabled modules.
----
---- Purpose: Orchestrates the loading of sub-modules when in Gamepad mode.
---- Mechanics: Assumes runtime setup already ran during Initialize().
----            Validates modules using CIM.Interfaces before calling Setup.
----            Initializes research data and module-specific setups (Inventory, Banking, Writs, etc.).
---- References: Called on initialization and when switching to Gamepad mode.
----
+--- Load enabled modules for active mode.
 function BETTERUI.LoadModules()
 	if BETTERUI._initialized then return true end
 
 	BETTERUI.Debug("Initializing BETTERUI...")
 
-	-- Initialize research data once
 	BETTERUI.GetResearch()
 
 	local allModulesLoaded, failedModules = LoadConfiguredModules()
@@ -638,26 +574,14 @@ function BETTERUI.LoadModules()
 	return allModulesLoaded
 end
 
---- Main addon initialization handler.
----
---- Purpose: Responds to the EVENT_ADD_ON_LOADED event.
---- Mechanics: Loads saved variables, initializes settings, and sets up event listeners.
----            Decides whether to load modules immediately (if in Gamepad mode).
---- References: Registered to EVENT_ADD_ON_LOADED.
----
---- @param event number The event ID.
---- @param addon string The name of the addon being loaded.
+---@param event number The event ID.
+---@param addon string The name of the addon being loaded.
 function BETTERUI.Initialize(event, addon)
-	-- Only handle our own addon load event
 	if addon ~= BETTERUI.name then return end
 
-	-- Load saved variables
-	-- Changed version to 2.89 to prevent issues with prior saved variables
-	-- Wrap in pcall so corrupted SavedVars don't crash the entire addon
 	BETTERUI.SavedVars = LoadSavedVarsWithFallback("ZO_SavedVars.New", ZO_SavedVars.New)
 	BETTERUI.GlobalVars = LoadSavedVarsWithFallback("ZO_SavedVars.NewAccountWide", ZO_SavedVars.NewAccountWide)
 
-	-- Determine which settings to use
 	if BETTERUI.SavedVars.useAccountWide then
 		BETTERUI.Settings = BETTERUI.GlobalVars
 	else
@@ -669,13 +593,9 @@ function BETTERUI.Initialize(event, addon)
 		runtimeSetup.Apply(BETTERUI.Settings)
 	end
 
-	-- Initialize or update module settings with defaults
-	-- This runs for EVERYONE to ensure new settings (like showStyleTrait) are merged into existing SavedVars
 	InitializeRegisteredModuleSettings()
 
-	-- Apply first-install defaults and mark as complete
 	if BETTERUI.Settings.firstInstall then
-		-- Apply module enable defaults from centralized registry
 		if BETTERUI.Defaults and BETTERUI.Defaults.ApplyFirstInstallDefaults then
 			BETTERUI.Defaults.ApplyFirstInstallDefaults(BETTERUI.Settings)
 		end
@@ -683,30 +603,17 @@ function BETTERUI.Initialize(event, addon)
 		BETTERUI.Settings.firstInstall = false
 	end
 
-
-	-- Note: Settings migrations (Tooltips->GeneralInterface, enabled->m_enabled)
-	-- are now handled in Modules/CIM/RuntimeSetup.lua via RuntimeSetup.Apply()
-
-	-- Unregister the initialization event
-	-- Use the same namespace that was registered at the bottom of this file
 	BETTERUI.EventManager:UnregisterForEvent(BETTERUI.name, EVENT_ADD_ON_LOADED)
 
-	-- Initialize the options panel
 	BETTERUI.InitModuleOptions()
 	BETTERUI.UpdateCIMState()
 
 	local function SetupInitialModuleState()
-		-- Load modules if in gamepad mode
 		if IsInGamepadPreferredMode() then
 			return BETTERUI.LoadModules()
 		end
 
 		BETTERUI._initialized = false
-		-- Keyboard mode: register ALL module settings panels so users on "Automatic"
-		-- input can always access addon configuration regardless of current UI mode.
-		-- NOTE: Only LAM settings panels are registered here. Gameplay hooks (inventory
-		-- destroy/action hooks, etc.) remain in LoadModules() and only activate
-		-- when gamepad mode is entered.
 		local keyboardSetupSucceeded, failedModules = SetupKeyboardModeModules()
 		ReportModuleSetupFailures(failedModules, "keyboard")
 		return keyboardSetupSucceeded
@@ -714,24 +621,16 @@ function BETTERUI.Initialize(event, addon)
 
 	local setupSucceeded = SetupInitialModuleState()
 
-	-- Ensure companion equip patch is queued even if modules didn't hook above
 	if BETTERUI.Inventory and BETTERUI.Inventory.EnsureCompanionEquipPatched then
 		BETTERUI.Inventory.EnsureCompanionEquipPatched()
 	end
 	return setupSucceeded
 end
 
--- Event handlers for initialization and gamepad mode changes
 BETTERUI.EventManager:RegisterForEvent(BETTERUI.name, EVENT_ADD_ON_LOADED, function(...) BETTERUI.Initialize(...) end)
 BETTERUI.EventManager:RegisterForEvent(BETTERUI.name .. "_Gamepad", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
 	function(code, inGamepad)
 		if inGamepad then
-			-- Switching to gamepad: load all modules (idempotent via _initialized guard)
 			BETTERUI.LoadModules()
 		end
-		-- Switching to keyboard: ResourceOrbFrames handles its own mode-change event
-		-- inside SetupModule(). All other modules remain inactive in keyboard mode.
 	end)
-
--- Debug commands are now in Modules/CIM/Core/DeveloperDebug.lua
--- Enable debug mode via the DEBUG_LOGGING feature flag or set BETTERUI_DEBUG = true

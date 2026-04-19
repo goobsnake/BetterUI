@@ -203,23 +203,29 @@ function Class:BatchRetrieve()
     end
     if #items == 0 then return end
 
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
-        if not HasItemAtSlot(bagId, slotIndex) then
-            return BatchStepHandled()
-        end
-        if not DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
-            return BatchStepStopped("bagFull")
-        end
-        local stackSize = ResolveStackCount(itemData, bagId, slotIndex)
-        if not stackSize then return BatchStepHandled() end
-        local targetSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
-        if targetSlot == nil then return BatchStepStopped("bagFull") end
-        CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
-        CallSecureProtected("PlaceInInventory", BAG_BACKPACK, targetSlot)
-        return BatchStepQueued()
-    end, function()
-        self:ExitCraftBagSelectionMode()
-    end, GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG")), CRAFT_BAG_RETRIEVE_BATCH_OPTIONS)
+    self:ProcessBatchThrottled({
+        items = items,
+        step = function(bagId, slotIndex, itemData)
+            if not HasItemAtSlot(bagId, slotIndex) then
+                return BatchStepHandled()
+            end
+            if not DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
+                return BatchStepStopped("bagFull")
+            end
+            local stackSize = ResolveStackCount(itemData, bagId, slotIndex)
+            if not stackSize then return BatchStepHandled() end
+            local targetSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
+            if targetSlot == nil then return BatchStepStopped("bagFull") end
+            CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
+            CallSecureProtected("PlaceInInventory", BAG_BACKPACK, targetSlot)
+            return BatchStepQueued()
+        end,
+        onComplete = function()
+            self:ExitCraftBagSelectionMode()
+        end,
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG")),
+        options = CRAFT_BAG_RETRIEVE_BATCH_OPTIONS,
+    })
 end
 
 --- Performs batch stow on all selected inventory items (throttled).
@@ -240,19 +246,25 @@ function Class:BatchStow()
     end
     if #items == 0 then return end
 
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
-        if not HasItemAtSlot(bagId, slotIndex) then return BatchStepHandled() end
-        if not BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag(bagId, slotIndex) then
-            return BatchStepHandled()
-        end
-        local stackSize = ResolveStackCount(itemData, bagId, slotIndex)
-        if not stackSize then return BatchStepHandled() end
-        CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
-        CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0)
-        return BatchStepQueued()
-    end, function()
-        self:ExitSelectionMode()
-    end, GetString(rawget(_G, "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG")), CRAFT_BAG_STOW_BATCH_OPTIONS)
+    self:ProcessBatchThrottled({
+        items = items,
+        step = function(bagId, slotIndex, itemData)
+            if not HasItemAtSlot(bagId, slotIndex) then return BatchStepHandled() end
+            if not BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag(bagId, slotIndex) then
+                return BatchStepHandled()
+            end
+            local stackSize = ResolveStackCount(itemData, bagId, slotIndex)
+            if not stackSize then return BatchStepHandled() end
+            CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
+            CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0)
+            return BatchStepQueued()
+        end,
+        onComplete = function()
+            self:ExitSelectionMode()
+        end,
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG")),
+        options = CRAFT_BAG_STOW_BATCH_OPTIONS,
+    })
 end
 
 --- Performs batch deposit on all selected items (throttled).
@@ -273,20 +285,26 @@ function Class:BatchDeposit()
     end
     if #items == 0 then return end
 
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
-        if not HasItemAtSlot(bagId, slotIndex) then return BatchStepHandled() end
-        if not IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then return BatchStepHandled() end
-        local destinationBag = ResolveInventoryDepositTargetBag(targetBankBag, bagId, slotIndex)
-        if not destinationBag then return BatchStepStopped("bagFull") end
-        local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
-        if not stackCount then return BatchStepHandled() end
-        local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, destinationBag)
-        if destinationSlot == nil then return BatchStepStopped("bagFull") end
-        CallSecureProtected("RequestMoveItem", bagId, slotIndex, destinationBag, destinationSlot, stackCount)
-        return BatchStepQueued()
-    end, function()
-        self:ExitSelectionMode()
-    end, "Depositing", BANK_DEPOSIT_BATCH_OPTIONS)
+    self:ProcessBatchThrottled({
+        items = items,
+        step = function(bagId, slotIndex, itemData)
+            if not HasItemAtSlot(bagId, slotIndex) then return BatchStepHandled() end
+            if not IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then return BatchStepHandled() end
+            local destinationBag = ResolveInventoryDepositTargetBag(targetBankBag, bagId, slotIndex)
+            if not destinationBag then return BatchStepStopped("bagFull") end
+            local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
+            if not stackCount then return BatchStepHandled() end
+            local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, destinationBag)
+            if destinationSlot == nil then return BatchStepStopped("bagFull") end
+            CallSecureProtected("RequestMoveItem", bagId, slotIndex, destinationBag, destinationSlot, stackCount)
+            return BatchStepQueued()
+        end,
+        onComplete = function()
+            self:ExitSelectionMode()
+        end,
+        actionName = "Depositing",
+        options = BANK_DEPOSIT_BATCH_OPTIONS,
+    })
 end
 
 --- Performs batch destroy on all selected items (with confirmation).
@@ -350,21 +368,27 @@ function Class:InitializeBatchDestroyDialog()
                         local items = d.itemsToDestroy
                         local inventoryInstance = d.inventoryInstance
 
-                        inventoryInstance:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
-                            if not CanDestroyInventoryItem(itemData) then
-                                return BatchStepHandled()
-                            end
-                            local destroyed = BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, true)
-                            if not destroyed then
-                                return BatchStepStopped("aborted")
-                            end
-                            return BatchStepQueued()
-                        end, function()
-                            inventoryInstance:ExitSelectionMode()
-                            if BETTERUI.Utils.IsInventorySceneShowing() then
-                                inventoryInstance:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-                            end
-                        end, GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")), DESTROY_BATCH_OPTIONS)
+                        inventoryInstance:ProcessBatchThrottled({
+                            items = items,
+                            step = function(bagId, slotIndex, itemData)
+                                if not CanDestroyInventoryItem(itemData) then
+                                    return BatchStepHandled()
+                                end
+                                local destroyed = BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, true)
+                                if not destroyed then
+                                    return BatchStepStopped("aborted")
+                                end
+                                return BatchStepQueued()
+                            end,
+                            onComplete = function()
+                                inventoryInstance:ExitSelectionMode()
+                                if BETTERUI.Utils.IsInventorySceneShowing() then
+                                    inventoryInstance:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                                end
+                            end,
+                            actionName = GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")),
+                            options = DESTROY_BATCH_OPTIONS,
+                        })
                     end
                     ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_BATCH_DESTROY_DIALOG")
                 end,

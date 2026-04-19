@@ -103,19 +103,25 @@ function BatchActions.BatchLock(self)
     end
     if #items == 0 then return end
 
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex)
-        if not HasItemAtSlot(bagId, slotIndex) then
-            return BatchStepHandled()
-        end
-        if not CanItemBePlayerLocked(bagId, slotIndex) or IsItemPlayerLocked(bagId, slotIndex) then
-            return BatchStepHandled()
-        end
+    self:ProcessBatchThrottled({
+        items = items,
+        step = function(bagId, slotIndex)
+            if not HasItemAtSlot(bagId, slotIndex) then
+                return BatchStepHandled()
+            end
+            if not CanItemBePlayerLocked(bagId, slotIndex) or IsItemPlayerLocked(bagId, slotIndex) then
+                return BatchStepHandled()
+            end
 
-        SetItemIsPlayerLocked(bagId, slotIndex, true)
-        return BatchStepQueued()
-    end, function()
-        self:ExitSelectionMode()
-    end, GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED")), LOCK_TOGGLE_BATCH_OPTIONS)
+            SetItemIsPlayerLocked(bagId, slotIndex, true)
+            return BatchStepQueued()
+        end,
+        onComplete = function()
+            self:ExitSelectionMode()
+        end,
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED")),
+        options = LOCK_TOGGLE_BATCH_OPTIONS,
+    })
 end
 
 --- Performs batch unlock on all selected items (throttled).
@@ -135,19 +141,25 @@ function BatchActions.BatchUnlock(self)
     end
     if #items == 0 then return end
 
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex)
-        if not HasItemAtSlot(bagId, slotIndex) then
-            return BatchStepHandled()
-        end
-        if not IsItemPlayerLocked(bagId, slotIndex) then
-            return BatchStepHandled()
-        end
+    self:ProcessBatchThrottled({
+        items = items,
+        step = function(bagId, slotIndex)
+            if not HasItemAtSlot(bagId, slotIndex) then
+                return BatchStepHandled()
+            end
+            if not IsItemPlayerLocked(bagId, slotIndex) then
+                return BatchStepHandled()
+            end
 
-        SetItemIsPlayerLocked(bagId, slotIndex, false)
-        return BatchStepQueued()
-    end, function()
-        self:ExitSelectionMode()
-    end, GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_LOCKED")), LOCK_TOGGLE_BATCH_OPTIONS)
+            SetItemIsPlayerLocked(bagId, slotIndex, false)
+            return BatchStepQueued()
+        end,
+        onComplete = function()
+            self:ExitSelectionMode()
+        end,
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_LOCKED")),
+        options = LOCK_TOGGLE_BATCH_OPTIONS,
+    })
 end
 
 --- Performs batch mark-as-junk on all selected items (throttled).
@@ -169,21 +181,27 @@ function BatchActions.BatchMarkAsJunk(self)
     end
     if #items == 0 then return end
 
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex)
-        if not HasItemAtSlot(bagId, slotIndex) then
-            return BatchStepHandled()
-        end
-        if IsItemJunk(bagId, slotIndex)
-            or not CanJunkItem(bagId, slotIndex)
-        then
-            return BatchStepHandled()
-        end
+    self:ProcessBatchThrottled({
+        items = items,
+        step = function(bagId, slotIndex)
+            if not HasItemAtSlot(bagId, slotIndex) then
+                return BatchStepHandled()
+            end
+            if IsItemJunk(bagId, slotIndex)
+                or not CanJunkItem(bagId, slotIndex)
+            then
+                return BatchStepHandled()
+            end
 
-        SetItemIsJunk(bagId, slotIndex, true)
-        return BatchStepQueued()
-    end, function()
-        self:ExitSelectionMode()
-    end, GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK")), JUNK_TOGGLE_BATCH_OPTIONS)
+            SetItemIsJunk(bagId, slotIndex, true)
+            return BatchStepQueued()
+        end,
+        onComplete = function()
+            self:ExitSelectionMode()
+        end,
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK")),
+        options = JUNK_TOGGLE_BATCH_OPTIONS,
+    })
 end
 
 --- Performs batch unmark-as-junk on all selected items (throttled).
@@ -204,21 +222,27 @@ function BatchActions.BatchUnmarkAsJunk(self)
     end
     if #items == 0 then return end
 
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex)
-        if not HasItemAtSlot(bagId, slotIndex) then
-            return BatchStepHandled()
-        end
-        if not IsItemJunk(bagId, slotIndex)
-            or not CanUnjunkItem(bagId, slotIndex)
-        then
-            return BatchStepHandled()
-        end
+    self:ProcessBatchThrottled({
+        items = items,
+        step = function(bagId, slotIndex)
+            if not HasItemAtSlot(bagId, slotIndex) then
+                return BatchStepHandled()
+            end
+            if not IsItemJunk(bagId, slotIndex)
+                or not CanUnjunkItem(bagId, slotIndex)
+            then
+                return BatchStepHandled()
+            end
 
-        SetItemIsJunk(bagId, slotIndex, false)
-        return BatchStepQueued()
-    end, function()
-        self:ExitSelectionMode()
-    end, GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_JUNK")), JUNK_TOGGLE_BATCH_OPTIONS)
+            SetItemIsJunk(bagId, slotIndex, false)
+            return BatchStepQueued()
+        end,
+        onComplete = function()
+            self:ExitSelectionMode()
+        end,
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_JUNK")),
+        options = JUNK_TOGGLE_BATCH_OPTIONS,
+    })
 end
 
 -- ITEM ANALYSIS

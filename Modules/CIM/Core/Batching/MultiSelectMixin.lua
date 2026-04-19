@@ -174,18 +174,87 @@ end
 
 -- THROTTLED BATCH PROCESSING
 
+local function ResolveBatchRequest(request)
+    if type(request) ~= "table" then
+        return nil
+    end
+
+    local normalized = {
+        items = request.items,
+        step = request.step or request.fn,
+        onComplete = request.onComplete,
+        actionName = request.actionName,
+        options = request.options,
+    }
+    if normalized.options == nil then
+        normalized.options = request.batchOptions
+    end
+    if normalized.options == nil and type(request.lifecycle) == "table" then
+        normalized.options = request.lifecycle.options
+    end
+
+    if normalized.items == nil then
+        return nil
+    end
+
+    if normalized.options == nil then
+        normalized.options = {}
+    end
+    if normalized.actionName == nil then
+        normalized.actionName = GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS"))
+    end
+
+    return normalized
+end
+
+local function ResolveLegacyBatchRequest(requestOrItems, actionFn, onComplete, actionName, batchOptions)
+    if requestOrItems == nil then
+        return nil
+    end
+
+    return ResolveBatchRequest({
+        items = requestOrItems,
+        step = actionFn,
+        onComplete = onComplete,
+        actionName = actionName,
+        options = batchOptions,
+    })
+end
+
 --- Processes selected items through a throttled batch pipeline.
+--- Contract: callers pass a `BetterUIBatchRequest` table.
 ---@param self table
----@param items table[]
----@param actionFn fun(bagId:number, slotIndex:number, itemData:table):BetterUIBatchStepResult
----@param onComplete function|nil
----@param actionName string|nil
----@param batchOptions BatchOptions|nil
-function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
-    items = BatchConfig.NormalizeBatchItems(items or {})
+---@param request BetterUIBatchRequest
+function Mixin.ProcessBatchThrottled(self, request)
+    request = ResolveBatchRequest(request)
+    if request == nil then
+        BETTERUI.CIM.Debug.Log("Batch request malformed; expected a request-table contract", "Batch")
+        return
+    end
+    local stepFn = request.step
+    local items = request.items or {}
+    local action = request.actionName
+    local options = request.options
+    local onBatchComplete = request.onComplete
+
+    local shouldNormalizeItems = true
+    if type(options) == "table" and type(options.lifecycle) == "table" then
+        local normalizeItems = options.lifecycle.normalizeItems
+        if type(normalizeItems) == "boolean" then
+            shouldNormalizeItems = normalizeItems
+        end
+    end
+
+    if shouldNormalizeItems then
+        items = BatchConfig.NormalizeBatchItems(items)
+    else
+        if type(items) ~= "table" then
+            items = {}
+        end
+    end
     local totalItems = #items
     if totalItems == 0 then
-        if onComplete then onComplete() end
+        if onBatchComplete then onBatchComplete(nil) end
         return
     end
     if self.isBatchProcessing then
@@ -205,7 +274,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     local batchDelayMs = throttleProfile.DELAY_MS or 75
     local showProgress = throttleProfile.SHOW_PROGRESS == true
     local showEta = totalItems >= BatchConfig.BATCH_ETA_THRESHOLD
-    local options = BatchConfig.NormalizeBatchOptions(batchOptions)
+    options = BatchConfig.NormalizeBatchOptions(options)
     local isServerBound = options.server.serverBound == true
     if isServerBound then showProgress = true end
     local suppressUiUpdates = options.ui.suppressUiUpdates == true
@@ -367,6 +436,11 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         return bagId, slotIndex
     end
 
+    if type(stepFn) ~= "function" then
+        BETTERUI.CIM.Debug.Log("Batch step function missing for throttled processing", "Batch")
+        return
+    end
+
     local function RegisterInventoryAckCallbacks()
         if not awaitInventoryAck or inventoryAckCallbacksRegistered or not SHARED_INVENTORY then return end
         inventoryAckSingleSlotCallback = function(...)
@@ -386,7 +460,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     self.batchAbortRequested = false
     self.batchSuppressUiUpdates = suppressUiUpdates and true or nil
 
-    local displayName = actionName or GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS"))
+    local displayName = action or GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS"))
     if self._multiSelectConfig and self._multiSelectConfig.refreshKeybinds then
         self._multiSelectConfig.refreshKeybinds(self)
     end
@@ -468,7 +542,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         stillProcessingWaitUntilMs = 0
         stillProcessingAnnouncementActive = false
         BatchOverlay.StopLayoutPulse()
-        if onComplete then onComplete(stopReason) end
+        if onBatchComplete then onBatchComplete(stopReason) end
     end
 
     local function ResolveStillProcessingWaitMs(nowMs, waitMs)
@@ -570,7 +644,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             local skipToNext = false
 
             if bagId and slotIndex then
-                local stepResult = BatchConfig.NormalizeBatchStepResult(actionFn(bagId, slotIndex, itemData))
+                local stepResult = BatchConfig.NormalizeBatchStepResult(stepFn(bagId, slotIndex, itemData))
                 if stepResult.status == BatchConfig.BATCH_STEP_STATUS.STOPPED then
                     stopReason = stepResult.reason or "bagFull"
                 elseif stepResult.status == BatchConfig.BATCH_STEP_STATUS.SKIPPED then
@@ -667,6 +741,15 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     end
 
     StartBatchAfterDialogDismiss(BatchConfig.BATCH_STATUS_DIALOG_CLOSE_MAX_WAIT_MS, BatchConfig.BATCH_STATUS_DIALOG_SETTLE_MS)
+end
+
+-- Backward-compatible positional wrapper kept private for compatibility with internal legacy callers.
+local function ProcessBatchThrottledCompat(self, items, actionFn, onComplete, actionName, batchOptions)
+    local request = ResolveLegacyBatchRequest(items, actionFn, onComplete, actionName, batchOptions)
+    if request == nil then
+        return
+    end
+    return Mixin.ProcessBatchThrottled(self, request)
 end
 
 -- BATCH OPERATION DELEGATES

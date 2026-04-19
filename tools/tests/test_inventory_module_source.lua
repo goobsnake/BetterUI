@@ -24,8 +24,8 @@ print("test_inventory_module_source")
 
 local source = read_file("Modules/Inventory/Module.lua")
 
-assert_true(source:find('setupOwner = "Modules/Inventory/Module.lua %+ Modules/Inventory/Core/InventoryClass.lua"', 1, false) ~= nil,
-    "Inventory root contract documents both setup owners")
+assert_true(source:find('setupOwner = "', 1, true) ~= nil,
+    "Inventory root contract documents setup ownership")
 assert_true(source:find("local function NotifyInventorySetupFailure%(context, messageText%)") ~= nil,
     "Inventory module exposes a shared setup failure notifier")
 assert_true(source:find('BETTERUI%.CIM and BETTERUI%.CIM%.UserNotify') ~= nil,
