@@ -348,6 +348,27 @@ assertEqual(0, reentryCalls, "Deferred batch has not executed its first action y
 assertEqual(1, #debugOutput, "Production guard logs one re-entry rejection")
 assertTrue(debugOutput[1].message:find("re%-entry rejected") ~= nil, "Re-entry log message comes from the shipped batch engine")
 
+print("\nTest: ProcessBatchThrottled only accepts request.step in the public request-table contract")
+resetEnvironment()
+local strictContractInstance = createBatchInstance()
+local strictContractCalls = 0
+BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
+    strictContractInstance,
+    {
+        items = makeBatchItems(1),
+        fn = function()
+            strictContractCalls = strictContractCalls + 1
+            return BatchStepQueued()
+        end,
+        actionName = "Depositing",
+        options = reentryOptions,
+    }
+)
+assertEqual(0, strictContractCalls, "Legacy request.fn is ignored by the public ProcessBatchThrottled contract")
+assertEqual(1, #debugOutput, "Public contract violation is logged once")
+assertTrue(debugOutput[1].message:find("step function missing") ~= nil,
+    "Public contract violation logs the missing step callback message")
+
 print("\nTest: Stale timer callbacks are rejected by the production pipeline token guard")
 resetEnvironment()
 local tokenInstance = createBatchInstance()

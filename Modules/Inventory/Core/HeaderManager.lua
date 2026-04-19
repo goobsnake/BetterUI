@@ -273,16 +273,54 @@ local function OnHeaderEntered(self)
     OnEnterHeader(self)
 end
 
-BETTERUI.Inventory.Class.InitializeHeader = InitializeHeader
-BETTERUI.Inventory.Class.OnCategoryClicked = OnCategoryClicked
-BETTERUI.Inventory.Class.ActivateHeader = ActivateHeader
-BETTERUI.Inventory.Class.OnEnterHeader = OnEnterHeader
-BETTERUI.Inventory.Class.OnHeaderEntered = OnHeaderEntered
-BETTERUI.Inventory.Class.OnLeaveHeader = OnLeaveHeader
-BETTERUI.Inventory.Class.EnsureHeaderKeybindsActive = EnsureHeaderKeybindsActive
-BETTERUI.Inventory.Class.ClearSearchInput = ClearSearchInput
-BETTERUI.Inventory.Class.ExitSearchMode = ExitSearchMode
-BETTERUI.Inventory.Class.IsHeaderFocused = IsHeaderFocused
-BETTERUI.Inventory.Class.RequestHeaderFocus = RequestHeaderFocus
-BETTERUI.Inventory.Class.ExitSearchFocus = ExitSearchFocus
-BETTERUI.Inventory.Class.SEARCH_LIFECYCLE = BETTERUI.Inventory.SEARCH_LIFECYCLE
+local Class = BETTERUI.Inventory.Class
+
+function Class:InitializeHeader()
+    return InitializeHeader(self)
+end
+
+function Class:OnCategoryClicked(direction)
+    return OnCategoryClicked(self, direction)
+end
+
+function Class:ActivateHeader()
+    return ActivateHeader(self)
+end
+
+function Class:OnEnterHeader()
+    return OnEnterHeader(self)
+end
+
+function Class:OnHeaderEntered()
+    return OnHeaderEntered(self)
+end
+
+function Class:OnLeaveHeader()
+    return OnLeaveHeader(self)
+end
+
+function Class:EnsureHeaderKeybindsActive()
+    return EnsureHeaderKeybindsActive(self)
+end
+
+function Class:ClearSearchInput()
+    return ClearSearchInput(self)
+end
+
+function Class:ExitSearchMode(...)
+    return ExitSearchMode(self, ...)
+end
+
+function Class:IsHeaderFocused()
+    return IsHeaderFocused(self)
+end
+
+function Class:RequestHeaderFocus()
+    return RequestHeaderFocus(self)
+end
+
+function Class:ExitSearchFocus()
+    return ExitSearchFocus(self)
+end
+
+Class.SEARCH_LIFECYCLE = BETTERUI.Inventory.SEARCH_LIFECYCLE

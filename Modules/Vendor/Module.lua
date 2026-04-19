@@ -115,21 +115,6 @@ function BETTERUI.Vendor.NormalizeSearchQuery(query)
 	return NormalizeSearchText(query)
 end
 
---- Returns the active normalized search query for a vendor instance.
----@param vendorInstance table|nil
----@return string|nil normalized
-function BETTERUI.Vendor.GetNormalizedSearchQuery(vendorInstance)
-	if type(vendorInstance) ~= "table" then
-		return nil
-	end
-
-	if vendorInstance.searchQuery == nil then
-		return nil
-	end
-
-	return NormalizeSearchText(vendorInstance.searchQuery)
-end
-
 --- Checks whether text matches the active normalized search query.
 ---@param normalizedQuery string|nil
 ---@param text any

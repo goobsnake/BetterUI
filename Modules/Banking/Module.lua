@@ -12,18 +12,13 @@ descriptor factories for the name and column rendering.
 BETTERUI.Banking = BETTERUI.Banking or {}
 local Banking = BETTERUI.Banking
 
-local MODULE_NAME = "Banking"
-local MODULE_OWNER_FILE = "Modules/Banking/Module.lua"
-local ROOT_CONTRACT_INIT_OWNER = MODULE_OWNER_FILE
-local ROOT_CONTRACT_SETUP_OWNER = MODULE_OWNER_FILE
-
 Banking.ARCHETYPE = "runtime-coordinator"
 ---@type BetterUIModuleRootContract
 Banking.ROOT_CONTRACT = {
-	name = MODULE_NAME,
+	name = "Banking",
 	archetype = Banking.ARCHETYPE,
-	initOwner = ROOT_CONTRACT_INIT_OWNER,
-	setupOwner = ROOT_CONTRACT_SETUP_OWNER,
+	initOwner = "Modules/Banking/Module.lua",
+	setupOwner = "Modules/Banking/Module.lua",
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
@@ -44,7 +39,8 @@ function Banking.InitModule(m_options)
 	return m_options
 end
 
-local function EnsureBankingSetupContracts()
+---@type BetterUIModuleSetupHook
+function Banking.Setup()
 	BETTERUI.CIM.RegisterModuleAccessors(Banking, "Banking")
 	if Banking._narrationLabelsRegistered ~= true
 		and BETTERUI.CIM
@@ -58,10 +54,5 @@ local function EnsureBankingSetupContracts()
 		Banking._narrationLabelsRegistered = true
 	end
 	BETTERUI.CIM.TryRegisterModulePanel(Banking, "Banking", "Bank", "Banking")
-end
-
----@type BetterUIModuleSetupHook
-function Banking.Setup()
-	EnsureBankingSetupContracts()
 	Banking.Init()
 end

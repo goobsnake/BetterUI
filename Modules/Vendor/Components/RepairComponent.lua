@@ -97,7 +97,7 @@ function Repair:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end
 
-    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
+    local searchQuery = Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery) or nil
 
     -- Scan equipped and backpack items for damage
     local bags = { BAG_WORN, BAG_BACKPACK }

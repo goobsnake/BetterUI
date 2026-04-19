@@ -8,18 +8,26 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.ResearchCache = BETTERUI.CIM.ResearchCache or {}
 
 local ResearchCache = BETTERUI.CIM.ResearchCache
+local EMPTY_TRAITS = {}
 
 ---@param traits table|nil
 ---@return table traits
-local function SyncResearchTraits(traits)
-    ResearchCache._traits = traits or {}
-    BETTERUI.ResearchTraits = ResearchCache._traits
-    return ResearchCache._traits
+local function PublishResearchTraits(traits)
+    local normalized = type(traits) == "table" and traits or {}
+    ResearchCache._traits = normalized
+    BETTERUI.ResearchTraits = normalized
+    return normalized
 end
 
 ---@return table traits
-local function EnsureResearchTraits()
-    return SyncResearchTraits(ResearchCache._traits or BETTERUI.ResearchTraits or {})
+local function GetCachedResearchTraits()
+    if type(ResearchCache._traits) == "table" then
+        return ResearchCache._traits
+    end
+    if type(BETTERUI.ResearchTraits) == "table" then
+        return BETTERUI.ResearchTraits
+    end
+    return EMPTY_TRAITS
 end
 
 ---@return table traits
@@ -27,7 +35,7 @@ local function BuildResearchTraits()
     local traits = {}
     local craftTypes = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.CraftingSkillTypes
     if not craftTypes then
-        return SyncResearchTraits(traits)
+        return PublishResearchTraits(traits)
     end
 
     for _, craftType in pairs(craftTypes) do
@@ -42,7 +50,7 @@ local function BuildResearchTraits()
         end
     end
 
-    return SyncResearchTraits(traits)
+    return PublishResearchTraits(traits)
 end
 
 --- RESEARCH CACHE
@@ -53,13 +61,10 @@ end
 ---@param forceRefresh boolean|nil Forces a cache rebuild when true.
 ---@return table traits The cached research-trait matrix
 function ResearchCache.GetResearch(forceRefresh)
-    if not forceRefresh then
-        local traits = EnsureResearchTraits()
-        if next(traits) then
-            return traits
-        end
+    if forceRefresh then
+        return BuildResearchTraits()
     end
-    return BuildResearchTraits()
+    return GetCachedResearchTraits()
 end
 
 --- Explicitly refreshes research traits from the game API.
@@ -73,7 +78,7 @@ end
 --- Keeps existing behavior for callers that only need trait reads.
 ---@return table traits The cached research-trait matrix
 function ResearchCache.GetTraits()
-    return EnsureResearchTraits()
+    return GetCachedResearchTraits()
 end
 
 --- Backward-compatible accessor name for cache reads/writes with explicit behavior.
@@ -85,4 +90,3 @@ function ResearchCache.GetResearchTraits(forceRefresh)
 end
 
 BETTERUI.GetResearch = ResearchCache.GetResearch
-ResearchCache.GetTraits()

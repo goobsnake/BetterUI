@@ -7,7 +7,7 @@ Purpose: Inventory orchestration surface for shared runtime helpers and
 
 -- CONSTANTS & GLOBALS
 
--- State and header helpers attach their class methods when their files load.
+-- State and header helpers define focused runtime methods on the shared class.
 
 -- Action mode constants
 -- Action mode constants (must match other files)

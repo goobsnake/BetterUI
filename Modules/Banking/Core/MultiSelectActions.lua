@@ -233,10 +233,6 @@ function BETTERUI.Banking.GetTransferSupport()
     return TransferSupport
 end
 
--- Compatibility seams: keep the helper tables for existing tests and older call sites.
-BETTERUI.Banking.TransferHelpers = TransferSupport
-BETTERUI.Banking._TransferHelpers = TransferSupport
-
 local BANK_TRANSFER_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
     BatchConfig.WithServer({
         serverBound = true,

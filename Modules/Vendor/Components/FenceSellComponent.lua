@@ -128,7 +128,7 @@ function FenceSell:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end
 
-    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
+    local searchQuery = Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery) or nil
     local bagSize = GetBagSize(BAG_BACKPACK) or 0
 
     for slotIndex = 0, bagSize - 1 do

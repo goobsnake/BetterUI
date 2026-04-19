@@ -57,7 +57,6 @@ local function GetRequiredTransferHelper(helperName)
     local banking = BETTERUI.Banking
     local helpers = banking and type(banking.GetTransferSupport) == "function"
         and banking.GetTransferSupport()
-        or (banking and (banking.TransferHelpers or banking._TransferHelpers) or nil)
     local helper = helpers and helpers[helperName] or nil
     assert(type(helper) == "function",
         "BetterUI: Banking transfer support." .. helperName .. " must load before Banking/Actions/TransferActions")

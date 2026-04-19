@@ -141,7 +141,7 @@ function SellVengeance:BuildList(vendorInstance)
         return
     end
 
-    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
+    local searchQuery = Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery) or nil
     local bagId = GetVengeanceBagId()
     for _, slot in ipairs(BuildSellableVengeanceItems()) do
         local searchName = slot.name or (bagId and GetItemName(bagId, slot.slotIndex)) or ""

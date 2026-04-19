@@ -181,17 +181,11 @@ local function ResolveBatchRequest(request)
 
     local normalized = {
         items = request.items,
-        step = request.step or request.fn,
+        step = request.step,
         onComplete = request.onComplete,
         actionName = request.actionName,
         options = request.options,
     }
-    if normalized.options == nil then
-        normalized.options = request.batchOptions
-    end
-    if normalized.options == nil and type(request.lifecycle) == "table" then
-        normalized.options = request.lifecycle.options
-    end
 
     if normalized.items == nil then
         return nil
@@ -205,20 +199,6 @@ local function ResolveBatchRequest(request)
     end
 
     return normalized
-end
-
-local function ResolveLegacyBatchRequest(requestOrItems, actionFn, onComplete, actionName, batchOptions)
-    if requestOrItems == nil then
-        return nil
-    end
-
-    return ResolveBatchRequest({
-        items = requestOrItems,
-        step = actionFn,
-        onComplete = onComplete,
-        actionName = actionName,
-        options = batchOptions,
-    })
 end
 
 --- Processes selected items through a throttled batch pipeline.
@@ -741,15 +721,6 @@ function Mixin.ProcessBatchThrottled(self, request)
     end
 
     StartBatchAfterDialogDismiss(BatchConfig.BATCH_STATUS_DIALOG_CLOSE_MAX_WAIT_MS, BatchConfig.BATCH_STATUS_DIALOG_SETTLE_MS)
-end
-
--- Backward-compatible positional wrapper kept private for compatibility with internal legacy callers.
-local function ProcessBatchThrottledCompat(self, items, actionFn, onComplete, actionName, batchOptions)
-    local request = ResolveLegacyBatchRequest(items, actionFn, onComplete, actionName, batchOptions)
-    if request == nil then
-        return
-    end
-    return Mixin.ProcessBatchThrottled(self, request)
 end
 
 -- BATCH OPERATION DELEGATES

@@ -77,6 +77,11 @@ local guildCount = 2
 local batchProcessing = false
 local guildTransferAllowed = true
 local guildTransferDenialText = nil
+local transferSupport = {
+    ResolveGuildBankTransferDecision = function()
+        return guildTransferAllowed, guildTransferDenialText and "denied" or nil, guildTransferDenialText, nil
+    end,
+}
 
 local function assertTrue(condition, message)
     if condition then
@@ -264,11 +269,9 @@ BETTERUI = {
                 return guildBankLoading
             end,
         },
-        _TransferHelpers = {
-            ResolveGuildBankTransferDecision = function()
-                return guildTransferAllowed, guildTransferDenialText and "denied" or nil, guildTransferDenialText, nil
-            end,
-        },
+        GetTransferSupport = function()
+            return transferSupport
+        end,
         Class = {},
     },
     CIM = {

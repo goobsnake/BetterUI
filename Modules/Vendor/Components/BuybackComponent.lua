@@ -93,7 +93,7 @@ function Buyback:BuildList(vendorInstance)
     local numItems = GetNumBuybackItems and GetNumBuybackItems() or 0
     if numItems == 0 then return end
 
-    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
+    local searchQuery = Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery) or nil
     for entryIndex = 1, numItems do
         -- GetBuybackItemInfo returns: icon, name, stackCount, price,
         -- functionalQuality, meetsRequirementsToEquip, displayQuality

@@ -14,22 +14,17 @@ ESO Reference: ZO_CompanionEquipment_Gamepad in
 BETTERUI.Companions = BETTERUI.Companions or {}
 local Companions = BETTERUI.Companions
 
-local MODULE_NAME = "Companions"
-local MODULE_OWNER_FILE = "Modules/Companions/Module.lua"
-local ROOT_CONTRACT_INIT_OWNER = MODULE_OWNER_FILE
-local ROOT_CONTRACT_SETUP_OWNER = MODULE_OWNER_FILE
-
 Companions.ARCHETYPE = "runtime-coordinator"
 ---@type BetterUIModuleRootContract
 Companions.ROOT_CONTRACT = {
-    name = MODULE_NAME,
+    name = "Companions",
     archetype = Companions.ARCHETYPE,
-    initOwner = ROOT_CONTRACT_INIT_OWNER,
-    setupOwner = ROOT_CONTRACT_SETUP_OWNER,
+    initOwner = "Modules/Companions/Module.lua",
+    setupOwner = "Modules/Companions/Module.lua",
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
-BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, MODULE_NAME)
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, "Companions")
 
 local function WrapCompanionRuntimeError(operation, err)
     return string.format("[Companions] %s failed: %s", operation, tostring(err))
@@ -51,14 +46,10 @@ function BETTERUI.Companions.InitModule(m_options)
     return m_options
 end
 
-local function EnsureCompanionsSetupContracts()
-    BETTERUI.CIM.RegisterModuleAccessors(Companions, "Companions")
-    BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")
-end
-
 ---@type BetterUIModuleSetupHook
 function BETTERUI.Companions.Setup()
-    EnsureCompanionsSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(Companions, "Companions")
+    BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")
 
     if BETTERUI.Companions.GetSetting("enableCompanionEquipment") == false then
         return

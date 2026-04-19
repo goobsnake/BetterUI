@@ -221,7 +221,7 @@ function Sell:BuildList(vendorInstance)
     if #rows == 0 then return end
 
     local activeCategory = vendorInstance:GetCurrentCategory()
-    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
+    local searchQuery = Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery) or nil
     for _, slot in ipairs(rows) do
         local searchName = slot.name or GetItemName(slot.bagId, slot.slotIndex)
         if MatchesCategory(slot, activeCategory)

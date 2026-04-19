@@ -481,7 +481,7 @@ function Buy:BuildList(vendorInstance)
     if #rows == 0 then return end
 
     local activeCategory = vendorInstance:GetCurrentCategory()
-    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
+    local searchQuery = Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery) or nil
     for _, row in ipairs(rows) do
         if MatchesCategory(row, activeCategory)
             and (not Vendor.MatchesSearchQuery or Vendor.MatchesSearchQuery(searchQuery, row.name))

@@ -11,18 +11,13 @@ font descriptor factories for the name and column rendering.
 BETTERUI.TradingHouse = BETTERUI.TradingHouse or {}
 local TradingHouse = BETTERUI.TradingHouse
 
-local MODULE_NAME = "TradingHouse"
-local MODULE_OWNER_FILE = "Modules/TradingHouse/Module.lua"
-local ROOT_CONTRACT_INIT_OWNER = MODULE_OWNER_FILE
-local ROOT_CONTRACT_SETUP_OWNER = MODULE_OWNER_FILE
-
 TradingHouse.ARCHETYPE = "runtime-coordinator"
 ---@type BetterUIModuleRootContract
 TradingHouse.ROOT_CONTRACT = {
-    name = MODULE_NAME,
+    name = "TradingHouse",
     archetype = TradingHouse.ARCHETYPE,
-    initOwner = ROOT_CONTRACT_INIT_OWNER,
-    setupOwner = ROOT_CONTRACT_SETUP_OWNER,
+    initOwner = "Modules/TradingHouse/Module.lua",
+    setupOwner = "Modules/TradingHouse/Module.lua",
 }
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
@@ -58,13 +53,9 @@ function BETTERUI.TradingHouse.FormatUnitPrice(totalPrice, quantity)
     return BETTERUI.DisplayNumber(unitPrice) .. "g ea"
 end
 
-local function EnsureTradingHouseSetupContracts()
-    BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")
-    BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")
-end
-
 ---@type BetterUIModuleSetupHook
 function BETTERUI.TradingHouse.Setup()
-    EnsureTradingHouseSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")
+    BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")
     BETTERUI.TradingHouse.Init()
 end

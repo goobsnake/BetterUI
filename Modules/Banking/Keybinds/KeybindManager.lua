@@ -431,13 +431,10 @@ end
 
 local function GetBankingTransferSupport()
     local banking = BETTERUI.Banking
-    if not banking then
+    if not banking or type(banking.GetTransferSupport) ~= "function" then
         return nil
     end
-    if type(banking.GetTransferSupport) == "function" then
-        return banking.GetTransferSupport()
-    end
-    return banking.TransferHelpers or banking._TransferHelpers
+    return banking.GetTransferSupport()
 end
 
 local function GetBankingTransferHelper(helperName)
