@@ -313,6 +313,9 @@ BETTERUI = {
             FindStackableSlotInBag = function(bagId)
                 return stackableSlots[bagId]
             end,
+            GetBankingTransferSupport = function()
+                return BETTERUI.Banking.transferSupport
+            end,
         },
         UserNotify = function(_, messageId)
             table.insert(userNotifies, messageId)

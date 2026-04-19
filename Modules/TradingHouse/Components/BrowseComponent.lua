@@ -2,14 +2,6 @@
 
 local TH = BETTERUI.TradingHouse
 
----@class THComponent
----@field Activate fun(self: THComponent, thInstance: BETTERUI.TradingHouse.Class)
----@field Deactivate fun(self: THComponent, thInstance: BETTERUI.TradingHouse.Class)
----@field GetPrimaryActionName fun(self: THComponent, thInstance?: BETTERUI.TradingHouse.Class): string
----@field IsPrimaryActionEnabled fun(self: THComponent, thInstance: BETTERUI.TradingHouse.Class): boolean
----@field OnPrimaryAction fun(self: THComponent, thInstance: BETTERUI.TradingHouse.Class)
----@field BuildList fun(self: THComponent, thInstance: BETTERUI.TradingHouse.Class)
-
 TH.BrowseComponent = {}
 local Browse = TH.BrowseComponent
 
@@ -17,22 +9,17 @@ Browse.currentPage = 0
 Browse.hasMorePages = false
 Browse.searchPending = false
 
----@param thInstance BETTERUI.TradingHouse.Class
 function Browse:Activate(thInstance)
     thInstance:RefreshList()
 end
 
----@param thInstance BETTERUI.TradingHouse.Class
 function Browse:Deactivate(thInstance)
 end
 
----@return string name Localized action label
 function Browse:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_TRADING_HOUSE_PURCHASE") or "SI_TRADING_HOUSE_PURCHASE")
 end
 
----@param thInstance BETTERUI.TradingHouse.Class
----@return boolean enabled True if a purchase is possible
 function Browse:IsPrimaryActionEnabled(thInstance)
     local selectedData = thInstance.list and thInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -42,7 +29,6 @@ function Browse:IsPrimaryActionEnabled(thInstance)
     return price > 0 and thInstance:CanAfford(price) and thInstance:HasInventorySpace()
 end
 
----@param thInstance BETTERUI.TradingHouse.Class
 function Browse:OnPrimaryAction(thInstance)
     local selectedData = thInstance.list and thInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -70,7 +56,6 @@ function Browse:OnPrimaryAction(thInstance)
     })
 end
 
---- Initiates a guild store search.
 function Browse:ExecuteSearch()
     if Browse.searchPending then return end
 
@@ -86,7 +71,6 @@ function Browse:ExecuteSearch()
     end
 end
 
---- Go to next page of results.
 function Browse:NextPage(thInstance)
     if Browse.hasMorePages then
         Browse.currentPage = Browse.currentPage + 1
@@ -94,7 +78,6 @@ function Browse:NextPage(thInstance)
     end
 end
 
---- Go to previous page of results.
 function Browse:PrevPage(thInstance)
     if Browse.currentPage > 0 then
         Browse.currentPage = Browse.currentPage - 1
@@ -102,12 +85,10 @@ function Browse:PrevPage(thInstance)
     end
 end
 
---- Called when search results are received from the server.
 function Browse:OnSearchResultsReceived(thInstance)
     Browse.searchPending = false
     Browse.hasMorePages = false
 
-    -- Check if there are more pages
     if GetNumTradingHouseSearchResultsPages then
         local totalPages = GetNumTradingHouseSearchResultsPages()
         Browse.hasMorePages = (Browse.currentPage + 1) < totalPages
@@ -119,9 +100,6 @@ function Browse:OnSearchResultsReceived(thInstance)
     end
 end
 
--- LIST BUILDING
-
----@param thInstance BETTERUI.TradingHouse.Class
 function Browse:BuildList(thInstance)
     local list = thInstance.list
     if not list then return end
@@ -138,7 +116,6 @@ function Browse:BuildList(thInstance)
             local itemLink = GetTradingHouseSearchResultItemLink and GetTradingHouseSearchResultItemLink(i) or nil
             local quality = displayQuality or ITEM_DISPLAY_QUALITY_NORMAL
 
-            -- Get category name from item link
             local bestCategoryName = ""
             if itemLink and GetItemLinkItemType then
                 local itemType = GetItemLinkItemType(itemLink)
@@ -147,7 +124,6 @@ function Browse:BuildList(thInstance)
                 end
             end
 
-            -- Get trait info
             local traitName = nil
             if itemLink and GetItemLinkTraitInfo then
                 local traitType = GetItemLinkTraitInfo(itemLink)

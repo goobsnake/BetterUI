@@ -2,7 +2,6 @@
 
 local TH = BETTERUI.TradingHouse
 
---- Initializes the Trading House module.
 function BETTERUI.TradingHouse.Init()
     if TH.initialized then
         return

@@ -1020,23 +1020,19 @@ function Vendor.ExecuteBatchAction(mode, itemData)
     return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ExecuteBatchAction(mode, itemData)
 end
 
----@param request BetterUIVendorBatchRequest|table
+---@param request BetterUIVendorBatchRequest
 ---@return BetterUIVendorBatchRequest
-local function ResolveVendorBatchRequest(request)
+local function AssertVendorBatchRequest(request)
     assert(type(request) == "table", "Vendor.ExecuteBatchThrottled expects BetterUIVendorBatchRequest table")
-    return {
-        mode = request.mode,
-        items = request.items,
-        onComplete = request.onComplete,
-        options = request.options or request.batchOptions,
-        actionName = request.actionName,
-    }
+    assert(request.batchOptions == nil,
+        "Vendor.ExecuteBatchThrottled expects request.options; legacy request.batchOptions is not part of the public API contract")
+    return request
 end
 
 --- Processes vendor batch actions through a throttled pipeline with overlay progress.
----@param request BetterUIVendorBatchRequest|table
+---@param request BetterUIVendorBatchRequest
 function Vendor.ExecuteBatchThrottled(request)
-    request = ResolveVendorBatchRequest(request)
+    request = AssertVendorBatchRequest(request)
     ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ExecuteBatchThrottled(request)
 end
 

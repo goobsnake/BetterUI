@@ -1,12 +1,10 @@
 -- Inventory action-dialog wiring.
 
---- Initializes the action slot manager for item interactions.
 function BETTERUI.Inventory.Class:InitializeItemActions()
     self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
     self.itemActions:SetUseKeybindStrip(false)
 end
 
---- Initializes the actions dialog (Y-button menu).
 function BETTERUI.Inventory.Class:InitializeActionsDialog()
     local ActionHandlers = BETTERUI.Inventory.ActionHandlers
 
@@ -26,5 +24,4 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
     if BETTERUI.Inventory.EnsureCompanionEquipPatched then
         BETTERUI.Inventory.EnsureCompanionEquipPatched()
     end
-
 end

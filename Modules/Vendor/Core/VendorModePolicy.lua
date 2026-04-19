@@ -169,14 +169,8 @@ function ModePolicy.GetCachedBuyCategories(owner)
 end
 
 function ModePolicy.GetSelectedCategoryIndex(owner, mode)
-    local state, categories = EnsureStoredCategories(owner, mode)
-    local selectedIndex = state.selectedIndexByMode[mode] or 1
-    if selectedIndex < 1 or selectedIndex > #categories then
-        selectedIndex = 1
-        state.selectedIndexByMode[mode] = selectedIndex
-    end
-    owner.categoryIndexByMode = state.selectedIndexByMode
-    return selectedIndex
+    local categories = ResolveStoredCategories(owner, mode)
+    return ResolveSelectedCategoryIndex(owner, mode, #categories)
 end
 
 function ModePolicy.SetSelectedCategoryIndex(owner, mode, selectedIndex)

@@ -62,38 +62,6 @@ local function ResolveBankBag(bankBagId)
     return bankBagId
 end
 
---- Returns the effective transfer source bag for the current banking context.
----@return number bankBagId
-local function GetTransferSourceBankBag()
-    if GetBankingBag then
-        local bankingBag = ResolveBankBag(GetBankingBag())
-        if bankingBag == BAG_BANK then
-            local openedBankBag = BETTERUI.Banking.lastOpenedBankBag
-            if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
-                return openedBankBag
-            end
-            return BAG_BANK
-        end
-        if IsHousingStorageBag(bankingBag) then
-            return bankingBag
-        end
-        return bankingBag
-    end
-
-    return ResolveBankBag(BETTERUI.Banking.currentUsedBank)
-end
-
---- Returns the effective transfer destination bank bag for the current banking context.
----@return number bankBagId
-local function GetTransferDestinationBankBag()
-    local transferSourceBankBag = GetTransferSourceBankBag()
-    if transferSourceBankBag == BAG_GUILDBANK or IsHousingStorageBag(transferSourceBankBag) then
-        return transferSourceBankBag
-    end
-
-    return ResolveBankBag(BETTERUI.Banking.currentUsedBank)
-end
-
 ---@class BetterUIBankingTransferContext
 ---@field sourceBag number Active source bag for transfer and withdraw flows
 ---@field targetBag number Active destination bag for deposit and list updates
@@ -113,8 +81,32 @@ end
 --- Returns the active banking transfer context so callers do not reinterpret bag helpers.
 ---@return BetterUIBankingTransferContext context
 function BETTERUI.Banking.GetActiveTransferContext()
-    local sourceBag = GetTransferSourceBankBag()
-    local targetBag = GetTransferDestinationBankBag()
+    local sourceBag
+    if GetBankingBag then
+        local bankingBag = ResolveBankBag(GetBankingBag())
+        if bankingBag == BAG_BANK then
+            local openedBankBag = BETTERUI.Banking.lastOpenedBankBag
+            if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
+                sourceBag = openedBankBag
+            else
+                sourceBag = BAG_BANK
+            end
+        elseif IsHousingStorageBag(bankingBag) then
+            sourceBag = bankingBag
+        else
+            sourceBag = bankingBag
+        end
+    else
+        sourceBag = ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+    end
+
+    local targetBag
+    if sourceBag == BAG_GUILDBANK or IsHousingStorageBag(sourceBag) then
+        targetBag = sourceBag
+    else
+        targetBag = ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+    end
+
     local isGuildBankSceneShowing = IsGuildBankSceneShowing()
     local isGuildBank = sourceBag == BAG_GUILDBANK or isGuildBankSceneShowing
     local withdrawSourceBags

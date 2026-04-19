@@ -182,7 +182,11 @@ function BETTERUI.CIM.Utils.GetBankingTransferSupport()
         return nil
     end
 
-    return banking.ResolveTransferSupport()
+    local transferSupport = banking.ResolveTransferSupport()
+    if type(transferSupport) ~= "table" then
+        return nil
+    end
+    return transferSupport
 end
 
 ---@return table|nil context Shared banking sort context with list and owner, or nil when unavailable

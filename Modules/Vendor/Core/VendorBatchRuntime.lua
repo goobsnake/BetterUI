@@ -138,8 +138,19 @@ function BatchRuntime.ResolveBatchOptions(batchOptions)
     return batchConfig.ComposeBatchOptions(GetVendorBatchOptionsTemplate(), normalizedOverride)
 end
 
---- Normalizes the named vendor batch request contract.
+--- Resolves internal options for batch runtime requests.
+--- Keeps the legacy `batchOptions` compatibility shim private to runtime internals.
 ---@param request BetterUIVendorBatchRequest|table
+---@return BatchOptions|table|nil
+local function ResolveBatchRuntimeRequestOptions(request)
+    if request.options ~= nil then
+        return request.options
+    end
+    return request.batchOptions
+end
+
+--- Normalizes the named vendor batch request contract.
+---@param request BetterUIVendorBatchRequest
 ---@return BetterUIVendorBatchRequest
 local function NormalizeBatchRuntimeRequest(request)
     assert(type(request) == "table", "Vendor batch runtime expects BetterUIVendorBatchRequest table")
@@ -147,7 +158,7 @@ local function NormalizeBatchRuntimeRequest(request)
         mode = request.mode,
         items = request.items or {},
         onComplete = request.onComplete,
-        options = request.options or request.batchOptions,
+        options = ResolveBatchRuntimeRequestOptions(request),
         actionName = request.actionName,
     }
 end
@@ -507,7 +518,7 @@ function BatchRuntime.CreateBatchRunner(mode, items, onComplete, batchOptions)
     return runner
 end
 
----@param request BetterUIVendorBatchRequest|table
+---@param request BetterUIVendorBatchRequest
 function BatchRuntime.ExecuteBatchThrottled(request)
     request = NormalizeBatchRuntimeRequest(request)
     local mode = request.mode

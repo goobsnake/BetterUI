@@ -6,7 +6,7 @@ function BETTERUI.Banking.InitializeRefreshManager()
     if BETTERUI.CIM.Lists.ListRefreshManager then
         BETTERUI.Banking.RefreshManager = BETTERUI.CIM.Lists.ListRefreshManager:New({
             coalesceDelay = BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS,
-            useBatching = false, -- Banking lists are typically smaller, no batching needed
+            useBatching = false,
         })
         BETTERUI.Debug("[Banking] RefreshManager initialized")
     else

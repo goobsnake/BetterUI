@@ -240,7 +240,10 @@ do
     reset_settings()
     BETTERUI.Mod = {}
     BETTERUI.CIM.RegisterModuleAccessors("Mod")
-    assert_equal(77, BETTERUI.Mod.GetSetting("missingViaMetadata"), "module accessor reads metadata-backed default")
+    assert_equal(BETTERUI.GetSetting("Mod", "missingViaMetadata"), BETTERUI.Mod.GetSetting("missingViaMetadata"),
+        "module accessor mirrors generic getter metadata default semantics")
+    assert_equal(BETTERUI.GetSetting("Mod", "noDefault"), BETTERUI.Mod.GetSetting("noDefault"),
+        "module accessor mirrors generic getter nil-default semantics")
 end
 
 -- ============================================================================

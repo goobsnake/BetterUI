@@ -1,5 +1,3 @@
--- BetterUI - General Interface Setup
-
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local GeneralInterface = BETTERUI.GeneralInterface
@@ -13,8 +11,15 @@ local function GetGeneralInterfaceOptions()
 	return GeneralInterface.GetSettingsOptions()
 end
 
+local function ResolveNameplatesNamespace()
+	if type(GeneralInterface.GetNameplatesNamespace) == "function" then
+		return GeneralInterface.GetNameplatesNamespace()
+	end
+	return GeneralInterface.Nameplates or BETTERUI.Nameplates
+end
+
 local function GetNameplateOptions()
-	local nameplates = GeneralInterface.Nameplates or BETTERUI.Nameplates
+	local nameplates = ResolveNameplatesNamespace()
 	if not nameplates or type(nameplates.GetSettingsOptions) ~= "function" then
 		return nil
 	end

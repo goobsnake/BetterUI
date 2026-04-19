@@ -39,8 +39,14 @@ assert_contains(
 
 assert_contains(
     transferActions,
-    "ResolveTransferSupport",
-    "TransferActions resolves helpers through the bounded transfer-support accessor"
+    "GetBankingTransferSupport",
+    "TransferActions resolves helpers through the shared CIM transfer-support seam"
+)
+
+assert_not_contains(
+    transferActions,
+    "banking.ResolveTransferSupport()",
+    "TransferActions no longer probes Banking.ResolveTransferSupport directly"
 )
 
 assert_contains(

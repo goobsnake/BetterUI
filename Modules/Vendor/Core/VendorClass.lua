@@ -248,6 +248,7 @@ local function BuildVendorHeaderModel(instance)
     local isSellBuybackOnly = IsSellBuybackOnlyTabs(activeTabs)
     local useUnifiedBuyHeader = (not isSellBuybackOnly) and IsUnifiedBuyHeaderMode(mode)
     local categoryMode = useUnifiedBuyHeader and BETTERUI.Vendor.MODE.BUY or mode
+    VendorModePolicy.EnsureModeCategories(instance, categoryMode)
     local categories = instance:GetModeCategories(categoryMode)
     local cachedBuyCategories = VendorModePolicy.GetCachedBuyCategories(instance)
     if useUnifiedBuyHeader
@@ -394,6 +395,7 @@ local function CreateVendorHeaderSelectionHandler(instance, headerModel, headerN
 
                 local categoryIndex = appliedEntry.categoryIndex or 1
                 local selectedCategoryMode = appliedEntry.categoryMode or screen:GetCurrentMode()
+                VendorModePolicy.EnsureModeCategories(screen, selectedCategoryMode)
                 local shouldSwitchToBuy = headerModel.useUnifiedBuyHeader
                     and screen:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY
                     and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY
@@ -463,6 +465,7 @@ local function CreateVendorHeaderSelectionHandler(instance, headerModel, headerN
 
         local categoryIndex = selectedEntry.categoryIndex or 1
         local selectedCategoryMode = selectedEntry.categoryMode or headerModel.mode
+        VendorModePolicy.EnsureModeCategories(instance, selectedCategoryMode)
         local shouldSwitchToBuy = headerModel.useUnifiedBuyHeader
             and headerModel.mode ~= BETTERUI.Vendor.MODE.BUY
             and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY

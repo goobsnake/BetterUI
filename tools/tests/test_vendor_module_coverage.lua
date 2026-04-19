@@ -213,7 +213,8 @@ do
             observed.throttledRequests[#observed.throttledRequests + 1] = request
             observed.throttledMode = request.mode
             observed.throttledItems = request.items
-            observed.throttledOptions = request.options or request.batchOptions
+            observed.throttledOptions = request.options
+            observed.legacyBatchOptions = request.batchOptions
             if request.onComplete then
                 request.onComplete()
             end
@@ -258,6 +259,7 @@ do
     assertEqual(BETTERUI.Vendor.MODE.FENCE_SELL, observed.throttledRequests[1].mode, "vendor throttled facade accepts named batch requests")
     assertTrue(observed.throttledItems == sampleItems, "vendor throttled facade forwards the selected item list")
     assertTrue(observed.throttledOptions == sampleOptions, "vendor throttled facade forwards explicit batch options")
+    assertTrue(observed.legacyBatchOptions == nil, "vendor throttled facade does not publish legacy batchOptions")
     assertEqual(BETTERUI.Vendor.MODE.BUYBACK, observed.throttledRequests[2].mode, "vendor throttled facade accepts repeated named batch requests")
     assertEqual(2, observed.completed, "vendor throttled facade preserves completion callbacks for named requests")
     assertTrue(observed.abortRequested == true, "vendor abort facade delegates to the batch runtime collaborator")

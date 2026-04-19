@@ -35,10 +35,8 @@ assert_contains(bootstrap, 'namespace = "Nameplates",',
 assert_contains(bootstrap, 'depends = "GeneralInterface"',
     "The Nameplates registry entry preserves the GeneralInterface enablement dependency")
 
-assert_contains(generalInterface, 'runtimeOwner = "Modules/GeneralInterface/Tooltips/",',
-    "GeneralInterface runtime ownership no longer absorbs Nameplates runtime hooks")
-assert_contains(generalInterface, 'nests the separate Nameplates submenu',
-    "GeneralInterface notes document Nameplates as a separate module surfaced through the shared panel")
+assert_contains(generalInterface, 'GeneralInterface.GetNameplatesNamespace = GetNameplatesNamespace',
+    "GeneralInterface exposes one canonical Nameplates namespace seam")
 
 assert_contains(nameplates, 'Nameplates.ARCHETYPE = "settings-owner"',
     "Nameplates declares its own module archetype")
@@ -46,7 +44,7 @@ assert_contains(nameplates, 'Nameplates.ROOT_CONTRACT = {',
     "Nameplates publishes a dedicated module root contract")
 assert_contains(nameplates, 'name = "Nameplates",',
     "The Nameplates root contract uses the canonical module name")
-assert_contains(nameplates, 'runtimeOwner = "Modules/GeneralInterface/Nameplates/Nameplates.lua",',
-    "Nameplates runtime ownership points at its dedicated module file")
+assert_contains(nameplates, 'GeneralInterface.GetNameplatesNamespace',
+    "Nameplates runtime binds through the shared GeneralInterface namespace seam")
 
 print("  OK")

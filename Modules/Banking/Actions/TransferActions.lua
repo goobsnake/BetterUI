@@ -54,9 +54,9 @@ local function IsActionableBankSlotEntry(entryData)
 end
 
 local function GetRequiredTransferSupport()
-    local banking = BETTERUI.Banking
-    local transferSupport = banking and type(banking.ResolveTransferSupport) == "function"
-        and banking.ResolveTransferSupport()
+    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    local getBankingTransferSupport = utils and utils.GetBankingTransferSupport
+    local transferSupport = type(getBankingTransferSupport) == "function" and getBankingTransferSupport()
     assert(type(transferSupport) == "table",
         "BetterUI: Banking transfer support must load before Banking/Actions/TransferActions")
     return transferSupport

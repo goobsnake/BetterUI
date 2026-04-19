@@ -1,19 +1,13 @@
--- BetterUI - Enhanced Nameplates
---
--- This module allows customization of nameplate fonts, styles, and sizes.
--- It supports:
--- 1. Font Selection: Choose from various built-in ESO fonts.
--- 2. Style Control: Adjust outline, shadow, and other font effects.
--- 3. Size Adjustment: Scale nameplates to preferred size.
--- 4. Cross-Mode Support: Applies settings to both Keyboard and Gamepad modes.
-
--- Note: ESO Update 41+ uses .slug fonts; only built-in ESO fonts supported
-
 BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
-BETTERUI.GeneralInterface.Nameplates = BETTERUI.GeneralInterface.Nameplates or BETTERUI.Nameplates or {}
-BETTERUI.Nameplates = BETTERUI.GeneralInterface.Nameplates
-
-local Nameplates = BETTERUI.GeneralInterface.Nameplates
+local GeneralInterface = BETTERUI.GeneralInterface
+local Nameplates
+if type(GeneralInterface.GetNameplatesNamespace) == "function" then
+    Nameplates = GeneralInterface.GetNameplatesNamespace()
+else
+    Nameplates = GeneralInterface.Nameplates or BETTERUI.Nameplates or {}
+    GeneralInterface.Nameplates = Nameplates
+    BETTERUI.Nameplates = Nameplates
+end
 
 Nameplates.ARCHETYPE = "settings-owner"
 ---@type BetterUIModuleRootContract
@@ -24,7 +18,7 @@ Nameplates.ROOT_CONTRACT = {
     setup = true,
 }
 
--- Available ESO built-in fonts
+-- ESO Update 41+ uses .slug fonts; only built-in ESO fonts are supported here.
 Nameplates.FONT_CHOICES = {
     "System Default (Localized)", -- Uses ESO's language-appropriate bold font
     "Antique (Localized)",        -- Stylized serif, localized for CJK
@@ -59,7 +53,6 @@ Nameplates.FONT_VALUES = {
     "EsoUI/Common/Fonts/consola.otf",
 }
 
--- Font style options (ESO FONT_STYLE_* constants)
 Nameplates.FONTSTYLE_CHOICES = {
     "Normal",
     "Outline",
@@ -78,7 +71,6 @@ Nameplates.FONTSTYLE_VALUES = {
     FONT_STYLE_SOFT_SHADOW_THIN or 5,
 }
 
--- Default nameplate settings
 Nameplates.DEFAULTS = {
     m_enabled = false,
     font = "$(BOLD_FONT)", -- Uses ESO's localized font for CJK support
@@ -86,7 +78,6 @@ Nameplates.DEFAULTS = {
     size = 16,
 }
 
--- Legacy migration: string style values to numeric enums
 local STYLE_STRING_TO_ENUM = {
     ["normal"] = FONT_STYLE_NORMAL or 0,
     ["outline"] = FONT_STYLE_OUTLINE or 1,
@@ -96,7 +87,6 @@ local STYLE_STRING_TO_ENUM = {
     ["soft-shadow-thin"] = FONT_STYLE_SOFT_SHADOW_THIN or 5,
 }
 
--- Converts legacy string style values to the numeric enum used by the API.
 local function NormalizeStyleValue(style)
     if type(style) == "string" then
         return STYLE_STRING_TO_ENUM[style] or (FONT_STYLE_SOFT_SHADOW_THIN or 5)
@@ -104,7 +94,6 @@ local function NormalizeStyleValue(style)
     return style
 end
 
---- Returns nameplate settings with legacy style values normalized.
 local function GetSettings()
     local settings = BETTERUI.GetModuleSettings("Nameplates")
     if settings and next(settings) then
@@ -137,7 +126,6 @@ local function CaptureOriginalNameplateFonts()
     originalFontsCaptured = originalKeyboardFont ~= nil or originalGamepadFont ~= nil
 end
 
---- Applies the configured font to keyboard and gamepad nameplates.
 local function ApplyNameplateFont(font, style, size)
     if not font or not style or not size then return end
     CaptureOriginalNameplateFonts()
@@ -147,7 +135,6 @@ local function ApplyNameplateFont(font, style, size)
     SetNameplateGamepadFont(fontString, style)
 end
 
---- Registers or unregisters the events that reapply nameplate fonts.
 local function SetupEvents(enabled, suppressCleanupLog)
     if enabled then
         BETTERUI.CIM.EventRegistry.Register("Nameplates", "BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
@@ -169,7 +156,6 @@ local function SetupEvents(enabled, suppressCleanupLog)
     end
 end
 
---- Restores the captured nameplate fonts or falls back to module defaults.
 local function ResetToDefaults()
     if originalFontsCaptured then
         if originalKeyboardFont ~= nil then
@@ -185,7 +171,6 @@ local function ResetToDefaults()
     ApplyNameplateFont(defaults.font, defaults.style, defaults.size)
 end
 
---- Applies the saved nameplate settings when the module starts enabled.
 function Nameplates.Setup()
     local settings = GetSettings()
     if settings.m_enabled then
@@ -194,7 +179,6 @@ function Nameplates.Setup()
     end
 end
 
---- Applies or removes the Nameplates font override when the setting changes.
 function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
     SetupEvents(m_enabled, suppressCleanupLog)
     if m_enabled then
@@ -205,12 +189,10 @@ function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
     end
 end
 
---- Returns whether the Nameplates module is enabled.
 function Nameplates.IsEnabled()
     return GetSettings().m_enabled
 end
 
---- Reapplies the current font settings immediately when the module is enabled.
 function Nameplates.ApplyCurrentSettings()
     local settings = GetSettings()
     if settings.m_enabled then

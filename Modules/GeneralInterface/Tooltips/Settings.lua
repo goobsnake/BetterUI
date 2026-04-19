@@ -1,10 +1,3 @@
---[[
-    BetterUI Tooltip Settings
-    Configuration options for BetterUI Tooltip enhancements.
-    Part of the General Interface module (Modules/GeneralInterface/).
-    Helper functions (utility, reset, addon dependency) are in SettingsHelpers.lua.
-]]
-
 if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
@@ -24,7 +17,6 @@ local ResetGeneralInterfaceGeneralSettings = H.ResetGeneralInterfaceGeneralSetti
 local ResetMarketIntegrationSettings = H.ResetMarketIntegrationSettings
 local ResetEnhancedTooltipSettings = H.ResetEnhancedTooltipSettings
 
---- Returns the table of LAM settings options for General Interface.
 function BETTERUI.GeneralInterface.GetSettingsOptions()
     local styleTraitIcon = ""
     local icons = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS

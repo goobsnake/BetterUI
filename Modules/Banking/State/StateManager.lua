@@ -14,15 +14,6 @@ local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
 
-local function GetActiveSourceBankBag()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    local sourceBag = transferContext and transferContext.sourceBag or nil
-    if sourceBag ~= nil then
-        return sourceBag
-    end
-    return BETTERUI.Banking.currentUsedBank or BAG_BANK
-end
-
 -- POSITION PERSISTENCE
 
 --- Saves the current scroll position of the list.
@@ -87,6 +78,8 @@ end
 function BETTERUI.Banking.Class:HandleBankSwitch()
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     local lastUsedBank = BETTERUI.Banking.lastUsedBank
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local activeSourceBag = transferContext and transferContext.sourceBag or BETTERUI.Banking.currentUsedBank or BAG_BANK
 
     if lastUsedBank == currentUsedBank then
         return false -- No switch, handled by caller
@@ -102,11 +95,11 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         self:SaveListPosition()
         self.currentMode = LIST_WITHDRAW
-        BETTERUI.Banking.lastUsedBank = GetActiveSourceBankBag()
+        BETTERUI.Banking.lastUsedBank = activeSourceBag
         self:RefreshList()
     else
         -- Switch to withdraw mode
-        BETTERUI.Banking.lastUsedBank = GetActiveSourceBankBag()
+        BETTERUI.Banking.lastUsedBank = activeSourceBag
         self.currentMode = LIST_WITHDRAW
         self:ToggleList(true)
     end
@@ -115,7 +108,8 @@ end
 
 --- Restores the saved list position.
 function BETTERUI.Banking.Class:ReturnToSaved()
-    BETTERUI.Banking.currentUsedBank = GetActiveSourceBankBag()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    BETTERUI.Banking.currentUsedBank = transferContext and transferContext.sourceBag or BETTERUI.Banking.currentUsedBank or BAG_BANK
 
     -- Handle empty list
     if self:HandleEmptyList() then

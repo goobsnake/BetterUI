@@ -47,8 +47,6 @@ local function MatchesCategory(slotData, category)
     return true
 end
 
----@param itemCount number
----@return table[]
 local function BuildAllOnlyCategory(itemCount)
     return {
         {
@@ -60,8 +58,6 @@ local function BuildAllOnlyCategory(itemCount)
     }
 end
 
----@param _vendorInstance BETTERUI.Vendor.Class
----@return table[]
 function Sell:GetCategories(vendorInstance)
     local rows = BuildSellableBagItems()
     local totalCount = #rows
@@ -103,28 +99,22 @@ function Sell:GetCategories(vendorInstance)
     return categories
 end
 
----@param vendorInstance BETTERUI.Vendor.Class
 function Sell:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
----@param vendorInstance BETTERUI.Vendor.Class
 function Sell:Deactivate(vendorInstance)
 end
 
----@return string name Localized sell action label
 function Sell:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_SELL"))
 end
 
----@param vendorInstance BETTERUI.Vendor.Class
----@return boolean enabled True if the selected item can be sold
 function Sell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
-    -- Cannot sell stolen items to a regular vendor
     local isStolen = ds.stolen == true
     if isStolen then return false end
 
@@ -138,7 +128,6 @@ function Sell:IsPrimaryActionEnabled(vendorInstance)
         or true
 end
 
----@param vendorInstance BETTERUI.Vendor.Class
 function Sell:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -161,7 +150,6 @@ function Sell:OnPrimaryAction(vendorInstance)
     SellInventoryItem(bagId, slotIndex, stackSize)
 end
 
----@param vendorInstance BETTERUI.Vendor.Class
 function Sell:SellAllJunk(vendorInstance)
     local _, itemCount = Vendor.GetJunkSellSummary()
     if itemCount <= 0 then
@@ -191,7 +179,6 @@ function Sell:SellAllJunk(vendorInstance)
     vendorInstance:FlushListUpdates()
 end
 
----@param vendorInstance BETTERUI.Vendor.Class
 function Sell:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

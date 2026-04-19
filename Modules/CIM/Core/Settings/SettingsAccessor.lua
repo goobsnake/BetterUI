@@ -280,8 +280,7 @@ function BETTERUI.CIM.RegisterModuleAccessors(moduleOrNamespace, moduleName)
     -- Settings accessors
     ns.GetSetting = function(key)
         if key == nil then return nil end
-        local defaultValue = ResolveSettingDefault(resolvedModuleName, key, nil)
-        return BETTERUI.GetSetting(resolvedModuleName, key, defaultValue)
+        return BETTERUI.GetSetting(resolvedModuleName, key)
     end
 
     ns.SetSetting = function(key, value)

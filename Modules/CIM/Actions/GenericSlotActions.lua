@@ -10,16 +10,12 @@ local TRANSFER_DENIAL_ALERT = 1
 
 local function GetBankingTransferSupport()
     local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
-    if utils and type(utils.GetBankingTransferSupport) == "function" then
-        return utils.GetBankingTransferSupport()
+    local getBankingTransferSupport = utils and utils.GetBankingTransferSupport
+    if type(getBankingTransferSupport) ~= "function" then
+        return nil
     end
 
-    local banking = BETTERUI.Banking
-    if banking and type(banking.ResolveTransferSupport) == "function" then
-        return banking.ResolveTransferSupport()
-    end
-
-    return nil
+    return getBankingTransferSupport()
 end
 
 local function NotifyTransferDenied(context, targetBag, denyReason)
@@ -156,14 +152,10 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
             end
         end
         local canDeposit, denyReason = true, nil
-        if isDepositSupportedForBank then
-            canDeposit, denyReason = isDepositSupportedForBank(bag, index, bankingBag)
-        else
-            local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-            if policy and policy.CanTransferItem then
-                canDeposit, denyReason = policy.CanTransferItem(bag, index, bankingBag)
-            end
+        if type(isDepositSupportedForBank) ~= "function" then
+            return false, "transfer_support_unavailable"
         end
+        canDeposit, denyReason = isDepositSupportedForBank(bag, index, bankingBag)
         if not canDeposit then
             NotifyTransferDenied("TryTransferItem:Deposit", bankingBag, denyReason)
             return false, denyReason

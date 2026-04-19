@@ -1,22 +1,20 @@
---[[
-    Module: General Interface
-    Purpose: Tooltip enhancements, market price integration, and nameplate customization.
-
-    Structure:
-      Tooltips/     - Market price hooks (TTC/MM/ATT), research trait display, settings
-      Nameplates/   - Font customization for ESO nameplates
-      Setup.lua     - Module Setup() lifecycle and LAM panel aggregation
-
-    Namespaces: BETTERUI.GeneralInterface (canonical), BETTERUI.Nameplates (compat alias)
-    Dependencies: CIM (cross-cutting utilities, defaults, and shared integration helpers)
-]]
-
 if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local GeneralInterface = BETTERUI.GeneralInterface
-GeneralInterface.Nameplates = GeneralInterface.Nameplates or BETTERUI.Nameplates or {}
-BETTERUI.Nameplates = GeneralInterface.Nameplates
+
+local function GetNameplatesNamespace()
+    local nameplates = GeneralInterface.Nameplates
+    if nameplates == nil then
+        nameplates = BETTERUI.Nameplates or {}
+        GeneralInterface.Nameplates = nameplates
+    end
+    BETTERUI.Nameplates = nameplates
+    return nameplates
+end
+
+GeneralInterface.GetNameplatesNamespace = GetNameplatesNamespace
+GetNameplatesNamespace()
 
 local MODULE_NAME = "GeneralInterface"
 GeneralInterface.ARCHETYPE = "thin-entrypoint"
@@ -28,9 +26,6 @@ GeneralInterface.ROOT_CONTRACT = {
     setup = true,
 }
 
---- Initializes General Interface default settings.
----@param m_options BetterUIModuleOptions|nil The raw settings table to populate with defaults
----@return BetterUIModuleOptions m_options The modified options table with defaults applied
 ---@type BetterUIModuleInitHook
 function GeneralInterface.InitModule(m_options)
     m_options = m_options or {}
