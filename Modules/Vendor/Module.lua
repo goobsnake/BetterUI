@@ -11,8 +11,11 @@ descriptor factories for the name and column rendering.
 ---@type BetterUIModuleRoot
 BETTERUI.Vendor = BETTERUI.Vendor or {}
 local Vendor = BETTERUI.Vendor
+local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
+local RUNTIME_COORDINATOR = ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"
 
-Vendor.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleArchetypeRuntimeCoordinator
+Vendor.ARCHETYPE = RUNTIME_COORDINATOR
 
 local function BuildDefaultVendorActionId(actionKey)
 	if type(actionKey) ~= "string" then
@@ -75,7 +78,7 @@ Vendor.ROOT_CONTRACT = {
 	setup = true,
 }
 
--- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
+-- Wire shared settings statics before runtime accessors register in Setup().
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Vendor, "Vendor")
 
 ---@param m_options BetterUIModuleOptions|nil Module options table
@@ -152,6 +155,14 @@ function BETTERUI.Vendor.DebugLog(message, flagName, category)
 	if BETTERUI.Vendor.IsDebugFlagEnabled(flagName) and BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.Log then
 		BETTERUI.CIM.Debug.Log(message, category or "Vendor")
 	end
+end
+
+---@param flagName string|nil
+---@param category string|nil
+---@param message string
+---@return nil
+function BETTERUI.Vendor.LogDebug(flagName, category, message)
+	BETTERUI.Vendor.DebugLog(message, flagName, category)
 end
 
 ---@param obj table|nil

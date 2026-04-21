@@ -48,6 +48,8 @@ assert_true(categorySource:find("BETTERUI%.Inventory%.Categories%.CraftBag = %{%
     "CategoryDefinitions defines craft bag categories")
 assert_true(categorySource:find("BETTERUI%.Inventory%.Categories%.Inventory = %{%s*") ~= nil,
     "CategoryDefinitions defines inventory categories")
+assert_true(categorySource:find("RegisterCategorySupport") == nil,
+    "CategoryDefinitions no longer registers SharedItemSupport at import time")
 assert_true(categorySource:find("function BETTERUI%.Inventory%.Categories%.DoesItemMatchCategory%(itemData, category%)") ~= nil,
     "CategoryDefinitions exposes DoesItemMatchCategory")
 assert_true(categorySource:find("function BETTERUI%.Inventory%.Categories%.GetCategoryTypeFromWeaponType%(bagId, slotIndex%)") ~= nil,
@@ -104,6 +106,14 @@ assert_true(craftBagKeybindsSource:find("self%._lastSecondaryActionName = name")
     "CraftBagKeybinds keeps secondary keybind name getter free of cache side effects")
 assert_true(craftBagKeybindsSource:find("local function StartSecondaryActionTransition%(self, actionName%)") ~= nil,
     "CraftBagKeybinds uses an explicit secondary transition helper instead of stateful getters")
+
+local tooltipEquippedSource = read_file("Modules/Inventory/UI/TooltipEquipped.lua")
+assert_true(tooltipEquippedSource:find("RegisterTooltipSupport") == nil,
+    "TooltipEquipped no longer registers SharedItemSupport at import time")
+
+local tooltipUtilsSource = read_file("Modules/Inventory/UI/TooltipUtils.lua")
+assert_true(tooltipUtilsSource:find("RegisterTooltipSupport") == nil,
+    "TooltipUtils no longer registers SharedItemSupport at import time")
 
 if failed > 0 then
     error(string.format("test_inventory_support_module_source.lua failed with %d failure(s)", failed))

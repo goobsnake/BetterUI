@@ -7,8 +7,11 @@ Purpose: Entry point and settings configuration for the Inventory module.
 ---@type BetterUIModuleRoot
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 local Inventory = BETTERUI.Inventory
+local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
+local RUNTIME_COORDINATOR = ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"
 
-Inventory.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleArchetypeRuntimeCoordinator
+Inventory.ARCHETYPE = RUNTIME_COORDINATOR
 ---@type BetterUIModuleRootContract
 Inventory.ROOT_CONTRACT = {
     name = "Inventory",
@@ -43,6 +46,48 @@ local function NotifyInventorySetupFailure(context, messageText)
     assert(BETTERUI.CIM and BETTERUI.CIM.UserNotify,
         "Inventory setup failure handling requires BETTERUI.CIM.UserNotify")
     BETTERUI.CIM.UserNotify(context, messageText)
+end
+
+local function RegisterSharedItemSupport()
+    local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
+    local categories = BETTERUI.Inventory.Categories
+
+    if Inventory._sharedItemSupportRegistered == true then
+        return true
+    end
+
+    if not sharedItemSupport then
+        return false
+    end
+
+    if type(sharedItemSupport.RegisterCategorySupport) == "function"
+        and categories
+        and categories.DoesItemMatchCategory
+        and categories.GetBestItemCategoryDescription then
+        sharedItemSupport.RegisterCategorySupport({
+            doesItemMatchCategory = categories.DoesItemMatchCategory,
+            getBestItemCategoryDescription = categories.GetBestItemCategoryDescription,
+        })
+    end
+
+    if type(sharedItemSupport.RegisterTooltipSupport) == "function" then
+        sharedItemSupport.RegisterTooltipSupport({
+            applyTooltipStyles = BETTERUI.Inventory.ApplyTooltipStyles,
+            cleanupEnhancedTooltip = BETTERUI.Inventory.CleanupEnhancedTooltip,
+            isItemComparisonEnabled = BETTERUI.Inventory.IsItemComparisonEnabled,
+            compareItem = function(...)
+                if BETTERUI.Inventory.StatComparison and BETTERUI.Inventory.StatComparison.Compare then
+                    return BETTERUI.Inventory.StatComparison.Compare(...)
+                end
+                return nil
+            end,
+            showComparisonOnTooltip = BETTERUI.Inventory.ShowComparisonOnTooltip,
+            updateTooltipEquippedText = BETTERUI.Inventory.UpdateTooltipEquippedText,
+        })
+    end
+
+    Inventory._sharedItemSupportRegistered = true
+    return true
 end
 
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Inventory, "Inventory")
@@ -140,6 +185,7 @@ end
 ---@type BetterUIModuleSetupHook
 function Inventory.Setup()
     BETTERUI.CIM.RegisterModuleAccessors(Inventory, "Inventory")
+    RegisterSharedItemSupport()
     if Inventory._inventoryActionModesRegistered ~= true
         and BETTERUI.CIM
         and BETTERUI.CIM.Keybinds

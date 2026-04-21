@@ -71,6 +71,13 @@ local function assertEqual(expected, actual, message)
     assertTrue(expected == actual, string.format("%s (expected=%s, actual=%s)", message, tostring(expected), tostring(actual)))
 end
 
+local function readFile(path)
+    local handle = assert(io.open(path, "r"))
+    local content = handle:read("*a")
+    handle:close()
+    return content
+end
+
 assertEqual(23, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor manifest-backed runtime surface")
 
 BETTERUI = {
@@ -254,13 +261,15 @@ do
             observed.defaultOptionsRequested = true
             return sampleOptions
         end,
-        ResolveBatchOptions = function(options)
-            observed.resolveOptionsInput = options
-            return resolvedOptions
-        end,
+        _internals = {
+            ResolveBatchOptions = function(options)
+                observed.resolveOptionsInput = options
+                return resolvedOptions
+            end,
+        },
     }
 
-    local stepResult = BETTERUI.Vendor.ExecuteBatchAction(BETTERUI.Vendor.MODE.SELL, sampleItem)
+    local stepResult = BETTERUI.Vendor._internals.ExecuteBatchAction(BETTERUI.Vendor.MODE.SELL, sampleItem)
     BETTERUI.Vendor.ExecuteBatchThrottled({
         mode = BETTERUI.Vendor.MODE.FENCE_SELL,
         items = sampleItems,
@@ -281,9 +290,9 @@ do
     local observedDefaultOptions = BETTERUI.Vendor.GetDefaultBatchOptions()
     local observedResolvedOptions = BETTERUI.Vendor.ResolveBatchOptions(sampleOptions)
 
-    assertEqual(BETTERUI.Vendor.MODE.SELL, observed.actionMode, "vendor batch-action facade delegates the requested mode")
-    assertTrue(observed.actionItem == sampleItem, "vendor batch-action facade forwards the selected item payload")
-    assertEqual("handled", stepResult.status, "vendor batch-action facade preserves explicit step-result contract return values")
+    assertEqual(BETTERUI.Vendor.MODE.SELL, observed.actionMode, "vendor internal batch-action seam delegates the requested mode")
+    assertTrue(observed.actionItem == sampleItem, "vendor internal batch-action seam forwards the selected item payload")
+    assertEqual("handled", stepResult.status, "vendor internal batch-action seam preserves explicit step-result contract return values")
     assertEqual(BETTERUI.Vendor.MODE.FENCE_SELL, observed.throttledRequests[1].mode, "vendor throttled facade accepts named batch requests")
     assertTrue(observed.throttledItems == sampleItems, "vendor throttled facade forwards the selected item list")
     assertTrue(observed.throttledOptions == sampleOptions, "vendor throttled facade forwards explicit batch options")
@@ -304,6 +313,14 @@ do
         "vendor batch-options facade rejects legacy flat option keys on the public contract")
 
     BETTERUI.Vendor.BatchRuntime = originalBatchRuntime
+end
+
+do
+    local vendorRuntimeSource = readFile("Modules/Vendor/Vendor.lua")
+    assertTrue(vendorRuntimeSource:find("Vendor.DebugLog = LogVendorDebug", 1, true) == nil,
+        "vendor runtime keeps module-level DebugLog ownership and does not rebind it to local forwarding wrappers")
+    assertTrue(vendorRuntimeSource:find("Vendor.IsDirectionalInputListening = IsDirectionalInputListening", 1, true) == nil,
+        "vendor runtime keeps module-level directional-input listener ownership and does not rebind it to local forwarding wrappers")
 end
 
 setmetatable(_G, originalGlobalMetatable)

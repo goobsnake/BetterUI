@@ -13,18 +13,27 @@ ESO Reference: ZO_CompanionEquipment_Gamepad in
 ---@type BetterUIModuleRoot
 BETTERUI.Companions = BETTERUI.Companions or {}
 local Companions = BETTERUI.Companions
+local MODULE_NAME = "Companions"
+local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
+local RUNTIME_COORDINATOR = ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"
 
-Companions.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleArchetypeRuntimeCoordinator
+Companions.ARCHETYPE = RUNTIME_COORDINATOR
 ---@type BetterUIModuleRootContract
 Companions.ROOT_CONTRACT = {
-    name = "Companions",
+    name = MODULE_NAME,
     archetype = Companions.ARCHETYPE,
     init = true,
     setup = true,
 }
 
--- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
-BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, "Companions")
+-- Wire shared settings statics before runtime accessors register in Setup().
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, MODULE_NAME)
+
+local function EnsureCompanionsSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(Companions, "Companions")
+    BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")
+end
 
 local function WrapCompanionRuntimeError(operation, err)
     return string.format("[Companions] %s failed: %s", operation, tostring(err))
@@ -42,14 +51,13 @@ function BETTERUI.Companions.InitModule(m_options)
     local moduleDefaults = BETTERUI.Defaults and BETTERUI.Defaults.GetModuleDefaults
         and BETTERUI.Defaults.GetModuleDefaults("Companions") or nil
 
-    m_options = BETTERUI.CIM.InitModuleDefaults("Companions", m_options, defaults, moduleDefaults)
+    m_options = BETTERUI.CIM.InitModuleDefaults(MODULE_NAME, m_options, defaults, moduleDefaults)
     return m_options
 end
 
 ---@type BetterUIModuleSetupHook
 function BETTERUI.Companions.Setup()
-    BETTERUI.CIM.RegisterModuleAccessors(Companions, "Companions")
-    BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")
+    EnsureCompanionsSetupContracts()
 
     if BETTERUI.Companions.GetSetting("enableCompanionEquipment") == false then
         return

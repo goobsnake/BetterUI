@@ -33,13 +33,13 @@ local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 
 assert_contains(
     transferActions,
-    "local function GetRequiredTransferSupport()",
+    "BETTERUI.Banking.RequireTransferSupport(\"Banking/Actions/TransferActions\")",
     "TransferActions resolves transfer support through one canonical accessor"
 )
 
 assert_contains(
     transferActions,
-    "local resolveTransferSupport = banking and banking.ResolveTransferSupport",
+    "local transferSupport = BETTERUI.Banking.RequireTransferSupport(\"Banking/Actions/TransferActions\")",
     "TransferActions resolves helpers through the owned Banking transfer-support seam"
 )
 

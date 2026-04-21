@@ -278,18 +278,7 @@ local function AliasStoreSceneToBetterUI()
     ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").AliasSceneToBetterUI(Vendor.instance)
 end
 
-local function LogVendorDebug(flagName, category, message)
-    if BETTERUI.Vendor and BETTERUI.Vendor.DebugLog then
-        BETTERUI.Vendor.DebugLog(message, flagName, category)
-    end
-end
-
-local function IsDirectionalInputListening(obj)
-    if BETTERUI.Vendor and BETTERUI.Vendor.IsDirectionalInputListening then
-        return BETTERUI.Vendor.IsDirectionalInputListening(obj)
-    end
-    return false
-end
+local LogVendorDebug = Vendor.LogDebug
 
 local function EnsureNativeStoreComponents(searchContext)
     ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").EnsureComponents(searchContext)
@@ -1016,7 +1005,9 @@ CanMultiSelectInCurrentMode = function()
         or mode == MODE.BUYBACK
 end
 
-function Vendor.ExecuteBatchAction(mode, itemData)
+Vendor._internals = Vendor._internals or {}
+
+function Vendor._internals.ExecuteBatchAction(mode, itemData)
     return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ExecuteBatchAction(mode, itemData)
 end
 
@@ -1089,7 +1080,11 @@ end
 ---@return BatchOptions
 function Vendor.ResolveBatchOptions(batchOptions)
     batchOptions = AssertPublicBatchOptionsContract(batchOptions)
-    return ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime").ResolveBatchOptions(batchOptions)
+    local batchRuntime = ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime")
+    local internals = batchRuntime and batchRuntime._internals or nil
+    local resolveBatchOptions = internals and internals.ResolveBatchOptions or batchRuntime.ResolveBatchOptions
+    assert(type(resolveBatchOptions) == "function", "Vendor batch runtime must expose internal option normalization")
+    return resolveBatchOptions(batchOptions)
 end
 
 local function RegisterVendorSellAllJunkDialog()
@@ -1466,8 +1461,6 @@ local function RegisterVendorEvents(eventManager)
 end
 
 local function ExposeVendorRuntimeHelpers()
-    Vendor.DebugLog = LogVendorDebug
-    Vendor.IsDirectionalInputListening = IsDirectionalInputListening
     Vendor.GetActiveTabs = GetActiveTabs
     Vendor.GetToggleModePair = GetToggleModePair
     Vendor.IsSellBuybackOnlyStore = IsSellBuybackOnlyStore

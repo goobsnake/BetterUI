@@ -8,21 +8,12 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
 local TRANSFER_DENIAL_ALERT = 1
 
-local function GetBankingTransferSupport()
-    local banking = BETTERUI.Banking
-    local resolveTransferSupport = banking and banking.ResolveTransferSupport
-    if type(resolveTransferSupport) ~= "function" then
-        return nil
-    end
-
-    return resolveTransferSupport()
-end
-
 local function NotifyTransferDenied(context, targetBag, denyReason)
     if not denyReason then
         return
     end
-    local transferSupport = GetBankingTransferSupport()
+    local resolveTransferSupport = BETTERUI.Banking and BETTERUI.Banking.ResolveTransferSupport
+    local transferSupport = type(resolveTransferSupport) == "function" and resolveTransferSupport() or nil
     local resolveTransferDeniedNotification = transferSupport and transferSupport.ResolveTransferDeniedNotification or nil
     if resolveTransferDeniedNotification then
         local notification = resolveTransferDeniedNotification(targetBag, denyReason)
@@ -109,7 +100,6 @@ function BETTERUI.CIM.TryUseItem(inventorySlot)
     end
 end
 
---- @return boolean ok true if the item was transferred
 --- @param inventorySlot table the slot data table
 --- @return boolean ok true if the item was transferred
 --- @return string|nil reason denial reason on failure
@@ -119,7 +109,8 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     local GuildBank = BETTERUI.Banking and BETTERUI.Banking.GuildBank
-    local transferSupport = GetBankingTransferSupport()
+    local resolveTransferSupport = BETTERUI.Banking and BETTERUI.Banking.ResolveTransferSupport
+    local transferSupport = type(resolveTransferSupport) == "function" and resolveTransferSupport() or nil
     local notifyGuildBankTransferDenied = transferSupport and transferSupport.NotifyGuildBankTransferDenied or nil
     local isDepositSupportedForBank = transferSupport and transferSupport.IsDepositSupportedForBank or nil
     local isGuildBankMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode()
@@ -151,11 +142,10 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
                 return false, denyReason
             end
         end
-        local canDeposit, denyReason = true, nil
         if type(isDepositSupportedForBank) ~= "function" then
             return false, "transfer_support_unavailable"
         end
-        canDeposit, denyReason = isDepositSupportedForBank(bag, index, bankingBag)
+        local canDeposit, denyReason = isDepositSupportedForBank(bag, index, bankingBag)
         if not canDeposit then
             NotifyTransferDenied("TryTransferItem:Deposit", bankingBag, denyReason)
             return false, denyReason

@@ -4,15 +4,16 @@ Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
 
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
-
+local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 
 --- Finds the first empty slot in a personal or house bank bag.
 --- Guild bank deposits are handled separately by MoveItem before this is called.
+---@param targetBankBag number|nil Preferred destination bank bag
 ---@return integer? bag The bank bag ID, or nil if no space
 ---@return integer? slotIndex The empty slot index, or nil if no space
-local function FindEmptySlotInBank()
-    local transferTargetBankBag = BETTERUI.Banking.GetTransferDestinationBankBag()
-    if transferTargetBankBag == BAG_BANK then
+local function FindEmptySlotInBank(targetBankBag)
+    targetBankBag = targetBankBag or BETTERUI.Banking.GetTransferTargetBag()
+    if targetBankBag == BAG_BANK then
         local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
         if emptySlotIndexBank ~= nil then
             return BAG_BANK, emptySlotIndexBank
@@ -26,9 +27,9 @@ local function FindEmptySlotInBank()
         return nil, nil
     end
 
-    local emptySlotIndex = FindFirstEmptySlotInBag(transferTargetBankBag)
+    local emptySlotIndex = FindFirstEmptySlotInBag(targetBankBag)
     if emptySlotIndex ~= nil then
-        return transferTargetBankBag, emptySlotIndex
+        return targetBankBag, emptySlotIndex
     end
     return nil, nil
 end
@@ -53,24 +54,14 @@ local function IsActionableBankSlotEntry(entryData)
     return stackCount > 0
 end
 
-local function GetRequiredTransferSupport()
-    local banking = BETTERUI.Banking
-    local resolveTransferSupport = banking and banking.ResolveTransferSupport
-    local transferSupport = type(resolveTransferSupport) == "function" and resolveTransferSupport() or nil
-    assert(type(transferSupport) == "table",
-        "BetterUI: Banking transfer support must load before Banking/Actions/TransferActions")
-    return transferSupport
-end
-
 ---@param targetBankBag number
 ---@param denyReason string|nil
----@return nil
 local function NotifyDepositBlocked(targetBankBag, denyReason)
     if not denyReason then
         return
     end
 
-    local transferSupport = GetRequiredTransferSupport()
+    local transferSupport = BETTERUI.Banking.RequireTransferSupport("Banking/Actions/TransferActions")
     local resolveTransferDeniedStringId = transferSupport.ResolveTransferDeniedStringId
     assert(type(resolveTransferDeniedStringId) == "function",
         "BetterUI: Banking transfer support.ResolveTransferDeniedStringId must load before Banking/Actions/TransferActions")
@@ -83,7 +74,6 @@ end
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
 ---@param list table The parametric list to get selected data from
 ---@param quantity integer? Number of items to move (default 1)
----@return nil
 function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local selectedData = list and list:GetSelectedData() or nil
     if not selectedData or not selectedData.bagId or not selectedData.slotIndex then
@@ -93,8 +83,8 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
-    local targetBankBag = BETTERUI.Banking.GetTransferDestinationBankBag()
-    local transferSupport = GetRequiredTransferSupport()
+    local targetBankBag = BETTERUI.Banking.GetTransferTargetBag()
+    local transferSupport = BETTERUI.Banking.RequireTransferSupport("Banking/Actions/TransferActions")
     local isDepositAllowedForCurrentBank = transferSupport.IsDepositSupportedForBank
     local notifyGuildBankTransferDenied = transferSupport.NotifyGuildBankTransferDenied
     assert(type(isDepositAllowedForCurrentBank) == "function",
@@ -148,7 +138,6 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 
     -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
     local isGuildBank = BETTERUI.Banking.IsGuildBankTransferMode()
-    local GuildBank = BETTERUI.Banking.GuildBank
     if isGuildBank then
         local bagId = fromBag
         local slotIndex = fromBagIndex
@@ -194,7 +183,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             NotifyDepositBlocked(targetBankBag, denyReason)
             return
         end
-        toBag, toBagEmptyIndex = FindEmptySlotInBank()
+        toBag, toBagEmptyIndex = FindEmptySlotInBank(targetBankBag)
     end
 
     if toBagEmptyIndex ~= nil then
@@ -243,7 +232,6 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 end
 
 ---@param list table The parametric list
----@return nil
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     local DEACTIVATE_SPINNER = false
     if not self.confirmationMode then
@@ -256,61 +244,13 @@ function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     self:UpdateSpinnerConfirmation(DEACTIVATE_SPINNER, list)
 end
 
----@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
----@return nil
 function BETTERUI.Banking.Class:DisplaySelector(currencyType)
-    local currency_max
-    local isGuildBank = BETTERUI.Banking.IsGuildBankTransferMode()
-
-    if GetMaxCurrencyTransfer then
-        local fromLocation
-        local toLocation
-        if self.currentMode == LIST_DEPOSIT then
-            fromLocation = CURRENCY_LOCATION_CHARACTER
-            toLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
-        else
-            fromLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
-            toLocation = CURRENCY_LOCATION_CHARACTER
-        end
-        currency_max = GetMaxCurrencyTransfer(currencyType, fromLocation, toLocation) or 0
-    elseif (self.currentMode == LIST_DEPOSIT) then
-        currency_max = GetCarriedCurrencyAmount(currencyType) or 0
-    else
-        currency_max = GetBankedCurrencyAmount(currencyType) or 0
-    end
-
-    -- Does the player actually have anything that can be transferred?
-    if (currency_max > 0) then
-        self.selector:SetMaxValue(currency_max)
-        self.selector:SetClampValues(0, currency_max)
-        self.selector.control:GetParent():SetHidden(false)
-
-        self.selectorCurrency:SetTexture(BETTERUI.Banking.CONST.CURRENCY_TEXTURES[currencyType])
-
-        self.selector:Activate()
-        self.list:Deactivate()
-
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.currencySelectorKeybinds)
-    else
-        -- No, display an alert
-        BETTERUI.CIM.UserAlertText("Banking.Transfer", GetString(rawget(_G, "SI_BETTERUI_BANK_NO_FUNDS")))
-    end
+    return CurrencySelector.DisplaySelector(self, currencyType)
 end
 
 --- Hides the currency selector and restores the item list.
----@return nil
 function BETTERUI.Banking.Class:HideSelector()
-    self.selector.control:GetParent():SetHidden(true)
-    self.selector:Deactivate()
-    self.list:Activate()
-
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencySelectorKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+    return CurrencySelector.HideSelector(self)
 end
 
 --- Shows the actions dialog for the selected item.

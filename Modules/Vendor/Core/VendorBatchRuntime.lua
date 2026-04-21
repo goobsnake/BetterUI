@@ -1,12 +1,9 @@
---[[
-File: Modules/Vendor/Core/VendorBatchRuntime.lua
-Purpose: Own vendor batch action execution/throttling so Vendor.lua delegates batch pipeline details.
-]]
-
 BETTERUI.Vendor = BETTERUI.Vendor or {}
 local Vendor = BETTERUI.Vendor
 Vendor.BatchRuntime = Vendor.BatchRuntime or {}
 local BatchRuntime = Vendor.BatchRuntime
+local Internal = BatchRuntime._internals or {}
+BatchRuntime._internals = Internal
 
 local MODE = assert(Vendor.MODE, "Vendor mode constants must load before batch runtime")
 
@@ -16,7 +13,6 @@ local function GetBatchConfig()
     return batchConfig
 end
 
--- VENDOR BATCH OPTIONS (grouped contract, matching banking/inventory pacing)
 local VendorBatchOptionsTemplate = nil
 
 local function GetVendorBatchOptionsTemplate()
@@ -51,7 +47,7 @@ end
 
 ---@param batchOptions table|nil
 ---@return BatchOptions
-function BatchRuntime.ResolveBatchOptions(batchOptions)
+local function ResolveBatchOptions(batchOptions)
     local batchConfig = GetBatchConfig()
     if type(batchOptions) ~= "table" then
         return batchConfig.ComposeBatchOptions(GetVendorBatchOptionsTemplate())
@@ -59,10 +55,8 @@ function BatchRuntime.ResolveBatchOptions(batchOptions)
 
     return batchConfig.ComposeBatchOptions(GetVendorBatchOptionsTemplate(), batchOptions)
 end
+Internal.ResolveBatchOptions = ResolveBatchOptions
 
---- Normalizes the named vendor batch request contract.
----@param request BetterUIVendorBatchRequest
----@return BetterUIVendorBatchRequest
 local function NormalizeBatchRuntimeRequest(request)
     assert(type(request) == "table", "Vendor batch runtime expects BetterUIVendorBatchRequest table")
     assert(request.batchOptions == nil,
@@ -206,10 +200,10 @@ end
 ---@param totalItems integer
 ---@param batchOptions table|nil
 ---@return table
-function BatchRuntime.ResolveBatchDelayPolicy(totalItems, batchOptions)
+local function ResolveBatchDelayPolicy(totalItems, batchOptions)
     local batchConfig = GetBatchConfig()
     local throttleProfile = batchConfig.ResolveBatchThrottleProfile(totalItems)
-    local options = BatchRuntime.ResolveBatchOptions(batchOptions)
+    local options = ResolveBatchOptions(batchOptions)
     local pacing = options.pacing or {}
     local minDelay = pacing.minServerDelayMs or 145
 
@@ -226,15 +220,16 @@ function BatchRuntime.ResolveBatchDelayPolicy(totalItems, batchOptions)
         options = options,
     }
 end
+Internal.ResolveBatchDelayPolicy = ResolveBatchDelayPolicy
 
 ---@param mode number
 ---@param items table[]
 ---@param onComplete function|nil
 ---@param batchOptions table|nil
 ---@return table
-function BatchRuntime.CreateBatchRunner(mode, items, onComplete, batchOptions)
+local function CreateBatchRunner(mode, items, onComplete, batchOptions)
     local BatchOverlay = BETTERUI.CIM.BatchOverlay
-    local delayPolicy = BatchRuntime.ResolveBatchDelayPolicy(#items, batchOptions)
+    local delayPolicy = ResolveBatchDelayPolicy(#items, batchOptions)
     local batchConfig = GetBatchConfig()
     local runner = {
         mode = mode,
@@ -308,15 +303,15 @@ function BatchRuntime.CreateBatchRunner(mode, items, onComplete, batchOptions)
 
     function runner:UpdateProgress()
         if self.showProgress then
-            self.BatchOverlay.Show(
-                self.actionName,
-                function()
+            self.BatchOverlay.ShowStatus({
+                displayName = self.actionName,
+                bodyText = function()
                     return self:BuildProgressMainText()
                 end,
-                function()
+                secondaryText = function()
                     return self:BuildProgressSecondaryText()
-                end
-            )
+                end,
+            })
         end
     end
 
@@ -430,6 +425,7 @@ function BatchRuntime.CreateBatchRunner(mode, items, onComplete, batchOptions)
 
     return runner
 end
+Internal.CreateBatchRunner = CreateBatchRunner
 
 ---@param request BetterUIVendorBatchRequest
 function BatchRuntime.ExecuteBatchThrottled(request)
@@ -458,8 +454,8 @@ function BatchRuntime.ExecuteBatchThrottled(request)
     Vendor._batchProcessing = true
     Vendor._batchAbortRequested = false
 
-    local resolvedOptions = BatchRuntime.ResolveBatchOptions(request.options)
-    local runner = BatchRuntime.CreateBatchRunner(mode, batchItems, request.onComplete, resolvedOptions)
+    local resolvedOptions = Internal.ResolveBatchOptions(request.options)
+    local runner = Internal.CreateBatchRunner(mode, batchItems, request.onComplete, resolvedOptions)
     runner:Start()
 end
 

@@ -111,6 +111,12 @@ BETTERUI = {
         GetTransferDestinationBankBag = function()
             return BETTERUI.Banking.GetActiveTransferContext().targetBag
         end,
+        GetTransferTargetBag = function()
+            return BETTERUI.Banking.GetTransferDestinationBankBag()
+        end,
+        GetTransferSourceBag = function()
+            return BETTERUI.Banking.GetTransferSourceBankBag()
+        end,
         GetTransferWithdrawSourceBags = function()
             return BETTERUI.Banking.GetActiveTransferContext().withdrawSourceBags
         end,

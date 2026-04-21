@@ -6,6 +6,8 @@ Purpose: Provides safe module settings access with automatic nil-checking.
 
 if not BETTERUI then BETTERUI = {} end
 
+---@alias BetterUISettingsObserver fun()
+
 ---@overload fun(moduleName: "Inventory", defaults: BetterUIInventorySettings|nil): BetterUIInventorySettings
 ---@overload fun(moduleName: "Banking", defaults: BetterUIBankingSettings|nil): BetterUIBankingSettings
 ---@overload fun(moduleName: "Vendor", defaults: BetterUIVendorSettings|nil): BetterUIVendorSettings
@@ -16,7 +18,7 @@ if not BETTERUI then BETTERUI = {} end
 ---@overload fun(moduleName: "ResourceOrbFrames", defaults: BetterUIResourceOrbFramesSettings|nil): BetterUIResourceOrbFramesSettings
 ---@overload fun(moduleName: "CIM", defaults: BetterUICIMSettings|nil): BetterUICIMSettings
 ---@overload fun(moduleName: "Writs", defaults: BetterUIWritsSettings|nil): BetterUIWritsSettings
----@param moduleName ModuleName|string Module name key (e.g. "Inventory", "Banking")
+---@param moduleName ModuleName Module name key
 ---@param defaults BetterUIModuleSettings|nil Fallback table if module settings are absent
 ---@return BetterUIModuleSettings settings The module's settings table, or defaults
 function BETTERUI.GetModuleSettings(moduleName, defaults)
@@ -39,7 +41,7 @@ end
 ---@overload fun(moduleName: "ResourceOrbFrames"): BetterUIResourceOrbFramesSettings
 ---@overload fun(moduleName: "CIM"): BetterUICIMSettings
 ---@overload fun(moduleName: "Writs"): BetterUIWritsSettings
----@param moduleName ModuleName|string Module name key
+---@param moduleName ModuleName Module name key
 ---@return BetterUIModuleSettings settings The module settings table (always non-nil)
 function BETTERUI.EnsureModuleSettings(moduleName)
     if not BETTERUI.Settings then
@@ -54,6 +56,10 @@ function BETTERUI.EnsureModuleSettings(moduleName)
     return BETTERUI.Settings.Modules[moduleName]
 end
 
+---@param moduleName ModuleName Module name key
+---@param key BetterUIModuleSettingKey Setting key within the module
+---@param fallback BetterUIModuleSettingValue|nil Fallback value if no default is available
+---@return BetterUIModuleSettingValue|nil resolvedValue
 local function ResolveSettingDefault(moduleName, key, fallback)
     local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
     if settingsApi and settingsApi.GetSettingDefault then
@@ -84,8 +90,8 @@ end
 ---@overload fun(moduleName: "ResourceOrbFrames", key: BetterUIResourceOrbFramesSettingKey, default: BetterUIResourceOrbFramesSettingValue|nil): BetterUIResourceOrbFramesSettingValue|nil
 ---@overload fun(moduleName: "CIM", key: BetterUICIMSettingKey, default: BetterUICIMSettingValue|nil): BetterUICIMSettingValue|nil
 ---@overload fun(moduleName: "Writs", key: BetterUIWritsSettingKey, default: BetterUIWritsSettingValue|nil): BetterUIWritsSettingValue|nil
----@param moduleName ModuleName|string Module name key
----@param key BetterUIModuleSettingKey|string Setting key within the module
+---@param moduleName ModuleName Module name key
+---@param key BetterUIModuleSettingKey Setting key within the module
 ---@param default BetterUIModuleSettingValue|nil Fallback value if the setting is nil
 ---@return BetterUIModuleSettingValue|nil value The setting value, or default
 function BETTERUI.GetSetting(moduleName, key, default)
@@ -106,8 +112,8 @@ end
 ---@overload fun(moduleName: "ResourceOrbFrames", key: BetterUIResourceOrbFramesSettingKey, value: BetterUIResourceOrbFramesSettingValue): boolean
 ---@overload fun(moduleName: "CIM", key: BetterUICIMSettingKey, value: BetterUICIMSettingValue): boolean
 ---@overload fun(moduleName: "Writs", key: BetterUIWritsSettingKey, value: BetterUIWritsSettingValue): boolean
----@param moduleName ModuleName|string Module name key
----@param key BetterUIModuleSettingKey|string Setting key to write (must not be nil)
+---@param moduleName ModuleName Module name key
+---@param key BetterUIModuleSettingKey Setting key to write
 ---@param value BetterUIModuleSettingValue Value to store
 ---@return boolean success True when the value was written
 function BETTERUI.SetSetting(moduleName, key, value)
@@ -132,12 +138,25 @@ end
 ---     local Accessor = BETTERUI.CreateSettingAccessors("MyModule")
 ---     getFunc, setFunc = Accessor("mySettingKey", defaultValue)
 ---
+---@overload fun(moduleName: "Inventory", callback: BetterUISettingsObserver|nil): fun(key: BetterUIInventorySettingKey, default: BetterUIInventorySettingValue|nil): (fun():BetterUIInventorySettingValue|nil), (fun(value: BetterUIInventorySettingValue): boolean)
+---@overload fun(moduleName: "Banking", callback: BetterUISettingsObserver|nil): fun(key: BetterUIBankingSettingKey, default: BetterUIBankingSettingValue|nil): (fun():BetterUIBankingSettingValue|nil), (fun(value: BetterUIBankingSettingValue): boolean)
+---@overload fun(moduleName: "Vendor", callback: BetterUISettingsObserver|nil): fun(key: BetterUIVendorSettingKey, default: BetterUIVendorSettingValue|nil): (fun():BetterUIVendorSettingValue|nil), (fun(value: BetterUIVendorSettingValue): boolean)
+---@overload fun(moduleName: "TradingHouse", callback: BetterUISettingsObserver|nil): fun(key: BetterUITradingHouseSettingKey, default: BetterUITradingHouseSettingValue|nil): (fun():BetterUITradingHouseSettingValue|nil), (fun(value: BetterUITradingHouseSettingValue): boolean)
+---@overload fun(moduleName: "Companions", callback: BetterUISettingsObserver|nil): fun(key: BetterUICompanionsSettingKey, default: BetterUICompanionsSettingValue|nil): (fun():BetterUICompanionsSettingValue|nil), (fun(value: BetterUICompanionsSettingValue): boolean)
+---@overload fun(moduleName: "GeneralInterface", callback: BetterUISettingsObserver|nil): fun(key: BetterUIGeneralInterfaceSettingKey, default: BetterUIGeneralInterfaceSettingValue|nil): (fun():BetterUIGeneralInterfaceSettingValue|nil), (fun(value: BetterUIGeneralInterfaceSettingValue): boolean)
+---@overload fun(moduleName: "Nameplates", callback: BetterUISettingsObserver|nil): fun(key: BetterUINameplatesSettingKey, default: BetterUINameplatesSettingValue|nil): (fun():BetterUINameplatesSettingValue|nil), (fun(value: BetterUINameplatesSettingValue): boolean)
+---@overload fun(moduleName: "ResourceOrbFrames", callback: BetterUISettingsObserver|nil): fun(key: BetterUIResourceOrbFramesSettingKey, default: BetterUIResourceOrbFramesSettingValue|nil): (fun():BetterUIResourceOrbFramesSettingValue|nil), (fun(value: BetterUIResourceOrbFramesSettingValue): boolean)
+---@overload fun(moduleName: "CIM", callback: BetterUISettingsObserver|nil): fun(key: BetterUICIMSettingKey, default: BetterUICIMSettingValue|nil): (fun():BetterUICIMSettingValue|nil), (fun(value: BetterUICIMSettingValue): boolean)
+---@overload fun(moduleName: "Writs", callback: BetterUISettingsObserver|nil): fun(key: BetterUIWritsSettingKey, default: BetterUIWritsSettingValue|nil): (fun():BetterUIWritsSettingValue|nil), (fun(value: BetterUIWritsSettingValue): boolean)
+---@param moduleName ModuleName Module name key
+---@param callback BetterUISettingsObserver|nil Optional callback invoked after successful writes
 function BETTERUI.CreateSettingAccessors(moduleName, callback)
     return function(key, default)
+        ---@type fun():BetterUIModuleSettingValue|nil
         local getFunc = function()
             return BETTERUI.GetSetting(moduleName, key, default)
         end
-
+        ---@type fun(value: BetterUIModuleSettingValue): boolean
         local setFunc = function(value)
             local success = BETTERUI.SetSetting(moduleName, key, value)
             if success and callback then callback() end
@@ -151,6 +170,19 @@ end
 --- Creates a factory for generating get/set functions for COLOR LAM controls.
 --- Automatically unpacks table {r,g,b,a} for getFunc and packs for setFunc.
 ---
+---@overload fun(moduleName: "Inventory", callback: BetterUISettingsObserver|nil): fun(key: BetterUIInventorySettingKey, default: BetterUIInventorySettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@overload fun(moduleName: "Banking", callback: BetterUISettingsObserver|nil): fun(key: BetterUIBankingSettingKey, default: BetterUIBankingSettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@overload fun(moduleName: "Vendor", callback: BetterUISettingsObserver|nil): fun(key: BetterUIVendorSettingKey, default: BetterUIVendorSettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@overload fun(moduleName: "TradingHouse", callback: BetterUISettingsObserver|nil): fun(key: BetterUITradingHouseSettingKey, default: BetterUITradingHouseSettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@overload fun(moduleName: "Companions", callback: BetterUISettingsObserver|nil): fun(key: BetterUICompanionsSettingKey, default: BetterUICompanionsSettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@overload fun(moduleName: "GeneralInterface", callback: BetterUISettingsObserver|nil): fun(key: BetterUIGeneralInterfaceSettingKey, default: BetterUIGeneralInterfaceSettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@overload fun(moduleName: "Nameplates", callback: BetterUISettingsObserver|nil): fun(key: BetterUINameplatesSettingKey, default: BetterUINameplatesSettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@overload fun(moduleName: "ResourceOrbFrames", callback: BetterUISettingsObserver|nil): fun(key: BetterUIResourceOrbFramesSettingKey, default: BetterUIResourceOrbFramesSettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@overload fun(moduleName: "CIM", callback: BetterUISettingsObserver|nil): fun(key: BetterUICIMSettingKey, default: BetterUICIMSettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@overload fun(moduleName: "Writs", callback: BetterUISettingsObserver|nil): fun(key: BetterUIWritsSettingKey, default: BetterUIWritsSettingValue|nil): (fun():number, number, number, number), (fun(number, number, number, number|nil): boolean)
+---@param moduleName ModuleName
+---@param callback BetterUISettingsObserver|nil
+---@return fun(key: BetterUIModuleSettingKey, default: BetterUIModuleSettingValue|nil): (fun():number, number, number, number), (fun(r: number, g: number, b: number, a: number|nil): boolean)
 function BETTERUI.CreateColorSettingAccessors(moduleName, callback)
     local baseFactory = BETTERUI.CreateSettingAccessors(moduleName, callback)
 
@@ -166,7 +198,7 @@ function BETTERUI.CreateColorSettingAccessors(moduleName, callback)
         end
 
         local setFunc = function(r, g, b, a)
-            baseSet({r, g, b, a})
+            return baseSet({r, g, b, a})
         end
 
         return getFunc, setFunc
@@ -175,6 +207,11 @@ end
 
 --- Clamps a value to an integer within [minValue, maxValue], falling back if non-numeric.
 --- Shared utility to eliminate duplication across CIM, Nameplates, and ResourceOrbFrames settings.
+---@param value unknown
+---@param minValue integer
+---@param maxValue integer
+---@param fallback integer
+---@return integer
 function BETTERUI.ClampInteger(value, minValue, maxValue, fallback)
     local numeric = tonumber(value)
     if not numeric then
@@ -192,6 +229,11 @@ function BETTERUI.ClampInteger(value, minValue, maxValue, fallback)
 end
 
 --- Clamps a numeric value within [minValue, maxValue] without rounding, falling back if non-numeric.
+---@param value unknown
+---@param minValue number
+---@param maxValue number
+---@param fallback number
+---@return number
 function BETTERUI.ClampNumber(value, minValue, maxValue, fallback)
     local numeric = tonumber(value)
     if not numeric then
@@ -207,6 +249,9 @@ function BETTERUI.ClampNumber(value, minValue, maxValue, fallback)
 end
 
 --- Deep-copies an RGBA color table {r, g, b, a}, falling back if value is not a table.
+---@param value table|nil
+---@param fallback table|nil
+---@return number[]
 function BETTERUI.CloneColor(value, fallback)
     local source = value
     if type(source) ~= "table" then
@@ -247,6 +292,9 @@ local function ApplyModuleSharedSettingsStatics(ns)
     ns.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
 end
 
+---@param moduleOrNamespace table|string
+---@param moduleName ModuleName
+---@return boolean
 function BETTERUI.CIM.ApplyModuleSharedSettingsStatics(moduleOrNamespace, moduleName)
     local ns, resolvedModuleName = ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
     if not ns or type(resolvedModuleName) ~= "string" or resolvedModuleName == "" then
@@ -260,6 +308,9 @@ function BETTERUI.CIM.ApplyModuleSharedSettingsStatics(moduleOrNamespace, module
     return true
 end
 
+---@param moduleOrNamespace table|string Module namespace or module name
+---@param moduleName ModuleName
+---@return boolean
 function BETTERUI.CIM.RegisterModuleAccessors(moduleOrNamespace, moduleName)
     local ns, resolvedModuleName = ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
     if not ns or type(resolvedModuleName) ~= "string" or resolvedModuleName == "" then
@@ -291,6 +342,11 @@ function BETTERUI.CIM.RegisterModuleAccessors(moduleOrNamespace, moduleName)
     return true
 end
 
+---@param moduleOrNamespace table|string
+---@param moduleName ModuleName
+---@param panelId string|nil
+---@param panelLabel string|nil
+---@return boolean
 function BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, panelId, panelLabel)
     local ns, resolvedModuleName = ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
     if not ns or type(resolvedModuleName) ~= "string" or resolvedModuleName == "" then

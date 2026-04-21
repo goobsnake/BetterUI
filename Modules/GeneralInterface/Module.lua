@@ -2,18 +2,21 @@ if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local GeneralInterface = BETTERUI.GeneralInterface
+local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
+local THIN_ENTRYPOINT = ARCHETYPES.THIN_ENTRYPOINT or "thin-entrypoint"
 
 local function GetNameplatesNamespace()
+    local resolveNameplatesNamespace = BETTERUI.ResolveNameplatesNamespace
+    if type(resolveNameplatesNamespace) == "function" then
+        return resolveNameplatesNamespace()
+    end
+
     local nameplates = GeneralInterface.Nameplates
     if type(nameplates) ~= "table" then
-        if type(BETTERUI.Nameplates) == "table" then
-            nameplates = BETTERUI.Nameplates
-        else
-            nameplates = {}
-        end
+        nameplates = {}
         GeneralInterface.Nameplates = nameplates
     end
-    BETTERUI.Nameplates = nameplates -- compatibility alias
+    BETTERUI.Nameplates = BETTERUI.Nameplates or nameplates -- compatibility alias
     return nameplates
 end
 
@@ -21,7 +24,8 @@ GeneralInterface.GetNameplatesNamespace = GetNameplatesNamespace
 GetNameplatesNamespace()
 
 local MODULE_NAME = "GeneralInterface"
-GeneralInterface.ARCHETYPE = "thin-entrypoint"
+---@type BetterUIModuleArchetypeThinEntrypoint
+GeneralInterface.ARCHETYPE = THIN_ENTRYPOINT
 ---@type BetterUIModuleRootContract
 GeneralInterface.ROOT_CONTRACT = {
     name = MODULE_NAME,

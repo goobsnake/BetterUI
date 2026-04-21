@@ -20,10 +20,78 @@ BETTERUI.Banking.LIST_WITHDRAW                 = 1
 BETTERUI.Banking.LIST_DEPOSIT                  = 2
 
 -- Module-scope state tracking (accessed via BETTERUI.Banking namespace)
-BETTERUI.Banking.lastUsedBank                  = BAG_BANK
-BETTERUI.Banking.currentUsedBank               = BAG_BANK
-BETTERUI.Banking.lastOpenedBankBag             = BAG_BANK
-BETTERUI.Banking.esoSubscriber                 = nil
+local BankingRuntimeState = BETTERUI.Banking.RuntimeState or {
+    lastUsedBank = BAG_BANK,
+    currentUsedBank = BAG_BANK,
+    lastOpenedBankBag = BAG_BANK,
+    esoSubscriber = nil,
+}
+BETTERUI.Banking.RuntimeState = BankingRuntimeState
+BETTERUI.Banking.lastUsedBank = BankingRuntimeState.lastUsedBank
+BETTERUI.Banking.currentUsedBank = BankingRuntimeState.currentUsedBank
+BETTERUI.Banking.lastOpenedBankBag = BankingRuntimeState.lastOpenedBankBag
+BETTERUI.Banking.esoSubscriber = BankingRuntimeState.esoSubscriber
+
+local function ReadBankingRuntimeStateField(fieldName)
+    local directValue = rawget(BETTERUI.Banking, fieldName)
+    if directValue ~= nil then
+        return directValue
+    end
+    return BankingRuntimeState[fieldName]
+end
+
+local function UpdateBankingRuntimeStateField(fieldName, fieldValue)
+    BankingRuntimeState[fieldName] = fieldValue
+    BETTERUI.Banking[fieldName] = fieldValue
+end
+
+--- Sets the active transfer source bag in the shared runtime state.
+---@param bankBag number
+function BETTERUI.Banking.SetCurrentUsedBank(bankBag)
+    UpdateBankingRuntimeStateField("currentUsedBank", bankBag)
+end
+
+--- Returns the active transfer source bag from runtime state.
+---@return number bankBag
+function BETTERUI.Banking.GetCurrentUsedBank()
+    return ReadBankingRuntimeStateField("currentUsedBank")
+end
+
+--- Sets the last confirmed transfer source bag in the shared runtime state.
+---@param bankBag number
+function BETTERUI.Banking.SetLastUsedBank(bankBag)
+    UpdateBankingRuntimeStateField("lastUsedBank", bankBag)
+end
+
+--- Returns the last confirmed transfer source bag from runtime state.
+---@return number bankBag
+function BETTERUI.Banking.GetLastUsedBank()
+    return ReadBankingRuntimeStateField("lastUsedBank")
+end
+
+--- Sets the last opened bank bag in the shared runtime state.
+---@param bankBag number
+function BETTERUI.Banking.SetLastOpenedBankBag(bankBag)
+    UpdateBankingRuntimeStateField("lastOpenedBankBag", bankBag)
+end
+
+--- Returns the last opened bank bag from runtime state.
+---@return number bankBag
+function BETTERUI.Banking.GetLastOpenedBankBag()
+    return ReadBankingRuntimeStateField("lastOpenedBankBag")
+end
+
+--- Returns whether the player has ESO+ subscription state cached for banking operations.
+---@return boolean|nil
+function BETTERUI.Banking.GetEsoSubscriber()
+    return ReadBankingRuntimeStateField("esoSubscriber")
+end
+
+--- Records whether the player is ESO+ subscriber in banking runtime state.
+---@param isSubscriber boolean|nil
+function BETTERUI.Banking.SetEsoSubscriber(isSubscriber)
+    UpdateBankingRuntimeStateField("esoSubscriber", isSubscriber)
+end
 
 local function IsHousingStorageBag(bankBagId)
     if not bankBagId then
@@ -80,12 +148,12 @@ end
 
 --- Returns the active banking transfer context so callers do not reinterpret bag helpers.
 ---@return BetterUIBankingTransferContext context
-function BETTERUI.Banking.GetActiveTransferContext()
+local function ResolveTransferContext()
     local sourceBag
     if GetBankingBag then
         local bankingBag = ResolveBankBag(GetBankingBag())
         if bankingBag == BAG_BANK then
-            local openedBankBag = BETTERUI.Banking.lastOpenedBankBag
+            local openedBankBag = BETTERUI.Banking.GetLastOpenedBankBag()
             if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
                 sourceBag = openedBankBag
             else
@@ -97,14 +165,14 @@ function BETTERUI.Banking.GetActiveTransferContext()
             sourceBag = bankingBag
         end
     else
-        sourceBag = ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+        sourceBag = ResolveBankBag(BETTERUI.Banking.GetCurrentUsedBank())
     end
 
     local targetBag
     if sourceBag == BAG_GUILDBANK or IsHousingStorageBag(sourceBag) then
         targetBag = sourceBag
     else
-        targetBag = ResolveBankBag(BETTERUI.Banking.currentUsedBank)
+        targetBag = ResolveBankBag(BETTERUI.Banking.GetCurrentUsedBank())
     end
 
     local isGuildBankSceneShowing = IsGuildBankSceneShowing()
@@ -140,24 +208,30 @@ function BETTERUI.Banking.GetActiveTransferContext()
     }
 end
 
+--- Returns the active transfer context object.
+---@return BetterUIBankingTransferContext
+function BETTERUI.Banking.GetActiveTransferContext()
+    return ResolveTransferContext()
+end
+
 --- Returns the active transfer source bag.
 ---@return number sourceBag
-function BETTERUI.Banking.GetTransferSourceBankBag()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    return transferContext and transferContext.sourceBag or BAG_BANK
+function BETTERUI.Banking.GetTransferSourceBag()
+    local transferContext = ResolveTransferContext()
+    return transferContext and transferContext.sourceBag or ResolveBankBag(BETTERUI.Banking.GetCurrentUsedBank())
 end
 
 --- Returns the active transfer destination bag.
 ---@return number targetBag
-function BETTERUI.Banking.GetTransferDestinationBankBag()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+function BETTERUI.Banking.GetTransferTargetBag()
+    local transferContext = ResolveTransferContext()
     return transferContext and transferContext.targetBag or BAG_BANK
 end
 
 --- Returns the normalized withdraw source-bag list.
 ---@return number[] withdrawSourceBags
 function BETTERUI.Banking.GetTransferWithdrawSourceBags()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferContext = ResolveTransferContext()
     local withdrawSourceBags = transferContext and transferContext.withdrawSourceBags or nil
     if type(withdrawSourceBags) == "table" and #withdrawSourceBags > 0 then
         return withdrawSourceBags
@@ -168,36 +242,89 @@ end
 --- Returns whether guild-bank transfer mode is active.
 ---@return boolean isGuildBank
 function BETTERUI.Banking.IsGuildBankTransferMode()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferContext = ResolveTransferContext()
     return transferContext and transferContext.isGuildBank == true or false
 end
 
 --- Returns whether the transfer source resolves to the main bank.
 ---@return boolean isMainBank
 function BETTERUI.Banking.IsMainBankTransferSource()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferContext = ResolveTransferContext()
     return transferContext and transferContext.isSourceMainBank == true or false
 end
 
 --- Returns whether the transfer destination resolves to the main bank.
 ---@return boolean isMainBank
 function BETTERUI.Banking.IsMainBankTransferTarget()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferContext = ResolveTransferContext()
     return transferContext and transferContext.isTargetMainBank == true or false
 end
 
 --- Returns whether the transfer source resolves to a house bank bag.
 ---@return boolean isHouseBank
 function BETTERUI.Banking.IsHouseBankTransferSource()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferContext = ResolveTransferContext()
     return transferContext and transferContext.isSourceHouseBank == true or false
+end
+
+--- Returns whether the transfer target resolves to a house bank bag.
+---@return boolean isHouseBank
+function BETTERUI.Banking.IsHouseBankTransferTarget()
+    local transferContext = ResolveTransferContext()
+    return transferContext and transferContext.isTargetHouseBank == true or false
+end
+
+--- Returns whether the transfer source resolves to a furniture vault.
+---@return boolean isFurnitureVault
+function BETTERUI.Banking.IsTransferSourceFurnitureVault()
+    local transferContext = ResolveTransferContext()
+    return transferContext and transferContext.isSourceFurnitureVault == true or false
+end
+
+--- Returns whether the transfer target resolves to a furniture vault.
+---@return boolean isFurnitureVault
+function BETTERUI.Banking.IsTransferTargetFurnitureVault()
+    local transferContext = ResolveTransferContext()
+    return transferContext and transferContext.isTargetFurnitureVault == true or false
+end
+
+--- Returns whether the transfer source resolves to guild-bank storage.
+---@return boolean isGuildBank
+function BETTERUI.Banking.IsTransferSourceGuildBank()
+    local transferContext = ResolveTransferContext()
+    return transferContext and transferContext.isSourceGuildBank == true or false
+end
+
+--- Returns whether the transfer target resolves to guild-bank storage.
+---@return boolean isGuildBank
+function BETTERUI.Banking.IsTransferTargetGuildBank()
+    local transferContext = ResolveTransferContext()
+    return transferContext and transferContext.isTargetGuildBank == true or false
+end
+
+--- Returns whether the transfer source resolves to the main bank.
+---@return boolean isMainBank
+function BETTERUI.Banking.IsTransferSourceMainBank()
+    local transferContext = ResolveTransferContext()
+    return transferContext and transferContext.isSourceMainBank == true or false
 end
 
 --- Returns whether the transfer source resolves to furniture vault storage.
 ---@return boolean isFurnitureVault
 function BETTERUI.Banking.IsFurnitureVaultTransferSource()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    return transferContext and transferContext.isSourceFurnitureVault == true or false
+    return BETTERUI.Banking.IsTransferSourceFurnitureVault()
+end
+
+--- DEPRECATED: explicit transfer source bag helper.
+---@return number sourceBag
+function BETTERUI.Banking.GetTransferSourceBankBag()
+    return BETTERUI.Banking.GetTransferSourceBag()
+end
+
+--- DEPRECATED: explicit transfer destination bag helper.
+---@return number targetBag
+function BETTERUI.Banking.GetTransferDestinationBankBag()
+    return BETTERUI.Banking.GetTransferTargetBag()
 end
 
 --- Resolves the shared transfer support table from the canonical Banking seam.
@@ -218,6 +345,15 @@ function BETTERUI.Banking.ResolveTransferSupport()
         return nil
     end
 
+    return transferSupport
+end
+
+---@param source string
+---@return table transferSupport
+function BETTERUI.Banking.RequireTransferSupport(source)
+    local transferSupport = BETTERUI.Banking.ResolveTransferSupport()
+    assert(type(transferSupport) == "table",
+        "BetterUI: Banking transfer support must load before " .. tostring(source))
     return transferSupport
 end
 

@@ -12,8 +12,8 @@ KEY SAFETY GUARDS:
 local Vendor = BETTERUI.Vendor
 
 -- COMPONENT TABLE
-local FenceSell = {}
-Vendor.FenceSellComponent = FenceSell
+Vendor.FenceSellComponent = Vendor.FenceSellComponent or {}
+local FenceSell = Vendor.FenceSellComponent
 
 -- ACTIVATE / DEACTIVATE
 

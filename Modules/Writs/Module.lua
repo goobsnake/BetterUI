@@ -1,8 +1,11 @@
 ---@type BetterUIModuleRoot
 BETTERUI.Writs = BETTERUI.Writs or {}
 local Writs = BETTERUI.Writs
+local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
+local THIN_ENTRYPOINT = ARCHETYPES.THIN_ENTRYPOINT or "thin-entrypoint"
 
-Writs.ARCHETYPE = "thin-entrypoint"
+---@type BetterUIModuleArchetypeThinEntrypoint
+Writs.ARCHETYPE = THIN_ENTRYPOINT
 ---@type BetterUIModuleRootContract
 Writs.ROOT_CONTRACT = {
     name = "Writs",

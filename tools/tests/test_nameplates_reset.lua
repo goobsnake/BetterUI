@@ -9,8 +9,8 @@ Usage:
 -- Keep direct coverage wiring near the top so desloppify links this regression
 -- test to the production files even though the real dofile calls happen later.
 if false then
-    dofile("Modules/GeneralInterface/Nameplates/Nameplates.lua")
-    dofile("Modules/GeneralInterface/Nameplates/Settings.lua")
+    dofile("Modules/Nameplates/Nameplates.lua")
+    dofile("Modules/Nameplates/Settings.lua")
 end
 
 FONT_STYLE_NORMAL = 0
@@ -138,13 +138,13 @@ end
 
 print("\n=== Nameplates Reset Tests ===\n")
 
-dofile("Modules/GeneralInterface/Nameplates/Nameplates.lua")
+dofile("Modules/Nameplates/Nameplates.lua")
 
 BETTERUI.Nameplates.ApplyCurrentSettings = function()
     applyCurrentSettingsCalls = applyCurrentSettingsCalls + 1
 end
 
-dofile("Modules/GeneralInterface/Nameplates/Settings.lua")
+dofile("Modules/Nameplates/Settings.lua")
 
 print("Test: Disabling nameplates restores original runtime fonts")
 BETTERUI.Nameplates.Setup()

@@ -460,12 +460,15 @@ return: table, table - Left and Right trigger keybind descriptors.
 ---@return BetterUIKeybindDescriptor leftTrigger
 ---@return BetterUIKeybindDescriptor rightTrigger
 function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
-    -- Pass Banking-specific speed getter and enabled getter so the saved settings are used
-    return BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list, nil, function()
-        return BETTERUI.Banking.GetSetting("triggerSpeed")
-    end, function()
-        return BETTERUI.Banking.GetSetting("useTriggersForSkip")
-    end)
+    return BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds({
+        list = list,
+        getSpeed = function()
+            return BETTERUI.Banking.GetSetting("triggerSpeed")
+        end,
+        isEnabled = function()
+            return BETTERUI.Banking.GetSetting("useTriggersForSkip")
+        end,
+    })
 end
 
 --- Updates the active item actions based on current selection.

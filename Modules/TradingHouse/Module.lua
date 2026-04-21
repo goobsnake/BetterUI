@@ -10,8 +10,11 @@ font descriptor factories for the name and column rendering.
 ---@type BetterUIModuleRoot
 BETTERUI.TradingHouse = BETTERUI.TradingHouse or {}
 local TradingHouse = BETTERUI.TradingHouse
+local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
+local RUNTIME_COORDINATOR = ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"
 
-TradingHouse.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleArchetypeRuntimeCoordinator
+TradingHouse.ARCHETYPE = RUNTIME_COORDINATOR
 ---@type BetterUIModuleRootContract
 TradingHouse.ROOT_CONTRACT = {
     name = "TradingHouse",
@@ -20,7 +23,7 @@ TradingHouse.ROOT_CONTRACT = {
     setup = true,
 }
 
--- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
+-- Wire shared settings statics before runtime accessors register in Setup().
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(TradingHouse, "TradingHouse")
 
 ---@param m_options BetterUIModuleOptions|nil Module options table
@@ -44,6 +47,11 @@ function BETTERUI.TradingHouse.InitModule(m_options)
     return m_options
 end
 
+local function EnsureTradingHouseSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")
+    BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")
+end
+
 ---@param totalPrice number Total cost of the stack
 ---@param quantity number Stack size
 ---@return string formatted Human-readable unit price string
@@ -55,7 +63,6 @@ end
 
 ---@type BetterUIModuleSetupHook
 function BETTERUI.TradingHouse.Setup()
-    BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")
-    BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")
+    EnsureTradingHouseSetupContracts()
     BETTERUI.TradingHouse.Init()
 end

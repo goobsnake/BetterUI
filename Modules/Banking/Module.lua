@@ -11,17 +11,21 @@ descriptor factories for the name and column rendering.
 ---@type BetterUIModuleRoot
 BETTERUI.Banking = BETTERUI.Banking or {}
 local Banking = BETTERUI.Banking
+local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
+local RUNTIME_COORDINATOR = ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"
+local MODULE_NAME = "Banking"
 
-Banking.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleArchetypeRuntimeCoordinator
+Banking.ARCHETYPE = RUNTIME_COORDINATOR
 ---@type BetterUIModuleRootContract
 Banking.ROOT_CONTRACT = {
-	name = "Banking",
+	name = MODULE_NAME,
 	archetype = Banking.ARCHETYPE,
 	init = true,
 	setup = true,
 }
 
--- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
+-- Wire shared settings statics before runtime accessors register in Setup().
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Banking, "Banking")
 
 ---@param m_options BetterUIModuleOptions|nil Module options table
@@ -34,13 +38,13 @@ function Banking.InitModule(m_options)
 	local moduleDefaults = BETTERUI.Defaults and BETTERUI.Defaults.GetModuleDefaults
 		and BETTERUI.Defaults.GetModuleDefaults("Banking") or nil
 
-	m_options = BETTERUI.CIM.InitModuleDefaults("Banking", m_options, defaults, moduleDefaults)
+	m_options = BETTERUI.CIM.InitModuleDefaults(MODULE_NAME, m_options, defaults, moduleDefaults)
 
 	return m_options
 end
 
 ---@type BetterUIModuleSetupHook
-function Banking.Setup()
+local function EnsureBankingSetupContracts()
 	BETTERUI.CIM.RegisterModuleAccessors(Banking, "Banking")
 	if Banking._narrationLabelsRegistered ~= true
 		and BETTERUI.CIM
@@ -54,5 +58,10 @@ function Banking.Setup()
 		Banking._narrationLabelsRegistered = true
 	end
 	BETTERUI.CIM.TryRegisterModulePanel(Banking, "Banking", "Bank", "Banking")
+end
+
+---@type BetterUIModuleSetupHook
+function Banking.Setup()
+	EnsureBankingSetupContracts()
 	Banking.Init()
 end

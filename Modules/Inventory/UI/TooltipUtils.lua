@@ -254,18 +254,3 @@ function BETTERUI.Inventory.ShowComparisonOnTooltip(container, result)
         end
     end
 end
-
-if BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport then
-    BETTERUI.CIM.SharedItemSupport.RegisterTooltipSupport({
-        applyTooltipStyles = BETTERUI.Inventory.ApplyTooltipStyles,
-        cleanupEnhancedTooltip = BETTERUI.Inventory.CleanupEnhancedTooltip,
-        isItemComparisonEnabled = BETTERUI.Inventory.IsItemComparisonEnabled,
-        compareItem = function(...)
-            if BETTERUI.Inventory.StatComparison and BETTERUI.Inventory.StatComparison.Compare then
-                return BETTERUI.Inventory.StatComparison.Compare(...)
-            end
-            return nil
-        end,
-        showComparisonOnTooltip = BETTERUI.Inventory.ShowComparisonOnTooltip,
-    })
-end

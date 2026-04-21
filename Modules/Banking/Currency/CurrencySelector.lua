@@ -14,8 +14,8 @@ local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
     local BANK_CAPACITY_ICON_SIZE = "90%"
 
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext and BETTERUI.Banking.GetActiveTransferContext() or nil
-    local interactionBankBag = transferContext and transferContext.sourceBag or nil
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local interactionBankBag = transferContext.sourceBag
     if interactionBankBag ~= BAG_BANK then
         return nil
     end
@@ -179,9 +179,9 @@ function BETTERUI.Banking.Class:TransferSelectedCurrency(currencyType, amount)
     end
 end
 
+---@param self BetterUIBankingClass
 ---@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
----@return nil
-function BETTERUI.Banking.Class:DisplaySelector(currencyType)
+function CurrencySelector.DisplaySelector(self, currencyType)
     local currency_max
     local GuildBank = BETTERUI.Banking.GuildBank
     local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
@@ -221,8 +221,8 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     end
 end
 
----@return nil
-function BETTERUI.Banking.Class:HideSelector()
+---@param self BetterUIBankingClass
+function CurrencySelector.HideSelector(self)
     self.selector.control:GetParent():SetHidden(true)
     self.selector:Deactivate()
     self.list:Activate()

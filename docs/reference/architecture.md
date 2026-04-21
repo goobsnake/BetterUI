@@ -1,7 +1,7 @@
 # BetterUI Architecture Overview
 
 > **Audience**: Developers working on the BetterUI codebase.
-> **Last Updated**: 2026-04-17
+> **Last Updated**: 2026-04-21
 
 ---
 
@@ -52,7 +52,7 @@
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Interface Enhancements [Modules/GeneralInterface/]                      │
 │  ├── Tooltips/   (BETTERUI.GeneralInterface.Tooltips runtime/settings)  │
-│  ├── Nameplates/ (BETTERUI.Nameplates runtime/settings)                 │
+│  ├── Nameplates/ (BETTERUI.GeneralInterface.Nameplates runtime/settings)  │
 │  └── Setup.lua   (Aggregates settings + runtime hooks)                  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Feature Modules                                                         │
@@ -77,11 +77,11 @@ Modules now document root ownership explicitly. Runtime-facing roots that opt in
 | `ARCHETYPE` | Declares the module's root role (`runtime-coordinator`, `settings-owner`, `thin-entrypoint`) |
 | `ROOT_CONTRACT` | Records who owns init, setup, runtime, and settings responsibilities |
 
-Current examples in the repo:
+Current module examples in the repo:
 
-- **`runtime-coordinator`** — `CIM`, `Inventory`, `Banking`
+- **`runtime-coordinator`** — `CIM`, `Inventory`, `Banking`, `Vendor`, `TradingHouse`, `Companions`
 - **`settings-owner`** — `ResourceOrbFrames`
-- **`thin-entrypoint`** — `GeneralInterface`
+- **`thin-entrypoint`** — `GeneralInterface`, `Writs`
 
 The root remains intentionally small, but a module may keep one public runtime façade at the root when that file is the canonical owner of gameplay flow.
 
@@ -141,7 +141,7 @@ GeneralInterface/
 │   ├── Tooltips.lua       # Tooltip rendering, market price, research display
 │   ├── Settings.lua       # Tooltip settings definitions
 │   └── SettingsHelpers.lua# Tooltip settings helpers
-└── Nameplates/            # BETTERUI.Nameplates runtime/settings
+└── Nameplates/            # BETTERUI.GeneralInterface.Nameplates runtime/settings
 ```
 
 **Banking Module** (`Modules/Banking/`):
@@ -231,8 +231,8 @@ BETTERUI = {
     Writs = {},
     GeneralInterface = {
         Tooltips = {},
+        Nameplates = {},
     },
-    Nameplates = {},
     ResourceOrbFrames = {
         SkillBar = {},
     },
@@ -243,7 +243,7 @@ BETTERUI = {
 }
 ```
 
-> **Note**: `Nameplates` remains a sibling namespace even though its files live under `Modules/GeneralInterface/Nameplates/`.
+> **Note**: `Nameplates` runtime/settings are owned as `BETTERUI.GeneralInterface.Nameplates`. `BETTERUI.Nameplates` remains a compatibility alias exposed through the GeneralInterface namespace seam.
 
 ---
 

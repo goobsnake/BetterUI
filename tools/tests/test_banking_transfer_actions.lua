@@ -7,6 +7,7 @@ Usage:
 ]]
 
 if false then
+    dofile("Modules/Banking/Currency/CurrencySelector.lua")
     dofile("Modules/Banking/Actions/TransferActions.lua")
 end
 
@@ -230,8 +231,14 @@ BETTERUI = {
         GetTransferDestinationBankBag = function()
             return currentBank
         end,
+        GetTransferTargetBag = function()
+            return BETTERUI.Banking.GetTransferDestinationBankBag()
+        end,
         GetTransferSourceBankBag = function()
             return (currentBankingBag == nil or currentBankingBag == 0) and BAG_BANK or currentBankingBag
+        end,
+        GetTransferSourceBag = function()
+            return BETTERUI.Banking.GetTransferSourceBankBag()
         end,
         GetActiveTransferContext = function()
             local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
@@ -289,6 +296,9 @@ BETTERUI = {
         GetTransferSupport = function()
             return BETTERUI.Banking.transferSupport
         end,
+        RequireTransferSupport = function()
+            return BETTERUI.Banking.transferSupport
+        end,
         ResolveTransferSupport = function()
             return BETTERUI.Banking.transferSupport
         end,
@@ -331,9 +341,6 @@ BETTERUI = {
             FindStackableSlotInBag = function(bagId)
                 return stackableSlots[bagId]
             end,
-            GetBankingTransferSupport = function()
-                return BETTERUI.Banking.transferSupport
-            end,
         },
         UserNotify = function(_, messageId)
             table.insert(userNotifies, messageId)
@@ -349,6 +356,7 @@ BETTERUI = {
     },
 }
 
+dofile("Modules/Banking/Currency/CurrencySelector.lua")
 dofile("Modules/Banking/Actions/TransferActions.lua")
 
 local function createWindow()

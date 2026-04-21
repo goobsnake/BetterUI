@@ -2,9 +2,12 @@
 ---@type BetterUIModuleRoot
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 local ResourceOrbFrames = BETTERUI.ResourceOrbFrames
+local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
+local SETTINGS_OWNER = ARCHETYPES.SETTINGS_OWNER or "settings-owner"
 ResourceOrbFrames.Settings = ResourceOrbFrames.Settings or {}
 
-ResourceOrbFrames.ARCHETYPE = "settings-owner"
+---@type BetterUIModuleArchetypeSettingsOwner
+ResourceOrbFrames.ARCHETYPE = SETTINGS_OWNER
 ---@type BetterUIModuleRootContract
 ResourceOrbFrames.ROOT_CONTRACT = {
     name = "ResourceOrbFrames",
@@ -253,10 +256,21 @@ end
 
 ResourceOrbFrames.Settings.RegisterPanel = InitSettingsPanel
 
+local function EnsureResourceOrbFramesSetupContracts()
+    BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")
+
+    if type(BETTERUI.CIM.TryRegisterModulePanel) == "function" then
+        BETTERUI.CIM.TryRegisterModulePanel(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames", "Resource Orb Frames")
+        return
+    end
+
+    if type(ResourceOrbFrames.Settings) == "table" and type(ResourceOrbFrames.Settings.RegisterPanel) == "function" then
+        ResourceOrbFrames.Settings.RegisterPanel("ResourceOrbFrames", "Resource Orb Frames")
+    end
+end
+
 --- Sets up the Resource Orb Frames module.
 ---@type BetterUIModuleSetupHook
 function ResourceOrbFrames.Setup()
-    BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")
-    BETTERUI.CIM.TryRegisterModulePanel(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",
-        "Resource Orb Frames")
+    EnsureResourceOrbFramesSetupContracts()
 end

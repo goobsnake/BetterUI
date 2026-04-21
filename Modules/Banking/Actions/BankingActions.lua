@@ -1,24 +1,8 @@
---[[
-File: Modules/Banking/Actions/BankingActions.lua
-Purpose: Thin coordinator for banking action dialog behavior.
-         Transfer execution is handled in TransferActions.lua.
-]]
-
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
---- Transfer Actions
--- Transfer execution responsibilities are intentionally kept in:
---   Modules/Banking/Actions/TransferActions.lua
--- Including: MoveItem, DisplaySelector, HideSelector, ShowActions,
--- and CancelWithdrawDeposit.
-
---- Action Filtering
-
---- Updates the context menu actions for the currently selected item.
 ---@return nil
 function BETTERUI.Banking.Class:RefreshItemActions()
-    -- Skip itemActions updates when in header sort mode to prevent keybind flicker
     if self.isInHeaderSortMode then
         return
     end
@@ -27,8 +11,7 @@ function BETTERUI.Banking.Class:RefreshItemActions()
 end
 
 function BETTERUI.Banking.Class:IsFurnitureVaultContext()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    return transferContext ~= nil and transferContext.isSourceFurnitureVault == true
+    return BETTERUI.Banking.IsFurnitureVaultTransferSource()
 end
 
 function BETTERUI.Banking.Class:RequestJunkCategoryRefresh(delayMs, preferredCategoryKey)
@@ -99,10 +82,8 @@ local function RebuildDiscoveredActions(self, targetData)
 
     EnsureTargetSlotType(self, targetData)
 
-    -- Set the inventory slot on the outer controller
     self.itemActions:SetInventorySlot(targetData)
 
-    -- Directly discover actions on the inner slotActions object
     if self.itemActions.slotActions then
         local innerSlotActions = self.itemActions.slotActions
         innerSlotActions:Clear()
@@ -131,9 +112,6 @@ local function PopulateFilteredActions(self, parametricList)
     })
 end
 
---- Dialog Setup
-
---- Initializes the Y Button Actions Dialog with callbacks.
 ---@return nil
 function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function GetCurrentCategoryKey()
@@ -191,12 +169,10 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             local parametricList = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(parametricList)
 
-            -- Get target data and set on itemActions before discovering actions
             local targetData = self:GetList() and self:GetList().selectedData or nil
             RebuildDiscoveredActions(self, targetData)
             PopulateFilteredActions(self, parametricList)
 
-            -- Add custom "Withdraw Stack" / "Deposit Stack" action for stacked items
             if targetData and targetData.stackCount and targetData.stackCount > 1 then
                 local actionName = (self.currentMode == LIST_WITHDRAW)
                     and GetString(rawget(_G, "SI_BETTERUI_BANK_WITHDRAW_MAX"))
@@ -216,8 +192,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 table.insert(parametricList, 1, moveMaxAction)
             end
 
-            local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-            local isSourceFurnitureVault = transferContext ~= nil and transferContext.isSourceFurnitureVault == true
+            local isSourceFurnitureVault = BETTERUI.Banking.IsFurnitureVaultTransferSource()
             local canShowStowAllFurniture = (self.currentMode == LIST_DEPOSIT)
                 and isSourceFurnitureVault
                 and HOUSING_EDITOR_STATE
@@ -263,7 +238,6 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 end
             end
 
-            -- Add "Sort" entry for header sort mode access
             if self.list and not self.list:IsEmpty() and self.EnterHeaderSortMode then
                 local sortEntry = ZO_GamepadEntryData:New(GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT")))
                 sortEntry:SetIconTintOnSelection(true)
@@ -278,7 +252,6 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 table.insert(parametricList, listItem)
             end
 
-            -- Move "Get Help" to end of list (should always be last action)
             local getHelpName = GetString(rawget(_G, "SI_ITEM_ACTION_REPORT_ITEM"))
             local getHelpIndex = nil
             for i, entry in ipairs(parametricList) do

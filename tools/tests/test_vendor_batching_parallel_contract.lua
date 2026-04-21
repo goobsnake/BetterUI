@@ -69,6 +69,13 @@ function GetString(id)
     return tostring(id)
 end
 
+function zo_strformat(fmt, ...)
+    if select("#", ...) == 0 then
+        return tostring(fmt)
+    end
+    return string.format(tostring(fmt), ...)
+end
+
 function GetSlotStackSize(bagId, slotIndex)
     return slotStacks[string.format("%s:%s", tostring(bagId), tostring(slotIndex))] or 0
 end
@@ -142,7 +149,7 @@ assertEqual(true, defaults.ack.awaitInventoryAck, "Default options keep inventor
 assertEqual(nil, defaults.serverBound, "Default options no longer expose flat legacy keys")
 
 resetState()
-local strictContract = BatchRuntime.ResolveBatchOptions({
+local strictContract = BatchRuntime._internals.ResolveBatchOptions({
     serverBound = false,
     minServerDelayMs = 210,
     maxServerDelayMs = 240,
@@ -156,7 +163,7 @@ assertEqual(18, strictContract.pacing.cooldownEvery, "Public runtime contract ke
 assertEqual(true, strictContract.ack.awaitInventoryAck, "Public runtime contract keeps grouped ACK defaults when flat keys are provided")
 
 resetState()
-local grouped = BatchRuntime.ResolveBatchOptions({
+local grouped = BatchRuntime._internals.ResolveBatchOptions({
     server = { serverBound = true },
     pacing = { minServerDelayMs = 199 },
 })
@@ -211,15 +218,15 @@ assertEqual(1, #buybackCalls, "Valid buyback performs BuybackItem call")
 
 resetState()
 local batchRuntimeCall = {}
-local originalCreateRunner = BatchRuntime.CreateBatchRunner
-local originalResolveOptions = BatchRuntime.ResolveBatchOptions
+local originalCreateRunner = BatchRuntime._internals.CreateBatchRunner
+local originalResolveOptions = BatchRuntime._internals.ResolveBatchOptions
 local originalBuybackItems = {
     { entryIndex = 2, price = 80 },
     { entryIndex = 5, price = 40 },
     { entryIndex = 1, price = 20 },
 }
 
-BatchRuntime.CreateBatchRunner = function(mode, items, onComplete, batchOptions)
+BatchRuntime._internals.CreateBatchRunner = function(mode, items, onComplete, batchOptions)
     batchRuntimeCall.mode = mode
     batchRuntimeCall.items = items
     batchRuntimeCall.batchOptions = batchOptions
@@ -230,7 +237,7 @@ BatchRuntime.CreateBatchRunner = function(mode, items, onComplete, batchOptions)
         end,
     }
 end
-BatchRuntime.ResolveBatchOptions = function(options)
+BatchRuntime._internals.ResolveBatchOptions = function(options)
     batchRuntimeCall.resolvedOptions = options
     return options
 end
@@ -243,8 +250,8 @@ BatchRuntime.ExecuteBatchThrottled({
     end,
     options = { server = { serverBound = false } },
 })
-BatchRuntime.CreateBatchRunner = originalCreateRunner
-BatchRuntime.ResolveBatchOptions = originalResolveOptions
+BatchRuntime._internals.CreateBatchRunner = originalCreateRunner
+BatchRuntime._internals.ResolveBatchOptions = originalResolveOptions
 
 assertEqual(MODE.BUYBACK, batchRuntimeCall.mode, "Vendor batch runtime accepts named request mode")
 assertEqual(3, #batchRuntimeCall.items, "Vendor batch runtime preserves all request items")

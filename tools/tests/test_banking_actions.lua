@@ -194,6 +194,12 @@ BETTERUI = {
         GetTransferSourceBankBag = function()
             return BETTERUI.Banking.ResolveBankBag(bankingBag)
         end,
+        GetTransferTargetBag = function()
+            return BETTERUI.Banking.GetTransferDestinationBankBag()
+        end,
+        GetTransferSourceBag = function()
+            return BETTERUI.Banking.GetTransferSourceBankBag()
+        end,
         GetActiveTransferContext = function()
             local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
             local targetBag = BETTERUI.Banking.GetTransferDestinationBankBag()
@@ -208,6 +214,12 @@ BETTERUI = {
                 isTargetFurnitureVault = targetBag == BAG_FURNITURE_VAULT,
                 isGuildBank = sourceBag == BAG_GUILDBANK,
             }
+        end,
+        IsTransferSourceFurnitureVault = function()
+            return BETTERUI.Banking.GetActiveTransferContext().isSourceFurnitureVault == true
+        end,
+        IsFurnitureVaultTransferSource = function()
+            return BETTERUI.Banking.IsTransferSourceFurnitureVault()
         end,
         Tasks = {
             Schedule = function(_, name, delayMs, callback)

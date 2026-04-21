@@ -272,19 +272,28 @@ BETTERUI = {
         GetTransferSupport = function()
             return transferSupport
         end,
+        ResolveTransferSupport = function()
+            return transferSupport
+        end,
+        IsGuildBankTransferMode = function()
+            return guildBankMode
+        end,
+        IsMainBankTransferSource = function()
+            return BETTERUI.Banking.GetTransferSourceBankBag() == BAG_BANK
+        end,
         Class = {},
     },
     CIM = {
         Keybinds = {
-            CreateListTriggerKeybinds = function(_, _, speedGetter, enabledGetter)
+            CreateListTriggerKeybinds = function(contract)
                 return {
                     keybind = "LEFT_TRIGGER",
-                    speed = speedGetter(),
-                    enabled = enabledGetter(),
+                    speed = contract.getSpeed(),
+                    enabled = contract.isEnabled(),
                 }, {
                     keybind = "RIGHT_TRIGGER",
-                    speed = speedGetter(),
-                    enabled = enabledGetter(),
+                    speed = contract.getSpeed(),
+                    enabled = contract.isEnabled(),
                 }
             end,
             CreateClearSearchKeybind = function(callback, visible, enabled)

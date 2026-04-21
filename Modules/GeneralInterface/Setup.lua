@@ -16,15 +16,12 @@ local function ResolveNameplatesNamespace()
 		return GeneralInterface.GetNameplatesNamespace()
 	end
 
-	local nameplates = GeneralInterface.Nameplates
-	if type(nameplates) ~= "table" and type(BETTERUI.Nameplates) == "table" then
-		nameplates = BETTERUI.Nameplates
-		GeneralInterface.Nameplates = nameplates
+	local canonicalNameplates = GeneralInterface.Nameplates
+	if type(canonicalNameplates) == "table" then
+		return canonicalNameplates
 	end
-	if type(nameplates) == "table" then
-		BETTERUI.Nameplates = nameplates
-	end
-	return nameplates
+
+	return nil
 end
 
 local function GetNameplateOptions()
@@ -41,7 +38,6 @@ local function Init(mId, moduleName)
 
 	local optionsTable = {}
 
-	-- General Interface settings (flat section, consistent with Inventory/Banking)
 	local generalOptions = GetGeneralInterfaceOptions()
 	if generalOptions then
 		table.insert(optionsTable, {
@@ -60,7 +56,6 @@ local function Init(mId, moduleName)
 		end
 	end
 
-	-- Nameplate Settings Submenu
 	local nameplateOptions = GetNameplateOptions()
 	if nameplateOptions then
 		table.insert(optionsTable, {

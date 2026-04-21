@@ -1,26 +1,14 @@
--- Modules/Vendor/Core/VendorClass.lua
--- Core class definition, constants, and mode-routing for the Vendor module.
---
--- Component-tab model: each tab is a separate "mode" with its own list builder
--- and keybinds. Active mode tracked in self.currentMode, changed via SetMode().
-
--- NAMESPACE & GUARD
 if not BETTERUI.Vendor then BETTERUI.Vendor = {} end
 local Vendor = BETTERUI.Vendor
-
--- SCENE CONSTANTS
 
 BETTERUI_VENDOR_SCENE_NAME = "BETTERUI_VENDOR"
 
 BETTERUI.Vendor.VENDOR_INTERACTION = STORE_INTERACTION
 
--- Fence shares the vendor scene but opens via EVENT_OPEN_FENCE.
 BETTERUI.Vendor.FENCE_INTERACTION = {
     type = "Fence",
     interactTypes = { INTERACTION_VENDOR },
 }
-
--- MODE CONSTANTS
 
 BETTERUI.Vendor.MODE = BETTERUI.Vendor.MODE or {
     BUY           = 1,
@@ -186,7 +174,6 @@ local function ShouldIncludeHeaderModeTab(mode, currentMode, isStableInteraction
     return mode == BETTERUI.Vendor.MODE.REPAIR or mode == BETTERUI.Vendor.MODE.BUYBACK
 end
 
--- Forward declare; BuildHeaderModeTabs is defined before the function body.
 local IsStableInteractionActive
 
 local function BuildHeaderModeTabs(activeTabs, currentMode)
@@ -198,7 +185,6 @@ local function BuildHeaderModeTabs(activeTabs, currentMode)
 
     for _, tab in ipairs(activeTabs or {}) do
         if isFenceInteraction then
-            -- Fence uses footer buttons + keybind toggle; no mode tabs in header
         elseif ShouldIncludeHeaderModeTab(tab.mode, currentMode, isStableInteraction, isSellBuybackOnly) then
             modeTabs[#modeTabs + 1] = tab
         end
@@ -553,11 +539,7 @@ end
 
 local ExecuteSafely = assert(Vendor.ExecuteSafely, "Vendor safe execute helper must load before VendorClass")
 
-local function LogVendorDebug(flagName, category, message)
-    if BETTERUI.Vendor and BETTERUI.Vendor.DebugLog then
-        BETTERUI.Vendor.DebugLog(message, flagName, category)
-    end
-end
+local LogVendorDebug = Vendor.LogDebug
 
 ---@return boolean
 function IsStableInteractionActive()
@@ -567,12 +549,7 @@ function IsStableInteractionActive()
         or false
 end
 
-local function IsDirectionalInputListening(obj)
-    if BETTERUI.Vendor and BETTERUI.Vendor.IsDirectionalInputListening then
-        return BETTERUI.Vendor.IsDirectionalInputListening(obj)
-    end
-    return false
-end
+local IsDirectionalInputListening = Vendor.IsDirectionalInputListening
 
 ---@param obj table|nil
 ---@return number registrationCount
@@ -740,7 +717,6 @@ local function ResolveHeaderColumnOffset(columnIndex)
     return nil
 end
 
--- MODULE-SCOPE TASK MANAGER (for coalescing list refreshes)
 local VendorDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
     "BetterUI: CIM.DeferredTask must load before Vendor/Core/VendorClass")
 local function EnsureVendorTaskManager()
@@ -751,8 +727,6 @@ local function EnsureVendorTaskManager()
 end
 BETTERUI.Vendor.EnsureTaskManager = EnsureVendorTaskManager
 BETTERUI.Vendor.Tasks = BETTERUI.Vendor.Tasks or VendorDeferredTask.CreateLazyManagerProxy(EnsureVendorTaskManager)
-
--- CLASS DEFINITION
 
 ---@class BETTERUI.Vendor.Class : BETTERUI.CIM.GenericWindow
 ---@field currentMode number Current active vendor mode (see BETTERUI.Vendor.MODE)
@@ -1016,8 +990,6 @@ function BETTERUI.Vendor.Class:ScheduleDirectionalInputNormalization(reason, del
     end)
 end
 
--- MODE ROUTING
-
 ---@return number mode Current vendor mode constant
 function BETTERUI.Vendor.Class:GetCurrentMode()
     return self.currentMode or BETTERUI.Vendor.MODE.BUY
@@ -1233,7 +1205,6 @@ function BETTERUI.Vendor.Class:ClearSearchInput()
     end
 end
 
---- Backwards-compatible alias.
 ---@return nil
 function BETTERUI.Vendor.Class:ClearTextSearch()
     self:ClearSearchInput()
@@ -1248,7 +1219,6 @@ function BETTERUI.Vendor.Class:IsHeaderFocused()
     return self._searchModeActive == true
 end
 
---- Backwards-compatible alias.
 ---@return boolean active
 function BETTERUI.Vendor.Class:IsHeaderActive()
     return self:IsHeaderFocused()
@@ -1264,7 +1234,6 @@ function BETTERUI.Vendor.Class:RequestHeaderFocus()
     end
 end
 
---- Backwards-compatible alias for template hooks.
 ---@return nil
 function BETTERUI.Vendor.Class:RequestEnterHeader()
     self:RequestHeaderFocus()
@@ -1379,7 +1348,6 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     end
 end
 
---- Backwards-compatible alias.
 ---@return nil
 function BETTERUI.Vendor.Class:LeaveSearchMode()
     self:ExitSearchMode()
@@ -1391,7 +1359,6 @@ function BETTERUI.Vendor.Class:OnSearchFocusLost()
     self:ExitSearchMode()
 end
 
---- Backwards-compatible alias.
 ---@return nil
 function BETTERUI.Vendor.Class:ExitSearchFocus()
     self:OnSearchFocusLost()
@@ -1425,7 +1392,6 @@ function BETTERUI.Vendor.Class:OnHeaderEntered()
     end
 end
 
---- Backwards-compatible alias.
 ---@return nil
 function BETTERUI.Vendor.Class:OnEnterHeader()
     self:OnHeaderEntered()
@@ -1753,13 +1719,10 @@ function BETTERUI.Vendor.Class:RegisterComponent(mode, component)
     self.components[mode] = component
 end
 
--- LIST MANAGEMENT
-
 function BETTERUI.Vendor.Class:ApplySortToList()
     VendorControllerRuntime.ApplySortToList(self)
 end
 
---- Clears and rebuilds the list from the active component's BuildList.
 ---@return nil
 function BETTERUI.Vendor.Class:RefreshList()
     VendorControllerRuntime.RefreshList(self, {
@@ -1838,14 +1801,12 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
     selectionRuntime.HandleSelection(self, selectedData, IsStableInteractionActive())
 end
 
---- Suppresses list refreshes until FlushListUpdates is called.
 ---@return nil
 function BETTERUI.Vendor.Class:SuppressListUpdates()
     self._suppressListUpdates = true
     self._isDirty = false
 end
 
---- Releases suppressed list updates and refreshes if dirty.
 ---@return nil
 function BETTERUI.Vendor.Class:FlushListUpdates()
     self._suppressListUpdates = false
@@ -1853,8 +1814,6 @@ function BETTERUI.Vendor.Class:FlushListUpdates()
         self:RefreshList()
     end
 end
-
--- STORE/FENCE STATE QUERIES
 
 ---@return boolean isFence True if current mode is a fence mode
 function BETTERUI.Vendor.Class:IsFenceMode()
@@ -1889,16 +1848,11 @@ function BETTERUI.Vendor.Class:HasInventorySpace()
 end
 
 
---- Initializes the vendor footer by relabelling the embedded Withdraw/Deposit
---- controls to show buy/sell list toggles.
---- Called once during Init after the window is created.
 ---@return nil
 function BETTERUI.Vendor.Class:InitVendorFooter()
     VendorPresentationRuntime.InitVendorFooter(self, IsStableInteractionActive)
 end
 
---- Refreshes the vendor footer values (gold amount, bag capacity, or fence transaction counts).
---- Called on scene showing and after inventory changes.
 ---@return nil
 function BETTERUI.Vendor.Class:RefreshVendorFooter()
     VendorPresentationRuntime.RefreshVendorFooter(self, {

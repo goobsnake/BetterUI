@@ -232,21 +232,20 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         },
     }
 
-    local leftTrigger, rightTrigger = BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(
-        function()
+    local leftTrigger, rightTrigger = BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds({
+        list = function()
             local currentList = self:GetCurrentList()
             if currentList == self.itemList or currentList == self.craftBagList then
                 return currentList
             end
         end,
-        nil,
-        function()
+        getSpeed = function()
             return BETTERUI.Inventory.GetSetting("triggerSpeed")
         end,
-        function()
+        isEnabled = function()
             return BETTERUI.Inventory.GetSetting("useTriggersForSkip")
-        end
-    )
+        end,
+    })
 
     table.insert(self.mainKeybindStripDescriptor, leftTrigger)
     table.insert(self.mainKeybindStripDescriptor, rightTrigger)

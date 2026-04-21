@@ -7,12 +7,17 @@ Purpose: Defines strict interface contracts for BetterUI module implementations.
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Interfaces = BETTERUI.CIM.Interfaces or {}
 
+local AR = BETTERUI.CIM.ARCHETYPES or {}
+local RUNTIME_COORDINATOR = AR.RUNTIME_COORDINATOR or "runtime-coordinator"
+local SETTINGS_OWNER = AR.SETTINGS_OWNER or "settings-owner"
+local THIN_ENTRYPOINT = AR.THIN_ENTRYPOINT or "thin-entrypoint"
+
 -- INTERFACE DEFINITIONS
 
 local SUPPORTED_ARCHETYPES = {
-    ["runtime-coordinator"] = true,
-    ["settings-owner"] = true,
-    ["thin-entrypoint"] = true,
+    [RUNTIME_COORDINATOR] = true,
+    [SETTINGS_OWNER] = true,
+    [THIN_ENTRYPOINT] = true,
 }
 
 local function HasSettingsSurface(module)
@@ -29,14 +34,14 @@ local function ValidateArchetypeBehavior(module, contract)
         return false, "Module.ROOT_CONTRACT.archetype must be a supported BetterUIModuleArchetype"
     end
 
-    if archetype == "runtime-coordinator" then
+    if archetype == RUNTIME_COORDINATOR then
         if contract.init ~= true then
             return false, "runtime-coordinator modules must set Module.ROOT_CONTRACT.init to true"
         end
         return true
     end
 
-    if archetype == "settings-owner" then
+    if archetype == SETTINGS_OWNER then
         if contract.init ~= true or contract.setup ~= true then
             return false, "settings-owner modules must enable both Module.ROOT_CONTRACT.init and Module.ROOT_CONTRACT.setup"
         end

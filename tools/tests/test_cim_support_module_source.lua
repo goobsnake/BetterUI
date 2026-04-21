@@ -105,15 +105,26 @@ assert_true(batchActions:find("function BatchActions%.AnalyzeSelectedItems%(sele
     "BatchActions exposes AnalyzeSelectedItems")
 
 local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")
+local cimUtilities = read_file("Modules/CIM/Core/Utilities.lua")
 assert_true(genericSlotActions:find("BETTERUI%.CIM%.InvokeInventoryDialog%(\"TryStowWithQuantity\", inventorySlot%)") ~= nil,
     "GenericSlotActions routes craft-bag quantity dialogs through the shared CIM dialog seam")
 assert_true(genericSlotActions:find("local function CanStowToCraftBagWithPolicy%(bagId, slotIndex%)") ~= nil,
     "GenericSlotActions centralizes craft-bag stow authorization through a policy helper")
+assert_true(genericSlotActions:find("BETTERUI%.Banking and BETTERUI%.Banking%.ResolveTransferSupport") ~= nil,
+    "GenericSlotActions resolves banking transfer support through the owned Banking seam")
+assert_true(genericSlotActions:find("local function GetBankingTransferSupport") == nil,
+    "GenericSlotActions does not keep a banking-specific CIM forwarding helper")
+assert_true(genericSlotActions:find("BETTERUI%.CIM%.Utils%.GetBankingTransferSupport") == nil,
+    "GenericSlotActions avoids the CIM bank transfer support forwarding seam")
 assert_true(genericSlotActions:find("policy and policy%.CanStowToCraftBag") ~= nil,
     "GenericSlotActions checks stow eligibility via ProtectionPolicy.CanStowToCraftBag when available")
 assert_true(genericSlotActions:find(
     "function BETTERUI%.CIM%.TryMoveToCraftBag%(inventorySlot, targetBag, quantity%)") ~= nil,
     "GenericSlotActions supports quantity-aware transfer calls through the shared craft-bag move seam")
+assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.GetActiveBankTransferContext") == nil,
+    "CIM Utilities no longer exposes the banking transfer context forwarding seam")
+assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.GetBankingTransferSupport") == nil,
+    "CIM Utilities no longer exposes the banking transfer support forwarding seam")
 
 if failed > 0 then
     error(string.format("test_cim_support_module_source.lua failed with %d failure%(s%)", failed))

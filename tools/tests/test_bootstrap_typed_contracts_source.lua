@@ -47,8 +47,8 @@ assert_contains(settingsAccessor, '---@overload fun(moduleName: "Inventory", def
     "GetModuleSettings exposes typed inventory overloads")
 assert_contains(settingsAccessor, '---@overload fun(moduleName: "GeneralInterface", defaults: BetterUIGeneralInterfaceSettings|nil): BetterUIGeneralInterfaceSettings',
     "GetModuleSettings exposes typed GeneralInterface overloads")
-assert_contains(settingsAccessor, '---@param moduleName ModuleName|string Module name key',
-    "shared settings helpers use ModuleName-aware annotations")
+assert_contains(settingsAccessor, '---@param moduleName ModuleName Module name key',
+    "shared settings helpers use typed module name annotations")
 
 assert_contains(inventoryList, '---@param left BetterUIInventoryRowData Left item data',
     "inventory list comparator uses the named row contract")

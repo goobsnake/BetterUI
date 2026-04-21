@@ -10,6 +10,12 @@ It defines types that are referenced by annotations throughout the codebase.
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Types = {}
 
+BETTERUI.CIM.ARCHETYPES = BETTERUI.CIM.ARCHETYPES or {}
+BETTERUI.CIM.ARCHETYPES.RUNTIME_COORDINATOR =
+    BETTERUI.CIM.ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"
+BETTERUI.CIM.ARCHETYPES.SETTINGS_OWNER = BETTERUI.CIM.ARCHETYPES.SETTINGS_OWNER or "settings-owner"
+BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT or "thin-entrypoint"
+
 -- ESO API TYPE STUBS
 -- These definitions help the IDE understand ESO's global types
 
@@ -79,10 +85,16 @@ BETTERUI.CIM.Types = {}
 ---| "GeneralInterface"
 ---| "Nameplates"
 
+---@alias BetterUIModuleArchetypeRuntimeCoordinator
+---| "runtime-coordinator"
+---@alias BetterUIModuleArchetypeSettingsOwner
+---| "settings-owner"
+---@alias BetterUIModuleArchetypeThinEntrypoint
+---| "thin-entrypoint"
 ---@alias BetterUIModuleArchetype
----| "runtime-coordinator" -- Enforced: init=true
----| "settings-owner" -- Enforced: init=true, setup=true, and settings surface
----| "thin-entrypoint" -- Enforced: init=true and setup=true
+---| BetterUIModuleArchetypeRuntimeCoordinator
+---| BetterUIModuleArchetypeSettingsOwner
+---| BetterUIModuleArchetypeThinEntrypoint
 
 ---@alias BetterUIModuleOptions table<string, BetterUIModuleSettingValue|nil>
 ---@alias BetterUIModuleInitHook fun(m_options: BetterUIModuleOptions|nil): BetterUIModuleOptions
@@ -113,12 +125,28 @@ BETTERUI.CIM.Types = {}
 
 -- KEYBIND TYPES
 
----@class KeybindDescriptor
+---@class BetterUIKeybindDescriptor
 ---@field keybind string Keybind action name
 ---@field name string|function Display name for the keybind
 ---@field callback function Action to perform when keybind is pressed
 ---@field visible function|nil Optional visibility predicate
 ---@field enabled function|nil Optional enabled predicate
+
+---@class BetterUITriggerKeybindDescriptor: BetterUIKeybindDescriptor
+---@field alignment number|nil
+---@field order number|nil
+---@field disabledDuringSceneHiding boolean|nil
+---@field ethereal boolean|nil
+
+---@alias BetterUIListTriggerListLike
+---| table
+---| fun(): table|nil
+
+---@class BetterUIListTriggerKeybindContract
+---@field list BetterUIListTriggerListLike
+---@field resolveCategoryJump fun(): boolean|nil
+---@field getSpeed fun(): number|nil
+---@field isEnabled fun(): boolean|nil
 
 ---@class BetterUIHeaderSortColumnDef
 ---@field name string Display name shown in the header row

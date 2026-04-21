@@ -9,11 +9,7 @@ local Vendor = BETTERUI.Vendor
 Vendor.NativeStoreBridge = Vendor.NativeStoreBridge or {}
 local NativeStoreBridge = Vendor.NativeStoreBridge
 
-local function LogVendorDebug(flagName, category, message)
-    if BETTERUI.Vendor and BETTERUI.Vendor.DebugLog then
-        BETTERUI.Vendor.DebugLog(message, flagName, category)
-    end
-end
+local LogVendorDebug = Vendor.LogDebug
 
 local function GetVendorExecuteSafely()
     local executor = Vendor.ExecuteSafely
@@ -21,12 +17,7 @@ local function GetVendorExecuteSafely()
     return executor
 end
 
-local function IsDirectionalInputListening(obj)
-    if BETTERUI.Vendor and BETTERUI.Vendor.IsDirectionalInputListening then
-        return BETTERUI.Vendor.IsDirectionalInputListening(obj)
-    end
-    return false
-end
+local IsDirectionalInputListening = Vendor.IsDirectionalInputListening
 
 local function LogNativeStoreInputState(context, storeManager)
     if not storeManager then

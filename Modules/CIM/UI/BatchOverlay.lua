@@ -1,18 +1,7 @@
---[[
-File: Modules/CIM/UI/BatchOverlay.lua
-Purpose: Batch status overlay UI for multi-select operations.
-         Creates, lays out, shows, and hides the on-screen progress indicator
-         during throttled batch processing.
-
-Extracted from: MultiSelectMixin.lua (overlay concern)
-]]
-
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.BatchOverlay = BETTERUI.CIM.BatchOverlay or {}
 
 local BatchOverlay = BETTERUI.CIM.BatchOverlay
-
--- OVERLAY CONSTANTS
 
 local BATCH_ANNOUNCE_BG_HORIZONTAL_PADDING = 260
 local BATCH_ANNOUNCE_BG_VERTICAL_PADDING = 40
@@ -60,8 +49,6 @@ local BATCH_ACTION_DIALOG_NAMES = {
     "BETTERUI_VENDOR_BATCH_DIALOG",
 }
 
--- OVERLAY STATE
-
 local BATCH_STATUS_OVERLAY = {
     control = nil,
     background = nil,
@@ -75,9 +62,6 @@ local BATCH_STATUS_OVERLAY = {
     lockedHeight = nil,
 }
 
--- DIALOG CHECK
-
---- Checks if any batch action dialog is currently showing.
 function BatchOverlay.IsAnyBatchActionDialogShowing()
     if ZO_Dialogs_IsShowing then
         for i = 1, #BATCH_ACTION_DIALOG_NAMES do
@@ -87,22 +71,15 @@ function BatchOverlay.IsAnyBatchActionDialogShowing()
         end
     end
 
-    -- During gamepad hide transitions the dialog can still be on-screen while
-    -- no longer being reported as actively "showing" by name.
     if GetControl then
         local gamepadDialog = GetControl("ZO_DialogGamepad1")
         if gamepadDialog and gamepadDialog.IsHidden and not gamepadDialog:IsHidden() then
-            -- Any visible gamepad dialog should block batch overlay startup.
-            -- Batch actions are launched from a gamepad dialog, so this avoids
-            -- one-frame overlaps caused by name/state transition timing.
             return true
         end
     end
 
     return false
 end
-
--- OVERLAY CONSTRUCTION HELPERS
 
 local function EnsureBatchAnnouncementFrame(backgroundContainer)
     if not backgroundContainer then
@@ -205,7 +182,6 @@ end
 
 local function ResolveBatchStatusTextValue(value)
     if type(value) == "function" then
-        -- Phase: resolve-status-text
         local ok, resolved = BETTERUI.CIM.SafeExecute("BatchOverlay:ResolveStatusText", value)
         if not ok or resolved == nil then
             return ""
@@ -235,8 +211,6 @@ function BatchOverlay.CreateDisplayRequest(displayName, bodyText, secondaryText)
         secondaryText = secondaryText,
     }
 end
-
--- OVERLAY CREATION
 
 local function EnsureBatchStatusOverlay()
     local overlay = BATCH_STATUS_OVERLAY
@@ -293,8 +267,6 @@ local function EnsureBatchStatusOverlay()
     return overlay
 end
 
--- OVERLAY LAYOUT
-
 local function ApplyBatchStatusOverlayLayout(overlay, hasSecondaryText)
     if not (overlay and overlay.control and overlay.mainLabel) then
         return
@@ -348,7 +320,6 @@ local function ApplyBatchStatusOverlayLayout(overlay, hasSecondaryText)
     end
     local height = zo_max(textHeight + (BATCH_ANNOUNCE_BG_VERTICAL_PADDING * 2), minHeight)
 
-    -- Keep a stable footprint while visible to avoid noticeable start->processing box jumps.
     if control.IsHidden and control:IsHidden() then
         overlay.lockedWidth = nil
         overlay.lockedHeight = nil
@@ -429,9 +400,6 @@ local function ApplyBatchStatusOverlayLayout(overlay, hasSecondaryText)
     end
 end
 
--- PUBLIC API
-
---- Shows the batch status overlay with the given text content.
 function BatchOverlay.ShowStatus(displayRequest)
     local request = BatchOverlay.CreateDisplayRequest(displayRequest)
     local overlay = EnsureBatchStatusOverlay()
@@ -516,7 +484,6 @@ function BatchOverlay.Show(displayName, bodyText, secondaryText)
     return BatchOverlay.ShowStatus(BatchOverlay.CreateDisplayRequest(displayName, bodyText, secondaryText))
 end
 
---- Hides the batch status overlay, optionally with a delay.
 function BatchOverlay.Hide(delayMs)
     local overlay = BATCH_STATUS_OVERLAY
     if not overlay.control then
@@ -544,7 +511,6 @@ function BatchOverlay.Hide(delayMs)
     end
 end
 
---- Cancels any active dynamic text update loop without hiding the overlay.
 function BatchOverlay.StopLayoutPulse()
     local overlay = BATCH_STATUS_OVERLAY
     overlay.updateToken = overlay.updateToken + 1

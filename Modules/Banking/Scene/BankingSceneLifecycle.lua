@@ -32,7 +32,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     end
 
     local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    BETTERUI.Banking.currentUsedBank = (transferContext and transferContext.sourceBag) or BETTERUI.Banking.currentUsedBank
+    BETTERUI.Banking.SetCurrentUsedBank(transferContext.sourceBag)
 
     -- Guild bank detection: update title and check permissions
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -143,16 +143,15 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 
     local function OnInventoryUpdated(bagId, slotIndex)
         if not BETTERUI.Utils.IsBankingSceneShowing() then return end
-        local transferContext = BETTERUI.Banking.GetActiveTransferContext and BETTERUI.Banking.GetActiveTransferContext() or nil
-        local transferTargetBankBag = transferContext and transferContext.targetBag or BAG_BANK
+        local transferContext = BETTERUI.Banking.GetActiveTransferContext()
         local relevantBags
         if self.currentMode == LIST_WITHDRAW then
-            if GuildBank and GuildBank.IsGuildBankMode() then
+            if transferContext.isGuildBank then
                 relevantBags = { BAG_GUILDBANK }
-            elseif transferTargetBankBag == BAG_BANK then
+            elseif transferContext.targetBag == BAG_BANK then
                 relevantBags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
             else
-                relevantBags = { transferTargetBankBag }
+                relevantBags = { transferContext.targetBag }
             end
         else
             relevantBags = { BAG_BACKPACK }
@@ -220,7 +219,7 @@ end
 --- Scene hidden handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneHidden()
     local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    BETTERUI.Banking.lastUsedBank = (transferContext and transferContext.sourceBag) or BETTERUI.Banking.lastUsedBank
+    BETTERUI.Banking.SetLastUsedBank(transferContext.sourceBag)
     if self.confirmationMode then
         self:UpdateSpinnerConfirmation(false, self.list)
     end

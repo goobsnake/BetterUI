@@ -72,7 +72,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.lastPositionsByCategory = {}
 
     local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    BETTERUI.Banking.currentUsedBank = (transferContext and transferContext.sourceBag) or BETTERUI.Banking.currentUsedBank
+    BETTERUI.Banking.SetCurrentUsedBank(transferContext.sourceBag)
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 
@@ -173,7 +173,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 return
             end
 
-            local currentUsedBank = BETTERUI.Banking.currentUsedBank
+            local currentUsedBank = BETTERUI.Banking.GetCurrentUsedBank()
             local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or
                 nil
             local showingCurrencyRows = (currentUsedBank == BAG_BANK)
@@ -225,13 +225,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     EVENT_MANAGER:UnregisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK)
     EVENT_MANAGER:RegisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK, function(_, bankBag)
-        BETTERUI.Banking.lastOpenedBankBag = bankBag or BAG_BANK
+        BETTERUI.Banking.SetLastOpenedBankBag(bankBag or BAG_BANK)
     end)
 
     EVENT_MANAGER:UnregisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK)
     EVENT_MANAGER:RegisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK, function()
         if IsBankOpen and IsBankOpen() then
-            BETTERUI.Banking.lastOpenedBankBag = GetBankingBag() or BETTERUI.Banking.lastOpenedBankBag
+            BETTERUI.Banking.SetLastOpenedBankBag(GetBankingBag() or BETTERUI.Banking.GetLastOpenedBankBag())
         end
     end)
 

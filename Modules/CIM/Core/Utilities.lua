@@ -162,33 +162,6 @@ function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(fromBagId, fromSlotIndex,
     return FindFirstEmptySlotInBag(toBagId)
 end
 
----@return table|nil context Active banking transfer context, or nil when banking is unavailable
-function BETTERUI.CIM.Utils.GetActiveBankTransferContext()
-    local banking = BETTERUI.Banking
-    if banking and type(banking.GetActiveTransferContext) == "function" then
-        local transferContext = banking.GetActiveTransferContext()
-        if type(transferContext) == "table" then
-            return transferContext
-        end
-    end
-
-    return nil
-end
-
----@return table|nil transferSupport Shared Banking transfer support table, or nil when unavailable
-function BETTERUI.CIM.Utils.GetBankingTransferSupport()
-    local banking = BETTERUI.Banking
-    if not banking or type(banking.ResolveTransferSupport) ~= "function" then
-        return nil
-    end
-
-    local transferSupport = banking.ResolveTransferSupport()
-    if type(transferSupport) ~= "table" then
-        return nil
-    end
-    return transferSupport
-end
-
 ---@return table|nil context Shared banking sort context with list and owner, or nil when unavailable
 function BETTERUI.CIM.Utils.GetBankingSortEntryContext()
     if not IsBankingSceneShowing() then

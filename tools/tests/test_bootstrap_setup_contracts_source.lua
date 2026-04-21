@@ -29,12 +29,14 @@ end
 print("test_bootstrap_setup_contracts_source")
 
 local accessorSource = read_file("Modules/CIM/Core/Settings/SettingsAccessor.lua")
+local cimModule = read_file("Modules/CIM/Module.lua")
 local inventoryModule = read_file("Modules/Inventory/Module.lua")
 local vendorModule = read_file("Modules/Vendor/Module.lua")
 local companionsModule = read_file("Modules/Companions/Module.lua")
 local bankingModule = read_file("Modules/Banking/Module.lua")
 local tradingHouseModule = read_file("Modules/TradingHouse/Module.lua")
 local resourceOrbModule = read_file("Modules/ResourceOrbFrames/Module.lua")
+local writsModule = read_file("Modules/Writs/Module.lua")
 local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
 local inventoryFormatting = read_file("Modules/Inventory/Lists/InventoryEntryFormatting.lua")
 
@@ -45,10 +47,23 @@ assert_contains(accessorSource, "function BETTERUI.CIM.TryRegisterModulePanel(",
 assert_contains(accessorSource, "ns._sharedAccessorsRegistered = true",
     "module accessors are tracked as setup-time registration state")
 
+assert_contains(cimModule, 'local RUNTIME_COORDINATOR = ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"',
+    "CIM resolves the runtime-coordinator archetype from shared archetype constants")
+assert_contains(cimModule, 'CIM.ROOT_CONTRACT = {',
+    "CIM defines a documented root contract")
+assert_contains(cimModule, 'name = "CIM",',
+    "CIM root contract declares module ownership")
+assert_contains(cimModule, "setup = false,",
+    "CIM root contract opts out of setup-time invocation")
+assert_not_contains(cimModule, "function CIM.Setup(",
+    "CIM remains bootstrap-owned and does not define a root Setup hook")
+
 assert_contains(inventoryModule, 'BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Inventory, "Inventory")',
     "Inventory keeps only pure shared settings statics at import time")
 assert_contains(inventoryModule, 'function Inventory.Setup()',
     "Inventory exposes an explicit setup-time hook")
+assert_contains(inventoryModule, 'RegisterSharedItemSupport()',
+    "Inventory.Setup() performs SharedItemSupport registration during setup")
 assert_contains(inventoryModule, 'BETTERUI.CIM.RegisterModuleAccessors(Inventory, "Inventory")',
     "Inventory registers accessors during setup")
 assert_contains(inventoryModule, 'BETTERUI.CIM.Keybinds.RegisterInventoryActionModes({',
@@ -110,6 +125,14 @@ assert_contains(resourceOrbModule, 'ResourceOrbFrames.Settings.RegisterPanel = I
 assert_contains(resourceOrbModule,
     'BETTERUI.CIM.TryRegisterModulePanel(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",',
     "ResourceOrbFrames setup uses the shared panel registration helper")
+assert_contains(writsModule, 'local THIN_ENTRYPOINT = ARCHETYPES.THIN_ENTRYPOINT or "thin-entrypoint"',
+    "Writs resolves the thin-entrypoint archetype from shared archetype constants")
+assert_contains(writsModule, "Writs.ROOT_CONTRACT = {",
+    "Writs defines a documented root contract")
+assert_contains(writsModule, 'name = "Writs",',
+    "Writs root contract declares module ownership")
+assert_contains(writsModule, "setup = true,",
+    "Writs root contract keeps setup-time invocation enabled")
 
 assert_contains(inventoryFormatting, 'local function IsModuleSceneShowing(moduleRoot)',
     "Inventory entry formatting resolves active modules through live module instances")

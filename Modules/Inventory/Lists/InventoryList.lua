@@ -346,13 +346,15 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
 
-    local leftTrigger, rightTrigger = BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(
-        self.list, nil, function()
+    local leftTrigger, rightTrigger = BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds({
+        list = self.list,
+        getSpeed = function()
             return BETTERUI.Inventory.GetSetting("triggerSpeed")
-        end, function()
+        end,
+        isEnabled = function()
             return BETTERUI.Inventory.GetSetting("useTriggersForSkip")
-        end
-    )
+        end,
+    })
     self.triggerKeybinds = { leftTrigger, rightTrigger }
 
     -- The bottom offset compensates for the list anchor sitting 10px below the footer container.

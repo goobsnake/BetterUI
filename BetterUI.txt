@@ -105,14 +105,16 @@ Modules\CIM\Lists\BatchProcessor.lua
 Modules\CIM\Lists\ListRefreshManager.lua
 Modules\CIM\Module.lua
 
-; Module: General Interface (Tooltips, Nameplates)
+; Module: General Interface (Tooltips)
 Modules\GeneralInterface\Module.lua
 Modules\GeneralInterface\Setup.lua
 Modules\GeneralInterface\Tooltips\SettingsHelpers.lua
 Modules\GeneralInterface\Tooltips\Settings.lua
 Modules\GeneralInterface\Tooltips\Tooltips.lua
-Modules\GeneralInterface\Nameplates\Settings.lua
-Modules\GeneralInterface\Nameplates\Nameplates.lua
+
+; Module: Nameplates
+Modules\Nameplates\Settings.lua
+Modules\Nameplates\Nameplates.lua
 
 
 

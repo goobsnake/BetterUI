@@ -40,7 +40,7 @@ end
 Controls.Find = BETTERUI.ControlUtils.FindControl
 
 --- Module settings accessor alias for brevity in ResourceOrbFrames code.
----@return table|nil settings Module settings table, or nil if not loaded
+---@return table settings Module settings table
 function Settings.Get()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")
 end

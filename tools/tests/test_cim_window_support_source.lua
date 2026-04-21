@@ -75,7 +75,7 @@ assert_true(genericKeybinds:find("function BETTERUI%.CIM%.Keybinds%.CreateStackA
     "GenericKeybinds exposes CreateStackAllKeybind")
 assert_true(genericKeybinds:find("function BETTERUI%.CIM%.Keybinds%.CreateActionsKeybind%(showActionsFn, visibleFn%)") ~= nil,
     "GenericKeybinds exposes CreateActionsKeybind")
-assert_true(genericKeybinds:find("function BETTERUI%.CIM%.Keybinds%.CreateListTriggerKeybinds%(listOrGetter, useCategoryJumpGetter, speedGetter, enabledGetter%)") ~= nil,
+assert_true(genericKeybinds:find("function BETTERUI%.CIM%.Keybinds%.CreateListTriggerKeybinds%(contract%)") ~= nil,
     "GenericKeybinds exposes CreateListTriggerKeybinds")
 assert_true(genericKeybinds:find('keybind = "UI_SHORTCUT_LEFT_TRIGGER"') ~= nil,
     "GenericKeybinds defines the left trigger descriptor")

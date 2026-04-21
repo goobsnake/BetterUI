@@ -26,8 +26,11 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 
 local ClampInteger = BETTERUI.ClampInteger
 local CIM = BETTERUI.CIM
+local ARCHETYPES = CIM.ARCHETYPES or {}
+local RUNTIME_COORDINATOR = ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"
 
-CIM.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleArchetypeRuntimeCoordinator
+CIM.ARCHETYPE = RUNTIME_COORDINATOR
 ---@type BetterUIModuleRootContract
 CIM.ROOT_CONTRACT = {
     name = "CIM",

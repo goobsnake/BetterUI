@@ -7,8 +7,24 @@ Purpose: Shared keybind descriptor factories for Inventory and Banking modules.
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Keybinds then BETTERUI.CIM.Keybinds = {} end
 
+local BuildTriggerKeybinds
+
+local function AsFunctionOrBoolean(value)
+    if type(value) == "function" then
+        return value
+    end
+    if type(value) == "boolean" then
+        return function()
+            return value
+        end
+    end
+    return nil
+end
+
 -- KEYBIND FACTORY FUNCTIONS
 
+---@param callback function|nil
+---@return BetterUIKeybindDescriptor
 function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -21,6 +37,9 @@ function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
     }
 end
 
+---@param bagId number
+---@param visibleFn function|nil
+---@return BetterUIKeybindDescriptor
 function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -34,6 +53,9 @@ function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
     }
 end
 
+---@param showActionsFn function|nil
+---@param visibleFn function|nil
+---@return BetterUIKeybindDescriptor
 function BETTERUI.CIM.Keybinds.CreateActionsKeybind(showActionsFn, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -45,6 +67,10 @@ function BETTERUI.CIM.Keybinds.CreateActionsKeybind(showActionsFn, visibleFn)
     }
 end
 
+---@param clearSearchFn function
+---@param visibleFn function|nil
+---@param hasTextFn function|nil
+---@return BetterUIKeybindDescriptor
 function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn, hasTextFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -69,6 +95,8 @@ end
 
 -- KEYBIND GROUP HELPERS
 
+---@param keybindGroup table The keybind group to mutate
+---@param navigationType number|nil Optional navigation event type
 function BETTERUI.CIM.Keybinds.AddBackNavigation(keybindGroup, navigationType)
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(
         keybindGroup,
@@ -82,22 +110,64 @@ Adds trigger keybinds for a parametric list (LT/RT for page navigation).
 param: keybindGroup (table) - The keybind group to add to.
 param: list (table) - The parametric scroll list.
 ]]
+
+---@param keybindGroup table The keybind group to mutate
+---@param list BetterUIListTriggerListLike List or list provider
 function BETTERUI.CIM.Keybinds.AddTriggerKeybinds(keybindGroup, list)
     ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindGroup, list)
 end
 
-function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCategoryJumpGetter, speedGetter, enabledGetter)
-
-    local function GetActualList(listWrapper)
-        if not listWrapper then return nil end
-        if listWrapper.JumpToPreviousHeader then return listWrapper end
-        if listWrapper.list and listWrapper.list.JumpToPreviousHeader then return listWrapper.list end
-        if listWrapper.GetParametricList then
-            local pList = listWrapper:GetParametricList()
-            if pList and pList.JumpToPreviousHeader then return pList end
-        end
-        return listWrapper
+local function ResolveList(listOrGetter)
+    local listWrapper = listOrGetter
+    if type(listWrapper) == "function" then
+        listWrapper = listWrapper()
     end
+    if not listWrapper then return nil end
+    if listWrapper.JumpToPreviousHeader then return listWrapper end
+    if listWrapper.list and listWrapper.list.JumpToPreviousHeader then return listWrapper.list end
+    if listWrapper.GetParametricList then
+        local parametricList = listWrapper:GetParametricList()
+        if parametricList and parametricList.JumpToPreviousHeader then
+            return parametricList
+        end
+    end
+    return listWrapper
+end
+
+local function CoerceListTriggerContract(listOrGetter, useCategoryJumpGetter, speedGetter, enabledGetter)
+    if type(listOrGetter) == "table" and rawget(listOrGetter, "list") ~= nil then
+        return {
+            list = listOrGetter.list,
+            resolveCategoryJump = AsFunctionOrBoolean(listOrGetter.resolveCategoryJump),
+            getSpeed = type(listOrGetter.getSpeed) == "function" and listOrGetter.getSpeed or nil,
+            isEnabled = type(listOrGetter.isEnabled) == "function" and listOrGetter.isEnabled or nil,
+        }
+    end
+
+    return {
+        list = listOrGetter,
+        resolveCategoryJump = AsFunctionOrBoolean(useCategoryJumpGetter),
+        getSpeed = type(speedGetter) == "function" and speedGetter or nil,
+        isEnabled = type(enabledGetter) == "function" and enabledGetter or nil,
+    }
+end
+
+local function BuildListTriggerKeybindsFromLegacy(listOrGetter, useCategoryJumpGetter, speedGetter, enabledGetter)
+    local contract = CoerceListTriggerContract(listOrGetter, useCategoryJumpGetter, speedGetter, enabledGetter)
+    return BuildTriggerKeybinds(contract)
+end
+
+---@param contract table
+---@return boolean
+local function IsExplicitListTriggerContract(contract)
+    return type(contract) == "table" and rawget(contract, "list") ~= nil
+end
+
+BuildTriggerKeybinds = function(contract)
+    local listOrGetter = contract.list
+    local categoryJumpGetter = contract.resolveCategoryJump
+    local speedGetter = contract.getSpeed
+    local enabledGetter = contract.isEnabled
 
     local function GetSpeed()
         if type(speedGetter) == "function" then
@@ -134,14 +204,11 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
         ethereal = true,
         callback = function()
             if not IsEnabled() then return end
-            local rawList = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
-            local list = GetActualList(rawList)
+            local list = ResolveList(listOrGetter)
             if list and (not list.IsActive or list:IsActive()) then
                 local jumpByCategory = false
-                if type(useCategoryJumpGetter) == "function" then
-                    jumpByCategory = useCategoryJumpGetter()
-                elseif type(useCategoryJumpGetter) == "boolean" then
-                    jumpByCategory = useCategoryJumpGetter
+                if type(categoryJumpGetter) == "function" then
+                    jumpByCategory = categoryJumpGetter() == true
                 end
 
                 if jumpByCategory and list.JumpToPreviousHeader then
@@ -153,19 +220,17 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
             end
         end
     }
+
     local rightTrigger = {
         keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
         ethereal = true,
         callback = function()
             if not IsEnabled() then return end
-            local rawList = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
-            local list = GetActualList(rawList)
+            local list = ResolveList(listOrGetter)
             if list and (not list.IsActive or list:IsActive()) then
                 local jumpByCategory = false
-                if type(useCategoryJumpGetter) == "function" then
-                    jumpByCategory = useCategoryJumpGetter()
-                elseif type(useCategoryJumpGetter) == "boolean" then
-                    jumpByCategory = useCategoryJumpGetter
+                if type(categoryJumpGetter) == "function" then
+                    jumpByCategory = categoryJumpGetter() == true
                 end
 
                 if jumpByCategory and list.JumpToNextHeader then
@@ -177,5 +242,16 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
             end
         end,
     }
+
     return leftTrigger, rightTrigger
+end
+
+--- Public contract uses a single explicit key trigger option contract.
+---@param contract BetterUIListTriggerKeybindContract
+---@return BetterUITriggerKeybindDescriptor
+---@return BetterUITriggerKeybindDescriptor
+function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(contract)
+    assert(type(contract) == "table" and rawget(contract, "list") ~= nil,
+        "CreateListTriggerKeybinds expects BetterUIListTriggerKeybindContract with a list field")
+    return BuildTriggerKeybinds(CoerceListTriggerContract(contract))
 end

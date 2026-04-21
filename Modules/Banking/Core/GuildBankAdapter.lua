@@ -30,8 +30,7 @@ assert(type(DENY.GUILD_PERMISSION) == "string",
 --- Returns true when the current banking interaction is a guild bank.
 ---@return boolean
 function GuildBank.IsGuildBankMode()
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    return transferContext ~= nil and transferContext.isGuildBank == true
+    return BETTERUI.Banking.IsGuildBankTransferMode()
 end
 
 --- Returns the currently selected guild's ID for guild bank operations.

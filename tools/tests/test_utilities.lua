@@ -176,6 +176,11 @@ assert_true(debugMessage:find("BETTERUI") ~= nil, "Debug output contains addon p
 
 print("\n=== Banking Context Helpers ===\n")
 
+assert_nil(BETTERUI.CIM.Utils.GetActiveBankTransferContext,
+    "Banking context forwarding helper is removed from CIM utilities")
+assert_nil(BETTERUI.CIM.Utils.GetBankingTransferSupport,
+    "Banking transfer-support forwarding helper is removed from CIM utilities")
+
 assert_equal(BAG_SUBSCRIBER_BANK, BETTERUI.Banking.GetActiveTransferContext().targetBag,
     "bank target access resolves through the shared banking context seam")
 

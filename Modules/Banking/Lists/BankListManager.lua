@@ -78,22 +78,22 @@ local GetBestItemCategoryDescription = BETTERUI.CIM.SharedItemSupport.GetBestIte
 
 local function ResolveBagsAndSlotType(self)
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
-    local transferSourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
 
     -- Deposit always reads from backpack
     if not isWithdraw then
         return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
     end
 
-    local withdrawSourceBags = BETTERUI.Banking.GetTransferWithdrawSourceBags()
+    local withdrawSourceBags = transferContext.withdrawSourceBags
     if type(withdrawSourceBags) == "table" and #withdrawSourceBags > 0 then
-        local slotType = BETTERUI.Banking.IsGuildBankTransferMode() and SLOT_TYPE_GUILD_BANK_ITEM
+        local slotType = transferContext.isGuildBank and SLOT_TYPE_GUILD_BANK_ITEM
             or SLOT_TYPE_BANK_ITEM
         return withdrawSourceBags, slotType
     end
 
-    if transferSourceBag ~= nil then
-        return { transferSourceBag }, SLOT_TYPE_BANK_ITEM
+    if transferContext.sourceBag ~= nil then
+        return { transferContext.sourceBag }, SLOT_TYPE_BANK_ITEM
     end
 
     return { BAG_BANK, BAG_SUBSCRIBER_BANK }, SLOT_TYPE_BANK_ITEM
@@ -112,10 +112,11 @@ function BETTERUI.Banking.Class:RefreshList()
         return
     end
 
-    local transferSourceBankBag = BETTERUI.Banking.GetTransferSourceBankBag()
-    local isGuildBankActive = BETTERUI.Banking.IsGuildBankTransferMode()
-    local isSourceMainBank = BETTERUI.Banking.IsMainBankTransferSource()
-    local isSourceFurnitureVault = BETTERUI.Banking.IsFurnitureVaultTransferSource()
+    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
+    local transferSourceBankBag = transferContext.sourceBag
+    local isGuildBankActive = transferContext.isGuildBank == true
+    local isSourceMainBank = transferContext.isSourceMainBank == true
+    local isSourceFurnitureVault = transferContext.isSourceFurnitureVault == true
     if self._suppressListUpdates or self.isBatchProcessing then
         return
     end
