@@ -136,6 +136,11 @@ local function readFile(path)
     return content
 end
 
+local function containsTransferSnapshotReader(source)
+    return source:match("GetTransferState%(") ~= nil
+        or source:match("ReadTransferContextSnapshot%(") ~= nil
+end
+
 local function asWindow(window)
     return setmetatable(window, { __index = BETTERUI.Banking.Class })
 end
@@ -144,6 +149,22 @@ print("\n=== Banking contract cleanup tests ===\n")
 
 dofile("Modules/Banking/Core/BankingClass.lua")
 local multiSelectActionsSource = readFile("Modules/Banking/Core/MultiSelectActions.lua")
+
+local defaultGetTransferService = BETTERUI.Banking.GetTransferService
+BETTERUI.Banking.Transfer = nil
+local injectedTransferService = { id = "injected" }
+BETTERUI.Banking.GetTransferService = function()
+    return injectedTransferService
+end
+assertEqual(injectedTransferService, BETTERUI.Banking.ResolveTransferService(),
+    "ResolveTransferService honors injected transfer-service getters without recursing")
+BETTERUI.Banking.GetTransferService = defaultGetTransferService
+BETTERUI.Banking.Transfer = nil
+local defaultTransferService = BETTERUI.Banking.GetTransferService()
+assertTrue(type(defaultTransferService) == "table",
+    "GetTransferService recreates the shared transfer service when state is missing")
+assertEqual(defaultTransferService, BETTERUI.Banking.Transfer,
+    "GetTransferService returns the shared transfer service table")
 
 assertTrue(BETTERUI.Banking.ResolveBankBag == nil, "ResolveBankBag is no longer a public banking helper")
 assertTrue(BETTERUI.Banking.GetTransferContext == nil,
@@ -341,8 +362,8 @@ assertTrue(headerManager:match("function BETTERUI%.Banking%.Class:RebuildHeaderC
 
 assertTrue(multiSelectActionsSource:match("GetTransferContext") == nil,
     "MultiSelectActions no longer reads transfer-context fields directly")
-assertTrue(multiSelectActionsSource:match("GetTransferState%(") ~= nil,
-    "MultiSelectActions resolves one canonical transfer-state snapshot per operation")
+assertTrue(containsTransferSnapshotReader(multiSelectActionsSource),
+    "MultiSelectActions resolves one canonical transfer snapshot per operation")
 assertTrue(multiSelectActionsSource:match("depositTargetBag") ~= nil,
     "MultiSelectActions reads deposit routing from the canonical transfer-state snapshot")
 assertTrue(multiSelectActionsSource:match("ResolveActiveTransferMode") == nil,
@@ -353,8 +374,8 @@ assertTrue(multiSelectActionsSource:match("RequireTransferSupport") == nil,
 local bankListManager = readFile("Modules/Banking/Lists/BankListManager.lua")
 assertTrue(bankListManager:match("GetTransferContext") == nil,
     "BankListManager no longer reads transfer-context fields directly")
-assertTrue(bankListManager:match("GetTransferState%(") ~= nil,
-    "BankListManager resolves one canonical transfer-state snapshot per refresh")
+assertTrue(containsTransferSnapshotReader(bankListManager),
+    "BankListManager resolves one canonical transfer snapshot per refresh")
 assertTrue(bankListManager:match("withdrawSourceBags") ~= nil,
     "BankListManager reads withdraw sources from the canonical transfer-state snapshot")
 assertTrue(bankListManager:match("interactionBag") ~= nil,
@@ -373,8 +394,8 @@ assertTrue(bankListManager:match("BETTERUI%.Inventory%.Class%.InitializeInventor
     "BankListManager no longer reaches through Inventory for row visual setup")
 
 local bankingActions = readFile("Modules/Banking/Actions/BankingActions.lua")
-assertTrue(bankingActions:match("GetTransferState%(") ~= nil and bankingActions:match("sourceIsFurnitureVault") ~= nil,
-    "BankingActions resolves furniture-vault checks through the canonical Banking transfer-state snapshot")
+assertTrue(containsTransferSnapshotReader(bankingActions) and bankingActions:match("sourceIsFurnitureVault") ~= nil,
+    "BankingActions resolves furniture-vault checks through the canonical Banking transfer snapshot")
 assertTrue(bankingActions:match("IsFurnitureVaultTransferSource") == nil,
     "BankingActions no longer depends on the deprecated furniture-vault alias")
 assertTrue(bankingActions:match("RuntimeState%.currentUsedBank") == nil,
@@ -385,8 +406,8 @@ assertTrue(bankingActions:match("GetBankingBag%(") == nil,
 local bankingSceneLifecycle = readFile("Modules/Banking/Scene/BankingSceneLifecycle.lua")
 assertTrue(bankingSceneLifecycle:match("GetTransferContext") == nil,
     "BankingSceneLifecycle no longer reads transfer-context fields directly")
-assertTrue(bankingSceneLifecycle:match("GetTransferState%(") ~= nil,
-    "BankingSceneLifecycle resolves one canonical transfer-state snapshot per scene transition")
+assertTrue(containsTransferSnapshotReader(bankingSceneLifecycle),
+    "BankingSceneLifecycle resolves one canonical transfer snapshot per scene transition")
 assertTrue(bankingSceneLifecycle:match("interactionBag") ~= nil,
     "BankingSceneLifecycle reads active interaction bags from the canonical transfer-state snapshot")
 assertTrue(bankingSceneLifecycle:match("withdrawSourceBags") ~= nil,
@@ -399,8 +420,8 @@ assertTrue(
     "BankingSceneLifecycle writes through the shared Banking runtime-state helpers")
 
 local bankRowSetup = readFile("Modules/Banking/Lists/BankRowSetup.lua")
-assertTrue(bankRowSetup:match("GetTransferState%(") ~= nil,
-    "BankRowSetup resolves selection context through the canonical transfer-state snapshot")
+assertTrue(containsTransferSnapshotReader(bankRowSetup),
+    "BankRowSetup resolves selection context through the canonical transfer snapshot")
 assertTrue(bankRowSetup:match("BETTERUI%.Banking%.ResolveActiveTransferMode") == nil,
     "BankRowSetup no longer reads the shared transfer context bag directly")
 assertTrue(bankRowSetup:match("RuntimeState%.currentUsedBank") == nil,
@@ -409,8 +430,8 @@ assertTrue(bankRowSetup:match("RuntimeState%.currentUsedBank") == nil,
 local currencySelector = readFile("Modules/Banking/Currency/CurrencySelector.lua")
 assertTrue(currencySelector:match("GetTransferContext") == nil,
     "CurrencySelector no longer reads transfer-context fields directly")
-assertTrue(currencySelector:match("GetTransferState%(") ~= nil,
-    "CurrencySelector resolves one canonical transfer-state snapshot for bank-upgrade details")
+assertTrue(containsTransferSnapshotReader(currencySelector),
+    "CurrencySelector resolves one canonical transfer snapshot for bank-upgrade details")
 assertTrue(currencySelector:match("GetBankingBag%(") == nil,
     "CurrencySelector no longer bypasses bank-state helpers via GetBankingBag")
 
@@ -423,8 +444,8 @@ assertTrue(guildBankAdapter:match("local function GetBankingWindow%(") ~= nil,
     "GuildBankAdapter reads banking window through a single local accessor")
 assertTrue(guildBankAdapter:match("local window = BETTERUI%.Banking%.Window") == nil,
     "GuildBankAdapter no longer reads banking window inline at call-sites")
-assertTrue(guildBankAdapter:match("GetTransferState%(") ~= nil,
-    "GuildBankAdapter resolves guild mode from the canonical transfer-state snapshot")
+assertTrue(containsTransferSnapshotReader(guildBankAdapter),
+    "GuildBankAdapter resolves guild mode from the canonical transfer snapshot")
 assertTrue(guildBankAdapter:match("RuntimeState%.currentUsedBank") == nil,
     "GuildBankAdapter no longer reads Banking runtime state directly")
 assertTrue(guildBankAdapter:match("GetBankingBag%(") == nil,

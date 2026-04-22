@@ -33,8 +33,8 @@ local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 
 assert_contains(
     transferActions,
-    "local targetBankBag = transferState.depositTargetBag",
-    "TransferActions resolves transfer destination through the canonical transfer-state snapshot"
+    "local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot",
+    "TransferActions resolves transfer destination through the canonical transfer-context reader"
 )
 
 assert_not_contains(
@@ -69,8 +69,8 @@ assert_contains(
 
 assert_contains(
     transferActions,
-    "local isGuildBankMode = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK",
-    "TransferActions resolves guild-bank mode through the canonical transfer-state snapshot"
+    "local isGuildBankMode = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK",
+    "TransferActions resolves guild-bank mode through the canonical transfer-context snapshot"
 )
 
 assert_not_contains(

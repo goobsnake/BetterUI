@@ -9,13 +9,20 @@ local CurrencySelector = BETTERUI.Banking.CurrencySelector
 
 local BANK_UPGRADE_DETAILS_TOP_SPACING = -20
 
+---@param self BetterUIBankingClass
+---@return table
+local function GetSelectorState(self)
+    self._currencySelectorState = self._currencySelectorState or {}
+    return self._currencySelectorState
+end
+
 ---@return {rows: {stat: string, value: string}[]}? details Bank upgrade details, or nil if not personal bank
 local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
     local BANK_CAPACITY_ICON_SIZE = "90%"
 
-    local transferState = BETTERUI.Banking.GetTransferState()
-    local isMainBankTransfer = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
+    local isMainBankTransfer = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
     if not isMainBankTransfer then
         return nil
     end
@@ -179,11 +186,30 @@ function BETTERUI.Banking.Class:TransferSelectedCurrency(currencyType, amount)
 end
 
 ---@param self BetterUIBankingClass
+---@return integer|nil
+function CurrencySelector.GetActiveCurrencyType(self)
+    return GetSelectorState(self).currencyType
+end
+
+---@param self BetterUIBankingClass
 ---@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
 function CurrencySelector.DisplaySelector(self, currencyType)
+    if currencyType == nil then
+        local selectedData = self.GetList and self:GetList() and self:GetList():GetSelectedData() or nil
+        currencyType = selectedData and selectedData.currencyType or nil
+    end
+    if currencyType == nil then
+        return
+    end
+
+    local selectorState = GetSelectorState(self)
+    selectorState.currencyType = currencyType
+    selectorState.mode = self.currentMode
+
     local currency_max
     local GuildBank = BETTERUI.Banking.GuildBank
     local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
+    selectorState.isGuildBank = isGuildBank == true
 
     if GetMaxCurrencyTransfer then
         local fromLocation
@@ -222,6 +248,11 @@ end
 
 ---@param self BetterUIBankingClass
 function CurrencySelector.HideSelector(self)
+    local selectorState = GetSelectorState(self)
+    selectorState.currencyType = nil
+    selectorState.mode = nil
+    selectorState.isGuildBank = nil
+
     self.selector.control:GetParent():SetHidden(true)
     self.selector:Deactivate()
     self.list:Activate()

@@ -1,6 +1,45 @@
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
+---@return BetterUIBankingTransferContext
+local function ReadTransferContextSnapshot()
+    local banking = BETTERUI.Banking or {}
+    local function TryReader(reader)
+        if type(reader) == "function" then
+            local transferContext = reader()
+            if type(transferContext) == "table" then
+                return transferContext
+            end
+        end
+        return nil
+    end
+
+    local transferContext = TryReader(banking.ReadTransferContextSnapshot)
+        or TryReader(banking.GetTransferContextSnapshot)
+        or TryReader(banking.GetTransferState)
+        or TryReader(banking.GetTransferContext)
+    if transferContext then
+        return transferContext
+    end
+
+    local runtimeState = banking.RuntimeState or {}
+    local sourceBag = runtimeState.currentUsedBank or BAG_BANK
+    local targetBag = runtimeState.currentUsedBank or sourceBag
+    local isGuildBankMode = sourceBag == BAG_GUILDBANK
+    local kind = isGuildBankMode and BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+        or (sourceBag == BAG_BANK and BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+            or BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK)
+
+    return {
+        kind = kind,
+        interactionBag = sourceBag,
+        depositTargetBag = targetBag,
+        withdrawSourceBags = isGuildBankMode and { BAG_GUILDBANK } or { targetBag },
+        sourceIsFurnitureVault = IsFurnitureVault and IsFurnitureVault(sourceBag) or false,
+        targetIsFurnitureVault = IsFurnitureVault and IsFurnitureVault(targetBag) or false,
+    }
+end
+
 ---@return nil
 function BETTERUI.Banking.Class:RefreshItemActions()
     if self.isInHeaderSortMode then
@@ -11,7 +50,7 @@ function BETTERUI.Banking.Class:RefreshItemActions()
 end
 
 function BETTERUI.Banking.Class:IsFurnitureVaultContext()
-    return BETTERUI.Banking.GetTransferState().sourceIsFurnitureVault == true
+    return ReadTransferContextSnapshot().sourceIsFurnitureVault == true
 end
 
 function BETTERUI.Banking.Class:RequestJunkCategoryRefresh(delayMs, preferredCategoryKey)
@@ -199,7 +238,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 table.insert(parametricList, 1, moveMaxAction)
             end
 
-            local isSourceFurnitureVault = BETTERUI.Banking.GetTransferState().sourceIsFurnitureVault == true
+            local isSourceFurnitureVault = ReadTransferContextSnapshot().sourceIsFurnitureVault == true
             local canShowStowAllFurniture = (self.currentMode == LIST_DEPOSIT)
                 and isSourceFurnitureVault
                 and HOUSING_EDITOR_STATE

@@ -25,8 +25,8 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         self.selector:Deactivate()
     end
 
-    local transferState = BETTERUI.Banking.GetTransferState()
-    BETTERUI.Banking.SetRuntimeBankBags(transferState.interactionBag, nil)
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
+    BETTERUI.Banking.SetRuntimeBankBags(transferContext.interactionBag, nil)
 
     -- Guild bank detection: update title and check permissions
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -86,7 +86,11 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
             previousCategoryKey = prevCat and prevCat.key or nil
         end
 
-        if self.RefreshCategoryView then
+        if self.RefreshTransferView then
+            self:RefreshTransferView({
+                preferredCategoryKey = previousCategoryKey,
+            })
+        elseif self.RefreshCategoryView then
             self:RefreshCategoryView({
                 preferredCategoryKey = previousCategoryKey,
             })
@@ -123,7 +127,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         if not BETTERUI.Utils.IsBankingSceneShowing() then return end
         local relevantBags
         if self.currentMode == LIST_WITHDRAW then
-            relevantBags = BETTERUI.Banking.GetTransferState().withdrawSourceBags
+            relevantBags = BETTERUI.Banking.ReadTransferContextSnapshot().withdrawSourceBags
         else
             relevantBags = { BAG_BACKPACK }
         end
@@ -189,8 +193,8 @@ end
 
 --- Scene hidden handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneHidden()
-    local transferState = BETTERUI.Banking.GetTransferState()
-    BETTERUI.Banking.SetRuntimeBankBags(nil, transferState.interactionBag)
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
+    BETTERUI.Banking.SetRuntimeBankBags(nil, transferContext.interactionBag)
     if self.confirmationMode then
         self:UpdateSpinnerConfirmation(false, self.list)
     end

@@ -105,8 +105,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     self.lastPositionsByCategory = {}
 
-    local transferState = BETTERUI.Banking.GetTransferState()
-    BETTERUI.Banking.SetRuntimeBankBags(transferState.interactionBag, nil)
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
+    BETTERUI.Banking.SetRuntimeBankBags(transferContext.interactionBag, nil)
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 

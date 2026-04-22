@@ -3,6 +3,16 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 
 local function ResolveTransferService()
+    local resolveTransferService = BETTERUI.Banking and BETTERUI.Banking.ResolveTransferService or nil
+    if type(resolveTransferService) == "function" then
+        local transferService = resolveTransferService({
+            createIfMissing = false,
+        })
+        if type(transferService) == "table" then
+            return transferService
+        end
+    end
+
     local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
     if type(getTransferService) == "function" then
         local transferService = getTransferService()
@@ -20,17 +30,30 @@ local function ResolveTransferService()
 end
 
 local function RequireTransferService()
+    local requireTransferService = BETTERUI.Banking and BETTERUI.Banking.RequireTransferService or nil
+    if type(requireTransferService) == "function" then
+        local transferService, reason = requireTransferService({
+            "NotifyTransferDenied",
+            "NotifyGuildBankTransferDenied",
+            "CanDepositIntoBank",
+        }, {
+            createIfMissing = false,
+        })
+        if transferService then
+            return transferService
+        end
+        return nil, reason
+    end
+
     local transferService = ResolveTransferService()
     if type(transferService) ~= "table" then
         return nil, "transfer_service_unavailable"
     end
     if type(transferService.NotifyTransferDenied) ~= "function"
         or type(transferService.NotifyGuildBankTransferDenied) ~= "function"
-        or type(transferService.CanDepositIntoBank) ~= "function"
-    then
+        or type(transferService.CanDepositIntoBank) ~= "function" then
         return nil, "transfer_service_incomplete"
     end
-
     return transferService
 end
 
@@ -54,8 +77,8 @@ local function RefreshBankListAfterTransfer(self, delayMs)
             end
             self:SetListUpdatesSuppressed(false)
 
-            if self.RefreshCategoryView then
-                self:RefreshCategoryView({
+            if self.RefreshTransferView then
+                self:RefreshTransferView({
                     preferredCategoryKey = previousCategoryKey,
                 })
                 return
@@ -93,8 +116,10 @@ end
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank(targetBankBag)
     if targetBankBag == nil then
-        local transferState = BETTERUI.Banking.GetTransferState()
-        targetBankBag = transferState and transferState.depositTargetBag or BAG_BANK
+        local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot
+            and BETTERUI.Banking.ReadTransferContextSnapshot()
+            or BETTERUI.Banking.GetTransferState()
+        targetBankBag = transferContext and transferContext.depositTargetBag or BAG_BANK
     end
 
     if targetBankBag == BAG_BANK then
@@ -119,6 +144,11 @@ local function FindEmptySlotInBank(targetBankBag)
 end
 
 local function IsActionableBankSlotEntry(entryData)
+    local isActionableTransferEntry = BETTERUI.Banking and BETTERUI.Banking.IsActionableTransferEntry or nil
+    if type(isActionableTransferEntry) == "function" then
+        return isActionableTransferEntry(entryData)
+    end
+
     if not entryData then
         return false
     end
@@ -156,12 +186,14 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
     end
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    local transferState = BETTERUI.Banking.GetTransferState()
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot
+        and BETTERUI.Banking.ReadTransferContextSnapshot()
+        or BETTERUI.Banking.GetTransferState()
     local transferService, transferServiceReason = RequireTransferService()
     if not transferService then
         return false, transferServiceReason
     end
-    local isGuildBankMode = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    local isGuildBankMode = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
 
     if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
@@ -187,7 +219,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
         return false, "inventory_full"
     end
 
-    local bankingBag = transferState.depositTargetBag
+    local bankingBag = transferContext.depositTargetBag
     if isGuildBankMode then
         local canTransfer, denyReason = transferService.NotifyGuildBankTransferDenied(
             "TryTransferItem:GuildDeposit",
@@ -226,62 +258,50 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
 end
 
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
----@param list table The parametric list to get selected data from
----@param quantity integer? Number of items to move (default 1)
-function BETTERUI.Banking.Class:MoveItem(list, quantity)
-    local selectedData = list and list:GetSelectedData() or nil
-    if not selectedData or not selectedData.bagId or not selectedData.slotIndex then
-        -- Nothing to move (empty list, header row, or currency row)
+local function MaybeRefreshAfterTransfer(self)
+    if not ZO_Dialogs_IsShowingDialog() then
+        RefreshBankListAfterTransfer(self, 100)
+    end
+end
+
+local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIndex, quantity)
+    CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
+    MaybeRefreshAfterTransfer(self)
+end
+
+local function ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex)
+    local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
+    local canTransfer = transferService.NotifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, fromBag,
+        fromBagIndex)
+    if not canTransfer then
         return
     end
-    local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
-    local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
-    local transferState = BETTERUI.Banking.GetTransferState()
-    local transferService, transferServiceReason = RequireTransferService()
-    if not transferService then
-        return false, transferServiceReason
-    end
-    local isDepositing = (self.currentMode == LIST_DEPOSIT)
-    local targetBankBag = transferState.depositTargetBag
-    if quantity == nil then
-        quantity = 1
-    end
 
-    -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
-    local isGuildBank = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
-    if isGuildBank then
-        local bagId = fromBag
-        local slotIndex = fromBagIndex
-        local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
-        local canTransfer = transferService.NotifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, bagId,
-            slotIndex)
-        if not canTransfer then
-            return
-        end
-        if self.currentMode == LIST_WITHDRAW then
-            if GetNumBagFreeSlots(BAG_BACKPACK) > 0 then
-                local soundCategory = GetItemSoundCategory(fromBag, fromBagIndex)
-                PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
-                TransferFromGuildBank(fromBagIndex)
-            else
-                BETTERUI.CIM.UserNotify("TransferActions:GuildWithdraw", SI_INVENTORY_ERROR_INVENTORY_FULL)
-            end
+    if self.currentMode == LIST_WITHDRAW then
+        if GetNumBagFreeSlots(BAG_BACKPACK) > 0 then
+            local soundCategory = GetItemSoundCategory(fromBag, fromBagIndex)
+            PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
+            TransferFromGuildBank(fromBagIndex)
         else
-            if GetNumBagUsedSlots(BAG_GUILDBANK) < GetBagSize(BAG_GUILDBANK) then
-                local soundCategory = GetItemSoundCategory(fromBag, fromBagIndex)
-                PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
-                TransferToGuildBank(fromBag, fromBagIndex)
-            else
-                BETTERUI.CIM.UserNotify("TransferActions:GuildDeposit", SI_INVENTORY_ERROR_BANK_FULL)
-            end
+            BETTERUI.CIM.UserNotify("TransferActions:GuildWithdraw", SI_INVENTORY_ERROR_INVENTORY_FULL)
         end
-        if not ZO_Dialogs_IsShowingDialog() then
-            RefreshBankListAfterTransfer(self, 100)
+    else
+        if GetNumBagUsedSlots(BAG_GUILDBANK) < GetBagSize(BAG_GUILDBANK) then
+            local soundCategory = GetItemSoundCategory(fromBag, fromBagIndex)
+            PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
+            TransferToGuildBank(fromBag, fromBagIndex)
+        else
+            BETTERUI.CIM.UserNotify("TransferActions:GuildDeposit", SI_INVENTORY_ERROR_BANK_FULL)
         end
-        return
     end
 
-    -- Personal/house bank: existing RequestMoveItem logic
+    MaybeRefreshAfterTransfer(self)
+end
+
+local function ExecutePersonalOrHouseMove(self, transferContext, transferService, fromBag, fromBagIndex, fromBagItemLink,
+                                          quantity)
+    local isDepositing = (self.currentMode == LIST_DEPOSIT)
+    local targetBankBag = transferContext.depositTargetBag
     local toBag
     local toBagEmptyIndex
     local toBagIndex
@@ -299,48 +319,82 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 
     if toBagEmptyIndex ~= nil then
-        CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagEmptyIndex, quantity)
-        if not ZO_Dialogs_IsShowingDialog() then
-            RefreshBankListAfterTransfer(self, 100)
-        end
-    else
-        if toBag ~= nil then
-            local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or
-                SI_INVENTORY_ERROR_BANK_FULL
-            toBagIndex = BETTERUI.CIM.Utils.FindStackableSlotInBag(toBag, fromBagItemLink)
-            if toBagIndex then
-                CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
-                if not ZO_Dialogs_IsShowingDialog() then
-                    RefreshBankListAfterTransfer(self, 100)
-                end
-            else
-                BETTERUI.CIM.UserNotify("TransferActions:NoStackSlot", errorStringId)
-            end
-        else
-            local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            if transferState.kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK then
-                banks = { targetBankBag }
-            end
+        RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagEmptyIndex, quantity)
+        return
+    end
 
-            for _, bank in ipairs(banks) do
-                toBagIndex = BETTERUI.CIM.Utils.FindStackableSlotInBag(bank, fromBagItemLink)
-                if toBagIndex then
-                    toBag = bank
-                    break
-                end
-            end
-            if toBagIndex and toBag then
-                CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
-                if not ZO_Dialogs_IsShowingDialog() then
-                    RefreshBankListAfterTransfer(self, 100)
-                end
-            else
-                local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or
-                    SI_INVENTORY_ERROR_BANK_FULL
-                BETTERUI.CIM.UserNotify("TransferActions:NoBankSlot", errorStringId)
-            end
+    if toBag ~= nil then
+        local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or SI_INVENTORY_ERROR_BANK_FULL
+        toBagIndex = BETTERUI.CIM.Utils.FindStackableSlotInBag(toBag, fromBagItemLink)
+        if toBagIndex then
+            RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIndex, quantity)
+        else
+            BETTERUI.CIM.UserNotify("TransferActions:NoStackSlot", errorStringId)
+        end
+        return
+    end
+
+    local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
+    if transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK then
+        banks = { targetBankBag }
+    end
+
+    for _, bank in ipairs(banks) do
+        toBagIndex = BETTERUI.CIM.Utils.FindStackableSlotInBag(bank, fromBagItemLink)
+        if toBagIndex then
+            toBag = bank
+            break
         end
     end
+
+    if toBagIndex and toBag then
+        RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIndex, quantity)
+        return
+    end
+
+    local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or SI_INVENTORY_ERROR_BANK_FULL
+    BETTERUI.CIM.UserNotify("TransferActions:NoBankSlot", errorStringId)
+end
+
+---@param list table The parametric list to get selected data from
+---@param quantity integer? Number of items to move (default 1)
+function BETTERUI.Banking.Class:MoveItem(list, quantity)
+    local selectedData = list and list:GetSelectedData() or nil
+    local resolveListEntrySlot = BETTERUI.Banking and BETTERUI.Banking.ResolveListEntrySlot or nil
+    local fromBag = nil
+    local fromBagIndex = nil
+    if type(resolveListEntrySlot) == "function" then
+        fromBag, fromBagIndex = resolveListEntrySlot(selectedData)
+    elseif selectedData then
+        fromBag = selectedData.bagId
+        fromBagIndex = selectedData.slotIndex
+    end
+
+    if fromBag == nil or fromBagIndex == nil then
+        -- Nothing to move (empty list, header row, or currency row)
+        return
+    end
+
+    local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot
+        and BETTERUI.Banking.ReadTransferContextSnapshot()
+        or BETTERUI.Banking.GetTransferState()
+    local transferService, transferServiceReason = RequireTransferService()
+    if not transferService then
+        return false, transferServiceReason
+    end
+    if quantity == nil then
+        quantity = 1
+    end
+
+    -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
+    local isGuildBank = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    if isGuildBank then
+        ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex)
+        return
+    end
+
+    ExecutePersonalOrHouseMove(self, transferContext, transferService, fromBag, fromBagIndex, fromBagItemLink, quantity)
 end
 
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)

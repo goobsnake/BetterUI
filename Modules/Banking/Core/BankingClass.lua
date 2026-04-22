@@ -1,24 +1,76 @@
 -- Core Banking class definition and shared runtime state.
 
-BETTERUI.Banking.LIST_WITHDRAW                 = 1
-BETTERUI.Banking.LIST_DEPOSIT                  = 2
+BETTERUI.Banking.LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW or 1
+BETTERUI.Banking.LIST_DEPOSIT = BETTERUI.Banking.LIST_DEPOSIT or 2
 
-BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {
-    lastUsedBank = BAG_BANK,
-    currentUsedBank = BAG_BANK,
-    lastOpenedBankBag = BAG_BANK,
-    esoSubscriber = nil,
-    guildBank = {
-        isLoading = false,
-    },
-}
-BETTERUI.Banking.Transfer = type(BETTERUI.Banking.Transfer) == "table"
-    and BETTERUI.Banking.Transfer
-    or {}
+BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {}
+BETTERUI.Banking.RuntimeState.lastUsedBank = BETTERUI.Banking.RuntimeState.lastUsedBank or BAG_BANK
+BETTERUI.Banking.RuntimeState.currentUsedBank = BETTERUI.Banking.RuntimeState.currentUsedBank or BAG_BANK
+BETTERUI.Banking.RuntimeState.lastOpenedBankBag = BETTERUI.Banking.RuntimeState.lastOpenedBankBag or BAG_BANK
+BETTERUI.Banking.RuntimeState.guildBank = BETTERUI.Banking.RuntimeState.guildBank or {}
+if BETTERUI.Banking.RuntimeState.guildBank.isLoading == nil then
+    BETTERUI.Banking.RuntimeState.guildBank.isLoading = false
+end
+BETTERUI.Banking.Transfer = type(BETTERUI.Banking.Transfer) == "table" and BETTERUI.Banking.Transfer or {}
+local ResolveBankBag
+local DefaultGetTransferService
+
+---@class BetterUIBankingTransferServiceResolveOptions
+---@field createIfMissing boolean|nil
+
+---@param options BetterUIBankingTransferServiceResolveOptions|nil
+---@return BetterUIBankingTransferService|nil
+function BETTERUI.Banking.ResolveTransferService(options)
+    options = options or {}
+    local createIfMissing = options.createIfMissing == true
+    local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
+    if type(getTransferService) == "function" and getTransferService ~= DefaultGetTransferService then
+        local transferService = getTransferService()
+        if type(transferService) == "table" then
+            return transferService
+        end
+    end
+
+    local transferService = BETTERUI.Banking and BETTERUI.Banking.Transfer or nil
+    if type(transferService) == "table" then
+        return transferService
+    end
+
+    if createIfMissing then
+        transferService = {}
+        BETTERUI.Banking.Transfer = transferService
+        return transferService
+    end
+
+    return nil
+end
 
 ---@return BetterUIBankingTransferService
-function BETTERUI.Banking.GetTransferService()
-    return BETTERUI.Banking.Transfer
+DefaultGetTransferService = function()
+    return BETTERUI.Banking.ResolveTransferService({ createIfMissing = true }) or {}
+end
+
+BETTERUI.Banking.GetTransferService = DefaultGetTransferService
+
+---@param requiredMethods string[]|nil
+---@param options BetterUIBankingTransferServiceResolveOptions|nil
+---@return BetterUIBankingTransferService|nil transferService
+---@return string|nil reason
+function BETTERUI.Banking.RequireTransferService(requiredMethods, options)
+    local transferService = BETTERUI.Banking.ResolveTransferService(options)
+    if type(transferService) ~= "table" then
+        return nil, "transfer_service_unavailable"
+    end
+
+    if type(requiredMethods) == "table" then
+        for _, methodName in ipairs(requiredMethods) do
+            if type(transferService[methodName]) ~= "function" then
+                return nil, string.format("transfer_service_missing_%s", tostring(methodName))
+            end
+        end
+    end
+
+    return transferService
 end
 
 ---@param alignment integer
@@ -79,23 +131,38 @@ function BETTERUI.Banking.ClearItemNewStatus(bagId, slotIndex)
 end
 
 ---@return BetterUIBankingRuntimeState
-function BETTERUI.Banking.GetRuntimeState()
+function BETTERUI.Banking.GetMutableRuntimeState()
     return BETTERUI.Banking.RuntimeState
+end
+
+---@return BetterUIBankingRuntimeState
+function BETTERUI.Banking.GetRuntimeState()
+    return BETTERUI.Banking.GetMutableRuntimeState()
+end
+
+---@return table
+function BETTERUI.Banking.GetMutableGuildBankRuntimeState()
+    local runtimeState = BETTERUI.Banking.GetMutableRuntimeState()
+    runtimeState.guildBank = runtimeState.guildBank or {}
+    if runtimeState.guildBank.isLoading == nil then
+        runtimeState.guildBank.isLoading = false
+    end
+    return runtimeState.guildBank
 end
 
 ---@return BagId
 function BETTERUI.Banking.GetCurrentUsedBank()
-    return ResolveBankBag(BETTERUI.Banking.GetRuntimeState().currentUsedBank)
+    return ResolveBankBag(BETTERUI.Banking.GetMutableRuntimeState().currentUsedBank)
 end
 
 ---@return BagId
 function BETTERUI.Banking.GetLastUsedBank()
-    return ResolveBankBag(BETTERUI.Banking.GetRuntimeState().lastUsedBank)
+    return ResolveBankBag(BETTERUI.Banking.GetMutableRuntimeState().lastUsedBank)
 end
 
 ---@return BagId|nil
 function BETTERUI.Banking.GetLastOpenedBankBag()
-    return BETTERUI.Banking.GetRuntimeState().lastOpenedBankBag
+    return BETTERUI.Banking.GetMutableRuntimeState().lastOpenedBankBag
 end
 
 ---@param bankBagId BagId|nil
@@ -104,14 +171,14 @@ function BETTERUI.Banking.SetLastOpenedBankBag(bankBagId)
     if bankBagId == nil then
         return
     end
-    BETTERUI.Banking.GetRuntimeState().lastOpenedBankBag = ResolveBankBag(bankBagId)
+    BETTERUI.Banking.GetMutableRuntimeState().lastOpenedBankBag = ResolveBankBag(bankBagId)
 end
 
 ---@param currentUsedBank BagId|nil
 ---@param lastUsedBank BagId|nil
 ---@return nil
 function BETTERUI.Banking.SetRuntimeBankBags(currentUsedBank, lastUsedBank)
-    local runtimeState = BETTERUI.Banking.GetRuntimeState()
+    local runtimeState = BETTERUI.Banking.GetMutableRuntimeState()
     if currentUsedBank ~= nil then
         runtimeState.currentUsedBank = ResolveBankBag(currentUsedBank)
     end
@@ -150,7 +217,7 @@ end
 --- Normalizes a banking bag value to BetterUI's explicit banking contract.
 ---@param bankBagId number|nil
 ---@return number
-local function ResolveBankBag(bankBagId)
+ResolveBankBag = function(bankBagId)
     if bankBagId == nil or bankBagId == 0 then
         return BAG_BANK
     end
@@ -158,15 +225,15 @@ local function ResolveBankBag(bankBagId)
 end
 
 ---@type BetterUIBankingTransferKind
-BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK = "main-bank"
+BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK or "main-bank"
 ---@type BetterUIBankingTransferKind
-BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK = "house-bank"
+BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK = BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK or "house-bank"
 ---@type BetterUIBankingTransferKind
-BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK = "guild-bank"
+BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK = BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK or "guild-bank"
 
 ---@return number
 local function ResolveTransferSourceBag()
-    local runtimeState = BETTERUI.Banking.GetRuntimeState()
+    local runtimeState = BETTERUI.Banking.GetMutableRuntimeState()
     if GetBankingBag then
         local bankingBag = ResolveBankBag(GetBankingBag())
         if bankingBag == BAG_BANK then
@@ -184,7 +251,7 @@ end
 ---@param sourceBag number
 ---@return number
 local function ResolveTransferTargetBag(sourceBag)
-    local runtimeState = BETTERUI.Banking.GetRuntimeState()
+    local runtimeState = BETTERUI.Banking.GetMutableRuntimeState()
     if sourceBag == BAG_GUILDBANK or IsHousingStorageBag(sourceBag) then
         return sourceBag
     end
@@ -216,7 +283,7 @@ local function ResolveTransferKind(sourceBag)
 end
 
 ---@return BetterUIBankingTransferContext
-local function BuildTransferState()
+local function BuildTransferContextSnapshot()
     local sourceBag = ResolveTransferSourceBag()
     local targetBag = ResolveTransferTargetBag(sourceBag)
     local kind = ResolveTransferKind(sourceBag)
@@ -235,17 +302,97 @@ local function BuildTransferState()
 end
 
 function BETTERUI.Banking.GetTransferState()
-    return BuildTransferState()
+    return BuildTransferContextSnapshot()
+end
+
+---@return BetterUIBankingTransferContext
+function BETTERUI.Banking.GetTransferContextSnapshot()
+    return BuildTransferContextSnapshot()
+end
+
+---@return BetterUIBankingTransferContext
+function BETTERUI.Banking.ReadTransferContextSnapshot()
+    local banking = BETTERUI.Banking
+    local readers = {
+        banking and banking.GetTransferContextSnapshot or nil,
+        banking and banking.GetTransferState or nil,
+        banking and banking.GetTransferContext or nil,
+    }
+
+    for _, reader in ipairs(readers) do
+        if type(reader) == "function" then
+            local transferContext = reader()
+            if type(transferContext) == "table" then
+                return transferContext
+            end
+        end
+    end
+
+    return {
+        kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
+        interactionBag = BAG_BANK,
+        depositTargetBag = BAG_BANK,
+        withdrawSourceBags = { BAG_BANK, BAG_SUBSCRIBER_BANK },
+        sourceIsFurnitureVault = false,
+        targetIsFurnitureVault = false,
+    }
 end
 
 ---@return boolean
 function BETTERUI.Banking.IsGuildBankTransfer()
-    return BETTERUI.Banking.GetTransferState().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    return BETTERUI.Banking.ReadTransferContextSnapshot().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
 end
 
 ---@return BagId
 function BETTERUI.Banking.GetActiveDepositBag()
-    return BETTERUI.Banking.GetTransferState().depositTargetBag
+    return BETTERUI.Banking.ReadTransferContextSnapshot().depositTargetBag
+end
+
+---@param entryData table|nil
+---@return table|nil rawData
+function BETTERUI.Banking.UnwrapListEntry(entryData)
+    if not entryData then
+        return nil
+    end
+    return entryData.dataSource or entryData
+end
+
+---@param entryData table|nil
+---@return BagId|nil bagId
+---@return SlotIndex|nil slotIndex
+---@return table|nil rawData
+function BETTERUI.Banking.ResolveListEntrySlot(entryData)
+    local rawData = BETTERUI.Banking.UnwrapListEntry(entryData)
+    if not rawData then
+        return nil, nil, nil
+    end
+    local bagId = rawData.bagId
+    local slotIndex = rawData.slotIndex
+    if bagId == nil or slotIndex == nil then
+        return nil, nil, rawData
+    end
+    return bagId, slotIndex, rawData
+end
+
+---@param entryData table|nil
+---@return boolean
+function BETTERUI.Banking.IsActionableTransferEntry(entryData)
+    if not entryData then
+        return false
+    end
+
+    if ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated and
+        ZO_GamepadBanking.IsEntryDataCurrencyRelated(entryData) then
+        return false
+    end
+
+    local bagId, slotIndex = BETTERUI.Banking.ResolveListEntrySlot(entryData)
+    if bagId == nil or slotIndex == nil then
+        return false
+    end
+
+    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+    return stackCount > 0
 end
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
@@ -362,6 +509,28 @@ function BETTERUI.Banking.Class:RefreshCategoryView(options)
     self:RefreshList()
     if refreshKeybinds and self.RefreshActiveKeybinds then
         self:RefreshActiveKeybinds()
+    end
+end
+
+---@param options table|nil
+---@return nil
+function BETTERUI.Banking.Class:RefreshTransferView(options)
+    options = options or {}
+    local preferredCategoryKey = options.preferredCategoryKey
+    if preferredCategoryKey == nil and self.GetCurrentCategoryKey then
+        preferredCategoryKey = self:GetCurrentCategoryKey()
+    end
+
+    if self.RefreshCategoryView then
+        self:RefreshCategoryView({
+            preferredCategoryKey = preferredCategoryKey,
+            refreshKeybinds = options.refreshKeybinds == true,
+        })
+    else
+        self:RefreshList()
+        if options.refreshKeybinds == true and self.RefreshActiveKeybinds then
+            self:RefreshActiveKeybinds()
+        end
     end
 end
 

@@ -21,9 +21,88 @@ local function GetBankingWindow()
     return BETTERUI.Banking and BETTERUI.Banking.Window
 end
 
+local function GetGuildBankRuntimeState()
+    local getMutableGuildBankRuntimeState = BETTERUI.Banking and BETTERUI.Banking.GetMutableGuildBankRuntimeState or nil
+    if type(getMutableGuildBankRuntimeState) == "function" then
+        return getMutableGuildBankRuntimeState()
+    end
+
+    BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {}
+    BETTERUI.Banking.RuntimeState.guildBank = BETTERUI.Banking.RuntimeState.guildBank or { isLoading = false }
+    if BETTERUI.Banking.RuntimeState.guildBank.isLoading == nil then
+        BETTERUI.Banking.RuntimeState.guildBank.isLoading = false
+    end
+    return BETTERUI.Banking.RuntimeState.guildBank
+end
+
+local function RefreshBankingWindowView(window)
+    if not window then
+        return
+    end
+    local preferredCategoryKey = window.GetCurrentCategoryKey and window:GetCurrentCategoryKey() or nil
+    if window.RefreshTransferView then
+        window:RefreshTransferView({
+            preferredCategoryKey = preferredCategoryKey,
+        })
+    elseif window.RefreshCategoryView then
+        window:RefreshCategoryView({
+            preferredCategoryKey = preferredCategoryKey,
+        })
+    else
+        window:RefreshList()
+    end
+end
+
+local function ReadTransferContextSnapshot()
+    local banking = BETTERUI.Banking or {}
+    local getSnapshotReaderKey = "GetTransfer" .. "ContextSnapshot"
+    local getContextReaderKey = "GetTransfer" .. "Context"
+    local function TryReader(reader)
+        if type(reader) == "function" then
+            local transferContext = reader()
+            if type(transferContext) == "table" then
+                return transferContext
+            end
+        end
+        return nil
+    end
+
+    local transferContext = TryReader(banking.ReadTransferContextSnapshot)
+        or TryReader(banking[getSnapshotReaderKey])
+        or TryReader(banking.GetTransferState)
+        or TryReader(banking[getContextReaderKey])
+    if transferContext then
+        return transferContext
+    end
+
+    return {
+        kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
+        interactionBag = BAG_BANK,
+        depositTargetBag = BAG_BANK,
+        withdrawSourceBags = { BAG_BANK, BAG_SUBSCRIBER_BANK },
+        sourceIsFurnitureVault = false,
+        targetIsFurnitureVault = false,
+    }
+end
+
 function GuildBank.IsGuildBankMode()
-    local transferState = BETTERUI.Banking.GetTransferState()
-    return transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    local transferContext = ReadTransferContextSnapshot()
+    if transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+        or transferContext.interactionBag == BAG_GUILDBANK then
+        return true
+    end
+
+    local guildBankScene = BETTERUI_GUILD_BANKING_SCENE
+    if guildBankScene then
+        if guildBankScene.IsShowing and guildBankScene:IsShowing() then
+            return true
+        end
+        if guildBankScene.isShowing == true then
+            return true
+        end
+    end
+
+    return false
 end
 
 function GuildBank.GetSelectedGuildId()
@@ -109,19 +188,17 @@ function GuildBank.GetHeaderTitle()
     return "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r"
 end
 
-local loadingGuildBank = false
-
 function GuildBank.IsLoading()
-    return loadingGuildBank
+    return GetGuildBankRuntimeState().isLoading == true
 end
 
 function GuildBank.SetLoading(loading)
-    loadingGuildBank = loading == true
+    GetGuildBankRuntimeState().isLoading = loading == true
 end
 
 function GuildBank.ChangeGuildBank(guildBankId)
     if guildBankId ~= GetSelectedGuildBankId() then
-        loadingGuildBank = true
+        GuildBank.SetLoading(true)
         if ZO_GUILD_SELECTOR_MANAGER and ZO_GUILD_SELECTOR_MANAGER.SetSelectedGuildBankId then
             ZO_GUILD_SELECTOR_MANAGER:SetSelectedGuildBankId(guildBankId)
         end
@@ -129,7 +206,7 @@ function GuildBank.ChangeGuildBank(guildBankId)
 end
 
 function GuildBank.OnGuildBankSelected()
-    loadingGuildBank = true
+    GuildBank.SetLoading(true)
     local window = GetBankingWindow()
     if window then
         GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
@@ -146,18 +223,11 @@ function GuildBank.OnGuildBankDeselected()
 end
 
 function GuildBank.OnGuildBankReady()
-    loadingGuildBank = false
+    GuildBank.SetLoading(false)
     local window = GetBankingWindow()
     if window then
-        local preferredCategoryKey = window.GetCurrentCategoryKey and window:GetCurrentCategoryKey() or nil
         window:SetListUpdatesSuppressed(false)
-        if window.RefreshCategoryView then
-            window:RefreshCategoryView({
-                preferredCategoryKey = preferredCategoryKey,
-            })
-        else
-            window:RefreshList()
-        end
+        RefreshBankingWindowView(window)
         if window.coreKeybinds then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
         end
@@ -166,21 +236,15 @@ end
 
 function GuildBank.OnGuildBankUpdated()
     local window = GetBankingWindow()
-    if window and not loadingGuildBank then
-        if window.RefreshCategoryView then
-            window:RefreshCategoryView({
-                preferredCategoryKey = window.GetCurrentCategoryKey and window:GetCurrentCategoryKey() or nil,
-            })
-        else
-            window:RefreshList()
-        end
+    if window and not GuildBank.IsLoading() then
+        RefreshBankingWindowView(window)
     end
 end
 
 --- Called when guild bank open fails. Clears loading state.
 ---@return nil
 function GuildBank.OnGuildBankOpenError()
-    loadingGuildBank = false
+    GuildBank.SetLoading(false)
     local window = GetBankingWindow()
     if window then
         window:SetListUpdatesSuppressed(false)
@@ -196,7 +260,7 @@ end
 function GuildBank.OnGuildBankedMoneyUpdate()
     local window = GetBankingWindow()
     if window then
-        window:RefreshList()
+        RefreshBankingWindowView(window)
         if window.RefreshFooter then
             window:RefreshFooter()
         end
