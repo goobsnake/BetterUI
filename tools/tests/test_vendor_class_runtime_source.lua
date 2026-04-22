@@ -29,7 +29,7 @@ print("test_vendor_class_runtime_source")
 
 local classSource = read_file("Modules/Vendor/Core/VendorClass.lua")
 local safeExecuteSource = read_file("Modules/Vendor/Core/VendorSafeExecute.lua")
-local controllerRuntimeSource = read_file("Modules/Vendor/Core/VendorControllerRuntime.lua")
+local controllerRuntimeSource = read_file("Modules/Vendor/Core/Lifecycle/VendorControllerRuntime.lua")
 local manifestSource = read_file("BetterUI.txt")
 
 assert_contains(safeExecuteSource, "function Vendor.ExecuteSafely(context, fn, ...)",
@@ -42,7 +42,7 @@ assert_contains(classSource, 'local VendorModePolicy = assert(Vendor.ModePolicy,
     "VendorClass requires the shared vendor mode-policy collaborator")
 assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorSafeExecute.lua",
     "Vendor manifest loads the shared safe-execute helper before VendorClass")
-assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorControllerRuntime.lua",
+assert_contains(manifestSource, "Modules\\Vendor\\Core\\Lifecycle\\VendorControllerRuntime.lua",
     "Vendor manifest loads the controller runtime collaborator before VendorClass")
 
 assert_contains(controllerRuntimeSource, "function ControllerRuntime.ToggleBuySellMode(instance, deps)",
@@ -68,6 +68,10 @@ assert_not_contains(classSource, "BETTERUI.Vendor.BuildActiveModeSet",
     "VendorClass no longer reaches through the root vendor table for mode-set helpers")
 assert_not_contains(classSource, "BETTERUI.Vendor.IsSellBuybackOnlyModeSet",
     "VendorClass no longer reaches through the root vendor table for sell/buyback helper state")
+assert_not_contains(classSource, "Vendor.GetModeModuleKey = GetVendorModeModuleKey",
+    "VendorClass keeps mode-module-key wiring private instead of exposing duplicate root helpers")
+assert_not_contains(classSource, "Vendor.ResolveModePaneRole = ResolveModePaneRole",
+    "VendorClass keeps pane-role resolver private instead of exposing duplicate root helpers")
 assert_contains(classSource, "getModeModuleKey = GetVendorModeModuleKey,",
     "VendorClass supplies mode position keys through the controller runtime contract")
 assert_contains(classSource, "getCategoryKey = GetVendorCategoryKey,",

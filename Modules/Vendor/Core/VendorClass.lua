@@ -732,8 +732,7 @@ BETTERUI.Vendor.Class.SEARCH_LIFECYCLE = SEARCH_LIFECYCLE
 ---@param ... any Arguments forwarded to GenericWindow:New
 ---@return BETTERUI.Vendor.Class
 function BETTERUI.Vendor.Class:New(...)
-    local obj = BETTERUI.CIM.GenericWindow.New(self, ...)
-    return obj --[[@as BETTERUI.Vendor.Class]]
+    return BETTERUI.CIM.GenericWindow.New(self, ...) --[[@as BETTERUI.Vendor.Class]]
 end
 
 ---@return boolean showing True if the vendor scene is currently showing
@@ -1146,9 +1145,6 @@ local function GetVendorModeModuleKey(mode)
     return "Vendor"
 end
 
-Vendor.GetModeModuleKey = GetVendorModeModuleKey
-Vendor.ResolveModePaneRole = ResolveModePaneRole
-
 ---@param self BETTERUI.Vendor.Class
 ---@return string categoryKey PositionManager category key for the active category
 local function GetVendorCategoryKey(self)
@@ -1193,10 +1189,7 @@ function BETTERUI.Vendor.Class:ClearSearchInput()
     end
 end
 
----@return nil
-function BETTERUI.Vendor.Class:ClearTextSearch()
-    self:ClearSearchInput()
-end
+BETTERUI.Vendor.Class.ClearTextSearch = BETTERUI.Vendor.Class.ClearSearchInput
 
 --- Checks whether search/header focus is active.
 ---@return boolean focused
@@ -1207,10 +1200,7 @@ function BETTERUI.Vendor.Class:IsHeaderFocused()
     return self._searchModeActive == true
 end
 
----@return boolean active
-function BETTERUI.Vendor.Class:IsHeaderActive()
-    return self:IsHeaderFocused()
-end
+BETTERUI.Vendor.Class.IsHeaderActive = BETTERUI.Vendor.Class.IsHeaderFocused
 
 --- Requests focus for the search header.
 ---@return nil
@@ -1222,10 +1212,7 @@ function BETTERUI.Vendor.Class:RequestHeaderFocus()
     end
 end
 
----@return nil
-function BETTERUI.Vendor.Class:RequestEnterHeader()
-    self:RequestHeaderFocus()
-end
+BETTERUI.Vendor.Class.RequestEnterHeader = BETTERUI.Vendor.Class.RequestHeaderFocus
 
 --- Repositions the search control under the header title.
 ---@return nil
@@ -1336,10 +1323,7 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     end
 end
 
----@return nil
-function BETTERUI.Vendor.Class:LeaveSearchMode()
-    self:ExitSearchMode()
-end
+BETTERUI.Vendor.Class.LeaveSearchMode = BETTERUI.Vendor.Class.ExitSearchMode
 
 --- Handles search focus loss.
 ---@return nil
@@ -1347,10 +1331,7 @@ function BETTERUI.Vendor.Class:OnSearchFocusLost()
     self:ExitSearchMode()
 end
 
----@return nil
-function BETTERUI.Vendor.Class:ExitSearchFocus()
-    self:OnSearchFocusLost()
-end
+BETTERUI.Vendor.Class.ExitSearchFocus = BETTERUI.Vendor.Class.OnSearchFocusLost
 
 --- Callback when navigating from list into header/search.
 ---@return nil
@@ -1380,10 +1361,7 @@ function BETTERUI.Vendor.Class:OnHeaderEntered()
     end
 end
 
----@return nil
-function BETTERUI.Vendor.Class:OnEnterHeader()
-    self:OnHeaderEntered()
-end
+BETTERUI.Vendor.Class.OnEnterHeader = BETTERUI.Vendor.Class.OnHeaderEntered
 
 --- Handles text updates from search edit box callbacks.
 ---@param searchText string

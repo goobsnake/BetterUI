@@ -194,7 +194,7 @@ local function BuildStoreManager()
     end
 end
 
-dofile("Modules/Vendor/Core/VendorNativeStoreBridge.lua")
+dofile("Modules/Vendor/Core/Bridge/VendorNativeStoreBridge.lua")
 local NativeStoreBridge = BETTERUI.Vendor.NativeStoreBridge
 
 do

@@ -309,20 +309,20 @@ BETTERUI.Vendor.NativeStoreBridge = {
     RestoreSceneAlias = function()
         nativeBridgeLog.restore = nativeBridgeLog.restore + 1
     end,
-    EnsureComponents = function(_, context)
+    EnsureComponents = function(context)
         table.insert(nativeBridgeLog.ensure, context)
     end,
     ResolveTargetMode = function()
         nativeBridgeLog.resolved = nativeBridgeLog.resolved + 1
         return BETTERUI.Vendor.MODE.SELL
     end,
-    ApplyResolvedMode = function(_, mode, refreshList)
+    ApplyResolvedMode = function(mode, refreshList)
         table.insert(nativeBridgeLog.applied, {
             mode = mode,
             refreshList = refreshList,
         })
     end,
-    ScheduleOpenStoreSync = function(_, mode, delayMs)
+    ScheduleOpenStoreSync = function(mode, delayMs)
         table.insert(nativeBridgeLog.scheduled, {
             mode = mode,
             delayMs = delayMs,
@@ -340,8 +340,8 @@ BETTERUI.CIM.Runner = {
 
 -- Use real interaction runtime so open/fence/close flows are exercised end-to-end.
 dofile("Modules/Vendor/Core/VendorSafeExecute.lua")
-dofile("Modules/Vendor/Core/VendorEventBridge.lua")
-dofile("Modules/Vendor/Core/VendorInteractionRuntime.lua")
+dofile("Modules/Vendor/Core/Lifecycle/VendorEventBridge.lua")
+dofile("Modules/Vendor/Core/Lifecycle/VendorInteractionRuntime.lua")
 dofile("Modules/Vendor/Vendor.lua")
 
 -- Vendor init-time collaborators required after loading root table.

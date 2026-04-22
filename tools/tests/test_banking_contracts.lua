@@ -161,16 +161,19 @@ assertEqual(injectedTransferService, BETTERUI.Banking.ResolveTransferService(),
 BETTERUI.Banking.GetTransferService = defaultGetTransferService
 BETTERUI.Banking.Transfer = nil
 local defaultTransferService = BETTERUI.Banking.GetTransferService()
+assertEqual(nil, defaultTransferService,
+    "GetTransferService does not create the shared transfer service as a read-only accessor")
+defaultTransferService = BETTERUI.Banking.EnsureTransferService()
 assertTrue(type(defaultTransferService) == "table",
-    "GetTransferService recreates the shared transfer service when state is missing")
+    "EnsureTransferService recreates the shared transfer service when state is missing")
 assertEqual(defaultTransferService, BETTERUI.Banking.Transfer,
-    "GetTransferService returns the shared transfer service table")
+    "EnsureTransferService returns the shared transfer service table")
 
 assertTrue(BETTERUI.Banking.ResolveBankBag == nil, "ResolveBankBag is no longer a public banking helper")
 assertTrue(BETTERUI.Banking.GetTransferContext == nil,
     "GetTransferContext compatibility alias has been retired")
-assertTrue(multiSelectActionsSource:match("BETTERUI%.Banking%.Transfer%s*=") ~= nil,
-    "MultiSelectActions initializes the dedicated Banking transfer service")
+assertTrue(multiSelectActionsSource:match("BETTERUI%.Banking%.EnsureTransferService") ~= nil,
+    "MultiSelectActions initializes the dedicated Banking transfer service through the owned Banking seam")
 assertTrue(multiSelectActionsSource:match("TransferRules") == nil,
     "MultiSelectActions no longer republishes the transfer service under the TransferRules alias")
 assertTrue(

@@ -58,8 +58,7 @@ BETTERUI.TradingHouse.Class = BETTERUI.CIM.GenericWindow:Subclass()
 ---@param ... any Arguments forwarded to GenericWindow:New
 ---@return BETTERUI.TradingHouse.Class
 function BETTERUI.TradingHouse.Class:New(...)
-    local obj = BETTERUI.CIM.GenericWindow.New(self, ...)
-    return obj --[[@as BETTERUI.TradingHouse.Class]]
+    return BETTERUI.CIM.GenericWindow.New(self, ...) --[[@as BETTERUI.TradingHouse.Class]]
 end
 
 ---@return boolean showing True if the trading house scene is currently showing

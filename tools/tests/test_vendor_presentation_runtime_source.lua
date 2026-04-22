@@ -85,7 +85,7 @@ ITEM_PREVIEW_GAMEPAD = {
     end,
 }
 
-dofile("Modules/Vendor/Core/VendorPresentationRuntime.lua")
+dofile("Modules/Vendor/Core/Presentation/VendorPresentationRuntime.lua")
 
 local Runtime = BETTERUI.Vendor.PresentationRuntime
 

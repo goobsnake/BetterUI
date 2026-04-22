@@ -16,8 +16,8 @@ BETTERUI.Writs.CONST = {
     -- Patterns used to match quest names to crafting types.
     -- Each entry: {pattern = "substring", craftType = CRAFTING_TYPE_XXX}
     --
-    -- LOCALIZATION: Patterns are now keyed by language code ("en", "de", "fr").
-    -- Use GetAllPatterns() or GetLocalizedPatterns() to retrieve.
+    -- LOCALIZATION: Patterns are keyed by language code ("en", "de", "fr").
+    -- Use GetLocalizedPatterns() to retrieve the current language set.
     --
     -- Order matters: patterns are checked in order, last match wins.
     PATTERNS_LOCALIZED = {
@@ -49,18 +49,6 @@ BETTERUI.Writs.CONST = {
             {pattern = "alchimiste", craftType = CRAFTING_TYPE_ALCHEMY},
             {pattern = "joaillerie", craftType = CRAFTING_TYPE_JEWELRYCRAFTING},
         }
-    },
-
-    -- Fallback for legacy calls (defaults to English)
-    PATTERNS = {
-        {pattern = "blacksmith", craftType = CRAFTING_TYPE_BLACKSMITHING},
-        {pattern = "cloth",      craftType = CRAFTING_TYPE_CLOTHIER},
-        {pattern = "woodwork",   craftType = CRAFTING_TYPE_WOODWORKING},
-        {pattern = "enchant",    craftType = CRAFTING_TYPE_ENCHANTING},
-        {pattern = "provision",  craftType = CRAFTING_TYPE_PROVISIONING},
-        {pattern = "alchemist",  craftType = CRAFTING_TYPE_ALCHEMY},
-        {pattern = "jewelry",    craftType = CRAFTING_TYPE_JEWELRYCRAFTING},
-        {pattern = "witches",    craftType = CRAFTING_TYPE_PROVISIONING},
     }
 }
 
@@ -68,5 +56,5 @@ BETTERUI.Writs.CONST = {
 ---@return table patterns Array of {pattern=string, craftType=number} entries
 function BETTERUI.Writs.CONST.GetLocalizedPatterns()
     local lang = GetCVar("language.2") or "en"
-    return BETTERUI.Writs.CONST.PATTERNS_LOCALIZED[lang] or BETTERUI.Writs.CONST.PATTERNS_LOCALIZED["en"]
+    return BETTERUI.Writs.CONST.PATTERNS_LOCALIZED[lang] or {}
 end

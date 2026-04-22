@@ -184,8 +184,8 @@ ZO_ColorDef = {
     end,
 }
 
-dofile("Modules/Vendor/Core/VendorModePolicy.lua")
-dofile("Modules/Vendor/Core/VendorSelectionRuntime.lua")
+dofile("Modules/Vendor/Core/Policy/VendorModePolicy.lua")
+dofile("Modules/Vendor/Core/Presentation/VendorSelectionRuntime.lua")
 
 Vendor.GetModeDescriptor = function(mode)
     local descriptors = {
@@ -304,7 +304,7 @@ do
     assert_eq(soldItems[1].stackSize, 3, "sell vengeance primary action uses live stack size")
 end
 
-dofile("Modules/Vendor/Core/VendorRowSetup.lua")
+dofile("Modules/Vendor/Core/List/VendorRowSetup.lua")
 
 do
     local progressBar = {

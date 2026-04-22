@@ -9,7 +9,7 @@ local CurrencySelector = BETTERUI.Banking.CurrencySelector
 
 local BANK_UPGRADE_DETAILS_TOP_SPACING = -20
 
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@return table
 local function GetSelectorState(self)
     self._currencySelectorState = self._currencySelectorState or {}
@@ -93,7 +93,7 @@ local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
     tooltip:AddSection(detailsMainSection)
 end
 
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@return nil
 function CurrencySelector.RefreshCurrencyTooltip(self)
     if not BETTERUI.Utils.IsBankingSceneShowing() then return end
@@ -185,13 +185,13 @@ function BETTERUI.Banking.Class:TransferSelectedCurrency(currencyType, amount)
     end
 end
 
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@return integer|nil
 function CurrencySelector.GetActiveCurrencyType(self)
     return GetSelectorState(self).currencyType
 end
 
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
 function CurrencySelector.DisplaySelector(self, currencyType)
     if currencyType == nil then
@@ -246,7 +246,7 @@ function CurrencySelector.DisplaySelector(self, currencyType)
     end
 end
 
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 function CurrencySelector.HideSelector(self)
     local selectorState = GetSelectorState(self)
     selectorState.currencyType = nil

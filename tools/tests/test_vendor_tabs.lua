@@ -91,7 +91,7 @@ local FENCE_TABS = BuildTabs({
     MODE.FENCE_LAUNDER,
 })
 
-dofile("Modules/Vendor/Core/VendorModePolicy.lua")
+dofile("Modules/Vendor/Core/Policy/VendorModePolicy.lua")
 
 Vendor.GetModeDescriptor = function(mode)
     local descriptors = {

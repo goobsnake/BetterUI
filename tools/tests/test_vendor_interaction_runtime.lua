@@ -20,7 +20,7 @@ BETTERUI = {
     Vendor = {},
 }
 
-dofile("Modules/Vendor/Core/VendorInteractionRuntime.lua")
+dofile("Modules/Vendor/Core/Lifecycle/VendorInteractionRuntime.lua")
 
 local InteractionRuntime = BETTERUI.Vendor.InteractionRuntime
 
@@ -104,17 +104,17 @@ local function BuildBridge(log)
         AliasSceneToBetterUI = function()
             log[#log + 1] = "alias-scene"
         end,
-        EnsureComponents = function(_, context)
+        EnsureComponents = function(context)
             log[#log + 1] = "ensure-components:" .. tostring(context)
         end,
         ResolveTargetMode = function()
             log[#log + 1] = "resolve-target-mode"
             return 42
         end,
-        ApplyResolvedMode = function(_, mode, refreshList)
+        ApplyResolvedMode = function(mode, refreshList)
             log[#log + 1] = string.format("apply-mode:%s:%s", tostring(mode), tostring(refreshList))
         end,
-        ScheduleOpenStoreSync = function(_, mode, delayMs)
+        ScheduleOpenStoreSync = function(mode, delayMs)
             log[#log + 1] = string.format("schedule-sync:%s:%s", tostring(mode), tostring(delayMs))
         end,
     }
@@ -235,9 +235,20 @@ do
             end,
             cancelRuntimeTasks = function()
             end,
+            restoreSceneAlias = function()
+            end,
             hideScene = function()
             end,
             aliasSceneToBetterUI = function()
+            end,
+            ensureComponents = function()
+            end,
+            resolveTargetMode = function()
+                return nil
+            end,
+            applyResolvedMode = function()
+            end,
+            scheduleOpenStoreSync = function()
             end,
             runCloseCleanup = function()
             end,
@@ -251,49 +262,24 @@ do
 
     BETTERUI.Vendor.ExecuteSafely = originalSafeExecute
 
-    assert_true(table.concat(calls, ","):find("safe-context:Vendor.OnCloseStore:NativeOnHide", 1, true) ~= nil,
+    assert_true(table.concat(calls, ","):find("safe-context:Vendor.CloseStore:NativeOnHide", 1, true) ~= nil,
         "close-store fallback safe call preserves context when runtime safe-call dependency is absent")
 end
 
 do
-    local calls = {}
-    local runtime = BuildRuntime(calls)
-    local bridge = BuildBridge(calls)
-    local instance = {
-        ReleaseNativeStoreInputOwnership = function()
-            calls[#calls + 1] = "release-native-input"
-        end,
-    }
-
-    InteractionRuntime.OnOpenStore({
-        runtime = runtime,
-        nativeStoreBridge = bridge,
-        instance = instance,
-        options = {
-            interactionType = 10,
-            interactionVendor = 10,
-            interactionStable = 20,
-        },
-    })
-
-    assert_true(table.concat(calls, ","):find("show-scene", 1, true) ~= nil,
-        "legacy OnOpenStore alias delegates through the canonical request runtime path")
-end
-
-do
     local openStoreOk = pcall(function()
-        InteractionRuntime.OnOpenStore("invalid")
+        InteractionRuntime.OpenStore("invalid")
     end)
     local openFenceOk = pcall(function()
-        InteractionRuntime.OnOpenFence("invalid")
+        InteractionRuntime.OpenFence("invalid")
     end)
     local closeStoreOk = pcall(function()
-        InteractionRuntime.OnCloseStore("invalid")
+        InteractionRuntime.CloseStore("invalid")
     end)
 
-    assert_eq(openStoreOk, false, "OnOpenStore rejects non-table requests")
-    assert_eq(openFenceOk, false, "OnOpenFence rejects non-table requests")
-    assert_eq(closeStoreOk, false, "OnCloseStore rejects non-table requests")
+    assert_eq(openStoreOk, false, "OpenStore rejects non-table requests")
+    assert_eq(openFenceOk, false, "OpenFence rejects non-table requests")
+    assert_eq(closeStoreOk, false, "CloseStore rejects non-table requests")
 end
 
 print("test_vendor_interaction_runtime.lua: PASS")

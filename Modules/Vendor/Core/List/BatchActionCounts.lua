@@ -1,4 +1,4 @@
--- Modules/Vendor/Core/BatchActionCounts.lua
+-- Modules/Vendor/Core/List/BatchActionCounts.lua
 -- Shared helper for vendor batch-action eligibility counts and labels.
 
 local Vendor = BETTERUI.Vendor

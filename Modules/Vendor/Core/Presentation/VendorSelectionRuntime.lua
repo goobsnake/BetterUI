@@ -1,5 +1,5 @@
 --[[
-File: Modules/Vendor/Core/VendorSelectionRuntime.lua
+File: Modules/Vendor/Core/Presentation/VendorSelectionRuntime.lua
 Purpose: Shared Vendor selection/preview runtime so selection branches and
          preview toggles stay testable without re-bootstraping the full scene.
 ]]

@@ -29,7 +29,7 @@ end
 print("[Vendor stable progress source integration]")
 
 local stableTrainingComponentLua = read_file("Modules/Vendor/Components/StableTrainingComponent.lua")
-local rowSetupLua = read_file("Modules/Vendor/Core/VendorRowSetup.lua")
+local rowSetupLua = read_file("Modules/Vendor/Core/List/VendorRowSetup.lua")
 local templatesXml = read_file("Modules/CIM/Templates/SharedTemplates.xml")
 
 assert_contains(templatesXml, "BETTERUI_GamepadStableTrainingEntryTemplate", "stable training template is defined")

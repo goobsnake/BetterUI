@@ -42,36 +42,16 @@ local function IsActionableListEntry(entryData)
 end
 
 ---@return BetterUIBankingTransferContext
-local function GetTransferContext()
-    local banking = BETTERUI.Banking or {}
-    local function TryReader(reader)
-        if type(reader) == "function" then
-            local transferContext = reader()
-            if type(transferContext) == "table" then
-                return transferContext
-            end
-        end
-        return nil
+local function ReadTransferContextSnapshot()
+    local readTransferContextSnapshot = BETTERUI.Banking and BETTERUI.Banking.ReadTransferContextSnapshot or nil
+    if type(readTransferContextSnapshot) == "function" then
+        return readTransferContextSnapshot()
     end
-
-    local transferContext = TryReader(banking.ReadTransferContextSnapshot)
-        or TryReader(banking.GetTransferContextSnapshot)
-        or TryReader(banking.GetTransferState)
-        or TryReader(banking.GetTransferContext)
-    if transferContext then
-        return transferContext
-    end
-
-    local guildBank = banking.GuildBank or nil
-    local isGuildBankMode = guildBank and guildBank.IsGuildBankMode and guildBank.IsGuildBankMode() == true
-    local interactionBag = banking.GetActiveInteractionBag and banking.GetActiveInteractionBag() or BAG_BANK
-    local depositTargetBag = banking.GetActiveDepositBag and banking.GetActiveDepositBag() or interactionBag
-
     return {
-        kind = isGuildBankMode and BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK or BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
-        interactionBag = interactionBag,
-        depositTargetBag = depositTargetBag,
-        withdrawSourceBags = isGuildBankMode and { BAG_GUILDBANK } or { BAG_BANK, BAG_SUBSCRIBER_BANK },
+        kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
+        interactionBag = BAG_BANK,
+        depositTargetBag = BAG_BANK,
+        withdrawSourceBags = { BAG_BANK, BAG_SUBSCRIBER_BANK },
         sourceIsFurnitureVault = false,
         targetIsFurnitureVault = false,
     }
@@ -99,28 +79,6 @@ local function IsSelectionToggleMode(self)
     return self.multiSelectManager and self.multiSelectManager:IsActive() or false
 end
 
-local function ResolveTransferService()
-    local resolveTransferService = BETTERUI.Banking and BETTERUI.Banking.ResolveTransferService or nil
-    if type(resolveTransferService) == "function" then
-        local transferService = resolveTransferService({
-            createIfMissing = false,
-        })
-        if type(transferService) == "table" then
-            return transferService
-        end
-    end
-
-    local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
-    if type(getTransferService) == "function" then
-        local transferService = getTransferService()
-        if type(transferService) == "table" then
-            return transferService
-        end
-    end
-
-    return BETTERUI.Banking and BETTERUI.Banking.Transfer or nil
-end
-
 local ResolveGuildBankTransferKeybindState
 
 ---@param self BETTERUI.Banking.Class
@@ -128,7 +86,7 @@ local ResolveGuildBankTransferKeybindState
 ---@return boolean isGuildBankMode
 ---@return boolean isMainBankContext
 local function ResolveKeybindTransferContext(self)
-    local transferContext = GetTransferContext()
+    local transferContext = ReadTransferContextSnapshot()
     local isGuildBankMode = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local isMainBankContext = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
         and transferContext.interactionBag == BAG_BANK
@@ -336,7 +294,7 @@ local function CreateCoreNavigationKeybinds(self)
                 if self:IsBatchProcessing() then
                     return
                 end
-                local transferContext = GetTransferContext()
+                local transferContext = ReadTransferContextSnapshot()
                 local transferSourceBankBag = transferContext.interactionBag or BAG_BANK
                 if self.currentMode == LIST_WITHDRAW then
                     if transferSourceBankBag == BAG_BANK then
@@ -448,10 +406,6 @@ local function CreateCurrencySelectorKeybinds(self)
                     return
                 end
                 local _, isGuildBankMode = ResolveKeybindTransferContext(self)
-                if not isGuildBankMode then
-                    local guildBank = BETTERUI.Banking and BETTERUI.Banking.GuildBank or nil
-                    isGuildBankMode = guildBank and guildBank.IsGuildBankMode and guildBank.IsGuildBankMode() == true
-                end
                 if isGuildBankMode then
                     if self.currentMode == LIST_WITHDRAW then
                         TransferCurrency(currencyType, amount, CURRENCY_LOCATION_GUILD_BANK, CURRENCY_LOCATION_CHARACTER)
@@ -527,7 +481,7 @@ ResolveGuildBankTransferKeybindState = function(self)
         return true, nil
     end
 
-    local transferService = ResolveTransferService()
+    local transferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService and BETTERUI.Banking.GetTransferService()
     local resolveDecision = transferService and transferService.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
         return true, nil

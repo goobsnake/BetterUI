@@ -359,8 +359,7 @@ end
 ---@param ... any Arguments forwarded to ZO_GamepadInventoryList.New
 ---@return BETTERUI.Inventory.List object New list instance
 function BETTERUI.Inventory.List:New(...)
-    local object = ZO_GamepadInventoryList.New(self, ...)
-    return object
+    return ZO_GamepadInventoryList.New(self, ...)
 end
 
 ---@class BetterUIInventoryListInitOptions

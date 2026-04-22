@@ -41,7 +41,7 @@ function zo_strformat(fmt, a, b)
     return tostring(fmt or "")
 end
 
-dofile("Modules/Vendor/Core/BatchActionCounts.lua")
+dofile("Modules/Vendor/Core/List/BatchActionCounts.lua")
 
 local Counts = BETTERUI.Vendor.BatchActionCounts
 local MODE = BETTERUI.Vendor.MODE

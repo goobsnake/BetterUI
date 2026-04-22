@@ -1,5 +1,5 @@
 --[[
-File: Modules/Vendor/Core/VendorRowSetup.lua
+File: Modules/Vendor/Core/List/VendorRowSetup.lua
 Purpose: Row setup callback for vendor list entries.
          Handles both bag-based items (sell/repair/fence) and store-based items (buy/buyback).
          Populates columns: ItemType, Trait, Stat, Value with vendor-appropriate data.

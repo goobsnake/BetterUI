@@ -35,46 +35,11 @@ local function GetGuildBankRuntimeState()
     return BETTERUI.Banking.RuntimeState.guildBank
 end
 
-local function RefreshBankingWindowView(window)
-    if not window then
-        return
-    end
-    local preferredCategoryKey = window.GetCurrentCategoryKey and window:GetCurrentCategoryKey() or nil
-    if window.RefreshTransferView then
-        window:RefreshTransferView({
-            preferredCategoryKey = preferredCategoryKey,
-        })
-    elseif window.RefreshCategoryView then
-        window:RefreshCategoryView({
-            preferredCategoryKey = preferredCategoryKey,
-        })
-    else
-        window:RefreshList()
-    end
-end
-
 local function ReadTransferContextSnapshot()
-    local banking = BETTERUI.Banking or {}
-    local getSnapshotReaderKey = "GetTransfer" .. "ContextSnapshot"
-    local getContextReaderKey = "GetTransfer" .. "Context"
-    local function TryReader(reader)
-        if type(reader) == "function" then
-            local transferContext = reader()
-            if type(transferContext) == "table" then
-                return transferContext
-            end
-        end
-        return nil
+    local readTransferContextSnapshot = BETTERUI.Banking and BETTERUI.Banking.ReadTransferContextSnapshot or nil
+    if type(readTransferContextSnapshot) == "function" then
+        return readTransferContextSnapshot()
     end
-
-    local transferContext = TryReader(banking.ReadTransferContextSnapshot)
-        or TryReader(banking[getSnapshotReaderKey])
-        or TryReader(banking.GetTransferState)
-        or TryReader(banking[getContextReaderKey])
-    if transferContext then
-        return transferContext
-    end
-
     return {
         kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
         interactionBag = BAG_BANK,
@@ -227,7 +192,7 @@ function GuildBank.OnGuildBankReady()
     local window = GetBankingWindow()
     if window then
         window:SetListUpdatesSuppressed(false)
-        RefreshBankingWindowView(window)
+        BETTERUI.Banking.RefreshWindowView(window)
         if window.coreKeybinds then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
         end
@@ -237,7 +202,7 @@ end
 function GuildBank.OnGuildBankUpdated()
     local window = GetBankingWindow()
     if window and not GuildBank.IsLoading() then
-        RefreshBankingWindowView(window)
+        BETTERUI.Banking.RefreshWindowView(window)
     end
 end
 
@@ -260,7 +225,7 @@ end
 function GuildBank.OnGuildBankedMoneyUpdate()
     local window = GetBankingWindow()
     if window then
-        RefreshBankingWindowView(window)
+        BETTERUI.Banking.RefreshWindowView(window)
         if window.RefreshFooter then
             window:RefreshFooter()
         end

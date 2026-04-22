@@ -137,6 +137,16 @@ BETTERUI = {
         GetTransferState = function()
             return BETTERUI.Banking.GetTransferContext()
         end,
+        ReadTransferContextSnapshot = function()
+            return BETTERUI.Banking.GetTransferContext()
+        end,
+        EnsureTransferService = function()
+            BETTERUI.Banking.Transfer = BETTERUI.Banking.Transfer or {}
+            return BETTERUI.Banking.Transfer
+        end,
+        GetTransferService = function()
+            return BETTERUI.Banking.Transfer
+        end,
         IsGuildBankTransfer = function()
             return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
         end,

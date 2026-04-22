@@ -80,7 +80,7 @@ end
 SI_GAMEPAD_INVENTORY_EMPTY = "EMPTY"
 SI_BETTERUI_SEARCH_NO_RESULTS = "NO_RESULTS"
 
-dofile("Modules/Vendor/Core/VendorControllerRuntime.lua")
+dofile("Modules/Vendor/Core/Lifecycle/VendorControllerRuntime.lua")
 
 local ControllerRuntime = BETTERUI.Vendor.ControllerRuntime
 local MODE = BETTERUI.Vendor.MODE

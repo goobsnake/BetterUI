@@ -1,5 +1,5 @@
 --[[
-File: Modules/Vendor/Core/VendorEventBridge.lua
+File: Modules/Vendor/Core/Lifecycle/VendorEventBridge.lua
 Purpose: Centralize vendor event registration so Vendor.lua owns handlers, not registration plumbing.
 ]]
 

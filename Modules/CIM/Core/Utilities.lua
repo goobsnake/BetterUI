@@ -73,7 +73,11 @@ local function SafeGetTargetData(list)
     return list.selectedData
 end
 BETTERUI.CIM.Utils.SafeGetTargetData = SafeGetTargetData
-BETTERUI.CIM.Utils.GetListTargetData = BETTERUI.CIM.Utils.GetListTargetData or SafeGetTargetData
+local getListTargetData = BETTERUI.CIM.Utils.GetListTargetData
+if type(getListTargetData) ~= "function" then
+    getListTargetData = SafeGetTargetData
+end
+BETTERUI.CIM.Utils.GetListTargetData = getListTargetData
 
 ---@param newValue number Value to wrap
 ---@param maxValue number Upper bound (wraps to 1)
@@ -213,5 +217,5 @@ if type(BETTERUI.Utils.SafeGetTargetData) ~= "function" then
     BETTERUI.Utils.SafeGetTargetData = SafeGetTargetData
 end
 if type(BETTERUI.Utils.GetListTargetData) ~= "function" then
-    BETTERUI.Utils.GetListTargetData = SafeGetTargetData
+    BETTERUI.Utils.GetListTargetData = getListTargetData
 end

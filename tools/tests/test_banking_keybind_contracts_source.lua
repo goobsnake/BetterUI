@@ -33,7 +33,7 @@ local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 
 assert_contains(
     transferActions,
-    "local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot",
+    "local function ReadTransferContextSnapshot()",
     "TransferActions resolves transfer destination through the canonical transfer-context reader"
 )
 
@@ -49,10 +49,10 @@ assert_contains(
     "TransferActions requires the dedicated Banking transfer service instead of fabricating a fallback table"
 )
 
-assert_contains(
+assert_not_contains(
     transferActions,
-    "local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil",
-    "TransferActions resolves transfer authorization through the dedicated Banking transfer service entrypoint"
+    "or BETTERUI.Banking.GetTransferState()",
+    "TransferActions no longer falls back through duplicate transfer-context reader names"
 )
 
 assert_not_contains(
@@ -93,14 +93,20 @@ assert_not_contains(
 
 assert_not_contains(
     keybindManager,
-    "GetTransferContext().",
-    "KeybindManager no longer reads transfer-context fields directly"
+    "local function GetTransferContext()",
+    "KeybindManager no longer keeps a file-local transfer-context ladder"
 )
 
 assert_contains(
     keybindManager,
     "transferService and transferService.ResolveGuildBankTransferDecision",
     "KeybindManager resolves guild-bank keybind gating through Banking.Transfer"
+)
+
+assert_contains(
+    keybindManager,
+    "local function ReadTransferContextSnapshot()",
+    "KeybindManager resolves keybind state through the canonical Banking transfer snapshot seam"
 )
 
 assert_contains(

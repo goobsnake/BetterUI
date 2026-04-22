@@ -201,8 +201,7 @@ end
 do
     mockLanguage = "jp"
     local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-    assert_eq(#patterns, 8, "unknown locale falls back to english")
-    assert_eq(patterns[1].pattern, "blacksmith", "fallback locale reuses english patterns")
+    assert_eq(#patterns, 0, "unknown locale does not fall back to english patterns")
 end
 
 print("[Writ objective formatting]")
@@ -273,6 +272,58 @@ assert_eq(writPanelHidden, false, "show reveals the writ panel")
 
 BETTERUI.Writs.HidePanel()
 assert_eq(writPanelHidden, true, "hide conceals the writ panel")
+
+print("[Locale-gated pattern matching]")
+
+do
+    questJournal = {
+        [1] = {
+            name = "Blacksmith Writ",
+            questType = QUEST_TYPE_CRAFTING,
+            conditions = {
+                { line = "Forge Rubedite Sword", current = 1, maximum = 1, complete = true, isVisible = true },
+            },
+        },
+    }
+    mockLanguage = "jp"
+    resetUiState()
+
+    local refreshOk, refreshErr = BETTERUI.Writs.RefreshActiveWrits()
+    assert_eq(refreshOk, true, "refresh succeeds even when locale has no writ patterns")
+    assert_eq(refreshErr, nil, "refresh with missing locale patterns reports no error")
+    assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_BLACKSMITHING], nil,
+        "english quest names are not matched when the locale has no pattern set")
+
+    local showLocaleOk, showLocaleErr = BETTERUI.Writs.ShowForCraftType(CRAFTING_TYPE_BLACKSMITHING)
+    assert_eq(showLocaleOk, false, "show-for-craft fails when locale patterns do not match any active writ")
+    assert_eq(showLocaleErr, "no_active_writ",
+        "show-for-craft reports no_active_writ when refresh yields no locale matches")
+end
+
+mockLanguage = "en"
+questJournal = {
+    [1] = {
+        name = "Blacksmith Writ",
+        questType = QUEST_TYPE_CRAFTING,
+        conditions = {
+            { line = "Forge Rubedite Sword", current = 1, maximum = 1, complete = true, isVisible = true },
+        },
+    },
+    [2] = {
+        name = "Witches Festival Cloth Donation",
+        questType = QUEST_TYPE_CRAFTING,
+        conditions = {
+            { line = "Cook the festival dish", current = 0, maximum = 1, complete = false, isVisible = true },
+        },
+    },
+    [3] = {
+        name = "Unrelated Story Quest",
+        questType = 999,
+        conditions = {
+            { line = "Talk to the quest giver", current = 0, maximum = 1, complete = false, isVisible = true },
+        },
+    },
+}
 
 print("[Writ failure contract]")
 do

@@ -261,11 +261,15 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---| "house-bank"
 ---| "guild-bank"
 
+---@class BetterUIBankingGuildBankRuntimeState
+---@field isLoading boolean
+
 ---@class BetterUIBankingRuntimeState
 ---@field lastUsedBank BagId
 ---@field currentUsedBank BagId
 ---@field lastOpenedBankBag BagId
 ---@field esoSubscriber boolean|nil
+---@field guildBank BetterUIBankingGuildBankRuntimeState
 
 ---@class BetterUIBankingTransferContext
 ---@field kind BetterUIBankingTransferKind

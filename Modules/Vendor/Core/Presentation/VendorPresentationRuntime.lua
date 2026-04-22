@@ -1,5 +1,5 @@
 --[[
-File: Modules/Vendor/Core/VendorPresentationRuntime.lua
+File: Modules/Vendor/Core/Presentation/VendorPresentationRuntime.lua
 Purpose: Own vendor preview/footer presentation flows so VendorClass stays coordinator-focused.
 ]]
 

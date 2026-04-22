@@ -60,7 +60,7 @@ BETTERUI.Vendor.GetModeDescriptor = function(mode)
     return descriptors[mode]
 end
 
-dofile("Modules/Vendor/Core/VendorModePolicy.lua")
+dofile("Modules/Vendor/Core/Policy/VendorModePolicy.lua")
 
 local ModePolicy = BETTERUI.Vendor.ModePolicy
 local MODE = BETTERUI.Vendor.MODE

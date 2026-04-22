@@ -366,6 +366,25 @@ BETTERUI = {
         GetTransferState = function()
             return BETTERUI.Banking.GetTransferContext()
         end,
+        ReadTransferContextSnapshot = function()
+            return BETTERUI.Banking.GetTransferContext()
+        end,
+        RefreshWindowView = function(window, options)
+            if window.RefreshTransferView then
+                window:RefreshTransferView(options or {})
+                return
+            end
+            if window.ComputeVisibleBankCategories and window.RebuildHeaderCategories then
+                window.bankCategories = window:ComputeVisibleBankCategories()
+                if window.bankCategories and #window.bankCategories > 0 then
+                    window.currentCategoryIndex = 1
+                    window:RebuildHeaderCategories()
+                end
+            end
+            if window.RefreshList then
+                window:RefreshList()
+            end
+        end,
         IsGuildBankTransfer = function()
             return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
         end,

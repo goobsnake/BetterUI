@@ -1,5 +1,5 @@
 --[[
-File: Modules/Vendor/Core/VendorInteractionRuntime.lua
+File: Modules/Vendor/Core/Lifecycle/VendorInteractionRuntime.lua
 Purpose: Own vendor open/close interaction orchestration so Vendor.lua stays a
          thin coordinator while tests can still exercise the workflow in
          isolation.
@@ -10,9 +10,9 @@ local Vendor = BETTERUI.Vendor
 Vendor.InteractionRuntime = Vendor.InteractionRuntime or {}
 local InteractionRuntime = Vendor.InteractionRuntime
 local unpackCompat = table.unpack or unpack
-local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "OnCloseStore:beforeSweep"
-local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "OnCloseStore:afterSweep"
-local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.OnCloseStore:NativeOnHide"
+local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "CloseStore:beforeSweep"
+local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "CloseStore:afterSweep"
+local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.CloseStore:NativeOnHide"
 
 local function PackResults(...)
     return {
@@ -111,16 +111,48 @@ local function RequireRequestTable(request, apiName)
     return request
 end
 
+local function ResolveVendorDependency(fieldName)
+    if type(Vendor.ResolveRuntimeDependency) == "function" then
+        local resolved = Vendor.ResolveRuntimeDependency(fieldName, true)
+        if resolved ~= nil then
+            return resolved
+        end
+    end
+    return Vendor[fieldName]
+end
+
+local function ResolveBridgeMethod(nativeStoreBridge, deps, keyName, methodName)
+    local override = deps[keyName]
+    if type(override) == "function" then
+        return override
+    end
+
+    local bridgeMethod = nativeStoreBridge and nativeStoreBridge[methodName]
+    assert(type(bridgeMethod) == "function",
+        string.format("Vendor interaction runtime requires NativeStoreBridge.%s", methodName))
+    return function(...)
+        return bridgeMethod(...)
+    end
+end
+
+local function ResolveOptionalBridgeMethod(nativeStoreBridge, deps, keyName, methodName)
+    local override = deps[keyName]
+    if type(override) == "function" then
+        return override
+    end
+
+    local bridgeMethod = nativeStoreBridge and nativeStoreBridge[methodName]
+    if type(bridgeMethod) ~= "function" then
+        return nil
+    end
+    return function(...)
+        return bridgeMethod(...)
+    end
+end
+
 local function ResolveDeps(deps)
     deps = deps or {}
-    local nativeStoreBridge = deps.nativeStoreBridge or Vendor.NativeStoreBridge
-
-    local function RequireBridgeMethod(methodName)
-        local method = nativeStoreBridge and nativeStoreBridge[methodName]
-        assert(type(method) == "function",
-            string.format("Vendor interaction runtime requires NativeStoreBridge.%s", methodName))
-        return method
-    end
+    local nativeStoreBridge = deps.nativeStoreBridge or ResolveVendorDependency("NativeStoreBridge")
 
     local getStoreManager = deps.getStoreManager
     if type(getStoreManager) ~= "function" then
@@ -133,29 +165,26 @@ local function ResolveDeps(deps)
         end
     end
 
-    local function BuildBridgeForwarder(methodName)
-        local cachedMethod = nil
-        return function(...)
-            cachedMethod = cachedMethod or RequireBridgeMethod(methodName)
-            return cachedMethod(nativeStoreBridge, ...)
+    local restoreSceneAlias = ResolveBridgeMethod(nativeStoreBridge, deps, "restoreSceneAlias", "RestoreSceneAlias")
+    local aliasSceneToBetterUI = ResolveBridgeMethod(nativeStoreBridge, deps, "aliasSceneToBetterUI", "AliasSceneToBetterUI")
+    local ensureComponents = ResolveBridgeMethod(nativeStoreBridge, deps, "ensureComponents", "EnsureComponents")
+    local resolveTargetMode = ResolveBridgeMethod(nativeStoreBridge, deps, "resolveTargetMode", "ResolveTargetMode")
+    local applyResolvedMode = ResolveBridgeMethod(nativeStoreBridge, deps, "applyResolvedMode", "ApplyResolvedMode")
+    local scheduleOpenStoreSync = ResolveBridgeMethod(nativeStoreBridge, deps, "scheduleOpenStoreSync", "ScheduleOpenStoreSync")
+    local cleanupCloseStore = ResolveOptionalBridgeMethod(nativeStoreBridge, deps, "cleanupCloseStore", "CleanupAfterCloseStore")
+    local logNativeStoreInputState = deps.logNativeStoreInputState
+        or (nativeStoreBridge and nativeStoreBridge.LogInputState)
+        or function()
         end
-    end
-
-    local restoreSceneAlias = deps.restoreSceneAlias or BuildBridgeForwarder("RestoreSceneAlias")
-    local aliasSceneToBetterUI = deps.aliasSceneToBetterUI or BuildBridgeForwarder("AliasSceneToBetterUI")
-    local ensureComponents = deps.ensureComponents or BuildBridgeForwarder("EnsureComponents")
-    local resolveTargetMode = deps.resolveTargetMode or BuildBridgeForwarder("ResolveTargetMode")
-    local applyResolvedMode = deps.applyResolvedMode or BuildBridgeForwarder("ApplyResolvedMode")
-    local scheduleOpenStoreSync = deps.scheduleOpenStoreSync or BuildBridgeForwarder("ScheduleOpenStoreSync")
 
     return {
-        instance = deps.instance ~= nil and deps.instance or Vendor.instance,
+        instance = deps.instance ~= nil and deps.instance or ResolveVendorDependency("instance"),
         resetInteractionState = deps.resetInteractionState or function()
         end,
         markClosingState = deps.markClosingState or function()
         end,
-        resetRuntimeState = deps.resetRuntimeState or Vendor.ResetRuntimeState,
-        cancelRuntimeTasks = deps.cancelRuntimeTasks or Vendor.CancelRuntimeTasks or function()
+        resetRuntimeState = deps.resetRuntimeState or ResolveVendorDependency("ResetRuntimeState"),
+        cancelRuntimeTasks = deps.cancelRuntimeTasks or ResolveVendorDependency("CancelRuntimeTasks") or function()
         end,
         logVendorDebug = deps.logVendorDebug or DefaultLogVendorDebug,
         showScene = deps.showScene or DefaultShowVendorScene,
@@ -173,14 +202,11 @@ local function ResolveDeps(deps)
         sellMode = deps.sellMode or (Vendor.MODE and Vendor.MODE.FENCE_SELL),
         fenceLaunderMode = deps.fenceLaunderMode or (Vendor.MODE and Vendor.MODE.FENCE_LAUNDER),
         getStoreManager = getStoreManager,
-        logNativeStoreInputState = deps.logNativeStoreInputState
-            or (nativeStoreBridge and nativeStoreBridge.LogInputState)
-            or function()
-            end,
+        logNativeStoreInputState = logNativeStoreInputState,
         runCloseCleanup = deps.runCloseCleanup or function()
         end,
         safeCall = deps.safeCall or DefaultSafeCall,
-        cleanupCloseStore = deps.cleanupCloseStore or (nativeStoreBridge and nativeStoreBridge.CleanupAfterCloseStore),
+        cleanupCloseStore = cleanupCloseStore,
     }
 end
 
@@ -291,7 +317,7 @@ local function OpenStoreInternal(state, deps)
     resolved.logVendorDebug(
         "SCENE_TRANSITIONS",
         "VendorScene",
-        string.format("OnOpenStore interaction=%s fence=%s stable=%s",
+        string.format("OpenStore interaction=%s fence=%s stable=%s",
             tostring(interactionType), tostring(state.isFenceInteraction), tostring(state.isStableInteraction))
     )
 
@@ -339,7 +365,7 @@ local function OpenFenceInternal(state, deps, enableSell, enableLaunder)
     resolved.logVendorDebug(
         "SCENE_TRANSITIONS",
         "VendorScene",
-        string.format("OnOpenFence sell=%s launder=%s", tostring(state.fenceEnableSell), tostring(state.fenceEnableLaunder))
+        string.format("OpenFence sell=%s launder=%s", tostring(state.fenceEnableSell), tostring(state.fenceEnableLaunder))
     )
 
     local instance = resolved.instance
@@ -384,7 +410,7 @@ local function CloseStoreInternal(state, deps)
     end
 
     resolved.cancelRuntimeTasks()
-    resolved.logVendorDebug("SCENE_TRANSITIONS", "VendorScene", "OnCloseStore begin")
+    resolved.logVendorDebug("SCENE_TRANSITIONS", "VendorScene", "CloseStore begin")
     resolved.hideScene()
 
     local storeManager = resolved.getStoreManager()
@@ -401,7 +427,7 @@ local function CloseStoreInternal(state, deps)
         end
         resolved.logNativeStoreInputState(CLOSE_STORE_AFTER_SWEEP_CONTEXT, storeManager)
     end
-    resolved.logVendorDebug("SCENE_TRANSITIONS", "VendorScene", "OnCloseStore complete")
+    resolved.logVendorDebug("SCENE_TRANSITIONS", "VendorScene", "CloseStore complete")
     resolved.aliasSceneToBetterUI(instance)
 
     return state
@@ -464,19 +490,4 @@ function InteractionRuntime.CloseStore(request)
         ApplyRuntimeState(runtime, state)
     end
     return state
-end
-
----@return table
-function InteractionRuntime.OnOpenStore(request)
-    return InteractionRuntime.OpenStore(RequireRequestTable(request, "InteractionRuntime.OnOpenStore"))
-end
-
----@return table
-function InteractionRuntime.OnOpenFence(request)
-    return InteractionRuntime.OpenFence(RequireRequestTable(request, "InteractionRuntime.OnOpenFence"))
-end
-
----@return table
-function InteractionRuntime.OnCloseStore(request)
-    return InteractionRuntime.CloseStore(RequireRequestTable(request, "InteractionRuntime.OnCloseStore"))
 end

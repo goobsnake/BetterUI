@@ -2,59 +2,34 @@ local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 
-local function ResolveTransferService()
-    local resolveTransferService = BETTERUI.Banking and BETTERUI.Banking.ResolveTransferService or nil
-    if type(resolveTransferService) == "function" then
-        local transferService = resolveTransferService({
-            createIfMissing = false,
-        })
-        if type(transferService) == "table" then
-            return transferService
-        end
+---@return BetterUIBankingTransferContext
+local function ReadTransferContextSnapshot()
+    local readTransferContextSnapshot = BETTERUI.Banking and BETTERUI.Banking.ReadTransferContextSnapshot or nil
+    if type(readTransferContextSnapshot) == "function" then
+        return readTransferContextSnapshot()
     end
-
-    local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
-    if type(getTransferService) == "function" then
-        local transferService = getTransferService()
-        if type(transferService) == "table" then
-            return transferService
-        end
-    end
-
-    local transferService = BETTERUI.Banking and BETTERUI.Banking.Transfer or nil
-    if type(transferService) == "table" then
-        return transferService
-    end
-
-    return nil
+    return {
+        kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
+        interactionBag = BAG_BANK,
+        depositTargetBag = BAG_BANK,
+        withdrawSourceBags = { BAG_BANK, BAG_SUBSCRIBER_BANK },
+        sourceIsFurnitureVault = false,
+        targetIsFurnitureVault = false,
+    }
 end
 
 local function RequireTransferService()
     local requireTransferService = BETTERUI.Banking and BETTERUI.Banking.RequireTransferService or nil
-    if type(requireTransferService) == "function" then
-        local transferService, reason = requireTransferService({
-            "NotifyTransferDenied",
-            "NotifyGuildBankTransferDenied",
-            "CanDepositIntoBank",
-        }, {
-            createIfMissing = false,
-        })
-        if transferService then
-            return transferService
-        end
-        return nil, reason
-    end
-
-    local transferService = ResolveTransferService()
-    if type(transferService) ~= "table" then
+    if type(requireTransferService) ~= "function" then
         return nil, "transfer_service_unavailable"
     end
-    if type(transferService.NotifyTransferDenied) ~= "function"
-        or type(transferService.NotifyGuildBankTransferDenied) ~= "function"
-        or type(transferService.CanDepositIntoBank) ~= "function" then
-        return nil, "transfer_service_incomplete"
-    end
-    return transferService
+    return requireTransferService({
+        "NotifyTransferDenied",
+        "NotifyGuildBankTransferDenied",
+        "CanDepositIntoBank",
+    }, {
+        createIfMissing = false,
+    })
 end
 
 local function RefreshBankListAfterTransfer(self, delayMs)
@@ -77,35 +52,9 @@ local function RefreshBankListAfterTransfer(self, delayMs)
             end
             self:SetListUpdatesSuppressed(false)
 
-            if self.RefreshTransferView then
-                self:RefreshTransferView({
-                    preferredCategoryKey = previousCategoryKey,
-                })
-                return
-            end
-
-            self.bankCategories = self:ComputeVisibleBankCategories()
-            if not self.bankCategories or #self.bankCategories == 0 then
-                self.currentCategoryIndex = 1
-                self:RefreshList()
-                return
-            end
-
-            local desiredCategoryIndex = 1
-            if previousCategoryKey then
-                for i, category in ipairs(self.bankCategories) do
-                    if category.key == previousCategoryKey then
-                        desiredCategoryIndex = i
-                        break
-                    end
-                end
-            end
-            self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
-            local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
-            state.suppressHeaderCallback = true
-            self:RebuildHeaderCategories()
-            state.suppressHeaderCallback = false
-            self:RefreshList()
+            BETTERUI.Banking.RefreshWindowView(self, {
+                preferredCategoryKey = previousCategoryKey,
+            })
         end)
 end
 
@@ -116,10 +65,7 @@ end
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank(targetBankBag)
     if targetBankBag == nil then
-        local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot
-            and BETTERUI.Banking.ReadTransferContextSnapshot()
-            or BETTERUI.Banking.GetTransferState()
-        targetBankBag = transferContext and transferContext.depositTargetBag or BAG_BANK
+        targetBankBag = ReadTransferContextSnapshot().depositTargetBag or BAG_BANK
     end
 
     if targetBankBag == BAG_BANK then
@@ -171,7 +117,7 @@ end
 ---@param targetBankBag number
 ---@param denyReason string|nil
 local function NotifyDepositBlocked(targetBankBag, denyReason)
-    local transferService = ResolveTransferService()
+    local transferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService and BETTERUI.Banking.GetTransferService()
     if transferService and type(transferService.NotifyTransferDenied) == "function" then
         transferService.NotifyTransferDenied("Banking.TransferActions.Deposit", targetBankBag, denyReason)
     end
@@ -186,9 +132,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
     end
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot
-        and BETTERUI.Banking.ReadTransferContextSnapshot()
-        or BETTERUI.Banking.GetTransferState()
+    local transferContext = ReadTransferContextSnapshot()
     local transferService, transferServiceReason = RequireTransferService()
     if not transferService then
         return false, transferServiceReason
@@ -376,9 +320,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
-    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot
-        and BETTERUI.Banking.ReadTransferContextSnapshot()
-        or BETTERUI.Banking.GetTransferState()
+    local transferContext = ReadTransferContextSnapshot()
     local transferService, transferServiceReason = RequireTransferService()
     if not transferService then
         return false, transferServiceReason

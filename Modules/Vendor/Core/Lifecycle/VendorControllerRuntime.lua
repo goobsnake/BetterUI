@@ -1,5 +1,5 @@
 --[[
-File: Modules/Vendor/Core/VendorControllerRuntime.lua
+File: Modules/Vendor/Core/Lifecycle/VendorControllerRuntime.lua
 Purpose: Own vendor controller transitions, list refresh, and native-store recovery so VendorClass stays coordinator-focused.
 ]]
 

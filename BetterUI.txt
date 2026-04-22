@@ -244,20 +244,20 @@ Modules\TradingHouse\Settings\SettingsPanel.lua
 
 ; Module: Vendor (ECO-002)
 Modules\Vendor\Module.lua
-Modules\Vendor\Core\VendorModePolicy.lua
-Modules\Vendor\Core\VendorSelectionRuntime.lua
+Modules\Vendor\Core\Policy\VendorModePolicy.lua
+Modules\Vendor\Core\Presentation\VendorSelectionRuntime.lua
 Modules\Vendor\Core\VendorSafeExecute.lua
-Modules\Vendor\Core\VendorNativeStoreBridge.lua
+Modules\Vendor\Core\Bridge\VendorNativeStoreBridge.lua
 Modules\Vendor\Core\VendorBootstrapRuntime.lua
 Modules\Vendor\Core\VendorComponentCatalog.lua
-Modules\Vendor\Core\VendorEventBridge.lua
-Modules\Vendor\Core\VendorInteractionRuntime.lua
+Modules\Vendor\Core\Lifecycle\VendorEventBridge.lua
+Modules\Vendor\Core\Lifecycle\VendorInteractionRuntime.lua
 Modules\Vendor\Core\VendorBatchRuntime.lua
-Modules\Vendor\Core\VendorControllerRuntime.lua
-Modules\Vendor\Core\VendorPresentationRuntime.lua
+Modules\Vendor\Core\Lifecycle\VendorControllerRuntime.lua
+Modules\Vendor\Core\Presentation\VendorPresentationRuntime.lua
 Modules\Vendor\Core\VendorClass.lua
-Modules\Vendor\Core\VendorRowSetup.lua
-Modules\Vendor\Core\BatchActionCounts.lua
+Modules\Vendor\Core\List\VendorRowSetup.lua
+Modules\Vendor\Core\List\BatchActionCounts.lua
 Modules\Vendor\Components\BuyComponent.lua
 Modules\Vendor\Components\SellComponent.lua
 Modules\Vendor\Components\SellVengeanceComponent.lua

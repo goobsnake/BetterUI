@@ -257,6 +257,12 @@ BETTERUI = {
         GetTransferState = function()
             return BETTERUI.Banking.GetTransferContext()
         end,
+        ReadTransferContextSnapshot = function()
+            return BETTERUI.Banking.GetTransferContext()
+        end,
+        GetTransferService = function()
+            return BETTERUI.Banking.Transfer
+        end,
         GetSetting = function(key)
             local values = {
                 triggerSpeed = 25,

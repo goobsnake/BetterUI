@@ -57,8 +57,8 @@ assert_true(categoryManager:find("BETTERUI%.Banking%.Class%.ComputeVisibleBankCa
 local constants = read_file("Modules/Banking/Constants.lua")
 assert_true(constants:find("BETTERUI%.Banking%.CONST%.CAROUSEL") ~= nil,
     "Banking constants define carousel overrides")
-assert_true(constants:find("SearchBar and BETTERUI%.CIM%.SearchBar%.GetConstants") ~= nil,
-    "Banking constants depend directly on the shared search constant provider instead of a wrapper")
+assert_true(constants:find("local timing = cim%.CONST and cim%.CONST%.TIMING or %{%}") ~= nil,
+    "Banking constants source shared timing defaults from the CIM constants table")
 assert_true(constants:find("BETTERUI%.Banking%.CONST%.CURRENCY_TEXTURES") ~= nil,
     "Banking constants define currency selector textures")
 assert_true(constants:find("BETTERUI_BANK_MOVE_COALESCE_DELAY_MS") ~= nil,
@@ -81,7 +81,7 @@ assert_true(guildBankAdapter:find("function GuildBank%.GetDepositTargetBag%(%)")
     "GuildBankAdapter no longer exposes a legacy deposit-target helper")
 assert_true(guildBankAdapter:find("SetListUpdatesSuppressed") ~= nil,
     "GuildBankAdapter coordinates list-update suppression through the Banking class runtime API")
-assert_true(guildBankAdapter:find("RefreshCategoryView") ~= nil,
+assert_true(guildBankAdapter:find("BETTERUI%.Banking%.RefreshWindowView") ~= nil,
     "GuildBankAdapter delegates category/list refresh choreography to the Banking class helper")
 
 local refreshIntegration = read_file("Modules/Banking/Core/RefreshIntegration.lua")

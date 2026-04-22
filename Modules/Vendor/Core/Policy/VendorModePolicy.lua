@@ -1,5 +1,5 @@
 --[[
-File: Modules/Vendor/Core/VendorModePolicy.lua
+File: Modules/Vendor/Core/Policy/VendorModePolicy.lua
 Purpose: Shared vendor mode-policy surface for native-mode translation, active
          tab derivation, and initial-mode selection.
 ]]

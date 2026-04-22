@@ -47,7 +47,7 @@ KEYBIND_STRIP = {
     end,
 }
 
-dofile("Modules/Vendor/Core/VendorControllerRuntime.lua")
+dofile("Modules/Vendor/Core/Lifecycle/VendorControllerRuntime.lua")
 
 local ControllerRuntime = BETTERUI.Vendor.ControllerRuntime
 local MODE = BETTERUI.Vendor.MODE

@@ -8,27 +8,48 @@ BETTERUI.Banking.RuntimeState.lastUsedBank = BETTERUI.Banking.RuntimeState.lastU
 BETTERUI.Banking.RuntimeState.currentUsedBank = BETTERUI.Banking.RuntimeState.currentUsedBank or BAG_BANK
 BETTERUI.Banking.RuntimeState.lastOpenedBankBag = BETTERUI.Banking.RuntimeState.lastOpenedBankBag or BAG_BANK
 BETTERUI.Banking.RuntimeState.guildBank = BETTERUI.Banking.RuntimeState.guildBank or {}
-if BETTERUI.Banking.RuntimeState.guildBank.isLoading == nil then
-    BETTERUI.Banking.RuntimeState.guildBank.isLoading = false
-end
 BETTERUI.Banking.Transfer = type(BETTERUI.Banking.Transfer) == "table" and BETTERUI.Banking.Transfer or {}
 local ResolveBankBag
 local DefaultGetTransferService
 
+---@param guildBankRuntimeState BetterUIBankingGuildBankRuntimeState|table|nil
+---@return BetterUIBankingGuildBankRuntimeState
+local function EnsureGuildBankRuntimeState(guildBankRuntimeState)
+    guildBankRuntimeState = type(guildBankRuntimeState) == "table" and guildBankRuntimeState or {}
+    if guildBankRuntimeState.isLoading == nil then
+        guildBankRuntimeState.isLoading = false
+    end
+    return guildBankRuntimeState
+end
+
+BETTERUI.Banking.RuntimeState.guildBank = EnsureGuildBankRuntimeState(BETTERUI.Banking.RuntimeState.guildBank)
+
 ---@class BetterUIBankingTransferServiceResolveOptions
 ---@field createIfMissing boolean|nil
+
+---@return BetterUIBankingTransferService|nil
+local function TryInjectedTransferServiceGetter()
+    local banking = BETTERUI.Banking
+    local getTransferService = banking and rawget(banking, "GetTransferService") or nil
+    if type(getTransferService) ~= "function" or getTransferService == DefaultGetTransferService then
+        return nil
+    end
+
+    local transferService = getTransferService()
+    if type(transferService) == "table" then
+        return transferService
+    end
+    return nil
+end
 
 ---@param options BetterUIBankingTransferServiceResolveOptions|nil
 ---@return BetterUIBankingTransferService|nil
 function BETTERUI.Banking.ResolveTransferService(options)
     options = options or {}
     local createIfMissing = options.createIfMissing == true
-    local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
-    if type(getTransferService) == "function" and getTransferService ~= DefaultGetTransferService then
-        local transferService = getTransferService()
-        if type(transferService) == "table" then
-            return transferService
-        end
+    local injectedTransferService = TryInjectedTransferServiceGetter()
+    if injectedTransferService then
+        return injectedTransferService
     end
 
     local transferService = BETTERUI.Banking and BETTERUI.Banking.Transfer or nil
@@ -36,18 +57,32 @@ function BETTERUI.Banking.ResolveTransferService(options)
         return transferService
     end
 
-    if createIfMissing then
-        transferService = {}
-        BETTERUI.Banking.Transfer = transferService
-        return transferService
+    if not createIfMissing then
+        return nil
     end
 
-    return nil
+    transferService = {}
+    BETTERUI.Banking.Transfer = transferService
+    return transferService
 end
 
 ---@return BetterUIBankingTransferService
+function BETTERUI.Banking.EnsureTransferService()
+    local transferService = BETTERUI.Banking.ResolveTransferService({ createIfMissing = true })
+    if type(transferService) ~= "table" then
+        transferService = {}
+        BETTERUI.Banking.Transfer = transferService
+    end
+    return transferService
+end
+
+---@return BetterUIBankingTransferService|nil
 DefaultGetTransferService = function()
-    return BETTERUI.Banking.ResolveTransferService({ createIfMissing = true }) or {}
+    local injectedTransferService = TryInjectedTransferServiceGetter()
+    if injectedTransferService then
+        return injectedTransferService
+    end
+    return BETTERUI.Banking.ResolveTransferService({ createIfMissing = false })
 end
 
 BETTERUI.Banking.GetTransferService = DefaultGetTransferService
@@ -81,12 +116,6 @@ function BETTERUI.Banking.CreateItemActions(alignment)
         return createItemActions(alignment)
     end
 
-    local inventory = BETTERUI.Inventory
-    local slotActions = inventory and inventory.SlotActions or nil
-    if slotActions and slotActions.New then
-        return slotActions:New(alignment)
-    end
-
     if ZO_ItemSlotActionsController and ZO_ItemSlotActionsController.New then
         return ZO_ItemSlotActionsController:New(alignment)
     end
@@ -105,12 +134,6 @@ function BETTERUI.Banking.ClearItemNewStatus(bagId, slotIndex)
     local clearItemNewStatus = BETTERUI.CIM and BETTERUI.CIM.ClearItemNewStatus or nil
     if type(clearItemNewStatus) == "function" then
         clearItemNewStatus(bagId, slotIndex)
-        return
-    end
-
-    local tracker = BETTERUI.Inventory and BETTERUI.Inventory.NewItemTracker or nil
-    if tracker and tracker.ClearImmediate then
-        tracker.ClearImmediate(bagId, slotIndex)
         return
     end
 
@@ -135,18 +158,31 @@ function BETTERUI.Banking.GetMutableRuntimeState()
     return BETTERUI.Banking.RuntimeState
 end
 
+---@param runtimeState BetterUIBankingRuntimeState|table|nil
+---@return BetterUIBankingRuntimeState
+local function BuildRuntimeStateSnapshot(runtimeState)
+    runtimeState = type(runtimeState) == "table" and runtimeState or {}
+    local guildBankRuntimeState = EnsureGuildBankRuntimeState(runtimeState.guildBank)
+    return {
+        lastUsedBank = runtimeState.lastUsedBank,
+        currentUsedBank = runtimeState.currentUsedBank,
+        lastOpenedBankBag = runtimeState.lastOpenedBankBag,
+        esoSubscriber = runtimeState.esoSubscriber,
+        guildBank = {
+            isLoading = guildBankRuntimeState.isLoading == true,
+        },
+    }
+end
+
 ---@return BetterUIBankingRuntimeState
 function BETTERUI.Banking.GetRuntimeState()
-    return BETTERUI.Banking.GetMutableRuntimeState()
+    return BuildRuntimeStateSnapshot(BETTERUI.Banking.GetMutableRuntimeState())
 end
 
 ---@return table
 function BETTERUI.Banking.GetMutableGuildBankRuntimeState()
     local runtimeState = BETTERUI.Banking.GetMutableRuntimeState()
-    runtimeState.guildBank = runtimeState.guildBank or {}
-    if runtimeState.guildBank.isLoading == nil then
-        runtimeState.guildBank.isLoading = false
-    end
+    runtimeState.guildBank = EnsureGuildBankRuntimeState(runtimeState.guildBank)
     return runtimeState.guildBank
 end
 
@@ -302,40 +338,17 @@ local function BuildTransferContextSnapshot()
 end
 
 function BETTERUI.Banking.GetTransferState()
-    return BuildTransferContextSnapshot()
+    return BETTERUI.Banking.ReadTransferContextSnapshot()
 end
 
 ---@return BetterUIBankingTransferContext
 function BETTERUI.Banking.GetTransferContextSnapshot()
-    return BuildTransferContextSnapshot()
+    return BETTERUI.Banking.ReadTransferContextSnapshot()
 end
 
 ---@return BetterUIBankingTransferContext
 function BETTERUI.Banking.ReadTransferContextSnapshot()
-    local banking = BETTERUI.Banking
-    local readers = {
-        banking and banking.GetTransferContextSnapshot or nil,
-        banking and banking.GetTransferState or nil,
-        banking and banking.GetTransferContext or nil,
-    }
-
-    for _, reader in ipairs(readers) do
-        if type(reader) == "function" then
-            local transferContext = reader()
-            if type(transferContext) == "table" then
-                return transferContext
-            end
-        end
-    end
-
-    return {
-        kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
-        interactionBag = BAG_BANK,
-        depositTargetBag = BAG_BANK,
-        withdrawSourceBags = { BAG_BANK, BAG_SUBSCRIBER_BANK },
-        sourceIsFurnitureVault = false,
-        targetIsFurnitureVault = false,
-    }
+    return BuildTransferContextSnapshot()
 end
 
 ---@return boolean
@@ -531,6 +544,75 @@ function BETTERUI.Banking.Class:RefreshTransferView(options)
         if options.refreshKeybinds == true and self.RefreshActiveKeybinds then
             self:RefreshActiveKeybinds()
         end
+    end
+end
+
+---@param window BETTERUI.Banking.Class|table|nil
+---@param options table|nil
+---@return nil
+function BETTERUI.Banking.RefreshWindowView(window, options)
+    if not window then
+        return
+    end
+
+    options = options or {}
+    local preferredCategoryKey = options.preferredCategoryKey
+    if preferredCategoryKey == nil then
+        if window.GetCurrentCategoryKey then
+            preferredCategoryKey = window:GetCurrentCategoryKey()
+        elseif window.bankCategories and window.currentCategoryIndex and window.currentCategoryIndex <= #window.bankCategories then
+            local currentCategory = window.bankCategories[window.currentCategoryIndex]
+            preferredCategoryKey = currentCategory and currentCategory.key or nil
+        end
+    end
+
+    if window.RefreshTransferView then
+        window:RefreshTransferView({
+            preferredCategoryKey = preferredCategoryKey,
+        })
+        return
+    end
+
+    if window.RefreshCategoryView then
+        window:RefreshCategoryView({
+            preferredCategoryKey = preferredCategoryKey,
+            refreshKeybinds = options.refreshKeybinds == true,
+        })
+        return
+    end
+
+    if window.ComputeVisibleBankCategories and window.RebuildHeaderCategories then
+        window.bankCategories = window:ComputeVisibleBankCategories()
+        if not window.bankCategories or #window.bankCategories == 0 then
+            window.currentCategoryIndex = 1
+            if window.RefreshList then
+                window:RefreshList()
+            end
+        else
+            local desiredCategoryIndex = 1
+            if preferredCategoryKey then
+                for i, category in ipairs(window.bankCategories) do
+                    if category.key == preferredCategoryKey then
+                        desiredCategoryIndex = i
+                        break
+                    end
+                end
+            end
+            window.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #window.bankCategories)
+            local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(window)
+            state.suppressHeaderCallback = true
+            window:RebuildHeaderCategories()
+            state.suppressHeaderCallback = false
+            if window.RefreshList then
+                window:RefreshList()
+            end
+        end
+    elseif window.RefreshList then
+        window:RefreshList()
+    end
+
+    if options.refreshKeybinds == true and window.RefreshActiveKeybinds then
+        window:RefreshActiveKeybinds()
     end
 end
 

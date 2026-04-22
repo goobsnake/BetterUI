@@ -32,7 +32,7 @@ local vendorLua = read_file("Modules/Vendor/Vendor.lua")
 local vendorClass = read_file("Modules/Vendor/Core/VendorClass.lua")
 local catalogLua = read_file("Modules/Vendor/Core/VendorComponentCatalog.lua")
 local constantsLua = read_file("Modules/CIM/Constants.lua")
-local batchCountsLua = read_file("Modules/Vendor/Core/BatchActionCounts.lua")
+local batchCountsLua = read_file("Modules/Vendor/Core/List/BatchActionCounts.lua")
 local componentLua = read_file("Modules/Vendor/Components/SellVengeanceComponent.lua")
 local manifest = read_file("BetterUI.txt")
 local stringsEn = read_file("lang/en.lua")
@@ -44,7 +44,7 @@ assert_contains(vendorClass, "VENDOR_SELL_VENGEANCE", "vendor class maps vengean
 
 assert_contains(vendorLua, "MODE.SELL_VENGEANCE", "vendor tab definitions include SellVengeance mode")
 assert_contains(catalogLua, "Vendor.SellVengeanceComponent", "component catalog references SellVengeance component")
-assert_contains(catalogLua, "{ mode = MODE.SELL_VENGEANCE, component = Vendor.SellVengeanceComponent", "component catalog includes SellVengeance in the registration list")
+assert_contains(catalogLua, "{ mode = MODE.SELL_VENGEANCE, componentKey = \"SellVengeanceComponent\"", "component catalog includes SellVengeance in the registration list")
 
 assert_contains(constantsLua, "VENDOR_SELL_VENGEANCE", "shared module constants include SellVengeance key")
 assert_contains(batchCountsLua, "MODE.SELL_VENGEANCE", "batch action counts treat SellVengeance as sell-capable")

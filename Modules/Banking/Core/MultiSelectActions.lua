@@ -25,25 +25,23 @@ assert(type(DENY.FURNITURE_VAULT_LOCKED) == "string",
     "BetterUI: ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED must be defined")
 assert(type(DENY.GUILD_PERMISSION) == "string", "BetterUI: ProtectionPolicy.DENY.GUILD_PERMISSION must be defined")
 
-local function ResolveTransferService()
-    local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
-    if type(getTransferService) == "function" then
-        local transferService = getTransferService()
-        if type(transferService) == "table" then
-            return transferService
-        end
+local function ReadTransferContextSnapshot()
+    local readTransferContextSnapshot = BETTERUI.Banking and BETTERUI.Banking.ReadTransferContextSnapshot or nil
+    if type(readTransferContextSnapshot) == "function" then
+        return readTransferContextSnapshot()
     end
-
-    local transferService = BETTERUI.Banking and BETTERUI.Banking.Transfer or nil
-    if type(transferService) ~= "table" then
-        transferService = {}
-        BETTERUI.Banking.Transfer = transferService
-    end
-    return transferService
+    return {
+        kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
+        interactionBag = BAG_BANK,
+        depositTargetBag = BAG_BANK,
+        withdrawSourceBags = { BAG_BANK, BAG_SUBSCRIBER_BANK },
+        sourceIsFurnitureVault = false,
+        targetIsFurnitureVault = false,
+    }
 end
 
 ---@type BetterUIBankingTransferService
-local Transfer = ResolveTransferService() or {}
+local Transfer = (BETTERUI.Banking and BETTERUI.Banking.EnsureTransferService and BETTERUI.Banking.EnsureTransferService()) or {}
 
 local TRANSFER_DENIAL_ALERT = 1
 local TRANSFER_DENIAL_TOAST = 2
@@ -134,7 +132,7 @@ local function ResolveTransferDeniedNotification(targetBankBag, denyReason)
 end
 
 local function ResolveGuildBankTransferDecision(mode, bagId, slotIndex)
-    local transferState = BETTERUI.Banking.GetTransferState()
+    local transferState = ReadTransferContextSnapshot()
     if transferState.kind ~= BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK then
         return true, nil, nil, nil
     end
@@ -184,7 +182,7 @@ end
 ---@param transferBankBag number|nil Resolved destination bank bag (defaults to BAG_BANK)
 ---@return number|"unbankable"|"skip" targetBag Bag constant, or "unbankable"/"skip" sentinel
 local function ResolveDepositTargetBag(bagId, slotIndex, transferBankBag)
-    local transferState = BETTERUI.Banking.GetTransferState()
+    local transferState = ReadTransferContextSnapshot()
     if transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK then
         local targetBag = transferState.depositTargetBag
         if BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag) then
@@ -311,7 +309,7 @@ function BETTERUI.Banking.Class:BatchTransfer()
     if not selectedItems or #selectedItems == 0 then return end
 
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
-    local transferState = BETTERUI.Banking.GetTransferState()
+    local transferState = ReadTransferContextSnapshot()
     local transferDestinationBankBag = transferState.depositTargetBag
     local isGuildMode = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local guildTransferMode = isWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
@@ -444,7 +442,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     -- Use shared mixin to analyze selected items
     local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
-    local transferState = BETTERUI.Banking.GetTransferState()
+    local transferState = ReadTransferContextSnapshot()
     local transferDestinationBankBag = transferState.depositTargetBag
     local isGuildMode = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local guildTransferMode = isDepositMode and LIST_DEPOSIT or LIST_WITHDRAW

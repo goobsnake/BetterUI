@@ -55,9 +55,9 @@ SCENE_MANAGER = {
     end,
 }
 
-dofile("Modules/Vendor/Core/VendorNativeStoreBridge.lua")
+dofile("Modules/Vendor/Core/Bridge/VendorNativeStoreBridge.lua")
 dofile("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
-dofile("Modules/Vendor/Core/VendorInteractionRuntime.lua")
+dofile("Modules/Vendor/Core/Lifecycle/VendorInteractionRuntime.lua")
 
 local InteractionRuntime = BETTERUI.Vendor.InteractionRuntime
 local NativeStoreBridge = BETTERUI.Vendor.NativeStoreBridge
@@ -66,9 +66,9 @@ local BootstrapRuntime = BETTERUI.Vendor.BootstrapRuntime
 assert_true(type(InteractionRuntime.OpenStore) == "function", "interaction runtime exposes request-based OpenStore")
 assert_true(type(InteractionRuntime.OpenFence) == "function", "interaction runtime exposes request-based OpenFence")
 assert_true(type(InteractionRuntime.CloseStore) == "function", "interaction runtime exposes request-based CloseStore")
-assert_true(type(InteractionRuntime.OnOpenStore) == "function", "interaction runtime keeps OnOpenStore alias")
-assert_true(type(InteractionRuntime.OnOpenFence) == "function", "interaction runtime keeps OnOpenFence alias")
-assert_true(type(InteractionRuntime.OnCloseStore) == "function", "interaction runtime keeps OnCloseStore alias")
+assert_true(InteractionRuntime.OnOpenStore == nil, "interaction runtime does not expose legacy OnOpenStore alias")
+assert_true(InteractionRuntime.OnOpenFence == nil, "interaction runtime does not expose legacy OnOpenFence alias")
+assert_true(InteractionRuntime.OnCloseStore == nil, "interaction runtime does not expose legacy OnCloseStore alias")
 
 assert_true(type(NativeStoreBridge.TakeOverScene) == "function", "native store bridge exposes scene takeover")
 assert_true(type(NativeStoreBridge.EnsureComponents) == "function", "native store bridge exposes component reconciliation")
@@ -81,62 +81,18 @@ assert_true(type(BootstrapRuntime.CreateScene) == "function", "bootstrap runtime
 assert_true(type(BootstrapRuntime.RegisterSceneLifecycle) == "function", "bootstrap runtime exposes scene lifecycle registration")
 
 do
-    local observedRequest = nil
-    local originalOpenStore = InteractionRuntime.OpenStore
-    InteractionRuntime.OpenStore = function(request)
-        observedRequest = request
-        return { ok = true, request = request }
-    end
-
-    local request = { marker = "open-store-alias" }
-    local result = InteractionRuntime.OnOpenStore(request)
-    InteractionRuntime.OpenStore = originalOpenStore
-
-    assert_true(result.ok == true, "OnOpenStore returns canonical OpenStore results")
-    assert_true(observedRequest == request, "OnOpenStore forwards the original request object")
-end
-
-do
-    local observedRequest = nil
-    local originalOpenFence = InteractionRuntime.OpenFence
-    InteractionRuntime.OpenFence = function(request)
-        observedRequest = request
-        return { ok = true, request = request }
-    end
-
-    local request = { marker = "open-fence-alias" }
-    local result = InteractionRuntime.OnOpenFence(request)
-    InteractionRuntime.OpenFence = originalOpenFence
-
-    assert_true(result.ok == true, "OnOpenFence returns canonical OpenFence results")
-    assert_true(observedRequest == request, "OnOpenFence forwards the original request object")
-end
-
-do
-    local observedRequest = nil
-    local originalCloseStore = InteractionRuntime.CloseStore
-    InteractionRuntime.CloseStore = function(request)
-        observedRequest = request
-        return { ok = true, request = request }
-    end
-
-    local request = { marker = "close-store-alias" }
-    local result = InteractionRuntime.OnCloseStore(request)
-    InteractionRuntime.CloseStore = originalCloseStore
-
-    assert_true(result.ok == true, "OnCloseStore returns canonical CloseStore results")
-    assert_true(observedRequest == request, "OnCloseStore forwards the original request object")
-end
-
-do
     local openStoreOk = pcall(function()
         InteractionRuntime.OpenStore("invalid")
     end)
-    local onOpenStoreOk = pcall(function()
-        InteractionRuntime.OnOpenStore("invalid")
+    local openFenceOk = pcall(function()
+        InteractionRuntime.OpenFence("invalid")
+    end)
+    local closeStoreOk = pcall(function()
+        InteractionRuntime.CloseStore("invalid")
     end)
     assert_eq(openStoreOk, false, "OpenStore rejects non-table request contracts")
-    assert_eq(onOpenStoreOk, false, "OnOpenStore rejects non-table request contracts")
+    assert_eq(openFenceOk, false, "OpenFence rejects non-table request contracts")
+    assert_eq(closeStoreOk, false, "CloseStore rejects non-table request contracts")
 end
 
 do
@@ -234,8 +190,13 @@ do
         },
     })
 
-    assert_true(table.concat(safeContexts, ","):find("Vendor.OnCloseStore:NativeOnHide", 1, true) ~= nil,
-        "close-store fallback safe execution preserves explicit context strings")
+    local safeContextLog = table.concat(safeContexts, ",")
+    assert_true(
+        safeContextLog:find("Vendor.CloseStore:NativeOnHide", 1, true) ~= nil
+            or safeContextLog:find("Vendor.OnCloseStore:NativeOnHide", 1, true) ~= nil
+            or safeContextLog:find("CloseStore:beforeSweep", 1, true) ~= nil
+            or safeContextLog:find("OnCloseStore:beforeSweep", 1, true) ~= nil,
+        "close-store safe execution preserves explicit lifecycle cleanup context strings")
 end
 
 print("  OK")

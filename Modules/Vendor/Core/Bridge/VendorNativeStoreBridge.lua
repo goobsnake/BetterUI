@@ -1,5 +1,5 @@
 --[[
-File: Modules/Vendor/Core/VendorNativeStoreBridge.lua
+File: Modules/Vendor/Core/Bridge/VendorNativeStoreBridge.lua
 Purpose: Own native-store reconciliation, component rebuild policy, and scene
          takeover so Vendor.lua can stay focused on scene orchestration.
 ]]
