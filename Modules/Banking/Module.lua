@@ -1,13 +1,5 @@
---[[
-File: Modules/Banking/Module.lua
-Purpose: Entry point and settings configuration for the Banking module.
+-- Banking module entrypoint and settings registration.
 
-Registers the Banking panel in the BetterUI addon settings and provides font
-descriptor factories for the name and column rendering.
-]]
-
-
--- Module initialization
 ---@type BetterUIModuleRoot
 BETTERUI.Banking = BETTERUI.Banking or {}
 local Banking = BETTERUI.Banking

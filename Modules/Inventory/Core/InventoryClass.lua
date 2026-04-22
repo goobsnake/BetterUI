@@ -423,21 +423,8 @@ function BETTERUI.Inventory.Class:Initialize(control)
     if searchMixin and searchMixin.AddSearch then
         self.textSearchKeybindStripDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor(self)
 
-        searchMixin.AddSearch(self, self.textSearchKeybindStripDescriptor, function(editOrText)
-            -- Normalize the OnTextChanged argument like Banking does
-            local query
-            if type(editOrText) == "string" then
-                query = editOrText
-            elseif editOrText and type(editOrText) == "table" and editOrText.GetText then
-                query = editOrText:GetText() or ""
-            elseif editOrText and type(editOrText) == "userdata" then
-                local ok, txt = BETTERUI.CIM.SafeExecute("Inventory.search.getText", function() return editOrText:GetText() end)
-                if ok and txt then query = txt else query = tostring(editOrText) end
-            else
-                query = tostring(editOrText or "")
-            end
-
-            self.searchQuery = query or ""
+        searchMixin.AddSearch(self, self.textSearchKeybindStripDescriptor, function(searchText)
+            self.searchQuery = searchText
             -- When search changes, reset selection to top and refresh the active list
             self:SaveListPosition()
             -- If craft bag is currently active, refresh craft bag list so filtering is immediate

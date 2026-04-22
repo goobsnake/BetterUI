@@ -8,12 +8,20 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
 local TRANSFER_DENIAL_ALERT = 1
 
+local function RequireBankingTransferSupport(source)
+    local banking = BETTERUI.Banking
+    local requireTransferSupport = banking and banking.RequireTransferSupport
+    if type(requireTransferSupport) ~= "function" then
+        return nil
+    end
+    return requireTransferSupport(source)
+end
+
 local function NotifyTransferDenied(context, targetBag, denyReason)
     if not denyReason then
         return
     end
-    local resolveTransferSupport = BETTERUI.Banking and BETTERUI.Banking.ResolveTransferSupport
-    local transferSupport = type(resolveTransferSupport) == "function" and resolveTransferSupport() or nil
+    local transferSupport = RequireBankingTransferSupport("CIM/Actions/GenericSlotActions.NotifyTransferDenied")
     local resolveTransferDeniedNotification = transferSupport and transferSupport.ResolveTransferDeniedNotification or nil
     if resolveTransferDeniedNotification then
         local notification = resolveTransferDeniedNotification(targetBag, denyReason)
@@ -43,22 +51,28 @@ local function GetProtectionPolicy()
     return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
 end
 
+local function ResolvePolicyDeny(denyKey, fallbackValue)
+    local policy = GetProtectionPolicy()
+    local denyTable = policy and policy.DENY
+    if denyTable and denyTable[denyKey] then
+        return denyTable[denyKey]
+    end
+    return fallbackValue
+end
+
 local function CanStowToCraftBagWithPolicy(bagId, slotIndex)
     local policy = GetProtectionPolicy()
     if policy and policy.CanStowToCraftBag then
         return policy.CanStowToCraftBag(bagId, slotIndex)
     end
     if not HasCraftBagAccess() then
-        return false, "no_craft_access"
+        return false, ResolvePolicyDeny("NO_CRAFT_ACCESS", "no_craft_access")
     end
     if not CanItemBeVirtual(bagId, slotIndex) then
-        return false, "not_craftable"
+        return false, ResolvePolicyDeny("NOT_CRAFTABLE", "not_craftable")
     end
     if IsItemStolen and IsItemStolen(bagId, slotIndex) then
-        if policy and policy.DENY and policy.DENY.STOLEN then
-            return false, policy.DENY.STOLEN
-        end
-        return false, "stolen"
+        return false, ResolvePolicyDeny("STOLEN", "stolen")
     end
     return true
 end
@@ -109,8 +123,7 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     local GuildBank = BETTERUI.Banking and BETTERUI.Banking.GuildBank
-    local resolveTransferSupport = BETTERUI.Banking and BETTERUI.Banking.ResolveTransferSupport
-    local transferSupport = type(resolveTransferSupport) == "function" and resolveTransferSupport() or nil
+    local transferSupport = RequireBankingTransferSupport("CIM/Actions/GenericSlotActions.TryBankItem")
     local notifyGuildBankTransferDenied = transferSupport and transferSupport.NotifyGuildBankTransferDenied or nil
     local isDepositSupportedForBank = transferSupport and transferSupport.IsDepositSupportedForBank or nil
     local isGuildBankMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode()
@@ -134,8 +147,8 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     else
         -- Deposit
         local banking = BETTERUI.Banking
-        local getTransferDestinationBankBag = banking and banking.GetTransferDestinationBankBag
-        local bankingBag = type(getTransferDestinationBankBag) == "function" and getTransferDestinationBankBag() or BAG_BANK
+        local getTransferTargetBag = banking and banking.GetTransferTargetBag
+        local bankingBag = type(getTransferTargetBag) == "function" and getTransferTargetBag() or BAG_BANK
         if isGuildBankMode and notifyGuildBankTransferDenied then
             local canTransfer, denyReason = notifyGuildBankTransferDenied("TryTransferItem:GuildDeposit", BETTERUI.Banking.LIST_DEPOSIT, bag, index)
             if not canTransfer then
@@ -187,7 +200,7 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
 
     local stackSize, maxStackSize = GetSlotStackSize(bag, index)
     if not stackSize or stackSize <= 0 then
-        return false, "no_item"
+        return false, ResolvePolicyDeny("NO_ITEM", "no_item")
     end
     if maxStackSize and stackSize >= maxStackSize then
         stackSize = maxStackSize

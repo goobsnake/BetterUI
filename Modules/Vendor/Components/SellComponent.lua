@@ -1,8 +1,12 @@
--- Vendor sell tab component.
+--[[
+File: Modules/Vendor/Components/SellComponent.lua
+Purpose: Sell tab component for the Vendor module.
+]]
 
 local Vendor = BETTERUI.Vendor
 
-Vendor.SellComponent = {}
+-- COMPONENT TABLE
+Vendor.SellComponent = Vendor.SellComponent or {}
 local Sell = Vendor.SellComponent
 
 local SELL_CATEGORY_DEFS = BETTERUI.CIM.ItemTaxonomy.VENDOR_SELL_CATEGORY_DEFS

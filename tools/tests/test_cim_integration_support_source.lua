@@ -58,7 +58,7 @@ assert_true(typesSource:find('---@field settingsOwner string|nil') == nil,
     "Types trims documentary settingsOwner metadata from the shared module contract")
 assert_true(typesSource:find('---@field notes string') == nil,
     "Types trims documentary notes metadata from the shared module contract")
-assert_true(typesSource:find('---@class KeybindDescriptor') ~= nil,
+assert_true(typesSource:find('---@class BetterUIKeybindDescriptor') ~= nil,
     "Types defines the shared keybind descriptor type")
 assert_true(typesSource:find('---@class BetterUIHeaderSortControllerContract') ~= nil,
     "Types defines the shared header sort controller contract")
@@ -134,10 +134,14 @@ assert_true(narrationHelper:find("function Narration%.NarrateBankingMode%(mode%)
 local researchCache = read_file("Modules/CIM/Core/Integration/ResearchCache.lua")
 assert_true(researchCache:find("BETTERUI%.CIM%.ResearchCache = BETTERUI%.CIM%.ResearchCache or %{%}") ~= nil,
     "ResearchCache initializes the shared research cache table")
-assert_true(researchCache:find("function ResearchCache%.GetResearch%(forceRefresh%)") ~= nil,
-    "ResearchCache exposes GetResearch")
+assert_true(researchCache:find("function ResearchCache%.GetResearch%(%)") ~= nil,
+    "ResearchCache exposes side-effect-free GetResearch")
 assert_true(researchCache:find("function ResearchCache%.GetTraits%(%)") ~= nil,
     "ResearchCache exposes GetTraits")
+assert_true(researchCache:find("function ResearchCache%.GetResearchTraits%(%)") ~= nil,
+    "ResearchCache keeps the backward-compatible GetResearchTraits wrapper")
+assert_true(researchCache:find("RefreshResearchTraits%(%)") ~= nil,
+    "ResearchCache still exposes the explicit refresh entrypoint")
 assert_true(researchCache:find("BETTERUI%.GetResearch = ResearchCache%.GetResearch") ~= nil,
     "ResearchCache publishes the shared GetResearch alias")
 

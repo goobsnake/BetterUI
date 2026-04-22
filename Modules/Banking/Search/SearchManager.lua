@@ -1,8 +1,4 @@
---[[
-File: Modules/Banking/Search/SearchManager.lua
-Purpose: Canonical search/header focus boundary for BETTERUI.Banking.Class.
-         All banking search interactions should route through this module.
-]]
+-- Canonical banking search and header-focus behavior.
 
 -- SHARED CONSTANTS
 local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
@@ -15,7 +11,6 @@ BETTERUI.Banking.Class.SEARCH_LIFECYCLE = {
     onEnter = "OnHeaderEntered",
 }
 
---- Clears the text search input and resets the query.
 function BETTERUI.Banking.Class:ClearSearchInput()
     self.searchQuery = ""
     local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
@@ -26,12 +21,6 @@ function BETTERUI.Banking.Class:ClearSearchInput()
     end
 end
 
---- Backwards-compatible alias.
-function BETTERUI.Banking.Class:ClearTextSearch()
-    self:ClearSearchInput()
-end
-
---- Checks whether the header/search control is currently focused.
 function BETTERUI.Banking.Class:IsHeaderFocused()
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.IsActive then
         return self.textSearchHeaderFocus:IsActive()
@@ -39,12 +28,6 @@ function BETTERUI.Banking.Class:IsHeaderFocused()
     return self._searchModeActive == true
 end
 
---- Backwards-compatible alias.
-function BETTERUI.Banking.Class:IsHeaderActive()
-    return self:IsHeaderFocused()
-end
-
---- Requests focus for the search/header control.
 function BETTERUI.Banking.Class:RequestHeaderFocus()
     if self.OnHeaderEntered then
         self:OnHeaderEntered()
@@ -53,12 +36,6 @@ function BETTERUI.Banking.Class:RequestHeaderFocus()
     end
 end
 
---- Backwards-compatible alias.
-function BETTERUI.Banking.Class:RequestEnterHeader()
-    self:RequestHeaderFocus()
-end
-
---- Enters text search mode.
 function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
@@ -115,11 +92,6 @@ function BETTERUI.Banking.Class:ExitSearchMode()
     self:UpdateActions()
 end
 
---- Backwards-compatible alias.
-function BETTERUI.Banking.Class:LeaveSearchMode()
-    self:ExitSearchMode()
-end
-
 --- Positions the search control beneath the header title.
 function BETTERUI.Banking.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
@@ -147,17 +119,10 @@ function BETTERUI.Banking.Class:PositionSearchControl()
     self.textSearchHeaderControl:SetHidden(false)
 end
 
---- Callback when search focus is lost.
 function BETTERUI.Banking.Class:OnSearchFocusLost()
     self:ExitSearchMode()
 end
 
---- Backwards-compatible alias.
-function BETTERUI.Banking.Class:ExitSearchFocus()
-    self:OnSearchFocusLost()
-end
-
---- Callback when the header is entered (navigating up from list).
 function BETTERUI.Banking.Class:OnHeaderEntered()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()
@@ -182,14 +147,8 @@ function BETTERUI.Banking.Class:OnHeaderEntered()
     end
 end
 
---- Backwards-compatible alias.
-function BETTERUI.Banking.Class:OnEnterHeader()
-    self:OnHeaderEntered()
-end
-
---- Handles search text updates.
-function BETTERUI.Banking.Class:OnSearchTextChanged(editBox)
-    if not (editBox and editBox.GetText) then return end
-    self.searchQuery = editBox:GetText()
+---@param searchText string
+function BETTERUI.Banking.Class:OnSearchTextChanged(searchText)
+    self.searchQuery = searchText
     self:RefreshList()
 end

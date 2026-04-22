@@ -133,10 +133,17 @@ function SharedItemSupport.IsItemComparisonEnabled()
     return type(isItemComparisonEnabled) == "function" and isItemComparisonEnabled() == true or false
 end
 
-function SharedItemSupport.CompareItem(...)
+--- Delegates item comparison to registered tooltip support.
+--- Signature intentionally matches inventory/banking/companion callsites.
+--- @param candidateLink string
+--- @param candidateBagId number
+--- @param candidateSlotIndex number
+--- @param equippedBagId number|nil
+--- @return table|nil
+function SharedItemSupport.CompareItem(candidateLink, candidateBagId, candidateSlotIndex, equippedBagId)
     local compareItem = tooltipSupport.compareItem
     if type(compareItem) == "function" then
-        return compareItem(...)
+        return compareItem(candidateLink, candidateBagId, candidateSlotIndex, equippedBagId)
     end
     return nil
 end

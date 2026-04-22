@@ -43,9 +43,8 @@ end
 
 local function GetCurrentInventoryBankBag()
     local banking = BETTERUI.Banking
-    if banking and type(banking.GetActiveTransferContext) == "function" then
-        local transferContext = banking.GetActiveTransferContext()
-        local targetBag = transferContext and transferContext.targetBag or nil
+    if banking and type(banking.GetTransferTargetBag) == "function" then
+        local targetBag = banking.GetTransferTargetBag()
         if targetBag ~= nil then
             return targetBag
         end

@@ -193,6 +193,62 @@ do
     assert_contains(calls, "exit", "shortcut down exits via canonical contract")
 end
 
+-- AddSearch should always normalize callback payloads to strings.
+do
+    BETTERUI.CIM.CONST = {
+        SEARCH_CHILD_NAMES = {},
+    }
+
+    local delivered = {}
+    local emittedCallback
+    CreateControlFromVirtual = function()
+        local control = {}
+        function control:SetMouseEnabled(_enabled) end
+        function control:SetHandler(_name, _callback) end
+        function control:GetNamedChild(_name)
+            return nil
+        end
+        return control
+    end
+    ZO_TextSearch_Header_Gamepad = {
+        New = function(_self, _control, callback)
+            emittedCallback = callback
+            return {
+                SetFocused = function() end,
+                Activate = function() end,
+                Deactivate = function() end,
+                HasFocus = function()
+                    return true
+                end,
+                GetEditBox = function()
+                    return buildEditBox("")
+                end,
+            }
+        end,
+    }
+
+    local screen = {
+        header = {},
+    }
+    BETTERUI.Interface.SearchMixin.AddSearch(screen, {}, function(text)
+        delivered[#delivered + 1] = text
+    end)
+
+    emittedCallback("direct")
+    emittedCallback({
+        GetText = function()
+            return "from-control"
+        end,
+    })
+    emittedCallback(nil)
+    emittedCallback(false)
+
+    assert_eq(delivered[1], "direct", "AddSearch passes through direct string payloads")
+    assert_eq(delivered[2], "from-control", "AddSearch normalizes control payloads via GetText")
+    assert_eq(delivered[3], "", "AddSearch normalizes nil payload to empty string")
+    assert_eq(delivered[4], "false", "AddSearch normalizes non-string payloads with tostring")
+end
+
 -- Scene cleanup should drive the same canonical clear/exit lifecycle surface.
 do
     local removedGroups = 0
@@ -274,16 +330,24 @@ do
         "unified screen shutdown avoids direct legacy clear calls")
 
     local bankingSource = read_file("Modules/Banking/Search/SearchManager.lua")
+    local bankingRuntimeSource = read_file("Modules/Banking/Banking.lua")
     assert_true(bankingSource:find('BETTERUI%.CIM%.TryCall%("Interface%.Window%.ClearSearchText"') == nil,
         "Banking search manager avoids string-path clear dispatch")
     assert_true(bankingSource:find("Interface%.Window%.OnEnterHeader") == nil,
         "Banking search manager avoids string-path header dispatch")
+    assert_true(bankingRuntimeSource:find("function%(editOrText%)") == nil,
+        "Banking runtime search callback consumes the normalized string payload")
 
     local vendorSource = read_file("Modules/Vendor/Core/VendorClass.lua")
+    local vendorBootstrapSource = read_file("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
     assert_true(vendorSource:find('BETTERUI%.CIM%.TryCall%("Interface%.Window%.ClearSearchText"') == nil,
         "Vendor search manager avoids string-path clear dispatch")
     assert_true(vendorSource:find("Interface%.Window%.OnEnterHeader") == nil,
         "Vendor search manager avoids string-path header dispatch")
+    assert_true(vendorSource:find("OnSearchTextChanged%(editBox%)") == nil,
+        "Vendor search callback consumes the normalized string payload")
+    assert_true(vendorBootstrapSource:find("HandleVendorSearchChanged%(editOrText%)") == nil,
+        "Vendor bootstrap search bridge consumes the normalized string payload")
 
     local inventorySource = read_file("Modules/Inventory/Inventory.lua")
     assert_true(inventorySource:find('BETTERUI%.CIM%.TryCall%("Interface%.Window%.ClearSearchText"') == nil,
@@ -292,6 +356,8 @@ do
     local inventoryClassSource = read_file("Modules/Inventory/Core/InventoryClass.lua")
     assert_true(inventoryClassSource:find('BETTERUI%.CIM%.TryResolve%("Interface%.Window%.AddSearch"') == nil,
         "Inventory class uses the explicit SearchMixin.AddSearch seam")
+    assert_true(inventoryClassSource:find("Inventory%.search%.getText") == nil,
+        "Inventory search callback consumes the normalized string payload")
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

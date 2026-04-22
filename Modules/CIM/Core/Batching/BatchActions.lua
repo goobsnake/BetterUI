@@ -50,6 +50,37 @@ local function HasItemAtSlot(bagId, slotIndex)
     return (stackCount or 0) > 0
 end
 
+local function CanLockItem(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    if policy and policy.CanLockItem then
+        return policy.CanLockItem(bagId, slotIndex)
+    end
+    if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
+        return false
+    end
+    if not CanItemBePlayerLocked or not CanItemBePlayerLocked(bagId, slotIndex) then
+        return false
+    end
+    if IsItemPlayerLocked and IsItemPlayerLocked(bagId, slotIndex) then
+        return false
+    end
+    return true
+end
+
+local function CanUnlockItem(bagId, slotIndex)
+    local policy = GetProtectionPolicy()
+    if policy and policy.CanUnlockItem then
+        return policy.CanUnlockItem(bagId, slotIndex)
+    end
+    if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
+        return false
+    end
+    if not IsItemPlayerLocked or not IsItemPlayerLocked(bagId, slotIndex) then
+        return false
+    end
+    return true
+end
+
 BatchActions.ExtractSlot = ExtractSlot
 BatchActions.HasItemAtSlot = HasItemAtSlot
 
@@ -93,11 +124,7 @@ function BatchActions.BatchLock(self)
     local items = {}
     for _, itemData in ipairs(allItems) do
         local bagId, slotIndex = ExtractSlot(itemData)
-        if bagId and slotIndex
-            and HasItemAtSlot(bagId, slotIndex)
-            and CanItemBePlayerLocked(bagId, slotIndex)
-            and not IsItemPlayerLocked(bagId, slotIndex)
-        then
+        if bagId and slotIndex and CanLockItem(bagId, slotIndex) then
             table.insert(items, itemData)
         end
     end
@@ -106,10 +133,7 @@ function BatchActions.BatchLock(self)
     self:ProcessBatchThrottled({
         items = items,
         step = function(bagId, slotIndex)
-            if not HasItemAtSlot(bagId, slotIndex) then
-                return BatchStepHandled()
-            end
-            if not CanItemBePlayerLocked(bagId, slotIndex) or IsItemPlayerLocked(bagId, slotIndex) then
+            if not CanLockItem(bagId, slotIndex) then
                 return BatchStepHandled()
             end
 
@@ -132,10 +156,7 @@ function BatchActions.BatchUnlock(self)
     local items = {}
     for _, itemData in ipairs(allItems) do
         local bagId, slotIndex = ExtractSlot(itemData)
-        if bagId and slotIndex
-            and HasItemAtSlot(bagId, slotIndex)
-            and IsItemPlayerLocked(bagId, slotIndex)
-        then
+        if bagId and slotIndex and CanUnlockItem(bagId, slotIndex) then
             table.insert(items, itemData)
         end
     end
@@ -144,10 +165,7 @@ function BatchActions.BatchUnlock(self)
     self:ProcessBatchThrottled({
         items = items,
         step = function(bagId, slotIndex)
-            if not HasItemAtSlot(bagId, slotIndex) then
-                return BatchStepHandled()
-            end
-            if not IsItemPlayerLocked(bagId, slotIndex) then
+            if not CanUnlockItem(bagId, slotIndex) then
                 return BatchStepHandled()
             end
 
@@ -265,16 +283,18 @@ function BatchActions.AnalyzeSelectedItems(selectedItems)
         local bagId, slotIndex = ExtractSlot(itemData)
         if bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) then
             local isLocked = IsItemPlayerLocked(bagId, slotIndex)
-            local canBeLocked = CanItemBePlayerLocked(bagId, slotIndex)
+            local canBeLocked = CanLockItem(bagId, slotIndex)
+            local canBeUnlocked = CanUnlockItem(bagId, slotIndex)
 
             if isLocked then
-                counts.lockedCount = counts.lockedCount + 1
+                if canBeUnlocked then
+                    counts.lockedCount = counts.lockedCount + 1
+                end
             else
                 counts.unlockedCount = counts.unlockedCount + 1
-            end
-
-            if canBeLocked and not isLocked then
-                counts.canLockCount = counts.canLockCount + 1
+                if canBeLocked then
+                    counts.canLockCount = counts.canLockCount + 1
+                end
             end
 
             local isJunk = IsItemJunk(bagId, slotIndex)

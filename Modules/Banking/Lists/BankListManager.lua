@@ -78,22 +78,22 @@ local GetBestItemCategoryDescription = BETTERUI.CIM.SharedItemSupport.GetBestIte
 
 local function ResolveBagsAndSlotType(self)
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
 
     -- Deposit always reads from backpack
     if not isWithdraw then
         return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
     end
 
-    local withdrawSourceBags = transferContext.withdrawSourceBags
+    local withdrawSourceBags = BETTERUI.Banking.GetTransferWithdrawSourceBags()
     if type(withdrawSourceBags) == "table" and #withdrawSourceBags > 0 then
-        local slotType = transferContext.isGuildBank and SLOT_TYPE_GUILD_BANK_ITEM
+        local slotType = BETTERUI.Banking.IsGuildBankTransferMode() and SLOT_TYPE_GUILD_BANK_ITEM
             or SLOT_TYPE_BANK_ITEM
         return withdrawSourceBags, slotType
     end
 
-    if transferContext.sourceBag ~= nil then
-        return { transferContext.sourceBag }, SLOT_TYPE_BANK_ITEM
+    local sourceBag = BETTERUI.Banking.GetTransferSourceBag()
+    if sourceBag ~= nil then
+        return { sourceBag }, SLOT_TYPE_BANK_ITEM
     end
 
     return { BAG_BANK, BAG_SUBSCRIBER_BANK }, SLOT_TYPE_BANK_ITEM
@@ -112,11 +112,10 @@ function BETTERUI.Banking.Class:RefreshList()
         return
     end
 
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    local transferSourceBankBag = transferContext.sourceBag
-    local isGuildBankActive = transferContext.isGuildBank == true
-    local isSourceMainBank = transferContext.isSourceMainBank == true
-    local isSourceFurnitureVault = transferContext.isSourceFurnitureVault == true
+    local transferSourceBankBag = BETTERUI.Banking.GetTransferSourceBag()
+    local isGuildBankActive = BETTERUI.Banking.IsGuildBankTransferMode()
+    local isSourceMainBank = BETTERUI.Banking.IsMainBankTransferSource()
+    local isSourceFurnitureVault = BETTERUI.Banking.IsTransferSourceFurnitureVault()
     if self._suppressListUpdates or self.isBatchProcessing then
         return
     end

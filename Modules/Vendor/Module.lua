@@ -147,22 +147,14 @@ function BETTERUI.Vendor.IsDebugFlagEnabled(flagName)
 	return debug.FLAGS and debug.FLAGS[flagName] == true or false
 end
 
----@param message string
----@param flagName string|nil
----@param category string|nil
----@return nil
-function BETTERUI.Vendor.DebugLog(message, flagName, category)
-	if BETTERUI.Vendor.IsDebugFlagEnabled(flagName) and BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.Log then
-		BETTERUI.CIM.Debug.Log(message, category or "Vendor")
-	end
-end
-
 ---@param flagName string|nil
 ---@param category string|nil
 ---@param message string
 ---@return nil
 function BETTERUI.Vendor.LogDebug(flagName, category, message)
-	BETTERUI.Vendor.DebugLog(message, flagName, category)
+	if BETTERUI.Vendor.IsDebugFlagEnabled(flagName) and BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.Log then
+		BETTERUI.CIM.Debug.Log(message, category or "Vendor")
+	end
 end
 
 ---@param obj table|nil

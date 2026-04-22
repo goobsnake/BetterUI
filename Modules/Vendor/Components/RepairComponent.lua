@@ -1,16 +1,12 @@
 --[[
 File: Modules/Vendor/Components/RepairComponent.lua
 Purpose: Repair tab component for the Vendor module.
-
-Handles listing damaged items and repairing them (individual or repair all).
-Uses GetItemCondition to find damaged items, RepairItem for individual repair,
-and GetRepairAllCost/RepairAll for batch repair.
 ]]
 
 local Vendor = BETTERUI.Vendor
 
 -- COMPONENT TABLE
-Vendor.RepairComponent = {}
+Vendor.RepairComponent = Vendor.RepairComponent or {}
 local Repair = Vendor.RepairComponent
 
 -- ACTIVATE / DEACTIVATE

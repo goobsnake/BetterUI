@@ -1,12 +1,6 @@
 --[[
 File: Modules/Vendor/Components/FenceSellComponent.lua
 Purpose: Fence Sell Stolen tab component for the Vendor module.
-
-Handles selling stolen items to the fence.
-KEY SAFETY GUARDS:
-- Artifact quality items (ITEM_FUNCTIONAL_QUALITY_ARTIFACT) blocked with dialog
-- Transaction limit checked every action via GetFenceSellTransactionInfo()
-- Only stolen items from BAG_BACKPACK shown in list
 ]]
 
 local Vendor = BETTERUI.Vendor

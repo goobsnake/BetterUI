@@ -75,9 +75,10 @@ local function RegisterSharedItemSupport()
             applyTooltipStyles = BETTERUI.Inventory.ApplyTooltipStyles,
             cleanupEnhancedTooltip = BETTERUI.Inventory.CleanupEnhancedTooltip,
             isItemComparisonEnabled = BETTERUI.Inventory.IsItemComparisonEnabled,
-            compareItem = function(...)
+            compareItem = function(candidateLink, candidateBagId, candidateSlotIndex, equippedBagId)
                 if BETTERUI.Inventory.StatComparison and BETTERUI.Inventory.StatComparison.Compare then
-                    return BETTERUI.Inventory.StatComparison.Compare(...)
+                    return BETTERUI.Inventory.StatComparison.Compare(candidateLink,
+                        candidateBagId, candidateSlotIndex, equippedBagId)
                 end
                 return nil
             end,

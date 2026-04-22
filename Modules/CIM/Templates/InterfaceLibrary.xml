@@ -47,7 +47,9 @@
                 -- If at top and MovePrevious fails, try to enter header/search
                 if atTop and not succeeded then
                 local owner = self.scrollList.owner
-                if owner and owner.RequestEnterHeader then
+                if owner and owner.RequestHeaderFocus then
+                owner:RequestHeaderFocus()
+                elseif owner and owner.RequestEnterHeader then
                 owner:RequestEnterHeader()
                 end
                 end
@@ -59,7 +61,9 @@
                 -- Exit search and return to list
                 local owner = self.scrollList.owner
                 if owner then
-                if owner.ExitSearchFocus then
+                if owner.OnSearchFocusLost then
+                owner:OnSearchFocusLost()
+                elseif owner.ExitSearchFocus then
                 owner:ExitSearchFocus()
                 elseif owner.RequestLeaveHeader then
                 owner:RequestLeaveHeader()

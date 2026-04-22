@@ -17,7 +17,7 @@ local Vendor = BETTERUI.Vendor
 ---@field BuildList fun(self: VendorComponent, vendorInstance: BETTERUI.Vendor.Class)
 
 -- COMPONENT TABLE
-Vendor.BuyComponent = {}
+Vendor.BuyComponent = Vendor.BuyComponent or {}
 local Buy = Vendor.BuyComponent
 
 local BUY_CATEGORY_DEFS = BETTERUI.CIM.ItemTaxonomy.VENDOR_BUY_CATEGORY_DEFS

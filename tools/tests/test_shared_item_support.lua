@@ -77,8 +77,9 @@ do
         isItemComparisonEnabled = function()
             return true
         end,
-        compareItem = function(itemLink)
-            calls[#calls + 1] = "compare:" .. tostring(itemLink)
+        compareItem = function(itemLink, bagId, slotIndex, equipBagId)
+            calls[#calls + 1] = string.format("compare:%s:%s:%s:%s",
+                tostring(itemLink), tostring(bagId), tostring(slotIndex), tostring(equipBagId))
             return { itemLink = itemLink }
         end,
         showComparisonOnTooltip = function(_, result)
@@ -89,7 +90,7 @@ do
     BETTERUI.CIM.SharedItemSupport.ApplyTooltipStyles()
     BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip("LEFT")
     BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText("LEFT", 3)
-    local result = BETTERUI.CIM.SharedItemSupport.CompareItem("item:1")
+    local result = BETTERUI.CIM.SharedItemSupport.CompareItem("item:1", 5, 8, 9)
     BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip({}, result)
 
     assert_eq(calls[1], "apply", "tooltip style application delegates through the shared seam")
@@ -97,7 +98,7 @@ do
     assert_eq(calls[3], "equipped:LEFT:3", "equipped-text updates delegate through the shared seam")
     assert_true(BETTERUI.CIM.SharedItemSupport.IsItemComparisonEnabled(),
         "comparison enablement delegates through the shared seam")
-    assert_eq(calls[4], "compare:item:1", "comparison calculation delegates through the shared seam")
+    assert_eq(calls[4], "compare:item:1:5:8:9", "comparison calculation delegates through the shared seam")
     assert_eq(calls[5], "show:item:1", "comparison rendering delegates through the shared seam")
 end
 

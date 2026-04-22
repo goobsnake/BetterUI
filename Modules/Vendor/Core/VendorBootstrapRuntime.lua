@@ -64,11 +64,11 @@ function BootstrapRuntime.InitializeSearch(instance, _deps)
     local searchCallbackRevision = 0
     local searchHandlerRevision = 0
 
-    local function HandleVendorSearchChanged(editOrText)
+    local function HandleVendorSearchChanged(searchText)
         if instance.OnSearchTextChanged then
-            instance:OnSearchTextChanged(editOrText)
+            instance:OnSearchTextChanged(searchText)
         else
-            instance.searchQuery = tostring(editOrText or "")
+            instance.searchQuery = searchText
             instance:RefreshList()
         end
         searchCallbackRevision = searchCallbackRevision + 1

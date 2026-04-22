@@ -76,9 +76,9 @@ end
 
 --- Handles the case where the player switched to a different bank.
 function BETTERUI.Banking.Class:HandleBankSwitch()
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank
-    local lastUsedBank = BETTERUI.Banking.lastUsedBank
-    local activeSourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
+    local currentUsedBank = BETTERUI.Banking.GetCurrentUsedBank()
+    local lastUsedBank = BETTERUI.Banking.GetLastUsedBank()
+    local activeSourceBag = BETTERUI.Banking.GetTransferSourceBag()
 
     if lastUsedBank == currentUsedBank then
         return false -- No switch, handled by caller
@@ -94,11 +94,11 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         self:SaveListPosition()
         self.currentMode = LIST_WITHDRAW
-        BETTERUI.Banking.lastUsedBank = activeSourceBag
+        BETTERUI.Banking.SetLastUsedBank(activeSourceBag)
         self:RefreshList()
     else
         -- Switch to withdraw mode
-        BETTERUI.Banking.lastUsedBank = activeSourceBag
+        BETTERUI.Banking.SetLastUsedBank(activeSourceBag)
         self.currentMode = LIST_WITHDRAW
         self:ToggleList(true)
     end
@@ -107,7 +107,7 @@ end
 
 --- Restores the saved list position.
 function BETTERUI.Banking.Class:ReturnToSaved()
-    BETTERUI.Banking.currentUsedBank = BETTERUI.Banking.GetTransferSourceBankBag()
+    BETTERUI.Banking.SetCurrentUsedBank(BETTERUI.Banking.GetTransferSourceBag())
 
     -- Handle empty list
     if self:HandleEmptyList() then

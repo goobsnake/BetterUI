@@ -228,8 +228,12 @@ BETTERUI = {
         ShouldAbortDeferredVendorRefresh = function()
             return false
         end,
-        GetNormalizedSearchQuery = function(vendorInstance)
-            return vendorInstance.searchQuery and string.lower(vendorInstance.searchQuery) or nil
+        NormalizeSearchQuery = function(query)
+            local normalized = query and string.lower(query) or nil
+            if normalized == "" then
+                return nil
+            end
+            return normalized
         end,
         MatchesSearchQuery = function(query, name)
             if not query or query == "" then

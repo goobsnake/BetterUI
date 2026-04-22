@@ -71,8 +71,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     self.lastPositionsByCategory = {}
 
-    local transferContext = BETTERUI.Banking.GetActiveTransferContext()
-    BETTERUI.Banking.SetCurrentUsedBank(transferContext.sourceBag)
+    BETTERUI.Banking.SetCurrentUsedBank(BETTERUI.Banking.GetTransferSourceBag())
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 
@@ -89,24 +88,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.textSearchKeybindStripDescriptor = CreateSearchKeybindDescriptor(self)
 
     if self.AddSearch then
-        self:AddSearch(self.textSearchKeybindStripDescriptor, function(editOrText)
-            local query
-            if type(editOrText) == "string" then
-                query = editOrText
-            elseif editOrText and type(editOrText) == "table" and editOrText.GetText then
-                query = editOrText:GetText() or ""
-            elseif editOrText and type(editOrText) == "userdata" then
-                local txt = editOrText:GetText()
-                if txt then
-                    query = txt
-                else
-                    query = tostring(editOrText)
-                end
-            else
-                query = tostring(editOrText or "")
-            end
-
-            self.searchQuery = query or ""
+        self:AddSearch(self.textSearchKeybindStripDescriptor, function(searchText)
+            self.searchQuery = searchText
             self:SaveListPosition()
             self:RefreshList()
         end)

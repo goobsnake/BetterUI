@@ -1,8 +1,12 @@
--- Vendor buyback tab component.
+--[[
+File: Modules/Vendor/Components/BuybackComponent.lua
+Purpose: Buyback tab component for the Vendor module.
+]]
 
 local Vendor = BETTERUI.Vendor
 
-Vendor.BuybackComponent = {}
+-- COMPONENT TABLE
+Vendor.BuybackComponent = Vendor.BuybackComponent or {}
 local Buyback = Vendor.BuybackComponent
 
 local function GetBuybackItemCategoryName(itemLink)

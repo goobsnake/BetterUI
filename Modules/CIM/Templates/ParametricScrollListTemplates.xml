@@ -41,7 +41,9 @@
                 -- If at top and MovePrevious fails, try to enter header/search (PC-like behavior)
                 if atTop and not succeeded then
                 local owner = self.scrollList.owner
-                if owner and owner.RequestEnterHeader then
+                if owner and owner.RequestHeaderFocus then
+                owner:RequestHeaderFocus()
+                elseif owner and owner.RequestEnterHeader then
                 owner:RequestEnterHeader()
                 elseif GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RequestEnterHeader then
                 GAMEPAD_INVENTORY:RequestEnterHeader()
@@ -56,7 +58,9 @@
                 -- Exit search focus and return to list
                 local owner = self.scrollList.owner or GAMEPAD_INVENTORY
                 if owner then
-                if owner.ExitSearchFocus then
+                if owner.OnSearchFocusLost then
+                owner:OnSearchFocusLost()
+                elseif owner.ExitSearchFocus then
                 owner:ExitSearchFocus()
                 elseif owner.RequestLeaveHeader then
                 owner:RequestLeaveHeader()

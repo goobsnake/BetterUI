@@ -103,6 +103,14 @@ assert_true(batchActions:find("function BatchActions%.BatchUnmarkAsJunk%(self%)"
     "BatchActions exposes BatchUnmarkAsJunk")
 assert_true(batchActions:find("function BatchActions%.AnalyzeSelectedItems%(selectedItems%)") ~= nil,
     "BatchActions exposes AnalyzeSelectedItems")
+assert_true(batchActions:find("local function CanLockItem%(bagId, slotIndex%)") ~= nil,
+    "BatchActions defines a lock authorization helper")
+assert_true(batchActions:find("policy and policy%.CanLockItem") ~= nil,
+    "BatchActions lock checks route through ProtectionPolicy.CanLockItem when available")
+assert_true(batchActions:find("local function CanUnlockItem%(bagId, slotIndex%)") ~= nil,
+    "BatchActions defines an unlock authorization helper")
+assert_true(batchActions:find("policy and policy%.CanUnlockItem") ~= nil,
+    "BatchActions unlock checks route through ProtectionPolicy.CanUnlockItem when available")
 
 local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")
 local cimUtilities = read_file("Modules/CIM/Core/Utilities.lua")
@@ -110,14 +118,20 @@ assert_true(genericSlotActions:find("BETTERUI%.CIM%.InvokeInventoryDialog%(\"Try
     "GenericSlotActions routes craft-bag quantity dialogs through the shared CIM dialog seam")
 assert_true(genericSlotActions:find("local function CanStowToCraftBagWithPolicy%(bagId, slotIndex%)") ~= nil,
     "GenericSlotActions centralizes craft-bag stow authorization through a policy helper")
-assert_true(genericSlotActions:find("BETTERUI%.Banking and BETTERUI%.Banking%.ResolveTransferSupport") ~= nil,
-    "GenericSlotActions resolves banking transfer support through the owned Banking seam")
+assert_true(genericSlotActions:find("RequireTransferSupport") ~= nil,
+    "GenericSlotActions requires banking transfer support through the owned Banking seam")
 assert_true(genericSlotActions:find("local function GetBankingTransferSupport") == nil,
     "GenericSlotActions does not keep a banking-specific CIM forwarding helper")
 assert_true(genericSlotActions:find("BETTERUI%.CIM%.Utils%.GetBankingTransferSupport") == nil,
     "GenericSlotActions avoids the CIM bank transfer support forwarding seam")
 assert_true(genericSlotActions:find("policy and policy%.CanStowToCraftBag") ~= nil,
     "GenericSlotActions checks stow eligibility via ProtectionPolicy.CanStowToCraftBag when available")
+assert_true(genericSlotActions:find("local function ResolvePolicyDeny%(denyKey, fallbackValue%)") ~= nil,
+    "GenericSlotActions centralizes deny-code resolution through ProtectionPolicy.DENY")
+assert_true(genericSlotActions:find('ResolvePolicyDeny%("NO_CRAFT_ACCESS", "no_craft_access"%)') ~= nil,
+    "GenericSlotActions resolves no-craft-access fallback reasons through shared deny constants")
+assert_true(genericSlotActions:find('ResolvePolicyDeny%("NO_ITEM", "no_item"%)') ~= nil,
+    "GenericSlotActions resolves no-item fallback reasons through shared deny constants")
 assert_true(genericSlotActions:find(
     "function BETTERUI%.CIM%.TryMoveToCraftBag%(inventorySlot, targetBag, quantity%)") ~= nil,
     "GenericSlotActions supports quantity-aware transfer calls through the shared craft-bag move seam")
@@ -127,7 +141,7 @@ assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.GetBankingTransfer
     "CIM Utilities no longer exposes the banking transfer support forwarding seam")
 
 if failed > 0 then
-    error(string.format("test_cim_support_module_source.lua failed with %d failure%(s%)", failed))
+    error(string.format("test_cim_support_module_source.lua failed with %d failure(s)", failed))
 end
 
 print(string.format("test_cim_support_module_source.lua: %d passed", passed))

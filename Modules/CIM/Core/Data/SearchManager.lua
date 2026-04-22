@@ -260,6 +260,28 @@ function BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(self)
     return self and (self._searchHeaderActive == true or self._searchModeActive == true) or false
 end
 
+--- Normalizes any search callback payload into a string.
+---@param payload any
+---@return string
+local function NormalizeSearchCallbackText(payload)
+    if payload == nil then
+        return ""
+    end
+
+    if type(payload) == "string" then
+        return payload
+    end
+
+    if (type(payload) == "table" or type(payload) == "userdata") and payload.GetText then
+        local ok, text = pcall(payload.GetText, payload)
+        if ok and text ~= nil then
+            return tostring(text)
+        end
+    end
+
+    return tostring(payload)
+end
+
 --- Integrates text search capability into the window.
 ---@param self BetterUISearchContext
 ---@param textSearchKeybindStripDescriptor BetterUIKeybindDescriptorGroup
@@ -270,12 +292,15 @@ function BETTERUI.Interface.SearchMixin.AddSearch(self, textSearchKeybindStripDe
     self.textSearchKeybindStripDescriptor = textSearchKeybindStripDescriptor
     self.textSearchHeaderControl = CreateControlFromVirtual("$(parent)SearchContainer", self.header,
         "ZO_Gamepad_TextSearch_HeaderEditbox")
+    local callback = onTextSearchTextChangedCallback and function(payload)
+        onTextSearchTextChangedCallback(NormalizeSearchCallbackText(payload))
+    end or nil
     -- ZO_TextSearch_Header_Gamepad is provided by the engine's common gamepad libraries
     if ZO_TextSearch_Header_Gamepad then
         self.textSearchHeaderFocus = ZO_TextSearch_Header_Gamepad:New(self.textSearchHeaderControl,
-            onTextSearchTextChangedCallback)
+            callback)
         -- Keep the callback so callers can recreate the control under GuiRoot if needed
-        self.textSearchCallback = onTextSearchTextChangedCallback
+        self.textSearchCallback = callback
         -- Treat this as the header focus control for the window
         if not self.headerFocus then
             self.headerFocus = self.textSearchHeaderFocus

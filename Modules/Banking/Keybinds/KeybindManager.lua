@@ -255,7 +255,7 @@ local function CreateCoreNavigationKeybinds(self)
                 if self:IsBatchProcessing() then
                     return
                 end
-                local transferSourceBankBag = BETTERUI.Banking.GetTransferSourceBankBag()
+                local transferSourceBankBag = BETTERUI.Banking.GetTransferSourceBag()
                 if self.currentMode == LIST_WITHDRAW then
                     if transferSourceBankBag == BAG_BANK then
                         StackBag(BAG_BANK)
@@ -435,8 +435,10 @@ ResolveGuildBankTransferKeybindState = function(self)
         return true, nil
     end
 
-    local resolveTransferSupport = BETTERUI.Banking.ResolveTransferSupport
-    local transferSupport = type(resolveTransferSupport) == "function" and resolveTransferSupport() or nil
+    local requireTransferSupport = BETTERUI.Banking.RequireTransferSupport
+    local transferSupport = type(requireTransferSupport) == "function"
+        and requireTransferSupport("Banking/Keybinds/KeybindManager")
+        or nil
     local resolveDecision = transferSupport and transferSupport.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
         return true, nil

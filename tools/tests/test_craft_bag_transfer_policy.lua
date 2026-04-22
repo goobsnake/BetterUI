@@ -29,6 +29,9 @@ local stackSize = 10
 local maxStackSize = 20
 local destinationSlot = 17
 local hasSpace = true
+local hasCraftBagAccess = true
+local itemCanBeVirtual = true
+local itemIsStolen = false
 
 BAG_VIRTUAL = 100
 BAG_BACKPACK = 1
@@ -53,15 +56,15 @@ function CallSecureProtected(action, ...)
 end
 
 function HasCraftBagAccess()
-    return true
+    return hasCraftBagAccess
 end
 
 function CanItemBeVirtual()
-    return true
+    return itemCanBeVirtual
 end
 
 function IsItemStolen()
-    return false
+    return itemIsStolen
 end
 
 function DoesBagHaveSpaceFor()
@@ -80,10 +83,18 @@ BETTERUI.CIM.UserNotify = function(context, stringId)
 end
 
 BETTERUI.CIM.ProtectionPolicy = {
+    DENY = {
+        STOLEN = "stolen",
+        NO_CRAFT_ACCESS = "no_craft_access",
+        NOT_CRAFTABLE = "not_craftable",
+        NO_ITEM = "no_item",
+    },
     CanStowToCraftBag = function(_bagId, _slotIndex)
         return canStow, denyReason
     end,
 }
+
+local defaultPolicyCanStow = BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag
 
 dofile("Modules/CIM/Actions/GenericSlotActions.lua")
 
@@ -91,6 +102,9 @@ print("[Craft bag transfer policy]")
 
 do
     secureCalls = {}
+    hasCraftBagAccess = true
+    itemCanBeVirtual = true
+    itemIsStolen = false
     canStow = false
     denyReason = "stolen"
 
@@ -105,6 +119,46 @@ end
 
 do
     secureCalls = {}
+    hasCraftBagAccess = false
+    itemCanBeVirtual = true
+    itemIsStolen = false
+    BETTERUI.CIM.ProtectionPolicy.DENY.NO_CRAFT_ACCESS = "deny_no_craft_access"
+    BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag = nil
+
+    local moved, reason = BETTERUI.CIM.TryMoveToCraftBag({ bagId = BAG_BACKPACK, slotIndex = 4 }, BAG_VIRTUAL, 3)
+
+    assert_equal(moved, false, "fallback stow policy denies craft-bag access when unsupported")
+    assert_equal(reason, "deny_no_craft_access", "fallback stow policy resolves deny reason via shared constant")
+    assert_equal(#secureCalls, 0, "fallback stow denial avoids secure transfer calls")
+
+    BETTERUI.CIM.ProtectionPolicy.DENY.NO_CRAFT_ACCESS = "no_craft_access"
+    BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag = defaultPolicyCanStow
+end
+
+do
+    secureCalls = {}
+    hasCraftBagAccess = true
+    itemCanBeVirtual = true
+    itemIsStolen = false
+    stackSize = 0
+    BETTERUI.CIM.ProtectionPolicy.DENY.NO_ITEM = "deny_no_item"
+
+    local moved, reason = BETTERUI.CIM.TryMoveToCraftBag({ bagId = BAG_BACKPACK, slotIndex = 4 }, BAG_VIRTUAL, 3)
+
+    assert_equal(moved, false, "empty stacks are denied before transfer")
+    assert_equal(reason, "deny_no_item", "empty-stack denial resolves via shared no-item constant")
+    assert_equal(#secureCalls, 0, "empty-stack denial avoids secure transfer calls")
+
+    BETTERUI.CIM.ProtectionPolicy.DENY.NO_ITEM = "no_item"
+    stackSize = 10
+end
+
+do
+    secureCalls = {}
+    hasCraftBagAccess = true
+    itemCanBeVirtual = true
+    itemIsStolen = false
+    BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag = defaultPolicyCanStow
     canStow = true
     denyReason = nil
 
@@ -124,6 +178,9 @@ do
     secureCalls = {}
     userNotifications = {}
     hasSpace = true
+    hasCraftBagAccess = true
+    itemCanBeVirtual = true
+    itemIsStolen = false
     destinationSlot = 42
 
     local moved = BETTERUI.CIM.TryMoveToCraftBag({ bagId = BAG_VIRTUAL, slotIndex = 9 }, BAG_BACKPACK, 2)

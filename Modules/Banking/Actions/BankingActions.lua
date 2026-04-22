@@ -11,7 +11,7 @@ function BETTERUI.Banking.Class:RefreshItemActions()
 end
 
 function BETTERUI.Banking.Class:IsFurnitureVaultContext()
-    return BETTERUI.Banking.IsFurnitureVaultTransferSource()
+    return BETTERUI.Banking.IsTransferSourceFurnitureVault()
 end
 
 function BETTERUI.Banking.Class:RequestJunkCategoryRefresh(delayMs, preferredCategoryKey)
@@ -192,7 +192,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 table.insert(parametricList, 1, moveMaxAction)
             end
 
-            local isSourceFurnitureVault = BETTERUI.Banking.IsFurnitureVaultTransferSource()
+            local isSourceFurnitureVault = BETTERUI.Banking.IsTransferSourceFurnitureVault()
             local canShowStowAllFurniture = (self.currentMode == LIST_DEPOSIT)
                 and isSourceFurnitureVault
                 and HOUSING_EDITOR_STATE

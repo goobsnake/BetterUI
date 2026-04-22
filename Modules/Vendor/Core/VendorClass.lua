@@ -1398,19 +1398,10 @@ function BETTERUI.Vendor.Class:OnEnterHeader()
 end
 
 --- Handles text updates from search edit box callbacks.
----@param editBox table|string|nil
+---@param searchText string
 ---@return nil
-function BETTERUI.Vendor.Class:OnSearchTextChanged(editBox)
-    local query
-    if type(editBox) == "string" then
-        query = editBox
-    elseif editBox and editBox.GetText then
-        query = editBox:GetText()
-    else
-        query = tostring(editBox or "")
-    end
-
-    self.searchQuery = query or ""
+function BETTERUI.Vendor.Class:OnSearchTextChanged(searchText)
+    self.searchQuery = searchText
     self:RefreshList()
 end
 

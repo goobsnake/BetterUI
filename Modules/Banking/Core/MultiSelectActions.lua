@@ -227,6 +227,8 @@ local TransferSupport = {
     ResolveDepositTargetBag = ResolveDepositTargetBag,
 }
 
+BETTERUI.Banking.transferSupport = TransferSupport
+
 function BETTERUI.Banking.GetTransferSupport()
     return TransferSupport
 end

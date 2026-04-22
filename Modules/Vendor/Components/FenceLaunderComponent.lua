@@ -1,18 +1,12 @@
 --[[
 File: Modules/Vendor/Components/FenceLaunderComponent.lua
 Purpose: Fence Launder tab component for the Vendor module.
-
-Handles laundering stolen items at the fence.
-KEY MECHANICS:
-- Transaction limit checked every action via GetFenceLaunderTransactionInfo()
-- Player must be able to afford launder cost
-- Only stolen items from BAG_BACKPACK shown in list
 ]]
 
 local Vendor = BETTERUI.Vendor
 
 -- COMPONENT TABLE
-Vendor.FenceLaunderComponent = {}
+Vendor.FenceLaunderComponent = Vendor.FenceLaunderComponent or {}
 local FenceLaunder = Vendor.FenceLaunderComponent
 
 -- ACTIVATE / DEACTIVATE

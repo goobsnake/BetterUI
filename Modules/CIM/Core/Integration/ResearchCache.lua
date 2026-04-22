@@ -55,15 +55,9 @@ end
 
 --- RESEARCH CACHE
 
---- Returns shared research traits and refreshes them from game data when requested.
---- When `forceRefresh` is true, this method refreshes persistent cache state and updates
---- `BETTERUI.ResearchTraits`.
----@param forceRefresh boolean|nil Forces a cache rebuild when true.
+--- Returns shared research traits without mutating cache state.
 ---@return table traits The cached research-trait matrix
-function ResearchCache.GetResearch(forceRefresh)
-    if forceRefresh then
-        return BuildResearchTraits()
-    end
+function ResearchCache.GetResearch()
     return GetCachedResearchTraits()
 end
 
@@ -78,15 +72,14 @@ end
 --- Keeps existing behavior for callers that only need trait reads.
 ---@return table traits The cached research-trait matrix
 function ResearchCache.GetTraits()
-    return GetCachedResearchTraits()
+    return ResearchCache.GetResearch()
 end
 
---- Backward-compatible accessor name for cache reads/writes with explicit behavior.
----@deprecated Prefer `GetResearch` for explicit refresh semantics.
----@param forceRefresh boolean|nil Forces a cache rebuild when true.
+--- Backward-compatible read-only alias.
+---@deprecated Prefer `GetResearch` for reads and `RefreshResearchTraits` for refreshes.
 ---@return table traits The cached research-trait matrix
-function ResearchCache.GetResearchTraits(forceRefresh)
-    return ResearchCache.GetResearch(forceRefresh)
+function ResearchCache.GetResearchTraits()
+    return ResearchCache.GetResearch()
 end
 
 BETTERUI.GetResearch = ResearchCache.GetResearch
