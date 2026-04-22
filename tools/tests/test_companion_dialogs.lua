@@ -62,6 +62,20 @@ end
 
 BETTERUI = {
     CIM = {
+        Utils = {
+            SafeGetTargetData = function(list)
+                if not list then
+                    return nil
+                end
+                if list.GetTargetData then
+                    return list:GetTargetData()
+                end
+                if list.GetSelectedData then
+                    return list:GetSelectedData()
+                end
+                return list.selectedData
+            end,
+        },
         Dialogs = {
             CreateParametricActionEntry = function(name, actionId)
                 return {

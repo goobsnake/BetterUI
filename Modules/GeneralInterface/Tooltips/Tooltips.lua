@@ -19,7 +19,22 @@ Tooltips.SetGuildStoreErrorSuppressed = SetGuildStoreErrorSuppressed
 Tooltips.GuildStoreSuppression = {
     SetErrorSuppressed = SetGuildStoreErrorSuppressed,
 }
-SetGuildStoreErrorSuppressed(TooltipRuntime.guildStoreErrorSuppressed == true)
+
+function Tooltips.InitializeRuntime()
+    if TooltipRuntime.initialized == true then
+        return true
+    end
+
+    SetGuildStoreErrorSuppressed(TooltipRuntime.guildStoreErrorSuppressed == true)
+
+    local cimUtils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    if cimUtils and type(cimUtils.RegisterResearchableTraitMatcher) == "function" then
+        cimUtils.RegisterResearchableTraitMatcher(GeneralInterface.GetCachedResearchableTraitMatches)
+    end
+
+    TooltipRuntime.initialized = true
+    return true
+end
 
 -- Trait research lookups iterate bag contents, so cache them per bag and
 -- invalidate on targeted slot updates instead of rebuilding everything.
@@ -52,10 +67,6 @@ function GeneralInterface.GetCachedResearchableTraitMatches(itemLink, bagId)
         BuildBagResearchCache(bagId)
     end
     return (ResearchableTraitCache[bagId] and ResearchableTraitCache[bagId][traitType]) or 0
-end
-
-if BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher then
-    BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher(GeneralInterface.GetCachedResearchableTraitMatches)
 end
 
 function GeneralInterface.InvalidateResearchableTraitCache(bagId)
@@ -731,20 +742,3 @@ BETTERUI.InventoryHook = Tooltips.InventoryHook
 BETTERUI.ReturnItemLink = Tooltips.ReturnItemLink
 BETTERUI.ReturnSelectedData = Tooltips.ReturnSelectedData
 BETTERUI.ReturnStoreSearch = Tooltips.ReturnStoreSearch
-
--- EVENT HANDLERS
-
---- Handles single slot updates to invalidate the research trait cache for the specific bag.
----
---- Purpose: targeted invalidation instead of clearing the entire cache.
-local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason,
-                                     stackCountChange)
-    -- Only invalidate if item was added/removed/changed (not just equipped status on self, though trait research usually doesn't change on equip)
-    -- Check for DEFAULT update reason which covers most inventory mutations
-    if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then
-        BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
-    end
-end
-
-BETTERUI.CIM.EventRegistry.Register("Tooltips", "BetterUI_TooltipCache", EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-    OnInventorySlotUpdate)

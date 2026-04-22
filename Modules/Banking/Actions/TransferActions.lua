@@ -2,7 +2,7 @@ local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 
-local function GetTransferService()
+local function ResolveTransferService()
     local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
     if type(getTransferService) == "function" then
         local transferService = getTransferService()
@@ -12,10 +12,25 @@ local function GetTransferService()
     end
 
     local transferService = BETTERUI.Banking and BETTERUI.Banking.Transfer or nil
-    if type(transferService) ~= "table" then
-        transferService = {}
-        BETTERUI.Banking.Transfer = transferService
+    if type(transferService) == "table" then
+        return transferService
     end
+
+    return nil
+end
+
+local function RequireTransferService()
+    local transferService = ResolveTransferService()
+    if type(transferService) ~= "table" then
+        return nil, "transfer_service_unavailable"
+    end
+    if type(transferService.NotifyTransferDenied) ~= "function"
+        or type(transferService.NotifyGuildBankTransferDenied) ~= "function"
+        or type(transferService.CanDepositIntoBank) ~= "function"
+    then
+        return nil, "transfer_service_incomplete"
+    end
+
     return transferService
 end
 
@@ -126,8 +141,10 @@ end
 ---@param targetBankBag number
 ---@param denyReason string|nil
 local function NotifyDepositBlocked(targetBankBag, denyReason)
-    local transferService = GetTransferService()
-    transferService.NotifyTransferDenied("Banking.TransferActions.Deposit", targetBankBag, denyReason)
+    local transferService = ResolveTransferService()
+    if transferService and type(transferService.NotifyTransferDenied) == "function" then
+        transferService.NotifyTransferDenied("Banking.TransferActions.Deposit", targetBankBag, denyReason)
+    end
 end
 
 function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
@@ -140,7 +157,10 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     local transferState = BETTERUI.Banking.GetTransferState()
-    local transferService = GetTransferService()
+    local transferService, transferServiceReason = RequireTransferService()
+    if not transferService then
+        return false, transferServiceReason
+    end
     local isGuildBankMode = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
 
@@ -217,7 +237,10 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local transferState = BETTERUI.Banking.GetTransferState()
-    local transferService = GetTransferService()
+    local transferService, transferServiceReason = RequireTransferService()
+    if not transferService then
+        return false, transferServiceReason
+    end
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
     local targetBankBag = transferState.depositTargetBag
     if quantity == nil then

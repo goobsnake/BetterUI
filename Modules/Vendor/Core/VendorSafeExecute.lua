@@ -17,12 +17,15 @@ local function PackResults(...)
 end
 
 function Vendor.ExecuteSafely(context, fn, ...)
-    if type(fn) ~= "function" then
-        return false, nil
-    end
-
     if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute then
         return BETTERUI.CIM.SafeExecute(context, fn, ...)
+    end
+
+    if type(fn) ~= "function" then
+        if BETTERUI and BETTERUI.Debug then
+            BETTERUI.Debug(string.format("[Error] %s: No function provided", tostring(context)))
+        end
+        return false, "No function provided"
     end
 
     local results = PackResults(pcall(fn, ...))

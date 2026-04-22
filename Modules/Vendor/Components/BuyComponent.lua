@@ -225,21 +225,11 @@ local function GetFocusedStoreData(vendorInstance)
         return nil
     end
 
-    if BETTERUI.Utils and BETTERUI.Utils.SafeGetTargetData then
-        local targetData = BETTERUI.Utils.SafeGetTargetData(list)
-        if targetData then
-            return targetData
-        end
+    local safeGetTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.SafeGetTargetData
+    if type(safeGetTargetData) ~= "function" then
+        return nil
     end
-
-    if list.GetSelectedData then
-        local selectedData = list:GetSelectedData()
-        if selectedData then
-            return selectedData
-        end
-    end
-
-    return list.selectedData
+    return safeGetTargetData(list)
 end
 
 local function BuildRowsFromIndexProbe()

@@ -1,15 +1,12 @@
 if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
 
-local function SafeGetTargetData(list)
-    if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
+local function ResolveDialogTargetData(list)
+    local safeGetTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.SafeGetTargetData
+    if type(safeGetTargetData) ~= "function" then
+        return nil
     end
-    if list.GetSelectedData then
-        return list:GetSelectedData()
-    end
-    return nil
+    return safeGetTargetData(list)
 end
 
 local function CountEligibleActionTargets(actionId, items)
@@ -60,7 +57,7 @@ local function RegisterCompanionActionDialog()
                 text = SI_GAMEPAD_SELECT_OPTION,
                 keybind = "DIALOG_PRIMARY",
                 callback = function(dialog)
-                    local selected = dialog.entryList and SafeGetTargetData(dialog.entryList)
+                    local selected = dialog.entryList and ResolveDialogTargetData(dialog.entryList)
                     if selected and selected.actionId then
                         local data = dialog.data
                         if data and data.selectedData then
@@ -140,7 +137,7 @@ local function RegisterCompanionBatchDialog()
                 text = SI_GAMEPAD_SELECT_OPTION,
                 keybind = "DIALOG_PRIMARY",
                 callback = function(dialog)
-                    local selected = dialog.entryList and SafeGetTargetData(dialog.entryList)
+                    local selected = dialog.entryList and ResolveDialogTargetData(dialog.entryList)
                     if not selected or not selected.actionId then return end
                     local ms = Companions.multiSelectManager
                     if not ms then return end

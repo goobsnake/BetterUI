@@ -34,13 +34,13 @@ assert_true(multiSelect:find("ResolveGuildBankTransferDecision") ~= nil,
     "MultiSelectActions defines the shared guild-bank transfer decision helper")
 assert_true(
     multiSelect:find("Transfer%.NotifyGuildBankTransferDenied") ~= nil
-        and multiSelect:find("TransferRules = transferService") ~= nil,
-    "MultiSelectActions exports the shared guild-bank denial notifier through Banking.Transfer and keeps TransferRules compatibility alias")
+        and multiSelect:find("TransferRules = transferService") == nil,
+    "MultiSelectActions exports the shared guild-bank denial notifier through Banking.Transfer without the TransferRules alias")
 
 local transferActions = read_file("Modules/Banking/Actions/TransferActions.lua")
 assert_true(transferActions:find("TryTransferInventorySlot") ~= nil,
     "TransferActions owns the single-slot Banking transfer seam")
-assert_true(transferActions:find("Transfer%.NotifyGuildBankTransferDenied") ~= nil,
+assert_true(transferActions:find("transferService%.NotifyGuildBankTransferDenied") ~= nil,
     "TransferActions routes guild-bank moves through the shared denial helper")
 
 local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")

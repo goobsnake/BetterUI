@@ -30,12 +30,14 @@ end
 
 --- Refreshes the inventory and banking lists if their scenes are showing.
 local function RefreshInventoryAndBankingLists()
+    local sharedUtils = BETTERUI.CIM and BETTERUI.CIM.Utils or nil
+    local isInventorySceneShowing = sharedUtils and sharedUtils.IsInventorySceneShowing
+    local isBankingSceneShowing = sharedUtils and sharedUtils.IsBankingSceneShowing
+
     local inventoryWindow = GAMEPAD_INVENTORY
     local inventorySceneShowing = true
-    if BETTERUI.Utils and type(BETTERUI.Utils.IsInventorySceneShowing) == "function" then
-        inventorySceneShowing = BETTERUI.Utils.IsInventorySceneShowing()
-    elseif BETTERUI.CIM.Utils and type(BETTERUI.CIM.Utils.IsInventorySceneShowing) == "function" then
-        inventorySceneShowing = BETTERUI.CIM.Utils.IsInventorySceneShowing()
+    if type(isInventorySceneShowing) == "function" then
+        inventorySceneShowing = isInventorySceneShowing()
     end
 
     if inventorySceneShowing
@@ -48,10 +50,8 @@ local function RefreshInventoryAndBankingLists()
 
     local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
     local bankingSceneShowing = true
-    if BETTERUI.Utils and type(BETTERUI.Utils.IsBankingSceneShowing) == "function" then
-        bankingSceneShowing = BETTERUI.Utils.IsBankingSceneShowing()
-    elseif BETTERUI.CIM.Utils and type(BETTERUI.CIM.Utils.IsBankingSceneShowing) == "function" then
-        bankingSceneShowing = BETTERUI.CIM.Utils.IsBankingSceneShowing()
+    if type(isBankingSceneShowing) == "function" then
+        bankingSceneShowing = isBankingSceneShowing()
     end
 
     if bankingSceneShowing and bankingWindow and bankingWindow.RefreshList then

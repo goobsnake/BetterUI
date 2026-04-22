@@ -432,10 +432,10 @@ assertEqual(BAG_BANK, BETTERUI.Banking.GetActiveDepositBag(),
 BETTERUI.Banking.RuntimeState.currentUsedBank = BAG_GUILDBANK
 assertTrue(BETTERUI.Banking.IsGuildBankTransfer(),
     "IsGuildBankTransfer reflects guild-bank transfer mode")
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetActiveInteractionBag(),
-    "GetActiveInteractionBag resolves the active guild-bank source")
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetWithdrawSourceBags()[1],
-    "GetWithdrawSourceBags resolves guild-bank withdraw source bags")
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetTransferState().interactionBag,
+    "GetTransferState resolves the active guild-bank source")
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetTransferState().withdrawSourceBags[1],
+    "GetTransferState resolves guild-bank withdraw source bags")
 
 -- ============================================================================
 -- TESTS: API Exposure
@@ -443,7 +443,7 @@ assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetWithdrawSourceBags()[1],
 
 print("\n=== API Exposure ===\n")
 
-assertNotNil(BETTERUI.Banking.GetTransferContext, "GetTransferContext accessor exists")
+assertNotNil(BETTERUI.Banking.GetTransferContext, "GetTransferContext accessor exists for the local transfer harness")
 assertNotNil(BETTERUI.Banking.GetTransferState, "GetTransferState accessor exists")
 assertNotNil(BETTERUI.Banking.Transfer, "Transfer service exposed")
 assertNotNil(BETTERUI.Banking.Transfer.CanDepositIntoBank, "Transfer exposes deposit validation")
@@ -455,7 +455,7 @@ assertNotNil(BETTERUI.Banking.Transfer.NotifyGuildBankTransferDenied,
 assertNotNil(BETTERUI.Banking.TryTransferInventorySlot, "Banking exposes the single-slot inventory transfer seam")
 assertNotNil(BETTERUI.Banking.IsGuildBankTransfer, "IsGuildBankTransfer exposed")
 assertNotNil(BETTERUI.Banking.GetActiveDepositBag, "GetActiveDepositBag exposed")
-assertNotNil(BETTERUI.Banking.GetWithdrawSourceBags, "GetWithdrawSourceBags exposed")
+assertNotNil(BETTERUI.Banking.GetWithdrawSourceBags, "GetWithdrawSourceBags exposed on the local transfer harness")
 assertNil(BETTERUI.Banking.ResolveTransferStackCount, "ResolveTransferStackCount is internal")
 assertNil(BETTERUI.Banking.ResolveDepositDestinationBag, "ResolveDepositDestinationBag is internal")
 assertNil(BETTERUI.Banking.ResolveTransferDeniedNotification, "ResolveTransferDeniedNotification is internal")

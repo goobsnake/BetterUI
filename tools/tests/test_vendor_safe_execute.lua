@@ -76,7 +76,7 @@ assert_equal("Vendor.SafeExecute:Error", notified[1].context, "Vendor.ExecuteSaf
 reset()
 local okMissing, resultMissing = BETTERUI.Vendor.ExecuteSafely("Vendor.SafeExecute:Missing", nil)
 assert_equal(false, okMissing, "Vendor.ExecuteSafely rejects nil functions")
-assert_equal(nil, resultMissing, "Vendor.ExecuteSafely returns nil for missing functions")
+assert_equal("No function provided", resultMissing, "Vendor.ExecuteSafely preserves the missing-callback reason")
 assert_equal(0, #notified, "Vendor.ExecuteSafely does not notify for missing functions")
 
 if failed > 0 then

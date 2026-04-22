@@ -30,9 +30,18 @@ Companions.ROOT_CONTRACT = {
 -- Wire shared settings statics before runtime accessors register in Setup().
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Companions, MODULE_NAME)
 
+local function TrackPanelRegistration(reason)
+    Companions._panelRegistrationReason = reason
+    Companions._panelRegistrationDeferred = reason == "missing_register_panel"
+end
+
 local function EnsureCompanionsSetupContracts()
     BETTERUI.CIM.RegisterModuleAccessors(Companions, "Companions")
-    BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")
+    local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")
+    TrackPanelRegistration(panelReason)
+    if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
+        BETTERUI.Debug(string.format("[%s] Settings panel registration reported: %s", MODULE_NAME, tostring(panelReason)))
+    end
 end
 
 local function WrapCompanionRuntimeError(operation, err)

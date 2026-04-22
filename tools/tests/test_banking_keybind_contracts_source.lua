@@ -33,20 +33,20 @@ local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 
 assert_contains(
     transferActions,
-    "local targetBankBag = BETTERUI.Banking.GetActiveDepositBag()",
-    "TransferActions resolves transfer destination through intent-level Banking helpers"
+    "local targetBankBag = transferState.depositTargetBag",
+    "TransferActions resolves transfer destination through the canonical transfer-state snapshot"
+)
+
+assert_not_contains(
+    transferActions,
+    "BETTERUI.Banking.Transfer = transferService",
+    "TransferActions no longer fabricates or rewrites the Banking transfer service namespace"
 )
 
 assert_contains(
     transferActions,
-    "BETTERUI.Banking.TransferRules = transferService",
-    "TransferActions normalizes the dedicated Banking transfer service namespace before use"
-)
-
-assert_contains(
-    transferActions,
-    "local Transfer = ResolveTransferService() or {}",
-    "TransferActions resolves transfer authorization through the dedicated Banking transfer service"
+    "local transferService, transferServiceReason = RequireTransferService()",
+    "TransferActions requires the dedicated Banking transfer service instead of fabricating a fallback table"
 )
 
 assert_contains(
@@ -63,14 +63,14 @@ assert_not_contains(
 
 assert_contains(
     transferActions,
-    "Transfer.NotifyGuildBankTransferDenied",
+    "transferService.NotifyGuildBankTransferDenied",
     "TransferActions binds guild-bank denial behavior through the dedicated Banking transfer service"
 )
 
 assert_contains(
     transferActions,
-    "local isGuildBank = BETTERUI.Banking.IsGuildBankTransfer()",
-    "TransferActions resolves guild-bank mode through intent-level Banking helpers"
+    "local isGuildBankMode = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK",
+    "TransferActions resolves guild-bank mode through the canonical transfer-state snapshot"
 )
 
 assert_not_contains(
@@ -115,10 +115,10 @@ assert_contains(
     "BankingClass exposes GetActiveDepositBag for transfer destination checks"
 )
 
-assert_contains(
+assert_not_contains(
     bankingClass,
     "function BETTERUI.Banking.GetWithdrawSourceBags()",
-    "BankingClass exposes GetWithdrawSourceBags for withdraw source routing"
+    "BankingClass no longer exposes raw withdraw-source wrapper helpers"
 )
 
 assert_contains(

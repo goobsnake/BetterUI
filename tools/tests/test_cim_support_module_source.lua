@@ -114,6 +114,9 @@ assert_true(batchActions:find('RequireProtectionPolicyMethod%("CanUnlockItem"%)'
 
 local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")
 local cimUtilities = read_file("Modules/CIM/Core/Utilities.lua")
+local companionDialogs = read_file("Modules/Companions/Dialogs/CompanionDialogs.lua")
+local vendorBuyComponent = read_file("Modules/Vendor/Components/BuyComponent.lua")
+local tooltipSettingsHelpers = read_file("Modules/GeneralInterface/Tooltips/SettingsHelpers.lua")
 assert_true(genericSlotActions:find("BETTERUI%.CIM%.InvokeInventoryDialog%(\"TryStowWithQuantity\", inventorySlot%)") ~= nil,
     "GenericSlotActions routes craft-bag quantity dialogs through the shared CIM dialog seam")
 assert_true(genericSlotActions:find("local function CanStowToCraftBagWithPolicy%(bagId, slotIndex%)") ~= nil,
@@ -139,6 +142,8 @@ assert_true(genericSlotActions:find("local DENY = %(") == nil,
 assert_true(genericSlotActions:find(
     "function BETTERUI%.CIM%.TryMoveToCraftBag%(inventorySlot, targetBag, quantity%)") ~= nil,
     "GenericSlotActions supports quantity-aware transfer calls through the shared craft-bag move seam")
+assert_true(genericSlotActions:find("BetterUISlotActionEntryLike") ~= nil,
+    "GenericSlotActions uses the shared slot-action entry alias")
 assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.GetActiveBankTransferContext") == nil,
     "CIM Utilities no longer exposes the banking transfer context forwarding seam")
 assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.GetBankingTransferSupport") == nil,
@@ -149,6 +154,18 @@ assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.CreateInventorySlo
     "CIM Utilities no longer exposes the inventory slot-action forwarding seam")
 assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.ClearTrackedInventorySlot") == nil,
     "CIM Utilities no longer exposes the inventory tracker forwarding seam")
+assert_true(companionDialogs:find("CIM%.Utils%.SafeGetTargetData") ~= nil,
+    "Companion dialogs resolve list targets through the canonical CIM utility helper")
+assert_true(companionDialogs:find("local function SafeGetTargetData%(") == nil,
+    "Companion dialogs no longer define a local SafeGetTargetData clone")
+assert_true(vendorBuyComponent:find("CIM%.Utils%.SafeGetTargetData") ~= nil,
+    "Vendor buy component resolves focused rows through the canonical CIM utility helper")
+assert_true(vendorBuyComponent:find("list:GetSelectedData%(") == nil,
+    "Vendor buy component no longer keeps a local selected-data fallback chain")
+assert_true(tooltipSettingsHelpers:find("BETTERUI%.Utils%.IsInventorySceneShowing") == nil,
+    "Tooltip settings helpers no longer probe root utility scene aliases")
+assert_true(tooltipSettingsHelpers:find("BETTERUI%.Utils%.IsBankingSceneShowing") == nil,
+    "Tooltip settings helpers no longer probe root utility scene aliases for banking")
 
 if failed > 0 then
     error(string.format("test_cim_support_module_source.lua failed with %d failure(s)", failed))

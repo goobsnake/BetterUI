@@ -72,7 +72,7 @@ assert_true(utilsSource:find("function BETTERUI%.Inventory%.Utils%.OnTabNext%(pa
     "Inventory utils expose OnTabNext")
 assert_true(utilsSource:find("function BETTERUI%.Inventory%.Utils%.OnTabPrev%(parent, successful%)") ~= nil,
     "Inventory utils expose OnTabPrev")
-assert_true(utilsSource:find("BETTERUI%.Inventory%.Utils%.SafeGetTargetData = BETTERUI%.Utils%.SafeGetTargetData") ~= nil,
+assert_true(utilsSource:find("BETTERUI%.Inventory%.Utils%.SafeGetTargetData = BETTERUI%.CIM%.Utils%.SafeGetTargetData") ~= nil,
     "Inventory utils alias SafeGetTargetData to the shared helper")
 
 local craftBagDialogSource = read_file("Modules/Inventory/Dialogs/CraftBagQuantityDialog.lua")

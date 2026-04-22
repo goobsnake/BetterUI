@@ -42,8 +42,11 @@ local function DefaultLogVendorDebug(flagName, category, message)
 end
 
 local function DefaultSafeCall(_context, fn, ...)
+    if Vendor.ExecuteSafely then
+        return Vendor.ExecuteSafely(_context, fn, ...)
+    end
     if type(fn) ~= "function" then
-        return false, nil
+        return false, "No function provided"
     end
     return pcall(fn, ...)
 end
@@ -71,8 +74,26 @@ local function IsModernRuntimeCall(runtime, nativeStoreBridge)
         and type(nativeStoreBridge) == "table"
 end
 
+local LEGACY_INTERACTION_DEP_ALIASES = {
+    restoreSceneAlias = "restoreNativeStoreSceneAlias",
+    aliasSceneToBetterUI = "aliasStoreSceneToBetterUI",
+    ensureComponents = "ensureNativeStoreComponents",
+    resolveTargetMode = "resolveVendorTargetMode",
+    applyResolvedMode = "applyVendorResolvedMode",
+    scheduleOpenStoreSync = "scheduleVendorOpenStoreSync",
+}
+
+local function ResolveLegacyInteractionDepAliases(deps)
+    for canonicalName, legacyName in pairs(LEGACY_INTERACTION_DEP_ALIASES) do
+        if deps[canonicalName] == nil and deps[legacyName] ~= nil then
+            deps[canonicalName] = deps[legacyName]
+        end
+    end
+    return deps
+end
+
 local function ResolveDeps(deps)
-    deps = deps or {}
+    deps = ResolveLegacyInteractionDepAliases(deps or {})
     local nativeStoreBridge = deps.nativeStoreBridge or Vendor.NativeStoreBridge
 
     local function RequireBridgeMethod(methodName)
@@ -109,22 +130,22 @@ local function ResolveDeps(deps)
         interactionVendor = deps.interactionVendor or rawget(_G, "INTERACTION_VENDOR"),
         interactionStable = deps.interactionStable or rawget(_G, "INTERACTION_STABLE"),
         isNativeStableModeActive = deps.isNativeStableModeActive or DefaultIsNativeStableModeActive,
-        restoreSceneAlias = deps.restoreSceneAlias or deps.restoreNativeStoreSceneAlias or function()
+        restoreSceneAlias = deps.restoreSceneAlias or function()
             RequireBridgeMethod("RestoreSceneAlias")(nativeStoreBridge)
         end,
-        aliasSceneToBetterUI = deps.aliasSceneToBetterUI or deps.aliasStoreSceneToBetterUI or function(instance)
+        aliasSceneToBetterUI = deps.aliasSceneToBetterUI or function(instance)
             RequireBridgeMethod("AliasSceneToBetterUI")(nativeStoreBridge, instance)
         end,
-        ensureComponents = deps.ensureComponents or deps.ensureNativeStoreComponents or function(searchContext)
+        ensureComponents = deps.ensureComponents or function(searchContext)
             RequireBridgeMethod("EnsureComponents")(nativeStoreBridge, searchContext)
         end,
-        resolveTargetMode = deps.resolveTargetMode or deps.resolveVendorTargetMode or function()
+        resolveTargetMode = deps.resolveTargetMode or function()
             return RequireBridgeMethod("ResolveTargetMode")(nativeStoreBridge)
         end,
-        applyResolvedMode = deps.applyResolvedMode or deps.applyVendorResolvedMode or function(targetMode, refreshList)
+        applyResolvedMode = deps.applyResolvedMode or function(targetMode, refreshList)
             RequireBridgeMethod("ApplyResolvedMode")(nativeStoreBridge, targetMode, refreshList)
         end,
-        scheduleOpenStoreSync = deps.scheduleOpenStoreSync or deps.scheduleVendorOpenStoreSync or function(targetMode, delayMs)
+        scheduleOpenStoreSync = deps.scheduleOpenStoreSync or function(targetMode, delayMs)
             RequireBridgeMethod("ScheduleOpenStoreSync")(nativeStoreBridge, targetMode, delayMs)
         end,
         sellMode = deps.sellMode or (Vendor.MODE and Vendor.MODE.FENCE_SELL),
@@ -136,10 +157,21 @@ local function ResolveDeps(deps)
             end,
         runCloseCleanup = deps.runCloseCleanup or function()
         end,
-        safeCall = deps.safeCall or Vendor.ExecuteSafely or DefaultSafeCall,
+        safeCall = deps.safeCall or DefaultSafeCall,
         cleanupCloseStore = deps.cleanupCloseStore
             or (nativeStoreBridge and nativeStoreBridge.CleanupAfterCloseStore),
     }
+end
+
+local function ResolveOption(options, canonicalName, legacyName)
+    local value = options[canonicalName]
+    if value ~= nil then
+        return value
+    end
+    if legacyName then
+        return options[legacyName]
+    end
+    return nil
 end
 
 local function BuildModernDeps(runtime, nativeStoreBridge, instance, options)
@@ -193,12 +225,12 @@ local function BuildModernDeps(runtime, nativeStoreBridge, instance, options)
         interactionVendor = options.interactionVendor,
         interactionStable = options.interactionStable,
         isNativeStableModeActive = options.isNativeStableModeActive or DefaultIsNativeStableModeActive,
-        restoreNativeStoreSceneAlias = options.restoreNativeStoreSceneAlias,
-        aliasStoreSceneToBetterUI = options.aliasStoreSceneToBetterUI,
-        ensureNativeStoreComponents = options.ensureNativeStoreComponents,
-        resolveVendorTargetMode = options.resolveVendorTargetMode,
-        applyVendorResolvedMode = options.applyVendorResolvedMode,
-        scheduleVendorOpenStoreSync = options.scheduleVendorOpenStoreSync,
+        restoreSceneAlias = ResolveOption(options, "restoreSceneAlias", "restoreNativeStoreSceneAlias"),
+        aliasSceneToBetterUI = ResolveOption(options, "aliasSceneToBetterUI", "aliasStoreSceneToBetterUI"),
+        ensureComponents = ResolveOption(options, "ensureComponents", "ensureNativeStoreComponents"),
+        resolveTargetMode = ResolveOption(options, "resolveTargetMode", "resolveVendorTargetMode"),
+        applyResolvedMode = ResolveOption(options, "applyResolvedMode", "applyVendorResolvedMode"),
+        scheduleOpenStoreSync = ResolveOption(options, "scheduleOpenStoreSync", "scheduleVendorOpenStoreSync"),
         sellMode = options.sellMode,
         fenceLaunderMode = options.fenceLaunderMode,
         getStoreManager = function()

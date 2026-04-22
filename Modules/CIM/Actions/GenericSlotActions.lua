@@ -34,7 +34,7 @@ end
 -- These functions provide common item action implementations used by
 -- Inventory and Banking modules. They handle secure API calls.
 
---- @param inventorySlot table the slot data table (may have .dataSource wrapper)
+--- @param inventorySlot BetterUISlotActionEntryLike|nil the slot data table (may have .dataSource wrapper)
 --- @return boolean ok true if the item was used
 --- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryUseItem(inventorySlot)
@@ -67,7 +67,7 @@ function BETTERUI.CIM.TryUseItem(inventorySlot)
     end
 end
 
---- @param inventorySlot table the slot data table
+--- @param inventorySlot BetterUISlotActionEntryLike|nil the slot data table
 --- @return boolean ok true if the item was transferred
 --- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryBankItem(inventorySlot)
@@ -79,7 +79,7 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     return tryTransferInventorySlot(inventorySlot)
 end
 
---- @param inventorySlot table the slot data table
+--- @param inventorySlot BetterUISlotActionEntryLike|nil the slot data table
 --- @param targetBag number destination bag constant (BAG_VIRTUAL, BAG_BACKPACK, etc.)
 --- @param quantity number|nil optional quantity override (defaults to full stack)
 --- @return boolean ok true if the item was moved
@@ -141,7 +141,7 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
     end
 end
 
----@param inventorySlot table Inventory slot data with bagId/slotIndex
+---@param inventorySlot BetterUISlotActionEntryLike|nil Inventory slot data with bagId/slotIndex
 ---@return boolean canMove true if item can transfer to craft bag
 function BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -159,7 +159,7 @@ end
 ---@param slotActions table Action list builder
 ---@param actionStringId number ESO string constant (e.g. SI_ITEM_ACTION_USE)
 ---@param callback function Fallback action callback
----@param inventorySlot table Inventory slot data
+---@param inventorySlot BetterUISlotActionEntryLike|nil Inventory slot data
 function BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
     local actionName = GetString(actionStringId)
     if actionStringId == SI_ITEM_ACTION_USE then
@@ -174,7 +174,7 @@ function BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, i
 end
 
 ---@param slotActions table Action list builder
----@param inventorySlot table Inventory slot data
+---@param inventorySlot BetterUISlotActionEntryLike|nil Inventory slot data
 ---@param canUseItem boolean Whether the item is usable
 function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
     local stowCallback = function()
@@ -196,6 +196,8 @@ function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseIt
 end
 
 --- Wraps "Open Skills" callback in CallSecureProtected to prevent tainting errors.
+---@param slotActions table
+---@param inventorySlot BetterUISlotActionEntryLike|nil
 function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
     local INDEX_ACTION_CALLBACK = 2
     for i, action in ipairs(slotActions.m_slotActions) do

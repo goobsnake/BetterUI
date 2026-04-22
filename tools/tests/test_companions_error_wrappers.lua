@@ -47,6 +47,11 @@ SI_BETTERUI_INV_ITEM_MISC = "misc"
 SI_BETTERUI_INV_ITEM_EQUIPPED = "equipped"
 SI_BETTERUI_INV_ITEM_JUNK = "junk"
 SI_BETTERUI_INV_ITEM_STOLEN = "stolen"
+SI_BETTERUI_INV_HEADER_NAME = "name"
+SI_BETTERUI_INV_HEADER_TYPE = "type"
+SI_BETTERUI_INV_HEADER_TRAIT = "trait"
+SI_BETTERUI_INV_HEADER_STAT = "stat"
+SI_BETTERUI_INV_HEADER_VALUE = "value"
 ITEMFILTERTYPE_WEAPONS = 1
 ITEMFILTERTYPE_ARMOR = 2
 ITEMFILTERTYPE_JEWELRY = 3
@@ -54,6 +59,10 @@ ITEMFILTERTYPE_CONSUMABLE = 4
 ITEMFILTERTYPE_CRAFTING = 5
 ITEMFILTERTYPE_FURNISHING = 6
 ITEMFILTERTYPE_MISCELLANEOUS = 7
+
+function GetString(value)
+    return tostring(value)
+end
 
 BETTERUI.CIM.RegisterModuleAccessors = function() end
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics = function() end
@@ -143,6 +152,23 @@ local teardownOk, teardownErr = teardownHarness:ForceReleaseDirectionalInput()
 assert_eq(teardownOk, false, "ForceReleaseDirectionalInput preserves teardown failures")
 assert_contains(teardownErr, "[Companions] ForceReleaseDirectionalInput failed:", "teardown failures use the same stable wrapper contract")
 assert_eq(countRegistrations(list), 0, "ForceReleaseDirectionalInput still releases directional input registrations")
+
+BETTERUI.CIM.UI = {
+    HeaderSortIntegration = {
+        Install = function()
+            error("sort boom")
+        end,
+        EnsureController = function() end,
+    },
+}
+
+local sortOk, sortErr = BETTERUI.Companions.SetupSort({
+    list = {},
+    coreKeybinds = {},
+    RefreshList = function() end,
+})
+assert_eq(sortOk, false, "SetupSort surfaces installation failures")
+assert_contains(sortErr, "[Companions] Header sort setup failed:", "SetupSort returns a stable degraded-state error")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

@@ -1,10 +1,4 @@
---[[
-File: Modules/CIM/Core/Utilities.lua
-Purpose: Core utility functions for the BetterUI addon.
-         Provides debug logging, module status checks, and icon safety wrappers.
-]]
-
--- DEBUG LOGGING
+-- Core utility helpers shared across BetterUI modules.
 
 ---@param str string Message to display in chat with [BETTERUI] prefix
 function BETTERUI.Debug(str)
@@ -14,15 +8,6 @@ function BETTERUI.Debug(str)
     return d("|c0066ff[BETTERUI]|r " .. str)
 end
 
--- MODULE STATUS
-
---[[
-Function: BETTERUI.GetModuleEnabled
-Checks if a specific BetterUI module is enabled.
-References: Used during module initialization to check if module should load.
-param: moduleName (string) - The key of the module in BETTERUI.Settings.Modules.
-return: boolean - True if the module is enabled.
-]]
 -- As of v2.8, 'm_enabled' is the canonical key. Legacy 'enabled' fallback was removed
 -- to avoid silent defaults; migrate older saved variables before v3.0.
 function BETTERUI.GetModuleEnabled(moduleName)
@@ -49,21 +34,13 @@ function BETTERUI.SetModuleEnabled(moduleName, enabled)
     BETTERUI._sessionDisabledModules[moduleName] = not enabled
 end
 
--- ICON UTILITIES
-
 function BETTERUI.SafeIcon(iconPath)
     if iconPath == nil then return "" end
     return iconPath
 end
 
--- SHARED UTILITY FUNCTIONS (CIM.Utils namespace)
-
 BETTERUI.CIM = BETTERUI.CIM or {}
 
-
---- Shared utility functions for the BetterUI Common Interface Module.
---- Provides scene checks, sort comparators, safe accessors, and bag helpers.
---- All functions below are individually annotated with EmmyLua param/return tags.
 BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
 local researchableTraitMatcher = function()
     return 0
@@ -80,14 +57,16 @@ function BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher(matcher)
     end
 end
 
----@param list table|nil List control with GetTargetData method or selectedData field
+---@param list table|nil List control with GetTargetData/GetSelectedData or selectedData
 ---@return table|nil data The target data from the list, or nil
 function BETTERUI.CIM.Utils.SafeGetTargetData(list)
     if not list then return nil end
     if list.GetTargetData then
         return list:GetTargetData()
     end
-    -- Fallback for basic tables or parametric lists
+    if list.GetSelectedData then
+        return list:GetSelectedData()
+    end
     return list.selectedData
 end
 
@@ -196,11 +175,16 @@ local function IsInventorySceneShowing()
     return scene and scene:IsShowing()
 end
 
--- Canonical helper ownership moved to BETTERUI.Utils first.
 BETTERUI.CIM.Utils.IsBankingSceneShowing = IsBankingSceneShowing
 BETTERUI.CIM.Utils.IsInventorySceneShowing = IsInventorySceneShowing
 
 BETTERUI.Utils = BETTERUI.Utils or {}
-BETTERUI.Utils.IsBankingSceneShowing = IsBankingSceneShowing
-BETTERUI.Utils.IsInventorySceneShowing = IsInventorySceneShowing
-BETTERUI.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData
+if type(BETTERUI.Utils.IsBankingSceneShowing) ~= "function" then
+    BETTERUI.Utils.IsBankingSceneShowing = IsBankingSceneShowing
+end
+if type(BETTERUI.Utils.IsInventorySceneShowing) ~= "function" then
+    BETTERUI.Utils.IsInventorySceneShowing = IsInventorySceneShowing
+end
+if type(BETTERUI.Utils.SafeGetTargetData) ~= "function" then
+    BETTERUI.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData
+end

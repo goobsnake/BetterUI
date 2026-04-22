@@ -2,6 +2,12 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local GeneralInterface = BETTERUI.GeneralInterface
 GeneralInterface.Settings = GeneralInterface.Settings or {}
+local MODULE_NAME = "GeneralInterface"
+
+local function TrackPanelRegistration(reason)
+	GeneralInterface._panelRegistrationReason = reason
+	GeneralInterface._panelRegistrationDeferred = reason == "missing_register_panel"
+end
 
 local function GetGeneralInterfaceOptions()
 	if type(GeneralInterface.GetSettingsOptions) ~= "function" then
@@ -171,7 +177,11 @@ GeneralInterface._SetupInstallers = {
 
 ---@type BetterUIModuleSetupHook
 function GeneralInterface.Setup()
-	BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")
+	local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")
+	TrackPanelRegistration(panelReason)
+	if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
+		BETTERUI.Debug(string.format("[%s] Settings panel registration reported: %s", MODULE_NAME, tostring(panelReason)))
+	end
 
 	-- Only apply hooks/logic when the GeneralInterface module toggle is enabled.
 	if not BETTERUI.GetModuleEnabled("GeneralInterface") then return end
@@ -182,6 +192,9 @@ function GeneralInterface.Setup()
 	InstallMailDeleteHook()
 
 	local tooltipHelpers = GeneralInterface.Tooltips
+	if tooltipHelpers and type(tooltipHelpers.InitializeRuntime) == "function" then
+		tooltipHelpers.InitializeRuntime()
+	end
 	InstallInventoryTooltipHooks(tooltipHelpers)
 	InstallStoreTooltipHooks()
 	InstallTopLineSuppressionHooks()

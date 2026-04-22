@@ -27,6 +27,18 @@ local function ResolveVendorRuntimeDependency(fieldName, label)
     return dependency
 end
 
+local function ResolveVendorRuntime()
+    return {
+        executeSafely = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper"),
+        batchRuntime = ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime"),
+        interactionRuntime = ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime"),
+        componentCatalog = ResolveVendorRuntimeDependency("ComponentCatalog", "component catalog"),
+        bootstrapRuntime = ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime"),
+        eventBridge = ResolveVendorRuntimeDependency("EventBridge", "event bridge"),
+        nativeStoreBridge = ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge"),
+    }
+end
+
 local function IsSellVengeanceModeAvailable()
     return rawget(_G, "BAG_VENGEANCE") ~= nil
         and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") == true
@@ -35,7 +47,7 @@ local function IsSellVengeanceModeAvailable()
 end
 
 local function HasVendorBuyInventory(context)
-    local executeSafely = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")
+    local executeSafely = ResolveVendorRuntime().executeSafely
     if type(IsStoreEmpty) == "function" then
         local okStoreEmpty, isStoreEmpty = executeSafely(context .. ":IsStoreEmpty", IsStoreEmpty)
         if okStoreEmpty then
@@ -54,7 +66,7 @@ local function HasVendorBuyInventory(context)
 end
 
 local function RunVendorSetupStep(stepName, setupFn)
-    local ok, err = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
+    local ok, err = ResolveVendorRuntime().executeSafely(
         "Vendor.Init:" .. tostring(stepName),
         setupFn
     )

@@ -1,8 +1,4 @@
---[[
-File: Modules/CIM/UI/ScrollIndicator.lua
-Purpose: Public API for the parametric list scroll indicator attach/update contract.
-         Internal constants, helpers, and control creation are in ScrollIndicatorControls.lua.
-]]
+-- Public API for the shared parametric-list scroll indicator.
 
 -- Ensure namespace exists
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -74,20 +70,36 @@ local function ResolveVisibleItems(instance)
     return 10
 end
 
--- PUBLIC API
-
 local function ApplyOffsets(instance, listControl, options)
-    local actualOffsetX = (options and options.offsetX) or (SCROLL_INDICATOR.TRACK and SCROLL_INDICATOR.TRACK.OFFSET_X or 25)
-    local actualOffsetTopY = (options and options.offsetTopY) or 0
-    local actualOffsetBottomY = (options and options.offsetBottomY) or 0
+    local trackAnchors = options and options.trackAnchors or nil
+    local actualOffsetX = (trackAnchors and trackAnchors.offsetX)
+        or (options and options.offsetX)
+        or (SCROLL_INDICATOR.TRACK and SCROLL_INDICATOR.TRACK.OFFSET_X or 25)
+    local actualOffsetTopY = (trackAnchors and trackAnchors.topOffset)
+        or (options and options.offsetTopY)
+        or 0
+    local actualOffsetBottomY = (trackAnchors and trackAnchors.bottomOffset)
+        or (options and options.offsetBottomY)
+        or 0
+    local topAnchorControl = trackAnchors and trackAnchors.topControl or nil
+    local bottomAnchorControl = trackAnchors and trackAnchors.bottomControl or nil
     local container = instance and instance.controls and instance.controls.container
     if not container then
         return
     end
 
     container:ClearAnchors()
-    container:SetAnchor(TOPRIGHT, listControl, TOPRIGHT, actualOffsetX, actualOffsetTopY)
-    container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, actualOffsetX, actualOffsetBottomY)
+    if topAnchorControl then
+        container:SetAnchor(TOP, topAnchorControl, BOTTOM, actualOffsetX, actualOffsetTopY)
+    else
+        container:SetAnchor(TOPRIGHT, listControl, TOPRIGHT, actualOffsetX, actualOffsetTopY)
+    end
+
+    if bottomAnchorControl then
+        container:SetAnchor(BOTTOM, bottomAnchorControl, TOP, actualOffsetX, actualOffsetBottomY)
+    else
+        container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, actualOffsetX, actualOffsetBottomY)
+    end
 end
 
 local function EnsureMouseHandlers(instance)
@@ -105,6 +117,12 @@ end
 ---@param options table|nil
 ---@param options.listObject table|nil
 ---@param options.visibleItems number|nil
+---@param options.trackAnchors table|nil
+---@param options.trackAnchors.topControl table|nil
+---@param options.trackAnchors.bottomControl table|nil
+---@param options.trackAnchors.topOffset number|nil
+---@param options.trackAnchors.bottomOffset number|nil
+---@param options.trackAnchors.offsetX number|nil
 ---@return table? instance
 function ScrollIndicator.Setup(listControl, options)
     if not listControl then return nil end
@@ -255,8 +273,6 @@ function ScrollIndicator.Update(listControl)
     end
 end
 
---- Hides the scroll indicator completely.
----
 ---@param listControl table
 ---@return nil
 function ScrollIndicator.Hide(listControl)
@@ -270,8 +286,6 @@ function ScrollIndicator.Hide(listControl)
     end
 end
 
---- Shows the scroll indicator (if scrolling is possible).
----
 ---@param listControl table
 ---@return nil
 function ScrollIndicator.Show(listControl)
@@ -282,47 +296,10 @@ function ScrollIndicator.Show(listControl)
 
     if instance and instance.controls then
         instance.controls.container:SetHidden(false)
-        -- Re-update to ensure correct visibility
         ScrollIndicator.Update(listControl)
     end
 end
 
---- Sets custom anchors for the scroll track to position it relative to header/footer.
----
----@param listControl table
----@param topAnchorControl table?
----@param bottomAnchorControl table?
----@param topOffset number?
----@param bottomOffset number?
----@return nil
-function ScrollIndicator.SetTrackAnchors(listControl, topAnchorControl, bottomAnchorControl, topOffset, bottomOffset)
-    if not listControl then return end
-
-    local controlName = listControl:GetName()
-    local instance = indicatorInstances[controlName]
-
-    if not instance or not instance.controls then return end
-
-    local container = instance.controls.container
-    local trackOffsetX = (SCROLL_INDICATOR.TRACK and SCROLL_INDICATOR.TRACK.OFFSET_X) or 25
-
-    container:ClearAnchors()
-
-    if topAnchorControl then
-        container:SetAnchor(TOP, topAnchorControl, BOTTOM, trackOffsetX, topOffset or 0)
-    else
-        container:SetAnchor(TOPRIGHT, listControl, TOPRIGHT, trackOffsetX, 0)
-    end
-
-    if bottomAnchorControl then
-        container:SetAnchor(BOTTOM, bottomAnchorControl, TOP, 0, bottomOffset or 0)
-    else
-        container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, trackOffsetX, 0)
-    end
-end
-
---- Cleans up a scroll indicator instance, unregistering all event handlers.
----
 ---@param listControl table
 ---@return nil
 function ScrollIndicator.Destroy(listControl)

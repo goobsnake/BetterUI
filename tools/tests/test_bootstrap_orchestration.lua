@@ -74,6 +74,7 @@ local inventoryHookCalls = 0
 local inventoryActionHookCalls = 0
 local setupCounts = {}
 local debugMessages = {}
+local tooltipsRuntimeInitialized = 0
 local enabledModules = {
     CIM = true,
     Inventory = true,
@@ -696,6 +697,9 @@ end
 
 BETTERUI.GeneralInterface = {
     Tooltips = {
+        InitializeRuntime = function()
+            tooltipsRuntimeInitialized = (tooltipsRuntimeInitialized or 0) + 1
+        end,
         InventoryHook = function(config)
             inventoryHooks[#inventoryHooks + 1] = config
         end,
@@ -861,6 +865,7 @@ BETTERUI.GeneralInterface.Setup()
 
 assert_eq(panelRegistration.moduleId, "General", "GeneralInterface.Setup registers the General settings panel")
 assert_true(type(panelRegistration.optionsTable[1]) == "table", "GeneralInterface.Setup builds an option table")
+assert_eq(1, tooltipsRuntimeInitialized, "GeneralInterface.Setup initializes tooltip runtime behind the setup seam")
 assert_eq(3, #inventoryHooks, "GeneralInterface.Setup installs inventory hooks for all three gamepad tooltips")
 assert_true(registeredSceneCallback ~= nil, "GeneralInterface.Setup registers the trading-house scene callback")
 assert_true(storeTooltipControls[GAMEPAD_LEFT_TOOLTIP]._betteruiStoreLayoutHookInstalled == true,

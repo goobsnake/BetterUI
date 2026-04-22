@@ -100,6 +100,8 @@ assert_true(scrollIndicator:find("function ScrollIndicator%.Update%(listControl%
     "ScrollIndicator exposes Update with the canonical bound control contract")
 assert_true(scrollIndicator:find("function ScrollIndicator%.SetListObject%(listControl, listObject%)") == nil,
     "ScrollIndicator removes the overlapping SetListObject alias")
+assert_true(scrollIndicator:find("function ScrollIndicator%.SetTrackAnchors%(") == nil,
+    "ScrollIndicator keeps anchor overrides within Setup options instead of a positional verb")
 assert_true(scrollIndicator:find("function ScrollIndicator%.Hide%(listControl%)") ~= nil,
     "ScrollIndicator exposes Hide")
 

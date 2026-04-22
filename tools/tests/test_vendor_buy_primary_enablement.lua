@@ -242,12 +242,21 @@ BETTERUI = {
             return string.find(string.lower(name or ""), query, 1, true) ~= nil
         end,
     },
-    Utils = {
-        SafeGetTargetData = function(list)
-            return list:GetTargetData()
-        end,
-    },
     CIM = {
+        Utils = {
+            SafeGetTargetData = function(list)
+                if not list then
+                    return nil
+                end
+                if list.GetTargetData then
+                    return list:GetTargetData()
+                end
+                if list.GetSelectedData then
+                    return list:GetSelectedData()
+                end
+                return list.selectedData
+            end,
+        },
         UserAlertText = function(tag, message)
             alertCalls[#alertCalls + 1] = { tag = tag, message = message }
         end,

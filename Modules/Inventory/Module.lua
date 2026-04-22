@@ -83,6 +83,11 @@ end
 
 Inventory.InitializeSecureWheelHooks = InitializeSecureWheelHooks
 
+local function TrackPanelRegistration(reason)
+    Inventory._panelRegistrationReason = reason
+    Inventory._panelRegistrationDeferred = reason == "missing_register_panel"
+end
+
 local function TryInitializeCraftBagQuantityDialog()
     local dialogs = Inventory.Dialogs
     local initializeDialog = dialogs and dialogs.InitializeCraftBagQuantityDialog
@@ -271,7 +276,11 @@ function Inventory.Setup()
         BETTERUI.CIM.RegisterInventoryDialogInvoker(Inventory.InvokeDialog)
         Inventory._inventoryDialogInvokerRegistered = true
     end
-    BETTERUI.CIM.TryRegisterModulePanel(Inventory, "Inventory", "Inventory", "Inventory")
+    local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(Inventory, "Inventory", "Inventory", "Inventory")
+    TrackPanelRegistration(panelReason)
+    if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
+        BETTERUI.Debug(string.format("[Inventory] Settings panel registration reported: %s", tostring(panelReason)))
+    end
 
 	Inventory.NativeGlobals = Inventory.NativeGlobals or {}
 	local native = Inventory.NativeGlobals

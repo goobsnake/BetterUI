@@ -653,3 +653,4 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field modifyTextType BetterUIControlModifyTextType|nil
 
 ---@alias BetterUIInventoryEntryLike BetterUIInventoryEntryData|BetterUIInventoryRowData
+---@alias BetterUISlotActionEntryLike BetterUIInventoryEntryLike

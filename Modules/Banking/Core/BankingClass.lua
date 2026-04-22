@@ -8,20 +8,18 @@ BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {
     currentUsedBank = BAG_BANK,
     lastOpenedBankBag = BAG_BANK,
     esoSubscriber = nil,
+    guildBank = {
+        isLoading = false,
+    },
 }
 BETTERUI.Banking.Transfer = type(BETTERUI.Banking.Transfer) == "table"
     and BETTERUI.Banking.Transfer
-    or type(BETTERUI.Banking.TransferRules) == "table"
-    and BETTERUI.Banking.TransferRules
     or {}
 
 ---@return BetterUIBankingTransferService
 function BETTERUI.Banking.GetTransferService()
     return BETTERUI.Banking.Transfer
 end
-
--- Compatibility alias; canonical service name is GetTransferService/Transfer.
-BETTERUI.Banking.GetTransferRules = BETTERUI.Banking.GetTransferService
 
 ---@param alignment integer
 ---@return table|nil
@@ -240,47 +238,14 @@ function BETTERUI.Banking.GetTransferState()
     return BuildTransferState()
 end
 
--- Compatibility alias; canonical API is GetTransferState.
-BETTERUI.Banking.GetTransferContext = BETTERUI.Banking.GetTransferState
-
 ---@return boolean
 function BETTERUI.Banking.IsGuildBankTransfer()
     return BETTERUI.Banking.GetTransferState().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
 end
 
----@return boolean
-function BETTERUI.Banking.IsMainBankTransfer()
-    return BETTERUI.Banking.GetTransferState().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
-end
-
----@return boolean
-function BETTERUI.Banking.IsHouseBankTransfer()
-    return BETTERUI.Banking.GetTransferState().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
-end
-
----@return BagId
-function BETTERUI.Banking.GetActiveInteractionBag()
-    return BETTERUI.Banking.GetTransferState().interactionBag
-end
-
 ---@return BagId
 function BETTERUI.Banking.GetActiveDepositBag()
     return BETTERUI.Banking.GetTransferState().depositTargetBag
-end
-
----@return BagId[]
-function BETTERUI.Banking.GetWithdrawSourceBags()
-    return BETTERUI.Banking.GetTransferState().withdrawSourceBags
-end
-
----@return boolean
-function BETTERUI.Banking.IsSourceFurnitureVaultTransfer()
-    return BETTERUI.Banking.GetTransferState().sourceIsFurnitureVault == true
-end
-
----@return boolean
-function BETTERUI.Banking.IsTargetFurnitureVaultTransfer()
-    return BETTERUI.Banking.GetTransferState().targetIsFurnitureVault == true
 end
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
