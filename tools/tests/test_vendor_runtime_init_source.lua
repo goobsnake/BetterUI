@@ -47,14 +47,14 @@ assert_contains(vendorSource, "local function TakeOverNativeStoreScene(instance)
     "Vendor init owns native store scene takeover through a named helper")
 assert_contains(vendorSource, "local function RegisterVendorEvents(eventManager)",
     "Vendor init owns event registration through a named helper")
-assert_contains(vendorSource, "local function RunVendorCloseCleanup(instance)",
-    "Vendor runtime centralizes close cleanup behind one helper seam")
+assert_contains(vendorSource, "local function ApplyVendorInteractionState(nextState)",
+    "Vendor runtime applies interaction updates through an explicit state seam")
 assert_contains(vendorSource, "local VendorLifecycleRuntime = {}",
     "Vendor runtime defines a named lifecycle runtime collaborator")
-assert_contains(vendorSource, "function VendorLifecycleRuntime.ResetInteractionState(instance)",
-    "Vendor lifecycle runtime owns interaction reset state")
-assert_contains(vendorSource, "function VendorLifecycleRuntime.MarkClosingState()",
-    "Vendor lifecycle runtime owns close-state mutation")
+assert_contains(vendorSource, "function VendorLifecycleRuntime:ResetInteractionState(instance)",
+    "Vendor lifecycle runtime owns explicit interaction reset")
+assert_contains(vendorSource, "function VendorLifecycleRuntime:MarkClosingState()",
+    "Vendor lifecycle runtime owns explicit close-state mutation")
 assert_contains(vendorSource, "local function ResolveVendorRuntimeDependency(fieldName, label)",
     "Vendor root resolves runtime collaborators through a shared dependency helper")
 assert_not_contains(vendorSource, "local function GetVendorNativeStoreBridge()",
@@ -173,8 +173,12 @@ assert_contains(interactionRuntimeSource, "resolved.scheduleOpenStoreSync(target
     "OnOpenStore schedules deferred mode reconciliation through the interaction-runtime dependency seams")
 assert_contains(vendorSource, 'ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")',
     "Vendor root resolves interaction runtime directly at use sites")
+assert_contains(vendorSource, ".OnOpenStore(",
+    "Vendor open-store handler delegates orchestration to the interaction runtime collaborator")
 assert_contains(vendorSource, "VendorLifecycleRuntime,",
-    "Vendor open/fence/close handlers pass the shared lifecycle runtime into the interaction collaborator")
+    "Vendor open/close handlers pass the explicit lifecycle runtime collaborator")
+assert_contains(vendorSource, "GetNativeStoreBridge(),",
+    "Vendor open/close handlers pass the native-store bridge collaborator explicitly")
 assert_contains(vendorSource, ".OnOpenStore(",
     "Vendor open-store handler delegates orchestration to the interaction runtime collaborator")
 assert_contains(vendorSource, ".OnOpenFence(",

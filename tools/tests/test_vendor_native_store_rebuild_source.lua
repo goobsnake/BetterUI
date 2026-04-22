@@ -48,7 +48,7 @@ assert_contains(bridgeSource, "if ApplyRebuildPlan(snapshot, rebuildPlan) then",
     "NativeStoreBridge.EnsureComponents delegates rebuild application")
 assert_not_contains(bridgeSource, "local function GetActiveModes()",
     "NativeStoreBridge no longer nests its active-mode snapshot helper inline")
-assert_contains(vendorSource, "GetVendorNativeStoreBridge().EnsureComponents(searchContext)",
+assert_contains(vendorSource, "GetNativeStoreBridge().EnsureComponents(searchContext)",
     "Vendor runtime delegates native-store component reconciliation to NativeStoreBridge")
 
 print("  OK")

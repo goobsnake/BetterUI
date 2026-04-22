@@ -435,36 +435,36 @@ end
 
 local VendorLifecycleRuntime = {}
 
-function VendorLifecycleRuntime.ResetInteractionState(instance)
+function VendorLifecycleRuntime:ResetInteractionState(instance)
     ResetVendorInteractionState()
     if instance then
         instance._vendorCloseCleanupApplied = false
     end
 end
 
-function VendorLifecycleRuntime.MarkClosingState()
+function VendorLifecycleRuntime:MarkClosingState()
     MarkVendorClosingState()
 end
 
-function VendorLifecycleRuntime.SetInteractionState(nextState)
+function VendorLifecycleRuntime:SetInteractionState(nextState)
     ApplyVendorInteractionState(nextState)
 end
 
-function VendorLifecycleRuntime.ResetRuntimeState(instance)
+function VendorLifecycleRuntime:ResetRuntimeState(instance)
     ResetVendorRuntimeState(instance)
 end
 
-function VendorLifecycleRuntime.CancelRuntimeTasks()
+function VendorLifecycleRuntime:CancelRuntimeTasks()
     CancelVendorRuntimeTasks()
 end
 
-function VendorLifecycleRuntime.ShowScene()
+function VendorLifecycleRuntime:ShowScene()
     if SCENE_MANAGER then
         SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
     end
 end
 
-function VendorLifecycleRuntime.HideScene()
+function VendorLifecycleRuntime:HideScene()
     if not SCENE_MANAGER then
         return
     end
@@ -475,23 +475,23 @@ function VendorLifecycleRuntime.HideScene()
     end
 end
 
-function VendorLifecycleRuntime.LogDebug(flagName, category, message)
+function VendorLifecycleRuntime:LogDebug(flagName, category, message)
     LogVendorDebug(flagName, category, message)
 end
 
-function VendorLifecycleRuntime.LogNativeStoreInputState(context, storeManager)
+function VendorLifecycleRuntime:LogNativeStoreInputState(context, storeManager)
     LogNativeStoreInputState(context, storeManager)
 end
 
-function VendorLifecycleRuntime.SafeCall(context, fn, ...)
+function VendorLifecycleRuntime:SafeCall(context, fn, ...)
     return ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(context, fn, ...)
 end
 
-function VendorLifecycleRuntime.GetStoreManager()
+function VendorLifecycleRuntime:GetStoreManager()
     return rawget(_G, "STORE_WINDOW_GAMEPAD")
 end
 
-function VendorLifecycleRuntime.RunCloseCleanup(instance)
+function VendorLifecycleRuntime:RunCloseCleanup(instance)
     return RunVendorCloseCleanup(instance)
 end
 
@@ -1193,13 +1193,13 @@ local function OnOpenFence(_, enableSell, enableLaunder)
 end
 
 local function OnStableInteractStart()
-    VendorLifecycleRuntime.SetInteractionState({
+    VendorLifecycleRuntime:SetInteractionState({
         isStableInteraction = true,
     })
 end
 
 local function OnStableInteractEnd()
-    VendorLifecycleRuntime.SetInteractionState({
+    VendorLifecycleRuntime:SetInteractionState({
         isStableInteraction = false,
     })
 end
@@ -1334,6 +1334,7 @@ local function ExposeVendorRuntimeHelpers()
     Vendor.IsSellVengeanceModeAvailable = IsSellVengeanceModeAvailable
     Vendor.HasVendorBuyInventory = HasVendorBuyInventory
     Vendor.ResolveInitialStoreMode = ResolveInitialStoreMode
+    Vendor.RunLifecycleCloseCleanup = RunVendorCloseCleanup
     Vendor.UpdateSceneManagerStoreAlias = function()
         ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge")
             .UpdateSceneManagerStoreAlias(Vendor.instance)
