@@ -9,25 +9,19 @@ BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {
     lastOpenedBankBag = BAG_BANK,
     esoSubscriber = nil,
 }
+BETTERUI.Banking.Transfer = type(BETTERUI.Banking.Transfer) == "table"
+    and BETTERUI.Banking.Transfer
+    or type(BETTERUI.Banking.TransferRules) == "table"
+    and BETTERUI.Banking.TransferRules
+    or {}
 
 ---@return BetterUIBankingTransferService
 function BETTERUI.Banking.GetTransferService()
-    local transferService = BETTERUI.Banking.Transfer
-    if type(transferService) ~= "table" then
-        transferService = BETTERUI.Banking.TransferRules
-    end
-    if type(transferService) ~= "table" then
-        transferService = {}
-    end
-    BETTERUI.Banking.Transfer = transferService
-    BETTERUI.Banking.TransferRules = transferService
-    return transferService
+    return BETTERUI.Banking.Transfer
 end
 
----@return BetterUIBankingTransferService
-function BETTERUI.Banking.GetTransferRules()
-    return BETTERUI.Banking.GetTransferService()
-end
+-- Compatibility alias; canonical service name is GetTransferService/Transfer.
+BETTERUI.Banking.GetTransferRules = BETTERUI.Banking.GetTransferService
 
 ---@param alignment integer
 ---@return table|nil
@@ -246,6 +240,7 @@ function BETTERUI.Banking.GetTransferState()
     return BuildTransferState()
 end
 
+-- Compatibility alias; canonical API is GetTransferState.
 BETTERUI.Banking.GetTransferContext = BETTERUI.Banking.GetTransferState
 
 ---@return boolean

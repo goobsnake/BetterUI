@@ -300,10 +300,8 @@ end
 -- SELECTION + TEMPLATE REGISTRATION
 
 function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
-    local getTransferTargetBag = function()
-        return BETTERUI.Banking.GetActiveDepositBag()
-    end
-    local transferTargetBankBag = type(getTransferTargetBag) == "function" and getTransferTargetBag() or BAG_BANK
+    local transferState = BETTERUI.Banking.GetTransferState()
+    local transferTargetBankBag = transferState.depositTargetBag or BAG_BANK
     if not BETTERUI.Utils.IsBankingSceneShowing() then
         return
     end

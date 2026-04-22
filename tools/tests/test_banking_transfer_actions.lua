@@ -249,6 +249,9 @@ BETTERUI = {
                 targetIsFurnitureVault = false,
             }
         end,
+        GetTransferState = function()
+            return BETTERUI.Banking.GetTransferContext()
+        end,
         IsGuildBankTransfer = function()
             return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
         end,
@@ -267,7 +270,7 @@ BETTERUI = {
         GetWithdrawSourceBags = function()
             return BETTERUI.Banking.GetTransferContext().withdrawSourceBags
         end,
-        TransferRules = {
+        Transfer = {
             CanDepositIntoBank = function()
                 return depositAllowed, depositReason
             end,

@@ -78,20 +78,22 @@ local GetBestItemCategoryDescription = BETTERUI.CIM.SharedItemSupport.GetBestIte
 
 local function ResolveBagsAndSlotType(self)
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
+    local transferState = BETTERUI.Banking.GetTransferState()
 
     -- Deposit always reads from backpack
     if not isWithdraw then
         return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
     end
 
-    local withdrawSourceBags = BETTERUI.Banking.GetWithdrawSourceBags()
+    local withdrawSourceBags = transferState.withdrawSourceBags
     if type(withdrawSourceBags) == "table" and #withdrawSourceBags > 0 then
-        local slotType = BETTERUI.Banking.IsGuildBankTransfer() and SLOT_TYPE_GUILD_BANK_ITEM
+        local isGuildBankTransfer = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+        local slotType = isGuildBankTransfer and SLOT_TYPE_GUILD_BANK_ITEM
             or SLOT_TYPE_BANK_ITEM
         return withdrawSourceBags, slotType
     end
 
-    local sourceBag = BETTERUI.Banking.GetActiveInteractionBag()
+    local sourceBag = transferState.interactionBag
     if sourceBag ~= nil then
         return { sourceBag }, SLOT_TYPE_BANK_ITEM
     end
@@ -112,10 +114,11 @@ function BETTERUI.Banking.Class:RefreshList()
         return
     end
 
-    local transferSourceBankBag = BETTERUI.Banking.GetActiveInteractionBag()
-    local isGuildBankActive = BETTERUI.Banking.IsGuildBankTransfer()
-    local isSourceMainBank = BETTERUI.Banking.IsMainBankTransfer()
-    local isSourceFurnitureVault = BETTERUI.Banking.IsSourceFurnitureVaultTransfer()
+    local transferState = BETTERUI.Banking.GetTransferState()
+    local transferSourceBankBag = transferState.interactionBag
+    local isGuildBankActive = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    local isSourceMainBank = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+    local isSourceFurnitureVault = transferState.sourceIsFurnitureVault == true
     if self._suppressListUpdates or self.isBatchProcessing then
         return
     end

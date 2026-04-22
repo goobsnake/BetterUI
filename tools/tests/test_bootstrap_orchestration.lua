@@ -352,6 +352,29 @@ assert_true(addonPanels["BETTERUI_Modules"] ~= nil, "master settings panel regis
 
 BETTERUI.Settings = {
     firstInstall = false,
+    Modules = {
+        ReturnContract = {
+            existing = true,
+        },
+    },
+}
+local returnContractModule = {
+    InitModule = function(options)
+        assert_true(options.existing == true, "module init receives the live settings table before normalization")
+        return {
+            normalized = true,
+        }
+    end,
+}
+local returnContractResult = BETTERUI.ModuleOptions(returnContractModule, BETTERUI.Settings.Modules.ReturnContract, "ReturnContract")
+assert_true(returnContractResult == returnContractModule, "module options returns the module namespace after successful init")
+assert_true(BETTERUI.Settings.Modules.ReturnContract.normalized == true,
+    "module options persists InitModule return tables back into live module settings")
+assert_true(BETTERUI.Settings.Modules.ReturnContract.existing == nil,
+    "module options replaces stale settings state when InitModule returns a canonical table")
+
+BETTERUI.Settings = {
+    firstInstall = false,
     Modules = {},
 }
 BETTERUI._initialized = false

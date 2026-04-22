@@ -254,6 +254,9 @@ BETTERUI = {
                 targetIsFurnitureVault = false,
             }
         end,
+        GetTransferState = function()
+            return BETTERUI.Banking.GetTransferContext()
+        end,
         GetSetting = function(key)
             local values = {
                 triggerSpeed = 25,
@@ -269,7 +272,7 @@ BETTERUI = {
                 return guildBankLoading
             end,
         },
-        TransferRules = {
+        Transfer = {
             ResolveGuildBankTransferDecision = function()
                 return guildTransferAllowed, guildTransferDenialText and "denied" or nil, guildTransferDenialText, nil
             end,

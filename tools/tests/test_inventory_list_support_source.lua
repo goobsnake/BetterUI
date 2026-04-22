@@ -41,14 +41,22 @@ end
 local inventoryKeybindsSource = read_file("Modules/Inventory/Keybinds/InventoryKeybinds.lua")
 assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.IsQuickslottable = IsQuickslottable") ~= nil,
     "InventoryKeybinds exposes IsQuickslottable")
-assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.GetXButtonActionContext = GetXButtonActionContext") ~= nil,
-    "InventoryKeybinds exposes GetXButtonActionContext")
+assert_true(inventoryKeybindsSource:find("local function DeprecatedGetXButtonActionContext%(self%)") ~= nil,
+    "InventoryKeybinds keeps a deprecated X-button compatibility shim")
+assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.GetXButtonActionContext = DeprecatedGetXButtonActionContext") ~= nil,
+    "InventoryKeybinds routes legacy GetXButtonActionContext through a deprecated shim")
 assert_true(inventoryKeybindsSource:find("cimKeybinds and cimKeybinds%.GetXButtonActionContext") ~= nil,
-    "InventoryKeybinds routes X-button context through shared CIM action-context helpers")
+    "InventoryKeybinds deprecated shim routes X-button context through shared CIM action-context helpers")
 assert_true(inventoryKeybindsSource:find("self%.actionMode%s*~=") == nil,
     "InventoryKeybinds no longer branches on actionMode inside its local X-button context resolver")
 assert_true(inventoryKeybindsSource:find("function BETTERUI%.Inventory%.Class:InitializeKeybindStrip%(%)") ~= nil,
     "InventoryKeybinds exposes InitializeKeybindStrip")
+
+local craftBagKeybindsSource = read_file("Modules/Inventory/Keybinds/CraftBagKeybinds.lua")
+assert_true(craftBagKeybindsSource:find("BETTERUI%.CIM%.Keybinds%.GetXButtonActionContext%(self%)") ~= nil,
+    "CraftBagKeybinds consumes the shared CIM X-button action-context seam directly")
+assert_true(craftBagKeybindsSource:find("InventoryKeybinds%.GetXButtonActionContext%(self%)") == nil,
+    "CraftBagKeybinds no longer consumes the Inventory-local X-button action-context alias")
 
 local categoryListSource = read_file("Modules/Inventory/Lists/CategoryListManager.lua")
 assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:InitializeCategoryList%(%)") ~= nil,

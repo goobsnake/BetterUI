@@ -1,6 +1,6 @@
 --[[
 File: Modules/CIM/UI/ScrollIndicator.lua
-Purpose: Public API for the parametric list scroll indicator setup/bind/update contract.
+Purpose: Public API for the parametric list scroll indicator attach/update contract.
          Internal constants, helpers, and control creation are in ScrollIndicatorControls.lua.
 ]]
 
@@ -63,14 +63,9 @@ local function ResolveCurrentIndex(listObject)
     return 1
 end
 
-local function ResolveVisibleItems(instance, explicitVisibleItems)
-    local visibleItems = AsNumber(explicitVisibleItems)
-    if visibleItems then
-        return visibleItems
-    end
-
+local function ResolveVisibleItems(instance)
     if instance then
-        visibleItems = AsNumber(instance.visibleItems)
+        local visibleItems = AsNumber(instance.visibleItems)
         if visibleItems then
             return visibleItems
         end
@@ -179,7 +174,7 @@ function ScrollIndicator.Update(listControl)
 
     instance.currentIndex = ResolveCurrentIndex(instance.listObject)
     instance.totalItems = ResolveTotalItems(instance.listObject)
-    instance.visibleItems = ResolveVisibleItems(instance, instance.visibleItems)
+    instance.visibleItems = ResolveVisibleItems(instance)
     local controls = instance.controls
     local THUMB_CFG = SCROLL_INDICATOR.THUMB or {}
 

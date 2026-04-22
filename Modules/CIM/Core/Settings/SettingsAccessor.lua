@@ -386,10 +386,11 @@ end
 ---@param panelId string|nil
 ---@param panelLabel string|nil
 ---@return boolean
+---@return string|nil
 function BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, panelId, panelLabel)
     local ns, resolvedModuleName = ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
     if not ns or type(resolvedModuleName) ~= "string" or resolvedModuleName == "" then
-        return false
+        return false, "invalid_module_scope"
     end
 
     if ns._panelRegistered == true then
@@ -402,7 +403,7 @@ function BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, pane
         if BETTERUI.Debug then
             BETTERUI.Debug(string.format("[%s] Settings panel registration seam unavailable", resolvedModuleName))
         end
-        return false
+        return false, "missing_register_panel"
     end
 
     local ok, err = pcall(registerPanel, panelId, panelLabel)
@@ -414,5 +415,5 @@ function BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, pane
     if BETTERUI.Debug then
         BETTERUI.Debug(string.format("[%s] Settings panel registration failed: %s", resolvedModuleName, tostring(err)))
     end
-    return false
+    return false, "register_panel_failed"
 end

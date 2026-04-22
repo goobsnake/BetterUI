@@ -14,7 +14,9 @@ local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
     local BANK_CAPACITY_ICON_SIZE = "90%"
 
-    if not BETTERUI.Banking.IsMainBankTransfer() then
+    local transferState = BETTERUI.Banking.GetTransferState()
+    local isMainBankTransfer = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+    if not isMainBankTransfer then
         return nil
     end
 

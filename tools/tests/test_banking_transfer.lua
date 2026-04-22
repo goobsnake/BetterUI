@@ -134,6 +134,9 @@ BETTERUI = {
                 targetIsFurnitureVault = targetBag == BAG_FURNITURE_VAULT,
             }
         end,
+        GetTransferState = function()
+            return BETTERUI.Banking.GetTransferContext()
+        end,
         IsGuildBankTransfer = function()
             return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
         end,
@@ -316,31 +319,31 @@ print("\n=== IsDepositSupportedForBank ===\n")
 resetState()
 print("-- Normal item deposit allowed --")
 slotStacks["1:5"] = 10
-assertTrue(BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_BANK), "Normal item can be deposited")
+assertTrue(BETTERUI.Banking.Transfer.CanDepositIntoBank(1, 5, BAG_BANK), "Normal item can be deposited")
 
 resetState()
 print("\n-- ProtectionPolicy denies transfer --")
 BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function() return false, BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN end
-local allowed, reason = BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_BANK)
+local allowed, reason = BETTERUI.Banking.Transfer.CanDepositIntoBank(1, 5, BAG_BANK)
 assertFalse(allowed, "Denied by ProtectionPolicy")
 assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN, reason, "Returns deny reason from policy")
 
 resetState()
 print("\n-- Bind-on-pickup item blocked --")
 BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function() return false, "bop_backpack" end
-allowed, reason = BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_BANK)
+allowed, reason = BETTERUI.Banking.Transfer.CanDepositIntoBank(1, 5, BAG_BANK)
 assertFalse(allowed, "BOP item cannot be deposited")
 assertEqual("bop_backpack", reason, "Returns BOP deny reason")
 
 resetState()
 print("\n-- Bind-on-equip item allowed --")
 itemBindTypes["1:5"] = BIND_TYPE_ON_EQUIP
-assertTrue(BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_BANK), "BOE item can be deposited")
+assertTrue(BETTERUI.Banking.Transfer.CanDepositIntoBank(1, 5, BAG_BANK), "BOE item can be deposited")
 
 resetState()
 print("\n-- Furniture vault denied by gemmable check --")
 CROWN_GEMIFICATION_MANAGER = { IsItemGemmable = function() return true end }
-allowed, reason = BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT)
+allowed, reason = BETTERUI.Banking.Transfer.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT)
 assertFalse(allowed, "Furniture vault deposit denied for gemmable item")
 assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.CROWN_GEMMABLE, reason,
     "Returns crown gemmable deny reason")
@@ -349,7 +352,7 @@ CROWN_GEMIFICATION_MANAGER = nil
 resetState()
 print("\n-- Furniture vault allowed when not gemmable --")
 CROWN_GEMIFICATION_MANAGER = { IsItemGemmable = function() return false end }
-assertTrue(BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT),
+assertTrue(BETTERUI.Banking.Transfer.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT),
     "Furniture vault deposit allowed for non-gemmable item")
 CROWN_GEMIFICATION_MANAGER = nil
 
@@ -360,7 +363,7 @@ HOUSING_EDITOR_STATE = {
         return false
     end,
 }
-allowed, reason = BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT)
+allowed, reason = BETTERUI.Banking.Transfer.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT)
 assertFalse(allowed, "Furniture vault deposit denied when vault is locked")
 assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED, reason,
     "Returns shared furniture-vault-locked deny reason")
@@ -381,7 +384,7 @@ BETTERUI.Banking.GuildBank.GetPermissionDenial = function()
         text = "No withdraw",
     }
 end
-local canTransfer, denyReason, denialText, denialStringId = BETTERUI.Banking.TransferRules.ResolveGuildBankTransferDecision(
+local canTransfer, denyReason, denialText, denialStringId = BETTERUI.Banking.Transfer.ResolveGuildBankTransferDecision(
     BETTERUI.Banking.LIST_WITHDRAW, BAG_GUILDBANK, 5
 )
 assertFalse(canTransfer, "Structured guild denial blocks transfer")
@@ -400,7 +403,7 @@ print("\n=== Transfer denial notification contract ===\n")
 assertNil(BETTERUI.Banking.ResolveTransferDeniedNotification,
     "ResolveTransferDeniedNotification stays internal to MultiSelectActions")
 
-BETTERUI.Banking.TransferRules.NotifyTransferDenied(
+BETTERUI.Banking.Transfer.NotifyTransferDenied(
     "Banking.TransferTests",
     BAG_FURNITURE_VAULT,
     BETTERUI.CIM.ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED
@@ -408,7 +411,7 @@ BETTERUI.Banking.TransferRules.NotifyTransferDenied(
 assertNotNil(alerts[1], "Furniture vault denial notifies through alert mode")
 
 resetState()
-BETTERUI.Banking.TransferRules.NotifyTransferDenied(
+BETTERUI.Banking.Transfer.NotifyTransferDenied(
     "Banking.TransferTests",
     BAG_BANK,
     BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN
@@ -441,13 +444,14 @@ assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetWithdrawSourceBags()[1],
 print("\n=== API Exposure ===\n")
 
 assertNotNil(BETTERUI.Banking.GetTransferContext, "GetTransferContext accessor exists")
-assertNotNil(BETTERUI.Banking.TransferRules, "TransferRules service exposed")
-assertNotNil(BETTERUI.Banking.TransferRules.CanDepositIntoBank, "TransferRules exposes deposit validation")
-assertNotNil(BETTERUI.Banking.TransferRules.ResolveGuildBankTransferDecision,
-    "TransferRules exposes guild-bank transfer decisions")
-assertNotNil(BETTERUI.Banking.TransferRules.NotifyTransferDenied, "TransferRules exposes transfer denial notifications")
-assertNotNil(BETTERUI.Banking.TransferRules.NotifyGuildBankTransferDenied,
-    "TransferRules exposes guild-bank denial notifications")
+assertNotNil(BETTERUI.Banking.GetTransferState, "GetTransferState accessor exists")
+assertNotNil(BETTERUI.Banking.Transfer, "Transfer service exposed")
+assertNotNil(BETTERUI.Banking.Transfer.CanDepositIntoBank, "Transfer exposes deposit validation")
+assertNotNil(BETTERUI.Banking.Transfer.ResolveGuildBankTransferDecision,
+    "Transfer exposes guild-bank transfer decisions")
+assertNotNil(BETTERUI.Banking.Transfer.NotifyTransferDenied, "Transfer exposes transfer denial notifications")
+assertNotNil(BETTERUI.Banking.Transfer.NotifyGuildBankTransferDenied,
+    "Transfer exposes guild-bank denial notifications")
 assertNotNil(BETTERUI.Banking.TryTransferInventorySlot, "Banking exposes the single-slot inventory transfer seam")
 assertNotNil(BETTERUI.Banking.IsGuildBankTransfer, "IsGuildBankTransfer exposed")
 assertNotNil(BETTERUI.Banking.GetActiveDepositBag, "GetActiveDepositBag exposed")

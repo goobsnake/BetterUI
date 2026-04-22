@@ -545,7 +545,7 @@ function InventoryKeybinds.GetSecondaryKeybindName(self)
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
         name = GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
     else
-        local actionContext = InventoryKeybinds.GetXButtonActionContext(self)
+        local actionContext = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
         if not actionContext then
             return ""
         end
@@ -581,7 +581,7 @@ function InventoryKeybinds.IsSecondaryKeybindVisible(self)
     end
 
     if self.actionMode == InventoryConst.ITEM_LIST_ACTION_MODE then
-        local actionContext = InventoryKeybinds.GetXButtonActionContext(self)
+        local actionContext = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
         if not actionContext then
             return false
         end
@@ -607,7 +607,7 @@ function InventoryKeybinds.HandleSecondaryKeybind(self)
         return
     end
 
-    local actionContext = InventoryKeybinds.GetXButtonActionContext(self)
+    local actionContext = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     if not actionContext then
         return
     end

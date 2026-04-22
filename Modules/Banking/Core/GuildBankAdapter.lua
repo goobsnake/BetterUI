@@ -22,7 +22,8 @@ local function GetBankingWindow()
 end
 
 function GuildBank.IsGuildBankMode()
-    return BETTERUI.Banking.IsGuildBankTransfer()
+    local transferState = BETTERUI.Banking.GetTransferState()
+    return transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
 end
 
 function GuildBank.GetSelectedGuildId()

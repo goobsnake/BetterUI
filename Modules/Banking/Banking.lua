@@ -92,19 +92,21 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
     local listControl = self.list and self.list.control
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Ensure(listControl, {
+        BETTERUI.CIM.ScrollIndicator.Setup(listControl, {
+            listObject = self.list,
+            visibleItems = BETTERUI.CIM.CONST.UI.BANKING_VISIBLE_ITEMS,
             offsetX = 25,
             offsetTopY = -5,
             offsetBottomY = -10,
         })
-        BETTERUI.CIM.ScrollIndicator.BindListObject(listControl, self.list)
     end
 
     self.currentMode = LIST_WITHDRAW
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     self.lastPositionsByCategory = {}
 
-    BETTERUI.Banking.SetRuntimeBankBags(BETTERUI.Banking.GetActiveInteractionBag(), nil)
+    local transferState = BETTERUI.Banking.GetTransferState()
+    BETTERUI.Banking.SetRuntimeBankBags(transferState.interactionBag, nil)
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 
@@ -164,10 +166,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
 
         if list and list.control and BETTERUI.CIM.ScrollIndicator then
-            local totalItems = list:GetNumItems() or 0
-            local currentIndex = list.targetSelectedIndex or list:GetSelectedIndex() or 1
-            local visibleItems = BETTERUI.CIM.CONST.UI.BANKING_VISIBLE_ITEMS
-            BETTERUI.CIM.ScrollIndicator.Update(list.control, currentIndex, totalItems, visibleItems)
+            BETTERUI.CIM.ScrollIndicator.Update(list.control)
         end
 
         if selectedData then

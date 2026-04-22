@@ -70,7 +70,8 @@ end
 function BETTERUI.Banking.Class:HandleBankSwitch()
     local currentUsedBank = BETTERUI.Banking.GetCurrentUsedBank()
     local lastUsedBank = BETTERUI.Banking.GetLastUsedBank()
-    local activeSourceBag = BETTERUI.Banking.GetActiveInteractionBag()
+    local transferState = BETTERUI.Banking.GetTransferState()
+    local activeSourceBag = transferState.interactionBag
 
     if lastUsedBank == currentUsedBank then
         return false -- No switch, handled by caller
@@ -99,7 +100,8 @@ end
 
 --- Restores the saved list position.
 function BETTERUI.Banking.Class:ReturnToSaved()
-    BETTERUI.Banking.SetRuntimeBankBags(BETTERUI.Banking.GetActiveInteractionBag(), nil)
+    local transferState = BETTERUI.Banking.GetTransferState()
+    BETTERUI.Banking.SetRuntimeBankBags(transferState.interactionBag, nil)
 
     -- Handle empty list
     if self:HandleEmptyList() then

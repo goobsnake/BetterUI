@@ -353,6 +353,11 @@ function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 		end
 		local success, result = pcall(m_namespace.InitModule, m_options)
 		if success then
+			if type(result) == "table" and moduleName and result ~= m_options then
+				BETTERUI.Settings = BETTERUI.Settings or {}
+				BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
+				BETTERUI.Settings.Modules[moduleName] = result
+			end
 		else
 			local name = moduleName or "unknown"
 			BETTERUI.Debug("[Error] InitModule failed for " .. name .. ": " .. tostring(result))

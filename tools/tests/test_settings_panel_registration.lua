@@ -86,9 +86,24 @@ assert_equal(1, seamRegisterCalls, "settings seam is invoked only once for repea
 assert_equal("BETTERUI_Lifecycle", registeredPanels[2].id, "lifecycle-safe helper routes through normalized panel registration")
 assert_equal(true, lifecycleModule._panelRegistered, "lifecycle-safe helper marks panel registration state")
 
-assert_equal(false, BETTERUI.CIM.TryRegisterModulePanel({}, "MissingSeamModule", "Missing", "Missing"),
-    "lifecycle-safe helper returns false when module settings seam is unavailable")
+local missingSeamOk, missingSeamReason = BETTERUI.CIM.TryRegisterModulePanel({}, "MissingSeamModule", "Missing", "Missing")
+assert_equal(false, missingSeamOk, "lifecycle-safe helper returns false when module settings seam is unavailable")
+assert_equal("missing_register_panel", missingSeamReason,
+    "lifecycle-safe helper surfaces a machine-readable reason when module settings seam is unavailable")
 assert_equal(1, #debugMessages, "missing seam emits a single debug trace")
+
+local brokenSeamModule = {
+    Settings = {
+        RegisterPanel = function()
+            error("boom")
+        end,
+    },
+}
+local brokenOk, brokenReason = BETTERUI.CIM.TryRegisterModulePanel(brokenSeamModule, "BrokenModule", "Broken", "Broken")
+assert_equal(false, brokenOk, "lifecycle-safe helper returns false when panel registration throws")
+assert_equal("register_panel_failed", brokenReason,
+    "lifecycle-safe helper surfaces a machine-readable reason when registration throws")
+assert_equal(2, #debugMessages, "thrown registration adds a second debug trace")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
