@@ -2,6 +2,7 @@ local LIST_WITHDRAW                 = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
 local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 
+local RuntimeState = BETTERUI.Banking.RuntimeState
 
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 
@@ -43,8 +44,10 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     self:InitializeKeybind()
     self:InitializeList()
-    self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
-    self.itemActions:SetUseKeybindStrip(false)
+    self.itemActions = BETTERUI.CIM.Utils.CreateInventorySlotActions(KEYBIND_STRIP_ALIGN_LEFT)
+    if self.itemActions then
+        self.itemActions:SetUseKeybindStrip(false)
+    end
     self:InitializeActionsDialog()
 
 
@@ -71,7 +74,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     self.lastPositionsByCategory = {}
 
-    BETTERUI.Banking.SetCurrentUsedBank(BETTERUI.Banking.ResolveInteractionBankBag())
+    RuntimeState.currentUsedBank = BETTERUI.Banking.GetTransferContext().interactionBag
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 
@@ -141,7 +144,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             self:RefreshItemActions()
         end
         if selectedControl and selectedControl.bagId then
-            BETTERUI.Inventory.NewItemTracker.ClearImmediate(selectedControl.bagId, selectedControl.slotIndex)
+            BETTERUI.CIM.Utils.ClearTrackedInventorySlot(selectedControl.bagId, selectedControl.slotIndex)
             self:GetParametricList():RefreshList()
         end
     end
@@ -156,7 +159,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 return
             end
 
-            local currentUsedBank = BETTERUI.Banking.GetCurrentUsedBank()
+            local currentUsedBank = RuntimeState.currentUsedBank
             local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or
                 nil
             local showingCurrencyRows = (currentUsedBank == BAG_BANK)
@@ -208,13 +211,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     EVENT_MANAGER:UnregisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK)
     EVENT_MANAGER:RegisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK, function(_, bankBag)
-        BETTERUI.Banking.SetLastOpenedBankBag(bankBag or BAG_BANK)
+        RuntimeState.lastOpenedBankBag = bankBag or BAG_BANK
     end)
 
     EVENT_MANAGER:UnregisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK)
     EVENT_MANAGER:RegisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK, function()
         if IsBankOpen and IsBankOpen() then
-            BETTERUI.Banking.SetLastOpenedBankBag(GetBankingBag() or BETTERUI.Banking.GetLastOpenedBankBag())
+            RuntimeState.lastOpenedBankBag = GetBankingBag() or RuntimeState.lastOpenedBankBag
         end
     end)
 

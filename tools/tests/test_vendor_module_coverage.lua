@@ -73,13 +73,6 @@ local function assertEqual(expected, actual, message)
     assertTrue(expected == actual, string.format("%s (expected=%s, actual=%s)", message, tostring(expected), tostring(actual)))
 end
 
-local function readFile(path)
-    local handle = assert(io.open(path, "r"))
-    local content = handle:read("*a")
-    handle:close()
-    return content
-end
-
 assertEqual(24, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor manifest-backed runtime surface")
 
 BETTERUI = {
@@ -319,11 +312,199 @@ do
 end
 
 do
-    local vendorRuntimeSource = readFile("Modules/Vendor/Vendor.lua")
-    assertTrue(vendorRuntimeSource:find("Vendor.DebugLog = LogVendorDebug", 1, true) == nil,
-        "vendor runtime keeps module-level DebugLog ownership and does not rebind it to local forwarding wrappers")
-    assertTrue(vendorRuntimeSource:find("Vendor.IsDirectionalInputListening = IsDirectionalInputListening", 1, true) == nil,
-        "vendor runtime keeps module-level directional-input listener ownership and does not rebind it to local forwarding wrappers")
+    local originalDebug = BETTERUI.CIM.Debug
+    local debugLogs = {}
+    BETTERUI.CIM.Debug = {
+        FLAGS = {
+            SCENE_TRANSITIONS = true,
+        },
+        IsEnabled = function()
+            return true
+        end,
+        Log = function(message, category)
+            debugLogs[#debugLogs + 1] = {
+                message = message,
+                category = category,
+            }
+        end,
+    }
+
+    BETTERUI.Vendor.LogDebug("SCENE_TRANSITIONS", "VendorScene", "canonical")
+    BETTERUI.Vendor.LogDebug("VendorScene", "SCENE_TRANSITIONS", "reversed")
+
+    assertEqual(2, #debugLogs, "vendor debug helper supports canonical and reversed helper contracts")
+    assertEqual("canonical", debugLogs[1].message, "vendor debug helper logs canonical messages")
+    assertEqual("VendorScene", debugLogs[1].category, "vendor debug helper logs canonical categories")
+    assertEqual("reversed", debugLogs[2].message, "vendor debug helper logs reversed-contract messages")
+    assertEqual("VendorScene", debugLogs[2].category, "vendor debug helper normalizes reversed contracts")
+
+    BETTERUI.CIM.Debug = originalDebug
+end
+
+do
+    local originalSafeExecute = BETTERUI.CIM.SafeExecute
+    local originalUserNotify = BETTERUI.CIM.UserNotify
+    BETTERUI.CIM.SafeExecute = nil
+    BETTERUI.CIM.UserNotify = nil
+
+    local okWithoutNotifier, errWithoutNotifier = BETTERUI.Vendor.ExecuteSafely("VendorSafeExecute:withoutNotifier", function()
+        error("original vendor fallback error")
+    end)
+    assertTrue(okWithoutNotifier == false, "vendor safe execute fallback returns failure when notifier is absent")
+    assertTrue(type(errWithoutNotifier) == "string" and string.find(errWithoutNotifier, "original vendor fallback error", 1, true) ~= nil,
+        "vendor safe execute fallback preserves the original error when notifier is absent")
+
+    BETTERUI.CIM.UserNotify = function()
+        error("notifier failure should not replace original")
+    end
+    local okNotifierThrows, errNotifierThrows = BETTERUI.Vendor.ExecuteSafely("VendorSafeExecute:notifierThrows", function()
+        error("original vendor fallback error 2")
+    end)
+    assertTrue(okNotifierThrows == false, "vendor safe execute fallback returns failure when notifier throws")
+    assertTrue(type(errNotifierThrows) == "string" and string.find(errNotifierThrows, "original vendor fallback error 2", 1, true) ~= nil,
+        "vendor safe execute fallback preserves the original error when notifier throws")
+
+    local okMultiReturn, firstValue, secondValue, thirdValue = BETTERUI.Vendor.ExecuteSafely("VendorSafeExecute:multiReturn",
+        function()
+            return "a", "b", "c"
+        end)
+    assertTrue(okMultiReturn == true, "vendor safe execute fallback succeeds for successful calls")
+    assertEqual("a", firstValue, "vendor safe execute fallback preserves first return value")
+    assertEqual("b", secondValue, "vendor safe execute fallback preserves second return value")
+    assertEqual("c", thirdValue, "vendor safe execute fallback preserves third return value")
+
+    BETTERUI.CIM.SafeExecute = originalSafeExecute
+    BETTERUI.CIM.UserNotify = originalUserNotify
+end
+
+do
+    local originalSafeExecute = BETTERUI.CIM.SafeExecute
+    local originalUserNotify = BETTERUI.CIM.UserNotify
+    local originalDirectionalInput = _G.DIRECTIONAL_INPUT
+    local originalStoreWindowGamepad = _G.STORE_WINDOW_GAMEPAD
+    local originalCanStoreRepair = _G.CanStoreRepair
+    local originalModes = {
+        ZO_MODE_STORE_BUY = _G.ZO_MODE_STORE_BUY,
+        ZO_MODE_STORE_SELL = _G.ZO_MODE_STORE_SELL,
+        ZO_MODE_STORE_SELL_VENGEANCE = _G.ZO_MODE_STORE_SELL_VENGEANCE,
+        ZO_MODE_STORE_BUY_BACK = _G.ZO_MODE_STORE_BUY_BACK,
+        ZO_MODE_STORE_REPAIR = _G.ZO_MODE_STORE_REPAIR,
+        ZO_MODE_STORE_STABLE = _G.ZO_MODE_STORE_STABLE,
+    }
+    local originalIsStableInteraction = BETTERUI.Vendor.IsStableInteraction
+    local originalIsFenceInteraction = BETTERUI.Vendor.IsFenceInteraction
+    local originalHasVendorBuyInventory = BETTERUI.Vendor.HasVendorBuyInventory
+    local originalIsSellVengeanceModeAvailable = BETTERUI.Vendor.IsSellVengeanceModeAvailable
+
+    BETTERUI.CIM.SafeExecute = nil
+    BETTERUI.CIM.UserNotify = function()
+    end
+    _G.CanStoreRepair = function()
+        return true
+    end
+
+    _G.ZO_MODE_STORE_BUY = 11
+    _G.ZO_MODE_STORE_SELL = 22
+    _G.ZO_MODE_STORE_SELL_VENGEANCE = 33
+    _G.ZO_MODE_STORE_BUY_BACK = 44
+    _G.ZO_MODE_STORE_REPAIR = 55
+    _G.ZO_MODE_STORE_STABLE = 66
+
+    local function buildDirectionalInput()
+        local directionalInput = {
+            inputObjects = {},
+        }
+        function directionalInput:IsListening(obj)
+            for _, entry in ipairs(self.inputObjects) do
+                if entry == obj then
+                    return true
+                end
+            end
+            return false
+        end
+        function directionalInput:Deactivate(obj)
+            for index = #self.inputObjects, 1, -1 do
+                if self.inputObjects[index] == obj then
+                    table.remove(self.inputObjects, index)
+                end
+            end
+        end
+        return directionalInput
+    end
+
+    _G.DIRECTIONAL_INPUT = buildDirectionalInput()
+    local storeManager = {
+        sceneName = "gamepad_store",
+        activeComponents = {
+            {
+                GetStoreMode = function()
+                    return ZO_MODE_STORE_STABLE
+                end,
+            },
+            {
+                GetStoreMode = function()
+                    return ZO_MODE_STORE_SELL
+                end,
+            },
+        },
+        components = {
+            [ZO_MODE_STORE_SELL] = {},
+            [ZO_MODE_STORE_BUY_BACK] = {},
+            [ZO_MODE_STORE_REPAIR] = {},
+        },
+    }
+    local setActiveCalls = 0
+    local initializeCalls = 0
+    storeManager.SetActiveComponents = function()
+        setActiveCalls = setActiveCalls + 1
+        error("simulated set active components failure")
+    end
+    storeManager.InitializeStore = function()
+        initializeCalls = initializeCalls + 1
+    end
+    _G.STORE_WINDOW_GAMEPAD = storeManager
+    table.insert(_G.DIRECTIONAL_INPUT.inputObjects, storeManager)
+
+    BETTERUI.Vendor._sessionHasBuyMode = false
+    BETTERUI.Vendor.IsStableInteraction = function()
+        return false
+    end
+    BETTERUI.Vendor.IsFenceInteraction = function()
+        return false
+    end
+    BETTERUI.Vendor.HasVendorBuyInventory = function()
+        return false
+    end
+    BETTERUI.Vendor.IsSellVengeanceModeAvailable = function()
+        return false
+    end
+
+    local ensureOk, ensureErr = pcall(function()
+        BETTERUI.Vendor.NativeStoreBridge.EnsureComponents("test_guard_failure")
+    end)
+
+    assertTrue(ensureOk == true, string.format(
+        "native-store rebuild guard failure does not escape EnsureComponents (error=%s)", tostring(ensureErr)))
+    assertEqual(1, setActiveCalls, "native-store rebuild attempts SetActiveComponents once")
+    assertEqual(0, initializeCalls, "native-store rebuild aborts initialization after guarded SetActiveComponents failure")
+    assertTrue(_G.DIRECTIONAL_INPUT:IsListening(storeManager),
+        "native-store rebuild guard failure skips directional-input sweep")
+
+    BETTERUI.CIM.SafeExecute = originalSafeExecute
+    BETTERUI.CIM.UserNotify = originalUserNotify
+    _G.DIRECTIONAL_INPUT = originalDirectionalInput
+    _G.STORE_WINDOW_GAMEPAD = originalStoreWindowGamepad
+    _G.CanStoreRepair = originalCanStoreRepair
+    _G.ZO_MODE_STORE_BUY = originalModes.ZO_MODE_STORE_BUY
+    _G.ZO_MODE_STORE_SELL = originalModes.ZO_MODE_STORE_SELL
+    _G.ZO_MODE_STORE_SELL_VENGEANCE = originalModes.ZO_MODE_STORE_SELL_VENGEANCE
+    _G.ZO_MODE_STORE_BUY_BACK = originalModes.ZO_MODE_STORE_BUY_BACK
+    _G.ZO_MODE_STORE_REPAIR = originalModes.ZO_MODE_STORE_REPAIR
+    _G.ZO_MODE_STORE_STABLE = originalModes.ZO_MODE_STORE_STABLE
+    BETTERUI.Vendor.IsStableInteraction = originalIsStableInteraction
+    BETTERUI.Vendor.IsFenceInteraction = originalIsFenceInteraction
+    BETTERUI.Vendor.HasVendorBuyInventory = originalHasVendorBuyInventory
+    BETTERUI.Vendor.IsSellVengeanceModeAvailable = originalIsSellVengeanceModeAvailable
 end
 
 setmetatable(_G, originalGlobalMetatable)

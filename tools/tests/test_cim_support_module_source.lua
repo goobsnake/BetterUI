@@ -118,8 +118,12 @@ assert_true(genericSlotActions:find("BETTERUI%.CIM%.InvokeInventoryDialog%(\"Try
     "GenericSlotActions routes craft-bag quantity dialogs through the shared CIM dialog seam")
 assert_true(genericSlotActions:find("local function CanStowToCraftBagWithPolicy%(bagId, slotIndex%)") ~= nil,
     "GenericSlotActions centralizes craft-bag stow authorization through a policy helper")
-assert_true(genericSlotActions:find("RequireTransferSupport") ~= nil,
-    "GenericSlotActions requires banking transfer support through the owned Banking seam")
+assert_true(genericSlotActions:find("banking and banking%.NotifyTransferDenied") ~= nil,
+    "GenericSlotActions resolves transfer denial notifications through the Banking ownership seam")
+assert_true(genericSlotActions:find("banking and banking%.NotifyGuildBankTransferDenied") ~= nil,
+    "GenericSlotActions resolves guild-bank transfer denials through the Banking ownership seam")
+assert_true(genericSlotActions:find("banking and banking%.CanDepositIntoBank") ~= nil,
+    "GenericSlotActions resolves deposit authorization through the Banking ownership seam")
 assert_true(genericSlotActions:find("local function GetBankingTransferSupport") == nil,
     "GenericSlotActions does not keep a banking-specific CIM forwarding helper")
 assert_true(genericSlotActions:find("BETTERUI%.CIM%.Utils%.GetBankingTransferSupport") == nil,
@@ -128,9 +132,9 @@ assert_true(genericSlotActions:find("policy and policy%.CanStowToCraftBag") ~= n
     "GenericSlotActions checks stow eligibility via ProtectionPolicy.CanStowToCraftBag when available")
 assert_true(genericSlotActions:find("local function ResolvePolicyDeny%(denyKey, fallbackValue%)") ~= nil,
     "GenericSlotActions centralizes deny-code resolution through ProtectionPolicy.DENY")
-assert_true(genericSlotActions:find('ResolvePolicyDeny%("NO_CRAFT_ACCESS", "no_craft_access"%)') ~= nil,
+assert_true(genericSlotActions:find('ResolvePolicyDeny%("NO_CRAFT_ACCESS", DENY%.NO_CRAFT_ACCESS%)') ~= nil,
     "GenericSlotActions resolves no-craft-access fallback reasons through shared deny constants")
-assert_true(genericSlotActions:find('ResolvePolicyDeny%("NO_ITEM", "no_item"%)') ~= nil,
+assert_true(genericSlotActions:find('ResolvePolicyDeny%("NO_ITEM", DENY%.NO_ITEM%)') ~= nil,
     "GenericSlotActions resolves no-item fallback reasons through shared deny constants")
 assert_true(genericSlotActions:find(
     "function BETTERUI%.CIM%.TryMoveToCraftBag%(inventorySlot, targetBag, quantity%)") ~= nil,

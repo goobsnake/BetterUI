@@ -47,8 +47,10 @@ BETTERUI = {
         GetCurrentBank = function()
             return BAG_BANK
         end,
-        ResolveDepositTarget = function()
-            return BAG_BANK
+        GetTransferContext = function()
+            return {
+                depositTargetBag = BAG_BANK,
+            }
         end,
     },
 }

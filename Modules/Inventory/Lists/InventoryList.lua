@@ -303,6 +303,58 @@ function BETTERUI.Inventory.List:New(...)
     return object
 end
 
+---@class BetterUIInventoryListInitOptions
+---@field control table UI control for the list container
+---@field inventoryType number|number[] Inventory type constant(s)
+---@field slotType number Slot type constant
+---@field selectedDataCallback function|nil Callback for selection changes
+---@field entrySetupCallback function|nil Optional row setup hook; return true to skip default setup
+---@field categoryResolver function|nil Category assignment function
+---@field sortFunction function|nil Sort comparator function
+---@field useTriggers boolean|nil Whether to use trigger keybinds
+---@field template string|nil Entry template name
+---@field templateSetupFunction function|nil Full template setup override
+---@field listModuleName string|nil Owning list module name
+
+---@param controlOrOptions table|BetterUIInventoryListInitOptions
+---@param inventoryType any
+---@return boolean
+local function IsInitializeOptionsTable(controlOrOptions, inventoryType)
+    return type(controlOrOptions) == "table"
+        and type(controlOrOptions.control) == "table"
+        and inventoryType == nil
+        and (
+            controlOrOptions.inventoryType ~= nil
+            or controlOrOptions.slotType ~= nil
+            or controlOrOptions.selectedDataCallback ~= nil
+            or controlOrOptions.template ~= nil
+            or controlOrOptions.templateSetupFunction ~= nil
+            or controlOrOptions.listModuleName ~= nil
+            or controlOrOptions.useTriggers ~= nil
+        )
+end
+
+---@return BetterUIInventoryListInitOptions
+local function NormalizeInitializeOptions(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
+                                         categoryResolver, sortFunction, useTriggers, template, templateSetupFunction)
+    if IsInitializeOptionsTable(control, inventoryType) then
+        return control
+    end
+
+    return {
+        control = control,
+        inventoryType = inventoryType,
+        slotType = slotType,
+        selectedDataCallback = selectedDataCallback,
+        entrySetupCallback = entrySetupCallback,
+        categoryResolver = categoryResolver,
+        sortFunction = sortFunction,
+        useTriggers = useTriggers,
+        template = template,
+        templateSetupFunction = templateSetupFunction,
+    }
+end
+
 --- Initializes the inventory list.
 --- Purpose: Sets up the parametric scroll list, data templates, and update callbacks.
 ---@param control table UI control for the list container
@@ -319,29 +371,44 @@ end
 function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
                                             categoryResolver, sortFunction, useTriggers, template,
                                             templateSetupFunction)
-    self.control = control
-    self.selectedDataCallback = selectedDataCallback
-    self.entrySetupCallback = entrySetupCallback
-    self.categorizationFunction = categoryResolver
-    self.listModuleName = "Inventory"
-    self:SetSortFunction(sortFunction)
+    local options = NormalizeInitializeOptions(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
+        categoryResolver, sortFunction, useTriggers, template, templateSetupFunction)
+
+    self.control = options.control
+    self.selectedDataCallback = options.selectedDataCallback
+    self.entrySetupCallback = options.entrySetupCallback
+    self.categorizationFunction = options.categoryResolver
+    self.listModuleName = options.listModuleName or "Inventory"
+    self:SetSortFunction(options.sortFunction)
     self.dataBySlotIndex = {}
     self.isDirty = true
-    self.useTriggers = (useTriggers ~= false) -- nil => true
-    self.template = template or DEFAULT_TEMPLATE
+    self.useTriggers = (options.useTriggers ~= false) -- nil => true
+    self.template = options.template or DEFAULT_TEMPLATE
 
-    self.inventoryTypes = NormalizeInventoryTypes(inventoryType)
+    self.inventoryTypes = NormalizeInventoryTypes(options.inventoryType)
+    local resolvedSlotType = options.slotType
 
     ---@param rowControl table
     ---@param data BetterUIInventoryEntryData
     local function InventoryEntryTemplateSetup(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
-        ZO_Inventory_BindSlot(data, slotType, data.slotIndex, data.bagId)
+        if resolvedSlotType ~= nil then
+            ZO_Inventory_BindSlot(data, resolvedSlotType, data.slotIndex, data.bagId)
+        end
         AssignEntryListModuleName(data, self.listModuleName)
-        BETTERUI_SharedGamepadEntry_OnSetup(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
+
+        local didHandleSetup = false
+        if self.entrySetupCallback then
+            didHandleSetup = self.entrySetupCallback(rowControl, data, selected, selectedDuringRebuild, enabled, activated,
+                self) == true
+        end
+
+        if not didHandleSetup then
+            BETTERUI_SharedGamepadEntry_OnSetup(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
+        end
     end
 
     self.list = BETTERUI_VerticalParametricScrollList:New(self.control)
-    self.list:AddDataTemplate(self.template, templateSetupFunction or InventoryEntryTemplateSetup,
+    self.list:AddDataTemplate(self.template, options.templateSetupFunction or InventoryEntryTemplateSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction)
     self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")

@@ -422,6 +422,18 @@ function BETTERUI.CIM.Settings.GetSettingMetadata(moduleName, settingKey)
     return nil
 end
 
+--- Returns optional addon dependency globals for a setting, if defined.
+--- Returned list is a cloned snapshot to avoid mutating metadata registry state.
+function BETTERUI.CIM.Settings.GetSettingDependencyAddons(moduleName, settingKey)
+    local metadata = BETTERUI.CIM.Settings.GetSettingMetadata(moduleName, settingKey)
+    local dependency = metadata and metadata.dependency
+    local addons = dependency and dependency.addons
+    if type(addons) ~= "table" then
+        return nil
+    end
+    return CloneDefaultValue(addons)
+end
+
 --- Returns the default value for a module setting using metadata first, then DefaultsRegistry.
 function BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, fallback)
     local metadata = BETTERUI.CIM.Settings.GetSettingMetadata(moduleName, settingKey)

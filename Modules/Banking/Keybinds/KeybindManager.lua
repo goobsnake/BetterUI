@@ -37,12 +37,16 @@ local function IsActionableListEntry(entryData)
     return stackCount > 0
 end
 
+local function GetTransferContext()
+    return BETTERUI.Banking.GetTransferContext()
+end
+
 local function IsMainBankContext()
-    return BETTERUI.Banking.IsMainBankInteraction()
+    return GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
 end
 
 local function IsGuildBankMode()
-    return BETTERUI.Banking.IsGuildTransferActive()
+    return GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
 end
 
 local function GetSelectedBankEntry(self)
@@ -255,7 +259,7 @@ local function CreateCoreNavigationKeybinds(self)
                 if self:IsBatchProcessing() then
                     return
                 end
-                local transferSourceBankBag = BETTERUI.Banking.ResolveInteractionBankBag()
+                local transferSourceBankBag = GetTransferContext().interactionBag
                 if self.currentMode == LIST_WITHDRAW then
                     if transferSourceBankBag == BAG_BANK then
                         StackBag(BAG_BANK)
@@ -431,15 +435,11 @@ end
 
 ResolveGuildBankTransferKeybindState = function(self)
     local selectedData = self.list and self.list:GetSelectedData()
-    if not (BETTERUI.Banking.IsGuildTransferActive() and IsActionableListEntry(selectedData)) then
+    if not (GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK and IsActionableListEntry(selectedData)) then
         return true, nil
     end
 
-    local requireTransferSupport = BETTERUI.Banking.RequireTransferSupport
-    local transferSupport = type(requireTransferSupport) == "function"
-        and requireTransferSupport("Banking/Keybinds/KeybindManager")
-        or nil
-    local resolveDecision = transferSupport and transferSupport.ResolveGuildBankTransferDecision or nil
+    local resolveDecision = BETTERUI.Banking.ResolveGuildBankTransferDecision
     if type(resolveDecision) ~= "function" then
         return true, nil
     end

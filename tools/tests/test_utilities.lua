@@ -36,8 +36,10 @@ BETTERUI = {
         GetCurrentBank = function()
             return BAG_SUBSCRIBER_BANK
         end,
-        ResolveDepositTarget = function()
-            return BAG_SUBSCRIBER_BANK
+        GetTransferContext = function()
+            return {
+                depositTargetBag = BAG_SUBSCRIBER_BANK,
+            }
         end,
         Class = {
             list = {
@@ -179,8 +181,8 @@ assert_nil(BETTERUI.CIM.Utils.GetActiveBankTransferContext,
 assert_nil(BETTERUI.CIM.Utils.GetBankingTransferSupport,
     "Banking transfer-support forwarding helper is removed from CIM utilities")
 
-assert_equal(BAG_SUBSCRIBER_BANK, BETTERUI.Banking.ResolveDepositTarget(),
-    "bank target access resolves through the canonical banking deposit-target seam")
+assert_equal(BAG_SUBSCRIBER_BANK, BETTERUI.Banking.GetTransferContext().depositTargetBag,
+    "bank target access resolves through the canonical banking transfer context seam")
 
 SCENE_MANAGER.scenes["gamepad_banking"] = {
     IsShowing = function()

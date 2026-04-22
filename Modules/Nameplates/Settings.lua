@@ -4,6 +4,7 @@ local GeneralInterface = BETTERUI.GeneralInterface
 BETTERUI.Nameplates = BETTERUI.Nameplates or {}
 local Nameplates = BETTERUI.Nameplates
 GeneralInterface.Nameplates = Nameplates
+Nameplates.Settings = Nameplates.Settings or {}
 
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
@@ -34,6 +35,16 @@ local function ApplyCurrentNameplateSettings()
         Nameplates.ApplyCurrentSettings()
     end
 end
+
+local function InitPanel(mId, moduleName)
+    local panelData = BETTERUI.Init_ModulePanel(
+        moduleName,
+        GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_HEADER"))
+    )
+    BETTERUI.CIM.Settings.RegisterModulePanel(mId, panelData, Nameplates.GetSettingsOptions())
+end
+
+Nameplates.Settings.RegisterPanel = InitPanel
 
 function Nameplates.GetSettingsOptions()
     return {

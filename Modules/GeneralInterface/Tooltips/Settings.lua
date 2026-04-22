@@ -8,6 +8,8 @@ local ApplyTooltipVisualSettings = H.ApplyTooltipVisualSettings
 local CleanupTooltipEnhancementArtifacts = H.CleanupTooltipEnhancementArtifacts
 local RefreshInventoryAndBankingLists = H.RefreshInventoryAndBankingLists
 local GetMetadataDefault = H.GetMetadataDefault
+local GetSettingDependencyAddons = H.GetSettingDependencyAddons
+local IsAnyAddonDependencyLoaded = H.IsAnyAddonDependencyLoaded
 local BuildAddonDependencyTooltip = H.BuildAddonDependencyTooltip
 local GetModuleSettings = H.GetModuleSettings
 local EnsureModuleSettings = H.EnsureModuleSettings
@@ -40,24 +42,57 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         marketPriorityValues = values
     end
 
+    local function ResolveMarketAddonDependencies(settingKey, fallback)
+        local dependencyAddons = GetSettingDependencyAddons("GeneralInterface", settingKey)
+        if type(dependencyAddons) == "table" and #dependencyAddons > 0 then
+            return dependencyAddons
+        end
+        return fallback
+    end
+
+    local guildStoreAddonDeps = ResolveMarketAddonDependencies(
+        "guildStoreErrorSuppress",
+        { "ArkadiusTradeTools", "MasterMerchant" }
+    )
+    local attAddonDeps = ResolveMarketAddonDependencies("attIntegration", { "ArkadiusTradeTools" })
+    local mmAddonDeps = ResolveMarketAddonDependencies("mmIntegration", { "MasterMerchant" })
+    local ttcAddonDeps = ResolveMarketAddonDependencies("ttcIntegration", { "TamrielTradeCentre" })
+
+    local function GetOptionalAddonToggleValue(settingKey, addonDeps)
+        if not IsAnyAddonDependencyLoaded(addonDeps) then
+            return false
+        end
+
+        local settings = GetModuleSettings("GeneralInterface")
+        if not settings then
+            return GetMetadataDefault("GeneralInterface", settingKey, true)
+        end
+
+        local value = settings[settingKey]
+        if value == nil then
+            return GetMetadataDefault("GeneralInterface", settingKey, true)
+        end
+        return value
+    end
+
     local tooltipGuildStoreError = BuildAddonDependencyTooltip(
         SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP,
-        { "ArkadiusTradeTools", "MasterMerchant" },
+        guildStoreAddonDeps,
         true
     )
     local tooltipATT = BuildAddonDependencyTooltip(
         SI_BETTERUI_ATT_INTEGRATION_TOOLTIP,
-        { "ArkadiusTradeTools" },
+        attAddonDeps,
         false
     )
     local tooltipMM = BuildAddonDependencyTooltip(
         SI_BETTERUI_MM_INTEGRATION_TOOLTIP,
-        { "MasterMerchant" },
+        mmAddonDeps,
         false
     )
     local tooltipTTC = BuildAddonDependencyTooltip(
         SI_BETTERUI_TTC_INTEGRATION_TOOLTIP,
-        { "TamrielTradeCentre" },
+        ttcAddonDeps,
         false
     )
 
@@ -170,6 +205,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "dropdown",
+            key = "marketPricePriority",
             name = GetString(rawget(_G, "SI_BETTERUI_MARKET_PRICE_PRIORITY")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP")),
             choices = marketPriorityChoices,
@@ -195,6 +231,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
+            key = "guildStoreErrorSuppress",
             name = GetString(rawget(_G, "SI_BETTERUI_GS_ERROR_SUPPRESS")),
             tooltip = tooltipGuildStoreError,
             getFunc = function()
@@ -210,29 +247,17 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                     settings.guildStoreErrorSuppress = value
                 end
             end,
-            disabled = function() return ArkadiusTradeTools == nil and MasterMerchant == nil end,
+            disabled = function() return not IsAnyAddonDependencyLoaded(guildStoreAddonDeps) end,
             default = GetMetadataDefault("GeneralInterface", "guildStoreErrorSuppress", true),
             width = "full",
         },
         {
             type = "checkbox",
+            key = "attIntegration",
             name = GetString(rawget(_G, "SI_BETTERUI_ATT_INTEGRATION")),
             tooltip = tooltipATT,
             getFunc = function()
-                if ArkadiusTradeTools == nil then
-                    return false
-                end
-
-                local settings = GetModuleSettings("GeneralInterface")
-                if not settings then
-                    return true
-                end
-
-                local value = settings.attIntegration
-                if value == nil then
-                    return true
-                end
-                return value
+                return GetOptionalAddonToggleValue("attIntegration", attAddonDeps)
             end,
             setFunc = function(value)
                 local settings = EnsureModuleSettings("GeneralInterface")
@@ -240,29 +265,17 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                     settings.attIntegration = value
                 end
             end,
-            disabled = function() return ArkadiusTradeTools == nil end,
+            disabled = function() return not IsAnyAddonDependencyLoaded(attAddonDeps) end,
             default = GetMetadataDefault("GeneralInterface", "attIntegration", true),
             width = "full",
         },
         {
             type = "checkbox",
+            key = "mmIntegration",
             name = GetString(rawget(_G, "SI_BETTERUI_MM_INTEGRATION")),
             tooltip = tooltipMM,
             getFunc = function()
-                if MasterMerchant == nil then
-                    return false
-                end
-
-                local settings = GetModuleSettings("GeneralInterface")
-                if not settings then
-                    return true
-                end
-
-                local value = settings.mmIntegration
-                if value == nil then
-                    return true
-                end
-                return value
+                return GetOptionalAddonToggleValue("mmIntegration", mmAddonDeps)
             end,
             setFunc = function(value)
                 local settings = EnsureModuleSettings("GeneralInterface")
@@ -270,29 +283,17 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                     settings.mmIntegration = value
                 end
             end,
-            disabled = function() return MasterMerchant == nil end,
+            disabled = function() return not IsAnyAddonDependencyLoaded(mmAddonDeps) end,
             default = GetMetadataDefault("GeneralInterface", "mmIntegration", true),
             width = "full",
         },
         {
             type = "checkbox",
+            key = "ttcIntegration",
             name = GetString(rawget(_G, "SI_BETTERUI_TTC_INTEGRATION")),
             tooltip = tooltipTTC,
             getFunc = function()
-                if TamrielTradeCentre == nil then
-                    return false
-                end
-
-                local settings = GetModuleSettings("GeneralInterface")
-                if not settings then
-                    return true
-                end
-
-                local value = settings.ttcIntegration
-                if value == nil then
-                    return true
-                end
-                return value
+                return GetOptionalAddonToggleValue("ttcIntegration", ttcAddonDeps)
             end,
             setFunc = function(value)
                 local settings = EnsureModuleSettings("GeneralInterface")
@@ -300,7 +301,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                     settings.ttcIntegration = value
                 end
             end,
-            disabled = function() return TamrielTradeCentre == nil end,
+            disabled = function() return not IsAnyAddonDependencyLoaded(ttcAddonDeps) end,
             default = GetMetadataDefault("GeneralInterface", "ttcIntegration", true),
             width = "full",
         },

@@ -257,7 +257,7 @@ function BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(self)
     if method then
         return method(self) == true
     end
-    return self and (self._searchHeaderActive == true or self._searchModeActive == true) or false
+    return self and self._searchHeaderActive == true or false
 end
 
 --- Normalizes any search callback payload into a string.

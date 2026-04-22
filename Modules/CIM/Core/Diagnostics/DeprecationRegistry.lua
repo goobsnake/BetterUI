@@ -16,6 +16,19 @@ BETTERUI.CIM.DeprecationRegistry = {
     _enabled = true,
 }
 
+local function CloneDeprecationInfo(info)
+    if type(info) ~= "table" then
+        return info
+    end
+
+    return {
+        oldName = info.oldName,
+        newName = info.newName,
+        removeVersion = info.removeVersion,
+        registeredAt = info.registeredAt,
+    }
+end
+
 --- Records a deprecated alias with its replacement.
 function BETTERUI.CIM.DeprecationRegistry.Register(oldName, newName, removeVersion)
     BETTERUI.CIM.DeprecationRegistry._registry[oldName] = {
@@ -59,9 +72,15 @@ end
 function BETTERUI.CIM.DeprecationRegistry.GetAll()
     local result = {}
     for _, info in pairs(BETTERUI.CIM.DeprecationRegistry._registry) do
-        table.insert(result, info)
+        table.insert(result, CloneDeprecationInfo(info))
     end
     return result
+end
+
+--- Returns the mutable internal registry table.
+--- Callers should prefer `GetAll` unless live mutation is intentional.
+function BETTERUI.CIM.DeprecationRegistry.GetRegistryLive()
+    return BETTERUI.CIM.DeprecationRegistry._registry
 end
 
 --- Creates a wrapper function that warns on first use and delegates to replacement.
@@ -72,9 +91,3 @@ function BETTERUI.CIM.DeprecationRegistry.CreateShim(oldName, newFn)
         return newFn(...)
     end
 end
-
--- REGISTER KNOWN DEPRECATIONS
--- Add entries here as APIs are deprecated
-
--- Example registrations (uncomment when deprecating):
--- BETTERUI.CIM.DeprecationRegistry.Register("BETTERUI_OLD_CONSTANT", "BETTERUI.CIM.CONST.NEW_CONSTANT", "v3.1")

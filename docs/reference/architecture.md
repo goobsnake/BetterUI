@@ -30,7 +30,7 @@
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Load Manifest: BetterUI.txt                                            │
 │  ├── CIM shared infrastructure loads first                              │
-│  ├── GeneralInterface loads tooltip/nameplate services                  │
+│  ├── GeneralInterface + Nameplates load dedicated interface services     │
 │  └── Feature modules load in manifest order, then setup is registry-led │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Core Layer (inside CIM module)                                         │
@@ -50,10 +50,9 @@
 │  ├── Keybinds/   (Generic keybind helpers)                              │
 │  └── Templates/  (Shared XML templates)                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  Interface Enhancements [Modules/GeneralInterface/]                      │
-│  ├── Tooltips/   (BETTERUI.GeneralInterface.Tooltips runtime/settings)  │
-│  ├── Nameplates/ (BETTERUI.GeneralInterface.Nameplates runtime/settings)  │
-│  └── Setup.lua   (Aggregates settings + runtime hooks)                  │
+│  Interface Modules                                                       │
+│  ├── GeneralInterface/ (tooltip runtime/settings + setup hooks)         │
+│  └── Nameplates/      (standalone nameplate runtime/settings owner)     │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Feature Modules                                                         │
 │  ├── Inventory/         (Enhanced inventory with categories, search)    │
@@ -80,7 +79,7 @@ Modules now document root ownership explicitly. Runtime-facing roots that opt in
 Current module examples in the repo:
 
 - **`runtime-coordinator`** — `CIM`, `Inventory`, `Banking`, `Vendor`, `TradingHouse`, `Companions`
-- **`settings-owner`** — `ResourceOrbFrames`
+- **`settings-owner`** — `Nameplates`, `ResourceOrbFrames`
 - **`thin-entrypoint`** — `GeneralInterface`, `Writs`
 
 The root remains intentionally small, but a module may keep one public runtime façade at the root when that file is the canonical owner of gameplay flow.
@@ -136,12 +135,18 @@ CIM/
 ```
 GeneralInterface/
 ├── Module.lua             # thin-entrypoint root contract + defaults
-├── Setup.lua              # Aggregates Setup() and settings panels
+├── Setup.lua              # Aggregates Setup() and tooltip runtime hooks
 ├── Tooltips/              # BETTERUI.GeneralInterface.Tooltips runtime/settings
 │   ├── Tooltips.lua       # Tooltip rendering, market price, research display
 │   ├── Settings.lua       # Tooltip settings definitions
 │   └── SettingsHelpers.lua# Tooltip settings helpers
-└── Nameplates/            # BETTERUI.GeneralInterface.Nameplates runtime/settings
+```
+
+**Nameplates Module** (`Modules/Nameplates/`):
+```
+Nameplates/
+├── Settings.lua           # Settings-owner panel seam + settings options
+└── Nameplates.lua         # Nameplate runtime + setup hook
 ```
 
 **Banking Module** (`Modules/Banking/`):
@@ -195,7 +200,7 @@ The ESO client loads files in the order specified in `BetterUI.txt`. **Order mat
 | 1. Entry Point | `BetterUI.lua` | SavedVariables, module registry, event wiring |
 | 2. Localization | `lang/en.lua`, `lang/$(language).lua` | String tables |
 | 3. Shared Infrastructure | `Modules/CIM/*` | Namespace init, runtime setup, batching, shared UI/services |
-| 4. Interface Enhancements | `Modules/GeneralInterface/*` | Tooltip + nameplate surfaces |
+| 4. Interface Modules | `Modules/GeneralInterface/*`, `Modules/Nameplates/*` | Tooltip + nameplate surfaces |
 | 5. Feature Modules | `ResourceOrbFrames` → `Inventory` → `Banking` → `Writs` → `TradingHouse` → `Vendor` → `Companions` | Runtime surfaces loaded in manifest order |
 
 > **Critical**: `BetterUI.lua` loads first, then `BETTERUI.LoadModules()` applies `CIM.RuntimeSetup.Apply()`, walks `MODULE_REGISTRY`, and validates each `Setup()` hook before invoking it. `SetupKeyboardModeModules()` only wires keyboard-safe modules, while `ResourceOrbFrames` handles its own keyboard/gamepad transition after setup.
@@ -231,8 +236,8 @@ BETTERUI = {
     Writs = {},
     GeneralInterface = {
         Tooltips = {},
-        Nameplates = {},
     },
+    Nameplates = {},
     ResourceOrbFrames = {
         SkillBar = {},
     },
@@ -243,7 +248,7 @@ BETTERUI = {
 }
 ```
 
-> **Note**: `Nameplates` runtime/settings are owned as `BETTERUI.GeneralInterface.Nameplates`. `BETTERUI.Nameplates` remains a compatibility alias exposed through the GeneralInterface namespace seam.
+> **Note**: `Nameplates` runtime/settings are owned as `BETTERUI.Nameplates`. `BETTERUI.GeneralInterface.Nameplates` is kept only as a compatibility alias.
 
 ---
 
@@ -252,7 +257,8 @@ BETTERUI = {
 | Module | Root Files | Key Subfolders | Load / Runtime Dependency | Purpose |
 |--------|------------|----------------|---------------------------|---------|
 | **CIM** | Constants, ConstantsUI, Module | Core/{Batching, Data, Diagnostics, Integration, Lifecycle, Presentation, Settings, Window}, UI, Lists, Actions, Dialogs, Keybinds | Required | Shared infrastructure, runtime setup, batch orchestration, market/research services |
-| **GeneralInterface** | Module, Setup | Tooltips, Nameplates | Registry-independent; consumes CIM helpers | Tooltip enhancements, market-price display, nameplate customization |
+| **GeneralInterface** | Module, Setup | Tooltips | Registry-independent; consumes CIM helpers | Tooltip enhancements and shared interface hooks |
+| **Nameplates** | Settings, Nameplates | (root-only) | Requires CIM; standalone module with compatibility alias | Nameplate font/style customization and lifecycle wiring |
 | **Inventory** | Constants, Module, Inventory, Loader | Core, UI, Lists, Actions, Keybinds, State, Dialogs, Scene, Settings | Requires CIM | Enhanced inventory with categories/search |
 | **Banking** | Constants, Module, Banking | Core, Lists, Actions, Keybinds, Search, State, Scene, UI, Dialogs | Requires CIM | Bank/house/guild bank interface |
 | **Vendor** | Module, Vendor | Core, Components, Settings | Requires CIM | Store/fence workflows plus namespaced vendor helpers |
@@ -500,6 +506,7 @@ end
 | `Coordinator.lua` | ResourceOrbFrames/SkillBar/ | Skill bar orchestration |
 | `CooldownUtils.lua` | ResourceOrbFrames/SkillBar/ | Shared cooldown state/timing helpers |
 | `Tooltips.lua` | GeneralInterface/Tooltips/ | Tooltip rendering, market prices, research display |
+| `Nameplates.lua` | Nameplates/ | Nameplate runtime ownership and setup |
 | `BankListManager.lua` | Banking/Lists/ | Banking list and keybind management |
 
 ---
@@ -514,6 +521,7 @@ graph TD
     A --> C[BetterUI.txt]
     B --> D[CIM Module]
     B --> E[GeneralInterface]
+    B --> M[Nameplates]
     B --> F[Inventory]
     B --> G[Banking]
     B --> H[Vendor]
@@ -522,7 +530,6 @@ graph TD
     B --> K[Writs]
     B --> L[ResourceOrbFrames]
     E --> E1[Tooltips namespace]
-    E --> E2[Nameplates namespace]
     D --> D1[Core/Batching]
     D --> D2[Core/Integration]
     D --> D3[UI/BatchOverlay]

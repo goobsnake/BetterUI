@@ -363,7 +363,7 @@ assert_eq(inventoryHookCalls, 1, "inventory pre-setup hook runs once")
 assert_eq(inventoryActionHookCalls, 1, "inventory action hook runs once")
 assert_eq(setupCounts.Companions, 1, "companions module setup runs once")
 assert_eq(setupCounts.TradingHouse, 1, "trading house module setup runs once")
-assert_eq(setupCounts.Nameplates, 1, "nameplates setup honors registry dependency path")
+assert_eq(setupCounts.Nameplates, 1, "nameplates setup runs as a first-class standalone module")
 assert_eq(ensurePatchCalls, 0, "companion patch helper is not queued by LoadModules directly")
 
 BETTERUI._initialized = false
@@ -377,6 +377,32 @@ assert_true(type(gamepadCallback) == "function", "gamepad mode callback is regis
 gamepadCallback(nil, true)
 assert_eq(setupCounts.Companions, 2, "gamepad mode switch reloads companions when bootstrap resets")
 assert_eq(setupCounts.TradingHouse, 2, "gamepad mode switch reloads trading house when bootstrap resets")
+
+print("\nTest: Nameplates no longer depends on GeneralInterface enablement")
+runtimeSetupCalls = 0
+ensureLifecycleRuntimeStateCalls = 0
+researchCalls = 0
+setupCounts = {}
+inventoryHookCalls = 0
+inventoryActionHookCalls = 0
+enabledModules.GeneralInterface = false
+enabledModules.Nameplates = true
+setSavedVarsResults({
+    useAccountWide = false,
+    firstInstall = false,
+    Modules = {},
+}, {
+    useAccountWide = false,
+    firstInstall = false,
+    Modules = {},
+})
+resetSetupState()
+inGamepadPreferredMode = true
+local standaloneNameplatesResult = BETTERUI.Initialize(EVENT_ADD_ON_LOADED, BETTERUI.name)
+assert_true(standaloneNameplatesResult, "bootstrap succeeds when Nameplates runs without GeneralInterface")
+assert_eq(setupCounts.GeneralInterface, nil, "general interface setup is skipped when disabled")
+assert_eq(setupCounts.Nameplates, 1, "nameplates setup still runs when GeneralInterface is disabled")
+enabledModules.GeneralInterface = true
 
 print("\nTest: Keyboard initialize runs runtime setup on character settings before keyboard setup")
 runtimeSetupCalls = 0

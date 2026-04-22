@@ -30,6 +30,7 @@ print("test_nameplates_module_identity_source")
 local bootstrap = read_file("BetterUI.lua")
 local types = read_file("Modules/CIM/Core/Data/Types.lua")
 local generalInterface = read_file("Modules/GeneralInterface/Module.lua")
+local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
 local nameplates = read_file("Modules/Nameplates/Nameplates.lua")
 local settings = read_file("Modules/Nameplates/Settings.lua")
 
@@ -39,19 +40,25 @@ assert_contains(bootstrap, 'name = "Nameplates",',
     "The module registry keeps a first-class Nameplates entry")
 assert_contains(bootstrap, 'namespace = "Nameplates",',
     "The Nameplates registry entry points at the dedicated namespace")
-assert_contains(bootstrap, 'depends = "GeneralInterface"',
-    "The Nameplates registry entry preserves the GeneralInterface enablement dependency")
+assert_not_contains(bootstrap, 'depends = "GeneralInterface"',
+    "The Nameplates registry entry is no longer coupled to GeneralInterface enablement")
 assert_not_contains(bootstrap, "ResolveNameplatesNamespace",
     "Bootstrap no longer exposes split Nameplates namespace ownership seams")
 assert_contains(bootstrap, "BETTERUI.Nameplates = BETTERUI.Nameplates or {}",
     "Bootstrap initializes Nameplates as a first-class module namespace")
 assert_contains(bootstrap, "BETTERUI.GeneralInterface.Nameplates = BETTERUI.Nameplates",
     "Bootstrap keeps GeneralInterface.Nameplates as compatibility alias only")
+assert_contains(bootstrap, 'moduleName = "Nameplates"',
+    "Master module toggles expose Nameplates as a first-class module toggle")
 
 assert_not_contains(generalInterface, "GetNameplatesNamespace",
     "GeneralInterface no longer exports Nameplates namespace ownership seams")
 assert_contains(generalInterface, "GeneralInterface.Nameplates = BETTERUI.Nameplates",
     "GeneralInterface keeps a compatibility alias to the dedicated Nameplates module")
+assert_not_contains(generalInterfaceSetup, "GetNameplateOptions",
+    "GeneralInterface setup no longer owns Nameplates settings composition")
+assert_not_contains(generalInterfaceSetup, "SI_BETTERUI_NAMEPLATES_HEADER",
+    "GeneralInterface setup no longer renders Nameplates options in its panel")
 
 assert_contains(nameplates, 'Nameplates.ARCHETYPE = SETTINGS_OWNER',
     "Nameplates declares its own module archetype")
@@ -63,7 +70,13 @@ assert_contains(nameplates, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates runtime binds through the dedicated Nameplates module namespace")
 assert_contains(nameplates, "GeneralInterface.Nameplates = Nameplates",
     "Nameplates runtime keeps the GeneralInterface alias synchronized for compatibility")
+assert_contains(nameplates, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
+    "Nameplates setup registers a dedicated Nameplates settings panel")
 assert_contains(settings, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates settings bind through the dedicated Nameplates module namespace")
+assert_contains(settings, "Nameplates.Settings = Nameplates.Settings or {}",
+    "Nameplates settings expose a dedicated panel registration seam")
+assert_contains(settings, "Nameplates.Settings.RegisterPanel = InitPanel",
+    "Nameplates settings bind panel construction to the Nameplates settings seam")
 
 print("  OK")

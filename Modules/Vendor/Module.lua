@@ -139,7 +139,7 @@ end
 ---@param flagName string|nil
 ---@return boolean
 function BETTERUI.Vendor.IsDebugFlagEnabled(flagName)
-	local debug = BETTERUI.CIM and BETTERUI.CIM.Debug
+	local debug = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.Debug
 	if not (debug and debug.IsEnabled and debug.IsEnabled()) then
 		return false
 	end
@@ -149,10 +149,32 @@ end
 
 ---@param flagName string|nil
 ---@param category string|nil
+---@param message string|nil
+---@return string|nil normalizedFlag
+---@return string|nil normalizedCategory
+---@return string|nil normalizedMessage
+local function NormalizeDebugLogContract(flagName, category, message)
+	-- Accept legacy reversed ordering `(category, flagName, message)` while preserving
+	-- the canonical `(flagName, category, message)` contract.
+	local debug = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.Debug
+	local flags = debug and debug.FLAGS or nil
+	if type(flagName) == "string" and type(category) == "string" and type(flags) == "table" then
+		local firstIsKnownFlag = flags[flagName] ~= nil
+		local secondIsKnownFlag = flags[category] ~= nil
+		if not firstIsKnownFlag and secondIsKnownFlag then
+			flagName, category = category, flagName
+		end
+	end
+	return flagName, category, message
+end
+
+---@param flagName string|nil
+---@param category string|nil
 ---@param message string
 ---@return nil
 function BETTERUI.Vendor.LogDebug(flagName, category, message)
-	if BETTERUI.Vendor.IsDebugFlagEnabled(flagName) and BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.Log then
+	flagName, category, message = NormalizeDebugLogContract(flagName, category, message)
+	if BETTERUI.Vendor.IsDebugFlagEnabled(flagName) and BETTERUI and BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.Log then
 		BETTERUI.CIM.Debug.Log(message, category or "Vendor")
 	end
 end

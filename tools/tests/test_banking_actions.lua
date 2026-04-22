@@ -181,25 +181,15 @@ BETTERUI = {
     Banking = {
         LIST_WITHDRAW = 1,
         LIST_DEPOSIT = 2,
-        currentUsedBank = BAG_BANK,
-        ResolveBankBag = function(bankBagId)
-            if bankBagId == nil or bankBagId == 0 then
-                return BAG_BANK
-            end
-            return bankBagId
-        end,
-        GetTransferDestinationBankBag = function()
-            return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
-        end,
-        ResolveInteractionBankBag = function()
-            return BETTERUI.Banking.ResolveBankBag(bankingBag)
-        end,
-        ResolveDepositTarget = function()
-            return BETTERUI.Banking.GetTransferDestinationBankBag()
-        end,
-        ResolveActiveTransferMode = function()
-            local sourceBag = BETTERUI.Banking.ResolveInteractionBankBag()
-            local targetBag = BETTERUI.Banking.ResolveDepositTarget()
+        RuntimeState = {
+            currentUsedBank = BAG_BANK,
+            lastUsedBank = BAG_BANK,
+        },
+        GetTransferContext = function()
+            local sourceBag = (bankingBag == nil or bankingBag == 0) and BAG_BANK or bankingBag
+            local targetBag = (BETTERUI.Banking.RuntimeState.currentUsedBank == nil or BETTERUI.Banking.RuntimeState.currentUsedBank == 0)
+                and BAG_BANK
+                or BETTERUI.Banking.RuntimeState.currentUsedBank
             return {
                 kind = sourceBag == BAG_GUILDBANK and "guild-bank"
                     or (sourceBag == BAG_BANK and "main-bank" or "house-bank"),
@@ -211,7 +201,7 @@ BETTERUI = {
             }
         end,
         IsFurnitureVaultInteraction = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().sourceIsFurnitureVault == true
+            return BETTERUI.Banking.GetTransferContext().sourceIsFurnitureVault == true
         end,
         Tasks = {
             Schedule = function(_, name, delayMs, callback)

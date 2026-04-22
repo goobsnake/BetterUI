@@ -271,18 +271,26 @@ local function ResolveInitialStoreMode(tabs)
     return (tabs and tabs[1] and tabs[1].mode) or MODE.SELL
 end
 
+local function GetNativeStoreBridge()
+    return ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge")
+end
+
 local function RestoreNativeStoreSceneAlias()
-    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").RestoreSceneAlias()
+    GetNativeStoreBridge().RestoreSceneAlias()
 end
 
 local function AliasStoreSceneToBetterUI()
-    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").AliasSceneToBetterUI(Vendor.instance)
+    GetNativeStoreBridge().AliasSceneToBetterUI(Vendor.instance)
 end
 
-local LogVendorDebug = Vendor.LogDebug
+local function LogVendorDebug(flagName, category, message)
+    if Vendor.LogDebug then
+        Vendor.LogDebug(flagName, category, message)
+    end
+end
 
 local function EnsureNativeStoreComponents(searchContext)
-    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").EnsureComponents(searchContext)
+    GetNativeStoreBridge().EnsureComponents(searchContext)
 end
 
 Vendor.EnsureNativeStoreComponents = EnsureNativeStoreComponents
@@ -377,17 +385,17 @@ local function ApplyVendorInteractionState(nextState)
 end
 
 local function ApplyVendorResolvedMode(targetMode, refreshList)
-    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").ApplyResolvedMode(targetMode, refreshList)
+    GetNativeStoreBridge().ApplyResolvedMode(targetMode, refreshList)
 end
 
 local function ResolveVendorTargetMode()
-    return ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").ResolveTargetMode()
+    return GetNativeStoreBridge().ResolveTargetMode()
 end
 
 local ScheduleVendorOpenStoreSync
 
 ScheduleVendorOpenStoreSync = function(targetMode, delayMs)
-    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").ScheduleOpenStoreSync(targetMode, delayMs)
+    GetNativeStoreBridge().ScheduleOpenStoreSync(targetMode, delayMs)
 end
 
 local function ShowVendorScene()
@@ -423,31 +431,28 @@ local function CancelVendorRuntimeTasks()
 end
 
 local function BuildVendorOpenStoreDeps()
+    local nativeStoreBridge = GetNativeStoreBridge()
     return {
         resetInteractionState = ResetVendorInteractionState,
         instance = Vendor.instance,
         resetRuntimeState = ResetActiveVendorRuntimeState,
+        nativeStoreBridge = nativeStoreBridge,
         getInteractionType = GetInteractionType,
         interactionVendor = INTERACTION_VENDOR,
         interactionStable = INTERACTION_STABLE,
         isNativeStableModeActive = IsNativeStableModeActive,
         logVendorDebug = LogVendorDebug,
-        restoreNativeStoreSceneAlias = RestoreNativeStoreSceneAlias,
-        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
-        ensureNativeStoreComponents = EnsureNativeStoreComponents,
-        resolveVendorTargetMode = ResolveVendorTargetMode,
-        applyVendorResolvedMode = ApplyVendorResolvedMode,
         showScene = ShowVendorScene,
-        scheduleVendorOpenStoreSync = ScheduleVendorOpenStoreSync,
     }
 end
 
 local function BuildVendorOpenFenceDeps()
+    local nativeStoreBridge = GetNativeStoreBridge()
     return {
         resetInteractionState = ResetVendorInteractionState,
         instance = Vendor.instance,
         resetRuntimeState = ResetActiveVendorRuntimeState,
-        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
+        nativeStoreBridge = nativeStoreBridge,
         logVendorDebug = LogVendorDebug,
         sellMode = MODE.FENCE_SELL,
         fenceLaunderMode = MODE.FENCE_LAUNDER,
@@ -456,16 +461,17 @@ local function BuildVendorOpenFenceDeps()
 end
 
 local function BuildVendorCloseStoreDeps()
+    local nativeStoreBridge = GetNativeStoreBridge()
     return {
         instance = Vendor.instance,
         resetRuntimeState = ResetActiveVendorRuntimeState,
+        nativeStoreBridge = nativeStoreBridge,
         cancelRuntimeTasks = CancelVendorRuntimeTasks,
         logVendorDebug = LogVendorDebug,
         hideScene = HideVendorScene,
-        getStoreManager = GetVendorStoreManager,
+        storeManager = GetVendorStoreManager(),
         logNativeStoreInputState = LogNativeStoreInputState,
         safeCall = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper"),
-        aliasStoreSceneToBetterUI = AliasStoreSceneToBetterUI,
     }
 end
 

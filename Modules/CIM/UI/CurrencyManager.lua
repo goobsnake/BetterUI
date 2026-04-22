@@ -178,7 +178,7 @@ function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     icon = BETTERUI.SafeIcon(icon)
 
     -- Build label: "LABEL |cCOLORVALUE|r [icon]"
-    local valueStr = tostring(BETTERUI.AbbreviateNumber(amount) or "0")
+    local valueStr = tostring(BETTERUI.FormatNumber(amount, { case = "lower", style = "smart" }) or "0")
     local formatted = label .. " |c" .. def.color .. valueStr .. "|r"
     if icon ~= "" then
         formatted = formatted .. " |t24:24:" .. icon .. "|t"

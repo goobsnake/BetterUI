@@ -12,7 +12,7 @@ assert(type(DENY.GUILD_PERMISSION) == "string",
     "BetterUI: CIM.ProtectionPolicy.DENY.GUILD_PERMISSION must be defined")
 
 function GuildBank.IsGuildBankMode()
-    return BETTERUI.Banking.IsGuildTransferActive()
+    return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
 end
 
 function GuildBank.GetSelectedGuildId()

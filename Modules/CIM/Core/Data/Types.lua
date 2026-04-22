@@ -227,6 +227,25 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---| "TradingHouse"
 ---| "Companions"
 
+---@alias BetterUIBankingTransferKind
+---| "main-bank"
+---| "house-bank"
+---| "guild-bank"
+
+---@class BetterUIBankingRuntimeState
+---@field lastUsedBank BagId
+---@field currentUsedBank BagId
+---@field lastOpenedBankBag BagId
+---@field esoSubscriber boolean|nil
+
+---@class BetterUIBankingTransferContext
+---@field kind BetterUIBankingTransferKind
+---@field interactionBag BagId
+---@field depositTargetBag BagId
+---@field withdrawSourceBags BagId[]
+---@field sourceIsFurnitureVault boolean
+---@field targetIsFurnitureVault boolean
+
 ---@class BetterUISharedFontSettings
 ---@field nameFont string|nil
 ---@field nameFontSize number|nil

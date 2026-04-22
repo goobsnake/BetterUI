@@ -6,6 +6,7 @@ Extracted from Banking.lua for maintainability.
 
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local SHARED_INVENTORY_UPDATE_DELAY_MS = 100
+local RuntimeState = BETTERUI.Banking.RuntimeState
 
 -- Guild bank events registered/unregistered as a batch during scene transitions
 local GUILD_BANK_EVENTS = {
@@ -31,7 +32,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         self.selector:Deactivate()
     end
 
-    BETTERUI.Banking.SetCurrentUsedBank(BETTERUI.Banking.ResolveInteractionBankBag())
+    RuntimeState.currentUsedBank = BETTERUI.Banking.GetTransferContext().interactionBag
 
     -- Guild bank detection: update title and check permissions
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -144,7 +145,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         if not BETTERUI.Utils.IsBankingSceneShowing() then return end
         local relevantBags
         if self.currentMode == LIST_WITHDRAW then
-            relevantBags = BETTERUI.Banking.ResolveWithdrawSources()
+            relevantBags = BETTERUI.Banking.GetTransferContext().withdrawSourceBags
         else
             relevantBags = { BAG_BACKPACK }
         end
@@ -210,7 +211,7 @@ end
 
 --- Scene hidden handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneHidden()
-    BETTERUI.Banking.SetLastUsedBank(BETTERUI.Banking.ResolveInteractionBankBag())
+    RuntimeState.lastUsedBank = BETTERUI.Banking.GetTransferContext().interactionBag
     if self.confirmationMode then
         self:UpdateSpinnerConfirmation(false, self.list)
     end

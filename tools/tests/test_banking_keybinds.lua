@@ -77,11 +77,6 @@ local guildCount = 2
 local batchProcessing = false
 local guildTransferAllowed = true
 local guildTransferDenialText = nil
-local transferSupport = {
-    ResolveGuildBankTransferDecision = function()
-        return guildTransferAllowed, guildTransferDenialText and "denied" or nil, guildTransferDenialText, nil
-    end,
-}
 
 local function assertTrue(condition, message)
     if condition then
@@ -237,16 +232,13 @@ BETTERUI = {
         TRANSFER_MODE_MAIN_BANK = "main-bank",
         TRANSFER_MODE_HOUSE_BANK = "house-bank",
         TRANSFER_MODE_GUILD_BANK = "guild-bank",
-        currentUsedBank = BAG_BANK,
-        ResolveDepositTarget = function()
-            return currentBank
-        end,
-        ResolveInteractionBankBag = function()
-            return (currentBank == nil or currentBank == 0) and BAG_BANK or currentBank
-        end,
-        ResolveActiveTransferMode = function()
-            local sourceBag = BETTERUI.Banking.ResolveInteractionBankBag()
-            local targetBag = BETTERUI.Banking.ResolveDepositTarget()
+        RuntimeState = {
+            currentUsedBank = BAG_BANK,
+            lastUsedBank = BAG_BANK,
+        },
+        GetTransferContext = function()
+            local sourceBag = (currentBank == nil or currentBank == 0) and BAG_BANK or currentBank
+            local targetBag = sourceBag == BAG_GUILDBANK and BAG_GUILDBANK or currentBank
             local kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
             if guildBankMode then
                 kind = BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
@@ -261,9 +253,6 @@ BETTERUI = {
                 sourceIsFurnitureVault = false,
                 targetIsFurnitureVault = false,
             }
-        end,
-        ResolveWithdrawSources = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().withdrawSourceBags
         end,
         GetSetting = function(key)
             local values = {
@@ -280,20 +269,17 @@ BETTERUI = {
                 return guildBankLoading
             end,
         },
-        GetTransferSupport = function()
-            return transferSupport
-        end,
-        RequireTransferSupport = function()
-            return transferSupport
+        ResolveGuildBankTransferDecision = function()
+            return guildTransferAllowed, guildTransferDenialText and "denied" or nil, guildTransferDenialText, nil
         end,
         IsGuildTransferActive = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
         end,
         IsMainBankInteraction = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
         end,
         IsHouseBankInteraction = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
         end,
         IsFurnitureVaultInteraction = function()
             return false

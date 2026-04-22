@@ -719,6 +719,19 @@ BETTERUI.CIM.Settings = {
     end,
     SortSettingsAlphabetically = function()
     end,
+    GetSettingDependencyAddons = function(moduleName, key)
+        if moduleName ~= "GeneralInterface" then
+            return nil
+        end
+
+        local dependencies = {
+            guildStoreErrorSuppress = { "CustomATTAddon", "CustomMMAddon" },
+            attIntegration = { "CustomATTAddon" },
+            mmIntegration = { "CustomMMAddon" },
+            ttcIntegration = { "TamrielTradeCentre" },
+        }
+        return dependencies[key]
+    end,
 }
 
 BETTERUI.CIM.Utils = {
@@ -795,6 +808,15 @@ assertEqual(5000, helpers.ParseIntegerInput(" 99999 ", 200, 1, 5000), "Integer p
 assertEqual(200, helpers.ParseIntegerInput("not-a-number", 200, 1, 5000), "Integer parsing falls back for invalid editbox values")
 local dependencyTooltip = helpers.BuildAddonDependencyTooltip(SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP, { "MasterMerchant" }, false)
 assertContains(dependencyTooltip, "Master Merchant", "Dependency helper appends the missing addon name")
+assertEqual(true, type(helpers.GetSettingDependencyAddons) == "function",
+    "Settings helpers expose metadata dependency lookup")
+assertEqual(true, type(helpers.IsAnyAddonDependencyLoaded) == "function",
+    "Settings helpers expose addon availability checks")
+
+CustomATTAddon = {}
+CustomMMAddon = nil
+ArkadiusTradeTools = nil
+MasterMerchant = nil
 
 local settingsOptions = BETTERUI.GeneralInterface.GetSettingsOptions()
 local marketIntegrationSubmenu = requireOptionByKey(
@@ -829,6 +851,23 @@ local tooltipEnhancementsToggle = requireOptionByKey(
     "checkbox",
     "Enhanced-tooltips toggle is exposed by a stable key"
 )
+local attIntegrationToggle = requireOptionByKey(
+    marketIntegrationControls,
+    "attIntegration",
+    "checkbox",
+    "ATT integration toggle is exposed by a stable key"
+)
+local mmIntegrationToggle = requireOptionByKey(
+    marketIntegrationControls,
+    "mmIntegration",
+    "checkbox",
+    "MM integration toggle is exposed by a stable key"
+)
+
+assertEqual(true, attIntegrationToggle.getFunc(), "ATT toggle resolves availability through metadata dependencies")
+assertEqual(false, attIntegrationToggle.disabled(), "ATT toggle remains enabled when metadata dependency addon exists")
+assertEqual(false, mmIntegrationToggle.getFunc(), "MM toggle reports false when metadata dependency addon is missing")
+assertEqual(true, mmIntegrationToggle.disabled(), "MM toggle disables when metadata dependency addon is missing")
 
 settingsOptions[1].setFunc("6000")
 assertEqual(5000, BETTERUI.Settings.Modules.GeneralInterface.chatHistory, "Chat history editbox clamps to the supported maximum")

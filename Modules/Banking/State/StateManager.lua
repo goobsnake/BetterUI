@@ -9,6 +9,7 @@ local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 -- Module identifier constants from CIM
 local MODULES       = BETTERUI.CIM.CONST.MODULES
+local RuntimeState = BETTERUI.Banking.RuntimeState
 
 local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
@@ -76,9 +77,10 @@ end
 
 --- Handles the case where the player switched to a different bank.
 function BETTERUI.Banking.Class:HandleBankSwitch()
-    local currentUsedBank = BETTERUI.Banking.GetCurrentUsedBank()
-    local lastUsedBank = BETTERUI.Banking.GetLastUsedBank()
-    local activeSourceBag = BETTERUI.Banking.ResolveInteractionBankBag()
+    local transferContext = BETTERUI.Banking.GetTransferContext()
+    local currentUsedBank = RuntimeState.currentUsedBank
+    local lastUsedBank = RuntimeState.lastUsedBank
+    local activeSourceBag = transferContext.interactionBag
 
     if lastUsedBank == currentUsedBank then
         return false -- No switch, handled by caller
@@ -94,11 +96,11 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         self:SaveListPosition()
         self.currentMode = LIST_WITHDRAW
-        BETTERUI.Banking.SetLastUsedBank(activeSourceBag)
+        RuntimeState.lastUsedBank = activeSourceBag
         self:RefreshList()
     else
         -- Switch to withdraw mode
-        BETTERUI.Banking.SetLastUsedBank(activeSourceBag)
+        RuntimeState.lastUsedBank = activeSourceBag
         self.currentMode = LIST_WITHDRAW
         self:ToggleList(true)
     end
@@ -107,7 +109,7 @@ end
 
 --- Restores the saved list position.
 function BETTERUI.Banking.Class:ReturnToSaved()
-    BETTERUI.Banking.SetCurrentUsedBank(BETTERUI.Banking.ResolveInteractionBankBag())
+    RuntimeState.currentUsedBank = BETTERUI.Banking.GetTransferContext().interactionBag
 
     -- Handle empty list
     if self:HandleEmptyList() then

@@ -158,6 +158,26 @@ BETTERUI.CIM.DeprecationRegistry.WarnOnce("FUNC_A")
 BETTERUI.CIM.DeprecationRegistry.WarnOnce("FUNC_B")
 assert_equal(2, #debugOutput, "Both warnings issued")
 
+-- Test 11: GetAll returns observational copies
+print("\nTest: GetAll returns observational copies")
+resetRegistry()
+BETTERUI.CIM.DeprecationRegistry.Register("SNAPSHOT_OLD", "SNAPSHOT_NEW", "v10.0")
+local exported = BETTERUI.CIM.DeprecationRegistry.GetAll()
+exported[1].newName = "MUTATED_EXTERNAL"
+local exportedAgain = BETTERUI.CIM.DeprecationRegistry.GetAll()
+assert_equal("SNAPSHOT_NEW", exportedAgain[1].newName, "Mutating GetAll result does not alter registry entries")
+
+-- Test 12: GetRegistryLive exposes mutable registry table intentionally
+print("\nTest: GetRegistryLive exposes mutable registry table intentionally")
+local liveRegistry = BETTERUI.CIM.DeprecationRegistry.GetRegistryLive()
+liveRegistry.LIVE_ALIAS = {
+    oldName = "LIVE_ALIAS",
+    newName = "LIVE_NEW",
+    removeVersion = "future",
+    registeredAt = 0,
+}
+assert_true(BETTERUI.CIM.DeprecationRegistry.WarnOnce("LIVE_ALIAS"), "Live registry mutation is observable by WarnOnce")
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================

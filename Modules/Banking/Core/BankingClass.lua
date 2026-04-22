@@ -3,62 +3,13 @@
 BETTERUI.Banking.LIST_WITHDRAW                 = 1
 BETTERUI.Banking.LIST_DEPOSIT                  = 2
 
-local BankingRuntimeState = BETTERUI.Banking.RuntimeState or {
+BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {
     lastUsedBank = BAG_BANK,
     currentUsedBank = BAG_BANK,
     lastOpenedBankBag = BAG_BANK,
     esoSubscriber = nil,
 }
-BETTERUI.Banking.RuntimeState = BankingRuntimeState
-BETTERUI.Banking.lastUsedBank = BankingRuntimeState.lastUsedBank
-BETTERUI.Banking.currentUsedBank = BankingRuntimeState.currentUsedBank
-BETTERUI.Banking.lastOpenedBankBag = BankingRuntimeState.lastOpenedBankBag
-BETTERUI.Banking.esoSubscriber = BankingRuntimeState.esoSubscriber
-
-local function ReadBankingRuntimeStateField(fieldName)
-    local directValue = rawget(BETTERUI.Banking, fieldName)
-    if directValue ~= nil then
-        return directValue
-    end
-    return BankingRuntimeState[fieldName]
-end
-
-local function UpdateBankingRuntimeStateField(fieldName, fieldValue)
-    BankingRuntimeState[fieldName] = fieldValue
-    BETTERUI.Banking[fieldName] = fieldValue
-end
-
-function BETTERUI.Banking.SetCurrentUsedBank(bankBag)
-    UpdateBankingRuntimeStateField("currentUsedBank", bankBag)
-end
-
-function BETTERUI.Banking.GetCurrentUsedBank()
-    return ReadBankingRuntimeStateField("currentUsedBank")
-end
-
-function BETTERUI.Banking.SetLastUsedBank(bankBag)
-    UpdateBankingRuntimeStateField("lastUsedBank", bankBag)
-end
-
-function BETTERUI.Banking.GetLastUsedBank()
-    return ReadBankingRuntimeStateField("lastUsedBank")
-end
-
-function BETTERUI.Banking.SetLastOpenedBankBag(bankBag)
-    UpdateBankingRuntimeStateField("lastOpenedBankBag", bankBag)
-end
-
-function BETTERUI.Banking.GetLastOpenedBankBag()
-    return ReadBankingRuntimeStateField("lastOpenedBankBag")
-end
-
-function BETTERUI.Banking.GetEsoSubscriber()
-    return ReadBankingRuntimeStateField("esoSubscriber")
-end
-
-function BETTERUI.Banking.SetEsoSubscriber(isSubscriber)
-    UpdateBankingRuntimeStateField("esoSubscriber", isSubscriber)
-end
+local BankingRuntimeState = BETTERUI.Banking.RuntimeState
 
 local function IsHousingStorageBag(bankBagId)
     if not bankBagId then
@@ -101,7 +52,7 @@ BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK = "main-bank"
 BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK = "house-bank"
 BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK = "guild-bank"
 
----@class BetterUIBankingTransferMode
+---@class BetterUIBankingTransferContext
 ---@field kind string
 ---@field interactionBag number
 ---@field depositTargetBag number
@@ -114,7 +65,7 @@ local function ResolveTransferSourceBag()
     if GetBankingBag then
         local bankingBag = ResolveBankBag(GetBankingBag())
         if bankingBag == BAG_BANK then
-            local openedBankBag = BETTERUI.Banking.GetLastOpenedBankBag()
+            local openedBankBag = BankingRuntimeState.lastOpenedBankBag
             if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
                 return openedBankBag
             end
@@ -122,7 +73,7 @@ local function ResolveTransferSourceBag()
         end
         return bankingBag
     end
-    return ResolveBankBag(BETTERUI.Banking.GetCurrentUsedBank())
+    return ResolveBankBag(BankingRuntimeState.currentUsedBank)
 end
 
 ---@param sourceBag number
@@ -131,7 +82,7 @@ local function ResolveTransferTargetBag(sourceBag)
     if sourceBag == BAG_GUILDBANK or IsHousingStorageBag(sourceBag) then
         return sourceBag
     end
-    return ResolveBankBag(BETTERUI.Banking.GetCurrentUsedBank())
+    return ResolveBankBag(BankingRuntimeState.currentUsedBank)
 end
 
 ---@param targetBag number
@@ -158,8 +109,8 @@ local function ResolveTransferKind(sourceBag)
     return BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
 end
 
----@return BetterUIBankingTransferMode mode
-local function ResolveTransferMode()
+---@return BetterUIBankingTransferContext context
+local function BuildTransferContext()
     local sourceBag = ResolveTransferSourceBag()
     local targetBag = ResolveTransferTargetBag(sourceBag)
     local kind = ResolveTransferKind(sourceBag)
@@ -177,55 +128,8 @@ local function ResolveTransferMode()
     }
 end
 
-function BETTERUI.Banking.ResolveActiveTransferMode()
-    return ResolveTransferMode()
-end
-
-function BETTERUI.Banking.ResolveInteractionBankBag()
-    return ResolveTransferMode().interactionBag
-end
-
-function BETTERUI.Banking.ResolveDepositTarget()
-    return ResolveTransferMode().depositTargetBag
-end
-
-function BETTERUI.Banking.ResolveWithdrawSources()
-    return ResolveTransferMode().withdrawSourceBags
-end
-
-function BETTERUI.Banking.IsGuildTransferActive()
-    return ResolveTransferMode().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
-end
-
-function BETTERUI.Banking.IsMainBankInteraction()
-    return ResolveTransferMode().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
-end
-
-function BETTERUI.Banking.IsHouseBankInteraction()
-    return ResolveTransferMode().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
-end
-
-function BETTERUI.Banking.IsFurnitureVaultInteraction()
-    return ResolveTransferMode().sourceIsFurnitureVault == true
-end
-
-function BETTERUI.Banking.IsFurnitureVaultDepositTarget()
-    return ResolveTransferMode().targetIsFurnitureVault == true
-end
-
----@param source string
----@return table transferSupport
-function BETTERUI.Banking.RequireTransferSupport(source)
-    local transferSupport = BETTERUI.Banking.transferSupport
-    if type(transferSupport) ~= "table" then
-        local getTransferSupport = BETTERUI.Banking.GetTransferSupport
-        if type(getTransferSupport) == "function" then
-            transferSupport = getTransferSupport()
-        end
-    end
-    assert(type(transferSupport) == "table",
-        "BetterUI: Banking transfer support must load before " .. tostring(source))
-    return transferSupport
+function BETTERUI.Banking.GetTransferContext()
+    return BuildTransferContext()
 end
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
@@ -259,9 +163,7 @@ BETTERUI.Banking.CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearch
 ---@class BETTERUI.Banking.Class : BETTERUI.CIM.GenericWindow
 ---@field LIST_WITHDRAW number List mode constant for withdraw view
 ---@field LIST_DEPOSIT number List mode constant for deposit view
----@field lastUsedBank number Last bank bag ID used
----@field currentUsedBank number Currently active bank bag ID
----@field esoSubscriber boolean|nil Whether player has ESO+ subscription
+---@field RuntimeState BetterUIBankingRuntimeState Shared mutable Banking runtime state
 ---@field Tasks DeferredTaskManager Module-specific deferred task manager
 ---@field CATEGORY_DEFS table Category definitions from BETTERUI.CIM.ItemTaxonomy
 ---@field headerSortController table|nil Header sort controller instance

@@ -56,6 +56,18 @@ local FLAG_DEFINITIONS = {
 local flagStateCache = {}
 local flagOverrides = {}
 
+local function CloneDefinition(def)
+    if type(def) ~= "table" then
+        return def
+    end
+
+    local clone = {}
+    for key, value in pairs(def) do
+        clone[key] = value
+    end
+    return clone
+end
+
 -- CORE API
 
 function BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
@@ -111,11 +123,16 @@ function BETTERUI.CIM.FeatureFlags.GetAllFlags()
     local result = {}
     for name, def in pairs(FLAG_DEFINITIONS) do
         result[name] = {
-            definition = def,
+            definition = CloneDefinition(def),
             enabled = BETTERUI.CIM.FeatureFlags.IsEnabled(name),
         }
     end
     return result
+end
+
+--- Returns mutable flag definitions for advanced callers that need live mutation.
+function BETTERUI.CIM.FeatureFlags.GetDefinitionsLive()
+    return FLAG_DEFINITIONS
 end
 
 --[[

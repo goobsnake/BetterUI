@@ -13,6 +13,12 @@ BETTERUI.Inventory.CONST.LIST_TYPES = {
     ITEM = "itemList",
     CRAFT_BAG = "craftBagList",
 }
+local LIST_TYPES = BETTERUI.Inventory.CONST.LIST_TYPES
+
+-- Legacy globals are kept for compatibility with external addons and older modules.
+_G.INVENTORY_CATEGORY_LIST = LIST_TYPES.CATEGORY
+_G.INVENTORY_ITEM_LIST = LIST_TYPES.ITEM
+_G.INVENTORY_CRAFT_BAG_LIST = LIST_TYPES.CRAFT_BAG
 
 BETTERUI.CIM.DeprecationRegistry.Register(
     "INVENTORY_CATEGORY_LIST",

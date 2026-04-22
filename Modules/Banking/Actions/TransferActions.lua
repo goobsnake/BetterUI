@@ -12,7 +12,7 @@ local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 ---@return integer? bag The bank bag ID, or nil if no space
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank(targetBankBag)
-    targetBankBag = targetBankBag or BETTERUI.Banking.ResolveDepositTarget()
+    targetBankBag = targetBankBag or BETTERUI.Banking.GetTransferContext().depositTargetBag
     if targetBankBag == BAG_BANK then
         local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
         if emptySlotIndexBank ~= nil then
@@ -57,18 +57,7 @@ end
 ---@param targetBankBag number
 ---@param denyReason string|nil
 local function NotifyDepositBlocked(targetBankBag, denyReason)
-    if not denyReason then
-        return
-    end
-
-    local transferSupport = BETTERUI.Banking.RequireTransferSupport("Banking/Actions/TransferActions")
-    local resolveTransferDeniedStringId = transferSupport.ResolveTransferDeniedStringId
-    assert(type(resolveTransferDeniedStringId) == "function",
-        "BetterUI: Banking transfer support.ResolveTransferDeniedStringId must load before Banking/Actions/TransferActions")
-    local errorStringId = resolveTransferDeniedStringId(targetBankBag, denyReason)
-    if errorStringId ~= nil then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
-    end
+    BETTERUI.Banking.NotifyTransferDenied("Banking.TransferActions.Deposit", targetBankBag, denyReason)
 end
 
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
@@ -83,14 +72,10 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
-    local targetBankBag = BETTERUI.Banking.ResolveDepositTarget()
-    local transferSupport = BETTERUI.Banking.RequireTransferSupport("Banking/Actions/TransferActions")
-    local isDepositAllowedForCurrentBank = transferSupport.IsDepositSupportedForBank
-    local notifyGuildBankTransferDenied = transferSupport.NotifyGuildBankTransferDenied
-    assert(type(isDepositAllowedForCurrentBank) == "function",
-        "BetterUI: Banking transfer support.IsDepositSupportedForBank must load before Banking/Actions/TransferActions")
-    assert(type(notifyGuildBankTransferDenied) == "function",
-        "BetterUI: Banking transfer support.NotifyGuildBankTransferDenied must load before Banking/Actions/TransferActions")
+    local transferContext = BETTERUI.Banking.GetTransferContext()
+    local targetBankBag = transferContext.depositTargetBag
+    local isDepositAllowedForCurrentBank = BETTERUI.Banking.CanDepositIntoBank
+    local notifyGuildBankTransferDenied = BETTERUI.Banking.NotifyGuildBankTransferDenied
     if quantity == nil then
         quantity = 1
     end
@@ -137,7 +122,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 
     -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
-    local isGuildBank = BETTERUI.Banking.IsGuildTransferActive()
+    local isGuildBank = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     if isGuildBank then
         local bagId = fromBag
         local slotIndex = fromBagIndex
@@ -206,7 +191,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
         else
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            if BETTERUI.Banking.IsHouseBankInteraction() then
+            if transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK then
                 banks = { targetBankBag }
             end
 

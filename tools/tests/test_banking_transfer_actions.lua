@@ -227,19 +227,21 @@ BETTERUI = {
     Banking = {
         LIST_WITHDRAW = 1,
         LIST_DEPOSIT = 2,
-        currentUsedBank = BAG_BANK,
-        ResolveInteractionBankBag = function()
-            return (currentBankingBag == nil or currentBankingBag == 0) and BAG_BANK or currentBankingBag
-        end,
-        ResolveDepositTarget = function()
-            return currentBank
-        end,
-        ResolveActiveTransferMode = function()
-            local sourceBag = BETTERUI.Banking.ResolveInteractionBankBag()
-            local targetBag = BETTERUI.Banking.ResolveDepositTarget()
+        TRANSFER_MODE_MAIN_BANK = "main-bank",
+        TRANSFER_MODE_HOUSE_BANK = "house-bank",
+        TRANSFER_MODE_GUILD_BANK = "guild-bank",
+        RuntimeState = {
+            currentUsedBank = BAG_BANK,
+            lastUsedBank = BAG_BANK,
+        },
+        GetTransferContext = function()
+            local sourceBag = (currentBankingBag == nil or currentBankingBag == 0) and BAG_BANK or currentBankingBag
+            local targetBag = sourceBag == BAG_GUILDBANK and BAG_GUILDBANK or currentBank
             local isGuildBank = sourceBag == BAG_GUILDBANK
             return {
-                kind = isGuildBank and "guild-bank" or (sourceBag == BAG_BANK and "main-bank" or "house-bank"),
+                kind = isGuildBank and BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+                    or (sourceBag == BAG_BANK and BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+                        or BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK),
                 interactionBag = sourceBag,
                 depositTargetBag = targetBag,
                 withdrawSourceBags = targetBag == BAG_BANK and { BAG_BANK, BAG_SUBSCRIBER_BANK } or { targetBag },
@@ -247,54 +249,24 @@ BETTERUI = {
                 targetIsFurnitureVault = false,
             }
         end,
-        ResolveWithdrawSources = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().withdrawSourceBags
+        CanDepositIntoBank = function()
+            return depositAllowed, depositReason
         end,
-        IsGuildTransferActive = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().kind == "guild-bank"
+        NotifyTransferDenied = function(_, _, denyReason)
+            if denyReason == "stolen" then
+                table.insert(userNotifies, SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
+            end
         end,
-        IsMainBankInteraction = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().kind == "main-bank"
-        end,
-        IsHouseBankInteraction = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().kind == "house-bank"
-        end,
-        IsFurnitureVaultInteraction = function()
-            return false
-        end,
-        IsFurnitureVaultDepositTarget = function()
-            return false
-        end,
-        transferSupport = {
-            IsDepositSupportedForBank = function()
-                return depositAllowed, depositReason
-            end,
-            ResolveTransferDeniedStringId = function(_, denyReason)
-                if denyReason == "stolen" then
-                    return SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
-                end
-                return nil
-            end,
-            NotifyGuildBankTransferDenied = function(_, _, _, _)
-                if guildTransferAllowed then
-                    return true, nil
-                end
-                if guildTransferNotifyWithText then
-                    BETTERUI.CIM.UserAlertText("GuildTransfer", guildTransferReason)
-                else
-                    BETTERUI.CIM.UserNotify("GuildTransfer", guildTransferReason)
-                end
-                return false, guildTransferReason
-            end,
-        },
-        GetTransferSupport = function()
-            return BETTERUI.Banking.transferSupport
-        end,
-        RequireTransferSupport = function()
-            return BETTERUI.Banking.transferSupport
-        end,
-        ResolveTransferSupport = function()
-            return BETTERUI.Banking.transferSupport
+        NotifyGuildBankTransferDenied = function(_, _, _, _)
+            if guildTransferAllowed then
+                return true, nil
+            end
+            if guildTransferNotifyWithText then
+                BETTERUI.CIM.UserAlertText("GuildTransfer", guildTransferReason)
+            else
+                BETTERUI.CIM.UserNotify("GuildTransfer", guildTransferReason)
+            end
+            return false, guildTransferReason
         end,
         Tasks = {
             Schedule = function(_, _, delayMs, callback)
@@ -471,7 +443,8 @@ window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
 depositAllowed = false
 depositReason = "stolen"
 window:MoveItem(window.list, 1)
-assertEqual(SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE, alerts[1], "Blocked deposits surface the correct alert")
+assertEqual(SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE, userNotifies[1],
+    "Blocked deposits surface the shared Banking denial notification")
 
 resetState()
 window = createWindow()

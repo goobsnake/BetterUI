@@ -6,45 +6,20 @@ Purpose: Shared slot action helpers for Inventory and Banking modules.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
-local TRANSFER_DENIAL_ALERT = 1
-
-local function RequireBankingTransferSupport(source)
-    local banking = BETTERUI.Banking
-    local requireTransferSupport = banking and banking.RequireTransferSupport
-    if type(requireTransferSupport) ~= "function" then
-        return nil
-    end
-    return requireTransferSupport(source)
-end
+local DENY = (BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY) or {
+    NO_CRAFT_ACCESS = "no_craft_access",
+    NOT_CRAFTABLE = "not_craftable",
+    STOLEN = "stolen",
+    NO_ITEM = "no_item",
+}
 
 local function NotifyTransferDenied(context, targetBag, denyReason)
-    if not denyReason then
+    local banking = BETTERUI.Banking
+    local notifyTransferDenied = banking and banking.NotifyTransferDenied
+    if type(notifyTransferDenied) ~= "function" then
         return
     end
-    local transferSupport = RequireBankingTransferSupport("CIM/Actions/GenericSlotActions.NotifyTransferDenied")
-    local resolveTransferDeniedNotification = transferSupport and transferSupport.ResolveTransferDeniedNotification or nil
-    if resolveTransferDeniedNotification then
-        local notification = resolveTransferDeniedNotification(targetBag, denyReason)
-        if type(notification) == "table" and notification.stringId then
-            if notification.mode == TRANSFER_DENIAL_ALERT then
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, notification.stringId)
-                return
-            end
-            BETTERUI.CIM.UserNotify(context, notification.stringId)
-            return
-        end
-    end
-
-    local resolveTransferDeniedStringId = transferSupport and transferSupport.ResolveTransferDeniedStringId or nil
-    if not resolveTransferDeniedStringId then
-        return
-    end
-    local errorStringId = resolveTransferDeniedStringId(targetBag, denyReason)
-    if not errorStringId then
-        return
-    end
-
-    BETTERUI.CIM.UserNotify(context, errorStringId)
+    notifyTransferDenied(context, targetBag, denyReason)
 end
 
 local function GetProtectionPolicy()
@@ -66,13 +41,13 @@ local function CanStowToCraftBagWithPolicy(bagId, slotIndex)
         return policy.CanStowToCraftBag(bagId, slotIndex)
     end
     if not HasCraftBagAccess() then
-        return false, ResolvePolicyDeny("NO_CRAFT_ACCESS", "no_craft_access")
+        return false, ResolvePolicyDeny("NO_CRAFT_ACCESS", DENY.NO_CRAFT_ACCESS)
     end
     if not CanItemBeVirtual(bagId, slotIndex) then
-        return false, ResolvePolicyDeny("NOT_CRAFTABLE", "not_craftable")
+        return false, ResolvePolicyDeny("NOT_CRAFTABLE", DENY.NOT_CRAFTABLE)
     end
     if IsItemStolen and IsItemStolen(bagId, slotIndex) then
-        return false, ResolvePolicyDeny("STOLEN", "stolen")
+        return false, ResolvePolicyDeny("STOLEN", DENY.STOLEN)
     end
     return true
 end
@@ -123,9 +98,9 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     local GuildBank = BETTERUI.Banking and BETTERUI.Banking.GuildBank
-    local transferSupport = RequireBankingTransferSupport("CIM/Actions/GenericSlotActions.TryBankItem")
-    local notifyGuildBankTransferDenied = transferSupport and transferSupport.NotifyGuildBankTransferDenied or nil
-    local isDepositSupportedForBank = transferSupport and transferSupport.IsDepositSupportedForBank or nil
+    local banking = BETTERUI.Banking
+    local notifyGuildBankTransferDenied = banking and banking.NotifyGuildBankTransferDenied or nil
+    local canDepositIntoBank = banking and banking.CanDepositIntoBank or nil
     local isGuildBankMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode()
     local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
     if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
@@ -147,18 +122,18 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     else
         -- Deposit
         local banking = BETTERUI.Banking
-        local getTransferTargetBag = banking and banking.ResolveDepositTarget
-        local bankingBag = type(getTransferTargetBag) == "function" and getTransferTargetBag() or BAG_BANK
+        local transferContext = banking and banking.GetTransferContext and banking.GetTransferContext() or nil
+        local bankingBag = transferContext and transferContext.depositTargetBag or BAG_BANK
         if isGuildBankMode and notifyGuildBankTransferDenied then
             local canTransfer, denyReason = notifyGuildBankTransferDenied("TryTransferItem:GuildDeposit", BETTERUI.Banking.LIST_DEPOSIT, bag, index)
             if not canTransfer then
                 return false, denyReason
             end
         end
-        if type(isDepositSupportedForBank) ~= "function" then
-            return false, "transfer_support_unavailable"
+        if type(canDepositIntoBank) ~= "function" then
+            return false, "banking_transfer_unavailable"
         end
-        local canDeposit, denyReason = isDepositSupportedForBank(bag, index, bankingBag)
+        local canDeposit, denyReason = canDepositIntoBank(bag, index, bankingBag)
         if not canDeposit then
             NotifyTransferDenied("TryTransferItem:Deposit", bankingBag, denyReason)
             return false, denyReason
@@ -200,7 +175,7 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
 
     local stackSize, maxStackSize = GetSlotStackSize(bag, index)
     if not stackSize or stackSize <= 0 then
-        return false, ResolvePolicyDeny("NO_ITEM", "no_item")
+        return false, ResolvePolicyDeny("NO_ITEM", DENY.NO_ITEM)
     end
     if maxStackSize and stackSize >= maxStackSize then
         stackSize = maxStackSize

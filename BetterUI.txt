@@ -112,7 +112,7 @@ Modules\GeneralInterface\Tooltips\SettingsHelpers.lua
 Modules\GeneralInterface\Tooltips\Settings.lua
 Modules\GeneralInterface\Tooltips\Tooltips.lua
 
-; Module: Nameplates
+; Module: Nameplates (Standalone)
 Modules\Nameplates\Settings.lua
 Modules\Nameplates\Nameplates.lua
 

@@ -14,7 +14,7 @@ local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
     local BANK_CAPACITY_ICON_SIZE = "90%"
 
-    local interactionBankBag = BETTERUI.Banking.ResolveInteractionBankBag()
+    local interactionBankBag = BETTERUI.Banking.GetTransferContext().interactionBag
     if interactionBankBag ~= BAG_BANK then
         return nil
     end
@@ -153,7 +153,6 @@ function CurrencySelector.RefreshCurrencyTooltip(self)
     end
 end
 
----@return nil
 function BETTERUI.Banking.Class:RefreshCurrencyTooltip()
     CurrencySelector.RefreshCurrencyTooltip(self)
 end

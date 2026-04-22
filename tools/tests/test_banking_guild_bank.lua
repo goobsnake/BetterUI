@@ -315,30 +315,32 @@ BETTERUI = {
     Banking = {
         LIST_WITHDRAW = 1,
         LIST_DEPOSIT = 2,
-        currentUsedBank = BAG_BANK,
+        TRANSFER_MODE_MAIN_BANK = "main-bank",
+        TRANSFER_MODE_HOUSE_BANK = "house-bank",
+        TRANSFER_MODE_GUILD_BANK = "guild-bank",
+        RuntimeState = {
+            currentUsedBank = BAG_BANK,
+            lastUsedBank = BAG_BANK,
+        },
         GUILD_BANK_INTERACTION = "guild",
         BANKING_INTERACTION = "bank",
         CONST = {},
-        ResolveBankBag = function(bankBagId)
+        _ResolveBankBag = function(bankBagId)
             if bankBagId == nil or bankBagId == 0 then
                 return BAG_BANK
             end
             return bankBagId
         end,
-        GetTransferDestinationBankBag = function()
-            return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
-        end,
-        ResolveInteractionBankBag = function()
-            return BETTERUI.Banking.ResolveBankBag(bankingBag)
-        end,
-        ResolveActiveTransferMode = function()
-            local sourceBag = BETTERUI.Banking.ResolveInteractionBankBag()
+        GetTransferContext = function()
+            local sourceBag = BETTERUI.Banking._ResolveBankBag(bankingBag)
             local isGuildBank = sourceBag == BAG_GUILDBANK
                 or (BETTERUI_GUILD_BANKING_SCENE and BETTERUI_GUILD_BANKING_SCENE.isShowing == true)
             local targetBag = sourceBag == BAG_GUILDBANK and BAG_GUILDBANK
-                or BETTERUI.Banking.GetTransferDestinationBankBag()
+                or BETTERUI.Banking._ResolveBankBag(BETTERUI.Banking.RuntimeState.currentUsedBank)
             return {
-                kind = isGuildBank and "guild-bank" or (sourceBag == BAG_BANK and "main-bank" or "house-bank"),
+                kind = isGuildBank and BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+                    or (sourceBag == BAG_BANK and BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+                        or BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK),
                 interactionBag = sourceBag,
                 depositTargetBag = targetBag,
                 withdrawSourceBags = isGuildBank and { BAG_GUILDBANK }
@@ -346,27 +348,6 @@ BETTERUI = {
                 sourceIsFurnitureVault = false,
                 targetIsFurnitureVault = false,
             }
-        end,
-        ResolveDepositTarget = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().depositTargetBag
-        end,
-        ResolveWithdrawSources = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().withdrawSourceBags
-        end,
-        IsGuildTransferActive = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().kind == "guild-bank"
-        end,
-        IsMainBankInteraction = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().kind == "main-bank"
-        end,
-        IsHouseBankInteraction = function()
-            return BETTERUI.Banking.ResolveActiveTransferMode().kind == "house-bank"
-        end,
-        IsFurnitureVaultInteraction = function()
-            return false
-        end,
-        IsFurnitureVaultDepositTarget = function()
-            return false
         end,
         Class = {
             New = function()
@@ -471,7 +452,7 @@ local function resetGuildBankState()
     BETTERUI_GUILD_BANKING_SCENE.isShowing = false
     activeWindow = createWindow()
     BETTERUI.Banking.Window = activeWindow
-    BETTERUI.Banking.currentUsedBank = BAG_BANK
+    BETTERUI.Banking.RuntimeState.currentUsedBank = BAG_BANK
     BETTERUI.Banking.GuildBank.SetLoading(false)
 end
 
@@ -551,26 +532,26 @@ assertEqual(nil, BETTERUI.Banking.GuildBank.GetPermissionDenial(BETTERUI.Banking
     "Personal bank has no structured permission denial")
 
 resetGuildBankState()
-assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.ResolveWithdrawSources(),
+assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GetTransferContext().withdrawSourceBags,
     "Personal main bank withdraw sources both bank bags")
-BETTERUI.Banking.currentUsedBank = nil
-assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.ResolveWithdrawSources(),
+BETTERUI.Banking.RuntimeState.currentUsedBank = nil
+assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GetTransferContext().withdrawSourceBags,
     "Personal withdraw falls back to both bank bags when runtime state is missing")
-BETTERUI.Banking.currentUsedBank = 0
-assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.ResolveWithdrawSources(),
+BETTERUI.Banking.RuntimeState.currentUsedBank = 0
+assertTableEquals({ BAG_BANK, BAG_SUBSCRIBER_BANK }, BETTERUI.Banking.GetTransferContext().withdrawSourceBags,
     "Personal withdraw normalizes the zero bank sentinel before building source bags")
-BETTERUI.Banking.currentUsedBank = 88
+BETTERUI.Banking.RuntimeState.currentUsedBank = 88
 bankingBag = 88
-assertTableEquals({ 88 }, BETTERUI.Banking.ResolveWithdrawSources(),
+assertTableEquals({ 88 }, BETTERUI.Banking.GetTransferContext().withdrawSourceBags,
     "House bank withdraw sources current bank only")
-BETTERUI.Banking.currentUsedBank = BAG_BANK
+BETTERUI.Banking.RuntimeState.currentUsedBank = BAG_BANK
 bankingBag = BAG_BANK
-assertEqual(BAG_BANK, BETTERUI.Banking.ResolveDepositTarget(), "Personal deposit target is main bank")
+assertEqual(BAG_BANK, BETTERUI.Banking.GetTransferContext().depositTargetBag, "Personal deposit target is main bank")
 bankingBag = BAG_GUILDBANK
-assertTableEquals({ BAG_GUILDBANK }, BETTERUI.Banking.ResolveWithdrawSources(),
+assertTableEquals({ BAG_GUILDBANK }, BETTERUI.Banking.GetTransferContext().withdrawSourceBags,
     "Guild withdraw sources guild bank")
-BETTERUI.Banking.currentUsedBank = BAG_GUILDBANK
-assertEqual(BAG_GUILDBANK, BETTERUI.Banking.ResolveDepositTarget(), "Guild deposit target is guild bank bag")
+BETTERUI.Banking.RuntimeState.currentUsedBank = BAG_GUILDBANK
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetTransferContext().depositTargetBag, "Guild deposit target is guild bank bag")
 
 resetGuildBankState()
 assertEqual("|c0066FFBank|r", BETTERUI.Banking.GuildBank.GetHeaderTitle(), "Personal header title uses bank title")

@@ -170,8 +170,15 @@ local function createVerticalList(control)
         targetSelectedIndex = 1,
     }
 
-    function list:AddDataTemplate() end
-    function list:AddDataTemplateWithHeader() end
+    function list:AddDataTemplate(templateName, setupFunction)
+        self.lastTemplateName = templateName
+        self.lastTemplateSetup = setupFunction
+    end
+
+    function list:AddDataTemplateWithHeader(templateName, setupFunction)
+        self.lastTemplateWithHeaderName = templateName
+        self.lastTemplateWithHeaderSetup = setupFunction
+    end
 
     function list:Clear()
         self.entries = {}
@@ -324,15 +331,28 @@ print("-- InventoryList initializes callbacks and rebuilds grouped entries --")
 do
     registeredCallbacks = {}
     scrollIndicatorUpdates = {}
+    local entrySetupCalls = 0
 
     local list = setmetatable({}, { __index = BETTERUI.Inventory.List })
     local control = makeControl()
 
-    list:Initialize(control, 5, "slotType", function() end, nil, function(itemData)
-        return itemData.category
-    end, function(left, right)
-        return left.name < right.name
-    end, true)
+    list:Initialize({
+        control = control,
+        inventoryType = 5,
+        slotType = "slotType",
+        selectedDataCallback = function() end,
+        entrySetupCallback = function()
+            entrySetupCalls = entrySetupCalls + 1
+            return true
+        end,
+        categoryResolver = function(itemData)
+            return itemData.category
+        end,
+        sortFunction = function(left, right)
+            return left.name < right.name
+        end,
+        useTriggers = true,
+    })
 
     assert_equal("Inventory", list.listModuleName, "InventoryList initializes with the Inventory module tag")
     assert_equal(2, #list.triggerKeybinds, "InventoryList creates both trigger keybinds")
@@ -340,6 +360,10 @@ do
     assert_true(registeredCallbacks.FullInventoryUpdate ~= nil, "InventoryList registers the full inventory callback")
     assert_true(registeredCallbacks.SingleSlotInventoryUpdate ~= nil,
         "InventoryList registers the single-slot inventory callback")
+    assert_true(list.list.lastTemplateSetup ~= nil, "InventoryList registers a row setup function")
+
+    list.list.lastTemplateSetup({}, { bagId = 5, slotIndex = 1 }, false, false, true, true)
+    assert_equal(1, entrySetupCalls, "InventoryList options initializer routes row setup through entrySetupCallback")
 
     generatedSingleSlotData["5:3"] = {
         slotIndex = 3,
@@ -447,7 +471,7 @@ do
     }
 
     local instance = setmetatable({
-        currentListType = "itemList",
+        currentListType = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM,
         scene = {
             IsShowing = function()
                 return true
@@ -553,8 +577,10 @@ do
     assert_true(instance.didExitCraftBagSelectionMode,
         "SwitchActiveList exits craft bag multi-select mode before switching")
     assert_equal(1, instance.savedListPosition, "SwitchActiveList persists the previous list position")
-    assert_equal("craftBagList", instance.currentListType, "SwitchActiveList updates the active list type")
-    assert_equal("itemList", instance.previousListType, "SwitchActiveList records the previous list type")
+    assert_equal(BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG, instance.currentListType,
+        "SwitchActiveList updates the active list type")
+    assert_equal(BETTERUI.Inventory.CONST.LIST_TYPES.ITEM, instance.previousListType,
+        "SwitchActiveList records the previous list type")
     assert_equal(1, pendingClearCommits, "SwitchActiveList commits pending new-item clear operations")
     assert_equal(2, #tooltipResets, "SwitchActiveList resets both gamepad tooltips")
     assert_same(instance.craftBagList, instance.currentList, "SwitchActiveList activates the craft bag list control")

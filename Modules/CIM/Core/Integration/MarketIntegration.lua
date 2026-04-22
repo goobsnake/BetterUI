@@ -11,6 +11,14 @@ BETTERUI.CIM.MarketIntegration = BETTERUI.CIM.MarketIntegration or {}
 
 local MarketIntegration = BETTERUI.CIM.MarketIntegration
 
+local function CloneArray(source)
+    local clone = {}
+    for index, value in ipairs(source or {}) do
+        clone[index] = value
+    end
+    return clone
+end
+
 local PRIORITY_ORDERS = {
     mm_att_ttc = { "mm", "att", "ttc" },
     mm_ttc_att = { "mm", "ttc", "att" },
@@ -218,7 +226,7 @@ local SOURCE_DEFS = {
 function MarketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, settings)
     local sourceDef = SOURCE_DEFS[sourceKey]
     if not sourceDef then
-        return EMPTY_MARKET_PRICE_INFO
+        return CreateMarketPriceInfo({})
     end
 
     local enabled = IsModuleToggleEnabled(settings, sourceDef.settingKey)
@@ -251,7 +259,7 @@ local function FetchSourcePrice(sourceKey, itemLink, stackCount, settings)
         return sourceInfo
     end
 
-    return EMPTY_MARKET_PRICE_INFO
+    return CreateMarketPriceInfo({})
 end
 
 --- Returns localized dropdown choices and values for market source priority.
@@ -274,6 +282,12 @@ end
 ---@return string[] sourceOrder
 function MarketIntegration.GetPriorityOrder(settings)
     local key = GetPriorityKey(settings)
+    return CloneArray(PRIORITY_ORDERS[key] or PRIORITY_ORDERS.mm_att_ttc)
+end
+
+--- Returns the mutable priority-order table referenced by the selected key.
+function MarketIntegration.GetPriorityOrderLive(settings)
+    local key = GetPriorityKey(settings)
     return PRIORITY_ORDERS[key] or PRIORITY_ORDERS.mm_att_ttc
 end
 
@@ -282,7 +296,7 @@ end
 ---@return table
 function MarketIntegration.GetMarketPriceInfo(itemLink, stackCount)
     if not itemLink then
-        return EMPTY_MARKET_PRICE_INFO
+        return CreateMarketPriceInfo({})
     end
     local generalInterfaceSettings = BETTERUI.GetModuleSettings("GeneralInterface") or {}
     stackCount = stackCount or 1
@@ -295,7 +309,7 @@ function MarketIntegration.GetMarketPriceInfo(itemLink, stackCount)
         end
     end
 
-    return EMPTY_MARKET_PRICE_INFO
+    return CreateMarketPriceInfo({})
 end
 
 ---@param itemLink string?

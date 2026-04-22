@@ -163,6 +163,15 @@ local function resetUiState()
     safeExecuteContexts = {}
 end
 
+local function hasSafeExecuteContext(expectedContext)
+    for _, context in ipairs(safeExecuteContexts) do
+        if context == expectedContext then
+            return true
+        end
+    end
+    return false
+end
+
 dofile("Modules/Writs/Constants.lua")
 dofile("Modules/Writs/Core/Writ.lua")
 dofile("Modules/Writs/Module.lua")
@@ -208,7 +217,7 @@ questJournal = {
 }
 
 do
-    local formatted = BETTERUI.Writs.Get(1)
+    local formatted = BETTERUI.Writs.GetFormattedObjectives(1)
     assert_contains(formatted, "|c00FF00", "completed writ lines use the completion color")
     assert_contains(formatted, "|cCCCCCC", "incomplete writ lines use the incomplete color")
     assert_true(formatted:find("Hidden objective", 1, true) == nil, "hidden objectives are excluded")
@@ -244,17 +253,34 @@ questJournal = {
 mockLanguage = "en"
 BETTERUI.Writs.CacheControls()
 resetUiState()
-BETTERUI.Writs.Update()
+BETTERUI.Writs.RefreshActiveWrits()
+assert_eq(safeExecuteContexts[1], "Writs:RefreshActiveWrits", "refresh uses the canonical SafeExecute context")
 assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_BLACKSMITHING].id, 1, "blacksmith writ is indexed by craft type")
 assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_PROVISIONING].id, 2, "last matching pattern wins for witches festival writs")
 
-BETTERUI.Writs.Show(CRAFTING_TYPE_BLACKSMITHING)
+BETTERUI.Writs.ShowForCraftType(CRAFTING_TYPE_BLACKSMITHING)
+assert_true(hasSafeExecuteContext("Writs:ShowForCraftType"),
+    "show-for-craft uses the canonical SafeExecute context")
 assert_contains(writNameText, "Blacksmith Writ", "show writes the active writ title")
 assert_contains(writDescText, "Forge Rubedite Sword", "show writes the formatted objective text")
 assert_eq(writPanelHidden, false, "show reveals the writ panel")
 
-BETTERUI.Writs.Hide()
+BETTERUI.Writs.HidePanel()
 assert_eq(writPanelHidden, true, "hide conceals the writ panel")
+
+print("[Writ compatibility aliases]")
+do
+    resetUiState()
+    BETTERUI.Writs.Update()
+    assert_eq(safeExecuteContexts[1], "Writs:RefreshActiveWrits", "legacy Update alias routes to canonical refresh")
+
+    BETTERUI.Writs.Show(CRAFTING_TYPE_BLACKSMITHING)
+    assert_true(hasSafeExecuteContext("Writs:ShowForCraftType"),
+        "legacy Show alias routes to canonical show")
+
+    BETTERUI.Writs.Hide()
+    assert_eq(writPanelHidden, true, "legacy Hide alias routes to canonical hide")
+end
 
 print("[Writ module lifecycle]")
 

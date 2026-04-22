@@ -5,8 +5,26 @@ Purpose: Scene state change handler for the Inventory module.
 ]]
 
 -- Constants (must match Inventory.lua)
-local INVENTORY_CATEGORY_LIST = "categoryList"
-local INVENTORY_ITEM_LIST = "itemList"
+local LIST_TYPES = (BETTERUI.Inventory and BETTERUI.Inventory.CONST and BETTERUI.Inventory.CONST.LIST_TYPES) or {
+	CATEGORY = "categoryList",
+	ITEM = "itemList",
+	CRAFT_BAG = "craftBagList",
+}
+local INVENTORY_CATEGORY_LIST = LIST_TYPES.CATEGORY
+local INVENTORY_ITEM_LIST = LIST_TYPES.ITEM
+local INVENTORY_CRAFT_BAG_LIST = LIST_TYPES.CRAFT_BAG
+
+---@param listType string|nil
+---@param fallback string|nil
+---@return string|nil
+local function NormalizeInventoryListType(listType, fallback)
+	if listType == INVENTORY_CATEGORY_LIST
+		or listType == INVENTORY_ITEM_LIST
+		or listType == INVENTORY_CRAFT_BAG_LIST then
+		return listType
+	end
+	return fallback
+end
 
 --- Handles scene state changes (SHOWING, HIDING, HIDDEN).
 --- Purpose: Manages initialization deferral, visualization layers, list activation, and state cleanup.
@@ -28,7 +46,7 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		self:InvalidateSlotDataCache()
 
 		--figure out which list to land on
-		local listToActivate = self.previousListType or INVENTORY_CATEGORY_LIST
+		local listToActivate = NormalizeInventoryListType(self.previousListType, INVENTORY_CATEGORY_LIST)
 		-- We normally do not want to enter the gamepad inventory on the item list
 		-- the exception is if we are coming back to the inventory, like from looting a container
 		local wasOnStack = SCENE_MANAGER:WasSceneOnStack(ZO_GAMEPAD_INVENTORY_SCENE_NAME)
@@ -118,7 +136,7 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		self:SwitchActiveList(nil)
 		-- Always preserve previousListType so returning from brief scene detours
 		-- (container loot, enchanting, etc.) restores to the correct list.
-		self.previousListType = savedListType
+		self.previousListType = NormalizeInventoryListType(savedListType, nil)
 		-- Track when scene was hidden for time-based brief-detour detection
 		self._sceneHiddenTime = GetFrameTimeSeconds and GetFrameTimeSeconds() or 0
 		BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)

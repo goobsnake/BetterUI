@@ -21,6 +21,22 @@ local timings = {}
 local counters = {}
 local startTimes = {}
 
+local function CloneTableShallow(source)
+    local clone = {}
+    for key, value in pairs(source) do
+        if type(value) == "table" then
+            local nested = {}
+            for nestedKey, nestedValue in pairs(value) do
+                nested[nestedKey] = nestedValue
+            end
+            clone[key] = nested
+        else
+            clone[key] = value
+        end
+    end
+    return clone
+end
+
 -- CORE API
 
 function BETTERUI.CIM.Profiler.Enable(enabled)
@@ -63,10 +79,20 @@ function BETTERUI.CIM.Profiler.EndTiming(name)
 end
 
 function BETTERUI.CIM.Profiler.GetTimings()
-    return timings
+    return CloneTableShallow(timings)
 end
 
 function BETTERUI.CIM.Profiler.GetCounters()
+    return CloneTableShallow(counters)
+end
+
+--- Returns the mutable timings table used internally by the profiler.
+function BETTERUI.CIM.Profiler.GetTimingsLive()
+    return timings
+end
+
+--- Returns the mutable counters table used internally by the profiler.
+function BETTERUI.CIM.Profiler.GetCountersLive()
     return counters
 end
 

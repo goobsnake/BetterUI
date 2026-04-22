@@ -111,13 +111,26 @@ BETTERUI = {
         DefaultSortComparator = function(left, right)
             return tostring(left.sortPriorityName or left.name or "") < tostring(right.sortPriorityName or right.name or "")
         end,
+        ResolveDepositTargetBag = function(defaultBag)
+            local banking = BETTERUI.Banking
+            if banking and type(banking.GetTransferContext) == "function" then
+                local transferContext = banking.GetTransferContext()
+                local targetBag = transferContext and transferContext.depositTargetBag or nil
+                if targetBag ~= nil then
+                    return targetBag
+                end
+            end
+            return defaultBag
+        end,
     },
     Banking = {
         GetCurrentBank = function()
             return BAG_BANK
         end,
-        ResolveDepositTarget = function()
-            return BAG_BANK
+        GetTransferContext = function()
+            return {
+                depositTargetBag = BAG_BANK,
+            }
         end,
     },
 }
@@ -559,13 +572,18 @@ depositInstance.multiSelectManager = {
         }
     end,
 }
+local previousResolveDepositTarget = BETTERUI.Inventory.ResolveDepositTargetBag
+BETTERUI.Inventory.ResolveDepositTargetBag = function()
+    return BAG_SUBSCRIBER_BANK
+end
 setSlotStack(BAG_BACKPACK, 50, 4)
 depositInstance:BatchDeposit()
 assertEqual("Depositing", depositInstance.capturedBatch.actionName, "BatchDeposit preserves its production action label")
 assertBatchStatus("queued", depositInstance.capturedBatch.actionFn(BAG_BACKPACK, 50, depositInstance.capturedBatch.items[1]),
     "BatchDeposit queues a live RequestMoveItem call")
 assertEqual("RequestMoveItem", secureCalls[1].name, "BatchDeposit uses the production move request")
-assertEqual(BAG_BANK, secureCalls[1].args[3], "BatchDeposit targets the active bank bag")
+assertEqual(BAG_SUBSCRIBER_BANK, secureCalls[1].args[3], "BatchDeposit targets the resolved inventory deposit bag")
+BETTERUI.Inventory.ResolveDepositTargetBag = previousResolveDepositTarget
 
 resetRecords()
 local destroyInstance = makeInventoryInstance()

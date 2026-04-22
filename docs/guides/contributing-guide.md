@@ -58,20 +58,21 @@ Use actionable, typed TODOs:
 
 ## Module Structure
 
-All feature modules follow the **Minimal Root** pattern:
+All feature modules follow the **Minimal Root** pattern. Create only the folders the module actually uses; do not add empty placeholder subdirectories.
 
 ```
 ModuleName/
-├── Constants.lua      # Module-specific constants
-├── Module.lua         # Entry point
-├── Core/              # Core logic
-├── UI/                # Visual components
-├── Lists/             # List management
-├── Actions/           # Action handlers
-├── Keybinds/          # Keybind descriptors
-├── State/             # State management
-├── Settings/          # LAM settings
-└── Templates/         # XML templates
+├── Module.lua         # Required entry point
+├── Constants.lua      # Optional module-specific constants
+├── <Module>.lua       # Optional runtime facade
+├── Core/              # Optional core logic
+├── UI/                # Optional visual components
+├── Lists/             # Optional list management
+├── Actions/           # Optional action handlers
+├── Keybinds/          # Optional keybind descriptors
+├── State/             # Optional state management
+├── Settings/          # Optional LAM settings
+└── Templates/         # Optional XML templates
 ```
 
 ## ESO-Specific Guidelines

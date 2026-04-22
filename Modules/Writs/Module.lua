@@ -52,11 +52,11 @@ local function OnCraftStation(_, craftId)
     local id = craftId and tonumber(craftId)
     if not id then return end
 
-    SafeExecuteWrits("Writs:OnCraftStation", BETTERUI.Writs.Show, id)
+    SafeExecuteWrits("Writs:OnCraftStation", BETTERUI.Writs.ShowForCraftType, id)
 end
 
 local function OnCloseCraftStation(_)
-    SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.Hide)
+    SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.HidePanel)
 end
 
 local function OnCraftItem(_, craftId)
@@ -65,7 +65,7 @@ local function OnCraftItem(_, craftId)
     local id = craftId and tonumber(craftId)
     if not id then return end
 
-    SafeExecuteWrits("Writs:OnCraftItem", BETTERUI.Writs.Show, id)
+    SafeExecuteWrits("Writs:OnCraftItem", BETTERUI.Writs.ShowForCraftType, id)
 end
 
 ---@param m_options BetterUIModuleOptions|nil Module options table

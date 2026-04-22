@@ -9,7 +9,11 @@ local Vendor = BETTERUI.Vendor
 Vendor.NativeStoreBridge = Vendor.NativeStoreBridge or {}
 local NativeStoreBridge = Vendor.NativeStoreBridge
 
-local LogVendorDebug = Vendor.LogDebug
+local function LogVendorDebug(flagName, category, message)
+    if Vendor.LogDebug then
+        Vendor.LogDebug(flagName, category, message)
+    end
+end
 
 local function GetVendorExecuteSafely()
     local executor = Vendor.ExecuteSafely
@@ -17,7 +21,12 @@ local function GetVendorExecuteSafely()
     return executor
 end
 
-local IsDirectionalInputListening = Vendor.IsDirectionalInputListening
+local function IsDirectionalInputListening(obj)
+    if Vendor.IsDirectionalInputListening then
+        return Vendor.IsDirectionalInputListening(obj)
+    end
+    return false
+end
 
 local function LogNativeStoreInputState(context, storeManager)
     if not storeManager then
@@ -209,6 +218,19 @@ local function NeutralizeHeaderCallbacks(storeManager)
     end
 end
 
+local function GuardedBridgeCall(context, fn, ...)
+    local ok, result = GetVendorExecuteSafely()(context, fn, ...)
+    if not ok then
+        LogVendorDebug(
+            "SCENE_TRANSITIONS",
+            "VendorScene",
+            string.format("NativeStoreBridge guard failed in %s: %s", tostring(context), tostring(result))
+        )
+        return false, result
+    end
+    return true, result
+end
+
 local function ApplyRebuildPlan(snapshot, rebuildPlan)
     if #rebuildPlan.rebuiltModes == 0 then
         return false
@@ -219,8 +241,16 @@ local function ApplyRebuildPlan(snapshot, rebuildPlan)
         storeManager.sceneName = "betterui_native_store_blocked"
     end
 
-    GetVendorExecuteSafely()("Vendor.NativeStoreBridge:SetActiveComponents",
-        storeManager.SetActiveComponents, storeManager, rebuildPlan.rebuiltModes, snapshot.searchContext)
+    local okSetActive = GuardedBridgeCall(
+        "Vendor.NativeStoreBridge:SetActiveComponents",
+        storeManager.SetActiveComponents,
+        storeManager,
+        rebuildPlan.rebuiltModes,
+        snapshot.searchContext
+    )
+    if not okSetActive then
+        return false
+    end
 
     NeutralizeHeaderCallbacks(storeManager)
     if storeManager._currentList and storeManager._currentList.Deactivate then
@@ -231,14 +261,32 @@ local function ApplyRebuildPlan(snapshot, rebuildPlan)
 
     if snapshot.buyMode and rebuildPlan.modeSet[snapshot.buyMode] then
         if type(SetStoreMode) == "function" then
-            GetVendorExecuteSafely()("Vendor.NativeStoreBridge:SetStoreMode", SetStoreMode, snapshot.buyMode)
+            local okSetStoreMode = GuardedBridgeCall("Vendor.NativeStoreBridge:SetStoreMode", SetStoreMode, snapshot.buyMode)
+            if not okSetStoreMode then
+                return false
+            end
         end
         if type(storeManager.SetMode) == "function" then
-            GetVendorExecuteSafely()("Vendor.NativeStoreBridge:StoreManagerSetMode", storeManager.SetMode, storeManager, snapshot.buyMode)
+            local okStoreManagerSetMode = GuardedBridgeCall(
+                "Vendor.NativeStoreBridge:StoreManagerSetMode",
+                storeManager.SetMode,
+                storeManager,
+                snapshot.buyMode
+            )
+            if not okStoreManagerSetMode then
+                return false
+            end
         end
     end
     if type(storeManager.InitializeStore) == "function" then
-        GetVendorExecuteSafely()("Vendor.NativeStoreBridge:InitializeStore", storeManager.InitializeStore, storeManager)
+        local okInitialize = GuardedBridgeCall(
+            "Vendor.NativeStoreBridge:InitializeStore",
+            storeManager.InitializeStore,
+            storeManager
+        )
+        if not okInitialize then
+            return false
+        end
     end
 
     return true

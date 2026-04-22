@@ -4,6 +4,13 @@
 
 local Class = BETTERUI.Inventory.Class
 local CompareNils = BETTERUI.CIM.Utils.CompareNils
+local LIST_TYPES = (BETTERUI.Inventory and BETTERUI.Inventory.CONST and BETTERUI.Inventory.CONST.LIST_TYPES) or {
+    CATEGORY = "categoryList",
+    ITEM = "itemList",
+    CRAFT_BAG = "craftBagList",
+}
+local INVENTORY_ITEM_LIST = LIST_TYPES.ITEM
+local INVENTORY_CRAFT_BAG_LIST = LIST_TYPES.CRAFT_BAG
 
 -- HEADER SORT MODE
 -- Column definitions for header sort navigation
@@ -26,8 +33,6 @@ local INVENTORY_SORT_COLUMNS = {
 ---@param instance BETTERUI.Inventory.Class
 ---@return BetterUIHeaderSortInstallOptions
 local function BuildInventoryHeaderSortInstallOptions(instance)
-    local INVENTORY_ITEM_LIST = "itemList"
-
     return {
         listFn = function()
             return instance:GetCurrentList()
@@ -228,9 +233,6 @@ function Class:InitializeHeaderSortController()
 
     self.headerSortControllers = {}
 
-    local INVENTORY_ITEM_LIST = "itemList"
-    local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
-
     self.headerSortControllers[INVENTORY_ITEM_LIST] = controllerClass:New(
         self.itemList,
         INVENTORY_SORT_COLUMNS,
@@ -261,8 +263,8 @@ end
 function Class:LinkColumnLabels()
     if not self.headerSortControllers then return end
 
-    local headerControllerItem = self.headerSortControllers["itemList"]
-    local headerControllerCraft = self.headerSortControllers["craftBagList"]
+    local headerControllerItem = self.headerSortControllers[INVENTORY_ITEM_LIST]
+    local headerControllerCraft = self.headerSortControllers[INVENTORY_CRAFT_BAG_LIST]
 
     if not headerControllerItem.SetColumnLabel then return end
 
@@ -313,7 +315,14 @@ function Class:OnHeaderSortChanged(listType, columnKey, direction)
 
     if not column then return end
 
-    local currentList = listType == "itemList" and self.itemList or self.craftBagList
+    local currentList
+    if listType == INVENTORY_ITEM_LIST then
+        currentList = self.itemList
+    elseif listType == INVENTORY_CRAFT_BAG_LIST then
+        currentList = self.craftBagList
+    else
+        return
+    end
     if not currentList then return end
 
     self.currentSortComparators = self.currentSortComparators or {}
@@ -321,7 +330,7 @@ function Class:OnHeaderSortChanged(listType, columnKey, direction)
     if direction == SORT_DIRECTION.NONE then
         self.currentSortComparators[listType] = nil
         if currentList.SetSortFunction then
-            if listType == "craftBagList" then
+            if listType == INVENTORY_CRAFT_BAG_LIST then
                 currentList:SetSortFunction(BETTERUI_CraftList_DefaultItemSortComparator)
             else
                 currentList:SetSortFunction(nil)
@@ -336,9 +345,9 @@ function Class:OnHeaderSortChanged(listType, columnKey, direction)
     end
 
     -- Refresh the appropriate list to apply new sort
-    if listType == "itemList" then
+    if listType == INVENTORY_ITEM_LIST then
         self:RefreshItemList()
-    elseif listType == "craftBagList" then
+    elseif listType == INVENTORY_CRAFT_BAG_LIST then
         self:RefreshCraftBagList()
     end
 end

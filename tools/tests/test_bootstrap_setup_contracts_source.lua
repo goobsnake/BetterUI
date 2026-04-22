@@ -38,6 +38,8 @@ local tradingHouseModule = read_file("Modules/TradingHouse/Module.lua")
 local resourceOrbModule = read_file("Modules/ResourceOrbFrames/Module.lua")
 local writsModule = read_file("Modules/Writs/Module.lua")
 local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
+local nameplatesModule = read_file("Modules/Nameplates/Nameplates.lua")
+local nameplatesSettings = read_file("Modules/Nameplates/Settings.lua")
 local inventoryFormatting = read_file("Modules/Inventory/Lists/InventoryEntryFormatting.lua")
 
 assert_contains(accessorSource, "function BETTERUI.CIM.ApplyModuleSharedSettingsStatics(",
@@ -114,6 +116,16 @@ assert_contains(generalInterfaceSetup, 'GeneralInterface.Settings.RegisterPanel 
 assert_contains(generalInterfaceSetup,
     'BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")',
     "GeneralInterface setup uses the shared panel registration helper")
+assert_not_contains(generalInterfaceSetup, "GetNameplateOptions",
+    "GeneralInterface setup no longer owns Nameplates settings composition")
+
+assert_contains(nameplatesSettings, "Nameplates.Settings = Nameplates.Settings or {}",
+    "Nameplates settings expose a dedicated settings panel seam")
+assert_contains(nameplatesSettings, "Nameplates.Settings.RegisterPanel = InitPanel",
+    "Nameplates settings bind dedicated panel construction through InitPanel")
+assert_contains(nameplatesModule, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
+    "Nameplates setup uses the shared panel registration helper")
+
 assert_contains(resourceOrbModule, 'function ResourceOrbFrames.Setup()',
     "ResourceOrbFrames exposes an explicit setup-time hook")
 assert_contains(resourceOrbModule, 'BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")',

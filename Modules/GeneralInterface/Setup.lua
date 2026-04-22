@@ -11,15 +11,6 @@ local function GetGeneralInterfaceOptions()
 	return GeneralInterface.GetSettingsOptions()
 end
 
-local function GetNameplateOptions()
-	local nameplates = BETTERUI.Nameplates
-	if not nameplates or type(nameplates.GetSettingsOptions) ~= "function" then
-		return nil
-	end
-
-	return nameplates.GetSettingsOptions()
-end
-
 local function Init(mId, moduleName)
 	local panelData = BETTERUI.Init_ModulePanel(moduleName, "General Interface Settings")
 
@@ -41,15 +32,6 @@ local function Init(mId, moduleName)
 		for _, option in ipairs(generalOptions) do
 			table.insert(optionsTable, option)
 		end
-	end
-
-	local nameplateOptions = GetNameplateOptions()
-	if nameplateOptions then
-		table.insert(optionsTable, {
-			type = "submenu",
-			name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_HEADER")),
-			controls = nameplateOptions
-		})
 	end
 
 	BETTERUI.CIM.Settings.RegisterModulePanel(mId, panelData, optionsTable)

@@ -14,9 +14,14 @@ Purpose: Inventory orchestration surface for shared runtime helpers and
 -- Replaced by BETTERUI.Inventory.CONST equivalents
 
 -- List type identifiers
-local INVENTORY_CATEGORY_LIST = "categoryList"
-local INVENTORY_ITEM_LIST = "itemList"
-local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
+local INVENTORY_LIST_TYPES = (BETTERUI.Inventory and BETTERUI.Inventory.CONST and BETTERUI.Inventory.CONST.LIST_TYPES) or {
+	CATEGORY = "categoryList",
+	ITEM = "itemList",
+	CRAFT_BAG = "craftBagList",
+}
+local INVENTORY_CATEGORY_LIST = INVENTORY_LIST_TYPES.CATEGORY
+local INVENTORY_ITEM_LIST = INVENTORY_LIST_TYPES.ITEM
+local INVENTORY_CRAFT_BAG_LIST = INVENTORY_LIST_TYPES.CRAFT_BAG
 
 -- Dialog names (namespaced to avoid global collision)
 if not BETTERUI.Inventory.Dialogs then BETTERUI.Inventory.Dialogs = {} end
@@ -35,6 +40,34 @@ function BETTERUI.Inventory.InvokeDialog(methodName, ...)
 
     dialogFn(...)
     return true
+end
+
+--- Resolves the active bank bag target for inventory deposit operations.
+---@param defaultBag number|nil
+---@return number|nil
+function BETTERUI.Inventory.ResolveDepositTargetBag(defaultBag)
+	local bankingBridge = BETTERUI.Inventory and BETTERUI.Inventory.BankingBridge
+	if bankingBridge and type(bankingBridge.GetTransferContext) == "function" then
+		local bridgedContext = bankingBridge.GetTransferContext()
+		local bridgedTarget = bridgedContext and bridgedContext.depositTargetBag or nil
+		if bridgedTarget ~= nil then
+			return bridgedTarget
+		end
+	end
+
+	local banking = BETTERUI.Banking
+	if banking and type(banking.GetTransferContext) == "function" then
+		local transferContext = banking.GetTransferContext()
+		local targetBag = transferContext and transferContext.depositTargetBag or nil
+		if targetBag ~= nil then
+			return targetBag
+		end
+	end
+
+	if defaultBag ~= nil then
+		return defaultBag
+	end
+	return rawget(_G, "BAG_BANK")
 end
 
 local function EnsureLegacyEquipSlotDialogAlias()
@@ -156,7 +189,7 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 		elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
 			self:RefreshCraftBagList()
 			self:RefreshItemActions()
-		else -- CATEGORY_ITEM_ACTION_MODE
+		elseif self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
 			self:UpdateCategoryLeftTooltip(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
 		end
 	end

@@ -33,26 +33,26 @@ local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 
 assert_contains(
     transferActions,
-    "BETTERUI.Banking.RequireTransferSupport(\"Banking/Actions/TransferActions\")",
-    "TransferActions resolves transfer support through one canonical accessor"
+    "local transferContext = BETTERUI.Banking.GetTransferContext()",
+    "TransferActions resolves transfer context through the owned Banking seam"
 )
 
 assert_contains(
     transferActions,
-    "local transferSupport = BETTERUI.Banking.RequireTransferSupport(\"Banking/Actions/TransferActions\")",
-    "TransferActions resolves helpers through the owned Banking transfer-support seam"
+    "local isDepositAllowedForCurrentBank = BETTERUI.Banking.CanDepositIntoBank",
+    "TransferActions resolves deposit authorization through the owned Banking seam"
 )
 
 assert_not_contains(
     transferActions,
-    "GetBankingTransferSupport",
-    "TransferActions no longer resolves transfer support through the CIM wrapper chain"
+    "RequireTransferSupport",
+    "TransferActions no longer resolves transfer support through a generic Banking helper table"
 )
 
 assert_contains(
     transferActions,
-    "local notifyGuildBankTransferDenied = transferSupport.NotifyGuildBankTransferDenied",
-    "TransferActions binds guild-bank denial support from the resolved support table"
+    "local notifyGuildBankTransferDenied = BETTERUI.Banking.NotifyGuildBankTransferDenied",
+    "TransferActions binds guild-bank denial behavior directly from Banking"
 )
 
 assert_not_contains(
@@ -69,8 +69,8 @@ assert_not_contains(
 
 assert_not_contains(
     keybindManager,
-    "GetBankingTransferSupport",
-    "KeybindManager no longer resolves transfer support through the CIM wrapper chain"
+    "RequireTransferSupport",
+    "KeybindManager no longer resolves transfer behavior through a generic Banking helper table"
 )
 
 assert_contains(

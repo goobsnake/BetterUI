@@ -10,6 +10,20 @@ BETTERUI.CIM.ResearchCache = BETTERUI.CIM.ResearchCache or {}
 local ResearchCache = BETTERUI.CIM.ResearchCache
 local EMPTY_TRAITS = {}
 
+---@param value any
+---@return any
+local function CloneValue(value)
+    if type(value) ~= "table" then
+        return value
+    end
+
+    local clone = {}
+    for key, item in pairs(value) do
+        clone[key] = CloneValue(item)
+    end
+    return clone
+end
+
 ---@param traits table|nil
 ---@return table traits
 local function PublishResearchTraits(traits)
@@ -20,7 +34,7 @@ local function PublishResearchTraits(traits)
 end
 
 ---@return table traits
-local function GetCachedResearchTraits()
+local function GetCachedResearchTraitsLive()
     if type(ResearchCache._traits) == "table" then
         return ResearchCache._traits
     end
@@ -56,9 +70,23 @@ end
 --- RESEARCH CACHE
 
 --- Returns shared research traits without mutating cache state.
----@return table traits The cached research-trait matrix
+--- This getter is observational and returns a snapshot copy.
+---@return table traits The cached research-trait matrix snapshot
 function ResearchCache.GetResearch()
-    return GetCachedResearchTraits()
+    return CloneValue(GetCachedResearchTraitsLive())
+end
+
+--- Returns the shared mutable research traits table.
+--- Explicitly named `...Live` so callers do not mistake it for a snapshot.
+---@return table traits The live cached research-trait matrix
+function ResearchCache.GetResearchLive()
+    return GetCachedResearchTraitsLive()
+end
+
+--- Returns shared research traits as a snapshot copy.
+---@return table traits The cached research-trait matrix snapshot
+function ResearchCache.GetResearchSnapshot()
+    return ResearchCache.GetResearch()
 end
 
 --- Explicitly refreshes research traits from the game API.
@@ -70,14 +98,14 @@ end
 
 --- Returns cached traits and keeps existing cache state.
 --- Keeps existing behavior for callers that only need trait reads.
----@return table traits The cached research-trait matrix
+---@return table traits The cached research-trait matrix snapshot
 function ResearchCache.GetTraits()
     return ResearchCache.GetResearch()
 end
 
 --- Backward-compatible read-only alias.
 ---@deprecated Prefer `GetResearch` for reads and `RefreshResearchTraits` for refreshes.
----@return table traits The cached research-trait matrix
+---@return table traits The cached research-trait matrix snapshot
 function ResearchCache.GetResearchTraits()
     return ResearchCache.GetResearch()
 end

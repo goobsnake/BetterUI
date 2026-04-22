@@ -170,6 +170,8 @@ local function ResetToDefaults()
 end
 
 function Nameplates.Setup()
+    BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")
+
     local settings = GetSettings()
     if settings.m_enabled then
         ApplyNameplateFont(settings.font, settings.style, settings.size)

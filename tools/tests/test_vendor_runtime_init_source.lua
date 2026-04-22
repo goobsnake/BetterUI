@@ -95,8 +95,10 @@ assert_contains(manifestSource, "Modules\\Vendor\\Core\\VendorInteractionRuntime
 
 assert_contains(safeExecuteSource, "function Vendor.ExecuteSafely(context, fn, ...)",
     "Vendor safe-execute helper owns the shared execution wrapper")
-assert_contains(safeExecuteSource, 'BETTERUI.CIM.UserNotify(context, tostring(result))',
-    "Vendor safe-execute helper routes fallback failures through the shared notifier")
+assert_contains(safeExecuteSource, "pcall(userNotify, context, tostring(err))",
+    "Vendor safe-execute helper routes fallback failures through the shared notifier without masking root errors")
+assert_not_contains(safeExecuteSource, "Vendor fallback error handling requires BETTERUI.CIM.UserNotify",
+    "Vendor safe-execute helper no longer replaces fallback failures with notifier contract assertions")
 assert_not_contains(modePolicySource, "Vendor.BuildActiveModeSet = ModePolicy.BuildActiveModeSet",
     "Vendor mode policy no longer exports mode-set construction on the root vendor table")
 assert_not_contains(modePolicySource, "Vendor.IsSellBuybackOnlyModeSet = ModePolicy.IsSellBuybackOnlyModeSet",
@@ -165,8 +167,12 @@ assert_contains(vendorSource, "ResetVendorInteractionState()",
     "Vendor open handlers share the interaction reset helper")
 assert_contains(vendorSource, "resetRuntimeState = ResetActiveVendorRuntimeState,",
     "Vendor open handlers share the runtime reset helper")
-assert_contains(interactionRuntimeSource, "deps.applyVendorResolvedMode(targetMode, false)",
-    "OnOpenStore applies the target mode through the shared helper")
+assert_contains(interactionRuntimeSource, "local nativeStoreBridge = deps.nativeStoreBridge",
+    "OnOpenStore resolves the native-store bridge once and reuses it through the interaction runtime flow")
+assert_contains(interactionRuntimeSource, "nativeStoreBridge.ApplyResolvedMode(targetMode, false)",
+    "OnOpenStore applies the target mode through the native-store bridge collaborator")
+assert_contains(interactionRuntimeSource, "nativeStoreBridge.ScheduleOpenStoreSync(targetMode, 120)",
+    "OnOpenStore schedules deferred mode reconciliation through the native-store bridge collaborator")
 assert_contains(vendorSource, "BuildVendorOpenStoreDeps()",
     "OnOpenStore delegates mode resolution and store-sync scheduling through shared open-store deps")
 assert_contains(vendorSource, 'ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")',
@@ -179,11 +185,11 @@ assert_contains(vendorSource, ".OnCloseStore(SnapshotVendorInteractionState(), B
     "Vendor close-store handler delegates orchestration to the interaction runtime collaborator")
 assert_contains(vendorSource, 'ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").TakeOverScene(instance)',
     "Vendor scene takeover delegates to the native-store bridge")
-assert_contains(vendorSource, 'ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").ScheduleOpenStoreSync(targetMode, delayMs)',
+assert_contains(vendorSource, "GetNativeStoreBridge().ScheduleOpenStoreSync(targetMode, delayMs)",
     "Vendor deferred store sync delegates scheduling to the native-store bridge")
-assert_contains(vendorSource, 'ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").ResolveTargetMode()',
+assert_contains(vendorSource, "GetNativeStoreBridge().ResolveTargetMode()",
     "Vendor target-mode resolution delegates to the native-store bridge")
-assert_contains(vendorSource, 'ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").ApplyResolvedMode(targetMode, refreshList)',
+assert_contains(vendorSource, "GetNativeStoreBridge().ApplyResolvedMode(targetMode, refreshList)",
     "Vendor mode application delegates to the native-store bridge")
 assert_contains(vendorSource, ".UpdateSceneManagerStoreAlias(Vendor.instance)",
     "Vendor scene-alias updates delegate to the native-store bridge")

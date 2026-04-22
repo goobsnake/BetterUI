@@ -13,6 +13,7 @@ local InteractionRuntime = Vendor.InteractionRuntime
 ---@return table
 function InteractionRuntime.OnOpenStore(state, deps)
     deps.resetInteractionState()
+    local nativeStoreBridge = deps.nativeStoreBridge
 
     local interactionType = deps.getInteractionType and deps.getInteractionType() or nil
     local allowNativeStableFallback = interactionType == nil
@@ -27,31 +28,31 @@ function InteractionRuntime.OnOpenStore(state, deps)
     )
 
     if interactionType and interactionType ~= deps.interactionVendor and interactionType ~= deps.interactionStable then
-        deps.restoreNativeStoreSceneAlias()
+        nativeStoreBridge.RestoreSceneAlias()
         return state
     end
 
-    deps.aliasStoreSceneToBetterUI()
+    nativeStoreBridge.AliasSceneToBetterUI(deps.instance)
     if deps.instance and deps.instance.ReleaseNativeStoreInputOwnership then
         deps.instance:ReleaseNativeStoreInputOwnership()
     end
-    deps.ensureNativeStoreComponents("storeTextSearch")
+    nativeStoreBridge.EnsureComponents("storeTextSearch")
     if not state.isStableInteraction and allowNativeStableFallback and deps.isNativeStableModeActive() then
         state.isStableInteraction = true
-        deps.ensureNativeStoreComponents("storeTextSearch")
+        nativeStoreBridge.EnsureComponents("storeTextSearch")
     end
 
     if deps.instance and deps.resetRuntimeState then
         deps.resetRuntimeState(deps.instance)
     end
 
-    local targetMode = deps.resolveVendorTargetMode and deps.resolveVendorTargetMode() or nil
-    if targetMode and deps.applyVendorResolvedMode then
-        deps.applyVendorResolvedMode(targetMode, false)
+    local targetMode = nativeStoreBridge.ResolveTargetMode()
+    if targetMode then
+        nativeStoreBridge.ApplyResolvedMode(targetMode, false)
     end
     deps.showScene()
-    if targetMode and deps.scheduleVendorOpenStoreSync then
-        deps.scheduleVendorOpenStoreSync(targetMode, 120)
+    if targetMode then
+        nativeStoreBridge.ScheduleOpenStoreSync(targetMode, 120)
     end
 
     return state
@@ -64,6 +65,7 @@ end
 ---@return table
 function InteractionRuntime.OnOpenFence(state, deps, enableSell, enableLaunder)
     deps.resetInteractionState()
+    local nativeStoreBridge = deps.nativeStoreBridge
     state.isFenceInteraction = true
     state.fenceEnableSell = enableSell ~= false
     state.fenceEnableLaunder = enableLaunder ~= false
@@ -80,7 +82,7 @@ function InteractionRuntime.OnOpenFence(state, deps, enableSell, enableLaunder)
     if deps.instance and deps.resetRuntimeState then
         deps.resetRuntimeState(deps.instance)
     end
-    deps.aliasStoreSceneToBetterUI()
+    nativeStoreBridge.AliasSceneToBetterUI(deps.instance)
     if deps.instance.ReleaseNativeStoreInputOwnership then
         deps.instance:ReleaseNativeStoreInputOwnership()
     end
@@ -99,6 +101,7 @@ end
 ---@param deps table
 ---@return table
 function InteractionRuntime.OnCloseStore(state, deps)
+    local nativeStoreBridge = deps.nativeStoreBridge
     state.isClosing = true
     state.isFenceInteraction = false
     state.isStableInteraction = false
@@ -127,7 +130,7 @@ function InteractionRuntime.OnCloseStore(state, deps)
         deps.instance:ForceReleaseDirectionalInput()
     end
 
-    local storeManager = deps.getStoreManager()
+    local storeManager = deps.storeManager
     deps.logNativeStoreInputState("OnCloseStore:beforeSweep", storeManager)
     if storeManager and type(storeManager.OnHide) == "function" then
         deps.safeCall("Vendor.OnCloseStore:NativeOnHide", storeManager.OnHide, storeManager)
@@ -137,7 +140,7 @@ function InteractionRuntime.OnCloseStore(state, deps)
     end
     deps.logNativeStoreInputState("OnCloseStore:afterSweep", storeManager)
     deps.logVendorDebug("SCENE_TRANSITIONS", "VendorScene", "OnCloseStore complete")
-    deps.aliasStoreSceneToBetterUI()
+    nativeStoreBridge.AliasSceneToBetterUI(deps.instance)
 
     return state
 end

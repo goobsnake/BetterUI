@@ -67,6 +67,47 @@ local function GetMetadataDefault(moduleName, settingKey, fallback)
     return fallback
 end
 
+--- Returns addon dependency globals declared in settings metadata for a setting.
+local function GetSettingDependencyAddons(moduleName, settingKey)
+    if type(SettingsApi.GetSettingDependencyAddons) == "function" then
+        return SettingsApi.GetSettingDependencyAddons(moduleName, settingKey)
+    end
+    return nil
+end
+
+--- Checks whether a global addon object exists.
+local function IsAddonGlobalLoaded(addonGlobal)
+    return type(addonGlobal) == "string" and _G[addonGlobal] ~= nil
+end
+
+--- Returns whether any addon from the list is currently loaded.
+local function IsAnyAddonDependencyLoaded(addonGlobals)
+    if type(addonGlobals) ~= "table" then
+        return false
+    end
+
+    for _, addonGlobal in ipairs(addonGlobals) do
+        if IsAddonGlobalLoaded(addonGlobal) then
+            return true
+        end
+    end
+    return false
+end
+
+--- Returns whether all addons from the list are currently loaded.
+local function AreAllAddonDependenciesLoaded(addonGlobals)
+    if type(addonGlobals) ~= "table" or #addonGlobals == 0 then
+        return true
+    end
+
+    for _, addonGlobal in ipairs(addonGlobals) do
+        if not IsAddonGlobalLoaded(addonGlobal) then
+            return false
+        end
+    end
+    return true
+end
+
 --- Builds a tooltip string indicating addon dependencies.
 local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAny)
     local baseText = GetString(baseStringId)
@@ -80,18 +121,11 @@ local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAn
         TamrielTradeCentre = "Tamriel Trade Centre",
     }
 
-    local availableCount = 0
-    for _, addonGlobal in ipairs(addonGlobals) do
-        if _G[addonGlobal] ~= nil then
-            availableCount = availableCount + 1
-        end
-    end
-
     local shouldShowReason
     if requireAny then
-        shouldShowReason = availableCount == 0
+        shouldShowReason = not IsAnyAddonDependencyLoaded(addonGlobals)
     else
-        shouldShowReason = availableCount < #addonGlobals
+        shouldShowReason = not AreAllAddonDependenciesLoaded(addonGlobals)
     end
 
     if not shouldShowReason then
@@ -181,6 +215,10 @@ BETTERUI.GeneralInterface._SettingsHelpers = {
     CleanupTooltipEnhancementArtifacts = CleanupTooltipEnhancementArtifacts,
     RefreshInventoryAndBankingLists = RefreshInventoryAndBankingLists,
     GetMetadataDefault = GetMetadataDefault,
+    GetSettingDependencyAddons = GetSettingDependencyAddons,
+    IsAddonGlobalLoaded = IsAddonGlobalLoaded,
+    IsAnyAddonDependencyLoaded = IsAnyAddonDependencyLoaded,
+    AreAllAddonDependenciesLoaded = AreAllAddonDependenciesLoaded,
     BuildAddonDependencyTooltip = BuildAddonDependencyTooltip,
     GetModuleSettings = GetModuleSettings,
     EnsureModuleSettings = EnsureModuleSettings,
