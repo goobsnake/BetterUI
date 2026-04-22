@@ -707,5 +707,6 @@ function Debug.RegisterCommands()
     end
 end
 
--- Register commands immediately (they check IsEnabled internally)
-Debug.RegisterCommands()
+function Debug.EnsureCommandsRegistered()
+    Debug.RegisterCommands()
+end

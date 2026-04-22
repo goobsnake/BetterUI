@@ -57,6 +57,13 @@ local function EnsureLifecycleRuntimeState()
     end
 end
 
+local function EnsureDebugCommandsRegistered()
+    local debug = BETTERUI.CIM and BETTERUI.CIM.Debug or nil
+    if debug and type(debug.EnsureCommandsRegistered) == "function" then
+        debug.EnsureCommandsRegistered()
+    end
+end
+
 -- MIGRATIONS
 --[[
 MIGRATION DOCUMENTATION
@@ -359,10 +366,12 @@ function RuntimeSetup.Apply(settings)
     EnsureLifecycleRuntimeState()
     ApplyAPIPatches()
     RunSettingsMigrations(settings)
+    EnsureDebugCommandsRegistered()
 end
 
 -- Export for testing/debugging
 RuntimeSetup.EnsureSharedTaskManager = EnsureSharedTaskManager
 RuntimeSetup.EnsureLifecycleRuntimeState = EnsureLifecycleRuntimeState
+RuntimeSetup.EnsureDebugCommandsRegistered = EnsureDebugCommandsRegistered
 RuntimeSetup.ApplyAPIPatches = ApplyAPIPatches
 RuntimeSetup.RunSettingsMigrations = RunSettingsMigrations

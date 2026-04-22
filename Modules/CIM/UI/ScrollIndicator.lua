@@ -111,7 +111,7 @@ end
 ---@param options.listObject table|nil
 ---@param options.visibleItems number|nil
 ---@return table? instance
-function ScrollIndicator.Ensure(listControl, options)
+function ScrollIndicator.Setup(listControl, options)
     if not listControl then return nil end
 
     local controlName = listControl:GetName()
@@ -160,79 +160,26 @@ function ScrollIndicator.Ensure(listControl, options)
     return instance
 end
 
---- Sets up an indicator instance and optionally binds a list object in one call.
----@param listControl table
----@param listObject table|nil
----@param options table|nil
----@return table? instance
-function ScrollIndicator.Setup(listControl, listObject, options)
-    local effectiveOptions = {
-        listObject = listObject,
-        offsetX = options and options.offsetX or nil,
-        offsetTopY = options and options.offsetTopY or nil,
-        offsetBottomY = options and options.offsetBottomY or nil,
-        visibleItems = options and options.visibleItems or nil,
-    }
-
-    local instance = ScrollIndicator.Ensure(listControl, effectiveOptions)
-    if not instance then
-        return nil
-    end
-    return instance
-end
-
---- Compatibility wrapper for callers that still use explicit bind semantics.
----@param listControl table
----@param listObject table|nil
----@return table? instance
-function ScrollIndicator.BindListObject(listControl, listObject)
-    return ScrollIndicator.Ensure(listControl, {
-        listObject = listObject,
-    })
-end
-
 --- Updates the scroll indicator position and visibility.
 --- Shows/hides arrows and track based on whether scrolling is possible.
 ---
 ---@param listControl table
----@param currentIndex integer
----@param totalItems integer
----@param visibleItems integer
 ---@return nil
-function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleItems)
+function ScrollIndicator.Update(listControl)
     if not listControl then return end
 
     local controlName = listControl:GetName()
     local instance = indicatorInstances[controlName]
 
     if not instance then
-        instance = ScrollIndicator.Ensure(listControl)
+        instance = ScrollIndicator.Setup(listControl)
     end
 
     if not instance or not instance.controls then return end
 
     instance.currentIndex = ResolveCurrentIndex(instance.listObject)
     instance.totalItems = ResolveTotalItems(instance.listObject)
-    instance.visibleItems = ResolveVisibleItems(instance, visibleItems)
-    if currentIndex ~= nil then
-        local resolvedCurrentIndex = AsNumber(currentIndex)
-        if resolvedCurrentIndex then
-            instance.currentIndex = resolvedCurrentIndex
-        end
-    end
-    if totalItems ~= nil then
-        local resolvedTotalItems = AsNumber(totalItems)
-        if resolvedTotalItems then
-            instance.totalItems = resolvedTotalItems
-        end
-    end
-    if visibleItems ~= nil then
-        local resolvedVisibleItems = AsNumber(visibleItems)
-        if resolvedVisibleItems then
-            instance.visibleItems = resolvedVisibleItems
-        end
-    end
-
+    instance.visibleItems = ResolveVisibleItems(instance, instance.visibleItems)
     local controls = instance.controls
     local THUMB_CFG = SCROLL_INDICATOR.THUMB or {}
 

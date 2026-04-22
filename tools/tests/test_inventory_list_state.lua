@@ -112,16 +112,11 @@ BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds = function()
     return { key = "LT" }, { key = "RT" }
 end
 
-BETTERUI.CIM.ScrollIndicator.Setup = function(control, listObject)
+BETTERUI.CIM.ScrollIndicator.Setup = function(control, options)
+    local config = options or {}
     control.scrollIndicatorInitialized = true
-    control.scrollIndicatorListObject = listObject
+    control.scrollIndicatorListObject = config.listObject
 end
-
-BETTERUI.CIM.ScrollIndicator.Ensure = function(control)
-    control.scrollIndicatorInitialized = true
-end
-
-BETTERUI.CIM.ScrollIndicator.BindListObject = function() end
 
 BETTERUI.CIM.ScrollIndicator.Update = function(...)
     scrollIndicatorUpdates[#scrollIndicatorUpdates + 1] = { ... }

@@ -85,8 +85,18 @@ assert_true(itemActionHandlers:find("CanDestroyItemWithPolicy") ~= nil,
     "ItemActionHandlers delegates destroy eligibility checks to shared policy helpers")
 assert_true(itemActionHandlers:find("local function RequireDestroyPolicyAuthorizer%(") ~= nil,
     "ItemActionHandlers resolves destroy authorization through a required policy helper")
+assert_true(itemActionHandlers:find("local function RequireProtectionPolicyMethod%(") ~= nil,
+    "ItemActionHandlers resolves junk authorization through a required policy helper")
+assert_true(itemActionHandlers:find("local function CanJunkWithPolicy%(target%)") ~= nil,
+    "ItemActionHandlers exposes a local CanJunkWithPolicy helper")
+assert_true(itemActionHandlers:find("local function CanUnjunkWithPolicy%(target%)") ~= nil,
+    "ItemActionHandlers exposes a local CanUnjunkWithPolicy helper")
 assert_true(itemActionHandlers:find("policy and policy%.CanDestroyItem") == nil,
     "ItemActionHandlers fails closed when no destroy-policy seam is available")
+assert_true(itemActionHandlers:find("policy and policy%.CanJunkItem") == nil,
+    "ItemActionHandlers fails closed when no junk-policy seam is available")
+assert_true(itemActionHandlers:find("policy and policy%.CanUnjunkItem") == nil,
+    "ItemActionHandlers fails closed when no unjunk-policy seam is available")
 assert_true(itemActionHandlers:find("BETTERUI%.Banking%.Class") == nil,
     "ItemActionHandlers no longer reaches into Banking.Class directly")
 

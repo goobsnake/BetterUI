@@ -438,7 +438,8 @@ function BETTERUI.Inventory.List:Initialize(control, options)
     -- The bottom offset compensates for the list anchor sitting 10px below the footer container.
     local listScrollControl = self.list and self.list.control
     if listScrollControl then
-        BETTERUI.CIM.ScrollIndicator.Setup(listScrollControl, self.list, {
+        BETTERUI.CIM.ScrollIndicator.Setup(listScrollControl, {
+            listObject = self.list,
             offsetX = 5,
             offsetTopY = -8,
             offsetBottomY = -10,

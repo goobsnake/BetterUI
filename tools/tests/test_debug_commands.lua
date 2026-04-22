@@ -103,6 +103,7 @@ local function assert_contains(lines, needle, label)
 end
 
 dofile("Modules/CIM/Core/Diagnostics/DebugCommands.lua")
+BETTERUI.CIM.Debug.EnsureCommandsRegistered()
 
 print("[DebugCommands bootstrap]")
 resetState()

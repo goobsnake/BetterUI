@@ -46,6 +46,13 @@ local function newHarness(options)
         CIM = {},
     }
 
+    local debugRegistrationCalls = 0
+    BETTERUI.CIM.Debug = {
+        EnsureCommandsRegistered = function()
+            debugRegistrationCalls = debugRegistrationCalls + 1
+        end,
+    }
+
     BETTERUI.CIM.DeferredTask = {
         EnsureSharedManager = function()
             state.ensureSharedManagerCalls = state.ensureSharedManagerCalls + 1
@@ -102,6 +109,9 @@ local function newHarness(options)
     dofile("Modules/CIM/Core/Lifecycle/RuntimeSetup.lua")
 
     state.Apply = BETTERUI.CIM.RuntimeSetup.Apply
+    state.debugRegistrationCalls = function()
+        return debugRegistrationCalls
+    end
     return state
 end
 
@@ -128,6 +138,8 @@ do
         "Apply ensures shared task manager state on every call")
     assert_eq(harness.ensureRuntimeStateCalls, 2,
         "Apply ensures lifecycle runtime state on every call")
+    assert_eq(harness.debugRegistrationCalls(), 2,
+        "Apply registers debug commands through the explicit runtime hook")
     assert_eq(harness.registeredEvents["BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"], nil,
         "Apply does not register a retry event when Tamriel Tomes is already available")
     assert_not_nil(harness.preHooks.SetSelectedTamrielTomesRewardData,
@@ -176,6 +188,8 @@ do
     harness.Apply(settings)
 
     local retryRegistration = harness.registeredEvents["BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"]
+    assert_eq(harness.debugRegistrationCalls(), 1,
+        "Apply still registers debug commands when Tamriel Tomes is unavailable")
     assert_not_nil(retryRegistration,
         "Apply registers a retry event when Tamriel Tomes is not available yet")
     assert_eq(retryRegistration.eventCode, EVENT_PLAYER_ACTIVATED,

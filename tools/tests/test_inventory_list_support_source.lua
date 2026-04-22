@@ -45,6 +45,8 @@ assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.GetXButtonActionCon
     "InventoryKeybinds exposes GetXButtonActionContext")
 assert_true(inventoryKeybindsSource:find("cimKeybinds and cimKeybinds%.GetXButtonActionContext") ~= nil,
     "InventoryKeybinds routes X-button context through shared CIM action-context helpers")
+assert_true(inventoryKeybindsSource:find("self%.actionMode%s*~=") == nil,
+    "InventoryKeybinds no longer branches on actionMode inside its local X-button context resolver")
 assert_true(inventoryKeybindsSource:find("function BETTERUI%.Inventory%.Class:InitializeKeybindStrip%(%)") ~= nil,
     "InventoryKeybinds exposes InitializeKeybindStrip")
 

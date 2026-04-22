@@ -127,7 +127,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     -- Note: List BOTTOMRIGHT is anchored 10px below FooterContainerFooter's top,
     -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Ensure(listControl, {
+        BETTERUI.CIM.ScrollIndicator.Setup(listControl, {
             listObject = self.itemList,
             offsetX = 5,
             offsetTopY = -8,

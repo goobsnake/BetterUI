@@ -106,23 +106,24 @@ end
 function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function GetProtectionPolicy()
         local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+        assert(type(policy) == "table", "BetterUI: CIM.ProtectionPolicy must load before banking junk-policy checks")
         return policy
     end
 
-    local function CanJunkWithPolicy(bagId, slotIndex)
+    local function RequireProtectionPolicyMethod(methodName)
         local policy = GetProtectionPolicy()
-        if not (policy and type(policy.CanJunkItem) == "function") then
-            return false
-        end
-        return policy.CanJunkItem(bagId, slotIndex) == true
+        local method = policy and policy[methodName] or nil
+        assert(type(method) == "function",
+            string.format("BetterUI: CIM.ProtectionPolicy.%s must load before banking junk-policy checks", tostring(methodName)))
+        return method
+    end
+
+    local function CanJunkWithPolicy(bagId, slotIndex)
+        return RequireProtectionPolicyMethod("CanJunkItem")(bagId, slotIndex) == true
     end
 
     local function CanUnjunkWithPolicy(bagId, slotIndex)
-        local policy = GetProtectionPolicy()
-        if not (policy and type(policy.CanUnjunkItem) == "function") then
-            return false
-        end
-        return policy.CanUnjunkItem(bagId, slotIndex) == true
+        return RequireProtectionPolicyMethod("CanUnjunkItem")(bagId, slotIndex) == true
     end
 
     local function GetCurrentCategoryKey()

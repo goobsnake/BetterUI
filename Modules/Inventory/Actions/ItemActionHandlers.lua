@@ -19,6 +19,35 @@ local function RequireDestroyPolicyAuthorizer()
     return canDestroyItem
 end
 
+local function GetProtectionPolicy()
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+    assert(type(policy) == "table",
+        "BetterUI: CIM.ProtectionPolicy must load before inventory action-handler junk checks")
+    return policy
+end
+
+local function RequireProtectionPolicyMethod(methodName)
+    local policy = GetProtectionPolicy()
+    local method = policy and policy[methodName] or nil
+    assert(type(method) == "function",
+        string.format("BetterUI: CIM.ProtectionPolicy.%s must load before inventory action-handler junk checks", tostring(methodName)))
+    return method
+end
+
+local function CanJunkWithPolicy(target)
+    if not target or not target.bagId or not target.slotIndex then
+        return false
+    end
+    return RequireProtectionPolicyMethod("CanJunkItem")(target.bagId, target.slotIndex) == true
+end
+
+local function CanUnjunkWithPolicy(target)
+    if not target or not target.bagId or not target.slotIndex then
+        return false
+    end
+    return RequireProtectionPolicyMethod("CanUnjunkItem")(target.bagId, target.slotIndex) == true
+end
+
 local function ToggleJunkState(self, isJunk)
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
         return
@@ -26,17 +55,9 @@ local function ToggleJunkState(self, isJunk)
     local target = BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
     if not target then return end
 
-    local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-    if policy then
-        local canToggleJunk
-        if isJunk then
-            canToggleJunk = policy.CanJunkItem(target.bagId, target.slotIndex)
-        else
-            canToggleJunk = policy.CanUnjunkItem(target.bagId, target.slotIndex)
-        end
-        if not canToggleJunk then
-            return
-        end
+    local canToggleJunk = isJunk and CanJunkWithPolicy(target) or CanUnjunkWithPolicy(target)
+    if not canToggleJunk then
+        return
     end
 
     SetItemIsJunk(target.bagId, target.slotIndex, isJunk)
@@ -135,9 +156,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
     local isLocked = target and target.bagId and target.slotIndex
         and BETTERUI.CIM.ProtectionPolicy.IsItemPlayerLocked(target.bagId, target.slotIndex)
         or false
-    local canMarkJunk = target and target.bagId and target.slotIndex
-        and BETTERUI.CIM.ProtectionPolicy.CanJunkItem(target.bagId, target.slotIndex)
-        or false
+    local canMarkJunk = target and CanJunkWithPolicy(target)
 
     local isQuestItem = false
     if target then
@@ -205,8 +224,8 @@ function ActionHandlers.OnSetup(self, dialog, data)
             local t = (self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE)
                 and (self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList))
                 or nil
-            if t and t.bagId and t.slotIndex and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK")) then
-                hideMarkJunk = not BETTERUI.CIM.ProtectionPolicy.CanJunkItem(t.bagId, t.slotIndex)
+            if t and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK")) then
+                hideMarkJunk = not CanJunkWithPolicy(t)
             end
         end
 

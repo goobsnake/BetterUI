@@ -90,14 +90,14 @@ local scrollIndicator = read_file("Modules/CIM/UI/ScrollIndicator.lua")
 assert_true(scrollIndicator:find("BETTERUI%.CIM%.ScrollIndicator = %{%}") ~= nil
         or scrollIndicator:find("BETTERUI%.CIM%.ScrollIndicator = BETTERUI%.CIM%.ScrollIndicator or %{%}") ~= nil,
     "ScrollIndicator initializes the shared scroll indicator table")
-assert_true(scrollIndicator:find("function ScrollIndicator%.Ensure%(listControl, options%)") ~= nil,
-    "ScrollIndicator exposes Ensure")
-assert_true(scrollIndicator:find("function ScrollIndicator%.Setup%(listControl, listObject, options%)") ~= nil,
+assert_true(scrollIndicator:find("function ScrollIndicator%.Setup%(listControl, options%)") ~= nil,
     "ScrollIndicator exposes Setup as the canonical setup/bind entrypoint")
-assert_true(scrollIndicator:find("function ScrollIndicator%.BindListObject%(listControl, listObject%)") ~= nil,
-    "ScrollIndicator exposes BindListObject")
-assert_true(scrollIndicator:find("function ScrollIndicator%.Update%(listControl, currentIndex, totalItems, visibleItems%)") ~= nil,
-    "ScrollIndicator exposes Update")
+assert_true(scrollIndicator:find("function ScrollIndicator%.Ensure%(listControl, options%)") == nil,
+    "ScrollIndicator removes overlapping lifecycle Setup alias")
+assert_true(scrollIndicator:find("function ScrollIndicator%.BindListObject%(listControl, listObject%)") == nil,
+    "ScrollIndicator removes overlapping bind-list-object alias")
+assert_true(scrollIndicator:find("function ScrollIndicator%.Update%(listControl%)") ~= nil,
+    "ScrollIndicator exposes Update with the canonical bound control contract")
 assert_true(scrollIndicator:find("function ScrollIndicator%.SetListObject%(listControl, listObject%)") == nil,
     "ScrollIndicator removes the overlapping SetListObject alias")
 assert_true(scrollIndicator:find("function ScrollIndicator%.Hide%(listControl%)") ~= nil,

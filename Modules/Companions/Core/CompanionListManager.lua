@@ -629,7 +629,8 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
     end
 
     if self.list.control and BETTERUI.CIM and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Setup(self.list.control, self.list, {
+        BETTERUI.CIM.ScrollIndicator.Setup(self.list.control, {
+            listObject = self.list,
             offsetX = 5,
             offsetTopY = -8,
             offsetBottomY = -10,

@@ -42,39 +42,7 @@ local function GetXButtonActionContext(self)
         return getSharedContext(self)
     end
 
-    if self.actionMode ~= InventoryConst.ITEM_LIST_ACTION_MODE then
-        return nil
-    end
-
-    local target = self.itemList.selectedData
-    if not target then
-        return nil
-    end
-
-    local filterType
-    if target.bagId and target.slotIndex then
-        filterType = GetItemFilterTypeInfo(target.bagId, target.slotIndex)
-    end
-
-    local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType
-        and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
-        or false
-
-    local isEquipment = filterType == ITEMFILTERTYPE_WEAPONS
-        or filterType == ITEMFILTERTYPE_ARMOR
-        or filterType == ITEMFILTERTYPE_JEWELRY
-    local meetsUsage = target.meetsUsageRequirement == true
-
-    return {
-        target = target,
-        isQuestItem = isQuestItem,
-        isQuickslottable = IsQuickslottable(target),
-        filterType = filterType,
-        isGear = isEquipment,
-        isEquipment = isEquipment,
-        meetsUsage = meetsUsage,
-        isUsableQuest = isQuestItem and meetsUsage or false,
-    }
+    return nil
 end
 
 InventoryKeybinds.IsQuickslottable = IsQuickslottable
