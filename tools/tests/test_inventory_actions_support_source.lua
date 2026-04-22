@@ -12,6 +12,7 @@ if false then
     dofile("Modules/Inventory/Actions/EquipAction.lua")
     dofile("Modules/Inventory/Actions/ItemActionHandlers.lua")
     dofile("Modules/Inventory/Actions/ItemActionsDialog.lua")
+    dofile("Modules/Inventory/Actions/SlotActions.lua")
 end
 
 local passed = 0
@@ -86,6 +87,16 @@ assert_true(itemActionsDialog:find("function BETTERUI%.Inventory%.Class:Initiali
     "ItemActionsDialog exposes InitializeActionsDialog")
 assert_true(itemActionsDialog:find('CALLBACK_MANAGER:RegisterCallback%("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", function%(dialog%)') ~= nil,
     "ItemActionsDialog wires the confirm callback to the shared action handlers")
+
+local slotActions = read_file("Modules/Inventory/Actions/SlotActions.lua")
+assert_true(slotActions:find("local function RequireDestroyPolicyAuthorizer%(%s*%)") ~= nil,
+    "SlotActions resolves shared destroy authorization through an explicit required seam")
+assert_true(slotActions:find("local function CanMarkSlotAsJunkWithoutPolicy%(", 1, true) == nil,
+    "SlotActions removes legacy no-policy junk fallback helpers")
+assert_true(slotActions:find("if BETTERUI%.Inventory and BETTERUI%.Inventory%.CanDestroyItemWithPolicy then") == nil,
+    "SlotActions no longer mixes destroy-policy fallback styles")
+assert_true(slotActions:find("return RequireDestroyPolicyAuthorizer%(%)%(bag, slot, inventorySlot and inventorySlot%.slotType%) == true") ~= nil,
+    "SlotActions requires explicit destroy-policy approval for primary destroy actions")
 
 if failed > 0 then
     error(string.format("test_inventory_actions_support_source.lua failed with %d failure(s)", failed))

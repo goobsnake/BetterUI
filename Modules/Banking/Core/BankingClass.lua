@@ -10,6 +10,74 @@ BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {
     esoSubscriber = nil,
 }
 
+---@return BetterUIBankingTransferService
+function BETTERUI.Banking.GetTransferRules()
+    local transferRules = BETTERUI.Banking.TransferRules or BETTERUI.Banking.Transfer
+    if type(transferRules) ~= "table" then
+        transferRules = {}
+    end
+    BETTERUI.Banking.TransferRules = transferRules
+    BETTERUI.Banking.Transfer = transferRules
+    return transferRules
+end
+
+---@param alignment integer
+---@return table|nil
+function BETTERUI.Banking.CreateItemActions(alignment)
+    local createItemActions = BETTERUI.CIM and BETTERUI.CIM.CreateItemActions or nil
+    if type(createItemActions) == "function" then
+        return createItemActions(alignment)
+    end
+
+    local inventory = BETTERUI.Inventory
+    local slotActions = inventory and inventory.SlotActions or nil
+    if slotActions and slotActions.New then
+        return slotActions:New(alignment)
+    end
+
+    if ZO_ItemSlotActionsController and ZO_ItemSlotActionsController.New then
+        return ZO_ItemSlotActionsController:New(alignment)
+    end
+
+    return nil
+end
+
+---@param bagId BagId
+---@param slotIndex SlotIndex
+---@return nil
+function BETTERUI.Banking.ClearItemNewStatus(bagId, slotIndex)
+    if bagId == nil or slotIndex == nil then
+        return
+    end
+
+    local clearItemNewStatus = BETTERUI.CIM and BETTERUI.CIM.ClearItemNewStatus or nil
+    if type(clearItemNewStatus) == "function" then
+        clearItemNewStatus(bagId, slotIndex)
+        return
+    end
+
+    local tracker = BETTERUI.Inventory and BETTERUI.Inventory.NewItemTracker or nil
+    if tracker and tracker.ClearImmediate then
+        tracker.ClearImmediate(bagId, slotIndex)
+        return
+    end
+
+    if SHARED_INVENTORY and SHARED_INVENTORY.ClearNewStatus then
+        local safeExecute = BETTERUI.CIM and BETTERUI.CIM.SafeExecute or nil
+        if type(safeExecute) == "function" then
+            safeExecute(
+                "Banking.ClearItemNewStatus",
+                SHARED_INVENTORY.ClearNewStatus,
+                SHARED_INVENTORY,
+                bagId,
+                slotIndex
+            )
+        else
+            SHARED_INVENTORY:ClearNewStatus(bagId, slotIndex)
+        end
+    end
+end
+
 ---@return BetterUIBankingRuntimeState
 function BETTERUI.Banking.GetRuntimeState()
     return BETTERUI.Banking.RuntimeState
@@ -123,8 +191,8 @@ local function ResolveTransferKind(sourceBag)
     return BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
 end
 
----@return BetterUIBankingTransferContext context
-local function BuildTransferContext()
+---@return BetterUIBankingTransferContext
+local function BuildTransferState()
     local sourceBag = ResolveTransferSourceBag()
     local targetBag = ResolveTransferTargetBag(sourceBag)
     local kind = ResolveTransferKind(sourceBag)
@@ -142,20 +210,11 @@ local function BuildTransferContext()
     }
 end
 
----@return BetterUIBankingTransferContext
 function BETTERUI.Banking.GetTransferState()
-    return BuildTransferContext()
+    return BuildTransferState()
 end
 
----@return BetterUIBankingTransferContext
-function BETTERUI.Banking.GetTransferContext()
-    return BETTERUI.Banking.GetTransferState()
-end
-
----@return BetterUIBankingTransferKind
-function BETTERUI.Banking.GetTransferKind()
-    return BETTERUI.Banking.GetTransferState().kind
-end
+BETTERUI.Banking.GetTransferContext = BETTERUI.Banking.GetTransferState
 
 ---@return boolean
 function BETTERUI.Banking.IsGuildBankTransfer()

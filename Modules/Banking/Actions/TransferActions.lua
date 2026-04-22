@@ -1,15 +1,14 @@
---[[
-Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
-]]
-
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
+local getTransferRules = BETTERUI.Banking and BETTERUI.Banking.GetTransferRules or nil
+BETTERUI.Banking.Transfer = BETTERUI.Banking.Transfer
+    or (type(getTransferRules) == "function" and getTransferRules())
+    or BETTERUI.Banking.TransferRules
+    or {}
+BETTERUI.Banking.TransferRules = BETTERUI.Banking.Transfer
 ---@type BetterUIBankingTransferService
-local Transfer = assert(
-    BETTERUI.Banking and (BETTERUI.Banking.Transfer or BETTERUI.Banking.TransferRules),
-    "BetterUI: Banking.Transfer must load before Banking/Actions/TransferActions"
-)
+local Transfer = BETTERUI.Banking.Transfer
 
 --- Finds the first empty slot in a personal or house bank bag.
 --- Guild bank deposits are handled separately by MoveItem before this is called.

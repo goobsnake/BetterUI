@@ -39,7 +39,13 @@ assert_contains(
 
 assert_contains(
     transferActions,
-    "local Transfer = assert(",
+    "BETTERUI.Banking.TransferRules = BETTERUI.Banking.Transfer",
+    "TransferActions normalizes the dedicated Banking transfer service namespace before use"
+)
+
+assert_contains(
+    transferActions,
+    "local Transfer = BETTERUI.Banking.Transfer",
     "TransferActions resolves transfer authorization through the dedicated Banking transfer service"
 )
 

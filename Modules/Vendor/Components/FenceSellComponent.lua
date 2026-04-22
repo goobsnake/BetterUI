@@ -13,7 +13,8 @@ local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstanc
     local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
     assert(type(authorizeInventoryAction) == "function",
         "Vendor.AuthorizeInventoryAction must load before Vendor fence sell actions")
-    return authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+    return allowed == true, reason
 end
 
 -- ACTIVATE / DEACTIVATE
@@ -99,7 +100,7 @@ function FenceSell:OnPrimaryAction(vendorInstance)
     end
 
     local canSell, denyReason = AuthorizeVendorAction(Vendor.ACTION.FENCE_SELL, bagId, slotIndex, vendorInstance)
-    if not canSell then
+    if canSell ~= true then
         local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
         if denyReason == (deny and deny.ARTIFACT) then
             ZO_Dialogs_ShowGamepadDialog("CANT_BUYBACK_FROM_FENCE", { bag = bagId, slot = slotIndex })

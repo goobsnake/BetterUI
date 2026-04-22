@@ -1,9 +1,3 @@
---[[
-File: Modules/Banking/Scene/BankingSceneLifecycle.lua
-Purpose: Scene showing/hiding/hidden lifecycle handlers and keyboard shortcut interception.
-Extracted from Banking.lua for maintainability.
-]]
-
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local SHARED_INVENTORY_UPDATE_DELAY_MS = 100
 

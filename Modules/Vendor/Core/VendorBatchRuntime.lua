@@ -61,7 +61,8 @@ local function AuthorizeVendorInventoryAction(actionType, bagId, slotIndex)
     local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
     assert(type(authorizeInventoryAction) == "function",
         "Vendor.AuthorizeInventoryAction must load before Vendor batch inventory actions")
-    return authorizeInventoryAction(actionType, bagId, slotIndex, Vendor.instance)
+    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, Vendor.instance)
+    return allowed == true, reason
 end
 
 local function NormalizeBatchRuntimeRequest(request)
@@ -121,7 +122,7 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
             local canSell = AuthorizeVendorInventoryAction(Vendor.ACTION.SELL, bagId, slotIndex)
-            if not canSell then
+            if canSell ~= true then
                 return batchStepSkipped()
             end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
@@ -137,7 +138,7 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
             local canSell = AuthorizeVendorInventoryAction(Vendor.ACTION.FENCE_SELL, bagId, slotIndex)
-            if not canSell then
+            if canSell ~= true then
                 return batchStepSkipped()
             end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
@@ -153,7 +154,7 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
             local canLaunder = AuthorizeVendorInventoryAction(Vendor.ACTION.FENCE_LAUNDER, bagId, slotIndex)
-            if not canLaunder then
+            if canLaunder ~= true then
                 return batchStepSkipped()
             end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0

@@ -50,7 +50,6 @@ Modules\CIM\Core\Settings\SettingsReset.lua
 Modules\CIM\Core\Lifecycle\RuntimeSetup.lua
 Modules\CIM\Core\Data\SortManager.lua
 Modules\CIM\Core\Diagnostics\SafeExecute.lua
-Modules\CIM\Core\Diagnostics\DeprecationRegistry.lua
 Modules\CIM\Core\Lifecycle\SceneLifecycleManager.lua
 Modules\CIM\Core\Batching\MultiSelectManager.lua
 Modules\CIM\Core\Batching\BatchConfig.lua

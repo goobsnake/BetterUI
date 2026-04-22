@@ -110,37 +110,6 @@ local function CanMarkSlotAsJunkWithPolicy(inventorySlot)
     return RequireProtectionPolicyMethod("CanJunkItem")(bag, slot) == true
 end
 
-local function CanMarkSlotAsJunkWithoutPolicy(inventorySlot)
-    if not inventorySlot or not CanItemBeMarkedAsJunk then
-        return false
-    end
-
-    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    if not bag or not slot then
-        return false
-    end
-    if bag == BAG_VIRTUAL then
-        return false
-    end
-    if IsItemPlayerLocked and IsItemPlayerLocked(bag, slot) then
-        return false
-    end
-    if not CanItemBeMarkedAsJunk(bag, slot) then
-        return false
-    end
-
-    local companionJunkEnabled = BETTERUI
-        and BETTERUI.Settings
-        and BETTERUI.Settings.Modules
-        and BETTERUI.Settings.Modules["Inventory"]
-        and BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
-    local actorCategory = GetItemActorCategory and GetItemActorCategory(bag, slot)
-    if not companionJunkEnabled and actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
-        return false
-    end
-    return true
-end
-
 local function CanMarkSlotAsJunk(inventorySlot)
     return CanMarkSlotAsJunkWithPolicy(inventorySlot)
 end
@@ -219,11 +188,16 @@ local function TryUnmarkAsJunk(inventorySlot)
     end
 end
 
+local function RequireDestroyPolicyAuthorizer()
+    local inventory = BETTERUI and BETTERUI.Inventory or nil
+    local canDestroyItemWithPolicy = inventory and inventory.CanDestroyItemWithPolicy or nil
+    assert(type(canDestroyItemWithPolicy) == "function",
+        "BetterUI: Inventory.CanDestroyItemWithPolicy must load before inventory slot destroy actions")
+    return canDestroyItemWithPolicy
+end
+
 local function CanDestroySlotWithPolicy(inventorySlot, bag, slot)
-    if BETTERUI.Inventory and BETTERUI.Inventory.CanDestroyItemWithPolicy then
-        return BETTERUI.Inventory.CanDestroyItemWithPolicy(bag, slot, inventorySlot and inventorySlot.slotType)
-    end
-    return RequireProtectionPolicyMethod("CanDestroyItem")(bag, slot, inventorySlot and inventorySlot.slotType) == true
+    return RequireDestroyPolicyAuthorizer()(bag, slot, inventorySlot and inventorySlot.slotType) == true
 end
 
 local function TryDestroyPrimaryAction(inventorySlot)

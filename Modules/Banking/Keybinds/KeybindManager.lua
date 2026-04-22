@@ -1,10 +1,3 @@
---[[
-File: Modules/Banking/Keybinds/KeybindManager.lua
-Purpose: Manages keybind descriptors and registration for the Banking module.
-         Extracted from Banking.lua.
-]]
-
--- SHARED CONSTANTS & STATE
 local LIST_WITHDRAW           = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
 local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
@@ -439,7 +432,12 @@ ResolveGuildBankTransferKeybindState = function(self)
         return true, nil
     end
 
-    local transferService = BETTERUI.Banking and (BETTERUI.Banking.Transfer or BETTERUI.Banking.TransferRules) or nil
+    local getTransferRules = BETTERUI.Banking and BETTERUI.Banking.GetTransferRules or nil
+    local transferService = BETTERUI.Banking and (
+        BETTERUI.Banking.Transfer
+        or BETTERUI.Banking.TransferRules
+        or (type(getTransferRules) == "function" and getTransferRules())
+    ) or nil
     local resolveDecision = transferService and transferService.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
         return true, nil

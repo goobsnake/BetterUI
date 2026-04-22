@@ -18,11 +18,7 @@ assert(type(DENY.GUILD_PERMISSION) == "string",
     "BetterUI: CIM.ProtectionPolicy.DENY.GUILD_PERMISSION must be defined")
 
 function GuildBank.IsGuildBankMode()
-    local isGuildBankTransfer = BETTERUI.Banking and BETTERUI.Banking.IsGuildBankTransfer or nil
-    if type(isGuildBankTransfer) == "function" then
-        return isGuildBankTransfer()
-    end
-    return false
+    return BETTERUI.Banking.IsGuildBankTransfer()
 end
 
 function GuildBank.GetSelectedGuildId()

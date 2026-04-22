@@ -1508,12 +1508,11 @@ function BETTERUI.Vendor.Class:InitializeScrollIndicator()
         return
     end
 
-    BETTERUI.CIM.ScrollIndicator.Ensure(self.list.control, {
+    BETTERUI.CIM.ScrollIndicator.Setup(self.list.control, self.list, {
         offsetX = 25,
         offsetTopY = -5,
         offsetBottomY = -10,
     })
-    BETTERUI.CIM.ScrollIndicator.BindListObject(self.list.control, self.list)
 end
 
 ---@return nil

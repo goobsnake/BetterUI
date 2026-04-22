@@ -15,7 +15,8 @@ local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstanc
     local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
     assert(type(authorizeInventoryAction) == "function",
         "Vendor.AuthorizeInventoryAction must load before Vendor sell actions")
-    return authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+    return allowed == true, reason
 end
 
 local function BuildSellableBagItems()
@@ -152,7 +153,7 @@ function Sell:OnPrimaryAction(vendorInstance)
     if bagId == nil or slotIndex == nil then return end
 
     local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL, bagId, slotIndex, vendorInstance)
-    if not canSell then
+    if canSell ~= true then
         return
     end
 
@@ -176,7 +177,7 @@ function Sell:SellAllJunk(vendorInstance)
     for slot = 0, bagSize - 1 do
         if IsItemJunk(BAG_BACKPACK, slot) then
             local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL_JUNK, BAG_BACKPACK, slot, vendorInstance)
-            if canSell then
+            if canSell == true then
                 local stack = GetSlotStackSize(BAG_BACKPACK, slot) or 1
                 if stack > 0 then
                     SellInventoryItem(BAG_BACKPACK, slot, stack)

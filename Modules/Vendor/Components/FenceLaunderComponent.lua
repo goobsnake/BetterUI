@@ -13,7 +13,8 @@ local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstanc
     local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
     assert(type(authorizeInventoryAction) == "function",
         "Vendor.AuthorizeInventoryAction must load before Vendor fence launder actions")
-    return authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+    return allowed == true, reason
 end
 
 -- ACTIVATE / DEACTIVATE
@@ -98,7 +99,7 @@ function FenceLaunder:OnPrimaryAction(vendorInstance)
     if bagId == nil or slotIndex == nil then return end
 
     local canLaunder, denyReason = AuthorizeVendorAction(Vendor.ACTION.FENCE_LAUNDER, bagId, slotIndex, vendorInstance)
-    if not canLaunder then
+    if canLaunder ~= true then
         local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
         if denyReason == (deny and deny.CANNOT_AFFORD) then
             BETTERUI.CIM.UserAlertText("FenceLaunder:CannotAfford",

@@ -116,6 +116,41 @@ do
 end
 
 -- ============================================================================
+-- GetModuleSettingsLive
+-- ============================================================================
+
+print("\n=== GetModuleSettingsLive ===\n")
+
+do
+    reset_settings()
+    local existing = { threshold = 3 }
+    BETTERUI.Settings.Modules["Live"] = existing
+    local live = BETTERUI.GetModuleSettingsLive("Live", { threshold = 99 })
+    assert_true(live == existing, "returns existing live module table by reference")
+    live.threshold = 9
+    assert_equal(9, BETTERUI.Settings.Modules["Live"].threshold, "mutating live table writes through to persisted settings")
+end
+
+do
+    reset_settings()
+    local defaults = { enabled = true, nested = { alpha = 1 } }
+    local live = BETTERUI.GetModuleSettingsLive("MissingLive", defaults)
+    assert_true(live == BETTERUI.Settings.Modules["MissingLive"],
+        "missing module fallback is persisted and returned as the live table")
+    assert_equal(true, BETTERUI.Settings.Modules["MissingLive"].enabled, "persisted fallback copies scalar defaults")
+    assert_equal(1, BETTERUI.Settings.Modules["MissingLive"].nested.alpha, "persisted fallback copies nested defaults")
+    live.nested.alpha = 5
+    assert_equal(1, defaults.nested.alpha, "persisted fallback deep-clones defaults instead of sharing references")
+end
+
+do
+    BETTERUI.Settings = nil
+    local live = BETTERUI.GetModuleSettingsLive("FreshLive")
+    assert_true(live == BETTERUI.Settings.Modules["FreshLive"], "live accessor initializes and returns a persisted table when missing")
+    assert_not_nil(BETTERUI.Settings.Modules["FreshLive"], "missing live module creates persisted module settings")
+end
+
+-- ============================================================================
 -- GetSetting
 -- ============================================================================
 

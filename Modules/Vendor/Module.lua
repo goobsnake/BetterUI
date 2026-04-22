@@ -261,7 +261,8 @@ function BETTERUI.Vendor.AuthorizeInventoryAction(actionType, bagId, slotIndex, 
 		}
 	end
 
-	return canVendorAction(actionType, bagId, slotIndex, context)
+	local allowed, reason = canVendorAction(actionType, bagId, slotIndex, context)
+	return allowed == true, reason
 end
 
 --- Gets junk sell value summary for batch sell UX.

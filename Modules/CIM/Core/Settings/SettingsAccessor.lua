@@ -42,12 +42,29 @@ end
 
 ---@param moduleName ModuleName Module name key
 ---@param defaults BetterUIModuleSettings|nil Fallback table if module settings are absent
----@return BetterUIModuleSettings settings The live persisted settings table, or defaults
+---@return BetterUIModuleSettings settings The live persisted settings table (created when missing)
 function BETTERUI.GetModuleSettingsLive(moduleName, defaults)
     if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules[moduleName] then
         return BETTERUI.Settings.Modules[moduleName]
     end
-    return defaults or {}
+
+    if not BETTERUI.Settings then
+        BETTERUI.Settings = {}
+    end
+    if not BETTERUI.Settings.Modules then
+        BETTERUI.Settings.Modules = {}
+    end
+
+    local liveSettings = {}
+    BETTERUI.Settings.Modules[moduleName] = liveSettings
+
+    if type(defaults) == "table" then
+        for key, value in pairs(defaults) do
+            liveSettings[key] = CloneSettingsValue(value)
+        end
+    end
+
+    return liveSettings
 end
 
 --- Ensures the settings table exists for a module, creating it if necessary.

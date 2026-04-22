@@ -3,19 +3,28 @@ local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
 local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
-local InventorySlotActions = BETTERUI.Inventory and BETTERUI.Inventory.SlotActions or nil
-local InventoryNewItemTracker = BETTERUI.Inventory and BETTERUI.Inventory.NewItemTracker or nil
+
+---@return BetterUIBankingTransferContext
+local function GetTransferState()
+    local getTransferState = BETTERUI.Banking and BETTERUI.Banking.GetTransferState or nil
+    if type(getTransferState) == "function" then
+        return getTransferState()
+    end
+    return BETTERUI.Banking.GetTransferContext()
+end
 
 local function CreateBankingItemActions(alignment)
-    if InventorySlotActions and InventorySlotActions.New then
-        return InventorySlotActions:New(alignment)
+    local createItemActions = BETTERUI.Banking and BETTERUI.Banking.CreateItemActions or nil
+    if type(createItemActions) == "function" then
+        return createItemActions(alignment)
     end
     return nil
 end
 
-local function ClearSelectedInventoryTracker(bagId, slotIndex)
-    if InventoryNewItemTracker and InventoryNewItemTracker.ClearImmediate then
-        InventoryNewItemTracker.ClearImmediate(bagId, slotIndex)
+local function ClearSelectedItemNewStatus(bagId, slotIndex)
+    local clearItemNewStatus = BETTERUI.Banking and BETTERUI.Banking.ClearItemNewStatus or nil
+    if type(clearItemNewStatus) == "function" then
+        clearItemNewStatus(bagId, slotIndex)
     end
 end
 
@@ -104,7 +113,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     self.lastPositionsByCategory = {}
 
-    BETTERUI.Banking.SetRuntimeBankBags(BETTERUI.Banking.GetActiveInteractionBag(), nil)
+    BETTERUI.Banking.SetRuntimeBankBags(GetTransferState().interactionBag, nil)
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 
@@ -174,7 +183,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             self:RefreshItemActions()
         end
         if selectedControl and selectedControl.bagId then
-            ClearSelectedInventoryTracker(selectedControl.bagId, selectedControl.slotIndex)
+            ClearSelectedItemNewStatus(selectedControl.bagId, selectedControl.slotIndex)
             self:GetParametricList():RefreshList()
         end
     end

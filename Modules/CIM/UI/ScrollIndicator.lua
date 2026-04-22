@@ -1,6 +1,6 @@
 --[[
 File: Modules/CIM/UI/ScrollIndicator.lua
-Purpose: Public API for the parametric list scroll indicator.
+Purpose: Public API for the parametric list scroll indicator setup/bind/update contract.
          Internal constants, helpers, and control creation are in ScrollIndicatorControls.lua.
 ]]
 
@@ -85,12 +85,13 @@ function ScrollIndicator.Ensure(listControl, options)
     return instance
 end
 
---- Binds the interactive list object for an existing indicator.
+--- Sets up an indicator instance and optionally binds a list object in one call.
 ---@param listControl table
 ---@param listObject table|nil
+---@param options table|nil
 ---@return table? instance
-function ScrollIndicator.BindListObject(listControl, listObject)
-    local instance = ScrollIndicator.Ensure(listControl)
+function ScrollIndicator.Setup(listControl, listObject, options)
+    local instance = ScrollIndicator.Ensure(listControl, options)
     if not instance then
         return nil
     end
@@ -98,6 +99,14 @@ function ScrollIndicator.BindListObject(listControl, listObject)
     instance.listObject = listObject
     EnsureMouseHandlers(instance)
     return instance
+end
+
+--- Compatibility wrapper for callers that still use explicit bind semantics.
+---@param listControl table
+---@param listObject table|nil
+---@return table? instance
+function ScrollIndicator.BindListObject(listControl, listObject)
+    return ScrollIndicator.Setup(listControl, listObject)
 end
 
 --- Updates the scroll indicator position and visibility.
@@ -268,29 +277,6 @@ function ScrollIndicator.SetTrackAnchors(listControl, topAnchorControl, bottomAn
         container:SetAnchor(BOTTOM, bottomAnchorControl, TOP, 0, bottomOffset or 0)
     else
         container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, trackOffsetX, 0)
-    end
-end
-
---- Sets or updates the list object reference for mouse interaction.
----
----@param listControl table
----@param listObject table
----@return nil
-function ScrollIndicator.SetListObject(listControl, listObject)
-    if not listControl then return end
-
-    local controlName = listControl:GetName()
-    local instance = indicatorInstances[controlName]
-
-    if not instance then return end
-
-    instance.listObject = listObject
-
-    -- Setup handlers if not already done
-    if listObject and not instance.mouseHandlersSetup then
-        SetupArrowMouseHandlers(instance)
-        SetupThumbDragHandlers(instance)
-        instance.mouseHandlersSetup = true
     end
 end
 

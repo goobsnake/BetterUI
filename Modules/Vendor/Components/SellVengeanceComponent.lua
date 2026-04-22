@@ -15,7 +15,8 @@ local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstanc
     local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
     assert(type(authorizeInventoryAction) == "function",
         "Vendor.AuthorizeInventoryAction must load before Vendor sell vengeance actions")
-    return authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+    return allowed == true, reason
 end
 
 local function IsSellVengeanceAvailable()
@@ -117,7 +118,7 @@ function SellVengeance:OnPrimaryAction(vendorInstance)
     end
 
     local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL_VENGEANCE, bagId, slotIndex, vendorInstance)
-    if not canSell then
+    if canSell ~= true then
         return
     end
 

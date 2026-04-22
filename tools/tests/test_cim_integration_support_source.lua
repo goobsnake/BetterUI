@@ -106,7 +106,7 @@ assert_true(interfaces:find('setup is true but Module%.Setup must be a function'
 local cimModuleSource = read_file("Modules/CIM/Module.lua")
 assert_true(cimModuleSource:find("Modules/GeneralInterface/ %(tooltips and shared interface hooks%)") ~= nil,
     "CIM module docs identify GeneralInterface as the tooltip/shared-hooks module")
-assert_true(cimModuleSource:find("Modules/Nameplates/ %(nameplate runtime/settings%-owner surface%)") ~= nil,
+assert_true(cimModuleSource:find("Modules/Nameplates/ %(nameplates runtime/settings%-owner surface%)") ~= nil,
     "CIM module docs identify Nameplates as its own settings-owner boundary")
 assert_true(cimModuleSource:find("Domain%-specific features %(Tooltips, Nameplates%) have been extracted to") == nil,
     "CIM module docs no longer collapse Nameplates into the GeneralInterface boundary note")

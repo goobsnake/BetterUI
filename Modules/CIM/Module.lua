@@ -20,7 +20,7 @@ Internal organization:
 
 Domain-specific interface features now live in dedicated modules:
   - Modules/GeneralInterface/ (tooltips and shared interface hooks)
-  - Modules/Nameplates/ (nameplate runtime/settings-owner surface)
+  - Modules/Nameplates/ (nameplates runtime/settings-owner surface)
 CIM provides only cross-cutting infrastructure consumed by those modules.
 ]]
 
