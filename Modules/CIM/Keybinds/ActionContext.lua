@@ -69,6 +69,8 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
         ctx.isQuickslottable = false
         ctx.meetsUsage = false
         ctx.isGear = false
+        ctx.isEquipment = false
+        ctx.isUsableQuest = false
         return cachedContext
     end
 
@@ -96,6 +98,8 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
         ctx.filterType == ITEMFILTERTYPE_ARMOR or
         ctx.filterType == ITEMFILTERTYPE_JEWELRY
     )
+    ctx.isEquipment = ctx.isGear
+    ctx.isUsableQuest = ctx.isQuestItem and ctx.meetsUsage == true or false
 
     return cachedContext
 end
@@ -116,9 +120,9 @@ function BETTERUI.CIM.Keybinds.GetXButtonName(self)
     if ctx.actionListKey == "itemList" then
         if ctx.isQuickslottable then
             return GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN"))
-        elseif not ctx.isQuestItem and ctx.isGear then
+        elseif not ctx.isQuestItem and ctx.isEquipment then
             return GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_INFO"))
-        elseif ctx.isQuestItem and ctx.meetsUsage then
+        elseif ctx.isUsableQuest then
             return GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
         else
             return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
@@ -135,7 +139,7 @@ function BETTERUI.CIM.Keybinds.GetXButtonVisible(self)
 
     if ctx.actionListKey == "itemList" then
         if not ctx.target then return false end
-        return not ctx.isQuestItem or ctx.meetsUsage
+        return not ctx.isQuestItem or ctx.isUsableQuest
     elseif ctx.actionListKey == "craftBagList" then
         return true
     end

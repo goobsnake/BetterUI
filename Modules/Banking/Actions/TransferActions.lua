@@ -1,14 +1,73 @@
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
-local getTransferRules = BETTERUI.Banking and BETTERUI.Banking.GetTransferRules or nil
-BETTERUI.Banking.Transfer = BETTERUI.Banking.Transfer
-    or (type(getTransferRules) == "function" and getTransferRules())
-    or BETTERUI.Banking.TransferRules
-    or {}
-BETTERUI.Banking.TransferRules = BETTERUI.Banking.Transfer
+local function ResolveTransferService()
+    local transferService = BETTERUI.Banking and (BETTERUI.Banking.TransferRules or BETTERUI.Banking.Transfer) or nil
+    local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
+    if type(getTransferService) == "function" then
+        transferService = getTransferService()
+    end
+    if type(transferService) ~= "table" then
+        transferService = {}
+    end
+    BETTERUI.Banking.Transfer = transferService
+    BETTERUI.Banking.TransferRules = transferService
+    return transferService
+end
 ---@type BetterUIBankingTransferService
-local Transfer = BETTERUI.Banking.Transfer
+local Transfer = ResolveTransferService() or {}
+
+local function RefreshBankListAfterTransfer(self, delayMs)
+    self._moveCoalesceToken = (self._moveCoalesceToken or 0) + 1
+    local myToken = self._moveCoalesceToken
+    self:SetListUpdatesSuppressed(true)
+
+    local previousCategoryKey
+    if self.GetCurrentCategoryKey then
+        previousCategoryKey = self:GetCurrentCategoryKey()
+    elseif self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
+        local prevCat = self.bankCategories[self.currentCategoryIndex]
+        previousCategoryKey = prevCat and prevCat.key or nil
+    end
+
+    BETTERUI.Banking.Tasks:Schedule("moveCoalesce", delayMs or BETTERUI.CIM.CONST.TIMING.MOVE_COALESCE_DELAY_MS,
+        function()
+            if myToken ~= self._moveCoalesceToken then
+                return
+            end
+            self:SetListUpdatesSuppressed(false)
+
+            if self.RefreshCategoryView then
+                self:RefreshCategoryView({
+                    preferredCategoryKey = previousCategoryKey,
+                })
+                return
+            end
+
+            self.bankCategories = self:ComputeVisibleBankCategories()
+            if not self.bankCategories or #self.bankCategories == 0 then
+                self.currentCategoryIndex = 1
+                self:RefreshList()
+                return
+            end
+
+            local desiredCategoryIndex = 1
+            if previousCategoryKey then
+                for i, category in ipairs(self.bankCategories) do
+                    if category.key == previousCategoryKey then
+                        desiredCategoryIndex = i
+                        break
+                    end
+                end
+            end
+            self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
+            local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+            state.suppressHeaderCallback = true
+            self:RebuildHeaderCategories()
+            state.suppressHeaderCallback = false
+            self:RefreshList()
+        end)
+end
 
 --- Finds the first empty slot in a personal or house bank bag.
 --- Guild bank deposits are handled separately by MoveItem before this is called.
@@ -154,61 +213,6 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         quantity = 1
     end
 
-    local function refreshMoveCoalescedCategoryView(previousCategoryKey)
-        if self.RefreshCategoryView then
-            self:RefreshCategoryView({
-                preferredCategoryKey = previousCategoryKey,
-            })
-            return
-        end
-
-        self.bankCategories = self:ComputeVisibleBankCategories()
-        if not self.bankCategories or #self.bankCategories == 0 then
-            self.currentCategoryIndex = 1
-            self:RefreshList()
-            return
-        end
-
-        local desiredCategoryIndex = 1
-        if previousCategoryKey then
-            for i, category in ipairs(self.bankCategories) do
-                if category.key == previousCategoryKey then
-                    desiredCategoryIndex = i
-                    break
-                end
-            end
-        end
-        self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
-        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
-        state.suppressHeaderCallback = true
-        self:RebuildHeaderCategories()
-        state.suppressHeaderCallback = false
-        self:RefreshList()
-    end
-
-    local function beginCoalescedRefresh(delayMs)
-        self._moveCoalesceToken = (self._moveCoalesceToken or 0) + 1
-        local myToken = self._moveCoalesceToken
-        self:SetListUpdatesSuppressed(true)
-
-        local previousCategoryKey
-        if self.GetCurrentCategoryKey then
-            previousCategoryKey = self:GetCurrentCategoryKey()
-        elseif self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
-            local prevCat = self.bankCategories[self.currentCategoryIndex]
-            previousCategoryKey = prevCat and prevCat.key or nil
-        end
-
-        BETTERUI.Banking.Tasks:Schedule("moveCoalesce", delayMs or BETTERUI.CIM.CONST.TIMING.MOVE_COALESCE_DELAY_MS,
-            function()
-                if myToken ~= self._moveCoalesceToken then
-                    return
-                end
-                self:SetListUpdatesSuppressed(false)
-                refreshMoveCoalescedCategoryView(previousCategoryKey)
-            end)
-    end
-
     -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
     local isGuildBank = BETTERUI.Banking.IsGuildBankTransfer()
     if isGuildBank then
@@ -238,7 +242,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
         end
         if not ZO_Dialogs_IsShowingDialog() then
-            beginCoalescedRefresh(100)
+            RefreshBankListAfterTransfer(self, 100)
         end
         return
     end
@@ -263,7 +267,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     if toBagEmptyIndex ~= nil then
         CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagEmptyIndex, quantity)
         if not ZO_Dialogs_IsShowingDialog() then
-            beginCoalescedRefresh(100)
+            RefreshBankListAfterTransfer(self, 100)
         end
     else
         if toBag ~= nil then
@@ -273,7 +277,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             if toBagIndex then
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
                 if not ZO_Dialogs_IsShowingDialog() then
-                    beginCoalescedRefresh(100)
+                    RefreshBankListAfterTransfer(self, 100)
                 end
             else
                 BETTERUI.CIM.UserNotify("TransferActions:NoStackSlot", errorStringId)
@@ -294,7 +298,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             if toBagIndex and toBag then
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
                 if not ZO_Dialogs_IsShowingDialog() then
-                    beginCoalescedRefresh(100)
+                    RefreshBankListAfterTransfer(self, 100)
                 end
             else
                 local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or

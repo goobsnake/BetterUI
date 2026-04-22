@@ -7,5 +7,4 @@ Files:
 - `PerformanceProfiler.lua`
 - `DebugCommands.lua`
 - `DeveloperDebug.lua`
-- `DeprecationRegistry.lua`
 - `FeatureFlags.lua`

@@ -2,15 +2,6 @@ local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local MODULES       = BETTERUI.CIM.CONST.MODULES
 
----@return BetterUIBankingTransferContext
-local function GetTransferState()
-    local getTransferState = BETTERUI.Banking and BETTERUI.Banking.GetTransferState or nil
-    if type(getTransferState) == "function" then
-        return getTransferState()
-    end
-    return BETTERUI.Banking.GetTransferContext()
-end
-
 local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
@@ -77,10 +68,9 @@ end
 
 --- Handles the case where the player switched to a different bank.
 function BETTERUI.Banking.Class:HandleBankSwitch()
-    local runtimeState = BETTERUI.Banking.GetRuntimeState()
-    local currentUsedBank = runtimeState.currentUsedBank
-    local lastUsedBank = runtimeState.lastUsedBank
-    local activeSourceBag = GetTransferState().interactionBag
+    local currentUsedBank = BETTERUI.Banking.GetCurrentUsedBank()
+    local lastUsedBank = BETTERUI.Banking.GetLastUsedBank()
+    local activeSourceBag = BETTERUI.Banking.GetActiveInteractionBag()
 
     if lastUsedBank == currentUsedBank then
         return false -- No switch, handled by caller
@@ -109,7 +99,7 @@ end
 
 --- Restores the saved list position.
 function BETTERUI.Banking.Class:ReturnToSaved()
-    BETTERUI.Banking.SetRuntimeBankBags(GetTransferState().interactionBag, nil)
+    BETTERUI.Banking.SetRuntimeBankBags(BETTERUI.Banking.GetActiveInteractionBag(), nil)
 
     -- Handle empty list
     if self:HandleEmptyList() then

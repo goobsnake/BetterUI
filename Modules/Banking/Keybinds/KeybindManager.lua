@@ -61,6 +61,20 @@ local function IsSelectionToggleMode(self)
     return self.multiSelectManager and self.multiSelectManager:IsActive() or false
 end
 
+local function ResolveTransferService()
+    local transferService = BETTERUI.Banking and (BETTERUI.Banking.TransferRules or BETTERUI.Banking.Transfer) or nil
+    local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
+    if type(getTransferService) == "function" then
+        transferService = getTransferService()
+    end
+    if type(transferService) ~= "table" then
+        transferService = {}
+    end
+    BETTERUI.Banking.Transfer = transferService
+    BETTERUI.Banking.TransferRules = transferService
+    return transferService
+end
+
 local ResolveGuildBankTransferKeybindState
 
 local function GetPrimaryTransferLabel(self)
@@ -432,12 +446,7 @@ ResolveGuildBankTransferKeybindState = function(self)
         return true, nil
     end
 
-    local getTransferRules = BETTERUI.Banking and BETTERUI.Banking.GetTransferRules or nil
-    local transferService = BETTERUI.Banking and (
-        BETTERUI.Banking.Transfer
-        or BETTERUI.Banking.TransferRules
-        or (type(getTransferRules) == "function" and getTransferRules())
-    ) or nil
+    local transferService = ResolveTransferService()
     local resolveDecision = transferService and transferService.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
         return true, nil

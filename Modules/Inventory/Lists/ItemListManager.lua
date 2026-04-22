@@ -96,10 +96,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
             -- (the animated intermediate) to prevent the thumb from stopping short of the bottom
             local listCtrl = self.itemList and self.itemList.control
             if listCtrl and BETTERUI.CIM.ScrollIndicator then
-                local currentIndex = list.targetSelectedIndex or list:GetSelectedIndex() or 1
-                local totalItems = (list.GetNumItems and list:GetNumItems()) or (list.dataList and #list.dataList) or 0
-                local visibleItems = 12 -- Approximate visible items
-                BETTERUI.CIM.ScrollIndicator.Update(listCtrl, currentIndex, totalItems, visibleItems)
+                BETTERUI.CIM.ScrollIndicator.Update(listCtrl)
             end
         end
     end)
@@ -131,11 +128,12 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
     if listControl and BETTERUI.CIM.ScrollIndicator then
         BETTERUI.CIM.ScrollIndicator.Ensure(listControl, {
+            listObject = self.itemList,
             offsetX = 5,
             offsetTopY = -8,
             offsetBottomY = -10,
+            visibleItems = 12,
         })
-        BETTERUI.CIM.ScrollIndicator.BindListObject(listControl, self.itemList)
     end
 end
 

@@ -34,7 +34,7 @@ assert_true(multiSelect:find("ResolveGuildBankTransferDecision") ~= nil,
     "MultiSelectActions defines the shared guild-bank transfer decision helper")
 assert_true(
     multiSelect:find("Transfer%.NotifyGuildBankTransferDenied") ~= nil
-        and multiSelect:find("TransferRules = BETTERUI%.Banking%.Transfer") ~= nil,
+        and multiSelect:find("TransferRules = transferService") ~= nil,
     "MultiSelectActions exports the shared guild-bank denial notifier through Banking.Transfer and keeps TransferRules compatibility alias")
 
 local transferActions = read_file("Modules/Banking/Actions/TransferActions.lua")

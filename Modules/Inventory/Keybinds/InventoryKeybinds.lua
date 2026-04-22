@@ -39,22 +39,7 @@ local function GetXButtonActionContext(self)
     local cimKeybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
     local getSharedContext = cimKeybinds and cimKeybinds.GetXButtonActionContext
     if type(getSharedContext) == "function" then
-        local sharedContext = getSharedContext(self)
-        if sharedContext and sharedContext.actionListKey == "itemList" and sharedContext.target then
-            local filterType = sharedContext.filterType
-            local isEquipment = filterType == ITEMFILTERTYPE_WEAPONS
-                or filterType == ITEMFILTERTYPE_ARMOR
-                or filterType == ITEMFILTERTYPE_JEWELRY
-
-            return {
-                target = sharedContext.target,
-                isQuestItem = sharedContext.isQuestItem == true,
-                isQuickslottable = sharedContext.isQuickslottable == true,
-                filterType = filterType,
-                isEquipment = isEquipment,
-                isUsableQuest = sharedContext.isQuestItem == true and sharedContext.meetsUsage == true or false,
-            }
-        end
+        return getSharedContext(self)
     end
 
     if self.actionMode ~= InventoryConst.ITEM_LIST_ACTION_MODE then
@@ -78,14 +63,17 @@ local function GetXButtonActionContext(self)
     local isEquipment = filterType == ITEMFILTERTYPE_WEAPONS
         or filterType == ITEMFILTERTYPE_ARMOR
         or filterType == ITEMFILTERTYPE_JEWELRY
+    local meetsUsage = target.meetsUsageRequirement == true
 
     return {
         target = target,
         isQuestItem = isQuestItem,
         isQuickslottable = IsQuickslottable(target),
         filterType = filterType,
+        isGear = isEquipment,
         isEquipment = isEquipment,
-        isUsableQuest = isQuestItem and target.meetsUsageRequirement or false,
+        meetsUsage = meetsUsage,
+        isUsableQuest = isQuestItem and meetsUsage or false,
     }
 end
 

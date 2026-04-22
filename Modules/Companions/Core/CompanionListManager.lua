@@ -633,6 +633,7 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
             offsetX = 5,
             offsetTopY = -8,
             offsetBottomY = -10,
+            visibleItems = 12,
         })
     end
 end
@@ -644,12 +645,5 @@ function BETTERUI.Companions.Class:UpdateScrollIndicator(list)
         return
     end
 
-    local currentIndex = targetList.targetSelectedIndex
-        or (targetList.GetSelectedIndex and targetList:GetSelectedIndex())
-        or 1
-    local totalItems = (targetList.GetNumItems and targetList:GetNumItems())
-        or (targetList.dataList and #targetList.dataList)
-        or 0
-
-    BETTERUI.CIM.ScrollIndicator.Update(listControl, currentIndex, totalItems, 12)
+    BETTERUI.CIM.ScrollIndicator.Update(listControl)
 end

@@ -150,7 +150,7 @@ assertTrue(type(BETTERUI.Banking.GetTransferContext) == "function",
     "GetTransferContext is the explicit transfer-context helper")
 assertTrue(multiSelectActionsSource:match("BETTERUI%.Banking%.Transfer%s*=") ~= nil,
     "MultiSelectActions initializes the dedicated Banking transfer service")
-assertTrue(multiSelectActionsSource:match("BETTERUI%.Banking%.TransferRules = BETTERUI%.Banking%.Transfer") ~= nil,
+assertTrue(multiSelectActionsSource:match("BETTERUI%.Banking%.TransferRules = transferService") ~= nil,
     "MultiSelectActions keeps TransferRules as a compatibility alias to the canonical transfer service")
 assertTrue(
     multiSelectActionsSource:match("Transfer%.CanDepositIntoBank%s*=") ~= nil
@@ -415,6 +415,10 @@ assertTrue(guildBankAdapter:match("BETTERUI%.Banking%.ResolveActiveTransferMode"
     "GuildBankAdapter no longer reads transfer context inline")
 assertTrue(guildBankAdapter:match("GetTransferContext") == nil,
     "GuildBankAdapter no longer reads transfer-context fields directly")
+assertTrue(guildBankAdapter:match("local function GetBankingWindow%(") ~= nil,
+    "GuildBankAdapter reads banking window through a single local accessor")
+assertTrue(guildBankAdapter:match("local window = BETTERUI%.Banking%.Window") == nil,
+    "GuildBankAdapter no longer reads banking window inline at call-sites")
 assertTrue(guildBankAdapter:match("IsGuildBankTransfer") ~= nil,
     "GuildBankAdapter uses intent-level transfer mode helpers")
 assertTrue(guildBankAdapter:match("RuntimeState%.currentUsedBank") == nil,

@@ -11,14 +11,22 @@ BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {
 }
 
 ---@return BetterUIBankingTransferService
-function BETTERUI.Banking.GetTransferRules()
-    local transferRules = BETTERUI.Banking.TransferRules or BETTERUI.Banking.Transfer
-    if type(transferRules) ~= "table" then
-        transferRules = {}
+function BETTERUI.Banking.GetTransferService()
+    local transferService = BETTERUI.Banking.Transfer
+    if type(transferService) ~= "table" then
+        transferService = BETTERUI.Banking.TransferRules
     end
-    BETTERUI.Banking.TransferRules = transferRules
-    BETTERUI.Banking.Transfer = transferRules
-    return transferRules
+    if type(transferService) ~= "table" then
+        transferService = {}
+    end
+    BETTERUI.Banking.Transfer = transferService
+    BETTERUI.Banking.TransferRules = transferService
+    return transferService
+end
+
+---@return BetterUIBankingTransferService
+function BETTERUI.Banking.GetTransferRules()
+    return BETTERUI.Banking.GetTransferService()
 end
 
 ---@param alignment integer
@@ -83,16 +91,40 @@ function BETTERUI.Banking.GetRuntimeState()
     return BETTERUI.Banking.RuntimeState
 end
 
+---@return BagId
+function BETTERUI.Banking.GetCurrentUsedBank()
+    return ResolveBankBag(BETTERUI.Banking.GetRuntimeState().currentUsedBank)
+end
+
+---@return BagId
+function BETTERUI.Banking.GetLastUsedBank()
+    return ResolveBankBag(BETTERUI.Banking.GetRuntimeState().lastUsedBank)
+end
+
+---@return BagId|nil
+function BETTERUI.Banking.GetLastOpenedBankBag()
+    return BETTERUI.Banking.GetRuntimeState().lastOpenedBankBag
+end
+
+---@param bankBagId BagId|nil
+---@return nil
+function BETTERUI.Banking.SetLastOpenedBankBag(bankBagId)
+    if bankBagId == nil then
+        return
+    end
+    BETTERUI.Banking.GetRuntimeState().lastOpenedBankBag = ResolveBankBag(bankBagId)
+end
+
 ---@param currentUsedBank BagId|nil
 ---@param lastUsedBank BagId|nil
 ---@return nil
 function BETTERUI.Banking.SetRuntimeBankBags(currentUsedBank, lastUsedBank)
     local runtimeState = BETTERUI.Banking.GetRuntimeState()
     if currentUsedBank ~= nil then
-        runtimeState.currentUsedBank = currentUsedBank
+        runtimeState.currentUsedBank = ResolveBankBag(currentUsedBank)
     end
     if lastUsedBank ~= nil then
-        runtimeState.lastUsedBank = lastUsedBank
+        runtimeState.lastUsedBank = ResolveBankBag(lastUsedBank)
     end
 end
 

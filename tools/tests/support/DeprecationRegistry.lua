@@ -1,18 +1,13 @@
 --[[
-File: Modules/CIM/Core/DeprecationRegistry.lua
-Purpose: Tracks deprecated APIs and issues one-time warnings to aid migration.
+File: tools/tests/support/DeprecationRegistry.lua
+Purpose: Test-only registry for deprecated API shims.
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
--- DEPRECATION REGISTRY
-
 BETTERUI.CIM.DeprecationRegistry = {
-    -- Storage for registered deprecations
     _registry = {},
-    -- Track which warnings have been issued (one-time)
     _warned = {},
-    -- Whether warnings are enabled (disable for production)
     _enabled = true,
 }
 
@@ -29,7 +24,6 @@ local function CloneDeprecationInfo(info)
     }
 end
 
---- Records a deprecated alias with its replacement.
 function BETTERUI.CIM.DeprecationRegistry.Register(oldName, newName, removeVersion)
     BETTERUI.CIM.DeprecationRegistry._registry[oldName] = {
         oldName = oldName,
@@ -39,7 +33,6 @@ function BETTERUI.CIM.DeprecationRegistry.Register(oldName, newName, removeVersi
     }
 end
 
---- Issues a one-time deprecation warning in debug output.
 function BETTERUI.CIM.DeprecationRegistry.WarnOnce(oldName)
     if not BETTERUI.CIM.DeprecationRegistry._enabled then return false end
     if BETTERUI.CIM.DeprecationRegistry._warned[oldName] then return false end
@@ -63,12 +56,10 @@ function BETTERUI.CIM.DeprecationRegistry.WarnOnce(oldName)
     return true
 end
 
---- Enables or disables deprecation warnings globally.
 function BETTERUI.CIM.DeprecationRegistry.SetEnabled(enabled)
     BETTERUI.CIM.DeprecationRegistry._enabled = enabled
 end
 
---- Returns all registered deprecations.
 function BETTERUI.CIM.DeprecationRegistry.GetAll()
     local result = {}
     for _, info in pairs(BETTERUI.CIM.DeprecationRegistry._registry) do
@@ -77,14 +68,10 @@ function BETTERUI.CIM.DeprecationRegistry.GetAll()
     return result
 end
 
---- Returns the mutable internal registry table.
---- Callers should prefer `GetAll` unless live mutation is intentional.
 function BETTERUI.CIM.DeprecationRegistry.GetRegistryLive()
     return BETTERUI.CIM.DeprecationRegistry._registry
 end
 
---- Creates a wrapper function that warns on first use and delegates to replacement.
---- Caller is responsible for registering the old name before creating the shim.
 function BETTERUI.CIM.DeprecationRegistry.CreateShim(oldName, newFn)
     return function(...)
         BETTERUI.CIM.DeprecationRegistry.WarnOnce(oldName)

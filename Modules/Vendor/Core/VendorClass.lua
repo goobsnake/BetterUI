@@ -1512,6 +1512,7 @@ function BETTERUI.Vendor.Class:InitializeScrollIndicator()
         offsetX = 25,
         offsetTopY = -5,
         offsetBottomY = -10,
+        visibleItems = BETTERUI.CIM.CONST.UI.BANKING_VISIBLE_ITEMS or 10,
     })
 end
 
@@ -1550,15 +1551,7 @@ function BETTERUI.Vendor.Class:UpdateScrollIndicator(list)
         return
     end
 
-    local currentIndex = targetList.targetSelectedIndex
-        or (targetList.GetSelectedIndex and targetList:GetSelectedIndex())
-        or 1
-    local totalItems = (targetList.GetNumItems and targetList:GetNumItems())
-        or (targetList.dataList and #targetList.dataList)
-        or 0
-    local visibleItems = BETTERUI.CIM.CONST.UI.BANKING_VISIBLE_ITEMS or 10
-
-    BETTERUI.CIM.ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleItems)
+    BETTERUI.CIM.ScrollIndicator.Update(listControl)
 end
 
 ---@return nil

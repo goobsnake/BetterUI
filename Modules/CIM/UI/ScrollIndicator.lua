@@ -20,6 +20,65 @@ local StopArrowRepeat = I.StopArrowRepeat or function() end
 local GetSelectableBounds = I.GetSelectableBounds or function(_, t) return 1, t end
 local CreateIndicatorControls = I.CreateIndicatorControls or function() return {} end
 
+local function AsNumber(value)
+    if type(value) == "number" then
+        return value
+    end
+    return nil
+end
+
+local function ResolveTotalItems(listObject)
+    if not listObject then
+        return 0
+    end
+
+    if type(listObject.GetNumEntries) == "function" then
+        return listObject:GetNumEntries() or 0
+    end
+
+    if type(listObject.GetNumItems) == "function" then
+        return listObject:GetNumItems() or 0
+    end
+
+    if listObject.dataList then
+        return #listObject.dataList
+    end
+
+    return 0
+end
+
+local function ResolveCurrentIndex(listObject)
+    if not listObject then
+        return 1
+    end
+
+    if type(listObject.targetSelectedIndex) == "number" then
+        return listObject.targetSelectedIndex
+    end
+
+    if type(listObject.GetSelectedIndex) == "function" then
+        return listObject:GetSelectedIndex() or 1
+    end
+
+    return 1
+end
+
+local function ResolveVisibleItems(instance, explicitVisibleItems)
+    local visibleItems = AsNumber(explicitVisibleItems)
+    if visibleItems then
+        return visibleItems
+    end
+
+    if instance then
+        visibleItems = AsNumber(instance.visibleItems)
+        if visibleItems then
+            return visibleItems
+        end
+    end
+
+    return 10
+end
+
 -- PUBLIC API
 
 local function ApplyOffsets(instance, listControl, options)
@@ -49,17 +108,28 @@ end
 --- Ensures the scroll indicator exists for a parametric list and applies layout options.
 ---@param listControl table
 ---@param options table|nil
+---@param options.listObject table|nil
+---@param options.visibleItems number|nil
 ---@return table? instance
 function ScrollIndicator.Ensure(listControl, options)
     if not listControl then return nil end
 
     local controlName = listControl:GetName()
+    local configuredListObject = options and options.listObject or nil
+    local configuredVisibleItems = options and options.visibleItems or nil
 
     if indicatorInstances[controlName] then
         local instance = indicatorInstances[controlName]
+        if configuredListObject then
+            instance.listObject = configuredListObject
+        end
+        if type(configuredVisibleItems) == "number" then
+            instance.visibleItems = configuredVisibleItems
+        end
         if options then
             ApplyOffsets(instance, listControl, options)
         end
+        EnsureMouseHandlers(instance)
         return instance
     end
 
@@ -76,12 +146,17 @@ function ScrollIndicator.Ensure(listControl, options)
         totalItems = 0,
         visibleItems = 0,
         currentIndex = 1,
-        listObject = nil,
+        listObject = configuredListObject,
         mouseHandlersSetup = false,
     }
 
+    if type(configuredVisibleItems) == "number" then
+        instance.visibleItems = configuredVisibleItems
+    end
+
     indicatorInstances[controlName] = instance
     ApplyOffsets(instance, listControl, options)
+    EnsureMouseHandlers(instance)
     return instance
 end
 
@@ -91,13 +166,18 @@ end
 ---@param options table|nil
 ---@return table? instance
 function ScrollIndicator.Setup(listControl, listObject, options)
-    local instance = ScrollIndicator.Ensure(listControl, options)
+    local effectiveOptions = {
+        listObject = listObject,
+        offsetX = options and options.offsetX or nil,
+        offsetTopY = options and options.offsetTopY or nil,
+        offsetBottomY = options and options.offsetBottomY or nil,
+        visibleItems = options and options.visibleItems or nil,
+    }
+
+    local instance = ScrollIndicator.Ensure(listControl, effectiveOptions)
     if not instance then
         return nil
     end
-
-    instance.listObject = listObject
-    EnsureMouseHandlers(instance)
     return instance
 end
 
@@ -106,7 +186,9 @@ end
 ---@param listObject table|nil
 ---@return table? instance
 function ScrollIndicator.BindListObject(listControl, listObject)
-    return ScrollIndicator.Setup(listControl, listObject)
+    return ScrollIndicator.Ensure(listControl, {
+        listObject = listObject,
+    })
 end
 
 --- Updates the scroll indicator position and visibility.
@@ -129,10 +211,27 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
 
     if not instance or not instance.controls then return end
 
-    -- Update cached state
-    instance.currentIndex = currentIndex or 1
-    instance.totalItems = totalItems or 0
-    instance.visibleItems = visibleItems or 10
+    instance.currentIndex = ResolveCurrentIndex(instance.listObject)
+    instance.totalItems = ResolveTotalItems(instance.listObject)
+    instance.visibleItems = ResolveVisibleItems(instance, visibleItems)
+    if currentIndex ~= nil then
+        local resolvedCurrentIndex = AsNumber(currentIndex)
+        if resolvedCurrentIndex then
+            instance.currentIndex = resolvedCurrentIndex
+        end
+    end
+    if totalItems ~= nil then
+        local resolvedTotalItems = AsNumber(totalItems)
+        if resolvedTotalItems then
+            instance.totalItems = resolvedTotalItems
+        end
+    end
+    if visibleItems ~= nil then
+        local resolvedVisibleItems = AsNumber(visibleItems)
+        if resolvedVisibleItems then
+            instance.visibleItems = resolvedVisibleItems
+        end
+    end
 
     local controls = instance.controls
     local THUMB_CFG = SCROLL_INDICATOR.THUMB or {}
@@ -150,7 +249,7 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     -- Normalize against selectable bounds, not raw entry count.
     local scrollPosition = 0
     if selectableSpan > 0 then
-        scrollPosition = (currentIndex - firstSelectableIndex) / selectableSpan
+        scrollPosition = (instance.currentIndex - firstSelectableIndex) / selectableSpan
     end
     scrollPosition = zo_clamp(scrollPosition, 0, 1)
 
@@ -160,7 +259,7 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     -- Calculate thumb height (proportional to visible items relative to total)
     -- Use full trackHeight so thumb size is consistent with visual track
     local selectableItems = lastSelectableIndex - firstSelectableIndex + 1
-    local thumbHeightRatio = visibleItems / math.max(selectableItems, 1)
+    local thumbHeightRatio = instance.visibleItems / math.max(selectableItems, 1)
     local minThumbHeight = THUMB_CFG.MIN_HEIGHT or 120
     local thumbHeight = math.max(minThumbHeight, trackHeight * math.min(thumbHeightRatio, 1))
 
@@ -178,10 +277,10 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     controls.thumb:ClearAnchors()
     controls.thumb:SetHeight(thumbHeight)
 
-    if currentIndex >= lastSelectableIndex and selectableSpan > 0 then
+    if instance.currentIndex >= lastSelectableIndex and selectableSpan > 0 then
         -- Last item: anchor thumb BOTTOM to track BOTTOM for pixel-perfect bottom alignment
         controls.thumb:SetAnchor(BOTTOM, controls.track, BOTTOM, 0, 0)
-    elseif currentIndex <= firstSelectableIndex or selectableSpan <= 0 then
+    elseif instance.currentIndex <= firstSelectableIndex or selectableSpan <= 0 then
         -- First item (or single/no items): anchor thumb TOP to track TOP
         controls.thumb:SetAnchor(TOP, controls.track, TOP, 0, 0)
     elseif scrollPosition > 0.5 then
@@ -194,7 +293,7 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     end
 
     if BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.IsEnabled() then
-        if currentIndex >= lastSelectableIndex - 1 and selectableSpan > 0 then
+        if instance.currentIndex >= lastSelectableIndex - 1 and selectableSpan > 0 then
             zo_callLater(function()
                 if not controls or not controls.thumb then return end
                 local tT, tB = controls.thumb:GetTop(), controls.thumb:GetBottom()
@@ -242,7 +341,7 @@ function ScrollIndicator.Show(listControl)
     if instance and instance.controls then
         instance.controls.container:SetHidden(false)
         -- Re-update to ensure correct visibility
-        ScrollIndicator.Update(listControl, instance.currentIndex, instance.totalItems, instance.visibleItems)
+        ScrollIndicator.Update(listControl)
     end
 end
 

@@ -6,6 +6,25 @@ Purpose: Hooks the native "Y-Action" dialog (ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
 
 -- DIALOG HOOKS (System Integration)
 
+local function GetProtectionPolicy()
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+    assert(type(policy) == "table",
+        "BetterUI: CIM.ProtectionPolicy must load before inventory action dialog destroy checks")
+    return policy
+end
+
+local function RequireDestroyPolicyMethod(methodName)
+    local policy = GetProtectionPolicy()
+    local method = policy and policy[methodName] or nil
+    assert(type(method) == "function",
+        string.format("BetterUI: CIM.ProtectionPolicy.%s must load before inventory action dialog destroy checks", tostring(methodName)))
+    return method
+end
+
+local function CanDestroyTargetWithPolicyViaPolicy(bagId, slotIndex, slotType)
+    return RequireDestroyPolicyMethod("CanDestroyItem")(bagId, slotIndex, slotType) == true
+end
+
 local function CanDestroyTargetWithPolicy(targetData)
     if not targetData then
         return false
@@ -20,12 +39,7 @@ local function CanDestroyTargetWithPolicy(targetData)
     if BETTERUI.Inventory and BETTERUI.Inventory.CanDestroyItemWithPolicy then
         return BETTERUI.Inventory.CanDestroyItemWithPolicy(bagId, slotIndex, slotType)
     end
-
-    local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-    if policy and policy.CanDestroyItem then
-        return policy.CanDestroyItem(bagId, slotIndex, slotType) == true
-    end
-    return true
+    return CanDestroyTargetWithPolicyViaPolicy(bagId, slotIndex, slotType)
 end
 
 --- Hooks the native Y-button Action Dialog.

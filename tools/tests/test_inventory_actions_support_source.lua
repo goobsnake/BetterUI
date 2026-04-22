@@ -43,6 +43,12 @@ assert_true(actionDialogHooks:find('CALLBACK_MANAGER:FireCallbacks%("BETTERUI_EV
     "ActionDialogHooks routes setup through the BetterUI action-dialog callback")
 assert_true(actionDialogHooks:find("CanDestroyTargetWithPolicy%(targetData%)") ~= nil,
     "ActionDialogHooks guards synthetic destroy actions with the shared destroy-policy seam")
+assert_true(actionDialogHooks:find("local function GetProtectionPolicy%(") ~= nil,
+    "ActionDialogHooks resolves destroy policy through an explicit required policy accessor")
+assert_true(actionDialogHooks:find("local function RequireDestroyPolicyMethod%(") ~= nil,
+    "ActionDialogHooks requires the destroy-policy method contract explicitly")
+assert_true(actionDialogHooks:find("policy and policy%.CanDestroyItem") == nil,
+    "ActionDialogHooks fails closed when no destroy-policy seam is available")
 
 local destroyAction = read_file("Modules/Inventory/Actions/DestroyAction.lua")
 assert_true(destroyAction:find("function BETTERUI%.Inventory%.TryDestroyItem%(bagId, slotIndex, force, suppressUiRefresh, slotType%)") ~= nil,
@@ -77,6 +83,10 @@ assert_true(itemActionHandlers:find("local function CanDestroyTargetData%(target
     "ItemActionHandlers centralizes destroy authorization checks for selected targets")
 assert_true(itemActionHandlers:find("CanDestroyItemWithPolicy") ~= nil,
     "ItemActionHandlers delegates destroy eligibility checks to shared policy helpers")
+assert_true(itemActionHandlers:find("local function RequireDestroyPolicyAuthorizer%(") ~= nil,
+    "ItemActionHandlers resolves destroy authorization through a required policy helper")
+assert_true(itemActionHandlers:find("policy and policy%.CanDestroyItem") == nil,
+    "ItemActionHandlers fails closed when no destroy-policy seam is available")
 assert_true(itemActionHandlers:find("BETTERUI%.Banking%.Class") == nil,
     "ItemActionHandlers no longer reaches into Banking.Class directly")
 

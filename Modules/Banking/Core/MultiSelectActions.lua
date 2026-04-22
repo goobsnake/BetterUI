@@ -25,15 +25,22 @@ assert(type(DENY.FURNITURE_VAULT_LOCKED) == "string",
     "BetterUI: ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED must be defined")
 assert(type(DENY.GUILD_PERMISSION) == "string", "BetterUI: ProtectionPolicy.DENY.GUILD_PERMISSION must be defined")
 
-local getTransferRules = BETTERUI.Banking and BETTERUI.Banking.GetTransferRules or nil
-BETTERUI.Banking.Transfer = BETTERUI.Banking.Transfer
-    or (type(getTransferRules) == "function" and getTransferRules())
-    or BETTERUI.Banking.TransferRules
-    or {}
-BETTERUI.Banking.TransferRules = BETTERUI.Banking.Transfer
+local function ResolveTransferService()
+    local transferService = BETTERUI.Banking and (BETTERUI.Banking.TransferRules or BETTERUI.Banking.Transfer) or nil
+    local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil
+    if type(getTransferService) == "function" then
+        transferService = getTransferService()
+    end
+    if type(transferService) ~= "table" then
+        transferService = {}
+    end
+    BETTERUI.Banking.Transfer = transferService
+    BETTERUI.Banking.TransferRules = transferService
+    return transferService
+end
 
 ---@type BetterUIBankingTransferService
-local Transfer = BETTERUI.Banking.Transfer
+local Transfer = ResolveTransferService() or {}
 
 local TRANSFER_DENIAL_ALERT = 1
 local TRANSFER_DENIAL_TOAST = 2

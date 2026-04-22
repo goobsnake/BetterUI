@@ -442,6 +442,7 @@ function BETTERUI.Inventory.List:Initialize(control, options)
             offsetX = 5,
             offsetTopY = -8,
             offsetBottomY = -10,
+            visibleItems = 15,
         })
     end
 
@@ -454,10 +455,7 @@ function BETTERUI.Inventory.List:Initialize(control, options)
             self:GetParametricList():RefreshVisible()
             local listCtrl = self.list and self.list.control
             if listCtrl then
-                local currentIndex = list.targetSelectedIndex or list:GetSelectedIndex() or 1
-                local totalItems = list:GetNumEntries() or 0
-                local visibleItems = 15 -- Approximate visible items in inventory list
-                BETTERUI.CIM.ScrollIndicator.Update(listCtrl, currentIndex, totalItems, visibleItems)
+                BETTERUI.CIM.ScrollIndicator.Update(listCtrl)
             end
         end
     end
@@ -569,9 +567,6 @@ function BETTERUI.Inventory.List:RefreshList()
 
     local listCtrl = self.list and self.list.control
     if listCtrl then
-        local currentIndex = self.list.targetSelectedIndex or self.list:GetSelectedIndex() or 1
-        local totalItems = self.list:GetNumEntries() or 0
-        local visibleItems = 15 -- Approximate visible items in inventory list
-        BETTERUI.CIM.ScrollIndicator.Update(listCtrl, currentIndex, totalItems, visibleItems)
+        BETTERUI.CIM.ScrollIndicator.Update(listCtrl)
     end
 end

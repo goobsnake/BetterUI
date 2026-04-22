@@ -17,6 +17,10 @@ local DENY = assert(
 assert(type(DENY.GUILD_PERMISSION) == "string",
     "BetterUI: CIM.ProtectionPolicy.DENY.GUILD_PERMISSION must be defined")
 
+local function GetBankingWindow()
+    return BETTERUI.Banking and BETTERUI.Banking.Window
+end
+
 function GuildBank.IsGuildBankMode()
     return BETTERUI.Banking.IsGuildBankTransfer()
 end
@@ -125,7 +129,7 @@ end
 
 function GuildBank.OnGuildBankSelected()
     loadingGuildBank = true
-    local window = BETTERUI.Banking.Window
+    local window = GetBankingWindow()
     if window then
         GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
         window:SetListUpdatesSuppressed(true)
@@ -133,7 +137,7 @@ function GuildBank.OnGuildBankSelected()
 end
 
 function GuildBank.OnGuildBankDeselected()
-    local window = BETTERUI.Banking.Window
+    local window = GetBankingWindow()
     if window and window.list then
         window.list:Clear()
         window.list:Commit()
@@ -142,7 +146,7 @@ end
 
 function GuildBank.OnGuildBankReady()
     loadingGuildBank = false
-    local window = BETTERUI.Banking.Window
+    local window = GetBankingWindow()
     if window then
         local preferredCategoryKey = window.GetCurrentCategoryKey and window:GetCurrentCategoryKey() or nil
         window:SetListUpdatesSuppressed(false)
@@ -160,7 +164,7 @@ function GuildBank.OnGuildBankReady()
 end
 
 function GuildBank.OnGuildBankUpdated()
-    local window = BETTERUI.Banking.Window
+    local window = GetBankingWindow()
     if window and not loadingGuildBank then
         if window.RefreshCategoryView then
             window:RefreshCategoryView({
@@ -176,7 +180,7 @@ end
 ---@return nil
 function GuildBank.OnGuildBankOpenError()
     loadingGuildBank = false
-    local window = BETTERUI.Banking.Window
+    local window = GetBankingWindow()
     if window then
         window:SetListUpdatesSuppressed(false)
         if window.list then
@@ -189,7 +193,7 @@ end
 --- Called when guild banked money is updated. Refreshes footer and lists.
 ---@return nil
 function GuildBank.OnGuildBankedMoneyUpdate()
-    local window = BETTERUI.Banking.Window
+    local window = GetBankingWindow()
     if window then
         window:RefreshList()
         if window.RefreshFooter then
@@ -203,7 +207,7 @@ end
 ---@param guildId integer The guild whose ranks changed
 function GuildBank.OnGuildRanksChanged(_, guildId)
     if guildId == GetSelectedGuildBankId() then
-        local window = BETTERUI.Banking.Window
+        local window = GetBankingWindow()
         if window then
             if window.coreKeybinds then
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
@@ -219,7 +223,7 @@ end
 ---@param displayName string The member's display name
 function GuildBank.OnGuildMemberRankChanged(_, guildId, displayName)
     if guildId == GetSelectedGuildBankId() and displayName == GetDisplayName() then
-        local window = BETTERUI.Banking.Window
+        local window = GetBankingWindow()
         if window then
             if window.coreKeybinds then
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
@@ -273,7 +277,7 @@ function GuildBank.RegisterGuildSelectorDialog()
                     if selected and selected.guildId then
                         GuildBank.ChangeGuildBank(selected.guildId)
                         -- Update title immediately
-                        local window = BETTERUI.Banking.Window
+	                        local window = GetBankingWindow()
                         if window then
                             window:SetTitle(GuildBank.GetHeaderTitle())
                         end

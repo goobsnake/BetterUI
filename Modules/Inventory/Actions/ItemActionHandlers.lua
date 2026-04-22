@@ -3,6 +3,22 @@ if not BETTERUI.Inventory.ActionHandlers then BETTERUI.Inventory.ActionHandlers 
 
 local ActionHandlers = BETTERUI.Inventory.ActionHandlers
 
+local function RequireDestroyPolicyAuthorizer()
+    local inventory = BETTERUI and BETTERUI.Inventory or nil
+    local canDestroyItemWithPolicy = inventory and inventory.CanDestroyItemWithPolicy or nil
+    if type(canDestroyItemWithPolicy) == "function" then
+        return canDestroyItemWithPolicy
+    end
+
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+    assert(type(policy) == "table",
+        "BetterUI: CIM.ProtectionPolicy must load before inventory action-handler destroy checks")
+    local canDestroyItem = policy.CanDestroyItem
+    assert(type(canDestroyItem) == "function",
+        "BetterUI: CIM.ProtectionPolicy.CanDestroyItem must load before inventory action-handler destroy checks")
+    return canDestroyItem
+end
+
 local function ToggleJunkState(self, isJunk)
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
         return
@@ -73,11 +89,7 @@ local function CanDestroyTargetData(targetData)
         return BETTERUI.Inventory.CanDestroyItemWithPolicy(bagId, slotIndex, slotType)
     end
 
-    local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-    if policy and policy.CanDestroyItem then
-        return policy.CanDestroyItem(bagId, slotIndex, slotType) == true
-    end
-    return true
+    return RequireDestroyPolicyAuthorizer()(bagId, slotIndex, slotType) == true
 end
 
 function ActionHandlers.OnSetup(self, dialog, data)

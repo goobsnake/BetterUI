@@ -26,7 +26,7 @@ end
 -- IMPORT MODULE UNDER TEST
 -- ============================================================================
 
-dofile("Modules/CIM/Core/Diagnostics/DeprecationRegistry.lua")
+dofile("tools/tests/support/DeprecationRegistry.lua")
 
 -- Reset for tests
 local function resetRegistry()

@@ -39,14 +39,20 @@ assert_contains(
 
 assert_contains(
     transferActions,
-    "BETTERUI.Banking.TransferRules = BETTERUI.Banking.Transfer",
+    "BETTERUI.Banking.TransferRules = transferService",
     "TransferActions normalizes the dedicated Banking transfer service namespace before use"
 )
 
 assert_contains(
     transferActions,
-    "local Transfer = BETTERUI.Banking.Transfer",
+    "local Transfer = ResolveTransferService() or {}",
     "TransferActions resolves transfer authorization through the dedicated Banking transfer service"
+)
+
+assert_contains(
+    transferActions,
+    "local getTransferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService or nil",
+    "TransferActions resolves transfer authorization through the dedicated Banking transfer service entrypoint"
 )
 
 assert_not_contains(
