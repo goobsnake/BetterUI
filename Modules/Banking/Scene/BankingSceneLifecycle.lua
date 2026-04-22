@@ -6,7 +6,6 @@ Extracted from Banking.lua for maintainability.
 
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local SHARED_INVENTORY_UPDATE_DELAY_MS = 100
-local RuntimeState = BETTERUI.Banking.RuntimeState
 
 -- Guild bank events registered/unregistered as a batch during scene transitions
 local GUILD_BANK_EVENTS = {
@@ -32,7 +31,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         self.selector:Deactivate()
     end
 
-    RuntimeState.currentUsedBank = BETTERUI.Banking.GetActiveInteractionBag()
+    BETTERUI.Banking.SetRuntimeBankBags(BETTERUI.Banking.GetActiveInteractionBag(), nil)
 
     -- Guild bank detection: update title and check permissions
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -85,36 +84,20 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     -- Register for SHARED_INVENTORY callbacks
     local function RebuildCategoriesAndRefreshList()
         local previousCategoryKey = nil
-        if self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
+        if self.GetCurrentCategoryKey then
+            previousCategoryKey = self:GetCurrentCategoryKey()
+        elseif self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
             local prevCat = self.bankCategories[self.currentCategoryIndex]
-            if prevCat then
-                previousCategoryKey = prevCat.key
-            end
+            previousCategoryKey = prevCat and prevCat.key or nil
         end
 
-        self.bankCategories = self:ComputeVisibleBankCategories()
-        if not self.bankCategories or #self.bankCategories == 0 then
-            self.currentCategoryIndex = 1
+        if self.RefreshCategoryView then
+            self:RefreshCategoryView({
+                preferredCategoryKey = previousCategoryKey,
+            })
+        else
             self:RefreshList()
-            return
         end
-
-        local desiredCategoryIndex = 1
-        if previousCategoryKey then
-            for i, cat in ipairs(self.bankCategories) do
-                if cat.key == previousCategoryKey then
-                    desiredCategoryIndex = i
-                    break
-                end
-            end
-        end
-        self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
-
-        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
-        state.suppressHeaderCallback = true
-        self:RebuildHeaderCategories()
-        state.suppressHeaderCallback = false
-        self:RefreshList()
     end
 
     local function TryRefreshAfterInventoryUpdate()
@@ -128,7 +111,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
             return
         end
 
-        if self._suppressListUpdates then
+        if self:AreListUpdatesSuppressed() then
             return
         end
 
@@ -169,7 +152,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     -- Re-activate list and refresh after any gamepad dialog fully closes
     self._onDialogHiddenCallback = function()
         if BETTERUI.Utils.IsBankingSceneShowing() and self.list then
-            self._suppressListUpdates = false
+            self:SetListUpdatesSuppressed(false)
             BETTERUI.Banking.Tasks:Schedule("dialogHiddenRefresh", 50, function()
                 if BETTERUI.Utils.IsBankingSceneShowing() then
                     RebuildCategoriesAndRefreshList()
@@ -211,7 +194,7 @@ end
 
 --- Scene hidden handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneHidden()
-    RuntimeState.lastUsedBank = BETTERUI.Banking.GetActiveInteractionBag()
+    BETTERUI.Banking.SetRuntimeBankBags(nil, BETTERUI.Banking.GetActiveInteractionBag())
     if self.confirmationMode then
         self:UpdateSpinnerConfirmation(false, self.list)
     end

@@ -16,9 +16,13 @@ end
 
 function BETTERUI.Banking.Class:RequestJunkCategoryRefresh(delayMs, preferredCategoryKey)
     local requestedCategoryKey = preferredCategoryKey
-    if not requestedCategoryKey and self.bankCategories and self.currentCategoryIndex then
-        local currentCategory = self.bankCategories[self.currentCategoryIndex]
-        requestedCategoryKey = currentCategory and currentCategory.key or nil
+    if not requestedCategoryKey then
+        if self.GetCurrentCategoryKey then
+            requestedCategoryKey = self:GetCurrentCategoryKey()
+        elseif self.bankCategories and self.currentCategoryIndex then
+            local currentCategory = self.bankCategories[self.currentCategoryIndex]
+            requestedCategoryKey = currentCategory and currentCategory.key or nil
+        end
     end
 
     BETTERUI.Banking.Tasks:Schedule("junkCategoryRefresh", delayMs or 140, function()
@@ -32,34 +36,20 @@ function BETTERUI.Banking.Class:RequestJunkCategoryRefresh(delayMs, preferredCat
         end
 
         self.isDirty = true
-        self.bankCategories = self:ComputeVisibleBankCategories()
-        if not self.bankCategories or #self.bankCategories == 0 then
-            self.currentCategoryIndex = 1
-            self:RefreshList()
+        if self.RefreshCategoryView then
+            self:RefreshCategoryView({
+                preferredCategoryKey = requestedCategoryKey,
+                refreshKeybinds = true,
+            })
             return
         end
 
-        local desiredCategoryIndex = 1
-        if requestedCategoryKey then
-            for i, category in ipairs(self.bankCategories) do
-                if category.key == requestedCategoryKey then
-                    desiredCategoryIndex = i
-                    break
-                end
-            end
-        end
-
-        self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
-        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
-        state.suppressHeaderCallback = true
-        self:RebuildHeaderCategories()
-        state.suppressHeaderCallback = false
         self:RefreshList()
         self:RefreshActiveKeybinds()
     end)
 end
 
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@param targetData table?
 local function EnsureTargetSlotType(self, targetData)
     if not targetData or targetData.slotType then
@@ -73,7 +63,7 @@ local function EnsureTargetSlotType(self, targetData)
     end
 end
 
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@param targetData table?
 local function RebuildDiscoveredActions(self, targetData)
     if not targetData then
@@ -94,7 +84,7 @@ local function RebuildDiscoveredActions(self, targetData)
     self:RefreshItemActions()
 end
 
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@param parametricList table
 local function PopulateFilteredActions(self, parametricList)
     local actions = self.itemActions:GetSlotActions()
@@ -114,6 +104,27 @@ end
 
 ---@return nil
 function BETTERUI.Banking.Class:InitializeActionsDialog()
+    local function GetProtectionPolicy()
+        local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+        return policy
+    end
+
+    local function CanJunkWithPolicy(bagId, slotIndex)
+        local policy = GetProtectionPolicy()
+        if not (policy and type(policy.CanJunkItem) == "function") then
+            return false
+        end
+        return policy.CanJunkItem(bagId, slotIndex) == true
+    end
+
+    local function CanUnjunkWithPolicy(bagId, slotIndex)
+        local policy = GetProtectionPolicy()
+        if not (policy and type(policy.CanUnjunkItem) == "function") then
+            return false
+        end
+        return policy.CanUnjunkItem(bagId, slotIndex) == true
+    end
+
     local function GetCurrentCategoryKey()
         local category = self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1] or nil
         return category and category.key or nil
@@ -126,15 +137,11 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         if self:IsFurnitureVaultContext() then
             return false
         end
-        local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-        if not policy then
-            return true
-        end
         local isJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex) == true
         if isJunk then
-            return policy.CanUnjunkItem(targetData.bagId, targetData.slotIndex)
+            return CanUnjunkWithPolicy(targetData.bagId, targetData.slotIndex)
         end
-        return policy.CanJunkItem(targetData.bagId, targetData.slotIndex)
+        return CanJunkWithPolicy(targetData.bagId, targetData.slotIndex)
     end
 
     local function ToggleBankingItemJunk(targetData, shouldMarkAsJunk)
@@ -146,12 +153,11 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         end
 
         local isCurrentlyJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex)
-        local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
         if shouldMarkAsJunk == true then
-            if isCurrentlyJunk or (policy and not policy.CanJunkItem(targetData.bagId, targetData.slotIndex)) then
+            if isCurrentlyJunk or not CanJunkWithPolicy(targetData.bagId, targetData.slotIndex) then
                 return false
             end
-        elseif not isCurrentlyJunk or (policy and not policy.CanUnjunkItem(targetData.bagId, targetData.slotIndex)) then
+        elseif not isCurrentlyJunk or not CanUnjunkWithPolicy(targetData.bagId, targetData.slotIndex) then
             return false
         end
 
@@ -212,8 +218,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 
             if CanShowBankingJunkActions(targetData) then
                 local isJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex)
-                local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-                local canMarkAsJunk = policy and policy.CanJunkItem(targetData.bagId, targetData.slotIndex)
+                local canMarkAsJunk = CanJunkWithPolicy(targetData.bagId, targetData.slotIndex)
                 local junkActionName = nil
                 local markAsJunk = false
                 if isJunk then

@@ -58,6 +58,7 @@ end
 -- Load modules under test
 dofile("Modules/CIM/Core/Integration/ResearchCache.lua")
 dofile("Modules/CIM/Core/Data/SearchManager.lua")
+dofile("Modules/CIM/Core/Integration/OptionalAddonRegistry.lua")
 dofile("Modules/CIM/Core/Integration/MarketIntegration.lua")
 
 print("Test: ResearchCache getters expose snapshot vs live semantics")

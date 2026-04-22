@@ -228,9 +228,6 @@ dofile("BetterUI.lua")
 BETTERUI.Debug = function(message)
     debugMessages[#debugMessages + 1] = tostring(message)
 end
-BETTERUI.GetResearch = function()
-    researchCalls = researchCalls + 1
-end
 BETTERUI.EnsureModuleSettings = function(moduleName)
     return { moduleName = moduleName }
 end
@@ -252,6 +249,11 @@ end
 BETTERUI.CIM.EventRegistry = {
     EnsureRuntimeState = function()
         ensureLifecycleRuntimeStateCalls = ensureLifecycleRuntimeStateCalls + 1
+    end,
+}
+BETTERUI.CIM.ResearchCache = {
+    RefreshResearchTraits = function()
+        researchCalls = researchCalls + 1
     end,
 }
 dofile("Modules/CIM/Core/Lifecycle/DeferredTask.lua")
@@ -768,8 +770,8 @@ eventManager.UnregisterForEvent = function(self, name)
 end
 
 dofile("Modules/GeneralInterface/Module.lua")
-assert_true(BETTERUI.GeneralInterface.Nameplates == BETTERUI.Nameplates,
-    "GeneralInterface module keeps Nameplates as a compatibility alias to the dedicated Nameplates namespace")
+assert_true(BETTERUI.GeneralInterface.Nameplates == nil,
+    "GeneralInterface module does not retain a legacy Nameplates compatibility alias")
 assert_true(BETTERUI.GeneralInterface.GetNameplatesNamespace == nil,
     "GeneralInterface module no longer exports a Nameplates ownership resolver seam")
 

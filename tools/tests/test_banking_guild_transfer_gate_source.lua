@@ -32,13 +32,15 @@ end
 local multiSelect = read_file("Modules/Banking/Core/MultiSelectActions.lua")
 assert_true(multiSelect:find("ResolveGuildBankTransferDecision") ~= nil,
     "MultiSelectActions defines the shared guild-bank transfer decision helper")
-assert_true(multiSelect:find("function TransferRules%.NotifyGuildBankTransferDenied") ~= nil,
-    "MultiSelectActions exports the shared guild-bank denial notifier through TransferRules")
+assert_true(
+    multiSelect:find("Transfer%.NotifyGuildBankTransferDenied") ~= nil
+        and multiSelect:find("TransferRules = BETTERUI%.Banking%.Transfer") ~= nil,
+    "MultiSelectActions exports the shared guild-bank denial notifier through Banking.Transfer and keeps TransferRules compatibility alias")
 
 local transferActions = read_file("Modules/Banking/Actions/TransferActions.lua")
 assert_true(transferActions:find("TryTransferInventorySlot") ~= nil,
     "TransferActions owns the single-slot Banking transfer seam")
-assert_true(transferActions:find("TransferRules%.NotifyGuildBankTransferDenied") ~= nil,
+assert_true(transferActions:find("Transfer%.NotifyGuildBankTransferDenied") ~= nil,
     "TransferActions routes guild-bank moves through the shared denial helper")
 
 local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")
@@ -48,7 +50,7 @@ assert_true(genericSlotActions:find("TryTransferInventorySlot") ~= nil,
 local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 assert_true(keybindManager:find("ResolveGuildBankTransferKeybindState") ~= nil,
     "KeybindManager centralizes guild-bank transfer keybind gating")
-assert_true(keybindManager:find("transferRules and transferRules%.ResolveGuildBankTransferDecision") ~= nil,
+assert_true(keybindManager:find("transferService and transferService%.ResolveGuildBankTransferDecision") ~= nil,
     "KeybindManager reuses the shared guild-bank transfer decision helper")
 
 if failed > 0 then

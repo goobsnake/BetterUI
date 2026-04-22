@@ -70,8 +70,8 @@ assert_true(itemActionHandlers:find("function ActionHandlers%.OnFinish%(self%)")
     "ItemActionHandlers exposes OnFinish")
 assert_true(itemActionHandlers:find("function ActionHandlers%.OnConfirm%(self, dialog%)") ~= nil,
     "ItemActionHandlers exposes OnConfirm")
-assert_true(itemActionHandlers:find("BETTERUI%.CIM%.Utils%.GetBankingSortEntryContext") ~= nil,
-    "ItemActionHandlers resolves banking sort context through the shared CIM seam")
+assert_true(itemActionHandlers:find("BETTERUI%.Banking and BETTERUI%.Banking%.GetSortEntryContext") ~= nil,
+    "ItemActionHandlers resolves banking sort context through the Banking-owned seam")
 assert_true(itemActionHandlers:find("local function CanDestroyTargetData%(targetData%)") ~= nil,
     "ItemActionHandlers centralizes destroy authorization checks for selected targets")
 assert_true(itemActionHandlers:find("CanDestroyItemWithPolicy") ~= nil,

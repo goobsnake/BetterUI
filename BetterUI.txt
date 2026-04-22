@@ -6,6 +6,7 @@
 ## Version: 3.06
 ## DependsOn: LibAddonMenu-2.0>=41
 ## OptionalDependsOn: MasterMerchant ArkadiusTradeTools TamrielTradeCentre AutoCategory
+; Keep OptionalDependsOn keys in sync with Modules/CIM/Core/Integration/OptionalAddonRegistry.lua (OPTIONAL_ADDON_KEYS)
 ## SavedVariables: BetterUISavedVars
  
 ; Core Initialization (Must load first)
@@ -113,7 +114,7 @@ Modules\GeneralInterface\Tooltips\SettingsHelpers.lua
 Modules\GeneralInterface\Tooltips\Settings.lua
 Modules\GeneralInterface\Tooltips\Tooltips.lua
 
-; Module: Nameplates (Standalone)
+; Module: Nameplates (CIM-dependent interface module)
 Modules\Nameplates\Settings.lua
 Modules\Nameplates\Nameplates.lua
 

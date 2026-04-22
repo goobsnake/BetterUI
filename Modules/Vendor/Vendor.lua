@@ -275,17 +275,16 @@ local function GetNativeStoreBridge()
     return ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge")
 end
 
-local function RestoreNativeStoreSceneAlias()
-    GetNativeStoreBridge().RestoreSceneAlias()
-end
-
-local function AliasStoreSceneToBetterUI()
-    GetNativeStoreBridge().AliasSceneToBetterUI(Vendor.instance)
-end
-
 local function LogVendorDebug(flagName, category, message)
     if Vendor.LogDebug then
         Vendor.LogDebug(flagName, category, message)
+    end
+end
+
+local function LogNativeStoreInputState(context, storeManager)
+    local bridge = Vendor.NativeStoreBridge
+    if bridge and bridge.LogInputState then
+        bridge.LogInputState(context, storeManager)
     end
 end
 
@@ -339,6 +338,16 @@ local function ResetVendorInteractionState()
     Vendor._openStoreSyncAttempt = 0
 end
 
+local function MarkVendorClosingState()
+    isFenceInteraction = false
+    isStableInteraction = false
+    fenceEnableSell = false
+    fenceEnableLaunder = false
+    Vendor._sessionHasBuyMode = false
+    Vendor._isClosing = true
+    Vendor._openStoreSyncAttempt = 0
+end
+
 local function ResetVendorRuntimeState(instance)
     if not instance then
         return
@@ -364,61 +373,6 @@ local function ResetActiveVendorRuntimeState()
     end
 end
 
-local function SnapshotVendorInteractionState()
-    return {
-        isFenceInteraction = isFenceInteraction,
-        isStableInteraction = isStableInteraction,
-        fenceEnableSell = fenceEnableSell,
-        fenceEnableLaunder = fenceEnableLaunder,
-    }
-end
-
-local function ApplyVendorInteractionState(nextState)
-    if not nextState then
-        return
-    end
-
-    isFenceInteraction = nextState.isFenceInteraction == true
-    isStableInteraction = nextState.isStableInteraction == true
-    fenceEnableSell = nextState.fenceEnableSell == true
-    fenceEnableLaunder = nextState.fenceEnableLaunder == true
-end
-
-local function ApplyVendorResolvedMode(targetMode, refreshList)
-    GetNativeStoreBridge().ApplyResolvedMode(targetMode, refreshList)
-end
-
-local function ResolveVendorTargetMode()
-    return GetNativeStoreBridge().ResolveTargetMode()
-end
-
-local ScheduleVendorOpenStoreSync
-
-ScheduleVendorOpenStoreSync = function(targetMode, delayMs)
-    GetNativeStoreBridge().ScheduleOpenStoreSync(targetMode, delayMs)
-end
-
-local function ShowVendorScene()
-    if SCENE_MANAGER then
-        SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
-    end
-end
-
-local function HideVendorScene()
-    if not SCENE_MANAGER then
-        return
-    end
-
-    local scene = SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
-    if scene and scene.IsShowing and scene:IsShowing() then
-        SCENE_MANAGER:Hide(BETTERUI_VENDOR_SCENE_NAME)
-    end
-end
-
-local function GetVendorStoreManager()
-    return rawget(_G, "STORE_WINDOW_GAMEPAD")
-end
-
 local function CancelVendorRuntimeTasks()
     if Vendor.Tasks then
         Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
@@ -430,49 +384,115 @@ local function CancelVendorRuntimeTasks()
     end
 end
 
-local function BuildVendorOpenStoreDeps()
-    local nativeStoreBridge = GetNativeStoreBridge()
-    return {
-        resetInteractionState = ResetVendorInteractionState,
-        instance = Vendor.instance,
-        resetRuntimeState = ResetActiveVendorRuntimeState,
-        nativeStoreBridge = nativeStoreBridge,
-        getInteractionType = GetInteractionType,
-        interactionVendor = INTERACTION_VENDOR,
-        interactionStable = INTERACTION_STABLE,
-        isNativeStableModeActive = IsNativeStableModeActive,
-        logVendorDebug = LogVendorDebug,
-        showScene = ShowVendorScene,
-    }
+local function RunVendorCloseCleanup(instance)
+    if not instance or instance._vendorCloseCleanupApplied == true then
+        return
+    end
+
+    instance._vendorCloseCleanupApplied = true
+
+    if instance.DisableStablePreviewMode then
+        instance:DisableStablePreviewMode()
+    end
+    if instance.ReleaseNativeStoreInputOwnership then
+        instance:ReleaseNativeStoreInputOwnership()
+    end
+    if instance.ForceReleaseDirectionalInput then
+        instance:ForceReleaseDirectionalInput()
+    end
 end
 
-local function BuildVendorOpenFenceDeps()
-    local nativeStoreBridge = GetNativeStoreBridge()
-    return {
-        resetInteractionState = ResetVendorInteractionState,
-        instance = Vendor.instance,
-        resetRuntimeState = ResetActiveVendorRuntimeState,
-        nativeStoreBridge = nativeStoreBridge,
-        logVendorDebug = LogVendorDebug,
-        sellMode = MODE.FENCE_SELL,
-        fenceLaunderMode = MODE.FENCE_LAUNDER,
-        showScene = ShowVendorScene,
-    }
+Vendor.ResetRuntimeState = ResetActiveVendorRuntimeState
+Vendor.CancelRuntimeTasks = CancelVendorRuntimeTasks
+
+local function ApplyVendorInteractionState(nextState)
+    if not nextState then
+        return
+    end
+
+    if nextState.isFenceInteraction ~= nil then
+        isFenceInteraction = nextState.isFenceInteraction == true
+    end
+    if nextState.isStableInteraction ~= nil then
+        isStableInteraction = nextState.isStableInteraction == true
+    end
+    if nextState.fenceEnableSell ~= nil then
+        fenceEnableSell = nextState.fenceEnableSell == true
+    end
+    if nextState.fenceEnableLaunder ~= nil then
+        fenceEnableLaunder = nextState.fenceEnableLaunder == true
+    end
+    if nextState.sessionHasBuyMode ~= nil then
+        Vendor._sessionHasBuyMode = nextState.sessionHasBuyMode == true
+    end
+    if nextState.isClosing ~= nil then
+        Vendor._isClosing = nextState.isClosing == true
+    end
+    if nextState.openStoreSyncAttempt ~= nil then
+        Vendor._openStoreSyncAttempt = nextState.openStoreSyncAttempt or 0
+    end
 end
 
-local function BuildVendorCloseStoreDeps()
-    local nativeStoreBridge = GetNativeStoreBridge()
-    return {
-        instance = Vendor.instance,
-        resetRuntimeState = ResetActiveVendorRuntimeState,
-        nativeStoreBridge = nativeStoreBridge,
-        cancelRuntimeTasks = CancelVendorRuntimeTasks,
-        logVendorDebug = LogVendorDebug,
-        hideScene = HideVendorScene,
-        storeManager = GetVendorStoreManager(),
-        logNativeStoreInputState = LogNativeStoreInputState,
-        safeCall = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper"),
-    }
+local VendorLifecycleRuntime = {}
+
+function VendorLifecycleRuntime.ResetInteractionState(instance)
+    ResetVendorInteractionState()
+    if instance then
+        instance._vendorCloseCleanupApplied = false
+    end
+end
+
+function VendorLifecycleRuntime.MarkClosingState()
+    MarkVendorClosingState()
+end
+
+function VendorLifecycleRuntime.SetInteractionState(nextState)
+    ApplyVendorInteractionState(nextState)
+end
+
+function VendorLifecycleRuntime.ResetRuntimeState(instance)
+    ResetVendorRuntimeState(instance)
+end
+
+function VendorLifecycleRuntime.CancelRuntimeTasks()
+    CancelVendorRuntimeTasks()
+end
+
+function VendorLifecycleRuntime.ShowScene()
+    if SCENE_MANAGER then
+        SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
+    end
+end
+
+function VendorLifecycleRuntime.HideScene()
+    if not SCENE_MANAGER then
+        return
+    end
+
+    local scene = SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
+    if scene and scene.IsShowing and scene:IsShowing() then
+        SCENE_MANAGER:Hide(BETTERUI_VENDOR_SCENE_NAME)
+    end
+end
+
+function VendorLifecycleRuntime.LogDebug(flagName, category, message)
+    LogVendorDebug(flagName, category, message)
+end
+
+function VendorLifecycleRuntime.LogNativeStoreInputState(context, storeManager)
+    LogNativeStoreInputState(context, storeManager)
+end
+
+function VendorLifecycleRuntime.SafeCall(context, fn, ...)
+    return ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(context, fn, ...)
+end
+
+function VendorLifecycleRuntime.GetStoreManager()
+    return rawget(_G, "STORE_WINDOW_GAMEPAD")
+end
+
+function VendorLifecycleRuntime.RunCloseCleanup(instance)
+    return RunVendorCloseCleanup(instance)
 end
 
 -- KEYBINDS
@@ -1140,45 +1160,57 @@ end
 -- EVENT HANDLERS
 
 local function OnOpenStore()
-    ResetVendorInteractionState()
-    ApplyVendorInteractionState(
-        ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
-            .OnOpenStore(SnapshotVendorInteractionState(), BuildVendorOpenStoreDeps())
-    )
+    ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
+        .OnOpenStore(
+            VendorLifecycleRuntime,
+            GetNativeStoreBridge(),
+            Vendor.instance,
+            {
+                interactionType = GetInteractionType and GetInteractionType() or nil,
+                interactionVendor = INTERACTION_VENDOR,
+                interactionStable = INTERACTION_STABLE,
+                isNativeStableModeActive = IsNativeStableModeActive,
+            }
+        )
 end
 
 ---@param _ any Unused event code
 ---@param enableSell boolean|nil Whether fence sell is enabled (default true)
 ---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
-    ResetVendorInteractionState()
-    ApplyVendorInteractionState(
-        ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
-            .OnOpenFence(
-                SnapshotVendorInteractionState(),
-                BuildVendorOpenFenceDeps(),
-                enableSell,
-                enableLaunder
-            )
-    )
+    ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
+        .OnOpenFence(
+            VendorLifecycleRuntime,
+            GetNativeStoreBridge(),
+            Vendor.instance,
+            {
+                sellMode = MODE.FENCE_SELL,
+                fenceLaunderMode = MODE.FENCE_LAUNDER,
+            },
+            enableSell,
+            enableLaunder
+        )
 end
 
 local function OnStableInteractStart()
-    isStableInteraction = true
+    VendorLifecycleRuntime.SetInteractionState({
+        isStableInteraction = true,
+    })
 end
 
 local function OnStableInteractEnd()
-    isStableInteraction = false
+    VendorLifecycleRuntime.SetInteractionState({
+        isStableInteraction = false,
+    })
 end
 
 local function OnCloseStore()
-    Vendor._isClosing = true
-    Vendor._sessionHasBuyMode = false
-    Vendor._openStoreSyncAttempt = 0
-    ApplyVendorInteractionState(
-        ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
-            .OnCloseStore(SnapshotVendorInteractionState(), BuildVendorCloseStoreDeps())
-    )
+    ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
+        .OnCloseStore(
+            VendorLifecycleRuntime,
+            GetNativeStoreBridge(),
+            Vendor.instance
+        )
 end
 
 local function OnInventoryUpdated()
@@ -1334,7 +1366,7 @@ function BETTERUI.Vendor.Init()
     CreateVendorScene(instance)
     TakeOverNativeStoreScene(instance)
     RegisterVendorSceneLifecycle(instance)
-    AliasStoreSceneToBetterUI()
+    GetNativeStoreBridge().AliasSceneToBetterUI(Vendor.instance)
     instance:InitVendorFooter()
     RegisterVendorEvents(EVENT_MANAGER)
     ExposeVendorRuntimeHelpers()

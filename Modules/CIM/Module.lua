@@ -18,16 +18,38 @@ Internal organization:
   UI/                 - Headers, footers, sort controls, currency manager
   Templates/          - XML UI templates (headers, footers, scroll lists)
 
-Domain-specific features (Tooltips, Nameplates) have been extracted to
-Modules/GeneralInterface/ — CIM provides only cross-cutting infrastructure.
+Domain-specific interface features now live in dedicated modules:
+  - Modules/GeneralInterface/ (tooltips and shared interface hooks)
+  - Modules/Nameplates/ (nameplate runtime/settings-owner surface)
+CIM provides only cross-cutting infrastructure consumed by those modules.
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 
-local ClampInteger = BETTERUI.ClampInteger
 local CIM = BETTERUI.CIM
 local ARCHETYPES = CIM.ARCHETYPES or {}
 local RUNTIME_COORDINATOR = ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"
+
+local function ClampToInteger(value, minValue, maxValue, fallback)
+    local clampInteger = BETTERUI and BETTERUI.ClampInteger
+    if type(clampInteger) == "function" then
+        return clampInteger(value, minValue, maxValue, fallback)
+    end
+
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < minValue then
+        return minValue
+    end
+    if rounded > maxValue then
+        return maxValue
+    end
+    return rounded
+end
 
 ---@type BetterUIModuleArchetypeRuntimeCoordinator
 CIM.ARCHETYPE = RUNTIME_COORDINATOR
@@ -60,8 +82,8 @@ function CIM.InitModule(m_options)
     local font = BETTERUI.CIM and BETTERUI.CIM.Font or {}
     local minFontSize = font.SIZE_MIN or 12
     local maxFontSize = font.SIZE_MAX or 48
-    m_options["rhScrollSpeed"] = ClampInteger(m_options["rhScrollSpeed"], 1, 1000, defaults.DEFAULT_RH_SCROLL_SPEED)
-    m_options["tooltipSize"] = ClampInteger(m_options["tooltipSize"], minFontSize, maxFontSize, defaults.DEFAULT_TOOLTIP_SIZE)
+    m_options["rhScrollSpeed"] = ClampToInteger(m_options["rhScrollSpeed"], 1, 1000, defaults.DEFAULT_RH_SCROLL_SPEED)
+    m_options["tooltipSize"] = ClampToInteger(m_options["tooltipSize"], minFontSize, maxFontSize, defaults.DEFAULT_TOOLTIP_SIZE)
 
     return m_options
 end

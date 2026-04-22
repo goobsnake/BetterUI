@@ -9,7 +9,24 @@ BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {
     lastOpenedBankBag = BAG_BANK,
     esoSubscriber = nil,
 }
-local BankingRuntimeState = BETTERUI.Banking.RuntimeState
+
+---@return BetterUIBankingRuntimeState
+function BETTERUI.Banking.GetRuntimeState()
+    return BETTERUI.Banking.RuntimeState
+end
+
+---@param currentUsedBank BagId|nil
+---@param lastUsedBank BagId|nil
+---@return nil
+function BETTERUI.Banking.SetRuntimeBankBags(currentUsedBank, lastUsedBank)
+    local runtimeState = BETTERUI.Banking.GetRuntimeState()
+    if currentUsedBank ~= nil then
+        runtimeState.currentUsedBank = currentUsedBank
+    end
+    if lastUsedBank ~= nil then
+        runtimeState.lastUsedBank = lastUsedBank
+    end
+end
 
 local function IsHousingStorageBag(bankBagId)
     if not bankBagId then
@@ -48,24 +65,20 @@ local function ResolveBankBag(bankBagId)
     return bankBagId
 end
 
+---@type BetterUIBankingTransferKind
 BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK = "main-bank"
+---@type BetterUIBankingTransferKind
 BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK = "house-bank"
+---@type BetterUIBankingTransferKind
 BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK = "guild-bank"
-
----@class BetterUIBankingTransferContext
----@field kind string
----@field interactionBag number
----@field depositTargetBag number
----@field withdrawSourceBags number[]
----@field sourceIsFurnitureVault boolean
----@field targetIsFurnitureVault boolean
 
 ---@return number
 local function ResolveTransferSourceBag()
+    local runtimeState = BETTERUI.Banking.GetRuntimeState()
     if GetBankingBag then
         local bankingBag = ResolveBankBag(GetBankingBag())
         if bankingBag == BAG_BANK then
-            local openedBankBag = BankingRuntimeState.lastOpenedBankBag
+            local openedBankBag = runtimeState.lastOpenedBankBag
             if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
                 return openedBankBag
             end
@@ -73,16 +86,17 @@ local function ResolveTransferSourceBag()
         end
         return bankingBag
     end
-    return ResolveBankBag(BankingRuntimeState.currentUsedBank)
+    return ResolveBankBag(runtimeState.currentUsedBank)
 end
 
 ---@param sourceBag number
 ---@return number
 local function ResolveTransferTargetBag(sourceBag)
+    local runtimeState = BETTERUI.Banking.GetRuntimeState()
     if sourceBag == BAG_GUILDBANK or IsHousingStorageBag(sourceBag) then
         return sourceBag
     end
-    return ResolveBankBag(BankingRuntimeState.currentUsedBank)
+    return ResolveBankBag(runtimeState.currentUsedBank)
 end
 
 ---@param targetBag number
@@ -98,7 +112,7 @@ local function ResolveWithdrawSourceBags(targetBag, isGuildBank)
     return { targetBag }
 end
 
----@return string
+---@return BetterUIBankingTransferKind
 local function ResolveTransferKind(sourceBag)
     if sourceBag == BAG_GUILDBANK or IsGuildBankSceneShowing() then
         return BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
@@ -128,44 +142,59 @@ local function BuildTransferContext()
     }
 end
 
-function BETTERUI.Banking.GetTransferContext()
+---@return BetterUIBankingTransferContext
+function BETTERUI.Banking.GetTransferState()
     return BuildTransferContext()
 end
 
+---@return BetterUIBankingTransferContext
+function BETTERUI.Banking.GetTransferContext()
+    return BETTERUI.Banking.GetTransferState()
+end
+
+---@return BetterUIBankingTransferKind
 function BETTERUI.Banking.GetTransferKind()
-    return BuildTransferContext().kind
+    return BETTERUI.Banking.GetTransferState().kind
 end
 
+---@return boolean
 function BETTERUI.Banking.IsGuildBankTransfer()
-    return BuildTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    return BETTERUI.Banking.GetTransferState().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
 end
 
+---@return boolean
 function BETTERUI.Banking.IsMainBankTransfer()
-    return BuildTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+    return BETTERUI.Banking.GetTransferState().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
 end
 
+---@return boolean
 function BETTERUI.Banking.IsHouseBankTransfer()
-    return BuildTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
+    return BETTERUI.Banking.GetTransferState().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
 end
 
+---@return BagId
 function BETTERUI.Banking.GetActiveInteractionBag()
-    return BuildTransferContext().interactionBag
+    return BETTERUI.Banking.GetTransferState().interactionBag
 end
 
+---@return BagId
 function BETTERUI.Banking.GetActiveDepositBag()
-    return BuildTransferContext().depositTargetBag
+    return BETTERUI.Banking.GetTransferState().depositTargetBag
 end
 
+---@return BagId[]
 function BETTERUI.Banking.GetWithdrawSourceBags()
-    return BuildTransferContext().withdrawSourceBags
+    return BETTERUI.Banking.GetTransferState().withdrawSourceBags
 end
 
+---@return boolean
 function BETTERUI.Banking.IsSourceFurnitureVaultTransfer()
-    return BuildTransferContext().sourceIsFurnitureVault == true
+    return BETTERUI.Banking.GetTransferState().sourceIsFurnitureVault == true
 end
 
+---@return boolean
 function BETTERUI.Banking.IsTargetFurnitureVaultTransfer()
-    return BuildTransferContext().targetIsFurnitureVault == true
+    return BETTERUI.Banking.GetTransferState().targetIsFurnitureVault == true
 end
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
@@ -222,10 +251,80 @@ function BETTERUI.Banking.Class:IsSceneShowing()
     return BETTERUI.Utils.IsBankingSceneShowing()
 end
 
---[[
-Function: BETTERUI.Banking.Class:SetupUnifiedFooter
-Description: Configures the unified footer for BANKING mode.
-]]
+---@return string|nil
+function BETTERUI.Banking.Class:GetCurrentCategoryKey()
+    local categories = self.bankCategories
+    if not categories or #categories == 0 then
+        return nil
+    end
+    local index = self.currentCategoryIndex or 1
+    if index > #categories then
+        return nil
+    end
+    local category = categories[index]
+    return category and category.key or nil
+end
+
+---@param preferredCategoryKey string|nil
+---@return integer
+function BETTERUI.Banking.Class:ResolveCategoryIndex(preferredCategoryKey)
+    if not self.bankCategories or #self.bankCategories == 0 then
+        return 1
+    end
+    if preferredCategoryKey then
+        for i, category in ipairs(self.bankCategories) do
+            if category.key == preferredCategoryKey then
+                return i
+            end
+        end
+    end
+    return 1
+end
+
+---@param options table|nil
+---@return nil
+function BETTERUI.Banking.Class:RefreshCategoryView(options)
+    options = options or {}
+    local preferredCategoryKey = options.preferredCategoryKey
+    local refreshKeybinds = options.refreshKeybinds == true
+
+    self.bankCategories = self:ComputeVisibleBankCategories()
+    if not self.bankCategories or #self.bankCategories == 0 then
+        self.currentCategoryIndex = 1
+        self:RefreshList()
+        if refreshKeybinds and self.RefreshActiveKeybinds then
+            self:RefreshActiveKeybinds()
+        end
+        return
+    end
+
+    self.currentCategoryIndex = zo_clamp(
+        self:ResolveCategoryIndex(preferredCategoryKey),
+        1,
+        #self.bankCategories
+    )
+
+    local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+    state.suppressHeaderCallback = true
+    self:RebuildHeaderCategories()
+    state.suppressHeaderCallback = false
+    self:RefreshList()
+    if refreshKeybinds and self.RefreshActiveKeybinds then
+        self:RefreshActiveKeybinds()
+    end
+end
+
+---@param suppressed boolean
+---@return nil
+function BETTERUI.Banking.Class:SetListUpdatesSuppressed(suppressed)
+    self._suppressListUpdates = suppressed == true
+end
+
+---@return boolean
+function BETTERUI.Banking.Class:AreListUpdatesSuppressed()
+    return self._suppressListUpdates == true
+end
+
 --- Configures the unified footer for BANKING mode.
 function BETTERUI.Banking.Class:SetupUnifiedFooter()
     -- Look for the footer controller in our control hierarchy

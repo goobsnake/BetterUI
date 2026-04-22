@@ -9,6 +9,13 @@ local Vendor = BETTERUI.Vendor
 Vendor.FenceSellComponent = Vendor.FenceSellComponent or {}
 local FenceSell = Vendor.FenceSellComponent
 
+local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstance)
+    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
+    assert(type(authorizeInventoryAction) == "function",
+        "Vendor.AuthorizeInventoryAction must load before Vendor fence sell actions")
+    return authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+end
+
 -- ACTIVATE / DEACTIVATE
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -67,12 +74,11 @@ function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     local remaining = GetRemainingSells()
     if remaining <= 0 then return false end
 
-    if not (ds.bagId and ds.slotIndex) then return true end
+    if not (ds.bagId and ds.slotIndex) then return false end
     if IsArtifactItem(ds.bagId, ds.slotIndex) then return false end
 
-    return Vendor.AuthorizeInventoryAction
-        and Vendor.AuthorizeInventoryAction(Vendor.ACTION.FENCE_SELL, ds.bagId, ds.slotIndex, vendorInstance)
-        or true
+    local allowed = AuthorizeVendorAction(Vendor.ACTION.FENCE_SELL, ds.bagId, ds.slotIndex, vendorInstance)
+    return allowed == true
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -92,15 +98,13 @@ function FenceSell:OnPrimaryAction(vendorInstance)
         return
     end
 
-    if Vendor.AuthorizeInventoryAction then
-        local canSell, denyReason = Vendor.AuthorizeInventoryAction(Vendor.ACTION.FENCE_SELL, bagId, slotIndex, vendorInstance)
-        if not canSell then
-            local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
-            if denyReason == (deny and deny.ARTIFACT) then
-                ZO_Dialogs_ShowGamepadDialog("CANT_BUYBACK_FROM_FENCE", { bag = bagId, slot = slotIndex })
-            end
-            return
+    local canSell, denyReason = AuthorizeVendorAction(Vendor.ACTION.FENCE_SELL, bagId, slotIndex, vendorInstance)
+    if not canSell then
+        local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
+        if denyReason == (deny and deny.ARTIFACT) then
+            ZO_Dialogs_ShowGamepadDialog("CANT_BUYBACK_FROM_FENCE", { bag = bagId, slot = slotIndex })
         end
+        return
     end
 
     -- Re-check remaining fence sells

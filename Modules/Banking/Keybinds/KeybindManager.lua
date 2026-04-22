@@ -56,6 +56,14 @@ local function IsCurrencyEntry(entryData)
         ZO_GamepadBanking.IsEntryDataCurrencyRelated(entryData) == true
 end
 
+local function GetSelectedTransferEntry(self)
+    local selectedData = GetSelectedBankEntry(self)
+    if not selectedData or IsCurrencyEntry(selectedData) then
+        return nil
+    end
+    return selectedData
+end
+
 local function IsSelectionToggleMode(self)
     return self.multiSelectManager and self.multiSelectManager:IsActive() or false
 end
@@ -64,8 +72,8 @@ local ResolveGuildBankTransferKeybindState
 
 local function GetPrimaryTransferLabel(self)
     if IsSelectionToggleMode(self) then
-        local target = GetSelectedBankEntry(self)
-        if IsCurrencyEntry(target) then
+        local target = GetSelectedTransferEntry(self)
+        if not target then
             return ""
         end
         if target and self.multiSelectManager:IsSelected(target) then
@@ -90,12 +98,11 @@ local function CanUsePrimaryTransfer(self)
         return false
     end
     if IsSelectionToggleMode(self) then
-        local target = GetSelectedBankEntry(self)
-        return target ~= nil and not IsCurrencyEntry(target)
+        return GetSelectedTransferEntry(self) ~= nil
     end
 
-    local hasSelection = self.list and not self.list:IsEmpty() and GetSelectedBankEntry(self) ~= nil and
-        GetSelectedBankEntry(self).bagId ~= nil
+    local selectedData = GetSelectedBankEntry(self)
+    local hasSelection = self.list and not self.list:IsEmpty() and selectedData ~= nil and selectedData.bagId ~= nil
     if not hasSelection then
         return false
     end
@@ -309,10 +316,7 @@ local function CreateTransferKeybinds(self)
                     return
                 end
                 if IsSelectionToggleMode(self) then
-                    local target = GetSelectedBankEntry(self)
-                    if IsCurrencyEntry(target) then
-                        return
-                    end
+                    local target = GetSelectedTransferEntry(self)
                     if target then
                         self:SaveListPosition()
                         self.multiSelectManager:ToggleSelection(target)
@@ -337,11 +341,10 @@ local function CreateTransferKeybinds(self)
                     return false
                 end
                 if IsSelectionToggleMode(self) then
-                    local target = GetSelectedBankEntry(self)
-                    return target ~= nil and not IsCurrencyEntry(target)
+                    return GetSelectedTransferEntry(self) ~= nil
                 end
-                return self.list and not self.list:IsEmpty() and GetSelectedBankEntry(self) ~= nil and
-                    GetSelectedBankEntry(self).bagId ~= nil
+                local selectedData = GetSelectedBankEntry(self)
+                return self.list and not self.list:IsEmpty() and selectedData ~= nil and selectedData.bagId ~= nil
             end,
             enabled = function()
                 return CanUsePrimaryTransfer(self)
@@ -436,8 +439,8 @@ ResolveGuildBankTransferKeybindState = function(self)
         return true, nil
     end
 
-    local transferRules = BETTERUI.Banking and BETTERUI.Banking.TransferRules or nil
-    local resolveDecision = transferRules and transferRules.ResolveGuildBankTransferDecision or nil
+    local transferService = BETTERUI.Banking and (BETTERUI.Banking.Transfer or BETTERUI.Banking.TransferRules) or nil
+    local resolveDecision = transferService and transferService.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
         return true, nil
     end
@@ -448,14 +451,7 @@ ResolveGuildBankTransferKeybindState = function(self)
     return allowed, denialText
 end
 
---[[
-Function: BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors
-Description: Creates trigger keybinds for fast scrolling the list.
-Note: Delegates to shared CIM factory for consistency.
-param: list (table) - The list control.
-return: table, table - Left and Right trigger keybind descriptors.
-]]
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@param list BetterUIBankingListSource|nil
 ---@return BetterUIKeybindDescriptor leftTrigger
 ---@return BetterUIKeybindDescriptor rightTrigger
@@ -472,7 +468,7 @@ function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
 end
 
 --- Updates the active item actions based on current selection.
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@return nil
 function BETTERUI.Banking.Class:UpdateActions()
     -- Skip itemActions updates when in header sort mode to prevent keybind flicker
@@ -513,7 +509,7 @@ function BETTERUI.Banking.Class:RemoveKeybinds()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
 end
 
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@return nil
 function BETTERUI.Banking.Class:InitializeKeybind()
     if not BETTERUI.GetModuleEnabled("Banking") then
@@ -547,7 +543,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
 end
 
 --- Triggers the selection callback to update keybinds for the current selection.
----@param self BetterUIBankingClass
+---@param self BETTERUI.Banking.Class
 ---@return nil
 function BETTERUI.Banking.Class:RefreshActiveKeybinds()
     if not (self.selectedDataCallback and self.list) then return end

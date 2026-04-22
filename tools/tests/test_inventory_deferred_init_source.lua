@@ -28,6 +28,7 @@ end
 print("test_inventory_deferred_init_source")
 
 local inventory = read_file("Modules/Inventory/Inventory.lua")
+local moduleSource = read_file("Modules/Inventory/Module.lua")
 local inventoryClass = read_file("Modules/Inventory/Core/InventoryClass.lua")
 local equipAction = read_file("Modules/Inventory/Actions/EquipAction.lua")
 
@@ -39,10 +40,6 @@ assert_contains(inventory, "local function InitializeDeferredInventoryDialogs(se
     "Inventory deferred init exposes an explicit dialog phase helper")
 assert_contains(inventory, "local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSelectedData)",
     "Inventory deferred init exposes an explicit callback registration helper")
-assert_contains(inventory, "local function EnsureLegacyEquipSlotDialogAlias()",
-    "Inventory keeps the legacy equip dialog alias behind a compatibility helper")
-assert_contains(inventory, "function BETTERUI.Inventory.GetEquipSlotDialogName()",
-    "Inventory exposes a canonical equip dialog accessor")
 assert_contains(inventory, "InitializeDeferredInventoryState(self)",
     "OnDeferredInitialize delegates state setup through the helper")
 assert_contains(inventory, "InitializeDeferredInventoryLists(self)",
@@ -51,8 +48,23 @@ assert_contains(inventory, "InitializeDeferredInventoryDialogs(self)",
     "OnDeferredInitialize delegates dialog setup through the helper")
 assert_contains(inventory, "RegisterDeferredInventoryCallbacks(self, RefreshHeader, RefreshSelectedData)",
     "OnDeferredInitialize delegates callback wiring through the helper")
-assert_contains(inventory, "BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.GetEquipSlotDialogName()",
-    "the legacy global alias is assigned from the canonical dialog accessor")
+assert_not_contains(inventory, "function BETTERUI.Inventory.GetEquipSlotDialogName()",
+    "Inventory runtime file no longer owns module-level dialog bridge APIs")
+assert_not_contains(inventory, "function BETTERUI.Inventory.InvokeDialog(methodName, ...)",
+    "Inventory runtime file no longer owns module-level dialog invoker wiring")
+assert_not_contains(inventory, "function BETTERUI.Inventory.InitializeSecureWheelHooks()",
+    "Inventory runtime file no longer owns secure wheel bootstrap wiring")
+
+assert_contains(moduleSource, "function Inventory.GetEquipSlotDialogName()",
+    "Inventory module root owns the canonical equip dialog accessor")
+assert_contains(moduleSource, "function Inventory.InvokeDialog(methodName, ...)",
+    "Inventory module root owns the dialog invoker bridge")
+assert_contains(moduleSource, "local function EnsureLegacyEquipSlotDialogAlias()",
+    "Inventory module root keeps the legacy dialog alias bridge")
+assert_contains(moduleSource, "BETTERUI_EQUIP_SLOT_DIALOG = Inventory.GetEquipSlotDialogName()",
+    "Inventory module root assigns the legacy global alias from the canonical accessor")
+assert_contains(moduleSource, "Inventory.InitializeSecureWheelHooks = InitializeSecureWheelHooks",
+    "Inventory module root owns secure wheel hook registration")
 assert_not_contains(inventoryClass, "self:InitializeItemActions()",
     "InventoryClass.Initialize no longer performs item-action setup before deferred readiness")
 assert_not_contains(inventoryClass, "self:InitializeActionsDialog()",

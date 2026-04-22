@@ -148,16 +148,26 @@ local multiSelectActionsSource = readFile("Modules/Banking/Core/MultiSelectActio
 assertTrue(BETTERUI.Banking.ResolveBankBag == nil, "ResolveBankBag is no longer a public banking helper")
 assertTrue(type(BETTERUI.Banking.GetTransferContext) == "function",
     "GetTransferContext is the explicit transfer-context helper")
-assertTrue(multiSelectActionsSource:match("BETTERUI%.Banking%.TransferRules = BETTERUI%.Banking%.TransferRules or %{%}") ~= nil,
+assertTrue(multiSelectActionsSource:match("BETTERUI%.Banking%.Transfer%s*=") ~= nil,
     "MultiSelectActions initializes the dedicated Banking transfer service")
-assertTrue(multiSelectActionsSource:match("function TransferRules%.CanDepositIntoBank") ~= nil,
-    "TransferRules owns deposit validation")
-assertTrue(multiSelectActionsSource:match("function TransferRules%.ResolveGuildBankTransferDecision") ~= nil,
-    "TransferRules owns guild-bank decision routing")
-assertTrue(multiSelectActionsSource:match("function TransferRules%.NotifyGuildBankTransferDenied") ~= nil,
-    "TransferRules owns guild-bank denial notifications")
-assertTrue(multiSelectActionsSource:match("function TransferRules%.NotifyTransferDenied") ~= nil,
-    "TransferRules owns transfer denial notifications")
+assertTrue(multiSelectActionsSource:match("BETTERUI%.Banking%.TransferRules = BETTERUI%.Banking%.Transfer") ~= nil,
+    "MultiSelectActions keeps TransferRules as a compatibility alias to the canonical transfer service")
+assertTrue(
+    multiSelectActionsSource:match("Transfer%.CanDepositIntoBank%s*=") ~= nil
+        or multiSelectActionsSource:match("function Transfer%.CanDepositIntoBank") ~= nil,
+    "Transfer service owns deposit validation")
+assertTrue(
+    multiSelectActionsSource:match("Transfer%.ResolveGuildBankTransferDecision%s*=") ~= nil
+        or multiSelectActionsSource:match("function Transfer%.ResolveGuildBankTransferDecision") ~= nil,
+    "Transfer service owns guild-bank decision routing")
+assertTrue(
+    multiSelectActionsSource:match("Transfer%.NotifyGuildBankTransferDenied%s*=") ~= nil
+        or multiSelectActionsSource:match("function Transfer%.NotifyGuildBankTransferDenied") ~= nil,
+    "Transfer service owns guild-bank denial notifications")
+assertTrue(
+    multiSelectActionsSource:match("Transfer%.NotifyTransferDenied%s*=") ~= nil
+        or multiSelectActionsSource:match("function Transfer%.NotifyTransferDenied") ~= nil,
+    "Transfer service owns transfer denial notifications")
 assertTrue(multiSelectActionsSource:match("function BETTERUI%.Banking%.ResolveTransferStackCount") == nil,
     "ResolveTransferStackCount is now internal to MultiSelectActions")
 assertTrue(multiSelectActionsSource:match("function BETTERUI%.Banking%.ResolveTransferDeniedNotification") == nil,
@@ -379,8 +389,10 @@ assertTrue(bankingSceneLifecycle:match("GetWithdrawSourceBags") ~= nil,
     "BankingSceneLifecycle uses intent-level helpers for withdraw source bags")
 assertTrue(bankingSceneLifecycle:match("ResolveActiveTransferMode") == nil,
     "BankingSceneLifecycle no longer reads the shared transfer context bag directly")
-assertTrue(bankingSceneLifecycle:match("BETTERUI%.Banking%.RuntimeState") ~= nil,
-    "BankingSceneLifecycle writes through the shared Banking runtime state")
+assertTrue(
+    bankingSceneLifecycle:match("BETTERUI%.Banking%.SetRuntimeBankBags") ~= nil
+        or bankingSceneLifecycle:match("BETTERUI%.Banking%.GetRuntimeState") ~= nil,
+    "BankingSceneLifecycle writes through the shared Banking runtime-state helpers")
 
 local bankRowSetup = readFile("Modules/Banking/Lists/BankRowSetup.lua")
 assertTrue(bankRowSetup:match("BETTERUI%.Banking%.GetActiveDepositBag%(%)") ~= nil,

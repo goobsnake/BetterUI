@@ -103,6 +103,14 @@ assert_true(interfaces:find('init is true but Module%.InitModule must be a funct
 assert_true(interfaces:find('setup is true but Module%.Setup must be a function') ~= nil,
     "Interfaces enforces Setup only when setup is enabled")
 
+local cimModuleSource = read_file("Modules/CIM/Module.lua")
+assert_true(cimModuleSource:find("Modules/GeneralInterface/ %(tooltips and shared interface hooks%)") ~= nil,
+    "CIM module docs identify GeneralInterface as the tooltip/shared-hooks module")
+assert_true(cimModuleSource:find("Modules/Nameplates/ %(nameplate runtime/settings%-owner surface%)") ~= nil,
+    "CIM module docs identify Nameplates as its own settings-owner boundary")
+assert_true(cimModuleSource:find("Domain%-specific features %(Tooltips, Nameplates%) have been extracted to") == nil,
+    "CIM module docs no longer collapse Nameplates into the GeneralInterface boundary note")
+
 local betterUISource = read_file("BetterUI.lua")
 assert_true(betterUISource:find("local valid, err = validateFn%(moduleNamespace, nil, moduleName%)") ~= nil,
     "Bootstrap validates real module namespaces instead of synthetic temp tables")
@@ -138,12 +146,14 @@ assert_true(researchCache:find("function ResearchCache%.GetResearch%(%)") ~= nil
     "ResearchCache exposes side-effect-free GetResearch")
 assert_true(researchCache:find("function ResearchCache%.GetTraits%(%)") ~= nil,
     "ResearchCache exposes GetTraits")
-assert_true(researchCache:find("function ResearchCache%.GetResearchTraits%(%)") ~= nil,
-    "ResearchCache keeps the backward-compatible GetResearchTraits wrapper")
+assert_true(researchCache:find("function ResearchCache%.GetResearchTraits%(%)") == nil,
+    "ResearchCache removes the deprecated GetResearchTraits wrapper")
 assert_true(researchCache:find("RefreshResearchTraits%(%)") ~= nil,
     "ResearchCache still exposes the explicit refresh entrypoint")
-assert_true(researchCache:find("BETTERUI%.GetResearch = ResearchCache%.GetResearch") ~= nil,
-    "ResearchCache publishes the shared GetResearch alias")
+assert_true(researchCache:find("BETTERUI%.GetResearch = ResearchCache%.GetResearch") == nil,
+    "ResearchCache no longer publishes the deprecated BETTERUI.GetResearch alias")
+assert_true(betterUISource:find("researchCache%.RefreshResearchTraits%(%)") ~= nil,
+    "Bootstrap refreshes research data through the canonical ResearchCache seam")
 
 local fontDefinitions = read_file("Modules/CIM/Core/Presentation/FontDefinitions.lua")
 assert_true(fontDefinitions:find("BETTERUI%.CIM%.Font%.CHOICES = %{%s*") ~= nil,

@@ -402,6 +402,9 @@ local function createWindow()
         RebuildHeaderCategories = function(self)
             self.rebuiltHeaders = self.rebuiltHeaders + 1
         end,
+        SetListUpdatesSuppressed = function(self, suppressed)
+            self._suppressListUpdates = suppressed == true
+        end,
         RefreshList = function(self)
             self.refreshedLists = self.refreshedLists + 1
         end,

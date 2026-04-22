@@ -16,10 +16,6 @@ local function RequireProtectionPolicyMethod(methodName)
 end
 
 local function CanDestroyItem(bagId, slotIndex, slotType)
-    if BETTERUI.Inventory and BETTERUI.Inventory.CanDestroyItemWithPolicy then
-        return BETTERUI.Inventory.CanDestroyItemWithPolicy(bagId, slotIndex, slotType) == true
-    end
-
     return RequireProtectionPolicyMethod("CanDestroyItem")(bagId, slotIndex, slotType) == true
 end
 
@@ -37,6 +33,14 @@ end
 
 local function CanUnjunkItem(bagId, slotIndex)
     return RequireProtectionPolicyMethod("CanUnjunkItem")(bagId, slotIndex) == true
+end
+
+local function RequireInventoryDestroyExecutor()
+    local inventory = BETTERUI and BETTERUI.Inventory or nil
+    local destroyExecutor = inventory and inventory.TryDestroyItem or nil
+    assert(type(destroyExecutor) == "function",
+        "BetterUI: Inventory.TryDestroyItem must load before companion quick-destroy actions")
+    return destroyExecutor
 end
 
 local function SetCompanionItemLockState(bagId, slotIndex, locked)
@@ -264,11 +268,7 @@ function Companions.ExecuteAction(actionId, selectedData)
         end
 
         if Companions.GetSetting("quickDestroy") == true then
-            if BETTERUI.Inventory and BETTERUI.Inventory.TryDestroyItem then
-                return BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, false, slotType)
-            end
-            DestroyItem(bagId, slotIndex)
-            return true
+            return RequireInventoryDestroyExecutor()(bagId, slotIndex, true, false, slotType)
         else
             return Companions.ShowCompanionDestroyDialog(bagId, slotIndex, slotType)
         end

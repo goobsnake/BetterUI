@@ -60,14 +60,14 @@ Use actionable, typed TODOs:
 
 Feature modules use a small set of root contracts. Follow the module's existing archetype instead of forcing every package into one shape. Create only the folders the module actually uses; do not add empty placeholder subdirectories.
 
-- `thin-entrypoint`: `Module.lua` is the canonical root and wires init/setup while delegating runtime behavior into focused files such as `Core/` or `<Module>.lua`.
+- `thin-entrypoint`: `Module.lua` is the canonical root and wires init/setup while delegating runtime behavior into focused files such as `Core/` and `Setup.lua`.
 - `settings-owner`: one canonical root file owns both runtime and settings seams. That root may be either `Module.lua` or `<Module>.lua`, depending on the module.
-- `runtime-facade`: `<Module>.lua` is the canonical runtime root while `Module.lua` stays minimal when present.
+- `runtime-coordinator`: the canonical root coordinates runtime lifecycle and shared services. In most modules this is `Module.lua`; if `<Module>.lua` exists, treat it as a thin helper and move substantial runtime logic under role folders.
 
 ```
 ModuleName/
 ├── Module.lua         # Optional canonical root (archetype-dependent)
-├── <Module>.lua       # Optional canonical root/runtime facade (archetype-dependent)
+├── <Module>.lua       # Optional helper or canonical root (archetype-dependent)
 ├── Constants.lua      # Optional module-specific constants
 ├── Core/              # Optional core logic
 ├── UI/                # Optional visual components
@@ -81,7 +81,7 @@ ModuleName/
 
 Examples:
 - `Writs` is a `thin-entrypoint` package: [`Module.lua`](../../Modules/Writs/Module.lua) wires lifecycle hooks while [`Core/Writ.lua`](../../Modules/Writs/Core/Writ.lua) owns writ behavior.
-- `Nameplates` is a `settings-owner` package with [`Nameplates.lua`](../../Modules/Nameplates/Nameplates.lua) as the canonical root plus [`Settings.lua`](../../Modules/Nameplates/Settings.lua) as the panel seam.
+- `Nameplates` is a `settings-owner` package with [`Nameplates.lua`](../../Modules/Nameplates/Nameplates.lua) as the canonical root. [`Settings.lua`](../../Modules/Nameplates/Settings.lua) is a helper seam owned by that root and should not own `InitModule` or panel-registration contracts.
 - `ResourceOrbFrames` is also a `settings-owner` package, but its canonical root is [`Module.lua`](../../Modules/ResourceOrbFrames/Module.lua). Both shapes are supported; each module should keep one clear owner.
 
 ## ESO-Specific Guidelines

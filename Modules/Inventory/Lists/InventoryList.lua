@@ -108,90 +108,111 @@ local function TracksInventoryType(list, bagId)
     return false
 end
 
---- Configures a shared gamepad inventory entry (row).
---- Purpose: The main render function. Populates all displayed data for a row.
----@param control table UI control for the entry row
----@param data BetterUIInventoryEntryData Entry data with bagId, slotIndex, cached_itemLink, etc.
----@param selected boolean Whether this entry is currently selected
----@param reselectingDuringRebuild boolean Whether reselecting during list rebuild
----@param enabled boolean Whether the entry is enabled
----@param active boolean Whether the entry is active
----@return nil
-function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
-    BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
-    local moduleName = ResolveEntryModuleName(data)
+local function ResolveEntryContext(data)
     local itemData = GetEntryDataSource(data)
+    if not itemData then
+        return nil
+    end
 
-    local bagId = itemData and itemData.bagId or nil
-    local slotIndex = itemData and itemData.slotIndex or nil
-
+    local bagId = itemData.bagId
+    local slotIndex = itemData.slotIndex
     if bagId == nil or slotIndex == nil then
-        return
+        return nil
     end
 
     local itemLink = (itemData.cached_itemLink or data.cached_itemLink)
-        or (bagId and slotIndex and GetItemLink(bagId, slotIndex))
+        or GetItemLink(bagId, slotIndex)
     local itemType = (itemData.cached_itemType or data.cached_itemType)
         or (itemLink and GetItemLinkItemType(itemLink))
 
-    local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
-    local columnFont = sharedItemSupport
-        and sharedItemSupport.ResolveColumnFontDescriptor(moduleName, "Inventory")
-        or BETTERUI.Inventory.GetColumnFontDescriptor()
+    return {
+        moduleName = ResolveEntryModuleName(data),
+        itemData = itemData,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        itemLink = itemLink,
+        itemType = itemType,
+    }
+end
 
+local function ResolveColumnFont(moduleName)
+    local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
+    if sharedItemSupport and sharedItemSupport.ResolveColumnFontDescriptor then
+        return sharedItemSupport.ResolveColumnFontDescriptor(moduleName, "Inventory")
+    end
+    return BETTERUI.Inventory.GetColumnFontDescriptor()
+end
+
+local function ResolveEntryColumnControls(control, columnFont)
     local itemTypeControl = control:GetNamedChild("ItemType")
     local traitControl = control:GetNamedChild("Trait")
     local statControl = control:GetNamedChild("Stat")
     local valueControl = control:GetNamedChild("Value")
-    if not itemTypeControl or not traitControl or not statControl or not valueControl then return end
+    if not itemTypeControl or not traitControl or not statControl or not valueControl then
+        return nil
+    end
 
     itemTypeControl:SetFont(columnFont)
     traitControl:SetFont(columnFont)
     statControl:SetFont(columnFont)
     valueControl:SetFont(columnFont)
 
-    itemTypeControl:SetText(string.upper(data.bestItemTypeName))
+    return {
+        itemType = itemTypeControl,
+        trait = traitControl,
+        stat = statControl,
+        value = valueControl,
+    }
+end
 
+local function ResolveTraitText(itemData, data, bagId, slotIndex)
     local traitName = itemData.cached_traitName or data.cached_traitName
-    if not traitName then
-        local traitType = GetItemTrait(bagId, slotIndex)
-        if traitType ~= ITEM_TRAIT_TYPE_NONE then
-            traitName = string.upper(GetString("SI_ITEMTRAITTYPE", traitType))
-        else
-            traitName = "-"
-        end
-        itemData.cached_traitName = traitName
-        if itemData ~= data then
-            data.cached_traitName = traitName
-        end
+    if traitName then
+        return traitName
     end
-    traitControl:SetText(traitName)
 
-    local statText
+    local traitType = GetItemTrait(bagId, slotIndex)
+    if traitType ~= ITEM_TRAIT_TYPE_NONE then
+        traitName = string.upper(GetString("SI_ITEMTRAITTYPE", traitType))
+    else
+        traitName = "-"
+    end
+
+    itemData.cached_traitName = traitName
+    if itemData ~= data then
+        data.cached_traitName = traitName
+    end
+
+    return traitName
+end
+
+local function ResolveStatText(data, itemData, itemType, itemLink)
     if itemType == ITEMTYPE_RECIPE then
         local isUnknown = data.cached_isRecipeAndUnknown
         if isUnknown == nil then
             isUnknown = not IsItemLinkRecipeKnown(itemLink)
         end
-        statText = isUnknown and GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_UNKNOWN")) or
-            GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_KNOWN"))
-    elseif data.cached_isBook or itemType == ITEMTYPE_BOOK or itemType == ITEMTYPE_LOREBOOK or itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
+        return isUnknown and GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_UNKNOWN"))
+            or GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_KNOWN"))
+    end
+
+    if data.cached_isBook or itemType == ITEMTYPE_BOOK or itemType == ITEMTYPE_LOREBOOK or itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
         local isKnown = data.cached_isBookKnown
         if isKnown == nil then
             isKnown = IsItemLinkBookKnown(itemLink)
         end
-        statText = isKnown and GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_KNOWN")) or
-            GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_UNKNOWN"))
-    else
-        local statValue = itemData.statValue
-        if statValue == nil then
-            statText = "-"
-        else
-            statText = (statValue == 0) and "-" or statValue
-        end
+        return isKnown and GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_KNOWN"))
+            or GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_UNKNOWN"))
     end
-    statControl:SetText(statText)
 
+    local statValue = itemData.statValue
+    if statValue == nil or statValue == 0 then
+        return "-"
+    end
+    return statValue
+end
+
+local function ApplyValueText(valueControl, data, itemData, itemLink)
     if ShouldShowMarketPrice() and
         (BETTERUI.Utils.IsBankingSceneShowing() or BETTERUI.Utils.IsInventorySceneShowing()) then
         local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
@@ -202,17 +223,29 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         if marketPrice and marketPrice > 0 then
             valueControl:SetColor(isAverage and 1 or 1, isAverage and 0.5 or 0.75, isAverage and 0.5 or 0, 1)
             valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(math.floor(marketPrice)))
-        else
-            valueControl:SetColor(1, 1, 1, 1)
-            valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(data.stackSellPrice))
+            return
         end
-    else
-        valueControl:SetColor(1, 1, 1, 1)
-        valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(data.stackSellPrice))
     end
 
-    BETTERUI_SharedGamepadEntryIconSetup(control.icon, control.stackCountLabel, data, selected)
+    valueControl:SetColor(1, 1, 1, 1)
+    valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(data.stackSellPrice))
+end
 
+local function ResolveIsMultiSelected(data)
+    local multiSelectManager = BETTERUI.CIM.MultiSelectManager
+    if not (multiSelectManager and multiSelectManager.GetActiveInstance) then
+        return false
+    end
+
+    local manager = multiSelectManager.GetActiveInstance()
+    if not (manager and manager:IsActive()) then
+        return false
+    end
+
+    return manager:IsSelected(data)
+end
+
+local function ApplySelectionVisualState(control, data, selected)
     -- Suppress the stock highlight so CIM's custom gradient bar is the only active selection UI.
     if control.highlight then
         control.highlight:SetHidden(true)
@@ -220,18 +253,9 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     BETTERUI.CIM.SelectionHighlight.Setup(control, selected)
 
-
     local selectionIndicator = control:GetNamedChild("SelectionIndicator")
     local selectionBar = control:GetNamedChild("SelectionBar")
-    local isMultiSelected = false
-
-    local multiSelectManager = BETTERUI.CIM.MultiSelectManager
-    if multiSelectManager and multiSelectManager.GetActiveInstance then
-        local manager = multiSelectManager.GetActiveInstance()
-        if manager and manager:IsActive() then
-            isMultiSelected = manager:IsSelected(data)
-        end
-    end
+    local isMultiSelected = ResolveIsMultiSelected(data)
 
     if selectionIndicator then
         selectionIndicator:SetHidden(not isMultiSelected)
@@ -250,15 +274,16 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
             selectionBar:SetColor(0.77, 0.65, 0.30, 0.45)
         end
     end
+end
 
-    BETTERUI_CooldownSetup(control, data)
-    BETTERUI_IconSetup(control:GetNamedChild("StatusIndicator"), control:GetNamedChild("EquippedMain"), data)
-
+local function ApplyDynamicIconSizing(control, moduleName)
     local iconControl = control:GetNamedChild("Icon")
     local equipIconControl = control:GetNamedChild("EquippedMain")
+    if not iconControl or not equipIconControl then
+        return
+    end
+
     local fontSize = GetActiveNameFontSize(moduleName)
-
-
     local iconSize = math.floor(BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_SIZE *
         (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) +
         0.5)
@@ -274,6 +299,41 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     iconControl:ClearAnchors()
     iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, iconOffset, 0)
     equipIconControl:SetDimensions(equipIconWidth, equipIconHeight)
+end
+
+--- Configures a shared gamepad inventory entry (row).
+--- Purpose: The main render function. Populates all displayed data for a row.
+---@param control table UI control for the entry row
+---@param data BetterUIInventoryEntryData Entry data with bagId, slotIndex, cached_itemLink, etc.
+---@param selected boolean Whether this entry is currently selected
+---@param reselectingDuringRebuild boolean Whether reselecting during list rebuild
+---@param enabled boolean Whether the entry is enabled
+---@param active boolean Whether the entry is active
+---@return nil
+function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
+    BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
+
+    local entryContext = ResolveEntryContext(data)
+    if not entryContext then
+        return
+    end
+
+    local columnControls = ResolveEntryColumnControls(control, ResolveColumnFont(entryContext.moduleName))
+    if not columnControls then
+        return
+    end
+
+    columnControls.itemType:SetText(string.upper(data.bestItemTypeName))
+    columnControls.trait:SetText(ResolveTraitText(entryContext.itemData, data, entryContext.bagId, entryContext.slotIndex))
+    columnControls.stat:SetText(ResolveStatText(data, entryContext.itemData, entryContext.itemType, entryContext.itemLink))
+    ApplyValueText(columnControls.value, data, entryContext.itemData, entryContext.itemLink)
+
+    BETTERUI_SharedGamepadEntryIconSetup(control.icon, control.stackCountLabel, data, selected)
+    ApplySelectionVisualState(control, data, selected)
+
+    BETTERUI_CooldownSetup(control, data)
+    BETTERUI_IconSetup(control:GetNamedChild("StatusIndicator"), control:GetNamedChild("EquippedMain"), data)
+    ApplyDynamicIconSizing(control, entryContext.moduleName)
 end
 
 --- Determines the best display category for an item (e.g., "One-Handed", "Heavy Armor").

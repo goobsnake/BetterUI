@@ -258,12 +258,26 @@ local function createWindow()
         return { { key = "all" }, { key = "junk" } }
     end
 
+    function window:GetCurrentCategoryKey()
+        return "all"
+    end
+
+    function window:SetListUpdatesSuppressed(suppressed)
+        self._suppressListUpdates = suppressed == true
+    end
+
     function window:RebuildHeaderCategories()
         self.rebuildHeaderCategoriesCount = self.rebuildHeaderCategoriesCount + 1
     end
 
     function window:RefreshList()
         self.refreshListCount = self.refreshListCount + 1
+    end
+
+    function window:RefreshCategoryView(_)
+        self:ComputeVisibleBankCategories()
+        self:RebuildHeaderCategories()
+        self:RefreshList()
     end
 
     function window:RefreshFooter()

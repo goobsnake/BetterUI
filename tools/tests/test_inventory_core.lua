@@ -21,6 +21,11 @@ local slotEquipTypes = {}
 BETTERUI = {
     Inventory = {
         CONST = {
+            LIST_TYPES = {
+                CATEGORY = "categoryList",
+                ITEM = "itemList",
+                CRAFT_BAG = "craftBagList",
+            },
             ITEM_LIST_ACTION_MODE = 2,
             CRAFT_BAG_ACTION_MODE = 3,
         },

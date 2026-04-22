@@ -64,30 +64,44 @@ assert_true(moduleLua:find("return false, \"no_item\"", 1, true) == nil,
     "Vendor authorization seam no longer uses raw no_item fallback strings")
 
 local sellComponent = read_file("Modules/Vendor/Components/SellComponent.lua")
-assert_true(sellComponent:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.SELL, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Sell component routes primary sell through shared authorization seam")
-assert_true(sellComponent:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.SELL_JUNK, BAG_BACKPACK, slot, vendorInstance%)") ~= nil,
-    "Sell component routes sell-all-junk through shared authorization seam")
+assert_true(sellComponent:find("local function AuthorizeVendorAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
+    "Sell component defines a focused local authorization helper")
+assert_true(sellComponent:find("return authorizeInventoryAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
+    "Sell component local helper delegates to the shared authorization seam")
+assert_true(sellComponent:find("AuthorizeVendorAction%(Vendor%.ACTION%.SELL, ds%.bagId, ds%.slotIndex, vendorInstance%)") ~= nil,
+    "Sell component routes primary sell through the local authorization helper")
+assert_true(sellComponent:find("AuthorizeVendorAction%(Vendor%.ACTION%.SELL_JUNK, BAG_BACKPACK, slot, vendorInstance%)") ~= nil,
+    "Sell component routes sell-all-junk through the local authorization helper")
 
 local fenceSell = read_file("Modules/Vendor/Components/FenceSellComponent.lua")
-assert_true(fenceSell:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.FENCE_SELL, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Fence sell component routes primary sell through shared authorization seam")
+assert_true(fenceSell:find("local function AuthorizeVendorAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
+    "Fence sell component defines a focused local authorization helper")
+assert_true(fenceSell:find("AuthorizeVendorAction%(Vendor%.ACTION%.FENCE_SELL, bagId, slotIndex, vendorInstance%)") ~= nil,
+    "Fence sell component routes primary sell through the local authorization helper")
 
 local fenceLaunder = read_file("Modules/Vendor/Components/FenceLaunderComponent.lua")
-assert_true(fenceLaunder:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.FENCE_LAUNDER, bagId, slotIndex,") ~= nil,
-    "Fence launder component routes primary action through shared authorization seam")
+assert_true(fenceLaunder:find("local function AuthorizeVendorAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
+    "Fence launder component defines a focused local authorization helper")
+assert_true(fenceLaunder:find("AuthorizeVendorAction%(Vendor%.ACTION%.FENCE_LAUNDER, bagId, slotIndex, vendorInstance%)") ~= nil,
+    "Fence launder component routes primary action through the local authorization helper")
 
 local sellVengeance = read_file("Modules/Vendor/Components/SellVengeanceComponent.lua")
-assert_true(sellVengeance:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.SELL_VENGEANCE, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Sell vengeance component routes primary sell through shared authorization seam")
+assert_true(sellVengeance:find("local function AuthorizeVendorAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
+    "Sell vengeance component defines a focused local authorization helper")
+assert_true(sellVengeance:find("AuthorizeVendorAction%(Vendor%.ACTION%.SELL_VENGEANCE, bagId, slotIndex, vendorInstance%)") ~= nil,
+    "Sell vengeance component routes primary sell through the local authorization helper")
 
 local batchRuntimeLua = read_file("Modules/Vendor/Core/VendorBatchRuntime.lua")
-assert_true(batchRuntimeLua:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.SELL, bagId, slotIndex, Vendor%.instance%)") ~= nil,
-    "Vendor batch sell path routes through shared authorization seam")
-assert_true(batchRuntimeLua:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.FENCE_SELL, bagId, slotIndex, Vendor%.instance%)") ~= nil,
-    "Vendor batch fence sell path routes through shared authorization seam")
-assert_true(batchRuntimeLua:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.FENCE_LAUNDER, bagId, slotIndex, Vendor%.instance%)") ~= nil,
-    "Vendor batch fence launder path routes through shared authorization seam")
+assert_true(batchRuntimeLua:find("local function AuthorizeVendorInventoryAction%(actionType, bagId, slotIndex%)") ~= nil,
+    "Vendor batch runtime defines a focused batch authorization helper")
+assert_true(batchRuntimeLua:find("return authorizeInventoryAction%(actionType, bagId, slotIndex, Vendor%.instance%)") ~= nil,
+    "Vendor batch authorization helper delegates to the shared authorization seam")
+assert_true(batchRuntimeLua:find("AuthorizeVendorInventoryAction%(Vendor%.ACTION%.SELL, bagId, slotIndex%)") ~= nil,
+    "Vendor batch sell path routes through the batch authorization helper")
+assert_true(batchRuntimeLua:find("AuthorizeVendorInventoryAction%(Vendor%.ACTION%.FENCE_SELL, bagId, slotIndex%)") ~= nil,
+    "Vendor batch fence sell path routes through the batch authorization helper")
+assert_true(batchRuntimeLua:find("AuthorizeVendorInventoryAction%(Vendor%.ACTION%.FENCE_LAUNDER, bagId, slotIndex%)") ~= nil,
+    "Vendor batch fence launder path routes through the batch authorization helper")
 
 if failed > 0 then
     error(string.format("test_vendor_authorization_surface_source.lua failed with %d failure(s)", failed))

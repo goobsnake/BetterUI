@@ -99,6 +99,34 @@ end
 
 print("\n=== SceneLifecycleManager Tests ===\n")
 
+-- Test 0: CreateStateChangeHandler builds a callable state router
+print("Test: CreateStateChangeHandler builds a callable state router")
+reset()
+do
+    local showingCalls = 0
+    local hidingCalls = 0
+    local hiddenCalls = 0
+    local screen0 = {}
+    local handler = BETTERUI.CIM.SceneLifecycle.CreateStateChangeHandler(screen0, {
+        onShowing = function()
+            showingCalls = showingCalls + 1
+        end,
+        onHiding = function()
+            hidingCalls = hidingCalls + 1
+        end,
+        onHidden = function()
+            hiddenCalls = hiddenCalls + 1
+        end,
+    })
+    assert_true(type(handler) == "function", "CreateStateChangeHandler returns a function")
+    handler(SCENE_HIDDEN, SCENE_SHOWING)
+    handler(SCENE_SHOWING, SCENE_HIDING)
+    handler(SCENE_HIDING, SCENE_HIDDEN)
+    assert_equal(1, showingCalls, "CreateStateChangeHandler invokes onShowing")
+    assert_equal(1, hidingCalls, "CreateStateChangeHandler invokes onHiding")
+    assert_equal(1, hiddenCalls, "CreateStateChangeHandler invokes onHidden")
+end
+
 -- Test 1: Register with nil screen does not crash
 print("Test: Register with nil screen does not crash")
 reset()

@@ -4,6 +4,8 @@ BETTERUI.Banking = BETTERUI.Banking or {}
 BETTERUI.Banking.GuildBank = {}
 
 local GuildBank = BETTERUI.Banking.GuildBank
+local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
+local LIST_DEPOSIT = BETTERUI.Banking.LIST_DEPOSIT
 local ProtectionPolicy = assert(
     BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy,
     "BetterUI: CIM.ProtectionPolicy must load before Banking/Core/GuildBankAdapter"
@@ -74,8 +76,6 @@ function GuildBank.GetPermissionDenial(mode)
         return nil
     end
 
-    local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-    local LIST_DEPOSIT = BETTERUI.Banking.LIST_DEPOSIT
     local reasonCode = DENY.GUILD_PERMISSION
 
     if mode == LIST_WITHDRAW and not GuildBank.CanWithdraw() then
@@ -132,7 +132,7 @@ function GuildBank.OnGuildBankSelected()
     local window = BETTERUI.Banking.Window
     if window then
         GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
-        window._suppressListUpdates = true
+        window:SetListUpdatesSuppressed(true)
     end
 end
 
@@ -148,10 +148,15 @@ function GuildBank.OnGuildBankReady()
     loadingGuildBank = false
     local window = BETTERUI.Banking.Window
     if window then
-        window._suppressListUpdates = false
-        window.bankCategories = window:ComputeVisibleBankCategories()
-        window:RebuildHeaderCategories()
-        window:RefreshList()
+        local preferredCategoryKey = window.GetCurrentCategoryKey and window:GetCurrentCategoryKey() or nil
+        window:SetListUpdatesSuppressed(false)
+        if window.RefreshCategoryView then
+            window:RefreshCategoryView({
+                preferredCategoryKey = preferredCategoryKey,
+            })
+        else
+            window:RefreshList()
+        end
         if window.coreKeybinds then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
         end
@@ -161,9 +166,13 @@ end
 function GuildBank.OnGuildBankUpdated()
     local window = BETTERUI.Banking.Window
     if window and not loadingGuildBank then
-        window.bankCategories = window:ComputeVisibleBankCategories()
-        window:RebuildHeaderCategories()
-        window:RefreshList()
+        if window.RefreshCategoryView then
+            window:RefreshCategoryView({
+                preferredCategoryKey = window.GetCurrentCategoryKey and window:GetCurrentCategoryKey() or nil,
+            })
+        else
+            window:RefreshList()
+        end
     end
 end
 
@@ -173,7 +182,7 @@ function GuildBank.OnGuildBankOpenError()
     loadingGuildBank = false
     local window = BETTERUI.Banking.Window
     if window then
-        window._suppressListUpdates = false
+        window:SetListUpdatesSuppressed(false)
         if window.list then
             window.list:Clear()
             window.list:Commit()

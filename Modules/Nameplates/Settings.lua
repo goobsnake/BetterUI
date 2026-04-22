@@ -1,12 +1,31 @@
 if BETTERUI == nil then BETTERUI = {} end
 BETTERUI.Nameplates = BETTERUI.Nameplates or {}
 local Nameplates = BETTERUI.Nameplates
-Nameplates.Settings = Nameplates.Settings or {}
 
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
 local DEFAULT_NAMEPLATE_SIZE = 16
-local ClampInteger = BETTERUI.ClampInteger
+
+local function ClampNameplateSize(value, fallback)
+    local clampInteger = BETTERUI and BETTERUI.ClampInteger
+    if type(clampInteger) == "function" then
+        return clampInteger(value, NAMEPLATE_SIZE_MIN, NAMEPLATE_SIZE_MAX, fallback)
+    end
+
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < NAMEPLATE_SIZE_MIN then
+        return NAMEPLATE_SIZE_MIN
+    end
+    if rounded > NAMEPLATE_SIZE_MAX then
+        return NAMEPLATE_SIZE_MAX
+    end
+    return rounded
+end
 
 local function GetNameplateSettings()
     return BETTERUI.GetModuleSettings("Nameplates")
@@ -32,16 +51,6 @@ local function ApplyCurrentNameplateSettings()
         Nameplates.ApplyCurrentSettings()
     end
 end
-
-local function InitPanel(mId, moduleName)
-    local panelData = BETTERUI.Init_ModulePanel(
-        moduleName,
-        GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_HEADER"))
-    )
-    BETTERUI.CIM.Settings.RegisterModulePanel(mId, panelData, Nameplates.GetSettingsOptions())
-end
-
-Nameplates.Settings.RegisterPanel = InitPanel
 
 function Nameplates.GetSettingsOptions()
     return {
@@ -133,7 +142,7 @@ function Nameplates.GetSettingsOptions()
             getFunc = function()
                 local settings = GetNameplateSettings()
                 local defaultSize = Nameplates.DEFAULTS and Nameplates.DEFAULTS.size or DEFAULT_NAMEPLATE_SIZE
-                return ClampInteger(settings and settings.size, NAMEPLATE_SIZE_MIN, NAMEPLATE_SIZE_MAX, defaultSize)
+                return ClampNameplateSize(settings and settings.size, defaultSize)
             end,
             setFunc = function(value)
                 local settings = EnsureNameplateSettings()
@@ -165,37 +174,4 @@ function Nameplates.GetSettingsOptions()
             width = "half",
         },
     }
-end
-
-function Nameplates.InitModule(m_options)
-    m_options = m_options or {}
-    local defaults = Nameplates.DEFAULTS
-    if m_options.m_enabled == nil then m_options.m_enabled = defaults.m_enabled end
-    if m_options.font == nil then m_options.font = defaults.font end
-    if m_options.style == nil then m_options.style = defaults.style end
-    if m_options.size == nil then m_options.size = defaults.size end
-    m_options.size = ClampInteger(m_options.size, NAMEPLATE_SIZE_MIN, NAMEPLATE_SIZE_MAX, defaults.size)
-
-    local currentLang = GetCVar("language.2") or "en"
-    local isEnglish = (currentLang == "en")
-
-    if not isEnglish then
-        local westernOnlyFonts = {
-            ["EsoUI/Common/Fonts/Univers57.otf"] = true,
-            ["EsoUI/Common/Fonts/Univers67.otf"] = true,
-            ["EsoUI/Common/Fonts/FTN57.otf"] = true,
-            ["EsoUI/Common/Fonts/FTN47.otf"] = true,
-            ["EsoUI/Common/Fonts/FTN87.otf"] = true,
-            ["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
-            ["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
-            ["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
-            ["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
-            ["EsoUI/Common/Fonts/consola.otf"] = true,
-        }
-        if m_options.font and westernOnlyFonts[m_options.font] then
-            m_options.font = "$(BOLD_FONT)"
-        end
-    end
-
-    return m_options
 end

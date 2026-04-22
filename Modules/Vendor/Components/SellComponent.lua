@@ -11,6 +11,13 @@ local Sell = Vendor.SellComponent
 
 local SELL_CATEGORY_DEFS = BETTERUI.CIM.ItemTaxonomy.VENDOR_SELL_CATEGORY_DEFS
 
+local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstance)
+    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
+    assert(type(authorizeInventoryAction) == "function",
+        "Vendor.AuthorizeInventoryAction must load before Vendor sell actions")
+    return authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+end
+
 local function BuildSellableBagItems()
     local rows = {}
     local bagItems = SHARED_INVENTORY and SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_BACKPACK)
@@ -127,9 +134,12 @@ function Sell:IsPrimaryActionEnabled(vendorInstance)
         return false
     end
 
-    return Vendor.AuthorizeInventoryAction
-        and Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL, ds.bagId, ds.slotIndex, vendorInstance)
-        or true
+    if ds.bagId == nil or ds.slotIndex == nil then
+        return false
+    end
+
+    local allowed = AuthorizeVendorAction(Vendor.ACTION.SELL, ds.bagId, ds.slotIndex, vendorInstance)
+    return allowed == true
 end
 
 function Sell:OnPrimaryAction(vendorInstance)
@@ -141,11 +151,9 @@ function Sell:OnPrimaryAction(vendorInstance)
     local slotIndex = ds.slotIndex
     if bagId == nil or slotIndex == nil then return end
 
-    if Vendor.AuthorizeInventoryAction then
-        local canSell = Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL, bagId, slotIndex, vendorInstance)
-        if not canSell then
-            return
-        end
+    local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL, bagId, slotIndex, vendorInstance)
+    if not canSell then
+        return
     end
 
     local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
@@ -167,10 +175,7 @@ function Sell:SellAllJunk(vendorInstance)
     local bagSize = GetBagSize(BAG_BACKPACK) or 0
     for slot = 0, bagSize - 1 do
         if IsItemJunk(BAG_BACKPACK, slot) then
-            local canSell = true
-            if Vendor.AuthorizeInventoryAction then
-                canSell = Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL_JUNK, BAG_BACKPACK, slot, vendorInstance)
-            end
+            local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL_JUNK, BAG_BACKPACK, slot, vendorInstance)
             if canSell then
                 local stack = GetSlotStackSize(BAG_BACKPACK, slot) or 1
                 if stack > 0 then

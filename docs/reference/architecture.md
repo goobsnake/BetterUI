@@ -30,7 +30,7 @@
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Load Manifest: BetterUI.txt                                            │
 │  ├── CIM shared infrastructure loads first                              │
-│  ├── GeneralInterface + Nameplates load dedicated interface services     │
+│  ├── GeneralInterface + Nameplates load CIM-dependent interface surfaces │
 │  └── Feature modules load in manifest order, then setup is registry-led │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Core Layer (inside CIM module)                                         │
@@ -51,8 +51,8 @@
 │  └── Templates/  (Shared XML templates)                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Interface Modules                                                       │
-│  ├── GeneralInterface/ (tooltip runtime/settings + setup hooks)         │
-│  └── Nameplates/      (standalone nameplate runtime/settings owner)     │
+│  ├── GeneralInterface/ (CIM-backed tooltip runtime/settings + setup)    │
+│  └── Nameplates/      (CIM-backed nameplate settings-owner module)      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Feature Modules                                                         │
 │  ├── Inventory/         (Enhanced inventory with categories, search)    │
@@ -82,20 +82,20 @@ Current module examples in the repo:
 - **`settings-owner`** — `Nameplates`, `ResourceOrbFrames`
 - **`thin-entrypoint`** — `GeneralInterface`, `Writs`
 
-Supported root shapes are archetype-driven. A module keeps exactly one canonical root owner (`Module.lua` or `<Module>.lua`) and may keep the other file as an optional facade/helper.
+Supported root shapes are archetype-driven. A module keeps exactly one canonical root owner (`Module.lua` or `<Module>.lua`). If both root files exist, only one may own `ARCHETYPE`/`ROOT_CONTRACT`; the other should stay a thin helper/facade.
 
 | Archetype | Canonical Root Shape | Current Examples |
 |-----------|----------------------|------------------|
-| `runtime-coordinator` | Usually `Module.lua`; `<Module>.lua` may exist as a focused runtime facade | `Inventory`, `Banking`, `Vendor`, `TradingHouse`, `Companions` |
+| `runtime-coordinator` | Canonical root is usually `Module.lua`; any root `<Module>.lua` facade should stay thin and trend toward `Core/*Runtime.lua` | `Inventory`, `Banking`, `Vendor`, `TradingHouse`, `Companions` |
 | `settings-owner` | `Module.lua` **or** `<Module>.lua`, but ownership stays singular in one root | `Nameplates` (`Nameplates.lua`), `ResourceOrbFrames` (`Module.lua`) |
 | `thin-entrypoint` | `Module.lua` delegates runtime work to focused files | `GeneralInterface`, `Writs` |
 
-The root remains intentionally small, but a module may keep one public runtime façade at the root when that file is the canonical owner of gameplay flow.
+The canonical root remains intentionally small. Runtime-heavy logic should live under responsibility folders (`Core/`, `UI/`, etc.) so root ownership stays obvious.
 
 | Root Files | Purpose |
 |------------|---------|
 | `Module.lua` | Optional canonical root (archetype-dependent); can host init/setup, root contract, and settings registration |
-| `<Module>.lua` | Optional canonical root/runtime façade when that file owns gameplay flow |
+| `<Module>.lua` | Optional helper or canonical root (archetype-dependent); do not give both root files equal ownership weight |
 | `Constants.lua` | Module-specific constants and configuration (when needed) |
 
 All other files are organized into subfolders by responsibility:
@@ -153,8 +153,8 @@ GeneralInterface/
 **Nameplates Module** (`Modules/Nameplates/`):
 ```
 Nameplates/
-├── Settings.lua           # Settings-owner panel seam + settings options
-└── Nameplates.lua         # Nameplate runtime + setup hook
+├── Nameplates.lua         # settings-owner canonical root (runtime + setup + init + panel seam)
+└── Settings.lua           # Nameplates-owned settings-options helper seam
 ```
 
 **Banking Module** (`Modules/Banking/`):
@@ -265,15 +265,15 @@ BETTERUI = {
 | Module | Root Files | Key Subfolders | Load / Runtime Dependency | Purpose |
 |--------|------------|----------------|---------------------------|---------|
 | **CIM** | Constants, ConstantsUI, Module | Core/{Batching, Data, Diagnostics, Integration, Lifecycle, Presentation, Settings, Window}, UI, Lists, Actions, Dialogs, Keybinds | Required | Shared infrastructure, runtime setup, batch orchestration, market/research services |
-| **GeneralInterface** | Module, Setup | Tooltips | Registry-independent; consumes CIM helpers | Tooltip enhancements and shared interface hooks |
-| **Nameplates** | Settings, Nameplates | (root-only) | Requires CIM; standalone module | Nameplate font/style customization and lifecycle wiring |
+| **GeneralInterface** | Module, Setup | Tooltips | Requires CIM; registry-managed module | Tooltip enhancements and shared interface hooks |
+| **Nameplates** | Nameplates, Settings | (root-only) | Requires CIM; registry-managed module | Nameplate font/style customization and lifecycle wiring |
 | **Inventory** | Constants, Module, Inventory, Loader | Core, UI, Lists, Actions, Keybinds, State, Dialogs, Scene, Settings | Requires CIM | Enhanced inventory with categories/search |
 | **Banking** | Constants, Module, Banking | Core, Lists, Actions, Keybinds, Search, State, Scene, UI, Dialogs | Requires CIM | Bank/house/guild bank interface |
 | **Vendor** | Module, Vendor | Core, Components, Settings | Requires CIM | Store/fence workflows plus namespaced vendor helpers |
 | **TradingHouse** | Module, TradingHouse | Core, Components, Settings | Requires CIM | Trading House scaffold/runtime surface |
 | **Companions** | Module | Core, Actions, Dialogs, Settings | Requires CIM | Companion gear and inventory surfaces |
 | **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core, SkillBar, Settings, Templates, Textures | Requires CIM | Custom resource orbs and skill bar runtime |
-| **Writs** | Constants, Module | Core, Templates | Registry-independent | Writ quest tracker |
+| **Writs** | Constants, Module | Core, Templates | Registry-managed (CIM-independent) | Writ quest tracker |
 
 ---
 
@@ -551,7 +551,7 @@ graph LR
     subgraph ModuleRoot[Module Root]
         A[Module.lua]
         B[Constants.lua (optional)]
-        C[<Module>.lua runtime facade (optional)]
+        C[<Module>.lua helper/facade (optional)]
         D[ARCHETYPE + ROOT_CONTRACT]
     end
     

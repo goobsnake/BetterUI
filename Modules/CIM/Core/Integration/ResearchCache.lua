@@ -102,12 +102,3 @@ end
 function ResearchCache.GetTraits()
     return ResearchCache.GetResearch()
 end
-
---- Backward-compatible read-only alias.
----@deprecated Prefer `GetResearch` for reads and `RefreshResearchTraits` for refreshes.
----@return table traits The cached research-trait matrix snapshot
-function ResearchCache.GetResearchTraits()
-    return ResearchCache.GetResearch()
-end
-
-BETTERUI.GetResearch = ResearchCache.GetResearch

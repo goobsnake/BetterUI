@@ -32,8 +32,10 @@ assert(type(DENY.CROWN_GEMMABLE) == "string", "BetterUI: ProtectionPolicy.DENY.C
 assert(type(DENY.FURNITURE_VAULT_LOCKED) == "string",
     "BetterUI: ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED must be defined")
 assert(type(DENY.GUILD_PERMISSION) == "string", "BetterUI: ProtectionPolicy.DENY.GUILD_PERMISSION must be defined")
-BETTERUI.Banking.TransferRules = BETTERUI.Banking.TransferRules or {}
-local TransferRules = BETTERUI.Banking.TransferRules
+BETTERUI.Banking.Transfer = BETTERUI.Banking.Transfer or BETTERUI.Banking.TransferRules or {}
+BETTERUI.Banking.TransferRules = BETTERUI.Banking.Transfer
+---@type BetterUIBankingTransferService
+local Transfer = BETTERUI.Banking.Transfer
 
 local TRANSFER_DENIAL_ALERT = 1
 local TRANSFER_DENIAL_TOAST = 2
@@ -222,11 +224,18 @@ local function ResolveDepositTargetBag(bagId, slotIndex, transferBankBag)
     return "skip"
 end
 
-function TransferRules.CanDepositIntoBank(bagId, slotIndex, targetBankBag)
-    return IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
-end
+---@param bagId BagId
+---@param slotIndex SlotIndex
+---@param targetBankBag BagId
+---@return boolean canDeposit
+---@return string|nil denyReason
+Transfer.CanDepositIntoBank = IsDepositSupportedForBank
 
-function TransferRules.NotifyTransferDenied(context, targetBankBag, denyReason)
+---@param context string
+---@param targetBankBag BagId
+---@param denyReason string|nil
+---@return nil
+Transfer.NotifyTransferDenied = function(context, targetBankBag, denyReason)
     if not denyReason then
         return
     end
@@ -244,13 +253,22 @@ function TransferRules.NotifyTransferDenied(context, targetBankBag, denyReason)
     BETTERUI.CIM.UserNotify(context, notification.stringId)
 end
 
-function TransferRules.ResolveGuildBankTransferDecision(mode, bagId, slotIndex)
-    return ResolveGuildBankTransferDecision(mode, bagId, slotIndex)
-end
+---@param mode number
+---@param bagId BagId
+---@param slotIndex SlotIndex
+---@return boolean canTransfer
+---@return string|nil denyReason
+---@return string|nil denialText
+---@return string|nil denialStringId
+Transfer.ResolveGuildBankTransferDecision = ResolveGuildBankTransferDecision
 
-function TransferRules.NotifyGuildBankTransferDenied(context, mode, bagId, slotIndex)
-    return NotifyGuildBankTransferDenied(context, mode, bagId, slotIndex)
-end
+---@param context string
+---@param mode number
+---@param bagId BagId
+---@param slotIndex SlotIndex
+---@return boolean canTransfer
+---@return string|nil denyReason
+Transfer.NotifyGuildBankTransferDenied = NotifyGuildBankTransferDenied
 
 local BANK_TRANSFER_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
     BatchConfig.WithServer({

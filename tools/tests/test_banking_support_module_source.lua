@@ -51,7 +51,7 @@ assert_true(categoryManager:find("BETTERUI%.CIM%.SharedItemSupport%.DoesItemMatc
     "CategoryManager delegates category matching to SharedItemSupport")
 assert_true(categoryManager:find('if visibility%["all"%] ~= nil then') ~= nil,
     "CategoryManager keeps the synthetic all-category visible when present")
-assert_true(categoryManager:find("function BETTERUI%.Banking%.Class%.ComputeVisibleBankCategories") ~= nil,
+assert_true(categoryManager:find("BETTERUI%.Banking%.Class%.ComputeVisibleBankCategories = CategoryManager%.ComputeVisibleBankCategories") ~= nil,
     "CategoryManager exposes the Banking class wrapper")
 
 local constants = read_file("Modules/Banking/Constants.lua")
@@ -75,10 +75,14 @@ assert_true(guildBankAdapter:find("function GuildBank%.GetPermissionDenial%(mode
     "GuildBankAdapter exposes structured permission denial details")
 assert_true(guildBankAdapter:find("function GuildBank%.GetPermissionDenialReason%(mode%)") == nil,
     "GuildBankAdapter no longer exposes a text-only permission denial seam")
-assert_true(guildBankAdapter:find("function GuildBank%.GetSourceBags%(mode%)") ~= nil,
-    "GuildBankAdapter exposes source bag resolution")
-assert_true(guildBankAdapter:find("function GuildBank%.GetDepositTargetBag%(%)") ~= nil,
-    "GuildBankAdapter exposes deposit target resolution")
+assert_true(guildBankAdapter:find("function GuildBank%.GetSourceBags%(mode%)") == nil,
+    "GuildBankAdapter no longer exposes a legacy source-bag helper")
+assert_true(guildBankAdapter:find("function GuildBank%.GetDepositTargetBag%(%)") == nil,
+    "GuildBankAdapter no longer exposes a legacy deposit-target helper")
+assert_true(guildBankAdapter:find("SetListUpdatesSuppressed") ~= nil,
+    "GuildBankAdapter coordinates list-update suppression through the Banking class runtime API")
+assert_true(guildBankAdapter:find("RefreshCategoryView") ~= nil,
+    "GuildBankAdapter delegates category/list refresh choreography to the Banking class helper")
 
 local refreshIntegration = read_file("Modules/Banking/Core/RefreshIntegration.lua")
 assert_true(refreshIntegration:find("function BETTERUI%.Banking%.InitializeRefreshManager%(%)") ~= nil,
@@ -161,8 +165,8 @@ assert_true(searchManager:find("function BETTERUI%.Banking%.Class:PositionSearch
     "SearchManager exposes PositionSearchControl")
 
 local stateManager = read_file("Modules/Banking/State/StateManager.lua")
-assert_true(stateManager:find("function BETTERUI%.Banking%.Class:CurrentUsedBank%(%)") ~= nil,
-    "StateManager exposes CurrentUsedBank")
+assert_true(stateManager:find("BETTERUI%.Banking%.SetRuntimeBankBags") ~= nil,
+    "StateManager writes banking runtime bag state through the owned Banking runtime API")
 assert_true(stateManager:find("function BETTERUI%.Banking%.Class:SaveListPosition%(%)") ~= nil,
     "StateManager exposes SaveListPosition")
 assert_true(stateManager:find("function BETTERUI%.Banking%.Class:GetRestoredPosition%(%)") ~= nil,

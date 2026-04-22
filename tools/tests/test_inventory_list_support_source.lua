@@ -43,6 +43,8 @@ assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.IsQuickslottable = 
     "InventoryKeybinds exposes IsQuickslottable")
 assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.GetXButtonActionContext = GetXButtonActionContext") ~= nil,
     "InventoryKeybinds exposes GetXButtonActionContext")
+assert_true(inventoryKeybindsSource:find("cimKeybinds and cimKeybinds%.GetXButtonActionContext") ~= nil,
+    "InventoryKeybinds routes X-button context through shared CIM action-context helpers")
 assert_true(inventoryKeybindsSource:find("function BETTERUI%.Inventory%.Class:InitializeKeybindStrip%(%)") ~= nil,
     "InventoryKeybinds exposes InitializeKeybindStrip")
 
@@ -116,6 +118,8 @@ assert_true(moduleSource:find("function Inventory%.Setup%(%)") ~= nil,
 local sceneSource = read_file("Modules/Inventory/Scene/InventorySceneLifecycle.lua")
 assert_true(sceneSource:find("function BETTERUI%.Inventory%.Class:OnStateChanged%(oldState, newState%)") ~= nil,
     "InventorySceneLifecycle exposes OnStateChanged")
+assert_true(sceneSource:find("CreateStateChangeHandler") ~= nil,
+    "InventorySceneLifecycle uses the shared SceneLifecycle adapter path")
 
 local currencySource = read_file("Modules/Inventory/Settings/CurrencySettings.lua")
 assert_true(currencySource:find("local CURRENCY_DATA = %{%s*") ~= nil,

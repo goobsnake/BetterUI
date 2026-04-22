@@ -69,12 +69,14 @@ assert_true(source:find("return not policy or policy.CanJunkItem", 1, true) == n
     "Companion junk actions no longer fail open when ProtectionPolicy is missing")
 assert_true(source:find("return not policy or policy.CanUnjunkItem", 1, true) == nil,
     "Companion unjunk actions no longer fail open when ProtectionPolicy is missing")
-assert_true(source:find("BETTERUI%.Inventory and BETTERUI%.Inventory%.CanDestroyItemWithPolicy") ~= nil,
-    "Companion destroy checks prefer the canonical inventory destroy-policy helper")
+assert_true(source:find("BETTERUI%.Inventory and BETTERUI%.Inventory%.CanDestroyItemWithPolicy") == nil,
+    "Companion destroy checks no longer bounce through Inventory destroy-policy wrappers")
 assert_true(source:find('RequireProtectionPolicyMethod%("CanDestroyItem"%)') ~= nil,
-    "Companion destroy policy fallback includes slot-type context")
-assert_true(source:find("BETTERUI%.Inventory and BETTERUI%.Inventory%.TryDestroyItem") ~= nil,
-    "Companion quick-destroy routes through the canonical inventory destroy executor")
+    "Companion destroy checks use the canonical required protection-policy seam")
+assert_true(source:find("local function RequireInventoryDestroyExecutor%(%s*%)") ~= nil,
+    "Companion quick-destroy resolves the inventory destroy executor through an explicit seam")
+assert_true(source:find("inventory and inventory%.TryDestroyItem") ~= nil,
+    "Companion quick-destroy delegates to the canonical inventory destroy executor")
 assert_true(source:find('table.insert%(actions, %{%s*id = "equip", name = GetString%(SI_ITEM_ACTION_EQUIP%) %}%)') ~= nil,
     "CompanionActions offers equip action entries")
 assert_true(source:find('table.insert%(actions, %{%s*id = "destroy", name = GetString%(SI_ITEM_ACTION_DESTROY%) %}%)') ~= nil,

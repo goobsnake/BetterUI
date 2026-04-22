@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/Interfaces.lua
+File: Modules/CIM/Core/Integration/Interfaces.lua
 Purpose: Defines strict interface contracts for BetterUI module implementations.
          Provides type-checking and validation for module registrations.
 ]]

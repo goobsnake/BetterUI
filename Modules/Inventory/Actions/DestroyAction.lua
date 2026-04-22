@@ -3,24 +3,26 @@
 local BLOCK_TABBAR_CALLBACK = true
 
 local function CanForceDestroyItem(bagId, slotIndex, slotType)
-    local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-    if policy and policy.CanDestroyItem then
-        return policy.CanDestroyItem(bagId, slotIndex, slotType) == true
-    end
-
-    return true
+    return BETTERUI.Inventory.CanDestroyItemWithPolicy(bagId, slotIndex, slotType) == true
 end
 
 local function GetProtectionPolicy()
-    return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+    assert(type(policy) == "table",
+        "BetterUI: CIM.ProtectionPolicy must load before inventory destroy-policy checks")
+    return policy
+end
+
+local function RequireProtectionPolicyMethod(methodName)
+    local policy = GetProtectionPolicy()
+    local method = policy and policy[methodName] or nil
+    assert(type(method) == "function",
+        string.format("BetterUI: CIM.ProtectionPolicy.%s must load before inventory destroy-policy checks", tostring(methodName)))
+    return method
 end
 
 local function CanDestroyItemWithPolicy(bagId, slotIndex, slotType)
-    local policy = GetProtectionPolicy()
-    if policy and policy.CanDestroyItem then
-        return policy.CanDestroyItem(bagId, slotIndex, slotType) == true
-    end
-    return true
+    return RequireProtectionPolicyMethod("CanDestroyItem")(bagId, slotIndex, slotType) == true
 end
 
 BETTERUI.Inventory.CanDestroyItemWithPolicy = CanDestroyItemWithPolicy

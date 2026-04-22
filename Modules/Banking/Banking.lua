@@ -2,8 +2,6 @@ local LIST_WITHDRAW                 = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
 local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 
-local RuntimeState = BETTERUI.Banking.RuntimeState
-
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 local InventorySlotActions = BETTERUI.Inventory and BETTERUI.Inventory.SlotActions or nil
 local InventoryNewItemTracker = BETTERUI.Inventory and BETTERUI.Inventory.NewItemTracker or nil
@@ -106,7 +104,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     self.lastPositionsByCategory = {}
 
-    RuntimeState.currentUsedBank = BETTERUI.Banking.GetActiveInteractionBag()
+    BETTERUI.Banking.SetRuntimeBankBags(BETTERUI.Banking.GetActiveInteractionBag(), nil)
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 
@@ -191,7 +189,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 return
             end
 
-            local currentUsedBank = RuntimeState.currentUsedBank
+            local currentUsedBank = BETTERUI.Banking.GetRuntimeState().currentUsedBank
             local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or
                 nil
             local showingCurrencyRows = (currentUsedBank == BAG_BANK)
@@ -243,13 +241,14 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     EVENT_MANAGER:UnregisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK)
     EVENT_MANAGER:RegisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK, function(_, bankBag)
-        RuntimeState.lastOpenedBankBag = bankBag or BAG_BANK
+        BETTERUI.Banking.GetRuntimeState().lastOpenedBankBag = bankBag or BAG_BANK
     end)
 
     EVENT_MANAGER:UnregisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK)
     EVENT_MANAGER:RegisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK, function()
         if IsBankOpen and IsBankOpen() then
-            RuntimeState.lastOpenedBankBag = GetBankingBag() or RuntimeState.lastOpenedBankBag
+            local runtimeState = BETTERUI.Banking.GetRuntimeState()
+            runtimeState.lastOpenedBankBag = GetBankingBag() or runtimeState.lastOpenedBankBag
         end
     end)
 

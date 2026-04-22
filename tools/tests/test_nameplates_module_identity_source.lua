@@ -70,16 +70,22 @@ assert_contains(nameplates, 'name = "Nameplates",',
     "The Nameplates root contract uses the canonical module name")
 assert_contains(nameplates, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates runtime binds through the dedicated Nameplates module namespace")
+assert_contains(nameplates, "Nameplates.Settings = Nameplates.Settings or {}",
+    "Nameplates runtime owns the module settings seam namespace")
+assert_contains(nameplates, "Nameplates.Settings.RegisterPanel = InitPanel",
+    "Nameplates runtime binds panel registration through the canonical root")
+assert_contains(nameplates, "function Nameplates.InitModule(m_options)",
+    "Nameplates runtime owns InitModule defaults and migration behavior")
 assert_not_contains(nameplates, "GeneralInterface.Nameplates = Nameplates",
     "Nameplates runtime no longer synchronizes GeneralInterface alias ownership")
 assert_contains(nameplates, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates setup registers a dedicated Nameplates settings panel")
 assert_contains(settings, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates settings bind through the dedicated Nameplates module namespace")
-assert_contains(settings, "Nameplates.Settings = Nameplates.Settings or {}",
-    "Nameplates settings expose a dedicated panel registration seam")
-assert_contains(settings, "Nameplates.Settings.RegisterPanel = InitPanel",
-    "Nameplates settings bind panel construction to the Nameplates settings seam")
+assert_not_contains(settings, "Nameplates.Settings.RegisterPanel = InitPanel",
+    "Nameplates settings helper no longer owns panel registration")
+assert_not_contains(settings, "function Nameplates.InitModule(m_options)",
+    "Nameplates settings helper no longer owns InitModule defaults")
 assert_not_contains(contributingGuide, "`settings-owner`: `Module.lua` is the canonical root and also owns the package's settings surface.",
     "Contributing guide no longer claims settings-owner modules must root at Module.lua")
 assert_contains(contributingGuide, "`settings-owner`: one canonical root file owns both runtime and settings seams.",

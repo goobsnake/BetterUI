@@ -25,6 +25,7 @@ local nameplatesSource = read_file("Modules/Nameplates/Nameplates.lua")
 local nameplateSettingsSource = read_file("Modules/Nameplates/Settings.lua")
 local bootstrapSource = read_file("BetterUI.lua")
 local contributingGuide = read_file("docs/guides/contributing-guide.md")
+local architectureDoc = read_file("docs/reference/architecture.md")
 
 assert_not_contains(moduleSource, "GetNameplatesNamespace",
     "GeneralInterface module no longer owns a Nameplates namespace resolver")
@@ -44,14 +45,20 @@ assert_contains(nameplatesSource, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates runtime resolves from the dedicated Nameplates module namespace")
 assert_not_contains(nameplatesSource, "GeneralInterface.Nameplates = Nameplates",
     "Nameplates runtime no longer backfills GeneralInterface aliases")
+assert_contains(nameplatesSource, "Nameplates.Settings = Nameplates.Settings or {}",
+    "Nameplates runtime owns the settings seam namespace")
+assert_contains(nameplatesSource, "Nameplates.Settings.RegisterPanel = InitPanel",
+    "Nameplates runtime owns panel registration through the root file")
+assert_contains(nameplatesSource, "function Nameplates.InitModule(m_options)",
+    "Nameplates runtime owns module defaults/init behavior")
 assert_contains(nameplatesSource, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates runtime registers its own settings panel")
 assert_contains(nameplateSettingsSource, "return BETTERUI.GetModuleSettings(\"Nameplates\")",
     "Nameplates settings keep the dedicated Nameplates module settings identity")
-assert_contains(nameplateSettingsSource, "Nameplates.Settings = Nameplates.Settings or {}",
-    "Nameplates settings expose the dedicated settings panel seam")
-assert_contains(nameplateSettingsSource, "Nameplates.Settings.RegisterPanel = InitPanel",
-    "Nameplates settings bind the dedicated panel registration helper")
+assert_not_contains(nameplateSettingsSource, "Nameplates.Settings.RegisterPanel = InitPanel",
+    "Nameplates settings helper no longer owns panel registration")
+assert_not_contains(nameplateSettingsSource, "function Nameplates.InitModule(m_options)",
+    "Nameplates settings helper no longer owns InitModule defaults")
 assert_not_contains(bootstrapSource, "ResolveNameplatesNamespace",
     "Bootstrap no longer advertises split Nameplates namespace ownership")
 assert_contains(bootstrapSource, "BETTERUI.Nameplates = BETTERUI.Nameplates or {}",
@@ -64,5 +71,13 @@ assert_contains(contributingGuide, "`settings-owner`: one canonical root file ow
     "Contributing guide documents that settings-owner modules keep a single canonical root owner")
 assert_not_contains(contributingGuide, "`settings-owner`: `Module.lua` is the canonical root and also owns the package's settings surface.",
     "Contributing guide no longer forces settings-owner modules to root at Module.lua")
+assert_contains(contributingGuide, "`runtime-coordinator`: the canonical root coordinates runtime lifecycle and shared services.",
+    "Contributing guide aligns archetype wording with runtime-coordinator contracts")
+assert_not_contains(contributingGuide, "`runtime-facade`:",
+    "Contributing guide no longer uses the legacy runtime-facade archetype label")
+assert_contains(architectureDoc, "| **GeneralInterface** | Module, Setup | Tooltips | Requires CIM; registry-managed module |",
+    "Architecture doc reflects GeneralInterface as a registry-managed CIM-dependent module")
+assert_contains(architectureDoc, "| **Nameplates** | Nameplates, Settings | (root-only) | Requires CIM; registry-managed module |",
+    "Architecture doc reflects Nameplates as a registry-managed CIM-dependent module")
 
 print("  OK")

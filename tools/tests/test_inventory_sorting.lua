@@ -16,6 +16,13 @@ local marketPricesByLink = {}
 
 BETTERUI = {
     Inventory = {
+        CONST = {
+            LIST_TYPES = {
+                CATEGORY = "categoryList",
+                ITEM = "itemList",
+                CRAFT_BAG = "craftBagList",
+            },
+        },
         Class = {},
     },
     CIM = {
@@ -147,7 +154,7 @@ local function makeInstance()
             end,
         },
         mainKeybindStripDescriptor = { name = "main" },
-        currentListType = "itemList",
+        currentListType = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM,
         header = {
             GetNamedChild = function()
                 return nil
@@ -158,7 +165,7 @@ local function makeInstance()
     }, { __index = BETTERUI.Inventory.Class })
 
     function instance:GetCurrentList()
-        return self.currentListType == "craftBagList" and self.craftBagList or self.itemList
+        return self.currentListType == BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG and self.craftBagList or self.itemList
     end
 
     function instance:RefreshItemList()

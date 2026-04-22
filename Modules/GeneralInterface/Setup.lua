@@ -173,7 +173,7 @@ GeneralInterface._SetupInstallers = {
 function GeneralInterface.Setup()
 	BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")
 
-	-- Only apply hooks/logic if Tooltips module is enabled
+	-- Only apply hooks/logic when the GeneralInterface module toggle is enabled.
 	if not BETTERUI.GetModuleEnabled("GeneralInterface") then return end
 
 	-- Do not override ZO_IsIngameUI here.

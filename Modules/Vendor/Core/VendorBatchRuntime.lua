@@ -57,6 +57,13 @@ local function ResolveBatchOptions(batchOptions)
 end
 Internal.ResolveBatchOptions = ResolveBatchOptions
 
+local function AuthorizeVendorInventoryAction(actionType, bagId, slotIndex)
+    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
+    assert(type(authorizeInventoryAction) == "function",
+        "Vendor.AuthorizeInventoryAction must load before Vendor batch inventory actions")
+    return authorizeInventoryAction(actionType, bagId, slotIndex, Vendor.instance)
+end
+
 local function NormalizeBatchRuntimeRequest(request)
     assert(type(request) == "table", "Vendor batch runtime expects BetterUIVendorBatchRequest table")
     assert(request.batchOptions == nil,
@@ -113,8 +120,7 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         local bagId = ds.bagId
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
-            local canSell = not Vendor.AuthorizeInventoryAction
-                or Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL, bagId, slotIndex, Vendor.instance)
+            local canSell = AuthorizeVendorInventoryAction(Vendor.ACTION.SELL, bagId, slotIndex)
             if not canSell then
                 return batchStepSkipped()
             end
@@ -130,8 +136,7 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         local bagId = ds.bagId
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
-            local canSell = not Vendor.AuthorizeInventoryAction
-                or Vendor.AuthorizeInventoryAction(Vendor.ACTION.FENCE_SELL, bagId, slotIndex, Vendor.instance)
+            local canSell = AuthorizeVendorInventoryAction(Vendor.ACTION.FENCE_SELL, bagId, slotIndex)
             if not canSell then
                 return batchStepSkipped()
             end
@@ -147,8 +152,7 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         local bagId = ds.bagId
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
-            local canLaunder = not Vendor.AuthorizeInventoryAction
-                or Vendor.AuthorizeInventoryAction(Vendor.ACTION.FENCE_LAUNDER, bagId, slotIndex, Vendor.instance)
+            local canLaunder = AuthorizeVendorInventoryAction(Vendor.ACTION.FENCE_LAUNDER, bagId, slotIndex)
             if not canLaunder then
                 return batchStepSkipped()
             end

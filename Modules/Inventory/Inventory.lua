@@ -9,89 +9,16 @@ Purpose: Inventory orchestration surface for shared runtime helpers and
 
 -- State and header helpers define focused runtime methods on the shared class.
 
--- Action mode constants
--- Action mode constants (must match other files)
--- Replaced by BETTERUI.Inventory.CONST equivalents
-
--- List type identifiers
-local INVENTORY_LIST_TYPES = (BETTERUI.Inventory and BETTERUI.Inventory.CONST and BETTERUI.Inventory.CONST.LIST_TYPES) or {
-	CATEGORY = "categoryList",
-	ITEM = "itemList",
-	CRAFT_BAG = "craftBagList",
-}
-local INVENTORY_CATEGORY_LIST = INVENTORY_LIST_TYPES.CATEGORY
-local INVENTORY_ITEM_LIST = INVENTORY_LIST_TYPES.ITEM
-local INVENTORY_CRAFT_BAG_LIST = INVENTORY_LIST_TYPES.CRAFT_BAG
-
--- Dialog names (namespaced to avoid global collision)
-if not BETTERUI.Inventory.Dialogs then BETTERUI.Inventory.Dialogs = {} end
-BETTERUI.Inventory.Dialogs.EQUIP_SLOT = "BETTERUI_EQUIP_SLOT_DIALOG"
-
-function BETTERUI.Inventory.GetEquipSlotDialogName()
-    return BETTERUI.Inventory.Dialogs.EQUIP_SLOT
+local function GetInventoryListTypes()
+	local inventoryConstants = BETTERUI.Inventory and BETTERUI.Inventory.CONST
+	assert(inventoryConstants and inventoryConstants.LIST_TYPES,
+		"Inventory runtime requires BETTERUI.Inventory.CONST.LIST_TYPES")
+	return inventoryConstants.LIST_TYPES
 end
 
-function BETTERUI.Inventory.InvokeDialog(methodName, ...)
-    local dialogs = BETTERUI.Inventory and BETTERUI.Inventory.Dialogs
-    local dialogFn = dialogs and dialogs[methodName]
-    if type(dialogFn) ~= "function" then
-        return false
-    end
-
-    dialogFn(...)
-    return true
+local function GetInventoryListType(key)
+	return GetInventoryListTypes()[key]
 end
-
-local function EnsureLegacyEquipSlotDialogAlias()
-    BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.GetEquipSlotDialogName()
-end
-
-EnsureLegacyEquipSlotDialogAlias()
-
--- SECURE SYSTEM HOOKS
-local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
--- Re-issue utility wheel slot assignment through the secure engine call path.
---- Initializes secure wheel hooks for the assignable utility wheel.
----@return nil
-function BETTERUI.Inventory.InitializeSecureWheelHooks()
-	if ZO_AssignableUtilityWheel_Gamepad and not BETTERUI._secureWheelHooked then
-		ZO_PreHook(ZO_AssignableUtilityWheel_Gamepad, "TryAssignPendingToSelectedEntry", function(self, clearPending)
-			local selectedEntry = self:GetSelectedRadialEntry()
-			local pendingSlotData = self.pendingSlotData
-			if self.radialMenu:IsShown() and pendingSlotData and selectedEntry then
-				local actionSlotIndex = selectedEntry.data.slotIndex
-				local hotbarCategory = self:GetHotbarCategory()
-				if pendingSlotData.actionId then
-					CallSecureProtected("SelectSlotSimpleAction", pendingSlotData.slotType, pendingSlotData.actionId,
-						actionSlotIndex, hotbarCategory)
-				elseif pendingSlotData.bagId and pendingSlotData.itemSlotIndex then
-					CallSecureProtected("SelectSlotItem", pendingSlotData.bagId, pendingSlotData.itemSlotIndex,
-						actionSlotIndex, hotbarCategory)
-				end
-
-				if clearPending then
-					self.pendingSlotData = nil
-				end
-				if SOUNDS and PlaySound then
-					PlaySound(SOUNDS.RADIAL_MENU_SELECTION)
-				end
-
-				if self.data and self.data.customNarrationObjectName and SCREEN_NARRATION_MANAGER then
-					SCREEN_NARRATION_MANAGER:QueueCustomEntry(self.data.customNarrationObjectName)
-				end
-
-				if self.data and self.data.showPendingIcon then
-					self:RefreshPendingIcon()
-				end
-			end
-			-- Always return true to cancel the original unprotected native execution
-			return true
-		end)
-		BETTERUI._secureWheelHooked = true
-	end
-end
-
-
 
 -- REMAINING CLASS METHODS
 
@@ -144,7 +71,7 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 					self.savedInventoryCategoryKey = nil
 					self.savedInventoryCategoryIndex = 1
 				end
-				self:SwitchActiveList(INVENTORY_CATEGORY_LIST)
+				self:SwitchActiveList(GetInventoryListType("CATEGORY"))
 			else
 				-- don't refresh item actions if we are switching back to the category view
 				-- otherwise we get keybindstrip errors (Item actions will try to add an "A" keybind
@@ -389,7 +316,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 		end
 	end
 
-	self:SwitchActiveList(INVENTORY_ITEM_LIST)
+	self:SwitchActiveList(GetInventoryListType("ITEM"))
 end
 
 --- Clears the text search UI and internal state.
@@ -423,9 +350,9 @@ function BETTERUI.Inventory.Class:Select()
 		return
 	end
 	if not catTarget or not catTarget.onClickDirection then
-		self:SwitchActiveList(INVENTORY_ITEM_LIST)
+		self:SwitchActiveList(GetInventoryListType("ITEM"))
 	else
-		self:SwitchActiveList(INVENTORY_CRAFT_BAG_LIST)
+		self:SwitchActiveList(GetInventoryListType("CRAFT_BAG"))
 	end
 end
 
@@ -433,9 +360,9 @@ end
 ---@return nil
 function BETTERUI.Inventory.Class:Switch()
 	if self:GetCurrentList() == self.craftBagList then
-		self:SwitchActiveList(INVENTORY_ITEM_LIST)
+		self:SwitchActiveList(GetInventoryListType("ITEM"))
 	else
-		self:SwitchActiveList(INVENTORY_CRAFT_BAG_LIST)
+		self:SwitchActiveList(GetInventoryListType("CRAFT_BAG"))
 	end
 end
 

@@ -246,6 +246,12 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field sourceIsFurnitureVault boolean
 ---@field targetIsFurnitureVault boolean
 
+---@class BetterUIBankingTransferService
+---@field CanDepositIntoBank fun(bagId: BagId, slotIndex: SlotIndex, targetBankBag: BagId): boolean, string|nil
+---@field NotifyTransferDenied fun(context: string, targetBankBag: BagId, denyReason: string|nil)
+---@field ResolveGuildBankTransferDecision fun(mode: number, bagId: BagId, slotIndex: SlotIndex): boolean, string|nil, string|nil, string|nil
+---@field NotifyGuildBankTransferDenied fun(context: string, mode: number, bagId: BagId, slotIndex: SlotIndex): boolean, string|nil
+
 ---@class BetterUISharedFontSettings
 ---@field nameFont string|nil
 ---@field nameFontSize number|nil

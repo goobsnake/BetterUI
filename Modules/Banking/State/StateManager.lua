@@ -9,7 +9,6 @@ local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 -- Module identifier constants from CIM
 local MODULES       = BETTERUI.CIM.CONST.MODULES
-local RuntimeState = BETTERUI.Banking.RuntimeState
 
 local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
@@ -77,8 +76,9 @@ end
 
 --- Handles the case where the player switched to a different bank.
 function BETTERUI.Banking.Class:HandleBankSwitch()
-    local currentUsedBank = RuntimeState.currentUsedBank
-    local lastUsedBank = RuntimeState.lastUsedBank
+    local runtimeState = BETTERUI.Banking.GetRuntimeState()
+    local currentUsedBank = runtimeState.currentUsedBank
+    local lastUsedBank = runtimeState.lastUsedBank
     local activeSourceBag = BETTERUI.Banking.GetActiveInteractionBag()
 
     if lastUsedBank == currentUsedBank then
@@ -95,11 +95,11 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         self:SaveListPosition()
         self.currentMode = LIST_WITHDRAW
-        RuntimeState.lastUsedBank = activeSourceBag
+        BETTERUI.Banking.SetRuntimeBankBags(nil, activeSourceBag)
         self:RefreshList()
     else
         -- Switch to withdraw mode
-        RuntimeState.lastUsedBank = activeSourceBag
+        BETTERUI.Banking.SetRuntimeBankBags(nil, activeSourceBag)
         self.currentMode = LIST_WITHDRAW
         self:ToggleList(true)
     end
@@ -108,7 +108,7 @@ end
 
 --- Restores the saved list position.
 function BETTERUI.Banking.Class:ReturnToSaved()
-    RuntimeState.currentUsedBank = BETTERUI.Banking.GetActiveInteractionBag()
+    BETTERUI.Banking.SetRuntimeBankBags(BETTERUI.Banking.GetActiveInteractionBag(), nil)
 
     -- Handle empty list
     if self:HandleEmptyList() then
@@ -154,11 +154,15 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 
     -- Capture the category KEY from CURRENT mode before switching
     local prevCategoryKey = nil
-    local prevCategoryIndex = self.currentCategoryIndex or 1
-    if self.bankCategories and prevCategoryIndex <= #self.bankCategories then
-        local prevCat = self.bankCategories[prevCategoryIndex]
-        if prevCat then
-            prevCategoryKey = prevCat.key
+    if self.GetCurrentCategoryKey then
+        prevCategoryKey = self:GetCurrentCategoryKey()
+    else
+        local prevCategoryIndex = self.currentCategoryIndex or 1
+        if self.bankCategories and prevCategoryIndex <= #self.bankCategories then
+            local prevCat = self.bankCategories[prevCategoryIndex]
+            if prevCat then
+                prevCategoryKey = prevCat.key
+            end
         end
     end
 
@@ -167,21 +171,7 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     self.bankCategories = self:ComputeVisibleBankCategories()
 
     -- Try to find the same category key in the new mode; if not found, default to All Items (index 1)
-    local newCategoryIndex = 1 -- Default to All Items
-    local categoryFound = false
-    if prevCategoryKey then
-        for i, cat in ipairs(self.bankCategories) do
-            if cat.key == prevCategoryKey then
-                newCategoryIndex = i
-                categoryFound = true
-                break
-            end
-        end
-    end
-    -- If category doesn't exist in new mode, ensure we default to All Items
-    if not categoryFound then
-        newCategoryIndex = 1
-    end
+    local newCategoryIndex = self.ResolveCategoryIndex and self:ResolveCategoryIndex(prevCategoryKey) or 1
     -- Clamp the index to valid range BEFORE setting it
     self.currentCategoryIndex = zo_clamp(newCategoryIndex, 1, #self.bankCategories)
 

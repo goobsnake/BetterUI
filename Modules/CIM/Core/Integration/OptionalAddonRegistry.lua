@@ -27,7 +27,9 @@ local ADDON_DEFS = {
     },
 }
 
-local MANIFEST_OPTIONAL_ADDONS = {
+-- Canonical optional-addon key order.
+-- Keep BetterUI.txt OptionalDependsOn synchronized with this list.
+local OPTIONAL_ADDON_KEYS = {
     "MasterMerchant",
     "ArkadiusTradeTools",
     "TamrielTradeCentre",
@@ -43,7 +45,11 @@ local function CloneArray(values)
 end
 
 function OptionalAddons.GetManifestGlobals()
-    return CloneArray(MANIFEST_OPTIONAL_ADDONS)
+    return OptionalAddons.GetGlobals(OPTIONAL_ADDON_KEYS)
+end
+
+function OptionalAddons.GetAddonKeys()
+    return CloneArray(OPTIONAL_ADDON_KEYS)
 end
 
 function OptionalAddons.GetGlobals(addonKeys)

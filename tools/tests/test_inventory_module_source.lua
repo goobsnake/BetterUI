@@ -26,6 +26,12 @@ local source = read_file("Modules/Inventory/Module.lua")
 
 assert_true(source:find('setup = true', 1, true) ~= nil,
     "Inventory root contract opts into setup execution explicitly")
+assert_true(source:find("function Inventory%.GetEquipSlotDialogName%(%)") ~= nil,
+    "Inventory module root owns the equip dialog accessor bridge")
+assert_true(source:find("function Inventory%.InvokeDialog%(methodName, %.%.%.%)") ~= nil,
+    "Inventory module root owns the dialog invocation bridge")
+assert_true(source:find("Inventory%.InitializeSecureWheelHooks = InitializeSecureWheelHooks") ~= nil,
+    "Inventory module root owns secure wheel hook bootstrap wiring")
 assert_true(source:find("local function NotifyInventorySetupFailure%(context, messageText%)") ~= nil,
     "Inventory module exposes a shared setup failure notifier")
 assert_true(source:find('BETTERUI%.CIM and BETTERUI%.CIM%.UserNotify') ~= nil,

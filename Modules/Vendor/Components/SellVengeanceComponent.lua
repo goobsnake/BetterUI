@@ -11,6 +11,13 @@ local Vendor = BETTERUI.Vendor
 Vendor.SellVengeanceComponent = Vendor.SellVengeanceComponent or {}
 local SellVengeance = Vendor.SellVengeanceComponent
 
+local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstance)
+    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
+    assert(type(authorizeInventoryAction) == "function",
+        "Vendor.AuthorizeInventoryAction must load before Vendor sell vengeance actions")
+    return authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+end
+
 local function IsSellVengeanceAvailable()
     return rawget(_G, "BAG_VENGEANCE") ~= nil
         and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") == true
@@ -88,9 +95,8 @@ function SellVengeance:IsPrimaryActionEnabled(vendorInstance)
         return false
     end
 
-    return Vendor.AuthorizeInventoryAction
-        and Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL_VENGEANCE, ds.bagId, ds.slotIndex, vendorInstance)
-        or true
+    local allowed = AuthorizeVendorAction(Vendor.ACTION.SELL_VENGEANCE, ds.bagId, ds.slotIndex, vendorInstance)
+    return allowed == true
 end
 
 function SellVengeance:OnPrimaryAction(vendorInstance)
@@ -110,11 +116,9 @@ function SellVengeance:OnPrimaryAction(vendorInstance)
         return
     end
 
-    if Vendor.AuthorizeInventoryAction then
-        local canSell = Vendor.AuthorizeInventoryAction(Vendor.ACTION.SELL_VENGEANCE, bagId, slotIndex, vendorInstance)
-        if not canSell then
-            return
-        end
+    local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL_VENGEANCE, bagId, slotIndex, vendorInstance)
+    if not canSell then
+        return
     end
 
     local stackSize = GetSlotStackSize(bagId, slotIndex) or 0

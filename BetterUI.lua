@@ -49,7 +49,7 @@ local MODULE_REGISTRY = {
 	{ name = "TradingHouse", namespace = "TradingHouse", dependsOnCIM = true },
 	{ name = "Companions", namespace = "Companions", dependsOnCIM = true },
 
-	-- Independent modules
+	-- CIM-dependent interface and feature modules
 	{ name = "Writs", namespace = "Writs" },
 	{ name = "GeneralInterface", namespace = "GeneralInterface", dependsOnCIM = true },
 	{
@@ -554,7 +554,10 @@ function BETTERUI.LoadModules()
 
 	BETTERUI.Debug("Initializing BETTERUI...")
 
-	BETTERUI.GetResearch()
+	local researchCache = BETTERUI.CIM and BETTERUI.CIM.ResearchCache
+	if researchCache and type(researchCache.RefreshResearchTraits) == "function" then
+		researchCache.RefreshResearchTraits()
+	end
 
 	local allModulesLoaded, failedModules = LoadConfiguredModules()
 	ReportModuleSetupFailures(failedModules, "load")

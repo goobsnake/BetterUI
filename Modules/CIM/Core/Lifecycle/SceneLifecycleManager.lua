@@ -24,19 +24,10 @@ Fields:
 
 -- Type annotation for SceneLifecycleConfig is in Types.lua
 
-function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
-    if not screen then
-        BETTERUI.Debug("[SceneLifecycle] No screen provided")
-        return
-    end
+local function BuildStateChangeHandler(screen, config)
+    config = config or {}
 
-    local scene = screen.scene
-    if not scene then
-        BETTERUI.Debug("[SceneLifecycle] No scene on screen object")
-        return
-    end
-
-    scene:RegisterCallback("StateChange", function(oldState, newState)
+    return function(oldState, newState)
         if newState == SCENE_SHOWING then
             if config.keybinds then
                 for _, group in ipairs(config.keybinds) do
@@ -67,5 +58,34 @@ function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onHidden", config.onHidden, screen)
             end
         end
-    end)
+    end
+end
+
+function BETTERUI.CIM.SceneLifecycle.CreateStateChangeHandler(screen, config)
+    if not screen then
+        BETTERUI.Debug("[SceneLifecycle] No screen provided")
+        return nil
+    end
+
+    return BuildStateChangeHandler(screen, config)
+end
+
+function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
+    if not screen then
+        BETTERUI.Debug("[SceneLifecycle] No screen provided")
+        return
+    end
+
+    local scene = screen.scene
+    if not scene then
+        BETTERUI.Debug("[SceneLifecycle] No scene on screen object")
+        return
+    end
+
+    local stateChangeHandler = BETTERUI.CIM.SceneLifecycle.CreateStateChangeHandler(screen, config)
+    if not stateChangeHandler then
+        return
+    end
+
+    scene:RegisterCallback("StateChange", stateChangeHandler)
 end

@@ -1,25 +1,13 @@
 if not BETTERUI.Vendor then BETTERUI.Vendor = {} end
 local Vendor = BETTERUI.Vendor
 
-BETTERUI_VENDOR_SCENE_NAME = "BETTERUI_VENDOR"
-
-BETTERUI.Vendor.VENDOR_INTERACTION = STORE_INTERACTION
-
-BETTERUI.Vendor.FENCE_INTERACTION = {
+BETTERUI_VENDOR_SCENE_NAME = BETTERUI_VENDOR_SCENE_NAME or "BETTERUI_VENDOR"
+Vendor.VENDOR_INTERACTION = Vendor.VENDOR_INTERACTION or STORE_INTERACTION
+Vendor.FENCE_INTERACTION = Vendor.FENCE_INTERACTION or {
     type = "Fence",
     interactTypes = { INTERACTION_VENDOR },
 }
-
-BETTERUI.Vendor.MODE = BETTERUI.Vendor.MODE or {
-    BUY           = 1,
-    SELL          = 2,
-    REPAIR        = 3,
-    BUYBACK       = 4,
-    FENCE_SELL    = 5,
-    FENCE_LAUNDER = 6,
-    STABLE        = 7,
-    SELL_VENGEANCE = 8,
-}
+Vendor.MODE = assert(Vendor.MODE, "Vendor mode constants must load before VendorClass")
 
 local MODE = Vendor.MODE
 local DEFAULT_VENDOR_CATEGORY_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"

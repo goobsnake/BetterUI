@@ -193,6 +193,7 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
         keybinds = { instance.coreKeybinds },
         taskManager = deps.taskManager,
         onShowing = function(screen, wasPushed)
+            screen._vendorCloseCleanupApplied = false
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             if screen.ReleaseNativeStoreInputOwnership then
                 screen:ReleaseNativeStoreInputOwnership()
@@ -240,14 +241,18 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             end
             screen._suppressListUpdates = false
             screen._isDirty = false
-            if screen.DisableStablePreviewMode then
-                screen:DisableStablePreviewMode()
-            end
-            if screen.ReleaseNativeStoreInputOwnership then
-                screen:ReleaseNativeStoreInputOwnership()
-            end
-            if screen.ForceReleaseDirectionalInput then
-                screen:ForceReleaseDirectionalInput()
+            if Vendor.RunLifecycleCloseCleanup then
+                Vendor.RunLifecycleCloseCleanup(screen)
+            else
+                if screen.DisableStablePreviewMode then
+                    screen:DisableStablePreviewMode()
+                end
+                if screen.ReleaseNativeStoreInputOwnership then
+                    screen:ReleaseNativeStoreInputOwnership()
+                end
+                if screen.ForceReleaseDirectionalInput then
+                    screen:ForceReleaseDirectionalInput()
+                end
             end
             screen:DeactivateHeaderKeybinds()
             screen:DeactivateListInput()
@@ -269,14 +274,18 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             end
         end,
         onHidden = function(screen)
-            if screen.DisableStablePreviewMode then
-                screen:DisableStablePreviewMode()
-            end
-            if screen.ReleaseNativeStoreInputOwnership then
-                screen:ReleaseNativeStoreInputOwnership()
-            end
-            if screen.ForceReleaseDirectionalInput then
-                screen:ForceReleaseDirectionalInput()
+            if Vendor.RunLifecycleCloseCleanup then
+                Vendor.RunLifecycleCloseCleanup(screen)
+            else
+                if screen.DisableStablePreviewMode then
+                    screen:DisableStablePreviewMode()
+                end
+                if screen.ReleaseNativeStoreInputOwnership then
+                    screen:ReleaseNativeStoreInputOwnership()
+                end
+                if screen.ForceReleaseDirectionalInput then
+                    screen:ForceReleaseDirectionalInput()
+                end
             end
             if BETTERUI.CIM and BETTERUI.CIM.SceneCleanup then
                 BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)

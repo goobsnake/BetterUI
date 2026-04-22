@@ -39,7 +39,7 @@ assert_contains(
 
 assert_contains(
     transferActions,
-    "local TransferRules = assert(BETTERUI.Banking and BETTERUI.Banking.TransferRules",
+    "local Transfer = assert(",
     "TransferActions resolves transfer authorization through the dedicated Banking transfer service"
 )
 
@@ -51,7 +51,7 @@ assert_not_contains(
 
 assert_contains(
     transferActions,
-    "TransferRules.NotifyGuildBankTransferDenied",
+    "Transfer.NotifyGuildBankTransferDenied",
     "TransferActions binds guild-bank denial behavior through the dedicated Banking transfer service"
 )
 
@@ -87,8 +87,8 @@ assert_not_contains(
 
 assert_contains(
     keybindManager,
-    "transferRules and transferRules.ResolveGuildBankTransferDecision",
-    "KeybindManager resolves guild-bank keybind gating through Banking.TransferRules"
+    "transferService and transferService.ResolveGuildBankTransferDecision",
+    "KeybindManager resolves guild-bank keybind gating through Banking.Transfer"
 )
 
 assert_contains(
@@ -129,7 +129,7 @@ assert_contains(
 
 assert_contains(
     keybindManager,
-    "---@param self BetterUIBankingClass\n---@param list BetterUIBankingListSource|nil",
+    "---@param self BETTERUI.Banking.Class\n---@param list BetterUIBankingListSource|nil",
     "KeybindManager types the public trigger descriptor receiver and list source"
 )
 
@@ -141,13 +141,13 @@ assert_contains(
 
 assert_contains(
     keybindManager,
-    "---@param self BetterUIBankingClass\n---@return nil\nfunction BETTERUI.Banking.Class:InitializeKeybind()",
+    "---@param self BETTERUI.Banking.Class\n---@return nil\nfunction BETTERUI.Banking.Class:InitializeKeybind()",
     "KeybindManager types the public InitializeKeybind method"
 )
 
 assert_contains(
     keybindManager,
-    "---@param self BetterUIBankingClass\n---@return nil\nfunction BETTERUI.Banking.Class:RefreshActiveKeybinds()",
+    "---@param self BETTERUI.Banking.Class\n---@return nil\nfunction BETTERUI.Banking.Class:RefreshActiveKeybinds()",
     "KeybindManager types the public RefreshActiveKeybinds method"
 )
 

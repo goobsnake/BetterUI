@@ -20,6 +20,69 @@ Inventory.ROOT_CONTRACT = {
     setup = true,
 }
 
+Inventory.Dialogs = Inventory.Dialogs or {}
+Inventory.Dialogs.EQUIP_SLOT = "BETTERUI_EQUIP_SLOT_DIALOG"
+
+function Inventory.GetEquipSlotDialogName()
+    return Inventory.Dialogs.EQUIP_SLOT
+end
+
+function Inventory.InvokeDialog(methodName, ...)
+    local dialogs = Inventory.Dialogs
+    local dialogFn = dialogs and dialogs[methodName]
+    if type(dialogFn) ~= "function" then
+        return false
+    end
+
+    dialogFn(...)
+    return true
+end
+
+local function EnsureLegacyEquipSlotDialogAlias()
+    BETTERUI_EQUIP_SLOT_DIALOG = Inventory.GetEquipSlotDialogName()
+end
+
+local function InitializeSecureWheelHooks()
+    local assignableUtilityWheelGamepad = ZO_AssignableUtilityWheel_Gamepad
+    if assignableUtilityWheelGamepad and not BETTERUI._secureWheelHooked then
+        ZO_PreHook(assignableUtilityWheelGamepad, "TryAssignPendingToSelectedEntry", function(self, clearPending)
+            local selectedEntry = self:GetSelectedRadialEntry()
+            local pendingSlotData = self.pendingSlotData
+            if self.radialMenu:IsShown() and pendingSlotData and selectedEntry then
+                local actionSlotIndex = selectedEntry.data.slotIndex
+                local hotbarCategory = self:GetHotbarCategory()
+                if pendingSlotData.actionId then
+                    CallSecureProtected("SelectSlotSimpleAction", pendingSlotData.slotType, pendingSlotData.actionId,
+                        actionSlotIndex, hotbarCategory)
+                elseif pendingSlotData.bagId and pendingSlotData.itemSlotIndex then
+                    CallSecureProtected("SelectSlotItem", pendingSlotData.bagId, pendingSlotData.itemSlotIndex,
+                        actionSlotIndex, hotbarCategory)
+                end
+
+                if clearPending then
+                    self.pendingSlotData = nil
+                end
+                if SOUNDS and PlaySound then
+                    PlaySound(SOUNDS.RADIAL_MENU_SELECTION)
+                end
+
+                if self.data and self.data.customNarrationObjectName and SCREEN_NARRATION_MANAGER then
+                    SCREEN_NARRATION_MANAGER:QueueCustomEntry(self.data.customNarrationObjectName)
+                end
+
+                if self.data and self.data.showPendingIcon then
+                    self:RefreshPendingIcon()
+                end
+            end
+            -- Always return true to cancel the original unprotected native execution
+            return true
+        end)
+        BETTERUI._secureWheelHooked = true
+    end
+end
+
+Inventory.InitializeSecureWheelHooks = InitializeSecureWheelHooks
+
 local function TryInitializeCraftBagQuantityDialog()
     local dialogs = Inventory.Dialogs
     local initializeDialog = dialogs and dialogs.InitializeCraftBagQuantityDialog
@@ -187,6 +250,7 @@ end
 function Inventory.Setup()
     BETTERUI.CIM.RegisterModuleAccessors(Inventory, "Inventory")
     RegisterSharedItemSupport()
+    EnsureLegacyEquipSlotDialogAlias()
     if Inventory._inventoryActionModesRegistered ~= true
         and BETTERUI.CIM
         and BETTERUI.CIM.Keybinds

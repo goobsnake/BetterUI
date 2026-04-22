@@ -203,6 +203,9 @@ BETTERUI = {
         IsFurnitureVaultInteraction = function()
             return BETTERUI.Banking.GetTransferContext().sourceIsFurnitureVault == true
         end,
+        IsSourceFurnitureVaultTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().sourceIsFurnitureVault == true
+        end,
         Tasks = {
             Schedule = function(_, name, delayMs, callback)
                 scheduledTasks[name] = { delay = delayMs, callback = callback }
@@ -215,6 +218,14 @@ BETTERUI = {
             GetOrCreateState = function(self)
                 self.headerNavigationState = self.headerNavigationState or {}
                 return self.headerNavigationState
+            end,
+        },
+        ProtectionPolicy = {
+            CanJunkItem = function()
+                return canMarkAsJunk
+            end,
+            CanUnjunkItem = function()
+                return true
             end,
         },
         PopulateActionEntries = function(parametricList, actions, options)
@@ -323,6 +334,26 @@ local function createWindow()
         end,
         RebuildHeaderCategories = function(self)
             self.rebuildHeaderCategoriesCount = self.rebuildHeaderCategoriesCount + 1
+        end,
+        RefreshCategoryView = function(self, options)
+            self.bankCategories = self:ComputeVisibleBankCategories()
+            local desiredCategoryIndex = 1
+            if options and options.preferredCategoryKey then
+                for i, category in ipairs(self.bankCategories) do
+                    if category.key == options.preferredCategoryKey then
+                        desiredCategoryIndex = i
+                        break
+                    end
+                end
+            end
+            self.currentCategoryIndex = desiredCategoryIndex
+            self.headerNavigationState.suppressHeaderCallback = true
+            self:RebuildHeaderCategories()
+            self.headerNavigationState.suppressHeaderCallback = false
+            self:RefreshList()
+            if options and options.refreshKeybinds then
+                self:RefreshActiveKeybinds()
+            end
         end,
         MoveItem = function(self, _, amount)
             table.insert(self.moveItemCalls, amount)

@@ -5,8 +5,11 @@ Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
-local TransferRules = assert(BETTERUI.Banking and BETTERUI.Banking.TransferRules,
-    "BetterUI: Banking.TransferRules must load before Banking/Actions/TransferActions")
+---@type BetterUIBankingTransferService
+local Transfer = assert(
+    BETTERUI.Banking and (BETTERUI.Banking.Transfer or BETTERUI.Banking.TransferRules),
+    "BetterUI: Banking.Transfer must load before Banking/Actions/TransferActions"
+)
 
 --- Finds the first empty slot in a personal or house bank bag.
 --- Guild bank deposits are handled separately by MoveItem before this is called.
@@ -59,7 +62,7 @@ end
 ---@param targetBankBag number
 ---@param denyReason string|nil
 local function NotifyDepositBlocked(targetBankBag, denyReason)
-    TransferRules.NotifyTransferDenied("Banking.TransferActions.Deposit", targetBankBag, denyReason)
+    Transfer.NotifyTransferDenied("Banking.TransferActions.Deposit", targetBankBag, denyReason)
 end
 
 function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
@@ -76,7 +79,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
 
     if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
         if isGuildBankMode then
-            local canTransfer, denyReason = TransferRules.NotifyGuildBankTransferDenied(
+            local canTransfer, denyReason = Transfer.NotifyGuildBankTransferDenied(
                 "TryTransferItem:GuildWithdraw",
                 LIST_WITHDRAW,
                 bag,
@@ -99,7 +102,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
 
     local bankingBag = BETTERUI.Banking.GetActiveDepositBag()
     if isGuildBankMode then
-        local canTransfer, denyReason = TransferRules.NotifyGuildBankTransferDenied(
+        local canTransfer, denyReason = Transfer.NotifyGuildBankTransferDenied(
             "TryTransferItem:GuildDeposit",
             LIST_DEPOSIT,
             bag,
@@ -110,9 +113,9 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
         end
     end
 
-    local canDeposit, denyReason = TransferRules.CanDepositIntoBank(bag, index, bankingBag)
+    local canDeposit, denyReason = Transfer.CanDepositIntoBank(bag, index, bankingBag)
     if not canDeposit then
-        TransferRules.NotifyTransferDenied("TryTransferItem:Deposit", bankingBag, denyReason)
+        Transfer.NotifyTransferDenied("TryTransferItem:Deposit", bankingBag, denyReason)
         return false, denyReason
     end
 
@@ -152,44 +155,58 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         quantity = 1
     end
 
-    local function beginCoalescedRefresh(delayMs)
-        -- Suppress intermediate refreshes and perform a single rebuild after item move settles
-        self._moveCoalesceToken = (self._moveCoalesceToken or 0) + 1
-        local myToken = self._moveCoalesceToken
-        self._suppressListUpdates = true
-        local prevCategoryKey = nil
-        if self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
-            local prevCat = self.bankCategories[self.currentCategoryIndex]
-            if prevCat then
-                prevCategoryKey = prevCat.key
+    local function refreshMoveCoalescedCategoryView(previousCategoryKey)
+        if self.RefreshCategoryView then
+            self:RefreshCategoryView({
+                preferredCategoryKey = previousCategoryKey,
+            })
+            return
+        end
+
+        self.bankCategories = self:ComputeVisibleBankCategories()
+        if not self.bankCategories or #self.bankCategories == 0 then
+            self.currentCategoryIndex = 1
+            self:RefreshList()
+            return
+        end
+
+        local desiredCategoryIndex = 1
+        if previousCategoryKey then
+            for i, category in ipairs(self.bankCategories) do
+                if category.key == previousCategoryKey then
+                    desiredCategoryIndex = i
+                    break
+                end
             end
         end
+        self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
+        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+        state.suppressHeaderCallback = true
+        self:RebuildHeaderCategories()
+        state.suppressHeaderCallback = false
+        self:RefreshList()
+    end
+
+    local function beginCoalescedRefresh(delayMs)
+        self._moveCoalesceToken = (self._moveCoalesceToken or 0) + 1
+        local myToken = self._moveCoalesceToken
+        self:SetListUpdatesSuppressed(true)
+
+        local previousCategoryKey
+        if self.GetCurrentCategoryKey then
+            previousCategoryKey = self:GetCurrentCategoryKey()
+        elseif self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
+            local prevCat = self.bankCategories[self.currentCategoryIndex]
+            previousCategoryKey = prevCat and prevCat.key or nil
+        end
+
         BETTERUI.Banking.Tasks:Schedule("moveCoalesce", delayMs or BETTERUI.CIM.CONST.TIMING.MOVE_COALESCE_DELAY_MS,
             function()
-                if myToken ~= self._moveCoalesceToken then return end
-                self._suppressListUpdates = false
-                self.bankCategories = self:ComputeVisibleBankCategories()
-                if not self.bankCategories or #self.bankCategories == 0 then
-                    self.currentCategoryIndex = 1
-                    self:RefreshList()
+                if myToken ~= self._moveCoalesceToken then
                     return
                 end
-                local desiredCategoryIndex = 1
-                if prevCategoryKey then
-                    for i, cat in ipairs(self.bankCategories) do
-                        if cat.key == prevCategoryKey then
-                            desiredCategoryIndex = i
-                            break
-                        end
-                    end
-                end
-                self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
-                -- Suppress callback during rebuild when category has changed
-                local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
-                state.suppressHeaderCallback = true
-                self:RebuildHeaderCategories()
-                state.suppressHeaderCallback = false
-                self:RefreshList()
+                self:SetListUpdatesSuppressed(false)
+                refreshMoveCoalescedCategoryView(previousCategoryKey)
             end)
     end
 
@@ -199,7 +216,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         local bagId = fromBag
         local slotIndex = fromBagIndex
         local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
-        local canTransfer = TransferRules.NotifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, bagId,
+        local canTransfer = Transfer.NotifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, bagId,
             slotIndex)
         if not canTransfer then
             return
@@ -236,7 +253,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         toBag = BAG_BACKPACK
         toBagEmptyIndex = FindFirstEmptySlotInBag(toBag)
     else
-        local canDeposit, denyReason = TransferRules.CanDepositIntoBank(fromBag, fromBagIndex, targetBankBag)
+        local canDeposit, denyReason = Transfer.CanDepositIntoBank(fromBag, fromBagIndex, targetBankBag)
         if not canDeposit then
             NotifyDepositBlocked(targetBankBag, denyReason)
             return

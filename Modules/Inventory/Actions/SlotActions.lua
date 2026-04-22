@@ -80,6 +80,21 @@ local function PreserveSelectionForAction(inventorySlot)
     end
 end
 
+local function GetProtectionPolicy()
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+    assert(type(policy) == "table",
+        "BetterUI: CIM.ProtectionPolicy must load before inventory junk/destroy policy checks")
+    return policy
+end
+
+local function RequireProtectionPolicyMethod(methodName)
+    local policy = GetProtectionPolicy()
+    local method = policy and policy[methodName] or nil
+    assert(type(method) == "function",
+        string.format("BetterUI: CIM.ProtectionPolicy.%s must load before inventory junk/destroy policy checks", tostring(methodName)))
+    return method
+end
+
 local function CanMarkSlotAsJunkWithPolicy(inventorySlot)
     if not inventorySlot or not CanItemBeMarkedAsJunk then
         return false
@@ -92,11 +107,7 @@ local function CanMarkSlotAsJunkWithPolicy(inventorySlot)
     if IsItemJunk and IsItemJunk(bag, slot) then
         return false
     end
-    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-    if policy and policy.CanJunkItem then
-        return policy.CanJunkItem(bag, slot) == true
-    end
-    return false
+    return RequireProtectionPolicyMethod("CanJunkItem")(bag, slot) == true
 end
 
 local function CanMarkSlotAsJunkWithoutPolicy(inventorySlot)
@@ -131,11 +142,7 @@ local function CanMarkSlotAsJunkWithoutPolicy(inventorySlot)
 end
 
 local function CanMarkSlotAsJunk(inventorySlot)
-    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-    if policy and policy.CanJunkItem then
-        return CanMarkSlotAsJunkWithPolicy(inventorySlot)
-    end
-    return CanMarkSlotAsJunkWithoutPolicy(inventorySlot)
+    return CanMarkSlotAsJunkWithPolicy(inventorySlot)
 end
 
 local function IsSlotMarkedAsJunk(inventorySlot)
@@ -159,12 +166,7 @@ local function CanUnmarkSlotAsJunk(inventorySlot)
         return false
     end
 
-    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-    if policy and policy.CanUnjunkItem then
-        return policy.CanUnjunkItem(bag, slot) == true
-    end
-
-    return true
+    return RequireProtectionPolicyMethod("CanUnjunkItem")(bag, slot) == true
 end
 
 local function TryUnequipItem(inventorySlot)
@@ -221,11 +223,7 @@ local function CanDestroySlotWithPolicy(inventorySlot, bag, slot)
     if BETTERUI.Inventory and BETTERUI.Inventory.CanDestroyItemWithPolicy then
         return BETTERUI.Inventory.CanDestroyItemWithPolicy(bag, slot, inventorySlot and inventorySlot.slotType)
     end
-    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-    if policy and policy.CanDestroyItem then
-        return policy.CanDestroyItem(bag, slot, inventorySlot and inventorySlot.slotType) == true
-    end
-    return true
+    return RequireProtectionPolicyMethod("CanDestroyItem")(bag, slot, inventorySlot and inventorySlot.slotType) == true
 end
 
 local function TryDestroyPrimaryAction(inventorySlot)

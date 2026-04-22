@@ -9,6 +9,13 @@ local Vendor = BETTERUI.Vendor
 Vendor.FenceLaunderComponent = Vendor.FenceLaunderComponent or {}
 local FenceLaunder = Vendor.FenceLaunderComponent
 
+local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstance)
+    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
+    assert(type(authorizeInventoryAction) == "function",
+        "Vendor.AuthorizeInventoryAction must load before Vendor fence launder actions")
+    return authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+end
+
 -- ACTIVATE / DEACTIVATE
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -67,17 +74,17 @@ function FenceLaunder:IsPrimaryActionEnabled(vendorInstance)
     if remaining <= 0 then return false end
 
     -- Must be able to afford
-    local cost = 0
-    if ds.bagId and ds.slotIndex then
-        cost = GetLaunderCost(ds.bagId, ds.slotIndex)
+    if ds.bagId == nil or ds.slotIndex == nil then
+        return false
     end
+
+    local cost = GetLaunderCost(ds.bagId, ds.slotIndex)
     if not vendorInstance:CanAfford(cost) then
         return false
     end
 
-    return Vendor.AuthorizeInventoryAction
-        and Vendor.AuthorizeInventoryAction(Vendor.ACTION.FENCE_LAUNDER, ds.bagId, ds.slotIndex, vendorInstance)
-        or true
+    local allowed = AuthorizeVendorAction(Vendor.ACTION.FENCE_LAUNDER, ds.bagId, ds.slotIndex, vendorInstance)
+    return allowed == true
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -90,17 +97,14 @@ function FenceLaunder:OnPrimaryAction(vendorInstance)
     local slotIndex = ds.slotIndex
     if bagId == nil or slotIndex == nil then return end
 
-    if Vendor.AuthorizeInventoryAction then
-        local canLaunder, denyReason = Vendor.AuthorizeInventoryAction(Vendor.ACTION.FENCE_LAUNDER, bagId, slotIndex,
-            vendorInstance)
-        if not canLaunder then
-            local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
-            if denyReason == (deny and deny.CANNOT_AFFORD) then
-                BETTERUI.CIM.UserAlertText("FenceLaunder:CannotAfford",
-                    GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
-            end
-            return
+    local canLaunder, denyReason = AuthorizeVendorAction(Vendor.ACTION.FENCE_LAUNDER, bagId, slotIndex, vendorInstance)
+    if not canLaunder then
+        local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
+        if denyReason == (deny and deny.CANNOT_AFFORD) then
+            BETTERUI.CIM.UserAlertText("FenceLaunder:CannotAfford",
+                GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         end
+        return
     end
 
     -- Re-check remaining launders

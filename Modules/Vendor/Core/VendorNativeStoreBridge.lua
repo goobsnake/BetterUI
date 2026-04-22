@@ -46,6 +46,10 @@ local function LogNativeStoreInputState(context, storeManager)
     )
 end
 
+function NativeStoreBridge.LogInputState(context, storeManager)
+    LogNativeStoreInputState(context, storeManager)
+end
+
 local function GetActiveNativeStoreModes(storeManager)
     local modes = {}
     local seen = {}
@@ -306,6 +310,26 @@ local function ShouldAbortOpenStoreSync()
         return true
     end
     return false
+end
+
+---@param storeManager table|nil
+---@param safeCall fun(context:string, fn:function, ...:any):boolean,...|nil
+---@param logInputState fun(context:string, storeManager:table|nil)|nil
+---@return nil
+function NativeStoreBridge.CleanupAfterCloseStore(storeManager, safeCall, logInputState)
+    if not storeManager then
+        return
+    end
+
+    safeCall = safeCall or GetVendorExecuteSafely()
+    logInputState = logInputState or LogNativeStoreInputState
+
+    logInputState("OnCloseStore:beforeSweep", storeManager)
+    if type(storeManager.OnHide) == "function" then
+        safeCall("Vendor.OnCloseStore:NativeOnHide", storeManager.OnHide, storeManager)
+    end
+    storeManager.activeComponents = {}
+    logInputState("OnCloseStore:afterSweep", storeManager)
 end
 
 function NativeStoreBridge.SetSceneAlias(sceneObject)

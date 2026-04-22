@@ -119,10 +119,16 @@ assert_contains(generalInterfaceSetup,
 assert_not_contains(generalInterfaceSetup, "GetNameplateOptions",
     "GeneralInterface setup no longer owns Nameplates settings composition")
 
-assert_contains(nameplatesSettings, "Nameplates.Settings = Nameplates.Settings or {}",
-    "Nameplates settings expose a dedicated settings panel seam")
-assert_contains(nameplatesSettings, "Nameplates.Settings.RegisterPanel = InitPanel",
-    "Nameplates settings bind dedicated panel construction through InitPanel")
+assert_contains(nameplatesModule, "Nameplates.Settings = Nameplates.Settings or {}",
+    "Nameplates root exposes a dedicated settings panel seam")
+assert_contains(nameplatesModule, "Nameplates.Settings.RegisterPanel = InitPanel",
+    "Nameplates root binds dedicated panel construction through InitPanel")
+assert_contains(nameplatesModule, "function Nameplates.InitModule(m_options)",
+    "Nameplates root owns InitModule defaults/migration behavior")
+assert_not_contains(nameplatesSettings, "Nameplates.Settings.RegisterPanel = InitPanel",
+    "Nameplates settings helper no longer owns panel registration")
+assert_not_contains(nameplatesSettings, "function Nameplates.InitModule(m_options)",
+    "Nameplates settings helper no longer owns InitModule defaults")
 assert_contains(nameplatesModule, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates setup uses the shared panel registration helper")
 
