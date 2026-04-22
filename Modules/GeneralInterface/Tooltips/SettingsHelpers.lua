@@ -92,6 +92,13 @@ end
 
 --- Checks whether a global addon object exists.
 local function IsAddonGlobalLoaded(addonGlobal)
+    if OptionalAddons
+        and type(OptionalAddons.ResolveKey) == "function"
+        and type(OptionalAddons.IsLoaded) == "function"
+        and OptionalAddons.ResolveKey(addonGlobal) ~= nil
+    then
+        return OptionalAddons.IsLoaded(addonGlobal)
+    end
     return type(addonGlobal) == "string" and _G[addonGlobal] ~= nil
 end
 
@@ -143,7 +150,10 @@ local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAn
 
     local addonListParts = {}
     for _, addonGlobal in ipairs(addonGlobals) do
-        local displayName = OptionalAddons and OptionalAddons.GetDisplayName and OptionalAddons.GetDisplayName(addonGlobal)
+        local displayName = OptionalAddons and OptionalAddons.GetDisplayNameForGlobal
+            and OptionalAddons.GetDisplayNameForGlobal(addonGlobal)
+            or OptionalAddons and OptionalAddons.GetDisplayName
+            and OptionalAddons.GetDisplayName(addonGlobal)
             or addonGlobal
         addonListParts[#addonListParts + 1] = displayName
     end

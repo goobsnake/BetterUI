@@ -67,6 +67,9 @@ local function SafeGetTargetData(list)
     if list.GetSelectedData then
         return list:GetSelectedData()
     end
+    if list.targetData ~= nil then
+        return list.targetData
+    end
     return list.selectedData
 end
 BETTERUI.CIM.Utils.SafeGetTargetData = SafeGetTargetData
@@ -208,4 +211,7 @@ if type(BETTERUI.Utils.IsInventorySceneShowing) ~= "function" then
 end
 if type(BETTERUI.Utils.SafeGetTargetData) ~= "function" then
     BETTERUI.Utils.SafeGetTargetData = SafeGetTargetData
+end
+if type(BETTERUI.Utils.GetListTargetData) ~= "function" then
+    BETTERUI.Utils.GetListTargetData = SafeGetTargetData
 end

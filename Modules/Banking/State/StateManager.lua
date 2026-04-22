@@ -6,9 +6,6 @@ local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
 
--- POSITION PERSISTENCE
-
---- Saves the current scroll position of the list.
 function BETTERUI.Banking.Class:SaveListPosition()
     if not self.list then return end
     -- Save per-mode position (for legacy compatibility)
@@ -28,7 +25,6 @@ function BETTERUI.Banking.Class:SaveListPosition()
     end
 end
 
---- Manages keybind and tooltip state when list is empty.
 function BETTERUI.Banking.Class:HandleEmptyList()
     local totalEntries = (self.list and self.list.dataList and #self.list.dataList) or 0
     if totalEntries == 0 then
@@ -49,7 +45,6 @@ function BETTERUI.Banking.Class:HandleEmptyList()
     return false
 end
 
---- Retrieves the saved position for the current category/mode.
 function BETTERUI.Banking.Class:GetRestoredPosition()
     if not self.bankCategories or #self.bankCategories == 0 then
         return 1
@@ -66,7 +61,6 @@ function BETTERUI.Banking.Class:GetRestoredPosition()
     )
 end
 
---- Handles the case where the player switched to a different bank.
 function BETTERUI.Banking.Class:HandleBankSwitch()
     local currentUsedBank = BETTERUI.Banking.GetCurrentUsedBank()
     local lastUsedBank = BETTERUI.Banking.GetLastUsedBank()
@@ -98,7 +92,6 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
     return true
 end
 
---- Restores the saved list position.
 function BETTERUI.Banking.Class:ReturnToSaved()
     local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     BETTERUI.Banking.SetRuntimeBankBags(transferContext.interactionBag, nil)

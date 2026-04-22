@@ -35,20 +35,7 @@ local function IsQuickslottable(slotData)
     return false
 end
 
--- Deprecated compatibility shim. Production callers should use
--- BETTERUI.CIM.Keybinds.GetXButtonActionContext directly.
-local function DeprecatedGetXButtonActionContext(self)
-    local cimKeybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
-    local getSharedContext = cimKeybinds and cimKeybinds.GetXButtonActionContext
-    if type(getSharedContext) == "function" then
-        return getSharedContext(self)
-    end
-
-    return nil
-end
-
 InventoryKeybinds.IsQuickslottable = IsQuickslottable
-InventoryKeybinds.GetXButtonActionContext = DeprecatedGetXButtonActionContext
 
 --- Initializes the main inventory keybind strip.
 ---@return nil

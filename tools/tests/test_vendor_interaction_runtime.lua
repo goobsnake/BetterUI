@@ -265,14 +265,35 @@ do
         end,
     }
 
-    InteractionRuntime.OnOpenStore(runtime, bridge, instance, {
-        interactionType = 10,
-        interactionVendor = 10,
-        interactionStable = 20,
+    InteractionRuntime.OnOpenStore({
+        runtime = runtime,
+        nativeStoreBridge = bridge,
+        instance = instance,
+        options = {
+            interactionType = 10,
+            interactionVendor = 10,
+            interactionStable = 20,
+        },
     })
 
     assert_true(table.concat(calls, ","):find("show-scene", 1, true) ~= nil,
-        "legacy positional open-store wrapper still delegates through the runtime")
+        "legacy OnOpenStore alias delegates through the canonical request runtime path")
+end
+
+do
+    local openStoreOk = pcall(function()
+        InteractionRuntime.OnOpenStore("invalid")
+    end)
+    local openFenceOk = pcall(function()
+        InteractionRuntime.OnOpenFence("invalid")
+    end)
+    local closeStoreOk = pcall(function()
+        InteractionRuntime.OnCloseStore("invalid")
+    end)
+
+    assert_eq(openStoreOk, false, "OnOpenStore rejects non-table requests")
+    assert_eq(openFenceOk, false, "OnOpenFence rejects non-table requests")
+    assert_eq(closeStoreOk, false, "OnCloseStore rejects non-table requests")
 end
 
 print("test_vendor_interaction_runtime.lua: PASS")

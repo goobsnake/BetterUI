@@ -152,17 +152,6 @@ local function CoerceListTriggerContract(listOrGetter, useCategoryJumpGetter, sp
     }
 end
 
-local function BuildListTriggerKeybindsFromLegacy(listOrGetter, useCategoryJumpGetter, speedGetter, enabledGetter)
-    local contract = CoerceListTriggerContract(listOrGetter, useCategoryJumpGetter, speedGetter, enabledGetter)
-    return BuildTriggerKeybinds(contract)
-end
-
----@param contract table
----@return boolean
-local function IsExplicitListTriggerContract(contract)
-    return type(contract) == "table" and rawget(contract, "list") ~= nil
-end
-
 BuildTriggerKeybinds = function(contract)
     local listOrGetter = contract.list
     local categoryJumpGetter = contract.resolveCategoryJump

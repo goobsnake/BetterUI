@@ -4,10 +4,6 @@ Purpose: Headless regression tests for RuntimeSetup.Apply side effects.
 Usage: lua tools/tests/test_runtime_setup_apply.lua
 ]]
 
-if false then
-    dofile("Modules/CIM/Core/Lifecycle/RuntimeSetup.lua")
-end
-
 local passed = 0
 local failed = 0
 
@@ -47,9 +43,17 @@ local function newHarness(options)
     }
 
     local debugRegistrationCalls = 0
+    local debugEnabled = options.debugEnabled == true
+    local developerVisible = options.developerVisible == true
     BETTERUI.CIM.Debug = {
         EnsureCommandsRegistered = function()
             debugRegistrationCalls = debugRegistrationCalls + 1
+        end,
+        IsEnabled = function()
+            return debugEnabled
+        end,
+        ShouldShowDeveloperSettings = function()
+            return developerVisible
         end,
     }
 
@@ -138,8 +142,8 @@ do
         "Apply ensures shared task manager state on every call")
     assert_eq(harness.ensureRuntimeStateCalls, 2,
         "Apply ensures lifecycle runtime state on every call")
-    assert_eq(harness.debugRegistrationCalls(), 2,
-        "Apply registers debug commands through the explicit runtime hook")
+    assert_eq(harness.debugRegistrationCalls(), 0,
+        "Apply skips debug command registration while debug tooling is disabled")
     assert_eq(harness.registeredEvents["BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"], nil,
         "Apply does not register a retry event when Tamriel Tomes is already available")
     assert_not_nil(harness.preHooks.SetSelectedTamrielTomesRewardData,
@@ -188,8 +192,8 @@ do
     harness.Apply(settings)
 
     local retryRegistration = harness.registeredEvents["BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"]
-    assert_eq(harness.debugRegistrationCalls(), 1,
-        "Apply still registers debug commands when Tamriel Tomes is unavailable")
+    assert_eq(harness.debugRegistrationCalls(), 0,
+        "Apply keeps debug command registration disabled when debug tooling is inactive")
     assert_not_nil(retryRegistration,
         "Apply registers a retry event when Tamriel Tomes is not available yet")
     assert_eq(retryRegistration.eventCode, EVENT_PLAYER_ACTIVATED,
@@ -204,6 +208,20 @@ do
         "retry callback clears the retry registration after a successful install")
     assert_eq(harness.unregisteredEvents[1].name, "BETTERUI_RuntimeSetup_TamrielTomesGuardRetry",
         "retry callback unregisters the retry event after the guard is installed")
+end
+
+do
+    local harness = newHarness({ withTamrielTomes = true, debugEnabled = true })
+    harness.Apply({ Modules = {} })
+    assert_eq(harness.debugRegistrationCalls(), 1,
+        "Apply registers debug commands when debug mode is active")
+end
+
+do
+    local harness = newHarness({ withTamrielTomes = true, developerVisible = true })
+    harness.Apply({ Modules = {} })
+    assert_eq(harness.debugRegistrationCalls(), 1,
+        "Apply registers debug commands when developer settings are explicitly visible")
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

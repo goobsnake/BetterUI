@@ -11,6 +11,8 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Settings then BETTERUI.CIM.Settings = {} end
 local OptionalAddons = assert(BETTERUI.CIM.OptionalAddons,
     "BetterUI: CIM.OptionalAddons must load before SettingsMetadata")
+local ADDON_KEYS = assert(OptionalAddons.KEYS,
+    "BetterUI: CIM.OptionalAddons.KEYS must load before SettingsMetadata")
 
 -- SETTINGS METADATA REGISTRY
 
@@ -258,7 +260,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = OptionalAddons.GetGlobals({ "MasterMerchant", "ArkadiusTradeTools", "TamrielTradeCentre" }),
+                addons = OptionalAddons.GetMarketGlobals(),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
@@ -268,7 +270,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = OptionalAddons.GetGlobals({ "MasterMerchant", "ArkadiusTradeTools" }),
+                addons = OptionalAddons.GetGuildStoreGlobals(),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
@@ -278,7 +280,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_ATT_INTEGRATION_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = OptionalAddons.GetGlobals({ "ArkadiusTradeTools" }),
+                addons = OptionalAddons.GetGlobals({ ADDON_KEYS.ARKADIUS_TRADE_TOOLS }),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
@@ -288,7 +290,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_MM_INTEGRATION_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = OptionalAddons.GetGlobals({ "MasterMerchant" }),
+                addons = OptionalAddons.GetGlobals({ ADDON_KEYS.MASTER_MERCHANT }),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
@@ -298,7 +300,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_TTC_INTEGRATION_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = OptionalAddons.GetGlobals({ "TamrielTradeCentre" }),
+                addons = OptionalAddons.GetGlobals({ ADDON_KEYS.TAMRIEL_TRADE_CENTRE }),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",

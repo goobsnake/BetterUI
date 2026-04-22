@@ -1,12 +1,8 @@
--- Public API for the shared parametric-list scroll indicator.
-
--- Ensure namespace exists
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.ScrollIndicator then BETTERUI.CIM.ScrollIndicator = {} end
 
 local ScrollIndicator = BETTERUI.CIM.ScrollIndicator
 
--- Import internals from ScrollIndicatorControls.lua
 local I = ScrollIndicator._Internals or {}
 local SCROLL_INDICATOR = I.SCROLL_INDICATOR or {}
 local indicatorInstances = I.indicatorInstances or {}

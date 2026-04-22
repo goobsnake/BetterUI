@@ -8,6 +8,9 @@ BETTERUI.Vendor = BETTERUI.Vendor or {}
 local Vendor = BETTERUI.Vendor
 Vendor.NativeStoreBridge = Vendor.NativeStoreBridge or {}
 local NativeStoreBridge = Vendor.NativeStoreBridge
+local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "OnCloseStore:beforeSweep"
+local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "OnCloseStore:afterSweep"
+local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.OnCloseStore:NativeOnHide"
 
 local function LogVendorDebug(flagName, category, message)
     if Vendor.LogDebug then
@@ -324,12 +327,12 @@ function NativeStoreBridge.CleanupAfterCloseStore(storeManager, safeCall, logInp
     safeCall = safeCall or GetVendorExecuteSafely()
     logInputState = logInputState or LogNativeStoreInputState
 
-    logInputState("OnCloseStore:beforeSweep", storeManager)
+    logInputState(CLOSE_STORE_BEFORE_SWEEP_CONTEXT, storeManager)
     if type(storeManager.OnHide) == "function" then
-        safeCall("Vendor.OnCloseStore:NativeOnHide", storeManager.OnHide, storeManager)
+        safeCall(CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT, storeManager.OnHide, storeManager)
     end
     storeManager.activeComponents = {}
-    logInputState("OnCloseStore:afterSweep", storeManager)
+    logInputState(CLOSE_STORE_AFTER_SWEEP_CONTEXT, storeManager)
 end
 
 function NativeStoreBridge.SetSceneAlias(sceneObject)

@@ -1278,10 +1278,7 @@ local function InitializeVendorList(instance)
 end
 
 local function InitializeVendorSearch(instance)
-    ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").InitializeSearch(instance, {
-        createSearchKeybindDescriptor = BETTERUI.Interface and BETTERUI.Interface.CreateSearchKeybindDescriptor,
-        setupEditBoxHandlers = BETTERUI.Interface and BETTERUI.Interface.SearchMixin and BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers,
-    })
+    ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").InitializeSearch(instance)
 end
 
 local function InitializeVendorInteractiveSurfaces(instance)
@@ -1292,7 +1289,7 @@ local function InitializeVendorInteractiveSurfaces(instance)
 end
 
 local function CreateVendorScene(instance)
-    ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").CreateScene(instance, {})
+    ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").CreateScene(instance)
 end
 
 local function TakeOverNativeStoreScene(instance)

@@ -10,6 +10,9 @@ local Vendor = BETTERUI.Vendor
 Vendor.InteractionRuntime = Vendor.InteractionRuntime or {}
 local InteractionRuntime = Vendor.InteractionRuntime
 local unpackCompat = table.unpack or unpack
+local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "OnCloseStore:beforeSweep"
+local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "OnCloseStore:afterSweep"
+local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.OnCloseStore:NativeOnHide"
 
 local function PackResults(...)
     return {
@@ -100,6 +103,14 @@ local function IsLifecycleRuntime(runtime)
         )
 end
 
+local function RequireRequestTable(request, apiName)
+    if request == nil then
+        return {}
+    end
+    assert(type(request) == "table", string.format("%s expects a request table", tostring(apiName)))
+    return request
+end
+
 local function ResolveDeps(deps)
     deps = deps or {}
     local nativeStoreBridge = deps.nativeStoreBridge or Vendor.NativeStoreBridge
@@ -122,6 +133,21 @@ local function ResolveDeps(deps)
         end
     end
 
+    local function BuildBridgeForwarder(methodName)
+        local cachedMethod = nil
+        return function(...)
+            cachedMethod = cachedMethod or RequireBridgeMethod(methodName)
+            return cachedMethod(nativeStoreBridge, ...)
+        end
+    end
+
+    local restoreSceneAlias = deps.restoreSceneAlias or BuildBridgeForwarder("RestoreSceneAlias")
+    local aliasSceneToBetterUI = deps.aliasSceneToBetterUI or BuildBridgeForwarder("AliasSceneToBetterUI")
+    local ensureComponents = deps.ensureComponents or BuildBridgeForwarder("EnsureComponents")
+    local resolveTargetMode = deps.resolveTargetMode or BuildBridgeForwarder("ResolveTargetMode")
+    local applyResolvedMode = deps.applyResolvedMode or BuildBridgeForwarder("ApplyResolvedMode")
+    local scheduleOpenStoreSync = deps.scheduleOpenStoreSync or BuildBridgeForwarder("ScheduleOpenStoreSync")
+
     return {
         instance = deps.instance ~= nil and deps.instance or Vendor.instance,
         resetInteractionState = deps.resetInteractionState or function()
@@ -138,24 +164,12 @@ local function ResolveDeps(deps)
         interactionVendor = deps.interactionVendor or rawget(_G, "INTERACTION_VENDOR"),
         interactionStable = deps.interactionStable or rawget(_G, "INTERACTION_STABLE"),
         isNativeStableModeActive = deps.isNativeStableModeActive or DefaultIsNativeStableModeActive,
-        restoreSceneAlias = deps.restoreSceneAlias or function()
-            RequireBridgeMethod("RestoreSceneAlias")(nativeStoreBridge)
-        end,
-        aliasSceneToBetterUI = deps.aliasSceneToBetterUI or function(instance)
-            RequireBridgeMethod("AliasSceneToBetterUI")(nativeStoreBridge, instance)
-        end,
-        ensureComponents = deps.ensureComponents or function(searchContext)
-            RequireBridgeMethod("EnsureComponents")(nativeStoreBridge, searchContext)
-        end,
-        resolveTargetMode = deps.resolveTargetMode or function()
-            return RequireBridgeMethod("ResolveTargetMode")(nativeStoreBridge)
-        end,
-        applyResolvedMode = deps.applyResolvedMode or function(targetMode, refreshList)
-            RequireBridgeMethod("ApplyResolvedMode")(nativeStoreBridge, targetMode, refreshList)
-        end,
-        scheduleOpenStoreSync = deps.scheduleOpenStoreSync or function(targetMode, delayMs)
-            RequireBridgeMethod("ScheduleOpenStoreSync")(nativeStoreBridge, targetMode, delayMs)
-        end,
+        restoreSceneAlias = restoreSceneAlias,
+        aliasSceneToBetterUI = aliasSceneToBetterUI,
+        ensureComponents = ensureComponents,
+        resolveTargetMode = resolveTargetMode,
+        applyResolvedMode = applyResolvedMode,
+        scheduleOpenStoreSync = scheduleOpenStoreSync,
         sellMode = deps.sellMode or (Vendor.MODE and Vendor.MODE.FENCE_SELL),
         fenceLaunderMode = deps.fenceLaunderMode or (Vendor.MODE and Vendor.MODE.FENCE_LAUNDER),
         getStoreManager = getStoreManager,
@@ -378,14 +392,14 @@ local function CloseStoreInternal(state, deps)
     if type(resolved.cleanupCloseStore) == "function" then
         resolved.cleanupCloseStore(storeManager, resolved.safeCall, resolved.logNativeStoreInputState)
     else
-        resolved.logNativeStoreInputState("OnCloseStore:beforeSweep", storeManager)
+        resolved.logNativeStoreInputState(CLOSE_STORE_BEFORE_SWEEP_CONTEXT, storeManager)
         if storeManager and type(storeManager.OnHide) == "function" then
-            resolved.safeCall("Vendor.OnCloseStore:NativeOnHide", storeManager.OnHide, storeManager)
+            resolved.safeCall(CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT, storeManager.OnHide, storeManager)
         end
         if storeManager then
             storeManager.activeComponents = {}
         end
-        resolved.logNativeStoreInputState("OnCloseStore:afterSweep", storeManager)
+        resolved.logNativeStoreInputState(CLOSE_STORE_AFTER_SWEEP_CONTEXT, storeManager)
     end
     resolved.logVendorDebug("SCENE_TRANSITIONS", "VendorScene", "OnCloseStore complete")
     resolved.aliasSceneToBetterUI(instance)
@@ -394,75 +408,27 @@ local function CloseStoreInternal(state, deps)
 end
 
 local function ResolveRuntimeDepsFromRequest(request)
-    local runtime = request and request.runtime or nil
-    if request and type(request.deps) == "table" then
+    local runtime = request.runtime
+    if type(request.deps) == "table" then
         return request.deps, runtime
     end
 
     if IsLifecycleRuntime(runtime) then
         return BuildLifecycleDeps(
             runtime,
-            request and request.nativeStoreBridge or nil,
-            request and request.instance or nil,
-            request and request.options or nil
+            request.nativeStoreBridge,
+            request.instance,
+            request.options
         ), runtime
     end
 
-    return request and request.deps or nil, nil
-end
-
-local function BuildOpenStoreRequestFromPositional(a, b, c, d)
-    if IsLifecycleRuntime(a) then
-        return {
-            runtime = a,
-            nativeStoreBridge = b,
-            instance = c,
-            options = d,
-        }
-    end
-    return {
-        state = a,
-        deps = b,
-    }
-end
-
-local function BuildOpenFenceRequestFromPositional(a, b, c, d, e, f)
-    if IsLifecycleRuntime(a) then
-        return {
-            runtime = a,
-            nativeStoreBridge = b,
-            instance = c,
-            options = d,
-            enableSell = e,
-            enableLaunder = f,
-        }
-    end
-    return {
-        state = a,
-        deps = b,
-        enableSell = c,
-        enableLaunder = d,
-    }
-end
-
-local function BuildCloseStoreRequestFromPositional(a, b, c)
-    if IsLifecycleRuntime(a) then
-        return {
-            runtime = a,
-            nativeStoreBridge = b,
-            instance = c,
-        }
-    end
-    return {
-        state = a,
-        deps = b,
-    }
+    return request.deps, nil
 end
 
 ---@param request table|nil
 ---@return table
 function InteractionRuntime.OpenStore(request)
-    request = request or {}
+    request = RequireRequestTable(request, "InteractionRuntime.OpenStore")
     local deps, runtime = ResolveRuntimeDepsFromRequest(request)
     local state = OpenStoreInternal(BuildInteractionState(request.state), deps)
     if runtime then
@@ -474,7 +440,7 @@ end
 ---@param request table|nil
 ---@return table
 function InteractionRuntime.OpenFence(request)
-    request = request or {}
+    request = RequireRequestTable(request, "InteractionRuntime.OpenFence")
     local deps, runtime = ResolveRuntimeDepsFromRequest(request)
     local state = OpenFenceInternal(
         BuildInteractionState(request.state),
@@ -491,7 +457,7 @@ end
 ---@param request table|nil
 ---@return table
 function InteractionRuntime.CloseStore(request)
-    request = request or {}
+    request = RequireRequestTable(request, "InteractionRuntime.CloseStore")
     local deps, runtime = ResolveRuntimeDepsFromRequest(request)
     local state = CloseStoreInternal(BuildInteractionState(request.state), deps)
     if runtime then
@@ -500,18 +466,17 @@ function InteractionRuntime.CloseStore(request)
     return state
 end
 
--- Compatibility wrappers for positional callsites.
 ---@return table
-function InteractionRuntime.OnOpenStore(a, b, c, d)
-    return InteractionRuntime.OpenStore(BuildOpenStoreRequestFromPositional(a, b, c, d))
+function InteractionRuntime.OnOpenStore(request)
+    return InteractionRuntime.OpenStore(RequireRequestTable(request, "InteractionRuntime.OnOpenStore"))
 end
 
 ---@return table
-function InteractionRuntime.OnOpenFence(a, b, c, d, e, f)
-    return InteractionRuntime.OpenFence(BuildOpenFenceRequestFromPositional(a, b, c, d, e, f))
+function InteractionRuntime.OnOpenFence(request)
+    return InteractionRuntime.OpenFence(RequireRequestTable(request, "InteractionRuntime.OnOpenFence"))
 end
 
 ---@return table
-function InteractionRuntime.OnCloseStore(a, b, c)
-    return InteractionRuntime.CloseStore(BuildCloseStoreRequestFromPositional(a, b, c))
+function InteractionRuntime.OnCloseStore(request)
+    return InteractionRuntime.CloseStore(RequireRequestTable(request, "InteractionRuntime.OnCloseStore"))
 end

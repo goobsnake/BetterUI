@@ -1,6 +1,5 @@
 -- Canonical banking search and header-focus behavior.
 
--- SHARED CONSTANTS
 local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
 
 BETTERUI.Banking.Class.SEARCH_LIFECYCLE = {
@@ -64,7 +63,6 @@ function BETTERUI.Banking.Class:EnterSearchMode()
     end
 end
 
---- Exits text search mode and restores standard keybinds.
 function BETTERUI.Banking.Class:ExitSearchMode()
     if not self._searchModeActive then return end
     self._searchModeActive = false
@@ -92,7 +90,6 @@ function BETTERUI.Banking.Class:ExitSearchMode()
     self:UpdateActions()
 end
 
---- Positions the search control beneath the header title.
 function BETTERUI.Banking.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
 

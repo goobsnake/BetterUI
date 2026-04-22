@@ -1,23 +1,9 @@
---[[
-File: Modules/CIM/Core/EventRegistry.lua
-Purpose: Centralized event registration with cleanup support.
-         Tracks all EVENT_MANAGER registrations to enable proper cleanup
-         when modules are disabled or scenes are hidden.
-
-Usage:
-    -- Register an event with tracking
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", "ROF_PowerUpdate", EVENT_POWER_UPDATE, handler)
-
-    -- Unregister all events for a module
-    BETTERUI.CIM.EventRegistry.UnregisterAll("ResourceOrbFrames")
-]]
+-- Centralized EVENT_MANAGER registration tracking and cleanup.
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.EventRegistry = BETTERUI.CIM.EventRegistry or {}
 
 local EventRegistry = BETTERUI.CIM.EventRegistry
-
--- INTERNAL STATE
 
 local function EnsureRuntimeState()
     EventRegistry._registrations = EventRegistry._registrations or {}
@@ -39,8 +25,6 @@ local function CopyRegistrations(registrations)
     end
     return snapshot
 end
-
--- CORE API
 
 --- Register an event with tracking for later cleanup.
 ---@param moduleName string Module name to track the registration under

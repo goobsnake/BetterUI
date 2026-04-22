@@ -58,9 +58,8 @@ function BootstrapRuntime.InitializeList(instance, deps)
 end
 
 ---@param instance BETTERUI.Vendor.Class
----@param _deps table
 ---@return nil
-function BootstrapRuntime.InitializeSearch(instance, _deps)
+function BootstrapRuntime.InitializeSearch(instance)
     local searchCallbackRevision = 0
     local searchHandlerRevision = 0
 
@@ -161,9 +160,8 @@ function BootstrapRuntime.InitializeInteractiveSurfaces(instance, deps)
 end
 
 ---@param instance BETTERUI.Vendor.Class
----@param _deps table
 ---@return nil
-function BootstrapRuntime.CreateScene(instance, _deps)
+function BootstrapRuntime.CreateScene(instance)
     instance.fragment = ZO_SimpleSceneFragment:New(instance.control)
     instance.fragment:SetHideOnSceneHidden(true)
 

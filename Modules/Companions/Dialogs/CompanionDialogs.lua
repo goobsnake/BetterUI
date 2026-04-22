@@ -1,7 +1,21 @@
 if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
-local GetListTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils
-    and (BETTERUI.CIM.Utils.GetListTargetData or BETTERUI.CIM.Utils.SafeGetTargetData)
+
+local function GetListTargetData()
+    local getTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.GetListTargetData
+    if type(getTargetData) ~= "function" then
+        getTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.SafeGetTargetData
+    end
+    return getTargetData
+end
+
+local function SafeGetDialogListTargetData(list)
+    local getTarget = GetListTargetData()
+    if type(getTarget) ~= "function" then
+        return nil
+    end
+    return getTarget(list)
+end
 
 local function CountEligibleActionTargets(actionId, items)
     local eligibleCount = 0
@@ -51,8 +65,7 @@ local function RegisterCompanionActionDialog()
                 text = SI_GAMEPAD_SELECT_OPTION,
                 keybind = "DIALOG_PRIMARY",
                 callback = function(dialog)
-                    local selected = dialog.entryList and type(GetListTargetData) == "function"
-                        and GetListTargetData(dialog.entryList) or nil
+                    local selected = dialog.entryList and SafeGetDialogListTargetData(dialog.entryList) or nil
                     if selected and selected.actionId then
                         local data = dialog.data
                         if data and data.selectedData then
@@ -132,8 +145,7 @@ local function RegisterCompanionBatchDialog()
                 text = SI_GAMEPAD_SELECT_OPTION,
                 keybind = "DIALOG_PRIMARY",
                 callback = function(dialog)
-                    local selected = dialog.entryList and type(GetListTargetData) == "function"
-                        and GetListTargetData(dialog.entryList) or nil
+                    local selected = dialog.entryList and SafeGetDialogListTargetData(dialog.entryList) or nil
                     if not selected or not selected.actionId then return end
                     local ms = Companions.multiSelectManager
                     if not ms then return end

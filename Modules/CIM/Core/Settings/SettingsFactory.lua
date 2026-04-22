@@ -236,19 +236,27 @@ function BETTERUI.Init_ModulePanel(moduleName, moduleDesc)
 end
 
 local function NormalizePanelRegistrationId(panelIdOrModuleName)
-    if type(panelIdOrModuleName) ~= "string" or panelIdOrModuleName == "" then
+    if panelIdOrModuleName == nil then
         return nil
     end
-    if panelIdOrModuleName:find("^BETTERUI_") then
-        return panelIdOrModuleName
+
+    local normalized = tostring(panelIdOrModuleName)
+    normalized = normalized:gsub("^%s+", "")
+    normalized = normalized:gsub("%s+$", "")
+    if normalized == "" then
+        return nil
     end
-    return "BETTERUI_" .. panelIdOrModuleName
+
+    if normalized:find("^BETTERUI_") then
+        return normalized
+    end
+    return "BETTERUI_" .. normalized
 end
 
 function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelData, optionsData)
     local panelId = NormalizePanelRegistrationId(panelIdOrModuleName)
     if not panelId or type(panelData) ~= "table" then
-        return nil
+        return nil, "invalid_panel_registration"
     end
 
     optionsData = type(optionsData) == "table" and optionsData or {}
@@ -257,11 +265,19 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
 
     local lam = LibAddonMenu2
     if not lam or not lam.RegisterAddonPanel or not lam.RegisterOptionControls then
-        return nil
+        return nil, "lam_unavailable"
     end
 
-    lam:RegisterAddonPanel(panelId, panelData)
-    lam:RegisterOptionControls(panelId, optionsData)
+    local panelOk = pcall(lam.RegisterAddonPanel, lam, panelId, panelData)
+    if not panelOk then
+        return nil, "register_addon_panel_failed"
+    end
+
+    local controlsOk = pcall(lam.RegisterOptionControls, lam, panelId, optionsData)
+    if not controlsOk then
+        return nil, "register_option_controls_failed"
+    end
+
     return panelId
 end
 

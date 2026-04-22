@@ -158,10 +158,10 @@ example, the runner classification helpers in
 ### Coverage wiring for delayed imports
 
 If a test needs a long stub/setup section before it can safely `dofile` the
-production module, add an early non-executing coverage block such as
-`if false then dofile("Modules/Foo.lua") end` near the top of the test file.
-This keeps desloppify's static test-coverage reconciliation aligned with the
-runtime test that imports the module later in the file.
+production module, keep the `dofile` on an executable path in the same test
+run (for example via a helper you call after setup completes). Avoid
+non-executing coverage hints such as `if false then dofile(...) end`; coverage
+should come from code paths that actually execute.
 
 ## Coverage Goals
 

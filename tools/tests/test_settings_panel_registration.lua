@@ -105,6 +105,22 @@ assert_equal("register_panel_failed", brokenReason,
     "lifecycle-safe helper surfaces a machine-readable reason when registration throws")
 assert_equal(2, #debugMessages, "thrown registration adds a second debug trace")
 
+local explicitFailureModule = {
+    Settings = {
+        RegisterPanel = function()
+            return false, "lam_unavailable"
+        end,
+    },
+}
+local explicitFailureOk, explicitFailureReason = BETTERUI.CIM.TryRegisterModulePanel(explicitFailureModule, "ExplicitFailureModule",
+    "ExplicitFailure", "Explicit Failure")
+assert_equal(false, explicitFailureOk, "lifecycle-safe helper propagates explicit seam failures")
+assert_equal("lam_unavailable", explicitFailureReason,
+    "lifecycle-safe helper preserves explicit machine-readable seam failure reasons")
+assert_equal(nil, explicitFailureModule._panelRegistered,
+    "lifecycle-safe helper does not mark module state as registered when seam returns false")
+assert_equal(3, #debugMessages, "explicit seam rejection emits a debug trace")
+
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)

@@ -29,6 +29,8 @@ local function ClampNameplateSize(value, fallback)
     return rounded
 end
 
+Nameplates.ClampNameplateSize = ClampNameplateSize
+
 ---@type BetterUIModuleArchetypeSettingsOwner
 Nameplates.ARCHETYPE = SETTINGS_OWNER
 ---@type BetterUIModuleRootContract

@@ -41,14 +41,8 @@ end
 local inventoryKeybindsSource = read_file("Modules/Inventory/Keybinds/InventoryKeybinds.lua")
 assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.IsQuickslottable = IsQuickslottable") ~= nil,
     "InventoryKeybinds exposes IsQuickslottable")
-assert_true(inventoryKeybindsSource:find("local function DeprecatedGetXButtonActionContext%(self%)") ~= nil,
-    "InventoryKeybinds keeps a deprecated X-button compatibility shim")
-assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.GetXButtonActionContext = DeprecatedGetXButtonActionContext") ~= nil,
-    "InventoryKeybinds routes legacy GetXButtonActionContext through a deprecated shim")
-assert_true(inventoryKeybindsSource:find("cimKeybinds and cimKeybinds%.GetXButtonActionContext") ~= nil,
-    "InventoryKeybinds deprecated shim routes X-button context through shared CIM action-context helpers")
-assert_true(inventoryKeybindsSource:find("self%.actionMode%s*~=") == nil,
-    "InventoryKeybinds no longer branches on actionMode inside its local X-button context resolver")
+assert_true(inventoryKeybindsSource:find("GetXButtonActionContext") == nil,
+    "InventoryKeybinds no longer carries a deprecated local X-button context shim")
 assert_true(inventoryKeybindsSource:find("function BETTERUI%.Inventory%.Class:InitializeKeybindStrip%(%)") ~= nil,
     "InventoryKeybinds exposes InitializeKeybindStrip")
 
@@ -134,6 +128,8 @@ assert_true(sceneSource:find("CreateStateChangeHandler") ~= nil,
     "InventorySceneLifecycle uses the shared SceneLifecycle adapter path")
 assert_true(sceneSource:find("BETTERUI%.Inventory%.RegisterSceneLifecycle%(self%)") ~= nil,
     "InventorySceneLifecycle routes native scene callbacks through the explicit registration seam")
+assert_true(sceneSource:find("HandleInventoryStateChange%(self, oldState, newState%)") == nil,
+    "InventorySceneLifecycle no longer falls back to a second local state-change orchestration path")
 
 local currencySource = read_file("Modules/Inventory/Settings/CurrencySettings.lua")
 assert_true(currencySource:find("local CURRENCY_DATA = %{%s*") ~= nil,

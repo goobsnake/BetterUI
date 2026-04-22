@@ -11,7 +11,7 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 --- @field OnTabPrev fun(parent: table, successful: boolean)
 --- @field SafeGetTargetData fun(list: table): table|nil
 --- @field GetListTargetData fun(list: table): table|nil
-BETTERUI.Inventory.Utils = {}
+BETTERUI.Inventory.Utils = BETTERUI.Inventory.Utils or {}
 
 --- Callback for Right Bumper (Next) navigation.
 --- Usage: Passed to BETTERUI_TabBarScrollList in GenericHeader
@@ -74,4 +74,14 @@ function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
 end
 
 BETTERUI.Inventory.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData
+if type(BETTERUI.Inventory.Utils.SafeGetTargetData) ~= "function" then
+    BETTERUI.Inventory.Utils.SafeGetTargetData = function(list)
+        local cimUtils = BETTERUI.CIM and BETTERUI.CIM.Utils
+        local resolver = cimUtils and (cimUtils.GetListTargetData or cimUtils.SafeGetTargetData)
+        if type(resolver) ~= "function" then
+            return nil
+        end
+        return resolver(list)
+    end
+end
 BETTERUI.Inventory.Utils.GetListTargetData = BETTERUI.Inventory.Utils.SafeGetTargetData

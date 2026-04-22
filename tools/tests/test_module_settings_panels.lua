@@ -312,13 +312,18 @@ end
 GAMEPAD_INVENTORY = inventoryWindow
 
 function BETTERUI.CIM.Settings.RegisterModulePanel(panelId, panelData, optionsData)
+    local normalizedPanelId = tostring(panelId or "")
+    if normalizedPanelId ~= "" and not normalizedPanelId:find("^BETTERUI_") then
+        normalizedPanelId = "BETTERUI_" .. normalizedPanelId
+    end
     registeredModulePanel = {
-        panelId = panelId,
+        panelId = normalizedPanelId,
         panelData = panelData,
         optionsData = optionsData,
     }
-    addonPanels[panelId] = panelData
-    optionControls[panelId] = optionsData
+    addonPanels[normalizedPanelId] = panelData
+    optionControls[normalizedPanelId] = optionsData
+    return normalizedPanelId
 end
 
 function GetString(value)

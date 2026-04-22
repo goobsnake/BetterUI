@@ -1,11 +1,4 @@
---[[
-File: Modules/CIM/Core/Diagnostics/DebugCommands.lua
-Purpose: Slash command registration for BetterUI developer debug tools.
-         Extracted from DeveloperDebug.lua to keep files under the 600-line limit.
-         Commands are registered once; diagnostics remain gated behind /buidebug.
-
-Extracted from: DeveloperDebug.lua (command registration concern)
-]]
+-- Slash command registration for BetterUI developer diagnostics.
 
 local Debug = BETTERUI.CIM.Debug
 
@@ -31,26 +24,13 @@ local function SetDebugFlags(flagNames, enabled)
     end
 end
 
-local function EnsureDebugModeForCommand(commandName, flagNames, allowAutoEnable)
+local function EnsureDebugModeForCommand(commandName, flagNames)
     if Debug.IsEnabled and Debug.IsEnabled() then
         SetDebugFlags(flagNames, true)
         return true
     end
 
-    if not allowAutoEnable then
-        d(string.format("|cffcc00[BetterUI]|r %s requires debug mode. Run /buidebug on first.", commandName))
-        return false
-    end
-
-    SetPersistentDebugLogging(true)
-    SetDebugFlags(flagNames, true)
-
-    if Debug.IsEnabled and Debug.IsEnabled() then
-        d(string.format("|c00ccff[BetterUI]|r Debug logging enabled for %s", commandName))
-        return true
-    end
-
-    d("|cff0000[BetterUI]|r Unable to enable debug logging for diagnostics")
+    d(string.format("|cffcc00[BetterUI]|r %s requires debug mode. Enable DEBUG_LOGGING, then reload UI.", commandName))
     return false
 end
 
@@ -286,12 +266,6 @@ local function PrintDirectionalTrace()
     end
 end
 
--- DIAGNOSTIC INSPECTOR FUNCTIONS
-
---[[
-Function: InspectDirectionalInput
-Diagnoses DIRECTIONAL_INPUT stack issues.
-]]
 local function InspectDirectionalInput()
     if not DIRECTIONAL_INPUT then
         d("[BetterUI Debug] DIRECTIONAL_INPUT not available")
@@ -541,8 +515,6 @@ local function InspectControl(controlName)
     end
 end
 
--- SLASH COMMAND REGISTRATION
-
 function Debug.RegisterCommands()
     if commandsRegistered then
         return
@@ -553,13 +525,17 @@ function Debug.RegisterCommands()
         normalizedArgs = normalizedArgs and normalizedArgs:gsub("^%s+", ""):gsub("%s+$", "") or ""
 
         local debugFlags = { "DIRECTIONAL_INPUT", "SCENE_TRANSITIONS", "LIST_OPERATIONS" }
+        if normalizedArgs == "on" then
+            d("|cffcc00[BetterUI]|r /buidebug on no longer enables debug mode. Enable DEBUG_LOGGING, then reload UI.")
+            return
+        end
         if normalizedArgs == "off" then
             directionalTrace = {}
             DisableDebugMode(debugFlags)
             return
         end
 
-        if not EnsureDebugModeForCommand("/buidebug", debugFlags, true) then
+        if not EnsureDebugModeForCommand("/buidebug", debugFlags) then
             return
         end
         EnsureDirectionalInputTraceInstalled()
@@ -704,8 +680,8 @@ function Debug.RegisterCommands()
 
     SLASH_COMMANDS["/buihelp"] = function(args)
         d("|c00ccff[BetterUI Debug Commands]|r")
-        d("  /buidebug [on|off] - Enable or disable BetterUI debug mode")
-        d("  /buidebug - Inspect DIRECTIONAL_INPUT stack")
+        d("  /buidebug - Inspect DIRECTIONAL_INPUT stack (debug mode required)")
+        d("  /buidebug off - Disable BetterUI debug mode")
         d("  /buiscene - List scene states")
         d("  /buikeybinds - List keybind strip")
         d("  /builist - Inspect list states")

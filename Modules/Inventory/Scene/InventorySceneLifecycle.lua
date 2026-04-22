@@ -177,7 +177,7 @@ local function OnSceneHidden(self)
 	self:SaveListPosition()
 end
 
-local function HandleInventoryStateChange(self, oldState, newState)
+local function ApplyInventorySceneState(self, oldState, newState)
 	if newState == SCENE_SHOWING then
 		OnSceneShowing(self)
 	elseif newState == SCENE_HIDING then
@@ -191,10 +191,12 @@ local function BuildInventoryLifecycleHandler(self)
 	local sceneLifecycle = BETTERUI.CIM and BETTERUI.CIM.SceneLifecycle
 	local createHandler = sceneLifecycle and sceneLifecycle.CreateStateChangeHandler
 	if type(createHandler) ~= "function" then
-		return nil
+        return function(oldState, newState)
+            ApplyInventorySceneState(self, oldState, newState)
+        end
 	end
 
-	return createHandler(self, {
+    return createHandler(self, {
 		taskManager = BETTERUI.Inventory and BETTERUI.Inventory.Tasks or nil,
 		onShowing = OnSceneShowing,
 		onHiding = OnSceneHiding,
@@ -223,15 +225,8 @@ end
 ---@param newState number New scene state constant
 ---@return nil
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
-	if not self._inventorySceneLifecycleHandler then
-		BETTERUI.Inventory.RegisterSceneLifecycle(self)
-	end
-
-	local lifecycleHandler = self._inventorySceneLifecycleHandler
+	local lifecycleHandler = BETTERUI.Inventory.RegisterSceneLifecycle(self)
 	if type(lifecycleHandler) == "function" then
 		lifecycleHandler(oldState, newState)
-		return
 	end
-
-	HandleInventoryStateChange(self, oldState, newState)
 end

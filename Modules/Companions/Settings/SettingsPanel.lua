@@ -163,6 +163,12 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
     end
 
     if BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.RegisterModulePanel then
-        BETTERUI.CIM.Settings.RegisterModulePanel("BETTERUI_" .. mId, panelData, optionsData)
+        local panelId, panelReason = BETTERUI.CIM.Settings.RegisterModulePanel(mId, panelData, optionsData)
+        if panelId then
+            return true, panelId
+        end
+        return false, panelReason or "register_module_panel_failed"
     end
+
+    return false, "missing_register_module_panel"
 end

@@ -406,14 +406,23 @@ function BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, pane
         return false, "missing_register_panel"
     end
 
-    local ok, err = pcall(registerPanel, panelId, panelLabel)
-    if ok then
-        ns._panelRegistered = true
-        return true
+    local ok, panelResult, panelReason = pcall(registerPanel, panelId, panelLabel)
+    if not ok then
+        if BETTERUI.Debug then
+            BETTERUI.Debug(string.format("[%s] Settings panel registration failed: %s", resolvedModuleName, tostring(panelResult)))
+        end
+        return false, "register_panel_failed"
     end
 
-    if BETTERUI.Debug then
-        BETTERUI.Debug(string.format("[%s] Settings panel registration failed: %s", resolvedModuleName, tostring(err)))
+    if panelResult == false then
+        local reason = panelReason or "register_panel_failed"
+        if BETTERUI.Debug then
+            BETTERUI.Debug(string.format("[%s] Settings panel registration rejected: %s", resolvedModuleName, tostring(reason)))
+        end
+        return false, reason
     end
-    return false, "register_panel_failed"
+
+    -- Legacy RegisterPanel seams may not return a status; preserve compatibility.
+    ns._panelRegistered = true
+    return true
 end

@@ -1,9 +1,4 @@
---[[
-File: Modules/CIM/Core/DeveloperDebug.lua
-Purpose: Consolidated developer debug module for BetterUI.
-         Provides diagnostic commands, debug flags, and development utilities.
-         DISABLED BY DEFAULT - Enable via DEBUG_LOGGING feature flag or BETTERUI_DEBUG global.
-]]
+-- Core BetterUI developer debug flags and logging helpers.
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Debug = {}
@@ -12,13 +7,6 @@ BETTERUI.CIM.Debug = {}
 -- This is intentionally false for normal users.
 BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS = false
 
--- DEBUG FLAGS
-
---[[
-Table: BETTERUI.CIM.Debug.FLAGS
-Sub-flags for specific debug features.
-Used By: ResourceOrbFrames, Inventory, Banking modules.
-]]
 BETTERUI.CIM.Debug.FLAGS = {
     SHIELD_OVERLAY = false,    -- Show shield overlay ring for visual debugging
     DIRECTIONAL_INPUT = false, -- Verbose DIRECTIONAL_INPUT logging
@@ -26,8 +14,6 @@ BETTERUI.CIM.Debug.FLAGS = {
     LIST_OPERATIONS = false,   -- Log list activation/deactivation
     CALLBACK_TRACING = false,  -- Log SafeExecuteCallback lifecycle
 }
-
--- CORE API
 
 ---@return boolean
 function BETTERUI.CIM.Debug.IsEnabled()
@@ -74,8 +60,6 @@ function BETTERUI.CIM.Debug.SetFlag(flagName, enabled)
     end
 end
 
--- INITIALIZATION
-
 -- Sync SHIELD_OVERLAY debug flag from FeatureFlags system
 if BETTERUI.CIM.FeatureFlags and BETTERUI.CIM.FeatureFlags.IsEnabled then
     BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY = BETTERUI.CIM.FeatureFlags.IsEnabled("SHIELD_DEBUG")
@@ -84,4 +68,3 @@ end
 if BETTERUI_SHIELD_DEBUG then
     BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY = true
 end
-

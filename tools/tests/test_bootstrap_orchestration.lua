@@ -230,6 +230,12 @@ BETTERUI.EnsureModuleSettings = function(moduleName)
     BETTERUI.Settings.Modules[moduleName] = BETTERUI.Settings.Modules[moduleName] or {}
     return BETTERUI.Settings.Modules[moduleName]
 end
+BETTERUI.GetModuleSettings = function(moduleName)
+    return BETTERUI.Settings
+        and BETTERUI.Settings.Modules
+        and BETTERUI.Settings.Modules[moduleName]
+        or nil
+end
 BETTERUI.GetModuleEnabled = function(moduleName)
     return enabledModules[moduleName] ~= false
 end
@@ -318,6 +324,12 @@ BETTERUI.CIM.InitModuleDefaults = function(_, m_options, defaults, fallbackDefau
     end
     return options
 end
+BETTERUI.CIM.RegisterModuleAccessors = function() end
+BETTERUI.CIM.TryRegisterModulePanel = function()
+    return true, nil
+end
+BETTERUI.CIM.Narration = BETTERUI.CIM.Narration or {}
+BETTERUI.CIM.Narration.RegisterBankingModeLabels = function() end
 
 BETTERUI.Defaults = BETTERUI.Defaults or {}
 BETTERUI.Defaults.GetModuleDefaults = function(moduleName)
@@ -388,12 +400,42 @@ local setupModuleNamespaces = {
     "ResourceOrbFrames",
 }
 
+local setupShimModules = {
+    Inventory = true,
+    Banking = true,
+    Vendor = true,
+    TradingHouse = true,
+    Companions = true,
+    Writs = true,
+    GeneralInterface = true,
+}
+local runtimeInitNoops = {
+    Banking = true,
+    Vendor = true,
+    TradingHouse = true,
+    Companions = true,
+}
+
 for _, namespace in ipairs(setupModuleNamespaces) do
     local moduleNamespace = BETTERUI[namespace]
     if type(moduleNamespace) == "table" and namespace ~= "CIM" then
-        moduleNamespace.Setup = function()
-            setupCounts[namespace] = (setupCounts[namespace] or 0) + 1
-            return true
+        if runtimeInitNoops[namespace] then
+            moduleNamespace.Init = function()
+                return true
+            end
+        end
+
+        local originalSetup = moduleNamespace.Setup
+        if setupShimModules[namespace] or type(originalSetup) ~= "function" then
+            moduleNamespace.Setup = function()
+                setupCounts[namespace] = (setupCounts[namespace] or 0) + 1
+                return true
+            end
+        else
+            moduleNamespace.Setup = function(...)
+                setupCounts[namespace] = (setupCounts[namespace] or 0) + 1
+                return originalSetup(...)
+            end
         end
     end
 end
