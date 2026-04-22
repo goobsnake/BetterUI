@@ -116,7 +116,7 @@ local function ResolveTransferDeniedNotification(targetBankBag, denyReason)
 end
 
 local function ResolveGuildBankTransferDecision(mode, bagId, slotIndex)
-    if not BETTERUI.Banking.IsGuildBankTransferMode() then
+    if not BETTERUI.Banking.IsGuildTransferActive() then
         return true, nil, nil, nil
     end
 
@@ -165,8 +165,8 @@ end
 ---@param transferBankBag number|nil Resolved destination bank bag (defaults to BAG_BANK)
 ---@return number|"unbankable"|"skip" targetBag Bag constant, or "unbankable"/"skip" sentinel
 local function ResolveDepositTargetBag(bagId, slotIndex, transferBankBag)
-    if BETTERUI.Banking.IsGuildBankTransferMode() then
-        local targetBag = BETTERUI.Banking.GetTransferTargetBag()
+    if BETTERUI.Banking.IsGuildTransferActive() then
+        local targetBag = BETTERUI.Banking.ResolveDepositTarget()
         if BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag) then
             return targetBag
         end
@@ -264,8 +264,8 @@ function BETTERUI.Banking.Class:BatchTransfer()
     if not selectedItems or #selectedItems == 0 then return end
 
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
-    local transferDestinationBankBag = BETTERUI.Banking.GetTransferTargetBag()
-    local isGuildMode = BETTERUI.Banking.IsGuildBankTransferMode()
+    local transferDestinationBankBag = BETTERUI.Banking.ResolveDepositTarget()
+    local isGuildMode = BETTERUI.Banking.IsGuildTransferActive()
     local actionName = isWithdraw
         and GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW"))
         or GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
@@ -298,7 +298,7 @@ function BETTERUI.Banking.Class:BatchTransfer()
             end
 
             -- Guild bank uses dedicated transfer APIs
-            if BETTERUI.Banking.IsGuildBankTransferMode() then
+            if BETTERUI.Banking.IsGuildTransferActive() then
                 local canTransfer = ResolveGuildBankTransferDecision(isWithdraw and LIST_WITHDRAW or LIST_DEPOSIT, bagId, slotIndex)
                 if not canTransfer then
                     return BatchStepSkipped()
@@ -395,8 +395,8 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     -- Use shared mixin to analyze selected items
     local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
-    local transferDestinationBankBag = BETTERUI.Banking.GetTransferTargetBag()
-    local isGuildMode = BETTERUI.Banking.IsGuildBankTransferMode()
+    local transferDestinationBankBag = BETTERUI.Banking.ResolveDepositTarget()
+    local isGuildMode = BETTERUI.Banking.IsGuildTransferActive()
     local transferCount = 0
     local firstTransferDeniedLabel = nil
 

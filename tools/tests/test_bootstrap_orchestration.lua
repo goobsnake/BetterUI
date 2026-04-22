@@ -743,9 +743,9 @@ end
 
 dofile("Modules/GeneralInterface/Module.lua")
 assert_true(BETTERUI.GeneralInterface.Nameplates == BETTERUI.Nameplates,
-    "GeneralInterface module keeps Nameplates rooted under GeneralInterface with BETTERUI alias compatibility")
-assert_true(BETTERUI.GeneralInterface.GetNameplatesNamespace() == BETTERUI.GeneralInterface.Nameplates,
-    "GeneralInterface.GetNameplatesNamespace returns the canonical GeneralInterface-owned Nameplates table")
+    "GeneralInterface module keeps Nameplates as a compatibility alias to the dedicated Nameplates namespace")
+assert_true(BETTERUI.GeneralInterface.GetNameplatesNamespace == nil,
+    "GeneralInterface module no longer exports a Nameplates ownership resolver seam")
 
 local defaultOptions = BETTERUI.GeneralInterface.InitModule({})
 assert_eq(defaultOptions.chatHistory, 200, "GeneralInterface.InitModule backfills chat history")

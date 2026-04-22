@@ -38,11 +38,11 @@ local function IsActionableListEntry(entryData)
 end
 
 local function IsMainBankContext()
-    return BETTERUI.Banking.IsMainBankTransferSource()
+    return BETTERUI.Banking.IsMainBankInteraction()
 end
 
 local function IsGuildBankMode()
-    return BETTERUI.Banking.IsGuildBankTransferMode()
+    return BETTERUI.Banking.IsGuildTransferActive()
 end
 
 local function GetSelectedBankEntry(self)
@@ -255,7 +255,7 @@ local function CreateCoreNavigationKeybinds(self)
                 if self:IsBatchProcessing() then
                     return
                 end
-                local transferSourceBankBag = BETTERUI.Banking.GetTransferSourceBag()
+                local transferSourceBankBag = BETTERUI.Banking.ResolveInteractionBankBag()
                 if self.currentMode == LIST_WITHDRAW then
                     if transferSourceBankBag == BAG_BANK then
                         StackBag(BAG_BANK)
@@ -431,7 +431,7 @@ end
 
 ResolveGuildBankTransferKeybindState = function(self)
     local selectedData = self.list and self.list:GetSelectedData()
-    if not (BETTERUI.Banking.IsGuildBankTransferMode() and IsActionableListEntry(selectedData)) then
+    if not (BETTERUI.Banking.IsGuildTransferActive() and IsActionableListEntry(selectedData)) then
         return true, nil
     end
 

@@ -2,15 +2,9 @@ BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
 local GeneralInterface = BETTERUI.GeneralInterface
 local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
 local SETTINGS_OWNER = ARCHETYPES.SETTINGS_OWNER or "settings-owner"
-local resolveNameplatesNamespace = GeneralInterface.GetNameplatesNamespace
-local Nameplates = type(resolveNameplatesNamespace) == "function" and resolveNameplatesNamespace() or nil
-if type(Nameplates) ~= "table" then
-    Nameplates = type(GeneralInterface.Nameplates) == "table" and GeneralInterface.Nameplates
-        or (type(BETTERUI.Nameplates) == "table" and BETTERUI.Nameplates)
-        or {}
-end
+BETTERUI.Nameplates = BETTERUI.Nameplates or {}
+local Nameplates = BETTERUI.Nameplates
 GeneralInterface.Nameplates = Nameplates
-BETTERUI.Nameplates = BETTERUI.Nameplates or Nameplates
 
 ---@type BetterUIModuleArchetypeSettingsOwner
 Nameplates.ARCHETYPE = SETTINGS_OWNER

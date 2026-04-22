@@ -234,25 +234,36 @@ BETTERUI = {
     Banking = {
         LIST_WITHDRAW = 1,
         LIST_DEPOSIT = 2,
+        TRANSFER_MODE_MAIN_BANK = "main-bank",
+        TRANSFER_MODE_HOUSE_BANK = "house-bank",
+        TRANSFER_MODE_GUILD_BANK = "guild-bank",
         currentUsedBank = BAG_BANK,
-        GetTransferTargetBag = function()
+        ResolveDepositTarget = function()
             return currentBank
         end,
-        GetTransferSourceBag = function()
+        ResolveInteractionBankBag = function()
             return (currentBank == nil or currentBank == 0) and BAG_BANK or currentBank
         end,
-        GetActiveTransferContext = function()
-            local sourceBag = BETTERUI.Banking.GetTransferSourceBag()
-            local targetBag = BETTERUI.Banking.GetTransferTargetBag()
+        ResolveActiveTransferMode = function()
+            local sourceBag = BETTERUI.Banking.ResolveInteractionBankBag()
+            local targetBag = BETTERUI.Banking.ResolveDepositTarget()
+            local kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+            if guildBankMode then
+                kind = BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+            elseif sourceBag ~= BAG_BANK then
+                kind = BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
+            end
             return {
-                sourceBag = sourceBag,
-                targetBag = targetBag,
+                kind = kind,
+                interactionBag = sourceBag,
+                depositTargetBag = targetBag,
                 withdrawSourceBags = targetBag == BAG_BANK and { BAG_BANK, BAG_SUBSCRIBER_BANK } or { targetBag },
-                isMainBank = sourceBag == BAG_BANK,
-                isSourceMainBank = sourceBag == BAG_BANK,
-                isTargetMainBank = targetBag == BAG_BANK,
-                isGuildBank = guildBankMode or sourceBag == BAG_GUILDBANK,
+                sourceIsFurnitureVault = false,
+                targetIsFurnitureVault = false,
             }
+        end,
+        ResolveWithdrawSources = function()
+            return BETTERUI.Banking.ResolveActiveTransferMode().withdrawSourceBags
         end,
         GetSetting = function(key)
             local values = {
@@ -275,11 +286,20 @@ BETTERUI = {
         RequireTransferSupport = function()
             return transferSupport
         end,
-        IsGuildBankTransferMode = function()
-            return guildBankMode
+        IsGuildTransferActive = function()
+            return BETTERUI.Banking.ResolveActiveTransferMode().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
         end,
-        IsMainBankTransferSource = function()
-            return BETTERUI.Banking.GetTransferSourceBag() == BAG_BANK
+        IsMainBankInteraction = function()
+            return BETTERUI.Banking.ResolveActiveTransferMode().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+        end,
+        IsHouseBankInteraction = function()
+            return BETTERUI.Banking.ResolveActiveTransferMode().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
+        end,
+        IsFurnitureVaultInteraction = function()
+            return false
+        end,
+        IsFurnitureVaultDepositTarget = function()
+            return false
         end,
         Class = {},
     },

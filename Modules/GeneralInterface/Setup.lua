@@ -11,21 +11,8 @@ local function GetGeneralInterfaceOptions()
 	return GeneralInterface.GetSettingsOptions()
 end
 
-local function ResolveNameplatesNamespace()
-	if type(GeneralInterface.GetNameplatesNamespace) == "function" then
-		return GeneralInterface.GetNameplatesNamespace()
-	end
-
-	local canonicalNameplates = GeneralInterface.Nameplates
-	if type(canonicalNameplates) == "table" then
-		return canonicalNameplates
-	end
-
-	return nil
-end
-
 local function GetNameplateOptions()
-	local nameplates = ResolveNameplatesNamespace()
+	local nameplates = BETTERUI.Nameplates
 	if not nameplates or type(nameplates.GetSettingsOptions) ~= "function" then
 		return nil
 	end

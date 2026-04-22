@@ -191,35 +191,27 @@ BETTERUI = {
         GetTransferDestinationBankBag = function()
             return BETTERUI.Banking.ResolveBankBag(BETTERUI.Banking.currentUsedBank)
         end,
-        GetTransferSourceBankBag = function()
+        ResolveInteractionBankBag = function()
             return BETTERUI.Banking.ResolveBankBag(bankingBag)
         end,
-        GetTransferTargetBag = function()
+        ResolveDepositTarget = function()
             return BETTERUI.Banking.GetTransferDestinationBankBag()
         end,
-        GetTransferSourceBag = function()
-            return BETTERUI.Banking.GetTransferSourceBankBag()
-        end,
-        GetActiveTransferContext = function()
-            local sourceBag = BETTERUI.Banking.GetTransferSourceBankBag()
-            local targetBag = BETTERUI.Banking.GetTransferDestinationBankBag()
+        ResolveActiveTransferMode = function()
+            local sourceBag = BETTERUI.Banking.ResolveInteractionBankBag()
+            local targetBag = BETTERUI.Banking.ResolveDepositTarget()
             return {
-                sourceBag = sourceBag,
-                targetBag = targetBag,
+                kind = sourceBag == BAG_GUILDBANK and "guild-bank"
+                    or (sourceBag == BAG_BANK and "main-bank" or "house-bank"),
+                interactionBag = sourceBag,
+                depositTargetBag = targetBag,
                 withdrawSourceBags = targetBag == BAG_BANK and { BAG_BANK, BAG_SUBSCRIBER_BANK } or { targetBag },
-                isMainBank = sourceBag == BAG_BANK,
-                isSourceMainBank = sourceBag == BAG_BANK,
-                isSourceFurnitureVault = sourceBag == BAG_FURNITURE_VAULT,
-                isTargetMainBank = targetBag == BAG_BANK,
-                isTargetFurnitureVault = targetBag == BAG_FURNITURE_VAULT,
-                isGuildBank = sourceBag == BAG_GUILDBANK,
+                sourceIsFurnitureVault = sourceBag == BAG_FURNITURE_VAULT,
+                targetIsFurnitureVault = targetBag == BAG_FURNITURE_VAULT,
             }
         end,
-        IsTransferSourceFurnitureVault = function()
-            return BETTERUI.Banking.GetActiveTransferContext().isSourceFurnitureVault == true
-        end,
-        IsFurnitureVaultTransferSource = function()
-            return BETTERUI.Banking.IsTransferSourceFurnitureVault()
+        IsFurnitureVaultInteraction = function()
+            return BETTERUI.Banking.ResolveActiveTransferMode().sourceIsFurnitureVault == true
         end,
         Tasks = {
             Schedule = function(_, name, delayMs, callback)

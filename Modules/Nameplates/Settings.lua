@@ -1,15 +1,9 @@
 if BETTERUI == nil then BETTERUI = {} end
 BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
 local GeneralInterface = BETTERUI.GeneralInterface
-local resolveNameplatesNamespace = GeneralInterface.GetNameplatesNamespace
-local Nameplates = type(resolveNameplatesNamespace) == "function" and resolveNameplatesNamespace() or nil
-if type(Nameplates) ~= "table" then
-    Nameplates = type(GeneralInterface.Nameplates) == "table" and GeneralInterface.Nameplates
-        or (type(BETTERUI.Nameplates) == "table" and BETTERUI.Nameplates)
-        or {}
-end
+BETTERUI.Nameplates = BETTERUI.Nameplates or {}
+local Nameplates = BETTERUI.Nameplates
 GeneralInterface.Nameplates = Nameplates
-BETTERUI.Nameplates = BETTERUI.Nameplates or Nameplates
 
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64

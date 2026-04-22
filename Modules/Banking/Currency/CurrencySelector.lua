@@ -14,7 +14,7 @@ local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
     local BANK_CAPACITY_ICON_SIZE = "90%"
 
-    local interactionBankBag = BETTERUI.Banking.GetTransferSourceBag()
+    local interactionBankBag = BETTERUI.Banking.ResolveInteractionBankBag()
     if interactionBankBag ~= BAG_BANK then
         return nil
     end

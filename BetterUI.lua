@@ -82,24 +82,8 @@ BETTERUI.Companions = BETTERUI.Companions or {}
 BETTERUI.Writs = BETTERUI.Writs or {}
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
-local function ResolveNameplatesNamespace()
-	local generalInterface = BETTERUI.GeneralInterface
-	local nameplates = generalInterface.Nameplates
-	if type(nameplates) ~= "table" then
-		local compatibilityAlias = BETTERUI.Nameplates
-		if type(compatibilityAlias) == "table" then
-			nameplates = compatibilityAlias
-		else
-			nameplates = {}
-		end
-		generalInterface.Nameplates = nameplates
-	end
-	BETTERUI.Nameplates = BETTERUI.Nameplates or nameplates
-	return nameplates
-end
-BETTERUI.ResolveNameplatesNamespace = ResolveNameplatesNamespace
-BETTERUI.GeneralInterface.Nameplates = ResolveNameplatesNamespace()
-BETTERUI.Nameplates = BETTERUI.GeneralInterface.Nameplates -- compatibility alias
+BETTERUI.Nameplates = BETTERUI.Nameplates or {}
+BETTERUI.GeneralInterface.Nameplates = BETTERUI.Nameplates -- compatibility alias
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 
 BETTERUI.GenericHeader = BETTERUI.GenericHeader or {}

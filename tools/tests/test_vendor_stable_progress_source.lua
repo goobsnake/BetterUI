@@ -28,7 +28,7 @@ end
 
 print("[Vendor stable progress source integration]")
 
-local vendorLua = read_file("Modules/Vendor/Vendor.lua")
+local stableTrainingComponentLua = read_file("Modules/Vendor/Components/StableTrainingComponent.lua")
 local rowSetupLua = read_file("Modules/Vendor/Core/VendorRowSetup.lua")
 local templatesXml = read_file("Modules/CIM/Templates/SharedTemplates.xml")
 
@@ -36,9 +36,9 @@ assert_contains(templatesXml, "BETTERUI_GamepadStableTrainingEntryTemplate", "st
 assert_contains(templatesXml, "$(parent)TrainingProgressBackdrop", "stable training template adds a progress backdrop")
 assert_contains(templatesXml, "$(parent)TrainingProgress", "stable training template adds a progress bar")
 
-assert_contains(vendorLua, "progressCurrent", "stable training rows include progress current data")
-assert_contains(vendorLua, "progressMax", "stable training rows include progress max data")
-assert_contains(vendorLua, "BETTERUI_GamepadStableTrainingEntryTemplate", "stable training rows use the dedicated template")
+assert_contains(stableTrainingComponentLua, "progressCurrent", "stable training rows include progress current data")
+assert_contains(stableTrainingComponentLua, "progressMax", "stable training rows include progress max data")
+assert_contains(stableTrainingComponentLua, "BETTERUI_GamepadStableTrainingEntryTemplate", "stable training rows use the dedicated template")
 
 assert_contains(rowSetupLua, "TrainingProgress", "vendor row setup looks up the training progress control")
 assert_contains(rowSetupLua, "SetMinMax", "vendor row setup configures the training progress range")

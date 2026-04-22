@@ -71,7 +71,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     self.lastPositionsByCategory = {}
 
-    BETTERUI.Banking.SetCurrentUsedBank(BETTERUI.Banking.GetTransferSourceBag())
+    BETTERUI.Banking.SetCurrentUsedBank(BETTERUI.Banking.ResolveInteractionBankBag())
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 

@@ -24,6 +24,7 @@ if false then
     dofile("Modules/Vendor/Components/FenceLaunderComponent.lua")
     dofile("Modules/Vendor/Components/FenceSellComponent.lua")
     dofile("Modules/Vendor/Components/RepairComponent.lua")
+    dofile("Modules/Vendor/Components/StableTrainingComponent.lua")
     dofile("Modules/Vendor/Components/SellComponent.lua")
     dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
     dofile("Modules/Vendor/Vendor.lua")
@@ -50,6 +51,7 @@ local vendorCoverageTargets = {
     "Modules/Vendor/Components/FenceLaunderComponent.lua",
     "Modules/Vendor/Components/FenceSellComponent.lua",
     "Modules/Vendor/Components/RepairComponent.lua",
+    "Modules/Vendor/Components/StableTrainingComponent.lua",
     "Modules/Vendor/Components/SellComponent.lua",
     "Modules/Vendor/Components/SellVengeanceComponent.lua",
     "Modules/Vendor/Vendor.lua",
@@ -78,7 +80,7 @@ local function readFile(path)
     return content
 end
 
-assertEqual(23, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor manifest-backed runtime surface")
+assertEqual(24, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor manifest-backed runtime surface")
 
 BETTERUI = {
     Vendor = {
@@ -185,6 +187,7 @@ assertTrue(type(BETTERUI.Vendor.BuybackComponent) == "table", "buyback component
 assertTrue(type(BETTERUI.Vendor.FenceLaunderComponent) == "table", "fence launder component loads")
 assertTrue(type(BETTERUI.Vendor.FenceSellComponent) == "table", "fence sell component loads")
 assertTrue(type(BETTERUI.Vendor.RepairComponent) == "table", "repair component loads")
+assertTrue(type(BETTERUI.Vendor.StableTrainingComponent) == "table", "stable training component loads")
 assertTrue(type(BETTERUI.Vendor.SellComponent) == "table", "sell component loads")
 assertTrue(type(BETTERUI.Vendor.SellVengeanceComponent) == "table", "sell vengeance component loads")
 assertTrue(type(BETTERUI.Vendor.BootstrapRuntime) == "table", "vendor bootstrap runtime loads")

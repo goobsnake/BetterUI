@@ -261,6 +261,7 @@ Modules\Vendor\Components\BuyComponent.lua
 Modules\Vendor\Components\SellComponent.lua
 Modules\Vendor\Components\SellVengeanceComponent.lua
 Modules\Vendor\Components\RepairComponent.lua
+Modules\Vendor\Components\StableTrainingComponent.lua
 Modules\Vendor\Components\BuybackComponent.lua
 Modules\Vendor\Components\FenceSellComponent.lua
 Modules\Vendor\Components\FenceLaunderComponent.lua

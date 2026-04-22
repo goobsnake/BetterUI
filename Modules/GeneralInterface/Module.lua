@@ -4,24 +4,8 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 local GeneralInterface = BETTERUI.GeneralInterface
 local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
 local THIN_ENTRYPOINT = ARCHETYPES.THIN_ENTRYPOINT or "thin-entrypoint"
-
-local function GetNameplatesNamespace()
-    local resolveNameplatesNamespace = BETTERUI.ResolveNameplatesNamespace
-    if type(resolveNameplatesNamespace) == "function" then
-        return resolveNameplatesNamespace()
-    end
-
-    local nameplates = GeneralInterface.Nameplates
-    if type(nameplates) ~= "table" then
-        nameplates = {}
-        GeneralInterface.Nameplates = nameplates
-    end
-    BETTERUI.Nameplates = BETTERUI.Nameplates or nameplates -- compatibility alias
-    return nameplates
-end
-
-GeneralInterface.GetNameplatesNamespace = GetNameplatesNamespace
-GetNameplatesNamespace()
+BETTERUI.Nameplates = BETTERUI.Nameplates or {}
+GeneralInterface.Nameplates = BETTERUI.Nameplates -- compatibility alias
 
 local MODULE_NAME = "GeneralInterface"
 ---@type BetterUIModuleArchetypeThinEntrypoint

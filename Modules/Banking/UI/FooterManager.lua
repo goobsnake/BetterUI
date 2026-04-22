@@ -13,9 +13,9 @@ Description: Updates the footer information (bag capacity, currency).
 ]]
 function BETTERUI.Banking.Class:RefreshFooter()
     if not self.footer or not self.footer.footer then return end
-    local isGuildBank = BETTERUI.Banking.IsGuildBankTransferMode()
-    local transferTargetBankBag = BETTERUI.Banking.GetTransferTargetBag()
-    local isTargetMainBank = BETTERUI.Banking.IsMainBankTransferTarget()
+    local isGuildBank = BETTERUI.Banking.IsGuildTransferActive()
+    local transferTargetBankBag = BETTERUI.Banking.ResolveDepositTarget()
+    local isTargetMainBank = transferTargetBankBag == BAG_BANK
 
     -- Deposit side (player inventory) — always the same
     self.footer.footer:GetNamedChild("DepositButtonSpaceLabel"):SetText(zo_strformat(

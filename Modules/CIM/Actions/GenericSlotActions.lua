@@ -147,7 +147,7 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     else
         -- Deposit
         local banking = BETTERUI.Banking
-        local getTransferTargetBag = banking and banking.GetTransferTargetBag
+        local getTransferTargetBag = banking and banking.ResolveDepositTarget
         local bankingBag = type(getTransferTargetBag) == "function" and getTransferTargetBag() or BAG_BANK
         if isGuildBankMode and notifyGuildBankTransferDenied then
             local canTransfer, denyReason = notifyGuildBankTransferDenied("TryTransferItem:GuildDeposit", BETTERUI.Banking.LIST_DEPOSIT, bag, index)

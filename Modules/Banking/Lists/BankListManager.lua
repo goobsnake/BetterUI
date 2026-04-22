@@ -84,14 +84,14 @@ local function ResolveBagsAndSlotType(self)
         return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
     end
 
-    local withdrawSourceBags = BETTERUI.Banking.GetTransferWithdrawSourceBags()
+    local withdrawSourceBags = BETTERUI.Banking.ResolveWithdrawSources()
     if type(withdrawSourceBags) == "table" and #withdrawSourceBags > 0 then
-        local slotType = BETTERUI.Banking.IsGuildBankTransferMode() and SLOT_TYPE_GUILD_BANK_ITEM
+        local slotType = BETTERUI.Banking.IsGuildTransferActive() and SLOT_TYPE_GUILD_BANK_ITEM
             or SLOT_TYPE_BANK_ITEM
         return withdrawSourceBags, slotType
     end
 
-    local sourceBag = BETTERUI.Banking.GetTransferSourceBag()
+    local sourceBag = BETTERUI.Banking.ResolveInteractionBankBag()
     if sourceBag ~= nil then
         return { sourceBag }, SLOT_TYPE_BANK_ITEM
     end
@@ -112,10 +112,10 @@ function BETTERUI.Banking.Class:RefreshList()
         return
     end
 
-    local transferSourceBankBag = BETTERUI.Banking.GetTransferSourceBag()
-    local isGuildBankActive = BETTERUI.Banking.IsGuildBankTransferMode()
-    local isSourceMainBank = BETTERUI.Banking.IsMainBankTransferSource()
-    local isSourceFurnitureVault = BETTERUI.Banking.IsTransferSourceFurnitureVault()
+    local transferSourceBankBag = BETTERUI.Banking.ResolveInteractionBankBag()
+    local isGuildBankActive = BETTERUI.Banking.IsGuildTransferActive()
+    local isSourceMainBank = BETTERUI.Banking.IsMainBankInteraction()
+    local isSourceFurnitureVault = BETTERUI.Banking.IsFurnitureVaultInteraction()
     if self._suppressListUpdates or self.isBatchProcessing then
         return
     end

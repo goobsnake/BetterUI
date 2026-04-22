@@ -12,7 +12,7 @@ local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 ---@return integer? bag The bank bag ID, or nil if no space
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank(targetBankBag)
-    targetBankBag = targetBankBag or BETTERUI.Banking.GetTransferTargetBag()
+    targetBankBag = targetBankBag or BETTERUI.Banking.ResolveDepositTarget()
     if targetBankBag == BAG_BANK then
         local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
         if emptySlotIndexBank ~= nil then
@@ -83,7 +83,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
-    local targetBankBag = BETTERUI.Banking.GetTransferTargetBag()
+    local targetBankBag = BETTERUI.Banking.ResolveDepositTarget()
     local transferSupport = BETTERUI.Banking.RequireTransferSupport("Banking/Actions/TransferActions")
     local isDepositAllowedForCurrentBank = transferSupport.IsDepositSupportedForBank
     local notifyGuildBankTransferDenied = transferSupport.NotifyGuildBankTransferDenied
@@ -137,7 +137,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 
     -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
-    local isGuildBank = BETTERUI.Banking.IsGuildBankTransferMode()
+    local isGuildBank = BETTERUI.Banking.IsGuildTransferActive()
     if isGuildBank then
         local bagId = fromBag
         local slotIndex = fromBagIndex
@@ -206,7 +206,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
         else
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            if BETTERUI.Banking.IsHouseBankTransferSource() then
+            if BETTERUI.Banking.IsHouseBankInteraction() then
                 banks = { targetBankBag }
             end
 
