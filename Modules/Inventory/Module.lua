@@ -417,4 +417,8 @@ function Inventory.Setup()
 	if not narrOk then
 		NotifyInventorySetupFailure("Inventory.Setup:Narration", "Inventory narration registration failed")
 	end
+
+    if Inventory.RegisterSceneLifecycle then
+        Inventory.RegisterSceneLifecycle(GAMEPAD_INVENTORY)
+    end
 end

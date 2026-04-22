@@ -156,10 +156,16 @@ assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.ClearTrackedInvent
     "CIM Utilities no longer exposes the inventory tracker forwarding seam")
 assert_true(companionDialogs:find("CIM%.Utils%.SafeGetTargetData") ~= nil,
     "Companion dialogs resolve list targets through the canonical CIM utility helper")
+assert_true(companionDialogs:find("CIM%.Utils%.GetListTargetData") ~= nil,
+    "Companion dialogs prefer the converged CIM list-target helper alias when available")
 assert_true(companionDialogs:find("local function SafeGetTargetData%(") == nil,
     "Companion dialogs no longer define a local SafeGetTargetData clone")
+assert_true(companionDialogs:find("local function ResolveDialogTargetData%(") == nil,
+    "Companion dialogs no longer define a private list-target wrapper helper")
 assert_true(vendorBuyComponent:find("CIM%.Utils%.SafeGetTargetData") ~= nil,
     "Vendor buy component resolves focused rows through the canonical CIM utility helper")
+assert_true(vendorBuyComponent:find("CIM%.Utils%.GetListTargetData") ~= nil,
+    "Vendor buy component prefers the converged CIM list-target helper alias when available")
 assert_true(vendorBuyComponent:find("list:GetSelectedData%(") == nil,
     "Vendor buy component no longer keeps a local selected-data fallback chain")
 assert_true(tooltipSettingsHelpers:find("BETTERUI%.Utils%.IsInventorySceneShowing") == nil,

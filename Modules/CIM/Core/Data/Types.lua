@@ -148,6 +148,35 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field getSpeed fun(): number|nil
 ---@field isEnabled fun(): boolean|nil
 
+---@class BetterUIHeaderNavigationCycleOptions
+---@field categories table[]
+---@field getCurrentIndex fun(): integer
+---@field tabBar table|nil
+---@field setCurrentIndex fun(idx: integer)|nil
+---@field onRefresh fun()|nil
+
+---@class BetterUIHeaderNavigationCoalescedOptions
+---@field delay integer|nil
+---@field onSave fun(instance: table)|nil
+---@field sceneCheck fun(): boolean|nil
+---@field onApply fun(instance: table, pendingCategoryIndex: integer)|nil
+
+---@class BetterUIBatchProcessorInitOptions
+---@field initialBatchSize integer|nil
+---@field remainingBatchSize integer|nil
+---@field batchDelay integer|nil
+
+---@class BetterUIBatchProcessorStartOptions
+---@field context table|nil
+---@field onProcessItem fun(item: any, index: integer, context: table)|nil
+---@field onComplete fun(context: table)|nil
+---@field isActiveCheck fun(): boolean|nil
+
+---@class BetterUIListRefreshManagerOptions
+---@field coalesceDelay integer|nil
+---@field useBatching boolean|nil
+---@field batchProcessor BETTERUI.CIM.Lists.BatchProcessor|nil
+
 ---@class BetterUIHeaderSortColumnDef
 ---@field name string Display name shown in the header row
 ---@field key string Stable column identifier

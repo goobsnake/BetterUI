@@ -128,8 +128,12 @@ assert_true(moduleSource:find("function Inventory%.Setup%(%)") ~= nil,
 local sceneSource = read_file("Modules/Inventory/Scene/InventorySceneLifecycle.lua")
 assert_true(sceneSource:find("function BETTERUI%.Inventory%.Class:OnStateChanged%(oldState, newState%)") ~= nil,
     "InventorySceneLifecycle exposes OnStateChanged")
+assert_true(sceneSource:find("function BETTERUI%.Inventory%.RegisterSceneLifecycle%(screen%)") ~= nil,
+    "InventorySceneLifecycle exposes an explicit lifecycle registration seam")
 assert_true(sceneSource:find("CreateStateChangeHandler") ~= nil,
     "InventorySceneLifecycle uses the shared SceneLifecycle adapter path")
+assert_true(sceneSource:find("BETTERUI%.Inventory%.RegisterSceneLifecycle%(self%)") ~= nil,
+    "InventorySceneLifecycle routes native scene callbacks through the explicit registration seam")
 
 local currencySource = read_file("Modules/Inventory/Settings/CurrencySettings.lua")
 assert_true(currencySource:find("local CURRENCY_DATA = %{%s*") ~= nil,

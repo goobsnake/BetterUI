@@ -1,18 +1,8 @@
---[[
-File: Modules/CIM/Keybinds/ActionContext.lua
-Purpose: Provides frame-based caching for keybind action context lookups.
-         Reduces redundant API calls in keybind descriptors.
-]]
-
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Keybinds = BETTERUI.CIM.Keybinds or {}
 
--- ACTION CONTEXT CACHE
--- Provides frame-based caching to avoid redundant API calls in keybind
--- name/visible/callback functions that all need the same item data.
-
-local cachedFrame = -1    -- Frame number when cache was last computed
-local cachedContext = nil -- The cached context data
+local cachedFrame = -1
+local contextCacheByReceiver = setmetatable({}, { __mode = "k" })
 local inventoryActionLists = {}
 
 function BETTERUI.CIM.Keybinds.RegisterInventoryActionModes(actionModes)
@@ -43,16 +33,35 @@ end
 function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     local currentFrame = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
 
-    -- Return cached if same frame
-    if currentFrame == cachedFrame and cachedContext then
+    if currentFrame ~= cachedFrame then
+        cachedFrame = currentFrame
+        contextCacheByReceiver = setmetatable({}, { __mode = "k" })
+    end
+
+    local cachedContext = contextCacheByReceiver[self]
+    if cachedContext then
         return cachedContext
     end
 
-    -- Compute fresh context
-    cachedFrame = currentFrame
-    cachedContext = {}
+    local ctx = {}
+    if type(self) == "table" then
+        contextCacheByReceiver[self] = ctx
+    end
 
-    local ctx = cachedContext
+    if type(self) ~= "table" then
+        ctx.actionMode = nil
+        ctx.actionListKey = nil
+        ctx.target = nil
+        ctx.filterType = nil
+        ctx.isQuestItem = false
+        ctx.isQuickslottable = false
+        ctx.meetsUsage = false
+        ctx.isGear = false
+        ctx.isEquipment = false
+        ctx.isUsableQuest = false
+        return ctx
+    end
+
     ctx.actionMode = self.actionMode
     ctx.actionListKey = nil
 
@@ -71,7 +80,7 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
         ctx.isGear = false
         ctx.isEquipment = false
         ctx.isUsableQuest = false
-        return cachedContext
+        return ctx
     end
 
     local target = ctx.target
@@ -101,17 +110,12 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     ctx.isEquipment = ctx.isGear
     ctx.isUsableQuest = ctx.isQuestItem and ctx.meetsUsage == true or false
 
-    return cachedContext
+    return ctx
 end
 
---[[
-Function: BETTERUI.CIM.Keybinds.InvalidateActionContext
-Description: Forces the action context cache to be recomputed on next access.
-             Call when item selection changes or list switches.
-]]
 function BETTERUI.CIM.Keybinds.InvalidateActionContext()
     cachedFrame = -1
-    cachedContext = nil
+    contextCacheByReceiver = setmetatable({}, { __mode = "k" })
 end
 
 function BETTERUI.CIM.Keybinds.GetXButtonName(self)

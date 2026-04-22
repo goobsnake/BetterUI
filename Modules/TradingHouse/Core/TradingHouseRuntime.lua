@@ -20,6 +20,7 @@ local TH_TABS = {
     { mode = MODE.LISTINGS, name = function() return GetString(rawget(_G, "SI_BETTERUI_TH_TAB_LISTINGS")) end },
 }
 
+---@return THTabDef[] tabs
 function TH.GetTabs()
     local tabs = {}
     for index, tab in ipairs(TH_TABS) do
@@ -31,6 +32,8 @@ function TH.GetTabs()
     return tabs
 end
 
+---@param instance BETTERUI.TradingHouse.Class
+---@return nil
 function TH.RegisterComponents(instance)
     if TH.BrowseComponent then
         instance:RegisterComponent(MODE.BROWSE, TH.BrowseComponent)
@@ -43,6 +46,8 @@ function TH.RegisterComponents(instance)
     end
 end
 
+---@param instance BETTERUI.TradingHouse.Class
+---@return nil
 function TH.SetupSelectionTooltip(instance)
     if instance.list and instance.list.SetOnSelectedDataChangedCallback then
         ---@param _ unknown
@@ -89,6 +94,7 @@ function TH.CreateScene(instance)
 end
 
 ---@param instance BETTERUI.TradingHouse.Class
+---@return nil
 function TH.RegisterSceneLifecycle(instance)
     ---@type TradingHouseSceneLifecyclePayload
     local lifecyclePayload = {

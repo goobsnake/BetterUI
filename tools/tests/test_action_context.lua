@@ -8,6 +8,7 @@ Usage:
 local passed = 0
 local failed = 0
 local frame = 0
+local freezeFrame = false
 
 local function assert_eq(actual, expected, label)
     if actual == expected then
@@ -39,6 +40,9 @@ SI_ITEM_ACTION_USE = "Use"
 SI_ITEM_ACTION_LINK_TO_CHAT = "Link to chat"
 
 function GetFrameTimeMilliseconds()
+    if freezeFrame then
+        return frame
+    end
     frame = frame + 1
     return frame
 end
@@ -105,6 +109,41 @@ do
         "craft bag action mode uses the registered craft bag contract")
     assert_true(BETTERUI.CIM.Keybinds.GetXButtonVisible(craftBagControl),
         "registered craft bag mode remains visible")
+end
+
+do
+    frame = 400
+    freezeFrame = true
+
+    local inventoryControl = {
+        actionMode = 20,
+        itemList = {
+            selectedData = {
+                bagId = 1,
+                slotIndex = 2,
+                meetsUsageRequirement = true,
+                isQuickslottable = true,
+            },
+        },
+    }
+    local craftBagControl = {
+        actionMode = 30,
+        craftBagList = {
+            selectedData = {
+                bagId = 3,
+                slotIndex = 4,
+                meetsUsageRequirement = false,
+                isQuickslottable = false,
+            },
+        },
+    }
+
+    assert_eq(BETTERUI.CIM.Keybinds.GetXButtonName(inventoryControl), "Assign to quickslot",
+        "same-frame cache keeps item-list context scoped to the inventory receiver")
+    assert_eq(BETTERUI.CIM.Keybinds.GetXButtonName(craftBagControl), "Link to chat",
+        "same-frame cache keeps craft-bag context scoped to the craft-bag receiver")
+
+    freezeFrame = false
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

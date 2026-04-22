@@ -129,9 +129,16 @@ assert_contains(output, "Debug logging disabled", "/buidebug off reports disable
 print("[Scene command bootstrap]")
 resetState()
 SLASH_COMMANDS["/buiscene"]("")
-assert_eq(#featureFlagCalls, 1, "/buiscene also enables debug logging when needed")
-assert_eq(BETTERUI.CIM.Debug.FLAGS.SCENE_TRANSITIONS, true, "/buiscene enables SCENE_TRANSITIONS flag")
-assert_contains(output, "Scene States:", "/buiscene runs the scene inspector")
+assert_eq(#featureFlagCalls, 0, "/buiscene no longer auto-enables debug logging")
+assert_eq(BETTERUI.CIM.Debug.FLAGS.SCENE_TRANSITIONS, false, "/buiscene keeps debug flags unchanged while debug mode is off")
+assert_contains(output, "/buiscene requires debug mode", "/buiscene reports debug-mode gating when mode is disabled")
+
+print("[Scene command with debug mode enabled]")
+SLASH_COMMANDS["/buidebug"]("on")
+SLASH_COMMANDS["/buiscene"]("")
+assert_eq(#featureFlagCalls, 1, "/buidebug on enables debug mode once")
+assert_eq(BETTERUI.CIM.Debug.FLAGS.SCENE_TRANSITIONS, true, "/buiscene enables scene-transition tracing once debug mode is active")
+assert_contains(output, "Scene States:", "/buiscene runs the scene inspector when debug mode is active")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

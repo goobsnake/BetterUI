@@ -9,6 +9,14 @@ BETTERUI.Vendor = BETTERUI.Vendor or {}
 local Vendor = BETTERUI.Vendor
 Vendor.InteractionRuntime = Vendor.InteractionRuntime or {}
 local InteractionRuntime = Vendor.InteractionRuntime
+local unpackCompat = table.unpack or unpack
+
+local function PackResults(...)
+    return {
+        n = select("#", ...),
+        ...
+    }
+end
 
 local function DefaultShowVendorScene()
     if SCENE_MANAGER then
@@ -41,14 +49,33 @@ local function DefaultLogVendorDebug(flagName, category, message)
     end
 end
 
-local function DefaultSafeCall(_context, fn, ...)
+local function DefaultSafeCall(context, fn, ...)
+    local safeContext = context
+    if safeContext == nil or safeContext == "" then
+        safeContext = "Vendor.InteractionRuntime:SafeCall"
+    else
+        safeContext = tostring(safeContext)
+    end
+
     if Vendor.ExecuteSafely then
-        return Vendor.ExecuteSafely(_context, fn, ...)
+        return Vendor.ExecuteSafely(safeContext, fn, ...)
     end
     if type(fn) ~= "function" then
         return false, "No function provided"
     end
-    return pcall(fn, ...)
+
+    local results = PackResults(pcall(fn, ...))
+    local ok = results[1]
+    if not ok then
+        local err = results[2]
+        local userNotify = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.UserNotify
+        if type(userNotify) == "function" then
+            pcall(userNotify, safeContext, tostring(err))
+        end
+        return false, err
+    end
+
+    return true, unpackCompat(results, 2, results.n)
 end
 
 local function BuildInteractionState(seed)
@@ -64,36 +91,17 @@ local function BuildInteractionState(seed)
     }
 end
 
-local function IsModernRuntimeCall(runtime, nativeStoreBridge)
+local function IsLifecycleRuntime(runtime)
     return type(runtime) == "table"
         and (
             type(runtime.ResetInteractionState) == "function"
             or type(runtime.SetInteractionState) == "function"
             or type(runtime.MarkClosingState) == "function"
         )
-        and type(nativeStoreBridge) == "table"
-end
-
-local LEGACY_INTERACTION_DEP_ALIASES = {
-    restoreSceneAlias = "restoreNativeStoreSceneAlias",
-    aliasSceneToBetterUI = "aliasStoreSceneToBetterUI",
-    ensureComponents = "ensureNativeStoreComponents",
-    resolveTargetMode = "resolveVendorTargetMode",
-    applyResolvedMode = "applyVendorResolvedMode",
-    scheduleOpenStoreSync = "scheduleVendorOpenStoreSync",
-}
-
-local function ResolveLegacyInteractionDepAliases(deps)
-    for canonicalName, legacyName in pairs(LEGACY_INTERACTION_DEP_ALIASES) do
-        if deps[canonicalName] == nil and deps[legacyName] ~= nil then
-            deps[canonicalName] = deps[legacyName]
-        end
-    end
-    return deps
 end
 
 local function ResolveDeps(deps)
-    deps = ResolveLegacyInteractionDepAliases(deps or {})
+    deps = deps or {}
     local nativeStoreBridge = deps.nativeStoreBridge or Vendor.NativeStoreBridge
 
     local function RequireBridgeMethod(methodName)
@@ -158,23 +166,11 @@ local function ResolveDeps(deps)
         runCloseCleanup = deps.runCloseCleanup or function()
         end,
         safeCall = deps.safeCall or DefaultSafeCall,
-        cleanupCloseStore = deps.cleanupCloseStore
-            or (nativeStoreBridge and nativeStoreBridge.CleanupAfterCloseStore),
+        cleanupCloseStore = deps.cleanupCloseStore or (nativeStoreBridge and nativeStoreBridge.CleanupAfterCloseStore),
     }
 end
 
-local function ResolveOption(options, canonicalName, legacyName)
-    local value = options[canonicalName]
-    if value ~= nil then
-        return value
-    end
-    if legacyName then
-        return options[legacyName]
-    end
-    return nil
-end
-
-local function BuildModernDeps(runtime, nativeStoreBridge, instance, options)
+local function BuildLifecycleDeps(runtime, nativeStoreBridge, instance, options)
     options = options or {}
     return {
         nativeStoreBridge = nativeStoreBridge,
@@ -225,12 +221,12 @@ local function BuildModernDeps(runtime, nativeStoreBridge, instance, options)
         interactionVendor = options.interactionVendor,
         interactionStable = options.interactionStable,
         isNativeStableModeActive = options.isNativeStableModeActive or DefaultIsNativeStableModeActive,
-        restoreSceneAlias = ResolveOption(options, "restoreSceneAlias", "restoreNativeStoreSceneAlias"),
-        aliasSceneToBetterUI = ResolveOption(options, "aliasSceneToBetterUI", "aliasStoreSceneToBetterUI"),
-        ensureComponents = ResolveOption(options, "ensureComponents", "ensureNativeStoreComponents"),
-        resolveTargetMode = ResolveOption(options, "resolveTargetMode", "resolveVendorTargetMode"),
-        applyResolvedMode = ResolveOption(options, "applyResolvedMode", "applyVendorResolvedMode"),
-        scheduleOpenStoreSync = ResolveOption(options, "scheduleOpenStoreSync", "scheduleVendorOpenStoreSync"),
+        restoreSceneAlias = options.restoreSceneAlias,
+        aliasSceneToBetterUI = options.aliasSceneToBetterUI,
+        ensureComponents = options.ensureComponents,
+        resolveTargetMode = options.resolveTargetMode,
+        applyResolvedMode = options.applyResolvedMode,
+        scheduleOpenStoreSync = options.scheduleOpenStoreSync,
         sellMode = options.sellMode,
         fenceLaunderMode = options.fenceLaunderMode,
         getStoreManager = function()
@@ -256,8 +252,8 @@ local function BuildModernDeps(runtime, nativeStoreBridge, instance, options)
             return DefaultSafeCall(context, fn, ...)
         end,
         cleanupCloseStore = nativeStoreBridge and nativeStoreBridge.CleanupAfterCloseStore and function(storeManager, safeCall, logNativeStoreInputState)
-            return nativeStoreBridge.CleanupAfterCloseStore(storeManager, safeCall, logNativeStoreInputState)
-        end or nil,
+                return nativeStoreBridge.CleanupAfterCloseStore(storeManager, safeCall, logNativeStoreInputState)
+            end or nil,
     }
 end
 
@@ -397,35 +393,125 @@ local function CloseStoreInternal(state, deps)
     return state
 end
 
----@return table
-function InteractionRuntime.OnOpenStore(a, b, c, d)
-    if IsModernRuntimeCall(a, b) then
-        local state = OpenStoreInternal(BuildInteractionState(), BuildModernDeps(a, b, c, d))
-        ApplyRuntimeState(a, state)
-        return state
+local function ResolveRuntimeDepsFromRequest(request)
+    local runtime = request and request.runtime or nil
+    if request and type(request.deps) == "table" then
+        return request.deps, runtime
     end
 
-    return OpenStoreInternal(BuildInteractionState(a), b)
+    if IsLifecycleRuntime(runtime) then
+        return BuildLifecycleDeps(
+            runtime,
+            request and request.nativeStoreBridge or nil,
+            request and request.instance or nil,
+            request and request.options or nil
+        ), runtime
+    end
+
+    return request and request.deps or nil, nil
+end
+
+local function BuildOpenStoreRequestFromPositional(a, b, c, d)
+    if IsLifecycleRuntime(a) then
+        return {
+            runtime = a,
+            nativeStoreBridge = b,
+            instance = c,
+            options = d,
+        }
+    end
+    return {
+        state = a,
+        deps = b,
+    }
+end
+
+local function BuildOpenFenceRequestFromPositional(a, b, c, d, e, f)
+    if IsLifecycleRuntime(a) then
+        return {
+            runtime = a,
+            nativeStoreBridge = b,
+            instance = c,
+            options = d,
+            enableSell = e,
+            enableLaunder = f,
+        }
+    end
+    return {
+        state = a,
+        deps = b,
+        enableSell = c,
+        enableLaunder = d,
+    }
+end
+
+local function BuildCloseStoreRequestFromPositional(a, b, c)
+    if IsLifecycleRuntime(a) then
+        return {
+            runtime = a,
+            nativeStoreBridge = b,
+            instance = c,
+        }
+    end
+    return {
+        state = a,
+        deps = b,
+    }
+end
+
+---@param request table|nil
+---@return table
+function InteractionRuntime.OpenStore(request)
+    request = request or {}
+    local deps, runtime = ResolveRuntimeDepsFromRequest(request)
+    local state = OpenStoreInternal(BuildInteractionState(request.state), deps)
+    if runtime then
+        ApplyRuntimeState(runtime, state)
+    end
+    return state
+end
+
+---@param request table|nil
+---@return table
+function InteractionRuntime.OpenFence(request)
+    request = request or {}
+    local deps, runtime = ResolveRuntimeDepsFromRequest(request)
+    local state = OpenFenceInternal(
+        BuildInteractionState(request.state),
+        deps,
+        request.enableSell,
+        request.enableLaunder
+    )
+    if runtime then
+        ApplyRuntimeState(runtime, state)
+    end
+    return state
+end
+
+---@param request table|nil
+---@return table
+function InteractionRuntime.CloseStore(request)
+    request = request or {}
+    local deps, runtime = ResolveRuntimeDepsFromRequest(request)
+    local state = CloseStoreInternal(BuildInteractionState(request.state), deps)
+    if runtime then
+        ApplyRuntimeState(runtime, state)
+    end
+    return state
+end
+
+-- Compatibility wrappers for positional callsites.
+---@return table
+function InteractionRuntime.OnOpenStore(a, b, c, d)
+    return InteractionRuntime.OpenStore(BuildOpenStoreRequestFromPositional(a, b, c, d))
 end
 
 ---@return table
 function InteractionRuntime.OnOpenFence(a, b, c, d, e, f)
-    if IsModernRuntimeCall(a, b) then
-        local state = OpenFenceInternal(BuildInteractionState(), BuildModernDeps(a, b, c, d), e, f)
-        ApplyRuntimeState(a, state)
-        return state
-    end
-
-    return OpenFenceInternal(BuildInteractionState(a), b, c, d)
+    return InteractionRuntime.OpenFence(BuildOpenFenceRequestFromPositional(a, b, c, d, e, f))
 end
 
 ---@return table
 function InteractionRuntime.OnCloseStore(a, b, c)
-    if IsModernRuntimeCall(a, b) then
-        local state = CloseStoreInternal(BuildInteractionState(), BuildModernDeps(a, b, c, nil))
-        ApplyRuntimeState(a, state)
-        return state
-    end
-
-    return CloseStoreInternal(BuildInteractionState(a), b)
+    return InteractionRuntime.CloseStore(BuildCloseStoreRequestFromPositional(a, b, c))
 end

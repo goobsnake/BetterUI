@@ -7,6 +7,8 @@ Uses GetNumStoreItems/GetStoreEntryInfo to populate the list.
 ]]
 
 local Vendor = BETTERUI.Vendor
+local GetListTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils
+    and (BETTERUI.CIM.Utils.GetListTargetData or BETTERUI.CIM.Utils.SafeGetTargetData)
 
 ---@class VendorComponent
 ---@field Activate fun(self: VendorComponent, vendorInstance: BETTERUI.Vendor.Class)
@@ -221,15 +223,11 @@ end
 ---@return table|nil
 local function GetFocusedStoreData(vendorInstance)
     local list = vendorInstance and vendorInstance.list
-    if not list then
+    if not list or type(GetListTargetData) ~= "function" then
         return nil
     end
 
-    local safeGetTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.SafeGetTargetData
-    if type(safeGetTargetData) ~= "function" then
-        return nil
-    end
-    return safeGetTargetData(list)
+    return GetListTargetData(list)
 end
 
 local function BuildRowsFromIndexProbe()

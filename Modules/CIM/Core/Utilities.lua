@@ -59,7 +59,7 @@ end
 
 ---@param list table|nil List control with GetTargetData/GetSelectedData or selectedData
 ---@return table|nil data The target data from the list, or nil
-function BETTERUI.CIM.Utils.SafeGetTargetData(list)
+local function SafeGetTargetData(list)
     if not list then return nil end
     if list.GetTargetData then
         return list:GetTargetData()
@@ -69,6 +69,8 @@ function BETTERUI.CIM.Utils.SafeGetTargetData(list)
     end
     return list.selectedData
 end
+BETTERUI.CIM.Utils.SafeGetTargetData = SafeGetTargetData
+BETTERUI.CIM.Utils.GetListTargetData = BETTERUI.CIM.Utils.GetListTargetData or SafeGetTargetData
 
 ---@param newValue number Value to wrap
 ---@param maxValue number Upper bound (wraps to 1)
@@ -162,21 +164,40 @@ function BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink)
     return total
 end
 
+local function IsSceneShowing(sceneName)
+    if type(sceneName) ~= "string" or sceneName == "" then
+        return false
+    end
+    local scenes = SCENE_MANAGER and SCENE_MANAGER.scenes
+    local scene = scenes and scenes[sceneName]
+    return scene and scene.IsShowing and scene:IsShowing() or false
+end
+
+local function IsAnySceneShowing(sceneNames)
+    for _, sceneName in ipairs(sceneNames or {}) do
+        if IsSceneShowing(sceneName) then
+            return true
+        end
+    end
+    return false
+end
+
 IsBankingSceneShowing = function()
-    local scene = SCENE_MANAGER.scenes['gamepad_banking']
-    if scene and scene:IsShowing() then return true end
-    -- Also check the guild banking scene
+    if IsAnySceneShowing({ "gamepad_banking" }) then
+        return true
+    end
     local guildScene = BETTERUI_GUILD_BANKING_SCENE
-    return guildScene and guildScene:IsShowing()
+    return guildScene and guildScene:IsShowing() or false
 end
 
 local function IsInventorySceneShowing()
-    local scene = SCENE_MANAGER.scenes['gamepad_inventory_root']
-    return scene and scene:IsShowing()
+    return IsSceneShowing("gamepad_inventory_root")
 end
 
 BETTERUI.CIM.Utils.IsBankingSceneShowing = IsBankingSceneShowing
 BETTERUI.CIM.Utils.IsInventorySceneShowing = IsInventorySceneShowing
+BETTERUI.CIM.Utils.IsSceneShowing = IsSceneShowing
+BETTERUI.CIM.Utils.IsAnySceneShowing = IsAnySceneShowing
 
 BETTERUI.Utils = BETTERUI.Utils or {}
 if type(BETTERUI.Utils.IsBankingSceneShowing) ~= "function" then
@@ -186,5 +207,5 @@ if type(BETTERUI.Utils.IsInventorySceneShowing) ~= "function" then
     BETTERUI.Utils.IsInventorySceneShowing = IsInventorySceneShowing
 end
 if type(BETTERUI.Utils.SafeGetTargetData) ~= "function" then
-    BETTERUI.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData
+    BETTERUI.Utils.SafeGetTargetData = SafeGetTargetData
 end

@@ -30,7 +30,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:New(...)
     return obj
 end
 
----@param options {coalesceDelay: integer?, useBatching: boolean?, batchProcessor: table?}?
+---@param options BetterUIListRefreshManagerOptions|nil
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     options = options or {}

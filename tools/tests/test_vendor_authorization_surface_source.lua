@@ -1,22 +1,11 @@
 --[[
 File: tools/tests/test_vendor_authorization_surface_source.lua
-Purpose: Source-level regression checks for the shared vendor authorization seam
-         across primary and batch sell/launder flows.
+Purpose: Behavior-first regression checks for the shared vendor authorization
+         seam across primary and batch sell/launder flows.
 
 Usage:
   lua tools/tests/test_vendor_authorization_surface_source.lua
 ]]
-
-if false then
-    dofile("Modules/CIM/Actions/ProtectionPolicy.lua")
-    dofile("Modules/Vendor/Module.lua")
-    dofile("Modules/Vendor/Components/SellComponent.lua")
-    dofile("Modules/Vendor/Components/FenceSellComponent.lua")
-    dofile("Modules/Vendor/Components/FenceLaunderComponent.lua")
-    dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
-    dofile("Modules/Vendor/Core/VendorBatchRuntime.lua")
-    dofile("Modules/Vendor/Vendor.lua")
-end
 
 local passed = 0
 local failed = 0
@@ -30,96 +19,511 @@ local function assert_true(value, label)
     end
 end
 
-local function read_file(path)
-    local handle = assert(io.open(path, "r"))
-    local content = handle:read("*a")
-    handle:close()
-    return content
+local function assert_eq(actual, expected, label)
+    assert_true(actual == expected, string.format("%s (expected=%s, actual=%s)", label, tostring(expected), tostring(actual)))
 end
 
-local protectionPolicy = read_file("Modules/CIM/Actions/ProtectionPolicy.lua")
-assert_true(protectionPolicy:find("function Policy%.CanVendorAction%(actionType, bagId, slotIndex, context%)") ~= nil,
-    "ProtectionPolicy exposes CanVendorAction for shared vendor authorization")
-assert_true(protectionPolicy:find("local FALLBACK_VENDOR_ACTION", 1, true) == nil,
-    "ProtectionPolicy no longer duplicates vendor action-id tables")
-assert_true(protectionPolicy:find("BuildFallbackVendorActionId", 1, true) == nil,
-    "ProtectionPolicy no longer defines a local fallback vendor action-id builder")
-assert_true(protectionPolicy:find("vendor.ResolveActionId", 1, true) ~= nil,
-    "ProtectionPolicy resolves vendor action ids through the canonical vendor resolver when available")
-assert_true(protectionPolicy:find('return "vendor_"', 1, true) == nil and protectionPolicy:find('return "fence_"', 1, true) == nil,
-    "ProtectionPolicy no longer owns raw vendor action-id string construction")
+local function slot_key(bagId, slotIndex)
+    return tostring(bagId) .. ":" .. tostring(slotIndex)
+end
 
-local moduleLua = read_file("Modules/Vendor/Module.lua")
-assert_true(moduleLua:find("local function EnsureVendorActionIds%(%s*%)") ~= nil,
-    "Vendor module centralizes shared action-id initialization")
-assert_true(moduleLua:find("function BETTERUI%.Vendor%.ResolveActionId%(actionKey%)") ~= nil,
-    "Vendor module exposes canonical action-id resolution")
-assert_true(moduleLua:find("function BETTERUI%.Vendor%.AuthorizeInventoryAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Vendor module exposes shared authorization seam")
-assert_true(moduleLua:find("local function GetProtectionPolicy%(%s*%)") ~= nil,
-    "Vendor module resolves ProtectionPolicy through an explicit required-policy seam")
-assert_true(moduleLua:find("local function RequireProtectionPolicyMethod%(policy, methodName%)") ~= nil,
-    "Vendor module centralizes required policy-method resolution")
-assert_true(moduleLua:find("return false, \"no_item\"", 1, true) == nil,
-    "Vendor authorization seam no longer uses raw no_item fallback strings")
+local slot_state = {}
+local sold_items = {}
+local laundered_items = {}
+local shown_dialogs = {}
+local user_alerts = {}
 
-local sellComponent = read_file("Modules/Vendor/Components/SellComponent.lua")
-assert_true(sellComponent:find("local function AuthorizeVendorAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Sell component defines a focused local authorization helper")
-assert_true(sellComponent:find("local allowed, reason = authorizeInventoryAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Sell component local helper captures shared authorization seam results")
-assert_true(sellComponent:find("return allowed == true, reason", 1, true) ~= nil,
-    "Sell component local helper normalizes policy authorization to explicit boolean allow")
-assert_true(sellComponent:find("AuthorizeVendorAction%(Vendor%.ACTION%.SELL, ds%.bagId, ds%.slotIndex, vendorInstance%)") ~= nil,
-    "Sell component routes primary sell through the local authorization helper")
-assert_true(sellComponent:find("AuthorizeVendorAction%(Vendor%.ACTION%.SELL_JUNK, BAG_BACKPACK, slot, vendorInstance%)") ~= nil,
-    "Sell component routes sell-all-junk through the local authorization helper")
-assert_true(sellComponent:find("if canSell ~= true then", 1, true) ~= nil,
-    "Sell component blocks primary sell unless policy explicitly allows it")
-assert_true(sellComponent:find("if canSell == true then", 1, true) ~= nil,
-    "Sell component sell-all-junk path processes items only when policy explicitly allows it")
+local function set_slot(bagId, slotIndex, state)
+    slot_state[slot_key(bagId, slotIndex)] = state or {}
+end
 
-local fenceSell = read_file("Modules/Vendor/Components/FenceSellComponent.lua")
-assert_true(fenceSell:find("local function AuthorizeVendorAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Fence sell component defines a focused local authorization helper")
-assert_true(fenceSell:find("AuthorizeVendorAction%(Vendor%.ACTION%.FENCE_SELL, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Fence sell component routes primary sell through the local authorization helper")
-assert_true(fenceSell:find("if canSell ~= true then", 1, true) ~= nil,
-    "Fence sell component blocks sell unless policy explicitly allows it")
+local function get_slot(bagId, slotIndex)
+    return slot_state[slot_key(bagId, slotIndex)] or {}
+end
 
-local fenceLaunder = read_file("Modules/Vendor/Components/FenceLaunderComponent.lua")
-assert_true(fenceLaunder:find("local function AuthorizeVendorAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Fence launder component defines a focused local authorization helper")
-assert_true(fenceLaunder:find("AuthorizeVendorAction%(Vendor%.ACTION%.FENCE_LAUNDER, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Fence launder component routes primary action through the local authorization helper")
-assert_true(fenceLaunder:find("if canLaunder ~= true then", 1, true) ~= nil,
-    "Fence launder component blocks launder unless policy explicitly allows it")
+local function reset_runtime_state()
+    slot_state = {}
+    sold_items = {}
+    laundered_items = {}
+    shown_dialogs = {}
+    user_alerts = {}
+end
 
-local sellVengeance = read_file("Modules/Vendor/Components/SellVengeanceComponent.lua")
-assert_true(sellVengeance:find("local function AuthorizeVendorAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Sell vengeance component defines a focused local authorization helper")
-assert_true(sellVengeance:find("AuthorizeVendorAction%(Vendor%.ACTION%.SELL_VENGEANCE, bagId, slotIndex, vendorInstance%)") ~= nil,
-    "Sell vengeance component routes primary sell through the local authorization helper")
-assert_true(sellVengeance:find("if canSell ~= true then", 1, true) ~= nil,
-    "Sell vengeance component blocks sell unless policy explicitly allows it")
+local function merge_into(target, source)
+    for key, value in pairs(source) do
+        if type(value) == "table" then
+            local node = target[key]
+            if type(node) ~= "table" then
+                node = {}
+                target[key] = node
+            end
+            merge_into(node, value)
+        else
+            target[key] = value
+        end
+    end
+end
 
-local batchRuntimeLua = read_file("Modules/Vendor/Core/VendorBatchRuntime.lua")
-assert_true(batchRuntimeLua:find("local function AuthorizeVendorInventoryAction%(actionType, bagId, slotIndex%)") ~= nil,
-    "Vendor batch runtime defines a focused batch authorization helper")
-assert_true(batchRuntimeLua:find("local allowed, reason = authorizeInventoryAction%(actionType, bagId, slotIndex, Vendor%.instance%)") ~= nil,
-    "Vendor batch authorization helper captures shared authorization seam results")
-assert_true(batchRuntimeLua:find("return allowed == true, reason", 1, true) ~= nil,
-    "Vendor batch authorization helper normalizes policy authorization to explicit boolean allow")
-assert_true(batchRuntimeLua:find("AuthorizeVendorInventoryAction%(Vendor%.ACTION%.SELL, bagId, slotIndex%)") ~= nil,
-    "Vendor batch sell path routes through the batch authorization helper")
-assert_true(batchRuntimeLua:find("AuthorizeVendorInventoryAction%(Vendor%.ACTION%.FENCE_SELL, bagId, slotIndex%)") ~= nil,
-    "Vendor batch fence sell path routes through the batch authorization helper")
-assert_true(batchRuntimeLua:find("AuthorizeVendorInventoryAction%(Vendor%.ACTION%.FENCE_LAUNDER, bagId, slotIndex%)") ~= nil,
-    "Vendor batch fence launder path routes through the batch authorization helper")
-assert_true(batchRuntimeLua:find("if canSell ~= true then", 1, true) ~= nil,
-    "Vendor batch sell paths are blocked unless policy explicitly allows them")
-assert_true(batchRuntimeLua:find("if canLaunder ~= true then", 1, true) ~= nil,
-    "Vendor batch launder paths are blocked unless policy explicitly allows them")
+BAG_BACKPACK = 1
+BAG_VENGEANCE = 2
+ITEM_FUNCTIONAL_QUALITY_ARTIFACT = 5
+CURT_NONE = 0
+CURT_MONEY = 1
+SI_ITEM_ACTION_SELL = "SI_ITEM_ACTION_SELL"
+SI_ITEM_ACTION_LAUNDER = "SI_ITEM_ACTION_LAUNDER"
+SI_ITEM_ACTION_BUY = "SI_ITEM_ACTION_BUY"
+SI_ITEM_ACTION_BUYBACK = "SI_ITEM_ACTION_BUYBACK"
+SI_BETTERUI_VENDOR_CANNOT_AFFORD = "SI_BETTERUI_VENDOR_CANNOT_AFFORD"
+ZO_VENGEANCE_BAG_SELL_ENABLED = true
+
+function GetString(value)
+    return tostring(value)
+end
+
+function zo_max(left, right)
+    if left > right then
+        return left
+    end
+    return right
+end
+
+function IsCurrentCampaignVengeanceRuleset()
+    return true
+end
+
+function GetSlotStackSize(bagId, slotIndex)
+    local slot = get_slot(bagId, slotIndex)
+    return slot.stackSize or 0
+end
+
+function GetItemSellValueWithBonuses(bagId, slotIndex)
+    local slot = get_slot(bagId, slotIndex)
+    return slot.sellPrice or 0
+end
+
+function GetItemInfo(bagId, slotIndex)
+    local slot = get_slot(bagId, slotIndex)
+    return slot.iconFile or "icon.dds", slot.stackSize or 0, slot.sellPrice or 0
+end
+
+function GetItemLaunderPrice(bagId, slotIndex)
+    local slot = get_slot(bagId, slotIndex)
+    return slot.launderCost or 0
+end
+
+function IsItemStolen(bagId, slotIndex)
+    local slot = get_slot(bagId, slotIndex)
+    return slot.stolen == true
+end
+
+function IsItemJunk(bagId, slotIndex)
+    local slot = get_slot(bagId, slotIndex)
+    return slot.junk == true
+end
+
+function GetItemFunctionalQuality(bagId, slotIndex)
+    local slot = get_slot(bagId, slotIndex)
+    return slot.functionalQuality
+end
+
+function SellInventoryItem(bagId, slotIndex, stackSize)
+    sold_items[#sold_items + 1] = {
+        bagId = bagId,
+        slotIndex = slotIndex,
+        stackSize = stackSize,
+    }
+end
+
+function LaunderItem(bagId, slotIndex, stackSize)
+    laundered_items[#laundered_items + 1] = {
+        bagId = bagId,
+        slotIndex = slotIndex,
+        stackSize = stackSize,
+    }
+end
+
+function ZO_Dialogs_ShowGamepadDialog(dialogName, payload)
+    shown_dialogs[#shown_dialogs + 1] = {
+        name = dialogName,
+        payload = payload,
+    }
+end
+
+local fence_sell_total = 20
+local fence_sell_used = 0
+local fence_launder_total = 20
+local fence_launder_used = 0
+
+function GetFenceSellTransactionInfo()
+    return fence_sell_total, fence_sell_used, 0
+end
+
+function GetFenceLaunderTransactionInfo()
+    return fence_launder_total, fence_launder_used, 0
+end
+
+BETTERUI = {
+    Vendor = {},
+    CIM = {
+        ARCHETYPES = {
+            RUNTIME_COORDINATOR = "runtime-coordinator",
+            THIN_ENTRYPOINT = "thin-entrypoint",
+            SETTINGS_OWNER = "settings-owner",
+        },
+        ItemTaxonomy = {
+            VENDOR_SELL_CATEGORY_DEFS = {
+                {
+                    key = "all",
+                    nameStringId = "SI_BETTERUI_INV_ITEM_ALL",
+                },
+            },
+        },
+        ApplyModuleSharedSettingsStatics = function(moduleNamespace)
+            moduleNamespace.GetSetting = moduleNamespace.GetSetting or function()
+                return true
+            end
+        end,
+        InitModuleDefaults = function(_, moduleOptions, defaults, fallbackDefaults)
+            local resolved = moduleOptions or {}
+            if type(defaults) == "table" then
+                for key, value in pairs(defaults) do
+                    if resolved[key] == nil then
+                        resolved[key] = value
+                    end
+                end
+            end
+            if type(fallbackDefaults) == "table" then
+                for key, value in pairs(fallbackDefaults) do
+                    if resolved[key] == nil then
+                        resolved[key] = value
+                    end
+                end
+            end
+            return resolved
+        end,
+        UserAlertText = function(context, message)
+            user_alerts[#user_alerts + 1] = {
+                context = context,
+                message = message,
+            }
+        end,
+    },
+}
+
+BETTERUI.CIM.BatchConfig = {
+    WithServer = function(config)
+        return { server = config }
+    end,
+    WithAck = function(config)
+        return { ack = config }
+    end,
+    WithPacing = function(config)
+        return { pacing = config }
+    end,
+    ComposeBatchOptions = function(...)
+        local resolved = {}
+        for i = 1, select("#", ...) do
+            local options = select(i, ...)
+            if type(options) == "table" then
+                merge_into(resolved, options)
+            end
+        end
+        return resolved
+    end,
+    NormalizeBatchOptions = function(options)
+        return options or {}
+    end,
+    BatchStepHandled = function()
+        return "handled"
+    end,
+    BatchStepQueued = function()
+        return "queued"
+    end,
+    BatchStepSkipped = function()
+        return "skipped"
+    end,
+    ResolveBatchThrottleProfile = function()
+        return {
+            DELAY_MS = 100,
+            SHOW_PROGRESS = false,
+        }
+    end,
+    ResolveBatchAbortBindingMarkup = function()
+        return "X"
+    end,
+    GetNowMs = function()
+        return 0
+    end,
+    SERVER_RATE_WINDOW_MS = 1000,
+    RecordServerAction = function() end,
+}
+
+dofile("Modules/Vendor/Module.lua")
+dofile("Modules/CIM/Actions/ProtectionPolicy.lua")
+dofile("Modules/Vendor/Components/SellComponent.lua")
+dofile("Modules/Vendor/Components/FenceSellComponent.lua")
+dofile("Modules/Vendor/Components/FenceLaunderComponent.lua")
+dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
+dofile("Modules/Vendor/Core/VendorBatchRuntime.lua")
+
+assert_eq(BETTERUI.Vendor.ResolveActionId("SELL"), "vendor_sell",
+    "Vendor module resolves SELL action through canonical action-id helpers")
+assert_eq(BETTERUI.Vendor.ResolveActionId("FENCE_LAUNDER"), "fence_launder",
+    "Vendor module resolves FENCE_LAUNDER action through canonical action-id helpers")
+
+local function make_vendor_instance(slotData, canAfford)
+    return {
+        list = {
+            GetSelectedData = function()
+                return {
+                    dataSource = slotData,
+                }
+            end,
+        },
+        CanAfford = function(_, cost)
+            if type(canAfford) == "function" then
+                return canAfford(cost)
+            end
+            return canAfford ~= false
+        end,
+        RefreshList = function() end,
+        SuppressListUpdates = function() end,
+        FlushListUpdates = function() end,
+    }
+end
+
+do
+    reset_runtime_state()
+    set_slot(BAG_BACKPACK, 5, {
+        stackSize = 1,
+        sellPrice = 42,
+        stolen = false,
+    })
+
+    local canAffordProbe = nil
+    local allow, reason = BETTERUI.Vendor.AuthorizeInventoryAction(BETTERUI.Vendor.ACTION.SELL, BAG_BACKPACK, 5, {
+        CanAfford = function(_, cost)
+            canAffordProbe = cost
+            return cost == 123
+        end,
+    })
+    assert_true(allow == true and reason == nil,
+        "Vendor.AuthorizeInventoryAction allows SELL for valid non-stolen sellable slots")
+
+    local contextAllowed = BETTERUI.CIM.ProtectionPolicy.CanVendorAction(BETTERUI.Vendor.ACTION.SELL, BAG_BACKPACK, 5, {
+        canAfford = function(cost)
+            return cost == 123
+        end,
+    })
+    assert_true(contextAllowed == true,
+        "ProtectionPolicy.CanVendorAction accepts the Vendor affordability context contract")
+    assert_eq(canAffordProbe, nil,
+        "Vendor affordability callback remains lazy and is only invoked when policy asks for it")
+
+    set_slot(BAG_BACKPACK, 6, {
+        stackSize = 1,
+        sellPrice = 99,
+        stolen = true,
+    })
+    local denied, denyReason = BETTERUI.Vendor.AuthorizeInventoryAction(BETTERUI.Vendor.ACTION.SELL, BAG_BACKPACK, 6, nil)
+    assert_true(denied == false and denyReason == BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN,
+        "Vendor authorization seam preserves explicit policy deny reason for stolen SELL actions")
+
+    local savedPolicy = BETTERUI.CIM.ProtectionPolicy
+    local missingPolicyOk, missingPolicyErr = pcall(function()
+        BETTERUI.CIM.ProtectionPolicy = nil
+        BETTERUI.Vendor.AuthorizeInventoryAction(BETTERUI.Vendor.ACTION.SELL, BAG_BACKPACK, 5, nil)
+    end)
+    BETTERUI.CIM.ProtectionPolicy = savedPolicy
+    assert_true(missingPolicyOk == false
+            and type(missingPolicyErr) == "string"
+            and string.find(missingPolicyErr, "CIM.ProtectionPolicy must load before Vendor.AuthorizeInventoryAction", 1, true) ~= nil,
+        "Vendor authorization seam fails closed when CIM.ProtectionPolicy is missing")
+
+    local savedMethod = BETTERUI.CIM.ProtectionPolicy.CanVendorAction
+    local missingMethodOk, missingMethodErr = pcall(function()
+        BETTERUI.CIM.ProtectionPolicy.CanVendorAction = nil
+        BETTERUI.Vendor.AuthorizeInventoryAction(BETTERUI.Vendor.ACTION.SELL, BAG_BACKPACK, 5, nil)
+    end)
+    BETTERUI.CIM.ProtectionPolicy.CanVendorAction = savedMethod
+    assert_true(missingMethodOk == false
+            and type(missingMethodErr) == "string"
+            and string.find(missingMethodErr, "CIM.ProtectionPolicy.CanVendorAction must load", 1, true) ~= nil,
+        "Vendor authorization seam fails closed when CanVendorAction is missing")
+end
+
+do
+    reset_runtime_state()
+    set_slot(BAG_BACKPACK, 1, {
+        stackSize = 2,
+        sellPrice = 40,
+        stolen = false,
+    })
+    set_slot(BAG_BACKPACK, 2, {
+        stackSize = 3,
+        sellPrice = 80,
+        stolen = true,
+        launderCost = 20,
+    })
+    set_slot(BAG_VENGEANCE, 3, {
+        stackSize = 1,
+        sellPrice = 120,
+        stolen = false,
+    })
+
+    local authorization_calls = {}
+    local original_authorize = BETTERUI.Vendor.AuthorizeInventoryAction
+    BETTERUI.Vendor.AuthorizeInventoryAction = function(actionType, bagId, slotIndex, vendorInstance)
+        authorization_calls[#authorization_calls + 1] = {
+            actionType = actionType,
+            bagId = bagId,
+            slotIndex = slotIndex,
+            vendorInstance = vendorInstance,
+        }
+        return false, "blocked"
+    end
+
+    local sellVendor = make_vendor_instance({
+        bagId = BAG_BACKPACK,
+        slotIndex = 1,
+        sellPrice = 40,
+        stackSellPrice = 40,
+    }, true)
+    assert_true(BETTERUI.Vendor.SellComponent:IsPrimaryActionEnabled(sellVendor) == false,
+        "SellComponent:IsPrimaryActionEnabled denies actions unless shared authorization explicitly allows")
+    BETTERUI.Vendor.SellComponent:OnPrimaryAction(sellVendor)
+    assert_eq(#sold_items, 0, "SellComponent:OnPrimaryAction blocks sell execution when authorization denies")
+    assert_eq(authorization_calls[1].actionType, BETTERUI.Vendor.ACTION.SELL,
+        "SellComponent routes primary action through Vendor.AuthorizeInventoryAction")
+
+    local fenceSellVendor = make_vendor_instance({
+        bagId = BAG_BACKPACK,
+        slotIndex = 2,
+        sellPrice = 80,
+    }, true)
+    assert_true(BETTERUI.Vendor.FenceSellComponent:IsPrimaryActionEnabled(fenceSellVendor) == false,
+        "FenceSellComponent:IsPrimaryActionEnabled denies actions unless shared authorization explicitly allows")
+    BETTERUI.Vendor.FenceSellComponent:OnPrimaryAction(fenceSellVendor)
+    assert_eq(#sold_items, 0, "FenceSellComponent:OnPrimaryAction blocks sell execution when authorization denies")
+    assert_eq(authorization_calls[3].actionType, BETTERUI.Vendor.ACTION.FENCE_SELL,
+        "FenceSellComponent routes primary action through Vendor.AuthorizeInventoryAction")
+
+    local fenceLaunderVendor = make_vendor_instance({
+        bagId = BAG_BACKPACK,
+        slotIndex = 2,
+        launderCost = 20,
+    }, true)
+    assert_true(BETTERUI.Vendor.FenceLaunderComponent:IsPrimaryActionEnabled(fenceLaunderVendor) == false,
+        "FenceLaunderComponent:IsPrimaryActionEnabled denies actions unless shared authorization explicitly allows")
+    BETTERUI.Vendor.FenceLaunderComponent:OnPrimaryAction(fenceLaunderVendor)
+    assert_eq(#laundered_items, 0, "FenceLaunderComponent:OnPrimaryAction blocks laundering when authorization denies")
+    assert_eq(authorization_calls[5].actionType, BETTERUI.Vendor.ACTION.FENCE_LAUNDER,
+        "FenceLaunderComponent routes primary action through Vendor.AuthorizeInventoryAction")
+
+    local vengeanceVendor = make_vendor_instance({
+        bagId = BAG_VENGEANCE,
+        slotIndex = 3,
+        sellPrice = 120,
+    }, true)
+    assert_true(BETTERUI.Vendor.SellVengeanceComponent:IsPrimaryActionEnabled(vengeanceVendor) == false,
+        "SellVengeanceComponent:IsPrimaryActionEnabled denies actions unless shared authorization explicitly allows")
+    BETTERUI.Vendor.SellVengeanceComponent:OnPrimaryAction(vengeanceVendor)
+    assert_eq(#sold_items, 0, "SellVengeanceComponent:OnPrimaryAction blocks sell execution when authorization denies")
+    assert_eq(authorization_calls[7].actionType, BETTERUI.Vendor.ACTION.SELL_VENGEANCE,
+        "SellVengeanceComponent routes primary action through Vendor.AuthorizeInventoryAction")
+
+    BETTERUI.Vendor.AuthorizeInventoryAction = original_authorize
+end
+
+do
+    reset_runtime_state()
+    set_slot(BAG_BACKPACK, 10, {
+        stackSize = 2,
+        sellPrice = 30,
+        stolen = false,
+    })
+    set_slot(BAG_BACKPACK, 11, {
+        stackSize = 1,
+        sellPrice = 20,
+        stolen = true,
+        launderCost = 15,
+    })
+    set_slot(BAG_BACKPACK, 13, {
+        stackSize = 4,
+        sellPrice = 50,
+        stolen = true,
+        launderCost = 15,
+    })
+
+    local original_authorize = BETTERUI.Vendor.AuthorizeInventoryAction
+    local authorization_calls = {}
+    BETTERUI.Vendor.AuthorizeInventoryAction = function(actionType, bagId, slotIndex, vendorInstance)
+        authorization_calls[#authorization_calls + 1] = {
+            actionType = actionType,
+            bagId = bagId,
+            slotIndex = slotIndex,
+            vendorInstance = vendorInstance,
+        }
+        if slotIndex == 13 then
+            return false, BETTERUI.CIM.ProtectionPolicy.DENY.ARTIFACT
+        end
+        return true, nil
+    end
+
+    local vendorInstance = make_vendor_instance({
+        bagId = BAG_BACKPACK,
+        slotIndex = 10,
+        sellPrice = 30,
+    }, true)
+    BETTERUI.Vendor.instance = vendorInstance
+
+    BETTERUI.Vendor.SellComponent:OnPrimaryAction(vendorInstance)
+    assert_eq(#sold_items, 1, "SellComponent sells when shared authorization allows the slot")
+    assert_eq(sold_items[1].slotIndex, 10, "SellComponent sells the selected slot")
+
+    local fenceSellVendor = make_vendor_instance({
+        bagId = BAG_BACKPACK,
+        slotIndex = 13,
+        sellPrice = 50,
+    }, true)
+    BETTERUI.Vendor.FenceSellComponent:OnPrimaryAction(fenceSellVendor)
+    assert_eq(#shown_dialogs, 1,
+        "FenceSellComponent surfaces explicit artifact deny reasons through the native fence dialog")
+    assert_eq(#sold_items, 1, "FenceSellComponent does not sell when shared authorization denies")
+
+    local fenceLaunderVendor = make_vendor_instance({
+        bagId = BAG_BACKPACK,
+        slotIndex = 13,
+        launderCost = 15,
+    }, true)
+    BETTERUI.Vendor.FenceLaunderComponent:OnPrimaryAction(fenceLaunderVendor)
+    assert_eq(#laundered_items, 0, "FenceLaunderComponent does not launder when shared authorization denies")
+
+    local sellBatchResult = BETTERUI.Vendor.BatchRuntime.ExecuteBatchAction(BETTERUI.Vendor.MODE.SELL, {
+        bagId = BAG_BACKPACK,
+        slotIndex = 10,
+    })
+    assert_eq(sellBatchResult, "queued", "VendorBatchRuntime queues SELL actions when shared authorization allows")
+
+    local deniedBatchResult = BETTERUI.Vendor.BatchRuntime.ExecuteBatchAction(BETTERUI.Vendor.MODE.FENCE_SELL, {
+        bagId = BAG_BACKPACK,
+        slotIndex = 13,
+    })
+    assert_eq(deniedBatchResult, "skipped",
+        "VendorBatchRuntime skips FENCE_SELL actions when shared authorization denies")
+
+    local launderBatchResult = BETTERUI.Vendor.BatchRuntime.ExecuteBatchAction(BETTERUI.Vendor.MODE.FENCE_LAUNDER, {
+        bagId = BAG_BACKPACK,
+        slotIndex = 11,
+    })
+    assert_eq(launderBatchResult, "queued",
+        "VendorBatchRuntime queues FENCE_LAUNDER actions when shared authorization allows")
+
+    assert_true(#authorization_calls >= 6,
+        "primary and batch vendor flows both route through the shared authorization seam")
+
+    BETTERUI.Vendor.AuthorizeInventoryAction = original_authorize
+end
 
 if failed > 0 then
     error(string.format("test_vendor_authorization_surface_source.lua failed with %d failure(s)", failed))

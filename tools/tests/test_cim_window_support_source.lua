@@ -89,6 +89,10 @@ assert_true(batchProcessor:find("function BETTERUI%.CIM%.Lists%.BatchProcessor:I
     "BatchProcessor exposes Initialize")
 assert_true(batchProcessor:find("function BETTERUI%.CIM%.Lists%.BatchProcessor:Start%(data, options%)") ~= nil,
     "BatchProcessor exposes Start")
+assert_true(batchProcessor:find("BetterUIBatchProcessorInitOptions") ~= nil,
+    "BatchProcessor initialize docs use the shared init options type alias")
+assert_true(batchProcessor:find("BetterUIBatchProcessorStartOptions") ~= nil,
+    "BatchProcessor start docs use the shared runtime options type alias")
 assert_true(batchProcessor:find("function BETTERUI%.CIM%.Lists%.BatchProcessor:ProcessBatch%(%)") ~= nil,
     "BatchProcessor exposes ProcessBatch")
 assert_true(batchProcessor:find("function BETTERUI%.CIM%.Lists%.BatchProcessor:Cancel%(%)") ~= nil,

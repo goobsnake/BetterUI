@@ -36,6 +36,17 @@ local OPTIONAL_ADDON_KEYS = {
     "AutoCategory",
 }
 
+local MARKET_ADDON_KEYS = {
+    "MasterMerchant",
+    "ArkadiusTradeTools",
+    "TamrielTradeCentre",
+}
+
+local GUILD_STORE_ADDON_KEYS = {
+    "MasterMerchant",
+    "ArkadiusTradeTools",
+}
+
 local function CloneArray(values)
     local clone = {}
     for index, value in ipairs(values or {}) do
@@ -50,6 +61,14 @@ end
 
 function OptionalAddons.GetAddonKeys()
     return CloneArray(OPTIONAL_ADDON_KEYS)
+end
+
+function OptionalAddons.GetMarketAddonKeys()
+    return CloneArray(MARKET_ADDON_KEYS)
+end
+
+function OptionalAddons.GetGuildStoreAddonKeys()
+    return CloneArray(GUILD_STORE_ADDON_KEYS)
 end
 
 function OptionalAddons.GetGlobals(addonKeys)
@@ -70,6 +89,14 @@ function OptionalAddons.GetGlobal(addonKey)
         return nil
     end
     return _G[globalName]
+end
+
+function OptionalAddons.GetMarketGlobals()
+    return OptionalAddons.GetGlobals(MARKET_ADDON_KEYS)
+end
+
+function OptionalAddons.GetGuildStoreGlobals()
+    return OptionalAddons.GetGlobals(GUILD_STORE_ADDON_KEYS)
 end
 
 function OptionalAddons.GetDisplayName(addonKey)

@@ -143,6 +143,11 @@ end
 
 Nameplates.Settings.RegisterPanel = InitPanel
 
+local function TrackPanelRegistration(reason)
+    Nameplates._panelRegistrationReason = reason
+    Nameplates._panelRegistrationDeferred = reason == "missing_register_panel"
+end
+
 local originalKeyboardFont = nil
 local originalKeyboardStyle = nil
 local originalGamepadFont = nil
@@ -210,7 +215,11 @@ local function ResetToDefaults()
 end
 
 function Nameplates.Setup()
-    BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")
+    local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")
+    TrackPanelRegistration(panelReason)
+    if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
+        BETTERUI.Debug(string.format("[Nameplates] Settings panel registration reported: %s", tostring(panelReason)))
+    end
 
     local settings = GetSettings()
     if settings.m_enabled then

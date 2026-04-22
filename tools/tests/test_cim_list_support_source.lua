@@ -72,6 +72,8 @@ assert_true(itemDataProcessor:find("function BETTERUI%.CIM%.AddItemEntryToList%(
 local listRefreshManager = read_file("Modules/CIM/Lists/ListRefreshManager.lua")
 assert_true(listRefreshManager:find("BETTERUI%.CIM%.Lists%.ListRefreshManager = ZO_Object:Subclass%(%)") ~= nil,
     "ListRefreshManager defines the shared refresh manager class")
+assert_true(listRefreshManager:find("BetterUIListRefreshManagerOptions") ~= nil,
+    "ListRefreshManager initialize docs use the shared options type alias")
 assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:SavePosition%(list%)") ~= nil,
     "ListRefreshManager exposes SavePosition")
 assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:QueueRefresh%(list, refreshFn, savePosition%)") ~= nil,
@@ -118,8 +120,8 @@ assert_true(cimModule:find("CIM%.ROOT_CONTRACT = %{%s*") ~= nil,
     "CIM module declares the shared root contract")
 assert_true(cimModule:find("function CIM%.InitModule%(m_options%)") ~= nil,
     "CIM module exposes InitModule")
-assert_true(cimModule:find('settingsOwner = "Modules/CIM/Core/Settings/"') ~= nil,
-    "CIM module points its settings owner at the shared settings surface")
+assert_true(cimModule:find('settingsOwner = ') == nil,
+    "CIM module no longer hardcodes a dedicated settings-owner path")
 
 local currencyManager = read_file("Modules/CIM/UI/CurrencyManager.lua")
 assert_true(currencyManager:find("BETTERUI%.CIM%.Currency%.DEFS = %{%s*") ~= nil,

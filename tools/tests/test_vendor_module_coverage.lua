@@ -3,33 +3,6 @@ File: tools/tests/test_vendor_module_coverage.lua
 Purpose: Smoke coverage for the live Vendor modules still flagged by desloppify.
 ]]
 
-if false then
-    dofile("Modules/Vendor/Module.lua")
-    dofile("Modules/Vendor/Core/VendorModePolicy.lua")
-    dofile("Modules/Vendor/Core/VendorSelectionRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorSafeExecute.lua")
-    dofile("Modules/Vendor/Core/VendorNativeStoreBridge.lua")
-    dofile("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorComponentCatalog.lua")
-    dofile("Modules/Vendor/Core/VendorEventBridge.lua")
-    dofile("Modules/Vendor/Core/VendorInteractionRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorBatchRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorControllerRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorPresentationRuntime.lua")
-    dofile("Modules/Vendor/Core/VendorClass.lua")
-    dofile("Modules/Vendor/Core/VendorRowSetup.lua")
-    dofile("Modules/Vendor/Core/BatchActionCounts.lua")
-    dofile("Modules/Vendor/Components/BuyComponent.lua")
-    dofile("Modules/Vendor/Components/BuybackComponent.lua")
-    dofile("Modules/Vendor/Components/FenceLaunderComponent.lua")
-    dofile("Modules/Vendor/Components/FenceSellComponent.lua")
-    dofile("Modules/Vendor/Components/RepairComponent.lua")
-    dofile("Modules/Vendor/Components/StableTrainingComponent.lua")
-    dofile("Modules/Vendor/Components/SellComponent.lua")
-    dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
-    dofile("Modules/Vendor/Vendor.lua")
-end
-
 local vendorCoverageTargets = {
     "Modules/Vendor/Module.lua",
     "Modules/Vendor/Core/VendorModePolicy.lua",

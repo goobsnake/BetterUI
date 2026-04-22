@@ -31,8 +31,22 @@ end
 --- Refreshes the inventory and banking lists if their scenes are showing.
 local function RefreshInventoryAndBankingLists()
     local sharedUtils = BETTERUI.CIM and BETTERUI.CIM.Utils or nil
-    local isInventorySceneShowing = sharedUtils and sharedUtils.IsInventorySceneShowing
-    local isBankingSceneShowing = sharedUtils and sharedUtils.IsBankingSceneShowing
+    local isInventorySceneShowing = sharedUtils and (sharedUtils.IsInventorySceneShowing
+        or function()
+            local isSceneShowing = sharedUtils.IsSceneShowing
+            if type(isSceneShowing) == "function" then
+                return isSceneShowing("gamepad_inventory_root")
+            end
+            return true
+        end)
+    local isBankingSceneShowing = sharedUtils and (sharedUtils.IsBankingSceneShowing
+        or function()
+            local isAnySceneShowing = sharedUtils.IsAnySceneShowing
+            if type(isAnySceneShowing) == "function" then
+                return isAnySceneShowing({ "gamepad_banking" })
+            end
+            return true
+        end)
 
     local inventoryWindow = GAMEPAD_INVENTORY
     local inventorySceneShowing = true

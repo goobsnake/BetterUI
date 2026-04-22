@@ -27,18 +27,6 @@ local function ResolveVendorRuntimeDependency(fieldName, label)
     return dependency
 end
 
-local function ResolveVendorRuntime()
-    return {
-        executeSafely = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper"),
-        batchRuntime = ResolveVendorRuntimeDependency("BatchRuntime", "batch runtime"),
-        interactionRuntime = ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime"),
-        componentCatalog = ResolveVendorRuntimeDependency("ComponentCatalog", "component catalog"),
-        bootstrapRuntime = ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime"),
-        eventBridge = ResolveVendorRuntimeDependency("EventBridge", "event bridge"),
-        nativeStoreBridge = ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge"),
-    }
-end
-
 local function IsSellVengeanceModeAvailable()
     return rawget(_G, "BAG_VENGEANCE") ~= nil
         and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") == true
@@ -47,7 +35,7 @@ local function IsSellVengeanceModeAvailable()
 end
 
 local function HasVendorBuyInventory(context)
-    local executeSafely = ResolveVendorRuntime().executeSafely
+    local executeSafely = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")
     if type(IsStoreEmpty) == "function" then
         local okStoreEmpty, isStoreEmpty = executeSafely(context .. ":IsStoreEmpty", IsStoreEmpty)
         if okStoreEmpty then
@@ -66,7 +54,7 @@ local function HasVendorBuyInventory(context)
 end
 
 local function RunVendorSetupStep(stepName, setupFn)
-    local ok, err = ResolveVendorRuntime().executeSafely(
+    local ok, err = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
         "Vendor.Init:" .. tostring(stepName),
         setupFn
     )
@@ -283,10 +271,6 @@ local function ResolveInitialStoreMode(tabs)
     return (tabs and tabs[1] and tabs[1].mode) or MODE.SELL
 end
 
-local function GetNativeStoreBridge()
-    return ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge")
-end
-
 local function LogVendorDebug(flagName, category, message)
     if Vendor.LogDebug then
         Vendor.LogDebug(flagName, category, message)
@@ -301,7 +285,7 @@ local function LogNativeStoreInputState(context, storeManager)
 end
 
 local function EnsureNativeStoreComponents(searchContext)
-    GetNativeStoreBridge().EnsureComponents(searchContext)
+    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").EnsureComponents(searchContext)
 end
 
 Vendor.EnsureNativeStoreComponents = EnsureNativeStoreComponents
@@ -1173,17 +1157,17 @@ end
 
 local function OnOpenStore()
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
-        .OnOpenStore(
-            VendorLifecycleRuntime,
-            GetNativeStoreBridge(),
-            Vendor.instance,
-            {
+        .OpenStore({
+            runtime = VendorLifecycleRuntime,
+            nativeStoreBridge = ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge"),
+            instance = Vendor.instance,
+            options = {
                 interactionType = GetInteractionType and GetInteractionType() or nil,
                 interactionVendor = INTERACTION_VENDOR,
                 interactionStable = INTERACTION_STABLE,
                 isNativeStableModeActive = IsNativeStableModeActive,
             }
-        )
+        })
 end
 
 ---@param _ any Unused event code
@@ -1191,17 +1175,17 @@ end
 ---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
-        .OnOpenFence(
-            VendorLifecycleRuntime,
-            GetNativeStoreBridge(),
-            Vendor.instance,
-            {
+        .OpenFence({
+            runtime = VendorLifecycleRuntime,
+            nativeStoreBridge = ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge"),
+            instance = Vendor.instance,
+            options = {
                 sellMode = MODE.FENCE_SELL,
                 fenceLaunderMode = MODE.FENCE_LAUNDER,
             },
-            enableSell,
-            enableLaunder
-        )
+            enableSell = enableSell,
+            enableLaunder = enableLaunder,
+        })
 end
 
 local function OnStableInteractStart()
@@ -1218,11 +1202,11 @@ end
 
 local function OnCloseStore()
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
-        .OnCloseStore(
-            VendorLifecycleRuntime,
-            GetNativeStoreBridge(),
-            Vendor.instance
-        )
+        .CloseStore({
+            runtime = VendorLifecycleRuntime,
+            nativeStoreBridge = ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge"),
+            instance = Vendor.instance,
+        })
 end
 
 local function OnInventoryUpdated()
@@ -1379,7 +1363,7 @@ function BETTERUI.Vendor.Init()
     CreateVendorScene(instance)
     TakeOverNativeStoreScene(instance)
     RegisterVendorSceneLifecycle(instance)
-    GetNativeStoreBridge().AliasSceneToBetterUI(Vendor.instance)
+    ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").AliasSceneToBetterUI(Vendor.instance)
     instance:InitVendorFooter()
     RegisterVendorEvents(EVENT_MANAGER)
     ExposeVendorRuntimeHelpers()

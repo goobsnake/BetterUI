@@ -1,15 +1,5 @@
---[[
-File: Modules/CIM/Lists/BatchProcessor.lua
-Purpose: Shared batch processing utilities for inventory-style lists.
-         Provides incremental list population to prevent UI freezing on large datasets.
-
-Used By: Inventory/Lists/ItemListManager.lua, Banking (future)
-]]
-
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
-
--- BATCH PROCESSOR CLASS
 
 --- @class BETTERUI.CIM.Lists.BatchProcessor : ZO_Object
 --- @field initialBatchSize integer Items to process in first batch
@@ -32,7 +22,7 @@ function BETTERUI.CIM.Lists.BatchProcessor:New(...)
     return obj
 end
 
----@param options {initialBatchSize: integer?, remainingBatchSize: integer?, batchDelay: integer?}?
+---@param options BetterUIBatchProcessorInitOptions|nil
 ---@return nil
 function BETTERUI.CIM.Lists.BatchProcessor:Initialize(options)
     options = options or {}
@@ -50,9 +40,11 @@ function BETTERUI.CIM.Lists.BatchProcessor:Initialize(options)
 end
 
 ---@param data table[]
----@param options {context: table?, onProcessItem: fun(item: any, index: integer, context: table)?, onComplete: fun(context: table)?, isActiveCheck: fun(): boolean?}
+---@param options BetterUIBatchProcessorStartOptions
 ---@return nil
 function BETTERUI.CIM.Lists.BatchProcessor:Start(data, options)
+    options = options or {}
+
     -- Cancel any existing batch
     self:Cancel()
 

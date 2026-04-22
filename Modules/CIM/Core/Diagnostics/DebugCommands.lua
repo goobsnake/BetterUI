@@ -1,8 +1,8 @@
 --[[
-File: Modules/CIM/Core/DebugCommands.lua
+File: Modules/CIM/Core/Diagnostics/DebugCommands.lua
 Purpose: Slash command registration for BetterUI developer debug tools.
          Extracted from DeveloperDebug.lua to keep files under the 600-line limit.
-         DISABLED BY DEFAULT - Commands check IsEnabled internally.
+         Commands are registered once; diagnostics remain gated behind /buidebug.
 
 Extracted from: DeveloperDebug.lua (command registration concern)
 ]]
@@ -31,9 +31,15 @@ local function SetDebugFlags(flagNames, enabled)
     end
 end
 
-local function EnsureDebugModeForCommand(commandName, flagNames)
+local function EnsureDebugModeForCommand(commandName, flagNames, allowAutoEnable)
     if Debug.IsEnabled and Debug.IsEnabled() then
+        SetDebugFlags(flagNames, true)
         return true
+    end
+
+    if not allowAutoEnable then
+        d(string.format("|cffcc00[BetterUI]|r %s requires debug mode. Run /buidebug on first.", commandName))
+        return false
     end
 
     SetPersistentDebugLogging(true)
@@ -53,6 +59,8 @@ local function DisableDebugMode(flagNames)
     SetPersistentDebugLogging(false)
     d("|c00ccff[BetterUI]|r Debug logging disabled")
 end
+
+local commandsRegistered = false
 
 local directionalTrace = {}
 local directionalTraceInstalled = false
@@ -536,6 +544,10 @@ end
 -- SLASH COMMAND REGISTRATION
 
 function Debug.RegisterCommands()
+    if commandsRegistered then
+        return
+    end
+
     SLASH_COMMANDS["/buidebug"] = function(args)
         local normalizedArgs = args and zo_strlower and zo_strlower(args) or args or ""
         normalizedArgs = normalizedArgs and normalizedArgs:gsub("^%s+", ""):gsub("%s+$", "") or ""
@@ -547,7 +559,7 @@ function Debug.RegisterCommands()
             return
         end
 
-        if not EnsureDebugModeForCommand("/buidebug", debugFlags) then
+        if not EnsureDebugModeForCommand("/buidebug", debugFlags, true) then
             return
         end
         EnsureDirectionalInputTraceInstalled()
@@ -692,6 +704,7 @@ function Debug.RegisterCommands()
 
     SLASH_COMMANDS["/buihelp"] = function(args)
         d("|c00ccff[BetterUI Debug Commands]|r")
+        d("  /buidebug [on|off] - Enable or disable BetterUI debug mode")
         d("  /buidebug - Inspect DIRECTIONAL_INPUT stack")
         d("  /buiscene - List scene states")
         d("  /buikeybinds - List keybind strip")
@@ -705,6 +718,8 @@ function Debug.RegisterCommands()
         d("  /buiflag [flag] [on|off] - Toggle debug flags")
         d("  /buihelp - Show this help")
     end
+
+    commandsRegistered = true
 end
 
 function Debug.EnsureCommandsRegistered()

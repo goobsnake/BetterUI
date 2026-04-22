@@ -65,6 +65,10 @@ assert_true(headerNavigation:find("function BETTERUI%.CIM%.HeaderNavigation%.Cyc
     "HeaderNavigation exposes CycleCategory")
 assert_true(headerNavigation:find("function BETTERUI%.CIM%.HeaderNavigation%.CreateCoalescedHandler%(options%)") ~= nil,
     "HeaderNavigation exposes CreateCoalescedHandler")
+assert_true(headerNavigation:find("sceneCheck:%s*fun%(%)%s*:%s*boolean%?") ~= nil,
+    "HeaderNavigation coalesced-handler options document sceneCheck")
+assert_true(headerNavigation:find("onApply:%s*fun%(instance:%s*table,%s*pendingCategoryIndex:%s*integer%)%?") ~= nil,
+    "HeaderNavigation coalesced-handler options document onApply")
 
 local headerSortController = read_file("Modules/CIM/UI/HeaderSortController.lua")
 assert_true(headerSortController:find("BETTERUI%.CIM%.UI%.HeaderSortController = ZO_Object:Subclass%(%)") ~= nil,

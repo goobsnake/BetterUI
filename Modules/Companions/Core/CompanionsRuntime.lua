@@ -208,12 +208,16 @@ function Companions.InitializeRuntime()
 
     instance.coreKeybinds = Companions.BuildCoreKeybinds(instance)
     local sortOk, sortErr = Companions.SetupSort(instance)
-    instance.sortSetupReady = sortOk == true
-    instance.sortSetupDegraded = sortOk ~= true
-    instance.sortSetupError = sortErr
     if not sortOk and sortErr and BETTERUI.Debug then
         BETTERUI.Debug(sortErr)
     end
+    if not sortOk then
+        Companions.instance = nil
+        return nil, sortErr
+    end
+    instance.sortSetupReady = true
+    instance.sortSetupDegraded = false
+    instance.sortSetupError = nil
     Companions.CreateScene(instance)
     Companions.RegisterSceneLifecycle(instance)
     instance:InitCompanionFooter()

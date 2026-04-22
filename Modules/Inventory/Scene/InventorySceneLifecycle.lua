@@ -202,6 +202,21 @@ local function BuildInventoryLifecycleHandler(self)
 	})
 end
 
+function BETTERUI.Inventory.RegisterSceneLifecycle(screen)
+	if not screen then
+		return nil
+	end
+
+	if type(screen._inventorySceneLifecycleHandler) == "function" then
+		screen._inventorySceneLifecycleRegistered = true
+		return screen._inventorySceneLifecycleHandler
+	end
+
+	screen._inventorySceneLifecycleHandler = BuildInventoryLifecycleHandler(screen)
+	screen._inventorySceneLifecycleRegistered = type(screen._inventorySceneLifecycleHandler) == "function"
+	return screen._inventorySceneLifecycleHandler
+end
+
 --- Handles scene state changes (SHOWING, HIDING, HIDDEN).
 --- Purpose: Manages initialization deferral, visualization layers, list activation, and state cleanup.
 ---@param oldState number Previous scene state constant
@@ -209,7 +224,7 @@ end
 ---@return nil
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 	if not self._inventorySceneLifecycleHandler then
-		self._inventorySceneLifecycleHandler = BuildInventoryLifecycleHandler(self)
+		BETTERUI.Inventory.RegisterSceneLifecycle(self)
 	end
 
 	local lifecycleHandler = self._inventorySceneLifecycleHandler

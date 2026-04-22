@@ -37,6 +37,8 @@ BetterUI implements a 4-layer testing pyramid:
   `tools/tests/test_vendor_live_runtime_boundaries.lua`
 - **Purpose**: Exercise production-backed behavior without mirroring module
   logic in local test copies
+- **Rule**: Coverage credit must come from executed behavior (`dofile`,
+  runtime assertions), not dead-code coverage markers
 
 ### L4: In-game Integration Testing
 - **Method**: ESO load verification + manual testing
@@ -52,6 +54,8 @@ BetterUI implements a 4-layer testing pyramid:
   success banner alone.
 - Shared test-only helpers live under `tools/tests/lib/`; keep this surface
   small and oriented around reusable infrastructure rather than feature logic.
+- Avoid `if false then dofile(...) end` coverage wiring. If a file needs test
+  coverage, execute a real behavior path through that file.
 
 ## Coverage Strategy
 
@@ -74,6 +78,12 @@ Settings migrations have version-gated validation:
 - Each migration has a source and target version
 - Validation ensures migrations run in correct order
 - Rollback procedures for failed migrations
+
+### Source Assertions vs. Behavior
+- Prefer behavior tests for high-risk seams (authorization, batch actions,
+  bootstrap orchestration, lifecycle transitions).
+- Keep source-level assertions only for static contracts that cannot be
+  validated meaningfully at runtime (for example, narrow typed-doc coverage).
 
 ## Test Execution
 

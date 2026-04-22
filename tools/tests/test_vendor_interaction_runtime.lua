@@ -130,13 +130,18 @@ do
         end,
     }
 
-    InteractionRuntime.OnOpenStore(runtime, bridge, instance, {
-        interactionType = 10,
-        interactionVendor = 10,
-        interactionStable = 20,
-        isNativeStableModeActive = function()
-            return false
-        end,
+    InteractionRuntime.OpenStore({
+        runtime = runtime,
+        nativeStoreBridge = bridge,
+        instance = instance,
+        options = {
+            interactionType = 10,
+            interactionVendor = 10,
+            interactionStable = 20,
+            isNativeStableModeActive = function()
+                return false
+            end,
+        },
     })
 
     assert_eq(runtime.state.isFenceInteraction, false, "open-store clears fence state")
@@ -162,10 +167,17 @@ do
         end,
     }
 
-    InteractionRuntime.OnOpenFence(runtime, bridge, instance, {
-        sellMode = 5,
-        fenceLaunderMode = 6,
-    }, true, false)
+    InteractionRuntime.OpenFence({
+        runtime = runtime,
+        nativeStoreBridge = bridge,
+        instance = instance,
+        options = {
+            sellMode = 5,
+            fenceLaunderMode = 6,
+        },
+        enableSell = true,
+        enableLaunder = false,
+    })
 
     assert_eq(runtime.state.isFenceInteraction, true, "open-fence enables fence interaction mode")
     assert_eq(runtime.state.fenceEnableSell, true, "open-fence tracks sell enablement")
@@ -180,7 +192,11 @@ do
     local bridge = BuildBridge(calls)
     local instance = {}
 
-    InteractionRuntime.OnCloseStore(runtime, bridge, instance)
+    InteractionRuntime.CloseStore({
+        runtime = runtime,
+        nativeStoreBridge = bridge,
+        instance = instance,
+    })
 
     assert_eq(runtime.state.isFenceInteraction, false, "close-store clears fence interaction state")
     assert_eq(runtime.state.isStableInteraction, false, "close-store clears stable interaction state")
@@ -192,6 +208,71 @@ do
         "close-store runs native OnHide through safe call")
     assert_true(table.concat(calls, ","):find("alias-scene", 1, true) ~= nil,
         "close-store re-aliases scene back to BetterUI")
+end
+
+do
+    local calls = {}
+    local originalSafeExecute = BETTERUI.Vendor.ExecuteSafely
+    BETTERUI.Vendor.ExecuteSafely = function(context, fn, ...)
+        calls[#calls + 1] = "safe-context:" .. tostring(context)
+        return pcall(fn, ...)
+    end
+
+    local storeManager = {
+        activeComponents = { "keep" },
+        OnHide = function()
+            calls[#calls + 1] = "native-onhide"
+        end,
+    }
+
+    InteractionRuntime.CloseStore({
+        state = {},
+        deps = {
+            instance = {},
+            markClosingState = function()
+            end,
+            resetRuntimeState = function()
+            end,
+            cancelRuntimeTasks = function()
+            end,
+            hideScene = function()
+            end,
+            aliasSceneToBetterUI = function()
+            end,
+            runCloseCleanup = function()
+            end,
+            getStoreManager = function()
+                return storeManager
+            end,
+            logNativeStoreInputState = function()
+            end,
+        },
+    })
+
+    BETTERUI.Vendor.ExecuteSafely = originalSafeExecute
+
+    assert_true(table.concat(calls, ","):find("safe-context:Vendor.OnCloseStore:NativeOnHide", 1, true) ~= nil,
+        "close-store fallback safe call preserves context when runtime safe-call dependency is absent")
+end
+
+do
+    local calls = {}
+    local runtime = BuildRuntime(calls)
+    local bridge = BuildBridge(calls)
+    local instance = {
+        ReleaseNativeStoreInputOwnership = function()
+            calls[#calls + 1] = "release-native-input"
+        end,
+    }
+
+    InteractionRuntime.OnOpenStore(runtime, bridge, instance, {
+        interactionType = 10,
+        interactionVendor = 10,
+        interactionStable = 20,
+    })
+
+    assert_true(table.concat(calls, ","):find("show-scene", 1, true) ~= nil,
+        "legacy positional open-store wrapper still delegates through the runtime")
 end
 
 print("test_vendor_interaction_runtime.lua: PASS")

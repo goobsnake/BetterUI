@@ -50,6 +50,16 @@ end
 
 Companions.WrapRuntimeError = WrapCompanionRuntimeError
 
+local function NotifyCompanionSetupFailure(messageText)
+    if BETTERUI.CIM and BETTERUI.CIM.UserNotify then
+        BETTERUI.CIM.UserNotify("Companions.Init", messageText)
+        return
+    end
+    if BETTERUI.Debug then
+        BETTERUI.Debug(tostring(messageText))
+    end
+end
+
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Initialized options with defaults applied
 ---@type BetterUIModuleInitHook
@@ -88,7 +98,16 @@ function BETTERUI.Companions.Init()
         return
     end
 
-    Companions.InitializeRuntime()
+    local instance, initErr = Companions.InitializeRuntime()
+    if not instance then
+        Companions._initError = initErr
+        if initErr then
+            NotifyCompanionSetupFailure(initErr)
+        end
+        return false, initErr
+    end
 
+    Companions._initError = nil
     Companions.initialized = true
+    return true
 end

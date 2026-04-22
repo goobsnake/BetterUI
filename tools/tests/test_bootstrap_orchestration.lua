@@ -7,13 +7,8 @@ Usage:
   lua tools/tests/test_bootstrap_orchestration.lua
 ]]
 
--- Keep direct coverage wiring near the top so desloppify links this regression
--- test to the production files even though the real dofile calls happen later.
-if false then
-    dofile("BetterUI.lua")
-    dofile("Modules/GeneralInterface/Module.lua")
-    dofile("Modules/GeneralInterface/Setup.lua")
-end
+-- This suite executes live production roots directly; avoid dead-code coverage
+-- hints so coverage stays tied to behavior.
 
 local passed = 0
 local failed = 0
@@ -230,7 +225,10 @@ BETTERUI.Debug = function(message)
     debugMessages[#debugMessages + 1] = tostring(message)
 end
 BETTERUI.EnsureModuleSettings = function(moduleName)
-    return { moduleName = moduleName }
+    BETTERUI.Settings = BETTERUI.Settings or {}
+    BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
+    BETTERUI.Settings.Modules[moduleName] = BETTERUI.Settings.Modules[moduleName] or {}
+    return BETTERUI.Settings.Modules[moduleName]
 end
 BETTERUI.GetModuleEnabled = function(moduleName)
     return enabledModules[moduleName] ~= false
@@ -271,38 +269,111 @@ BETTERUI.CIM.TryResolve = function(path)
     error("unexpected internal string-path resolution: " .. tostring(path))
 end
 
-local function makeModule(name)
-    return {
-        Setup = function()
-            setupCounts[name] = (setupCounts[name] or 0) + 1
-        end,
-        InitModule = function(options)
-            return options
-        end,
-    }
+BETTERUI.CIM.ARCHETYPES = BETTERUI.CIM.ARCHETYPES or {
+    RUNTIME_COORDINATOR = "runtime-coordinator",
+    THIN_ENTRYPOINT = "thin-entrypoint",
+    SETTINGS_OWNER = "settings-owner",
+}
+BETTERUI.CIM.CONST = BETTERUI.CIM.CONST or {
+    DEFAULTS = {
+        DEFAULT_RH_SCROLL_SPEED = 10,
+        DEFAULT_TOOLTIP_SIZE = 18,
+    },
+}
+BETTERUI.CIM.ApplyModuleSharedSettingsStatics = function(moduleNamespace, moduleName)
+    if type(moduleNamespace) ~= "table" then
+        return
+    end
+
+    moduleNamespace.GetSetting = moduleNamespace.GetSetting or function(_, key, fallback)
+        local moduleSettings = BETTERUI.Settings
+            and BETTERUI.Settings.Modules
+            and BETTERUI.Settings.Modules[moduleName]
+            or nil
+        local value = moduleSettings and moduleSettings[key]
+        if value == nil then
+            return fallback
+        end
+        return value
+    end
+end
+BETTERUI.CIM.InitModuleDefaults = function(_, m_options, defaults, fallbackDefaults, postProcess)
+    local options = m_options or {}
+    if type(defaults) == "table" then
+        for key, value in pairs(defaults) do
+            if options[key] == nil then
+                options[key] = value
+            end
+        end
+    end
+    if type(fallbackDefaults) == "table" then
+        for key, value in pairs(fallbackDefaults) do
+            if options[key] == nil then
+                options[key] = value
+            end
+        end
+    end
+    if type(postProcess) == "function" then
+        postProcess(options)
+    end
+    return options
 end
 
-BETTERUI.CIM.Setup = function()
-    setupCounts.CIM = (setupCounts.CIM or 0) + 1
+BETTERUI.Defaults = BETTERUI.Defaults or {}
+BETTERUI.Defaults.GetModuleDefaults = function(moduleName)
+    if moduleName == "CIM" then
+        return {
+            enhanceCompat = false,
+            rhScrollSpeed = 10,
+            tooltipSize = 18,
+            enableTooltipEnhancements = true,
+        }
+    end
+    if moduleName == "GeneralInterface" then
+        return {
+            chatHistory = 200,
+            showMarketPrice = true,
+            marketPricePriority = "mm_att_ttc",
+            showStyleTrait = true,
+            showKnowledgeStatus = true,
+            removeDeleteDialog = false,
+            guildStoreErrorSuppress = true,
+            attIntegration = true,
+            mmIntegration = true,
+            ttcIntegration = true,
+        }
+    end
+    return {}
 end
-BETTERUI.Inventory = makeModule("Inventory")
-BETTERUI.Inventory.HookDestroyItem = function()
-    inventoryHookCalls = inventoryHookCalls + 1
+BETTERUI.Defaults.ApplyModuleDefaults = function(moduleName, options)
+    local resolved = options or {}
+    local defaults = BETTERUI.Defaults.GetModuleDefaults(moduleName)
+    if type(defaults) == "table" then
+        for key, value in pairs(defaults) do
+            if resolved[key] == nil then
+                resolved[key] = value
+            end
+        end
+    end
+    return resolved
 end
-BETTERUI.Inventory.HookActionDialog = function()
-    inventoryActionHookCalls = inventoryActionHookCalls + 1
+
+local bootstrapRootFiles = {
+    "Modules/CIM/Module.lua",
+    "Modules/Inventory/Module.lua",
+    "Modules/Banking/Module.lua",
+    "Modules/Vendor/Module.lua",
+    "Modules/TradingHouse/Module.lua",
+    "Modules/Companions/Module.lua",
+    "Modules/Writs/Module.lua",
+    "Modules/GeneralInterface/Module.lua",
+    "Modules/Nameplates/Nameplates.lua",
+    "Modules/ResourceOrbFrames/Module.lua",
+}
+
+for _, path in ipairs(bootstrapRootFiles) do
+    dofile(path)
 end
-BETTERUI.Inventory.EnsureCompanionEquipPatched = function()
-    ensurePatchCalls = ensurePatchCalls + 1
-end
-BETTERUI.Banking = makeModule("Banking")
-BETTERUI.Vendor = makeModule("Vendor")
-BETTERUI.TradingHouse = makeModule("TradingHouse")
-BETTERUI.Companions = makeModule("Companions")
-BETTERUI.Writs = makeModule("Writs")
-BETTERUI.GeneralInterface = makeModule("GeneralInterface")
-BETTERUI.Nameplates = makeModule("Nameplates")
-BETTERUI.ResourceOrbFrames = makeModule("ResourceOrbFrames")
 
 local setupModuleNamespaces = {
     "CIM",
@@ -316,6 +387,26 @@ local setupModuleNamespaces = {
     "Nameplates",
     "ResourceOrbFrames",
 }
+
+for _, namespace in ipairs(setupModuleNamespaces) do
+    local moduleNamespace = BETTERUI[namespace]
+    if type(moduleNamespace) == "table" and namespace ~= "CIM" then
+        moduleNamespace.Setup = function()
+            setupCounts[namespace] = (setupCounts[namespace] or 0) + 1
+            return true
+        end
+    end
+end
+
+BETTERUI.Inventory.HookDestroyItem = function()
+    inventoryHookCalls = inventoryHookCalls + 1
+end
+BETTERUI.Inventory.HookActionDialog = function()
+    inventoryActionHookCalls = inventoryActionHookCalls + 1
+end
+BETTERUI.Inventory.EnsureCompanionEquipPatched = function()
+    ensurePatchCalls = ensurePatchCalls + 1
+end
 
 local function setSavedVarsResults(savedVars, globalVars)
     nextSavedVarsResult = deepcopy(savedVars)
@@ -337,6 +428,12 @@ local function resetSetupState()
 end
 
 print("[Bootstrap orchestration]")
+assert_true(type(BETTERUI.Inventory.ROOT_CONTRACT) == "table",
+    "bootstrap harness loads the live Inventory root contract")
+assert_true(type(BETTERUI.Vendor.ROOT_CONTRACT) == "table",
+    "bootstrap harness loads the live Vendor root contract")
+assert_true(type(BETTERUI.Nameplates.ROOT_CONTRACT) == "table",
+    "bootstrap harness loads the live Nameplates root contract")
 
 BETTERUI.InitModuleOptions()
 local controls = optionControls["BETTERUI_Modules"] or {}

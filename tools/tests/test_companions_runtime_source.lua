@@ -51,6 +51,10 @@ assert_contains(runtimeSource, "function BETTERUI.Companions.Class:TryEquipItem(
     "Companions class runtime helper owns TryEquipItem")
 assert_contains(runtimeSource, "function Companions.BuildCoreKeybinds(instance)",
     "Companions runtime helper owns keybind construction")
+assert_contains(runtimeSource, "if not sortOk then",
+    "Companions runtime aborts initialization when header sort setup fails")
+assert_contains(runtimeSource, "return nil, sortErr",
+    "Companions runtime surfaces sort setup failures to the module root")
 
 assert_not_contains(moduleSource, "local function CreateCompanionScene(",
     "Companions Module.lua no longer defines scene creation directly")
@@ -80,5 +84,10 @@ assert_contains(listManagerSource, "local function EnsureListDirectionalInputReg
     "Companion list manager keeps list input activation in a focused helper")
 assert_contains(listManagerSource, "local function ReleaseListDirectionalInput(list)",
     "Companion list manager keeps list input release in a focused helper")
+
+assert_contains(moduleSource, "local instance, initErr = Companions.InitializeRuntime()",
+    "Companions Module.lua handles runtime bootstrap failures explicitly")
+assert_contains(moduleSource, "NotifyCompanionSetupFailure(initErr)",
+    "Companions Module.lua routes runtime bootstrap failures through a user-facing notifier")
 
 print("  OK")

@@ -67,6 +67,12 @@ end
 BETTERUI.CIM.RegisterModuleAccessors = function() end
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics = function() end
 BETTERUI.CIM.TryRegisterModulePanel = function() end
+local lastNotifyContext = nil
+local lastNotifyMessage = nil
+BETTERUI.CIM.UserNotify = function(context, message)
+    lastNotifyContext = context
+    lastNotifyMessage = message
+end
 
 local function countRegistrations(obj)
     local count = 0
@@ -169,6 +175,25 @@ local sortOk, sortErr = BETTERUI.Companions.SetupSort({
 })
 assert_eq(sortOk, false, "SetupSort surfaces installation failures")
 assert_contains(sortErr, "[Companions] Header sort setup failed:", "SetupSort returns a stable degraded-state error")
+
+INTERACTION_COMPANION_MENU = true
+BETTERUI.Companions.initialized = nil
+BETTERUI.Companions._initError = nil
+local originalInitializeRuntime = BETTERUI.Companions.InitializeRuntime
+BETTERUI.Companions.InitializeRuntime = function()
+    return nil, "[Companions] Header sort setup failed: sort boom"
+end
+local initOk, initErr = BETTERUI.Companions.Init()
+assert_eq(initOk, false, "Companions.Init aborts when runtime bootstrap fails")
+assert_eq(initErr, "[Companions] Header sort setup failed: sort boom",
+    "Companions.Init returns the runtime bootstrap failure")
+assert_eq(BETTERUI.Companions.initialized, nil, "Companions.Init leaves initialized unset after bootstrap failure")
+assert_eq(BETTERUI.Companions._initError, "[Companions] Header sort setup failed: sort boom",
+    "Companions.Init records the last bootstrap failure")
+assert_eq(lastNotifyContext, "Companions.Init", "Companions.Init routes bootstrap failures through the shared notifier")
+assert_eq(lastNotifyMessage, "[Companions] Header sort setup failed: sort boom",
+    "Companions.Init forwards the bootstrap failure text to the shared notifier")
+BETTERUI.Companions.InitializeRuntime = originalInitializeRuntime
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

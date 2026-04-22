@@ -1,18 +1,7 @@
---[[
-File: Modules/CIM/UI/HeaderNavigation.lua
-Purpose: Shared header navigation functions for category cycling.
-         Provides consistent navigation behavior for Inventory and Banking.
-]]
-
--- NAMESPACE INITIALIZATION
-
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.HeaderNavigation = BETTERUI.CIM.HeaderNavigation or {}
 
--- Alias for NavigationState API
 local NavState = BETTERUI.CIM.NavigationState
-
--- NAVIGATION STATE INITIALIZATION
 
 ---@param instance table
 ---@return table
@@ -22,8 +11,6 @@ function BETTERUI.CIM.HeaderNavigation.GetOrCreateState(instance)
     end
     return instance._navState
 end
-
--- CATEGORY CYCLING
 
 ---@param instance table
 ---@param delta integer
@@ -59,9 +46,7 @@ function BETTERUI.CIM.HeaderNavigation.CycleCategory(instance, delta, options)
     NavState.StopCycling(state)
 end
 
--- COALESCED SELECTION HANDLER
-
----@param options {delay: integer?, onSave: fun(instance: table)?}
+---@param options {delay: integer?, onSave: fun(instance: table)?, sceneCheck: fun(): boolean?, onApply: fun(instance: table, pendingCategoryIndex: integer)?}
 ---@return fun(instance: table, list: table, selectedData: table)
 function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
     local delay = options.delay or BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS
