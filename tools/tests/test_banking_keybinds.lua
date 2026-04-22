@@ -269,8 +269,28 @@ BETTERUI = {
                 return guildBankLoading
             end,
         },
-        ResolveGuildBankTransferDecision = function()
-            return guildTransferAllowed, guildTransferDenialText and "denied" or nil, guildTransferDenialText, nil
+        TransferRules = {
+            ResolveGuildBankTransferDecision = function()
+                return guildTransferAllowed, guildTransferDenialText and "denied" or nil, guildTransferDenialText, nil
+            end,
+        },
+        IsGuildBankTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+        end,
+        IsMainBankTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+        end,
+        IsHouseBankTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
+        end,
+        GetActiveInteractionBag = function()
+            return BETTERUI.Banking.GetTransferContext().interactionBag
+        end,
+        GetActiveDepositBag = function()
+            return BETTERUI.Banking.GetTransferContext().depositTargetBag
+        end,
+        GetWithdrawSourceBags = function()
+            return BETTERUI.Banking.GetTransferContext().withdrawSourceBags
         end,
         IsGuildTransferActive = function()
             return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
@@ -287,6 +307,14 @@ BETTERUI = {
         IsFurnitureVaultDepositTarget = function()
             return false
         end,
+        CurrencySelector = {
+            HideSelector = function(self)
+                self.hiddenSelectorCount = self.hiddenSelectorCount + 1
+            end,
+            DisplaySelector = function(self, currencyType)
+                self.displayedCurrencyType = currencyType
+            end,
+        },
         Class = {},
     },
     CIM = {
@@ -428,17 +456,11 @@ local function createWindow()
         IsInSelectionMode = function()
             return false
         end,
-        HideSelector = function(self)
-            self.hiddenSelectorCount = self.hiddenSelectorCount + 1
-        end,
         RefreshFooter = function(self)
             self.refreshedFooterCount = self.refreshedFooterCount + 1
         end,
         CancelWithdrawDeposit = function(self)
             self.cancelWithdrawDepositCount = self.cancelWithdrawDepositCount + 1
-        end,
-        DisplaySelector = function(self, currencyType)
-            self.displayedCurrencyType = currencyType
         end,
     }
 

@@ -84,15 +84,14 @@ local function ResolveBagsAndSlotType(self)
         return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
     end
 
-    local transferContext = BETTERUI.Banking.GetTransferContext()
-    local withdrawSourceBags = transferContext.withdrawSourceBags
+    local withdrawSourceBags = BETTERUI.Banking.GetWithdrawSourceBags()
     if type(withdrawSourceBags) == "table" and #withdrawSourceBags > 0 then
-        local slotType = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK and SLOT_TYPE_GUILD_BANK_ITEM
+        local slotType = BETTERUI.Banking.IsGuildBankTransfer() and SLOT_TYPE_GUILD_BANK_ITEM
             or SLOT_TYPE_BANK_ITEM
         return withdrawSourceBags, slotType
     end
 
-    local sourceBag = transferContext.interactionBag
+    local sourceBag = BETTERUI.Banking.GetActiveInteractionBag()
     if sourceBag ~= nil then
         return { sourceBag }, SLOT_TYPE_BANK_ITEM
     end
@@ -113,11 +112,10 @@ function BETTERUI.Banking.Class:RefreshList()
         return
     end
 
-    local transferContext = BETTERUI.Banking.GetTransferContext()
-    local transferSourceBankBag = transferContext.interactionBag
-    local isGuildBankActive = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
-    local isSourceMainBank = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
-    local isSourceFurnitureVault = transferContext.sourceIsFurnitureVault == true
+    local transferSourceBankBag = BETTERUI.Banking.GetActiveInteractionBag()
+    local isGuildBankActive = BETTERUI.Banking.IsGuildBankTransfer()
+    local isSourceMainBank = BETTERUI.Banking.IsMainBankTransfer()
+    local isSourceFurnitureVault = BETTERUI.Banking.IsSourceFurnitureVaultTransfer()
     if self._suppressListUpdates or self.isBatchProcessing then
         return
     end
@@ -290,7 +288,8 @@ function BETTERUI.Banking.Class:RefreshList()
     table.sort(filteredDataTable, self.itemSortComparator or BETTERUI.CIM.Utils.DefaultSortComparator)
 
     local currentBestCategoryName
-    local useHeaders = AutoCategory
+    local useHeaders = BETTERUI.CIM.OptionalAddons
+        and BETTERUI.CIM.OptionalAddons.IsLoaded("AutoCategory")
         and ((GetNumBagUsedSlots(transferSourceBankBag) ~= 0) or (GetNumBagUsedSlots(BAG_BACKPACK) ~= 0))
 
     for _, itemData in ipairs(filteredDataTable) do

@@ -58,16 +58,15 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
         "CraftBag",
         SetupCraftBagList,
         BETTERUI.Inventory.CraftList,
-        BAG_VIRTUAL,
-        SLOT_TYPE_CRAFT_BAG_ITEM,
-        OnSelectedDataCallback,
-        nil,
-        nil,
-        nil,
-        false,
-        "BETTERUI_GamepadItemSubEntryTemplate"
+        {
+            inventoryType = BAG_VIRTUAL,
+            slotType = SLOT_TYPE_CRAFT_BAG_ITEM,
+            selectedDataCallback = OnSelectedDataCallback,
+            useTriggers = false,
+            template = "BETTERUI_GamepadItemSubEntryTemplate",
+            listModuleName = "Inventory",
+        }
     )
-    self.craftBagList.listModuleName = "Inventory"
     self.craftBagList:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY")))
     self.craftBagList:SetAlignToScreenCenter(true, 30)
 

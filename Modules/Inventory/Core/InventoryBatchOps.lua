@@ -42,10 +42,10 @@ local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
 end
 
 local function GetCurrentInventoryBankBag()
-    local inventory = BETTERUI.Inventory
-    local resolveDepositTarget = inventory and inventory.ResolveDepositTargetBag
-    if type(resolveDepositTarget) == "function" then
-        local targetBag = resolveDepositTarget(BAG_BANK)
+    local banking = BETTERUI.Banking
+    local getActiveDepositBag = banking and banking.GetActiveDepositBag
+    if type(getActiveDepositBag) == "function" then
+        local targetBag = getActiveDepositBag()
         if targetBag ~= nil then
             return targetBag
         end

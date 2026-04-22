@@ -58,13 +58,17 @@ Use actionable, typed TODOs:
 
 ## Module Structure
 
-All feature modules follow the **Minimal Root** pattern. Create only the folders the module actually uses; do not add empty placeholder subdirectories.
+Feature modules use a small set of root contracts. Follow the module's existing archetype instead of forcing every package into one shape. Create only the folders the module actually uses; do not add empty placeholder subdirectories.
+
+- `thin-entrypoint`: `Module.lua` is the canonical root and wires init/setup while delegating runtime behavior into focused files such as `Core/` or `<Module>.lua`.
+- `settings-owner`: one canonical root file owns both runtime and settings seams. That root may be either `Module.lua` or `<Module>.lua`, depending on the module.
+- `runtime-facade`: `<Module>.lua` is the canonical runtime root while `Module.lua` stays minimal when present.
 
 ```
 ModuleName/
-├── Module.lua         # Required entry point
+├── Module.lua         # Optional canonical root (archetype-dependent)
+├── <Module>.lua       # Optional canonical root/runtime facade (archetype-dependent)
 ├── Constants.lua      # Optional module-specific constants
-├── <Module>.lua       # Optional runtime facade
 ├── Core/              # Optional core logic
 ├── UI/                # Optional visual components
 ├── Lists/             # Optional list management
@@ -74,6 +78,11 @@ ModuleName/
 ├── Settings/          # Optional LAM settings
 └── Templates/         # Optional XML templates
 ```
+
+Examples:
+- `Writs` is a `thin-entrypoint` package: [`Module.lua`](../../Modules/Writs/Module.lua) wires lifecycle hooks while [`Core/Writ.lua`](../../Modules/Writs/Core/Writ.lua) owns writ behavior.
+- `Nameplates` is a `settings-owner` package with [`Nameplates.lua`](../../Modules/Nameplates/Nameplates.lua) as the canonical root plus [`Settings.lua`](../../Modules/Nameplates/Settings.lua) as the panel seam.
+- `ResourceOrbFrames` is also a `settings-owner` package, but its canonical root is [`Module.lua`](../../Modules/ResourceOrbFrames/Module.lua). Both shapes are supported; each module should keep one clear owner.
 
 ## ESO-Specific Guidelines
 

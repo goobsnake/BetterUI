@@ -24,6 +24,7 @@ local mockLanguage = "en"
 local moduleEnabled = true
 local questJournal = {}
 local safeExecuteContexts = {}
+local safeExecuteFailureContext = nil
 local registeredEvents = {}
 
 local passed, failed = 0, 0
@@ -125,6 +126,9 @@ BETTERUI = {
     CIM = {
         SafeExecute = function(context, fn, ...)
             safeExecuteContexts[#safeExecuteContexts + 1] = context
+            if context == safeExecuteFailureContext then
+                return false, "forced_failure"
+            end
             return fn(...)
         end,
     },
@@ -161,6 +165,7 @@ local function resetUiState()
     writDescText = nil
     writPanelHidden = nil
     safeExecuteContexts = {}
+    safeExecuteFailureContext = nil
 end
 
 local function hasSafeExecuteContext(expectedContext)
@@ -258,7 +263,8 @@ assert_eq(safeExecuteContexts[1], "Writs:RefreshActiveWrits", "refresh uses the 
 assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_BLACKSMITHING].id, 1, "blacksmith writ is indexed by craft type")
 assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_PROVISIONING].id, 2, "last matching pattern wins for witches festival writs")
 
-BETTERUI.Writs.ShowForCraftType(CRAFTING_TYPE_BLACKSMITHING)
+local showOk = BETTERUI.Writs.ShowForCraftType(CRAFTING_TYPE_BLACKSMITHING)
+assert_eq(showOk, true, "show-for-craft returns success for an active writ")
 assert_true(hasSafeExecuteContext("Writs:ShowForCraftType"),
     "show-for-craft uses the canonical SafeExecute context")
 assert_contains(writNameText, "Blacksmith Writ", "show writes the active writ title")
@@ -268,18 +274,31 @@ assert_eq(writPanelHidden, false, "show reveals the writ panel")
 BETTERUI.Writs.HidePanel()
 assert_eq(writPanelHidden, true, "hide conceals the writ panel")
 
-print("[Writ compatibility aliases]")
+print("[Writ failure contract]")
 do
+    BETTERUI.Writs.List = {
+        [CRAFTING_TYPE_BLACKSMITHING] = { id = 77, writLines = "stale" },
+    }
+    safeExecuteFailureContext = "Writs:RefreshActiveWrits"
+    local ok, err = BETTERUI.Writs.RefreshActiveWrits()
+    assert_eq(ok, false, "refresh returns failure when SafeExecute fails")
+    assert_eq(err, "forced_failure", "refresh surfaces the SafeExecute error")
+    assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_BLACKSMITHING].id, 77,
+        "refresh failure preserves the previous active writ lookup")
+
     resetUiState()
-    BETTERUI.Writs.Update()
-    assert_eq(safeExecuteContexts[1], "Writs:RefreshActiveWrits", "legacy Update alias routes to canonical refresh")
-
-    BETTERUI.Writs.Show(CRAFTING_TYPE_BLACKSMITHING)
-    assert_true(hasSafeExecuteContext("Writs:ShowForCraftType"),
-        "legacy Show alias routes to canonical show")
-
-    BETTERUI.Writs.Hide()
-    assert_eq(writPanelHidden, true, "legacy Hide alias routes to canonical hide")
+    BETTERUI.Writs.List = {
+        [CRAFTING_TYPE_BLACKSMITHING] = { id = 77, writLines = "stale" },
+    }
+    safeExecuteFailureContext = "Writs:RefreshActiveWrits"
+    ok, err = BETTERUI.Writs.ShowForCraftType(CRAFTING_TYPE_BLACKSMITHING)
+    assert_eq(ok, false, "show-for-craft returns failure when refresh fails")
+    assert_eq(err, "forced_failure", "show-for-craft surfaces the refresh failure")
+    assert_eq(writNameText, nil, "show-for-craft does not repaint stale UI on refresh failure")
+    assert_eq(BETTERUI.Writs.Get, nil, "legacy Get alias has been removed")
+    assert_eq(BETTERUI.Writs.Update, nil, "legacy Update alias has been removed")
+    assert_eq(BETTERUI.Writs.Show, nil, "legacy Show alias has been removed")
+    assert_eq(BETTERUI.Writs.Hide, nil, "legacy Hide alias has been removed")
 end
 
 print("[Writ module lifecycle]")

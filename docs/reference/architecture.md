@@ -82,13 +82,21 @@ Current module examples in the repo:
 - **`settings-owner`** — `Nameplates`, `ResourceOrbFrames`
 - **`thin-entrypoint`** — `GeneralInterface`, `Writs`
 
+Supported root shapes are archetype-driven. A module keeps exactly one canonical root owner (`Module.lua` or `<Module>.lua`) and may keep the other file as an optional facade/helper.
+
+| Archetype | Canonical Root Shape | Current Examples |
+|-----------|----------------------|------------------|
+| `runtime-coordinator` | Usually `Module.lua`; `<Module>.lua` may exist as a focused runtime facade | `Inventory`, `Banking`, `Vendor`, `TradingHouse`, `Companions` |
+| `settings-owner` | `Module.lua` **or** `<Module>.lua`, but ownership stays singular in one root | `Nameplates` (`Nameplates.lua`), `ResourceOrbFrames` (`Module.lua`) |
+| `thin-entrypoint` | `Module.lua` delegates runtime work to focused files | `GeneralInterface`, `Writs` |
+
 The root remains intentionally small, but a module may keep one public runtime façade at the root when that file is the canonical owner of gameplay flow.
 
 | Root Files | Purpose |
 |------------|---------|
-| `Module.lua` | Public init/setup hook, root contract, settings registration |
+| `Module.lua` | Optional canonical root (archetype-dependent); can host init/setup, root contract, and settings registration |
+| `<Module>.lua` | Optional canonical root/runtime façade when that file owns gameplay flow |
 | `Constants.lua` | Module-specific constants and configuration (when needed) |
-| `<Module>.lua` | Public runtime façade/class when the module keeps one at the root |
 
 All other files are organized into subfolders by responsibility:
 
@@ -248,7 +256,7 @@ BETTERUI = {
 }
 ```
 
-> **Note**: `Nameplates` runtime/settings are owned as `BETTERUI.Nameplates`. `BETTERUI.GeneralInterface.Nameplates` is kept only as a compatibility alias.
+> **Note**: `Nameplates` runtime/settings are owned only as `BETTERUI.Nameplates`.
 
 ---
 
@@ -258,7 +266,7 @@ BETTERUI = {
 |--------|------------|----------------|---------------------------|---------|
 | **CIM** | Constants, ConstantsUI, Module | Core/{Batching, Data, Diagnostics, Integration, Lifecycle, Presentation, Settings, Window}, UI, Lists, Actions, Dialogs, Keybinds | Required | Shared infrastructure, runtime setup, batch orchestration, market/research services |
 | **GeneralInterface** | Module, Setup | Tooltips | Registry-independent; consumes CIM helpers | Tooltip enhancements and shared interface hooks |
-| **Nameplates** | Settings, Nameplates | (root-only) | Requires CIM; standalone module with compatibility alias | Nameplate font/style customization and lifecycle wiring |
+| **Nameplates** | Settings, Nameplates | (root-only) | Requires CIM; standalone module | Nameplate font/style customization and lifecycle wiring |
 | **Inventory** | Constants, Module, Inventory, Loader | Core, UI, Lists, Actions, Keybinds, State, Dialogs, Scene, Settings | Requires CIM | Enhanced inventory with categories/search |
 | **Banking** | Constants, Module, Banking | Core, Lists, Actions, Keybinds, Search, State, Scene, UI, Dialogs | Requires CIM | Bank/house/guild bank interface |
 | **Vendor** | Module, Vendor | Core, Components, Settings | Requires CIM | Store/fence workflows plus namespaced vendor helpers |
@@ -583,11 +591,12 @@ sequenceDiagram
 ### Adding a New Module
 
 1. Create module folder under `Modules/`
-2. Add `Constants.lua` for module-specific constants
-3. Add `Module.lua` with `Setup()` function
-4. Organize code into subfolders: `Core/`, `UI/`, `Lists/`, etc.
-5. Update `BetterUI.txt` manifest with load order
-6. Register module in `BetterUI.lua`
+2. Choose an archetype (`runtime-coordinator`, `settings-owner`, `thin-entrypoint`)
+3. Add a canonical root owner file (`Module.lua` or `<Module>.lua`) with `ARCHETYPE`, `ROOT_CONTRACT`, and required hooks
+4. Add `Constants.lua` only when module-specific constants are needed
+5. Organize code into subfolders: `Core/`, `UI/`, `Lists/`, etc.
+6. Update `BetterUI.txt` manifest with load order
+7. Register module in `BetterUI.lua`
 
 ### Modifying Keybinds
 

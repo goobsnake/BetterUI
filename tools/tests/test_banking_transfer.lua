@@ -1,8 +1,8 @@
 --[[
 File: tools/tests/test_banking_transfer.lua
-Purpose: Tests for Banking transfer logic: ResolveStackCount,
-         ResolveDepositDestinationBag, and CanDepositIntoBank through the
-         owned Banking API surface.
+Purpose: Tests for Banking transfer helper surface (deposit permissions,
+         guild transfer decisions, and denial notifications) while keeping
+         lower-level transfer helpers internal to MultiSelectActions.
 
 Usage:
   lua tools/tests/test_banking_transfer.lua
@@ -25,6 +25,8 @@ SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS = "SI_GAMEPAD_GUILD_BANK_NO_WITHDR
 SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS = "SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS"
 SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS = "SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS"
 SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE = "SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE"
+SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE = "SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE"
+SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE = "SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE"
 
 -- Configurable stub state
 local slotStacks = {}
@@ -32,12 +34,16 @@ local itemBindTypes = {}
 local bagSizes = {}
 local bagUsed = {}
 local esoPlus = false
+local alerts = {}
+local userNotifications = {}
 local stringValues = {
     [SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS] = "Furniture vault requires ESO+",
     [SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE] = "Furniture vault requires collectible",
     [SI_GAMEPAD_GUILD_BANK_NO_PERMISSION] = "No guild permission",
     [SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS] = "No withdraw",
     [SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS] = "No deposit %s",
+    [SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE] = "Stolen items cannot be deposited",
+    [SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE] = "Stolen furniture cannot enter the vault",
 }
 
 function GetSlotStackSize(bagId, slotIndex)
@@ -62,6 +68,13 @@ end
 
 function GetString(id)
     return stringValues[id] or tostring(id)
+end
+
+UI_ALERT_CATEGORY_ERROR = 1
+SOUNDS = { NEGATIVE_CLICK = "negative" }
+
+function ZO_Alert(_, _, stringId)
+    alerts[#alerts + 1] = stringId
 end
 
 function zo_clamp(value, min, max)
@@ -120,6 +133,24 @@ BETTERUI = {
                 sourceIsFurnitureVault = sourceBag == BAG_FURNITURE_VAULT,
                 targetIsFurnitureVault = targetBag == BAG_FURNITURE_VAULT,
             }
+        end,
+        IsGuildBankTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+        end,
+        IsMainBankTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+        end,
+        IsHouseBankTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
+        end,
+        GetActiveInteractionBag = function()
+            return BETTERUI.Banking.GetTransferContext().interactionBag
+        end,
+        GetActiveDepositBag = function()
+            return BETTERUI.Banking.GetTransferContext().depositTargetBag
+        end,
+        GetWithdrawSourceBags = function()
+            return BETTERUI.Banking.GetTransferContext().withdrawSourceBags
         end,
         GuildBank = {
             IsGuildBankMode = function() return false end,
@@ -180,10 +211,14 @@ BETTERUI = {
                 return (slotStacks[bagId .. ":" .. slotIndex] or 0) > 0
             end,
         },
+        UserNotify = function(_, stringId)
+            userNotifications[#userNotifications + 1] = stringId
+        end,
     },
 }
 
 dofile("Modules/Banking/Core/MultiSelectActions.lua")
+dofile("Modules/Banking/Actions/TransferActions.lua")
 
 -- ============================================================================
 -- TEST FRAMEWORK
@@ -234,12 +269,21 @@ local function assertNotNil(value, message)
     end
 end
 
+local function readFile(path)
+    local file = assert(io.open(path, "r"))
+    local content = file:read("*a")
+    file:close()
+    return content
+end
+
 local function resetState()
     slotStacks = {}
     itemBindTypes = {}
     bagSizes = {}
     bagUsed = {}
     esoPlus = false
+    alerts = {}
+    userNotifications = {}
     resolveSlotResults = {}
     BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function() return true end
     BETTERUI.CIM.ProtectionPolicy.CanDepositToFurnitureVault = function() return true end
@@ -248,59 +292,20 @@ local function resetState()
 end
 
 -- ============================================================================
--- TESTS: ResolveStackCount
+-- TESTS: Internal transfer helper contract
 -- ============================================================================
 
-print("\n=== ResolveStackCount ===\n")
+print("\n=== Internal transfer helper contract ===\n")
 
-resetState()
-print("-- Normal stack resolution --")
-slotStacks["1:5"] = 10
-local itemData = { stackCount = 5 }
-local result = BETTERUI.Banking.ResolveTransferStackCount(itemData, 1, 5)
-assertEqual(5, result, "Returns requested stack when within live range")
-
-resetState()
-print("\n-- Stack clamped to live amount --")
-slotStacks["1:5"] = 3
-itemData = { stackCount = 10 }
-result = BETTERUI.Banking.ResolveTransferStackCount(itemData, 1, 5)
-assertEqual(3, result, "Clamps to live stack when request exceeds it")
-
-resetState()
-print("\n-- Item vanished (race condition) --")
-slotStacks = {} -- no item at slot
-itemData = { stackCount = 5 }
-result = BETTERUI.Banking.ResolveTransferStackCount(itemData, 1, 5)
-assertNil(result, "Returns nil when item no longer exists")
-
-resetState()
-print("\n-- Zero live stack --")
-slotStacks["1:5"] = 0
-itemData = { stackCount = 5 }
-result = BETTERUI.Banking.ResolveTransferStackCount(itemData, 1, 5)
-assertNil(result, "Returns nil when live stack is zero")
-
-resetState()
-print("\n-- dataSource takes precedence --")
-slotStacks["1:5"] = 20
-itemData = { stackCount = 3, dataSource = { stackCount = 15 } }
-result = BETTERUI.Banking.ResolveTransferStackCount(itemData, 1, 5)
-assertEqual(15, result, "Uses dataSource.stackCount when present")
-
-resetState()
-print("\n-- Missing stackCount defaults to 1 --")
-slotStacks["1:5"] = 10
-itemData = {}
-result = BETTERUI.Banking.ResolveTransferStackCount(itemData, 1, 5)
-assertEqual(1, result, "Defaults to 1 when no stackCount in itemData")
-
-resetState()
-print("\n-- Single item stack --")
-slotStacks["1:5"] = 1
-itemData = { stackCount = 1 }
-result = BETTERUI.Banking.ResolveTransferStackCount(itemData, 1, 5)
-assertEqual(1, result, "Handles single item stack correctly")
+local multiSelectActionsSource = readFile("Modules/Banking/Core/MultiSelectActions.lua")
+assertTrue(multiSelectActionsSource:match("local function ResolveStackCount") ~= nil,
+    "ResolveStackCount stays internal to MultiSelectActions")
+assertTrue(multiSelectActionsSource:match("local function ResolveDepositTargetBag") ~= nil,
+    "ResolveDepositTargetBag stays internal to MultiSelectActions")
+assertNil(BETTERUI.Banking.ResolveTransferStackCount,
+    "ResolveTransferStackCount is no longer exported on BETTERUI.Banking")
+assertNil(BETTERUI.Banking.ResolveDepositDestinationBag,
+    "ResolveDepositDestinationBag is no longer exported on BETTERUI.Banking")
 
 -- ============================================================================
 -- TESTS: IsDepositSupportedForBank
@@ -311,31 +316,31 @@ print("\n=== IsDepositSupportedForBank ===\n")
 resetState()
 print("-- Normal item deposit allowed --")
 slotStacks["1:5"] = 10
-assertTrue(BETTERUI.Banking.CanDepositIntoBank(1, 5, BAG_BANK), "Normal item can be deposited")
+assertTrue(BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_BANK), "Normal item can be deposited")
 
 resetState()
 print("\n-- ProtectionPolicy denies transfer --")
 BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function() return false, BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN end
-local allowed, reason = BETTERUI.Banking.CanDepositIntoBank(1, 5, BAG_BANK)
+local allowed, reason = BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_BANK)
 assertFalse(allowed, "Denied by ProtectionPolicy")
 assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN, reason, "Returns deny reason from policy")
 
 resetState()
 print("\n-- Bind-on-pickup item blocked --")
 BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function() return false, "bop_backpack" end
-allowed, reason = BETTERUI.Banking.CanDepositIntoBank(1, 5, BAG_BANK)
+allowed, reason = BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_BANK)
 assertFalse(allowed, "BOP item cannot be deposited")
 assertEqual("bop_backpack", reason, "Returns BOP deny reason")
 
 resetState()
 print("\n-- Bind-on-equip item allowed --")
 itemBindTypes["1:5"] = BIND_TYPE_ON_EQUIP
-assertTrue(BETTERUI.Banking.CanDepositIntoBank(1, 5, BAG_BANK), "BOE item can be deposited")
+assertTrue(BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_BANK), "BOE item can be deposited")
 
 resetState()
 print("\n-- Furniture vault denied by gemmable check --")
 CROWN_GEMIFICATION_MANAGER = { IsItemGemmable = function() return true end }
-allowed, reason = BETTERUI.Banking.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT)
+allowed, reason = BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT)
 assertFalse(allowed, "Furniture vault deposit denied for gemmable item")
 assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.CROWN_GEMMABLE, reason,
     "Returns crown gemmable deny reason")
@@ -344,7 +349,7 @@ CROWN_GEMIFICATION_MANAGER = nil
 resetState()
 print("\n-- Furniture vault allowed when not gemmable --")
 CROWN_GEMIFICATION_MANAGER = { IsItemGemmable = function() return false end }
-assertTrue(BETTERUI.Banking.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT),
+assertTrue(BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT),
     "Furniture vault deposit allowed for non-gemmable item")
 CROWN_GEMIFICATION_MANAGER = nil
 
@@ -355,7 +360,7 @@ HOUSING_EDITOR_STATE = {
         return false
     end,
 }
-allowed, reason = BETTERUI.Banking.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT)
+allowed, reason = BETTERUI.Banking.TransferRules.CanDepositIntoBank(1, 5, BAG_FURNITURE_VAULT)
 assertFalse(allowed, "Furniture vault deposit denied when vault is locked")
 assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED, reason,
     "Returns shared furniture-vault-locked deny reason")
@@ -376,7 +381,7 @@ BETTERUI.Banking.GuildBank.GetPermissionDenial = function()
         text = "No withdraw",
     }
 end
-local canTransfer, denyReason, denialText, denialStringId = BETTERUI.Banking.ResolveGuildBankTransferDecision(
+local canTransfer, denyReason, denialText, denialStringId = BETTERUI.Banking.TransferRules.ResolveGuildBankTransferDecision(
     BETTERUI.Banking.LIST_WITHDRAW, BAG_GUILDBANK, 5
 )
 assertFalse(canTransfer, "Structured guild denial blocks transfer")
@@ -387,131 +392,47 @@ assertEqual(SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS, denialStringId,
     "Structured guild denial preserves the shared string ID")
 
 resetState()
-assertNil(BETTERUI.Banking.ResolveTransferDeniedStringId(BAG_GUILDBANK, "unknown_reason"),
-    "Unknown guild-bank deny reasons do not collapse into a generic permission string")
+assertNil(BETTERUI.Banking.ResolveTransferDeniedStringId,
+    "ResolveTransferDeniedStringId stays internal to MultiSelectActions")
 
 print("\n=== Transfer denial notification contract ===\n")
 
-assertNotNil(BETTERUI.Banking.ResolveTransferDeniedNotification, "ResolveTransferDeniedNotification exported")
+assertNil(BETTERUI.Banking.ResolveTransferDeniedNotification,
+    "ResolveTransferDeniedNotification stays internal to MultiSelectActions")
 
-local vaultDeniedNotification = BETTERUI.Banking.ResolveTransferDeniedNotification(
+BETTERUI.Banking.TransferRules.NotifyTransferDenied(
+    "Banking.TransferTests",
     BAG_FURNITURE_VAULT,
     BETTERUI.CIM.ProtectionPolicy.DENY.FURNITURE_VAULT_LOCKED
 )
-assertNotNil(vaultDeniedNotification, "Furniture vault denial resolves to structured notification")
-assertEqual(1, vaultDeniedNotification.mode,
-    "Furniture vault denial uses alert mode")
-assertNotNil(vaultDeniedNotification.stringId, "Furniture vault denial resolves string ID")
+assertNotNil(alerts[1], "Furniture vault denial notifies through alert mode")
+
+resetState()
+BETTERUI.Banking.TransferRules.NotifyTransferDenied(
+    "Banking.TransferTests",
+    BAG_BANK,
+    BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN
+)
+assertNotNil(userNotifications[1], "Stolen-item denial notifies through UserNotify mode")
 
 -- ============================================================================
--- TESTS: ResolveDepositTargetBag
+-- TESTS: Intent-level transfer helpers
 -- ============================================================================
 
-print("\n=== ResolveDepositDestinationBag ===\n")
+print("\n=== Intent-level transfer helpers ===\n")
 
 resetState()
-print("-- Deposit to primary bank with space --")
-resolveSlotResults[BAG_BANK] = true
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, BAG_BANK)
-assertEqual(BAG_BANK, result, "Routes to primary bank when space available")
+BETTERUI.Banking.RuntimeState.currentUsedBank = 0
+assertEqual(BAG_BANK, BETTERUI.Banking.GetActiveDepositBag(),
+    "GetActiveDepositBag normalizes zero-sentinel runtime banks")
 
-resetState()
-print("\n-- Primary full, ESO+ fallback to subscriber bank --")
-esoPlus = true
-resolveSlotResults[BAG_BANK] = false
-resolveSlotResults[BAG_SUBSCRIBER_BANK] = true
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, BAG_BANK)
-assertEqual(BAG_SUBSCRIBER_BANK, result, "Falls back to subscriber bank for ESO+ users")
-
-resetState()
-print("\n-- Primary full, no ESO+ subscriber --")
-esoPlus = false
-resolveSlotResults[BAG_BANK] = false
-bagSizes[BAG_BANK] = 60
-bagUsed[BAG_BANK] = 60
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, BAG_BANK)
-assertEqual("skip", result, "Returns 'skip' when bank full and not ESO+")
-
-resetState()
-print("\n-- Primary full but free slots exist (unbankable item) --")
-esoPlus = false
-resolveSlotResults[BAG_BANK] = false
-bagSizes[BAG_BANK] = 60
-bagUsed[BAG_BANK] = 50 -- 10 free slots
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, BAG_BANK)
-assertEqual("unbankable", result, "Returns 'unbankable' when slots free but item can't go there")
-
-resetState()
-print("\n-- ESO+ both banks full --")
-esoPlus = true
-resolveSlotResults[BAG_BANK] = false
-resolveSlotResults[BAG_SUBSCRIBER_BANK] = false
-bagSizes[BAG_BANK] = 60
-bagUsed[BAG_BANK] = 60
-bagSizes[BAG_SUBSCRIBER_BANK] = 60
-bagUsed[BAG_SUBSCRIBER_BANK] = 60
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, BAG_BANK)
-assertEqual("skip", result, "Returns 'skip' when both banks are full")
-
-resetState()
-print("\n-- ESO+ primary full, subscriber has space but can't resolve --")
-esoPlus = true
-resolveSlotResults[BAG_BANK] = false
-resolveSlotResults[BAG_SUBSCRIBER_BANK] = false
-bagSizes[BAG_BANK] = 60
-bagUsed[BAG_BANK] = 60
-bagSizes[BAG_SUBSCRIBER_BANK] = 60
-bagUsed[BAG_SUBSCRIBER_BANK] = 50 -- 10 free but resolve fails
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, BAG_BANK)
-assertEqual("unbankable", result, "Returns 'unbankable' when subscriber has space but can't resolve")
-
-resetState()
-print("\n-- Non-BAG_BANK target (e.g., house bank) with space --")
-local HOUSE_BANK = 50
-resolveSlotResults[HOUSE_BANK] = true
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, HOUSE_BANK)
-assertEqual(HOUSE_BANK, result, "Routes to house bank when space available")
-
-resetState()
-print("\n-- Non-BAG_BANK target full --")
-resolveSlotResults[HOUSE_BANK] = false
-bagSizes[HOUSE_BANK] = 30
-bagUsed[HOUSE_BANK] = 30
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, HOUSE_BANK)
-assertEqual("skip", result, "Returns 'skip' when house bank full")
-
-resetState()
-print("\n-- Non-BAG_BANK target has free slots but can't resolve --")
-resolveSlotResults[HOUSE_BANK] = false
-bagSizes[HOUSE_BANK] = 30
-bagUsed[HOUSE_BANK] = 20
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, HOUSE_BANK)
-assertEqual("unbankable", result, "Returns 'unbankable' for house bank with space but unresolvable")
-
-resetState()
-print("\n-- Guild bank mode --")
-BETTERUI.Banking.GuildBank.IsGuildBankMode = function() return true end
-resolveSlotResults[BAG_GUILDBANK] = true
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, BAG_BANK)
-assertEqual(BAG_GUILDBANK, result, "Routes to guild bank target in guild mode")
-
-resetState()
-print("\n-- Guild bank mode, can't resolve (unbankable) --")
-BETTERUI.Banking.GuildBank.IsGuildBankMode = function() return true end
-resolveSlotResults[BAG_GUILDBANK] = false
-bagSizes[BAG_GUILDBANK] = 500
-bagUsed[BAG_GUILDBANK] = 400 -- has free space
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, BAG_BANK)
-assertEqual("unbankable", result, "Returns 'unbankable' in guild bank mode when can't resolve")
-
-resetState()
-print("\n-- Guild bank full --")
-BETTERUI.Banking.GuildBank.IsGuildBankMode = function() return true end
-resolveSlotResults[BAG_GUILDBANK] = false
-bagSizes[BAG_GUILDBANK] = 500
-bagUsed[BAG_GUILDBANK] = 500
-result = BETTERUI.Banking.ResolveDepositDestinationBag(1, 5, BAG_BANK)
-assertEqual("skip", result, "Returns 'skip' when guild bank completely full")
+BETTERUI.Banking.RuntimeState.currentUsedBank = BAG_GUILDBANK
+assertTrue(BETTERUI.Banking.IsGuildBankTransfer(),
+    "IsGuildBankTransfer reflects guild-bank transfer mode")
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetActiveInteractionBag(),
+    "GetActiveInteractionBag resolves the active guild-bank source")
+assertEqual(BAG_GUILDBANK, BETTERUI.Banking.GetWithdrawSourceBags()[1],
+    "GetWithdrawSourceBags resolves guild-bank withdraw source bags")
 
 -- ============================================================================
 -- TESTS: API Exposure
@@ -520,10 +441,20 @@ assertEqual("skip", result, "Returns 'skip' when guild bank completely full")
 print("\n=== API Exposure ===\n")
 
 assertNotNil(BETTERUI.Banking.GetTransferContext, "GetTransferContext accessor exists")
-assertNotNil(BETTERUI.Banking.ResolveTransferStackCount, "ResolveTransferStackCount exposed")
-assertNotNil(BETTERUI.Banking.CanDepositIntoBank, "CanDepositIntoBank exposed")
-assertNotNil(BETTERUI.Banking.ResolveDepositDestinationBag, "ResolveDepositDestinationBag exposed")
-assertNotNil(BETTERUI.Banking.ResolveTransferDeniedNotification, "ResolveTransferDeniedNotification exposed")
+assertNotNil(BETTERUI.Banking.TransferRules, "TransferRules service exposed")
+assertNotNil(BETTERUI.Banking.TransferRules.CanDepositIntoBank, "TransferRules exposes deposit validation")
+assertNotNil(BETTERUI.Banking.TransferRules.ResolveGuildBankTransferDecision,
+    "TransferRules exposes guild-bank transfer decisions")
+assertNotNil(BETTERUI.Banking.TransferRules.NotifyTransferDenied, "TransferRules exposes transfer denial notifications")
+assertNotNil(BETTERUI.Banking.TransferRules.NotifyGuildBankTransferDenied,
+    "TransferRules exposes guild-bank denial notifications")
+assertNotNil(BETTERUI.Banking.TryTransferInventorySlot, "Banking exposes the single-slot inventory transfer seam")
+assertNotNil(BETTERUI.Banking.IsGuildBankTransfer, "IsGuildBankTransfer exposed")
+assertNotNil(BETTERUI.Banking.GetActiveDepositBag, "GetActiveDepositBag exposed")
+assertNotNil(BETTERUI.Banking.GetWithdrawSourceBags, "GetWithdrawSourceBags exposed")
+assertNil(BETTERUI.Banking.ResolveTransferStackCount, "ResolveTransferStackCount is internal")
+assertNil(BETTERUI.Banking.ResolveDepositDestinationBag, "ResolveDepositDestinationBag is internal")
+assertNil(BETTERUI.Banking.ResolveTransferDeniedNotification, "ResolveTransferDeniedNotification is internal")
 
 -- ============================================================================
 -- SUMMARY

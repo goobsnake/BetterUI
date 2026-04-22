@@ -112,9 +112,11 @@ BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds = function()
     return { key = "LT" }, { key = "RT" }
 end
 
-BETTERUI.CIM.ScrollIndicator.Initialize = function(control)
+BETTERUI.CIM.ScrollIndicator.Ensure = function(control)
     control.scrollIndicatorInitialized = true
 end
+
+BETTERUI.CIM.ScrollIndicator.BindListObject = function() end
 
 BETTERUI.CIM.ScrollIndicator.Update = function(...)
     scrollIndicatorUpdates[#scrollIndicatorUpdates + 1] = { ... }
@@ -336,8 +338,7 @@ do
     local list = setmetatable({}, { __index = BETTERUI.Inventory.List })
     local control = makeControl()
 
-    list:Initialize({
-        control = control,
+    list:Initialize(control, {
         inventoryType = 5,
         slotType = "slotType",
         selectedDataCallback = function() end,
@@ -353,6 +354,11 @@ do
         end,
         useTriggers = true,
     })
+
+    local legacyContractAccepted = pcall(function()
+        list:Initialize(control, 5, "slotType")
+    end)
+    assert_equal(false, legacyContractAccepted, "InventoryList no longer accepts legacy positional initialization")
 
     assert_equal("Inventory", list.listModuleName, "InventoryList initializes with the Inventory module tag")
     assert_equal(2, #list.triggerKeybinds, "InventoryList creates both trigger keybinds")
@@ -407,9 +413,14 @@ do
     local list = setmetatable({}, { __index = BETTERUI.Inventory.List })
     local control = makeControl()
 
-    list:Initialize(control, { 5, BAG_VIRTUAL }, "slotType", nil, nil, function(itemData)
-        return itemData.category
-    end, nil, true)
+    list:Initialize(control, {
+        inventoryType = { 5, BAG_VIRTUAL },
+        slotType = "slotType",
+        categoryResolver = function(itemData)
+            return itemData.category
+        end,
+        useTriggers = true,
+    })
 
     list.RefreshList = function(self)
         self.refreshCount = (self.refreshCount or 0) + 1

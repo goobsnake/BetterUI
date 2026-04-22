@@ -5,6 +5,21 @@ local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 local RuntimeState = BETTERUI.Banking.RuntimeState
 
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
+local InventorySlotActions = BETTERUI.Inventory and BETTERUI.Inventory.SlotActions or nil
+local InventoryNewItemTracker = BETTERUI.Inventory and BETTERUI.Inventory.NewItemTracker or nil
+
+local function CreateBankingItemActions(alignment)
+    if InventorySlotActions and InventorySlotActions.New then
+        return InventorySlotActions:New(alignment)
+    end
+    return nil
+end
+
+local function ClearSelectedInventoryTracker(bagId, slotIndex)
+    if InventoryNewItemTracker and InventoryNewItemTracker.ClearImmediate then
+        InventoryNewItemTracker.ClearImmediate(bagId, slotIndex)
+    end
+end
 
 local function SyncGamepadBankingSceneGlobal()
     if not SCENE_MANAGER or not SCENE_MANAGER.scenes then
@@ -19,6 +34,18 @@ local function SyncGamepadBankingSceneGlobal()
     if GAMEPAD_BANKING_SCENE ~= targetScene then
         GAMEPAD_BANKING_SCENE = targetScene
     end
+end
+
+---@return table|nil
+function BETTERUI.Banking.GetSortEntryContext()
+    local window = BETTERUI.Banking and BETTERUI.Banking.Window or nil
+    if window and window.list then
+        return {
+            list = window.list,
+            sortContext = window,
+        }
+    end
+    return nil
 end
 
 
@@ -44,7 +71,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     self:InitializeKeybind()
     self:InitializeList()
-    self.itemActions = BETTERUI.CIM.Utils.CreateInventorySlotActions(KEYBIND_STRIP_ALIGN_LEFT)
+    self.itemActions = CreateBankingItemActions(KEYBIND_STRIP_ALIGN_LEFT)
     if self.itemActions then
         self.itemActions:SetUseKeybindStrip(false)
     end
@@ -67,14 +94,19 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
     local listControl = self.list and self.list.control
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 25, -5, -10, self.list)
+        BETTERUI.CIM.ScrollIndicator.Ensure(listControl, {
+            offsetX = 25,
+            offsetTopY = -5,
+            offsetBottomY = -10,
+        })
+        BETTERUI.CIM.ScrollIndicator.BindListObject(listControl, self.list)
     end
 
     self.currentMode = LIST_WITHDRAW
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     self.lastPositionsByCategory = {}
 
-    RuntimeState.currentUsedBank = BETTERUI.Banking.GetTransferContext().interactionBag
+    RuntimeState.currentUsedBank = BETTERUI.Banking.GetActiveInteractionBag()
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
 
@@ -144,7 +176,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             self:RefreshItemActions()
         end
         if selectedControl and selectedControl.bagId then
-            BETTERUI.CIM.Utils.ClearTrackedInventorySlot(selectedControl.bagId, selectedControl.slotIndex)
+            ClearSelectedInventoryTracker(selectedControl.bagId, selectedControl.slotIndex)
             self:GetParametricList():RefreshList()
         end
     end

@@ -629,7 +629,12 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
     end
 
     if self.list.control and BETTERUI.CIM and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Initialize(self.list.control, 5, -8, -10, self.list)
+        BETTERUI.CIM.ScrollIndicator.Ensure(self.list.control, {
+            offsetX = 5,
+            offsetTopY = -8,
+            offsetBottomY = -10,
+        })
+        BETTERUI.CIM.ScrollIndicator.BindListObject(self.list.control, self.list)
     end
 end
 

@@ -4,15 +4,23 @@ BETTERUI.Banking = BETTERUI.Banking or {}
 BETTERUI.Banking.GuildBank = {}
 
 local GuildBank = BETTERUI.Banking.GuildBank
+local ProtectionPolicy = assert(
+    BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy,
+    "BetterUI: CIM.ProtectionPolicy must load before Banking/Core/GuildBankAdapter"
+)
 local DENY = assert(
-    BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY,
+    ProtectionPolicy and ProtectionPolicy.DENY,
     "BetterUI: CIM.ProtectionPolicy.DENY must load before Banking/Core/GuildBankAdapter"
 )
 assert(type(DENY.GUILD_PERMISSION) == "string",
     "BetterUI: CIM.ProtectionPolicy.DENY.GUILD_PERMISSION must be defined")
 
 function GuildBank.IsGuildBankMode()
-    return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    local isGuildBankTransfer = BETTERUI.Banking and BETTERUI.Banking.IsGuildBankTransfer or nil
+    if type(isGuildBankTransfer) == "function" then
+        return isGuildBankTransfer()
+    end
+    return false
 end
 
 function GuildBank.GetSelectedGuildId()

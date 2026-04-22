@@ -42,34 +42,6 @@ function BETTERUI.Inventory.InvokeDialog(methodName, ...)
     return true
 end
 
---- Resolves the active bank bag target for inventory deposit operations.
----@param defaultBag number|nil
----@return number|nil
-function BETTERUI.Inventory.ResolveDepositTargetBag(defaultBag)
-	local bankingBridge = BETTERUI.Inventory and BETTERUI.Inventory.BankingBridge
-	if bankingBridge and type(bankingBridge.GetTransferContext) == "function" then
-		local bridgedContext = bankingBridge.GetTransferContext()
-		local bridgedTarget = bridgedContext and bridgedContext.depositTargetBag or nil
-		if bridgedTarget ~= nil then
-			return bridgedTarget
-		end
-	end
-
-	local banking = BETTERUI.Banking
-	if banking and type(banking.GetTransferContext) == "function" then
-		local transferContext = banking.GetTransferContext()
-		local targetBag = transferContext and transferContext.depositTargetBag or nil
-		if targetBag ~= nil then
-			return targetBag
-		end
-	end
-
-	if defaultBag ~= nil then
-		return defaultBag
-	end
-	return rawget(_G, "BAG_BANK")
-end
-
 local function EnsureLegacyEquipSlotDialogAlias()
     BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.GetEquipSlotDialogName()
 end

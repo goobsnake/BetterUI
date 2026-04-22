@@ -1,10 +1,7 @@
-BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
-local GeneralInterface = BETTERUI.GeneralInterface
 local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
 local SETTINGS_OWNER = ARCHETYPES.SETTINGS_OWNER or "settings-owner"
 BETTERUI.Nameplates = BETTERUI.Nameplates or {}
 local Nameplates = BETTERUI.Nameplates
-GeneralInterface.Nameplates = Nameplates
 
 ---@type BetterUIModuleArchetypeSettingsOwner
 Nameplates.ARCHETYPE = SETTINGS_OWNER

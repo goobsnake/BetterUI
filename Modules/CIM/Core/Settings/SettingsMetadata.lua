@@ -9,6 +9,8 @@ Purpose: Settings metadata registry and default/reset management.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Settings then BETTERUI.CIM.Settings = {} end
+local OptionalAddons = assert(BETTERUI.CIM.OptionalAddons,
+    "BetterUI: CIM.OptionalAddons must load before SettingsMetadata")
 
 -- SETTINGS METADATA REGISTRY
 
@@ -256,7 +258,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = { "MasterMerchant", "ArkadiusTradeTools", "TamrielTradeCentre" },
+                addons = OptionalAddons.GetGlobals({ "MasterMerchant", "ArkadiusTradeTools", "TamrielTradeCentre" }),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
@@ -266,7 +268,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = { "MasterMerchant", "ArkadiusTradeTools" },
+                addons = OptionalAddons.GetGlobals({ "MasterMerchant", "ArkadiusTradeTools" }),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
@@ -276,7 +278,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_ATT_INTEGRATION_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = { "ArkadiusTradeTools" },
+                addons = OptionalAddons.GetGlobals({ "ArkadiusTradeTools" }),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
@@ -286,7 +288,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_MM_INTEGRATION_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = { "MasterMerchant" },
+                addons = OptionalAddons.GetGlobals({ "MasterMerchant" }),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
@@ -296,7 +298,7 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_TTC_INTEGRATION_TOOLTIP,
             defaultValue = true,
             dependency = {
-                addons = { "TamrielTradeCentre" },
+                addons = OptionalAddons.GetGlobals({ "TamrielTradeCentre" }),
             },
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
@@ -458,7 +460,7 @@ function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, resetGroup
         return
     end
 
-    local settings = BETTERUI.GetModuleSettings(moduleName)
+    local settings = BETTERUI.EnsureModuleSettings(moduleName)
     if not next(settings) then
         return
     end

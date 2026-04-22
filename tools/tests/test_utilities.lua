@@ -12,7 +12,6 @@ Usage:
 -- ============================================================================
 
 local debugOutput = {}
-
 BETTERUI = {
     CIM = {
         Utils = {},
@@ -41,11 +40,17 @@ BETTERUI = {
                 depositTargetBag = BAG_SUBSCRIBER_BANK,
             }
         end,
-        Class = {
+        Window = {
             list = {
                 marker = "bank-list",
             },
         },
+        GetSortEntryContext = function()
+            return {
+                list = BETTERUI.Banking.Window.list,
+                sortContext = BETTERUI.Banking.Window,
+            }
+        end,
     },
 }
 
@@ -170,37 +175,16 @@ print("\nTest: Debug prefixes messages")
 local debugMessage = BETTERUI.Debug("hello")
 assert_true(debugMessage:find("BETTERUI") ~= nil, "Debug output contains addon prefix")
 
--- ============================================================================
--- TESTS: Banking context seam helpers
--- ============================================================================
-
-print("\n=== Banking Context Helpers ===\n")
-
 assert_nil(BETTERUI.CIM.Utils.GetActiveBankTransferContext,
     "Banking context forwarding helper is removed from CIM utilities")
 assert_nil(BETTERUI.CIM.Utils.GetBankingTransferSupport,
     "Banking transfer-support forwarding helper is removed from CIM utilities")
-
-assert_equal(BAG_SUBSCRIBER_BANK, BETTERUI.Banking.GetTransferContext().depositTargetBag,
-    "bank target access resolves through the canonical banking transfer context seam")
-
-SCENE_MANAGER.scenes["gamepad_banking"] = {
-    IsShowing = function()
-        return true
-    end,
-}
-
-do
-    local sortContext = BETTERUI.CIM.Utils.GetBankingSortEntryContext()
-    assert_equal(BETTERUI.Banking.Class.list, sortContext.list,
-        "banking sort helper exposes the active banking list")
-    assert_equal(BETTERUI.Banking.Class, sortContext.sortContext,
-        "banking sort helper exposes the owning sort context")
-end
-
-SCENE_MANAGER.scenes["gamepad_banking"] = nil
-assert_nil(BETTERUI.CIM.Utils.GetBankingSortEntryContext(),
-    "banking sort helper returns nil when the banking scene is hidden")
+assert_nil(BETTERUI.CIM.Utils.GetBankingSortEntryContext,
+    "Banking sort-context forwarding helper is removed from CIM utilities")
+assert_nil(BETTERUI.CIM.Utils.CreateInventorySlotActions,
+    "Inventory slot-action forwarding helper is removed from CIM utilities")
+assert_nil(BETTERUI.CIM.Utils.ClearTrackedInventorySlot,
+    "Inventory tracker forwarding helper is removed from CIM utilities")
 
 -- ============================================================================
 -- SUMMARY

@@ -19,6 +19,12 @@ local function assert_contains(haystack, needle, label)
     end
 end
 
+local function assert_not_contains(haystack, needle, label)
+    if haystack:find(needle, 1, true) then
+        error(label .. "\nUnexpected: " .. needle)
+    end
+end
+
 print("test_registry_dependency_contract_source")
 
 local source = read_file("BetterUI.lua")
@@ -33,8 +39,8 @@ assert_contains(source, 'name = "Nameplates",',
     "Nameplates remains a first-class registry entry")
 assert_contains(source, 'dependsOnCIM = true,',
     "Nameplates registry entry declares its CIM dependency")
-assert_contains(source, 'depends = "GeneralInterface"',
-    "Nameplates registry entry still honors the GeneralInterface enablement dependency")
+assert_not_contains(source, 'depends = "GeneralInterface"',
+    "Nameplates registry entry does not use legacy GeneralInterface dependency gating")
 assert_contains(source, 'for _, entry in ipairs(MODULE_REGISTRY) do',
     "UpdateCIMState iterates the registry instead of duplicating dependent names")
 assert_contains(source, 'if entry.dependsOnCIM and BETTERUI.GetModuleEnabled(entry.name) then',

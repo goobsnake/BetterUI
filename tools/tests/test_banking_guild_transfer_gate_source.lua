@@ -32,23 +32,23 @@ end
 local multiSelect = read_file("Modules/Banking/Core/MultiSelectActions.lua")
 assert_true(multiSelect:find("ResolveGuildBankTransferDecision") ~= nil,
     "MultiSelectActions defines the shared guild-bank transfer decision helper")
-assert_true(multiSelect:find("NotifyGuildBankTransferDenied") ~= nil,
-    "MultiSelectActions exports the shared guild-bank denial notifier")
+assert_true(multiSelect:find("function TransferRules%.NotifyGuildBankTransferDenied") ~= nil,
+    "MultiSelectActions exports the shared guild-bank denial notifier through TransferRules")
 
 local transferActions = read_file("Modules/Banking/Actions/TransferActions.lua")
-assert_true(transferActions:find("NotifyGuildBankTransferDenied") ~= nil,
+assert_true(transferActions:find("TryTransferInventorySlot") ~= nil,
+    "TransferActions owns the single-slot Banking transfer seam")
+assert_true(transferActions:find("TransferRules%.NotifyGuildBankTransferDenied") ~= nil,
     "TransferActions routes guild-bank moves through the shared denial helper")
 
 local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")
-assert_true(genericSlotActions:find("NotifyGuildBankTransferDenied") ~= nil,
-    "GenericSlotActions checks the shared guild-bank denial helper before PlaceInTransfer")
-assert_true(genericSlotActions:find("IsDepositSupportedForBank") ~= nil,
-    "GenericSlotActions routes single-item bank deposits through shared transfer policy helper")
+assert_true(genericSlotActions:find("TryTransferInventorySlot") ~= nil,
+    "GenericSlotActions delegates single-item bank transfers to the Banking-owned seam")
 
 local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 assert_true(keybindManager:find("ResolveGuildBankTransferKeybindState") ~= nil,
     "KeybindManager centralizes guild-bank transfer keybind gating")
-assert_true(keybindManager:find("ResolveGuildBankTransferDecision") ~= nil,
+assert_true(keybindManager:find("transferRules and transferRules%.ResolveGuildBankTransferDecision") ~= nil,
     "KeybindManager reuses the shared guild-bank transfer decision helper")
 
 if failed > 0 then

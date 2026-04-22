@@ -132,6 +132,42 @@ function BETTERUI.Banking.GetTransferContext()
     return BuildTransferContext()
 end
 
+function BETTERUI.Banking.GetTransferKind()
+    return BuildTransferContext().kind
+end
+
+function BETTERUI.Banking.IsGuildBankTransfer()
+    return BuildTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+end
+
+function BETTERUI.Banking.IsMainBankTransfer()
+    return BuildTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+end
+
+function BETTERUI.Banking.IsHouseBankTransfer()
+    return BuildTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
+end
+
+function BETTERUI.Banking.GetActiveInteractionBag()
+    return BuildTransferContext().interactionBag
+end
+
+function BETTERUI.Banking.GetActiveDepositBag()
+    return BuildTransferContext().depositTargetBag
+end
+
+function BETTERUI.Banking.GetWithdrawSourceBags()
+    return BuildTransferContext().withdrawSourceBags
+end
+
+function BETTERUI.Banking.IsSourceFurnitureVaultTransfer()
+    return BuildTransferContext().sourceIsFurnitureVault == true
+end
+
+function BETTERUI.Banking.IsTargetFurnitureVaultTransfer()
+    return BuildTransferContext().targetIsFurnitureVault == true
+end
+
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
 local BankingDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,

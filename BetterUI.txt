@@ -31,6 +31,7 @@ Modules\CIM\Core\Presentation\NumberFormatting.lua
 Modules\CIM\Core\Presentation\SharedItemSupport.lua
 Modules\CIM\Core\Integration\HookFactory.lua
 Modules\CIM\Core\Integration\ResearchCache.lua
+Modules\CIM\Core\Integration\OptionalAddonRegistry.lua
 Modules\CIM\Core\Integration\MarketIntegration.lua
 Modules\CIM\Core\Integration\AutoCategoryIntegration.lua
 Modules\CIM\Core\Settings\SettingsMetadata.lua

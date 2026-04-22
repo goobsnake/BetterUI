@@ -46,77 +46,82 @@ function Writs.GetFormattedObjectives(questId)
 	return writConcate
 end
 
---- Backward-compatible alias.
----@deprecated Prefer `GetFormattedObjectives`.
-function Writs.Get(questId)
-	return Writs.GetFormattedObjectives(questId)
+local function BuildActiveWritLookup()
+	local activeWrits = {}
+	-- Resolve localized patterns once per scan (not per quest) — avoids
+	-- repeated GetCVar("language.2") calls inside a hot loop
+	local patterns = Writs.CONST.GetLocalizedPatterns()
+	for questId = 1, MAX_JOURNAL_QUESTS do
+		if IsValidQuestIndex(questId) and GetJournalQuestType(questId) == QUEST_TYPE_CRAFTING then
+			local questName = GetJournalQuestInfo(questId)
+			local currentWrit = -1
+			local questNameLower = string.lower(questName or "")
+			-- Order matters: last match wins as in the original chain.
+			for i = 1, #patterns do
+				local patternStr = patterns[i].pattern
+				local craft = patterns[i].craftType
+				if string.find(questNameLower, patternStr, 1, true) then
+					currentWrit = craft
+				end
+			end
+
+			if currentWrit ~= -1 then
+				activeWrits[currentWrit] = {
+					id = questId,
+					writLines = Writs.GetFormattedObjectives(questId),
+				}
+			end
+		end
+	end
+	return activeWrits
 end
 
 --- Rebuilds the active writ lookup from the quest journal.
----@return nil
+---@return boolean ok
+---@return string|nil err
 function Writs.RefreshActiveWrits()
-	Writs.List = {}
-	BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_REFRESH, function()
-		-- Resolve localized patterns once per scan (not per quest) — avoids
-		-- repeated GetCVar("language.2") calls inside a hot loop
-		local patterns = Writs.CONST.GetLocalizedPatterns()
-		for questId = 1, MAX_JOURNAL_QUESTS do
-			if IsValidQuestIndex(questId) then
-				if GetJournalQuestType(questId) == QUEST_TYPE_CRAFTING then
-				local questName, _, _, _, _, _ = GetJournalQuestInfo(questId)
-					local currentWrit = -1
-					local questNameLower = string.lower(questName or "")
-					-- Use patterns from Constants.lua for maintainability
-					-- Order matters: last match wins as in the original chain
-					for i = 1, #patterns do
-						local patternStr = patterns[i].pattern
-						local craft = patterns[i].craftType
-						if string.find(questNameLower, patternStr, 1, true) then
-							currentWrit = craft
-						end
-					end
-
-					if currentWrit ~= -1 then
-						Writs.List[currentWrit] = { id = questId, writLines = Writs.GetFormattedObjectives(questId) }
-					end
-				end
-			end
-		end
+	local nextList = nil
+	local ok, err = BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_REFRESH, function()
+		nextList = BuildActiveWritLookup()
 	end)
-end
-
---- Backward-compatible alias.
----@deprecated Prefer `RefreshActiveWrits`.
-function Writs.Update()
-	Writs.RefreshActiveWrits()
+	if ok == false then
+		return false, err
+	end
+	Writs.List = nextList or {}
+	return true, nil
 end
 
 --- Shows writ progress for the current crafting station.
 ---@param writType number CRAFTING_TYPE_* constant for the station
----@return nil
+---@return boolean ok
+---@return string|nil err
 function Writs.ShowForCraftType(writType)
-	BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_SHOW, function()
-		Writs.RefreshActiveWrits()
-		if Writs.List[writType] == nil then return end
+	local refreshOk, refreshErr = Writs.RefreshActiveWrits()
+	if not refreshOk then
+		return false, refreshErr
+	end
 
-		local questName, _, _, _, _, _ = GetJournalQuestInfo(Writs.List[writType].id)
-		-- Use cached control references for performance
+	local writEntry = Writs.List[writType]
+	if writEntry == nil then
+		return false, "no_active_writ"
+	end
+
+	local ok, err = BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_SHOW, function()
+		local questName = GetJournalQuestInfo(writEntry.id)
 		if m_writNameLabel then
 			m_writNameLabel:SetText(zo_strformat("|c0066ff[BETTERUI]|r <<1>>", questName))
 		end
 		if m_writDescLabel then
-			m_writDescLabel:SetText(zo_strformat("<<1>>", Writs.List[writType].writLines))
+			m_writDescLabel:SetText(zo_strformat("<<1>>", writEntry.writLines))
 		end
 		if m_writsPanel then
 			m_writsPanel:SetHidden(false)
 		end
 	end)
-end
-
---- Backward-compatible alias.
----@deprecated Prefer `ShowForCraftType`.
-function Writs.Show(writType)
-	Writs.ShowForCraftType(writType)
+	if ok == false then
+		return false, err
+	end
+	return true, nil
 end
 
 --- Hides the writ panel.
@@ -127,10 +132,4 @@ function Writs.HidePanel()
 	else
 		BETTERUI_WritsPanel:SetHidden(true)
 	end
-end
-
---- Backward-compatible alias.
----@deprecated Prefer `HidePanel`.
-function Writs.Hide()
-	Writs.HidePanel()
 end

@@ -53,15 +53,25 @@ assert_true(source:find("local function GetProtectionPolicy%(%s*%)") ~= nil,
     "CompanionActions resolves ProtectionPolicy through an accessor seam")
 assert_true(source:find("local ProtectionPolicy = BETTERUI%.CIM and BETTERUI%.CIM%.ProtectionPolicy") == nil,
     "CompanionActions avoids import-time ProtectionPolicy snapshots")
-assert_true(source:find("policy%.CanLockItem%(bagId, slotIndex%)") ~= nil,
+assert_true(source:find("local function RequireProtectionPolicyMethod%(methodName%)") ~= nil,
+    "CompanionActions centralizes required policy-method resolution")
+assert_true(source:find('RequireProtectionPolicyMethod%("CanLockItem"%)') ~= nil,
     "Companion lock actions consult the shared protection policy")
-assert_true(source:find("policy%.CanJunkItem%(bagId, slotIndex%)") ~= nil,
+assert_true(source:find('RequireProtectionPolicyMethod%("CanJunkItem"%)') ~= nil,
     "Companion junk actions consult the shared protection policy")
-assert_true(source:find("policy%.CanUnjunkItem%(bagId, slotIndex%)") ~= nil,
+assert_true(source:find('RequireProtectionPolicyMethod%("CanUnjunkItem"%)') ~= nil,
     "Companion unjunk actions consult the shared protection policy")
+assert_true(source:find("return not policy or policy.CanLockItem", 1, true) == nil,
+    "Companion lock actions no longer fail open when ProtectionPolicy is missing")
+assert_true(source:find("return not policy or policy.CanUnlockItem", 1, true) == nil,
+    "Companion unlock actions no longer fail open when ProtectionPolicy is missing")
+assert_true(source:find("return not policy or policy.CanJunkItem", 1, true) == nil,
+    "Companion junk actions no longer fail open when ProtectionPolicy is missing")
+assert_true(source:find("return not policy or policy.CanUnjunkItem", 1, true) == nil,
+    "Companion unjunk actions no longer fail open when ProtectionPolicy is missing")
 assert_true(source:find("BETTERUI%.Inventory and BETTERUI%.Inventory%.CanDestroyItemWithPolicy") ~= nil,
     "Companion destroy checks prefer the canonical inventory destroy-policy helper")
-assert_true(source:find("policy%.CanDestroyItem%(bagId, slotIndex, slotType%)") ~= nil,
+assert_true(source:find('RequireProtectionPolicyMethod%("CanDestroyItem"%)') ~= nil,
     "Companion destroy policy fallback includes slot-type context")
 assert_true(source:find("BETTERUI%.Inventory and BETTERUI%.Inventory%.TryDestroyItem") ~= nil,
     "Companion quick-destroy routes through the canonical inventory destroy executor")

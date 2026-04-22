@@ -56,6 +56,12 @@ assert_true(moduleLua:find("function BETTERUI%.Vendor%.ResolveActionId%(actionKe
     "Vendor module exposes canonical action-id resolution")
 assert_true(moduleLua:find("function BETTERUI%.Vendor%.AuthorizeInventoryAction%(actionType, bagId, slotIndex, vendorInstance%)") ~= nil,
     "Vendor module exposes shared authorization seam")
+assert_true(moduleLua:find("local function GetProtectionPolicy%(%s*%)") ~= nil,
+    "Vendor module resolves ProtectionPolicy through an explicit required-policy seam")
+assert_true(moduleLua:find("local function RequireProtectionPolicyMethod%(policy, methodName%)") ~= nil,
+    "Vendor module centralizes required policy-method resolution")
+assert_true(moduleLua:find("return false, \"no_item\"", 1, true) == nil,
+    "Vendor authorization seam no longer uses raw no_item fallback strings")
 
 local sellComponent = read_file("Modules/Vendor/Components/SellComponent.lua")
 assert_true(sellComponent:find("Vendor%.AuthorizeInventoryAction%(Vendor%.ACTION%.SELL, bagId, slotIndex, vendorInstance%)") ~= nil,

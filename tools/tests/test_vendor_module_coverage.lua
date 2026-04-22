@@ -195,6 +195,59 @@ assertEqual("fence_launder", BETTERUI.Vendor.ResolveActionId("FENCE_LAUNDER"), "
 assertEqual(nil, BETTERUI.Vendor.ResolveActionId("UNKNOWN"), "vendor action resolver rejects unknown keys")
 
 do
+    local originalProtectionPolicy = BETTERUI.CIM.ProtectionPolicy
+    local observed = {}
+    BETTERUI.CIM.ProtectionPolicy = {
+        CanVendorAction = function(actionType, bagId, slotIndex, context)
+            observed.actionType = actionType
+            observed.bagId = bagId
+            observed.slotIndex = slotIndex
+            observed.context = context
+            return false, "policy_denied"
+        end,
+    }
+
+    local vendorInstance = {
+        CanAfford = function(_, cost)
+            observed.canAffordCost = cost
+            return cost == 123
+        end,
+    }
+    local allowed, reason = BETTERUI.Vendor.AuthorizeInventoryAction("vendor_sell", 1, 4, vendorInstance)
+    assertTrue(allowed == false, "vendor authorization seam preserves explicit policy deny results")
+    assertEqual("policy_denied", reason, "vendor authorization seam preserves explicit policy deny reasons")
+    assertEqual("vendor_sell", observed.actionType, "vendor authorization seam forwards action type to policy")
+    assertEqual(1, observed.bagId, "vendor authorization seam forwards bag id to policy")
+    assertEqual(4, observed.slotIndex, "vendor authorization seam forwards slot index to policy")
+    assertTrue(type(observed.context) == "table" and type(observed.context.canAfford) == "function",
+        "vendor authorization seam forwards affordability context to policy")
+    assertTrue(observed.context.canAfford(123) == true and observed.canAffordCost == 123,
+        "vendor authorization seam affordability context delegates to vendor instance")
+
+    BETTERUI.CIM.ProtectionPolicy.CanVendorAction = nil
+    local missingMethodAccepted, missingMethodError = pcall(function()
+        BETTERUI.Vendor.AuthorizeInventoryAction("vendor_sell", 1, 4, vendorInstance)
+    end)
+    assertTrue(missingMethodAccepted == false,
+        "vendor authorization seam requires ProtectionPolicy.CanVendorAction instead of fail-open fallbacks")
+    assertTrue(type(missingMethodError) == "string"
+            and string.find(missingMethodError, "ProtectionPolicy.CanVendorAction must load", 1, true) ~= nil,
+        "vendor authorization seam raises an explicit missing CanVendorAction contract error")
+
+    BETTERUI.CIM.ProtectionPolicy = nil
+    local missingPolicyAccepted, missingPolicyError = pcall(function()
+        BETTERUI.Vendor.AuthorizeInventoryAction("vendor_sell", 1, 4, vendorInstance)
+    end)
+    assertTrue(missingPolicyAccepted == false,
+        "vendor authorization seam requires ProtectionPolicy instead of fail-open fallbacks")
+    assertTrue(type(missingPolicyError) == "string"
+            and string.find(missingPolicyError, "CIM.ProtectionPolicy must load before Vendor.AuthorizeInventoryAction", 1, true) ~= nil,
+        "vendor authorization seam raises an explicit missing policy contract error")
+
+    BETTERUI.CIM.ProtectionPolicy = originalProtectionPolicy
+end
+
+do
     local modePolicy = BETTERUI.Vendor.ModePolicy
     local mode = BETTERUI.Vendor.MODE and BETTERUI.Vendor.MODE.SELL or 2
     local readOnlyOwner = {

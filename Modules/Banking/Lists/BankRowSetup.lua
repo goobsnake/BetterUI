@@ -301,7 +301,7 @@ end
 
 function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     local getTransferTargetBag = function()
-        return BETTERUI.Banking.GetTransferContext().depositTargetBag
+        return BETTERUI.Banking.GetActiveDepositBag()
     end
     local transferTargetBankBag = type(getTransferTargetBag) == "function" and getTransferTargetBag() or BAG_BANK
     if not BETTERUI.Utils.IsBankingSceneShowing() then

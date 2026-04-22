@@ -249,25 +249,45 @@ BETTERUI = {
                 targetIsFurnitureVault = false,
             }
         end,
-        CanDepositIntoBank = function()
-            return depositAllowed, depositReason
+        IsGuildBankTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
         end,
-        NotifyTransferDenied = function(_, _, denyReason)
-            if denyReason == "stolen" then
-                table.insert(userNotifies, SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
-            end
+        IsMainBankTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
         end,
-        NotifyGuildBankTransferDenied = function(_, _, _, _)
-            if guildTransferAllowed then
-                return true, nil
-            end
-            if guildTransferNotifyWithText then
-                BETTERUI.CIM.UserAlertText("GuildTransfer", guildTransferReason)
-            else
-                BETTERUI.CIM.UserNotify("GuildTransfer", guildTransferReason)
-            end
-            return false, guildTransferReason
+        IsHouseBankTransfer = function()
+            return BETTERUI.Banking.GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK
         end,
+        GetActiveInteractionBag = function()
+            return BETTERUI.Banking.GetTransferContext().interactionBag
+        end,
+        GetActiveDepositBag = function()
+            return BETTERUI.Banking.GetTransferContext().depositTargetBag
+        end,
+        GetWithdrawSourceBags = function()
+            return BETTERUI.Banking.GetTransferContext().withdrawSourceBags
+        end,
+        TransferRules = {
+            CanDepositIntoBank = function()
+                return depositAllowed, depositReason
+            end,
+            NotifyTransferDenied = function(_, _, denyReason)
+                if denyReason == "stolen" then
+                    table.insert(userNotifies, SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
+                end
+            end,
+            NotifyGuildBankTransferDenied = function(_, _, _, _)
+                if guildTransferAllowed then
+                    return true, nil
+                end
+                if guildTransferNotifyWithText then
+                    BETTERUI.CIM.UserAlertText("GuildTransfer", guildTransferReason)
+                else
+                    BETTERUI.CIM.UserNotify("GuildTransfer", guildTransferReason)
+                end
+                return false, guildTransferReason
+            end,
+        },
         Tasks = {
             Schedule = function(_, _, delayMs, callback)
                 table.insert(scheduledTasks, { delay = delayMs, callback = callback })
@@ -468,7 +488,7 @@ assertEqual(44, secureMoves[1].args[4], "Deposit falls back to a stackable slot 
 resetState()
 window = createWindow()
 window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
-window:DisplaySelector(10)
+BETTERUI.Banking.CurrencySelector.DisplaySelector(window, 10)
 assertEqual(25, window.selector.maxValue, "DisplaySelector applies the transferable currency maximum")
 assertEqual("gold_texture", window.selectorTexture, "DisplaySelector swaps the selector icon")
 assertTrue(window.selector.activated == true, "DisplaySelector activates the selector")
@@ -481,7 +501,7 @@ window = createWindow()
 GetMaxCurrencyTransfer = function()
     return 0
 end
-window:DisplaySelector(10)
+BETTERUI.Banking.CurrencySelector.DisplaySelector(window, 10)
 assertEqual("No funds", userAlertTexts[1], "DisplaySelector alerts when no currency is transferable")
 GetMaxCurrencyTransfer = function()
     return 25
@@ -489,7 +509,7 @@ end
 
 resetState()
 window = createWindow()
-window:HideSelector()
+BETTERUI.Banking.CurrencySelector.HideSelector(window)
 assertTrue(window.selector.deactivated == true, "HideSelector deactivates the selector")
 assertTrue(window.listActivated == true, "HideSelector reactivates the list")
 assertEqual("add", keybindOps[#keybindOps - 1].op, "HideSelector restores currency keybinds")

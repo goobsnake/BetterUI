@@ -18,17 +18,26 @@ local BatchStepHandled = BatchConfig.BatchStepHandled
 local BatchStepQueued = BatchConfig.BatchStepQueued
 
 local function GetProtectionPolicy()
-    return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+    assert(type(policy) == "table",
+        "BetterUI: CIM.ProtectionPolicy must load before CIM batch-action policy checks")
+    return policy
+end
+
+local function RequireProtectionPolicyMethod(methodName)
+    local policy = GetProtectionPolicy()
+    local method = policy and policy[methodName] or nil
+    assert(type(method) == "function",
+        string.format("BetterUI: CIM.ProtectionPolicy.%s must load before CIM batch-action policy checks", tostring(methodName)))
+    return method
 end
 
 local function CanJunkItem(bagId, slotIndex)
-    local policy = GetProtectionPolicy()
-    return not policy or policy.CanJunkItem(bagId, slotIndex)
+    return RequireProtectionPolicyMethod("CanJunkItem")(bagId, slotIndex) == true
 end
 
 local function CanUnjunkItem(bagId, slotIndex)
-    local policy = GetProtectionPolicy()
-    return not policy or policy.CanUnjunkItem(bagId, slotIndex)
+    return RequireProtectionPolicyMethod("CanUnjunkItem")(bagId, slotIndex) == true
 end
 
 -- HELPERS
@@ -51,34 +60,11 @@ local function HasItemAtSlot(bagId, slotIndex)
 end
 
 local function CanLockItem(bagId, slotIndex)
-    local policy = GetProtectionPolicy()
-    if policy and policy.CanLockItem then
-        return policy.CanLockItem(bagId, slotIndex)
-    end
-    if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
-        return false
-    end
-    if not CanItemBePlayerLocked or not CanItemBePlayerLocked(bagId, slotIndex) then
-        return false
-    end
-    if IsItemPlayerLocked and IsItemPlayerLocked(bagId, slotIndex) then
-        return false
-    end
-    return true
+    return RequireProtectionPolicyMethod("CanLockItem")(bagId, slotIndex) == true
 end
 
 local function CanUnlockItem(bagId, slotIndex)
-    local policy = GetProtectionPolicy()
-    if policy and policy.CanUnlockItem then
-        return policy.CanUnlockItem(bagId, slotIndex)
-    end
-    if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
-        return false
-    end
-    if not IsItemPlayerLocked or not IsItemPlayerLocked(bagId, slotIndex) then
-        return false
-    end
-    return true
+    return RequireProtectionPolicyMethod("CanUnlockItem")(bagId, slotIndex) == true
 end
 
 BatchActions.ExtractSlot = ExtractSlot

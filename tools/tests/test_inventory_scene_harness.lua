@@ -111,26 +111,10 @@ BETTERUI = {
         DefaultSortComparator = function(left, right)
             return tostring(left.sortPriorityName or left.name or "") < tostring(right.sortPriorityName or right.name or "")
         end,
-        ResolveDepositTargetBag = function(defaultBag)
-            local banking = BETTERUI.Banking
-            if banking and type(banking.GetTransferContext) == "function" then
-                local transferContext = banking.GetTransferContext()
-                local targetBag = transferContext and transferContext.depositTargetBag or nil
-                if targetBag ~= nil then
-                    return targetBag
-                end
-            end
-            return defaultBag
-        end,
     },
     Banking = {
-        GetCurrentBank = function()
-            return BAG_BANK
-        end,
-        GetTransferContext = function()
-            return {
-                depositTargetBag = BAG_BANK,
-            }
+        GetActiveDepositBag = function()
+            return BAG_SUBSCRIBER_BANK
         end,
     },
 }

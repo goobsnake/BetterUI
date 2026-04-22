@@ -1,7 +1,18 @@
 if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
 local function GetProtectionPolicy()
-    return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+    assert(type(policy) == "table",
+        "BetterUI: CIM.ProtectionPolicy must load before CompanionActions policy checks")
+    return policy
+end
+
+local function RequireProtectionPolicyMethod(methodName)
+    local policy = GetProtectionPolicy()
+    local method = policy and policy[methodName] or nil
+    assert(type(method) == "function",
+        string.format("BetterUI: CIM.ProtectionPolicy.%s must load before CompanionActions policy checks", tostring(methodName)))
+    return method
 end
 
 local function CanDestroyItem(bagId, slotIndex, slotType)
@@ -9,28 +20,23 @@ local function CanDestroyItem(bagId, slotIndex, slotType)
         return BETTERUI.Inventory.CanDestroyItemWithPolicy(bagId, slotIndex, slotType) == true
     end
 
-    local policy = GetProtectionPolicy()
-    return not policy or policy.CanDestroyItem(bagId, slotIndex, slotType)
+    return RequireProtectionPolicyMethod("CanDestroyItem")(bagId, slotIndex, slotType) == true
 end
 
 local function CanLockItem(bagId, slotIndex)
-    local policy = GetProtectionPolicy()
-    return not policy or policy.CanLockItem(bagId, slotIndex)
+    return RequireProtectionPolicyMethod("CanLockItem")(bagId, slotIndex) == true
 end
 
 local function CanUnlockItem(bagId, slotIndex)
-    local policy = GetProtectionPolicy()
-    return not policy or policy.CanUnlockItem(bagId, slotIndex)
+    return RequireProtectionPolicyMethod("CanUnlockItem")(bagId, slotIndex) == true
 end
 
 local function CanJunkItem(bagId, slotIndex)
-    local policy = GetProtectionPolicy()
-    return not policy or policy.CanJunkItem(bagId, slotIndex)
+    return RequireProtectionPolicyMethod("CanJunkItem")(bagId, slotIndex) == true
 end
 
 local function CanUnjunkItem(bagId, slotIndex)
-    local policy = GetProtectionPolicy()
-    return not policy or policy.CanUnjunkItem(bagId, slotIndex)
+    return RequireProtectionPolicyMethod("CanUnjunkItem")(bagId, slotIndex) == true
 end
 
 local function SetCompanionItemLockState(bagId, slotIndex, locked)

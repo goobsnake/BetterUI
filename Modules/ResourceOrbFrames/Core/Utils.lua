@@ -39,10 +39,15 @@ end
 
 Controls.Find = BETTERUI.ControlUtils.FindControl
 
---- Module settings accessor alias for brevity in ResourceOrbFrames code.
----@return table settings Module settings table
+--- Module settings snapshot accessor for brevity in ResourceOrbFrames code.
+---@return table settings Detached module settings snapshot
 function Settings.Get()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")
+end
+
+---@return table settings Live module settings table
+function Settings.GetLive()
+    return BETTERUI.GetModuleSettingsLive("ResourceOrbFrames")
 end
 
 ---@return table settings Module settings table, creating it if needed

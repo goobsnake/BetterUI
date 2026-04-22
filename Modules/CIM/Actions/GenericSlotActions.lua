@@ -6,50 +6,28 @@ Purpose: Shared slot action helpers for Inventory and Banking modules.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
-local DENY = (BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY) or {
-    NO_CRAFT_ACCESS = "no_craft_access",
-    NOT_CRAFTABLE = "not_craftable",
-    STOLEN = "stolen",
-    NO_ITEM = "no_item",
-}
-
-local function NotifyTransferDenied(context, targetBag, denyReason)
-    local banking = BETTERUI.Banking
-    local notifyTransferDenied = banking and banking.NotifyTransferDenied
-    if type(notifyTransferDenied) ~= "function" then
-        return
-    end
-    notifyTransferDenied(context, targetBag, denyReason)
-end
-
 local function GetProtectionPolicy()
-    return BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
+    local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+    assert(type(policy) == "table",
+        "BetterUI: CIM.ProtectionPolicy must load before CIM generic-slot policy checks")
+    return policy
 end
 
-local function ResolvePolicyDeny(denyKey, fallbackValue)
+local function ResolvePolicyDeny(denyKey)
     local policy = GetProtectionPolicy()
     local denyTable = policy and policy.DENY
-    if denyTable and denyTable[denyKey] then
-        return denyTable[denyKey]
-    end
-    return fallbackValue
+    local denyValue = denyTable and denyTable[denyKey] or nil
+    assert(type(denyValue) == "string",
+        string.format("BetterUI: CIM.ProtectionPolicy.DENY.%s must be defined", tostring(denyKey)))
+    return denyValue
 end
 
 local function CanStowToCraftBagWithPolicy(bagId, slotIndex)
     local policy = GetProtectionPolicy()
-    if policy and policy.CanStowToCraftBag then
-        return policy.CanStowToCraftBag(bagId, slotIndex)
-    end
-    if not HasCraftBagAccess() then
-        return false, ResolvePolicyDeny("NO_CRAFT_ACCESS", DENY.NO_CRAFT_ACCESS)
-    end
-    if not CanItemBeVirtual(bagId, slotIndex) then
-        return false, ResolvePolicyDeny("NOT_CRAFTABLE", DENY.NOT_CRAFTABLE)
-    end
-    if IsItemStolen and IsItemStolen(bagId, slotIndex) then
-        return false, ResolvePolicyDeny("STOLEN", DENY.STOLEN)
-    end
-    return true
+    local canStowToCraftBag = policy and policy.CanStowToCraftBag or nil
+    assert(type(canStowToCraftBag) == "function",
+        "BetterUI: CIM.ProtectionPolicy.CanStowToCraftBag must load before craft-bag transfer checks")
+    return canStowToCraftBag(bagId, slotIndex)
 end
 
 -- SHARED ITEM ACTION HELPERS
@@ -93,69 +71,12 @@ end
 --- @return boolean ok true if the item was transferred
 --- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryBankItem(inventorySlot)
-    if not inventorySlot then return false, "no_slot" end
-    if not PLAYER_INVENTORY:IsBanking() then return false, "not_banking" end
-
-    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    local GuildBank = BETTERUI.Banking and BETTERUI.Banking.GuildBank
     local banking = BETTERUI.Banking
-    local notifyGuildBankTransferDenied = banking and banking.NotifyGuildBankTransferDenied or nil
-    local canDepositIntoBank = banking and banking.CanDepositIntoBank or nil
-    local isGuildBankMode = GuildBank and GuildBank.IsGuildBankMode and GuildBank.IsGuildBankMode()
-    local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
-    if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
-        -- Withdraw
-        if isGuildBankMode and notifyGuildBankTransferDenied then
-            local canTransfer, denyReason = notifyGuildBankTransferDenied("TryTransferItem:GuildWithdraw", BETTERUI.Banking.LIST_WITHDRAW, bag, index)
-            if not canTransfer then
-                return false, denyReason
-            end
-        end
-        if DoesBagHaveSpaceFor(BAG_BACKPACK, bag, index) then
-            CallSecureProtected("PickupInventoryItem", bag, index)
-            CallSecureProtected("PlaceInTransfer")
-            return true
-        else
-            BETTERUI.CIM.UserNotify("TryTransferItem:Withdraw", SI_INVENTORY_ERROR_INVENTORY_FULL)
-            return false, "inventory_full"
-        end
-    else
-        -- Deposit
-        local banking = BETTERUI.Banking
-        local transferContext = banking and banking.GetTransferContext and banking.GetTransferContext() or nil
-        local bankingBag = transferContext and transferContext.depositTargetBag or BAG_BANK
-        if isGuildBankMode and notifyGuildBankTransferDenied then
-            local canTransfer, denyReason = notifyGuildBankTransferDenied("TryTransferItem:GuildDeposit", BETTERUI.Banking.LIST_DEPOSIT, bag, index)
-            if not canTransfer then
-                return false, denyReason
-            end
-        end
-        if type(canDepositIntoBank) ~= "function" then
-            return false, "banking_transfer_unavailable"
-        end
-        local canDeposit, denyReason = canDepositIntoBank(bag, index, bankingBag)
-        if not canDeposit then
-            NotifyTransferDenied("TryTransferItem:Deposit", bankingBag, denyReason)
-            return false, denyReason
-        end
-
-        local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
-        if DoesBagHaveSpaceFor(bankingBag, bag, index) or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
-            CallSecureProtected("PickupInventoryItem", bag, index)
-            CallSecureProtected("PlaceInTransfer")
-            return true
-        else
-            if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
-                if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
-                    TriggerTutorial(TUTORIAL_TRIGGER_BANK_OVERFULL)
-                else
-                    TriggerTutorial(TUTORIAL_TRIGGER_BANK_FULL_NO_ESO_PLUS)
-                end
-            end
-            ZO_AlertEvent(EVENT_BANK_IS_FULL)
-            return false, "bank_full"
-        end
+    local tryTransferInventorySlot = banking and banking.TryTransferInventorySlot or nil
+    if type(tryTransferInventorySlot) ~= "function" then
+        return false, "banking_transfer_unavailable"
     end
+    return tryTransferInventorySlot(inventorySlot)
 end
 
 --- @param inventorySlot table the slot data table
@@ -175,7 +96,7 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
 
     local stackSize, maxStackSize = GetSlotStackSize(bag, index)
     if not stackSize or stackSize <= 0 then
-        return false, ResolvePolicyDeny("NO_ITEM", DENY.NO_ITEM)
+        return false, ResolvePolicyDeny("NO_ITEM")
     end
     if maxStackSize and stackSize >= maxStackSize then
         stackSize = maxStackSize

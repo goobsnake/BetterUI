@@ -122,16 +122,16 @@ do
     hasCraftBagAccess = false
     itemCanBeVirtual = true
     itemIsStolen = false
-    BETTERUI.CIM.ProtectionPolicy.DENY.NO_CRAFT_ACCESS = "deny_no_craft_access"
     BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag = nil
 
-    local moved, reason = BETTERUI.CIM.TryMoveToCraftBag({ bagId = BAG_BACKPACK, slotIndex = 4 }, BAG_VIRTUAL, 3)
+    local ok, err = pcall(BETTERUI.CIM.TryMoveToCraftBag, { bagId = BAG_BACKPACK, slotIndex = 4 }, BAG_VIRTUAL, 3)
 
-    assert_equal(moved, false, "fallback stow policy denies craft-bag access when unsupported")
-    assert_equal(reason, "deny_no_craft_access", "fallback stow policy resolves deny reason via shared constant")
-    assert_equal(#secureCalls, 0, "fallback stow denial avoids secure transfer calls")
+    assert_equal(ok, false, "missing CanStowToCraftBag policy method is a required-policy contract violation")
+    assert_true(type(err) == "string"
+            and string.find(err, "CanStowToCraftBag must load before craft-bag transfer checks", 1, true) ~= nil,
+        "missing CanStowToCraftBag policy method raises the explicit required-policy error")
+    assert_equal(#secureCalls, 0, "missing policy method avoids secure transfer calls")
 
-    BETTERUI.CIM.ProtectionPolicy.DENY.NO_CRAFT_ACCESS = "no_craft_access"
     BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag = defaultPolicyCanStow
 end
 

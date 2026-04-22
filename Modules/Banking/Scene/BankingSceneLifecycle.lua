@@ -32,7 +32,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         self.selector:Deactivate()
     end
 
-    RuntimeState.currentUsedBank = BETTERUI.Banking.GetTransferContext().interactionBag
+    RuntimeState.currentUsedBank = BETTERUI.Banking.GetActiveInteractionBag()
 
     -- Guild bank detection: update title and check permissions
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -145,7 +145,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         if not BETTERUI.Utils.IsBankingSceneShowing() then return end
         local relevantBags
         if self.currentMode == LIST_WITHDRAW then
-            relevantBags = BETTERUI.Banking.GetTransferContext().withdrawSourceBags
+            relevantBags = BETTERUI.Banking.GetWithdrawSourceBags()
         else
             relevantBags = { BAG_BACKPACK }
         end
@@ -211,7 +211,7 @@ end
 
 --- Scene hidden handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneHidden()
-    RuntimeState.lastUsedBank = BETTERUI.Banking.GetTransferContext().interactionBag
+    RuntimeState.lastUsedBank = BETTERUI.Banking.GetActiveInteractionBag()
     if self.confirmationMode then
         self:UpdateSpinnerConfirmation(false, self.list)
     end

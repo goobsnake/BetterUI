@@ -5,6 +5,8 @@ Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
+local TransferRules = assert(BETTERUI.Banking and BETTERUI.Banking.TransferRules,
+    "BetterUI: Banking.TransferRules must load before Banking/Actions/TransferActions")
 
 --- Finds the first empty slot in a personal or house bank bag.
 --- Guild bank deposits are handled separately by MoveItem before this is called.
@@ -12,7 +14,7 @@ local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 ---@return integer? bag The bank bag ID, or nil if no space
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank(targetBankBag)
-    targetBankBag = targetBankBag or BETTERUI.Banking.GetTransferContext().depositTargetBag
+    targetBankBag = targetBankBag or BETTERUI.Banking.GetActiveDepositBag()
     if targetBankBag == BAG_BANK then
         local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
         if emptySlotIndexBank ~= nil then
@@ -57,7 +59,80 @@ end
 ---@param targetBankBag number
 ---@param denyReason string|nil
 local function NotifyDepositBlocked(targetBankBag, denyReason)
-    BETTERUI.Banking.NotifyTransferDenied("Banking.TransferActions.Deposit", targetBankBag, denyReason)
+    TransferRules.NotifyTransferDenied("Banking.TransferActions.Deposit", targetBankBag, denyReason)
+end
+
+function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
+    if not inventorySlot then
+        return false, "no_slot"
+    end
+    if not PLAYER_INVENTORY:IsBanking() then
+        return false, "not_banking"
+    end
+
+    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    local isGuildBankMode = BETTERUI.Banking.IsGuildBankTransfer()
+    local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
+
+    if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
+        if isGuildBankMode then
+            local canTransfer, denyReason = TransferRules.NotifyGuildBankTransferDenied(
+                "TryTransferItem:GuildWithdraw",
+                LIST_WITHDRAW,
+                bag,
+                index
+            )
+            if not canTransfer then
+                return false, denyReason
+            end
+        end
+
+        if DoesBagHaveSpaceFor(BAG_BACKPACK, bag, index) then
+            CallSecureProtected("PickupInventoryItem", bag, index)
+            CallSecureProtected("PlaceInTransfer")
+            return true
+        end
+
+        BETTERUI.CIM.UserNotify("TryTransferItem:Withdraw", SI_INVENTORY_ERROR_INVENTORY_FULL)
+        return false, "inventory_full"
+    end
+
+    local bankingBag = BETTERUI.Banking.GetActiveDepositBag()
+    if isGuildBankMode then
+        local canTransfer, denyReason = TransferRules.NotifyGuildBankTransferDenied(
+            "TryTransferItem:GuildDeposit",
+            LIST_DEPOSIT,
+            bag,
+            index
+        )
+        if not canTransfer then
+            return false, denyReason
+        end
+    end
+
+    local canDeposit, denyReason = TransferRules.CanDepositIntoBank(bag, index, bankingBag)
+    if not canDeposit then
+        TransferRules.NotifyTransferDenied("TryTransferItem:Deposit", bankingBag, denyReason)
+        return false, denyReason
+    end
+
+    local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
+    if DoesBagHaveSpaceFor(bankingBag, bag, index)
+        or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
+        CallSecureProtected("PickupInventoryItem", bag, index)
+        CallSecureProtected("PlaceInTransfer")
+        return true
+    end
+
+    if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
+        if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
+            TriggerTutorial(TUTORIAL_TRIGGER_BANK_OVERFULL)
+        else
+            TriggerTutorial(TUTORIAL_TRIGGER_BANK_FULL_NO_ESO_PLUS)
+        end
+    end
+    ZO_AlertEvent(EVENT_BANK_IS_FULL)
+    return false, "bank_full"
 end
 
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
@@ -72,10 +147,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local isDepositing = (self.currentMode == LIST_DEPOSIT)
-    local transferContext = BETTERUI.Banking.GetTransferContext()
-    local targetBankBag = transferContext.depositTargetBag
-    local isDepositAllowedForCurrentBank = BETTERUI.Banking.CanDepositIntoBank
-    local notifyGuildBankTransferDenied = BETTERUI.Banking.NotifyGuildBankTransferDenied
+    local targetBankBag = BETTERUI.Banking.GetActiveDepositBag()
     if quantity == nil then
         quantity = 1
     end
@@ -122,12 +194,13 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 
     -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
-    local isGuildBank = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    local isGuildBank = BETTERUI.Banking.IsGuildBankTransfer()
     if isGuildBank then
         local bagId = fromBag
         local slotIndex = fromBagIndex
         local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
-        local canTransfer = notifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, bagId, slotIndex)
+        local canTransfer = TransferRules.NotifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, bagId,
+            slotIndex)
         if not canTransfer then
             return
         end
@@ -163,7 +236,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         toBag = BAG_BACKPACK
         toBagEmptyIndex = FindFirstEmptySlotInBag(toBag)
     else
-        local canDeposit, denyReason = isDepositAllowedForCurrentBank(fromBag, fromBagIndex, targetBankBag)
+        local canDeposit, denyReason = TransferRules.CanDepositIntoBank(fromBag, fromBagIndex, targetBankBag)
         if not canDeposit then
             NotifyDepositBlocked(targetBankBag, denyReason)
             return
@@ -191,7 +264,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
         else
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            if transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK then
+            if BETTERUI.Banking.IsHouseBankTransfer() then
                 banks = { targetBankBag }
             end
 
@@ -216,7 +289,6 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 end
 
----@param list table The parametric list
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     local DEACTIVATE_SPINNER = false
     if not self.confirmationMode then
@@ -229,17 +301,6 @@ function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     self:UpdateSpinnerConfirmation(DEACTIVATE_SPINNER, list)
 end
 
-function BETTERUI.Banking.Class:DisplaySelector(currencyType)
-    return CurrencySelector.DisplaySelector(self, currencyType)
-end
-
---- Hides the currency selector and restores the item list.
-function BETTERUI.Banking.Class:HideSelector()
-    return CurrencySelector.HideSelector(self)
-end
-
---- Shows the actions dialog for the selected item.
----@return nil
 function BETTERUI.Banking.Class:ShowActions()
     local list = self:GetList()
     local targetData = list and list.selectedData or nil

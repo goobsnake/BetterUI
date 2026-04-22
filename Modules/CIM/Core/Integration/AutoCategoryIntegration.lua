@@ -8,6 +8,8 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.AutoCategoryIntegration = BETTERUI.CIM.AutoCategoryIntegration or {}
 
 local AutoCategoryIntegration = BETTERUI.CIM.AutoCategoryIntegration
+local OptionalAddons = assert(BETTERUI.CIM.OptionalAddons,
+    "BetterUI: CIM.OptionalAddons must load before AutoCategoryIntegration")
 
 -- AUTOCATEGORY INTEGRATION
 
@@ -22,11 +24,12 @@ function AutoCategoryIntegration.GetCustomCategory(itemData)
     end
 
     local useCustomCategory = false
-    if AutoCategory and AutoCategory.Inited then
+    local autoCategory = OptionalAddons.GetGlobal("AutoCategory")
+    if autoCategory and autoCategory.Inited then
         useCustomCategory = true
         local bagId = itemData.bagId
         local slotIndex = itemData.slotIndex
-        local matched, categoryName, categoryPriority = AutoCategory:MatchCategoryRules(bagId, slotIndex)
+        local matched, categoryName, categoryPriority = autoCategory:MatchCategoryRules(bagId, slotIndex)
         return useCustomCategory, matched, categoryName, categoryPriority
     end
 

@@ -304,7 +304,6 @@ function BETTERUI.Inventory.List:New(...)
 end
 
 ---@class BetterUIInventoryListInitOptions
----@field control table UI control for the list container
 ---@field inventoryType number|number[] Inventory type constant(s)
 ---@field slotType number Slot type constant
 ---@field selectedDataCallback function|nil Callback for selection changes
@@ -316,65 +315,17 @@ end
 ---@field templateSetupFunction function|nil Full template setup override
 ---@field listModuleName string|nil Owning list module name
 
----@param controlOrOptions table|BetterUIInventoryListInitOptions
----@param inventoryType any
----@return boolean
-local function IsInitializeOptionsTable(controlOrOptions, inventoryType)
-    return type(controlOrOptions) == "table"
-        and type(controlOrOptions.control) == "table"
-        and inventoryType == nil
-        and (
-            controlOrOptions.inventoryType ~= nil
-            or controlOrOptions.slotType ~= nil
-            or controlOrOptions.selectedDataCallback ~= nil
-            or controlOrOptions.template ~= nil
-            or controlOrOptions.templateSetupFunction ~= nil
-            or controlOrOptions.listModuleName ~= nil
-            or controlOrOptions.useTriggers ~= nil
-        )
-end
-
----@return BetterUIInventoryListInitOptions
-local function NormalizeInitializeOptions(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
-                                         categoryResolver, sortFunction, useTriggers, template, templateSetupFunction)
-    if IsInitializeOptionsTable(control, inventoryType) then
-        return control
-    end
-
-    return {
-        control = control,
-        inventoryType = inventoryType,
-        slotType = slotType,
-        selectedDataCallback = selectedDataCallback,
-        entrySetupCallback = entrySetupCallback,
-        categoryResolver = categoryResolver,
-        sortFunction = sortFunction,
-        useTriggers = useTriggers,
-        template = template,
-        templateSetupFunction = templateSetupFunction,
-    }
-end
-
 --- Initializes the inventory list.
 --- Purpose: Sets up the parametric scroll list, data templates, and update callbacks.
 ---@param control table UI control for the list container
----@param inventoryType number|number[] Inventory type constant(s)
----@param slotType number Slot type constant
----@param selectedDataCallback function|nil Callback for selection changes
----@param entrySetupCallback function|nil Entry setup function
----@param categoryResolver function|nil Category assignment function
----@param sortFunction function|nil Sort comparator function
----@param useTriggers boolean|nil Whether to use trigger keybinds
----@param template string|nil Entry template name
----@param templateSetupFunction function|nil Template setup function
+---@param options BetterUIInventoryListInitOptions Explicit list initializer contract
 ---@return nil
-function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
-                                            categoryResolver, sortFunction, useTriggers, template,
-                                            templateSetupFunction)
-    local options = NormalizeInitializeOptions(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
-        categoryResolver, sortFunction, useTriggers, template, templateSetupFunction)
+function BETTERUI.Inventory.List:Initialize(control, options)
+    if type(options) ~= "table" then
+        error("BETTERUI.Inventory.List:Initialize expects options table", 2)
+    end
 
-    self.control = options.control
+    self.control = control
     self.selectedDataCallback = options.selectedDataCallback
     self.entrySetupCallback = options.entrySetupCallback
     self.categorizationFunction = options.categoryResolver
@@ -427,7 +378,12 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     -- The bottom offset compensates for the list anchor sitting 10px below the footer container.
     local listScrollControl = self.list and self.list.control
     if listScrollControl then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listScrollControl, 5, -8, -10, self.list)
+        BETTERUI.CIM.ScrollIndicator.Ensure(listScrollControl, {
+            offsetX = 5,
+            offsetTopY = -8,
+            offsetBottomY = -10,
+        })
+        BETTERUI.CIM.ScrollIndicator.BindListObject(listScrollControl, self.list)
     end
 
     local function SelectionChangedCallback(list, selectedData)

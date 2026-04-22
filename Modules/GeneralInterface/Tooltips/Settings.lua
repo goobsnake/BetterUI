@@ -42,21 +42,18 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         marketPriorityValues = values
     end
 
-    local function ResolveMarketAddonDependencies(settingKey, fallback)
+    local function ResolveMarketAddonDependencies(settingKey)
         local dependencyAddons = GetSettingDependencyAddons("GeneralInterface", settingKey)
         if type(dependencyAddons) == "table" and #dependencyAddons > 0 then
             return dependencyAddons
         end
-        return fallback
+        return {}
     end
 
-    local guildStoreAddonDeps = ResolveMarketAddonDependencies(
-        "guildStoreErrorSuppress",
-        { "ArkadiusTradeTools", "MasterMerchant" }
-    )
-    local attAddonDeps = ResolveMarketAddonDependencies("attIntegration", { "ArkadiusTradeTools" })
-    local mmAddonDeps = ResolveMarketAddonDependencies("mmIntegration", { "MasterMerchant" })
-    local ttcAddonDeps = ResolveMarketAddonDependencies("ttcIntegration", { "TamrielTradeCentre" })
+    local guildStoreAddonDeps = ResolveMarketAddonDependencies("guildStoreErrorSuppress")
+    local attAddonDeps = ResolveMarketAddonDependencies("attIntegration")
+    local mmAddonDeps = ResolveMarketAddonDependencies("mmIntegration")
+    local ttcAddonDeps = ResolveMarketAddonDependencies("ttcIntegration")
 
     local function GetOptionalAddonToggleValue(settingKey, addonDeps)
         if not IsAnyAddonDependencyLoaded(addonDeps) then

@@ -111,7 +111,7 @@ TamrielTradeCentrePrice = {
         }
     end,
 }
-
+dofile("Modules/CIM/Core/Integration/OptionalAddonRegistry.lua")
 dofile("Modules/CIM/Core/Integration/MarketIntegration.lua")
 
 print("[Market integration]")

@@ -1,9 +1,6 @@
 if BETTERUI == nil then BETTERUI = {} end
-BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
-local GeneralInterface = BETTERUI.GeneralInterface
 BETTERUI.Nameplates = BETTERUI.Nameplates or {}
 local Nameplates = BETTERUI.Nameplates
-GeneralInterface.Nameplates = Nameplates
 Nameplates.Settings = Nameplates.Settings or {}
 
 local NAMEPLATE_SIZE_MIN = 8

@@ -130,7 +130,12 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     -- Note: List BOTTOMRIGHT is anchored 10px below FooterContainerFooter's top,
     -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 5, -8, -10, self.itemList)
+        BETTERUI.CIM.ScrollIndicator.Ensure(listControl, {
+            offsetX = 5,
+            offsetTopY = -8,
+            offsetBottomY = -10,
+        })
+        BETTERUI.CIM.ScrollIndicator.BindListObject(listControl, self.itemList)
     end
 end
 
@@ -255,7 +260,8 @@ function BETTERUI.Inventory.Class:PopulateInventoryCategoryFields(itemData)
 
     local categoryName = bestCategoryDesc
     local sortPriorityName = bestCategoryDesc
-    if AutoCategory and AutoCategory.Inited then
+    local optionalAddons = BETTERUI.CIM and BETTERUI.CIM.OptionalAddons
+    if optionalAddons and optionalAddons.IsLoaded and optionalAddons.IsLoaded("AutoCategory") then
         local customCategory, matched, catName, catPriority = BETTERUI.CIM.AutoCategoryIntegration.GetCustomCategory(itemData)
         if customCategory and not matched then
             categoryName = AC_UNGROUPED_NAME
@@ -388,7 +394,7 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
                     self.itemList,
                     data,
                     self.pendingContext.currentBestCategoryName,
-                    AutoCategory ~= nil
+                    BETTERUI.CIM.OptionalAddons and BETTERUI.CIM.OptionalAddons.IsLoaded("AutoCategory")
                 )
             end
         end

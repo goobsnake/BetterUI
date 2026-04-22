@@ -7,6 +7,7 @@ Purpose: Manages keybind descriptors and registration for the Banking module.
 -- SHARED CONSTANTS & STATE
 local LIST_WITHDRAW           = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
+local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 ---@alias BetterUIBankingKeybindGroup BetterUIKeybindDescriptorGroup
 ---@alias BetterUIBankingListSource table|fun(): table|nil
 
@@ -37,16 +38,12 @@ local function IsActionableListEntry(entryData)
     return stackCount > 0
 end
 
-local function GetTransferContext()
-    return BETTERUI.Banking.GetTransferContext()
-end
-
 local function IsMainBankContext()
-    return GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
+    return BETTERUI.Banking.IsMainBankTransfer()
 end
 
 local function IsGuildBankMode()
-    return GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    return BETTERUI.Banking.IsGuildBankTransfer()
 end
 
 local function GetSelectedBankEntry(self)
@@ -259,7 +256,7 @@ local function CreateCoreNavigationKeybinds(self)
                 if self:IsBatchProcessing() then
                     return
                 end
-                local transferSourceBankBag = GetTransferContext().interactionBag
+                local transferSourceBankBag = BETTERUI.Banking.GetActiveInteractionBag()
                 if self.currentMode == LIST_WITHDRAW then
                     if transferSourceBankBag == BAG_BANK then
                         StackBag(BAG_BANK)
@@ -378,7 +375,7 @@ local function CreateCurrencySelectorKeybinds(self)
                         DepositCurrencyIntoBank(currencyType, amount)
                     end
                 end
-                self:HideSelector()
+                CurrencySelector.HideSelector(self)
                 self:RefreshFooter()
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
             end,
@@ -410,7 +407,7 @@ local function CreateCurrencyRowKeybinds(self)
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
                 self:SaveListPosition()
-                self:DisplaySelector(self:GetList().selectedData.currencyType)
+                CurrencySelector.DisplaySelector(self, self:GetList().selectedData.currencyType)
             end,
             visible = function()
                 return true
@@ -435,11 +432,12 @@ end
 
 ResolveGuildBankTransferKeybindState = function(self)
     local selectedData = self.list and self.list:GetSelectedData()
-    if not (GetTransferContext().kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK and IsActionableListEntry(selectedData)) then
+    if not (BETTERUI.Banking.IsGuildBankTransfer() and IsActionableListEntry(selectedData)) then
         return true, nil
     end
 
-    local resolveDecision = BETTERUI.Banking.ResolveGuildBankTransferDecision
+    local transferRules = BETTERUI.Banking and BETTERUI.Banking.TransferRules or nil
+    local resolveDecision = transferRules and transferRules.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
         return true, nil
     end
@@ -498,9 +496,6 @@ function BETTERUI.Banking.Class:UpdateActions()
     end
 end
 
---- Registers the banking keybind groups.
----@param self BetterUIBankingClass
----@return nil
 function BETTERUI.Banking.Class:AddKeybinds()
     if self.textSearchKeybindStripDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
@@ -513,17 +508,11 @@ function BETTERUI.Banking.Class:AddKeybinds()
     self:EnsureHeaderKeybindsActive()
 end
 
---- Unregisters the banking keybind groups.
----@param self BetterUIBankingClass
----@return nil
 function BETTERUI.Banking.Class:RemoveKeybinds()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
 end
 
---- Initializes the keybind descriptors for the banking module.
---- Wires coreKeybinds (navigation), withdrawDepositKeybinds (item moves),
---- currencyKeybinds (currency selector), and text search keybinds.
 ---@param self BetterUIBankingClass
 ---@return nil
 function BETTERUI.Banking.Class:InitializeKeybind()
@@ -550,7 +539,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         end
     ) -- "Back"
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.currencySelectorKeybinds, GAME_NAVIGATION_TYPE_BUTTON,
-        function() self:HideSelector() end)
+        function() CurrencySelector.HideSelector(self) end)
 
     local leftTrigger, rightTrigger = self:CreateListTriggerKeybindDescriptors(function() return self.list end)
     table.insert(self.coreKeybinds, leftTrigger)

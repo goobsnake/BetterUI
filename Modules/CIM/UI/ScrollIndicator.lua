@@ -22,54 +22,53 @@ local CreateIndicatorControls = I.CreateIndicatorControls or function() return {
 
 -- PUBLIC API
 
---- Initializes the scroll indicator for a parametric list.
---- Optionally sets up mouse interaction if listObject is provided.
----
+local function ApplyOffsets(instance, listControl, options)
+    local actualOffsetX = (options and options.offsetX) or (SCROLL_INDICATOR.TRACK and SCROLL_INDICATOR.TRACK.OFFSET_X or 25)
+    local actualOffsetTopY = (options and options.offsetTopY) or 0
+    local actualOffsetBottomY = (options and options.offsetBottomY) or 0
+    local container = instance and instance.controls and instance.controls.container
+    if not container then
+        return
+    end
+
+    container:ClearAnchors()
+    container:SetAnchor(TOPRIGHT, listControl, TOPRIGHT, actualOffsetX, actualOffsetTopY)
+    container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, actualOffsetX, actualOffsetBottomY)
+end
+
+local function EnsureMouseHandlers(instance)
+    if not instance or not instance.listObject or instance.mouseHandlersSetup then
+        return
+    end
+
+    SetupArrowMouseHandlers(instance)
+    SetupThumbDragHandlers(instance)
+    instance.mouseHandlersSetup = true
+end
+
+--- Ensures the scroll indicator exists for a parametric list and applies layout options.
 ---@param listControl table
----@param offsetX number?
----@param offsetTopY number?
----@param offsetBottomY number?
----@param listObject table?
+---@param options table|nil
 ---@return table? instance
-function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBottomY, listObject)
+function ScrollIndicator.Ensure(listControl, options)
     if not listControl then return nil end
 
     local controlName = listControl:GetName()
 
-    -- Return existing instance if already initialized
     if indicatorInstances[controlName] then
         local instance = indicatorInstances[controlName]
-
-        -- Update listObject if provided (allows late binding)
-        if listObject then
-            instance.listObject = listObject
-            -- Setup handlers if not already done
-            if not instance.mouseHandlersSetup then
-                SetupArrowMouseHandlers(instance)
-                SetupThumbDragHandlers(instance)
-                instance.mouseHandlersSetup = true
-            end
+        if options then
+            ApplyOffsets(instance, listControl, options)
         end
-
-        -- Update position if new offsets are provided (fixes caching bug)
-        if offsetX or offsetTopY or offsetBottomY then
-            local actualOffsetX = offsetX or (SCROLL_INDICATOR.TRACK and SCROLL_INDICATOR.TRACK.OFFSET_X or 25)
-            local actualOffsetTopY = offsetTopY or 0
-            local actualOffsetBottomY = offsetBottomY or 0
-
-            local container = instance.controls and instance.controls.container
-            if container then
-                container:ClearAnchors()
-                container:SetAnchor(TOPRIGHT, listControl, TOPRIGHT, actualOffsetX, actualOffsetTopY)
-                container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, actualOffsetX, actualOffsetBottomY)
-            end
-        end
-
         return instance
     end
 
-    -- Create new indicator
-    local controls = CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetBottomY)
+    local controls = CreateIndicatorControls(
+        listControl,
+        options and options.offsetX or nil,
+        options and options.offsetTopY or nil,
+        options and options.offsetBottomY or nil
+    )
 
     local instance = {
         listControl = listControl,
@@ -77,19 +76,27 @@ function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBott
         totalItems = 0,
         visibleItems = 0,
         currentIndex = 1,
-        listObject = listObject,
+        listObject = nil,
         mouseHandlersSetup = false,
     }
 
     indicatorInstances[controlName] = instance
+    ApplyOffsets(instance, listControl, options)
+    return instance
+end
 
-    -- Setup mouse interaction if listObject is provided
-    if listObject then
-        SetupArrowMouseHandlers(instance)
-        SetupThumbDragHandlers(instance)
-        instance.mouseHandlersSetup = true
+--- Binds the interactive list object for an existing indicator.
+---@param listControl table
+---@param listObject table|nil
+---@return table? instance
+function ScrollIndicator.BindListObject(listControl, listObject)
+    local instance = ScrollIndicator.Ensure(listControl)
+    if not instance then
+        return nil
     end
 
+    instance.listObject = listObject
+    EnsureMouseHandlers(instance)
     return instance
 end
 
@@ -107,9 +114,8 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     local controlName = listControl:GetName()
     local instance = indicatorInstances[controlName]
 
-    -- Auto-initialize if not already done
     if not instance then
-        instance = ScrollIndicator.Initialize(listControl)
+        instance = ScrollIndicator.Ensure(listControl)
     end
 
     if not instance or not instance.controls then return end

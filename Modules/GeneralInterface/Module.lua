@@ -4,8 +4,6 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 local GeneralInterface = BETTERUI.GeneralInterface
 local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
 local THIN_ENTRYPOINT = ARCHETYPES.THIN_ENTRYPOINT or "thin-entrypoint"
-BETTERUI.Nameplates = BETTERUI.Nameplates or {}
-GeneralInterface.Nameplates = BETTERUI.Nameplates -- compatibility alias
 
 local MODULE_NAME = "GeneralInterface"
 ---@type BetterUIModuleArchetypeThinEntrypoint

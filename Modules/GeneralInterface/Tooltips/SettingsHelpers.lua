@@ -9,6 +9,7 @@ if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local SettingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
+local OptionalAddons = BETTERUI.CIM and BETTERUI.CIM.OptionalAddons
 assert(SettingsApi and SettingsApi.GetSettingDefault and SettingsApi.ResetModuleSettingsByGroup,
     "BetterUI: CIM.Settings metadata helpers must load before GeneralInterface tooltip settings helpers")
 
@@ -115,12 +116,6 @@ local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAn
         return baseText
     end
 
-    local addonDisplayNames = {
-        ArkadiusTradeTools = "Arkadius Trade Tools",
-        MasterMerchant = "Master Merchant",
-        TamrielTradeCentre = "Tamriel Trade Centre",
-    }
-
     local shouldShowReason
     if requireAny then
         shouldShowReason = not IsAnyAddonDependencyLoaded(addonGlobals)
@@ -134,7 +129,9 @@ local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAn
 
     local addonListParts = {}
     for _, addonGlobal in ipairs(addonGlobals) do
-        addonListParts[#addonListParts + 1] = addonDisplayNames[addonGlobal] or addonGlobal
+        local displayName = OptionalAddons and OptionalAddons.GetDisplayName and OptionalAddons.GetDisplayName(addonGlobal)
+            or addonGlobal
+        addonListParts[#addonListParts + 1] = displayName
     end
     local addonList = table.concat(addonListParts, ", ")
     local reason = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP")), addonList)

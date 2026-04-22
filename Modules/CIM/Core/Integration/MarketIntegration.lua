@@ -10,6 +10,8 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 BETTERUI.CIM.MarketIntegration = BETTERUI.CIM.MarketIntegration or {}
 
 local MarketIntegration = BETTERUI.CIM.MarketIntegration
+local OptionalAddons = assert(BETTERUI.CIM.OptionalAddons,
+    "BetterUI: CIM.OptionalAddons must load before MarketIntegration")
 
 local function CloneArray(source)
     local clone = {}
@@ -143,7 +145,7 @@ local SOURCE_DEFS = {
     mm = {
         settingKey = "mmIntegration",
         isAvailable = function()
-            return MasterMerchant ~= nil
+            return OptionalAddons.IsLoaded("MasterMerchant")
         end,
         fetch = function(itemLink, stackCount)
             local unitPrice = FetchMasterMerchantUnitPrice(itemLink)
@@ -164,7 +166,7 @@ local SOURCE_DEFS = {
     att = {
         settingKey = "attIntegration",
         isAvailable = function()
-            return ArkadiusTradeTools ~= nil
+            return OptionalAddons.IsLoaded("ArkadiusTradeTools")
         end,
         fetch = function(itemLink, stackCount)
             local unitPrice = FetchArkadiusUnitPrice(itemLink)
@@ -185,7 +187,7 @@ local SOURCE_DEFS = {
     ttc = {
         settingKey = "ttcIntegration",
         isAvailable = function()
-            return TamrielTradeCentre ~= nil
+            return OptionalAddons.IsLoaded("TamrielTradeCentre")
                 and TamrielTradeCentrePrice ~= nil
                 and type(TamrielTradeCentrePrice.GetPriceInfo) == "function"
         end,

@@ -8,6 +8,18 @@ if not BETTERUI then BETTERUI = {} end
 
 ---@alias BetterUISettingsObserver fun()
 
+local function CloneSettingsValue(value)
+    if type(value) ~= "table" then
+        return value
+    end
+
+    local clone = {}
+    for key, item in pairs(value) do
+        clone[key] = CloneSettingsValue(item)
+    end
+    return clone
+end
+
 ---@overload fun(moduleName: "Inventory", defaults: BetterUIInventorySettings|nil): BetterUIInventorySettings
 ---@overload fun(moduleName: "Banking", defaults: BetterUIBankingSettings|nil): BetterUIBankingSettings
 ---@overload fun(moduleName: "Vendor", defaults: BetterUIVendorSettings|nil): BetterUIVendorSettings
@@ -20,8 +32,18 @@ if not BETTERUI then BETTERUI = {} end
 ---@overload fun(moduleName: "Writs", defaults: BetterUIWritsSettings|nil): BetterUIWritsSettings
 ---@param moduleName ModuleName Module name key
 ---@param defaults BetterUIModuleSettings|nil Fallback table if module settings are absent
----@return BetterUIModuleSettings settings The module's settings table, or defaults
+---@return BetterUIModuleSettings settings A detached settings snapshot, or defaults
 function BETTERUI.GetModuleSettings(moduleName, defaults)
+    if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules[moduleName] then
+        return CloneSettingsValue(BETTERUI.Settings.Modules[moduleName])
+    end
+    return CloneSettingsValue(defaults or {})
+end
+
+---@param moduleName ModuleName Module name key
+---@param defaults BetterUIModuleSettings|nil Fallback table if module settings are absent
+---@return BetterUIModuleSettings settings The live persisted settings table, or defaults
+function BETTERUI.GetModuleSettingsLive(moduleName, defaults)
     if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules[moduleName] then
         return BETTERUI.Settings.Modules[moduleName]
     end

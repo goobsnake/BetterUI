@@ -33,14 +33,14 @@ local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
 
 assert_contains(
     transferActions,
-    "local transferContext = BETTERUI.Banking.GetTransferContext()",
-    "TransferActions resolves transfer context through the owned Banking seam"
+    "local targetBankBag = BETTERUI.Banking.GetActiveDepositBag()",
+    "TransferActions resolves transfer destination through intent-level Banking helpers"
 )
 
 assert_contains(
     transferActions,
-    "local isDepositAllowedForCurrentBank = BETTERUI.Banking.CanDepositIntoBank",
-    "TransferActions resolves deposit authorization through the owned Banking seam"
+    "local TransferRules = assert(BETTERUI.Banking and BETTERUI.Banking.TransferRules",
+    "TransferActions resolves transfer authorization through the dedicated Banking transfer service"
 )
 
 assert_not_contains(
@@ -51,8 +51,14 @@ assert_not_contains(
 
 assert_contains(
     transferActions,
-    "local notifyGuildBankTransferDenied = BETTERUI.Banking.NotifyGuildBankTransferDenied",
-    "TransferActions binds guild-bank denial behavior directly from Banking"
+    "TransferRules.NotifyGuildBankTransferDenied",
+    "TransferActions binds guild-bank denial behavior through the dedicated Banking transfer service"
+)
+
+assert_contains(
+    transferActions,
+    "local isGuildBank = BETTERUI.Banking.IsGuildBankTransfer()",
+    "TransferActions resolves guild-bank mode through intent-level Banking helpers"
 )
 
 assert_not_contains(
@@ -71,6 +77,36 @@ assert_not_contains(
     keybindManager,
     "RequireTransferSupport",
     "KeybindManager no longer resolves transfer behavior through a generic Banking helper table"
+)
+
+assert_not_contains(
+    keybindManager,
+    "GetTransferContext().",
+    "KeybindManager no longer reads transfer-context fields directly"
+)
+
+assert_contains(
+    keybindManager,
+    "transferRules and transferRules.ResolveGuildBankTransferDecision",
+    "KeybindManager resolves guild-bank keybind gating through Banking.TransferRules"
+)
+
+assert_contains(
+    bankingClass,
+    "function BETTERUI.Banking.IsGuildBankTransfer()",
+    "BankingClass exposes IsGuildBankTransfer as the transfer-mode helper seam"
+)
+
+assert_contains(
+    bankingClass,
+    "function BETTERUI.Banking.GetActiveDepositBag()",
+    "BankingClass exposes GetActiveDepositBag for transfer destination checks"
+)
+
+assert_contains(
+    bankingClass,
+    "function BETTERUI.Banking.GetWithdrawSourceBags()",
+    "BankingClass exposes GetWithdrawSourceBags for withdraw source routing"
 )
 
 assert_contains(

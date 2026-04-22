@@ -222,6 +222,20 @@ function BETTERUI.Vendor.ReleaseDirectionalInputRegistrations(obj, includeMoveme
 	return releasedCount
 end
 
+local function GetProtectionPolicy()
+	local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
+	assert(type(policy) == "table",
+		"BetterUI: CIM.ProtectionPolicy must load before Vendor.AuthorizeInventoryAction")
+	return policy
+end
+
+local function RequireProtectionPolicyMethod(policy, methodName)
+	local method = policy and policy[methodName] or nil
+	assert(type(method) == "function",
+		string.format("BetterUI: CIM.ProtectionPolicy.%s must load before Vendor authorization use", tostring(methodName)))
+	return method
+end
+
 --- Shared vendor authorization seam for primary and batch sell/launder actions.
 ---@param actionType string
 ---@param bagId number
@@ -230,27 +244,18 @@ end
 ---@return boolean allowed
 ---@return string|nil reason
 function BETTERUI.Vendor.AuthorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
-	local policy = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy
-	if policy and policy.CanVendorAction then
-		local context = nil
-		if vendorInstance and vendorInstance.CanAfford then
-			context = {
-				canAfford = function(cost)
-					return vendorInstance:CanAfford(cost)
-				end,
-			}
-		end
-		return policy.CanVendorAction(actionType, bagId, slotIndex, context)
+	local policy = GetProtectionPolicy()
+	local canVendorAction = RequireProtectionPolicyMethod(policy, "CanVendorAction")
+	local context = nil
+	if vendorInstance and vendorInstance.CanAfford then
+		context = {
+			canAfford = function(cost)
+				return vendorInstance:CanAfford(cost)
+			end,
+		}
 	end
 
-	if not bagId or slotIndex == nil then
-		return false, "no_item"
-	end
-	local stackSize = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
-	if stackSize <= 0 then
-		return false, "no_item"
-	end
-	return true
+	return canVendorAction(actionType, bagId, slotIndex, context)
 end
 
 --- Gets junk sell value summary for batch sell UX.

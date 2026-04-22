@@ -33,6 +33,8 @@ local generalInterface = read_file("Modules/GeneralInterface/Module.lua")
 local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
 local nameplates = read_file("Modules/Nameplates/Nameplates.lua")
 local settings = read_file("Modules/Nameplates/Settings.lua")
+local contributingGuide = read_file("docs/guides/contributing-guide.md")
+local architectureDoc = read_file("docs/reference/architecture.md")
 
 assert_contains(types, '---| "Nameplates"',
     "ModuleName aliases include the Nameplates runtime identity")
@@ -46,15 +48,15 @@ assert_not_contains(bootstrap, "ResolveNameplatesNamespace",
     "Bootstrap no longer exposes split Nameplates namespace ownership seams")
 assert_contains(bootstrap, "BETTERUI.Nameplates = BETTERUI.Nameplates or {}",
     "Bootstrap initializes Nameplates as a first-class module namespace")
-assert_contains(bootstrap, "BETTERUI.GeneralInterface.Nameplates = BETTERUI.Nameplates",
-    "Bootstrap keeps GeneralInterface.Nameplates as compatibility alias only")
+assert_not_contains(bootstrap, "BETTERUI.GeneralInterface.Nameplates = BETTERUI.Nameplates",
+    "Bootstrap no longer publishes a GeneralInterface.Nameplates compatibility alias")
 assert_contains(bootstrap, 'moduleName = "Nameplates"',
     "Master module toggles expose Nameplates as a first-class module toggle")
 
 assert_not_contains(generalInterface, "GetNameplatesNamespace",
     "GeneralInterface no longer exports Nameplates namespace ownership seams")
-assert_contains(generalInterface, "GeneralInterface.Nameplates = BETTERUI.Nameplates",
-    "GeneralInterface keeps a compatibility alias to the dedicated Nameplates module")
+assert_not_contains(generalInterface, "GeneralInterface.Nameplates",
+    "GeneralInterface no longer carries Nameplates compatibility aliases")
 assert_not_contains(generalInterfaceSetup, "GetNameplateOptions",
     "GeneralInterface setup no longer owns Nameplates settings composition")
 assert_not_contains(generalInterfaceSetup, "SI_BETTERUI_NAMEPLATES_HEADER",
@@ -68,8 +70,8 @@ assert_contains(nameplates, 'name = "Nameplates",',
     "The Nameplates root contract uses the canonical module name")
 assert_contains(nameplates, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates runtime binds through the dedicated Nameplates module namespace")
-assert_contains(nameplates, "GeneralInterface.Nameplates = Nameplates",
-    "Nameplates runtime keeps the GeneralInterface alias synchronized for compatibility")
+assert_not_contains(nameplates, "GeneralInterface.Nameplates = Nameplates",
+    "Nameplates runtime no longer synchronizes GeneralInterface alias ownership")
 assert_contains(nameplates, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates setup registers a dedicated Nameplates settings panel")
 assert_contains(settings, "local Nameplates = BETTERUI.Nameplates",
@@ -78,5 +80,15 @@ assert_contains(settings, "Nameplates.Settings = Nameplates.Settings or {}",
     "Nameplates settings expose a dedicated panel registration seam")
 assert_contains(settings, "Nameplates.Settings.RegisterPanel = InitPanel",
     "Nameplates settings bind panel construction to the Nameplates settings seam")
+assert_not_contains(contributingGuide, "`settings-owner`: `Module.lua` is the canonical root and also owns the package's settings surface.",
+    "Contributing guide no longer claims settings-owner modules must root at Module.lua")
+assert_contains(contributingGuide, "`settings-owner`: one canonical root file owns both runtime and settings seams.",
+    "Contributing guide documents the shared settings-owner root ownership contract")
+assert_contains(contributingGuide, "`Nameplates` is a `settings-owner` package with [`Nameplates.lua`",
+    "Contributing guide documents Nameplates.lua as the Nameplates canonical root shape")
+assert_contains(architectureDoc, "| `settings-owner` | `Module.lua` **or** `<Module>.lua`, but ownership stays singular in one root |",
+    "Architecture doc allows both settings-owner canonical root shapes")
+assert_contains(architectureDoc, "`Nameplates` (`Nameplates.lua`)",
+    "Architecture doc records Nameplates.lua as the active Nameplates canonical root")
 
 print("  OK")

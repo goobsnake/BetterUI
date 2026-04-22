@@ -272,8 +272,8 @@ function ActionHandlers.OnSetup(self, dialog, data)
         sortContext = self
         showSortEntry = true
     elseif BETTERUI.Utils.IsBankingSceneShowing() then
-        local bankingSortContext = BETTERUI.CIM.Utils.GetBankingSortEntryContext
-            and BETTERUI.CIM.Utils.GetBankingSortEntryContext()
+        local getBankingSortContext = BETTERUI.Banking and BETTERUI.Banking.GetSortEntryContext or nil
+        local bankingSortContext = type(getBankingSortContext) == "function" and getBankingSortContext() or nil
         if bankingSortContext then
             currentList = bankingSortContext.list
             sortContext = bankingSortContext.sortContext

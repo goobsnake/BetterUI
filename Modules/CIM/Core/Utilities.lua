@@ -162,49 +162,6 @@ function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(fromBagId, fromSlotIndex,
     return FindFirstEmptySlotInBag(toBagId)
 end
 
----@return table|nil context Shared banking sort context with list and owner, or nil when unavailable
-function BETTERUI.CIM.Utils.GetBankingSortEntryContext()
-    if not IsBankingSceneShowing() then
-        return nil
-    end
-
-    local banking = BETTERUI.Banking
-    local bankingWindow = banking and banking.Window or nil
-    if bankingWindow and bankingWindow.list then
-        return {
-            list = bankingWindow.list,
-            sortContext = bankingWindow,
-        }
-    end
-
-    local bankingClass = banking and banking.Class or nil
-    if bankingClass and bankingClass.list then
-        return {
-            list = bankingClass.list,
-            sortContext = bankingClass,
-        }
-    end
-
-    return nil
-end
-
-function BETTERUI.CIM.Utils.CreateInventorySlotActions(alignment)
-    local inventory = BETTERUI.Inventory
-    local slotActions = inventory and inventory.SlotActions or nil
-    if slotActions and slotActions.New then
-        return slotActions:New(alignment)
-    end
-    return nil
-end
-
-function BETTERUI.CIM.Utils.ClearTrackedInventorySlot(bagId, slotIndex)
-    local inventory = BETTERUI.Inventory
-    local tracker = inventory and inventory.NewItemTracker or nil
-    if tracker and tracker.ClearImmediate then
-        tracker.ClearImmediate(bagId, slotIndex)
-    end
-end
-
 function BETTERUI.CIM.Utils.SetExternalToolbarHidden(hidden)
     if wykkydsToolbar then
         wykkydsToolbar:SetHidden(hidden)

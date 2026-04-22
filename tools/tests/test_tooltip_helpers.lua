@@ -238,6 +238,7 @@ end
 
 print("\n=== Tooltip Helper Tests ===\n")
 
+dofile("Modules/CIM/Core/Integration/OptionalAddonRegistry.lua")
 dofile("Modules/CIM/Core/Integration/MarketIntegration.lua")
 dofile("Modules/GeneralInterface/Tooltips/Tooltips.lua")
 
