@@ -70,6 +70,14 @@ function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryTy
 end
 
 function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
+    if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Cancel then
+        BETTERUI.Inventory.Tasks:Cancel("craftBatchProcess")
+    end
+    self.batchCallId = nil
+    self.pendingBatchData = nil
+    self.pendingBatchIndex = nil
+    self.pendingContext = nil
+
     -- Update empty-state text based on search context
     if searchQuery and tostring(searchQuery) ~= "" then
         self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
@@ -109,12 +117,6 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     table.sort(filteredDataTable, sortFunc)
 
     -- BATCH PROCESSING CONSTANTS (Using global BetterUI.Inventory.CONST)
-
-    -- Clear existing batch
-    if self.batchCallId then
-        EVENT_MANAGER:UnregisterForUpdate(self.batchCallId)
-        self.batchCallId = nil
-    end
 
     -- Small List: Synchronous
     if #filteredDataTable <= BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL then
@@ -186,7 +188,7 @@ function BETTERUI.Inventory.CraftList:ProcessBatch()
     self.pendingBatchIndex = endIndex + 1
 
     if self.pendingBatchIndex <= totalItems then
-        self.batchCallId = BETTERUI.Inventory.Tasks:Schedule("craftBatchProcess", 10, function() self:ProcessBatch() end)
+        BETTERUI.Inventory.Tasks:Schedule("craftBatchProcess", 10, function() self:ProcessBatch() end)
     else
         self.pendingBatchData = nil
     end

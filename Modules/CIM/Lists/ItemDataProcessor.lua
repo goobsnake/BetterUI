@@ -14,8 +14,10 @@ function BETTERUI.CIM.InitializeSharedItemVisualData(row, itemData)
     row.uniqueId = itemData.uniqueId
     row.bestItemCategoryName = itemData.bestGamepadItemCategoryName or itemData.bestItemCategoryName
     row:SetDataSource(itemData)
-    row.dataSource.requiredChampionPoints = GetItemRequiredChampionPoints(itemData.bagId, itemData.slotIndex)
-    row:AddIcon(itemData.icon)
+    if itemData.bagId ~= nil and itemData.slotIndex ~= nil then
+        row.dataSource.requiredChampionPoints = GetItemRequiredChampionPoints(itemData.bagId, itemData.slotIndex)
+    end
+    row:AddIcon(itemData.icon or itemData.iconFile)
     if not itemData.questIndex then
         row:SetNameColors(row:GetColorsBasedOnQuality(row.quality))
     end

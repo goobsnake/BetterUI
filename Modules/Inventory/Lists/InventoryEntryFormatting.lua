@@ -197,7 +197,21 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
             labelTxt = labelTxt .. zo_strformat(" |cFFFFFF(<<1>>)|r", data.stackCount)
         end
 
-        local itemData = data.cached_itemLink or GetItemLink(bagId, slotIndex)
+        local hasBagSlot = bagId ~= nil and slotIndex ~= nil
+        local itemData = data.cached_itemLink or dS.cached_itemLink
+        if not itemData and hasBagSlot then
+            itemData = GetItemLink(bagId, slotIndex)
+        end
+
+        if not itemData or itemData == "" then
+            label:SetText(labelTxt)
+            local labelColor = data:GetNameColor(selected)
+            if type(labelColor) == "function" then
+                labelColor = labelColor(data)
+            end
+            label:SetColor(labelColor:UnpackRGBA())
+            return
+        end
 
         local setItem = data.cached_setItem or GetItemLinkSetInfo(itemData, false)
         local hasEnchantment = data.cached_hasEnchantment or GetItemLinkEnchantInfo(itemData)
@@ -239,8 +253,13 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
             dS.cached_isTraitResearchable = isResearchableTrait
         end
 
-        local isUnbound = data.cached_isUnbound or
-            (not IsItemBound(bagId, slotIndex) and not data.stolen and data.quality ~= ITEM_QUALITY_TRASH)
+        local isUnbound = data.cached_isUnbound
+        if isUnbound == nil then
+            isUnbound = hasBagSlot
+                and not IsItemBound(bagId, slotIndex)
+                and not data.stolen
+                and data.quality ~= ITEM_QUALITY_TRASH
+        end
 
         if data.stolen then
             labelTxt = labelTxt .. " " .. BuildInlineIconTag(BETTERUI.CIM.CONST.ICONS.STOLEN, stolenIconSize)

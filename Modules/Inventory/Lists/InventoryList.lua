@@ -315,6 +315,13 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     local entryContext = ResolveEntryContext(data)
     if not entryContext then
+        local columnControls = ResolveEntryColumnControls(control, ResolveColumnFont(ResolveEntryModuleName(data)))
+        if columnControls then
+            columnControls.itemType:SetText(data.bestItemTypeName or "")
+            columnControls.trait:SetText("-")
+            columnControls.stat:SetText("-")
+            columnControls.value:SetText("-")
+        end
         return
     end
 
