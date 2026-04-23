@@ -8,6 +8,7 @@ if not BETTERUI.Inventory.State then BETTERUI.Inventory.State = {} end
 
 -- Module identifier constants from CIM
 local MODULES = BETTERUI.CIM.CONST.MODULES
+local NormalizeIdentityValue = BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
 
 --- Generates a stable string key for a category entry.
 --- @param categoryData table Category entry data from the category list
@@ -89,7 +90,7 @@ function BETTERUI.Inventory.ToSavedPosition(self)
             if saved and saved.uniqueId then
                 for i, data in ipairs(craftDataList) do
                     local uid = (data.dataSource and data.dataSource.uniqueId) or data.uniqueId
-                    if uid and Id64ToString(uid) == Id64ToString(saved.uniqueId) then
+                    if uid and NormalizeIdentityValue(uid) == NormalizeIdentityValue(saved.uniqueId) then
                         innerList:SetSelectedIndexWithoutAnimation(i, true, false)
                         restored = true
                         break

@@ -4,6 +4,44 @@
 
 local Class = BETTERUI.Inventory.Class
 local CompareNils = BETTERUI.CIM.Utils.CompareNils
+local NormalizeIdentityValue = BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
+
+local function GetSortDataSource(data)
+    return data and (data.dataSource or data) or nil
+end
+
+local function GetStableSortKey(data)
+    local itemData = GetSortDataSource(data)
+    if not itemData then
+        return ""
+    end
+    local uniqueId = itemData.uniqueId or data.uniqueId
+    local uniqueIdString = uniqueId and ((NormalizeIdentityValue and NormalizeIdentityValue(uniqueId)) or tostring(uniqueId)) or ""
+    return string.format("%s|%s|%s|%s",
+        tostring(itemData.name or data.name or ""),
+        tostring(itemData.bagId or data.bagId or ""),
+        tostring(itemData.slotIndex or data.slotIndex or ""),
+        uniqueIdString)
+end
+
+local function CompareStableFallback(left, right)
+    local defaultComparator = BETTERUI.Inventory and BETTERUI.Inventory.DefaultSortComparator
+    if type(defaultComparator) == "function" then
+        if defaultComparator(left, right) then
+            return true
+        end
+        if defaultComparator(right, left) then
+            return false
+        end
+    end
+
+    local leftKey = GetStableSortKey(left)
+    local rightKey = GetStableSortKey(right)
+    if leftKey == rightKey then
+        return false
+    end
+    return leftKey < rightKey
+end
 
 local function GetInventoryListTypes()
     local inventoryConstants = BETTERUI.Inventory and BETTERUI.Inventory.CONST
@@ -176,8 +214,10 @@ local function CreateColumnSortComparator(sortKey, ascending)
         return function(left, right)
             local leftVal = GetTraitSortValue(left)
             local rightVal = GetTraitSortValue(right)
+            if leftVal == nil and rightVal == nil then return CompareStableFallback(left, right) end
             local nilResult = CompareNils(leftVal, rightVal, true)
             if nilResult ~= nil then return nilResult end
+            if leftVal == rightVal then return CompareStableFallback(left, right) end
             if ascending then return leftVal < rightVal else return leftVal > rightVal end
         end
     end
@@ -187,12 +227,13 @@ local function CreateColumnSortComparator(sortKey, ascending)
         return function(left, right)
             local leftPrio, leftVal = GetStatSortValue(left)
             local rightPrio, rightVal = GetStatSortValue(right)
-            if leftPrio == 3 and rightPrio == 3 then return false end
+            if leftPrio == 3 and rightPrio == 3 then return CompareStableFallback(left, right) end
             if leftPrio == 3 then return false end
             if rightPrio == 3 then return true end
             if leftPrio ~= rightPrio then
                 if ascending then return leftPrio < rightPrio else return leftPrio > rightPrio end
             end
+            if leftVal == rightVal then return CompareStableFallback(left, right) end
             if ascending then return leftVal < rightVal else return leftVal > rightVal end
         end
     end
@@ -203,14 +244,15 @@ local function CreateColumnSortComparator(sortKey, ascending)
             local leftVal = GetValueSortValue(left)
             local rightVal = GetValueSortValue(right)
             if ascending then
-                if leftVal == 0 and rightVal == 0 then return false end
+                if leftVal == 0 and rightVal == 0 then return CompareStableFallback(left, right) end
                 if leftVal == 0 then return true end
                 if rightVal == 0 then return false end
             else
-                if leftVal == 0 and rightVal == 0 then return false end
+                if leftVal == 0 and rightVal == 0 then return CompareStableFallback(left, right) end
                 if leftVal == 0 then return false end
                 if rightVal == 0 then return true end
             end
+            if leftVal == rightVal then return CompareStableFallback(left, right) end
             if ascending then return leftVal < rightVal else return leftVal > rightVal end
         end
     end
@@ -219,8 +261,10 @@ local function CreateColumnSortComparator(sortKey, ascending)
     return function(left, right)
         local leftVal = left[sortKey]
         local rightVal = right[sortKey]
+        if leftVal == nil and rightVal == nil then return CompareStableFallback(left, right) end
         local nilResult = CompareNils(leftVal, rightVal, ascending)
         if nilResult ~= nil then return nilResult end
+        if leftVal == rightVal then return CompareStableFallback(left, right) end
         if type(leftVal) == "string" and type(rightVal) == "string" then
             if ascending then return leftVal < rightVal else return leftVal > rightVal end
         end

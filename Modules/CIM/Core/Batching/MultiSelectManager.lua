@@ -66,6 +66,19 @@ local function AddSelectionKey(keys, seen, key)
     end
 end
 
+local function NormalizeSelectionKeyValue(value)
+    if value == nil then
+        return nil
+    end
+    if Id64ToString and type(value) ~= "string" then
+        local ok, normalized = pcall(Id64ToString, value)
+        if ok and normalized ~= nil then
+            return tostring(normalized)
+        end
+    end
+    return tostring(value)
+end
+
 --- Gets all stable selection keys for an item.
 --- Some list rebuilds preserve only `uniqueId` or only `bagId/slotIndex`, so we retain both.
 --- @param itemData table The item data (may be ZO_GamepadEntryData or raw slot data)
@@ -81,11 +94,7 @@ function Manager:GetItemSelectionKeys(itemData)
 
     local uniqueId = rawData.uniqueId or itemData.uniqueId
     if uniqueId then
-        if Id64ToString then
-            AddSelectionKey(keys, seen, Id64ToString(uniqueId))
-        else
-            AddSelectionKey(keys, seen, tostring(uniqueId))
-        end
+        AddSelectionKey(keys, seen, NormalizeSelectionKeyValue(uniqueId))
     end
 
     local bagId = rawData.bagId or itemData.bagId
