@@ -9,11 +9,43 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 -- Localize frequently used globals
 local GetItemLink = GetItemLink
 local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
+local INVENTORY_LIST_MODULE_NAME = "Inventory"
 
 --- @param itemData table
 --- @return boolean
 local function IsStolenItem(itemData)
     return itemData.stolen
+end
+
+local function BuildQuestItemUniqueId(itemData)
+    return string.format("quest:%s:%s:%s:%s",
+        tostring(itemData.questIndex or ""),
+        tostring(itemData.toolIndex or ""),
+        tostring(itemData.stepIndex or ""),
+        tostring(itemData.conditionIndex or ""))
+end
+
+function BETTERUI.Inventory.Class:PrepareQuestItemListEntry(itemData)
+    local questStringId = rawget(_G, "SI_GAMEPAD_INVENTORY_QUEST_ITEMS")
+    local questCategoryName = questStringId and GetString(questStringId) or "Quest"
+
+    itemData.isQuestItem = true
+    itemData.stackCount = itemData.stackCount or 1
+    itemData.icon = itemData.icon or itemData.iconFile
+    itemData.iconFile = itemData.iconFile or itemData.icon
+    itemData.uniqueId = itemData.uniqueId or BuildQuestItemUniqueId(itemData)
+    itemData.bestItemTypeName = itemData.bestItemTypeName or questCategoryName
+    itemData.bestItemCategoryName = itemData.bestItemCategoryName or questCategoryName
+    itemData.bestGamepadItemCategoryName = itemData.bestGamepadItemCategoryName or questCategoryName
+    itemData.itemCategoryName = itemData.itemCategoryName or questCategoryName
+    itemData.sortPriorityName = itemData.sortPriorityName or string.format("%s%s", questCategoryName,
+        tostring(itemData.name or ""))
+    itemData.listModuleName = INVENTORY_LIST_MODULE_NAME
+    if itemData.questItemId and FindActionSlotMatchingSimpleAction then
+        itemData.isEquippedInCurrentCategory = FindActionSlotMatchingSimpleAction(ACTION_TYPE_QUEST_ITEM,
+            itemData.questItemId, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) ~= nil
+    end
+    ZO_InventorySlot_SetType(itemData, SLOT_TYPE_QUEST_ITEM)
 end
 
 --- Gets a comparator function for filtering item data.
@@ -61,10 +93,26 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         return
     end
 
-    local targetCategoryData = self.categoryList.selectedData -- Use safe access if possible, or direct
+    local targetCategoryData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
+    if not targetCategoryData and self.categoryList.dataList and #self.categoryList.dataList > 0 then
+        local restoreIndex = self.categoryList.targetSelectedIndex or self.categoryList.selectedIndex or 1
+        restoreIndex = zo_clamp(restoreIndex, 1, #self.categoryList.dataList)
+        if self.categoryList.SetSelectedIndexWithoutAnimation then
+            self.categoryList:SetSelectedIndexWithoutAnimation(restoreIndex, true, false)
+        else
+            self.categoryList.selectedIndex = restoreIndex
+            self.categoryList.targetSelectedIndex = restoreIndex
+            self.categoryList.selectedData = self.categoryList.dataList[restoreIndex]
+            self.categoryList.targetData = self.categoryList.selectedData
+        end
+        targetCategoryData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
+    end
+
     if not targetCategoryData then
-        -- Fallback if SafeGetTargetData is not available here or mixin failed
-        targetCategoryData = self.categoryList.targetData or self.categoryList.selectedData
+        if self.itemList.Commit then
+            self.itemList:Commit()
+        end
+        return
     end
 
     local filteredEquipSlot = targetCategoryData.equipSlot
@@ -80,7 +128,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
         for _, questItems in pairs(questCache) do
             for _, questItem in pairs(questItems) do
-                ZO_InventorySlot_SetType(questItem, SLOT_TYPE_QUEST_ITEM)
+                self:PrepareQuestItemListEntry(questItem)
                 filteredDataTable[#filteredDataTable + 1] = questItem
             end
         end
@@ -165,7 +213,11 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     -- Populate the canonical display and sort metadata before table.sort so full
     -- refreshes and live updates use the same category/type source fields.
     for i = 1, #filteredDataTable do
-        self:PopulateInventoryCategoryFields(filteredDataTable[i])
+        if isQuestItem then
+            self:PrepareQuestItemListEntry(filteredDataTable[i])
+        else
+            self:PopulateInventoryCategoryFields(filteredDataTable[i])
+        end
     end
 
     -- Use the list's custom sort function if set, otherwise fall back to default
@@ -215,7 +267,8 @@ end
 ---@param selectedData table|nil Selected item data for tooltip display
 ---@return nil
 function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
-    if not selectedData or not selectedData.dataSource or not selectedData.dataSource.bagId then
+    local selectedDataSource = selectedData and (selectedData.dataSource or selectedData) or nil
+    if not selectedData or not selectedDataSource then
         if GAMEPAD_TOOLTIPS then
             GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
             GAMEPAD_TOOLTIPS:ResetScrollTooltipToTop(GAMEPAD_RIGHT_TOOLTIP)
@@ -224,20 +277,33 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
     end
 
     GAMEPAD_TOOLTIPS:ResetScrollTooltipToTop(GAMEPAD_RIGHT_TOOLTIP)
+    local bagId = selectedDataSource.bagId or selectedData.bagId
+    local slotIndex = selectedDataSource.slotIndex or selectedData.slotIndex
 
-    local isQuest = ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_QUEST)
+    local isQuest = selectedData.isQuestItem == true
+        or selectedDataSource.isQuestItem == true
+        or ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_QUEST)
+
+    if not isQuest and bagId == nil then
+        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        return
+    end
 
     if isQuest then
-        if selectedData.toolIndex then
+        local questIndex = selectedData.questIndex or selectedDataSource.questIndex
+        local toolIndex = selectedData.toolIndex or selectedDataSource.toolIndex
+        local stepIndex = selectedData.stepIndex or selectedDataSource.stepIndex
+        local conditionIndex = selectedData.conditionIndex or selectedDataSource.conditionIndex
+
+        if toolIndex then
             GAMEPAD_TOOLTIPS:LayoutQuestItem(GAMEPAD_LEFT_TOOLTIP,
-                GetQuestToolQuestItemId(selectedData.questIndex, selectedData.toolIndex))
-        elseif selectedData.stepIndex and selectedData.conditionIndex then
+                GetQuestToolQuestItemId(questIndex, toolIndex))
+        elseif stepIndex and conditionIndex then
             GAMEPAD_TOOLTIPS:LayoutQuestItem(GAMEPAD_LEFT_TOOLTIP,
-                GetQuestConditionQuestItemId(selectedData.questIndex, selectedData.stepIndex,
-                    selectedData.conditionIndex))
-        else
+                GetQuestConditionQuestItemId(questIndex, stepIndex, conditionIndex))
+        elseif bagId and slotIndex then
             -- Item fallback for quest items with missing metadata
-            GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+            GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, bagId, slotIndex)
         end
     else
         -- Normal items
@@ -252,9 +318,9 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
         end
 
         if not showRightTooltip then
-            GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+            GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, bagId, slotIndex)
         else
-            if selectedData.bagId ~= nil and selectedData.slotIndex ~= nil then
+            if bagId ~= nil and slotIndex ~= nil then
                 self:UpdateRightTooltip(selectedData)
             end
         end
@@ -262,24 +328,24 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 
     -- Safety: Ensure BetterUI tooltip properties are set (in case GeneralInterface hooks are disabled)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-    if tooltip and selectedData.bagId then
-        tooltip._betterui_bagId = selectedData.bagId
-        tooltip._betterui_slotIndex = selectedData.slotIndex
-        tooltip._betterui_itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
+    if tooltip and bagId then
+        tooltip._betterui_bagId = bagId
+        tooltip._betterui_slotIndex = slotIndex
+        tooltip._betterui_itemLink = GetItemLink(bagId, slotIndex)
         tooltip._betterui_storeStackCount = nil
     end
 
     if selectedData.isEquippedInCurrentCategory or selectedData.isEquippedInAnotherCategory or selectedData.equipSlot then
-        local slotIndex = selectedData.bagId == BAG_WORN and selectedData.slotIndex or nil
-        BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, slotIndex)
+        local equippedSlotIndex = bagId == BAG_WORN and slotIndex or nil
+        BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, equippedSlotIndex)
     else
         BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
 
         -- INV-001: Inject stat comparison for non-equipped items
         if BETTERUI.CIM.SharedItemSupport.IsItemComparisonEnabled()
-            and selectedData.bagId and selectedData.slotIndex then
-            local itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
-            local result = BETTERUI.CIM.SharedItemSupport.CompareItem(itemLink, selectedData.bagId, selectedData.slotIndex)
+            and bagId and slotIndex then
+            local itemLink = GetItemLink(bagId, slotIndex)
+            local result = BETTERUI.CIM.SharedItemSupport.CompareItem(itemLink, bagId, slotIndex)
             local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(GAMEPAD_LEFT_TOOLTIP)
             BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip(container, result)
         else
@@ -294,31 +360,32 @@ end
 ---@return nil
 function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
     local selectedItemData = selectedData
+    local selectedDataSource = selectedItemData and (selectedItemData.dataSource or selectedItemData) or nil
+    local bagId = selectedDataSource and (selectedDataSource.bagId or selectedItemData.bagId) or nil
+    local slotIndex = selectedDataSource and (selectedDataSource.slotIndex or selectedItemData.slotIndex) or nil
     local selectedEquipSlot
 
     if self:GetCurrentList() == self.itemList then
-        if selectedItemData ~= nil and selectedItemData.dataSource ~= nil then
-            selectedEquipSlot = self:GetEquipSlotForEquipType(selectedItemData.dataSource.equipType)
+        if selectedDataSource ~= nil then
+            selectedEquipSlot = self:GetEquipSlotForEquipType(selectedDataSource.equipType)
         end
     else
         selectedEquipSlot = 0
     end
 
     -- Check if item supports comparison (has valid equipType)
-    local canCompare = selectedItemData ~= nil and
-        selectedItemData.dataSource ~= nil and
-        selectedItemData.dataSource.equipType ~= nil and
-        selectedItemData.dataSource.equipType ~= 0
+    local canCompare = selectedDataSource ~= nil and
+        selectedDataSource.equipType ~= nil and
+        selectedDataSource.equipType ~= 0
 
     if canCompare and selectedEquipSlot then
         -- Comparison View: Overwrites the Left Tooltip with comparison data
-        GAMEPAD_TOOLTIPS:LayoutItemStatComparison(GAMEPAD_LEFT_TOOLTIP, selectedItemData.bagId,
-            selectedItemData.slotIndex, selectedEquipSlot)
+        GAMEPAD_TOOLTIPS:LayoutItemStatComparison(GAMEPAD_LEFT_TOOLTIP, bagId, slotIndex, selectedEquipSlot)
         GAMEPAD_TOOLTIPS:SetStatusLabelText(GAMEPAD_LEFT_TOOLTIP,
             GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ITEM_COMPARE_TOOLTIP_TITLE")))
-    elseif selectedItemData ~= nil and selectedItemData.bagId ~= nil and selectedItemData.slotIndex ~= nil then
+    elseif selectedItemData ~= nil and bagId ~= nil and slotIndex ~= nil then
         -- Fallback: Show standard tooltip for non-comparable items
-        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedItemData.bagId, selectedItemData.slotIndex)
+        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, bagId, slotIndex)
         -- Reset switchInfo since this item can't be compared
         self.switchInfo = false
     elseif selectedEquipSlot and GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, BAG_WORN, selectedEquipSlot) then

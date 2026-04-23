@@ -10,15 +10,17 @@ local zo_strformat = zo_strformat
 local GetBestItemCategoryDescription = BETTERUI.CIM.SharedItemSupport.GetBestItemCategoryDescription
 local WouldEquipmentBeHidden = WouldEquipmentBeHidden
 local FindActionSlotMatchingItem = FindActionSlotMatchingItem
-local Id64ToString = Id64ToString
 local INVENTORY_LIST_MODULE_NAME = "Inventory"
+local NormalizeIdentityValue = BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
 
 --- @param left {uniqueId: userdata}
 --- @param right {uniqueId: userdata}
 --- @return boolean
 local function MenuEntryTemplateEquality(left, right)
-    -- Convert to string to ensure consistent comparison even if userdata instances differ
-    return Id64ToString(left.uniqueId) == Id64ToString(right.uniqueId)
+    -- Convert to string to ensure consistent comparison even if userdata instances differ.
+    local leftId = left and left.uniqueId and NormalizeIdentityValue(left.uniqueId)
+    local rightId = right and right.uniqueId and NormalizeIdentityValue(right.uniqueId)
+    return leftId ~= nil and leftId == rightId
 end
 
 --- @param list table Scroll list instance
@@ -284,6 +286,11 @@ end
 ---@param isQuestItem boolean
 ---@return nil
 function BETTERUI.Inventory.Class:PrepareInventoryListEntry(itemData, filteredEquipSlot, isQuestItem)
+    if isQuestItem then
+        self:PrepareQuestItemListEntry(itemData)
+        return
+    end
+
     self:PopulateInventoryCategoryFields(itemData)
 
     if itemData.bagId == BAG_WORN then
@@ -318,14 +325,14 @@ function BETTERUI.Inventory.Class:CaptureItemListRefreshTarget()
     local preservedIndex = self._preserveIndex
 
     if self._splitStackUniqueId then
-        targetUniqueId = Id64ToString(self._splitStackUniqueId)
+        targetUniqueId = NormalizeIdentityValue(self._splitStackUniqueId)
         self._splitStackUniqueId = nil
     elseif self._preserveUniqueId then
-        targetUniqueId = Id64ToString(self._preserveUniqueId)
+        targetUniqueId = NormalizeIdentityValue(self._preserveUniqueId)
         self._preserveUniqueId = nil
     elseif self.currentlySelectedData then
         if self.currentlySelectedData.uniqueId then
-            targetUniqueId = Id64ToString(self.currentlySelectedData.uniqueId)
+            targetUniqueId = NormalizeIdentityValue(self.currentlySelectedData.uniqueId)
         end
         if self.currentlySelectedData.savedIndex then
             targetIndex = self.currentlySelectedData.savedIndex
@@ -419,7 +426,7 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
             if dataList then
                 for i, data in ipairs(dataList) do
                     local itemUniqueId = (data.dataSource and data.dataSource.uniqueId) or data.uniqueId
-                    if itemUniqueId and Id64ToString(itemUniqueId) == targetUniqueId then
+                    if itemUniqueId and NormalizeIdentityValue(itemUniqueId) == targetUniqueId then
                         self.itemList:SetSelectedIndexWithoutAnimation(i, true, false)
                         restored = true
                         break

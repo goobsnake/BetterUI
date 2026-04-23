@@ -79,13 +79,13 @@ end
 ---@param iconFile string Path to category icon texture
 ---@param FilterFunct function|nil Custom filter function for items in this category
 ---@return table entryData Category entry data
-function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFunct)
+function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFunct, forceAdd)
     if FilterFunct == nil then
         FilterFunct = ZO_InventoryUtils_DoesNewItemMatchFilterType
     end
 
-    local isListEmpty = self:IsItemListEmpty(nil, filterType)
-    if not isListEmpty then
+    local isListEmpty = (not forceAdd) and self:IsItemListEmpty(nil, filterType)
+    if forceAdd or not isListEmpty then
         local name
         if filterType == nil then
             name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL"))
@@ -225,7 +225,11 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
             elseif catDef.key == "Quest" then
                 local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
                 local questCount = 0
-                for _ in pairs(questCache) do questCount = questCount + 1 end
+                for _, questItems in pairs(questCache) do
+                    for _ in pairs(questItems) do
+                        questCount = questCount + 1
+                    end
+                end
                 if questCount > 0 then
                     local name = GetString(catDef.nameStringId)
                     data = ZO_GamepadEntryData:New(name, catDef.iconFile)
@@ -261,7 +265,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                 local isListEmpty = self:IsItemListEmpty(nil, catDef.filterType)
 
                 if catDef.isStatic or not isListEmpty then
-                    self:NewCategoryItem(catDef.filterType, catDef.iconFile)
+                    self:NewCategoryItem(catDef.filterType, catDef.iconFile, nil, catDef.isStatic)
                     shouldAdd = false -- Handled by NewCategoryItem
                 end
             end
