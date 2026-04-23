@@ -326,10 +326,13 @@ function Class:BatchDestroy()
     for _, itemData in ipairs(allItems) do
         if CanDestroyInventoryItem(itemData) then
             local rawData = itemData.dataSource or itemData
+            local bagId = rawData.bagId or itemData.bagId
+            local slotIndex = rawData.slotIndex or itemData.slotIndex
             table.insert(itemsToDestroy, {
-                bagId = rawData.bagId or itemData.bagId,
-                slotIndex = rawData.slotIndex or itemData.slotIndex,
+                bagId = bagId,
+                slotIndex = slotIndex,
                 slotType = rawData.slotType or itemData.slotType,
+                expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex, itemData),
             })
         end
     end
@@ -380,6 +383,9 @@ function Class:InitializeBatchDestroyDialog()
                         inventoryInstance:ProcessBatchThrottled({
                             items = items,
                             step = function(bagId, slotIndex, itemData)
+                                if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(itemData.expectedSlotIdentity, bagId, slotIndex) ~= true then
+                                    return BatchStepHandled()
+                                end
                                 if not CanDestroyInventoryItem(itemData) then
                                     return BatchStepHandled()
                                 end

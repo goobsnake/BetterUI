@@ -155,6 +155,18 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                     local isStow = data.isStow
 
                     if bagId and slotIndex then
+                        if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(data.expectedSlotIdentity, bagId, slotIndex) ~= true then
+                            BETTERUI.CIM.UserNotify("CraftBagQuantity:StaleSlot",
+                                GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
+                            ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_CRAFTBAG_QUANTITY_DIALOG)
+                            return
+                        end
+                        local liveStackCount = GetSlotStackSize(bagId, slotIndex) or 0
+                        if liveStackCount <= 0 then
+                            ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_CRAFTBAG_QUANTITY_DIALOG)
+                            return
+                        end
+                        quantity = zo_clamp(quantity, 1, math.min(liveStackCount, data.sliderMax or liveStackCount))
                         local inventorySlot = {
                             bagId = bagId,
                             slotIndex = slotIndex,
@@ -237,6 +249,7 @@ function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, is
         isStow = isStow,
         itemLink = itemLink,
         itemName = itemName,
+        expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex, inventorySlot),
     })
 end
 

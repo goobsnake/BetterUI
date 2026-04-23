@@ -167,8 +167,14 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 				callback = function(dialog)
 					local d = dialog and dialog.data
 					if d and d.bagId and d.slotIndex then
+						if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(d.expectedSlotIdentity, d.bagId, d.slotIndex) ~= true then
+							BETTERUI.CIM.UserNotify("InventoryDestroy:StaleSlot",
+								GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
+							ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_CONFIRM_DESTROY_DIALOG")
+							return
+						end
 						-- Force destruction on explicit user confirmation
-						local destroyed = BETTERUI.Inventory.TryDestroyItem(d.bagId, d.slotIndex, true)
+						local destroyed = BETTERUI.Inventory.TryDestroyItem(d.bagId, d.slotIndex, true, nil, d.slotType)
 						-- Refresh lists shortly after to reflect removal
 						if destroyed then
 							BETTERUI.Inventory.Tasks:Schedule("destroyRefresh",

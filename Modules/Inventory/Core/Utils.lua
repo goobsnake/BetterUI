@@ -79,3 +79,85 @@ elseif type(BETTERUI.Inventory.Utils.SafeGetTargetData) ~= "function" then
     end
 end
 BETTERUI.Inventory.Utils.GetListTargetData = BETTERUI.Inventory.Utils.SafeGetTargetData
+
+local function NormalizeSlotIdentityValue(value)
+    if value == nil then
+        return nil
+    end
+    if Id64ToString and type(value) ~= "string" then
+        local ok, normalized = pcall(Id64ToString, value)
+        if ok and normalized ~= nil then
+            return tostring(normalized)
+        end
+    end
+    return tostring(value)
+end
+BETTERUI.Inventory.Utils.NormalizeIdentityValue = NormalizeSlotIdentityValue
+
+local function ResolveDataSource(slotData)
+    return slotData and (slotData.dataSource or slotData) or nil
+end
+
+--- Captures the stable item identity for a bag slot at selection/dialog-open time.
+---@param bagId number|nil
+---@param slotIndex number|nil
+---@param slotData table|nil
+---@return table|nil identity
+function BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex, slotData)
+    if bagId == nil or slotIndex == nil then
+        return nil
+    end
+
+    local dataSource = ResolveDataSource(slotData)
+    local uniqueId = dataSource and (dataSource.uniqueId or slotData.uniqueId) or nil
+    if uniqueId == nil and GetItemUniqueId then
+        uniqueId = GetItemUniqueId(bagId, slotIndex)
+    end
+    if uniqueId == nil and SHARED_INVENTORY and type(SHARED_INVENTORY.GetItemUniqueId) == "function" then
+        uniqueId = SHARED_INVENTORY:GetItemUniqueId(bagId, slotIndex)
+    end
+
+    local itemLink = (dataSource and (dataSource.cached_itemLink or dataSource.itemLink))
+        or (slotData and (slotData.cached_itemLink or slotData.itemLink))
+    if itemLink == nil and GetItemLink then
+        itemLink = GetItemLink(bagId, slotIndex)
+    end
+
+    return {
+        bagId = bagId,
+        slotIndex = slotIndex,
+        uniqueId = NormalizeSlotIdentityValue(uniqueId),
+        itemLink = itemLink,
+    }
+end
+
+--- Returns whether the live bag slot still contains the item captured earlier.
+---@param identity table|nil
+---@param bagId number|nil
+---@param slotIndex number|nil
+---@return boolean current
+function BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(identity, bagId, slotIndex)
+    if not identity then
+        return true
+    end
+    if bagId == nil or slotIndex == nil then
+        return false
+    end
+    if identity.bagId ~= nil and identity.bagId ~= bagId then
+        return false
+    end
+    if identity.slotIndex ~= nil and identity.slotIndex ~= slotIndex then
+        return false
+    end
+
+    if identity.uniqueId ~= nil then
+        local liveIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex)
+        return liveIdentity and liveIdentity.uniqueId == identity.uniqueId
+    end
+
+    if identity.itemLink ~= nil and GetItemLink then
+        return GetItemLink(bagId, slotIndex) == identity.itemLink
+    end
+
+    return true
+end

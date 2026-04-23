@@ -63,6 +63,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
 ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Are you sure you want to destroy <<1>>? This cannot be undone.")
 ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_GENERIC",
     "Are you sure you want to destroy this item? This cannot be undone.")
+ZO_CreateStringId("SI_BETTERUI_ITEM_CHANGED_CANCELLED", "The selected item changed. Action cancelled.")
 
 
 -- Currency limit alert

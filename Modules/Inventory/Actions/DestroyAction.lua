@@ -115,8 +115,9 @@ function BETTERUI.Inventory.HookDestroyItem()
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         end
         local link = GetItemLink(bag, index)
+        local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, index, inventorySlot)
         ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
-            { bagId = bag, slotIndex = index, itemLink = link }, nil, true, true)
+            { bagId = bag, slotIndex = index, slotType = slotType, itemLink = link, expectedSlotIdentity = expectedSlotIdentity }, nil, true, true)
         return true
     end)
 
