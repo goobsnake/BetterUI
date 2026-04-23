@@ -90,6 +90,8 @@ assert_contains(companionsModule, 'BETTERUI.CIM.RegisterModuleAccessors(Companio
     "Companions registers accessors during setup")
 assert_contains(companionsModule, 'BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")',
     "Companions setup uses the shared panel registration helper")
+assert_contains(companionsModule, 'return BETTERUI.Companions.Init()',
+    "Companions setup propagates runtime initialization failures to bootstrap")
 
 assert_contains(bankingModule, 'BETTERUI.CIM.TryRegisterModulePanel(Banking, "Banking", "Bank", "Banking")',
     "Banking setup uses the shared panel registration helper")
@@ -129,6 +131,8 @@ assert_not_contains(nameplatesSettings, "Nameplates.Settings.RegisterPanel = Ini
     "Nameplates settings helper no longer owns panel registration")
 assert_not_contains(nameplatesSettings, "function Nameplates.InitModule(m_options)",
     "Nameplates settings helper no longer owns InitModule defaults")
+assert_not_contains(nameplatesSettings, "local ClampNameplateSize = Nameplates.ClampNameplateSize",
+    "Nameplates settings must not capture runtime helpers before manifest dependents load")
 assert_contains(nameplatesModule, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates setup uses the shared panel registration helper")
 

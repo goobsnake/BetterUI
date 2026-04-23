@@ -26,6 +26,11 @@ function BETTERUI.GetModuleSettings(moduleName)
     return BETTERUI.Settings.Modules[moduleName]
 end
 
+function BETTERUI.EnsureModuleSettings(moduleName)
+    BETTERUI.Settings.Modules[moduleName] = BETTERUI.Settings.Modules[moduleName] or {}
+    return BETTERUI.Settings.Modules[moduleName]
+end
+
 function BETTERUI.CIM.TryResolve(_)
     return nil
 end
@@ -47,6 +52,7 @@ end
 
 print("\n=== Settings Group Reset Tests ===\n")
 
+dofile("Modules/CIM/Core/Integration/OptionalAddonRegistry.lua")
 dofile("Modules/CIM/Core/Settings/SettingsMetadata.lua")
 
 print("Test: Inventory general reset restores trigger settings")

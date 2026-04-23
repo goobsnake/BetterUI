@@ -76,7 +76,19 @@ BETTERUI = {
             SavePosition = noop,
         },
         Narration = {},
-        UI = {},
+        UI = {
+            HeaderSortIntegration = {
+                Install = function(instance, config)
+                    return {
+                        instance = instance,
+                        config = config,
+                    }
+                end,
+                EnsureController = function(integration)
+                    integration.controllerEnsured = true
+                end,
+            },
+        },
     },
     Interface = {
         SearchMixin = {},

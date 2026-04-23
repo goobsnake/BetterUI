@@ -1,7 +1,7 @@
 --[[
 File: tools/tests/test_inventory_deferred_init_source.lua
-Purpose: Guards the Inventory deferred-init split so dialog compatibility,
-         list bootstrap, and callback wiring stay behind named helpers.
+Purpose: Guards the explicit deferred-initialization bridge for the Inventory scene.
+
 Usage:
   lua tools/tests/test_inventory_deferred_init_source.lua
 ]]
@@ -27,52 +27,60 @@ end
 
 print("test_inventory_deferred_init_source")
 
-local inventory = read_file("Modules/Inventory/Inventory.lua")
-local moduleSource = read_file("Modules/Inventory/Module.lua")
+local inventoryRuntime = read_file("Modules/Inventory/Inventory.lua")
+local inventoryModule = read_file("Modules/Inventory/Module.lua")
 local inventoryClass = read_file("Modules/Inventory/Core/InventoryClass.lua")
-local equipAction = read_file("Modules/Inventory/Actions/EquipAction.lua")
+local headerManager = read_file("Modules/Inventory/Core/HeaderManager.lua")
+local listStateManager = read_file("Modules/Inventory/State/ListStateManager.lua")
 
-assert_contains(inventory, "local function InitializeDeferredInventoryState(self)",
-    "Inventory deferred init exposes an explicit state phase helper")
-assert_contains(inventory, "local function InitializeDeferredInventoryLists(self)",
-    "Inventory deferred init exposes an explicit list phase helper")
-assert_contains(inventory, "local function InitializeDeferredInventoryDialogs(self)",
-    "Inventory deferred init exposes an explicit dialog phase helper")
-assert_contains(inventory, "local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSelectedData)",
-    "Inventory deferred init exposes an explicit callback registration helper")
-assert_contains(inventory, "InitializeDeferredInventoryState(self)",
-    "OnDeferredInitialize delegates state setup through the helper")
-assert_contains(inventory, "InitializeDeferredInventoryLists(self)",
-    "OnDeferredInitialize delegates list setup through the helper")
-assert_contains(inventory, "InitializeDeferredInventoryDialogs(self)",
-    "OnDeferredInitialize delegates dialog setup through the helper")
-assert_contains(inventory, "RegisterDeferredInventoryCallbacks(self, RefreshHeader, RefreshSelectedData)",
-    "OnDeferredInitialize delegates callback wiring through the helper")
-assert_not_contains(inventory, "function BETTERUI.Inventory.GetEquipSlotDialogName()",
-    "Inventory runtime file no longer owns module-level dialog bridge APIs")
-assert_not_contains(inventory, "function BETTERUI.Inventory.InvokeDialog(methodName, ...)",
-    "Inventory runtime file no longer owns module-level dialog invoker wiring")
-assert_not_contains(inventory, "function BETTERUI.Inventory.InitializeSecureWheelHooks()",
-    "Inventory runtime file no longer owns secure wheel bootstrap wiring")
+assert_contains(inventoryRuntime, "function BETTERUI.Inventory.Class:OnDeferredInitialize()",
+    "Inventory runtime must define the deferred initialization hook")
+assert_contains(inventoryRuntime, "if self._betterUIDeferredInventoryInitialized then return end",
+    "OnDeferredInitialize must guard against duplicate BetterUI initialization")
+assert_contains(inventoryRuntime, "self._betterUIDeferredInventoryInitialized = true",
+    "OnDeferredInitialize must mark BetterUI deferred initialization as complete")
+assert_contains(inventoryRuntime, "function BETTERUI.Inventory.Class:PerformDeferredInitialize()",
+    "Inventory runtime must define an explicit deferred initialization bridge")
+assert_contains(inventoryRuntime,
+    "local parentPerformDeferredInitialize = ZO_GamepadInventory and ZO_GamepadInventory.PerformDeferredInitialize",
+    "PerformDeferredInitialize must preserve native parent deferred initialization when available")
+assert_contains(inventoryRuntime, "parentPerformDeferredInitialize(self)",
+    "PerformDeferredInitialize must invoke the native parent implementation when available")
+assert_contains(inventoryRuntime,
+    "if not self._betterUIDeferredInventoryInitialized and self.OnDeferredInitialize then",
+    "PerformDeferredInitialize must fall back to BetterUI's deferred setup hook when native flow skips it")
+assert_contains(inventoryRuntime, "self:OnDeferredInitialize()",
+    "PerformDeferredInitialize must invoke BetterUI deferred setup as a fallback")
+assert_contains(inventoryRuntime, "if self.scene and self.scene:IsShowing() then",
+    "Deferred inventory init must only activate the item list immediately when the scene is already visible")
+assert_contains(inventoryRuntime, "self.currentListType = nil",
+    "Deferred inventory init must avoid leaving a hidden list marked active")
+assert_contains(inventoryRuntime, "self.previousListType = nil",
+    "Deferred inventory init must clear stale previous list state before first visible activation")
 
-assert_contains(moduleSource, "function Inventory.GetEquipSlotDialogName()",
-    "Inventory module root owns the canonical equip dialog accessor")
-assert_contains(moduleSource, "function Inventory.InvokeDialog(methodName, ...)",
-    "Inventory module root owns the dialog invoker bridge")
-assert_contains(moduleSource, "local function EnsureLegacyEquipSlotDialogAlias()",
-    "Inventory module root keeps the legacy dialog alias bridge")
-assert_contains(moduleSource, "BETTERUI_EQUIP_SLOT_DIALOG = Inventory.GetEquipSlotDialogName()",
-    "Inventory module root assigns the legacy global alias from the canonical accessor")
-assert_contains(moduleSource, "Inventory.InitializeSecureWheelHooks = InitializeSecureWheelHooks",
-    "Inventory module root owns secure wheel hook registration")
-assert_not_contains(inventoryClass, "self:InitializeItemActions()",
-    "InventoryClass.Initialize no longer performs item-action setup before deferred readiness")
-assert_not_contains(inventoryClass, "self:InitializeActionsDialog()",
-    "InventoryClass.Initialize no longer performs action-dialog setup before deferred readiness")
+assert_contains(inventoryModule, "GAMEPAD_INVENTORY:PerformDeferredInitialize()",
+    "Inventory module setup must explicitly bridge deferred initialization when replacing the native runtime")
 
-assert_contains(equipAction, "BETTERUI.Inventory.GetEquipSlotDialogName()",
-    "EquipAction uses the canonical namespaced dialog accessor")
-assert_not_contains(equipAction, 'or "BETTERUI_EQUIP_SLOT_DIALOG"',
-    "EquipAction no longer falls back to an inline legacy dialog string")
+assert_contains(headerManager, "BETTERUI.GenericFooter.control = self.control",
+    "Header initialization must point the generic footer at the inventory control")
+assert_contains(headerManager, "BETTERUI.GenericFooter:Initialize()",
+    "Header initialization must initialize the generic footer with method-call syntax")
+if headerManager:find("BETTERUI%.GenericFooter%.Initialize%(self%)", 1, false) then
+    error("Header initialization must not call GenericFooter.Initialize(self)")
+end
+
+assert_contains(listStateManager, "if listDescriptor == self.currentListType then",
+    "SwitchActiveList must short-circuit same-list requests to avoid recursive re-entry through category callbacks")
+assert_not_contains(listStateManager, "NeedsVisibleListActivation",
+    "SwitchActiveList must not re-enter the same list while activation is still bootstrapping")
+
+local refreshHeaderBody = inventoryClass:match(
+    "function BETTERUI%.Inventory%.Class:RefreshHeader%(blockCallback%)\n([%s%S]-)\nend"
+)
+if not refreshHeaderBody then
+    error("InventoryClass must define RefreshHeader")
+end
+assert_not_contains(refreshHeaderBody, "self:RefreshCategoryList()",
+    "RefreshHeader must not rebuild category lists; callers already refresh categories explicitly")
 
 print("  OK")

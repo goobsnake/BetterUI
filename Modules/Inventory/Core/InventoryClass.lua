@@ -555,7 +555,6 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
         GetEquippedItemInfo(EQUIP_SLOT_BACKUP_OFF),
         GetEquippedItemInfo(EQUIP_SLOT_BACKUP_POISON)
     )
-    self:RefreshCategoryList()
     BETTERUI.GenericFooter:Refresh()
 
     -- Reposition the search control so it sits under the header/title (above the list)

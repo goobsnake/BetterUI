@@ -4,7 +4,27 @@ local Nameplates = BETTERUI.Nameplates
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
 local DEFAULT_NAMEPLATE_SIZE = 16
-local ClampNameplateSize = Nameplates.ClampNameplateSize
+
+local function ClampNameplateSize(value, fallback)
+    local clampNameplateSize = Nameplates.ClampNameplateSize
+    if type(clampNameplateSize) == "function" then
+        return clampNameplateSize(value, fallback)
+    end
+
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < NAMEPLATE_SIZE_MIN then
+        return NAMEPLATE_SIZE_MIN
+    end
+    if rounded > NAMEPLATE_SIZE_MAX then
+        return NAMEPLATE_SIZE_MAX
+    end
+    return rounded
+end
 
 local function GetNameplateSettings()
     return BETTERUI.GetModuleSettings("Nameplates")

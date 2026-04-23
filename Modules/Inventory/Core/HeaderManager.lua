@@ -74,7 +74,8 @@ local function InitializeHeader(self)
         tabBarControl.scrollList = self.header.tabBar
     end
 
-    BETTERUI.GenericFooter.Initialize(self)
+    BETTERUI.GenericFooter.control = self.control
+    BETTERUI.GenericFooter:Initialize()
 end
 
 --- @param self BetterUI_InventoryClass

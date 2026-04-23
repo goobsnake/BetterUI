@@ -265,7 +265,8 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 end
 
 function BETTERUI.Inventory.Class:OnDeferredInitialize()
-	if self.isDeferredInitialized then return end
+	if self._betterUIDeferredInventoryInitialized then return end
+	self._betterUIDeferredInventoryInitialized = true
 	self.isDeferredInitialized = true
 
 	InitializeDeferredInventoryState(self)
@@ -316,7 +317,36 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 		end
 	end
 
-	self:SwitchActiveList(GetInventoryListType("ITEM"))
+	local initialListType = GetInventoryListType("ITEM")
+	if self.scene and self.scene:IsShowing() then
+		self:SwitchActiveList(initialListType)
+	else
+		-- Do not mark a hidden list as active yet. The first visible scene show
+		-- must still execute the full activation path so category and item data
+		-- rebuild against live shared-inventory caches.
+		self.currentListType = nil
+		self.previousListType = nil
+	end
+end
+
+--- Bridges BetterUI deferred setup to the inventory scene lifecycle.
+--- Some native inventory flows do not call our custom OnDeferredInitialize hook,
+--- so we explicitly trigger it once after giving the parent class a chance to
+--- perform its own one-time work.
+function BETTERUI.Inventory.Class:PerformDeferredInitialize()
+	if self._betterUIDeferredInitializePerformed then
+		return
+	end
+	self._betterUIDeferredInitializePerformed = true
+
+	local parentPerformDeferredInitialize = ZO_GamepadInventory and ZO_GamepadInventory.PerformDeferredInitialize
+	if type(parentPerformDeferredInitialize) == "function" then
+		parentPerformDeferredInitialize(self)
+	end
+
+	if not self._betterUIDeferredInventoryInitialized and self.OnDeferredInitialize then
+		self:OnDeferredInitialize()
+	end
 end
 
 --- Clears the text search UI and internal state.

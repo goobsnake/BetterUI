@@ -312,6 +312,13 @@ function Inventory.Setup()
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(MINIMIZE_CHAT_FRAGMENT)
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
 
+	-- Preserve the deferred-init contract even when the native root scene keeps
+	-- driving its original lifecycle wiring. The inventory runtime guards this
+	-- method, so scene-driven initialization can still call it safely later.
+	if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.PerformDeferredInitialize then
+		GAMEPAD_INVENTORY:PerformDeferredInitialize()
+	end
+
 	-- Initialize the Craft Bag quantity dialog for stow/retrieve operations
 	local dialogOk = TryInitializeCraftBagQuantityDialog()
 	if not dialogOk then

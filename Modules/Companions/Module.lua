@@ -79,10 +79,10 @@ function BETTERUI.Companions.Setup()
     EnsureCompanionsSetupContracts()
 
     if BETTERUI.Companions.GetSetting("enableCompanionEquipment") == false then
-        return
+        return true
     end
 
-    BETTERUI.Companions.Init()
+    return BETTERUI.Companions.Init()
 end
 
 -- Runtime keybind, scene, and event helpers live in Core/CompanionsRuntime.lua.

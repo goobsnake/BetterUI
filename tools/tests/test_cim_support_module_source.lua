@@ -69,6 +69,10 @@ assert_true(constantsLua:find("BETTERUI%.CIM%.CONST%.MODULES = %{%s*") ~= nil,
     "Constants defines shared module identifiers")
 assert_true(constantsLua:find("BETTERUI%.CIM%.CONST%.SEARCH_BAR = %{%s*") ~= nil,
     "Constants defines shared search-bar positioning")
+assert_true(constantsLua:find("BETTERUI%.CIM%.SearchBar = BETTERUI%.CIM%.SearchBar or %{%}") ~= nil,
+    "Constants preserves the shared SearchBar compatibility table")
+assert_true(constantsLua:find("BETTERUI%.CIM%.SearchBar%.GetConstants = BETTERUI%.CIM%.GetSearchBarConstants") ~= nil,
+    "Constants keeps the legacy SearchBar.GetConstants compatibility alias")
 
 local constantsUi = read_file("Modules/CIM/ConstantsUI.lua")
 assert_true(constantsUi:find("BETTERUI%.CIM%.CONST%.LAYOUT = %{%}") ~= nil,

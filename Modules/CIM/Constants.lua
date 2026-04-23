@@ -247,6 +247,11 @@ function BETTERUI.CIM.GetSearchBarConstants(module)
     return BETTERUI.CIM.CONST.SEARCH_BAR.BASE
 end
 
+-- Keep the legacy SearchBar helper path alive for scene modules that still
+-- resolve shared search positioning through BETTERUI.CIM.SearchBar.GetConstants.
+BETTERUI.CIM.SearchBar = BETTERUI.CIM.SearchBar or {}
+BETTERUI.CIM.SearchBar.GetConstants = BETTERUI.CIM.GetSearchBarConstants
+
 -- CURRENCY FOOTER CONFIGURATION
 
 -- Maximum currencies that can be displayed in the footer (UI space limit)
@@ -781,4 +786,3 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
         BACKUP_HAND_X = -155
     }
 }
-
