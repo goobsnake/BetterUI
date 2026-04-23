@@ -62,7 +62,6 @@ BetterUI follows a 4-level testing strategy:
 | Deferred Task | `test_deferred_task.lua` | Task scheduling safety |
 | Event Registry | `test_event_registry.lua` | Event handler management |
 | Feature Flags | `test_feature_flags.lua` | Toggle system testing |
-| Deprecation | `test_deprecation_registry.lua` | Migration path validation |
 | Batch Safety | `test_batch_safety.lua` | Multi-select operation safety |
 | Inventory Scene Harness | `test_inventory_scene_harness.lua` | Production-backed inventory filtering, tooltips, and batch actions |
 | Number Formatting | `test_number_formatting.lua` | Localization formatting |

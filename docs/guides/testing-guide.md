@@ -17,8 +17,6 @@ Located in `tools/tests/`, these test files can be run without ESO:
 | `test_number_formatting.lua` | NumberFormatting | Comma delimiting, suffixes (K/M/B), percentages |
 | `test_event_registry.lua` | EventRegistry | Registration tracking, bulk unregister |
 | `test_deferred_task.lua` | DeferredTask | Scheduling, cancellation, debounce |
-| `test_deprecation_registry.lua` | DeprecationRegistry | Warnings, shims, one-time logging |
-| `test_dependency_resolver.lua` | DependencyResolver | Circular deps, topological sort |
 | `test_feature_flags.lua` | FeatureFlags | Defaults, overrides, persistence |
 | `test_safe_execute.lua` | SafeExecute | Error boundaries, nil handling |
 | `test_utilities.lua` | Utilities | WrapValue, SafeCall, SafeIcon |
@@ -36,7 +34,7 @@ Located in `tools/tests/`, these test files can be run without ESO:
 lua tools/tests/run_all_tests.lua
 
 # Run individual test
-lua tools/tests/test_dependency_resolver.lua
+lua tools/tests/test_feature_flags.lua
 
 # Syntax validation
 luac -p tools/tests/*.lua
