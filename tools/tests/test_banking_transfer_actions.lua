@@ -464,7 +464,7 @@ print("\n=== Banking transfer actions ===\n")
 resetState()
 local window = createWindow()
 selectedData = { bagId = BAG_GUILDBANK, slotIndex = 9 }
-bagFreeSlots[BAG_BACKPACK] = 10
+emptySlots[BAG_BACKPACK] = 10
 currentBankingBag = BAG_GUILDBANK
 window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
 window:MoveItem(window.list, 2)
@@ -477,6 +477,15 @@ assertEqual(1, window.refreshedLists, "Coalesced refresh refreshes the list")
 
 resetState()
 window = createWindow()
+selectedData = { bagId = BAG_GUILDBANK, slotIndex = 9 }
+currentBankingBag = BAG_GUILDBANK
+window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
+stackableSlots[BAG_BACKPACK] = 22
+window:MoveItem(window.list, 2)
+assertEqual(9, guildWithdrawCalls[1], "Full-backpack guild withdraw still transfers when a stackable slot exists")
+
+resetState()
+window = createWindow()
 selectedData = { bagId = BAG_BACKPACK, slotIndex = 7 }
 currentBankingBag = BAG_GUILDBANK
 window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
@@ -485,6 +494,18 @@ guildTransferReason = SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
 window:MoveItem(window.list, 1)
 assertEqual(0, #guildDepositCalls, "Denied guild-bank deposits do not call TransferToGuildBank")
 assertEqual(SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE, userNotifies[1], "Denied guild-bank deposits use the shared denial notifier")
+
+resetState()
+window = createWindow()
+selectedData = { bagId = BAG_BACKPACK, slotIndex = 5 }
+currentBankingBag = BAG_GUILDBANK
+window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
+bagUsedSlots[BAG_GUILDBANK] = 10
+bagSizes[BAG_GUILDBANK] = 10
+stackableSlots[BAG_GUILDBANK] = 44
+window:MoveItem(window.list, 1)
+assertEqual(5, guildDepositCalls[1].slotIndex, "Full guild-bank deposit still transfers when a stackable slot exists")
+assertEqual(0, #userNotifies, "Stackable guild-bank deposit does not report the bank as full")
 
 resetState()
 window = createWindow()

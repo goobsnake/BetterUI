@@ -351,7 +351,8 @@ function BETTERUI.Banking.Class:BatchTransfer()
                     return BatchStepSkipped()
                 end
                 if isWithdraw then
-                    if GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
+                    local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
+                    if destinationSlot == nil then
                         return BatchStepStopped("bagFull")
                     end
                     TransferFromGuildBank(slotIndex)
@@ -359,7 +360,8 @@ function BETTERUI.Banking.Class:BatchTransfer()
                     if not IsDepositSupportedForBank(bagId, slotIndex, BAG_GUILDBANK) then
                         return BatchStepSkipped()
                     end
-                    if GetNumBagUsedSlots(BAG_GUILDBANK) >= GetBagSize(BAG_GUILDBANK) then
+                    local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_GUILDBANK)
+                    if destinationSlot == nil then
                         return BatchStepStopped("bagFull")
                     end
                     TransferToGuildBank(bagId, slotIndex)

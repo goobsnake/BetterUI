@@ -168,7 +168,6 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
     state.justToggledMode = true
     self:RebuildHeaderCategories()
-    state.justToggledMode = false
     local footer = self.footer:GetNamedChild("Footer")
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
     local activeColor = { 1, 1, 1, 1 }
@@ -178,4 +177,5 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
     --KEYBIND_STRIP:UpdateKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
     self:RefreshList()
+    state.justToggledMode = false
 end

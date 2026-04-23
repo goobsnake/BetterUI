@@ -120,6 +120,12 @@ assert_true(bankListManager:find("BETTERUI%.Banking%.ResolveBagsAndSlotType = Re
 assert_true(bankListManager:find("function BETTERUI%.Banking%.Class:RefreshList%(%)") ~= nil,
     "BankListManager exposes the Banking RefreshList implementation")
 
+local multiSelectActions = read_file("Modules/Banking/Core/MultiSelectActions.lua")
+assert_true(multiSelectActions:find("ResolveMoveDestinationSlot%(bagId, slotIndex, BAG_BACKPACK%)") ~= nil,
+    "MultiSelectActions resolves guild-bank withdraw destinations by stackable-or-empty slot")
+assert_true(multiSelectActions:find("ResolveMoveDestinationSlot%(bagId, slotIndex, BAG_GUILDBANK%)") ~= nil,
+    "MultiSelectActions resolves guild-bank deposit destinations by stackable-or-empty slot")
+
 local bankRowSetup = read_file("Modules/Banking/Lists/BankRowSetup.lua")
 assert_true(bankRowSetup:find('BETTERUI%.Banking%.CURRENCY_ROW_TEMPLATE = "BETTERUI_BankCurrencySelectorTemplate"') ~= nil,
     "BankRowSetup declares the banking currency row template")
@@ -175,6 +181,12 @@ assert_true(stateManager:find("function BETTERUI%.Banking%.Class:HandleBankSwitc
     "StateManager exposes HandleBankSwitch")
 assert_true(stateManager:find("function BETTERUI%.Banking%.Class:ToggleList%(toWithdraw%)") ~= nil,
     "StateManager exposes ToggleList")
+local toggleListStart = stateManager:find("function BETTERUI%.Banking%.Class:ToggleList%(toWithdraw%)")
+local toggledFlagSet = toggleListStart and stateManager:find("state%.justToggledMode = true", toggleListStart)
+local toggledRefresh = toggledFlagSet and stateManager:find("self:RefreshList%(%)", toggledFlagSet)
+local toggledFlagClear = toggledFlagSet and stateManager:find("state%.justToggledMode = false", toggledFlagSet)
+assert_true(toggledFlagSet ~= nil and toggledRefresh ~= nil and toggledFlagClear ~= nil and toggledFlagClear > toggledRefresh,
+    "ToggleList keeps justToggledMode set until RefreshList can reset the rebuilt list")
 
 local footerManager = read_file("Modules/Banking/UI/FooterManager.lua")
 assert_true(footerManager:find("function BETTERUI%.Banking%.Class:RefreshFooter%(%)") ~= nil,

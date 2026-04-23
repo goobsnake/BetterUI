@@ -206,6 +206,12 @@ BETTERUI = {
         IsSourceFurnitureVaultTransfer = function()
             return BETTERUI.Banking.GetTransferContext().sourceIsFurnitureVault == true
         end,
+        ReadTransferContextSnapshot = function()
+            return BETTERUI.Banking.GetTransferContext()
+        end,
+        RefreshWindowView = function(window, options)
+            window:RefreshCategoryView(options)
+        end,
         Tasks = {
             Schedule = function(_, name, delayMs, callback)
                 scheduledTasks[name] = { delay = delayMs, callback = callback }

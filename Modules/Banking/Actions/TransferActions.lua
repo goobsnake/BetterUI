@@ -213,6 +213,17 @@ local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIn
     MaybeRefreshAfterTransfer(self)
 end
 
+local function ResolveTransferDestinationSlot(fromBag, fromBagIndex, toBag)
+    local itemLink = GetItemLink(fromBag, fromBagIndex)
+    if itemLink and itemLink ~= "" then
+        local stackSlot = BETTERUI.CIM.Utils.FindStackableSlotInBag(toBag, itemLink)
+        if stackSlot ~= nil then
+            return stackSlot
+        end
+    end
+    return FindFirstEmptySlotInBag(toBag)
+end
+
 local function ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex)
     local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
     local canTransfer = transferService.NotifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, fromBag,
@@ -222,7 +233,7 @@ local function ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex
     end
 
     if self.currentMode == LIST_WITHDRAW then
-        if GetNumBagFreeSlots(BAG_BACKPACK) > 0 then
+        if ResolveTransferDestinationSlot(fromBag, fromBagIndex, BAG_BACKPACK) ~= nil then
             local soundCategory = GetItemSoundCategory(fromBag, fromBagIndex)
             PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
             TransferFromGuildBank(fromBagIndex)
@@ -230,7 +241,7 @@ local function ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex
             BETTERUI.CIM.UserNotify("TransferActions:GuildWithdraw", SI_INVENTORY_ERROR_INVENTORY_FULL)
         end
     else
-        if GetNumBagUsedSlots(BAG_GUILDBANK) < GetBagSize(BAG_GUILDBANK) then
+        if ResolveTransferDestinationSlot(fromBag, fromBagIndex, BAG_GUILDBANK) ~= nil then
             local soundCategory = GetItemSoundCategory(fromBag, fromBagIndex)
             PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
             TransferToGuildBank(fromBag, fromBagIndex)
