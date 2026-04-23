@@ -124,6 +124,7 @@ EVENT_ITEM_LAUNDER_RESULT = 21
 EVENT_JUSTICE_FENCE_UPDATE = 22
 EVENT_MONEY_UPDATE = 23
 EVENT_CURRENCY_UPDATE = 24
+EVENT_MOUNT_INFO_UPDATED = 25
 
 INTERACTION_VENDOR = "Vendor"
 INTERACTION_STABLE = "Stable"
@@ -396,6 +397,7 @@ assert_true(type(eventCallbacks[EVENT_OPEN_FENCE]) == "function", "root vendor w
 assert_true(type(eventCallbacks[EVENT_CLOSE_STORE]) == "function", "root vendor wires close-store lifecycle callback")
 assert_true(type(eventCallbacks[EVENT_STABLE_INTERACT_START]) == "function", "root vendor wires stable-start callback")
 assert_true(type(eventCallbacks[EVENT_STABLE_INTERACT_END]) == "function", "root vendor wires stable-end callback")
+assert_true(type(eventCallbacks[EVENT_MOUNT_INFO_UPDATED]) == "function", "root vendor wires stable mount-info refresh callback")
 assert_eq(1, nativeBridgeLog.takeOver, "vendor init takes over the native store scene once")
 assert_eq(1, nativeBridgeLog.alias, "vendor init aliases the native store scene to the BetterUI runtime")
 assert_eq(1, bootstrapRuntimeCalls.list, "vendor init delegates list bootstrap through the bootstrap runtime")

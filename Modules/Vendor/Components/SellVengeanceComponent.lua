@@ -7,7 +7,6 @@ Lists and sells items from BAG_VENGEANCE when the Vengeance ruleset is active.
 
 local Vendor = BETTERUI.Vendor
 
--- COMPONENT TABLE
 Vendor.SellVengeanceComponent = Vendor.SellVengeanceComponent or {}
 local SellVengeance = Vendor.SellVengeanceComponent
 

@@ -15,6 +15,7 @@ BETTERUI = {
             BUYBACK = 4,
             FENCE_SELL = 5,
             FENCE_LAUNDER = 6,
+            SELL_VENGEANCE = 7,
         },
     },
 }
@@ -98,6 +99,18 @@ do
     }
     local count = Counts.GetSupportedActionCount(MODE.SELL, items, nil)
     assertEqual(2, count, "SELL counts only bag/slot-backed entries")
+end
+
+do
+    local items = {
+        { bagId = 1, slotIndex = 1 },
+        { bagId = 1, slotIndex = 2 },
+        { slotIndex = 3 }, -- invalid
+    }
+    local count = Counts.GetSupportedActionCount(MODE.SELL_VENGEANCE, items, nil)
+    assertEqual(2, count, "SELL_VENGEANCE counts bag/slot-backed entries")
+    assertEqual("Sell (2)", Counts.BuildBatchActionLabel(MODE.SELL_VENGEANCE, count),
+        "SELL_VENGEANCE uses the sell batch-action label")
 end
 
 do

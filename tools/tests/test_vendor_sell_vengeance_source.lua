@@ -53,6 +53,8 @@ assert_contains(componentLua, "BAG_VENGEANCE", "SellVengeance component reads BA
 assert_contains(componentLua, "IsCurrentCampaignVengeanceRuleset", "SellVengeance component guards on vengeance ruleset")
 assert_contains(componentLua, "ZO_VENGEANCE_BAG_SELL_ENABLED", "SellVengeance component guards on bag sell enablement")
 assert_contains(componentLua, "SellInventoryItem", "SellVengeance component sells items through SellInventoryItem")
+assert_contains(componentLua, "Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery)",
+    "SellVengeance component uses the canonical vendor search normalizer")
 
 assert_contains(manifest, "Modules\\Vendor\\Components\\SellVengeanceComponent.lua", "manifest loads SellVengeance component")
 assert_contains(stringsEn, "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE", "english strings define SellVengeance tab label")

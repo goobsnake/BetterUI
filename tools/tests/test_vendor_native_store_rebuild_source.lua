@@ -128,6 +128,15 @@ local function CreateComponent(mode)
     }
 end
 
+local function HasMode(modes, expectedMode)
+    for _, mode in ipairs(modes or {}) do
+        if mode == expectedMode then
+            return true
+        end
+    end
+    return false
+end
+
 local function BuildStoreManager()
     local setActiveCalls = {}
     local setModeCalls = {}
@@ -141,6 +150,7 @@ local function BuildStoreManager()
             [ZO_MODE_STORE_SELL] = CreateComponent(ZO_MODE_STORE_SELL),
             [ZO_MODE_STORE_REPAIR] = CreateComponent(ZO_MODE_STORE_REPAIR),
             [ZO_MODE_STORE_BUY_BACK] = CreateComponent(ZO_MODE_STORE_BUY_BACK),
+            [ZO_MODE_STORE_STABLE] = CreateComponent(ZO_MODE_STORE_STABLE),
         },
         activeComponents = {
             CreateComponent(ZO_MODE_STORE_SELL),
@@ -212,6 +222,36 @@ do
     assert_eq(getInitializeStoreCalls(), 1, "rebuild initializes the native store after rebuilding components")
     assert_eq(getTabBarDeactivated(), 1, "rebuild neutralizes native tab bar callbacks and deactivates active tab bar")
     assert_true(#diDeactivations > 0, "rebuild sweeps directional input registrations after applying plan")
+end
+
+do
+    local storeManager, setActiveCalls = BuildStoreManager()
+    STORE_WINDOW_GAMEPAD = storeManager
+    storeManager.activeComponents = {
+        CreateComponent(ZO_MODE_STORE_STABLE),
+    }
+    BETTERUI.Vendor._sessionHasBuyMode = false
+    BETTERUI.Vendor.IsStableInteraction = function()
+        return true
+    end
+    BETTERUI.Vendor.HasVendorBuyInventory = function()
+        return false
+    end
+
+    NativeStoreBridge.EnsureComponents("stable-search")
+
+    assert_eq(#setActiveCalls, 1, "stable rebuild runs even when buy inventory probing is empty")
+    assert_true(HasMode(setActiveCalls[1].modes, ZO_MODE_STORE_BUY),
+        "stable rebuild always preserves native buy component when available")
+    assert_true(HasMode(setActiveCalls[1].modes, ZO_MODE_STORE_STABLE),
+        "stable rebuild preserves native stable component")
+
+    BETTERUI.Vendor.IsStableInteraction = function()
+        return false
+    end
+    BETTERUI.Vendor.HasVendorBuyInventory = function()
+        return true
+    end
 end
 
 do

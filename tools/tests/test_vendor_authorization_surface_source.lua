@@ -505,6 +505,15 @@ do
     })
     assert_eq(sellBatchResult, "queued", "VendorBatchRuntime queues SELL actions when shared authorization allows")
 
+    local vengeanceBatchResult = BETTERUI.Vendor.BatchRuntime.ExecuteBatchAction(BETTERUI.Vendor.MODE.SELL_VENGEANCE, {
+        bagId = BAG_BACKPACK,
+        slotIndex = 10,
+    })
+    assert_eq(vengeanceBatchResult, "queued",
+        "VendorBatchRuntime queues SELL_VENGEANCE actions when shared authorization allows")
+    assert_eq(authorization_calls[#authorization_calls].actionType, BETTERUI.Vendor.ACTION.SELL_VENGEANCE,
+        "VendorBatchRuntime routes SELL_VENGEANCE through the dedicated authorization action")
+
     local deniedBatchResult = BETTERUI.Vendor.BatchRuntime.ExecuteBatchAction(BETTERUI.Vendor.MODE.FENCE_SELL, {
         bagId = BAG_BACKPACK,
         slotIndex = 13,

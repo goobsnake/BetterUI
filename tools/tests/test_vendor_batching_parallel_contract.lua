@@ -107,9 +107,11 @@ BETTERUI = {
             FENCE_SELL = 3,
             FENCE_LAUNDER = 4,
             BUYBACK = 5,
+            SELL_VENGEANCE = 6,
         },
         ACTION = {
             SELL = "vendor_sell",
+            SELL_VENGEANCE = "vendor_sell_vengeance",
             FENCE_SELL = "fence_sell",
             FENCE_LAUNDER = "fence_launder",
         },
@@ -188,6 +190,16 @@ local queuedSellResult = BatchRuntime.ExecuteBatchAction(MODE.SELL, { bagId = BA
 assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, queuedSellResult.status, "Valid sell action returns queued step result")
 assertEqual(1, #sellCalls, "Valid sell action performs vendor sell call")
 assertEqual(8, sellCalls[1].quantity, "Sell action forwards full stack count")
+
+resetState()
+authorizationAllowed = true
+slotStacks["1:10"] = 4
+local queuedVengeanceResult = BatchRuntime.ExecuteBatchAction(MODE.SELL_VENGEANCE,
+    { bagId = BAG_BACKPACK, slotIndex = 10 })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, queuedVengeanceResult.status,
+    "Valid sell vengeance action returns queued step result")
+assertEqual(1, #sellCalls, "Valid sell vengeance action performs vendor sell call")
+assertEqual(4, sellCalls[1].quantity, "Sell vengeance action forwards full stack count")
 
 resetState()
 canAfford = false

@@ -1306,6 +1306,7 @@ local function RegisterVendorEvents(eventManager)
     ResolveVendorRuntimeDependency("EventBridge", "event bridge").Register(eventManager, EVENT_NS, {
         onStableInteractStart = OnStableInteractStart,
         onStableInteractEnd = OnStableInteractEnd,
+        onStableInfoUpdated = OnInventoryUpdated,
         onOpenStore = OnOpenStore,
         onOpenFence = OnOpenFence,
         onCloseStore = OnCloseStore,

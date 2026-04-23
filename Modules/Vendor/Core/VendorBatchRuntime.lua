@@ -65,6 +65,10 @@ local function AuthorizeVendorInventoryAction(actionType, bagId, slotIndex)
     return allowed == true, reason
 end
 
+local function IsSellMode(mode)
+    return mode == MODE.SELL or (MODE.SELL_VENGEANCE ~= nil and mode == MODE.SELL_VENGEANCE)
+end
+
 local function NormalizeBatchRuntimeRequest(request)
     assert(type(request) == "table", "Vendor batch runtime expects BetterUIVendorBatchRequest table")
     assert(request.batchOptions == nil,
@@ -117,11 +121,12 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         end
         BuyStoreItem(entryIndex, 1)
         return batchStepQueued()
-    elseif mode == MODE.SELL then
+    elseif IsSellMode(mode) then
         local bagId = ds.bagId
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
-            local canSell = AuthorizeVendorInventoryAction(Vendor.ACTION.SELL, bagId, slotIndex)
+            local actionType = (mode == MODE.SELL_VENGEANCE and Vendor.ACTION.SELL_VENGEANCE) or Vendor.ACTION.SELL
+            local canSell = AuthorizeVendorInventoryAction(actionType, bagId, slotIndex)
             if canSell ~= true then
                 return batchStepSkipped()
             end
@@ -192,7 +197,7 @@ end
 function BatchRuntime.ResolveBatchActionName(mode)
     if mode == MODE.BUY then
         return GetString(rawget(_G, "SI_ITEM_ACTION_BUY") or "SI_ITEM_ACTION_BUY")
-    elseif mode == MODE.SELL or mode == MODE.FENCE_SELL then
+    elseif IsSellMode(mode) or mode == MODE.FENCE_SELL then
         return GetString(rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL")
     elseif mode == MODE.FENCE_LAUNDER then
         return GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER")

@@ -26,6 +26,7 @@ function EventBridge.Register(eventManager, eventNamespace, handlers)
 
     RegisterEvent(eventManager, eventNamespace, "StableStart", rawget(_G, "EVENT_STABLE_INTERACT_START"), handlers.onStableInteractStart)
     RegisterEvent(eventManager, eventNamespace, "StableEnd", rawget(_G, "EVENT_STABLE_INTERACT_END"), handlers.onStableInteractEnd)
+    RegisterEvent(eventManager, eventNamespace, "StableMountInfo", rawget(_G, "EVENT_MOUNT_INFO_UPDATED"), handlers.onStableInfoUpdated or handlers.onInventoryUpdated)
 
     RegisterEvent(eventManager, eventNamespace, "Open", EVENT_OPEN_STORE, handlers.onOpenStore)
     RegisterEvent(eventManager, eventNamespace, "OpenFence", EVENT_OPEN_FENCE, handlers.onOpenFence)

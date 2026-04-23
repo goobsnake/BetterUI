@@ -201,7 +201,8 @@ end
 do
     mockLanguage = "jp"
     local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-    assert_eq(#patterns, 0, "unknown locale does not fall back to english patterns")
+    assert_eq(#patterns, 8, "unknown locale falls back to english patterns")
+    assert_eq(patterns[1].pattern, "blacksmith", "unknown locale preserves english fallback ordering")
 end
 
 print("[Writ objective formatting]")
@@ -273,7 +274,7 @@ assert_eq(writPanelHidden, false, "show reveals the writ panel")
 BETTERUI.Writs.HidePanel()
 assert_eq(writPanelHidden, true, "hide conceals the writ panel")
 
-print("[Locale-gated pattern matching]")
+print("[Locale fallback pattern matching]")
 
 do
     questJournal = {
@@ -289,15 +290,14 @@ do
     resetUiState()
 
     local refreshOk, refreshErr = BETTERUI.Writs.RefreshActiveWrits()
-    assert_eq(refreshOk, true, "refresh succeeds even when locale has no writ patterns")
-    assert_eq(refreshErr, nil, "refresh with missing locale patterns reports no error")
-    assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_BLACKSMITHING], nil,
-        "english quest names are not matched when the locale has no pattern set")
+    assert_eq(refreshOk, true, "refresh succeeds when locale falls back to english writ patterns")
+    assert_eq(refreshErr, nil, "refresh with fallback locale patterns reports no error")
+    assert_eq(BETTERUI.Writs.List[CRAFTING_TYPE_BLACKSMITHING].id, 1,
+        "english quest names are matched through the fallback locale pattern set")
 
     local showLocaleOk, showLocaleErr = BETTERUI.Writs.ShowForCraftType(CRAFTING_TYPE_BLACKSMITHING)
-    assert_eq(showLocaleOk, false, "show-for-craft fails when locale patterns do not match any active writ")
-    assert_eq(showLocaleErr, "no_active_writ",
-        "show-for-craft reports no_active_writ when refresh yields no locale matches")
+    assert_eq(showLocaleOk, true, "show-for-craft succeeds through fallback locale patterns")
+    assert_eq(showLocaleErr, nil, "show-for-craft reports no error when fallback patterns match")
 end
 
 mockLanguage = "en"

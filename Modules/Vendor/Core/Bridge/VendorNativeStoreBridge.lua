@@ -86,17 +86,20 @@ local function BuildComponentSnapshot(searchContext)
     local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
 
     local componentTable, seenActiveModes = GetActiveNativeStoreModes(storeManager)
+    local isStableInteraction = Vendor.IsStableInteraction and Vendor.IsStableInteraction() or false
+    local isFenceInteraction = Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() or false
+    local hasNativeBuyComponent = buyMode ~= nil
+        and type(storeManager.components) == "table"
+        and storeManager.components[buyMode] ~= nil
     local includeBuy = Vendor._sessionHasBuyMode == true
         or (buyMode ~= nil and seenActiveModes[buyMode] == true)
+        or (isStableInteraction and hasNativeBuyComponent)
     if not includeBuy and Vendor.HasVendorBuyInventory then
         includeBuy = Vendor.HasVendorBuyInventory("Vendor.NativeStoreBridge")
     end
     if includeBuy then
         Vendor._sessionHasBuyMode = true
     end
-
-    local isStableInteraction = Vendor.IsStableInteraction and Vendor.IsStableInteraction() or false
-    local isFenceInteraction = Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() or false
     local needRebuild
     if isStableInteraction then
         needRebuild = (#componentTable == 0)
