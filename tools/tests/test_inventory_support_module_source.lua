@@ -74,6 +74,10 @@ assert_true(utilsSource:find("function BETTERUI%.Inventory%.Utils%.OnTabPrev%(pa
     "Inventory utils expose OnTabPrev")
 assert_true(utilsSource:find("BETTERUI%.Inventory%.Utils%.SafeGetTargetData = BETTERUI%.CIM%.Utils%.SafeGetTargetData") ~= nil,
     "Inventory utils alias SafeGetTargetData to the shared helper")
+assert_true(utilsSource:find("function BETTERUI%.Inventory%.Utils%.CaptureSlotIdentity%(bagId, slotIndex, slotData%)") ~= nil,
+    "Inventory utils expose a reusable slot identity snapshot helper")
+assert_true(utilsSource:find("function BETTERUI%.Inventory%.Utils%.IsSlotIdentityCurrent%(identity, bagId, slotIndex%)") ~= nil,
+    "Inventory utils expose stale-slot validation for deferred actions")
 
 local craftBagDialogSource = read_file("Modules/Inventory/Dialogs/CraftBagQuantityDialog.lua")
 assert_true(craftBagDialogSource:find("function BETTERUI%.Inventory%.Dialogs%.InitializeCraftBagQuantityDialog%(%)") ~= nil,
@@ -82,12 +86,16 @@ assert_true(craftBagDialogSource:find("function BETTERUI%.Inventory%.Dialogs%.Sh
     "CraftBagQuantityDialog exposes ShowCraftBagQuantityDialog")
 assert_true(craftBagDialogSource:find("BETTERUI_EVENT_CRAFTBAG_QUANTITY_DIALOG_FINISHED") ~= nil,
     "CraftBagQuantityDialog defines the finished callback event")
+assert_true(craftBagDialogSource:find("expectedSlotIdentity") ~= nil,
+    "CraftBagQuantityDialog validates the selected stack identity before applying a quantity")
 
 local inventoryDialogsSource = read_file("Modules/Inventory/Dialogs/InventoryDialogs.lua")
 assert_true(inventoryDialogsSource:find("function BETTERUI%.Inventory%.Class:InitializeSplitStackDialog%(%)") ~= nil,
     "InventoryDialogs exposes InitializeSplitStackDialog")
 assert_true(inventoryDialogsSource:find("function BETTERUI%.Inventory%.Class:InitializeConfirmDestroyDialog%(%)") ~= nil,
     "InventoryDialogs exposes InitializeConfirmDestroyDialog")
+assert_true(inventoryDialogsSource:find("IsSlotIdentityCurrent%(d%.expectedSlotIdentity, d%.bagId, d%.slotIndex%)") ~= nil,
+    "InventoryDialogs validates destroy confirmations against stale slot identity")
 assert_true(inventoryDialogsSource:find("function BETTERUI%.Inventory%.Class:InitializeConfirmDestroyArmoryItemDialog%(%)") ~= nil,
     "InventoryDialogs exposes InitializeConfirmDestroyArmoryItemDialog")
 

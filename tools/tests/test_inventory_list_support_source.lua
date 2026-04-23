@@ -55,8 +55,10 @@ assert_true(craftBagKeybindsSource:find("InventoryKeybinds%.GetXButtonActionCont
 local categoryListSource = read_file("Modules/Inventory/Lists/CategoryListManager.lua")
 assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:InitializeCategoryList%(%)") ~= nil,
     "CategoryListManager exposes InitializeCategoryList")
-assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:NewCategoryItem%(filterType, iconFile, FilterFunct%)") ~= nil,
+assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:NewCategoryItem%(filterType, iconFile, FilterFunct, forceAdd%)") ~= nil,
     "CategoryListManager exposes NewCategoryItem")
+assert_true(categoryListSource:find("catDef%.isStatic%)") ~= nil,
+    "CategoryListManager forces static categories through the second emptiness gate")
 assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:RefreshCategoryList%(%)") ~= nil,
     "CategoryListManager exposes RefreshCategoryList")
 
@@ -75,6 +77,8 @@ assert_true(craftListSource:find("function GetFilterComparator%(filterType%)") ~
     "CraftList exposes the craft bag filter comparator")
 assert_true(craftListSource:find("function BETTERUI%.Inventory%.CraftList:RefreshList%(filterType, searchQuery%)") ~= nil,
     "CraftList exposes RefreshList")
+assert_true(craftListSource:find('Tasks:Cancel%("craftBatchProcess"%)') ~= nil,
+    "CraftList cancels stale deferred craft-bag batches before rebuilding")
 assert_true(craftListSource:find("function BETTERUI%.Inventory%.CraftList:ProcessBatch%(%)") ~= nil,
     "CraftList exposes ProcessBatch")
 
@@ -83,6 +87,10 @@ assert_true(itemListFilteringSource:find("function BETTERUI%.Inventory%.Class:Ge
     "ItemListFiltering exposes GetItemDataFilterComparator")
 assert_true(itemListFilteringSource:find("function BETTERUI%.Inventory%.Class:RefreshItemList%(%)") ~= nil,
     "ItemListFiltering exposes RefreshItemList")
+assert_true(itemListFilteringSource:find("SafeGetTargetData%(self%.categoryList%)") ~= nil,
+    "ItemListFiltering resolves category targets through the safe target-data helper")
+assert_true(itemListFilteringSource:find("PrepareQuestItemListEntry") ~= nil,
+    "ItemListFiltering prepares quest-cache rows before normal item processing")
 assert_true(itemListFilteringSource:find("function BETTERUI%.Inventory%.Class:UpdateItemLeftTooltip%(selectedData%)") ~= nil,
     "ItemListFiltering exposes UpdateItemLeftTooltip")
 

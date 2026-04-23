@@ -288,6 +288,9 @@ do
         "Alphabetic stat values sort before numeric values")
     assert_true(comparator({ statValue = 150 }, { statValue = "-" }),
         "Numeric stat values sort before blanks")
+    assert_true(comparator({ statValue = 150, name = "Alpha", uniqueId = "1" },
+            { statValue = 150, name = "Beta", uniqueId = "2" }),
+        "Equal stat values fall back to a deterministic item key")
 end
 
 print("\n-- Value sorting prefers market price, caches the result, and resets cleanly --")

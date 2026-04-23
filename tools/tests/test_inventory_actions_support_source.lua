@@ -59,6 +59,8 @@ assert_true(destroyAction:find("BETTERUI%.CIM%.SafeExecute") ~= nil,
     "DestroyAction routes force destroy through SafeExecute")
 assert_true(destroyAction:find("BETTERUI%.Inventory%.CanDestroyItemWithPolicy = CanDestroyItemWithPolicy") ~= nil,
     "DestroyAction exposes shared destroy-policy helper for inventory action callers")
+assert_true(destroyAction:find("CaptureSlotIdentity%(bag, index, inventorySlot%)") ~= nil,
+    "DestroyAction snapshots slot identity before opening delayed destroy confirmations")
 
 local equipAction = read_file("Modules/Inventory/Actions/EquipAction.lua")
 assert_true(equipAction:find("BETTERUI%.Inventory%.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched") ~= nil,

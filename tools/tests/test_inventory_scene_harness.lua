@@ -347,6 +347,8 @@ ITEMFILTERTYPE_JEWELRY = 14
 EQUIP_TYPE_POISON = 15
 GAMEPLAY_ACTOR_CATEGORY_COMPANION = 16
 SLOT_TYPE_QUEST_ITEM = 17
+ACTION_TYPE_QUEST_ITEM = 18
+HOTBAR_CATEGORY_QUICKSLOT_WHEEL = 19
 
 SI_BETTERUI_SEARCH_NO_RESULTS = "SI_BETTERUI_SEARCH_NO_RESULTS"
 SI_BETTERUI_EMPTY_LIST = "SI_BETTERUI_EMPTY_LIST"
@@ -355,7 +357,7 @@ SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG = "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG"
 SI_DESTROY_ITEM_PROMPT_TITLE = "SI_DESTROY_ITEM_PROMPT_TITLE"
 SI_DIALOG_CANCEL = "SI_DIALOG_CANCEL"
 SI_GAMEPAD_SELECT_OPTION = "SI_GAMEPAD_SELECT_OPTION"
-
+dofile("Modules/Inventory/Core/Utils.lua")
 dofile("Modules/Inventory/Lists/ItemListFiltering.lua")
 dofile("Modules/Inventory/Core/InventoryBatchOps.lua")
 
@@ -379,8 +381,12 @@ local function makeInventoryInstance()
         itemList = itemList,
         categoryList = {
             selectedData = {},
-            IsEmpty = function(self)
-                return self.selectedData == nil
+            dataList = { {} },
+            IsEmpty = function(self) return not self.dataList or #self.dataList == 0 end,
+            SetSelectedIndexWithoutAnimation = function(self, index)
+                self.selectedIndex, self.targetSelectedIndex = index, index
+                self.selectedData = self.dataList[index]
+                self.targetData = self.selectedData
             end,
         },
         cachedBags = {},

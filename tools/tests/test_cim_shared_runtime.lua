@@ -56,6 +56,9 @@ function ZO_Object.New(class)
 end
 
 function Id64ToString(value)
+    if type(value) == "string" then
+        error("Id64ToString should not receive synthetic string ids")
+    end
     return string.format("id64:%s", tostring(value))
 end
 
@@ -213,6 +216,10 @@ local list = {
 local manager = MultiSelectManager.Create(list, function(count)
     callbackCounts[#callbackCounts + 1] = count
 end)
+
+local stringSelectionKeys = manager:GetItemSelectionKeys({ dataSource = { uniqueId = "quest:1:2::" } })
+assert_eq(stringSelectionKeys[1], "quest:1:2::",
+    "MultiSelectManager uses synthetic string unique ids without Id64 conversion")
 
 assert_true(manager:EnterSelectionMode(), "MultiSelectManager enters selection mode")
 assert_eq(MultiSelectManager.GetActiveInstance(), manager,
