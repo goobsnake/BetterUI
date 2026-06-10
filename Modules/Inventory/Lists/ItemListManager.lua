@@ -75,16 +75,12 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 
             self:SetSelectedInventoryData(selectedData)
 
-            -- Debounce Tooltip Update (Removed immediate call to prevent scroll lag)
-            if self.callLaterLeftToolTip ~= nil then
-                EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
-            end
-
+            -- Debounce Tooltip Update (Removed immediate call to prevent scroll lag).
+            -- Schedule() auto-cancels any pending "tooltipUpdate", so rapid
+            -- selection changes coalesce into a single deferred layout.
             BETTERUI.Inventory.Tasks:Schedule("tooltipUpdate", 50, function()
                 self:UpdateItemLeftTooltip(selectedData)
-                self.callLaterLeftToolTip = nil
             end)
-            self.callLaterLeftToolTip = "InventoryTooltipUpdate"
 
             self:PrepareNextClearNewStatus(selectedData)
 

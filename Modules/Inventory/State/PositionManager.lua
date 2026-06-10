@@ -112,15 +112,11 @@ function BETTERUI.Inventory.ToSavedPosition(self)
     local dataList = currentList.list and currentList.list.dataList or currentList.dataList
     if dataList and #dataList > 0 and not self.pendingBatchData then
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-        if self.callLaterLeftToolTip then
-            EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
-        end
         BETTERUI.Inventory.Tasks:Schedule("tooltipRefresh", BETTERUI.Inventory.CONST.TOOLTIP_REFRESH_DELAY_MS, function()
             if self.UpdateItemLeftTooltip then
                 self:UpdateItemLeftTooltip(currentList.selectedData)
             end
         end)
-        self.callLaterLeftToolTip = "InventoryTooltipRefresh"
     end
 end
 

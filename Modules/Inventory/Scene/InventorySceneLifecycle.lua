@@ -117,10 +117,10 @@ local function OnSceneHiding(self)
 
 	BETTERUI.CIM.Utils.SetExternalToolbarHidden(false)
 
-	if self.callLaterLeftToolTip ~= nil then
-		EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
-		self.callLaterLeftToolTip = nil
-	end
+	-- Cancel any pending deferred tooltip layout so it cannot fire after the
+	-- scene is hidden (DeferredTask-scheduled, not EVENT_MANAGER updates).
+	BETTERUI.Inventory.Tasks:Cancel("tooltipUpdate")
+	BETTERUI.Inventory.Tasks:Cancel("tooltipRefresh")
 	-- search hold behavior is part of main keybind descriptors; nothing to remove here
 	-- Save the current list position so it can be restored when the scene is shown again
 	self:SaveListPosition()
@@ -165,10 +165,10 @@ local function OnSceneHidden(self)
 
 	BETTERUI.CIM.Utils.SetExternalToolbarHidden(false)
 
-	if self.callLaterLeftToolTip ~= nil then
-		EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
-		self.callLaterLeftToolTip = nil
-	end
+	-- Cancel any pending deferred tooltip layout so it cannot fire after the
+	-- scene is hidden (DeferredTask-scheduled, not EVENT_MANAGER updates).
+	BETTERUI.Inventory.Tasks:Cancel("tooltipUpdate")
+	BETTERUI.Inventory.Tasks:Cancel("tooltipRefresh")
 
 	-- Clear search state using shared helper
 	BETTERUI.CIM.SceneCleanup.ClearSearchState(self)
