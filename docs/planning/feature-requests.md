@@ -1,6 +1,6 @@
 # Feature Requests Backlog
 
-Last Updated: 2026-04-16
+Last Updated: 2026-06-10
 Status: Active
 
 This document tracks durable BetterUI feature gaps and parity opportunities discovered from ESO gamepad workflow audits.
@@ -26,11 +26,13 @@ This document tracks durable BetterUI feature gaps and parity opportunities disc
 
 | ID | Date | Area | Request | Impact | Effort | Priority | Status | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `ECO-001` | 2026-05-29 | Currency display | Add Archival Fortunes to the currency display options | Medium | Low | P2 | Open | ESOUI comment (oddavi, 05/29/26). Infinite Archive currency (`CURT_ARCHIVAL_FORTUNES`); add to the currency rows/toggles wherever existing optional currencies (Tel Var, Transmute, etc.) are offered. |
 
 ## Trading and Crafting
 
 | ID | Date | Area | Request | Impact | Effort | Priority | Status | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `TRC-001` | 2026-04-11 | Market integration | Show market price data on crafting and improvement pages (TTC 4.27 parity) | Medium | Medium | P2 | Open | ESOUI comment (Edricson, 04/11/26). TTC 4.27 added price data to crafting/improvement screens; extend BUI market integration (ATT/MM/TTC via `MarketIntegration.lua`) to gamepad crafting/improvement panels. |
 
 ## Social and Guild
 
@@ -47,6 +49,12 @@ This document tracks durable BetterUI feature gaps and parity opportunities disc
 | ID | Date | Area | Request | Impact | Effort | Priority | Status | Notes |
 |---|---|---|---|---|---|---|---|---|
 
+## HUD and Frames
+
+| ID | Date | Area | Request | Impact | Effort | Priority | Status | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `HUD-001` | 2026-04-10 | Resource orbs / action bar | Allow moving resource orbs independently from the action bar (at minimum, independent orb offsets) | High | High | P2 | Open | ESOUI comments (Loliam 04/10/26, Vo1se 05/10/26). Orbs and bars are currently anchored as one frame group (`Modules/ResourceOrbFrames`, `PositionManager.lua`); author previously replied "whole UI frames move together". Requested repeatedly. |
+
 _Open feature-request inventory cleared on 2026-04-16 per product decision. Historical closed items remain below._
 
 ## Closed
@@ -57,4 +65,6 @@ _Open feature-request inventory cleared on 2026-04-16 per product decision. Hist
 
 ## Recommended Implementation Order
 
-_No queued feature requests._
+1. `ECO-001` Archival Fortunes currency display (low effort, isolated).
+2. `TRC-001` TTC/market prices on crafting and improvement pages.
+3. `HUD-001` Independent orb/action-bar positioning (high effort; needs anchoring redesign).

@@ -28,6 +28,13 @@ local function CleanupTooltipEnhancementArtifacts()
     BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_MOVABLE_TOOLTIP)
 end
 
+--- Restores the stock ZO_TOOLTIP_STYLES entries overridden by tooltip enhancements.
+local function RestoreTooltipVisualSettings()
+    if BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.RestoreTooltipStyles) == "function" then
+        BETTERUI.CIM.SharedItemSupport.RestoreTooltipStyles()
+    end
+end
+
 --- Refreshes the inventory and banking lists if their scenes are showing.
 local function RefreshInventoryAndBankingLists()
     local sharedUtils = BETTERUI.CIM and BETTERUI.CIM.Utils or nil
@@ -223,6 +230,7 @@ local function ResetEnhancedTooltipSettings()
     if cimSettings and cimSettings.enableTooltipEnhancements == true then
         ApplyTooltipVisualSettings()
     else
+        RestoreTooltipVisualSettings()
         CleanupTooltipEnhancementArtifacts()
     end
     RefreshInventoryAndBankingLists()
@@ -233,6 +241,7 @@ end
 
 BETTERUI.GeneralInterface._SettingsHelpers = {
     ApplyTooltipVisualSettings = ApplyTooltipVisualSettings,
+    RestoreTooltipVisualSettings = RestoreTooltipVisualSettings,
     CleanupTooltipEnhancementArtifacts = CleanupTooltipEnhancementArtifacts,
     RefreshInventoryAndBankingLists = RefreshInventoryAndBankingLists,
     GetMetadataDefault = GetMetadataDefault,

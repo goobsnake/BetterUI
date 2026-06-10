@@ -141,6 +141,7 @@ local function RegisterSharedItemSupport()
     if type(sharedItemSupport.RegisterTooltipSupport) == "function" then
         sharedItemSupport.RegisterTooltipSupport({
             applyTooltipStyles = BETTERUI.Inventory.ApplyTooltipStyles,
+            restoreTooltipStyles = BETTERUI.Inventory.RestoreTooltipStyles,
             cleanupEnhancedTooltip = BETTERUI.Inventory.CleanupEnhancedTooltip,
             isItemComparisonEnabled = BETTERUI.Inventory.IsItemComparisonEnabled,
             compareItem = function(candidateLink, candidateBagId, candidateSlotIndex, equippedBagId)

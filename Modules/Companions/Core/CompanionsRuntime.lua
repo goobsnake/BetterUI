@@ -165,7 +165,8 @@ end
 local function InitializeCompanionList(instance)
     instance:SetupList(
         "BETTERUI_GamepadItemSubEntryTemplate",
-        BETTERUI_SharedGamepadEntry_OnSetup
+        BETTERUI_SharedGamepadEntry_OnSetup,
+        "BUI_ItemRow"
     )
     instance:InitializeListPresentation()
     PatchCompanionListMovePrevious(instance)

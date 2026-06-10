@@ -80,6 +80,11 @@ local function ToggleJunkState(self, isJunk)
     if self and self.SetActiveKeybinds and self.mainKeybindStripDescriptor and not self.isInHeaderSortMode then
         self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
     end
+    -- The action dialog deactivates the header tab bar; reactivate it so LB/RB
+    -- keep paging the category carousel after the junk toggle.
+    if self and self.EnsureHeaderKeybindsActive and not self.isInHeaderSortMode then
+        self:EnsureHeaderKeybindsActive()
+    end
 end
 
 local function ResolveCurrentTarget(self)
@@ -377,6 +382,12 @@ function ActionHandlers.OnFinish(self)
 
         if not self.isInHeaderSortMode then
             self:RefreshKeybinds()
+        end
+
+        -- Dialogs deactivate the header tab bar; reactivate it so LB/RB keep
+        -- paging the category carousel after any action-dialog flow.
+        if self.EnsureHeaderKeybindsActive and not self.isInHeaderSortMode then
+            self:EnsureHeaderKeybindsActive()
         end
         return true
     end

@@ -93,6 +93,7 @@ function SharedItemSupport.RegisterTooltipSupport(support)
 
     local supportedKeys = {
         "applyTooltipStyles",
+        "restoreTooltipStyles",
         "cleanupEnhancedTooltip",
         "updateTooltipEquippedText",
         "isItemComparisonEnabled",
@@ -111,6 +112,13 @@ function SharedItemSupport.ApplyTooltipStyles()
     local applyTooltipStyles = tooltipSupport.applyTooltipStyles
     if type(applyTooltipStyles) == "function" then
         return applyTooltipStyles()
+    end
+end
+
+function SharedItemSupport.RestoreTooltipStyles()
+    local restoreTooltipStyles = tooltipSupport.restoreTooltipStyles
+    if type(restoreTooltipStyles) == "function" then
+        return restoreTooltipStyles()
     end
 end
 

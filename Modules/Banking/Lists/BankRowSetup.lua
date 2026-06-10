@@ -346,9 +346,11 @@ function BETTERUI.Banking.Class.SetupItemList(list)
         BETTERUI.Banking.Class.SetupCurrencyTransferEntry,
         ZO_GamepadMenuEntryTemplateParametricListFunction
     )
+    -- Short controlPoolPrefix keeps pooled-control names under the engine limit.
     list:AddDataTemplate("BETTERUI_GamepadItemSubEntryTemplate", BETTERUI_SharedGamepadEntry_OnSetup,
-        ZO_GamepadMenuEntryTemplateParametricListFunction, BETTERUI.CIM.MenuEntryTemplateEquality)
+        ZO_GamepadMenuEntryTemplateParametricListFunction, BETTERUI.CIM.MenuEntryTemplateEquality,
+        "BUI_ItemRow")
     list:AddDataTemplateWithHeader("BETTERUI_GamepadItemSubEntryTemplate", BETTERUI_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, BETTERUI.CIM.MenuEntryTemplateEquality,
-        "ZO_GamepadMenuEntryHeaderTemplate")
+        "ZO_GamepadMenuEntryHeaderTemplate", nil, "BUI_ItemRow")
 end

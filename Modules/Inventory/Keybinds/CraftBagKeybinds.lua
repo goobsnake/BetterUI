@@ -144,6 +144,28 @@ local function GetCurrentTarget(self)
     return nil
 end
 
+--- A usable item on use-cooldown (e.g. a just-opened container) temporarily
+--- loses its "Use" slot action, letting the next action (often "Mark as Junk")
+--- float to primary. Pin the primary to "Use" while the cooldown runs so
+--- spamming the key cannot junk or otherwise mutate the item unexpectedly.
+---@param self table Inventory class instance
+---@return string|nil useName Localized "Use" label when the pin applies
+local function GetCooldownPinnedUseName(self)
+    local target = GetCurrentTarget(self)
+    local dataSource = target and (target.dataSource or target)
+    if not (dataSource and dataSource.bagId and dataSource.slotIndex) then
+        return nil
+    end
+    if not GetItemCooldownInfo then
+        return nil
+    end
+    local remaining = GetItemCooldownInfo(dataSource.bagId, dataSource.slotIndex)
+    if remaining and remaining > 0 then
+        return GetString(SI_ITEM_ACTION_USE)
+    end
+    return nil
+end
+
 local function GetQuestItemId(target)
     if not target then
         return nil
@@ -291,6 +313,11 @@ function InventoryKeybinds.GetPrimaryKeybindName(self)
         return multiSelectActionName or ""
     end
 
+    local pinnedUseName = GetCooldownPinnedUseName(self)
+    if pinnedUseName then
+        return pinnedUseName
+    end
+
     if IsPrimaryActionTransitionActive(self) and self._primaryActionTransitionName then
         return self._primaryActionTransitionName
     end
@@ -415,6 +442,17 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
         currentTarget = InventoryUtils.SafeGetTargetData(self.craftBagList)
     end
     if not currentTarget then
+        return
+    end
+
+    -- While the selected item is on use-cooldown its "Use" slot action is
+    -- temporarily absent and the fall-through action (often "Mark as Junk")
+    -- would fire instead. Route the press to Use — a safe no-op during the
+    -- cooldown — so the displayed and executed action always match.
+    local pinnedUseName = GetCooldownPinnedUseName(self)
+    if pinnedUseName then
+        StartPrimaryActionTransition(self, pinnedUseName)
+        ExecuteTargetUse(currentTarget)
         return
     end
 

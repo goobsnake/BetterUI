@@ -425,8 +425,10 @@ function BETTERUI.Inventory.List:Initialize(control, options)
     end
 
     self.list = BETTERUI_VerticalParametricScrollList:New(self.control)
+    -- Short controlPoolPrefix keeps pooled-control names under the engine limit.
+    local controlPoolPrefix = self.template == DEFAULT_TEMPLATE and "BUI_ItemRow" or nil
     self.list:AddDataTemplate(self.template, options.templateSetupFunction or InventoryEntryTemplateSetup,
-        ZO_GamepadMenuEntryTemplateParametricListFunction)
+        ZO_GamepadMenuEntryTemplateParametricListFunction, nil, controlPoolPrefix)
     self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
 

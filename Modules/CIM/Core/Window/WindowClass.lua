@@ -194,16 +194,20 @@ end
 --- Configures the main list template.
 ---@param rowTemplate string
 ---@param setupCallback fun(control: table, data: table, selected: boolean)
-function BETTERUI.Interface.Window:SetupList(rowTemplate, setupCallback)
+---@param controlPoolPrefix string|nil Short pooled-control name prefix; keeps generated names under the engine limit
+function BETTERUI.Interface.Window:SetupList(rowTemplate, setupCallback, controlPoolPrefix)
     self.itemListTemplate = rowTemplate
-    self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction)
+    self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction,
+        nil, controlPoolPrefix)
 end
 
 --- Adds an additional data template to the list (for multi-template lists).
 ---@param rowTemplate string
 ---@param setupCallback fun(control: table, data: table, selected: boolean)
-function BETTERUI.Interface.Window:AddTemplate(rowTemplate, setupCallback)
-    self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction)
+---@param controlPoolPrefix string|nil Short pooled-control name prefix; keeps generated names under the engine limit
+function BETTERUI.Interface.Window:AddTemplate(rowTemplate, setupCallback, controlPoolPrefix)
+    self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction,
+        nil, controlPoolPrefix)
 end
 
 --- Adds a single entry to the list and commits.

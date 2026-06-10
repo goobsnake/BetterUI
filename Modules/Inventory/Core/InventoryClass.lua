@@ -326,6 +326,12 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
             self:RefreshKeybinds()
         end
 
+        -- Dialogs deactivate the header tab bar; reactivate it so LB/RB keep
+        -- paging the category carousel after the dialog closes.
+        if not self.isInHeaderSortMode and self.EnsureHeaderKeybindsActive then
+            self:EnsureHeaderKeybindsActive()
+        end
+
         if selectedList and selectedList.IsEmpty and not selectedData and not selectedList:IsEmpty() then
             return false
         end
