@@ -3,7 +3,7 @@ File: Modules/TradingHouse/Components/SellComponent.lua
 Purpose: Sell tab component for the Trading House module.
 
 Lists the player's sellable inventory items and handles posting
-listings to the guild store via PostItemOnTradingHouse.
+listings to the guild store via RequestPostItemOnTradingHouse.
 ]]
 
 local TH = BETTERUI.TradingHouse
@@ -72,14 +72,9 @@ function Sell:OnPrimaryAction(thInstance)
     local itemName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(bagId, slotIndex))
     local icon, _, _, _, _ = GetItemInfo(bagId, slotIndex)
 
-    -- Derive a default listing price hint from the item's vendor sell price
-    local defaultPrice
-    if GetItemSellPriceWithBonus then
-        defaultPrice = GetItemSellPriceWithBonus(bagId, slotIndex) * stackCount
-    else
-        local _, _, sellPrice = GetItemInfo(bagId, slotIndex)
-        defaultPrice = (sellPrice or 0) * stackCount
-    end
+    -- Derive a default listing price hint from the item's vendor sell price.
+    local _, _, sellPrice = GetItemInfo(bagId, slotIndex)
+    local defaultPrice = (sellPrice or 0) * stackCount
     if defaultPrice <= 0 then
         defaultPrice = 100
     end
@@ -109,8 +104,10 @@ function Sell:BuildList(thInstance)
         -- Skip empty slots
         local stackCount = GetSlotStackSize(bagId, slotIndex)
         if stackCount and stackCount > 0 then
+            -- GetItemInfo returns: icon, stack, sellPrice, meetsUsageRequirement,
+            -- locked, equipType, itemStyleId, functionalQuality, displayQuality.
             local icon, stack, sellPrice, _, locked,
-                _, _, displayQuality = GetItemInfo(bagId, slotIndex)
+                _, _, _, displayQuality = GetItemInfo(bagId, slotIndex)
 
             -- Skip bound/locked/stolen items
             local isBound = IsItemBound and IsItemBound(bagId, slotIndex) or false

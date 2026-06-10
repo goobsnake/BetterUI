@@ -89,9 +89,15 @@ function Browse:OnSearchResultsReceived(thInstance)
     Browse.searchPending = false
     Browse.hasMorePages = false
 
-    if GetNumTradingHouseSearchResultsPages then
-        local totalPages = GetNumTradingHouseSearchResultsPages()
-        Browse.hasMorePages = (Browse.currentPage + 1) < totalPages
+    -- API 50: GetNumTradingHouseSearchResultsPages was removed. Paging state
+    -- now comes from GetTradingHouseSearchResultsInfo() which returns
+    -- numItemsOnPage, currentPage, hasMorePages.
+    if GetTradingHouseSearchResultsInfo then
+        local _, currentPage, hasMorePages = GetTradingHouseSearchResultsInfo()
+        if currentPage ~= nil then
+            Browse.currentPage = currentPage
+        end
+        Browse.hasMorePages = hasMorePages == true
     end
 
     if thInstance and thInstance:IsSceneShowing() and
@@ -104,7 +110,12 @@ function Browse:BuildList(thInstance)
     local list = thInstance.list
     if not list then return end
 
-    local numResults = GetNumTradingHouseSearchResults and GetNumTradingHouseSearchResults() or 0
+    -- API 50: GetNumTradingHouseSearchResults was removed; the on-page result
+    -- count is the first return of GetTradingHouseSearchResultsInfo().
+    local numResults = 0
+    if GetTradingHouseSearchResultsInfo then
+        numResults = GetTradingHouseSearchResultsInfo() or 0
+    end
     if numResults == 0 then return end
 
     for i = 1, numResults do

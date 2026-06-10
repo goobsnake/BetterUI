@@ -72,7 +72,10 @@ function Listings:BuildList(thInstance)
     if numListings == 0 then return end
 
     for i = 1, numListings do
-        local itemName, icon, stackCount, price, displayQuality, _, timeRemaining, itemUniqueId
+        -- API 50 return order: icon, itemName, displayQuality, stackCount,
+        -- sellerName, timeRemaining, salePrice, currencyType, itemUniqueId,
+        -- salePricePerUnit.
+        local icon, itemName, displayQuality, stackCount, _, timeRemaining, price, _, itemUniqueId
             = GetTradingHouseListingItemInfo(i)
 
         if itemName and itemName ~= "" then

@@ -226,8 +226,10 @@ function TH.RegisterCreateListingDialog()
                         return
                     end
 
-                    if PostItemOnTradingHouse then
-                        PostItemOnTradingHouse(bagId, slotIndex, stackCount, price)
+                    -- API 50: PostItemOnTradingHouse was removed; posting now
+                    -- goes through RequestPostItemOnTradingHouse.
+                    if RequestPostItemOnTradingHouse then
+                        RequestPostItemOnTradingHouse(bagId, slotIndex, stackCount, price)
                     end
                 end,
             },
