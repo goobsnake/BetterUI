@@ -17,18 +17,22 @@ local function CraftBagEntrySetup(control, data, selected, selectedDuringRebuild
 end
 
 local function SetupCraftBagList(buiList)
+    -- Short controlPoolPrefix keeps pooled-control names under the engine limit.
     buiList.list:AddDataTemplate(
         "BETTERUI_GamepadItemSubEntryTemplate",
         CraftBagEntrySetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction,
-        MenuEntryTemplateEquality
+        MenuEntryTemplateEquality,
+        "BUI_ItemRow"
     )
     buiList.list:AddDataTemplateWithHeader(
         "BETTERUI_GamepadItemSubEntryTemplate",
         CraftBagEntrySetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction,
         MenuEntryTemplateEquality,
-        "ZO_GamepadMenuEntryHeaderTemplate"
+        "ZO_GamepadMenuEntryHeaderTemplate",
+        nil,
+        "BUI_ItemRow"
     )
 end
 

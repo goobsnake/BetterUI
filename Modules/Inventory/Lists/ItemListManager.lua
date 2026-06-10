@@ -25,18 +25,23 @@ end
 
 --- @param list table Scroll list instance
 local function SetupItemList(list)
+    -- Short controlPoolPrefix keeps generated pooled-control names (parent scroll
+    -- + prefix + index + child suffixes) under the engine's max control-name length.
     list:AddDataTemplate(
         "BETTERUI_GamepadItemSubEntryTemplate",
         BETTERUI_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction,
-        MenuEntryTemplateEquality
+        MenuEntryTemplateEquality,
+        "BUI_ItemRow"
     )
     list:AddDataTemplateWithHeader(
         "BETTERUI_GamepadItemSubEntryTemplate",
         BETTERUI_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction,
         MenuEntryTemplateEquality,
-        "ZO_GamepadMenuEntryHeaderTemplate"
+        "ZO_GamepadMenuEntryHeaderTemplate",
+        nil,
+        "BUI_ItemRow"
     )
 end
 

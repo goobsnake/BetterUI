@@ -15,7 +15,8 @@ function BETTERUI.TradingHouse.Init()
     TH.RegisterComponents(TH.instance)
     TH.instance:SetupList(
         "BETTERUI_GamepadItemSubEntryTemplate",
-        BETTERUI.TradingHouse.THEntrySetup
+        BETTERUI.TradingHouse.THEntrySetup,
+        "BUI_ItemRow"
     )
     TH.SetupSelectionTooltip(TH.instance)
 

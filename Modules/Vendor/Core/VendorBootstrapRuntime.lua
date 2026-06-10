@@ -14,11 +14,13 @@ local BootstrapRuntime = Vendor.BootstrapRuntime
 function BootstrapRuntime.InitializeList(instance, deps)
     instance:SetupList(
         "BETTERUI_GamepadItemSubEntryTemplate",
-        deps.rowSetup
+        deps.rowSetup,
+        "BUI_ItemRow"
     )
     instance:AddTemplate(
         "BETTERUI_GamepadStableTrainingEntryTemplate",
-        deps.rowSetup
+        deps.rowSetup,
+        "BUI_StableRow"
     )
     instance.list:SetOnSelectedDataChangedCallback(function(list, selectedData)
         if instance._searchModeActive and instance.list
