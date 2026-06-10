@@ -48,10 +48,6 @@ local function SetCompanionItemLockState(bagId, slotIndex, locked)
         SetItemIsPlayerLocked(bagId, slotIndex, locked)
         return true
     end
-    if SetItemPlayerLocked then
-        SetItemPlayerLocked(bagId, slotIndex, locked)
-        return true
-    end
     return false
 end
 
