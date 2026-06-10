@@ -9,9 +9,44 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 
 -- Dependencies (ensure these globals are available)
 
+-- ZO_TOOLTIP_STYLES keys overridden by ApplyTooltipStyles; stock entries are
+-- captured before the first override so RestoreTooltipStyles can undo them
+-- in-session (toggling enhancements off must not require a relog).
+local OVERRIDDEN_STYLE_KEYS = {
+    "topSection",
+    "flavorText",
+    "statValuePairStat",
+    "statValuePairValue",
+    "title",
+    "bodyDescription",
+}
+local stockTooltipStyles = nil
+
+local function SnapshotStockTooltipStyles()
+    if stockTooltipStyles or ZO_TOOLTIP_STYLES == nil then
+        return
+    end
+    stockTooltipStyles = {}
+    for _, key in ipairs(OVERRIDDEN_STYLE_KEYS) do
+        stockTooltipStyles[key] = ZO_TOOLTIP_STYLES[key]
+    end
+end
+
+--- Restores the stock gamepad tooltip styles captured before enhancements were applied.
+---@return nil
+function BETTERUI.Inventory.RestoreTooltipStyles()
+    if not stockTooltipStyles or ZO_TOOLTIP_STYLES == nil then
+        return
+    end
+    for _, key in ipairs(OVERRIDDEN_STYLE_KEYS) do
+        ZO_TOOLTIP_STYLES[key] = stockTooltipStyles[key]
+    end
+end
+
 --- Configures the visual style of native tooltips.
 ---@return nil
 function BETTERUI.Inventory.ApplyTooltipStyles()
+    SnapshotStockTooltipStyles()
     local tooltipSize = BETTERUI.GetSetting("CIM", "tooltipSize", 24)
 
     -- Calculate derived sizes from base font size using centralized constants
@@ -20,14 +55,15 @@ function BETTERUI.Inventory.ApplyTooltipStyles()
     local titleFontSize = baseFontSize + fontOffsets.TITLE -- Title is larger
     local valueFontSize = baseFontSize + fontOffsets.VALUE -- Value is larger
 
-    -- Apply tooltip styles with size adjustments
+    -- Apply tooltip styles with size adjustments.
+    -- No fixed height: stock topSection auto-sizes, and a hard height clips
+    -- extra top lines (e.g. the set-collection Collected/Not Collected tag).
     ZO_TOOLTIP_STYLES["topSection"] = {
         layoutPrimaryDirection = "up",
         layoutSecondaryDirection = "right",
         widthPercent = 100,
         childSpacing = 1,
         fontSize = baseFontSize,
-        height = 64,
         uppercase = true,
         fontColorField = GENERAL_COLOR_OFF_WHITE,
     }

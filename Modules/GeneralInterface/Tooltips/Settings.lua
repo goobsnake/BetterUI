@@ -5,6 +5,7 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 local H = assert(BETTERUI.GeneralInterface._SettingsHelpers,
     "BetterUI: load GeneralInterface/Tooltips/SettingsHelpers.lua before Settings.lua")
 local ApplyTooltipVisualSettings = H.ApplyTooltipVisualSettings
+local RestoreTooltipVisualSettings = H.RestoreTooltipVisualSettings
 local CleanupTooltipEnhancementArtifacts = H.CleanupTooltipEnhancementArtifacts
 local RefreshInventoryAndBankingLists = H.RefreshInventoryAndBankingLists
 local GetMetadataDefault = H.GetMetadataDefault
@@ -340,6 +341,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                         end
                     end
                 else
+                    RestoreTooltipVisualSettings()
                     CleanupTooltipEnhancementArtifacts()
                     local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
                     for _, tooltipType in ipairs(tooltipTypes) do
