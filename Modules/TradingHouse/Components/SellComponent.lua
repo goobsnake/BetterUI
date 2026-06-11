@@ -12,6 +12,25 @@ local TH = BETTERUI.TradingHouse
 TH.SellComponent = {}
 local Sell = TH.SellComponent
 
+-- Shared narration text helper avoids a per-entry closure allocation.
+local function GetEntryNarrationText(entryData)
+    local ds = entryData:GetDataSource()
+    return ds and ds.name or ""
+end
+
+--- Resolve the focused row the same way the Vendor keybind strip does
+--- (GetTargetData when available, falling back to GetSelectedData).
+---@param thInstance BETTERUI.TradingHouse.Class|nil
+---@return table|nil rowData
+local function GetTargetRowData(thInstance)
+    local list = thInstance and thInstance.list
+    if not list then return nil end
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+    return list:GetSelectedData()
+end
+
 -- ACTIVATE / DEACTIVATE
 
 ---@param thInstance BETTERUI.TradingHouse.Class
@@ -34,7 +53,7 @@ end
 ---@param thInstance BETTERUI.TradingHouse.Class
 ---@return boolean enabled True if listing is possible
 function Sell:IsPrimaryActionEnabled(thInstance)
-    local selectedData = thInstance.list and thInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(thInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -51,7 +70,7 @@ end
 
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Sell:OnPrimaryAction(thInstance)
-    local selectedData = thInstance.list and thInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(thInstance)
     if not selectedData then return end
     local ds = selectedData.dataSource or selectedData
 
@@ -70,10 +89,9 @@ function Sell:OnPrimaryAction(thInstance)
     local stackCount = GetSlotStackSize(bagId, slotIndex) or 1
     local itemLink = GetItemLink(bagId, slotIndex)
     local itemName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(bagId, slotIndex))
-    local icon, _, _, _, _ = GetItemInfo(bagId, slotIndex)
-
-    -- Derive a default listing price hint from the item's vendor sell price.
-    local _, _, sellPrice = GetItemInfo(bagId, slotIndex)
+    -- Single GetItemInfo call: icon plus the vendor sell price used to derive
+    -- a default listing price hint.
+    local icon, _, sellPrice = GetItemInfo(bagId, slotIndex)
     local defaultPrice = (sellPrice or 0) * stackCount
     if defaultPrice <= 0 then
         defaultPrice = 100
@@ -162,7 +180,7 @@ function Sell:BuildList(thInstance)
 
                     local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
                     entry:SetDataSource(itemData)
-                    entry.narrationText = function() return itemData.name end
+                    entry.narrationText = GetEntryNarrationText
 
                     if quality then
                         local r, g, b = GetItemQualityColor(quality):UnpackRGBA()

@@ -5,9 +5,37 @@ local TH = BETTERUI.TradingHouse
 TH.BrowseComponent = {}
 local Browse = TH.BrowseComponent
 
+-- Shared narration text helper avoids a per-entry closure allocation.
+local function GetEntryNarrationText(entryData)
+    local ds = entryData:GetDataSource()
+    return ds and ds.name or ""
+end
+
 Browse.currentPage = 0
 Browse.hasMorePages = false
 Browse.searchPending = false
+Browse.resultsInvalidated = false
+
+--- Resolve the focused row the same way the Vendor keybind strip does
+--- (GetTargetData when available, falling back to GetSelectedData).
+---@param thInstance BETTERUI.TradingHouse.Class|nil
+---@return table|nil rowData
+local function GetTargetRowData(thInstance)
+    local list = thInstance and thInstance.list
+    if not list then return nil end
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+    return list:GetSelectedData()
+end
+
+--- Drops the current native search-result rows from rendering: their
+--- tradingHouseIndex values are no longer purchasable (e.g. after a guild
+--- switch). Cleared when fresh results arrive.
+function Browse:InvalidateResults()
+    Browse.resultsInvalidated = true
+    Browse.hasMorePages = false
+end
 
 function Browse:Activate(thInstance)
     thInstance:RefreshList()
@@ -17,11 +45,11 @@ function Browse:Deactivate(thInstance)
 end
 
 function Browse:GetPrimaryActionName()
-    return GetString(rawget(_G, "SI_TRADING_HOUSE_PURCHASE") or "SI_TRADING_HOUSE_PURCHASE")
+    return GetString(SI_TRADING_HOUSE_BUY_ITEM)
 end
 
 function Browse:IsPrimaryActionEnabled(thInstance)
-    local selectedData = thInstance.list and thInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(thInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -30,7 +58,7 @@ function Browse:IsPrimaryActionEnabled(thInstance)
 end
 
 function Browse:OnPrimaryAction(thInstance)
-    local selectedData = thInstance.list and thInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(thInstance)
     if not selectedData then return end
     local ds = selectedData.dataSource or selectedData
 
@@ -50,44 +78,96 @@ function Browse:OnPrimaryAction(thInstance)
         return
     end
 
-    ZO_Dialogs_ShowGamepadDialog("CONFIRM_TRADING_HOUSE_PURCHASE", {
-        purchaseIndex = tradingHouseIndex,
-        price = price,
-    })
+    -- ZOS gamepad purchase flow (tradinghouse_browseresults_gamepad.lua): stage
+    -- the pending purchase, then show the native gamepad confirm dialog whose
+    -- buttons call ConfirmPendingItemPurchase/ClearPendingItemPurchase.
+    if SetPendingItemPurchase then
+        SetPendingItemPurchase(tradingHouseIndex)
+    end
+
+    local dialogItemData = {
+        slotIndex = tradingHouseIndex,
+        stackCount = ds.stackCount or 1,
+        name = ds.name,
+        displayQuality = ds.quality,
+        currencyType = ds.currencyType,
+    }
+    if ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog then
+        ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog(dialogItemData,
+            "TRADING_HOUSE_CONFIRM_BUY_ITEM", price, ds.icon)
+    else
+        ZO_Dialogs_ShowGamepadDialog("TRADING_HOUSE_CONFIRM_BUY_ITEM", {
+            listingIndex = tradingHouseIndex,
+            stackCount = dialogItemData.stackCount,
+            price = price,
+        })
+    end
 end
 
-function Browse:ExecuteSearch()
-    if Browse.searchPending then return end
+---@param useLastExecutedSearchFilters boolean|nil True for page flips: reuse
+--- the filters from the search that produced the current results instead of
+--- re-applying (and thereby wiping) the pending filter state.
+---@return boolean dispatched True if a search request was sent to the server
+function Browse:ExecuteSearch(useLastExecutedSearchFilters)
+    if Browse.searchPending then return false end
 
     if GetTradingHouseCooldownRemaining and GetTradingHouseCooldownRemaining() > 0 then
         BETTERUI.CIM.UserAlertText("TH:Cooldown",
             GetString(rawget(_G, "SI_BETTERUI_TH_SEARCH_COOLDOWN")))
-        return
+        return false
+    end
+
+    if not ExecuteTradingHouseSearch then
+        return false
+    end
+
+    -- ZOS DoSearch pushes the current filter/preset state into the pending
+    -- search before dispatching (tradinghouse_shared.lua ApplyFilters);
+    -- without this, category filters and loaded presets are inert. Page
+    -- flips skip it and reuse the last executed filters instead.
+    if not useLastExecutedSearchFilters then
+        -- Fresh searches always start at page 0; native dispatches with
+        -- targetPage or 0 (tradinghouse_shared.lua) and only page flips
+        -- carry a page forward.
+        Browse.currentPage = 0
+        if TRADING_HOUSE_SEARCH and TRADING_HOUSE_SEARCH.ApplyFilters then
+            local IS_PERFORMING_SEARCH = true
+            TRADING_HOUSE_SEARCH:ApplyFilters(IS_PERFORMING_SEARCH)
+        end
     end
 
     Browse.searchPending = true
-    if ExecuteTradingHouseSearch then
-        ExecuteTradingHouseSearch(Browse.currentPage, TRADING_HOUSE_SORT_SALE_PRICE, true)
-    end
+    ExecuteTradingHouseSearch(Browse.currentPage, TRADING_HOUSE_SORT_SALE_PRICE, true,
+        useLastExecutedSearchFilters == true)
+    return true
 end
 
 function Browse:NextPage(thInstance)
-    if Browse.hasMorePages then
-        Browse.currentPage = Browse.currentPage + 1
-        Browse:ExecuteSearch()
+    if not Browse.hasMorePages then return end
+    -- Only commit the page change when the search actually dispatches.
+    local USE_LAST_EXECUTED_SEARCH_FILTERS = true
+    local previousPage = Browse.currentPage
+    Browse.currentPage = previousPage + 1
+    if not Browse:ExecuteSearch(USE_LAST_EXECUTED_SEARCH_FILTERS) then
+        Browse.currentPage = previousPage
     end
 end
 
 function Browse:PrevPage(thInstance)
-    if Browse.currentPage > 0 then
-        Browse.currentPage = Browse.currentPage - 1
-        Browse:ExecuteSearch()
+    if Browse.currentPage <= 0 then return end
+    -- Only commit the page change when the search actually dispatches.
+    local USE_LAST_EXECUTED_SEARCH_FILTERS = true
+    local previousPage = Browse.currentPage
+    Browse.currentPage = previousPage - 1
+    if not Browse:ExecuteSearch(USE_LAST_EXECUTED_SEARCH_FILTERS) then
+        Browse.currentPage = previousPage
     end
 end
 
 function Browse:OnSearchResultsReceived(thInstance)
     Browse.searchPending = false
     Browse.hasMorePages = false
+    Browse.resultsInvalidated = false
 
     -- API 50: GetNumTradingHouseSearchResultsPages was removed. Paging state
     -- now comes from GetTradingHouseSearchResultsInfo() which returns
@@ -109,6 +189,11 @@ end
 function Browse:BuildList(thInstance)
     local list = thInstance.list
     if not list then return end
+
+    -- Stale results (e.g. after a guild switch) reference tradingHouseIndex
+    -- rows that are no longer purchasable; render nothing until a fresh
+    -- search response arrives.
+    if Browse.resultsInvalidated then return end
 
     -- API 50: GetNumTradingHouseSearchResults was removed; the on-page result
     -- count is the first return of GetTradingHouseSearchResultsInfo().
@@ -163,7 +248,7 @@ function Browse:BuildList(thInstance)
 
             local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
             entry:SetDataSource(itemData)
-            entry.narrationText = function() return itemData.name end
+            entry.narrationText = GetEntryNarrationText
 
             if quality then
                 local r, g, b = GetItemQualityColor(quality):UnpackRGBA()

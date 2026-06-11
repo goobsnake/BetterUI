@@ -7,6 +7,19 @@ Purpose: Row setup callback for trading house list entries.
 
 local TH = BETTERUI.TradingHouse
 
+-- Cache row child lookups; row controls are reused, so children are stable.
+local function GetBuiRowChild(control, name)
+    local cache = control._buiChildCache
+    if not cache then
+        cache = {}
+        control._buiChildCache = cache
+    end
+    if cache[name] == nil then
+        cache[name] = control:GetNamedChild(name) or false
+    end
+    return cache[name] or nil
+end
+
 --- Row setup function for trading house item entries.
 ---@param control table UI control for the row
 ---@param data table Entry data with item info
@@ -21,10 +34,10 @@ function BETTERUI.TradingHouse.THEntrySetup(control, data, selected, reselecting
     local ds = data.dataSource or data
 
     -- Column controls
-    local itemTypeControl = control:GetNamedChild("ItemType")
-    local traitControl = control:GetNamedChild("Trait")
-    local statControl = control:GetNamedChild("Stat")
-    local valueControl = control:GetNamedChild("Value")
+    local itemTypeControl = GetBuiRowChild(control, "ItemType")
+    local traitControl = GetBuiRowChild(control, "Trait")
+    local statControl = GetBuiRowChild(control, "Stat")
+    local valueControl = GetBuiRowChild(control, "Value")
     if not itemTypeControl or not traitControl or not statControl or not valueControl then return end
 
     -- Column font
@@ -57,16 +70,15 @@ function BETTERUI.TradingHouse.THEntrySetup(control, data, selected, reselecting
     local statText = ds.statValue
     if ds.unitPrice and ds.unitPrice > 0 then
         -- Show unit price for search results and listings
-        statText = TH.FormatUnitPrice(ds.purchasePrice or ds.listingPrice or 0, ds.stackCount or 1)
+        statText = TH.FormatUnitPrice(ds.purchasePrice or 0, ds.stackCount or 1)
     end
     if statText == nil or statText == "" then
         statText = "-"
     end
     statControl:SetText(statText)
 
-    -- Value column: show purchase price or listing price or sell price
+    -- Value column: show purchase price or sell price
     local displayValue = ds.purchasePrice
-        or ds.listingPrice
         or ds.stackSellPrice
         or ds.sellPrice
         or 0
@@ -105,8 +117,8 @@ function BETTERUI.TradingHouse.THEntrySetup(control, data, selected, reselecting
     end
     if BETTERUI_IconSetup then
         BETTERUI_IconSetup(
-            control:GetNamedChild("StatusIndicator"),
-            control:GetNamedChild("EquippedMain"),
+            GetBuiRowChild(control, "StatusIndicator"),
+            GetBuiRowChild(control, "EquippedMain"),
             data
         )
     end

@@ -156,7 +156,17 @@ function TH.BuildCoreKeybinds(thInstance)
                 if component and component.IsPrimaryActionEnabled then
                     return component:IsPrimaryActionEnabled(thInstance)
                 end
-                local selectedData = thInstance.list and thInstance.list:GetSelectedData()
+                -- Match the components: focused row via GetTargetData first,
+                -- falling back to GetSelectedData.
+                local list = thInstance.list
+                local selectedData = nil
+                if list then
+                    if list.GetTargetData then
+                        selectedData = list:GetTargetData()
+                    else
+                        selectedData = list:GetSelectedData()
+                    end
+                end
                 return selectedData ~= nil
             end,
         },
@@ -174,6 +184,12 @@ function TH.BuildCoreKeybinds(thInstance)
             end,
             enabled = function()
                 if TH.BrowseComponent and TH.BrowseComponent.searchPending then
+                    return false
+                end
+                -- Disable while the trading house search cooldown is running
+                -- (EVENT_TRADING_HOUSE_SEARCH_COOLDOWN_UPDATE re-evaluates).
+                if GetTradingHouseCooldownRemaining
+                    and GetTradingHouseCooldownRemaining() > 0 then
                     return false
                 end
                 return true
@@ -389,5 +405,29 @@ function BETTERUI.TradingHouse.Class:CycleGuild(direction)
     local newGuildId = GetTradingHouseGuildDetails and select(1, GetTradingHouseGuildDetails(newIndex)) or nil
     if newGuildId and SelectTradingHouseGuildId then
         SelectTradingHouseGuildId(newGuildId)
+        -- SelectTradingHouseGuildId returns nothing; confirm the switch took
+        -- effect via the selected-guild getter before dropping state.
+        if GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() ~= newGuildId then
+            return
+        end
+        -- Guild switched: drop stale browse paging/pending state and stop
+        -- rendering the old guild's search results — their tradingHouseIndex
+        -- rows are no longer purchasable. A fresh search repopulates them.
+        if TH.ResetBrowseState then
+            TH.ResetBrowseState()
+        end
+        if TH.BrowseComponent and TH.BrowseComponent.InvalidateResults then
+            TH.BrowseComponent:InvalidateResults()
+        end
+        -- Listings are per guild; request the new guild's listings instead of
+        -- re-rendering the previous guild's data.
+        if self:GetCurrentMode() == MODE.LISTINGS and RequestTradingHouseListings then
+            RequestTradingHouseListings()
+        end
+        self:UpdateTabHeader()
+        self:RefreshList()
+        if self.RefreshTHFooter then
+            self:RefreshTHFooter()
+        end
     end
 end

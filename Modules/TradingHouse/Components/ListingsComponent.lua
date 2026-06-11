@@ -12,6 +12,25 @@ local TH = BETTERUI.TradingHouse
 TH.ListingsComponent = {}
 local Listings = TH.ListingsComponent
 
+-- Shared narration text helper avoids a per-entry closure allocation.
+local function GetEntryNarrationText(entryData)
+    local ds = entryData:GetDataSource()
+    return ds and ds.name or ""
+end
+
+--- Resolve the focused row the same way the Vendor keybind strip does
+--- (GetTargetData when available, falling back to GetSelectedData).
+---@param thInstance BETTERUI.TradingHouse.Class|nil
+---@return table|nil rowData
+local function GetTargetRowData(thInstance)
+    local list = thInstance and thInstance.list
+    if not list then return nil end
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+    return list:GetSelectedData()
+end
+
 -- ACTIVATE / DEACTIVATE
 
 ---@param thInstance BETTERUI.TradingHouse.Class
@@ -38,7 +57,7 @@ end
 ---@param thInstance BETTERUI.TradingHouse.Class
 ---@return boolean enabled True if cancellation is possible
 function Listings:IsPrimaryActionEnabled(thInstance)
-    local selectedData = thInstance.list and thInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(thInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -47,18 +66,33 @@ end
 
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Listings:OnPrimaryAction(thInstance)
-    local selectedData = thInstance.list and thInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(thInstance)
     if not selectedData then return end
     local ds = selectedData.dataSource or selectedData
 
     local listingIndex = ds.listingIndex
     if not listingIndex then return end
 
-    -- Show cancel confirmation
-    ZO_Dialogs_ShowGamepadDialog("CONFIRM_TRADING_HOUSE_CANCEL_LISTING", {
-        listingIndex = listingIndex,
-        currentHouseId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil,
-    })
+    -- ZOS gamepad cancel flow (tradinghouse_listings_gamepad.lua): the gamepad
+    -- TRADING_HOUSE_CONFIRM_REMOVE_LISTING dialog expects listingIndex/stackCount/price.
+    local dialogItemData = {
+        slotIndex = listingIndex,
+        stackCount = ds.stackCount or 1,
+        name = ds.name,
+        displayQuality = ds.quality,
+        currencyType = CURT_MONEY,
+    }
+    local price = ds.purchasePrice or 0
+    if ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog then
+        ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog(dialogItemData,
+            "TRADING_HOUSE_CONFIRM_REMOVE_LISTING", price, ds.icon)
+    else
+        ZO_Dialogs_ShowGamepadDialog("TRADING_HOUSE_CONFIRM_REMOVE_LISTING", {
+            listingIndex = listingIndex,
+            stackCount = dialogItemData.stackCount,
+            price = price,
+        })
+    end
 end
 
 -- LIST BUILDING
@@ -124,7 +158,7 @@ function Listings:BuildList(thInstance)
 
             local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
             entry:SetDataSource(itemData)
-            entry.narrationText = function() return itemData.name end
+            entry.narrationText = GetEntryNarrationText
 
             if quality then
                 local r, g, b = GetItemQualityColor(quality):UnpackRGBA()

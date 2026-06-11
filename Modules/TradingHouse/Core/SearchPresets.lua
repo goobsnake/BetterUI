@@ -118,7 +118,7 @@ function Presets.ShowSaveDialog()
                             control.editBoxControl:SetDefaultText(L("SI_BETTERUI_TH_PRESET_NAME_PLACEHOLDER"))
                         end,
                         textChangedCallback = function(control)
-                            local dialog = control and control:GetParent() and control:GetParent():GetParent()
+                            local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.PARAMETRIC)
                             if dialog and dialog.data then
                                 dialog.data.presetName = control:GetText()
                             end

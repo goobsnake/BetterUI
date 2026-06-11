@@ -149,11 +149,69 @@ function TH.RegisterCreateListingDialog()
         return
     end
 
+    -- U50: "ZO_GamepadSliderDialogTemplate" does not exist in the game UI.
+    -- ZO_GamepadGuildStoreBrowseSliderTemplate is the live template that wires
+    -- control.label and control.slider (a ZO_GamepadConstrainedSlider).
+    -- The slider only receives directional input while activated, so track the
+    -- selected entry's slider on the dialog data and (de)activate accordingly.
+    local function UpdateSliderActivation(control, dialogData, selected)
+        if not (control.slider and control.slider.Activate) then
+            return
+        end
+        if selected then
+            if dialogData and dialogData._activeSlider and dialogData._activeSlider ~= control.slider then
+                dialogData._activeSlider:Deactivate()
+            end
+            control.slider:Activate()
+            if dialogData then
+                dialogData._activeSlider = control.slider
+            end
+        else
+            if dialogData and dialogData._activeSlider == control.slider then
+                dialogData._activeSlider = nil
+            end
+            control.slider:Deactivate()
+        end
+    end
+
+    -- The live template wires control.label/control.slider, but its
+    -- $(parent)SliderValue label is populated by the owning screen; mirror
+    -- that here so the chosen quantity/price stays visible while sliding.
+    local function UpdateSliderValueLabel(control, value, isCurrency)
+        local valueLabel = control.GetNamedChild and control:GetNamedChild("SliderValue") or nil
+        if not valueLabel then
+            return
+        end
+        local text
+        if isCurrency and ZO_Currency_FormatGamepad then
+            text = ZO_Currency_FormatGamepad(CURT_MONEY, value, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
+        elseif ZO_CommaDelimitNumber then
+            text = ZO_CommaDelimitNumber(value)
+        else
+            text = tostring(value)
+        end
+        valueLabel:SetText(text)
+    end
+
     ZO_Dialogs_RegisterCustomDialog("BETTERUI_TRADING_HOUSE_CREATE_LISTING", {
         canQueue = true,
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
         },
+        finishedCallback = function(dialog)
+            local dialogData = dialog and dialog.data
+            if dialogData and dialogData._activeSlider then
+                dialogData._activeSlider:Deactivate()
+                dialogData._activeSlider = nil
+            end
+            -- Mirror the native flow (tradinghouse_keyboard.lua): drop any
+            -- staged pending post when the dialog closes without submitting.
+            -- A successful confirm keeps the staged post for the in-flight
+            -- RequestPostItemOnTradingHouse.
+            if dialogData and not dialogData._submitted and SetPendingItemPost then
+                SetPendingItemPost(BAG_BACKPACK, 0, 0)
+            end
+        end,
         title = {
             text = rawget(_G, "SI_BETTERUI_TH_LIST_ITEM") or SI_TRADING_HOUSE_POST_ITEM,
         },
@@ -162,41 +220,63 @@ function TH.RegisterCreateListingDialog()
         end,
         parametricList = {
             {
-                template = "ZO_GamepadSliderDialogTemplate",
+                template = "ZO_GamepadGuildStoreBrowseSliderTemplate",
                 text = GetString(rawget(_G, "SI_TRADING_HOUSE_POSTING_QUANTITY")),
                 templateData = {
-                    setup = function(control, data)
+                    setup = function(control, data, selected)
                         local dialog = data.dialog or ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.PARAMETRIC)
                         ---@type TradingHouseCreateListingDialogData|nil
                         local dialogData = dialog and dialog.data
                         local maxStack = dialogData and dialogData.stackCount or 1
+                        if dialogData and dialogData.selectedStackCount == nil then
+                            -- Initialize before handlers attach so confirm sees
+                            -- a value even when the slider is never moved.
+                            dialogData.selectedStackCount = maxStack
+                        end
+                        control.label:SetText(data.text)
                         control.slider:SetMinMax(1, maxStack)
+                        control.slider:SetValueStep(1)
                         control.slider:SetValue(dialogData and dialogData.selectedStackCount or maxStack)
-                        control.slider:SetValueChangedCallback(function(_, value)
+                        UpdateSliderValueLabel(control, dialogData and dialogData.selectedStackCount or maxStack, false)
+                        control.slider:SetHandler("OnValueChanged", function(_, value)
                             if dialogData then
                                 dialogData.selectedStackCount = value
                             end
+                            UpdateSliderValueLabel(control, value, false)
                         end)
+                        UpdateSliderActivation(control, dialogData, selected)
                     end,
                 },
             },
             {
-                template = "ZO_GamepadSliderDialogTemplate",
+                template = "ZO_GamepadGuildStoreBrowseSliderTemplate",
                 text = GetString(rawget(_G, "SI_BETTERUI_TH_PRICE_LABEL")),
                 templateData = {
-                    setup = function(control, data)
+                    setup = function(control, data, selected)
                         local dialog = data.dialog or ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.PARAMETRIC)
                         ---@type TradingHouseCreateListingDialogData|nil
                         local dialogData = dialog and dialog.data
                         local defaultPrice = dialogData and dialogData.defaultPrice or 100
+                        if dialogData and dialogData.selectedPrice == nil then
+                            -- Initialize before handlers attach so confirm sees
+                            -- a value even when the slider is never moved.
+                            dialogData.selectedPrice = defaultPrice
+                        end
                         local maxPrice = 999999999
+                        control.label:SetText(data.text)
                         control.slider:SetMinMax(1, maxPrice)
-                        control.slider:SetValue(defaultPrice)
-                        control.slider:SetValueChangedCallback(function(_, value)
+                        -- Step at ~5% of the suggested price so the slider stays
+                        -- usable across the full 1..999,999,999 range.
+                        control.slider:SetValueStep(math.max(1, math.floor(defaultPrice / 20)))
+                        control.slider:SetValue(dialogData and dialogData.selectedPrice or defaultPrice)
+                        UpdateSliderValueLabel(control, dialogData and dialogData.selectedPrice or defaultPrice, true)
+                        control.slider:SetHandler("OnValueChanged", function(_, value)
                             if dialogData then
                                 dialogData.selectedPrice = value
                             end
+                            UpdateSliderValueLabel(control, value, true)
                         end)
+                        UpdateSliderActivation(control, dialogData, selected)
                     end,
                 },
             },
@@ -217,13 +297,57 @@ function TH.RegisterCreateListingDialog()
                     local bagId = data.bagId
                     local slotIndex = data.slotIndex
                     local stackCount = data.selectedStackCount or data.stackCount or 1
-                    local price = data.selectedPrice or 0
+                    local price = data.selectedPrice or data.defaultPrice or 0
 
                     if price <= 0 then
                         data._submitted = false
                         BETTERUI.CIM.UserAlertText("TH:NoPrice",
                             GetString(rawget(_G, "SI_BETTERUI_TH_ENTER_PRICE")))
                         return
+                    end
+
+                    -- Re-validate against the live stack size; the bag can
+                    -- change while the dialog is open.
+                    local currentStack = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+                    if currentStack <= 0 then
+                        data._submitted = false
+                        BETTERUI.CIM.UserAlertText("TH:ListingUnavailable",
+                            GetString(rawget(_G, "SI_BETTERUI_TH_ITEM_UNAVAILABLE")) or "Item is no longer available")
+                        return
+                    end
+                    stackCount = zo_min(stackCount, currentStack)
+
+                    -- The dialog captured itemLink at open; abort when the
+                    -- slot now holds a different item (bag re-sorted/shifted
+                    -- while the dialog was open), or the wrong item would be
+                    -- listed at this price.
+                    if data.itemLink and GetItemLink then
+                        local currentItemLink = GetItemLink(bagId, slotIndex)
+                        if currentItemLink ~= data.itemLink then
+                            data._submitted = false
+                            BETTERUI.CIM.UserAlertText("TH:ListingUnavailable",
+                                GetString(rawget(_G, "SI_BETTERUI_TH_ITEM_UNAVAILABLE")) or "Item is no longer available")
+                            return
+                        end
+                    end
+
+                    -- Validate listing-fee affordability before posting.
+                    if GetTradingHousePostPriceInfo and GetCurrencyAmount then
+                        local listingFee = GetTradingHousePostPriceInfo(price)
+                        local gold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+                        if (listingFee or 0) > gold then
+                            data._submitted = false
+                            BETTERUI.CIM.UserAlertText("TH:CannotAffordFee",
+                                GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
+                            return
+                        end
+                    end
+
+                    -- Mirror ZO_GamepadTradingHouse_CreateListing:ShowListItemConfirmation
+                    -- (tradinghouse_createlisting_gamepad.lua): stage the pending
+                    -- item post before requesting the listing.
+                    if SetPendingItemPost then
+                        SetPendingItemPost(bagId, slotIndex, stackCount)
                     end
 
                     -- API 50: PostItemOnTradingHouse was removed; posting now
@@ -293,11 +417,30 @@ function TH.OnTradingHouseResponse(_, responseType, result)
         responseType = responseType,
         result = result,
     }
+
+    -- U50: search results arrive via EVENT_TRADING_HOUSE_RESPONSE_RECEIVED
+    -- with responseType TRADING_HOUSE_RESULT_SEARCH_PENDING (the dedicated
+    -- search-results event was removed from the API).
+    local isSearchResponse = responsePayload.responseType == TRADING_HOUSE_RESULT_SEARCH_PENDING
+
+    -- Clear the pending-search flag on ANY search-type response (error,
+    -- cooldown, off-scene) so Search is never permanently disabled.
+    if isSearchResponse and TH.BrowseComponent then
+        TH.BrowseComponent.searchPending = false
+    end
+
     if not TH.instance or not TH.instance:IsSceneShowing() then
         return
     end
+
     if responsePayload.result == TRADING_HOUSE_RESULT_SUCCESS then
+        if isSearchResponse then
+            TH.OnSearchResultsReceived()
+        end
         TH.ScheduleListRefresh()
+    elseif isSearchResponse then
+        BETTERUI.CIM.UserAlertText("TH:SearchFailed",
+            GetString("SI_TRADINGHOUSERESULT", responsePayload.result))
     end
 end
 
@@ -330,8 +473,6 @@ function TH.RegisterEvents(eventManager)
         EVENT_OPEN_TRADING_HOUSE, TH.OnOpenTradingHouse)
     eventManager:RegisterForEvent(EVENT_NS .. "_Close",
         EVENT_CLOSE_TRADING_HOUSE, TH.OnCloseTradingHouse)
-    eventManager:RegisterForEvent(EVENT_NS .. "_SearchResults",
-        EVENT_TRADING_HOUSE_SEARCH_RESULTS_RECEIVED, TH.OnSearchResultsReceived)
     eventManager:RegisterForEvent(EVENT_NS .. "_Cooldown",
         EVENT_TRADING_HOUSE_SEARCH_COOLDOWN_UPDATE, TH.OnSearchCooldownUpdate)
     eventManager:RegisterForEvent(EVENT_NS .. "_Response",

@@ -26,11 +26,6 @@ TradingHouse.ROOT_CONTRACT = {
 -- Wire shared settings statics before runtime accessors register in Setup().
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics(TradingHouse, "TradingHouse")
 
-local function TrackPanelRegistration(reason)
-    TradingHouse._panelRegistrationReason = reason
-    TradingHouse._panelRegistrationDeferred = reason == "missing_register_panel"
-end
-
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Initialized options with defaults applied
 ---@type BetterUIModuleInitHook
@@ -54,11 +49,7 @@ end
 
 local function EnsureTradingHouseSetupContracts()
     BETTERUI.CIM.RegisterModuleAccessors(TradingHouse, "TradingHouse")
-    local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")
-    TrackPanelRegistration(panelReason)
-    if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
-        BETTERUI.Debug(string.format("[TradingHouse] Settings panel registration reported: %s", tostring(panelReason)))
-    end
+    BETTERUI.CIM.RegisterModulePanelWithLogging(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")
 end
 
 ---@param totalPrice number Total cost of the stack
