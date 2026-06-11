@@ -22,29 +22,22 @@ local function IsCraftingMarketPriceEnabled()
     return BETTERUI.GetSetting("GeneralInterface", "showCraftingMarketPrice", true) == true
 end
 
----@return boolean
-local function IsAnyMarketSourceAvailable()
-    if not MARKET_INTEGRATION or type(MARKET_INTEGRATION.GetMarketPriceInfo) ~= "function" then
-        return false
-    end
-    local giSettings = BETTERUI.GetModuleSettings("GeneralInterface") or {}
-    -- At least one source must be enabled and available
-    for _, sourceKey in ipairs({"mm", "att", "ttc"}) do
-        local info = MARKET_INTEGRATION.GetSourcePriceInfo(sourceKey, "", 1, giSettings)
-        if info and info.enabled and info.available then
-            return true
-        end
-    end
-    return false
-end
-
---- Append a single price line to the tooltip control.
+--- Append the aggregated market price as a body section on a gamepad tooltip.
+--- Receives the tooltip INSTANCE (resultTooltip.tip); ZO_Tooltip methods are
+--- mixin-copied onto tooltip controls, so the instance carries AcquireSection,
+--- GetStyle, and AddSection directly.
 ---@param tooltipControl table
 ---@param itemLink string
 local function AppendPriceLine(tooltipControl, itemLink)
     if not tooltipControl or not itemLink or itemLink == "" then return end
     if not IsCraftingMarketPriceEnabled() then return end
     if not MARKET_INTEGRATION or type(MARKET_INTEGRATION.GetMarketPriceInfo) ~= "function" then
+        return
+    end
+    -- Gamepad tooltips only: keyboard tooltip controls lack the section API.
+    if type(tooltipControl.AcquireSection) ~= "function"
+        or type(tooltipControl.GetStyle) ~= "function"
+        or type(tooltipControl.AddSection) ~= "function" then
         return
     end
 
@@ -61,52 +54,68 @@ local function AppendPriceLine(tooltipControl, itemLink)
         displayPrice = tostring(priceInfo.price)
     end
     local sourceLabel = priceInfo.sourceKey and zo_strformat(" (<<1>>)", priceInfo.sourceKey:upper()) or ""
+    local marketLabel = GetString(rawget(_G, "SI_BETTERUI_CRAFTING_MARKET_LABEL"))
+    if not marketLabel or marketLabel == "" then
+        marketLabel = "Market"
+    end
 
-    local lineText = zo_strformat("|cFFFFFFMarket: <<1>>|r|t16:16:<<2>>|t<<3>>",
-        displayPrice, coinIcon, sourceLabel)
+    local lineText = zo_strformat("<<1>>: |cFFFFFF<<2>>|r |t16:16:<<3>>|t<<4>>",
+        marketLabel, displayPrice, coinIcon, sourceLabel)
 
-    tooltipControl:AddVerticalPadding(8)
-    tooltipControl:AddLine(lineText, "ZoFontGamepad34")
+    local section = tooltipControl:AcquireSection(tooltipControl:GetStyle("bodySection"))
+    section:AddLine(lineText, tooltipControl:GetStyle("bodyDescription"))
+    tooltipControl:AddSection(section)
 end
 
---- Post-hook for creation result tooltips.
-local function OnLayoutPendingSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
-    if not IsCraftingMarketPriceEnabled() then return end
+-- Exposed for unit tests.
+CraftingPriceTooltip.AppendPriceLine = AppendPriceLine
+
+--- Post-hook for ZO_GamepadSmithingCreation:SetupResultTooltip.
+local function OnCreationResultTooltip(smithingCreation, patternIndex, materialIndex, materialQuantity, styleId, traitIndex)
     if type(GetSmithingPatternResultLink) ~= "function" then return end
+    local tip = smithingCreation and smithingCreation.resultTooltip and smithingCreation.resultTooltip.tip
+    if not tip then return end
 
-    local itemLink = GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
-    AppendPriceLine(self, itemLink)
+    local itemLink = GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, styleId, traitIndex)
+    AppendPriceLine(tip, itemLink)
 end
 
---- Post-hook for improvement result tooltips.
-local function OnLayoutImproveResultSmithingItem(self, itemToImproveBagId, itemToImproveSlotIndex, craftingSkillType)
-    if not IsCraftingMarketPriceEnabled() then return end
+--- Post-hook for ZO_GamepadSmithingImprovement:SetupResultTooltip.
+local function OnImprovementResultTooltip(smithingImprovement, itemToImproveBagId, itemToImproveSlotIndex, craftingSkillType)
     if type(GetSmithingImprovedItemLink) ~= "function" then return end
+    local tip = smithingImprovement and smithingImprovement.resultTooltip and smithingImprovement.resultTooltip.tip
+    if not tip then return end
 
     local itemLink = GetSmithingImprovedItemLink(itemToImproveBagId, itemToImproveSlotIndex, craftingSkillType)
-    AppendPriceLine(self, itemLink)
+    AppendPriceLine(tip, itemLink)
 end
 
 --- Install hooks once. Safe to call multiple times.
+---
+--- ZO_Tooltip layout methods (LayoutPendingSmithingItem etc.) are mixin-copied
+--- onto every tooltip control when the base UI loads — before addons — so
+--- post-hooking the ZO_Tooltip prototype can never reach live tooltip
+--- instances. The gamepad smithing screen classes resolve methods through
+--- their class metatables instead, which ZO_PostHook does intercept, and their
+--- SetupResultTooltip hands us the exact result-tooltip instance plus the
+--- crafting parameters needed to build the result item link.
 function CraftingPriceTooltip.InstallHooks()
     if _hooksInstalled then return end
     if type(ZO_PostHook) ~= "function" then return end
-    if not MARKET_INTEGRATION then return end
 
-    -- Guard: only install if at least one price source is present
-    if not IsAnyMarketSourceAvailable() then
-        return
+    local hooked = false
+    local creationClass = rawget(_G, "ZO_GamepadSmithingCreation")
+    if creationClass and creationClass.SetupResultTooltip then
+        ZO_PostHook(creationClass, "SetupResultTooltip", OnCreationResultTooltip)
+        hooked = true
+    end
+    local improvementClass = rawget(_G, "ZO_GamepadSmithingImprovement")
+    if improvementClass and improvementClass.SetupResultTooltip then
+        ZO_PostHook(improvementClass, "SetupResultTooltip", OnImprovementResultTooltip)
+        hooked = true
     end
 
-    local tooltipProto = ZO_Tooltip
-    if tooltipProto and tooltipProto.LayoutPendingSmithingItem then
-        ZO_PostHook(tooltipProto, "LayoutPendingSmithingItem", OnLayoutPendingSmithingItem)
-    end
-    if tooltipProto and tooltipProto.LayoutImproveResultSmithingItem then
-        ZO_PostHook(tooltipProto, "LayoutImproveResultSmithingItem", OnLayoutImproveResultSmithingItem)
-    end
-
-    _hooksInstalled = true
+    _hooksInstalled = hooked
 end
 
 --- Returns whether hooks are currently installed.
@@ -115,18 +124,7 @@ function CraftingPriceTooltip.AreHooksInstalled()
     return _hooksInstalled
 end
 
--- Retry hook installation on player activation so market addons that load
--- after BetterUI (e.g. via LibStub/dependency ordering) are still picked up.
-local _retryHandle = nil
-local function TryInstallHooks()
-    CraftingPriceTooltip.InstallHooks()
-    if _hooksInstalled and _retryHandle then
-        EVENT_MANAGER:UnregisterForEvent("BetterUI_CraftingPriceTooltip_Retry", _retryHandle)
-        _retryHandle = nil
-    end
-end
-
-_retryHandle = EVENT_MANAGER:RegisterForEvent("BetterUI_CraftingPriceTooltip_Retry", EVENT_PLAYER_ACTIVATED, TryInstallHooks)
-
--- Auto-install on load if market sources are available
+-- Install at load: the smithing classes are defined by the base UI well
+-- before addons load, and AppendPriceLine no-ops when the setting is off or
+-- no market source has data, so no deferred/retry installation is needed.
 CraftingPriceTooltip.InstallHooks()

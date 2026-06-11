@@ -631,6 +631,7 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Replaces the Value column in Inventory and Banking with MM, ATT, or TTC market prices when available.")
 ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Show Price on Crafting Tooltips")
 ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP", "Display market price data on crafting and improvement result tooltips when a price source (TTC, MM, or ATT) is available.")
+ZO_CreateStringId("SI_BETTERUI_CRAFTING_MARKET_LABEL", "Market")
 
 -- Banking Specific Strings
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "HOUSE BANK IS EMPTY!")

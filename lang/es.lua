@@ -49,7 +49,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", "LINGOTES:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_LABEL", "ATUENDO:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "SELLOS:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "TOMOS:")
-ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "ARCHIVAL:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "ARCHIVO:")
 
 -- Currency limit alert
 
@@ -169,7 +169,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_9", "9º")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_10", "10º")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_11", "11º")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_12", "12º")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_13", "13th")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_13", "13º")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_GOLD", "Mostrar oro")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_GOLD", "Posición del oro")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_AP", "Mostrar puntos de alianza")
@@ -194,8 +194,8 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_SEALS", "Mostrar sellos")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_SEALS", "Posición sellos")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS", "Mostrar puntos de tomo")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS", "Posición tomo")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Show Archival Fortunes")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Archival Fortunes Position")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Mostrar Archival Fortunes")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Posición de Archival Fortunes")
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Placas de nombre mejoradas")
@@ -327,12 +327,12 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Restablecer ajustes generales")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Restablecer todos los ajustes de esta sección a sus valores por defecto.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET", "Move Orbs Independently")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET_TOOLTIP", "When enabled, the health and resource orbs can be positioned separately from the action bar.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y", "Orb Offset (Up/Down)")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y_TOOLTIP", "Vertical offset for the orb pair relative to the default position.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X", "Orb Offset (Left/Right)")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X_TOOLTIP", "Horizontal offset for the orb pair relative to the default position.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET", "Mover orbes independientemente")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET_TOOLTIP", "Si está activado, los orbes de salud y recursos pueden posicionarse por separado de la barra de acción.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y", "Desplazamiento de orbes (arriba/abajo)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y_TOOLTIP", "Desplazamiento vertical del par de orbes respecto a la posición por defecto.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X", "Desplazamiento de orbes (izquierda/derecha)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X_TOOLTIP", "Desplazamiento horizontal del par de orbes respecto a la posición por defecto.")
 
 ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "Ocultar ornamento izquierdo")
 ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP",
@@ -512,8 +512,9 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Reemplazar \"Valor\" con precio de mercado")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Reemplaza la columna \"Valor\" en Inventario y Banco por precios de mercado de MM, ATT o TTC cuando estén disponibles.")
-ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Show Price on Crafting Tooltips")
-ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP", "Display market price data on crafting and improvement result tooltips when a price source (TTC, MM, or ATT) is available.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Mostrar precio en tooltips de fabricación")
+ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP", "Muestra precios de mercado en los tooltips de resultado de fabricación y mejora cuando hay una fuente de precios (TTC, MM o ATT) disponible.")
+ZO_CreateStringId("SI_BETTERUI_CRAFTING_MARKET_LABEL", "Mercado")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Protección Vincular al equipar")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Muestra un diálogo antes de equipar objetos que se vinculan al equipar")

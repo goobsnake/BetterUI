@@ -136,7 +136,9 @@ BETTERUI.CIM.Currency.DEFS = {
         location = CURRENCY_LOCATION_ACCOUNT,
         useStoredAmount = true
     },
-    -- Archival Fortunes (Infinite Archive, Update 44+)
+    -- Archival Fortunes (Infinite Archive, Update 44+). Unlike Tome Points,
+    -- this is a regular account-location currency read via GetCurrencyAmount;
+    -- GetPlayerStoredCurrencyAmount only services the Tamriel Tomes currencies.
     {
         iconKey = "archival",
         labelName = "ArchivalLabel",
@@ -145,7 +147,6 @@ BETTERUI.CIM.Currency.DEFS = {
         labelStringId = "SI_BETTERUI_FOOTER_ARCHIVAL_LABEL",
         color = "00FF00",
         location = CURRENCY_LOCATION_ACCOUNT,
-        useStoredAmount = true
     },
 }
 

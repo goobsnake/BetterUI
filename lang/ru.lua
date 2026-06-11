@@ -53,7 +53,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", "СЛИТКИ:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_LABEL", "ОБЛИК:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "ПЕЧАТИ:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "ТОМА:")
-ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "ARCHIVAL:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "АРХИВ:")
 
 -- Currency limit alert
 
@@ -196,7 +196,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_9", "9-я")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_10", "10-я")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_11", "11-я")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_12", "12-я")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_13", "13th")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_13", "13-я")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_GOLD", "Показать золото")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_GOLD", "Позиция золота")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_AP", "Показать очки альянса")
@@ -221,8 +221,8 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_SEALS", "Показать печа�
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_SEALS", "Позиция печатей")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS", "Показать очки фолианта")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS", "Позиция очков")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Show Archival Fortunes")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Archival Fortunes Position")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Показать Archival Fortunes")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Позиция Archival Fortunes")
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Улучшенные таблички")
@@ -340,12 +340,12 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Сбросить общие настройки")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Сбросить настройки в этом разделе к значениям по умолчанию.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET", "Move Orbs Independently")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET_TOOLTIP", "When enabled, the health and resource orbs can be positioned separately from the action bar.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y", "Orb Offset (Up/Down)")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y_TOOLTIP", "Vertical offset for the orb pair relative to the default position.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X", "Orb Offset (Left/Right)")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X_TOOLTIP", "Horizontal offset for the orb pair relative to the default position.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET", "Перемещать сферы отдельно")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET_TOOLTIP", "Если включено, сферы здоровья и ресурсов можно располагать отдельно от панели действий.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y", "Смещение сфер (вверх/вниз)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y_TOOLTIP", "Вертикальное смещение пары сфер относительно позиции по умолчанию.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X", "Смещение сфер (влево/вправо)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X_TOOLTIP", "Горизонтальное смещение пары сфер относительно позиции по умолчанию.")
 
 ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "Скрыть левый орнамент")
 ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP",
@@ -523,8 +523,9 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Заменить \"Стоимость\" на рыночную цену")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Заменяет столбец «Стоимость» в инвентаре и банке рыночной ценой из MM, ATT или TTC (если доступно).")
-ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Show Price on Crafting Tooltips")
-ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP", "Display market price data on crafting and improvement result tooltips when a price source (TTC, MM, or ATT) is available.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Показывать цену в подсказках ремесла")
+ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP", "Отображает рыночные цены в подсказках результата создания и улучшения, если доступен источник цен (TTC, MM или ATT).")
+ZO_CreateStringId("SI_BETTERUI_CRAFTING_MARKET_LABEL", "Рынок")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Защита привязки при экипировке")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Показывать диалог перед экипировкой предметов с привязкой при экипировке")
