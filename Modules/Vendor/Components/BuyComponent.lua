@@ -195,13 +195,25 @@ local function BuildRowsFromStoreCount()
 
     local rows = {}
     for entryIndex = 1, numItems do
-        local icon, name, stack, price, sellPrice, meetsReqsToBuy, _, displayQuality, _, currencyType1, currencyQuantity1,
-            currencyType2, currencyQuantity2, entryType = GetStoreEntryInfo(entryIndex)
+        -- U50 GetStoreEntryInfo return order (ESOUIDocumentation.txt:15973):
+        -- 1 icon, 2 name, 3 stack, 4 price, 5 sellPrice, 6 meetsRequirementsToBuy,
+        -- 7 meetsRequirementsToEquip, 8 displayQuality, 9 questNameColor,
+        -- 10 currencyType1, 11 currencyQuantity1, 12 currencyType2,
+        -- 13 currencyQuantity2, 14 entryType, 15 buyStoreFailure, 16 buyErrorStringId.
+        local icon, name, stack, price, sellPrice, meetsReqsToBuy, meetsReqsToEquip, displayQuality, _, currencyType1, currencyQuantity1,
+            currencyType2, currencyQuantity2, entryType, buyStoreFailure, buyErrorStringId = GetStoreEntryInfo(entryIndex)
 
         if name and name ~= "" then
             local itemLink = GetStoreItemLink(entryIndex)
             local filterData = GetStoreFilterData(entryIndex)
             local statValue = (type(GetStoreEntryStatValue) == "function") and GetStoreEntryStatValue(entryIndex) or ""
+            -- Mirror ZO_StoreManager_GetStoreItems: derive a user-facing lock
+            -- reason from the store-failure/error data when the entry cannot be
+            -- bought (missing requirements, already-owned collectible, ...).
+            local requiredToBuyErrorText
+            if not meetsReqsToBuy and type(ZO_StoreManager_GetRequiredToBuyErrorText) == "function" then
+                requiredToBuyErrorText = ZO_StoreManager_GetRequiredToBuyErrorText(buyStoreFailure, buyErrorStringId or 0, currencyType1)
+            end
             rows[#rows + 1] = {
                 entryIndex        = entryIndex,
                 slotIndex         = entryIndex,
@@ -211,8 +223,10 @@ local function BuildRowsFromStoreCount()
                 price             = price,
                 sellPrice         = sellPrice,
                 meetsReqsToBuy    = meetsReqsToBuy,
-                requiredToBuyErrorText = nil,
-                meetsRequirementsToEquip = true,
+                buyStoreFailure   = buyStoreFailure,
+                buyErrorStringId  = buyErrorStringId,
+                requiredToBuyErrorText = requiredToBuyErrorText,
+                meetsRequirementsToEquip = meetsReqsToEquip ~= false,
                 displayQuality    = displayQuality,
                 currencyType1     = currencyType1,
                 currencyQuantity1 = currencyQuantity1,
@@ -487,8 +501,15 @@ function Buy:IsPrimaryActionEnabled(vendorInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
+    -- Locked entries (missing requirements, already-owned collectible, ...)
+    -- cannot be purchased; GetStoreEntryInfo reports this via
+    -- meetsRequirementsToBuy and BuyStoreItem would fail server-side.
+    if ds.meetsRequirementsToBuy == false then
+        return false
+    end
+
     return CanAffordStoreEntry(vendorInstance, ds)
-        and vendorInstance:HasInventorySpace()
+        and vendorInstance:CanCarry(ds.itemLink)
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -500,6 +521,14 @@ function Buy:OnPrimaryAction(vendorInstance)
     local entryIndex = ds.entryIndex or ds.slotIndex
     if not entryIndex then return end
 
+    -- Block purchase of locked entries; surface the store-failure reason text
+    -- captured from GetStoreEntryInfo when available.
+    if ds.meetsRequirementsToBuy == false then
+        BETTERUI.CIM.UserAlertText("Buy:Locked",
+            ds.requiredToBuyErrorText or GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_BUY")))
+        return
+    end
+
     -- Validate affordability (both currencies) one more time
     if not CanAffordStoreEntry(vendorInstance, ds) then
         BETTERUI.CIM.UserAlertText("Buy:CannotAfford",
@@ -507,7 +536,7 @@ function Buy:OnPrimaryAction(vendorInstance)
         return
     end
 
-    if not vendorInstance:HasInventorySpace() then
+    if not vendorInstance:CanCarry(ds.itemLink) then
         BETTERUI.CIM.UserAlertText("Buy:CannotCarry",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY")))
         return

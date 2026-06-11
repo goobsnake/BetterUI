@@ -10,6 +10,37 @@ local PresentationRuntime = Vendor.PresentationRuntime
 
 local MODE = assert(Vendor.MODE, "Vendor mode constants must load before presentation runtime")
 
+--- Buy-pane footer balance text. When the store trades in a non-gold currency
+--- (e.g. Tel Var, writ vouchers), show that currency's balance at its correct
+--- player-stored location (icon + amount); otherwise fall back to carried gold.
+--- Drives the previously-dead Class:GetStoreCurrencyTypes helper.
+---@param instance BETTERUI.Vendor.Class
+---@return string text
+local function ResolveBuyPaneCurrencyText(instance)
+    local storeCurrencyType
+    if instance and instance.GetStoreCurrencyTypes then
+        -- GetStoreUsedCurrencyTypes() can return several types; pick the first
+        -- non-gold one as the headline store currency.
+        local types = { instance:GetStoreCurrencyTypes() }
+        for _, currencyType in ipairs(types) do
+            if currencyType and currencyType ~= CURT_MONEY and currencyType ~= CURT_NONE then
+                storeCurrencyType = currencyType
+                break
+            end
+        end
+    end
+
+    if storeCurrencyType and type(ZO_Currency_FormatGamepad) == "function" then
+        local location = (GetCurrencyPlayerStoredLocation and GetCurrencyPlayerStoredLocation(storeCurrencyType))
+            or CURRENCY_LOCATION_CHARACTER
+        local amount = GetCurrencyAmount(storeCurrencyType, location) or 0
+        return ZO_Currency_FormatGamepad(storeCurrencyType, amount, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
+    end
+
+    local gold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    return "|t24:24:esoui/art/currency/currency_gold_32.dds|t " .. BETTERUI.DisplayNumber(gold)
+end
+
 local function GetPreviewSceneFragments()
     return FRAME_TARGET_STORE_GAMEPAD_FRAGMENT,
         FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT,
@@ -397,8 +428,7 @@ function PresentationRuntime.RefreshVendorFooter(instance, deps)
                         spaceLabel:SetText("")
                     end
                 else
-                    local gold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
-                    spaceLabel:SetText("|t24:24:esoui/art/currency/currency_gold_32.dds|t " .. BETTERUI.DisplayNumber(gold))
+                    spaceLabel:SetText(ResolveBuyPaneCurrencyText(instance))
                 end
             end
         end

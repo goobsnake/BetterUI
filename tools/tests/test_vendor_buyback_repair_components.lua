@@ -276,6 +276,12 @@ do
         HasInventorySpace = function()
             return true
         end,
+        -- CanCarry now backs the buyback carry check; rows here carry no
+        -- itemLink, so it falls back to HasInventorySpace (defer at call time so
+        -- the later HasInventorySpace reassignment is honored).
+        CanCarry = function(self)
+            return self:HasInventorySpace()
+        end,
     }
     vendor.list.selectedData = { dataSource = { entryIndex = 1, price = 75 } }
 

@@ -36,9 +36,50 @@ function EventBridge.Register(eventManager, eventNamespace, handlers)
     RegisterEvent(eventManager, eventNamespace, "SellReceipt", EVENT_SELL_RECEIPT, handlers.onSellReceipt)
     RegisterEvent(eventManager, eventNamespace, "BuyReceipt", EVENT_BUY_RECEIPT, handlers.onInventoryUpdated)
     RegisterEvent(eventManager, eventNamespace, "BuybackReceipt", EVENT_BUYBACK_RECEIPT, handlers.onInventoryUpdated)
-    RegisterEvent(eventManager, eventNamespace, "RepairItem", EVENT_ITEM_REPAIR_FAILURE, handlers.onInventoryUpdated)
+    -- Repair failure: alert the player (native FailedRepairMessageBox parity)
+    -- and still refresh; fall back to a silent refresh when no alert handler.
+    RegisterEvent(eventManager, eventNamespace, "RepairItem", EVENT_ITEM_REPAIR_FAILURE, handlers.onRepairFailure or handlers.onInventoryUpdated)
     RegisterEvent(eventManager, eventNamespace, "ItemLaunder", EVENT_ITEM_LAUNDER_RESULT, handlers.onInventoryUpdated)
     RegisterEvent(eventManager, eventNamespace, "FenceUpdate", EVENT_JUSTICE_FENCE_UPDATE, handlers.onInventoryUpdated)
     RegisterEvent(eventManager, eventNamespace, "MoneyUpdate", EVENT_MONEY_UPDATE, handlers.onMoneyUpdated)
     RegisterEvent(eventManager, eventNamespace, "CurrencyUpdate", rawget(_G, "EVENT_CURRENCY_UPDATE"), handlers.onMoneyUpdated)
+    -- Staleness triggers also wired by native ZO_GamepadStoreManager: a newly
+    -- acquired antiquity lead or a collection update can change store entries
+    -- (e.g. already-owned collectibles), so route both to the inventory refresh.
+    RegisterEvent(eventManager, eventNamespace, "AntiquityLead", rawget(_G, "EVENT_ANTIQUITY_LEAD_ACQUIRED"), handlers.onInventoryUpdated)
+
+    EventBridge.RegisterCollectionUpdated(handlers.onInventoryUpdated)
+end
+
+--- Register (idempotently) a ZO_COLLECTIBLE_DATA_MANAGER "OnCollectionUpdated"
+--- callback routed to the inventory-updated refresh. Guarded because the
+--- manager may not exist in every load context / test harness.
+---@param onInventoryUpdated function|nil
+---@return nil
+function EventBridge.RegisterCollectionUpdated(onInventoryUpdated)
+    local manager = rawget(_G, "ZO_COLLECTIBLE_DATA_MANAGER")
+    if type(onInventoryUpdated) ~= "function"
+        or not manager
+        or type(manager.RegisterCallback) ~= "function"
+        or EventBridge._collectionCallbackRegistered then
+        return
+    end
+    EventBridge._collectionCallback = function() onInventoryUpdated() end
+    manager:RegisterCallback("OnCollectionUpdated", EventBridge._collectionCallback)
+    EventBridge._collectionCallbackRegistered = true
+end
+
+--- Unregister the collection-updated callback, mirroring the event-unregister
+--- side of the existing pattern so repeated open/close cycles stay balanced.
+---@return nil
+function EventBridge.UnregisterCollectionUpdated()
+    local manager = rawget(_G, "ZO_COLLECTIBLE_DATA_MANAGER")
+    if not EventBridge._collectionCallbackRegistered
+        or not manager
+        or type(manager.UnregisterCallback) ~= "function" then
+        return
+    end
+    manager:UnregisterCallback("OnCollectionUpdated", EventBridge._collectionCallback)
+    EventBridge._collectionCallback = nil
+    EventBridge._collectionCallbackRegistered = false
 end

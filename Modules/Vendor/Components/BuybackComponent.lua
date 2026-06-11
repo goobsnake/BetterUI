@@ -54,7 +54,7 @@ function Buyback:IsPrimaryActionEnabled(vendorInstance)
     local ds = selectedData.dataSource or selectedData
 
     local price = ds.price or 0
-    return vendorInstance:CanAfford(price) and vendorInstance:HasInventorySpace()
+    return vendorInstance:CanAfford(price) and vendorInstance:CanCarry(ds.itemLink)
 end
 
 function Buyback:OnPrimaryAction(vendorInstance)
@@ -72,7 +72,10 @@ function Buyback:OnPrimaryAction(vendorInstance)
         return
     end
 
-    if not vendorInstance:HasInventorySpace() then
+    -- CanCarry mirrors native: craft-bag-virtual items and partial-stack
+    -- merges don't require a free backpack slot (HasInventorySpace fallback
+    -- still applies when the row carries no itemLink).
+    if not vendorInstance:CanCarry(ds.itemLink) then
         BETTERUI.CIM.UserAlertText("Buyback:CannotCarry",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY")))
         return

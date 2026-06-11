@@ -1130,6 +1130,15 @@ end
 -- EVENT HANDLERS
 
 local function OnOpenStore()
+    -- Native ZO_GamepadStoreManager gates its OnOpenStore on gamepad-preferred
+    -- mode; in keyboard mode the keyboard store owns the interaction and our
+    -- gamepad scene must not take over. Remember that we opened so the matching
+    -- close still cleans up after a mid-interaction mode switch.
+    if IsInGamepadPreferredMode and not IsInGamepadPreferredMode() then
+        Vendor._openedInGamepadMode = false
+        return
+    end
+    Vendor._openedInGamepadMode = true
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
         .OpenStore({
             runtime = VendorLifecycleRuntime,
@@ -1148,6 +1157,12 @@ end
 ---@param enableSell boolean|nil Whether fence sell is enabled (default true)
 ---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
+    -- Same gamepad-mode gate as OnOpenStore (native parity).
+    if IsInGamepadPreferredMode and not IsInGamepadPreferredMode() then
+        Vendor._openedInGamepadMode = false
+        return
+    end
+    Vendor._openedInGamepadMode = true
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
         .OpenFence({
             runtime = VendorLifecycleRuntime,
@@ -1175,6 +1190,14 @@ local function OnStableInteractEnd()
 end
 
 local function OnCloseStore()
+    -- Unlike the open handlers, close is NOT gated on the current preferred
+    -- mode: a store opened in gamepad mode must still clean up even if the
+    -- player switched to keyboard mid-interaction. Only skip when we never
+    -- opened (i.e. the open was suppressed because it started in keyboard mode).
+    if Vendor._openedInGamepadMode == false then
+        return
+    end
+    Vendor._openedInGamepadMode = false
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
         .CloseStore({
             runtime = VendorLifecycleRuntime,
@@ -1226,6 +1249,26 @@ end
 
 local function OnSellReceipt()
     -- Refresh after selling an item
+    OnInventoryUpdated()
+end
+
+---@param _ any Unused event code
+---@param reason number|nil ItemRepairReason (nil = repair-all could not afford)
+local function OnRepairFailure(_, reason)
+    -- Surface the failure (native ZO_GamepadStoreManager:FailedRepairMessageBox,
+    -- storewindow_gamepad.lua:620-633), then still refresh so the list reflects
+    -- any partial repair state.
+    local message
+    if reason == rawget(_G, "ITEM_REPAIR_ALREADY_REPAIRED") then
+        message = GetString(rawget(_G, "SI_ITEMREPAIRREASON1") or "SI_ITEMREPAIRREASON1")
+    elseif reason == rawget(_G, "ITEM_REPAIR_CANT_AFFORD_REPAIR") then
+        message = GetString(rawget(_G, "SI_ITEMREPAIRREASON2") or "SI_ITEMREPAIRREASON2")
+    elseif reason == nil then
+        message = GetString(rawget(_G, "SI_REPAIR_ALL_CANNOT_AFFORD") or "SI_REPAIR_ALL_CANNOT_AFFORD")
+    end
+    if message and message ~= "" and BETTERUI.CIM and BETTERUI.CIM.UserAlertText then
+        BETTERUI.CIM.UserAlertText("Vendor:RepairFailure", message)
+    end
     OnInventoryUpdated()
 end
 
@@ -1286,6 +1329,7 @@ local function RegisterVendorEvents(eventManager)
         onCloseStore = OnCloseStore,
         onInventoryUpdated = OnInventoryUpdated,
         onSellReceipt = OnSellReceipt,
+        onRepairFailure = OnRepairFailure,
         onMoneyUpdated = OnMoneyUpdated,
     })
 end

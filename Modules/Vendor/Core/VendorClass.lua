@@ -3,10 +3,6 @@ local Vendor = BETTERUI.Vendor
 
 BETTERUI_VENDOR_SCENE_NAME = BETTERUI_VENDOR_SCENE_NAME or "BETTERUI_VENDOR"
 Vendor.VENDOR_INTERACTION = Vendor.VENDOR_INTERACTION or STORE_INTERACTION
-Vendor.FENCE_INTERACTION = Vendor.FENCE_INTERACTION or {
-    type = "Fence",
-    interactTypes = { INTERACTION_VENDOR },
-}
 Vendor.MODE = assert(Vendor.MODE, "Vendor mode constants must load before VendorClass")
 
 local MODE = Vendor.MODE
@@ -1008,19 +1004,9 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
         string.format("ApplyNativeStoreMode requested=%s native=%s", tostring(mode or self:GetCurrentMode()), tostring(targetMode))
     )
 
-    if type(SetStoreMode) == "function" then
-        local currentMode = nil
-        if type(GetStoreMode) == "function" then
-            local okGetMode, modeResult = ExecuteSafely("Vendor.ApplyNativeStoreMode:GetStoreMode", GetStoreMode)
-            if okGetMode then
-                currentMode = modeResult
-            end
-        end
-        if currentMode ~= targetMode then
-            ExecuteSafely("Vendor.ApplyNativeStoreMode:SetStoreMode", SetStoreMode, targetMode)
-        end
-    end
-
+    -- NOTE: U50 has no global SetStoreMode/GetStoreMode (verified absent from
+    -- ESOUIDocumentation.txt); mode is driven purely through the store-manager
+    -- object path (storeManager:SetMode + per-component GetStoreMode) below.
     local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
     if not storeManager then
         ReleaseNativeInputIfNeeded()
@@ -1797,8 +1783,33 @@ end
 function BETTERUI.Vendor.Class:CanAfford(cost, currencyType)
     if not cost or cost <= 0 then return true end
     currencyType = currencyType or CURT_MONEY
-    local current = GetCurrencyAmount(currencyType, CURRENCY_LOCATION_CHARACTER) or 0
+    -- Account-stored currencies (writ vouchers, event tickets, ...) live in
+    -- CURRENCY_LOCATION_ACCOUNT, not CURRENCY_LOCATION_CHARACTER; reading the
+    -- character wallet for those returns 0. Resolve the per-currency player
+    -- stored location the way native CanAfford does (storewindow_gamepad.lua).
+    local location = (GetCurrencyPlayerStoredLocation and GetCurrencyPlayerStoredLocation(currencyType))
+        or CURRENCY_LOCATION_CHARACTER
+    local current = GetCurrencyAmount(currencyType, location) or 0
     return current >= cost
+end
+
+--- Inventory-space check that mirrors native CanCarry: an itemLink that can be
+--- virtualized into the craft bag (and the player has craft-bag access) needs
+--- no backpack slot, and DoesBagHaveSpaceForItemLink accounts for stacking onto
+--- an existing partial stack. Falls back to the plain free-slot check when no
+--- itemLink is supplied.
+---@param itemLink string|nil
+---@return boolean canCarry True if the item can be carried/stacked
+function BETTERUI.Vendor.Class:CanCarry(itemLink)
+    if itemLink and itemLink ~= "" and DoesBagHaveSpaceForItemLink then
+        local canVirtualize = CanItemLinkBeVirtual and CanItemLinkBeVirtual(itemLink)
+            and HasCraftBagAccess and HasCraftBagAccess()
+        if canVirtualize then
+            return true
+        end
+        return DoesBagHaveSpaceForItemLink(BAG_BACKPACK, itemLink) == true
+    end
+    return self:HasInventorySpace()
 end
 
 ---@return boolean hasSpace True if backpack has at least one free slot

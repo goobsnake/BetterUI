@@ -14,6 +14,25 @@ local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "CloseStore:beforeSweep"
 local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "CloseStore:afterSweep"
 local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.CloseStore:NativeOnHide"
 
+-- Dialogs that may still be open when the store interaction ends. Native
+-- ZO_GamepadStoreManager:OnCloseStore releases REPAIR_ALL; the BetterUI batch
+-- and sell-all-junk dialogs are registered in Vendor.lua and must be released
+-- alongside it so they cannot linger after the scene hides.
+local VENDOR_CLEANUP_DIALOG_NAMES = {
+    "REPAIR_ALL",
+    "BETTERUI_VENDOR_BATCH_DIALOG",
+    "BETTERUI_VENDOR_SELL_ALL_JUNK_DIALOG",
+}
+
+local function ReleaseVendorDialogs()
+    if type(ZO_Dialogs_ReleaseDialog) ~= "function" then
+        return
+    end
+    for _, dialogName in ipairs(VENDOR_CLEANUP_DIALOG_NAMES) do
+        ZO_Dialogs_ReleaseDialog(dialogName)
+    end
+end
+
 local function PackResults(...)
     return {
         n = select("#", ...),
@@ -322,6 +341,46 @@ local function SyncSessionBuyModeFromLiveState(state)
     return state
 end
 
+-- Mirror ZO_GamepadStoreManager:OnOpenStore (storewindow_gamepad.lua:22-45):
+-- rebuild the native store components and show the native gamepad_store scene.
+-- Used when an unsupported interaction type hands the store back to native,
+-- since TakeOverScene permanently unregistered native's EVENT_OPEN_STORE.
+---@param resolved table Resolved dependency table from ResolveDeps
+---@return nil
+local function ShowNativeStore(resolved)
+    local storeManager = resolved.getStoreManager and resolved.getStoreManager() or nil
+    if storeManager and type(storeManager.SetActiveComponents) == "function" then
+        local modeBuy = rawget(_G, "ZO_MODE_STORE_BUY")
+        local modeSell = rawget(_G, "ZO_MODE_STORE_SELL")
+        local modeBuyBack = rawget(_G, "ZO_MODE_STORE_BUY_BACK")
+        local componentTable = {}
+        if not (IsStoreEmpty and IsStoreEmpty()) and modeBuy then
+            componentTable[#componentTable + 1] = modeBuy
+        end
+        if modeSell then
+            componentTable[#componentTable + 1] = modeSell
+        end
+        if modeBuyBack then
+            componentTable[#componentTable + 1] = modeBuyBack
+        end
+        if CanStoreRepair and CanStoreRepair() then
+            local modeRepair = rawget(_G, "ZO_MODE_STORE_REPAIR")
+            if modeRepair then
+                componentTable[#componentTable + 1] = modeRepair
+            end
+        end
+        if #componentTable > 0 then
+            resolved.safeCall("Vendor.OpenStore:NativeSetActiveComponents",
+                storeManager.SetActiveComponents, storeManager, componentTable, "storeTextSearch")
+        end
+    end
+
+    local nativeSceneName = rawget(_G, "GAMEPAD_STORE_SCENE_NAME") or "gamepad_store"
+    if SCENE_MANAGER and type(SCENE_MANAGER.Show) == "function" then
+        resolved.safeCall("Vendor.OpenStore:ShowNativeStoreScene", SCENE_MANAGER.Show, SCENE_MANAGER, nativeSceneName)
+    end
+end
+
 local function OpenStoreInternal(state, deps, publishState)
     publishState = publishState or function()
     end
@@ -352,7 +411,13 @@ local function OpenStoreInternal(state, deps, publishState)
         and interactionType ~= resolved.interactionVendor
         and interactionType ~= resolved.interactionStable
     then
+        -- Unsupported interaction type: hand the store back to native. The
+        -- alias is restored, but TakeOverScene permanently unregistered the
+        -- native EVENT_OPEN_STORE handler, so nothing would show the store UI
+        -- on its own. Explicitly drive the native open flow here, mirroring
+        -- ZO_GamepadStoreManager:OnOpenStore (storewindow_gamepad.lua:22-45).
         resolved.restoreSceneAlias()
+        ShowNativeStore(resolved)
         return state
     end
 
@@ -431,6 +496,9 @@ end
 local function CloseStoreInternal(state, deps)
     local resolved = ResolveDeps(deps)
     resolved.markClosingState()
+    -- Release any store dialogs still open at interaction end (native parity +
+    -- BetterUI batch/sell-all-junk dialogs) so they cannot linger post-close.
+    ReleaseVendorDialogs()
     state.isClosing = true
     state.isFenceInteraction = false
     state.isStableInteraction = false

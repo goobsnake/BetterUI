@@ -170,7 +170,29 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
             or ds.sellPrice
             or 0
         valueControl:SetColor(1, 1, 1, 1)
-        if BETTERUI.Vendor.FormatCurrency then
+        -- Alt-currency buy entries report a gold value of 0; show their
+        -- alt-currency quantity (icon + amount) instead of a misleading "0".
+        local altCurrencyText
+        if (not displayValue or displayValue == 0) then
+            local altType, altQty
+            if ds.currencyType1 and ds.currencyType1 ~= CURT_MONEY and ds.currencyType1 ~= CURT_NONE
+                and (ds.currencyQuantity1 or 0) > 0 then
+                altType, altQty = ds.currencyType1, ds.currencyQuantity1
+            elseif ds.currencyType2 and ds.currencyType2 ~= CURT_MONEY and ds.currencyType2 ~= CURT_NONE
+                and (ds.currencyQuantity2 or 0) > 0 then
+                altType, altQty = ds.currencyType2, ds.currencyQuantity2
+            end
+            if altType then
+                if type(ZO_Currency_FormatGamepad) == "function" then
+                    altCurrencyText = ZO_Currency_FormatGamepad(altType, altQty, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
+                else
+                    altCurrencyText = tostring(altQty)
+                end
+            end
+        end
+        if altCurrencyText then
+            valueControl:SetText(altCurrencyText)
+        elseif BETTERUI.Vendor.FormatCurrency then
             valueControl:SetText(BETTERUI.Vendor.FormatCurrency(displayValue))
         else
             valueControl:SetText(tostring(displayValue))

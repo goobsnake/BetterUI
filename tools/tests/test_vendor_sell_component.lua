@@ -96,6 +96,93 @@ do
     assert_eq(authorizationCalls > 0, true, "sell primary action invokes shared authorization helper")
 end
 
+print("[Vendor sell component: player-locked filter + gold cap]")
+
+-- Finding L: the SELL list builder must exclude isPlayerLocked items (the
+-- action layer denies them) while leaving stolen/fence flows untouched. Drive
+-- the same GetCategories seam with a player-locked row present.
+do
+    local previousGenerate = SHARED_INVENTORY.GenerateFullSlotData
+    SHARED_INVENTORY.GenerateFullSlotData = function(_, _)
+        return {
+            { bagId = 1, slotIndex = 1, sellPrice = 10, isJunk = true },
+            { bagId = 1, slotIndex = 2, sellPrice = 20, isJunk = false },
+            { bagId = 1, slotIndex = 3, sellPrice = 30, isJunk = false, playerLocked = true },
+        }
+    end
+    local lockedSlots = { [3] = true }
+    IsItemPlayerLocked = function(_, slotIndex)
+        return lockedSlots[slotIndex] == true
+    end
+
+    local categories = BETTERUI.Vendor.SellComponent:GetCategories({})
+    assert_eq(categories[1].key, "all", "all category remains first with locked rows present")
+    assert_eq(categories[1].itemCount, 2, "sell list excludes player-locked items from the all count")
+
+    IsItemPlayerLocked = nil
+    SHARED_INVENTORY.GenerateFullSlotData = previousGenerate
+end
+
+-- Findings E + K: gold-cap gating. Provide currency/cap stubs and the native
+-- store-failure string so the sell actions block at the cap with an alert.
+do
+    CURT_MONEY = 1
+    CURRENCY_LOCATION_CHARACTER = 1
+    STORE_FAILURE_SELL_FAILED_MONEY_CAP = 7
+    local atCap = false
+    GetMaxPossibleCurrency = function() return 1000 end
+    GetCurrencyAmount = function() return atCap and 1000 or 500 end
+    GetSlotStackSize = function() return 1 end
+    SellInventoryItem = function() end
+    function GetString(id, value)
+        if id == "SI_STOREFAILURE" and value == STORE_FAILURE_SELL_FAILED_MONEY_CAP then
+            return "You cannot sell items when you are at the gold cap."
+        end
+        return tostring(id)
+    end
+
+    local lastAlert
+    BETTERUI.CIM.UserAlertText = function(tag, message)
+        lastAlert = { tag = tag, message = message }
+    end
+
+    local function makeSellVendor()
+        return {
+            list = {
+                GetSelectedData = function()
+                    return { dataSource = { bagId = BAG_BACKPACK, slotIndex = 1, sellPrice = 10, stolen = false } }
+                end,
+            },
+        }
+    end
+
+    -- Below the cap: sell stays enabled and routes to SellInventoryItem.
+    atCap = false
+    assert_eq(BETTERUI.Vendor.SellComponent:IsPrimaryActionEnabled(makeSellVendor()), true,
+        "sell primary action enabled below the gold cap")
+
+    -- At the cap: disabled, and the action surfaces the native failure alert.
+    atCap = true
+    assert_eq(BETTERUI.Vendor.SellComponent:IsPrimaryActionEnabled(makeSellVendor()), false,
+        "sell primary action disabled at the gold cap")
+    lastAlert = nil
+    BETTERUI.Vendor.SellComponent:OnPrimaryAction(makeSellVendor())
+    assert_eq(lastAlert and lastAlert.tag, "Sell:GoldCap", "sell at gold cap raises the gold-cap alert")
+    assert_eq(lastAlert and lastAlert.message, "You cannot sell items when you are at the gold cap.",
+        "gold-cap alert uses the native SI_STOREFAILURE string")
+
+    -- SellAllJunk pre-checks the cap too (finding K).
+    lastAlert = nil
+    BETTERUI.Vendor.GetJunkSellSummary = function() return 100, 5 end
+    BETTERUI.Vendor.SellComponent:SellAllJunk(makeSellVendor())
+    assert_eq(lastAlert and lastAlert.tag, "Sell:GoldCap", "SellAllJunk blocks at the gold cap before queuing")
+
+    GetMaxPossibleCurrency = nil
+    GetCurrencyAmount = nil
+    GetSlotStackSize = nil
+    SellInventoryItem = nil
+end
+
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)

@@ -48,7 +48,13 @@ local function IsSupportedActionItem(mode, itemData, vendorInstance)
                 and vendorInstance.CanAfford and not vendorInstance:CanAfford(price2, currencyType2) then
                 return false
             end
-            if vendorInstance.HasInventorySpace and not vendorInstance:HasInventorySpace() then
+            -- CanCarry mirrors native: craft-bag-virtual / partial-stack items
+            -- need no free backpack slot; fall back to the free-slot test.
+            if vendorInstance.CanCarry then
+                if not vendorInstance:CanCarry(ds.itemLink) then
+                    return false
+                end
+            elseif vendorInstance.HasInventorySpace and not vendorInstance:HasInventorySpace() then
                 return false
             end
         end

@@ -32,6 +32,33 @@ local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstanc
     return allowed == true, reason
 end
 
+--- True when the player's carried gold is at the maximum the wallet can hold.
+--- Selling for gold while at the cap fails server-side, so the sell actions
+--- must block first (mirrors native ZO_GamepadStoreSell:CanSell).
+---@return boolean atCap
+local function IsAtGoldCap()
+    if type(GetMaxPossibleCurrency) ~= "function" then
+        return false
+    end
+    local carried = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    local maxPossible = GetMaxPossibleCurrency(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    return maxPossible > 0 and carried >= maxPossible
+end
+
+--- Localized "at the gold cap" alert text, preferring the native store-failure
+--- string with an English fallback when the SI_ id is unavailable.
+---@return string message
+local function GoldCapMessage()
+    local storeFailure = rawget(_G, "STORE_FAILURE_SELL_FAILED_MONEY_CAP")
+    if storeFailure ~= nil then
+        local text = GetString("SI_STOREFAILURE", storeFailure)
+        if text and text ~= "" then
+            return text
+        end
+    end
+    return GetString(rawget(_G, "SI_BETTERUI_VENDOR_GOLD_CAP")) or "You cannot sell items when you are at the gold cap."
+end
+
 local function BuildSellableBagItems()
     local rows = {}
     local bagItems = SHARED_INVENTORY and SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_BACKPACK)
@@ -43,7 +70,12 @@ local function BuildSellableBagItems()
         local slot = itemData
         local sellPrice = slot.sellPrice or (slot.stackSellPrice and slot.stackSellPrice) or 0
         local isStolen = IsItemStolen and IsItemStolen(slot.bagId, slot.slotIndex)
-        if sellPrice > 0 and not isStolen then
+        -- The SELL action layer (CIM ProtectionPolicy) refuses player-locked
+        -- items, so excluding them here keeps the list aligned with what can
+        -- actually be sold. NOTE: fence sell/launder intentionally KEEP locked
+        -- stolen items, so this filter lives in the plain SELL builder only.
+        local isPlayerLocked = IsItemPlayerLocked and IsItemPlayerLocked(slot.bagId, slot.slotIndex)
+        if sellPrice > 0 and not isStolen and not isPlayerLocked then
             rows[#rows + 1] = slot
         end
     end
@@ -152,6 +184,11 @@ function Sell:IsPrimaryActionEnabled(vendorInstance)
         return false
     end
 
+    -- Selling for gold while at the wallet cap fails server-side; disable.
+    if IsAtGoldCap() then
+        return false
+    end
+
     local allowed = AuthorizeVendorAction(Vendor.ACTION.SELL, ds.bagId, ds.slotIndex, vendorInstance)
     return allowed == true
 end
@@ -165,6 +202,12 @@ function Sell:OnPrimaryAction(vendorInstance)
     local slotIndex = ds.slotIndex
     if bagId == nil or slotIndex == nil then return end
 
+    -- Block selling at the gold cap with a user-visible alert (native parity).
+    if IsAtGoldCap() then
+        BETTERUI.CIM.UserAlertText("Sell:GoldCap", GoldCapMessage())
+        return
+    end
+
     local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL, bagId, slotIndex, vendorInstance)
     if canSell ~= true then
         return
@@ -177,6 +220,14 @@ function Sell:OnPrimaryAction(vendorInstance)
 end
 
 function Sell:SellAllJunk(vendorInstance)
+    -- Junk sale pays gold; at the wallet cap every step would fail server-side,
+    -- so pre-check the cap before collecting/queuing (pairs with the per-item
+    -- sell block above).
+    if IsAtGoldCap() then
+        BETTERUI.CIM.UserAlertText("Sell:GoldCap", GoldCapMessage())
+        return
+    end
+
     local _, itemCount = Vendor.GetJunkSellSummary()
     if itemCount <= 0 then
         BETTERUI.CIM.UserAlertText("Sell:NoJunk",

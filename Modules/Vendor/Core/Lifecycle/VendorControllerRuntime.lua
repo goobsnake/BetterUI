@@ -395,7 +395,22 @@ function ControllerRuntime.RefreshList(instance, deps)
         -- pass always retries because some stores misreport 0 while the
         -- index-probe fallback can still find entries.
         local storeReportsEmpty = GetNumStoreItems ~= nil and (GetNumStoreItems() or 0) == 0
+        -- An empty list caused by an active search query or a non-default
+        -- category filter is the expected result of user filtering, not a
+        -- native-store race; retrying would never repopulate it and just churns
+        -- the store rebuild, so skip the retry in that case.
+        local hasActiveSearch = false
+        if Vendor.NormalizeSearchQuery then
+            hasActiveSearch = Vendor.NormalizeSearchQuery(instance.searchQuery) ~= nil
+        else
+            hasActiveSearch = instance.searchQuery ~= nil and instance.searchQuery ~= ""
+        end
+        local activeCategory = instance.GetCurrentCategory and instance:GetCurrentCategory() or nil
+        local hasNonDefaultCategory = activeCategory ~= nil and activeCategory.key ~= nil and activeCategory.key ~= "all"
         if entryCount == 0 and storeReportsEmpty and (instance._buyListRetryCount or 0) >= 1 then
+            instance._buyListRetryCount = 0
+        elseif entryCount == 0 and (hasActiveSearch or hasNonDefaultCategory) then
+            -- User filtering produced the empty list; nothing to retry.
             instance._buyListRetryCount = 0
         elseif entryCount == 0 and instance:IsSceneActiveOrShowing() then
             local retryCount = (instance._buyListRetryCount or 0) + 1

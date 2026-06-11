@@ -301,6 +301,11 @@ local function newVendor()
         HasInventorySpace = function()
             return true
         end,
+        -- CanCarry now backs the buy/buyback carry checks; in tests it defers to
+        -- the HasInventorySpace stub so existing full-inventory cases still hold.
+        CanCarry = function(self)
+            return self:HasInventorySpace()
+        end,
         GetCurrentCategory = function(self)
             return self.currentCategory
         end,

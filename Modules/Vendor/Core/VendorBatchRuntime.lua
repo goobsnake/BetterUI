@@ -156,7 +156,11 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
                 and not vendorInstance:CanAfford(price2, currencyType2) then
                 return batchStepSkipped()
             end
-            if not vendorInstance:HasInventorySpace() then
+            -- CanCarry mirrors native CanCarry: craft-bag-virtual items and
+            -- partial-stack merges need no free backpack slot.
+            if vendorInstance.CanCarry and not vendorInstance:CanCarry(ds.itemLink) then
+                return batchStepSkipped()
+            elseif not vendorInstance.CanCarry and not vendorInstance:HasInventorySpace() then
                 return batchStepSkipped()
             end
         end
@@ -240,7 +244,9 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
                 if not vendorInstance:CanAfford(price) then
                     return batchStepSkipped()
                 end
-                if not vendorInstance:HasInventorySpace() then
+                if vendorInstance.CanCarry and not vendorInstance:CanCarry(ds.itemLink) then
+                    return batchStepSkipped()
+                elseif not vendorInstance.CanCarry and not vendorInstance:HasInventorySpace() then
                     return batchStepSkipped()
                 end
             end
@@ -321,6 +327,7 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         delayPolicy = delayPolicy,
         showProgress = delayPolicy.showProgress,
         processedCount = 0,
+        skippedCount = 0,
         index = 0,
         stopReason = nil,
         nextCooldownAt = delayPolicy.cooldownEvery > 0 and delayPolicy.cooldownEvery or nil,
@@ -537,20 +544,46 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         end
 
         local stepResult = self.BatchConfig.NormalizeBatchStepResult(BatchRuntime.ExecuteBatchAction(self.mode, self.items[self.index]))
-        self.processedCount = self.processedCount + 1
 
         if stepResult.status == self.BatchConfig.BATCH_STEP_STATUS.STOPPED then
+            -- A STOPPED step performed no mutation (e.g. fence limit hit before
+            -- the action); do not count it as processed.
             self.stopReason = stepResult.reason or "stopped"
             self:Finish()
             return
         end
 
+        -- processedCount counts only QUEUED (actually-mutating) steps so that
+        -- the "Processing (x/y)" / completion text and the server-action pacing
+        -- windows reflect real purchases/sells. SKIPPED/HANDLED steps (already
+        -- handled, re-indexed, unaffordable, filtered) are tracked separately.
+        if stepResult.status == self.BatchConfig.BATCH_STEP_STATUS.QUEUED then
+            self.processedCount = self.processedCount + 1
+        else
+            self.skippedCount = (self.skippedCount or 0) + 1
+        end
+
         if self.mode == MODE.BUY or self.mode == MODE.BUYBACK then
             local vendorInstance = Vendor.instance
-            if vendorInstance and vendorInstance.HasInventorySpace and not vendorInstance:HasInventorySpace() then
-                self.stopReason = "bagFull"
-                self:Finish()
-                return
+            if vendorInstance then
+                -- Stop the batch only when the NEXT queued item genuinely cannot
+                -- be carried: a full backpack still allows craft-bag-virtual
+                -- items and partial-stack merges (CanCarry), so use the next
+                -- item's itemLink rather than a blanket free-slot test.
+                local nextItem = self.items[self.index + 1]
+                local nextDs = nextItem and (nextItem.dataSource or nextItem) or nil
+                local nextItemLink = nextDs and nextDs.itemLink or nil
+                local bagFull
+                if vendorInstance.CanCarry then
+                    bagFull = not vendorInstance:CanCarry(nextItemLink)
+                elseif vendorInstance.HasInventorySpace then
+                    bagFull = not vendorInstance:HasInventorySpace()
+                end
+                if bagFull then
+                    self.stopReason = "bagFull"
+                    self:Finish()
+                    return
+                end
             end
         end
 
@@ -642,6 +675,14 @@ function BatchRuntime.ExecuteBatchThrottled(request)
     end
 
     if Vendor._batchProcessing then
+        -- A batch is already running; invoke onComplete with a "busy" reason so
+        -- callers can release their selection state instead of leaving it
+        -- dangling (matches the empty-list early return above, which also fires
+        -- onComplete). Callers treat any reason like the stopReason arg they
+        -- already accept from Finish().
+        if request.onComplete then
+            request.onComplete("busy")
+        end
         return
     end
     Vendor._batchProcessing = true

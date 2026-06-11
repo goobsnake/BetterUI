@@ -218,7 +218,9 @@ do
     assert_eq(setActiveCalls[1].searchContext, "test-search", "ensure components forwards explicit search context")
     assert_true(#setActiveCalls[1].modes >= 3, "rebuild includes all eligible non-stable store modes")
     assert_eq(setModeCalls[1], ZO_MODE_STORE_BUY, "rebuild re-targets native store manager to buy mode when available")
-    assert_eq(setStoreModeCalls[1], ZO_MODE_STORE_BUY, "rebuild calls SetStoreMode for buy mode priming")
+    -- U50 has no global SetStoreMode (verified absent from ESOUIDocumentation.txt);
+    -- the rebuild must NOT call it and instead drives mode via storeManager:SetMode.
+    assert_eq(setStoreModeCalls[1], nil, "rebuild does not call the (nonexistent) global SetStoreMode")
     assert_eq(getInitializeStoreCalls(), 1, "rebuild initializes the native store after rebuilding components")
     assert_eq(getTabBarDeactivated(), 1, "rebuild neutralizes native tab bar callbacks and deactivates active tab bar")
     assert_true(#diDeactivations > 0, "rebuild sweeps directional input registrations after applying plan")

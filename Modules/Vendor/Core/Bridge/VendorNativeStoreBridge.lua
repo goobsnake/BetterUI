@@ -271,12 +271,8 @@ local function ApplyRebuildPlan(snapshot, rebuildPlan)
     end
 
     if snapshot.buyMode and rebuildPlan.modeSet[snapshot.buyMode] then
-        if type(SetStoreMode) == "function" then
-            local okSetStoreMode = GuardedBridgeCall("Vendor.NativeStoreBridge:SetStoreMode", SetStoreMode, snapshot.buyMode)
-            if not okSetStoreMode then
-                return false
-            end
-        end
+        -- U50 has no global SetStoreMode (verified absent from
+        -- ESOUIDocumentation.txt); drive mode through storeManager:SetMode only.
         if type(storeManager.SetMode) == "function" then
             local okStoreManagerSetMode = GuardedBridgeCall(
                 "Vendor.NativeStoreBridge:StoreManagerSetMode",
