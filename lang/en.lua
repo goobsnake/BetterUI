@@ -697,6 +697,8 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE", "Font Style")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE_TOOLTIP", "Select the font style for column data.")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CANNOT_AFFORD", "Cannot afford this item.")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CANNOT_CARRY", "Not enough inventory space.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CANNOT_BUY", "You cannot buy this item.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_GOLD_CAP", "You cannot sell items when you are at the gold cap.")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_BUY", "Buy")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_SELL", "Sell")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE", "Sell Vengeance")
@@ -867,6 +869,9 @@ ZO_CreateStringId("SI_BETTERUI_BANK_CARRIED_CURRENCY_FORMAT", "Carried <<1>>")
 
 -- Trading House
 ZO_CreateStringId("SI_BETTERUI_TH_ITEM_UNAVAILABLE", "Item is no longer available")
+ZO_CreateStringId("SI_BETTERUI_TH_PRESET_UNAVAILABLE", "Search features are not available")
+ZO_CreateStringId("SI_BETTERUI_TH_CANNOT_LIST", "This item cannot be listed")
+ZO_CreateStringId("SI_BETTERUI_TH_LISTING_CAP", "You have reached the maximum number of listings")
 
 -- Enhanced Tooltip Research Lines
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_RESEARCHABLE", "Researchable")
