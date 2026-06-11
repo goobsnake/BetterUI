@@ -447,9 +447,3 @@ end
 function HeaderSortIntegration.GetController(owner)
     return HeaderSortIntegration.PeekController(owner)
 end
-
----@param integration BetterUIHeaderSortIntegration|nil
----@return boolean
-function HeaderSortIntegration.IsActive(integration)
-    return integration and integration.isActive or false
-end

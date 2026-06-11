@@ -250,22 +250,6 @@ function BatchConfig.WithAck(options)
     return { ack = options or {} }
 end
 
-function BatchConfig.WithRateLimit(options)
-    return { rateLimit = options or {} }
-end
-
-function BatchConfig.WithPostBatch(options)
-    return { postBatch = options or {} }
-end
-
-function BatchConfig.WithLifecycle(options)
-    return { lifecycle = options or {} }
-end
-
-function BatchConfig.WithScene(options)
-    return { scene = options or {} }
-end
-
 BatchConfig.BATCH_STEP_STATUS = {
     HANDLED = "handled",
     QUEUED = "queued",

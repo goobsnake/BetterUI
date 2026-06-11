@@ -106,15 +106,6 @@ assert_equal("x", received[1], "First arg passed")
 assert_equal("y", received[2], "Second arg passed")
 assert_equal("z", received[3], "Third arg passed")
 
--- Test 5: SafeExecuteCallback adds event prefix
-print("\nTest: SafeExecuteCallback adds event prefix")
-reset()
-local fn5 = function() error("Event error") end
-BETTERUI.CIM.SafeExecuteCallback("EVENT_TEST", fn5)
-assert_equal(1, #debugOutput, "Error was logged")
-local hasPrefix = debugOutput[1]:find("Callback: EVENT_TEST")
-assert_true(hasPrefix ~= nil, "Log contains callback prefix")
-
 -- Test 6: Function returning nil still succeeds
 print("\nTest: Function returning nil still succeeds")
 reset()

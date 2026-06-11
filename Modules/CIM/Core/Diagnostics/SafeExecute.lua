@@ -27,15 +27,6 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
     return ok, result
 end
 
----@param eventName string Event name for error context
----@param callback function|nil The callback to execute
----@param ... any Arguments to pass to callback
----@return boolean ok
----@return any result
-function BETTERUI.CIM.SafeExecuteCallback(eventName, callback, ...)
-    return BETTERUI.CIM.SafeExecute("Callback: " .. eventName, callback, ...)
-end
-
 ---@param path string Dot-separated path relative to BETTERUI for optional lookup only (e.g. "ExternalAddon.Callback")
 ---@return any|nil value The resolved value, or nil if any segment is missing
 local function ResolveOptionalBetterUIPath(path)

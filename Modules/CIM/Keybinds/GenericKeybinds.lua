@@ -155,19 +155,6 @@ function BETTERUI.CIM.Keybinds.AddBackNavigation(keybindGroup, navigationType)
     )
 end
 
---[[
-Function: BETTERUI.CIM.Keybinds.AddTriggerKeybinds
-Adds trigger keybinds for a parametric list (LT/RT for page navigation).
-param: keybindGroup (table) - The keybind group to add to.
-param: list (table) - The parametric scroll list.
-]]
-
----@param keybindGroup table The keybind group to mutate
----@param list BetterUIListTriggerListLike List or list provider
-function BETTERUI.CIM.Keybinds.AddTriggerKeybinds(keybindGroup, list)
-    ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindGroup, list)
-end
-
 local function ResolveList(listOrGetter)
     local listWrapper = listOrGetter
     if type(listWrapper) == "function" then

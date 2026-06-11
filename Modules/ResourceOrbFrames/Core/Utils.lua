@@ -196,7 +196,6 @@ end
 
 Utils.FindControl = Controls.Find
 Utils.GetSettings = Settings.Get
-Utils.EnsureSettings = Settings.Ensure
 Utils.GetCustomFrontBar = Settings.GetCustomFrontBar
 Utils.AddOrbTooltip = Tooltips.AddOrbTooltip
 Utils.CalculateBorderSizes = Layout.CalculateBorderSizes

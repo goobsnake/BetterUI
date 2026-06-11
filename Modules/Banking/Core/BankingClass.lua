@@ -158,27 +158,6 @@ function BETTERUI.Banking.GetMutableRuntimeState()
     return BETTERUI.Banking.RuntimeState
 end
 
----@param runtimeState BetterUIBankingRuntimeState|table|nil
----@return BetterUIBankingRuntimeState
-local function BuildRuntimeStateSnapshot(runtimeState)
-    runtimeState = type(runtimeState) == "table" and runtimeState or {}
-    local guildBankRuntimeState = EnsureGuildBankRuntimeState(runtimeState.guildBank)
-    return {
-        lastUsedBank = runtimeState.lastUsedBank,
-        currentUsedBank = runtimeState.currentUsedBank,
-        lastOpenedBankBag = runtimeState.lastOpenedBankBag,
-        esoSubscriber = runtimeState.esoSubscriber,
-        guildBank = {
-            isLoading = guildBankRuntimeState.isLoading == true,
-        },
-    }
-end
-
----@return BetterUIBankingRuntimeState
-function BETTERUI.Banking.GetRuntimeState()
-    return BuildRuntimeStateSnapshot(BETTERUI.Banking.GetMutableRuntimeState())
-end
-
 ---@return table
 function BETTERUI.Banking.GetMutableGuildBankRuntimeState()
     local runtimeState = BETTERUI.Banking.GetMutableRuntimeState()
@@ -194,11 +173,6 @@ end
 ---@return BagId
 function BETTERUI.Banking.GetLastUsedBank()
     return ResolveBankBag(BETTERUI.Banking.GetMutableRuntimeState().lastUsedBank)
-end
-
----@return BagId|nil
-function BETTERUI.Banking.GetLastOpenedBankBag()
-    return BETTERUI.Banking.GetMutableRuntimeState().lastOpenedBankBag
 end
 
 ---@param bankBagId BagId|nil

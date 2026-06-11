@@ -141,11 +141,6 @@ function BETTERUI.CIM.FeatureFlags.GetAllFlags()
     return result
 end
 
---- Returns mutable flag definitions for advanced callers that need live mutation.
-function BETTERUI.CIM.FeatureFlags.GetDefinitionsLive()
-    return FLAG_DEFINITIONS
-end
-
 --[[
 Function: BETTERUI.CIM.FeatureFlags.ResetToDefaults
 Resets all feature flags to their default states.

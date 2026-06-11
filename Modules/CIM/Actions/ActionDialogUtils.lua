@@ -97,26 +97,6 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
     }
 end
 
----@param dialog table
----@param quickslotInfo {hasUnassign: boolean, assignedIndex: integer?, orderedSlots: integer[]}
----@return nil
-function BETTERUI.CIM.SetQuickslotDialogSelection(dialog, quickslotInfo)
-    if dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
-        local offset = quickslotInfo.hasUnassign and 1 or 0
-        if quickslotInfo.assignedIndex then
-            -- Map the quickslot index to its position in the ordered list
-            local indexMap = {}
-            for pos, idx in ipairs(quickslotInfo.orderedSlots) do
-                indexMap[idx] = pos
-            end
-            local listPos = (indexMap[quickslotInfo.assignedIndex] or 1) + offset
-            dialog.entryList:SetSelectedIndexWithoutAnimation(listPos, true, false)
-        else
-            dialog.entryList:SetSelectedIndexWithoutAnimation(quickslotInfo.hasUnassign and 2 or 1, true, false)
-        end
-    end
-end
-
 -- ACTION ENTRY POPULATION
 
 ---@param parametricList table[]

@@ -248,10 +248,6 @@ function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
     end
 end
 
-function Nameplates.IsEnabled()
-    return GetSettings().m_enabled
-end
-
 function Nameplates.ApplyCurrentSettings()
     local settings = GetSettings()
     if settings.m_enabled then

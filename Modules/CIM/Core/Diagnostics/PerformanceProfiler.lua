@@ -86,16 +86,6 @@ function BETTERUI.CIM.Profiler.GetCounters()
     return CloneTableShallow(counters)
 end
 
---- Returns the mutable timings table used internally by the profiler.
-function BETTERUI.CIM.Profiler.GetTimingsLive()
-    return timings
-end
-
---- Returns the mutable counters table used internally by the profiler.
-function BETTERUI.CIM.Profiler.GetCountersLive()
-    return counters
-end
-
 --[[
 Function: BETTERUI.CIM.Profiler.Reset
 Description: Clears all accumulated profiling data.
@@ -142,18 +132,3 @@ function BETTERUI.CIM.Profiler.Report()
     end
 end
 
--- CONVENIENCE MACROS
-
---- Captures a result list with an explicit count so embedded nils survive.
-local function CaptureResults(...)
-    return select("#", ...), { ... }
-end
-
-function BETTERUI.CIM.Profiler.Wrap(name, fn)
-    return function(...)
-        BETTERUI.CIM.Profiler.StartTiming(name)
-        local resultCount, results = CaptureResults(fn(...))
-        BETTERUI.CIM.Profiler.EndTiming(name)
-        return unpack(results, 1, resultCount)
-    end
-end

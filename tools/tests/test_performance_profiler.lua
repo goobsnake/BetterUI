@@ -168,23 +168,6 @@ BETTERUI.CIM.Profiler.Enable(false)
 local timings4 = BETTERUI.CIM.Profiler.GetTimings()
 assert_nil(next(timings4), "Timings empty after disable")
 
--- Test 10: Wrap creates a timing wrapper
-print("\nTest: Wrap creates a timing wrapper")
-reset()
-BETTERUI.CIM.Profiler.Enable(true)
-local innerCalled = false
-local wrapped = BETTERUI.CIM.Profiler.Wrap("wrappedFn", function(a, b)
-    innerCalled = true
-    return a + b
-end)
-mockTime = 0
-local wrapResult = wrapped(3, 7)
--- Note: both Start and End see same mockTime, so elapsed=0
-assert_true(innerCalled, "Inner function was called")
-assert_equal(10, wrapResult, "Wrapped function returns correct result")
-local timings5 = BETTERUI.CIM.Profiler.GetTimings()
-assert_not_nil(timings5["wrappedFn"], "Timing recorded for wrapped function")
-
 -- Test 11: Report prints when enabled
 print("\nTest: Report prints when enabled")
 reset()

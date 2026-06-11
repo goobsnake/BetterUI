@@ -210,7 +210,6 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
     return false, "bank_full"
 end
 
--- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
 local function MaybeRefreshAfterTransfer(self)
     if not ZO_Dialogs_IsShowingDialog() then
         RefreshBankListAfterTransfer(self, 100)

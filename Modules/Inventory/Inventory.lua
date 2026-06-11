@@ -447,17 +447,3 @@ function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 	return list
 end
 
---- Checks if the given inventory slot is locked.
----@param inventorySlot table Inventory slot data
----@return boolean isLocked Whether the slot is locked
-function BETTERUI.Inventory.Class:BETTERUI_IsSlotLocked(inventorySlot)
-	if not inventorySlot then
-		return false
-	end
-
-	local slot = PLAYER_INVENTORY:SlotForInventoryControl(inventorySlot)
-	if slot then
-		return slot.locked
-	end
-	return false
-end

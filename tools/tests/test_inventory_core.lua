@@ -273,10 +273,6 @@ do
     end
     instance:Switch()
     assert_equal("craftBagList", switchedTo[#switchedTo], "Switch toggles into the craft bag when inventory is active")
-
-    assert_equal(false, instance:BETTERUI_IsSlotLocked(nil), "BETTERUI_IsSlotLocked returns false for nil inventory slots")
-    assert_true(instance:BETTERUI_IsSlotLocked({ mockSlot = { locked = true } }),
-        "BETTERUI_IsSlotLocked proxies the underlying player inventory lock flag")
 end
 
 print("\n=== Summary ===")

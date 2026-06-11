@@ -12,7 +12,6 @@ BETTERUI.CIM.Debug.FLAGS = {
     DIRECTIONAL_INPUT = false, -- Verbose DIRECTIONAL_INPUT logging
     SCENE_TRANSITIONS = false, -- Log scene state changes
     LIST_OPERATIONS = false,   -- Log list activation/deactivation
-    CALLBACK_TRACING = false,  -- Log SafeExecuteCallback lifecycle
 }
 
 ---@return boolean
