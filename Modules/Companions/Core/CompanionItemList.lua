@@ -47,8 +47,12 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
     -- BETTERUI.Inventory.UpdateTooltipEquippedText sets _betterui_priceRendered = true
     -- internally, which guards against the deferred LayoutItem posthook.
     if ds.bagId == BAG_COMPANION_WORN then
+        self:UpdateTooltipEquippedIndicatorText(GAMEPAD_LEFT_TOOLTIP, ds.slotIndex)
         BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, ds.slotIndex)
     else
+        if GAMEPAD_TOOLTIPS.ClearStatusLabel then
+            GAMEPAD_TOOLTIPS:ClearStatusLabel(GAMEPAD_LEFT_TOOLTIP)
+        end
         BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
     end
 
@@ -56,6 +60,7 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
         local compareSlot = self:GetComparisonEquipSlot(ds)
         if compareSlot and HasItemInSlot and HasItemInSlot(BAG_COMPANION_WORN, compareSlot) then
             GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_RIGHT_TOOLTIP, BAG_COMPANION_WORN, compareSlot)
+            self:UpdateTooltipEquippedIndicatorText(GAMEPAD_RIGHT_TOOLTIP, compareSlot)
             BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_RIGHT_TOOLTIP, compareSlot)
         else
             GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
@@ -272,6 +277,12 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
                     end
 
                     self:ApplyMultiSelectVisual(entry, entryData)
+
+                    local remaining, duration = GetItemCooldownInfo(BAG_COMPANION_WORN, slotIndex)
+                    if remaining > 0 and duration > 0 then
+                        entry:SetCooldown(remaining, duration)
+                    end
+
                     list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
                 end
             end
@@ -357,6 +368,12 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
                     end
 
                     self:ApplyMultiSelectVisual(entry, entryData)
+
+                    local remaining, duration = GetItemCooldownInfo(BAG_BACKPACK, slotIndex)
+                    if remaining > 0 and duration > 0 then
+                        entry:SetCooldown(remaining, duration)
+                    end
+
                     list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
                 end
             end

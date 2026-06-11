@@ -57,6 +57,14 @@ assert_true(source:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searc
     "CompanionsClass ExitSearchMode restores exactly the groups the cleanup removed")
 assert_true(source:find("function BETTERUI%.Companions%.Class:RefreshCompanionFooter%(%)") ~= nil,
     "CompanionsClass exposes RefreshCompanionFooter")
+assert_true(source:find("function BETTERUI%.Companions%.Class:PrepareNextClearNewStatus%(selectedData%)") ~= nil,
+    "CompanionsClass exposes PrepareNextClearNewStatus")
+assert_true(source:find("function BETTERUI%.Companions%.Class:TryClearNewStatus%(%)") ~= nil,
+    "CompanionsClass exposes TryClearNewStatus")
+assert_true(source:find("function BETTERUI%.Companions%.Class:TryClearNewStatusOnHidden%(%)") ~= nil,
+    "CompanionsClass exposes TryClearNewStatusOnHidden")
+assert_true(source:find("TIME_NEW_PERSISTS_WHILE_SELECTED_MS") ~= nil,
+    "CompanionsClass uses the native new-item persistence delay")
 
 if failed > 0 then
     error(string.format("test_companions_class_source.lua failed with %d failure(s)", failed))

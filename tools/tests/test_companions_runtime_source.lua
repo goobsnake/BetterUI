@@ -37,6 +37,7 @@ print("test_companions_runtime_source")
 local moduleSource = read_file("Modules/Companions/Module.lua")
 local runtimeSource = read_file("Modules/Companions/Core/CompanionsRuntime.lua")
 local listManagerSource = read_file("Modules/Companions/Core/CompanionListManager.lua")
+local itemListSource = read_file("Modules/Companions/Core/CompanionItemList.lua")
 local manifestSource = read_file("BetterUI.txt")
 
 assert_contains(runtimeSource, "function Companions.InitializeRuntime()",
@@ -84,6 +85,20 @@ assert_contains(listManagerSource, "local function EnsureListDirectionalInputReg
     "Companion list manager keeps list input activation in a focused helper")
 assert_contains(listManagerSource, "local function ReleaseListDirectionalInput(list)",
     "Companion list manager keeps list input release in a focused helper")
+assert_contains(runtimeSource, "Companions: absorbing ZO_CompanionEquipment_Gamepad.",
+    "Companions runtime logs each forwarded call on the native shim")
+assert_contains(runtimeSource, "screen:TryClearNewStatusOnHidden()",
+    "Companions runtime clears pending new-item timers when the scene hides")
+assert_contains(itemListSource, "self:UpdateTooltipEquippedIndicatorText(GAMEPAD_LEFT_TOOLTIP, ds.slotIndex)",
+    "Companion item list wires the equipped indicator into the left tooltip")
+assert_contains(itemListSource, "self:UpdateTooltipEquippedIndicatorText(GAMEPAD_RIGHT_TOOLTIP, compareSlot)",
+    "Companion item list wires the equipped indicator into the right tooltip")
+assert_contains(itemListSource, "GetItemCooldownInfo(BAG_COMPANION_WORN, slotIndex)",
+    "Companion item list reads cooldown info for equipped items")
+assert_contains(itemListSource, "GetItemCooldownInfo(BAG_BACKPACK, slotIndex)",
+    "Companion item list reads cooldown info for backpack items")
+assert_contains(itemListSource, "entry:SetCooldown(remaining, duration)",
+    "Companion item list applies cooldown overlays to list entries")
 
 assert_contains(moduleSource, "local instance, initErr = Companions.InitializeRuntime()",
     "Companions Module.lua handles runtime bootstrap failures explicitly")

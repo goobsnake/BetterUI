@@ -142,30 +142,6 @@ local CATEGORY_DEFINITIONS = {
         iconFile = "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds",
     },
     {
-        key = "consumables",
-        nameStringId = SI_BETTERUI_INV_ITEM_CONSUMABLE,
-        filterType = ITEMFILTERTYPE_CONSUMABLE,
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds",
-    },
-    {
-        key = "materials",
-        nameStringId = SI_BETTERUI_INV_ITEM_MATERIALS,
-        filterType = ITEMFILTERTYPE_CRAFTING,
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_crafting.dds",
-    },
-    {
-        key = "furnishing",
-        nameStringId = SI_BETTERUI_INV_ITEM_FURNISHING,
-        filterType = ITEMFILTERTYPE_FURNISHING,
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_furnishings.dds",
-    },
-    {
-        key = "misc",
-        nameStringId = SI_BETTERUI_INV_ITEM_MISC,
-        filterType = ITEMFILTERTYPE_MISCELLANEOUS,
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_misc.dds",
-    },
-    {
         key = "equipped",
         nameStringId = SI_BETTERUI_INV_ITEM_EQUIPPED,
         filterType = -1, -- custom handled in DoesSlotMatchFilterType
@@ -670,6 +646,7 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
             end
             if self:IsSceneShowing() then
                 self:UpdateItemTooltips(selectedData)
+                self:PrepareNextClearNewStatus(selectedData)
                 if self.coreKeybinds then
                     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
                 end

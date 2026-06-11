@@ -224,6 +224,51 @@ function BETTERUI.Companions.Class:ClearTextSearch()
     self:ClearSearchInput()
 end
 
+local TIME_NEW_PERSISTS_WHILE_SELECTED_MS = 200
+
+function BETTERUI.Companions.Class:PrepareNextClearNewStatus(selectedData)
+    self:TryClearNewStatus()
+    if selectedData then
+        self.clearNewStatusBagId = selectedData.bagId
+        self.clearNewStatusSlotIndex = selectedData.slotIndex
+        self.clearNewStatusUniqueId = selectedData.uniqueId
+        if not self.trySetClearNewFlagCallback then
+            self.trySetClearNewFlagCallback = function(callId)
+                self:TrySetClearNewFlag(callId)
+            end
+        end
+        self.clearNewStatusCallId = zo_callLater(self.trySetClearNewFlagCallback, TIME_NEW_PERSISTS_WHILE_SELECTED_MS)
+    end
+end
+
+function BETTERUI.Companions.Class:IsClearNewItemActuallyNew()
+    return self.clearNewStatusBagId and
+        SHARED_INVENTORY:IsItemNew(self.clearNewStatusBagId, self.clearNewStatusSlotIndex) and
+        SHARED_INVENTORY:GetItemUniqueId(self.clearNewStatusBagId, self.clearNewStatusSlotIndex) == self.clearNewStatusUniqueId
+end
+
+function BETTERUI.Companions.Class:TrySetClearNewFlag(callId)
+    if self.clearNewStatusCallId == callId and self:IsClearNewItemActuallyNew() then
+        self.clearNewStatusOnSelectionChanged = true
+    end
+end
+
+function BETTERUI.Companions.Class:TryClearNewStatus()
+    if self.clearNewStatusOnSelectionChanged and self:IsClearNewItemActuallyNew() then
+        SHARED_INVENTORY:ClearNewStatus(self.clearNewStatusBagId, self.clearNewStatusSlotIndex)
+    end
+    self.clearNewStatusOnSelectionChanged = nil
+end
+
+function BETTERUI.Companions.Class:TryClearNewStatusOnHidden()
+    self:TryClearNewStatus()
+    self.clearNewStatusCallId = nil
+    self.clearNewStatusBagId = nil
+    self.clearNewStatusSlotIndex = nil
+    self.clearNewStatusUniqueId = nil
+    self.clearNewStatusOnSelectionChanged = nil
+end
+
 --- Refreshes companion footer values (companion name, bag capacity).
 function BETTERUI.Companions.Class:RefreshCompanionFooter()
     local footerRoot = self.footer and self.footer:GetNamedChild("Footer")

@@ -326,10 +326,11 @@ function Companions.CreateScene(instance)
                 end
                 local zosClass = rawget(_G, "ZO_CompanionEquipment_Gamepad")
                 if type(zosClass) == "table" and type(zosClass[key]) == "function" then
-                    BETTERUI.CIM.Debug.Log(string.format(
-                        "Companions: un-shimmed ZO_CompanionEquipment_Gamepad method '%s' resolved to a no-op",
-                        tostring(key)), "Companions")
-                    shim = function() end
+                    shim = function(...)
+                        BETTERUI.CIM.Debug.Log(string.format(
+                            "Companions: absorbing ZO_CompanionEquipment_Gamepad.%s(...)",
+                            tostring(key)), "Companions")
+                    end
                     noOpShims[key] = shim
                     return shim
                 end
@@ -372,6 +373,9 @@ function Companions.RegisterSceneLifecycle(instance)
             if GAMEPAD_TOOLTIPS then
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
+            end
+            if screen.TryClearNewStatusOnHidden then
+                screen:TryClearNewStatusOnHidden()
             end
         end,
         onHidden = function(screen)

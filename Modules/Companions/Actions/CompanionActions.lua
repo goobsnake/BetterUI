@@ -89,6 +89,23 @@ function Companions.CanExecuteAction(actionId, selectedData)
     return false
 end
 
+local TWO_HANDED_WEAPON_TYPES = {
+    [WEAPONTYPE_TWO_HANDED_SWORD] = true,
+    [WEAPONTYPE_TWO_HANDED_AXE] = true,
+    [WEAPONTYPE_TWO_HANDED_HAMMER] = true,
+    [WEAPONTYPE_FIRE_STAFF] = true,
+    [WEAPONTYPE_FROST_STAFF] = true,
+    [WEAPONTYPE_LIGHTNING_STAFF] = true,
+    [WEAPONTYPE_HEALING_STAFF] = true,
+    [WEAPONTYPE_BOW] = true,
+}
+
+local function IsTwoHandedWeapon(bagId, slotIndex)
+    if not GetItemWeaponType then return false end
+    local weaponType = GetItemWeaponType(bagId, slotIndex)
+    return TWO_HANDED_WEAPON_TYPES[weaponType] == true
+end
+
 function Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
     local equipType = GetItemEquipType and GetItemEquipType(bagId, slotIndex) or nil
     if equipType == nil or equipType == 0 or equipType == EQUIP_TYPE_INVALID then
@@ -97,14 +114,23 @@ function Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
     if not ZO_Character_EnumerateOrderedEquipSlots or not ZO_Character_DoesEquipSlotUseEquipType then
         return nil
     end
+    local isTwoHanded = IsTwoHandedWeapon(bagId, slotIndex)
     local firstCompatibleSlot = nil
     for _, equipSlot in ZO_Character_EnumerateOrderedEquipSlots(BAG_COMPANION_WORN) do
         if ZO_Character_DoesEquipSlotUseEquipType(equipSlot, equipType) then
-            if not firstCompatibleSlot then
-                firstCompatibleSlot = equipSlot
-            end
-            if not HasItemInSlot or not HasItemInSlot(BAG_COMPANION_WORN, equipSlot) then
-                return equipSlot
+            -- Skip locked weapon slots.
+            if IsLockedWeaponSlot and IsLockedWeaponSlot(equipSlot) then
+                -- locked: cannot equip here
+            -- Two-handed weapons must target MAIN_HAND only.
+            elseif isTwoHanded and equipSlot ~= EQUIP_SLOT_MAIN_HAND then
+                -- off-hand / backup off-hand is invalid for two-handed weapons
+            else
+                if not firstCompatibleSlot then
+                    firstCompatibleSlot = equipSlot
+                end
+                if not HasItemInSlot or not HasItemInSlot(BAG_COMPANION_WORN, equipSlot) then
+                    return equipSlot
+                end
             end
         end
     end
@@ -113,7 +139,10 @@ end
 
 local function DoEquipCompanionItem(bagId, slotIndex)
     local equipSlot = Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
-    if not equipSlot then return false end
+    if not equipSlot then
+        NotifySecureMoveFailed("Companions:ResolveEquipSlot")
+        return false
+    end
     if CallSecureProtected then
         if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1) then
             NotifySecureMoveFailed("Companions:Equip")
@@ -122,6 +151,38 @@ local function DoEquipCompanionItem(bagId, slotIndex)
         return true
     end
     return false
+end
+
+local COMPANION_CONFIRM_EQUIP_BOE_DIALOG = "BETTERUI_COMPANIONS_CONFIRM_EQUIP_BOE"
+
+local function EnsureCompanionEquipBoEDialogRegistered()
+    if ESO_Dialogs and ESO_Dialogs[COMPANION_CONFIRM_EQUIP_BOE_DIALOG] then
+        return
+    end
+    ESO_Dialogs = ESO_Dialogs or {}
+    ESO_Dialogs[COMPANION_CONFIRM_EQUIP_BOE_DIALOG] = {
+        canQueue = true,
+        gamepadInfo = {
+            dialogType = GAMEPAD_DIALOGS.BASIC,
+        },
+        title = {
+            text = SI_DIALOG_CONFIRM_BINDING_ITEM_TITLE,
+        },
+        mainText = {
+            text = SI_DIALOG_CONFIRM_EQUIPPING_ITEM_BODY,
+        },
+        buttons = {
+            {
+                text = SI_DIALOG_ACCEPT,
+                callback = function(dialog)
+                    dialog.data.callback()
+                end,
+            },
+            {
+                text = SI_DIALOG_CANCEL,
+            },
+        },
+    }
 end
 
 function Companions.TryEquipCompanionItem(bagId, slotIndex)
@@ -135,7 +196,12 @@ function Companions.TryEquipCompanionItem(bagId, slotIndex)
     if ZO_InventorySlot_WillItemBecomeBoundOnEquip and ZO_InventorySlot_WillItemBecomeBoundOnEquip(bagId, slotIndex) then
         if Companions.GetSetting("bindOnEquipProtection") ~= false then
             local itemLink = GetItemLink(bagId, slotIndex)
-            ZO_Dialogs_ShowPlatformDialog("CONFIRM_EQUIP_BOE", { callback = DoEquip }, { mainTextParams = { itemLink } })
+            local dialogName = "CONFIRM_EQUIP_BOE"
+            if not (ESO_Dialogs and ESO_Dialogs[dialogName]) then
+                EnsureCompanionEquipBoEDialogRegistered()
+                dialogName = COMPANION_CONFIRM_EQUIP_BOE_DIALOG
+            end
+            ZO_Dialogs_ShowPlatformDialog(dialogName, { callback = DoEquip }, { mainTextParams = { itemLink } })
             return true
         end
     end
@@ -144,10 +210,11 @@ end
 
 function Companions.TryUnequipCompanionItem(slotIndex)
     if slotIndex == nil then return false end
-    local freeSlots = GetNumBagFreeSlots(BAG_BACKPACK)
     -- FindFirstEmptySlotInBag(bagId) -> nilable slotIndex; slot 0 may be occupied.
+    -- Use a single lookup to avoid a TOCTOU between GetNumBagFreeSlots and
+    -- finding the actual empty slot.
     local destinationSlot = FindFirstEmptySlotInBag and FindFirstEmptySlotInBag(BAG_BACKPACK) or nil
-    if not freeSlots or freeSlots == 0 or destinationSlot == nil then
+    if destinationSlot == nil then
         BETTERUI.CIM.UserAlertText("Companions:BagFull",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY") or "SI_BETTERUI_VENDOR_CANNOT_CARRY"))
         return false

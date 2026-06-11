@@ -86,6 +86,18 @@ assert_true(source:find('elseif actionId == "split" then') ~= nil
     "CompanionActions routes split actions through the split-stack dialog helper")
 assert_true(dialogSource:find("Companions%.ExecuteAction%(actionId, itemData%)") ~= nil,
     "Companion batch dialog routes protected batch actions through CompanionActions")
+assert_true(source:find("TWO_HANDED_WEAPON_TYPES") ~= nil,
+    "ResolveCompanionEquipSlot classifies two-handed weapon types")
+assert_true(source:find("IsLockedWeaponSlot and IsLockedWeaponSlot%(equipSlot%)") ~= nil,
+    "ResolveCompanionEquipSlot skips locked weapon slots")
+assert_true(source:find("isTwoHanded and equipSlot ~= EQUIP_SLOT_MAIN_HAND") ~= nil,
+    "ResolveCompanionEquipSlot restricts two-handed weapons to MAIN_HAND")
+assert_true(source:find("BETTERUI_COMPANIONS_CONFIRM_EQUIP_BOE") ~= nil,
+    "CompanionActions registers a local BoE confirm dialog fallback")
+assert_true(source:find("FindFirstEmptySlotInBag%(BAG_BACKPACK%)") ~= nil,
+    "TryUnequipCompanionItem finds the destination slot via FindFirstEmptySlotInBag")
+assert_true(source:find("GetNumBagFreeSlots%(BAG_BACKPACK%)") == nil,
+    "TryUnequipCompanionItem avoids redundant GetNumBagFreeSlots pre-check")
 
 if failed > 0 then
     error(string.format("test_companion_actions_source.lua failed with %d failure(s)", failed))
