@@ -528,6 +528,8 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Remplacer \"Valeur\" par le prix du marché")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Remplace la colonne \"Valeur\" dans l'inventaire et la banque par les prix du marché MM, ATT ou TTC lorsqu'ils sont disponibles.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Show Price on Crafting Tooltips")
+ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP", "Display market price data on crafting and improvement result tooltips when a price source (TTC, MM, or ATT) is available.")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Protection Lier à l'équipement")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Afficher un dialogue avant d'équiper des objets Lier à l'équipement")

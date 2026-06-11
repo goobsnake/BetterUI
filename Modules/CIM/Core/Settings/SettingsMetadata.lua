@@ -313,6 +313,14 @@ local SETTINGS_METADATA_REGISTRY = {
             sortGroup = "marketIntegration",
             resetGroup = "marketIntegration",
         },
+        showCraftingMarketPrice = {
+            labelStringId = SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE,
+            tooltipStringId = SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "marketIntegration",
+            resetGroup = "marketIntegration",
+        },
         showStyleTrait = {
             labelStringId = SI_BETTERUI_SHOW_STYLE_TRAIT,
             tooltipStringId = SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP,

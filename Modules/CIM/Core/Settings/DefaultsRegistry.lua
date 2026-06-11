@@ -99,6 +99,7 @@ BETTERUI.Defaults.Modules = {
         -- Shared Market Value Display (used by both Inventory and Banking item rows)
         showMarketPrice = true,
         marketPricePriority = "mm_att_ttc",
+        showCraftingMarketPrice = true,
 
         -- Trait & Research
         showStyleTrait = true,      -- Show style/trait info in tooltips

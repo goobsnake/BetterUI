@@ -472,6 +472,8 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "每次按扳机键�
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "将\"价值\"替换为市场价格")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "将背包和银行中的“价值”列在可用时替换为 MM、ATT 或 TTC 的市场价格。")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "装备绑定保护")
+ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Show Price on Crafting Tooltips")
+ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP", "Display market price data on crafting and improvement result tooltips when a price source (TTC, MM, or ATT) is available.")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "在装备绑定物品之前显示对话框")
 
 -- Event Tickets

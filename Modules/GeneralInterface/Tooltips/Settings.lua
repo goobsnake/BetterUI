@@ -229,6 +229,26 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
+            key = "showCraftingMarketPrice",
+            name = GetString(rawget(_G, "SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP")),
+            getFunc = function()
+                local settings = GetModuleSettings("GeneralInterface")
+                if not settings then return true end
+                if settings.showCraftingMarketPrice == nil then return true end
+                return settings.showCraftingMarketPrice
+            end,
+            setFunc = function(value)
+                local settings = EnsureModuleSettings("GeneralInterface")
+                if settings then
+                    settings.showCraftingMarketPrice = value
+                end
+            end,
+            default = GetMetadataDefault("GeneralInterface", "showCraftingMarketPrice", true),
+            width = "full",
+        },
+        {
+            type = "checkbox",
             key = "guildStoreErrorSuppress",
             name = GetString(rawget(_G, "SI_BETTERUI_GS_ERROR_SUPPRESS")),
             tooltip = tooltipGuildStoreError,
