@@ -393,7 +393,7 @@ BETTERUI.CIM.SceneLifecycle.RegisterFragment(fragment, {
 
 ## 8. Feature Flags System
 
-BetterUI includes a centralized **Feature Flag System** (`Modules/CIM/Core/FeatureFlags.lua`) for safer feature rollouts and runtime configuration.
+BetterUI includes a centralized **Feature Flag System** (`Modules/CIM/Core/Diagnostics/FeatureFlags.lua`) for safer feature rollouts and runtime configuration.
 
 ### Core API
 
@@ -503,7 +503,7 @@ end
 | `Constants.lua` | CIM/ | Namespace init, shared constants, timing |
 | `ConstantsUI.lua` | CIM/ | UI constants, currency config |
 | `RuntimeSetup.lua` | CIM/Core/ | API patches, migrations, initialization |
-| `FeatureFlags.lua` | CIM/Core/ | Runtime feature flag system |
+| `FeatureFlags.lua` | CIM/Core/Diagnostics/ | Runtime feature flag system |
 | `SettingsAccessor.lua` | CIM/Core/ | Settings get/set factory |
 | `WindowClass.lua` | CIM/Core/ | Base Window class implementation |
 | `BatchOverlay.lua` | CIM/UI/ | Batch progress overlay extracted from multi-select runtime |

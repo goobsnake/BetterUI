@@ -421,7 +421,6 @@ The Banking footer has **two horizontal dividers** with a gap between them:
 3. **Adjust incrementally** (5-10px at a time)
 4. **Test with `/reloadui`** after each change
 5. **Update this documentation** with new values
-6. **Run deployment script**: `.\tools\helper_script.ps1`
 
 ### Common Adjustment Scenarios
 

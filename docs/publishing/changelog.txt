@@ -5,6 +5,28 @@ Current Release - v3.06 Changes:
 2. Fixed: Primary (A) and secondary (X) keybind labels no longer flicker or briefly show stale actions during equip/use/quickslot transitions
 3. Fixed: Y-menu now shows a single junk toggle entry (Mark or Unmark) and prevents duplicate junk actions in the action list
 4. Fixed: "Link to Chat" fallback handling has been refined to occur less often for the primary A button
+
+CORE & COMPATIBILITY:
+5. Updated: API version bumped to Update 50 (101050) for full compatibility with the current ESO live build
+
+GUILD STORE (TRADING HOUSE):
+6. Improved: Search now stays associated with the active guild store and recovers cleanly after response timeouts, guild switches, and status updates
+7. Added: Listing flow now shows the posting fee and expected profit before you confirm a sale
+8. Fixed: Listing is now gated by your remaining listing cap, and saved search presets are guarded against invalid or stale state
+
+VENDOR:
+9. Added: Purchase affordability now respects the correct stored currency location, so alternate-currency prices show as affordable when you actually can afford them
+10. Fixed: Buy and sell actions are now correctly gated by whether the item can be carried and by gamepad-mode context, preventing dead or misleading keybinds
+11. Fixed: Vendor dialogs are now released when the store closes, and repair failures surface a clear alert
+12. Improved: Vendor item lists refresh automatically when antiquity leads are acquired or collectible state changes, keeping availability accurate
+
+COMPANIONS:
+13. Fixed: Equip rules now respect locked slots and two-handed weapon constraints
+14. Added: Tooltips now indicate which items are currently equipped on the companion, and cooldown information is displayed
+15. Fixed: New-item status is cleared correctly, and a Bind-on-Equip confirmation fallback prevents accidental binding
+
+PERFORMANCE:
+16. Improved: List rebuilds across Inventory, Banking, Vendor, and Companions are faster and allocate less, reducing hitches on large bags
 [/INDENT]
 
 

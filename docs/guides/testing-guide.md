@@ -140,10 +140,6 @@ luac -p tools/tests/*.lua
 3. Visit bank - Verify fully functional
 4. Visit store - Verify fully functional
 
-### Backward Compatibility
-- [ ] `ddebug("test")` works (deprecated alias)
-- [ ] `BETTERUI_GamepadInventory_DefaultItemSortComparator` works (deprecated alias)
-
 ---
 
 ## Error Reporting
