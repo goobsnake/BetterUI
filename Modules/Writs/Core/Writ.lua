@@ -127,9 +127,8 @@ end
 --- Hides the writ panel.
 ---@return nil
 function Writs.HidePanel()
-	if m_writsPanel then
-		m_writsPanel:SetHidden(true)
-	else
-		BETTERUI_WritsPanel:SetHidden(true)
+	local panel = m_writsPanel or BETTERUI_WritsPanel
+	if panel then
+		panel:SetHidden(true)
 	end
 end

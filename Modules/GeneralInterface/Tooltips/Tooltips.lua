@@ -205,39 +205,63 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
     return lines
 end
 
+--- Resolves a BetterUI string id with an English fallback when the id has
+--- not been declared in the loaded lang file.
+---@param stringIdName string Global SI_BETTERUI_* identifier name
+---@param fallback string English fallback text
+---@return string text Localized text or fallback
+local function GetLocalizedOrFallback(stringIdName, fallback)
+    local stringId = rawget(_G, stringIdName)
+    local text = stringId and GetString(stringId)
+    if text and text ~= "" then
+        return text
+    end
+    return fallback
+end
+
 --- Gets style and research status info strings.
 function BETTERUI.GetInventoryTraitInfo(itemLink)
     local lines = {}
     if itemLink and itemLink ~= "" and BETTERUI.GetSetting("GeneralInterface", "showStyleTrait", false) then
         local traitString
         local colors = BETTERUI.CIM.CONST.COLORS
+        local researchableText = GetLocalizedOrFallback("SI_BETTERUI_TOOLTIP_RESEARCHABLE", "Researchable")
+
+        local function BuildFoundLine(foundStringIdName, foundFallback)
+            return "|c" .. colors.RESEARCHABLE .. researchableText .. "|r - |c" .. colors.FOUND_LOCATION
+                .. GetLocalizedOrFallback(foundStringIdName, foundFallback) .. "|r"
+        end
 
         if (CanItemLinkBeTraitResearched(itemLink)) then
             -- Find owned items that can be researchable
             if (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BACKPACK) > 0) then
-                traitString = "|c" .. colors.RESEARCHABLE ..
-                    "Researchable|r - |c" .. colors.FOUND_LOCATION .. "Found in Inventory|r"
+                traitString = BuildFoundLine("SI_BETTERUI_TOOLTIP_FOUND_IN_INVENTORY", "Found in Inventory")
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
-                traitString = "|c" .. colors.RESEARCHABLE .. "Researchable|r - |c" .. colors.FOUND_LOCATION .. "Found in Bank|r"
+                traitString = BuildFoundLine("SI_BETTERUI_TOOLTIP_FOUND_IN_BANK", "Found in Bank")
             elseif (BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink) > 0) then
-                traitString = "|c" .. colors.RESEARCHABLE ..
-                    "Researchable|r - |c" .. colors.FOUND_LOCATION .. "Found in House Bank|r"
+                traitString = BuildFoundLine("SI_BETTERUI_TOOLTIP_FOUND_IN_HOUSE_BANK", "Found in House Bank")
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_WORN) > 0) then
-                traitString = "|c" .. colors.RESEARCHABLE .. "Researchable|r - |c" .. colors.FOUND_LOCATION .. "Found Equipped|r"
+                traitString = BuildFoundLine("SI_BETTERUI_TOOLTIP_FOUND_EQUIPPED", "Found Equipped")
             else
-                traitString = "|c" .. colors.RESEARCHABLE .. "Researchable|r"
+                traitString = "|c" .. colors.RESEARCHABLE .. researchableText .. "|r"
             end
         else
             return lines
         end
 
         local style = GetItemLinkItemStyle(itemLink)
-        local itemStyle = string.upper(GetString("SI_ITEMSTYLE", style))
+        -- Locale-safe: compare the numeric style id against ITEMSTYLE_NONE
+        -- instead of matching a localized "NONE" string.
+        local hasStyle = style ~= nil and style ~= (ITEMSTYLE_NONE or 0)
+        -- U50: per-style SI_ITEMSTYLE strings were removed; GetItemStyleName is
+        -- the supported lookup.
+        local itemStyle = hasStyle and string.upper(GetItemStyleName(style) or "") or nil
+        local traitLabel = GetLocalizedOrFallback("SI_BETTERUI_TOOLTIP_TRAIT_LABEL", "Trait:")
 
-        table.insert(lines, zo_strformat("<<1>> Trait: <<2>>", itemStyle, traitString))
-
-        if (itemStyle ~= ("NONE")) then
-            table.insert(lines, zo_strformat("<<1>>", itemStyle))
+        if itemStyle and itemStyle ~= "" then
+            table.insert(lines, zo_strformat("<<1>> <<2>> <<3>>", itemStyle, traitLabel, traitString))
+        else
+            table.insert(lines, zo_strformat("<<1>> <<2>>", traitLabel, traitString))
         end
     end
     return lines
@@ -454,6 +478,28 @@ local function ApplyTooltipLabelFonts(tooltipControl)
     end
 end
 
+--- Pattern checks memoized per label control: tooltip labels are pooled and
+--- re-scanned on every layout, so only re-run the gsub/find work when the
+--- label text actually changed since the last scan.
+---@param label table Label control
+---@param text string Current label text (non-nil)
+---@return boolean isDuplicate Whether the text is a duplicate addon line
+local function IsDuplicateAddonLabelText(label, text)
+    if label._betterui_dupCheckText == text then
+        return label._betterui_dupCheckResult
+    end
+    local plainText = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
+    local isDuplicateAddonLine = (plainText:find("^TTC:") ~= nil)
+        or (plainText:find("^Tamriel Trade Centre") ~= nil)
+        or (plainText:find("^M%.M%.") ~= nil)
+        or (plainText:find("^Master Merchant") ~= nil)
+        or (plainText:find("^ATT:") ~= nil)
+        or (plainText:find("^Arkadius' Trade Tools") ~= nil)
+    label._betterui_dupCheckText = text
+    label._betterui_dupCheckResult = isDuplicateAddonLine
+    return isDuplicateAddonLine
+end
+
 local function HideDuplicateAddonLabels(control)
     for i = 1, control:GetNumChildren() do
         local child = control:GetChild(i)
@@ -461,14 +507,7 @@ local function HideDuplicateAddonLabels(control)
             if child:GetType() == CT_LABEL and not child:IsHidden() then
                 local text = child:GetText()
                 if text then
-                    local plainText = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
-                    local isDuplicateAddonLine = (plainText:find("^TTC:") ~= nil)
-                        or (plainText:find("^Tamriel Trade Centre") ~= nil)
-                        or (plainText:find("^M%.M%.") ~= nil)
-                        or (plainText:find("^Master Merchant") ~= nil)
-                        or (plainText:find("^ATT:") ~= nil)
-                        or (plainText:find("^Arkadius' Trade Tools") ~= nil)
-                    if isDuplicateAddonLine then
+                    if IsDuplicateAddonLabelText(child, text) then
                         child:SetHidden(true)
                         child:SetHeight(0)
                         if i > 1 then

@@ -114,8 +114,9 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                 local currentValue = tonumber(settings.chatHistory) or defaultValue
                 local parsedValue = ParseIntegerInput(value, currentValue, 1, 5000)
                 settings.chatHistory = parsedValue
-                if (ZO_ChatWindowTemplate1Buffer ~= nil) then
-                    ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(parsedValue)
+                local generalInterface = BETTERUI.GeneralInterface
+                if generalInterface and generalInterface.ApplyChatHistoryLimit then
+                    generalInterface.ApplyChatHistoryLimit(parsedValue)
                 end
             end,
             default = GetMetadataDefault("GeneralInterface", "chatHistory", 200),

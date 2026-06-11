@@ -83,9 +83,9 @@ function Writs.Setup()
     local BETTERUI_WP = BETTERUI.WindowManager:CreateControlFromVirtual("BETTERUI_WritsPanel", tlw, "BETTERUI_WritsPanel")
 
     local writsNamespace = BETTERUI.name .. "_Writs"
-    EVENT_MANAGER:RegisterForEvent(writsNamespace, EVENT_CRAFTING_STATION_INTERACT, OnCraftStation)
-    EVENT_MANAGER:RegisterForEvent(writsNamespace, EVENT_END_CRAFTING_STATION_INTERACT, OnCloseCraftStation)
-    EVENT_MANAGER:RegisterForEvent(writsNamespace, EVENT_CRAFT_COMPLETED, OnCraftItem)
+    BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_CRAFTING_STATION_INTERACT, OnCraftStation)
+    BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_END_CRAFTING_STATION_INTERACT, OnCloseCraftStation)
+    BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_CRAFT_COMPLETED, OnCraftItem)
 
     Writs.CacheControls()
 

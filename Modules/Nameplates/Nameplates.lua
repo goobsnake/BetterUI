@@ -85,10 +85,12 @@ Nameplates.FONTSTYLE_CHOICES = {
     "Soft Shadow (Thin)",
 }
 
+-- Numeric hedges mirror CIM DefaultsRegistry: FONT_STYLE_* globals may be nil
+-- in stripped/test environments, so fall back to the engine enum values.
 Nameplates.FONTSTYLE_VALUES = {
     FONT_STYLE_NORMAL or 0,
     FONT_STYLE_OUTLINE or 1,
-    FONT_STYLE_THICK_OUTLINE or 2,
+    FONT_STYLE_OUTLINE_THICK or 2,
     FONT_STYLE_SHADOW or 3,
     FONT_STYLE_SOFT_SHADOW_THICK or 4,
     FONT_STYLE_SOFT_SHADOW_THIN or 5,
@@ -104,7 +106,7 @@ Nameplates.DEFAULTS = {
 local STYLE_STRING_TO_ENUM = {
     ["normal"] = FONT_STYLE_NORMAL or 0,
     ["outline"] = FONT_STYLE_OUTLINE or 1,
-    ["thick-outline"] = FONT_STYLE_THICK_OUTLINE or 2,
+    ["thick-outline"] = FONT_STYLE_OUTLINE_THICK or 2,
     ["shadow"] = FONT_STYLE_SHADOW or 3,
     ["soft-shadow-thick"] = FONT_STYLE_SOFT_SHADOW_THICK or 4,
     ["soft-shadow-thin"] = FONT_STYLE_SOFT_SHADOW_THIN or 5,
@@ -112,7 +114,7 @@ local STYLE_STRING_TO_ENUM = {
 
 local function NormalizeStyleValue(style)
     if type(style) == "string" then
-        return STYLE_STRING_TO_ENUM[style] or (FONT_STYLE_SOFT_SHADOW_THIN or 5)
+        return STYLE_STRING_TO_ENUM[style] or FONT_STYLE_SOFT_SHADOW_THIN or 5
     end
     return style
 end
@@ -148,11 +150,6 @@ end
 
 Nameplates.Settings.RegisterPanel = InitPanel
 
-local function TrackPanelRegistration(reason)
-    Nameplates._panelRegistrationReason = reason
-    Nameplates._panelRegistrationDeferred = reason == "missing_register_panel"
-end
-
 local originalKeyboardFont = nil
 local originalKeyboardStyle = nil
 local originalGamepadFont = nil
@@ -174,8 +171,20 @@ local function CaptureOriginalNameplateFonts()
     originalFontsCaptured = originalKeyboardFont ~= nil or originalGamepadFont ~= nil
 end
 
+local m_warnedMissingFontArgs = false
+
 local function ApplyNameplateFont(font, style, size)
-    if not font or not style or not size then return end
+    if not font or not style or not size then
+        -- One-time diagnostic: a silent bail here means nameplate fonts
+        -- never apply (e.g. style constant resolved to nil).
+        if not m_warnedMissingFontArgs and BETTERUI.DebugError then
+            m_warnedMissingFontArgs = true
+            BETTERUI.DebugError(string.format(
+                "[Nameplates] ApplyNameplateFont skipped: font=%s style=%s size=%s",
+                tostring(font), tostring(style), tostring(size)))
+        end
+        return
+    end
     CaptureOriginalNameplateFonts()
     style = NormalizeStyleValue(style)
     local fontString = font .. "|" .. tostring(size)
@@ -220,11 +229,7 @@ local function ResetToDefaults()
 end
 
 function Nameplates.Setup()
-    local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")
-    TrackPanelRegistration(panelReason)
-    if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
-        BETTERUI.Debug(string.format("[Nameplates] Settings panel registration reported: %s", tostring(panelReason)))
-    end
+    BETTERUI.CIM.RegisterModulePanelWithLogging(Nameplates, "Nameplates", "Nameplates", "Nameplates")
 
     local settings = GetSettings()
     if settings.m_enabled then

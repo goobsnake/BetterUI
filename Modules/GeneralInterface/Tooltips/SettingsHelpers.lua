@@ -207,8 +207,9 @@ local function ResetGeneralInterfaceGeneralSettings()
     SettingsApi.ResetModuleSettingsByGroup("CIM", "generalInterfaceGeneral")
 
     local generalInterfaceSettings = GetModuleSettings("GeneralInterface")
-    if ZO_ChatWindowTemplate1Buffer ~= nil then
-        ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(
+    local generalInterface = BETTERUI.GeneralInterface
+    if generalInterface and generalInterface.ApplyChatHistoryLimit then
+        generalInterface.ApplyChatHistoryLimit(
             (generalInterfaceSettings and generalInterfaceSettings.chatHistory) or 200
         )
     end

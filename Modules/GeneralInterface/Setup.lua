@@ -2,12 +2,6 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local GeneralInterface = BETTERUI.GeneralInterface
 GeneralInterface.Settings = GeneralInterface.Settings or {}
-local MODULE_NAME = "GeneralInterface"
-
-local function TrackPanelRegistration(reason)
-	GeneralInterface._panelRegistrationReason = reason
-	GeneralInterface._panelRegistrationDeferred = reason == "missing_register_panel"
-end
 
 local function GetGeneralInterfaceOptions()
 	if type(GeneralInterface.GetSettingsOptions) ~= "function" then
@@ -125,20 +119,23 @@ local function RegisterGuildStoreSuppression(tooltipHelpers)
 		return
 	end
 
+	-- IMPORTANT: never touch the global "ErrorFrame" EVENT_LUA_ERROR registration.
+	-- Unregistering it would permanently disable Lua error display game-wide
+	-- (ZOS registers it once with a callback we cannot restore). Suppression is
+	-- handled entirely through the addon-local SetGuildStoreErrorSuppressed flag.
 	scene:RegisterCallback("StateChange", function(oldState, newState)
-		if not BETTERUI.GetModuleSettings("GeneralInterface").guildStoreErrorSuppress then
+		if not (tooltipHelpers and type(tooltipHelpers.SetGuildStoreErrorSuppressed) == "function") then
 			return
 		end
 		if newState == SCENE_SHOWING then
-			EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-			if tooltipHelpers and type(tooltipHelpers.SetGuildStoreErrorSuppressed) == "function" then
+			local moduleSettings = BETTERUI.GetModuleSettings("GeneralInterface")
+			if moduleSettings and moduleSettings.guildStoreErrorSuppress then
 				tooltipHelpers.SetGuildStoreErrorSuppressed(true)
 			end
-		elseif newState == SCENE_HIDDEN then
-			EVENT_MANAGER:RegisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-			if tooltipHelpers and type(tooltipHelpers.SetGuildStoreErrorSuppressed) == "function" then
-				tooltipHelpers.SetGuildStoreErrorSuppressed(false)
-			end
+		elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+			-- Always clear on hide so suppression cannot leak past the scene
+			-- (even if the setting was toggled off while the scene was showing).
+			tooltipHelpers.SetGuildStoreErrorSuppressed(false)
 		end
 	end)
 end
@@ -156,11 +153,32 @@ local function RegisterTooltipCacheInvalidation()
 		invalidateCacheOnUpdate)
 end
 
-local function ApplyChatHistoryLimit()
-	if ZO_ChatWindowTemplate1Buffer ~= nil then
-		ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings
-			.Modules["GeneralInterface"].chatHistory)
+-- U50: the old ZO_ChatWindowTemplate1Buffer instance name no longer exists.
+-- Chat buffers are reached through the chat systems' container/window objects.
+function GeneralInterface.ApplyChatHistoryLimit(numLines)
+	numLines = tonumber(numLines)
+	if not numLines or numLines < 1 then
+		return
 	end
+	local chatSystems = { KEYBOARD_CHAT_SYSTEM, GAMEPAD_CHAT_SYSTEM }
+	for i = 1, #chatSystems do
+		local chatSystem = chatSystems[i]
+		local containers = chatSystem and chatSystem.containers
+		if containers then
+			for _, container in ipairs(containers) do
+				for _, window in ipairs(container.windows or {}) do
+					if window.buffer and window.buffer.SetMaxHistoryLines then
+						window.buffer:SetMaxHistoryLines(numLines)
+					end
+				end
+			end
+		end
+	end
+end
+
+local function ApplyChatHistoryLimit()
+	local settings = BETTERUI.GetModuleSettings("GeneralInterface")
+	GeneralInterface.ApplyChatHistoryLimit((settings and settings.chatHistory) or 200)
 end
 
 GeneralInterface._SetupInstallers = {
@@ -177,11 +195,7 @@ GeneralInterface._SetupInstallers = {
 
 ---@type BetterUIModuleSetupHook
 function GeneralInterface.Setup()
-	local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")
-	TrackPanelRegistration(panelReason)
-	if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
-		BETTERUI.Debug(string.format("[%s] Settings panel registration reported: %s", MODULE_NAME, tostring(panelReason)))
-	end
+	BETTERUI.CIM.RegisterModulePanelWithLogging(GeneralInterface, "GeneralInterface", "General", "General Interface")
 
 	-- Only apply hooks/logic when the GeneralInterface module toggle is enabled.
 	if not BETTERUI.GetModuleEnabled("GeneralInterface") then return end
