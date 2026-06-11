@@ -48,11 +48,3 @@ function BETTERUI.TradingHouse.Init()
 
     TH.initialized = true
 end
-
-function BETTERUI.TradingHouse.IsInitialized()
-    return TH.initialized == true
-end
-
-function BETTERUI.TradingHouse.IsTradingHouseOpen()
-    return TH.instance ~= nil and TH.instance:IsSceneShowing()
-end

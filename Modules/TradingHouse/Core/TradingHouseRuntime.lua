@@ -406,28 +406,11 @@ function BETTERUI.TradingHouse.Class:CycleGuild(direction)
     if newGuildId and SelectTradingHouseGuildId then
         SelectTradingHouseGuildId(newGuildId)
         -- SelectTradingHouseGuildId returns nothing; confirm the switch took
-        -- effect via the selected-guild getter before dropping state.
+        -- effect via the selected-guild getter. The actual invalidation and
+        -- refresh is handled by TH.OnSelectedTradingHouseGuildChanged so that
+        -- native guild switches and CycleGuild share the same path.
         if GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() ~= newGuildId then
             return
-        end
-        -- Guild switched: drop stale browse paging/pending state and stop
-        -- rendering the old guild's search results — their tradingHouseIndex
-        -- rows are no longer purchasable. A fresh search repopulates them.
-        if TH.ResetBrowseState then
-            TH.ResetBrowseState()
-        end
-        if TH.BrowseComponent and TH.BrowseComponent.InvalidateResults then
-            TH.BrowseComponent:InvalidateResults()
-        end
-        -- Listings are per guild; request the new guild's listings instead of
-        -- re-rendering the previous guild's data.
-        if self:GetCurrentMode() == MODE.LISTINGS and RequestTradingHouseListings then
-            RequestTradingHouseListings()
-        end
-        self:UpdateTabHeader()
-        self:RefreshList()
-        if self.RefreshTHFooter then
-            self:RefreshTHFooter()
         end
     end
 end

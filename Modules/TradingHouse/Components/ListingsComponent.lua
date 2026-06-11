@@ -112,7 +112,8 @@ function Listings:BuildList(thInstance)
         local icon, itemName, displayQuality, stackCount, _, timeRemaining, price, _, itemUniqueId
             = GetTradingHouseListingItemInfo(i)
 
-        if itemName and itemName ~= "" then
+        -- Cancelled/empty listings can report stackCount 0; skip them.
+        if itemName and itemName ~= "" and (stackCount or 0) > 0 then
             local itemLink = GetTradingHouseListingItemLink and GetTradingHouseListingItemLink(i) or nil
             local quality  = displayQuality or ITEM_DISPLAY_QUALITY_NORMAL
 

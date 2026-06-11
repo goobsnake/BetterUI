@@ -65,6 +65,19 @@ function Sell:IsPrimaryActionEnabled(thInstance)
         if IsItemBound(ds.bagId, ds.slotIndex) then return false end
     end
 
+    local itemLink = ds.itemLink or (GetItemLink and GetItemLink(ds.bagId, ds.slotIndex))
+    if itemLink and GetItemLinkSellInformation then
+        local sellInfo = GetItemLinkSellInformation(itemLink)
+        if sellInfo == ITEM_SELL_INFORMATION_CANNOT_SELL
+            or sellInfo == ITEM_SELL_INFORMATION_CANNOT_TRADE then
+            return false
+        end
+    end
+
+    if IsItemBoPAndTradeable and ds.bagId and ds.slotIndex then
+        if IsItemBoPAndTradeable(ds.bagId, ds.slotIndex) then return false end
+    end
+
     return true
 end
 
@@ -85,14 +98,47 @@ function Sell:OnPrimaryAction(thInstance)
         return
     end
 
+    local itemLink = GetItemLink(bagId, slotIndex)
+    if itemLink and GetItemLinkSellInformation then
+        local sellInfo = GetItemLinkSellInformation(itemLink)
+        if sellInfo == ITEM_SELL_INFORMATION_CANNOT_SELL
+            or sellInfo == ITEM_SELL_INFORMATION_CANNOT_TRADE then
+            BETTERUI.CIM.UserAlertText("TH:CannotList",
+                GetString(rawget(_G, "SI_BETTERUI_TH_CANNOT_LIST")) or "This item cannot be listed")
+            return
+        end
+    end
+
+    if IsItemBoPAndTradeable and IsItemBoPAndTradeable(bagId, slotIndex) then
+        BETTERUI.CIM.UserAlertText("TH:BoundItem",
+            GetString(rawget(_G, "SI_BETTERUI_TH_CANNOT_LIST_BOUND")))
+        return
+    end
+
+    -- Gate posting on the guild's listing cap.
+    if GetTradingHouseListingCounts then
+        local currentListings, maxListings = GetTradingHouseListingCounts()
+        if currentListings and maxListings and currentListings >= maxListings then
+            BETTERUI.CIM.UserAlertText("TH:ListingCap",
+                GetString(rawget(_G, "SI_BETTERUI_TH_LISTING_CAP")) or "You have reached the maximum number of listings")
+            return
+        end
+    end
+
     -- Show the listing dialog (stack count and price entry)
     local stackCount = GetSlotStackSize(bagId, slotIndex) or 1
     local itemLink = GetItemLink(bagId, slotIndex)
     local itemName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(bagId, slotIndex))
-    -- Single GetItemInfo call: icon plus the vendor sell price used to derive
-    -- a default listing price hint.
+    -- Single GetItemInfo call: icon plus the vendor sell price fallback.
     local icon, _, sellPrice = GetItemInfo(bagId, slotIndex)
-    local defaultPrice = (sellPrice or 0) * stackCount
+    -- Use the native suggested-price helper when available
+    -- (tradinghouse_shared.lua:72-77); fall back to vendor price * stack.
+    local defaultPrice = 100
+    if ZO_TradingHouse_CalculateItemSuggestedPostPrice then
+        defaultPrice = ZO_TradingHouse_CalculateItemSuggestedPostPrice(bagId, slotIndex)
+    elseif sellPrice then
+        defaultPrice = sellPrice * stackCount
+    end
     if defaultPrice <= 0 then
         defaultPrice = 100
     end
@@ -127,14 +173,19 @@ function Sell:BuildList(thInstance)
             local icon, stack, sellPrice, _, locked,
                 _, _, _, displayQuality = GetItemInfo(bagId, slotIndex)
 
-            -- Skip bound/locked/stolen items
+            -- Skip bound/locked/stolen/untradeable items
             local isBound = IsItemBound and IsItemBound(bagId, slotIndex) or false
             local isStolen = IsItemStolen and IsItemStolen(bagId, slotIndex) or false
+            local isBoPTradeable = IsItemBoPAndTradeable and IsItemBoPAndTradeable(bagId, slotIndex) or false
+            local itemLink = GetItemLink(bagId, slotIndex)
+            local sellInfo = itemLink and GetItemLinkSellInformation
+                and GetItemLinkSellInformation(itemLink)
+                or ITEM_SELL_INFORMATION_NONE
+            local cannotSell = sellInfo == ITEM_SELL_INFORMATION_CANNOT_SELL
 
-            if not isBound and not locked and not isStolen and icon ~= nil then
+            if not isBound and not locked and not isStolen and not isBoPTradeable and not cannotSell and icon ~= nil then
                 local itemName = GetItemName(bagId, slotIndex)
                 if itemName and itemName ~= "" then
-                    local itemLink = GetItemLink(bagId, slotIndex)
                     local quality  = displayQuality or ITEM_DISPLAY_QUALITY_NORMAL
 
                     -- Category

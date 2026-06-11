@@ -130,7 +130,9 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
         -- targetPage or 0 (tradinghouse_shared.lua) and only page flips
         -- carry a page forward.
         Browse.currentPage = 0
-        if TRADING_HOUSE_SEARCH and TRADING_HOUSE_SEARCH.ApplyFilters then
+        -- Guard: ApplyFilters iterates self.features, which is only populated
+        -- after AssociateWithSearchFeatures is called.
+        if TRADING_HOUSE_SEARCH and TRADING_HOUSE_SEARCH.features and TRADING_HOUSE_SEARCH.ApplyFilters then
             local IS_PERFORMING_SEARCH = true
             TRADING_HOUSE_SEARCH:ApplyFilters(IS_PERFORMING_SEARCH)
         end
@@ -208,7 +210,8 @@ function Browse:BuildList(thInstance)
               purchasePrice, currencyType, itemUniqueId, purchasePricePerUnit
               = GetTradingHouseSearchResultItemInfo(i)
 
-        if itemName and itemName ~= "" then
+        -- Purchased results return stackCount 0 and must not re-render as buyable.
+        if itemName and itemName ~= "" and (stackCount or 0) > 0 then
             local itemLink = GetTradingHouseSearchResultItemLink and GetTradingHouseSearchResultItemLink(i) or nil
             local quality = displayQuality or ITEM_DISPLAY_QUALITY_NORMAL
 

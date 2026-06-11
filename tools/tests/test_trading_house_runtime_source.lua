@@ -37,6 +37,7 @@ print("test_trading_house_runtime_source")
 local entrySource = read_file("Modules/TradingHouse/TradingHouse.lua")
 local runtimeSource = read_file("Modules/TradingHouse/Core/TradingHouseRuntime.lua")
 local flowSource = read_file("Modules/TradingHouse/Core/TradingHouseRuntimeFlow.lua")
+local browseSource = read_file("Modules/TradingHouse/Components/BrowseComponent.lua")
 local manifestSource = read_file("BetterUI.txt")
 
 assert_contains(runtimeSource, "function TH.RegisterSceneLifecycle(instance)",
@@ -51,6 +52,36 @@ assert_contains(runtimeSource, "function TH.BuildCoreKeybinds(thInstance)",
     "Trading House runtime helper owns core keybind construction")
 assert_contains(runtimeSource, "function TH.BuildTabKeybinds(thInstance)",
     "Trading House runtime helper owns tab keybind construction")
+assert_contains(flowSource, "function TH.TakeOverNativeTradingHouse()",
+    "Trading House flow helper owns native scene takeover")
+assert_contains(flowSource, "local function AssociateSearchFeatures()",
+    "Trading House flow helper owns search-feature association")
+assert_contains(flowSource, "local function DisassociateSearchFeatures()",
+    "Trading House flow helper owns search-feature disassociation")
+assert_contains(flowSource, "function TH.OnTradingHouseResponseTimeout()",
+    "Trading House flow helper owns response timeout handler")
+assert_contains(flowSource, "function TH.OnTradingHouseOperationTimeout()",
+    "Trading House flow helper owns operation timeout handler")
+assert_contains(flowSource, "function TH.OnSelectedTradingHouseGuildChanged()",
+    "Trading House flow helper owns selected-guild-changed handler")
+assert_contains(flowSource, "function TH.OnTradingHouseStatusReceived()",
+    "Trading House flow helper owns status-received handler")
+assert_contains(flowSource, "function TH.OnMoneyUpdate()",
+    "Trading House flow helper owns money-update handler")
+assert_contains(flowSource, "EVENT_TRADING_HOUSE_RESPONSE_TIMEOUT",
+    "Trading House registers response timeout event")
+assert_contains(flowSource, "EVENT_TRADING_HOUSE_OPERATION_TIME_OUT",
+    "Trading House registers operation timeout event")
+assert_contains(flowSource, "EVENT_TRADING_HOUSE_SELECTED_GUILD_CHANGED",
+    "Trading House registers selected-guild-changed event")
+assert_contains(flowSource, "EVENT_TRADING_HOUSE_STATUS_RECEIVED",
+    "Trading House registers status-received event")
+assert_contains(flowSource, "EVENT_MONEY_UPDATE",
+    "Trading House registers money-update event")
+assert_contains(browseSource, "TRADING_HOUSE_SEARCH.features",
+    "Trading House guards ApplyFilters with features table")
+assert_not_contains(flowSource, "UserAlertText(\"TH:SearchFailed\"",
+    "Trading House flow helper no longer duplicates ZOS search-failure alert")
 assert_contains(flowSource, "function TH.RegisterCreateListingDialog()",
     "Trading House flow helper owns dialog registration")
 assert_contains(flowSource, "function TH.RegisterEvents(eventManager)",

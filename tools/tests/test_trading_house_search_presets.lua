@@ -106,6 +106,7 @@ local function resetState()
     shownDialogs = {}
     TRADING_HOUSE_SEARCH.createCount = 0
     TRADING_HOUSE_SEARCH.loadedSearchTable = nil
+    TRADING_HOUSE_SEARCH.features = nil
     BETTERUI.TradingHouse.BrowseComponent.currentPage = 5
     BETTERUI.TradingHouse.BrowseComponent.executeSearchCount = 0
 end
@@ -138,9 +139,14 @@ resetState()
 local presets = Presets.GetAll()
 assert_eq(type(presets), "table", "GetAll initializes a table")
 assert_eq(#presets, 0, "GetAll starts empty")
-
 print("[SearchPresets.SaveCurrent]")
 assert_eq(Presets.SaveCurrent(""), false, "SaveCurrent rejects empty names")
+assert_eq(Presets.SaveCurrent("NoFeatures"), false, "SaveCurrent fails gracefully when search features are not associated")
+assert_eq(#alerts, 1, "SaveCurrent alerts when search features are unavailable")
+
+-- Associate features so the remaining save/load tests can run normally.
+TRADING_HOUSE_SEARCH.features = {}
+
 assert_true(Presets.SaveCurrent("My Preset"), "SaveCurrent stores valid preset")
 presets = Presets.GetAll()
 assert_eq(#presets, 1, "SaveCurrent inserts one preset")
@@ -160,6 +166,11 @@ settings.searchPresets = {
     { name = "A", searchTable = { query = "axe" }, description = "Axe" },
     { name = "B", searchTable = { query = "bow" }, description = "Bow" },
 }
+assert_eq(Presets.Load(2), false, "Load fails gracefully when search features are not associated")
+assert_eq(#alerts, 1, "Load alerts when search features are unavailable")
+
+TRADING_HOUSE_SEARCH.features = {}
+
 assert_true(Presets.Load(2), "Load succeeds for valid index")
 assert_eq(TRADING_HOUSE_SEARCH.loadedSearchTable.query, "bow", "Load passes selected search table")
 assert_eq(Presets.Delete(1), true, "Delete succeeds for valid index")
@@ -168,6 +179,7 @@ assert_eq(Presets.GetAll()[1].name, "B", "Delete removes selected entry")
 
 print("[SearchPresets.ShowSaveDialog]")
 resetState()
+TRADING_HOUSE_SEARCH.features = {}
 Presets.ShowSaveDialog()
 local saveDialog = registeredDialogs["BETTERUI_TH_SAVE_SEARCH_PRESET"]
 assert_not_nil(saveDialog, "Save dialog is registered")
@@ -179,9 +191,9 @@ assert_eq(shownDialogs[#shownDialogs].name, "BETTERUI_TH_SAVE_SEARCH_PRESET", "S
 saveDialog.buttons[1].callback({ data = { presetName = "Alpha" } })
 assert_eq(#alerts, 1, "Save dialog confirm shows success alert")
 assert_true(alerts[1].text:find("Alpha", 1, true) ~= nil, "Save alert includes preset name")
-
 print("[SearchPresets.ShowLoadDialog]")
 resetState()
+TRADING_HOUSE_SEARCH.features = {}
 Presets.ShowLoadDialog()
 local loadDialog = registeredDialogs["BETTERUI_TH_LOAD_SEARCH_PRESET"]
 assert_not_nil(loadDialog, "Load dialog is registered")

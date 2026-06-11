@@ -7,11 +7,35 @@ Purpose: Scene ownership, dialog registration, and runtime event flow for the
 local TH = BETTERUI.TradingHouse
 local MODE = TH.MODE
 local EVENT_NS = "BetterUI_TradingHouse"
-local TH_SYSTEM_NAME = rawget(_G, "ZO_TRADING_HOUSE_SYSTEM_NAME") or "tradingHouse"
-
 ---@alias TradingHouseSceneOwner {scene: table|nil}
 ---@alias TradingHouseCreateListingDialogData {stackCount: integer|nil, selectedStackCount: integer|nil, defaultPrice: integer|nil, selectedPrice: integer|nil}
 ---@alias TradingHouseResponsePayload {responseType: integer|nil, result: integer|nil}
+
+local function AssociateSearchFeatures()
+    local browse = rawget(_G, "GAMEPAD_TRADING_HOUSE_BROWSE")
+    local search = rawget(_G, "TRADING_HOUSE_SEARCH")
+    if browse and search and search.AssociateWithSearchFeatures then
+        local features = browse.GetFeatures and browse:GetFeatures()
+        if features then
+            search:AssociateWithSearchFeatures(features)
+        end
+    end
+end
+
+local function DisassociateSearchFeatures()
+    local search = rawget(_G, "TRADING_HOUSE_SEARCH")
+    if search and search.DisassociateWithSearchFeatures then
+        search:DisassociateWithSearchFeatures()
+    end
+end
+
+local function ComputeListingPriceBreakdown(price)
+    if not GetTradingHousePostPriceInfo then
+        return nil, nil, nil
+    end
+    local listingFee, tradingHouseCut, profit = GetTradingHousePostPriceInfo(price)
+    return listingFee or 0, tradingHouseCut or 0, profit or 0
+end
 
 local function SetTHSceneAlias(sceneObject)
     if not SCENE_MANAGER or not SCENE_MANAGER.scenes then
@@ -24,7 +48,9 @@ local function SetTHSystemGamepadRootScene(sceneObject)
     if not SYSTEMS or type(SYSTEMS.GetSystem) ~= "function" then
         return
     end
-    local system = SYSTEMS:GetSystem(TH_SYSTEM_NAME)
+    -- "tradingHouse" matches ZO_TRADING_HOUSE_SYSTEM_NAME (tradinghouse_shared.lua).
+    local systemName = ZO_TRADING_HOUSE_SYSTEM_NAME or "tradingHouse"
+    local system = SYSTEMS:GetSystem(systemName)
     if not system then
         return
     end
@@ -177,7 +203,7 @@ function TH.RegisterCreateListingDialog()
     -- The live template wires control.label/control.slider, but its
     -- $(parent)SliderValue label is populated by the owning screen; mirror
     -- that here so the chosen quantity/price stays visible while sliding.
-    local function UpdateSliderValueLabel(control, value, isCurrency)
+    local function UpdateSliderValueLabel(control, value, isCurrency, isPrice)
         local valueLabel = control.GetNamedChild and control:GetNamedChild("SliderValue") or nil
         if not valueLabel then
             return
@@ -189,6 +215,22 @@ function TH.RegisterCreateListingDialog()
             text = ZO_CommaDelimitNumber(value)
         else
             text = tostring(value)
+        end
+        -- For the price slider, append the listing fee, house cut, and
+        -- expected profit so the player sees the full invoice before posting.
+        if isPrice then
+            local listingFee, tradingHouseCut, profit = ComputeListingPriceBreakdown(value)
+            local feeText, cutText, profitText
+            if ZO_Currency_FormatGamepad then
+                feeText = ZO_Currency_FormatGamepad(CURT_MONEY, listingFee, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
+                cutText = ZO_Currency_FormatGamepad(CURT_MONEY, tradingHouseCut, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
+                profitText = ZO_Currency_FormatGamepad(CURT_MONEY, profit, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
+            else
+                feeText = tostring(listingFee)
+                cutText = tostring(tradingHouseCut)
+                profitText = tostring(profit)
+            end
+            text = text .. "  |cAAAAAA(Fee " .. feeText .. ", Cut " .. cutText .. ", Profit " .. profitText .. ")|r"
         end
         valueLabel:SetText(text)
     end
@@ -265,16 +307,22 @@ function TH.RegisterCreateListingDialog()
                         local maxPrice = 999999999
                         control.label:SetText(data.text)
                         control.slider:SetMinMax(1, maxPrice)
-                        -- Step at ~5% of the suggested price so the slider stays
-                        -- usable across the full 1..999,999,999 range.
-                        control.slider:SetValueStep(math.max(1, math.floor(defaultPrice / 20)))
+                        -- Use a fine step for low-value items so exact prices
+                        -- are reachable; keep a coarse step for very large
+                        -- values so the slider stays usable across the full
+                        -- 1..999,999,999 range.
+                        local step = 1
+                        if maxPrice > 10000 then
+                            step = math.max(1, math.floor(defaultPrice / 20))
+                        end
+                        control.slider:SetValueStep(step)
                         control.slider:SetValue(dialogData and dialogData.selectedPrice or defaultPrice)
-                        UpdateSliderValueLabel(control, dialogData and dialogData.selectedPrice or defaultPrice, true)
+                        UpdateSliderValueLabel(control, dialogData and dialogData.selectedPrice or defaultPrice, true, true)
                         control.slider:SetHandler("OnValueChanged", function(_, value)
                             if dialogData then
                                 dialogData.selectedPrice = value
                             end
-                            UpdateSliderValueLabel(control, value, true)
+                            UpdateSliderValueLabel(control, value, true, true)
                         end)
                         UpdateSliderActivation(control, dialogData, selected)
                     end,
@@ -375,6 +423,19 @@ function TH.OnOpenTradingHouse()
         return
     end
 
+    -- Mirror native guild default selection (tradinghouse_shared.lua:86-101):
+    -- if no trading house guild is selected, select the player's first guild.
+    if GetSelectedTradingHouseGuildId and SelectTradingHouseGuildId and GetGuildId then
+        local selectedGuild = GetSelectedTradingHouseGuildId()
+        if not selectedGuild then
+            SelectTradingHouseGuildId(GetGuildId(1))
+        end
+    end
+
+    -- Mirror native open flow (tradinghouse_gamepad.lua:499): associate the
+    -- search singleton with the gamepad browse features so filters/presets work.
+    AssociateSearchFeatures()
+
     TH.AliasSceneToBetterUI()
     TH.instance:SetMode(MODE.BROWSE)
     TH.instance:UpdateTabHeader()
@@ -395,6 +456,10 @@ function TH.OnCloseTradingHouse()
             SCENE_MANAGER:Hide(sceneName)
         end
     end
+
+    -- Mirror native close flow (tradinghouse_gamepad.lua:509): disassociate
+    -- search features and reset the search singleton's pending state.
+    DisassociateSearchFeatures()
 
     TH.AliasSceneToBetterUI()
 end
@@ -438,10 +503,9 @@ function TH.OnTradingHouseResponse(_, responseType, result)
             TH.OnSearchResultsReceived()
         end
         TH.ScheduleListRefresh()
-    elseif isSearchResponse then
-        BETTERUI.CIM.UserAlertText("TH:SearchFailed",
-            GetString("SI_TRADINGHOUSERESULT", responsePayload.result))
     end
+    -- Failed search responses are already alerted by ZOS (alerthandlers.lua
+    -- listens to EVENT_TRADING_HOUSE_RESPONSE_RECEIVED); avoid a duplicate.
 end
 
 function TH.OnGuildRosterChanged()
@@ -464,6 +528,72 @@ function TH.OnInventorySingleSlotUpdate()
     end
 end
 
+function TH.OnTradingHouseResponseTimeout()
+    -- EVENT_TRADING_HOUSE_RESPONSE_TIMEOUT: the server did not return a
+    -- response in time. Clear the pending flag so Search/paging can retry.
+    if TH.BrowseComponent then
+        TH.BrowseComponent.searchPending = false
+    end
+    if TH.instance and TH.instance:IsSceneShowing() then
+        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+    end
+end
+
+function TH.OnTradingHouseOperationTimeout()
+    -- EVENT_TRADING_HOUSE_OPERATION_TIME_OUT: a general operation timed out.
+    -- Treat it like a response timeout for browse pending state.
+    if TH.BrowseComponent then
+        TH.BrowseComponent.searchPending = false
+    end
+    if TH.instance and TH.instance:IsSceneShowing() then
+        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+    end
+end
+
+function TH.OnSelectedTradingHouseGuildChanged()
+    -- EVENT_TRADING_HOUSE_SELECTED_GUILD_CHANGED can fire from native guild
+    -- selection as well as from our CycleGuild; invalidate stale browse state
+    -- and refresh the header/list just like CycleGuild does.
+    if not TH.instance then
+        return
+    end
+    TH.ResetBrowseState()
+    if TH.BrowseComponent and TH.BrowseComponent.InvalidateResults then
+        TH.BrowseComponent:InvalidateResults()
+    end
+    if TH.instance:GetCurrentMode() == MODE.LISTINGS and RequestTradingHouseListings then
+        RequestTradingHouseListings()
+    end
+    TH.instance:UpdateTabHeader()
+    TH.instance:RefreshList()
+    if TH.instance.RefreshTHFooter then
+        TH.instance:RefreshTHFooter()
+    end
+end
+
+function TH.OnTradingHouseStatusReceived()
+    -- EVENT_TRADING_HOUSE_STATUS_RECEIVED: refresh listings when the listings
+    -- tab is active so counts stay current.
+    if not TH.instance or not TH.instance:IsSceneShowing() then
+        return
+    end
+    if TH.instance:GetCurrentMode() == MODE.LISTINGS and RequestTradingHouseListings then
+        RequestTradingHouseListings()
+    end
+end
+
+function TH.OnMoneyUpdate()
+    -- EVENT_MONEY_UPDATE: refresh the gold footer and schedule a list refresh
+    -- while the trading house scene is showing.
+    if not TH.instance or not TH.instance:IsSceneShowing() then
+        return
+    end
+    if TH.instance.RefreshTHFooter then
+        TH.instance:RefreshTHFooter()
+    end
+    TH.ScheduleListRefresh()
+end
+
 function TH.RegisterEvents(eventManager)
     if not eventManager then
         return
@@ -477,12 +607,22 @@ function TH.RegisterEvents(eventManager)
         EVENT_TRADING_HOUSE_SEARCH_COOLDOWN_UPDATE, TH.OnSearchCooldownUpdate)
     eventManager:RegisterForEvent(EVENT_NS .. "_Response",
         EVENT_TRADING_HOUSE_RESPONSE_RECEIVED, TH.OnTradingHouseResponse)
+    eventManager:RegisterForEvent(EVENT_NS .. "_ResponseTimeout",
+        EVENT_TRADING_HOUSE_RESPONSE_TIMEOUT, TH.OnTradingHouseResponseTimeout)
+    eventManager:RegisterForEvent(EVENT_NS .. "_OperationTimeout",
+        EVENT_TRADING_HOUSE_OPERATION_TIME_OUT, TH.OnTradingHouseOperationTimeout)
     eventManager:RegisterForEvent(EVENT_NS .. "_ListingOp",
         EVENT_TRADING_HOUSE_CONFIRM_ITEM_PURCHASE, TH.OnListingOperation)
     eventManager:RegisterForEvent(EVENT_NS .. "_GuildJoin",
         EVENT_GUILD_SELF_JOINED_GUILD, TH.OnGuildRosterChanged)
     eventManager:RegisterForEvent(EVENT_NS .. "_GuildLeave",
         EVENT_GUILD_SELF_LEFT_GUILD, TH.OnGuildRosterChanged)
+    eventManager:RegisterForEvent(EVENT_NS .. "_SelectedGuildChanged",
+        EVENT_TRADING_HOUSE_SELECTED_GUILD_CHANGED, TH.OnSelectedTradingHouseGuildChanged)
+    eventManager:RegisterForEvent(EVENT_NS .. "_StatusReceived",
+        EVENT_TRADING_HOUSE_STATUS_RECEIVED, TH.OnTradingHouseStatusReceived)
+    eventManager:RegisterForEvent(EVENT_NS .. "_MoneyUpdate",
+        EVENT_MONEY_UPDATE, TH.OnMoneyUpdate)
     eventManager:RegisterForEvent(EVENT_NS .. "_InvUpdate",
         EVENT_INVENTORY_SINGLE_SLOT_UPDATE, TH.OnInventorySingleSlotUpdate)
 end

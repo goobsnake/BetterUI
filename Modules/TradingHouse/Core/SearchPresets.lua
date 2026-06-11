@@ -45,6 +45,11 @@ end
 function Presets.SaveCurrent(name)
     if not name or name == "" then return false end
     if not TRADING_HOUSE_SEARCH then return false end
+    if not TRADING_HOUSE_SEARCH.features then
+        BETTERUI.CIM.UserAlertText("TH:PresetUnavailable",
+            GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_UNAVAILABLE")) or "Search features are not available")
+        return false
+    end
 
     local searchTable = TRADING_HOUSE_SEARCH:CreateSearchTable()
     if not searchTable then return false end
@@ -77,6 +82,11 @@ function Presets.Load(index)
     local preset = presets[index]
     if not preset or not preset.searchTable then return false end
     if not TRADING_HOUSE_SEARCH then return false end
+    if not TRADING_HOUSE_SEARCH.features then
+        BETTERUI.CIM.UserAlertText("TH:PresetUnavailable",
+            GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_UNAVAILABLE")) or "Search features are not available")
+        return false
+    end
 
     TRADING_HOUSE_SEARCH:LoadSearchTable(preset.searchTable)
     return true

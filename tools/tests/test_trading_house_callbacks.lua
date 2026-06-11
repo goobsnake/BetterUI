@@ -171,6 +171,10 @@ TH.BrowseComponent = {
     searchPending = false,
     searchResultsCount = 0,
     lastInstance = nil,
+    resultsInvalidated = false,
+    InvalidateResults = function(self)
+        self.resultsInvalidated = true
+    end,
 }
 
 function TH.BrowseComponent:OnSearchResultsReceived(instance)
@@ -193,6 +197,7 @@ function Class:New(windowName, sceneName)
         currentMode = TH.MODE.BROWSE,
         refreshListCount = 0,
         refreshFooterCount = 0,
+        updateTabHeaderCount = 0,
         list = {
             Clear = function()
             end,
@@ -232,6 +237,7 @@ function Class:New(windowName, sceneName)
     end
 
     function obj:UpdateTabHeader()
+        self.updateTabHeaderCount = self.updateTabHeaderCount + 1
     end
 
     function obj:GetActiveComponent()
@@ -289,6 +295,11 @@ EVENT_TRADING_HOUSE_CONFIRM_ITEM_PURCHASE = 6
 EVENT_GUILD_SELF_JOINED_GUILD = 7
 EVENT_GUILD_SELF_LEFT_GUILD = 8
 EVENT_INVENTORY_SINGLE_SLOT_UPDATE = 9
+EVENT_TRADING_HOUSE_RESPONSE_TIMEOUT = 10
+EVENT_TRADING_HOUSE_OPERATION_TIME_OUT = 11
+EVENT_TRADING_HOUSE_SELECTED_GUILD_CHANGED = 12
+EVENT_TRADING_HOUSE_STATUS_RECEIVED = 13
+EVENT_MONEY_UPDATE = 14
 
 TRADING_HOUSE_RESULT_SUCCESS = 1
 TRADING_HOUSE_RESULT_SEARCH_PENDING = 2
@@ -329,25 +340,83 @@ function SYSTEMS:GetSystem(systemName)
     return system
 end
 
+-- Mock native gamepad browse object and search singleton for feature association.
+local associatedFeatures = nil
+local disassociated = false
+GAMEPAD_TRADING_HOUSE_BROWSE = {
+    features = { nameSearchFeature = {} },
+    GetFeatures = function(self)
+        return self.features
+    end,
+}
+TRADING_HOUSE_SEARCH = {
+    features = nil,
+    AssociateWithSearchFeatures = function(self, features)
+        self.features = features
+        associatedFeatures = features
+    end,
+    DisassociateWithSearchFeatures = function(self)
+        self.features = nil
+        disassociated = true
+    end,
+}
+
+-- Guild selection mocks.
+local selectedGuildId = nil
+function GetInteractionType()
+    return INTERACTION_TRADINGHOUSE
+end
+function GetSelectedTradingHouseGuildId()
+    return selectedGuildId
+end
+function SelectTradingHouseGuildId(guildId)
+    selectedGuildId = guildId
+end
+function GetGuildId(index)
+    return 100 + index
+end
+function GetNumTradingHouseGuilds()
+    return 2
+end
+function GetTradingHouseGuildDetails(index)
+    return 100 + index, "Guild " .. tostring(index)
+end
+function GetGuildName(guildId)
+    return "Guild " .. tostring(guildId - 100)
+end
+function RequestTradingHouseListings()
+end
+function GetCurrencyAmount()
+    return 1000
+end
+
 dofile("Modules/TradingHouse/Core/TradingHouseRuntime.lua")
 dofile("Modules/TradingHouse/Core/TradingHouseRuntimeFlow.lua")
 dofile("Modules/TradingHouse/TradingHouse.lua")
 
 TH.Init()
-
 local cooldownCallback = getRegisteredCallback("BetterUI_TradingHouse_Cooldown")
 local responseCallback = getRegisteredCallback("BetterUI_TradingHouse_Response")
+local responseTimeoutCallback = getRegisteredCallback("BetterUI_TradingHouse_ResponseTimeout")
+local operationTimeoutCallback = getRegisteredCallback("BetterUI_TradingHouse_OperationTimeout")
 local listingCallback = getRegisteredCallback("BetterUI_TradingHouse_ListingOp")
+local selectedGuildChangedCallback = getRegisteredCallback("BetterUI_TradingHouse_SelectedGuildChanged")
+local statusReceivedCallback = getRegisteredCallback("BetterUI_TradingHouse_StatusReceived")
+local moneyUpdateCallback = getRegisteredCallback("BetterUI_TradingHouse_MoneyUpdate")
 local inventoryUpdateCallback = getRegisteredCallback("BetterUI_TradingHouse_InvUpdate")
 
 local scene = SCENE_MANAGER:GetScene(BETTERUI_TRADING_HOUSE_SCENE_NAME)
 scene.showing = true
 
 print("[TradingHouse callback flow]")
-
 assert_eq(type(cooldownCallback), "function", "cooldown callback is registered")
 assert_eq(type(responseCallback), "function", "response callback is registered")
+assert_eq(type(responseTimeoutCallback), "function", "response timeout callback is registered")
+assert_eq(type(operationTimeoutCallback), "function", "operation timeout callback is registered")
 assert_eq(type(listingCallback), "function", "listing callback is registered")
+assert_eq(type(selectedGuildChangedCallback), "function", "selected guild changed callback is registered")
+assert_eq(type(statusReceivedCallback), "function", "status received callback is registered")
+assert_eq(type(moneyUpdateCallback), "function", "money update callback is registered")
 assert_eq(type(inventoryUpdateCallback), "function", "inventory update callback is registered")
 
 local tabsCopy = TH.GetTabs()
@@ -431,6 +500,56 @@ assert_eq(#TH.Tasks.scheduled, scheduleCount,
     "hidden scene blocks callback-driven refresh scheduling")
 assert_eq(KEYBIND_STRIP.updateCount, 1,
     "hidden scene blocks cooldown keybind refresh")
+
+-- Open/close search-feature association contract.
+scene.showing = true
+TH.BrowseComponent.searchPending = false
+TH.OnOpenTradingHouse()
+assert_eq(associatedFeatures, GAMEPAD_TRADING_HOUSE_BROWSE.features,
+    "OnOpenTradingHouse associates TRADING_HOUSE_SEARCH with gamepad browse features")
+assert_eq(selectedGuildId, GetGuildId(1),
+    "OnOpenTradingHouse selects the first guild when none was selected")
+TH.OnCloseTradingHouse()
+assert_eq(disassociated, true,
+    "OnCloseTradingHouse disassociates search features")
+
+-- Timeout handlers clear pending search state.
+TH.BrowseComponent.searchPending = true
+responseTimeoutCallback()
+assert_eq(TH.BrowseComponent.searchPending, false,
+    "response timeout clears searchPending")
+TH.BrowseComponent.searchPending = true
+operationTimeoutCallback()
+assert_eq(TH.BrowseComponent.searchPending, false,
+    "operation timeout clears searchPending")
+
+-- Guild change invalidation refreshes header and list.
+scene.showing = true
+TH.BrowseComponent.resultsInvalidated = false
+TH.instance.updateTabHeaderCount = 0
+selectedGuildChangedCallback()
+assert_eq(TH.BrowseComponent.resultsInvalidated, true,
+    "selected-guild-changed invalidates browse results")
+assert_eq(TH.instance.updateTabHeaderCount, 1,
+    "selected-guild-changed updates tab header")
+
+-- Status received refreshes listings when in listings mode.
+TH.instance:SetMode(TH.MODE.LISTINGS)
+statusReceivedCallback()
+-- The mock RequestTradingHouseListings is a no-op; the test verifies no error.
+
+-- Money update refreshes footer and schedules list refresh while showing.
+TH.instance:SetMode(TH.MODE.BROWSE)
+local footerCount = TH.instance.refreshFooterCount
+scheduleCount = #TH.Tasks.scheduled
+moneyUpdateCallback()
+-- +2: the handler refreshes the footer directly, and this harness's
+-- Tasks:Schedule stub runs the scheduled list refresh synchronously,
+-- which refreshes the footer again.
+assert_eq(TH.instance.refreshFooterCount, footerCount + 2,
+    "money update refreshes footer while scene is showing")
+assert_eq(#TH.Tasks.scheduled, scheduleCount + 1,
+    "money update schedules list refresh while scene is showing")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
