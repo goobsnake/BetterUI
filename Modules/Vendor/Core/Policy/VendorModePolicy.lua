@@ -8,7 +8,7 @@ BETTERUI.Vendor = BETTERUI.Vendor or {}
 local Vendor = BETTERUI.Vendor
 Vendor.ModePolicy = Vendor.ModePolicy or {}
 local ModePolicy = Vendor.ModePolicy
-local DEFAULT_VENDOR_CATEGORY_ICON = "BetterUI/Modules/Vendor/Images/vendor.dds"
+local DEFAULT_VENDOR_CATEGORY_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
 
 local function BuildFallbackCategory()
     return {

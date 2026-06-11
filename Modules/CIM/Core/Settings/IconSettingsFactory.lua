@@ -132,8 +132,14 @@ local function EnsureModuleSettings(moduleName)
 end
 
 local function ResetIconCustomizationSettings(moduleName, refreshFn)
-    if not (BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup
-            and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, "iconCustomization")) then
+    -- Registry reset first; the manual fallback only runs when the registry
+    -- is absent or reports it did not handle the group (returns non-true).
+    local settingsApi = BETTERUI.CIM.Settings
+    local registryHandled = false
+    if settingsApi and type(settingsApi.ResetModuleSettingsByGroup) == "function" then
+        registryHandled = settingsApi.ResetModuleSettingsByGroup(moduleName, "iconCustomization") == true
+    end
+    if not registryHandled then
         local settings = EnsureModuleSettings(moduleName)
         if settings then
             for _, iconDef in ipairs(ICON_DEFINITIONS) do

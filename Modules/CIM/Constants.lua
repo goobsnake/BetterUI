@@ -254,8 +254,13 @@ BETTERUI.CIM.SearchBar.GetConstants = BETTERUI.CIM.GetSearchBarConstants
 
 -- CURRENCY FOOTER CONFIGURATION
 
--- Maximum currencies that can be displayed in the footer (UI space limit)
-BETTERUI_MAX_VISIBLE_CURRENCIES = 12
+-- Maximum currencies that can be displayed in the footer (UI space limit).
+-- ECO-001: raised from 12 to 13 so Archival Fortunes (default order 13) renders.
+-- PositionLabels (CIM/UI/CurrencyManager.lua) lays currencies out in 2 rows of
+-- dynamically measured, width-justified columns, so 13 currencies fit as
+-- 7 columns x 2 rows with no extra row and no footer growth; the fixed
+-- BETTERUI_CURRENCY_COLUMNS table below is not used by that layout path.
+BETTERUI_MAX_VISIBLE_CURRENCIES = 13
 
 -- Total available currencies in the system
 BETTERUI_TOTAL_CURRENCIES = 13

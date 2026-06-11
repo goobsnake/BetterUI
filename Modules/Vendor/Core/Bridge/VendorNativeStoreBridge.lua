@@ -258,11 +258,12 @@ local function ApplyRebuildPlan(snapshot, rebuildPlan)
         rebuildPlan.rebuiltModes,
         snapshot.searchContext
     )
+    -- Neutralize header callbacks even when the guarded call fails: a partial
+    -- SetActiveComponents may already have wired native header callbacks.
+    NeutralizeHeaderCallbacks(storeManager)
     if not okSetActive then
         return false
     end
-
-    NeutralizeHeaderCallbacks(storeManager)
     if storeManager._currentList and storeManager._currentList.Deactivate then
         if not storeManager._currentList.IsActive or storeManager._currentList:IsActive() then
             storeManager._currentList:Deactivate()
@@ -424,10 +425,13 @@ function NativeStoreBridge.EnsureComponents(searchContext)
     end
 
     local rebuildPlan = BuildRebuildPlan(snapshot)
-    if ApplyRebuildPlan(snapshot, rebuildPlan) then
-        SweepDirectionalInput(snapshot.storeManager, true)
-        LogNativeStoreInputState("NativeStoreBridge:postSweep", snapshot.storeManager)
-    end
+    -- Apply the plan, then always run the directional-input sweep (develop
+    -- behavior): skipping it after a failed guarded native call leaves the
+    -- native store manager registered on DIRECTIONAL_INPUT, causing joystick
+    -- double-scroll/lockup.
+    ApplyRebuildPlan(snapshot, rebuildPlan)
+    SweepDirectionalInput(snapshot.storeManager, true)
+    LogNativeStoreInputState("NativeStoreBridge:postSweep", snapshot.storeManager)
 end
 
 function NativeStoreBridge.ResolveTargetMode()

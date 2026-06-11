@@ -28,7 +28,8 @@ local function CanUnlockItem(bagId, slotIndex)
 end
 
 local function CanJunkItem(bagId, slotIndex)
-    return RequireProtectionPolicyMethod("CanJunkItem")(bagId, slotIndex) == true
+    -- Companion-screen junk is gated by the Companions module toggle, not the Inventory FCO setting.
+    return RequireProtectionPolicyMethod("CanJunkItem")(bagId, slotIndex, "Companions") == true
 end
 
 local function CanUnjunkItem(bagId, slotIndex)

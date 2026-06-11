@@ -51,10 +51,10 @@ assert_contains(runtimeSource, "function BETTERUI.Companions.Class:TryEquipItem(
     "Companions class runtime helper owns TryEquipItem")
 assert_contains(runtimeSource, "function Companions.BuildCoreKeybinds(instance)",
     "Companions runtime helper owns keybind construction")
-assert_contains(runtimeSource, "if not sortOk then",
-    "Companions runtime aborts initialization when header sort setup fails")
-assert_contains(runtimeSource, "return nil, sortErr",
-    "Companions runtime surfaces sort setup failures to the module root")
+assert_contains(runtimeSource, "instance.sortSetupDegraded = not sortOk",
+    "Companions runtime degrades sorting instead of aborting on sort setup failure")
+assert_not_contains(runtimeSource, "return nil, sortErr",
+    "Companions runtime no longer aborts initialization when header sort setup fails")
 
 assert_not_contains(moduleSource, "local function CreateCompanionScene(",
     "Companions Module.lua no longer defines scene creation directly")

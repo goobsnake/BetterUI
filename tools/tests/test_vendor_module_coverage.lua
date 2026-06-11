@@ -513,8 +513,8 @@ do
         "native-store rebuild guard failure does not escape EnsureComponents (error=%s)", tostring(ensureErr)))
     assertEqual(1, setActiveCalls, "native-store rebuild attempts SetActiveComponents once")
     assertEqual(0, initializeCalls, "native-store rebuild aborts initialization after guarded SetActiveComponents failure")
-    assertTrue(_G.DIRECTIONAL_INPUT:IsListening(storeManager),
-        "native-store rebuild guard failure skips directional-input sweep")
+    assertTrue(not _G.DIRECTIONAL_INPUT:IsListening(storeManager),
+        "native-store rebuild guard failure still runs the directional-input sweep")
 
     BETTERUI.CIM.SafeExecute = originalSafeExecute
     BETTERUI.CIM.UserNotify = originalUserNotify

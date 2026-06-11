@@ -164,6 +164,12 @@ end
 
 local IsStableInteractionActive
 
+-- Forward declarations: defined later in this file but referenced from
+-- RestoreVendorHeaderInteraction; without these they would resolve as
+-- global lookups (nil call) inside that function.
+local SetTabBarVisualActive
+local ReleaseDirectionalInputRegistrations
+
 local function BuildHeaderModeTabs(activeTabs, currentMode)
     local modeTabs = {}
     local isFenceInteraction = BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
@@ -559,7 +565,7 @@ end
 ---@param tabBar table|nil
 ---@param active boolean
 ---@return nil
-local function SetTabBarVisualActive(tabBar, active)
+function SetTabBarVisualActive(tabBar, active)
     if not tabBar or tabBar.active == active then
         return
     end
@@ -581,7 +587,7 @@ local function SetTabBarVisualActive(tabBar, active)
     end
 end
 
-local function ReleaseDirectionalInputRegistrations(obj, includeMovementController)
+function ReleaseDirectionalInputRegistrations(obj, includeMovementController)
     if BETTERUI.Vendor and BETTERUI.Vendor.ReleaseDirectionalInputRegistrations then
         return BETTERUI.Vendor.ReleaseDirectionalInputRegistrations(obj, includeMovementController)
     end
@@ -1363,11 +1369,24 @@ end
 
 BETTERUI.Vendor.Class.OnEnterHeader = BETTERUI.Vendor.Class.OnHeaderEntered
 
---- Handles text updates from search edit box callbacks.
----@param searchText string
+--- Handles text updates from search edit box callbacks. Callbacks may pass
+--- either the raw search string or the edit-box control itself, so normalize
+--- to a plain string (empty string for nil) before storing the query.
+---@param searchText string|table|nil
 ---@return nil
 function BETTERUI.Vendor.Class:OnSearchTextChanged(searchText)
-    self.searchQuery = searchText
+    local normalized = ""
+    if type(searchText) == "string" then
+        normalized = searchText
+    elseif searchText ~= nil then
+        if (type(searchText) == "table" or type(searchText) == "userdata")
+            and type(searchText.GetText) == "function" then
+            normalized = searchText:GetText() or ""
+        else
+            normalized = tostring(searchText)
+        end
+    end
+    self.searchQuery = normalized
     self:RefreshList()
 end
 

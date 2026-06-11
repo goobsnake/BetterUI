@@ -122,6 +122,9 @@ local function GetSettings()
     if settings and next(settings) then
         if type(settings.style) == "string" then
             settings.style = NormalizeStyleValue(settings.style)
+            -- GetModuleSettings returns a detached snapshot; write the
+            -- normalized enum to the live table so the migration persists.
+            BETTERUI.GetModuleSettingsLive("Nameplates").style = settings.style
         end
         return settings
     end

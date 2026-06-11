@@ -111,9 +111,9 @@ end
 ---@param alignment integer
 ---@return table|nil
 function BETTERUI.Banking.CreateItemActions(alignment)
-    local createItemActions = BETTERUI.CIM and BETTERUI.CIM.CreateItemActions or nil
-    if type(createItemActions) == "function" then
-        return createItemActions(alignment)
+    local slotActionsClass = BETTERUI.Inventory and BETTERUI.Inventory.SlotActions or nil
+    if slotActionsClass and slotActionsClass.New then
+        return slotActionsClass:New(alignment)
     end
 
     if ZO_ItemSlotActionsController and ZO_ItemSlotActionsController.New then
@@ -287,11 +287,15 @@ end
 ---@param sourceBag number
 ---@return number
 local function ResolveTransferTargetBag(sourceBag)
-    local runtimeState = BETTERUI.Banking.GetMutableRuntimeState()
     if sourceBag == BAG_GUILDBANK or IsHousingStorageBag(sourceBag) then
         return sourceBag
     end
-    return ResolveBankBag(runtimeState.currentUsedBank)
+    -- Resolve the banking bag at call time; runtime state can be stale between
+    -- bank-open and OnSceneShowing.
+    if GetBankingBag then
+        return ResolveBankBag(GetBankingBag())
+    end
+    return ResolveBankBag(BETTERUI.Banking.GetMutableRuntimeState().currentUsedBank)
 end
 
 ---@param targetBag number

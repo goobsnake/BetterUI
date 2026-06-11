@@ -1,8 +1,13 @@
 local LIST_WITHDRAW           = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
-local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 ---@alias BetterUIBankingKeybindGroup BetterUIKeybindDescriptorGroup
 ---@alias BetterUIBankingListSource table|fun(): table|nil
+
+--- Resolves the currency selector module at call time; CurrencySelector.lua loads after this file.
+---@return table|nil
+local function GetCurrencySelector()
+    return BETTERUI.Banking and BETTERUI.Banking.CurrencySelector
+end
 
 local function GetEntryBagAndSlot(entryData)
     local resolveListEntrySlot = BETTERUI.Banking and BETTERUI.Banking.ResolveListEntrySlot or nil
@@ -410,7 +415,9 @@ local function CreateCurrencySelectorKeybinds(self)
             end,
             callback = function()
                 local amount = self.selector:GetValue()
-                local currencyType = CurrencySelector.GetActiveCurrencyType and CurrencySelector.GetActiveCurrencyType(self)
+                local currencySelector = GetCurrencySelector()
+                local currencyType = currencySelector and currencySelector.GetActiveCurrencyType
+                    and currencySelector.GetActiveCurrencyType(self)
                 if currencyType == nil then
                     local list = self:GetList()
                     local selectedData = list and list:GetSelectedData() or nil
@@ -433,7 +440,9 @@ local function CreateCurrencySelectorKeybinds(self)
                         DepositCurrencyIntoBank(currencyType, amount)
                     end
                 end
-                CurrencySelector.HideSelector(self)
+                if currencySelector and currencySelector.HideSelector then
+                    currencySelector.HideSelector(self)
+                end
                 self:RefreshFooter()
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
             end,
@@ -465,7 +474,10 @@ local function CreateCurrencyRowKeybinds(self)
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
                 self:SaveListPosition()
-                CurrencySelector.DisplaySelector(self, self:GetList().selectedData.currencyType)
+                local currencySelector = GetCurrencySelector()
+                if currencySelector and currencySelector.DisplaySelector then
+                    currencySelector.DisplaySelector(self, self:GetList().selectedData.currencyType)
+                end
             end,
             visible = function()
                 return true
@@ -533,6 +545,10 @@ function BETTERUI.Banking.Class:UpdateActions()
         return
     end
 
+    if not self.itemActions then
+        return
+    end
+
     local targetData = self:GetList() and self:GetList().selectedData or nil
     if not targetData then
         self.itemActions:SetInventorySlot(nil)
@@ -591,7 +607,12 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         end
     ) -- "Back"
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.currencySelectorKeybinds, GAME_NAVIGATION_TYPE_BUTTON,
-        function() CurrencySelector.HideSelector(self) end)
+        function()
+            local currencySelector = GetCurrencySelector()
+            if currencySelector and currencySelector.HideSelector then
+                currencySelector.HideSelector(self)
+            end
+        end)
 
     local leftTrigger, rightTrigger = self:CreateListTriggerKeybindDescriptors(function() return self.list end)
     table.insert(self.coreKeybinds, leftTrigger)

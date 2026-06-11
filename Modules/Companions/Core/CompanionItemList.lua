@@ -211,8 +211,10 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
 
     for slotIndex = 0, bagSize - 1 do
         if self:DoesSlotMatchFilterType(BAG_COMPANION_WORN, slotIndex, filterType) then
-            local icon, stackCount, sellPrice, _, _equipType,
-                _, functionalQuality, displayQuality = GetItemInfo(BAG_COMPANION_WORN, slotIndex)
+            -- GetItemInfo returns: icon, stack, sellPrice, meetsUsageRequirement,
+            -- locked, equipType, itemStyleId, functionalQuality, displayQuality.
+            local icon, stackCount, sellPrice, _, _,
+                _equipType, _, functionalQuality, displayQuality = GetItemInfo(BAG_COMPANION_WORN, slotIndex)
 
             local name = GetItemName(BAG_COMPANION_WORN, slotIndex) or ""
             if name ~= "" then

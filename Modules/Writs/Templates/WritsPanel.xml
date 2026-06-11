@@ -1,6 +1,6 @@
 <GuiXml>
     <!--
-        File: Modules/WritUnit/Templates/WritsPanel.xml
+        File: Modules/Writs/Templates/WritsPanel.xml
         Purpose: Defines the floating panel for daily writ progress.
 
         STRUCTURE:

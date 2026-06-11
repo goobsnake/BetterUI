@@ -68,7 +68,12 @@ local function IsCompanionItem(bagId, slotIndex)
     return GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION
 end
 
-local function IsCompanionJunkEnabled()
+-- Companion-screen callers pass settingsModule = "Companions" (toggle defaults true).
+-- Every other context keeps the Inventory FCO companion-junk gate (defaults false).
+local function IsCompanionJunkEnabled(settingsModule)
+    if settingsModule == "Companions" then
+        return BETTERUI.GetSetting("Companions", "enableCompanionJunk", true) == true
+    end
     return BETTERUI.GetSetting("Inventory", "enableCompanionJunk", false) == true
 end
 
@@ -142,9 +147,10 @@ end
 
 ---@param bagId number
 ---@param slotIndex number
+---@param settingsModule string|nil Optional settings module for the companion-junk gate ("Companions" on the companion screen; nil defaults to "Inventory")
 ---@return boolean allowed
 ---@return string|nil reason
-function Policy.CanJunkItem(bagId, slotIndex)
+function Policy.CanJunkItem(bagId, slotIndex, settingsModule)
     if not bagId or not slotIndex then
         return false, Policy.DENY.NO_ITEM
     end
@@ -157,7 +163,7 @@ function Policy.CanJunkItem(bagId, slotIndex)
     if IsItemPlayerLocked(bagId, slotIndex) then
         return false, Policy.DENY.PLAYER_LOCKED
     end
-    if IsCompanionItem(bagId, slotIndex) and not IsCompanionJunkEnabled() then
+    if IsCompanionItem(bagId, slotIndex) and not IsCompanionJunkEnabled(settingsModule) then
         return false, Policy.DENY.COMPANION
     end
     return true

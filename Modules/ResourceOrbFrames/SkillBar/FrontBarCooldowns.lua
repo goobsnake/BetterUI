@@ -171,11 +171,11 @@ local function UpdateFrontBarCooldowns(rootFrame)
                             end
                             iconControl:SetDesaturation(cooldownDesaturation)
                         else
-                            iconControl:SetDesaturation(baseDesaturation)
+                            iconControl:SetDesaturation(1)
                         end
                     end
                 else
-                    if iconControl then iconControl:SetDesaturation(baseDesaturation) end
+                    if iconControl then iconControl:SetDesaturation(1) end
                     if cooldownEdge then cooldownEdge:SetHidden(true) end
                     if cooldownOverlay then cooldownOverlay:SetHidden(true) end
                     if cooldown then

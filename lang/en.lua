@@ -148,6 +148,7 @@ ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Sort")
 
 -- Multi-Select Mode
 ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT", "Multi-Select")
+ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT_CANCEL", "Cancel Selection") -- keybind label to exit multi-select mode
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Deselect")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Select (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Deselect All")
@@ -163,6 +164,7 @@ ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "Aborted (Interrupted)
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag Full: Processed <<1>> of <<2>> items.")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Banking")
 ZO_CreateStringId("SI_BETTERUI_SCENE_INVENTORY", "Inventory")
+ZO_CreateStringId("SI_BETTERUI_INV_TITLE", "Inventory") -- narration title for the gamepad inventory scene
 ZO_CreateStringId("SI_BETTERUI_ABORT_ACTION", "Abort Action")
 ZO_CreateStringId("SI_BETTERUI_BATCH_DURATION_SECONDS", "<<1>>sec")
 ZO_CreateStringId("SI_BETTERUI_BATCH_DURATION_MINUTES_SECONDS", "<<1>>min <<2>>sec")
@@ -632,6 +634,9 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Show Price on Crafting Tooltips")
 ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE_TOOLTIP", "Display market price data on crafting and improvement result tooltips when a price source (TTC, MM, or ATT) is available.")
 ZO_CreateStringId("SI_BETTERUI_CRAFTING_MARKET_LABEL", "Market")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Bind on Equip Protection")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
+    "Show a dialog before equipping Bind on Equip items")
 
 -- Banking Specific Strings
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "HOUSE BANK IS EMPTY!")
@@ -704,6 +709,7 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER", "Launder")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TITLE", "Enhanced Vendor")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_JUNK", "No junk items to sell.")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_REPAIR_ITEMS", "No items need repair.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "Repair All") -- tertiary keybind label in vendor repair mode
 ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_BUYBACK_ITEMS", "No items to buy back.")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CONDITION", "<<1>>%")
 ZO_CreateStringId("SI_BETTERUI_FENCE_SELLS_REMAINING", "Remaining: <<1>>/<<2>>")

@@ -1,6 +1,6 @@
 --[[
 File: tools/tests/test_writ_patterns.lua
-Purpose: Regression tests for the WritUnit constants, quest parsing, and module lifecycle.
+Purpose: Regression tests for the Writs constants, quest parsing, and module lifecycle.
 
 Usage:
   lua tools/tests/test_writ_patterns.lua

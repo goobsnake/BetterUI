@@ -1,6 +1,5 @@
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
-local CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 
 ---@return BetterUIBankingTransferContext
 local function ReadTransferContextSnapshot()

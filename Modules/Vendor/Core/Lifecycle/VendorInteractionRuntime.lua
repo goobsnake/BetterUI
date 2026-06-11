@@ -303,7 +303,28 @@ local function ApplyRuntimeState(runtime, state)
     end
 end
 
-local function OpenStoreInternal(state, deps)
+local function MakeStatePublisher(runtime)
+    if not runtime then
+        return function()
+        end
+    end
+    return function(state)
+        ApplyRuntimeState(runtime, state)
+    end
+end
+
+-- The native bridge and initial-mode resolver may flip the live session flag
+-- (Vendor._sessionHasBuyMode) while the open workflow runs. Sync it back into
+-- the state table so the final ApplyRuntimeState publish does not clobber the
+-- live value with the stale seed.
+local function SyncSessionBuyModeFromLiveState(state)
+    state.sessionHasBuyMode = Vendor._sessionHasBuyMode == true
+    return state
+end
+
+local function OpenStoreInternal(state, deps, publishState)
+    publishState = publishState or function()
+    end
     local resolved = ResolveDeps(deps)
     resolved.resetInteractionState()
 
@@ -314,6 +335,12 @@ local function OpenStoreInternal(state, deps)
     local allowNativeStableFallback = interactionType == nil
     state.isStableInteraction = interactionType == resolved.interactionStable
         or (allowNativeStableFallback and resolved.isNativeStableModeActive())
+    -- Publish the interaction flags BEFORE any native component work:
+    -- EnsureComponents and ResolveTargetMode read the live module state
+    -- (Vendor.IsStableInteraction / Vendor.GetActiveTabs) during the open
+    -- flow, so deferring the publish until after the workflow would feed
+    -- them stale flags (non-stable rebuild plan, wrong tab set).
+    publishState(state)
     resolved.logVendorDebug(
         "SCENE_TRANSITIONS",
         "VendorScene",
@@ -337,6 +364,7 @@ local function OpenStoreInternal(state, deps)
     resolved.ensureComponents("storeTextSearch")
     if not state.isStableInteraction and allowNativeStableFallback and resolved.isNativeStableModeActive() then
         state.isStableInteraction = true
+        publishState(state)
         resolved.ensureComponents("storeTextSearch")
     end
 
@@ -353,15 +381,20 @@ local function OpenStoreInternal(state, deps)
         resolved.scheduleOpenStoreSync(targetMode, 120)
     end
 
-    return state
+    return SyncSessionBuyModeFromLiveState(state)
 end
 
-local function OpenFenceInternal(state, deps, enableSell, enableLaunder)
+local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publishState)
+    publishState = publishState or function()
+    end
     local resolved = ResolveDeps(deps)
     resolved.resetInteractionState()
     state.isFenceInteraction = true
     state.fenceEnableSell = enableSell ~= false
     state.fenceEnableLaunder = enableLaunder ~= false
+    -- Publish fence flags BEFORE SetMode/ShowScene so Vendor.GetActiveTabs
+    -- builds FENCE_TABS during the open flow instead of stale VENDOR_TABS.
+    publishState(state)
     resolved.logVendorDebug(
         "SCENE_TRANSITIONS",
         "VendorScene",
@@ -388,7 +421,7 @@ local function OpenFenceInternal(state, deps, enableSell, enableLaunder)
     end
     resolved.showScene()
 
-    return state
+    return SyncSessionBuyModeFromLiveState(state)
 end
 
 local function CloseStoreInternal(state, deps)
@@ -456,7 +489,7 @@ end
 function InteractionRuntime.OpenStore(request)
     request = RequireRequestTable(request, "InteractionRuntime.OpenStore")
     local deps, runtime = ResolveRuntimeDepsFromRequest(request)
-    local state = OpenStoreInternal(BuildInteractionState(request.state), deps)
+    local state = OpenStoreInternal(BuildInteractionState(request.state), deps, MakeStatePublisher(runtime))
     if runtime then
         ApplyRuntimeState(runtime, state)
     end
@@ -472,7 +505,8 @@ function InteractionRuntime.OpenFence(request)
         BuildInteractionState(request.state),
         deps,
         request.enableSell,
-        request.enableLaunder
+        request.enableLaunder,
+        MakeStatePublisher(runtime)
     )
     if runtime then
         ApplyRuntimeState(runtime, state)

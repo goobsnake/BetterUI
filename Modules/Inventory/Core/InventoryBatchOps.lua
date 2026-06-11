@@ -298,8 +298,10 @@ function Class:BatchDeposit()
         items = items,
         step = function(bagId, slotIndex, itemData)
             if not HasItemAtSlot(bagId, slotIndex) then return BatchStepHandled() end
-            if not IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then return BatchStepHandled() end
-            local destinationBag = ResolveInventoryDepositTargetBag(targetBankBag, bagId, slotIndex)
+            -- Re-resolve per item so the deposit target cannot go stale mid-batch.
+            local currentBankBag = GetCurrentInventoryBankBag()
+            if not IsInventoryDepositSupported(bagId, slotIndex, currentBankBag) then return BatchStepHandled() end
+            local destinationBag = ResolveInventoryDepositTargetBag(currentBankBag, bagId, slotIndex)
             if not destinationBag then return BatchStepStopped("bagFull") end
             local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
             if not stackCount then return BatchStepHandled() end

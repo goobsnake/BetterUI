@@ -307,7 +307,7 @@ function GuildBank.RegisterGuildSelectorDialog()
                     if selected and selected.guildId then
                         GuildBank.ChangeGuildBank(selected.guildId)
                         -- Update title immediately
-	                        local window = GetBankingWindow()
+                        local window = GetBankingWindow()
                         if window then
                             window:SetTitle(GuildBank.GetHeaderTitle())
                         end

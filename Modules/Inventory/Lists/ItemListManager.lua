@@ -304,11 +304,7 @@ function BETTERUI.Inventory.Class:PrepareInventoryListEntry(itemData, filteredEq
         itemData.isEquippedInCurrentCategory = slotIndex and true or nil
     end
 
-    if isQuestItem then
-        ZO_InventorySlot_SetType(itemData, SLOT_TYPE_QUEST_ITEM)
-    else
-        ZO_InventorySlot_SetType(itemData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)
-    end
+    ZO_InventorySlot_SetType(itemData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)
 
     if itemData.itemType == ITEMTYPE_BOOK or itemData.itemType == ITEMTYPE_LOREBOOK then
         itemData.cached_isBook = true

@@ -212,13 +212,10 @@ function Companions.InitializeRuntime()
     if not sortOk and sortErr and BETTERUI.Debug then
         BETTERUI.Debug(sortErr)
     end
-    if not sortOk then
-        Companions.instance = nil
-        return nil, sortErr
-    end
-    instance.sortSetupReady = true
-    instance.sortSetupDegraded = false
-    instance.sortSetupError = nil
+    -- Sort-setup failure degrades sorting only; module initialization continues.
+    instance.sortSetupReady = sortOk == true
+    instance.sortSetupDegraded = not sortOk
+    instance.sortSetupError = not sortOk and sortErr or nil
     Companions.CreateScene(instance)
     Companions.RegisterSceneLifecycle(instance)
     instance:InitCompanionFooter()

@@ -45,6 +45,7 @@ if (-not $ManifestPath) {
 
 $excludeItems = @(
     '.agent_workspace',
+    '.worktrees',
     '.git',
     '.gitignore',
     '.idea',

@@ -57,8 +57,10 @@ end
 
 local function ResolveVisibleItems(instance)
     if instance then
+        -- Treat 0 (the constructor placeholder) and nil alike so the
+        -- fallback below stays reachable and ratios never divide by 0.
         local visibleItems = AsNumber(instance.visibleItems)
-        if visibleItems then
+        if visibleItems and visibleItems > 0 then
             return visibleItems
         end
     end

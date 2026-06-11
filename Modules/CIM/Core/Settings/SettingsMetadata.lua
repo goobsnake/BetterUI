@@ -465,14 +465,16 @@ function BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, fallbac
 end
 
 --- Resets module settings that belong to the requested reset group.
+---@return boolean handled True when the registry reset was applied; callers
+--- with their own fallback (e.g. IconSettingsFactory) only skip it on true.
 function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, resetGroup)
     if type(moduleName) ~= "string" or type(resetGroup) ~= "string" then
-        return
+        return false
     end
 
     local settings = BETTERUI.EnsureModuleSettings(moduleName)
     if not next(settings) then
-        return
+        return false
     end
 
     local function applyRegistryReset(registryTable)
@@ -493,4 +495,5 @@ function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, resetGroup
     -- Shared metadata first, then module metadata to allow module-specific overrides.
     applyRegistryReset(SETTINGS_METADATA_REGISTRY.Shared)
     applyRegistryReset(SETTINGS_METADATA_REGISTRY[moduleName])
+    return true
 end

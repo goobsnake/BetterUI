@@ -134,8 +134,12 @@ end
 ---@param default BetterUIModuleSettingValue|nil Fallback value if the setting is nil
 ---@return BetterUIModuleSettingValue|nil value The setting value, or default
 function BETTERUI.GetSetting(moduleName, key, default)
-    local settings = BETTERUI.GetModuleSettings(moduleName)
-    if settings[key] ~= nil then
+    -- Hot path: read the live table directly instead of GetModuleSettings,
+    -- which deep-clones the whole module table per call. Values (including
+    -- table-typed ones) are returned as-is, like a plain accessor.
+    local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
+    local settings = modules and modules[moduleName]
+    if settings and settings[key] ~= nil then
         return settings[key]
     end
     return ResolveSettingDefault(moduleName, key, default)

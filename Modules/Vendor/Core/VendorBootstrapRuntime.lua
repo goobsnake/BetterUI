@@ -69,7 +69,7 @@ function BootstrapRuntime.InitializeSearch(instance)
         if instance.OnSearchTextChanged then
             instance:OnSearchTextChanged(searchText)
         else
-            instance.searchQuery = searchText
+            instance.searchQuery = searchText ~= nil and tostring(searchText) or ""
             instance:RefreshList()
         end
         searchCallbackRevision = searchCallbackRevision + 1
