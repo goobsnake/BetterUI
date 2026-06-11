@@ -299,6 +299,44 @@ function Companions.CreateScene(instance)
 
     SCENE_MANAGER.scenes["companionEquipmentGamepad"] = scene
     COMPANION_EQUIPMENT_GAMEPAD_SCENE = scene
+    -- COMPANION_EQUIPMENT_GAMEPAD is replaced with the BetterUI screen object.
+    -- ZOS code or other addons may still call ZO_CompanionEquipment_Gamepad
+    -- methods the replacement does not shim; resolve those to a logged no-op
+    -- instead of crashing on a nil method call.
+    do
+        local classMeta = getmetatable(instance)
+        local classIndex = classMeta and classMeta.__index
+        -- Cache resolved no-op shims per method name so repeated lookups do not
+        -- allocate a new closure (or spam the log) on every missing-method access.
+        local noOpShims = {}
+        setmetatable(instance, {
+            __index = function(target, key)
+                local value
+                if type(classIndex) == "function" then
+                    value = classIndex(target, key)
+                elseif type(classIndex) == "table" then
+                    value = classIndex[key]
+                end
+                if value ~= nil then
+                    return value
+                end
+                local shim = noOpShims[key]
+                if shim ~= nil then
+                    return shim
+                end
+                local zosClass = rawget(_G, "ZO_CompanionEquipment_Gamepad")
+                if type(zosClass) == "table" and type(zosClass[key]) == "function" then
+                    BETTERUI.CIM.Debug.Log(string.format(
+                        "Companions: un-shimmed ZO_CompanionEquipment_Gamepad method '%s' resolved to a no-op",
+                        tostring(key)), "Companions")
+                    shim = function() end
+                    noOpShims[key] = shim
+                    return shim
+                end
+                return nil
+            end,
+        })
+    end
     COMPANION_EQUIPMENT_GAMEPAD = instance
     return scene
 end
@@ -404,6 +442,12 @@ local function IsMultiSelectAvailable()
 end
 
 local function GetMultiSelectKeybindName()
+    -- Shared CIM label builder; inline fallback only for test harnesses that
+    -- load this file without the CIM keybind module.
+    local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+    if keybinds and keybinds.GetMultiSelectLabel then
+        return keybinds.GetMultiSelectLabel()
+    end
     return GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT") or "SI_BETTERUI_MULTI_SELECT")
 end
 

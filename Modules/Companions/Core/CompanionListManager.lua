@@ -90,6 +90,12 @@ local function EnsureListDirectionalInputRegistration(list, listRegistrationCoun
     end
 
     if list.SetDirectionalInputEnabled then
+        -- List is inactive here. The method must NOT be called while inactive:
+        -- ZO_ParametricScrollList:SetDirectionalInputEnabled(true) registers with
+        -- DIRECTIONAL_INPUT immediately (regardless of active state), and the
+        -- Activate() below would register a second time — DirectionalInput keeps
+        -- duplicate entries and Deactivate removes only one. Write the flag
+        -- directly so Activate() performs the only registration.
         list.directionalInputEnabled = true
     end
     if list.Activate then
@@ -199,6 +205,13 @@ local function ForEachCompanionItem(callback)
     end
 end
 
+---@param bagId number
+---@param slotIndex number
+---@param filterType number|nil
+---@return boolean matches
+---@return table|nil slotData Slot data generated for the filter check, returned
+--- so callers in the same refresh pass can reuse it instead of regenerating it
+--- (never cache it across inventory updates).
 function BETTERUI.Companions.Class:DoesSlotMatchFilterType(bagId, slotIndex, filterType)
     if not filterType then
         return true
@@ -224,7 +237,7 @@ function BETTERUI.Companions.Class:DoesSlotMatchFilterType(bagId, slotIndex, fil
     if SHARED_INVENTORY and SHARED_INVENTORY.GenerateSingleSlotData and ZO_InventoryUtils_DoesNewItemMatchFilterType then
         local slotData = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
         if slotData then
-            return ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, filterType)
+            return ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, filterType), slotData
         end
     end
 
@@ -269,19 +282,72 @@ function BETTERUI.Companions.Class:RefreshCategoryTitle()
     end
 end
 
+--- Captures the per-slot data each category filter needs, so a slot is only
+--- queried once per refresh instead of once per category.
+local function BuildSlotFilterFacts(bagId, slotIndex)
+    local facts = {
+        bagId = bagId,
+        isJunk = (IsItemJunk and IsItemJunk(bagId, slotIndex)) == true,
+        isStolen = (IsItemStolen and IsItemStolen(bagId, slotIndex)) == true,
+        slotData = nil,
+        firstFilterType = nil,
+    }
+    if SHARED_INVENTORY and SHARED_INVENTORY.GenerateSingleSlotData and ZO_InventoryUtils_DoesNewItemMatchFilterType then
+        facts.slotData = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
+    end
+    if not facts.slotData and GetItemFilterTypeInfo then
+        facts.firstFilterType = GetItemFilterTypeInfo(bagId, slotIndex)
+    end
+    return facts
+end
+
+--- Cached-data twin of Class:DoesSlotMatchFilterType. Keep the filter
+--- semantics of both functions in sync.
+local function DoesCachedSlotMatchFilterType(facts, filterType)
+    if not filterType then
+        return true
+    end
+    if filterType == -1 then -- Equipped
+        return facts.bagId == BAG_COMPANION_WORN
+    end
+    if filterType == -2 then -- Junk
+        return facts.isJunk
+    end
+    if filterType == -3 then -- Stolen
+        return facts.isStolen
+    end
+    if facts.slotData then
+        return ZO_InventoryUtils_DoesNewItemMatchFilterType(facts.slotData, filterType)
+    end
+    if facts.firstFilterType ~= nil then
+        return facts.firstFilterType == filterType
+    end
+    return true
+end
+
 function BETTERUI.Companions.Class:RefreshCategories()
     local previousCategory = self:GetCurrentCategory()
     local previousKey = previousCategory and previousCategory.key
     local visibleCategories = {}
 
+    -- Single pass over the companion items: build per-slot facts once, then
+    -- count every category for that slot (was O(categories x slots) with a
+    -- GenerateSingleSlotData call per pair).
+    local countsByKey = {}
     for _, def in ipairs(CATEGORY_DEFINITIONS) do
-        local count = 0
-        ForEachCompanionItem(function(bagId, slotIndex)
-            if self:DoesSlotMatchFilterType(bagId, slotIndex, def.filterType) then
-                count = count + 1
+        countsByKey[def.key] = 0
+    end
+    ForEachCompanionItem(function(bagId, slotIndex)
+        local facts = BuildSlotFilterFacts(bagId, slotIndex)
+        for _, def in ipairs(CATEGORY_DEFINITIONS) do
+            if DoesCachedSlotMatchFilterType(facts, def.filterType) then
+                countsByKey[def.key] = countsByKey[def.key] + 1
             end
-        end)
+        end
+    end)
 
+    for _, def in ipairs(CATEGORY_DEFINITIONS) do
+        local count = countsByKey[def.key]
         if def.key == "all" or count > 0 then
             visibleCategories[#visibleCategories + 1] = {
                 key = def.key,
@@ -465,27 +531,11 @@ end
 function BETTERUI.Companions.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
 
-    self.textSearchHeaderControl:ClearAnchors()
-    local anchorTarget = self.headerGeneric or self.header
-    local titleContainer = nil
-    if anchorTarget and anchorTarget.GetNamedChild then
-        titleContainer = anchorTarget:GetNamedChild("TitleContainer") or anchorTarget:GetNamedChild("Header")
-    end
-
-    local parentForAnchor = titleContainer or anchorTarget
-    local searchConst = BETTERUI.CIM.SearchBar and BETTERUI.CIM.SearchBar.GetConstants and BETTERUI.CIM.SearchBar.GetConstants("BANKING")
-    local xOffset = searchConst and searchConst.X_OFFSET or 55
-    local yOffset = searchConst and searchConst.Y_OFFSET or 15
-    local rightInset = searchConst and searchConst.RIGHT_INSET or -8
-    if parentForAnchor then
-        self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
-    else
-        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, 8)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)
-    end
-
-    self.textSearchHeaderControl:SetHidden(false)
+    -- Shared anchoring lives in CIM SearchManager (loaded before this module).
+    BETTERUI.Interface.PositionSearchControl(self, {
+        preset = "BANKING",
+        fallbackY = 8,
+    })
 end
 
 function BETTERUI.Companions.Class:EnsureColumnHeadersVisible()

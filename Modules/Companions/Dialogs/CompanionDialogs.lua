@@ -20,6 +20,100 @@ local function CountEligibleActionTargets(actionId, items)
     return eligibleCount
 end
 
+--- Destroys the given slot descriptors via the quick path, staggered to avoid
+--- flooding the server with destroy requests.
+local function ExecuteBatchDestroy(destroyTargets)
+    local delay = 0
+    for _, target in ipairs(destroyTargets) do
+        zo_callLater(function()
+            Companions.QuickDestroyCompanionItem(target.bagId, target.slotIndex, target.slotType, target)
+        end, delay)
+        delay = delay + 80
+    end
+end
+
+local COMPANION_BATCH_DESTROY_DIALOG = "BETTERUI_COMPANION_BATCH_DESTROY_DIALOG"
+
+--- Registers the single batch-destroy confirmation dialog. Confirming destroys
+--- every selected item through the quick path instead of queueing one
+--- confirmation dialog per item.
+local function RegisterCompanionBatchDestroyDialog()
+    if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered(COMPANION_BATCH_DESTROY_DIALOG) then
+        return
+    end
+
+    ZO_Dialogs_RegisterCustomDialog(COMPANION_BATCH_DESTROY_DIALOG, {
+        canQueue = true,
+        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
+        title = {
+            text = function()
+                return GetString(rawget(_G, "SI_PROMPT_TITLE_DESTROY_ITEMS") or "SI_PROMPT_TITLE_DESTROY_ITEMS")
+            end,
+        },
+        mainText = {
+            text = function(dialog)
+                local count = dialog and dialog.data and dialog.data.itemCount or 0
+                local formatId = rawget(_G, "SI_BETTERUI_BATCH_DESTROY_CONFIRM_FORMAT")
+                if formatId then
+                    return zo_strformat(GetString(formatId), count)
+                end
+                return zo_strformat("Are you sure you want to destroy <<1>> selected items? This cannot be undone.",
+                    count)
+            end,
+        },
+        buttons = {
+            {
+                keybind = "DIALOG_NEGATIVE",
+                text = GetString(rawget(_G, "SI_DIALOG_CANCEL") or "SI_DIALOG_CANCEL"),
+            },
+            {
+                keybind = "DIALOG_PRIMARY",
+                text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION") or "SI_GAMEPAD_SELECT_OPTION"),
+                callback = function(dialog)
+                    local data = dialog and dialog.data
+                    if data and data.destroyTargets then
+                        ExecuteBatchDestroy(data.destroyTargets)
+                    end
+                end,
+            },
+        },
+    })
+end
+
+--- Batch destroy entry point: collects eligible targets and shows ONE
+--- confirmation, then destroys via the quick path. With quickDestroy enabled
+--- the confirmation is skipped entirely.
+function Companions.ShowBatchDestroyConfirmation(items)
+    local destroyTargets = {}
+    for _, itemData in ipairs(items or {}) do
+        local ds = itemData.dataSource or itemData
+        if ds.bagId and ds.slotIndex and Companions.CanExecuteAction("destroy", ds) then
+            destroyTargets[#destroyTargets + 1] = {
+                bagId = ds.bagId,
+                slotIndex = ds.slotIndex,
+                slotType = ds.slotType,
+                -- Captured so the staggered destroy can re-validate that the
+                -- slot still holds the confirmed item before destroying it.
+                uniqueId = GetItemUniqueId and GetItemUniqueId(ds.bagId, ds.slotIndex) or nil,
+                itemLink = GetItemLink and GetItemLink(ds.bagId, ds.slotIndex) or nil,
+            }
+        end
+    end
+    if #destroyTargets == 0 then
+        return
+    end
+
+    if Companions.GetSetting("quickDestroy") == true then
+        ExecuteBatchDestroy(destroyTargets)
+        return
+    end
+
+    ZO_Dialogs_ShowGamepadDialog(COMPANION_BATCH_DESTROY_DIALOG, {
+        itemCount = #destroyTargets,
+        destroyTargets = destroyTargets,
+    })
+end
+
 local function RegisterCompanionActionDialog()
     if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered("BETTERUI_COMPANION_ACTION_DIALOG") then
         return
@@ -153,6 +247,15 @@ local function RegisterCompanionBatchDialog()
                     end
 
                     local items = ms:GetSelectedItems()
+
+                    -- Destroy gets one batch-level confirmation; running
+                    -- ExecuteAction per item would queue N confirm dialogs
+                    -- when quickDestroy is disabled.
+                    if actionId == "destroy" then
+                        Companions.ShowBatchDestroyConfirmation(items)
+                        return
+                    end
+
                     local delay = 0
                     for i, itemData in ipairs(items) do
                         local ds = itemData.dataSource or itemData
@@ -174,4 +277,5 @@ end
 function Companions.RegisterDialogs()
     RegisterCompanionActionDialog()
     RegisterCompanionBatchDialog()
+    RegisterCompanionBatchDestroyDialog()
 end

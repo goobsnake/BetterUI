@@ -124,6 +124,11 @@ function BETTERUI.Companions.Class:ExitSearchMode()
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
+    -- Restore exactly the groups the search-mode cleanup removed.
+    if self._searchRemovedKeybindGroups then
+        BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
+        self._searchRemovedKeybindGroups = nil
+    end
     if self.coreKeybinds and KEYBIND_STRIP then
         KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
     end
@@ -182,14 +187,20 @@ function BETTERUI.Companions.Class:OnHeaderEntered()
 
     BETTERUI.Companions.Tasks:Schedule("searchKeybindCleanup", 20, function()
         if not self._searchModeActive or not KEYBIND_STRIP then return end
-        local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
-        if keybindGroups then
-            for i = #keybindGroups, 1, -1 do
-                local group = keybindGroups[i]
-                if group and group ~= self.textSearchKeybindStripDescriptor then
-                    KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
-                end
+        -- Remove only this module's own keybind groups, snapshotting what was
+        -- removed so ExitSearchMode restores exactly that.
+        local owned = {}
+        owned[#owned + 1] = self.coreKeybinds
+        local removed = BETTERUI.Interface.RemoveOwnedKeybindGroups(
+            owned, self.textSearchKeybindStripDescriptor)
+        if self._searchRemovedKeybindGroups then
+            -- Re-entry while search is still active: append instead of
+            -- overwriting so the first snapshot is restored on exit.
+            for _, group in ipairs(removed) do
+                self._searchRemovedKeybindGroups[#self._searchRemovedKeybindGroups + 1] = group
             end
+        else
+            self._searchRemovedKeybindGroups = removed
         end
         if self._searchModeActive and self.textSearchKeybindStripDescriptor then
             BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)

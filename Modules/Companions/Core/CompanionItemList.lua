@@ -108,16 +108,13 @@ local COMPANION_SORT_COMPARATORS = {
         return traitA < traitB
     end,
     stat = function(a, b)
-        local statA = (a.dataSource and a.dataSource.statValue) or ""
-        local statB = (b.dataSource and b.dataSource.statValue) or ""
-        local numA = tonumber(statA)
-        local numB = tonumber(statB)
-        if numA and numB then
-            if numA ~= numB then
-                return numA > numB
-            end
-        elseif statA ~= statB then
-            return statA < statB
+        -- statValue is "" when no stat applies and numeric when > 0; normalize
+        -- both sides so a number is never compared against a string (a mixed
+        -- comparison raises an error inside table.sort).
+        local statA = tonumber(a.dataSource and a.dataSource.statValue) or -math.huge
+        local statB = tonumber(b.dataSource and b.dataSource.statValue) or -math.huge
+        if statA ~= statB then
+            return statA > statB
         end
         return COMPANION_SORT_COMPARATORS.name(a, b)
     end,
@@ -210,7 +207,8 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
     end
 
     for slotIndex = 0, bagSize - 1 do
-        if self:DoesSlotMatchFilterType(BAG_COMPANION_WORN, slotIndex, filterType) then
+        local matchesFilter, filterSlotData = self:DoesSlotMatchFilterType(BAG_COMPANION_WORN, slotIndex, filterType)
+        if matchesFilter then
             -- GetItemInfo returns: icon, stack, sellPrice, meetsUsageRequirement,
             -- locked, equipType, itemStyleId, functionalQuality, displayQuality.
             local icon, stackCount, sellPrice, _, _,
@@ -223,8 +221,12 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
                     local quality = displayQuality or functionalQuality or ITEM_DISPLAY_QUALITY_NORMAL
                     local itemLink = GetItemLink(BAG_COMPANION_WORN, slotIndex)
                     local itemType = itemLink and GetItemLinkItemType(itemLink) or 0
-                    local slotData = SHARED_INVENTORY and SHARED_INVENTORY.GenerateSingleSlotData
-                        and SHARED_INVENTORY:GenerateSingleSlotData(BAG_COMPANION_WORN, slotIndex)
+                    -- Reuse the slot data the filter check generated for this
+                    -- slot; regenerate only when the filter path skipped it
+                    -- (never cached across inventory updates).
+                    local slotData = filterSlotData
+                        or (SHARED_INVENTORY and SHARED_INVENTORY.GenerateSingleSlotData
+                            and SHARED_INVENTORY:GenerateSingleSlotData(BAG_COMPANION_WORN, slotIndex))
 
                     local entryData = {
                         name = name,
@@ -291,7 +293,12 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
         local icon, stackCount, sellPrice = GetItemInfo(BAG_BACKPACK, slotIndex)
         local actorCategory = GetItemActorCategory and GetItemActorCategory(BAG_BACKPACK, slotIndex)
 
-        if actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION and self:DoesSlotMatchFilterType(BAG_BACKPACK, slotIndex, filterType) then
+        local matchesFilter, filterSlotData
+        if actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+            matchesFilter, filterSlotData = self:DoesSlotMatchFilterType(BAG_BACKPACK, slotIndex, filterType)
+        end
+
+        if matchesFilter then
             local name = GetItemName(BAG_BACKPACK, slotIndex) or ""
             if name ~= "" then
                 name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
@@ -299,8 +306,12 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
                     local quality = GetItemDisplayQuality(BAG_BACKPACK, slotIndex) or ITEM_DISPLAY_QUALITY_NORMAL
                     local itemLink = GetItemLink(BAG_BACKPACK, slotIndex)
                     local itemType = itemLink and GetItemLinkItemType(itemLink) or 0
-                    local slotData = SHARED_INVENTORY and SHARED_INVENTORY.GenerateSingleSlotData
-                        and SHARED_INVENTORY:GenerateSingleSlotData(BAG_BACKPACK, slotIndex)
+                    -- Reuse the slot data the filter check generated for this
+                    -- slot; regenerate only when the filter path skipped it
+                    -- (never cached across inventory updates).
+                    local slotData = filterSlotData
+                        or (SHARED_INVENTORY and SHARED_INVENTORY.GenerateSingleSlotData
+                            and SHARED_INVENTORY:GenerateSingleSlotData(BAG_BACKPACK, slotIndex))
                     local equipSlot = Companions.ResolveCompanionEquipSlot(BAG_BACKPACK, slotIndex)
 
                     local entryData = {

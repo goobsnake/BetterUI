@@ -44,6 +44,13 @@ local function RequireInventoryDestroyExecutor()
     return destroyExecutor
 end
 
+--- Alerts the user when a secure RequestMoveItem call is rejected by the client.
+---@param context string Logging context label
+local function NotifySecureMoveFailed(context)
+    local stringId = rawget(_G, "SI_BETTERUI_ITEM_MOVE_FAILED")
+    BETTERUI.CIM.UserNotify(context, stringId and GetString(stringId) or "Item move request failed")
+end
+
 local function SetCompanionItemLockState(bagId, slotIndex, locked)
     if SetItemIsPlayerLocked then
         SetItemIsPlayerLocked(bagId, slotIndex, locked)
@@ -108,7 +115,10 @@ local function DoEquipCompanionItem(bagId, slotIndex)
     local equipSlot = Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
     if not equipSlot then return false end
     if CallSecureProtected then
-        CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1)
+        if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1) then
+            NotifySecureMoveFailed("Companions:Equip")
+            return false
+        end
         return true
     end
     return false
@@ -134,13 +144,19 @@ end
 
 function Companions.TryUnequipCompanionItem(slotIndex)
     if slotIndex == nil then return false end
-    if not GetNumBagFreeSlots(BAG_BACKPACK) or GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
+    local freeSlots = GetNumBagFreeSlots(BAG_BACKPACK)
+    -- FindFirstEmptySlotInBag(bagId) -> nilable slotIndex; slot 0 may be occupied.
+    local destinationSlot = FindFirstEmptySlotInBag and FindFirstEmptySlotInBag(BAG_BACKPACK) or nil
+    if not freeSlots or freeSlots == 0 or destinationSlot == nil then
         BETTERUI.CIM.UserAlertText("Companions:BagFull",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY") or "SI_BETTERUI_VENDOR_CANNOT_CARRY"))
         return false
     end
     if CallSecureProtected then
-        CallSecureProtected("RequestMoveItem", BAG_COMPANION_WORN, slotIndex, BAG_BACKPACK, 0, 1)
+        if not CallSecureProtected("RequestMoveItem", BAG_COMPANION_WORN, slotIndex, BAG_BACKPACK, destinationSlot, 1) then
+            NotifySecureMoveFailed("Companions:Unequip")
+            return false
+        end
         return true
     end
     return false
@@ -155,7 +171,14 @@ end
 
 function Companions.ToggleCompanionItemLock(bagId, slotIndex)
     local locked = Companions.IsCompanionItemLocked(bagId, slotIndex)
-    local canToggle = locked and CanUnlockItem(bagId, slotIndex) or CanLockItem(bagId, slotIndex)
+    -- Explicit branch: `locked and CanUnlockItem(...) or CanLockItem(...)` falls
+    -- through to CanLockItem when CanUnlockItem returns false.
+    local canToggle
+    if locked then
+        canToggle = CanUnlockItem(bagId, slotIndex)
+    else
+        canToggle = CanLockItem(bagId, slotIndex)
+    end
     if not canToggle then
         return false
     end
@@ -175,7 +198,14 @@ function Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     end
 
     local junk = Companions.IsCompanionItemJunk(bagId, slotIndex)
-    local canToggle = junk and CanUnjunkItem(bagId, slotIndex) or CanJunkItem(bagId, slotIndex)
+    -- Explicit branch (see ToggleCompanionItemLock): avoid falling through to
+    -- CanJunkItem when CanUnjunkItem returns false.
+    local canToggle
+    if junk then
+        canToggle = CanUnjunkItem(bagId, slotIndex)
+    else
+        canToggle = CanJunkItem(bagId, slotIndex)
+    end
     if not canToggle then
         return false
     end
@@ -192,6 +222,40 @@ function Companions.ShowCompanionDestroyDialog(bagId, slotIndex, slotType)
     ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
         { bagId = bagId, slotIndex = slotIndex, itemLink = itemLink }, nil, true, true)
     return true
+end
+
+--- Returns true when the slot still holds the item captured in identity
+--- (uniqueId preferred, itemLink fallback). Batch destroys run staggered, so
+--- the slot may have been emptied or refilled with a different item since the
+--- confirmation was shown.
+---@param identity {uniqueId: id64|nil, itemLink: string|nil}|nil
+---@return boolean matches
+local function MatchesCapturedItemIdentity(bagId, slotIndex, identity)
+    if not identity then
+        return true
+    end
+    if identity.uniqueId ~= nil and GetItemUniqueId and AreId64sEqual then
+        local currentId = GetItemUniqueId(bagId, slotIndex)
+        return currentId ~= nil and AreId64sEqual(currentId, identity.uniqueId)
+    end
+    if identity.itemLink and identity.itemLink ~= "" then
+        return GetItemLink(bagId, slotIndex) == identity.itemLink
+    end
+    return true
+end
+
+--- Destroys without a per-item confirmation. Used by batch destroy after a
+--- single batch-level confirmation has already been shown.
+---@param expectedIdentity {uniqueId: id64|nil, itemLink: string|nil}|nil when provided, skip the destroy if the slot no longer matches
+---@return boolean destroyed
+function Companions.QuickDestroyCompanionItem(bagId, slotIndex, slotType, expectedIdentity)
+    if not MatchesCapturedItemIdentity(bagId, slotIndex, expectedIdentity) then
+        return false
+    end
+    if not CanDestroyItem(bagId, slotIndex, slotType) then
+        return false
+    end
+    return RequireInventoryDestroyExecutor()(bagId, slotIndex, true, false, slotType) == true
 end
 
 function Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
