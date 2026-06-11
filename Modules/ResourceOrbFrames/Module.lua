@@ -109,6 +109,9 @@ local function InitSettingsPanel(mId, moduleName)
         scale = CreateSettingContract("scale", 1),
         offsetX = CreateSettingContract("offsetX", 0),
         offsetY = CreateSettingContract("offsetY", 0),
+        enableIndependentOrbOffset = CreateSettingContract("enableIndependentOrbOffset", false),
+        orbOffsetX = CreateSettingContract("orbOffsetX", 0),
+        orbOffsetY = CreateSettingContract("orbOffsetY", 0),
     }
 
     local sharedContracts = {
@@ -221,6 +224,46 @@ local function InitSettingsPanel(mId, moduleName)
             setFunc = generalContracts.offsetX.set,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
             default = generalContracts.offsetX.default,
+        },
+        {
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET_TOOLTIP")),
+            getFunc = generalContracts.enableIndependentOrbOffset.get,
+            setFunc = generalContracts.enableIndependentOrbOffset.set,
+            disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+            default = generalContracts.enableIndependentOrbOffset.default,
+            width = "full",
+        },
+        {
+            type = "slider",
+            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y_TOOLTIP")),
+            min = -300,
+            max = 300,
+            step = 5,
+            getFunc = generalContracts.orbOffsetY.get,
+            setFunc = generalContracts.orbOffsetY.set,
+            disabled = function()
+                return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
+                    or not generalContracts.enableIndependentOrbOffset.get()
+            end,
+            default = generalContracts.orbOffsetY.default,
+        },
+        {
+            type = "slider",
+            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X_TOOLTIP")),
+            min = -300,
+            max = 300,
+            step = 5,
+            getFunc = generalContracts.orbOffsetX.get,
+            setFunc = generalContracts.orbOffsetX.set,
+            disabled = function()
+                return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
+                    or not generalContracts.enableIndependentOrbOffset.get()
+            end,
+            default = generalContracts.orbOffsetX.default,
         },
         {
             type = "button",

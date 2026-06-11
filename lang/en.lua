@@ -397,6 +397,12 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Reset General Settings")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Reset settings in this section to their default values.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET", "Move Orbs Independently")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET_TOOLTIP", "When enabled, the health and resource orbs can be positioned separately from the action bar.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y", "Orb Offset (Up/Down)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y_TOOLTIP", "Vertical offset for the orb pair relative to the default position.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X", "Orb Offset (Left/Right)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X_TOOLTIP", "Horizontal offset for the orb pair relative to the default position.")
 
 ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "Hide Left Ornament")
 ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP", "Hides the decorative ornament around the left (health) orb")

@@ -54,6 +54,9 @@ local function GetDefaults()
         hideRightOrnament = false,
         leftOrbSizeScale = 1.0,
         rightOrbSizeScale = 1.0,
+        enableIndependentOrbOffset = false,
+        orbOffsetX = 0,
+        orbOffsetY = 0,
         customFrontBar = {
             m_enabled = true,
             offsetX = 0,
@@ -113,6 +116,9 @@ local function NormalizeNumericSettings(m_options, defaults)
     m_options.backBarOpacity = ClampNumber(m_options.backBarOpacity, 0.3, 1.0, defaults.backBarOpacity or 1)
     m_options.leftOrbSizeScale = ClampNumber(m_options.leftOrbSizeScale, 1.0, 1.2, defaults.leftOrbSizeScale or 1.0)
     m_options.rightOrbSizeScale = ClampNumber(m_options.rightOrbSizeScale, 1.0, 1.2, defaults.rightOrbSizeScale or 1.0)
+
+    m_options.orbOffsetX = ClampInteger(m_options.orbOffsetX, -300, 300, defaults.orbOffsetX or 0)
+    m_options.orbOffsetY = ClampInteger(m_options.orbOffsetY, -300, 300, defaults.orbOffsetY or 0)
 
     -- Orb value text: enforce 12-26.
     m_options.healthTextSize = ClampInteger(m_options.healthTextSize, 12, 26, defaults.healthTextSize or 20)
