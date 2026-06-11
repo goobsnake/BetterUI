@@ -233,7 +233,7 @@ end
 ZO_GamepadMenuEntryTemplateParametricListFunction = function() end
 ZO_SharedGamepadEntry_OnSetup = function() end
 
-function MenuEntryTemplateEquality() end
+BETTERUI.CIM.MenuEntryTemplateEquality = function() end
 
 ZO_GamepadEntryData = {}
 
@@ -388,9 +388,9 @@ do
 
     list.GenerateSlotTable = function()
         return {
-            { slotIndex = 2, name = "Berries", iconFile = "berries.dds", bestGamepadItemCategoryName = "Consumables" },
-            { slotIndex = 1, name = "Apple", iconFile = "apple.dds", bestGamepadItemCategoryName = "Consumables" },
-            { slotIndex = 9, name = "Sword", iconFile = "sword.dds", bestGamepadItemCategoryName = "Weapons" },
+            { bagId = 5, slotIndex = 2, name = "Berries", iconFile = "berries.dds", bestGamepadItemCategoryName = "Consumables" },
+            { bagId = 5, slotIndex = 1, name = "Apple", iconFile = "apple.dds", bestGamepadItemCategoryName = "Consumables" },
+            { bagId = 5, slotIndex = 9, name = "Sword", iconFile = "sword.dds", bestGamepadItemCategoryName = "Weapons" },
         }
     end
 
@@ -401,7 +401,7 @@ do
         "RefreshList honors the Initialize sortFunction override")
     assert_equal("Consumables", list.list.entries[1].entry.header, "RefreshList attaches a header for the first category")
     assert_equal("Weapons", list.list.entries[3].entry.header, "RefreshList adds a new header when the category changes")
-    assert_same(list.list.entries[2].entry, list.dataBySlotIndex[2], "RefreshList indexes entries by slot index")
+    assert_same(list.list.entries[2].entry, list.dataBySlotIndex[5][2], "RefreshList indexes entries by bag and slot")
     assert_true(#scrollIndicatorUpdates > 0, "RefreshList updates the scroll indicator after rebuilding")
 end
 
@@ -426,7 +426,7 @@ do
         self.refreshCount = (self.refreshCount or 0) + 1
     end
 
-    list.dataBySlotIndex[7] = {}
+    list.dataBySlotIndex[5] = { [7] = {} }
     generatedSingleSlotData["5:7"] = {
         slotIndex = 7,
         name = "Potion",
@@ -440,14 +440,14 @@ do
     assert_equal(1, list.refreshCount, "FullInventoryUpdate only refreshes tracked bag ids")
 
     registeredCallbacks.SingleSlotInventoryUpdate(5, 7)
-    assert_equal("Consumables", list.dataBySlotIndex[7].dataSource.bestGamepadItemCategoryName,
+    assert_equal("Consumables", list.dataBySlotIndex[5][7].dataSource.bestGamepadItemCategoryName,
         "Single-slot refresh rebuilds category fields for tracked bags")
-    assert_equal("Inventory", list.dataBySlotIndex[7].dataSource.listModuleName,
+    assert_equal("Inventory", list.dataBySlotIndex[5][7].dataSource.listModuleName,
         "Single-slot refresh keeps the explicit list owner on rebuilt entries")
-    assert_equal(1, list.dataBySlotIndex[7].dataSource.requiredChampionPoints,
+    assert_equal(1, list.dataBySlotIndex[5][7].dataSource.requiredChampionPoints,
         "Tracked non-virtual bags still populate champion point data")
 
-    list.dataBySlotIndex[8] = {}
+    list.dataBySlotIndex[BAG_VIRTUAL] = { [8] = {} }
     generatedSingleSlotData["999:8"] = {
         slotIndex = 8,
         name = "Dust",
@@ -456,12 +456,12 @@ do
     }
 
     registeredCallbacks.SingleSlotInventoryUpdate(BAG_VIRTUAL, 8)
-    assert_equal(nil, list.dataBySlotIndex[8].dataSource.requiredChampionPoints,
+    assert_equal(nil, list.dataBySlotIndex[BAG_VIRTUAL][8].dataSource.requiredChampionPoints,
         "Virtual bag refreshes skip champion point decoration")
 
-    list.dataBySlotIndex[9] = { untouched = true }
+    list.dataBySlotIndex[42] = { [9] = { untouched = true } }
     registeredCallbacks.SingleSlotInventoryUpdate(42, 9)
-    assert_equal(true, list.dataBySlotIndex[9].untouched, "Single-slot refresh ignores unrelated bag ids")
+    assert_equal(true, list.dataBySlotIndex[42][9].untouched, "Single-slot refresh ignores unrelated bag ids")
 end
 
 print("\n-- SwitchActiveList restores craft bag category and item position state --")

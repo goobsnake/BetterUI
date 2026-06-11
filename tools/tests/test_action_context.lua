@@ -33,6 +33,7 @@ ITEMFILTERTYPE_QUEST = 1
 ITEMFILTERTYPE_WEAPONS = 2
 ITEMFILTERTYPE_ARMOR = 3
 ITEMFILTERTYPE_JEWELRY = 4
+ITEMFILTERTYPE_QUICKSLOT = 5
 
 SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN = "Assign to quickslot"
 SI_BETTERUI_INV_SWITCH_INFO = "Switch info"
@@ -52,11 +53,13 @@ function GetItemFilterTypeInfo(_bagId, _slotIndex)
 end
 
 function ZO_InventoryUtils_DoesNewItemMatchFilterType(target, filterType)
-    return filterType == ITEMFILTERTYPE_QUEST and target.isQuestItem == true
-end
-
-function IsQuickslottable(target)
-    return target.isQuickslottable == true
+    if filterType == ITEMFILTERTYPE_QUEST then
+        return target.isQuestItem == true
+    end
+    if filterType == ITEMFILTERTYPE_QUICKSLOT then
+        return target.isQuickslottable == true
+    end
+    return false
 end
 
 function GetString(value)
@@ -64,6 +67,9 @@ function GetString(value)
 end
 
 dofile("Modules/CIM/Keybinds/ActionContext.lua")
+
+assert_true(type(BETTERUI.CIM.IsQuickslottable) == "function",
+    "ActionContext exports the shared CIM IsQuickslottable helper")
 
 print("[ActionContext ownership registration]")
 

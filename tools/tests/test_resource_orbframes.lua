@@ -169,6 +169,12 @@ function BETTERUI.CIM.EventRegistry.Register(_, name, eventCode, callback)
     registeredEvents[name] = { eventCode = eventCode, callback = callback }
 end
 
+function BETTERUI.CIM.EventRegistry.Unregister(_, name, eventCode)
+    registeredEvents[name] = nil
+    -- Mirror the real registry: bookkeeping plus EVENT_MANAGER unregistration.
+    EVENT_MANAGER:UnregisterForEvent(name, eventCode)
+end
+
 function BETTERUI.CIM.EventRegistry.RegisterFiltered(_, name, eventCode, callback)
     filteredEvents[name] = { eventCode = eventCode, callback = callback }
 end

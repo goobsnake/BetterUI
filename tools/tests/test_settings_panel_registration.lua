@@ -121,6 +121,48 @@ assert_equal(nil, explicitFailureModule._panelRegistered,
     "lifecycle-safe helper does not mark module state as registered when seam returns false")
 assert_equal(3, #debugMessages, "explicit seam rejection emits a debug trace")
 
+local loggedModule = {
+    Settings = {
+        RegisterPanel = function(mId, moduleName)
+            BETTERUI.CIM.Settings.RegisterModulePanel(mId, { name = moduleName }, {})
+        end,
+    },
+}
+local loggedOk, loggedReason = BETTERUI.CIM.RegisterModulePanelWithLogging(loggedModule, "LoggedModule", "Logged", "Logged")
+assert_equal(true, loggedOk, "logging helper returns success from the underlying registration helper")
+assert_equal(nil, loggedReason, "logging helper reports no reason on success")
+assert_equal(nil, loggedModule._panelRegistrationReason, "logging helper tracks a nil reason on success")
+assert_equal(false, loggedModule._panelRegistrationDeferred, "logging helper marks successful registration as not deferred")
+assert_equal(3, #debugMessages, "successful logging helper registration emits no extra debug trace")
+
+local deferredModule = {}
+local deferredOk, deferredReason = BETTERUI.CIM.RegisterModulePanelWithLogging(deferredModule, "DeferredModule", "Deferred", "Deferred")
+assert_equal(false, deferredOk, "logging helper propagates missing seam failures")
+assert_equal("missing_register_panel", deferredReason, "logging helper surfaces the deferred registration reason")
+assert_equal("missing_register_panel", deferredModule._panelRegistrationReason,
+    "logging helper tracks the deferred registration reason on the module namespace")
+assert_equal(true, deferredModule._panelRegistrationDeferred, "logging helper marks missing seams as deferred")
+assert_equal(4, #debugMessages, "deferred seams emit only the underlying helper debug trace")
+
+local failingLoggedModule = {
+    Settings = {
+        RegisterPanel = function()
+            return false, "lam_unavailable"
+        end,
+    },
+}
+local failingLoggedOk, failingLoggedReason = BETTERUI.CIM.RegisterModulePanelWithLogging(failingLoggedModule,
+    "FailingLoggedModule", "FailingLogged", "Failing Logged")
+assert_equal(false, failingLoggedOk, "logging helper propagates explicit seam failures")
+assert_equal("lam_unavailable", failingLoggedReason, "logging helper preserves explicit seam failure reasons")
+assert_equal("lam_unavailable", failingLoggedModule._panelRegistrationReason,
+    "logging helper tracks explicit failure reasons on the module namespace")
+assert_equal(false, failingLoggedModule._panelRegistrationDeferred,
+    "logging helper does not mark explicit failures as deferred")
+assert_equal(6, #debugMessages, "explicit seam failures add the standardized registration report trace")
+assert_equal("[FailingLoggedModule] Settings panel registration reported: lam_unavailable",
+    debugMessages[#debugMessages], "logging helper standardizes the non-deferred failure report format")
+
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)

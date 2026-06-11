@@ -128,6 +128,16 @@ function BETTERUI.CIM.BatchActions.HasItemAtSlot(bagId, slotIndex)
     return (GetSlotStackSize(bagId, slotIndex) or 0) > 0
 end
 
+function BETTERUI.CIM.BatchActions.ResolveStackCount(itemData, bagId, slotIndex)
+    local rawData = itemData.dataSource or itemData
+    local requestedStack = rawData.stackCount or itemData.stackCount or 1
+    local liveStack = GetSlotStackSize(bagId, slotIndex) or 0
+    if liveStack <= 0 then
+        return nil
+    end
+    return zo_clamp(requestedStack, 1, liveStack)
+end
+
 function BETTERUI.CIM.BatchConfig.WithServer(options)
     return { server = options }
 end
@@ -202,6 +212,7 @@ function GetString(id)
         [SI_BETTERUI_EMPTY_LIST] = "Empty",
         [SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG] = "Retrieve",
         [SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG] = "Stow",
+        [SI_ITEM_ACTION_BANK_DEPOSIT] = "Deposit",
         [SI_DESTROY_ITEM_PROMPT_TITLE] = "Destroy Items",
         [SI_DIALOG_CANCEL] = "Cancel",
         [SI_GAMEPAD_SELECT_OPTION] = "Select",
@@ -253,6 +264,8 @@ function CallSecureProtected(name, ...)
         name = name,
         args = { ... },
     }
+    -- Production batch steps now check the result; the harness models success.
+    return true
 end
 
 function ZO_Dialogs_ShowGamepadDialog(name, data)
@@ -354,6 +367,7 @@ SI_BETTERUI_SEARCH_NO_RESULTS = "SI_BETTERUI_SEARCH_NO_RESULTS"
 SI_BETTERUI_EMPTY_LIST = "SI_BETTERUI_EMPTY_LIST"
 SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG = "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG"
 SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG = "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG"
+SI_ITEM_ACTION_BANK_DEPOSIT = "SI_ITEM_ACTION_BANK_DEPOSIT"
 SI_DESTROY_ITEM_PROMPT_TITLE = "SI_DESTROY_ITEM_PROMPT_TITLE"
 SI_DIALOG_CANCEL = "SI_DIALOG_CANCEL"
 SI_GAMEPAD_SELECT_OPTION = "SI_GAMEPAD_SELECT_OPTION"
@@ -568,7 +582,8 @@ BETTERUI.Inventory.ResolveDepositTargetBag = function()
 end
 setSlotStack(BAG_BACKPACK, 50, 4)
 depositInstance:BatchDeposit()
-assertEqual("Depositing", depositInstance.capturedBatch.actionName, "BatchDeposit preserves its production action label")
+assertEqual("Deposit", depositInstance.capturedBatch.actionName,
+    "BatchDeposit uses the localized engine deposit action label")
 assertBatchStatus("queued", depositInstance.capturedBatch.actionFn(BAG_BACKPACK, 50, depositInstance.capturedBatch.items[1]),
     "BatchDeposit queues a live RequestMoveItem call")
 assertEqual("RequestMoveItem", secureCalls[1].name, "BatchDeposit uses the production move request")

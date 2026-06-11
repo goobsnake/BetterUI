@@ -131,6 +131,12 @@ BETTERUI = {
             end
             return fn(...)
         end,
+        EventRegistry = {
+            Register = function(_, namespace, eventCode, callback)
+                EVENT_MANAGER:RegisterForEvent(namespace, eventCode, callback)
+                return true
+            end,
+        },
     },
     WindowManager = {
         CreateTopLevelWindow = function(_, name)

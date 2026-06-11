@@ -223,6 +223,15 @@ BETTERUI = {
             HasItemAtSlot = function(bagId, slotIndex)
                 return (slotStacks[bagId .. ":" .. slotIndex] or 0) > 0
             end,
+            ResolveStackCount = function(itemData, bagId, slotIndex)
+                local rawData = itemData.dataSource or itemData
+                local requestedStack = rawData.stackCount or itemData.stackCount or 1
+                local liveStack = slotStacks[bagId .. ":" .. slotIndex] or 0
+                if liveStack <= 0 then
+                    return nil
+                end
+                return zo_clamp(requestedStack, 1, liveStack)
+            end,
         },
         UserNotify = function(_, stringId)
             userNotifications[#userNotifications + 1] = stringId
@@ -311,8 +320,11 @@ end
 print("\n=== Internal transfer helper contract ===\n")
 
 local multiSelectActionsSource = readFile("Modules/Banking/Core/MultiSelectActions.lua")
-assertTrue(multiSelectActionsSource:match("local function ResolveStackCount") ~= nil,
-    "ResolveStackCount stays internal to MultiSelectActions")
+assertTrue(multiSelectActionsSource:match("local ResolveStackCount = BETTERUI%.CIM%.BatchActions%.ResolveStackCount") ~= nil,
+    "ResolveStackCount aliases the shared CIM BatchActions helper")
+local batchActionsSource = readFile("Modules/CIM/Core/Batching/BatchActions.lua")
+assertTrue(batchActionsSource:match("local function ResolveStackCount") ~= nil,
+    "ResolveStackCount canonical implementation lives in CIM BatchActions")
 assertTrue(multiSelectActionsSource:match("local function ResolveDepositTargetBag") ~= nil,
     "ResolveDepositTargetBag stays internal to MultiSelectActions")
 assertNil(BETTERUI.Banking.ResolveTransferStackCount,

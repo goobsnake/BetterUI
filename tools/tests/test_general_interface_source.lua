@@ -51,7 +51,7 @@ assert_contains(nameplatesSource, "Nameplates.Settings.RegisterPanel = InitPanel
     "Nameplates runtime owns panel registration through the root file")
 assert_contains(nameplatesSource, "function Nameplates.InitModule(m_options)",
     "Nameplates runtime owns module defaults/init behavior")
-assert_contains(nameplatesSource, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
+assert_contains(nameplatesSource, 'BETTERUI.CIM.RegisterModulePanelWithLogging(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates runtime registers its own settings panel")
 assert_contains(nameplateSettingsSource, "return BETTERUI.GetModuleSettings(\"Nameplates\")",
     "Nameplates settings keep the dedicated Nameplates module settings identity")

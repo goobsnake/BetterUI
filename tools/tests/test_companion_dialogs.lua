@@ -29,6 +29,7 @@ local dialogSetupCalls = 0
 local delayedCalls = {}
 local destroyCalls = {}
 local destroyDialogCalls = {}
+local shownGamepadDialogs = {}
 local lockCalls = {}
 local junkCalls = {}
 
@@ -146,6 +147,10 @@ BETTERUI = {
         ShowCompanionDestroyDialog = function(bagId, slotIndex)
             table.insert(destroyDialogCalls, { bagId = bagId, slotIndex = slotIndex })
         end,
+        QuickDestroyCompanionItem = function(bagId, slotIndex, slotType)
+            DestroyItem(bagId, slotIndex)
+            return true
+        end,
     },
 }
 
@@ -186,6 +191,10 @@ end
 function ZO_Dialogs_RegisterCustomDialog(name, info)
     registrations[name] = info
     registerCounts[name] = (registerCounts[name] or 0) + 1
+end
+
+function ZO_Dialogs_ShowGamepadDialog(name, data)
+    table.insert(shownGamepadDialogs, { name = name, data = data })
 end
 
 function SetItemPlayerLocked(bagId, slotIndex, locked)
@@ -284,12 +293,23 @@ batchRuntimeDialog.entryList.GetTargetData = function()
     return { actionId = "destroy" }
 end
 batchDialog.buttons[2].callback(batchRuntimeDialog)
-assert_eq(#destroyDialogCalls, 2, "batch destroy opens confirmation dialog when quickDestroy is false")
-assert_eq(#destroyCalls, 0, "batch destroy does not hard destroy when quickDestroy is false")
+assert_eq(#destroyDialogCalls, 0, "batch destroy does not queue per-item confirmation dialogs")
+assert_eq(#shownGamepadDialogs, 1, "batch destroy shows a single confirmation dialog when quickDestroy is false")
+assert_eq(shownGamepadDialogs[1].name, "BETTERUI_COMPANION_BATCH_DESTROY_DIALOG",
+    "batch destroy uses the batch confirmation dialog")
+assert_eq(shownGamepadDialogs[1].data.itemCount, 2, "batch confirmation reports the eligible item count")
+assert_eq(#destroyCalls, 0, "batch destroy does not hard destroy before confirmation")
 
+local batchDestroyDialog = registrations["BETTERUI_COMPANION_BATCH_DESTROY_DIALOG"]
+assert_true(batchDestroyDialog ~= nil, "registers companion batch destroy dialog")
+batchDestroyDialog.buttons[2].callback({ data = shownGamepadDialogs[1].data })
+assert_eq(#destroyCalls, 2, "confirming the batch destroy dialog quick-destroys each selected item")
+
+destroyCalls = {}
 BETTERUI.Companions.settings.quickDestroy = true
 batchDialog.buttons[2].callback(batchRuntimeDialog)
 assert_eq(#destroyCalls, 2, "batch destroy hard destroys when quickDestroy is true")
+assert_eq(#shownGamepadDialogs, 1, "quickDestroy batch destroy skips the confirmation dialog")
 assert_eq(delayedCalls[1], 0, "batch actions start with immediate delay")
 assert_eq(delayedCalls[2], 80, "batch actions stagger repeated operations")
 

@@ -511,12 +511,15 @@ assertTrue(BETTERUI.Banking.GuildBank.IsGuildBankMode(), "Guild banking scene sh
 
 resetGuildBankState()
 selectedGuildId = 12
-assertEqual(12, BETTERUI.Banking.GuildBank.GetSelectedGuildId(), "Guild selector ID wins when available")
-GUILD_BANK_SELECT = nil
+assertEqual(12, BETTERUI.Banking.GuildBank.GetSelectedGuildId(), "Canonical GetSelectedGuildBankId API wins when available")
+-- U50: GetSelectedGuildBankId() is the canonical API; remove it to exercise fallbacks.
+local savedGetSelectedGuildBankId = GetSelectedGuildBankId
+GetSelectedGuildBankId = nil
 selectorGuildId = 34
 assertEqual(34, BETTERUI.Banking.GuildBank.GetSelectedGuildId(), "Selector manager is fallback")
 ZO_GUILD_SELECTOR_MANAGER = nil
 assertEqual(0, BETTERUI.Banking.GuildBank.GetSelectedGuildId(), "No selector yields zero guild ID")
+GetSelectedGuildBankId = savedGetSelectedGuildBankId
 
 GUILD_BANK_SELECT = {
     GetSelectedGuildBankId = function()

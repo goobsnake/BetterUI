@@ -283,6 +283,133 @@ local legacyRequestAccepted, _ = pcall(function()
 end)
 assertEqual(false, legacyRequestAccepted, "Vendor batch runtime rejects legacy request.batchOptions contract shape")
 
+-- Batch BUY re-validates the captured entry index against the live store
+-- entry (stores re-index when rows sell out) and skips on mismatch.
+resetState()
+local storeEntries = { [4] = { name = "Original Item", link = "|H1:item:1|h|h" } }
+function GetStoreEntryInfo(entryIndex)
+    local entry = storeEntries[entryIndex]
+    if not entry then
+        return nil, nil
+    end
+    return "icon.dds", entry.name
+end
+function GetStoreItemLink(entryIndex)
+    local entry = storeEntries[entryIndex]
+    return entry and entry.link or nil
+end
+
+local matchedBuy = BatchRuntime.ExecuteBatchAction(MODE.BUY,
+    { entryIndex = 4, price = 50, currencyType = CURT_MONEY, name = "Original Item", itemLink = "|H1:item:1|h|h" })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, matchedBuy.status, "Batch BUY proceeds when the live entry still matches")
+assertEqual(1, #buyCalls, "Matching batch BUY performs BuyStoreItem call")
+
+resetState()
+storeEntries[4] = { name = "Different Item", link = "|H1:item:2|h|h" }
+local mismatchedLinkBuy = BatchRuntime.ExecuteBatchAction(MODE.BUY,
+    { entryIndex = 4, price = 50, currencyType = CURT_MONEY, name = "Original Item", itemLink = "|H1:item:1|h|h" })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.SKIPPED, mismatchedLinkBuy.status, "Batch BUY skips when the live item link no longer matches")
+assertEqual(0, #buyCalls, "Mismatched batch BUY does not call BuyStoreItem")
+
+resetState()
+storeEntries[4] = { name = "Different Item" }
+local mismatchedNameBuy = BatchRuntime.ExecuteBatchAction(MODE.BUY,
+    { entryIndex = 4, price = 50, currencyType = CURT_MONEY, name = "Original Item" })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.SKIPPED, mismatchedNameBuy.status, "Batch BUY skips when the live entry name no longer matches")
+assertEqual(0, #buyCalls, "Name-mismatched batch BUY does not call BuyStoreItem")
+
+resetState()
+storeEntries[4] = nil
+local vanishedBuy = BatchRuntime.ExecuteBatchAction(MODE.BUY,
+    { entryIndex = 4, price = 50, currencyType = CURT_MONEY, name = "Original Item" })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.SKIPPED, vanishedBuy.status, "Batch BUY skips when the entry no longer exists")
+
+GetStoreEntryInfo = nil
+GetStoreItemLink = nil
+
+-- ack.awaitInventoryAck: the runner waits for the next inventory update after
+-- each mutating step, with the pacing delay as the timeout fallback.
+resetState()
+BETTERUI.Vendor._batchProcessing = false
+BETTERUI.Vendor._batchAbortRequested = false
+
+local scheduledCallbacks = {}
+function zo_callLater(fn, _delayMs)
+    table.insert(scheduledCallbacks, fn)
+end
+local function runNextScheduled()
+    local fn = table.remove(scheduledCallbacks, 1)
+    if fn then fn() end
+end
+
+local inventoryAckCallbacks = {}
+SHARED_INVENTORY = {
+    RegisterCallback = function(_, callbackName, callback)
+        inventoryAckCallbacks[callbackName] = callback
+    end,
+    UnregisterCallback = function(_, callbackName, _callback)
+        inventoryAckCallbacks[callbackName] = nil
+    end,
+}
+BETTERUI.CIM.BatchOverlay = {
+    ShowStatus = function() end,
+    Hide = function() end,
+    IsAnyBatchActionDialogShowing = function() return false end,
+}
+BETTERUI.Vendor.instance.IsSceneShowing = function() return true end
+
+slotStacks["1:9"] = 8
+slotStacks["1:10"] = 4
+slotStacks["1:11"] = 5
+local batchCompleted = false
+BatchRuntime.ExecuteBatchThrottled({
+    mode = MODE.SELL,
+    items = {
+        { bagId = BAG_BACKPACK, slotIndex = 9 },
+        { bagId = BAG_BACKPACK, slotIndex = 10 },
+        { bagId = BAG_BACKPACK, slotIndex = 11 },
+    },
+    onComplete = function()
+        batchCompleted = true
+    end,
+})
+
+assertTrue(inventoryAckCallbacks["SingleSlotInventoryUpdate"] ~= nil,
+    "Runner registers the inventory ack callback when ack.awaitInventoryAck is enabled")
+
+runNextScheduled() -- StartAfterDialogDismiss settle -> first Step()
+assertEqual(1, #sellCalls, "First mutating step executes immediately")
+
+runNextScheduled() -- pacing delay elapsed -> waits for the inventory ack
+assertEqual(1, #sellCalls, "Second step is held until the inventory ack arrives")
+
+inventoryAckCallbacks["SingleSlotInventoryUpdate"](BAG_BACKPACK, 99)
+assertEqual(1, #sellCalls, "Unrelated single-slot ack does not release the wait")
+
+inventoryAckCallbacks["SingleSlotInventoryUpdate"](BAG_BACKPACK, 9)
+assertEqual(2, #sellCalls, "Matching single-slot ack releases the next step")
+
+runNextScheduled() -- stale ack-timeout fallback from step 1 must be a no-op
+assertEqual(2, #sellCalls, "Stale ack timeout does not double-step")
+
+runNextScheduled() -- pacing delay for step 2 -> waits for ack again
+assertEqual(2, #sellCalls, "Third step is held until an ack arrives")
+
+inventoryAckCallbacks["FullInventoryUpdate"]()
+assertEqual(3, #sellCalls, "FullInventoryUpdate releases the wait as a wildcard ack")
+
+runNextScheduled() -- stale ack-timeout fallback from step 2 must be a no-op
+assertEqual(3, #sellCalls, "Stale ack timeout does not double-step after a wildcard ack")
+
+runNextScheduled() -- pacing delay for step 3 -> waits for ack again
+assertEqual(false, batchCompleted, "Batch is still awaiting the final ack")
+
+runNextScheduled() -- ack timeout fallback releases the batch (no ack arrived)
+assertEqual(true, batchCompleted, "Ack timeout fallback completes the batch without an inventory event")
+assertTrue(inventoryAckCallbacks["SingleSlotInventoryUpdate"] == nil
+    and inventoryAckCallbacks["FullInventoryUpdate"] == nil,
+    "Runner unregisters inventory ack callbacks when the batch finishes")
+
 print("\n=== Test Summary ===")
 print("Passed: " .. testsPassed)
 print("Failed: " .. testsFailed)

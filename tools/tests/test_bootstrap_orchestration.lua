@@ -224,6 +224,10 @@ dofile("BetterUI.lua")
 BETTERUI.Debug = function(message)
     debugMessages[#debugMessages + 1] = tostring(message)
 end
+-- Error/recovery paths route through the ungated DebugError channel.
+BETTERUI.DebugError = function(message)
+    debugMessages[#debugMessages + 1] = tostring(message)
+end
 BETTERUI.EnsureModuleSettings = function(moduleName)
     BETTERUI.Settings = BETTERUI.Settings or {}
     BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
@@ -327,6 +331,9 @@ end
 BETTERUI.CIM.RegisterModuleAccessors = function() end
 BETTERUI.CIM.TryRegisterModulePanel = function()
     return true, nil
+end
+BETTERUI.CIM.RegisterModulePanelWithLogging = function(moduleNamespace, moduleName, moduleId, moduleLabel)
+    return BETTERUI.CIM.TryRegisterModulePanel(moduleNamespace, moduleName, moduleId, moduleLabel)
 end
 BETTERUI.CIM.Narration = BETTERUI.CIM.Narration or {}
 BETTERUI.CIM.Narration.RegisterBankingModeLabels = function() end
@@ -915,11 +922,23 @@ SCENE_MANAGER = {
     },
 }
 
-ZO_ChatWindowTemplate1Buffer = {
-    SetMaxHistoryLines = function(_, value)
-        lastChatHistoryLines = value
-    end,
+-- U50: chat buffers are reached through the chat systems' container/window objects.
+KEYBOARD_CHAT_SYSTEM = {
+    containers = {
+        {
+            windows = {
+                {
+                    buffer = {
+                        SetMaxHistoryLines = function(_, value)
+                            lastChatHistoryLines = value
+                        end,
+                    },
+                },
+            },
+        },
+    },
 }
+GAMEPAD_CHAT_SYSTEM = KEYBOARD_CHAT_SYSTEM
 
 eventManager.RegisterForEvent = function(self, name, eventCode, callback)
     self.handlers[name] = { eventCode = eventCode, callback = callback }
@@ -1026,8 +1045,10 @@ registeredSceneCallback(nil, SCENE_SHOWING)
 registeredSceneCallback(nil, SCENE_HIDDEN)
 assert_eq(sceneSuppressionStates[1], true, "Guild-store scene showing suppresses error spam")
 assert_eq(sceneSuppressionStates[2], false, "Guild-store scene hidden restores error spam")
-assert_eq(errorFrameStateChanges[1].action, "unregister", "Guild-store scene showing unregisters the native error frame")
-assert_eq(errorFrameStateChanges[2].action, "register", "Guild-store scene hidden re-registers the native error frame")
+-- The suppression flag is the only mechanism; BetterUI must never unregister
+-- the game's native EVENT_LUA_ERROR handler (doing so killed error display
+-- game-wide because re-registering without a callback is a no-op).
+assert_eq(#errorFrameStateChanges, 0, "Guild-store suppression never touches the native error frame handler")
 
 eventManager.handlers["BETTERUI_Tooltips_InvSingle"].callback(nil, 123)
 eventManager.handlers["BETTERUI_Tooltips_InvFull"].callback(nil, 456)

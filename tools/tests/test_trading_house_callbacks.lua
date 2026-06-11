@@ -283,7 +283,6 @@ CT_CONTROL = 1
 
 EVENT_OPEN_TRADING_HOUSE = 1
 EVENT_CLOSE_TRADING_HOUSE = 2
-EVENT_TRADING_HOUSE_SEARCH_RESULTS_RECEIVED = 3
 EVENT_TRADING_HOUSE_SEARCH_COOLDOWN_UPDATE = 4
 EVENT_TRADING_HOUSE_RESPONSE_RECEIVED = 5
 EVENT_TRADING_HOUSE_CONFIRM_ITEM_PURCHASE = 6
@@ -292,6 +291,7 @@ EVENT_GUILD_SELF_LEFT_GUILD = 8
 EVENT_INVENTORY_SINGLE_SLOT_UPDATE = 9
 
 TRADING_HOUSE_RESULT_SUCCESS = 1
+TRADING_HOUSE_RESULT_SEARCH_PENDING = 2
 INTERACTION_TRADINGHOUSE = 100
 ZO_TRADING_HOUSE_SYSTEM_NAME = "tradingHouse"
 
@@ -335,7 +335,6 @@ dofile("Modules/TradingHouse/TradingHouse.lua")
 
 TH.Init()
 
-local searchResultsCallback = getRegisteredCallback("BetterUI_TradingHouse_SearchResults")
 local cooldownCallback = getRegisteredCallback("BetterUI_TradingHouse_Cooldown")
 local responseCallback = getRegisteredCallback("BetterUI_TradingHouse_Response")
 local listingCallback = getRegisteredCallback("BetterUI_TradingHouse_ListingOp")
@@ -346,7 +345,6 @@ scene.showing = true
 
 print("[TradingHouse callback flow]")
 
-assert_eq(type(searchResultsCallback), "function", "search results callback is registered")
 assert_eq(type(cooldownCallback), "function", "cooldown callback is registered")
 assert_eq(type(responseCallback), "function", "response callback is registered")
 assert_eq(type(listingCallback), "function", "listing callback is registered")
@@ -373,11 +371,13 @@ TH.instance:CycleTabs(1)
 assert_eq(TH.instance:GetCurrentMode(), TH.MODE.SELL,
     "tab cycling still follows the canonical tab order after caller mutations")
 
-searchResultsCallback()
+-- U50: search results arrive through the response event with the
+-- TRADING_HOUSE_RESULT_SEARCH_PENDING response type.
+responseCallback(nil, TRADING_HOUSE_RESULT_SEARCH_PENDING, TRADING_HOUSE_RESULT_SUCCESS)
 assert_eq(TH.BrowseComponent.searchResultsCount, 1,
-    "search results callback delegates to BrowseComponent")
+    "search-pending response dispatches search results to BrowseComponent")
 assert_eq(TH.BrowseComponent.lastInstance, TH.instance,
-    "search results callback passes the Trading House instance")
+    "search results dispatch passes the Trading House instance")
 
 cooldownCallback()
 assert_eq(KEYBIND_STRIP.updateCount, 1,
@@ -389,9 +389,9 @@ assert_eq(#TH.Tasks.scheduled, scheduleCount + 1,
     "successful response schedules a list refresh")
 assert_eq(TH.Tasks.scheduled[#TH.Tasks.scheduled].key, "listRefresh",
     "successful response uses the listRefresh task key")
-assert_eq(TH.instance.refreshListCount, 1,
+assert_eq(TH.instance.refreshListCount, 2,
     "successful response refreshes the list")
-assert_eq(TH.instance.refreshFooterCount, 1,
+assert_eq(TH.instance.refreshFooterCount, 2,
     "successful response refreshes the footer")
 
 scheduleCount = #TH.Tasks.scheduled
@@ -403,9 +403,9 @@ scheduleCount = #TH.Tasks.scheduled
 listingCallback()
 assert_eq(#TH.Tasks.scheduled, scheduleCount + 1,
     "listing callback schedules a refresh when scene is showing")
-assert_eq(TH.instance.refreshListCount, 2,
+assert_eq(TH.instance.refreshListCount, 3,
     "listing callback refreshes the list")
-assert_eq(TH.instance.refreshFooterCount, 2,
+assert_eq(TH.instance.refreshFooterCount, 3,
     "listing callback refreshes the footer")
 
 TH.instance:SetMode(TH.MODE.SELL)
@@ -413,7 +413,7 @@ scheduleCount = #TH.Tasks.scheduled
 inventoryUpdateCallback()
 assert_eq(#TH.Tasks.scheduled, scheduleCount + 1,
     "inventory updates in sell mode schedule a listing refresh")
-assert_eq(TH.instance.refreshListCount, 3,
+assert_eq(TH.instance.refreshListCount, 4,
     "inventory updates in sell mode refresh the list")
 
 TH.instance:SetMode(TH.MODE.BROWSE)

@@ -121,8 +121,9 @@ end
 print("[BuildStateKey and ClearEffectDuration]")
 do
     local stateKey = CooldownUtils.BuildStateKey(3, 1)
-    assert_eq(stateKey, "3_1", "state key uses slot and hotbar category")
-    assert_eq(CooldownUtils.BuildStateKey(nil, nil), "-1_-1", "state key falls back for nil values")
+    -- Numeric composite key: (hotbarCategory * 1000) + slotIndex
+    assert_eq(stateKey, 1003, "state key uses slot and hotbar category")
+    assert_eq(CooldownUtils.BuildStateKey(nil, nil), -1001, "state key falls back for nil values")
 
     CooldownUtils.effectDurationCache[stateKey] = 5000
     CooldownUtils.ClearEffectDuration(stateKey)

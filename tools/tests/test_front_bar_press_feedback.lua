@@ -34,6 +34,26 @@ function BETTERUI.ResourceOrbFrames.Utils.FindControl(parent, name)
     return parent.children and parent.children[name] or nil
 end
 
+-- Canonical control helpers (mirrors Core/Utils.lua, consumed by FrontBarPressFeedback)
+function BETTERUI.ResourceOrbFrames.Utils.GetNamedChildDirect(parent, name)
+    if parent and parent.GetNamedChild then
+        return parent:GetNamedChild(name)
+    end
+    return nil
+end
+
+function BETTERUI.ResourceOrbFrames.Utils.GetFrontBarButtonControl(rootFrame, frontBarContainer, buttonName)
+    local U = BETTERUI.ResourceOrbFrames.Utils
+    if buttonName == "QuickslotButton" or buttonName == "CompanionButton" then
+        return U.GetNamedChildDirect(rootFrame, buttonName)
+            or U.GetNamedChildDirect(frontBarContainer, buttonName)
+            or U.FindControl(rootFrame, buttonName)
+            or U.FindControl(frontBarContainer, buttonName)
+    end
+    return U.GetNamedChildDirect(frontBarContainer, buttonName)
+        or U.FindControl(frontBarContainer, buttonName)
+end
+
 HOTBAR_CATEGORY_QUICKSLOT_WHEEL = 9
 HOTBAR_CATEGORY_COMPANION = 10
 ACTION_BAR_ULTIMATE_SLOT_INDEX = 7

@@ -8,6 +8,7 @@ Usage:
 ]]
 
 if false then
+    dofile("Modules/CIM/Core/Data/SortManager.lua")
     dofile("Modules/Banking/Core/BankingClass.lua")
 end
 
@@ -147,6 +148,9 @@ end
 
 print("\n=== Banking contract cleanup tests ===\n")
 
+-- Header-sort comparator construction now lives in the shared CIM SortManager;
+-- load it before the banking class that consumes it.
+dofile("Modules/CIM/Core/Data/SortManager.lua")
 dofile("Modules/Banking/Core/BankingClass.lua")
 local multiSelectActionsSource = readFile("Modules/Banking/Core/MultiSelectActions.lua")
 

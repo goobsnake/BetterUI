@@ -39,8 +39,8 @@ local function read_file(path)
 end
 
 local inventoryKeybindsSource = read_file("Modules/Inventory/Keybinds/InventoryKeybinds.lua")
-assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.IsQuickslottable = IsQuickslottable") ~= nil,
-    "InventoryKeybinds exposes IsQuickslottable")
+assert_true(inventoryKeybindsSource:find("InventoryKeybinds%.IsQuickslottable = BETTERUI%.CIM%.IsQuickslottable") ~= nil,
+    "InventoryKeybinds re-exports the shared CIM IsQuickslottable helper")
 assert_true(inventoryKeybindsSource:find("GetXButtonActionContext") == nil,
     "InventoryKeybinds no longer carries a deprecated local X-button context shim")
 assert_true(inventoryKeybindsSource:find("function BETTERUI%.Inventory%.Class:InitializeKeybindStrip%(%)") ~= nil,
@@ -55,10 +55,12 @@ assert_true(craftBagKeybindsSource:find("InventoryKeybinds%.GetXButtonActionCont
 local categoryListSource = read_file("Modules/Inventory/Lists/CategoryListManager.lua")
 assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:InitializeCategoryList%(%)") ~= nil,
     "CategoryListManager exposes InitializeCategoryList")
-assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:NewCategoryItem%(filterType, iconFile, FilterFunct, forceAdd%)") ~= nil,
+assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:NewCategoryItem%(filterType, iconFile, FilterFunct, forceAdd, precomputedStats%)") ~= nil,
     "CategoryListManager exposes NewCategoryItem")
-assert_true(categoryListSource:find("catDef%.isStatic%)") ~= nil,
+assert_true(categoryListSource:find("catDef%.isStatic, stats%)") ~= nil,
     "CategoryListManager forces static categories through the second emptiness gate")
+assert_true(categoryListSource:find("local function ComputeStandardCategoryStats%(self, categories%)") ~= nil,
+    "CategoryListManager buckets standard category stats in a single bag scan")
 assert_true(categoryListSource:find("function BETTERUI%.Inventory%.Class:RefreshCategoryList%(%)") ~= nil,
     "CategoryListManager exposes RefreshCategoryList")
 
@@ -69,14 +71,22 @@ assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:Refresh
     "CraftBagListManager exposes RefreshCraftBagList")
 assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:GetCraftBagCategoryItemCount%(filterType%)") ~= nil,
     "CraftBagListManager exposes GetCraftBagCategoryItemCount")
+assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:GetCraftBagCategoryItemCounts%(%)") ~= nil,
+    "CraftBagListManager exposes the single-pass GetCraftBagCategoryItemCounts")
 
 local craftListSource = read_file("Modules/Inventory/Lists/CraftList.lua")
 assert_true(craftListSource:find("BETTERUI%.Inventory%.CraftList = BETTERUI%.Inventory%.List:Subclass%(%)") ~= nil,
     "CraftList subclasses the shared inventory list class")
-assert_true(craftListSource:find("function GetFilterComparator%(filterType%)") ~= nil,
-    "CraftList exposes the craft bag filter comparator")
-assert_true(craftListSource:find("function BETTERUI%.Inventory%.CraftList:RefreshList%(filterType, searchQuery%)") ~= nil,
-    "CraftList exposes RefreshList")
+assert_true(craftListSource:find("function BETTERUI%.Inventory%.GetFilterComparator%(filterType%)") ~= nil,
+    "CraftList exposes the craft bag filter comparator under the Inventory namespace")
+assert_true(craftListSource:find("BETTERUI%.Inventory%.CraftListDefaultSortComparator = BETTERUI_CraftList_DefaultItemSortComparator") ~= nil,
+    "CraftList exports the default sort comparator under the Inventory namespace")
+assert_true(craftListSource:find("function BETTERUI%.Inventory%.CraftList:RefreshList%(%.%.%.%)") ~= nil,
+    "CraftList exposes RefreshList (varargs preserve filter/search on argless refreshes)")
+assert_true(craftListSource:find("self%.lastFilterType") ~= nil,
+    "CraftList remembers the last explicit filter for argless refreshes")
+assert_true(craftListSource:find("self%.isDirty = true") ~= nil,
+    "CraftList defers hidden refreshes via the base-class dirty contract")
 assert_true(craftListSource:find('Tasks:Cancel%("craftBatchProcess"%)') ~= nil,
     "CraftList cancels stale deferred craft-bag batches before rebuilding")
 assert_true(craftListSource:find("function BETTERUI%.Inventory%.CraftList:ProcessBatch%(%)") ~= nil,

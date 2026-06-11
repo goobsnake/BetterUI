@@ -51,8 +51,20 @@ function GetSlotStackSize(_bagId, _slotIndex)
     return stackSize, maxStackSize
 end
 
+local secureCallResults = {}
+local clearCursorCalls = 0
+
 function CallSecureProtected(action, ...)
     secureCalls[#secureCalls + 1] = { action = action, args = { ... } }
+    local result = secureCallResults[action]
+    if result == nil then
+        return true
+    end
+    return result
+end
+
+function ClearCursor()
+    clearCursorCalls = clearCursorCalls + 1
 end
 
 function HasCraftBagAccess()
@@ -172,6 +184,36 @@ do
     assert_equal(secureCalls[2].args[1], BAG_VIRTUAL, "stow targets the craft bag")
     assert_true(BETTERUI.CIM.CanItemMoveToCraftBag({ bagId = BAG_BACKPACK, slotIndex = 4 }),
         "CanItemMoveToCraftBag returns true when policy allows")
+end
+
+do
+    secureCalls = {}
+    clearCursorCalls = 0
+    canStow = true
+    denyReason = nil
+    secureCallResults = { PickupInventoryItem = false }
+
+    local moved, reason = BETTERUI.CIM.TryMoveToCraftBag({ bagId = BAG_BACKPACK, slotIndex = 4 }, BAG_VIRTUAL, 3)
+
+    assert_equal(moved, false, "failed secure pickup reports failure")
+    assert_equal(reason, "pickup_failed", "failed secure pickup returns the pickup reason")
+    assert_equal(clearCursorCalls, 0, "failed pickup does not clear the cursor")
+
+    secureCallResults = {}
+end
+
+do
+    secureCalls = {}
+    clearCursorCalls = 0
+    secureCallResults = { PlaceInInventory = false }
+
+    local moved, reason = BETTERUI.CIM.TryMoveToCraftBag({ bagId = BAG_BACKPACK, slotIndex = 4 }, BAG_VIRTUAL, 3)
+
+    assert_equal(moved, false, "failed secure placement reports failure")
+    assert_equal(reason, "place_failed", "failed secure placement returns the place reason")
+    assert_equal(clearCursorCalls, 1, "failed placement clears the held cursor item")
+
+    secureCallResults = {}
 end
 
 do

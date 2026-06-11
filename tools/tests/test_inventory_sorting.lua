@@ -5,6 +5,7 @@ Purpose: Unit tests for InventorySorting header-sort controller wiring and
 ]]
 
 if false then
+    dofile("Modules/CIM/Core/Data/SortManager.lua")
     dofile("Modules/Inventory/Core/InventorySorting.lua")
 end
 
@@ -116,10 +117,13 @@ function GetItemLink(bagId, slotIndex)
     return itemLinksBySlot[string.format("%s:%s", tostring(bagId), tostring(slotIndex))]
 end
 
-BETTERUI_CraftList_DefaultItemSortComparator = function()
+BETTERUI.Inventory.CraftListDefaultSortComparator = function()
     return false
 end
 
+-- Comparator construction now lives in the shared CIM SortManager; load it
+-- before the inventory wiring that consumes it.
+dofile("Modules/CIM/Core/Data/SortManager.lua")
 dofile("Modules/Inventory/Core/InventorySorting.lua")
 
 local tests_passed = 0
@@ -317,12 +321,12 @@ do
     marketPricesByLink["|H1:item:market|h"] = 900
 
     assert_true(comparator(left, right), "Descending value sort prefers higher market prices")
-    assert_equal(900, left.dataSource.cached_marketPrice, "Value comparator caches resolved market price")
+    assert_equal(900, left.dataSource.cached_marketUnitPrice, "Value comparator caches the resolved market UNIT price")
     assert_equal(1, instance.craftRefreshes, "Value sort refreshes the craft bag list")
 
     instance:OnHeaderSortChanged("craftBagList", "value", HeaderSortController.SORT_DIRECTION.NONE)
     assert_equal(nil, instance.currentSortComparators.craftBagList, "Resetting sort clears the craft bag comparator")
-    assert_equal(BETTERUI_CraftList_DefaultItemSortComparator, instance.craftBagList.sortFunction,
+    assert_equal(BETTERUI.Inventory.CraftListDefaultSortComparator, instance.craftBagList.sortFunction,
         "Resetting craft bag sort restores the default comparator")
     assert_equal(2, instance.craftRefreshes, "Resetting craft bag sort refreshes the list again")
 end

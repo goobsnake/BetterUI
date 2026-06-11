@@ -118,6 +118,21 @@ do
     assert_equal(2, result, "RestorePosition: finds by uniqueId")
 end
 
+-- RestorePosition uniqueId match at index 1 (stale saved index must not override)
+print("\n-- RestorePosition uniqueId at index 1 --")
+do
+    local mockList = { selectedIndex = 3, selectedData = { uniqueId = "first" } }
+    PM.SavePosition("TestModFirst", "f:1", mockList)
+
+    local dataList = {
+        { uniqueId = "first" },
+        { uniqueId = "second" },
+        { uniqueId = "third" },
+    }
+    local result = PM.RestorePosition("TestModFirst", "f:1", nil, dataList)
+    assert_equal(1, result, "RestorePosition: uniqueId match at index 1 beats stale saved index")
+end
+
 -- RestorePosition fallback to index
 print("\n-- RestorePosition index fallback --")
 do

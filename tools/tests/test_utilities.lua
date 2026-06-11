@@ -114,11 +114,13 @@ assert_equal(false, BETTERUI.GetModuleEnabled("Banking"), "Banking disabled via 
 assert_equal(false, BETTERUI.GetModuleEnabled("Legacy"), "Legacy enabled key is ignored")
 assert_equal(false, BETTERUI.GetModuleEnabled("Missing"), "Missing module defaults to disabled")
 
-print("\nTest: SetModuleEnabled applies session-only disable override")
-BETTERUI.SetModuleEnabled("Inventory", false)
+print("\nTest: SetModuleSessionDisabled applies session-only disable override")
+BETTERUI.SetModuleSessionDisabled("Inventory", true)
 assert_equal(false, BETTERUI.GetModuleEnabled("Inventory"), "Session disable hides enabled module")
-BETTERUI.SetModuleEnabled("Inventory", true)
+BETTERUI.SetModuleSessionDisabled("Inventory", false)
 assert_true(BETTERUI.GetModuleEnabled("Inventory"), "Session re-enable restores module")
+assert_nil(BETTERUI._sessionDisabledModules and BETTERUI._sessionDisabledModules["Inventory"],
+    "Session re-enable clears the override entry")
 
 -- ============================================================================
 -- TESTS: WrapValue

@@ -156,6 +156,16 @@ BETTERUI.CIM.BatchActions.HasItemAtSlot = function(bagId, slotIndex)
     return GetSlotStackSize(bagId, slotIndex) > 0
 end
 
+BETTERUI.CIM.BatchActions.ResolveStackCount = function(itemData, bagId, slotIndex)
+    local rawData = itemData.dataSource or itemData
+    local requestedStack = rawData.stackCount or itemData.stackCount or 1
+    local liveStack = GetSlotStackSize(bagId, slotIndex) or 0
+    if liveStack <= 0 then
+        return nil
+    end
+    return zo_clamp(requestedStack, 1, liveStack)
+end
+
 BETTERUI.CIM.BatchActions.BatchLock = function() end
 BETTERUI.CIM.BatchActions.BatchUnlock = function() end
 BETTERUI.CIM.BatchActions.BatchMarkAsJunk = function() end
@@ -206,6 +216,7 @@ SI_BETTERUI_BATCH_PARTIAL_SUCCESS = "Partial"
 SI_BETTERUI_SCENE_INVENTORY = "Inventory"
 SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG = "Retrieve"
 SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG = "Stow"
+SI_ITEM_ACTION_BANK_DEPOSIT = "Deposit"
 
 dofile("Modules/CIM/Core/Batching/BatchConfig.lua")
 dofile("Modules/CIM/Core/Batching/MultiSelectMixin.lua")
@@ -294,7 +305,7 @@ local function captureDepositBatchOptions()
         local items = request.items or {}
         assertEqual(1, #items, "BatchDeposit forwards the selected inventory item")
         assertTrue(type(request.step) == "function", "BatchDeposit provides the live action closure")
-        assertEqual("Depositing", request.actionName, "BatchDeposit preserves its shipped action label")
+        assertEqual("Deposit", request.actionName, "BatchDeposit uses the localized engine deposit action label")
         if request.onComplete then
             request.onComplete()
         end

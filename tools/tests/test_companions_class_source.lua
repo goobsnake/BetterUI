@@ -49,6 +49,12 @@ assert_true(source:find("function BETTERUI%.Companions%.Class:RequestHeaderFocus
     "CompanionsClass exposes RequestHeaderFocus")
 assert_true(source:find("function BETTERUI%.Companions%.Class:OnHeaderEntered%(%)") ~= nil,
     "CompanionsClass exposes OnHeaderEntered")
+assert_true(source:find("KEYBIND_STRIP%.keybindButtonGroups") == nil,
+    "CompanionsClass never reads the nonexistent keybindButtonGroups field")
+assert_true(source:find("BETTERUI%.Interface%.RemoveOwnedKeybindGroups%(") ~= nil,
+    "CompanionsClass search cleanup removes only companion-owned keybind groups")
+assert_true(source:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searchRemovedKeybindGroups%)") ~= nil,
+    "CompanionsClass ExitSearchMode restores exactly the groups the cleanup removed")
 assert_true(source:find("function BETTERUI%.Companions%.Class:RefreshCompanionFooter%(%)") ~= nil,
     "CompanionsClass exposes RefreshCompanionFooter")
 

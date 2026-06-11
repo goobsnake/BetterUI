@@ -189,6 +189,14 @@ assert_true(keybindHelpers:find("KEYBIND_STRIP:AddKeybindButtonGroup%(descriptor
     "KeybindHelpers adds missing keybind groups")
 assert_true(keybindHelpers:find("KEYBIND_STRIP:UpdateKeybindButtonGroup%(descriptor%)") ~= nil,
     "KeybindHelpers refreshes keybind groups after ensuring them")
+assert_true(keybindHelpers:find("KEYBIND_STRIP:HasKeybindButtonGroup%(descriptor%)") ~= nil,
+    "KeybindHelpers dedupes through the public HasKeybindButtonGroup API")
+assert_true(keybindHelpers:find("keybindButtonGroups") == nil,
+    "KeybindHelpers never reads the nonexistent keybindButtonGroups field")
+assert_true(keybindHelpers:find("function BETTERUI%.Interface%.RemoveOwnedKeybindGroups%(ownedGroups, keepDescriptor%)") ~= nil,
+    "KeybindHelpers exposes RemoveOwnedKeybindGroups")
+assert_true(keybindHelpers:find("function BETTERUI%.Interface%.RestoreKeybindGroups%(removedGroups%)") ~= nil,
+    "KeybindHelpers exposes RestoreKeybindGroups")
 
 local headerSortIntegration = read_file("Modules/CIM/UI/HeaderSortIntegration.lua")
 assert_true(headerSortIntegration:find("local function NormalizeControllerContract%(options%)") ~= nil,
@@ -229,7 +237,7 @@ assert_true(generalInterfaceSetup:find("GeneralInterface%.Settings%.RegisterPane
     "GeneralInterface setup binds panel construction to the settings seam")
 assert_true(
     generalInterfaceSetup:find(
-        'BETTERUI%.CIM%.TryRegisterModulePanel%(GeneralInterface, "GeneralInterface", "General", "General Interface"%)') ~=
+        'BETTERUI%.CIM%.RegisterModulePanelWithLogging%(GeneralInterface, "GeneralInterface", "General", "General Interface"%)') ~=
     nil,
     "GeneralInterface setup routes panel registration through the lifecycle-safe seam")
 
@@ -240,7 +248,7 @@ assert_true(resourceOrbFramesModule:find("ResourceOrbFrames%.Settings%.RegisterP
     "ResourceOrbFrames binds panel construction to the settings seam")
 assert_true(
     resourceOrbFramesModule:find(
-        'BETTERUI%.CIM%.TryRegisterModulePanel%(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",') ~= nil,
+        'BETTERUI%.CIM%.RegisterModulePanelWithLogging%(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",') ~= nil,
     "ResourceOrbFrames setup routes panel registration through the lifecycle-safe seam")
 
 BETTERUI = {
@@ -270,11 +278,17 @@ LibAddonMenu2 = {
 KEYBIND_STRIP = {
     added = {},
     removed = {},
+    groups = {},
     AddKeybindButtonGroup = function(self, descriptor)
         table.insert(self.added, descriptor)
+        self.groups[descriptor] = true
     end,
     RemoveKeybindButtonGroup = function(self, descriptor)
         table.insert(self.removed, descriptor)
+        self.groups[descriptor] = nil
+    end,
+    HasKeybindButtonGroup = function(self, descriptor)
+        return self.groups[descriptor] == true
     end,
     UpdateKeybindButtonGroup = function() end,
 }
@@ -334,6 +348,7 @@ BETTERUI.CIM.UI.HeaderSortController = {
     end,
 }
 
+dofile("Modules/CIM/Core/Presentation/KeybindHelpers.lua")
 dofile("Modules/CIM/UI/HeaderSortIntegration.lua")
 dofile("Modules/CIM/Core/Data/SearchManager.lua")
 dofile("Modules/CIM/Core/Settings/SettingsFactory.lua")

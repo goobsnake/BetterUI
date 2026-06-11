@@ -346,6 +346,14 @@ do
         "Vendor search manager avoids string-path header dispatch")
     assert_true(vendorSource:find("OnSearchTextChanged%(editBox%)") == nil,
         "Vendor search callback consumes the normalized string payload")
+    assert_true(vendorSource:find("KEYBIND_STRIP%.keybindButtonGroups") == nil,
+        "Vendor search cleanup never reads the nonexistent keybindButtonGroups field")
+    assert_true(vendorSource:find("BETTERUI%.Interface%.RemoveOwnedKeybindGroups%(") ~= nil,
+        "Vendor search cleanup removes only vendor-owned keybind groups")
+    assert_true(vendorSource:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searchRemovedKeybindGroups%)") ~= nil,
+        "Vendor ExitSearchMode restores exactly the groups the cleanup removed")
+    assert_true(bankingSource:find("KEYBIND_STRIP%.keybindButtonGroups") == nil,
+        "Banking search cleanup never reads the nonexistent keybindButtonGroups field")
     assert_true(vendorBootstrapSource:find("HandleVendorSearchChanged%(editOrText%)") == nil,
         "Vendor bootstrap search bridge consumes the normalized string payload")
 

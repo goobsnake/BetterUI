@@ -48,6 +48,16 @@ assert_true(genericWindow:find("function BETTERUI%.CIM%.GenericWindow:SwitchToCa
 assert_true(genericWindow:find("function BETTERUI%.CIM%.GenericWindow:EnsureHeaderKeybindsActive%(%)") ~= nil,
     "GenericWindow exposes EnsureHeaderKeybindsActive")
 
+local unifiedScreen = read_file("Modules/CIM/Core/Window/UnifiedScreen.lua")
+assert_true(unifiedScreen:find("function BETTERUI%.CIM%.UnifiedScreen:ClearActiveKeybinds%(%)") ~= nil,
+    "UnifiedScreen exposes ClearActiveKeybinds")
+assert_true(unifiedScreen:find("RemoveAllKeyButtonGroups") == nil,
+    "ClearActiveKeybinds never wipes the shared keybind strip")
+assert_true(unifiedScreen:find("KEYBIND_STRIP:HasKeybindButtonGroup%(self%.activeKeybindDescriptor%)") ~= nil,
+    "ClearActiveKeybinds checks the screen-owned active descriptor via the public API")
+assert_true(unifiedScreen:find("KEYBIND_STRIP:HasKeybindButtonGroup%(self%.searchKeybindDescriptor%)") ~= nil,
+    "ClearActiveKeybinds checks the screen-owned search descriptor via the public API")
+
 local tooltipLayout = read_file("Modules/CIM/Core/Window/TooltipLayout.lua")
 assert_true(tooltipLayout:find("function BETTERUI%.CIM%.SetTooltipWidth%(width%)") ~= nil,
     "TooltipLayout exposes SetTooltipWidth")

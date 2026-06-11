@@ -178,6 +178,8 @@ end
 
 function CallSecureProtected(name, ...)
     table.insert(secureMoves, { name = name, args = { ... } })
+    -- The real API returns true when the secure call is accepted.
+    return true
 end
 
 function IsHouseBankBag(bagId)

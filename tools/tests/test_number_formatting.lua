@@ -65,6 +65,9 @@ assert_equal("1.50K", BETTERUI.FormatNumber(1500, { case = "upper", style = "fix
 assert_equal("1.50k", BETTERUI.FormatNumber(1500, { case = "lower", style = "smart" }), "FormatNumber: smart lowercase K suffix")
 assert_equal("15.0K", BETTERUI.FormatNumber(15000, { case = "upper", style = "smart" }), "FormatNumber: smart decimals shrink at larger values")
 assert_equal("1.23M", BETTERUI.FormatNumber(1234567, { case = "upper", style = "fixed", decimals = 2 }), "FormatNumber: fixed uppercase M suffix")
+assert_equal("2K", BETTERUI.FormatNumber(2000, { case = "upper", style = "fixed", decimals = 2 }), "FormatNumber: fixed exact K value drops decimals")
+assert_equal("2M", BETTERUI.FormatNumber(2000000, { case = "upper", style = "fixed", decimals = 2 }), "FormatNumber: fixed exact M value drops decimals")
+assert_equal("2B", BETTERUI.FormatNumber(2000000000, { case = "upper", style = "fixed", decimals = 2 }), "FormatNumber: fixed exact B value drops decimals")
 assert_equal("-1.50k", BETTERUI.FormatNumber(-1500, { case = "lower", style = "fixed", decimals = 2 }), "FormatNumber: preserves negative sign")
 
 -- ============================================================================
@@ -75,8 +78,10 @@ print("\n=== Legacy Wrapper Tests ===\n")
 
 assert_equal("1.50k", BETTERUI.AbbreviateNumber(1500), "AbbreviateNumber: legacy lowercase wrapper")
 assert_equal("1.50K", BETTERUI.FormatAbbreviatedNumber(1500), "FormatAbbreviatedNumber: legacy uppercase wrapper")
-assert_equal(0, BETTERUI.roundNumber(nil, 2), "roundNumber: nil input returns 0")
+assert_equal("0", BETTERUI.roundNumber(nil, 2), "roundNumber: nil input returns '0' string")
 assert_equal("1.23", BETTERUI.roundNumber(1.239, 2), "roundNumber: floors to requested precision")
+assert_equal("7", BETTERUI.roundNumber(7.9, 0), "roundNumber: honors zero decimals")
+assert_equal("3", BETTERUI.roundNumber(3.7), "roundNumber: missing decimals defaults to 0")
 
 -- ============================================================================
 -- SUMMARY

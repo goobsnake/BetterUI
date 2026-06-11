@@ -169,6 +169,12 @@ assert_true(searchManager:find("function BETTERUI%.Banking%.Class:ExitSearchMode
     "SearchManager exposes ExitSearchMode")
 assert_true(searchManager:find("function BETTERUI%.Banking%.Class:PositionSearchControl%(%)") ~= nil,
     "SearchManager exposes PositionSearchControl")
+assert_true(searchManager:find("KEYBIND_STRIP%.keybindButtonGroups") == nil,
+    "SearchManager never reads the nonexistent keybindButtonGroups field")
+assert_true(searchManager:find("BETTERUI%.Interface%.RemoveOwnedKeybindGroups%(") ~= nil,
+    "SearchManager search cleanup removes only Banking-owned keybind groups")
+assert_true(searchManager:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searchRemovedKeybindGroups%)") ~= nil,
+    "ExitSearchMode restores exactly the groups the search cleanup removed")
 
 local stateManager = read_file("Modules/Banking/State/StateManager.lua")
 assert_true(stateManager:find("BETTERUI%.Banking%.SetRuntimeBankBags") ~= nil,

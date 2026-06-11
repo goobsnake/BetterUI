@@ -261,12 +261,15 @@ assert_true(instance.controls.thumb.mouseEnabled, "thumb drag handlers enable th
 assert_true(type(registeredEvents["BetterUI_ScrollIndicatorThumbDrag_TestList"]) == "function", "thumb drag registers global mouse-up cleanup")
 
 mouseY = 30
+assert_true(instance.controls.container.handlers.OnUpdate == nil, "drag tracker is not installed before dragging starts")
 instance.controls.thumb.handlers.OnMouseDown(nil, MOUSE_BUTTON_INDEX_LEFT)
+assert_true(type(instance.controls.container.handlers.OnUpdate) == "function", "drag start installs the per-frame drag tracker")
 instance.controls.container.handlers.OnUpdate()
 assert_eq(selectedIndices[#selectedIndices], 4, "thumb drag snaps to next selectable index when target row is blocked")
 
 instance.controls.thumb.handlers.OnMouseUp(nil, MOUSE_BUTTON_INDEX_LEFT)
 assert_true(instance.isDragging == false, "thumb mouse up exits dragging mode")
+assert_true(instance.controls.container.handlers.OnUpdate == nil, "drag end removes the per-frame drag tracker")
 
 registeredEvents["BetterUI_ScrollIndicatorThumbDrag_TestList"](nil, MOUSE_BUTTON_INDEX_LEFT)
 assert_true(instance.isDragging == false, "global mouse-up keeps dragging state cleared")

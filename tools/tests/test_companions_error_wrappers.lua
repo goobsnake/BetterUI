@@ -66,7 +66,7 @@ end
 
 BETTERUI.CIM.RegisterModuleAccessors = function() end
 BETTERUI.CIM.ApplyModuleSharedSettingsStatics = function() end
-BETTERUI.CIM.TryRegisterModulePanel = function() end
+BETTERUI.CIM.RegisterModulePanelWithLogging = function() end
 local lastNotifyContext = nil
 local lastNotifyMessage = nil
 BETTERUI.CIM.UserNotify = function(context, message)

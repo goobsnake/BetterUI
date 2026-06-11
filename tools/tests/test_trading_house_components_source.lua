@@ -46,8 +46,10 @@ assert_true(browseSource:find("function Browse:IsPrimaryActionEnabled%(thInstanc
     "BrowseComponent exposes IsPrimaryActionEnabled")
 assert_true(browseSource:find("function Browse:OnPrimaryAction%(thInstance%)") ~= nil,
     "BrowseComponent exposes OnPrimaryAction")
-assert_true(browseSource:find("function Browse:ExecuteSearch%(%)") ~= nil,
-    "BrowseComponent exposes ExecuteSearch")
+assert_true(browseSource:find("function Browse:ExecuteSearch%(useLastExecutedSearchFilters%)") ~= nil,
+    "BrowseComponent exposes ExecuteSearch with the page-flip filter-reuse parameter")
+assert_true(browseSource:find("TRADING_HOUSE_SEARCH:ApplyFilters%(IS_PERFORMING_SEARCH%)") ~= nil,
+    "BrowseComponent applies the pending filter state before dispatching a search")
 assert_true(browseSource:find("function Browse:NextPage%(thInstance%)") ~= nil,
     "BrowseComponent exposes NextPage")
 assert_true(browseSource:find("function Browse:PrevPage%(thInstance%)") ~= nil,
@@ -134,8 +136,10 @@ assert_true(rowSetupSource:find("function BETTERUI%.TradingHouse%.THEntrySetup%(
     "TradingHouseRowSetup exposes THEntrySetup")
 assert_true(rowSetupSource:find("BETTERUI%.CIM%.SharedItemSupport%.ResolveColumnFontDescriptor%(%\"TradingHouse%\", %\"Inventory%\"%)") ~= nil,
     "TradingHouseRowSetup resolves shared item support fonts")
-assert_true(rowSetupSource:find("statText = TH%.FormatUnitPrice%(ds%.purchasePrice or ds%.listingPrice or 0, ds%.stackCount or 1%)") ~= nil,
+assert_true(rowSetupSource:find("statText = TH%.FormatUnitPrice%(ds%.purchasePrice or 0, ds%.stackCount or 1%)") ~= nil,
     "TradingHouseRowSetup formats unit prices through the TradingHouse helper")
+assert_true(rowSetupSource:find("ds%.listingPrice") == nil,
+    "TradingHouseRowSetup no longer references dead ds.listingPrice")
 
 if failed > 0 then
     error(string.format("test_trading_house_components_source.lua failed with %d failure(s)", failed))

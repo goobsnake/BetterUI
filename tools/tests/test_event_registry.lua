@@ -15,9 +15,15 @@ local registeredEvents = {}
 local addedFilters = {}
 
 EVENT_MANAGER = {
+    -- Mirrors ESO behavior: returns true on success, false for duplicate
+    -- namespace+event registrations.
     RegisterForEvent = function(self, namespace, eventId, callback)
         registeredEvents[namespace] = registeredEvents[namespace] or {}
+        if registeredEvents[namespace][eventId] ~= nil then
+            return false
+        end
         registeredEvents[namespace][eventId] = callback
+        return true
     end,
     UnregisterForEvent = function(self, namespace, eventId)
         if registeredEvents[namespace] then
@@ -151,10 +157,25 @@ assert_equal(2, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "
 BETTERUI.CIM.EventRegistry.Unregister("TestModule", "NS_A", 500)
 assert_equal(1, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "One left after partial unregister")
 
+-- Test 11: Rejected (duplicate) registrations are not tracked
+print("\nTest: Rejected duplicate registrations are not tracked")
+resetAll()
+assert_true(BETTERUI.CIM.EventRegistry.Register("DupModule", "DupNS", 600, function() end), "First registration accepted")
+assert_equal(false, BETTERUI.CIM.EventRegistry.Register("DupModule", "DupNS", 600, function() end), "Duplicate registration rejected")
+assert_equal(1, BETTERUI.CIM.EventRegistry.GetRegistrationCount("DupModule"), "Duplicate not tracked")
+
+-- Test 12: RegisterFiltered skips filter when registration is rejected
+print("\nTest: RegisterFiltered skips filter when registration is rejected")
+assert_equal(false, BETTERUI.CIM.EventRegistry.RegisterFiltered("DupModule", "DupNS", 600, function() end, 1, 7), "Filtered duplicate rejected")
+assert_nil(addedFilters["DupNS"], "No filter added for rejected registration")
+assert_true(BETTERUI.CIM.EventRegistry.RegisterFiltered("DupModule", "DupNS2", 601, function() end, 1, 7), "Fresh filtered registration accepted")
+assert_true(addedFilters["DupNS2"] ~= nil, "Filter added for accepted registration")
+
 -- Cleanup
 BETTERUI.CIM.EventRegistry.UnregisterAll("TestModule", true)
 BETTERUI.CIM.EventRegistry.UnregisterAll("FilterMod", true)
 BETTERUI.CIM.EventRegistry.UnregisterAll("ModuleB", true)
+BETTERUI.CIM.EventRegistry.UnregisterAll("DupModule", true)
 
 -- ============================================================================
 -- SUMMARY

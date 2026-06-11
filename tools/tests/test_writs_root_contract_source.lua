@@ -101,6 +101,12 @@ BETTERUI = {
             fn(...)
             return true, nil
         end,
+        EventRegistry = {
+            Register = function(_, namespace, eventCode, callback)
+                EVENT_MANAGER:RegisterForEvent(namespace, eventCode, callback)
+                return true
+            end,
+        },
     },
     Defaults = {
         ApplyModuleDefaults = function(moduleName, options)

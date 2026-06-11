@@ -121,6 +121,11 @@ function IsItemJunk(bagId, slotIndex)
     return slot.junk == true
 end
 
+function IsItemPlayerLocked(bagId, slotIndex)
+    local slot = get_slot(bagId, slotIndex)
+    return slot.playerLocked == true
+end
+
 function GetItemFunctionalQuality(bagId, slotIndex)
     local slot = get_slot(bagId, slotIndex)
     return slot.functionalQuality
@@ -211,6 +216,10 @@ BETTERUI = {
 }
 
 BETTERUI.CIM.BatchConfig = {
+    HasItemAtSlot = function(bagId, slotIndex)
+        local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
+        return (stackCount or 0) > 0
+    end,
     WithServer = function(config)
         return { server = config }
     end,
@@ -328,6 +337,39 @@ do
     local denied, denyReason = BETTERUI.Vendor.AuthorizeInventoryAction(BETTERUI.Vendor.ACTION.SELL, BAG_BACKPACK, 6, nil)
     assert_true(denied == false and denyReason == BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN,
         "Vendor authorization seam preserves explicit policy deny reason for stolen SELL actions")
+
+    -- Player-locked items must be denied for the regular sell flows only:
+    -- native GetSellItems/GetSellVengeanceItems filter on isPlayerLocked,
+    -- while GetStolenSellItems/GetLaunderItems (fence lists) do not.
+    set_slot(BAG_BACKPACK, 7, {
+        stackSize = 1,
+        sellPrice = 30,
+        stolen = false,
+        junk = true,
+        playerLocked = true,
+    })
+    set_slot(BAG_BACKPACK, 8, {
+        stackSize = 1,
+        sellPrice = 30,
+        stolen = true,
+        launderCost = 5,
+        playerLocked = true,
+    })
+    local lockedSellActions = { "SELL", "SELL_JUNK", "SELL_VENGEANCE" }
+    for _, actionKey in ipairs(lockedSellActions) do
+        local lockedAllowed, lockedReason = BETTERUI.CIM.ProtectionPolicy.CanVendorAction(
+            BETTERUI.Vendor.ResolveActionId(actionKey), BAG_BACKPACK, 7, nil)
+        assert_true(lockedAllowed == false and lockedReason == BETTERUI.CIM.ProtectionPolicy.DENY.PLAYER_LOCKED,
+            "ProtectionPolicy.CanVendorAction denies player-locked items for " .. actionKey)
+    end
+    local lockedFenceActions = { "FENCE_SELL", "FENCE_LAUNDER" }
+    for _, actionKey in ipairs(lockedFenceActions) do
+        local lockedAllowed, lockedReason = BETTERUI.CIM.ProtectionPolicy.CanVendorAction(
+            BETTERUI.Vendor.ResolveActionId(actionKey), BAG_BACKPACK, 8, nil)
+        assert_true(lockedAllowed == true and lockedReason == nil,
+            "ProtectionPolicy.CanVendorAction allows player-locked stolen items for " .. actionKey
+                .. " (native fence lists do not filter locked items)")
+    end
 
     local savedPolicy = BETTERUI.CIM.ProtectionPolicy
     local missingPolicyOk, missingPolicyErr = pcall(function()

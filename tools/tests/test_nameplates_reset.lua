@@ -70,7 +70,7 @@ BETTERUI = {
                 unregisterSuppressLog = suppressLog
             end,
         },
-        TryRegisterModulePanel = function() end,
+        RegisterModulePanelWithLogging = function() end,
         Settings = {
             GetSettingDefault = function(_, _, fallback)
                 return fallback

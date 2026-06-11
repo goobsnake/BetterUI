@@ -347,6 +347,15 @@ BETTERUI = {
                     enabled = enabled,
                 }
             end,
+            GetMultiSelectLabel = function()
+                return GetString(SI_BETTERUI_MULTI_SELECT)
+            end,
+            GetMultiSelectToggleLabel = function(manager, target)
+                if target and manager:IsSelected(target) then
+                    return GetString(SI_BETTERUI_DESELECT_ITEM)
+                end
+                return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), manager:GetSelectedCount())
+            end,
         },
         UserAlertText = function(_, message)
             table.insert(userAlerts, message)
@@ -624,6 +633,8 @@ window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
 leftStick.callback()
 assertTableSequence({ BAG_BACKPACK }, stackCalls, "Stack-all deposit stacks the backpack")
 
+-- Quantity-dialog behavior below covers the personal bank; leave guild mode.
+guildBankMode = false
 window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
 window.multiSelectManager.active = true
 window.list.selectedData = { bagId = BAG_BANK, slotIndex = 1 }
@@ -639,6 +650,17 @@ window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
 window.list.selectedData = { bagId = BAG_BANK, slotIndex = 1, stackCount = 1 }
 primary.callback()
 assertEqual(1, window.movedItems[1], "Primary keybind moves single items immediately")
+
+-- Guild-bank transfers always move the whole stack, so the quantity dialog is skipped.
+guildBankMode = true
+guildTransferAllowed = true
+guildTransferDenialText = nil
+window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
+window.list.selectedData = { bagId = BAG_GUILDBANK, slotIndex = 2, stackCount = 4 }
+primary.callback()
+assertEqual(4, window.movedItems[2], "Guild-bank primary transfer moves the whole stack")
+assertEqual(1, #window.shownQuantityDialogs, "Guild-bank primary transfer skips the quantity dialog")
+guildBankMode = false
 
 window.list.selectedData = { currencyType = CURT_MONEY, keybindLabel = "Gold" }
 currencyPrimary.callback()

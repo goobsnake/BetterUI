@@ -166,10 +166,13 @@ do
     })
 
     assert_eq(type(BETTERUI.ResourceOrbFrames.InitModule), "function", "Module.lua re-exposes InitModule")
-    assert_eq(options.customFrontBar.ultimate.offsetX, 12, "custom front bar ultimate offsetX preserves explicit value")
-    assert_eq(options.customFrontBar.ultimate.offsetY, 0, "custom front bar ultimate offsetY backfills default")
-    assert_eq(options.customFrontBar.gamepad.ultimateSize, 80, "custom front bar gamepad ultimate size preserves explicit value")
-    assert_eq(options.customFrontBar.keyboard.ultimateSize, 55, "custom front bar keyboard defaults backfill")
+    -- Defaults only carry m_enabled; layout values live in Constants.lua
+    -- (BETTERUI_ORB_FRAMES.bars.customFrontBar) and are not backfilled.
+    assert_eq(options.customFrontBar.m_enabled, true, "custom front bar m_enabled backfills default")
+    assert_eq(options.customFrontBar.ultimate.offsetX, 12, "custom front bar preserves explicit legacy values")
+    assert_eq(options.customFrontBar.ultimate.offsetY, nil, "custom front bar layout fields are not backfilled")
+    assert_eq(options.customFrontBar.gamepad.ultimateSize, 80, "custom front bar preserves explicit legacy gamepad values")
+    assert_eq(options.customFrontBar.keyboard, nil, "custom front bar keyboard layout defaults are pruned")
 end
 
 print("[ResourceOrbFrames.InitModule fallback when defaults init is unavailable]")

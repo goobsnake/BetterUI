@@ -46,6 +46,8 @@ assert_contains(accessorSource, "function BETTERUI.CIM.ApplyModuleSharedSettings
     "CIM exposes the pure import-time shared settings helper")
 assert_contains(accessorSource, "function BETTERUI.CIM.TryRegisterModulePanel(",
     "CIM exposes the shared non-fatal module panel helper")
+assert_contains(accessorSource, "function BETTERUI.CIM.RegisterModulePanelWithLogging(",
+    "CIM exposes the consolidated panel registration helper with tracking and debug reporting")
 assert_contains(accessorSource, "ns._sharedAccessorsRegistered = true",
     "module accessors are tracked as setup-time registration state")
 
@@ -70,7 +72,7 @@ assert_contains(inventoryModule, 'BETTERUI.CIM.RegisterModuleAccessors(Inventory
     "Inventory registers accessors during setup")
 assert_contains(inventoryModule, 'BETTERUI.CIM.Keybinds.RegisterInventoryActionModes({',
     "Inventory action-mode registration now lives behind setup-time bootstrap")
-assert_contains(inventoryModule, 'BETTERUI.CIM.TryRegisterModulePanel(Inventory, "Inventory", "Inventory", "Inventory")',
+assert_contains(inventoryModule, 'BETTERUI.CIM.RegisterModulePanelWithLogging(Inventory, "Inventory", "Inventory", "Inventory")',
     "Inventory setup uses the shared panel registration helper")
 
 assert_contains(vendorModule, 'BETTERUI.CIM.ApplyModuleSharedSettingsStatics(Vendor, "Vendor")',
@@ -88,7 +90,7 @@ assert_contains(companionsModule, 'local function EnsureCompanionsSetupContracts
     "Companions defines an explicit setup-time bootstrap helper")
 assert_contains(companionsModule, 'BETTERUI.CIM.RegisterModuleAccessors(Companions, "Companions")',
     "Companions registers accessors during setup")
-assert_contains(companionsModule, 'BETTERUI.CIM.TryRegisterModulePanel(Companions, "Companions", "Companions", "Companions")',
+assert_contains(companionsModule, 'BETTERUI.CIM.RegisterModulePanelWithLogging(Companions, "Companions", "Companions", "Companions")',
     "Companions setup uses the shared panel registration helper")
 assert_contains(companionsModule, 'return BETTERUI.Companions.Init()',
     "Companions setup propagates runtime initialization failures to bootstrap")
@@ -103,7 +105,7 @@ assert_contains(bankingModule, 'BETTERUI.CIM.RegisterModuleAccessors(Banking, "B
     "Banking registers accessors during setup")
 assert_contains(bankingModule, 'RegisterBankingModeLabels({',
     "Banking narration labels register during setup-time bootstrap")
-assert_contains(tradingHouseModule, 'BETTERUI.CIM.TryRegisterModulePanel(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")',
+assert_contains(tradingHouseModule, 'BETTERUI.CIM.RegisterModulePanelWithLogging(TradingHouse, "TradingHouse", "TradingHouse", "TradingHouse")',
     "TradingHouse setup uses the shared panel registration helper")
 assert_contains(tradingHouseModule, 'BETTERUI.CIM.ApplyModuleSharedSettingsStatics(TradingHouse, "TradingHouse")',
     "TradingHouse keeps only shared settings statics at import time")
@@ -116,7 +118,7 @@ assert_contains(generalInterfaceSetup, 'GeneralInterface.Settings = GeneralInter
 assert_contains(generalInterfaceSetup, 'GeneralInterface.Settings.RegisterPanel = Init',
     "GeneralInterface setup binds panel construction to the settings seam")
 assert_contains(generalInterfaceSetup,
-    'BETTERUI.CIM.TryRegisterModulePanel(GeneralInterface, "GeneralInterface", "General", "General Interface")',
+    'BETTERUI.CIM.RegisterModulePanelWithLogging(GeneralInterface, "GeneralInterface", "General", "General Interface")',
     "GeneralInterface setup uses the shared panel registration helper")
 assert_not_contains(generalInterfaceSetup, "GetNameplateOptions",
     "GeneralInterface setup no longer owns Nameplates settings composition")
@@ -133,7 +135,7 @@ assert_not_contains(nameplatesSettings, "function Nameplates.InitModule(m_option
     "Nameplates settings helper no longer owns InitModule defaults")
 assert_not_contains(nameplatesSettings, "local ClampNameplateSize = Nameplates.ClampNameplateSize",
     "Nameplates settings must not capture runtime helpers before manifest dependents load")
-assert_contains(nameplatesModule, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
+assert_contains(nameplatesModule, 'BETTERUI.CIM.RegisterModulePanelWithLogging(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates setup uses the shared panel registration helper")
 
 assert_contains(resourceOrbModule, 'function ResourceOrbFrames.Setup()',
@@ -145,7 +147,7 @@ assert_contains(resourceOrbModule, 'ResourceOrbFrames.Settings = ResourceOrbFram
 assert_contains(resourceOrbModule, 'ResourceOrbFrames.Settings.RegisterPanel = InitSettingsPanel',
     "ResourceOrbFrames binds panel construction to the settings seam")
 assert_contains(resourceOrbModule,
-    'BETTERUI.CIM.TryRegisterModulePanel(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",',
+    'BETTERUI.CIM.RegisterModulePanelWithLogging(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",',
     "ResourceOrbFrames setup uses the shared panel registration helper")
 assert_contains(writsModule, 'local THIN_ENTRYPOINT = ARCHETYPES.THIN_ENTRYPOINT or "thin-entrypoint"',
     "Writs resolves the thin-entrypoint archetype from shared archetype constants")

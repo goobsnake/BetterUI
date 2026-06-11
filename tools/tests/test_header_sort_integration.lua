@@ -37,11 +37,20 @@ BETTERUI = {
 KEYBIND_STRIP = {
     added = {},
     removed = {},
+    groups = {},
     AddKeybindButtonGroup = function(self, descriptor)
         table.insert(self.added, descriptor)
+        self.groups[descriptor] = true
     end,
     RemoveKeybindButtonGroup = function(self, descriptor)
         table.insert(self.removed, descriptor)
+        self.groups[descriptor] = nil
+    end,
+    HasKeybindButtonGroup = function(self, descriptor)
+        return self.groups[descriptor] == true
+    end,
+    UpdateKeybindButtonGroup = function(self, descriptor)
+        self.updateCalls = (self.updateCalls or 0) + 1
     end,
 }
 
@@ -91,6 +100,7 @@ BETTERUI.CIM.UI.HeaderSortController = {
     end,
 }
 
+dofile("Modules/CIM/Core/Presentation/KeybindHelpers.lua")
 dofile("Modules/CIM/UI/HeaderSortIntegration.lua")
 
 local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
@@ -204,6 +214,80 @@ do
     assert_eq(controller.exitCalls, 1, "exit header mode delegates to controller")
     assert_true(not integration.isActive, "exit header mode clears integration active flag")
     assert_eq(#KEYBIND_STRIP.added, 2, "exit header mode restores owner keybinds")
+end
+
+do
+    -- Owned main keybinds present on the strip are suspended on enter and
+    -- restored on exit; groups owned by the native UI / other addons survive.
+    KEYBIND_STRIP.added = {}
+    KEYBIND_STRIP.removed = {}
+    KEYBIND_STRIP.groups = {}
+    local owner = buildOwner()
+    local foreignGroup = { id = "foreign" }
+    KEYBIND_STRIP:AddKeybindButtonGroup(foreignGroup)
+    KEYBIND_STRIP:AddKeybindButtonGroup(owner.coreKeybinds)
+
+    local integration = HeaderSortIntegration.Install(owner, {
+        list = owner.list,
+        columns = {
+            { key = "name" },
+        },
+        callbacks = {
+            onSortChanged = function() end,
+        },
+        keybinds = {
+            mainDescriptor = owner.coreKeybinds,
+        },
+    })
+
+    HeaderSortIntegration.EnsureController(integration)
+    HeaderSortIntegration.EnterHeaderMode(integration)
+    assert_true(KEYBIND_STRIP.groups[foreignGroup] == true, "enter header mode leaves foreign keybind groups on the strip")
+    assert_true(KEYBIND_STRIP.groups[owner.coreKeybinds] == nil, "enter header mode suspends owned main keybinds")
+
+    HeaderSortIntegration.ExitHeaderMode(integration)
+    assert_true(KEYBIND_STRIP.groups[foreignGroup] == true, "exit header mode leaves foreign keybind groups on the strip")
+    assert_true(KEYBIND_STRIP.groups[owner.coreKeybinds] == true, "exit header mode restores suspended main keybinds")
+    assert_true(integration.suspendedKeybindGroups == nil, "exit header mode clears suspended group tracking")
+end
+
+do
+    -- Extra owner-supplied groups (e.g. the tab bar's LB/RB descriptor) are
+    -- suspended together with the main descriptor and restored on exit, and
+    -- the tab bar is suspended even without an explicit navigation contract.
+    KEYBIND_STRIP.added = {}
+    KEYBIND_STRIP.removed = {}
+    KEYBIND_STRIP.groups = {}
+    local owner = buildOwner()
+    local tabBarGroup = { id = "tabbar-lb-rb" }
+    KEYBIND_STRIP:AddKeybindButtonGroup(owner.coreKeybinds)
+    KEYBIND_STRIP:AddKeybindButtonGroup(tabBarGroup)
+
+    local integration = HeaderSortIntegration.Install(owner, {
+        list = owner.list,
+        columns = {
+            { key = "name" },
+        },
+        callbacks = {
+            onSortChanged = function() end,
+        },
+        keybinds = {
+            mainDescriptor = owner.coreKeybinds,
+            ownedDescriptors = { tabBarGroup },
+        },
+    })
+
+    HeaderSortIntegration.EnsureController(integration)
+    HeaderSortIntegration.EnterHeaderMode(integration)
+    assert_true(KEYBIND_STRIP.groups[owner.coreKeybinds] == nil, "enter header mode suspends the main descriptor")
+    assert_true(KEYBIND_STRIP.groups[tabBarGroup] == nil, "enter header mode suspends extra owned descriptors")
+    assert_eq(owner.headerGeneric.tabBar.deactivateCalls, 1,
+        "enter header mode suspends the tab bar without an explicit navigation contract")
+
+    HeaderSortIntegration.ExitHeaderMode(integration)
+    assert_true(KEYBIND_STRIP.groups[owner.coreKeybinds] == true, "exit header mode restores the main descriptor")
+    assert_true(KEYBIND_STRIP.groups[tabBarGroup] == true, "exit header mode restores extra owned descriptors")
+    assert_eq(owner.headerGeneric.tabBar.activateCalls, 1, "exit header mode reactivates the tab bar")
 end
 
 do

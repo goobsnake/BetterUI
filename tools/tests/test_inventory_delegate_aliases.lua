@@ -76,6 +76,10 @@ BETTERUI = {
             HasItemAtSlot = function()
                 return true
             end,
+            ResolveStackCount = function(itemData)
+                local rawData = itemData and (itemData.dataSource or itemData)
+                return (rawData and rawData.stackCount) or 1
+            end,
         },
         ProtectionPolicy = {},
     },

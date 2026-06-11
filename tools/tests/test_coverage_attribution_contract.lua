@@ -83,7 +83,7 @@ BETTERUI.CIM.RegisterModuleAccessors = function(moduleNamespace, moduleName)
         return true
     end
 end
-BETTERUI.CIM.TryRegisterModulePanel = function(_, moduleScope, moduleId, panelLabel)
+BETTERUI.CIM.RegisterModulePanelWithLogging = function(_, moduleScope, moduleId, panelLabel)
     registeredPanels[#registeredPanels + 1] = {
         scope = moduleScope,
         id = moduleId,

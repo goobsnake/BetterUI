@@ -28,7 +28,9 @@ function GetCVar(key)
     return nil
 end
 
--- Load the module under test
+-- Load the module under test (FontLocalization provides the canonical
+-- WESTERN_ONLY_FONTS set consumed by Migration 6)
+dofile("Modules/CIM/Core/Presentation/FontLocalization.lua")
 dofile("Modules/CIM/Core/Lifecycle/RuntimeSetup.lua")
 
 local RunSettingsMigrations = BETTERUI.CIM.RuntimeSetup.RunSettingsMigrations

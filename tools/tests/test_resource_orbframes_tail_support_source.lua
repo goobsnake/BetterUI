@@ -41,8 +41,8 @@ end
 local overlaysSource = read_file("Modules/ResourceOrbFrames/Core/OrbOverlays.lua")
 assert_true(overlaysSource:find("Those definitions have been removed%. All callers now use the OrbVisuals%.lua versions%.") ~= nil,
     "OrbOverlays documents that the duplicate visual helpers were removed")
-assert_true(overlaysSource:find("BETTERUI%.ResourceOrbFrames%.Utils%.UpdateOverlaySize") ~= nil,
-    "OrbOverlays documents the canonical UpdateOverlaySize owner")
+assert_true(overlaysSource:find("CustomOverlay") ~= nil,
+    "OrbOverlays documents the removed hide-ornament CustomOverlay path")
 
 local visualsSource = read_file("Modules/ResourceOrbFrames/Core/OrbVisuals.lua")
 assert_true(visualsSource:find("BetterUIOrbBar = ZO_Object:Subclass%(%)") ~= nil,
@@ -75,8 +75,8 @@ assert_true(utilsSource:find("function Tooltips%.AddOrbTooltip%(control, powerTy
     "ROF Utils exposes AddOrbTooltip")
 assert_true(utilsSource:find("function Layout%.CalculateBorderSizes%(cfg, settings%)") ~= nil,
     "ROF Utils exposes CalculateBorderSizes")
-assert_true(utilsSource:find("function Layout%.UpdateOverlaySize%(parent, cfgName, baseSize, cfg%)") ~= nil,
-    "ROF Utils exposes UpdateOverlaySize")
+assert_true(utilsSource:find("UpdateOverlaySize") == nil,
+    "ROF Utils no longer defines the dead UpdateOverlaySize helper")
 assert_true(utilsSource:find("function Controls%.GetFrontBarButtonControl%(rootFrame, frontBarContainer, buttonName%)") ~= nil,
     "ROF Utils exposes GetFrontBarButtonControl")
 assert_true(utilsSource:find("Utils%.GetFrontBarButtonControl = Controls%.GetFrontBarButtonControl") ~= nil,

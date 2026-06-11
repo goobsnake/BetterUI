@@ -74,16 +74,16 @@ assert_contains(nameplates, "Nameplates.Settings = Nameplates.Settings or {}",
     "Nameplates runtime owns the module settings seam namespace")
 assert_contains(nameplates, "Nameplates.Settings.RegisterPanel = InitPanel",
     "Nameplates runtime binds panel registration through the canonical root")
-assert_contains(nameplates, "local function TrackPanelRegistration(reason)",
-    "Nameplates runtime tracks machine-readable settings panel registration reasons")
+assert_not_contains(nameplates, "local function TrackPanelRegistration(reason)",
+    "Nameplates runtime delegates panel registration tracking to the shared CIM helper")
 assert_contains(nameplates, "function Nameplates.InitModule(m_options)",
     "Nameplates runtime owns InitModule defaults and migration behavior")
 assert_not_contains(nameplates, "GeneralInterface.Nameplates = Nameplates",
     "Nameplates runtime no longer synchronizes GeneralInterface alias ownership")
-assert_contains(nameplates, 'BETTERUI.CIM.TryRegisterModulePanel(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
+assert_contains(nameplates, 'BETTERUI.CIM.RegisterModulePanelWithLogging(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates setup registers a dedicated Nameplates settings panel")
-assert_contains(nameplates, "TrackPanelRegistration(panelReason)",
-    "Nameplates setup preserves panel registration diagnostics for deferred or failed seams")
+assert_not_contains(nameplates, "TrackPanelRegistration(panelReason)",
+    "Nameplates setup no longer duplicates the shared panel registration diagnostics boilerplate")
 assert_contains(settings, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates settings bind through the dedicated Nameplates module namespace")
 assert_not_contains(settings, "Nameplates.Settings.RegisterPanel = InitPanel",

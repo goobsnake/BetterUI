@@ -77,6 +77,9 @@ SI_GAMEPAD_BACK_OPTION = "Back"
 GAMEPAD_DIALOGS = { PARAMETRIC = 1 }
 ESO_Dialogs = {}
 
+-- Batch-dialog label builders now live in the shared CIM keybind helpers;
+-- load them before the inventory module that consumes them.
+dofile("Modules/CIM/Keybinds/GenericKeybinds.lua")
 dofile("Modules/Inventory/Core/InventoryMultiSelect.lua")
 
 local manager = {

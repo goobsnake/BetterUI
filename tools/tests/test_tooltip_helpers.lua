@@ -791,16 +791,29 @@ GAMEPAD_INVENTORY = {
     end,
 }
 
-ZO_ChatWindowTemplate1Buffer = {
-    SetMaxHistoryLines = function(_, value)
-        maxHistoryLines = value
-    end,
+-- U50: chat buffers are reached through the chat systems' container/window objects.
+KEYBOARD_CHAT_SYSTEM = {
+    containers = {
+        {
+            windows = {
+                {
+                    buffer = {
+                        SetMaxHistoryLines = function(_, value)
+                            maxHistoryLines = value
+                        end,
+                    },
+                },
+            },
+        },
+    },
 }
+GAMEPAD_CHAT_SYSTEM = KEYBOARD_CHAT_SYSTEM
 
 function zo_iconFormat(icon, _, _)
     return "[" .. tostring(icon) .. "]"
 end
 
+dofile("Modules/GeneralInterface/Setup.lua")
 dofile("Modules/GeneralInterface/Tooltips/SettingsHelpers.lua")
 dofile("Modules/GeneralInterface/Tooltips/Settings.lua")
 
