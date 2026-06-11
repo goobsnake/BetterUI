@@ -13,6 +13,18 @@ end
 
 if BETTERUI == nil then BETTERUI = {} end
 
+-- Bootstrap error channel: BetterUI.lua loads before CIM Utilities, which
+-- replaces this with the full ungated implementation. Kept minimal so error
+-- reporting works even if CIM never loads.
+if BETTERUI.DebugError == nil then
+	function BETTERUI.DebugError(str)
+		local chatPrint = rawget(_G, "d")
+		if type(chatPrint) == "function" then
+			chatPrint("|c0066ff[BETTERUI]|r " .. tostring(str))
+		end
+	end
+end
+
 local SAVED_VARS_SCHEMA_VERSION = 2.89
 
 ---@class ModuleRegistryEntry
@@ -224,7 +236,7 @@ local function InitializeRegisteredModuleSettings()
 			local moduleSettings = BETTERUI.EnsureModuleSettings(moduleName)
 			local moduleInitResult = BETTERUI.ModuleOptions(moduleNamespace, moduleSettings, moduleName)
 			if not moduleInitResult then
-				BETTERUI.Debug("[Warning] Skipping broken module: " .. moduleName)
+				BETTERUI.DebugError("[Warning] Skipping broken module: " .. moduleName)
 			end
 		end
 	end
@@ -343,11 +355,11 @@ function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 	if shouldCallInit then
 		if not (m_namespace and m_namespace.InitModule) then
 			local name = moduleName or "unknown"
-			BETTERUI.Debug("[Validation] Module has no InitModule: " .. name)
+			BETTERUI.DebugError("[Validation] Module has no InitModule: " .. name)
 			if moduleName then
 				BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
 				BETTERUI._sessionDisabledModules[moduleName] = true
-				BETTERUI.Debug("[Recovery] Module skipped for this session (will retry on reload): " .. name)
+				BETTERUI.DebugError("[Recovery] Module skipped for this session (will retry on reload): " .. name)
 			end
 			return nil
 		end
@@ -360,11 +372,11 @@ function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 			end
 		else
 			local name = moduleName or "unknown"
-			BETTERUI.Debug("[Error] InitModule failed for " .. name .. ": " .. tostring(result))
+			BETTERUI.DebugError("[Error] InitModule failed for " .. name .. ": " .. tostring(result))
 			if moduleName then
 				BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
 				BETTERUI._sessionDisabledModules[moduleName] = true
-				BETTERUI.Debug("[Recovery] Module skipped for this session (will retry on reload): " .. name)
+				BETTERUI.DebugError("[Recovery] Module skipped for this session (will retry on reload): " .. name)
 			end
 			return nil
 		end
@@ -377,8 +389,8 @@ local function RecordModuleSetupFailure(failedModules, moduleName, moduleNamespa
 		moduleNamespace._setupComplete = nil
 	end
 
-	if type(BETTERUI.SetModuleEnabled) == "function" then
-		BETTERUI.SetModuleEnabled(moduleName, false)
+	if type(BETTERUI.SetModuleSessionDisabled) == "function" then
+		BETTERUI.SetModuleSessionDisabled(moduleName, true)
 	else
 		BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
 		BETTERUI._sessionDisabledModules[moduleName] = true
@@ -431,14 +443,14 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules
 	-- Wrap Setup in pcall so one module failure does not cascade into later modules.
 	local success, setupResult, setupDetail = pcall(moduleNamespace.Setup)
 	if not success then
-		BETTERUI.Debug(string.format("[Error] Setup() failed for '%s': %s", moduleName, tostring(setupResult)))
+		BETTERUI.DebugError(string.format("[Error] Setup() failed for '%s': %s", moduleName, tostring(setupResult)))
 		RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
 		return false
 	end
 
 	if setupResult == false then
 		local detail = setupDetail ~= nil and tostring(setupDetail) or "setup returned false"
-		BETTERUI.Debug(string.format("[Error] Setup() returned false for '%s': %s", moduleName, detail))
+		BETTERUI.DebugError(string.format("[Error] Setup() returned false for '%s': %s", moduleName, detail))
 		RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
 		return false
 	end
@@ -451,18 +463,32 @@ local function ReportModuleSetupFailures(failedModules, contextLabel)
 		return false
 	end
 
-	BETTERUI.Debug(string.format("[Recovery] Modules disabled after setup failure (%s): %s",
+	BETTERUI.DebugError(string.format("[Recovery] Modules disabled after setup failure (%s): %s",
 		contextLabel,
 		table.concat(failedModules, ", ")))
 	return true
 end
 
+local function DeepCopySettingsTable(source)
+	local copy = {}
+	for key, value in pairs(source) do
+		if type(value) == "table" then
+			copy[key] = DeepCopySettingsTable(value)
+		else
+			copy[key] = value
+		end
+	end
+	return copy
+end
+
 local function LoadSavedVarsWithFallback(loaderName, loader)
 	local ok, result = pcall(loader, ZO_SavedVars, "BetterUISavedVars", SAVED_VARS_SCHEMA_VERSION, nil, BETTERUI.DefaultSettings)
 	if not ok then
-		BETTERUI.Debug(string.format("[SavedVars] %s failed, using defaults: %s", loaderName, tostring(result)))
+		BETTERUI.DebugError(string.format("[SavedVars] %s failed, using defaults: %s", loaderName, tostring(result)))
 	end
-	return ok and result or BETTERUI.DefaultSettings
+	-- On failure return an independent deep copy so SavedVars and GlobalVars
+	-- never alias the same DefaultSettings table when both loaders fail.
+	return ok and result or DeepCopySettingsTable(BETTERUI.DefaultSettings)
 end
 
 local function ShouldSetupKeyboardModeModule(entry)
@@ -537,7 +563,7 @@ local function LoadConfiguredModules()
 			if entry.preSetup then
 				local preSetupSucceeded, preSetupErr = pcall(entry.preSetup)
 				if not preSetupSucceeded then
-					BETTERUI.Debug(string.format("[Error] preSetup() failed for '%s': %s", entry.name, tostring(preSetupErr)))
+					BETTERUI.DebugError(string.format("[Error] preSetup() failed for '%s': %s", entry.name, tostring(preSetupErr)))
 					RecordModuleSetupFailure(failedModules, entry.name, moduleNamespace)
 					moduleLoaded = false
 				end
