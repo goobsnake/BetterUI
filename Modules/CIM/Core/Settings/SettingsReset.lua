@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/SettingsReset.lua
+File: Modules/CIM/Core/Settings/SettingsReset.lua
 Purpose: Shared helper for resetting all BetterUI settings back to defaults.
 ]]
 
@@ -50,6 +50,21 @@ local function IsRetainedTopLevelKey(key)
         or key == "Modules"
         or key == "FeatureFlags"
         or key == "SortOptions"
+        or key == "version" -- ZO_SavedVars bookkeeping key in the raw data table
+end
+
+--- Returns the table that actually holds persisted keys.
+--- ZO_SavedVars:New returns an interface table whose data lives behind the
+--- metatable __index, so pairs() over the interface itself never sees the
+--- persisted keys (see esoui/libraries/utility/zo_savedvars.lua,
+--- CreateExposedInterface). Plain-table stores are returned unchanged.
+local function GetRawStoreData(store)
+    local mt = getmetatable(store)
+    local rawData = mt and mt.__index
+    if type(rawData) == "table" then
+        return rawData
+    end
+    return store
 end
 
 --- Builds default settings for a module.
@@ -81,11 +96,16 @@ local function ResetSettingsStore(store)
         return
     end
 
-    local preservedUseAccountWide = store.useAccountWide
+    -- pairs() over the ZO_SavedVars interface table is a no-op: persisted keys
+    -- live in the raw backing table behind the metatable __index. Operate on
+    -- the raw table so stale keys are actually cleared.
+    local rawStore = GetRawStoreData(store)
 
-    for key in pairs(store) do
+    local preservedUseAccountWide = rawStore.useAccountWide
+
+    for key in pairs(rawStore) do
         if not IsRetainedTopLevelKey(key) then
-            store[key] = nil
+            rawStore[key] = nil
         end
     end
 
@@ -93,22 +113,22 @@ local function ResetSettingsStore(store)
         preservedUseAccountWide = (BETTERUI.DefaultSettings and BETTERUI.DefaultSettings.useAccountWide) or false
     end
 
-    store.useAccountWide = preservedUseAccountWide
-    store.FeatureFlags = {}
-    store.SortOptions = {}
-    store.Modules = {}
+    rawStore.useAccountWide = preservedUseAccountWide
+    rawStore.FeatureFlags = {}
+    rawStore.SortOptions = {}
+    rawStore.Modules = {}
 
     for _, moduleInfo in ipairs(MODULE_RESET_ORDER) do
         local moduleName = moduleInfo[1]
         local moduleNamespace = moduleInfo[2]
-        store.Modules[moduleName] = BuildModuleDefaults(moduleName, moduleNamespace)
+        rawStore.Modules[moduleName] = BuildModuleDefaults(moduleName, moduleNamespace)
     end
 
     if BETTERUI.Defaults and type(BETTERUI.Defaults.ApplyFirstInstallDefaults) == "function" then
-        BETTERUI.Defaults.ApplyFirstInstallDefaults(store)
+        BETTERUI.Defaults.ApplyFirstInstallDefaults(rawStore)
     end
 
-    store.firstInstall = false
+    rawStore.firstInstall = false
 end
 
 --- Gets the active settings store.

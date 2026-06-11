@@ -122,7 +122,7 @@
         <Label name="BETTERUI_MenuEntryLabelTemplate" inherits="BETTERUI_LeftMenuEntry_Anchors"
             font="ZoFontGamepad34" verticalAlignment="CENTER" wrapMode="ELLIPSIS" virtual="true" />
 
-        <Label name="BETTERUI_FooterTemplate" font="ZoFontGamepad45" wrapMode="ELLIPSIS"
+        <Label name="BETTERUI_FooterTemplate" font="ZoFontGamepad42" wrapMode="ELLIPSIS"
             virtual="true" modifyTextType="UPPERCASE" />
         <Label name="BETTERUI_FooterSmallTemplate" font="ZoFontGamepad27" wrapMode="ELLIPSIS"
             virtual="true" modifyTextType="UPPERCASE" />
@@ -146,7 +146,8 @@
                         pressed="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_left_down.dds"
                         disabled="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_left_disabled.dds" />
                     <OnClicked>
-                        BETTERUI.Banking.Window.spinner.spinner:ModifyValue(-1)
+                        local spinner = BETTERUI.Banking and BETTERUI.Banking.Window and BETTERUI.Banking.Window.spinner and BETTERUI.Banking.Window.spinner.spinner
+                        if spinner then spinner:ModifyValue(-1) end
                     </OnClicked>
                 </Button>
 
@@ -157,7 +158,8 @@
                         pressed="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_right_down.dds"
                         disabled="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_right_disabled.dds" />
                     <OnClicked>
-                        BETTERUI.Banking.Window.spinner.spinner:ModifyValue(1)
+                        local spinner = BETTERUI.Banking and BETTERUI.Banking.Window and BETTERUI.Banking.Window.spinner and BETTERUI.Banking.Window.spinner.spinner
+                        if spinner then spinner:ModifyValue(1) end
                     </OnClicked>
                 </Button>
             </Controls>
@@ -428,7 +430,8 @@
                             <Dimensions x="250" y="30" />
                             <Anchor point="LEFT" offsetX="155" />
                             <OnClicked>
-                                BETTERUI.Banking.Window:ToggleList(true)
+                                local window = BETTERUI.Banking and BETTERUI.Banking.Window
+                                if window and window.ToggleList then window:ToggleList(true) end
                             </OnClicked>
                             <Controls>
                                 <Label name="$(parent)Label" text="SI_BETTERUI_BANKING_WITHDRAW"
@@ -462,7 +465,8 @@
                             <Dimensions x="250" y="30" />
                             <Anchor point="RIGHT" offsetX="-205" />
                             <OnClicked>
-                                BETTERUI.Banking.Window:ToggleList(false)
+                                local window = BETTERUI.Banking and BETTERUI.Banking.Window
+                                if window and window.ToggleList then window:ToggleList(false) end
                             </OnClicked>
                             <Controls>
                                 <Label name="$(parent)Label" text="SI_BETTERUI_BANKING_DEPOSIT"

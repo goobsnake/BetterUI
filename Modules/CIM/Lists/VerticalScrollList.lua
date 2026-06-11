@@ -52,8 +52,10 @@ function BETTERUI_VerticalParametricScrollList:New(...)
     local list = ZO_ParametricScrollList.New(self, ...)
 
     -- Override EnsureValidGradient to provide custom fade behavior
+    -- Gating mirrors the U50 base contract (zo_parametricscrolllist.lua):
+    -- handleDynamicViewProperties + validGradientDirty.
     list.EnsureValidGradient = function(scrollList)
-        if scrollList.validateGradient and scrollList.validGradientDirty then
+        if scrollList.handleDynamicViewProperties and scrollList.validGradientDirty then
             -- Cache key based on inputs
             local listHeight = scrollList.scrollControl:GetHeight()
             local centerOffset = scrollList.fixedCenterOffset
@@ -75,7 +77,7 @@ function BETTERUI_VerticalParametricScrollList:New(...)
                 listMid = listMid + scrollList.fixedCenterOffset
 
                 local hasHeaders = false
-                for templateName, dataTypeInfo in pairs(self.dataTypes) do
+                for templateName, dataTypeInfo in pairs(scrollList.dataTypes) do
                     if dataTypeInfo.hasHeader then
                         hasHeaders = true
                         break
@@ -84,12 +86,12 @@ function BETTERUI_VerticalParametricScrollList:New(...)
 
                 local selectedControlBufferStart = 0
                 if hasHeaders then
-                    selectedControlBufferStart = selectedControlBufferStart - self.headerSelectedPadding +
+                    selectedControlBufferStart = selectedControlBufferStart - scrollList.headerSelectedPadding +
                     DEFAULT_EXPECTED_HEADER_HEIGHT
                 end
                 local selectedControlBufferEnd = DEFAULT_EXPECTED_ENTRY_HEIGHT
-                if self.alignToScreenCenterExpectedEntryHalfHeight then
-                    selectedControlBufferEnd = self.alignToScreenCenterExpectedEntryHalfHeight * 2.0
+                if scrollList.alignToScreenCenterExpectedEntryHalfHeight then
+                    selectedControlBufferEnd = scrollList.alignToScreenCenterExpectedEntryHalfHeight * 2.0
                 end
 
                 -- Calculate fading gradients
@@ -107,16 +109,16 @@ function BETTERUI_VerticalParametricScrollList:New(...)
                 local GRADIENT_TEX_CORD_1 = 1
                 local GRADIENT_TEX_CORD_NEG_1 = -1
 
-                self.scrollControl:SetFadeGradient(FIRST_FADE_GRADIENT, GRADIENT_TEX_CORD_0, GRADIENT_TEX_CORD_1,
+                scrollList.scrollControl:SetFadeGradient(FIRST_FADE_GRADIENT, GRADIENT_TEX_CORD_0, GRADIENT_TEX_CORD_1,
                     gradientStartSize)
-                self.scrollControl:SetFadeGradient(SECOND_FADE_GRADIENT, GRADIENT_TEX_CORD_0, GRADIENT_TEX_CORD_NEG_1,
+                scrollList.scrollControl:SetFadeGradient(SECOND_FADE_GRADIENT, GRADIENT_TEX_CORD_0, GRADIENT_TEX_CORD_NEG_1,
                     gradientEndSize)
 
-                -- Update cache
-                self._gradientCacheHeight = listHeight
-                self._gradientCacheOffset = centerOffset
+                -- Update cache (instance state, never the shared class table)
+                scrollList._gradientCacheHeight = listHeight
+                scrollList._gradientCacheOffset = centerOffset
             end
-            self.validGradientDirty = false
+            scrollList.validGradientDirty = false
         end
     end
     return list

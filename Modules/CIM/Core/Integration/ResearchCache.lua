@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/ResearchCache.lua
+File: Modules/CIM/Core/Integration/ResearchCache.lua
 Purpose: Caches player's crafting research knowledge for efficient lookup.
          Avoids expensive API calls during list rendering.
 ]]
@@ -101,4 +101,28 @@ end
 ---@return table traits The cached research-trait matrix snapshot
 function ResearchCache.GetTraits()
     return ResearchCache.GetResearch()
+end
+
+--- Registers cache invalidation for research completion so trait knowledge
+--- stays accurate without a UI reload. EVENT_SMITHING_TRAIT_RESEARCH_COMPLETED
+--- (verified in Update 50 ESOUIDocumentation.txt) fires when a trait finishes
+--- researching, which is the only transition that changes "known" state.
+--- Safe to call repeatedly; registration happens once per session.
+function ResearchCache.RegisterEventHandlers()
+    if ResearchCache._eventsRegistered then return end
+
+    local eventRegistry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
+    local eventId = rawget(_G, "EVENT_SMITHING_TRAIT_RESEARCH_COMPLETED")
+    if not eventRegistry or type(eventRegistry.Register) ~= "function" or not eventId then
+        return
+    end
+
+    ResearchCache._eventsRegistered = eventRegistry.Register(
+        "CIMResearchCache",
+        "BETTERUI_CIM_ResearchCompleted",
+        eventId,
+        function()
+            ResearchCache.RefreshResearchTraits()
+        end
+    ) or nil
 end

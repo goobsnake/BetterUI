@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/NarrationHelper.lua
+File: Modules/CIM/Core/Integration/NarrationHelper.lua
 Purpose: Centralized gamepad narration helper for all BetterUI custom screens.
          Provides screen-reader accessible narration for list entries,
          category headers, footer currency, and action context.
@@ -73,17 +73,17 @@ function Narration.NarrateItemEntry(selectedData)
 
     -- Equipped status
     if selectedData.isEquippedInCurrentCategory or selectedData.isEquippedInAnotherCategory then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_SCREEN_NARRATION_EQUIPPED"))))
+        ZO_AppendNarration(narrations, SafeNarrate(GetString(SI_ITEM_FORMAT_STR_EQUIPPED)))
     end
 
     -- Junk status
     if selectedData.isJunk then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_NOT_JUNK"))))
+        ZO_AppendNarration(narrations, SafeNarrate(GetString("SI_ITEMFILTERTYPE", ITEMFILTERTYPE_JUNK)))
     end
 
     -- New item status
     if selectedData.brandNew then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_INVENTORY_NEW_ICON_TOOLTIP"))))
+        ZO_AppendNarration(narrations, SafeNarrate(GetString(SI_INVENTORY_NEW_ITEM_TOOLTIP)))
     end
 
     return narrations
@@ -114,7 +114,8 @@ function Narration.NarrateCategory(categoryName, itemCount)
     local narrations = {}
     ZO_AppendNarration(narrations, SafeNarrate(categoryName))
     if itemCount and itemCount > 0 then
-        ZO_AppendNarration(narrations, SafeNarrate(tostring(itemCount) .. " items"))
+        local itemCountFormat = GetString(rawget(_G, "SI_BETTERUI_NARRATION_ITEM_COUNT_FORMAT")) or "<<1>> items"
+        ZO_AppendNarration(narrations, SafeNarrate(zo_strformat(itemCountFormat, itemCount)))
     end
     return narrations
 end

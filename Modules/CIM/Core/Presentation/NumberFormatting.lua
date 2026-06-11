@@ -1,21 +1,23 @@
 --[[
-File: Modules/CIM/Core/NumberFormatting.lua
+File: Modules/CIM/Core/Presentation/NumberFormatting.lua
 Purpose: Number formatting utilities for the BetterUI addon.
          Provides comma formatting, abbreviation (K/M/B), and rounding functions.
 ]]
 
 -- ROUNDING
 
+--- Floors a number to the requested precision and formats it with exactly
+--- that many decimals. Always returns a string for a consistent return type.
 ---@param number number?
 ---@param decimals integer?
----@return string|integer
+---@return string
 function BETTERUI.roundNumber(number, decimals)
-    if number ~= nil and decimals ~= nil then
-        local power = 10 ^ decimals
-        return string.format("%.2f", math.floor(number * power) / power)
-    else
-        return 0
+    if number == nil then
+        return "0"
     end
+    local digits = math.max(math.floor(tonumber(decimals) or 0), 0)
+    local power = 10 ^ digits
+    return string.format("%." .. digits .. "f", math.floor(number * power) / power)
 end
 
 -- COMMA FORMATTING
@@ -57,19 +59,25 @@ function BETTERUI.FormatNumber(value, options)
         suffix = useUpperCase and "B" or "b"
         if useSmartDecimals then
             decimals = num >= 100 and 0 or (num >= 10 and 1 or 2)
+        elseif num == math.floor(num) then
+            -- For fixed style, still show 0 decimals if value is exact
+            decimals = 0
         end
     elseif absValue >= 1000000 then
         num = absValue / 1000000
         suffix = useUpperCase and "M" or "m"
         if useSmartDecimals then
             decimals = num >= 100 and 0 or (num >= 10 and 1 or 2)
+        elseif num == math.floor(num) then
+            -- For fixed style, still show 0 decimals if value is exact
+            decimals = 0
         end
     elseif absValue >= 1000 then
         num = absValue / 1000
         suffix = useUpperCase and "K" or "k"
         if useSmartDecimals then
             decimals = num >= 100 and 0 or (num >= 10 and 1 or 2)
-        elseif not useSmartDecimals and num == math.floor(num) then
+        elseif num == math.floor(num) then
             -- For fixed style, still show 0 decimals if value is exact
             decimals = 0
         end

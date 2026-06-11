@@ -52,11 +52,26 @@ local function ExtractSlot(itemData)
     return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
 end
 
---- Checks if an item exists at the specified slot
+--- Checks if an item exists at the specified slot.
+--- Canonical implementation lives in BatchConfig, which the manifest loads
+--- before this file; aliased here for batch-step reuse.
 --- @private
-local function HasItemAtSlot(bagId, slotIndex)
-    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
-    return (stackCount or 0) > 0
+local HasItemAtSlot = BatchConfig.HasItemAtSlot
+
+--- Resolves the actionable stack count for an item, clamping the requested
+--- stack to the live stack at the slot.
+---@param itemData table Item data or dataSource-wrapped entry
+---@param bagId number Bag identifier
+---@param slotIndex number Slot index within the bag
+---@return number|nil stackCount Clamped stack count, or nil when the slot is empty
+local function ResolveStackCount(itemData, bagId, slotIndex)
+    local rawData = itemData.dataSource or itemData
+    local requestedStack = rawData.stackCount or itemData.stackCount or 1
+    local liveStack = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+    if liveStack <= 0 then
+        return nil
+    end
+    return zo_clamp(requestedStack, 1, liveStack)
 end
 
 local function CanLockItem(bagId, slotIndex)
@@ -69,6 +84,7 @@ end
 
 BatchActions.ExtractSlot = ExtractSlot
 BatchActions.HasItemAtSlot = HasItemAtSlot
+BatchActions.ResolveStackCount = ResolveStackCount
 
 -- BATCH OPTION PRESETS
 
@@ -259,7 +275,6 @@ end
 function BatchActions.AnalyzeSelectedItems(selectedItems)
     local counts = {
         lockedCount = 0,
-        unlockedCount = 0,
         canLockCount = 0,
         canMarkJunkCount = 0,
         canUnmarkJunkCount = 0,
@@ -276,11 +291,8 @@ function BatchActions.AnalyzeSelectedItems(selectedItems)
                 if canBeUnlocked then
                     counts.lockedCount = counts.lockedCount + 1
                 end
-            else
-                counts.unlockedCount = counts.unlockedCount + 1
-                if canBeLocked then
-                    counts.canLockCount = counts.canLockCount + 1
-                end
+            elseif canBeLocked then
+                counts.canLockCount = counts.canLockCount + 1
             end
 
             local isJunk = IsItemJunk(bagId, slotIndex)

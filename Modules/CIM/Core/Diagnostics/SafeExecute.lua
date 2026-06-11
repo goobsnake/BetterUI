@@ -16,10 +16,9 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
         return false, "No function provided"
     end
 
-    local args = { ... }
-    local ok, result = pcall(function()
-        return fn(unpack(args))
-    end)
+    -- Call pcall directly with the varargs: packing into a table and
+    -- unpack(args) would truncate argument lists containing embedded nils.
+    local ok, result = pcall(fn, ...)
 
     if not ok then
         BETTERUI.Debug(string.format("[Error] %s: %s", context, tostring(result)))

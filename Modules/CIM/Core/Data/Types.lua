@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/Types.lua
+File: Modules/CIM/Core/Data/Types.lua
 Purpose: Shared EmmyLua type definitions for BetterUI.
          Provides centralized type annotations used across all modules.
 

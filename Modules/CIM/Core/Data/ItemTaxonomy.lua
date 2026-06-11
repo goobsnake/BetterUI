@@ -83,7 +83,8 @@ local VENDOR_SELL_CATEGORY_OVERRIDES = {
 }
 
 local BANK_CATEGORY_EXTRAS = {
-    { key = "companion",  nameStringId = SI_ITEMFILTERTYPE_COMPANION, filterType = ITEMFILTERTYPE_COMPANION, iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds", optional = true },
+    -- SI_ITEMFILTERTYPE27 is the generated "Companion Items" string for ITEMFILTERTYPE_COMPANION.
+    { key = "companion",  nameStringId = SI_ITEMFILTERTYPE27, filterType = ITEMFILTERTYPE_COMPANION, iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds", optional = true },
     { key = "junk",       nameStringId = SI_BETTERUI_INV_ITEM_JUNK,   filterType = nil,                      special = "junk",                                              iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds" },
 }
 

@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/GenericWindow.lua
+File: Modules/CIM/Core/Window/GenericWindow.lua
 Purpose: A specialized base class for Inventory-like windows (Banking, Backpack).
          Inherits from BETTERUI.Interface.Window and adds shared inventory behaviors.
          Supports configurable virtual templates for header unification.

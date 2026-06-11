@@ -524,6 +524,7 @@ end
 function BatchConfig.NormalizeBatchItems(items)
     local normalized = {}
     local seen = {}
+    local droppedCount = 0
 
     for _, itemData in ipairs(items) do
         local rawData = itemData.dataSource or itemData
@@ -536,7 +537,16 @@ function BatchConfig.NormalizeBatchItems(items)
                 seen[slotKey] = true
                 normalized[#normalized + 1] = itemData
             end
+        else
+            -- Selections without bag/slot ids (e.g. entryIndex-only rows) and
+            -- empty slots cannot be batch-processed; count them so the drop is
+            -- visible on the debug channel instead of silent.
+            droppedCount = droppedCount + 1
         end
+    end
+
+    if droppedCount > 0 and BETTERUI and BETTERUI.Debug then
+        BETTERUI.Debug(string.format("[Batch] NormalizeBatchItems dropped %d unprocessable selection(s)", droppedCount))
     end
 
     return normalized

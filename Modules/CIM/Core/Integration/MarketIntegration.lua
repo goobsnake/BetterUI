@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/MarketIntegration.lua
+File: Modules/CIM/Core/Integration/MarketIntegration.lua
 Purpose: Integration with third-party trade addons for price data.
          Supports MasterMerchant, Arkadius Trade Tools, and Tamriel Trade Centre.
 ]]
@@ -92,7 +92,7 @@ end
 local EMPTY_MARKET_PRICE_INFO = CreateMarketPriceInfo({})
 
 local function FetchMasterMerchantUnitPrice(itemLink)
-    if MasterMerchant == nil then
+    if MasterMerchant == nil or type(MasterMerchant.itemStats) ~= "function" then
         return nil
     end
 
@@ -305,7 +305,12 @@ function MarketIntegration.GetMarketPriceInfo(itemLink, stackCount)
     if not itemLink then
         return CreateMarketPriceInfo({})
     end
-    local generalInterfaceSettings = BETTERUI.GetModuleSettings("GeneralInterface") or {}
+    -- Hot path (called per list row): use the live settings table instead of
+    -- GetModuleSettings, which deep-clones the module table on every call.
+    -- The returned table is read-only by convention. Fall back to the cloning
+    -- accessor when SettingsAccessor has not loaded (standalone test harness).
+    local getSettings = BETTERUI.GetModuleSettingsLive or BETTERUI.GetModuleSettings
+    local generalInterfaceSettings = getSettings("GeneralInterface")
     stackCount = stackCount or 1
 
     local sourceOrder = MarketIntegration.GetPriorityOrder(generalInterfaceSettings)

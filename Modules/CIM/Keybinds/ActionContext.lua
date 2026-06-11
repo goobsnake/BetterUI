@@ -1,6 +1,40 @@
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Keybinds = BETTERUI.CIM.Keybinds or {}
 
+--- Shared quickslot eligibility check for inventory slot data.
+--- Re-exported by Modules/Inventory/Keybinds/InventoryKeybinds.lua as
+--- BETTERUI.Inventory.Keybinds.IsQuickslottable (CIM loads before Inventory).
+---@param slotData table|nil slot data with bagId/slotIndex
+---@return boolean
+function BETTERUI.CIM.IsQuickslottable(slotData)
+    if not slotData or not slotData.bagId or not slotData.slotIndex then
+        return false
+    end
+
+    local bagId, slotIndex = slotData.bagId, slotData.slotIndex
+    if FindActionSlotMatchingItem
+        and FindActionSlotMatchingItem(bagId, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
+        return true
+    end
+
+    if ZO_InventoryUtils_DoesNewItemMatchFilterType then
+        if ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUICKSLOT) then
+            return true
+        end
+
+        if ITEMFILTERTYPE_QUEST_QUICKSLOT
+            and ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUEST_QUICKSLOT) then
+            return true
+        end
+    end
+
+    if IsValidItemForSlot and IsValidItemForSlot(bagId, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
+        return true
+    end
+
+    return false
+end
+
 local cachedFrame = -1
 local contextCacheByReceiver = setmetatable({}, { __mode = "k" })
 local inventoryActionLists = {}
@@ -96,7 +130,7 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     ctx.isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
 
     -- Quickslot check
-    ctx.isQuickslottable = IsQuickslottable(target)
+    ctx.isQuickslottable = BETTERUI.CIM.IsQuickslottable(target)
 
     -- Usage requirements
     ctx.meetsUsage = target.meetsUsageRequirement

@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/TooltipLayout.lua
+File: Modules/CIM/Core/Window/TooltipLayout.lua
 Purpose: Tooltip panel width and positioning utilities.
 
 

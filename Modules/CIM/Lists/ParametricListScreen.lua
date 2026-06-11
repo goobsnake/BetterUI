@@ -3,6 +3,9 @@ File: Modules/CIM/Lists/ParametricListScreen.lua
 Purpose: Enhanced Gamepad List Screen Wrapper.
 ]]
 
+-- Matches ESOUI's file-local constant (zo_gamepadparametricscrolllistscreen.lua).
+local ALWAYS_ANIMATE = true
+
 -- CLASS: BETTERUI_Gamepad_ParametricList_Screen
 -- Enhanced Gamepad List Screen Wrapper.
 -- Contains Header, HeaderFragment, List, and basic logic.
@@ -36,6 +39,15 @@ function BETTERUI_Gamepad_ParametricList_Screen:Initialize(control, createTabBar
     self.headerFragment = ZO_ConveyorSceneFragment:New(headerContainer, ALWAYS_ANIMATE)
 
     self.header = control.header
+
+    -- Mirror ZO_Gamepad_ParametricList_Screen:Initialize: the generic header
+    -- initializer always runs (it populates header.controls, which
+    -- GenericHeader.Refresh indexes unconditionally); createTabBar only gates
+    -- the tab-bar setup inside it.
+    if self.header
+        and BETTERUI.GenericHeader and BETTERUI.GenericHeader.Initialize then
+        BETTERUI.GenericHeader.Initialize(self.header, createTabBar)
+    end
 
     self.updateCooldownMS = 0
 

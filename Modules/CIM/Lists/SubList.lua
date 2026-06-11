@@ -44,7 +44,12 @@ end
 
 --- Cancels selection and reverts to entry index.
 function BETTERUI_VerticalParametricScrollListSubList:CancelSelection()
-    local indexToReturnTo = zo_clamp(self.indexOnOpen, 1, #self.dataList)
+    local listSize = self.dataList and #self.dataList or 0
+    if not self.indexOnOpen or listSize == 0 then
+        return
+    end
+
+    local indexToReturnTo = zo_clamp(self.indexOnOpen, 1, listSize)
     self.targetSelectedIndex = indexToReturnTo
     self:UpdateAnchors(indexToReturnTo)
     self.onDataChosen(self:GetDataForDataIndex(indexToReturnTo))

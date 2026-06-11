@@ -31,6 +31,9 @@ local function NormalizeKeybindContract(options)
     local contract = options and options.keybinds or {}
     return {
         mainDescriptor = contract.mainDescriptor or nil,
+        -- Additional owner-supplied keybind groups (e.g. tab-bar LB/RB) that
+        -- must be suspended while header-sort mode owns the strip.
+        ownedDescriptors = contract.ownedDescriptors or {},
     }
 end
 
@@ -229,10 +232,11 @@ function HeaderSortIntegration.Install(owner, options)
         activeKeybindDescriptor = nil,
     }
 
-    if navigation.suspendTabBar then
-        navigation.deactivate = navigation.deactivate or SuspendOwnerTabBar
-        navigation.reactivate = navigation.reactivate or RestoreOwnerTabBar
-    end
+    -- Header-sort mode owns LB/RB, so the owner's tab bar (which registers its
+    -- own LB/RB group) is always suspended unless the owner installed custom
+    -- navigation handlers. suspendTabBar stays accepted for compatibility.
+    navigation.deactivate = navigation.deactivate or SuspendOwnerTabBar
+    navigation.reactivate = navigation.reactivate or RestoreOwnerTabBar
 
     owner._headerSortIntegration = integration
 
@@ -302,8 +306,31 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
 
     PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
 
-    if KEYBIND_STRIP and KEYBIND_STRIP.RemoveAllKeyButtonGroups then
-        KEYBIND_STRIP:RemoveAllKeyButtonGroups()
+    -- Remove only the keybind groups BetterUI owns; wiping the whole strip
+    -- (RemoveAllKeyButtonGroups) would also destroy groups owned by the
+    -- native UI and other addons. All owner-supplied groups (main descriptor
+    -- plus any extra owned descriptors, e.g. LB/RB groups) are suspended so
+    -- the header-sort LB/RB buttons can never collide with them.
+    local ownedGroups = {}
+    if integration.keybinds.mainDescriptor then
+        ownedGroups[#ownedGroups + 1] = integration.keybinds.mainDescriptor
+    end
+    for _, ownedDescriptor in ipairs(integration.keybinds.ownedDescriptors or {}) do
+        ownedGroups[#ownedGroups + 1] = ownedDescriptor
+    end
+
+    local removeOwnedGroups = BETTERUI.Interface and BETTERUI.Interface.RemoveOwnedKeybindGroups
+    if removeOwnedGroups then
+        integration.suspendedKeybindGroups = removeOwnedGroups(ownedGroups)
+    elseif KEYBIND_STRIP and KEYBIND_STRIP.RemoveKeybindButtonGroup then
+        local removed = {}
+        for _, group in ipairs(ownedGroups) do
+            if not KEYBIND_STRIP.HasKeybindButtonGroup or KEYBIND_STRIP:HasKeybindButtonGroup(group) then
+                KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+                removed[#removed + 1] = group
+            end
+        end
+        integration.suspendedKeybindGroups = removed
     end
 
     integration.activeKeybindDescriptor = GetHeaderKeybindDescriptor(integration, controller)
@@ -343,7 +370,20 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
         integration.activeKeybindDescriptor = nil
     end
 
-    if integration.keybinds.mainDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
+    -- Restore exactly the owned groups suspended on enter; fall back to the
+    -- legacy main-descriptor re-add when nothing was captured.
+    local suspendedGroups = integration.suspendedKeybindGroups
+    integration.suspendedKeybindGroups = nil
+    local restoreGroups = BETTERUI.Interface and BETTERUI.Interface.RestoreKeybindGroups
+    if suspendedGroups and #suspendedGroups > 0 then
+        if restoreGroups then
+            restoreGroups(suspendedGroups)
+        elseif KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
+            for _, group in ipairs(suspendedGroups) do
+                KEYBIND_STRIP:AddKeybindButtonGroup(group)
+            end
+        end
+    elseif integration.keybinds.mainDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
         KEYBIND_STRIP:AddKeybindButtonGroup(integration.keybinds.mainDescriptor)
         if KEYBIND_STRIP.UpdateKeybindButtonGroup then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.keybinds.mainDescriptor)

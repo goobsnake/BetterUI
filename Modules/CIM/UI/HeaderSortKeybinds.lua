@@ -51,6 +51,10 @@ end
 ---@param navigateUpCallback fun()?
 ---@return table
 function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallback, navigateUpCallback)
+    -- Resolve the deferred SORT_DIRECTION reference now so the X-button
+    -- visible() closure below never indexes a nil table.
+    EnsureControllerReady()
+
     local controller = self
 
     return {

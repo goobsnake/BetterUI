@@ -9,8 +9,14 @@ local indicatorInstances = I.indicatorInstances or {}
 local SetupArrowMouseHandlers = I.SetupArrowMouseHandlers or function() end
 local SetupThumbDragHandlers = I.SetupThumbDragHandlers or function() end
 local StopArrowRepeat = I.StopArrowRepeat or function() end
+local StopThumbDrag = I.StopThumbDrag or function() end
 local GetSelectableBounds = I.GetSelectableBounds or function(_, t) return 1, t end
 local CreateIndicatorControls = I.CreateIndicatorControls or function() return {} end
+
+-- Controls parked by Destroy, keyed by list control name. ESO cannot delete
+-- named controls and CreateControl fails on duplicate names, so a later
+-- Setup must re-attach the originals instead of creating new ones.
+local detachedControlsByName = {}
 
 local function AsNumber(value)
     if type(value) == "number" then
@@ -144,12 +150,21 @@ function ScrollIndicator.Setup(listControl, options)
         return instance
     end
 
-    local controls = CreateIndicatorControls(
-        listControl,
-        options and options.offsetX or nil,
-        options and options.offsetTopY or nil,
-        options and options.offsetBottomY or nil
-    )
+    -- Re-attach controls parked by a previous Destroy before creating new ones.
+    local controls = detachedControlsByName[controlName]
+    if controls then
+        detachedControlsByName[controlName] = nil
+        if controls.container then
+            controls.container:SetHidden(false)
+        end
+    else
+        controls = CreateIndicatorControls(
+            listControl,
+            options and options.offsetX or nil,
+            options and options.offsetTopY or nil,
+            options and options.offsetBottomY or nil
+        )
+    end
 
     local instance = {
         listControl = listControl,
@@ -316,12 +331,14 @@ function ScrollIndicator.Destroy(listControl)
     -- Stop any active arrow repeat
     StopArrowRepeat(instance)
 
-    -- Clear drag state
-    instance.isDragging = false
+    -- Clear drag state and remove the per-frame drag tracker
+    StopThumbDrag(instance)
 
-    -- Hide controls
+    -- Park the named controls for reuse: a later Setup re-attaches them
+    -- because CreateControl would fail on the duplicate names.
     if instance.controls and instance.controls.container then
         instance.controls.container:SetHidden(true)
+        detachedControlsByName[controlName] = instance.controls
     end
 
     -- Remove from cache

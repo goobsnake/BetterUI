@@ -35,8 +35,9 @@ function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onAct
     list.MoveNextCallback = data.onNext
     list.MovePrevCallback = data.onPrev
 
-    list.leftIcon = leftIcon or CreateButtonIcon("$(parent)LeftIcon", control, KEY_GAMEPAD_LEFT_SHOULDER, LEFT)
-    list.rightIcon = rightIcon or CreateButtonIcon("$(parent)RightIcon", control, KEY_GAMEPAD_RIGHT_SHOULDER, RIGHT)
+    -- $(parent) expansion is XML-only; Lua CreateControl needs explicit names.
+    list.leftIcon = leftIcon or CreateButtonIcon(control:GetName() .. "LeftIcon", control, KEY_GAMEPAD_LEFT_SHOULDER, LEFT)
+    list.rightIcon = rightIcon or CreateButtonIcon(control:GetName() .. "RightIcon", control, KEY_GAMEPAD_RIGHT_SHOULDER, RIGHT)
     list.entryAnchors = { CENTER, CENTER }
     list:InitializeKeybindStripDescriptors()
     list.control = control
@@ -340,7 +341,7 @@ function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
     local succeeded = ZO_ParametricScrollList.MoveNext(self)
     if not succeeded and allowWrapping then
         ZO_ConveyorSceneFragment_SetMovingBackward()
-        ZO_ParametricScrollList.SetFirstIndexSelected(self) -- Wrap to first
+        self:SetFirstIndexSelected() -- Wrap to first (virtual dispatch, matching MovePrevious)
         succeeded = true
     end
     if succeeded then
@@ -429,7 +430,17 @@ function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
             scrollList:SetNavigationGuard()
         end
 
-        -- BetterUI Fix: Explicitly handle Inventory scene to ensure reliable switching
+        -- Owner-installed dispatch: modules may set scrollList.onCategoryClicked
+        -- (e.g. the inventory module) to take over category-click handling.
+        if scrollList.onCategoryClicked then
+            scrollList.onCategoryClicked(scrollList, foundIndex)
+            -- Sync the visual tab bar to match the logic update
+            scrollList:SetSelectedIndexWithoutAnimation(foundIndex, true, true)
+            return
+        end
+
+        -- Legacy fallback until Modules/Inventory installs onCategoryClicked:
+        -- explicitly handle the Inventory scene to ensure reliable switching.
         if SCENE_MANAGER and SCENE_MANAGER:IsShowing("gamepad_inventory_root") and GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.OnCategoryClicked then
             GAMEPAD_INVENTORY:OnCategoryClicked(foundIndex)
             -- Sync the visual tab bar to match the logic update

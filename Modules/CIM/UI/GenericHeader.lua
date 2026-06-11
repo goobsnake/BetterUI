@@ -69,7 +69,10 @@ local TEXT_ALIGN_RIGHT = 2
 
 local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselectingDuringRebuild)
     if selectedData then
-        local categoryList = (selectedData and selectedData.categoryList) or GAMEPAD_INVENTORY.categoryList
+        -- Non-inventory owners without an explicit categoryList have nothing
+        -- to sync here; guard the GAMEPAD_INVENTORY fallback and no-op.
+        local categoryList = selectedData.categoryList or (GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.categoryList)
+        if not categoryList then return end
         for i = 1, categoryList:GetNumEntries() do
             if categoryList:GetEntryData(i) == selectedData then
                 categoryList:SetSelectedIndex(i)

@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/FontLocalization.lua
+File: Modules/CIM/Core/Presentation/FontLocalization.lua
 Purpose: Font localization utility for language-aware font handling.
          Provides detection of user language, font compatibility checks,
          and centralized Western-only font list for migration logic.

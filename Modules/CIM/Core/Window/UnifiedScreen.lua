@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/UnifiedScreen.lua
+File: Modules/CIM/Core/Window/UnifiedScreen.lua
 Purpose: Unified base class for Inventory and Banking screens.
          Provides common functionality including:
          - Footer mode switching (CURRENCY vs BANKING)
@@ -210,12 +210,21 @@ function BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds()
     end
 end
 
---- Removes all keybind button groups from the strip.
+--- Removes only this screen's own keybind button groups from the strip.
+--- Never wipes groups owned by the native UI or other addons.
 function BETTERUI.CIM.UnifiedScreen:ClearActiveKeybinds()
     if KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveAllKeyButtonGroups()
+        if self.activeKeybindDescriptor and KEYBIND_STRIP:HasKeybindButtonGroup(self.activeKeybindDescriptor) then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.activeKeybindDescriptor)
+        end
+        if self.searchKeybindDescriptor and KEYBIND_STRIP:HasKeybindButtonGroup(self.searchKeybindDescriptor) then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.searchKeybindDescriptor)
+        end
     end
     self.activeKeybindDescriptor = nil
+    -- Reset search mode so the next EnterSearchMode is not a no-op for
+    -- subclasses whose teardown does not route through SceneCleanup.
+    self._searchModeActive = false
 end
 
 --- Overrides base class RefreshKeybinds with header mode guard.

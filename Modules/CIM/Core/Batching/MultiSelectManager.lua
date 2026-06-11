@@ -203,8 +203,11 @@ function Manager:ExitSelectionMode()
     self.selectedItems = {} -- Clear selections
     self.selectedItemAliases = {}
 
-    -- Clear active instance
-    MultiSelectManager.SetActiveInstance(nil)
+    -- Clear the active instance only when it is still this manager; another
+    -- instance may have entered selection mode in the meantime.
+    if MultiSelectManager.GetActiveInstance() == self then
+        MultiSelectManager.SetActiveInstance(nil)
+    end
 
     -- Play sound for mode exit
     PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
@@ -307,11 +310,12 @@ function Manager:ClearSelections()
     end
 end
 
---- Selects all items in the specified list (or the stored list if none provided)
---- Handles ZO_GamepadEntryData which wraps item data in dataSource
-function Manager:SelectAll(listOverride)
-    local targetList = listOverride or self.list
-    if not targetList then return end
+--- Resolves the iterable view of a list: inner parametric list, item count,
+--- and optional dataList fallback. Shared by SelectAll and RefreshSelections.
+--- @param targetList table|nil The list (possibly a ZO_GamepadInventoryList wrapper)
+--- @return table|nil innerList, integer numItems, table|nil dataList
+local function ResolveListItems(targetList)
+    if not targetList then return nil, 0, nil end
 
     -- ZO_GamepadInventoryList wraps a parametric list - get the inner list for data access
     local innerList = targetList.GetParametricList and targetList:GetParametricList() or targetList
@@ -329,14 +333,31 @@ function Manager:SelectAll(listOverride)
         numItems = #dataList
     end
 
+    return innerList, numItems, dataList
+end
+
+--- Returns the entry data at index using the resolved list view.
+local function GetListEntryData(innerList, dataList, index)
+    if dataList then
+        -- Direct access when using dataList fallback
+        return dataList[index]
+    end
+    if innerList and innerList.GetDataForDataIndex then
+        return innerList:GetDataForDataIndex(index)
+    end
+    return nil
+end
+
+--- Selects all items in the specified list (or the stored list if none provided)
+--- Handles ZO_GamepadEntryData which wraps item data in dataSource
+function Manager:SelectAll(listOverride)
+    local targetList = listOverride or self.list
+    if not targetList then return end
+
+    local innerList, numItems, dataList = ResolveListItems(targetList)
+
     for i = 1, numItems do
-        local data
-        if dataList then
-            -- Direct access when using dataList fallback
-            data = dataList[i]
-        elseif innerList.GetDataForDataIndex then
-            data = innerList:GetDataForDataIndex(i)
-        end
+        local data = GetListEntryData(innerList, dataList, i)
 
         if data then
             local primaryKey = self:GetPrimarySelectionKey(data)
@@ -402,11 +423,12 @@ end
 
 -- UTILITIES
 
---- Gets a unique identifier for an item
+--- Gets the primary selection key for an item
 --- Handles ZO_GamepadEntryData which wraps item data in dataSource
---- Uses ESO's Id64ToString for reliable Id64 conversion
+--- Returns the first key from GetItemSelectionKeys: the normalized uniqueId
+--- when present, otherwise a "bagId_slotIndex" or "entry_N" composite key
 --- @param itemData table The item data (raw or ZO_GamepadEntryData wrapper)
---- @return string|nil uniqueId The unique identifier string, or nil if unresolvable
+--- @return string|nil uniqueId The primary selection key, or nil if unresolvable
 function Manager:GetItemUniqueId(itemData)
     local keys = self:GetItemSelectionKeys(itemData)
     return keys[1]
@@ -417,11 +439,14 @@ end
 function Manager:RefreshSelections()
     if not self.list then return end
 
+    -- Reuse SelectAll's list resolution so wrapped lists (GetParametricList)
+    -- and dataList-only lists refresh correctly instead of silently no-oping.
+    local innerList, numItems, dataList = ResolveListItems(self.list)
+
     -- Build lookup of every current alias key to the latest list data.
     local currentItemsByKey = {}
-    local numItems = self.list:GetNumItems()
     for i = 1, numItems do
-        local data = self.list:GetDataForDataIndex(i)
+        local data = GetListEntryData(innerList, dataList, i)
         if data then
             for _, key in ipairs(self:GetItemSelectionKeys(data)) do
                 currentItemsByKey[key] = data

@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/PerformanceProfiler.lua
+File: Modules/CIM/Core/Diagnostics/PerformanceProfiler.lua
 Purpose: Performance profiling utilities for BetterUI debug mode.
          Provides timing hooks, counters, and metrics for optimization.
 
@@ -144,11 +144,16 @@ end
 
 -- CONVENIENCE MACROS
 
+--- Captures a result list with an explicit count so embedded nils survive.
+local function CaptureResults(...)
+    return select("#", ...), { ... }
+end
+
 function BETTERUI.CIM.Profiler.Wrap(name, fn)
     return function(...)
         BETTERUI.CIM.Profiler.StartTiming(name)
-        local results = { fn(...) }
+        local resultCount, results = CaptureResults(fn(...))
         BETTERUI.CIM.Profiler.EndTiming(name)
-        return unpack(results)
+        return unpack(results, 1, resultCount)
     end
 end

@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/FeatureFlags.lua
+File: Modules/CIM/Core/Diagnostics/FeatureFlags.lua
 Purpose: Runtime feature flag system for BetterUI.
          Enables gradual rollout, A/B testing, and safe feature toggling.
 ]]
@@ -82,7 +82,8 @@ function BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
     end
 
     -- Check saved settings
-    local settings = BETTERUI.Settings and BETTERUI.Settings.FeatureFlags
+    local savedSettings = BETTERUI.Settings
+    local settings = savedSettings and savedSettings.FeatureFlags
     if settings and settings[flagName] ~= nil then
         flagStateCache[flagName] = settings[flagName]
         return settings[flagName]
@@ -91,7 +92,11 @@ function BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
     -- Fall back to default
     local def = FLAG_DEFINITIONS[flagName]
     if def then
-        flagStateCache[flagName] = def.defaultEnabled
+        -- Do not cache before SavedVars load (BETTERUI.Settings == nil),
+        -- otherwise persisted flag values would be masked for the session.
+        if savedSettings ~= nil then
+            flagStateCache[flagName] = def.defaultEnabled
+        end
         return def.defaultEnabled
     end
 
@@ -104,6 +109,12 @@ function BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, enabled)
     BETTERUI.Settings.FeatureFlags = BETTERUI.Settings.FeatureFlags or {}
     BETTERUI.Settings.FeatureFlags[flagName] = enabled
     flagStateCache[flagName] = nil -- Clear cache to force re-read
+end
+
+--- Clears the runtime flag cache so persisted values are re-read.
+--- Called by RuntimeSetup.Apply right after SavedVars load.
+function BETTERUI.CIM.FeatureFlags.InvalidateCache()
+    flagStateCache = {}
 end
 
 function BETTERUI.CIM.FeatureFlags.SetOverride(flagName, enabled)

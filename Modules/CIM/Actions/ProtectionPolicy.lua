@@ -59,10 +59,11 @@ end
 
 -- LOCAL HELPERS
 
-local function HasItemAtSlot(bagId, slotIndex)
-    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
-    return (stackCount or 0) > 0
-end
+--- Checks if an item exists at the specified slot.
+--- Canonical implementation lives in BatchConfig, which the manifest loads
+--- before this file; aliased here for policy checks.
+--- @private
+local HasItemAtSlot = BETTERUI.CIM.BatchConfig.HasItemAtSlot
 
 local function IsCompanionItem(bagId, slotIndex)
     return GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION
@@ -315,6 +316,17 @@ function Policy.CanVendorAction(actionType, bagId, slotIndex, context)
     local vendorSellVengeanceAction = ResolveVendorAction("SELL_VENGEANCE")
     local fenceSellAction = ResolveVendorAction("FENCE_SELL")
     local fenceLaunderAction = ResolveVendorAction("FENCE_LAUNDER")
+
+    -- Native gamepad stores exclude player-locked items from the regular
+    -- sell lists only (storewindow_gamepad_util.lua GetSellItems and
+    -- GetSellVengeanceItems filter on isPlayerLocked); GetStolenSellItems and
+    -- GetLaunderItems do not, so fence sell/launder stay allowed when locked.
+    local isLockFilteredAction = actionType == vendorSellAction
+        or actionType == vendorSellJunkAction
+        or actionType == vendorSellVengeanceAction
+    if isLockFilteredAction and IsItemPlayerLocked and IsItemPlayerLocked(bagId, slotIndex) then
+        return false, Policy.DENY.PLAYER_LOCKED
+    end
 
     if actionType == vendorSellAction or actionType == vendorSellVengeanceAction then
         if isStolen then

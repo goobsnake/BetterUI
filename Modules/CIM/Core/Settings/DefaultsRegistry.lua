@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/DefaultsRegistry.lua
+File: Modules/CIM/Core/Settings/DefaultsRegistry.lua
 Purpose: Centralized default values for all BetterUI modules.
          Single source of truth for settings defaults, first-install states,
          and destructive setting identification.

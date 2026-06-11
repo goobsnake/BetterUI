@@ -7,12 +7,6 @@ local SORT_DIRECTION = {
     DESCENDING = 2,
 }
 
-local SORT_ARROW = {
-    [SORT_DIRECTION.NONE] = "",
-    [SORT_DIRECTION.ASCENDING] = "|t20:20:EsoUI/Art/Buttons/Gamepad/gp_upArrow.dds|t ",
-    [SORT_DIRECTION.DESCENDING] = "|t20:20:EsoUI/Art/Buttons/Gamepad/gp_downArrow.dds|t ",
-}
-
 BETTERUI.CIM.UI.HeaderSortController = ZO_Object:Subclass()
 
 function BETTERUI.CIM.UI.HeaderSortController:New(listControl, columns, onSortChangedCallback)
@@ -244,10 +238,16 @@ function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelC
         else
             arrowName = "BETTERUI_HeaderSortArrow_" .. columnIndex
         end
-        local arrow = WINDOW_MANAGER:CreateControl(arrowName, labelControl, CT_TEXTURE)
-        arrow:SetDimensions(24, 24)
-        arrow:SetAnchor(RIGHT, labelControl, LEFT, -4, 0)
-        arrow:SetHidden(true)
+        -- CreateControl returns nil on a duplicate name (e.g. a rebuilt
+        -- controller over the same persistent label controls), so reuse the
+        -- existing control instead of recreating it.
+        local arrow = WINDOW_MANAGER:GetControlByName(arrowName)
+        if not arrow then
+            arrow = WINDOW_MANAGER:CreateControl(arrowName, labelControl, CT_TEXTURE)
+            arrow:SetDimensions(24, 24)
+            arrow:SetAnchor(RIGHT, labelControl, LEFT, -4, 0)
+            arrow:SetHidden(true)
+        end
         column.arrowTexture = arrow
     end
 
@@ -267,14 +267,17 @@ end
 function BETTERUI.CIM.UI.HeaderSortController:RefreshColumnLabels(headerContainer, columnNamePattern)
     if not headerContainer then return end
 
-    for i, column in ipairs(self.columns) do
+    -- Route through SetColumnLabel + UpdateVisuals so the arrow texture and
+    -- selection styling stay the single source of truth (no text-markup arrows).
+    for i in ipairs(self.columns) do
         local labelName = string.format(columnNamePattern, i)
         local labelControl = headerContainer:GetNamedChild(labelName)
         if labelControl then
-            self.columns[i].labelControl = labelControl
-            labelControl:SetText(column.name .. (SORT_ARROW[self.sortDirections[i]] or ""))
+            self:SetColumnLabel(i, labelControl)
         end
     end
+
+    self:UpdateVisuals()
 end
 
 BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION = SORT_DIRECTION

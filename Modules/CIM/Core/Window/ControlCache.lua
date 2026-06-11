@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/ControlCache.lua
+File: Modules/CIM/Core/Window/ControlCache.lua
 Purpose: Provides reusable control caching pattern to avoid repeated GetNamedChild lookups.
          Repeated GetNamedChild calls are a performance concern in UI-heavy modules.
          This utility caches child references at initialization time for efficient access.

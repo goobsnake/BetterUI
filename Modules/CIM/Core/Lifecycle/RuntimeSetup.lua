@@ -139,18 +139,10 @@ local function RunSettingsMigrations(settings)
     --- @deprecated Legacy "enabled" key is transitional; replaced by "m_enabled" since v2.8
     local currentLang = GetCVar("language.2") or "en"
     local isEnglish = (currentLang == "en")
-    local westernOnlyFonts = {
-        ["EsoUI/Common/Fonts/FTN57.otf"] = true,
-        ["EsoUI/Common/Fonts/FTN47.otf"] = true,
-        ["EsoUI/Common/Fonts/FTN87.otf"] = true,
-        ["EsoUI/Common/Fonts/Univers57.otf"] = true,
-        ["EsoUI/Common/Fonts/Univers67.otf"] = true,
-        ["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
-        ["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
-        ["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
-        ["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
-        ["EsoUI/Common/Fonts/consola.otf"] = true,
-    }
+    -- Canonical Western-only font list lives in FontLocalization; all files
+    -- are loaded by the time migrations run from BETTERUI.Initialize().
+    local fontLocalization = BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.Localization
+    local westernOnlyFonts = (fontLocalization and fontLocalization.WESTERN_ONLY_FONTS) or {}
 
     for modName, modSettings in pairs(settings.Modules) do
         if type(modSettings) == "table" then
@@ -245,9 +237,23 @@ end
 
 function RuntimeSetup.Apply(settings)
     EnsureLifecycleRuntimeState()
+
+    -- SavedVars just loaded: drop any feature-flag defaults cached pre-load so
+    -- persisted flag values take effect this session.
+    local featureFlags = BETTERUI.CIM and BETTERUI.CIM.FeatureFlags
+    if featureFlags and type(featureFlags.InvalidateCache) == "function" then
+        featureFlags.InvalidateCache()
+    end
+
     ApplyAPIPatches()
     RunSettingsMigrations(settings)
     EnsureDebugCommandsRegistered()
+
+    -- Keep cached research-trait knowledge fresh when research completes.
+    local researchCache = BETTERUI.CIM and BETTERUI.CIM.ResearchCache
+    if researchCache and type(researchCache.RegisterEventHandlers) == "function" then
+        researchCache.RegisterEventHandlers()
+    end
 end
 
 -- Export for testing/debugging

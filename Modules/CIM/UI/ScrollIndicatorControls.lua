@@ -157,6 +157,17 @@ local function GetSelectableBounds(instance, totalItems)
     return firstSelectableIndex, lastSelectableIndex
 end
 
+--- Stops an active thumb drag and removes the per-frame drag tracker.
+local function StopThumbDrag(instance)
+    if not instance then return end
+
+    instance.isDragging = false
+
+    if instance.controls and instance.controls.container then
+        instance.controls.container:SetHandler("OnUpdate", nil)
+    end
+end
+
 local function SetupThumbDragHandlers(instance)
     if not instance or not instance.controls then return end
 
@@ -168,33 +179,9 @@ local function SetupThumbDragHandlers(instance)
 
     -- Track drag state
     instance.isDragging = false
-    instance.dragStartY = nil
 
-    thumb:SetHandler("OnMouseDown", function(control, button)
-        if button == MOUSE_BUTTON_INDEX_LEFT and instance.listObject then
-            instance.isDragging = true
-            instance.dragStartY = select(2, GetUIMousePosition())
-            instance.dragStartIndex = instance.currentIndex or 1
-        end
-    end)
-
-    thumb:SetHandler("OnMouseUp", function(control, button)
-        if button == MOUSE_BUTTON_INDEX_LEFT then
-            instance.isDragging = false
-            instance.dragStartY = nil
-            instance.dragStartIndex = nil
-        end
-    end)
-
-    -- Also stop dragging if mouse exits the control area
-    thumb:SetHandler("OnMouseExit", function()
-        -- Don't immediately stop - allow dragging outside thumb if still holding
-    end)
-
-    -- Use OnUpdate on the container to track drag position
-    local updateName = "BetterUI_ScrollIndicatorThumbDrag_" .. tostring(instance.listControl:GetName())
-
-    instance.controls.container:SetHandler("OnUpdate", function()
+    -- Per-frame drag tracker; installed on drag start, removed on drag end/Destroy.
+    local function OnDragUpdate()
         if not instance.isDragging or not instance.listObject then return end
 
         local currentY = select(2, GetUIMousePosition())
@@ -234,23 +221,42 @@ local function SetupThumbDragHandlers(instance)
         if targetIndex ~= instance.currentIndex then
             instance.listObject:SetSelectedIndexWithoutAnimation(targetIndex, true, false)
         end
+    end
+
+    thumb:SetHandler("OnMouseDown", function(control, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT and instance.listObject then
+            instance.isDragging = true
+            -- Install the per-frame tracker only while dragging
+            instance.controls.container:SetHandler("OnUpdate", OnDragUpdate)
+        end
     end)
+
+    thumb:SetHandler("OnMouseUp", function(control, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            StopThumbDrag(instance)
+        end
+    end)
+
+    -- Also stop dragging if mouse exits the control area
+    thumb:SetHandler("OnMouseExit", function()
+        -- Don't immediately stop - allow dragging outside thumb if still holding
+    end)
+
+    local eventName = "BetterUI_ScrollIndicatorThumbDrag_" .. tostring(instance.listControl:GetName())
 
     -- Global mouse up handler to catch releases outside the thumb
     local function OnGlobalMouseUp(eventCode, button, ctrl, alt, shift, command)
         if button == MOUSE_BUTTON_INDEX_LEFT and instance.isDragging then
-            instance.isDragging = false
-            instance.dragStartY = nil
-            instance.dragStartIndex = nil
+            StopThumbDrag(instance)
         end
     end
 
     -- Register for global mouse up to handle release outside thumb
-    EVENT_MANAGER:RegisterForEvent(updateName, EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
+    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
 
     -- Store for cleanup (used by ScrollIndicator.Destroy)
     instance.globalMouseUpHandler = OnGlobalMouseUp
-    instance.globalMouseUpEventName = updateName
+    instance.globalMouseUpEventName = eventName
 end
 
 -- HELPER FUNCTIONS
@@ -351,6 +357,7 @@ BETTERUI.CIM.ScrollIndicator._Internals = {
     SetupArrowMouseHandlers = SetupArrowMouseHandlers,
     SetupThumbDragHandlers = SetupThumbDragHandlers,
     StopArrowRepeat = StopArrowRepeat,
+    StopThumbDrag = StopThumbDrag,
     GetSelectableBounds = GetSelectableBounds,
     CreateIndicatorControls = CreateIndicatorControls,
 }

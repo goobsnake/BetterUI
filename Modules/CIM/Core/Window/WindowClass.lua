@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/WindowClass.lua
+File: Modules/CIM/Core/Window/WindowClass.lua
 Purpose: Base window class for gamepad inventory/banking screens.
 
 

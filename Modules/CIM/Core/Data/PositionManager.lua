@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/PositionManager.lua
+File: Modules/CIM/Core/Data/PositionManager.lua
 Purpose: Shared position persistence manager for inventory-style lists.
          Provides save/restore functionality for list positions per-category.
          Used by Inventory and Banking modules.
@@ -98,17 +98,19 @@ function BETTERUI.CIM.PositionManager.RestorePosition(moduleName, categoryKey, l
     if not saved then return 1 end
 
     local targetIndex = 1
+    local found = false
 
     -- Try to find by uniqueId first (most accurate)
     if saved.uniqueId then
         for i, data in ipairs(dataList) do
             if data.uniqueId == saved.uniqueId then
                 targetIndex = i
+                found = true
                 break
             end
         end
         -- If uniqueId wasn't found, fall back to saved index
-        if targetIndex == 1 and saved.index and saved.index > 1 then
+        if not found and saved.index then
             targetIndex = saved.index
         end
     elseif saved.index then

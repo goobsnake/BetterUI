@@ -568,17 +568,23 @@ function Mixin.ProcessBatchThrottled(self, request)
             else
                 remainingMs = remainingMs + pauseBudget
             end
-            return string.format("Processing (%d/%d) ~%s", processedCount, totalItems, BatchConfig.FormatEstimatedBatchDuration(remainingMs / 1000))
+            local etaFormat = GetString(rawget(_G, "SI_BETTERUI_BATCH_PROGRESS_ETA_FORMAT")) or "Processing (%d/%d) ~%s"
+            return string.format(etaFormat, processedCount, totalItems, BatchConfig.FormatEstimatedBatchDuration(remainingMs / 1000))
         end
-        return string.format("Processing (%d/%d)", processedCount, totalItems)
+        local progressFormat = GetString(rawget(_G, "SI_BETTERUI_BATCH_PROGRESS_FORMAT")) or "Processing (%d/%d)"
+        return string.format(progressFormat, processedCount, totalItems)
     end
 
     local function BuildStillProcessingSecondaryText()
         local remainingWaitMs = ResolveStillProcessingWaitMs(BatchConfig.GetNowMs(), nil)
         if remainingWaitMs > 0 then
-            return string.format("Continuing in %ds to prevent message rate limit logoff", zo_max(1, zo_ceil(remainingWaitMs / 1000)))
+            local waitFormat = GetString(rawget(_G, "SI_BETTERUI_BATCH_RATE_LIMIT_WAIT_FORMAT"))
+                or "Continuing in %ds to prevent message rate limit logoff"
+            return string.format(waitFormat, zo_max(1, zo_ceil(remainingWaitMs / 1000)))
         end
-        return string.format("Please Wait - Press %s to abort", BatchConfig.ResolveBatchAbortBindingMarkup())
+        local abortFormat = GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORT_HINT_FORMAT"))
+            or "Please Wait - Press %s to abort"
+        return string.format(abortFormat, BatchConfig.ResolveBatchAbortBindingMarkup())
     end
 
     local function ShowStillProcessingAnnouncement(waitMs, forceRecreate)

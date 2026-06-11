@@ -8,6 +8,22 @@ function BETTERUI.Debug(str)
     return d("|c0066ff[BETTERUI]|r " .. str)
 end
 
+--- Ungated diagnostic output for error/recovery reporting.
+--- Unlike BETTERUI.Debug this is never suppressed by the debug flag, so
+--- failures stay visible to users even with debugging disabled.
+---@param str string Message to display in chat with [BETTERUI] prefix
+function BETTERUI.DebugError(str)
+    local message = "|c0066ff[BETTERUI]|r " .. tostring(str)
+    local chatPrint = rawget(_G, "d")
+    if type(chatPrint) == "function" then
+        return chatPrint(message)
+    end
+    local chatRouter = rawget(_G, "CHAT_ROUTER")
+    if chatRouter and type(chatRouter.AddSystemMessage) == "function" then
+        return chatRouter:AddSystemMessage(message)
+    end
+end
+
 -- As of v2.8, 'm_enabled' is the canonical key. Legacy 'enabled' fallback was removed
 -- to avoid silent defaults; migrate older saved variables before v3.0.
 function BETTERUI.GetModuleEnabled(moduleName)
@@ -28,10 +44,14 @@ function BETTERUI.GetModuleEnabled(moduleName)
     return false
 end
 
-function BETTERUI.SetModuleEnabled(moduleName, enabled)
+--- Marks a module as disabled for the current session only; nothing is persisted.
+--- (Renamed from SetModuleEnabled, which misleadingly implied persistence.)
+---@param moduleName string Module name key
+---@param disabled boolean True to hide the module for this session
+function BETTERUI.SetModuleSessionDisabled(moduleName, disabled)
     if not moduleName then return end
     BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
-    BETTERUI._sessionDisabledModules[moduleName] = not enabled
+    BETTERUI._sessionDisabledModules[moduleName] = disabled and true or nil
 end
 
 function BETTERUI.SafeIcon(iconPath)
@@ -156,16 +176,19 @@ function BETTERUI.CIM.Utils.SetExternalToolbarHidden(hidden)
     end
 end
 
+-- House bank bag ids (ESO constants exist before addon load); built once
+-- instead of per call, since this runs per row/tooltip.
+local HOUSE_BANK_BAG_IDS = {
+    BAG_HOUSE_BANK_ONE, BAG_HOUSE_BANK_TWO, BAG_HOUSE_BANK_THREE,
+    BAG_HOUSE_BANK_FOUR, BAG_HOUSE_BANK_FIVE, BAG_HOUSE_BANK_SIX,
+    BAG_HOUSE_BANK_SEVEN, BAG_HOUSE_BANK_EIGHT, BAG_HOUSE_BANK_NINE,
+    BAG_HOUSE_BANK_TEN
+}
+
 function BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink)
     if not itemLink then return 0 end
-    local houseBanks = {
-        BAG_HOUSE_BANK_ONE, BAG_HOUSE_BANK_TWO, BAG_HOUSE_BANK_THREE,
-        BAG_HOUSE_BANK_FOUR, BAG_HOUSE_BANK_FIVE, BAG_HOUSE_BANK_SIX,
-        BAG_HOUSE_BANK_SEVEN, BAG_HOUSE_BANK_EIGHT, BAG_HOUSE_BANK_NINE,
-        BAG_HOUSE_BANK_TEN
-    }
     local total = 0
-    for _, bagId in ipairs(houseBanks) do
+    for _, bagId in ipairs(HOUSE_BANK_BAG_IDS) do
         total = total + researchableTraitMatcher(itemLink, bagId)
     end
     return total

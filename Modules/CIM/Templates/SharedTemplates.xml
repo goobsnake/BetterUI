@@ -68,7 +68,7 @@
             Purpose: Variation of the standard label that enforces uppercase text.
             Structure: Same as SubMenuEntryLabel but with modifyTextType="UPPERCASE".
         -->
-        <Label name="BETTERUI_GamepadMenuEntryLabelTemplate" font="ZoFontGamepadSub34"
+        <Label name="BETTERUI_GamepadMenuEntryLabelTemplate" font="ZoFontGamepad34"
             verticalAlignment="CENTER" wrapMode="ELLIPSIS" modifyTextType="UPPERCASE" virtual="true">
             <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT" />
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT" />
@@ -315,7 +315,7 @@
 
         <!-- 
             Template: Item Slot Wrapper
-            Purpose: Inherits BetterUI_GamepadMenuEntryTemplate and adds a StatusIndicator.
+            Purpose: Inherits BETTERUI_GamepadMenuEntryTemplate and adds a StatusIndicator.
         -->
         <Control name="BETTERUI_GamepadItemEntryTemplate"
             inherits="BETTERUI_GamepadMenuEntryTemplate" virtual="true">

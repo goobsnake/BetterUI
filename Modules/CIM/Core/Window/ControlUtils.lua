@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/ControlUtils.lua
+File: Modules/CIM/Core/Window/ControlUtils.lua
 Purpose: Shared UI control utilities used across BetterUI modules.
 ]]
 

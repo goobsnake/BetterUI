@@ -14,14 +14,11 @@ BETTERUI.CIM.Currency = BETTERUI.CIM.Currency or {}
 -- CURRENCY DEFINITIONS
 -- Single source of truth for all currency metadata
 
--- Backwards Compatibility:
--- "Trade Bars" (Update 49+) used to be "Event Tickets".
--- "Seals" used to be "Endeavor Seals" (renamed in upcoming release).
--- "Tome Points" are new in Update 49 and may not exist on older clients.
-local IS_LEGACY_TICKETS = (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil)
-local TRADE_BARS_ID = CURT_TRADE_BARS or CURT_EVENT_TICKETS
-local SEALS_ID = CURT_SEALS or CURT_ENDEAVOR_SEALS
-local TOME_POINTS_ID = CURT_TOME_POINTS -- can be nil
+-- Update 50 (API 101050): CURT_TRADE_BARS, CURT_SEALS, CURT_TOME_POINTS, and
+-- CURT_ARCHIVAL_FORTUNES are all part of the live API.
+local TRADE_BARS_ID = CURT_TRADE_BARS
+local SEALS_ID = CURT_SEALS
+local TOME_POINTS_ID = CURT_TOME_POINTS
 
 BETTERUI.CIM.Currency.DEFS = {
     {
@@ -92,8 +89,7 @@ BETTERUI.CIM.Currency.DEFS = {
         labelName = "TradeBarsLabel",
         settingKey = "showCurrencyTradeBars",
         apiConst = TRADE_BARS_ID,
-        labelStringId = IS_LEGACY_TICKETS and "SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL" or
-            "SI_BETTERUI_FOOTER_TRADE_BARS_LABEL",
+        labelStringId = "SI_BETTERUI_FOOTER_TRADE_BARS_LABEL",
         color = "00FF00",
         location = CURRENCY_LOCATION_ACCOUNT
     },
@@ -143,7 +139,7 @@ BETTERUI.CIM.Currency.DEFS = {
         iconKey = "archival",
         labelName = "ArchivalLabel",
         settingKey = "showCurrencyArchival",
-        apiConst = rawget(_G, "CURT_ARCHIVAL_FORTUNES"),
+        apiConst = CURT_ARCHIVAL_FORTUNES,
         labelStringId = "SI_BETTERUI_FOOTER_ARCHIVAL_LABEL",
         color = "00FF00",
         location = CURRENCY_LOCATION_ACCOUNT,
@@ -165,10 +161,10 @@ function BETTERUI.CIM.Currency.GetValue(def)
     if not def or not def.apiConst then return 0 end
     if def.useStoredAmount then
         return GetPlayerStoredCurrencyAmount(def.apiConst)
-    elseif def.location then
-        return GetCurrencyAmount(def.apiConst, def.location)
     else
-        return GetCurrencyAmount(def.apiConst)
+        -- currencyLocation is a required argument in the U50 API; default to
+        -- the character location when a def omits it.
+        return GetCurrencyAmount(def.apiConst, def.location or CURRENCY_LOCATION_CHARACTER)
     end
 end
 
@@ -187,7 +183,7 @@ function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     -- Try gamepad icon first, fall back to keyboard icon.
     local icon = def.apiConst and GetCurrencyGamepadIcon(def.apiConst) or ""
     if not icon or icon == "" then
-        icon = def.apiConst and GetCurrencyKeyboardIcon and GetCurrencyKeyboardIcon(def.apiConst) or ""
+        icon = def.apiConst and GetCurrencyKeyboardIcon(def.apiConst) or ""
     end
     icon = BETTERUI.SafeIcon(icon)
 

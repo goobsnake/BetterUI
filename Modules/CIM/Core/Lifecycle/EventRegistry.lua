@@ -31,14 +31,26 @@ end
 ---@param namespace string Unique namespace for EVENT_MANAGER registration
 ---@param eventId number ESO event constant
 ---@param callback function Event handler function
+---@return boolean registered True when EVENT_MANAGER accepted the registration
 function EventRegistry.Register(moduleName, namespace, eventId, callback)
+    -- RegisterForEvent returns false on failure (e.g. duplicate namespace+event);
+    -- only track registrations that actually took effect.
+    local registered = EVENT_MANAGER:RegisterForEvent(namespace, eventId, callback)
+    if not registered then
+        if BETTERUI.Debug then
+            BETTERUI.Debug(string.format(
+                "[EventRegistry] RegisterForEvent rejected (duplicate?): module=%s namespace=%s event=%s",
+                tostring(moduleName), tostring(namespace), tostring(eventId)))
+        end
+        return false
+    end
+
     local registrations = EnsureRuntimeState()
     registrations[moduleName] = registrations[moduleName] or {}
     registrations[moduleName][eventId] = registrations[moduleName][eventId] or {}
 
     table.insert(registrations[moduleName][eventId], namespace)
-
-    EVENT_MANAGER:RegisterForEvent(namespace, eventId, callback)
+    return true
 end
 
 --- Register an event with a filter.
@@ -48,10 +60,16 @@ end
 ---@param callback function Event handler
 ---@param filterType number ESO filter type constant
 ---@param filterValue any Filter value
+---@return boolean registered True when the underlying registration succeeded
 function EventRegistry.RegisterFiltered(moduleName, namespace, eventId, callback, filterType, filterValue)
-    EventRegistry.Register(moduleName, namespace, eventId, callback)
+    -- Only add the filter when the registration actually took effect;
+    -- Register already logs and skips rejected/duplicate registrations.
+    if not EventRegistry.Register(moduleName, namespace, eventId, callback) then
+        return false
+    end
 
     EVENT_MANAGER:AddFilterForEvent(namespace, eventId, filterType, filterValue)
+    return true
 end
 
 --- Unregister all events for a specific module.

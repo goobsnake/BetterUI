@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/SettingsMetadata.lua
+File: Modules/CIM/Core/Settings/SettingsMetadata.lua
 Purpose: Settings metadata registry and default/reset management.
          Defines per-module setting metadata (labels, tooltips, defaults, dependencies).
          Provides lookup, default retrieval, and group-based reset functions.

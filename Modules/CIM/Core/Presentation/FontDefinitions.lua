@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/FontDefinitions.lua
+File: Modules/CIM/Core/Presentation/FontDefinitions.lua
 Purpose: Shared font definitions and utility functions for inventory/banking modules.
          Provides centralized font arrays, defaults, and descriptor builders.
 ]]
@@ -100,18 +100,12 @@ BETTERUI.CIM.Font.DEFAULTS = {
     columnFontStyle = "",
 }
 
-local WESTERN_ONLY_FONTS = {
-    ["EsoUI/Common/Fonts/FTN57.otf"] = true,
-    ["EsoUI/Common/Fonts/FTN47.otf"] = true,
-    ["EsoUI/Common/Fonts/FTN87.otf"] = true,
-    ["EsoUI/Common/Fonts/Univers57.otf"] = true,
-    ["EsoUI/Common/Fonts/Univers67.otf"] = true,
-    ["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
-    ["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
-    ["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
-    ["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
-    ["EsoUI/Common/Fonts/consola.otf"] = true,
-}
+--- Canonical Western-only font list lives in FontLocalization, which loads
+--- after this file; resolve it lazily at call time instead of duplicating it.
+local function GetWesternOnlyFonts()
+    local localization = BETTERUI.CIM.Font and BETTERUI.CIM.Font.Localization
+    return (localization and localization.WESTERN_ONLY_FONTS) or {}
+end
 
 BETTERUI.CIM.Font.SIZE_MIN = 12
 BETTERUI.CIM.Font.SIZE_MAX = 48
@@ -200,10 +194,11 @@ function BETTERUI.CIM.InitModuleDefaults(moduleKey, m_options, defaults, fallbac
 
     local currentLang = GetCVar("language.2") or "en"
     if currentLang ~= "en" then
-        if m_options.nameFont and WESTERN_ONLY_FONTS[m_options.nameFont] then
+        local westernOnlyFonts = GetWesternOnlyFonts()
+        if m_options.nameFont and westernOnlyFonts[m_options.nameFont] then
             m_options.nameFont = "$(GAMEPAD_MEDIUM_FONT)"
         end
-        if m_options.columnFont and WESTERN_ONLY_FONTS[m_options.columnFont] then
+        if m_options.columnFont and westernOnlyFonts[m_options.columnFont] then
             m_options.columnFont = "$(GAMEPAD_MEDIUM_FONT)"
         end
     end
@@ -228,7 +223,13 @@ end
 ---@param fontType string
 ---@return string descriptor
 function BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, fontType)
-    local settings = BETTERUI.GetModuleSettings(moduleName)
+    -- Hot path (called per list row via descriptor closures): use the live
+    -- settings table instead of GetModuleSettings, which deep-clones the
+    -- module table on every call. The returned table is read-only by convention.
+    -- Fall back to the cloning accessor when SettingsAccessor has not loaded
+    -- (standalone test harness).
+    local getSettings = BETTERUI.GetModuleSettingsLive or BETTERUI.GetModuleSettings
+    local settings = getSettings and getSettings(moduleName)
     local defaults = BETTERUI.CIM.Font.DEFAULTS
 
     local fontPath, fontSize, fontStyle

@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/SettingsFactory.lua
+File: Modules/CIM/Core/Settings/SettingsFactory.lua
 Purpose: Settings sort helpers, panel factory, and font settings factory.
          Provides alphabetical sorting for LAM controls, module panel creation,
          and font submenu option generation.

@@ -14,7 +14,11 @@ function BETTERUI.CIM.InitializeSharedItemVisualData(row, itemData)
     row.uniqueId = itemData.uniqueId
     row.bestItemCategoryName = itemData.bestGamepadItemCategoryName or itemData.bestItemCategoryName
     row:SetDataSource(itemData)
-    if itemData.bagId ~= nil and itemData.slotIndex ~= nil then
+    if itemData.bagId ~= nil and itemData.slotIndex ~= nil
+        and itemData.requiredChampionPoints == nil then
+        -- SHARED_INVENTORY slot data already carries requiredChampionPoints
+        -- from the same GetItemRequiredChampionPoints call; only fill the gap
+        -- when a caller passes data without it.
         row.dataSource.requiredChampionPoints = GetItemRequiredChampionPoints(itemData.bagId, itemData.slotIndex)
     end
     row:AddIcon(itemData.icon or itemData.iconFile)

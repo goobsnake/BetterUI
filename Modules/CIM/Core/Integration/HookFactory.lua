@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/HookFactory.lua
+File: Modules/CIM/Core/Integration/HookFactory.lua
 Purpose: Hook utilities for extending or replacing UI methods.
          Provides PreHook, PostHook, and ReplaceHook patterns.
 ]]
@@ -27,7 +27,7 @@ local function createHookInternal(control, method, fn, position)
     elseif position == "replace" then
         -- Full replacement is intentionally explicit and should be used sparingly.
         control[method] = function(self, ...)
-            fn(self, ...)
+            return fn(self, ...)
         end
     end
 end

@@ -30,6 +30,24 @@ local function CanStowToCraftBagWithPolicy(bagId, slotIndex)
     return canStowToCraftBag(bagId, slotIndex)
 end
 
+--- Securely picks up a stack and places it in the target bag/slot.
+--- Checks both protected calls; drops a held item if placement fails.
+---@return boolean ok
+---@return string|nil reason denial reason on failure
+local function SecurePickupAndPlace(bag, index, stackSize, targetBag, destinationSlot)
+    if not CallSecureProtected("PickupInventoryItem", bag, index, stackSize) then
+        return false, "pickup_failed"
+    end
+    if not CallSecureProtected("PlaceInInventory", targetBag, destinationSlot) then
+        -- Don't leave the picked-up item stuck on the cursor
+        if ClearCursor then
+            ClearCursor()
+        end
+        return false, "place_failed"
+    end
+    return true
+end
+
 -- SHARED ITEM ACTION HELPERS
 -- These functions provide common item action implementations used by
 -- Inventory and Banking modules. They handle secure API calls.
@@ -60,7 +78,9 @@ function BETTERUI.CIM.TryUseItem(inventorySlot)
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
         local usable, onlyFromActionSlot = IsItemUsable(bag, index)
         if usable and not onlyFromActionSlot then
-            CallSecureProtected("UseItem", bag, index)
+            if not CallSecureProtected("UseItem", bag, index) then
+                return false, "use_failed"
+            end
             return true
         end
         return false, "not_usable"
@@ -127,17 +147,13 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
                 BETTERUI.CIM.UserNotify("TryMoveToCraftBag:NoSlot", SI_INVENTORY_ERROR_INVENTORY_FULL)
                 return false, "inventory_full"
             end
-            CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
-            CallSecureProtected("PlaceInInventory", targetBag, destinationSlot)
-            return true
+            return SecurePickupAndPlace(bag, index, stackSize, targetBag, destinationSlot)
         else
             BETTERUI.CIM.UserNotify("TryMoveToCraftBag:Full", SI_INVENTORY_ERROR_INVENTORY_FULL)
             return false, "inventory_full"
         end
     else
-        CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
-        CallSecureProtected("PlaceInInventory", targetBag, 0)
-        return true
+        return SecurePickupAndPlace(bag, index, stackSize, targetBag, 0)
     end
 end
 
@@ -207,7 +223,7 @@ function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
             local wrappedCallback = function()
                 if inventorySlot then
                     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-                    CallSecureProtected("UseItem", bag, index)
+                    return CallSecureProtected("UseItem", bag, index)
                 end
             end
             action[INDEX_ACTION_CALLBACK] = wrappedCallback

@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/NavigationState.lua
+File: Modules/CIM/Core/Data/NavigationState.lua
 Purpose: Provides a structured state object for category navigation.
          Replaces scattered boolean flags with a consolidated state machine.
 ]]

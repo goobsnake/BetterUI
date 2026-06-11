@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/SettingsAccessor.lua
+File: Modules/CIM/Core/Settings/SettingsAccessor.lua
 Purpose: Provides safe module settings access with automatic nil-checking.
          Eliminates repetitive nil checks when accessing BETTERUI.Settings.Modules.
 ]]
@@ -429,4 +429,30 @@ function BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, pane
     -- Legacy RegisterPanel seams may not return a status; preserve compatibility.
     ns._panelRegistered = true
     return true
+end
+
+---Setup-time wrapper around TryRegisterModulePanel that consolidates the shared
+---module bootstrap boilerplate: records machine-readable registration diagnostics
+---on the module namespace and debug-reports non-deferred failures.
+---@param moduleOrNamespace table|string
+---@param moduleName ModuleName
+---@param panelId string|nil
+---@param panelLabel string|nil
+---@param moduleNameForLog string|nil Debug log tag override; defaults to moduleName.
+---@return boolean panelOk
+---@return string|nil panelReason
+function BETTERUI.CIM.RegisterModulePanelWithLogging(moduleOrNamespace, moduleName, panelId, panelLabel, moduleNameForLog)
+    local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, panelId, panelLabel)
+
+    if type(moduleOrNamespace) == "table" then
+        moduleOrNamespace._panelRegistrationReason = panelReason
+        moduleOrNamespace._panelRegistrationDeferred = panelReason == "missing_register_panel"
+    end
+
+    if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
+        BETTERUI.Debug(string.format("[%s] Settings panel registration reported: %s",
+            tostring(moduleNameForLog or moduleName), tostring(panelReason)))
+    end
+
+    return panelOk, panelReason
 end

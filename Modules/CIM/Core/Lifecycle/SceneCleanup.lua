@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/SceneCleanup.lua
+File: Modules/CIM/Core/Lifecycle/SceneCleanup.lua
 Purpose: Shared scene cleanup utilities to ensure proper DIRECTIONAL_INPUT release
          when scenes are hidden. Consolidates cleanup patterns from Banking and Inventory.
 ]]

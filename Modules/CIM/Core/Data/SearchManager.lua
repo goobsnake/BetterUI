@@ -104,7 +104,8 @@ local function RegisterNarrationHandler(window, focusHandler)
                     end
 
                     if data.stackCount and data.stackCount > 1 then
-                        local stackText = zo_strformat("Stack of <<1>>", data.stackCount)
+                        local stackFormat = GetString(rawget(_G, "SI_BETTERUI_NARRATION_STACK_COUNT_FORMAT")) or "Stack of <<1>>"
+                        local stackText = zo_strformat(stackFormat, data.stackCount)
                         ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(stackText))
                     end
 
@@ -114,11 +115,13 @@ local function RegisterNarrationHandler(window, focusHandler)
                     end
 
                     if data.isEquippedInCurrentCategory then
-                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject("Equipped"))
+                        local equippedText = GetString(rawget(_G, "SI_BETTERUI_NARRATION_EQUIPPED")) or "Equipped"
+                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(equippedText))
                     end
 
                     if data.isJunk then
-                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject("Marked as junk"))
+                        local junkText = GetString(rawget(_G, "SI_BETTERUI_NARRATION_JUNK")) or "Marked as junk"
+                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(junkText))
                     end
                 end
                 return narrations
@@ -185,7 +188,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
         },
         {
             name = function()
-                return GetString(rawget(_G, "SI_GAMEPAD_SCRIPTS_KEYBIND_DOWN")) or "Down"
+                return GetString(rawget(_G, "SI_BETTERUI_KEYBIND_DOWN")) or "Down"
             end,
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             keybind = "UI_SHORTCUT_DOWN",
@@ -198,6 +201,89 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
             end,
         },
     }
+end
+
+---@class BetterUISearchAnchorOptions
+---@field preset string|nil Search-bar constants preset (default "BANKING")
+---@field headerOnly boolean|nil Anchor to screen.header only instead of preferring screen.headerGeneric
+---@field titleChildNames string[]|nil Named children probed for the title container (default TitleContainer/Header)
+---@field safeExecuteContext string|nil When set, wraps child probes in BETTERUI.CIM.SafeExecute with this context
+---@field fallbackY number|nil Fixed Y offset when no anchor parent is found (default Y_OFFSET)
+---@field fallbackUseRightInset boolean|nil Apply RIGHT_INSET to the fallback TOPRIGHT anchor instead of 0
+---@field linkHeaderFocus boolean|nil Register the control via ZO_GamepadGenericHeader_SetHeaderFocusControl
+
+--- Positions a screen's text search control beneath its header title.
+--- Shared by the Banking, Companions, Inventory, and Vendor screens; the
+--- per-module anchoring differences are expressed through options.
+---@param screen BetterUISearchContext
+---@param options BetterUISearchAnchorOptions|nil
+function BETTERUI.Interface.PositionSearchControl(screen, options)
+    local searchControl = screen.textSearchHeaderControl
+    if not searchControl then return end
+    options = options or {}
+
+    searchControl:ClearAnchors()
+
+    local anchorTarget
+    if options.headerOnly then
+        anchorTarget = screen.header
+    else
+        anchorTarget = screen.headerGeneric or screen.header
+    end
+
+    local titleContainer = nil
+    if anchorTarget and anchorTarget.GetNamedChild then
+        local candidates = options.titleChildNames or { "TitleContainer", "Header" }
+        for _, name in ipairs(candidates) do
+            local child
+            if options.safeExecuteContext then
+                local ok, result = BETTERUI.CIM.SafeExecute(options.safeExecuteContext, function()
+                    return anchorTarget:GetNamedChild(name)
+                end)
+                if ok then
+                    child = result
+                end
+            else
+                child = anchorTarget:GetNamedChild(name)
+            end
+            if child then
+                titleContainer = child
+                break
+            end
+        end
+    end
+
+    local parentForAnchor = titleContainer or anchorTarget
+    local searchConst = BETTERUI.CIM.SearchBar and BETTERUI.CIM.SearchBar.GetConstants
+        and BETTERUI.CIM.SearchBar.GetConstants(options.preset or "BANKING")
+    local xOffset = (searchConst and searchConst.X_OFFSET) or 55
+    local yOffset = (searchConst and searchConst.Y_OFFSET) or 15
+    local rightInset = (searchConst and searchConst.RIGHT_INSET) or -8
+
+    if parentForAnchor then
+        searchControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
+        searchControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
+    else
+        local fallbackY = options.fallbackY or yOffset
+        local fallbackRightX = (options.fallbackUseRightInset and rightInset) or 0
+        searchControl:SetAnchor(TOPLEFT, screen.header, BOTTOMLEFT, 0, fallbackY)
+        searchControl:SetAnchor(TOPRIGHT, screen.header, BOTTOMRIGHT, fallbackRightX, fallbackY)
+    end
+
+    searchControl:SetHidden(false)
+
+    -- Optionally link the search control as the gamepad header focus target.
+    if options.linkHeaderFocus and ZO_GamepadGenericHeader_SetHeaderFocusControl then
+        local headerTarget
+        if screen.headerGeneric and screen.headerGeneric.tabBar and screen.headerGeneric.tabBar.control then
+            headerTarget = screen.headerGeneric.tabBar.control
+        else
+            headerTarget = screen.headerGeneric or screen.header
+        end
+        if headerTarget then
+            ZO_GamepadGenericHeader_SetHeaderFocusControl(headerTarget, searchControl)
+        end
+    end
 end
 
 -- SEARCH MIXIN

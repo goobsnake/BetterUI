@@ -298,8 +298,9 @@ local function InspectDirectionalInput()
         [4] = "LEFT_STICK_NO_KB",
         [5] = "RIGHT_STICK_NO_KB"
     }
+    local inputDeviceConsumed = DIRECTIONAL_INPUT.inputDeviceConsumed or {}
     for device = 1, 5 do
-        local consumed = DIRECTIONAL_INPUT.inputDeviceConsumed[device]
+        local consumed = inputDeviceConsumed[device]
         local deviceName = deviceNames[device] or "UNKNOWN"
         d(string.format("  %s: %s", deviceName, consumed and "|cff0000CONSUMED|r" or "|c00ff00available|r"))
     end

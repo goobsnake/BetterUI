@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/AutoCategoryIntegration.lua
+File: Modules/CIM/Core/Integration/AutoCategoryIntegration.lua
 Purpose: Integration with AutoCategory addon for advanced inventory sorting.
          Provides rule-based categorization for items.
 ]]
@@ -25,7 +25,7 @@ function AutoCategoryIntegration.GetCustomCategory(itemData)
 
     local useCustomCategory = false
     local autoCategory = OptionalAddons.GetGlobal("AutoCategory")
-    if autoCategory and autoCategory.Inited then
+    if autoCategory and autoCategory.Inited and type(autoCategory.MatchCategoryRules) == "function" then
         useCustomCategory = true
         local bagId = itemData.bagId
         local slotIndex = itemData.slotIndex

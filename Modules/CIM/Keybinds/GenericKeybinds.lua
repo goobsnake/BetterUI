@@ -93,6 +93,57 @@ function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn
     }
 end
 
+-- MULTI-SELECT LABEL BUILDERS
+-- Shared label text for multi-select / batch-select keybinds and dialog
+-- entries, used by the Inventory, Banking, and Vendor modules.
+
+--- "Multi-Select" mode-entry keybind label.
+---@return string
+function BETTERUI.CIM.Keybinds.GetMultiSelectLabel()
+    return GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT") or "SI_BETTERUI_MULTI_SELECT")
+end
+
+--- "Select All" batch-dialog entry label.
+---@return string
+function BETTERUI.CIM.Keybinds.GetSelectAllLabel()
+    return GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL") or "SI_BETTERUI_SELECT_ALL")
+end
+
+--- "Deselect All (<count>)" batch-dialog entry label.
+---@param selectedCount number Current number of selected rows
+---@return string
+function BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount)
+    return zo_strformat("<<1>> (<<2>>)",
+        GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL") or "SI_BETTERUI_DESELECT_ALL"), selectedCount)
+end
+
+--- Selection-mode toggle label: "Deselect" when the target row is selected,
+--- otherwise "Select (<count>)". With afterToggle the label reflects the
+--- state the row will have once the pending toggle is applied.
+---@param manager table Multi-select manager owning the selection state
+---@param target table|nil Currently highlighted list entry
+---@param afterToggle boolean|nil When true, report the post-toggle label
+---@return string
+function BETTERUI.CIM.Keybinds.GetMultiSelectToggleLabel(manager, target, afterToggle)
+    local isSelected = target and manager:IsSelected(target) or false
+    if afterToggle then
+        isSelected = not isSelected
+    end
+    if isSelected then
+        return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM") or "SI_BETTERUI_DESELECT_ITEM")
+    end
+
+    local count = manager.GetSelectedCount and manager:GetSelectedCount() or 0
+    if afterToggle and target then
+        if manager:IsSelected(target) then
+            count = math.max(0, count - 1)
+        else
+            count = count + 1
+        end
+    end
+    return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT") or "SI_BETTERUI_SELECT_WITH_COUNT"), count)
+end
+
 -- KEYBIND GROUP HELPERS
 
 ---@param keybindGroup table The keybind group to mutate
@@ -202,7 +253,7 @@ BuildTriggerKeybinds = function(contract)
 
                 if jumpByCategory and list.JumpToPreviousHeader then
                     list:JumpToPreviousHeader()
-                elseif not list:IsEmpty() then
+                elseif not list.IsEmpty or not list:IsEmpty() then
                     local speed = GetSpeed()
                     list:SetSelectedIndex(GetSelectedIndex(list) - speed)
                 end
@@ -224,7 +275,7 @@ BuildTriggerKeybinds = function(contract)
 
                 if jumpByCategory and list.JumpToNextHeader then
                     list:JumpToNextHeader()
-                elseif not list:IsEmpty() then
+                elseif not list.IsEmpty or not list:IsEmpty() then
                     local speed = GetSpeed()
                     list:SetSelectedIndex(GetSelectedIndex(list) + speed)
                 end

@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/IconSettingsFactory.lua
+File: Modules/CIM/Core/Settings/IconSettingsFactory.lua
 Purpose: Shared factory for generating icon visibility toggle LAM settings.
          Eliminates duplicate settings code between Banking and Inventory.
 ]]
