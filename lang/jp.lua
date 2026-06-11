@@ -53,6 +53,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", "バー:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_LABEL", "衣装:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "シール:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "トーム:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "ARCHIVAL:")
 
 -- Currency limit alert
 
@@ -188,6 +189,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_9", "9番目")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_10", "10番目")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_11", "11番目")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_12", "12番目")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_13", "13th")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_GOLD", "ゴールドを表示")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_GOLD", "ゴールドの位置")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_AP", "同盟ポイントを表示")
@@ -212,6 +214,8 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_SEALS", "シールを表示")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_SEALS", "シールの位置")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS", "トームポイントを表示")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS", "トームの位置")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Show Archival Fortunes")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Archival Fortunes Position")
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "ネームプレート強化")

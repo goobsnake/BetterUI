@@ -208,8 +208,54 @@ local function MaybeRefreshAfterTransfer(self)
     end
 end
 
+local _pendingTransfers = {}
+local PENDING_TRANSFER_TIMEOUT_MS = 5000
+
+local function MakeTransferKey(bagId, slotIndex)
+    return bagId .. ":" .. slotIndex
+end
+
+local function MarkTransferPending(bagId, slotIndex)
+    _pendingTransfers[MakeTransferKey(bagId, slotIndex)] = GetFrameTimeMilliseconds()
+end
+
+local function ClearTransferPending(bagId, slotIndex)
+    _pendingTransfers[MakeTransferKey(bagId, slotIndex)] = nil
+end
+
+local function IsTransferPending(bagId, slotIndex)
+    local timestamp = _pendingTransfers[MakeTransferKey(bagId, slotIndex)]
+    if not timestamp then
+        return false
+    end
+    if (GetFrameTimeMilliseconds() - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
+        _pendingTransfers[MakeTransferKey(bagId, slotIndex)] = nil
+        return false
+    end
+    return true
+end
+
+local function SweepStaleTransfers()
+    local now = GetFrameTimeMilliseconds()
+    for key, timestamp in pairs(_pendingTransfers) do
+        if (now - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
+            _pendingTransfers[key] = nil
+        end
+    end
+end
+
+function BETTERUI.Banking.IsTransferPending(bagId, slotIndex)
+    return IsTransferPending(bagId, slotIndex)
+end
+
+function BETTERUI.Banking.SweepStaleTransfers()
+    SweepStaleTransfers()
+end
+
 local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIndex, quantity)
+    MarkTransferPending(fromBag, fromBagIndex)
     CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
+    BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
     MaybeRefreshAfterTransfer(self)
 end
 
@@ -392,4 +438,14 @@ function BETTERUI.Banking.Class:ShowActions()
     }
 
     ZO_Dialogs_ShowPlatformDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, dialogData)
+end
+
+-- Register for inventory slot updates to clear pending transfer markers.
+-- This prevents the deposit keybind from staying disabled after the server confirms the move.
+if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.EventRegistry then
+    local function OnInventorySingleSlotUpdate(_, bagId, slotIndex)
+        ClearTransferPending(bagId, slotIndex)
+    end
+    BETTERUI.CIM.EventRegistry.Register("Banking.TransferActions", "BetterUI_Banking_TransferActions_SlotUpdate",
+        EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySingleSlotUpdate)
 end

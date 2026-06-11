@@ -136,6 +136,17 @@ BETTERUI.CIM.Currency.DEFS = {
         location = CURRENCY_LOCATION_ACCOUNT,
         useStoredAmount = true
     },
+    -- Archival Fortunes (Infinite Archive, Update 44+)
+    {
+        iconKey = "archival",
+        labelName = "ArchivalLabel",
+        settingKey = "showCurrencyArchival",
+        apiConst = rawget(_G, "CURT_ARCHIVAL_FORTUNES"),
+        labelStringId = "SI_BETTERUI_FOOTER_ARCHIVAL_LABEL",
+        color = "00FF00",
+        location = CURRENCY_LOCATION_ACCOUNT,
+        useStoredAmount = true
+    },
 }
 
 -- Build iconKey-to-def lookup table for ordering

@@ -49,6 +49,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", "LINGOTES:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_LABEL", "ATUENDO:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "SELLOS:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "TOMOS:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "ARCHIVAL:")
 
 -- Currency limit alert
 
@@ -168,6 +169,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_9", "9º")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_10", "10º")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_11", "11º")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_12", "12º")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_13", "13th")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_GOLD", "Mostrar oro")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_GOLD", "Posición del oro")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_AP", "Mostrar puntos de alianza")
@@ -192,6 +194,8 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_SEALS", "Mostrar sellos")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_SEALS", "Posición sellos")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS", "Mostrar puntos de tomo")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS", "Posición tomo")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Show Archival Fortunes")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Archival Fortunes Position")
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Placas de nombre mejoradas")

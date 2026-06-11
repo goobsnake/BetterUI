@@ -29,6 +29,7 @@ ZO_GAMEPAD_INVENTORY_ACTION_DIALOG = "ZO_GAMEPAD_INVENTORY_ACTION_DIALOG"
 CURRENCY_LOCATION_CHARACTER = 1
 CURRENCY_LOCATION_BANK = 2
 CURRENCY_LOCATION_GUILD_BANK = 3
+EVENT_INVENTORY_SINGLE_SLOT_UPDATE = "EVENT_INVENTORY_SINGLE_SLOT_UPDATE"
 
 local testsPassed = 0
 local testsFailed = 0
@@ -47,6 +48,7 @@ local playedSounds = {}
 local guildWithdrawCalls = {}
 local guildDepositCalls = {}
 local scheduledTasks = {}
+local frameTimeMs = 0
 local showingDialog = false
 local currentBank = BAG_BANK
 local currentBankingBag = BAG_BANK
@@ -88,6 +90,7 @@ local function resetState()
     guildWithdrawCalls = {}
     guildDepositCalls = {}
     scheduledTasks = {}
+    frameTimeMs = 0
     showingDialog = false
     currentBank = BAG_BANK
     currentBankingBag = BAG_BANK
@@ -100,6 +103,12 @@ local function resetState()
     platformDialogsShown = {}
     keybindOps = {}
     userAlertTexts = {}
+    -- Clear any lingering pending transfer state from TransferActions module locals
+    frameTimeMs = 600000
+    if BETTERUI and BETTERUI.Banking and BETTERUI.Banking.SweepStaleTransfers then
+        BETTERUI.Banking.SweepStaleTransfers()
+    end
+    frameTimeMs = 0
 end
 
 function GetString(id)
@@ -107,6 +116,10 @@ function GetString(id)
         return "No funds"
     end
     return tostring(id)
+end
+
+function GetFrameTimeMilliseconds()
+    return frameTimeMs
 end
 
 function zo_clamp(value, min, max)
@@ -606,6 +619,62 @@ assertEqual(1, sceneHiddenCount, "CancelWithdrawDeposit closes the scene outside
 window.confirmationMode = true
 window:CancelWithdrawDeposit(window.list)
 assertEqual(false, window.confirmationUpdates[1].isActive, "CancelWithdrawDeposit disables confirmation mode through spinner update")
+
+-- Pending transfer state tests (PB-007)
+resetState()
+window = createWindow()
+selectedData = { bagId = BAG_BACKPACK, slotIndex = 6 }
+window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
+emptySlots[BAG_BANK] = 33
+assertEqual(false, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "No pending transfer before move")
+window:MoveItem(window.list, 1)
+assertEqual(true, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Pending transfer set after deposit")
+assertEqual(1, #secureMoves, "Deposit RequestMoveItem issued once")
+
+-- Simulate slot-update event clearing the marker
+BETTERUI.CIM.EventRegistry = {
+    Register = function(moduleName, namespace, eventId, callback)
+        _G["_test_event_" .. eventId] = callback
+    end,
+}
+dofile("Modules/Banking/Actions/TransferActions.lua")
+local slotUpdateCallback = _G["_test_event_" .. EVENT_INVENTORY_SINGLE_SLOT_UPDATE]
+assertTrue(type(slotUpdateCallback) == "function", "EVENT_INVENTORY_SINGLE_SLOT_UPDATE callback registered")
+if type(slotUpdateCallback) == "function" then
+    slotUpdateCallback(nil, BAG_BACKPACK, 6)
+    assertEqual(false, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Pending cleared by slot-update event")
+end
+
+-- Stale sweep clears after timeout
+resetState()
+window = createWindow()
+selectedData = { bagId = BAG_BACKPACK, slotIndex = 6 }
+window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
+emptySlots[BAG_BANK] = 33
+window:MoveItem(window.list, 1)
+assertEqual(true, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Pending still active before timeout")
+frameTimeMs = 5100
+BETTERUI.Banking.SweepStaleTransfers()
+assertEqual(false, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Stale sweep clears timed-out pending marker")
+
+-- Keybind enabled-callback returns false while pending
+resetState()
+window = createWindow()
+selectedData = { bagId = BAG_BACKPACK, slotIndex = 6 }
+window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
+window.list.selectedData = selectedData
+slotStacks["1:6"] = 1
+emptySlots[BAG_BANK] = 33
+window:MoveItem(window.list, 1)
+assertEqual(true, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Deposit marks item pending")
+-- Load KeybindManager to verify CanUsePrimaryTransfer behavior when pending
+local keybindMgrLoaded, _ = pcall(function()
+    dofile("Modules/Banking/Keybinds/KeybindManager.lua")
+end)
+assertTrue(BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Keybind integration: IsTransferPending true after deposit")
+frameTimeMs = 5100
+BETTERUI.Banking.SweepStaleTransfers()
+assertEqual(false, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Keybind integration: IsTransferPending false after sweep")
 
 print("\n=== Test Summary ===")
 print("Passed: " .. testsPassed)

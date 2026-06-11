@@ -53,6 +53,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", "条:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_LABEL", "服装:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "印章:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "秘典:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "ARCHIVAL:")
 
 -- Currency limit alert
 
@@ -187,6 +188,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_9", "第9")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_10", "第10")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_11", "第11")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_12", "第12")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_13", "13th")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_GOLD", "显示金币")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_GOLD", "金币位置")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_AP", "显示阵营点数")
@@ -211,6 +213,8 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_SEALS", "显示印章")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_SEALS", "印章位置")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS", "显示秘典点")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS", "秘典点位置")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Show Archival Fortunes")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Archival Fortunes Position")
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "增强名牌")

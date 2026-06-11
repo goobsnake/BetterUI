@@ -129,7 +129,21 @@ local function CanUsePrimaryTransfer(self)
     if not hasSelection then
         return false
     end
-    return ResolveGuildBankTransferKeybindState(self)
+
+    local allowed, denialText = ResolveGuildBankTransferKeybindState(self)
+    if not allowed then
+        return false, denialText
+    end
+
+    -- Prevent double-press during furniture vault / deposit server round-trip.
+    if self.currentMode == LIST_DEPOSIT then
+        local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
+        if bagId and slotIndex and BETTERUI.Banking.IsTransferPending(bagId, slotIndex) then
+            return false
+        end
+    end
+
+    return true
 end
 
 local function CreateCoreNavigationKeybinds(self)

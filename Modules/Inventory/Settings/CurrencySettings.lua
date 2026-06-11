@@ -108,6 +108,15 @@ local CURRENCY_DATA = {
         defaultOrder = 12,
         requiredGlobal = "CURT_TOME_POINTS"
     },
+    {
+        id = "archival",
+        settingKey = "showCurrencyArchival",
+        orderKey = "orderCurrencyArchival",
+        labelStr = SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL,
+        orderStr = SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL,
+        defaultOrder = 13,
+        requiredGlobal = "CURT_ARCHIVAL_FORTUNES"
+    },
 }
 
 local function GetInventorySettings()
@@ -182,7 +191,7 @@ local function RecomputeCurrencyOrderString()
         -- Skip if required global is missing
         if not data.requiredGlobal or _G[data.requiredGlobal] ~= nil then
             local v = tonumber(inv[data.orderKey]) or data.defaultOrder
-            if v < 1 then v = 1 elseif v > 12 then v = 12 end
+            if v < 1 then v = 1 elseif v > 13 then v = 13 end
             table.insert(items, { key = data.id, order = v, tiebreak = data.defaultOrder })
         end
     end
@@ -240,8 +249,9 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
         GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_7")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_8")),
         GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_9")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_10")),
         GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_11")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_12")),
+        GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_13")),
     }
-    local CURRENCY_ORDER_VALUES = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }
+    local CURRENCY_ORDER_VALUES = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 }
 
     local controls = {
         {

@@ -53,6 +53,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", "СЛИТКИ:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_LABEL", "ОБЛИК:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "ПЕЧАТИ:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "ТОМА:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "ARCHIVAL:")
 
 -- Currency limit alert
 
@@ -195,6 +196,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_9", "9-я")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_10", "10-я")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_11", "11-я")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_12", "12-я")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_13", "13th")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_GOLD", "Показать золото")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_GOLD", "Позиция золота")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_AP", "Показать очки альянса")
@@ -219,6 +221,8 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_SEALS", "Показать печа�
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_SEALS", "Позиция печатей")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS", "Показать очки фолианта")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS", "Позиция очков")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Show Archival Fortunes")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Archival Fortunes Position")
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Улучшенные таблички")
