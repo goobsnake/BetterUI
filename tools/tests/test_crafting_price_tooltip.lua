@@ -27,6 +27,8 @@ _G.zo_strformat = function(format, ...)
     return result
 end
 _G.CURT_MONEY = 1
+_G.EVENT_MANAGER = _G.EVENT_MANAGER or { RegisterForEvent = function() return 1 end, UnregisterForEvent = function() end }
+_G.EVENT_PLAYER_ACTIVATED = "EVENT_PLAYER_ACTIVATED"
 
 -- Mock BetterUI namespace
 _G.BETTERUI = _G.BETTERUI or {}

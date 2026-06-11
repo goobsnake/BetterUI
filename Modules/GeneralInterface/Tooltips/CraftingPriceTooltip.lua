@@ -54,7 +54,12 @@ local function AppendPriceLine(tooltipControl, itemLink)
     end
 
     local coinIcon = BETTERUI.SafeIcon and BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)) or ""
-    local displayPrice = BETTERUI.DisplayNumber and BETTERUI.DisplayNumber(BETTERUI.roundNumber(priceInfo.price, 2)) or tostring(priceInfo.price)
+    local displayPrice
+    if BETTERUI.DisplayNumber and BETTERUI.roundNumber then
+        displayPrice = BETTERUI.DisplayNumber(BETTERUI.roundNumber(priceInfo.price, 2))
+    else
+        displayPrice = tostring(priceInfo.price)
+    end
     local sourceLabel = priceInfo.sourceKey and zo_strformat(" (<<1>>)", priceInfo.sourceKey:upper()) or ""
 
     local lineText = zo_strformat("|cFFFFFFMarket: <<1>>|r|t16:16:<<2>>|t<<3>>",
@@ -109,6 +114,19 @@ end
 function CraftingPriceTooltip.AreHooksInstalled()
     return _hooksInstalled
 end
+
+-- Retry hook installation on player activation so market addons that load
+-- after BetterUI (e.g. via LibStub/dependency ordering) are still picked up.
+local _retryHandle = nil
+local function TryInstallHooks()
+    CraftingPriceTooltip.InstallHooks()
+    if _hooksInstalled and _retryHandle then
+        EVENT_MANAGER:UnregisterForEvent("BetterUI_CraftingPriceTooltip_Retry", _retryHandle)
+        _retryHandle = nil
+    end
+end
+
+_retryHandle = EVENT_MANAGER:RegisterForEvent("BetterUI_CraftingPriceTooltip_Retry", EVENT_PLAYER_ACTIVATED, TryInstallHooks)
 
 -- Auto-install on load if market sources are available
 CraftingPriceTooltip.InstallHooks()

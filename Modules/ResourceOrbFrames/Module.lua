@@ -274,6 +274,9 @@ local function InitSettingsPanel(mId, moduleName)
                     { key = "scale", value = 1 },
                     { key = "offsetX", value = 0 },
                     { key = "offsetY", value = 0 },
+                    { key = "enableIndependentOrbOffset", value = false },
+                    { key = "orbOffsetX", value = 0 },
+                    { key = "orbOffsetY", value = 0 },
                 })
             end,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,

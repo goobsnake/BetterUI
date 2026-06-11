@@ -441,10 +441,10 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     if leftOrb then
         leftOrb:ClearAnchors()
         if settings.hideLeftOrnament then
-            local nx = (cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.x or
-                (cfg.ornaments.left.x + cfg.orbs.left.x)) + orbOffsetX
-            local ny = (cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.y or
-                (cfg.ornaments.left.y + cfg.orbs.left.y)) + orbOffsetY
+            local nx = ((cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.x ~= nil)
+                and cfg.orbs.left.noOrnament.x or (cfg.ornaments.left.x + cfg.orbs.left.x)) + orbOffsetX
+            local ny = ((cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.y ~= nil)
+                and cfg.orbs.left.noOrnament.y or (cfg.ornaments.left.y + cfg.orbs.left.y)) + orbOffsetY
             leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif leftOrnament then
             leftOrb:SetAnchor(CENTER, leftOrnament, CENTER,
@@ -465,10 +465,10 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     if rightOrb then
         rightOrb:ClearAnchors()
         if settings.hideRightOrnament then
-            local nx = (cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.x or
-                (cfg.ornaments.right.x + cfg.orbs.right.x)) + orbOffsetX
-            local ny = (cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.y or
-                (cfg.ornaments.right.y + cfg.orbs.right.y)) + orbOffsetY
+            local nx = ((cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.x ~= nil)
+                and cfg.orbs.right.noOrnament.x or (cfg.ornaments.right.x + cfg.orbs.right.x)) + orbOffsetX
+            local ny = ((cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.y ~= nil)
+                and cfg.orbs.right.noOrnament.y or (cfg.ornaments.right.y + cfg.orbs.right.y)) + orbOffsetY
             rightOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif rightOrnament then
             rightOrb:SetAnchor(CENTER, rightOrnament, CENTER,
@@ -583,8 +583,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
                 sOrb:SetAnchor(CENTER, leftOrb, CENTER, 0, 0)
             else
                 sOrb:SetAnchor(CENTER, bgMiddle, CENTER,
-                    cfg.ornaments.left.x + cfg.orbs.left.x,
-                    cfg.ornaments.left.y + cfg.orbs.left.y)
+                    cfg.ornaments.left.x + cfg.orbs.left.x + orbOffsetX,
+                    cfg.ornaments.left.y + cfg.orbs.left.y + orbOffsetY)
             end
             local lbl = FindControl(sOrb, 'Label')
             if lbl then

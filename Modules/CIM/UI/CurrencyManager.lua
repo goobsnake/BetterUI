@@ -161,6 +161,7 @@ end
 ---@param def table
 ---@return integer
 function BETTERUI.CIM.Currency.GetValue(def)
+    if not def or not def.apiConst then return 0 end
     if def.useStoredAmount then
         return GetPlayerStoredCurrencyAmount(def.apiConst)
     elseif def.location then
@@ -175,16 +176,17 @@ end
 ---@param amount integer
 ---@return string
 function BETTERUI.CIM.Currency.FormatLabel(def, amount)
+    if not def then return "" end
     local label = GetString(_G[def.labelStringId])
     -- Fallback: if the _LABEL string ID isn't registered, label will be empty.
     if not label or label == "" then
-        label = zo_strupper(def.iconKey) .. ":"
+        label = zo_strupper(def.iconKey or "") .. ":"
     end
 
     -- Try gamepad icon first, fall back to keyboard icon.
-    local icon = GetCurrencyGamepadIcon(def.apiConst)
+    local icon = def.apiConst and GetCurrencyGamepadIcon(def.apiConst) or ""
     if not icon or icon == "" then
-        icon = GetCurrencyKeyboardIcon and GetCurrencyKeyboardIcon(def.apiConst) or ""
+        icon = def.apiConst and GetCurrencyKeyboardIcon and GetCurrencyKeyboardIcon(def.apiConst) or ""
     end
     icon = BETTERUI.SafeIcon(icon)
 
@@ -261,7 +263,7 @@ end
 ---@return table[] visible
 function BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     local orderStr = invSettings.currencyOrder or
-        "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"
+        "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints,archival"
     local seen = {}
     local visible = {}
     local DEFS = BETTERUI.CIM.Currency.DEFS

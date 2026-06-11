@@ -258,7 +258,7 @@ BETTERUI.CIM.SearchBar.GetConstants = BETTERUI.CIM.GetSearchBarConstants
 BETTERUI_MAX_VISIBLE_CURRENCIES = 12
 
 -- Total available currencies in the system
-BETTERUI_TOTAL_CURRENCIES = 12
+BETTERUI_TOTAL_CURRENCIES = 13
 
 -- Footer currency layout positions (X coordinates for each column)
 BETTERUI_CURRENCY_COLUMNS = { 190, 350, 510, 670, 830, 990 }
