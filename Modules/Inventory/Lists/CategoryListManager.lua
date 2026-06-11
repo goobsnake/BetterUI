@@ -78,13 +78,21 @@ end
 ---@param filterType number|table|nil Filter type constant(s) for this category
 ---@param iconFile string Path to category icon texture
 ---@param FilterFunct function|nil Custom filter function for items in this category
+---@param precomputedStats {count: number, hasNew: boolean}|nil Single-pass scan
+--- results from RefreshCategoryList (valid only for the default FilterFunct);
+--- when absent the per-category bag rescans run as before
 ---@return table entryData Category entry data
-function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFunct, forceAdd)
+function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFunct, forceAdd, precomputedStats)
     if FilterFunct == nil then
         FilterFunct = ZO_InventoryUtils_DoesNewItemMatchFilterType
     end
 
-    local isListEmpty = (not forceAdd) and self:IsItemListEmpty(nil, filterType)
+    local isListEmpty
+    if precomputedStats then
+        isListEmpty = (not forceAdd) and precomputedStats.count == 0
+    else
+        isListEmpty = (not forceAdd) and self:IsItemListEmpty(nil, filterType)
+    end
     if forceAdd or not isListEmpty then
         local name
         if filterType == nil then
@@ -93,10 +101,18 @@ function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFu
             name = GetString("SI_ITEMFILTERTYPE", filterType)
         end
 
-        local hasAnyNewItems = self:AreAnyItemsNew(FilterFunct, filterType, BAG_BACKPACK)
+        local hasAnyNewItems
+        local itemCount
+        if precomputedStats then
+            hasAnyNewItems = precomputedStats.hasNew
+            itemCount = precomputedStats.count
+        else
+            hasAnyNewItems = self:AreAnyItemsNew(FilterFunct, filterType, BAG_BACKPACK)
+            itemCount = self:GetCategoryItemCount(filterType)
+        end
         local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
         data.filterType = filterType
-        data.itemCount = self:GetCategoryItemCount(filterType) -- For category badge display
+        data.itemCount = itemCount -- For category badge display
         data:SetIconTintOnSelection(true)
         self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
         BETTERUI.GenericHeader.AddToList(self.header, data)
@@ -104,6 +120,68 @@ function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFu
             self.categoryPositions[#self.categoryPositions + 1] = 1
         end
     end
+end
+
+--- Computes per-category count and new-item stats for the standard
+--- (filter-driven) inventory categories in a single pass over the cached
+--- worn+backpack slot data. Replaces the per-category IsItemListEmpty,
+--- GetCategoryItemCount, and AreAnyItemsNew bag rescans with one bucketed
+--- scan; the per-item predicates are identical to the ones those helpers
+--- apply (filter comparator + non-junk for counts, default new-item matcher
+--- over the backpack for the new flag), so the results match exactly.
+---@param self table Inventory class instance
+---@param categories table[] Inventory category definitions
+---@return table<table, {count: number, hasNew: boolean}> statsByCategoryDef
+local function ComputeStandardCategoryStats(self, categories)
+    local tracked = {}
+    local statsByCategoryDef = {}
+    for _, catDef in ipairs(categories) do
+        -- Mirror RefreshCategoryList's dispatch: every definition that is not
+        -- one of the special-cased tabs goes through the standard path.
+        local isSpecial = catDef.utilityAction == "bag_upgrade"
+            or catDef.key == "Equipped"
+            or catDef.key == "Quest"
+            or catDef.key == "Stolen"
+            or catDef.key == "Junk"
+        if not isSpecial then
+            local stats = {
+                filterType = catDef.filterType,
+                comparator = self:GetItemDataFilterComparator(nil, catDef.filterType),
+                count = 0,
+                hasNew = false,
+            }
+            tracked[#tracked + 1] = stats
+            statsByCategoryDef[catDef] = stats
+        end
+    end
+
+    local trackedCount = #tracked
+    if trackedCount == 0 then
+        return statsByCategoryDef
+    end
+
+    local function Accumulate(bagItems, isBackpack)
+        if not bagItems then return end
+        for _, itemData in ipairs(bagItems) do
+            local isNewBackpackItem = isBackpack and itemData.brandNew
+            for i = 1, trackedCount do
+                local stats = tracked[i]
+                -- Same predicate as IsItemListEmpty/GetCategoryItemCount.
+                if stats.comparator(itemData) and not itemData.isJunk then
+                    stats.count = stats.count + 1
+                end
+                -- Same predicate as AreAnyItemsNew's default filter.
+                if isNewBackpackItem and not stats.hasNew
+                    and ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, stats.filterType) then
+                    stats.hasNew = true
+                end
+            end
+        end
+    end
+
+    Accumulate(self:GetCachedSlotData(BAG_WORN), false)
+    Accumulate(self:GetCachedSlotData(BAG_BACKPACK), true)
+    return statsByCategoryDef
 end
 
 --- Rebuilds the category list based on the current state (Inventory vs Craft Bag).
@@ -126,23 +204,24 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
     end
 
     local function CountStolenNotJunk()
-        local count = 0
         local backpack = self:GetCachedSlotData(BAG_BACKPACK)
         if backpack then
+            -- Trust the cache: a zero count is a valid answer, not a miss.
+            local count = 0
             for _, slotData in ipairs(backpack) do
                 if slotData and slotData.stolen and not slotData.isJunk then
                     count = count + 1
                 end
             end
+            return count
         end
 
-        -- Fallback if cache unavailable
-        if count == 0 then
-            local bagSize = GetBagSize(BAG_BACKPACK) or 0
-            for slotIndex = 0, bagSize - 1 do
-                if IsItemStolen(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
-                    count = count + 1
-                end
+        -- Fallback bag scan only when the cache lookup itself was unavailable.
+        local count = 0
+        local bagSize = GetBagSize(BAG_BACKPACK) or 0
+        for slotIndex = 0, bagSize - 1 do
+            if IsItemStolen(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
+                count = count + 1
             end
         end
         return count
@@ -170,10 +249,17 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 
     if currentList == self.craftBagList then
         local categories = BETTERUI.Inventory.Categories.CraftBag
+        -- One pass over the craft bag covers every category badge count
+        -- instead of rescanning the whole bag once per category.
+        local craftBagCounts, craftBagTotalCount = self:GetCraftBagCategoryItemCounts()
         for _, catDef in ipairs(categories) do
             local name = GetString(catDef.nameStringId)
             local data = ZO_GamepadEntryData:New(name, catDef.iconFile)
-            data.itemCount = self:GetCraftBagCategoryItemCount(catDef.filterType)
+            if catDef.filterType == nil then
+                data.itemCount = craftBagTotalCount
+            else
+                data.itemCount = craftBagCounts[catDef.filterType] or 0
+            end
             data:SetIconTintOnSelection(true)
 
             if catDef.onClickDirection then
@@ -198,6 +284,22 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
         self.populatedCraftPos = true
     else
         local categories = BETTERUI.Inventory.Categories.Inventory
+
+        -- One bucketed scan of worn+backpack replaces the per-category
+        -- IsItemListEmpty/GetCategoryItemCount/AreAnyItemsNew bag rescans for
+        -- the standard (filter-driven) categories below.
+        local standardCategoryStats = ComputeStandardCategoryStats(self, categories)
+
+        -- The Stolen and Junk tabs share the same unfiltered "any new
+        -- backpack item" probe; compute it at most once per rebuild.
+        local backpackHasNewItems = nil
+        local function BackpackHasAnyNewItems()
+            if backpackHasNewItems == nil then
+                backpackHasNewItems = self:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
+            end
+            return backpackHasNewItems
+        end
+
         for _, catDef in ipairs(categories) do
             local shouldAdd = false
             local data = nil
@@ -241,7 +343,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                 local stolenCount = CountStolenNotJunk()
                 if stolenCount > 0 then
                     local name = GetString(catDef.nameStringId)
-                    local hasAnyNewItems = self:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
+                    local hasAnyNewItems = BackpackHasAnyNewItems()
                     data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
                     data.showStolen = true
                     data.itemCount = stolenCount
@@ -252,8 +354,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                 if junkCount > 0 then
                     -- Show Junk category if there are any junk items
                     local name = GetString(catDef.nameStringId)
-                    local hasAnyNewItems = self:AreAnyItemsNew(function() return true end, nil,
-                        BAG_BACKPACK)
+                    local hasAnyNewItems = BackpackHasAnyNewItems()
                     data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
                     data.showJunk = true
                     data.itemCount = junkCount
@@ -262,10 +363,16 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 
                 -- STANDARD CATEGORIES (All, Weapons, etc)
             else
-                local isListEmpty = self:IsItemListEmpty(nil, catDef.filterType)
+                local stats = standardCategoryStats[catDef]
+                local isListEmpty
+                if stats then
+                    isListEmpty = stats.count == 0
+                else
+                    isListEmpty = self:IsItemListEmpty(nil, catDef.filterType)
+                end
 
                 if catDef.isStatic or not isListEmpty then
-                    self:NewCategoryItem(catDef.filterType, catDef.iconFile, nil, catDef.isStatic)
+                    self:NewCategoryItem(catDef.filterType, catDef.iconFile, nil, catDef.isStatic, stats)
                     shouldAdd = false -- Handled by NewCategoryItem
                 end
             end

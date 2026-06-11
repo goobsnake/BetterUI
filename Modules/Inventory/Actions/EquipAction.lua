@@ -1,3 +1,9 @@
+local function NotifySecureActionFailed(context)
+    local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
+    BETTERUI.CIM.UserNotify(context,
+        (failedStringId and GetString(failedStringId)) or "The action could not be completed.")
+end
+
 local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
     local targetPrimary = (isPrimary ~= false)
 
@@ -20,7 +26,9 @@ local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
     end
 
     if targetSlot then
-        CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetSlot, 1)
+        if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetSlot, 1) then
+            NotifySecureActionFailed("EquipAction:EquipMove")
+        end
     end
 end
 
@@ -51,8 +59,10 @@ local function AttemptCompanionEquipPatch()
             local sourceBag, sourceSlot = ZO_Inventory_GetBagAndIndex(inventorySlot)
             if sourceBag and sourceSlot then
                 local function DoEquip()
-                    CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, BAG_COMPANION_WORN,
-                        self.selectedEquipSlot, 1)
+                    if not CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, BAG_COMPANION_WORN,
+                            self.selectedEquipSlot, 1) then
+                        NotifySecureActionFailed("EquipAction:EquipCompanion")
+                    end
                 end
                 if ZO_InventorySlot_WillItemBecomeBoundOnEquip(sourceBag, sourceSlot) then
                     local itemDisplayQuality = GetItemDisplayQuality(sourceBag, sourceSlot)
@@ -136,7 +146,8 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         if
             not bound
             and bindType == BIND_TYPE_ON_EQUIP
-            and BETTERUI.GetSetting("Inventory", "bindOnEquipProtection", false)
+            -- Protection must default ON so unset profiles still get the BOE confirm.
+            and BETTERUI.GetSetting("Inventory", "bindOnEquipProtection", true)
         then
             local function promptForBindOnEquip()
                 ZO_Dialogs_ShowPlatformDialog(
@@ -157,8 +168,18 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
     end
 
     if equipType == EQUIP_TYPE_COSTUME then
+        -- Capture the slot identity before the (possibly queued) bind-on-equip
+        -- confirmation so a changed slot cancels instead of equipping the wrong item.
+        local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex, inventorySlot)
         showBindOnEquipDialog(function()
-            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_COSTUME, 1)
+            if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(expectedSlotIdentity, bagId, slotIndex) ~= true then
+                BETTERUI.CIM.UserNotify("EquipAction:StaleSlot",
+                    GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
+                return
+            end
+            if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_COSTUME, 1) then
+                NotifySecureActionFailed("EquipAction:EquipCostume")
+            end
         end)
     elseif
         equipType == EQUIP_TYPE_ONE_HAND
@@ -169,9 +190,13 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         or equipType == EQUIP_TYPE_POISON
     then
         local function showEquipDialog()
+            -- Capture the slot identity at dialog-open time so the equip move can be
+            -- cancelled if the slot contents change while the dialog (or the queued
+            -- bind-on-equip confirmation) is up.
+            local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex, inventorySlot)
             ZO_Dialogs_ShowDialog(
                 GetEquipSlotDialogName(),
-                { inventorySlot, self.isPrimaryWeapon },
+                { inventorySlot, self.isPrimaryWeapon, expectedSlotIdentity = expectedSlotIdentity },
                 { mainTextParams = { GetString(rawget(_G, "SI_BETTERUI_INV_EQUIPSLOT_MAIN")) } },
                 true
             )
@@ -184,7 +209,15 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
             showEquipDialog()
         end
     else
+        -- Capture the slot identity before the (possibly queued) bind-on-equip
+        -- confirmation so a changed slot cancels instead of equipping the wrong item.
+        local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex, inventorySlot)
         showBindOnEquipDialog(function()
+            if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(expectedSlotIdentity, bagId, slotIndex) ~= true then
+                BETTERUI.CIM.UserNotify("EquipAction:StaleSlot",
+                    GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
+                return
+            end
             local equipSucceeds, possibleError = IsEquipable(bagId, slotIndex)
             if equipSucceeds then
                 local wornBag = GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_PLAYER and BAG_WORN or
@@ -206,8 +239,16 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         local bound = IsItemBound(ds.bagId, ds.slotIndex)
         local equipItemLink = GetItemLink(ds.bagId, ds.slotIndex)
         local bindType = GetItemLinkBindType(equipItemLink)
+        local expectedSlotIdentity = data.expectedSlotIdentity
 
         local equipItemCallback = function()
+            -- Re-verify at execution time: the slot may have changed while the
+            -- equip-slot dialog or the delayed bind-on-equip confirmation was up.
+            if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(expectedSlotIdentity, ds.bagId, ds.slotIndex) ~= true then
+                BETTERUI.CIM.UserNotify("EquipAction:StaleSlot",
+                    GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
+                return
+            end
             DoEquipMove(ds.bagId, ds.slotIndex, equipType, mainSlot, data[2])
         end
 
@@ -216,9 +257,12 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         if
             not bound
             and bindType == BIND_TYPE_ON_EQUIP
-            and BETTERUI.GetSetting("Inventory", "bindOnEquipProtection", false)
+            -- Protection must default ON so unset profiles still get the BOE confirm.
+            and BETTERUI.GetSetting("Inventory", "bindOnEquipProtection", true)
         then
-            local delay = DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION or 300
+            -- Let the equip-slot dialog finish releasing before queueing the
+            -- bind-on-equip confirmation (no engine constant exposes this).
+            local delay = 300
             BETTERUI.Inventory.Tasks:Schedule("equipBOEConfirmDialog", delay, function()
                 ZO_Dialogs_ShowPlatformDialog(
                     "CONFIRM_EQUIP_BOE",

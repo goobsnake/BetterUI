@@ -189,6 +189,32 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 	self.control:RegisterForEvent(EVENT_PLAYER_DEAD, refreshSelectedData)
 	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, refreshSelectedData)
 
+	-- Learning a recipe/style flips the known/unknown state of OTHER copies of
+	-- the same item without any slot update for them; drop the per-item caches
+	-- and refresh so rows stop showing stale knowledge.
+	local function OnItemKnowledgeChanged()
+		if self.InvalidateItemMeta then
+			self:InvalidateItemMeta()
+		end
+		self:InvalidateSlotDataCache()
+		if self.control:IsHidden() then
+			self:MarkDirty()
+			return
+		end
+		if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
+			return
+		end
+		if self.RefreshItemList then
+			self:RefreshItemList()
+		end
+	end
+	if EVENT_RECIPE_LEARNED then
+		self.control:RegisterForEvent(EVENT_RECIPE_LEARNED, OnItemKnowledgeChanged)
+	end
+	if EVENT_STYLE_LEARNED then
+		self.control:RegisterForEvent(EVENT_STYLE_LEARNED, OnItemKnowledgeChanged)
+	end
+
 	local function OnInventoryUpdated(bagId, slotIndex)
 		-- POSITION PRESERVATION: Capture current uniqueId AND index BEFORE any callbacks overwrite data
 		-- This is a global fix that works for all inventory actions (Use, Equip, Split, etc.)
@@ -206,10 +232,14 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 			end
 		end
 
-		self:InvalidateSlotDataCache()
+		-- InvalidateItemMeta clears cached per-item fields on the live shared
+		-- bag caches (independent of the snapshot InvalidateSlotDataCache
+		-- empties), then the snapshot is dropped (mirrors
+		-- OnItemKnowledgeChanged).
 		if self.InvalidateItemMeta then
 			self:InvalidateItemMeta(bagId, slotIndex)
 		end
+		self:InvalidateSlotDataCache()
 		self:MarkDirty()
 		if GetFrameTimeSeconds then
 			self.nextUpdateTimeSeconds = GetFrameTimeSeconds() + 0.05

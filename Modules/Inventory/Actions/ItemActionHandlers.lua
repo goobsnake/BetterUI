@@ -48,12 +48,24 @@ local function CanUnjunkWithPolicy(target)
     return RequireProtectionPolicyMethod("CanUnjunkItem")(target.bagId, target.slotIndex) == true
 end
 
-local function ToggleJunkState(self, isJunk)
+local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
         return
     end
-    local target = BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
+    -- Prefer the target captured when the dialog entry was built: in category
+    -- mode the dialog target differs from the itemList selection.
+    target = target or BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
     if not target then return end
+
+    -- Slot identity gate (mirrors destroy/equip): the action dialog can stay
+    -- open across inventory updates, so cancel instead of junk-toggling a slot
+    -- that no longer holds the item the entry was built for.
+    if expectedSlotIdentity
+        and BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(expectedSlotIdentity, target.bagId, target.slotIndex) ~= true then
+        BETTERUI.CIM.UserNotify("ItemActionHandlers:JunkStaleSlot",
+            GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
+        return
+    end
 
     local canToggleJunk
     if isJunk then
@@ -185,14 +197,21 @@ function ActionHandlers.OnSetup(self, dialog, data)
             isJunk = IsItemJunk(target.bagId, target.slotIndex) == true
         end
 
+        -- Capture the slot identity alongside the target so the deferred
+        -- toggle can be cancelled if the slot changes while the dialog is up
+        -- (mirrors destroy/equip).
+        local expectedSlotIdentity = target and target.bagId and target.slotIndex
+            and BETTERUI.Inventory.Utils.CaptureSlotIdentity(target.bagId, target.slotIndex, target)
+            or nil
+
         if isJunk then
             showJunkToggleEntry = true
             junkToggleEntryText = betterUnmarkAsJunkName
-            junkToggleEntryCallback = function() ToggleJunkState(self, false) end
+            junkToggleEntryCallback = function() ToggleJunkState(self, false, target, expectedSlotIdentity) end
         elseif not isLocked and canMarkJunk then
             showJunkToggleEntry = true
             junkToggleEntryText = betterMarkAsJunkName
-            junkToggleEntryCallback = function() ToggleJunkState(self, true) end
+            junkToggleEntryCallback = function() ToggleJunkState(self, true, target, expectedSlotIdentity) end
         end
     end
 
@@ -227,8 +246,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
         local actionName = actions:GetRawActionName(action)
 
         local hideDestroy = BETTERUI.Utils.IsBankingSceneShowing() or (target and not canDestroyTarget)
-        local isDestroy = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")))
-            or (SI_ITEM_ACTION_DELETE and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE")))
+        local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY))
         local hideMarkJunk = false
         do
             local t = (self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE)
@@ -486,13 +504,22 @@ function ActionHandlers.OnConfirm(self, dialog)
                 return
             end
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local ds = targetData.dataSource or targetData
+            local slotType = ds and ds.slotType or targetData.slotType
             local link = GetItemLink(bag, slot)
             local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
             if quick then
-                BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+                BETTERUI.Inventory.TryDestroyItem(bag, slot, true, false, slotType)
             else
+                local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, slot, targetData)
                 ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
-                    { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+                    {
+                        bagId = bag,
+                        slotIndex = slot,
+                        slotType = slotType,
+                        itemLink = link,
+                        expectedSlotIdentity = expectedSlotIdentity,
+                    }, nil, true, true)
             end
         end
         return
@@ -509,8 +536,7 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
-    if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY"))
-        or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE"))) then
+    if selectedActionName == GetString(SI_ITEM_ACTION_DESTROY) then
         local targetData = ResolveCurrentTarget(self)
         local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
         if bag and slot then
@@ -518,13 +544,22 @@ function ActionHandlers.OnConfirm(self, dialog)
                 return
             end
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local ds = targetData.dataSource or targetData
+            local slotType = ds and ds.slotType or targetData.slotType
             local link = GetItemLink(bag, slot)
             local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
             if quick then
-                BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+                BETTERUI.Inventory.TryDestroyItem(bag, slot, true, false, slotType)
             else
+                local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, slot, targetData)
                 ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
-                    { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+                    {
+                        bagId = bag,
+                        slotIndex = slot,
+                        slotType = slotType,
+                        itemLink = link,
+                        expectedSlotIdentity = expectedSlotIdentity,
+                    }, nil, true, true)
             end
         end
         return
@@ -538,9 +573,9 @@ function ActionHandlers.OnConfirm(self, dialog)
         local targetData = ResolveCurrentTarget(self)
         local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
         if bag and slot then
-            local itemLink = GetItemLink(bag, slot)
-            if itemLink then
-                ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
+            local itemLink = GetItemLink(bag, slot, LINK_STYLE_BRACKETS)
+            if itemLink and itemLink ~= "" then
+                ZO_LinkHandler_InsertLink(zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink))
             end
         end
         return
@@ -572,7 +607,12 @@ function ActionHandlers.OnConfirm(self, dialog)
             else
                 local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
                 if bag and slot then
-                    CallSecureProtected("UseItem", bag, slot)
+                    if not CallSecureProtected("UseItem", bag, slot) then
+                        local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
+                        BETTERUI.CIM.UserNotify("ItemActionHandlers:UseItem",
+                            (failedStringId and GetString(failedStringId))
+                            or "The action could not be completed.")
+                    end
                 end
             end
         end

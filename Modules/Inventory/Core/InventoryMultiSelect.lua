@@ -107,7 +107,7 @@ function Class:ShowBatchActionsMenu()
 
     -- Select All (always first)
     table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-        GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL")),
+        BETTERUI.CIM.Keybinds.GetSelectAllLabel(),
         function() self:SelectAllItems() end
     ))
 
@@ -133,7 +133,7 @@ function Class:ShowBatchActionsMenu()
 
     -- Deselect All (always last)
     table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-        zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL")), selectedCount),
+        BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount),
         function()
             ZO_Dialogs_ReleaseDialog("BETTERUI_BATCH_ACTIONS_DIALOG")
             zo_callLater(function() self:ExitSelectionMode() end, 50)
@@ -262,7 +262,7 @@ function Class:ShowCraftBagBatchActionsMenu()
     local parametricList = {}
 
     -- Select All
-    local selectAllEntry = ZO_GamepadEntryData:New(GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL")))
+    local selectAllEntry = ZO_GamepadEntryData:New(BETTERUI.CIM.Keybinds.GetSelectAllLabel())
     selectAllEntry:SetIconTintOnSelection(true)
     selectAllEntry.setup = ZO_SharedGamepadEntry_OnSetup
     selectAllEntry.callback = function()
@@ -287,7 +287,7 @@ function Class:ShowCraftBagBatchActionsMenu()
     })
 
     -- Deselect All
-    local deselectLabel = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL")), selectedCount)
+    local deselectLabel = BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount)
     local deselectEntry = ZO_GamepadEntryData:New(deselectLabel)
     deselectEntry:SetIconTintOnSelection(true)
     deselectEntry.setup = ZO_SharedGamepadEntry_OnSetup

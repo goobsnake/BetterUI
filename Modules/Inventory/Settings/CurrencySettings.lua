@@ -77,11 +77,9 @@ local CURRENCY_DATA = {
         id = "tradebars",
         settingKey = "showCurrencyTradeBars",
         orderKey = "orderCurrencyTradeBars",
-        -- Dynamic label handled in Init or access
         labelStr = SI_BETTERUI_CURRENCY_SHOW_TRADE_BARS,
         orderStr = SI_BETTERUI_CURRENCY_ORDER_TRADE_BARS,
-        defaultOrder = 9,
-        dynamicLabel = true
+        defaultOrder = 9
     },
     {
         id = "outfit",
@@ -128,20 +126,10 @@ local function EnsureInventorySettings()
 end
 
 local function GetCurrencyLabel(dataEntry)
-    if dataEntry.dynamicLabel and dataEntry.id == "tradebars" then
-        if (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil) then
-            return GetString(rawget(_G, "SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS"))
-        end
-    end
     return GetString(dataEntry.labelStr)
 end
 
 local function GetOrderLabel(dataEntry)
-    if dataEntry.dynamicLabel and dataEntry.id == "tradebars" then
-        if (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil) then
-            return GetString(rawget(_G, "SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS"))
-        end
-    end
     return GetString(dataEntry.orderStr)
 end
 

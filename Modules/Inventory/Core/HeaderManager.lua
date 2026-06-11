@@ -46,7 +46,8 @@ local function InitializeHeader(self)
         },
     }
 
-    local isCarousel = BETTERUI.GetSetting("Inventory", "enableCarousel", false)
+    -- Inline default must match the registered module default (Module.lua: enableCarousel = true).
+    local isCarousel = BETTERUI.GetSetting("Inventory", "enableCarousel", true)
 
     self.categoryHeaderData = {
         titleText = UpdateTitleText,
@@ -72,6 +73,13 @@ local function InitializeHeader(self)
     local tabBarControl = self.header:GetNamedChild("TabBar")
     if tabBarControl and self.header.tabBar then
         tabBarControl.scrollList = self.header.tabBar
+        -- Category icon clicks route through this callback; CIM's generic tab
+        -- bar no longer hard-codes inventory dispatch.
+        self.header.tabBar.onCategoryClicked = function(_, index)
+            if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.OnCategoryClicked then
+                GAMEPAD_INVENTORY:OnCategoryClicked(index)
+            end
+        end
     end
 
     BETTERUI.GenericFooter.control = self.control

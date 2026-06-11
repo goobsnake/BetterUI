@@ -10,7 +10,7 @@ end
 
 ---@param filterType table|number|nil Filter type constant, table of filter types, or nil for all
 ---@return function comparator Filter function accepting itemData and returning boolean
-function GetFilterComparator(filterType)
+function BETTERUI.Inventory.GetFilterComparator(filterType)
     return function(itemData)
         if filterType then
             -- we can pass a table of filters into the function, and this case has to be handled separately
@@ -50,6 +50,10 @@ local function BETTERUI_CraftList_DefaultItemSortComparator(left, right)
         ZO_SORT_ORDER_UP)
 end
 
+-- Exported so other modules (sorting reset, craft-bag list setup) can reference
+-- the canonical default comparator instead of a bare global.
+BETTERUI.Inventory.CraftListDefaultSortComparator = BETTERUI_CraftList_DefaultItemSortComparator
+
 function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or
@@ -60,7 +64,8 @@ function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryTy
             -- Set categorization data once
             local categoryName = categorizationFunction(slotData)
             slotData.bestGamepadItemCategoryName = categoryName
-            slotData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(slotData))
+            slotData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER,
+                BETTERUI.Inventory.GetBestItemCategoryDescription(slotData))
             slotData.bestItemCategoryName = categoryName
             slotData.itemCategoryName = categoryName
 
@@ -69,7 +74,23 @@ function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryTy
     end
 end
 
-function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
+function BETTERUI.Inventory.CraftList:RefreshList(...)
+    -- Argless calls come from the base-class show/inventory-update handlers and
+    -- must NOT reset the craft-bag filter/search context; explicit calls (from
+    -- RefreshCraftBagList) always pass both arguments and update it.
+    local filterType, searchQuery
+    if select("#", ...) > 0 then
+        filterType, searchQuery = ...
+        self.lastFilterType = filterType
+        self.lastSearchQuery = searchQuery
+    else
+        filterType = self.lastFilterType
+        searchQuery = self.lastSearchQuery
+    end
+
+    -- Cancel any in-flight deferred batch and reset pending state BEFORE the
+    -- hidden early-out, so a refresh while hidden cannot leave a stale batch
+    -- (built from pre-refresh data) resuming later.
     if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Cancel then
         BETTERUI.Inventory.Tasks:Cancel("craftBatchProcess")
     end
@@ -78,16 +99,24 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     self.pendingBatchIndex = nil
     self.pendingContext = nil
 
+    -- Hidden/dirty early-out mirroring the base class: defer the rebuild until
+    -- the OnEffectivelyShown handler sees isDirty and refreshes on show.
+    if self.control and self.control.IsHidden and self.control:IsHidden() then
+        self.isDirty = true
+        return
+    end
+    self.isDirty = false
+
     -- Update empty-state text based on search context
     if searchQuery and tostring(searchQuery) ~= "" then
         self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
     else
-        self.list:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY")))
+        self.list:SetNoItemText(GetString(SI_INVENTORY_ERROR_CRAFT_BAG_EMPTY))
     end
 
     self.list:Clear()
 
-    self.itemFilterFunction = GetFilterComparator(filterType)
+    self.itemFilterFunction = BETTERUI.Inventory.GetFilterComparator(filterType)
     local filteredDataTable = self:GenerateSlotTable()
 
     -- Apply text search filtering when requested (case-insensitive substring match on item name only)
@@ -130,12 +159,15 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
             data.bestItemTypeName = itemData.bestItemTypeName
             data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
 
-            -- Set header only when category changes
+            -- Set header only when category changes; headers only render when the
+            -- row is added through the WithHeader template variant.
             if itemData.bestItemCategoryName ~= lastBestItemCategoryName then
                 data:SetHeader(itemData.bestItemCategoryName)
                 lastBestItemCategoryName = itemData.bestItemCategoryName
+                self.list:AddEntryWithHeader("BETTERUI_GamepadItemSubEntryTemplate", data)
+            else
+                self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
             end
-            self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
         end
         self.list:Commit()
         return
@@ -175,12 +207,14 @@ function BETTERUI.Inventory.CraftList:ProcessBatch()
         data.bestItemTypeName = itemData.bestItemTypeName
         data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
 
+        -- Headers only render when the row is added through the WithHeader template variant.
         if itemData.bestItemCategoryName ~= lastBestItemCategoryName then
             data:SetHeader(itemData.bestItemCategoryName)
             lastBestItemCategoryName = itemData.bestItemCategoryName
+            self.list:AddEntryWithHeader("BETTERUI_GamepadItemSubEntryTemplate", data)
+        else
+            self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
         end
-
-        self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
     end
 
     self.pendingContext.lastBestItemCategoryName = lastBestItemCategoryName

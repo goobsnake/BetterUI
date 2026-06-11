@@ -3,40 +3,6 @@ File: Modules/Inventory/Lists/CraftBagListManager.lua
 Purpose: Manages the Craft Bag list for the Inventory module.
 ]]
 
-local function MenuEntryTemplateEquality(left, right)
-    return left.uniqueId == right.uniqueId
-end
-
---- Setup function wrapper that binds SLOT_TYPE_CRAFT_BAG_ITEM before rendering.
---- Without this, ZO_InventorySlot_GetType returns nil and IsSlotInCraftBag fails,
---- causing the "Retrieve" action to never appear.
-local function CraftBagEntrySetup(control, data, selected, selectedDuringRebuild, enabled, activated)
-    -- Bind the slot type BEFORE rendering so action discovery works correctly
-    ZO_Inventory_BindSlot(data, SLOT_TYPE_CRAFT_BAG_ITEM, data.slotIndex, data.bagId)
-    BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
-end
-
-local function SetupCraftBagList(buiList)
-    -- Short controlPoolPrefix keeps pooled-control names under the engine limit.
-    buiList.list:AddDataTemplate(
-        "BETTERUI_GamepadItemSubEntryTemplate",
-        CraftBagEntrySetup,
-        ZO_GamepadMenuEntryTemplateParametricListFunction,
-        MenuEntryTemplateEquality,
-        "BUI_ItemRow"
-    )
-    buiList.list:AddDataTemplateWithHeader(
-        "BETTERUI_GamepadItemSubEntryTemplate",
-        CraftBagEntrySetup,
-        ZO_GamepadMenuEntryTemplateParametricListFunction,
-        MenuEntryTemplateEquality,
-        "ZO_GamepadMenuEntryHeaderTemplate",
-        nil,
-        "BUI_ItemRow"
-    )
-end
-
-
 --- Initializes the craft bag list.
 --- Purpose: Sets up the visual scroll list for the craft bag.
 ---@return nil
@@ -60,7 +26,11 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
 
     self.craftBagList = self:AddList(
         "CraftBag",
-        SetupCraftBagList,
+        -- No template-registration callback: BETTERUI.Inventory.List:Initialize
+        -- already registers the entry templates and binds options.slotType per
+        -- row, and ZO_ParametricScrollList silently ignores duplicate template
+        -- registrations, so a post-creation callback would be a dead no-op.
+        nil,
         BETTERUI.Inventory.CraftList,
         {
             inventoryType = BAG_VIRTUAL,
@@ -71,10 +41,10 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
             listModuleName = "Inventory",
         }
     )
-    self.craftBagList:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY")))
+    self.craftBagList:SetNoItemText(GetString(SI_INVENTORY_ERROR_CRAFT_BAG_EMPTY))
     self.craftBagList:SetAlignToScreenCenter(true, 30)
 
-    self.craftBagList:SetSortFunction(BETTERUI_CraftList_DefaultItemSortComparator)
+    self.craftBagList:SetSortFunction(BETTERUI.Inventory.CraftListDefaultSortComparator)
 
     -- Initialize craftbag multi-select manager
     if not self.craftBagMultiSelectManager then
@@ -114,6 +84,43 @@ function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
     end
 
     GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, title, description)
+end
+
+--- Counts craft bag items for every filter type in a single pass for the
+--- category badges. Single-pass replacement for calling
+--- GetCraftBagCategoryItemCount once per category: each item is bucketed by
+--- its filterData entries, which is exactly the membership test
+--- ZO_InventoryUtils_DoesNewItemMatchFilterType applies for non-nil filters.
+---@return table<number, number> countsByFilterType Item counts keyed by filter type
+---@return number totalCount Total craft bag item count (the "All" category)
+function BETTERUI.Inventory.Class:GetCraftBagCategoryItemCounts()
+    local countsByFilterType = {}
+    local totalCount = 0
+    local virtualItems = SHARED_INVENTORY:GetBagCache(BAG_VIRTUAL)
+    if virtualItems then
+        for _, itemData in pairs(virtualItems) do
+            totalCount = totalCount + 1
+            local filterData = itemData.filterData
+            if filterData then
+                for i = 1, #filterData do
+                    local filterType = filterData[i]
+                    -- Guard duplicate filter entries so an item is counted at
+                    -- most once per filter type, matching the boolean matcher.
+                    local alreadyCounted = false
+                    for j = 1, i - 1 do
+                        if filterData[j] == filterType then
+                            alreadyCounted = true
+                            break
+                        end
+                    end
+                    if not alreadyCounted then
+                        countsByFilterType[filterType] = (countsByFilterType[filterType] or 0) + 1
+                    end
+                end
+            end
+        end
+    end
+    return countsByFilterType, totalCount
 end
 
 --- Counts items in the Craft Bag matching a filter type for category badge display.

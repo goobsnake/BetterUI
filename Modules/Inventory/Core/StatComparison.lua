@@ -93,6 +93,20 @@ local function IsEquippedMainHandTwoHanded(equipBagId)
     return equipType == EQUIP_TYPE_TWO_HAND
 end
 
+--- Resolves a BetterUI string id with an English fallback so labels still
+--- render before the SI_BETTERUI_STATCOMP_* ids ship in the lang files.
+--- @param stringIdName string Global string-id name
+--- @param fallback string English fallback text
+--- @return string label
+local function L(stringIdName, fallback)
+    local stringId = rawget(_G, stringIdName)
+    local text = stringId and GetString(stringId)
+    if text and text ~= "" then
+        return text
+    end
+    return fallback
+end
+
 --- Formats a stat delta with color coding.
 --- Label is white, value is green (positive) or red (negative) with arrow.
 --- @param delta number The stat difference
@@ -208,7 +222,7 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
             equipSlot = equipSlot,
             equippedLink = nil,
             deltas = candidateStats,
-            lines = { COLOR_POSITIVE .. "Empty slot — equip to gain stats" .. COLOR_RESET },
+            lines = { COLOR_POSITIVE .. L("SI_BETTERUI_STATCOMP_EMPTY_SLOT", "Empty slot — equip to gain stats") .. COLOR_RESET },
             isUpgrade = true,
             candidateEnchant = GetEnchantmentSummary(candidateLink),
             candidateSet = GetSetName(candidateLink),
@@ -245,20 +259,20 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
     -- Armor rating (for armor pieces)
     if candidateStats.armorRating > 0 or equippedStats.armorRating > 0 then
         if deltas.armorRating ~= 0 then
-            table.insert(lines, FormatDelta(deltas.armorRating, "Armor", true))
+            table.insert(lines, FormatDelta(deltas.armorRating, L("SI_BETTERUI_STATCOMP_ARMOR", "Armor"), true))
         end
     end
 
     -- Weapon damage (for weapons)
     if candidateStats.weaponDamage > 0 or equippedStats.weaponDamage > 0 then
         if deltas.weaponDamage ~= 0 then
-            table.insert(lines, FormatDelta(deltas.weaponDamage, "Damage", true))
+            table.insert(lines, FormatDelta(deltas.weaponDamage, L("SI_BETTERUI_STATCOMP_DAMAGE", "Damage"), true))
         end
     end
 
     -- Level difference
     if deltas.level ~= 0 then
-        table.insert(lines, FormatDelta(deltas.level, "Level", true))
+        table.insert(lines, FormatDelta(deltas.level, L("SI_BETTERUI_STATCOMP_LEVEL", "Level"), true))
     end
 
     -- Quality change
@@ -266,19 +280,21 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
         local qualityName = StripColorCodes(GetString("SI_ITEMDISPLAYQUALITY", candidateStats.quality))
         local color = deltas.quality > 0 and COLOR_POSITIVE or COLOR_NEGATIVE
         local arrow = deltas.quality > 0 and ARROW_UP or ARROW_DOWN
-        table.insert(lines, COLOR_WHITE .. "Quality: " .. COLOR_RESET .. color .. qualityName .. arrow .. COLOR_RESET)
+        local qualityLabel = L("SI_BETTERUI_STATCOMP_QUALITY", "Quality")
+        table.insert(lines, COLOR_WHITE .. qualityLabel .. ": " .. COLOR_RESET .. color .. qualityName .. arrow .. COLOR_RESET)
     end
 
     -- Set bonus change
     local candidateSet = GetSetName(candidateLink)
     local equippedSet = GetSetName(equippedLink)
     if candidateSet ~= equippedSet then
+        local setLabel = L("SI_BETTERUI_STATCOMP_SET", "Set")
         if candidateSet and equippedSet then
-            table.insert(lines, COLOR_WHITE .. "Set: " .. COLOR_RESET .. COLOR_NEUTRAL .. equippedSet .. " → " .. candidateSet .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. setLabel .. ": " .. COLOR_RESET .. COLOR_NEUTRAL .. equippedSet .. " → " .. candidateSet .. COLOR_RESET)
         elseif candidateSet then
-            table.insert(lines, COLOR_WHITE .. "Set: " .. COLOR_RESET .. COLOR_POSITIVE .. candidateSet .. ARROW_UP .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. setLabel .. ": " .. COLOR_RESET .. COLOR_POSITIVE .. candidateSet .. ARROW_UP .. COLOR_RESET)
         elseif equippedSet then
-            table.insert(lines, COLOR_WHITE .. "Set: " .. COLOR_RESET .. COLOR_NEGATIVE .. equippedSet .. ARROW_DOWN .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. setLabel .. ": " .. COLOR_RESET .. COLOR_NEGATIVE .. equippedSet .. ARROW_DOWN .. COLOR_RESET)
         end
     end
 
@@ -286,12 +302,14 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
     local candidateEnchant = GetEnchantmentSummary(candidateLink)
     local equippedEnchant = GetEnchantmentSummary(equippedLink)
     if candidateEnchant ~= equippedEnchant then
+        local enchantLabel = L("SI_BETTERUI_STATCOMP_ENCHANT", "Enchant")
         if candidateEnchant and equippedEnchant then
-            table.insert(lines, COLOR_WHITE .. "Enchant: " .. COLOR_RESET .. COLOR_NEUTRAL .. "changed" .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. enchantLabel .. ": " .. COLOR_RESET .. COLOR_NEUTRAL
+                .. L("SI_BETTERUI_STATCOMP_ENCHANT_CHANGED", "changed") .. COLOR_RESET)
         elseif candidateEnchant then
-            table.insert(lines, COLOR_WHITE .. "Enchant: " .. COLOR_RESET .. COLOR_POSITIVE .. candidateEnchant .. ARROW_UP .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. enchantLabel .. ": " .. COLOR_RESET .. COLOR_POSITIVE .. candidateEnchant .. ARROW_UP .. COLOR_RESET)
         elseif equippedEnchant then
-            table.insert(lines, COLOR_WHITE .. "Enchant: " .. COLOR_RESET .. COLOR_NEGATIVE .. equippedEnchant .. ARROW_DOWN .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. enchantLabel .. ": " .. COLOR_RESET .. COLOR_NEGATIVE .. equippedEnchant .. ARROW_DOWN .. COLOR_RESET)
         end
     end
 
@@ -300,7 +318,7 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
         (deltas.quality > 0) or (deltas.level > 0)
 
     if #lines == 0 then
-        table.insert(lines, COLOR_NEUTRAL .. "No stat change" .. COLOR_RESET)
+        table.insert(lines, COLOR_NEUTRAL .. L("SI_BETTERUI_STATCOMP_NO_CHANGE", "No stat change") .. COLOR_RESET)
     end
 
     return {

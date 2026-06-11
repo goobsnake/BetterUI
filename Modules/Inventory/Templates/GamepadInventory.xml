@@ -21,8 +21,8 @@
         INITIALIZATION FLOW:
         1. XML loads, creates BETTERUI_GamepadInventoryTopLevel control (no init)
         2. BetterUI.lua checks if Inventory module is enabled in settings
-        3. If enabled, calls BETTERUI_GamepadInventory_OnInitialize(control) manually
-        4. This creates BETTERUI.Inventory.Class instance and assigns to GAMEPAD_INVENTORY
+        3. If enabled, Module.lua's setup runs BETTERUI.Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
+        4. The new instance is assigned to GAMEPAD_INVENTORY (replacing the native one)
 
     -->
     <Controls>

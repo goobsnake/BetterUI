@@ -12,7 +12,6 @@ Purpose: Defines the primary BETTERUI.Inventory.Class structure, initialization 
 -- control over the scene lifecycle. This is intentional based on module needs.
 -- See: docs/ARCHITECTURE.md for inheritance diagram
 --- @class BetterUI_InventoryClass : ZO_GamepadInventory
---- @field itemMetaCache table<number, table<number, table>>
 --- @field itemList table Scroll list for backpack items
 --- @field craftBagList table Scroll list for craft bag items
 --- @field categoryList table Scroll list for category tabs
@@ -67,36 +66,111 @@ function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
     g_slotDataCache = {}
 end
 
---- Invalidates cached item metadata for a specific bag/slot.
---- @param bagId number|nil Bag ID, or nil to clear all
---- @param slotIndex number|nil Slot index, or nil to clear entire bag
-function BETTERUI.Inventory.Class:InvalidateItemMeta(bagId, slotIndex)
-    if not self.itemMetaCache then self.itemMetaCache = {} end
-    if not bagId then
-        self.itemMetaCache = {}
-    elseif not slotIndex then
-        self.itemMetaCache[bagId] = nil
+-- Per-item cached fields written directly onto slot data tables. List rows
+-- write them onto SHARED_INVENTORY's persistent bag-cache tables, so they are
+-- cleared alongside the meta cache: market unit price changes with vendor/MM
+-- data, recipe/book/trait knowledge flips on learn events, and the
+-- identity-bound link/type/set/enchant/trait fields go stale when a slot's
+-- item changes.
+local META_CACHED_ITEM_FIELDS = {
+    "cached_marketUnitPrice",
+    "cached_isRecipeAndUnknown",
+    "cached_isBook",
+    "cached_isBookKnown",
+    "cached_isBookAndUnknown",
+    "cached_isTraitResearchable",
+    "cached_isUnbound",
+    "cached_itemLink",
+    "cached_itemType",
+    "cached_setItem",
+    "cached_hasEnchantment",
+    "cached_traitName",
+}
+
+local function ClearCachedItemFields(slotData)
+    for i = 1, #META_CACHED_ITEM_FIELDS do
+        slotData[META_CACHED_ITEM_FIELDS[i]] = nil
+    end
+end
+
+--- Clears cached per-item fields on SHARED_INVENTORY's live bag-cache slot
+--- tables. Those tables persist across inventory updates, so the clear must
+--- happen there and must not depend on the local g_slotDataCache snapshot.
+---@param bagId number Bag ID
+---@param slotIndex number|nil Slot index, or nil for the whole bag
+local function ClearSharedBagCachedItemFields(bagId, slotIndex)
+    if not (SHARED_INVENTORY and SHARED_INVENTORY.GetBagCache) then
+        return
+    end
+    local bagCache = SHARED_INVENTORY:GetBagCache(bagId)
+    if not bagCache then
+        return
+    end
+    if slotIndex ~= nil then
+        local slotData = bagCache[slotIndex]
+        if slotData then
+            ClearCachedItemFields(slotData)
+        end
     else
-        if self.itemMetaCache[bagId] then
-            self.itemMetaCache[bagId][slotIndex] = nil
+        for _, slotData in pairs(bagCache) do
+            ClearCachedItemFields(slotData)
         end
     end
 end
 
---- @param bags number[] Bag IDs to generate key for
---- @return string cacheKey Concatenated bag IDs
-local function GetBagCacheKey(bags)
-    if #bags == 1 then return bags[1] end
-    return table.concat(bags, ",")
+--- Invalidates cached item metadata for a specific bag/slot.
+--- @param bagId number|nil Bag ID, or nil to clear all
+--- @param slotIndex number|nil Slot index, or nil to clear entire bag
+function BETTERUI.Inventory.Class:InvalidateItemMeta(bagId, slotIndex)
+    -- Clear on the live shared bag caches so visible rows cannot keep serving
+    -- stale knowledge/price state. This is deliberately independent of
+    -- g_slotDataCache: InvalidateSlotDataCache() empties that snapshot on
+    -- every inventory update, which would make a snapshot-only clear a no-op
+    -- during recipe/style-learn bursts while the persistent shared slot
+    -- tables keep their stale cached_* fields.
+    if bagId ~= nil then
+        ClearSharedBagCachedItemFields(bagId, slotIndex)
+    else
+        ClearSharedBagCachedItemFields(BAG_BACKPACK, slotIndex)
+        ClearSharedBagCachedItemFields(BAG_WORN, slotIndex)
+    end
+
+    -- Also clear matching entries in the local snapshot while it is populated;
+    -- it normally references the same shared tables, but this covers snapshot
+    -- entries whose bag has no live shared cache.
+    for _, slotEntries in pairs(g_slotDataCache) do
+        for i = 1, #slotEntries do
+            local slotData = slotEntries[i]
+            if slotData
+                and (bagId == nil or slotData.bagId == bagId)
+                and (slotIndex == nil or slotData.slotIndex == slotIndex) then
+                ClearCachedItemFields(slotData)
+            end
+        end
+    end
 end
 
 --- Gets cached slot data for the specified bags.
---- @param ... number Variable bag IDs (BAG_BACKPACK, BAG_WORN, etc.)
+--- All internal call sites pass one or two bag IDs, so fixed parameters avoid
+--- per-call vararg table allocation and sorting in this hot accessor.
+--- @param bagId number Bag ID (BAG_BACKPACK, BAG_WORN, etc.)
+--- @param secondBagId number|nil Optional second bag ID
 --- @return table slotData Array of slot data entries
-function BETTERUI.Inventory.Class:GetCachedSlotData(...)
-    local bags = { ... }
-    table.sort(bags) -- Ensure consistent key
-    local cacheKey = GetBagCacheKey(bags)
+function BETTERUI.Inventory.Class:GetCachedSlotData(bagId, secondBagId)
+    -- Normalize bag order so (a, b) and (b, a) share one cache entry.
+    if secondBagId ~= nil and secondBagId < bagId then
+        bagId, secondBagId = secondBagId, bagId
+    end
+
+    -- Single-bag keys are the bag ID itself; bag-pair keys pack both IDs into
+    -- one number. Bag IDs are small enum values (far below 100000), and the
+    -- +1 offset keeps BAG_WORN (0) pairs from colliding with single-bag keys.
+    local cacheKey
+    if secondBagId == nil then
+        cacheKey = bagId
+    else
+        cacheKey = (bagId + 1) * 100000 + secondBagId
+    end
 
     if g_slotDataCacheDirty then
         g_slotDataCache = {}
@@ -106,7 +180,11 @@ function BETTERUI.Inventory.Class:GetCachedSlotData(...)
     if not g_slotDataCache[cacheKey] then
         if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullSlotData then
             -- Fetch ALL items (no filter) for these bags to populate the cache
-            g_slotDataCache[cacheKey] = SHARED_INVENTORY:GenerateFullSlotData(nil, unpack(bags))
+            if secondBagId == nil then
+                g_slotDataCache[cacheKey] = SHARED_INVENTORY:GenerateFullSlotData(nil, bagId)
+            else
+                g_slotDataCache[cacheKey] = SHARED_INVENTORY:GenerateFullSlotData(nil, bagId, secondBagId)
+            end
         else
             g_slotDataCache[cacheKey] = {}
         end
@@ -574,37 +652,13 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then
         return
     end
-    self.textSearchHeaderControl:ClearAnchors()
-    local anchorTarget = self.header
-    local titleContainer = nil
-    if anchorTarget and anchorTarget.GetNamedChild then
-        local candidates = { "TitleContainer", "Header", "HeaderContainer", "HeaderTitle", "HeaderBar", "ContainerHeader" }
-        for _, name in ipairs(candidates) do
-            local ok, c = BETTERUI.CIM.SafeExecute("Inventory.search.anchor", function() return anchorTarget:GetNamedChild(name) end)
-            if ok and c then
-                titleContainer = c
-                break
-            end
-        end
-    end
-
-    local parentForAnchor = titleContainer or self.header
-    if parentForAnchor then
-        local searchConst = BETTERUI.CIM.SearchBar.GetConstants("INVENTORY")
-        local xOffset = searchConst.X_OFFSET
-        local yOffset = searchConst.Y_OFFSET
-        local rightInset = searchConst.RIGHT_INSET
-        -- TOPLEFT uses xOffset, TOPRIGHT uses rightInset so the control width is constrained
-        self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
-    else
-        local searchConst = BETTERUI.CIM.SearchBar.GetConstants("INVENTORY")
-        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0,
-            searchConst.Y_OFFSET)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0,
-            searchConst.Y_OFFSET)
-    end
-    self.textSearchHeaderControl:SetHidden(false)
+    -- Shared anchoring lives in CIM SearchManager (loaded before this module).
+    BETTERUI.Interface.PositionSearchControl(self, {
+        preset = "INVENTORY",
+        headerOnly = true,
+        titleChildNames = { "TitleContainer", "Header", "HeaderContainer", "HeaderTitle", "HeaderBar", "ContainerHeader" },
+        safeExecuteContext = "Inventory.search.anchor",
+    })
 end
 
 -- Remaining class functionality is split into dedicated modules loaded after this file:

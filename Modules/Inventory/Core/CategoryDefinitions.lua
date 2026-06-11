@@ -194,6 +194,15 @@ BETTERUI.Inventory.Categories.Inventory = {
 
 --- Checks if itemData belongs to the given category definition.
 function BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
+    -- Guard both inputs before any field access: a missing category means "no
+    -- filter" (match everything); missing item data can never match.
+    if not itemData then
+        return false
+    end
+    if not category then
+        return true
+    end
+
     -- Handle special category types FIRST
     -- (e.g., 'Junk' has filterType=nil, so checking special first prevents it from matching the 'All' logic)
     if category.special == "junk" or category.showJunk then
@@ -204,9 +213,9 @@ function BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
         return itemData.stolen == true
     end
 
-    -- No category or "all" always matches
+    -- "All" always matches
     -- Note: Only check this AFTER special categories to avoid false positives for categories like Junk
-    if not category or category.key == "all" or category.filterType == nil then
+    if category.key == "all" or category.filterType == nil then
         return true
     end
 

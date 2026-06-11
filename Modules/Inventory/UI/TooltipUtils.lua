@@ -1,5 +1,5 @@
 --[[
-File: Modules/Inventory/InventoryTooltipUtils.lua
+File: Modules/Inventory/UI/TooltipUtils.lua
 Purpose: specialized tooltip logic for the Inventory module.
          Extracted from Inventory.lua to reduce file size.
 ]]

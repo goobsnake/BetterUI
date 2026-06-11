@@ -3,25 +3,50 @@
 -- Extracted from InventoryClass.lua for maintainability.
 
 local Class = BETTERUI.Inventory.Class
-local CompareNils = BETTERUI.CIM.Utils.CompareNils
 local NormalizeIdentityValue = BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
 
 local function GetSortDataSource(data)
     return data and (data.dataSource or data) or nil
 end
 
+-- Memoized stable-key cache. The key is a pure function of the resolved
+-- (name, bagId, slotIndex, uniqueId) inputs; cache hits revalidate all four
+-- inputs so a reused slot-data table never serves a stale key. Weak keys let
+-- entry tables be collected between rebuilds. This avoids rebuilding the key
+-- string (format + Id64 normalization) on every tie-break comparison, which
+-- runs O(n log n) times during a sort.
+local stableKeyCache = setmetatable({}, { __mode = "k" })
+
 local function GetStableSortKey(data)
     local itemData = GetSortDataSource(data)
     if not itemData then
         return ""
     end
+    local name = itemData.name or data.name or ""
+    local bagId = itemData.bagId or data.bagId or ""
+    local slotIndex = itemData.slotIndex or data.slotIndex or ""
     local uniqueId = itemData.uniqueId or data.uniqueId
+
+    local cached = stableKeyCache[data]
+    if cached and cached.name == name and cached.bagId == bagId
+        and cached.slotIndex == slotIndex and cached.uniqueId == uniqueId then
+        return cached.key
+    end
+
     local uniqueIdString = uniqueId and ((NormalizeIdentityValue and NormalizeIdentityValue(uniqueId)) or tostring(uniqueId)) or ""
-    return string.format("%s|%s|%s|%s",
-        tostring(itemData.name or data.name or ""),
-        tostring(itemData.bagId or data.bagId or ""),
-        tostring(itemData.slotIndex or data.slotIndex or ""),
+    local key = string.format("%s|%s|%s|%s",
+        tostring(name),
+        tostring(bagId),
+        tostring(slotIndex),
         uniqueIdString)
+    stableKeyCache[data] = {
+        name = name,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        uniqueId = uniqueId,
+        key = key,
+    }
+    return key
 end
 
 local function CompareStableFallback(left, right)
@@ -157,119 +182,50 @@ local function GetTraitSortValue(data)
     return traitName
 end
 
---- Helper: Get stat sort value (alphabetical first, then numeric, blanks last)
---- @param data table Item data or dataSource wrapper
---- @return number priority Sort priority group (1=alpha, 2=numeric, 3=blank)
---- @return string|number value Sort value within group
-local function GetStatSortValue(data)
-    if not data then return 3, "" end
-    local statValue = data.statValue
-    if statValue == nil or statValue == "" or statValue == 0 or statValue == "-" then
-        return 3, ""
-    end
-    local statStr = tostring(statValue)
-    local numVal = tonumber(statStr)
-    if numVal then
-        return 2, numVal
-    end
-    if statStr:match("^%a") then
-        return 1, statStr:upper()
-    end
-    return 2.5, statStr
-end
+-- Stat sort values resolve through the shared default
+-- (BETTERUI.CIM.SortManager.GetStatSortValue).
 
 --- Helper: Get value sort value (market price first, then vendor price)
+--- The cache holds the UNIT price so stack-size changes between refreshes
+--- cannot leave a stale stack total behind; InvalidateItemMeta clears it.
 --- @param data table Item data or dataSource wrapper
---- @return number price Market price or vendor price
+--- @return number price Market price or vendor price for the current stack
 local function GetValueSortValue(data)
     if not data then return 0 end
     local itemData = data.dataSource or data
-    if itemData.cached_marketPrice then
-        return itemData.cached_marketPrice
+    local stackCount = itemData.stackCount or 1
+    if stackCount <= 0 then stackCount = 1 end
+    if itemData.cached_marketUnitPrice then
+        return itemData.cached_marketUnitPrice * stackCount
     end
     local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
     if marketIntegration and type(marketIntegration.GetMarketPrice) == "function" then
         local itemLink = itemData.itemLink or itemData.cached_itemLink or
             (itemData.bagId and itemData.slotIndex and GetItemLink(itemData.bagId, itemData.slotIndex))
         if itemLink then
-            local marketPrice = marketIntegration.GetMarketPrice(itemLink, itemData.stackCount or 1)
-            if marketPrice and marketPrice > 0 then
-                itemData.cached_marketPrice = marketPrice
-                return marketPrice
+            local marketUnitPrice = marketIntegration.GetMarketPrice(itemLink, 1)
+            if marketUnitPrice and marketUnitPrice > 0 then
+                itemData.cached_marketUnitPrice = marketUnitPrice
+                return marketUnitPrice * stackCount
             end
         end
     end
-    local vendorPrice = itemData.stackSellPrice or 0
-    itemData.cached_marketPrice = vendorPrice
-    return vendorPrice
+    local vendorStackPrice = itemData.stackSellPrice or 0
+    itemData.cached_marketUnitPrice = vendorStackPrice / stackCount
+    return vendorStackPrice
 end
 
---- Creates sort comparator for a column with the specified direction
+--- Creates a sort comparator for a column via the shared CIM factory,
+--- wiring inventory-specific value getters and the stable tie-breaker.
 --- @param sortKey string The data field to sort by
 --- @param ascending boolean Whether to sort ascending
 --- @return fun(left: table, right: table): boolean comparator
 local function CreateColumnSortComparator(sortKey, ascending)
-    -- TRAIT: Alphabetical with blanks after "z"
-    if sortKey == "trait" then
-        return function(left, right)
-            local leftVal = GetTraitSortValue(left)
-            local rightVal = GetTraitSortValue(right)
-            if leftVal == nil and rightVal == nil then return CompareStableFallback(left, right) end
-            local nilResult = CompareNils(leftVal, rightVal, true)
-            if nilResult ~= nil then return nilResult end
-            if leftVal == rightVal then return CompareStableFallback(left, right) end
-            if ascending then return leftVal < rightVal else return leftVal > rightVal end
-        end
-    end
-
-    -- STAT: Alphabetical first, then numeric by value, special chars, blanks last
-    if sortKey == "stat" then
-        return function(left, right)
-            local leftPrio, leftVal = GetStatSortValue(left)
-            local rightPrio, rightVal = GetStatSortValue(right)
-            if leftPrio == 3 and rightPrio == 3 then return CompareStableFallback(left, right) end
-            if leftPrio == 3 then return false end
-            if rightPrio == 3 then return true end
-            if leftPrio ~= rightPrio then
-                if ascending then return leftPrio < rightPrio else return leftPrio > rightPrio end
-            end
-            if leftVal == rightVal then return CompareStableFallback(left, right) end
-            if ascending then return leftVal < rightVal else return leftVal > rightVal end
-        end
-    end
-
-    -- VALUE: Market price first, then vendor price
-    if sortKey == "value" then
-        return function(left, right)
-            local leftVal = GetValueSortValue(left)
-            local rightVal = GetValueSortValue(right)
-            if ascending then
-                if leftVal == 0 and rightVal == 0 then return CompareStableFallback(left, right) end
-                if leftVal == 0 then return true end
-                if rightVal == 0 then return false end
-            else
-                if leftVal == 0 and rightVal == 0 then return CompareStableFallback(left, right) end
-                if leftVal == 0 then return false end
-                if rightVal == 0 then return true end
-            end
-            if leftVal == rightVal then return CompareStableFallback(left, right) end
-            if ascending then return leftVal < rightVal else return leftVal > rightVal end
-        end
-    end
-
-    -- Default comparator for NAME, TYPE, and other columns
-    return function(left, right)
-        local leftVal = left[sortKey]
-        local rightVal = right[sortKey]
-        if leftVal == nil and rightVal == nil then return CompareStableFallback(left, right) end
-        local nilResult = CompareNils(leftVal, rightVal, ascending)
-        if nilResult ~= nil then return nilResult end
-        if leftVal == rightVal then return CompareStableFallback(left, right) end
-        if type(leftVal) == "string" and type(rightVal) == "string" then
-            if ascending then return leftVal < rightVal else return leftVal > rightVal end
-        end
-        if ascending then return leftVal < rightVal else return leftVal > rightVal end
-    end
+    return BETTERUI.CIM.SortManager.CreateColumnSortComparator(sortKey, ascending, {
+        getTraitValue = GetTraitSortValue,
+        getValueValue = GetValueSortValue,
+        tieBreak = CompareStableFallback,
+    })
 end
 
 --- Initializes the header sort controller for this inventory instance.
@@ -386,7 +342,7 @@ function Class:OnHeaderSortChanged(listType, columnKey, direction)
         self.currentSortComparators[listType] = nil
         if currentList.SetSortFunction then
             if listType == inventoryCraftBagList then
-                currentList:SetSortFunction(BETTERUI_CraftList_DefaultItemSortComparator)
+                currentList:SetSortFunction(BETTERUI.Inventory.CraftListDefaultSortComparator)
             else
                 currentList:SetSortFunction(nil)
             end

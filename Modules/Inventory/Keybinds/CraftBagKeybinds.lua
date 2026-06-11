@@ -8,6 +8,12 @@ local function GetNowMilliseconds()
     return GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
 end
 
+local function NotifySecureActionFailed(context)
+    local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
+    BETTERUI.CIM.UserNotify(context,
+        (failedStringId and GetString(failedStringId)) or "The action could not be completed.")
+end
+
 local function NormalizeActionName(actionName)
     if type(actionName) ~= "string" then
         return actionName
@@ -52,25 +58,7 @@ local function ResolveMultiSelectActionName(self, target, isCraftBag, afterToggl
     if not manager then
         return nil
     end
-
-    local isSelected = target and manager:IsSelected(target) or false
-    if afterToggle then
-        isSelected = not isSelected
-    end
-    if isSelected then
-        return GetString(SI_BETTERUI_DESELECT_ITEM)
-    end
-
-    local count = manager.GetSelectedCount and manager:GetSelectedCount() or 0
-    if afterToggle and target then
-        local currentlySelected = manager:IsSelected(target)
-        if currentlySelected then
-            count = math.max(0, count - 1)
-        else
-            count = count + 1
-        end
-    end
-    return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+    return BETTERUI.CIM.Keybinds.GetMultiSelectToggleLabel(manager, target, afterToggle)
 end
 
 local function IsPrimaryActionTransitionActive(self)
@@ -220,7 +208,9 @@ local function ExecuteTargetUse(target)
 
     local bag, slot = ZO_Inventory_GetBagAndIndex(dataSource)
     if bag and slot then
-        CallSecureProtected("UseItem", bag, slot)
+        if not CallSecureProtected("UseItem", bag, slot) then
+            NotifySecureActionFailed("CraftBagKeybinds:UseItem")
+        end
     end
 end
 
@@ -235,9 +225,9 @@ local function InsertTargetLink(target)
         return
     end
 
-    local itemLink = GetItemLink(bag, slot)
-    if itemLink then
-        ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
+    local itemLink = GetItemLink(bag, slot, LINK_STYLE_BRACKETS)
+    if itemLink and itemLink ~= "" then
+        ZO_LinkHandler_InsertLink(zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink))
     end
 end
 
@@ -567,7 +557,9 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
             local inventorySlot = target.dataSource and target or { dataSource = target }
             self:TryEquipItem(inventorySlot, false)
         else
-            CallSecureProtected("UseItem", target.bagId, target.slotIndex)
+            if not CallSecureProtected("UseItem", target.bagId, target.slotIndex) then
+                NotifySecureActionFailed("CraftBagKeybinds:PrimaryUseItem")
+            end
         end
     end
 end
@@ -656,7 +648,9 @@ function InventoryKeybinds.HandleSecondaryKeybind(self)
 
         if slotNum then
             StartSecondaryActionTransition(self, InventoryKeybinds.GetSecondaryKeybindName(self))
-            CallSecureProtected("ClearSlot", slotNum, hotbarCategory)
+            if not CallSecureProtected("ClearSlot", slotNum, hotbarCategory) then
+                NotifySecureActionFailed("CraftBagKeybinds:QuickslotClear")
+            end
             if SOUNDS and PlaySound then
                 PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
             end

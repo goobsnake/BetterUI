@@ -79,12 +79,34 @@ end
 ---@param categorizationFunction fun(itemData: BetterUIInventoryRowData): string
 local function ApplyInventoryCategoryFields(itemData, categorizationFunction)
     local categoryName = categorizationFunction(itemData)
-    local itemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
+    local itemTypeName = zo_strformat(SI_INVENTORY_HEADER, BETTERUI.Inventory.GetBestItemCategoryDescription(itemData))
 
     itemData.bestGamepadItemCategoryName = categoryName
     itemData.bestItemCategoryName = categoryName
     itemData.itemCategoryName = categoryName
     itemData.bestItemTypeName = itemTypeName
+end
+
+---@param value any uniqueId (id64 userdata, number, or string)
+---@return string|nil normalized
+local function NormalizeEntryUniqueId(value)
+    if value == nil then
+        return nil
+    end
+    local normalize = BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
+    if normalize then
+        return normalize(value)
+    end
+    return tostring(value)
+end
+
+--- Nil-safe uniqueId equality (mirrors ItemListManager.MenuEntryTemplateEquality):
+--- raw == would return true when both ids are nil and can mis-compare distinct
+--- id64 userdata instances.
+local function MenuEntryTemplateEquality(left, right)
+    local leftId = left and NormalizeEntryUniqueId(left.uniqueId)
+    local rightId = right and NormalizeEntryUniqueId(right.uniqueId)
+    return leftId ~= nil and leftId == rightId
 end
 
 local function NormalizeInventoryTypes(inventoryType)
@@ -196,7 +218,7 @@ local function ResolveStatText(data, itemData, itemType, itemLink)
             or GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_KNOWN"))
     end
 
-    if data.cached_isBook or itemType == ITEMTYPE_BOOK or itemType == ITEMTYPE_LOREBOOK or itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
+    if data.cached_isBook or itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
         local isKnown = data.cached_isBookKnown
         if isKnown == nil then
             isKnown = IsItemLinkBookKnown(itemLink)
@@ -344,13 +366,17 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 end
 
 --- Determines the best display category for an item (e.g., "One-Handed", "Heavy Armor").
-function GetBestItemCategoryDescription(itemData)
+function BETTERUI.Inventory.GetBestItemCategoryDescription(itemData)
     local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
     if sharedItemSupport and sharedItemSupport.GetBestItemCategoryDescription then
         return sharedItemSupport.GetBestItemCategoryDescription(itemData)
     end
     return BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
 end
+
+-- Compatibility alias: call sites outside this module (e.g. Companions) still
+-- reference the historical bare global.
+GetBestItemCategoryDescription = BETTERUI.Inventory.GetBestItemCategoryDescription
 
 -- Class: BETTERUI.Inventory.List (extends ZO_GamepadInventoryList)
 BETTERUI.Inventory.List = ZO_GamepadInventoryList:Subclass()
@@ -429,8 +455,9 @@ function BETTERUI.Inventory.List:Initialize(control, options)
     local controlPoolPrefix = self.template == DEFAULT_TEMPLATE and "BUI_ItemRow" or nil
     self.list:AddDataTemplate(self.template, options.templateSetupFunction or InventoryEntryTemplateSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, nil, controlPoolPrefix)
-    self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup,
-        ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
+    self.list:AddDataTemplateWithHeader(self.template, options.templateSetupFunction or InventoryEntryTemplateSetup,
+        ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality,
+        "ZO_GamepadMenuEntryHeaderTemplate", nil, controlPoolPrefix)
 
     local leftTrigger, rightTrigger = BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds({
         list = self.list,
@@ -491,17 +518,20 @@ function BETTERUI.Inventory.List:Initialize(control, options)
 
     local function OnSingleSlotInventoryUpdate(bagId, slotIndex)
         if TracksInventoryType(self, bagId) then
-            local entry = self.dataBySlotIndex[slotIndex]
+            -- Keyed by bag AND slot: lists can track multiple bags, and slot
+            -- indices repeat across bags. Two-level numeric keys avoid
+            -- per-lookup key-string concatenation.
+            local entriesByBag = self.dataBySlotIndex[bagId]
+            local entry = entriesByBag and entriesByBag[slotIndex]
             if entry then
                 local itemData = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
                 if itemData then
                     local resolvedItemCategoryResolver = self.categorizationFunction or
-                        GetBestItemCategoryDescription
+                        BETTERUI.Inventory.GetBestItemCategoryDescription
                     ApplyInventoryCategoryFields(itemData, resolvedItemCategoryResolver)
                     SetEntryListModuleName(itemData, self.listModuleName)
-                    if bagId ~= BAG_VIRTUAL then -- virtual items don't have any champion points associated with them
-                        itemData.requiredChampionPoints = GetItemLinkRequiredChampionPoints(itemData)
-                    end
+                    -- requiredChampionPoints is already populated by GenerateSingleSlotData
+                    -- (GetItemRequiredChampionPoints); no link-API re-fetch needed here.
                     self:SetupItemEntry(entry, itemData)
                     self.list:RefreshVisible()
                 else -- The item was removed.
@@ -530,7 +560,7 @@ end
 function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local resolvedCategoryResolver = self.categorizationFunction or
-        GetBestItemCategoryDescription
+        BETTERUI.Inventory.GetBestItemCategoryDescription
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
     if slotData then
         if (not itemFilterFunction) or itemFilterFunction(slotData) then
@@ -564,12 +594,21 @@ function BETTERUI.Inventory.List:RefreshList()
             currentBestCategoryName = itemData.bestGamepadItemCategoryName
             entry:SetHeader(currentBestCategoryName)
 
-            self.list:AddEntryWithHeader(ZO_GamepadItemSubEntryTemplate, entry)
+            -- Template names are strings; the matching header template is
+            -- registered in Initialize via AddDataTemplateWithHeader.
+            self.list:AddEntryWithHeader(self.template, entry)
         else
             self.list:AddEntry(self.template, entry)
         end
 
-        self.dataBySlotIndex[itemData.slotIndex] = entry
+        -- Keyed by bag AND slot (see OnSingleSlotInventoryUpdate); two-level
+        -- numeric keys avoid per-item key-string concatenation.
+        local entriesByBag = self.dataBySlotIndex[itemData.bagId]
+        if not entriesByBag then
+            entriesByBag = {}
+            self.dataBySlotIndex[itemData.bagId] = entriesByBag
+        end
+        entriesByBag[itemData.slotIndex] = entry
     end
 
     self.list:Commit()

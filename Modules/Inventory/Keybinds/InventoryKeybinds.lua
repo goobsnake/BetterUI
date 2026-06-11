@@ -6,36 +6,8 @@ Purpose: Defines the main inventory keybind strip and shared item-list helpers.
 local InventoryConst = BETTERUI.Inventory.CONST
 local InventoryKeybinds = BETTERUI.Inventory.Keybinds
 
-local function IsQuickslottable(slotData)
-    if not slotData or not slotData.bagId or not slotData.slotIndex then
-        return false
-    end
-
-    local bagId, slotIndex = slotData.bagId, slotData.slotIndex
-    if FindActionSlotMatchingItem
-        and FindActionSlotMatchingItem(bagId, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
-        return true
-    end
-
-    if ZO_InventoryUtils_DoesNewItemMatchFilterType then
-        if ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUICKSLOT) then
-            return true
-        end
-
-        if ITEMFILTERTYPE_QUEST_QUICKSLOT
-            and ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUEST_QUICKSLOT) then
-            return true
-        end
-    end
-
-    if IsValidItemForSlot and IsValidItemForSlot(bagId, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
-        return true
-    end
-
-    return false
-end
-
-InventoryKeybinds.IsQuickslottable = IsQuickslottable
+-- Shared implementation lives in Modules/CIM/Keybinds/ActionContext.lua (CIM loads before Inventory).
+InventoryKeybinds.IsQuickslottable = BETTERUI.CIM.IsQuickslottable
 
 --- Initializes the main inventory keybind strip.
 ---@return nil
@@ -187,7 +159,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         ),
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            name = GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT")),
+            name = BETTERUI.CIM.Keybinds.GetMultiSelectLabel(),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
                 return InventoryKeybinds.IsMultiSelectEntryVisible(self)

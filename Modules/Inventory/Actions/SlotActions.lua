@@ -219,12 +219,20 @@ local function TryDestroyPrimaryAction(inventorySlot)
         return
     end
 
+    local slotType = inventorySlot and inventorySlot.slotType
     local quickDestroy = BETTERUI.GetSetting and BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
     if quickDestroy then
-        BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+        BETTERUI.Inventory.TryDestroyItem(bag, slot, true, false, slotType)
     else
+        local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, slot, inventorySlot)
         ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
-            { bagId = bag, slotIndex = slot, itemLink = GetItemLink(bag, slot) }, nil, true, true)
+            {
+                bagId = bag,
+                slotIndex = slot,
+                slotType = slotType,
+                itemLink = GetItemLink(bag, slot),
+                expectedSlotIdentity = expectedSlotIdentity,
+            }, nil, true, true)
     end
 end
 
@@ -286,7 +294,6 @@ AddPrimaryActionReplacement(SI_ITEM_ACTION_LINK_TO_CHAT)
 AddPrimaryActionReplacement(SI_ITEM_ACTION_MARK_AS_JUNK)
 AddPrimaryActionReplacement(SI_ITEM_ACTION_UNMARK_AS_JUNK)
 AddPrimaryActionReplacement(SI_ITEM_ACTION_DESTROY)
-AddPrimaryActionReplacement(SI_ITEM_ACTION_DELETE)
 
 local primaryActionReplacementLookup = nil
 
@@ -344,19 +351,6 @@ local function IsActionEntryVisible(actionEntry)
     return ExecuteVisibilityFunction(actionEntry and actionEntry[ACTION_KEY], visibilityFunction)
 end
 
-local function HasVisibleActionByName(slotActions, actionName)
-    if not slotActions or not actionName or not slotActions.m_slotActions then
-        return false
-    end
-    for i = 1, #slotActions.m_slotActions do
-        local actionEntry = slotActions.m_slotActions[i]
-        if actionEntry and actionEntry[ACTION_KEY] == actionName and IsActionEntryVisible(actionEntry) then
-            return true
-        end
-    end
-    return false
-end
-
 local function ResolvePreferredPrimaryAction(slotActions, primaryAction, inventorySlot)
     if not primaryAction then
         return nil
@@ -372,23 +366,19 @@ local function ResolvePreferredPrimaryAction(slotActions, primaryAction, invento
         return GetActionString(SI_ITEM_ACTION_MARK_AS_JUNK)
     end
 
-    local destroyActionName = GetActionString(SI_ITEM_ACTION_DESTROY)
-    if destroyActionName and HasVisibleActionByName(slotActions, destroyActionName) then
-        return destroyActionName
-    end
-    if SI_ITEM_ACTION_DELETE then
-        local deleteActionName = GetActionString(SI_ITEM_ACTION_DELETE)
-        if deleteActionName and HasVisibleActionByName(slotActions, deleteActionName) then
-            return deleteActionName
-        end
-    end
-
+    -- Destroy is intentionally NOT auto-promoted to the implicit primary (A button)
+    -- action; it stays in the Y-menu where it always routes through the confirm
+    -- dialog flow. Promoting it here made a destructive action the default press.
     if slotActions and slotActions.m_slotActions then
         local linkToChatName = GetActionString(SI_ITEM_ACTION_LINK_TO_CHAT)
+        local destroyActionName = GetActionString(SI_ITEM_ACTION_DESTROY)
         for i = 1, #slotActions.m_slotActions do
             local actionEntry = slotActions.m_slotActions[i]
             local discoveredActionName = actionEntry and actionEntry[ACTION_KEY]
-            if discoveredActionName and discoveredActionName ~= linkToChatName and IsActionEntryVisible(actionEntry) then
+            if discoveredActionName
+                and discoveredActionName ~= linkToChatName
+                and discoveredActionName ~= destroyActionName
+                and IsActionEntryVisible(actionEntry) then
                 return discoveredActionName
             end
         end
@@ -469,8 +459,7 @@ local function SetupPrimaryAction(actionsList, actionName, inventorySlot)
         actionsList:AddSlotPrimaryAction(actionName, function(...)
             TryUnmarkAsJunk(inventorySlot)
         end, "primary", nil, { visibleWhenDead = false })
-    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_DESTROY)
-        or (SI_ITEM_ACTION_DELETE and IsPrimaryAction(actionName, SI_ITEM_ACTION_DELETE)) then
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_DESTROY) then
         actionsList:AddSlotPrimaryAction(actionName, function(...)
             TryDestroyPrimaryAction(inventorySlot)
         end, "primary", nil, { visibleWhenDead = false })
@@ -479,9 +468,9 @@ local function SetupPrimaryAction(actionsList, actionName, inventorySlot)
             if inventorySlot then
                 local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
                 if bag and slot then
-                    local itemLink = GetItemLink(bag, slot)
-                    if itemLink then
-                        ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
+                    local itemLink = GetItemLink(bag, slot, LINK_STYLE_BRACKETS)
+                    if itemLink and itemLink ~= "" then
+                        ZO_LinkHandler_InsertLink(zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink))
                     end
                 end
             end

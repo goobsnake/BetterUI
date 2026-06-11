@@ -221,24 +221,24 @@ end
 
 --- Counts junk items in the backpack for category badge display.
 function BETTERUI.Inventory.Class:CountJunkInBackpack()
-    local count = 0
-    -- Prefer shared inventory cache
+    -- Prefer shared inventory cache; a zero count from a present cache is a
+    -- valid answer, so only fall back when the lookup itself returned nil.
     local backpack = self:GetCachedSlotData(BAG_BACKPACK)
     if backpack then
+        local count = 0
         for _, slotData in ipairs(backpack) do
             if slotData and slotData.isJunk == true then
                 count = count + 1
             end
         end
+        return count
     end
 
-    -- Fallback if cache unavailable
-    if count == 0 then
-        local size = GetBagSize(BAG_BACKPACK) or 0
-        for slotIndex = 0, size - 1 do
-            if IsItemJunk(BAG_BACKPACK, slotIndex) then
-                count = count + 1
-            end
+    local count = 0
+    local size = GetBagSize(BAG_BACKPACK) or 0
+    for slotIndex = 0, size - 1 do
+        if IsItemJunk(BAG_BACKPACK, slotIndex) then
+            count = count + 1
         end
     end
     return count
@@ -265,7 +265,8 @@ function BETTERUI.Inventory.Class:PopulateInventoryCategoryFields(itemData)
     if optionalAddons and optionalAddons.IsLoaded and optionalAddons.IsLoaded("AutoCategory") then
         local customCategory, matched, catName, catPriority = BETTERUI.CIM.AutoCategoryIntegration.GetCustomCategory(itemData)
         if customCategory and not matched then
-            categoryName = AC_UNGROUPED_NAME
+            -- AC_UNGROUPED_NAME is AutoCategory's global; fall back if absent.
+            categoryName = AC_UNGROUPED_NAME or bestCategoryDesc
             sortPriorityName = string.format("%03d%s", 999, catName)
         elseif customCategory then
             categoryName = catName
@@ -306,7 +307,7 @@ function BETTERUI.Inventory.Class:PrepareInventoryListEntry(itemData, filteredEq
 
     ZO_InventorySlot_SetType(itemData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)
 
-    if itemData.itemType == ITEMTYPE_BOOK or itemData.itemType == ITEMTYPE_LOREBOOK then
+    if itemData.itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
         itemData.cached_isBook = true
     end
 end

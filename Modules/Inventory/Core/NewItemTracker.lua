@@ -39,8 +39,37 @@ BETTERUI.Inventory.NewItemTracker = {}
 
 local NewItemTracker = BETTERUI.Inventory.NewItemTracker
 
---- @type table<string, {bagId: number, slotIndex: number}>
+--- @type table<string, {bagId: number, slotIndex: number, identity: table|nil}>
 local pendingClears = {}
+
+--- Captures the slot identity (uniqueId-based) when the module helper is available.
+--- Resolved lazily because Core/Utils.lua may load after this file in tests.
+--- @param bagId number
+--- @param slotIndex number
+--- @param slotData table|nil
+--- @return table|nil identity
+local function CaptureIdentity(bagId, slotIndex, slotData)
+    local utils = BETTERUI.Inventory.Utils
+    if utils and utils.CaptureSlotIdentity then
+        return utils.CaptureSlotIdentity(bagId, slotIndex, slotData)
+    end
+    return nil
+end
+
+--- Returns whether the bag slot still holds the item captured at prepare time.
+--- Falls back to true when no identity was captured (helper unavailable).
+--- @param entry {bagId: number, slotIndex: number, identity: table|nil}
+--- @return boolean
+local function IsEntryIdentityCurrent(entry)
+    if not entry.identity then
+        return true
+    end
+    local utils = BETTERUI.Inventory.Utils
+    if utils and utils.IsSlotIdentityCurrent then
+        return utils.IsSlotIdentityCurrent(entry.identity, entry.bagId, entry.slotIndex) == true
+    end
+    return true
+end
 
 -- KEY GENERATION
 
@@ -58,10 +87,15 @@ end
 --- Called when a user selects/views an item in the inventory list.
 --- @param bagId number
 --- @param slotIndex number
-function NewItemTracker.PrepareForClear(bagId, slotIndex)
+--- @param slotData table|nil Optional slot/entry data used to resolve the uniqueId
+function NewItemTracker.PrepareForClear(bagId, slotIndex, slotData)
     if not bagId or not slotIndex then return end
     local key = MakeKey(bagId, slotIndex)
-    pendingClears[key] = { bagId = bagId, slotIndex = slotIndex }
+    pendingClears[key] = {
+        bagId = bagId,
+        slotIndex = slotIndex,
+        identity = CaptureIdentity(bagId, slotIndex, slotData),
+    }
 end
 
 --- Stage an item from selectedData (ZO_GamepadEntryData or item table).
@@ -71,7 +105,7 @@ function NewItemTracker.PrepareFromSelectedData(selectedData)
     if not selectedData then return end
     local bagId = selectedData.bagId or (selectedData.dataSource and selectedData.dataSource.bagId)
     local slotIndex = selectedData.slotIndex or (selectedData.dataSource and selectedData.dataSource.slotIndex)
-    NewItemTracker.PrepareForClear(bagId, slotIndex)
+    NewItemTracker.PrepareForClear(bagId, slotIndex, selectedData)
 end
 
 --- Commit all pending "new" status clears.
@@ -81,10 +115,14 @@ function NewItemTracker.CommitPendingClears()
     if not SHARED_INVENTORY then return end
 
     for key, entry in pairs(pendingClears) do
-        BETTERUI.CIM.SafeExecute(
-            "NewItemTracker:CommitPendingClears:" .. key,
-            SHARED_INVENTORY.ClearNewStatus, SHARED_INVENTORY, entry.bagId, entry.slotIndex
-        )
+        -- Skip slots whose contents changed since prepare time so a different
+        -- item's "new" status is not cleared by stale bag/slot coordinates.
+        if IsEntryIdentityCurrent(entry) then
+            BETTERUI.CIM.SafeExecute(
+                "NewItemTracker:CommitPendingClears:" .. key,
+                SHARED_INVENTORY.ClearNewStatus, SHARED_INVENTORY, entry.bagId, entry.slotIndex
+            )
+        end
     end
 
     -- Reset pending table

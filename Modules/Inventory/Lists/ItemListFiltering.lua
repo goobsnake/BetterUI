@@ -199,9 +199,11 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     end
 
     -- BATCH PROCESSING START
-    -- Cancel any existing pending batch to prevent overlapping operations
+    -- Cancel any existing pending batch to prevent overlapping operations.
+    -- The batch is scheduled through the inventory task manager (see
+    -- ItemListManager), so it must be cancelled there too.
     if self.batchCallId then
-        zo_removeCallLater(self.batchCallId)
+        BETTERUI.Inventory.Tasks:Cancel("batchProcess")
         self.batchCallId = nil
     end
     -- Clear pending batch state to ensure clean slate

@@ -226,7 +226,9 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 
         local isBookAndUnknown = data.cached_isBookAndUnknown
         if isBookAndUnknown == nil then
-            local isBookType = (currentItemType == ITEMTYPE_BOOK or currentItemType == ITEMTYPE_LOREBOOK)
+            -- U50: there is no ITEMTYPE for loose books; motif books are the only
+            -- inventory item type answerable via IsItemLinkBookKnown.
+            local isBookType = (currentItemType == ITEMTYPE_RACIAL_STYLE_MOTIF)
             if isBookType then
                 local isBookKnown = data.cached_isBookKnown
                 if isBookKnown == nil then
@@ -342,7 +344,7 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
         local slotIndex = data.dataSource.slotIndex
         local equipType = data.dataSource.equipType
         if equippedIcon then
-            if slotIndex == EQUIP_SLOT_BACKUP_MAIN or slotIndex == EQUIP_SLOT_BACKUP_OFF or slotIndex == EQUIP_SLOT_RING2 or slotIndex == EQUIP_SLOT_TRINKET2 or slotIndex == EQUIP_SLOT_BACKUP_POISON then
+            if slotIndex == EQUIP_SLOT_BACKUP_MAIN or slotIndex == EQUIP_SLOT_BACKUP_OFF or slotIndex == EQUIP_SLOT_RING2 or slotIndex == EQUIP_SLOT_BACKUP_POISON then
                 equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_BACKUP)
             else
                 equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_MAIN)

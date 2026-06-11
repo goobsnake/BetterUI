@@ -42,6 +42,12 @@ local function EnsureLegacyEquipSlotDialogAlias()
     BETTERUI_EQUIP_SLOT_DIALOG = Inventory.GetEquipSlotDialogName()
 end
 
+local function NotifySecureActionFailed(context)
+    local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
+    BETTERUI.CIM.UserNotify(context,
+        (failedStringId and GetString(failedStringId)) or "The action could not be completed.")
+end
+
 local function InitializeSecureWheelHooks()
     local assignableUtilityWheelGamepad = ZO_AssignableUtilityWheel_Gamepad
     if assignableUtilityWheelGamepad and not BETTERUI._secureWheelHooked then
@@ -52,11 +58,15 @@ local function InitializeSecureWheelHooks()
                 local actionSlotIndex = selectedEntry.data.slotIndex
                 local hotbarCategory = self:GetHotbarCategory()
                 if pendingSlotData.actionId then
-                    CallSecureProtected("SelectSlotSimpleAction", pendingSlotData.slotType, pendingSlotData.actionId,
-                        actionSlotIndex, hotbarCategory)
+                    if not CallSecureProtected("SelectSlotSimpleAction", pendingSlotData.slotType,
+                            pendingSlotData.actionId, actionSlotIndex, hotbarCategory) then
+                        NotifySecureActionFailed("Inventory:SelectSlotSimpleAction")
+                    end
                 elseif pendingSlotData.bagId and pendingSlotData.itemSlotIndex then
-                    CallSecureProtected("SelectSlotItem", pendingSlotData.bagId, pendingSlotData.itemSlotIndex,
-                        actionSlotIndex, hotbarCategory)
+                    if not CallSecureProtected("SelectSlotItem", pendingSlotData.bagId, pendingSlotData.itemSlotIndex,
+                            actionSlotIndex, hotbarCategory) then
+                        NotifySecureActionFailed("Inventory:SelectSlotItem")
+                    end
                 end
 
                 if clearPending then
@@ -82,11 +92,6 @@ local function InitializeSecureWheelHooks()
 end
 
 Inventory.InitializeSecureWheelHooks = InitializeSecureWheelHooks
-
-local function TrackPanelRegistration(reason)
-    Inventory._panelRegistrationReason = reason
-    Inventory._panelRegistrationDeferred = reason == "missing_register_panel"
-end
 
 local function TryInitializeCraftBagQuantityDialog()
     local dialogs = Inventory.Dialogs
@@ -277,11 +282,7 @@ function Inventory.Setup()
         BETTERUI.CIM.RegisterInventoryDialogInvoker(Inventory.InvokeDialog)
         Inventory._inventoryDialogInvokerRegistered = true
     end
-    local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(Inventory, "Inventory", "Inventory", "Inventory")
-    TrackPanelRegistration(panelReason)
-    if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
-        BETTERUI.Debug(string.format("[Inventory] Settings panel registration reported: %s", tostring(panelReason)))
-    end
+    BETTERUI.CIM.RegisterModulePanelWithLogging(Inventory, "Inventory", "Inventory", "Inventory")
 
 	Inventory.NativeGlobals = Inventory.NativeGlobals or {}
 	local native = Inventory.NativeGlobals

@@ -223,10 +223,11 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     if isSet and not isUnlocked then
                         bindTypeString = GetString(rawget(_G, "SI_BETTERUI_BIND_FOR_COLLECTION"))
                     else
-                        bindTypeString = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_BIND_ON_EQUIP"))
+                        -- U50: bind-type labels live in the SI_BINDTYPE<n> enum strings.
+                        bindTypeString = GetString("SI_BINDTYPE", bindType)
                     end
                 elseif bindType == BIND_TYPE_ON_PICKUP or bindType == BIND_TYPE_ON_PICKUP_BACKPACK then
-                    bindTypeString = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_BIND_ON_PICKUP"))
+                    bindTypeString = GetString("SI_BINDTYPE", BIND_TYPE_ON_PICKUP)
                 end
 
                 -- E. Traits (Ornate / Intricate)
@@ -260,7 +261,9 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 end
                 local junkString = ""
                 if isJunk then
-                    junkString = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_JUNK"))
+                    -- U50: there is no SI_ITEM_FORMAT_STR_JUNK; the "Junk" label is
+                    -- the junk item-filter name.
+                    junkString = GetString("SI_ITEMFILTERTYPE", ITEMFILTERTYPE_JUNK)
                 end
 
                 -- G. Bag/Bank Counts

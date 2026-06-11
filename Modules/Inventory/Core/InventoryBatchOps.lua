@@ -16,16 +16,7 @@ local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 
 local ExtractSlot = BETTERUI.CIM.BatchActions.ExtractSlot
 local HasItemAtSlot = BETTERUI.CIM.BatchActions.HasItemAtSlot
-
-local function ResolveStackCount(itemData, bagId, slotIndex)
-    local rawData = itemData.dataSource or itemData
-    local requestedStack = rawData.stackCount or itemData.stackCount or 1
-    local liveStack = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
-    if liveStack <= 0 then
-        return nil
-    end
-    return zo_clamp(requestedStack, 1, liveStack)
-end
+local ResolveStackCount = BETTERUI.CIM.BatchActions.ResolveStackCount
 
 local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
     if not BETTERUI.CIM.ProtectionPolicy.CanTransferItem(bagId, slotIndex, targetBankBag) then
@@ -225,8 +216,14 @@ function Class:BatchRetrieve()
             if not stackSize then return BatchStepHandled() end
             local targetSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
             if targetSlot == nil then return BatchStepStopped("bagFull") end
-            CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
-            CallSecureProtected("PlaceInInventory", BAG_BACKPACK, targetSlot)
+            if not CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize) then
+                return BatchStepStopped("aborted")
+            end
+            if not CallSecureProtected("PlaceInInventory", BAG_BACKPACK, targetSlot) then
+                -- The pickup succeeded, so the item is stranded on the cursor.
+                ClearCursor()
+                return BatchStepStopped("aborted")
+            end
             return BatchStepQueued()
         end,
         onComplete = function()
@@ -264,8 +261,14 @@ function Class:BatchStow()
             end
             local stackSize = ResolveStackCount(itemData, bagId, slotIndex)
             if not stackSize then return BatchStepHandled() end
-            CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
-            CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0)
+            if not CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize) then
+                return BatchStepStopped("aborted")
+            end
+            if not CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0) then
+                -- The pickup succeeded, so the item is stranded on the cursor.
+                ClearCursor()
+                return BatchStepStopped("aborted")
+            end
             return BatchStepQueued()
         end,
         onComplete = function()
@@ -307,13 +310,15 @@ function Class:BatchDeposit()
             if not stackCount then return BatchStepHandled() end
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, destinationBag)
             if destinationSlot == nil then return BatchStepStopped("bagFull") end
-            CallSecureProtected("RequestMoveItem", bagId, slotIndex, destinationBag, destinationSlot, stackCount)
+            if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, destinationBag, destinationSlot, stackCount) then
+                return BatchStepStopped("aborted")
+            end
             return BatchStepQueued()
         end,
         onComplete = function()
             self:ExitSelectionMode()
         end,
-        actionName = "Depositing",
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_BANK_DEPOSIT")),
         options = BANK_DEPOSIT_BATCH_OPTIONS,
     })
 end
@@ -361,14 +366,16 @@ function Class:InitializeBatchDestroyDialog()
         },
         title = {
             text = function(dialog)
-                return GetString(rawget(_G, "SI_DESTROY_ITEM_PROMPT_TITLE")) or "Destroy Items"
+                return GetString(SI_PROMPT_TITLE_DESTROY_ITEMS)
             end,
         },
         mainText = {
             text = function(dialog)
                 local count = dialog and dialog.data and dialog.data.itemCount or 0
-                return zo_strformat("Are you sure you want to destroy <<1>> selected items? This cannot be undone.",
-                    count)
+                local promptStringId = rawget(_G, "SI_BETTERUI_BATCH_DESTROY_CONFIRM_FORMAT")
+                local prompt = (promptStringId and GetString(promptStringId))
+                    or "Are you sure you want to destroy <<1>> selected items? This cannot be undone."
+                return zo_strformat(prompt, count)
             end,
         },
         buttons = {
@@ -391,7 +398,8 @@ function Class:InitializeBatchDestroyDialog()
                                 if not CanDestroyInventoryItem(itemData) then
                                     return BatchStepHandled()
                                 end
-                                local destroyed = BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, true)
+                                local destroyed = BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, true,
+                                    itemData.slotType)
                                 if not destroyed then
                                     return BatchStepStopped("aborted")
                                 end
@@ -413,38 +421,6 @@ function Class:InitializeBatchDestroyDialog()
         },
     })
 
-    -- Register progress dialog for batch operations
-    BETTERUI.CIM.Dialogs.Register("BETTERUI_BATCH_PROGRESS_DIALOG", {
-        blockDirectionalInput = true,
-        canQueue = false,
-        gamepadInfo = {
-            dialogType = GAMEPAD_DIALOGS.BASIC,
-            allowRightStickPassThrough = false,
-        },
-        title = {
-            text = function(dialog)
-                local d = dialog and dialog.data
-                local actionName = d and d.actionName or "Processing"
-                return actionName
-            end,
-        },
-        mainText = {
-            text = function(dialog)
-                local d = dialog and dialog.data
-                local current = d and d.current or 0
-                local total = d and d.total or 0
-                return zo_strformat("<<1>> of <<2>> items...\n\nProcessing slowly to prevent spam logout.\nPlease wait!",
-                    current, total)
-            end,
-        },
-        buttons = {
-            {
-                keybind = "DIALOG_NEGATIVE",
-                text = GetString(rawget(_G, "SI_DIALOG_CANCEL")),
-                callback = function(dialog)
-                    ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_BATCH_PROGRESS_DIALOG")
-                end,
-            },
-        },
-    })
+    -- Batch progress feedback is provided by CIM BatchOverlay; the old
+    -- BETTERUI_BATCH_PROGRESS_DIALOG was registered but never shown anywhere.
 end
