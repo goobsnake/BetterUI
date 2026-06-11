@@ -405,6 +405,12 @@ local function UpdateFrontBarLayout(rootFrame)
         SetPressFeedbackBaseSize(ultBtn, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize)
     end
 
+    -- Whole-bar offset (customFrontBar.offsetX/offsetY). The container anchor
+    -- uses it below; quickslot/companion anchor to BgMiddle directly, so they
+    -- must add it themselves to move with the bar.
+    local barOffsetX = frontBarLayoutConfig.offsetX or 0
+    local barOffsetY = frontBarLayoutConfig.offsetY or 0
+
     local qsBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "QuickslotButton")
     if qsBtn then
         local quickslotCfg = frontBarLayoutConfig.quickslotButton
@@ -417,7 +423,7 @@ local function UpdateFrontBarLayout(rootFrame)
         qsBtn.cooldownRevealHeight = buttonSize
         qsBtn:ClearAnchors()
         if bgMiddle then
-            qsBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
+            qsBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX + barOffsetX, baseY + offsetY + barOffsetY)
         end
         local flipCard = qsBtn:GetNamedChild("FlipCard")
         if flipCard then flipCard:SetDimensions(buttonInnerSize, buttonInnerSize) end
@@ -439,7 +445,7 @@ local function UpdateFrontBarLayout(rootFrame)
         compBtn.cooldownRevealHeight = ultimateSize
         compBtn:ClearAnchors()
         if bgMiddle then
-            compBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
+            compBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX + barOffsetX, baseY + offsetY + barOffsetY)
         end
         local flipCard = compBtn:GetNamedChild("FlipCard")
         if flipCard then flipCard:SetDimensions(ultimateInnerSize, ultimateInnerSize) end
@@ -448,8 +454,6 @@ local function UpdateFrontBarLayout(rootFrame)
         SetPressFeedbackBaseSize(compBtn, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize)
     end
 
-    local barOffsetX = frontBarLayoutConfig.offsetX or 0
-    local barOffsetY = frontBarLayoutConfig.offsetY or 0
     if bgMiddle then
         frontBarContainer:ClearAnchors()
         frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)

@@ -423,7 +423,10 @@ pressFeedbackCalls = {}
 SkillBar.UpdateFrontBarLayout(rootFrame)
 assert_eq(frontBarContainer.children.Button1.dimensions[1], 40, "front bar layout sizes normal buttons from config")
 assert_eq(frontBarContainer.children.UltimateButton.dimensions[1], 48, "front bar layout sizes the ultimate button from config")
-assert_eq(frontBarContainer.children.QuickslotButton.anchor[4], BETTERUI_ORB_FRAMES.bars.quickslot.x + BETTERUI_ORB_FRAMES.bars.customFrontBar.quickslotButton.offsetX, "front bar layout positions the quickslot button relative to the orb frame")
+assert_eq(frontBarContainer.children.QuickslotButton.anchor[4], BETTERUI_ORB_FRAMES.bars.quickslot.x + BETTERUI_ORB_FRAMES.bars.customFrontBar.quickslotButton.offsetX + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetX, "front bar layout positions the quickslot button relative to the orb frame plus the whole-bar offset")
+assert_eq(frontBarContainer.children.QuickslotButton.anchor[5], BETTERUI_ORB_FRAMES.bars.quickslot.y + BETTERUI_ORB_FRAMES.bars.customFrontBar.quickslotButton.offsetY + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetY, "front bar layout applies the whole-bar Y offset to the quickslot button")
+assert_eq(frontBarContainer.children.CompanionButton.anchor[4], BETTERUI_ORB_FRAMES.bars.companionUltimate.x + BETTERUI_ORB_FRAMES.bars.customFrontBar.companionButton.offsetX + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetX, "front bar layout positions the companion button relative to the orb frame plus the whole-bar offset")
+assert_eq(frontBarContainer.children.CompanionButton.anchor[5], BETTERUI_ORB_FRAMES.bars.companionUltimate.y + BETTERUI_ORB_FRAMES.bars.customFrontBar.companionButton.offsetY + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetY, "front bar layout applies the whole-bar Y offset to the companion button")
 assert_true(frontBarContainer.children.UltimateButton.glowAnimation ~= nil, "front bar layout rebuilds the ultimate glow animation")
 assert_true(#pressFeedbackCalls >= 7, "front bar layout refreshes press-feedback sizing for all front bar buttons")
 

@@ -133,6 +133,12 @@ local function ApplyLayout(updateOrbs, updateSkills)
     -- Update Bar Frames Layout (Anchoring) - use cached control references
     local settings = GetSettings() or {}
 
+    -- Independent orb offset: ornament-anchored branches follow the ornaments
+    -- automatically; bgMiddle-anchored branches must add the offset themselves
+    -- so the XP/mount bars stay with the orb composite.
+    local orbOffsetX = settings.enableIndependentOrbOffset and (settings.orbOffsetX or 0) or 0
+    local orbOffsetY = settings.enableIndependentOrbOffset and (settings.orbOffsetY or 0) or 0
+
 
     -- Lazily resolve BARS reference (Constants.lua loads before this runs)
     if not BARS then BARS = BETTERUI.ResourceOrbFrames.CONST.BARS end
@@ -140,16 +146,16 @@ local function ApplyLayout(updateOrbs, updateSkills)
     if m_experienceBar and m_experienceBar.control then
         m_experienceBar.control:ClearAnchors()
         if settings.hideLeftOrnament then
-            local nx = BARS.XP.NO_ORNAMENT_OFFSET_X or -350
-            local ny = BARS.XP.NO_ORNAMENT_OFFSET_Y or 108
+            local nx = (BARS.XP.NO_ORNAMENT_OFFSET_X or -350) + orbOffsetX
+            local ny = (BARS.XP.NO_ORNAMENT_OFFSET_Y or 108) + orbOffsetY
             m_experienceBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
             if m_leftOrnament then
                 m_experienceBar.control:SetAnchor(TOP, m_leftOrnament, BOTTOM, BARS.XP.OFFSET_X,
                     BARS.XP.OFFSET_Y)
             else
-                m_experienceBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, XP_NO_ORNAMENT_FALLBACK_OFFSET_X,
-                    BAR_FALLBACK_OFFSET_Y)
+                m_experienceBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, XP_NO_ORNAMENT_FALLBACK_OFFSET_X + orbOffsetX,
+                    BAR_FALLBACK_OFFSET_Y + orbOffsetY)
             end
         end
         m_experienceBar:Update()
@@ -158,15 +164,15 @@ local function ApplyLayout(updateOrbs, updateSkills)
     if m_mountStaminaBar and m_mountStaminaBar.control then
         m_mountStaminaBar.control:ClearAnchors()
         if settings.hideRightOrnament then
-            local nx = BARS.MOUNT.NO_ORNAMENT_OFFSET_X or 375
-            local ny = BARS.MOUNT.NO_ORNAMENT_OFFSET_Y or 108
+            local nx = (BARS.MOUNT.NO_ORNAMENT_OFFSET_X or 375) + orbOffsetX
+            local ny = (BARS.MOUNT.NO_ORNAMENT_OFFSET_Y or 108) + orbOffsetY
             m_mountStaminaBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
             if m_rightOrnament then
                 m_mountStaminaBar.control:SetAnchor(TOP, m_rightOrnament, BOTTOM, BARS.MOUNT.OFFSET_X,
                     BARS.MOUNT.OFFSET_Y)
             else
-                m_mountStaminaBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X, BAR_FALLBACK_OFFSET_Y)
+                m_mountStaminaBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X + orbOffsetX, BAR_FALLBACK_OFFSET_Y + orbOffsetY)
             end
         end
         m_mountStaminaBar:Update()
