@@ -45,3 +45,18 @@
 - Anti-Spam Implementation Plan - All 15 items verified complete (re-entry guard, pipeline token, weighted cost, adaptive delay, jitter, rate limiting, chunk cooldowns, post-batch cooldown, destination slot)
 - Batch Safety Test Coverage - `test_batch_safety.lua` covering re-entry guard, pipeline token invalidation, and adaptive backoff
 
+
+## [Completed] Comment Feedback Implementation Plan — All Phases (2026-06-10)
+**Summary**: Implemented all four phases from `docs/planning/comment-feedback-implementation-plan.md`:
+
+- **PB-007** — Vault deposit busy-state keybind: Added `_pendingTransfers` table with 5s timeout, `MarkTransferPending`/`ClearTransferPending`/`IsTransferPending`/`SweepStaleTransfers`, and `EVENT_INVENTORY_SINGLE_SLOT_UPDATE` auto-clear. Deposit keybind now disables while a transfer is in-flight for the selected slot.
+- **ECO-001** — Archival Fortunes currency display: Added 13th currency entry to `CURRENCY_DATA`, `CurrencyManager.DEFS`, all four `CURRENCY_PRESETS`, order clamp (12→13), `POS_13` choices, and guarded with `rawget(_G, "CURT_ARCHIVAL_FORTUNES")` for API safety.
+- **TRC-001** — Market prices on crafting/improvement tooltips: Created `CraftingPriceTooltip.lua` with `ZO_PostHook` for `LayoutPendingSmithingItem` and `LayoutImproveResultSmithingItem`; reuses `MarketIntegration.GetMarketPriceInfo`; gated by `showCraftingMarketPrice` setting (default on).
+- **HUD-001** — Independent orb positioning: Added `enableIndependentOrbOffset`, `orbOffsetX`, `orbOffsetY` to ResourceOrbFrames defaults; modified `UpdateOrbLayout` to apply offsets to left/right orb anchors in all branches; added LAM checkbox + X/Y sliders.
+
+**Source Issue/Phase**: `docs/planning/comment-feedback-implementation-plan.md` (Phases 1–4)
+**Related Files/Tests**:
+- PB-007: `Modules/Banking/Actions/TransferActions.lua`, `Modules/Banking/Keybinds/KeybindManager.lua`, `tools/tests/test_banking_transfer_actions.lua`
+- ECO-001: `Modules/Inventory/Settings/CurrencySettings.lua`, `Modules/CIM/UI/CurrencyManager.lua`, `Modules/CIM/Constants.lua`, `lang/*.lua`
+- TRC-001: `Modules/GeneralInterface/Tooltips/CraftingPriceTooltip.lua`, `Modules/GeneralInterface/Tooltips/Settings.lua`, `Modules/CIM/Core/Settings/DefaultsRegistry.lua`, `Modules/CIM/Core/Settings/SettingsMetadata.lua`, `BetterUI.txt`, `lang/*.lua`, `tools/tests/test_crafting_price_tooltip.lua`
+- HUD-001: `Modules/ResourceOrbFrames/Core/OrbVisuals.lua`, `Modules/ResourceOrbFrames/Module.lua`, `Modules/ResourceOrbFrames/Settings/Defaults.lua`, `lang/*.lua`, `tools/tests/test_orb_independent_positioning.lua`
