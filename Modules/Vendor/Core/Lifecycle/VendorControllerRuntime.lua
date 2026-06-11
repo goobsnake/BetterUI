@@ -390,7 +390,14 @@ function ControllerRuntime.RefreshList(instance, deps)
 
     if instance:GetCurrentMode() == MODE.BUY then
         local entryCount = (instance.list.dataList and #instance.list.dataList) or 0
-        if entryCount == 0 and instance:IsSceneActiveOrShowing() then
+        -- Short-circuit: when the store still reports zero items after at
+        -- least one retry, further retries cannot produce entries. The first
+        -- pass always retries because some stores misreport 0 while the
+        -- index-probe fallback can still find entries.
+        local storeReportsEmpty = GetNumStoreItems ~= nil and (GetNumStoreItems() or 0) == 0
+        if entryCount == 0 and storeReportsEmpty and (instance._buyListRetryCount or 0) >= 1 then
+            instance._buyListRetryCount = 0
+        elseif entryCount == 0 and instance:IsSceneActiveOrShowing() then
             local retryCount = (instance._buyListRetryCount or 0) + 1
             instance._buyListRetryCount = retryCount
             if retryCount <= 20 then

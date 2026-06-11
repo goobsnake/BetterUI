@@ -418,6 +418,10 @@ local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publish
         instance:SetMode(resolved.sellMode)
     elseif state.fenceEnableLaunder then
         instance:SetMode(resolved.fenceLaunderMode)
+    else
+        -- Defensive: a fence open with both capabilities disabled would keep a
+        -- stale mode from the previous interaction; fall back to sell mode.
+        instance:SetMode(resolved.sellMode)
     end
     resolved.showScene()
 

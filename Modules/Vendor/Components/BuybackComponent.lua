@@ -9,6 +9,19 @@ local Vendor = BETTERUI.Vendor
 Vendor.BuybackComponent = Vendor.BuybackComponent or {}
 local Buyback = Vendor.BuybackComponent
 
+--- Resolve the focused row the same way the Vendor keybind strip does
+--- (GetTargetData when available, falling back to GetSelectedData).
+---@param vendorInstance BETTERUI.Vendor.Class|nil
+---@return table|nil rowData
+local function GetTargetRowData(vendorInstance)
+    local list = vendorInstance and vendorInstance.list
+    if not list then return nil end
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+    return list:GetSelectedData()
+end
+
 local function GetBuybackItemCategoryName(itemLink)
     if not itemLink or itemLink == "" then
         return ""
@@ -36,7 +49,7 @@ function Buyback:GetPrimaryActionName()
 end
 
 function Buyback:IsPrimaryActionEnabled(vendorInstance)
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(vendorInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -45,7 +58,7 @@ function Buyback:IsPrimaryActionEnabled(vendorInstance)
 end
 
 function Buyback:OnPrimaryAction(vendorInstance)
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(vendorInstance)
     if not selectedData then return end
     local ds = selectedData.dataSource or selectedData
 

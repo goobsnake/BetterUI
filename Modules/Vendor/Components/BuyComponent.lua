@@ -60,9 +60,11 @@ local function MatchesCategory(itemData, category)
     end
 
     if category.key == "misc" then
-        for i = 2, #BUY_CATEGORY_DEFS - 1 do
-            local def = BUY_CATEGORY_DEFS[i]
-            if MatchesFilterType(itemData.filterData, def.filterType) then
+        -- Misc means "matches none of the keyed filter categories"; filter by
+        -- key instead of assuming all/misc sit at fixed positions in the defs.
+        for _, def in ipairs(BUY_CATEGORY_DEFS) do
+            if def.key ~= "all" and def.key ~= "misc" and def.filterType
+                and MatchesFilterType(itemData.filterData, def.filterType) then
                 return false
             end
         end
@@ -194,7 +196,7 @@ local function BuildRowsFromStoreCount()
     local rows = {}
     for entryIndex = 1, numItems do
         local icon, name, stack, price, sellPrice, meetsReqsToBuy, _, displayQuality, _, currencyType1, currencyQuantity1,
-            _, _, entryType = GetStoreEntryInfo(entryIndex)
+            currencyType2, currencyQuantity2, entryType = GetStoreEntryInfo(entryIndex)
 
         if name and name ~= "" then
             local itemLink = GetStoreItemLink(entryIndex)
@@ -214,8 +216,10 @@ local function BuildRowsFromStoreCount()
                 displayQuality    = displayQuality,
                 currencyType1     = currencyType1,
                 currencyQuantity1 = currencyQuantity1,
-                currencyType2     = nil,
-                currencyQuantity2 = nil,
+                -- Returns 12-13 of GetStoreEntryInfo; required by the
+                -- secondary-currency affordability checks.
+                currencyType2     = currencyType2,
+                currencyQuantity2 = currencyQuantity2,
                 entryType         = entryType,
                 itemLink          = itemLink,
                 filterData        = filterData,
@@ -249,7 +253,7 @@ local function BuildRowsFromIndexProbe()
     -- Defensive fallback: some clients report 0 from GetNumStoreItems while entries are still queryable.
     for entryIndex = 1, 300 do
         local icon, name, stack, price, sellPrice, meetsReqsToBuy, _, displayQuality, _, currencyType1, currencyQuantity1,
-            _, _, entryType = GetStoreEntryInfo(entryIndex)
+            currencyType2, currencyQuantity2, entryType = GetStoreEntryInfo(entryIndex)
 
         if name and name ~= "" then
             hadAny = true
@@ -271,8 +275,10 @@ local function BuildRowsFromIndexProbe()
                 displayQuality    = displayQuality,
                 currencyType1     = currencyType1,
                 currencyQuantity1 = currencyQuantity1,
-                currencyType2     = nil,
-                currencyQuantity2 = nil,
+                -- Returns 12-13 of GetStoreEntryInfo; required by the
+                -- secondary-currency affordability checks.
+                currencyType2     = currencyType2,
+                currencyQuantity2 = currencyQuantity2,
                 entryType         = entryType,
                 itemLink          = itemLink,
                 filterData        = filterData,
@@ -317,6 +323,30 @@ local function BuildStoreRows()
     return rows
 end
 
+-- One refresh pass calls GetCategories and BuildList back to back, each of
+-- which needs the store rows; cache the built rows per frame so the
+-- multi-source build (and its index probe fallback) runs once per refresh.
+local cachedStoreRows = nil
+local cachedStoreRowsFrameMs = nil
+
+local function GetStoreRowsCached()
+    local frameMs = (type(GetFrameTimeMilliseconds) == "function") and GetFrameTimeMilliseconds() or nil
+    if frameMs and cachedStoreRows and cachedStoreRowsFrameMs == frameMs then
+        return cachedStoreRows
+    end
+
+    local rows = BuildStoreRows()
+    if frameMs then
+        cachedStoreRows = rows
+        cachedStoreRowsFrameMs = frameMs
+    else
+        -- No frame clock (test harness): never reuse stale rows.
+        cachedStoreRows = nil
+        cachedStoreRowsFrameMs = nil
+    end
+    return rows
+end
+
 local function GetStoreItemCategoryName(itemLink)
     if not itemLink or itemLink == "" then
         return ""
@@ -339,7 +369,7 @@ function Buy:GetCategories(vendorInstance)
         vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
     end
 
-    local rows = BuildStoreRows()
+    local rows = GetStoreRowsCached()
     local totalCount = #rows
     local categories = {}
 
@@ -403,7 +433,10 @@ end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:Deactivate(vendorInstance)
-    -- No cleanup needed for Buy mode
+    -- Drop the per-frame store-row cache so a stale row set can never be
+    -- reused after the store closes or the Buy mode deactivates.
+    cachedStoreRows = nil
+    cachedStoreRowsFrameMs = nil
 end
 
 -- PRIMARY ACTION
@@ -414,19 +447,47 @@ function Buy:GetPrimaryActionName()
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
+---@param ds table Store entry data source
+---@return boolean affordable True if all currencies for the entry are covered
+local function CanAffordStoreEntry(vendorInstance, ds)
+    -- Gold and alt-currency charges are independent: alt-currency entries
+    -- report price == 0 (not nil), so each charge is checked on its own.
+    local price = ds.price or 0
+    if price > 0 then
+        local currencyType = ds.currencyType or CURT_MONEY
+        if currencyType == CURT_NONE then
+            currencyType = CURT_MONEY
+        end
+        if not vendorInstance:CanAfford(price, currencyType) then
+            return false
+        end
+    end
+
+    local price1 = ds.currencyQuantity1 or 0
+    local currencyType1 = ds.currencyType1
+    if price1 > 0 and currencyType1 and currencyType1 ~= CURT_NONE
+        and not vendorInstance:CanAfford(price1, currencyType1) then
+        return false
+    end
+
+    -- Some store entries also charge a secondary currency; every charge must
+    -- be affordable for the purchase to succeed.
+    local price2 = ds.currencyQuantity2 or 0
+    local currencyType2 = ds.currencyType2
+    if price2 > 0 and currencyType2 and currencyType2 ~= CURT_NONE then
+        return vendorInstance:CanAfford(price2, currencyType2)
+    end
+    return true
+end
+
+---@param vendorInstance BETTERUI.Vendor.Class
 ---@return boolean enabled True if a buy action is possible
 function Buy:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = GetFocusedStoreData(vendorInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
-    -- Check affordability using stored price
-    local price = ds.price or ds.currencyQuantity1 or 0
-    local currencyType = ds.currencyType or ds.currencyType1 or CURT_MONEY
-    if currencyType == CURT_NONE then
-        currencyType = CURT_MONEY
-    end
-    return vendorInstance:CanAfford(price, currencyType)
+    return CanAffordStoreEntry(vendorInstance, ds)
         and vendorInstance:HasInventorySpace()
 end
 
@@ -439,13 +500,8 @@ function Buy:OnPrimaryAction(vendorInstance)
     local entryIndex = ds.entryIndex or ds.slotIndex
     if not entryIndex then return end
 
-    -- Validate affordability one more time
-    local price = ds.price or ds.currencyQuantity1 or 0
-    local currencyType = ds.currencyType or ds.currencyType1 or CURT_MONEY
-    if currencyType == CURT_NONE then
-        currencyType = CURT_MONEY
-    end
-    if not vendorInstance:CanAfford(price, currencyType) then
+    -- Validate affordability (both currencies) one more time
+    if not CanAffordStoreEntry(vendorInstance, ds) then
         BETTERUI.CIM.UserAlertText("Buy:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
@@ -472,7 +528,7 @@ function Buy:BuildList(vendorInstance)
         vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
     end
 
-    local rows = BuildStoreRows()
+    local rows = GetStoreRowsCached()
     if #rows == 0 then return end
 
     local activeCategory = vendorInstance:GetCurrentCategory()

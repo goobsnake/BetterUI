@@ -1227,39 +1227,12 @@ function BETTERUI.Vendor.Class:PositionSearchControl()
         return
     end
 
-    self.textSearchHeaderControl:ClearAnchors()
-    local anchorTarget = self.headerGeneric or self.header
-    local titleContainer = nil
-    if anchorTarget and anchorTarget.GetNamedChild then
-        titleContainer = anchorTarget:GetNamedChild("TitleContainer") or anchorTarget:GetNamedChild("Header")
-    end
-
-    local parentForAnchor = titleContainer or anchorTarget
-    local searchConst = BETTERUI.CIM.SearchBar and BETTERUI.CIM.SearchBar.GetConstants and BETTERUI.CIM.SearchBar.GetConstants("BANKING")
-    local xOffset = (searchConst and searchConst.X_OFFSET) or 55
-    local yOffset = (searchConst and searchConst.Y_OFFSET) or 15
-    local rightInset = (searchConst and searchConst.RIGHT_INSET) or -8
-
-    if parentForAnchor then
-        self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
-    else
-        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, yOffset)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, rightInset, yOffset)
-    end
-
-    self.textSearchHeaderControl:SetHidden(false)
-    if ZO_GamepadGenericHeader_SetHeaderFocusControl then
-        local headerTarget
-        if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
-            headerTarget = self.headerGeneric.tabBar.control
-        else
-            headerTarget = self.headerGeneric or self.header
-        end
-        if headerTarget then
-            ZO_GamepadGenericHeader_SetHeaderFocusControl(headerTarget, self.textSearchHeaderControl)
-        end
-    end
+    -- Shared anchoring lives in CIM SearchManager (loaded before this module).
+    BETTERUI.Interface.PositionSearchControl(self, {
+        preset = "BANKING",
+        fallbackUseRightInset = true,
+        linkHeaderFocus = true,
+    })
 end
 
 --- Enters text-search mode and swaps active keybind groups.
@@ -1314,6 +1287,11 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     if self.list and self.list.Activate and (not self.list.IsActive or not self.list:IsActive()) then
         self.list:Activate()
     end
+    -- Restore exactly the groups the search-mode cleanup removed.
+    if self._searchRemovedKeybindGroups then
+        BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
+        self._searchRemovedKeybindGroups = nil
+    end
     if self.coreKeybinds then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
     end
@@ -1350,15 +1328,12 @@ function BETTERUI.Vendor.Class:OnHeaderEntered()
                 return
             end
 
-            local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
-            if keybindGroups then
-                for i = #keybindGroups, 1, -1 do
-                    local group = keybindGroups[i]
-                    if group and group ~= self.textSearchKeybindStripDescriptor then
-                        KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
-                    end
-                end
-            end
+            -- Remove only this module's own keybind groups, snapshotting what
+            -- was removed so ExitSearchMode restores exactly that.
+            local owned = {}
+            owned[#owned + 1] = self.coreKeybinds
+            self._searchRemovedKeybindGroups = BETTERUI.Interface.RemoveOwnedKeybindGroups(
+                owned, self.textSearchKeybindStripDescriptor)
 
             if self._searchModeActive and self.textSearchKeybindStripDescriptor then
                 BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
@@ -1482,7 +1457,18 @@ function BETTERUI.Vendor.Class:EnsureListInputActive()
         -- would register the same list twice and accelerate scrolling.
         list.directionalInputEnabled = true
     elseif list.SetDirectionalInputEnabled and not listListening then
-        list:SetDirectionalInputEnabled(true)
+        if list.IsActive and list:IsActive() then
+            -- Active but not registered: the public mutator both records the
+            -- flag and performs the missing DIRECTIONAL_INPUT registration.
+            list:SetDirectionalInputEnabled(true)
+        else
+            -- U50 SetDirectionalInputEnabled registers DIRECTIONAL_INPUT
+            -- unconditionally; on a list that is not known to be active that
+            -- would register input now AND again on Activate (double
+            -- registration -> accelerated scrolling). Record the flag
+            -- directly; activation performs the actual registration.
+            list.directionalInputEnabled = true
+        end
     end
 
     if shouldActivateList then

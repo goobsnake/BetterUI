@@ -94,6 +94,7 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
     local batchStepHandled = batchConfig.BatchStepHandled
     local batchStepQueued = batchConfig.BatchStepQueued
     local batchStepSkipped = batchConfig.BatchStepSkipped
+    local batchStepStopped = batchConfig.BatchStepStopped
 
     local ds = itemData and (itemData.dataSource or itemData) or nil
     if not ds then
@@ -105,14 +106,54 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         if not entryIndex then
             return batchStepHandled()
         end
+        -- Stores re-index entries when rows sell out mid-batch; the
+        -- entryIndex captured at selection time may now point at a different
+        -- item. Re-read the live entry and skip on mismatch.
+        if type(GetStoreEntryInfo) == "function" then
+            local _, liveName = GetStoreEntryInfo(entryIndex)
+            if not liveName or liveName == "" then
+                return batchStepSkipped()
+            end
+            local liveLink = (type(GetStoreItemLink) == "function") and GetStoreItemLink(entryIndex) or nil
+            if ds.itemLink and liveLink then
+                if liveLink ~= ds.itemLink then
+                    return batchStepSkipped()
+                end
+            elseif ds.name then
+                -- List rows carry zo_strformat'd names; accept either form.
+                local formattedLiveName = liveName
+                if type(zo_strformat) == "function" and rawget(_G, "SI_TOOLTIP_ITEM_NAME") ~= nil then
+                    formattedLiveName = zo_strformat(SI_TOOLTIP_ITEM_NAME, liveName)
+                end
+                if ds.name ~= liveName and ds.name ~= formattedLiveName then
+                    return batchStepSkipped()
+                end
+            end
+        end
         local vendorInstance = Vendor.instance
         if vendorInstance then
+            -- Mirror BuyComponent: gold and alt-currency charges are
+            -- independent (alt-currency entries report price == 0, not nil).
             local price = ds.price or 0
-            local currencyType = ds.currencyType or ds.currencyType1 or CURT_MONEY
-            if currencyType == CURT_NONE then
-                currencyType = CURT_MONEY
+            if price > 0 then
+                local currencyType = ds.currencyType or CURT_MONEY
+                if currencyType == CURT_NONE then
+                    currencyType = CURT_MONEY
+                end
+                if not vendorInstance:CanAfford(price, currencyType) then
+                    return batchStepSkipped()
+                end
             end
-            if not vendorInstance:CanAfford(price, currencyType) then
+            local price1 = ds.currencyQuantity1 or 0
+            local currencyType1 = ds.currencyType1
+            if price1 > 0 and currencyType1 and currencyType1 ~= CURT_NONE
+                and not vendorInstance:CanAfford(price1, currencyType1) then
+                return batchStepSkipped()
+            end
+            local price2 = ds.currencyQuantity2 or 0
+            local currencyType2 = ds.currencyType2
+            if price2 > 0 and currencyType2 and currencyType2 ~= CURT_NONE
+                and not vendorInstance:CanAfford(price2, currencyType2) then
                 return batchStepSkipped()
             end
             if not vendorInstance:HasInventorySpace() then
@@ -142,13 +183,23 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         local bagId = ds.bagId
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
+            -- Per-step fence budget: stop the batch once the daily sell
+            -- transactions are exhausted; clamp stacks to what remains.
+            local remaining = math.huge
+            if GetFenceSellTransactionInfo then
+                local totalSells, sellsUsed = GetFenceSellTransactionInfo()
+                remaining = (totalSells or 0) - (sellsUsed or 0)
+                if remaining <= 0 then
+                    return batchStepStopped("fenceLimit")
+                end
+            end
             local canSell = AuthorizeVendorInventoryAction(Vendor.ACTION.FENCE_SELL, bagId, slotIndex)
             if canSell ~= true then
                 return batchStepSkipped()
             end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
             if stackSize > 0 then
-                SellInventoryItem(bagId, slotIndex, stackSize)
+                SellInventoryItem(bagId, slotIndex, (remaining < stackSize) and remaining or stackSize)
                 return batchStepQueued()
             end
             return batchStepHandled()
@@ -158,13 +209,23 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         local bagId = ds.bagId
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
+            -- Per-step fence budget: stop the batch once the daily launder
+            -- transactions are exhausted; clamp stacks to what remains.
+            local remaining = math.huge
+            if GetFenceLaunderTransactionInfo then
+                local totalLaunders, laundersUsed = GetFenceLaunderTransactionInfo()
+                remaining = (totalLaunders or 0) - (laundersUsed or 0)
+                if remaining <= 0 then
+                    return batchStepStopped("fenceLimit")
+                end
+            end
             local canLaunder = AuthorizeVendorInventoryAction(Vendor.ACTION.FENCE_LAUNDER, bagId, slotIndex)
             if canLaunder ~= true then
                 return batchStepSkipped()
             end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
             if stackSize > 0 then
-                LaunderItem(bagId, slotIndex, stackSize)
+                LaunderItem(bagId, slotIndex, (remaining < stackSize) and remaining or stackSize)
                 return batchStepQueued()
             end
             return batchStepHandled()
@@ -219,7 +280,10 @@ local function ResolveBatchDelayPolicy(totalItems, batchOptions)
 
     return {
         baseDelayMs = zo_max(throttleProfile.DELAY_MS or 100, minDelay),
-        showProgress = throttleProfile.SHOW_PROGRESS == true or totalItems >= 10,
+        -- server.serverBound is part of the public options contract; honor it
+        -- the same way the CIM MultiSelectMixin does (force progress UI).
+        showProgress = throttleProfile.SHOW_PROGRESS == true or totalItems >= 10
+            or (options.server and options.server.serverBound) == true,
         minDelay = minDelay,
         maxDelay = pacing.maxServerDelayMs or 330,
         cooldownEvery = pacing.cooldownEvery or 18,
@@ -227,6 +291,10 @@ local function ResolveBatchDelayPolicy(totalItems, batchOptions)
         chunkCostUnits = pacing.chunkCostUnits or 32,
         chunkPauseMs = pacing.chunkPauseMs or 1000,
         jitterMs = pacing.jitterMs or 18,
+        -- ack.awaitInventoryAck is part of the public options contract; the
+        -- runner waits for the next inventory update after each mutating step.
+        awaitInventoryAck = (options.ack and options.ack.awaitInventoryAck) == true,
+        ackTimeoutMs = (options.ack and options.ack.ackTimeoutMs) or 0,
         options = options,
     }
 end
@@ -257,7 +325,100 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         stopReason = nil,
         nextCooldownAt = delayPolicy.cooldownEvery > 0 and delayPolicy.cooldownEvery or nil,
         nextChunkAt = delayPolicy.chunkCostUnits > 0 and delayPolicy.chunkCostUnits or nil,
+        ackCallbacksRegistered = false,
+        awaitingAck = false,
+        ackReceived = false,
+        ackWaitToken = 0,
     }
+
+    -- ack.awaitInventoryAck: after each mutating (queued) step, wait for the
+    -- next inventory update callback before continuing — mirroring the CIM
+    -- MultiSelectMixin ack pattern — with the pacing delay as the timeout
+    -- fallback so a missed event can never stall the batch.
+    function runner:RegisterInventoryAckCallbacks()
+        if not self.delayPolicy.awaitInventoryAck or self.ackCallbacksRegistered then
+            return
+        end
+        if not SHARED_INVENTORY or not SHARED_INVENTORY.RegisterCallback then
+            return
+        end
+        self.singleSlotAckCallback = function(bagId, slotIndex)
+            self:OnInventoryAck(bagId, slotIndex)
+        end
+        self.fullInventoryAckCallback = function()
+            -- Full updates carry no slot identity; accept as a wildcard ack.
+            self:OnInventoryAck(nil, nil)
+        end
+        SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self.singleSlotAckCallback)
+        SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self.fullInventoryAckCallback)
+        self.ackCallbacksRegistered = true
+    end
+
+    function runner:UnregisterInventoryAckCallbacks()
+        if not self.ackCallbacksRegistered then
+            return
+        end
+        if SHARED_INVENTORY and SHARED_INVENTORY.UnregisterCallback then
+            if self.singleSlotAckCallback then
+                SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", self.singleSlotAckCallback)
+            end
+            if self.fullInventoryAckCallback then
+                SHARED_INVENTORY:UnregisterCallback("FullInventoryUpdate", self.fullInventoryAckCallback)
+            end
+        end
+        self.singleSlotAckCallback = nil
+        self.fullInventoryAckCallback = nil
+        self.ackCallbacksRegistered = false
+    end
+
+    -- A SingleSlot ack only releases the wait when it matches the slot the
+    -- current step mutated; unrelated bag updates must not end the wait
+    -- early. Steps without slot identity (BUY/BUYBACK deliveries land in an
+    -- unknown slot) and FullInventoryUpdate acks match as wildcards.
+    function runner:AckMatchesCurrentStep(bagId, slotIndex)
+        if bagId == nil or self.expectedAckBagId == nil then
+            return true
+        end
+        if bagId ~= self.expectedAckBagId then
+            return false
+        end
+        return self.expectedAckSlotIndex == nil or slotIndex == self.expectedAckSlotIndex
+    end
+
+    function runner:OnInventoryAck(bagId, slotIndex)
+        if not self:AckMatchesCurrentStep(bagId, slotIndex) then
+            return
+        end
+        self.ackReceived = true
+        if self.awaitingAck then
+            self.awaitingAck = false
+            -- Invalidate the pending ack-timeout fallback before stepping.
+            self.ackWaitToken = self.ackWaitToken + 1
+            self:Step()
+        end
+    end
+
+    function runner:ContinueAfterDelay(shouldAwaitAck)
+        if not shouldAwaitAck or self.ackReceived then
+            self:Step()
+            return
+        end
+        -- Pacing delay elapsed without an inventory ack: keep waiting for the
+        -- callback, bounded by ackTimeoutMs (or one more pacing delay).
+        self.awaitingAck = true
+        self.ackWaitToken = self.ackWaitToken + 1
+        local token = self.ackWaitToken
+        local timeoutMs = self.delayPolicy.ackTimeoutMs
+        if not timeoutMs or timeoutMs <= 0 then
+            timeoutMs = self.delayPolicy.baseDelayMs or 145
+        end
+        zo_callLater(function()
+            if self.awaitingAck and token == self.ackWaitToken then
+                self.awaitingAck = false
+                self:Step()
+            end
+        end, timeoutMs)
+    end
 
     function runner:IsSceneActive()
         return Vendor.instance and Vendor.instance.IsSceneShowing and Vendor.instance:IsSceneShowing()
@@ -272,6 +433,8 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
     end
 
     function runner:Finish()
+        self:UnregisterInventoryAckCallbacks()
+        self.awaitingAck = false
         Vendor._batchProcessing = false
         Vendor._batchAbortRequested = false
 
@@ -393,8 +556,27 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
 
         self:RecordServerAction()
         self:UpdateProgress()
+
+        -- Only mutating steps produce an inventory update to wait for.
+        local shouldAwaitAck = self.ackCallbacksRegistered
+            and stepResult.status == self.BatchConfig.BATCH_STEP_STATUS.QUEUED
+        -- Correlate the wait with this step's own mutation: inventory events
+        -- cannot interleave with this call stack, so tagging here happens
+        -- before the server ack can arrive. BUY/BUYBACK rows carry no bagId
+        -- and therefore match any update (wildcard).
+        local stepItem = self.items[self.index]
+        local stepDs = stepItem and (stepItem.dataSource or stepItem) or nil
+        if shouldAwaitAck and stepDs then
+            self.expectedAckBagId = stepDs.bagId
+            self.expectedAckSlotIndex = stepDs.slotIndex
+        else
+            self.expectedAckBagId = nil
+            self.expectedAckSlotIndex = nil
+        end
+        self.ackReceived = false
+        self.awaitingAck = false
         zo_callLater(function()
-            self:Step()
+            self:ContinueAfterDelay(shouldAwaitAck)
         end, self:ResolveDelayMs())
     end
 
@@ -430,6 +612,7 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
     end
 
     function runner:Start()
+        self:RegisterInventoryAckCallbacks()
         self:StartAfterDialogDismiss(1800)
     end
 

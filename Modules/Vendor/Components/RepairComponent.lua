@@ -9,6 +9,19 @@ local Vendor = BETTERUI.Vendor
 Vendor.RepairComponent = Vendor.RepairComponent or {}
 local Repair = Vendor.RepairComponent
 
+--- Resolve the focused row the same way the Vendor keybind strip does
+--- (GetTargetData when available, falling back to GetSelectedData).
+---@param vendorInstance BETTERUI.Vendor.Class|nil
+---@return table|nil rowData
+local function GetTargetRowData(vendorInstance)
+    local list = vendorInstance and vendorInstance.list
+    if not list then return nil end
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+    return list:GetSelectedData()
+end
+
 -- ACTIVATE / DEACTIVATE
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -31,7 +44,7 @@ end
 ---@param vendorInstance BETTERUI.Vendor.Class
 ---@return boolean enabled True if repair is affordable and needed
 function Repair:IsPrimaryActionEnabled(vendorInstance)
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(vendorInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -41,7 +54,7 @@ end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:OnPrimaryAction(vendorInstance)
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(vendorInstance)
     if not selectedData then return end
     local ds = selectedData.dataSource or selectedData
 
@@ -74,9 +87,6 @@ function Repair:RepairAll(vendorInstance)
         return
     end
 
-    -- Format cost for display
-    local _ = ZO_CurrencyControl_FormatCurrencyAndAppendIcon(repairAllCost, true, CURT_MONEY, true)
-
     -- ESO's own store uses "REPAIR_ALL" dialog (storewindow_gamepad.lua:309)
     ZO_Dialogs_ShowGamepadDialog("REPAIR_ALL", {
         cost = repairAllCost,
@@ -103,7 +113,8 @@ function Repair:BuildList(vendorInstance)
         for slotIndex = 0, bagSize - 1 do
             local condition = GetItemCondition(bagId, slotIndex) or 100
             if condition < 100 then
-                local icon, stackCount, _, _, _, _, _, quality = GetItemInfo(bagId, slotIndex)
+                -- 9th GetItemInfo return is displayQuality (8th is functionalQuality)
+                local icon, stackCount, _, _, _, _, _, _, displayQuality = GetItemInfo(bagId, slotIndex)
                 local name = GetItemName(bagId, slotIndex)
 
                 if name and name ~= ""
@@ -118,7 +129,7 @@ function Repair:BuildList(vendorInstance)
                         stackCount       = stackCount or 1,
                         condition        = condition,
                         repairCost       = repairCost,
-                        quality          = quality or ITEM_DISPLAY_QUALITY_NORMAL,
+                        quality          = displayQuality or ITEM_DISPLAY_QUALITY_NORMAL,
                         bagId            = bagId,
                         slotIndex        = slotIndex,
                         itemLink         = GetItemLink(bagId, slotIndex),
@@ -133,8 +144,8 @@ function Repair:BuildList(vendorInstance)
                     entry:SetDataSource(entryData)
                     entry.narrationText = function() return entryData.name end
 
-                    if quality then
-                        local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
+                    if entryData.quality then
+                        local r, g, b = GetItemQualityColor(entryData.quality):UnpackRGBA()
                         entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
                     end
 

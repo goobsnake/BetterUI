@@ -10,6 +10,19 @@ local Vendor = BETTERUI.Vendor
 Vendor.SellVengeanceComponent = Vendor.SellVengeanceComponent or {}
 local SellVengeance = Vendor.SellVengeanceComponent
 
+--- Resolve the focused row the same way the Vendor keybind strip does
+--- (GetTargetData when available, falling back to GetSelectedData).
+---@param vendorInstance BETTERUI.Vendor.Class|nil
+---@return table|nil rowData
+local function GetTargetRowData(vendorInstance)
+    local list = vendorInstance and vendorInstance.list
+    if not list then return nil end
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+    return list:GetSelectedData()
+end
+
 local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstance)
     local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
     assert(type(authorizeInventoryAction) == "function",
@@ -68,11 +81,39 @@ local function BuildSellableVengeanceItems()
     return rows
 end
 
+-- One refresh pass calls GetCategories and BuildList back to back, each of
+-- which needs the sellable vengeance rows; cache them per frame so the bag
+-- snapshot is built once per refresh instead of once per caller.
+local cachedVengeanceRows = nil
+local cachedVengeanceRowsFrameMs = nil
+
+local function GetSellableVengeanceRowsCached()
+    local frameMs = (type(GetFrameTimeMilliseconds) == "function") and GetFrameTimeMilliseconds() or nil
+    if frameMs and cachedVengeanceRows and cachedVengeanceRowsFrameMs == frameMs then
+        return cachedVengeanceRows
+    end
+
+    local rows = BuildSellableVengeanceItems()
+    if frameMs then
+        cachedVengeanceRows = rows
+        cachedVengeanceRowsFrameMs = frameMs
+    else
+        -- No frame clock (test harness): never reuse stale rows.
+        cachedVengeanceRows = nil
+        cachedVengeanceRowsFrameMs = nil
+    end
+    return rows
+end
+
 function SellVengeance:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
 function SellVengeance:Deactivate(_vendorInstance)
+    -- Drop the per-frame row cache so a stale row set can never be reused
+    -- after the tab deactivates.
+    cachedVengeanceRows = nil
+    cachedVengeanceRowsFrameMs = nil
 end
 
 function SellVengeance:GetPrimaryActionName()
@@ -84,7 +125,7 @@ function SellVengeance:IsPrimaryActionEnabled(vendorInstance)
         return false
     end
 
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(vendorInstance)
     if not selectedData then
         return false
     end
@@ -104,7 +145,7 @@ function SellVengeance:OnPrimaryAction(vendorInstance)
         return
     end
 
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(vendorInstance)
     if not selectedData then
         return
     end
@@ -135,7 +176,7 @@ function SellVengeance:GetCategories(_vendorInstance)
             key = "all",
             name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE") or "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE"),
             iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
-            itemCount = #BuildSellableVengeanceItems(),
+            itemCount = #GetSellableVengeanceRowsCached(),
         },
     }
 end
@@ -148,7 +189,7 @@ function SellVengeance:BuildList(vendorInstance)
 
     local searchQuery = Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery) or nil
     local bagId = GetVengeanceBagId()
-    for _, slot in ipairs(BuildSellableVengeanceItems()) do
+    for _, slot in ipairs(GetSellableVengeanceRowsCached()) do
         local searchName = slot.name or (bagId and GetItemName(bagId, slot.slotIndex)) or ""
         if not Vendor.MatchesSearchQuery or Vendor.MatchesSearchQuery(searchQuery, searchName) then
             local sellPrice = slot.sellPrice or slot.stackSellPrice or 0

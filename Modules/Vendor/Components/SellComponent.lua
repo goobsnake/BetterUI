@@ -9,6 +9,19 @@ local Vendor = BETTERUI.Vendor
 Vendor.SellComponent = Vendor.SellComponent or {}
 local Sell = Vendor.SellComponent
 
+--- Resolve the focused row the same way the Vendor keybind strip does
+--- (GetTargetData when available, falling back to GetSelectedData).
+---@param vendorInstance BETTERUI.Vendor.Class|nil
+---@return table|nil rowData
+local function GetTargetRowData(vendorInstance)
+    local list = vendorInstance and vendorInstance.list
+    if not list then return nil end
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+    return list:GetSelectedData()
+end
+
 local SELL_CATEGORY_DEFS = BETTERUI.CIM.ItemTaxonomy.VENDOR_SELL_CATEGORY_DEFS
 
 local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstance)
@@ -123,7 +136,7 @@ function Sell:GetPrimaryActionName()
 end
 
 function Sell:IsPrimaryActionEnabled(vendorInstance)
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(vendorInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -144,7 +157,7 @@ function Sell:IsPrimaryActionEnabled(vendorInstance)
 end
 
 function Sell:OnPrimaryAction(vendorInstance)
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetTargetRowData(vendorInstance)
     if not selectedData then return end
     local ds = selectedData.dataSource or selectedData
 
@@ -171,22 +184,49 @@ function Sell:SellAllJunk(vendorInstance)
         return
     end
 
-    vendorInstance:SuppressListUpdates()
-
+    -- Collect authorized junk slots, then route them through the shared
+    -- throttled vendor batch pipeline (overlay, pacing, abort handling)
+    -- instead of firing a raw synchronous SellInventoryItem loop.
+    local items = {}
     local bagSize = GetBagSize(BAG_BACKPACK) or 0
     for slot = 0, bagSize - 1 do
         if IsItemJunk(BAG_BACKPACK, slot) then
             local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL_JUNK, BAG_BACKPACK, slot, vendorInstance)
-            if canSell == true then
-                local stack = GetSlotStackSize(BAG_BACKPACK, slot) or 1
-                if stack > 0 then
-                    SellInventoryItem(BAG_BACKPACK, slot, stack)
-                end
+            if canSell == true and (GetSlotStackSize(BAG_BACKPACK, slot) or 0) > 0 then
+                items[#items + 1] = { bagId = BAG_BACKPACK, slotIndex = slot }
             end
         end
     end
+    if #items == 0 then
+        -- Junk exists but authorization filtered every slot (player-locked,
+        -- stolen, zero-value, ...); tell the user instead of silently no-oping.
+        BETTERUI.CIM.UserAlertText("Sell:NoJunk",
+            GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_JUNK")))
+        return
+    end
 
-    vendorInstance:FlushListUpdates()
+    Vendor.ExecuteBatchThrottled({
+        mode = Vendor.MODE.SELL,
+        items = items,
+        onComplete = function()
+            -- The final batch ack already scheduled the coalesced "listRefresh"
+            -- task; this direct refresh renders the same final state, so drop
+            -- the pending duplicate rebuild (and take over its footer refresh).
+            -- Inventory events arriving later re-schedule the task as usual.
+            if Vendor.Tasks then
+                Vendor.Tasks:Cancel("listRefresh")
+            end
+            if vendorInstance.RefreshList then
+                vendorInstance:RefreshList()
+            end
+            if vendorInstance.RefreshVendorFooter then
+                vendorInstance:RefreshVendorFooter()
+            end
+            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+            end
+        end,
+    })
 end
 
 function Sell:BuildList(vendorInstance)

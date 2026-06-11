@@ -166,20 +166,6 @@ local function GetActiveTabs()
                 storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD"),
             })
         end
-        if Vendor.ModePolicy.GetActiveTabs then
-            return Vendor.ModePolicy.GetActiveTabs({
-                isFenceInteraction = isFenceInteraction,
-                isStableInteraction = isStableInteraction,
-                fenceEnableSell = fenceEnableSell,
-                fenceEnableLaunder = fenceEnableLaunder,
-                sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
-                vendorTabs = VENDOR_TABS,
-                stableTabs = STABLE_TABS,
-                fenceTabs = FENCE_TABS,
-                isModeTabAvailable = IsModeTabAvailable,
-                storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD"),
-            })
-        end
     end
     return BuildFallbackVendorTabs()
 end
@@ -207,14 +193,6 @@ local function GetToggleModePair()
             return Vendor.ModePolicy.GetStoreToggleModePair({
                 tabs = GetActiveTabs(),
                 sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
-            })
-        end
-        if Vendor.ModePolicy.GetToggleModePair then
-            return Vendor.ModePolicy.GetToggleModePair({
-                isFenceInteraction = isFenceInteraction,
-                isStableInteraction = isStableInteraction,
-                sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
-                tabs = GetActiveTabs(),
             })
         end
     end
@@ -253,10 +231,6 @@ local function ResolveInitialStoreMode(tabs)
         elseif Vendor.ModePolicy.ResolveVendorInitialStoreMode then
             request.vendorTabs = VENDOR_TABS
             resolver = Vendor.ModePolicy.ResolveVendorInitialStoreMode
-        elseif Vendor.ModePolicy.ResolveInitialStoreMode then
-            request.isFenceInteraction = isFenceInteraction
-            request.isStableInteraction = isStableInteraction
-            resolver = Vendor.ModePolicy.ResolveInitialStoreMode
         end
 
         if resolver then
@@ -361,6 +335,10 @@ local function ResetVendorRuntimeState(instance)
         Vendor.Tasks:Cancel("buyListRetry")
         Vendor.Tasks:Cancel("footerRefresh")
     end
+
+    -- A cancelled buyListRetry leaves the counter at >=1; the next store
+    -- visit would then short-circuit its guaranteed first empty-list retry.
+    instance._buyListRetryCount = 0
 end
 
 local function ResetActiveVendorRuntimeState()
@@ -496,7 +474,6 @@ end
 -- Forward declarations for helper callbacks referenced from keybind descriptors.
 -- Without these declarations Lua resolves names as globals inside closures.
 local IsMultiSelectAvailable
-local GetMultiSelectKeybindName
 local CanMultiSelectInCurrentMode
 local RegisterVendorBatchDialog
 
@@ -542,18 +519,7 @@ local function BuildCoreKeybinds(vendorInstance)
             name = function()
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
-                    local selectedData = GetCurrentVendorTargetData(vendorInstance)
-                    if selectedData and ms:IsSelected(selectedData) then
-                        return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM") or "SI_BETTERUI_DESELECT_ITEM")
-                    end
-
-                    local selectedCount = ms.GetSelectedCount and ms:GetSelectedCount() or 0
-                    local selectWithCount = rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")
-                    if selectWithCount then
-                        return zo_strformat(GetString(selectWithCount), selectedCount)
-                    end
-
-                    return GetString(SI_GAMEPAD_SELECT_OPTION)
+                    return BETTERUI.CIM.Keybinds.GetMultiSelectToggleLabel(ms, GetCurrentVendorTargetData(vendorInstance))
                 end
                 local component = vendorInstance:GetActiveComponent()
                 if component and component.GetPrimaryActionName then
@@ -736,7 +702,7 @@ local function BuildCoreKeybinds(vendorInstance)
         },
         -- Quinary: Enter/Exit Multi-Select
         {
-            name = function() return GetMultiSelectKeybindName() end,
+            name = function() return BETTERUI.CIM.Keybinds.GetMultiSelectLabel() end,
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
                 local ms = Vendor.multiSelectManager
@@ -833,10 +799,6 @@ end
 IsMultiSelectAvailable = function()
     local instance = Vendor.instance
     return instance and instance.list and instance.list:GetNumItems() > 0
-end
-
-GetMultiSelectKeybindName = function()
-    return GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT") or "SI_BETTERUI_MULTI_SELECT")
 end
 
 CanMultiSelectInCurrentMode = function()
@@ -1030,14 +992,14 @@ RegisterVendorBatchDialog = function()
                 if not allSelected then
                     table.insert(parametricList,
                         BETTERUI.CIM.Dialogs.CreateParametricActionEntry(
-                            GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL") or "SI_BETTERUI_SELECT_ALL"),
+                            BETTERUI.CIM.Keybinds.GetSelectAllLabel(),
                             "selectAll"
                         ))
                 end
                 if selectedCount > 0 then
                     table.insert(parametricList,
                         BETTERUI.CIM.Dialogs.CreateParametricActionEntry(
-                            zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL") or "SI_BETTERUI_DESELECT_ALL"), selectedCount),
+                            BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount),
                             "deselectAll"
                         ))
                 end
@@ -1101,8 +1063,20 @@ RegisterVendorBatchDialog = function()
                         onComplete = function()
                             if ms then ms:ClearSelections() end
                             if Vendor.instance then
+                                -- The final batch ack already scheduled the
+                                -- coalesced "listRefresh" task; this direct
+                                -- refresh renders the same final state, so drop
+                                -- the pending duplicate rebuild (and take over
+                                -- its footer refresh). Later inventory events
+                                -- re-schedule the task as usual.
+                                if Vendor.Tasks then
+                                    Vendor.Tasks:Cancel("listRefresh")
+                                end
                                 Vendor.instance:SaveListPosition()
                                 Vendor.instance:RefreshList()
+                                if Vendor.instance.RefreshVendorFooter then
+                                    Vendor.instance:RefreshVendorFooter()
+                                end
                                 Vendor.instance:EnsureListInputActive()
                             end
                             if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then

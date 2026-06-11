@@ -24,12 +24,28 @@ local function IsSupportedActionItem(mode, itemData, vendorInstance)
         end
 
         if vendorInstance then
+            -- Mirror BuyComponent: gold and alt-currency charges are
+            -- independent (alt-currency entries report price == 0, not nil).
             local price = ds.price or 0
-            local currencyType = ds.currencyType or ds.currencyType1 or CURT_MONEY
-            if currencyType == CURT_NONE then
-                currencyType = CURT_MONEY
+            if price > 0 then
+                local currencyType = ds.currencyType or CURT_MONEY
+                if currencyType == CURT_NONE then
+                    currencyType = CURT_MONEY
+                end
+                if vendorInstance.CanAfford and not vendorInstance:CanAfford(price, currencyType) then
+                    return false
+                end
             end
-            if vendorInstance.CanAfford and not vendorInstance:CanAfford(price, currencyType) then
+            local price1 = ds.currencyQuantity1 or 0
+            local currencyType1 = ds.currencyType1
+            if price1 > 0 and currencyType1 and currencyType1 ~= CURT_NONE
+                and vendorInstance.CanAfford and not vendorInstance:CanAfford(price1, currencyType1) then
+                return false
+            end
+            local price2 = ds.currencyQuantity2 or 0
+            local currencyType2 = ds.currencyType2
+            if price2 > 0 and currencyType2 and currencyType2 ~= CURT_NONE
+                and vendorInstance.CanAfford and not vendorInstance:CanAfford(price2, currencyType2) then
                 return false
             end
             if vendorInstance.HasInventorySpace and not vendorInstance:HasInventorySpace() then
