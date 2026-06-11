@@ -484,9 +484,6 @@ ZO_CreateStringId("SI_BETTERUI_CRAFTING_MARKET_LABEL", "市场")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "在装备绑定物品之前显示对话框")
 
 -- Event Tickets
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "票券:")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "显示活动门票")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "活动门票位置")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "启用|c0066FF资源球框架|r")

@@ -10,6 +10,7 @@ ZO_CreateStringId("SI_BETTERUI_LABEL_MOUNT_STAMINA", "Mount Stamina")
 ZO_CreateStringId("SI_BETTERUI_EMPTY_LIST", "Nothing in list")
 ZO_CreateStringId("SI_BETTERUI_LOADING_LIST", "Loading list...")
 ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "No items found")
+ZO_CreateStringId("SI_BETTERUI_KEYBIND_DOWN", "Down")
 
 -- Market Price Tooltip Strings (TTC / MM / ATT integration)
 ZO_CreateStringId("SI_BETTERUI_MARKET_NO_PRICE_DATA", "<<1>>: No Price Data")
@@ -58,7 +59,6 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_LABEL", "OUTFIT:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "SEALS:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "TOMES:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "ARCHIVAL:")
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
 
 -- Destroy Confirmation Messages
 ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Are you sure you want to destroy <<1>>? This cannot be undone.")
@@ -269,8 +269,6 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS", "Tome Points Positio
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Show Archival Fortunes")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Archival Fortunes Position")
 -- Event Tickets (legacy name for Trade Bars, used for backwards compatibility)
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Show Event Tickets")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Event Tickets Position")
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Enhanced Nameplates")
@@ -824,3 +822,56 @@ ZO_CreateStringId("SI_BETTERUI_INV_MULTISELECT", "Multi-Select")
 -- Vendor Currency
 ZO_CreateStringId("SI_BETTERUI_ABBREVIATE_CURRENCY", "Abbreviate Currency")
 ZO_CreateStringId("SI_BETTERUI_ABBREVIATE_CURRENCY_TOOLTIP", "Show abbreviated currency values in vendor lists.")
+
+-- Batch Processing Overlay
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROGRESS_FORMAT", "Processing (%d/%d)")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROGRESS_ETA_FORMAT", "Processing (%d/%d) ~%s")
+ZO_CreateStringId("SI_BETTERUI_BATCH_RATE_LIMIT_WAIT_FORMAT", "Continuing in %ds to prevent message rate limit logoff")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ABORT_HINT_FORMAT", "Please Wait - Press %s to abort")
+ZO_CreateStringId("SI_BETTERUI_BATCH_DESTROY_CONFIRM_FORMAT", "Are you sure you want to destroy <<1>> selected items? This cannot be undone.")
+
+-- Screen Narration
+ZO_CreateStringId("SI_BETTERUI_NARRATION_STACK_COUNT_FORMAT", "Stack of <<1>>")
+ZO_CreateStringId("SI_BETTERUI_NARRATION_EQUIPPED", "Equipped")
+ZO_CreateStringId("SI_BETTERUI_NARRATION_JUNK", "Marked as junk")
+ZO_CreateStringId("SI_BETTERUI_NARRATION_ITEM_COUNT_FORMAT", "<<1>> items")
+
+-- Sort Type Names
+ZO_CreateStringId("SI_BETTERUI_SORT_TYPE_CATEGORY", "Category")
+ZO_CreateStringId("SI_BETTERUI_SORT_TYPE_NAME", "Name")
+ZO_CreateStringId("SI_BETTERUI_SORT_TYPE_QUALITY", "Quality")
+ZO_CreateStringId("SI_BETTERUI_SORT_TYPE_STACK_COUNT", "Stack Count")
+ZO_CreateStringId("SI_BETTERUI_SORT_TYPE_VALUE", "Value")
+ZO_CreateStringId("SI_BETTERUI_SORT_TYPE_LEVEL", "Level")
+ZO_CreateStringId("SI_BETTERUI_SORT_TYPE_UNKNOWN", "Unknown")
+
+-- Stat Comparison
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_ARMOR", "Armor")
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_DAMAGE", "Damage")
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_LEVEL", "Level")
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_QUALITY", "Quality")
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_SET", "Set")
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_ENCHANT", "Enchant")
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_ENCHANT_CHANGED", "changed")
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_EMPTY_SLOT", "Empty slot — equip to gain stats")
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_NO_CHANGE", "No stat change")
+
+-- Secure Action / Item Move Failures
+ZO_CreateStringId("SI_BETTERUI_SECURE_ACTION_FAILED", "The action could not be completed.")
+ZO_CreateStringId("SI_BETTERUI_ITEM_MOVE_FAILED", "Item move request failed")
+
+-- Banking Labels
+ZO_CreateStringId("SI_BETTERUI_GUILD_BANK_TITLE_FORMAT", "<<1>> Bank")
+ZO_CreateStringId("SI_BETTERUI_BANK_BANKED_CURRENCY_FORMAT", "Banked <<1>>")
+ZO_CreateStringId("SI_BETTERUI_BANK_CARRIED_CURRENCY_FORMAT", "Carried <<1>>")
+
+-- Trading House
+ZO_CreateStringId("SI_BETTERUI_TH_ITEM_UNAVAILABLE", "Item is no longer available")
+
+-- Enhanced Tooltip Research Lines
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_RESEARCHABLE", "Researchable")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FOUND_IN_INVENTORY", "Found in Inventory")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FOUND_IN_BANK", "Found in Bank")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FOUND_IN_HOUSE_BANK", "Found in House Bank")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FOUND_EQUIPPED", "Found Equipped")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_TRAIT_LABEL", "Trait:")

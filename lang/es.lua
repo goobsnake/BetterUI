@@ -544,9 +544,6 @@ ZO_CreateStringId("SI_BETTERUI_CATEGORY_ENCHANTING", "Encantamiento")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Borrar búsqueda")
 
 -- Event Tickets
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "ENTRADAS:")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Mostrar entradas de evento")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Posición entradas de evento")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Activar |c0066FFMarcos de Orbes de Recursos|r")

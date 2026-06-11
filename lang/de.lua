@@ -54,7 +54,6 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_LABEL", "OUTFIT:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "SIEGEL:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "BÄNDE:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_ARCHIVAL_LABEL", "ARCHIV:")
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
 
 -- Currency limit alert
 
@@ -226,8 +225,6 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS", "Tome-Punkte Positio
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_ARCHIVAL", "Archival Fortunes anzeigen")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_ARCHIVAL", "Archival Fortunes Position")
 -- Event Tickets (legacy name for Trade Bars, used for backwards compatibility)
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Event-Tickets anzeigen")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Event-Tickets Position")
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Verbesserte Namensschilder")

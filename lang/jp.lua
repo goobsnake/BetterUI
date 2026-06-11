@@ -480,9 +480,6 @@ ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "装備時バインド保護")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "装備時にバインドされるアイテムを装備する前にダイアログを表示")
 
 -- Event Tickets
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "イベントチケットを表示")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "イベントチケットの位置")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "|c0066FFリソースオーブフレーム|rを有効化")
