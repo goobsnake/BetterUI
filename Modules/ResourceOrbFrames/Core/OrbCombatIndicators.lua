@@ -26,7 +26,9 @@ local function GetNamedChildDirect(parent, name)
     return nil
 end
 
-local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
+-- Live accessor: combat-path reads must not deep-clone settings per event.
+local OrbUtils = BETTERUI.ResourceOrbFrames.Utils
+local GetLiveSettings = (OrbUtils.Settings and OrbUtils.Settings.GetLive) or OrbUtils.GetSettings
 
 local ClampNumber = BETTERUI.ClampNumber
 
@@ -101,20 +103,18 @@ local function EnsureCombatIconControl(rootFrame, frontBarContainer)
     return m_combatIconControl
 end
 
---- Gets the glow and icon combat indicator controls.
+--- Gets the icon combat indicator control.
+--- Per-button combat glows are handled by ApplyCombatGlow/GetGlowTargets;
+--- there is no container-level glow control.
 ---@param rootFrame table Root ResourceOrbFrames control
----@return table|nil glow Glow texture control, or nil
 ---@return table|nil icon Icon texture control, or nil
 function CombatIndicators.GetCombatIndicatorControls(rootFrame)
     if not rootFrame then
-        return nil, nil
+        return nil
     end
 
     local frontBarContainer = CombatIndicators.ResolveFrontBarContainer(rootFrame)
-
-    local glow = frontBarContainer and GetNamedChildDirect(frontBarContainer, "CombatGlow") or nil
-    local icon = EnsureCombatIconControl(rootFrame, frontBarContainer)
-    return glow, icon
+    return EnsureCombatIconControl(rootFrame, frontBarContainer)
 end
 
 local function ResolveQuickslotButton(rootFrame, frontBarContainer)
@@ -381,8 +381,7 @@ local function ApplyCombatGlow(rootFrame, glowColor)
     end
 end
 
-local function TryPlayCombatAudioCue(isInCombat)
-    local settings = GetSettings()
+local function TryPlayCombatAudioCue(isInCombat, settings)
     if not settings or not settings.playCombatAudio then
         return
     end
@@ -401,42 +400,42 @@ CombatIndicators._lastCombatState = nil
 ---@param isInCombat boolean Whether the player is in combat
 ---@param playAudioCue boolean Whether to play audio on combat state change
 function CombatIndicators.ApplyCombatIndicators(rootFrame, isInCombat, playAudioCue)
-    local settings = GetSettings()
-    local glow, icon = CombatIndicators.GetCombatIndicatorControls(rootFrame)
+    local settings = GetLiveSettings()
+    local icon = CombatIndicators.GetCombatIndicatorControls(rootFrame)
 
     local frontBarCfg = BETTERUI_ORB_FRAMES and BETTERUI_ORB_FRAMES.bars and BETTERUI_ORB_FRAMES.bars.customFrontBar
-    local canRenderIndicators = settings
+    local indicatorsEnabled = settings
         and settings.m_enabled
         and frontBarCfg
         and frontBarCfg.m_enabled
+    local canRenderIndicators = indicatorsEnabled
         and isInCombat
         and not IsUnitDead("player")
 
+    -- Evaluate the combat-state transition before the render gate: leaving
+    -- combat always fails the gate, so the exit cue must be decided here.
+    if playAudioCue and indicatorsEnabled
+        and CombatIndicators._lastCombatState ~= nil
+        and CombatIndicators._lastCombatState ~= isInCombat then
+        TryPlayCombatAudioCue(isInCombat, settings)
+    end
+    CombatIndicators._lastCombatState = isInCombat
+
     if not canRenderIndicators then
         CombatIndicators.HideAllCombatGlows()
-        if glow then
-            glow:SetHidden(true)
-        end
         if icon then
             ApplyCombatIconPulse(icon, false)
             ApplyCombatIconTint(icon, false)
             icon:SetHidden(true)
         end
-        CombatIndicators._lastCombatState = false
         return
     end
 
     if settings.showCombatGlow then
         -- Combat glow color is intentionally fixed to red and not user-configurable.
         ApplyCombatGlow(rootFrame, DEFAULT_COMBAT_GLOW_COLOR)
-        if glow then
-            glow:SetHidden(true)
-        end
     else
         CombatIndicators.HideAllCombatGlows()
-        if glow then
-            glow:SetHidden(true)
-        end
     end
 
     if icon then
@@ -453,8 +452,4 @@ function CombatIndicators.ApplyCombatIndicators(rootFrame, isInCombat, playAudio
         end
     end
 
-    if playAudioCue and CombatIndicators._lastCombatState ~= nil and CombatIndicators._lastCombatState ~= isInCombat then
-        TryPlayCombatAudioCue(isInCombat)
-    end
-    CombatIndicators._lastCombatState = isInCombat
 end

@@ -86,7 +86,16 @@ local function RefreshAllData()
         if BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY then
             m_shieldBar:UpdateValue(math.floor(healthMax * 0.65)) -- Debug: show 65% shield for visual tuning
         else
-            m_shieldBar:UpdateValue(0) -- Reset visual, will be updated by event if active
+            -- Re-query the live shield value instead of zeroing it. Zeroing
+            -- blanked an active ward on every refresh until the next
+            -- EVENT_UNIT_ATTRIBUTE_VISUAL_* event arrived.
+            local shieldValue = 0
+            if type(GetUnitAttributeVisualizerEffectInfo) == "function" then
+                shieldValue = GetUnitAttributeVisualizerEffectInfo("player",
+                    ATTRIBUTE_VISUAL_POWER_SHIELDING, STAT_MITIGATION,
+                    ATTRIBUTE_HEALTH, COMBAT_MECHANIC_FLAGS_HEALTH) or 0
+            end
+            m_shieldBar:UpdateValue(shieldValue)
         end
     end
 
@@ -257,6 +266,15 @@ local function RegisterDynamicEvents(control)
         local gpLayout = isGP and BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.GAMEPAD or BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.KEYBOARD
         SkillBar.ApplyActionBarSkin(m_rootFrame, gpLayout)
 
+        -- Re-cache button children after the re-skin so the cooldown loops
+        -- keep using cached controls.
+        if SkillBar.CacheFrontBarControls then
+            SkillBar.CacheFrontBarControls(m_rootFrame)
+        end
+        if SkillBar.CacheBackBarControls then
+            SkillBar.CacheBackBarControls(m_rootFrame)
+        end
+
         -- Replay the post-skin setup sequence. SetParent is intentionally NOT repeated:
         -- ApplyTemplateToControl does not destroy/recreate controls.
         local cfg = GetFrontBarConfig()
@@ -343,6 +361,11 @@ end
 
 -- INITIALIZATION
 
+-- Latches so a retried SetupModule (e.g. after a partial SafeExecute failure
+-- in ApplySettings) never double-creates components or double-registers
+-- events. Component creation also reuses any controls that already exist.
+local m_dynamicEventsRegistered = false
+
 ---@param control table Root ResourceOrbFrames control
 local function SetupModule(control)
     m_rootFrame = control
@@ -360,16 +383,20 @@ local function SetupModule(control)
     m_leftOrnament = FindControl(control, 'OrnamentLeft')
     m_rightOrnament = FindControl(control, 'OrnamentRight')
 
-    -- 3. Setup Visual Components
-    m_pools = Visuals.SetupPowerPools(control)
-    m_shieldBar = Visuals.SetupShieldBar(control, m_pools)
-    m_foodTracker = Bars.CreateFoodTracker(FindControl(control, 'FoodBar'))
-    m_experienceBar = Bars.CreateExperienceBar(control)
-    m_castBar = Bars.CreateCastBar(control)
-    m_mountStaminaBar = Bars.CreateMountStaminaBar(control)
+    -- 3. Setup Visual Components (reuse instances on retried setup)
+    if not next(m_pools) then
+        m_pools = Visuals.SetupPowerPools(control)
+    end
+    m_shieldBar = m_shieldBar or Visuals.SetupShieldBar(control, m_pools)
+    m_foodTracker = m_foodTracker or Bars.CreateFoodTracker(FindControl(control, 'FoodBar'))
+    m_experienceBar = m_experienceBar or Bars.CreateExperienceBar(control)
+    m_castBar = m_castBar or Bars.CreateCastBar(control)
+    m_mountStaminaBar = m_mountStaminaBar or Bars.CreateMountStaminaBar(control)
 
-    -- 4. Setup Events & Visibility
-    m_updateDeathFragment = Events.SetupVisibilityFragments(control)
+    -- 4. Setup Events & Visibility (latched: fragments register callbacks once)
+    if not m_updateDeathFragment then
+        m_updateDeathFragment = Events.SetupVisibilityFragments(control)
+    end
 
     -- 5. Apply Initial Skin & Layout
     local isGamePad = IsInGamepadPreferredMode()
@@ -393,6 +420,16 @@ local function SetupModule(control)
         SetupFrontBarHandlers(control)
     end
 
+    -- Cache front/back bar control references after the skin is applied and
+    -- the quickslot/companion buttons are reparented, so the 16ms cooldown
+    -- loops read cached children instead of GetNamedChild fallbacks.
+    if SkillBar.CacheFrontBarControls then
+        SkillBar.CacheFrontBarControls(control)
+    end
+    if SkillBar.CacheBackBarControls then
+        SkillBar.CacheBackBarControls(control)
+    end
+
     Visuals.UpdateOrbLayout(control, m_pools, m_shieldBar)
     RefreshAllData()
 
@@ -405,8 +442,11 @@ local function SetupModule(control)
 
     m_isInitialized = true
 
-    -- 7. Register Dynamic Events
-    RegisterDynamicEvents(control)
+    -- 7. Register Dynamic Events (latched against retried setup)
+    if not m_dynamicEventsRegistered then
+        m_dynamicEventsRegistered = true
+        RegisterDynamicEvents(control)
+    end
 end
 
 -- PUBLIC INTERFACE
@@ -420,7 +460,8 @@ function ResourceOrbFrames.Initialize(control)
     -- This ensures all ESO UI fragments and systems are ready
     -- Guard: m_isInitialized check in DeferredTask callback (L331) prevents double SetupModule()
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
-        EVENT_MANAGER:UnregisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
+        -- Unregister through the registry so its bookkeeping stays accurate.
+        BETTERUI.CIM.EventRegistry.Unregister("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
 
         GetROFTasks():Schedule("initModuleSetup", BETTERUI.CIM.CONST.TIMING.DEFERRED_INIT_MS, function()
             local settings = GetSettings()
@@ -467,6 +508,10 @@ function ResourceOrbFrames.ApplySettings()
             return
         end
         m_rootFrame:SetHidden(false)
+        -- Re-register the periodic update loops on enable.
+        if Events.SetLoopsEnabled then
+            Events.SetLoopsEnabled(true)
+        end
         ApplyFullLayout()
         RefreshAllData()
         if Events.RefreshCombatIndicators then
@@ -474,6 +519,12 @@ function ResourceOrbFrames.ApplySettings()
         end
     else
         m_rootFrame:SetHidden(true)
+        -- Stop the periodic update loops so a disabled module pays no
+        -- per-tick cost (re-registered on enable above).
+        local events = Events or BETTERUI.ResourceOrbFrames.Events
+        if events and events.SetLoopsEnabled then
+            events.SetLoopsEnabled(false)
+        end
         -- Restore Default UI is handled by reload/re-login mostly,
         -- but we could try to unhide?
         -- BetterUI philosophy is usually Reload Required for disable.

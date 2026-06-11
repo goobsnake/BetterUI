@@ -8,7 +8,9 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
-local GetSettings = Utils.GetSettings
+-- Hot-path accessor: live settings table by reference (no deep clone per
+-- 16ms tick). Read-only by convention.
+local GetLiveSettings = (Utils.Settings and Utils.Settings.GetLive) or Utils.GetSettings
 local ClampTextSize = Utils.ClampTextSize
 local CooldownUtils = SkillBar.CooldownUtils
 local CONST = SkillBar.CONST or {}
@@ -78,7 +80,7 @@ local function UpdateBackBar(rootFrame)
     local backBarContainer = GetBackBarContainer(rootFrame)
     if not backBarContainer then return end
 
-    local settings = GetSettings()
+    local settings = GetLiveSettings()
     if settings.hideBackBar then
         backBarContainer:SetHidden(true)
         return
@@ -232,14 +234,39 @@ local function SetupBackBarTooltips(rootFrame)
     end
 end
 
+--- Applies static cooldown text styling (draw order, font, color), latched so
+--- the per-frame tick only re-applies it when style-affecting settings change
+--- (same pattern as ApplyUltimateNumberStyle in UltimateManager.lua).
+---@param label table Cooldown text label control
+---@param textSize number Clamped cooldown text size
+---@param color table Cooldown text color {r, g, b, a}
+local function ApplyCooldownTextStyle(label, textSize, color)
+    local r, g, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
+    if label.appliedTextSize == textSize and label.appliedTextR == r
+        and label.appliedTextG == g and label.appliedTextB == b
+        and label.appliedTextA == a then
+        return
+    end
+    label.appliedTextSize = textSize
+    label.appliedTextR, label.appliedTextG, label.appliedTextB, label.appliedTextA = r, g, b, a
+
+    label:SetDrawLayer(DL_OVERLAY)
+    label:SetDrawTier(DT_HIGH)
+    label:SetDrawLevel(10)
+    label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
+    label:SetColor(r, g, b, a)
+end
+
 --- Updates back bar cooldown overlays, text, and reveal animations.
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateBackBarCooldowns(rootFrame)
     local backBarCategory = GetBackBarHotbarCategory()
     local backBarContainer = GetBackBarContainer(rootFrame)
     if not backBarContainer then return end
+    -- Nothing to render while the back bar is hidden; skip the 6-slot scan.
+    if backBarContainer.IsHidden and backBarContainer:IsHidden() then return end
 
-    local settings = GetSettings()
+    local settings = GetLiveSettings()
     local isGamePad = IsInGamepadPreferredMode()
     local cooldownSize = ClampTextSize(settings.cooldownTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
     local cooldownColor = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }
@@ -288,11 +315,7 @@ local function UpdateBackBarCooldowns(rootFrame)
 
                     cooldownText:SetHidden(false)
                     cooldownText:SetText(string.format("%.1f", visualRemainMs / 1000))
-                    cooldownText:SetDrawLayer(DL_OVERLAY)
-                    cooldownText:SetDrawTier(DT_HIGH)
-                    cooldownText:SetDrawLevel(10)
-                    cooldownText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
-                    cooldownText:SetColor(unpack(cooldownColor))
+                    ApplyCooldownTextStyle(cooldownText, cooldownSize, cooldownColor)
                 else
                     CooldownUtils.ResetSmoothedRemaining(stateKey)
                     cooldownOverlay:SetHidden(true)

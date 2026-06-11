@@ -12,6 +12,7 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 local NAME = "ResourceOrbFrames"
 local COOLDOWN_VISUAL_TICK_MS = 16
 local CORE_STATUS_TICK_MS = 100
+local ANIMATION_TICK_MS = 33 -- 30fps
 
 -- Import combat indicator module
 local CI = BETTERUI.ResourceOrbFrames.CombatIndicators or {}
@@ -32,11 +33,17 @@ local SPECIAL_SCENE_NAME_SET = {
 
 local m_combatIndicatorRootFrame = nil
 local m_hasRegisteredCombatIndicators = false
+local m_sceneHandlersRegistered = false
 
-local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
+-- Hot-path accessor: returns the live settings table by reference (no deep
+-- clone per tick). Read-only by convention.
+local OrbUtils = BETTERUI.ResourceOrbFrames.Utils
+local GetLiveSettings = (OrbUtils.Settings and OrbUtils.Settings.GetLive) or OrbUtils.GetSettings
 
+--- Canonical m_enabled nil-semantics for this module: nil (not yet
+--- initialized) counts as enabled; only an explicit false disables.
 local function IsModuleEnabled()
-    local settings = GetSettings()
+    local settings = GetLiveSettings()
     return not (settings and settings.m_enabled == false)
 end
 
@@ -97,8 +104,7 @@ function Events.SetupCombatIndicators(rootFrame)
 end
 
 local function EnforceDefaultUIHidden()
-    local settings = GetSettings()
-    if not settings.m_enabled then return end
+    if not IsModuleEnabled() then return end
 
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
@@ -226,16 +232,52 @@ function Events.SetupVisibilityFragments(rootFrame)
     return UpdateDeathFragment
 end
 
+-- Update-loop registration state. Events.SetLoopsEnabled toggles registration
+-- so a disabled module pays no per-tick cost (the ticks are not merely
+-- early-returning, they are unregistered).
+local m_loopTicks = nil
+local m_loopsRegistered = false
+
+local function RegisterLoopUpdates()
+    if m_loopsRegistered or not m_loopTicks then return end
+    EVENT_MANAGER:RegisterForUpdate(NAME .. "CoreStatus", CORE_STATUS_TICK_MS, m_loopTicks.coreStatus)
+    EVENT_MANAGER:RegisterForUpdate(NAME .. "CooldownVisuals", COOLDOWN_VISUAL_TICK_MS, m_loopTicks.cooldownVisuals)
+    EVENT_MANAGER:RegisterForUpdate(NAME .. "OrbAnimation", ANIMATION_TICK_MS, m_loopTicks.orbAnimation)
+    m_loopsRegistered = true
+end
+
+local function UnregisterLoopUpdates()
+    if not m_loopsRegistered then return end
+    EVENT_MANAGER:UnregisterForUpdate(NAME .. "CoreStatus")
+    EVENT_MANAGER:UnregisterForUpdate(NAME .. "CooldownVisuals")
+    EVENT_MANAGER:UnregisterForUpdate(NAME .. "OrbAnimation")
+    m_loopsRegistered = false
+end
+
+--- Enables or disables the periodic update loops (idempotent).
+--- Called from ResourceOrbFrames.ApplySettings on module enable/disable.
+---@param enabled boolean Whether the loops should be running
+function Events.SetLoopsEnabled(enabled)
+    if enabled then
+        RegisterLoopUpdates()
+    else
+        UnregisterLoopUpdates()
+    end
+end
+
 --- Registers periodic update ticks for status, cooldowns, and orb animation.
 ---@param rootFrame table Root ResourceOrbFrames control
 ---@param pools table<number, BetterUIOrbBar> Power pool instances keyed by powerType
 ---@param shieldBar BetterUIShieldBar|nil Shield bar instance
 ---@param castBar table|nil Cast bar instance with isCasting field
 function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
+    -- Re-entry safe: drop previously registered loops before rebuilding.
+    UnregisterLoopUpdates()
+
     -- Core status tick (100ms): usability and ultimate meters/text.
     local function CoreStatusTick()
         if not IsModuleEnabled() then return end
-        local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+        local frontBarCfg = GetLiveSettings().customFrontBar
         if frontBarCfg and frontBarCfg.m_enabled then
             local isCasting = castBar and castBar.isCasting or false
             SkillBar.UpdateFrontBarUsability(rootFrame, isCasting)
@@ -243,24 +285,22 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
             SkillBar.UpdateFrontBarUltimateNumber(rootFrame)
         end
     end
-    EVENT_MANAGER:RegisterForUpdate(NAME .. "CoreStatus", CORE_STATUS_TICK_MS, CoreStatusTick)
 
     -- Cooldown visual tick (16ms): smoother reveal animation for front/back bars.
     local function CooldownVisualTick()
         if not IsModuleEnabled() then return end
         SkillBar.UpdateBackBarCooldowns(rootFrame)
-        local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+        local frontBarCfg = GetLiveSettings().customFrontBar
         if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarCooldowns(rootFrame)
         end
     end
-    EVENT_MANAGER:RegisterForUpdate(NAME .. "CooldownVisuals", COOLDOWN_VISUAL_TICK_MS, CooldownVisualTick)
 
     -- Animation Tick (33ms = 30fps)
     local lastAnimTime = GetGameTimeMilliseconds()
     local function AnimationTick()
         if not IsModuleEnabled() then return end
-        local settings = GetSettings()
+        local settings = GetLiveSettings()
         if not settings.orbAnimFlow then return end
 
         local now = GetGameTimeMilliseconds()
@@ -278,14 +318,23 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
             shieldBar:UpdateAnimation(deltaMs, settings)
         end
     end
-    EVENT_MANAGER:RegisterForUpdate(NAME .. "OrbAnimation", 33, AnimationTick)
+
+    m_loopTicks = {
+        coreStatus = CoreStatusTick,
+        cooldownVisuals = CooldownVisualTick,
+        orbAnimation = AnimationTick,
+    }
+    RegisterLoopUpdates()
 end
 
 --- Registers HUD/HUDUI scene-showing callbacks to keep native action bar hidden.
 ---@param rootFrame table Root ResourceOrbFrames control
 function Events.SetupSceneHandlers(rootFrame)
-    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    -- Registration latch: SetupModule may retry; scene callbacks must not stack.
+    if m_sceneHandlersRegistered then return end
+    local frontBarCfg = GetLiveSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
+    m_sceneHandlersRegistered = true
 
     -- Shared callback for HUD scene visibility changes.
     -- Debounced to coalesce rapid scene transitions.

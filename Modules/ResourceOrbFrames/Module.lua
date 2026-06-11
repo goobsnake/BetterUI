@@ -302,21 +302,11 @@ end
 
 ResourceOrbFrames.Settings.RegisterPanel = InitSettingsPanel
 
-local function TrackPanelRegistration(reason)
-    ResourceOrbFrames._panelRegistrationReason = reason
-    ResourceOrbFrames._panelRegistrationDeferred = reason == "missing_register_panel"
-end
-
 local function EnsureResourceOrbFramesSetupContracts()
     BETTERUI.CIM.RegisterModuleAccessors(ResourceOrbFrames, "ResourceOrbFrames")
 
-    if type(BETTERUI.CIM.TryRegisterModulePanel) == "function" then
-        local panelOk, panelReason = BETTERUI.CIM.TryRegisterModulePanel(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames", "Resource Orb Frames")
-        TrackPanelRegistration(panelReason)
-        if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
-            BETTERUI.Debug(string.format("[ResourceOrbFrames] Settings panel registration reported: %s",
-                tostring(panelReason)))
-        end
+    if type(BETTERUI.CIM.RegisterModulePanelWithLogging) == "function" then
+        BETTERUI.CIM.RegisterModulePanelWithLogging(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames", "Resource Orb Frames")
         return
     end
 

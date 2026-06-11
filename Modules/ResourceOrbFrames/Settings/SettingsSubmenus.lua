@@ -414,6 +414,7 @@ local function SortSubmenuHeaderSectionsAlphabetically(controls)
 
     local sections = {}
     local currentSection = nil
+    local preHeaderControls = {}
 
     for _, control in ipairs(controls) do
         local isHeader = type(control) == "table" and control.type == "header" and type(control.name) == "string"
@@ -422,6 +423,10 @@ local function SortSubmenuHeaderSectionsAlphabetically(controls)
             table.insert(sections, currentSection)
         elseif currentSection then
             table.insert(currentSection, control)
+        else
+            -- Controls before the first header have no section; keep them at
+            -- the top instead of dropping them during the rebuild.
+            table.insert(preHeaderControls, control)
         end
     end
 
@@ -437,6 +442,9 @@ local function SortSubmenuHeaderSectionsAlphabetically(controls)
     end)
 
     local rebuilt = {}
+    for _, control in ipairs(preHeaderControls) do
+        table.insert(rebuilt, control)
+    end
     for _, section in ipairs(sections) do
         for _, control in ipairs(section) do
             table.insert(rebuilt, control)

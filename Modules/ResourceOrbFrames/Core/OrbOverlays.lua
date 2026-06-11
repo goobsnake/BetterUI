@@ -12,6 +12,6 @@ Purpose: Overlay-specific sizing helpers for resource orbs.
 -- fallback anchors and BETTERUI_SHIELD_DEBUG flag).
 -- Those definitions have been removed. All callers now use the OrbVisuals.lua versions.
 
--- UpdateOverlaySize is referenced by Visuals.UpdateOrbLayout in OrbVisuals.lua:
---   BETTERUI.ResourceOrbFrames.Utils.UpdateOverlaySize(leftOrb, 'health', leftBorderSize, cfg)
--- It is defined in Utils.lua, which loads before both files. No re-definition needed here.
+-- The hide-ornament CustomOverlay path (Health.dds/MagStam.dds) and its sizing helper were
+-- also removed: those texture assets never shipped, so the overlay could only render
+-- missing-texture placeholders. Only OrbOverlay_Shield.dds remains in use (OrbVisuals.lua).

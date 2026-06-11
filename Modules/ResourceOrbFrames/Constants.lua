@@ -285,22 +285,6 @@ BETTERUI_ORB_FRAMES = {
         shield = { x = 0, y = 14 },    -- (+ right/down, - left/up)
     },
 
-    -- CUSTOM OVERLAYS
-    -- Optional images displayed when Ornaments are hidden (e.g., Health.dds)
-    -- NOTE: These are raw SetAnchor(CENTER, ..., x, y) offsets:
-    --       +X moves RIGHT, -X moves LEFT, +Y moves DOWN, -Y moves UP.
-    overlays = {
-        health = {
-            scale = 0.835, -- Size multiplier relative to border size
-            x = 1,         -- Horizontal offset from center (+ right, - left)
-            y = 1          -- Vertical offset from center (+ down, - up)
-        },
-        magStam = {
-            scale = 0.83, -- Size multiplier relative to border size
-            x = 4,        -- Horizontal offset from center (+ right, - left)
-            y = -1        -- Vertical offset from center (+ down, - up)
-        },
-    },
 }
 
 -- CUSTOM BARS

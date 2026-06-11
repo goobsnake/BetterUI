@@ -165,24 +165,6 @@ function Layout.CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
     }
 end
 
---- Updates the dimensions and anchor of a custom overlay control.
----@param parent table|nil Parent UI control
----@param cfgName string Overlay configuration key name
----@param baseSize number Base size to scale from
----@param cfg table Orb frames configuration table
-function Layout.UpdateOverlaySize(parent, cfgName, baseSize, cfg)
-    if not parent then return end
-    local overlayName = parent:GetName() .. "CustomOverlay"
-    local overlay = _G[overlayName]
-    if overlay and not overlay:IsHidden() then
-        local overlayCfg = cfg.overlays and cfg.overlays[cfgName]
-        local scale = overlayCfg and overlayCfg.scale or 1.0
-        local size = baseSize * scale
-        overlay:SetDimensions(size, size)
-        overlay:SetAnchor(CENTER, parent, CENTER, overlayCfg and overlayCfg.x or 0, overlayCfg and overlayCfg.y or 0)
-    end
-end
-
 --- Safely gets a named child control from a parent.
 ---@param parent table|nil Parent UI control with GetNamedChild method
 ---@param name string Child control name suffix
@@ -220,6 +202,5 @@ Utils.AddOrbTooltip = Tooltips.AddOrbTooltip
 Utils.CalculateBorderSizes = Layout.CalculateBorderSizes
 Utils.ScaleForBorder = Layout.ScaleForBorder
 Utils.CalculateFillDimensions = Layout.CalculateFillDimensions
-Utils.UpdateOverlaySize = Layout.UpdateOverlaySize
 Utils.GetNamedChildDirect = Controls.GetNamedChildDirect
 Utils.GetFrontBarButtonControl = Controls.GetFrontBarButtonControl

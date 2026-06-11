@@ -195,7 +195,9 @@ end
 ---@return table control The created control
 function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, fillTextureFile, backdropTextureBounds,
                                      fillRegion)
-    local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
+    -- Reuse existing named controls so a retried module setup (idempotent
+    -- SetupModule) does not attempt to create duplicate global control names.
+    local control = _G[name] or WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
     self.control = control
     self.backdropTextureFile = backdropTextureFile or "Bar.dds"
     self.fillTextureFile = fillTextureFile or BARS.FILL_TEXTURE or
@@ -203,17 +205,17 @@ function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, fillText
     self.backdropTextureBounds = backdropTextureBounds
     self.fillRegion = fillRegion
 
-    local fill = WINDOW_MANAGER:CreateControl(name .. "Fill", control, CT_TEXTURE)
+    local fill = _G[name .. "Fill"] or WINDOW_MANAGER:CreateControl(name .. "Fill", control, CT_TEXTURE)
     fill:SetTexture(ResolveBarTexturePath(self.fillTextureFile))
     fill:SetAnchor(LEFT, control, LEFT, 0, 0)
     self.fill = fill
 
-    local backdrop = WINDOW_MANAGER:CreateControl(name .. "Backdrop", control, CT_TEXTURE)
+    local backdrop = _G[name .. "Backdrop"] or WINDOW_MANAGER:CreateControl(name .. "Backdrop", control, CT_TEXTURE)
     backdrop:SetTexture(ResolveBarTexturePath(self.backdropTextureFile))
     backdrop:SetAnchor(CENTER, control, CENTER, 0, 0)
     self.backdrop = backdrop
 
-    local label = WINDOW_MANAGER:CreateControl(name .. "Label", control, CT_LABEL)
+    local label = _G[name .. "Label"] or WINDOW_MANAGER:CreateControl(name .. "Label", control, CT_LABEL)
     label:SetAnchor(CENTER, control, CENTER, 0, 4)
     label:SetFont("$(BOLD_FONT)|18|thick-outline")
     label:SetColor(1, 1, 1, 1)
@@ -268,25 +270,43 @@ end
 function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, barHeight)
     if not self.control or self.control:IsHidden() then return end
 
-    if self.backdrop then
-        self.backdrop:SetTexture(ResolveBarTexturePath(self.backdropTextureFile))
-        self.backdrop:SetDimensions(barWidth, barHeight)
-        if IsValidRegion(self.backdropTextureBounds) then
-            self.backdrop:SetTextureCoords(
-                self.backdropTextureBounds.left,
-                self.backdropTextureBounds.right,
-                self.backdropTextureBounds.top,
-                self.backdropTextureBounds.bottom)
-        else
-            self.backdrop:SetTextureCoords(0, 1, 0, 1)
+    -- Static backdrop/fill state (textures, coords, anchors) only depends on
+    -- bar geometry, which is constant between layout changes. Latch it so the
+    -- per-frame OnUpdate path only touches the dynamic fill dimensions.
+    if self.appliedBarWidth ~= barWidth or self.appliedBarHeight ~= barHeight
+        or self.appliedInsetX ~= insetX or self.appliedInsetY ~= insetY then
+        self.appliedBarWidth, self.appliedBarHeight = barWidth, barHeight
+        self.appliedInsetX, self.appliedInsetY = insetX, insetY
+
+        if self.backdrop then
+            self.backdrop:SetTexture(ResolveBarTexturePath(self.backdropTextureFile))
+            self.backdrop:SetDimensions(barWidth, barHeight)
+            if IsValidRegion(self.backdropTextureBounds) then
+                self.backdrop:SetTextureCoords(
+                    self.backdropTextureBounds.left,
+                    self.backdropTextureBounds.right,
+                    self.backdropTextureBounds.top,
+                    self.backdropTextureBounds.bottom)
+            else
+                self.backdrop:SetTextureCoords(0, 1, 0, 1)
+            end
+        end
+
+        if self.fill then
+            self.fill:SetTexture(ResolveBarTexturePath(self.fillTextureFile))
+            self.fill:ClearAnchors()
+            if IsValidRegion(self.fillRegion) then
+                self.fill:SetAnchor(TOPLEFT, self.control, TOPLEFT,
+                    barWidth * self.fillRegion.left,
+                    barHeight * self.fillRegion.top)
+            else
+                self.fill:SetAnchor(LEFT, self.control, LEFT, insetX, 0)
+            end
         end
     end
 
     if self.fill and max > 0 then
-        self.fill:SetTexture(ResolveBarTexturePath(self.fillTextureFile))
-
         local percent = math.min(1, math.max(0, current / max))
-        local fillX, fillY
         local fillMaxWidth, fillHeight
 
         if IsValidRegion(self.fillRegion) then
@@ -294,17 +314,11 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
             local right = barWidth * self.fillRegion.right
             local top = barHeight * self.fillRegion.top
             local bottom = barHeight * self.fillRegion.bottom
-            fillX = left
-            fillY = top
             fillMaxWidth = math.max(1, right - left)
             fillHeight = math.max(1, bottom - top)
-            self.fill:ClearAnchors()
-            self.fill:SetAnchor(TOPLEFT, self.control, TOPLEFT, fillX, fillY)
         else
             fillMaxWidth = barWidth - (2 * insetX)
             fillHeight = barHeight - (2 * insetY)
-            self.fill:ClearAnchors()
-            self.fill:SetAnchor(LEFT, self.control, LEFT, insetX, 0)
         end
 
         self.fill:SetDimensions(fillMaxWidth * percent, fillHeight)
@@ -364,14 +378,12 @@ function CastBar:Initialize(parent)
     -- Casting is tracked via EVENT_ACTION_SLOT_ABILITY_USED below which uses GetAbilityCastInfo().
 
     local function HideDefaultCastBar()
-        if ZO_CastingBar then ZO_CastingBar:SetHidden(true) end
-        if ZO_PlayerCastingBar then ZO_PlayerCastingBar:SetHidden(true) end
-        if ZO_PlayerProgressBar then ZO_PlayerProgressBar:SetHidden(true) end
-        if ZO_GamepadPlayerProgressBar then ZO_GamepadPlayerProgressBar:SetHidden(true) end
-        if GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT then
-            GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT:SetHiddenForReason(
-                "BetterUICastBar", true)
-        end
+        -- U50 control names: ZO_PlayerProgress (keyboard) and
+        -- ZO_PlayerProgressBar_Gamepad (gamepad). ESO has no default cast bar
+        -- control, and PLAYER_PROGRESS_BAR_FRAGMENT is a plain ZO_SceneFragment
+        -- without SetHiddenForReason, so hide the top-level controls directly.
+        if ZO_PlayerProgress then ZO_PlayerProgress:SetHidden(true) end
+        if ZO_PlayerProgressBar_Gamepad then ZO_PlayerProgressBar_Gamepad:SetHidden(true) end
     end
     HideDefaultCastBar()
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED,

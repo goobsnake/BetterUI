@@ -24,14 +24,17 @@ local smoothedRemainCache = sharedCooldownCaches.smoothedRemainBySlotCategory
 
 local CooldownUtils = {}
 
+-- Numeric composite key (hotbarCategory * 1000 + slotIndex) avoids per-tick
+-- string.format allocations in the 16ms cooldown hot path. Slot indices are
+-- well below 1000, so the composite is collision-free.
 ---@param slotIndex number|nil
 ---@param hotbarCategory number|nil
----@return string stateKey
+---@return number stateKey
 function CooldownUtils.BuildStateKey(slotIndex, hotbarCategory)
-    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
+    return ((hotbarCategory or -1) * 1000) + (slotIndex or -1)
 end
 
----@param stateKey string|nil
+---@param stateKey number|nil
 function CooldownUtils.ClearEffectDuration(stateKey)
     if stateKey then
         effectDurationCache[stateKey] = nil
@@ -44,7 +47,7 @@ end
 ---@return boolean showCooldown
 ---@return number remainMs
 ---@return number durationMs
----@return string stateKey
+---@return number stateKey
 function CooldownUtils.ResolveCooldownWindow(slotIndex, hotbarCategory, canTrack)
     local stateKey = CooldownUtils.BuildStateKey(slotIndex, hotbarCategory)
     if canTrack == false then
@@ -71,14 +74,14 @@ function CooldownUtils.ResolveCooldownWindow(slotIndex, hotbarCategory, canTrack
     return false, remainMs or 0, durationMs or 0, stateKey
 end
 
----@param stateKey string|nil
+---@param stateKey number|nil
 function CooldownUtils.ResetSmoothedRemaining(stateKey)
     if stateKey then
         smoothedRemainCache[stateKey] = nil
     end
 end
 
----@param stateKey string|nil
+---@param stateKey number|nil
 ---@param remainMs number|nil
 ---@param durationMs number|nil
 ---@return number|nil smoothedRemainMs

@@ -14,9 +14,15 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
 local GetSettings = Utils.GetSettings
+-- Hot-path accessor: live settings table by reference (no deep clone per
+-- 100ms tick). Read-only by convention.
+local GetLiveSettings = (Utils.Settings and Utils.Settings.GetLive) or Utils.GetSettings
 local CooldownUtils = SkillBar.CooldownUtils
 local CONST = SkillBar.CONST or {}
 local COOLDOWN_DURATION_THRESHOLD = CONST.COOLDOWN_DURATION_THRESHOLD or 1500
+-- Canonical keybind constants (SkillBar/Constants.lua)
+local SLOT_KEYBINDS = CONST.SLOT_KEYBINDS or {}
+local HIDE_UNBOUND = CONST.HIDE_UNBOUND == true
 local FRONT_BAR_SLOTS = CONST.FRONT_BAR_SLOTS or {
     { buttonName = "Button1",        slot = 3 },
     { buttonName = "Button2",        slot = 4 },
@@ -160,7 +166,7 @@ end
 --- Updates front bar button icons, slot data, and highlights.
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBar(rootFrame)
-    local frontBarCfg = GetSettings().customFrontBar
+    local frontBarCfg = GetLiveSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local activeCategory = GetActiveHotbarCategory()
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -202,7 +208,7 @@ end
 ---@param rootFrame table Root ResourceOrbFrames control
 ---@param isCasting boolean Whether the player is currently casting
 local function UpdateFrontBarUsability(rootFrame, isCasting)
-    local frontBarCfg = GetSettings().customFrontBar
+    local frontBarCfg = GetLiveSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local activeCategory = GetActiveHotbarCategory()
     local nowMs = GetGameTimeMilliseconds()
@@ -262,20 +268,12 @@ local function SetupFrontBarKeybinds(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
 
-    local HIDE_UNBOUND = false
-    local slotBindings = {
-        [1] = { keyboard = "ACTION_BUTTON_3", gamepad = "GAMEPAD_ACTION_BUTTON_3" },
-        [2] = { keyboard = "ACTION_BUTTON_4", gamepad = "GAMEPAD_ACTION_BUTTON_4" },
-        [3] = { keyboard = "ACTION_BUTTON_5", gamepad = "GAMEPAD_ACTION_BUTTON_5" },
-        [4] = { keyboard = "ACTION_BUTTON_6", gamepad = "GAMEPAD_ACTION_BUTTON_6" },
-        [5] = { keyboard = "ACTION_BUTTON_7", gamepad = "GAMEPAD_ACTION_BUTTON_7" },
-    }
     for i = 1, 5 do
         local btn = FindControl(frontBarContainer, 'Button' .. i)
         if btn then
             local buttonText = btn:GetNamedChild("ButtonText")
-            if buttonText then
-                local bindings = slotBindings[i]
+            local bindings = SLOT_KEYBINDS[i]
+            if buttonText and bindings then
                 ZO_Keybindings_RegisterLabelForBindingUpdate(buttonText, bindings.keyboard, HIDE_UNBOUND, bindings.gamepad)
             end
         end
@@ -394,7 +392,9 @@ local function UpdateFrontBarLayout(rootFrame)
         ultBtn.readyBurst = ultBtn:GetNamedChild("ReadyBurst")
         ultBtn.readyLoop = ultBtn:GetNamedChild("ReadyLoop")
         ultBtn.glow = ultBtn:GetNamedChild("Glow")
-        if ultBtn.glow then
+        -- Create the glow animation once; layout runs repeatedly and must not
+        -- leak a new ZO_AlphaAnimation per pass.
+        if ultBtn.glow and not ultBtn.glowAnimation then
             ultBtn.glowAnimation = ZO_AlphaAnimation:New(ultBtn.glow)
             ultBtn.glowAnimation:SetMinMaxAlpha(0, 1)
         end

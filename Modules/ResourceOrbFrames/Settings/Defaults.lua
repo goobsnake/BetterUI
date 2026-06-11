@@ -57,15 +57,11 @@ local function GetDefaults()
         enableIndependentOrbOffset = false,
         orbOffsetX = 0,
         orbOffsetY = 0,
+        -- Only m_enabled is read from saved settings; all front bar layout
+        -- values (offsets, button sizes, spacing) come from the layout config
+        -- in Constants.lua (BETTERUI_ORB_FRAMES.bars.customFrontBar).
         customFrontBar = {
             m_enabled = true,
-            offsetX = 0,
-            offsetY = 0,
-            ultimate = { offsetX = 0, offsetY = 0 },
-            quickslotButton = { offsetX = 0, offsetY = 0 },
-            companionButton = { offsetX = 0, offsetY = 0 },
-            gamepad = { buttonSize = nil, spacing = nil, ultimateSize = 70 },
-            keyboard = { buttonSize = nil, spacing = nil, ultimateSize = 55 },
         },
     }
 end

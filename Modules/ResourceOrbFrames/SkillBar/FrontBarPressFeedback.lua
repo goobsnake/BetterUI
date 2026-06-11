@@ -7,7 +7,8 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
-local GetSettings = Utils.GetSettings
+-- Live accessor: combat-path reads must not deep-clone settings per event.
+local GetLiveSettings = (Utils.Settings and Utils.Settings.GetLive) or Utils.GetSettings
 
 -- PRESS FEEDBACK CONSTANTS
 local PRESS_FEEDBACK_DEDUPE_WINDOW_MS = 140
@@ -28,23 +29,8 @@ local m_pressFeedbackLastPlayedMsByButton = {}
 local m_frontBarContainer = nil
 local m_buttonCache = nil
 
-local function GetNamedChildDirect(parent, name)
-    if parent and parent.GetNamedChild then
-        return parent:GetNamedChild(name)
-    end
-    return nil
-end
-
-local function GetFrontBarButtonControl(rootFrame, frontBarContainer, buttonName)
-    if buttonName == "QuickslotButton" or buttonName == "CompanionButton" then
-        return GetNamedChildDirect(rootFrame, buttonName)
-            or GetNamedChildDirect(frontBarContainer, buttonName)
-            or FindControl(rootFrame, buttonName)
-            or FindControl(frontBarContainer, buttonName)
-    end
-    return GetNamedChildDirect(frontBarContainer, buttonName)
-        or FindControl(frontBarContainer, buttonName)
-end
+-- Canonical implementation lives in Core/Utils.lua (Utils.Controls).
+local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
 -- BUTTON NAME RESOLUTION
 
@@ -256,7 +242,7 @@ end
 ---@param hotbarCategory number|nil Hotbar category (defaults to active)
 ---@param bypassUsableGate boolean|nil Skip usability checks
 local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCategory, bypassUsableGate)
-    local frontBarCfg = GetSettings().customFrontBar
+    local frontBarCfg = GetLiveSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local resolvedRootFrame = rootFrame or m_pressFeedbackRootFrame
     if not resolvedRootFrame then return end

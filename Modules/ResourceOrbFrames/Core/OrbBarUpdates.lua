@@ -17,7 +17,9 @@ local BAR_TEXT_SIZE_MAX = 20
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local ClampTextSize = Utils.ClampTextSize
-local GetSettings = Utils.GetSettings
+-- Hot-path accessor: live settings table by reference (no deep clone per
+-- frame). Read-only by convention.
+local GetLiveSettings = (Utils.Settings and Utils.Settings.GetLive) or Utils.GetSettings
 
 local CastBar = Bars.CastBar
 local ExperienceBar = Bars.ExperienceBar
@@ -66,6 +68,7 @@ function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, sh
     self.isChanneled = isChanneled == true
     self.startTime = GetFrameTimeSeconds()
     self.abilityName = abilityName
+    self.appliedIdleState = false -- re-apply the idle label after this cast
     self.pendingPowerProbeStartMs = GetFrameTimeMilliseconds()
     self:ApplyFillStyle(castFillColor or self.defaultFillColor, castDepthColor or self.defaultDepthColor)
     self.control:SetHidden(false)
@@ -83,39 +86,54 @@ function CastBar:OnCastStop(unitTag, wasInterrupted)
     self:Update()
 end
 
---- Updates cast bar visibility, fill, and label text each frame.
-function CastBar:Update()
-    local settings = GetSettings()
-    if not settings.castBarEnabled then
-        self.control:SetHidden(true)
-        return
-    end
-
+--- Applies static cast bar styling (dimensions, backdrop, font, label anchor).
+--- Cheap when nothing changed: re-applies only when the style-affecting
+--- settings values differ from the last applied ones.
+---@param settings table Module settings (live table)
+---@return number w Bar width
+---@return number h Bar height
+function CastBar:ApplyStaticStyle(settings)
     local w = CAST.WIDTH or 250
     local h = CAST.HEIGHT or 150
+    local textSize = ClampTextSize(settings.castBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
+    local color = settings.castBarTextColor or { 1, 1, 1, 1 }
+    local r, g, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
+    if self.appliedTextSize == textSize and self.appliedTextR == r and self.appliedTextG == g
+        and self.appliedTextB == b and self.appliedTextA == a then
+        return w, h
+    end
+    self.appliedTextSize = textSize
+    self.appliedTextR, self.appliedTextG, self.appliedTextB, self.appliedTextA = r, g, b, a
+
     self.control:SetDimensions(w, h)
     self.control:SetScale(CAST.SCALE or 1.0)
-
     if self.backdrop then
         self.backdrop:SetDimensions(w, h)
         self.backdrop:ClearAnchors()
         self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
     end
-
-    local insetX = CAST.FILL_INSET_X or 40
-    local insetY = CAST.FILL_INSET_Y or 55
-    local current, max
-
-    local castTextSize = ClampTextSize(settings.castBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
-    local castTextColor = settings.castBarTextColor or { 1, 1, 1, 1 }
-    self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", castTextSize))
-    self.label:SetColor(unpack(castTextColor))
-
-    local castLabelOffsetX, castLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
+    self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
+    self.label:SetColor(r, g, b, a)
+    local labelOffsetX, labelOffsetY = self:GetLabelAnchorOffsets(w, h,
         CAST.LABEL_OFFSET_X or 0,
         CAST.LABEL_OFFSET_Y or 0)
     self.label:ClearAnchors()
-    self.label:SetAnchor(CENTER, self.control, CENTER, castLabelOffsetX, castLabelOffsetY)
+    self.label:SetAnchor(CENTER, self.control, CENTER, labelOffsetX, labelOffsetY)
+    return w, h
+end
+
+--- Updates cast bar visibility, fill, and label text each frame.
+function CastBar:Update()
+    local settings = GetLiveSettings()
+    if not settings.castBarEnabled then
+        self.control:SetHidden(true)
+        return
+    end
+
+    local w, h = self:ApplyStaticStyle(settings)
+    local insetX = CAST.FILL_INSET_X or 40
+    local insetY = CAST.FILL_INSET_Y or 55
+    local current, max
 
     if self.isCasting then
         self.control:SetHidden(false)
@@ -145,8 +163,13 @@ function CastBar:Update()
     else
         if settings.castBarAlwaysShow then
             self.control:SetHidden(false)
-            self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_CAST_BAR")))
-            if self.fill then self.fill:SetHidden(true) end
+            -- Latch the idle state: skip per-frame GetString/SetText churn
+            -- until a cast resets the latch (OnCastStart).
+            if self.appliedIdleState ~= true then
+                self.appliedIdleState = true
+                self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_CAST_BAR")))
+                if self.fill then self.fill:SetHidden(true) end
+            end
         else
             self.control:SetHidden(true)
         end
@@ -156,7 +179,7 @@ end
 --- Updates XP/Champion bar fill and label text.
 function ExperienceBar:Update()
     if not self.control then return end
-    local settings = GetSettings()
+    local settings = GetLiveSettings()
 
     if not settings.xpBarEnabled then
         self.control:SetHidden(true)
@@ -212,37 +235,55 @@ function ExperienceBar:Update()
     self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
 end
 
---- Updates mount stamina bar fill, label, and mounted state.
-function MountStaminaBar:Update()
-    local settings = GetSettings()
-    if not settings.mountStaminaBarEnabled then
-        self.control:SetHidden(true)
-        return
-    end
-
+--- Applies static mount bar styling (dimensions, backdrop, font, label anchor).
+--- Cheap when nothing changed: re-applies only when the style-affecting
+--- settings values differ from the last applied ones.
+---@param settings table Module settings (live table)
+---@return number w Bar width
+---@return number h Bar height
+function MountStaminaBar:ApplyStaticStyle(settings)
     local w = MOUNT.WIDTH or 250
     local h = MOUNT.HEIGHT or 150
+    local textSize = ClampTextSize(settings.mountStaminaBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
+    local color = settings.mountStaminaBarTextColor or { 1, 1, 1, 1 }
+    local r, g, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
+    if self.appliedTextSize == textSize and self.appliedTextR == r and self.appliedTextG == g
+        and self.appliedTextB == b and self.appliedTextA == a then
+        return w, h
+    end
+    self.appliedTextSize = textSize
+    self.appliedTextR, self.appliedTextG, self.appliedTextB, self.appliedTextA = r, g, b, a
+
     self.control:SetDimensions(w, h)
     self.control:SetScale(MOUNT.SCALE or 1.0)
-    self.control:SetHidden(false)
-
     if self.backdrop then
         self.backdrop:SetDimensions(w, h)
         self.backdrop:ClearAnchors()
         self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
     end
-
-    local size = ClampTextSize(settings.mountStaminaBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
-    local color = settings.mountStaminaBarTextColor or { 1, 1, 1, 1 }
-    self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
-    self.label:SetColor(unpack(color))
-    local mountLabelOffsetX, mountLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
+    self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
+    self.label:SetColor(r, g, b, a)
+    local labelOffsetX, labelOffsetY = self:GetLabelAnchorOffsets(w, h,
         MOUNT.LABEL_OFFSET_X or 0,
         MOUNT.LABEL_OFFSET_Y or 0)
     self.label:ClearAnchors()
-    self.label:SetAnchor(CENTER, self.control, CENTER, mountLabelOffsetX, mountLabelOffsetY)
+    self.label:SetAnchor(CENTER, self.control, CENTER, labelOffsetX, labelOffsetY)
+    return w, h
+end
+
+--- Updates mount stamina bar fill, label, and mounted state.
+function MountStaminaBar:Update()
+    local settings = GetLiveSettings()
+    if not settings.mountStaminaBarEnabled then
+        self.control:SetHidden(true)
+        return
+    end
+
+    local w, h = self:ApplyStaticStyle(settings)
+    self.control:SetHidden(false)
 
     if IsMounted() then
+        self.appliedMountedState = true
         local current = self.currentValue or 0
         local max = self.maxValue or 1
         if max <= 0 then max = 1 end
@@ -252,8 +293,13 @@ function MountStaminaBar:Update()
         self:UpdateVisuals(current, max, MOUNT.FILL_INSET_X or 35,
             MOUNT.FILL_INSET_Y or 55, w, h)
     else
-        self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_MOUNT_STAMINA")))
-        if self.fill then self.fill:SetHidden(true) end
+        -- Skip per-tick label/fill churn while unmounted: apply the idle
+        -- state once and latch until the mounted state changes.
+        if self.appliedMountedState ~= false then
+            self.appliedMountedState = false
+            self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_MOUNT_STAMINA")))
+            if self.fill then self.fill:SetHidden(true) end
+        end
     end
 end
 
