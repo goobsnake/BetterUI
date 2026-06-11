@@ -71,6 +71,12 @@ function BETTERUI.Banking.Class:ExitSearchMode()
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
 
+    -- Restore exactly the groups the search-mode cleanup removed.
+    if self._searchRemovedKeybindGroups then
+        BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
+        self._searchRemovedKeybindGroups = nil
+    end
+
     if self.coreKeybinds then
         EnsureKeybindGroupAdded(self.coreKeybinds)
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
@@ -93,27 +99,11 @@ end
 function BETTERUI.Banking.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
 
-    self.textSearchHeaderControl:ClearAnchors()
-    local anchorTarget = self.headerGeneric or self.header
-    local titleContainer = nil
-    if anchorTarget and anchorTarget.GetNamedChild then
-        titleContainer = anchorTarget:GetNamedChild("TitleContainer") or anchorTarget:GetNamedChild("Header")
-    end
-
-    local parentForAnchor = titleContainer or anchorTarget
-    if parentForAnchor then
-        local searchConst = BETTERUI.CIM.SearchBar.GetConstants("BANKING")
-        local xOffset = searchConst.X_OFFSET
-        local yOffset = searchConst.Y_OFFSET
-        local rightInset = searchConst.RIGHT_INSET
-        self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
-    else
-        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, 8)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)
-    end
-
-    self.textSearchHeaderControl:SetHidden(false)
+    -- Shared anchoring lives in CIM SearchManager (loaded before this module).
+    BETTERUI.Interface.PositionSearchControl(self, {
+        preset = "BANKING",
+        fallbackY = 8,
+    })
 end
 
 function BETTERUI.Banking.Class:OnSearchFocusLost()
@@ -127,14 +117,22 @@ function BETTERUI.Banking.Class:OnHeaderEntered()
         BETTERUI.Banking.Tasks:Schedule("searchKeybindCleanup", 20, function()
             if not self._searchModeActive or not KEYBIND_STRIP then return end
 
-            local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
-            if keybindGroups then
-                for i = #keybindGroups, 1, -1 do
-                    local group = keybindGroups[i]
-                    if group and group ~= self.textSearchKeybindStripDescriptor then
-                        KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
-                    end
+            -- Remove only this module's own keybind groups, snapshotting what
+            -- was removed so ExitSearchMode restores exactly that.
+            local owned = {}
+            owned[#owned + 1] = self.coreKeybinds
+            owned[#owned + 1] = self.withdrawDepositKeybinds
+            owned[#owned + 1] = self.currencyKeybinds
+            local removed = BETTERUI.Interface.RemoveOwnedKeybindGroups(
+                owned, self.textSearchKeybindStripDescriptor)
+            if self._searchRemovedKeybindGroups then
+                -- Re-entry while search is still active: append instead of
+                -- overwriting so the first snapshot is restored on exit.
+                for _, group in ipairs(removed) do
+                    self._searchRemovedKeybindGroups[#self._searchRemovedKeybindGroups + 1] = group
                 end
+            else
+                self._searchRemovedKeybindGroups = removed
             end
 
             if self._searchModeActive and self.textSearchKeybindStripDescriptor then

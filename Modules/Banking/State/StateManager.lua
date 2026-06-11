@@ -33,8 +33,9 @@ function BETTERUI.Banking.Class:HandleEmptyList()
                 KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
             end
             if self.withdrawDepositKeybinds then
-                KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+                -- Guarded add: AddKeybindButtonGroup raises a duplicate-group UI
+                -- error if the group is already on the strip.
+                BETTERUI.Interface.EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
             end
         end
         if GAMEPAD_TOOLTIPS then

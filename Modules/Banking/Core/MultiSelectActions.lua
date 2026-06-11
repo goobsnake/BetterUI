@@ -8,6 +8,13 @@ local BatchStepHandled = BatchConfig.BatchStepHandled
 local BatchStepQueued = BatchConfig.BatchStepQueued
 local BatchStepSkipped = BatchConfig.BatchStepSkipped
 local BatchStepStopped = BatchConfig.BatchStepStopped
+
+--- Alerts the user when a secure RequestMoveItem call is rejected by the client.
+---@param context string Logging context label
+local function NotifySecureMoveFailed(context)
+    local stringId = rawget(_G, "SI_BETTERUI_ITEM_MOVE_FAILED")
+    BETTERUI.CIM.UserNotify(context, stringId and GetString(stringId) or "Item move request failed")
+end
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 local ProtectionPolicy = assert(
     BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy,
@@ -52,16 +59,7 @@ end
 
 local ExtractSlot = BETTERUI.CIM.BatchActions.ExtractSlot
 local HasItemAtSlot = BETTERUI.CIM.BatchActions.HasItemAtSlot
-
-local function ResolveStackCount(itemData, bagId, slotIndex)
-    local rawData = itemData.dataSource or itemData
-    local requestedStack = rawData.stackCount or itemData.stackCount or 1
-    local liveStack = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
-    if liveStack <= 0 then
-        return nil
-    end
-    return zo_clamp(requestedStack, 1, liveStack)
-end
+local ResolveStackCount = BETTERUI.CIM.BatchActions.ResolveStackCount
 
 local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
     if targetBankBag == FURNITURE_VAULT_BAG_ID
@@ -380,7 +378,10 @@ function BETTERUI.Banking.Class:BatchTransfer()
                     return BatchStepSkipped()
                 end
 
-                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, destinationSlot, stackCount)
+                if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, destinationSlot, stackCount) then
+                    NotifySecureMoveFailed("Banking.MultiSelect:Withdraw")
+                    return BatchStepSkipped()
+                end
             else
                 if not IsDepositSupportedForBank(bagId, slotIndex, transferDestinationBankBag) then
                     return BatchStepSkipped()
@@ -400,7 +401,10 @@ function BETTERUI.Banking.Class:BatchTransfer()
                     return BatchStepSkipped()
                 end
 
-                CallSecureProtected("RequestMoveItem", bagId, slotIndex, targetBag, destinationSlot, stackCount)
+                if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, targetBag, destinationSlot, stackCount) then
+                    NotifySecureMoveFailed("Banking.MultiSelect:Deposit")
+                    return BatchStepSkipped()
+                end
             end
             return BatchStepQueued()
         end,
@@ -534,7 +538,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
 
     -- Select All (always first)
     table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-        GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL")),
+        BETTERUI.CIM.Keybinds.GetSelectAllLabel(),
         function() self:SelectAllItems() end
     ))
 
@@ -572,7 +576,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
 
     -- Deselect All (always last)
     table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-        zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL")), selectedCount),
+        BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount),
         function()
             ZO_Dialogs_ReleaseDialog(dialogName)
             zo_callLater(function() self:ExitSelectionMode() end, 50)

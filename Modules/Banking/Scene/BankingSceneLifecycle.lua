@@ -19,6 +19,12 @@ local GUILD_BANK_EVENTS = {
 
 --- Scene showing handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
+    -- The quantity dialog sets list-update suppression; if the bank closes while
+    -- the dialog is open, OnGamepadDialogHidden no-ops (scene not showing) and a
+    -- HIDING -> SHOWING re-entry can skip OnSceneHidden cleanup, leaking the
+    -- suppression. Always clear it on scene entry.
+    self:SetListUpdatesSuppressed(false)
+
     -- Ensure currency selector is hidden on scene entry
     if self.selector and self.selector.control then
         self.selector.control:GetParent():SetHidden(true)
@@ -143,12 +149,23 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", SHARED_INVENTORY_UPDATE_DELAY_MS,
             TryRefreshAfterInventoryUpdate)
     end
+    -- HIDING -> SHOWING can re-enter without OnSceneHidden running, which would
+    -- leak the previous closures; drop any stale registrations first.
+    if self._inventoryFullUpdateCallback then
+        SHARED_INVENTORY:UnregisterCallback("FullInventoryUpdate", self._inventoryFullUpdateCallback)
+    end
+    if self._inventorySingleSlotCallback then
+        SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", self._inventorySingleSlotCallback)
+    end
     self._inventoryFullUpdateCallback = OnInventoryUpdated
     self._inventorySingleSlotCallback = OnInventoryUpdated
     SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryFullUpdateCallback)
     SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventorySingleSlotCallback)
 
     -- Re-activate list and refresh after any gamepad dialog fully closes
+    if self._onDialogHiddenCallback then
+        CALLBACK_MANAGER:UnregisterCallback("OnGamepadDialogHidden", self._onDialogHiddenCallback)
+    end
     self._onDialogHiddenCallback = function()
         if BETTERUI.Utils.IsBankingSceneShowing() and self.list then
             self:SetListUpdatesSuppressed(false)

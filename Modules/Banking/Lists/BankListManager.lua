@@ -154,19 +154,9 @@ function BETTERUI.Banking.Class:RefreshList()
             if isGuildBankActive then
                 bankableList = { CURT_MONEY }
             else
-                bankableList = {}
-                if type(ZO_BANKABLE_CURRENCIES) == "table" then
-                    if rawget(ZO_BANKABLE_CURRENCIES, 1) ~= nil then
-                        bankableList = ZO_BANKABLE_CURRENCIES
-                    else
-                        for _, value in pairs(ZO_BANKABLE_CURRENCIES) do
-                            bankableList[#bankableList + 1] = value
-                        end
-                    end
-                end
-                if #bankableList == 0 then
-                    bankableList = { CURT_MONEY, CURT_TELVAR_STONES, CURT_ALLIANCE_POINTS, CURT_WRIT_VOUCHERS }
-                end
+                -- U50: there is no ZO_BANKABLE_CURRENCIES global; these are the
+                -- character-bankable currency types.
+                bankableList = { CURT_MONEY, CURT_TELVAR_STONES, CURT_ALLIANCE_POINTS, CURT_WRIT_VOUCHERS }
             end
 
             for _, currencyType in ipairs(bankableList) do
@@ -209,7 +199,39 @@ function BETTERUI.Banking.Class:RefreshList()
         return true
     end
 
-    local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(checkingBags))
+    -- Reuse the slot-data snapshot ComputeVisibleBankCategories just took when
+    -- this refresh runs in the same frame over the same bags (the category
+    -- rebuild paths call them back-to-back). That snapshot was generated with
+    -- the plain not-stolen filter — a superset of IsNotStolenItem — so
+    -- re-filtering it yields exactly what a fresh GenerateFullSlotData call
+    -- over the unchanged bag caches would return, without a second full scan.
+    local categoryScan = self._categoryScanSlotData
+    self._categoryScanSlotData = nil
+    local reusableSnapshot = nil
+    if categoryScan and categoryScan.frame ~= nil and GetFrameTimeMilliseconds
+        and categoryScan.frame == GetFrameTimeMilliseconds()
+        and type(categoryScan.bags) == "table" and #categoryScan.bags == #checkingBags then
+        reusableSnapshot = categoryScan.data
+        for i = 1, #checkingBags do
+            if categoryScan.bags[i] ~= checkingBags[i] then
+                reusableSnapshot = nil
+                break
+            end
+        end
+    end
+
+    local filteredDataTable
+    if reusableSnapshot then
+        filteredDataTable = {}
+        for i = 1, #reusableSnapshot do
+            local snapshotItemData = reusableSnapshot[i]
+            if IsNotStolenItem(snapshotItemData) then
+                filteredDataTable[#filteredDataTable + 1] = snapshotItemData
+            end
+        end
+    else
+        filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(checkingBags))
+    end
     local tempDataTable = {}
 
     local zoStrformat = zo_strformat
@@ -233,7 +255,8 @@ function BETTERUI.Banking.Class:RefreshList()
             end
             if customCategory and not matched then
                 itemData.bestItemTypeName = zoStrformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
-                itemData.bestItemCategoryName = AC_UNGROUPED_NAME
+                -- AC_UNGROUPED_NAME is AutoCategory's global; fall back if absent.
+                itemData.bestItemCategoryName = AC_UNGROUPED_NAME or itemData.bestItemTypeName
                 itemData.sortPriorityName = string.format("%03d%s", 999, categoryName)
             elseif customCategory then
                 itemData.bestItemTypeName = zoStrformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))

@@ -105,8 +105,9 @@ function CurrencySelector.RefreshCurrencyTooltip(self)
 
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
-        GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP, { CURT_MONEY })
-
+        -- No LayoutBankCurrencies call here: U50 removed its currency-list
+        -- argument, and the custom guild layout below rebuilds the tooltip
+        -- from scratch (ClearLines) anyway.
         local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
         if not tooltip then return end
         tooltip:ClearLines()
@@ -149,13 +150,20 @@ function CurrencySelector.RefreshCurrencyTooltip(self)
             goldSection:AddStatValuePair(pair)
         end
         local goldName = GetCurrencyName(CURT_MONEY, true, false) or "Gold"
-        AddToGold("Banked " .. goldName, FmtGold(guildBankGold))
-        AddToGold("Carried " .. goldName, FmtGold(carriedGold))
+        local bankedFormatId = rawget(_G, "SI_BETTERUI_BANK_BANKED_CURRENCY_FORMAT")
+        local carriedFormatId = rawget(_G, "SI_BETTERUI_BANK_CARRIED_CURRENCY_FORMAT")
+        local bankedLabel = bankedFormatId and zo_strformat(GetString(bankedFormatId), goldName)
+            or ("Banked " .. goldName)
+        local carriedLabel = carriedFormatId and zo_strformat(GetString(carriedFormatId), goldName)
+            or ("Carried " .. goldName)
+        AddToGold(bankedLabel, FmtGold(guildBankGold))
+        AddToGold(carriedLabel, FmtGold(carriedGold))
         mainSection:AddSection(goldSection)
 
         tooltip:AddSection(mainSection)
     else
-        GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP, ZO_BANKABLE_CURRENCIES)
+        -- U50: LayoutBankCurrencies takes no currency-list argument.
+        GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP)
         local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
         LayoutBankUpgradeDetailsTooltip(tooltip, BuildBankUpgradeDetailsLines())
     end
@@ -165,30 +173,37 @@ function BETTERUI.Banking.Class:RefreshCurrencyTooltip()
     CurrencySelector.RefreshCurrencyTooltip(self)
 end
 
----@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
----@param amount integer Amount to transfer
----@return nil
-function BETTERUI.Banking.Class:TransferSelectedCurrency(currencyType, amount)
-    local GuildBank = BETTERUI.Banking.GuildBank
-    if GuildBank and GuildBank.IsGuildBankMode() then
-        if self.currentMode == BETTERUI.Banking.LIST_WITHDRAW then
-            TransferCurrency(currencyType, amount, CURRENCY_LOCATION_GUILD_BANK, CURRENCY_LOCATION_CHARACTER)
-        else
-            TransferCurrency(currencyType, amount, CURRENCY_LOCATION_CHARACTER, CURRENCY_LOCATION_GUILD_BANK)
-        end
-    else
-        if self.currentMode == BETTERUI.Banking.LIST_WITHDRAW then
-            WithdrawCurrencyFromBank(currencyType, amount)
-        else
-            DepositCurrencyIntoBank(currencyType, amount)
-        end
-    end
-end
-
 ---@param self BETTERUI.Banking.Class
 ---@return integer|nil
 function CurrencySelector.GetActiveCurrencyType(self)
     return GetSelectorState(self).currencyType
+end
+
+--- Computes the current transferable maximum for the active mode and bank.
+--- Used when opening the selector and re-checked at confirm time, since
+--- balances can change while the selector is open.
+---@param self BETTERUI.Banking.Class
+---@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
+---@return integer
+function CurrencySelector.GetLiveTransferMax(self, currencyType)
+    local GuildBank = BETTERUI.Banking.GuildBank
+    local isGuildBank = GuildBank and GuildBank.IsGuildBankMode() == true
+
+    if GetMaxCurrencyTransfer then
+        local fromLocation
+        local toLocation
+        if self.currentMode == BETTERUI.Banking.LIST_DEPOSIT then
+            fromLocation = CURRENCY_LOCATION_CHARACTER
+            toLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
+        else
+            fromLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
+            toLocation = CURRENCY_LOCATION_CHARACTER
+        end
+        return GetMaxCurrencyTransfer(currencyType, fromLocation, toLocation) or 0
+    elseif self.currentMode == BETTERUI.Banking.LIST_DEPOSIT then
+        return GetCarriedCurrencyAmount(currencyType) or 0
+    end
+    return GetBankedCurrencyAmount(currencyType) or 0
 end
 
 ---@param self BETTERUI.Banking.Class
@@ -206,31 +221,17 @@ function CurrencySelector.DisplaySelector(self, currencyType)
     selectorState.currencyType = currencyType
     selectorState.mode = self.currentMode
 
-    local currency_max
     local GuildBank = BETTERUI.Banking.GuildBank
     local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
     selectorState.isGuildBank = isGuildBank == true
 
-    if GetMaxCurrencyTransfer then
-        local fromLocation
-        local toLocation
-        if self.currentMode == BETTERUI.Banking.LIST_DEPOSIT then
-            fromLocation = CURRENCY_LOCATION_CHARACTER
-            toLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
-        else
-            fromLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
-            toLocation = CURRENCY_LOCATION_CHARACTER
-        end
-        currency_max = GetMaxCurrencyTransfer(currencyType, fromLocation, toLocation) or 0
-    elseif self.currentMode == BETTERUI.Banking.LIST_DEPOSIT then
-        currency_max = GetCarriedCurrencyAmount(currencyType) or 0
-    else
-        currency_max = GetBankedCurrencyAmount(currencyType) or 0
-    end
+    local currency_max = CurrencySelector.GetLiveTransferMax(self, currencyType)
 
     if currency_max > 0 then
         self.selector:SetMaxValue(currency_max)
-        self.selector:SetClampValues(0, currency_max)
+        -- ZO_CurrencySelector_Gamepad:SetClampValues takes a single boolean
+        -- (clampGreaterThanMax); the max itself comes from SetMaxValue above.
+        self.selector:SetClampValues(true)
         self.selector.control:GetParent():SetHidden(false)
 
         self.selectorCurrency:SetTexture(BETTERUI.Banking.CONST.CURRENCY_TEXTURES[currencyType])

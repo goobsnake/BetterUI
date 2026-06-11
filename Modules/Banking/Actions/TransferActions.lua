@@ -164,6 +164,10 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
 
     local bankingBag = transferContext.depositTargetBag
     if isGuildBankMode then
+        -- depositTargetBag resolves through GetBankingBag(), which never reports
+        -- BAG_GUILDBANK; validate guild deposits (rules and capacity) against the
+        -- guild bank bag instead of the personal bank.
+        bankingBag = BAG_GUILDBANK
         local canTransfer, denyReason = transferService.NotifyGuildBankTransferDenied(
             "TryTransferItem:GuildDeposit",
             LIST_DEPOSIT,
@@ -189,6 +193,12 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
         return true
     end
 
+    if isGuildBankMode then
+        -- Guild bank is full; the ESO-Plus/subscriber-bank messaging below only
+        -- applies to the personal bank.
+        BETTERUI.CIM.UserNotify("TryTransferItem:GuildDeposit", SI_INVENTORY_ERROR_BANK_FULL)
+        return false, "bank_full"
+    end
     if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
         if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
             TriggerTutorial(TUTORIAL_TRIGGER_BANK_OVERFULL)
@@ -253,9 +263,16 @@ end
 
 local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIndex, quantity)
     MarkTransferPending(fromBag, fromBagIndex)
-    CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
+    if not CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity) then
+        ClearTransferPending(fromBag, fromBagIndex)
+        local stringId = rawget(_G, "SI_BETTERUI_ITEM_MOVE_FAILED")
+        BETTERUI.CIM.UserNotify("TransferActions:RequestMoveItem",
+            stringId and GetString(stringId) or "Item move request failed")
+        return false
+    end
     BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
     MaybeRefreshAfterTransfer(self)
+    return true
 end
 
 local function ResolveTransferDestinationSlot(fromBag, fromBagIndex, toBag)
@@ -334,7 +351,11 @@ local function ExecutePersonalOrHouseMove(self, transferContext, transferService
         return
     end
 
-    local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
+    -- The subscriber bank only accepts items while an ESO Plus subscription is active.
+    local banks = { BAG_BANK }
+    if IsESOPlusSubscriber() then
+        banks[#banks + 1] = BAG_SUBSCRIBER_BANK
+    end
     if transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_HOUSE_BANK then
         banks = { targetBankBag }
     end

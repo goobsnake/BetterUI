@@ -31,6 +31,17 @@ function CategoryManager.ComputeVisibleBankCategories(self)
     end
 
     local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
+
+    -- Share this snapshot with the RefreshList that immediately follows in
+    -- every category-rebuild path. RefreshList consumes and clears it, and
+    -- only reuses it within the same frame over the same bags, so a stale
+    -- snapshot can never replace a fresh scan (see BankListManager).
+    self._categoryScanSlotData = {
+        data = data,
+        bags = bags,
+        frame = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or nil,
+    }
+
     local function IsJunkCategory(category)
         return category and (category.special == "junk" or category.furnitureVaultJunk == true)
     end

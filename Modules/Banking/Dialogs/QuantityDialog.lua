@@ -9,10 +9,9 @@ Purpose: Implements a proper modal dialog for partial stack withdraw/deposit ope
 Dialog: BETTERUI_BANK_QUANTITY_DIALOG
 Description: Modal quantity selection dialog for banking partial stack moves.
            This provides a consistent, polished UX compared to inline spinners.
-  - Registered via ZO_Dialogs_RegisterCustomDialog
+  - Registered via BETTERUI.CIM.Dialogs.Register in InitializeQuantityDialog
   - Uses standard ITEM_SLIDER dialog type with min=1, max=stackCount
-  - Callback invokes BETTERUI.Banking.Window:MoveItem(list, quantity)
-  - Fires BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED on completion
+  - Primary button callback invokes BETTERUI.Banking.Window:MoveItem(list, quantity)
 References: Called by Banking keybinds when partial stack move is requested.
 ]]
 

@@ -104,11 +104,7 @@ local function GetPrimaryTransferLabel(self)
         if not target then
             return ""
         end
-        if target and self.multiSelectManager:IsSelected(target) then
-            return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM"))
-        end
-        local count = self.multiSelectManager:GetSelectedCount()
-        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")), count)
+        return BETTERUI.CIM.Keybinds.GetMultiSelectToggleLabel(self.multiSelectManager, target)
     end
 
     local label = self.currentMode == LIST_WITHDRAW
@@ -209,13 +205,15 @@ local function CreateCoreNavigationKeybinds(self)
                 if not cost or cost <= 0 then
                     return ""
                 end
+                -- U50: SI_BANK_UPGRADE_TEXT takes a single pre-formatted currency
+                -- string; mirror ZOS banking_gamepad.lua.
                 local text
                 if GetCarriedCurrencyAmount(CURT_MONEY) >= cost then
-                    text = zo_strformat(SI_BANK_UPGRADE_TEXT, ZO_CurrencyControl_FormatCurrency(cost),
-                        ZO_GAMEPAD_GOLD_ICON_FORMAT_24)
+                    text = zo_strformat(SI_BANK_UPGRADE_TEXT,
+                        ZO_Currency_FormatGamepad(CURT_MONEY, cost, ZO_CURRENCY_FORMAT_AMOUNT_ICON))
                 else
                     text = zo_strformat(SI_BANK_UPGRADE_TEXT,
-                        ZO_ERROR_COLOR:Colorize(ZO_CurrencyControl_FormatCurrency(cost)), ZO_GAMEPAD_GOLD_ICON_FORMAT_24)
+                        ZO_Currency_FormatGamepad(CURT_MONEY, cost, ZO_CURRENCY_FORMAT_ERROR_AMOUNT_ICON))
                 end
                 return text or ""
             end,
@@ -232,7 +230,7 @@ local function CreateCoreNavigationKeybinds(self)
 
                 if isGuildBankMode then
                     local GuildBank = BETTERUI.Banking.GuildBank
-                    return not GuildBank.IsLoading()
+                    return not (GuildBank and GuildBank.IsLoading())
                 end
                 if not isMainBankContext then
                     return false
@@ -260,7 +258,9 @@ local function CreateCoreNavigationKeybinds(self)
                 if cost > GetCarriedCurrencyAmount(CURT_MONEY) then
                     BETTERUI.CIM.UserAlertText("Banking.Keybinds", GetString(rawget(_G, "SI_BUY_BANK_SPACE_CANNOT_AFFORD")))
                 else
-                    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
+                    -- Banking never assigns mainKeybindStripDescriptor (its groups are
+                    -- coreKeybinds/withdrawDepositKeybinds/...); the upgrade dialog
+                    -- manages its own keybind layer, so no teardown is needed here.
                     DisplayBankUpgrade()
                 end
             end
@@ -329,7 +329,7 @@ local function CreateCoreNavigationKeybinds(self)
         },
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            name = GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT")),
+            name = BETTERUI.CIM.Keybinds.GetMultiSelectLabel(),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
                 local selectedData = GetSelectedBankEntry(self)
@@ -380,10 +380,13 @@ local function CreateTransferKeybinds(self)
                 local selectedData = GetSelectedBankEntry(self)
                 if selectedData then
                     local stackCount = selectedData.stackCount or 1
-                    if stackCount > 1 then
+                    local _, isGuildBankMode = ResolveKeybindTransferContext(self)
+                    if stackCount > 1 and not isGuildBankMode then
                         self:ShowQuantityDialog(self.currentMode == LIST_DEPOSIT)
                     else
-                        self:MoveItem(self.list, 1)
+                        -- Guild bank transfer APIs always move the whole stack,
+                        -- so the quantity dialog is skipped in guild-bank mode.
+                        self:MoveItem(self.list, stackCount)
                     end
                 end
             end,
@@ -415,6 +418,9 @@ local function CreateCurrencySelectorKeybinds(self)
             end,
             callback = function()
                 local amount = self.selector:GetValue()
+                if not amount or amount <= 0 then
+                    return
+                end
                 local currencySelector = GetCurrencySelector()
                 local currencyType = currencySelector and currencySelector.GetActiveCurrencyType
                     and currencySelector.GetActiveCurrencyType(self)
@@ -427,6 +433,25 @@ local function CreateCurrencySelectorKeybinds(self)
                     return
                 end
                 local _, isGuildBankMode = ResolveKeybindTransferContext(self)
+                if isGuildBankMode then
+                    local GuildBank = BETTERUI.Banking.GuildBank
+                    local denial = GuildBank and GuildBank.GetGoldPermissionDenial
+                        and GuildBank.GetGoldPermissionDenial(self.currentMode)
+                    if denial then
+                        BETTERUI.CIM.UserNotify("Banking.Keybinds:CurrencyTransfer", denial.text)
+                        return
+                    end
+                end
+                -- Re-clamp to the live maximum: balances can change while the
+                -- selector is open (mail, trades, other clients).
+                local liveMax = currencySelector and currencySelector.GetLiveTransferMax
+                    and currencySelector.GetLiveTransferMax(self, currencyType)
+                if liveMax ~= nil then
+                    if liveMax <= 0 then
+                        return
+                    end
+                    amount = zo_min(amount, liveMax)
+                end
                 if isGuildBankMode then
                     if self.currentMode == LIST_WITHDRAW then
                         TransferCurrency(currencyType, amount, CURRENCY_LOCATION_GUILD_BANK, CURRENCY_LOCATION_CHARACTER)

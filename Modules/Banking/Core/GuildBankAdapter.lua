@@ -71,10 +71,10 @@ function GuildBank.IsGuildBankMode()
 end
 
 function GuildBank.GetSelectedGuildId()
-    if GUILD_BANK_SELECT and GUILD_BANK_SELECT.GetSelectedGuildBankId then
-        return GUILD_BANK_SELECT:GetSelectedGuildBankId() or 0
+    -- U50 API: GetSelectedGuildBankId() is the canonical accessor.
+    if GetSelectedGuildBankId then
+        return GetSelectedGuildBankId() or 0
     end
-    -- Gamepad guild selector manager fallback
     if ZO_GUILD_SELECTOR_MANAGER and ZO_GUILD_SELECTOR_MANAGER.GetSelectedGuildBankId then
         return ZO_GUILD_SELECTOR_MANAGER:GetSelectedGuildBankId() or 0
     end
@@ -116,6 +116,81 @@ function GuildBank.CanWithdraw()
     return false
 end
 
+--- Gold withdrawals need a dedicated rank permission (see ZOS guildbank_gamepad.lua).
+---@return boolean
+function GuildBank.CanWithdrawGold()
+    if not GuildBank.IsGuildBankMode() then
+        return true -- personal bank always allows gold withdrawals
+    end
+    local guildId = GuildBank.GetSelectedGuildId()
+    if guildId <= 0 then return false end
+    if DoesPlayerHaveGuildPermission then
+        return DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_BANK_WITHDRAW_GOLD) == true
+    end
+    return false
+end
+
+--- Resolves the minimum guild member count required for bank deposits.
+--- U50 exposes this via GetNumGuildMembersRequiredForPrivilege(GUILD_PRIVILEGE_BANK_DEPOSIT);
+--- fall back to the long-standing threshold of 10 when the API is unavailable.
+---@return integer
+local function GetBankDepositMemberRequirement()
+    if GetNumGuildMembersRequiredForPrivilege and GUILD_PRIVILEGE_BANK_DEPOSIT then
+        return GetNumGuildMembersRequiredForPrivilege(GUILD_PRIVILEGE_BANK_DEPOSIT)
+    end
+    return 10
+end
+
+--- Gold deposits are gated by the guild-level bank-deposit privilege; there is
+--- no GUILD_PERMISSION_BANK_DEPOSIT_GOLD (ZOS gamepad guild bank checks
+--- DoesGuildHavePrivilege(guildId, GUILD_PRIVILEGE_BANK_DEPOSIT) for gold).
+---@return boolean
+function GuildBank.CanDepositGold()
+    if not GuildBank.IsGuildBankMode() then
+        return true -- personal bank always allows gold deposits
+    end
+    local guildId = GuildBank.GetSelectedGuildId()
+    if guildId <= 0 then return false end
+    if DoesGuildHavePrivilege then
+        return DoesGuildHavePrivilege(guildId, GUILD_PRIVILEGE_BANK_DEPOSIT) == true
+    end
+    return false
+end
+
+--- Returns a denial descriptor when the player cannot move gold in the given
+--- mode, mirroring GetPermissionDenial for item transfers.
+---@param mode integer LIST_WITHDRAW or LIST_DEPOSIT
+---@return {reason: string, stringId: integer|nil, text: string}|nil
+function GuildBank.GetGoldPermissionDenial(mode)
+    if not GuildBank.IsGuildBankMode() then
+        return nil
+    end
+
+    local reasonCode = DENY.GUILD_PERMISSION
+
+    if mode == LIST_WITHDRAW and not GuildBank.CanWithdrawGold() then
+        local stringId = rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS")
+        return {
+            reason = reasonCode,
+            stringId = stringId,
+            text = GetString(stringId),
+        }
+    end
+
+    if mode == LIST_DEPOSIT and not GuildBank.CanDepositGold() then
+        -- CanDepositGold fails on the guild-level deposit privilege (guild too
+        -- small), so use the privilege-specific denial string.
+        local stringId = rawget(_G, "SI_INVENTORY_ERROR_GUILD_BANK_NO_DEPOSIT_PRIVILEGES")
+        return {
+            reason = reasonCode,
+            stringId = stringId,
+            text = zo_strformat(GetString(stringId), GetBankDepositMemberRequirement()),
+        }
+    end
+
+    return nil
+end
+
 function GuildBank.GetPermissionDenial(mode)
     if not GuildBank.IsGuildBankMode() then
         return nil
@@ -133,12 +208,13 @@ function GuildBank.GetPermissionDenial(mode)
     end
 
     if mode == LIST_DEPOSIT and not GuildBank.CanDeposit() then
-        local minMembers = GetGuildBankMinDepositMembers and GetGuildBankMinDepositMembers() or 10
+        -- ZOS gamepad guild bank formats this string with the member threshold
+        -- from GetNumGuildMembersRequiredForPrivilege (guildbank_gamepad.lua).
         local stringId = rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS")
         return {
             reason = reasonCode,
             stringId = stringId,
-            text = zo_strformat(GetString(stringId), minMembers),
+            text = zo_strformat(GetString(stringId), GetBankDepositMemberRequirement()),
         }
     end
 
@@ -148,7 +224,10 @@ end
 function GuildBank.GetHeaderTitle()
     if GuildBank.IsGuildBankMode() then
         local guildName = GuildBank.GetSelectedGuildName()
-        return "|c0066FF" .. guildName .. " Bank|r"
+        local formatId = rawget(_G, "SI_BETTERUI_GUILD_BANK_TITLE_FORMAT")
+        local title = formatId and zo_strformat(GetString(formatId), guildName)
+            or (guildName .. " Bank")
+        return "|c0066FF" .. title .. "|r"
     end
     return "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r"
 end

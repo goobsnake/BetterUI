@@ -341,12 +341,9 @@ local function BuildTransferContextSnapshot()
     }
 end
 
+-- Retained alias: tests assert this accessor's contract (test_banking_transfer.lua,
+-- test_banking_contracts.lua).
 function BETTERUI.Banking.GetTransferState()
-    return BETTERUI.Banking.ReadTransferContextSnapshot()
-end
-
----@return BetterUIBankingTransferContext
-function BETTERUI.Banking.GetTransferContextSnapshot()
     return BETTERUI.Banking.ReadTransferContextSnapshot()
 end
 
@@ -424,7 +421,6 @@ local function EnsureBankingTaskManager()
 end
 BETTERUI.Banking.EnsureTaskManager             = EnsureBankingTaskManager
 BETTERUI.Banking.Tasks                         = BETTERUI.Banking.Tasks or BankingDeferredTask.CreateLazyManagerProxy(EnsureBankingTaskManager)
-local CompareNils = BETTERUI.CIM.Utils.CompareNils
 
 -- SHARED CATEGORY REFERENCES
 -- Use centralized category definitions from CIM module to eliminate duplication.
@@ -693,33 +689,8 @@ local function GetTraitSortValue(data)
     return nil -- Return nil for blanks (sorted last)
 end
 
---- Helper: Get stat sort value (alphabetical first, then numeric, blanks last)
---- Returns: sortPriority (1=alpha, 2=numeric, 3=blank), sortValue
-local function GetStatSortValue(data)
-    if not data then return 3, "" end
-
-    local statValue = data.statValue
-    if statValue == nil or statValue == "" or statValue == 0 or statValue == "-" then
-        return 3, "" -- Blank - lowest priority
-    end
-
-    -- Convert to string for analysis
-    local statStr = tostring(statValue)
-
-    -- Check if purely numeric
-    local numVal = tonumber(statStr)
-    if numVal then
-        return 2, numVal -- Numeric - medium priority
-    end
-
-    -- Check if starts with letter (alphabetical)
-    if statStr:match("^%a") then
-        return 1, statStr:upper() -- Alphabetical - highest priority
-    end
-
-    -- Special characters
-    return 2.5, statStr -- After numeric, before blank
-end
+-- Stat sort values resolve through the shared default
+-- (BETTERUI.CIM.SortManager.GetStatSortValue).
 
 --- Helper: Get value sort value (market price first, then vendor price)
 local function GetValueSortValue(data)
@@ -751,114 +722,17 @@ local function GetValueSortValue(data)
     return vendorPrice
 end
 
---- Creates sort comparator for a column with the specified direction
---- Handles special cases: TRAIT (alphabetical, blanks last), STAT (alpha/numeric/blank),
---- VALUE (market price priority)
+--- Creates a sort comparator for a column via the shared CIM factory,
+--- wiring banking-specific value getters. Banking uses no stable tie-breaker:
+--- ties compare equal, preserving the pre-sort row order from table.sort.
+---@param sortKey string The data field to sort by
+---@param ascending boolean Whether to sort ascending
+---@return fun(left: table, right: table): boolean comparator
 local function CreateColumnSortComparator(sortKey, ascending)
-    -- TRAIT: Alphabetical with blanks after "z"
-    if sortKey == "trait" then
-        return function(left, right)
-            local leftVal = GetTraitSortValue(left)
-            local rightVal = GetTraitSortValue(right)
-
-            -- Blanks (nil) always sort last regardless of direction
-            local nilResult = CompareNils(leftVal, rightVal, true)
-            if nilResult ~= nil then return nilResult end
-
-            -- Alphabetical comparison
-            local leftUpper = tostring(leftVal):upper()
-            local rightUpper = tostring(rightVal):upper()
-            if ascending then
-                return leftUpper < rightUpper
-            else
-                return leftUpper > rightUpper
-            end
-        end
-    end
-
-    -- STAT: Alphabetical first, then numeric by value, special chars, blanks last
-    if sortKey == "stat" then
-        return function(left, right)
-            local leftPrio, leftVal = GetStatSortValue(left)
-            local rightPrio, rightVal = GetStatSortValue(right)
-
-            -- Blanks (priority 3) always sort last regardless of direction
-            if leftPrio == 3 and rightPrio == 3 then return false end
-            if leftPrio == 3 then return false end -- left is blank, goes after right
-            if rightPrio == 3 then return true end -- right is blank, left goes first
-
-            -- Different priorities: sort by priority (alpha < numeric < special)
-            if leftPrio ~= rightPrio then
-                if ascending then
-                    return leftPrio < rightPrio
-                else
-                    return leftPrio > rightPrio
-                end
-            end
-
-            -- Same priority: compare values
-            if ascending then
-                return leftVal < rightVal
-            else
-                return leftVal > rightVal
-            end
-        end
-    end
-
-    -- VALUE: Market price first, then vendor price
-    -- Descending: highest first, 0 last
-    -- Ascending: 0 first (lowest), then lowest to highest
-    if sortKey == "value" then
-        return function(left, right)
-            local leftVal = GetValueSortValue(left)
-            local rightVal = GetValueSortValue(right)
-
-            -- Handle zero values based on sort direction
-            if ascending then
-                -- Ascending: 0 comes first (lowest value)
-                if leftVal == 0 and rightVal == 0 then return false end
-                if leftVal == 0 then return true end   -- left is 0, goes before right
-                if rightVal == 0 then return false end -- right is 0, left goes after right
-            else
-                -- Descending: 0 comes last (after highest values)
-                if leftVal == 0 and rightVal == 0 then return false end
-                if leftVal == 0 then return false end -- left is 0, goes after right
-                if rightVal == 0 then return true end -- right is 0, left goes first
-            end
-
-            if ascending then
-                return leftVal < rightVal
-            else
-                return leftVal > rightVal
-            end
-        end
-    end
-
-    -- Default comparator for NAME, TYPE, and other columns
-    return function(left, right)
-        local leftVal = left[sortKey]
-        local rightVal = right[sortKey]
-
-        -- Handle nil values
-        local nilResult = CompareNils(leftVal, rightVal, ascending)
-        if nilResult ~= nil then return nilResult end
-
-        -- String comparison for text columns
-        if type(leftVal) == "string" and type(rightVal) == "string" then
-            if ascending then
-                return leftVal < rightVal
-            else
-                return leftVal > rightVal
-            end
-        end
-
-        -- Numeric comparison
-        if ascending then
-            return leftVal < rightVal
-        else
-            return leftVal > rightVal
-        end
-    end
+    return BETTERUI.CIM.SortManager.CreateColumnSortComparator(sortKey, ascending, {
+        getTraitValue = GetTraitSortValue,
+        getValueValue = GetValueSortValue,
+    })
 end
 
 --- Initializes the header sort controller for this banking instance.
@@ -1011,7 +885,8 @@ function BETTERUI.Banking.Class:EnterSelectionMode()
     self:InitializeMultiSelectManager()
 
     local target = self.list and self.list.GetSelectedData and self.list:GetSelectedData() or nil
-    if not target or ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
+    if not target or (ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated
+            and ZO_GamepadBanking.IsEntryDataCurrencyRelated(target)) then
         return
     end
 

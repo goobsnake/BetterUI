@@ -323,15 +323,19 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 local selectedData = self.list and self.list:GetSelectedData()
                 if selectedData then
                     local stackCount = selectedData.stackCount or 1
-                    if stackCount > 1 then
+                    local guildBank = BETTERUI.Banking.GuildBank
+                    local isGuildBankMode = guildBank and guildBank.IsGuildBankMode() or false
+                    if stackCount > 1 and not isGuildBankMode then
                         local isDeposit = (selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_BANK_DEPOSIT")))
                         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                         self:SaveListPosition()
                         self:ShowQuantityDialog(isDeposit)
                     else
+                        -- Guild bank transfer APIs always move the whole stack,
+                        -- so the quantity dialog is skipped in guild-bank mode.
                         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                         self:SaveListPosition()
-                        self:MoveItem(self.list, 1)
+                        self:MoveItem(self.list, stackCount)
                     end
                 end
             else
