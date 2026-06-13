@@ -23,6 +23,13 @@ local function IsSupportedActionItem(mode, itemData, vendorInstance)
             return false
         end
 
+        -- Locked entries (missing requirements, already-owned collectible, ...)
+        -- cannot be purchased; mirror BuyComponent's single-buy guard so the
+        -- batch count excludes them and BuyStoreItem is never attempted.
+        if ds.meetsRequirementsToBuy == false then
+            return false
+        end
+
         if vendorInstance then
             -- Mirror BuyComponent: gold and alt-currency charges are
             -- independent (alt-currency entries report price == 0, not nil).

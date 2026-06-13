@@ -92,6 +92,22 @@ do
 end
 
 do
+    -- FIX 1 (PB-008): locked entries (meetsRequirementsToBuy == false) are
+    -- excluded from the batch BUY count, mirroring the single-buy guard.
+    local items = {
+        { entryIndex = 1, price = 50, currencyType = CURT_MONEY, meetsRequirementsToBuy = true },
+        { entryIndex = 2, price = 50, currencyType = CURT_MONEY, meetsRequirementsToBuy = false },
+        { entryIndex = 3, price = 50, currencyType = CURT_MONEY }, -- nil treated as buyable
+    }
+    local vendorInstance = {
+        CanAfford = function() return true end,
+        HasInventorySpace = function() return true end,
+    }
+    local count = Counts.GetSupportedActionCount(MODE.BUY, items, vendorInstance)
+    assertEqual(2, count, "BUY excludes entries that do not meet purchase requirements")
+end
+
+do
     local items = {
         { bagId = 1, slotIndex = 1 },
         { bagId = 1, slotIndex = 2 },

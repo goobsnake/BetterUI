@@ -52,8 +52,10 @@ function EventBridge.Register(eventManager, eventNamespace, handlers)
 end
 
 --- Register (idempotently) a ZO_COLLECTIBLE_DATA_MANAGER "OnCollectionUpdated"
---- callback routed to the inventory-updated refresh. Guarded because the
---- manager may not exist in every load context / test harness.
+--- callback routed to the inventory-updated refresh. Registered once for the
+--- addon lifetime (mirroring native), never unregistered; the _collectionCallback-
+--- Registered guard makes repeated calls no-ops. Guarded because the manager may
+--- not exist in every load context / test harness.
 ---@param onInventoryUpdated function|nil
 ---@return nil
 function EventBridge.RegisterCollectionUpdated(onInventoryUpdated)
@@ -67,19 +69,4 @@ function EventBridge.RegisterCollectionUpdated(onInventoryUpdated)
     EventBridge._collectionCallback = function() onInventoryUpdated() end
     manager:RegisterCallback("OnCollectionUpdated", EventBridge._collectionCallback)
     EventBridge._collectionCallbackRegistered = true
-end
-
---- Unregister the collection-updated callback, mirroring the event-unregister
---- side of the existing pattern so repeated open/close cycles stay balanced.
----@return nil
-function EventBridge.UnregisterCollectionUpdated()
-    local manager = rawget(_G, "ZO_COLLECTIBLE_DATA_MANAGER")
-    if not EventBridge._collectionCallbackRegistered
-        or not manager
-        or type(manager.UnregisterCallback) ~= "function" then
-        return
-    end
-    manager:UnregisterCallback("OnCollectionUpdated", EventBridge._collectionCallback)
-    EventBridge._collectionCallback = nil
-    EventBridge._collectionCallbackRegistered = false
 end

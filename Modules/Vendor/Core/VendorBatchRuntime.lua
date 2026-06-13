@@ -106,6 +106,12 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         if not entryIndex then
             return batchStepHandled()
         end
+        -- Locked entries (missing requirements, already-owned collectible, ...)
+        -- cannot be purchased; mirror BuyComponent's single-buy guard so the
+        -- batch skips them instead of attempting a doomed BuyStoreItem.
+        if ds.meetsRequirementsToBuy == false then
+            return batchStepSkipped()
+        end
         -- Stores re-index entries when rows sell out mid-batch; the
         -- entryIndex captured at selection time may now point at a different
         -- item. Re-read the live entry and skip on mismatch.
@@ -175,6 +181,13 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
             if canSell ~= true then
                 return batchStepSkipped()
             end
+            -- Re-authorization confirms the slot is still sellable, but not that
+            -- it still holds the SELECTED item: an item moved into a freed
+            -- slotIndex mid-batch would be sold in its place. Re-check identity.
+            if ds.expectedSlotIdentity
+                and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(ds.expectedSlotIdentity, bagId, slotIndex) ~= true then
+                return batchStepSkipped()
+            end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
             if stackSize > 0 then
                 SellInventoryItem(bagId, slotIndex, stackSize)
@@ -201,6 +214,13 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
             if canSell ~= true then
                 return batchStepSkipped()
             end
+            -- Re-authorization confirms the slot is still fence-sellable, but not
+            -- that it still holds the SELECTED item; re-check identity so an item
+            -- moved into a freed slotIndex mid-batch is not fenced in its place.
+            if ds.expectedSlotIdentity
+                and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(ds.expectedSlotIdentity, bagId, slotIndex) ~= true then
+                return batchStepSkipped()
+            end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
             if stackSize > 0 then
                 SellInventoryItem(bagId, slotIndex, (remaining < stackSize) and remaining or stackSize)
@@ -225,6 +245,13 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
             end
             local canLaunder = AuthorizeVendorInventoryAction(Vendor.ACTION.FENCE_LAUNDER, bagId, slotIndex)
             if canLaunder ~= true then
+                return batchStepSkipped()
+            end
+            -- Re-authorization confirms the slot is still launderable, but not
+            -- that it still holds the SELECTED item; re-check identity so an item
+            -- moved into a freed slotIndex mid-batch is not laundered in its place.
+            if ds.expectedSlotIdentity
+                and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(ds.expectedSlotIdentity, bagId, slotIndex) ~= true then
                 return batchStepSkipped()
             end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
@@ -587,7 +614,12 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
             end
         end
 
-        self:RecordServerAction()
+        -- Only QUEUED steps issued a server call; SKIPPED/HANDLED steps mutated
+        -- nothing, so recording a server action for them over-throttles the
+        -- pacing/cooldown windows against work that never hit the server.
+        if stepResult.status == self.BatchConfig.BATCH_STEP_STATUS.QUEUED then
+            self:RecordServerAction()
+        end
         self:UpdateProgress()
 
         -- Only mutating steps produce an inventory update to wait for.

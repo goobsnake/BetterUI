@@ -22,6 +22,9 @@ local slotStacks = {}
 local canAfford = true
 local hasInventorySpace = true
 local authorizationAllowed = true
+-- Controls the stubbed BETTERUI.CIM.Utils.IsSlotIdentityCurrent return so
+-- identity-revalidation branches can be exercised both ways.
+local slotIdentityCurrent = true
 
 local function assertTrue(condition, message)
     if condition then
@@ -45,6 +48,7 @@ local function resetState()
     canAfford = true
     hasInventorySpace = true
     authorizationAllowed = true
+    slotIdentityCurrent = true
 end
 
 function zo_clamp(value, minValue, maxValue)
@@ -99,6 +103,13 @@ end
 BETTERUI = {
     CIM = {
         CONST = { TIMING = {} },
+        Utils = {
+            -- The runtime's SELL/FENCE identity revalidation calls this; return
+            -- the test-controlled flag so identity-mismatch can be simulated.
+            IsSlotIdentityCurrent = function(_identity, _bagId, _slotIndex)
+                return slotIdentityCurrent
+            end,
+        },
     },
     Vendor = {
         MODE = {
@@ -324,8 +335,81 @@ local vanishedBuy = BatchRuntime.ExecuteBatchAction(MODE.BUY,
     { entryIndex = 4, price = 50, currencyType = CURT_MONEY, name = "Original Item" })
 assertEqual(BatchConfig.BATCH_STEP_STATUS.SKIPPED, vanishedBuy.status, "Batch BUY skips when the entry no longer exists")
 
+-- FIX 1 (PB-008): batch BUY skips locked entries (meetsRequirementsToBuy == false),
+-- mirroring the single-buy guard so BuyStoreItem is never attempted for them.
+resetState()
+storeEntries[4] = { name = "Original Item", link = "|H1:item:1|h|h" }
+local lockedBuy = BatchRuntime.ExecuteBatchAction(MODE.BUY,
+    { entryIndex = 4, price = 50, currencyType = CURT_MONEY, name = "Original Item",
+      itemLink = "|H1:item:1|h|h", meetsRequirementsToBuy = false })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.SKIPPED, lockedBuy.status,
+    "Batch BUY skips entries that do not meet purchase requirements")
+assertEqual(0, #buyCalls, "Locked batch BUY does not call BuyStoreItem")
+
+resetState()
+storeEntries[4] = { name = "Original Item", link = "|H1:item:1|h|h" }
+local unlockedBuy = BatchRuntime.ExecuteBatchAction(MODE.BUY,
+    { entryIndex = 4, price = 50, currencyType = CURT_MONEY, name = "Original Item",
+      itemLink = "|H1:item:1|h|h", meetsRequirementsToBuy = true })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, unlockedBuy.status,
+    "Batch BUY proceeds when purchase requirements are met")
+assertEqual(1, #buyCalls, "Unlocked batch BUY calls BuyStoreItem")
+
 GetStoreEntryInfo = nil
 GetStoreItemLink = nil
+
+-- FIX 2 (PB-010): SELL/FENCE/LAUNDER batch steps re-check item identity after
+-- re-authorization, so an item that moved into a freed slotIndex mid-batch is
+-- not sold/laundered in place of the originally selected item.
+resetState()
+authorizationAllowed = true
+slotIdentityCurrent = false
+slotStacks["1:9"] = 8
+local identitySkipSell = BatchRuntime.ExecuteBatchAction(MODE.SELL,
+    { bagId = BAG_BACKPACK, slotIndex = 9, expectedSlotIdentity = { uniqueId = "abc" } })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.SKIPPED, identitySkipSell.status,
+    "Batch SELL skips when the live slot no longer holds the selected item")
+assertEqual(0, #sellCalls, "Identity-mismatched batch SELL does not call SellInventoryItem")
+
+resetState()
+authorizationAllowed = true
+slotIdentityCurrent = true
+slotStacks["1:9"] = 8
+local identityOkSell = BatchRuntime.ExecuteBatchAction(MODE.SELL,
+    { bagId = BAG_BACKPACK, slotIndex = 9, expectedSlotIdentity = { uniqueId = "abc" } })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, identityOkSell.status,
+    "Batch SELL proceeds when the live slot still holds the selected item")
+assertEqual(1, #sellCalls, "Identity-matched batch SELL calls SellInventoryItem")
+
+resetState()
+authorizationAllowed = true
+slotIdentityCurrent = true
+slotStacks["1:9"] = 8
+local noIdentitySell = BatchRuntime.ExecuteBatchAction(MODE.SELL,
+    { bagId = BAG_BACKPACK, slotIndex = 9 })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, noIdentitySell.status,
+    "Batch SELL behaviour is unchanged when no expectedSlotIdentity is supplied")
+assertEqual(1, #sellCalls, "Identity-less batch SELL still calls SellInventoryItem")
+
+resetState()
+authorizationAllowed = true
+slotIdentityCurrent = false
+slotStacks["1:3"] = 2
+local identitySkipLaunder = BatchRuntime.ExecuteBatchAction(MODE.FENCE_LAUNDER,
+    { bagId = BAG_BACKPACK, slotIndex = 3, expectedSlotIdentity = { uniqueId = "xyz" } })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.SKIPPED, identitySkipLaunder.status,
+    "Batch FENCE_LAUNDER skips when the live slot no longer holds the selected item")
+assertEqual(0, #launderCalls, "Identity-mismatched batch FENCE_LAUNDER does not call LaunderItem")
+
+resetState()
+authorizationAllowed = true
+slotIdentityCurrent = true
+slotStacks["1:3"] = 2
+local identityOkLaunder = BatchRuntime.ExecuteBatchAction(MODE.FENCE_LAUNDER,
+    { bagId = BAG_BACKPACK, slotIndex = 3, expectedSlotIdentity = { uniqueId = "xyz" } })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, identityOkLaunder.status,
+    "Batch FENCE_LAUNDER proceeds when the live slot still holds the selected item")
+assertEqual(1, #launderCalls, "Identity-matched batch FENCE_LAUNDER calls LaunderItem")
 
 -- ack.awaitInventoryAck: the runner waits for the next inventory update after
 -- each mutating step, with the pacing delay as the timeout fallback.

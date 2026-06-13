@@ -170,10 +170,14 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
             or ds.sellPrice
             or 0
         valueControl:SetColor(1, 1, 1, 1)
-        -- Alt-currency buy entries report a gold value of 0; show their
-        -- alt-currency quantity (icon + amount) instead of a misleading "0".
+        -- Alt-currency buy entries: Buy:BuildList folds currencyQuantity1 into
+        -- ds.price for non-gold rows, so displayValue is non-zero. Detect the
+        -- alt-currency by currencyType1 rather than a zero price, otherwise the
+        -- icon+amount branch is skipped and a bare number renders.
         local altCurrencyText
-        if (not displayValue or displayValue == 0) then
+        local hasAltCurrency = ds.currencyType1 ~= nil
+            and ds.currencyType1 ~= CURT_MONEY and ds.currencyType1 ~= CURT_NONE
+        if hasAltCurrency or (not displayValue or displayValue == 0) then
             local altType, altQty
             if ds.currencyType1 and ds.currencyType1 ~= CURT_MONEY and ds.currencyType1 ~= CURT_NONE
                 and (ds.currencyQuantity1 or 0) > 0 then

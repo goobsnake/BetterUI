@@ -244,7 +244,19 @@ function Sell:SellAllJunk(vendorInstance)
         if IsItemJunk(BAG_BACKPACK, slot) then
             local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL_JUNK, BAG_BACKPACK, slot, vendorInstance)
             if canSell == true and (GetSlotStackSize(BAG_BACKPACK, slot) or 0) > 0 then
-                items[#items + 1] = { bagId = BAG_BACKPACK, slotIndex = slot }
+                -- Capture the slot's stable identity (and retain itemLink) at
+                -- collection time so the batch runtime can confirm the live slot
+                -- still holds this exact junk item before selling: an item moved
+                -- into a freed slotIndex mid-batch must not be sold in its place.
+                local itemLink = GetItemLink(BAG_BACKPACK, slot)
+                items[#items + 1] = {
+                    bagId = BAG_BACKPACK,
+                    slotIndex = slot,
+                    itemLink = itemLink,
+                    expectedSlotIdentity = (BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.CaptureSlotIdentity)
+                        and BETTERUI.CIM.Utils.CaptureSlotIdentity(BAG_BACKPACK, slot, { itemLink = itemLink })
+                        or nil,
+                }
             end
         end
     end
