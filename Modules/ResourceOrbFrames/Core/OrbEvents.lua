@@ -10,6 +10,10 @@ if not BETTERUI.ResourceOrbFrames.Events then BETTERUI.ResourceOrbFrames.Events 
 local Events = BETTERUI.ResourceOrbFrames.Events
 local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 local NAME = "ResourceOrbFrames"
+-- Collision-safe namespace for EVENT_MANAGER RegisterForUpdate loop names.
+-- Every other module prefixes its update-loop names with BETTERUI_/BetterUI_;
+-- mirror that here so the bare module name cannot collide with another addon.
+local UPDATE_NS_PREFIX = "BETTERUI_ResourceOrbFrames"
 local COOLDOWN_VISUAL_TICK_MS = 16
 local CORE_STATUS_TICK_MS = 100
 local ANIMATION_TICK_MS = 33 -- 30fps
@@ -240,17 +244,17 @@ local m_loopsRegistered = false
 
 local function RegisterLoopUpdates()
     if m_loopsRegistered or not m_loopTicks then return end
-    EVENT_MANAGER:RegisterForUpdate(NAME .. "CoreStatus", CORE_STATUS_TICK_MS, m_loopTicks.coreStatus)
-    EVENT_MANAGER:RegisterForUpdate(NAME .. "CooldownVisuals", COOLDOWN_VISUAL_TICK_MS, m_loopTicks.cooldownVisuals)
-    EVENT_MANAGER:RegisterForUpdate(NAME .. "OrbAnimation", ANIMATION_TICK_MS, m_loopTicks.orbAnimation)
+    EVENT_MANAGER:RegisterForUpdate(UPDATE_NS_PREFIX .. "CoreStatus", CORE_STATUS_TICK_MS, m_loopTicks.coreStatus)
+    EVENT_MANAGER:RegisterForUpdate(UPDATE_NS_PREFIX .. "CooldownVisuals", COOLDOWN_VISUAL_TICK_MS, m_loopTicks.cooldownVisuals)
+    EVENT_MANAGER:RegisterForUpdate(UPDATE_NS_PREFIX .. "OrbAnimation", ANIMATION_TICK_MS, m_loopTicks.orbAnimation)
     m_loopsRegistered = true
 end
 
 local function UnregisterLoopUpdates()
     if not m_loopsRegistered then return end
-    EVENT_MANAGER:UnregisterForUpdate(NAME .. "CoreStatus")
-    EVENT_MANAGER:UnregisterForUpdate(NAME .. "CooldownVisuals")
-    EVENT_MANAGER:UnregisterForUpdate(NAME .. "OrbAnimation")
+    EVENT_MANAGER:UnregisterForUpdate(UPDATE_NS_PREFIX .. "CoreStatus")
+    EVENT_MANAGER:UnregisterForUpdate(UPDATE_NS_PREFIX .. "CooldownVisuals")
+    EVENT_MANAGER:UnregisterForUpdate(UPDATE_NS_PREFIX .. "OrbAnimation")
     m_loopsRegistered = false
 end
 

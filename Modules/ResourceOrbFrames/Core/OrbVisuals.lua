@@ -127,12 +127,20 @@ end
 
 function BetterUIOrbBar:RefreshLabel()
     if self.label ~= nil then
+        local labelText
         if self.currentValue >= 1000000 then
-            self.label:SetText(string.format("%.1fM", self.currentValue / 1000000))
+            labelText = string.format("%.1fM", self.currentValue / 1000000)
         elseif self.currentValue >= 1000 then
-            self.label:SetText(string.format("%.0fk", self.currentValue / 1000))
+            labelText = string.format("%.0fk", self.currentValue / 1000)
         else
-            self.label:SetText(string.format("%d", self.currentValue))
+            labelText = string.format("%d", self.currentValue)
+        end
+        -- Driven every animation frame during the 500ms smooth-transition after
+        -- each power change; the bucketed string is identical across most of
+        -- those frames. Latch it and skip the redundant SetText.
+        if labelText ~= self._lastLabelText then
+            self._lastLabelText = labelText
+            self.label:SetText(labelText)
         end
     end
 end

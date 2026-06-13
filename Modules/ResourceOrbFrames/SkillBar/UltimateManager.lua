@@ -132,7 +132,7 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
         if fillLeft and fillRight then
             local slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
             local abilityCost = GetSlotAbilityCost(slotIndex, COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE, GetActiveHotbarCategory())
-            local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
+            local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE) or 0
 
             if abilityCost and abilityCost > 0 then
                 local fillPercent = math.min(1, currentUltimate / abilityCost)
@@ -201,7 +201,7 @@ local function UpdateFrontBarUltimateNumber(rootFrame)
         local countText = ultBtn:GetNamedChild("UltimateText")
         if countText then
             if settings.showUltimateNumber then
-                local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
+                local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE) or 0
                 countText:SetText(currentUltimate)
                 countText:SetHidden(false)
                 ApplyUltimateNumberStyle(ultBtn, countText, settings)

@@ -175,7 +175,47 @@ function CastBar:Update()
     end
 end
 
+--- Applies static XP bar styling (dimensions, backdrop, font, label anchor).
+--- Cheap when nothing changed: re-applies only when the style-affecting
+--- settings values differ from the last applied ones (mirrors CastBar /
+--- MountStaminaBar ApplyStaticStyle).
+---@param settings table Module settings (live table)
+---@return number w Bar width
+---@return number h Bar height
+function ExperienceBar:ApplyStaticStyle(settings)
+    local w = XP.WIDTH or 250
+    local h = XP.HEIGHT or 150
+    local textSize = ClampTextSize(settings.xpBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
+    local color = settings.xpBarTextColor or { 1, 1, 1, 1 }
+    local r, g, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
+    if self.appliedTextSize == textSize and self.appliedTextR == r and self.appliedTextG == g
+        and self.appliedTextB == b and self.appliedTextA == a then
+        return w, h
+    end
+    self.appliedTextSize = textSize
+    self.appliedTextR, self.appliedTextG, self.appliedTextB, self.appliedTextA = r, g, b, a
+
+    self.control:SetDimensions(w, h)
+    self.control:SetScale(XP.SCALE or 1.0)
+    if self.backdrop then
+        self.backdrop:SetDimensions(w, h)
+        self.backdrop:ClearAnchors()
+        self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
+    end
+    self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
+    self.label:SetColor(r, g, b, a)
+    local labelOffsetX, labelOffsetY = self:GetLabelAnchorOffsets(w, h,
+        XP.LABEL_OFFSET_X or 0,
+        XP.LABEL_OFFSET_Y or 0)
+    self.label:ClearAnchors()
+    self.label:SetAnchor(CENTER, self.control, CENTER, labelOffsetX, labelOffsetY)
+    return w, h
+end
+
 --- Updates XP/Champion bar fill and label text.
+--- Runs on a raw per-frame OnUpdate; latches static style (ApplyStaticStyle)
+--- and the computed label text / current+max so the steady-state per-frame
+--- cost is a few cheap reads plus comparisons.
 function ExperienceBar:Update()
     if not self.control then return end
     local settings = GetLiveSettings()
@@ -186,12 +226,17 @@ function ExperienceBar:Update()
     end
     self.control:SetHidden(false)
 
+    local w, h = self:ApplyStaticStyle(settings)
+    local insetX = XP.FILL_INSET_X or 8
+    local insetY = XP.FILL_INSET_Y or 4
+
     local isChampion = IsUnitChampion("player")
-    local current, max, effectiveMax, labelText
+    local current, effectiveMax, labelText
 
     if isChampion then
         local currentCP = GetPlayerChampionPointsEarned()
         current = GetPlayerChampionXP()
+        local max
         local success, size = BETTERUI.CIM.SafeExecute("OrbBarUpdates.championXP", GetNumChampionXPInChampionPoint, currentCP)
         if success and size then max = size else max = 400000 end
         if max <= 0 then max = 1 end
@@ -199,39 +244,25 @@ function ExperienceBar:Update()
         local percent = math.floor((current / max) * 100)
         labelText = string.format("CP: %d (%d%%)", currentCP, percent)
     else
-        current = GetUnitXP("player")
-        max = GetUnitXPMax("player")
-        labelText = string.format("XP: %d / %d", current, max)
-        effectiveMax = max
+        -- GetUnitXP/GetUnitXPMax can return nil at edge cases (e.g. max-level
+        -- non-champion); coerce to numbers before %d / arithmetic.
+        current = GetUnitXP("player") or 0
+        effectiveMax = GetUnitXPMax("player") or 0
+        labelText = string.format("XP: %d / %d", current, effectiveMax)
     end
 
-    local size = ClampTextSize(settings.xpBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
-    local color = settings.xpBarTextColor or { 1, 1, 1, 1 }
-    self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
-    self.label:SetColor(unpack(color))
-    self.label:SetText(labelText)
-
-    local insetX = XP.FILL_INSET_X or 8
-    local insetY = XP.FILL_INSET_Y or 4
-    local w = XP.WIDTH or 250
-    local h = XP.HEIGHT or 150
-
-    self.control:SetDimensions(w, h)
-    self.control:SetScale(XP.SCALE or 1.0)
-
-    if self.backdrop then
-        self.backdrop:SetDimensions(w, h)
-        self.backdrop:ClearAnchors()
-        self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
+    -- Latch the label text and value state: skip SetText / UpdateVisuals churn
+    -- when nothing changed since the last frame.
+    if labelText ~= self.appliedLabelText then
+        self.appliedLabelText = labelText
+        self.label:SetText(labelText)
     end
 
-    local xpLabelOffsetX, xpLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
-        XP.LABEL_OFFSET_X or 0,
-        XP.LABEL_OFFSET_Y or 0)
-    self.label:ClearAnchors()
-    self.label:SetAnchor(CENTER, self.control, CENTER, xpLabelOffsetX, xpLabelOffsetY)
-
-    self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
+    if current ~= self.appliedCurrent or effectiveMax ~= self.appliedEffectiveMax then
+        self.appliedCurrent = current
+        self.appliedEffectiveMax = effectiveMax
+        self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
+    end
 end
 
 --- Applies static mount bar styling (dimensions, backdrop, font, label anchor).
