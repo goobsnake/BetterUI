@@ -94,6 +94,14 @@ assert_true(source:find("isTwoHanded and equipSlot ~= EQUIP_SLOT_MAIN_HAND") ~= 
     "ResolveCompanionEquipSlot restricts two-handed weapons to MAIN_HAND")
 assert_true(source:find("BETTERUI_COMPANIONS_CONFIRM_EQUIP_BOE") ~= nil,
     "CompanionActions registers a local BoE confirm dialog fallback")
+-- ESO ships no "CONFIRM_EQUIP_BOE" dialog, so the old native-reuse probe was dead code that
+-- always fell through to the custom dialog. The equip path must use the custom dialog directly.
+assert_true(source:find('"CONFIRM_EQUIP_BOE"', 1, true) == nil,
+    "TryEquipCompanionItem no longer probes the nonexistent native CONFIRM_EQUIP_BOE dialog")
+assert_true(source:find("local dialogName = ", 1, true) == nil,
+    "TryEquipCompanionItem no longer branches on a probed native dialog name")
+assert_true(source:find("ZO_Dialogs_ShowPlatformDialog%(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, %{ callback = DoEquip %}") ~= nil,
+    "TryEquipCompanionItem shows the custom BoE confirm dialog directly")
 assert_true(source:find("FindFirstEmptySlotInBag%(BAG_BACKPACK%)") ~= nil,
     "TryUnequipCompanionItem finds the destination slot via FindFirstEmptySlotInBag")
 assert_true(source:find("GetNumBagFreeSlots%(BAG_BACKPACK%)") == nil,

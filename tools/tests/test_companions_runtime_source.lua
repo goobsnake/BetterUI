@@ -99,6 +99,22 @@ assert_contains(itemListSource, "GetItemCooldownInfo(BAG_BACKPACK, slotIndex)",
     "Companion item list reads cooldown info for backpack items")
 assert_contains(itemListSource, "entry:SetCooldown(remaining, duration)",
     "Companion item list applies cooldown overlays to list entries")
+-- Companion entryData must carry slotType (matching native companionequipment_gamepad.lua,
+-- which calls ZO_InventorySlot_SetType(entryData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)) so the
+-- engine destroy-eligibility probe in CIM.ProtectionPolicy.CanDestroyItem actually runs
+-- instead of being skipped on a nil slotType.
+assert_contains(itemListSource, "slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM",
+    "Companion item list tags entryData with the gamepad inventory slot type for the destroy probe")
+do
+    local slotTypeCount = 0
+    for _ in itemListSource:gmatch("slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM") do
+        slotTypeCount = slotTypeCount + 1
+    end
+    if slotTypeCount ~= 2 then
+        error("Both equipped and backpack companion entryData carry the gamepad inventory slot type"
+            .. "\nExpected 2 occurrences of slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM, found " .. slotTypeCount)
+    end
+end
 
 assert_contains(moduleSource, "local instance, initErr = Companions.InitializeRuntime()",
     "Companions Module.lua handles runtime bootstrap failures explicitly")

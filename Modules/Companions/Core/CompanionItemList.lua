@@ -242,6 +242,11 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
                         quality = quality,
                         bagId = BAG_COMPANION_WORN,
                         slotIndex = slotIndex,
+                        -- Match native companionequipment_gamepad.lua (sets the slot type via
+                        -- ZO_InventorySlot_SetType) so CIM.ProtectionPolicy.CanDestroyItem runs the
+                        -- engine ZO_InventorySlot_CanDestroyItem eligibility probe instead of
+                        -- skipping it on a nil slotType.
+                        slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM,
                         isEquipped = true,
                         isEquippedInCurrentCategory = true,
                         isCompanionItem = true,
@@ -334,6 +339,11 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
                         quality = quality,
                         bagId = BAG_BACKPACK,
                         slotIndex = slotIndex,
+                        -- Match native companionequipment_gamepad.lua (sets the slot type via
+                        -- ZO_InventorySlot_SetType) so CIM.ProtectionPolicy.CanDestroyItem runs the
+                        -- engine ZO_InventorySlot_CanDestroyItem eligibility probe instead of
+                        -- skipping it on a nil slotType.
+                        slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM,
                         isEquipped = false,
                         isCompanionItem = true,
                         bestGamepadItemCategoryName = GetBestItemCategoryDescription
