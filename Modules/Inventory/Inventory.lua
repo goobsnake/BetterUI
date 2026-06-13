@@ -169,6 +169,9 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 	if EVENT_CURRENCY_UPDATE then
 		self.control:RegisterForEvent(EVENT_CURRENCY_UPDATE, refreshHeader)
 	end
+	if EVENT_CURRENCY_CAPS_CHANGED then
+		self.control:RegisterForEvent(EVENT_CURRENCY_CAPS_CHANGED, refreshHeader)
+	end
 
 	local function OnBagSpaceChanged()
 		if self.control:IsHidden() then
@@ -431,6 +434,7 @@ function BETTERUI.Inventory.Class:Select()
 	else
 		self:SwitchActiveList(GetInventoryListType("CRAFT_BAG"))
 	end
+	PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
 end
 
 --- Switches between item list and craft bag list.

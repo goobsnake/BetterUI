@@ -10,6 +10,10 @@ if false then
     dofile("Modules/Inventory/Inventory.lua")
 end
 
+-- ESO audio globals used by Class:Select (menu-forward on category enter).
+SOUNDS = SOUNDS or { GAMEPAD_MENU_FORWARD = "GAMEPAD_MENU_FORWARD" }
+function PlaySound(_) end
+
 local generatedFullSlotCalls = {}
 local createdControls = {}
 local shownDialogs = {}
