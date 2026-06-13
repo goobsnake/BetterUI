@@ -39,6 +39,21 @@ function BETTERUI.CIM.UserAlertText(id, text)
     alerts[#alerts + 1] = { id = id, text = text }
 end
 
+-- Mirror the production SafeExecute contract (Modules/CIM/Core/Diagnostics/
+-- SafeExecute.lua): pcall the function and return (ok, result) so a throwing
+-- native LoadSearchTable is contained rather than propagated.
+function BETTERUI.CIM.SafeExecute(context, fn, ...)
+    if type(fn) ~= "function" then
+        return false, "No function provided"
+    end
+    return pcall(fn, ...)
+end
+
+local apiVersion = 101044
+function GetAPIVersion()
+    return apiVersion
+end
+
 BETTERUI.TradingHouse.BrowseComponent = {
     currentPage = 0,
     executeSearchCount = 0,
@@ -61,7 +76,11 @@ TRADING_HOUSE_SEARCH = {
     GenerateSearchTableShortDescription = function(self, searchTable)
         return "Weapons"
     end,
+    throwOnLoad = false,
     LoadSearchTable = function(self, searchTable)
+        if self.throwOnLoad then
+            error("native LoadSearchTable rejected malformed table")
+        end
         self.loadedSearchTable = searchTable
     end,
 }
@@ -107,6 +126,8 @@ local function resetState()
     TRADING_HOUSE_SEARCH.createCount = 0
     TRADING_HOUSE_SEARCH.loadedSearchTable = nil
     TRADING_HOUSE_SEARCH.features = nil
+    TRADING_HOUSE_SEARCH.throwOnLoad = false
+    apiVersion = 101044
     BETTERUI.TradingHouse.BrowseComponent.currentPage = 5
     BETTERUI.TradingHouse.BrowseComponent.executeSearchCount = 0
 end
@@ -176,6 +197,56 @@ assert_eq(TRADING_HOUSE_SEARCH.loadedSearchTable.query, "bow", "Load passes sele
 assert_eq(Presets.Delete(1), true, "Delete succeeds for valid index")
 assert_eq(#Presets.GetAll(), 1, "Delete removes one preset")
 assert_eq(Presets.GetAll()[1].name, "B", "Delete removes selected entry")
+
+print("[SearchPresets.SaveCurrent stamps schema version]")
+resetState()
+TRADING_HOUSE_SEARCH.features = {}
+assert_true(Presets.SaveCurrent("Versioned"), "SaveCurrent stores valid preset")
+assert_eq(Presets.GetAll()[1].apiVersion, 101044, "SaveCurrent stamps the running API version")
+
+print("[SearchPresets.Load robustness]")
+-- A corrupt SavedVariables entry whose searchTable is not a table must fail
+-- gracefully (no crash) instead of being handed to the native loader.
+resetState()
+TRADING_HOUSE_SEARCH.features = {}
+settings.searchPresets = {
+    { name = "Corrupt", searchTable = "not-a-table", description = "bad" },
+}
+assert_eq(Presets.Load(1), false, "Load rejects a non-table searchTable")
+assert_eq(TRADING_HOUSE_SEARCH.loadedSearchTable, nil, "Corrupt preset is never passed to LoadSearchTable")
+assert_true(#alerts >= 1, "Load alerts when a preset is corrupt")
+
+-- A preset stamped with an incompatible API version is dropped before load.
+resetState()
+TRADING_HOUSE_SEARCH.features = {}
+settings.searchPresets = {
+    { name = "OldVer", searchTable = { query = "ring" }, description = "old", apiVersion = 100000 },
+}
+assert_eq(Presets.Load(1), false, "Load drops a preset from an incompatible API version")
+assert_eq(TRADING_HOUSE_SEARCH.loadedSearchTable, nil, "Incompatible preset is never passed to LoadSearchTable")
+
+-- Legacy presets saved before versioning (no apiVersion) are still attempted.
+resetState()
+TRADING_HOUSE_SEARCH.features = {}
+settings.searchPresets = {
+    { name = "Legacy", searchTable = { query = "staff" }, description = "legacy" },
+}
+assert_true(Presets.Load(1), "Load attempts a legacy (unversioned) preset")
+assert_eq(TRADING_HOUSE_SEARCH.loadedSearchTable.query, "staff", "Legacy preset is loaded under SafeExecute")
+
+-- A native LoadSearchTable that errors on a malformed table is contained by
+-- SafeExecute: Load returns false rather than propagating the error.
+resetState()
+TRADING_HOUSE_SEARCH.features = {}
+TRADING_HOUSE_SEARCH.throwOnLoad = true
+settings.searchPresets = {
+    { name = "Throws", searchTable = { query = "mace" }, description = "throws", apiVersion = 101044 },
+}
+local okCall = pcall(function()
+    return Presets.Load(1)
+end)
+assert_true(okCall, "Load does not propagate a throwing native LoadSearchTable")
+assert_eq(Presets.Load(1), false, "Load returns false when native LoadSearchTable errors")
 
 print("[SearchPresets.ShowSaveDialog]")
 resetState()

@@ -384,7 +384,9 @@ end
 function GetGuildName(guildId)
     return "Guild " .. tostring(guildId - 100)
 end
+local requestListingsCount = 0
 function RequestTradingHouseListings()
+    requestListingsCount = requestListingsCount + 1
 end
 function GetCurrencyAmount()
     return 1000
@@ -532,6 +534,34 @@ assert_eq(TH.BrowseComponent.resultsInvalidated, true,
     "selected-guild-changed invalidates browse results")
 assert_eq(TH.instance.updateTabHeaderCount, 1,
     "selected-guild-changed updates tab header")
+
+-- In LISTINGS mode while the scene is showing, the guild change requests
+-- fresh server listings.
+TH.instance:SetMode(TH.MODE.LISTINGS)
+requestListingsCount = 0
+selectedGuildChangedCallback()
+assert_eq(requestListingsCount, 1,
+    "selected-guild-changed requests listings when showing in listings mode")
+TH.instance:SetMode(TH.MODE.BROWSE)
+
+-- Off-scene guard: the guild selector UI calls SelectTradingHouseGuildId
+-- globally, so EVENT_TRADING_HOUSE_SELECTED_GUILD_CHANGED can fire while our
+-- scene is hidden. The handler must return early -- no server listings
+-- request and no header rebuild -- just like the sibling handlers.
+scene.showing = false
+TH.instance:SetMode(TH.MODE.LISTINGS)
+TH.BrowseComponent.resultsInvalidated = false
+TH.instance.updateTabHeaderCount = 0
+requestListingsCount = 0
+selectedGuildChangedCallback()
+assert_eq(requestListingsCount, 0,
+    "off-scene selected-guild-changed does not request listings")
+assert_eq(TH.instance.updateTabHeaderCount, 0,
+    "off-scene selected-guild-changed does not rebuild the header")
+assert_eq(TH.BrowseComponent.resultsInvalidated, false,
+    "off-scene selected-guild-changed does not invalidate browse results")
+scene.showing = true
+TH.instance:SetMode(TH.MODE.BROWSE)
 
 -- Status received refreshes listings when in listings mode.
 TH.instance:SetMode(TH.MODE.LISTINGS)

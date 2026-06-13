@@ -60,22 +60,22 @@ function Sell:IsPrimaryActionEnabled(thInstance)
     -- Must have a valid bag/slot
     if not ds.bagId or not ds.slotIndex then return false end
 
-    -- Item must be sellable at trading house
-    if IsItemBound and ds.bagId and ds.slotIndex then
-        if IsItemBound(ds.bagId, ds.slotIndex) then return false end
-    end
-
-    local itemLink = ds.itemLink or (GetItemLink and GetItemLink(ds.bagId, ds.slotIndex))
-    if itemLink and GetItemLinkSellInformation then
-        local sellInfo = GetItemLinkSellInformation(itemLink)
-        if sellInfo == ITEM_SELL_INFORMATION_CANNOT_SELL
-            or sellInfo == ITEM_SELL_INFORMATION_CANNOT_TRADE then
+    -- Gate on the guild's sell privilege the same way the native sell screen
+    -- does (tradinghouse_sell_gamepad.lua:178-179): the selected item is only
+    -- listable when CanSellOnTradingHouse(selectedGuild) is true.
+    if CanSellOnTradingHouse and GetSelectedTradingHouseGuildId then
+        if not CanSellOnTradingHouse(GetSelectedTradingHouseGuildId()) then
             return false
         end
     end
 
-    if IsItemBoPAndTradeable and ds.bagId and ds.slotIndex then
-        if IsItemBoPAndTradeable(ds.bagId, ds.slotIndex) then return false end
+    -- IsItemSellableOnTradingHouse is the engine's canonical sellability test
+    -- (tradinghouse_sell_gamepad.lua:124). It already accounts for bound,
+    -- locked, stolen, and BoP-tradeable state, so use it as the authority
+    -- rather than a hand-rolled chain that produced false negatives (e.g.
+    -- BoP-tradeable items that ARE sellable).
+    if IsItemSellableOnTradingHouse then
+        return IsItemSellableOnTradingHouse(ds.bagId, ds.slotIndex) == true
     end
 
     return true
@@ -91,27 +91,24 @@ function Sell:OnPrimaryAction(thInstance)
     local slotIndex = ds.slotIndex
     if not bagId or not slotIndex then return end
 
-    -- Check if item can be listed
-    if IsItemBound and IsItemBound(bagId, slotIndex) then
-        BETTERUI.CIM.UserAlertText("TH:BoundItem",
-            GetString(rawget(_G, "SI_BETTERUI_TH_CANNOT_LIST_BOUND")))
-        return
-    end
-
-    local itemLink = GetItemLink(bagId, slotIndex)
-    if itemLink and GetItemLinkSellInformation then
-        local sellInfo = GetItemLinkSellInformation(itemLink)
-        if sellInfo == ITEM_SELL_INFORMATION_CANNOT_SELL
-            or sellInfo == ITEM_SELL_INFORMATION_CANNOT_TRADE then
-            BETTERUI.CIM.UserAlertText("TH:CannotList",
+    -- Gate on the guild's sell privilege first, matching the native sell
+    -- screen (tradinghouse_sell_gamepad.lua:178-179). Without sell permission
+    -- in the selected guild the post would be rejected server-side.
+    if CanSellOnTradingHouse and GetSelectedTradingHouseGuildId then
+        if not CanSellOnTradingHouse(GetSelectedTradingHouseGuildId()) then
+            BETTERUI.CIM.UserAlertText("TH:CannotSellGuild",
                 GetString(rawget(_G, "SI_BETTERUI_TH_CANNOT_LIST")) or "This item cannot be listed")
             return
         end
     end
 
-    if IsItemBoPAndTradeable and IsItemBoPAndTradeable(bagId, slotIndex) then
-        BETTERUI.CIM.UserAlertText("TH:BoundItem",
-            GetString(rawget(_G, "SI_BETTERUI_TH_CANNOT_LIST_BOUND")))
+    -- IsItemSellableOnTradingHouse is the engine's canonical sellability test
+    -- (tradinghouse_sell_gamepad.lua:124) and supersedes the previous
+    -- hand-rolled bound/sell-info/BoP chain, which excluded sellable
+    -- BoP-tradeable items.
+    if IsItemSellableOnTradingHouse and not IsItemSellableOnTradingHouse(bagId, slotIndex) then
+        BETTERUI.CIM.UserAlertText("TH:CannotList",
+            GetString(rawget(_G, "SI_BETTERUI_TH_CANNOT_LIST")) or "This item cannot be listed")
         return
     end
 
@@ -170,20 +167,19 @@ function Sell:BuildList(thInstance)
         if stackCount and stackCount > 0 then
             -- GetItemInfo returns: icon, stack, sellPrice, meetsUsageRequirement,
             -- locked, equipType, itemStyleId, functionalQuality, displayQuality.
-            local icon, stack, sellPrice, _, locked,
+            local icon, stack, sellPrice, _, _,
                 _, _, _, displayQuality = GetItemInfo(bagId, slotIndex)
 
-            -- Skip bound/locked/stolen/untradeable items
-            local isBound = IsItemBound and IsItemBound(bagId, slotIndex) or false
-            local isStolen = IsItemStolen and IsItemStolen(bagId, slotIndex) or false
-            local isBoPTradeable = IsItemBoPAndTradeable and IsItemBoPAndTradeable(bagId, slotIndex) or false
+            -- IsItemSellableOnTradingHouse is the engine's canonical item filter
+            -- (tradinghouse_sell_gamepad.lua:124). It is the single authority for
+            -- listability and already covers bound/locked/stolen/BoP-tradeable/
+            -- cannot-sell state, so the previous hand-rolled exclusion chain
+            -- (which wrongly dropped sellable BoP-tradeable items) is removed.
+            local isSellable = (not IsItemSellableOnTradingHouse)
+                or IsItemSellableOnTradingHouse(bagId, slotIndex)
             local itemLink = GetItemLink(bagId, slotIndex)
-            local sellInfo = itemLink and GetItemLinkSellInformation
-                and GetItemLinkSellInformation(itemLink)
-                or ITEM_SELL_INFORMATION_NONE
-            local cannotSell = sellInfo == ITEM_SELL_INFORMATION_CANNOT_SELL
 
-            if not isBound and not locked and not isStolen and not isBoPTradeable and not cannotSell and icon ~= nil then
+            if isSellable and icon ~= nil then
                 local itemName = GetItemName(bagId, slotIndex)
                 if itemName and itemName ~= "" then
                     local quality  = displayQuality or ITEM_DISPLAY_QUALITY_NORMAL

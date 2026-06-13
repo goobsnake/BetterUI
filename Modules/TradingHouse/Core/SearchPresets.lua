@@ -22,6 +22,14 @@ local Presets = TH.SearchPresets
 
 local MAX_PRESETS = 20
 
+-- Schema version stamped onto each saved preset. Presets carrying an API
+-- version other than the running client's are treated as cross-version and
+-- loaded defensively (see Presets.Load). Presets without a version field are
+-- legacy entries saved before this guard existed and are still attempted.
+local function CurrentSchemaVersion()
+    return GetAPIVersion and GetAPIVersion() or nil
+end
+
 local function L(stringIdName)
     return GetString(rawget(_G, stringIdName) or stringIdName)
 end
@@ -68,6 +76,7 @@ function Presets.SaveCurrent(name)
         name = name,
         searchTable = searchTable,
         description = description,
+        apiVersion = CurrentSchemaVersion(),
     })
 
     TH.SetSetting("searchPresets", presets)
@@ -88,7 +97,38 @@ function Presets.Load(index)
         return false
     end
 
-    TRADING_HOUSE_SEARCH:LoadSearchTable(preset.searchTable)
+    -- Validate the persisted table before handing it to the native loader. A
+    -- cross-version or corrupt SavedVariables entry can error inside
+    -- LoadSearchTable, so it must fail gracefully rather than crash the addon.
+    if type(preset.searchTable) ~= "table" then
+        BETTERUI.CIM.UserAlertText("TH:PresetCorrupt",
+            GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_CORRUPT")) or "This preset could not be loaded")
+        return false
+    end
+
+    -- Drop presets stamped with an incompatible schema. Legacy presets saved
+    -- before versioning (apiVersion == nil) are treated as compatible and are
+    -- still attempted under the SafeExecute guard below.
+    local current = CurrentSchemaVersion()
+    if preset.apiVersion ~= nil and current ~= nil and preset.apiVersion ~= current then
+        BETTERUI.CIM.UserAlertText("TH:PresetIncompatible",
+            GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_INCOMPATIBLE")) or "This preset is from a different game version")
+        return false
+    end
+
+    -- LoadSearchTable is an external native call that can fail unpredictably on
+    -- malformed input; wrap it so the failure is contained (tribal-knowledge
+    -- "Error Handling Patterns").
+    local ok = BETTERUI.CIM.SafeExecute(
+        string.format("SearchPresets:Load:%s", tostring(preset.name)),
+        function()
+            TRADING_HOUSE_SEARCH:LoadSearchTable(preset.searchTable)
+        end)
+    if not ok then
+        BETTERUI.CIM.UserAlertText("TH:PresetCorrupt",
+            GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_CORRUPT")) or "This preset could not be loaded")
+        return false
+    end
     return true
 end
 

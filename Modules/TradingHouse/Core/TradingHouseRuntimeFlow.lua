@@ -307,12 +307,15 @@ function TH.RegisterCreateListingDialog()
                         local maxPrice = 999999999
                         control.label:SetText(data.text)
                         control.slider:SetMinMax(1, maxPrice)
-                        -- Use a fine step for low-value items so exact prices
-                        -- are reachable; keep a coarse step for very large
-                        -- values so the slider stays usable across the full
-                        -- 1..999,999,999 range.
+                        -- Use a fine step (1) for low/mid-value items so exact
+                        -- prices are reachable; only switch to a coarse step for
+                        -- genuinely large prices so the slider stays usable
+                        -- across the full 1..999,999,999 range. The threshold
+                        -- must test the item's price, not the fixed ceiling
+                        -- (which is constant and would make the coarse branch
+                        -- always taken, stranding mid-value exact prices).
                         local step = 1
-                        if maxPrice > 10000 then
+                        if defaultPrice > 10000 then
                             step = math.max(1, math.floor(defaultPrice / 20))
                         end
                         control.slider:SetValueStep(step)
@@ -554,7 +557,11 @@ function TH.OnSelectedTradingHouseGuildChanged()
     -- EVENT_TRADING_HOUSE_SELECTED_GUILD_CHANGED can fire from native guild
     -- selection as well as from our CycleGuild; invalidate stale browse state
     -- and refresh the header/list just like CycleGuild does.
-    if not TH.instance then
+    -- Guard on IsSceneShowing() like the sibling handlers: the guild selector
+    -- UI calls SelectTradingHouseGuildId globally, so this event can fire
+    -- off-scene and must not trigger a server RequestTradingHouseListings call
+    -- or a list rebuild while our scene is hidden.
+    if not TH.instance or not TH.instance:IsSceneShowing() then
         return
     end
     TH.ResetBrowseState()
