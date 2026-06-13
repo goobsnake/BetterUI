@@ -93,15 +93,37 @@ local function InstallStoreTooltipHooks()
 	end
 end
 
+-- Resolve the rendering-side scene gate so suppression and rendering share ONE
+-- source of truth. When BetterUI's enhancement will NOT render in the current
+-- context (an "incompatible" scene such as the housing furniture browser), the
+-- suppression hook must NOT fire — otherwise native top-section content (the
+-- set-collection Collected/Uncollected line, bound/stolen/stack-count lines) is
+-- stripped and any other addon's earlier-registered PreHook is blocked, in a
+-- context where BetterUI renders nothing to replace it. Mirrors the LayoutItem /
+-- equipped-text hooks in Tooltips.lua. (Compat fix; do not regress PB-004.)
+local function ShouldSuppressNativeTopLines()
+	local settings = BETTERUI.GetModuleSettings("CIM")
+	local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
+	if not enhancementsEnabled then
+		return false
+	end
+	local tooltipHelpers = GeneralInterface.Tooltips
+	local sceneGate = tooltipHelpers and tooltipHelpers.IsIncompatibleSceneActive
+	if type(sceneGate) == "function" and sceneGate() then
+		-- Enhancement is enabled but will not render in this scene; let native
+		-- top-lines and other addons' hooks run.
+		return false
+	end
+	return true
+end
+
 local function InstallTopLineSuppressionHooks()
 	local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
 	for _, tooltipType in ipairs(tooltipTypes) do
 		local tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
 		if tooltipControl and tooltipControl.AddTopLinesToTopSection and not tooltipControl._betteruiTopLinesHookInstalled then
 			ZO_PreHook(tooltipControl, "AddTopLinesToTopSection", function(self, topSection, itemLink, showPlayerLocked, tradeBoPData)
-				local settings = BETTERUI.GetModuleSettings("CIM")
-				local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
-				if enhancementsEnabled then
+				if ShouldSuppressNativeTopLines() then
 					local topSubsection = topSection:AcquireSection(self:GetStyle("topSubsectionItemDetails"))
 					topSection:AddSectionEvenIfEmpty(topSubsection)
 					return true

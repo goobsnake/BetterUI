@@ -354,6 +354,13 @@ local function IsIncompatibleSceneActive()
     return false
 end
 
+--- Shared scene-gate accessor. The rendering side (LayoutItem / equipped-text
+--- hooks) and the top-line suppression hook in Setup.lua MUST consult the same
+--- predicate so suppression can never fire in a context where BetterUI's
+--- enhancement does not render (which would strip native top-lines — e.g. the
+--- set-collection Collected/Uncollected line — and block other addons' hooks).
+Tooltips.IsIncompatibleSceneActive = IsIncompatibleSceneActive
+
 local function IsLikelyItemLink(itemLink)
     if type(itemLink) ~= "string" or itemLink == "" then
         return false

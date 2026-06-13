@@ -1260,6 +1260,143 @@ assertEqual(1, countOccurrences(reconPriorityText, "Reconstructed"),
 assertEqual(0, countOccurrences(reconPriorityText, "Collected"),
     "PB-004: reconstructed item does not also emit the Collected tag")
 
+-- --- Compat fix: AddTopLinesToTopSection suppression must be scene-gated ------
+-- The shared GAMEPAD_TOOLTIPS AddTopLinesToTopSection PreHook (Setup.lua) may
+-- only suppress native top-lines (return true) when BetterUI's enhancement will
+-- actually render in this context. In an incompatible/foreign scene it MUST let
+-- native + other addons' hooks run (return false/nil), otherwise native top
+-- section content (set-collection Collected/Uncollected line, bound/stolen/stack
+-- counts) vanishes and earlier-registered foreign PreHooks are blocked.
+print("\nTest: AddTopLinesToTopSection suppression is gated on the rendering-side scene check")
+
+local setupInstallers = BETTERUI.GeneralInterface._SetupInstallers or {}
+assertEqual(true, type(setupInstallers.InstallTopLineSuppressionHooks) == "function",
+    "Setup exposes InstallTopLineSuppressionHooks for the suppression-gate test")
+assertEqual(true, type(BETTERUI.GeneralInterface.Tooltips.IsIncompatibleSceneActive) == "function",
+    "Tooltips exposes the shared scene-gate predicate (single source of truth)")
+
+-- Mock top-section: AcquireSection / AddSectionEvenIfEmpty for the BetterUI
+-- subsection, plus AddLine on acquired subsections so the NATIVE path can emit
+-- its set-collection line and we can observe whether native ran.
+local function newMockTopSection()
+    local section = { _sections = {}, _lines = {} }
+    function section:AcquireSection(_)
+        local sub = { _lines = section._lines }
+        function sub:AddLine(text, _) section._lines[#section._lines + 1] = text end
+        return sub
+    end
+    function section:AddSectionEvenIfEmpty(_) section._sectionsAdded = (section._sectionsAdded or 0) + 1 end
+    return section
+end
+
+-- Native-equivalent AddTopLinesToTopSection: emits the set-collection line so we
+-- can prove native top-section content survives when suppression is gated off.
+-- Mirrors esoui/publicallingames/tooltip/itemtooltips.lua:168-229 (the real method
+-- this PreHook fronts) for the set-collection branch.
+local function nativeAddTopLines(self, topSection, itemLink, showPlayerLocked, tradeBoPData)
+    local topSubsection = topSection:AcquireSection(self:GetStyle("topSubsectionItemDetails"))
+    if IsItemLinkReconstructed(itemLink) then
+        topSubsection:AddLine(GetString(SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_RECONSTRUCTED), "itemSetCollection")
+    elseif IsItemLinkSetCollectionPiece(itemLink) then
+        local itemId = GetItemLinkItemId(itemLink)
+        if IsItemSetCollectionPieceUnlocked(itemId) then
+            topSubsection:AddLine(GetString(SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_UNLOCKED), "itemSetCollection")
+        else
+            topSubsection:AddLine(GetString(SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_LOCKED), "itemSetCollection")
+        end
+    end
+    topSection:AddSectionEvenIfEmpty(topSubsection)
+end
+
+-- Build a fresh tooltip control wired with the native method, then install the
+-- production suppression PreHook on it via the real Setup installer.
+local topLineControls = {}
+local function buildTopLineTooltip(tooltipType)
+    local control = {
+        _betterui_styles = {},
+        AddTopLinesToTopSection = nativeAddTopLines,
+    }
+    function control:GetStyle(name) return name end
+    topLineControls[tooltipType] = control
+    return control
+end
+
+local topLineGetTooltip = function(_, tooltipType) return topLineControls[tooltipType] end
+local prevGetTooltip = GAMEPAD_TOOLTIPS.GetTooltip
+GAMEPAD_TOOLTIPS.GetTooltip = topLineGetTooltip
+buildTopLineTooltip(GAMEPAD_LEFT_TOOLTIP)
+buildTopLineTooltip(GAMEPAD_RIGHT_TOOLTIP)
+buildTopLineTooltip(GAMEPAD_MOVABLE_TOOLTIP)
+
+-- Install the REAL production suppression hook on these fresh controls.
+setupInstallers.InstallTopLineSuppressionHooks()
+GAMEPAD_TOOLTIPS.GetTooltip = prevGetTooltip
+
+-- Drive a hooked control's AddTopLinesToTopSection. Returns:
+--   sectionsAdded -> # of subsections injected (BetterUI inject + any native run)
+--   collectionLine -> the set-collection text the NATIVE path emitted (nil if native skipped)
+local function runTopLineHook(tooltipType, itemLink)
+    local control = topLineControls[tooltipType]
+    local topSection = newMockTopSection()
+    control:AddTopLinesToTopSection(topSection, itemLink, false, nil)
+    return topSection._sectionsAdded or 0, findLine(topSection._lines, "Collected") or findLine(topSection._lines, "Uncollected")
+end
+
+-- Stub the shared scene-gate so the suppression hook sees each context.
+local realSceneGate = BETTERUI.GeneralInterface.Tooltips.IsIncompatibleSceneActive
+local sceneIsIncompatible = false
+BETTERUI.GeneralInterface.Tooltips.IsIncompatibleSceneActive = function() return sceneIsIncompatible end
+
+-- (a) BetterUI-enhanced context: enhancements ON, scene compatible -> suppress
+-- native (BetterUI renders), native set-collection line is NOT emitted by THIS
+-- method (the PB-004 path emits it separately, already asserted above).
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = true
+sceneIsIncompatible = false
+local enhSections, enhCollection = runTopLineHook(GAMEPAD_LEFT_TOOLTIP, "item:set-unlocked")
+assertEqual(true, enhSections >= 1,
+    "Compat: enhanced context injects the BetterUI top subsection")
+assertEqual(nil, enhCollection,
+    "Compat: enhanced context suppresses the native top-lines (PreHook returned true)")
+
+-- PB-004 guard: the set-collection segment still appears inside BetterUI-enhanced
+-- tooltips. The enhanced path renders it via UpdateTooltipEquippedText (the same
+-- code the PB-004 cases above exercise) — confirm that path still emits it while
+-- the suppression hook is active and gated to the enhanced context.
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = true
+sceneIsIncompatible = false
+local pb004WithSuppression = statusTextForFixture("item:set-unlocked")
+assertContains(pb004WithSuppression, "Collected",
+    "PB-004 not regressed: enhanced tooltip still shows the set-collection Collected tag while suppression is active")
+
+-- (b) Incompatible/foreign context: enhancements ON, scene incompatible -> do
+-- NOT suppress; native top-lines run (set-collection line present) and other
+-- addons' earlier PreHooks are not blocked.
+sceneIsIncompatible = true
+local incSections, incCollection = runTopLineHook(GAMEPAD_RIGHT_TOOLTIP, "item:set-unlocked")
+assertEqual(1, incSections,
+    "Compat: incompatible context lets ONLY the native top-section run (BetterUI did not inject)")
+assertEqual(true, incCollection ~= nil,
+    "Compat: incompatible context preserves the native set-collection line (PreHook returned false/nil)")
+
+local incLockedSections, incLockedCollection = runTopLineHook(GAMEPAD_RIGHT_TOOLTIP, "item:set-locked")
+assertEqual(1, incLockedSections,
+    "Compat: incompatible context runs native for a locked set piece too")
+assertContains(incLockedCollection or "", "Uncollected",
+    "Compat: incompatible context preserves the native Uncollected line")
+
+-- (c) Enhancements OFF: never suppress, regardless of scene (native + foreign run).
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = false
+sceneIsIncompatible = false
+local offSections, offCollection = runTopLineHook(GAMEPAD_LEFT_TOOLTIP, "item:set-unlocked")
+assertEqual(1, offSections,
+    "Compat: enhancements OFF lets the native top-section run (no BetterUI injection)")
+assertEqual(true, offCollection ~= nil,
+    "Compat: enhancements OFF preserves the native set-collection line")
+
+-- Restore shared state so any later code/tests see the real predicate + ON setting.
+BETTERUI.GeneralInterface.Tooltips.IsIncompatibleSceneActive = realSceneGate
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = true
+
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", testsPassed))
 print(string.format("Failed: %d", testsFailed))
