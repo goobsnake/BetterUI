@@ -268,19 +268,7 @@ function Nameplates.InitModule(m_options)
     local isEnglish = (currentLang == "en")
 
     if not isEnglish then
-        local westernOnlyFonts = {
-            ["EsoUI/Common/Fonts/Univers57.otf"] = true,
-            ["EsoUI/Common/Fonts/Univers67.otf"] = true,
-            ["EsoUI/Common/Fonts/FTN57.otf"] = true,
-            ["EsoUI/Common/Fonts/FTN47.otf"] = true,
-            ["EsoUI/Common/Fonts/FTN87.otf"] = true,
-            ["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
-            ["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
-            ["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
-            ["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
-            ["EsoUI/Common/Fonts/consola.otf"] = true,
-        }
-        if m_options.font and westernOnlyFonts[m_options.font] then
+        if m_options.font and BETTERUI.CIM.Font.Localization.IsFontWesternOnly(m_options.font) then
             m_options.font = "$(BOLD_FONT)"
         end
     end

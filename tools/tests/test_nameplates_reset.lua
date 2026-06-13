@@ -84,6 +84,22 @@ BETTERUI = {
                 GetFilteredFontValues = function(_, values)
                     return values
                 end,
+                -- Mirrors the canonical helper Nameplates now consumes (HUD-003).
+                WESTERN_ONLY_FONTS = {
+                    ["EsoUI/Common/Fonts/Univers57.otf"] = true,
+                    ["EsoUI/Common/Fonts/Univers67.otf"] = true,
+                    ["EsoUI/Common/Fonts/FTN57.otf"] = true,
+                    ["EsoUI/Common/Fonts/FTN47.otf"] = true,
+                    ["EsoUI/Common/Fonts/FTN87.otf"] = true,
+                    ["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
+                    ["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
+                    ["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
+                    ["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
+                    ["EsoUI/Common/Fonts/consola.otf"] = true,
+                },
+                IsFontWesternOnly = function(fontPath)
+                    return BETTERUI.CIM.Font.Localization.WESTERN_ONLY_FONTS[fontPath] == true
+                end,
             },
         },
     },
