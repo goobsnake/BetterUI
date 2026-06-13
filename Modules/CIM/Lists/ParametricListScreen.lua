@@ -34,9 +34,11 @@ function BETTERUI_Gamepad_ParametricList_Screen:Initialize(control, createTabBar
     self.activateOnShow = (activateOnShow ~= false) -- nil should be true
     self:SetScene(scene)
 
-    local headerContainer = container:GetNamedChild("HeaderContainer")
-    control.header = headerContainer.header
-    self.headerFragment = ZO_ConveyorSceneFragment:New(headerContainer, ALWAYS_ANIMATE)
+    -- Mirror ZO_Gamepad_ParametricList_Screen:Initialize: store the header
+    -- container on self so the inherited GetHeaderContainer() returns it.
+    self.headerContainer = container:GetNamedChild("HeaderContainer")
+    control.header = self.headerContainer.header
+    self.headerFragment = ZO_ConveyorSceneFragment:New(self.headerContainer, ALWAYS_ANIMATE)
 
     self.header = control.header
 

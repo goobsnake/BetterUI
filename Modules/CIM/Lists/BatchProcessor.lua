@@ -138,6 +138,7 @@ function BETTERUI.CIM.Lists.BatchProcessor:Reset()
     self.onProcessItem = nil
     self.onComplete = nil
     self.isActiveCheck = nil
+    self.batchCallId = nil
 end
 
 ---@return boolean

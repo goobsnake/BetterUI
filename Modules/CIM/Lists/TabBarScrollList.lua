@@ -142,11 +142,16 @@ function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialU
 
     -- Fire selection changed callback
     if (self.selectedData ~= oldSelectedData or initialUpdate) and not blockSelectionChangedCallback then
-        -- Fire generic ZO callback
+        -- Fire generic ZO callback. In non-carousel mode the registered
+        -- _zo_selectedDataChangedWrapper forwards this to the user callback
+        -- (exactly once); in carousel mode that wrapper is a no-op.
         self:FireCallbacks("SelectedDataChanged", self, self.selectedData, oldSelectedData, nil, self
             .targetSelectedIndex)
-        -- Fire our specific custom callback property
-        if self.onSelectedDataChangedCallback then
+        -- Fire our specific custom callback property directly ONLY in carousel
+        -- mode, where the wrapper above suppresses itself. Gating this to
+        -- carousel mode keeps dispatch exactly-once in both modes (carousel:
+        -- this direct call; non-carousel: the wrapper). See SetSelectedIndex.
+        if self.carouselMode and self.onSelectedDataChangedCallback then
             self.onSelectedDataChangedCallback(self, self.selectedData, oldSelectedData, reselectingDuringRebuild)
         end
     end
@@ -276,21 +281,14 @@ end
 ---@param allowEvenIfDisabled boolean?
 ---@param forceAnimation boolean?
 function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDisabled, forceAnimation)
-    -- BetterUI Fix: Capture old data BEFORE calling base class (which updates selectedData)
-    local oldSelectedData = self.selectedData
-    local oldSelectedIndex = self.selectedIndex
-
     BETTERUI_HorizontalParametricScrollList.SetSelectedIndex(self, selectedIndex, allowEvenIfDisabled, forceAnimation)
     self:RefreshPips()
     if self.UpdateAnchors then
+        -- UpdateAnchors is the sole selection-callback dispatcher: it fires the
+        -- user callback exactly once (carousel: direct; non-carousel: wrapper).
+        -- Do NOT re-fire onSelectedDataChangedCallback here -- doing so caused
+        -- the callback to run 2x (carousel) / 3x (non-carousel) per change.
         self:UpdateAnchors(selectedIndex, false, false, false)
-    end
-
-    -- BetterUI Fix: Fire callback directly if selection actually changed
-    -- This is necessary because the base class updates selectedData before UpdateAnchors,
-    -- causing the "selectedData ~= oldSelectedData" check to fail
-    if self.selectedIndex ~= oldSelectedIndex and self.onSelectedDataChangedCallback then
-        self.onSelectedDataChangedCallback(self, self.selectedData, oldSelectedData, false)
     end
 end
 
@@ -300,11 +298,14 @@ end
 ---@param dontCallSelectedDataChangedCallback boolean?
 function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedIndex, allowEvenIfDisabled,
                                                                     dontCallSelectedDataChangedCallback)
-    ZO_ParametricScrollList.SetSelectedIndexWithoutAnimation(self, selectedIndex, allowEvenIfDisabled,
-        dontCallSelectedDataChangedCallback)
+    -- Native sig: SetSelectedIndexWithoutAnimation(selectedIndex, allowEvenIfDisabled, forceAnimation).
+    -- This IS the without-animation path, so forceAnimation must be false; do NOT
+    -- forward the suppression flag into native's forceAnimation slot. Suppression
+    -- is honored on our carousel UpdateAnchors via blockSelectionChangedCallback (4th arg).
+    ZO_ParametricScrollList.SetSelectedIndexWithoutAnimation(self, selectedIndex, allowEvenIfDisabled, false)
     self:RefreshPips()
     if self.UpdateAnchors then
-        self:UpdateAnchors(selectedIndex, true, false, false)
+        self:UpdateAnchors(selectedIndex, true, false, dontCallSelectedDataChangedCallback == true)
     end
 end
 

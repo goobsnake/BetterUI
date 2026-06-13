@@ -52,12 +52,10 @@ assert_true(genericListManager:find("function BETTERUI%.CIM%.MenuEntryTemplateEq
     "GenericListManager exposes MenuEntryTemplateEquality")
 
 local horizontalScrollList = read_file("Modules/CIM/Lists/HorizontalScrollList.lua")
-assert_true(horizontalScrollList:find("BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass%(%)") ~= nil,
-    "HorizontalScrollList defines the shared horizontal gamepad list")
-assert_true(horizontalScrollList:find("function BETTERUI_HorizontalScrollList_Gamepad:Initialize%(control, templateName, numVisibleEntries, setupFunction,") ~= nil,
-    "HorizontalScrollList exposes Initialize")
-assert_true(horizontalScrollList:find("function BETTERUI_HorizontalScrollList_Gamepad:SetActive%(active%)") ~= nil,
-    "HorizontalScrollList exposes SetActive")
+-- The dead BETTERUI_HorizontalScrollList_Gamepad class was removed; the live
+-- header path uses BETTERUI_HorizontalParametricScrollList.
+assert_true(horizontalScrollList:find("BETTERUI_HorizontalScrollList_Gamepad") == nil,
+    "HorizontalScrollList no longer defines the dead non-parametric gamepad list class")
 assert_true(horizontalScrollList:find("BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass%(%)") ~= nil,
     "HorizontalScrollList defines the horizontal parametric list subclass")
 
