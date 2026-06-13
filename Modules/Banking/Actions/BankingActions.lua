@@ -6,7 +6,9 @@ function BETTERUI.Banking.Class:RefreshItemActions()
     if self.isInHeaderSortMode then
         return
     end
-    local targetData = self:GetList().selectedData
+    local list = self:GetList()
+    if not list or not self.itemActions then return end
+    local targetData = list.selectedData
     self.itemActions:SetInventorySlot(targetData)
 end
 

@@ -158,7 +158,7 @@ function BETTERUI.Banking.InitializeQuantityDialog()
         end,
 
         narrationText = function(dialog, itemName)
-            if not dialog or not dialog.slider then return nil end
+            if not dialog or not dialog.slider or not dialog.data then return nil end
             local stack2 = dialog.slider:GetValue()
             local stack1 = (dialog.data.sliderMax or 0) - stack2
             return SCREEN_NARRATION_MANAGER:CreateNarratableObject(
