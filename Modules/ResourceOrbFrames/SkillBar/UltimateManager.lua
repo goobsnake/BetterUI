@@ -131,7 +131,7 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
         local fillRight = ultBtn:GetNamedChild("FillAnimationRight")
         if fillLeft and fillRight then
             local slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
-            local abilityCost = GetSlotAbilityCost(slotIndex, GetActiveHotbarCategory())
+            local abilityCost = GetSlotAbilityCost(slotIndex, COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE, GetActiveHotbarCategory())
             local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
 
             if abilityCost and abilityCost > 0 then

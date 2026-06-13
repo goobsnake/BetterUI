@@ -36,7 +36,6 @@ local m_shieldBar = nil
 local m_experienceBar = nil
 local m_castBar = nil
 local m_mountStaminaBar = nil
-local m_foodTracker = nil
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
@@ -99,7 +98,6 @@ local function RefreshAllData()
         end
     end
 
-    if m_foodTracker then m_foodTracker:Update() end
     if m_experienceBar then m_experienceBar:Update() end
     if m_castBar then m_castBar:Update() end
     if m_mountStaminaBar then m_mountStaminaBar:Update() end
@@ -388,7 +386,6 @@ local function SetupModule(control)
         m_pools = Visuals.SetupPowerPools(control)
     end
     m_shieldBar = m_shieldBar or Visuals.SetupShieldBar(control, m_pools)
-    m_foodTracker = m_foodTracker or Bars.CreateFoodTracker(FindControl(control, 'FoodBar'))
     m_experienceBar = m_experienceBar or Bars.CreateExperienceBar(control)
     m_castBar = m_castBar or Bars.CreateCastBar(control)
     m_mountStaminaBar = m_mountStaminaBar or Bars.CreateMountStaminaBar(control)

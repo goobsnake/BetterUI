@@ -542,21 +542,8 @@ function MountStaminaBar:OnMountedStateChanged(isMounted)
     end
 end
 
----@class FoodBuffTracker : ZO_Object
----@field control table UI control
-local FoodBuffTracker = ZO_Object:Subclass()
-
----@param control table UI control
----@return FoodBuffTracker
-function FoodBuffTracker:New(control)
-    local obj = ZO_Object.New(self)
-    obj.control = control
-    return obj
-end
-
 -- Share class tables with OrbBarUpdates.lua before factory functions are attached.
 Bars.BetterUIBarFrame = BetterUIBarFrame
 Bars.CastBar = CastBar
 Bars.ExperienceBar = ExperienceBar
 Bars.MountStaminaBar = MountStaminaBar
-Bars.FoodBuffTracker = FoodBuffTracker

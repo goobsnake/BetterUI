@@ -226,7 +226,7 @@ local function HasFallbackPressUseFailure(slotIndex, hotbarCategory)
     local hasInsufficientUltimate = false
     local ultimateSlot = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
     if ultimateSlot and slotIndex == ultimateSlot then
-        local requiredUltimate = GetSlotAbilityCost(slotIndex, hotbarCategory)
+        local requiredUltimate = GetSlotAbilityCost(slotIndex, COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE, hotbarCategory)
         local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
         hasInsufficientUltimate = type(requiredUltimate) == "number" and requiredUltimate > 0 and
             type(currentUltimate) == "number" and currentUltimate < requiredUltimate

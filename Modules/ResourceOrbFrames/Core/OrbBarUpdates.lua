@@ -24,7 +24,6 @@ local GetLiveSettings = (Utils.Settings and Utils.Settings.GetLive) or Utils.Get
 local CastBar = Bars.CastBar
 local ExperienceBar = Bars.ExperienceBar
 local MountStaminaBar = Bars.MountStaminaBar
-local FoodBuffTracker = Bars.FoodBuffTracker
 
 ---@param fillColor table|nil Fill colour {r,g,b,a}
 ---@param depthColor table|nil Depth/gradient colour {r,g,b,a}
@@ -303,12 +302,6 @@ function MountStaminaBar:Update()
     end
 end
 
---- Placeholder update for food buff tracker.
-function FoodBuffTracker:Update()
-    -- Logic available in repo if needed, minimal placeholder here to prevent errors if referenced
-    if self.control and self.control.SetValue then self.control:SetValue(0) end
-end
-
 -- Export Factory Functions
 ---@param parent table Parent control
 ---@return CastBar
@@ -321,7 +314,3 @@ function Bars.CreateExperienceBar(parent) return ExperienceBar:New(parent) end
 ---@param parent table Parent control
 ---@return MountStaminaBar
 function Bars.CreateMountStaminaBar(parent) return MountStaminaBar:New(parent) end
-
----@param control table UI control
----@return FoodBuffTracker
-function Bars.CreateFoodTracker(control) return FoodBuffTracker:New(control) end

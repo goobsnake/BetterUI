@@ -74,8 +74,6 @@ assert_true(barUpdatesSource:find("function ExperienceBar:Update%(%)") ~= nil,
     "OrbBarUpdates exposes ExperienceBar Update")
 assert_true(barUpdatesSource:find("function MountStaminaBar:Update%(%)") ~= nil,
     "OrbBarUpdates exposes MountStaminaBar Update")
-assert_true(barUpdatesSource:find("function FoodBuffTracker:Update%(%)") ~= nil,
-    "OrbBarUpdates exposes FoodBuffTracker Update")
 assert_true(barUpdatesSource:find("function Bars%.CreateCastBar%(parent%) return CastBar:New%(parent%) end") ~= nil,
     "OrbBarUpdates exposes the cast bar factory")
 

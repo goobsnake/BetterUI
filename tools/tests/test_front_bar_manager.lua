@@ -72,6 +72,7 @@ ACTION_BAR_ULTIMATE_SLOT_INDEX = 7
 HOTBAR_CATEGORY_QUICKSLOT_WHEEL = 9
 HOTBAR_CATEGORY_COMPANION = 10
 POWERTYPE_ULTIMATE = 11
+COMBAT_MECHANIC_FLAGS_ULTIMATE = 64
 LEFT = "LEFT"
 RIGHT = "RIGHT"
 CENTER = "CENTER"
@@ -131,7 +132,13 @@ function ActionSlotHasRangeFailure(slotIndex, hotbarCategory)
     return rangeFailures[tostring(slotIndex) .. "_" .. tostring(hotbarCategory)] or false
 end
 
-function GetSlotAbilityCost(slotIndex, hotbarCategory)
+local lastSlotAbilityCostArgs = nil
+
+-- ORB-001: real signature is GetSlotAbilityCost(actionSlotIndex, mechanicType, hotbarCategory).
+-- The mechanicType (2nd) arg is required and must be the ultimate combat-mechanic flag for the
+-- ultimate slot; hotbarCategory is the 3rd arg. Record args so the regression test can assert them.
+function GetSlotAbilityCost(slotIndex, mechanicType, hotbarCategory)
+    lastSlotAbilityCostArgs = { slotIndex = slotIndex, mechanicType = mechanicType, hotbarCategory = hotbarCategory }
     return abilityCosts[tostring(slotIndex) .. "_" .. tostring(hotbarCategory)] or 0
 end
 
@@ -381,7 +388,15 @@ assert_true(not internals.ResolveNonCostFailureWithCastLatch(slotStateKey, false
 
 abilityCosts["8_" .. activeHotbarCategory] = 100
 currentUltimate = 50
+lastSlotAbilityCostArgs = nil
 assert_true(internals.HasInsufficientUltimate(8, activeHotbarCategory), "ultimate helper flags insufficient ultimate power")
+-- ORB-001 regression: the ultimate-cost call must pass the ultimate combat-mechanic flag as the
+-- REQUIRED 2nd (mechanicType) arg and the hotbar category as the 3rd arg, so a non-zero ultimate
+-- cost actually resolves (a 2-arg call put the category in the mechanicType slot and read cost 0).
+assert_true(lastSlotAbilityCostArgs ~= nil, "ultimate helper invokes GetSlotAbilityCost")
+assert_eq(lastSlotAbilityCostArgs.slotIndex, 8, "ultimate cost queries the ultimate slot index")
+assert_eq(lastSlotAbilityCostArgs.mechanicType, COMBAT_MECHANIC_FLAGS_ULTIMATE, "ultimate cost passes COMBAT_MECHANIC_FLAGS_ULTIMATE as the mechanicType (2nd) arg")
+assert_eq(lastSlotAbilityCostArgs.hotbarCategory, activeHotbarCategory, "ultimate cost passes the hotbar category as the 3rd arg")
 assert_true(not internals.HasInsufficientUltimate(3, activeHotbarCategory), "ultimate helper ignores non-ultimate slots")
 
 slotCooldowns["3_" .. activeHotbarCategory] = { remainMs = 2000, durationMs = 4000, isGlobalCooldown = false }

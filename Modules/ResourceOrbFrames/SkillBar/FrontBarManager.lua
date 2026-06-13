@@ -96,7 +96,7 @@ end
 local function HasInsufficientUltimate(slotIndex, hotbarCategory)
     local ultimateSlotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
     if slotIndex ~= ultimateSlotIndex then return false end
-    local abilityCost = GetSlotAbilityCost(slotIndex, hotbarCategory)
+    local abilityCost = GetSlotAbilityCost(slotIndex, COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE, hotbarCategory)
     if type(abilityCost) ~= "number" or abilityCost <= 0 then return false end
     local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
     if type(currentUltimate) ~= "number" then return false end

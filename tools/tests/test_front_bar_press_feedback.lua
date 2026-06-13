@@ -116,7 +116,9 @@ function ActionSlotHasRangeFailure(slotIndex, hotbarCategory)
     return slotFailures.range[SlotKey(slotIndex, hotbarCategory)] or false
 end
 
-function GetSlotAbilityCost(slotIndex, hotbarCategory)
+-- ORB-001: real signature is GetSlotAbilityCost(actionSlotIndex, mechanicType, hotbarCategory);
+-- mechanicType (2nd, required) is the combat-mechanic flag, hotbarCategory is the 3rd arg.
+function GetSlotAbilityCost(slotIndex, mechanicType, hotbarCategory)
     return slotAbilityCosts[SlotKey(slotIndex, hotbarCategory)] or 0
 end
 

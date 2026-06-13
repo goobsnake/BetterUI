@@ -259,15 +259,6 @@ function BETTERUI.ResourceOrbFrames.Visuals.UpdateOrbLayout()
     CountCall(visualCalls, "UpdateOrbLayout")
 end
 
-function BETTERUI.ResourceOrbFrames.Bars.CreateFoodTracker()
-    CountCall(barCalls, "CreateFoodTracker")
-    return {
-        Update = function()
-            CountCall(barCalls, "FoodTrackerUpdate")
-        end,
-    }
-end
-
 local function NewBar(key)
     return {
         control = NewControl(key .. "Control"),
@@ -375,7 +366,6 @@ local frontBarContainer = NewControl("FrontBarContainer")
 local backBarContainer = NewControl("BackBarContainer")
 local leftOrnament = NewControl("OrnamentLeft")
 local rightOrnament = NewControl("OrnamentRight")
-local foodBar = NewControl("FoodBar")
 local quickslotButton = NewControl("QuickslotButton")
 local companionButton = NewControl("CompanionButton")
 
@@ -386,7 +376,6 @@ rootFrame.children.FrontBarContainer = frontBarContainer
 rootFrame.children.BackBarContainer = backBarContainer
 rootFrame.children.OrnamentLeft = leftOrnament
 rootFrame.children.OrnamentRight = rightOrnament
-rootFrame.children.FoodBar = foodBar
 
 dofile("Modules/ResourceOrbFrames/ResourceOrbFrames.lua")
 

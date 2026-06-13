@@ -88,12 +88,6 @@ Purpose: Defines layout templates for Keyboard and Gamepad modes.
                         relativePoint="CENTER" offsetX="0" offsetY="0" />
                 </Texture>
 
-                <StatusBar name="$(parent)FoodBar">
-                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgMiddle"
-                        relativePoint="BOTTOMLEFT" offsetX="7" offsetY="-114" />
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)BgMiddle"
-                        relativePoint="BOTTOMRIGHT" offsetX="-7" offsetY="-114" />
-                </StatusBar>
             </Controls>
         </Control>
 

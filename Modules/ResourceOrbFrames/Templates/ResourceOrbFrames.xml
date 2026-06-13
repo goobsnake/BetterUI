@@ -151,25 +151,6 @@ Purpose: Main TopLevelControl for the Resource Orb Frames feature.
                         relativePoint="CENTER" offsetX="0" offsetY="0" />
                 </Texture>
 
-                <StatusBar name="$(parent)FoodBar" color="ba4d09" mouseEnabled="true" layer="0"
-                    level="1">
-                    <Limits min="0" max="100" />
-                    <Dimensions y="8" />
-                    <OnInitialized>
-                        self:SetValue(99)
-                        self.ttt = nil
-                    </OnInitialized>
-                    <OnMouseEnter>
-                        if self.ttt ~= nil then
-                        InitializeTooltip(InformationTooltip, self, CENTER, 0, -35, CENTER)
-                        SetTooltipText(InformationTooltip, self.ttt)
-                        end
-                    </OnMouseEnter>
-                    <OnMouseExit>
-                        ClearTooltip(InformationTooltip)
-                    </OnMouseExit>
-                </StatusBar>
-
                 <Control name="$(parent)OrbHealth">
                     <Dimensions x="240" y="240" />
                     <Controls>
