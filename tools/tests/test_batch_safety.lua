@@ -427,6 +427,186 @@ assertEqual(161, scheduledDelayHistory[8], "Delay increases by one adaptive step
 assertEqual(177, scheduledDelayHistory[9], "Delay keeps scaling on later queued actions with the real inventory profile")
 assertGreaterThan(scheduledDelayHistory[8], scheduledDelayHistory[7], "Adaptive backoff increases the scheduled delay after the threshold")
 
+-- =====================================================================
+-- PB-010: CIM batch junk/lock slot-identity revalidation
+-- Proves the real BatchActions step closures bail (no engine action) when the
+-- live slot no longer holds the originally selected item. Loads the REAL CIM
+-- slot-identity helpers and the REAL BatchActions step logic so the regression
+-- guards the shipped code paths, not a re-implementation.
+-- =====================================================================
+
+-- Engine + identity mocks for the real BatchActions step closures.
+local liveUniqueId = {}
+local liveItemLink = {}
+local junkFlag = {}
+local lockFlag = {}
+local junkActionCalls = {}
+local lockActionCalls = {}
+
+function Id64ToString(value)
+    return tostring(value)
+end
+
+function GetItemUniqueId(bagId, slotIndex)
+    return liveUniqueId[slotKey(bagId, slotIndex)]
+end
+
+function GetItemLink(bagId, slotIndex)
+    return liveItemLink[slotKey(bagId, slotIndex)]
+end
+
+function IsItemJunk(bagId, slotIndex)
+    return junkFlag[slotKey(bagId, slotIndex)] == true
+end
+
+function IsItemPlayerLocked(bagId, slotIndex)
+    return lockFlag[slotKey(bagId, slotIndex)] == true
+end
+
+function CanItemBeMarkedAsJunk()
+    return true
+end
+
+function SetItemIsJunk(bagId, slotIndex, isJunk)
+    junkActionCalls[#junkActionCalls + 1] = {
+        bagId = bagId, slotIndex = slotIndex, isJunk = isJunk,
+    }
+end
+
+function SetItemIsPlayerLocked(bagId, slotIndex, isLocked)
+    lockActionCalls[#lockActionCalls + 1] = {
+        bagId = bagId, slotIndex = slotIndex, isLocked = isLocked,
+    }
+end
+
+-- Real protection policy gates: allow everything so, absent the identity bail,
+-- the engine action WOULD fire. This isolates the identity check as the only
+-- thing that can stop the action.
+BETTERUI.CIM.ProtectionPolicy.CanJunkItem = function() return true end
+BETTERUI.CIM.ProtectionPolicy.CanUnjunkItem = function() return true end
+BETTERUI.CIM.ProtectionPolicy.CanLockItem = function() return true end
+BETTERUI.CIM.ProtectionPolicy.CanUnlockItem = function() return true end
+
+-- Load the real shared slot-identity helpers and the real batch step closures.
+dofile("Modules/CIM/Core/Utilities.lua")
+dofile("Modules/CIM/Core/Batching/BatchActions.lua")
+
+local RealBatchActions = BETTERUI.CIM.BatchActions
+
+--- Runs a single-item batch synchronously: prefilters via the real action, then
+--- invokes the captured step once with the stored itemData (3rd arg) exactly as
+--- the shipped ProcessBatchThrottled does.
+local function runSingleItemBatch(actionFn, selectedItem)
+    local capturedStep
+    local harness = {
+        multiSelectManager = {
+            GetSelectedItems = function()
+                return { selectedItem }
+            end,
+        },
+        ExitSelectionMode = function() end,
+        ProcessBatchThrottled = function(_, request)
+            capturedStep = request.step
+        end,
+    }
+    actionFn(harness)
+    if not capturedStep then
+        return false, "prefilter excluded the item"
+    end
+    local rawData = selectedItem.dataSource or selectedItem
+    local bagId = rawData.bagId or selectedItem.bagId
+    local slotIndex = rawData.slotIndex or selectedItem.slotIndex
+    capturedStep(bagId, slotIndex, selectedItem)
+    return true
+end
+
+local function setupLiveSlot(bagId, slotIndex, uniqueId, itemLink)
+    local key = slotKey(bagId, slotIndex)
+    slotStacks[key] = 1
+    liveUniqueId[key] = uniqueId
+    liveItemLink[key] = itemLink
+    junkFlag[key] = false
+    lockFlag[key] = false
+end
+
+local function resetIdentityEnvironment()
+    junkActionCalls = {}
+    lockActionCalls = {}
+    liveUniqueId = {}
+    liveItemLink = {}
+    junkFlag = {}
+    lockFlag = {}
+    slotStacks = {}
+end
+
+print("\nTest: CIM batch junk bails when the live slot identity differs (PB-010)")
+resetIdentityEnvironment()
+-- Live slot 5 now holds uniqueId "B"; the selection was captured for "A".
+setupLiveSlot(BAG_BACKPACK, 5, "B", "|linkB")
+local junkStaleItem = {
+    bagId = BAG_BACKPACK,
+    slotIndex = 5,
+    expectedSlotIdentity = {
+        bagId = BAG_BACKPACK,
+        slotIndex = 5,
+        uniqueId = "A",
+        itemLink = "|linkA",
+    },
+}
+local junkRan = runSingleItemBatch(RealBatchActions.BatchMarkAsJunk, junkStaleItem)
+assertTrue(junkRan, "Stale-identity junk item still reaches the batch step (prefilter passes)")
+assertEqual(0, #junkActionCalls, "SetItemIsJunk is NOT called when the live slot identity differs")
+
+print("\nTest: CIM batch junk still fires when the live slot identity matches")
+resetIdentityEnvironment()
+setupLiveSlot(BAG_BACKPACK, 6, "MATCH", "|linkMatch")
+local junkFreshItem = {
+    bagId = BAG_BACKPACK,
+    slotIndex = 6,
+    expectedSlotIdentity = {
+        bagId = BAG_BACKPACK,
+        slotIndex = 6,
+        uniqueId = "MATCH",
+        itemLink = "|linkMatch",
+    },
+}
+runSingleItemBatch(RealBatchActions.BatchMarkAsJunk, junkFreshItem)
+assertEqual(1, #junkActionCalls, "SetItemIsJunk IS called when the live slot identity matches")
+assertTrue(junkActionCalls[1] and junkActionCalls[1].isJunk == true, "Matching junk step marks the item as junk")
+
+print("\nTest: CIM batch lock bails when the live slot identity differs (PB-010)")
+resetIdentityEnvironment()
+setupLiveSlot(BAG_BACKPACK, 7, "LIVE7", "|linkLive7")
+local lockStaleItem = {
+    bagId = BAG_BACKPACK,
+    slotIndex = 7,
+    expectedSlotIdentity = {
+        bagId = BAG_BACKPACK,
+        slotIndex = 7,
+        uniqueId = "ORIG7",
+        itemLink = "|linkOrig7",
+    },
+}
+runSingleItemBatch(RealBatchActions.BatchLock, lockStaleItem)
+assertEqual(0, #lockActionCalls, "SetItemIsPlayerLocked is NOT called when the live slot identity differs")
+
+print("\nTest: CIM batch lock still fires when the live slot identity matches")
+resetIdentityEnvironment()
+setupLiveSlot(BAG_BACKPACK, 8, "LOCK8", "|linkLock8")
+local lockFreshItem = {
+    bagId = BAG_BACKPACK,
+    slotIndex = 8,
+    expectedSlotIdentity = {
+        bagId = BAG_BACKPACK,
+        slotIndex = 8,
+        uniqueId = "LOCK8",
+        itemLink = "|linkLock8",
+    },
+}
+runSingleItemBatch(RealBatchActions.BatchLock, lockFreshItem)
+assertEqual(1, #lockActionCalls, "SetItemIsPlayerLocked IS called when the live slot identity matches")
+assertTrue(lockActionCalls[1] and lockActionCalls[1].isLocked == true, "Matching lock step locks the item")
+
 if testsFailed > 0 then
     error(string.format("test_batch_safety.lua failed with %d failure(s)", testsFailed))
 end

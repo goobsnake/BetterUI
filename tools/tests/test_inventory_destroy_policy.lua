@@ -104,6 +104,78 @@ do
     assert_equal(lastPolicySlotType, 888, "policy-approved destroy receives slot-type context")
 end
 
+-- =====================================================================
+-- Contract: real Policy.CanDestroyItem with a nil slotType still enforces
+-- IsItemPlayerLocked (deny when locked) and never errors. The engine destroy
+-- probe is skipped when slotType is nil (defense-in-depth only), so the lock +
+-- existence checks remain the gate. Loads the REAL ProtectionPolicy so this
+-- guards the shipped policy, not the DestroyAction seam mock used above.
+-- =====================================================================
+do
+    print("\n[ProtectionPolicy nil-slotType contract]")
+
+    -- Minimal engine + namespace mocks the real ProtectionPolicy needs at load.
+    local lockedState = {}
+    local function slotPolicyKey(bagId, slotIndex)
+        return tostring(bagId) .. ":" .. tostring(slotIndex)
+    end
+
+    function IsItemPlayerLocked(bagId, slotIndex)
+        return lockedState[slotPolicyKey(bagId, slotIndex)] == true
+    end
+
+    -- Present so the existence gate passes; identity is irrelevant here.
+    BETTERUI.CIM.BatchConfig = BETTERUI.CIM.BatchConfig or {}
+    BETTERUI.CIM.BatchConfig.HasItemAtSlot = function()
+        return true
+    end
+
+    -- If this is ever called with a nil slotType the probe guard is broken;
+    -- record the call so we can assert it is NOT exercised on the nil path.
+    local destroyProbeCalls = 0
+    function ZO_InventorySlot_CanDestroyItem()
+        destroyProbeCalls = destroyProbeCalls + 1
+        return true
+    end
+
+    -- Debug log is gated; provide a recorder so the nil-slotType note path is
+    -- exercised without requiring real chat output.
+    local debugNotes = {}
+    BETTERUI.CIM.Debug = BETTERUI.CIM.Debug or {}
+    BETTERUI.CIM.Debug.IsEnabled = function() return true end
+    BETTERUI.CIM.Debug.Log = function(message)
+        debugNotes[#debugNotes + 1] = message
+    end
+
+    GetItemActorCategory = GetItemActorCategory or function() return nil end
+    GAMEPLAY_ACTOR_CATEGORY_COMPANION = GAMEPLAY_ACTOR_CATEGORY_COMPANION or 1
+    BAG_VIRTUAL = BAG_VIRTUAL or 100
+    BETTERUI.GetSetting = BETTERUI.GetSetting or function(_, _, default) return default end
+
+    -- Load the real policy; this replaces the DestroyAction-seam mock above,
+    -- which has already finished its assertions.
+    dofile("Modules/CIM/Actions/ProtectionPolicy.lua")
+    local Policy = BETTERUI.CIM.ProtectionPolicy
+
+    -- Case 1: nil slotType, item NOT locked -> allowed, no error, probe skipped.
+    destroyProbeCalls = 0
+    lockedState = {}
+    local ok1, allowed1, reason1 = pcall(Policy.CanDestroyItem, 1, 2, nil)
+    assert_equal(ok1, true, "CanDestroyItem(bag, slot, nil) does not error when unlocked")
+    assert_equal(allowed1, true, "nil slotType + unlocked item is still destroyable")
+    assert_equal(reason1, nil, "nil slotType allow path returns no deny reason")
+    assert_equal(destroyProbeCalls, 0, "engine destroy probe is skipped when slotType is nil")
+
+    -- Case 2: nil slotType, item LOCKED -> denied via PLAYER_LOCKED, no error.
+    destroyProbeCalls = 0
+    lockedState = { [slotPolicyKey(1, 2)] = true }
+    local ok2, allowed2, reason2 = pcall(Policy.CanDestroyItem, 1, 2, nil)
+    assert_equal(ok2, true, "CanDestroyItem(bag, slot, nil) does not error when locked")
+    assert_equal(allowed2, false, "nil slotType still DENIES a player-locked item")
+    assert_equal(reason2, Policy.DENY.PLAYER_LOCKED, "lock gate still applies with nil slotType")
+    assert_equal(destroyProbeCalls, 0, "engine destroy probe stays skipped on the locked nil-slotType path")
+end
+
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)

@@ -42,7 +42,7 @@ assert_contains(
 
 assert_contains(
     unifiedScreenSource,
-    "screen.footerMode = footerMode or MODE.CURRENCY",
+    "screen.footerMode = footerMode or UnifiedFooter.MODE.CURRENCY",
     "UnifiedScreen window-shell helper sets the shared footer mode contract"
 )
 

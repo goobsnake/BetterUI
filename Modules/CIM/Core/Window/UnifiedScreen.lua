@@ -20,7 +20,10 @@ Purpose: Unified base class for Inventory and Banking screens.
 ---@field isInHeaderSortMode boolean|nil
 BETTERUI.CIM.UnifiedScreen = BETTERUI_Gamepad_ParametricList_Screen:Subclass()
 
-local MODE = BETTERUI.CIM.UnifiedFooter.MODE
+-- Capture the parent table only (never the dynamic MODE member) to avoid the
+-- "Stale Reference Trap": access UnifiedFooter.MODE.X at each use site so a later
+-- reassignment of UnifiedFooter.MODE is always observed. See tribal-knowledge.md.
+local UnifiedFooter = BETTERUI.CIM.UnifiedFooter
 
 --- Creates a new UnifiedScreen instance.
 ---@param ... any
@@ -39,7 +42,7 @@ function BETTERUI.CIM.UnifiedScreen:Initialize(control, createTabBar, activateOn
     BETTERUI_Gamepad_ParametricList_Screen.Initialize(self, control, createTabBar, activateOnShow, scene)
 
     -- Default to CURRENCY mode if not specified
-    self.footerMode = footerMode or MODE.CURRENCY
+    self.footerMode = footerMode or UnifiedFooter.MODE.CURRENCY
 
     -- Cache footer controller reference
     self.unifiedFooterController = nil
@@ -62,7 +65,7 @@ end
 function BETTERUI.CIM.UnifiedScreen.InitializeWindowShell(screen, tlwName, sceneName, footerMode, virtualTemplate)
     BETTERUI.Interface.Window.Initialize(screen, tlwName, sceneName, virtualTemplate)
 
-    screen.footerMode = footerMode or MODE.CURRENCY
+    screen.footerMode = footerMode or UnifiedFooter.MODE.CURRENCY
     screen.unifiedFooterController = nil
 
     if screen.SetupUnifiedFooter then
@@ -280,5 +283,5 @@ end
 
 -- EXPORTED MODE CONSTANTS (Convenience)
 
-BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_CURRENCY = MODE.CURRENCY
-BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_BANKING = MODE.BANKING
+BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_CURRENCY = UnifiedFooter.MODE.CURRENCY
+BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_BANKING = UnifiedFooter.MODE.BANKING

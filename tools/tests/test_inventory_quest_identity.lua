@@ -82,6 +82,9 @@ Id64ToString = function(value)
     return "id:" .. tostring(value)
 end
 
+-- Slot-identity helpers live in BETTERUI.CIM.Utils (CIM loads before Inventory in
+-- production, see BetterUI.txt); load it first so the Inventory.Utils delegations resolve.
+dofile("Modules/CIM/Core/Utilities.lua")
 dofile("Modules/Inventory/Core/Utils.lua")
 dofile("Modules/Inventory/Lists/ItemListFiltering.lua")
 

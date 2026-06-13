@@ -135,6 +135,22 @@ function Manager:RegisterSelectedItem(primaryKey, itemData)
         return
     end
 
+    -- Capture the item's stable identity at selection time so batch steps can
+    -- confirm the live slot still holds this exact item before acting on it.
+    -- An item that moves into a freed slotIndex mid-batch would otherwise be
+    -- junked/locked in place of the originally selected item. Only stamped when
+    -- bagId/slotIndex are known (skipped for entryIndex-only rows like Buyback).
+    if itemData.expectedSlotIdentity == nil
+        and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.CaptureSlotIdentity then
+        local rawData = itemData.dataSource or itemData
+        local bagId = rawData.bagId or itemData.bagId
+        local slotIndex = rawData.slotIndex or itemData.slotIndex
+        if bagId ~= nil and slotIndex ~= nil then
+            itemData.expectedSlotIdentity =
+                BETTERUI.CIM.Utils.CaptureSlotIdentity(bagId, slotIndex, itemData)
+        end
+    end
+
     self.selectedItems[primaryKey] = itemData
     self.selectedItemAliases[primaryKey] = primaryKey
     for _, key in ipairs(self:GetItemSelectionKeys(itemData)) do

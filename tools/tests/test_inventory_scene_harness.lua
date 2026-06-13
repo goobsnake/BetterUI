@@ -190,6 +190,20 @@ function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(_, _, destinationBag)
     return destinationBag == BAG_BANK and 12 or 7
 end
 
+-- Slot-identity helpers now live in BETTERUI.CIM.Utils; Inventory.Utils delegates to
+-- them. Stub them here (identity always current) so the delegated batch paths resolve.
+function BETTERUI.CIM.Utils.CaptureSlotIdentity(bagId, slotIndex)
+    return { bagId = bagId, slotIndex = slotIndex }
+end
+
+function BETTERUI.CIM.Utils.IsSlotIdentityCurrent()
+    return true
+end
+
+function BETTERUI.CIM.Utils.NormalizeIdentityValue(value)
+    return value
+end
+
 function BETTERUI.CIM.ProtectionPolicy.CanTransferItem()
     return true
 end

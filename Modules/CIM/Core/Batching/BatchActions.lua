@@ -134,7 +134,11 @@ function BatchActions.BatchLock(self)
 
     self:ProcessBatchThrottled({
         items = items,
-        step = function(bagId, slotIndex)
+        step = function(bagId, slotIndex, itemData)
+            if itemData and itemData.expectedSlotIdentity
+                and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(itemData.expectedSlotIdentity, bagId, slotIndex) ~= true then
+                return BatchStepHandled()
+            end
             if not CanLockItem(bagId, slotIndex) then
                 return BatchStepHandled()
             end
@@ -166,7 +170,11 @@ function BatchActions.BatchUnlock(self)
 
     self:ProcessBatchThrottled({
         items = items,
-        step = function(bagId, slotIndex)
+        step = function(bagId, slotIndex, itemData)
+            if itemData and itemData.expectedSlotIdentity
+                and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(itemData.expectedSlotIdentity, bagId, slotIndex) ~= true then
+                return BatchStepHandled()
+            end
             if not CanUnlockItem(bagId, slotIndex) then
                 return BatchStepHandled()
             end
@@ -203,7 +211,11 @@ function BatchActions.BatchMarkAsJunk(self)
 
     self:ProcessBatchThrottled({
         items = items,
-        step = function(bagId, slotIndex)
+        step = function(bagId, slotIndex, itemData)
+            if itemData and itemData.expectedSlotIdentity
+                and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(itemData.expectedSlotIdentity, bagId, slotIndex) ~= true then
+                return BatchStepHandled()
+            end
             if not HasItemAtSlot(bagId, slotIndex) then
                 return BatchStepHandled()
             end
@@ -244,7 +256,11 @@ function BatchActions.BatchUnmarkAsJunk(self)
 
     self:ProcessBatchThrottled({
         items = items,
-        step = function(bagId, slotIndex)
+        step = function(bagId, slotIndex, itemData)
+            if itemData and itemData.expectedSlotIdentity
+                and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(itemData.expectedSlotIdentity, bagId, slotIndex) ~= true then
+                return BatchStepHandled()
+            end
             if not HasItemAtSlot(bagId, slotIndex) then
                 return BatchStepHandled()
             end

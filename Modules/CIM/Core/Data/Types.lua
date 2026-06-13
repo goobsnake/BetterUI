@@ -43,6 +43,15 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field traitType number Trait type constant
 ---@field level number Required level or champion level
 
+-- SLOT IDENTITY TYPES
+
+---@class SlotIdentity Stable item-identity snapshot for a bag slot, captured at selection/dialog-open time
+---@field bagId BagId Bag the item was captured from
+---@field slotIndex SlotIndex Slot position the item was captured from
+---@field uniqueId string|nil Normalized stable item uniqueId (see BETTERUI.CIM.Utils.NormalizeIdentityValue)
+---@field itemLink ItemLink|nil Item link captured as a fallback identity check
+-- Helpers: BETTERUI.CIM.Utils.CaptureSlotIdentity / IsSlotIdentityCurrent / NormalizeIdentityValue (CIM/Core/Utilities.lua)
+
 -- CATEGORY TYPES
 
 ---@class CategoryDef

@@ -74,10 +74,10 @@ assert_true(utilsSource:find("function BETTERUI%.Inventory%.Utils%.OnTabPrev%(pa
     "Inventory utils expose OnTabPrev")
 assert_true(utilsSource:find("BETTERUI%.Inventory%.Utils%.SafeGetTargetData = BETTERUI%.CIM%.Utils%.SafeGetTargetData") ~= nil,
     "Inventory utils alias SafeGetTargetData to the shared helper")
-assert_true(utilsSource:find("function BETTERUI%.Inventory%.Utils%.CaptureSlotIdentity%(bagId, slotIndex, slotData%)") ~= nil,
-    "Inventory utils expose a reusable slot identity snapshot helper")
-assert_true(utilsSource:find("function BETTERUI%.Inventory%.Utils%.IsSlotIdentityCurrent%(identity, bagId, slotIndex%)") ~= nil,
-    "Inventory utils expose stale-slot validation for deferred actions")
+assert_true(utilsSource:find("BETTERUI%.Inventory%.Utils%.CaptureSlotIdentity = BETTERUI%.CIM%.Utils%.CaptureSlotIdentity") ~= nil,
+    "Inventory utils expose a reusable slot identity snapshot helper (delegated to the shared CIM helper)")
+assert_true(utilsSource:find("BETTERUI%.Inventory%.Utils%.IsSlotIdentityCurrent = BETTERUI%.CIM%.Utils%.IsSlotIdentityCurrent") ~= nil,
+    "Inventory utils expose stale-slot validation for deferred actions (delegated to the shared CIM helper)")
 
 local craftBagDialogSource = read_file("Modules/Inventory/Dialogs/CraftBagQuantityDialog.lua")
 assert_true(craftBagDialogSource:find("function BETTERUI%.Inventory%.Dialogs%.InitializeCraftBagQuantityDialog%(%)") ~= nil,

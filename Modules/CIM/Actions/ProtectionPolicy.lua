@@ -133,6 +133,13 @@ function Policy.CanDestroyItem(bagId, slotIndex, slotType)
     if IsItemPlayerLocked(bagId, slotIndex) then
         return false, Policy.DENY.PLAYER_LOCKED
     end
+    -- Defense-in-depth: the engine destroy-eligibility probe
+    -- (ZO_InventorySlot_CanDestroyItem) only runs when the caller supplies a
+    -- slotType. Callers MUST pass slotType for that extra gate to apply; when it
+    -- is nil the probe is skipped and only the lock + existence checks above act
+    -- as the gate. This is intentionally NOT a deny path (skipping the probe must
+    -- not block legitimate destroys), but a nil slotType means weaker protection,
+    -- so surface it in a debug-gated note to keep the gap visible during dev.
     if ZO_InventorySlot_CanDestroyItem and slotType then
         local destroyProbe = {
             slotType = slotType,
@@ -142,6 +149,12 @@ function Policy.CanDestroyItem(bagId, slotIndex, slotType)
         if not ZO_InventorySlot_CanDestroyItem(destroyProbe) then
             return false, Policy.DENY.NO_ITEM
         end
+    elseif slotType == nil and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.Log then
+        BETTERUI.CIM.Debug.Log(
+            string.format(
+                "CanDestroyItem: nil slotType for bag %s slot %s; engine destroy probe skipped (callers should pass slotType)",
+                tostring(bagId), tostring(slotIndex)),
+            "ProtectionPolicy")
     end
     return true
 end
