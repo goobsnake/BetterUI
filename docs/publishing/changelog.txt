@@ -27,6 +27,35 @@ COMPANIONS:
 
 PERFORMANCE:
 16. Improved: List rebuilds across Inventory, Banking, Vendor, and Companions are faster and allocate less, reducing hitches on large bags
+
+INVENTORY (continued):
+17. Fixed: Marking a single item as Junk from the Actions menu no longer breaks LB/RB category-carousel paging afterward
+18. Fixed: After opening a container, the primary (A) keybind now shows the correct Use/Junk action instead of a stale one
+19. Fixed: Eliminated interface.log control-name truncation warnings by shortening the inventory's internal control names
+
+TOOLTIPS (continued):
+20. Fixed: Turning off enhanced tooltips now restores the stock gamepad tooltip layout and fonts immediately, without needing a /reloadui or relog
+21. Fixed: Enhanced tooltips again show the set-collection "Collected / Uncollected / Reconstructed" status
+
+GUILD STORE (TRADING HOUSE, continued):
+22. Fixed: Items that are Bind-on-Pickup but still tradeable are no longer hidden from the sell list, and the per-guild sell-permission gate is now respected
+23. Fixed: Switching guilds while the Guild Store is closed no longer triggers off-screen listing requests or rebuilds
+24. Fixed: The create-listing price slider can now reach exact prices for low- and mid-value items
+25. Fixed: Saved search presets are now version-stamped and load safely, so corrupt or cross-version presets fail gracefully instead of erroring
+
+VENDOR (continued):
+26. Fixed: "Buy All" now skips locked and requirement-failing store entries, matching single-item buy rules
+27. Fixed: Alternate-currency buy rows now display their correct currency icon
+28. Improved: Batch buy/sell pacing no longer counts skipped (no-op) steps against the server rate limit, so large batches complete more smoothly
+
+COMPANIONS (continued):
+29. Fixed: Hardened companion item-destroy eligibility checks against acting on the wrong item
+
+RESOURCE ORB FRAMES:
+30. Fixed: The ultimate orb fill meter and the insufficient-ultimate overlay now reflect the real ability cost of the slotted ultimate
+
+STABILITY:
+31. Improved: Batch Junk, Unmark Junk, Lock, Unlock, and vendor sell/launder operations now re-verify each item at the moment they act, so an item that shifts into a freed slot mid-batch is never acted on by mistake
 [/INDENT]
 
 

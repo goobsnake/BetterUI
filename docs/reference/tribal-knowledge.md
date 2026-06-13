@@ -9,6 +9,7 @@
 
 **2026-03-14**: Refreshed after codebase audit; corrected file references to match current module layout.
 **2026-04-11**: Added full vendor directional-input incident guidance covering joystick lock-up, dimmed lists, and accelerated scrolling.
+**2026-06-12**: Added slot-identity-in-CIM, gamepad dialog keybind Push/Pop, `GetSlotAbilityCost` argument order, symmetric tooltip-enhancement teardown, and `ProtectionPolicy.CanDestroyItem` slotType gotchas (v3.06 fix batch).
 
 ---
 
@@ -23,6 +24,7 @@
 - Place shared code in `Modules/CIM/` - never create new "Shared" folders
 - Use `BETTERUI.CIM.CONST` for shared constants
 - DeferredTaskManager prevents ghost callbacks from `zo_callLater`
+- Slot identity lives in CIM: use `BETTERUI.CIM.Utils.CaptureSlotIdentity` / `IsSlotIdentityCurrent` / `NormalizeIdentityValue` (`CIM/Core/Utilities.lua`). `BETTERUI.Inventory.Utils` delegates to these — do not duplicate the helpers per module (see **Slot Identity Belongs to CIM** below)
 
 ### XML Template Constants
 - ESO XML cannot reference Lua namespace syntax (`BETTERUI.CIM.CONST.*`)
@@ -68,6 +70,13 @@
 - Always call base class `Initialize` at the start of subclass `Initialize`
 - Check native `esoui/` source to ensure all required side-effect initializers are preserved
 
+### Gamepad Dialogs Push/Pop the Keybind-Group State
+- A gamepad action dialog **pushes** the keybind-group state on open and **pops** it on close
+- Default-stateIndex keybind `Add`/`Remove` calls target the **base** state — i.e. the snapshot that Pop will restore
+- Therefore **never** run synchronous keybind/list restoration while a dialog's pushed state is still active: it mutates the saved snapshot, so Pop restores corrupted state (symptom: LB/RB carousel paging dies after a single dialog action — PB-002)
+- Defer restoration to the dialog's finish/`OnFinish` path, which runs **after** Pop
+- Make header keybind re-activation robust to a stale `tabBar.active` (`EnsureHeaderKeybindsActive`)
+
 ### Quest Item API Gotchas
 - `UseQuestTool()` and `UseQuestItem()` are **NOT** protected functions — `CallSecureProtected` silently fails on them
 - Always call them directly: `UseQuestTool(questIndex, toolIndex)`, `UseQuestItem(questIndex, stepIndex, conditionIndex)`
@@ -103,6 +112,12 @@
 ### Lua Version
 - ESO uses Lua 5.1 - no bitwise operators or modern features
 - Use `luac -p` for syntax validation
+
+### GetSlotAbilityCost Argument Order
+- Signature: `GetSlotAbilityCost(actionSlotIndex, mechanicType, hotbarCategory)`
+- `mechanicType` is **required** — for the ultimate slot pass `COMBAT_MECHANIC_FLAGS_ULTIMATE`
+- Passing the hotbar category in the `mechanicType` position returns `0`, which silently breaks fill meters / insufficient-resource overlays
+- See `ResourceOrbFrames/SkillBar/UltimateManager.lua` for the canonical ultimate-cost call
 
 ### SetItemIsJunk Is Asynchronous
 - `SetItemIsJunk(bagId, slotIndex, isJunk)` does NOT update engine state synchronously
@@ -473,3 +488,19 @@ The Banking footer has **two horizontal dividers** with a gap between them:
 - `SetItemIsJunk` is async — `IsItemJunk` returns stale data until `EVENT_INVENTORY_SINGLE_SLOT_UPDATE` fires (see **SetItemIsJunk Is Asynchronous** above)
 - Multi-select batch loops must check `isBatchProcessing` guard to prevent re-entrant pipelines
 - `RequestMoveItem(fromBag, fromSlot, toBag, nil)` with nil destination slot uses engine auto-resolution which is unreliable under throttled batch processing — always resolve explicitly via `BETTERUI.CIM.Utils.ResolveMoveDestinationSlot`
+- **Re-validate slot identity at execution time.** A throttled batch captures `slotIndex` values up front, but slots are reused as items leave bags during the batch (junk/move/sell). Before acting, re-check with `BETTERUI.CIM.Utils.IsSlotIdentityCurrent` so an item that slid into a freed `slotIndex` mid-batch is never acted on by mistake. Applies to junk/unjunk/lock/unlock (`CIM/Core/Batching/BatchActions.lua`, `MultiSelectManager.lua`) and vendor batch sell/fence/launder (`Vendor/Core/VendorBatchRuntime.lua`), matching the Inventory destroy path
+- Skipped (no-op) batch steps must **not** count against the server rate-limit pacing — only steps that actually issue an engine call should advance the throttle
+
+### Slot Identity Belongs to CIM
+- Capture/compare with `BETTERUI.CIM.Utils.CaptureSlotIdentity` / `IsSlotIdentityCurrent` / `NormalizeIdentityValue` (`CIM/Core/Utilities.lua`); `BETTERUI.Inventory.Utils` delegates to them — do not re-implement per module
+- Identity is `{ bagId, slotIndex, uniqueId (normalized), itemLink }`; `IsSlotIdentityCurrent` prefers `uniqueId`, falling back to `itemLink`
+- **Standalone-test implication**: any test that `dofile`s `Inventory/Core/Utils.lua` must first load `CIM/Core/Utilities.lua` — Inventory delegates to CIM, so CIM must load before Inventory (CIM-before-Inventory)
+
+### Tooltip Enhancement Teardown Must Be Symmetric
+- Gate every per-layout re-application (fonts, anchors, labels, status tags) on the live `enableTooltipEnhancements` setting, and fully reverse fonts/anchors on cleanup
+- If teardown is asymmetric, toggling enhancements **off** won't revert the layout until a relog/`/reloadui` (PB-003)
+- After toggling, re-lay-out the currently visible tooltip immediately so the change is seen in-session
+
+### ProtectionPolicy.CanDestroyItem Requires slotType
+- `BETTERUI.CIM.ProtectionPolicy.CanDestroyItem` runs the engine destroy-eligibility probe **only when the caller passes `slotType`** — the probe is skipped when `slotType` is nil
+- Callers acting on bag/companion items must tag `SLOT_TYPE_GAMEPAD_INVENTORY_ITEM` (Companion equipment rows do this in `Companions/Core/CompanionItemList.lua`) so the probe runs (defense-in-depth)

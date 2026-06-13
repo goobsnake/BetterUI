@@ -275,6 +275,8 @@ BETTERUI = {
 | **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core, SkillBar, Settings, Templates, Textures | Requires CIM | Custom resource orbs and skill bar runtime |
 | **Writs** | Constants, Module | Core, Templates | Registry-managed (CIM-independent) | Writ quest tracker |
 
+> **Note**: The Inventory top-level control was renamed `BETTERUI_GamepadInventoryTopLevel` → `BUI_GpInv` (`Inventory/Templates/GamepadInventory.xml`, `Module.lua`, `Lists/CategoryListManager.lua`, `.luarc.json`), and the category-list pool gained a name prefix, so generated pooled control names stay under the engine's 63-char limit (no more `interface.log` truncation warnings).
+
 ---
 
 ## 7. Common Code Patterns
@@ -503,6 +505,7 @@ end
 | `Constants.lua` | CIM/ | Namespace init, shared constants, timing |
 | `ConstantsUI.lua` | CIM/ | UI constants, currency config |
 | `RuntimeSetup.lua` | CIM/Core/ | API patches, migrations, initialization |
+| `Utilities.lua` | CIM/Core/ | `BETTERUI.CIM.Utils` shared helpers, incl. slot-identity (`CaptureSlotIdentity`, `IsSlotIdentityCurrent`, `NormalizeIdentityValue`); `BETTERUI.Inventory.Utils` delegates here |
 | `FeatureFlags.lua` | CIM/Core/Diagnostics/ | Runtime feature flag system |
 | `SettingsAccessor.lua` | CIM/Core/ | Settings get/set factory |
 | `WindowClass.lua` | CIM/Core/ | Base Window class implementation |

@@ -27,6 +27,27 @@ Located in `tools/tests/`, these test files can be run without ESO:
 | `test_settings_reset.lua` | SettingsReset | Full reset, partial reset, defaults |
 | `test_tooltip_helpers.lua` | Tooltips | Tooltip formatting, nil handling |
 
+> The table above lists the original core-utility suites. The harness now ships a much larger set of module/contract suites under `tools/tests/` (run them all via `run_all_tests.lua`).
+
+#### v3.06 Regression Coverage
+
+These suites were added/extended alongside the v3.06 fix batch:
+
+| File | Covers |
+|------|--------|
+| `test_cim_batch_lock_policy.lua`, `test_destroy_policy_contracts.lua` | Batch slot-identity re-validation at execution; `ProtectionPolicy.CanDestroyItem` requires `slotType` |
+| `test_inventory_junk_carousel_keybinds.lua` | PB-002 — keybind-state Push/Pop, deferred junk-toggle restoration, LB/RB carousel survives a single junk action |
+| `test_inventory_primary_action_inplace_update.lua` | PB-006 — primary-action re-resolution on in-place inventory updates |
+| `test_inventory_control_name_length.lua` | PB-005 — pooled control names stay under the engine's 63-char limit after the `BUI_GpInv` rename |
+| `test_trading_house_sell_filter.lua` | Sell-tab `IsItemSellableOnTradingHouse` / per-guild `CanSellOnTradingHouse` gating; off-scene guild-change guard |
+| `test_trading_house_search_presets.lua` | API-version-stamped presets load under `SafeExecute` (corrupt/cross-version presets fail gracefully) |
+| `test_vendor_batch_action_counts.lua` | Vendor "Buy All" gating (locked / requirement-failing entries) and batch-identity re-validation |
+| `test_tooltip_helpers.lua` | Enhanced-tooltip toggle-off restore and set-collection status tag |
+| `test_front_bar_manager.lua` | ORB-001 — `GetSlotAbilityCost` ultimate-slot argument order / cost |
+| `test_companion_actions_source.lua` | Companion equipment rows tag `SLOT_TYPE_GAMEPAD_INVENTORY_ITEM` |
+
+> **Load-order note**: any standalone test that `dofile`s `Inventory/Core/Utils.lua` must load `CIM/Core/Utilities.lua` first — `BETTERUI.Inventory.Utils` delegates slot-identity helpers to `BETTERUI.CIM.Utils` (CIM-before-Inventory).
+
 ### Running Tests
 
 ```bash
