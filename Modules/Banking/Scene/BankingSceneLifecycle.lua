@@ -43,7 +43,6 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         if ZO_SharedInventory_SelectAccessibleGuildBank and guildId > 0 then
             ZO_SharedInventory_SelectAccessibleGuildBank(guildId)
         end
-        self.loadingGuildBank = true
         self:SetTitle(GuildBank.GetHeaderTitle())
 
         -- Check base permissions on scene entry
@@ -274,8 +273,6 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     if self.isGuildBankMode and BETTERUI.Banking.GuildBank then
         BETTERUI.Banking.GuildBank.SetLoading(false)
     end
-    self.loadingGuildBank = false
-
     -- Reset category positions when leaving the bank
     self.lastPositionsByCategory = {}
 

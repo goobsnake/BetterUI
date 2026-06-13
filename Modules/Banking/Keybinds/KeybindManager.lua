@@ -460,9 +460,9 @@ local function CreateCurrencySelectorKeybinds(self)
                     end
                 else
                     if self.currentMode == LIST_WITHDRAW then
-                        WithdrawCurrencyFromBank(currencyType, amount)
+                        TransferCurrency(currencyType, amount, CURRENCY_LOCATION_BANK, CURRENCY_LOCATION_CHARACTER)
                     else
-                        DepositCurrencyIntoBank(currencyType, amount)
+                        TransferCurrency(currencyType, amount, CURRENCY_LOCATION_CHARACTER, CURRENCY_LOCATION_BANK)
                     end
                 end
                 if currencySelector and currencySelector.HideSelector then

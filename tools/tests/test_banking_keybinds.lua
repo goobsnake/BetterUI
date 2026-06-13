@@ -683,11 +683,22 @@ window.refreshedFooterCount = 0
 guildBankMode = false
 window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
 currencySelectorPrimary.callback()
-assertEqual(CURT_MONEY, withdrawCurrencyCalls[1].currencyType, "Personal withdraw uses WithdrawCurrencyFromBank")
+-- Personal withdraw moves gold from the bank to the character via the modern
+-- TransferCurrency API (the deprecated WithdrawCurrencyFromBank alias is gone).
+assertEqual(CURT_MONEY, transferCalls[1].currencyType, "Personal withdraw uses TransferCurrency")
+assertEqual(CURRENCY_LOCATION_BANK, transferCalls[1].fromLocation, "Personal withdraw transfers from the bank")
+assertEqual(CURRENCY_LOCATION_CHARACTER, transferCalls[1].toLocation, "Personal withdraw transfers to the character")
+assertEqual(0, #withdrawCurrencyCalls, "Personal withdraw no longer calls the deprecated WithdrawCurrencyFromBank alias")
 
+transferCalls = {}
 window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
 currencySelectorPrimary.callback()
-assertEqual(CURT_MONEY, depositCurrencyCalls[1].currencyType, "Personal deposit uses DepositCurrencyIntoBank")
+-- Personal deposit moves gold from the character to the bank (opposite
+-- direction) via TransferCurrency.
+assertEqual(CURT_MONEY, transferCalls[1].currencyType, "Personal deposit uses TransferCurrency")
+assertEqual(CURRENCY_LOCATION_CHARACTER, transferCalls[1].fromLocation, "Personal deposit transfers from the character")
+assertEqual(CURRENCY_LOCATION_BANK, transferCalls[1].toLocation, "Personal deposit transfers to the bank")
+assertEqual(0, #depositCurrencyCalls, "Personal deposit no longer calls the deprecated DepositCurrencyIntoBank alias")
 
 window.selectedDataCallback = function(self, control, data)
     self.selectedDataCallbackArgs = { self = self, control = control, data = data }
