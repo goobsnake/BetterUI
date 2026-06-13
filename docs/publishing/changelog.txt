@@ -69,6 +69,18 @@ BANKING (continued):
 
 INVENTORY (continued):
 36. Improved: Entering an inventory category now plays the standard forward navigation sound, and the header refreshes immediately when a currency cap changes, matching native behavior
+
+RESOURCE ORB FRAMES (continued):
+37. Improved: The experience and resource orb bars no longer redo full styling and text work every HUD frame — font, size, anchors, and label/value text are now latched and only re-applied when they actually change, removing continuous per-frame string allocation and control churn
+
+TOOLTIPS (continued):
+38. Fixed: Enhanced gamepad tooltips no longer suppress other addons' (or the native) top-section tooltip lines outside BetterUI-enhanced contexts — the set-collection tag and third-party top lines are preserved everywhere except where BetterUI actually renders its enhancement
+
+COMPATIBILITY (continued):
+39. Fixed: Internal resource-orb update registrations are now namespace-prefixed, preventing rare collisions with other addons that register an update loop of the same name
+
+STABILITY (continued):
+40. Improved: Hardened several rarely-hit code paths (ultimate/XP power reads, banking and footer refresh, quantity-dialog narration, companion cooldown comparison, and saved-search dialogs) against missing optional engine return values, preventing Lua errors in edge cases
 [/INDENT]
 
 

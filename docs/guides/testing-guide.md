@@ -46,6 +46,8 @@ These suites were added/extended alongside the v3.06 fix batch:
 | `test_front_bar_manager.lua` | ORB-001 — `GetSlotAbilityCost` ultimate-slot argument order / cost |
 | `test_companion_actions_source.lua` | Companion equipment rows tag `SLOT_TYPE_GAMEPAD_INVENTORY_ITEM` |
 | `test_tabbar_selection_dispatch.lua` | MPR-3 — `BETTERUI_TabBarScrollList:SetSelectedIndex` fires the selection callback exactly once (carousel + non-carousel); `SetSelectedIndexWithoutAnimation` passes `forceAnimation=false` and routes suppression to `UpdateAnchors` |
+| `test_orb_latch.lua` | MPR-4 — drives the real `ExperienceBar:Update` / orb-label bar code and asserts no redundant `SetText`/`SetFont` on unchanged font/dimensions/anchors/value (per-frame HUD latching) |
+| `test_tooltip_helpers.lua` | MPR-4 (extended) — the `AddTopLinesToTopSection` suppression hook returns `true` only in BetterUI-enhanced contexts and `false` otherwise (native/other-addon top lines preserved); PB-004 set-collection tag still appears in-enhancement |
 
 > **Load-order note**: any standalone test that `dofile`s `Inventory/Core/Utils.lua` must load `CIM/Core/Utilities.lua` first — `BETTERUI.Inventory.Utils` delegates slot-identity helpers to `BETTERUI.CIM.Utils` (CIM-before-Inventory).
 

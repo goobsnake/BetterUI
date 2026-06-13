@@ -11,6 +11,7 @@
 **2026-04-11**: Added full vendor directional-input incident guidance covering joystick lock-up, dimmed lists, and accelerated scrolling.
 **2026-06-12**: Added slot-identity-in-CIM, gamepad dialog keybind Push/Pop, `GetSlotAbilityCost` argument order, symmetric tooltip-enhancement teardown, and `ProtectionPolicy.CanDestroyItem` slotType gotchas (v3.06 fix batch).
 **2026-06-12** (MPR-3): Added `BETTERUI_TabBarScrollList` single-dispatch ownership, `SetSelectedIndexWithoutAnimation` `forceAnimation` mapping, modern `TransferCurrency` over deprecated deposit/withdraw aliases, and per-batch gold-cap re-check gotchas (ZO_-native drift review).
+**2026-06-13** (MPR-4): Added per-frame HUD bar latching, scene-gated tooltip top-line suppression, `BETTERUI_`-prefixed event/update registrations, and the reload-gated native-takeover (no-runtime-teardown) model gotchas (performance / addon-compat / nil-hardening review).
 
 ---
 
@@ -169,6 +170,12 @@
 - Avoid expensive operations in `OnUpdate` handlers
 - Use `zo_callLater` for deferred work
 - Reference constants from `BETTERUI.CIM.CONST.TIMING`
+
+### Per-Frame HUD Bars Must Latch (Static Style + Text)
+- Any bar `Update` driven by `OnUpdate` (or `ZO_StatusBar_SmoothTransition`) runs every frame — `ExperienceBar`, `CastBar`, `MountStaminaBar` on the ResourceOrbFrames HUD loop
+- **Never** call `SetFont` / `SetText` / `ClearAnchors`+`SetAnchor` / `SetDimensions` unconditionally per frame — each one re-allocates strings and mutates controls every tick (the XP bar was doing ~10 control mutations + a fresh `SetText` per frame)
+- Latch **static style** (font, dimensions, anchors) once via an `ApplyStaticStyle`-style helper, and latch **value/label text** (cache `_lastLabelText`/last value, skip `SetText`/`UpdateVisuals` when unchanged). `CastBar` / `MountStaminaBar` / `ExperienceBar` are the reference; the orb numeric label (`OrbVisuals.lua RefreshLabel`) caches `_lastLabelText` so it only re-`SetText`s when the bucketed string changes during the 500ms smooth transition
+- Smooth-transition animations (after a power change) keep firing `OnUpdate` for ~500ms even when the displayed bucketed value never changes — latching is what makes that quiet
 
 ---
 
@@ -523,3 +530,17 @@ The Banking footer has **two horizontal dividers** with a gap between them:
 ### ProtectionPolicy.CanDestroyItem Requires slotType
 - `BETTERUI.CIM.ProtectionPolicy.CanDestroyItem` runs the engine destroy-eligibility probe **only when the caller passes `slotType`** — the probe is skipped when `slotType` is nil
 - Callers acting on bag/companion items must tag `SLOT_TYPE_GAMEPAD_INVENTORY_ITEM` (Companion equipment rows do this in `Companions/Core/CompanionItemList.lua`) so the probe runs (defense-in-depth)
+
+### Tooltip Top-Line Suppression Must Be Scene-Gated
+- A `ZO_PreHook` on `AddTopLinesToTopSection` that `return true`s suppresses native **and** other addons' top-section content for the **shared** gamepad tooltip controls — game-wide, not just inside BetterUI's enhanced scenes
+- If gated only on the enhancement *setting*, it strips third-party top lines (and the native set-collection tag) everywhere the setting is on; gate it to BetterUI-enhanced contexts using the **same** `IsIncompatibleSceneActive` predicate the rendering hooks use, so the suppression only fires where BetterUI actually renders its enhancement (`GeneralInterface/Setup.lua` PreHook + the predicate exposed from `Tooltips.lua`)
+- Keep one shared source of truth for "is this a BetterUI-enhanced tooltip scene" — the suppression hook and the rendering hooks must agree (PB-004's in-enhancement set-collection tag is unaffected)
+
+### Namespace-Prefix Every Event / Update Registration
+- `RegisterForUpdate` / `RegisterForEvent` names share a **global** registration space — an unprefixed name (e.g. a plain `"OrbUpdate"`) can clobber another addon's registration of the same name, or be clobbered by it
+- Prefix every registration name with `BETTERUI_` (ResourceOrbFrames update loops in `OrbEvents.lua` now match every other module). This is collision-safety, not cosmetics
+
+### Native Scene/Method Takeovers Rely on the Reload-Gated Module Model
+- Module enable/disable is `requiresReload = true`. The Vendor/TradingHouse/Banking/Companions scene + method takeovers installed in each module's `Setup()` are intentionally **not** torn down on disable — on reload-with-module-off, `Setup()` simply never runs and native stays pristine
+- **Do not add a runtime/mid-session teardown path** to "restore native" — reversing live scene/method takeovers in-session is high-regression-risk and unnecessary given the reload gate
+- Contrast: the DI-trace wrappers in `DebugCommands.lua` *do* replace `DIRECTIONAL_INPUT.Activate/Deactivate`, but they are installed only by the `/buidebug` / `/buiscene` debug commands and chain the original — opt-in and compat-safe
