@@ -164,8 +164,12 @@ function Presets.ShowSaveDialog()
                     template = "ZO_Gamepad_GenericDialog_Parametric_TextFieldItem",
                     templateData = {
                         setup = function(control, data, selected, reselectingDuringRebuild, enabled, active)
-                            control.highlight:SetHidden(not selected)
-                            control.editBoxControl:SetDefaultText(L("SI_BETTERUI_TH_PRESET_NAME_PLACEHOLDER"))
+                            if control.highlight then
+                                control.highlight:SetHidden(not selected)
+                            end
+                            if control.editBoxControl then
+                                control.editBoxControl:SetDefaultText(L("SI_BETTERUI_TH_PRESET_NAME_PLACEHOLDER"))
+                            end
                         end,
                         textChangedCallback = function(control)
                             local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.PARAMETRIC)
