@@ -114,13 +114,42 @@ function BETTERUI.Inventory.EnableTooltipMouseWheel()
     end
 end
 
---- Hides the custom BetterUI tooltip status label and resets bottomRail anchors.
+-- Stock gamepad tooltip body font. The enhancement overrides each child label
+-- with "$(MEDIUM_FONT)|<size>|soft-shadow-thick" via ApplyTooltipLabelFonts; on
+-- cleanup we re-apply this constant stock font so toggling enhancements off
+-- restores stock fonts in-session and repeated on/off never accumulates drift.
+local STOCK_TOOLTIP_BODY_FONT = "ZoFontGamepad34"
+
+--- Re-applies the stock gamepad body font to every label child of a tooltip
+--- control, reversing the per-label SetFont done by ApplyTooltipLabelFonts.
+--- Idempotent: re-running converges on the same stock font.
+---@param tooltipControl table|nil
+---@return nil
+local function RestoreStockLabelFonts(tooltipControl)
+    if not tooltipControl or not tooltipControl.GetNumChildren then
+        return
+    end
+    for i = 1, tooltipControl:GetNumChildren() do
+        local child = tooltipControl:GetChild(i)
+        if child and child.GetType and child:GetType() == CT_LABEL and child.SetFont then
+            child:SetFont(STOCK_TOOLTIP_BODY_FONT)
+        end
+    end
+end
+
+--- Reverses ALL enhanced-tooltip control-instance mutations so toggling
+--- enhancements off restores stock layout/fonts in-session (PB-003).
+--- Total + idempotent: hides and clears the custom status label, fully resets
+--- the native body/bottomRail/scroll anchors to stock (mirroring the stock
+--- else-branch in TooltipEquipped.UpdateTooltipEquippedText), and re-applies the
+--- stock body font to the tooltip child labels. Repeated on/off never drifts.
 function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
 
     if container and container._betterUiStatus then
         container._betterUiStatus:SetHidden(true)
+        container._betterUiStatus:SetText("")
     end
 
     if container then
@@ -133,12 +162,20 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
         end
         local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
         local scrollTooltip = container:GetNamedChild("Tip")
-        if bottomRail then
-            bottomRail:SetHidden(true)
-        end
         if container._betterUiNativePriceLabel then
             container._betterUiNativePriceLabel:SetHidden(true)
             container._betterUiNativePriceLabel:SetText("")
+        end
+        -- Reset the bottomRail divider to its stock anchor (mirrors the stock
+        -- else-branch in TooltipEquipped.UpdateTooltipEquippedText) instead of
+        -- leaving it hidden/anchored under our custom status label.
+        if bottomRail then
+            bottomRail:ClearAnchors()
+            bottomRail:SetAnchor(TOPLEFT, container, TOPLEFT, 0,
+                rawget(_G, "ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y") or 0)
+            bottomRail:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0,
+                rawget(_G, "ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y") or 0)
+            bottomRail:SetHidden(false)
         end
         if scrollTooltip then
             scrollTooltip:ClearAnchors()
@@ -154,6 +191,8 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     if tooltip then
         tooltip:ClearAnchors()
         tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 0)
+        -- Re-apply the stock body font to reverse ApplyTooltipLabelFonts.
+        RestoreStockLabelFonts(tooltip)
         -- Clear cached item data
         tooltip._betterui_itemLink = nil
         tooltip._betterui_bagId = nil

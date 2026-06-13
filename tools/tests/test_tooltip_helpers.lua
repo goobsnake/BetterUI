@@ -907,6 +907,359 @@ assertEqual(true, BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements, "Enha
 assertEqual(1, tooltipApplyCalls, "Re-enabling enhanced tooltips reapplies live tooltip styles")
 assertEqual(6, #clearedTooltips, "Re-enabling enhanced tooltips clears each tooltip surface again")
 
+-- ===========================================================================
+-- PB-003 / PB-004 regression coverage against the REAL tooltip enhancement code
+-- ===========================================================================
+
+-- Direct coverage wiring (mirrors the top-of-file pattern) so desloppify links
+-- these regression tests to the production files even though the real dofile
+-- calls happen below.
+if false then
+    dofile("Modules/Inventory/UI/TooltipUtils.lua")
+    dofile("Modules/Inventory/UI/TooltipEquipped.lua")
+end
+
+-- --- Mock control factory -------------------------------------------------
+-- Minimal ESO control emulation: tracks anchors, font, text, visibility, and
+-- a child list so we can assert layout/font reversibility deterministically.
+local function newMockControl(controlType)
+    local control
+    control = {
+        _type = controlType or CT_LABEL,
+        _children = {},
+        _named = {},
+        _anchors = {},
+        _font = nil,
+        _text = "",
+        _hidden = false,
+        _height = nil,
+        _setFontCalls = 0,
+    }
+    function control:GetType() return self._type end
+    function control:GetNumChildren() return #self._children end
+    function control:GetChild(i) return self._children[i] end
+    function control:GetNamedChild(name) return self._named[name] end
+    function control:SetFont(font) self._font = font; self._setFontCalls = self._setFontCalls + 1 end
+    function control:GetFont() return self._font end
+    function control:SetText(text) self._text = text end
+    function control:GetText() return self._text end
+    function control:SetHidden(hidden) self._hidden = hidden end
+    function control:IsHidden() return self._hidden end
+    function control:SetHeight(h) self._height = h end
+    function control:SetMaxLineCount(_) end
+    function control:SetWrapMode(_) end
+    function control:SetColor(...) end
+    function control:SetHorizontalAlignment(_) end
+    function control:ClearAnchors() self._anchors = {} end
+    function control:SetAnchor(point, rel, relPoint, x, y)
+        self._anchors[#self._anchors + 1] = { point = point, rel = rel, relPoint = relPoint, x = x, y = y }
+    end
+    function control:_addChild(child) self._children[#self._children + 1] = child; return child end
+    function control:_addNamed(name, child) self._named[name] = child; return child end
+    return control
+end
+
+-- Engine layout-anchor + control-type constants required by the real files.
+CT_CONTROL = CT_CONTROL or 2
+CT_TEXTURE = CT_TEXTURE or 3
+TOPLEFT = TOPLEFT or 1
+TOPRIGHT = TOPRIGHT or 2
+BOTTOMLEFT = BOTTOMLEFT or 3
+BOTTOMRIGHT = BOTTOMRIGHT or 4
+ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y = 75
+TEXT_WRAP_MODE_ELLIPSIS = TEXT_WRAP_MODE_ELLIPSIS or 1
+TEXT_ALIGN_LEFT = TEXT_ALIGN_LEFT or 0
+GENERAL_COLOR_OFF_WHITE = GENERAL_COLOR_OFF_WHITE or 1
+GENERAL_COLOR_WHITE = GENERAL_COLOR_WHITE or 2
+
+-- Equipped/bind/trait constants exercised by UpdateTooltipEquippedText.
+GAMEPLAY_ACTOR_CATEGORY_PLAYER = GAMEPLAY_ACTOR_CATEGORY_PLAYER or 0
+EQUIP_SLOT_MAIN_HAND = 1
+EQUIP_SLOT_BACKUP_MAIN = 2
+EQUIP_SLOT_OFF_HAND = 3
+EQUIP_SLOT_BACKUP_OFF = 4
+BIND_TYPE_ON_EQUIP = 1
+BIND_TYPE_ON_PICKUP = 2
+BIND_TYPE_ON_PICKUP_BACKPACK = 3
+ITEM_TRAIT_TYPE_ARMOR_ORNATE = 20
+ITEM_TRAIT_TYPE_WEAPON_ORNATE = 21
+ITEM_TRAIT_TYPE_JEWELRY_ORNATE = 22
+ITEM_TRAIT_TYPE_ARMOR_INTRICATE = 23
+ITEM_TRAIT_TYPE_WEAPON_INTRICATE = 24
+ITEM_TRAIT_TYPE_JEWELRY_INTRICATE = 25
+ITEMFILTERTYPE_JUNK = 99
+
+-- Native set-collection string ids (verified via esoui-api: itemtooltips.lua
+-- :199-211 renders these; constants 597/598/599).
+SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_UNLOCKED = "SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_UNLOCKED"
+SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_LOCKED = "SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_LOCKED"
+SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_RECONSTRUCTED = "SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_RECONSTRUCTED"
+SI_ITEM_FORMAT_STR_BOUND = "SI_ITEM_FORMAT_STR_BOUND"
+SI_GAMEPAD_ITEM_STOLEN_LABEL = "SI_GAMEPAD_ITEM_STOLEN_LABEL"
+SI_GAMEPAD_EQUIPPED_ITEM_HEADER = "SI_GAMEPAD_EQUIPPED_ITEM_HEADER"
+SI_BETTERUI_BIND_FOR_COLLECTION = "SI_BETTERUI_BIND_FOR_COLLECTION"
+stringMap[SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_UNLOCKED] = "Collected"
+stringMap[SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_LOCKED] = "Uncollected"
+stringMap[SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_RECONSTRUCTED] = "Reconstructed"
+stringMap[SI_ITEM_FORMAT_STR_BOUND] = "Bound"
+stringMap[SI_GAMEPAD_ITEM_STOLEN_LABEL] = "Stolen"
+stringMap[SI_GAMEPAD_EQUIPPED_ITEM_HEADER] = "Equipped"
+stringMap[SI_BETTERUI_BIND_FOR_COLLECTION] = "Bind for collection"
+
+-- GetString already maps string ids; extend it to honour the ("ENUM", n) form
+-- used by SI_BINDTYPE / SI_ITEMTRAITTYPE / SI_ITEMTYPE / SI_ITEMFILTERTYPE.
+local baseGetString = GetString
+function GetString(id, index)
+    if index ~= nil then
+        return tostring(id) .. tostring(index)
+    end
+    return baseGetString(id)
+end
+
+function zo_strupper(s) return string.upper(tostring(s)) end
+
+-- Item-link driven engine stubs. Fixtures encode their state in the link string.
+local setCollectionFixtures = {
+    ["item:set-unlocked"] = { setPiece = true, unlocked = true, reconstructed = false },
+    ["item:set-locked"] = { setPiece = true, unlocked = false, reconstructed = false },
+    ["item:set-reconstructed"] = { setPiece = false, unlocked = false, reconstructed = true },
+    ["item:non-set"] = { setPiece = false, unlocked = false, reconstructed = false },
+}
+local function fixtureFor(itemLink) return setCollectionFixtures[itemLink] or {} end
+
+function IsItemLinkReconstructed(itemLink) return fixtureFor(itemLink).reconstructed == true end
+function IsItemLinkSetCollectionPiece(itemLink) return fixtureFor(itemLink).setPiece == true end
+function IsItemSetCollectionPieceUnlocked(itemId) return itemId == "unlocked" end
+function GetItemLinkItemId(itemLink)
+    if fixtureFor(itemLink).unlocked then return "unlocked" end
+    return "locked"
+end
+
+function GetItemLinkTraitInfo(_) return 0 end
+function GetItemLinkBindType(_) return 0 end
+function GetItemLinkStacks(_) return 0, 0, 0 end
+function IsItemPlayerLocked(_, _) return false end
+function IsItemBound(_, _) return false end
+function IsItemStolen(_, _) return false end
+function IsItemLinkStolen(_) return false end
+function IsItemJunk(_, _) return false end
+function WouldEquipmentBeHidden(_, _) return false end
+function ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText(_, _) end
+
+ZO_ColorDef = {
+    New = function(_) return { UnpackRGBA = function() return 1, 1, 1, 1 end } end,
+}
+
+-- BETTERUI helper seams referenced by UpdateTooltipEquippedText.
+BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
+BETTERUI.GeneralInterface.Tooltips = BETTERUI.GeneralInterface.Tooltips or {}
+BETTERUI.GeneralInterface.Tooltips.GetTooltipFontSize = function() return 24 end
+BETTERUI.GetInventoryPriceInfo = function() return {} end
+BETTERUI.GetInventoryTraitInfo = function() return {} end
+BETTERUI.GetInventoryKnowledgeInfo = function() return {} end
+BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y = -10
+BETTERUI.CIM.CONST.LAYOUT = BETTERUI.CIM.CONST.LAYOUT or {}
+BETTERUI.CIM.CONST.LAYOUT.TOOLTIP = {
+    STATUS_LABEL_OFFSET_Y = 60,
+    BODY_OFFSET_Y_ENHANCED = 120,
+}
+
+-- Build a fresh mock tooltip + container pair and register them with a mock
+-- GAMEPAD_TOOLTIPS shared by both the cleanup and equipped-text code paths.
+local pbControls = {}
+local function buildMockTooltipSurface(tooltipType, labelCount)
+    local container = newMockControl(CT_CONTROL)
+    local tooltip = newMockControl(CT_CONTROL)
+    -- Seed child labels on the tooltip body so font reset/apply is observable.
+    for _ = 1, (labelCount or 3) do
+        local label = tooltip:_addChild(newMockControl(CT_LABEL))
+        label:SetFont("ZoFontGamepad34") -- stock starting font
+    end
+    -- Native scaffolding the real code looks up by name.
+    local bottomRail = container:_addNamed("BottomRail", newMockControl(CT_CONTROL))
+    local tip = container:_addNamed("Tip", newMockControl(CT_CONTROL))
+    local scroll = tip:_addNamed("Scroll", newMockControl(CT_CONTROL))
+    scroll:_addNamed("ScrollChild", newMockControl(CT_CONTROL))
+    local statusLabelValue = container:_addNamed("StatusLabelValue", newMockControl(CT_LABEL))
+    pbControls[tooltipType] = {
+        container = container,
+        tooltip = tooltip,
+        bottomRail = bottomRail,
+        tip = tip,
+        statusLabelValue = statusLabelValue,
+    }
+    return pbControls[tooltipType]
+end
+
+WINDOW_MANAGER = {
+    CreateControl = function(_, _, controlType)
+        return newMockControl(controlType)
+    end,
+}
+
+GAMEPAD_TOOLTIPS = {
+    GetTooltip = function(_, tooltipType)
+        return pbControls[tooltipType] and pbControls[tooltipType].tooltip
+    end,
+    GetTooltipContainer = function(_, tooltipType)
+        return pbControls[tooltipType] and pbControls[tooltipType].container
+    end,
+    ClearStatusLabel = function() end,
+    SetStatusLabelText = function() end,
+    ClearTooltip = function() end,
+}
+
+-- Load the REAL production code under test.
+dofile("Modules/Inventory/UI/TooltipUtils.lua")
+dofile("Modules/Inventory/UI/TooltipEquipped.lua")
+
+-- Re-point the shared seam to the real implementations so the Tooltips.lua
+-- hook code drives the production functions (not the earlier counter stubs).
+BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip = BETTERUI.Inventory.CleanupEnhancedTooltip
+BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText = BETTERUI.Inventory.UpdateTooltipEquippedText
+
+-- --- PB-003: PostHook gating + total/idempotent cleanup ---------------------
+print("\nTest: PB-003 LayoutItem PostHook does not re-apply enhanced fonts when enhancements are OFF")
+
+local PB003_TYPE = "PB003"
+buildMockTooltipSurface(PB003_TYPE, 3)
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = false
+
+-- Install the REAL item-layout hooks on a mock tooltip control.
+local pbTooltips = BETTERUI.GeneralInterface.Tooltips
+local pb003HookState = pbTooltips._InventoryHookHelpers.CreateInventoryHookState()
+local pb003Tooltip = pbControls[PB003_TYPE].tooltip
+pb003Tooltip.LayoutItem = function() end
+pbTooltips.InventoryHookOrchestrator.InstallItemLayoutHooks(
+    pb003Tooltip, "LayoutItem", pb003HookState, PB003_TYPE,
+    function() return "item:non-set" end
+)
+
+-- Record enhanced-font SetFont calls on the body labels. ApplyTooltipLabelFonts
+-- writes "$(MEDIUM_FONT)|<size>|soft-shadow-thick"; the stock-relayout path must
+-- never produce that on a PostHook when enhancements are OFF.
+local enhancedFontApplied = false
+for i = 1, pb003Tooltip:GetNumChildren() do
+    local child = pb003Tooltip:GetChild(i)
+    local origSetFont = child.SetFont
+    child.SetFont = function(self, font)
+        if type(font) == "string" and font:find("soft%-shadow%-thick") then
+            enhancedFontApplied = true
+        end
+        return origSetFont(self, font)
+    end
+end
+
+pb003Tooltip:LayoutItem("item:non-set")
+assertEqual(false, enhancedFontApplied,
+    "PB-003: PostHook does NOT apply enhanced per-label fonts when enhancements are OFF")
+
+print("\nTest: PB-003 CleanupEnhancedTooltip resets body anchor + clears status text + restores stock fonts")
+local cleanupSurface = buildMockTooltipSurface("PB003_CLEANUP", 3)
+-- Simulate enhanced state: custom status label + shifted body anchor + enhanced fonts.
+local statusLabel = newMockControl(CT_LABEL)
+statusLabel:SetText("ENHANCED STATUS TEXT")
+statusLabel:SetHidden(false)
+cleanupSurface.container._betterUiStatus = statusLabel
+cleanupSurface.tooltip:ClearAnchors()
+cleanupSurface.tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 120) -- enhanced body offset
+for i = 1, cleanupSurface.tooltip:GetNumChildren() do
+    cleanupSurface.tooltip:GetChild(i):SetFont("$(MEDIUM_FONT)|24|soft-shadow-thick")
+end
+
+BETTERUI.Inventory.CleanupEnhancedTooltip("PB003_CLEANUP")
+
+assertEqual("", cleanupSurface.container._betterUiStatus:GetText(),
+    "PB-003: CleanupEnhancedTooltip clears the _betterUiStatus text")
+assertEqual(true, cleanupSurface.container._betterUiStatus:IsHidden(),
+    "PB-003: CleanupEnhancedTooltip hides the _betterUiStatus label")
+-- Body anchor reset to stock (offsetY 0).
+local bodyAnchor = cleanupSurface.tooltip._anchors[1]
+assertEqual(true, bodyAnchor ~= nil and bodyAnchor.y == 0,
+    "PB-003: CleanupEnhancedTooltip resets the tooltip body anchor to stock (0 offset)")
+local allStockFonts = true
+for i = 1, cleanupSurface.tooltip:GetNumChildren() do
+    if cleanupSurface.tooltip:GetChild(i):GetFont() ~= "ZoFontGamepad34" then
+        allStockFonts = false
+    end
+end
+assertEqual(true, allStockFonts,
+    "PB-003: CleanupEnhancedTooltip restores the stock body font on every child label")
+
+print("\nTest: PB-003 repeated enhancements on/off loop accumulates no drift")
+local driftSurface = buildMockTooltipSurface("PB003_DRIFT", 3)
+local driftStatus = newMockControl(CT_LABEL)
+driftSurface.container._betterUiStatus = driftStatus
+local driftOk = true
+for _ = 1, 10 do
+    -- "ON": re-apply enhanced state (status text + shifted anchor + enhanced fonts).
+    driftStatus:SetText("ENHANCED")
+    driftStatus:SetHidden(false)
+    driftSurface.tooltip:ClearAnchors()
+    driftSurface.tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 120)
+    for i = 1, driftSurface.tooltip:GetNumChildren() do
+        driftSurface.tooltip:GetChild(i):SetFont("$(MEDIUM_FONT)|24|soft-shadow-thick")
+    end
+    -- "OFF": cleanup must fully revert.
+    BETTERUI.Inventory.CleanupEnhancedTooltip("PB003_DRIFT")
+    if driftStatus:GetText() ~= "" or not driftStatus:IsHidden() then driftOk = false end
+    if #driftSurface.tooltip._anchors ~= 1 or driftSurface.tooltip._anchors[1].y ~= 0 then driftOk = false end
+    for i = 1, driftSurface.tooltip:GetNumChildren() do
+        if driftSurface.tooltip:GetChild(i):GetFont() ~= "ZoFontGamepad34" then driftOk = false end
+    end
+end
+assertEqual(true, driftOk, "PB-003: 10x on/off loop leaves status/anchor/font in a stable stock state (no drift)")
+
+-- --- PB-004: set-collection Collected/Uncollected/Reconstructed tag ---------
+print("\nTest: PB-004 enhanced tooltip emits exactly one set-collection status line")
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = true
+
+local function statusTextForFixture(itemLink)
+    local surface = buildMockTooltipSurface("PB004", 1)
+    surface.tooltip._betterui_itemLink = itemLink
+    surface.tooltip._betterui_bagId = nil
+    surface.tooltip._betterui_slotIndex = nil
+    BETTERUI.Inventory.UpdateTooltipEquippedText("PB004", nil)
+    return surface.container._betterUiStatus and surface.container._betterUiStatus:GetText() or ""
+end
+
+local function countOccurrences(haystack, needle)
+    local count, pos = 0, 1
+    while true do
+        local s = haystack:find(needle, pos, true)
+        if not s then break end
+        count = count + 1
+        pos = s + 1
+    end
+    return count
+end
+
+local unlockedText = statusTextForFixture("item:set-unlocked")
+assertContains(unlockedText, "Collected", "PB-004: set-piece unlocked emits the UNLOCKED (Collected) tag")
+assertEqual(1, countOccurrences(unlockedText, "Collected"), "PB-004: exactly one collection line for unlocked set piece")
+
+local lockedText = statusTextForFixture("item:set-locked")
+assertContains(lockedText, "Uncollected", "PB-004: set-piece locked emits the LOCKED (Uncollected) tag")
+assertEqual(1, countOccurrences(lockedText, "Uncollected"), "PB-004: exactly one collection line for locked set piece")
+
+local reconstructedText = statusTextForFixture("item:set-reconstructed")
+assertContains(reconstructedText, "Reconstructed", "PB-004: reconstructed piece emits the RECONSTRUCTED tag")
+assertEqual(1, countOccurrences(reconstructedText, "Reconstructed"), "PB-004: exactly one collection line for reconstructed piece")
+
+local nonSetText = statusTextForFixture("item:non-set")
+assertEqual(0, countOccurrences(nonSetText, "Collected"), "PB-004: non-set item emits no Collected tag")
+assertEqual(0, countOccurrences(nonSetText, "Uncollected"), "PB-004: non-set item emits no Uncollected tag")
+assertEqual(0, countOccurrences(nonSetText, "Reconstructed"), "PB-004: non-set item emits no Reconstructed tag")
+
+-- Reconstructed must win over the set-piece branch (native precedence).
+setCollectionFixtures["item:set-reconstructed"].setPiece = true
+setCollectionFixtures["item:set-reconstructed"].unlocked = true
+local reconPriorityText = statusTextForFixture("item:set-reconstructed")
+assertEqual(1, countOccurrences(reconPriorityText, "Reconstructed"),
+    "PB-004: reconstructed precedence wins (one Reconstructed line)")
+assertEqual(0, countOccurrences(reconPriorityText, "Collected"),
+    "PB-004: reconstructed item does not also emit the Collected tag")
+
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", testsPassed))
 print(string.format("Failed: %d", testsFailed))

@@ -555,6 +555,28 @@ local function ScheduleDuplicateAddonCleanup(tooltipControl)
     end, 2)
 end
 
+--- Forces a showing tooltip to re-render in stock mode after enhancements were
+--- disabled (PB-003). First reverses enhanced control-instance state (custom
+--- status label, shifted body/scroll anchors) via CleanupEnhancedTooltip, then
+--- drives the native UpdateTooltipEquippedText stock branch so the visible item
+--- reverts immediately instead of only on the next hover.
+local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
+    local tooltipRef = tooltipControl
+    zo_callLater(function()
+        if not tooltipRef or tooltipRef:IsHidden() then return end
+        if IsIncompatibleSceneActive() then return end
+
+        if BETTERUI.CIM.SharedItemSupport then
+            if type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" then
+                BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType)
+            end
+            if type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
+                BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(tonumber(tooltipType) or 0, nil)
+            end
+        end
+    end, 1)
+end
+
 local function ClearTooltipEnhancementState(tooltipControl, tooltipType)
     if tooltipControl then
         tooltipControl._betterui_itemLink = nil
@@ -652,11 +674,17 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
 
         local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
 
-        ApplyTooltipLabelFonts(self)
-        ScheduleTooltipEquippedRefresh(self, itemLink, capturedTooltipType)
-
+        -- Gate enhanced per-label fonts + equipped-header refresh on the setting.
+        -- When enhancements are toggled OFF, re-applying enhanced fonts/anchors on
+        -- the next layout would re-introduce the styling the user just disabled
+        -- (PB-003). Instead, drive a stock-mode relayout so the visible tooltip
+        -- reverts in-session without waiting for a relog.
         if enhancementsEnabled then
+            ApplyTooltipLabelFonts(self)
+            ScheduleTooltipEquippedRefresh(self, itemLink, capturedTooltipType)
             ScheduleDuplicateAddonCleanup(self)
+        else
+            ScheduleTooltipEquippedStockRelayout(self, capturedTooltipType)
         end
     end)
 end

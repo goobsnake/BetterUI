@@ -266,6 +266,25 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     junkString = GetString("SI_ITEMFILTERTYPE", ITEMFILTERTYPE_JUNK)
                 end
 
+                -- F. Set-Collection Status (PB-004)
+                -- The native top-lines block (itemtooltips.lua:199-211) renders the
+                -- Collected/Uncollected/Reconstructed tag, but BetterUI suppresses
+                -- that entire block (GeneralInterface/Setup.lua) to drive its own
+                -- header. Re-emit exactly one collection line here, mirroring the
+                -- native precedence: Reconstructed > SetCollectionPiece(Unlocked|Locked).
+                local collectionString = ""
+                if IsItemLinkReconstructed and IsItemLinkReconstructed(itemLink) then
+                    collectionString = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_RECONSTRUCTED"))
+                elseif IsItemLinkSetCollectionPiece and IsItemLinkSetCollectionPiece(itemLink) then
+                    local collectionUnlocked = IsItemSetCollectionPieceUnlocked
+                        and IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(itemLink))
+                    if collectionUnlocked then
+                        collectionString = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_UNLOCKED"))
+                    else
+                        collectionString = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_SET_COLLECTION_PIECE_LOCKED"))
+                    end
+                end
+
                 -- G. Bag/Bank Counts
                 local bagCount, bankCount, craftBagCount = GetItemLinkStacks(itemLink)
                 local bagIcon = "|t" .. denseIconSizeFmt .. ":EsoUI/Art/Tooltips/icon_bag.dds|t"
@@ -299,6 +318,13 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 -- Bound (Gold)
                 if boundString ~= "" then
                     table.insert(segments, "|cD5B526" .. boundString .. "|r")
+                end
+
+                -- Set-Collection Status (Gold) - exactly one line, native precedence.
+                -- Distinct from the bind-type "Bind for collection" wording above;
+                -- this reports Collected/Uncollected/Reconstructed (PB-004).
+                if collectionString ~= "" then
+                    table.insert(segments, "|cD5B526" .. collectionString .. "|r")
                 end
 
 

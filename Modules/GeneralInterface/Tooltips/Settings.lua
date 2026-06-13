@@ -365,7 +365,16 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                     RestoreTooltipVisualSettings()
                     CleanupTooltipEnhancementArtifacts()
                     local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
+                    -- PB-003: force any currently-showing tooltip to re-render in
+                    -- stock mode so the visible item reverts immediately rather
+                    -- than only on the next hover. Cleanup above already reversed
+                    -- the enhanced control-instance state; this drives the native
+                    -- stock layout branch on top of the stock state.
+                    local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
                     for _, tooltipType in ipairs(tooltipTypes) do
+                        if sharedItemSupport and type(sharedItemSupport.UpdateTooltipEquippedText) == "function" then
+                            sharedItemSupport.UpdateTooltipEquippedText(tonumber(tooltipType) or 0, nil)
+                        end
                         if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearTooltip then
                             GAMEPAD_TOOLTIPS:ClearTooltip(tooltipType)
                         end
