@@ -258,6 +258,23 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 			else
 				refreshSelectedData()
 				if currentList == self.itemList and not self.pendingBatchData then
+					-- PB-006: An in-place SingleSlotInventoryUpdate (e.g. a container
+					-- replaced by its contents at the same slot) updates the row data
+					-- without firing the selection-change callback that recomputes the
+					-- cached primary action (itemActions.actionName). The same-frame
+					-- fingerprint dedup in SetSelectedInventoryData (keyed on
+					-- uniqueId|bagId|slotIndex|slotType) can then skip re-resolution,
+					-- leaving the keybind showing the previous item's primary action.
+					-- Clear the dedup fingerprint and force a re-resolution for the
+					-- currently-selected slot BEFORE RefreshKeybinds reads the cached
+					-- actionName, so the label/handler match the new item. Normal
+					-- selection changes go through the callback path (not this branch),
+					-- so this does not double-fire on ordinary navigation.
+					self._lastSetSelectedInventoryDataFingerprint = nil
+					self._lastSetSelectedInventoryDataFrame = nil
+					if self.RefreshItemActions then
+						self:RefreshItemActions()
+					end
 					self:RefreshKeybinds()
 				end
 				self:RefreshHeader(BLOCK_TABBAR_CALLBACK)

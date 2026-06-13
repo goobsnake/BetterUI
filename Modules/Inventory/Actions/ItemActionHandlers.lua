@@ -88,20 +88,16 @@ local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
         GAMEPAD_INVENTORY:RefreshItemList()
     end
-    if self and self.RefreshItemActions then
-        self:RefreshItemActions()
-    end
-    if self and self.RefreshKeybinds and not self.isInHeaderSortMode then
-        self:RefreshKeybinds()
-    end
-    if self and self.SetActiveKeybinds and self.mainKeybindStripDescriptor and not self.isInHeaderSortMode then
-        self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-    end
-    -- The action dialog deactivates the header tab bar; reactivate it so LB/RB
-    -- keep paging the category carousel after the junk toggle.
-    if self and self.EnsureHeaderKeybindsActive and not self.isInHeaderSortMode then
-        self:EnsureHeaderKeybindsActive()
-    end
+    -- PB-002: Do NOT perform keybind/list restoration synchronously here. The
+    -- gamepad action dialog wraps its lifetime in KEYBIND_STRIP:PushKeybindGroupState()
+    -- (on show) / PopKeybindGroupState() (on hide). This handler runs while the
+    -- dialog's pushed state is still the top state, so any RefreshItemActions /
+    -- RefreshKeybinds / SetActiveKeybinds / EnsureHeaderKeybindsActive call here
+    -- mutates the pushed (top) keybind state and corrupts the snapshot that Pop
+    -- restores -- which silently drops the ethereal LB/RB carousel keybind group
+    -- (BETTERUI_TabBarScrollList.keybindStripDescriptor) after the dialog closes.
+    -- The deferred OnFinish -> RestoreInventoryAfterDialog path (which runs AFTER
+    -- Pop) is the correct place for keybind/list restoration, so we rely on it.
 end
 
 local function ResolveCurrentTarget(self)

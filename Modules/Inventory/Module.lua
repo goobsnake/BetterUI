@@ -291,10 +291,10 @@ function Inventory.Setup()
 	end
 
 	-- Replace the native GAMEPAD_INVENTORY global with our custom class
-	GAMEPAD_INVENTORY = Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
+	GAMEPAD_INVENTORY = Inventory.Class:New(BUI_GpInv)
 
 	-- Create the replacement scene fragment using our custom top level control
-	GAMEPAD_INVENTORY_FRAGMENT = ZO_SimpleSceneFragment:New(BETTERUI_GamepadInventoryTopLevel)
+	GAMEPAD_INVENTORY_FRAGMENT = ZO_SimpleSceneFragment:New(BUI_GpInv)
 	GAMEPAD_INVENTORY_FRAGMENT:SetHideOnSceneHidden(true)
 
 	-- Update the Inventory Scene with the new fragment

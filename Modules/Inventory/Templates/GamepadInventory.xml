@@ -19,9 +19,9 @@
            remains functional because we never replaced GAMEPAD_INVENTORY.
 
         INITIALIZATION FLOW:
-        1. XML loads, creates BETTERUI_GamepadInventoryTopLevel control (no init)
+        1. XML loads, creates BUI_GpInv control (no init)
         2. BetterUI.lua checks if Inventory module is enabled in settings
-        3. If enabled, Module.lua's setup runs BETTERUI.Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
+        3. If enabled, Module.lua's setup runs BETTERUI.Inventory.Class:New(BUI_GpInv)
         4. The new instance is assigned to GAMEPAD_INVENTORY (replacing the native one)
 
     -->
@@ -31,7 +31,7 @@
             - Inherits from BETTERUI_Gamepad_ParametricList_Screen for standard structure
             - This gives us: Header, List container, Footer, and proper scene integration
         -->
-        <TopLevelControl name="BETTERUI_GamepadInventoryTopLevel"
+        <TopLevelControl name="BUI_GpInv"
             inherits="BETTERUI_Gamepad_ParametricList_Screen">
             <OnInitialized>
                 -- Intentionally empty.

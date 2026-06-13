@@ -8,10 +8,18 @@ local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
 --- @param list table Scroll list instance
 local function SetupCategoryList(list)
+    -- PB-005: pass a short controlPoolPrefix ("BUI_Cat") so pooled category entry
+    -- controls get a compact name (e.g. BUI_Cat1) instead of the long default
+    -- derived from the list/scroll control name. Belt-and-suspenders against the
+    -- engine's 63-char control-name limit (interface.log truncation warnings).
+    -- AddDataTemplate signature:
+    --   (templateName, setupFunction, parametricFunction, equalityFunction, controlPoolPrefix, ...)
     list:AddDataTemplate(
         "BETTERUI_GamepadItemEntryTemplate",
         ZO_SharedGamepadEntry_OnSetup,
-        ZO_GamepadMenuEntryTemplateParametricListFunction
+        ZO_GamepadMenuEntryTemplateParametricListFunction,
+        nil,
+        "BUI_Cat"
     )
 end
 

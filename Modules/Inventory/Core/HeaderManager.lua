@@ -164,15 +164,39 @@ end
 --- @param self BetterUI_InventoryClass
 local function EnsureHeaderKeybindsActive(self)
     local tabBar = self.header and self.header.tabBar
-    if tabBar then
-        -- Ensure the tabBar is active so LB/RB navigation works
-        if tabBar.Activate and not tabBar.active then
-            tabBar:Activate()
-        end
-        -- Ensure keybinds are registered
-        if tabBar.keybindStripDescriptor then
-            BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
-        end
+    if not tabBar then
+        return
+    end
+
+    local descriptor = tabBar.keybindStripDescriptor
+    -- PB-002: When an action dialog closes, KEYBIND_STRIP:PopKeybindGroupState()
+    -- can restore a snapshot that no longer carries the ethereal LB/RB carousel
+    -- group, while tabBar.active is left stale-true (the PARAMETRIC action dialog
+    -- never calls tabBar:Deactivate()). A stale-true active flag would skip the
+    -- plain Activate() below, leaving LB/RB paging dead. Detect the missing group
+    -- and force a real re-activation cycle.
+    local carouselMissing = descriptor and KEYBIND_STRIP
+        and not KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
+
+    if carouselMissing and tabBar.Deactivate and tabBar.Activate then
+        -- Guarded Deactivate/Activate (NOT raw tabBar.active = false) so the
+        -- single-registration parametric-list activation semantics hold.
+        -- BETTERUI_TabBarScrollList sets SetDirectionalInputEnabled(false) at
+        -- creation, so neither Deactivate nor Activate touches DIRECTIONAL_INPUT;
+        -- Activate only (re)adds the carousel keybind group. This avoids the
+        -- double-DI "fast scroll" failure mode documented in tribal-knowledge.
+        tabBar:Deactivate()
+        tabBar:Activate()
+    elseif tabBar.Activate and not tabBar.active then
+        -- Normal path: tabBar simply needs activating so LB/RB navigation works.
+        tabBar:Activate()
+    end
+
+    -- Belt-and-suspenders: ensure the carousel keybind group is registered even
+    -- if Activate was skipped (e.g. tabBar.active was already true and the group
+    -- was present).
+    if descriptor then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     end
 end
 
