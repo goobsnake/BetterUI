@@ -69,6 +69,21 @@ local function IsSellMode(mode)
     return mode == MODE.SELL or (MODE.SELL_VENGEANCE ~= nil and mode == MODE.SELL_VENGEANCE)
 end
 
+--- True when carried gold is at the wallet maximum. Selling for gold while at
+--- the cap fails server-side, so a regular-sell batch must halt before issuing
+--- doomed SellInventoryItem calls. Mirrors SellComponent's IsAtGoldCap (and the
+--- native ZO_GamepadStoreSell:CanSell gate); fence sell/launder do NOT use this
+--- because stolen-goods sales do not credit the seller's gold wallet.
+---@return boolean atCap
+local function IsAtGoldCap()
+    if type(GetMaxPossibleCurrency) ~= "function" then
+        return false
+    end
+    local carried = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    local maxPossible = GetMaxPossibleCurrency(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    return maxPossible > 0 and carried >= maxPossible
+end
+
 local function NormalizeBatchRuntimeRequest(request)
     assert(type(request) == "table", "Vendor batch runtime expects BetterUIVendorBatchRequest table")
     assert(request.batchOptions == nil,
@@ -173,6 +188,13 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         BuyStoreItem(entryIndex, 1)
         return batchStepQueued()
     elseif IsSellMode(mode) then
+        -- Selling for gold while at the wallet cap fails server-side for every
+        -- item; halt the batch with feedback instead of issuing N doomed
+        -- SellInventoryItem calls. Mirrors the SellComponent gold-cap gate.
+        -- Fence sell/launder are handled separately and intentionally skip this.
+        if IsAtGoldCap() then
+            return batchStepStopped("goldCap")
+        end
         local bagId = ds.bagId
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then

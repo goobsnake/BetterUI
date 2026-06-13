@@ -10,6 +10,7 @@ Usage:
 BAG_BACKPACK = 1
 CURT_MONEY = 0
 CURT_NONE = -1
+CURRENCY_LOCATION_CHARACTER = 1
 
 local testsPassed = 0
 local testsFailed = 0
@@ -25,6 +26,10 @@ local authorizationAllowed = true
 -- Controls the stubbed BETTERUI.CIM.Utils.IsSlotIdentityCurrent return so
 -- identity-revalidation branches can be exercised both ways.
 local slotIdentityCurrent = true
+-- Drives the stubbed gold-cap native APIs (GetCurrencyAmount /
+-- GetMaxPossibleCurrency): true reports carried gold == max so the regular-sell
+-- batch must halt; false reports headroom so sells proceed.
+local atGoldCap = false
 
 local function assertTrue(condition, message)
     if condition then
@@ -49,6 +54,7 @@ local function resetState()
     hasInventorySpace = true
     authorizationAllowed = true
     slotIdentityCurrent = true
+    atGoldCap = false
 end
 
 function zo_clamp(value, minValue, maxValue)
@@ -82,6 +88,17 @@ end
 
 function GetSlotStackSize(bagId, slotIndex)
     return slotStacks[string.format("%s:%s", tostring(bagId), tostring(slotIndex))] or 0
+end
+
+-- Gold-cap native stubs: the runtime's IsAtGoldCap reads carried vs max gold
+-- on CURRENCY_LOCATION_CHARACTER. atGoldCap=true reports carried == max so the
+-- regular-sell batch halts; false leaves headroom so sells proceed.
+function GetMaxPossibleCurrency(currencyType, location)
+    return 1000
+end
+
+function GetCurrencyAmount(currencyType, location)
+    return atGoldCap and 1000 or 250
 end
 
 function BuyStoreItem(entryIndex, quantity)
@@ -212,6 +229,41 @@ assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, queuedVengeanceResult.status,
 assertEqual(1, #sellCalls, "Valid sell vengeance action performs vendor sell call")
 assertEqual(4, sellCalls[1].quantity, "Sell vengeance action forwards full stack count")
 
+-- Gold cap: a regular-sell batch at the wallet cap would issue doomed
+-- SellInventoryItem calls (server rejects each), so the step must STOP the
+-- batch (with feedback) before authorizing or selling.
+resetState()
+atGoldCap = true
+authorizationAllowed = true
+slotStacks["1:9"] = 8
+local goldCapSellResult = BatchRuntime.ExecuteBatchAction(MODE.SELL, { bagId = BAG_BACKPACK, slotIndex = 9 })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.STOPPED, goldCapSellResult.status,
+    "Batch SELL at the gold cap returns a STOPPED step result")
+assertEqual("goldCap", goldCapSellResult.reason, "Gold-cap stop carries the goldCap reason")
+assertEqual(0, #sellCalls, "Batch SELL at the gold cap performs no SellInventoryItem call")
+
+-- SELL_VENGEANCE is a regular (gold-paying) sell mode and must halt identically.
+resetState()
+atGoldCap = true
+authorizationAllowed = true
+slotStacks["1:10"] = 4
+local goldCapVengeanceResult = BatchRuntime.ExecuteBatchAction(MODE.SELL_VENGEANCE,
+    { bagId = BAG_BACKPACK, slotIndex = 10 })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.STOPPED, goldCapVengeanceResult.status,
+    "Batch SELL_VENGEANCE at the gold cap returns a STOPPED step result")
+assertEqual(0, #sellCalls, "Batch SELL_VENGEANCE at the gold cap performs no SellInventoryItem call")
+
+-- Below the cap the same sell proceeds and queues the call (regression guard
+-- that the gold-cap gate does not block normal selling).
+resetState()
+atGoldCap = false
+authorizationAllowed = true
+slotStacks["1:9"] = 8
+local belowCapSellResult = BatchRuntime.ExecuteBatchAction(MODE.SELL, { bagId = BAG_BACKPACK, slotIndex = 9 })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, belowCapSellResult.status,
+    "Batch SELL below the gold cap returns a queued step result")
+assertEqual(1, #sellCalls, "Batch SELL below the gold cap performs the vendor sell call")
+
 resetState()
 canAfford = false
 local deniedBuyResult = BatchRuntime.ExecuteBatchAction(MODE.BUY, { entryIndex = 4, price = 99999, currencyType = CURT_MONEY })
@@ -231,6 +283,16 @@ slotStacks["1:3"] = 2
 local queuedLaunderResult = BatchRuntime.ExecuteBatchAction(MODE.FENCE_LAUNDER, { bagId = BAG_BACKPACK, slotIndex = 3 })
 assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, queuedLaunderResult.status, "Valid fence launder returns queued step result")
 assertEqual(1, #launderCalls, "Valid fence launder performs LaunderItem call")
+
+-- Fence launder of stolen goods does not credit the seller's gold wallet, so
+-- the gold-cap gate must NOT apply: a launder at the cap still proceeds.
+resetState()
+atGoldCap = true
+slotStacks["1:3"] = 2
+local goldCapLaunderResult = BatchRuntime.ExecuteBatchAction(MODE.FENCE_LAUNDER, { bagId = BAG_BACKPACK, slotIndex = 3 })
+assertEqual(BatchConfig.BATCH_STEP_STATUS.QUEUED, goldCapLaunderResult.status,
+    "Fence launder at the gold cap still queues (gold cap does not gate fence)")
+assertEqual(1, #launderCalls, "Fence launder at the gold cap still performs LaunderItem call")
 
 resetState()
 canAfford = true
