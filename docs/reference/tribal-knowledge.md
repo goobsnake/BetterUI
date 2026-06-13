@@ -10,6 +10,7 @@
 **2026-03-14**: Refreshed after codebase audit; corrected file references to match current module layout.
 **2026-04-11**: Added full vendor directional-input incident guidance covering joystick lock-up, dimmed lists, and accelerated scrolling.
 **2026-06-12**: Added slot-identity-in-CIM, gamepad dialog keybind Push/Pop, `GetSlotAbilityCost` argument order, symmetric tooltip-enhancement teardown, and `ProtectionPolicy.CanDestroyItem` slotType gotchas (v3.06 fix batch).
+**2026-06-12** (MPR-3): Added `BETTERUI_TabBarScrollList` single-dispatch ownership, `SetSelectedIndexWithoutAnimation` `forceAnimation` mapping, modern `TransferCurrency` over deprecated deposit/withdraw aliases, and per-batch gold-cap re-check gotchas (ZO_-native drift review).
 
 ---
 
@@ -119,6 +120,17 @@
 - Passing the hotbar category in the `mechanicType` position returns `0`, which silently breaks fill meters / insufficient-resource overlays
 - See `ResourceOrbFrames/SkillBar/UltimateManager.lua` for the canonical ultimate-cost call
 
+### `BETTERUI_TabBarScrollList` Selection-Dispatch Ownership
+- The shared module-header tab bar (Inventory/Banking/Vendor/Companions) is a `BETTERUI_TabBarScrollList` over `ZO_ParametricScrollList`
+- The carousel `UpdateAnchors` is the **single** owner of the selection-callback fire: it calls `onSelectedDataChangedCallback` directly when in carousel mode, and the `_zo_selectedDataChangedWrapper` covers the non-carousel path
+- **Never** add extra direct `onSelectedDataChangedCallback` fires inside `SetSelectedIndex` — doing so caused the selection callback to dispatch **2×** in carousel mode and **3×** in non-carousel mode (duplicate refreshes per tab change)
+- Suppression is routed to `UpdateAnchors`'s `blockSelectionChangedCallback`, not to extra guard flags in `SetSelectedIndex`
+
+### `ZO_ParametricScrollList:SetSelectedIndexWithoutAnimation` Third Param Is `forceAnimation`
+- Signature: `SetSelectedIndexWithoutAnimation(index, allowEvenIfDisabled, forceAnimation)` — the 3rd native param is **`forceAnimation`**, NOT callback-suppression
+- Mis-mapping a suppression flag onto `forceAnimation` leaks a stray animation request on the without-animation path
+- Always pass `forceAnimation=false` on this path, and route any callback suppression to `UpdateAnchors`'s `blockSelectionChangedCallback` instead
+
 ### SetItemIsJunk Is Asynchronous
 - `SetItemIsJunk(bagId, slotIndex, isJunk)` does NOT update engine state synchronously
 - `IsItemJunk(bagId, slotIndex)` returns **stale data** immediately after `SetItemIsJunk()`
@@ -131,6 +143,11 @@
 - The `addoncompatibilityaliases` file defines backwards-compat aliases, but **addons do not load this file** — only the game client uses it
 - Always use `CURT_NEW_NAME or CURT_OLD_NAME` at file scope for constants that may have been renamed
 - See `CurrencyManager.lua` lines 25-27 for the canonical pattern
+
+### Currency Transfer: Use Modern `TransferCurrency`, Not the Deposit/Withdraw Aliases
+- Prefer `TransferCurrency(currencyType, amount, CURRENCY_LOCATION_x, CURRENCY_LOCATION_y)` over the deprecated `WithdrawCurrencyFromBank` / `DepositCurrencyIntoBank` aliases
+- Those aliases live **only** in `addoncompatibilityaliases`, which ZOS could remove at any update; the modern call matches the guild-bank branch and current native
+- Direction mapping: **Deposit** = `CURRENCY_LOCATION_CHARACTER` → `CURRENCY_LOCATION_BANK`; **Withdraw** = `CURRENCY_LOCATION_BANK` → `CURRENCY_LOCATION_CHARACTER`
 
 ### zo_mixin Copies Methods at Init Time
 - `ZO_Tooltip:Initialize` uses `zo_mixin(control, ..., self)` which copies all methods from the class table onto the control instance
@@ -175,6 +192,8 @@
 - SceneLifecycleManager standardizes scene callbacks
 
 ### Vendor
+
+- Multi-select batch sells must re-check the gold cap **per batch**. The per-step batch path (Sell / Sell-Vengeance) does not inherit the Sell component's `IsAtGoldCap()` pre-check, so a batch can otherwise fire N doomed `SellInventoryItem` calls that the server silently rejects once the cap is hit. Pre-gate the cap and stop the batch with feedback instead. (Fence and launder do not pay gold and are unaffected.)
 
 #### Vendor Directional-Input Incident (2026-04-11)
 

@@ -56,6 +56,19 @@ RESOURCE ORB FRAMES:
 
 STABILITY:
 31. Improved: Batch Junk, Unmark Junk, Lock, Unlock, and vendor sell/launder operations now re-verify each item at the moment they act, so an item that shifts into a freed slot mid-batch is never acted on by mistake
+
+HEADERS (INVENTORY / BANKING / VENDOR / COMPANIONS):
+32. Fixed: Switching the active tab in a module header now fires the selection change exactly once, eliminating duplicate refreshes and redundant work when paging the top tab bar
+33. Fixed: Selecting a header tab without its slide animation no longer leaks a stray animation flag, so suppressed-animation tab changes behave consistently
+
+VENDOR (continued):
+34. Fixed: A multi-select Sell or Sell-Vengeance batch now stops with clear feedback when it would exceed the gold cap, instead of firing a run of sales that the server silently rejects (fence and launder are unaffected)
+
+BANKING (continued):
+35. Fixed: Depositing and withdrawing currency at the personal bank now uses the current ESO currency-transfer path, keeping it working if the older compatibility functions are removed
+
+INVENTORY (continued):
+36. Improved: Entering an inventory category now plays the standard forward navigation sound, and the header refreshes immediately when a currency cap changes, matching native behavior
 [/INDENT]
 
 

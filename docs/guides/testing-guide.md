@@ -45,6 +45,7 @@ These suites were added/extended alongside the v3.06 fix batch:
 | `test_tooltip_helpers.lua` | Enhanced-tooltip toggle-off restore and set-collection status tag |
 | `test_front_bar_manager.lua` | ORB-001 — `GetSlotAbilityCost` ultimate-slot argument order / cost |
 | `test_companion_actions_source.lua` | Companion equipment rows tag `SLOT_TYPE_GAMEPAD_INVENTORY_ITEM` |
+| `test_tabbar_selection_dispatch.lua` | MPR-3 — `BETTERUI_TabBarScrollList:SetSelectedIndex` fires the selection callback exactly once (carousel + non-carousel); `SetSelectedIndexWithoutAnimation` passes `forceAnimation=false` and routes suppression to `UpdateAnchors` |
 
 > **Load-order note**: any standalone test that `dofile`s `Inventory/Core/Utils.lua` must load `CIM/Core/Utilities.lua` first — `BETTERUI.Inventory.Utils` delegates slot-identity helpers to `BETTERUI.CIM.Utils` (CIM-before-Inventory).
 
