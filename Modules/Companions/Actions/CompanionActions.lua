@@ -196,9 +196,8 @@ function Companions.TryEquipCompanionItem(bagId, slotIndex)
     if ZO_InventorySlot_WillItemBecomeBoundOnEquip and ZO_InventorySlot_WillItemBecomeBoundOnEquip(bagId, slotIndex) then
         if Companions.GetSetting("bindOnEquipProtection") ~= false then
             local itemLink = GetItemLink(bagId, slotIndex)
-            -- ESO ships no native equip-BoE confirm dialog (the bind-on-equip prompt is
-            -- the CONFIRM_EQUIP_ITEM dialog with an onAcceptCallback). Always use our own
-            -- queued BoE confirm dialog, which carries the companion-specific callback contract.
+            -- BetterUI uses a queued, companion-specific BoE confirm dialog (custom callback
+            -- contract + canQueue) rather than native CONFIRM_EQUIP_ITEM.
             EnsureCompanionEquipBoEDialogRegistered()
             ZO_Dialogs_ShowPlatformDialog(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, { callback = DoEquip }, { mainTextParams = { itemLink } })
             return true
