@@ -284,7 +284,7 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
                     self:ApplyMultiSelectVisual(entry, entryData)
 
                     local remaining, duration = GetItemCooldownInfo(BAG_COMPANION_WORN, slotIndex)
-                    if remaining > 0 and duration > 0 then
+                    if remaining and remaining > 0 and duration and duration > 0 then
                         entry:SetCooldown(remaining, duration)
                     end
 
@@ -380,7 +380,7 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
                     self:ApplyMultiSelectVisual(entry, entryData)
 
                     local remaining, duration = GetItemCooldownInfo(BAG_BACKPACK, slotIndex)
-                    if remaining > 0 and duration > 0 then
+                    if remaining and remaining > 0 and duration and duration > 0 then
                         entry:SetCooldown(remaining, duration)
                     end
 
