@@ -38,7 +38,7 @@ param(
 
 if (-not $DestinationDir) {
     if ($IsLinux) {
-        $DestinationDir = Join-Path $HOME '.steam/steam/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/AddOns/BetterUI'
+        $DestinationDir = '/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/AddOns/BetterUI'
     } else {
         $DestinationDir = Join-Path $env:USERPROFILE 'Documents/Elder Scrolls Online/live/AddOns/BetterUI'
     }
