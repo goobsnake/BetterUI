@@ -489,14 +489,27 @@ end
 ---@return nil
 function ResourceOrbFrames.ApplySettings()
     local settings = GetSettings()
-    if not m_rootFrame then return end
-    if not settings then return end
+    if not m_rootFrame then
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "orb setup aborted", { reason = "rootFrame" })
+        end
+        return
+    end
+    if not settings then
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "orb setup aborted", { reason = "settings" })
+        end
+        return
+    end
 
     if settings.m_enabled then
         if not m_isInitialized then
             -- Attempt initialization; if it fails, bail out
             local ok = BETTERUI.CIM.SafeExecute("ResourceOrbFrames:SetupModule", SetupModule, m_rootFrame)
             if not ok then
+                if BETTERUI.Log then
+                    BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "orb setup aborted", { reason = "setupFailed" })
+                end
                 return
             end
         end

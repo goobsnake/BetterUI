@@ -182,6 +182,8 @@ function BETTERUI.CIM.SortManager.SortItems(items, sortType, sortOrder)
     sortOrder = sortOrder or SORT_ORDER.ASCENDING
     local descending = (sortOrder == SORT_ORDER.DESCENDING)
 
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sort", { numItems = #items, sortType = sortType, order = sortOrder }) end
+
     -- Decorate: resolve the primary sort value and lowercased tie-break name
     -- once per entry; both are pure functions of the entry during the sort.
     local primaryKey = {}

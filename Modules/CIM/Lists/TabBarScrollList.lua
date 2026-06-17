@@ -413,6 +413,7 @@ function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
 
     -- Check guard (prevents rapid jumps if busy)
     if scrollList.IsNavigationGuarded and scrollList:IsNavigationGuarded() then
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tab click dropped: navigation guarded") end
         return
     end
 

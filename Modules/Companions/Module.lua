@@ -84,7 +84,7 @@ function BETTERUI.Companions.Init()
     if Companions.initialized then return end
 
     if not INTERACTION_COMPANION_MENU then
-        BETTERUI.Debug("[Companions] INTERACTION_COMPANION_MENU not available — skipping init")
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "companion menu interaction missing; init skipped") end
         Companions.initialized = true
         return
     end

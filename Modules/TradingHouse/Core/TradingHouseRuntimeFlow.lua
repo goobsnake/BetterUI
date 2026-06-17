@@ -133,6 +133,13 @@ function TH.ScheduleOwnershipReassert()
 end
 
 function TH.ScheduleListRefresh()
+    local guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil
+    local mode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() or nil
+    local searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scheduleListRefresh",
+            { guildId = guildId, mode = mode, searchPending = searchPending })
+    end
     if not TH.instance or not TH.instance:IsSceneShowing() then
         return
     end
@@ -497,6 +504,14 @@ function TH.OnTradingHouseResponse(_, responseType, result)
         TH.BrowseComponent.searchPending = false
     end
 
+    local guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil
+    local mode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() or nil
+    local searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "tradingHouseResponse",
+            { guildId = guildId, mode = mode, searchPending = searchPending })
+    end
+
     if not TH.instance or not TH.instance:IsSceneShowing() then
         return
     end
@@ -563,6 +578,13 @@ function TH.OnSelectedTradingHouseGuildChanged()
     -- or a list rebuild while our scene is hidden.
     if not TH.instance or not TH.instance:IsSceneShowing() then
         return
+    end
+    local guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil
+    local mode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() or nil
+    local searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "selectedTradingHouseGuildChanged",
+            { guildId = guildId, mode = mode, searchPending = searchPending })
     end
     TH.ResetBrowseState()
     if TH.BrowseComponent and TH.BrowseComponent.InvalidateResults then

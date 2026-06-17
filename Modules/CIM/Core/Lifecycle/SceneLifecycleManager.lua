@@ -28,6 +28,13 @@ local function BuildStateChangeHandler(screen, config)
     config = config or {}
 
     return function(oldState, newState)
+        local sceneName = ""
+        if screen and screen.scene and screen.scene.GetName then
+            local ok, name = pcall(screen.scene.GetName, screen.scene)
+            if ok then sceneName = name end
+        end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "stateChange", { scene = sceneName, state = newState }) end
+
         if newState == SCENE_SHOWING then
             if config.keybinds then
                 for _, group in ipairs(config.keybinds) do

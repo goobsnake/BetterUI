@@ -376,6 +376,9 @@ local function DoesBagContextMatchItemLink(bagId, slotIndex, itemLink)
         return true
     end
     local ok, bagItemLink = pcall(GetItemLink, bagId, slotIndex)
+    if not ok and BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "GetItemLink failed", { bag = bagId, slot = slotIndex })
+    end
     return ok and bagItemLink ~= nil and bagItemLink ~= "" and bagItemLink == itemLink
 end
 
@@ -638,6 +641,10 @@ end
 
 local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, tooltipType, layoutItemDataFn)
     ZO_PreHook(tooltipControl, layoutItemName, function(self, ...)
+        if BETTERUI.Log then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltipHook",
+                { type = tooltipType, bag = state.bagId, slot = state.slotIndex })
+        end
         state.skipEnhancementForLayout = IsIncompatibleSceneActive()
         state.pendingItemLink = nil
         state.pendingTooltipType = nil

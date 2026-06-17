@@ -25,6 +25,24 @@ local CastBar = Bars.CastBar
 local ExperienceBar = Bars.ExperienceBar
 local MountStaminaBar = Bars.MountStaminaBar
 
+local function TraceValueBracketChange(current, max, state)
+    if not BETTERUI.Log then
+        return
+    end
+
+    local percent = 0
+    if max and max > 0 then
+        percent = math.floor((current / max) * 100)
+    end
+    local bracket = math.floor(percent / 10)
+    if state._betteruiLastValueBracket == bracket then
+        return
+    end
+
+    state._betteruiLastValueBracket = bracket
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orbValueBracket", { cur = current, max = max, pct = percent }) end
+end
+
 ---@param fillColor table|nil Fill colour {r,g,b,a}
 ---@param depthColor table|nil Depth/gradient colour {r,g,b,a}
 function CastBar:ApplyFillStyle(fillColor, depthColor)
@@ -238,7 +256,14 @@ function ExperienceBar:Update()
         current = GetPlayerChampionXP()
         local max
         local success, size = BETTERUI.CIM.SafeExecute("OrbBarUpdates.championXP", GetNumChampionXPInChampionPoint, currentCP)
-        if success and size then max = size else max = 400000 end
+        if success and size then
+            max = size
+        else
+            max = 400000
+            if BETTERUI.Log then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "champion XP fallback used")
+            end
+        end
         if max <= 0 then max = 1 end
         effectiveMax = max
         local percent = math.floor((current / max) * 100)
@@ -263,6 +288,8 @@ function ExperienceBar:Update()
         self.appliedEffectiveMax = effectiveMax
         self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
     end
+
+    TraceValueBracketChange(current, effectiveMax, self)
 end
 
 --- Applies static mount bar styling (dimensions, backdrop, font, label anchor).
@@ -322,6 +349,7 @@ function MountStaminaBar:Update()
         if self.fill then self.fill:SetHidden(false) end
         self:UpdateVisuals(current, max, MOUNT.FILL_INSET_X or 35,
             MOUNT.FILL_INSET_Y or 55, w, h)
+        TraceValueBracketChange(current, max, self)
     else
         -- Skip per-tick label/fill churn while unmounted: apply the idle
         -- state once and latch until the mounted state changes.
@@ -330,6 +358,7 @@ function MountStaminaBar:Update()
             self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_MOUNT_STAMINA")))
             if self.fill then self.fill:SetHidden(true) end
         end
+        self._betteruiLastValueBracket = nil
     end
 end
 

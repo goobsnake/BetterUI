@@ -183,6 +183,7 @@ end
 --- Sets the active keybind group, removing any previous one.
 ---@param keybindDescriptor BetterUIKeybindDescriptorGroup?
 function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "SetActiveKeybinds", { hasDescriptor = keybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
     -- Skip keybind changes if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
         return
@@ -204,6 +205,7 @@ end
 
 --- Refreshes the currently active keybind group.
 function BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds()
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "RefreshActiveKeybinds", { hasDescriptor = self.activeKeybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
     -- Skip refreshing active keybinds if in header sort mode
     if self.isInHeaderSortMode then
         return
@@ -233,6 +235,7 @@ end
 --- Overrides base class RefreshKeybinds with header mode guard.
 --- Prevents keybind updates during header sort mode.
 function BETTERUI.CIM.UnifiedScreen:RefreshKeybinds()
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "RefreshKeybinds", { hasDescriptor = self.activeKeybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
     -- Block keybind refresh during header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
         return

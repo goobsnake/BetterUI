@@ -51,6 +51,23 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
         KEYBIND_STRIP:RemoveKeybindButtonGroup(screen.headerSortKeybindDescriptor)
     end
 
+    -- Reset the header-sort INTEGRATION state. We intentionally avoid the integration's
+    -- ExitHeaderMode() here (it reactivates the list, which DeactivateLists below would
+    -- immediately undo), but its isActive flag and active keybind descriptor MUST be cleared:
+    -- otherwise the next EnterHeaderMode bails on "if integration.isActive then return false",
+    -- permanently dead-ending the sort action after one scene exit. (The current keybind state
+    -- on screen.isInHeaderSortMode is cleared above.)
+    local headerSortIntegrationState = screen._headerSortIntegration
+    if headerSortIntegrationState then
+        headerSortIntegrationState.isActive = false
+        if headerSortIntegrationState.activeKeybindDescriptor and KEYBIND_STRIP
+            and KEYBIND_STRIP.RemoveKeybindButtonGroup then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(headerSortIntegrationState.activeKeybindDescriptor)
+        end
+        headerSortIntegrationState.activeKeybindDescriptor = nil
+        headerSortIntegrationState.suspendedKeybindGroups = nil
+    end
+
     -- 2. Exit selection mode if active
     if screen.isInSelectionMode then
         if screen.ExitSelectionMode then
@@ -97,14 +114,18 @@ end
 function BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, ...)
     if not screen then return end
 
+    local listCount = 0
+
     -- Deactivate primary list if present
     if screen.list and screen.list.Deactivate then
         screen.list:Deactivate()
+        listCount = listCount + 1
     end
 
     -- Deactivate selector if present (Banking pattern)
     if screen.selector and screen.selector.Deactivate then
         screen.selector:Deactivate()
+        listCount = listCount + 1
     end
 
     -- Deactivate any additional lists passed as varargs
@@ -113,19 +134,26 @@ function BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, ...)
         if list then
             if list.Deactivate then
                 list:Deactivate()
+                listCount = listCount + 1
             end
             -- Handle wrapper pattern (list.list)
             if list.list and list.list.Deactivate then
                 list.list:Deactivate()
+                listCount = listCount + 1
             end
         end
     end
+
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "deactivateLists", { lists = listCount }) end
 end
 
 --- Clears search-related state and text when exiting a scene.
 ---
 function BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
     if not screen then return end
+
+    local queryText = screen.searchQuery or ""
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "clearSearch", { queryLen = #queryText }) end
 
     local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
     local callSearchLifecycle = searchMixin and searchMixin.CallSearchLifecycle

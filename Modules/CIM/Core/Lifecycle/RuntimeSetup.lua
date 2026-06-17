@@ -68,6 +68,7 @@ local function ApplyAPIPatches()
             return true
         end
         if type(ZO_PreHook) ~= "function" or not ZO_TamrielTomesScreen_Shared then
+            if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "tamriel tomes patch skipped: deps missing") end
             return false
         end
 

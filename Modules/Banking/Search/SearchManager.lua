@@ -38,6 +38,7 @@ end
 function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "enterSearch") end
 
     if self.coreKeybinds then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)

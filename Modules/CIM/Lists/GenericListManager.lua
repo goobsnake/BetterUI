@@ -50,7 +50,10 @@ end
 --- @param bagId integer The bag containing the item
 --- @param slotIndex integer The slot within the bag
 function BETTERUI.CIM.GenericListManager:CacheItemLinkData(itemData, bagId, slotIndex)
-    if itemData.cached_itemLink then return end
+    if itemData.cached_itemLink then
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "reused cached itemLink") end
+        return
+    end
 
     local itemLink = GetItemLink(bagId, slotIndex)
     itemData.cached_itemLink = itemLink

@@ -158,6 +158,7 @@ end
 ---@return string|nil errorMessage
 function BETTERUI.Companions.Class:RefreshList()
     if not self.list then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "RefreshList no-op: list missing") end
         return true
     end
 

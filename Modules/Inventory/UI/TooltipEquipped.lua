@@ -30,7 +30,11 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
         return GAMEPAD_TOOLTIPS:GetTooltip(tooltipType),
                GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
     end)
-    if not ok or not tooltip or not container then return end
+    if not ok then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "tooltip registration failed") end
+        return
+    end
+    if not tooltip or not container then return end
 
     -- Signal to InventoryHook's deferred price injection that this scene
     -- handles its own price/trait rendering (prevents double display)

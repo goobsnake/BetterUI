@@ -59,11 +59,12 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
 end
 
 ---@param list table
----@return boolean
+---@return boolean, boolean?
 function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
-    if not list then return false end
+    if not list then return false, false end
 
     local targetIndex = nil
+    local restoredById = false
 
     -- Try to find by uniqueId first
     if self.savedUniqueId then
@@ -71,6 +72,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
             local data = list:GetDataForDataIndex(i)
             if data and data.uniqueId == self.savedUniqueId then
                 targetIndex = i
+                restoredById = true
                 break
             end
         end
@@ -83,7 +85,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
 
     -- Clamp to valid range
     local numItems = list:GetNumItems() or 0
-    if numItems == 0 then return false end
+    if numItems == 0 then return false, restoredById end
 
     targetIndex = math.min(targetIndex, numItems)
     targetIndex = math.max(targetIndex, 1)
@@ -91,13 +93,13 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     -- Set the position
     if list.SetSelectedIndex then
         list:SetSelectedIndex(targetIndex)
-        return true
+        return true, restoredById
     elseif list.SetSelectedDataIndex then
         list:SetSelectedDataIndex(targetIndex)
-        return true
+        return true, restoredById
     end
 
-    return false
+    return false, restoredById
 end
 
 ---@param list table
@@ -105,6 +107,9 @@ end
 ---@param savePosition boolean?
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, savePosition)
+    local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "queueRefresh", { numItems = numItems, coalesceDelay = self.coalesceDelay }) end
+
     if savePosition ~= false then
         self:SavePosition(list)
     end
@@ -137,7 +142,9 @@ function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     end
 
     -- Restore position after refresh
-    self:RestorePosition(list)
+    local success, restoredById = self:RestorePosition(list)
+    local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "executeRefresh", { numItems = numItems, restoredById = restoredById == true, coalesceDelay = self.coalesceDelay }) end
 end
 
 ---@return nil

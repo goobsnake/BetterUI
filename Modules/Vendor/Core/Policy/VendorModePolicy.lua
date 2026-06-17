@@ -212,6 +212,11 @@ function ModePolicy.SetModeCategories(owner, mode, categories)
     owner.categoryIndexByMode = state.selectedIndexByMode
     owner._cachedBuyCategories = state.cachedBuyCategories
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "vendorMode",
+            { mode = mode, tabCount = #normalized, selectedIndex = selectedIndex })
+    end
+
     return previousCategories, CloneCategories(normalized), selectedIndex
 end
 

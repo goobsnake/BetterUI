@@ -37,10 +37,9 @@ function EventRegistry.Register(moduleName, namespace, eventId, callback)
     -- only track registrations that actually took effect.
     local registered = EVENT_MANAGER:RegisterForEvent(namespace, eventId, callback)
     if not registered then
-        if BETTERUI.Debug then
-            BETTERUI.Debug(string.format(
-                "[EventRegistry] RegisterForEvent rejected (duplicate?): module=%s namespace=%s event=%s",
-                tostring(moduleName), tostring(namespace), tostring(eventId)))
+        if BETTERUI.Log then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "RegisterForEvent rejected (duplicate?)", {
+                module = moduleName, namespace = namespace, event = eventId })
         end
         return false
     end
@@ -50,6 +49,10 @@ function EventRegistry.Register(moduleName, namespace, eventId, callback)
     registrations[moduleName][eventId] = registrations[moduleName][eventId] or {}
 
     table.insert(registrations[moduleName][eventId], namespace)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "register", {
+            module = moduleName, events = EventRegistry.GetRegistrationCount(moduleName) })
+    end
     return true
 end
 
@@ -80,6 +83,8 @@ function EventRegistry.UnregisterAll(moduleName, suppressLog)
     local moduleRegs = registrations[moduleName]
     if not moduleRegs then return end
 
+    local eventCount = EventRegistry.GetRegistrationCount(moduleName)
+
     for eventId, namespaces in pairs(moduleRegs) do
         for _, namespace in ipairs(namespaces) do
             EVENT_MANAGER:UnregisterForEvent(namespace, eventId)
@@ -89,8 +94,11 @@ function EventRegistry.UnregisterAll(moduleName, suppressLog)
     registrations[moduleName] = nil
 
     if not suppressLog then
-        BETTERUI.Debug(string.format("[EventRegistry] Unregistered all events for module: %s", moduleName))
+        if BETTERUI.Log then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "Unregistered all events for module", { module = moduleName })
+        end
     end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "unregisterAll", { module = moduleName, events = eventCount }) end
 end
 
 --- Unregister a specific event for a module.

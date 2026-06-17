@@ -116,6 +116,11 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         end
 
         if self:AreListUpdatesSuppressed() then
+            if BETTERUI.Log then
+                BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SCENE, "refresh skipped: list updates suppressed", {
+                    mode = self.currentMode,
+                })
+            end
             return
         end
 

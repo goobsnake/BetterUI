@@ -360,8 +360,12 @@ local function NormalizeSearchCallbackText(payload)
 
     if (type(payload) == "table" or type(payload) == "userdata") and payload.GetText then
         local ok, text = pcall(payload.GetText, payload)
-        if ok and text ~= nil then
-            return tostring(text)
+        if ok then
+            if text ~= nil then
+                return tostring(text)
+            end
+        else
+            if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "GetText failed") end
         end
     end
 
@@ -469,6 +473,11 @@ end
 --- Activates the search header mode.
 ---@param self BetterUISearchContext
 function BETTERUI.Interface.SearchMixin.ActivateSearchHeader(self)
+    local text = self.searchQuery or ""
+    local list = BETTERUI.Interface.SearchMixin.GetActiveList(self)
+    local n = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "ActivateSearchHeader", { textLen = #text, numItems = n }) end
+
     if self.textSearchHeaderFocus and not self._searchHeaderActive then
         self._searchHeaderActive = true
         self.textSearchHeaderFocus:Activate()
@@ -482,6 +491,11 @@ end
 --- Deactivates the search header mode.
 ---@param self BetterUISearchContext
 function BETTERUI.Interface.SearchMixin.DeactivateSearchHeader(self)
+    local text = self.searchQuery or ""
+    local list = BETTERUI.Interface.SearchMixin.GetActiveList(self)
+    local n = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "DeactivateSearchHeader", { textLen = #text, numItems = n }) end
+
     if self.textSearchHeaderFocus and self._searchHeaderActive then
         self._searchHeaderActive = false
         self.textSearchHeaderFocus:Deactivate()
@@ -561,6 +575,10 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
 
         local txt = eb:GetText() or ""
         self.searchQuery = txt
+
+        local list = BETTERUI.Interface.SearchMixin.GetActiveList(self)
+        local n = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "OnTextChanged", { textLen = #txt, numItems = n }) end
 
         if onTextChanged then
             onTextChanged(self, txt)

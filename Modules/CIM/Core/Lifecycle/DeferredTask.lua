@@ -41,6 +41,8 @@ function DeferredTaskManager:Schedule(taskId, delayMs, callback)
         self._tasks[taskId] = nil
         callback()
     end, delayMs)
+
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "schedule", { taskId = taskId, pending = self:GetPendingCount() }) end
 end
 
 --- Cancel a pending task if it exists.
@@ -51,6 +53,7 @@ function DeferredTaskManager:Cancel(taskId)
         zo_removeCallLater(existingId)
         self._tasks[taskId] = nil
     end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "cancel", { taskId = taskId, pending = self:GetPendingCount() }) end
 end
 
 --- Cancel all pending tasks.
@@ -59,6 +62,7 @@ function DeferredTaskManager:CancelAll()
     for taskId, _ in pairs(self._tasks) do
         self:Cancel(taskId)
     end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "cancelAll", { taskId = "*", pending = self:GetPendingCount() }) end
 end
 
 --- Check if a task is currently pending.

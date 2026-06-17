@@ -342,6 +342,12 @@ function BETTERUI.Banking.Class:RefreshList()
     self.list:Commit()
 
     local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "bankRefresh", {
+            mode = self.currentMode,
+            rowCount = entryCount,
+        })
+    end
     if entryCount == 0 then
         self.list:Deactivate()
     elseif BETTERUI.Utils.IsBankingSceneShowing() then
