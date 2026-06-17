@@ -43,6 +43,8 @@ Modules\CIM\Core\Window\ControlCache.lua
 Modules\CIM\Core\Integration\Interfaces.lua
 Modules\CIM\Core\Diagnostics\FeatureFlags.lua
 Modules\CIM\Core\Diagnostics\DeveloperDebug.lua
+Modules\CIM\Core\Diagnostics\InterfaceLog.lua
+Modules\CIM\Core\Diagnostics\Log.lua
 Modules\CIM\Core\Diagnostics\DebugCommands.lua
 Modules\CIM\Core\Diagnostics\PerformanceProfiler.lua
 Modules\CIM\Core\Settings\SettingsAccessor.lua

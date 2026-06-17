@@ -2,6 +2,13 @@
 
 ---@param str string Message to display in chat with [BETTERUI] prefix
 function BETTERUI.Debug(str)
+    -- Mirror into Interface.log via the unified logger (file sink, suppressed by default).
+    -- Falls back to the raw InterfaceLog bridge if the logger is not loaded yet.
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, str)
+    elseif BETTERUI.CIM and BETTERUI.CIM.InterfaceLog and BETTERUI.CIM.InterfaceLog.Write then
+        BETTERUI.CIM.InterfaceLog.Write(str)
+    end
     if BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.IsEnabled and not BETTERUI.CIM.Debug.IsEnabled() then
         return
     end
@@ -13,6 +20,10 @@ end
 --- failures stay visible to users even with debugging disabled.
 ---@param str string Message to display in chat with [BETTERUI] prefix
 function BETTERUI.DebugError(str)
+    -- Also stream to Interface.log (ERROR level) when logging is active.
+    if BETTERUI.Log then
+        BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, tostring(str))
+    end
     local message = "|c0066ff[BETTERUI]|r " .. tostring(str)
     local chatPrint = rawget(_G, "d")
     if type(chatPrint) == "function" then

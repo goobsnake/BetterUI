@@ -544,3 +544,27 @@ The Banking footer has **two horizontal dividers** with a gap between them:
 - Module enable/disable is `requiresReload = true`. The Vendor/TradingHouse/Banking/Companions scene + method takeovers installed in each module's `Setup()` are intentionally **not** torn down on disable — on reload-with-module-off, `Setup()` simply never runs and native stays pristine
 - **Do not add a runtime/mid-session teardown path** to "restore native" — reversing live scene/method takeovers in-session is high-regression-risk and unnecessary given the reload gate
 - Contrast: the DI-trace wrappers in `DebugCommands.lua` *do* replace `DIRECTIONAL_INPUT.Activate/Deactivate`, but they are installed only by the `/buidebug` / `/buiscene` debug commands and chain the original — opt-in and compat-safe
+
+## Unified logging: BETTERUI.Log → Interface.log
+
+BetterUI streams debug + caught errors to the game's `live/Logs/Interface.log` in
+real time so an external tool (or AI) can tail it while you play. The retail client
+has **no** API to write arbitrary text to that file (`WriteToInterfaceLog` exists
+only in ZOS-internal builds), so the file sink works by raising a deferred,
+popup-suppressed throwaway Lua error — the engine logs every uncaught error to
+Interface.log. Verified: suppression hides the dialog but the line still logs.
+
+- **API** (`Modules/CIM/Core/Diagnostics/Log.lua`): `BETTERUI.Log.Trace/Debug/Info/Warn/Error(category, message, data?)`.
+  `category` ∈ `BETTERUI.Log.CATEGORY.{SCENE,LIST,NAV,KEYBIND,FOOTER,CATEGORY,SEARCH,SORT,BATCH,ACTION,LIFECYCLE,SAFE,SETTINGS,GENERAL}`.
+  `data` is summarized compactly by `BETTERUI.Log.Summarize` — pass a small table of
+  scalar fields (counts/keys), **never** a full item list/array.
+- **Default routing**: every level → file ON, chat OFF, popup OFF (suppressed by
+  default). Inert unless logging is enabled, so normal players pay nothing.
+- **Crash-safety convention**: every call site is nil-guarded `if BETTERUI.Log then ... end`
+  (isolated unit tests don't load Log.lua). For HOT paths also gate on
+  `BETTERUI.Log.IsActive()` before building the payload.
+- **Surface toggles** (`/builog`): `on|off` (enable/disable), `test`, `chat on|off`
+  (mirror INFO/WARN/ERROR to chat), `popups on|off` (native error frame), `level <lvl>`.
+- `BETTERUI.Debug` / `BETTERUI.DebugError` / `BETTERUI.CIM.Debug.Log` are back-compat
+  wrappers that route through `BETTERUI.Log`. `SafeExecute` caught errors route through
+  `Log.Error("SAFE", ...)` — silent for normal players, in the file when logging is on.
