@@ -54,6 +54,9 @@ function Mixin.Apply(target, config)
     end
 
     target._multiSelectConfig = NormalizeConfig(config)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "mixinApply", {target = type(target)})
+    end
 end
 
 --- Binds a set of pure delegate methods from the shared mixin onto a target table.
@@ -81,6 +84,9 @@ function Mixin.EnterSelectionMode(self)
     if not config then return end
 
     self.isInSelectionMode = true
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "selectionMode", {entering = true})
+    end
     self.multiSelectManager:EnterSelectionMode()
 
     local list = config.getList(self)
@@ -109,6 +115,9 @@ function Mixin.ExitSelectionMode(self)
     if not self.isInSelectionMode then return end
     local config = GetConfig(self)
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "selectionMode", {entering = false})
+    end
     self.isInSelectionMode = false
     self.hadSelections = nil
     self.selectedCount = 0
@@ -123,6 +132,9 @@ function Mixin.ExitSelectionMode(self)
 end
 
 function Mixin.OnSelectionCountChanged(self, selectedCount)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selectionCount", {count = selectedCount})
+    end
     local config = GetConfig(self)
 
     if self.isInSelectionMode and selectedCount > 0 then
@@ -156,10 +168,14 @@ function Mixin.CanAbortBatch(self)
 end
 
 function Mixin.RequestBatchAbort(self)
-    if not Mixin.CanAbortBatch(self) then
+    local canAbort = Mixin.CanAbortBatch(self)
+    if not canAbort then
         return false
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchAbortRequest", {canAbort = canAbort})
+    end
     self.batchAbortRequested = true
     if type(self._multiSelectBatchWakeHandler) == "function" then
         self._multiSelectBatchWakeHandler()
@@ -476,6 +492,13 @@ function Mixin.ProcessBatchThrottled(self, request)
             pipelineToken = pipelineToken,
         }
 
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "batchSummary", self_ref.lastBatchSummary)
+        end
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchPipelineComplete", {processed = processedCount, stopReason = stopReason})
+        end
+
         if BatchConfig.IsBatchSceneShowing(self_ref) and self_ref._multiSelectConfig and self_ref._multiSelectConfig.refreshKeybinds then
             self_ref._multiSelectConfig.refreshKeybinds(self_ref)
         end
@@ -644,6 +667,9 @@ function Mixin.ProcessBatchThrottled(self, request)
                         BatchConfig.RecordServerAction(BatchConfig.GetNowMs(), rateLimitWindowMs)
                     end
                 end
+                if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchStep", {index = index, processed = processedCount, status = stepResult.status, action = action})
+                end
             else
                 consecutiveQueuedActions = 0
             end
@@ -724,6 +750,10 @@ function Mixin.ProcessBatchThrottled(self, request)
         ShowStillProcessingAnnouncement(startupDelayMs, true)
         if startupDelayMs > 0 then ScheduleContinuation(startupDelayMs, processNext)
         else processNext() end
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchPipelineStart", {action = action, totalItems = totalItems, serverBound = isServerBound})
     end
 
     StartBatchAfterDialogDismiss(BatchConfig.BATCH_STATUS_DIALOG_CLOSE_MAX_WAIT_MS, BatchConfig.BATCH_STATUS_DIALOG_SETTLE_MS)

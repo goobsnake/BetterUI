@@ -21,6 +21,9 @@ local LIST_ORIENTATION = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BETTERUI
 function BETTERUI_HorizontalParametricScrollList:New(control, onActivatedChangedFunction, onCommitWithItemsFunction,
                                                      onClearedFunction)
     onActivatedChangedFunction = onActivatedChangedFunction or ZO_GamepadOnDefaultScrollListActivatedChanged
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "horizontalListNew", { controlName = control and control.GetName and control:GetName() or "nil" })
+    end
     local list = ZO_ParametricScrollList.New(self, control, LIST_ORIENTATION.HORIZONTAL, onActivatedChangedFunction,
         onCommitWithItemsFunction, onClearedFunction)
     list:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING, GAMEPAD_HEADER_SELECTED_PADDING)

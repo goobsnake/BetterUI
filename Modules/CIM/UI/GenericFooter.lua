@@ -14,12 +14,22 @@ end
 function BETTERUI.GenericFooter:Initialize()
     if (self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "genericFooterInit", { hasFooter = self.footer ~= nil })
+    end
+
     if (self.footer.GoldLabel ~= nil) then BETTERUI.GenericFooter.Refresh(self) end
 end
 
 function BETTERUI.GenericFooter:Refresh()
     local invSettings = BETTERUI.GetModuleSettings("Inventory")
     local footer = self.footer
+    if not footer then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "genericFooterRefreshMissingFooter")
+        end
+        return
+    end
     if not footer._stringCache then footer._stringCache = {} end
 
     local stringsChanged = false
@@ -58,5 +68,9 @@ function BETTERUI.GenericFooter:Refresh()
 
     if stringsChanged or currenciesChanged then
         CurrencyMgr.PositionLabels(footer, invSettings)
+    end
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "genericFooterRefresh", { stringsChanged = stringsChanged, currenciesChanged = currenciesChanged })
     end
 end

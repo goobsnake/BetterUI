@@ -227,6 +227,9 @@ end
 --- Creates a composed options table with known groups.
 ---@return BatchOptions empty
 function BatchConfig.ComposeBatchOptions(...)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "composeOptions", {groupCount = select("#", ...)})
+    end
     local options = BuildDefaultBatchOptions()
     for i = 1, select("#", ...) do
         MergeBatchOptionsInto(options, select(i, ...))
@@ -319,14 +322,25 @@ end
 ---@param totalItems number Total number of items in the batch
 ---@return BatchThrottleTier tier The matching throttle tier
 function BatchConfig.ResolveBatchThrottleProfile(totalItems)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "throttleProfile", {totalItems = totalItems})
+    end
+    local tier = nil
     for i = 1, #BatchConfig.BATCH_THROTTLE_TIERS do
-        local tier = BatchConfig.BATCH_THROTTLE_TIERS[i]
+        tier = BatchConfig.BATCH_THROTTLE_TIERS[i]
         local minItems = tier.MIN_ITEMS or 0
         if totalItems >= minItems then
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "throttleProfile", {totalItems = totalItems, delayMs = tier.DELAY_MS})
+            end
             return tier
         end
     end
-    return BatchConfig.DEFAULT_BATCH_THROTTLE_TIERS[#BatchConfig.DEFAULT_BATCH_THROTTLE_TIERS]
+    tier = BatchConfig.DEFAULT_BATCH_THROTTLE_TIERS[#BatchConfig.DEFAULT_BATCH_THROTTLE_TIERS]
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "throttleProfile", {totalItems = totalItems, delayMs = tier.DELAY_MS})
+    end
+    return tier
 end
 
 --- Resolves a boolean option with a fallback default.
@@ -399,6 +413,9 @@ function BatchConfig.PruneServerActionHistory(nowMs, windowMs)
     if newest and nowMs < newest then
         history = {}
         BatchConfig.SERVER_BATCH_RECOVERY_STATE.serverActionTimes = history
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "pruneHistory", {retained = #history})
+        end
         return history
     end
 
@@ -407,6 +424,9 @@ function BatchConfig.PruneServerActionHistory(nowMs, windowMs)
         table.remove(history, 1)
     end
 
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "pruneHistory", {retained = #history})
+    end
     return history
 end
 
@@ -416,6 +436,9 @@ end
 function BatchConfig.RecordServerAction(nowMs, windowMs)
     local history = BatchConfig.PruneServerActionHistory(nowMs, windowMs)
     history[#history + 1] = nowMs
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "recordServerAction", {nowMs = nowMs})
+    end
 end
 
 --- Computes the delay needed before the next server action to stay within rate limits.
@@ -425,36 +448,51 @@ end
 ---@return number delayMs Delay in milliseconds before next action is allowed
 function BatchConfig.ComputeServerActionDelayMs(nowMs, windowMs, maxActions)
     if windowMs <= 0 or maxActions <= 0 then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "rateLimitDelay", {delayMs = 0})
+        end
         return 0
     end
 
     local history = BatchConfig.PruneServerActionHistory(nowMs, windowMs)
     if #history < maxActions then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "rateLimitDelay", {delayMs = 0})
+        end
         return 0
     end
 
     local anchorIndex = #history - maxActions + 1
     local anchorTime = history[anchorIndex] or history[1]
     if not anchorTime then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "rateLimitDelay", {delayMs = 0})
+        end
         return 0
     end
 
-    return zo_max((anchorTime + windowMs) - nowMs, 0)
+    local delayMs = zo_max((anchorTime + windowMs) - nowMs, 0)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "rateLimitDelay", {delayMs = delayMs})
+    end
+    return delayMs
 end
 
 --- Checks whether the owning scene is visible for the given module instance.
 ---@param self table Module instance with optional _multiSelectConfig or IsSceneShowing
 ---@return boolean showing True if the batch scene is currently visible
 function BatchConfig.IsBatchSceneShowing(self)
+    local showing = true
     if self and self._multiSelectConfig and self._multiSelectConfig.isSceneShowing then
-        return self._multiSelectConfig.isSceneShowing(self) == true
+        showing = self._multiSelectConfig.isSceneShowing(self) == true
+    elseif self and self.IsSceneShowing then
+        showing = self:IsSceneShowing() == true
     end
 
-    if self and self.IsSceneShowing then
-        return self:IsSceneShowing() == true
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "sceneShowing", {showing = showing})
     end
-
-    return true
+    return showing
 end
 
 --- Resolves the label shown when a batch is aborted due to scene exit.
@@ -548,6 +586,9 @@ end
 ---@return number seconds Estimated total batch duration
 function BatchConfig.EstimateBatchDurationSeconds(totalItems, delayMs, cooldownEvery, cooldownMs,
                                                    totalCostUnits, chunkCostUnits, chunkPauseMs, initialDelayMs)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "estimateDuration", {totalItems = totalItems, delayMs = delayMs})
+    end
     local itemCount = zo_max(totalItems, 0)
     local estimateMs = itemCount * zo_max(delayMs or 0, 0)
     local cooldownUnits = zo_max(totalCostUnits or itemCount, 0)

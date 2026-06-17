@@ -56,6 +56,9 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
     else
         self.savedUniqueId = nil
     end
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshSavePosition", { savedPosition = self.savedPosition, savedUniqueId = self.savedUniqueId })
+    end
 end
 
 ---@param list table
@@ -68,7 +71,11 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
 
     -- Try to find by uniqueId first
     if self.savedUniqueId then
-        for i = 1, list:GetNumItems() do
+        local numItemsForSearch = list:GetNumItems() or 0
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshRestoreSearchById", { savedUniqueId = self.savedUniqueId, numItems = numItemsForSearch })
+        end
+        for i = 1, numItemsForSearch do
             local data = list:GetDataForDataIndex(i)
             if data and data.uniqueId == self.savedUniqueId then
                 targetIndex = i
@@ -150,6 +157,9 @@ end
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
     if self.pendingRefreshCallId then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "refreshCancel")
+        end
         zo_removeCallLater(self.pendingRefreshCallId)
         self.pendingRefreshCallId = nil
     end
@@ -164,9 +174,15 @@ end
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:MarkDirty()
     self.isDirty = true
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshMarkDirty")
+    end
 end
 
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:ClearDirty()
     self.isDirty = false
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshClearDirty")
+    end
 end

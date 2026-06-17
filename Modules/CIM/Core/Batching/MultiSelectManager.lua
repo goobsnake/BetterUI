@@ -21,12 +21,18 @@ local activeInstance = nil
 --- Used by row setup functions to check selection state.
 --- @return BETTERUI.CIM.MultiSelectManager.Manager|nil
 function MultiSelectManager.GetActiveInstance()
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "activeInstance", {instanceSet = activeInstance ~= nil})
+    end
     return activeInstance
 end
 
 --- Sets the active instance (called when entering/exiting selection mode).
 function MultiSelectManager.SetActiveInstance(instance)
     activeInstance = instance
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "activeInstance", {instanceSet = instance ~= nil})
+    end
 end
 
 -- CLASS DEFINITION
@@ -200,6 +206,10 @@ function Manager:EnterSelectionMode()
     -- Set as active instance for row setup queries
     MultiSelectManager.SetActiveInstance(self)
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "enterSelectionMode", {count = 0})
+    end
+
     -- Play sound for mode entry
     PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
 
@@ -223,6 +233,10 @@ function Manager:ExitSelectionMode()
     -- instance may have entered selection mode in the meantime.
     if MultiSelectManager.GetActiveInstance() == self then
         MultiSelectManager.SetActiveInstance(nil)
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "exitSelectionMode", {count = 0})
     end
 
     -- Play sound for mode exit
@@ -267,7 +281,11 @@ function Manager:ToggleSelection(itemData)
         self.selectionChangedCallback(self:GetSelectedCount())
     end
 
-    return self.selectedItems[primaryKey] ~= nil
+    local isNowSelected = self.selectedItems[primaryKey] ~= nil
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selectionChange", {primaryKey = primaryKey, selected = isNowSelected, total = self:GetSelectedCount()})
+    end
+    return isNowSelected
 end
 
 --- Checks if an item is currently selected
@@ -296,6 +314,9 @@ function Manager:Select(itemData)
         if self.selectionChangedCallback then
             self.selectionChangedCallback(self:GetSelectedCount())
         end
+        if BETTERUI.Log then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selectionChange", {primaryKey = primaryKey, selected = true, total = self:GetSelectedCount()})
+        end
     end
 end
 
@@ -312,6 +333,9 @@ function Manager:Deselect(itemData)
 
         if self.selectionChangedCallback then
             self.selectionChangedCallback(self:GetSelectedCount())
+        end
+        if BETTERUI.Log then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selectionChange", {primaryKey = primaryKey, selected = false, total = self:GetSelectedCount()})
         end
     end
 end
@@ -382,6 +406,10 @@ function Manager:SelectAll(listOverride)
                 self:RegisterSelectedItem(primaryKey, data)
             end
         end
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "selectAll", {numItems = numItems, selectedCount = self:GetSelectedCount()})
     end
 
     if self.selectionChangedCallback then
@@ -498,6 +526,10 @@ function Manager:RefreshSelections()
 
     self.selectedItems = refreshedSelectedItems
     self.selectedItemAliases = refreshedAliases
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "refreshSelections", {removedCount = removedCount, remaining = self:GetSelectedCount()})
+    end
 
     -- Fire callback if anything was removed
     if removedCount > 0 and self.selectionChangedCallback then

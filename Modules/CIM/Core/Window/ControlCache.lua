@@ -16,6 +16,9 @@ function BETTERUI.CIM.ControlCache.Create(parent)
     return function(childName)
         if not cache[childName] then
             cache[childName] = parent:GetNamedChild(childName)
+            if cache[childName] == nil and BETTERUI.Log then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "controlCacheMiss", { childName = childName, hit = false })
+            end
         end
         return cache[childName]
     end
@@ -27,9 +30,12 @@ end
 --- @return table<string, table|nil> cache Map of name to control
 function BETTERUI.CIM.ControlCache.CacheChildren(parent, childNames)
     local cache = {}
+    local nilCount = 0
     for _, name in ipairs(childNames) do
         cache[name] = parent:GetNamedChild(name)
+        if cache[name] == nil then nilCount = nilCount + 1 end
     end
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "cacheChildren", { count = #childNames, nilCount = nilCount }) end
     return cache
 end
 
@@ -38,7 +44,8 @@ end
 --- @return table<string, table|nil> cache Map of child name to control
 function BETTERUI.CIM.ControlCache.CacheButtonChildren(button)
     if not button then return {} end
-    return {
+    local nilCount = 0
+    local cache = {
         Icon = button:GetNamedChild("Icon"),
         ActivationHighlight = button:GetNamedChild("ActivationHighlight"),
         UnusableOverlay = button:GetNamedChild("UnusableOverlay"),
@@ -59,4 +66,9 @@ function BETTERUI.CIM.ControlCache.CacheButtonChildren(button)
         ReadyLoop = button:GetNamedChild("ReadyLoop"),
         Glow = button:GetNamedChild("Glow"),
     }
+    for _, ctrl in pairs(cache) do
+        if ctrl == nil then nilCount = nilCount + 1 end
+    end
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "cacheButtonChildren", { nilCount = nilCount }) end
+    return cache
 end

@@ -26,6 +26,9 @@ end
 ---@param callback function|nil
 ---@return BetterUIKeybindDescriptor
 function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "createBack")
+    end
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
@@ -41,6 +44,9 @@ end
 ---@param visibleFn function|nil
 ---@return BetterUIKeybindDescriptor
 function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "createStackAll", {bagId = bagId})
+    end
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         name = GetString(rawget(_G, "SI_ITEM_ACTION_STACK_ALL")),
@@ -57,6 +63,9 @@ end
 ---@param visibleFn function|nil
 ---@return BetterUIKeybindDescriptor
 function BETTERUI.CIM.Keybinds.CreateActionsKeybind(showActionsFn, visibleFn)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "createActions")
+    end
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         name = GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND")),
@@ -72,6 +81,9 @@ end
 ---@param hasTextFn function|nil
 ---@return BetterUIKeybindDescriptor
 function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn, hasTextFn)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "createClearSearch")
+    end
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         name = GetString(rawget(_G, "SI_BETTERUI_CLEAR_SEARCH")),
@@ -100,12 +112,18 @@ end
 --- "Multi-Select" mode-entry keybind label.
 ---@return string
 function BETTERUI.CIM.Keybinds.GetMultiSelectLabel()
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "multiSelectLabel", {count = 0})
+    end
     return GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT") or "SI_BETTERUI_MULTI_SELECT")
 end
 
 --- "Select All" batch-dialog entry label.
 ---@return string
 function BETTERUI.CIM.Keybinds.GetSelectAllLabel()
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "multiSelectLabel", {count = 0})
+    end
     return GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL") or "SI_BETTERUI_SELECT_ALL")
 end
 
@@ -113,6 +131,9 @@ end
 ---@param selectedCount number Current number of selected rows
 ---@return string
 function BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "multiSelectLabel", {count = selectedCount})
+    end
     return zo_strformat("<<1>> (<<2>>)",
         GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL") or "SI_BETTERUI_DESELECT_ALL"), selectedCount)
 end
@@ -141,6 +162,9 @@ function BETTERUI.CIM.Keybinds.GetMultiSelectToggleLabel(manager, target, afterT
             count = count + 1
         end
     end
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "multiSelectLabel", {count = count})
+    end
     return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT") or "SI_BETTERUI_SELECT_WITH_COUNT"), count)
 end
 
@@ -149,6 +173,9 @@ end
 ---@param keybindGroup table The keybind group to mutate
 ---@param navigationType number|nil Optional navigation event type
 function BETTERUI.CIM.Keybinds.AddBackNavigation(keybindGroup, navigationType)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "addBackNav")
+    end
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(
         keybindGroup,
         navigationType or GAME_NAVIGATION_TYPE_BUTTON
@@ -280,5 +307,10 @@ end
 function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(contract)
     assert(type(contract) == "table" and rawget(contract, "list") ~= nil,
         "CreateListTriggerKeybinds expects BetterUIListTriggerKeybindContract with a list field")
-    return BuildTriggerKeybinds(CoerceListTriggerContract(contract))
+    local leftTrigger, rightTrigger = BuildTriggerKeybinds(CoerceListTriggerContract(contract))
+    if BETTERUI.Log then
+        local speed = leftTrigger and leftTrigger.callback and "variable" or "default"
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "triggerKeybinds", {speed = speed})
+    end
+    return leftTrigger, rightTrigger
 end

@@ -88,6 +88,22 @@ BETTERUI.Log.Info = captureUnifiedLog
 BETTERUI.Log.Warn = captureUnifiedLog
 BETTERUI.Log.Error = captureUnifiedLog
 
+-- Instrumentation may emit additional batch log records in the same code paths, so
+-- assert on records MATCHING the expected message rather than the total count.
+local function countMatching(pattern)
+    local n = 0
+    for _, e in ipairs(debugOutput) do
+        if e.message and tostring(e.message):find(pattern) then n = n + 1 end
+    end
+    return n
+end
+local function firstMatching(pattern)
+    for _, e in ipairs(debugOutput) do
+        if e.message and tostring(e.message):find(pattern) then return e.message end
+    end
+    return nil
+end
+
 function zo_max(a, b) return math.max(a or 0, b or 0) end
 function zo_min(a, b) return math.min(a or 0, b or 0) end
 function zo_ceil(x) return math.ceil(x or 0) end
@@ -373,8 +389,8 @@ BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
 )
 assertEqual(initialToken, reentryInstance.batchPipelineToken, "Re-entry does not create a second pipeline token")
 assertEqual(0, reentryCalls, "Deferred batch has not executed its first action yet")
-assertEqual(1, #debugOutput, "Production guard logs one re-entry rejection")
-assertTrue(debugOutput[1].message:find("re%-entry rejected") ~= nil, "Re-entry log message comes from the shipped batch engine")
+assertEqual(1, countMatching("re%-entry rejected"), "Production guard logs one re-entry rejection")
+assertTrue(firstMatching("re%-entry rejected") ~= nil, "Re-entry log message comes from the shipped batch engine")
 
 print("\nTest: ProcessBatchThrottled only accepts request.step in the public request-table contract")
 resetEnvironment()
@@ -393,8 +409,8 @@ BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
     }
 )
 assertEqual(0, strictContractCalls, "Legacy request.fn is ignored by the public ProcessBatchThrottled contract")
-assertEqual(1, #debugOutput, "Public contract violation is logged once")
-assertTrue(debugOutput[1].message:find("step function missing") ~= nil,
+assertEqual(1, countMatching("step function missing"), "Public contract violation is logged once")
+assertTrue(firstMatching("step function missing") ~= nil,
     "Public contract violation logs the missing step callback message")
 
 print("\nTest: Stale timer callbacks are rejected by the production pipeline token guard")

@@ -33,6 +33,9 @@ function UnifiedFooterController:Initialize(control)
     self.footer = nil
     self.mode = BETTERUI.CIM.UnifiedFooter.MODE.CURRENCY
     self._initialized = false
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterInit", { controlName = control and control.GetName and control:GetName() or "nil" })
+    end
 end
 
 ---@param footerControl table
@@ -40,13 +43,20 @@ end
 function UnifiedFooterController:SetupFooter(footerControl)
     self.footer = footerControl
     self._initialized = true
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterSetup", { controlName = footerControl and footerControl.GetName and footerControl:GetName() or "nil" })
+    end
 end
 
 ---@param mode integer
 ---@return nil
 function UnifiedFooterController:SetMode(mode)
     if self.mode ~= mode then
+        local oldMode = self.mode
         self.mode = mode
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterSetMode", { oldMode = oldMode, newMode = mode })
+        end
         self:Refresh()
     end
 end
@@ -58,7 +68,12 @@ end
 
 --- Refreshes the footer based on current mode.
 function UnifiedFooterController:Refresh()
-    if not self._initialized or not self.footer then return end
+    if not self._initialized or not self.footer then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterRefreshSkipped", { initialized = self._initialized == true, hasFooter = self.footer ~= nil })
+        end
+        return
+    end
 
     -- Delegate to existing GenericFooter refresh logic
     -- The GenericFooter:Refresh already handles all capacity and currency updates
@@ -73,6 +88,13 @@ function UnifiedFooterController:Refresh()
     if type(refreshFn) == "function" then
         setmetatable(footerData, { __index = BETTERUI.GenericFooter })
         refreshFn(footerData)
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterRefresh", { mode = self.mode })
+        end
+    else
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterRefreshNoFn")
+        end
     end
 
     -- Apply mode-specific visibility/styling if needed

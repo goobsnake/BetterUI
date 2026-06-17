@@ -42,7 +42,7 @@ function DeferredTaskManager:Schedule(taskId, delayMs, callback)
         callback()
     end, delayMs)
 
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "schedule", { taskId = taskId, pending = self:GetPendingCount() }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "schedule", { taskId = taskId, delayMs = delayMs, pending = self:GetPendingCount() }) end
 end
 
 --- Cancel a pending task if it exists.
@@ -95,6 +95,7 @@ function BETTERUI.CIM.DeferredTask.CreateLazyManagerProxy(factory)
         __index = function(_, key)
             local manager = factory()
             local value = manager and manager[key]
+            if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "lazyProxy", { key = key, type = type(value) }) end
             if type(value) == "function" then
                 return function(_, ...)
                     return value(manager, ...)

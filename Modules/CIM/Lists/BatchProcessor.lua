@@ -48,6 +48,11 @@ function BETTERUI.CIM.Lists.BatchProcessor:Start(data, options)
     -- Cancel any existing batch
     self:Cancel()
 
+    local totalItems = data and #data or 0
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchStart", { totalItems = totalItems, batchDelay = self.batchDelay, initialBatchSize = self.initialBatchSize, remainingBatchSize = self.remainingBatchSize })
+    end
+
     if not data or #data == 0 then
         if options.onComplete then
             options.onComplete(options.context)
@@ -72,6 +77,9 @@ function BETTERUI.CIM.Lists.BatchProcessor:ProcessBatch()
 
     -- Check if we should continue
     if self.isActiveCheck and not self.isActiveCheck() then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchActiveCheckFailed", { pendingIndex = self.pendingIndex or 1 })
+        end
         self:Cancel()
         return
     end
@@ -96,6 +104,9 @@ function BETTERUI.CIM.Lists.BatchProcessor:ProcessBatch()
 
     -- Process items in this batch
     if self.onProcessItem then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchProcess", { startIndex = startIndex, endIndex = endIndex, totalItems = totalItems })
+        end
         for i = startIndex, endIndex do
             self.onProcessItem(self.pendingData[i], i, self.context)
         end
@@ -123,6 +134,9 @@ end
 ---@return nil
 function BETTERUI.CIM.Lists.BatchProcessor:Cancel()
     if self.batchCallId then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "batchCancel", { pendingIndex = self.pendingIndex or 1 })
+        end
         zo_removeCallLater(self.batchCallId)
         self.batchCallId = nil
     end

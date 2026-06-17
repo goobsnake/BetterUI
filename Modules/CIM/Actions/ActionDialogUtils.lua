@@ -26,6 +26,9 @@ local QUICKSLOT_LABELS = {
 ---@param slotIndex integer
 ---@return string
 function BETTERUI.CIM.GetQuickslotLabel(slotIndex)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "quickslotLabel", {slotIndex = slotIndex})
+    end
     return QUICKSLOT_LABELS[slotIndex] or tostring(slotIndex)
 end
 
@@ -90,6 +93,9 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
         table.insert(parametricList, { template = templateName, entryData = entryData })
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "buildQuickslotEntries", {hasUnassign = hasUnassign, assignedIndex = assignedIndex})
+    end
     return {
         hasUnassign = hasUnassign,
         assignedIndex = assignedIndex,
@@ -109,6 +115,7 @@ function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options
     local filterCallback = options.filterCallback
 
     local numActions = slotActions:GetNumSlotActions()
+    local includedCount = 0
 
     for i = 1, numActions do
         local action = slotActions:GetSlotAction(i)
@@ -127,6 +134,7 @@ function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options
         end
 
         if shouldInclude then
+            includedCount = includedCount + 1
             local entryData = ZO_GamepadEntryData:New(actionName)
             entryData:SetIconTintOnSelection(true)
             entryData.action = action
@@ -138,6 +146,10 @@ function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options
             })
         end
     end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "populateActions", {numActions = numActions, includedCount = includedCount})
+    end
 end
 
 -- LINK TO CHAT HANDLER
@@ -145,29 +157,44 @@ end
 ---@param targetData table?
 ---@return boolean
 function BETTERUI.CIM.HandleLinkToChat(targetData)
-    if not targetData then return false end
+    if not targetData then
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "linkToChat", {success = false, hasLink = false})
+        end
+        return false
+    end
 
     local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
-    if not bag or not slot then return false end
+    if not bag or not slot then
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "linkToChat", {success = false, hasLink = false})
+        end
+        return false
+    end
 
     local itemLink = GetItemLink(bag, slot)
-    if itemLink and itemLink ~= "" then
+    local success = itemLink and itemLink ~= ""
+    if success then
         ZO_LinkHandler_InsertLink(zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink))
-        return true
     end
-    return false
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "linkToChat", {success = success, hasLink = itemLink ~= nil})
+    end
+    return success
 end
 
 --- Registers the setup-owned inventory dialog invoker used by shared CIM actions.
 ---@param invokeDialog fun(methodName: string, ...: any): boolean
 ---@return boolean
 function BETTERUI.CIM.RegisterInventoryDialogInvoker(invokeDialog)
-    if type(invokeDialog) ~= "function" then
-        return false
+    local registered = type(invokeDialog) == "function"
+    if registered then
+        BETTERUI.CIM._inventoryDialogInvoker = invokeDialog
     end
-
-    BETTERUI.CIM._inventoryDialogInvoker = invokeDialog
-    return true
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "dialogInvoker", {registered = registered, methodName = nil})
+    end
+    return registered
 end
 
 --- Calls the registered inventory dialog invoker when available.
@@ -176,8 +203,15 @@ end
 function BETTERUI.CIM.InvokeInventoryDialog(methodName, ...)
     local invokeDialog = BETTERUI.CIM._inventoryDialogInvoker
     if type(invokeDialog) ~= "function" then
+        if BETTERUI.Log then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "dialogInvoker", {registered = false, methodName = methodName})
+        end
         return false
     end
 
-    return invokeDialog(methodName, ...)
+    local result = invokeDialog(methodName, ...)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "dialogInvoker", {registered = true, methodName = methodName})
+    end
+    return result
 end

@@ -208,6 +208,10 @@ end
 function HeaderSortIntegration.Install(owner, options)
     options = options or {}
 
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "headerSortInstall", { hasColumns = options.columns ~= nil and #options.columns > 0, autoEnterOnListStart = options.autoEnterOnListStart == true })
+    end
+
     local controllerContract = NormalizeControllerContract(options)
     local keybinds = NormalizeKeybindContract(options)
     local navigation = NormalizeNavigationContract(options)
@@ -418,6 +422,9 @@ end
 function HeaderSortIntegration.EnsureController(integration)
     if not integration then
         return nil
+    end
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "headerSortEnsureController")
     end
     return ResolveController(integration)
 end

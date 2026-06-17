@@ -47,6 +47,9 @@ end
 ---@param layout table?
 ---@return nil
 function BETTERUI.GenericHeader.Initialize(control, createTabBar, layout)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "genericHeaderInit", { createTabBar = createTabBar == ZO_GAMEPAD_HEADER_TABBAR_CREATE })
+    end
     local titleContainer = control:GetNamedChild("TitleContainer")
     control.controls =
     {
@@ -86,6 +89,9 @@ end
 ---@param data table
 ---@return nil
 function BETTERUI.GenericHeader.AddToList(control, data)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "genericHeaderAddToList", { name = data and data.name })
+    end
     control.tabBar:AddEntry("BETTERUI_GamepadTabBarTemplate", data)
 end
 
@@ -190,6 +196,9 @@ end
 ---@param blockTabBarCallbacks boolean?
 ---@return nil
 function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "genericHeaderRefresh", { name = data and data.name, blockTabBarCallbacks = blockTabBarCallbacks == true })
+    end
     control:GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(data.titleText(data.name))
 
     local tabBarControl = control.controls[TABBAR]

@@ -15,6 +15,7 @@ BETTERUI.CIM.SceneCleanup = {}
 ---            code duplication and ensure consistent cleanup behavior.
 ---
 function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "cleanupInputState", { hasScreen = screen ~= nil }) end
     if not screen then return end
 
     -- Clear spinner confirmation state so the next scene show does not remain in spinner mode.

@@ -23,15 +23,26 @@ end
 
 ---@return fun(left: table, right: table): boolean|nil
 function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
-    if not EnsureControllerReady() then return nil end
+    if not EnsureControllerReady() then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "getSortComparatorNotReady")
+        end
+        return nil
+    end
 
     local column, direction = self:GetActiveSortColumn()
     if not column or direction == SORT_DIRECTION.NONE then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "getSortComparatorNone")
+        end
         return nil
     end
 
     local baseSortFn = column.sortFn
     if not baseSortFn then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "getSortComparatorNoFn", { key = column.key })
+        end
         return nil
     end
 
@@ -53,7 +64,10 @@ end
 function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallback, navigateUpCallback)
     -- Resolve the deferred SORT_DIRECTION reference now so the X-button
     -- visible() closure below never indexes a nil table.
-    EnsureControllerReady()
+    local ready = EnsureControllerReady()
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "createHeaderSortKeybindDescriptor", { ready = ready, columnCount = #self.columns })
+    end
 
     local controller = self
 

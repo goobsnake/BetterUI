@@ -36,6 +36,7 @@ BETTERUI.CIM.NavigationState = {}
 
 ---@return NavigationStateData
 function BETTERUI.CIM.NavigationState.Create()
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "navStateCreate") end
     return {
         -- Token for coalescing category changes (incremented each change)
         changeToken = 0,
@@ -64,6 +65,7 @@ function BETTERUI.CIM.NavigationState.StartCategoryChange(state, newIndex)
     state.pendingCategoryIndex = newIndex
     state.suppressListUpdates = true
     state.suppressListUpdatesToken = state.changeToken
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "startCategoryChange", { token = state.changeToken, newIndex = newIndex }) end
     return state.changeToken
 end
 
@@ -71,37 +73,39 @@ end
 ---@param token number Token from StartCategoryChange
 ---@return boolean success True if the finish matched the current token
 function BETTERUI.CIM.NavigationState.FinishCategoryChange(state, token)
-    if token ~= state.changeToken then
-        return false -- Stale callback
+    local success = token == state.changeToken
+    if success then
+        if state.suppressListUpdates and state.suppressListUpdatesToken == token then
+            state.suppressListUpdates = false
+            state.suppressListUpdatesToken = nil
+        end
+        state.pendingCategoryIndex = nil
     end
-
-    if state.suppressListUpdates and state.suppressListUpdatesToken == token then
-        state.suppressListUpdates = false
-        state.suppressListUpdatesToken = nil
-    end
-
-    state.pendingCategoryIndex = nil
-    return true
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "finishCategoryChange", { token = token, success = success }) end
+    return success
 end
 
 ---@param state NavigationStateData
 ---@param token number Token from StartCategoryChange
 ---@return boolean cancelled True if the cancellation was valid
 function BETTERUI.CIM.NavigationState.CancelCategoryChange(state, token)
-    if state.suppressListUpdatesToken == token then
+    local success = state.suppressListUpdatesToken == token
+    if success then
         state.suppressListUpdates = false
         state.suppressListUpdatesToken = nil
         state.pendingCategoryIndex = nil
-        return true
     end
-    return false
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "cancelCategoryChange", { token = token, success = success }) end
+    return success
 end
 
 ---@param state NavigationStateData
 ---@param token number Token to validate
 ---@return boolean valid True if token matches current changeToken
 function BETTERUI.CIM.NavigationState.IsChangeValid(state, token)
-    return token == state.changeToken
+    local valid = token == state.changeToken
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "isChangeValid", { token = token, valid = valid }) end
+    return valid
 end
 
 -- CYCLING STATE HELPERS

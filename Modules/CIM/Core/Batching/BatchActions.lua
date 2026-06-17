@@ -86,6 +86,15 @@ BatchActions.ExtractSlot = ExtractSlot
 BatchActions.HasItemAtSlot = HasItemAtSlot
 BatchActions.ResolveStackCount = ResolveStackCount
 
+--- Logs a batch step outcome for instrumentation; returns the supplied result
+--- so it can be used as a drop-in tail expression.
+local function LogBatchStep(bagId, slotIndex, status, actionName, result)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchStep", { bagId = bagId, slotIndex = slotIndex, status = status, action = actionName })
+    end
+    return result
+end
+
 -- BATCH OPTION PRESETS
 
 
@@ -132,19 +141,24 @@ function BatchActions.BatchLock(self)
     end
     if #items == 0 then return end
 
+    local actionName = GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED"))
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchStart", {action=actionName, count=#items})
+    end
+
     self:ProcessBatchThrottled({
         items = items,
         step = function(bagId, slotIndex, itemData)
             if itemData and itemData.expectedSlotIdentity
                 and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(itemData.expectedSlotIdentity, bagId, slotIndex) ~= true then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
             if not CanLockItem(bagId, slotIndex) then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
 
             SetItemIsPlayerLocked(bagId, slotIndex, true)
-            return BatchStepQueued()
+            return LogBatchStep(bagId, slotIndex, "queued", actionName, BatchStepQueued())
         end,
         onComplete = function()
             self:ExitSelectionMode()
@@ -168,19 +182,24 @@ function BatchActions.BatchUnlock(self)
     end
     if #items == 0 then return end
 
+    local actionName = GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_LOCKED"))
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchStart", {action=actionName, count=#items})
+    end
+
     self:ProcessBatchThrottled({
         items = items,
         step = function(bagId, slotIndex, itemData)
             if itemData and itemData.expectedSlotIdentity
                 and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(itemData.expectedSlotIdentity, bagId, slotIndex) ~= true then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
             if not CanUnlockItem(bagId, slotIndex) then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
 
             SetItemIsPlayerLocked(bagId, slotIndex, false)
-            return BatchStepQueued()
+            return LogBatchStep(bagId, slotIndex, "queued", actionName, BatchStepQueued())
         end,
         onComplete = function()
             self:ExitSelectionMode()
@@ -209,24 +228,29 @@ function BatchActions.BatchMarkAsJunk(self)
     end
     if #items == 0 then return end
 
+    local actionName = GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK"))
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchStart", {action=actionName, count=#items})
+    end
+
     self:ProcessBatchThrottled({
         items = items,
         step = function(bagId, slotIndex, itemData)
             if itemData and itemData.expectedSlotIdentity
                 and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(itemData.expectedSlotIdentity, bagId, slotIndex) ~= true then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
             if not HasItemAtSlot(bagId, slotIndex) then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
             if IsItemJunk(bagId, slotIndex)
                 or not CanJunkItem(bagId, slotIndex)
             then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
 
             SetItemIsJunk(bagId, slotIndex, true)
-            return BatchStepQueued()
+            return LogBatchStep(bagId, slotIndex, "queued", actionName, BatchStepQueued())
         end,
         onComplete = function()
             self:ExitSelectionMode()
@@ -254,24 +278,29 @@ function BatchActions.BatchUnmarkAsJunk(self)
     end
     if #items == 0 then return end
 
+    local actionName = GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_JUNK"))
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchStart", {action=actionName, count=#items})
+    end
+
     self:ProcessBatchThrottled({
         items = items,
         step = function(bagId, slotIndex, itemData)
             if itemData and itemData.expectedSlotIdentity
                 and BETTERUI.CIM.Utils.IsSlotIdentityCurrent(itemData.expectedSlotIdentity, bagId, slotIndex) ~= true then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
             if not HasItemAtSlot(bagId, slotIndex) then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
             if not IsItemJunk(bagId, slotIndex)
                 or not CanUnjunkItem(bagId, slotIndex)
             then
-                return BatchStepHandled()
+                return LogBatchStep(bagId, slotIndex, "handled", actionName, BatchStepHandled())
             end
 
             SetItemIsJunk(bagId, slotIndex, false)
-            return BatchStepQueued()
+            return LogBatchStep(bagId, slotIndex, "queued", actionName, BatchStepQueued())
         end,
         onComplete = function()
             self:ExitSelectionMode()
@@ -324,6 +353,10 @@ function BatchActions.AnalyzeSelectedItems(selectedItems)
         end
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "analyzeSelected", counts)
+    end
+
     return counts
 end
 
@@ -348,6 +381,10 @@ end
 --- to a parametric list based on the analysis counts.
 --- Modules call this after adding their own module-specific entries.
 function BatchActions.AppendCommonBatchEntries(parametricList, counts, self)
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "batchDialogEntries", {entryCount = #parametricList})
+    end
+
     if counts.canLockCount > 0 then
         local label = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED")), counts.canLockCount)
         table.insert(parametricList, BatchActions.CreateDialogEntry(label, function() self:BatchLock() end))

@@ -41,8 +41,9 @@ local function BuildStateChangeHandler(screen, config)
                     KEYBIND_STRIP:AddKeybindButtonGroup(group)
                 end
             end
+            local wasPushed = (oldState == SCENE_HIDDEN)
+            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "sceneShowing", { scene = sceneName, wasPushed = wasPushed, keybindGroups = #(config.keybinds or {}) }) end
             if config.onShowing then
-                local wasPushed = (oldState == SCENE_HIDDEN)
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onShowing", config.onShowing, screen, wasPushed)
             end
         elseif newState == SCENE_HIDING then
@@ -51,6 +52,7 @@ local function BuildStateChangeHandler(screen, config)
                     KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
                 end
             end
+            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "sceneHiding", { scene = sceneName, keybindGroups = #(config.keybinds or {}) }) end
             if config.taskManager and config.taskManager.CancelAll then
                 config.taskManager:CancelAll()
             end
@@ -58,6 +60,7 @@ local function BuildStateChangeHandler(screen, config)
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onHiding", config.onHiding, screen)
             end
         elseif newState == SCENE_HIDDEN then
+            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "sceneHidden", { scene = sceneName, eventRegistryModule = config.eventRegistryModule }) end
             if config.eventRegistryModule and BETTERUI.CIM.EventRegistry then
                 BETTERUI.CIM.EventRegistry.UnregisterAll(config.eventRegistryModule)
             end

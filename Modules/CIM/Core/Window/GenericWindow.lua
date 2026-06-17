@@ -49,6 +49,7 @@ function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
     end
 
     self.categoryPositions[key] = pos or 1
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "saveCategoryPosition", { key = key, pos = self.categoryPositions[key] }) end
 end
 
 --- @param categoryKey string|nil Category key (defaults to currentCategoryKey)
@@ -57,7 +58,9 @@ function BETTERUI.CIM.GenericWindow:RestoreCategoryPosition(categoryKey)
     local key = categoryKey or self.currentCategoryKey
     if not key then return 1 end
 
-    return self.categoryPositions[key] or 1
+    local pos = self.categoryPositions[key] or 1
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "restoreCategoryPosition", { key = key, pos = pos }) end
+    return pos
 end
 
 --- Clears all saved category positions.
@@ -99,6 +102,7 @@ end
 
 --- Ensures header tab bar keybinds are active.
 function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "ensureHeaderKeybinds", { hasMain = self.mainKeybindStripDescriptor ~= nil }) end
     if self.headerGeneric and self.headerGeneric.tabBar then
         local tabBar = self.headerGeneric.tabBar
         if tabBar.keybindStripDescriptor then
@@ -122,6 +126,7 @@ end
 function BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds()
     if not KEYBIND_STRIP then return end
 
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refreshActiveKeybinds", { hasCore = self.coreKeybinds ~= nil }) end
     if self.mainKeybindStripDescriptor then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
     end

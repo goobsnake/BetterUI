@@ -134,6 +134,9 @@ function ScrollIndicator.Setup(listControl, options)
     local controlName = listControl:GetName()
     local configuredListObject = options and options.listObject or nil
     local configuredVisibleItems = options and options.visibleItems or nil
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorSetup", { controlName = controlName, hasListObject = configuredListObject ~= nil, visibleItems = configuredVisibleItems })
+    end
 
     if indicatorInstances[controlName] then
         local instance = indicatorInstances[controlName]
@@ -296,6 +299,9 @@ function ScrollIndicator.Hide(listControl)
 
     if instance and instance.controls then
         instance.controls.container:SetHidden(true)
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorHide", { controlName = controlName })
+        end
     end
 end
 
@@ -310,6 +316,9 @@ function ScrollIndicator.Show(listControl)
     if instance and instance.controls then
         instance.controls.container:SetHidden(false)
         ScrollIndicator.Update(listControl)
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorShow", { controlName = controlName })
+        end
     end
 end
 
@@ -322,6 +331,10 @@ function ScrollIndicator.Destroy(listControl)
     local instance = indicatorInstances[controlName]
 
     if not instance then return end
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorDestroy", { controlName = controlName })
+    end
 
     -- Unregister global mouse up handler
     if instance.globalMouseUpEventName then

@@ -53,6 +53,9 @@ local function StartArrowRepeat(instance, direction)
     -- Store the direction for the repeat handler
     instance.arrowRepeatDirection = direction
     instance.arrowRepeatActive = true
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorStartArrowRepeat", { direction = direction })
+    end
 
     -- Use a unique update name per instance to avoid collisions
     local updateName = "BetterUI_ScrollIndicatorArrowRepeat_" .. tostring(instance.listControl:GetName())
@@ -85,10 +88,17 @@ local function StopArrowRepeat(instance)
 
     local updateName = "BetterUI_ScrollIndicatorArrowRepeat_" .. tostring(instance.listControl:GetName())
     EVENT_MANAGER:UnregisterForUpdate(updateName)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorStopArrowRepeat", { updateName = updateName })
+    end
 end
 
 local function SetupArrowMouseHandlers(instance)
     if not instance or not instance.controls then return end
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorSetupArrowMouseHandlers", { controlName = instance.listControl and instance.listControl.GetName and instance.listControl:GetName() or "nil" })
+    end
 
     local upArrow = instance.controls.upArrow
     local downArrow = instance.controls.downArrow
@@ -154,6 +164,10 @@ local function GetSelectableBounds(instance, totalItems)
     firstSelectableIndex = zo_clamp(firstSelectableIndex or 1, 1, maxIndex)
     lastSelectableIndex = zo_clamp(lastSelectableIndex or totalItems, firstSelectableIndex, maxIndex)
 
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorSelectableBounds", { totalItems = totalItems, firstSelectableIndex = firstSelectableIndex, lastSelectableIndex = lastSelectableIndex })
+    end
+
     return firstSelectableIndex, lastSelectableIndex
 end
 
@@ -170,6 +184,10 @@ end
 
 local function SetupThumbDragHandlers(instance)
     if not instance or not instance.controls then return end
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorSetupThumbDragHandlers", { controlName = instance.listControl and instance.listControl.GetName and instance.listControl:GetName() or "nil" })
+    end
 
     local thumb = instance.controls.thumb
     local track = instance.controls.track

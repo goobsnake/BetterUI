@@ -96,6 +96,8 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTempl
 
     self.header.columns = {}
 
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "windowInit", { tlw_name = tlw_name, template = template, hasSpinner = self.spinner ~= nil }) end
+
     self:InitializeList()
 end
 
@@ -106,6 +108,7 @@ function BETTERUI.Interface.Window:SetSpinnerValue(max, value)
     if not self.spinner then return end
     self.spinner:SetMinMax(1, max)
     self.spinner:SetValue(value)
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "setSpinnerValue", { max = max, value = value }) end
 end
 
 --- Shows and activates the spinner, deactivating the main list.
@@ -114,6 +117,7 @@ function BETTERUI.Interface.Window:ActivateSpinner()
     self.spinner:SetHidden(false)
     self.spinner:Activate()
     if (self:GetList() ~= nil) then self:GetList():Deactivate() end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "spinnerActive", { active = true }) end
 end
 
 --- Hides and deactivates the spinner, reactivating the main list.
@@ -124,6 +128,7 @@ function BETTERUI.Interface.Window:DeactivateSpinner()
         self.spinner:Deactivate()
     end
     if (self:GetList() ~= nil) then self:GetList():Activate() end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "spinnerActive", { active = false }) end
 end
 
 --- Toggles spinner confirmation mode.
@@ -142,6 +147,7 @@ function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, li
         list:SetDirectionalInputEnabled(not activateSpinner)
     end
     self:ApplySpinnerMinMax(activateSpinner)
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "spinnerConfirmation", { active = activateSpinner }) end
 end
 
 --- Updates keybinds when spinner is toggled.
@@ -170,6 +176,7 @@ end
 function BETTERUI.Interface.Window:InitializeList(listName)
     local container = self.control and self.control:GetNamedChild("Container")
     local listControl = container and container:GetNamedChild("List")
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "initList", { hasListControl = listControl ~= nil }) end
     if not listControl then return end
 
 
@@ -199,6 +206,7 @@ function BETTERUI.Interface.Window:SetupList(rowTemplate, setupCallback, control
     self.itemListTemplate = rowTemplate
     self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction,
         nil, controlPoolPrefix)
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "listTemplate", { template = rowTemplate }) end
 end
 
 --- Adds an additional data template to the list (for multi-template lists).
@@ -208,6 +216,7 @@ end
 function BETTERUI.Interface.Window:AddTemplate(rowTemplate, setupCallback, controlPoolPrefix)
     self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction,
         nil, controlPoolPrefix)
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "listTemplate", { template = rowTemplate }) end
 end
 
 --- Adds a single entry to the list and commits.
@@ -215,6 +224,7 @@ end
 function BETTERUI.Interface.Window:AddEntryToList(data)
     self:GetList():AddEntry(self.itemListTemplate, data)
     self:GetList():Commit()
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "addEntry", {}) end
 end
 
 --- Initializes keybinds for the window.
@@ -225,6 +235,7 @@ function BETTERUI.Interface.Window:InitializeKeybind()
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON) -- "Back"
 
     self.triggerSpinnerBinds = {}
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "initKeybinds", {}) end
 end
 
 --- Adds a column header to the window.
@@ -232,6 +243,7 @@ end
 ---@param xOffset number
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "addColumn", { colNumber = colNumber, xOffset = xOffset }) end
     -- Create label as child of HeaderColumnBar for container purposes
     -- Prefix with windowName to avoid duplicate global control names across modules
     local label = CreateControlFromVirtual(self.windowName .. "Column" .. colNumber,
@@ -308,6 +320,7 @@ function BETTERUI.Interface.Window:InitializeFragment(footerControl)
     local footer = footerControl or BETTERUI_BankingFooterBar
     self.footerFragment = ZO_SimpleSceneFragment:New(footer)
     self.footerFragment:SetHideOnSceneHidden(true)
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "initFragment", {}) end
 end
 
 --- Initializes the ESO scene object and registers callbacks.
@@ -315,6 +328,7 @@ end
 ---@param scene table
 function BETTERUI.Interface.Window:InitializeScene(scene)
     self.scene = scene
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "initScene", { sceneName = self.sceneName }) end
     scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
     scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
     scene:AddFragment(self.fragment)
@@ -356,9 +370,11 @@ end
 function BETTERUI.Interface.Window:ToggleScene()
     if self.sceneName then
         SCENE_MANAGER:Toggle(self.sceneName)
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "toggleScene", { sceneName = self.sceneName }) end
     elseif self.scene then
         -- Fallback: use scene object's name if available
         SCENE_MANAGER:Toggle(self.scene:GetName())
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "toggleScene", { sceneName = self.scene:GetName() }) end
     else
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "[Window] ToggleScene called but no sceneName or scene is set") end
     end

@@ -32,17 +32,26 @@ end
 
 function BETTERUI.CIM.UI.HeaderSortController:EnterHeaderMode()
     if #self.columns == 0 then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "enterHeaderModeNoColumns")
+        end
         return false
     end
 
     self.isHeaderModeActive = true
     self.currentColumnIndex = self.activeSortColumnIndex or 1
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "enterHeaderMode", { currentColumnIndex = self.currentColumnIndex })
+    end
     self:UpdateVisuals()
     return true
 end
 
 function BETTERUI.CIM.UI.HeaderSortController:ExitHeaderMode()
     self.isHeaderModeActive = false
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "exitHeaderMode")
+    end
     self:UpdateVisuals()
 end
 
@@ -57,6 +66,9 @@ function BETTERUI.CIM.UI.HeaderSortController:NavigateLeft()
 
     if self.currentColumnIndex > 1 then
         self.currentColumnIndex = self.currentColumnIndex - 1
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "sortNavigateLeft", { currentColumnIndex = self.currentColumnIndex })
+        end
         self:UpdateVisuals()
         return true
     end
@@ -70,6 +82,9 @@ function BETTERUI.CIM.UI.HeaderSortController:NavigateRight()
 
     if self.currentColumnIndex < #self.columns then
         self.currentColumnIndex = self.currentColumnIndex + 1
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "sortNavigateRight", { currentColumnIndex = self.currentColumnIndex })
+        end
         self:UpdateVisuals()
         return true
     end
@@ -104,6 +119,10 @@ function BETTERUI.CIM.UI.HeaderSortController:ClearSort()
 
         if self.activeSortColumnIndex == self.currentColumnIndex then
             self.activeSortColumnIndex = nil
+        end
+
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "clearSort", { columnIndex = self.currentColumnIndex, key = clearedColumn and clearedColumn.key })
         end
 
         self:UpdateVisuals()
@@ -188,6 +207,10 @@ function BETTERUI.CIM.UI.HeaderSortController:GetActiveSortColumn()
 end
 
 function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
+    local logActive = BETTERUI.Log and BETTERUI.Log.IsActive()
+    if logActive then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "updateVisuals", { columnCount = #self.columns, active = self.isHeaderModeActive, currentColumnIndex = self.currentColumnIndex })
+    end
     for i, column in ipairs(self.columns) do
         if column.labelControl then
             local baseName = column.originalText or column.name

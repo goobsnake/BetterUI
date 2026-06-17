@@ -8,31 +8,32 @@ BETTERUI.CIM.Keybinds = BETTERUI.CIM.Keybinds or {}
 ---@return boolean
 function BETTERUI.CIM.IsQuickslottable(slotData)
     if not slotData or not slotData.bagId or not slotData.slotIndex then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "quickslotEligibility", {bagId = slotData and slotData.bagId, slotIndex = slotData and slotData.slotIndex, result = false})
+        end
         return false
     end
 
     local bagId, slotIndex = slotData.bagId, slotData.slotIndex
+    local result = false
     if FindActionSlotMatchingItem
         and FindActionSlotMatchingItem(bagId, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
-        return true
-    end
-
-    if ZO_InventoryUtils_DoesNewItemMatchFilterType then
+        result = true
+    elseif ZO_InventoryUtils_DoesNewItemMatchFilterType then
         if ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUICKSLOT) then
-            return true
-        end
-
-        if ITEMFILTERTYPE_QUEST_QUICKSLOT
+            result = true
+        elseif ITEMFILTERTYPE_QUEST_QUICKSLOT
             and ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUEST_QUICKSLOT) then
-            return true
+            result = true
         end
+    elseif IsValidItemForSlot and IsValidItemForSlot(bagId, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
+        result = true
     end
 
-    if IsValidItemForSlot and IsValidItemForSlot(bagId, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
-        return true
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "quickslotEligibility", {bagId = bagId, slotIndex = slotIndex, result = result})
     end
-
-    return false
+    return result
 end
 
 local cachedFrame = -1
@@ -42,6 +43,9 @@ local inventoryActionLists = {}
 function BETTERUI.CIM.Keybinds.RegisterInventoryActionModes(actionModes)
     inventoryActionLists = {}
     if type(actionModes) ~= "table" then
+        if BETTERUI.Log then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "registerActionModes", {modeCount = 0})
+        end
         return
     end
 
@@ -53,6 +57,11 @@ function BETTERUI.CIM.Keybinds.RegisterInventoryActionModes(actionModes)
     end
     if actionModes.category ~= nil then
         inventoryActionLists[actionModes.category] = "categoryList"
+    end
+    if BETTERUI.Log then
+        local modeCount = 0
+        for _ in pairs(inventoryActionLists) do modeCount = modeCount + 1 end
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "registerActionModes", {modeCount = modeCount})
     end
 end
 
@@ -93,6 +102,9 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
         ctx.isGear = false
         ctx.isEquipment = false
         ctx.isUsableQuest = false
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.KEYBIND, "actionContext", {actionMode = ctx.actionMode, hasTarget = ctx.target ~= nil})
+        end
         return ctx
     end
 
@@ -114,6 +126,9 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
         ctx.isGear = false
         ctx.isEquipment = false
         ctx.isUsableQuest = false
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.KEYBIND, "actionContext", {actionMode = ctx.actionMode, hasTarget = ctx.target ~= nil})
+        end
         return ctx
     end
 
@@ -144,43 +159,56 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     ctx.isEquipment = ctx.isGear
     ctx.isUsableQuest = ctx.isQuestItem and ctx.meetsUsage == true or false
 
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.KEYBIND, "actionContext", {actionMode = ctx.actionMode, hasTarget = ctx.target ~= nil})
+    end
     return ctx
 end
 
 function BETTERUI.CIM.Keybinds.InvalidateActionContext()
     cachedFrame = -1
     contextCacheByReceiver = setmetatable({}, { __mode = "k" })
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "invalidateActionContext")
+    end
 end
 
 function BETTERUI.CIM.Keybinds.GetXButtonName(self)
     local ctx = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 
+    local name = ""
     if ctx.actionListKey == "itemList" then
         if ctx.isQuickslottable then
-            return GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN"))
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN"))
         elseif not ctx.isQuestItem and ctx.isEquipment then
-            return GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_INFO"))
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_INFO"))
         elseif ctx.isUsableQuest then
-            return GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
+            name = GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
         else
-            return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
+            name = GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
         end
     elseif ctx.actionListKey == "craftBagList" then
-        return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
+        name = GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
     end
 
-    return ""
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "xButton", {name = name, visible = true})
+    end
+    return name
 end
 
 function BETTERUI.CIM.Keybinds.GetXButtonVisible(self)
     local ctx = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 
+    local visible = false
     if ctx.actionListKey == "itemList" then
-        if not ctx.target then return false end
-        return not ctx.isQuestItem or ctx.isUsableQuest
+        visible = ctx.target ~= nil and (not ctx.isQuestItem or ctx.isUsableQuest)
     elseif ctx.actionListKey == "craftBagList" then
-        return true
+        visible = true
     end
 
-    return false
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "xButton", {name = nil, visible = visible})
+    end
+    return visible
 end

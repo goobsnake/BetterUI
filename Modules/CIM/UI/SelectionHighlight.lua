@@ -18,7 +18,15 @@ function SelectionHighlight.Setup(control, selected)
     if not control then return end
 
     local selectionBar = control:GetNamedChild("SelectionBar")
-    if not selectionBar then return end
+    if not selectionBar then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "selectionHighlightNoBar", { controlName = control and control.GetName and control:GetName() or "nil" })
+        end
+        return
+    end
 
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "selectionHighlight", { selected = selected == true })
+    end
     selectionBar:SetHidden(not selected)
 end

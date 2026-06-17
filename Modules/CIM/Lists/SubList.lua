@@ -32,11 +32,17 @@ function BETTERUI_VerticalParametricScrollListSubList:Initialize(control, parent
     self:InitializeKeybindStrip()
     self.control:SetHidden(true)
     self:SetFixedCenterOffset(SUB_LIST_CENTER_OFFSET)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListInit", { controlName = control and control.GetName and control:GetName() or "nil" })
+    end
 end
 
 --- Commits selection and triggers callback.
 ---@param dontReselect boolean?
 function BETTERUI_VerticalParametricScrollListSubList:Commit(dontReselect)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListCommit", { targetSelectedIndex = self.targetSelectedIndex })
+    end
     ZO_ParametricScrollList.Commit(self, dontReselect)
     self:UpdateAnchors(self.targetSelectedIndex)
     self.onDataChosen(self:GetTargetData())
@@ -46,10 +52,16 @@ end
 function BETTERUI_VerticalParametricScrollListSubList:CancelSelection()
     local listSize = self.dataList and #self.dataList or 0
     if not self.indexOnOpen or listSize == 0 then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListCancelSelectionSkipped", { listSize = listSize, hasIndexOnOpen = self.indexOnOpen ~= nil })
+        end
         return
     end
 
     local indexToReturnTo = zo_clamp(self.indexOnOpen, 1, listSize)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListCancelSelection", { indexToReturnTo = indexToReturnTo })
+    end
     self.targetSelectedIndex = indexToReturnTo
     self:UpdateAnchors(indexToReturnTo)
     self.onDataChosen(self:GetDataForDataIndex(indexToReturnTo))
@@ -90,6 +102,10 @@ end
 --- Hides and deactivates the sub-list.
 function BETTERUI_VerticalParametricScrollListSubList:Deactivate()
     if not self.active then return end
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListDeactivate", { didSelectEntry = self.didSelectEntry == true })
+    end
 
     if self.active and not self.didSelectEntry then
         self:CancelSelection()

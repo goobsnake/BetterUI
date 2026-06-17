@@ -29,18 +29,28 @@ end
 function BETTERUI.CIM.GenericListManager:SavePosition(categoryKey, position)
     if categoryKey then
         self.savedPositions[categoryKey] = position
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "savePosition", { categoryKey = categoryKey, position = position })
+        end
     end
 end
 
 --- @param categoryKey string The category key to restore
 --- @return integer|nil position The saved position, or nil if none
 function BETTERUI.CIM.GenericListManager:RestorePosition(categoryKey)
-    return self.savedPositions[categoryKey]
+    local position = self.savedPositions[categoryKey]
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "restorePosition", { categoryKey = categoryKey, position = position })
+    end
+    return position
 end
 
 --- Clears all saved list positions.
 function BETTERUI.CIM.GenericListManager:ClearSavedPositions()
     self.savedPositions = {}
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "clearSavedPositions")
+    end
 end
 
 -- ITEM CACHING
@@ -77,6 +87,9 @@ end
 --- @param right table Item data with name field
 --- @return boolean
 function BETTERUI.CIM.SortByName(left, right)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByName")
+    end
     local leftName = left.name or left.bestItemTypeName or ""
     local rightName = right.name or right.bestItemTypeName or ""
     return leftName < rightName
@@ -86,6 +99,9 @@ end
 --- @param right table Item data with quality field
 --- @return boolean
 function BETTERUI.CIM.SortByQuality(left, right)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByQuality")
+    end
     local leftQuality = left.displayQuality or left.quality or 0
     local rightQuality = right.displayQuality or right.quality or 0
     return leftQuality > rightQuality
@@ -93,6 +109,9 @@ end
 
 --- Level/CP requirement comparator (higher level first).
 function BETTERUI.CIM.SortByLevel(left, right)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByLevel")
+    end
     local leftLevel = left.requiredLevel or 0
     local rightLevel = right.requiredLevel or 0
 
@@ -107,12 +126,18 @@ function BETTERUI.CIM.SortByLevel(left, right)
 end
 
 function BETTERUI.CIM.SortByValue(left, right)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByValue")
+    end
     local leftValue = left.sellPrice or 0
     local rightValue = right.sellPrice or 0
     return leftValue > rightValue
 end
 
 function BETTERUI.CIM.SortBySlotIndex(left, right)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortBySlotIndex")
+    end
     local leftSlot = left.slotIndex or 0
     local rightSlot = right.slotIndex or 0
     return leftSlot < rightSlot
@@ -120,6 +145,9 @@ end
 
 --- Sorts by bag ID first, then slot index.
 function BETTERUI.CIM.SortByBagAndSlot(left, right)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByBagAndSlot")
+    end
     local leftBag = left.bagId or 0
     local rightBag = right.bagId or 0
 
@@ -143,6 +171,10 @@ function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
 
     local query = searchQuery:lower()
     local filtered = {}
+    local logActive = BETTERUI.Log and BETTERUI.Log.IsActive()
+    if logActive then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "applyTextFilter", { query = query, totalItems = #items })
+    end
 
     for _, item in ipairs(items) do
         local name = item.name or ""
@@ -151,16 +183,29 @@ function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
         end
     end
 
+    if logActive then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "applyTextFilterDone", { filteredCount = #filtered })
+    end
     return filtered
 end
 
 function BETTERUI.CIM.GenericListManager:BuildSortFunction(sortKeys)
     if not sortKeys or #sortKeys == 0 then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "buildSortFunctionFallback")
+        end
         return BETTERUI.CIM.SortBySlotIndex
     end
 
     if #sortKeys == 1 then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "buildSortFunctionSingle")
+        end
         return sortKeys[1]
+    end
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "buildSortFunctionComposite", { keyCount = #sortKeys })
     end
 
     return function(left, right)

@@ -49,6 +49,9 @@ BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass()
 --- - Ensures clean fades at the edges of the scroll area.
 ---
 function BETTERUI_VerticalParametricScrollList:New(...)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "verticalListNew")
+    end
     local list = ZO_ParametricScrollList.New(self, ...)
 
     -- Override EnsureValidGradient to provide custom fade behavior
@@ -127,6 +130,9 @@ end
 --- Initializes the list with default padding and sound.
 ---
 function BETTERUI_VerticalParametricScrollList:Initialize(control)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "verticalListInit", { controlName = control and control.GetName and control:GetName() or "nil" })
+    end
     ZO_ParametricScrollList.Initialize(self, control, LIST_ORIENTATION.VERTICAL,
         ZO_GamepadOnDefaultScrollListActivatedChanged)
     self:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING, GAMEPAD_HEADER_SELECTED_PADDING)
@@ -145,6 +151,9 @@ BETTERUI_VerticalItemParametricScrollList = BETTERUI_VerticalParametricScrollLis
 --- Constructor for item list.
 ---
 function BETTERUI_VerticalItemParametricScrollList:New(control)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "verticalItemListNew", { controlName = control and control.GetName and control:GetName() or "nil" })
+    end
     local list = BETTERUI_VerticalParametricScrollList.New(self, control)
     list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING)
     return list
