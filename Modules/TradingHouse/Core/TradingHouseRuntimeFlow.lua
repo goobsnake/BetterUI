@@ -423,6 +423,9 @@ function TH.RegisterCreateListingDialog()
 end
 
 function TH.OnOpenTradingHouse()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "tradingHouseOpen")
+    end
     if not TH.instance then
         return
     end
@@ -455,6 +458,9 @@ function TH.OnOpenTradingHouse()
 end
 
 function TH.OnCloseTradingHouse()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "tradingHouseClose")
+    end
     if TH.Tasks then
         TH.Tasks:Cancel("sceneOwnershipOpen")
     end

@@ -32,6 +32,13 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
     end
 
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "companionTooltipUpdate", {
+            bagId = ds and ds.bagId or nil,
+            slotIndex = ds and ds.slotIndex or nil,
+            name = ds and ds.name or nil
+        })
+    end
     if not ds or ds.bagId == nil or ds.slotIndex == nil then
         if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip then
             BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
@@ -160,6 +167,10 @@ function BETTERUI.Companions.Class:RefreshList()
     if not self.list then
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "RefreshList no-op: list missing") end
         return true
+    end
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "companionRefreshList")
     end
 
     self._isRefreshing = true

@@ -91,6 +91,10 @@ function Sell:OnPrimaryAction(thInstance)
     local slotIndex = ds.slotIndex
     if not bagId or not slotIndex then return end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "tradingHouseSellItemStart", { name = ds.name, bagId = bagId, slotIndex = slotIndex })
+    end
+
     -- Gate on the guild's sell privilege first, matching the native sell
     -- screen (tradinghouse_sell_gamepad.lua:178-179). Without sell permission
     -- in the selected guild the post would be rejected server-side.
@@ -160,6 +164,10 @@ function Sell:BuildList(thInstance)
 
     local bagId = BAG_BACKPACK
     local bagSlots = GetBagSize(bagId) or 0
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "sellBuildList", { slots = bagSlots })
+    end
 
     for slotIndex = 0, bagSlots - 1 do
         -- Skip empty slots

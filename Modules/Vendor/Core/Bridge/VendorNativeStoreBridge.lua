@@ -363,6 +363,9 @@ function NativeStoreBridge.UpdateSceneManagerStoreAlias(instance)
 end
 
 function NativeStoreBridge.TakeOverScene(instance)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "NativeStoreBridge: TakeOverScene")
+    end
     Vendor.nativeStoreScene = Vendor.nativeStoreScene or (SCENE_MANAGER and SCENE_MANAGER:GetScene("gamepad_store"))
 
     local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
@@ -398,6 +401,11 @@ function NativeStoreBridge.TakeOverScene(instance)
 end
 
 function NativeStoreBridge.EnsureComponents(searchContext)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "NativeStoreBridge: EnsureComponents", {
+            searchContext = searchContext,
+        })
+    end
     local snapshot = BuildComponentSnapshot(searchContext)
     if not snapshot then
         return

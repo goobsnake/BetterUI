@@ -186,6 +186,9 @@ local function EnsureCompanionEquipBoEDialogRegistered()
 end
 
 function Companions.TryEquipCompanionItem(bagId, slotIndex)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companionEquipItem", { bagId = bagId, slotIndex = slotIndex })
+    end
     if bagId == nil or slotIndex == nil then return false end
     if GetItemActorCategory and GetItemActorCategory(bagId, slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
         return false
@@ -207,6 +210,9 @@ function Companions.TryEquipCompanionItem(bagId, slotIndex)
 end
 
 function Companions.TryUnequipCompanionItem(slotIndex)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companionUnequipItem", { slotIndex = slotIndex })
+    end
     if slotIndex == nil then return false end
     -- FindFirstEmptySlotInBag(bagId) -> nilable slotIndex; slot 0 may be occupied.
     -- Use a single lookup to avoid a TOCTOU between GetNumBagFreeSlots and

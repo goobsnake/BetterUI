@@ -216,6 +216,15 @@ function Sell:OnPrimaryAction(vendorInstance)
     local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
     if stackSize <= 0 then return end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorSellItem", {
+            bagId = bagId,
+            slotIndex = slotIndex,
+            stackSize = stackSize,
+            name = ds.name
+        })
+    end
+
     SellInventoryItem(bagId, slotIndex, stackSize)
 end
 
@@ -233,6 +242,12 @@ function Sell:SellAllJunk(vendorInstance)
         BETTERUI.CIM.UserAlertText("Sell:NoJunk",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_JUNK")))
         return
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorSellAllJunk", {
+            itemCount = itemCount
+        })
     end
 
     -- Collect authorized junk slots, then route them through the shared

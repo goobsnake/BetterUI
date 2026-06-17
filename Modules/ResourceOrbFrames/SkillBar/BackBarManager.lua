@@ -289,6 +289,12 @@ local function UpdateBackBarCooldowns(rootFrame)
 
             if cooldownOverlay and cooldownText then
                 if showCooldown and remainMs > 0 and durationMs > 0 then
+                    if button._betteruiLastCooldownState ~= true then
+                        button._betteruiLastCooldownState = true
+                        if BETTERUI.Log then
+                            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldownStart", { slot = slotIndex, duration = durationMs })
+                        end
+                    end
                     local visualRemainMs = CooldownUtils.GetSmoothedRemaining(stateKey, remainMs, durationMs)
 
                     if isGamePad then
@@ -317,6 +323,12 @@ local function UpdateBackBarCooldowns(rootFrame)
                     cooldownText:SetText(string.format("%.1f", visualRemainMs / 1000))
                     ApplyCooldownTextStyle(cooldownText, cooldownSize, cooldownColor)
                 else
+                    if button._betteruiLastCooldownState == true then
+                        button._betteruiLastCooldownState = false
+                        if BETTERUI.Log then
+                            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldownEnd", { slot = slotIndex })
+                        end
+                    end
                     CooldownUtils.ResetSmoothedRemaining(stateKey)
                     cooldownOverlay:SetHidden(true)
                     if cooldownEdge then cooldownEdge:SetHidden(true) end

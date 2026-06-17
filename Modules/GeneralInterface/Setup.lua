@@ -217,6 +217,9 @@ GeneralInterface._SetupInstallers = {
 
 ---@type BetterUIModuleSetupHook
 function GeneralInterface.Setup()
+	if BETTERUI.Log then
+		BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "generalInterfaceSetupStart")
+	end
 	BETTERUI.CIM.RegisterModulePanelWithLogging(GeneralInterface, "GeneralInterface", "General", "General Interface")
 
 	-- Only apply hooks/logic when the GeneralInterface module toggle is enabled.
@@ -237,4 +240,7 @@ function GeneralInterface.Setup()
 	RegisterGuildStoreSuppression(tooltipHelpers)
 	RegisterTooltipCacheInvalidation()
 	ApplyChatHistoryLimit()
+	if BETTERUI.Log then
+		BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "generalInterfaceSetupEnd")
+	end
 end

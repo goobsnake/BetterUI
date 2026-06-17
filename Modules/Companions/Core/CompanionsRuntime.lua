@@ -365,6 +365,9 @@ function Companions.RegisterSceneLifecycle(instance)
             })
         end,
         onHiding = function(screen)
+            if BETTERUI.Log then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "companionHide")
+            end
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             screen:DeactivateListInput()
             screen:DeactivateHeaderKeybinds()

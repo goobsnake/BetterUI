@@ -494,6 +494,15 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         Vendor._batchProcessing = false
         Vendor._batchAbortRequested = false
 
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchFinished", {
+                processed = self.processedCount,
+                total = self.totalItems,
+                skipped = self.skippedCount or 0,
+                stopReason = self.stopReason
+            })
+        end
+
         if self.showProgress or self.stopReason then
             local completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PROCESSING_COMPLETE")),
                 self.processedCount)
@@ -584,6 +593,14 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
             self.stopReason = "aborted"
             self:Finish()
             return
+        end
+
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchStep", {
+                index = self.index + 1,
+                total = self.totalItems,
+                mode = self.mode,
+            })
         end
 
         self.index = self.index + 1
@@ -758,6 +775,11 @@ end
 ---@return nil
 function BatchRuntime.RequestBatchAbort()
     if Vendor._batchProcessing then
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchAbortRequested", {
+                processed = Vendor.instance and Vendor.instance.processedCount or 0
+            })
+        end
         Vendor._batchAbortRequested = true
     end
 end

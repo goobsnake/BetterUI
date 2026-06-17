@@ -132,6 +132,14 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     local transferContext = ReadTransferContextSnapshot()
+    local isGuildBankMode = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "TryTransferInventorySlot", {
+            bag = bag,
+            index = index,
+            isGuildBankMode = isGuildBankMode,
+        })
+    end
     local transferService, transferServiceReason = RequireTransferService()
     if not transferService then
         return false, transferServiceReason
@@ -405,8 +413,17 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         quantity = 1
     end
 
-    -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
     local isGuildBank = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "MoveItem", {
+            fromBag = fromBag,
+            fromBagIndex = fromBagIndex,
+            quantity = quantity,
+            isGuildBank = isGuildBank,
+        })
+    end
+
+    -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
     if isGuildBank then
         ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex)
         return

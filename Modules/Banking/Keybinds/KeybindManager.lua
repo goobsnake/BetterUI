@@ -591,6 +591,9 @@ function BETTERUI.Banking.Class:UpdateActions()
 end
 
 function BETTERUI.Banking.Class:AddKeybinds()
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "AddKeybinds")
+    end
     if self.textSearchKeybindStripDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
@@ -603,6 +606,9 @@ function BETTERUI.Banking.Class:AddKeybinds()
 end
 
 function BETTERUI.Banking.Class:RemoveKeybinds()
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "RemoveKeybinds")
+    end
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
 end

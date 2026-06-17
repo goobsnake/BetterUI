@@ -184,6 +184,12 @@ function BETTERUI.Banking.InitializeQuantityDialog()
 
                     local window = GetBankingWindow()
                     if window and window.MoveItem then
+                        if BETTERUI.Log then
+                            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "QuantityDialog confirmed", {
+                                quantity = quantity,
+                                isDeposit = dialog.data.isDeposit,
+                            })
+                        end
                         window:MoveItem(window.list, quantity)
                     end
 
@@ -232,6 +238,15 @@ function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
     if stackCount <= 1 then
         self:MoveItem(list, 1)
         return
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "ShowQuantityDialog", {
+            isDeposit = isDeposit,
+            bagId = targetData.bagId,
+            slotIndex = targetData.slotIndex,
+            stackCount = stackCount,
+        })
     end
 
     local itemLink = GetItemLink(targetData.bagId, targetData.slotIndex)

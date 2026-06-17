@@ -81,6 +81,15 @@ function Buyback:OnPrimaryAction(vendorInstance)
         return
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorBuybackItem", {
+            entryIndex = entryIndex,
+            price = price,
+            name = ds.name,
+            itemLink = ds.itemLink
+        })
+    end
+
     BuybackItem(entryIndex)
 end
 

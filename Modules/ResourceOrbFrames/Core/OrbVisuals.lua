@@ -89,6 +89,18 @@ function BetterUIOrbBar:UpdateValue(value)
     self.currentValue = value
     self:RefreshVisuals()
     self:RefreshLabel()
+    if BETTERUI.Log then
+        local percent = 0
+        local max = self.maxValue
+        if max and max > 0 then
+            percent = math.floor((value / max) * 100)
+        end
+        local bracket = math.floor(percent / 10)
+        if self._betteruiLastValueBracket ~= bracket then
+            self._betteruiLastValueBracket = bracket
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orbValueBracket", { powerType = self.powerType, cur = value, max = max, pct = percent })
+        end
+    end
 end
 
 ---@param value number New resource value

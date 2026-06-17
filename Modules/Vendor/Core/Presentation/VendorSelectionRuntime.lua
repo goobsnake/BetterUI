@@ -160,6 +160,12 @@ function SelectionRuntime.CanSelectionPreview(instance, selectedData, isStableIn
 end
 
 function SelectionRuntime.ToggleSelectionPreview(instance, isStableInteraction)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorTogglePreview", {
+            isStableInteraction = isStableInteraction
+        })
+    end
+
     if isStableInteraction then
         if instance.ToggleStablePreviewMode then
             instance:ToggleStablePreviewMode()
@@ -178,6 +184,16 @@ end
 function SelectionRuntime.HandleSelection(instance, selectedData, isStableInteraction)
     if not GAMEPAD_TOOLTIPS then
         return
+    end
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "vendorSelection", {
+            name = ds and ds.name or nil,
+            bagId = ds and ds.bagId or nil,
+            slotIndex = ds and ds.slotIndex or nil,
+            isStableInteraction = isStableInteraction
+        })
     end
 
     CleanupEnhancedTooltips()

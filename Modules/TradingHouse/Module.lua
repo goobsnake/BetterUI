@@ -63,6 +63,9 @@ end
 
 ---@type BetterUIModuleSetupHook
 function BETTERUI.TradingHouse.Setup()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "tradingHouseModuleSetup")
+    end
     EnsureTradingHouseSetupContracts()
     BETTERUI.TradingHouse.Init()
 end

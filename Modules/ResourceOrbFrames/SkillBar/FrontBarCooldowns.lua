@@ -225,6 +225,12 @@ local function UpdateFrontBarCooldowns(rootFrame)
             local altTimerText = children.CooldownText or btn:GetNamedChild("CooldownText")
 
             if showCooldown then
+                if btn._betteruiLastCooldownState ~= true then
+                    btn._betteruiLastCooldownState = true
+                    if BETTERUI.Log then
+                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldownStart", { slot = mapping.slot, duration = durationMs })
+                    end
+                end
                 local visualRemainMs = CooldownUtils.GetSmoothedRemaining(cooldownStateKey, remainMs, durationMs)
                 if isGamepad then
                     if cooldown then cooldown:SetHidden(true) end
@@ -261,6 +267,12 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     ApplyCooldownTextStyle(altTimerText, cooldownSize, cooldownColor, false)
                 end
             else
+                if btn._betteruiLastCooldownState == true then
+                    btn._betteruiLastCooldownState = false
+                    if BETTERUI.Log then
+                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldownEnd", { slot = mapping.slot })
+                    end
+                end
                 CooldownUtils.ResetSmoothedRemaining(cooldownStateKey)
                 if iconControl then iconControl:SetDesaturation(baseDesaturation) end
                 if cooldownOverlay then cooldownOverlay:SetHidden(true) end

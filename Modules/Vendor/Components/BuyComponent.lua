@@ -542,6 +542,15 @@ function Buy:OnPrimaryAction(vendorInstance)
         return
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorBuyItem", {
+            entryIndex = entryIndex,
+            quantity = 1,
+            name = ds.name,
+            itemLink = ds.itemLink
+        })
+    end
+
     -- Quantity = 1 for normal purchase (stack purchase would need spinner)
     BuyStoreItem(entryIndex, 1)
 end

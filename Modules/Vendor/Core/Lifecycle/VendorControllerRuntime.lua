@@ -275,6 +275,13 @@ function ControllerRuntime.SetMode(instance, mode)
         return
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendorSetMode", {
+            mode = mode,
+            oldMode = instance.currentMode
+        })
+    end
+
     local headerNavigation = BETTERUI.CIM and BETTERUI.CIM.HeaderNavigation or nil
     local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(instance) or nil
     if state then
@@ -327,6 +334,13 @@ function ControllerRuntime.RefreshList(instance, deps)
 
     if not instance.list then
         return
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIST, "vendorRefreshList", {
+            mode = instance:GetCurrentMode(),
+            isDirty = instance._isDirty == true
+        })
     end
 
     instance:ApplyListLayoutTuning()

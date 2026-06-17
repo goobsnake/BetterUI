@@ -68,6 +68,13 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
     local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     local activeSourceBag = transferContext.interactionBag
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "HandleBankSwitch", {
+            lastBank = lastUsedBank,
+            currentBank = currentUsedBank,
+        })
+    end
+
     if lastUsedBank == currentUsedBank then
         return false -- No switch, handled by caller
     end
@@ -131,6 +138,9 @@ function BETTERUI.Banking.Class:RemoveItemStack(itemIndex)
 end
 
 function BETTERUI.Banking.Class:ToggleList(toWithdraw)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "ToggleList", { toWithdraw = toWithdraw })
+    end
     -- Exit multi-select mode when switching between Withdraw/Deposit
     -- Selections are mode-specific and should not carry over
     if self.isInSelectionMode then

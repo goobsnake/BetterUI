@@ -241,6 +241,9 @@ function GuildBank.SetLoading(loading)
 end
 
 function GuildBank.ChangeGuildBank(guildBankId)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "ChangeGuildBank", { guildId = guildBankId })
+    end
     if guildBankId ~= GetSelectedGuildBankId() then
         GuildBank.SetLoading(true)
         if ZO_GUILD_SELECTOR_MANAGER and ZO_GUILD_SELECTOR_MANAGER.SetSelectedGuildBankId then
@@ -250,6 +253,9 @@ function GuildBank.ChangeGuildBank(guildBankId)
 end
 
 function GuildBank.OnGuildBankSelected()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "OnGuildBankSelected")
+    end
     GuildBank.SetLoading(true)
     local window = GetBankingWindow()
     if window then
@@ -267,6 +273,9 @@ function GuildBank.OnGuildBankDeselected()
 end
 
 function GuildBank.OnGuildBankReady()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "OnGuildBankReady")
+    end
     GuildBank.SetLoading(false)
     local window = GetBankingWindow()
     if window then

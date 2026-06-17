@@ -66,6 +66,10 @@ function Browse:OnPrimaryAction(thInstance)
     local price = ds.purchasePrice or 0
     if not tradingHouseIndex or price <= 0 then return end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "tradingHouseBuyItemStart", { name = ds.name, index = tradingHouseIndex, price = price })
+    end
+
     if not thInstance:CanAfford(price) then
         BETTERUI.CIM.UserAlertText("TH:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
@@ -109,6 +113,9 @@ end
 --- re-applying (and thereby wiping) the pending filter state.
 ---@return boolean dispatched True if a search request was sent to the server
 function Browse:ExecuteSearch(useLastExecutedSearchFilters)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "tradingHouseSearchStart", { page = Browse.currentPage, reuse = useLastExecutedSearchFilters })
+    end
     if Browse.searchPending then return false end
 
     if GetTradingHouseCooldownRemaining and GetTradingHouseCooldownRemaining() > 0 then
@@ -167,6 +174,9 @@ function Browse:PrevPage(thInstance)
 end
 
 function Browse:OnSearchResultsReceived(thInstance)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "tradingHouseSearchResultsReceived", { page = Browse.currentPage })
+    end
     Browse.searchPending = false
     Browse.hasMorePages = false
     Browse.resultsInvalidated = false
@@ -202,6 +212,9 @@ function Browse:BuildList(thInstance)
     local numResults = 0
     if GetTradingHouseSearchResultsInfo then
         numResults = GetTradingHouseSearchResultsInfo() or 0
+    end
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "browseBuildList", { count = numResults })
     end
     if numResults == 0 then return end
 

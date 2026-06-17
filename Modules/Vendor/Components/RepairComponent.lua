@@ -71,6 +71,15 @@ function Repair:OnPrimaryAction(vendorInstance)
         return
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorRepairItem", {
+            bagId = bagId,
+            slotIndex = slotIndex,
+            cost = repairCost,
+            name = ds.name
+        })
+    end
+
     RepairItem(bagId, slotIndex)
 end
 
@@ -87,10 +96,21 @@ function Repair:RepairAll(vendorInstance)
         return
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorRepairAll", {
+            cost = repairAllCost
+        })
+    end
+
     -- ESO's own store uses "REPAIR_ALL" dialog (storewindow_gamepad.lua:309)
     ZO_Dialogs_ShowGamepadDialog("REPAIR_ALL", {
         cost = repairAllCost,
         callback = function()
+            if BETTERUI.Log then
+                BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorRepairAllConfirmed", {
+                    cost = repairAllCost
+                })
+            end
             RepairAll()
         end,
     })

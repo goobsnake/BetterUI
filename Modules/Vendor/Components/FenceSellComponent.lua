@@ -168,7 +168,18 @@ function FenceSell:OnPrimaryAction(vendorInstance)
 
     -- Each stolen item consumes one fence sell transaction; clamp the stack
     -- like ZOS does (fencewindowsell_gamepad.lua spinnerMax).
-    SellInventoryItem(bagId, slotIndex, zo_min(stackSize, remaining))
+    local quantity = zo_min(stackSize, remaining)
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorFenceSellItem", {
+            bagId = bagId,
+            slotIndex = slotIndex,
+            quantity = quantity,
+            name = ds.name
+        })
+    end
+
+    SellInventoryItem(bagId, slotIndex, quantity)
 end
 
 -- LIST BUILDING

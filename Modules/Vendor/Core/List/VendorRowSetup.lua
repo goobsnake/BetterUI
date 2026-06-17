@@ -106,11 +106,20 @@ end
 ---@param enabled boolean Whether the row is enabled
 ---@param active boolean Whether the row is active
 function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDuringRebuild, enabled, active)
-    -- Label setup (shared with inventory/banking)
-    BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
-
     -- Get data source (SetDataSource stores it in data.dataSource)
     local ds = data.dataSource or data
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "vendorRowSetup", {
+            selected = selected,
+            name = ds and ds.name or nil,
+            bagId = ds and ds.bagId or nil,
+            slotIndex = ds and ds.slotIndex or nil,
+        })
+    end
+
+    -- Label setup (shared with inventory/banking)
+    BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
 
     -- Column controls
     local itemTypeControl = control:GetNamedChild("ItemType")

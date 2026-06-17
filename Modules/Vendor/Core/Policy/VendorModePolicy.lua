@@ -496,19 +496,30 @@ end
 
 function ModePolicy.ResolveInitialStoreMode(context)
     context = context or {}
+    local initialMode
     if context.isStableInteraction then
-        return ModePolicy.ResolveStableInitialStoreMode({
+        initialMode = ModePolicy.ResolveStableInitialStoreMode({
             tabs = context.tabs,
             storeManager = context.storeManager,
         })
+    else
+        initialMode = ModePolicy.ResolveVendorInitialStoreMode({
+            tabs = context.tabs,
+            vendorTabs = context.vendorTabs or context.tabs,
+            storeManager = context.storeManager,
+            hasVendorBuyInventory = context.hasVendorBuyInventory,
+        })
     end
 
-    return ModePolicy.ResolveVendorInitialStoreMode({
-        tabs = context.tabs,
-        vendorTabs = context.vendorTabs or context.tabs,
-        storeManager = context.storeManager,
-        hasVendorBuyInventory = context.hasVendorBuyInventory,
-    })
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendorInitialMode", {
+            initialMode = initialMode,
+            isStable = context.isStableInteraction == true,
+            isFence = context.isFenceInteraction == true,
+        })
+    end
+
+    return initialMode
 end
 
 Vendor.ResolveModeName = ModePolicy.ResolveModeName

@@ -67,6 +67,7 @@ end
 function BETTERUI.Banking.Class:ExitSearchMode()
     if not self._searchModeActive then return end
     self._searchModeActive = false
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "exitSearch") end
 
     if self.textSearchKeybindStripDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
@@ -145,6 +146,9 @@ end
 
 ---@param searchText string
 function BETTERUI.Banking.Class:OnSearchTextChanged(searchText)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SEARCH, "OnSearchTextChanged", { query = searchText })
+    end
     self.searchQuery = searchText
     self:RefreshList()
 end

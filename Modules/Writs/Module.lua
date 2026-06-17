@@ -47,6 +47,9 @@ local function IsWritsModuleEnabled()
 end
 
 local function OnCraftStation(_, craftId)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "writOnCraftStation", { craftId = craftId })
+    end
     if not IsWritsModuleEnabled() then return end
 
     local id = craftId and tonumber(craftId)
@@ -56,10 +59,16 @@ local function OnCraftStation(_, craftId)
 end
 
 local function OnCloseCraftStation(_)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "writOnCloseCraftStation")
+    end
     SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.HidePanel)
 end
 
 local function OnCraftItem(_, craftId)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "writOnCraftItem", { craftId = craftId })
+    end
     if not IsWritsModuleEnabled() then return end
 
     local id = craftId and tonumber(craftId)

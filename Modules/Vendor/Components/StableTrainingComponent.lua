@@ -133,6 +133,13 @@ function StableTraining:OnPrimaryAction(vendorInstance)
         return
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorTrainRiding", {
+            trainingType = ds.trainingType,
+            name = ds.name
+        })
+    end
+
     TrainRiding(ds.trainingType)
     vendorInstance:RefreshList()
 end

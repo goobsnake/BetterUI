@@ -226,6 +226,12 @@ function CurrencySelector.DisplaySelector(self, currencyType)
     selectorState.isGuildBank = isGuildBank == true
 
     local currency_max = CurrencySelector.GetLiveTransferMax(self, currencyType)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "DisplaySelector", {
+            currencyType = currencyType,
+            max = currency_max,
+        })
+    end
 
     if currency_max > 0 then
         self.selector:SetMaxValue(currency_max)
@@ -249,6 +255,9 @@ end
 
 ---@param self BETTERUI.Banking.Class
 function CurrencySelector.HideSelector(self)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "HideSelector")
+    end
     local selectorState = GetSelectorState(self)
     selectorState.currencyType = nil
     selectorState.mode = nil

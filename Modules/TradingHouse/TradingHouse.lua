@@ -7,6 +7,10 @@ function BETTERUI.TradingHouse.Init()
         return
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "tradingHouseInitStart")
+    end
+
     TH.RegisterCreateListingDialog()
     TH.instance = TH.Class:New("BETTERUI_TradingHouseWindow", BETTERUI_TRADING_HOUSE_SCENE_NAME)
     TH.instance:SetTitle("|c0066FF" ..
@@ -47,4 +51,7 @@ function BETTERUI.TradingHouse.Init()
     end
 
     TH.initialized = true
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "tradingHouseInitEnd")
+    end
 end

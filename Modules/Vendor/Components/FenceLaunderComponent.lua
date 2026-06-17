@@ -179,6 +179,16 @@ function FenceLaunder:OnPrimaryAction(vendorInstance)
         return
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorLaunderItem", {
+            bagId = bagId,
+            slotIndex = slotIndex,
+            quantity = quantity,
+            cost = cost,
+            name = ds.name
+        })
+    end
+
     LaunderItem(bagId, slotIndex, quantity)
 end
 

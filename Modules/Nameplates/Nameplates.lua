@@ -188,6 +188,9 @@ local function ApplyNameplateFont(font, style, size)
         end
         return
     end
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "nameplateApplyFont", { font = font, style = style, size = size })
+    end
     CaptureOriginalNameplateFonts()
     style = NormalizeStyleValue(style)
     local fontString = font .. "|" .. tostring(size)

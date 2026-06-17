@@ -110,6 +110,12 @@ BETTERUI.Banking.ResolveBagsAndSlotType = ResolveBagsAndSlotType
 
 --- Refreshes the banking list contents.
 function BETTERUI.Banking.Class:RefreshList()
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "RefreshList: start", {
+            mode = self.currentMode,
+            suppressed = self._suppressListUpdates or self.isBatchProcessing,
+        })
+    end
     if not self.list then
         return
     end

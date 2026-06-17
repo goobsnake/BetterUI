@@ -855,6 +855,9 @@ local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 
 --- Enters multi-select mode.
 function BETTERUI.Banking.Class:EnterSelectionMode()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "EnterSelectionMode")
+    end
     -- Lazy-initialize manager on first use
     self:InitializeMultiSelectManager()
 
@@ -870,6 +873,9 @@ end
 
 --- Exits multi-select mode.
 function BETTERUI.Banking.Class:ExitSelectionMode()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "ExitSelectionMode")
+    end
     local shouldRefreshJunkCategories = self._pendingJunkCategoryRefresh == true
     self._pendingJunkCategoryRefresh = nil
     MultiSelectMixin.ExitSelectionMode(self)

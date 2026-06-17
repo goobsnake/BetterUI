@@ -391,6 +391,13 @@ local function OpenStoreInternal(state, deps, publishState)
     if type(resolved.getInteractionType) == "function" then
         interactionType = resolved.getInteractionType()
     end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "OpenStoreInternal", {
+            interactionType = interactionType,
+        })
+    end
+
     local allowNativeStableFallback = interactionType == nil
     state.isStableInteraction = interactionType == resolved.interactionStable
         or (allowNativeStableFallback and resolved.isNativeStableModeActive())
@@ -450,6 +457,12 @@ local function OpenStoreInternal(state, deps, publishState)
 end
 
 local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publishState)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "OpenFenceInternal", {
+            enableSell = enableSell,
+            enableLaunder = enableLaunder,
+        })
+    end
     publishState = publishState or function()
     end
     local resolved = ResolveDeps(deps)
@@ -494,6 +507,9 @@ local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publish
 end
 
 local function CloseStoreInternal(state, deps)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "CloseStoreInternal")
+    end
     local resolved = ResolveDeps(deps)
     resolved.markClosingState()
     -- Release any store dialogs still open at interaction end (native parity +

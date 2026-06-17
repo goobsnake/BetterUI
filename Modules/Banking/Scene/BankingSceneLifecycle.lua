@@ -19,6 +19,9 @@ local GUILD_BANK_EVENTS = {
 
 --- Scene showing handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "OnSceneShowing", { wasPushed = wasPushed })
+    end
     -- The quantity dialog sets list-update suppression; if the bank closes while
     -- the dialog is open, OnGamepadDialogHidden no-ops (scene not showing) and a
     -- HIDING -> SHOWING re-entry can skip OnSceneHidden cleanup, leaking the
@@ -207,6 +210,9 @@ end
 
 --- Aborts any in-flight batch before cleanup.
 function BETTERUI.Banking.Class:OnSceneHiding()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "OnSceneHiding", { isBatchProcessing = self:IsBatchProcessing() })
+    end
     if self:IsBatchProcessing() then
         self:RequestBatchAbort()
     end
@@ -214,6 +220,9 @@ end
 
 --- Scene hidden handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneHidden()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "OnSceneHidden")
+    end
     local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     BETTERUI.Banking.SetRuntimeBankBags(nil, transferContext.interactionBag)
     if self.confirmationMode then
