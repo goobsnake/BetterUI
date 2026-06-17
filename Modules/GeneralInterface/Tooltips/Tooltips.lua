@@ -545,10 +545,30 @@ local function ScheduleTooltipEquippedRefresh(tooltipControl, itemLink, tooltipT
     local tooltipRef = tooltipControl
     local capturedItemLink = itemLink
     zo_callLater(function()
-        if not tooltipRef or tooltipRef:IsHidden() then return end
-        if tooltipRef._betterui_priceRendered then return end
-        if IsIncompatibleSceneActive() then return end
-        if tooltipRef._betterui_itemLink ~= capturedItemLink then return end
+        if not tooltipRef or tooltipRef:IsHidden() then
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh aborted", { reason = "hidden" })
+            end
+            return
+        end
+        if tooltipRef._betterui_priceRendered then
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh aborted", { reason = "priceRendered" })
+            end
+            return
+        end
+        if IsIncompatibleSceneActive() then
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh aborted", { reason = "sceneIncompatible" })
+            end
+            return
+        end
+        if tooltipRef._betterui_itemLink ~= capturedItemLink then
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh aborted", { reason = "linkMismatch" })
+            end
+            return
+        end
 
         if BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
             BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(tonumber(tooltipType) or 0, nil)

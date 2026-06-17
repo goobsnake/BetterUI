@@ -309,6 +309,14 @@ function BETTERUI.Banking.Class:BatchTransfer()
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
     local transferState = ReadTransferContextSnapshot()
     local transferDestinationBankBag = transferState.depositTargetBag
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "bankBatchTransfer", {
+            selected = #selectedItems,
+            isWithdraw = isWithdraw,
+            targetBag = transferDestinationBankBag
+        })
+    end
     local isGuildMode = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local guildTransferMode = isWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
     local actionName = isWithdraw

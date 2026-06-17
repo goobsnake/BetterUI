@@ -73,6 +73,11 @@ end
 
 --- Shows and activates the sub-list.
 function BETTERUI_VerticalParametricScrollListSubList:Activate()
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        local totalItems = self.dataList and #self.dataList or 0
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListActivate", { totalItems = totalItems })
+    end
+
     self.parentList:Deactivate()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.parentKeybinds)
     BETTERUI_VerticalParametricScrollList.Activate(self)

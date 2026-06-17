@@ -12,8 +12,14 @@ Function: BETTERUI.Banking.Class:RefreshFooter
 Description: Updates the footer information (bag capacity, currency).
 ]]
 function BETTERUI.Banking.Class:RefreshFooter()
-    if not self.footer or not self.footer.footer then return end
-    if not self.footerFragment or not self.footerFragment.control then return end
+    if not self.footer or not self.footer.footer then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "footer update skipped: control missing") end
+        return
+    end
+    if not self.footerFragment or not self.footerFragment.control then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "footer update skipped: control missing") end
+        return
+    end
     local transferState = BETTERUI.Banking.ReadTransferContextSnapshot()
     local isGuildBank = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local transferTargetBankBag = transferState.depositTargetBag

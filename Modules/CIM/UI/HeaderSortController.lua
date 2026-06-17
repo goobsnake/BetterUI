@@ -149,6 +149,10 @@ function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
         end
     end
 
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "toggleSort", { col = columnIndex, dir = newDirection })
+    end
+
     if newDirection ~= SORT_DIRECTION.NONE then
         for i = 1, #self.columns do
             if i ~= columnIndex then

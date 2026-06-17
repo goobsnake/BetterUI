@@ -1671,6 +1671,12 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:RefreshList()
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "vendorList", {
+            mode = self:GetCurrentMode(),
+            categoryCount = self._vendorHeaderCategoryCount or 0
+        })
+    end
     VendorControllerRuntime.RefreshList(self, {
         getModeModuleKey = GetVendorModeModuleKey,
         getCategoryKey = GetVendorCategoryKey,

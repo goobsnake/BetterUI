@@ -246,6 +246,7 @@ function RuntimeSetup.Apply(settings)
         featureFlags.InvalidateCache()
     end
 
+    local migrationsRan = settings and type(settings.Modules) == "table"
     ApplyAPIPatches()
     RunSettingsMigrations(settings)
     EnsureDebugCommandsRegistered()
@@ -254,6 +255,13 @@ function RuntimeSetup.Apply(settings)
     local researchCache = BETTERUI.CIM and BETTERUI.CIM.ResearchCache
     if researchCache and type(researchCache.RegisterEventHandlers) == "function" then
         researchCache.RegisterEventHandlers()
+    end
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "runtimeSetup", {
+            migrationsRan = migrationsRan,
+            patchesApplied = patchesApplied,
+        })
     end
 end
 

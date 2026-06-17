@@ -347,6 +347,13 @@ function Companions.RegisterSceneLifecycle(instance)
         keybinds = { instance.coreKeybinds },
         taskManager = Companions.Tasks,
         onShowing = function(screen)
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                local listCount = (screen.list and screen.list.GetNumItems) and screen.list:GetNumItems() or 0
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "companionShow", {
+                    sortSetupDegraded = screen.sortSetupDegraded == true,
+                    listCount = listCount
+                })
+            end
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             RefreshVisibleCompanionScene(screen, {
                 refreshTitle = true,

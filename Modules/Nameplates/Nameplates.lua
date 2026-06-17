@@ -177,6 +177,9 @@ local function ApplyNameplateFont(font, style, size)
     if not font or not style or not size then
         -- One-time diagnostic: a silent bail here means nameplate fonts
         -- never apply (e.g. style constant resolved to nil).
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "nameplate style unresolved", { font = font, style = style, size = size })
+        end
         if not m_warnedMissingFontArgs and BETTERUI.DebugError then
             m_warnedMissingFontArgs = true
             BETTERUI.DebugError(string.format(

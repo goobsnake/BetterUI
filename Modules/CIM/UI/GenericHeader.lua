@@ -122,7 +122,14 @@ end
 ---@param titleText string
 ---@return nil
 function BETTERUI.GenericHeader.SetTitleText(control, titleText)
-    local titleTextControl = control:GetNamedChild("TitleContainer"):GetNamedChild("Title")
+    local titleContainer = control:GetNamedChild("TitleContainer")
+    local titleTextControl = titleContainer and titleContainer:GetNamedChild("Title")
+    if not titleTextControl then
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "header title control missing")
+        end
+        return
+    end
     titleTextControl:SetText(titleText)
 end
 

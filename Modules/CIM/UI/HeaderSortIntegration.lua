@@ -266,6 +266,10 @@ end
 ---@param integration BetterUIHeaderSortIntegration
 ---@return boolean
 function HeaderSortIntegration.EnterHeaderMode(integration)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "enterHeaderMode", { active = integration.isActive })
+    end
+
     if integration.isActive then
         return false
     end
@@ -349,6 +353,10 @@ end
 ---@param integration BetterUIHeaderSortIntegration
 ---@return boolean
 function HeaderSortIntegration.ExitHeaderMode(integration)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "exitHeaderMode", { active = integration.isActive })
+    end
+
     if not integration.isActive then
         return false
     end

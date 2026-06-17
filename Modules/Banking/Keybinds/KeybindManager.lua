@@ -535,6 +535,7 @@ ResolveGuildBankTransferKeybindState = function(self)
     local transferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService and BETTERUI.Banking.GetTransferService()
     local resolveDecision = transferService and transferService.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.KEYBIND, "guild transfer resolver missing; treated as allowed") end
         return true, nil
     end
 

@@ -65,6 +65,14 @@ end
 ---@param filterValue any Filter value
 ---@return boolean registered True when the underlying registration succeeded
 function EventRegistry.RegisterFiltered(moduleName, namespace, eventId, callback, filterType, filterValue)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "registerFiltered", {
+            module = moduleName,
+            event = eventId,
+            filter = filterType,
+        })
+    end
+
     -- Only add the filter when the registration actually took effect;
     -- Register already logs and skips rejected/duplicate registrations.
     if not EventRegistry.Register(moduleName, namespace, eventId, callback) then

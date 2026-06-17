@@ -221,6 +221,7 @@ function BETTERUI.Companions.Class:DoesSlotMatchFilterType(bagId, slotIndex, fil
         return GetItemFilterTypeInfo(bagId, slotIndex) == filterType
     end
 
+    if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "companion filter fallback: over-including") end
     return true
 end
 
@@ -356,6 +357,15 @@ function BETTERUI.Companions.Class:RefreshCategories()
         end
     end
     self.currentCategoryIndex = selectedIndex
+
+    local newCategory = visibleCategories[selectedIndex]
+    local newKey = newCategory and newCategory.key
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "companionCategories", {
+            prevKey = previousKey,
+            newKey = newKey
+        })
+    end
 
     self:RebuildCategoryHeader()
 end

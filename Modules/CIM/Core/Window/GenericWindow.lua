@@ -66,6 +66,13 @@ function BETTERUI.CIM.GenericWindow:ClearCategoryPositions()
 end
 
 function BETTERUI.CIM.GenericWindow:SwitchToCategory(categoryKey)
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "switchToCategory", {
+            categoryKey = categoryKey,
+            prevKey = self.currentCategoryKey,
+        })
+    end
+
     if not categoryKey then return end
 
     -- Save current position before switching

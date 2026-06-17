@@ -136,6 +136,9 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
     if targetBag == BAG_VIRTUAL then
         local canStow, denyReason = CanStowToCraftBagWithPolicy(bag, index)
         if not canStow then
+            if BETTERUI.Log then
+                BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.ACTION, "craftbag move denied", { reason = denyReason })
+            end
             return false, denyReason
         end
     end

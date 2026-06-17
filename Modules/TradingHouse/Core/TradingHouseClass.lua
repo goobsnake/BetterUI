@@ -120,10 +120,14 @@ end
 function BETTERUI.TradingHouse.Class:RefreshList()
     if self._suppressListUpdates then
         self._isDirty = true
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "TH list update suppressed/missing") end
         return
     end
 
-    if not self.list then return end
+    if not self.list then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "TH list update suppressed/missing") end
+        return
+    end
 
     self.list:Clear()
 

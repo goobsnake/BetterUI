@@ -713,6 +713,14 @@ function BatchRuntime.ExecuteBatchThrottled(request)
     local mode = request.mode
     local batchItems = request.items or {}
     local totalItems = #batchItems
+
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "vendorBatch", {
+            mode = mode,
+            totalItems = totalItems
+        })
+    end
+
     if totalItems == 0 then
         if request.onComplete then
             request.onComplete()
