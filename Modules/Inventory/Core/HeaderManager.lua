@@ -27,6 +27,7 @@ end
 
 --- @param self BetterUI_InventoryClass
 local function InitializeHeader(self)
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.FOOTER, "InitializeHeader: setting up category header data") end
     local function UpdateTitleText()
         return GetString(GetActiveInventoryActionStringId(self))
     end
@@ -93,6 +94,7 @@ end
 --- @param self BetterUI_InventoryClass
 --- @param index number 1-based category index
 local function OnCategoryClicked(self, index)
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.NAV, "OnCategoryClicked", {index = index}) end
     if not index or not self.categoryList then return end
 
     local count = #self.categoryList.dataList

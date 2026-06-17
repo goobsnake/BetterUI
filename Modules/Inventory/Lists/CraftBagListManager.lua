@@ -7,6 +7,7 @@ Purpose: Manages the Craft Bag list for the Inventory module.
 --- Purpose: Sets up the visual scroll list for the craft bag.
 ---@return nil
 function BETTERUI.Inventory.Class:InitializeCraftBagList()
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "CraftBagList initialized") end
     local function OnSelectedDataCallback(list, selectedData)
         if selectedData ~= nil and self.scene and self.scene:IsShowing() then
             self.currentlySelectedData = selectedData
@@ -65,6 +66,7 @@ end
 --- Refreshes the Craft Bag list content.
 ---@return nil
 function BETTERUI.Inventory.Class:RefreshCraftBagList()
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "RefreshCraftBagList triggered") end
     if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
         return
     end

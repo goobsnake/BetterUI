@@ -247,6 +247,7 @@ end
 ---@param newState number New scene state constant
 ---@return nil
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
+	if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "Inventory Scene state transition", {oldState = oldState, newState = newState}) end
 	local lifecycleHandler = BETTERUI.Inventory.RegisterSceneLifecycle(self)
 	if type(lifecycleHandler) == "function" then
 		lifecycleHandler(oldState, newState)

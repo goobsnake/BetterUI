@@ -23,6 +23,7 @@ local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 --- @param listControl table UI scroll list control
 --- @param config ListActivationConfig
 local function ActivateListWithState(self, listControl, config)
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "ActivateListWithState", {isCraftBag = config and config.isCraftBag}) end
     -- A re-entrant SwitchActiveList (e.g. OnSelectedCategoryChanged firing during a
     -- category-list rebuild commit) can target a list that is not yet initialized.
     -- Bail rather than activating a nil list and crashing in the native keybind /
@@ -137,6 +138,8 @@ local function SwitchActiveList(self, listDescriptor)
 
     self.previousListType = self.currentListType
     self.currentListType = listDescriptor
+
+    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.NAV, "SwitchActiveList", {old = self.previousListType, new = self.currentListType}) end
 
     if self.previousListType then
         self.listWaitingOnDestroyRequest = nil

@@ -16,6 +16,7 @@ BETTERUI.Inventory.Utils = BETTERUI.Inventory.Utils or {}
 ---@param parent table Inventory instance with categoryList
 ---@param step number Navigation step (+1 or -1)
 local function CycleCategoryTab(parent, step)
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.NAV, "CycleCategoryTab bumper navigation", {step = step}) end
     if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
         return
     end

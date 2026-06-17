@@ -221,6 +221,7 @@ end
 ---@param isStow boolean Whether the operation is stowing (true) or retrieving (false)
 ---@return nil
 function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, isStow)
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Showing craft bag quantity dialog") end
     if not inventorySlot then return end
 
     local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)

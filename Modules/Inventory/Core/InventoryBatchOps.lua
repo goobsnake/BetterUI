@@ -19,6 +19,7 @@ local HasItemAtSlot = BETTERUI.CIM.BatchActions.HasItemAtSlot
 local ResolveStackCount = BETTERUI.CIM.BatchActions.ResolveStackCount
 
 local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "Deposit eligibility check", {bag = bagId, slot = slotIndex}) end
     if not BETTERUI.CIM.ProtectionPolicy.CanTransferItem(bagId, slotIndex, targetBankBag) then
         return false
     end

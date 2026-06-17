@@ -45,10 +45,12 @@ local function ForceDestroyItemSafely(bagId, slotIndex)
 end
 
 function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRefresh, slotType)
+    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "Destroy item request", {bagId = bagId, slotIndex = slotIndex, force = force}) end
     if not bagId or not slotIndex then
         return false
     end
     if not CanDestroyItemWithPolicy(bagId, slotIndex, slotType) then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SAFE, "Destroy blocked by protection policy", {bagId = bagId, slotIndex = slotIndex}) end
         return false
     end
 
@@ -97,6 +99,7 @@ function BETTERUI.Inventory.HookDestroyItem()
 
     ZO_PreHook("ZO_InventorySlot_InitiateDestroyItem", function(inventorySlot)
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "InitiateDestroyItem Hook fired", {bag = bag, index = index}) end
         if not bag or not index then
             return false
         end

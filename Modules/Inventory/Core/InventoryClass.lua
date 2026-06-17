@@ -62,6 +62,7 @@ local g_slotDataCacheDirty = true
 
 --- Invalidates the slot data cache.
 function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "Invalidating slot data cache") end
     g_slotDataCacheDirty = true
     g_slotDataCache = {}
 end

@@ -130,6 +130,7 @@ function BETTERUI.Inventory.SaveListPosition(self)
 
     local catData = self.categoryList.selectedData
     local key = BETTERUI.CIM.PositionManager.GetCategoryKey(catData)
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "Saving list position", {key = key}) end
     if not key then return end
 
     local isCraftBag = catData.onClickDirection ~= nil

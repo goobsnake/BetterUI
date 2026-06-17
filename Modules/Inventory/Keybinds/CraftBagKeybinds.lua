@@ -661,6 +661,7 @@ function InventoryKeybinds.HandleSecondaryKeybind(self)
             end
 
             local function RefreshAfterQuickslotUnassign()
+                if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.KEYBIND, "CraftBag quickslot unassign refresh keybinds") end
                 if self.control and self.control.IsHidden and self.control:IsHidden() then
                     return
                 end

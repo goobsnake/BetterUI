@@ -51,6 +51,7 @@ end
 local function InitializeSecureWheelHooks()
     local assignableUtilityWheelGamepad = ZO_AssignableUtilityWheel_Gamepad
     if assignableUtilityWheelGamepad and not BETTERUI._secureWheelHooked then
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "Utility wheel hooks installed") end
         ZO_PreHook(assignableUtilityWheelGamepad, "TryAssignPendingToSelectedEntry", function(self, clearPending)
             local selectedEntry = self:GetSelectedRadialEntry()
             local pendingSlotData = self.pendingSlotData

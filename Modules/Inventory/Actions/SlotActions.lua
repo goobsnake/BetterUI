@@ -20,6 +20,7 @@ local m_customActions = {}
 ---@param config table Action config with name, callback, and optional visibilityFunction/options
 ---@return boolean success Whether the action was registered
 function BETTERUI.Inventory.RegisterSlotAction(id, config)
+    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "Custom slot action registered", {id = id, name = config and config.name}) end
     if not id or not config or not config.name or not config.callback then
         BETTERUI.Debug("RegisterSlotAction: missing required id, name, or callback")
         return false
@@ -72,6 +73,7 @@ local function PreserveSelectionForAction(inventorySlot)
 
     local slotData = inventorySlot.dataSource or inventorySlot
     local uid = slotData.uniqueId
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "Preserving selection index and UID", {uid = uid}) end
     if uid then
         GAMEPAD_INVENTORY._preserveUniqueId = uid
     end

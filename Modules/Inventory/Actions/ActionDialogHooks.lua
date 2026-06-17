@@ -138,6 +138,8 @@ function BETTERUI.Inventory.HookActionDialog()
             local bankShowing = BETTERUI.GetModuleEnabled("Banking")
                 and BETTERUI.Utils.IsBankingSceneShowing()
 
+            if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Y-Action Dialog setup fired", {invShowing = invShowing, bankShowing = bankShowing}) end
+
             if invShowing or bankShowing then
                 dialog._betteruiManaged = true
                 -- Fire callback for BetterUI modules to populate the dialog
@@ -157,6 +159,7 @@ function BETTERUI.Inventory.HookActionDialog()
 
         parametricList = {}, --we'll generate the entries on setup
         finishedCallback = function(dialog)
+            if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Y-Action Dialog finished", {managed = dialog and dialog._betteruiManaged}) end
             if dialog and dialog._betteruiManaged then
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH", dialog)
                 dialog._betteruiManaged = nil

@@ -9,6 +9,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
     local ActionHandlers = BETTERUI.Inventory.ActionHandlers
 
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", function(dialog, data)
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Action dialog setup callback fired", {entriesCount = data and data.entries and #data.entries}) end
         ActionHandlers.OnSetup(self, dialog, data)
     end)
 

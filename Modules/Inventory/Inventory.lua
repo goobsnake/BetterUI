@@ -326,6 +326,7 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 end
 
 function BETTERUI.Inventory.Class:OnDeferredInitialize()
+	if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "OnDeferredInitialize: starting deferred setup") end
 	if self._betterUIDeferredInventoryInitialized then return end
 	self._betterUIDeferredInventoryInitialized = true
 	self.isDeferredInitialized = true
@@ -395,6 +396,7 @@ end
 --- so we explicitly trigger it once after giving the parent class a chance to
 --- perform its own one-time work.
 function BETTERUI.Inventory.Class:PerformDeferredInitialize()
+	if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "PerformDeferredInitialize called") end
 	if self._betterUIDeferredInitializePerformed then
 		return
 	end

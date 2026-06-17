@@ -35,6 +35,7 @@ function BETTERUI.Inventory.Class:InitializeCategoryList()
 
     -- Match the tooltip to the selected data because it looks nicer
     local function OnSelectedCategoryChanged(list, selectedData)
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.CATEGORY, "Category selection changed", {name = selectedData and selectedData.text}) end
         if selectedData ~= nil and self.scene and self.scene:IsShowing() then
             self:UpdateCategoryLeftTooltip(selectedData)
 

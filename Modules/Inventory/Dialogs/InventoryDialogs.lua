@@ -150,6 +150,7 @@ end
 --- Purpose: Safety prompt before destroying items.
 --- Mechanics: Registers `BETTERUI_CONFIRM_DESTROY_DIALOG`, shows item link, calls `TryDestroyItem` on confirm.
 function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
+	if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Confirm destroy dialog initialized") end
 	BETTERUI.CIM.Dialogs.Register("BETTERUI_CONFIRM_DESTROY_DIALOG", {
 		blockDirectionalInput = true,
 		canQueue = true,

@@ -90,6 +90,7 @@ end
 --- @param slotData table|nil Optional slot/entry data used to resolve the uniqueId
 function NewItemTracker.PrepareForClear(bagId, slotIndex, slotData)
     if not bagId or not slotIndex then return end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "Staged item for new status clear", {bagId = bagId, slotIndex = slotIndex}) end
     local key = MakeKey(bagId, slotIndex)
     pendingClears[key] = {
         bagId = bagId,
@@ -113,6 +114,10 @@ end
 --- This is the safe lifecycle point to clear new indicators.
 function NewItemTracker.CommitPendingClears()
     if not SHARED_INVENTORY then return end
+
+    local count = 0
+    for _ in pairs(pendingClears) do count = count + 1 end
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "Committing pending new status clears", {count = count}) end
 
     for key, entry in pairs(pendingClears) do
         -- Skip slots whose contents changed since prepare time so a different

@@ -12,6 +12,7 @@ InventoryKeybinds.IsQuickslottable = BETTERUI.CIM.IsQuickslottable
 --- Initializes the main inventory keybind strip.
 ---@return nil
 function BETTERUI.Inventory.Class:InitializeKeybindStrip()
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.KEYBIND, "Inventory keybind strip initialized") end
     if not self.multiSelectManager then
         self.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(
             self.itemList,

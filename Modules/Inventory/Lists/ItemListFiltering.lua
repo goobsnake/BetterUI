@@ -75,6 +75,7 @@ end
 --- Refreshes the item list based on the selected category and filter.
 ---@return nil
 function BETTERUI.Inventory.Class:RefreshItemList()
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "Refreshing item list", {query = self.searchQuery}) end
     -- Skip refresh during batch processing to prevent flickering
     if self:IsBatchProcessing() then
         return

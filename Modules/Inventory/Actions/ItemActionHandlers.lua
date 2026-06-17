@@ -101,6 +101,7 @@ local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
 end
 
 local function ResolveCurrentTarget(self)
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "Resolving target for item action", {mode = self.actionMode}) end
     local actionMode = self.actionMode
     if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
         return self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)

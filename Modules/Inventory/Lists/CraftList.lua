@@ -88,6 +88,8 @@ function BETTERUI.Inventory.CraftList:RefreshList(...)
         searchQuery = self.lastSearchQuery
     end
 
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "Refreshing CraftList", {filterType = filterType}) end
+
     -- Cancel any in-flight deferred batch and reset pending state BEFORE the
     -- hidden early-out, so a refresh while hidden cannot leave a stale batch
     -- (built from pre-refresh data) resuming later.

@@ -514,6 +514,7 @@ function BETTERUI.Inventory.List:Initialize(control, options)
     end
 
     local function OnInventoryUpdated(bagId)
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "OnInventoryUpdated callback", {bagId = bagId}) end
         -- Skip work while this list is off-screen (inactive list, or inventory scene
         -- hidden); mark dirty so OnEffectivelyShown refreshes once on return. Mirrors
         -- RefreshList's own IsHidden() guard, keeping these lifetime-registered

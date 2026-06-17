@@ -25,6 +25,7 @@ function Class:ShowBatchActionsMenu()
 
     local selectedItems = self.multiSelectManager:GetSelectedItems()
     local selectedCount = #selectedItems
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "Opening batch actions menu", {selectedCount = selectedCount}) end
     if selectedCount == 0 then return end
 
     -- Analyze selected items using shared mixin (lock/unlock/junk counts)

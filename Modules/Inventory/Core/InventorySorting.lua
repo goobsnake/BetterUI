@@ -284,6 +284,7 @@ function Class:InitializeHeaderSortController()
     end
 
     self:LinkColumnLabels()
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SORT, "Header sort controller initialized", {listType = self.currentListType}) end
 end
 
 --- Links column header labels to the sort controller for visual feedback.

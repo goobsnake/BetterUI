@@ -27,6 +27,7 @@ local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
 
     if targetSlot then
         if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetSlot, 1) then
+            if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.ACTION, "RequestMoveItem failed via CallSecureProtected", {bagId = bagId, slotIndex = slotIndex, targetSlot = targetSlot}) end
             NotifySecureActionFailed("EquipAction:EquipMove")
         end
     end
@@ -57,6 +58,7 @@ local function AttemptCompanionEquipPatch()
     ZO_PreHook(class, "TryEquipItem", function(self, inventorySlot)
         if self and self.selectedEquipSlot and inventorySlot then
             local sourceBag, sourceSlot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+            if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Companion TryEquipItem hook fired", {sourceBag = sourceBag, sourceSlot = sourceSlot}) end
             if sourceBag and sourceSlot then
                 local function DoEquip()
                     if not CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, BAG_COMPANION_WORN,
