@@ -209,8 +209,8 @@ function Companions.InitializeRuntime()
 
     instance.coreKeybinds = Companions.BuildCoreKeybinds(instance)
     local sortOk, sortErr = Companions.SetupSort(instance)
-    if not sortOk and sortErr and BETTERUI.Debug then
-        BETTERUI.Debug(sortErr)
+    if not sortOk and sortErr then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, sortErr) end
     end
     -- Sort-setup failure degrades sorting only; module initialization continues.
     instance.sortSetupReady = sortOk == true
@@ -327,9 +327,11 @@ function Companions.CreateScene(instance)
                 local zosClass = rawget(_G, "ZO_CompanionEquipment_Gamepad")
                 if type(zosClass) == "table" and type(zosClass[key]) == "function" then
                     shim = function(...)
-                        BETTERUI.CIM.Debug.Log(string.format(
-                            "Companions: absorbing ZO_CompanionEquipment_Gamepad.%s(...)",
-                            tostring(key)), "Companions")
+                        if BETTERUI.Log then
+                            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, string.format(
+                                "Companions: absorbing ZO_CompanionEquipment_Gamepad.%s(...)",
+                                tostring(key)))
+                        end
                     end
                     noOpShims[key] = shim
                     return shim

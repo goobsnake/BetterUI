@@ -46,8 +46,8 @@ local function NotifyCompanionSetupFailure(messageText)
         BETTERUI.CIM.UserNotify("Companions.Init", messageText)
         return
     end
-    if BETTERUI.Debug then
-        BETTERUI.Debug(tostring(messageText))
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, tostring(messageText))
     end
 end
 

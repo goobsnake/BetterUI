@@ -22,8 +22,8 @@ function Vendor.ExecuteSafely(context, fn, ...)
     end
 
     if type(fn) ~= "function" then
-        if BETTERUI and BETTERUI.Debug then
-            BETTERUI.Debug(string.format("[Error] %s: No function provided", tostring(context)))
+        if BETTERUI and BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SAFE, string.format("[Error] %s: No function provided", tostring(context)))
         end
         return false, "No function provided"
     end

@@ -58,8 +58,8 @@ local function RunVendorSetupStep(stepName, setupFn)
         "Vendor.Init:" .. tostring(stepName),
         setupFn
     )
-    if not ok and BETTERUI.Debug then
-        BETTERUI.Debug(string.format("[Vendor] %s failed: %s", tostring(stepName), tostring(err)))
+    if not ok then
+        if BETTERUI.Log then BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.LIFECYCLE, string.format("[Vendor] %s failed: %s", tostring(stepName), tostring(err))) end
     end
     return ok, err
 end

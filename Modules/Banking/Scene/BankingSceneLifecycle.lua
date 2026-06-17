@@ -50,7 +50,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         local withdrawDenied = GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_WITHDRAW)
         if depositDenied and withdrawDenied then
             -- Cannot deposit or withdraw — show warning but allow viewing
-            BETTERUI.CIM.Debug.Log("Guild bank: no deposit or withdraw permission", "GuildBank")
+            if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SCENE, "Guild bank: no deposit or withdraw permission") end
         end
     else
         self.isGuildBankMode = false

@@ -265,7 +265,7 @@ function ScrollIndicator.Update(listControl)
         controls.thumb:SetAnchor(TOP, controls.track, TOP, 0, thumbOffset)
     end
 
-    if BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.IsEnabled() then
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
         if instance.currentIndex >= lastSelectableIndex - 1 and selectableSpan > 0 then
             zo_callLater(function()
                 if not controls or not controls.thumb then return end
@@ -273,14 +273,14 @@ function ScrollIndicator.Update(listControl)
                 local rT, rB = controls.track:GetTop(), controls.track:GetBottom()
                 local aT, aB = controls.downArrow:GetTop(), controls.downArrow:GetBottom()
                 local cB = controls.container:GetBottom()
-                BETTERUI.CIM.Debug.Log(string.format(
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, string.format(
                     "[ScrollInd] PIXELS thumb=%d-%d trk=%d-%d arrow=%d-%d cont_bot=%d",
                     tT, tB, rT, rB, aT, aB, cB
-                ), "ScrollIndicator")
-                BETTERUI.CIM.Debug.Log(string.format(
+                ))
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, string.format(
                     "[ScrollInd] GAPS thumb-to-trkBot=%d thumb-to-arrowTop=%d",
                     rB - tB, aT - tB
-                ), "ScrollIndicator")
+                ))
             end, 100)
         end
     end

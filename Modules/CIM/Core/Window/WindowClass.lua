@@ -360,7 +360,7 @@ function BETTERUI.Interface.Window:ToggleScene()
         -- Fallback: use scene object's name if available
         SCENE_MANAGER:Toggle(self.scene:GetName())
     else
-        BETTERUI.Debug("[Window] ToggleScene called but no sceneName or scene is set")
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "[Window] ToggleScene called but no sceneName or scene is set") end
     end
 end
 

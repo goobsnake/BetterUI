@@ -39,7 +39,7 @@ function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
 
     -- Check for duplicate registration
     if BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] and not options.overwrite then
-        BETTERUI.Debug(string.format("[Dialog] '%s' already registered, skipping", dialogName))
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, string.format("[Dialog] '%s' already registered, skipping", dialogName)) end
         return false
     end
 
@@ -69,7 +69,7 @@ end
 ---@return nil
 function BETTERUI.CIM.Dialogs.Show(dialogName, data)
     if not BETTERUI.CIM.Dialogs.IsRegistered(dialogName) then
-        BETTERUI.Debug(string.format("[Dialog] '%s' not registered", dialogName))
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, string.format("[Dialog] '%s' not registered", dialogName)) end
         return
     end
 

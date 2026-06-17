@@ -208,7 +208,7 @@ end
 function Mixin.ProcessBatchThrottled(self, request)
     request = ResolveBatchRequest(request)
     if request == nil then
-        BETTERUI.CIM.Debug.Log("Batch request malformed; expected a request-table contract", "Batch")
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.BATCH, "Batch request malformed; expected a request-table contract") end
         return
     end
     local stepFn = request.step
@@ -238,7 +238,7 @@ function Mixin.ProcessBatchThrottled(self, request)
         return
     end
     if self.isBatchProcessing then
-        BETTERUI.CIM.Debug.Log("Batch re-entry rejected: pipeline already active", "Batch")
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "Batch re-entry rejected: pipeline already active") end
         return
     end
 
@@ -417,7 +417,7 @@ function Mixin.ProcessBatchThrottled(self, request)
     end
 
     if type(stepFn) ~= "function" then
-        BETTERUI.CIM.Debug.Log("Batch step function missing for throttled processing", "Batch")
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.BATCH, "Batch step function missing for throttled processing") end
         return
     end
 

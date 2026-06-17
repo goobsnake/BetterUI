@@ -529,8 +529,8 @@ function BatchConfig.NormalizeBatchItems(items)
         end
     end
 
-    if droppedCount > 0 and BETTERUI and BETTERUI.Debug then
-        BETTERUI.Debug(string.format("[Batch] NormalizeBatchItems dropped %d unprocessable selection(s)", droppedCount))
+    if droppedCount > 0 and BETTERUI and BETTERUI.Log then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.BATCH, string.format("[Batch] NormalizeBatchItems dropped %d unprocessable selection(s)", droppedCount))
     end
 
     return normalized

@@ -298,7 +298,7 @@ function BETTERUI.Defaults.ApplyFirstInstallDefaults(settings)
         settings.Modules[moduleName].m_enabled = enabled
     end
 
-    BETTERUI.Debug("Applied first-install module defaults")
+    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "Applied first-install module defaults") end
 end
 
 --- Applies default values to a module's settings table.

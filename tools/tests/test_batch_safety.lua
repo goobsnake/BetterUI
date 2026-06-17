@@ -72,6 +72,22 @@ function BETTERUI.CIM.Debug.IsEnabled()
     return true
 end
 
+-- Production migrated batch debug logging to the unified BETTERUI.Log; capture it too.
+-- Calls are Log.LEVEL(category, message), so map message/category into debugOutput.
+BETTERUI.Log = {
+    CATEGORY = setmetatable({}, { __index = function(_, k) return k end }),
+    LEVEL = { TRACE = 1, DEBUG = 2, INFO = 3, WARN = 4, ERROR = 5 },
+    IsActive = function() return true end,
+}
+local function captureUnifiedLog(category, message)
+    debugOutput[#debugOutput + 1] = { message = message, category = category }
+end
+BETTERUI.Log.Trace = captureUnifiedLog
+BETTERUI.Log.Debug = captureUnifiedLog
+BETTERUI.Log.Info = captureUnifiedLog
+BETTERUI.Log.Warn = captureUnifiedLog
+BETTERUI.Log.Error = captureUnifiedLog
+
 function zo_max(a, b) return math.max(a or 0, b or 0) end
 function zo_min(a, b) return math.min(a or 0, b or 0) end
 function zo_ceil(x) return math.ceil(x or 0) end

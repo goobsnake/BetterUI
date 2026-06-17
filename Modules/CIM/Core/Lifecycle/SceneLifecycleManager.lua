@@ -70,7 +70,7 @@ end
 
 function BETTERUI.CIM.SceneLifecycle.CreateStateChangeHandler(screen, config)
     if not screen then
-        BETTERUI.Debug("[SceneLifecycle] No screen provided")
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SCENE, "[SceneLifecycle] No screen provided") end
         return nil
     end
 
@@ -79,13 +79,13 @@ end
 
 function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
     if not screen then
-        BETTERUI.Debug("[SceneLifecycle] No screen provided")
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SCENE, "[SceneLifecycle] No screen provided") end
         return
     end
 
     local scene = screen.scene
     if not scene then
-        BETTERUI.Debug("[SceneLifecycle] No scene on screen object")
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SCENE, "[SceneLifecycle] No scene on screen object") end
         return
     end
 

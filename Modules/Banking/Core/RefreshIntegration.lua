@@ -8,8 +8,8 @@ function BETTERUI.Banking.InitializeRefreshManager()
             coalesceDelay = BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS,
             useBatching = false,
         })
-        BETTERUI.Debug("[Banking] RefreshManager initialized")
+        if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "[Banking] RefreshManager initialized") end
     else
-        BETTERUI.Debug("[Banking] Warning: ListRefreshManager not available")
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "[Banking] Warning: ListRefreshManager not available") end
     end
 end

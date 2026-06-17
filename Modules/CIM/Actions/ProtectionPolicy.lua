@@ -149,12 +149,12 @@ function Policy.CanDestroyItem(bagId, slotIndex, slotType)
         if not ZO_InventorySlot_CanDestroyItem(destroyProbe) then
             return false, Policy.DENY.NO_ITEM
         end
-    elseif slotType == nil and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.Log then
-        BETTERUI.CIM.Debug.Log(
+    elseif slotType == nil and BETTERUI.Log then
+        BETTERUI.Log.Warn(
+            BETTERUI.Log.CATEGORY.ACTION,
             string.format(
                 "CanDestroyItem: nil slotType for bag %s slot %s; engine destroy probe skipped (callers should pass slotType)",
-                tostring(bagId), tostring(slotIndex)),
-            "ProtectionPolicy")
+                tostring(bagId), tostring(slotIndex)))
     end
     return true
 end

@@ -176,8 +176,8 @@ end
 ---@return nil
 function BETTERUI.Vendor.LogDebug(flagName, category, message)
 	flagName, category, message = NormalizeDebugLogContract(flagName, category, message)
-	if BETTERUI.Vendor.IsDebugFlagEnabled(flagName) and BETTERUI and BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.Log then
-		BETTERUI.CIM.Debug.Log(message, category or "Vendor")
+	if BETTERUI.Vendor.IsDebugFlagEnabled(flagName) then
+		if BETTERUI.Log then BETTERUI.Log.Debug(category or "Vendor", message) end
 	end
 end
 

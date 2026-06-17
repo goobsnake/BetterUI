@@ -339,7 +339,15 @@ end
 
 do
     local originalDebug = BETTERUI.CIM.Debug
+    local originalLog = BETTERUI.Log
     local debugLogs = {}
+    -- LogDebug now emits through the unified BETTERUI.Log (Log.Debug(category, message)).
+    BETTERUI.Log = {
+        CATEGORY = setmetatable({}, { __index = function(_, k) return k end }),
+        Debug = function(category, message)
+            debugLogs[#debugLogs + 1] = { message = message, category = category }
+        end,
+    }
     BETTERUI.CIM.Debug = {
         FLAGS = {
             SCENE_TRANSITIONS = true,
@@ -364,6 +372,7 @@ do
     assertEqual("reversed", debugLogs[2].message, "vendor debug helper logs reversed-contract messages")
     assertEqual("VendorScene", debugLogs[2].category, "vendor debug helper normalizes reversed contracts")
 
+    BETTERUI.Log = originalLog
     BETTERUI.CIM.Debug = originalDebug
 end
 

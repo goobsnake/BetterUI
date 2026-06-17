@@ -404,24 +404,24 @@ function BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, pane
     local settings = ns.Settings
     local registerPanel = settings and settings.RegisterPanel
     if type(registerPanel) ~= "function" then
-        if BETTERUI.Debug then
-            BETTERUI.Debug(string.format("[%s] Settings panel registration seam unavailable", resolvedModuleName))
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, string.format("[%s] Settings panel registration seam unavailable", resolvedModuleName))
         end
         return false, "missing_register_panel"
     end
 
     local ok, panelResult, panelReason = pcall(registerPanel, panelId, panelLabel)
     if not ok then
-        if BETTERUI.Debug then
-            BETTERUI.Debug(string.format("[%s] Settings panel registration failed: %s", resolvedModuleName, tostring(panelResult)))
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, string.format("[%s] Settings panel registration failed: %s", resolvedModuleName, tostring(panelResult)))
         end
         return false, "register_panel_failed"
     end
 
     if panelResult == false then
         local reason = panelReason or "register_panel_failed"
-        if BETTERUI.Debug then
-            BETTERUI.Debug(string.format("[%s] Settings panel registration rejected: %s", resolvedModuleName, tostring(reason)))
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, string.format("[%s] Settings panel registration rejected: %s", resolvedModuleName, tostring(reason)))
         end
         return false, reason
     end
@@ -449,8 +449,8 @@ function BETTERUI.CIM.RegisterModulePanelWithLogging(moduleOrNamespace, moduleNa
         moduleOrNamespace._panelRegistrationDeferred = panelReason == "missing_register_panel"
     end
 
-    if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Debug then
-        BETTERUI.Debug(string.format("[%s] Settings panel registration reported: %s",
+    if not panelOk and panelReason ~= nil and panelReason ~= "missing_register_panel" and BETTERUI.Log then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, string.format("[%s] Settings panel registration reported: %s",
             tostring(moduleNameForLog or moduleName), tostring(panelReason)))
     end
 
