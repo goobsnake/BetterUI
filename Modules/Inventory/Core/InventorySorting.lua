@@ -117,6 +117,26 @@ local function BuildInventoryHeaderSortInstallOptions(instance)
                 instance:InitializeHeaderSortController()
             end,
         },
+        callbacks = {
+            -- Suspend the underlying list while header-sort owns the keybind strip. With the list
+            -- still active, the first sort press (A -> ToggleSort -> RefreshItemList ->
+            -- commit/reselect) re-establishes the list's native keybind context and clobbers the
+            -- header-sort A/Back keybinds, leaving only Back/Clear-sort -- and Back then falls
+            -- through to the scene (exiting the inventory). Deactivating the list keeps the
+            -- header-sort descriptor as the sole owner of the strip until exit.
+            onEnterHeaderMode = function(owner)
+                local list = owner.GetCurrentList and owner:GetCurrentList()
+                if list and list.Deactivate then
+                    list:Deactivate()
+                end
+            end,
+            onExitHeaderMode = function(owner)
+                local list = owner.GetCurrentList and owner:GetCurrentList()
+                if list and list.Activate then
+                    list:Activate()
+                end
+            end,
+        },
     }
 end
 

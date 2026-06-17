@@ -8,16 +8,18 @@ Purpose: Manages the Craft Bag list for the Inventory module.
 ---@return nil
 function BETTERUI.Inventory.Class:InitializeCraftBagList()
     local function OnSelectedDataCallback(list, selectedData)
-        if selectedData ~= nil and self.scene:IsShowing() then
+        if selectedData ~= nil and self.scene and self.scene:IsShowing() then
             self.currentlySelectedData = selectedData
             self:UpdateItemLeftTooltip(selectedData)
 
             local currentList = self:GetCurrentList()
-            if currentList == self.craftBagList or ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+            if currentList == list or ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
                 self:SetSelectedInventoryData(selectedData)
                 -- Ensure selectedItemUniqueId is set for craftbag items (needed for Y-button visibility)
                 self:SetSelectedItemUniqueId(selectedData)
-                self.craftBagList:RefreshVisible()
+                if list and list.GetParametricList then
+                    list:GetParametricList():RefreshVisible()
+                end
             end
             -- Keybind Refresh - protected by RefreshKeybinds() override
             self:RefreshKeybinds()
@@ -26,11 +28,14 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
 
     self.craftBagList = self:AddList(
         "CraftBag",
-        -- No template-registration callback: BETTERUI.Inventory.List:Initialize
-        -- already registers the entry templates and binds options.slotType per
-        -- row, and ZO_ParametricScrollList silently ignores duplicate template
-        -- registrations, so a post-creation callback would be a dead no-op.
-        nil,
+        -- No-op setup callback. BETTERUI.Inventory.List:Initialize already registers the
+        -- entry templates and binds options.slotType per row, so this has nothing to do --
+        -- but it MUST be a function, NOT nil. Native CreateAndSetupList runs self:SetupList(list)
+        -- when callbackParam is nil, and native SetupList calls list:AddDataTemplate() on the
+        -- BETTERUI.Inventory.List wrapper (not a raw parametric list), throwing "function
+        -- expected instead of nil". A no-op keeps native on the callbackParam(list) branch and
+        -- skips its incompatible default setup. (Passing nil here was the craft-bag regression.)
+        function() end,
         BETTERUI.Inventory.CraftList,
         {
             inventoryType = BAG_VIRTUAL,
@@ -61,6 +66,12 @@ end
 ---@return nil
 function BETTERUI.Inventory.Class:RefreshCraftBagList()
     if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
+        return
+    end
+
+    -- The craft bag list may not be built yet during early / re-entrant scene-show flows
+    -- (a category-rebuild reselect can trigger a craft-bag switch before init completes).
+    if not self.craftBagList then
         return
     end
 

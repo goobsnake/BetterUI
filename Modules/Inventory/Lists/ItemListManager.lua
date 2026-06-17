@@ -75,7 +75,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     self.itemList:SetSortFunction(BETTERUI.Inventory.DefaultSortComparator)
 
     self.itemList:SetOnSelectedDataChangedCallback(function(list, selectedData)
-        if selectedData ~= nil and self.scene:IsShowing() then
+        if selectedData ~= nil and self.scene and self.scene:IsShowing() then
             self.currentlySelectedData = selectedData
 
             self:SetSelectedInventoryData(selectedData)
@@ -87,7 +87,10 @@ function BETTERUI.Inventory.Class:InitializeItemList()
                 self:UpdateItemLeftTooltip(selectedData)
             end)
 
-            self:PrepareNextClearNewStatus(selectedData)
+            -- Route new-item status through the shared NewItemTracker (consumes the CIM
+            -- replacement for the native GAMEPAD_INVENTORY:PrepareNextClearNewStatus, matching
+            -- the generic list base at InventoryList.lua); the native call bypassed the tracker.
+            BETTERUI.Inventory.NewItemTracker.PrepareFromSelectedData(selectedData)
 
             -- Keybind Refresh - protected by RefreshKeybinds() override.
             -- Let the override handle transition windows so settled reselection
@@ -357,7 +360,7 @@ end
 --- Processes a batch of items for the scroll list.
 --- Used by RefreshItemList to load large lists incrementally.
 function BETTERUI.Inventory.Class:ProcessScrollListBatch()
-    if not self.pendingBatchData or not self.scene:IsShowing() then return end
+    if not self.pendingBatchData or not (self.scene and self.scene:IsShowing()) then return end
 
     local startIndex = self.pendingBatchIndex or 1
     local totalItems = #self.pendingBatchData

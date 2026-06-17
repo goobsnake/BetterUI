@@ -26,6 +26,14 @@
                 if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.UnifiedFooter then
                 local controller = BETTERUI.CIM.UnifiedFooter.Create(self)
                 self.unifiedFooter = controller
+                -- The footer child's OnInitialized can run before this handler (the control
+                -- tree is built child-first), in which case its SetupFooter call was skipped
+                -- because the controller did not exist yet. Wire it up now so the controller is
+                -- always initialized regardless of OnInitialized order (otherwise Refresh is a
+                -- no-op and footer currency/capacity values never populate).
+                if self.footer and controller.SetupFooter then
+                controller:SetupFooter(self.footer)
+                end
                 end
             </OnInitialized>
 

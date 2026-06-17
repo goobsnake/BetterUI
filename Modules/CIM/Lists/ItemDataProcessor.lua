@@ -21,6 +21,11 @@ function BETTERUI.CIM.InitializeSharedItemVisualData(row, itemData)
         -- when a caller passes data without it.
         row.dataSource.requiredChampionPoints = GetItemRequiredChampionPoints(itemData.bagId, itemData.slotIndex)
     end
+    -- Reset icons before adding: CreateItemEntryData seeds an icon via ZO_GamepadEntryData:New,
+    -- and pooled rows are reused, so adding here would leave the entry with two (identical)
+    -- icons. A multi-icon ZO_GamepadEntryData animates/cycles its icons, which presents as the
+    -- "pulsating item icon" artifact across inventory/bank/etc. Keep exactly one static icon.
+    if row.ClearIcons then row:ClearIcons() end
     row:AddIcon(itemData.icon or itemData.iconFile)
     if not itemData.questIndex then
         row:SetNameColors(row:GetColorsBasedOnQuality(row.quality))

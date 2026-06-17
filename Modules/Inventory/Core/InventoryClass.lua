@@ -309,8 +309,91 @@ function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
         return
     end
 
+    -- itemActions is created during deferred dialog initialization. Selection
+    -- callbacks can fire while a list fragment is showing before that deferred
+    -- setup has completed (or if it was skipped), so initialize on demand.
+    if not self.itemActions and self.InitializeItemActions then
+        self:InitializeItemActions()
+    end
+
+    if not self.itemActions then
+        -- Still no actions controller: keep unique-id tracking and bail out
+        -- rather than crashing in the parent's itemActions:SetInventorySlot.
+        self:SetSelectedItemUniqueId(inventoryData)
+        return
+    end
+
     -- Call parent implementation (includes itemActions:SetInventorySlot)
     ZO_GamepadInventory.SetSelectedInventoryData(self, inventoryData)
+end
+
+--- Clears the selected inventory data (override with the same itemActions guard as
+--- SetSelectedInventoryData). The native ZO_GamepadInventory:ClearSelectedInventoryData
+--- calls `self.itemActions:SetInventorySlot(nil)` unconditionally, and native
+--- SetActiveKeybinds calls ClearSelectedInventoryData first. ActivateListWithState ->
+--- SetActiveKeybinds runs (via SwitchActiveList on scene show) before BetterUI's deferred
+--- InitializeItemActions has set self.itemActions in some orderings, so the native path
+--- nil-indexes itemActions. That throw is swallowed by SafeExecute and aborts the entire
+--- scene wiring (header tabs, weapon icons, currency footer, keybinds, search, list
+--- landing). Lazily initialize, then guard the clear -- mirroring the override above.
+function BETTERUI.Inventory.Class:ClearSelectedInventoryData()
+    self:SetSelectedItemUniqueId(nil)
+
+    if not self.itemActions and self.InitializeItemActions then
+        self:InitializeItemActions()
+    end
+
+    if self.itemActions and self.itemActions.SetInventorySlot then
+        self.itemActions:SetInventorySlot(nil)
+    end
+end
+
+--- Refreshes item-action keybinds (override with active-list nil guard).
+--- Native ZO_GamepadInventory:RefreshItemActions dereferences the active item / craftbag /
+--- category list for the current actionMode with no nil guard (e.g. line 1025:
+--- activeCategoryList:GetTargetData()). It is invoked from several callbacks -- the
+--- ITEM_PREVIEW "RefreshActions" fragment callback, slot-update, OnUpdate -- that can fire
+--- during early or re-entrant scene-show flows before the relevant list exists, producing a
+--- swallowed crash that aborts the scene. Resolve the list the native path will touch using
+--- the same accessors and bail if it is not ready; otherwise delegate to native.
+function BETTERUI.Inventory.Class:RefreshItemActions()
+    -- Check the SAME accessor the native path will dereference -- with NO self.itemList /
+    -- self.categoryList fallback. Native GetActiveItemList/GetActiveCategoryList contain a
+    -- nil==nil trap: `currentList == self.vengeanceCategoryList` is nil==nil whenever
+    -- GetCurrentList() is nil (BetterUI never creates the vengeance lists), so they return
+    -- the nil vengeance list. A fallback here would mask that and let native crash at
+    -- line 1025/1020 (activeCategoryList:GetTargetData()).
+    local CONST = BETTERUI.Inventory.CONST
+    local actionMode = self.actionMode
+    local activeList
+    if actionMode == CONST.ITEM_LIST_ACTION_MODE then
+        activeList = self.GetActiveItemList and self:GetActiveItemList()
+    elseif actionMode == CONST.CRAFT_BAG_ACTION_MODE then
+        activeList = self.craftBagList
+    else -- CATEGORY_ITEM_ACTION_MODE (or unset)
+        activeList = self.GetActiveCategoryList and self:GetActiveCategoryList()
+    end
+
+    if not activeList then
+        return
+    end
+
+    ZO_GamepadInventory.RefreshItemActions(self)
+end
+
+--- Leaves header focus (override with list nil guards).
+--- Native ZO_GamepadInventory:RequestLeaveHeader dereferences GetActiveItemList() /
+--- self.categoryList / self.craftBagList without a guard. BetterUI invokes it from
+--- HeaderManager (when IsHeaderActive), which can run before deferred init builds those
+--- lists. Delegate to native only once the lists exist.
+function BETTERUI.Inventory.Class:RequestLeaveHeader()
+    -- Bail unless the lists exist AND there is a current list: native RequestLeaveHeader
+    -- derefs GetActiveItemList()/GetActiveCategoryList(), which hit the same nil==nil
+    -- vengeance trap and return nil when GetCurrentList() is nil.
+    if not (self.itemList and self.craftBagList and self.categoryList) or not self:GetCurrentList() then
+        return
+    end
+    ZO_GamepadInventory.RequestLeaveHeader(self)
 end
 
 --[[
@@ -471,6 +554,11 @@ function BETTERUI.Inventory.Class:Initialize(control)
         BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_CURRENCY
     )
 
+    -- The shared CIM SearchManager / HeaderNavigation seams key off `headerGeneric`
+    -- (Banking sets it too). Inventory's generic header control is self.header, so alias
+    -- it; without this the search control falls back to a coarser header focus target.
+    self.headerGeneric = self.headerGeneric or self.header
+
     if BETTERUI.Inventory.InitializeSecureWheelHooks then
         BETTERUI.Inventory.InitializeSecureWheelHooks()
     end
@@ -489,7 +577,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
     end
 
     local function RefreshVisualLayer()
-        if self.scene:IsShowing() then
+        if self.scene and self.scene:IsShowing() then
             self:OnUpdate()
             if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
                 self:RefreshCategoryList()
@@ -616,6 +704,12 @@ end
 --- Re-attaches the mouse click callback (which might be wiped by Refresh).
 --- Ensures scrollList link.
 function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
+    -- header / categoryHeaderData are created in InitializeHeader (deferred init); currency,
+    -- alliance-point, tel-var and bag-space events can fire RefreshHeader before that
+    -- completes -> nil-index in GenericHeader.Refresh / self.header:GetNamedChild. Bail until ready.
+    if not self.header or not self.categoryHeaderData then
+        return
+    end
     BETTERUI.GenericHeader.Refresh(self.header, self.categoryHeaderData, blockCallback)
 
     -- Ensure scrollList is explicitly linked
@@ -627,6 +721,8 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
     -- Restore Weapon Icons and Text
     BETTERUI.GenericHeader.SetEquipText(self.header, self.isPrimaryWeapon)
     BETTERUI.GenericHeader.SetBackupEquipText(self.header, self.isPrimaryWeapon)
+    -- GetEquippedItemInfo(equipSlot) returns the icon texture as its first return
+    -- (valid current API in 101050). Restore equipped/backup weapon icons.
     BETTERUI.GenericHeader.SetEquippedIcons(
         self.header,
         GetEquippedItemInfo(EQUIP_SLOT_MAIN_HAND),
@@ -639,7 +735,7 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
         GetEquippedItemInfo(EQUIP_SLOT_BACKUP_OFF),
         GetEquippedItemInfo(EQUIP_SLOT_BACKUP_POISON)
     )
-    BETTERUI.GenericFooter:Refresh()
+    self:RefreshFooter()
 
     -- Reposition the search control so it sits under the header/title (above the list)
     if self.PositionSearchControl then

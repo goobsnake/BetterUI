@@ -81,6 +81,13 @@ COMPATIBILITY (continued):
 
 STABILITY (continued):
 40. Improved: Hardened several rarely-hit code paths (ultimate/XP power reads, banking and footer refresh, quantity-dialog narration, companion cooldown comparison, and saved-search dialogs) against missing optional engine return values, preventing Lua errors in edge cases
+
+INVENTORY (shared-module migration repair):
+41. Fixed: Major regression repaired in the gamepad inventory — it again opens to the category list (instead of the craft bag), with category tab icons, LB/RB tab paging, the footer keybinds, the MAIN/BACKUP equipped-weapon icons, and the search bar all restored; the inventory and craft bag are once again separate lists
+42. Fixed: Currency values (gold, Tel Var, transmute crystals, and the rest) once again populate along the bottom of the inventory
+43. Fixed: Item icons across the inventory, craft bag, bank, and vendor no longer pulse/animate — they render as static icons again
+44. Fixed: The VALUE column's market prices are shown in gold again instead of red
+45. Fixed: Column sort (Actions menu -> Sort) works correctly — the sort keybinds now appear and stay while sorting, pressing Sort repeatedly no longer drops the A button, and backing out returns to the inventory with its keybinds intact and lets you re-enter sort afterward
 [/INDENT]
 
 

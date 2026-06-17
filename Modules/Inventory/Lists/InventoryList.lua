@@ -243,7 +243,10 @@ local function ApplyValueText(valueControl, data, itemData, itemLink)
             marketPrice, isAverage = marketIntegration.GetMarketPrice(itemLink, itemData.stackCount or data.stackCount)
         end
         if marketPrice and marketPrice > 0 then
-            valueControl:SetColor(isAverage and 1 or 1, isAverage and 0.5 or 0.75, isAverage and 0.5 or 0, 1)
+            -- Gold (ESO currency color, FFBF00 = 1, 0.749, 0) for market-price values, restoring
+            -- the prior look. (Previously average prices were tinted salmon/red, which read as
+            -- "value column turned red".)
+            valueControl:SetColor(1, 0.749019, 0, 1)
             valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(math.floor(marketPrice)))
             return
         end
@@ -511,12 +514,26 @@ function BETTERUI.Inventory.List:Initialize(control, options)
     end
 
     local function OnInventoryUpdated(bagId)
+        -- Skip work while this list is off-screen (inactive list, or inventory scene
+        -- hidden); mark dirty so OnEffectivelyShown refreshes once on return. Mirrors
+        -- RefreshList's own IsHidden() guard, keeping these lifetime-registered
+        -- SHARED_INVENTORY callbacks as cheap no-ops instead of rebuilding hidden lists.
+        if self.control:IsHidden() or not BETTERUI.Utils.IsInventorySceneShowing() then
+            self.isDirty = true
+            return
+        end
         if TracksInventoryType(self, bagId) then
             self:RefreshList()
         end
     end
 
     local function OnSingleSlotInventoryUpdate(bagId, slotIndex)
+        -- Off-screen guard: see OnInventoryUpdated. Without this the incremental update
+        -- path below (SetupItemEntry + RefreshVisible) runs on a hidden / off-scene list.
+        if self.control:IsHidden() or not BETTERUI.Utils.IsInventorySceneShowing() then
+            self.isDirty = true
+            return
+        end
         if TracksInventoryType(self, bagId) then
             -- Keyed by bag AND slot: lists can track multiple bags, and slot
             -- indices repeat across bags. Two-level numeric keys avoid

@@ -12,6 +12,7 @@
 **2026-06-12**: Added slot-identity-in-CIM, gamepad dialog keybind Push/Pop, `GetSlotAbilityCost` argument order, symmetric tooltip-enhancement teardown, and `ProtectionPolicy.CanDestroyItem` slotType gotchas (v3.06 fix batch).
 **2026-06-12** (MPR-3): Added `BETTERUI_TabBarScrollList` single-dispatch ownership, `SetSelectedIndexWithoutAnimation` `forceAnimation` mapping, modern `TransferCurrency` over deprecated deposit/withdraw aliases, and per-batch gold-cap re-check gotchas (ZO_-native drift review).
 **2026-06-13** (MPR-4): Added per-frame HUD bar latching, scene-gated tooltip top-line suppression, `BETTERUI_`-prefixed event/update registrations, and the reload-gated native-takeover (no-runtime-teardown) model gotchas (performance / addon-compat / nil-hardening review).
+**2026-06-17** (inventory shared-module migration repair): Added the deferred-init eager-load single-point-of-failure + nil `callbackParam` AddList contract, the double-`AddIcon` pulsing-icon gotcha, the `UnifiedFooter` `OnInitialized`-order `SetupFooter` gotcha, and the four header-sort keybind seams (build-strip-before-install, defer-enter-after-dialog, deactivate-list-during-sort, reset-integration-`isActive`-on-cleanup). See **Header Sort & Shared-View Gotchas**.
 
 ---
 
@@ -53,6 +54,26 @@
 - Flow control where failure is expected/normal behavior
 
 **Never** use SafeExecute to mask bugs - always investigate root causes first.
+
+---
+
+## Header Sort & Shared-View Gotchas (inventory CIM migration)
+
+### Header-sort keybinds (CIM `HeaderSortIntegration`)
+The shared header-sort owner contract has four independent ordering/state seams — all four must hold or the column-sort flow breaks:
+1. **Build the keybind strip before installing the integration.** `HeaderSortIntegration.Install` snapshots `keybinds.mainDescriptor = instance.mainKeybindStripDescriptor` at install time. If `InitializeKeybindStrip` runs *after* `InitializeHeaderSortController`, the snapshot is nil and the exit-from-sort restore has nothing to re-add → inventory keybinds vanish on back-out. (See `Inventory.lua` `InitializeDeferredInventoryLists`.)
+2. **Enter sort mode only after the action dialog releases its keybind state.** Sort is triggered from the item Actions dialog (`ItemActionHandlers.OnConfirm`, `isSortAction`). Calling `EnterHeaderSortMode` synchronously applies the keybind swap to the dialog's about-to-pop keybind state, so the sort keybinds are discarded on close and the strip falls back to the inventory keybinds. Defer with a poll on `ZO_Dialogs_IsShowingDialog()`.
+3. **Deactivate the underlying list while in sort mode.** Inventory's install supplies no `navigation` contract, so only the tab bar is suspended. With the list still active, the first Sort press (`ToggleSort` → `RefreshItemList` → commit/reselect) re-establishes the list's native keybind context and clobbers the sort A/Back keybinds (leaving only Back/Clear-sort, and Back then falls through to the scene). Supply `callbacks.onEnterHeaderMode/onExitHeaderMode` that `Deactivate()`/`Activate()` the current list.
+4. **Reset the integration's `isActive` on scene cleanup, not just the controller.** `SceneCleanup.CleanupInputState` cleared `screen.isInHeaderSortMode` and the controllers but not `screen._headerSortIntegration.isActive`; the next `EnterHeaderMode` then bails on `if integration.isActive then return false`, permanently dead-ending the sort action after one scene exit.
+
+### Unified footer controller never initializes (currency / capacity blank)
+`UnifiedFooter.xml`'s inner `$(parent)Footer` `OnInitialized` (which calls `controller:SetupFooter`) can run **before** the container `OnInitialized` creates the controller (the control tree builds child-first), so `parent.unifiedFooter` is nil and `SetupFooter` is silently skipped → the controller has no `footer`/`_initialized` and `Refresh()` is a no-op → footer values never populate. Fix is symmetric: the container `OnInitialized` must also call `SetupFooter(self.footer)` when the child already ran, and owners' `SetupUnifiedFooter` re-asserts it (and refreshes) as a safety net. Diagnosed via a one-line `FOOTDIAG` probe showing `ctl=true init=false footer=false`.
+
+### Pooled `ZO_GamepadEntryData` icons animate when added twice
+`CreateItemEntryData` seeds an icon via `ZO_GamepadEntryData:New(name, icon)`, then the shared `InitializeSharedItemVisualData` calls `row:AddIcon(...)` again. A multi-icon entry makes ESO cycle/animate the icons — with two identical icons this reads as a **pulsing item icon** (inventory/bank/vendor). Call `row:ClearIcons()` before `AddIcon` so there is exactly one static icon.
+
+### Deferred-init eager-load is a single point of failure
+`Module.lua` eagerly calls `PerformDeferredInitialize()` at addon load, and `OnDeferredInitialize` sets its done-flag at the top — so one failing `Initialize*` step silently aborts the rest of the wiring and is never retried on scene show. Root cause of the migration regression was `InitializeCraftBagList` passing `nil` as `AddList`'s `callbackParam`: native `CreateAndSetupList` routes a nil `callbackParam` to native `SetupList` (which calls `AddDataTemplate`, incompatible with BetterUI's list wrapper). Pass a no-op `function() end` to stay on the `callbackParam(list)` branch.
 
 ---
 

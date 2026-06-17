@@ -138,7 +138,12 @@ local function SafeRefresh(headerToo)
         if headerToo and GAMEPAD_INVENTORY.RefreshHeader then
             GAMEPAD_INVENTORY:RefreshHeader(true)
         end
-        if BETTERUI and BETTERUI.GenericFooter and BETTERUI.GenericFooter.Refresh then
+        -- Route through RefreshFooter so the shared CIM unified footer controller is used
+        -- (Inventory migrated off the legacy GenericFooter singleton); fall back to the
+        -- singleton only if the controller path is unavailable.
+        if GAMEPAD_INVENTORY.RefreshFooter then
+            GAMEPAD_INVENTORY:RefreshFooter()
+        elseif BETTERUI and BETTERUI.GenericFooter and BETTERUI.GenericFooter.Refresh then
             BETTERUI.GenericFooter:Refresh()
         end
     end

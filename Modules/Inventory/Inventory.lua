@@ -4,6 +4,8 @@ Purpose: Inventory orchestration surface for shared runtime helpers and
          remaining class behavior that has not yet moved into focused files.
 ]]
 
+BETTERUI.Inventory = BETTERUI.Inventory or {}
+
 
 -- CONSTANTS & GLOBALS
 
@@ -26,7 +28,7 @@ end
 ---@return nil
 function BETTERUI.Inventory.Class:SwitchInfo()
 	self.switchInfo = not self.switchInfo
-	if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+	if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE and self.itemList then
 		self:UpdateItemLeftTooltip(self.itemList.selectedData)
 	end
 end
@@ -63,7 +65,7 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 			self:RefreshItemList()
 			-- it's possible we removed the last item from this list
 			-- so we want to switch back to the category list
-			if self.itemList:IsEmpty() then
+			if not self.itemList or self.itemList:IsEmpty() then
 				local currentCategory = self.categoryList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
 				if currentCategory and (currentCategory.showJunk or currentCategory.showStolen) then
 					-- If a transient category emptied out (e.g., unmark last junk item),
@@ -128,11 +130,15 @@ local function InitializeDeferredInventoryLists(self)
 	self:InitializeCraftBagList()
 	self:InitializeItemList()
 
+	-- Build the keybind strip BEFORE installing the header-sort integration. The integration
+	-- snapshots instance.mainKeybindStripDescriptor at install time; if it is still nil, the
+	-- exit-from-sort restore has nothing to re-add and inventory keybinds vanish on sort back-out.
+	self:InitializeKeybindStrip()
+
 	if self.InitializeHeaderSortController then
 		self:InitializeHeaderSortController()
 	end
 
-	self:InitializeKeybindStrip()
 	self:RefreshCategoryList()
 	self.savedInventoryCategoryIndex = self.categoryList and self.categoryList.selectedIndex or 1
 	self.savedInventoryCategoryKey = nil
@@ -156,7 +162,12 @@ local function InitializeDeferredInventoryDialogs(self)
 	self:InitializeItemActions()
 	self:InitializeActionsDialog()
 
-	if BETTERUI.GenericFooter then
+	-- Consume the shared CIM unified footer controller; fall back to the legacy global
+	-- GenericFooter singleton only if the per-screen controller was not created.
+	if not self.unifiedFooterController and self.SetupUnifiedFooter then
+		self:SetupUnifiedFooter()
+	end
+	if not self.unifiedFooterController and BETTERUI.GenericFooter then
 		BETTERUI.GenericFooter.control = self.control
 		BETTERUI.GenericFooter:Initialize()
 	end
@@ -255,7 +266,7 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 		end
 
 		local currentList = self:GetCurrentList()
-		if self.scene:IsShowing() then
+		if self.scene and self.scene:IsShowing() then
 			if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
 				self:OnUpdate()
 			else
@@ -413,10 +424,41 @@ function BETTERUI.Inventory.Class:ClearTextSearch()
 	end
 end
 
+--- Adopts the shared CIM unified footer controller (CURRENCY mode), mirroring Banking's
+--- SetupUnifiedFooter. Consumes the per-screen controller created by the
+--- BETTERUI_UnifiedFooterContainer template instead of the legacy global GenericFooter
+--- singleton, so Inventory and Banking no longer share mutable footer state.
+---@return nil
+function BETTERUI.Inventory.Class:SetupUnifiedFooter()
+	local container = self.control and self.control.container
+	local footerContainer = container and container:GetNamedChild("FooterContainer")
+	if footerContainer and footerContainer.unifiedFooter then
+		self.unifiedFooterController = footerContainer.unifiedFooter
+		-- The UnifiedFooter template's footer-control OnInitialized can run BEFORE the container
+		-- OnInitialized created the controller, so the controller's SetupFooter (which sets
+		-- controller.footer + _initialized) gets skipped -> Refresh() is a no-op and currency
+		-- values never populate. Wire the footer control to the controller now if that happened.
+		if not self.unifiedFooterController._initialized and footerContainer.footer
+			and self.unifiedFooterController.SetupFooter then
+			self.unifiedFooterController:SetupFooter(footerContainer.footer)
+		end
+		local MODE = BETTERUI.CIM.UnifiedFooter and BETTERUI.CIM.UnifiedFooter.MODE
+		if MODE then
+			self.unifiedFooterController:SetMode(MODE.CURRENCY)
+		end
+		-- SetMode is a no-op when already in CURRENCY mode, so refresh explicitly to populate.
+		if self.unifiedFooterController.Refresh then
+			self.unifiedFooterController:Refresh()
+		end
+	end
+end
+
 --- Refreshes the footer display.
 ---@return nil
 function BETTERUI.Inventory.Class:RefreshFooter()
-	if BETTERUI.GenericFooter then
+	if self.unifiedFooterController then
+		self.unifiedFooterController:Refresh()
+	elseif BETTERUI.GenericFooter then
 		BETTERUI.GenericFooter:Refresh()
 	end
 end

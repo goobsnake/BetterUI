@@ -454,7 +454,24 @@ function ActionHandlers.OnConfirm(self, dialog)
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         local sortContext = selectedRow.sortContext or self
         if sortContext and sortContext.EnterHeaderSortMode then
-            sortContext:EnterHeaderSortMode()
+            -- Defer until the action dialog has fully released its keybind state. Calling
+            -- EnterHeaderSortMode synchronously here applies the header-sort keybind swap to the
+            -- dialog's (about-to-pop) keybind state, so the sort keybinds are discarded when the
+            -- dialog closes and the strip falls back to the inventory keybinds.
+            local attempts = 60
+            local function EnterSortWhenDialogClosed()
+                attempts = attempts - 1
+                if attempts > 0 and ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
+                    if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+                        BETTERUI.Inventory.Tasks:Schedule("enterHeaderSortAfterDialog", 10, EnterSortWhenDialogClosed)
+                    elseif zo_callLater then
+                        zo_callLater(EnterSortWhenDialogClosed, 10)
+                    end
+                    return
+                end
+                sortContext:EnterHeaderSortMode()
+            end
+            EnterSortWhenDialogClosed()
         end
         return
     end

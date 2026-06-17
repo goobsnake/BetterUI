@@ -35,7 +35,7 @@ function BETTERUI.Inventory.Class:InitializeCategoryList()
 
     -- Match the tooltip to the selected data because it looks nicer
     local function OnSelectedCategoryChanged(list, selectedData)
-        if selectedData ~= nil and self.scene:IsShowing() then
+        if selectedData ~= nil and self.scene and self.scene:IsShowing() then
             self:UpdateCategoryLeftTooltip(selectedData)
 
             if selectedData.onClickDirection then
@@ -208,6 +208,13 @@ end
 function BETTERUI.Inventory.Class:RefreshCategoryList()
     -- Skip refresh during batch processing to prevent flickering
     if self:IsBatchProcessing() then
+        return
+    end
+
+    -- categoryList and the header tab bar are built during deferred init; event-driven or
+    -- re-entrant calls can land before they exist. Bail until ready -- the body dereferences
+    -- self.categoryList.selectedData and self.header.tabBar:Clear()/:Commit().
+    if not self.categoryList or not self.header or not self.header.tabBar then
         return
     end
 

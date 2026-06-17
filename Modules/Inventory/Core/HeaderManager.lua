@@ -82,8 +82,12 @@ local function InitializeHeader(self)
         end
     end
 
-    BETTERUI.GenericFooter.control = self.control
-    BETTERUI.GenericFooter:Initialize()
+    -- Footer is owned by the shared CIM unified footer controller, captured once via
+    -- SetupUnifiedFooter (also consumed in InitializeDeferredInventoryDialogs). Avoid
+    -- rebinding the legacy global GenericFooter singleton here.
+    if self.SetupUnifiedFooter and not self.unifiedFooterController then
+        self:SetupUnifiedFooter()
+    end
 end
 
 --- @param self BetterUI_InventoryClass
@@ -113,7 +117,12 @@ end
 --- @param self BetterUI_InventoryClass
 local function ActivateHeader(self)
     ZO_GamepadGenericHeader_Activate(self.header)
-    self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex, true, false)
+    -- tabBar is created lazily by GenericHeader.Refresh; guard it in case deferred init was
+    -- interrupted (other call sites in this file guard self.header.tabBar the same way).
+    local tabBar = self.header and self.header.tabBar
+    if tabBar then
+        tabBar:SetSelectedIndexWithoutAnimation(self.categoryList and self.categoryList.selectedIndex or 1, true, false)
+    end
 end
 
 --- @param self BetterUI_InventoryClass

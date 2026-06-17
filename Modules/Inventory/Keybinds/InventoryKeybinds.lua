@@ -104,6 +104,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         ),
         {
             name = function()
+                if not self.craftBagList then return "" end
                 local targetStringId = self:GetCurrentList() == self.craftBagList
                     and SI_BETTERUI_INV_ACTION_INV
                     or SI_BETTERUI_INV_ACTION_CB

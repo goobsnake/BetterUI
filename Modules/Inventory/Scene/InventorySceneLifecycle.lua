@@ -54,10 +54,24 @@ local function OnSceneShowing(self)
 	-- Also detect brief scene detours (container loot, enchanting, etc.) via time-based check
 	local timeSinceHidden = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneHiddenTime or 0)) or 999
 	local isBriefDetour = (timeSinceHidden < 2.0)
-	if
-		listToActivate == inventoryItemList and not wasOnStack and not isBriefDetour
+	-- On a fresh open (not returning via the scene stack, not a brief detour such as
+	-- container loot / enchanting), land on the category list rather than restoring the
+	-- previously-active ITEM or CRAFT_BAG list. Previously only the item list was
+	-- corrected, so reopening while the craft bag was last active wrongly reopened the
+	-- craft bag instead of the category view.
+	local inventoryCraftBagList = GetInventoryListType("CRAFT_BAG")
+	if not wasOnStack and not isBriefDetour
+		and (listToActivate == inventoryItemList or listToActivate == inventoryCraftBagList)
 	then
 		listToActivate = inventoryCategoryList
+	end
+
+	if BETTERUI.Log then
+		BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "invShow", {
+			prevList = self.previousListType,
+			currentList = listToActivate,
+			onStack = wasOnStack == true,
+		})
 	end
 
 	-- switching the active list will handle activating/refreshing header, keybinds, etc.
@@ -74,6 +88,14 @@ local function OnSceneShowing(self)
 	local currentList = self:GetCurrentList()
 	if currentList and currentList.Activate then
 		currentList:Activate()
+		-- Refresh item actions AFTER the list is active. ZO_GamepadInventory:RefreshItemActions
+		-- only sets the selected slot when GetCurrentList():IsActive() is true; SwitchActiveList
+		-- ran it earlier while the list was still inactive, so the A/X/Y item-action keybinds
+		-- would otherwise stay hidden until the cursor moved. Mirrors Banking activating its
+		-- list before populating keybinds.
+		if self.RefreshItemActions then
+			self:RefreshItemActions()
+		end
 	end
 
 	BETTERUI.CIM.Utils.SetExternalToolbarHidden(true)

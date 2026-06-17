@@ -79,6 +79,10 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     if self:IsBatchProcessing() then
         return
     end
+    -- The item list may not be built yet during early / re-entrant scene-show flows.
+    if not self.itemList then
+        return
+    end
     local targetUniqueId, targetIndex = self:CaptureItemListRefreshTarget()
 
     -- Update empty-state text based on search context
@@ -121,6 +125,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     local showEquippedCategory = (targetCategoryData and targetCategoryData.showEquipped ~= nil)
     local showStolenCategory = (targetCategoryData and targetCategoryData.showStolen ~= nil)
     local filteredDataTable
+    local searchLen = self.searchQuery and #tostring(self.searchQuery) or 0
 
     local isQuestItem = nonEquipableFilterType == ITEMFILTERTYPE_QUEST
     if isQuestItem then
@@ -174,6 +179,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         end
     end
 
+    local preCount = #filteredDataTable
+
     -- Do search filtering FIRST, before expensive per-item processing
     -- This avoids doing API calls for items that won't even be displayed
     if self.searchQuery and tostring(self.searchQuery) ~= "" then
@@ -196,6 +203,15 @@ function BETTERUI.Inventory.Class:RefreshItemList()
             end
         end
         filteredDataTable = self.searchMatches
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshItems", {
+            categoryKey = targetCategoryData.key,
+            searchLen = searchLen,
+            preCount = preCount,
+            postCount = #filteredDataTable,
+        })
     end
 
     -- BATCH PROCESSING START

@@ -23,6 +23,13 @@ local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 --- @param listControl table UI scroll list control
 --- @param config ListActivationConfig
 local function ActivateListWithState(self, listControl, config)
+    -- A re-entrant SwitchActiveList (e.g. OnSelectedCategoryChanged firing during a
+    -- category-list rebuild commit) can target a list that is not yet initialized.
+    -- Bail rather than activating a nil list and crashing in the native keybind /
+    -- refresh path -- SafeExecute would otherwise swallow it and abort the whole scene show.
+    if not listControl then
+        return
+    end
     self:SetCurrentList(listControl)
     self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
     self:RefreshCategoryList()
@@ -100,7 +107,7 @@ local function ActivateListWithState(self, listControl, config)
         self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
     end
     -- Inventory: show left tooltip for selected item
-    if not config.isCraftBag then
+    if not config.isCraftBag and self.itemList then
         self:UpdateItemLeftTooltip(self.itemList.selectedData)
     end
 end

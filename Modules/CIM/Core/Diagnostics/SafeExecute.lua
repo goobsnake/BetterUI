@@ -21,7 +21,15 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
     local ok, result = pcall(fn, ...)
 
     if not ok then
-        BETTERUI.Debug(string.format("[Error] %s: %s", context, tostring(result)))
+        -- Surface the caught error through the unified logger: ERROR level -> Interface.log
+        -- when logging is active (so swallowed faults stop being invisible), and to the
+        -- native popup only when the popup/suppression toggle is off. Inert (silent) for
+        -- normal players with logging disabled, preserving the legacy swallow behavior.
+        if BETTERUI.Log then
+            BETTERUI.Log.Error("SAFE", string.format("%s: %s", context, tostring(result)))
+        else
+            BETTERUI.Debug(string.format("[Error] %s: %s", context, tostring(result)))
+        end
     end
 
     return ok, result
