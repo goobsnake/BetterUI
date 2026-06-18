@@ -66,6 +66,12 @@ fileLines = {}
 Log.Info(Log.CATEGORY.LIST, "refresh", { 1, 2, 3, 4 })
 check(fileLines[1] and fileLines[1]:find("refresh [4]", 1, true) ~= nil, "data arg summarized into line")
 
+-- record-style data renders key=value (the values reach the log, not just shape).
+fileLines = {}
+Log.Info(Log.CATEGORY.LIST, "refresh", { count = 7, name = "bag" })
+check(fileLines[1] and fileLines[1]:find("count=7", 1, true) ~= nil, "record data renders key=value")
+check(fileLines[1] and fileLines[1]:find('name="bag"', 1, true) ~= nil, "record data carries string values")
+
 -- Category gating drops TRACE/DEBUG but never WARN/ERROR.
 fileLines = {}
 Log.SetCategoryEnabled(Log.CATEGORY.LIST, false)

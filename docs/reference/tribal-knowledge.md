@@ -577,8 +577,15 @@ Interface.log. Verified: suppression hides the dialog but the line still logs.
 
 - **API** (`Modules/CIM/Core/Diagnostics/Log.lua`): `BETTERUI.Log.Trace/Debug/Info/Warn/Error(category, message, data?)`.
   `category` ∈ `BETTERUI.Log.CATEGORY.{SCENE,LIST,NAV,KEYBIND,FOOTER,CATEGORY,SEARCH,SORT,BATCH,ACTION,LIFECYCLE,SAFE,SETTINGS,GENERAL}`.
-  `data` is summarized compactly by `BETTERUI.Log.Summarize` — pass a small table of
-  scalar fields (counts/keys), **never** a full item list/array.
+  `data` (optional) is the structured payload. Pass a **small table of scalar fields** —
+  it renders logfmt-style as `key=value key=value` (values via `BETTERUI.Log.Summarize`,
+  keys sorted, capped at 8 fields). Don't pre-`Summarize` a field value (the renderer does
+  it; double-summarizing double-quotes). Arrays render as `[n]`; nested tables collapse to
+  `{n:keys}` shape, so never pass a full item list.
+- **Line format** (file sink): `[BUI] <gameTimeMs> <LEVEL> <CATEGORY> | <event> <key=value ...>`
+  — one record per line (embedded newlines/tabs collapsed), `gameTimeMs` session-relative.
+  `/builog on` writes a self-describing schema banner first. Lines **without** the `[BUI]`
+  tag in Interface.log are real game Lua errors (BetterUI breadcrumbs are tagged deferred errors).
 - **Default routing**: every level → file ON, chat OFF, popup OFF (suppressed by
   default). Inert unless logging is enabled, so normal players pay nothing.
 - **Crash-safety convention**: every call site is nil-guarded `if BETTERUI.Log then ... end`

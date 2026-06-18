@@ -160,7 +160,7 @@ local function HandleCommand(args)
 
     if args == "on" then
         InterfaceLog.SetEnabled(true)
-        InterfaceLog.Write("InterfaceLog enabled via /builog on")
+        InterfaceLog.Write("logging started -- line format: [BUI] <gameTimeMs> <LEVEL> <CATEGORY> | <event> <key=value ...>  (levels TRACE<DEBUG<INFO<WARN<ERROR; gameTimeMs is session-relative ms; lines WITHOUT the [BUI] tag are real game Lua errors)")
         Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups).")
     elseif args == "off" then
         InterfaceLog.Write("InterfaceLog disabled via /builog off")

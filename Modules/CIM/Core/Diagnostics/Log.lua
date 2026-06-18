@@ -61,6 +61,9 @@ end
 -- Sinks ---------------------------------------------------------------------
 local function sinkFile(line)
     local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
+    -- One record = one greppable line: collapse embedded newlines/tabs so a
+    -- multi-line value can't split a record (the file is line-oriented for tailers).
+    line = tostring(line):gsub("[\r\n]+", " "):gsub("\t", " ")
     if il and il.WriteRaw then return il.WriteRaw(line) end
     if il and il.Write then return il.Write(line) end
 end
@@ -104,6 +107,32 @@ function Log.Summarize(value)
     return tostring(value)
 end
 
+-- Render the optional data argument for a log line. A record-style table (named
+-- fields) renders as `key=value key=value` (deterministic key order, values via
+-- Summarize, field-capped) so the actual VALUES reach the log -- what an external
+-- reader/AI needs to act on, not just the field shape. Pure arrays and scalars
+-- defer to Summarize (`[n]` / the value), keeping lines high-density. logfmt-style.
+local MAX_LOG_FIELDS = 8
+local function renderData(data)
+    if type(data) ~= "table" then return Log.Summarize(data) end
+    local len = #data
+    local keyCount = 0
+    for _ in pairs(data) do keyCount = keyCount + 1 end
+    if keyCount == 0 then return "{}" end
+    if len > 0 and len == keyCount then return Log.Summarize(data) end -- pure array -> [n]
+
+    local keys = {}
+    for k in pairs(data) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+
+    local parts = {}
+    for i = 1, #keys do
+        if i > MAX_LOG_FIELDS then parts[#parts + 1] = ".."; break end
+        parts[#parts + 1] = tostring(keys[i]) .. "=" .. Log.Summarize(data[keys[i]])
+    end
+    return table.concat(parts, " ")
+end
+
 -- Core emit -----------------------------------------------------------------
 local function emit(level, category, message, data)
     if not isActive() then return end
@@ -114,7 +143,7 @@ local function emit(level, category, message, data)
     local clock = G("GetGameTimeMilliseconds")
     local ts = type(clock) == "function" and clock() or 0
     local text = tostring(message)
-    if data ~= nil then text = text .. " " .. Log.Summarize(data) end
+    if data ~= nil then text = text .. " " .. renderData(data) end
 
     local mask = sinks[level]
     if mask.file then

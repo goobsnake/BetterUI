@@ -270,8 +270,8 @@ local function InstrumentSettingControls(controls, panelId)
                         local label = type(settingName) == "function" and "<dynamic>" or settingName
                         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "settingChanged", {
                             panel = panelId,
-                            name = BETTERUI.Log.Summarize(label),
-                            value = BETTERUI.Log.Summarize((...)),
+                            name = label,
+                            value = (...),
                         })
                     end
                     return originalSetFunc(...)
@@ -290,7 +290,7 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
     if not panelId or type(panelData) ~= "table" then
         if BETTERUI.Log then
             BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegisterInvalid",
-                { panel = BETTERUI.Log.Summarize(panelIdOrModuleName) })
+                { panel = panelIdOrModuleName })
         end
         return nil, "invalid_panel_registration"
     end
