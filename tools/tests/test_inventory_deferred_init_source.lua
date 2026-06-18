@@ -61,11 +61,11 @@ assert_contains(inventoryRuntime, "self.previousListType = nil",
 assert_contains(inventoryModule, "GAMEPAD_INVENTORY:PerformDeferredInitialize()",
     "Inventory module setup must explicitly bridge deferred initialization when replacing the native runtime")
 
-assert_contains(headerManager, "BETTERUI.GenericFooter.control = self.control",
-    "Header initialization must point the generic footer at the inventory control")
-assert_contains(headerManager, "BETTERUI.GenericFooter:Initialize()",
-    "Header initialization must initialize the generic footer with method-call syntax")
-if headerManager:find("BETTERUI%.GenericFooter%.Initialize%(self%)", 1, false) then
+assert_contains(inventoryRuntime, "BETTERUI.GenericFooter.control = self.control",
+    "Deferred inventory init must point the generic footer at the inventory control")
+assert_contains(inventoryRuntime, "BETTERUI.GenericFooter:Initialize()",
+    "Deferred inventory init must initialize the generic footer with method-call syntax")
+if inventoryRuntime:find("BETTERUI%.GenericFooter%.Initialize%(self%)", 1, false) then
     error("Header initialization must not call GenericFooter.Initialize(self)")
 end
 

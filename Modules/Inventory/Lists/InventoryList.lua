@@ -519,7 +519,7 @@ function BETTERUI.Inventory.List:Initialize(control, options)
         -- hidden); mark dirty so OnEffectivelyShown refreshes once on return. Mirrors
         -- RefreshList's own IsHidden() guard, keeping these lifetime-registered
         -- SHARED_INVENTORY callbacks as cheap no-ops instead of rebuilding hidden lists.
-        if self.control:IsHidden() or not BETTERUI.Utils.IsInventorySceneShowing() then
+        if self.control:IsHidden() or not (BETTERUI.Utils and BETTERUI.Utils.IsInventorySceneShowing()) then
             self.isDirty = true
             return
         end
@@ -531,7 +531,7 @@ function BETTERUI.Inventory.List:Initialize(control, options)
     local function OnSingleSlotInventoryUpdate(bagId, slotIndex)
         -- Off-screen guard: see OnInventoryUpdated. Without this the incremental update
         -- path below (SetupItemEntry + RefreshVisible) runs on a hidden / off-scene list.
-        if self.control:IsHidden() or not BETTERUI.Utils.IsInventorySceneShowing() then
+        if self.control:IsHidden() or not (BETTERUI.Utils and BETTERUI.Utils.IsInventorySceneShowing()) then
             self.isDirty = true
             return
         end

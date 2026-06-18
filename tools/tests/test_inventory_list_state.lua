@@ -269,6 +269,13 @@ end
 
 function ZO_Inventory_BindSlot() end
 
+-- Top-level BETTERUI.Utils global (production reads BETTERUI.Utils, distinct from
+-- BETTERUI.Inventory.Utils). Scene checks return "inventory showing" so the single-slot
+-- and full update callbacks proceed to rebuild rather than no-op while off-screen.
+BETTERUI.Utils = BETTERUI.Utils or {}
+BETTERUI.Utils.IsInventorySceneShowing = function() return true end
+BETTERUI.Utils.IsBankingSceneShowing = function() return false end
+
 SHARED_INVENTORY = {}
 
 function SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
