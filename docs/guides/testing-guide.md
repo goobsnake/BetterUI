@@ -67,7 +67,7 @@ luac -p tools/tests/*.lua
 ### Creating New Tests
 
 1. Create `test_<module_name>.lua` in `tools/tests/`
-2. Add minimal ESO stubs for required globals
+2. Add minimal ESO stubs for required globals (add a `BETTERUI.Log` stub only if the test asserts on debug output — production call sites are nil-guarded, so tests run without one)
 3. Inline or import the module logic under test
 4. Use the test harness pattern with `assert_equal`/`assert_true`
 5. Return exit code 1 on failure for CI integration
@@ -81,7 +81,7 @@ luac -p tools/tests/*.lua
 ## Pre-Testing Checklist
 
 1. **Backup SavedVariables** - Copy `Documents/Elder Scrolls Online/live/SavedVariables/BetterUI.lua`
-2. **Enable debug output** - `/script BETTERUI.Debug("test")` should print `[BETTERUI] test`
+2. **Enable debug output** - `/builog on` streams debug + caught Lua errors to `live/Logs/Interface.log` in real time (tail it while you play); `/builog chat on` also mirrors INFO/WARN/ERROR to chat, and `/builog test` writes a verification line. Logging is inert and chat-off by default, so legacy `/script BETTERUI.Debug("test")` (now routed through `BETTERUI.Log`) only surfaces once `/builog` is enabled.
 3. **Clear UI errors** - `/reloadui` before starting session
 
 ---

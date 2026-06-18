@@ -124,7 +124,7 @@ CIM/
 ├── Core/
 │   ├── Batching/          # BatchActions, BatchConfig, MultiSelectManager/Mixin
 │   ├── Data/              # Types, SearchManager, SortManager, navigation state
-│   ├── Diagnostics/       # SafeExecute, FeatureFlags, DebugCommands
+│   ├── Diagnostics/       # Log, InterfaceLog, SafeExecute, FeatureFlags, DebugCommands
 │   ├── Integration/       # HookFactory, MarketIntegration, ResearchCache
 │   ├── Lifecycle/         # RuntimeSetup, EventRegistry, scene helpers
 │   ├── Presentation/      # Fonts, number formatting, keybind helpers
@@ -506,6 +506,8 @@ end
 | `ConstantsUI.lua` | CIM/ | UI constants, currency config |
 | `RuntimeSetup.lua` | CIM/Core/ | API patches, migrations, initialization |
 | `Utilities.lua` | CIM/Core/ | `BETTERUI.CIM.Utils` shared helpers, incl. slot-identity (`CaptureSlotIdentity`, `IsSlotIdentityCurrent`, `NormalizeIdentityValue`); `BETTERUI.Inventory.Utils` delegates here |
+| `Log.lua` | CIM/Core/Diagnostics/ | `BETTERUI.Log` unified logging facade (levels/categories/file+chat sinks) |
+| `InterfaceLog.lua` | CIM/Core/Diagnostics/ | Real-time `live/Logs/Interface.log` file sink; `/builog` command |
 | `FeatureFlags.lua` | CIM/Core/Diagnostics/ | Runtime feature flag system |
 | `SettingsAccessor.lua` | CIM/Core/ | Settings get/set factory |
 | `WindowClass.lua` | CIM/Core/ | Base Window class implementation |
