@@ -88,6 +88,7 @@ local function InitializeSecureWheelHooks()
             -- Always return true to cancel the original unprotected native execution
             return true
         end)
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "TryAssignPendingToSelectedEntry", target = type(assignableUtilityWheelGamepad) }) end
         BETTERUI._secureWheelHooked = true
     end
 end
@@ -374,6 +375,7 @@ function Inventory.Setup()
 
 			return false
 		end)
+		if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "ZO_StackSplit_SplitItem", target = type("ZO_StackSplit_SplitItem") }) end
 		Inventory._splitStackHookInstalled = true
 	end
 
@@ -431,4 +433,5 @@ function Inventory.Setup()
     if Inventory.RegisterSceneLifecycle then
         Inventory.RegisterSceneLifecycle(GAMEPAD_INVENTORY)
     end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "inventorySetupComplete") end
 end

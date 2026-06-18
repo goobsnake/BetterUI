@@ -222,6 +222,13 @@ function Companions.InitializeRuntime()
     RegisterCompanionNarration()
     Companions.RegisterEvents(EVENT_MANAGER)
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companionsInitialized", {
+            scene = BETTERUI_COMPANION_EQUIP_SCENE_NAME,
+            sortReady = instance.sortSetupReady == true,
+        })
+    end
+
     return instance
 end
 
@@ -259,6 +266,10 @@ function Companions.SetupSort(instance)
     end)
     if not ok then
         return false, string.format("[Companions] Header sort setup failed: %s", tostring(err))
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companionsSortInitialized", { installed = true })
     end
 
     return true
@@ -398,6 +409,10 @@ function Companions.RegisterSceneLifecycle(instance)
             end
         end,
     })
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companionsSceneLifecycleRegistered", { scene = BETTERUI_COMPANION_EQUIP_SCENE_NAME })
+    end
 end
 
 local function OnCompanionActivated()
@@ -432,15 +447,31 @@ function Companions.RegisterEvents(eventManager)
     if EVENT_COMPANION_ACTIVATED then
         eventManager:RegisterForEvent(EVENT_NS .. "_CompActivated",
             EVENT_COMPANION_ACTIVATED, OnCompanionActivated)
+        if BETTERUI.Log then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_COMPANION_ACTIVATED" })
+        end
     end
     if EVENT_COMPANION_DEACTIVATED then
         eventManager:RegisterForEvent(EVENT_NS .. "_CompDeactivated",
             EVENT_COMPANION_DEACTIVATED, OnCompanionDeactivated)
+        if BETTERUI.Log then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_COMPANION_DEACTIVATED" })
+        end
     end
     eventManager:RegisterForEvent(EVENT_NS .. "_InvUpdate",
         EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventoryUpdated)
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_INVENTORY_SINGLE_SLOT_UPDATE" })
+    end
     eventManager:RegisterForEvent(EVENT_NS .. "_InvFull",
         EVENT_INVENTORY_FULL_UPDATE, OnInventoryUpdated)
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_INVENTORY_FULL_UPDATE" })
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companionsEventsRegistered", { namespace = EVENT_NS })
+    end
 end
 
 --- Compatibility entrypoint used by ESO's shared slot action pipeline.

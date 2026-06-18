@@ -102,6 +102,7 @@ local function ApplyAPIPatches()
 
             return true
         end)
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "SetSelectedTamrielTomesRewardData", target = type(ZO_TamrielTomesScreen_Shared) }) end
 
         tamrielTomesSelectionGuardInstalled = true
         if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "tamrielTomesGuard", { installed = true, retried = patchesApplied }) end

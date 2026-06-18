@@ -107,15 +107,18 @@ function CraftingPriceTooltip.InstallHooks()
     local creationClass = rawget(_G, "ZO_GamepadSmithingCreation")
     if creationClass and creationClass.SetupResultTooltip then
         ZO_PostHook(creationClass, "SetupResultTooltip", OnCreationResultTooltip)
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "SetupResultTooltip", target = type(creationClass) }) end
         hooked = true
     end
     local improvementClass = rawget(_G, "ZO_GamepadSmithingImprovement")
     if improvementClass and improvementClass.SetupResultTooltip then
         ZO_PostHook(improvementClass, "SetupResultTooltip", OnImprovementResultTooltip)
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "SetupResultTooltip", target = type(improvementClass) }) end
         hooked = true
     end
 
     _hooksInstalled = hooked
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "craftingPriceTooltipHooksInstalled", { installed = hooked }) end
 end
 
 --- Returns whether hooks are currently installed.

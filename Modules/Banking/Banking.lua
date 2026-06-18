@@ -242,6 +242,9 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     EVENT_MANAGER:RegisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK, function(_, bankBag)
         BETTERUI.Banking.SetLastOpenedBankBag(bankBag or BAG_BANK)
     end)
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_OPEN_BANK" })
+    end
 
     EVENT_MANAGER:UnregisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK)
     EVENT_MANAGER:RegisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK, function()
@@ -249,9 +252,22 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             BETTERUI.Banking.SetLastOpenedBankBag(GetBankingBag())
         end
     end)
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_CLOSE_BANK" })
+    end
 
     self.control:RegisterForEvent(EVENT_CARRIED_CURRENCY_UPDATE, UpdateCurrency_Handler)
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_CARRIED_CURRENCY_UPDATE" })
+    end
     self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_BANKED_CURRENCY_UPDATE" })
+    end
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "bankingClassInitialized", { scene = scene_name })
+    end
 end
 
 ---@return nil
@@ -346,4 +362,9 @@ function BETTERUI.Banking.Init()
         )
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "bankingInitialized", {
+            guildBank = BETTERUI.Banking.GetSetting("enableGuildBank") ~= false,
+        })
+    end
 end

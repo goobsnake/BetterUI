@@ -253,31 +253,78 @@ local function NormalizePanelRegistrationId(panelIdOrModuleName)
     return "BETTERUI_" .. normalized
 end
 
+--- Wraps each control's setFunc so user-driven setting changes stream to the
+--- diagnostics sink (panel + setting name + new value). Inert when logging is
+--- inactive — the wrapper only formats a line behind Log.IsActive(); the original
+--- setter always runs. Recurses into submenu controls and is idempotent via a
+--- private marker so panel refresh/re-registration never stacks wrappers.
+local function InstrumentSettingControls(controls, panelId)
+    if type(controls) ~= "table" then return end
+    for _, control in ipairs(controls) do
+        if type(control) == "table" then
+            if type(control.setFunc) == "function" and not control.__buiSetFuncInstrumented then
+                local originalSetFunc = control.setFunc
+                local settingName = control.name
+                control.setFunc = function(...)
+                    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                        local label = type(settingName) == "function" and "<dynamic>" or settingName
+                        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "settingChanged", {
+                            panel = panelId,
+                            name = BETTERUI.Log.Summarize(label),
+                            value = BETTERUI.Log.Summarize((...)),
+                        })
+                    end
+                    return originalSetFunc(...)
+                end
+                control.__buiSetFuncInstrumented = true
+            end
+            if type(control.controls) == "table" then
+                InstrumentSettingControls(control.controls, panelId)
+            end
+        end
+    end
+end
+
 function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelData, optionsData)
     local panelId = NormalizePanelRegistrationId(panelIdOrModuleName)
     if not panelId or type(panelData) ~= "table" then
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegisterInvalid",
+                { panel = BETTERUI.Log.Summarize(panelIdOrModuleName) })
+        end
         return nil, "invalid_panel_registration"
     end
 
     optionsData = type(optionsData) == "table" and optionsData or {}
     BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically(optionsData)
     BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsData, true)
+    InstrumentSettingControls(optionsData, panelId)
 
     local lam = LibAddonMenu2
     if not lam or not lam.RegisterAddonPanel or not lam.RegisterOptionControls then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegisterNoLam", { panel = panelId }) end
         return nil, "lam_unavailable"
     end
 
     local panelOk = pcall(lam.RegisterAddonPanel, lam, panelId, panelData)
     if not panelOk then
+        if BETTERUI.Log then
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegisterFailed", { panel = panelId, stage = "addonPanel" })
+        end
         return nil, "register_addon_panel_failed"
     end
 
     local controlsOk = pcall(lam.RegisterOptionControls, lam, panelId, optionsData)
     if not controlsOk then
+        if BETTERUI.Log then
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegisterFailed", { panel = panelId, stage = "optionControls" })
+        end
         return nil, "register_option_controls_failed"
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegistered", { panel = panelId, controls = #optionsData })
+    end
     return panelId
 end
 

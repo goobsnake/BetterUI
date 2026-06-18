@@ -84,10 +84,12 @@ local function InstallStoreTooltipHooks()
 				end
 				self._betterui_storeStackCount = (itemData and (itemData.stackCount or itemData.stack or itemData.quantity)) or 1
 			end)
+			if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "LayoutStoreWindowItem", target = type(tooltipControl) }) end
 			ZO_PostHook(tooltipControl, "LayoutStoreWindowItem", function(self, itemData, ...)
 				self._betterui_bagId = nil
 				self._betterui_slotIndex = nil
 			end)
+			if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "LayoutStoreWindowItem", target = type(tooltipControl) }) end
 			tooltipControl._betteruiStoreLayoutHookInstalled = true
 		end
 	end
@@ -130,6 +132,7 @@ local function InstallTopLineSuppressionHooks()
 				end
 				return false
 			end)
+			if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "AddTopLinesToTopSection", target = type(tooltipControl) }) end
 			tooltipControl._betteruiTopLinesHookInstalled = true
 		end
 	end
@@ -242,5 +245,6 @@ function GeneralInterface.Setup()
 	ApplyChatHistoryLimit()
 	if BETTERUI.Log then
 		BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "generalInterfaceSetupEnd")
+		BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "generalInterfaceSetupComplete")
 	end
 end

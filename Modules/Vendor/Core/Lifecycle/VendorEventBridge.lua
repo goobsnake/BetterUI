@@ -13,6 +13,9 @@ local function RegisterEvent(eventManager, eventNamespace, suffix, eventCode, ca
         return
     end
     eventManager:RegisterForEvent(eventNamespace .. "_" .. suffix, eventCode, callback)
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = suffix })
+    end
 end
 
 ---@param eventManager table|nil
@@ -49,6 +52,10 @@ function EventBridge.Register(eventManager, eventNamespace, handlers)
     RegisterEvent(eventManager, eventNamespace, "AntiquityLead", rawget(_G, "EVENT_ANTIQUITY_LEAD_ACQUIRED"), handlers.onInventoryUpdated)
 
     EventBridge.RegisterCollectionUpdated(handlers.onInventoryUpdated)
+
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendorEventsRegistered", { namespace = eventNamespace })
+    end
 end
 
 --- Register (idempotently) a ZO_COLLECTIBLE_DATA_MANAGER "OnCollectionUpdated"
@@ -69,4 +76,7 @@ function EventBridge.RegisterCollectionUpdated(onInventoryUpdated)
     EventBridge._collectionCallback = function() onInventoryUpdated() end
     manager:RegisterCallback("OnCollectionUpdated", EventBridge._collectionCallback)
     EventBridge._collectionCallbackRegistered = true
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "OnCollectionUpdated" })
+    end
 end

@@ -204,6 +204,9 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         }
         for _, event in ipairs(GUILD_BANK_EVENTS) do
             EVENT_MANAGER:RegisterForEvent(ns, event, eventHandlers[event])
+            if BETTERUI.Log then
+                BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = event })
+            end
         end
     end
 end
@@ -332,5 +335,8 @@ function BETTERUI.Banking.SetupSceneInterception()
     -- Do not replace SCENE_MANAGER methods. Global scene-manager monkeypatches
     -- taint protected gamepad execution paths (Tamriel Tomes / DirectPurchase).
     -- Keep this as a no-op to preserve secure scene transitions.
+    if BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "bankingSceneInterceptionInitialized")
+    end
     return
 end
