@@ -232,6 +232,11 @@ function BETTERUI.Interface.Window:InitializeKeybind()
     self.coreKeybinds = {
     }
 
+    -- A base window may reach this before a subclass assigns the descriptor; the
+    -- engine helper indexes the table directly, so guarantee it exists (without
+    -- clobbering a descriptor a subclass already set).
+    self.mainKeybindStripDescriptor = self.mainKeybindStripDescriptor or {}
+
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON) -- "Back"
 
     self.triggerSpinnerBinds = {}

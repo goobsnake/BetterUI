@@ -94,6 +94,9 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             name = GetString(rawget(_G, "SI_BETTERUI_CLEAR_SORT")),
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()
+                -- Resolve the deferred SORT_DIRECTION reference before indexing it;
+                -- this callback can fire before the controller finishes loading.
+                if not EnsureControllerReady() then return false end
                 local currentDirection = controller.sortDirections[controller.currentColumnIndex]
                 return currentDirection and currentDirection ~= SORT_DIRECTION.NONE
             end,
