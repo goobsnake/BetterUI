@@ -98,4 +98,5 @@ function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
     end
 
     scene:RegisterCallback("StateChange", stateChangeHandler)
+    return stateChangeHandler
 end

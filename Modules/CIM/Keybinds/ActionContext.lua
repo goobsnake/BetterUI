@@ -115,8 +115,8 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     local targetList, actionListKey = GetInventoryActionList(self, ctx.actionMode)
     ctx.actionListKey = actionListKey
 
-    -- Get target data
-    ctx.target = targetList and targetList.selectedData or nil
+    -- Get target data (prefer GetSelectedData for wrapper lists)
+    ctx.target = targetList and (targetList.GetSelectedData and targetList:GetSelectedData() or targetList.selectedData) or nil
 
     if not ctx.target then
         ctx.filterType = nil
@@ -134,9 +134,10 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 
     local target = ctx.target
 
-    -- Compute filter type once
-    if target.bagId and target.slotIndex then
-        ctx.filterType = GetItemFilterTypeInfo(target.bagId, target.slotIndex)
+    -- Compute filter type once (read from dataSource wrapper if present)
+    local rawTarget = target.dataSource or target
+    if rawTarget.bagId and rawTarget.slotIndex then
+        ctx.filterType = GetItemFilterTypeInfo(rawTarget.bagId, rawTarget.slotIndex)
     else
         ctx.filterType = nil
     end

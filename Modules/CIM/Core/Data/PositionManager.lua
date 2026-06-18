@@ -77,7 +77,9 @@ function BETTERUI.CIM.PositionManager.SavePosition(moduleName, categoryKey, list
     if not innerList.selectedIndex then return end
 
     local itemIndex = innerList.selectedIndex or 1
-    local itemUniqueId = innerList.selectedData and innerList.selectedData.uniqueId
+    local selectedData = innerList.selectedData
+    local rawSelectedData = selectedData and (selectedData.dataSource or selectedData)
+    local itemUniqueId = rawSelectedData and rawSelectedData.uniqueId
 
     -- Store both index and uniqueId for robust restoration
     _storage[moduleName][categoryKey] = {
@@ -116,7 +118,8 @@ function BETTERUI.CIM.PositionManager.RestorePosition(moduleName, categoryKey, l
     -- Try to find by uniqueId first (most accurate)
     if saved.uniqueId then
         for i, data in ipairs(dataList) do
-            if data.uniqueId == saved.uniqueId then
+            local rawData = data.dataSource or data
+            if rawData.uniqueId == saved.uniqueId then
                 targetIndex = i
                 foundByUniqueId = true
                 break

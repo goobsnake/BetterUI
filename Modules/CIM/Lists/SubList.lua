@@ -45,7 +45,9 @@ function BETTERUI_VerticalParametricScrollListSubList:Commit(dontReselect)
     end
     ZO_ParametricScrollList.Commit(self, dontReselect)
     self:UpdateAnchors(self.targetSelectedIndex)
-    self.onDataChosen(self:GetTargetData())
+    if self.onDataChosen then
+        self.onDataChosen(self:GetTargetData())
+    end
 end
 
 --- Cancels selection and reverts to entry index.
@@ -64,13 +66,17 @@ function BETTERUI_VerticalParametricScrollListSubList:CancelSelection()
     end
     self.targetSelectedIndex = indexToReturnTo
     self:UpdateAnchors(indexToReturnTo)
-    self.onDataChosen(self:GetDataForDataIndex(indexToReturnTo))
+    if self.onDataChosen then
+        self.onDataChosen(self:GetDataForDataIndex(indexToReturnTo))
+    end
 end
 
 --- Sets up navigation keybinds (Enter/Back).
 function BETTERUI_VerticalParametricScrollListSubList:InitializeKeybindStrip()
     local function OnEntered()
-        self.onDataChosen(self:GetTargetData())
+        if self.onDataChosen then
+            self.onDataChosen(self:GetTargetData())
+        end
         self.didSelectEntry = true
         self:Deactivate()
     end

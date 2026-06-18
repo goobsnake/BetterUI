@@ -42,9 +42,12 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
     local hasUnassign = false
     local assignedIndex = nil
 
+    -- Resolve wrapped entry data
+    local rawTarget = target.dataSource or target
+
     -- Check if item is already assigned to a quickslot
     if FindActionSlotMatchingItem then
-        assignedIndex = FindActionSlotMatchingItem(target.bagId, target.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        assignedIndex = FindActionSlotMatchingItem(rawTarget.bagId, rawTarget.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
         if assignedIndex then
             hasUnassign = true
             -- Create "Remove" entry
@@ -165,6 +168,11 @@ function BETTERUI.CIM.HandleLinkToChat(targetData)
     end
 
     local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+    if not bag or not slot then
+        -- Fallback for ZO_GamepadEntryData wrappers that expose bagId/slotIndex on dataSource
+        local rawData = targetData.dataSource or targetData
+        bag, slot = rawData.bagId, rawData.slotIndex
+    end
     if not bag or not slot then
         if BETTERUI.Log then
             BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "linkToChat", {success = false, hasLink = false})
