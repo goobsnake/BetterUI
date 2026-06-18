@@ -582,10 +582,14 @@ Interface.log. Verified: suppression hides the dialog but the line still logs.
   keys sorted, capped at 8 fields). Don't pre-`Summarize` a field value (the renderer does
   it; double-summarizing double-quotes). Arrays render as `[n]`; nested tables collapse to
   `{n:keys}` shape, so never pass a full item list.
-- **Line format** (file sink): `[BUI] <gameTimeMs> <LEVEL> <CATEGORY> | <event> <key=value ...>`
-  — one record per line (embedded newlines/tabs collapsed), `gameTimeMs` session-relative.
-  `/builog on` writes a self-describing schema banner first. Lines **without** the `[BUI]`
-  tag in Interface.log are real game Lua errors (BetterUI breadcrumbs are tagged deferred errors).
+- **Line format**: BetterUI emits `[BUI] <gameTimeMs> <LEVEL> <CATEGORY> | <event> <key=value ...>`,
+  but because breadcrumbs are raised as deferred errors the **engine wraps every line on disk** as:
+  `<ISO-8601 ts±tz> |cff0000Lua Error: [BUI] <gameMs> <LEVEL> <CAT> | <event> k=v ...` followed by a
+  `stack traceback:` block. Parser rules: (1) entries start at the ISO timestamp; (2) strip `|cXXXXXX`/`|r`
+  colour codes; (3) a message containing `[BUI]` is a BetterUI breadcrumb — parse the fields and **ignore
+  its traceback**; (4) a `Lua Error:` message **without** `[BUI]` is a real game error — keep its traceback.
+  Fastest clean stream: `grep '\[BUI\]' Interface.log`. The engine ISO timestamp is the authoritative
+  wall-clock; `gameTimeMs` is a secondary session-relative counter. One record per line (newlines collapsed).
 - **Default routing**: every level → file ON, chat OFF, popup OFF (suppressed by
   default). Inert unless logging is enabled, so normal players pay nothing.
 - **Crash-safety convention**: every call site is nil-guarded `if BETTERUI.Log then ... end`

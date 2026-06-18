@@ -16,6 +16,12 @@ Mechanism (proof of concept):
   Real Lua errors already land in Interface.log for free -- this module only adds the
   BetterUI breadcrumb stream on top of that.
 
+  On disk the engine therefore wraps each emitted line as:
+    <ISO-8601 ts±tz> |cff0000Lua Error: <our [BUI] line>
+  followed by a short "stack traceback:" block. Consumers filter on the [BUI] tag
+  (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
+  "Lua Error:" entries are real game errors whose traceback matters.
+
 Usage (slash command): /builog on | off | test | popups on|off | status
 ]]
 
@@ -160,7 +166,7 @@ local function HandleCommand(args)
 
     if args == "on" then
         InterfaceLog.SetEnabled(true)
-        InterfaceLog.Write("logging started -- line format: [BUI] <gameTimeMs> <LEVEL> <CATEGORY> | <event> <key=value ...>  (levels TRACE<DEBUG<INFO<WARN<ERROR; gameTimeMs is session-relative ms; lines WITHOUT the [BUI] tag are real game Lua errors)")
+        InterfaceLog.Write("logging started -- breadcrumbs are tagged [BUI]; grep '[BUI]' for the clean stream. On disk each is engine-wrapped: <ISO-8601 ts> |cff0000Lua Error: [BUI] <gameMs> <LEVEL> <CATEGORY> | <event> <key=value ...> then a 'stack traceback:' block (ignore it for [BUI] lines). Levels TRACE<DEBUG<INFO<WARN<ERROR. The ISO timestamp is authoritative wall-clock. 'Lua Error:' entries WITHOUT [BUI] are real game errors -- keep their traceback.")
         Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups).")
     elseif args == "off" then
         InterfaceLog.Write("InterfaceLog disabled via /builog off")
