@@ -25,12 +25,30 @@ function AutoCategoryIntegration.GetCustomCategory(itemData)
 
     local useCustomCategory = false
     local autoCategory = OptionalAddons.GetGlobal("AutoCategory")
-    if autoCategory and autoCategory.Inited and type(autoCategory.MatchCategoryRules) == "function" then
+    if type(autoCategory) == "table" and autoCategory.Inited and type(autoCategory.MatchCategoryRules) == "function" then
         useCustomCategory = true
         local bagId = itemData.bagId
         local slotIndex = itemData.slotIndex
-        local matched, categoryName, categoryPriority = autoCategory:MatchCategoryRules(bagId, slotIndex)
-        return useCustomCategory, matched, categoryName, categoryPriority
+        local ok, matched, categoryName, categoryPriority = pcall(
+            autoCategory.MatchCategoryRules,
+            autoCategory,
+            bagId,
+            slotIndex
+        )
+        if not ok then
+            return useCustomCategory, false, "", 0
+        end
+
+        local categoryPriorityType = type(categoryPriority)
+        local normalizedPriority = nil
+        if categoryPriorityType == "number" or categoryPriorityType == "string" then
+            normalizedPriority = tonumber(categoryPriority)
+        end
+
+        return useCustomCategory,
+            matched == true,
+            type(categoryName) == "string" and categoryName or "",
+            normalizedPriority or 0
     end
 
     return useCustomCategory, false, "", 0

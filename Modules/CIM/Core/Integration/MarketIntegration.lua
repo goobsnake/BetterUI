@@ -91,31 +91,56 @@ end
 
 local EMPTY_MARKET_PRICE_INFO = CreateMarketPriceInfo({})
 
+local function CallOptionalAddon(method, self, ...)
+    local ok, result = pcall(method, self, ...)
+    if not ok then
+        return nil
+    end
+    return result
+end
+
+local function NormalizeNumber(value)
+    local valueType = type(value)
+    if valueType ~= "number" and valueType ~= "string" then
+        return nil
+    end
+    return tonumber(value)
+end
+
 local function FetchMasterMerchantUnitPrice(itemLink)
-    if MasterMerchant == nil or type(MasterMerchant.itemStats) ~= "function" then
+    if type(MasterMerchant) ~= "table" or type(MasterMerchant.itemStats) ~= "function" then
         return nil
     end
 
-    local mmData = MasterMerchant:itemStats(itemLink, false)
-    if mmData and mmData.avgPrice and mmData.avgPrice > 0 then
-        return mmData.avgPrice
+    local mmData = CallOptionalAddon(MasterMerchant.itemStats, MasterMerchant, itemLink, false)
+    if type(mmData) ~= "table" then
+        return nil
+    end
+
+    local avgPrice = NormalizeNumber(mmData.avgPrice)
+    if avgPrice and avgPrice > 0 then
+        return avgPrice
     end
 
     return nil
 end
 
 local function FetchArkadiusUnitPrice(itemLink)
-    if ArkadiusTradeTools == nil then
+    if type(ArkadiusTradeTools) ~= "table" then
         return nil
     end
 
     local modules = ArkadiusTradeTools.Modules
-    local salesModule = modules and modules.Sales
-    if not salesModule or type(salesModule.GetAveragePricePerItem) ~= "function" then
+    if type(modules) ~= "table" then
         return nil
     end
 
-    local avgPrice = salesModule:GetAveragePricePerItem(itemLink, nil, nil)
+    local salesModule = modules and modules.Sales
+    if type(salesModule) ~= "table" or type(salesModule.GetAveragePricePerItem) ~= "function" then
+        return nil
+    end
+
+    local avgPrice = NormalizeNumber(CallOptionalAddon(salesModule.GetAveragePricePerItem, salesModule, itemLink, nil, nil))
     if avgPrice and avgPrice > 0 then
         return avgPrice
     end
@@ -128,19 +153,27 @@ local function FetchTTCPriceInfo(itemLink)
         return nil
     end
 
-    if TamrielTradeCentrePrice == nil or type(TamrielTradeCentrePrice.GetPriceInfo) ~= "function" then
+    if type(TamrielTradeCentrePrice) ~= "table" or type(TamrielTradeCentrePrice.GetPriceInfo) ~= "function" then
         return nil
     end
 
-    if TamrielTradeCentre_ItemInfo and type(TamrielTradeCentre_ItemInfo.New) == "function" then
-        local itemInfo = TamrielTradeCentre_ItemInfo:New(itemLink)
-        local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemInfo)
-        if priceInfo then
+    if type(TamrielTradeCentre_ItemInfo) == "table" and type(TamrielTradeCentre_ItemInfo.New) == "function" then
+        local itemInfo = CallOptionalAddon(TamrielTradeCentre_ItemInfo.New, TamrielTradeCentre_ItemInfo, itemLink)
+        if type(itemInfo) ~= "table" then
+            return nil
+        end
+
+        local priceInfo = CallOptionalAddon(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, itemInfo)
+        if type(priceInfo) == "table" then
             return priceInfo
         end
     end
 
-    return TamrielTradeCentrePrice:GetPriceInfo(itemLink)
+    local priceInfo = CallOptionalAddon(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, itemLink)
+    if type(priceInfo) == "table" then
+        return priceInfo
+    end
+    return nil
 end
 
 local SOURCE_DEFS = {
@@ -193,7 +226,7 @@ local SOURCE_DEFS = {
         addonKey = ADDON_KEYS.TAMRIEL_TRADE_CENTRE,
         isAvailable = function()
             return OptionalAddons.IsLoaded(ADDON_KEYS.TAMRIEL_TRADE_CENTRE)
-                and TamrielTradeCentrePrice ~= nil
+                and type(TamrielTradeCentrePrice) == "table"
                 and type(TamrielTradeCentrePrice.GetPriceInfo) == "function"
         end,
         fetch = function(itemLink, stackCount)
@@ -202,25 +235,27 @@ local SOURCE_DEFS = {
                 return EMPTY_MARKET_PRICE_INFO
             end
 
-            if priceInfo.Avg and priceInfo.Avg > 0 then
+            local avgPrice = NormalizeNumber(priceInfo.Avg)
+            local suggestedPrice = NormalizeNumber(priceInfo.SuggestedPrice)
+            if avgPrice and avgPrice > 0 then
                 return CreateMarketPriceInfo({
-                    price = priceInfo.Avg * stackCount,
-                    unitPrice = priceInfo.Avg,
+                    price = avgPrice * stackCount,
+                    unitPrice = avgPrice,
                     sourceKey = "ttc",
                     isAverage = true,
-                    averagePrice = priceInfo.Avg,
-                    suggestedPrice = priceInfo.SuggestedPrice,
+                    averagePrice = avgPrice,
+                    suggestedPrice = suggestedPrice,
                     hasData = true,
                 })
             end
 
-            if priceInfo.SuggestedPrice and priceInfo.SuggestedPrice > 0 then
+            if suggestedPrice and suggestedPrice > 0 then
                 return CreateMarketPriceInfo({
-                    price = priceInfo.SuggestedPrice * stackCount,
-                    unitPrice = priceInfo.SuggestedPrice,
+                    price = suggestedPrice * stackCount,
+                    unitPrice = suggestedPrice,
                     sourceKey = "ttc",
                     isAverage = false,
-                    suggestedPrice = priceInfo.SuggestedPrice,
+                    suggestedPrice = suggestedPrice,
                     hasData = true,
                 })
             end
@@ -237,7 +272,8 @@ function MarketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, s
     end
 
     local enabled = IsModuleToggleEnabled(settings, sourceDef.settingKey)
-    local available = sourceDef.isAvailable()
+    local availableOk, available = pcall(sourceDef.isAvailable)
+    available = availableOk and available == true or false
     if not itemLink or not enabled or not available then
         return CreateMarketPriceInfo({
             sourceKey = sourceKey,
@@ -246,7 +282,10 @@ function MarketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, s
         })
     end
 
-    local sourceInfo = sourceDef.fetch(itemLink, stackCount or 1)
+    local ok, sourceInfo = pcall(sourceDef.fetch, itemLink, stackCount or 1)
+    if not ok or type(sourceInfo) ~= "table" then
+        sourceInfo = EMPTY_MARKET_PRICE_INFO
+    end
     return CreateMarketPriceInfo({
         price = sourceInfo.price,
         unitPrice = sourceInfo.unitPrice,
