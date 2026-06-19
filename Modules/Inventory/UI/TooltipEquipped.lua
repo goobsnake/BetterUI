@@ -9,6 +9,13 @@ Purpose: Enhanced tooltip display for equipped items.
 if BETTERUI == nil then BETTERUI = {} end
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 
+-- Stock gamepad tooltip body font. Restored when tooltip enhancements are disabled
+-- so body labels do not keep the enlarged enhanced font size (PB-003).
+local STOCK_TOOLTIP_BODY_FONT = "ZoFontGamepad34"
+-- Stock gamepad tooltip price font used in the native-fallback price label.
+local STOCK_TOOLTIP_PRICE_FONT = "ZoFontGamepad27"
+local DEFAULT_FONT_SIZE = 24
+
 --[[
 Function: BETTERUI.Inventory.UpdateTooltipEquippedText
 Intercepts and customizes the 'Equipped' tooltip header.
@@ -45,7 +52,10 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
     -- Check Setting (consistent pattern: nil/missing → true, explicit false → false)
     local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
 
-    local fontSize = BETTERUI.GeneralInterface.Tooltips.GetTooltipFontSize()
+    local fontSize = DEFAULT_FONT_SIZE
+    if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.Tooltips and BETTERUI.GeneralInterface.Tooltips.GetTooltipFontSize then
+        fontSize = BETTERUI.GeneralInterface.Tooltips.GetTooltipFontSize()
+    end
     local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
     local scrollTooltip = container and container:GetNamedChild("Tip")
     local nativeBottomRail = container and (container.bottomRail or container:GetNamedChild("BottomRail"))
@@ -423,6 +433,17 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 bottomRail:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0, ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y or 0)
                 -- We don't hide it necessarily, let native logic handle
             end
+
+            -- Restore stock body font so toggling enhancements off reverts any
+            -- enlarged per-label fonts set by the enabled branch.
+            if tooltip then
+                for i = 1, tooltip:GetNumChildren() do
+                    local child = tooltip:GetChild(i)
+                    if child and child:GetType() == CT_LABEL then
+                        child:SetFont(STOCK_TOOLTIP_BODY_FONT)
+                    end
+                end
+            end
         end
 
         --[[
@@ -459,7 +480,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     priceLabel:SetMaxLineCount(0)
                     priceLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
                     priceLabel:SetColor(1, 1, 1, 1) -- White color for price text
-                    priceLabel:SetFont("ZoFontGamepad27")
+                    priceLabel:SetFont(STOCK_TOOLTIP_PRICE_FONT)
                     priceLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
                     container._betterUiNativePriceLabel = priceLabel
                 end
@@ -522,7 +543,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 -- Reduce font size of the slot text (StatusLabelValue) for cleaner appearance
                 local statusLabelValue = container and container:GetNamedChild("StatusLabelValue")
                 if statusLabelValue then
-                    statusLabelValue:SetFont("ZoFontGamepad34")
+                    statusLabelValue:SetFont(STOCK_TOOLTIP_BODY_FONT)
                 end
             else
                 -- Non-equipped item - CLEAR the status label so it doesn't persist

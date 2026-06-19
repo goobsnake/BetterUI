@@ -40,6 +40,9 @@ end
 -- invalidate on targeted slot updates instead of rebuilding everything.
 local ResearchableTraitCache = {}
 local DEFAULT_FONT_SIZE = 24
+-- Stock gamepad tooltip body font; restored when enhancements are toggled off
+-- so labels do not keep the enlarged enhanced font size (PB-003).
+local STOCK_TOOLTIP_BODY_FONT = "ZoFontGamepad34"
 
 
 local function BuildBagResearchCache(bagId)
@@ -488,6 +491,15 @@ local function ApplyTooltipLabelFonts(tooltipControl)
     end
 end
 
+local function RestoreTooltipLabelFonts(tooltipControl)
+    for i = 1, tooltipControl:GetNumChildren() do
+        local child = tooltipControl:GetChild(i)
+        if child and child:GetType() == CT_LABEL then
+            child:SetFont(STOCK_TOOLTIP_BODY_FONT)
+        end
+    end
+end
+
 --- Pattern checks memoized per label control: tooltip labels are pooled and
 --- re-scanned on every layout, so only re-run the gsub/find work when the
 --- label text actually changed since the last scan.
@@ -722,6 +734,7 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
             ScheduleTooltipEquippedRefresh(self, itemLink, capturedTooltipType)
             ScheduleDuplicateAddonCleanup(self)
         else
+            RestoreTooltipLabelFonts(self)
             ScheduleTooltipEquippedStockRelayout(self, capturedTooltipType)
         end
     end)
