@@ -74,7 +74,16 @@ function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
         -- Start coalesced change using NavigationState
         local token = NavState.StartCategoryChange(state, pendingCategoryIndex)
 
-        zo_callLater(function()
+        -- Cancel any previously-scheduled apply so rapid category cycling does not
+        -- leak timers and a superseded apply cannot fire against a stale instance.
+        if state._pendingApplyCallId then
+            zo_removeCallLater(state._pendingApplyCallId)
+            state._pendingApplyCallId = nil
+        end
+
+        state._pendingApplyCallId = zo_callLater(function()
+            state._pendingApplyCallId = nil
+
             -- Check if scene is still visible
             if options.sceneCheck and not options.sceneCheck() then
                 NavState.CancelCategoryChange(state, token)
@@ -90,5 +99,18 @@ function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
                 options.onApply(instance, pendingCategoryIndex)
             end
         end, delay)
+    end
+end
+
+--- Cancels any pending coalesced category-change timer for an instance.
+--- Call from scene teardown/cleanup so a deferred onApply cannot run against a
+--- torn-down instance after the scene has hidden.
+---@param instance table
+---@return nil
+function BETTERUI.CIM.HeaderNavigation.CancelPending(instance)
+    local state = instance and instance._navState
+    if state and state._pendingApplyCallId then
+        zo_removeCallLater(state._pendingApplyCallId)
+        state._pendingApplyCallId = nil
     end
 end

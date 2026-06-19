@@ -132,17 +132,16 @@ end
 ---@param moduleName ModuleName Module name key
 ---@param key BetterUIModuleSettingKey Setting key within the module
 ---@param default BetterUIModuleSettingValue|nil Fallback value if the setting is nil
----@return BetterUIModuleSettingValue|nil value The setting value, or default
+---@return BetterUIModuleSettingValue|nil value A detached setting value, or default
 function BETTERUI.GetSetting(moduleName, key, default)
-    -- Hot path: read the live table directly instead of GetModuleSettings,
-    -- which deep-clones the whole module table per call. Values (including
-    -- table-typed ones) are returned as-is, like a plain accessor.
+    -- Read only the requested key and clone table-typed values so callers do
+    -- not mutate persisted settings without routing through SetSetting.
     local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
     local settings = modules and modules[moduleName]
     if settings and settings[key] ~= nil then
-        return settings[key]
+        return CloneSettingsValue(settings[key])
     end
-    return ResolveSettingDefault(moduleName, key, default)
+    return CloneSettingsValue(ResolveSettingDefault(moduleName, key, default))
 end
 
 ---@overload fun(moduleName: "Inventory", key: BetterUIInventorySettingKey, value: BetterUIInventorySettingValue): boolean

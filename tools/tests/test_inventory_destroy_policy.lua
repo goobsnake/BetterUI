@@ -105,10 +105,13 @@ do
 end
 
 -- =====================================================================
--- Contract: real Policy.CanDestroyItem with a nil slotType still enforces
--- IsItemPlayerLocked (deny when locked) and never errors. The engine destroy
--- probe is skipped when slotType is nil (defense-in-depth only), so the lock +
--- existence checks remain the gate. Loads the REAL ProtectionPolicy so this
+-- Contract (PB-011 hardened): real Policy.CanDestroyItem fails CLOSED on a
+-- missing slotType. Destroy is irreversible item loss and the engine probe
+-- (ZO_InventorySlot_CanDestroyItem) is a required safety gate that only runs
+-- with a slotType, so a nil slotType is DENIED (NO_SLOT_TYPE) rather than
+-- silently authorized under weaker protection. The lock gate still takes
+-- precedence (locked items report PLAYER_LOCKED), and a valid slotType lets the
+-- engine probe run and gate the destroy. Loads the REAL ProtectionPolicy so this
 -- guards the shipped policy, not the DestroyAction seam mock used above.
 -- =====================================================================
 do
@@ -132,10 +135,12 @@ do
 
     -- If this is ever called with a nil slotType the probe guard is broken;
     -- record the call so we can assert it is NOT exercised on the nil path.
+    -- probeResult lets slotType-present cases drive the engine verdict.
     local destroyProbeCalls = 0
+    local probeResult = true
     function ZO_InventorySlot_CanDestroyItem()
         destroyProbeCalls = destroyProbeCalls + 1
-        return true
+        return probeResult
     end
 
     -- Debug log is gated; provide a recorder so the nil-slotType note path is
@@ -157,23 +162,51 @@ do
     dofile("Modules/CIM/Actions/ProtectionPolicy.lua")
     local Policy = BETTERUI.CIM.ProtectionPolicy
 
-    -- Case 1: nil slotType, item NOT locked -> allowed, no error, probe skipped.
+    -- Case 1 (PB-011): nil slotType, item NOT locked -> DENIED fail-closed with
+    -- NO_SLOT_TYPE, no error, and the engine probe is never reached (cannot run
+    -- without a slotType). A missing slotType must never authorize a destroy.
     destroyProbeCalls = 0
+    probeResult = true
     lockedState = {}
     local ok1, allowed1, reason1 = pcall(Policy.CanDestroyItem, 1, 2, nil)
     assert_equal(ok1, true, "CanDestroyItem(bag, slot, nil) does not error when unlocked")
-    assert_equal(allowed1, true, "nil slotType + unlocked item is still destroyable")
-    assert_equal(reason1, nil, "nil slotType allow path returns no deny reason")
-    assert_equal(destroyProbeCalls, 0, "engine destroy probe is skipped when slotType is nil")
+    assert_equal(allowed1, false, "nil slotType + unlocked item is DENIED (cannot authorize destroy without slotType)")
+    assert_equal(reason1, Policy.DENY.NO_SLOT_TYPE, "nil slotType denial surfaces the distinct NO_SLOT_TYPE reason")
+    assert_equal(destroyProbeCalls, 0, "engine destroy probe is not reached when slotType is nil")
 
-    -- Case 2: nil slotType, item LOCKED -> denied via PLAYER_LOCKED, no error.
+    -- Case 2: nil slotType, item LOCKED -> lock gate takes precedence and denies
+    -- via PLAYER_LOCKED (lock check runs before the slotType gate), no error.
     destroyProbeCalls = 0
+    probeResult = true
     lockedState = { [slotPolicyKey(1, 2)] = true }
     local ok2, allowed2, reason2 = pcall(Policy.CanDestroyItem, 1, 2, nil)
     assert_equal(ok2, true, "CanDestroyItem(bag, slot, nil) does not error when locked")
     assert_equal(allowed2, false, "nil slotType still DENIES a player-locked item")
-    assert_equal(reason2, Policy.DENY.PLAYER_LOCKED, "lock gate still applies with nil slotType")
+    assert_equal(reason2, Policy.DENY.PLAYER_LOCKED, "lock gate still applies (and precedes slotType gate) with nil slotType")
     assert_equal(destroyProbeCalls, 0, "engine destroy probe stays skipped on the locked nil-slotType path")
+
+    -- Case 3: valid slotType, unlocked, engine probe approves -> allowed, and the
+    -- engine probe IS exercised. Confirms the hardened gate does not block
+    -- legitimate destroys that pass a slotType.
+    destroyProbeCalls = 0
+    probeResult = true
+    lockedState = {}
+    local ok3, allowed3, reason3 = pcall(Policy.CanDestroyItem, 1, 2, 7)
+    assert_equal(ok3, true, "CanDestroyItem(bag, slot, slotType) does not error when unlocked")
+    assert_equal(allowed3, true, "valid slotType + unlocked + engine approval is destroyable")
+    assert_equal(reason3, nil, "approved slotType destroy returns no deny reason")
+    assert_equal(destroyProbeCalls, 1, "engine destroy probe runs when a slotType is supplied")
+
+    -- Case 4: valid slotType, unlocked, engine probe REJECTS -> denied via the
+    -- engine verdict. Confirms the probe still gates when slotType is present.
+    destroyProbeCalls = 0
+    probeResult = false
+    lockedState = {}
+    local ok4, allowed4, reason4 = pcall(Policy.CanDestroyItem, 1, 2, 7)
+    assert_equal(ok4, true, "CanDestroyItem(bag, slot, slotType) does not error on engine rejection")
+    assert_equal(allowed4, false, "valid slotType but engine rejection DENIES the destroy")
+    assert_equal(reason4, Policy.DENY.NO_ITEM, "engine destroy-probe rejection surfaces NO_ITEM")
+    assert_equal(destroyProbeCalls, 1, "engine destroy probe runs and gates when slotType is supplied")
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

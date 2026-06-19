@@ -343,9 +343,16 @@ function BETTERUI.Interface.Window:InitializeScene(scene)
     scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
     scene:AddFragment(self.footerFragment)
 
-    -- Use SceneLifecycleManager for unified lifecycle handling
+    -- Use SceneLifecycleManager for unified lifecycle handling.
+    -- coreKeybinds is created later in InitializeKeybind() (subclasses commonly call
+    -- InitializeScene before InitializeKeybind), so capturing { self.coreKeybinds }
+    -- here would bind {nil} and never add the group. Resolve at show/hide time instead.
     BETTERUI.CIM.SceneLifecycle.Register(self, {
-        keybinds = { self.coreKeybinds },
+        keybindsResolver = function()
+            local groups = {}
+            if self.coreKeybinds then groups[#groups + 1] = self.coreKeybinds end
+            return groups
+        end,
         taskManager = self.taskManager or BETTERUI.CIM.Tasks,
         onShowing = function(screen, wasPushed)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)

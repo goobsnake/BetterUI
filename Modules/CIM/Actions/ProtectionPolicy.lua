@@ -16,6 +16,7 @@ local Policy = BETTERUI.CIM.ProtectionPolicy
 
 Policy.DENY = {
     NO_ITEM         = "no_item",
+    NO_SLOT_TYPE    = "no_slot_type",
     PLAYER_LOCKED   = "player_locked",
     STOLEN          = "stolen",
     BOUND           = "bound",
@@ -133,14 +134,24 @@ function Policy.CanDestroyItem(bagId, slotIndex, slotType)
     if IsItemPlayerLocked(bagId, slotIndex) then
         return false, Policy.DENY.PLAYER_LOCKED
     end
-    -- Defense-in-depth: the engine destroy-eligibility probe
-    -- (ZO_InventorySlot_CanDestroyItem) only runs when the caller supplies a
-    -- slotType. Callers MUST pass slotType for that extra gate to apply; when it
-    -- is nil the probe is skipped and only the lock + existence checks above act
-    -- as the gate. This is intentionally NOT a deny path (skipping the probe must
-    -- not block legitimate destroys), but a nil slotType means weaker protection,
-    -- so surface it in a debug-gated note to keep the gap visible during dev.
-    if ZO_InventorySlot_CanDestroyItem and slotType then
+    -- Fail-closed slotType gate (PB-011). Destroy is irreversible item loss, so
+    -- the engine destroy-eligibility probe (ZO_InventorySlot_CanDestroyItem) is a
+    -- required safety gate, and that probe only runs with a slotType. A missing
+    -- slotType means we cannot run the probe, so we DENY rather than authorize a
+    -- destroy under weaker protection. Callers MUST pass slotType (all real
+    -- destroy paths derive it from the inventory slot / item dataSource); a nil
+    -- here signals degraded slot data, not a legitimate destroy.
+    if slotType == nil then
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(
+                BETTERUI.Log.CATEGORY.ACTION,
+                string.format(
+                    "CanDestroyItem: nil slotType for bag %s slot %s; destroy DENIED (callers must pass slotType)",
+                    tostring(bagId), tostring(slotIndex)))
+        end
+        return false, Policy.DENY.NO_SLOT_TYPE
+    end
+    if ZO_InventorySlot_CanDestroyItem then
         local destroyProbe = {
             slotType = slotType,
             bagId = bagId,
@@ -149,12 +160,6 @@ function Policy.CanDestroyItem(bagId, slotIndex, slotType)
         if not ZO_InventorySlot_CanDestroyItem(destroyProbe) then
             return false, Policy.DENY.NO_ITEM
         end
-    elseif slotType == nil and BETTERUI.Log then
-        BETTERUI.Log.Warn(
-            BETTERUI.Log.CATEGORY.ACTION,
-            string.format(
-                "CanDestroyItem: nil slotType for bag %s slot %s; engine destroy probe skipped (callers should pass slotType)",
-                tostring(bagId), tostring(slotIndex)))
     end
     return true
 end

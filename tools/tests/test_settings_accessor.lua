@@ -179,6 +179,26 @@ do
     assert_equal(77, BETTERUI.GetSetting("Mod", "missingViaMetadata"), "generic getter reads metadata-backed default")
 end
 
+do
+    reset_settings()
+    BETTERUI.Settings.Modules["Mod"] = { options = { enabled = true, nested = { size = 4 } } }
+    local value = BETTERUI.GetSetting("Mod", "options")
+    value.enabled = false
+    value.nested.size = 9
+    assert_equal(true, BETTERUI.Settings.Modules["Mod"].options.enabled, "table setting getter returns detached top-level table")
+    assert_equal(4, BETTERUI.Settings.Modules["Mod"].options.nested.size, "table setting getter returns detached nested table")
+end
+
+do
+    reset_settings()
+    local defaultOptions = { enabled = true, nested = { size = 4 } }
+    local value = BETTERUI.GetSetting("Mod", "missingOptions", defaultOptions)
+    value.enabled = false
+    value.nested.size = 9
+    assert_equal(true, defaultOptions.enabled, "table default getter returns detached top-level table")
+    assert_equal(4, defaultOptions.nested.size, "table default getter returns detached nested table")
+end
+
 -- ============================================================================
 -- SetSetting
 -- ============================================================================

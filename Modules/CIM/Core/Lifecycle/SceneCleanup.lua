@@ -50,6 +50,9 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     end
     if screen.headerSortKeybindDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(screen.headerSortKeybindDescriptor)
+        -- Symmetric with _activeHeaderSortKeybindDescriptor above: clear the reference
+        -- after removal so a stale descriptor cannot dangle past scene exit.
+        screen.headerSortKeybindDescriptor = nil
     end
 
     -- Reset the header-sort INTEGRATION state. We intentionally avoid the integration's
@@ -104,6 +107,21 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     -- 5. Clear update suppression flags
     screen._suppressListUpdates = false
     screen._suppressListUpdatesToken = nil
+
+    -- 6. Cancel any pending coalesced list refresh so an in-flight refresh +
+    --    RestorePosition cannot fire after teardown (against a hidden/torn-down scene).
+    --    Covers managers held on the screen via the conventional field names.
+    local refreshManager = screen.refreshManager
+        or screen.listRefreshManager
+        or screen.RefreshManager
+    if refreshManager and refreshManager.Cancel then
+        refreshManager:Cancel()
+    end
+
+    -- 7. Cancel any pending coalesced header-navigation category-change timer.
+    if BETTERUI.CIM.HeaderNavigation and BETTERUI.CIM.HeaderNavigation.CancelPending then
+        BETTERUI.CIM.HeaderNavigation.CancelPending(screen)
+    end
 end
 
 --- Deactivates all list controls to release DIRECTIONAL_INPUT.

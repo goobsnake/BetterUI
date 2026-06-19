@@ -190,24 +190,26 @@ function BETTERUI.CIM.SortManager.SortItems(items, sortType, sortOrder)
     local nameKey = {}
     for i = 1, #items do
         local item = items[i]
-        local lowerName = (item.name or ""):lower()
-        nameKey[item] = lowerName
+        if item then
+            local lowerName = (item.name or ""):lower()
+            nameKey[item] = lowerName
 
-        local value
-        if sortType == SORT_TYPES.NAME then
-            value = lowerName
-        elseif sortType == SORT_TYPES.QUALITY then
-            value = GetItemQualityValue(item)
-        elseif sortType == SORT_TYPES.STACK_COUNT then
-            value = item.stackCount or 1
-        elseif sortType == SORT_TYPES.VALUE then
-            value = GetItemValue(item)
-        elseif sortType == SORT_TYPES.LEVEL then
-            value = GetItemLevel(item)
-        else -- CATEGORY (default)
-            value = item.bestItemCategoryName or ""
+            local value
+            if sortType == SORT_TYPES.NAME then
+                value = lowerName
+            elseif sortType == SORT_TYPES.QUALITY then
+                value = GetItemQualityValue(item)
+            elseif sortType == SORT_TYPES.STACK_COUNT then
+                value = item.stackCount or 1
+            elseif sortType == SORT_TYPES.VALUE then
+                value = GetItemValue(item)
+            elseif sortType == SORT_TYPES.LEVEL then
+                value = GetItemLevel(item)
+            else -- CATEGORY (default)
+                value = item.bestItemCategoryName or ""
+            end
+            primaryKey[item] = value
         end
-        primaryKey[item] = value
     end
 
     table.sort(items, function(a, b)

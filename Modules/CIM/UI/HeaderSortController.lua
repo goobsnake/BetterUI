@@ -112,17 +112,16 @@ function BETTERUI.CIM.UI.HeaderSortController:ClearSort()
         return false
     end
 
-    local currentDirection = self.sortDirections[self.currentColumnIndex]
-    if currentDirection ~= SORT_DIRECTION.NONE then
-        self.sortDirections[self.currentColumnIndex] = SORT_DIRECTION.NONE
-        local clearedColumn = self.columns[self.currentColumnIndex]
+    local activeColumnIndex = self.activeSortColumnIndex
+    local currentDirection = activeColumnIndex and self.sortDirections[activeColumnIndex]
+    if currentDirection and currentDirection ~= SORT_DIRECTION.NONE then
+        self.sortDirections[activeColumnIndex] = SORT_DIRECTION.NONE
+        local clearedColumn = self.columns[activeColumnIndex]
 
-        if self.activeSortColumnIndex == self.currentColumnIndex then
-            self.activeSortColumnIndex = nil
-        end
+        self.activeSortColumnIndex = nil
 
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "clearSort", { columnIndex = self.currentColumnIndex, key = clearedColumn and clearedColumn.key })
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "clearSort", { columnIndex = activeColumnIndex, key = clearedColumn and clearedColumn.key })
         end
 
         self:UpdateVisuals()
@@ -204,6 +203,11 @@ function BETTERUI.CIM.UI.HeaderSortController:GetActiveSortColumn()
         return nil, SORT_DIRECTION.NONE
     end
     return self.columns[self.activeSortColumnIndex], self.sortDirections[self.activeSortColumnIndex]
+end
+
+function BETTERUI.CIM.UI.HeaderSortController:HasActiveSort()
+    local column, direction = self:GetActiveSortColumn()
+    return column ~= nil and direction ~= nil and direction ~= SORT_DIRECTION.NONE
 end
 
 function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()

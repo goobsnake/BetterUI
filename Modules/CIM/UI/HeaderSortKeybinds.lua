@@ -97,8 +97,7 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
                 -- Resolve the deferred SORT_DIRECTION reference before indexing it;
                 -- this callback can fire before the controller finishes loading.
                 if not EnsureControllerReady() then return false end
-                local currentDirection = controller.sortDirections[controller.currentColumnIndex]
-                return currentDirection and currentDirection ~= SORT_DIRECTION.NONE
+                return controller:HasActiveSort()
             end,
             callback = function()
                 if controller:ClearSort() then
