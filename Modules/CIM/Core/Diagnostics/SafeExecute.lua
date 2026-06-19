@@ -12,7 +12,14 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 ---@return any result fn's return value on success, or error message on failure
 function BETTERUI.CIM.SafeExecute(context, fn, ...)
     if not fn then
-        BETTERUI.Debug(string.format("[Error] %s: No function provided", context))
+        -- Surface through the unified logger so the "debug" preset captures missing-
+        -- function faults the same as caught pcall errors; fall back to the legacy
+        -- BETTERUI.Debug seam only when the logger is unavailable (early load / tests).
+        if BETTERUI.Log then
+            BETTERUI.Log.Error("SAFE", string.format("%s: No function provided", context))
+        else
+            BETTERUI.Debug(string.format("[Error] %s: No function provided", context))
+        end
         return false, "No function provided"
     end
 

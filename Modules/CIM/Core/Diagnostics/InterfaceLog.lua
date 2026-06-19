@@ -16,13 +16,19 @@ Mechanism (proof of concept):
   Real Lua errors already land in Interface.log for free -- this module only adds the
   BetterUI breadcrumb stream on top of that.
 
+  Because each persisted line costs one deferred error (+ an engine traceback block),
+  high-volume logging is rate-limited by an optional per-frame/second BUDGET so a
+  burst on a hot path can't schedule thousands of errors and hitch a frame; overflow
+  is dropped and summarized once as `dropped=N reason=rate_limit`. The budget is
+  unlimited by default and is set by the "verbose" preset (see Log.ApplyPreset).
+
   On disk the engine therefore wraps each emitted line as:
     <ISO-8601 ts±tz> |cff0000Lua Error: <our [BUI] line>
   followed by a short "stack traceback:" block. Consumers filter on the [BUI] tag
   (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
   "Lua Error:" entries are real game errors whose traceback matters.
 
-Usage (slash command): /builog on | off | test | popups on|off | status
+Usage (slash command): /builog on | off | preset off|debug|verbose | test | popups on|off | status
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -36,6 +42,19 @@ local enabled = false          -- session breadcrumb logging on/off
 local suppressPopups = true    -- hide the error frame for our log-errors
 local savedSuppressState = nil -- prior ZO_ERROR_FRAME.suppressErrorDialog, for restore
 
+-- Backpressure budget for the file sink. 0 = unlimited (default; preserves legacy
+-- behavior). The "verbose" preset sets a per-frame/second cap; overflow is dropped
+-- and a single coalesced "dropped=N" summary is emitted. (maxPending is reserved for
+-- a future batch/queue mode; the sink currently schedules one error per line.)
+local budget = { maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 }
+local stats = { scheduled = 0, dropped = 0 }
+local frameMarker = nil
+local emittedThisFrame = 0
+local secondWindowStart = nil
+local emittedThisSecond = 0
+local pendingDrops = 0
+local dropSummaryScheduled = false
+
 -- Engine globals are absent in the unit-test harness; resolve them defensively.
 local function G(name)
     return rawget(_G, name)
@@ -44,6 +63,14 @@ end
 local function Timestamp()
     local clock = G("GetGameTimeMilliseconds")
     return type(clock) == "function" and clock() or 0
+end
+
+-- A value that stays constant within one rendered frame, so we can count emissions
+-- per frame. Falls back to the game clock when the frame clock is unavailable.
+local function FrameStamp()
+    local frameClock = G("GetFrameTimeMilliseconds")
+    if type(frameClock) == "function" then return frameClock() end
+    return Timestamp()
 end
 
 -- Collapse newlines/tabs so each breadcrumb stays a single greppable record.
@@ -86,6 +113,45 @@ function InterfaceLog.IsAvailable()
     return type(G("zo_callLater")) == "function"
 end
 
+-- Returns true while the current frame/second window still has budget headroom,
+-- accounting the emission when it does. Unlimited (both caps 0) always allows.
+local function budgetAllows()
+    if budget.maxPerFrame <= 0 and budget.maxPerSecond <= 0 then return true end
+
+    if budget.maxPerFrame > 0 then
+        local fid = FrameStamp()
+        if fid ~= frameMarker then frameMarker = fid; emittedThisFrame = 0 end
+        if emittedThisFrame >= budget.maxPerFrame then return false end
+    end
+
+    if budget.maxPerSecond > 0 then
+        local now = Timestamp()
+        if secondWindowStart == nil or (now - secondWindowStart) >= 1000 then
+            secondWindowStart = now; emittedThisSecond = 0
+        end
+        if emittedThisSecond >= budget.maxPerSecond then return false end
+    end
+
+    emittedThisFrame = emittedThisFrame + 1
+    emittedThisSecond = emittedThisSecond + 1
+    return true
+end
+
+-- Coalesce dropped-record reporting into at most one summary error per ~250ms, so a
+-- rate-limited burst does not itself spam the log.
+local function ScheduleDropSummary(deferer)
+    if dropSummaryScheduled then return end
+    dropSummaryScheduled = true
+    deferer(function()
+        dropSummaryScheduled = false
+        local n = pendingDrops
+        pendingDrops = 0
+        if n > 0 then
+            error(string.format("%s %d WARN LOG | dropped=%d reason=rate_limit", TAG, Timestamp(), n), 0)
+        end
+    end, 250)
+end
+
 --- Writes one tagged breadcrumb to Interface.log via a deferred, suppressed error.
 --- No-ops when disabled or outside the game. Returns true if a write was scheduled.
 ---@param message any
@@ -96,6 +162,13 @@ end
 local function RawEmit(line)
     local deferer = G("zo_callLater")
     if type(deferer) ~= "function" then return false end
+    if not budgetAllows() then
+        stats.dropped = stats.dropped + 1
+        pendingDrops = pendingDrops + 1
+        ScheduleDropSummary(deferer)
+        return false
+    end
+    stats.scheduled = stats.scheduled + 1
     deferer(function() error(line, 0) end, 0)
     return true
 end
@@ -112,6 +185,31 @@ end
 function InterfaceLog.WriteRaw(line)
     if not enabled then return false end
     return RawEmit(tostring(line))
+end
+
+--- Sets the file-sink rate-limit budget. Pass any subset of:
+---   { maxPerFrame = n, maxPerSecond = n, maxPending = n }   (0 disables that cap)
+--- Resets the current windows so the new budget starts clean.
+---@param opts table
+function InterfaceLog.SetBudget(opts)
+    if type(opts) ~= "table" then return end
+    if type(opts.maxPerFrame) == "number" then budget.maxPerFrame = opts.maxPerFrame end
+    if type(opts.maxPerSecond) == "number" then budget.maxPerSecond = opts.maxPerSecond end
+    if type(opts.maxPending) == "number" then budget.maxPending = opts.maxPending end
+    frameMarker = nil; emittedThisFrame = 0
+    secondWindowStart = nil; emittedThisSecond = 0
+end
+
+--- Returns scheduled/dropped counters and the active budget for diagnostics.
+---@return table
+function InterfaceLog.GetStats()
+    return {
+        scheduled = stats.scheduled,
+        dropped = stats.dropped,
+        maxPerFrame = budget.maxPerFrame,
+        maxPerSecond = budget.maxPerSecond,
+        maxPending = budget.maxPending,
+    }
 end
 
 --- Controls whether our log-errors suppress the on-screen error frame.
@@ -156,8 +254,17 @@ local function PrintStatus()
         suppressPopups and "suppressed" or "visible",
         InterfaceLog.IsAvailable() and "ready" or "UNAVAILABLE"))
     if L then
+        Out(string.format("Preset: %s | min level: %s | payloads: %s",
+            L.GetPreset and tostring(L.GetPreset()):upper() or "?",
+            L.GetMinLevel and (({ "TRACE", "DEBUG", "INFO", "WARN", "ERROR" })[L.GetMinLevel()] or "?") or "?",
+            (L.GetPayloadCapture and L.GetPayloadCapture()) and "on" or "off"))
         Out(string.format("Logger chat surface (ERROR) = %s", L.GetSink(L.LEVEL.ERROR, "chat") and "on" or "off"))
     end
+    local s = InterfaceLog.GetStats()
+    Out(string.format("Sink budget: frame=%s sec=%s | scheduled=%d dropped=%d",
+        s.maxPerFrame > 0 and tostring(s.maxPerFrame) or "inf",
+        s.maxPerSecond > 0 and tostring(s.maxPerSecond) or "inf",
+        s.scheduled, s.dropped))
     Out("Real Lua errors always log to Interface.log; [BUI] lines are BetterUI's own stream.")
 end
 
@@ -167,11 +274,25 @@ local function HandleCommand(args)
     if args == "on" then
         InterfaceLog.SetEnabled(true)
         InterfaceLog.Write("logging started -- breadcrumbs are tagged [BUI]; grep '[BUI]' for the clean stream. On disk each is engine-wrapped: <ISO-8601 ts> |cff0000Lua Error: [BUI] <gameMs> <LEVEL> <CATEGORY> | <event> <key=value ...> then a 'stack traceback:' block (ignore it for [BUI] lines). Levels TRACE<DEBUG<INFO<WARN<ERROR. The ISO timestamp is authoritative wall-clock. 'Lua Error:' entries WITHOUT [BUI] are real game errors -- keep their traceback.")
-        Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups).")
+        Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups). Tip: /builog preset verbose for budgeted full capture.")
     elseif args == "off" then
         InterfaceLog.Write("InterfaceLog disabled via /builog off")
         InterfaceLog.SetEnabled(false)
         Out("InterfaceLog disabled; error popups restored.")
+    elseif args:match("^preset%s+%a+$") then
+        local name = args:match("^preset%s+(%a+)$")
+        local L = BETTERUI.Log
+        if L and L.ApplyPreset then
+            local applied, presetName = L.ApplyPreset(name)
+            if applied then
+                Out("Log preset = |c00ff00" .. tostring(presetName):upper() .. "|r.")
+                PrintStatus()
+            else
+                Out("Unknown preset. Use off|debug|verbose.")
+            end
+        else
+            Out("Logger not loaded yet.")
+        end
     elseif args == "test" then
         local wasEnabled = enabled
         if not wasEnabled then InterfaceLog.SetEnabled(true) end
@@ -200,7 +321,7 @@ local function HandleCommand(args)
         else Out("Unknown level. Use trace|debug|info|warn|error.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off|test | chat on|off | popups on|off | level <lvl> | status")
+        Out("Usage: /builog on|off | preset off|debug|verbose | chat on|off | popups on|off | level <lvl> | test | status")
     end
 end
 

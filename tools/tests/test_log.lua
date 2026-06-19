@@ -19,6 +19,9 @@ BETTERUI = { CIM = {} }
 BETTERUI.CIM.InterfaceLog = {
     IsEnabled = function() return ilEnabled end,
     WriteRaw = function(line) fileLines[#fileLines + 1] = line; return true end,
+    -- Presets drive InterfaceLog enable + budget; stub both so ApplyPreset is exercised.
+    SetEnabled = function(value) ilEnabled = value and true or false end,
+    SetBudget = function() end,
 }
 
 function d(msg) chatLines[#chatLines + 1] = msg end
@@ -106,6 +109,61 @@ Log.Error(Log.CATEGORY.GENERAL, "silent")
 check(#fileLines == 0 and #chatLines == 0, "Logger is inert when logging is disabled")
 ilEnabled = true
 check(Log.IsActive() == true, "IsActive() is true when logging enabled")
+
+-- ============================================================================
+-- PRESETS / EnabledFor / LAZY / PAYLOAD CAPTURE (log-level enhancement)
+-- ============================================================================
+ilEnabled = true
+Log.SetMinLevel(Log.LEVEL.TRACE)
+
+-- EnabledFor mirrors the real emit() gate (active + level + category + sink).
+check(Log.EnabledFor(Log.LEVEL.TRACE, Log.CATEGORY.GENERAL) == true, "EnabledFor true when active/at-level/sink-on")
+ilEnabled = false
+check(Log.EnabledFor(Log.LEVEL.ERROR, Log.CATEGORY.GENERAL) == false, "EnabledFor false when logging inactive")
+ilEnabled = true
+
+-- debug preset: WARN/ERROR file-only, min WARN, payloads off.
+local appliedOk, presetName = Log.ApplyPreset("debug")
+check(appliedOk == true and presetName == "debug", "ApplyPreset('debug') applies and reports its name")
+check(Log.GetPreset() == "debug", "GetPreset reports debug")
+check(Log.GetMinLevel() == Log.LEVEL.WARN, "debug preset floors min level at WARN")
+check(Log.GetPayloadCapture() == false, "debug preset disables payload capture")
+check(Log.GetSink(Log.LEVEL.DEBUG, "file") == false, "debug preset turns off the DEBUG file sink")
+check(Log.GetSink(Log.LEVEL.WARN, "file") == true, "debug preset keeps the WARN file sink")
+fileLines = {}
+Log.Debug(Log.CATEGORY.GENERAL, "below floor")
+check(#fileLines == 0, "debug preset drops DEBUG records")
+Log.Warn(Log.CATEGORY.GENERAL, "real warn", { code = 7 })
+check(#fileLines == 1, "debug preset captures WARN")
+check(fileLines[1]:find("code=7", 1, true) == nil, "debug preset omits the payload (capture off)")
+
+-- verbose preset: everything + payloads.
+Log.ApplyPreset("verbose")
+check(Log.GetPreset() == "verbose", "GetPreset reports verbose")
+check(Log.GetMinLevel() == Log.LEVEL.TRACE, "verbose preset floors min level at TRACE")
+check(Log.GetPayloadCapture() == true, "verbose preset enables payload capture")
+fileLines = {}
+Log.Trace(Log.CATEGORY.NAV, "trace", { step = "a" })
+check(#fileLines == 1 and fileLines[1]:find("step=", 1, true) ~= nil, "verbose preset captures TRACE with payload")
+
+-- A manual low-level override flips the preset label to custom.
+Log.SetMinLevel(Log.LEVEL.INFO)
+check(Log.GetPreset() == "custom", "a manual SetMinLevel marks the preset custom")
+
+-- Lazy payload: the builder runs only when the record will actually be emitted.
+Log.ApplyPreset("verbose")
+fileLines = {}
+local lazyCalls = 0
+Log.TraceLazy(Log.CATEGORY.NAV, "lazy", function() lazyCalls = lazyCalls + 1; return { n = 1 } end)
+check(lazyCalls == 1 and #fileLines == 1, "lazy data builder runs and emits when active")
+ilEnabled = false
+Log.TraceLazy(Log.CATEGORY.NAV, "lazy off", function() lazyCalls = lazyCalls + 1; return { n = 2 } end)
+check(lazyCalls == 1, "lazy data builder does NOT run when logging is inactive")
+ilEnabled = true
+
+-- Unknown preset is rejected without changing state.
+local badOk = Log.ApplyPreset("nope")
+check(badOk == false, "ApplyPreset rejects an unknown preset name")
 
 -- ============================================================================
 -- SUMMARY

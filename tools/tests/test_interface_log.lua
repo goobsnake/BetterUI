@@ -89,6 +89,30 @@ check(IL.IsEnabled() == false, "Disabled after SetEnabled(false)")
 check(ZO_ERROR_FRAME.suppressErrorDialog == false, "Prior suppression state restored on disable")
 
 -- ============================================================================
+-- BUDGET (file-sink backpressure / rate limit)
+-- ============================================================================
+
+-- Default budget is unlimited.
+IL.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 })
+check(IL.GetStats().maxPerFrame == 0, "default file-sink budget is unlimited")
+
+-- Per-frame cap: GetGameTimeMilliseconds is constant in this harness, so every write
+-- shares one frame window and the third past a cap of 2 is dropped + counted.
+IL.SetEnabled(true)
+IL.SetBudget({ maxPerFrame = 2, maxPerSecond = 0, maxPending = 0 })
+local beforeStats = IL.GetStats()
+IL.WriteRaw("budget-1")
+IL.WriteRaw("budget-2")
+IL.WriteRaw("budget-3")
+local afterStats = IL.GetStats()
+check(afterStats.scheduled - beforeStats.scheduled == 2, "per-frame budget schedules up to the cap")
+check(afterStats.dropped - beforeStats.dropped == 1, "per-frame budget drops the overflow record")
+
+-- Restore unlimited + disabled so nothing leaks past these tests.
+IL.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 })
+IL.SetEnabled(false)
+
+-- ============================================================================
 -- SUMMARY
 -- ============================================================================
 

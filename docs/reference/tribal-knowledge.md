@@ -594,9 +594,20 @@ Interface.log. Verified: suppression hides the dialog but the line still logs.
   default). Inert unless logging is enabled, so normal players pay nothing.
 - **Crash-safety convention**: every call site is nil-guarded `if BETTERUI.Log then ... end`
   (isolated unit tests don't load Log.lua). For HOT paths also gate on
-  `BETTERUI.Log.IsActive()` before building the payload.
-- **Surface toggles** (`/builog`): `on|off` (enable/disable), `test`, `chat on|off`
-  (mirror INFO/WARN/ERROR to chat), `popups on|off` (native error frame), `level <lvl>`.
+  `BETTERUI.Log.IsActive()` — or `Log.EnabledFor(level, category)` (the exact sink-aware
+  pre-check) / the lazy `Log.WriteLazy|DebugLazy|TraceLazy(.., dataFn)` builders — so no
+  payload is constructed when the record would be dropped.
+- **Presets** (`Log.ApplyPreset`, or `/builog preset`): `off` (stop file logging + restore
+  popups), `debug` (WARN/ERROR file capture only, payloads off — surfaces real failures
+  incl. `SafeExecute` pcall/nil-function faults), `verbose` (TRACE+, all categories,
+  payloads on). `verbose` arms a per-frame/second file-sink budget
+  (`InterfaceLog.SetBudget`/`GetStats`) that drops + summarizes overflow (`dropped=N
+  reason=rate_limit`) so a hot-path burst can't hitch a frame. `Log.SetPayloadCapture`
+  toggles payload rendering; `Log.GetPreset()` reads back `custom` once a low-level setter
+  diverges from a preset.
+- **Surface toggles** (`/builog`): `on|off` (enable/disable), `preset off|debug|verbose`,
+  `test`, `chat on|off` (mirror INFO/WARN/ERROR to chat), `popups on|off` (native error
+  frame), `level <lvl>`, `status`.
 - `BETTERUI.Debug` / `BETTERUI.DebugError` / `BETTERUI.CIM.Debug.Log` are back-compat
   wrappers that route through `BETTERUI.Log`. `SafeExecute` caught errors route through
   `Log.Error("SAFE", ...)` — silent for normal players, in the file when logging is on.
