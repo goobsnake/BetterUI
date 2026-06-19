@@ -102,9 +102,9 @@ Examples:
 
 ## Testing
 
-ESO addons cannot use automated test frameworks. Before committing:
+ESO addons cannot use automated test frameworks for in-game behavior, but the repo ships a standalone Lua test suite + static validators. Before committing:
 
-1. **Syntax Check**: `luac -p <file>`
+1. **Standalone tests + static validation**: run `lua tools/tests/run_all_tests.lua` plus the static validators — `bash tools/tests/run_syntax_check.sh`, `validate_manifest.sh`, `validate_types.sh`, and `validate_planning.sh` (planning docs hold only open items). All must pass. See `docs/guides/testing-guide.md`.
 2. **In-Game Test**: Addon loads without errors; feature works; no regressions
 3. **Git Review**: `git diff` shows only intended changes
 
@@ -114,6 +114,7 @@ ESO addons cannot use automated test frameworks. Before committing:
 - [ ] File headers are up-to-date
 - [ ] Function documentation is complete
 - [ ] No debug statements left behind
+- [ ] Standalone tests + static validators pass (`lua tools/tests/run_all_tests.lua`; `validate_planning.sh`, `validate_manifest.sh`, `validate_types.sh`, `run_syntax_check.sh`)
 - [ ] Changes tested in-game
 - [ ] Commit message follows conventional format (e.g., `feat(module):`, `fix(module):`)
 

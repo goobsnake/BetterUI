@@ -62,7 +62,15 @@ lua tools/tests/test_feature_flags.lua
 
 # Syntax validation
 luac -p tools/tests/*.lua
+
+# Static validation — run as part of every regular test pass, before commit
+bash tools/tests/run_syntax_check.sh      # Lua syntax (luac -p over Modules/)
+bash tools/tests/validate_manifest.sh     # BetterUI.txt manifest entries exist
+bash tools/tests/validate_types.sh        # EmmyLua annotation coverage
+bash tools/tests/validate_planning.sh     # planning docs hold only open items
 ```
+
+The static validators above are part of the **regular test routine** — run them together with `run_all_tests.lua` before every commit. `validate_planning.sh` fails if `docs/planning/{priority-backlog,feature-requests,project-improvements}.md` still contains an item marked completed or discarded in place; when it does, migrate completed work to `completed-improvements.md` and delete discarded items, then re-run.
 
 ### Creating New Tests
 
