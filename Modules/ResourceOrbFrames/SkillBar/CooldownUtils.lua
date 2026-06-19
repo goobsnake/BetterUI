@@ -116,8 +116,14 @@ end
 ---@param cooldownEdge table|nil
 ---@param cooldownOverlay table|nil
 local function HideLinearVisuals(cooldownEdge, cooldownOverlay)
-    if cooldownEdge then cooldownEdge:SetHidden(true) end
-    if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+    if cooldownEdge then
+        cooldownEdge:SetHidden(true)
+        cooldownEdge.appliedLinearHidden = true
+    end
+    if cooldownOverlay then
+        cooldownOverlay:SetHidden(true)
+        cooldownOverlay.appliedLinearHidden = true
+    end
 end
 
 ---@param cooldownEdge table|nil
@@ -148,27 +154,51 @@ function CooldownUtils.ApplyLinearVisuals(cooldownEdge, cooldownOverlay, revealC
 
     local edgeOffsetY = (1 - percentComplete) * revealHeight
 
-    cooldownEdge:ClearAnchors()
+    -- Latch static edge state (anchor target, draw layer/tier/level, width).
+    -- Only the Y offset is dynamic, so SetAnchor runs every frame; everything
+    -- else is applied only when the control has not been prepared yet or the
+    -- anchor target changed.
+    if not cooldownEdge.appliedLinearStatic or cooldownEdge.appliedLinearRevealControl ~= revealControl then
+        cooldownEdge.appliedLinearStatic = true
+        cooldownEdge.appliedLinearRevealControl = revealControl
+        cooldownEdge:ClearAnchors()
+        cooldownEdge:SetDrawLayer(DL_OVERLAY)
+        cooldownEdge:SetDrawTier(DT_LOW)
+        cooldownEdge:SetDrawLevel(1)
+        cooldownEdge.appliedLinearWidth = revealWidth
+        cooldownEdge:SetWidth(revealWidth)
+    elseif cooldownEdge.appliedLinearWidth ~= revealWidth then
+        cooldownEdge.appliedLinearWidth = revealWidth
+        cooldownEdge:SetWidth(revealWidth)
+    end
+    if cooldownEdge.appliedLinearHidden ~= false then
+        cooldownEdge.appliedLinearHidden = false
+        cooldownEdge:SetHidden(false)
+    end
     cooldownEdge:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, edgeOffsetY)
-    cooldownEdge:SetWidth(revealWidth)
-    cooldownEdge:SetHidden(false)
-    cooldownEdge:SetDrawLayer(DL_OVERLAY)
-    cooldownEdge:SetDrawTier(DT_LOW)
-    cooldownEdge:SetDrawLevel(1)
 
     if cooldownOverlay then
+        if not cooldownOverlay.appliedLinearStatic or cooldownOverlay.appliedLinearRevealControl ~= revealControl then
+            cooldownOverlay.appliedLinearStatic = true
+            cooldownOverlay.appliedLinearRevealControl = revealControl
+            cooldownOverlay:ClearAnchors()
+            cooldownOverlay:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, 0)
+            cooldownOverlay:SetDrawLayer(DL_OVERLAY)
+            cooldownOverlay:SetDrawTier(DT_LOW)
+            cooldownOverlay:SetDrawLevel(0)
+        end
+        if cooldownOverlay.appliedLinearHidden ~= false then
+            cooldownOverlay.appliedLinearHidden = false
+            cooldownOverlay:SetHidden(false)
+        end
         local unrevealedHeight = (1 - percentComplete) * revealHeight
-        cooldownOverlay:ClearAnchors()
-        cooldownOverlay:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, 0)
         cooldownOverlay:SetDimensions(revealWidth, unrevealedHeight)
-        cooldownOverlay:SetHidden(false)
-        cooldownOverlay:SetDrawLayer(DL_OVERLAY)
-        cooldownOverlay:SetDrawTier(DT_LOW)
-        cooldownOverlay:SetDrawLevel(0)
     end
 
     return percentComplete
 end
+
+CooldownUtils.HideLinearVisuals = HideLinearVisuals
 
 CooldownUtils.effectDurationCache = effectDurationCache
 CooldownUtils.smoothedRemainCache = smoothedRemainCache

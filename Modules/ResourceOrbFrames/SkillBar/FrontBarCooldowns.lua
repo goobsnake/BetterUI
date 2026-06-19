@@ -19,6 +19,32 @@ local SKILL_TEXT_SIZE_MAX = 30
 
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
+--- Sets icon desaturation only when the value changes, avoiding per-frame
+--- redundant API calls in the cooldown hot path.
+---@param iconControl table|nil Icon texture control
+---@param desaturation number Desired desaturation value
+local function SetIconDesaturation(iconControl, desaturation)
+    if not iconControl then return end
+    if iconControl.appliedDesaturation ~= desaturation then
+        iconControl.appliedDesaturation = desaturation
+        iconControl:SetDesaturation(desaturation)
+    end
+end
+
+--- Starts a radial cooldown only when the duration changes (i.e. a new
+--- cooldown window), avoiding per-frame reset churn that freezes the radial
+--- animation in the non-gamepad cooldown hot path.
+---@param cooldown table Cooldown control
+---@param remainMs number Remaining cooldown milliseconds
+---@param durationMs number Total cooldown duration milliseconds
+local function StartCooldownIfChanged(cooldown, remainMs, durationMs)
+    if cooldown.appliedCooldownDurationMs == durationMs then
+        return
+    end
+    cooldown.appliedCooldownDurationMs = durationMs
+    cooldown:StartCooldown(remainMs, durationMs, CD_TYPE_RADIAL, nil, false)
+end
+
 -- QUICKSLOT COUNT + EMPTY STATE
 
 local function GetQuickslotCountAnchorOffsets()
@@ -114,15 +140,30 @@ local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settin
     if countText then
         ApplyQuickslotCountStyle(buttonControl, countText, settings)
         if showCount and isItemSlot and count ~= nil then
-            countText:SetText(count)
-            countText:SetHidden(false)
+            if count ~= countText.appliedText then
+                countText.appliedText = count
+                countText:SetText(count)
+            end
+            if countText.appliedHidden ~= false then
+                countText.appliedHidden = false
+                countText:SetHidden(false)
+            end
         else
-            countText:SetHidden(true)
+            if countText.appliedHidden ~= true then
+                countText.appliedHidden = true
+                countText:SetHidden(true)
+            end
         end
     end
     local isEmpty = isItemSlot and (count or 0) <= 0
     local unusableOverlay = (children and children.UnusableOverlay) or buttonControl:GetNamedChild("UnusableOverlay")
-    if unusableOverlay then unusableOverlay:SetHidden(not isEmpty) end
+    if unusableOverlay then
+        local hidden = not isEmpty
+        if unusableOverlay.appliedHidden ~= hidden then
+            unusableOverlay.appliedHidden = hidden
+            unusableOverlay:SetHidden(hidden)
+        end
+    end
     buttonControl.quickslotCount = count
     buttonControl.quickslotEmpty = isEmpty
     return isEmpty
@@ -233,7 +274,11 @@ local function UpdateFrontBarCooldowns(rootFrame)
                 end
                 local visualRemainMs = CooldownUtils.GetSmoothedRemaining(cooldownStateKey, remainMs, durationMs)
                 if isGamepad then
-                    if cooldown then cooldown:SetHidden(true) end
+                    if cooldown and cooldown.appliedHidden ~= true then
+                        cooldown.appliedHidden = true
+                        cooldown:SetHidden(true)
+                        cooldown.appliedCooldownDurationMs = nil
+                    end
                     local percentComplete = CooldownUtils.ApplyLinearVisuals(cooldownEdge, cooldownOverlay, btn, visualRemainMs, durationMs)
                     if iconControl then
                         if percentComplete ~= nil then
@@ -241,29 +286,43 @@ local function UpdateFrontBarCooldowns(rootFrame)
                             if cooldownDesaturation < baseDesaturation then
                                 cooldownDesaturation = baseDesaturation
                             end
-                            iconControl:SetDesaturation(cooldownDesaturation)
+                            SetIconDesaturation(iconControl, cooldownDesaturation)
                         else
-                            iconControl:SetDesaturation(1)
+                            SetIconDesaturation(iconControl, 1)
                         end
                     end
                 else
-                    if iconControl then iconControl:SetDesaturation(1) end
-                    if cooldownEdge then cooldownEdge:SetHidden(true) end
-                    if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+                    SetIconDesaturation(iconControl, 1)
+                    CooldownUtils.HideLinearVisuals(cooldownEdge, cooldownOverlay)
                     if cooldown then
-                        cooldown:StartCooldown(remainMs, durationMs, CD_TYPE_RADIAL, nil, false)
-                        cooldown:SetHidden(false)
+                        StartCooldownIfChanged(cooldown, remainMs, durationMs)
+                        if cooldown.appliedHidden ~= false then
+                            cooldown.appliedHidden = false
+                            cooldown:SetHidden(false)
+                        end
                     end
                 end
 
                 local textToSet = string.format("%.1f", visualRemainMs / 1000)
                 if timerText then
-                    timerText:SetText(textToSet)
-                    timerText:SetHidden(false)
+                    if textToSet ~= timerText.appliedText then
+                        timerText.appliedText = textToSet
+                        timerText:SetText(textToSet)
+                    end
+                    if timerText.appliedHidden ~= false then
+                        timerText.appliedHidden = false
+                        timerText:SetHidden(false)
+                    end
                     ApplyCooldownTextStyle(timerText, cooldownSize, cooldownColor, true)
                 elseif altTimerText then
-                    altTimerText:SetText(textToSet)
-                    altTimerText:SetHidden(false)
+                    if textToSet ~= altTimerText.appliedText then
+                        altTimerText.appliedText = textToSet
+                        altTimerText:SetText(textToSet)
+                    end
+                    if altTimerText.appliedHidden ~= false then
+                        altTimerText.appliedHidden = false
+                        altTimerText:SetHidden(false)
+                    end
                     ApplyCooldownTextStyle(altTimerText, cooldownSize, cooldownColor, false)
                 end
             else
@@ -274,20 +333,37 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     end
                 end
                 CooldownUtils.ResetSmoothedRemaining(cooldownStateKey)
-                if iconControl then iconControl:SetDesaturation(baseDesaturation) end
-                if cooldownOverlay then cooldownOverlay:SetHidden(true) end
-                if cooldown then cooldown:SetHidden(true) end
-                if cooldownEdge then cooldownEdge:SetHidden(true) end
-                if timerText then timerText:SetHidden(true) end
-                if altTimerText then altTimerText:SetHidden(true) end
+                SetIconDesaturation(iconControl, baseDesaturation)
+                CooldownUtils.HideLinearVisuals(cooldownEdge, cooldownOverlay)
+                if cooldown then
+                    if cooldown.appliedHidden ~= true then
+                        cooldown.appliedHidden = true
+                        cooldown:SetHidden(true)
+                    end
+                    cooldown.appliedCooldownDurationMs = nil
+                end
+                if timerText and timerText.appliedHidden ~= true then
+                    timerText.appliedHidden = true
+                    timerText:SetHidden(true)
+                end
+                if altTimerText and altTimerText.appliedHidden ~= true then
+                    altTimerText.appliedHidden = true
+                    altTimerText:SetHidden(true)
+                end
             end
 
             local stackCountText = children.StackCountText or btn:GetNamedChild("StackCountText")
             if stackCountText then
                 local stackCount = GetActionSlotEffectStackCount(mapping.slot, mapping.category)
                 if stackCount and stackCount > 0 then
-                    stackCountText:SetText(stackCount)
-                    stackCountText:SetHidden(false)
+                    if stackCount ~= stackCountText.appliedText then
+                        stackCountText.appliedText = stackCount
+                        stackCountText:SetText(stackCount)
+                    end
+                    if stackCountText.appliedHidden ~= false then
+                        stackCountText.appliedHidden = false
+                        stackCountText:SetHidden(false)
+                    end
                     -- Static draw ordering: latch once instead of per tick.
                     if not stackCountText.appliedDrawOrder then
                         stackCountText.appliedDrawOrder = true
@@ -296,7 +372,10 @@ local function UpdateFrontBarCooldowns(rootFrame)
                         stackCountText:SetDrawLevel(10)
                     end
                 else
-                    stackCountText:SetHidden(true)
+                    if stackCountText.appliedHidden ~= true then
+                        stackCountText.appliedHidden = true
+                        stackCountText:SetHidden(true)
+                    end
                 end
             end
         end

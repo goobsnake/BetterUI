@@ -46,8 +46,18 @@ end
 ---@param fillColor table|nil Fill colour {r,g,b,a}
 ---@param depthColor table|nil Depth/gradient colour {r,g,b,a}
 function CastBar:ApplyFillStyle(fillColor, depthColor)
-    self.currentFillColor = fillColor or self.defaultFillColor
-    self.currentDepthColor = depthColor or self.defaultDepthColor
+    fillColor = fillColor or self.defaultFillColor
+    depthColor = depthColor or self.defaultDepthColor
+
+    -- Latch: skip per-frame fill color/gradient reapplication when unchanged.
+    if self.appliedFillColor == fillColor and self.appliedDepthColor == depthColor then
+        return
+    end
+
+    self.appliedFillColor = fillColor
+    self.appliedDepthColor = depthColor
+    self.currentFillColor = fillColor
+    self.currentDepthColor = depthColor
 
     if not self.fill then return end
 
@@ -86,6 +96,7 @@ function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, sh
     self.startTime = GetFrameTimeSeconds()
     self.abilityName = abilityName
     self.appliedIdleState = false -- re-apply the idle label after this cast
+    self.appliedCastLabelText = nil -- force label refresh on first cast frame
     self.pendingPowerProbeStartMs = GetFrameTimeMilliseconds()
     self:ApplyFillStyle(castFillColor or self.defaultFillColor, castDepthColor or self.defaultDepthColor)
     self.control:SetHidden(false)
@@ -100,6 +111,7 @@ function CastBar:OnCastStop(unitTag, wasInterrupted)
     self.showCountdown = false
     self.isChanneled = false
     self.pendingPowerProbeStartMs = 0
+    self.appliedCastLabelText = nil
     self:Update()
 end
 
@@ -143,7 +155,10 @@ end
 function CastBar:Update()
     local settings = GetLiveSettings()
     if not settings.castBarEnabled then
-        self.control:SetHidden(true)
+        if self.appliedHidden ~= true then
+            self.appliedHidden = true
+            self.control:SetHidden(true)
+        end
         return
     end
 
@@ -153,8 +168,14 @@ function CastBar:Update()
     local current, max
 
     if self.isCasting then
-        self.control:SetHidden(false)
-        if self.fill then self.fill:SetHidden(false) end
+        if self.appliedHidden ~= false then
+            self.appliedHidden = false
+            self.control:SetHidden(false)
+        end
+        if self.fill and self.appliedFillHidden ~= false then
+            self.appliedFillHidden = false
+            self.fill:SetHidden(false)
+        end
 
         local now = GetFrameTimeSeconds()
         local elapsed = now - self.startTime
@@ -166,10 +187,15 @@ function CastBar:Update()
         if current < 0 then current = 0 end
         if current > max then current = max end
         local fallbackLabel = GetString(rawget(_G, "SI_BETTERUI_LABEL_CAST_BAR"))
+        local castLabelText
         if self.showCountdown then
-            self.label:SetText(string.format("%s (%.1fs)", self.abilityName or fallbackLabel, remaining))
+            castLabelText = string.format("%s (%.1fs)", self.abilityName or fallbackLabel, remaining)
         else
-            self.label:SetText(self.abilityName or fallbackLabel)
+            castLabelText = self.abilityName or fallbackLabel
+        end
+        if castLabelText ~= self.appliedCastLabelText then
+            self.appliedCastLabelText = castLabelText
+            self.label:SetText(castLabelText)
         end
 
         if elapsed > self.duration + (self.postCastHold or 0.5) then
@@ -179,16 +205,25 @@ function CastBar:Update()
         self:ApplyFillStyle(self.currentFillColor, self.currentDepthColor)
     else
         if settings.castBarAlwaysShow then
-            self.control:SetHidden(false)
+            if self.appliedHidden ~= false then
+                self.appliedHidden = false
+                self.control:SetHidden(false)
+            end
             -- Latch the idle state: skip per-frame GetString/SetText churn
             -- until a cast resets the latch (OnCastStart).
             if self.appliedIdleState ~= true then
                 self.appliedIdleState = true
                 self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_CAST_BAR")))
-                if self.fill then self.fill:SetHidden(true) end
+                if self.fill and self.appliedFillHidden ~= true then
+                    self.appliedFillHidden = true
+                    self.fill:SetHidden(true)
+                end
             end
         else
-            self.control:SetHidden(true)
+            if self.appliedHidden ~= true then
+                self.appliedHidden = true
+                self.control:SetHidden(true)
+            end
         end
     end
 end
@@ -239,10 +274,16 @@ function ExperienceBar:Update()
     local settings = GetLiveSettings()
 
     if not settings.xpBarEnabled then
-        self.control:SetHidden(true)
+        if self.appliedHidden ~= true then
+            self.appliedHidden = true
+            self.control:SetHidden(true)
+        end
         return
     end
-    self.control:SetHidden(false)
+    if self.appliedHidden ~= false then
+        self.appliedHidden = false
+        self.control:SetHidden(false)
+    end
 
     local w, h = self:ApplyStaticStyle(settings)
     local insetX = XP.FILL_INSET_X or 8
@@ -332,24 +373,42 @@ end
 function MountStaminaBar:Update()
     local settings = GetLiveSettings()
     if not settings.mountStaminaBarEnabled then
-        self.control:SetHidden(true)
+        if self.appliedHidden ~= true then
+            self.appliedHidden = true
+            self.control:SetHidden(true)
+        end
         return
     end
 
     local w, h = self:ApplyStaticStyle(settings)
-    self.control:SetHidden(false)
+    if self.appliedHidden ~= false then
+        self.appliedHidden = false
+        self.control:SetHidden(false)
+    end
 
     if IsMounted() then
         self.appliedMountedState = true
         local current = self.currentValue or 0
         local max = self.maxValue or 1
         if max <= 0 then max = 1 end
+        local effectiveMax = max
         local percent = math.floor((current / max) * 100)
-        self.label:SetText(string.format("Mount: %d%%", percent))
-        if self.fill then self.fill:SetHidden(false) end
-        self:UpdateVisuals(current, max, MOUNT.FILL_INSET_X or 35,
-            MOUNT.FILL_INSET_Y or 55, w, h)
-        TraceValueBracketChange(current, max, self)
+        local labelText = string.format("Mount: %d%%", percent)
+
+        -- Latch label text and value state; skip SetText/UpdateVisuals churn
+        -- when nothing changed since the last frame.
+        if labelText ~= self.appliedLabelText
+            or current ~= self.appliedCurrent
+            or effectiveMax ~= self.appliedEffectiveMax then
+            self.appliedLabelText = labelText
+            self.appliedCurrent = current
+            self.appliedEffectiveMax = effectiveMax
+            self.label:SetText(labelText)
+            if self.fill then self.fill:SetHidden(false) end
+            self:UpdateVisuals(current, effectiveMax, MOUNT.FILL_INSET_X or 35,
+                MOUNT.FILL_INSET_Y or 55, w, h)
+            TraceValueBracketChange(current, effectiveMax, self)
+        end
     else
         -- Skip per-tick label/fill churn while unmounted: apply the idle
         -- state once and latch until the mounted state changes.
@@ -358,6 +417,9 @@ function MountStaminaBar:Update()
             self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_MOUNT_STAMINA")))
             if self.fill then self.fill:SetHidden(true) end
         end
+        self.appliedCurrent = nil
+        self.appliedEffectiveMax = nil
+        self.appliedLabelText = nil
         self._betteruiLastValueBracket = nil
     end
 end

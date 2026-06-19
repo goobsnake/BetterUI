@@ -127,8 +127,14 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
 
     local ultBtn = FindControl(frontBarContainer, 'UltimateButton')
     if ultBtn then
-        local fillLeft = ultBtn:GetNamedChild("FillAnimationLeft")
-        local fillRight = ultBtn:GetNamedChild("FillAnimationRight")
+        local fillLeft = ultBtn.fillLeft
+        local fillRight = ultBtn.fillRight
+        if not fillLeft or not fillRight then
+            fillLeft = ultBtn:GetNamedChild("FillAnimationLeft")
+            fillRight = ultBtn:GetNamedChild("FillAnimationRight")
+            ultBtn.fillLeft = fillLeft
+            ultBtn.fillRight = fillRight
+        end
         if fillLeft and fillRight then
             local slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
             local abilityCost = GetSlotAbilityCost(slotIndex, COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE, GetActiveHotbarCategory())
@@ -137,9 +143,17 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
             if abilityCost and abilityCost > 0 then
                 local fillPercent = math.min(1, currentUltimate / abilityCost)
                 local frameIndex = math.floor(fillPercent * (TOTAL_FRAMES - 1))
-                SetSpriteFrame(fillLeft, frameIndex, false)
-                SetSpriteFrame(fillRight, frameIndex, true)
-                fillLeft:SetHidden(false); fillRight:SetHidden(false)
+                if abilityCost ~= ultBtn.appliedUltimateCost or frameIndex ~= ultBtn.appliedFrameIndex then
+                    ultBtn.appliedUltimateCost = abilityCost
+                    ultBtn.appliedFrameIndex = frameIndex
+                    SetSpriteFrame(fillLeft, frameIndex, false)
+                    SetSpriteFrame(fillRight, frameIndex, true)
+                end
+                if ultBtn.appliedFillHidden ~= false then
+                    ultBtn.appliedFillHidden = false
+                    fillLeft:SetHidden(false)
+                    fillRight:SetHidden(false)
+                end
 
                 -- Handle Ultimate Ready Animation
                 if currentUltimate >= abilityCost then
@@ -155,11 +169,17 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
                     end
                 end
             else
-                fillLeft:SetHidden(true); fillRight:SetHidden(true)
+                if ultBtn.appliedFillHidden ~= true then
+                    ultBtn.appliedFillHidden = true
+                    fillLeft:SetHidden(true)
+                    fillRight:SetHidden(true)
+                end
                 if ultBtn.isUltimateReady then
                     ultBtn.isUltimateReady = false
                     StopUltimateReadyAnimations(ultBtn)
                 end
+                ultBtn.appliedUltimateCost = nil
+                ultBtn.appliedFrameIndex = nil
             end
         end
     end
@@ -202,11 +222,21 @@ local function UpdateFrontBarUltimateNumber(rootFrame)
         if countText then
             if settings.showUltimateNumber then
                 local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE) or 0
-                countText:SetText(currentUltimate)
-                countText:SetHidden(false)
+                local ultimateStr = tostring(currentUltimate)
+                if countText.appliedText ~= ultimateStr then
+                    countText.appliedText = ultimateStr
+                    countText:SetText(ultimateStr)
+                end
+                if countText.appliedHidden ~= false then
+                    countText.appliedHidden = false
+                    countText:SetHidden(false)
+                end
                 ApplyUltimateNumberStyle(ultBtn, countText, settings)
             else
-                countText:SetHidden(true)
+                if countText.appliedHidden ~= true then
+                    countText.appliedHidden = true
+                    countText:SetHidden(true)
+                end
             end
         end
     end
