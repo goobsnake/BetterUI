@@ -20,7 +20,11 @@ BETTERUI.CIM.InterfaceLog = {
     IsEnabled = function() return ilEnabled end,
     WriteRaw = function(line) fileLines[#fileLines + 1] = line; return true end,
     -- Presets drive InterfaceLog enable + budget; stub both so ApplyPreset is exercised.
-    SetEnabled = function(value) ilEnabled = value and true or false end,
+    -- SetEnabled invalidates Log's memoized active-state, mirroring the real module.
+    SetEnabled = function(value)
+        ilEnabled = value and true or false
+        if BETTERUI.Log and BETTERUI.Log.InvalidateActive then BETTERUI.Log.InvalidateActive() end
+    end,
     SetBudget = function() end,
 }
 
@@ -29,6 +33,14 @@ function GetGameTimeMilliseconds() return 100 end
 
 dofile("Modules/CIM/Core/Diagnostics/Log.lua")
 local Log = BETTERUI.Log
+
+-- Flip the (stubbed) InterfaceLog enable state AND invalidate the logger's memoized
+-- active-state, the way the real InterfaceLog.SetEnabled does. Tests that toggle
+-- logging directly use this so the IsActive immediacy contract still holds.
+local function setLogging(on)
+    ilEnabled = on and true or false
+    Log.InvalidateActive()
+end
 
 -- ============================================================================
 -- TEST HARNESS
@@ -44,9 +56,6 @@ local function check(cond, message)
         tests_failed = tests_failed + 1
         print("  [X] " .. message)
     end
-end
-local function reset() fileLines = {}; chatLines = {}
-    -- re-point the capture closures (they captured the locals by upvalue)
 end
 
 print("\n=== Log Tests ===\n")
@@ -101,34 +110,36 @@ check(#chatLines == 1 and chatLines[1]:find("[BUI:GENERAL]", 1, true) ~= nil, "C
 check(#fileLines == 1, "ERROR still hits file alongside chat")
 Log.SetSink(Log.LEVEL.ERROR, "chat", false)
 
--- Inert when logging is not active (normal players).
+-- Inert when logging is not active (normal players). Toggling is immediate even
+-- though active-state is memoized (the setter invalidates the cache).
 fileLines = {}; chatLines = {}
-ilEnabled = false
+setLogging(false)
 check(Log.IsActive() == false, "IsActive() is false when logging disabled")
 Log.Error(Log.CATEGORY.GENERAL, "silent")
 check(#fileLines == 0 and #chatLines == 0, "Logger is inert when logging is disabled")
-ilEnabled = true
+setLogging(true)
 check(Log.IsActive() == true, "IsActive() is true when logging enabled")
 
 -- ============================================================================
 -- PRESETS / EnabledFor / LAZY / PAYLOAD CAPTURE (log-level enhancement)
 -- ============================================================================
-ilEnabled = true
+setLogging(true)
 Log.SetMinLevel(Log.LEVEL.TRACE)
 
 -- EnabledFor mirrors the real emit() gate (active + level + category + sink).
 check(Log.EnabledFor(Log.LEVEL.TRACE, Log.CATEGORY.GENERAL) == true, "EnabledFor true when active/at-level/sink-on")
-ilEnabled = false
+setLogging(false)
 check(Log.EnabledFor(Log.LEVEL.ERROR, Log.CATEGORY.GENERAL) == false, "EnabledFor false when logging inactive")
-ilEnabled = true
+setLogging(true)
 
--- debug preset: WARN/ERROR file-only, min WARN, payloads off.
+-- debug preset: INFO/WARN/ERROR file-only, min INFO, payloads off.
 local appliedOk, presetName = Log.ApplyPreset("debug")
 check(appliedOk == true and presetName == "debug", "ApplyPreset('debug') applies and reports its name")
 check(Log.GetPreset() == "debug", "GetPreset reports debug")
-check(Log.GetMinLevel() == Log.LEVEL.WARN, "debug preset floors min level at WARN")
+check(Log.GetMinLevel() == Log.LEVEL.INFO, "debug preset floors min level at INFO")
 check(Log.GetPayloadCapture() == false, "debug preset disables payload capture")
 check(Log.GetSink(Log.LEVEL.DEBUG, "file") == false, "debug preset turns off the DEBUG file sink")
+check(Log.GetSink(Log.LEVEL.INFO, "file") == true, "debug preset keeps the INFO file sink")
 check(Log.GetSink(Log.LEVEL.WARN, "file") == true, "debug preset keeps the WARN file sink")
 fileLines = {}
 Log.Debug(Log.CATEGORY.GENERAL, "below floor")
@@ -136,6 +147,8 @@ check(#fileLines == 0, "debug preset drops DEBUG records")
 Log.Warn(Log.CATEGORY.GENERAL, "real warn", { code = 7 })
 check(#fileLines == 1, "debug preset captures WARN")
 check(fileLines[1]:find("code=7", 1, true) == nil, "debug preset omits the payload (capture off)")
+Log.Info(Log.CATEGORY.GENERAL, "info breadcrumb")
+check(#fileLines == 2, "debug preset captures INFO breadcrumbs for context")
 
 -- verbose preset: everything + payloads.
 Log.ApplyPreset("verbose")
@@ -156,10 +169,17 @@ fileLines = {}
 local lazyCalls = 0
 Log.TraceLazy(Log.CATEGORY.NAV, "lazy", function() lazyCalls = lazyCalls + 1; return { n = 1 } end)
 check(lazyCalls == 1 and #fileLines == 1, "lazy data builder runs and emits when active")
-ilEnabled = false
+setLogging(false)
 Log.TraceLazy(Log.CATEGORY.NAV, "lazy off", function() lazyCalls = lazyCalls + 1; return { n = 2 } end)
 check(lazyCalls == 1, "lazy data builder does NOT run when logging is inactive")
-ilEnabled = true
+setLogging(true)
+
+-- Active-state memoization is invalidated by the setter, so a toggle is observed
+-- immediately on the next call (no stale cache).
+Log.ApplyPreset("off")
+check(Log.IsActive() == false, "ApplyPreset('off') deactivates logging immediately")
+Log.ApplyPreset("verbose")
+check(Log.IsActive() == true, "ApplyPreset('verbose') reactivates logging immediately")
 
 -- Unknown preset is rejected without changing state.
 local badOk = Log.ApplyPreset("nope")

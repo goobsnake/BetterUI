@@ -56,6 +56,15 @@ local FLAG_DEFINITIONS = {
 local flagStateCache = {}
 local flagOverrides = {}
 
+-- Drop BETTERUI.Log's memoized active-state whenever a flag that can flip the
+-- logger's active decision (e.g. DEBUG_LOGGING gates CIM.Debug.IsEnabled) changes
+-- at runtime, so a toggle takes effect on the next log call.
+local function InvalidateLogActive()
+    if BETTERUI.Log and BETTERUI.Log.InvalidateActive then
+        BETTERUI.Log.InvalidateActive()
+    end
+end
+
 local function CloneDefinition(def)
     if type(def) ~= "table" then
         return def
@@ -109,16 +118,19 @@ function BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, enabled)
     BETTERUI.Settings.FeatureFlags = BETTERUI.Settings.FeatureFlags or {}
     BETTERUI.Settings.FeatureFlags[flagName] = enabled
     flagStateCache[flagName] = nil -- Clear cache to force re-read
+    InvalidateLogActive()
 end
 
 --- Clears the runtime flag cache so persisted values are re-read.
 --- Called by RuntimeSetup.Apply right after SavedVars load.
 function BETTERUI.CIM.FeatureFlags.InvalidateCache()
     flagStateCache = {}
+    InvalidateLogActive()
 end
 
 function BETTERUI.CIM.FeatureFlags.SetOverride(flagName, enabled)
     flagOverrides[flagName] = enabled
+    InvalidateLogActive()
 end
 
 --[[
@@ -128,6 +140,7 @@ References: Called when exiting debug mode.
 ]]
 function BETTERUI.CIM.FeatureFlags.ClearOverrides()
     flagOverrides = {}
+    InvalidateLogActive()
 end
 
 function BETTERUI.CIM.FeatureFlags.GetAllFlags()
@@ -151,6 +164,7 @@ function BETTERUI.CIM.FeatureFlags.ResetToDefaults()
     end
     flagStateCache = {}
     flagOverrides = {}
+    InvalidateLogActive()
 end
 
 -- CONVENIENCE CONSTANTS

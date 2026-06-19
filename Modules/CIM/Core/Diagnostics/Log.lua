@@ -12,7 +12,8 @@ Design:
   - Popup surfacing is the global InterfaceLog suppression toggle (errors + file writes
     pop only when popups are enabled); see /builog popups.
   - The logger is INERT unless logging is active (InterfaceLog or CIM.Debug enabled), so
-    normal players incur zero cost and see no behavior change.
+    normal players incur zero cost and see no behavior change. The active-state decision
+    is memoized and invalidated by the InterfaceLog/FeatureFlags setters that flip it.
   - Named presets (off/debug/verbose) layer over the low-level knobs for a one-word
     troubleshooting UX; see Log.ApplyPreset.
   - EnabledFor() is the exact preflight gate: hot paths (and the lazy Log.*Lazy
@@ -61,10 +62,13 @@ local categoryDisabled = {}
 
 local function G(name) return rawget(_G, name) end
 
--- The logger only does work when the user has opted into logging. Computed live
--- (not memoized) so toggling InterfaceLog/Debug takes effect immediately -- the
--- cost is a few table lookups behind FeatureFlags' own cache.
-local function isActive()
+-- Active-state memoization. The logger only does work when the user opted into
+-- logging; that decision is cached and dropped via Log.InvalidateActive() by the
+-- InterfaceLog/FeatureFlags setters that can change it (so a toggle still takes
+-- effect on the very next call). Log.RefreshActive() forces a recompute for reload
+-- boundaries, tests, or after a raw debug global is flipped directly.
+local activeCache = nil
+local function computeActive()
     local cim = BETTERUI.CIM
     if not cim then return false end
     local il = cim.InterfaceLog
@@ -73,6 +77,17 @@ local function isActive()
     if dbg and dbg.IsEnabled and dbg.IsEnabled() then return true end
     return false
 end
+local function isActive()
+    if activeCache == nil then activeCache = computeActive() end
+    return activeCache
+end
+
+--- Drop the cached active-state so the next check recomputes.
+function Log.InvalidateActive() activeCache = nil end
+
+--- Force an immediate active-state recompute and return it.
+---@return boolean
+function Log.RefreshActive() activeCache = computeActive(); return activeCache end
 
 -- Sinks ---------------------------------------------------------------------
 local function sinkFile(line)
@@ -270,8 +285,9 @@ function Log.GetPayloadCapture() return payloadCapture end
 -- Named user-facing log levels layered over the low-level knobs. The canonical
 -- way to turn logging on for troubleshooting:
 --   off     -> stop file logging, restore error popups, reset rate-limit budget.
---   debug   -> low-volume capture of WARN/ERROR only (real failures + SafeExecute
---              pcall/nil-function errors), payloads off. Cheap to run live.
+--   debug   -> capture of INFO/WARN/ERROR (real failures + SafeExecute pcall/nil-
+--              function errors + key INFO breadcrumbs for context), payloads off.
+--              Low volume; cheap to run live.
 --   verbose -> full TRACE+ capture, all categories on, payloads on. High volume;
 --              InterfaceLog applies a per-frame/second budget so it can't hitch.
 local PRESET_NAMES = { off = true, debug = true, verbose = true }
@@ -296,8 +312,8 @@ function Log.ApplyPreset(name)
         if il and il.SetBudget then il.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 }) end
         if il and il.SetEnabled then il.SetEnabled(false) end
     elseif name == "debug" then
-        minLevel = Log.LEVEL.WARN
-        applyAllSinks(Log.LEVEL.WARN, false) -- WARN/ERROR -> file only
+        minLevel = Log.LEVEL.INFO
+        applyAllSinks(Log.LEVEL.INFO, false) -- INFO/WARN/ERROR -> file only
         categoryDisabled = {}
         payloadCapture = false
         if il and il.SetBudget then il.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 }) end
@@ -314,6 +330,7 @@ function Log.ApplyPreset(name)
         if il and il.SetEnabled then il.SetEnabled(true) end
     end
 
+    Log.RefreshActive()
     currentPreset = name
     return true, name
 end
@@ -330,8 +347,9 @@ function Log.LevelFromName(name)
 end
 
 --- Whether logging is currently active (the user enabled InterfaceLog or debug).
---- Cheap gate for HOT paths: check this before building an expensive log payload
---- so normal players (logging off) pay nothing, e.g.
+--- Memoized; invalidated by the InterfaceLog/FeatureFlags setters. Cheap gate for
+--- HOT paths: check this before building an expensive log payload so normal players
+--- (logging off) pay nothing, e.g.
 ---   if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(cat, msg, heavy()) end
 --- For an exact (level/category/sink-aware) gate, prefer Log.EnabledFor or the
 --- Log.*Lazy variants.

@@ -225,6 +225,8 @@ end
 function InterfaceLog.SetEnabled(value)
     enabled = value and true or false
     ApplyPopupSuppression(enabled and suppressPopups)
+    -- Enabling/disabling the file sink flips the logger's active state.
+    if BETTERUI.Log and BETTERUI.Log.InvalidateActive then BETTERUI.Log.InvalidateActive() end
 end
 
 -- ---------------------------------------------------------------------------
