@@ -88,6 +88,8 @@ end
 function BETTERUI.CIM.UserNotify(context, message, sound)
     local resolvedMessage = type(message) == "number" and GetString(message) or message
     BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(resolvedMessage)))
+    -- Pass the raw message/string-id to ZO_Alert: it resolves string ids internally
+    -- via zo_strformat (and applies any format args). resolvedMessage is for the log only.
     ZO_Alert(UI_ALERT_CATEGORY_ERROR, sound or SOUNDS.NEGATIVE_CLICK, message)
 end
 

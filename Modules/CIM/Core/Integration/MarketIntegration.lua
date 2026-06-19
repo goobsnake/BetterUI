@@ -94,6 +94,9 @@ local EMPTY_MARKET_PRICE_INFO = CreateMarketPriceInfo({})
 local function CallOptionalAddon(method, self, ...)
     local ok, result = pcall(method, self, ...)
     if not ok then
+        if BETTERUI.Log then
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, "optionalAddonCallFailed", { error = tostring(result) })
+        end
         return nil
     end
     return result
@@ -273,6 +276,11 @@ function MarketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, s
 
     local enabled = IsModuleToggleEnabled(settings, sourceDef.settingKey)
     local availableOk, available = pcall(sourceDef.isAvailable)
+    if not availableOk then
+        if BETTERUI.Log then
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, "sourceAvailabilityCheckFailed", { source = sourceKey, error = tostring(available) })
+        end
+    end
     available = availableOk and available == true or false
     if not itemLink or not enabled or not available then
         return CreateMarketPriceInfo({
@@ -284,6 +292,9 @@ function MarketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, s
 
     local ok, sourceInfo = pcall(sourceDef.fetch, itemLink, stackCount or 1)
     if not ok or type(sourceInfo) ~= "table" then
+        if BETTERUI.Log then
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, "sourcePriceFetchFailed", { source = sourceKey, error = tostring(sourceInfo) })
+        end
         sourceInfo = EMPTY_MARKET_PRICE_INFO
     end
     return CreateMarketPriceInfo({
@@ -334,7 +345,7 @@ end
 --- Returns the mutable priority-order table referenced by the selected key.
 function MarketIntegration.GetPriorityOrderLive(settings)
     local key = GetPriorityKey(settings)
-    return PRIORITY_ORDERS[key] or PRIORITY_ORDERS.mm_att_ttc
+    return CloneArray(PRIORITY_ORDERS[key] or PRIORITY_ORDERS.mm_att_ttc)
 end
 
 ---@param itemLink string?
@@ -349,6 +360,9 @@ function MarketIntegration.GetMarketPriceInfo(itemLink, stackCount)
     -- The returned table is read-only by convention. Fall back to the cloning
     -- accessor when SettingsAccessor has not loaded (standalone test harness).
     local getSettings = BETTERUI.GetModuleSettingsLive or BETTERUI.GetModuleSettings
+    if not getSettings then
+        return CreateMarketPriceInfo({})
+    end
     local generalInterfaceSettings = getSettings("GeneralInterface")
     stackCount = stackCount or 1
 

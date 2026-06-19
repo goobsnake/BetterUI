@@ -36,6 +36,9 @@ function AutoCategoryIntegration.GetCustomCategory(itemData)
             slotIndex
         )
         if not ok then
+            if BETTERUI.Log then
+                BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.CATEGORY, "autoCategoryMatchFailed", { error = tostring(matched) })
+            end
             return useCustomCategory, false, "", 0
         end
 

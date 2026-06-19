@@ -34,7 +34,7 @@ end
 ---@param defaults BetterUIModuleSettings|nil Fallback table if module settings are absent
 ---@return BetterUIModuleSettings settings A detached settings snapshot, or defaults
 function BETTERUI.GetModuleSettings(moduleName, defaults)
-    if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules[moduleName] then
+    if BETTERUI.Settings and BETTERUI.Settings.Modules and type(BETTERUI.Settings.Modules[moduleName]) == "table" then
         return CloneSettingsValue(BETTERUI.Settings.Modules[moduleName])
     end
     return CloneSettingsValue(defaults or {})
