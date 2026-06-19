@@ -54,6 +54,7 @@ BetterUI follows a 4-level testing strategy:
 | Syntax Check | `run_syntax_check.sh` | Validate Lua syntax |
 | Manifest Check | `validate_manifest.sh` | Validate manifest entries |
 | Type Coverage | `validate_types.sh` | Check EmmyLua annotation coverage |
+| Planning Hygiene | `validate_planning.sh` | Backlog/feature/plan docs hold only open items (no completed/discarded left in place) |
 
 ### Runtime Unit Tests
 | Test | File | Purpose |
@@ -79,6 +80,7 @@ BetterUI follows a 4-level testing strategy:
 bash tools/tests/run_syntax_check.sh
 bash tools/tests/validate_manifest.sh
 bash tools/tests/validate_types.sh
+bash tools/tests/validate_planning.sh
 ```
 
 ### Run Individual Lua Tests
