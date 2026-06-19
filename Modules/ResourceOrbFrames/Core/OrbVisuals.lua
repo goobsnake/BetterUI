@@ -98,7 +98,10 @@ function BetterUIOrbBar:UpdateValue(value)
         local bracket = math.floor(percent / 10)
         if self._betteruiLastValueBracket ~= bracket then
             self._betteruiLastValueBracket = bracket
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orbValueBracket", { powerType = self.powerType, cur = value, max = max, pct = percent })
+            -- Combat hot path: only allocate the payload table when logging is active.
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orbValueBracket", { powerType = self.powerType, cur = value, max = max, pct = percent })
+            end
         end
     end
 end

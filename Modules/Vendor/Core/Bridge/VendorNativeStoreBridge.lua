@@ -35,6 +35,11 @@ local function LogNativeStoreInputState(context, storeManager)
     if not storeManager then
         return
     end
+    -- Runs on the vendor store rebuild/sweep hot path; skip the eager string.format
+    -- and the IsDirectionalInputListening sweep entirely when logging is inactive.
+    if not (BETTERUI.Log and BETTERUI.Log.IsActive()) then
+        return
+    end
 
     LogVendorDebug(
         "DIRECTIONAL_INPUT",

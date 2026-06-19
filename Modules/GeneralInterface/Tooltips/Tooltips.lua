@@ -664,7 +664,7 @@ end
 
 local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, tooltipType, layoutItemDataFn)
     ZO_PreHook(tooltipControl, layoutItemName, function(self, ...)
-        if BETTERUI.Log then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
             BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltipHook",
                 { type = tooltipType, bag = state.bagId, slot = state.slotIndex })
         end
