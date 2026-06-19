@@ -81,7 +81,12 @@ luac -p tools/tests/*.lua
 ## Pre-Testing Checklist
 
 1. **Backup SavedVariables** - Copy `Documents/Elder Scrolls Online/live/SavedVariables/BetterUI.lua`
-2. **Enable debug output** - `/builog on` streams debug + caught Lua errors to `live/Logs/Interface.log` in real time (tail it while you play); `/builog chat on` also mirrors INFO/WARN/ERROR to chat, and `/builog test` writes a verification line. Logging is inert and chat-off by default, so legacy `/script BETTERUI.Debug("test")` (now routed through `BETTERUI.Log`) only surfaces once `/builog` is enabled.
+2. **Enable debug output** - Logging streams to `live/Logs/Interface.log` in real time (tail it while you play; filter with `grep '[BUI]'`). Pick a level with a preset:
+   - `/builog preset debug` - captures INFO/WARN/ERROR plus caught `pcall`/nil-function faults; low volume, message-only. Use to surface bugs and what led to them.
+   - `/builog preset verbose` - captures everything including data payloads/return values; rate-limited (per-frame/second budget) so it can't hitch a frame. Use for a full play-by-play.
+   - `/builog preset off` - stop file logging and restore error popups.
+
+   Lower-level toggles still work under the presets: `/builog on|off` (legacy full capture), `/builog level <trace|debug|info|warn|error>`, `/builog chat on|off` (mirror INFO/WARN/ERROR to chat), `/builog popups on|off`, `/builog test` (writes a verification line), `/builog status`. Logging is inert and chat-off by default, so legacy `/script BETTERUI.Debug("test")` (now routed through `BETTERUI.Log`) only surfaces once logging is enabled.
 3. **Clear UI errors** - `/reloadui` before starting session
 
 ---
