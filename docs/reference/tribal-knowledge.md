@@ -598,8 +598,9 @@ Interface.log. Verified: suppression hides the dialog but the line still logs.
   pre-check) / the lazy `Log.WriteLazy|DebugLazy|TraceLazy(.., dataFn)` builders — so no
   payload is constructed when the record would be dropped.
 - **Presets** (`Log.ApplyPreset`, or `/builog preset`): `off` (stop file logging + restore
-  popups), `debug` (WARN/ERROR file capture only, payloads off — surfaces real failures
-  incl. `SafeExecute` pcall/nil-function faults), `verbose` (TRACE+, all categories,
+  popups), `debug` (INFO/WARN/ERROR file capture, payloads off — surfaces real failures
+  incl. `SafeExecute` pcall/nil-function faults plus INFO breadcrumbs for context),
+  `verbose` (TRACE+, all categories,
   payloads on). `verbose` arms a per-frame/second file-sink budget
   (`InterfaceLog.SetBudget`/`GetStats`) that drops + summarizes overflow (`dropped=N
   reason=rate_limit`) so a hot-path burst can't hitch a frame. `Log.SetPayloadCapture`
