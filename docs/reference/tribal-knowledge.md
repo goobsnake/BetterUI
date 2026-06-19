@@ -548,8 +548,8 @@ The Banking footer has **two horizontal dividers** with a gap between them:
 - If teardown is asymmetric, toggling enhancements **off** won't revert the layout until a relog/`/reloadui` (PB-003)
 - After toggling, re-lay-out the currently visible tooltip immediately so the change is seen in-session
 
-### ProtectionPolicy.CanDestroyItem Requires slotType
-- `BETTERUI.CIM.ProtectionPolicy.CanDestroyItem` runs the engine destroy-eligibility probe **only when the caller passes `slotType`** — the probe is skipped when `slotType` is nil
+### ProtectionPolicy.CanDestroyItem is Fail-Closed
+- `BETTERUI.CIM.ProtectionPolicy.CanDestroyItem` gates an irreversible destroy on the engine probe `ZO_InventorySlot_CanDestroyItem`, which only runs with a `slotType`. It fails **closed** (DENY) in both degraded cases rather than authorizing an unverified destroy: a nil `slotType` returns `DENY.NO_SLOT_TYPE` (the probe can't run), and an unavailable probe global returns `DENY.NO_DESTROY_PROBE`. In production the probe global is always present, so the second case only hardens the degraded/early-load/test path (`test_destroy_policy_contracts.lua` covers both).
 - Callers acting on bag/companion items must tag `SLOT_TYPE_GAMEPAD_INVENTORY_ITEM` (Companion equipment rows do this in `Companions/Core/CompanionItemList.lua`) so the probe runs (defense-in-depth)
 
 ### Tooltip Top-Line Suppression Must Be Scene-Gated

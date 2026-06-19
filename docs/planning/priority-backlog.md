@@ -20,11 +20,9 @@ Use this backlog for:
 
 ## Active Backlog
 
-| ID | Priority | Status | Source | Item | Acceptance Criteria |
-|---|---|---|---|---|---|
-| PB-016 | P3 | Open | Improvement-cycle drain residual (PB-014d, 2026-06-19) | **Banking refresh-manager not cancelled on teardown**: the PB-014d scene-cleanup teardown now cancels screen-attached refresh managers, but Banking holds its manager at module scope (`BETTERUI.Banking.RefreshManager`, `Modules/Banking/Core/RefreshIntegration.lua`), so it is not reached by the in-scope `SceneCleanup` step — an in-flight Banking coalesced refresh can still run after teardown. `est: 10m` | Attach the manager to the screen (`screen.refreshManager = BETTERUI.Banking.RefreshManager`) or call its `Cancel()` in `BankingSceneLifecycle` teardown; validate in-game (L4). |
+_No open P0/P1 items._
 
-PB-001–PB-015 were resolved and archived in `completed-improvements.md` (PB-002–PB-006 under MPR-2; PB-007 under the Comment Feedback plan; PB-001 + PB-008–PB-015 under the 2026-06-19 improvement-cycle drain).
+PB-001–PB-016 were resolved and archived in `completed-improvements.md` (PB-002–PB-006 under MPR-2; PB-007 under the Comment Feedback plan; PB-001 + PB-008–PB-015 under the 2026-06-19 improvement-cycle drain; PB-016 — Banking module-scope refresh manager now cancelled in `BankingSceneLifecycle:OnSceneHidden` — under the 2026-06-19 improvement-cycle review remediation).
 
 ## Execution Rhythm
 

@@ -35,7 +35,7 @@ These suites were added/extended alongside the v3.06 fix batch:
 
 | File | Covers |
 |------|--------|
-| `test_cim_batch_lock_policy.lua`, `test_destroy_policy_contracts.lua` | Batch slot-identity re-validation at execution; `ProtectionPolicy.CanDestroyItem` requires `slotType` |
+| `test_cim_batch_lock_policy.lua`, `test_destroy_policy_contracts.lua` | Batch slot-identity re-validation at execution; `ProtectionPolicy.CanDestroyItem` fails closed on a nil `slotType` and on an unavailable `ZO_InventorySlot_CanDestroyItem` probe |
 | `test_inventory_junk_carousel_keybinds.lua` | PB-002 — keybind-state Push/Pop, deferred junk-toggle restoration, LB/RB carousel survives a single junk action |
 | `test_inventory_primary_action_inplace_update.lua` | PB-006 — primary-action re-resolution on in-place inventory updates |
 | `test_inventory_control_name_length.lua` | PB-005 — pooled control names stay under the engine's 63-char limit after the `BUI_GpInv` rename |
