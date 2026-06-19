@@ -305,7 +305,6 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
     local function AnimationTick()
         if not IsModuleEnabled() then return end
         local settings = GetLiveSettings()
-        if not settings.orbAnimFlow then return end
 
         local now = GetGameTimeMilliseconds()
         local deltaMs = now - lastAnimTime

@@ -55,8 +55,8 @@ function CooldownUtils.ResolveCooldownWindow(slotIndex, hotbarCategory, canTrack
         return false, 0, 0, stateKey
     end
 
-    local remainMs, durationMs = GetSlotCooldownInfo(slotIndex, hotbarCategory)
-    if remainMs and remainMs > 0 and durationMs and durationMs > COOLDOWN_DURATION_THRESHOLD then
+    local remainMs, durationMs, isGlobalCooldown = GetSlotCooldownInfo(slotIndex, hotbarCategory)
+    if remainMs and remainMs > 0 and durationMs and durationMs > COOLDOWN_DURATION_THRESHOLD and not isGlobalCooldown then
         return true, remainMs, durationMs, stateKey
     end
 

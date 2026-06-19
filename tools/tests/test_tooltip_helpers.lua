@@ -933,6 +933,9 @@ local function newMockControl(controlType)
         _text = "",
         _hidden = false,
         _height = nil,
+        _maxLineCount = nil,
+        _wrapMode = nil,
+        _horizontalAlignment = nil,
         _setFontCalls = 0,
     }
     function control:GetType() return self._type end
@@ -946,10 +949,10 @@ local function newMockControl(controlType)
     function control:SetHidden(hidden) self._hidden = hidden end
     function control:IsHidden() return self._hidden end
     function control:SetHeight(h) self._height = h end
-    function control:SetMaxLineCount(_) end
-    function control:SetWrapMode(_) end
+    function control:SetMaxLineCount(value) self._maxLineCount = value end
+    function control:SetWrapMode(value) self._wrapMode = value end
     function control:SetColor(...) end
-    function control:SetHorizontalAlignment(_) end
+    function control:SetHorizontalAlignment(value) self._horizontalAlignment = value end
     function control:ClearAnchors() self._anchors = {} end
     function control:SetAnchor(point, rel, relPoint, x, y)
         self._anchors[#self._anchors + 1] = { point = point, rel = rel, relPoint = relPoint, x = x, y = y }
@@ -1259,6 +1262,24 @@ assertEqual(1, countOccurrences(reconPriorityText, "Reconstructed"),
     "PB-004: reconstructed precedence wins (one Reconstructed line)")
 assertEqual(0, countOccurrences(reconPriorityText, "Collected"),
     "PB-004: reconstructed item does not also emit the Collected tag")
+
+print("\nTest: PB-015 equipped-status label constrains width and line count for shared inventory/banking tooltips")
+local pb015Surface = buildMockTooltipSurface("PB015", 1)
+pb015Surface.tooltip._betterui_itemLink = "item:set-unlocked"
+BETTERUI.Inventory.UpdateTooltipEquippedText("PB015", nil)
+
+local pb015Status = pb015Surface.container._betterUiStatus
+local leftAnchor = pb015Status and pb015Status._anchors[1]
+local rightAnchor = pb015Status and pb015Status._anchors[2]
+assertEqual(true, pb015Status ~= nil, "PB-015: equipped-status label is created")
+assertEqual(true, pb015Status ~= nil and pb015Status._maxLineCount ~= nil and pb015Status._maxLineCount > 0,
+    "PB-015: equipped-status label uses a bounded line count")
+assertEqual(true, leftAnchor ~= nil and leftAnchor.x ~= 0,
+    "PB-015: equipped-status label keeps left-side padding")
+assertEqual(true, rightAnchor ~= nil and rightAnchor.x ~= 0,
+    "PB-015: equipped-status label keeps right-side padding")
+assertEqual(TEXT_ALIGN_LEFT, pb015Status and pb015Status._horizontalAlignment,
+    "PB-015: equipped-status label remains left aligned when wrapped")
 
 -- --- Compat fix: AddTopLinesToTopSection suppression must be scene-gated ------
 -- The shared GAMEPAD_TOOLTIPS AddTopLinesToTopSection PreHook (Setup.lua) may

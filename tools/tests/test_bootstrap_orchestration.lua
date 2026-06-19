@@ -890,6 +890,11 @@ GAMEPAD_TOOLTIPS = {
 }
 
 ZO_MailInbox_Gamepad = {
+    mainKeybindDescriptor = {},
+    InitializeKeybindDescriptors = function() end,
+}
+
+MAIL_INBOX_GAMEPAD = {
     mainKeybindDescriptor = {
         { keybind = "UI_SHORTCUT_PRIMARY", callback = function() end },
         {
@@ -1032,8 +1037,7 @@ assert_true(storeTooltipControls[GAMEPAD_LEFT_TOOLTIP]._betteruiTopLinesHookInst
     "GeneralInterface.Setup installs native top-line suppression hooks")
 assert_eq(lastChatHistoryLines, 321, "GeneralInterface.Setup reapplies the saved chat history limit")
 
-ZO_MailInbox_Gamepad:InitializeKeybindDescriptors()
-local deleteDescriptor = ZO_MailInbox_Gamepad.mainKeybindDescriptor[2]
+local deleteDescriptor = MAIL_INBOX_GAMEPAD.mainKeybindDescriptor[2]
 deleteDescriptor.callback()
 assert_eq(mailDeleteCalls, 1, "Mail delete hook preserves the native confirmation flow by default")
 

@@ -5,6 +5,56 @@
 local Class = BETTERUI.Inventory.Class
 local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 
+-- Module-level dialog info references; created once and mutated before each show call.
+local _batchDialogInfo = nil
+local _craftBagDialogInfo = nil
+
+-- Shared frame template for both batch dialogs (title, buttons, and gamepadInfo are identical).
+local function BuildBatchDialogTemplate()
+    return {
+        gamepadInfo = {
+            dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
+        },
+        title = {
+            text = function(dialog)
+                local count = dialog and dialog.data and dialog.data.selectedCount or 0
+                return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECTED_COUNT")), count)
+            end,
+        },
+        mainText = {
+            text = GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS_DESC")),
+        },
+        setup = function(dialog)
+            dialog:setupFunc()
+        end,
+        parametricList = {},
+        buttons = {
+            {
+                keybind = "DIALOG_PRIMARY",
+                text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
+                callback = function(dialog)
+                    local selected = dialog.entryList and
+                        BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
+                    if selected and selected.callback then
+                        selected.callback()
+                    end
+                end,
+            },
+            {
+                keybind = "DIALOG_NEGATIVE",
+                text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
+                callback = function()
+                    zo_callLater(function()
+                        if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshKeybinds then
+                            GAMEPAD_INVENTORY:RefreshKeybinds()
+                        end
+                    end, 50)
+                end,
+            },
+        },
+    }
+end
+
 -- MULTI-SELECT MODE (delegates to CIM.MultiSelectMixin)
 -- The mixin is applied during InitializeKeybindStrip (InventoryKeybinds.lua).
 
@@ -56,52 +106,11 @@ function Class:ShowBatchActionsMenu()
         end
     end
 
-    -- Build batch actions dialog
+    -- Build batch actions dialog (registered once through the central dialog seam)
     local dialogName = "BETTERUI_BATCH_ACTIONS_DIALOG"
-
-    if not ESO_Dialogs[dialogName] then
-        ESO_Dialogs[dialogName] = {
-            gamepadInfo = {
-                dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
-            },
-            title = {
-                text = function(dialog)
-                    local count = dialog and dialog.data and dialog.data.selectedCount or 0
-                    return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECTED_COUNT")), count)
-                end,
-            },
-            mainText = {
-                text = GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS_DESC")),
-            },
-            setup = function(dialog)
-                dialog:setupFunc()
-            end,
-            parametricList = {},
-            buttons = {
-                {
-                    keybind = "DIALOG_PRIMARY",
-                    text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
-                    callback = function(dialog)
-                        local selected = dialog.entryList and
-                            BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
-                        if selected and selected.callback then
-                            selected.callback()
-                        end
-                    end,
-                },
-                {
-                    keybind = "DIALOG_NEGATIVE",
-                    text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
-                    callback = function()
-                        zo_callLater(function()
-                            if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshKeybinds then
-                                GAMEPAD_INVENTORY:RefreshKeybinds()
-                            end
-                        end, 50)
-                    end,
-                },
-            },
-        }
+    if not _batchDialogInfo then
+        _batchDialogInfo = BuildBatchDialogTemplate()
+        BETTERUI.CIM.Dialogs.Register(dialogName, _batchDialogInfo)
     end
 
     local parametricList = {}
@@ -141,8 +150,8 @@ function Class:ShowBatchActionsMenu()
         end
     ))
 
-    ESO_Dialogs[dialogName].parametricList = parametricList
-    ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
+    _batchDialogInfo.parametricList = parametricList
+    BETTERUI.CIM.Dialogs.Show(dialogName, { selectedCount = selectedCount })
 end
 
 -- CRAFTBAG MULTI-SELECT MODE
@@ -214,50 +223,9 @@ function Class:ShowCraftBagBatchActionsMenu()
     if selectedCount == 0 then return end
 
     local dialogName = "BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG"
-
-    if not ESO_Dialogs[dialogName] then
-        ESO_Dialogs[dialogName] = {
-            gamepadInfo = {
-                dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
-            },
-            title = {
-                text = function(dialog)
-                    local count = dialog and dialog.data and dialog.data.selectedCount or 0
-                    return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECTED_COUNT")), count)
-                end,
-            },
-            mainText = {
-                text = GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS_DESC")),
-            },
-            setup = function(dialog)
-                dialog:setupFunc()
-            end,
-            parametricList = {},
-            buttons = {
-                {
-                    keybind = "DIALOG_PRIMARY",
-                    text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
-                    callback = function(dialog)
-                        local selected = dialog.entryList and
-                            BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
-                        if selected and selected.callback then
-                            selected.callback()
-                        end
-                    end,
-                },
-                {
-                    keybind = "DIALOG_NEGATIVE",
-                    text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
-                    callback = function()
-                        zo_callLater(function()
-                            if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshKeybinds then
-                                GAMEPAD_INVENTORY:RefreshKeybinds()
-                            end
-                        end, 50)
-                    end,
-                },
-            },
-        }
+    if not _craftBagDialogInfo then
+        _craftBagDialogInfo = BuildBatchDialogTemplate()
+        BETTERUI.CIM.Dialogs.Register(dialogName, _craftBagDialogInfo)
     end
 
     local parametricList = {}
@@ -303,8 +271,8 @@ function Class:ShowCraftBagBatchActionsMenu()
         entryData = deselectEntry,
     })
 
-    ESO_Dialogs[dialogName].parametricList = parametricList
-    ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
+    _craftBagDialogInfo.parametricList = parametricList
+    BETTERUI.CIM.Dialogs.Show(dialogName, { selectedCount = selectedCount })
 end
 
 --- Selects all items in the current craftbag category.

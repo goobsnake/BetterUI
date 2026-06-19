@@ -22,11 +22,12 @@ DT_LOW = 2
 
 local cooldownRemainMs = 0
 local cooldownDurationMs = 0
+local cooldownIsGlobal = false
 local effectRemainingMs = 0
 local nowMs = 1000
 
 function GetSlotCooldownInfo()
-    return cooldownRemainMs, cooldownDurationMs
+    return cooldownRemainMs, cooldownDurationMs, cooldownIsGlobal
 end
 
 function GetActionSlotEffectTimeRemaining()
@@ -150,6 +151,13 @@ do
     assert_eq(remainMs, 2200, "slot cooldown remain is returned")
     assert_eq(durationMs, 3500, "slot cooldown duration is returned")
 
+    cooldownIsGlobal = true
+    showCooldown, remainMs, durationMs = CooldownUtils.ResolveCooldownWindow(4, 2, true)
+    assert_eq(showCooldown, false, "global cooldown is filtered via the API flag")
+    assert_eq(remainMs, 2200, "filtered global cooldown still returns the reported remaining time")
+    assert_eq(durationMs, 3500, "filtered global cooldown still returns the reported duration")
+
+    cooldownIsGlobal = false
     cooldownRemainMs = 400
     cooldownDurationMs = 1000
     effectRemainingMs = 5000

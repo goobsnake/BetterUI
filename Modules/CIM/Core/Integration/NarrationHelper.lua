@@ -164,27 +164,34 @@ function Narration.RegisterListNarration(sceneName, getSelectedDataFn, getTitleF
 
     local narrationInfo = {
         canNarrate = function()
-            return SCENE_MANAGER:GetCurrentSceneName() == sceneName
+            local ok, result = pcall(function()
+                return SCENE_MANAGER:GetCurrentSceneName() == sceneName
+            end)
+            return ok and result or false
         end,
         selectedNarrationFunction = function()
-            local narrations = {}
-            -- Title
-            if getTitleFn then
-                local title = getTitleFn()
-                local titleNarrations = Narration.NarrateSceneTitle(title)
-                for _, n in ipairs(titleNarrations) do
-                    ZO_AppendNarration(narrations, n)
+            local ok, result = pcall(function()
+                local narrations = {}
+                -- Title
+                if getTitleFn then
+                    local title = getTitleFn()
+                    local titleNarrations = Narration.NarrateSceneTitle(title)
+                    for _, n in ipairs(titleNarrations) do
+                        ZO_AppendNarration(narrations, n)
+                    end
                 end
-            end
-            -- Selected item
-            local selectedData = getSelectedDataFn()
-            if selectedData then
-                local itemNarrations = Narration.NarrateItemEntry(selectedData)
-                for _, n in ipairs(itemNarrations) do
-                    ZO_AppendNarration(narrations, n)
+                -- Selected item
+                local selectedData = getSelectedDataFn()
+                if selectedData then
+                    local itemNarrations = Narration.NarrateItemEntry(selectedData)
+                    for _, n in ipairs(itemNarrations) do
+                        ZO_AppendNarration(narrations, n)
+                    end
                 end
-            end
-            return narrations
+                return narrations
+            end)
+            if ok then return result end
+            return {}
         end,
     }
 

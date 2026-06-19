@@ -40,23 +40,53 @@ end
 GeneralInterface.Settings.RegisterPanel = Init
 
 local function InstallMailDeleteHook()
-	BETTERUI.PostHook(ZO_MailInbox_Gamepad, 'InitializeKeybindDescriptors', function(self)
-		for i, descriptor in ipairs(self.mainKeybindDescriptor) do
+	local function HookMailDeleteDescriptor(mailInbox)
+		if type(mailInbox) ~= "table" or type(mailInbox.mainKeybindDescriptor) ~= "table" then
+			return false
+		end
+
+		for _, descriptor in ipairs(mailInbox.mainKeybindDescriptor) do
 			if type(descriptor) == "table" and descriptor.keybind == "UI_SHORTCUT_SECONDARY" then
-				local origCallback = descriptor["callback"]
-				if not origCallback then break end
-				descriptor["callback"] = function()
-					local moduleSettings = BETTERUI.GetModuleSettings("GeneralInterface")
-					if moduleSettings and moduleSettings.removeDeleteDialog then
-						self:Delete()
-					else
-						origCallback()
-					end
+				local origCallback = descriptor.callback
+				if type(origCallback) ~= "function" or descriptor._betteruiDeleteHookInstalled then
+					return descriptor._betteruiDeleteHookInstalled == true
 				end
-				break
+
+				descriptor.callback = function(...)
+					local moduleSettings = BETTERUI.GetModuleSettings("GeneralInterface")
+					if moduleSettings and moduleSettings.removeDeleteDialog and type(mailInbox.Delete) == "function" then
+						return mailInbox:Delete()
+					end
+					return origCallback(...)
+				end
+				descriptor._betteruiDeleteHookInstalled = true
+				return true
 			end
 		end
-	end)
+
+		return false
+	end
+
+	local function InstallOnLiveMailInbox(mailInbox)
+		if type(mailInbox) ~= "table" then
+			return false
+		end
+
+		if type(mailInbox.InitializeKeybindDescriptors) == "function" and not mailInbox._betteruiDeleteDescriptorPreHookInstalled then
+			ZO_PreHook(mailInbox, "InitializeKeybindDescriptors", function(self)
+				HookMailDeleteDescriptor(self)
+			end)
+			mailInbox._betteruiDeleteDescriptorPreHookInstalled = true
+		end
+
+		return HookMailDeleteDescriptor(mailInbox)
+	end
+
+	if InstallOnLiveMailInbox(rawget(_G, "MAIL_INBOX_GAMEPAD")) then
+		return
+	end
+
+	InstallOnLiveMailInbox(rawget(_G, "ZO_MailInbox_Gamepad"))
 end
 
 local function InstallInventoryTooltipHooks(tooltipHelpers)

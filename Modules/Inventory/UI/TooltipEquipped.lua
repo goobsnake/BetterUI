@@ -151,12 +151,13 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
         if not container._betterUiStatus then
             -- Create the label once per container
             local label = WINDOW_MANAGER:CreateControl(nil, container, CT_LABEL)
-            -- MAXIMIZED WIDTH: 0 padding, user requested 60 spacing
             local yOffset = BETTERUI.CIM.CONST.LAYOUT.TOOLTIP.STATUS_LABEL_OFFSET_Y
-            label:SetAnchor(TOPLEFT, container, TOPLEFT, 0, yOffset)
-            label:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0, yOffset) -- Spacing from top of header
-            label:SetMaxLineCount(0)                                   -- Allow unlimited lines
+            local horizontalPadding = 12
+            label:SetAnchor(TOPLEFT, container, TOPLEFT, horizontalPadding, yOffset)
+            label:SetAnchor(TOPRIGHT, container, TOPRIGHT, -horizontalPadding, yOffset)
+            label:SetMaxLineCount(4)
             label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+            label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
             -- Default color (Header Color)
             label:SetColor(ZO_ColorDef:New("D5B526"):UnpackRGBA()) -- Standard Gold header color
             container._betterUiStatus = label

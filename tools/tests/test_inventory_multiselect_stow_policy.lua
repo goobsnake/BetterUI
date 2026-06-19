@@ -56,6 +56,19 @@ BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag = function(_bagId, _slotIndex)
     return stowAllowed
 end
 
+-- InventoryMultiSelect now registers/shows its batch dialogs through the central
+-- CIM dialog seam (INV-001), not ESO_Dialogs directly. Capture the registered info
+-- (by reference, so the later parametricList mutation is observed) and the shown name.
+local registeredDialogInfo = {}
+BETTERUI.CIM.Dialogs = {
+    Register = function(name, info)
+        registeredDialogInfo[name] = info
+    end,
+    Show = function(name, data)
+        recordedDialog = { name = name, data = data }
+    end,
+}
+
 ZO_Dialogs_ShowGamepadDialog = function(name, data)
     recordedDialog = { name = name, data = data }
 end
@@ -103,13 +116,13 @@ print("[Inventory multi-select stow policy]")
 stowAllowed = false
 recordedDialog = nil
 inventory:ShowBatchActionsMenu()
-local entries = recordedDialog and ESO_Dialogs[recordedDialog.name] and ESO_Dialogs[recordedDialog.name].parametricList or {}
+local entries = recordedDialog and registeredDialogInfo[recordedDialog.name] and registeredDialogInfo[recordedDialog.name].parametricList or {}
 assert_equal(#entries, 2, "policy-denied selection omits stow batch action")
 
 stowAllowed = true
 recordedDialog = nil
 inventory:ShowBatchActionsMenu()
-entries = recordedDialog and ESO_Dialogs[recordedDialog.name] and ESO_Dialogs[recordedDialog.name].parametricList or {}
+entries = recordedDialog and registeredDialogInfo[recordedDialog.name] and registeredDialogInfo[recordedDialog.name].parametricList or {}
 assert_equal(#entries, 3, "policy-allowed selection includes stow batch action")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
