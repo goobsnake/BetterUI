@@ -28,6 +28,8 @@ end
 BETTERUI = {
     CIM = {
         UI = {},
+        -- Production loads SafeExecute before CIM/UI; stub it for the harness.
+        SafeExecute = function(_, fn, ...) return pcall(fn, ...) end,
     },
 }
 

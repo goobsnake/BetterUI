@@ -15,6 +15,8 @@ Usage:
 -- ============================================================================
 
 BETTERUI = { CIM = {} }
+-- Production loads SafeExecute before HeaderNavigation; stub it for the harness.
+BETTERUI.CIM.SafeExecute = function(_, fn, ...) return pcall(fn, ...) end
 BETTERUI.CIM.CONST = { TIMING = { CATEGORY_CHANGE_DELAY_MS = 50 } }
 BETTERUI.CIM.Utils = { WrapValue = function(v, count) return v end }
 

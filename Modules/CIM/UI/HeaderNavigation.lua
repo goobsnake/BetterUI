@@ -21,7 +21,7 @@ function BETTERUI.CIM.HeaderNavigation.CycleCategory(instance, delta, options)
 
     local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(instance)
     local count = #options.categories
-    local currentIdx = options.getCurrentIndex()
+    local currentIdx = options.getCurrentIndex() or 1
     local newIdx = BETTERUI.CIM.Utils.WrapValue(currentIdx + delta, count)
 
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "cycleCategory", { delta = delta, prevIdx = currentIdx, newIdx = newIdx }) end
@@ -61,7 +61,7 @@ function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
 
         -- Save position BEFORE switching (unless CycleCategory already did)
         if not NavState.IsCycling(state) and options.onSave then
-            options.onSave(instance)
+            BETTERUI.CIM.SafeExecute("HeaderNavigation:onSave", options.onSave, instance)
         end
 
         -- Capture pending index - don't update immediately to prevent corruption
@@ -96,7 +96,7 @@ function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
             end
 
             if options.onApply then
-                options.onApply(instance, pendingCategoryIndex)
+                BETTERUI.CIM.SafeExecute("HeaderNavigation:onApply", options.onApply, instance, pendingCategoryIndex)
             end
         end, delay)
     end

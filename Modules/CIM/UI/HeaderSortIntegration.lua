@@ -91,7 +91,7 @@ local function AssignController(integration, controller)
     integration.controller = controller
 
     if integration.callbacks.onControllerCreated then
-        integration.callbacks.onControllerCreated(owner, controller, ResolveList(integration))
+        BETTERUI.CIM.SafeExecute("HeaderSortIntegration:onControllerCreated", integration.callbacks.onControllerCreated, owner, controller, ResolveList(integration))
     end
 
     return controller
@@ -347,7 +347,7 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
     end
 
     if integration.callbacks.onEnterHeaderMode then
-        integration.callbacks.onEnterHeaderMode(owner, controller, list)
+        BETTERUI.CIM.SafeExecute("HeaderSortIntegration:onEnterHeaderMode", integration.callbacks.onEnterHeaderMode, owner, controller, list)
     end
 
     return true
@@ -411,7 +411,7 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
     end
 
     if integration.callbacks.onExitHeaderMode then
-        integration.callbacks.onExitHeaderMode(owner, controller)
+        BETTERUI.CIM.SafeExecute("HeaderSortIntegration:onExitHeaderMode", integration.callbacks.onExitHeaderMode, owner, controller)
     end
 
     return true

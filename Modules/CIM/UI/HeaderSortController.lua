@@ -127,7 +127,7 @@ function BETTERUI.CIM.UI.HeaderSortController:ClearSort()
         self:UpdateVisuals()
 
         if self.onSortChangedCallback and clearedColumn then
-            self.onSortChangedCallback(clearedColumn.key, SORT_DIRECTION.NONE, clearedColumn.sortFn)
+            BETTERUI.CIM.SafeExecute("HeaderSortController:onSortChangedCallback", self.onSortChangedCallback, clearedColumn.key, SORT_DIRECTION.NONE, clearedColumn.sortFn)
         end
         return true
     end
@@ -185,9 +185,10 @@ function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
     self.sortDirections[columnIndex] = newDirection
     self:UpdateVisuals()
 
+    local callbackColumn = self.columns[columnIndex]
+    if not callbackColumn then return false end
     if self.onSortChangedCallback then
-        local callbackColumn = self.columns[columnIndex]
-        self.onSortChangedCallback(callbackColumn.key, newDirection, callbackColumn.sortFn)
+        BETTERUI.CIM.SafeExecute("HeaderSortController:onSortChangedCallback", self.onSortChangedCallback, callbackColumn.key, newDirection, callbackColumn.sortFn)
     end
 
     return true
@@ -217,7 +218,7 @@ function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
     end
     for i, column in ipairs(self.columns) do
         if column.labelControl then
-            local baseName = column.originalText or column.name
+            local baseName = column.originalText or column.name or ""
             local direction = self.sortDirections[i]
             local isSelected = self.isHeaderModeActive and (i == self.currentColumnIndex)
 
@@ -257,7 +258,7 @@ function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelC
     column.labelControl = labelControl
 
     local originalText = labelControl:GetText()
-    if originalText and originalText ~= "" then
+    if originalText and originalText ~= "" and not column.originalText then
         column.originalText = originalText
     end
 
