@@ -132,8 +132,8 @@ assert_true(marketIntegration:find("marketPricePriority") ~= nil,
     "MarketIntegration reads the shared market price priority setting")
 
 local narrationHelper = read_file("Modules/CIM/Core/Integration/NarrationHelper.lua")
-assert_true(narrationHelper:find("BETTERUI%.CIM%.Narration = %{%}") ~= nil,
-    "NarrationHelper initializes the shared narration table")
+assert_true(narrationHelper:find("BETTERUI%.CIM%.Narration = BETTERUI%.CIM%.Narration or %{%}") ~= nil,
+    "NarrationHelper initializes the shared narration table idempotently (preserves an existing namespace)")
 assert_true(narrationHelper:find("function Narration%.RegisterBankingModeLabels%(labelsByMode%)") ~= nil,
     "NarrationHelper exposes RegisterBankingModeLabels")
 assert_true(narrationHelper:find("function Narration%.NarrateBankingMode%(mode%)") ~= nil,

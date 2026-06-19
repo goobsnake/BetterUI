@@ -15,7 +15,9 @@ USAGE:
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
-BETTERUI.CIM.Narration = {}
+-- Preserve an existing namespace across reload / load-order variance instead of
+-- clobbering it (SEC-L1: global hygiene).
+BETTERUI.CIM.Narration = BETTERUI.CIM.Narration or {}
 
 local Narration = BETTERUI.CIM.Narration
 local bankingModeLabels = {}

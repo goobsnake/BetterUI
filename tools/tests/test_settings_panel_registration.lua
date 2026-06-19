@@ -39,6 +39,21 @@ function BETTERUI.Debug(message)
     debugMessages[#debugMessages + 1] = message
 end
 
+-- The settings registration helpers route their diagnostics through
+-- BETTERUI.Log.Warn (the unified logger), not BETTERUI.Debug. Capture those warns
+-- so the registration-trace assertions below observe them. Mirrors the production
+-- seam in Modules/CIM/Core/Settings/SettingsAccessor.lua (TryRegisterModulePanel /
+-- RegisterModulePanelWithLogging).
+-- Warn captures into debugMessages (the registration-trace assertions watch it);
+-- every other level method no-ops, and CATEGORY.<X> resolves to "X", so the stub
+-- tracks the live Log surface without the tests needing to enumerate it.
+BETTERUI.Log = setmetatable({
+    CATEGORY = setmetatable({}, { __index = function(_, key) return key end }),
+    Warn = function(_category, message)
+        debugMessages[#debugMessages + 1] = message
+    end,
+}, { __index = function() return function() end end })
+
 local function assert_equal(expected, actual, message)
     if expected == actual then
         passed = passed + 1
