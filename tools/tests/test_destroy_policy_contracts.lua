@@ -242,6 +242,45 @@ do
     assert_false(okUnjunk, "ItemActionHandlers fails closed with assertion when CIM.ProtectionPolicy is missing for unjunk policy")
 end
 
+-- Test contract for Policy.CanDestroyItem fail-closed behavior around the engine probe.
+do
+    BETTERUI = {
+        CIM = {
+            BatchConfig = { HasItemAtSlot = function() return true end },
+        },
+    }
+    function IsItemPlayerLocked() return false end
+
+    loadfile("Modules/CIM/Actions/ProtectionPolicy.lua")()
+    local Policy = BETTERUI.CIM.ProtectionPolicy
+    assert_true(type(Policy.CanDestroyItem) == "function", "ProtectionPolicy exposes CanDestroyItem")
+
+    -- Engine destroy probe unavailable -> fail-closed (no irreversible destroy authorized).
+    ZO_InventorySlot_CanDestroyItem = nil
+    local allowed, reason = Policy.CanDestroyItem(1, 2, 7)
+    assert_false(allowed, "CanDestroyItem denies when ZO_InventorySlot_CanDestroyItem is unavailable")
+    assert_true(reason == Policy.DENY.NO_DESTROY_PROBE, "fail-closed reason is NO_DESTROY_PROBE")
+
+    -- Probe present and approves -> allowed.
+    ZO_InventorySlot_CanDestroyItem = function() return true end
+    allowed = Policy.CanDestroyItem(1, 2, 7)
+    assert_true(allowed, "CanDestroyItem allows an unlocked item with slotType when the probe approves")
+
+    -- Probe present and rejects -> denied (NO_ITEM).
+    ZO_InventorySlot_CanDestroyItem = function() return false end
+    allowed, reason = Policy.CanDestroyItem(1, 2, 7)
+    assert_false(allowed, "CanDestroyItem denies when the probe rejects the slot")
+    assert_true(reason == Policy.DENY.NO_ITEM, "probe-reject reason is NO_ITEM")
+
+    -- Missing slotType -> denied NO_SLOT_TYPE (the probe cannot run without it).
+    ZO_InventorySlot_CanDestroyItem = function() return true end
+    allowed, reason = Policy.CanDestroyItem(1, 2, nil)
+    assert_false(allowed, "CanDestroyItem denies when slotType is nil")
+    assert_true(reason == Policy.DENY.NO_SLOT_TYPE, "nil slotType reason is NO_SLOT_TYPE")
+
+    ZO_InventorySlot_CanDestroyItem = nil
+end
+
 print(string.format("test_destroy_policy_contracts.lua: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)

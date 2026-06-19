@@ -433,6 +433,13 @@ function BETTERUI.Banking.Class:SelectAllItems()
 
     ZO_Dialogs_ReleaseDialog("BETTERUI_BANKING_BATCH_ACTIONS_DIALOG")
     zo_callLater(function()
+        -- The scene may have closed (or selection mode exited) during the delay;
+        -- don't refresh/re-key/re-open the dialog against a dead scene.
+        if not (self.multiSelectManager and self.multiSelectManager:IsActive()) then return end
+        if BETTERUI.Utils and BETTERUI.Utils.IsBankingSceneShowing
+            and not BETTERUI.Utils.IsBankingSceneShowing() then
+            return
+        end
         self:RefreshList()
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
         self:ShowBatchActionsMenu()

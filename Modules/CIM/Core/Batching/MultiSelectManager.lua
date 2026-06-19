@@ -514,6 +514,13 @@ function Manager:RefreshSelections()
         end
 
         if matchedData then
+            -- Preserve the slot-identity stamp captured at selection time. Without
+            -- this, a list refresh swaps in fresh list data that has no
+            -- expectedSlotIdentity, silently disabling the batch-action identity
+            -- re-validation (BatchActions only validates when the stamp is present).
+            if matchedData.expectedSlotIdentity == nil and itemData.expectedSlotIdentity ~= nil then
+                matchedData.expectedSlotIdentity = itemData.expectedSlotIdentity
+            end
             refreshedSelectedItems[primaryKey] = matchedData
             refreshedAliases[primaryKey] = primaryKey
             for _, key in ipairs(self:GetItemSelectionKeys(matchedData)) do

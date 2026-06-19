@@ -34,11 +34,16 @@ Fields:
 -- before InitializeKeybind) without the group silently dropping to {nil}.
 local function ResolveKeybindGroups(config)
     if config.keybindsResolver then
-        local groups = config.keybindsResolver()
-        if type(groups) == "table" then return groups end
+        -- Protect against a throwing resolver so show/hide cleanup still proceeds.
+        local ok, groups = pcall(config.keybindsResolver)
+        if ok and type(groups) == "table" then return groups end
+        if not ok and BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SCENE, "[SceneLifecycle] keybindsResolver failed", { error = tostring(groups) })
+        end
         return {}
     end
-    return config.keybinds or {}
+    if type(config.keybinds) == "table" then return config.keybinds end
+    return {}
 end
 
 local function BuildStateChangeHandler(screen, config)
@@ -55,7 +60,7 @@ local function BuildStateChangeHandler(screen, config)
         if newState == SCENE_SHOWING then
             local showingGroups = ResolveKeybindGroups(config)
             for _, group in ipairs(showingGroups) do
-                KEYBIND_STRIP:AddKeybindButtonGroup(group)
+                BETTERUI.CIM.SafeExecute("SceneLifecycle:addKeybind", function() KEYBIND_STRIP:AddKeybindButtonGroup(group) end)
             end
             local wasPushed = (oldState == SCENE_HIDDEN)
             if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "sceneShowing", { scene = sceneName, wasPushed = wasPushed, keybindGroups = #showingGroups }) end
@@ -65,11 +70,11 @@ local function BuildStateChangeHandler(screen, config)
         elseif newState == SCENE_HIDING then
             local hidingGroups = ResolveKeybindGroups(config)
             for _, group in ipairs(hidingGroups) do
-                KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+                BETTERUI.CIM.SafeExecute("SceneLifecycle:removeKeybind", function() KEYBIND_STRIP:RemoveKeybindButtonGroup(group) end)
             end
             if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "sceneHiding", { scene = sceneName, keybindGroups = #hidingGroups }) end
             if config.taskManager and config.taskManager.CancelAll then
-                config.taskManager:CancelAll()
+                BETTERUI.CIM.SafeExecute("SceneLifecycle:cancelTasks", function() config.taskManager:CancelAll() end)
             end
             if config.onHiding then
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onHiding", config.onHiding, screen)
@@ -77,7 +82,7 @@ local function BuildStateChangeHandler(screen, config)
         elseif newState == SCENE_HIDDEN then
             if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "sceneHidden", { scene = sceneName, eventRegistryModule = config.eventRegistryModule }) end
             if config.eventRegistryModule and BETTERUI.CIM.EventRegistry then
-                BETTERUI.CIM.EventRegistry.UnregisterAll(config.eventRegistryModule)
+                BETTERUI.CIM.SafeExecute("SceneLifecycle:unregisterEvents", function() BETTERUI.CIM.EventRegistry.UnregisterAll(config.eventRegistryModule) end)
             end
             if config.onHidden then
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onHidden", config.onHidden, screen)
@@ -90,6 +95,10 @@ function BETTERUI.CIM.SceneLifecycle.CreateStateChangeHandler(screen, config)
     if not screen then
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SCENE, "[SceneLifecycle] No screen provided") end
         return nil
+    end
+    if config ~= nil and type(config) ~= "table" then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SCENE, "[SceneLifecycle] Invalid config type") end
+        config = nil
     end
 
     return BuildStateChangeHandler(screen, config)
@@ -134,7 +143,12 @@ function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
         return
     end
 
-    scene:RegisterCallback("StateChange", stateChangeHandler)
+    if scene.RegisterCallback then
+        scene:RegisterCallback("StateChange", stateChangeHandler)
+    else
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SCENE, "[SceneLifecycle] Scene does not support RegisterCallback") end
+        return
+    end
     screen._sceneLifecycleHandle = { scene = scene, handler = stateChangeHandler }
     return stateChangeHandler
 end

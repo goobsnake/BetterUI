@@ -17,6 +17,7 @@ local Policy = BETTERUI.CIM.ProtectionPolicy
 Policy.DENY = {
     NO_ITEM         = "no_item",
     NO_SLOT_TYPE    = "no_slot_type",
+    NO_DESTROY_PROBE = "no_destroy_probe",
     PLAYER_LOCKED   = "player_locked",
     STOLEN          = "stolen",
     BOUND           = "bound",
@@ -151,15 +152,26 @@ function Policy.CanDestroyItem(bagId, slotIndex, slotType)
         end
         return false, Policy.DENY.NO_SLOT_TYPE
     end
-    if ZO_InventorySlot_CanDestroyItem then
-        local destroyProbe = {
-            slotType = slotType,
-            bagId = bagId,
-            slotIndex = slotIndex,
-        }
-        if not ZO_InventorySlot_CanDestroyItem(destroyProbe) then
-            return false, Policy.DENY.NO_ITEM
+    -- Fail-closed: the engine destroy-eligibility probe is the REQUIRED safety gate
+    -- (see the slotType comment above). If the probe global is unavailable we cannot
+    -- verify eligibility for an irreversible destroy, so DENY rather than authorize
+    -- blindly. In production this global is always present, so this only hardens the
+    -- degraded/early-load path.
+    if not ZO_InventorySlot_CanDestroyItem then
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(
+                BETTERUI.Log.CATEGORY.ACTION,
+                "CanDestroyItem: ZO_InventorySlot_CanDestroyItem unavailable; destroy DENIED (fail-closed)")
         end
+        return false, Policy.DENY.NO_DESTROY_PROBE
+    end
+    local destroyProbe = {
+        slotType = slotType,
+        bagId = bagId,
+        slotIndex = slotIndex,
+    }
+    if not ZO_InventorySlot_CanDestroyItem(destroyProbe) then
+        return false, Policy.DENY.NO_ITEM
     end
     return true
 end

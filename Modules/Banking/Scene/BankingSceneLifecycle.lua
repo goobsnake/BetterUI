@@ -226,6 +226,20 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "OnSceneHidden")
     end
+
+    -- PB-016: the Banking refresh manager lives at module scope, so the in-scope
+    -- SceneCleanup teardown does not reach it. Cancel any in-flight coalesced
+    -- refresh here so it cannot fire after the scene is gone.
+    if BETTERUI.Banking.RefreshManager and BETTERUI.Banking.RefreshManager.Cancel then
+        BETTERUI.Banking.RefreshManager:Cancel()
+    end
+
+    -- Exit multi-select so the shared active-instance / global selection state is
+    -- not left stale after leaving Banking.
+    if self.multiSelectManager and self.multiSelectManager:IsActive() then
+        self.multiSelectManager:ExitSelectionMode()
+    end
+
     local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     BETTERUI.Banking.SetRuntimeBankBags(nil, transferContext.interactionBag)
     if self.confirmationMode then
