@@ -1,4 +1,18 @@
-Current Release - v3.06 Changes:
+Current Release - v3.07 Changes:
+
+[INDENT]DIAGNOSTICS & LOGGING:
+1. Added: Named log-level presets for in-game troubleshooting — /builog preset off|debug|verbose. "debug" captures warnings, errors, and swallowed pcall/nil-function faults at low volume; "verbose" captures everything including data payloads.
+2. Improved: Verbose logging is now frame-safe — the Interface.log writer enforces a per-frame/second budget and drops then summarizes overflow, so heavy logging can no longer hitch the game.
+3. Improved: Instrumented hot paths now cost nothing while logging is off — the logger pre-checks whether a record would be kept (and offers lazy payload builders) before formatting anything.
+4. Fixed: Several hot-path log calls (vendor store input sweep, resource-orb combat updates, item-tooltip hover) now build their data only when logging is active, and swallowed "no function provided" faults are surfaced through the unified logger.
+
+CORE & COMPATIBILITY:
+5. Improved: Optional market and category addons (MasterMerchant, ArkadiusTradeTools, TamrielTradeCentre, AutoCategory) are now fully isolated — a missing, changed, or erroring third-party addon can no longer crash BetterUI list rendering.
+6. Improved: Saved settings are validated and migrated on load, so corrupt or missing saved data falls back to safe defaults instead of faulting during startup.
+[/INDENT]
+
+
+v3.06 Changes:
 
 [INDENT]INVENTORY:
 1. Fixed: Multi-select item tracking now survives list rebuilds and item-wrapper changes by resolving selections through both uniqueId and bag/slot aliases
