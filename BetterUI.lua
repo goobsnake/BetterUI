@@ -481,14 +481,71 @@ local function DeepCopySettingsTable(source)
 	return copy
 end
 
+-- Schema-version key stamped onto loaded saved-vars tables so the migration
+-- gate can detect pre-migration data. Kept distinct from ZO_SavedVars' own
+-- internal "version" field so the two version mechanisms never collide.
+local SAVED_VARS_SCHEMA_VERSION_KEY = "_schemaVersion"
+
+--- Validate a loaded saved-vars value and normalize it into a usable table so
+--- downstream indexing (useAccountWide/firstInstall/Modules) can never fault on
+--- nil or malformed (non-table) saved data.
+---@param result any The raw value returned by the loader.
+---@return table normalized A guaranteed table with a Modules sub-table.
+local function NormalizeSavedVars(result)
+	-- On nil/malformed data substitute an independent deep copy so SavedVars and
+	-- GlobalVars never alias the same DefaultSettings table.
+	if type(result) ~= "table" then
+		result = DeepCopySettingsTable(BETTERUI.DefaultSettings)
+	end
+	if type(result.Modules) ~= "table" then
+		result.Modules = {}
+	end
+	return result
+end
+
+--- Migration gate: backfill defaults and stamp the current schema version when
+--- the saved table is absent a version or predates SAVED_VARS_SCHEMA_VERSION.
+--- Structured extension point — future schema changes branch on storedVersion
+--- here; the default-merge below keeps newly added default keys present on
+--- previously saved tables. Operates on an already-normalized table.
+---@param savedVars table The validated saved-vars table to migrate in place.
+---@return table savedVars The same table, migrated and version-stamped.
+local function MigrateSavedVars(savedVars)
+	local storedVersion = savedVars[SAVED_VARS_SCHEMA_VERSION_KEY]
+	if type(storedVersion) == "number" and storedVersion >= SAVED_VARS_SCHEMA_VERSION then
+		return savedVars
+	end
+
+	-- (no-op for now — slot ordered migration steps here, gated on storedVersion)
+
+	-- Default-merge: fill any keys present in DefaultSettings but missing from
+	-- the saved table, without overwriting existing user state.
+	for key, value in pairs(BETTERUI.DefaultSettings) do
+		if savedVars[key] == nil then
+			if type(value) == "table" then
+				savedVars[key] = DeepCopySettingsTable(value)
+			else
+				savedVars[key] = value
+			end
+		end
+	end
+
+	savedVars[SAVED_VARS_SCHEMA_VERSION_KEY] = SAVED_VARS_SCHEMA_VERSION
+	return savedVars
+end
+
 local function LoadSavedVarsWithFallback(loaderName, loader)
 	local ok, result = pcall(loader, ZO_SavedVars, "BetterUISavedVars", SAVED_VARS_SCHEMA_VERSION, nil, BETTERUI.DefaultSettings)
 	if not ok then
 		BETTERUI.DebugError(string.format("[SavedVars] %s failed, using defaults: %s", loaderName, tostring(result)))
+		result = nil
+	elseif type(result) ~= "table" then
+		BETTERUI.DebugError(string.format("[SavedVars] %s returned %s, using defaults", loaderName, type(result)))
+		result = nil
 	end
-	-- On failure return an independent deep copy so SavedVars and GlobalVars
-	-- never alias the same DefaultSettings table when both loaders fail.
-	return ok and result or DeepCopySettingsTable(BETTERUI.DefaultSettings)
+	-- Validate/normalize before use, then run the migration gate so the returned
+	-- table is always a usable, version-stamped settings store.
+	return MigrateSavedVars(NormalizeSavedVars(result))
 end
 
 local function ShouldSetupKeyboardModeModule(entry)
