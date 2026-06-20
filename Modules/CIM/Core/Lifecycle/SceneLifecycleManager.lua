@@ -104,18 +104,36 @@ function BETTERUI.CIM.SceneLifecycle.CreateStateChangeHandler(screen, config)
     return BuildStateChangeHandler(screen, config)
 end
 
---- Unregisters a previously-registered lifecycle StateChange handler.
---- Safe to call when nothing is registered (no-op).
+--- Unregisters previously-registered lifecycle StateChange handlers for a screen.
+--- A screen can drive MORE THAN ONE scene (e.g. the bank window owns both the
+--- personal and guild-bank scenes), so handlers are tracked per scene. Pass a
+--- specific `scene` to unregister just that one; omit it to unregister all of the
+--- screen's handlers. Safe to call when nothing is registered (no-op).
 ---@param screen table
+---@param scene table|nil  Specific scene to unregister; nil unregisters all.
 ---@return nil
-function BETTERUI.CIM.SceneLifecycle.Unregister(screen)
+function BETTERUI.CIM.SceneLifecycle.Unregister(screen, scene)
     if not screen then return end
-    local handle = screen._sceneLifecycleHandle
-    if not handle then return end
-    if handle.scene and handle.scene.UnregisterCallback then
-        handle.scene:UnregisterCallback("StateChange", handle.handler)
+    local handles = screen._sceneLifecycleHandles
+    if not handles then return end
+
+    local function drop(s)
+        local handle = handles[s]
+        if not handle then return end
+        if handle.scene and handle.scene.UnregisterCallback then
+            handle.scene:UnregisterCallback("StateChange", handle.handler)
+        end
+        handles[s] = nil
     end
-    screen._sceneLifecycleHandle = nil
+
+    if scene then
+        drop(scene)
+    else
+        -- Collect keys before mutating the table we iterate.
+        local scenes = {}
+        for s in pairs(handles) do scenes[#scenes + 1] = s end
+        for _, s in ipairs(scenes) do drop(s) end
+    end
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "lifecycleUnregister", {}) end
 end
 
@@ -131,11 +149,17 @@ function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
         return
     end
 
-    -- Guard against double-registration: a re-init (e.g. reloadui or re-entry)
-    -- would otherwise stack StateChange handlers, doubling onShowing/onHiding and
-    -- the keybind add/remove + task CancelAll work. Tear down the prior handle first.
-    if screen._sceneLifecycleHandle then
-        BETTERUI.CIM.SceneLifecycle.Unregister(screen)
+    screen._sceneLifecycleHandles = screen._sceneLifecycleHandles or {}
+
+    -- Guard against double-registration FOR THIS SCENE: a re-init (e.g. reloadui or
+    -- re-entry) would otherwise stack StateChange handlers on the same scene. Tear
+    -- down only the prior handle for THIS scene, leaving handlers the screen
+    -- registered for OTHER scenes intact. A single screen can own several scenes --
+    -- the bank window drives BOTH the personal and guild-bank scenes -- so the old
+    -- screen-keyed guard clobbered a sibling scene's handler, silently breaking that
+    -- scene's lifecycle (no OnSceneShowing -> no content/backdrop -> empty window).
+    if screen._sceneLifecycleHandles[scene] then
+        BETTERUI.CIM.SceneLifecycle.Unregister(screen, scene)
     end
 
     local stateChangeHandler = BETTERUI.CIM.SceneLifecycle.CreateStateChangeHandler(screen, config)
@@ -149,6 +173,6 @@ function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SCENE, "[SceneLifecycle] Scene does not support RegisterCallback") end
         return
     end
-    screen._sceneLifecycleHandle = { scene = scene, handler = stateChangeHandler }
+    screen._sceneLifecycleHandles[scene] = { scene = scene, handler = stateChangeHandler }
     return stateChangeHandler
 end

@@ -79,6 +79,9 @@ local function MockScene()
     function scene:RegisterCallback(event, fn)
         self._callbacks[event] = fn
     end
+    function scene:UnregisterCallback(event, fn)
+        if self._callbacks[event] == fn then self._callbacks[event] = nil end
+    end
     function scene:triggerStateChange(oldState, newState)
         if self._callbacks["StateChange"] then
             self._callbacks["StateChange"](oldState, newState)
@@ -231,6 +234,38 @@ scene8:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
 scene8:triggerStateChange(SCENE_HIDING, SCENE_HIDDEN)
 tests_passed = tests_passed + 1
 print("  [OK] Empty config handles all states without crash")
+
+-- Test 9: one screen driving TWO scenes keeps BOTH lifecycles. Regression for the
+-- guild-bank registration clobbering the personal bank scene's handler, which left
+-- the bank scene with no OnSceneShowing -> no content/backdrop -> empty window.
+print("\nTest: a second scene on the same screen does not clobber the first")
+reset()
+do
+    local sceneA = MockScene()
+    local sceneB = MockScene()
+    local screenMulti = { scene = sceneA }
+    local aShowing, bShowing = 0, 0
+    BETTERUI.CIM.SceneLifecycle.Register(screenMulti, { onShowing = function() aShowing = aShowing + 1 end })
+    screenMulti.scene = sceneB
+    BETTERUI.CIM.SceneLifecycle.Register(screenMulti, { onShowing = function() bShowing = bShowing + 1 end })
+    sceneA:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    sceneB:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    assert_equal(1, aShowing, "first scene's lifecycle still fires after a second is registered")
+    assert_equal(1, bShowing, "second scene's lifecycle fires")
+end
+
+-- Test 10: re-registering the SAME scene on a screen replaces (does not stack).
+print("\nTest: re-registering the same scene does not stack handlers")
+reset()
+do
+    local sceneR = MockScene()
+    local screenR = { scene = sceneR }
+    local count = 0
+    BETTERUI.CIM.SceneLifecycle.Register(screenR, { onShowing = function() count = count + 1 end })
+    BETTERUI.CIM.SceneLifecycle.Register(screenR, { onShowing = function() count = count + 1 end })
+    sceneR:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    assert_equal(1, count, "same-scene re-registration replaces rather than stacks")
+end
 
 -- ============================================================================
 -- SUMMARY
