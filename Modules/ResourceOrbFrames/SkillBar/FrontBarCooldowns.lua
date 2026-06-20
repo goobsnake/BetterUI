@@ -31,14 +31,42 @@ local function SetIconDesaturation(iconControl, desaturation)
     end
 end
 
---- Starts a radial cooldown only when the duration changes (i.e. a new
---- cooldown window), avoiding per-frame reset churn that freezes the radial
---- animation in the non-gamepad cooldown hot path.
+--- Pure decision for StartCooldownIfChanged (HUD-005): a radial restart is
+--- needed when a NEW cooldown window begins — either the duration changed, or
+--- the same duration was refreshed and the remaining time jumped back up (e.g. a
+--- proc or early recast re-applies the cooldown before it ended). Without the
+--- remain check the radial keeps animating the old, advanced window while the
+--- timer text shows the refreshed value. The +100ms margin ignores normal
+--- per-frame downward drift and minor upward API corrections, so the radial is
+--- not restarted every tick.
+---@param appliedDurationMs number|nil Duration of the currently-animating radial
+---@param lastSeenRemainMs number|nil Remaining time observed on the previous tick
+---@param durationMs number New cooldown duration
+---@param remainMs number New remaining cooldown time
+---@return boolean restart Whether the radial cooldown must be (re)started
+local function ShouldRestartRadialCooldown(appliedDurationMs, lastSeenRemainMs, durationMs, remainMs)
+    if appliedDurationMs ~= durationMs then
+        return true
+    end
+    if lastSeenRemainMs ~= nil and remainMs > lastSeenRemainMs + 100 then
+        return true
+    end
+    return false
+end
+
+--- Starts a radial cooldown only when a new cooldown window begins (a duration
+--- change or a same-duration refresh), avoiding per-frame reset churn that would
+--- freeze the radial animation in the non-gamepad cooldown hot path. The last
+--- observed remaining time is latched every tick so a refresh (remaining jumps
+--- up) is detected against the previous frame, not the value at last start.
 ---@param cooldown table Cooldown control
 ---@param remainMs number Remaining cooldown milliseconds
 ---@param durationMs number Total cooldown duration milliseconds
 local function StartCooldownIfChanged(cooldown, remainMs, durationMs)
-    if cooldown.appliedCooldownDurationMs == durationMs then
+    local restart = ShouldRestartRadialCooldown(
+        cooldown.appliedCooldownDurationMs, cooldown.lastSeenCooldownRemainMs, durationMs, remainMs)
+    cooldown.lastSeenCooldownRemainMs = remainMs
+    if not restart then
         return
     end
     cooldown.appliedCooldownDurationMs = durationMs
@@ -278,6 +306,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
                         cooldown.appliedHidden = true
                         cooldown:SetHidden(true)
                         cooldown.appliedCooldownDurationMs = nil
+                        cooldown.lastSeenCooldownRemainMs = nil
                     end
                     local percentComplete = CooldownUtils.ApplyLinearVisuals(cooldownEdge, cooldownOverlay, btn, visualRemainMs, durationMs)
                     if iconControl then
@@ -341,6 +370,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
                         cooldown:SetHidden(true)
                     end
                     cooldown.appliedCooldownDurationMs = nil
+                    cooldown.lastSeenCooldownRemainMs = nil
                 end
                 if timerText and timerText.appliedHidden ~= true then
                     timerText.appliedHidden = true
@@ -386,3 +416,6 @@ end
 SkillBar.UpdateFrontBarCooldowns = UpdateFrontBarCooldowns
 SkillBar.AnchorQuickslotCountText = AnchorQuickslotCountText
 SkillBar.UpdateQuickslotCountAndEmptyState = UpdateQuickslotCountAndEmptyState
+-- Exported for unit tests (HUD-005 radial restart-on-refresh logic).
+SkillBar.ShouldRestartRadialCooldown = ShouldRestartRadialCooldown
+SkillBar.StartCooldownIfChanged = StartCooldownIfChanged
