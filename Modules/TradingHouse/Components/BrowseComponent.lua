@@ -142,7 +142,28 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
         if TRADING_HOUSE_SEARCH and TRADING_HOUSE_SEARCH.features and TRADING_HOUSE_SEARCH.ApplyFilters then
             local IS_PERFORMING_SEARCH = true
             TRADING_HOUSE_SEARCH:ApplyFilters(IS_PERFORMING_SEARCH)
+            -- Apply any filters that have no native browse feature (e.g. level
+            -- range) after the native features have reset/applied their state.
+            if TH.BrowseFilters and TH.BrowseFilters.ApplyPendingFilters then
+                TH.BrowseFilters.ApplyPendingFilters(TRADING_HOUSE_SEARCH)
+            end
         end
+    end
+
+    -- A name-text filter starts an async MatchTradingHouseItemNames; dispatching
+    -- the search before it resolves drops the name filter from the first search
+    -- (TRC-003). Mirror native (tradinghouse_shared.lua:529): when the search
+    -- can't run yet (pending name match / cooldown), defer to DoSearchWhenReady
+    -- so it auto-dispatches once ready, with the name filter applied. Guarded by
+    -- method existence so non-native/test environments fall through unchanged.
+    if not useLastExecutedSearchFilters
+        and TRADING_HOUSE_SEARCH
+        and TRADING_HOUSE_SEARCH.CanPerformSearch
+        and TRADING_HOUSE_SEARCH.DoSearchWhenReady
+        and not TRADING_HOUSE_SEARCH:CanPerformSearch() then
+        Browse.searchPending = true
+        TRADING_HOUSE_SEARCH:DoSearchWhenReady()
+        return true
     end
 
     Browse.searchPending = true

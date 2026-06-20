@@ -338,6 +338,32 @@ function TH.RegisterCreateListingDialog()
                     end,
                 },
             },
+            {
+                template = "ZO_GamepadGuildStoreBrowseSelectableEntryTemplate",
+                text = GetString(rawget(_G, "SI_BETTERUI_TH_DIGIT_PRICE") or "Enter Exact Price"),
+                templateData = {
+                    labelText = GetString(rawget(_G, "SI_BETTERUI_TH_DIGIT_PRICE") or "Enter Exact Price"),
+                    isSelectableEntry = true,
+                    onSelectedCallback = function()
+                        local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.PARAMETRIC)
+                        local dialogData = dialog and dialog.data
+                        if not dialogData then
+                            return
+                        end
+                        local currentPrice = dialogData.selectedPrice or dialogData.defaultPrice or 100
+                        if TH.PriceEntry and TH.PriceEntry.ShowDigitPriceDialog then
+                            TH.PriceEntry.ShowDigitPriceDialog(currentPrice, 1, 999999999, function(newPrice)
+                                dialogData.selectedPrice = newPrice
+                            end)
+                        end
+                    end,
+                    setup = function(control, data, selected)
+                        if control.label then
+                            control.label:SetText(data.labelText)
+                        end
+                    end,
+                },
+            },
         },
         buttons = {
             {

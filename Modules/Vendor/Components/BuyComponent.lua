@@ -494,6 +494,102 @@ local function CanAffordStoreEntry(vendorInstance, ds)
     return true
 end
 
+--- Clamp a purchase request to what is actually available and affordable.
+---@param requested integer Quantity the user/UI asked for
+---@param stackAvailable integer Maximum stack the store offers
+---@param unitPrice number Cost per unit (0 for free items)
+---@param money number Player's current balance for the item's currency
+---@return integer quantity Final clamped quantity (0 if unaffordable or invalid)
+local function ClampPurchaseQuantity(requested, stackAvailable, unitPrice, money)
+    requested = tonumber(requested) or 0
+    stackAvailable = tonumber(stackAvailable) or 0
+    unitPrice = tonumber(unitPrice) or 0
+    money = tonumber(money) or 0
+
+    if requested <= 0 or stackAvailable <= 0 then
+        return 0
+    end
+
+    local maxByStack = math.max(1, stackAvailable)
+    local maxByMoney = (unitPrice <= 0) and maxByStack or math.floor(money / unitPrice)
+    local maxAffordable = math.max(0, math.min(maxByStack, maxByMoney))
+
+    return math.min(requested, maxAffordable)
+end
+
+Vendor.ClampPurchaseQuantity = Vendor.ClampPurchaseQuantity or ClampPurchaseQuantity
+
+--- Resolve the effective unit price and currency type for a store entry.
+---@param ds table Store entry data source
+---@return number unitPrice
+---@return number currencyType
+local function GetStoreItemUnitPrice(ds)
+    local unitPrice = ds.price or 0
+    local currencyType = ds.currencyType or CURT_MONEY
+
+    -- Alt-currency entries report price == 0 and store the cost in currencyQuantity1.
+    if unitPrice <= 0 and ds.currencyQuantity1 and ds.currencyQuantity1 > 0 then
+        unitPrice = ds.currencyQuantity1
+        currencyType = ds.currencyType1 or CURT_MONEY
+    end
+
+    if currencyType == CURT_NONE then
+        currencyType = CURT_MONEY
+    end
+
+    return unitPrice, currencyType
+end
+
+--- Player balance for a given currency, falling back to GetCurMoney when
+--- GetCurrencyAmount is unavailable.
+---@param currencyType number
+---@return number money
+local function GetPlayerMoneyForCurrency(currencyType)
+    if type(GetCurrencyAmount) == "function" then
+        local location = (type(GetCurrencyPlayerStoredLocation) == "function"
+            and GetCurrencyPlayerStoredLocation(currencyType))
+            or CURRENCY_LOCATION_CHARACTER
+        return GetCurrencyAmount(currencyType, location) or 0
+    end
+    if type(GetCurMoney) == "function" then
+        return GetCurMoney() or 0
+    end
+    return 0
+end
+
+---@param vendorInstance BETTERUI.Vendor.Class
+---@param ds table Store entry data source
+---@param quantity integer
+---@return boolean affordable True if all currencies for the requested quantity are covered
+local function CanAffordStoreEntryQuantity(vendorInstance, ds, quantity)
+    quantity = tonumber(quantity) or 1
+
+    local price = (ds.price or 0) * quantity
+    if price > 0 then
+        local currencyType = ds.currencyType or CURT_MONEY
+        if currencyType == CURT_NONE then
+            currencyType = CURT_MONEY
+        end
+        if not vendorInstance:CanAfford(price, currencyType) then
+            return false
+        end
+    end
+
+    local price1 = (ds.currencyQuantity1 or 0) * quantity
+    local currencyType1 = ds.currencyType1
+    if price1 > 0 and currencyType1 and currencyType1 ~= CURT_NONE
+        and not vendorInstance:CanAfford(price1, currencyType1) then
+        return false
+    end
+
+    local price2 = (ds.currencyQuantity2 or 0) * quantity
+    local currencyType2 = ds.currencyType2
+    if price2 > 0 and currencyType2 and currencyType2 ~= CURT_NONE then
+        return vendorInstance:CanAfford(price2, currencyType2)
+    end
+    return true
+end
+
 ---@param vendorInstance BETTERUI.Vendor.Class
 ---@return boolean enabled True if a buy action is possible
 function Buy:IsPrimaryActionEnabled(vendorInstance)
@@ -542,17 +638,21 @@ function Buy:OnPrimaryAction(vendorInstance)
         return
     end
 
+    -- Default to a single-item purchase (matches native intent and the buy
+    -- primary-action contract). A future interactive quantity spinner can pass
+    -- its chosen value through Vendor.ClampPurchaseQuantity to buy a full stack.
+    local quantity = 1
+
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorBuyItem", {
             entryIndex = entryIndex,
-            quantity = 1,
+            quantity = quantity,
             name = ds.name,
             itemLink = ds.itemLink
         })
     end
 
-    -- Quantity = 1 for normal purchase (stack purchase would need spinner)
-    BuyStoreItem(entryIndex, 1)
+    BuyStoreItem(entryIndex, quantity)
 end
 
 -- LIST BUILDING

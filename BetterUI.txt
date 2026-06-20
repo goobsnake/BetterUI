@@ -238,6 +238,8 @@ Modules\TradingHouse\Core\TradingHouseClass.lua
 Modules\TradingHouse\Core\TradingHouseRowSetup.lua
 Modules\TradingHouse\Core\TradingHouseRuntime.lua
 Modules\TradingHouse\Core\TradingHouseRuntimeFlow.lua
+Modules\TradingHouse\Core\BrowseFilters.lua
+Modules\TradingHouse\Core\PriceEntry.lua
 Modules\TradingHouse\Components\BrowseComponent.lua
 Modules\TradingHouse\Components\SellComponent.lua
 Modules\TradingHouse\Components\ListingsComponent.lua

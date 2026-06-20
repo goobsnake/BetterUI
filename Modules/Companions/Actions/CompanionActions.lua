@@ -59,6 +59,28 @@ local function SetCompanionItemLockState(bagId, slotIndex, locked)
     return false
 end
 
+function Companions.CanPreviewCompanionItem(bagId, slotIndex)
+    if bagId == nil or slotIndex == nil then return false end
+    if type(CanInventoryItemBePreviewed) ~= "function" then return false end
+    return CanInventoryItemBePreviewed(bagId, slotIndex) == true
+end
+
+function Companions.TryPreviewCompanionItem(bagId, slotIndex)
+    if not Companions.CanPreviewCompanionItem(bagId, slotIndex) then return false end
+    if type(PreviewInventoryItem) ~= "function" then return false end
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companionPreviewItem", { bagId = bagId, slotIndex = slotIndex })
+    end
+    PreviewInventoryItem(bagId, slotIndex)
+    return true
+end
+
+function Companions.EndCompanionItemPreview()
+    if type(EndCurrentItemPreview) == "function" then
+        EndCurrentItemPreview()
+    end
+end
+
 local function ResolveCompanionActionTarget(selectedData)
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
     local bagId = ds and ds.bagId or nil
@@ -73,6 +95,8 @@ function Companions.CanExecuteAction(actionId, selectedData)
         return ds ~= nil and bagId ~= nil and slotIndex ~= nil and not ds.isEquipped
     elseif actionId == "unequip" then
         return ds ~= nil and slotIndex ~= nil and ds.isEquipped == true
+    elseif actionId == "preview" then
+        return Companions.CanPreviewCompanionItem(bagId, slotIndex)
     elseif actionId == "destroy" then
         return CanDestroyItem(bagId, slotIndex, slotType)
     elseif actionId == "lock" then
@@ -351,6 +375,13 @@ function Companions.BuildActionList(selectedData)
         table.insert(actions, { id = "equip", name = GetString(SI_ITEM_ACTION_EQUIP) })
     end
 
+    -- Preview
+    if Companions.CanExecuteAction("preview", ds) then
+        local previewStringId = rawget(_G, "SI_ITEM_ACTION_PREVIEW")
+        local previewName = previewStringId and GetString(previewStringId) or "Preview"
+        table.insert(actions, { id = "preview", name = previewName })
+    end
+
     -- Destroy
     if Companions.CanExecuteAction("destroy", ds) then
         table.insert(actions, { id = "destroy", name = GetString(SI_ITEM_ACTION_DESTROY) })
@@ -394,6 +425,8 @@ function Companions.ExecuteAction(actionId, selectedData)
         return Companions.TryEquipCompanionItem(bagId, slotIndex)
     elseif actionId == "unequip" then
         return Companions.TryUnequipCompanionItem(slotIndex)
+    elseif actionId == "preview" then
+        return Companions.TryPreviewCompanionItem(bagId, slotIndex)
     elseif actionId == "destroy" then
         if not CanDestroyItem(bagId, slotIndex, slotType) then
             return false

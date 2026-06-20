@@ -237,6 +237,25 @@ function TH.BuildCoreKeybinds(thInstance)
             end,
         },
         {
+            name = function()
+                local id = rawget(_G, "SI_BETTERUI_TH_FILTER_KEYBIND")
+                return id and GetString(id) or "Edit Filters"
+            end,
+            keybind = rawget(_G, "UI_SHORTCUT_LEFT_STICK") or "UI_SHORTCUT_LEFT_STICK",
+            visible = function()
+                return thInstance:GetCurrentMode() == MODE.BROWSE
+                    and TH.BrowseFilters ~= nil
+            end,
+            callback = function()
+                if TH.BrowseFilters and TH.BrowseFilters.ShowFilterDialog then
+                    local ok, err = pcall(TH.BrowseFilters.ShowFilterDialog)
+                    if not ok and BETTERUI.Log then
+                        BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "filterDialog", { error = err })
+                    end
+                end
+            end,
+        },
+        {
             name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = function()

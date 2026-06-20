@@ -397,6 +397,9 @@ function Companions.RegisterSceneLifecycle(instance)
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
             end
+            if Companions.EndCompanionItemPreview then
+                Companions.EndCompanionItemPreview()
+            end
             if screen.TryClearNewStatusOnHidden then
                 screen:TryClearNewStatusOnHidden()
             end

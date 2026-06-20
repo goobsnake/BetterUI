@@ -26,11 +26,54 @@ local STABLE_TRAIN_ORDER = {
 
 local DEFAULT_STABLE_INTERACTION_ICON = "EsoUI/Art/Collections/Default/collections_default_mount.dds"
 
+--- English fallback warning shown when the player has no active mount skin.
+local NO_ACTIVE_MOUNT_WARNING = "No active mount skin selected."
+
+--- Resolve the active mount collectible icon, falling back to defaultIcon when
+--- no mount skin is active or the engine APIs are unavailable.
+---@param defaultIcon string|nil
+---@return string icon
+local function ResolveActiveMountIcon(defaultIcon)
+    if type(GetActiveCollectibleByType) ~= "function" then
+        return defaultIcon or DEFAULT_STABLE_INTERACTION_ICON
+    end
+
+    local collectibleId = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_MOUNT, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    if not collectibleId or collectibleId == 0 then
+        return defaultIcon or DEFAULT_STABLE_INTERACTION_ICON
+    end
+
+    if type(GetCollectibleIcon) == "function" then
+        local icon = GetCollectibleIcon(collectibleId)
+        if icon and icon ~= "" then
+            return icon
+        end
+    end
+
+    return defaultIcon or DEFAULT_STABLE_INTERACTION_ICON
+end
+
+Vendor.ResolveActiveMountIcon = Vendor.ResolveActiveMountIcon or ResolveActiveMountIcon
+
 local function ResolveStableInteractionIcon()
-    return DEFAULT_STABLE_INTERACTION_ICON
+    return ResolveActiveMountIcon(DEFAULT_STABLE_INTERACTION_ICON)
 end
 
 Vendor.ResolveStableInteractionIcon = Vendor.ResolveStableInteractionIcon or ResolveStableInteractionIcon
+
+---@return string warning Localized warning when no active mount skin is set.
+local function GetStableNoMountWarning()
+    local stringId = rawget(_G, "SI_BETTERUI_STABLE_NO_MOUNT_WARNING")
+    if stringId then
+        local text = GetString(stringId)
+        if text and text ~= "" then
+            return text
+        end
+    end
+    return NO_ACTIVE_MOUNT_WARNING
+end
+
+Vendor.GetStableNoMountWarning = Vendor.GetStableNoMountWarning or GetStableNoMountWarning
 
 local function BuildStableTrainingIcon(trainingType)
     if STABLE_TRAINING_TEXTURES_GAMEPAD then
@@ -90,6 +133,18 @@ Vendor.StableTrainingComponent = Vendor.StableTrainingComponent or {}
 local StableTraining = Vendor.StableTrainingComponent
 
 function StableTraining:Activate(vendorInstance)
+    -- Surface a warning when the player has no active mount skin so the generic
+    -- fallback icon is not mistaken for a bug. First-cut: shown once per tab
+    -- activation; the maintainer can move this to a tooltip/header as needed.
+    if type(GetActiveCollectibleByType) == "function" then
+        local collectibleId = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_MOUNT, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+        if not collectibleId or collectibleId == 0 then
+            if BETTERUI.CIM and BETTERUI.CIM.UserAlertText then
+                BETTERUI.CIM.UserAlertText("Stable:NoMount", GetStableNoMountWarning())
+            end
+        end
+    end
+
     vendorInstance:RefreshList()
 end
 
