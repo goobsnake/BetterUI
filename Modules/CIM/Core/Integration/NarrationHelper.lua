@@ -151,14 +151,61 @@ function Narration.NarrateBankingMode(mode)
     return narrations
 end
 
+--- Builds narration for the available action/keybind labels on the focused row.
+---@param actionLabels string[]? Array of action label strings (e.g. { "Equip", "Preview" })
+---@return table narrations
+function Narration.NarrateActionKeybinds(actionLabels)
+    local narrations = {}
+    if type(actionLabels) ~= "table" then return narrations end
+    for _, label in ipairs(actionLabels) do
+        if type(label) == "string" and label ~= "" then
+            ZO_AppendNarration(narrations, SafeNarrate(label))
+        end
+    end
+    return narrations
+end
+
 -- REGISTRATION HELPERS
+
+--- Appends every narration entry from source into target.
+local function AppendNarrations(target, source)
+    if type(source) ~= "table" then return end
+    for _, n in ipairs(source) do
+        ZO_AppendNarration(target, n)
+    end
+end
+
+--- PLT-006: appends optional category / footer-currency / mode / keybind
+--- narration from a providers table. Each getter is independently pcall-guarded
+--- so a throwing or nil provider can never break selected-item narration.
+---@param narrations table Narration list to append into
+---@param providers table Optional getters: getCategory, getCurrency, getMode, getKeybinds
+local function AppendProviderNarrations(narrations, providers)
+    if providers.getCategory then
+        local ok, name, count = pcall(providers.getCategory)
+        if ok and name then AppendNarrations(narrations, Narration.NarrateCategory(name, count)) end
+    end
+    if providers.getCurrency then
+        local ok, currencyType, amount = pcall(providers.getCurrency)
+        if ok and currencyType then AppendNarrations(narrations, Narration.NarrateCurrency(currencyType, amount)) end
+    end
+    if providers.getMode then
+        local ok, mode = pcall(providers.getMode)
+        if ok and mode ~= nil then AppendNarrations(narrations, Narration.NarrateBankingMode(mode)) end
+    end
+    if providers.getKeybinds then
+        local ok, labels = pcall(providers.getKeybinds)
+        if ok then AppendNarrations(narrations, Narration.NarrateActionKeybinds(labels)) end
+    end
+end
 
 --- Registers a parametric list with SCREEN_NARRATION_MANAGER for item narration.
 ---@param sceneName string
 ---@param getSelectedDataFn fun(): table?
 ---@param getTitleFn fun(): string?
+---@param providers table? Optional getters (getCategory/getCurrency/getMode/getKeybinds) that broaden coverage to category/footer-currency/mode/keybind labels (PLT-006)
 ---@return nil
-function Narration.RegisterListNarration(sceneName, getSelectedDataFn, getTitleFn)
+function Narration.RegisterListNarration(sceneName, getSelectedDataFn, getTitleFn, providers)
     if not SCREEN_NARRATION_MANAGER then return end
     if not sceneName or not getSelectedDataFn then return end
 
@@ -187,6 +234,10 @@ function Narration.RegisterListNarration(sceneName, getSelectedDataFn, getTitleF
                     for _, n in ipairs(itemNarrations) do
                         ZO_AppendNarration(narrations, n)
                     end
+                end
+                -- PLT-006: optional category / footer-currency / mode / keybind coverage
+                if type(providers) == "table" then
+                    AppendProviderNarrations(narrations, providers)
                 end
                 return narrations
             end)

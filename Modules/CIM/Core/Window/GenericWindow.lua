@@ -9,7 +9,7 @@ Purpose: A specialized base class for Inventory-like windows (Banking, Backpack)
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
 --- @class BETTERUI.CIM.GenericWindow : BETTERUI.Interface.Window
---- @field categoryPositions table<string, integer> Saved scroll positions by category key
+--- @field positionModuleKey string PositionManager namespace for this window's category positions
 --- @field currentCategoryKey string|nil Currently active category key
 --- @field headerGeneric table|nil Header control with tabBar reference
 --- @field list table|nil The active parametric scroll list
@@ -22,8 +22,11 @@ end
 function BETTERUI.CIM.GenericWindow:Initialize(tlw_name, scene_name, virtualTemplate)
     BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name, virtualTemplate)
 
-    -- Category position persistence
-    self.categoryPositions = {}
+    -- Category position persistence (PLT-003): delegated to the shared,
+    -- uniqueId-aware BETTERUI.CIM.PositionManager under a per-window namespace,
+    -- so a category the user returns to restores onto the same ITEM (by
+    -- uniqueId), not just the same index — matching Inventory/Vendor/Companions.
+    self.positionModuleKey = "GenericWindow:" .. tostring(scene_name or tlw_name or "default")
     self.currentCategoryKey = nil
 end
 
@@ -37,35 +40,45 @@ function BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey(categoryKey)
     self.currentCategoryKey = categoryKey
 end
 
+--- Saves the current category's list position via the shared PositionManager
+--- (records both the selected index and the item uniqueId for robust restore).
 --- @param categoryKey string|nil Category key (defaults to currentCategoryKey)
---- @param position integer|nil Position to save (defaults to current list selection)
+--- @param position integer|nil Deprecated/ignored — the position is read from the live list
 function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
     local key = categoryKey or self.currentCategoryKey
     if not key then return end
 
-    local pos = position
-    if not pos and self.list then
-        pos = self.list:GetSelectedIndex() or 1
+    local pm = BETTERUI.CIM and BETTERUI.CIM.PositionManager
+    if pm and self.list then
+        pm.SavePosition(self.positionModuleKey, key, self.list)
     end
-
-    self.categoryPositions[key] = pos or 1
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "saveCategoryPosition", { key = key, pos = self.categoryPositions[key] }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "saveCategoryPosition", { key = key, module = self.positionModuleKey }) end
 end
 
+--- Restores the saved list index for a category, preferring the saved item's
+--- uniqueId (via PositionManager) so the cursor lands on the same item even if
+--- the list reordered. Returns a clamped index, or 1 when nothing is saved.
 --- @param categoryKey string|nil Category key (defaults to currentCategoryKey)
---- @return integer position The saved position or 1 if none
+--- @return integer position The restored index, or 1 if none
 function BETTERUI.CIM.GenericWindow:RestoreCategoryPosition(categoryKey)
     local key = categoryKey or self.currentCategoryKey
     if not key then return 1 end
 
-    local pos = self.categoryPositions[key] or 1
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "restoreCategoryPosition", { key = key, pos = pos }) end
-    return pos
+    local pm = BETTERUI.CIM and BETTERUI.CIM.PositionManager
+    if pm and self.list then
+        local pos = pm.RestorePosition(self.positionModuleKey, key, self.list, self.list.dataList)
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "restoreCategoryPosition", { key = key, pos = pos }) end
+        return pos or 1
+    end
+    return 1
 end
 
---- Clears all saved category positions.
+--- Clears all saved category positions for this window.
 function BETTERUI.CIM.GenericWindow:ClearCategoryPositions()
-    self.categoryPositions = {}
+    local pm = BETTERUI.CIM and BETTERUI.CIM.PositionManager
+    if pm and self.positionModuleKey then
+        pm.ClearModule(self.positionModuleKey)
+    end
 end
 
 function BETTERUI.CIM.GenericWindow:SwitchToCategory(categoryKey)
