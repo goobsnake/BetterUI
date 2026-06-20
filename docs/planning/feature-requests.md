@@ -66,6 +66,7 @@ This document tracks durable BetterUI feature gaps and parity opportunities disc
 
 | ID | Date | Area | Request | Impact | Effort | Priority | Status | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `HUD-005` | 2026-06-19 | ResourceOrbFrames cooldown | Front-bar radial cooldown restarts only on a duration change; a same-duration cooldown/effect *refresh* (remaining time jumps up without the cooldown ending) updates the timer text but leaves the radial wipe at its stale position | Low | Low | P3 | Blocked (L4) | Improvement-cycle fresh review (kimi found, codex cross-verified, host confirmed). Scope: keyboard (non-gamepad) only — `StartCooldownIfChanged` in `Modules/ResourceOrbFrames/SkillBar/FrontBarCooldowns.lua` short-circuits on equal `durationMs`; the ended and gamepad paths already clear the latch, so recast-after-expiry and gamepad linear visuals are unaffected. Trigger is rare for true slot cooldowns but plausible for `GetActionSlotEffectTimeRemaining` buff/DoT early-recasts. Proposed fix: frame-to-frame delta detection (restart when `durationMs` differs OR `remainMs > lastSeenRemainMs + 100`; reset `lastSeenCooldownRemainMs` wherever `appliedCooldownDurationMs` resets) + a pure-predicate unit test. KEEP-BLOCKED-L4 — codex flagged the fix may cause small radial restarts on legitimate upward timing corrections; verify radial/text alignment in keyboard mode in-game before shipping. |
 
 ## Recommended Implementation Order
 
