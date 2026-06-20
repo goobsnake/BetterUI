@@ -113,6 +113,76 @@ IL.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 })
 IL.SetEnabled(false)
 
 -- ============================================================================
+-- PERSISTENCE: /builog intent is written to CIM settings so it survives /reloadui
+-- ============================================================================
+
+-- Minimal SavedVars + settings-accessor stubs so PersistLogState has a sink.
+local persisted = {}
+function BETTERUI.SetSetting(moduleName, key, value) persisted[moduleName .. ":" .. key] = value; return true end
+function BETTERUI.GetSetting(moduleName, key, default)
+    local v = persisted[moduleName .. ":" .. key]
+    if v == nil then return default end
+    return v
+end
+BETTERUI.Settings = { Modules = {} }
+
+-- Minimal Log facade so the /builog preset branch (ApplyPreset + PrintStatus) resolves.
+BETTERUI.Log = {
+    LEVEL = { TRACE = 1, DEBUG = 2, INFO = 3, WARN = 4, ERROR = 5 },
+    ApplyPreset = function(name) return true, name end,
+    GetPreset = function() return "debug" end,
+    GetMinLevel = function() return 3 end,
+    GetPayloadCapture = function() return false end,
+    GetSink = function() return false end,
+    SetSink = function() end,
+    SetMinLevel = function() end,
+    LevelFromName = function() return nil end,
+    InvalidateActive = function() end,
+}
+
+local builog = SLASH_COMMANDS["/builog"]
+check(type(builog) == "function", "/builog slash command is registered")
+
+builog("on")
+check(persisted["CIM:interfaceLogEnabled"] == true, "/builog on persists interfaceLogEnabled=true")
+check(persisted["CIM:interfaceLogPreset"] == "", "/builog on persists empty preset (plain on)")
+
+builog("preset debug")
+check(persisted["CIM:interfaceLogEnabled"] == true, "/builog preset debug persists enabled=true")
+check(persisted["CIM:interfaceLogPreset"] == "debug", "/builog preset debug persists the preset name")
+
+builog("preset off")
+check(persisted["CIM:interfaceLogEnabled"] == false, "/builog preset off persists enabled=false")
+
+builog("on")
+builog("off")
+check(persisted["CIM:interfaceLogEnabled"] == false, "/builog off persists enabled=false")
+
+-- Pre-SavedVars guard: with no Settings table the write is a silent no-op, not a crash.
+BETTERUI.Settings = nil
+check(pcall(builog, "on"), "/builog on does not error when Settings is absent (pre-SavedVars guard)")
+BETTERUI.Settings = { Modules = {} }
+
+IL.SetEnabled(false)
+
+-- ============================================================================
+-- POPUP SUPPRESSION: raising a breadcrumb re-asserts ZO_ERROR_FRAME suppression
+-- ============================================================================
+
+-- Even if something clears suppression mid-session (the error frame's Initialize, or
+-- a restore that ran before the frame existed), raising a breadcrumb must re-apply it
+-- so our throwaway errors never reach the UI error viewer (gamepad or keyboard).
+ZO_ERROR_FRAME.suppressErrorDialog = false
+IL.SetEnabled(true)
+ZO_ERROR_FRAME.suppressErrorDialog = false  -- simulate a mid-session reset
+capturedDeferred = nil
+IL.WriteRaw("reassert-test")
+check(type(capturedDeferred) == "function", "WriteRaw scheduled a deferred emit")
+pcall(capturedDeferred)  -- runs RaiseSuppressed -> error(); pcall swallows the throwaway
+check(ZO_ERROR_FRAME.suppressErrorDialog == true, "raising a breadcrumb re-asserts popup suppression")
+IL.SetEnabled(false)
+
+-- ============================================================================
 -- SUMMARY
 -- ============================================================================
 

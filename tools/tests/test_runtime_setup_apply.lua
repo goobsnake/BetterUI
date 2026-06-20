@@ -224,6 +224,51 @@ do
         "Apply registers debug commands when developer settings are explicitly visible")
 end
 
+do
+    -- Restore persisted /builog logging state across a reload.
+    local harness = newHarness({ withTamrielTomes = true })
+    local applyPresetCalls = {}
+    local setEnabledCalls = {}
+    BETTERUI.CIM.InterfaceLog = {
+        SetEnabled = function(value) setEnabledCalls[#setEnabledCalls + 1] = value end,
+        Write = function() end,
+    }
+    -- Permissive Log stub: explicit IsActive/ApplyPreset; any other method (Trace/etc.)
+    -- is a no-op and any CATEGORY access yields a string, so Apply's other Log calls
+    -- don't crash once BETTERUI.Log is present.
+    BETTERUI.Log = setmetatable({
+        IsActive = function() return false end,
+        ApplyPreset = function(name) applyPresetCalls[#applyPresetCalls + 1] = name end,
+        CATEGORY = setmetatable({}, { __index = function() return "CAT" end }),
+    }, { __index = function() return function() end end })
+    local store = { interfaceLogEnabled = true, interfaceLogPreset = "debug" }
+    BETTERUI.GetSetting = function(_, key, default)
+        local v = store[key]
+        if v == nil then return default end
+        return v
+    end
+
+    harness.Apply({ Modules = {} })
+    assert_eq(applyPresetCalls[1], "debug",
+        "Apply restores the persisted /builog preset after reload")
+
+    store.interfaceLogPreset = ""
+    applyPresetCalls = {}
+    setEnabledCalls = {}
+    harness.Apply({ Modules = {} })
+    assert_eq(setEnabledCalls[1], true,
+        "Apply re-enables plain /builog on (no named preset) after reload")
+    assert_eq(#applyPresetCalls, 0,
+        "plain-on restore does not call ApplyPreset")
+
+    store.interfaceLogEnabled = false
+    setEnabledCalls = {}
+    applyPresetCalls = {}
+    harness.Apply({ Modules = {} })
+    assert_eq(#setEnabledCalls, 0,
+        "Apply restores nothing when persisted logging is disabled")
+end
+
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)

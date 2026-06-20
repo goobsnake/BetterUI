@@ -137,6 +137,20 @@ local function budgetAllows()
     return true
 end
 
+-- Raise one of OUR throwaway breadcrumb errors. CRITICALLY, re-assert popup
+-- suppression FIRST: the engine writes every uncaught error to Interface.log (what we
+-- want) but ALSO shows the UI error viewer unless ZO_ERROR_FRAME.suppressErrorDialog
+-- is set. That flag is reset to false by the error frame's own Initialize, and the
+-- persisted-state restore can run before the frame exists, so applying suppression
+-- once at enable-time is not enough -- in gamepad mode every unsuppressed breadcrumb
+-- pops the error viewer (and they queue, undismissable). Re-asserting through
+-- ApplyPopupSuppression at raise time is bulletproof and preserves save/restore, so
+-- /builog off still restores the player's real error popups.
+local function RaiseSuppressed(line)
+    if enabled and suppressPopups then ApplyPopupSuppression(true) end
+    error(line, 0)
+end
+
 -- Coalesce dropped-record reporting into at most one summary error per ~250ms, so a
 -- rate-limited burst does not itself spam the log.
 local function ScheduleDropSummary(deferer)
@@ -147,7 +161,7 @@ local function ScheduleDropSummary(deferer)
         local n = pendingDrops
         pendingDrops = 0
         if n > 0 then
-            error(string.format("%s %d WARN LOG | dropped=%d reason=rate_limit", TAG, Timestamp(), n), 0)
+            RaiseSuppressed(string.format("%s %d WARN LOG | dropped=%d reason=rate_limit", TAG, Timestamp(), n))
         end
     end, 250)
 end
@@ -169,7 +183,7 @@ local function RawEmit(line)
         return false
     end
     stats.scheduled = stats.scheduled + 1
-    deferer(function() error(line, 0) end, 0)
+    deferer(function() RaiseSuppressed(line) end, 0)
     return true
 end
 
@@ -240,6 +254,19 @@ local function Out(msg)
     end
 end
 
+-- Persist the user's explicit /builog intent so logging survives /reloadui. The
+-- InterfaceLog 'enabled' flag is otherwise session-only (reset to false each load);
+-- RuntimeSetup.Apply restores from these keys after SavedVars load. Guarded so a
+-- pre-SavedVars / test-harness call is a silent no-op. preset="" means "plain on"
+-- (defaults, no named preset); a named preset ("debug"/"verbose") restores its knobs.
+local function PersistLogState(enabled, preset)
+    if type(BETTERUI.SetSetting) ~= "function" or not BETTERUI.Settings then return end
+    BETTERUI.SetSetting("CIM", "interfaceLogEnabled", enabled and true or false)
+    if preset ~= nil then
+        BETTERUI.SetSetting("CIM", "interfaceLogPreset", preset)
+    end
+end
+
 local function SetChatSurface(on)
     local L = BETTERUI.Log
     if not L then Out("Logger not loaded yet."); return end
@@ -275,11 +302,13 @@ local function HandleCommand(args)
 
     if args == "on" then
         InterfaceLog.SetEnabled(true)
+        PersistLogState(true, "")
         InterfaceLog.Write("logging started -- breadcrumbs are tagged [BUI]; grep '[BUI]' for the clean stream. On disk each is engine-wrapped: <ISO-8601 ts> |cff0000Lua Error: [BUI] <gameMs> <LEVEL> <CATEGORY> | <event> <key=value ...> then a 'stack traceback:' block (ignore it for [BUI] lines). Levels TRACE<DEBUG<INFO<WARN<ERROR. The ISO timestamp is authoritative wall-clock. 'Lua Error:' entries WITHOUT [BUI] are real game errors -- keep their traceback.")
         Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups). Tip: /builog preset verbose for budgeted full capture.")
     elseif args == "off" then
         InterfaceLog.Write("InterfaceLog disabled via /builog off")
         InterfaceLog.SetEnabled(false)
+        PersistLogState(false, "")
         Out("InterfaceLog disabled; error popups restored.")
     elseif args:match("^preset%s+%a+$") then
         local name = args:match("^preset%s+(%a+)$")
@@ -287,6 +316,8 @@ local function HandleCommand(args)
         if L and L.ApplyPreset then
             local applied, presetName = L.ApplyPreset(name)
             if applied then
+                -- "off" preset disables; named presets ("debug"/"verbose") stay enabled.
+                PersistLogState(presetName ~= "off", presetName ~= "off" and tostring(presetName) or "")
                 Out("Log preset = |c00ff00" .. tostring(presetName):upper() .. "|r.")
                 PrintStatus()
             else

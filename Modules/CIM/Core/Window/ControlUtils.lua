@@ -9,11 +9,25 @@ if BETTERUI.ControlUtils == nil then BETTERUI.ControlUtils = {} end
 -- Cache for control lookups to avoid repeated parent-chain traversals.
 local ControlCache = {}
 
+-- Keys we've already warned a miss for. Negative lookups are NOT cached, so without
+-- this a control that stays unresolved re-warns on every call (a per-frame failed
+-- lookup floods Interface.log). Warn at most once per key per cache generation;
+-- cleared whenever the cache is invalidated so a new layout can re-report.
+local warnedMisses = {}
+
 --- Clears the control lookup cache.
 --- Rationale: Call this when the UI layout is rebuilt or m_rootFrame changes.
 function BETTERUI.ControlUtils.InvalidateControlCache()
     ControlCache = {}
+    warnedMisses = {}
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "controlCacheInvalidated") end
+end
+
+-- Emit a "findControl miss" WARN at most once per key per cache generation.
+local function WarnMissOnce(key)
+    if warnedMisses[key] then return end
+    warnedMisses[key] = true
+    if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "findControl miss", { cacheKey = key }) end
 end
 
 --- Finds a control by name, handling ESO's complex naming conventions.
@@ -30,22 +44,25 @@ end
 ---
 function BETTERUI.ControlUtils.FindControl(parent, name)
     if not parent then
-        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "findControl miss", { cacheKey = tostring(parent) .. "|" .. name }) end
+        WarnMissOnce(tostring(parent) .. "|" .. name)
         return nil
     end
 
-    -- Check cache first
+    -- Cache hit is the hot, repeated path: intentionally NOT logged. Per-call hit
+    -- breadcrumbs flooded Interface.log (thousands/min) and starved the file sink's
+    -- rate-limit budget, dropping other modules' breadcrumbs. Only the one-time
+    -- RESOLUTION of a control (below, at TRACE) and true misses are logged.
     local cacheKey = tostring(parent) .. "|" .. name
-    if ControlCache[cacheKey] then
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "findControl", { cacheKey = cacheKey, levelsChecked = 0, hit = true }) end
-        return ControlCache[cacheKey]
+    local cached = ControlCache[cacheKey]
+    if cached then
+        return cached
     end
 
     -- First try to grab a direct child with the given short name
     local child = parent:GetNamedChild(name)
     if child then
         ControlCache[cacheKey] = child
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "findControl", { cacheKey = cacheKey, levelsChecked = 0, hit = true }) end
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "findControl resolved", { cacheKey = cacheKey, levelsChecked = 0, via = "child" }) end
         return child
     end
 
@@ -57,7 +74,7 @@ function BETTERUI.ControlUtils.FindControl(parent, name)
         local ctrl = _G[globalName]
         if ctrl ~= nil then
             ControlCache[cacheKey] = ctrl
-            if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "findControl", { cacheKey = cacheKey, levelsChecked = guards, hit = true }) end
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "findControl resolved", { cacheKey = cacheKey, levelsChecked = guards, via = "ancestorGlobal" }) end
             return ctrl
         end
         -- Move to the next ancestor.
@@ -73,10 +90,10 @@ function BETTERUI.ControlUtils.FindControl(parent, name)
     local globalCtrl = _G[name]
     if globalCtrl then
         ControlCache[cacheKey] = globalCtrl
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "findControl", { cacheKey = cacheKey, levelsChecked = guards, hit = true }) end
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "findControl resolved", { cacheKey = cacheKey, levelsChecked = guards, via = "global" }) end
         return globalCtrl
     end
 
-    if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "findControl miss", { cacheKey = cacheKey }) end
+    WarnMissOnce(cacheKey)
     return nil
 end

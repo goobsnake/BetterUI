@@ -269,6 +269,34 @@ function RuntimeSetup.Apply(settings)
     RunSettingsMigrations(settings)
     EnsureDebugCommandsRegistered()
 
+    -- Register the framework-level scene-transition logger now that SavedVars are
+    -- loaded. Belt-and-suspenders: SceneLog's file-scope EnsureRegistered already ran
+    -- if SCENE_MANAGER existed at load; this covers the case where it didn't. The
+    -- module's own m_registered guard keeps it to exactly one registration per session.
+    local sceneLog = BETTERUI.CIM and BETTERUI.CIM.SceneLog
+    if sceneLog and type(sceneLog.EnsureRegistered) == "function" then
+        sceneLog.EnsureRegistered()
+    end
+
+    -- Restore persisted /builog logging state across reloads. InterfaceLog 'enabled'
+    -- is session-only, but the user explicitly opted in, so resume it (and re-apply
+    -- the chosen preset) now that SavedVars are loaded. SceneLog self-gates on the
+    -- active memo, so it picks this up on the next scene transition.
+    local interfaceLog = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
+    if interfaceLog and type(BETTERUI.GetSetting) == "function"
+        and BETTERUI.GetSetting("CIM", "interfaceLogEnabled", false) then
+        local logPreset = BETTERUI.GetSetting("CIM", "interfaceLogPreset", "")
+        if logPreset ~= "" and BETTERUI.Log and type(BETTERUI.Log.ApplyPreset) == "function" then
+            BETTERUI.Log.ApplyPreset(logPreset)
+        elseif type(interfaceLog.SetEnabled) == "function" then
+            interfaceLog.SetEnabled(true)
+        end
+        if type(interfaceLog.Write) == "function" then
+            interfaceLog.Write("logging restored after /reloadui (preset=" ..
+                (logPreset ~= "" and logPreset or "on") .. ") -- /builog off to stop")
+        end
+    end
+
     -- Keep cached research-trait knowledge fresh when research completes.
     local researchCache = BETTERUI.CIM and BETTERUI.CIM.ResearchCache
     if researchCache and type(researchCache.RegisterEventHandlers) == "function" then

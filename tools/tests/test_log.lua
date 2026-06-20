@@ -132,32 +132,44 @@ setLogging(false)
 check(Log.EnabledFor(Log.LEVEL.ERROR, Log.CATEGORY.GENERAL) == false, "EnabledFor false when logging inactive")
 setLogging(true)
 
--- debug preset: INFO/WARN/ERROR file-only, min INFO, payloads off.
-local appliedOk, presetName = Log.ApplyPreset("debug")
-check(appliedOk == true and presetName == "debug", "ApplyPreset('debug') applies and reports its name")
-check(Log.GetPreset() == "debug", "GetPreset reports debug")
-check(Log.GetMinLevel() == Log.LEVEL.INFO, "debug preset floors min level at INFO")
-check(Log.GetPayloadCapture() == false, "debug preset disables payload capture")
-check(Log.GetSink(Log.LEVEL.DEBUG, "file") == false, "debug preset turns off the DEBUG file sink")
-check(Log.GetSink(Log.LEVEL.INFO, "file") == true, "debug preset keeps the INFO file sink")
-check(Log.GetSink(Log.LEVEL.WARN, "file") == true, "debug preset keeps the WARN file sink")
+-- info preset: INFO/WARN/ERROR file-only, min INFO, payloads off.
+local appliedOk, presetName = Log.ApplyPreset("info")
+check(appliedOk == true and presetName == "info", "ApplyPreset('info') applies and reports its name")
+check(Log.GetPreset() == "info", "GetPreset reports info")
+check(Log.GetMinLevel() == Log.LEVEL.INFO, "info preset floors min level at INFO")
+check(Log.GetPayloadCapture() == false, "info preset disables payload capture")
+check(Log.GetSink(Log.LEVEL.DEBUG, "file") == false, "info preset turns off the DEBUG file sink")
+check(Log.GetSink(Log.LEVEL.INFO, "file") == true, "info preset keeps the INFO file sink")
 fileLines = {}
 Log.Debug(Log.CATEGORY.GENERAL, "below floor")
-check(#fileLines == 0, "debug preset drops DEBUG records")
-Log.Warn(Log.CATEGORY.GENERAL, "real warn", { code = 7 })
-check(#fileLines == 1, "debug preset captures WARN")
-check(fileLines[1]:find("code=7", 1, true) == nil, "debug preset omits the payload (capture off)")
+check(#fileLines == 0, "info preset drops DEBUG records")
 Log.Info(Log.CATEGORY.GENERAL, "info breadcrumb")
-check(#fileLines == 2, "debug preset captures INFO breadcrumbs for context")
+check(#fileLines == 1, "info preset captures INFO")
 
--- verbose preset: everything + payloads.
+-- debug preset: DEBUG+ file, min DEBUG, payloads ON (the user-action flow + data).
+Log.ApplyPreset("debug")
+check(Log.GetPreset() == "debug", "GetPreset reports debug")
+check(Log.GetMinLevel() == Log.LEVEL.DEBUG, "debug preset floors min level at DEBUG")
+check(Log.GetPayloadCapture() == true, "debug preset enables payload capture")
+check(Log.GetSink(Log.LEVEL.DEBUG, "file") == true, "debug preset keeps the DEBUG file sink")
+check(Log.GetSink(Log.LEVEL.TRACE, "file") == false, "debug preset turns off the TRACE file sink")
+fileLines = {}
+Log.Trace(Log.CATEGORY.GENERAL, "trace below floor")
+check(#fileLines == 0, "debug preset drops TRACE records")
+Log.Debug(Log.CATEGORY.GENERAL, "debug action", { code = 7 })
+check(#fileLines == 1, "debug preset captures DEBUG")
+check(fileLines[1]:find("code=7", 1, true) ~= nil, "debug preset includes the payload (capture on)")
+
+-- trace preset: everything + payloads. "verbose" is a back-compat alias for trace.
 Log.ApplyPreset("verbose")
-check(Log.GetPreset() == "verbose", "GetPreset reports verbose")
-check(Log.GetMinLevel() == Log.LEVEL.TRACE, "verbose preset floors min level at TRACE")
-check(Log.GetPayloadCapture() == true, "verbose preset enables payload capture")
+check(Log.GetPreset() == "trace", "ApplyPreset('verbose') aliases to trace")
+Log.ApplyPreset("trace")
+check(Log.GetPreset() == "trace", "GetPreset reports trace")
+check(Log.GetMinLevel() == Log.LEVEL.TRACE, "trace preset floors min level at TRACE")
+check(Log.GetPayloadCapture() == true, "trace preset enables payload capture")
 fileLines = {}
 Log.Trace(Log.CATEGORY.NAV, "trace", { step = "a" })
-check(#fileLines == 1 and fileLines[1]:find("step=", 1, true) ~= nil, "verbose preset captures TRACE with payload")
+check(#fileLines == 1 and fileLines[1]:find("step=", 1, true) ~= nil, "trace preset captures TRACE with payload")
 
 -- A manual low-level override flips the preset label to custom.
 Log.SetMinLevel(Log.LEVEL.INFO)

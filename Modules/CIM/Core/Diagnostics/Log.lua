@@ -275,22 +275,34 @@ function Log.IsCategoryEnabled(category)
 end
 
 --- Whether optional `data`/payload arguments are rendered into log lines. The
---- "verbose" preset turns this on; "debug" turns it off (message-only, cheap).
+--- "debug" and "trace" presets turn this on; "info" leaves it off (message-only).
 ---@param on boolean
 function Log.SetPayloadCapture(on) payloadCapture = on and true or false; currentPreset = "custom" end
 ---@return boolean
 function Log.GetPayloadCapture() return payloadCapture end
 
 -- Presets -------------------------------------------------------------------
--- Named user-facing log levels layered over the low-level knobs. The canonical
--- way to turn logging on for troubleshooting:
---   off     -> stop file logging, restore error popups, reset rate-limit budget.
---   debug   -> capture of INFO/WARN/ERROR (real failures + SafeExecute pcall/nil-
---              function errors + key INFO breadcrumbs for context), payloads off.
---              Low volume; cheap to run live.
---   verbose -> full TRACE+ capture, all categories on, payloads on. High volume;
---              InterfaceLog applies a per-frame/second budget so it can't hitch.
-local PRESET_NAMES = { off = true, debug = true, verbose = true }
+-- Three named tiers (plus off) layered over the low-level knobs, mapped to the
+-- standard severity model:
+--   off    -> stop file logging, restore error popups, reset the rate-limit budget.
+--   info   -> INFO/WARN/ERROR, payloads off. Milestones + problems: "is it working?"
+--             Safe to run during live play, so it keeps the TIGHT anti-hitch budget.
+--   debug  -> DEBUG+ (the user-action flow shows), payloads on. The everyday "what is
+--             it doing?" view. LOOSE budget -- a debugger accepts the FPS cost.
+--   trace  -> TRACE+ (every step), payloads on. LOOSEST budget; high enough only to
+--             stop a runaway hot loop from crashing/freezing the client.
+-- "verbose" is accepted as a back-compat alias for "trace".
+local PRESET_NAMES = { off = true, info = true, debug = true, trace = true, verbose = true }
+
+-- Per-preset file-sink rate limits. info stays tight (FPS-safe for live play); debug
+-- and trace are greatly loosened because an active debugger accepts the FPS cost --
+-- the caps exist only so a pathological hot path can't crash or freeze the client.
+local PRESET_BUDGET = {
+    off   = { maxPerFrame = 0,   maxPerSecond = 0,    maxPending = 0 },
+    info  = { maxPerFrame = 8,   maxPerSecond = 100,  maxPending = 200 },
+    debug = { maxPerFrame = 100, maxPerSecond = 2000, maxPending = 2000 },
+    trace = { maxPerFrame = 400, maxPerSecond = 8000, maxPending = 8000 },
+}
 
 -- file ON for levels >= fileFromLevel (nil = all file sinks off); chat per chatOn.
 local function applyAllSinks(fileFromLevel, chatOn)
@@ -300,35 +312,40 @@ local function applyAllSinks(fileFromLevel, chatOn)
     end
 end
 
----@param name string  "off" | "debug" | "verbose"
+---@param name string  "off" | "info" | "debug" | "trace"  (alias: "verbose" -> "trace")
 ---@return boolean applied
 ---@return string preset
 function Log.ApplyPreset(name)
     name = type(name) == "string" and name:lower() or ""
     if not PRESET_NAMES[name] then return false, currentPreset end
+    if name == "verbose" then name = "trace" end -- back-compat alias
     local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
 
     if name == "off" then
-        if il and il.SetBudget then il.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 }) end
         if il and il.SetEnabled then il.SetEnabled(false) end
-    elseif name == "debug" then
+    elseif name == "info" then
         minLevel = Log.LEVEL.INFO
         applyAllSinks(Log.LEVEL.INFO, false) -- INFO/WARN/ERROR -> file only
         categoryDisabled = {}
         payloadCapture = false
-        if il and il.SetBudget then il.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 }) end
         if il and il.SetEnabled then il.SetEnabled(true) end
-    elseif name == "verbose" then
+    elseif name == "debug" then
+        minLevel = Log.LEVEL.DEBUG
+        applyAllSinks(Log.LEVEL.DEBUG, false) -- DEBUG+ -> file (the user-action flow)
+        categoryDisabled = {}
+        payloadCapture = true
+        if il and il.SetEnabled then il.SetEnabled(true) end
+    elseif name == "trace" then
         minLevel = Log.LEVEL.TRACE
         applyAllSinks(Log.LEVEL.TRACE, false) -- everything -> file
         categoryDisabled = {}
         payloadCapture = true
-        -- Bound the deferred-error file sink so a verbose burst on a hot path can't
-        -- hitch a frame: <=8 lines/frame (the anti-hitch cap) and <=100/sec sustained;
-        -- overflow is dropped + summarized. Tunable via /builog or InterfaceLog.SetBudget.
-        if il and il.SetBudget then il.SetBudget({ maxPerFrame = 8, maxPerSecond = 100, maxPending = 200 }) end
         if il and il.SetEnabled then il.SetEnabled(true) end
     end
+
+    -- Apply the tier-matched rate-limit budget (see PRESET_BUDGET). Tunable live via
+    -- InterfaceLog.SetBudget; overflow is dropped + summarized as dropped=N.
+    if il and il.SetBudget and PRESET_BUDGET[name] then il.SetBudget(PRESET_BUDGET[name]) end
 
     Log.RefreshActive()
     currentPreset = name
