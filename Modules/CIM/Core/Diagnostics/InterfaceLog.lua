@@ -28,7 +28,7 @@ Mechanism (proof of concept):
   (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
   "Lua Error:" entries are real game errors whose traceback matters.
 
-Usage (slash command): /builog on | off | preset off|debug|verbose | test | popups on|off | status
+Usage (slash command): /builog on | off | preset off|info|watch|debug|trace | test | popups on|off | status
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -81,8 +81,20 @@ local function Flatten(text)
     return text
 end
 
+-- Pull the shared session id + next sequence number from the logger so InterfaceLog's
+-- own meta-lines (startup header, drop summaries) carry the SAME sid/seq schema as
+-- Log.* records and order correctly when interleaved. Log loads after InterfaceLog, so
+-- resolve it at call time; degrade to placeholders if it isn't ready.
+local function LogMeta()
+    local L = BETTERUI.Log
+    local sid = (L and L.GetSessionId and L.GetSessionId()) or "------"
+    local seq = (L and L.NextSeq and L.NextSeq()) or 0
+    return sid, seq
+end
+
 local function FormatLine(message)
-    return string.format("%s %d %s", TAG, Timestamp(), Flatten(message))
+    local sid, seq = LogMeta()
+    return string.format("%s %d sid=%s seq=%d %s", TAG, Timestamp(), sid, seq, Flatten(message))
 end
 
 -- Apply/remove global error-dialog suppression, remembering the prior state so a
@@ -161,7 +173,9 @@ local function ScheduleDropSummary(deferer)
         local n = pendingDrops
         pendingDrops = 0
         if n > 0 then
-            RaiseSuppressed(string.format("%s %d WARN LOG | dropped=%d reason=rate_limit", TAG, Timestamp(), n))
+            local sid, seq = LogMeta()
+            RaiseSuppressed(string.format("%s %d sid=%s seq=%d WARN LOG | dropped=%d reason=rate_limit",
+                TAG, Timestamp(), sid, seq, n))
         end
     end, 250)
 end
@@ -198,7 +212,9 @@ end
 ---@return boolean
 function InterfaceLog.WriteRaw(line)
     if not enabled then return false end
-    return RawEmit(tostring(line))
+    -- Defensive: callers (Log.sinkFile) already flatten, but never let a stray newline
+    -- split one record across lines for a tailer.
+    return RawEmit(Flatten(line))
 end
 
 --- Sets the file-sink rate-limit budget. Pass any subset of:
@@ -303,8 +319,8 @@ local function HandleCommand(args)
     if args == "on" then
         InterfaceLog.SetEnabled(true)
         PersistLogState(true, "")
-        InterfaceLog.Write("logging started -- breadcrumbs are tagged [BUI]; grep '[BUI]' for the clean stream. On disk each is engine-wrapped: <ISO-8601 ts> |cff0000Lua Error: [BUI] <gameMs> <LEVEL> <CATEGORY> | <event> <key=value ...> then a 'stack traceback:' block (ignore it for [BUI] lines). Levels TRACE<DEBUG<INFO<WARN<ERROR. The ISO timestamp is authoritative wall-clock. 'Lua Error:' entries WITHOUT [BUI] are real game errors -- keep their traceback.")
-        Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups). Tip: /builog preset verbose for budgeted full capture.")
+        InterfaceLog.Write("logging started -- breadcrumbs are tagged [BUI]; grep '[BUI]' for the clean stream. On disk each is engine-wrapped: <ISO-8601 ts> |cff0000Lua Error: [BUI] <gameMs> sid=<sid> seq=<seq> <LEVEL> <CATEGORY> | <event> <key=value ...> then a 'stack traceback:' block (ignore it for [BUI] lines). sid groups one UI-load session; seq is a monotonic order. Levels TRACE<DEBUG<INFO<WARN<ERROR. The ISO timestamp is authoritative wall-clock. 'Lua Error:' entries WITHOUT [BUI] are real game errors -- keep their traceback.")
+        Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups). Tip: /builog preset watch for live AI monitoring, or debug|trace for full capture.")
     elseif args == "off" then
         InterfaceLog.Write("InterfaceLog disabled via /builog off")
         InterfaceLog.SetEnabled(false)
@@ -321,7 +337,7 @@ local function HandleCommand(args)
                 Out("Log preset = |c00ff00" .. tostring(presetName):upper() .. "|r.")
                 PrintStatus()
             else
-                Out("Unknown preset. Use off|debug|verbose.")
+                Out("Unknown preset. Use off|info|watch|debug|trace.")
             end
         else
             Out("Logger not loaded yet.")
@@ -354,7 +370,7 @@ local function HandleCommand(args)
         else Out("Unknown level. Use trace|debug|info|warn|error.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|debug|verbose | chat on|off | popups on|off | level <lvl> | test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace | chat on|off | popups on|off | level <lvl> | test | status")
     end
 end
 

@@ -64,7 +64,8 @@ print("\n=== Log Tests ===\n")
 fileLines = {}; chatLines = {}
 Log.Debug(Log.CATEGORY.GENERAL, "hi")
 check(#fileLines == 1, "Debug writes one file line")
-check(fileLines[1] and fileLines[1]:find("[BUI] 100 DEBUG GENERAL | hi", 1, true) ~= nil, "File line carries level/category/ts/message")
+check(fileLines[1] and fileLines[1]:find("[BUI] 100 sid=", 1, true) == 1
+    and fileLines[1]:find("DEBUG GENERAL | hi", 1, true) ~= nil, "File line carries schema/level/category/ts/message")
 check(#chatLines == 0, "Debug does not hit chat by default")
 
 -- Summarize: compact shapes, never full dumps.
@@ -196,6 +197,60 @@ check(Log.IsActive() == true, "ApplyPreset('verbose') reactivates logging immedi
 -- Unknown preset is rejected without changing state.
 local badOk = Log.ApplyPreset("nope")
 check(badOk == false, "ApplyPreset rejects an unknown preset name")
+
+-- ============================================================================
+-- PHASE 1: live schema (sid/seq), watch preset, recent ring, context suffix
+-- ============================================================================
+
+-- watch preset: DEBUG+, payloads on, distinct preset label.
+Log.ApplyPreset("watch")
+check(Log.GetPreset() == "watch", "ApplyPreset('watch') applies and reports its name")
+check(Log.GetMinLevel() == Log.LEVEL.DEBUG, "watch preset floors min level at DEBUG")
+check(Log.GetPayloadCapture() == true, "watch preset enables payload capture")
+
+-- Every emitted line carries sid= and seq=, and seq is monotonic.
+Log.ClearRecent()
+fileLines = {}
+Log.Debug(Log.CATEGORY.SCENE, "first")
+Log.Debug(Log.CATEGORY.SCENE, "second")
+check(#fileLines == 2, "watch preset emits DEBUG records")
+check(fileLines[1]:find("sid=", 1, true) ~= nil, "line carries sid=")
+local seq1 = tonumber(fileLines[1]:match("seq=(%d+)"))
+local seq2 = tonumber(fileLines[2]:match("seq=(%d+)"))
+check(seq1 ~= nil and seq2 == seq1 + 1, "seq is monotonic across records")
+
+-- Recent-events ring captures dispatched records oldest-to-newest.
+local recent = Log.GetRecent()
+check(#recent >= 2, "recent ring captures dispatched records")
+check(recent[#recent].message:find("second", 1, true) ~= nil, "recent ring is ordered newest-last")
+local lastOne = Log.GetRecent(1)
+check(#lastOne == 1 and lastOne[1].message:find("second", 1, true) ~= nil, "GetRecent(n) returns the n newest")
+
+-- Context provider appends a suffix to every dispatched line; nil disables it.
+Log.SetContextProvider(function() return "scene=bank view=bank" end)
+fileLines = {}
+Log.Debug(Log.CATEGORY.SCENE, "with ctx")
+check(fileLines[1]:find("scene=bank view=bank", 1, true) ~= nil, "context provider suffix is appended")
+Log.SetContextProvider(nil)
+fileLines = {}
+Log.Debug(Log.CATEGORY.SCENE, "no ctx")
+check(fileLines[1]:find("scene=bank", 1, true) == nil, "clearing the context provider removes the suffix")
+
+-- sinkDropped is recorded in the ring when the file sink rejects (budget drop).
+Log.ClearRecent()
+local origWriteRaw = BETTERUI.CIM.InterfaceLog.WriteRaw
+BETTERUI.CIM.InterfaceLog.WriteRaw = function() return false end
+Log.Debug(Log.CATEGORY.SCENE, "dropped")
+BETTERUI.CIM.InterfaceLog.WriteRaw = origWriteRaw
+local dr = Log.GetRecent(1)
+check(#dr == 1 and dr[1].sinkDropped == true, "ring records sinkDropped when the file sink rejects")
+
+-- ai is a deprecated alias for watch; sid/seq getters back the shared schema.
+Log.ApplyPreset("ai")
+check(Log.GetPreset() == "watch", "ApplyPreset('ai') aliases to watch")
+check(type(Log.GetSessionId()) == "string" and #Log.GetSessionId() > 0, "GetSessionId returns a non-empty id")
+local nseq1 = Log.NextSeq()
+check(Log.NextSeq() == nseq1 + 1, "NextSeq is monotonic")
 
 -- ============================================================================
 -- SUMMARY

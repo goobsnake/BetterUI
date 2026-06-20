@@ -36,6 +36,9 @@ Log.CATEGORY = {
     SCENE = "SCENE", LIST = "LIST", NAV = "NAV", KEYBIND = "KEYBIND", FOOTER = "FOOTER",
     CATEGORY = "CATEGORY", SEARCH = "SEARCH", SORT = "SORT", BATCH = "BATCH",
     ACTION = "ACTION", LIFECYCLE = "LIFECYCLE", SAFE = "SAFE", SETTINGS = "SETTINGS",
+    -- CONTROL: control resolution/cache (was GENERAL). PERF: timing/budget signals.
+    -- STATE: watch-mode startup preamble, heartbeat, and periodic state snapshots.
+    CONTROL = "CONTROL", PERF = "PERF", STATE = "STATE",
     GENERAL = "GENERAL",
 }
 
@@ -183,22 +186,109 @@ function Log.EnabledFor(level, category)
     return (mask and (mask.file or mask.chat)) and true or false
 end
 
+-- Schema + session/sequence metadata ----------------------------------------
+-- Every dispatched record carries `sid` (per-UI-load id; groups reload sessions)
+-- and a monotonic `seq`, so a tailing AI/human can order and correlate lines even
+-- when the engine interleaves traceback blocks. A bounded in-memory ring backs the
+-- "what just happened" reads (/builog recent).
+Log.SCHEMA = 1
+
+local sessionId = nil
+local seqCounter = 0
+
+local function ensureSessionId()
+    if sessionId == nil then
+        -- Combine wall-clock seconds (differs across reloads) with uptime ms so two
+        -- loads don't collide even at the same uptime-ms, and the value doesn't wrap
+        -- on a short cycle. Non-crypto; it only needs to group one UI-load session.
+        local clock = G("GetGameTimeMilliseconds")
+        local ms = (type(clock) == "function" and clock()) or 0
+        local stampFn = G("GetTimeStamp")
+        local stamp = (type(stampFn) == "function" and stampFn()) or 0
+        sessionId = string.format("%04x%04x", math.floor(stamp % 0x10000), math.floor(ms % 0x10000))
+    end
+    return sessionId
+end
+
+local RECENT_RING_SIZE = 100
+local recentRing = {}
+local recentWriteIdx = 0
+
+local function pushRecent(entry)
+    recentWriteIdx = (recentWriteIdx % RECENT_RING_SIZE) + 1
+    recentRing[recentWriteIdx] = entry
+end
+
+--- Up to `n` most-recent dispatched records, oldest-to-newest. nil/0 = all retained.
+---@param n number|nil
+---@return table[]
+function Log.GetRecent(n)
+    local all = {}
+    for i = 1, RECENT_RING_SIZE do
+        if recentRing[i] then all[#all + 1] = recentRing[i] end
+    end
+    table.sort(all, function(a, b) return a.seq < b.seq end)
+    if type(n) == "number" and n > 0 and #all > n then
+        local out = {}
+        for i = #all - n + 1, #all do out[#out + 1] = all[i] end
+        return out
+    end
+    return all
+end
+
+function Log.ClearRecent() recentRing = {}; recentWriteIdx = 0 end
+
+-- Context provider: a fn(level, category) -> suffix string appended to every
+-- dispatched line. The watch preset sets it to inject scene/view/flow/lastAction so
+-- a tailing AI never lacks context; nil (default) means no suffix.
+local contextProvider = nil
+function Log.SetContextProvider(fn) contextProvider = (type(fn) == "function") and fn or nil end
+function Log.GetContextProvider() return contextProvider end
+
+--- Current per-UI-load session id (used by InterfaceLog meta-lines + diagnostics).
+---@return string
+function Log.GetSessionId() return ensureSessionId() end
+
+--- Allocate the next monotonic sequence number. InterfaceLog uses this for its own
+--- meta-lines (drop summaries, the startup header) so EVERY [BUI] line -- Log.* record
+--- or InterfaceLog meta-line -- shares one ordered sequence.
+---@return number
+function Log.NextSeq() seqCounter = seqCounter + 1; return seqCounter end
+
 -- Render + route a record whose gate has ALREADY passed (see EnabledFor). Keeping
 -- the sink-mask read and rendering out of the gate keeps EnabledFor cheap, and
 -- skips renderData() entirely when payload capture is off.
 local function dispatch(level, category, message, data)
     local clock = G("GetGameTimeMilliseconds")
     local ts = type(clock) == "function" and clock() or 0
+    seqCounter = seqCounter + 1
+    local seq = seqCounter
+    local sid = ensureSessionId()
+
     local text = tostring(message)
     if data ~= nil and payloadCapture then text = text .. " " .. renderData(data) end
 
+    -- Optional context suffix (watch preset): scene/view/flow/lastAction.
+    if contextProvider then
+        local ok, suffix = pcall(contextProvider, level, category)
+        if ok and type(suffix) == "string" and suffix ~= "" then
+            text = text .. " " .. suffix
+        end
+    end
+
     local mask = sinks[level]
+    local sinkDropped = false
     if mask.file then
-        sinkFile(string.format("[BUI] %d %s %s | %s", ts, LEVEL_NAME[level], category, text))
+        local scheduled = sinkFile(string.format("[BUI] %d sid=%s seq=%d %s %s | %s",
+            ts, sid, seq, LEVEL_NAME[level], category, text))
+        sinkDropped = (scheduled ~= true) -- false (budget drop) or nil (no sink) both = not written
     end
     if mask.chat then
         sinkChat(category, text)
     end
+
+    pushRecent({ seq = seq, t = ts, level = LEVEL_NAME[level], category = category,
+        message = text, sinkDropped = sinkDropped })
 end
 
 -- Core emit -----------------------------------------------------------------
@@ -287,12 +377,14 @@ function Log.GetPayloadCapture() return payloadCapture end
 --   off    -> stop file logging, restore error popups, reset the rate-limit budget.
 --   info   -> INFO/WARN/ERROR, payloads off. Milestones + problems: "is it working?"
 --             Safe to run during live play, so it keeps the TIGHT anti-hitch budget.
+--   watch  -> DEBUG+ payloads on, the curated live-AI stream (Phase 3 adds category
+--             auto-mute + per-line context + startup preamble + state snapshots).
 --   debug  -> DEBUG+ (the user-action flow shows), payloads on. The everyday "what is
 --             it doing?" view. LOOSE budget -- a debugger accepts the FPS cost.
 --   trace  -> TRACE+ (every step), payloads on. LOOSEST budget; high enough only to
 --             stop a runaway hot loop from crashing/freezing the client.
 -- "verbose" is accepted as a back-compat alias for "trace".
-local PRESET_NAMES = { off = true, info = true, debug = true, trace = true, verbose = true }
+local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trace = true, verbose = true, ai = true }
 
 -- Per-preset file-sink rate limits. info stays tight (FPS-safe for live play); debug
 -- and trace are greatly loosened because an active debugger accepts the FPS cost --
@@ -300,6 +392,7 @@ local PRESET_NAMES = { off = true, info = true, debug = true, trace = true, verb
 local PRESET_BUDGET = {
     off   = { maxPerFrame = 0,   maxPerSecond = 0,    maxPending = 0 },
     info  = { maxPerFrame = 8,   maxPerSecond = 100,  maxPending = 200 },
+    watch = { maxPerFrame = 30,  maxPerSecond = 600,  maxPending = 600 },
     debug = { maxPerFrame = 100, maxPerSecond = 2000, maxPending = 2000 },
     trace = { maxPerFrame = 400, maxPerSecond = 8000, maxPending = 8000 },
 }
@@ -312,13 +405,14 @@ local function applyAllSinks(fileFromLevel, chatOn)
     end
 end
 
----@param name string  "off" | "info" | "debug" | "trace"  (alias: "verbose" -> "trace")
+---@param name string  "off" | "info" | "watch" | "debug" | "trace"  (alias: "verbose" -> "trace")
 ---@return boolean applied
 ---@return string preset
 function Log.ApplyPreset(name)
     name = type(name) == "string" and name:lower() or ""
     if not PRESET_NAMES[name] then return false, currentPreset end
     if name == "verbose" then name = "trace" end -- back-compat alias
+    if name == "ai" then name = "watch" end -- deprecated alias for "watch"
     local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
 
     if name == "off" then
@@ -328,6 +422,16 @@ function Log.ApplyPreset(name)
         applyAllSinks(Log.LEVEL.INFO, false) -- INFO/WARN/ERROR -> file only
         categoryDisabled = {}
         payloadCapture = false
+        if il and il.SetEnabled then il.SetEnabled(true) end
+    elseif name == "watch" then
+        -- Curated live-AI stream. Phase 1: DEBUG+ with payloads at the watch budget.
+        -- Phase 3 layers on category auto-mute, a per-line context suffix, a startup
+        -- preamble, and periodic state snapshots that make it materially richer than
+        -- `debug` for an AI tailing Interface.log in real time.
+        minLevel = Log.LEVEL.DEBUG
+        applyAllSinks(Log.LEVEL.DEBUG, false)
+        categoryDisabled = {}
+        payloadCapture = true
         if il and il.SetEnabled then il.SetEnabled(true) end
     elseif name == "debug" then
         minLevel = Log.LEVEL.DEBUG
