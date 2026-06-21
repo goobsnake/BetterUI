@@ -68,15 +68,17 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
     local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     local activeSourceBag = transferContext.interactionBag
 
+    if lastUsedBank == currentUsedBank then
+        return false -- No switch, handled by caller
+    end
+
+    -- A REAL bank switch (current ~= last). Log here -- BELOW the no-op guard -- so the
+    -- frequent no-op calls (current == last) don't spam INFO with identical lines.
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "handle bank switch", {
             lastBank = lastUsedBank,
             currentBank = currentUsedBank,
         })
-    end
-
-    if lastUsedBank == currentUsedBank then
-        return false -- No switch, handled by caller
     end
 
     -- Bank changed - reset positions for both modes
