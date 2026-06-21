@@ -72,13 +72,28 @@ local function isLoggerFrame(line)
     return false
 end
 
+-- True if `line` matches any caller-supplied extra-skip pattern (e.g. a helper module
+-- that wraps the real caller and should be skipped past, like ControlUtils.FindControl).
+local function matchesAny(line, patterns)
+    if type(patterns) ~= "table" then return false end
+    for i = 1, #patterns do
+        if type(patterns[i]) == "string" then
+            -- pcall: a caller-supplied invalid Lua pattern must not raise from a log path.
+            local ok, found = pcall(string.find, line, patterns[i])
+            if ok and found then return true end
+        end
+    end
+    return false
+end
+
 --- Synchronously capture the calling site as a compact `src` string, skipping logger
 --- frames. e.g. "Modules/CIM/Core/Window/ControlUtils.lua:80:FindControl". Returns nil
 --- when traceback is unavailable or no application frame parses.
 --- MUST be called on the caller's stack (before any defer). NOT for hot paths.
 ---@param startLevel number|nil  traceback start frame (default 2)
+---@param extraSkip string[]|nil  extra Lua patterns to skip (e.g. a wrapping helper's file)
 ---@return string|nil
-function DebugInfo.CaptureCallerFrame(startLevel)
+function DebugInfo.CaptureCallerFrame(startLevel, extraSkip)
     if not DebugInfo.HasTraceback() then return nil end
     local dbg = G("debug")
     -- "" (not nil): Lua 5.1 returns a non-string message untouched, so nil -> nil.
@@ -86,20 +101,24 @@ function DebugInfo.CaptureCallerFrame(startLevel)
     if not ok or type(tb) ~= "string" then return nil end
     if #tb > MAX_TRACE_CHARS then tb = tb:sub(1, MAX_TRACE_CHARS) end -- bound the scan
 
+    -- Count only .lua FRAMES (not the "stack traceback:" header or [C] lines) toward the
+    -- cap, so noise lines can't exhaust the scan before the real caller is reached.
     local count = 0
     for line in tb:gmatch("[^\r\n]+") do
-        count = count + 1
-        if count > MAX_FRAMES then break end
         -- ESO frames look like: user:/AddOns/BetterUI/.../File.lua:123: in function 'Name'
         local path, lno = line:match("([%w_%.%-/\\]+%.lua):(%d+)")
-        if path and not isLoggerFrame(line) then
-            -- Normalize to a repo-relative path (strip everything up to BetterUI/).
-            local rel = path:match("[Bb]etter[Uu][Ii][/\\](.+)$") or path
-            rel = rel:gsub("\\", "/")
-            local src = rel .. ":" .. lno
-            local fn = line:match("in function ['\"<]([^'\">]+)")
-            if fn and fn ~= "" then src = src .. ":" .. fn end
-            return src
+        if path then
+            count = count + 1
+            if count > MAX_FRAMES then break end
+            if not isLoggerFrame(line) and not matchesAny(line, extraSkip) then
+                -- Normalize to a repo-relative path (strip everything up to BetterUI/).
+                local rel = path:match("[Bb]etter[Uu][Ii][/\\](.+)$") or path
+                rel = rel:gsub("\\", "/")
+                local src = rel .. ":" .. lno
+                local fn = line:match("in function ['\"<]([^'\">]+)")
+                if fn and fn ~= "" then src = src .. ":" .. fn end
+                return src
+            end
         end
     end
     return nil

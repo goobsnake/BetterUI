@@ -6,6 +6,19 @@ Purpose: Shared UI control utilities used across BetterUI modules.
 if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.ControlUtils == nil then BETTERUI.ControlUtils = {} end
 
+local function names() return BETTERUI.CIM and BETTERUI.CIM.Names end
+local function debugInfo() return BETTERUI.CIM and BETTERUI.CIM.DebugInfo end
+
+-- Human name for a control/parent in log lines (Names handles userdata + pcall guards).
+local function nameOf(control, fallback)
+    local N = names()
+    if N and type(N.Control) == "function" then
+        local ok, n = pcall(N.Control, control, fallback)
+        if ok and type(n) == "string" then return n end
+    end
+    return fallback
+end
+
 -- Cache for control lookups to avoid repeated parent-chain traversals.
 local ControlCache = {}
 
@@ -20,14 +33,42 @@ local warnedMisses = {}
 function BETTERUI.ControlUtils.InvalidateControlCache()
     ControlCache = {}
     warnedMisses = {}
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "controlCacheInvalidated") end
+    if BETTERUI.Log and type(BETTERUI.Log.Trace) == "function" then
+        pcall(BETTERUI.Log.Trace, BETTERUI.Log.CATEGORY.CONTROL, "control cache invalidated")
+    end
 end
 
--- Emit a "findControl miss" WARN at most once per key per cache generation.
-local function WarnMissOnce(key)
-    if warnedMisses[key] then return end
-    warnedMisses[key] = true
-    if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "findControl miss", { cacheKey = key }) end
+-- Emit a self-describing "FindControl miss" WARN at most once per key per cache
+-- generation. The MESSAGE names the missing control + its parent so it survives even
+-- with payloads off; the payload adds the caller label + the resolved call site
+-- (file:line:function), so a reader knows WHAT was missing, under WHAT, and from WHERE.
+local function WarnMissOnce(cacheKey, name, parent, caller)
+    if warnedMisses[cacheKey] then return end
+    warnedMisses[cacheKey] = true
+    local L = BETTERUI.Log
+    if not L or type(L.Warn) ~= "function" then return end
+    local src
+    local DI = debugInfo()
+    if DI and type(DI.CaptureCallerFrame) == "function" then
+        -- Skip the logger AND ControlUtils' own frames so src points at the real caller
+        -- (the extraSkip filter, not the level, is what reaches the real caller).
+        local ok, s = pcall(DI.CaptureCallerFrame, 2, { "Window[/\\]ControlUtils%.lua" })
+        if ok then src = s end
+    end
+    local pname = nameOf(parent, "<no-parent>")
+    pcall(L.Warn, L.CATEGORY.CONTROL,
+        "FindControl miss: no control named '" .. tostring(name) .. "' under parent '" .. pname .. "'",
+        { control = name, parent = pname, caller = caller or "<unspecified>", src = src })
+end
+
+-- One-time TRACE breadcrumb when a control first RESOLVES (cache hits stay silent --
+-- per-hit logging flooded Interface.log and starved the file-sink budget).
+local function TraceResolved(parent, name, via, levels, caller)
+    local L = BETTERUI.Log
+    if not (L and L.IsActive and L.IsActive()) then return end
+    if type(L.Trace) ~= "function" then return end
+    pcall(L.Trace, L.CATEGORY.CONTROL, "FindControl resolved '" .. tostring(name) .. "' via " .. via,
+        { control = name, parent = nameOf(parent, "<no-parent>"), via = via, levels = levels, caller = caller or "<unspecified>" })
 end
 
 --- Finds a control by name, handling ESO's complex naming conventions.
@@ -42,9 +83,12 @@ end
 ---
 --- References: Used pervasively in this module to find XML-defined controls.
 ---
-function BETTERUI.ControlUtils.FindControl(parent, name)
+---@param parent any        parent control to search under
+---@param name string       short control name
+---@param caller string|nil optional label of the calling site -- enriches miss/resolved logs
+function BETTERUI.ControlUtils.FindControl(parent, name, caller)
     if not parent then
-        WarnMissOnce(tostring(parent) .. "|" .. name)
+        WarnMissOnce("nil|" .. tostring(name), name, nil, caller)
         return nil
     end
 
@@ -62,7 +106,7 @@ function BETTERUI.ControlUtils.FindControl(parent, name)
     local child = parent:GetNamedChild(name)
     if child then
         ControlCache[cacheKey] = child
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "findControl resolved", { cacheKey = cacheKey, levelsChecked = 0, via = "child" }) end
+        TraceResolved(parent, name, "child", 0, caller)
         return child
     end
 
@@ -74,7 +118,7 @@ function BETTERUI.ControlUtils.FindControl(parent, name)
         local ctrl = _G[globalName]
         if ctrl ~= nil then
             ControlCache[cacheKey] = ctrl
-            if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "findControl resolved", { cacheKey = cacheKey, levelsChecked = guards, via = "ancestorGlobal" }) end
+            TraceResolved(parent, name, "ancestorGlobal", guards, caller)
             return ctrl
         end
         -- Move to the next ancestor.
@@ -90,10 +134,10 @@ function BETTERUI.ControlUtils.FindControl(parent, name)
     local globalCtrl = _G[name]
     if globalCtrl then
         ControlCache[cacheKey] = globalCtrl
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "findControl resolved", { cacheKey = cacheKey, levelsChecked = guards, via = "global" }) end
+        TraceResolved(parent, name, "global", guards, caller)
         return globalCtrl
     end
 
-    WarnMissOnce(cacheKey)
+    WarnMissOnce(cacheKey, name, parent, caller)
     return nil
 end

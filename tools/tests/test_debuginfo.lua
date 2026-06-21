@@ -59,6 +59,20 @@ do
     debug.traceback = realTb
 end
 
+-- extraSkip: skip a wrapping helper's frames to reach the real caller beyond them.
+do
+    local realTb = debug.traceback
+    debug.traceback = function()
+        return "stack traceback:\n" ..
+            "\tuser:/AddOns/BetterUI/Modules/CIM/Core/Window/ControlUtils.lua:50: in function 'WarnMissOnce'\n" ..
+            "\tuser:/AddOns/BetterUI/Modules/CIM/Core/Window/ControlUtils.lua:88: in function 'FindControl'\n" ..
+            "\tuser:/AddOns/BetterUI/Modules/CIM/Bank.lua:21: in function 'setupFooter'"
+    end
+    check(DebugInfo.CaptureCallerFrame(1, { "Window[/\\]ControlUtils%.lua" }) == "Modules/CIM/Bank.lua:21:setupFooter",
+        "extraSkip skips wrapper frames to the real caller")
+    debug.traceback = realTb
+end
+
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", passed))
 print(string.format("Failed: %d", failed))
