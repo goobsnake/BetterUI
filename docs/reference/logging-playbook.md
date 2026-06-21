@@ -34,10 +34,10 @@ Presets are min-level gates layered over the low-level knobs. Pick by intent:
 |---|---|---|---|---|
 | `off`   | —      | —   | 0      | stop logging, restore popups |
 | `info`  | INFO+  | off | 8/100  | "is it working?" — milestones + problems. **FPS-safe for live play.** |
-| `watch` | DEBUG+ | on  | 30/600 | the curated **live-AI** stream (preamble, per-line context, snapshots, flows) |
-| `debug` | DEBUG+ | on  | 100/2000 | "what is it doing?" — the everyday user-action flow |
-| `trace` | TRACE+ | on  | 400/8000 | every step; loosest budget (only guards against a runaway hot loop) |
-| `inspect` | TRACE+ | on | 400/8000 | **`watch` enrichment at `trace` depth** — every step PLUS per-line context, state snapshots, preamble, auto-mute. The richest live-AI stream. |
+| `watch` | DEBUG+ | on  | 300/6000 | the curated **live-AI** stream (preamble, per-line context, snapshots, flows) |
+| `debug` | DEBUG+ | on  | 1000/20000 | "what is it doing?" — the everyday user-action flow |
+| `trace` | TRACE+ | on  | 2000/40000 | every step; loosest budget (only guards against a runaway hot loop) |
+| `inspect` | TRACE+ | on | 2000/40000 | **`watch` enrichment at `trace` depth** — every step PLUS per-line context, state snapshots, preamble, auto-mute. The richest live-AI stream. |
 
 `ai` is a deprecated alias for `watch`; `verbose` for `trace`. `inspect` is a DISTINCT preset
 (not an alias — `GetPreset()` returns `inspect`): use it when `watch` (DEBUG+) isn't deep

@@ -70,9 +70,10 @@ attempted=child,ancestorGlobal,global scene=bank view=bank flow=none lastAction=
 | Preset | Min level | Payloads | Budget (frame/sec) | Purpose |
 |---|---|---|---|---|
 | `info` | INFO | off | 8 / 100 | "Is it working?" — FPS-safe live |
-| `watch` | DEBUG | on | ~30 / 600 (calibrate) | **Live AI monitoring** — curated stream (see section 3) |
-| `debug` | DEBUG | on | 100 / 2000 (loose) | broad developer stream, all categories |
-| `trace` | TRACE | on | 400 / 8000 (crash-guard) | "Every step" |
+| `watch` | DEBUG | on | ~300 / 6000 (calibrated) | **Live AI monitoring** — curated stream (see section 3) |
+| `debug` | DEBUG | on | 1000 / 20000 (loose) | broad developer stream, all categories |
+| `trace` | TRACE | on | 2000 / 40000 (crash-guard) | "Every step" |
+| `inspect` | TRACE | on | 2000 / 40000 (crash-guard) | `watch` enrichment at `trace` depth — richest live-AI stream |
 
 `verbose` -> alias of `trace` (`ai` -> `watch` for one release with a deprecation notice). Maintainer's call:
 **ship loose, calibrate in-client.** Safety valves: `/builog cat <CATEGORY> off|on` (WARN/ERROR always pass)

@@ -510,16 +510,19 @@ function Log.GetPayloadCapture() return payloadCapture end
 -- not an alias (GetPreset() returns "inspect").
 local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trace = true, inspect = true, verbose = true, ai = true }
 
--- Per-preset file-sink rate limits. info stays tight (FPS-safe for live play); debug
--- and trace are greatly loosened because an active debugger accepts the FPS cost --
--- the caps exist only so a pathological hot path can't crash or freeze the client.
+-- Per-preset file-sink rate limits. info stays tight (FPS-safe for live play); debug,
+-- trace, watch and inspect are greatly loosened because an active debugger accepts the
+-- FPS cost -- the caps exist only so a pathological hot path can't crash or freeze the
+-- client. Sizing: a single-frame inventory/craft-bag list rebuild was observed bursting
+-- ~800+ records/frame at inspect depth, so the per-frame caps clear that with headroom
+-- (verified: no in-game FPS impact at inspect during heavy scrolling/category switches).
 local PRESET_BUDGET = {
-    off   = { maxPerFrame = 0,   maxPerSecond = 0,    maxPending = 0 },
-    info  = { maxPerFrame = 8,   maxPerSecond = 100,  maxPending = 200 },
-    watch = { maxPerFrame = 30,  maxPerSecond = 600,  maxPending = 600 },
-    debug = { maxPerFrame = 100, maxPerSecond = 2000, maxPending = 2000 },
-    trace = { maxPerFrame = 400, maxPerSecond = 8000, maxPending = 8000 },
-    inspect = { maxPerFrame = 400, maxPerSecond = 8000, maxPending = 8000 }, -- trace volume + watch enrichment
+    off   = { maxPerFrame = 0,    maxPerSecond = 0,     maxPending = 0 },
+    info  = { maxPerFrame = 8,    maxPerSecond = 100,   maxPending = 200 },
+    watch = { maxPerFrame = 300,  maxPerSecond = 6000,  maxPending = 6000 },
+    debug = { maxPerFrame = 1000, maxPerSecond = 20000, maxPending = 20000 },
+    trace = { maxPerFrame = 2000, maxPerSecond = 40000, maxPending = 40000 },
+    inspect = { maxPerFrame = 2000, maxPerSecond = 40000, maxPending = 40000 }, -- trace volume + watch enrichment
 }
 
 -- file ON for levels >= fileFromLevel (nil = all file sinks off); chat per chatOn.
