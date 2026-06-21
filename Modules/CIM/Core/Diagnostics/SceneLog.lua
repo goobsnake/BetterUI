@@ -59,6 +59,7 @@ MapState(G("SCENE_HIDING"),  "hiding")
 MapState(G("SCENE_HIDDEN"),  "hidden")
 
 local SCENE_HIDDEN = G("SCENE_HIDDEN")
+local SCENE_SHOWN = G("SCENE_SHOWN")
 
 local m_registered = false
 
@@ -94,22 +95,37 @@ local function OnSceneStateChanged(scene, oldState, newState)
     -- Returns before any string build / table alloc when logging is off.
     if not (BETTERUI.Log and BETTERUI.Log.IsActive()) then return end
 
-    local name = (type(scene) == "table" and scene.GetName and scene:GetName())
+    local name = (type(scene) == "table" and type(scene.GetName) == "function" and scene:GetName())
         or (type(scene) == "string" and scene)
         or "<unknown>"
     local verb = STATE_NAME[newState] or ("state(" .. tostring(newState) .. ")")
+    local fromVerb = STATE_NAME[oldState] or ("state(" .. tostring(oldState) .. ")")
 
     PushRing({ scene = name, verb = verb, t = Now() })
 
-    -- Name + verb live in the MESSAGE (not only the data table): the 'debug' preset
-    -- drops the data table at dispatch, so the message must be self-describing.
-    BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene " .. name .. " " .. verb, {
+    -- Self-describing message: name + the from->to transition live in the MESSAGE (not
+    -- only the data table), because the 'debug' preset drops the data table at dispatch.
+    -- from/to are human verbs (showing/shown/hiding/hidden), never raw state constants.
+    local msg = "scene " .. name .. " " .. verb .. " (from " .. fromVerb .. ")"
+    local data = {
         scene = name,
-        from = oldState,
-        to = newState,
-        wasPushed = (oldState == SCENE_HIDDEN),
+        from = fromVerb,
+        to = verb,
+        wasPushed = (SCENE_HIDDEN ~= nil and oldState == SCENE_HIDDEN),
         cur = CurrentSceneName(),
-    })
+    }
+
+    -- Tier by settledness: SHOWN/HIDDEN are the milestones a user cares about (INFO --
+    -- survive the 'info' preset); SHOWING/HIDING are intermediate flow (DEBUG). When the
+    -- constants are absent (test harness / partial client) default to INFO so nothing is
+    -- silently lost.
+    if SCENE_SHOWN == nil and SCENE_HIDDEN == nil then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, msg, data)
+    elseif newState == SCENE_SHOWN or newState == SCENE_HIDDEN then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, msg, data)
+    else
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SCENE, msg, data)
+    end
 end
 
 --- Idempotently register the single additive SceneStateChanged callback. Safe to call

@@ -24,7 +24,16 @@ function BETTERUI.CIM.HeaderNavigation.CycleCategory(instance, delta, options)
     local currentIdx = options.getCurrentIndex() or 1
     local newIdx = BETTERUI.CIM.Utils.WrapValue(currentIdx + delta, count)
 
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "cycleCategory", { delta = delta, prevIdx = currentIdx, newIdx = newIdx }) end
+    local L = BETTERUI.Log
+    if L and L.EnabledFor and L.EnabledFor(L.LEVEL.TRACE, L.CATEGORY.CATEGORY) then
+        local N = BETTERUI.CIM and BETTERUI.CIM.Names
+        local nm = (N and type(N.Category) == "function" and N.Category(options.categories, newIdx))
+            or ("index " .. tostring(newIdx))
+        local dir = (delta or 0) >= 0 and "next" or "prev"
+        L.Trace(L.CATEGORY.CATEGORY,
+            "cycle category " .. dir .. " to '" .. nm .. "' (index " .. tostring(currentIdx) .. " -> " .. tostring(newIdx) .. ")",
+            { category = nm, delta = delta, prevIdx = currentIdx, newIdx = newIdx })
+    end
 
     -- Save position for current category BEFORE switching
     if instance.SaveListPosition then
@@ -69,7 +78,14 @@ function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
 
         local prevIdx = instance.currentCategoryIndex or 1
         local delta = pendingCategoryIndex - prevIdx
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "cycleCategory", { delta = delta, prevIdx = prevIdx, newIdx = pendingCategoryIndex }) end
+        local L = BETTERUI.Log
+        if L and L.EnabledFor and L.EnabledFor(L.LEVEL.TRACE, L.CATEGORY.CATEGORY) then
+            local nm = (type(selectedData) == "table" and (selectedData.text or selectedData.name))
+                or ("index " .. tostring(pendingCategoryIndex))
+            L.Trace(L.CATEGORY.CATEGORY,
+                "category selected -> '" .. tostring(nm) .. "' (index " .. tostring(prevIdx) .. " -> " .. tostring(pendingCategoryIndex) .. ")",
+                { category = nm, delta = delta, prevIdx = prevIdx, newIdx = pendingCategoryIndex })
+        end
 
         -- Start coalesced change using NavigationState
         local token = NavState.StartCategoryChange(state, pendingCategoryIndex)

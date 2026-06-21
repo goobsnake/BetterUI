@@ -34,8 +34,14 @@ BETTERUI.Log = {
     CATEGORY = { SCENE = "SCENE", GENERAL = "GENERAL" },
     LEVEL = { TRACE = 1, DEBUG = 2, INFO = 3, WARN = 4, ERROR = 5 },
     IsActive = function() return logActive end,
+    -- SceneLog tiers SHOWN/HIDDEN -> Info (milestones), SHOWING/HIDING -> Debug. Capture
+    -- BOTH into one ordered list (with a level tag) so transition-count + verb assertions
+    -- stay level-agnostic, while a few checks assert the tier.
     Info = function(category, message, data)
-        infoCalls[#infoCalls + 1] = { category = category, message = message, data = data }
+        infoCalls[#infoCalls + 1] = { category = category, message = message, data = data, level = "INFO" }
+    end,
+    Debug = function(category, message, data)
+        infoCalls[#infoCalls + 1] = { category = category, message = message, data = data, level = "DEBUG" }
     end,
 }
 
@@ -99,9 +105,12 @@ logActive = false
 local getNameCalls = 0
 local probeScene = { GetName = function() getNameCalls = getNameCalls + 1; return "probe" end }
 local infoBefore = #infoCalls
+local function ringCount() local n = 0; for _ in pairs(SL.GetRecent()) do n = n + 1 end; return n end
+local ringBefore = ringCount()
 handler(probeScene, SCENE_HIDDEN, SCENE_SHOWING)
 check(#infoCalls == infoBefore, "logging OFF -> no Info emitted")
 check(getNameCalls == 0, "logging OFF -> scene name not resolved (gate short-circuits)")
+check(ringCount() == ringBefore, "logging OFF -> recent-transition ring untouched")
 
 -- (4) Active path: one INFO/SCENE record, name + verb in the message, wasPushed flagged.
 logActive = true
@@ -124,6 +133,16 @@ check(contains(infoCalls[1].message, "showing")
    and contains(infoCalls[2].message, "shown")
    and contains(infoCalls[3].message, "hiding")
    and contains(infoCalls[4].message, "hidden"), "verbs map showing/shown/hiding/hidden")
+
+-- (5b) Tiering: SHOWING/HIDING are intermediate flow (DEBUG); SHOWN/HIDDEN are settled
+-- milestones (INFO, survive the 'info' preset).
+check(infoCalls[1].level == "DEBUG" and infoCalls[2].level == "INFO"
+   and infoCalls[3].level == "DEBUG" and infoCalls[4].level == "INFO",
+    "tiers showing/hiding=DEBUG, shown/hidden=INFO")
+
+-- (5c) The from->to transition rides the MESSAGE + data as human verbs (not raw consts).
+check(contains(infoCalls[1].message, "(from hidden)") and infoCalls[1].data.from == "hidden"
+   and infoCalls[1].data.to == "showing", "message + data carry human from/to verbs")
 
 -- (6) Unknown state falls back to a readable token rather than erroring.
 infoCalls = {}
@@ -159,6 +178,27 @@ local okLoad = pcall(dofile, "Modules/CIM/Core/Diagnostics/SceneLog.lua")
 check(okLoad, "loads without error when SCENE_MANAGER is absent")
 check(BETTERUI.CIM.SceneLog.IsRegistered() == false, "stays unregistered without SCENE_MANAGER")
 check(#registrations == 0, "registers nothing without SCENE_MANAGER")
+
+-- (11) Both state constants absent (partial client / harness): every transition tiers to
+-- INFO so the 'info' preset never silently drops a scene change to a hidden level.
+SCENE_SHOWN = nil
+SCENE_HIDDEN = nil
+local reg2 = {}
+SCENE_MANAGER = {
+    RegisterCallback = function(_, event, fn) reg2[#reg2 + 1] = { event = event, fn = fn } end,
+    GetCurrentSceneName = function() return "hud" end,
+}
+logActive = true
+infoCalls = {}
+local okReload2 = pcall(dofile, "Modules/CIM/Core/Diagnostics/SceneLog.lua")
+check(okReload2, "reload with nil state constants does not error")
+local h2 = reg2[1] and reg2[1].fn
+check(type(h2) == "function", "re-registers a handler after reload")
+if h2 then
+    h2(bankScene, 4, 1)
+    check(#infoCalls == 1 and infoCalls[1].level == "INFO",
+        "all-nil state constants -> INFO tier (nothing dropped)")
+end
 
 -- ============================================================================
 -- SUMMARY

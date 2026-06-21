@@ -23,6 +23,14 @@ Used By: HeaderNavigation.CycleCategory, CreateCoalescedHandler
 ---@field IsChangeValid fun(state: NavigationStateData, token: number): boolean
 BETTERUI.CIM.NavigationState = {}
 
+-- Cheap TRACE/NAV gate: returns true only when a NAV trace record would actually emit,
+-- so the message-string + data-table are built ONLY then (the call args evaluate before
+-- the call, so this predicate must wrap the build, not just the emit).
+local function navTraceOn()
+    local L = BETTERUI.Log
+    return L and L.EnabledFor and L.EnabledFor(L.LEVEL.TRACE, L.CATEGORY.NAV)
+end
+
 ---@class NavigationStateData
 ---@field changeToken number Monotonically increasing token for coalescing
 ---@field pendingCategoryIndex number|nil Pending category index during coalescing
@@ -36,7 +44,7 @@ BETTERUI.CIM.NavigationState = {}
 
 ---@return NavigationStateData
 function BETTERUI.CIM.NavigationState.Create()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "navStateCreate") end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "navigation state created") end
     return {
         -- Token for coalescing category changes (incremented each change)
         changeToken = 0,
@@ -65,7 +73,7 @@ function BETTERUI.CIM.NavigationState.StartCategoryChange(state, newIndex)
     state.pendingCategoryIndex = newIndex
     state.suppressListUpdates = true
     state.suppressListUpdatesToken = state.changeToken
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "startCategoryChange", { token = state.changeToken, newIndex = newIndex }) end
+    if navTraceOn() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "category change started -> index " .. tostring(newIndex), { token = state.changeToken, newIndex = newIndex }) end
     return state.changeToken
 end
 
@@ -81,7 +89,7 @@ function BETTERUI.CIM.NavigationState.FinishCategoryChange(state, token)
         end
         state.pendingCategoryIndex = nil
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "finishCategoryChange", { token = token, success = success }) end
+    if navTraceOn() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "category change finished (applied=" .. tostring(success) .. ")", { token = token, applied = success }) end
     return success
 end
 
@@ -95,7 +103,7 @@ function BETTERUI.CIM.NavigationState.CancelCategoryChange(state, token)
         state.suppressListUpdatesToken = nil
         state.pendingCategoryIndex = nil
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "cancelCategoryChange", { token = token, success = success }) end
+    if navTraceOn() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "category change cancelled (matched=" .. tostring(success) .. ")", { token = token, matched = success }) end
     return success
 end
 
@@ -104,7 +112,7 @@ end
 ---@return boolean valid True if token matches current changeToken
 function BETTERUI.CIM.NavigationState.IsChangeValid(state, token)
     local valid = token == state.changeToken
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "isChangeValid", { token = token, valid = valid }) end
+    if navTraceOn() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "category change token " .. tostring(token) .. " valid=" .. tostring(valid), { token = token, valid = valid }) end
     return valid
 end
 
