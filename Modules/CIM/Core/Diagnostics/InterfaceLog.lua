@@ -313,6 +313,48 @@ local function PrintStatus()
     Out("Real Lua errors always log to Interface.log; [BUI] lines are BetterUI's own stream.")
 end
 
+-- capture [seconds]: temporarily raise to TRACE for a bounded window, then auto-revert to
+-- the prior preset, so you can grab the next operation in FULL detail without leaving
+-- trace running. Cancels a prior pending capture; pcall-guarded.
+local captureRevertId = nil
+local captureGen = 0
+local function StartCapture(secs)
+    local L = BETTERUI.Log
+    if not (L and L.ApplyPreset and L.GetPreset) then Out("Logger not loaded.") return end
+    local later = G("zo_callLater")
+    -- Require the timer BEFORE applying trace: without it we could never auto-revert and
+    -- would strand the client at TRACE.
+    if type(later) ~= "function" then Out("Capture unavailable (no timer); use /builog preset trace manually.") return end
+    secs = (type(secs) == "number") and math.max(1, math.min(60, secs)) or 5
+
+    -- Cancel any prior pending capture + bump the generation so a stale/raced callback
+    -- (if removal is unavailable or fails) no-ops instead of reverting a newer capture.
+    local remove = G("zo_removeCallLater")
+    if captureRevertId and type(remove) == "function" then pcall(remove, captureRevertId) end
+    captureRevertId = nil
+    captureGen = captureGen + 1
+    local gen = captureGen
+
+    local prevEnabled = enabled
+    local okP, prevPreset = pcall(L.GetPreset)
+    if not okP or type(prevPreset) ~= "string" then prevPreset = "debug" end
+    if not enabled then InterfaceLog.SetEnabled(true) end
+    pcall(L.ApplyPreset, "trace")
+    if L.Info then pcall(L.Info, L.CATEGORY.STATE, "capture window started (" .. secs .. "s, was " .. prevPreset .. ")") end
+    Out(string.format("Capturing at |c00ff00TRACE|r for %ds, then reverting to %s.", secs, prevPreset))
+
+    captureRevertId = later(function()
+        if gen ~= captureGen then return end -- superseded by a newer capture: no-op
+        captureRevertId = nil
+        -- Restore the prior preset (fall back to debug if it was custom/unknown), then the
+        -- prior ENABLED state (capture force-enabled logging if it had been off).
+        local pok, applied = pcall(L.ApplyPreset, prevPreset)
+        if not (pok and applied) then pcall(L.ApplyPreset, "debug") end
+        InterfaceLog.SetEnabled(prevEnabled)
+        if L.Info then pcall(L.Info, L.CATEGORY.STATE, "capture window ended") end
+    end, secs * 1000)
+end
+
 -- Dump the last n records from a Log ring getter (GetRecent / GetRecentErrors) to chat,
 -- without tailing the file. Bounded + pcall-guarded so a /builog command can never raise.
 local function DumpRecords(getter, n, label)
@@ -406,6 +448,8 @@ local function HandleCommand(args)
     elseif args == "errors" or args:match("^errors%s+%d+$") then
         local L = BETTERUI.Log
         DumpRecords(L and L.GetRecentErrors, tonumber(args:match("(%d+)")) or 20, "error")
+    elseif args == "capture" or args:match("^capture%s+%d+$") then
+        StartCapture(tonumber(args:match("(%d+)")))
     elseif args == "mark" then
         Out("Usage: /builog mark <text>  -- annotates the live log with <text>.")
     elseif args == "snapshot" then
@@ -416,7 +460,7 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | snapshot | test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | snapshot | test | status")
     end
 end
 

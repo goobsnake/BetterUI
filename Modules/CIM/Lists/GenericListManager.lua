@@ -171,10 +171,14 @@ function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
 
     local query = searchQuery:lower()
     local filtered = {}
-    local logActive = BETTERUI.Log and BETTERUI.Log.IsActive()
-    if logActive then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "applyTextFilter", { query = query, totalItems = #items })
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH,
+            "filter list by '" .. query .. "' (" .. #items .. " items)",
+            { query = query, totalItems = #items })
     end
+    -- Time the filter loop (a per-keystroke hot path over the full item set). Inert when
+    -- PERF logging is off -- Perf.Begin returns nil and Perf.End no-ops.
+    local perf = BETTERUI.CIM.Perf and BETTERUI.CIM.Perf.Begin("applyTextFilter")
 
     for _, item in ipairs(items) do
         local name = item.name or ""
@@ -183,8 +187,10 @@ function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
         end
     end
 
-    if logActive then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "applyTextFilterDone", { filteredCount = #filtered })
+    -- Only build the data table + call End when a span was actually started (PERF on),
+    -- so the off path allocates nothing.
+    if perf then
+        BETTERUI.CIM.Perf.End(perf, { items = #items, matched = #filtered, query = query })
     end
     return filtered
 end
