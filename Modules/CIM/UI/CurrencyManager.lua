@@ -160,13 +160,13 @@ end
 function BETTERUI.CIM.Currency.GetValue(def)
     if not def or not def.apiConst then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "currencyGetValueMissingDef")
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "currency get value missing def")
         end
         return 0 end
     if def.useStoredAmount then
         local val = GetPlayerStoredCurrencyAmount(def.apiConst)
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currencyGetStoredValue", { iconKey = def.iconKey, value = val })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currency get stored value", { iconKey = def.iconKey, value = val })
         end
         return val
     else
@@ -174,7 +174,7 @@ function BETTERUI.CIM.Currency.GetValue(def)
         -- the character location when a def omits it.
         local val = GetCurrencyAmount(def.apiConst, def.location or CURRENCY_LOCATION_CHARACTER)
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currencyGetValue", { iconKey = def.iconKey, value = val, location = def.location })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currency get value", { iconKey = def.iconKey, value = val, location = def.location })
         end
         return val
     end
@@ -234,7 +234,7 @@ function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
     local logActive = BETTERUI.Log and BETTERUI.Log.IsActive()
 
     if logActive then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currencyUpdateLabels")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "update currency labels")
     end
 
     for _, def in ipairs(DEFS) do
@@ -252,7 +252,7 @@ function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
                     label:SetHidden(true)
                     anyChanged = true
                     if logActive then
-                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currencyLabelUnavailable", { iconKey = def.iconKey })
+                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currency label unavailable", { iconKey = def.iconKey })
                     end
                 end
             else
@@ -269,7 +269,7 @@ function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
                     cache[def.iconKey] = { enabled = enabled, amount = val }
                     anyChanged = true
                     if logActive then
-                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currencyLabelUpdated", { iconKey = def.iconKey, enabled = enabled, value = val })
+                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currency label updated", { iconKey = def.iconKey, enabled = enabled, value = val })
                     end
                 end
             end
@@ -321,7 +321,7 @@ function BETTERUI.CIM.Currency.PositionLabels(footer, invSettings)
     local yRows = BETTERUI_CURRENCY_ROWS or { 32, 58, 84 }
     local maxVisible = BETTERUI_MAX_VISIBLE_CURRENCIES or 12
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "currencyPositionLabels", { visibleCount = #visible, maxVisible = maxVisible, numRows = #yRows - 1 })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "position currency labels", { visibleCount = #visible, maxVisible = maxVisible, numRows = #yRows - 1 })
     end
 
     -- Hide excess currencies

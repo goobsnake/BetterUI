@@ -30,7 +30,7 @@ function BETTERUI.CIM.GenericListManager:SavePosition(categoryKey, position)
     if categoryKey then
         self.savedPositions[categoryKey] = position
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "savePosition", { categoryKey = categoryKey, position = position })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "save position", { categoryKey = categoryKey, position = position })
         end
     end
 end
@@ -40,7 +40,7 @@ end
 function BETTERUI.CIM.GenericListManager:RestorePosition(categoryKey)
     local position = self.savedPositions[categoryKey]
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "restorePosition", { categoryKey = categoryKey, position = position })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "restore position", { categoryKey = categoryKey, position = position })
     end
     return position
 end
@@ -49,7 +49,7 @@ end
 function BETTERUI.CIM.GenericListManager:ClearSavedPositions()
     self.savedPositions = {}
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "clearSavedPositions")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "clear saved positions")
     end
 end
 
@@ -88,7 +88,7 @@ end
 --- @return boolean
 function BETTERUI.CIM.SortByName(left, right)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByName")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sort by name")
     end
     local leftName = left.name or left.bestItemTypeName or ""
     local rightName = right.name or right.bestItemTypeName or ""
@@ -100,7 +100,7 @@ end
 --- @return boolean
 function BETTERUI.CIM.SortByQuality(left, right)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByQuality")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sort by quality")
     end
     local leftQuality = left.displayQuality or left.quality or 0
     local rightQuality = right.displayQuality or right.quality or 0
@@ -110,7 +110,7 @@ end
 --- Level/CP requirement comparator (higher level first).
 function BETTERUI.CIM.SortByLevel(left, right)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByLevel")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sort by level")
     end
     local leftLevel = left.requiredLevel or 0
     local rightLevel = right.requiredLevel or 0
@@ -127,7 +127,7 @@ end
 
 function BETTERUI.CIM.SortByValue(left, right)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByValue")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sort by value")
     end
     local leftValue = left.sellPrice or 0
     local rightValue = right.sellPrice or 0
@@ -136,7 +136,7 @@ end
 
 function BETTERUI.CIM.SortBySlotIndex(left, right)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortBySlotIndex")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sort by slot index")
     end
     local leftSlot = left.slotIndex or 0
     local rightSlot = right.slotIndex or 0
@@ -146,7 +146,7 @@ end
 --- Sorts by bag ID first, then slot index.
 function BETTERUI.CIM.SortByBagAndSlot(left, right)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sortByBagAndSlot")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "sort by bag and slot")
     end
     local leftBag = left.bagId or 0
     local rightBag = right.bagId or 0
@@ -198,20 +198,20 @@ end
 function BETTERUI.CIM.GenericListManager:BuildSortFunction(sortKeys)
     if not sortKeys or #sortKeys == 0 then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "buildSortFunctionFallback")
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "build sort function fallback")
         end
         return BETTERUI.CIM.SortBySlotIndex
     end
 
     if #sortKeys == 1 then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "buildSortFunctionSingle")
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "build sort function single")
         end
         return sortKeys[1]
     end
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "buildSortFunctionComposite", { keyCount = #sortKeys })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "build sort function composite", { keyCount = #sortKeys })
     end
 
     return function(left, right)

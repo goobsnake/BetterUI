@@ -25,7 +25,7 @@ end
 function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
     if not EnsureControllerReady() then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "getSortComparatorNotReady")
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "get sort comparator not ready")
         end
         return nil
     end
@@ -33,7 +33,7 @@ function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
     local column, direction = self:GetActiveSortColumn()
     if not column or direction == SORT_DIRECTION.NONE then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "getSortComparatorNone")
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "get sort comparator none")
         end
         return nil
     end
@@ -41,7 +41,7 @@ function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
     local baseSortFn = column.sortFn
     if not baseSortFn then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "getSortComparatorNoFn", { key = column.key })
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "get sort comparator no fn", { key = column.key })
         end
         return nil
     end
@@ -66,7 +66,7 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
     -- visible() closure below never indexes a nil table.
     local ready = EnsureControllerReady()
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "createHeaderSortKeybindDescriptor", { ready = ready, columnCount = #self.columns })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "create header sort keybind descriptor", { ready = ready, columnCount = #self.columns })
     end
 
     local controller = self

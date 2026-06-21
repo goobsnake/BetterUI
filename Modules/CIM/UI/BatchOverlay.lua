@@ -67,7 +67,7 @@ function BatchOverlay.IsAnyBatchActionDialogShowing()
         for i = 1, #BATCH_ACTION_DIALOG_NAMES do
             if ZO_Dialogs_IsShowing(BATCH_ACTION_DIALOG_NAMES[i]) then
                 if BETTERUI.Log and BETTERUI.Log.IsActive() then
-                    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchDialogShowing", { dialog = BATCH_ACTION_DIALOG_NAMES[i] })
+                    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch dialog showing", { dialog = BATCH_ACTION_DIALOG_NAMES[i] })
                 end
                 return true
             end
@@ -78,7 +78,7 @@ function BatchOverlay.IsAnyBatchActionDialogShowing()
         local gamepadDialog = GetControl("ZO_DialogGamepad1")
         if gamepadDialog and gamepadDialog.IsHidden and not gamepadDialog:IsHidden() then
             if BETTERUI.Log and BETTERUI.Log.IsActive() then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchGamepadDialogShowing")
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch gamepad dialog showing")
             end
             return true
         end
@@ -409,12 +409,12 @@ end
 function BatchOverlay.ShowStatus(displayRequest)
     local request = BatchOverlay.CreateDisplayRequest(displayRequest)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchShowStatus", { displayName = request.displayName, hasBodyText = request.bodyText ~= nil, hasSecondaryText = request.secondaryText ~= nil })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch show status", { displayName = request.displayName, hasBodyText = request.bodyText ~= nil, hasSecondaryText = request.secondaryText ~= nil })
     end
     local overlay = EnsureBatchStatusOverlay()
     if not overlay then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.BATCH, "batchOverlayCreateFailed")
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.BATCH, "batch overlay create failed")
         end
         return
     end
@@ -500,14 +500,14 @@ function BatchOverlay.Hide(delayMs)
     local overlay = BATCH_STATUS_OVERLAY
     if not overlay.control then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchHideNoControl")
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch hide no control")
         end
         return
     end
 
     local delay = zo_max(0, tonumber(delayMs) or 0)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchHide", { delay = delay })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch hide", { delay = delay })
     end
 
     overlay.updateToken = overlay.updateToken + 1
@@ -534,7 +534,7 @@ function BatchOverlay.StopLayoutPulse()
     local overlay = BATCH_STATUS_OVERLAY
     overlay.updateToken = overlay.updateToken + 1
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchStopLayoutPulse", { updateToken = overlay.updateToken })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch stop layout pulse", { updateToken = overlay.updateToken })
     end
 end
 

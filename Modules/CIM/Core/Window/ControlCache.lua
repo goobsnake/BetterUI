@@ -17,7 +17,7 @@ function BETTERUI.CIM.ControlCache.Create(parent)
         if not cache[childName] then
             cache[childName] = parent:GetNamedChild(childName)
             if cache[childName] == nil and BETTERUI.Log then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "controlCacheMiss", { childName = childName, hit = false })
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "control cache miss", { childName = childName, hit = false })
             end
         end
         return cache[childName]
@@ -35,7 +35,7 @@ function BETTERUI.CIM.ControlCache.CacheChildren(parent, childNames)
         cache[name] = parent:GetNamedChild(name)
         if cache[name] == nil then nilCount = nilCount + 1 end
     end
-    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "cacheChildren", { count = #childNames, nilCount = nilCount }) end
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "cache children", { count = #childNames, nilCount = nilCount }) end
     return cache
 end
 
@@ -69,6 +69,6 @@ function BETTERUI.CIM.ControlCache.CacheButtonChildren(button)
     for _, ctrl in pairs(cache) do
         if ctrl == nil then nilCount = nilCount + 1 end
     end
-    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "cacheButtonChildren", { nilCount = nilCount }) end
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "cache button children", { nilCount = nilCount }) end
     return cache
 end

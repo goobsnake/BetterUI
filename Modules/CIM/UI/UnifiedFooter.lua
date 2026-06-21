@@ -34,7 +34,7 @@ function UnifiedFooterController:Initialize(control)
     self.mode = BETTERUI.CIM.UnifiedFooter.MODE.CURRENCY
     self._initialized = false
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterInit", { controlName = control and control.GetName and control:GetName() or "nil" })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unified footer init", { controlName = control and control.GetName and control:GetName() or "nil" })
     end
 end
 
@@ -44,7 +44,7 @@ function UnifiedFooterController:SetupFooter(footerControl)
     self.footer = footerControl
     self._initialized = true
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterSetup", { controlName = footerControl and footerControl.GetName and footerControl:GetName() or "nil" })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unified footer setup", { controlName = footerControl and footerControl.GetName and footerControl:GetName() or "nil" })
     end
 end
 
@@ -55,7 +55,7 @@ function UnifiedFooterController:SetMode(mode)
         local oldMode = self.mode
         self.mode = mode
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterSetMode", { oldMode = oldMode, newMode = mode })
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.FOOTER, "unified footer set mode", { oldMode = oldMode, newMode = mode })
         end
         self:Refresh()
     end
@@ -70,7 +70,7 @@ end
 function UnifiedFooterController:Refresh()
     if not self._initialized or not self.footer then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterRefreshSkipped", { initialized = self._initialized == true, hasFooter = self.footer ~= nil })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unified footer refresh skipped", { initialized = self._initialized == true, hasFooter = self.footer ~= nil })
         end
         return
     end
@@ -89,11 +89,11 @@ function UnifiedFooterController:Refresh()
         setmetatable(footerData, { __index = BETTERUI.GenericFooter })
         refreshFn(footerData)
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterRefresh", { mode = self.mode })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unified footer refresh", { mode = self.mode })
         end
     else
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "unifiedFooterRefreshNoFn")
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "unified footer refresh no fn")
         end
     end
 

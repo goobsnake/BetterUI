@@ -209,7 +209,7 @@ function HeaderSortIntegration.Install(owner, options)
     options = options or {}
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "headerSortInstall", { hasColumns = options.columns ~= nil and #options.columns > 0, autoEnterOnListStart = options.autoEnterOnListStart == true })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "header sort install", { hasColumns = options.columns ~= nil and #options.columns > 0, autoEnterOnListStart = options.autoEnterOnListStart == true })
     end
 
     local controllerContract = NormalizeControllerContract(options)
@@ -271,7 +271,7 @@ end
 ---@return boolean
 function HeaderSortIntegration.EnterHeaderMode(integration)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "enterHeaderMode", { active = integration.isActive })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "enter header mode", { active = integration.isActive })
     end
 
     if integration.isActive then
@@ -358,7 +358,7 @@ end
 ---@return boolean
 function HeaderSortIntegration.ExitHeaderMode(integration)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "exitHeaderMode", { active = integration.isActive })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "exit header mode", { active = integration.isActive })
     end
 
     if not integration.isActive then
@@ -424,7 +424,7 @@ function HeaderSortIntegration.EnsureController(integration)
         return nil
     end
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "headerSortEnsureController")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "header sort ensure controller")
     end
     return ResolveController(integration)
 end

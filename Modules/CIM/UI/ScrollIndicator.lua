@@ -135,7 +135,7 @@ function ScrollIndicator.Setup(listControl, options)
     local configuredListObject = options and options.listObject or nil
     local configuredVisibleItems = options and options.visibleItems or nil
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorSetup", { controlName = controlName, hasListObject = configuredListObject ~= nil, visibleItems = configuredVisibleItems })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scroll indicator setup", { controlName = controlName, hasListObject = configuredListObject ~= nil, visibleItems = configuredVisibleItems })
     end
 
     if indicatorInstances[controlName] then
@@ -300,7 +300,7 @@ function ScrollIndicator.Hide(listControl)
     if instance and instance.controls then
         instance.controls.container:SetHidden(true)
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorHide", { controlName = controlName })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scroll indicator hide", { controlName = controlName })
         end
     end
 end
@@ -317,7 +317,7 @@ function ScrollIndicator.Show(listControl)
         instance.controls.container:SetHidden(false)
         ScrollIndicator.Update(listControl)
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorShow", { controlName = controlName })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scroll indicator show", { controlName = controlName })
         end
     end
 end
@@ -333,7 +333,7 @@ function ScrollIndicator.Destroy(listControl)
     if not instance then return end
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scrollIndicatorDestroy", { controlName = controlName })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scroll indicator destroy", { controlName = controlName })
     end
 
     -- Unregister global mouse up handler

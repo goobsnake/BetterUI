@@ -50,7 +50,7 @@ function EventRegistry.Register(moduleName, namespace, eventId, callback)
 
     table.insert(registrations[moduleName][eventId], namespace)
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "register", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", {
             module = moduleName, events = EventRegistry.GetRegistrationCount(moduleName) })
     end
     return true
@@ -66,7 +66,7 @@ end
 ---@return boolean registered True when the underlying registration succeeded
 function EventRegistry.RegisterFiltered(moduleName, namespace, eventId, callback, filterType, filterValue)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "registerFiltered", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "filtered event registered", {
             module = moduleName,
             event = eventId,
             filter = filterType,
@@ -106,7 +106,7 @@ function EventRegistry.UnregisterAll(moduleName, suppressLog)
             BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "Unregistered all events for module", { module = moduleName })
         end
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "unregisterAll", { module = moduleName, events = eventCount }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "events unregistered", { module = moduleName, events = eventCount }) end
 end
 
 --- Unregister a specific event for a module.

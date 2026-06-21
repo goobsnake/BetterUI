@@ -52,7 +52,7 @@ function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
     if pm and self.list then
         pm.SavePosition(self.positionModuleKey, key, self.list)
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "saveCategoryPosition", { key = key, module = self.positionModuleKey }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "save category position", { key = key, module = self.positionModuleKey }) end
 end
 
 --- Restores the saved list index for a category, preferring the saved item's
@@ -67,7 +67,7 @@ function BETTERUI.CIM.GenericWindow:RestoreCategoryPosition(categoryKey)
     local pm = BETTERUI.CIM and BETTERUI.CIM.PositionManager
     if pm and self.list then
         local pos = pm.RestorePosition(self.positionModuleKey, key, self.list, self.list.dataList)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "restoreCategoryPosition", { key = key, pos = pos }) end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "restore category position", { key = key, pos = pos }) end
         return pos or 1
     end
     return 1
@@ -83,7 +83,7 @@ end
 
 function BETTERUI.CIM.GenericWindow:SwitchToCategory(categoryKey)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "switchToCategory", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "switch to category", {
             categoryKey = categoryKey,
             prevKey = self.currentCategoryKey,
         })
@@ -115,7 +115,7 @@ end
 
 --- Ensures header tab bar keybinds are active.
 function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "ensureHeaderKeybinds", { hasMain = self.mainKeybindStripDescriptor ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "ensure header keybinds", { hasMain = self.mainKeybindStripDescriptor ~= nil }) end
     if self.headerGeneric and self.headerGeneric.tabBar then
         local tabBar = self.headerGeneric.tabBar
         if tabBar.keybindStripDescriptor then
@@ -139,7 +139,7 @@ end
 function BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds()
     if not KEYBIND_STRIP then return end
 
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refreshActiveKeybinds", { hasCore = self.coreKeybinds ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refresh active keybinds", { hasCore = self.coreKeybinds ~= nil }) end
     if self.mainKeybindStripDescriptor then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
     end

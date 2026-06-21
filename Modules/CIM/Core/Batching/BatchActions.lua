@@ -90,7 +90,7 @@ BatchActions.ResolveStackCount = ResolveStackCount
 --- so it can be used as a drop-in tail expression.
 local function LogBatchStep(bagId, slotIndex, status, actionName, result)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchStep", { bagId = bagId, slotIndex = slotIndex, status = status, action = actionName })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch step executed", { bagId = bagId, slotIndex = slotIndex, status = status, action = actionName })
     end
     return result
 end
@@ -143,7 +143,7 @@ function BatchActions.BatchLock(self)
 
     local actionName = GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED"))
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchStart", {action=actionName, count=#items})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch operation started", {action=actionName, count=#items})
     end
 
     self:ProcessBatchThrottled({
@@ -184,7 +184,7 @@ function BatchActions.BatchUnlock(self)
 
     local actionName = GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_LOCKED"))
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchStart", {action=actionName, count=#items})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch operation started", {action=actionName, count=#items})
     end
 
     self:ProcessBatchThrottled({
@@ -230,7 +230,7 @@ function BatchActions.BatchMarkAsJunk(self)
 
     local actionName = GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK"))
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchStart", {action=actionName, count=#items})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch operation started", {action=actionName, count=#items})
     end
 
     self:ProcessBatchThrottled({
@@ -280,7 +280,7 @@ function BatchActions.BatchUnmarkAsJunk(self)
 
     local actionName = GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_JUNK"))
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchStart", {action=actionName, count=#items})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch operation started", {action=actionName, count=#items})
     end
 
     self:ProcessBatchThrottled({
@@ -354,7 +354,7 @@ function BatchActions.AnalyzeSelectedItems(selectedItems)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "analyzeSelected", counts)
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "selected items analyzed", counts)
     end
 
     return counts
@@ -382,7 +382,7 @@ end
 --- Modules call this after adding their own module-specific entries.
 function BatchActions.AppendCommonBatchEntries(parametricList, counts, self)
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "batchDialogEntries", {entryCount = #parametricList})
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "batch dialog entries built", {entryCount = #parametricList})
     end
 
     if counts.canLockCount > 0 then

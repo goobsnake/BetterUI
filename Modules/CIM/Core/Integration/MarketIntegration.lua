@@ -95,7 +95,7 @@ local function CallOptionalAddon(method, self, ...)
     local ok, result = pcall(method, self, ...)
     if not ok then
         if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, "optionalAddonCallFailed", { error = tostring(result) })
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, "optional addon call failed", { error = tostring(result) })
         end
         return nil
     end
@@ -278,7 +278,7 @@ function MarketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, s
     local availableOk, available = pcall(sourceDef.isAvailable)
     if not availableOk then
         if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, "sourceAvailabilityCheckFailed", { source = sourceKey, error = tostring(available) })
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, "market source availability check failed", { source = sourceKey, error = tostring(available) })
         end
     end
     available = availableOk and available == true or false
@@ -293,7 +293,7 @@ function MarketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, s
     local ok, sourceInfo = pcall(sourceDef.fetch, itemLink, stackCount or 1)
     if not ok or type(sourceInfo) ~= "table" then
         if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, "sourcePriceFetchFailed", { source = sourceKey, error = tostring(sourceInfo) })
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, "market source price fetch failed", { source = sourceKey, error = tostring(sourceInfo) })
         end
         sourceInfo = EMPTY_MARKET_PRICE_INFO
     end

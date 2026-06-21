@@ -15,7 +15,7 @@ function BETTERUI.GenericFooter:Initialize()
     if (self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "genericFooterInit", { hasFooter = self.footer ~= nil })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "generic footer init", { hasFooter = self.footer ~= nil })
     end
 
     if (self.footer.GoldLabel ~= nil) then BETTERUI.GenericFooter.Refresh(self) end
@@ -26,7 +26,7 @@ function BETTERUI.GenericFooter:Refresh()
     local footer = self.footer
     if not footer then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "genericFooterRefreshMissingFooter")
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.FOOTER, "generic footer refresh missing footer")
         end
         return
     end
@@ -71,6 +71,6 @@ function BETTERUI.GenericFooter:Refresh()
     end
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "genericFooterRefresh", { stringsChanged = stringsChanged, currenciesChanged = currenciesChanged })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "generic footer refresh", { stringsChanged = stringsChanged, currenciesChanged = currenciesChanged })
     end
 end

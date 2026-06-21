@@ -268,7 +268,7 @@ local function InstrumentSettingControls(controls, panelId)
                 control.setFunc = function(...)
                     if BETTERUI.Log and BETTERUI.Log.IsActive() then
                         local label = type(settingName) == "function" and "<dynamic>" or settingName
-                        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "settingChanged", {
+                        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "setting changed", {
                             panel = panelId,
                             name = label,
                             value = (...),
@@ -289,7 +289,7 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
     local panelId = NormalizePanelRegistrationId(panelIdOrModuleName)
     if not panelId or type(panelData) ~= "table" then
         if BETTERUI.Log then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegisterInvalid",
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration invalid",
                 { panel = panelIdOrModuleName })
         end
         return nil, "invalid_panel_registration"
@@ -302,14 +302,14 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
 
     local lam = LibAddonMenu2
     if not lam or not lam.RegisterAddonPanel or not lam.RegisterOptionControls then
-        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegisterNoLam", { panel = panelId }) end
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel LAM unavailable", { panel = panelId }) end
         return nil, "lam_unavailable"
     end
 
     local panelOk = pcall(lam.RegisterAddonPanel, lam, panelId, panelData)
     if not panelOk then
         if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegisterFailed", { panel = panelId, stage = "addonPanel" })
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", { panel = panelId, stage = "addonPanel" })
         end
         return nil, "register_addon_panel_failed"
     end
@@ -317,13 +317,13 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
     local controlsOk = pcall(lam.RegisterOptionControls, lam, panelId, optionsData)
     if not controlsOk then
         if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegisterFailed", { panel = panelId, stage = "optionControls" })
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", { panel = panelId, stage = "optionControls" })
         end
         return nil, "register_option_controls_failed"
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "panelRegistered", { panel = panelId, controls = #optionsData })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registered", { panel = panelId, controls = #optionsData })
     end
     return panelId
 end

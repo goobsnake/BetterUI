@@ -33,7 +33,7 @@ function BETTERUI_VerticalParametricScrollListSubList:Initialize(control, parent
     self.control:SetHidden(true)
     self:SetFixedCenterOffset(SUB_LIST_CENTER_OFFSET)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListInit", { controlName = control and control.GetName and control:GetName() or "nil" })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "sublist init", { controlName = control and control.GetName and control:GetName() or "nil" })
     end
 end
 
@@ -41,7 +41,7 @@ end
 ---@param dontReselect boolean?
 function BETTERUI_VerticalParametricScrollListSubList:Commit(dontReselect)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListCommit", { targetSelectedIndex = self.targetSelectedIndex })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "sublist commit", { targetSelectedIndex = self.targetSelectedIndex })
     end
     ZO_ParametricScrollList.Commit(self, dontReselect)
     self:UpdateAnchors(self.targetSelectedIndex)
@@ -55,14 +55,14 @@ function BETTERUI_VerticalParametricScrollListSubList:CancelSelection()
     local listSize = self.dataList and #self.dataList or 0
     if not self.indexOnOpen or listSize == 0 then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListCancelSelectionSkipped", { listSize = listSize, hasIndexOnOpen = self.indexOnOpen ~= nil })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "sublist cancel selection skipped", { listSize = listSize, hasIndexOnOpen = self.indexOnOpen ~= nil })
         end
         return
     end
 
     local indexToReturnTo = zo_clamp(self.indexOnOpen, 1, listSize)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListCancelSelection", { indexToReturnTo = indexToReturnTo })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "sublist cancel selection", { indexToReturnTo = indexToReturnTo })
     end
     self.targetSelectedIndex = indexToReturnTo
     self:UpdateAnchors(indexToReturnTo)
@@ -93,7 +93,7 @@ end
 function BETTERUI_VerticalParametricScrollListSubList:Activate()
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         local totalItems = self.dataList and #self.dataList or 0
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListActivate", { totalItems = totalItems })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "sublist activate", { totalItems = totalItems })
     end
 
     self.parentList:Deactivate()
@@ -110,7 +110,7 @@ function BETTERUI_VerticalParametricScrollListSubList:Deactivate()
     if not self.active then return end
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "subListDeactivate", { didSelectEntry = self.didSelectEntry == true })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "sublist deactivate", { didSelectEntry = self.didSelectEntry == true })
     end
 
     if self.active and not self.didSelectEntry then

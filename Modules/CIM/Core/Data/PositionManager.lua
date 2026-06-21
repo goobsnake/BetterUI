@@ -29,34 +29,34 @@ function BETTERUI.CIM.PositionManager.GetCategoryKey(categoryData)
     -- Priority 1: Filter type (most stable for item categories)
     if categoryData.filterType ~= nil then
         local key = "f:" .. tostring(categoryData.filterType)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "categoryKey", { key = key }) end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "category key resolved", { key = key }) end
         return key
     end
 
     -- Priority 2: Click direction (for craft bag navigation)
     if categoryData.onClickDirection then
         local key = "dir:" .. tostring(categoryData.onClickDirection)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "categoryKey", { key = key }) end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "category key resolved", { key = key }) end
         return key
     end
 
     -- Priority 3: Category key (Banking uses this)
     if categoryData.key then
         local key = "k:" .. tostring(categoryData.key)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "categoryKey", { key = key }) end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "category key resolved", { key = key }) end
         return key
     end
 
     -- Priority 4: Text label
     if categoryData.text then
         local key = "t:" .. tostring(categoryData.text)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "categoryKey", { key = key }) end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "category key resolved", { key = key }) end
         return key
     end
 
     -- Priority 5: Index fallback
     local key = "idx:" .. tostring(categoryData.index or "")
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "categoryKey", { key = key }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "category key resolved", { key = key }) end
     return key
 end
 
@@ -86,7 +86,7 @@ function BETTERUI.CIM.PositionManager.SavePosition(moduleName, categoryKey, list
         index = itemIndex,
         uniqueId = itemUniqueId,
     }
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "savePosition", { moduleName = moduleName, categoryKey = categoryKey, index = itemIndex, uniqueId = itemUniqueId ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "save list position", { moduleName = moduleName, categoryKey = categoryKey, index = itemIndex, uniqueId = itemUniqueId ~= nil }) end
 end
 
 ---@param moduleName string Module name key
@@ -96,7 +96,7 @@ function BETTERUI.CIM.PositionManager.GetSavedPosition(moduleName, categoryKey)
     if not moduleName or not categoryKey then return nil end
     if not _storage[moduleName] then return nil end
     local saved = _storage[moduleName][categoryKey]
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "getSavedPosition", { moduleName = moduleName, categoryKey = categoryKey, found = saved ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "get saved position", { moduleName = moduleName, categoryKey = categoryKey, found = saved ~= nil }) end
     return saved
 end
 
@@ -136,7 +136,7 @@ function BETTERUI.CIM.PositionManager.RestorePosition(moduleName, categoryKey, l
     -- Clamp to valid range
     targetIndex = zo_clamp(targetIndex, 1, #dataList)
 
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "restorePosition", { targetIndex = targetIndex, foundByUniqueId = foundByUniqueId }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "restore list position", { targetIndex = targetIndex, foundByUniqueId = foundByUniqueId }) end
     return targetIndex
 end
 
@@ -144,7 +144,7 @@ end
 function BETTERUI.CIM.PositionManager.ClearModule(moduleName)
     if not moduleName then return end
     _storage[moduleName] = nil
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "clearPositions", { moduleName = moduleName, categoryKey = nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "clear saved positions", { moduleName = moduleName, categoryKey = nil }) end
 end
 
 ---@param moduleName string Module name key
@@ -154,5 +154,5 @@ function BETTERUI.CIM.PositionManager.ClearCategory(moduleName, categoryKey)
     if _storage[moduleName] then
         _storage[moduleName][categoryKey] = nil
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "clearPositions", { moduleName = moduleName, categoryKey = categoryKey }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "clear saved positions", { moduleName = moduleName, categoryKey = categoryKey }) end
 end

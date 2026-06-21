@@ -476,7 +476,7 @@ function BETTERUI.Interface.SearchMixin.ActivateSearchHeader(self)
     local text = self.searchQuery or ""
     local list = BETTERUI.Interface.SearchMixin.GetActiveList(self)
     local n = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "ActivateSearchHeader", { textLen = #text, numItems = n }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "search header activated", { textLen = #text, numItems = n }) end
 
     if self.textSearchHeaderFocus and not self._searchHeaderActive then
         self._searchHeaderActive = true
@@ -494,7 +494,7 @@ function BETTERUI.Interface.SearchMixin.DeactivateSearchHeader(self)
     local text = self.searchQuery or ""
     local list = BETTERUI.Interface.SearchMixin.GetActiveList(self)
     local n = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "DeactivateSearchHeader", { textLen = #text, numItems = n }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "search header deactivated", { textLen = #text, numItems = n }) end
 
     if self.textSearchHeaderFocus and self._searchHeaderActive then
         self._searchHeaderActive = false
@@ -578,7 +578,7 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
 
         local list = BETTERUI.Interface.SearchMixin.GetActiveList(self)
         local n = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "OnTextChanged", { textLen = #txt, numItems = n }) end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "search text changed", { textLen = #txt, numItems = n }) end
 
         if onTextChanged then
             onTextChanged(self, txt)

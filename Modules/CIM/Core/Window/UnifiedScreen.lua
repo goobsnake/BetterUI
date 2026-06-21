@@ -46,7 +46,7 @@ function BETTERUI.CIM.UnifiedScreen:Initialize(control, createTabBar, activateOn
 
     -- Cache footer controller reference
     self.unifiedFooterController = nil
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "unifiedScreenInit", { footerMode = self.footerMode }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "initialize unified screen", { footerMode = self.footerMode }) end
 
     -- Setup footer after initialization (only if this is a true UnifiedScreen subclass)
     -- When used as mixin on ZO_GamepadInventory subclasses, this method may not exist on self
@@ -81,7 +81,7 @@ function BETTERUI.CIM.UnifiedScreen:SetupUnifiedFooter()
         self.unifiedFooterController = footerContainer.unifiedFooter
         self.unifiedFooterController:SetMode(self.footerMode)
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "setupUnifiedFooter", { hasController = self.unifiedFooterController ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "setup unified footer", { hasController = self.unifiedFooterController ~= nil }) end
 end
 
 --- Changes the footer display mode.
@@ -91,7 +91,7 @@ function BETTERUI.CIM.UnifiedScreen:SetFooterMode(mode)
     if self.unifiedFooterController then
         self.unifiedFooterController:SetMode(mode)
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "setFooterMode", { mode = mode }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "set footer mode", { mode = mode }) end
 end
 
 --- Returns the current footer mode.
@@ -118,7 +118,7 @@ function BETTERUI.CIM.UnifiedScreen:OnShowing()
     if self.unifiedFooterController then
         self.unifiedFooterController:SetMode(self.footerMode)
     end
-    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unifiedScreenShowing", { footerMode = self.footerMode }) end
+    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unified screen showing", { footerMode = self.footerMode }) end
 end
 
 --- Called when screen is about to hide.
@@ -150,7 +150,7 @@ function BETTERUI.CIM.UnifiedScreen:HandleSceneShowing()
     if self.OnShowing then
         self:OnShowing()
     end
-    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unifiedScreenShowing", { footerMode = self.footerMode }) end
+    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unified screen showing", { footerMode = self.footerMode }) end
 end
 
 --- Common SCENE_HIDING handler logic.
@@ -162,7 +162,7 @@ function BETTERUI.CIM.UnifiedScreen:HandleSceneHiding()
     if self.OnHiding then
         self:OnHiding()
     end
-    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unifiedScreenHidden", {}) end
+    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unified screen hidden", {}) end
 end
 
 --- Common SCENE_HIDDEN handler logic.
@@ -182,7 +182,7 @@ function BETTERUI.CIM.UnifiedScreen:HandleSceneHidden()
     elseif self.ClearSearchInput then
         self:ClearSearchInput()
     end
-    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unifiedScreenHidden", {}) end
+    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unified screen hidden", {}) end
 end
 
 -- KEYBIND MANAGEMENT METHODS
@@ -190,7 +190,7 @@ end
 --- Sets the active keybind group, removing any previous one.
 ---@param keybindDescriptor BetterUIKeybindDescriptorGroup?
 function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "SetActiveKeybinds", { hasDescriptor = keybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "set active keybinds", { hasDescriptor = keybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
     -- Skip keybind changes if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
         return
@@ -212,7 +212,7 @@ end
 
 --- Refreshes the currently active keybind group.
 function BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "RefreshActiveKeybinds", { hasDescriptor = self.activeKeybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refresh active keybinds", { hasDescriptor = self.activeKeybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
     -- Skip refreshing active keybinds if in header sort mode
     if self.isInHeaderSortMode then
         return
@@ -242,7 +242,7 @@ end
 --- Overrides base class RefreshKeybinds with header mode guard.
 --- Prevents keybind updates during header sort mode.
 function BETTERUI.CIM.UnifiedScreen:RefreshKeybinds()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "RefreshKeybinds", { hasDescriptor = self.activeKeybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refresh keybinds", { hasDescriptor = self.activeKeybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
     -- Block keybind refresh during header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
         return
@@ -274,7 +274,7 @@ function BETTERUI.CIM.UnifiedScreen:EnterSearchMode()
         end
         KEYBIND_STRIP:AddKeybindButtonGroup(self.searchKeybindDescriptor)
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "searchMode", { active = self._searchModeActive }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "search mode", { active = self._searchModeActive }) end
 end
 
 --- Deactivates search mode and restores main keybinds.
@@ -290,7 +290,7 @@ function BETTERUI.CIM.UnifiedScreen:ExitSearchMode()
             KEYBIND_STRIP:AddKeybindButtonGroup(self.activeKeybindDescriptor)
         end
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "searchMode", { active = self._searchModeActive }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "search mode", { active = self._searchModeActive }) end
 end
 
 -- EXPORTED MODE CONSTANTS (Convenience)

@@ -57,7 +57,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
         self.savedUniqueId = nil
     end
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshSavePosition", { savedPosition = self.savedPosition, savedUniqueId = self.savedUniqueId })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh save position", { savedPosition = self.savedPosition, savedUniqueId = self.savedUniqueId })
     end
 end
 
@@ -73,7 +73,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     if self.savedUniqueId then
         local numItemsForSearch = list:GetNumItems() or 0
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshRestoreSearchById", { savedUniqueId = self.savedUniqueId, numItems = numItemsForSearch })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh restore search by id", { savedUniqueId = self.savedUniqueId, numItems = numItemsForSearch })
         end
         for i = 1, numItemsForSearch do
             local data = list:GetDataForDataIndex(i)
@@ -115,7 +115,7 @@ end
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, savePosition)
     local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "queueRefresh", { numItems = numItems, coalesceDelay = self.coalesceDelay }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "queue refresh", { numItems = numItems, coalesceDelay = self.coalesceDelay }) end
 
     if savePosition ~= false then
         self:SavePosition(list)
@@ -151,14 +151,14 @@ function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     -- Restore position after refresh
     local success, restoredById = self:RestorePosition(list)
     local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "executeRefresh", { numItems = numItems, restoredById = restoredById == true, coalesceDelay = self.coalesceDelay }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "execute refresh", { numItems = numItems, restoredById = restoredById == true, coalesceDelay = self.coalesceDelay }) end
 end
 
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
     if self.pendingRefreshCallId then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "refreshCancel")
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "refresh cancel")
         end
         zo_removeCallLater(self.pendingRefreshCallId)
         self.pendingRefreshCallId = nil
@@ -175,7 +175,7 @@ end
 function BETTERUI.CIM.Lists.ListRefreshManager:MarkDirty()
     self.isDirty = true
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshMarkDirty")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh mark dirty")
     end
 end
 
@@ -183,6 +183,6 @@ end
 function BETTERUI.CIM.Lists.ListRefreshManager:ClearDirty()
     self.isDirty = false
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshClearDirty")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh clear dirty")
     end
 end

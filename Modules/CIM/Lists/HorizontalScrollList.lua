@@ -22,7 +22,7 @@ function BETTERUI_HorizontalParametricScrollList:New(control, onActivatedChanged
                                                      onClearedFunction)
     onActivatedChangedFunction = onActivatedChangedFunction or ZO_GamepadOnDefaultScrollListActivatedChanged
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "horizontalListNew", { controlName = control and control.GetName and control:GetName() or "nil" })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "horizontal list new", { controlName = control and control.GetName and control:GetName() or "nil" })
     end
     local list = ZO_ParametricScrollList.New(self, control, LIST_ORIENTATION.HORIZONTAL, onActivatedChangedFunction,
         onCommitWithItemsFunction, onClearedFunction)

@@ -15,7 +15,7 @@ BETTERUI.CIM.SceneCleanup = {}
 ---            code duplication and ensure consistent cleanup behavior.
 ---
 function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "cleanupInputState", { hasScreen = screen ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "input state cleaned up", { hasScreen = screen ~= nil }) end
     if not screen then return end
 
     -- Clear spinner confirmation state so the next scene show does not remain in spinner mode.
@@ -163,7 +163,7 @@ function BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, ...)
         end
     end
 
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "deactivateLists", { lists = listCount }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "lists deactivated", { lists = listCount }) end
 end
 
 --- Clears search-related state and text when exiting a scene.
@@ -172,7 +172,7 @@ function BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
     if not screen then return end
 
     local queryText = screen.searchQuery or ""
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "clearSearch", { queryLen = #queryText }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "search cleared", { queryLen = #queryText }) end
 
     local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
     local callSearchLifecycle = searchMixin and searchMixin.CallSearchLifecycle

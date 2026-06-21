@@ -50,7 +50,7 @@ BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass()
 ---
 function BETTERUI_VerticalParametricScrollList:New(...)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "verticalListNew")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "vertical list new")
     end
     local list = ZO_ParametricScrollList.New(self, ...)
 
@@ -131,7 +131,7 @@ end
 ---
 function BETTERUI_VerticalParametricScrollList:Initialize(control)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "verticalListInit", { controlName = control and control.GetName and control:GetName() or "nil" })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "vertical list init", { controlName = control and control.GetName and control:GetName() or "nil" })
     end
     ZO_ParametricScrollList.Initialize(self, control, LIST_ORIENTATION.VERTICAL,
         ZO_GamepadOnDefaultScrollListActivatedChanged)
@@ -152,7 +152,7 @@ BETTERUI_VerticalItemParametricScrollList = BETTERUI_VerticalParametricScrollLis
 ---
 function BETTERUI_VerticalItemParametricScrollList:New(control)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "verticalItemListNew", { controlName = control and control.GetName and control:GetName() or "nil" })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "vertical item list new", { controlName = control and control.GetName and control:GetName() or "nil" })
     end
     local list = BETTERUI_VerticalParametricScrollList.New(self, control)
     list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING)

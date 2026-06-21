@@ -28,7 +28,7 @@ function BETTERUI_Gamepad_ParametricList_Screen:Initialize(control, createTabBar
     self.control = control
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "parametricListScreenInit", { createTabBar = createTabBar == true, activateOnShow = activateOnShow ~= false })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "parametric list screen init", { createTabBar = createTabBar == true, activateOnShow = activateOnShow ~= false })
     end
 
     local mask = control:GetNamedChild("Mask")
@@ -77,7 +77,7 @@ function BETTERUI_Gamepad_ParametricList_Screen:SetListsUseTriggerKeybinds(addLi
     self.addListTriggerKeybinds = addListTriggerKeybinds
     self.listTriggerHeaderComparator = optionalHeaderComparator
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "setListsUseTriggerKeybinds", { enabled = addListTriggerKeybinds == true })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "set lists use trigger keybinds", { enabled = addListTriggerKeybinds == true })
     end
 
     if (not addListTriggerKeybinds) then

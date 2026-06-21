@@ -12,7 +12,7 @@ Purpose: Shared factory for creating item entry data for inventory/banking lists
 ---@return nil
 function BETTERUI.CIM.InitializeSharedItemVisualData(row, itemData)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "initSharedItemVisualData", { uniqueId = itemData.uniqueId, name = itemData.name })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "init shared item visual data", { uniqueId = itemData.uniqueId, name = itemData.name })
     end
     row.uniqueId = itemData.uniqueId
     row.bestItemCategoryName = itemData.bestGamepadItemCategoryName or itemData.bestItemCategoryName
@@ -49,13 +49,13 @@ function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     -- Validate required fields
     if not itemName or not itemIcon then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "createItemEntryDataMissingFields", { hasName = itemName ~= nil, hasIcon = itemIcon ~= nil, uniqueId = itemData.uniqueId })
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "create item entry data missing fields", { hasName = itemName ~= nil, hasIcon = itemIcon ~= nil, uniqueId = itemData.uniqueId })
         end
         return nil
     end
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "createItemEntryData", { name = itemName, uniqueId = itemData.uniqueId })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "create item entry data", { name = itemName, uniqueId = itemData.uniqueId })
     end
 
     local data = ZO_GamepadEntryData:New(itemName, itemIcon)
@@ -123,7 +123,7 @@ function BETTERUI.CIM.AddItemEntryToList(list, data, currentCategoryName, useHea
         currentCategoryName = newCategory
         data:SetHeader(currentCategoryName)
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "addItemEntryHeader", { category = currentCategoryName, useHeaders = useHeaders == true })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "add item entry header", { category = currentCategoryName, useHeaders = useHeaders == true })
         end
         if useHeaders then
             list:AddEntryWithHeader(template, data)
@@ -132,7 +132,7 @@ function BETTERUI.CIM.AddItemEntryToList(list, data, currentCategoryName, useHea
         end
     else
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "addItemEntry", { category = currentCategoryName })
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "add item entry", { category = currentCategoryName })
         end
         list:AddEntry(template, data)
     end

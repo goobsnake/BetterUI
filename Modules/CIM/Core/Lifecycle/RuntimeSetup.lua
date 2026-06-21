@@ -13,7 +13,7 @@ local TAMRIEL_TOMES_GUARD_RETRY_EVENT = "BETTERUI_RuntimeSetup_TamrielTomesGuard
 
 local function EnsureSharedTaskManager()
     local deferredTask = BETTERUI.CIM and BETTERUI.CIM.DeferredTask
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "ensureTaskManager", { hasDeferredTask = type(deferredTask) == "table", hasTasks = BETTERUI.CIM.Tasks ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "task manager ensured", { hasDeferredTask = type(deferredTask) == "table", hasTasks = BETTERUI.CIM.Tasks ~= nil }) end
     if type(deferredTask) ~= "table" then
         return BETTERUI.CIM and BETTERUI.CIM.Tasks or nil
     end
@@ -34,7 +34,7 @@ local function EnsureLifecycleRuntimeState()
     EnsureSharedTaskManager()
 
     local eventRegistry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "ensureEventRegistry", { hasEventRegistry = eventRegistry ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registry ensured", { hasEventRegistry = eventRegistry ~= nil }) end
     if eventRegistry and type(eventRegistry.EnsureRuntimeState) == "function" then
         eventRegistry.EnsureRuntimeState()
     end
@@ -53,11 +53,11 @@ local function EnsureDebugCommandsRegistered()
     if registered then
         debug.EnsureCommandsRegistered()
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SETTINGS, "debugCommands", { debugEnabled = debugEnabled, developerVisible = developerVisible, registered = registered }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SETTINGS, "debug commands registered", { debugEnabled = debugEnabled, developerVisible = developerVisible, registered = registered }) end
 end
 
 local function ApplyAPIPatches()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "applyPatches", { alreadyApplied = patchesApplied }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "API patches applied", { alreadyApplied = patchesApplied }) end
     if patchesApplied then return end
 
     -- IMPORTANT:
@@ -76,7 +76,7 @@ local function ApplyAPIPatches()
             if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "tamriel tomes patch skipped: deps missing") end
             return false
         end
-        if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "tamrielTomesGuard", { installed = tamrielTomesSelectionGuardInstalled, retried = patchesApplied }) end
+        if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "Tamriel Tomes guard installed", { installed = tamrielTomesSelectionGuardInstalled, retried = patchesApplied }) end
 
         ZO_PreHook(ZO_TamrielTomesScreen_Shared, "SetSelectedTamrielTomesRewardData", function(self, newData)
             if newData == nil then
@@ -102,10 +102,10 @@ local function ApplyAPIPatches()
 
             return true
         end)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "SetSelectedTamrielTomesRewardData", target = type(ZO_TamrielTomesScreen_Shared) }) end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "SetSelectedTamrielTomesRewardData", target = type(ZO_TamrielTomesScreen_Shared) }) end
 
         tamrielTomesSelectionGuardInstalled = true
-        if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "tamrielTomesGuard", { installed = true, retried = patchesApplied }) end
+        if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "Tamriel Tomes guard installed", { installed = true, retried = patchesApplied }) end
         return true
     end
 
@@ -121,9 +121,9 @@ local function ApplyAPIPatches()
 end
 
 local function RunSettingsMigrations(settings)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SETTINGS, "migrationStart", {}) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SETTINGS, "settings migration started", {}) end
     if not settings or not settings.Modules then
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SETTINGS, "migrationEnd", { modulesCount = 0 }) end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SETTINGS, "settings migration ended", { modulesCount = 0 }) end
         return
     end
 
@@ -250,7 +250,7 @@ local function RunSettingsMigrations(settings)
     if BETTERUI.Log then
         local modulesCount = 0
         for _ in pairs(settings.Modules) do modulesCount = modulesCount + 1 end
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SETTINGS, "migrationEnd", { modulesCount = modulesCount })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SETTINGS, "settings migration ended", { modulesCount = modulesCount })
     end
 end
 
@@ -304,7 +304,7 @@ function RuntimeSetup.Apply(settings)
     end
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "runtimeSetup", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "runtime setup complete", {
             migrationsRan = migrationsRan,
             patchesApplied = patchesApplied,
             settingsVersion = settings and settings.version,

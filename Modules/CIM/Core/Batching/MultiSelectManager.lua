@@ -22,7 +22,7 @@ local activeInstance = nil
 --- @return BETTERUI.CIM.MultiSelectManager.Manager|nil
 function MultiSelectManager.GetActiveInstance()
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "activeInstance", {instanceSet = activeInstance ~= nil})
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "active multi-select instance set", {instanceSet = activeInstance ~= nil})
     end
     return activeInstance
 end
@@ -31,7 +31,7 @@ end
 function MultiSelectManager.SetActiveInstance(instance)
     activeInstance = instance
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "activeInstance", {instanceSet = instance ~= nil})
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "active multi-select instance set", {instanceSet = instance ~= nil})
     end
 end
 
@@ -207,7 +207,7 @@ function Manager:EnterSelectionMode()
     MultiSelectManager.SetActiveInstance(self)
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "enterSelectionMode", {count = 0})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "selection mode entered", {count = 0})
     end
 
     -- Play sound for mode entry
@@ -236,7 +236,7 @@ function Manager:ExitSelectionMode()
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "exitSelectionMode", {count = 0})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "selection mode exited", {count = 0})
     end
 
     -- Play sound for mode exit
@@ -283,7 +283,7 @@ function Manager:ToggleSelection(itemData)
 
     local isNowSelected = self.selectedItems[primaryKey] ~= nil
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selectionChange", {primaryKey = primaryKey, selected = isNowSelected, total = self:GetSelectedCount()})
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selection changed", {primaryKey = primaryKey, selected = isNowSelected, total = self:GetSelectedCount()})
     end
     return isNowSelected
 end
@@ -315,7 +315,7 @@ function Manager:Select(itemData)
             self.selectionChangedCallback(self:GetSelectedCount())
         end
         if BETTERUI.Log then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selectionChange", {primaryKey = primaryKey, selected = true, total = self:GetSelectedCount()})
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selection changed", {primaryKey = primaryKey, selected = true, total = self:GetSelectedCount()})
         end
     end
 end
@@ -335,7 +335,7 @@ function Manager:Deselect(itemData)
             self.selectionChangedCallback(self:GetSelectedCount())
         end
         if BETTERUI.Log then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selectionChange", {primaryKey = primaryKey, selected = false, total = self:GetSelectedCount()})
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "selection changed", {primaryKey = primaryKey, selected = false, total = self:GetSelectedCount()})
         end
     end
 end
@@ -409,7 +409,7 @@ function Manager:SelectAll(listOverride)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "selectAll", {numItems = numItems, selectedCount = self:GetSelectedCount()})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "select all applied", {numItems = numItems, selectedCount = self:GetSelectedCount()})
     end
 
     if self.selectionChangedCallback then
@@ -535,7 +535,7 @@ function Manager:RefreshSelections()
     self.selectedItemAliases = refreshedAliases
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "refreshSelections", {removedCount = removedCount, remaining = self:GetSelectedCount()})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "selections refreshed", {removedCount = removedCount, remaining = self:GetSelectedCount()})
     end
 
     -- Fire callback if anything was removed

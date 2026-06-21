@@ -17,7 +17,7 @@ end
 function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onActivatedChangedFunction,
                                        onCommitWithItemsFunction, onClearedFunction)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tabBarNew", { controlName = control and control.GetName and control:GetName() or "nil" })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tab bar new", { controlName = control and control.GetName and control:GetName() or "nil" })
     end
     local list = BETTERUI_HorizontalParametricScrollList.New(self, control, onActivatedChangedFunction,
         onCommitWithItemsFunction, onClearedFunction)
@@ -74,7 +74,7 @@ function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialU
     local selectedDataChanged = self.selectedIndex ~= newSelectedDataIndex
     local oldSelectedData = self.selectedData
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tabBarUpdateAnchors", { numItems = numItems, newSelectedDataIndex = newSelectedDataIndex, selectedDataChanged = selectedDataChanged })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tab bar update anchors", { numItems = numItems, newSelectedDataIndex = newSelectedDataIndex, selectedDataChanged = selectedDataChanged })
     end
 
     -- Play sound on selection change
@@ -166,7 +166,7 @@ end
 --- Activates the tab bar and its keybinds.
 function BETTERUI_TabBarScrollList:Activate()
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tabBarActivate")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tab bar activate")
     end
     KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Activate(self)
@@ -175,7 +175,7 @@ end
 --- Deactivates the tab bar and removes keybinds.
 function BETTERUI_TabBarScrollList:Deactivate()
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tabBarDeactivate")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tab bar deactivate")
     end
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Deactivate(self)
@@ -243,7 +243,7 @@ end
 function BETTERUI_TabBarScrollList:Commit(dontReselect)
     local numItems = #self.dataList
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tabBarCommit", { numItems = numItems, dontReselect = dontReselect == true })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tab bar commit", { numItems = numItems, dontReselect = dontReselect == true })
     end
     -- Hide arrows if only 1 item
     if numItems > 1 then
@@ -298,7 +298,7 @@ end
 ---@param forceAnimation boolean?
 function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDisabled, forceAnimation)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tabBarSetSelectedIndex", { selectedIndex = selectedIndex, allowEvenIfDisabled = allowEvenIfDisabled == true })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tab bar set selected index", { selectedIndex = selectedIndex, allowEvenIfDisabled = allowEvenIfDisabled == true })
     end
     BETTERUI_HorizontalParametricScrollList.SetSelectedIndex(self, selectedIndex, allowEvenIfDisabled, forceAnimation)
     self:RefreshPips()
@@ -318,7 +318,7 @@ end
 function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedIndex, allowEvenIfDisabled,
                                                                     dontCallSelectedDataChangedCallback)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tabBarSetSelectedIndexWithoutAnimation", { selectedIndex = selectedIndex, allowEvenIfDisabled = allowEvenIfDisabled == true, suppressCallback = dontCallSelectedDataChangedCallback == true })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tab bar set selected index without animation", { selectedIndex = selectedIndex, allowEvenIfDisabled = allowEvenIfDisabled == true, suppressCallback = dontCallSelectedDataChangedCallback == true })
     end
     -- Native sig: SetSelectedIndexWithoutAnimation(selectedIndex, allowEvenIfDisabled, forceAnimation).
     -- This IS the without-animation path, so forceAnimation must be false; do NOT
@@ -337,7 +337,7 @@ end
 ---@return boolean succeeded
 function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tabBarMovePrevious", { allowWrapping = allowWrapping == true })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tab bar move previous", { allowWrapping = allowWrapping == true })
     end
     ZO_ConveyorSceneFragment_SetMovingBackward()
     local succeeded = ZO_ParametricScrollList.MovePrevious(self)
@@ -364,7 +364,7 @@ end
 ---@return boolean succeeded
 function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tabBarMoveNext", { allowWrapping = allowWrapping == true })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tab bar move next", { allowWrapping = allowWrapping == true })
     end
     ZO_ConveyorSceneFragment_SetMovingForward()
     local succeeded = ZO_ParametricScrollList.MoveNext(self)
@@ -439,7 +439,7 @@ function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
 
     if not scrollList or not scrollList.dataList then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tabBarCategoryClickNoList")
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tab bar category click no list")
         end
         return
     end

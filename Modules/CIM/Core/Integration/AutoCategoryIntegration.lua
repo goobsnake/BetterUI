@@ -37,7 +37,7 @@ function AutoCategoryIntegration.GetCustomCategory(itemData)
         )
         if not ok then
             if BETTERUI.Log then
-                BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.CATEGORY, "autoCategoryMatchFailed", { error = tostring(matched) })
+                BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.CATEGORY, "auto category match failed", { error = tostring(matched) })
             end
             return useCustomCategory, false, "", 0
         end

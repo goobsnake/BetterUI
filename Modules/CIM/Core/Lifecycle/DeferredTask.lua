@@ -42,7 +42,7 @@ function DeferredTaskManager:Schedule(taskId, delayMs, callback)
         callback()
     end, delayMs)
 
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "schedule", { taskId = taskId, delayMs = delayMs, pending = self:GetPendingCount() }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "deferred task scheduled", { taskId = taskId, delayMs = delayMs, pending = self:GetPendingCount() }) end
 end
 
 --- Cancel a pending task if it exists.
@@ -53,7 +53,7 @@ function DeferredTaskManager:Cancel(taskId)
         zo_removeCallLater(existingId)
         self._tasks[taskId] = nil
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "cancel", { taskId = taskId, pending = self:GetPendingCount() }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "deferred task cancelled", { taskId = taskId, pending = self:GetPendingCount() }) end
 end
 
 --- Cancel all pending tasks.
@@ -62,7 +62,7 @@ function DeferredTaskManager:CancelAll()
     for taskId, _ in pairs(self._tasks) do
         self:Cancel(taskId)
     end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "cancelAll", { taskId = "*", pending = self:GetPendingCount() }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "all deferred tasks cancelled", { taskId = "*", pending = self:GetPendingCount() }) end
 end
 
 --- Check if a task is currently pending.
@@ -95,7 +95,7 @@ function BETTERUI.CIM.DeferredTask.CreateLazyManagerProxy(factory)
         __index = function(_, key)
             local manager = factory()
             local value = manager and manager[key]
-            if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "lazyProxy", { key = key, type = type(value) }) end
+            if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "lazy proxy resolved", { key = key, type = type(value) }) end
             if type(value) == "function" then
                 return function(_, ...)
                     return value(manager, ...)
