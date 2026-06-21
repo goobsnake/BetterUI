@@ -260,6 +260,25 @@ Log.SetLastAction("pressed A", f1)
 local la = Log.GetLastAction()
 check(la ~= nil and la.message == "pressed A" and la.flow == f1, "SetLastAction/GetLastAction round-trip")
 
+-- Flow envelopes emit begin/end records carrying flow=<id> (watch preset: DEBUG -> file).
+fileLines = {}
+local flow = Log.FlowBegin("withdraw", Log.CATEGORY.ACTION, "withdraw 50g")
+check(type(flow) == "string" and flow:find("withdraw#%d") ~= nil, "FlowBegin returns a flow id")
+check(#fileLines == 1 and fileLines[1]:find("[flow begin]", 1, true) ~= nil
+    and fileLines[1]:find("flow=" .. flow, 1, true) ~= nil, "FlowBegin emits a begin envelope with flow=<id>")
+check(Log.GetLastAction() and Log.GetLastAction().flow == flow, "FlowBegin records the flow as last action")
+fileLines = {}
+Log.FlowEnd(flow, Log.CATEGORY.ACTION, "done")
+check(#fileLines == 1 and fileLines[1]:find("[flow end]", 1, true) ~= nil
+    and fileLines[1]:find("flow=" .. flow, 1, true) ~= nil, "FlowEnd emits an end envelope with flow=<id>")
+
+-- Flow envelopes never raise on non-string message/flow (safeTostring guards them).
+local hostileMsg = setmetatable({}, { __tostring = function() error("no") end })
+check(pcall(function() Log.FlowBegin("x", Log.CATEGORY.ACTION, { bad = true }) end),
+    "FlowBegin tolerates a non-string message")
+check(pcall(function() Log.FlowEnd({ weird = 1 }, Log.CATEGORY.ACTION, hostileMsg) end),
+    "FlowEnd tolerates non-string flow + hostile __tostring message")
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================

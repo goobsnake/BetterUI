@@ -314,7 +314,23 @@ local function PrintStatus()
 end
 
 local function HandleCommand(args)
-    args = tostring(args or ""):gsub("^%s+", ""):gsub("%s+$", ""):lower()
+    local raw = tostring(args or ""):gsub("^%s+", ""):gsub("%s+$", "")
+
+    -- "mark <text>": a user-placed annotation in the live stream (e.g. /builog mark
+    -- "about to open bank"). Handled before lower() so the annotation keeps its case.
+    local markText = raw:match("^[Mm][Aa][Rr][Kk]%s+(.+)$")
+    if markText then
+        local L = BETTERUI.Log
+        if L and L.Info then
+            pcall(L.Info, L.CATEGORY.STATE, "mark: " .. markText)
+            Out("Marked: " .. markText)
+        else
+            Out("Logger not loaded yet.")
+        end
+        return
+    end
+
+    args = raw:lower()
 
     if args == "on" then
         InterfaceLog.SetEnabled(true)
@@ -368,9 +384,17 @@ local function HandleCommand(args)
         local lvl = L and L.LevelFromName(name)
         if lvl then L.SetMinLevel(lvl); Out("Min log level set to " .. name:upper() .. ".")
         else Out("Unknown level. Use trace|debug|info|warn|error.") end
+    elseif args == "mark" then
+        Out("Usage: /builog mark <text>  -- annotates the live log with <text>.")
+    elseif args == "snapshot" then
+        local W = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+        if W and W.Snapshot then
+            local ok = pcall(W.Snapshot)
+            Out(ok and "Emitted a STATE snapshot to the log." or "Snapshot failed.")
+        else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace | chat on|off | popups on|off | level <lvl> | test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace | chat on|off | popups on|off | level <lvl> | mark <text> | snapshot | test | status")
     end
 end
 

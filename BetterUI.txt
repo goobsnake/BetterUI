@@ -47,6 +47,7 @@ Modules\CIM\Core\Diagnostics\InterfaceLog.lua
 Modules\CIM\Core\Diagnostics\Log.lua
 Modules\CIM\Core\Diagnostics\Names.lua
 Modules\CIM\Core\Diagnostics\DebugInfo.lua
+Modules\CIM\Core\Diagnostics\WatchMode.lua
 Modules\CIM\Core\Diagnostics\DebugCommands.lua
 Modules\CIM\Core\Diagnostics\PerformanceProfiler.lua
 Modules\CIM\Core\Diagnostics\SceneLog.lua

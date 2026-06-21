@@ -349,6 +349,28 @@ function Log.Info(category, message, data)  emit(Log.LEVEL.INFO,  category, mess
 function Log.Warn(category, message, data)  emit(Log.LEVEL.WARN,  category, message, data) end
 function Log.Error(category, message, data) emit(Log.LEVEL.ERROR, category, message, data) end
 
+-- Flow envelopes: correlate the records of one multi-step operation. FlowBegin allocates
+-- a flow id, records it as the last action (so the in-between watch lines carry flow=<id>
+-- via the context suffix), and emits a DEBUG "begin" envelope; FlowEnd emits the "end".
+-- The flow id rides the message as a BARE `flow=<id>` token (not the data payload, which
+-- Summarize would quote) so it appears on the envelope in every preset, in the same bare
+-- form the context suffix uses -- one consistent key for the host parser.
+
+--- @return string flow  -- the allocated flow id (pass to FlowEnd)
+function Log.FlowBegin(kind, category, message, data)
+    local flow = Log.NewFlow(kind) -- always a string
+    local msg = (message ~= nil) and safeTostring(message, "flow") or safeTostring(kind, "flow")
+    Log.SetLastAction(msg, flow)
+    emit(Log.LEVEL.DEBUG, category or Log.CATEGORY.GENERAL, msg .. " [flow begin] flow=" .. flow, data)
+    return flow
+end
+
+function Log.FlowEnd(flow, category, message, data)
+    local msg = (message ~= nil) and safeTostring(message, "flow") or "flow"
+    emit(Log.LEVEL.DEBUG, category or Log.CATEGORY.GENERAL,
+        msg .. " [flow end] flow=" .. safeTostring(flow, "?"), data)
+end
+
 --- Lazy payload variants: the message/data builders run ONLY after the exact gate
 --- passes (and `dataFn` only when payload capture is on), so hot paths pay nothing
 --- when the record would be dropped. `message` may be a string or a 0-arg function;
@@ -493,6 +515,21 @@ function Log.ApplyPreset(name)
 
     Log.RefreshActive()
     currentPreset = name
+
+    -- Watch-mode enrichment lifecycle (context suffix, preamble, snapshots, mutes).
+    -- Resolved lazily: WatchMode loads after Log. Deactivate runs for every non-watch
+    -- preset so leaving watch cleanly drops the context provider + restores mutes.
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if watch then
+        -- pcall: a watch lifecycle hiccup (preamble/snapshot/mute) must never break
+        -- preset application or raise out of the /builog slash command.
+        if name == "watch" then
+            if watch.Activate then pcall(watch.Activate) end
+        elseif watch.Deactivate then
+            pcall(watch.Deactivate)
+        end
+    end
+
     return true, name
 end
 
