@@ -217,7 +217,7 @@ function Sell:OnPrimaryAction(vendorInstance)
     if stackSize <= 0 then return end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorSellItem", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor item sold", {
             bagId = bagId,
             slotIndex = slotIndex,
             stackSize = stackSize,
@@ -245,7 +245,7 @@ function Sell:SellAllJunk(vendorInstance)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorSellAllJunk", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor sell all junk", {
             itemCount = itemCount
         })
     end

@@ -189,7 +189,7 @@ function StableTraining:OnPrimaryAction(vendorInstance)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorTrainRiding", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor riding trained", {
             trainingType = ds.trainingType,
             name = ds.name
         })

@@ -67,7 +67,7 @@ function Browse:OnPrimaryAction(thInstance)
     if not tradingHouseIndex or price <= 0 then return end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "tradingHouseBuyItemStart", { name = ds.name, index = tradingHouseIndex, price = price })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "trading house buy item started", { name = ds.name, index = tradingHouseIndex, price = price })
     end
 
     if not thInstance:CanAfford(price) then
@@ -114,7 +114,7 @@ end
 ---@return boolean dispatched True if a search request was sent to the server
 function Browse:ExecuteSearch(useLastExecutedSearchFilters)
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "tradingHouseSearchStart", { page = Browse.currentPage, reuse = useLastExecutedSearchFilters })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "trading house search started", { page = Browse.currentPage, reuse = useLastExecutedSearchFilters })
     end
     if Browse.searchPending then return false end
 
@@ -196,7 +196,7 @@ end
 
 function Browse:OnSearchResultsReceived(thInstance)
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "tradingHouseSearchResultsReceived", { page = Browse.currentPage })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "trading house search results received", { page = Browse.currentPage })
     end
     Browse.searchPending = false
     Browse.hasMorePages = false
@@ -235,7 +235,7 @@ function Browse:BuildList(thInstance)
         numResults = GetTradingHouseSearchResultsInfo() or 0
     end
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "browseBuildList", { count = numResults })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "browse list built", { count = numResults })
     end
     if numResults == 0 then return end
 

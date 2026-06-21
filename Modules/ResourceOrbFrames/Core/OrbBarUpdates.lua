@@ -40,7 +40,7 @@ local function TraceValueBracketChange(current, max, state)
     end
 
     state._betteruiLastValueBracket = bracket
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orbValueBracket", { cur = current, max = max, pct = percent }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orb value bracket", { cur = current, max = max, pct = percent }) end
 end
 
 ---@param fillColor table|nil Fill colour {r,g,b,a}

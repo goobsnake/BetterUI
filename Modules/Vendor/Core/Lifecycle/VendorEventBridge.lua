@@ -14,7 +14,7 @@ local function RegisterEvent(eventManager, eventNamespace, suffix, eventCode, ca
     end
     eventManager:RegisterForEvent(eventNamespace .. "_" .. suffix, eventCode, callback)
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = suffix })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = suffix })
     end
 end
 
@@ -54,7 +54,7 @@ function EventBridge.Register(eventManager, eventNamespace, handlers)
     EventBridge.RegisterCollectionUpdated(handlers.onInventoryUpdated)
 
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendorEventsRegistered", { namespace = eventNamespace })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendor events registered", { namespace = eventNamespace })
     end
 end
 
@@ -77,6 +77,6 @@ function EventBridge.RegisterCollectionUpdated(onInventoryUpdated)
     manager:RegisterCallback("OnCollectionUpdated", EventBridge._collectionCallback)
     EventBridge._collectionCallbackRegistered = true
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "OnCollectionUpdated" })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "OnCollectionUpdated" })
     end
 end

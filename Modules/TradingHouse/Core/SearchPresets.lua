@@ -52,7 +52,7 @@ end
 ---@return boolean success True if saved successfully
 function Presets.SaveCurrent(name)
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SEARCH, "presetSave", { name = name })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SEARCH, "search preset saved", { name = name })
     end
     if not name or name == "" then return false end
     if not TRADING_HOUSE_SEARCH then return false end
@@ -91,7 +91,7 @@ end
 ---@return boolean success True if loaded successfully
 function Presets.Load(index)
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SEARCH, "presetLoad", { index = index })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SEARCH, "search preset loaded", { index = index })
     end
     local presets = Presets.GetAll()
     local preset = presets[index]

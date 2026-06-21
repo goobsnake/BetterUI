@@ -349,7 +349,7 @@ function BETTERUI.Banking.Class:RefreshList()
 
     local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "bankRefresh", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "bank refresh", {
             mode = self.currentMode,
             rowCount = entryCount,
         })

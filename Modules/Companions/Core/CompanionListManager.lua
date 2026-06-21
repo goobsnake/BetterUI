@@ -361,7 +361,7 @@ function BETTERUI.Companions.Class:RefreshCategories()
     local newCategory = visibleCategories[selectedIndex]
     local newKey = newCategory and newCategory.key
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "companionCategories", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "companion categories built", {
             prevKey = previousKey,
             newKey = newKey
         })

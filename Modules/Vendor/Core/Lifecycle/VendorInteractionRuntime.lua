@@ -393,7 +393,7 @@ local function OpenStoreInternal(state, deps, publishState)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "OpenStoreInternal", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "store opened", {
             interactionType = interactionType,
         })
     end
@@ -458,7 +458,7 @@ end
 
 local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publishState)
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "OpenFenceInternal", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "fence opened", {
             enableSell = enableSell,
             enableLaunder = enableLaunder,
         })
@@ -508,7 +508,7 @@ end
 
 local function CloseStoreInternal(state, deps)
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "CloseStoreInternal")
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "store closed")
     end
     local resolved = ResolveDeps(deps)
     resolved.markClosingState()

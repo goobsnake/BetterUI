@@ -110,7 +110,7 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
     local ds = data.dataSource or data
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "vendorRowSetup", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "vendor row setup", {
             selected = selected,
             name = ds and ds.name or nil,
             bagId = ds and ds.bagId or nil,

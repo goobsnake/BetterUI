@@ -518,7 +518,7 @@ function ResourceOrbFrames.ApplySettings()
             return
         end
         if BETTERUI.Log then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "orbApplySettingsEnabled")
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "orb apply settings enabled")
         end
         m_rootFrame:SetHidden(false)
         -- Re-register the periodic update loops on enable.
@@ -532,7 +532,7 @@ function ResourceOrbFrames.ApplySettings()
         end
     else
         if BETTERUI.Log then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "orbApplySettingsDisabled")
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "orb apply settings disabled")
         end
         m_rootFrame:SetHidden(true)
         -- Stop the periodic update loops so a disabled module pays no

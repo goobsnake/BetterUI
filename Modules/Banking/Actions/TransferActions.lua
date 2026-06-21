@@ -134,7 +134,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
     local transferContext = ReadTransferContextSnapshot()
     local isGuildBankMode = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "TryTransferInventorySlot", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "try transfer inventory slot", {
             bag = bag,
             index = index,
             isGuildBankMode = isGuildBankMode,
@@ -415,7 +415,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 
     local isGuildBank = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "MoveItem", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "move item", {
             fromBag = fromBag,
             fromBagIndex = fromBagIndex,
             quantity = quantity,

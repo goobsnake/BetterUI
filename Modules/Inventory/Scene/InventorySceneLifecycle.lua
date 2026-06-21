@@ -67,7 +67,7 @@ local function OnSceneShowing(self)
 	end
 
 	if BETTERUI.Log then
-		BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "invShow", {
+		BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "inventory show", {
 			prevList = self.previousListType,
 			currentList = listToActivate,
 			onStack = wasOnStack == true,

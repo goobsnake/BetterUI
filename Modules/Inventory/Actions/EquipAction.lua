@@ -80,9 +80,9 @@ local function AttemptCompanionEquipPatch()
 
         return false
     end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "TryEquipItem", target = type(class) }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "TryEquipItem", target = type(class) }) end
     class._betterui_tryEquipPatched = true
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "companionEquipPatchInstalled") end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "companion equip patch installed") end
     return true
 end
 

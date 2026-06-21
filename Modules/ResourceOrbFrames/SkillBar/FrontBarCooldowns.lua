@@ -297,7 +297,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
                 if btn._betteruiLastCooldownState ~= true then
                     btn._betteruiLastCooldownState = true
                     if BETTERUI.Log then
-                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldownStart", { slot = mapping.slot, duration = durationMs })
+                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown start", { slot = mapping.slot, duration = durationMs })
                     end
                 end
                 local visualRemainMs = CooldownUtils.GetSmoothedRemaining(cooldownStateKey, remainMs, durationMs)
@@ -358,7 +358,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
                 if btn._betteruiLastCooldownState == true then
                     btn._betteruiLastCooldownState = false
                     if BETTERUI.Log then
-                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldownEnd", { slot = mapping.slot })
+                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown end", { slot = mapping.slot })
                     end
                 end
                 CooldownUtils.ResetSmoothedRemaining(cooldownStateKey)

@@ -495,7 +495,7 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         Vendor._batchAbortRequested = false
 
         if BETTERUI.Log then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchFinished", {
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch finished", {
                 processed = self.processedCount,
                 total = self.totalItems,
                 skipped = self.skippedCount or 0,
@@ -596,7 +596,7 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         end
 
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batchStep", {
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch step advanced", {
                 index = self.index + 1,
                 total = self.totalItems,
                 mode = self.mode,
@@ -732,7 +732,7 @@ function BatchRuntime.ExecuteBatchThrottled(request)
     local totalItems = #batchItems
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "vendorBatch", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "vendor batch started", {
             mode = mode,
             totalItems = totalItems
         })
@@ -776,7 +776,7 @@ end
 function BatchRuntime.RequestBatchAbort()
     if Vendor._batchProcessing then
         if BETTERUI.Log then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batchAbortRequested", {
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch abort requested", {
                 processed = Vendor.instance and Vendor.instance.processedCount or 0
             })
         end

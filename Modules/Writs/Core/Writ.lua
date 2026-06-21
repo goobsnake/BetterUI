@@ -97,7 +97,7 @@ end
 ---@return string|nil err
 function Writs.ShowForCraftType(writType)
 	if BETTERUI.Log then
-		BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "writShowForCraftType", { writType = writType })
+		BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "writ panel shown", { writType = writType })
 	end
 	local refreshOk, refreshErr = Writs.RefreshActiveWrits()
 	if not refreshOk then
@@ -131,7 +131,7 @@ end
 ---@return nil
 function Writs.HidePanel()
 	if BETTERUI.Log then
-		BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "writHidePanel")
+		BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "writ panel hidden")
 	end
 	local panel = m_writsPanel or BETTERUI_WritsPanel
 	if panel then

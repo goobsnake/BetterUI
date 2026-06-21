@@ -180,7 +180,7 @@ function FenceLaunder:OnPrimaryAction(vendorInstance)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorLaunderItem", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor item laundered", {
             bagId = bagId,
             slotIndex = slotIndex,
             quantity = quantity,

@@ -168,7 +168,7 @@ function SellVengeance:OnPrimaryAction(vendorInstance)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorSellVengeanceItem", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor vengeance item sold", {
             bagId = bagId,
             slotIndex = slotIndex,
             stackSize = stackSize,

@@ -642,7 +642,7 @@ local function InstallClearLinesHook(tooltipControl, state, tooltipType)
         ClearTooltipEnhancementState(self, tooltipType)
         ResetInventoryHookState(state)
     end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "ClearLines", target = type(tooltipControl) }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "ClearLines", target = type(tooltipControl) }) end
     state.clearLinesHookInstalled = true
 end
 
@@ -657,7 +657,7 @@ local function InstallBagLayoutHook(tooltipControl, layoutBagName, state, toolti
 
         CaptureBagLayoutState(state, layoutBagDataFn, ...)
     end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = tostring(layoutBagName), target = type(tooltipControl) }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = tostring(layoutBagName), target = type(tooltipControl) }) end
 end
 
 local function InstallStoreLayoutHook(tooltipControl, layoutStoreName, state, tooltipType, layoutStoreDataFn)
@@ -671,13 +671,13 @@ local function InstallStoreLayoutHook(tooltipControl, layoutStoreName, state, to
 
         CaptureStoreLayoutState(state, layoutStoreDataFn, ...)
     end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = tostring(layoutStoreName), target = type(tooltipControl) }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = tostring(layoutStoreName), target = type(tooltipControl) }) end
 end
 
 local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, tooltipType, layoutItemDataFn)
     ZO_PreHook(tooltipControl, layoutItemName, function(self, ...)
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltipHook",
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip hook",
                 { type = tooltipType, bag = state.bagId, slot = state.slotIndex })
         end
         state.skipEnhancementForLayout = IsIncompatibleSceneActive()
@@ -709,7 +709,7 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
         state.pendingItemLink = itemLink
         state.pendingTooltipType = tooltipType
     end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = tostring(layoutItemName), target = type(tooltipControl) }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = tostring(layoutItemName), target = type(tooltipControl) }) end
 
     ZO_PostHook(tooltipControl, layoutItemName, function(self, ...)
         local itemLink = state.pendingItemLink
@@ -738,7 +738,7 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
             ScheduleTooltipEquippedStockRelayout(self, capturedTooltipType)
         end
     end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = tostring(layoutItemName), target = type(tooltipControl) }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = tostring(layoutItemName), target = type(tooltipControl) }) end
 end
 
 Tooltips.InventoryHookValidation = {

@@ -207,7 +207,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refreshItems", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh items", {
             categoryKey = targetCategoryData.key,
             searchLen = searchLen,
             preCount = preCount,

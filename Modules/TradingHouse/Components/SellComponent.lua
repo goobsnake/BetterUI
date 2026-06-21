@@ -92,7 +92,7 @@ function Sell:OnPrimaryAction(thInstance)
     if not bagId or not slotIndex then return end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "tradingHouseSellItemStart", { name = ds.name, bagId = bagId, slotIndex = slotIndex })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "trading house sell item started", { name = ds.name, bagId = bagId, slotIndex = slotIndex })
     end
 
     -- Gate on the guild's sell privilege first, matching the native sell
@@ -166,7 +166,7 @@ function Sell:BuildList(thInstance)
     local bagSlots = GetBagSize(bagId) or 0
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "sellBuildList", { slots = bagSlots })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "sell list built", { slots = bagSlots })
     end
 
     for slotIndex = 0, bagSlots - 1 do

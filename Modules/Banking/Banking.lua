@@ -243,7 +243,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         BETTERUI.Banking.SetLastOpenedBankBag(bankBag or BAG_BANK)
     end)
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_OPEN_BANK" })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_OPEN_BANK" })
     end
 
     EVENT_MANAGER:UnregisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK)
@@ -253,20 +253,20 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
     end)
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_CLOSE_BANK" })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_CLOSE_BANK" })
     end
 
     self.control:RegisterForEvent(EVENT_CARRIED_CURRENCY_UPDATE, UpdateCurrency_Handler)
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_CARRIED_CURRENCY_UPDATE" })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_CARRIED_CURRENCY_UPDATE" })
     end
     self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_BANKED_CURRENCY_UPDATE" })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_BANKED_CURRENCY_UPDATE" })
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "bankingClassInitialized", { scene = scene_name })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "banking class initialized", { scene = scene_name })
     end
 end
 
@@ -363,7 +363,7 @@ function BETTERUI.Banking.Init()
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "bankingInitialized", {
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "banking initialized", {
             guildBank = BETTERUI.Banking.GetSetting("enableGuildBank") ~= false,
         })
     end

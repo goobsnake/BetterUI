@@ -161,7 +161,7 @@ end
 function BETTERUI.Banking.Class.SetupCurrencyTransferEntry(control, data, selected, selectedDuringRebuild, enabled,
                                                            activated)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "SetupCurrencyTransferEntry", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "setup currency transfer entry", {
             currencyType = data and data.currencyType,
             selected = selected,
             enabled = enabled,
@@ -309,7 +309,7 @@ end
 function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         local data = selectedData and (selectedData.dataSource or selectedData) or nil
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "OnItemSelectedChange", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "item selected change", {
             name = data and data.name,
             bagId = data and data.bagId,
             slotIndex = data and data.slotIndex,

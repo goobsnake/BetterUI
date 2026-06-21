@@ -33,7 +33,7 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
 
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "companionTooltipUpdate", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "companion tooltip updated", {
             bagId = ds and ds.bagId or nil,
             slotIndex = ds and ds.slotIndex or nil,
             name = ds and ds.name or nil
@@ -170,7 +170,7 @@ function BETTERUI.Companions.Class:RefreshList()
     end
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "companionRefreshList")
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "companion list refreshed")
     end
 
     self._isRefreshing = true

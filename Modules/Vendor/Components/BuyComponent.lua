@@ -644,7 +644,7 @@ function Buy:OnPrimaryAction(vendorInstance)
     local quantity = 1
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorBuyItem", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor item bought", {
             entryIndex = entryIndex,
             quantity = quantity,
             name = ds.name,

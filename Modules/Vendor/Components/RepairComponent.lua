@@ -72,7 +72,7 @@ function Repair:OnPrimaryAction(vendorInstance)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorRepairItem", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor item repaired", {
             bagId = bagId,
             slotIndex = slotIndex,
             cost = repairCost,
@@ -97,7 +97,7 @@ function Repair:RepairAll(vendorInstance)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorRepairAll", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor repair all started", {
             cost = repairAllCost
         })
     end
@@ -107,7 +107,7 @@ function Repair:RepairAll(vendorInstance)
         cost = repairAllCost,
         callback = function()
             if BETTERUI.Log then
-                BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorRepairAllConfirmed", {
+                BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor repair all confirmed", {
                     cost = repairAllCost
                 })
             end

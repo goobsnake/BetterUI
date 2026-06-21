@@ -171,7 +171,7 @@ function FenceSell:OnPrimaryAction(vendorInstance)
     local quantity = zo_min(stackSize, remaining)
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendorFenceSellItem", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor fence sell item", {
             bagId = bagId,
             slotIndex = slotIndex,
             quantity = quantity,

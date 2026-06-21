@@ -213,7 +213,7 @@ function ModePolicy.SetModeCategories(owner, mode, categories)
     owner._cachedBuyCategories = state.cachedBuyCategories
 
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "vendorMode",
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "vendor mode resolved",
             { mode = mode, tabCount = #normalized, selectedIndex = selectedIndex })
     end
 
@@ -512,7 +512,7 @@ function ModePolicy.ResolveInitialStoreMode(context)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendorInitialMode", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendor initial mode resolved", {
             initialMode = initialMode,
             isStable = context.isStableInteraction == true,
             isFence = context.isFenceInteraction == true,

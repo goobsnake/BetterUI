@@ -126,7 +126,7 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
                         value = PriceEntry.ClampListingPrice(value, data.min, data.max)
                         local ok, err = pcall(data.onConfirm, value)
                         if not ok and BETTERUI.Log then
-                            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "digitPriceConfirm", { error = err })
+                            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "price digit confirmed", { error = err })
                         end
                     end,
                 },

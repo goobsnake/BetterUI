@@ -94,7 +94,7 @@ end
 --- @param self BetterUI_InventoryClass
 --- @param index number 1-based category index
 local function OnCategoryClicked(self, index)
-    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.NAV, "OnCategoryClicked", {index = index}) end
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.NAV, "category clicked", {index = index}) end
     if not index or not self.categoryList then return end
 
     local count = #self.categoryList.dataList

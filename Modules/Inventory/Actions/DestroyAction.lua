@@ -123,8 +123,8 @@ function BETTERUI.Inventory.HookDestroyItem()
             { bagId = bag, slotIndex = index, slotType = slotType, itemLink = link, expectedSlotIdentity = expectedSlotIdentity }, nil, true, true)
         return true
     end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "ZO_InventorySlot_InitiateDestroyItem", target = type("ZO_InventorySlot_InitiateDestroyItem") }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "ZO_InventorySlot_InitiateDestroyItem", target = type("ZO_InventorySlot_InitiateDestroyItem") }) end
 
     BETTERUI.Inventory._destroyHookInstalled = true
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "destroyItemHookInstalled") end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "destroy item hook installed") end
 end

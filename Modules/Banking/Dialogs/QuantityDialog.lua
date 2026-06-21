@@ -241,7 +241,7 @@ function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "ShowQuantityDialog", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "show quantity dialog", {
             isDeposit = isDeposit,
             bagId = targetData.bagId,
             slotIndex = targetData.slotIndex,

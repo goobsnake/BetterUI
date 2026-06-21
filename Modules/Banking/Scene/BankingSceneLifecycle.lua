@@ -20,7 +20,7 @@ local GUILD_BANK_EVENTS = {
 --- Scene showing handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "OnSceneShowing", { wasPushed = wasPushed })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene showing", { wasPushed = wasPushed })
     end
     -- The quantity dialog sets list-update suppression; if the bank closes while
     -- the dialog is open, OnGamepadDialogHidden no-ops (scene not showing) and a
@@ -205,7 +205,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         for _, event in ipairs(GUILD_BANK_EVENTS) do
             EVENT_MANAGER:RegisterForEvent(ns, event, eventHandlers[event])
             if BETTERUI.Log then
-                BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = event })
+                BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = event })
             end
         end
     end
@@ -214,7 +214,7 @@ end
 --- Aborts any in-flight batch before cleanup.
 function BETTERUI.Banking.Class:OnSceneHiding()
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "OnSceneHiding", { isBatchProcessing = self:IsBatchProcessing() })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hiding", { isBatchProcessing = self:IsBatchProcessing() })
     end
     if self:IsBatchProcessing() then
         self:RequestBatchAbort()
@@ -224,7 +224,7 @@ end
 --- Scene hidden handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneHidden()
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "OnSceneHidden")
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hidden")
     end
 
     -- PB-016: the Banking refresh manager lives at module scope, so the in-scope
@@ -350,7 +350,7 @@ function BETTERUI.Banking.SetupSceneInterception()
     -- taint protected gamepad execution paths (Tamriel Tomes / DirectPurchase).
     -- Keep this as a no-op to preserve secure scene transitions.
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "bankingSceneInterceptionInitialized")
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "banking scene interception initialized")
     end
     return
 end

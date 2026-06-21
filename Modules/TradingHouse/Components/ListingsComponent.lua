@@ -36,7 +36,7 @@ end
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Listings:Activate(thInstance)
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "tradingHouseListingsActive")
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "trading house listings active")
     end
     -- Request fresh listing data from server
     if RequestTradingHouseListings then
@@ -77,7 +77,7 @@ function Listings:OnPrimaryAction(thInstance)
     if not listingIndex then return end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "tradingHouseCancelListingStart", { name = ds.name, index = listingIndex })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "trading house cancel listing started", { name = ds.name, index = listingIndex })
     end
 
     -- ZOS gamepad cancel flow (tradinghouse_listings_gamepad.lua): the gamepad
@@ -111,7 +111,7 @@ function Listings:BuildList(thInstance)
 
     local numListings = GetNumTradingHouseListings and GetNumTradingHouseListings() or 0
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "listingsBuildList", { count = numListings })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "listings list built", { count = numListings })
     end
     if numListings == 0 then return end
 

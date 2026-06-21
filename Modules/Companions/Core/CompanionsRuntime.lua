@@ -223,7 +223,7 @@ function Companions.InitializeRuntime()
     Companions.RegisterEvents(EVENT_MANAGER)
 
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companionsInitialized", {
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companions initialized", {
             scene = BETTERUI_COMPANION_EQUIP_SCENE_NAME,
             sortReady = instance.sortSetupReady == true,
         })
@@ -269,7 +269,7 @@ function Companions.SetupSort(instance)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companionsSortInitialized", { installed = true })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companion sort initialized", { installed = true })
     end
 
     return true
@@ -362,7 +362,7 @@ function Companions.RegisterSceneLifecycle(instance)
         onShowing = function(screen)
             if BETTERUI.Log and BETTERUI.Log.IsActive() then
                 local listCount = (screen.list and screen.list.GetNumItems) and screen.list:GetNumItems() or 0
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "companionShow", {
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "companion shown", {
                     sortSetupDegraded = screen.sortSetupDegraded == true,
                     listCount = listCount
                 })
@@ -377,7 +377,7 @@ function Companions.RegisterSceneLifecycle(instance)
         end,
         onHiding = function(screen)
             if BETTERUI.Log then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "companionHide")
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "companion hidden")
             end
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             screen:DeactivateListInput()
@@ -414,7 +414,7 @@ function Companions.RegisterSceneLifecycle(instance)
     })
 
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companionsSceneLifecycleRegistered", { scene = BETTERUI_COMPANION_EQUIP_SCENE_NAME })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companion scene lifecycle registered", { scene = BETTERUI_COMPANION_EQUIP_SCENE_NAME })
     end
 end
 
@@ -451,29 +451,29 @@ function Companions.RegisterEvents(eventManager)
         eventManager:RegisterForEvent(EVENT_NS .. "_CompActivated",
             EVENT_COMPANION_ACTIVATED, OnCompanionActivated)
         if BETTERUI.Log then
-            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_COMPANION_ACTIVATED" })
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_COMPANION_ACTIVATED" })
         end
     end
     if EVENT_COMPANION_DEACTIVATED then
         eventManager:RegisterForEvent(EVENT_NS .. "_CompDeactivated",
             EVENT_COMPANION_DEACTIVATED, OnCompanionDeactivated)
         if BETTERUI.Log then
-            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_COMPANION_DEACTIVATED" })
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_COMPANION_DEACTIVATED" })
         end
     end
     eventManager:RegisterForEvent(EVENT_NS .. "_InvUpdate",
         EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventoryUpdated)
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_INVENTORY_SINGLE_SLOT_UPDATE" })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_INVENTORY_SINGLE_SLOT_UPDATE" })
     end
     eventManager:RegisterForEvent(EVENT_NS .. "_InvFull",
         EVENT_INVENTORY_FULL_UPDATE, OnInventoryUpdated)
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "eventRegistered", { event = "EVENT_INVENTORY_FULL_UPDATE" })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_INVENTORY_FULL_UPDATE" })
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companionsEventsRegistered", { namespace = EVENT_NS })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "companion events registered", { namespace = EVENT_NS })
     end
 end
 

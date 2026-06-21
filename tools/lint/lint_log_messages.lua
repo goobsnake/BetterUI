@@ -65,9 +65,24 @@ for _, path in ipairs(files) do
     local fh = io.open(path, "r")
     if fh then
         local lineNo = 0
+        local inBlock = false
         for line in fh:lines() do
             lineNo = lineNo + 1
-            for msg in line:gmatch(CALL) do
+            -- Strip comments so example Log calls in docs aren't flagged. Crude but fine
+            -- for a lint: handle --[[ ]] block comments + -- line comments.
+            local scan = line
+            if inBlock then
+                local close = scan:find("%]%]")
+                if close then inBlock = false; scan = scan:sub(close + 2) else scan = "" end
+            end
+            local open = scan:find("%-%-%[%[")
+            if open then
+                local rest = scan:sub(open)
+                if rest:find("%]%]") then scan = scan:sub(1, open - 1)
+                else scan = scan:sub(1, open - 1); inBlock = true end
+            end
+            scan = scan:gsub("%-%-.*$", "") -- line comment
+            for msg in scan:gmatch(CALL) do
                 if isTerse(msg) then
                     total = total + 1
                     byDir[dirOf(path)] = (byDir[dirOf(path)] or 0) + 1

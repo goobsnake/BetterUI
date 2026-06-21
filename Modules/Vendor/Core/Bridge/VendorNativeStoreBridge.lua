@@ -402,7 +402,7 @@ function NativeStoreBridge.TakeOverScene(instance)
                 self.scenes["gamepad_store"] = instance.scene
             end
         end)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "Show", target = type(SCENE_MANAGER) }) end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "Show", target = type(SCENE_MANAGER) }) end
     end
 end
 

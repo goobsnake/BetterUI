@@ -311,7 +311,7 @@ function BETTERUI.Banking.Class:BatchTransfer()
     local transferDestinationBankBag = transferState.depositTargetBag
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "bankBatchTransfer", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "bank batch transfer", {
             selected = #selectedItems,
             isWithdraw = isWithdraw,
             targetBag = transferDestinationBankBag

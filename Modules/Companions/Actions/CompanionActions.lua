@@ -69,7 +69,7 @@ function Companions.TryPreviewCompanionItem(bagId, slotIndex)
     if not Companions.CanPreviewCompanionItem(bagId, slotIndex) then return false end
     if type(PreviewInventoryItem) ~= "function" then return false end
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companionPreviewItem", { bagId = bagId, slotIndex = slotIndex })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companion item previewed", { bagId = bagId, slotIndex = slotIndex })
     end
     PreviewInventoryItem(bagId, slotIndex)
     return true
@@ -211,7 +211,7 @@ end
 
 function Companions.TryEquipCompanionItem(bagId, slotIndex)
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companionEquipItem", { bagId = bagId, slotIndex = slotIndex })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companion item equipped", { bagId = bagId, slotIndex = slotIndex })
     end
     if bagId == nil or slotIndex == nil then return false end
     if GetItemActorCategory and GetItemActorCategory(bagId, slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
@@ -235,7 +235,7 @@ end
 
 function Companions.TryUnequipCompanionItem(slotIndex)
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companionUnequipItem", { slotIndex = slotIndex })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companion item unequipped", { slotIndex = slotIndex })
     end
     if slotIndex == nil then return false end
     -- FindFirstEmptySlotInBag(bagId) -> nilable slotIndex; slot 0 may be occupied.

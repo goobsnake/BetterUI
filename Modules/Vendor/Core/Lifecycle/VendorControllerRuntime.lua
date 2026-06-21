@@ -276,7 +276,7 @@ function ControllerRuntime.SetMode(instance, mode)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendorSetMode", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendor mode set", {
             mode = mode,
             oldMode = instance.currentMode
         })
@@ -337,7 +337,7 @@ function ControllerRuntime.RefreshList(instance, deps)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIST, "vendorRefreshList", {
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIST, "vendor list refreshed", {
             mode = instance:GetCurrentMode(),
             isDirty = instance._isDirty == true
         })

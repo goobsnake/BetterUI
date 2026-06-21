@@ -296,9 +296,9 @@ local function SetupFrontBarPressFeedbackHooks(rootFrame)
     ZO_PreHook("ZO_ActionBar_OnActionButtonUp", function(slotNum, hotbarCategory)
         PlayFrontBarPressFeedbackForSlot(m_pressFeedbackRootFrame, slotNum, hotbarCategory)
     end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "rawHookInstalled", { method = "ZO_ActionBar_OnActionButtonUp", target = type("ZO_ActionBar_OnActionButtonUp") }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "ZO_ActionBar_OnActionButtonUp", target = type("ZO_ActionBar_OnActionButtonUp") }) end
     m_pressFeedbackHooksInstalled = true
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "frontBarPressFeedbackHooksInstalled") end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "front bar press feedback hooks installed") end
 end
 
 -- MODULE EXPORTS

@@ -27,7 +27,7 @@ local QUICKSLOT_LABELS = {
 ---@return string
 function BETTERUI.CIM.GetQuickslotLabel(slotIndex)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "quickslotLabel", {slotIndex = slotIndex})
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "action: quickslot label resolved", {slotIndex = slotIndex})
     end
     return QUICKSLOT_LABELS[slotIndex] or tostring(slotIndex)
 end
@@ -97,7 +97,7 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "buildQuickslotEntries", {hasUnassign = hasUnassign, assignedIndex = assignedIndex})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "action: quickslot entries built", {hasUnassign = hasUnassign, assignedIndex = assignedIndex})
     end
     return {
         hasUnassign = hasUnassign,
@@ -151,7 +151,7 @@ function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "populateActions", {numActions = numActions, includedCount = includedCount})
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "action: action entries populated", {numActions = numActions, includedCount = includedCount})
     end
 end
 
@@ -162,7 +162,7 @@ end
 function BETTERUI.CIM.HandleLinkToChat(targetData)
     if not targetData then
         if BETTERUI.Log then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "linkToChat", {success = false, hasLink = false})
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "action: chat link attempted", {success = false, hasLink = false})
         end
         return false
     end
@@ -175,7 +175,7 @@ function BETTERUI.CIM.HandleLinkToChat(targetData)
     end
     if not bag or not slot then
         if BETTERUI.Log then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "linkToChat", {success = false, hasLink = false})
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "action: chat link attempted", {success = false, hasLink = false})
         end
         return false
     end
@@ -186,7 +186,7 @@ function BETTERUI.CIM.HandleLinkToChat(targetData)
         ZO_LinkHandler_InsertLink(zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink))
     end
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "linkToChat", {success = success, hasLink = itemLink ~= nil})
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "action: chat link attempted", {success = success, hasLink = itemLink ~= nil})
     end
     return success
 end
@@ -200,7 +200,7 @@ function BETTERUI.CIM.RegisterInventoryDialogInvoker(invokeDialog)
         BETTERUI.CIM._inventoryDialogInvoker = invokeDialog
     end
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "dialogInvoker", {registered = registered, methodName = nil})
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "action: dialog invoker registered", {registered = registered, methodName = nil})
     end
     return registered
 end
@@ -212,14 +212,14 @@ function BETTERUI.CIM.InvokeInventoryDialog(methodName, ...)
     local invokeDialog = BETTERUI.CIM._inventoryDialogInvoker
     if type(invokeDialog) ~= "function" then
         if BETTERUI.Log then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "dialogInvoker", {registered = false, methodName = methodName})
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "action: dialog invoker registered", {registered = false, methodName = methodName})
         end
         return false
     end
 
     local result = invokeDialog(methodName, ...)
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "dialogInvoker", {registered = true, methodName = methodName})
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "action: dialog invoker registered", {registered = true, methodName = methodName})
     end
     return result
 end

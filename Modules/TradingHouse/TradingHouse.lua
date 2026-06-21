@@ -8,7 +8,7 @@ function BETTERUI.TradingHouse.Init()
     end
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "tradingHouseInitStart")
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "trading house init started")
     end
 
     TH.RegisterCreateListingDialog()
@@ -52,6 +52,6 @@ function BETTERUI.TradingHouse.Init()
 
     TH.initialized = true
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "tradingHouseInitEnd")
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "trading house init ended")
     end
 end

@@ -137,7 +137,7 @@ function TH.ScheduleListRefresh()
     local mode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() or nil
     local searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scheduleListRefresh",
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "list refresh scheduled",
             { guildId = guildId, mode = mode, searchPending = searchPending })
     end
     if not TH.instance or not TH.instance:IsSceneShowing() then
@@ -450,7 +450,7 @@ end
 
 function TH.OnOpenTradingHouse()
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "tradingHouseOpen")
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "trading house opened")
     end
     if not TH.instance then
         return
@@ -485,7 +485,7 @@ end
 
 function TH.OnCloseTradingHouse()
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "tradingHouseClose")
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "trading house closed")
     end
     if TH.Tasks then
         TH.Tasks:Cancel("sceneOwnershipOpen")
@@ -540,7 +540,7 @@ function TH.OnTradingHouseResponse(_, responseType, result)
     local mode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() or nil
     local searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "tradingHouseResponse",
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "trading house response received",
             { guildId = guildId, mode = mode, searchPending = searchPending })
     end
 
@@ -615,7 +615,7 @@ function TH.OnSelectedTradingHouseGuildChanged()
     local mode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() or nil
     local searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "selectedTradingHouseGuildChanged",
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "selected trading house guild changed",
             { guildId = guildId, mode = mode, searchPending = searchPending })
     end
     TH.ResetBrowseState()

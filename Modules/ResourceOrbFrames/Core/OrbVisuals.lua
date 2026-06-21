@@ -100,7 +100,7 @@ function BetterUIOrbBar:UpdateValue(value)
             self._betteruiLastValueBracket = bracket
             -- Combat hot path: only allocate the payload table when logging is active.
             if BETTERUI.Log and BETTERUI.Log.IsActive() then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orbValueBracket", { powerType = self.powerType, cur = value, max = max, pct = percent })
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orb value bracket", { powerType = self.powerType, cur = value, max = max, pct = percent })
             end
         end
     end

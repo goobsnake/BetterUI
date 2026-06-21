@@ -250,7 +250,7 @@ function TH.BuildCoreKeybinds(thInstance)
                 if TH.BrowseFilters and TH.BrowseFilters.ShowFilterDialog then
                     local ok, err = pcall(TH.BrowseFilters.ShowFilterDialog)
                     if not ok and BETTERUI.Log then
-                        BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "filterDialog", { error = err })
+                        BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "filter dialog opened", { error = err })
                     end
                 end
             end,
