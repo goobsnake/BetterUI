@@ -44,7 +44,7 @@ end
 
 ---@return NavigationStateData
 function BETTERUI.CIM.NavigationState.Create()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "navigation state created") end
+    if navTraceOn() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "navigation state created") end
     return {
         -- Token for coalescing category changes (incremented each change)
         changeToken = 0,

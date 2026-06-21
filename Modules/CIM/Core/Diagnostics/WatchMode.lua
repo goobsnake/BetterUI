@@ -37,6 +37,7 @@ local snapshotProviders = {}    -- name -> fn
 local snapshotOrder = {}        -- ordered provider names (stable snapshot field order)
 local mutedCategories = {}      -- category -> true (silenced in watch only)
 local snapshotScheduled = false
+local snapshotTimerId = nil     -- pending heartbeat timer id (cancelled on Deactivate)
 
 local SNAPSHOT_INTERVAL_MS = 10000
 
@@ -70,11 +71,17 @@ end
 -- Returns "scene=.. view=.. flow=.. lastAction=.." (only the set parts). Cheap, never
 -- raises (Log pcall-guards it too). scene/view/flow are bare tokens; lastAction (which
 -- can contain spaces) is quoted so the k=v stream stays parseable.
+-- Keep scene/view as single BARE k=v tokens (the documented format): collapse internal
+-- whitespace + neutralize the pipe so a name with a space/pipe can't break the parse.
+local function safeToken(s)
+    return (tostring(s):gsub("%s+", "_"):gsub("|", "/"))
+end
+
 local function contextSuffix(_level, _category)
     local parts = {}
     local scene = currentSceneName()
-    if scene then parts[#parts + 1] = "scene=" .. scene end
-    if currentView then parts[#parts + 1] = "view=" .. currentView end
+    if scene then parts[#parts + 1] = "scene=" .. safeToken(scene) end
+    if currentView then parts[#parts + 1] = "view=" .. safeToken(currentView) end
     local L = log()
     local la = L and L.GetLastAction and L.GetLastAction()
     if type(la) == "table" then
@@ -149,6 +156,13 @@ function Watch.Snapshot()
     if not L or not L.Debug then return end
     if L.EnabledFor and not L.EnabledFor(L.LEVEL.DEBUG, L.CATEGORY.STATE) then return end
     local data = { scene = currentSceneName() or "<none>" }
+    -- Surface the file-sink drop count so an AI tailing the log can SEE when a burst shed
+    -- records (i.e. it may have missed context) straight from the heartbeat.
+    local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
+    if il and il.GetStats then
+        local okS, s = pcall(il.GetStats)
+        if okS and type(s) == "table" then data.dropped = s.dropped end
+    end
     for i = 1, #snapshotOrder do
         local nm = snapshotOrder[i]
         local fn = snapshotProviders[nm]
@@ -165,7 +179,7 @@ local function scheduleSnapshot()
     local later = G("zo_callLater")
     if type(later) ~= "function" then return end
     snapshotScheduled = true
-    later(function()
+    snapshotTimerId = later(function()
         snapshotScheduled = false
         if not active then return end -- watch left; stop the heartbeat
         pcall(Watch.Snapshot) -- a snapshot hiccup must not break the reschedule
@@ -226,6 +240,12 @@ end
 function Watch.Deactivate()
     if not active then return end
     active = false
+    -- Cancel the pending heartbeat timer so a rapid watch->off->watch re-arms ONE clean
+    -- timer instead of leaking/doubling (don't just rely on the active=false self-stop).
+    local remove = G("zo_removeCallLater")
+    if snapshotTimerId and type(remove) == "function" then pcall(remove, snapshotTimerId) end
+    snapshotTimerId = nil
+    snapshotScheduled = false
     local L = log()
     if L and L.SetContextProvider then L.SetContextProvider(nil) end
     if L and L.SetCategoryEnabled then

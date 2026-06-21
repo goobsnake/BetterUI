@@ -92,7 +92,7 @@ end
 ---@return any result Function return value, missing-path reason, or error text
 function BETTERUI.CIM.SafeExecuteOptionalPath(context, path, ...)
     local ok, result = CallOptionalBetterUIPath(path, ...)
-    if not ok and result == "optional_path_missing" and BETTERUI.Debug then
+    if not ok and result == "optional_path_missing" and type(BETTERUI.Debug) == "function" then
         BETTERUI.Debug(string.format("[Warn] %s: Optional path missing (%s)", context, tostring(path)))
     end
     return ok, result
@@ -105,11 +105,19 @@ end
 ---@param message number|string String ID or resolved alert message text
 ---@param sound? number Sound constant (default: SOUNDS.NEGATIVE_CLICK)
 function BETTERUI.CIM.UserNotify(context, message, sound)
-    local resolvedMessage = type(message) == "number" and GetString(message) or message
-    BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(resolvedMessage)))
-    -- Pass the raw message/string-id to ZO_Alert: it resolves string ids internally
-    -- via zo_strformat (and applies any format args). resolvedMessage is for the log only.
-    ZO_Alert(UI_ALERT_CATEGORY_ERROR, sound or SOUNDS.NEGATIVE_CLICK, message)
+    -- Guard the ESO globals (rawget + pcall): these run from error paths and may be called
+    -- pre-load or in a test harness where GetString/ZO_Alert/SOUNDS don't exist yet.
+    local getString = rawget(_G, "GetString")
+    local resolvedMessage = (type(message) == "number" and type(getString) == "function" and getString(message)) or message
+    if type(BETTERUI.Debug) == "function" then
+        BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(resolvedMessage)))
+    end
+    local alert = rawget(_G, "ZO_Alert")
+    if type(alert) == "function" then
+        local sounds = rawget(_G, "SOUNDS")
+        -- Pass the raw message/string-id to ZO_Alert: it resolves string ids internally.
+        pcall(alert, rawget(_G, "UI_ALERT_CATEGORY_ERROR"), sound or (sounds and sounds.NEGATIVE_CLICK), message)
+    end
 end
 
 --- Unified user-facing informational notification (non-error).
@@ -118,6 +126,11 @@ end
 ---@param messageText string The user-facing alert message text
 ---@param sound? number Sound constant (default: nil for silent)
 function BETTERUI.CIM.UserAlertText(context, messageText, sound)
-    BETTERUI.Debug(string.format("[UserAlert] %s: %s", context, tostring(messageText)))
-    ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, sound, messageText)
+    if type(BETTERUI.Debug) == "function" then
+        BETTERUI.Debug(string.format("[UserAlert] %s: %s", context, tostring(messageText)))
+    end
+    local alert = rawget(_G, "ZO_AlertNoSuppression")
+    if type(alert) == "function" then
+        pcall(alert, rawget(_G, "UI_ALERT_CATEGORY_ALERT"), sound, messageText)
+    end
 end

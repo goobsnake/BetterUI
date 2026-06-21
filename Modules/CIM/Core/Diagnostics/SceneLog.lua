@@ -95,7 +95,11 @@ local function OnSceneStateChanged(scene, oldState, newState)
     -- Returns before any string build / table alloc when logging is off.
     if not (BETTERUI.Log and BETTERUI.Log.IsActive()) then return end
 
-    local name = (type(scene) == "table" and type(scene.GetName) == "function" and scene:GetName())
+    -- ESO scenes are USERDATA, not tables -- resolve through Names.Scene (handles string/
+    -- table/userdata + pcall-guards the :GetName() call) so native scene transitions don't
+    -- all collapse to "<unknown>". Fall back to a bare resolve if Names isn't loaded yet.
+    local N = BETTERUI.CIM and BETTERUI.CIM.Names
+    local name = (N and N.Scene and N.Scene(scene))
         or (type(scene) == "string" and scene)
         or "<unknown>"
     local verb = STATE_NAME[newState] or ("state(" .. tostring(newState) .. ")")

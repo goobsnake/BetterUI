@@ -94,7 +94,10 @@ end
 
 local function FormatLine(message)
     local sid, seq = LogMeta()
-    return string.format("%s %d sid=%s seq=%d %s", TAG, Timestamp(), sid, seq, Flatten(message))
+    -- Carry an INFO LOG level/category so these meta-lines (startup header, disabled marker,
+    -- test breadcrumbs) match the SAME `<LEVEL> <CATEGORY> | <event>` shape the host parser
+    -- expects -- otherwise a tailer would drop them.
+    return string.format("%s %d sid=%s seq=%d INFO LOG | %s", TAG, Timestamp(), sid, seq, Flatten(message))
 end
 
 -- Apply/remove global error-dialog suppression, remembering the prior state so a
@@ -159,7 +162,11 @@ end
 -- ApplyPopupSuppression at raise time is bulletproof and preserves save/restore, so
 -- /builog off still restores the player's real error popups.
 local function RaiseSuppressed(line)
-    if enabled and suppressPopups then ApplyPopupSuppression(true) end
+    -- A breadcrumb deferred via zo_callLater can fire AFTER /builog off (which restored the
+    -- player's real error popups). Bail before error() so a stale in-flight emit can't pop
+    -- the error viewer once logging is disabled.
+    if not enabled then return end
+    if suppressPopups then ApplyPopupSuppression(true) end
     error(line, 0)
 end
 
@@ -346,6 +353,10 @@ local function StartCapture(secs)
     captureRevertId = later(function()
         if gen ~= captureGen then return end -- superseded by a newer capture: no-op
         captureRevertId = nil
+        -- Only revert if WE still own the stream (still at the capture's 'trace' preset). If
+        -- the user manually switched presets mid-capture, leave their choice alone -- the
+        -- capture's job is moot.
+        if L.GetPreset and L.GetPreset() ~= "trace" then return end
         -- Restore the prior preset (fall back to debug if it was custom/unknown), then the
         -- prior ENABLED state (capture force-enabled logging if it had been off).
         local pok, applied = pcall(L.ApplyPreset, prevPreset)

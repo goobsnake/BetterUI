@@ -102,9 +102,11 @@ function BETTERUI.ControlUtils.FindControl(parent, name, caller)
         return cached
     end
 
-    -- First try to grab a direct child with the given short name
-    local child = parent:GetNamedChild(name)
-    if child then
+    -- First try a direct child with the given short name. ESO controls are userdata, so
+    -- pcall the method calls -- a disposed/odd control must degrade to a miss, never raise
+    -- while diagnostics are running.
+    local okChild, child = pcall(parent.GetNamedChild, parent, name)
+    if okChild and child then
         ControlCache[cacheKey] = child
         TraceResolved(parent, name, "child", 0, caller)
         return child
@@ -114,19 +116,18 @@ function BETTERUI.ControlUtils.FindControl(parent, name, caller)
     local probe = parent
     local guards = 0
     while probe ~= nil and guards < 6 do
-        local globalName = probe:GetName() .. name
-        local ctrl = _G[globalName]
-        if ctrl ~= nil then
-            ControlCache[cacheKey] = ctrl
-            TraceResolved(parent, name, "ancestorGlobal", guards, caller)
-            return ctrl
+        local okName, pname = pcall(probe.GetName, probe)
+        if okName and type(pname) == "string" then
+            local ctrl = _G[pname .. name]
+            if ctrl ~= nil then
+                ControlCache[cacheKey] = ctrl
+                TraceResolved(parent, name, "ancestorGlobal", guards, caller)
+                return ctrl
+            end
         end
-        -- Move to the next ancestor.
-        if probe.GetParent then
-            probe = probe:GetParent()
-        else
-            probe = nil
-        end
+        -- Move to the next ancestor (pcall: GetParent may be absent or raise on userdata).
+        local okParent, nextProbe = pcall(probe.GetParent, probe)
+        probe = (okParent and nextProbe) or nil
         guards = guards + 1
     end
 

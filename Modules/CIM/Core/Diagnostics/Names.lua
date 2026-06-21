@@ -137,11 +137,17 @@ function Names.Item(bagId, slotIndex, fallback)
     return fallback or ("item[" .. safeTostring(bagId) .. ":" .. safeTostring(slotIndex) .. "]")
 end
 
---- Flatten free text to a single greppable line (no newlines/tabs). Never raises.
+--- Flatten free text to a single greppable line (no newlines/tabs) and neutralize the
+--- pipe -- '|' is the host log's field separator, so a raw pipe in a value (item names
+--- with colour codes, free text) would break the line's parse contract. Never raises.
 ---@param text any
 ---@return string
 function Names.FlattenText(text)
-    return (safeTostring(text):gsub("[\r\n\t]+", " "))
+    local s = (safeTostring(text):gsub("[\r\n\t]+", " "))
+    s = (s:gsub("|c%x%x%x%x%x%x", "")) -- strip ESO colour-open codes
+    s = (s:gsub("|r", ""))             -- strip ESO colour-reset codes
+    s = (s:gsub("|", "/"))             -- neutralize any remaining pipe (field separator)
+    return s
 end
 
 --- Bounded preview of free text (e.g. search strings): flattened + capped.

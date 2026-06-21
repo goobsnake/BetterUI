@@ -41,7 +41,7 @@ wraps it. One on-disk record looks like:
 | `sid=<sid>` | Session id — one UI load. Changes on `/reloadui`. Group records by `sid`. |
 | `seq=<seq>` | Monotonic per-record counter. **Order by `seq`**, not by ISO ts (ts has 1s resolution). |
 | `<LEVEL>` | `TRACE` < `DEBUG` < `INFO` < `WARN` < `ERROR`. |
-| `<CATEGORY>` | `SCENE LIST NAV KEYBIND FOOTER CATEGORY SEARCH SORT BATCH ACTION LIFECYCLE SAFE SETTINGS CONTROL PERF STATE GENERAL`. |
+| `<CATEGORY>` | `SCENE LIST NAV KEYBIND FOOTER CATEGORY SEARCH SORT BATCH ACTION LIFECYCLE SAFE SETTINGS CONTROL PERF STATE GENERAL` — plus `LOG`, the logger's own meta-lines: the startup header, the `disabled` marker, `/builog test` breadcrumbs, and the `dropped=` rate-limit summary. Every line, meta or not, carries a `<LEVEL> <CATEGORY>` pair, so one regex parses the whole stream. |
 | `\| <event>` | Everything after the first ` \| ` is the human message + `k=v` payload. The ` \| ` is the parse boundary. |
 
 The ISO-8601 timestamp at line start is authoritative **wall-clock**; `<gameMs>` is
@@ -57,7 +57,9 @@ scene=<sceneName> view=<subView> flow=<flowId> lastAction="<last user action>"
 
 So a host reading a single mid-stream line knows where the player is (`scene`/`view`),
 which multi-step operation it belongs to (`flow`), and what the player last did
-(`lastAction`). `scene/view/flow` are bare tokens; `lastAction` is quoted.
+(`lastAction`). `scene/view/flow` are bare tokens (internal whitespace is collapsed to
+`_` and any `|` to `/` so they stay single tokens); `lastAction` is quoted with `"` and
+backslash-escaped.
 
 ## Watch-stream landmarks
 

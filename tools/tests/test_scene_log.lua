@@ -21,6 +21,18 @@ SCENE_HIDDEN  = 4
 
 function GetGameTimeMilliseconds() return 4242 end
 
+-- Names stub (production resolves scenes -- incl. userdata -- via BETTERUI.CIM.Names.Scene).
+BETTERUI.CIM.Names = {
+    Scene = function(s)
+        if type(s) == "string" and s ~= "" then return s end
+        if (type(s) == "table" or type(s) == "userdata") and type(s.GetName) == "function" then
+            local ok, n = pcall(s.GetName, s)
+            if ok and type(n) == "string" and n ~= "" then return n end
+        end
+        return "<unknown>"
+    end,
+}
+
 SLASH_COMMANDS = {}
 
 -- Captured chat output for /buiscene.

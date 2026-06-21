@@ -65,6 +65,14 @@ local categoryDisabled = {}
 
 local function G(name) return rawget(_G, name) end
 
+-- tostring that can never raise (a hostile/missing __tostring must not break a log call).
+-- Defined early so the payload path (Summarize/renderData) can use it too.
+local function safeTostring(v, fallback)
+    local ok, s = pcall(tostring, v)
+    if ok and type(s) == "string" then return s end
+    return fallback or ""
+end
+
 -- Active-state memoization. The logger only does work when the user opted into
 -- logging; that decision is cached and dropped via Log.InvalidateActive() by the
 -- InterfaceLog/FeatureFlags setters that can change it (so a toggle still takes
@@ -123,7 +131,7 @@ function Log.Summarize(value)
         end
         local keys = {}
         for k in pairs(value) do
-            keys[#keys + 1] = tostring(k)
+            keys[#keys + 1] = safeTostring(k, "?")
             if #keys >= 5 then break end
         end
         return string.format("{%d:%s%s}", keyCount, table.concat(keys, ","), keyCount > 5 and ",.." or "")
@@ -131,14 +139,15 @@ function Log.Summarize(value)
         if #value > 80 then return '"' .. value:sub(1, 80) .. '..."' end
         return '"' .. value .. '"'
     elseif t == "userdata" then
-        local getName = value.GetName
-        if type(getName) == "function" then
-            local ok, name = pcall(getName, value)
-            if ok and name and name ~= "" then return "<ctrl:" .. tostring(name) .. ">" end
+        -- Indexing userdata can ITSELF raise (hostile/absent __index), so pcall the lookup.
+        local ok, getName = pcall(function() return value.GetName end)
+        if ok and type(getName) == "function" then
+            local ok2, name = pcall(getName, value)
+            if ok2 and name and name ~= "" then return "<ctrl:" .. safeTostring(name) .. ">" end
         end
         return "<userdata>"
     end
-    return tostring(value)
+    return safeTostring(value)
 end
 
 -- Render the optional data argument for a log line. A record-style table (named
@@ -157,12 +166,12 @@ local function renderData(data)
 
     local keys = {}
     for k in pairs(data) do keys[#keys + 1] = k end
-    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    table.sort(keys, function(a, b) return safeTostring(a) < safeTostring(b) end)
 
     local parts = {}
     for i = 1, #keys do
         if i > MAX_LOG_FIELDS then parts[#parts + 1] = ".."; break end
-        parts[#parts + 1] = tostring(keys[i]) .. "=" .. Log.Summarize(data[keys[i]])
+        parts[#parts + 1] = safeTostring(keys[i]) .. "=" .. Log.Summarize(data[keys[i]])
     end
     return table.concat(parts, " ")
 end
@@ -204,13 +213,6 @@ local function safeClock(name)
     local ok, v = pcall(fn)
     if ok and type(v) == "number" then return v end
     return 0
-end
-
--- tostring that can never raise (a hostile __tostring must not break a log call).
-local function safeTostring(v, fallback)
-    local ok, s = pcall(tostring, v)
-    if ok and type(s) == "string" then return s end
-    return fallback or ""
 end
 
 local function ensureSessionId()
@@ -342,7 +344,12 @@ local function dispatch(level, category, message, data)
     local sid = ensureSessionId()
 
     local text = safeTostring(message, "") -- never raise on a hostile __tostring
-    if data ~= nil and payloadCapture then text = text .. " " .. renderData(data) end
+    if data ~= nil and payloadCapture then
+        -- belt: the payload render can never raise the log call (renderData is already
+        -- safeTostring-guarded, but a pathological value must still not escape).
+        local okR, rendered = pcall(renderData, data)
+        if okR and type(rendered) == "string" then text = text .. " " .. rendered end
+    end
 
     -- Optional context suffix (watch preset): scene/view/flow/lastAction.
     if contextProvider then
@@ -421,9 +428,16 @@ end
 function Log.WriteLazy(level, category, message, dataFn)
     category = category or Log.CATEGORY.GENERAL
     if not Log.EnabledFor(level, category) then return end
-    if type(message) == "function" then message = message() end
+    -- pcall the lazy builders so a raising message()/dataFn() can't escape the log call.
+    if type(message) == "function" then
+        local okM, m = pcall(message)
+        message = (okM and m ~= nil) and m or "<lazy message error>"
+    end
     local data = nil
-    if payloadCapture and type(dataFn) == "function" then data = dataFn() end
+    if payloadCapture and type(dataFn) == "function" then
+        local okD, d = pcall(dataFn)
+        if okD then data = d end
+    end
     dispatch(level, category, message, data)
 end
 function Log.DebugLazy(category, message, dataFn) Log.WriteLazy(Log.LEVEL.DEBUG, category, message, dataFn) end
