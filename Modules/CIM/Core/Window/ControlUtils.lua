@@ -96,7 +96,8 @@ function BETTERUI.ControlUtils.FindControl(parent, name, caller)
     -- breadcrumbs flooded Interface.log (thousands/min) and starved the file sink's
     -- rate-limit budget, dropping other modules' breadcrumbs. Only the one-time
     -- RESOLUTION of a control (below, at TRACE) and true misses are logged.
-    local cacheKey = tostring(parent) .. "|" .. name
+    local okKey, parentKey = pcall(tostring, parent) -- a hostile __tostring must not raise the lookup
+    local cacheKey = (okKey and parentKey or "?") .. "|" .. name
     local cached = ControlCache[cacheKey]
     if cached then
         return cached
@@ -105,7 +106,10 @@ function BETTERUI.ControlUtils.FindControl(parent, name, caller)
     -- First try a direct child with the given short name. ESO controls are userdata, so
     -- pcall the method calls -- a disposed/odd control must degrade to a miss, never raise
     -- while diagnostics are running.
-    local okChild, child = pcall(parent.GetNamedChild, parent, name)
+    -- Wrap the method lookup AND call in a closure so the pcall covers the userdata `__index`
+    -- itself (a hostile/absent __index raises during `probe.GetName`, BEFORE the call) -- the
+    -- bare `pcall(probe.GetName, probe)` form would let that index error escape.
+    local okChild, child = pcall(function() return parent:GetNamedChild(name) end)
     if okChild and child then
         ControlCache[cacheKey] = child
         TraceResolved(parent, name, "child", 0, caller)
@@ -116,7 +120,7 @@ function BETTERUI.ControlUtils.FindControl(parent, name, caller)
     local probe = parent
     local guards = 0
     while probe ~= nil and guards < 6 do
-        local okName, pname = pcall(probe.GetName, probe)
+        local okName, pname = pcall(function() return probe:GetName() end)
         if okName and type(pname) == "string" then
             local ctrl = _G[pname .. name]
             if ctrl ~= nil then
@@ -125,8 +129,8 @@ function BETTERUI.ControlUtils.FindControl(parent, name, caller)
                 return ctrl
             end
         end
-        -- Move to the next ancestor (pcall: GetParent may be absent or raise on userdata).
-        local okParent, nextProbe = pcall(probe.GetParent, probe)
+        -- Move to the next ancestor (closure-pcall: GetParent may be absent or raise on userdata).
+        local okParent, nextProbe = pcall(function() return probe.GetParent and probe:GetParent() or nil end)
         probe = (okParent and nextProbe) or nil
         guards = guards + 1
     end

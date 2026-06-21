@@ -74,7 +74,9 @@ end
 -- Keep scene/view as single BARE k=v tokens (the documented format): collapse internal
 -- whitespace + neutralize the pipe so a name with a space/pipe can't break the parse.
 local function safeToken(s)
-    return (tostring(s):gsub("%s+", "_"):gsub("|", "/"))
+    local ok, str = pcall(tostring, s)
+    if not (ok and type(str) == "string") then return "?" end
+    return (str:gsub("%s+", "_"):gsub("|", "/"))
 end
 
 local function contextSuffix(_level, _category)
@@ -85,10 +87,14 @@ local function contextSuffix(_level, _category)
     local L = log()
     local la = L and L.GetLastAction and L.GetLastAction()
     if type(la) == "table" then
-        if la.flow then parts[#parts + 1] = "flow=" .. tostring(la.flow) end
+        if la.flow then parts[#parts + 1] = "flow=" .. safeToken(la.flow) end
         if la.message and la.message ~= "" then
-            -- escape backslash then quote so an embedded " can't break the k=v contract.
-            local m = tostring(la.message):gsub("\\", "\\\\"):gsub('"', '\\"')
+            -- Collapse newlines/tabs (a raw newline would split the record into two physical
+            -- lines) and neutralize the pipe, THEN escape backslash + quote so an embedded "
+            -- can't break the k=v contract.
+            local okM, m = pcall(tostring, la.message)
+            m = (okM and type(m) == "string") and m or "?"
+            m = m:gsub("[\r\n\t]+", " "):gsub("|", "/"):gsub("\\", "\\\\"):gsub('"', '\\"')
             parts[#parts + 1] = 'lastAction="' .. m .. '"'
         end
     end

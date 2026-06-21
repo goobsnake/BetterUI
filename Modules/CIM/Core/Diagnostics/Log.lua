@@ -136,8 +136,11 @@ function Log.Summarize(value)
         end
         return string.format("{%d:%s%s}", keyCount, table.concat(keys, ","), keyCount > 5 and ",.." or "")
     elseif t == "string" then
-        if #value > 80 then return '"' .. value:sub(1, 80) .. '..."' end
-        return '"' .. value .. '"'
+        -- Neutralize the field separator: a payload value must not inject a bare `|`
+        -- (the host parser's k=v separator). Quote so a reader sees it's a string value.
+        local s = (value:gsub("|", "/"))
+        if #s > 80 then return '"' .. s:sub(1, 80) .. '..."' end
+        return '"' .. s .. '"'
     elseif t == "userdata" then
         -- Indexing userdata can ITSELF raise (hostile/absent __index), so pcall the lookup.
         local ok, getName = pcall(function() return value.GetName end)
@@ -362,12 +365,14 @@ local function dispatch(level, category, message, data)
     local mask = sinks[level]
     local sinkDropped = false
     if mask.file then
-        local scheduled = sinkFile(string.format("[BUI] %d sid=%s seq=%d %s %s | %s",
+        -- pcall: a sink fault (file flatten, or the external chat `d`) must never escape the
+        -- log call -- NEVER-RAISE applies through the sink, not just the render.
+        local okF, scheduled = pcall(sinkFile, string.format("[BUI] %d sid=%s seq=%d %s %s | %s",
             ts, sid, seq, LEVEL_NAME[level], category, text))
-        sinkDropped = (scheduled ~= true) -- false (budget drop) or nil (no sink) both = not written
+        sinkDropped = not (okF and scheduled == true) -- error, budget drop, or no sink = not written
     end
     if mask.chat then
-        sinkChat(category, text)
+        pcall(sinkChat, category, text)
     end
 
     pushRecent({ seq = seq, t = ts, level = LEVEL_NAME[level], category = category,

@@ -144,8 +144,8 @@ end
 ---@return string
 function Names.FlattenText(text)
     local s = (safeTostring(text):gsub("[\r\n\t]+", " "))
-    s = (s:gsub("|c%x%x%x%x%x%x", "")) -- strip ESO colour-open codes
-    s = (s:gsub("|r", ""))             -- strip ESO colour-reset codes
+    s = (s:gsub("|[cC]%x%x%x%x%x%x", "")) -- strip ESO colour-open codes (either case)
+    s = (s:gsub("|[rR]", ""))             -- strip ESO colour-reset codes (either case)
     s = (s:gsub("|", "/"))             -- neutralize any remaining pipe (field separator)
     return s
 end

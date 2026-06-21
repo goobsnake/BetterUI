@@ -73,10 +73,14 @@ local function FrameStamp()
     return Timestamp()
 end
 
--- Collapse newlines/tabs so each breadcrumb stays a single greppable record.
+-- Collapse newlines/tabs so each breadcrumb stays a single greppable record. Newlines
+-- collapse to a SPACE -- never the ` | ` field separator (which would split one record into
+-- bogus fields for a host parser); matches Log.sinkFile's single-space collapse. tostring is
+-- guarded so a non-string meta-line argument can't raise.
 local function Flatten(text)
-    text = tostring(text)
-    text = text:gsub("[\r\n]+", " | ")
+    local ok, s = pcall(tostring, text)
+    text = (ok and type(s) == "string") and s or "<?>"
+    text = text:gsub("[\r\n]+", " ")
     text = text:gsub("\t", " ")
     return text
 end
@@ -356,7 +360,11 @@ local function StartCapture(secs)
         -- Only revert if WE still own the stream (still at the capture's 'trace' preset). If
         -- the user manually switched presets mid-capture, leave their choice alone -- the
         -- capture's job is moot.
-        if L.GetPreset and L.GetPreset() ~= "trace" then return end
+        -- pcall GetPreset: this runs inside a deferred zo_callLater, so a faulting getter
+        -- must degrade (revert as if we still own the stream), not raise into the engine's
+        -- callback dispatch. Only SKIP the revert when a DIFFERENT preset is now active.
+        local okP, preset = pcall(function() return L.GetPreset and L.GetPreset() or nil end)
+        if okP and preset and preset ~= "trace" then return end
         -- Restore the prior preset (fall back to debug if it was custom/unknown), then the
         -- prior ENABLED state (capture force-enabled logging if it had been off).
         local pok, applied = pcall(L.ApplyPreset, prevPreset)

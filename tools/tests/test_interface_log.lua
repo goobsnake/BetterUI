@@ -80,7 +80,9 @@ err = tostring(err)
 check(ok == false, "Deferred callback raises an error (engine logs it to file)")
 check(err:find("[BUI]", 1, true) ~= nil, "Logged line carries the [BUI] tag")
 check(err:find("4242", 1, true) ~= nil, "Logged line carries the timestamp")
-check(err:find("hello | world tab", 1, true) ~= nil, "Newlines/tabs flattened to one record")
+-- Newlines collapse to a SPACE, never the ` | ` field separator (which would split one
+-- record into bogus fields for a host parser); tabs collapse to a space too.
+check(err:find("hello world tab", 1, true) ~= nil, "Newlines/tabs flattened to one record (space, not the | separator)")
 check(err:find("\n", 1, true) == nil, "Logged line contains no raw newline")
 
 -- Disabling restores the prior suppression state.

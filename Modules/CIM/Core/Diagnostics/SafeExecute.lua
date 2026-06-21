@@ -20,7 +20,7 @@ local function logSafeError(context, msg, src)
     if L and type(L.Error) == "function" then
         local category = (L.CATEGORY and L.CATEGORY.SAFE) or "SAFE"
         pcall(L.Error, category, string.format("%s: %s", context, msg), src and { src = src } or nil)
-    elseif BETTERUI.Debug then
+    elseif type(BETTERUI.Debug) == "function" then
         BETTERUI.Debug(string.format("[Error] %s: %s", context, msg))
     end
 end
@@ -108,9 +108,14 @@ function BETTERUI.CIM.UserNotify(context, message, sound)
     -- Guard the ESO globals (rawget + pcall): these run from error paths and may be called
     -- pre-load or in a test harness where GetString/ZO_Alert/SOUNDS don't exist yet.
     local getString = rawget(_G, "GetString")
-    local resolvedMessage = (type(message) == "number" and type(getString) == "function" and getString(message)) or message
+    local resolvedMessage = message
+    if type(message) == "number" and type(getString) == "function" then
+        local okS, s = pcall(getString, message) -- a bad string id must not raise the error path
+        if okS then resolvedMessage = s end
+    end
     if type(BETTERUI.Debug) == "function" then
-        BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(resolvedMessage)))
+        local okT, t = pcall(tostring, resolvedMessage)
+        BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, (okT and t) or "<?>"))
     end
     local alert = rawget(_G, "ZO_Alert")
     if type(alert) == "function" then
@@ -127,7 +132,8 @@ end
 ---@param sound? number Sound constant (default: nil for silent)
 function BETTERUI.CIM.UserAlertText(context, messageText, sound)
     if type(BETTERUI.Debug) == "function" then
-        BETTERUI.Debug(string.format("[UserAlert] %s: %s", context, tostring(messageText)))
+        local okT, t = pcall(tostring, messageText)
+        BETTERUI.Debug(string.format("[UserAlert] %s: %s", context, (okT and t) or "<?>"))
     end
     local alert = rawget(_G, "ZO_AlertNoSuppression")
     if type(alert) == "function" then

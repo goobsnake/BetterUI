@@ -40,7 +40,7 @@ local Names = BETTERUI.CIM.Names
 --   \[BUI\] ([0-9]+) sid=([0-9a-f]+) seq=([0-9]+) ([A-Z]+) ([A-Z]+) \| (.*)$
 -- (docs/reference/logging-host-tail-parse.md). Keep these two in lockstep.
 -- ============================================================================
-local LINE_PAT = "^%[BUI%] (%d+) sid=(%x+) seq=(%d+) (%u+) (%u+) | (.*)$"
+local LINE_PAT = "^%[BUI%] (%d+) sid=([0-9a-f]+) seq=(%d+) (%u+) (%u+) | (.*)$"
 
 local function parse(line)
     local ms, sid, seq, level, cat, event = (line or ""):match(LINE_PAT)
