@@ -196,15 +196,31 @@ Log.SCHEMA = 1
 local sessionId = nil
 local seqCounter = 0
 
+-- Guarded numeric read of a global clock fn: returns a number or 0, never raises and
+-- never feeds a non-number into math (the contract: a log call can never error).
+local function safeClock(name)
+    local fn = G(name)
+    if type(fn) ~= "function" then return 0 end
+    local ok, v = pcall(fn)
+    if ok and type(v) == "number" then return v end
+    return 0
+end
+
+-- tostring that can never raise (a hostile __tostring must not break a log call).
+local function safeTostring(v, fallback)
+    local ok, s = pcall(tostring, v)
+    if ok and type(s) == "string" then return s end
+    return fallback or ""
+end
+
 local function ensureSessionId()
     if sessionId == nil then
         -- Combine wall-clock seconds (differs across reloads) with uptime ms so two
         -- loads don't collide even at the same uptime-ms, and the value doesn't wrap
         -- on a short cycle. Non-crypto; it only needs to group one UI-load session.
-        local clock = G("GetGameTimeMilliseconds")
-        local ms = (type(clock) == "function" and clock()) or 0
-        local stampFn = G("GetTimeStamp")
-        local stamp = (type(stampFn) == "function" and stampFn()) or 0
+        -- Lua 5.1 `%` is always non-negative for a positive modulus, so the hex is clean.
+        local ms = safeClock("GetGameTimeMilliseconds")
+        local stamp = safeClock("GetTimeStamp")
         sessionId = string.format("%04x%04x", math.floor(stamp % 0x10000), math.floor(ms % 0x10000))
     end
     return sessionId
@@ -255,12 +271,36 @@ function Log.GetSessionId() return ensureSessionId() end
 ---@return number
 function Log.NextSeq() seqCounter = seqCounter + 1; return seqCounter end
 
+-- Flow correlation + last-action context. A flow ties the records of one multi-step
+-- operation (scene open -> list refresh -> footer; a transfer chain) together via an
+-- explicit short id -- no hidden stack/thread-local context (fragile in ESO callbacks).
+local flowCounters = {}
+--- Allocate a short, session-local flow id like "deposit#3".
+---@param kind string|nil
+---@return string
+function Log.NewFlow(kind)
+    if kind == nil then kind = "flow" else kind = safeTostring(kind, "flow") end
+    if kind == "" then kind = "flow" end
+    flowCounters[kind] = (flowCounters[kind] or 0) + 1
+    return kind .. "#" .. flowCounters[kind]
+end
+
+local lastAction = nil
+--- Record the latest user action so watch-mode context + error records can carry it.
+---@param message any
+---@param flow string|nil
+function Log.SetLastAction(message, flow)
+    local msg = (message == nil) and "" or safeTostring(message, "")
+    lastAction = { message = msg, flow = flow }
+end
+---@return table|nil
+function Log.GetLastAction() return lastAction end
+
 -- Render + route a record whose gate has ALREADY passed (see EnabledFor). Keeping
 -- the sink-mask read and rendering out of the gate keeps EnabledFor cheap, and
 -- skips renderData() entirely when payload capture is off.
 local function dispatch(level, category, message, data)
-    local clock = G("GetGameTimeMilliseconds")
-    local ts = type(clock) == "function" and clock() or 0
+    local ts = safeClock("GetGameTimeMilliseconds")
     seqCounter = seqCounter + 1
     local seq = seqCounter
     local sid = ensureSessionId()

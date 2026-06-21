@@ -252,6 +252,14 @@ check(type(Log.GetSessionId()) == "string" and #Log.GetSessionId() > 0, "GetSess
 local nseq1 = Log.NextSeq()
 check(Log.NextSeq() == nseq1 + 1, "NextSeq is monotonic")
 
+-- Flow ids + last-action context.
+local f1 = Log.NewFlow("deposit")
+check(f1 == "deposit#1", "NewFlow allocates kind#n")
+check(Log.NewFlow("deposit") == "deposit#2", "NewFlow increments per kind")
+Log.SetLastAction("pressed A", f1)
+local la = Log.GetLastAction()
+check(la ~= nil and la.message == "pressed A" and la.flow == f1, "SetLastAction/GetLastAction round-trip")
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================
