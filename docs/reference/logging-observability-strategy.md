@@ -120,6 +120,12 @@ registration, ring counts). **Snapshot providers** emit bounded `STATE` lines to
 file). **Capture mode** `/builog capture start|stop|dump` (bounded temporary preset+budget, auto-stop).
 
 ## 5. Phased roadmap (real-time first; file-level; host-validated each slice)
+> **Status: phases 1–9 implemented + dual-model-reviewed.** Operator guide:
+> [logging-playbook.md](logging-playbook.md). The terse-message sweep (phase 8) covered
+> all ~400 sites across every module to zero, enforced by
+> `tools/lint/lint_log_messages.lua`. New modules: `Names.lua`, `DebugInfo.lua`,
+> `WatchMode.lua`, `Perf.lua` (+ `Log.lua`/`InterfaceLog.lua`/`SceneLog.lua`/`ControlUtils.lua`).
+
 1. **Live schema foundation** — `Log.lua`: `CONTROL`/`PERF`/`STATE` cats; `sid`+`seq`; line format incl.
    context-suffix support; recent ring; `sinkDropped`; schema-version field. `InterfaceLog.lua`: help/status
    -> `off|info|watch|debug|trace`; budgets; `maxPending` reserved.

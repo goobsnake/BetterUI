@@ -1,10 +1,10 @@
 Current Release - v3.07 Changes:
 
 [INDENT]DIAGNOSTICS & LOGGING:
-1. Added: Named log-level presets for in-game troubleshooting — /builog preset off|debug|verbose. "debug" captures info, warning, and error breadcrumbs plus swallowed pcall/nil-function faults at low volume; "verbose" captures everything including data payloads.
-2. Improved: Verbose logging is now frame-safe — the Interface.log writer enforces a per-frame/second budget and drops then summarizes overflow, so heavy logging can no longer hitch the game.
-3. Improved: Instrumented hot paths now cost nothing while logging is off — the logger pre-checks whether a record would be kept (with lazy payload builders and a memoized active-state) before formatting anything.
-4. Fixed: Several hot-path log calls (vendor store input sweep, resource-orb combat updates, item-tooltip hover) now build their data only when logging is active, and swallowed "no function provided" faults are surfaced through the unified logger.
+1. Added: Retuned log presets for live troubleshooting — /builog preset off|info|watch|debug|trace. "info" = milestones + problems (FPS-safe during live play); "watch" = a curated stream built for reading in real time (by you or an AI) straight out of Interface.log; "debug"/"trace" = the action flow / everything. No /reloadui needed.
+2. Added: The "watch" stream self-describes — every line carries the current scene/view, the active multi-step operation, and your last action; it opens with a session preamble, emits a periodic state snapshot, and brackets operations with begin/end markers. /builog mark "<note>" annotates the live stream and /builog capture grabs the next few seconds in full detail.
+3. Improved: Logs are now plain-language across the whole addon — ~400 terse messages were rewritten into self-describing events, and control/scene/category lookups resolve human names instead of raw pointers/indices. Missing controls and swallowed faults now name what was missing, under what, and the source file:line; a lint enforces the convention going forward.
+4. Added: In-chat diagnostics without tailing a file — /buihealth (preset, recent-error count, file-sink budget/drops, scene-logger + watch state), /builog recent|errors (recent breadcrumbs / the WARN+ERROR ring), and per-operation timing markers. Everything stays inert and crash-safe when logging is off (the writer is still frame-budgeted; overflow is dropped and summarized).
 
 CORE & COMPATIBILITY:
 5. Updated: API version bumped to Update 50 (101050) for full compatibility with the current ESO live build
