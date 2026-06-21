@@ -1,0 +1,135 @@
+---
+name: builog-monitor
+description: >
+  Watch BetterUI's live in-game debug stream (interface.log) during an ESO play-test and
+  report bugs, errors, and anything that looks wrong. Use when the user wants you to
+  monitor a play-test for N minutes, verify a fix in-game, or interpret BetterUI's
+  [BUI] log lines. Covers the /builog presets (inspect/trace/watch/debug), where the
+  log lives, how to decipher each line, and the timed monitor loop.
+---
+
+# BetterUI live-log monitor (`/builog` + interface.log)
+
+BetterUI streams its own debug breadcrumbs into ESO's `interface.log` in real time, so an
+AI assistant can tail that file **while the user plays** and call out problems as they
+happen. This skill is the procedure for that back-and-forth: the user enables a preset,
+plays, you sample the log on a timer, and between samples you notate bugs / errors /
+anything that looks off.
+
+This skill is platform-neutral — Claude, Codex, Copilot, and Kimi can all follow it. The
+only hard dependency is a shell that can run [`tools/builog/monitor.sh`](../../../tools/builog/monitor.sh)
+(POSIX `bash` + `grep`/`sed`/`awk`).
+
+## How it works (why an in-game addon can write to a log)
+
+Retail ESO exposes **no** API to write arbitrary text to a file. BetterUI exploits the one
+thing the engine *does* write in real time: **uncaught Lua errors** go straight to
+`interface.log`. So each breadcrumb is a deliberately-raised, *deferred*, *popup-suppressed*
+throwaway error tagged `[BUI]`. The engine logs the line but (because suppression is set) no
+error dialog appears. Consequence: every `[BUI]` line on disk is wrapped as a "Lua Error:"
+with a short stack traceback after it — **ignore those tracebacks**; they are noise. Untagged
+`Lua Error:` blocks (no `[BUI]`) are *real* game/addon errors and matter.
+
+## Step 1 — pick a preset (the user runs this in-game)
+
+`/builog preset <name>` then play. For AI monitoring use **inspect** (richest):
+
+| Preset | Depth | Enrichment | Budget (frame/sec) | Use for |
+|---|---|---|---|---|
+| `off` | — | — | — | stop; restores the player's real error popups |
+| `info` | INFO+ | no | 8 / 100 | always-on, FPS-safe milestones only |
+| `watch` | DEBUG+ | **yes** | 300 / 6000 | curated live-AI stream (no TRACE spam) |
+| `debug` | DEBUG+ | no | 1000 / 20000 | "what is it doing" developer flow |
+| `trace` | TRACE+ | no | 2000 / 40000 | every step, no enrichment |
+| `inspect` | TRACE+ | **yes** | 2000 / 40000 | **richest live-AI stream — default for this skill** |
+
+"Enrichment" = each line gets `scene=… view=… flow=… lastAction=…` context + a startup
+preamble + periodic state snapshots. `inspect` = `trace` depth + `watch` enrichment.
+
+Other useful in-game commands: `/builog status` (preset + counters incl. `dropped` /
+`suppressed`), `/buihealth` (one-line health), `/builog mark <text>` (drop a labeled marker
+into the stream — ask the user to mark "about to test X" so you can find it), `/builog off`.
+Full surface: `/builog on|off | preset … | chat on|off | popups on|off | level <lvl> |
+mark <text> | recent [n] | errors [n] | capture [secs] | snapshot | test | status`.
+
+## Step 2 — find interface.log
+
+Default (this user's Proton/Steam install):
+```
+/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Logs/interface.log
+```
+Other installs:
+- Windows: `<Documents>\Elder Scrolls Online\live\Logs\interface.log`
+- macOS: `~/Documents/Elder Scrolls Online/live/Logs/interface.log`
+
+Note the lowercase `interface.log` and the `live/` (not `liveeu/`) subtree. The file may sit
+**outside** sandbox/MCP roots — read it with a plain shell, and override the path via the
+script's 3rd arg or `BUILOG_INTERFACE_LOG`.
+
+## Step 3 — run the timed monitor
+
+The user gives a duration in **minutes**. Run:
+```
+tools/builog/monitor.sh <minutes> [interval_seconds] [log_path]
+```
+- `minutes` — how long to watch (the user's number; fractional ok).
+- `interval_seconds` — **default 10** (a good back-and-forth cadence). Drop to **5** to pin a
+  specific repro; raise to **15–20** for long (>10 min) or quiet sessions, because `inspect`
+  can emit hundreds of lines/second during list rebuilds and 10s samples stay readable.
+
+Run it in the background if your platform supports it; otherwise it blocks for the duration.
+Each `----- sample N -----` block reports: new `[BUI]` count, level mix, **real (non-BUI)
+errors with messages**, rate-limit drops, parse-contract violations, your own `WARN`/`ERROR`
+breadcrumbs, and a 10-line trail. A `===== totals =====` footer closes it.
+
+**Between samples, notate.** As each sample prints, write down anything that looks wrong (see
+Step 4). Don't wait for the end — the value is catching issues live so the user can react.
+After the run, summarize: what was clean, what wasn't, and any hypotheses with the `seq`/line
+evidence.
+
+## Step 4 — decipher a line
+
+Schema (logfmt, never JSON):
+```
+[BUI] <gameMs> sid=<sid> seq=<seq> <LEVEL> <CATEGORY> | <event> [key=value …] scene=<s> …
+```
+- **Parse boundary is the FIRST ` | `**: left of it is `[BUI] <ms> sid=… seq=… <LEVEL> <CATEGORY>`, right is the human event + `key=value` pairs. A correct line has exactly **one** ` | `.
+- `sid` = session id, new each UI load (changes on `/reloadui` — a natural discontinuity).
+  `seq` = monotonic counter; **gaps mean dropped or suppressed lines**, not lost events.
+- `LEVEL` ∈ TRACE/DEBUG/INFO/WARN/ERROR. `CATEGORY` ∈ SCENE, LIST, NAV, KEYBIND, ACTION,
+  BATCH, LIFECYCLE, SORT, STATE, GENERAL, LOG, …
+- Filter the stream with `grep '\[BUI\]'`. The engine wraps each line as
+  `<ISO-ts> |cff0000Lua Error: [BUI] …|r` followed by a `stack traceback:` block — strip the
+  color codes and ignore the traceback.
+
+### What to flag
+
+| Signal | Meaning | Action |
+|---|---|---|
+| `Lua Error:` **without** `[BUI]` | a real game/addon error | investigate; capture the message + traceback |
+| `Checking type on argument id failed in Id64ToString_lua` | a known class of quest-item bug | should be **0** now; if seen, regression |
+| `WARN LOG \| dropped=<n> reason=rate_limit` | sink shed `n` lines (budget hit) | usually fine at inspect during bursts; only worry if huge/constant |
+| `>1` ` | ` in a `[BUI]` line | a value injected the field separator | parse-contract bug — report the line |
+| `WARN`/`ERROR` `[BUI]` lines | BetterUI flagging its own problem | read the event; often the real lead |
+| `seq` jumps with no `dropped=` summary | suppression-guard drops (e.g. mid-reloadui) | check `/builog status` `suppressed=` counter |
+| behavior the user reports ≠ what the log shows | e.g. a keybind that "does nothing" | search for the action's CATEGORY/ACTION line near that `seq`; absence of a line often *is* the bug |
+
+When the user describes a symptom, correlate it to the stream: find the `seq` window where it
+happened (use `/builog mark`), then read the surrounding SCENE/NAV/KEYBIND/ACTION lines. A
+missing expected line is as diagnostic as an error.
+
+## How each platform leverages this skill
+
+All four read this markdown and run the same shell script — nothing here is Claude-specific.
+- **Claude (Code/Desktop):** auto-discovered as the `builog-monitor` skill; invoke it, then
+  run the script via your bash tool (background it for long runs).
+- **Codex / Copilot / Kimi:** point the agent at this file (`.claude/skills/builog-monitor/
+  SKILL.md`) and have it run `tools/builog/monitor.sh <minutes>`. Interpret samples per
+  Step 4. No MCP or Claude tools required — only a shell.
+
+## Reference
+
+- `docs/reference/logging-playbook.md` — full preset/command playbook.
+- `docs/reference/logging-host-tail-parse.md` — exact host parse contract + meta-line schema.
+- `docs/reference/logging-observability-strategy.md` — design rationale.
+- [`tools/builog/monitor.sh`](../../../tools/builog/monitor.sh) — the sampler this skill drives.
