@@ -14,6 +14,10 @@ USAGE:
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 
+-- Safe Id64 normalizer (re-exported via Inventory.Utils): guards Id64ToString against
+-- non-int64 (synthetic string) uniqueIds. Loaded before this file (BetterUI.txt order).
+local NormalizeIdentityValue = BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
+
 --- @class StatComparisonResult
 --- @field equipSlot number EQUIP_SLOT_* constant
 --- @field equippedLink string|nil Currently equipped item link
@@ -236,7 +240,7 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
             GetItemUniqueId(candidateBagId, candidateSlotIndex)
         local equippedUniqueId = GetItemUniqueId(equipBagId, equipSlot)
         if candidateUniqueId and equippedUniqueId and
-            Id64ToString(candidateUniqueId) == Id64ToString(equippedUniqueId) then
+            NormalizeIdentityValue(candidateUniqueId) == NormalizeIdentityValue(equippedUniqueId) then
             return nil -- Same exact item
         end
     end

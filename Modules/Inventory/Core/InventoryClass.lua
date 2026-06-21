@@ -43,6 +43,11 @@ ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 -- Using module-specific instance prevents ID collisions with other modules
 local InventoryDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
     "BetterUI: CIM.DeferredTask must load before Inventory/Core/InventoryClass")
+
+-- Safe Id64 normalizer (CIM/Core/Utilities.lua, re-exported via Inventory.Utils). Guards
+-- Id64ToString against synthetic STRING uniqueIds (quest items, e.g. "quest:1:2:1:") that
+-- would otherwise RAISE -- see SetSelectedInventoryData's selectionFingerprint.
+local NormalizeIdentityValue = BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
 local function EnsureInventoryTaskManager()
     if not BETTERUI.Inventory._taskManager then
         BETTERUI.Inventory._taskManager = InventoryDeferredTask.CreateManager()
@@ -260,7 +265,10 @@ function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
         and nowMs <= self._primaryActionTransitionExpiresMs
     local dataSource = inventoryData and (inventoryData.dataSource or inventoryData) or nil
     local uniqueId = dataSource and dataSource.uniqueId
-    local uniqueIdString = uniqueId and ((Id64ToString and Id64ToString(uniqueId)) or tostring(uniqueId)) or ""
+    -- Route through the safe normalizer: Id64ToString RAISES on a quest item's synthetic
+    -- string uniqueId, and the raw call here aborted SetSelectedInventoryData before the
+    -- item-action/keybind refresh -- leaving the PREVIOUS item's keybinds on quest rows.
+    local uniqueIdString = uniqueId and ((NormalizeIdentityValue and NormalizeIdentityValue(uniqueId)) or tostring(uniqueId)) or ""
     local selectionFingerprint = string.format(
         "%s|%s|%s|%s",
         uniqueIdString,
