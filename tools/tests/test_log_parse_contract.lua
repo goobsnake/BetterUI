@@ -118,6 +118,14 @@ local flat = Names.FlattenText("|cFF0000Gold|r Bar | x\ttab\nline")
 check(flat:find("|", 1, true) == nil, "FlattenText strips/neutralizes every pipe")
 check(flat:find("[\t\n]") == nil, "FlattenText collapses tabs/newlines")
 
+-- 9. Summarize neutralizes '|' in string payload VALUES so a value can't forge a field
+--    boundary, and the neutralization carries all the way into a rendered line's event.
+check(Log.Summarize("a | b | c"):find("|", 1, true) == nil, "Summarize neutralizes `|` in string values")
+fileLines = {}
+Log.Info(Log.CATEGORY.LIST, "x", { url = "a|b" })
+p = parse(fileLines[1])
+check(p ~= nil and select(2, p.event:gsub("|", "")) == 0, "no bare `|` survives in a rendered payload value")
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================
