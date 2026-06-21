@@ -646,6 +646,27 @@ function ActionHandlers.OnConfirm(self, dialog)
         return
     end
 
+    -- "Show in Quest Journal" (SI_ITEM_ACTION_SHOW_QUEST / native "link_to_quest"). The native
+    -- slot-action callback closes over the discovered inventorySlot and runs
+    --   SYSTEMS:GetObject("questJournal"):OpenQuestJournalToQuest(inventorySlot.questIndex).
+    -- In BetterUI's list that closure does NOT carry a valid questIndex (it lives on our row's
+    -- dataSource), so the generic DoAction fallback below resolves OpenQuestJournalToQuest(nil)
+    -- and silently no-ops. Dispatch it explicitly from our own data, mirroring the USE branch.
+    if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_SHOW_QUEST")) then
+        local targetData = ResolveCurrentTarget(self)
+        if targetData then
+            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local ds = targetData.dataSource or targetData
+            local questJournal = SYSTEMS and SYSTEMS.GetObject and SYSTEMS:GetObject("questJournal")
+            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "show quest in journal",
+                {questIndex = ds.questIndex, hasJournal = questJournal ~= nil}) end
+            if questJournal and questJournal.OpenQuestJournalToQuest and ds.questIndex then
+                questJournal:OpenQuestJournalToQuest(ds.questIndex)
+            end
+        end
+        return
+    end
+
     if selectedRow and selectedRow.action then
         local slotActions = self.itemActions and self.itemActions:GetSlotActions()
         if slotActions then

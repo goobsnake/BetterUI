@@ -101,6 +101,10 @@ assert_true(itemActionHandlers:find("policy and policy%.CanUnjunkItem") == nil,
     "ItemActionHandlers fails closed when no unjunk-policy seam is available")
 assert_true(itemActionHandlers:find("BETTERUI%.Banking%.Class") == nil,
     "ItemActionHandlers no longer reaches into Banking.Class directly")
+assert_true(itemActionHandlers:find('GetString%(rawget%(_G, "SI_ITEM_ACTION_SHOW_QUEST"%)%)') ~= nil,
+    "ItemActionHandlers handles the Show-in-Quest-Journal action explicitly")
+assert_true(itemActionHandlers:find("OpenQuestJournalToQuest%(ds%.questIndex%)") ~= nil,
+    "ItemActionHandlers opens the quest journal from BetterUI's own dataSource questIndex (not the native closure)")
 
 local itemActionsDialog = read_file("Modules/Inventory/Actions/ItemActionsDialog.lua")
 assert_true(itemActionsDialog:find("function BETTERUI%.Inventory%.Class:InitializeItemActions%(%)") ~= nil,
