@@ -185,6 +185,36 @@ check(ZO_ERROR_FRAME.suppressErrorDialog == true, "raising a breadcrumb re-asser
 IL.SetEnabled(false)
 
 -- ============================================================================
+-- POPUP SUPPRESSION: a breadcrumb is DROPPED (not raised) while ZO_ERROR_FRAME is absent
+-- ============================================================================
+
+-- Mid-/reloadui the error frame is torn down and recreated. In that window we cannot set
+-- suppressErrorDialog, so raising our throwaway error would be UNSUPPRESSED -- the engine
+-- queues it and pops the error viewer once the frame returns (the first-/reloadui popup
+-- bug). The sink must therefore drop the breadcrumb rather than raise it.
+local savedFrame = ZO_ERROR_FRAME
+ZO_ERROR_FRAME = nil
+check(pcall(IL.SetEnabled, true), "SetEnabled does not error when ZO_ERROR_FRAME is absent")
+local suppressedBefore = IL.GetStats().suppressed
+capturedDeferred = nil
+check(pcall(IL.WriteRaw, "frame-absent-test"), "WriteRaw does not error when ZO_ERROR_FRAME is absent")
+check(type(capturedDeferred) == "function", "WriteRaw scheduled a deferred emit (frame absent)")
+-- RaiseSuppressed must take the DROP path: pcall returns true (no error raised).
+check(pcall(capturedDeferred) == true, "breadcrumb is dropped (not raised) while the error frame is absent")
+check(IL.GetStats().suppressed == suppressedBefore + 1, "suppression-guard drop is counted")
+ZO_ERROR_FRAME = savedFrame
+IL.SetEnabled(false)
+
+-- ...and once the frame is back, the same path RAISES normally (error reaches Interface.log).
+ZO_ERROR_FRAME.suppressErrorDialog = false
+IL.SetEnabled(true)
+capturedDeferred = nil
+IL.WriteRaw("frame-present-test")
+check(pcall(capturedDeferred) == false, "breadcrumb is raised once the error frame exists again")
+check(ZO_ERROR_FRAME.suppressErrorDialog == true, "suppression re-asserted before raising (frame present)")
+IL.SetEnabled(false)
+
+-- ============================================================================
 -- SUMMARY
 -- ============================================================================
 

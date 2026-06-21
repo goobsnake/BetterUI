@@ -47,7 +47,7 @@ local savedSuppressState = nil -- prior ZO_ERROR_FRAME.suppressErrorDialog, for 
 -- and a single coalesced "dropped=N" summary is emitted. (maxPending is reserved for
 -- a future batch/queue mode; the sink currently schedules one error per line.)
 local budget = { maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 }
-local stats = { scheduled = 0, dropped = 0 }
+local stats = { scheduled = 0, dropped = 0, suppressed = 0 }
 local frameMarker = nil
 local emittedThisFrame = 0
 local secondWindowStart = nil
@@ -105,10 +105,16 @@ local function FormatLine(message)
 end
 
 -- Apply/remove global error-dialog suppression, remembering the prior state so a
--- later disable restores exactly what the user (or game) had before.
+-- later disable restores exactly what the user (or game) had before. Returns true when
+-- the requested state is guaranteed in effect; returns FALSE only when asked to suppress
+-- but ZO_ERROR_FRAME does not yet exist as a table -- i.e. mid-/reloadui, while the error
+-- frame is being torn down/recreated. In that window we cannot set suppressErrorDialog,
+-- so the caller (RaiseSuppressed) must NOT raise an error it can't suppress.
+---@param suppress boolean
+---@return boolean guaranteed
 local function ApplyPopupSuppression(suppress)
     local frame = G("ZO_ERROR_FRAME")
-    if type(frame) ~= "table" then return end
+    if type(frame) ~= "table" then return not suppress end
 
     if suppress then
         if savedSuppressState == nil then
@@ -119,6 +125,7 @@ local function ApplyPopupSuppression(suppress)
         frame.suppressErrorDialog = savedSuppressState
         savedSuppressState = nil
     end
+    return true
 end
 
 ---@return boolean
@@ -170,7 +177,15 @@ local function RaiseSuppressed(line)
     -- player's real error popups). Bail before error() so a stale in-flight emit can't pop
     -- the error viewer once logging is disabled.
     if not enabled then return end
-    if suppressPopups then ApplyPopupSuppression(true) end
+    -- When suppression is requested but cannot be guaranteed (ZO_ERROR_FRAME is mid-recreate
+    -- during a /reloadui), DROP this breadcrumb instead of raising it. Raising an error we
+    -- can't suppress is exactly what leaks the (undismissable, in gamepad) error viewer: the
+    -- engine queues the unsuppressed error and pops it once the frame returns. A breadcrumb
+    -- lost across a reloadui boundary (where sid changes anyway) is the right trade.
+    if suppressPopups and not ApplyPopupSuppression(true) then
+        stats.suppressed = stats.suppressed + 1
+        return
+    end
     error(line, 0)
 end
 
@@ -247,6 +262,7 @@ function InterfaceLog.GetStats()
     return {
         scheduled = stats.scheduled,
         dropped = stats.dropped,
+        suppressed = stats.suppressed,
         maxPerFrame = budget.maxPerFrame,
         maxPerSecond = budget.maxPerSecond,
         maxPending = budget.maxPending,
@@ -317,10 +333,10 @@ local function PrintStatus()
         Out(string.format("Logger chat surface (ERROR) = %s", L.GetSink(L.LEVEL.ERROR, "chat") and "on" or "off"))
     end
     local s = InterfaceLog.GetStats()
-    Out(string.format("Sink budget: frame=%s sec=%s | scheduled=%d dropped=%d",
+    Out(string.format("Sink budget: frame=%s sec=%s | scheduled=%d dropped=%d suppressed=%d",
         s.maxPerFrame > 0 and tostring(s.maxPerFrame) or "inf",
         s.maxPerSecond > 0 and tostring(s.maxPerSecond) or "inf",
-        s.scheduled, s.dropped))
+        s.scheduled, s.dropped, s.suppressed or 0))
     Out("Real Lua errors always log to Interface.log; [BUI] lines are BetterUI's own stream.")
 end
 
