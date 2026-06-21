@@ -2,7 +2,7 @@
 #
 # tools/builog/monitor.sh — tail BetterUI's live interface.log breadcrumb stream and
 # emit periodic, AI-decipherable samples so an assistant can watch a play-test in real
-# time. Pairs with the `builog-monitor` skill (.claude/skills/builog-monitor/SKILL.md).
+# time. Pairs with the builog-monitor skill (tools/builog/SKILL.md, same dir).
 #
 # Usage:
 #   tools/builog/monitor.sh [minutes] [interval_seconds] [log_path]

@@ -10,6 +10,11 @@ description: >
 
 # BetterUI live-log monitor (`/builog` + interface.log)
 
+**TL;DR** — the user runs `/builog preset inspect` in-game; you run
+`tools/builog/monitor.sh <minutes>` and read each printed sample, flagging — live, as it
+appears — any non-BUI `Lua Error:`, parse-contract violation, or behavior that doesn't match
+what the user just did; then summarize. Everything below is detail on that loop.
+
 BetterUI streams its own debug breadcrumbs into ESO's `interface.log` in real time, so an
 AI assistant can tail that file **while the user plays** and call out problems as they
 happen. This skill is the procedure for that back-and-forth: the user enables a preset,
@@ -17,8 +22,8 @@ plays, you sample the log on a timer, and between samples you notate bugs / erro
 anything that looks off.
 
 This skill is platform-neutral — Claude, Codex, Copilot, and Kimi can all follow it. The
-only hard dependency is a shell that can run [`tools/builog/monitor.sh`](../../../tools/builog/monitor.sh)
-(POSIX `bash` + `grep`/`sed`/`awk`).
+only hard dependency is a shell that can run [`monitor.sh`](monitor.sh) (POSIX `bash` +
+`grep`/`sed`/`awk`).
 
 ## How it works (why an in-game addon can write to a log)
 
@@ -62,9 +67,10 @@ Other installs:
 - Windows: `<Documents>\Elder Scrolls Online\live\Logs\interface.log`
 - macOS: `~/Documents/Elder Scrolls Online/live/Logs/interface.log`
 
-Note the lowercase `interface.log` and the `live/` (not `liveeu/`) subtree. The file may sit
-**outside** sandbox/MCP roots — read it with a plain shell, and override the path via the
-script's 3rd arg or `BUILOG_INTERFACE_LOG`.
+Note the lowercase `interface.log` under the `live/` subtree (the PTS client logs to `pts/`
+instead). The file may sit **outside** sandbox/MCP roots — read it with a plain shell, and
+override the path via the script's 3rd arg or `BUILOG_INTERFACE_LOG`. It only exists once ESO
+has written at least one line this session (any Lua error, or `/builog on`).
 
 ## Step 3 — run the timed monitor
 
@@ -76,6 +82,11 @@ tools/builog/monitor.sh <minutes> [interval_seconds] [log_path]
 - `interval_seconds` — **default 10** (a good back-and-forth cadence). Drop to **5** to pin a
   specific repro; raise to **15–20** for long (>10 min) or quiet sessions, because `inspect`
   can emit hundreds of lines/second during list rebuilds and 10s samples stay readable.
+
+The monitor reads only lines appended **after** it starts, so confirm a preset is already
+active (Step 1) before launching; for earlier history `grep '\[BUI\]'` the file directly. Have
+the user `/builog mark <text>` (or just tell you) what they're about to test, so you can find
+that action's `seq` window in the stream.
 
 Run it in the background if your platform supports it; otherwise it blocks for the duration.
 Each `----- sample N -----` block reports: new `[BUI]` count, level mix, **real (non-BUI)
@@ -93,6 +104,11 @@ Schema (logfmt, never JSON):
 ```
 [BUI] <gameMs> sid=<sid> seq=<seq> <LEVEL> <CATEGORY> | <event> [key=value …] scene=<s> …
 ```
+Example — `[BUI] 818059 sid=51c180d4 seq=796 INFO SCENE | scene gamepad_inventory_root shown
+wasPushed=false scene=gamepad_inventory_root` reads as: at game-ms 818059 (session 51c180d4,
+record 796) the inventory scene finished showing; the trailing `scene=` is the enrichment
+context suffix appended to every line.
+
 - **Parse boundary is the FIRST ` | `**: left of it is `[BUI] <ms> sid=… seq=… <LEVEL> <CATEGORY>`, right is the human event + `key=value` pairs. A correct line has exactly **one** ` | `.
 - `sid` = session id, new each UI load (changes on `/reloadui` — a natural discontinuity).
   `seq` = monotonic counter; **gaps mean dropped or suppressed lines**, not lost events.
@@ -118,18 +134,16 @@ When the user describes a symptom, correlate it to the stream: find the `seq` wi
 happened (use `/builog mark`), then read the surrounding SCENE/NAV/KEYBIND/ACTION lines. A
 missing expected line is as diagnostic as an error.
 
-## How each platform leverages this skill
+## How each platform uses this skill
 
-All four read this markdown and run the same shell script — nothing here is Claude-specific.
-- **Claude (Code/Desktop):** auto-discovered as the `builog-monitor` skill; invoke it, then
-  run the script via your bash tool (background it for long runs).
-- **Codex / Copilot / Kimi:** point the agent at this file (`.claude/skills/builog-monitor/
-  SKILL.md`) and have it run `tools/builog/monitor.sh <minutes>`. Interpret samples per
-  Step 4. No MCP or Claude tools required — only a shell.
+This is plain markdown + a shell script — nothing platform-specific. Point any agent at
+`tools/builog/SKILL.md` and have it run `tools/builog/monitor.sh <minutes>`, then interpret the
+samples per *Step 4*. It works the same for Claude, Codex, Copilot, and Kimi — no MCP or
+vendor tooling required, only a shell.
 
 ## Reference
 
 - `docs/reference/logging-playbook.md` — full preset/command playbook.
 - `docs/reference/logging-host-tail-parse.md` — exact host parse contract + meta-line schema.
 - `docs/reference/logging-observability-strategy.md` — design rationale.
-- [`tools/builog/monitor.sh`](../../../tools/builog/monitor.sh) — the sampler this skill drives.
+- [`monitor.sh`](monitor.sh) — the sampler this skill drives.

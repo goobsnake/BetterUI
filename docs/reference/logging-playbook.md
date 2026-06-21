@@ -6,7 +6,7 @@ game's `Interface.log` while you reproduce an issue — no `/reloadui`, no Saved
 
 - Design: [logging-observability-strategy.md](logging-observability-strategy.md)
 - Host tail/parse contract: [logging-host-tail-parse.md](logging-host-tail-parse.md)
-- AI live-monitor skill (timed back-and-forth play-test): [.claude/skills/builog-monitor/SKILL.md](../../.claude/skills/builog-monitor/SKILL.md), driven by [tools/builog/monitor.sh](../../tools/builog/monitor.sh)
+- AI live-monitor skill (timed back-and-forth play-test): [tools/builog/SKILL.md](../../tools/builog/SKILL.md), driven by [tools/builog/monitor.sh](../../tools/builog/monitor.sh)
 - On-disk path of the live log: see the `interface-log-location` memory (it's outside the
   MCP file roots — read it with Bash `grep`/`tail`).
 
