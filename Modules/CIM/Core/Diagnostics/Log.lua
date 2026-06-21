@@ -254,6 +254,42 @@ end
 
 function Log.ClearRecent() recentRing = {}; recentWriteIdx = 0 end
 
+-- Dedicated WARN/ERROR ring: errors are rare but high-value, and the main 100-entry ring
+-- churns in <1s under debug/trace, so a separate smaller ring keeps the last problems
+-- available to /builog errors + /buihealth long after they scroll off the main ring.
+local ERROR_RING_SIZE = 50
+local errorRing = {}
+local errorWriteIdx = 0
+local errorCount = 0
+
+local function pushError(entry)
+    errorWriteIdx = (errorWriteIdx % ERROR_RING_SIZE) + 1
+    errorRing[errorWriteIdx] = entry
+    errorCount = errorCount + 1
+end
+
+--- Up to `n` most-recent WARN/ERROR records, oldest-to-newest. nil/0 = all retained.
+---@param n number|nil
+---@return table[]
+function Log.GetRecentErrors(n)
+    local all = {}
+    for i = 1, ERROR_RING_SIZE do
+        if errorRing[i] then all[#all + 1] = errorRing[i] end
+    end
+    table.sort(all, function(a, b) return a.seq < b.seq end)
+    if type(n) == "number" and n > 0 and #all > n then
+        local out = {}
+        for i = #all - n + 1, #all do out[#out + 1] = all[i] end
+        return out
+    end
+    return all
+end
+
+--- Total WARN/ERROR records seen this session (not just those retained in the ring).
+---@return number
+function Log.GetErrorCount() return errorCount end
+function Log.ClearErrors() errorRing = {}; errorWriteIdx = 0; errorCount = 0 end
+
 -- Context provider: a fn(level, category) -> suffix string appended to every
 -- dispatched line. The watch preset sets it to inject scene/view/flow/lastAction so
 -- a tailing AI never lacks context; nil (default) means no suffix.
@@ -305,7 +341,7 @@ local function dispatch(level, category, message, data)
     local seq = seqCounter
     local sid = ensureSessionId()
 
-    local text = tostring(message)
+    local text = safeTostring(message, "") -- never raise on a hostile __tostring
     if data ~= nil and payloadCapture then text = text .. " " .. renderData(data) end
 
     -- Optional context suffix (watch preset): scene/view/flow/lastAction.
@@ -329,6 +365,9 @@ local function dispatch(level, category, message, data)
 
     pushRecent({ seq = seq, t = ts, level = LEVEL_NAME[level], category = category,
         message = text, sinkDropped = sinkDropped })
+    if level >= Log.LEVEL.WARN then
+        pushError({ seq = seq, t = ts, level = LEVEL_NAME[level], category = category, message = text })
+    end
 end
 
 -- Core emit -----------------------------------------------------------------

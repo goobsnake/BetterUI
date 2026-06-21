@@ -119,6 +119,48 @@ print("\nTest: SafeCall is no longer exposed publicly")
 reset()
 assert_equal(nil, BETTERUI.CIM.SafeCall, "SafeCall is not exported on BETTERUI.CIM")
 
+-- Test 8: with the unified logger present, caught errors route to Log.Error at the SAFE
+-- category and carry a boundary src (file:line) lifted from the error message.
+print("\nTest: caught error routes to Log.Error with a boundary src")
+reset()
+local logErrors = {}
+BETTERUI.Log = {
+    CATEGORY = { SAFE = "SAFE" },
+    Error = function(cat, msg, data) logErrors[#logErrors + 1] = { cat = cat, msg = msg, data = data } end,
+}
+local fn8 = function() error("boom8") end
+local ok8 = BETTERUI.CIM.SafeExecute("Ctx8", fn8)
+assert_false(ok8, "SafeExecute returns false on error (logger present)")
+assert_equal(1, #logErrors, "caught error routed to Log.Error")
+assert_equal("SAFE", logErrors[1].cat, "logged at the SAFE category")
+assert_true(logErrors[1].msg:find("Ctx8", 1, true) ~= nil and logErrors[1].msg:find("boom8", 1, true) ~= nil,
+    "message carries context + caught error")
+assert_true(logErrors[1].data ~= nil and type(logErrors[1].data.src) == "string"
+    and logErrors[1].data.src:find("%.lua:%d") ~= nil,
+    "boundary src (file:line) lifted from the error message")
+BETTERUI.Log = nil
+
+-- Test 9: src parse robustness -- error(table) yields no src + never raises; a backslash
+-- (Windows) repo path normalizes to a repo-relative forward-slash src.
+print("\nTest: boundary src parse handles error(table) + backslash paths")
+reset()
+local logErrors2 = {}
+BETTERUI.Log = {
+    CATEGORY = { SAFE = "SAFE" },
+    Error = function(cat, msg, data) logErrors2[#logErrors2 + 1] = { cat = cat, msg = msg, data = data } end,
+}
+local okT = BETTERUI.CIM.SafeExecute("CtxT", function() error({ code = 1 }) end)
+assert_false(okT, "error(table) returns false")
+assert_true(logErrors2[#logErrors2].data == nil or logErrors2[#logErrors2].data.src == nil,
+    "error(table) yields no boundary src (no prefix), never raises")
+local okB = BETTERUI.CIM.SafeExecute("CtxB", function()
+    error("user:\\AddOns\\BetterUI\\Modules\\Foo.lua:5: boom", 0)
+end)
+assert_false(okB, "backslash-path error returns false")
+assert_equal("Modules/Foo.lua:5", logErrors2[#logErrors2].data and logErrors2[#logErrors2].data.src,
+    "backslash repo path normalized to repo-relative src")
+BETTERUI.Log = nil
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================

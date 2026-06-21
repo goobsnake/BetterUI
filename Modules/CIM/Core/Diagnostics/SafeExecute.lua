@@ -5,6 +5,26 @@ Purpose: Provides safe execution wrapper for error-prone operations.
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 -- See docs/TRIBAL_KNOWLEDGE.md "Error Handling Patterns" for SafeExecute vs guard clause guidance
 
+-- tostring that can never raise (a caught error value may be a table with a hostile
+-- __tostring -- the error handler itself must honour SafeExecute's never-raise contract).
+local function safeStr(v, fallback)
+    local ok, s = pcall(tostring, v)
+    if ok and type(s) == "string" then return s end
+    return fallback or "<?>"
+end
+
+-- Route a SAFE-category error through the unified logger when present (guarded so a
+-- partially-loaded logger can't raise from the error handler), else the legacy Debug seam.
+local function logSafeError(context, msg, src)
+    local L = BETTERUI.Log
+    if L and type(L.Error) == "function" then
+        local category = (L.CATEGORY and L.CATEGORY.SAFE) or "SAFE"
+        pcall(L.Error, category, string.format("%s: %s", context, msg), src and { src = src } or nil)
+    elseif BETTERUI.Debug then
+        BETTERUI.Debug(string.format("[Error] %s: %s", context, msg))
+    end
+end
+
 ---@param context string Descriptive label for error messages
 ---@param fn function|nil The function to execute safely
 ---@param ... any Arguments to pass to fn
@@ -12,31 +32,30 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 ---@return any result fn's return value on success, or error message on failure
 function BETTERUI.CIM.SafeExecute(context, fn, ...)
     if not fn then
-        -- Surface through the unified logger so the "debug" preset captures missing-
-        -- function faults the same as caught pcall errors; fall back to the legacy
-        -- BETTERUI.Debug seam only when the logger is unavailable (early load / tests).
-        if BETTERUI.Log then
-            BETTERUI.Log.Error("SAFE", string.format("%s: No function provided", context))
-        else
-            BETTERUI.Debug(string.format("[Error] %s: No function provided", context))
-        end
+        logSafeError(context, "No function provided", nil)
         return false, "No function provided"
     end
 
-    -- Call pcall directly with the varargs: packing into a table and
-    -- unpack(args) would truncate argument lists containing embedded nils.
+    -- Call pcall directly with the varargs: packing into a table and unpack(args) would
+    -- truncate argument lists containing embedded nils. Keeps the hot SUCCESS path
+    -- allocation-free (no xpcall/closure).
     local ok, result = pcall(fn, ...)
 
     if not ok then
         -- Surface the caught error through the unified logger: ERROR level -> Interface.log
-        -- when logging is active (so swallowed faults stop being invisible), and to the
-        -- native popup only when the popup/suppression toggle is off. Inert (silent) for
-        -- normal players with logging disabled, preserving the legacy swallow behavior.
-        if BETTERUI.Log then
-            BETTERUI.Log.Error("SAFE", string.format("%s: %s", context, tostring(result)))
-        else
-            BETTERUI.Debug(string.format("[Error] %s: %s", context, tostring(result)))
+        -- when logging is active (so swallowed faults stop being invisible). Inert (silent)
+        -- for normal players with logging disabled, preserving the legacy swallow behavior.
+        local msg = safeStr(result, "<error>")
+        -- Lift the boundary fault location: Lua error() prefixes the message with
+        -- "<file>.lua:<line>: " at the START, so anchor to ^ (never capture a .lua:line that
+        -- appears LATER in the message), and allow spaces/parens in the path. Degrades to
+        -- nil for error(table) / engine errors without a leading prefix.
+        local src
+        local path, lno = msg:match("^(.-%.lua):(%d+):")
+        if path then
+            src = (path:match("[Bb]etter[Uu][Ii][/\\](.+)$") or path):gsub("\\", "/") .. ":" .. lno
         end
+        logSafeError(context, msg, src)
     end
 
     return ok, result

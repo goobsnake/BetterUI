@@ -279,6 +279,31 @@ check(pcall(function() Log.FlowBegin("x", Log.CATEGORY.ACTION, { bad = true }) e
 check(pcall(function() Log.FlowEnd({ weird = 1 }, Log.CATEGORY.ACTION, hostileMsg) end),
     "FlowEnd tolerates non-string flow + hostile __tostring message")
 
+-- Dedicated error ring: captures only WARN/ERROR, counts them, returns them in order.
+Log.ClearErrors()
+Log.Warn(Log.CATEGORY.GENERAL, "w-ring")
+Log.Error(Log.CATEGORY.GENERAL, "e-ring")
+Log.Debug(Log.CATEGORY.GENERAL, "d-ring") -- DEBUG is not an error
+local errs = Log.GetRecentErrors()
+check(#errs == 2, "error ring captures only WARN/ERROR (not DEBUG)")
+check(errs[1].message:find("w-ring", 1, true) ~= nil and errs[1].level == "WARN", "error ring entry 1 is the WARN")
+check(errs[2].message:find("e-ring", 1, true) ~= nil and errs[2].level == "ERROR", "error ring entry 2 is the ERROR")
+check(Log.GetErrorCount() == 2, "GetErrorCount counts WARN + ERROR")
+Log.ClearErrors()
+check(#Log.GetRecentErrors() == 0 and Log.GetErrorCount() == 0, "ClearErrors empties the ring + count")
+
+-- Error ring wraps at its bound (50) + GetRecentErrors(n) returns the last n.
+Log.ClearErrors()
+for i = 1, 60 do Log.Warn(Log.CATEGORY.GENERAL, "wrap-" .. i) end
+local capped = Log.GetRecentErrors()
+check(#capped == 50, "error ring is bounded to 50 (wraps)")
+check(capped[#capped].message:find("wrap-60", 1, true) ~= nil, "error ring retains the newest")
+check(capped[1].message:find("wrap-11", 1, true) ~= nil, "error ring drops the oldest beyond 50")
+local last3 = Log.GetRecentErrors(3)
+check(#last3 == 3 and last3[3].message:find("wrap-60", 1, true) ~= nil, "GetRecentErrors(n) returns the last n")
+check(Log.GetErrorCount() == 60, "GetErrorCount counts all WARN/ERROR, not just retained")
+Log.ClearErrors()
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================

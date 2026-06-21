@@ -313,6 +313,22 @@ local function PrintStatus()
     Out("Real Lua errors always log to Interface.log; [BUI] lines are BetterUI's own stream.")
 end
 
+-- Dump the last n records from a Log ring getter (GetRecent / GetRecentErrors) to chat,
+-- without tailing the file. Bounded + pcall-guarded so a /builog command can never raise.
+local function DumpRecords(getter, n, label)
+    if type(getter) ~= "function" then Out("Logger not loaded.") return end
+    local ok, records = pcall(getter, n)
+    if not ok or type(records) ~= "table" or #records == 0 then
+        Out("No " .. label .. " records captured (logging may be off).") return
+    end
+    Out(string.format("|c0066ff[BetterUI]|r last %d %s record(s):", #records, label))
+    for i = 1, #records do
+        local r = records[i]
+        Out(string.format("  seq=%s %s %s | %s",
+            tostring(r.seq), tostring(r.level), tostring(r.category), tostring(r.message)))
+    end
+end
+
 local function HandleCommand(args)
     local raw = tostring(args or ""):gsub("^%s+", ""):gsub("%s+$", "")
 
@@ -384,6 +400,12 @@ local function HandleCommand(args)
         local lvl = L and L.LevelFromName(name)
         if lvl then L.SetMinLevel(lvl); Out("Min log level set to " .. name:upper() .. ".")
         else Out("Unknown level. Use trace|debug|info|warn|error.") end
+    elseif args == "recent" or args:match("^recent%s+%d+$") then
+        local L = BETTERUI.Log
+        DumpRecords(L and L.GetRecent, tonumber(args:match("(%d+)")) or 20, "recent")
+    elseif args == "errors" or args:match("^errors%s+%d+$") then
+        local L = BETTERUI.Log
+        DumpRecords(L and L.GetRecentErrors, tonumber(args:match("(%d+)")) or 20, "error")
     elseif args == "mark" then
         Out("Usage: /builog mark <text>  -- annotates the live log with <text>.")
     elseif args == "snapshot" then
@@ -394,10 +416,47 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace | chat on|off | popups on|off | level <lvl> | mark <text> | snapshot | test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | snapshot | test | status")
     end
 end
 
 if type(G("SLASH_COMMANDS")) == "table" then
     SLASH_COMMANDS["/builog"] = HandleCommand
+
+    -- /buihealth: one-shot health summary in chat (preset, session, error count, file-sink
+    -- budget/drops, scene-logger + watch state) without tailing the file. pcall-guarded.
+    SLASH_COMMANDS["/buihealth"] = function()
+        local out = G("d")
+        if type(out) ~= "function" then return end
+        -- Fully crash-proof: any partially-loaded/faulty getter must not raise from a slash
+        -- command. Per-field nil guards PLUS a top-level pcall belt; `#` only on a table.
+        local ok, err = pcall(function()
+            local L = BETTERUI.Log
+            out("|c0066ff[BetterUI health]|r")
+            if L then
+                out(string.format("  preset=%s active=%s sid=%s schema=%s",
+                    tostring(L.GetPreset and L.GetPreset()),
+                    tostring(L.IsActive and L.IsActive()),
+                    tostring(L.GetSessionId and L.GetSessionId()),
+                    tostring(L.SCHEMA)))
+                local errsT = L.GetRecentErrors and L.GetRecentErrors()
+                local retained = (type(errsT) == "table") and #errsT or "?"
+                out(string.format("  errors=%s (retained=%s) -- /builog errors to list",
+                    tostring(L.GetErrorCount and L.GetErrorCount()), tostring(retained)))
+            else
+                out("  logger not loaded")
+            end
+            local s = InterfaceLog.GetStats()
+            out(string.format("  file: scheduled=%s dropped=%s budget=%s/frame %s/sec",
+                tostring(s.scheduled), tostring(s.dropped),
+                s.maxPerFrame > 0 and tostring(s.maxPerFrame) or "inf",
+                s.maxPerSecond > 0 and tostring(s.maxPerSecond) or "inf"))
+            local SL = BETTERUI.CIM and BETTERUI.CIM.SceneLog
+            local W = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+            out(string.format("  sceneLog=%s watch=%s",
+                tostring(SL and SL.IsRegistered and SL.IsRegistered()),
+                tostring(W and W.IsActive and W.IsActive())))
+        end)
+        if not ok then out("  (health check error: " .. tostring(err) .. ")") end
+    end
 end
