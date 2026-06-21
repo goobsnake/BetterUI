@@ -130,7 +130,7 @@ local function emitPreamble()
     if not L then return end
     local data = {
         schema = L.SCHEMA,
-        preset = "watch",
+        preset = (L.GetPreset and L.GetPreset()) or "watch", -- watch OR inspect (both activate WatchMode)
         sid = L.GetSessionId and L.GetSessionId() or nil,
         api = safeCall("GetAPIVersion"),
         world = safeCall("GetWorldName"),

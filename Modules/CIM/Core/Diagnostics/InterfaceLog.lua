@@ -28,7 +28,7 @@ Mechanism (proof of concept):
   (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
   "Lua Error:" entries are real game errors whose traceback matters.
 
-Usage (slash command): /builog on | off | preset off|info|watch|debug|trace | test | popups on|off | status
+Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | test | popups on|off | status
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -413,7 +413,7 @@ local function HandleCommand(args)
         InterfaceLog.SetEnabled(true)
         PersistLogState(true, "")
         InterfaceLog.Write("logging started -- breadcrumbs are tagged [BUI]; grep '[BUI]' for the clean stream. On disk each is engine-wrapped: <ISO-8601 ts> |cff0000Lua Error: [BUI] <gameMs> sid=<sid> seq=<seq> <LEVEL> <CATEGORY> | <event> <key=value ...> then a 'stack traceback:' block (ignore it for [BUI] lines). sid groups one UI-load session; seq is a monotonic order. Levels TRACE<DEBUG<INFO<WARN<ERROR. The ISO timestamp is authoritative wall-clock. 'Lua Error:' entries WITHOUT [BUI] are real game errors -- keep their traceback.")
-        Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups). Tip: /builog preset watch for live AI monitoring, or debug|trace for full capture.")
+        Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups). Tip: /builog preset watch (or inspect for trace-depth) for live AI monitoring, or debug|trace for full capture.")
     elseif args == "off" then
         InterfaceLog.Write("InterfaceLog disabled via /builog off")
         InterfaceLog.SetEnabled(false)
@@ -430,7 +430,7 @@ local function HandleCommand(args)
                 Out("Log preset = |c00ff00" .. tostring(presetName):upper() .. "|r.")
                 PrintStatus()
             else
-                Out("Unknown preset. Use off|info|watch|debug|trace.")
+                Out("Unknown preset. Use off|info|watch|debug|trace|inspect.")
             end
         else
             Out("Logger not loaded yet.")
@@ -479,7 +479,7 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | snapshot | test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | snapshot | test | status")
     end
 end
 

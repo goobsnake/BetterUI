@@ -16,7 +16,8 @@ canonical design).
 ```
 
 The engine appends; reopen/seek-to-end to tail. Enable with `/builog preset watch`
-(live-AI stream) or `/builog on` then `/builog preset debug|trace`.
+(live-AI stream) or `/builog on` then `/builog preset debug|trace`. `/builog preset inspect`
+is `watch` enrichment at `trace` verbosity — the deepest live stream.
 
 ## Line shape
 

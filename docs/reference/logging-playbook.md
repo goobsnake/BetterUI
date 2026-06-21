@@ -37,9 +37,12 @@ Presets are min-level gates layered over the low-level knobs. Pick by intent:
 | `watch` | DEBUG+ | on  | 30/600 | the curated **live-AI** stream (preamble, per-line context, snapshots, flows) |
 | `debug` | DEBUG+ | on  | 100/2000 | "what is it doing?" — the everyday user-action flow |
 | `trace` | TRACE+ | on  | 400/8000 | every step; loosest budget (only guards against a runaway hot loop) |
+| `inspect` | TRACE+ | on | 400/8000 | **`watch` enrichment at `trace` depth** — every step PLUS per-line context, state snapshots, preamble, auto-mute. The richest live-AI stream. |
 
-`ai` is a deprecated alias for `watch`; `verbose` for `trace`. Overflow past a budget is
-dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
+`ai` is a deprecated alias for `watch`; `verbose` for `trace`. `inspect` is a DISTINCT preset
+(not an alias — `GetPreset()` returns `inspect`): use it when `watch` (DEBUG+) isn't deep
+enough and you want every TRACE step still wrapped in the watch context. Overflow past a budget
+is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
 
 ## Why `watch` (vs `debug` + a heartbeat)
 
@@ -63,7 +66,7 @@ dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
 | Command | Does |
 |---|---|
 | `on` / `off` | start / stop streaming (off restores error popups) |
-| `preset <name>` | apply a preset (off\|info\|watch\|debug\|trace) |
+| `preset <name>` | apply a preset (off\|info\|watch\|debug\|trace\|inspect) |
 | `level <lvl>` | set just the min level (trace\|debug\|info\|warn\|error) |
 | `chat on\|off` | also surface INFO/WARN/ERROR to chat (file logging unchanged) |
 | `popups on\|off` | show / suppress the native Lua-error popup (errors still log) |

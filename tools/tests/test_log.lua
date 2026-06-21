@@ -208,6 +208,28 @@ check(Log.GetPreset() == "watch", "ApplyPreset('watch') applies and reports its 
 check(Log.GetMinLevel() == Log.LEVEL.DEBUG, "watch preset floors min level at DEBUG")
 check(Log.GetPayloadCapture() == true, "watch preset enables payload capture")
 
+-- inspect preset: TRACE verbosity + watch enrichment. A DISTINCT preset (not an alias to
+-- trace), and -- the load-bearing wiring -- it Activates the WatchMode enrichment lifecycle
+-- while non-enrichment presets Deactivate it.
+Log.ApplyPreset("inspect")
+check(Log.GetPreset() == "inspect", "ApplyPreset('inspect') is a distinct preset (not aliased)")
+check(Log.GetMinLevel() == Log.LEVEL.TRACE, "inspect preset floors min level at TRACE")
+check(Log.GetPayloadCapture() == true, "inspect preset enables payload capture")
+do
+    local calls = { activate = 0, deactivate = 0 }
+    BETTERUI.CIM.WatchMode = {
+        Activate = function() calls.activate = calls.activate + 1 end,
+        Deactivate = function() calls.deactivate = calls.deactivate + 1 end,
+    }
+    Log.ApplyPreset("inspect")
+    check(calls.activate == 1 and calls.deactivate == 0, "inspect Activates the WatchMode enrichment lifecycle")
+    Log.ApplyPreset("debug")
+    check(calls.deactivate == 1, "leaving inspect for a non-enrichment preset Deactivates WatchMode")
+    Log.ApplyPreset("watch")
+    check(calls.activate == 2, "watch still Activates WatchMode (lifecycle regression guard)")
+    BETTERUI.CIM.WatchMode = nil -- restore: later tests assume no WatchMode is loaded
+end
+
 -- Every emitted line carries sid= and seq=, and seq is monotonic.
 Log.ClearRecent()
 fileLines = {}

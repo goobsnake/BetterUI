@@ -128,7 +128,7 @@ file). **Capture mode** `/builog capture start|stop|dump` (bounded temporary pre
 
 1. **Live schema foundation** — `Log.lua`: `CONTROL`/`PERF`/`STATE` cats; `sid`+`seq`; line format incl.
    context-suffix support; recent ring; `sinkDropped`; schema-version field. `InterfaceLog.lua`: help/status
-   -> `off|info|watch|debug|trace`; budgets; `maxPending` reserved.
+   -> `off|info|watch|debug|trace|inspect` (inspect = trace verbosity + watch enrichment); budgets; `maxPending` reserved.
 2. **Name + caller/src infra** — new `Names.lua`; `DebugInfo.lua` (`CaptureCallerFrame` via guarded sync
    `debug.traceback`, parse rules, caps); canonical keys; `Log.NewFlow`/`Log.SetLastAction`.
 3. **`watch` preset** — curated auto-mute; per-line context suffix; startup preamble (incl. active addons);

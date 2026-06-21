@@ -503,8 +503,12 @@ function Log.GetPayloadCapture() return payloadCapture end
 --             it doing?" view. LOOSE budget -- a debugger accepts the FPS cost.
 --   trace  -> TRACE+ (every step), payloads on. LOOSEST budget; high enough only to
 --             stop a runaway hot loop from crashing/freezing the client.
--- "verbose" is accepted as a back-compat alias for "trace".
-local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trace = true, verbose = true, ai = true }
+--   inspect-> trace verbosity (TRACE+, payloads) PLUS the full watch enrichment (per-line
+--             context suffix + state snapshots + startup preamble + category auto-mute).
+--             "watch, at trace depth" -- the richest live-AI stream.
+-- "verbose" is accepted as a back-compat alias for "trace". "inspect" is a DISTINCT preset,
+-- not an alias (GetPreset() returns "inspect").
+local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trace = true, inspect = true, verbose = true, ai = true }
 
 -- Per-preset file-sink rate limits. info stays tight (FPS-safe for live play); debug
 -- and trace are greatly loosened because an active debugger accepts the FPS cost --
@@ -515,6 +519,7 @@ local PRESET_BUDGET = {
     watch = { maxPerFrame = 30,  maxPerSecond = 600,  maxPending = 600 },
     debug = { maxPerFrame = 100, maxPerSecond = 2000, maxPending = 2000 },
     trace = { maxPerFrame = 400, maxPerSecond = 8000, maxPending = 8000 },
+    inspect = { maxPerFrame = 400, maxPerSecond = 8000, maxPending = 8000 }, -- trace volume + watch enrichment
 }
 
 -- file ON for levels >= fileFromLevel (nil = all file sinks off); chat per chatOn.
@@ -559,7 +564,9 @@ function Log.ApplyPreset(name)
         categoryDisabled = {}
         payloadCapture = true
         if il and il.SetEnabled then il.SetEnabled(true) end
-    elseif name == "trace" then
+    elseif name == "trace" or name == "inspect" then
+        -- inspect shares trace's verbosity knobs; the WatchMode enrichment block below
+        -- (Activate for watch OR inspect) is the ONLY thing that distinguishes them.
         minLevel = Log.LEVEL.TRACE
         applyAllSinks(Log.LEVEL.TRACE, false) -- everything -> file
         categoryDisabled = {}
@@ -575,13 +582,14 @@ function Log.ApplyPreset(name)
     currentPreset = name
 
     -- Watch-mode enrichment lifecycle (context suffix, preamble, snapshots, mutes).
-    -- Resolved lazily: WatchMode loads after Log. Deactivate runs for every non-watch
-    -- preset so leaving watch cleanly drops the context provider + restores mutes.
+    -- Resolved lazily: WatchMode loads after Log. Activate for the ENRICHMENT presets
+    -- (watch + inspect); Deactivate for every OTHER preset so leaving them cleanly drops
+    -- the context provider + restores mutes.
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
     if watch then
         -- pcall: a watch lifecycle hiccup (preamble/snapshot/mute) must never break
         -- preset application or raise out of the /builog slash command.
-        if name == "watch" then
+        if name == "watch" or name == "inspect" then
             if watch.Activate then pcall(watch.Activate) end
         elseif watch.Deactivate then
             pcall(watch.Deactivate)
