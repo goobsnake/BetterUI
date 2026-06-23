@@ -8,7 +8,7 @@ Builds BetterUI-<version>.zip where <version> is read from:
 inside BetterUI.txt.
 
 The zip contains a top-level BetterUI folder with addon-ready files and excludes
-development-only files/directories matching Update_BetterUI.ps1.
+development-only files/directories matching the deployment scripts.
 
 .PARAMETER SourceDir
 Repository root containing BetterUI.txt and addon files. Defaults to this script's

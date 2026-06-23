@@ -4,14 +4,14 @@ description: >
   Watch BetterUI's live in-game debug stream (interface.log) during an ESO play-test and
   report bugs, errors, and anything that looks wrong. Use when the user wants you to
   monitor a play-test for N minutes, verify a fix in-game, or interpret BetterUI's
-  [BUI] log lines. Covers the /builog presets (inspect/trace/watch/debug), where the
-  log lives, how to decipher each line, and the timed monitor loop.
+  [BUI] log lines. Covers the /builog presets (inspect/trace/watch/debug), local and
+  remote SMB log locations, how to decipher each line, and the timed monitor loop.
 ---
 
 # BetterUI live-log monitor (`/builog` + interface.log)
 
 **TL;DR** — the user runs `/builog preset inspect` in-game; you run
-`tools/builog/monitor.sh <minutes>` and read each printed sample, flagging — live, as it
+`tools/builog-monitor/monitor.sh <minutes>` and read each printed sample, flagging — live, as it
 appears — any non-BUI `Lua Error:`, parse-contract violation, or behavior that doesn't match
 what the user just did; then summarize. Everything below is detail on that loop.
 
@@ -22,8 +22,13 @@ plays, you sample the log on a timer, and between samples you notate bugs / erro
 anything that looks off.
 
 This skill is platform-neutral — Claude, Codex, Copilot, and Kimi can all follow it. The
-only hard dependency is a shell that can run [`monitor.sh`](monitor.sh) (POSIX `bash` +
+hard dependency is a native shell that can run [`monitor.sh`](monitor.sh) (POSIX `bash` +
 `grep`/`sed`/`awk`).
+
+**Execution surface:** use MCP tools for reading/searching these instructions, but run
+`monitor.sh` with the platform's native terminal/shell execution. Do **not** try MCP
+`process_run` for `bash`, `sh`, or `monitor.sh`; this environment's process MCP allowlist does
+not include shell interpreters. Native shell fallback is the intended path for live monitoring.
 
 ## How it works (why an in-game addon can write to a log)
 
@@ -63,6 +68,42 @@ Default (this user's Proton/Steam install):
 ```
 /mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Logs/interface.log
 ```
+
+Use the **remote** log instead of the local Proton log when the user says they are testing
+on another computer, asks for remote monitoring, or the local log is not changing during the
+reported play-test. The remote Live log URI is:
+```
+smb://goobers/elder%20scrolls%20online/live/Logs/interface.log
+```
+
+The helper script resolves this for you on Linux/GVFS: it accepts `remote`, the raw
+`smb://...` URI, a mounted filesystem path, or `BUILOG_INTERFACE_LOG`. Prefer the `remote`
+alias for AI monitoring on the shared test machine:
+```
+tools/builog-monitor/monitor.sh <minutes> [interval_seconds] remote
+```
+Use `BUILOG_REMOTE_INTERFACE_LOG` only when the remote URI changes. On non-Linux hosts, mount
+or open the share first and pass the resulting filesystem path.
+
+If the helper cannot find the remote log, manually verify the GVFS mount/path:
+```
+gio mount 'smb://goobers/elder%20scrolls%20online' 2>/dev/null || true
+for root in /run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*; do
+  log="$root/live/Logs/interface.log"
+  [ -f "$log" ] && printf '%s\n' "$log" && break
+done
+```
+GVFS may expose either decoded or URI-encoded share names; both are valid:
+```
+/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder scrolls online/live/Logs/interface.log
+/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder%20scrolls%20online/live/Logs/interface.log
+```
+
+If no path prints, the share is not mounted for this user, the remote ESO client has not
+created `interface.log` yet, or the remote machine/share is unavailable. Ask the user to run
+`/builog preset inspect` on the test machine, then retry after ESO writes at least one line.
+Always quote the discovered path because the share name may contain spaces.
+
 Other installs:
 - Windows: `<Documents>\Elder Scrolls Online\live\Logs\interface.log`
 - macOS: `~/Documents/Elder Scrolls Online/live/Logs/interface.log`
@@ -76,7 +117,26 @@ has written at least one line this session (any Lua error, or `/builog on`).
 
 The user gives a duration in **minutes**. Run:
 ```
-tools/builog/monitor.sh <minutes> [interval_seconds] [log_path]
+tools/builog-monitor/monitor.sh <minutes> [interval_seconds] [log_path]
+```
+Run that command through native terminal/shell execution, not MCP `process_run`.
+
+Remote example for the shared test machine:
+```
+tools/builog-monitor/monitor.sh <minutes> [interval_seconds] remote
+```
+Raw remote URI also works:
+```
+tools/builog-monitor/monitor.sh <minutes> [interval_seconds] 'smb://goobers/elder%20scrolls%20online/live/Logs/interface.log'
+```
+Manual fallback after discovering the mounted path:
+```
+LOG="$(for root in /run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*; do
+  log="$root/live/Logs/interface.log"
+  [ -f "$log" ] && printf '%s\n' "$log" && break
+done)"
+[ -n "$LOG" ] || { echo "remote interface.log not found"; exit 1; }
+BUILOG_INTERFACE_LOG="$LOG" tools/builog-monitor/monitor.sh <minutes> [interval_seconds]
 ```
 - `minutes` — how long to watch (the user's number; fractional ok).
 - `interval_seconds` — **default 10** (a good back-and-forth cadence). Drop to **5** to pin a
@@ -92,6 +152,10 @@ Run it in the background if your platform supports it; otherwise it blocks for t
 Each `----- sample N -----` block reports: new `[BUI]` count, level mix, **real (non-BUI)
 errors with messages**, rate-limit drops, parse-contract violations, your own `WARN`/`ERROR`
 breadcrumbs, and a 10-line trail. A `===== totals =====` footer closes it.
+
+The helper prints both `requested log:` and resolved `log:` when it is resolving `remote` or
+an `smb://` URI. If it errors, do not silently fall back to the local Proton log; fix the
+remote mount/path or ask the user to create the remote log with `/builog preset inspect`.
 
 **Between samples, notate.** As each sample prints, write down anything that looks wrong (see
 Step 4). Don't wait for the end — the value is catching issues live so the user can react.
@@ -137,9 +201,11 @@ missing expected line is as diagnostic as an error.
 ## How each platform uses this skill
 
 This is plain markdown + a shell script — nothing platform-specific. Point any agent at
-`tools/builog/SKILL.md` and have it run `tools/builog/monitor.sh <minutes>`, then interpret the
+`tools/builog-monitor/SKILL.md` and have it run `tools/builog-monitor/monitor.sh <minutes>`
+for local monitoring or `tools/builog-monitor/monitor.sh <minutes> [interval_seconds] remote`
+for the shared remote test machine, using native terminal/shell execution. Then interpret the
 samples per *Step 4*. It works the same for Claude, Codex, Copilot, and Kimi — no MCP or
-vendor tooling required, only a shell.
+vendor execution tooling required, only a shell.
 
 ## Reference
 

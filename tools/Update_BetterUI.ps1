@@ -3,12 +3,12 @@
 Deploys BetterUI addon files to the ESO Live AddOns directory.
 
 .DESCRIPTION
-Copies the repository addon payload to the local ESO Live addon folder after
-removing the existing destination folder. Excludes development-only files and
-directories (tools, docs, git metadata, agent config, etc).
+Copies the repository addon payload to the local ESO Live addon folder and, when
+available, the Live BetterUI folder on the configured SMB share. Existing target
+folders are replaced to avoid stale addon files.
 
-Supports both Windows and Linux (Steam/Proton). The default destination is
-auto-detected based on the operating system.
+Supports both Windows and Linux (Steam/Proton). Defaults are auto-detected based
+on the operating system.
 
 .PARAMETER SourceDir
 Repository root to copy from. Defaults to this script's parent directory.
@@ -18,8 +18,8 @@ Target BetterUI folder under ESO Live AddOns. Auto-detected per OS if omitted.
 
 .PARAMETER NetworkShareDir
 Target BetterUI folder on the network share. Defaults to
-smb://10.133.10.10/addons/BetterUI (GVFS path on Linux, UNC on Windows).
-Skipped with a warning if the share is not mounted/accessible.
+smb://goobers/elder%20scrolls%20online/live/AddOns/BetterUI.
+Skipped with a warning if the share cannot be mounted/accessed.
 
 .EXAMPLE
 .\Update_BetterUI.ps1
@@ -36,6 +36,9 @@ param(
     [string]$NetworkShareDir
 )
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
 if (-not $DestinationDir) {
     if ($IsLinux) {
         $DestinationDir = '/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/AddOns/BetterUI'
@@ -45,84 +48,12 @@ if (-not $DestinationDir) {
 }
 
 if (-not $NetworkShareDir) {
-    if ($IsLinux) {
-        $uid = id -u
-        $NetworkShareDir = "/run/user/$uid/gvfs/smb-share:server=10.133.10.10,share=addons/BetterUI"
-    } else {
-        $NetworkShareDir = '\\10.133.10.10\addons\BetterUI'
-    }
+    $NetworkShareDir = 'smb://goobers/elder%20scrolls%20online/live/AddOns/BetterUI'
 }
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Update_BetterUI_Common.ps1')
 
-$excludeItems = @(
-    '.agent_workspace',
-    '.git',
-    '.gitignore',
-    '.idea',
-    '.images',
-    '.vscode',
-    '.venv',
-    'tmp',
-    'tools',
-    'Source',
-    'docs',
-    'README.md',
-    'LICENSE.md',
-    '.luarc.json',
-    '.luacheckrc'
-)
-
-if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
-    throw "Source directory not found: $SourceDir"
-}
-
-function Deploy-Addon {
-    param([string]$Target)
-
-    if (Test-Path -LiteralPath $Target) {
-        if ($IsLinux) {
-            & rm -rf -- $Target
-        } else {
-            Remove-Item -LiteralPath $Target -Recurse -Force
-        }
-    }
-    New-Item -ItemType Directory -Path $Target -Force | Out-Null
-
-    $items = Get-ChildItem -LiteralPath $SourceDir -Force |
-        Where-Object { $_.Name -notin $excludeItems }
-
-    if ($IsLinux) {
-        # Copy-Item is unreliable on GVFS SMB mounts; use native cp instead.
-        foreach ($item in $items) {
-            if ($item.PSIsContainer) {
-                & cp -r -- $item.FullName $Target
-            } else {
-                & cp -- $item.FullName $Target
-            }
-        }
-    } else {
-        foreach ($item in $items) {
-            $destinationPath = Join-Path $Target $item.Name
-            if ($item.PSIsContainer) {
-                Copy-Item -LiteralPath $item.FullName -Destination $destinationPath -Recurse -Force
-            } else {
-                Copy-Item -LiteralPath $item.FullName -Destination $destinationPath -Force
-            }
-        }
-    }
-
-    Write-Host "Files copied successfully to: $Target" -ForegroundColor Green
-}
-
-# Deploy to local ESO AddOns directory.
-Deploy-Addon -Target $DestinationDir
-
-# Deploy to network share.
-$shareParent = Split-Path $NetworkShareDir -Parent
-if (Test-Path -LiteralPath $shareParent) {
-    Deploy-Addon -Target $NetworkShareDir
-} else {
-    Write-Warning "Network share not accessible (is it mounted?): $shareParent"
-}
+Invoke-BetterUIDeploy `
+    -SourceDir $SourceDir `
+    -DestinationDir $DestinationDir `
+    -NetworkShareDir $NetworkShareDir

@@ -33,10 +33,12 @@ Converts textures with `texconv.exe` to ESO-compatible DDS output.
 ## Deployment
 
 ### `Update_BetterUI.ps1`
-Deploys addon files to the ESO Live AddOns directory.
+Deploys addon files to the ESO Live AddOns directory and the configured Live SMB share when available.
 
 ### `Update_BetterUI_PTS.ps1`
-Deploys addon files to the ESO PTS AddOns directory.
+Deploys addon files to the ESO PTS AddOns directory and the configured PTS SMB share when available.
+
+Both update scripts share `Update_BetterUI_Common.ps1` for copy behavior and SMB/GVFS path resolution.
 
 **Usage:**
 ```powershell
