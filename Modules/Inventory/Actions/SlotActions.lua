@@ -158,6 +158,21 @@ local function TryUseItem(inventorySlot)
     BETTERUI.CIM.TryUseItem(inventorySlot)
 end
 
+local function BeginInventoryActionFlow(kind, message, data)
+    local L = BETTERUI.Log
+    if L and L.IsActive and L.IsActive() and L.FlowBegin then
+        return L.FlowBegin(kind, L.CATEGORY.ACTION, message, data)
+    end
+    return nil
+end
+
+local function EndInventoryActionFlow(flow, message, data)
+    local L = BETTERUI.Log
+    if flow and L and L.FlowEnd then
+        L.FlowEnd(flow, L.CATEGORY.ACTION, message, data)
+    end
+end
+
 local function TryMarkAsJunk(inventorySlot)
     if not CanMarkSlotAsJunk(inventorySlot) then
         return
@@ -168,10 +183,24 @@ local function TryMarkAsJunk(inventorySlot)
     end
 
     PreserveSelectionForAction(inventorySlot)
+    local flow = BeginInventoryActionFlow("inventoryJunk", "inventory junk mark requested", {
+        bag = bag,
+        slot = slot,
+        junk = true,
+    })
     SetItemIsJunk(bag, slot, true)
+    local invalidated = false
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
         GAMEPAD_INVENTORY:InvalidateSlotDataCache()
+        invalidated = true
     end
+    EndInventoryActionFlow(flow, "inventory junk mark cache invalidated; waiting for inventory update", {
+        bag = bag,
+        slot = slot,
+        junk = true,
+        invalidated = invalidated,
+        refresh = "inventoryUpdate",
+    })
 end
 
 local function TryUnmarkAsJunk(inventorySlot)
@@ -184,10 +213,24 @@ local function TryUnmarkAsJunk(inventorySlot)
     end
 
     PreserveSelectionForAction(inventorySlot)
+    local flow = BeginInventoryActionFlow("inventoryJunk", "inventory junk unmark requested", {
+        bag = bag,
+        slot = slot,
+        junk = false,
+    })
     SetItemIsJunk(bag, slot, false)
+    local invalidated = false
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
         GAMEPAD_INVENTORY:InvalidateSlotDataCache()
+        invalidated = true
     end
+    EndInventoryActionFlow(flow, "inventory junk unmark cache invalidated; waiting for inventory update", {
+        bag = bag,
+        slot = slot,
+        junk = false,
+        invalidated = invalidated,
+        refresh = "inventoryUpdate",
+    })
 end
 
 local function RequireDestroyPolicyAuthorizer()

@@ -182,7 +182,16 @@ for i in $(seq 1 "$SAMPLES"); do
   errs=$(printf '%s\n' "$chunk" | grep 'Lua Error:' | grep -v '\[BUI\]')
   errc=$(printf '%s\n' "$errs" | grep -c .)
   id64=$(printf '%s\n' "$chunk" | grep -c 'Id64ToString_lua')
-  drop=$(printf '%s\n' "$chunk" | grep -c 'reason=rate_limit')
+  drop=$(printf '%s\n' "$chunk" | awk '
+    /reason=rate_limit/ {
+      for (i = 1; i <= NF; i++) {
+        if ($i ~ /^dropped=[0-9][0-9]*$/) {
+          split($i, a, "="); sum += a[2]
+        }
+      }
+    }
+    END { print sum + 0 }
+  ')
   # parse-contract: a valid [BUI] line has exactly ONE " | " (level/cat -> event). >1 means
   # a value injected the field separator and would corrupt a logfmt parser.
   parse=$(printf '%s\n' "$chunk" | grep '\[BUI\]' | awk -F' \\| ' 'NF>2' | head -5)
@@ -193,7 +202,7 @@ for i in $(seq 1 "$SAMPLES"); do
             | awk '{printf "%s=%s ", $2, $1}')
 
   tb=$((tb+bui)); te=$((te+errc)); ti=$((ti+id64)); td=$((td+drop)); tp=$((tp+parsec))
-  echo "----- sample $i [$(date +%H:%M:%S)] +$bui BUI, +$errc non-BUI-err, id64=$id64, drops=$drop -----"
+  echo "----- sample $i [$(date +%H:%M:%S)] +$bui BUI, +$errc non-BUI-err, id64=$id64, dropped=$drop -----"
   [ -n "$levels" ] && echo "  levels: $levels"
   if [ "$errc" -gt 0 ]; then
     echo "  !! NON-BUI errors (real game/addon — investigate):"
@@ -217,5 +226,5 @@ done
 end=$(wc -l < "$LOG")
 echo "===== totals ====="
 echo "file lines: start=$start_lines end=$end (+$((end-start_lines)))"
-echo "[BUI]=$tb | non-BUI errors=$te | Id64=$ti | rate_limit drop-summaries=$td | parse violations=$tp"
-echo "(0 non-BUI errors + 0 parse violations + 0 rate-limit drops = clean. Any non-zero -> notate above.)"
+echo "[BUI]=$tb | non-BUI errors=$te | Id64=$ti | rate_limit dropped-records=$td | parse violations=$tp"
+echo "(0 non-BUI errors + 0 parse violations + 0 rate-limit dropped records = clean. Any non-zero -> notate above.)"

@@ -250,6 +250,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         table.sort(filteredDataTable, sortFunc)
         self.pendingContext = {
             showJunkCategory = showJunkCategory,
+            categoryKey = targetCategoryData.key,
             filteredEquipSlot = filteredEquipSlot,
             isQuestItem = isQuestItem,
             currentBestCategoryName = nil,
@@ -269,6 +270,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 
     self.pendingContext = {
         showJunkCategory = showJunkCategory,
+        categoryKey = targetCategoryData.key,
         filteredEquipSlot = filteredEquipSlot,
         isQuestItem = isQuestItem,
         currentBestCategoryName = nil,

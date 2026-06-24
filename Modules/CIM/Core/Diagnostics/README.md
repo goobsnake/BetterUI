@@ -5,9 +5,9 @@ Debugging, profiling, safety wrappers, real-time logging, and feature controls.
 Files:
 - `Log.lua` — `BETTERUI.Log` unified logging facade: levels
   (`TRACE<DEBUG<INFO<WARN<ERROR`), categories
-  (`SCENE/LIST/NAV/KEYBIND/FOOTER/CATEGORY/SEARCH/SORT/BATCH/ACTION/LIFECYCLE/SAFE/SETTINGS/GENERAL`),
+  (`SCENE/LIST/NAV/KEYBIND/FOOTER/CATEGORY/SEARCH/SORT/BATCH/ACTION/LIFECYCLE/SAFE/SETTINGS/CONTROL/PERF/STATE/GENERAL`),
   and per-level file/chat sinks. Inert until enabled, so normal players pay
-  nothing. Named presets via `Log.ApplyPreset("off"|"debug"|"verbose")` (also
+  nothing. Named presets via `Log.ApplyPreset("off"|"info"|"watch"|"debug"|"trace"|"inspect")` (also
   `/builog preset`) layer over the low-level knobs; `Log.SetPayloadCapture`
   toggles whether `data` payloads render. Nil-guard every call site
   (`if BETTERUI.Log then ... end`); on hot paths gate on
@@ -20,7 +20,12 @@ Files:
   directly). The sink is rate-limited (`SetBudget{maxPerFrame,maxPerSecond,maxPending}`
   / `GetStats`); overflow is dropped and summarized (`dropped=N reason=rate_limit`)
   so verbose logging can't hitch a frame. Slash command: `/builog`
-  (`on|off|preset off|debug|verbose|chat on|off|popups on|off|level <lvl>|test|status`).
+  (`on|off|preset off|info|watch|debug|trace|inspect|chat on|off|popups on|off|level <lvl>|mark|snapshot|test|status`).
+- `WatchMode.lua` — live-AI enrichment for `watch`/`inspect`: per-line scene/view/flow/
+  lastAction context, startup preamble, periodic `STATE` snapshots, and default watch-only
+  mutes for `LIST`, `SEARCH`, `SORT`, `BATCH`, `FOOTER`, and `KEYBIND`. Module snapshot
+  providers keep inventory/banking visibility, rows, categories, pending transfers, and
+  keybind state visible without raising high-volume trace detail.
 - `SafeExecute.lua` — `pcall` wrapper; caught errors and missing-function faults
   route through `BETTERUI.Log.Error("SAFE", ...)`.
 - `PerformanceProfiler.lua` — lightweight timing/profiling helpers.

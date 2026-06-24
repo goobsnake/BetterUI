@@ -93,15 +93,17 @@ filter; tagged-error tracebacks are ignorable, untagged `Lua Error:` blocks are 
    preset=watch scene=<s> addons=<n> settings=<summary>` + per-enabled-addon lines, cap 30 then a truncation
    line). The **active-addons list goes to the live stream** (taint/conflict sources) — replaces the old
    SavedVars env block.
-3. **Rich periodic state snapshot** (`INFO STATE | state: snapshot -> scene=bank view=bank focus="Rubedite
-   Ingot" category="Materials" rows=74 matches=32 dialogs=0 flow=deposit#48 lastAction="pressed A"`) every 5s
-   (immediate on scene change; never <2s). Provider-based + capped; a failing provider WARNs once then mutes.
+3. **Rich periodic state snapshot** (`DEBUG STATE | snapshot scene=bank inventory="window=1 visible=1 ..."
+   banking="window=1 visible=1 ..." flow=deposit#48 lastAction="pressed A"`) every ~10s.
+   Hidden window providers emit compact `window=1 visible=0` instead of stale singleton state.
+   Provider-based + capped; failing providers are pcall-guarded so one bad snapshot source cannot
+   break the heartbeat.
 4. **Flow envelopes**: `DEBUG ACTION | flow: begin -> deposit#48 kind=deposit item="Rubedite Ingot" qty=5` …
    `flow: end -> deposit#48 result=ok durationMs=42`. Errors inside a flow auto-carry `flow`+`lastAction`.
 5. **Curated auto-mute** (the main reason it's its own preset): at DEBUG, enable `STATE,LIFECYCLE,SCENE,NAV,
    CATEGORY,ACTION,CONTROL,SAFE,PERF,SETTINGS`; mute `LIST,SEARCH,SORT,BATCH,FOOTER,KEYBIND`. WARN/ERROR
-   always pass; TRACE never passes in `watch`. Emit a one-line mute summary on enable. Overridable via
-   `/builog cat`.
+   always pass; TRACE never passes in `watch`. Override from addon code via
+   `WatchMode.SetMutedCategories`.
 
 **Dev controls:** `/builog mark "<text>"` injects a marker (`INFO STATE | watch: mark -> "..."`) so you tell
 the AI exactly where a bug hit. `Log.NewFlow(kind,name)` + `Log.SetLastAction(...)` feed flow/context.

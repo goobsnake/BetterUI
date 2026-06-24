@@ -150,8 +150,8 @@ that action's `seq` window in the stream.
 
 Run it in the background if your platform supports it; otherwise it blocks for the duration.
 Each `----- sample N -----` block reports: new `[BUI]` count, level mix, **real (non-BUI)
-errors with messages**, rate-limit drops, parse-contract violations, your own `WARN`/`ERROR`
-breadcrumbs, and a 10-line trail. A `===== totals =====` footer closes it.
+errors with messages**, rate-limit dropped-record totals, parse-contract violations, your
+own `WARN`/`ERROR` breadcrumbs, and a 10-line trail. A `===== totals =====` footer closes it.
 
 The helper prints both `requested log:` and resolved `log:` when it is resolving `remote` or
 an `smb://` URI. If it errors, do not silently fall back to the local Proton log; fix the
@@ -195,8 +195,11 @@ context suffix appended to every line.
 | behavior the user reports ≠ what the log shows | e.g. a keybind that "does nothing" | search for the action's CATEGORY/ACTION line near that `seq`; absence of a line often *is* the bug |
 
 When the user describes a symptom, correlate it to the stream: find the `seq` window where it
-happened (use `/builog mark`), then read the surrounding SCENE/NAV/KEYBIND/ACTION lines. A
-missing expected line is as diagnostic as an error.
+happened (use `/builog mark`), then read the surrounding `ACTION`/`STATE` lines and the
+nearest `snapshot`. In `watch`, high-volume `LIST`/`KEYBIND` detail is muted by default;
+skipped or incomplete keybind/list outcomes still surface through compact `STATE` lines, and
+the inventory/banking snapshot provider fields include `visible=0/1` so hidden singleton UI
+state is not mistaken for the active screen. A missing expected line is as diagnostic as an error.
 
 ## How each platform uses this skill
 

@@ -418,6 +418,7 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
         -- Final batch complete - commit once with proper selection restoration
         -- Use dontReselect=true to prevent default reselection, then restore manually
         self.itemList:Commit(true)
+        local context = self.pendingContext
 
         -- Restore selection if we have a target uniqueId
         local restored = false
@@ -446,7 +447,19 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
                 targetIdx = math.max(1, targetIdx)
                 -- Use WithoutAnimation for instant focus (matches Banking behavior)
                 self.itemList:SetSelectedIndexWithoutAnimation(targetIdx, true, false)
+                restored = true
             end
+        end
+
+        if BETTERUI.Log then
+            local dataList = self.itemList.dataList or (self.itemList.list and self.itemList.list.dataList)
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "inventory item list refreshed", {
+                categoryKey = context and context.categoryKey,
+                rowCount = dataList and #dataList or 0,
+                sourceCount = totalItems,
+                showJunk = context and context.showJunkCategory == true,
+                restored = restored,
+            })
         end
 
         self.pendingBatchData = nil

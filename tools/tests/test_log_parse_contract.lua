@@ -126,6 +126,21 @@ Log.Info(Log.CATEGORY.LIST, "x", { url = "a|b" })
 p = parse(fileLines[1])
 check(p ~= nil and select(2, p.event:gsub("|", "")) == 0, "no bare `|` survives in a rendered payload value")
 
+-- 10. Raw messages and custom context suffixes are normalized too. The monitor expects
+--     exactly one physical field separator (` | `) per [BUI] line.
+local function countFieldSeparators(line)
+    return select(2, (line or ""):gsub(" | ", ""))
+end
+fileLines = {}
+Log.SetContextProvider(function() return "context | injected" end)
+Log.Info(Log.CATEGORY.LIST, "message | injected\nnext")
+Log.SetContextProvider(nil)
+p = parse(fileLines[1])
+check(p ~= nil and countFieldSeparators(fileLines[1]) == 1,
+    "raw message/context cannot inject an extra field separator")
+check(p and p.event:find("|", 1, true) == nil and p.event:find("\n", 1, true) == nil,
+    "raw message/context pipes and newlines are normalized")
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================

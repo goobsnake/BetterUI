@@ -353,6 +353,12 @@ function BETTERUI.Banking.Class:RefreshList()
             mode = self.currentMode,
             rowCount = entryCount,
         })
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "bank list refreshed", {
+            mode = self.currentMode,
+            rowCount = entryCount,
+            categoryKey = activeCategory and activeCategory.key,
+            searchLen = self.searchQuery and #tostring(self.searchQuery) or 0,
+        })
     end
     if entryCount == 0 then
         self.list:Deactivate()

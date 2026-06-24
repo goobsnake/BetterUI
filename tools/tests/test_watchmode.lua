@@ -30,7 +30,7 @@ local cap = { lines = {}, provider = nil, lastAction = nil, mutes = {} }
 BETTERUI.Log = {
     SCHEMA = 1,
     LEVEL = { TRACE = 1, DEBUG = 2, INFO = 3, WARN = 4, ERROR = 5 },
-    CATEGORY = { STATE = "STATE", GENERAL = "GENERAL" },
+    CATEGORY = { STATE = "STATE", GENERAL = "GENERAL", LIST = "LIST", SEARCH = "SEARCH", SORT = "SORT", BATCH = "BATCH", FOOTER = "FOOTER", KEYBIND = "KEYBIND" },
     SetContextProvider = function(fn) cap.provider = fn end,
     GetContextProvider = function() return cap.provider end,
     GetLastAction = function() return cap.lastAction end,
@@ -60,6 +60,9 @@ check(#cap.lines >= 1, "Activate emits a startup preamble record")
 check(cap.lines[1].cat == "STATE", "preamble is a STATE record")
 check(#laters == 1, "Activate schedules a snapshot heartbeat via zo_callLater")
 check(Watch.IsActive() == true, "IsActive true after Activate")
+check(cap.mutes["LIST"] == true and cap.mutes["SEARCH"] == true and cap.mutes["SORT"] == true
+    and cap.mutes["BATCH"] == true and cap.mutes["FOOTER"] == true and cap.mutes["KEYBIND"] == true,
+    "Activate applies documented default watch mutes")
 
 -- Context suffix carries scene + flow + lastAction.
 cap.lastAction = { message = "pressed A", flow = "deposit#1" }
@@ -76,6 +79,7 @@ check(cap.provider(2, "GENERAL"):find("view=", 1, true) == nil, "SetView(nil) cl
 
 -- Snapshot registry: registered provider value appears in the STATE snapshot.
 Watch.RegisterSnapshotProvider("bankSlots", function() return 42 end)
+cap.lastAction = { message = "withdraw item", flow = "bankTransfer#1" }
 local before = #cap.lines
 Watch.Snapshot()
 check(#cap.lines > before, "Snapshot emits a record")
@@ -83,6 +87,8 @@ local snap = cap.lines[#cap.lines]
 check(snap.cat == "STATE" and snap.msg == "snapshot", "Snapshot is a STATE 'snapshot' record")
 check(snap.data and snap.data.bankSlots == 42, "Snapshot includes registered provider data")
 check(snap.data and snap.data.scene == "gamepad_banking", "Snapshot includes current scene")
+check(snap.data and snap.data.flow == "bankTransfer#1" and snap.data.lastAction == "withdraw item",
+    "Snapshot includes current flow + lastAction")
 
 -- A provider that errors is pcall-guarded (does not break the snapshot).
 Watch.RegisterSnapshotProvider("boom", function() error("nope") end)

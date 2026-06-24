@@ -73,6 +73,16 @@ local function safeTostring(v, fallback)
     return fallback or ""
 end
 
+local function normalizeLogText(v, fallback)
+    return (safeTostring(v, fallback or ""):gsub("[\r\n\t]+", " "):gsub("|", "/"))
+end
+
+local function normalizeLogToken(v, fallback)
+    local s = normalizeLogText(v, fallback or "?"):gsub("%s+", "_")
+    if s == "" then return fallback or "?" end
+    return s
+end
+
 -- Active-state memoization. The logger only does work when the user opted into
 -- logging; that decision is cached and dropped via Log.InvalidateActive() by the
 -- InterfaceLog/FeatureFlags setters that can change it (so a toggle still takes
@@ -320,7 +330,7 @@ local flowCounters = {}
 ---@param kind string|nil
 ---@return string
 function Log.NewFlow(kind)
-    if kind == nil then kind = "flow" else kind = safeTostring(kind, "flow") end
+    if kind == nil then kind = "flow" else kind = normalizeLogToken(kind, "flow") end
     if kind == "" then kind = "flow" end
     flowCounters[kind] = (flowCounters[kind] or 0) + 1
     return kind .. "#" .. flowCounters[kind]
@@ -331,8 +341,8 @@ local lastAction = nil
 ---@param message any
 ---@param flow string|nil
 function Log.SetLastAction(message, flow)
-    local msg = (message == nil) and "" or safeTostring(message, "")
-    lastAction = { message = msg, flow = flow }
+    local msg = (message == nil) and "" or normalizeLogText(message, "")
+    lastAction = { message = msg, flow = flow and normalizeLogToken(flow, "?") or nil }
 end
 ---@return table|nil
 function Log.GetLastAction() return lastAction end
@@ -346,19 +356,19 @@ local function dispatch(level, category, message, data)
     local seq = seqCounter
     local sid = ensureSessionId()
 
-    local text = safeTostring(message, "") -- never raise on a hostile __tostring
+    local text = normalizeLogText(message, "") -- never raise on a hostile __tostring
     if data ~= nil and payloadCapture then
         -- belt: the payload render can never raise the log call (renderData is already
         -- safeTostring-guarded, but a pathological value must still not escape).
         local okR, rendered = pcall(renderData, data)
-        if okR and type(rendered) == "string" then text = text .. " " .. rendered end
+        if okR and type(rendered) == "string" then text = text .. " " .. normalizeLogText(rendered, "") end
     end
 
     -- Optional context suffix (watch preset): scene/view/flow/lastAction.
     if contextProvider then
         local ok, suffix = pcall(contextProvider, level, category)
         if ok and type(suffix) == "string" and suffix ~= "" then
-            text = text .. " " .. suffix
+            text = text .. " " .. normalizeLogText(suffix, "")
         end
     end
 
@@ -410,16 +420,16 @@ function Log.Error(category, message, data) emit(Log.LEVEL.ERROR, category, mess
 --- @return string flow  -- the allocated flow id (pass to FlowEnd)
 function Log.FlowBegin(kind, category, message, data)
     local flow = Log.NewFlow(kind) -- always a string
-    local msg = (message ~= nil) and safeTostring(message, "flow") or safeTostring(kind, "flow")
+    local msg = (message ~= nil) and normalizeLogText(message, "flow") or normalizeLogText(kind, "flow")
     Log.SetLastAction(msg, flow)
     emit(Log.LEVEL.DEBUG, category or Log.CATEGORY.GENERAL, msg .. " [flow begin] flow=" .. flow, data)
     return flow
 end
 
 function Log.FlowEnd(flow, category, message, data)
-    local msg = (message ~= nil) and safeTostring(message, "flow") or "flow"
+    local msg = (message ~= nil) and normalizeLogText(message, "flow") or "flow"
     emit(Log.LEVEL.DEBUG, category or Log.CATEGORY.GENERAL,
-        msg .. " [flow end] flow=" .. safeTostring(flow, "?"), data)
+        msg .. " [flow end] flow=" .. normalizeLogToken(flow, "?"), data)
 end
 
 --- Lazy payload variants: the message/data builders run ONLY after the exact gate

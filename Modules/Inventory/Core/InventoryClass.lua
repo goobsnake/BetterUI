@@ -57,6 +57,21 @@ end
 BETTERUI.Inventory.EnsureTaskManager = EnsureInventoryTaskManager
 BETTERUI.Inventory.Tasks = BETTERUI.Inventory.Tasks or InventoryDeferredTask.CreateLazyManagerProxy(EnsureInventoryTaskManager)
 
+local function LogInventoryKeybindRefresh(inv, mode)
+    local L = BETTERUI.Log
+    if not L then return end
+    local hasDescriptor = inv and inv.mainKeybindStripDescriptor ~= nil
+    local hasStrip = KEYBIND_STRIP ~= nil
+    local updated = hasDescriptor and hasStrip
+    L.Debug(updated and (L.CATEGORY.KEYBIND or L.CATEGORY.STATE) or L.CATEGORY.STATE,
+        updated and "inventory keybind refreshed" or "inventory keybind refresh incomplete", {
+            mode = mode,
+            hasDescriptor = hasDescriptor,
+            hasStrip = hasStrip,
+            updated = updated,
+        })
+end
+
 
 -- CACHING & DATA MANAGEMENT
 
@@ -213,14 +228,21 @@ References: Called by ESO base class in selection callbacks.
 ]]
 --- Refreshes the keybind strip (override with guards).
 function BETTERUI.Inventory.Class:RefreshKeybinds()
+    local L = BETTERUI.Log
     -- Guard: Skip keybind refresh if in header sort mode to preserve header keybinds
     -- This is the critical fix for the "A-Button Burn" issue - ESO's base class calls
     -- RefreshKeybinds on every selection change, which was overwriting our header keybinds
     if self.isInHeaderSortMode then
+        if L then
+            L.Debug(L.CATEGORY.STATE, "inventory keybind refresh skipped", { reason = "headerSort" })
+        end
         return
     end
     -- Guard: Skip keybind refresh during batch processing to prevent flickering
     if self:IsBatchProcessing() then
+        if L then
+            L.Debug(L.CATEGORY.STATE, "inventory keybind refresh skipped", { reason = "batch" })
+        end
         return
     end
     local nowMs = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
@@ -236,6 +258,7 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
         if self.mainKeybindStripDescriptor and KEYBIND_STRIP then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
         end
+        LogInventoryKeybindRefresh(self, "transition")
         return
     end
 
@@ -246,6 +269,7 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
     if self.mainKeybindStripDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
     end
+    LogInventoryKeybindRefresh(self, "main")
 end
 
 

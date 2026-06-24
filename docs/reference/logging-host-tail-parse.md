@@ -68,12 +68,16 @@ backslash-escaped.
   world player zone`, followed by `STATE | active addons count=.. names=..`. An AI
   joining mid-stream should scan back to the most recent one to anchor the session.
 - **`STATE | snapshot scene=.. <provider fields>`** — periodic heartbeat (~10s) + live
-  state. Absence for ≫10s while the client is up suggests a freeze/hang.
+  state. Built-in provider fields include `inventory="window=1 visible=1 ... itemRows=.. keybindMain=.."`
+  and `banking="window=1 visible=1 ... rows=.. pending=.. keybindCore=.."`; hidden windows report
+  compact `window=1 visible=0` instead of stale rows. Absence for ≫10s while
+  the client is up suggests a freeze/hang.
 - **`... [flow begin]` / `... [flow end]`** carrying `flow=<kind>#<n>` — bracket one
   multi-step operation; correlate everything sharing that `flow` id.
 - **`STATE | mark: <text>`** — a user annotation placed with `/builog mark "<text>"`.
 - **`WARN LOG | dropped=<n> reason=rate_limit`** — the file-sink budget shed `n`
-  records in a burst. Coverage gap, not an error.
+  records in a burst. Coverage gap, not an error. Sum `dropped=<n>` values; do not count
+  drop-summary lines as the dropped-record total.
 
 ## Minimal recipes
 

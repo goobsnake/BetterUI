@@ -15,7 +15,7 @@ Purpose: The enrichment layer that makes the `watch` preset materially richer th
            4. Flow envelopes           -> Log.FlowBegin/FlowEnd correlate multi-step ops;
               the flow id rides the context suffix until the next action.
            5. Curated auto-mute        -> categories that are pure noise for AI monitoring
-              can be silenced in watch only (empty by default; calibrate in-client).
+              are silenced in watch only; STATE/ACTION lines keep flow visibility.
 
          Everything is pcall-guarded and inert unless watch is active, so non-watch play
          pays nothing. Depends on BETTERUI.Log (loaded first) and BETTERUI.CIM.Names.
@@ -35,11 +35,19 @@ local active = false
 local currentView = nil         -- optional module-set sub-view label (e.g. "DepositTab")
 local snapshotProviders = {}    -- name -> fn
 local snapshotOrder = {}        -- ordered provider names (stable snapshot field order)
-local mutedCategories = {}      -- category -> true (silenced in watch only)
 local snapshotScheduled = false
 local snapshotTimerId = nil     -- pending heartbeat timer id (cancelled on Deactivate)
 
 local SNAPSHOT_INTERVAL_MS = 10000
+local DEFAULT_MUTED_CATEGORIES = { "LIST", "SEARCH", "SORT", "BATCH", "FOOTER", "KEYBIND" }
+
+local function BuildDefaultMutedCategories()
+    local out = {}
+    for i = 1, #DEFAULT_MUTED_CATEGORIES do out[DEFAULT_MUTED_CATEGORIES[i]] = true end
+    return out
+end
+
+local mutedCategories = BuildDefaultMutedCategories() -- category -> true (silenced in watch only)
 
 -- Guarded call of a global fn by name: result or nil, never raises.
 local function safeCall(fnName, ...)
@@ -169,6 +177,11 @@ function Watch.Snapshot()
         local okS, s = pcall(il.GetStats)
         if okS and type(s) == "table" then data.dropped = s.dropped end
     end
+    local la = L.GetLastAction and L.GetLastAction()
+    if type(la) == "table" then
+        if la.flow then data.flow = la.flow end
+        if la.message and la.message ~= "" then data.lastAction = la.message end
+    end
     for i = 1, #snapshotOrder do
         local nm = snapshotOrder[i]
         local fn = snapshotProviders[nm]
@@ -194,7 +207,7 @@ local function scheduleSnapshot()
 end
 
 -- ============================================================================
--- 4. Curated auto-mute (tunable; empty by default -- calibrate in-client)
+-- 4. Curated auto-mute (tunable documented defaults -- calibrate in-client)
 -- ============================================================================
 
 --- Replace the watch-only mute set. Pass a list of category names; takes effect on the

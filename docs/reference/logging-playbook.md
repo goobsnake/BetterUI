@@ -54,11 +54,16 @@ is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
 2. **Startup preamble** — a `STATE | watch session started` record with schema/api/world/
    player/zone + the enabled-addon list, so an AI joining mid-stream can anchor.
 3. **Periodic state snapshot** — a `STATE | snapshot` heartbeat (~10s) of registered
-   providers; a long gap while the client is up suggests a freeze.
+   providers; built-ins include `visible=0/1`, inventory/banking rows, category, pending
+   transfer, and keybind-group state. Hidden windows report compact `window=1 visible=0`
+   so stale singleton state is not mistaken for the active UI. A long gap while the client
+   is up suggests a freeze.
 4. **Flow envelopes** — `[flow begin]` / `[flow end]` with `flow=<kind>#<n>` bracket one
    multi-step operation; everything sharing that id is correlated.
-5. **Curated auto-mute** — categories that are noise for AI monitoring can be silenced in
-   watch only (empty by default; calibrate in-client via `WatchMode.SetMutedCategories`).
+5. **Curated auto-mute** — `watch` mutes `LIST`, `SEARCH`, `SORT`, `BATCH`, `FOOTER`,
+   and `KEYBIND` by default. `ACTION` and `STATE` stay visible, so flows, refresh
+   outcomes, and keybind/list summaries remain inspectable. Override in-client via
+   `WatchMode.SetMutedCategories`.
 
 ## All commands
 

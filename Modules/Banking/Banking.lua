@@ -368,3 +368,66 @@ function BETTERUI.Banking.Init()
         })
     end
 end
+
+local function CountBankingSnapshotRows(list)
+    local dataList = list and (list.dataList or (list.list and list.list.dataList))
+    return type(dataList) == "table" and #dataList or 0
+end
+
+local function BankingSnapshotCategoryKey(window)
+    local cat = window and window.bankCategories and window.bankCategories[window.currentCategoryIndex or 1]
+    return cat and (cat.key or cat.name) or "none"
+end
+
+local function BankingSnapshotControlVisible(control)
+    if not control then return false end
+    if control.IsHidden then
+        local ok, hidden = pcall(function() return control:IsHidden() end)
+        if ok then return hidden ~= true end
+    end
+    return false
+end
+
+local function BankingSnapshotVisible(window)
+    if BETTERUI.Utils and type(BETTERUI.Utils.IsBankingSceneShowing) == "function" then
+        local ok, showing = pcall(BETTERUI.Utils.IsBankingSceneShowing)
+        if ok then return showing == true end
+    end
+    if window.scene and window.scene.IsShowing then
+        local ok, showing = pcall(function() return window.scene:IsShowing() end)
+        if ok then return showing == true end
+    end
+    return BankingSnapshotControlVisible(window.control)
+end
+
+local function RegisterBankingSnapshotProvider()
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and watch.RegisterSnapshotProvider) then return end
+    watch.RegisterSnapshotProvider("banking", function()
+        local window = BETTERUI.Banking and BETTERUI.Banking.Window or nil
+        if not window then return "window=0" end
+        if not BankingSnapshotVisible(window) then return "window=1 visible=0" end
+        local pending = 0
+        if BETTERUI.Banking.CountPendingTransfers then
+            local ok, count = pcall(BETTERUI.Banking.CountPendingTransfers)
+            if ok and type(count) == "number" then pending = count end
+        end
+        local keybindCore = 0
+        if window.coreKeybinds and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
+            local ok, hasGroup = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(window.coreKeybinds) end)
+            keybindCore = (ok and hasGroup) and 1 or 0
+        end
+        return string.format(
+            "window=1 visible=1 mode=%s category=%s rows=%d suppressed=%d dirty=%d pending=%d search=%d keybindCore=%d",
+            tostring(window.currentMode or "?"),
+            tostring(BankingSnapshotCategoryKey(window)),
+            CountBankingSnapshotRows(window.list),
+            window._suppressListUpdates and 1 or 0,
+            window.isDirty and 1 or 0,
+            pending,
+            window.searchQuery and #tostring(window.searchQuery) or 0,
+            keybindCore)
+    end)
+end
+
+RegisterBankingSnapshotProvider()

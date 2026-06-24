@@ -48,6 +48,21 @@ local function CanUnjunkWithPolicy(target)
     return RequireProtectionPolicyMethod("CanUnjunkItem")(target.bagId, target.slotIndex) == true
 end
 
+local function BeginInventoryDialogFlow(kind, message, data)
+    local L = BETTERUI.Log
+    if L and L.IsActive and L.IsActive() and L.FlowBegin then
+        return L.FlowBegin(kind, L.CATEGORY.ACTION, message, data)
+    end
+    return nil
+end
+
+local function EndInventoryDialogFlow(flow, message, data)
+    local L = BETTERUI.Log
+    if flow and L and L.FlowEnd then
+        L.FlowEnd(flow, L.CATEGORY.ACTION, message, data)
+    end
+end
+
 local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
         return
@@ -62,6 +77,13 @@ local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
     -- that no longer holds the item the entry was built for.
     if expectedSlotIdentity
         and BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(expectedSlotIdentity, target.bagId, target.slotIndex) ~= true then
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "inventory junk toggle cancelled stale slot", {
+                bag = target.bagId,
+                slot = target.slotIndex,
+                junk = isJunk == true,
+            })
+        end
         BETTERUI.CIM.UserNotify("ItemActionHandlers:JunkStaleSlot",
             GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
         return
@@ -74,9 +96,21 @@ local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
         canToggleJunk = CanUnjunkWithPolicy(target)
     end
     if not canToggleJunk then
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "inventory junk toggle denied", {
+                bag = target.bagId,
+                slot = target.slotIndex,
+                junk = isJunk == true,
+            })
+        end
         return
     end
 
+    local flow = BeginInventoryDialogFlow("inventoryJunk", "inventory dialog junk toggle requested", {
+        bag = target.bagId,
+        slot = target.slotIndex,
+        junk = isJunk == true,
+    })
     SetItemIsJunk(target.bagId, target.slotIndex, isJunk)
 
     if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
@@ -85,9 +119,18 @@ local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
         GAMEPAD_INVENTORY:InvalidateSlotDataCache()
     end
+    local refreshed = false
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
         GAMEPAD_INVENTORY:RefreshItemList()
+        refreshed = true
     end
+    EndInventoryDialogFlow(flow,
+        refreshed and "inventory dialog junk toggle refresh complete" or "inventory dialog junk toggle refresh skipped", {
+        bag = target.bagId,
+        slot = target.slotIndex,
+        junk = isJunk == true,
+        refreshed = refreshed,
+    })
     -- PB-002: Do NOT perform keybind/list restoration synchronously here. The
     -- gamepad action dialog wraps its lifetime in KEYBIND_STRIP:PushKeybindGroupState()
     -- (on show) / PopKeybindGroupState() (on hide). This handler runs while the

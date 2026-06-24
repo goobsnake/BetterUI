@@ -512,3 +512,76 @@ function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 	return list
 end
 
+local function CountSnapshotRows(list)
+	local dataList = list and (list.dataList or (list.list and list.list.dataList))
+	return type(dataList) == "table" and #dataList or 0
+end
+
+local function SnapshotSelectedIndex(list)
+	if not list then return 0 end
+	if list.GetSelectedIndex then
+		local ok, idx = pcall(function() return list:GetSelectedIndex() end)
+		if ok and type(idx) == "number" then return idx end
+	end
+	return list.targetSelectedIndex or list.selectedIndex or 0
+end
+
+local function SnapshotCategoryKey(inv)
+	if not inv or not inv.categoryList then return "none" end
+	local data = BETTERUI.Inventory.Utils.SafeGetTargetData(inv.categoryList)
+	if data then return data.key or data.name or tostring(inv.savedInventoryCategoryIndex or "?") end
+	return tostring(inv.savedInventoryCategoryIndex or "?")
+end
+
+local function SnapshotControlVisible(control)
+	if not control then return false end
+	if control.IsHidden then
+		local ok, hidden = pcall(function() return control:IsHidden() end)
+		if ok then return hidden ~= true end
+	end
+	return false
+end
+
+local function SnapshotInventoryVisible(inv)
+	local utils = BETTERUI.Utils or (BETTERUI.CIM and BETTERUI.CIM.Utils) or nil
+	if utils and type(utils.IsInventorySceneShowing) == "function" then
+		local ok, showing = pcall(utils.IsInventorySceneShowing)
+		if ok then return showing == true end
+	end
+	if inv.scene and inv.scene.IsShowing then
+		local ok, showing = pcall(function() return inv.scene:IsShowing() end)
+		if ok then return showing == true end
+	end
+	return SnapshotControlVisible(inv.control)
+end
+
+local function RegisterInventorySnapshotProvider()
+	local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+	if not (watch and watch.RegisterSnapshotProvider) then return end
+	watch.RegisterSnapshotProvider("inventory", function()
+		local inv = rawget(_G, "GAMEPAD_INVENTORY")
+		if not inv then return "window=0" end
+		if not SnapshotInventoryVisible(inv) then return "window=1 visible=0" end
+		local keybindMain = 0
+		if inv.mainKeybindStripDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
+			local ok, hasGroup = pcall(function()
+				return KEYBIND_STRIP:HasKeybindButtonGroup(inv.mainKeybindStripDescriptor)
+			end)
+			keybindMain = (ok and hasGroup) and 1 or 0
+		end
+		return string.format(
+			"window=1 visible=1 mode=%s category=%s itemRows=%d craftRows=%d itemIdx=%d craftIdx=%d dirty=%d batch=%d headerSort=%d keybindMain=%d",
+			tostring(inv.actionMode or inv.currentListType or "?"),
+			tostring(SnapshotCategoryKey(inv)),
+			CountSnapshotRows(inv.itemList),
+			CountSnapshotRows(inv.craftBagList),
+			SnapshotSelectedIndex(inv.itemList),
+			SnapshotSelectedIndex(inv.craftBagList),
+			inv.isDirty and 1 or 0,
+			(inv.pendingBatchData or (inv.IsBatchProcessing and inv:IsBatchProcessing())) and 1 or 0,
+			inv.isInHeaderSortMode and 1 or 0,
+			keybindMain)
+	end)
+end
+
+RegisterInventorySnapshotProvider()
