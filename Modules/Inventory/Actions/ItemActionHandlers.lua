@@ -63,6 +63,46 @@ local function EndInventoryDialogFlow(flow, message, data)
     end
 end
 
+local function GetTargetItemLink(target)
+    if not (target and target.bagId and target.slotIndex and type(GetItemLink) == "function") then
+        return nil
+    end
+    local ok, link = pcall(GetItemLink, target.bagId, target.slotIndex, LINK_STYLE_BRACKETS)
+    if ok and type(link) == "string" and link ~= "" then
+        return link
+    end
+    return nil
+end
+
+local function AddTargetFields(data, target)
+    data = data or {}
+    if target then
+        data.bag = target.bagId
+        data.slot = target.slotIndex
+        data.item = GetTargetItemLink(target)
+    end
+    return data
+end
+
+local function ResolveActionText(row)
+    if not row then return nil end
+    if type(row.GetText) == "function" then
+        local ok, text = pcall(function() return row:GetText() end)
+        if ok and text ~= nil then return text end
+    end
+    return row.text or row.name or row.actionName
+end
+
+local function LogActionDialogRestore(message, data, warn)
+    local L = BETTERUI.Log
+    if not L then return end
+    if warn and L.Warn then
+        L.Warn(L.CATEGORY.STATE, message, data)
+    elseif L.Debug then
+        L.Debug(L.CATEGORY.STATE, message, data)
+    end
+end
+
 local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
         return
@@ -106,11 +146,9 @@ local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
         return
     end
 
-    local flow = BeginInventoryDialogFlow("inventoryJunk", "inventory dialog junk toggle requested", {
-        bag = target.bagId,
-        slot = target.slotIndex,
+    local flow = BeginInventoryDialogFlow("inventoryJunk", "inventory dialog junk toggle requested", AddTargetFields({
         junk = isJunk == true,
-    })
+    }, target))
     SetItemIsJunk(target.bagId, target.slotIndex, isJunk)
 
     if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
@@ -119,18 +157,10 @@ local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
         GAMEPAD_INVENTORY:InvalidateSlotDataCache()
     end
-    local refreshed = false
-    if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
-        GAMEPAD_INVENTORY:RefreshItemList()
-        refreshed = true
-    end
-    EndInventoryDialogFlow(flow,
-        refreshed and "inventory dialog junk toggle refresh complete" or "inventory dialog junk toggle refresh skipped", {
-        bag = target.bagId,
-        slot = target.slotIndex,
+    EndInventoryDialogFlow(flow, "inventory dialog junk toggle cache invalidated; waiting for inventory update", AddTargetFields({
         junk = isJunk == true,
-        refreshed = refreshed,
-    })
+        refresh = "inventoryUpdate",
+    }, target))
     -- PB-002: Do NOT perform keybind/list restoration synchronously here. The
     -- gamepad action dialog wraps its lifetime in KEYBIND_STRIP:PushKeybindGroupState()
     -- (on show) / PopKeybindGroupState() (on hide). This handler runs while the
@@ -416,7 +446,11 @@ function ActionHandlers.OnFinish(self)
             or (BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.IsInventorySceneShowing and
                 BETTERUI.CIM.Utils.IsInventorySceneShowing())
         if not sceneShowing then
-            return false
+            LogActionDialogRestore("inventory dialog finish restore skipped", {
+                actionMode = self.actionMode,
+                reason = "sceneHidden",
+            })
+            return true
         end
 
         if self.isInCraftBagSelectionMode and self.RefreshCraftBagList then
@@ -452,6 +486,10 @@ function ActionHandlers.OnFinish(self)
         if self.EnsureHeaderKeybindsActive and not self.isInHeaderSortMode then
             self:EnsureHeaderKeybindsActive()
         end
+        LogActionDialogRestore("inventory dialog finish restore complete", {
+            actionMode = self.actionMode,
+            headerSort = self.isInHeaderSortMode == true,
+        })
         return true
     end
 
@@ -468,6 +506,10 @@ function ActionHandlers.OnFinish(self)
         end
         retriesRemaining = retriesRemaining - 1
         if retriesRemaining <= 0 then
+            LogActionDialogRestore("inventory dialog finish restore abandoned", {
+                actionMode = self.actionMode,
+                reason = "retry_exhausted",
+            }, true)
             return
         end
         if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
@@ -493,6 +535,16 @@ function ActionHandlers.OnConfirm(self, dialog)
     end
 
     local selectedRow = dialog.entryList and BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
+    if selectedRow and BETTERUI.Log and BETTERUI.Log.Info then
+        local confirmedTarget = dialog and dialog.data and dialog.data.target or ResolveCurrentTarget(self)
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "inventory dialog action confirmed", AddTargetFields({
+            action = ResolveActionText(selectedRow),
+            sort = selectedRow.isSortAction == true,
+            junk = selectedRow.isJunkToggleAction == true,
+            stow = selectedRow.isStowStackAction == true,
+            retrieve = selectedRow.isRetrieveStackAction == true,
+        }, confirmedTarget))
+    end
 
     if selectedRow and selectedRow.isSortAction then
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)

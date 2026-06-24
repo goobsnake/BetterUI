@@ -25,6 +25,27 @@ local function logSafeError(context, msg, src)
     end
 end
 
+local function normalizeLuaSrc(path, lno)
+    if not path then return nil end
+    return ((path:match("[Bb]etter[Uu][Ii][/\\](.+)$") or path):gsub("\\", "/")) .. ":" .. lno
+end
+
+local function srcFromErrorMessage(msg)
+    local path, lno = msg:match("^(.-%.lua):(%d+):")
+    return normalizeLuaSrc(path, lno)
+end
+
+local function srcFromSafeExecuteBoundary()
+    local debugInfo = BETTERUI.CIM and BETTERUI.CIM.DebugInfo
+    if not (debugInfo and type(debugInfo.CaptureCallerFrame) == "function") then
+        return nil
+    end
+    local ok, src = pcall(debugInfo.CaptureCallerFrame, 3, {
+        "Diagnostics[/\\]SafeExecute%.lua",
+    })
+    return ok and src or nil
+end
+
 ---@param context string Descriptive label for error messages
 ---@param fn function|nil The function to execute safely
 ---@param ... any Arguments to pass to fn
@@ -48,13 +69,10 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
         local msg = safeStr(result, "<error>")
         -- Lift the boundary fault location: Lua error() prefixes the message with
         -- "<file>.lua:<line>: " at the START, so anchor to ^ (never capture a .lua:line that
-        -- appears LATER in the message), and allow spaces/parens in the path. Degrades to
-        -- nil for error(table) / engine errors without a leading prefix.
-        local src
-        local path, lno = msg:match("^(.-%.lua):(%d+):")
-        if path then
-            src = (path:match("[Bb]etter[Uu][Ii][/\\](.+)$") or path):gsub("\\", "/") .. ":" .. lno
-        end
+        -- appears LATER in the message), and allow spaces/parens in the path. For
+        -- error(table) / engine errors without a leading prefix, fall back to the
+        -- SafeExecute call boundary so swallowed faults still have a navigable src.
+        local src = srcFromErrorMessage(msg) or srcFromSafeExecuteBoundary()
         logSafeError(context, msg, src)
     end
 

@@ -59,11 +59,31 @@ is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
    so stale singleton state is not mistaken for the active UI. A long gap while the client
    is up suggests a freeze.
 4. **Flow envelopes** — `[flow begin]` / `[flow end]` with `flow=<kind>#<n>` bracket one
-   multi-step operation; everything sharing that id is correlated.
+   multi-step operation; everything sharing that id is correlated. Inventory/banking action flows also emit
+   visible handoff lines such as `inventory primary action resolved`, `inventory primary action invoked`,
+   `inventory dialog action confirmed`, `bank primary transfer invoked`, `bank action dialog shown`, and
+   `bank currency transfer completed/failed`.
 5. **Curated auto-mute** — `watch` mutes `LIST`, `SEARCH`, `SORT`, `BATCH`, `FOOTER`,
    and `KEYBIND` by default. `ACTION` and `STATE` stay visible, so flows, refresh
    outcomes, and keybind/list summaries remain inspectable. Override in-client via
    `WatchMode.SetMutedCategories`.
+
+## Flow landmarks to expect
+
+When play-testing inventory or banking, the live stream should show the cause-and-effect chain, not just the
+final error. These compact lines remain visible in `watch`/`inspect` even when noisy `LIST` and `KEYBIND`
+categories are muted:
+
+| User-visible flow | Expected landmarks |
+|---|---|
+| Keybind strip did not update | `STATE | inventory keybind groups refreshed` or `STATE | bank keybind groups refreshed/removed` with mode/list context. |
+| Deposit/withdraw item did not refresh list | `ACTION | bank primary transfer invoked`, a transfer flow end, then `STATE | bank list refresh scheduled/refreshed` or `STATE | inventory category list refresh scheduled/refreshed updates=<n>`. |
+| Junk toggle did not update category | `ACTION | inventory dialog action confirmed` or junk flow begin/end, then `STATE | inventory category list refresh scheduled/refreshed updates=<n>`. |
+| Currency transfer failed or seemed ignored | `ACTION | bank currency transfer completed` or `ACTION | bank currency transfer failed` with `amount`, `currency`, and `reason`. |
+| A setting/action looked enabled but did nothing | `ACTION` lines should show the resolved action and invocation; `WARN` lines should carry `caller`/`src` when a dependency or protected action blocks it. |
+
+If the user reports one of these flows and the corresponding landmark is absent near the marked `seq`, treat
+that absence as an instrumentation or control-flow bug.
 
 ## All commands
 
@@ -84,7 +104,7 @@ is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
 | `test` / `status` | write test breadcrumbs / print current state |
 
 `/buihealth` — one-shot health summary (preset, active, sid, schema, error count, file-sink
-scheduled/dropped/budget, sceneLog + watch state).
+scheduled/pending/dropped/budget, sceneLog + watch state).
 
 `/buiscene` — current scene + the recent scene-transition ring.
 

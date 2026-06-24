@@ -26,7 +26,9 @@ end
 -- ============================================================================
 
 -- Load the production SafeExecute module directly so tests break if the
--- implementation drifts. The stubs above satisfy its only dependency (BETTERUI.Debug).
+-- implementation drifts. DebugInfo is optional in production but loaded here so
+-- non-string errors can fall back to the SafeExecute call boundary.
+dofile("Modules/CIM/Core/Diagnostics/DebugInfo.lua")
 dofile("Modules/CIM/Core/Diagnostics/SafeExecute.lua")
 
 -- Reset helper
@@ -140,8 +142,8 @@ assert_true(logErrors[1].data ~= nil and type(logErrors[1].data.src) == "string"
     "boundary src (file:line) lifted from the error message")
 BETTERUI.Log = nil
 
--- Test 9: src parse robustness -- error(table) yields no src + never raises; a backslash
--- (Windows) repo path normalizes to a repo-relative forward-slash src.
+-- Test 9: src parse robustness -- error(table) falls back to a SafeExecute boundary src;
+-- a backslash (Windows) repo path normalizes to a repo-relative forward-slash src.
 print("\nTest: boundary src parse handles error(table) + backslash paths")
 reset()
 local logErrors2 = {}
@@ -151,8 +153,9 @@ BETTERUI.Log = {
 }
 local okT = BETTERUI.CIM.SafeExecute("CtxT", function() error({ code = 1 }) end)
 assert_false(okT, "error(table) returns false")
-assert_true(logErrors2[#logErrors2].data == nil or logErrors2[#logErrors2].data.src == nil,
-    "error(table) yields no boundary src (no prefix), never raises")
+assert_true(logErrors2[#logErrors2].data ~= nil and type(logErrors2[#logErrors2].data.src) == "string"
+    and logErrors2[#logErrors2].data.src:find("test_safe_execute%.lua:%d") ~= nil,
+    "error(table) falls back to the SafeExecute boundary src, never raises")
 local okB = BETTERUI.CIM.SafeExecute("CtxB", function()
     error("user:\\AddOns\\BetterUI\\Modules\\Foo.lua:5: boom", 0)
 end)

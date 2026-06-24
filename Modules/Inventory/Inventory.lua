@@ -22,6 +22,16 @@ local function GetInventoryListType(key)
 	return GetInventoryListTypes()[key]
 end
 
+local function LogInventoryState(message, data, warn)
+	local L = BETTERUI.Log
+	if not L then return end
+	if warn and L.Warn then
+		L.Warn(L.CATEGORY.STATE, message, data)
+	elseif L.Debug then
+		L.Debug(L.CATEGORY.STATE, message, data)
+	end
+end
+
 -- REMAINING CLASS METHODS
 
 --- Toggles the tooltip detailed info mode.
@@ -197,6 +207,10 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 		if self.RefreshKeybinds then
 			self:RefreshKeybinds()
 		end
+		LogInventoryState("inventory category list refreshed", {
+			reason = "bagSpaceChanged",
+			keybinds = self.RefreshKeybinds ~= nil,
+		})
 	end
 	self.control:RegisterForEvent(EVENT_INVENTORY_BOUGHT_BAG_SPACE, OnBagSpaceChanged)
 	self.control:RegisterForEvent(EVENT_INVENTORY_BAG_CAPACITY_CHANGED, OnBagSpaceChanged)
@@ -213,14 +227,17 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 		self:InvalidateSlotDataCache()
 		if self.control:IsHidden() then
 			self:MarkDirty()
+			LogInventoryState("inventory knowledge refresh deferred", { reason = "hidden" })
 			return
 		end
 		if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
+			LogInventoryState("inventory knowledge refresh skipped", { reason = "batch" })
 			return
 		end
 		if self.RefreshItemList then
 			self:RefreshItemList()
 		end
+		LogInventoryState("inventory item list refreshed", { reason = "knowledgeChanged" })
 	end
 	if EVENT_RECIPE_LEARNED then
 		self.control:RegisterForEvent(EVENT_RECIPE_LEARNED, OnItemKnowledgeChanged)
@@ -255,6 +272,9 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 		end
 		self:InvalidateSlotDataCache()
 		self:MarkDirty()
+		self._pendingInventoryUpdateCount = (self._pendingInventoryUpdateCount or 0) + 1
+		self._pendingInventoryUpdateBag = bagId
+		self._pendingInventoryUpdateSlot = slotIndex
 		if GetFrameTimeSeconds then
 			self.nextUpdateTimeSeconds = GetFrameTimeSeconds() + 0.05
 		else
@@ -290,6 +310,11 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 						self:RefreshItemActions()
 					end
 					self:RefreshKeybinds()
+					LogInventoryState("inventory selected item refreshed", {
+						bag = bagId,
+						slot = slotIndex,
+						reason = "singleSlotUpdate",
+					})
 				end
 				self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
 			end
@@ -297,9 +322,18 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 			local timeSinceShow = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneShowedTime or 0)) or 999
 			if not self._pendingCategoryListRefresh and timeSinceShow > 0.2 then
 				self._pendingCategoryListRefresh = true
+				LogInventoryState("inventory category list refresh scheduled", {
+					bag = bagId,
+					slot = slotIndex,
+					updates = self._pendingInventoryUpdateCount,
+					reason = "inventoryUpdate",
+				})
 				local function TryRefreshCategoriesAfterBatch()
 					if not self.scene:IsShowing() then
 						self._pendingCategoryListRefresh = false
+						LogInventoryState("inventory category list refresh skipped", {
+							reason = "sceneHidden",
+						})
 						return
 					end
 
@@ -309,8 +343,20 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 						return
 					end
 
+					local updateCount = self._pendingInventoryUpdateCount
+					local sampleBag = self._pendingInventoryUpdateBag
+					local sampleSlot = self._pendingInventoryUpdateSlot
+					self._pendingInventoryUpdateCount = nil
+					self._pendingInventoryUpdateBag = nil
+					self._pendingInventoryUpdateSlot = nil
 					self._pendingCategoryListRefresh = false
 					self:RefreshCategoryList()
+					LogInventoryState("inventory category list refreshed", {
+						bag = sampleBag,
+						slot = sampleSlot,
+						updates = updateCount,
+						reason = "inventoryUpdate",
+					})
 				end
 
 				BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
@@ -526,10 +572,15 @@ local function SnapshotSelectedIndex(list)
 	return list.targetSelectedIndex or list.selectedIndex or 0
 end
 
+local function SnapshotToken(value)
+	local token = tostring(value or "none")
+	return (token:gsub("|", "/"):gsub("%s+", "_"))
+end
+
 local function SnapshotCategoryKey(inv)
 	if not inv or not inv.categoryList then return "none" end
 	local data = BETTERUI.Inventory.Utils.SafeGetTargetData(inv.categoryList)
-	if data then return data.key or data.name or tostring(inv.savedInventoryCategoryIndex or "?") end
+	if data then return SnapshotToken(data.key or data.name or tostring(inv.savedInventoryCategoryIndex or "?")) end
 	return tostring(inv.savedInventoryCategoryIndex or "?")
 end
 

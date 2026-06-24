@@ -10,6 +10,21 @@ local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
 -- Action mode constants: Replaced by BETTERUI.Inventory.CONST equivalents
 
+local function SetInventoryWatchView(listDescriptor)
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and type(watch.SetView) == "function") then return end
+
+    local view = "inventory"
+    if listDescriptor == INVENTORY_CATEGORY_LIST then
+        view = "inventory.category"
+    elseif listDescriptor == INVENTORY_CRAFT_BAG_LIST then
+        view = "inventory.craft_bag"
+    elseif listDescriptor == INVENTORY_ITEM_LIST then
+        view = "inventory.items"
+    end
+    watch.SetView(view)
+end
+
 --- @class ListActivationConfig
 --- @field savedCategoryKey string|nil Saved category key for position restoration
 --- @field isCraftBag boolean Whether this is a craft bag list
@@ -138,6 +153,7 @@ local function SwitchActiveList(self, listDescriptor)
 
     self.previousListType = self.currentListType
     self.currentListType = listDescriptor
+    SetInventoryWatchView(self.currentListType)
 
     if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.NAV, "switch active list", {old = self.previousListType, new = self.currentListType}) end
 

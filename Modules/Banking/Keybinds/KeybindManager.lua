@@ -98,6 +98,30 @@ local function ResolveKeybindTransferContext(self)
     return transferContext, isGuildBankMode, isMainBankContext
 end
 
+local function BeginCurrencyTransferFlow(self, message, data)
+    local L = BETTERUI.Log
+    if L and L.IsActive and L.IsActive() and L.FlowBegin then
+        data = data or {}
+        data.mode = self and self.currentMode
+        return L.FlowBegin("bankCurrencyTransfer", L.CATEGORY.ACTION, message, data)
+    end
+    return nil
+end
+
+local function EndCurrencyTransferFlow(flow, message, data)
+    local L = BETTERUI.Log
+    if flow and L and L.FlowEnd then
+        L.FlowEnd(flow, L.CATEGORY.ACTION, message, data)
+    end
+end
+
+local function LogBankKeybindState(message, data)
+    local L = BETTERUI.Log
+    if L and L.Debug then
+        L.Debug(L.CATEGORY.STATE, message, data)
+    end
+end
+
 local function GetPrimaryTransferLabel(self)
     if IsSelectionToggleMode(self) then
         local target = GetSelectedTransferEntry(self)
@@ -381,6 +405,14 @@ local function CreateTransferKeybinds(self)
                 if selectedData then
                     local stackCount = selectedData.stackCount or 1
                     local _, isGuildBankMode = ResolveKeybindTransferContext(self)
+                    local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
+                    LogBankKeybindState("bank primary transfer invoked", {
+                        bag = bagId,
+                        slot = slotIndex,
+                        mode = self.currentMode,
+                        stackCount = stackCount,
+                        guild = isGuildBankMode,
+                    })
                     if stackCount > 1 and not isGuildBankMode then
                         self:ShowQuantityDialog(self.currentMode == LIST_DEPOSIT)
                     else
@@ -419,6 +451,11 @@ local function CreateCurrencySelectorKeybinds(self)
             callback = function()
                 local amount = self.selector:GetValue()
                 if not amount or amount <= 0 then
+                    LogBankKeybindState("bank currency transfer skipped", {
+                        reason = "amount",
+                        amount = amount,
+                        mode = self.currentMode,
+                    })
                     return
                 end
                 local currencySelector = GetCurrencySelector()
@@ -430,15 +467,31 @@ local function CreateCurrencySelectorKeybinds(self)
                     currencyType = selectedData and selectedData.currencyType or nil
                 end
                 if currencyType == nil then
+                    LogBankKeybindState("bank currency transfer skipped", {
+                        reason = "currency",
+                        amount = amount,
+                        mode = self.currentMode,
+                    })
                     return
                 end
                 local _, isGuildBankMode = ResolveKeybindTransferContext(self)
+                local flow = BeginCurrencyTransferFlow(self, "bank currency transfer requested", {
+                    currencyType = currencyType,
+                    amount = amount,
+                    guild = isGuildBankMode,
+                })
                 if isGuildBankMode then
                     local GuildBank = BETTERUI.Banking.GuildBank
                     local denial = GuildBank and GuildBank.GetGoldPermissionDenial
                         and GuildBank.GetGoldPermissionDenial(self.currentMode)
                     if denial then
                         BETTERUI.CIM.UserNotify("Banking.Keybinds:CurrencyTransfer", denial.text)
+                        EndCurrencyTransferFlow(flow, "bank currency transfer denied", {
+                            currencyType = currencyType,
+                            amount = amount,
+                            guild = true,
+                            reason = "permission",
+                        })
                         return
                     end
                 end
@@ -448,28 +501,55 @@ local function CreateCurrencySelectorKeybinds(self)
                     and currencySelector.GetLiveTransferMax(self, currencyType)
                 if liveMax ~= nil then
                     if liveMax <= 0 then
+                        EndCurrencyTransferFlow(flow, "bank currency transfer skipped", {
+                            currencyType = currencyType,
+                            amount = amount,
+                            guild = isGuildBankMode,
+                            reason = "liveMax",
+                        })
                         return
                     end
                     amount = zo_min(amount, liveMax)
                 end
+                local fromLocation
+                local toLocation
                 if isGuildBankMode then
                     if self.currentMode == LIST_WITHDRAW then
-                        TransferCurrency(currencyType, amount, CURRENCY_LOCATION_GUILD_BANK, CURRENCY_LOCATION_CHARACTER)
+                        fromLocation, toLocation = CURRENCY_LOCATION_GUILD_BANK, CURRENCY_LOCATION_CHARACTER
                     else
-                        TransferCurrency(currencyType, amount, CURRENCY_LOCATION_CHARACTER, CURRENCY_LOCATION_GUILD_BANK)
+                        fromLocation, toLocation = CURRENCY_LOCATION_CHARACTER, CURRENCY_LOCATION_GUILD_BANK
                     end
                 else
                     if self.currentMode == LIST_WITHDRAW then
-                        TransferCurrency(currencyType, amount, CURRENCY_LOCATION_BANK, CURRENCY_LOCATION_CHARACTER)
+                        fromLocation, toLocation = CURRENCY_LOCATION_BANK, CURRENCY_LOCATION_CHARACTER
                     else
-                        TransferCurrency(currencyType, amount, CURRENCY_LOCATION_CHARACTER, CURRENCY_LOCATION_BANK)
+                        fromLocation, toLocation = CURRENCY_LOCATION_CHARACTER, CURRENCY_LOCATION_BANK
                     end
+                end
+                local okTransfer, transferResult = pcall(TransferCurrency, currencyType, amount, fromLocation, toLocation)
+                if not okTransfer or transferResult == false then
+                    EndCurrencyTransferFlow(flow, "bank currency transfer failed", {
+                        currencyType = currencyType,
+                        amount = amount,
+                        guild = isGuildBankMode,
+                        from = fromLocation,
+                        to = toLocation,
+                        reason = okTransfer and "transfer_returned_false" or tostring(transferResult),
+                    })
+                    return
                 end
                 if currencySelector and currencySelector.HideSelector then
                     currencySelector.HideSelector(self)
                 end
                 self:RefreshFooter()
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+                EndCurrencyTransferFlow(flow, "bank currency transfer completed", {
+                    currencyType = currencyType,
+                    amount = amount,
+                    guild = isGuildBankMode,
+                    from = fromLocation,
+                    to = toLocation,
+                })
             end,
         }
     }
@@ -535,7 +615,9 @@ ResolveGuildBankTransferKeybindState = function(self)
     local transferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService and BETTERUI.Banking.GetTransferService()
     local resolveDecision = transferService and transferService.ResolveGuildBankTransferDecision or nil
     if type(resolveDecision) ~= "function" then
-        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.KEYBIND, "guild transfer resolver missing; treated as allowed") end
+        if BETTERUI.Log and BETTERUI.Log.Warn then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.KEYBIND, "guild transfer resolver missing; treated as allowed")
+        end
         return true, nil
     end
 
@@ -603,6 +685,12 @@ function BETTERUI.Banking.Class:AddKeybinds()
     KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
     self:UpdateActions()
     self:EnsureHeaderKeybindsActive()
+    LogBankKeybindState("bank keybind groups refreshed", {
+        core = self.coreKeybinds ~= nil,
+        transfer = self.withdrawDepositKeybinds ~= nil,
+        search = self.textSearchKeybindStripDescriptor ~= nil,
+        mode = self.currentMode,
+    })
 end
 
 function BETTERUI.Banking.Class:RemoveKeybinds()
@@ -611,6 +699,11 @@ function BETTERUI.Banking.Class:RemoveKeybinds()
     end
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+    LogBankKeybindState("bank keybind groups removed", {
+        core = self.coreKeybinds ~= nil,
+        transfer = self.withdrawDepositKeybinds ~= nil,
+        mode = self.currentMode,
+    })
 end
 
 ---@param self BETTERUI.Banking.Class

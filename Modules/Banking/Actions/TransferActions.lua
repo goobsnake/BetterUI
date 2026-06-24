@@ -16,6 +16,33 @@ local function EndBankTransferFlow(flow, message, data)
     end
 end
 
+local function GetTransferItemLink(bag, slot)
+    if not (bag and slot and type(GetItemLink) == "function") then
+        return nil
+    end
+    local ok, link = pcall(GetItemLink, bag, slot, LINK_STYLE_BRACKETS)
+    if ok and type(link) == "string" and link ~= "" then
+        return link
+    end
+    return nil
+end
+
+local function TransferData(bag, slot, data)
+    data = data or {}
+    if bag ~= nil then data.fromBag = bag end
+    if slot ~= nil then data.fromSlot = slot end
+    data.item = GetTransferItemLink(bag, slot)
+    return data
+end
+
+local function WarnBankTransferBlocked(reason, bag, slot, extra)
+    local L = BETTERUI.Log
+    if not (L and L.Warn) then return end
+    extra = TransferData(bag, slot, extra or {})
+    extra.reason = reason
+    L.Warn(L.CATEGORY.ACTION, "bank transfer blocked", extra)
+end
+
 ---@return BetterUIBankingTransferContext
 local function ReadTransferContextSnapshot()
     local readTransferContextSnapshot = BETTERUI.Banking and BETTERUI.Banking.ReadTransferContextSnapshot or nil
@@ -47,9 +74,20 @@ local function RequireTransferService()
 end
 
 local function RefreshBankListAfterTransfer(self, delayMs, flow)
+    local hadMoveSuppression = self._moveCoalesceSuppressionToken ~= nil
+    local externalSuppressed = self._suppressListUpdates == true and not hadMoveSuppression
     self._moveCoalesceToken = (self._moveCoalesceToken or 0) + 1
     local myToken = self._moveCoalesceToken
     self:SetListUpdatesSuppressed(true)
+    self._moveCoalesceSuppressionToken = externalSuppressed and nil or myToken
+    if (externalSuppressed or hadMoveSuppression) and BETTERUI.Log then
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "bank transfer list refresh coalesced", {
+            flow = flow,
+            token = myToken,
+            mode = self.currentMode,
+            external = externalSuppressed,
+        })
+    end
 
     local previousCategoryKey
     if self.GetCurrentCategoryKey then
@@ -64,7 +102,22 @@ local function RefreshBankListAfterTransfer(self, delayMs, flow)
             if myToken ~= self._moveCoalesceToken then
                 return
             end
-            self:SetListUpdatesSuppressed(false)
+            if externalSuppressed and self._suppressListUpdates == true then
+                if BETTERUI.Log then
+                    BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "bank transfer list refresh skipped", {
+                        flow = flow,
+                        reason = "externalSuppression",
+                        token = myToken,
+                        mode = self.currentMode,
+                    })
+                end
+                return
+            end
+
+            if self._moveCoalesceSuppressionToken == myToken then
+                self._moveCoalesceSuppressionToken = nil
+                self:SetListUpdatesSuppressed(false)
+            end
 
             if BETTERUI.Log then
                 BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "bank transfer list refresh running", {
@@ -175,9 +228,11 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
     end
     local transferService, transferServiceReason = RequireTransferService()
     if not transferService then
+        WarnBankTransferBlocked(transferServiceReason or "transfer_service_missing", bag, index, {
+            mode = isGuildBankMode and "guild" or "bank",
+        })
         return false, transferServiceReason
     end
-    local isGuildBankMode = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
 
     if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
@@ -189,6 +244,10 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
                 index
             )
             if not canTransfer then
+                WarnBankTransferBlocked(denyReason or "guild_transfer_denied", bag, index, {
+                    mode = LIST_WITHDRAW,
+                    guild = true,
+                })
                 return false, denyReason
             end
         end
@@ -200,6 +259,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
         end
 
         BETTERUI.CIM.UserNotify("TryTransferItem:Withdraw", SI_INVENTORY_ERROR_INVENTORY_FULL)
+        WarnBankTransferBlocked("inventory_full", bag, index, { mode = LIST_WITHDRAW })
         return false, "inventory_full"
     end
 
@@ -216,6 +276,10 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
             index
         )
         if not canTransfer then
+            WarnBankTransferBlocked(denyReason or "guild_transfer_denied", bag, index, {
+                mode = LIST_DEPOSIT,
+                guild = true,
+            })
             return false, denyReason
         end
     end
@@ -223,6 +287,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
     local canDeposit, denyReason = transferService.CanDepositIntoBank(bag, index, bankingBag)
     if not canDeposit then
         transferService.NotifyTransferDenied("TryTransferItem:Deposit", bankingBag, denyReason)
+        WarnBankTransferBlocked(denyReason or "deposit_denied", bag, index, { mode = LIST_DEPOSIT, toBag = bankingBag })
         return false, denyReason
     end
 
@@ -238,6 +303,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
         -- Guild bank is full; the ESO-Plus/subscriber-bank messaging below only
         -- applies to the personal bank.
         BETTERUI.CIM.UserNotify("TryTransferItem:GuildDeposit", SI_INVENTORY_ERROR_BANK_FULL)
+        WarnBankTransferBlocked("bank_full", bag, index, { mode = LIST_DEPOSIT, toBag = BAG_GUILDBANK })
         return false, "bank_full"
     end
     if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
@@ -248,6 +314,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
         end
     end
     ZO_AlertEvent(EVENT_BANK_IS_FULL)
+    WarnBankTransferBlocked("bank_full", bag, index, { mode = LIST_DEPOSIT, toBag = bankingBag })
     return false, "bank_full"
 end
 
@@ -330,24 +397,26 @@ function BETTERUI.Banking.CountPendingTransfers()
 end
 
 local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIndex, quantity)
-    local flow = BeginBankTransferFlow("bank transfer move requested", {
-        fromBag = fromBag,
-        fromSlot = fromBagIndex,
+    local flow = BeginBankTransferFlow("bank transfer move requested", TransferData(fromBag, fromBagIndex, {
         toBag = toBag,
         toSlot = toBagIndex,
         quantity = quantity,
         mode = self and self.currentMode,
-    })
+    }))
     MarkTransferPending(fromBag, fromBagIndex)
     if not CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity) then
         ClearTransferPending(fromBag, fromBagIndex)
-        EndBankTransferFlow(flow, "bank transfer move failed", {
-            fromBag = fromBag,
-            fromSlot = fromBagIndex,
+        WarnBankTransferBlocked("request_move_failed", fromBag, fromBagIndex, {
             toBag = toBag,
             toSlot = toBagIndex,
             quantity = quantity,
+            mode = self and self.currentMode,
         })
+        EndBankTransferFlow(flow, "bank transfer move failed", TransferData(fromBag, fromBagIndex, {
+            toBag = toBag,
+            toSlot = toBagIndex,
+            quantity = quantity,
+        }))
         local stringId = rawget(_G, "SI_BETTERUI_ITEM_MOVE_FAILED")
         BETTERUI.CIM.UserNotify("TransferActions:RequestMoveItem",
             stringId and GetString(stringId) or "Item move request failed")
@@ -355,16 +424,14 @@ local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIn
     end
     BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
     local refreshScheduled, refreshReason = MaybeRefreshAfterTransfer(self, flow)
-    EndBankTransferFlow(flow, "bank transfer refresh decision", {
-        fromBag = fromBag,
-        fromSlot = fromBagIndex,
+    EndBankTransferFlow(flow, "bank transfer refresh decision", TransferData(fromBag, fromBagIndex, {
         toBag = toBag,
         toSlot = toBagIndex,
         pending = BETTERUI.Banking.CountPendingTransfers and BETTERUI.Banking.CountPendingTransfers() or nil,
         refreshScheduled = refreshScheduled,
         refreshReason = refreshReason,
         suppressed = self and self._suppressListUpdates == true,
-    })
+    }))
     return true
 end
 
@@ -381,19 +448,20 @@ end
 
 local function ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex)
     local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
-    local flow = BeginBankTransferFlow("guild bank transfer requested", {
-        fromBag = fromBag,
-        fromSlot = fromBagIndex,
+    local flow = BeginBankTransferFlow("guild bank transfer requested", TransferData(fromBag, fromBagIndex, {
         mode = mode,
-    })
-    local canTransfer = transferService.NotifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, fromBag,
+    }))
+    local canTransfer, denyReason = transferService.NotifyGuildBankTransferDenied("TransferActions:GuildTransfer", mode, fromBag,
         fromBagIndex)
     if not canTransfer then
-        EndBankTransferFlow(flow, "guild bank transfer denied", {
-            fromBag = fromBag,
-            fromSlot = fromBagIndex,
+        WarnBankTransferBlocked(denyReason or "guild_transfer_denied", fromBag, fromBagIndex, {
             mode = mode,
+            guild = true,
         })
+        EndBankTransferFlow(flow, "guild bank transfer denied", TransferData(fromBag, fromBagIndex, {
+            mode = mode,
+            reason = denyReason,
+        }))
         return
     end
 
@@ -422,24 +490,20 @@ local function ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex
     end
 
     if not requested then
-        EndBankTransferFlow(flow, "guild bank transfer blocked", {
-            fromBag = fromBag,
-            fromSlot = fromBagIndex,
+        EndBankTransferFlow(flow, "guild bank transfer blocked", TransferData(fromBag, fromBagIndex, {
             mode = mode,
             reason = denyReason,
-        })
+        }))
         return
     end
 
     local refreshScheduled, refreshReason = MaybeRefreshAfterTransfer(self, flow)
-    EndBankTransferFlow(flow, "guild bank transfer refresh decision", {
-        fromBag = fromBag,
-        fromSlot = fromBagIndex,
+    EndBankTransferFlow(flow, "guild bank transfer refresh decision", TransferData(fromBag, fromBagIndex, {
         mode = mode,
         refreshScheduled = refreshScheduled,
         refreshReason = refreshReason,
         suppressed = self and self._suppressListUpdates == true,
-    })
+    }))
 end
 
 local function ExecutePersonalOrHouseMove(self, transferContext, transferService, fromBag, fromBagIndex, fromBagItemLink,
@@ -457,6 +521,10 @@ local function ExecutePersonalOrHouseMove(self, transferContext, transferService
         local canDeposit, denyReason = transferService.CanDepositIntoBank(fromBag, fromBagIndex, targetBankBag)
         if not canDeposit then
             NotifyDepositBlocked(targetBankBag, denyReason)
+            WarnBankTransferBlocked(denyReason or "deposit_denied", fromBag, fromBagIndex, {
+                mode = LIST_DEPOSIT,
+                toBag = targetBankBag,
+            })
             return
         end
         toBag, toBagEmptyIndex = FindEmptySlotInBank(targetBankBag)
@@ -474,6 +542,8 @@ local function ExecutePersonalOrHouseMove(self, transferContext, transferService
             RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIndex, quantity)
         else
             BETTERUI.CIM.UserNotify("TransferActions:NoStackSlot", errorStringId)
+            WarnBankTransferBlocked(errorStringId == SI_INVENTORY_ERROR_INVENTORY_FULL and "inventory_full" or "bank_full",
+                fromBag, fromBagIndex, { mode = self.currentMode, toBag = toBag })
         end
         return
     end
@@ -502,6 +572,8 @@ local function ExecutePersonalOrHouseMove(self, transferContext, transferService
 
     local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or SI_INVENTORY_ERROR_BANK_FULL
     BETTERUI.CIM.UserNotify("TransferActions:NoBankSlot", errorStringId)
+    WarnBankTransferBlocked(errorStringId == SI_INVENTORY_ERROR_INVENTORY_FULL and "inventory_full" or "bank_full",
+        fromBag, fromBagIndex, { mode = self.currentMode, toBag = toBag or targetBankBag })
 end
 
 ---@param list table The parametric list to get selected data from
@@ -569,6 +641,17 @@ function BETTERUI.Banking.Class:ShowActions()
     local targetData = list and list.selectedData or nil
     if not IsActionableBankSlotEntry(targetData) then
         return
+    end
+    local bagId, slotIndex
+    if BETTERUI.Banking.ResolveListEntrySlot then
+        bagId, slotIndex = BETTERUI.Banking.ResolveListEntrySlot(targetData)
+    end
+    bagId = bagId or targetData.bagId
+    slotIndex = slotIndex or targetData.slotIndex
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "bank action dialog shown", TransferData(bagId, slotIndex, {
+            mode = self.currentMode,
+        }))
     end
 
     self:RemoveKeybinds()

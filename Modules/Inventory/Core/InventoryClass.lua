@@ -63,13 +63,23 @@ local function LogInventoryKeybindRefresh(inv, mode)
     local hasDescriptor = inv and inv.mainKeybindStripDescriptor ~= nil
     local hasStrip = KEYBIND_STRIP ~= nil
     local updated = hasDescriptor and hasStrip
-    L.Debug(updated and (L.CATEGORY.KEYBIND or L.CATEGORY.STATE) or L.CATEGORY.STATE,
+    L.Debug(L.CATEGORY.STATE,
         updated and "inventory keybind refreshed" or "inventory keybind refresh incomplete", {
             mode = mode,
             hasDescriptor = hasDescriptor,
             hasStrip = hasStrip,
             updated = updated,
         })
+end
+
+local function LogInventoryDialogRestore(message, data, warn)
+    local L = BETTERUI.Log
+    if not L then return end
+    if warn and L.Warn then
+        L.Warn(L.CATEGORY.STATE, message, data)
+    elseif L.Debug then
+        L.Debug(L.CATEGORY.STATE, message, data)
+    end
 end
 
 
@@ -454,7 +464,11 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
                 and BETTERUI.CIM.Utils.IsInventorySceneShowing
                 and BETTERUI.CIM.Utils.IsInventorySceneShowing())
         if not sceneShowing then
-            return false
+            LogInventoryDialogRestore("inventory dialog restore skipped", {
+                task = taskName or "inventoryDialogRestore",
+                reason = "sceneHidden",
+            })
+            return true
         end
 
         if not self.isInHeaderSortMode and self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
@@ -530,6 +544,14 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
             return false
         end
 
+        LogInventoryDialogRestore("inventory dialog restore complete", {
+            task = taskName or "inventoryDialogRestore",
+            actionMode = self.actionMode,
+            selected = selectedData ~= nil,
+            hasList = selectedList ~= nil,
+            keybinds = self.mainKeybindStripDescriptor ~= nil and KEYBIND_STRIP ~= nil,
+            headerSort = self.isInHeaderSortMode == true,
+        })
         return true
     end
 
@@ -544,6 +566,11 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
 
         retriesRemaining = retriesRemaining - 1
         if retriesRemaining <= 0 then
+            LogInventoryDialogRestore("inventory dialog restore abandoned", {
+                task = taskName or "inventoryDialogRestore",
+                actionMode = self.actionMode,
+                reason = "retry_exhausted",
+            }, true)
             return
         end
 

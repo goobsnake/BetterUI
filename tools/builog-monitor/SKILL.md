@@ -201,6 +201,17 @@ skipped or incomplete keybind/list outcomes still surface through compact `STATE
 the inventory/banking snapshot provider fields include `visible=0/1` so hidden singleton UI
 state is not mistaken for the active screen. A missing expected line is as diagnostic as an error.
 
+For common UI-flow bugs, look for these landmarks in the marked `seq` window:
+
+| Symptom | Expected evidence |
+|---|---|
+| Action/keybind did nothing | `ACTION | inventory primary action resolved`, `ACTION | inventory primary action invoked`, `ACTION | bank primary transfer invoked`, or `ACTION | bank action dialog shown`. |
+| Keybind strip stale | `STATE | inventory keybind groups refreshed` or `STATE | bank keybind groups refreshed/removed`. |
+| Item deposit/withdraw list stale | transfer flow end followed by `STATE | bank list refresh scheduled/refreshed` or `STATE | inventory category list refresh scheduled/refreshed updates=<n>`. |
+| Junk/category did not refresh | junk/dialog `ACTION` confirmation followed by the inventory category refresh scheduled/refreshed pair. |
+| Currency transfer failed silently | `ACTION | bank currency transfer failed` with `amount`, `currency`, and `reason`; success should say `bank currency transfer completed`. |
+| Transfer blocked | `WARN ACTION | bank transfer blocked` with `reason`, `fromBag`, `toBag`, `slot`, and item context. |
+
 ## How each platform uses this skill
 
 This is plain markdown + a shell script — nothing platform-specific. Point any agent at

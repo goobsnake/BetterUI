@@ -74,6 +74,12 @@ backslash-escaped.
   the client is up suggests a freeze/hang.
 - **`... [flow begin]` / `... [flow end]`** carrying `flow=<kind>#<n>` — bracket one
   multi-step operation; correlate everything sharing that `flow` id.
+- **Inventory/banking action landmarks** — `ACTION | inventory primary action resolved`, `ACTION | inventory
+  primary action invoked`, `ACTION | inventory dialog action confirmed`, `ACTION | bank primary transfer
+  invoked`, `ACTION | bank currency transfer completed/failed`, and `WARN ACTION | bank transfer blocked`
+  explain why a keybind, item move, currency transfer, or dialog action progressed or stopped.
+- **Refresh landmarks** — `STATE | inventory category list refresh scheduled/refreshed updates=<n>` and
+  `STATE | bank list refresh scheduled/refreshed` are the expected follow-ups after item mutation flows.
 - **`STATE | mark: <text>`** — a user annotation placed with `/builog mark "<text>"`.
 - **`WARN LOG | dropped=<n> reason=rate_limit`** — the file-sink budget shed `n`
   records in a burst. Coverage gap, not an error. Sum `dropped=<n>` values; do not count

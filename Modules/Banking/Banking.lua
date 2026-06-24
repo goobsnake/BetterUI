@@ -34,6 +34,12 @@ local function SyncGamepadBankingSceneGlobal()
     end
 end
 
+local function SetInitialBankingWatchView(mode)
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and type(watch.SetView) == "function") then return end
+    watch.SetView(mode == LIST_DEPOSIT and "banking.deposit" or "banking.withdraw")
+end
+
 ---@return table|nil
 function BETTERUI.Banking.GetSortEntryContext()
     local window = BETTERUI.Banking and BETTERUI.Banking.Window or nil
@@ -102,6 +108,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     end
 
     self.currentMode = LIST_WITHDRAW
+    SetInitialBankingWatchView(self.currentMode)
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     self.lastPositionsByCategory = {}
 
@@ -180,11 +187,28 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     local function UpdateCurrency_Handler()
         if not BETTERUI.Utils.IsBankingSceneShowing() then
+            if BETTERUI.Log and BETTERUI.Log.Trace then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.STATE, "bank currency UI refresh skipped", {
+                    reason = "sceneHidden",
+                })
+            end
             return
         end
 
+        if BETTERUI.Log then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "bank currency UI refresh scheduled", {
+                delayMs = CURRENCY_UI_REFRESH_DELAY_MS,
+                mode = self.currentMode,
+            })
+        end
         BETTERUI.Banking.Tasks:Schedule("currencyUiRefresh", CURRENCY_UI_REFRESH_DELAY_MS, function()
             if not BETTERUI.Utils.IsBankingSceneShowing() then
+                if BETTERUI.Log and BETTERUI.Log.Trace then
+                    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.STATE, "bank currency UI refresh skipped", {
+                        reason = "sceneHiddenDeferred",
+                        mode = self.currentMode,
+                    })
+                end
                 return
             end
 
@@ -205,6 +229,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
             end
             self:RefreshCurrencyTooltip()
+            if BETTERUI.Log then
+                BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "bank currency UI refresh complete", {
+                    mode = self.currentMode,
+                    categoryKey = activeCategoryForHeader and activeCategoryForHeader.key or nil,
+                    showingCurrencyRows = showingCurrencyRows,
+                })
+            end
         end)
     end
 
@@ -374,9 +405,14 @@ local function CountBankingSnapshotRows(list)
     return type(dataList) == "table" and #dataList or 0
 end
 
+local function BankingSnapshotToken(value)
+    local token = tostring(value or "none")
+    return (token:gsub("|", "/"):gsub("%s+", "_"))
+end
+
 local function BankingSnapshotCategoryKey(window)
     local cat = window and window.bankCategories and window.bankCategories[window.currentCategoryIndex or 1]
-    return cat and (cat.key or cat.name) or "none"
+    return BankingSnapshotToken(cat and (cat.key or cat.name) or "none")
 end
 
 local function BankingSnapshotControlVisible(control)
@@ -391,7 +427,11 @@ end
 local function BankingSnapshotVisible(window)
     if BETTERUI.Utils and type(BETTERUI.Utils.IsBankingSceneShowing) == "function" then
         local ok, showing = pcall(BETTERUI.Utils.IsBankingSceneShowing)
-        if ok then return showing == true end
+        -- Personal banking uses this utility as the fastest true signal. Guild-bank
+        -- windows can be visible through their own scene/control path while the
+        -- personal-bank utility returns false, so false falls through to the broader
+        -- checks below.
+        if ok and showing == true then return true end
     end
     if window.scene and window.scene.IsShowing then
         local ok, showing = pcall(function() return window.scene:IsShowing() end)

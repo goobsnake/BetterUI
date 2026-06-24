@@ -77,8 +77,8 @@ attempted=child,ancestorGlobal,global scene=bank view=bank flow=none lastAction=
 
 `verbose` -> alias of `trace` (`ai` -> `watch` for one release with a deprecation notice). Maintainer's call:
 **ship loose, calibrate in-client.** Safety valves: `/builog cat <CATEGORY> off|on` (WARN/ERROR always pass)
-and `/builog capture` burst mode (temporary budget, auto-restore <=15s). `maxPending` is **reserved/not
-enforced** — document honestly.
+and `/builog capture` burst mode (temporary budget, auto-restore <=15s). `maxPending` is enforced as a hard
+deferred-sink backlog cap and exposed in `/builog status`/`/buihealth` stats as `pending`.
 
 ## 3. Real-time AI monitoring (the only handoff)
 **Live line schema** (logfmt, never JSON): `[BUI] <gameMs> sid=<sid> seq=<seq> <LEVEL> <CATEGORY> | <area>:
@@ -100,6 +100,10 @@ filter; tagged-error tracebacks are ignorable, untagged `Lua Error:` blocks are 
    break the heartbeat.
 4. **Flow envelopes**: `DEBUG ACTION | flow: begin -> deposit#48 kind=deposit item="Rubedite Ingot" qty=5` …
    `flow: end -> deposit#48 result=ok durationMs=42`. Errors inside a flow auto-carry `flow`+`lastAction`.
+   Inventory/banking now publish compact watch-visible landmarks for user-action handoffs: primary action
+   resolved/invoked, dialog action confirmed/restored/skipped, keybind-group refresh summaries, category/list
+   refresh scheduled/refreshed with `updates=`, bank item transfer blocked with `reason=`, and bank currency
+   transfer completed/failed.
 5. **Curated auto-mute** (the main reason it's its own preset): at DEBUG, enable `STATE,LIFECYCLE,SCENE,NAV,
    CATEGORY,ACTION,CONTROL,SAFE,PERF,SETTINGS`; mute `LIST,SEARCH,SORT,BATCH,FOOTER,KEYBIND`. WARN/ERROR
    always pass; TRACE never passes in `watch`. Override from addon code via
@@ -131,7 +135,8 @@ file). **Capture mode** `/builog capture start|stop|dump` (bounded temporary pre
 
 1. **Live schema foundation** — `Log.lua`: `CONTROL`/`PERF`/`STATE` cats; `sid`+`seq`; line format incl.
    context-suffix support; recent ring; `sinkDropped`; schema-version field. `InterfaceLog.lua`: help/status
-   -> `off|info|watch|debug|trace|inspect` (inspect = trace verbosity + watch enrichment); budgets; `maxPending` reserved.
+   -> `off|info|watch|debug|trace|inspect` (inspect = trace verbosity + watch enrichment); budgets; enforced
+   `maxPending` sink-backlog cap.
 2. **Name + caller/src infra** — new `Names.lua`; `DebugInfo.lua` (`CaptureCallerFrame` via guarded sync
    `debug.traceback`, parse rules, caps); canonical keys; `Log.NewFlow`/`Log.SetLastAction`.
 3. **`watch` preset** — curated auto-mute; per-line context suffix; startup preamble (incl. active addons);

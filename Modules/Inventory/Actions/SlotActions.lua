@@ -173,6 +173,68 @@ local function EndInventoryActionFlow(flow, message, data)
     end
 end
 
+local function GetSlotItemLink(bag, slot)
+    if not (bag and slot and type(GetItemLink) == "function") then
+        return nil
+    end
+    local ok, link = pcall(GetItemLink, bag, slot, LINK_STYLE_BRACKETS)
+    if ok and type(link) == "string" and link ~= "" then
+        return link
+    end
+    return nil
+end
+
+local function SlotActionData(bag, slot, extra)
+    local data = extra or {}
+    data.bag = bag
+    data.slot = slot
+    data.item = GetSlotItemLink(bag, slot)
+    return data
+end
+
+local function SafeResolveBagAndSlot(slotData)
+    if type(ZO_Inventory_GetBagAndIndex) ~= "function" then return nil, nil end
+    local ok, bag, slot = pcall(ZO_Inventory_GetBagAndIndex, slotData)
+    if ok then
+        return bag, slot
+    end
+    return nil, nil
+end
+
+local function ResolveCurrentInventoryActionTarget()
+    local inv = rawget(_G, "GAMEPAD_INVENTORY")
+    if not (inv and BETTERUI.Inventory and BETTERUI.Inventory.Utils) then return nil end
+    local safeGet = BETTERUI.Inventory.Utils.SafeGetTargetData
+    if type(safeGet) ~= "function" then return nil end
+    local CONST = BETTERUI.Inventory.CONST
+    if inv.actionMode == CONST.ITEM_LIST_ACTION_MODE then
+        return safeGet(inv.itemList)
+    elseif inv.actionMode == CONST.CRAFT_BAG_ACTION_MODE then
+        return safeGet(inv.craftBagList)
+    elseif inv.actionMode == CONST.CATEGORY_ITEM_ACTION_MODE then
+        local categoryData = safeGet(inv.categoryList)
+        if categoryData and inv.GenerateItemSlotData then
+            local ok, generated = pcall(function()
+                return inv:GenerateItemSlotData(categoryData)
+            end)
+            if ok then return generated end
+        end
+    end
+    return nil
+end
+
+local function LogPrimaryActionInvoked(actionName, selectedAction, hasNamedOverride)
+    local L = BETTERUI.Log
+    if not (L and L.Info) then return end
+    local target = ResolveCurrentInventoryActionTarget()
+    local bag, slot = SafeResolveBagAndSlot(target)
+    L.Info(L.CATEGORY.ACTION, "inventory primary action invoked", SlotActionData(bag, slot, {
+        action = actionName,
+        selectedAction = selectedAction == true,
+        override = hasNamedOverride == true,
+    }))
+end
+
 local function TryMarkAsJunk(inventorySlot)
     if not CanMarkSlotAsJunk(inventorySlot) then
         return
@@ -183,24 +245,20 @@ local function TryMarkAsJunk(inventorySlot)
     end
 
     PreserveSelectionForAction(inventorySlot)
-    local flow = BeginInventoryActionFlow("inventoryJunk", "inventory junk mark requested", {
-        bag = bag,
-        slot = slot,
+    local flow = BeginInventoryActionFlow("inventoryJunk", "inventory junk mark requested", SlotActionData(bag, slot, {
         junk = true,
-    })
+    }))
     SetItemIsJunk(bag, slot, true)
     local invalidated = false
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
         GAMEPAD_INVENTORY:InvalidateSlotDataCache()
         invalidated = true
     end
-    EndInventoryActionFlow(flow, "inventory junk mark cache invalidated; waiting for inventory update", {
-        bag = bag,
-        slot = slot,
+    EndInventoryActionFlow(flow, "inventory junk mark cache invalidated; waiting for inventory update", SlotActionData(bag, slot, {
         junk = true,
         invalidated = invalidated,
         refresh = "inventoryUpdate",
-    })
+    }))
 end
 
 local function TryUnmarkAsJunk(inventorySlot)
@@ -213,24 +271,20 @@ local function TryUnmarkAsJunk(inventorySlot)
     end
 
     PreserveSelectionForAction(inventorySlot)
-    local flow = BeginInventoryActionFlow("inventoryJunk", "inventory junk unmark requested", {
-        bag = bag,
-        slot = slot,
+    local flow = BeginInventoryActionFlow("inventoryJunk", "inventory junk unmark requested", SlotActionData(bag, slot, {
         junk = false,
-    })
+    }))
     SetItemIsJunk(bag, slot, false)
     local invalidated = false
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
         GAMEPAD_INVENTORY:InvalidateSlotDataCache()
         invalidated = true
     end
-    EndInventoryActionFlow(flow, "inventory junk unmark cache invalidated; waiting for inventory update", {
-        bag = bag,
-        slot = slot,
+    EndInventoryActionFlow(flow, "inventory junk unmark cache invalidated; waiting for inventory update", SlotActionData(bag, slot, {
         junk = false,
         invalidated = invalidated,
         refresh = "inventoryUpdate",
-    })
+    }))
 end
 
 local function RequireDestroyPolicyAuthorizer()
@@ -632,6 +686,14 @@ function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
 
     -- 2. Resolve Craft Bag vs Inventory State (Stow vs Retrieve)
     self.actionName = BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
+    if BETTERUI.Log and BETTERUI.Log.Debug then
+        local bag, slot = SafeResolveBagAndSlot(inventorySlot)
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "inventory primary action resolved", SlotActionData(bag, slot, {
+            primary = primaryAction,
+            action = self.actionName,
+            replacement = primaryAction and ShouldReplacePrimaryAction(primaryAction) == true,
+        }))
+    end
 
     -- 3. Setup secure actions based on action type
     if primaryAction and ShouldReplacePrimaryAction(primaryAction) then
@@ -692,11 +754,13 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             end
 
             if selfRef.selectedAction then
+                LogPrimaryActionInvoked(slotActions:GetRawActionName(selfRef.selectedAction), true, false)
                 selfRef:DoSelectedAction()
             else
                 local hasNamedOverride = type(slotActions._betterui_primaryOverride) == "function"
                     and type(slotActions._betterui_primaryName) == "string"
                     and slotActions._betterui_primaryName ~= ""
+                LogPrimaryActionInvoked(selfRef.actionName or slotActions._betterui_primaryName, false, hasNamedOverride)
                 if hasNamedOverride then
                     slotActions._betterui_primaryOverride()
                 else

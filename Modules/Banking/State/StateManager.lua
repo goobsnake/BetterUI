@@ -6,6 +6,12 @@ local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
 
+local function SetBankingWatchView(mode)
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and type(watch.SetView) == "function") then return end
+    watch.SetView(mode == LIST_WITHDRAW and "banking.withdraw" or "banking.deposit")
+end
+
 function BETTERUI.Banking.Class:SaveListPosition()
     if not self.list then return end
     -- Save per-mode position (for legacy compatibility)
@@ -88,15 +94,18 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
     if self.currentMode == LIST_WITHDRAW then
         -- Also reset deposit mode
         self.currentMode = LIST_DEPOSIT
+        SetBankingWatchView(self.currentMode)
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         self:SaveListPosition()
         self.currentMode = LIST_WITHDRAW
+        SetBankingWatchView(self.currentMode)
         BETTERUI.Banking.SetRuntimeBankBags(nil, activeSourceBag)
         self:RefreshList()
     else
         -- Switch to withdraw mode
         BETTERUI.Banking.SetRuntimeBankBags(nil, activeSourceBag)
         self.currentMode = LIST_WITHDRAW
+        SetBankingWatchView(self.currentMode)
         self:ToggleList(true)
     end
     return true
@@ -166,6 +175,7 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     end
 
     self.currentMode = toWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
+    SetBankingWatchView(self.currentMode)
     -- Rebuild categories for the NEW mode
     self.bankCategories = self:ComputeVisibleBankCategories()
 

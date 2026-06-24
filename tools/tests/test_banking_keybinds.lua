@@ -67,6 +67,8 @@ local stackCalls = {}
 local transferCalls = {}
 local withdrawCurrencyCalls = {}
 local depositCurrencyCalls = {}
+local logEvents = {}
+local transferCurrencyShouldFail = false
 
 local guildBankMode = false
 local guildBankLoading = false
@@ -116,6 +118,8 @@ local function resetGlobals()
     transferCalls = {}
     withdrawCurrencyCalls = {}
     depositCurrencyCalls = {}
+    logEvents = {}
+    transferCurrencyShouldFail = false
     guildBankMode = false
     guildBankLoading = false
     currentBank = BAG_BANK
@@ -182,6 +186,9 @@ function TransferCurrency(currencyType, amount, fromLocation, toLocation)
         fromLocation = fromLocation,
         toLocation = toLocation,
     })
+    if transferCurrencyShouldFail then
+        return false
+    end
 end
 
 function WithdrawCurrencyFromBank(currencyType, amount)
@@ -359,6 +366,30 @@ BETTERUI = {
         },
         UserAlertText = function(_, message)
             table.insert(userAlerts, message)
+        end,
+    },
+    Log = {
+        CATEGORY = { ACTION = "ACTION", STATE = "STATE", KEYBIND = "KEYBIND" },
+        IsActive = function() return true end,
+        FlowBegin = function(kind, category, message, data)
+            local flow = "flow-" .. tostring(#logEvents + 1)
+            table.insert(logEvents, { kind = kind, category = category, message = message, data = data, flow = flow })
+            return flow
+        end,
+        FlowEnd = function(flow, category, message, data)
+            table.insert(logEvents, { flow = flow, category = category, message = message, data = data })
+        end,
+        Debug = function(category, message, data)
+            table.insert(logEvents, { category = category, message = message, data = data })
+        end,
+        Info = function(category, message, data)
+            table.insert(logEvents, { category = category, message = message, data = data })
+        end,
+        Trace = function(category, message, data)
+            table.insert(logEvents, { category = category, message = message, data = data })
+        end,
+        Warn = function(category, message, data)
+            table.insert(logEvents, { category = category, message = message, data = data })
         end,
     },
     GetModuleEnabled = function(moduleName)
@@ -669,12 +700,15 @@ assertEqual(CURT_MONEY, window.displayedCurrencyType, "Currency keybind opens th
 window.selector.value = 99
 window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
 guildBankMode = true
+logEvents = {}
 currencySelectorPrimary.callback()
 assertEqual(CURRENCY_LOCATION_GUILD_BANK, transferCalls[1].fromLocation, "Guild withdraw transfers from guild bank")
 assertEqual(CURRENCY_LOCATION_CHARACTER, transferCalls[1].toLocation, "Guild withdraw transfers to character")
 assertEqual(1, window.hiddenSelectorCount, "Currency confirmation hides the selector")
 assertEqual(1, window.refreshedFooterCount, "Currency confirmation refreshes the footer")
 assertEqual(window.coreKeybinds, updatedGroups[1], "Currency confirmation updates core keybinds")
+assertEqual("bankCurrencyTransfer", logEvents[1].kind, "Currency confirmation begins a builog flow")
+assertEqual("bank currency transfer completed", logEvents[#logEvents].message, "Currency confirmation ends with a completed flow")
 
 transferCalls = {}
 updatedGroups = {}
@@ -699,6 +733,14 @@ assertEqual(CURT_MONEY, transferCalls[1].currencyType, "Personal deposit uses Tr
 assertEqual(CURRENCY_LOCATION_CHARACTER, transferCalls[1].fromLocation, "Personal deposit transfers from the character")
 assertEqual(CURRENCY_LOCATION_BANK, transferCalls[1].toLocation, "Personal deposit transfers to the bank")
 assertEqual(0, #depositCurrencyCalls, "Personal deposit no longer calls the deprecated DepositCurrencyIntoBank alias")
+
+transferCalls = {}
+logEvents = {}
+transferCurrencyShouldFail = true
+currencySelectorPrimary.callback()
+assertEqual("bankCurrencyTransfer", logEvents[1].kind, "Failed currency transfer still begins a builog flow")
+assertEqual("bank currency transfer failed", logEvents[#logEvents].message, "Failed currency transfer closes the flow with failure")
+transferCurrencyShouldFail = false
 
 window.selectedDataCallback = function(self, control, data)
     self.selectedDataCallbackArgs = { self = self, control = control, data = data }

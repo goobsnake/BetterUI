@@ -44,8 +44,9 @@ local savedSuppressState = nil -- prior ZO_ERROR_FRAME.suppressErrorDialog, for 
 
 -- Backpressure budget for the file sink. 0 = unlimited (default; preserves legacy
 -- behavior). The "verbose" preset sets a per-frame/second cap; overflow is dropped
--- and a single coalesced "dropped=N" summary is emitted. (maxPending is reserved for
--- a future batch/queue mode; the sink currently schedules one error per line.)
+-- and a single coalesced "dropped=N" summary is emitted. maxPending caps deferred
+-- breadcrumbs that have been scheduled but not yet raised, protecting frame recovery
+-- after a burst.
 local budget = { maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 }
 local stats = { scheduled = 0, dropped = 0, suppressed = 0 }
 local frameMarker = nil
@@ -54,6 +55,8 @@ local secondWindowStart = nil
 local emittedThisSecond = 0
 local pendingDrops = 0
 local dropSummaryScheduled = false
+local pendingCount = 0
+local emitGeneration = 0
 
 -- Engine globals are absent in the unit-test harness; resolve them defensively.
 local function G(name)
@@ -77,11 +80,14 @@ end
 -- collapse to a SPACE -- never the ` | ` field separator (which would split one record into
 -- bogus fields for a host parser); matches Log.sinkFile's single-space collapse. tostring is
 -- guarded so a non-string meta-line argument can't raise.
-local function Flatten(text)
+local function Flatten(text, neutralizePipes)
     local ok, s = pcall(tostring, text)
     text = (ok and type(s) == "string") and s or "<?>"
     text = text:gsub("[\r\n]+", " ")
     text = text:gsub("\t", " ")
+    if neutralizePipes then
+        text = text:gsub("|", "/")
+    end
     return text
 end
 
@@ -101,7 +107,7 @@ local function FormatLine(message)
     -- Carry an INFO LOG level/category so these meta-lines (startup header, disabled marker,
     -- test breadcrumbs) match the SAME `<LEVEL> <CATEGORY> | <event>` shape the host parser
     -- expects -- otherwise a tailer would drop them.
-    return string.format("%s %d sid=%s seq=%d INFO LOG | %s", TAG, Timestamp(), sid, seq, Flatten(message))
+    return string.format("%s %d sid=%s seq=%d INFO LOG | %s", TAG, Timestamp(), sid, seq, Flatten(message, true))
 end
 
 -- Apply/remove global error-dialog suppression, remembering the prior state so a
@@ -194,8 +200,10 @@ end
 local function ScheduleDropSummary(deferer)
     if dropSummaryScheduled then return end
     dropSummaryScheduled = true
+    local gen = emitGeneration
     deferer(function()
         dropSummaryScheduled = false
+        if gen ~= emitGeneration then return end
         local n = pendingDrops
         pendingDrops = 0
         if n > 0 then
@@ -216,6 +224,12 @@ end
 local function RawEmit(line)
     local deferer = G("zo_callLater")
     if type(deferer) ~= "function" then return false end
+    if budget.maxPending > 0 and pendingCount >= budget.maxPending then
+        stats.dropped = stats.dropped + 1
+        pendingDrops = pendingDrops + 1
+        ScheduleDropSummary(deferer)
+        return false
+    end
     if not budgetAllows() then
         stats.dropped = stats.dropped + 1
         pendingDrops = pendingDrops + 1
@@ -223,7 +237,13 @@ local function RawEmit(line)
         return false
     end
     stats.scheduled = stats.scheduled + 1
-    deferer(function() RaiseSuppressed(line) end, 0)
+    pendingCount = pendingCount + 1
+    local gen = emitGeneration
+    deferer(function()
+        if pendingCount > 0 then pendingCount = pendingCount - 1 end
+        if gen ~= emitGeneration then return end
+        RaiseSuppressed(line)
+    end, 0)
     return true
 end
 
@@ -240,7 +260,7 @@ function InterfaceLog.WriteRaw(line)
     if not enabled then return false end
     -- Defensive: callers (Log.sinkFile) already flatten, but never let a stray newline
     -- split one record across lines for a tailer.
-    return RawEmit(Flatten(line))
+    return RawEmit(Flatten(line, false))
 end
 
 --- Sets the file-sink rate-limit budget. Pass any subset of:
@@ -263,6 +283,7 @@ function InterfaceLog.GetStats()
         scheduled = stats.scheduled,
         dropped = stats.dropped,
         suppressed = stats.suppressed,
+        pending = pendingCount,
         maxPerFrame = budget.maxPerFrame,
         maxPerSecond = budget.maxPerSecond,
         maxPending = budget.maxPending,
@@ -280,7 +301,13 @@ end
 --- Enables/disables breadcrumb logging for this session.
 ---@param value boolean
 function InterfaceLog.SetEnabled(value)
-    enabled = value and true or false
+    local nextEnabled = value and true or false
+    if enabled ~= nextEnabled then
+        emitGeneration = emitGeneration + 1
+        pendingDrops = 0
+        dropSummaryScheduled = false
+    end
+    enabled = nextEnabled
     ApplyPopupSuppression(enabled and suppressPopups)
     -- Enabling/disabling the file sink flips the logger's active state.
     if BETTERUI.Log and BETTERUI.Log.InvalidateActive then BETTERUI.Log.InvalidateActive() end

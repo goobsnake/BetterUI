@@ -15,8 +15,10 @@ BETTERUI = { CIM = {} }
 function BETTERUI.Debug(msg) end
 
 local capturedDeferred = nil
+local capturedDeferreds = {}
 function zo_callLater(callback, ms)
     capturedDeferred = callback
+    capturedDeferreds[#capturedDeferreds + 1] = { callback = callback, ms = ms }
     return "stub-call-name"
 end
 
@@ -85,6 +87,13 @@ check(err:find("4242", 1, true) ~= nil, "Logged line carries the timestamp")
 check(err:find("hello world tab", 1, true) ~= nil, "Newlines/tabs flattened to one record (space, not the | separator)")
 check(err:find("\n", 1, true) == nil, "Logged line contains no raw newline")
 
+capturedDeferred = nil
+IL.Write("pipe | value")
+local okPipe, errPipe = pcall(capturedDeferred)
+errPipe = tostring(errPipe)
+check(okPipe == false, "Deferred pipe test raises an error")
+check(errPipe:find("pipe / value", 1, true) ~= nil, "Payload pipe separators are flattened for parser-stable records")
+
 -- Disabling restores the prior suppression state.
 IL.SetEnabled(false)
 check(IL.IsEnabled() == false, "Disabled after SetEnabled(false)")
@@ -102,6 +111,7 @@ check(IL.GetStats().maxPerFrame == 0, "default file-sink budget is unlimited")
 -- shares one frame window and the third past a cap of 2 is dropped + counted.
 IL.SetEnabled(true)
 IL.SetBudget({ maxPerFrame = 2, maxPerSecond = 0, maxPending = 0 })
+local budgetCallbackStart = #capturedDeferreds
 local beforeStats = IL.GetStats()
 IL.WriteRaw("budget-1")
 IL.WriteRaw("budget-2")
@@ -109,6 +119,25 @@ IL.WriteRaw("budget-3")
 local afterStats = IL.GetStats()
 check(afterStats.scheduled - beforeStats.scheduled == 2, "per-frame budget schedules up to the cap")
 check(afterStats.dropped - beforeStats.dropped == 1, "per-frame budget drops the overflow record")
+for i = budgetCallbackStart + 1, #capturedDeferreds do
+    pcall(capturedDeferreds[i].callback)
+end
+check(IL.GetStats().pending == 0, "pending count drains after scheduled budget callbacks run")
+
+-- maxPending cap: only one in-flight deferred breadcrumb is allowed until its callback runs.
+IL.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 1 })
+capturedDeferred = nil
+local callbackStart = #capturedDeferreds
+beforeStats = IL.GetStats()
+IL.WriteRaw("pending-1")
+local firstPendingCallback = capturedDeferreds[callbackStart + 1] and capturedDeferreds[callbackStart + 1].callback
+IL.WriteRaw("pending-2")
+afterStats = IL.GetStats()
+check(afterStats.scheduled - beforeStats.scheduled == 1, "maxPending schedules only available pending capacity")
+check(afterStats.dropped - beforeStats.dropped == 1, "maxPending drops overflow while a breadcrumb is pending")
+check(afterStats.pending == 1, "maxPending exposes the pending count in diagnostics")
+if firstPendingCallback then pcall(firstPendingCallback) end
+check(IL.GetStats().pending == 0, "pending count drains when the deferred breadcrumb raises")
 
 -- Restore unlimited + disabled so nothing leaks past these tests.
 IL.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 })
@@ -212,6 +241,18 @@ capturedDeferred = nil
 IL.WriteRaw("frame-present-test")
 check(pcall(capturedDeferred) == false, "breadcrumb is raised once the error frame exists again")
 check(ZO_ERROR_FRAME.suppressErrorDialog == true, "suppression re-asserted before raising (frame present)")
+IL.SetEnabled(false)
+
+-- A callback captured before /builog off must stay stale even if logging is turned back on
+-- before the deferred callback fires.
+ZO_ERROR_FRAME.suppressErrorDialog = false
+IL.SetEnabled(true)
+capturedDeferred = nil
+IL.WriteRaw("stale-generation-test")
+local staleGenerationCallback = capturedDeferred
+IL.SetEnabled(false)
+IL.SetEnabled(true)
+check(pcall(staleGenerationCallback) == true, "stale deferred breadcrumb is dropped across off/on generation changes")
 IL.SetEnabled(false)
 
 -- ============================================================================
