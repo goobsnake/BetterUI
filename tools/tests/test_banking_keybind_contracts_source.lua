@@ -30,6 +30,9 @@ print("test_banking_keybind_contracts_source")
 local transferActions = read_file("Modules/Banking/Actions/TransferActions.lua")
 local bankingClass = read_file("Modules/Banking/Core/BankingClass.lua")
 local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
+local headerManager = read_file("Modules/Banking/UI/HeaderManager.lua")
+local footerManager = read_file("Modules/Banking/UI/FooterManager.lua")
+local guildBankAdapter = read_file("Modules/Banking/Core/GuildBankAdapter.lua")
 
 assert_contains(
     transferActions,
@@ -105,6 +108,18 @@ assert_contains(
 
 assert_contains(
     keybindManager,
+    "BETTERUI.Banking.IsTransferPending(bagId, slotIndex)",
+    "KeybindManager blocks repeated transfer keybinds while any selected transfer is pending"
+)
+
+assert_not_contains(
+    keybindManager,
+    "if self.currentMode == LIST_DEPOSIT then\n        local bagId, slotIndex = GetEntryBagAndSlot(selectedData)",
+    "KeybindManager pending-transfer gating is no longer deposit-only"
+)
+
+assert_contains(
+    keybindManager,
     "local function ReadTransferContextSnapshot()",
     "KeybindManager resolves keybind state through the canonical Banking transfer snapshot seam"
 )
@@ -167,6 +182,60 @@ assert_contains(
     keybindManager,
     "---@param self BETTERUI.Banking.Class\n---@return nil\nfunction BETTERUI.Banking.Class:RefreshActiveKeybinds()",
     "KeybindManager types the public RefreshActiveKeybinds method"
+)
+
+assert_contains(
+    keybindManager,
+    "data.module = data.module or \"Banking\"",
+    "Banking keybind traces always include module context"
+)
+
+assert_contains(
+    keybindManager,
+    "data.gamepad = IsInGamepadPreferredMode()",
+    "Banking keybind traces capture live input mode context"
+)
+
+assert_contains(
+    keybindManager,
+    "TraceBankKeybind(\"bank.stack_all\", \"refresh_scheduled\"",
+    "Stack All schedules a post-action refresh trace"
+)
+
+assert_contains(
+    keybindManager,
+    "TraceBankKeybind(\"bank.primary_transfer\", \"blocked\"",
+    "Primary transfer keybind traces pending-transfer disabled state"
+)
+
+assert_contains(
+    keybindManager,
+    "transferPendingCleared",
+    "Primary transfer keybind traces when pending-transfer disabled state clears"
+)
+
+assert_contains(
+    keybindManager,
+    "BETTERUI.Banking.Tasks:Schedule(\"stackAllRefresh\", 120, function()",
+    "Stack All refresh is task-coalesced through the Banking task scheduler"
+)
+
+assert_contains(
+    headerManager,
+    "TraceBankHeader(\"bank.header\", \"entries_built\"",
+    "Bank header rebuild logs the selectable category entries"
+)
+
+assert_contains(
+    footerManager,
+    "TraceBankFooter(\"bank.footer\", \"refreshed\"",
+    "Bank footer refresh logs visible capacity and currency state"
+)
+
+assert_contains(
+    guildBankAdapter,
+    "TraceGuildBank(\"bank.guild_bank\", \"money_updated\"",
+    "Guild bank money events emit trace state"
 )
 
 print("  OK")

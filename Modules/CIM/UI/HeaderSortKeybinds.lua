@@ -81,6 +81,14 @@ local function RefreshHeaderSortKeybinds(controller, action)
         refreshError = refreshError,
         stripHasHeader = IsHeaderSortKeybindPresent(controller),
     })
+    if not refreshOk and BETTERUI.Log and BETTERUI.Log.Warn then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "header sort keybind refresh failed", {
+            action = action,
+            refreshPath = refreshPath,
+            refreshError = refreshError,
+            stripHasHeader = IsHeaderSortKeybindPresent(controller),
+        })
+    end
     return refreshOk, refreshPath
 end
 
@@ -181,14 +189,18 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             callback = function()
                 TraceHeaderSortKeybind(controller, "clear", "start")
                 local handled = false
+                local reason = nil
                 local refreshOk = nil
                 local refreshPath = nil
-                if controller:ClearSort() then
+                local cleared, clearReason = controller:ClearSort()
+                if cleared then
                     PlaySound(SOUNDS.DEFAULT_CLICK)
                     refreshOk, refreshPath = RefreshHeaderSortKeybinds(controller, "clear")
                     handled = true
+                else
+                    reason = clearReason or controller._lastClearSortReason
                 end
-                TraceHeaderSortKeybind(controller, "clear", "end", { handled = handled, refreshOk = refreshOk, refreshPath = refreshPath })
+                TraceHeaderSortKeybind(controller, "clear", "end", { handled = handled, reason = reason, refreshOk = refreshOk, refreshPath = refreshPath })
             end,
         },
         -- LB: Navigate to previous column (visible on keybind strip)

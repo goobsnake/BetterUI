@@ -118,8 +118,16 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
                                 return
                             end
 
-                            if not dialogData._priceSelector and ZO_CurrencySelector_Gamepad and ZO_CurrencySelector_Gamepad.New then
-                                local selector = ZO_CurrencySelector_Gamepad:New(control)
+                            if ZO_CurrencySelector_Gamepad and ZO_CurrencySelector_Gamepad.New then
+                                local selector = control._betteruiPriceSelector
+                                if not selector then
+                                    selector = ZO_CurrencySelector_Gamepad:New(control)
+                                    control._betteruiPriceSelector = selector
+                                    TracePriceEntry("trading_house.price_entry", "selector_created", {
+                                        fn = "TradingHouse.PriceEntry.setup",
+                                        control = control.GetName and control:GetName() or nil,
+                                    })
+                                end
                                 selector:SetCurrencyType(CURT_MONEY)
                                 selector:SetClampValues(true)
                                 selector:SetMaxValue(dialogData.max)

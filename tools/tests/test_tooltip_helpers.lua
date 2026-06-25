@@ -1091,6 +1091,14 @@ local function buildMockTooltipSurface(tooltipType, labelCount)
         tip = tip,
         statusLabelValue = statusLabelValue,
     }
+    if GAMEPAD_TOOLTIPS then
+        GAMEPAD_TOOLTIPS.tooltips = GAMEPAD_TOOLTIPS.tooltips or {}
+        GAMEPAD_TOOLTIPS.tooltips[tooltipType] = {
+            control = {
+                container = container,
+            },
+        }
+    end
     return pbControls[tooltipType]
 end
 
@@ -1101,6 +1109,7 @@ WINDOW_MANAGER = {
 }
 
 GAMEPAD_TOOLTIPS = {
+    tooltips = {},
     GetTooltip = function(_, tooltipType)
         return pbControls[tooltipType] and pbControls[tooltipType].tooltip
     end,

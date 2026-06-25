@@ -346,24 +346,55 @@ local function TryDestroyPrimaryAction(inventorySlot)
     PreserveSelectionForAction(inventorySlot)
     local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
     if not bag or not slot then
+        TraceSlotActions("inventory.destroy", "blocked", inventorySlot, {
+            source = "primary_action",
+            reason = "invalidSlot",
+        })
         return
     end
+    local slotType = inventorySlot and inventorySlot.slotType
+    local quickDestroy = BETTERUI.GetSetting and BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
+    TraceSlotActions("inventory.destroy", "primary_selected", inventorySlot, {
+        source = "primary_action",
+        quickDestroy = quickDestroy,
+        hasNativeInitiate = ZO_InventorySlot_InitiateDestroyItem ~= nil,
+        slotType = slotType,
+    })
     if not CanDestroySlotWithPolicy(inventorySlot, bag, slot) then
+        TraceSlotActions("inventory.destroy", "blocked", inventorySlot, {
+            source = "primary_action",
+            reason = "protectionPolicy",
+            quickDestroy = quickDestroy,
+            slotType = slotType,
+        })
         return
     end
 
     if ZO_InventorySlot_InitiateDestroyItem then
+        TraceSlotActions("inventory.destroy", "native_initiate", inventorySlot, {
+            source = "primary_action",
+            quickDestroy = quickDestroy,
+            slotType = slotType,
+        })
         ZO_InventorySlot_InitiateDestroyItem(inventorySlot)
         return
     end
 
-    local slotType = inventorySlot and inventorySlot.slotType
-    local quickDestroy = BETTERUI.GetSetting and BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
     if quickDestroy then
+        TraceSlotActions("inventory.destroy", "quick_requested", inventorySlot, {
+            source = "primary_action_fallback",
+            slotType = slotType,
+        })
         BETTERUI.Inventory.TryDestroyItem(bag, slot, true, false, slotType)
     else
         local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, slot, inventorySlot)
-        ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+        TraceSlotActions("inventory.destroy", "confirm_dialog_request", inventorySlot, {
+            source = "primary_action_fallback",
+            slotType = slotType,
+            expectedSlotIdentity = expectedSlotIdentity,
+            dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
+        })
+        local shownDialog = ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
             {
                 bagId = bag,
                 slotIndex = slot,
@@ -371,6 +402,14 @@ local function TryDestroyPrimaryAction(inventorySlot)
                 itemLink = GetItemLink(bag, slot),
                 expectedSlotIdentity = expectedSlotIdentity,
             }, nil, true, true)
+        TraceSlotActions("inventory.destroy", "confirm_dialog_show", inventorySlot, {
+            source = "primary_action_fallback",
+            slotType = slotType,
+            expectedSlotIdentity = expectedSlotIdentity,
+            dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
+            showReturnedDialog = shownDialog ~= nil,
+            showingAfter = ZO_Dialogs_IsShowing and ZO_Dialogs_IsShowing("BETTERUI_CONFIRM_DESTROY_DIALOG") == true or nil,
+        })
     end
 end
 
@@ -759,7 +798,17 @@ function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
         slotActions._betterui_primaryName = primaryAction
         slotActions._betterui_primaryOverride = function()
             if ZO_InventorySlot_TrySplitStack then
+                TraceSlotActions("inventory.split_stack", "primary_override_dispatch", inventorySlot, {
+                    source = "slot_primary_override",
+                    action = primaryAction,
+                })
                 ZO_InventorySlot_TrySplitStack(inventorySlot)
+            else
+                TraceSlotActions("inventory.split_stack", "primary_override_blocked", inventorySlot, {
+                    source = "slot_primary_override",
+                    action = primaryAction,
+                    reason = "missingTrySplitStack",
+                })
             end
         end
         TraceSlotActions("inventory.slot_actions", "override_set", inventorySlot, {

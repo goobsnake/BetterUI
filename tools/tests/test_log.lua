@@ -69,7 +69,7 @@ check(fileLines[1] and fileLines[1]:find("[BUI] 100 sid=", 1, true) == 1
 check(#chatLines == 0, "Debug does not hit chat by default")
 
 -- Summarize: compact shapes, never full dumps.
-check(Log.Summarize({ 10, 20, 30 }) == "[3]", "Summarize array -> [n]")
+check(Log.Summarize({ 10, 20, 30 }):find("^%[3:", 1) ~= nil, "Summarize array -> [n:sample]")
 check(Log.Summarize({ a = 1, b = 2 }):find("^{2:") ~= nil, "Summarize map -> {n:keys}")
 check(Log.Summarize(string.rep("x", 100)):find("%.%.%.", 1) ~= nil, "Summarize long string truncates")
 check(Log.Summarize(42) == "42", "Summarize number passthrough")
@@ -77,7 +77,7 @@ check(Log.Summarize(42) == "42", "Summarize number passthrough")
 -- data argument is summarized and appended.
 fileLines = {}
 Log.Info(Log.CATEGORY.LIST, "refresh", { 1, 2, 3, 4 })
-check(fileLines[1] and fileLines[1]:find("refresh [4]", 1, true) ~= nil, "data arg summarized into line")
+check(fileLines[1] and fileLines[1]:find("refresh [4:", 1, true) ~= nil, "data arg summarized into line")
 
 -- record-style data renders key=value (the values reach the log, not just shape).
 fileLines = {}

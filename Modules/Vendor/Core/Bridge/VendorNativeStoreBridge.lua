@@ -18,6 +18,17 @@ local function LogVendorDebug(flagName, category, message)
     end
 end
 
+local function TraceNativeStoreBridge(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Vendor"
+    data.scene = rawget(_G, "BETTERUI_VENDOR_SCENE_NAME") or "BETTERUI_VENDOR"
+    data.feature = data.feature or "vendor-native-store"
+    data.fn = data.fn or "Vendor.NativeStoreBridge"
+    L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data)
+end
+
 local function GetVendorExecuteSafely()
     local executor = Vendor.ExecuteSafely
     assert(type(executor) == "function", "Vendor safe execute helper must load before NativeStoreBridge use")
@@ -306,18 +317,18 @@ end
 
 local function ShouldAbortOpenStoreSync()
     if Vendor._isClosing then
-        return true
+        return true, "closing"
     end
     if not Vendor.instance then
-        return true
+        return true, "missingInstance"
     end
     if Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() then
-        return true
+        return true, "fenceInteraction"
     end
     if Vendor.instance.IsSceneActiveOrShowing and not Vendor.instance:IsSceneActiveOrShowing() then
-        return true
+        return true, "sceneInactive"
     end
-    return false
+    return false, nil
 end
 
 ---@param storeManager table|nil
@@ -326,18 +337,42 @@ end
 ---@return nil
 function NativeStoreBridge.CleanupAfterCloseStore(storeManager, safeCall, logInputState)
     if not storeManager then
+        TraceNativeStoreBridge("vendor.native_store_cleanup", "skipped", {
+            fn = "NativeStoreBridge.CleanupAfterCloseStore",
+            reason = "missingStoreManager",
+        })
         return
     end
 
     safeCall = safeCall or GetVendorExecuteSafely()
     logInputState = logInputState or LogNativeStoreInputState
 
+    local activeBefore = type(storeManager.activeComponents) == "table" and #storeManager.activeComponents or nil
+    TraceNativeStoreBridge("vendor.native_store_cleanup", "begin", {
+        fn = "NativeStoreBridge.CleanupAfterCloseStore",
+        activeComponentsBefore = activeBefore,
+        hasOnHide = type(storeManager.OnHide) == "function",
+    })
     logInputState(CLOSE_STORE_BEFORE_SWEEP_CONTEXT, storeManager)
     if type(storeManager.OnHide) == "function" then
         safeCall(CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT, storeManager.OnHide, storeManager)
+        TraceNativeStoreBridge("vendor.native_store_cleanup", "native_onhide", {
+            fn = "NativeStoreBridge.CleanupAfterCloseStore",
+            context = CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT,
+        })
+    else
+        TraceNativeStoreBridge("vendor.native_store_cleanup", "native_onhide_skipped", {
+            fn = "NativeStoreBridge.CleanupAfterCloseStore",
+            reason = "missingOnHide",
+        })
     end
     storeManager.activeComponents = {}
     logInputState(CLOSE_STORE_AFTER_SWEEP_CONTEXT, storeManager)
+    TraceNativeStoreBridge("vendor.native_store_cleanup", "end", {
+        fn = "NativeStoreBridge.CleanupAfterCloseStore",
+        activeComponentsBefore = activeBefore,
+        activeComponentsAfter = type(storeManager.activeComponents) == "table" and #storeManager.activeComponents or nil,
+    })
 end
 
 function NativeStoreBridge.SetSceneAlias(sceneObject)
@@ -488,17 +523,42 @@ end
 
 function NativeStoreBridge.ScheduleOpenStoreSync(targetMode, delayMs)
     if not Vendor.Tasks then
+        TraceNativeStoreBridge("vendor.open_store_sync", "skipped", {
+            reason = "missingTasks",
+            targetMode = targetMode,
+            delayMs = delayMs,
+        })
         return
     end
 
     Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
+    TraceNativeStoreBridge("vendor.open_store_sync", "scheduled", {
+        targetMode = targetMode,
+        delayMs = delayMs or 120,
+    })
     Vendor.Tasks:Schedule("ensureStoreComponentsOnOpen", delayMs or 120, function()
-        if ShouldAbortOpenStoreSync() then
+        local abort, reason = ShouldAbortOpenStoreSync()
+        if abort then
+            TraceNativeStoreBridge("vendor.open_store_sync", "aborted", {
+                step = "beforeEnsureComponents",
+                reason = reason,
+                targetMode = targetMode,
+            })
             return
         end
 
+        TraceNativeStoreBridge("vendor.open_store_sync", "ensure_components", {
+            targetMode = targetMode,
+            searchContext = "storeTextSearch",
+        })
         NativeStoreBridge.EnsureComponents("storeTextSearch")
-        if ShouldAbortOpenStoreSync() then
+        abort, reason = ShouldAbortOpenStoreSync()
+        if abort then
+            TraceNativeStoreBridge("vendor.open_store_sync", "aborted", {
+                step = "afterEnsureComponents",
+                reason = reason,
+                targetMode = targetMode,
+            })
             return
         end
 
@@ -506,20 +566,43 @@ function NativeStoreBridge.ScheduleOpenStoreSync(targetMode, delayMs)
         if resolvedTargetMode ~= targetMode then
             targetMode = resolvedTargetMode
         end
-        if ShouldAbortOpenStoreSync() then
+        abort, reason = ShouldAbortOpenStoreSync()
+        if abort then
+            TraceNativeStoreBridge("vendor.open_store_sync", "aborted", {
+                step = "afterResolveTargetMode",
+                reason = reason,
+                targetMode = targetMode,
+                resolvedTargetMode = resolvedTargetMode,
+            })
             return
         end
 
         NativeStoreBridge.ApplyResolvedMode(targetMode, true)
+        TraceNativeStoreBridge("vendor.open_store_sync", "mode_applied", {
+            targetMode = targetMode,
+            resolvedTargetMode = resolvedTargetMode,
+        })
 
         local targetNativeMode = Vendor.ResolveNativeStoreMode and Vendor.ResolveNativeStoreMode(targetMode) or nil
         if targetNativeMode == nil or NativeStoreBridge.GetCurrentMode() == targetNativeMode then
             Vendor._openStoreSyncAttempt = 0
+            TraceNativeStoreBridge("vendor.open_store_sync", "complete", {
+                targetMode = targetMode,
+                targetNativeMode = targetNativeMode,
+            })
             return
         end
 
         local syncAttempt = (Vendor._openStoreSyncAttempt or 0) + 1
         Vendor._openStoreSyncAttempt = syncAttempt
+        local currentNativeMode = NativeStoreBridge.GetCurrentMode()
+        TraceNativeStoreBridge("vendor.open_store_sync", syncAttempt <= 4 and "retry" or "give_up", {
+            targetMode = targetMode,
+            targetNativeMode = targetNativeMode,
+            currentNativeMode = currentNativeMode,
+            attempt = syncAttempt,
+            maxAttempts = 4,
+        })
         if syncAttempt <= 4 then
             NativeStoreBridge.ScheduleOpenStoreSync(targetMode, 140)
         end

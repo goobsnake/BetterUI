@@ -10,9 +10,38 @@ local Tooltips = GeneralInterface.Tooltips
 local TooltipRuntime = Tooltips._runtime or {}
 Tooltips._runtime = TooltipRuntime
 
+local function GetCurrentSceneName()
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
+        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
+        if ok then return sceneName end
+    end
+    return nil
+end
+
+local function TraceTooltip(event, phase, data, category)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not (L and type(L.TraceEvent) == "function") then return end
+    data = data or {}
+    data.module = data.module or "GeneralInterface"
+    data.feature = data.feature or "tooltips"
+    data.scene = data.scene or GetCurrentSceneName()
+    if data.gamepad == nil and IsInGamepadPreferredMode then
+        data.gamepad = IsInGamepadPreferredMode()
+    end
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(category or categories.GENERAL, event, phase, data)
+end
+
 local function SetGuildStoreErrorSuppressed(isSuppressed)
     TooltipRuntime.guildStoreErrorSuppressed = isSuppressed == true
     BETTERUI.CIM._gsErrorSuppress = TooltipRuntime.guildStoreErrorSuppressed and 1 or 0
+    TraceTooltip("general_interface.guild_store_suppression", "flag_set", {
+        fn = "Tooltips.SetGuildStoreErrorSuppressed",
+        suppressed = TooltipRuntime.guildStoreErrorSuppressed,
+    })
 end
 
 Tooltips.SetGuildStoreErrorSuppressed = SetGuildStoreErrorSuppressed
@@ -22,6 +51,11 @@ Tooltips.GuildStoreSuppression = {
 
 function Tooltips.InitializeRuntime()
     if TooltipRuntime.initialized == true then
+        TraceTooltip("general_interface.tooltip_runtime", "skipped", {
+            fn = "Tooltips.InitializeRuntime",
+            reason = "alreadyInitialized",
+            guildStoreErrorSuppressed = TooltipRuntime.guildStoreErrorSuppressed == true,
+        })
         return true
     end
 
@@ -33,6 +67,11 @@ function Tooltips.InitializeRuntime()
     end
 
     TooltipRuntime.initialized = true
+    TraceTooltip("general_interface.tooltip_runtime", "initialized", {
+        fn = "Tooltips.InitializeRuntime",
+        registeredResearchMatcher = cimUtils and type(cimUtils.RegisterResearchableTraitMatcher) == "function" or false,
+        guildStoreErrorSuppressed = TooltipRuntime.guildStoreErrorSuppressed == true,
+    })
     return true
 end
 
@@ -47,29 +86,72 @@ local STOCK_TOOLTIP_BODY_FONT = "ZoFontGamepad34"
 
 local function BuildBagResearchCache(bagId)
     local counts = {}
+    if not SHARED_INVENTORY or type(SHARED_INVENTORY.GenerateFullSlotData) ~= "function" then
+        ResearchableTraitCache[bagId] = counts
+        TraceTooltip("general_interface.tooltip_research_cache", "build_skipped", {
+            fn = "BuildBagResearchCache",
+            reason = "missingSharedInventory",
+            bagId = bagId,
+        })
+        return
+    end
     -- Prefer SHARED_INVENTORY cache to iterate only used slots
     local items = SHARED_INVENTORY:GenerateFullSlotData(function() return true end, bagId)
+    local researchableCount = 0
+    local traitTypeCount = 0
     for i = 1, #items do
         local data = items[i]
         local link = GetItemLink(data.bagId, data.slotIndex)
         if link ~= nil and link ~= "" and CanItemLinkBeTraitResearched(link) then
             local traitType = GetItemLinkTraitInfo(link)
             if traitType and traitType ~= 0 then
+                if counts[traitType] == nil then
+                    traitTypeCount = traitTypeCount + 1
+                end
                 counts[traitType] = (counts[traitType] or 0) + 1
+                researchableCount = researchableCount + 1
             end
         end
     end
     ResearchableTraitCache[bagId] = counts
+    TraceTooltip("general_interface.tooltip_research_cache", "built", {
+        fn = "BuildBagResearchCache",
+        bagId = bagId,
+        scanned = #items,
+        researchable = researchableCount,
+        traitTypes = traitTypeCount,
+    })
 end
 
 function GeneralInterface.GetCachedResearchableTraitMatches(itemLink, bagId)
-    if not itemLink or not bagId then return 0 end
+    if not itemLink or not bagId then
+        TraceTooltip("general_interface.tooltip_research_cache", "lookup_skipped", {
+            fn = "GetCachedResearchableTraitMatches",
+            reason = not itemLink and "missingItemLink" or "missingBagId",
+            bagId = bagId,
+        })
+        return 0
+    end
     local traitType = GetItemLinkTraitInfo(itemLink)
-    if not traitType or traitType == 0 then return 0 end
+    if not traitType or traitType == 0 then
+        TraceTooltip("general_interface.tooltip_research_cache", "lookup_skipped", {
+            fn = "GetCachedResearchableTraitMatches",
+            reason = "missingTraitType",
+            bagId = bagId,
+        })
+        return 0
+    end
     if not ResearchableTraitCache[bagId] then
         BuildBagResearchCache(bagId)
     end
-    return (ResearchableTraitCache[bagId] and ResearchableTraitCache[bagId][traitType]) or 0
+    local matches = (ResearchableTraitCache[bagId] and ResearchableTraitCache[bagId][traitType]) or 0
+    TraceTooltip("general_interface.tooltip_research_cache", "lookup", {
+        fn = "GetCachedResearchableTraitMatches",
+        bagId = bagId,
+        traitType = traitType,
+        matches = matches,
+    })
+    return matches
 end
 
 function GeneralInterface.InvalidateResearchableTraitCache(bagId)
@@ -77,8 +159,16 @@ function GeneralInterface.InvalidateResearchableTraitCache(bagId)
         if ResearchableTraitCache and ResearchableTraitCache[bagId] then
             ResearchableTraitCache[bagId] = nil
         end
+        TraceTooltip("general_interface.tooltip_research_cache", "invalidated", {
+            fn = "InvalidateResearchableTraitCache",
+            bagId = bagId,
+        })
     else
         ResearchableTraitCache = {}
+        TraceTooltip("general_interface.tooltip_research_cache", "invalidated", {
+            fn = "InvalidateResearchableTraitCache",
+            scope = "all",
+        })
     end
 end
 
@@ -141,11 +231,20 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
         elseif BETTERUI.Settings and BETTERUI.Settings.Modules then
             generalInterfaceSettings = BETTERUI.Settings.Modules.GeneralInterface or {}
         end
+        local sourceSummary = {}
         local function GetSourceInfo(sourceKey)
             if not marketIntegration or type(marketIntegration.GetSourcePriceInfo) ~= "function" then
+                sourceSummary[sourceKey] = { enabled = false, available = false, reason = "missingMarketIntegration" }
                 return nil
             end
-            return marketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, generalInterfaceSettings)
+            local sourceInfo = marketIntegration.GetSourcePriceInfo(sourceKey, itemLink, stackCount, generalInterfaceSettings)
+            sourceSummary[sourceKey] = {
+                enabled = sourceInfo and sourceInfo.enabled == true or false,
+                available = sourceInfo and sourceInfo.available == true or false,
+                hasData = sourceInfo and sourceInfo.hasData == true or false,
+                unitPrice = sourceInfo and sourceInfo.unitPrice or nil,
+            }
+            return sourceInfo
         end
 
         -- TTC Integration (custom format to show both Avg and Suggested prices)
@@ -198,12 +297,30 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
         end
 
         -- MM Integration
-        local mmLine = GetSourcePriceDisplay("MM", GetSourceInfo("mm"), stackCount, iconSize)
+        local mmInfo = GetSourceInfo("mm")
+        local mmLine = GetSourcePriceDisplay("MM", mmInfo, stackCount, iconSize)
         if mmLine then table.insert(lines, mmLine) end
 
         -- ATT Integration
-        local attLine = GetSourcePriceDisplay("ATT", GetSourceInfo("att"), stackCount, iconSize)
+        local attInfo = GetSourceInfo("att")
+        local attLine = GetSourcePriceDisplay("ATT", attInfo, stackCount, iconSize)
         if attLine then table.insert(lines, attLine) end
+        TraceTooltip("general_interface.tooltip_price", "resolved", {
+            fn = "GetInventoryPriceInfo",
+            bagId = bagId,
+            slotIndex = slotIndex,
+            stackCount = stackCount,
+            storeStackCount = storeStackCount,
+            lineCount = #lines,
+            sources = sourceSummary,
+        })
+    else
+        TraceTooltip("general_interface.tooltip_price", "skipped", {
+            fn = "GetInventoryPriceInfo",
+            reason = "missingItemLink",
+            bagId = bagId,
+            slotIndex = slotIndex,
+        })
     end
     return lines
 end
@@ -249,6 +366,10 @@ function BETTERUI.GetInventoryTraitInfo(itemLink)
                 traitString = "|c" .. colors.RESEARCHABLE .. researchableText .. "|r"
             end
         else
+            TraceTooltip("general_interface.tooltip_trait", "skipped", {
+                fn = "GetInventoryTraitInfo",
+                reason = "notResearchable",
+            })
             return lines
         end
 
@@ -266,6 +387,18 @@ function BETTERUI.GetInventoryTraitInfo(itemLink)
         else
             table.insert(lines, zo_strformat("<<1>> <<2>>", traitLabel, traitString))
         end
+        TraceTooltip("general_interface.tooltip_trait", "resolved", {
+            fn = "GetInventoryTraitInfo",
+            lineCount = #lines,
+            hasStyle = hasStyle,
+            style = style,
+            traitStringPresent = traitString ~= nil,
+        })
+    else
+        TraceTooltip("general_interface.tooltip_trait", "skipped", {
+            fn = "GetInventoryTraitInfo",
+            reason = (not itemLink or itemLink == "") and "missingItemLink" or "settingDisabled",
+        })
     end
     return lines
 end
@@ -275,10 +408,22 @@ end
 --- Covers ITEMTYPE_RECIPE (provisioning) and any lore book / motif chapter.
 function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
     local lines = {}
-    if not itemLink or itemLink == "" then return lines end
+    if not itemLink or itemLink == "" then
+        TraceTooltip("general_interface.tooltip_knowledge", "skipped", {
+            fn = "GetInventoryKnowledgeInfo",
+            reason = "missingItemLink",
+        })
+        return lines
+    end
 
     -- Respect the user's setting (default true when not set)
-    if BETTERUI.GetSetting("GeneralInterface", "showKnowledgeStatus", true) == false then return lines end
+    if BETTERUI.GetSetting("GeneralInterface", "showKnowledgeStatus", true) == false then
+        TraceTooltip("general_interface.tooltip_knowledge", "skipped", {
+            fn = "GetInventoryKnowledgeInfo",
+            reason = "settingDisabled",
+        })
+        return lines
+    end
 
     local colors = BETTERUI.CIM.CONST.COLORS
     local icons  = BETTERUI.CIM.CONST.ICONS
@@ -293,6 +438,11 @@ function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
         local icon = icons.RECIPE_UNKNOWN and ("|t" .. iconSizeFmt .. ":" .. icons.RECIPE_UNKNOWN .. "|t ") or ""
         if not IsItemLinkRecipeKnown then
             -- API not available in this context; skip rather than show wrong state
+            TraceTooltip("general_interface.tooltip_knowledge", "skipped", {
+                fn = "GetInventoryKnowledgeInfo",
+                reason = "missingRecipeKnownApi",
+                itemType = itemType,
+            })
             return lines
         end
         if IsItemLinkRecipeKnown(itemLink) then
@@ -300,6 +450,13 @@ function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
         else
             table.insert(lines, icon .. "|c" .. colors.RESEARCHABLE .. GetString(rawget(_G, "SI_USE_TO_LEARN_RECIPE")) .. "|r")
         end
+        TraceTooltip("general_interface.tooltip_knowledge", "resolved", {
+            fn = "GetInventoryKnowledgeInfo",
+            itemType = itemType,
+            kind = "recipe",
+            known = IsItemLinkRecipeKnown(itemLink) == true,
+            lineCount = #lines,
+        })
         return lines
     end
 
@@ -308,6 +465,11 @@ function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
         local icon = icons.BOOK_UNKNOWN and ("|t" .. iconSizeFmt .. ":" .. icons.BOOK_UNKNOWN .. "|t ") or ""
         -- IsItemLinkBookKnown may not be available in all addon contexts
         if not IsItemLinkBookKnown then
+            TraceTooltip("general_interface.tooltip_knowledge", "skipped", {
+                fn = "GetInventoryKnowledgeInfo",
+                reason = "missingBookKnownApi",
+                itemType = itemType,
+            })
             return lines
         end
         if IsItemLinkBookKnown(itemLink) then
@@ -315,9 +477,21 @@ function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
         else
             table.insert(lines, icon .. "|c" .. colors.RESEARCHABLE .. GetString(rawget(_G, "SI_LORE_LIBRARY_USE_TO_LEARN")) .. "|r")
         end
+        TraceTooltip("general_interface.tooltip_knowledge", "resolved", {
+            fn = "GetInventoryKnowledgeInfo",
+            itemType = itemType,
+            kind = "book",
+            known = IsItemLinkBookKnown(itemLink) == true,
+            lineCount = #lines,
+        })
         return lines
     end
 
+    TraceTooltip("general_interface.tooltip_knowledge", "skipped", {
+        fn = "GetInventoryKnowledgeInfo",
+        reason = "unsupportedItemType",
+        itemType = itemType,
+    })
     return lines
 end
 
@@ -379,8 +553,12 @@ local function DoesBagContextMatchItemLink(bagId, slotIndex, itemLink)
         return true
     end
     local ok, bagItemLink = pcall(GetItemLink, bagId, slotIndex)
-    if not ok and BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "GetItemLink failed", { bag = bagId, slot = slotIndex })
+    if not ok then
+        TraceTooltip("general_interface.tooltip_context", "bag_link_failed", {
+            fn = "DoesBagContextMatchItemLink",
+            bagId = bagId,
+            slotIndex = slotIndex,
+        })
     end
     return ok and bagItemLink ~= nil and bagItemLink ~= "" and bagItemLink == itemLink
 end
@@ -556,52 +734,105 @@ local function ScheduleTooltipEquippedRefresh(tooltipControl, itemLink, tooltipT
 
     local normalizedTooltipType = tonumber(tooltipType) or tooltipType
     if normalizedTooltipType == nil then
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh skipped", { reason = "invalidTooltipType" })
-        end
+        TraceTooltip("general_interface.tooltip_refresh", "skipped", {
+            fn = "ScheduleTooltipEquippedRefresh",
+            reason = "invalidTooltipType",
+            itemLink = itemLink,
+            tooltipType = tooltipType,
+        })
         return
     end
 
     local tooltipRef = tooltipControl
     local capturedItemLink = itemLink
+    TraceTooltip("general_interface.tooltip_refresh", "scheduled", {
+        fn = "ScheduleTooltipEquippedRefresh",
+        itemLink = itemLink,
+        tooltipType = normalizedTooltipType,
+        delayMs = 1,
+    })
     zo_callLater(function()
         if not tooltipRef or tooltipRef:IsHidden() then
-            if BETTERUI.Log and BETTERUI.Log.IsActive() then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh aborted", { reason = "hidden" })
-            end
+            TraceTooltip("general_interface.tooltip_refresh", "aborted", {
+                fn = "ScheduleTooltipEquippedRefresh.task",
+                reason = "hidden",
+                itemLink = capturedItemLink,
+                tooltipType = normalizedTooltipType,
+            })
             return
         end
         if tooltipRef._betterui_priceRendered then
-            if BETTERUI.Log and BETTERUI.Log.IsActive() then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh aborted", { reason = "priceRendered" })
-            end
+            TraceTooltip("general_interface.tooltip_refresh", "aborted", {
+                fn = "ScheduleTooltipEquippedRefresh.task",
+                reason = "priceRendered",
+                itemLink = capturedItemLink,
+                tooltipType = normalizedTooltipType,
+            })
             return
         end
         if IsIncompatibleSceneActive() then
-            if BETTERUI.Log and BETTERUI.Log.IsActive() then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh aborted", { reason = "sceneIncompatible" })
-            end
+            TraceTooltip("general_interface.tooltip_refresh", "aborted", {
+                fn = "ScheduleTooltipEquippedRefresh.task",
+                reason = "sceneIncompatible",
+                itemLink = capturedItemLink,
+                tooltipType = normalizedTooltipType,
+            })
             return
         end
         if tooltipRef._betterui_itemLink ~= capturedItemLink then
-            if BETTERUI.Log and BETTERUI.Log.IsActive() then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh aborted", { reason = "linkMismatch" })
-            end
+            TraceTooltip("general_interface.tooltip_refresh", "aborted", {
+                fn = "ScheduleTooltipEquippedRefresh.task",
+                reason = "linkMismatch",
+                itemLink = capturedItemLink,
+                currentItemLink = tooltipRef._betterui_itemLink,
+                tooltipType = normalizedTooltipType,
+            })
             return
         end
 
         if BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
             BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(normalizedTooltipType, nil)
+            TraceTooltip("general_interface.tooltip_refresh", "updated", {
+                fn = "ScheduleTooltipEquippedRefresh.task",
+                itemLink = capturedItemLink,
+                tooltipType = normalizedTooltipType,
+            })
+        else
+            TraceTooltip("general_interface.tooltip_refresh", "aborted", {
+                fn = "ScheduleTooltipEquippedRefresh.task",
+                reason = "missingSharedItemSupport",
+                itemLink = capturedItemLink,
+                tooltipType = normalizedTooltipType,
+            })
         end
     end, 1)
 end
 
 local function ScheduleDuplicateAddonCleanup(tooltipControl)
     local tooltipRef = tooltipControl
+    TraceTooltip("general_interface.tooltip_cleanup", "scheduled", {
+        fn = "ScheduleDuplicateAddonCleanup",
+        delayMs = 2,
+    })
     zo_callLater(function()
-        if not tooltipRef or tooltipRef:IsHidden() then return end
-        if IsIncompatibleSceneActive() then return end
+        if not tooltipRef or tooltipRef:IsHidden() then
+            TraceTooltip("general_interface.tooltip_cleanup", "aborted", {
+                fn = "ScheduleDuplicateAddonCleanup.task",
+                reason = "hidden",
+            })
+            return
+        end
+        if IsIncompatibleSceneActive() then
+            TraceTooltip("general_interface.tooltip_cleanup", "aborted", {
+                fn = "ScheduleDuplicateAddonCleanup.task",
+                reason = "sceneIncompatible",
+            })
+            return
+        end
         HideDuplicateAddonLabels(tooltipRef)
+        TraceTooltip("general_interface.tooltip_cleanup", "complete", {
+            fn = "ScheduleDuplicateAddonCleanup.task",
+        })
     end, 2)
 end
 
@@ -613,13 +844,37 @@ end
 local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
     local normalizedTooltipType = tonumber(tooltipType) or tooltipType
     if normalizedTooltipType == nil then
+        TraceTooltip("general_interface.tooltip_stock_relayout", "skipped", {
+            fn = "ScheduleTooltipEquippedStockRelayout",
+            reason = "invalidTooltipType",
+            tooltipType = tooltipType,
+        })
         return
     end
 
     local tooltipRef = tooltipControl
+    TraceTooltip("general_interface.tooltip_stock_relayout", "scheduled", {
+        fn = "ScheduleTooltipEquippedStockRelayout",
+        tooltipType = normalizedTooltipType,
+        delayMs = 1,
+    })
     zo_callLater(function()
-        if not tooltipRef or tooltipRef:IsHidden() then return end
-        if IsIncompatibleSceneActive() then return end
+        if not tooltipRef or tooltipRef:IsHidden() then
+            TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {
+                fn = "ScheduleTooltipEquippedStockRelayout.task",
+                reason = "hidden",
+                tooltipType = normalizedTooltipType,
+            })
+            return
+        end
+        if IsIncompatibleSceneActive() then
+            TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {
+                fn = "ScheduleTooltipEquippedStockRelayout.task",
+                reason = "sceneIncompatible",
+                tooltipType = normalizedTooltipType,
+            })
+            return
+        end
 
         if BETTERUI.CIM.SharedItemSupport then
             if type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" then
@@ -628,6 +883,18 @@ local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
             if type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
                 BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(normalizedTooltipType, nil)
             end
+            TraceTooltip("general_interface.tooltip_stock_relayout", "updated", {
+                fn = "ScheduleTooltipEquippedStockRelayout.task",
+                tooltipType = normalizedTooltipType,
+                cleaned = type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function",
+                refreshed = type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function",
+            })
+        else
+            TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {
+                fn = "ScheduleTooltipEquippedStockRelayout.task",
+                reason = "missingSharedItemSupport",
+                tooltipType = normalizedTooltipType,
+            })
         end
     end, 1)
 end
@@ -644,6 +911,12 @@ local function ClearTooltipEnhancementState(tooltipControl, tooltipType)
     if tooltipType and BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" then
         BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType)
     end
+    TraceTooltip("general_interface.tooltip_state", "cleared", {
+        fn = "ClearTooltipEnhancementState",
+        tooltipType = tooltipType,
+        hasTooltipControl = tooltipControl ~= nil,
+        cleanedSharedSupport = tooltipType and BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" or false,
+    })
 end
 
 local function InstallClearLinesHook(tooltipControl, state, tooltipType)
@@ -654,6 +927,10 @@ local function InstallClearLinesHook(tooltipControl, state, tooltipType)
     ZO_PostHook(tooltipControl, "ClearLines", function(self, ...)
         ClearTooltipEnhancementState(self, tooltipType)
         ResetInventoryHookState(state)
+        TraceTooltip("general_interface.tooltip_state", "clear_lines", {
+            fn = "ClearLines",
+            tooltipType = tooltipType,
+        })
     end)
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "ClearLines", target = type(tooltipControl) }) end
     state.clearLinesHookInstalled = true
@@ -665,10 +942,21 @@ local function InstallBagLayoutHook(tooltipControl, layoutBagName, state, toolti
             state.skipEnhancementForLayout = true
             ClearTooltipEnhancementState(self, tooltipType)
             ResetInventoryHookState(state)
+            TraceTooltip("general_interface.tooltip_hook", "bag_layout_skipped", {
+                fn = tostring(layoutBagName),
+                reason = "sceneIncompatible",
+                tooltipType = tooltipType,
+            })
             return
         end
 
         CaptureBagLayoutState(state, layoutBagDataFn, ...)
+        TraceTooltip("general_interface.tooltip_hook", "bag_layout_captured", {
+            fn = tostring(layoutBagName),
+            tooltipType = tooltipType,
+            bagId = state.bagId,
+            slotIndex = state.slotIndex,
+        })
     end)
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = tostring(layoutBagName), target = type(tooltipControl) }) end
 end
@@ -679,26 +967,46 @@ local function InstallStoreLayoutHook(tooltipControl, layoutStoreName, state, to
             state.skipEnhancementForLayout = true
             ClearTooltipEnhancementState(self, tooltipType)
             ResetInventoryHookState(state)
+            TraceTooltip("general_interface.tooltip_hook", "store_layout_skipped", {
+                fn = tostring(layoutStoreName),
+                reason = "sceneIncompatible",
+                tooltipType = tooltipType,
+            })
             return
         end
 
         CaptureStoreLayoutState(state, layoutStoreDataFn, ...)
+        TraceTooltip("general_interface.tooltip_hook", "store_layout_captured", {
+            fn = tostring(layoutStoreName),
+            tooltipType = tooltipType,
+            hasItemLink = state.storeItemLink ~= nil,
+            storeStackCount = state.storeStackCount,
+        })
     end)
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = tostring(layoutStoreName), target = type(tooltipControl) }) end
 end
 
 local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, tooltipType, layoutItemDataFn)
     ZO_PreHook(tooltipControl, layoutItemName, function(self, ...)
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip hook",
-                { type = tooltipType, bag = state.bagId, slot = state.slotIndex })
-        end
+        TraceTooltip("general_interface.tooltip_hook", "item_layout_begin", {
+            fn = tostring(layoutItemName),
+            tooltipType = tooltipType,
+            bagId = state.bagId,
+            slotIndex = state.slotIndex,
+            hasStoreItemLink = state.storeItemLink ~= nil,
+            storeStackCount = state.storeStackCount,
+        })
         state.skipEnhancementForLayout = IsIncompatibleSceneActive()
         state.pendingItemLink = nil
         state.pendingTooltipType = nil
 
         if state.skipEnhancementForLayout then
             ClearTooltipEnhancementState(self, tooltipType)
+            TraceTooltip("general_interface.tooltip_hook", "item_layout_skipped", {
+                fn = tostring(layoutItemName),
+                reason = "sceneIncompatible",
+                tooltipType = tooltipType,
+            })
             return
         end
 
@@ -706,6 +1014,13 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
 
         if state.bagId ~= nil and state.slotIndex ~= nil
             and not DoesBagContextMatchItemLink(state.bagId, state.slotIndex, itemLink) then
+            TraceTooltip("general_interface.tooltip_hook", "bag_context_cleared", {
+                fn = tostring(layoutItemName),
+                tooltipType = tooltipType,
+                bagId = state.bagId,
+                slotIndex = state.slotIndex,
+                hasItemLink = itemLink ~= nil,
+            })
             state.bagId = nil
             state.slotIndex = nil
         end
@@ -713,6 +1028,12 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
         if not IsLikelyItemLink(itemLink) then
             state.skipEnhancementForLayout = true
             ClearTooltipEnhancementState(self, tooltipType)
+            TraceTooltip("general_interface.tooltip_hook", "item_layout_skipped", {
+                fn = tostring(layoutItemName),
+                reason = "notItemLink",
+                tooltipType = tooltipType,
+                itemLinkType = type(itemLink),
+            })
             return
         end
 
@@ -721,6 +1042,14 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
         state.storeStackCount = nil
         state.pendingItemLink = itemLink
         state.pendingTooltipType = tooltipType
+        TraceTooltip("general_interface.tooltip_hook", "item_layout_captured", {
+            fn = tostring(layoutItemName),
+            tooltipType = tooltipType,
+            bagId = state.bagId,
+            slotIndex = state.slotIndex,
+            hasItemLink = itemLink ~= nil,
+            storeStackCount = tooltipControl._betterui_storeStackCount,
+        })
     end)
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = tostring(layoutItemName), target = type(tooltipControl) }) end
 
@@ -732,6 +1061,11 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
 
         if state.skipEnhancementForLayout then
             state.skipEnhancementForLayout = false
+            TraceTooltip("general_interface.tooltip_hook", "item_layout_end_skipped", {
+                fn = tostring(layoutItemName),
+                reason = "skipEnhancementForLayout",
+                tooltipType = capturedTooltipType,
+            })
             return
         end
 
@@ -746,9 +1080,24 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
             ApplyTooltipLabelFonts(self)
             ScheduleTooltipEquippedRefresh(self, itemLink, capturedTooltipType)
             ScheduleDuplicateAddonCleanup(self)
+            TraceTooltip("general_interface.tooltip_hook", "item_layout_end", {
+                fn = tostring(layoutItemName),
+                tooltipType = capturedTooltipType,
+                hasItemLink = itemLink ~= nil,
+                enhancementsEnabled = true,
+                scheduledRefresh = true,
+                scheduledCleanup = true,
+            })
         else
             RestoreTooltipLabelFonts(self)
             ScheduleTooltipEquippedStockRelayout(self, capturedTooltipType)
+            TraceTooltip("general_interface.tooltip_hook", "item_layout_end", {
+                fn = tostring(layoutItemName),
+                tooltipType = capturedTooltipType,
+                hasItemLink = itemLink ~= nil,
+                enhancementsEnabled = false,
+                scheduledStockRelayout = true,
+            })
         end
     end)
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = tostring(layoutItemName), target = type(tooltipControl) }) end
@@ -819,6 +1168,10 @@ end
 
 function Tooltips.InventoryHook(config)
     if type(config) ~= "table" or not config.tooltipControl then
+        TraceTooltip("general_interface.tooltip_hook", "install_skipped", {
+            fn = "Tooltips.InventoryHook",
+            reason = type(config) ~= "table" and "invalidConfig" or "missingTooltipControl",
+        })
         return
     end
 
@@ -832,16 +1185,36 @@ function Tooltips.InventoryHook(config)
     local layoutStoreDataFn = config.linkFunc3
 
     if not (tooltipControl and (layoutItemName or layoutBagName or layoutStoreName)) then
+        TraceTooltip("general_interface.tooltip_hook", "install_skipped", {
+            fn = "Tooltips.InventoryHook",
+            reason = "missingLayoutNames",
+            tooltipType = tooltipType,
+        })
         return
     end
 
     if type(ZO_PreHook) ~= "function" or type(ZO_PostHook) ~= "function" then
+        TraceTooltip("general_interface.tooltip_hook", "install_skipped", {
+            fn = "Tooltips.InventoryHook",
+            reason = "missingHookApi",
+            tooltipType = tooltipType,
+            hasPreHook = type(ZO_PreHook) == "function",
+            hasPostHook = type(ZO_PostHook) == "function",
+        })
         return
     end
     local hasItemLayout = layoutItemName and tooltipControl[layoutItemName] ~= nil
     local hasBagLayout = layoutBagName and tooltipControl[layoutBagName] ~= nil
     local hasStoreLayout = layoutStoreName and tooltipControl[layoutStoreName] ~= nil
     if not (hasItemLayout or hasBagLayout or hasStoreLayout) then
+        TraceTooltip("general_interface.tooltip_hook", "install_skipped", {
+            fn = "Tooltips.InventoryHook",
+            reason = "missingTooltipMethods",
+            tooltipType = tooltipType,
+            layoutItemName = layoutItemName,
+            layoutBagName = layoutBagName,
+            layoutStoreName = layoutStoreName,
+        })
         return
     end
 
@@ -854,6 +1227,12 @@ function Tooltips.InventoryHook(config)
         hasStoreLayout and tostring(layoutStoreName) or "-",
         tostring(tooltipType))
     if state.installedHooks[hookKey] then
+        TraceTooltip("general_interface.tooltip_hook", "install_skipped", {
+            fn = "Tooltips.InventoryHook",
+            reason = "alreadyInstalled",
+            tooltipType = tooltipType,
+            hookKey = hookKey,
+        })
         return
     end
     state.installedHooks[hookKey] = true
@@ -868,6 +1247,14 @@ function Tooltips.InventoryHook(config)
     if hasItemLayout then
         hookRuntime.InstallItemLayoutHooks(tooltipControl, layoutItemName, state, tooltipType, layoutItemDataFn)
     end
+    TraceTooltip("general_interface.tooltip_hook", "installed", {
+        fn = "Tooltips.InventoryHook",
+        tooltipType = tooltipType,
+        hookKey = hookKey,
+        hasItemLayout = hasItemLayout,
+        hasBagLayout = hasBagLayout,
+        hasStoreLayout = hasStoreLayout,
+    })
 end
 
 -- Passthrough helpers for tooltip hook data extraction

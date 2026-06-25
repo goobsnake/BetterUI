@@ -25,6 +25,20 @@ local CastBar = Bars.CastBar
 local ExperienceBar = Bars.ExperienceBar
 local MountStaminaBar = Bars.MountStaminaBar
 
+local function TraceCastBar(event, phase, data)
+    if Bars.TraceCastBar then
+        Bars.TraceCastBar(event, phase, data)
+        return
+    end
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "resourceOrbs"
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION, event, phase, data)
+end
+
 local function TraceValueBracketChange(current, max, state)
     local L = BETTERUI.Log
     if not (L and L.Trace) then
@@ -90,9 +104,25 @@ end
 ---@param castDepthColor table|nil Depth colour override {r,g,b,a}
 function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, showCountdown, castFillColor,
                              castDepthColor)
-    if unitTag ~= "player" then return end
+    if unitTag ~= "player" then
+        TraceCastBar("resource_orbs.cast_bar", "cast_start_skipped", {
+            fn = "CastBar.OnCastStart",
+            reason = "nonPlayer",
+            unitTag = unitTag,
+            abilityName = abilityName,
+        })
+        return
+    end
     local durationSeconds = (castDuration or 0) / 1000
-    if durationSeconds <= 0 then return end
+    if durationSeconds <= 0 then
+        TraceCastBar("resource_orbs.cast_bar", "cast_start_skipped", {
+            fn = "CastBar.OnCastStart",
+            reason = "invalidDuration",
+            abilityName = abilityName,
+            castDuration = castDuration,
+        })
+        return
+    end
 
     self.isCasting = true
     self.duration = durationSeconds
@@ -107,18 +137,41 @@ function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, sh
     self:ApplyFillStyle(castFillColor or self.defaultFillColor, castDepthColor or self.defaultDepthColor)
     self.control:SetHidden(false)
     if self.fill then self.fill:SetHidden(false) end
+    TraceCastBar("resource_orbs.cast_bar", "cast_start", {
+        fn = "CastBar.OnCastStart",
+        abilityName = abilityName,
+        durationMs = castDuration,
+        durationSeconds = durationSeconds,
+        channeled = self.isChanneled,
+        countdown = self.showCountdown,
+        hasColorOverride = castFillColor ~= nil,
+        powerProbeArmed = self.pendingPowerProbeStartMs > 0,
+    })
 end
 
 ---@param unitTag string Unit tag (e.g. "player")
 ---@param wasInterrupted boolean Whether the cast was interrupted
 function CastBar:OnCastStop(unitTag, wasInterrupted)
-    if unitTag ~= "player" then return end
+    if unitTag ~= "player" then
+        TraceCastBar("resource_orbs.cast_bar", "cast_stop_skipped", {
+            fn = "CastBar.OnCastStop",
+            reason = "nonPlayer",
+            unitTag = unitTag,
+        })
+        return
+    end
+    local abilityName = self.abilityName
     self.isCasting = false
     self.showCountdown = false
     self.isChanneled = false
     self.pendingPowerProbeStartMs = 0
     self.appliedCastLabelText = nil
     self:Update()
+    TraceCastBar("resource_orbs.cast_bar", "cast_stop", {
+        fn = "CastBar.OnCastStop",
+        abilityName = abilityName,
+        interrupted = wasInterrupted == true,
+    })
 end
 
 --- Applies static cast bar styling (dimensions, backdrop, font, label anchor).

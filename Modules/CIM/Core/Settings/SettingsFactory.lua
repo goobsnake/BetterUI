@@ -332,8 +332,9 @@ end
 local function SettingsTraceEnabled()
     local L = BETTERUI.Log
     if not L then return false end
-    if L.EnabledFor and L.LEVEL and L.CATEGORY then
-        return L.EnabledFor(L.LEVEL.INFO, L.CATEGORY.SETTINGS)
+    local levels = type(L.LEVEL) == "table" and L.LEVEL or nil
+    if L.EnabledFor and levels and L.CATEGORY then
+        return L.EnabledFor(levels.INFO, L.CATEGORY.SETTINGS)
     end
     return type(L.TraceEvent) == "function"
 end
@@ -341,7 +342,8 @@ end
 local function TraceSettings(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
-    L.TraceEvent(L.CATEGORY.SETTINGS, event, phase, data or {}, L.LEVEL.INFO)
+    local levels = type(L.LEVEL) == "table" and L.LEVEL or nil
+    L.TraceEvent(L.CATEGORY.SETTINGS, event, phase, data or {}, levels and levels.INFO or nil)
 end
 
 local function CountControls(controls)

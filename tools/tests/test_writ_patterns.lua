@@ -200,8 +200,9 @@ end
 do
     mockLanguage = "de"
     local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-    assert_eq(#patterns, 7, "german pattern list loads")
+    assert_eq(#patterns, 8, "german pattern list loads")
     assert_eq(patterns[1].craftType, CRAFTING_TYPE_BLACKSMITHING, "german blacksmith pattern maps correctly")
+    assert_eq(patterns[6].pattern, "hexen", "german festival fallback stays in localized patterns")
 end
 
 do

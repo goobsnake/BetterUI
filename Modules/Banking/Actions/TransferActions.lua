@@ -1,5 +1,9 @@
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
+local _pendingTransfers = {}
+local PENDING_TRANSFER_TIMEOUT_MS = 5000
+local MarkTransferPending
+local SweepStaleTransfers
 
 local function BeginBankTransferFlow(message, data)
     local L = BETTERUI.Log
@@ -248,6 +252,10 @@ local function ExecuteDirectTransfer(bag, index, data)
         return false, "place_failed"
     end
 
+    MarkTransferPending(bag, index)
+    if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
+        BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
+    end
     TraceBankTransfer("bank.item_transfer", "requested", bag, index, data)
     return true
 end
@@ -398,19 +406,31 @@ local function MaybeRefreshAfterTransfer(self, flow)
     return true, "scheduled"
 end
 
-local _pendingTransfers = {}
-local PENDING_TRANSFER_TIMEOUT_MS = 5000
-
 local function MakeTransferKey(bagId, slotIndex)
     return bagId .. ":" .. slotIndex
 end
 
-local function MarkTransferPending(bagId, slotIndex)
-    _pendingTransfers[MakeTransferKey(bagId, slotIndex)] = GetFrameTimeMilliseconds()
+function MarkTransferPending(bagId, slotIndex)
+    if bagId == nil or slotIndex == nil then
+        TraceBankTransfer("bank.item_transfer", "pending_mark_skipped", bagId, slotIndex, {
+            reason = "missingSlot",
+        })
+        return
+    end
+    _pendingTransfers[MakeTransferKey(bagId, slotIndex)] = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+    local count = 0
+    for _ in pairs(_pendingTransfers) do count = count + 1 end
+    TraceBankTransfer("bank.item_transfer", "pending_marked", bagId, slotIndex, {
+        pendingAfter = count,
+    })
 end
 
 local function ClearTransferPending(bagId, slotIndex)
+    if bagId == nil or slotIndex == nil then return false end
+    local key = MakeTransferKey(bagId, slotIndex)
+    local hadPending = _pendingTransfers[key] ~= nil
     _pendingTransfers[MakeTransferKey(bagId, slotIndex)] = nil
+    return hadPending
 end
 
 local function IsTransferPending(bagId, slotIndex)
@@ -418,18 +438,30 @@ local function IsTransferPending(bagId, slotIndex)
     if not timestamp then
         return false
     end
-    if (GetFrameTimeMilliseconds() - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
+    local now = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or timestamp
+    if (now - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
         _pendingTransfers[MakeTransferKey(bagId, slotIndex)] = nil
+        TraceBankTransfer("bank.item_transfer", "pending_expired", bagId, slotIndex, {
+            source = "IsTransferPending",
+            ageMs = now - timestamp,
+            timeoutMs = PENDING_TRANSFER_TIMEOUT_MS,
+        })
         return false
     end
     return true
 end
 
-local function SweepStaleTransfers()
-    local now = GetFrameTimeMilliseconds()
+function SweepStaleTransfers()
+    local now = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
     for key, timestamp in pairs(_pendingTransfers) do
         if (now - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
             _pendingTransfers[key] = nil
+            local bagId, slotIndex = key:match("^([^:]+):([^:]+)$")
+            TraceBankTransfer("bank.item_transfer", "pending_expired", tonumber(bagId), tonumber(slotIndex), {
+                source = "SweepStaleTransfers",
+                ageMs = now - timestamp,
+                timeoutMs = PENDING_TRANSFER_TIMEOUT_MS,
+            })
         end
     end
 end
@@ -450,7 +482,7 @@ function BETTERUI.Banking.CountPendingTransfers()
 end
 
 local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIndex, quantity)
-    TraceBankTransfer("bank.item_transfer", "requested", fromBag, fromBagIndex, {
+    TraceBankTransfer("bank.item_transfer", "move_requested", fromBag, fromBagIndex, {
         toBag = toBag,
         toSlot = toBagIndex,
         quantity = quantity,
@@ -488,7 +520,6 @@ local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIn
             stringId and GetString(stringId) or "Item move request failed")
         return false
     end
-    BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
     local refreshScheduled, refreshReason = MaybeRefreshAfterTransfer(self, flow)
     TraceBankTransfer("bank.item_transfer", "refresh_decision", fromBag, fromBagIndex, {
         toBag = toBag,
@@ -508,6 +539,7 @@ local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIn
         refreshReason = refreshReason,
         suppressed = self and self._suppressListUpdates == true,
     }))
+    BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
     return true
 end
 
@@ -587,6 +619,7 @@ local function ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex
         return
     end
 
+    MarkTransferPending(fromBag, fromBagIndex)
     local refreshScheduled, refreshReason = MaybeRefreshAfterTransfer(self, flow)
     TraceBankTransfer("bank.item_transfer", "refresh_decision", fromBag, fromBagIndex, {
         mode = mode,
@@ -601,6 +634,9 @@ local function ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex
         refreshReason = refreshReason,
         suppressed = self and self._suppressListUpdates == true,
     }))
+    if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
+        BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
+    end
 end
 
 local function ExecutePersonalOrHouseMove(self, transferContext, transferService, fromBag, fromBagIndex, fromBagItemLink,
@@ -800,12 +836,42 @@ if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.EventRegistry then
             source = "EVENT_INVENTORY_SINGLE_SLOT_UPDATE",
             pendingBefore = BETTERUI.Banking.CountPendingTransfers and BETTERUI.Banking.CountPendingTransfers() or nil,
         })
-        ClearTransferPending(bagId, slotIndex)
+        local cleared = ClearTransferPending(bagId, slotIndex)
         TraceBankTransfer("bank.item_transfer", "pending_cleared", bagId, slotIndex, {
             source = "EVENT_INVENTORY_SINGLE_SLOT_UPDATE",
+            cleared = cleared == true,
             pendingAfter = BETTERUI.Banking.CountPendingTransfers and BETTERUI.Banking.CountPendingTransfers() or nil,
         })
     end
+    local function OnGuildBankSlotUpdate(source)
+        return function(_, slotId, addedByLocalPlayer, itemSoundCategory, isLastUpdateForMessage)
+            TraceBankTransfer("bank.item_transfer", "guild_slot_update", BAG_GUILDBANK, slotId, {
+                source = source,
+                addedByLocalPlayer = addedByLocalPlayer,
+                itemSoundCategory = itemSoundCategory,
+                isLastUpdateForMessage = isLastUpdateForMessage,
+                pendingBefore = BETTERUI.Banking.CountPendingTransfers and BETTERUI.Banking.CountPendingTransfers() or nil,
+            })
+            local cleared = ClearTransferPending(BAG_GUILDBANK, slotId)
+            TraceBankTransfer("bank.item_transfer", "pending_cleared", BAG_GUILDBANK, slotId, {
+                source = source,
+                cleared = cleared == true,
+                pendingAfter = BETTERUI.Banking.CountPendingTransfers and BETTERUI.Banking.CountPendingTransfers() or nil,
+            })
+        end
+    end
     BETTERUI.CIM.EventRegistry.Register("Banking.TransferActions", "BetterUI_Banking_TransferActions_SlotUpdate",
         EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySingleSlotUpdate)
+    if EVENT_GUILD_BANK_ITEM_ADDED then
+        BETTERUI.CIM.EventRegistry.Register("Banking.TransferActions", "BetterUI_Banking_TransferActions_GuildAdded",
+            EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankSlotUpdate("EVENT_GUILD_BANK_ITEM_ADDED"))
+    end
+    if EVENT_GUILD_BANK_ITEM_REMOVED then
+        BETTERUI.CIM.EventRegistry.Register("Banking.TransferActions", "BetterUI_Banking_TransferActions_GuildRemoved",
+            EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankSlotUpdate("EVENT_GUILD_BANK_ITEM_REMOVED"))
+    end
+    if EVENT_GUILD_BANK_UPDATED_QUANTITY then
+        BETTERUI.CIM.EventRegistry.Register("Banking.TransferActions", "BetterUI_Banking_TransferActions_GuildQuantity",
+            EVENT_GUILD_BANK_UPDATED_QUANTITY, OnGuildBankSlotUpdate("EVENT_GUILD_BANK_UPDATED_QUANTITY"))
+    end
 end

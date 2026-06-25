@@ -59,10 +59,19 @@ local VENDOR_CLEANUP_DIALOG_NAMES = {
 
 local function ReleaseVendorDialogs()
     if type(ZO_Dialogs_ReleaseDialog) ~= "function" then
+        TraceVendorInteraction("vendor.dialogs", "release_skipped", nil, {
+            fn = "ReleaseVendorDialogs",
+            reason = "missingReleaseDialog",
+            dialogs = table.concat(VENDOR_CLEANUP_DIALOG_NAMES, ","),
+        })
         return
     end
     for _, dialogName in ipairs(VENDOR_CLEANUP_DIALOG_NAMES) do
         ZO_Dialogs_ReleaseDialog(dialogName)
+        TraceVendorInteraction("vendor.dialogs", "release_requested", nil, {
+            fn = "ReleaseVendorDialogs",
+            dialogName = dialogName,
+        })
     end
 end
 
@@ -598,16 +607,37 @@ local function CloseStoreInternal(state, deps)
     resolved.hideScene()
 
     local storeManager = resolved.getStoreManager()
+    TraceVendorInteraction("vendor.store", "cleanup_begin", state, {
+        fn = "CloseStoreInternal",
+        hasStoreManager = storeManager ~= nil,
+        hasBridgeCleanup = type(resolved.cleanupCloseStore) == "function",
+    })
     resolved.runCloseCleanup()
     if type(resolved.cleanupCloseStore) == "function" then
         resolved.cleanupCloseStore(storeManager, resolved.safeCall, resolved.logNativeStoreInputState)
+        TraceVendorInteraction("vendor.store", "cleanup_bridge", state, {
+            fn = "CloseStoreInternal",
+            hasStoreManager = storeManager ~= nil,
+        })
     else
         resolved.logNativeStoreInputState(CLOSE_STORE_BEFORE_SWEEP_CONTEXT, storeManager)
         if storeManager and type(storeManager.OnHide) == "function" then
             resolved.safeCall(CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT, storeManager.OnHide, storeManager)
+            TraceVendorInteraction("vendor.store", "cleanup_native_onhide", state, {
+                fn = "CloseStoreInternal",
+                context = CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT,
+            })
+        else
+            TraceVendorInteraction("vendor.store", "cleanup_native_onhide_skipped", state, {
+                fn = "CloseStoreInternal",
+                reason = storeManager and "missingOnHide" or "missingStoreManager",
+            })
         end
         if storeManager then
             storeManager.activeComponents = {}
+            TraceVendorInteraction("vendor.store", "cleanup_components_cleared", state, {
+                fn = "CloseStoreInternal",
+            })
         end
         resolved.logNativeStoreInputState(CLOSE_STORE_AFTER_SWEEP_CONTEXT, storeManager)
     end

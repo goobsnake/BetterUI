@@ -45,6 +45,20 @@ end
 Companions.WrapBoundaryError = Companions.WrapBoundaryError or companionsBoundaryHelpers.WrapError
 Companions.ExecuteBoundary = Companions.ExecuteBoundary or companionsBoundaryHelpers.ExecuteBoundary
 
+local function TraceCompanionRuntime(event, phase, data, category)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not (L and type(L.TraceEvent) == "function") then return end
+    local payload = data or {}
+    payload.module = "Companions"
+    payload.feature = payload.feature or "runtime"
+    payload.scene = BETTERUI_COMPANION_EQUIP_SCENE_NAME
+    payload.sceneShowing = Companions.instance and Companions.instance.IsSceneShowing and Companions.instance:IsSceneShowing() or false
+    payload.activeCompanion = HasActiveCompanion and HasActiveCompanion() or nil
+    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(category or categories.STATE or categories.GENERAL, event, phase, payload)
+end
+
 local function RefreshVisibleCompanionScene(screen, options)
     if not screen or not screen.IsSceneShowing or not screen:IsSceneShowing() then
         return false
@@ -418,27 +432,69 @@ function Companions.RegisterSceneLifecycle(instance)
     end
 end
 
-local function OnCompanionActivated()
-    RefreshVisibleCompanionScene(Companions.instance)
+local function OnCompanionActivated(eventCode)
+    TraceCompanionRuntime("companions.event", "received", {
+        event = "EVENT_COMPANION_ACTIVATED",
+        eventCode = eventCode,
+    })
+    local refreshed = RefreshVisibleCompanionScene(Companions.instance)
+    TraceCompanionRuntime("companions.event", refreshed and "refresh_complete" or "refresh_skipped", {
+        event = "EVENT_COMPANION_ACTIVATED",
+        reason = refreshed and nil or "sceneHiddenOrMissing",
+    })
 end
 
-local function OnCompanionDeactivated()
+local function OnCompanionDeactivated(eventCode)
+    TraceCompanionRuntime("companions.event", "received", {
+        event = "EVENT_COMPANION_DEACTIVATED",
+        eventCode = eventCode,
+    })
     if not Companions.instance then
+        TraceCompanionRuntime("companions.event", "skipped", {
+            event = "EVENT_COMPANION_DEACTIVATED",
+            reason = "missingInstance",
+        })
         return
     end
     if Companions.instance:IsSceneShowing() then
         SCENE_MANAGER:HideCurrentScene()
+        TraceCompanionRuntime("companions.event", "scene_hide_requested", {
+            event = "EVENT_COMPANION_DEACTIVATED",
+        })
+    else
+        TraceCompanionRuntime("companions.event", "skipped", {
+            event = "EVENT_COMPANION_DEACTIVATED",
+            reason = "sceneHidden",
+        })
     end
 end
 
-local function OnInventoryUpdated()
+local function OnInventoryUpdated(eventCode, bagId, slotIndex)
     if not Companions.instance or not Companions.instance:IsSceneShowing() then
+        TraceCompanionRuntime("companions.inventory_update", "skipped", {
+            eventCode = eventCode,
+            bagId = bagId,
+            slotIndex = slotIndex,
+            reason = Companions.instance and "sceneHidden" or "missingInstance",
+        })
         return
     end
 
     Companions.Tasks:Cancel("listRefresh")
+    TraceCompanionRuntime("companions.inventory_update", "scheduled", {
+        eventCode = eventCode,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        delayMs = 100,
+    })
     Companions.Tasks:Schedule("listRefresh", 100, function()
-        RefreshVisibleCompanionScene(Companions.instance)
+        local refreshed = RefreshVisibleCompanionScene(Companions.instance)
+        TraceCompanionRuntime("companions.inventory_update", refreshed and "refresh_complete" or "refresh_skipped", {
+            eventCode = eventCode,
+            bagId = bagId,
+            slotIndex = slotIndex,
+            reason = refreshed and nil or "sceneHiddenOrMissing",
+        })
     end)
 end
 

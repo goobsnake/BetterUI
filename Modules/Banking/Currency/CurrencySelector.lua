@@ -269,19 +269,35 @@ function CurrencySelector.DisplaySelector(self, currencyType)
             })
         end
     else
+        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.currency_selector", "skipped", {
+                action = "show",
+                reason = "maxZero",
+                currencyType = currencyType,
+                max = currency_max,
+                mode = self.currentMode,
+                guild = isGuildBank == true,
+                currency = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.currencyKeybinds, "currency") or nil,
+                core = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
+            })
+        end
         BETTERUI.CIM.UserAlertText("Banking.Currency", GetString(rawget(_G, "SI_BETTERUI_BANK_NO_FUNDS")))
     end
 end
 
 ---@param self BETTERUI.Banking.Class
 function CurrencySelector.HideSelector(self)
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "hide selector")
-    end
     local selectorState = GetSelectorState(self)
-    selectorState.currencyType = nil
-    selectorState.mode = nil
-    selectorState.isGuildBank = nil
+    local previousCurrencyType = selectorState.currencyType
+    local previousMode = selectorState.mode
+    local previousIsGuildBank = selectorState.isGuildBank
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "hide selector", {
+            currencyType = previousCurrencyType,
+            mode = previousMode,
+            guild = previousIsGuildBank == true,
+        })
+    end
 
     self.selector.control:GetParent():SetHidden(true)
     self.selector:Deactivate()
@@ -290,11 +306,17 @@ function CurrencySelector.HideSelector(self)
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.currency_selector", "before", {
             action = "hide",
+            currencyType = previousCurrencyType,
+            mode = previousMode,
+            guild = previousIsGuildBank == true,
             currency = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.currencyKeybinds, "currency") or nil,
             core = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
             selector = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.currencySelectorKeybinds, "selector") or nil,
         })
     end
+    selectorState.currencyType = nil
+    selectorState.mode = nil
+    selectorState.isGuildBank = nil
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencySelectorKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
@@ -303,6 +325,9 @@ function CurrencySelector.HideSelector(self)
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.currency_selector", "after", {
             action = "hide",
+            currencyType = previousCurrencyType,
+            mode = previousMode,
+            guild = previousIsGuildBank == true,
             currency = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.currencyKeybinds, "currency") or nil,
             core = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         })

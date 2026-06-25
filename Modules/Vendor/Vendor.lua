@@ -8,6 +8,9 @@ Purpose: Vendor orchestration surface for scene lifecycle, event wiring, and
 local Vendor      = BETTERUI.Vendor
 local MODE        = Vendor.MODE
 local EVENT_NS    = "BetterUI_Vendor"
+if Vendor._openedInGamepadMode == nil then
+    Vendor._openedInGamepadMode = false
+end
 
 -- Tracks whether current interaction is fence (true) or regular store (false)
 local isFenceInteraction = false
@@ -1232,15 +1235,33 @@ end
 -- EVENT HANDLERS
 
 local function OnOpenStore()
+    local gamepadPreferred = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    TraceVendorEvent("vendor.store_event", "received", {
+        fn = "Vendor.OnOpenStore",
+        event = "EVENT_OPEN_STORE",
+        gamepadPreferred = gamepadPreferred,
+    })
     -- Native ZO_GamepadStoreManager gates its OnOpenStore on gamepad-preferred
     -- mode; in keyboard mode the keyboard store owns the interaction and our
     -- gamepad scene must not take over. Remember that we opened so the matching
     -- close still cleans up after a mid-interaction mode switch.
-    if IsInGamepadPreferredMode and not IsInGamepadPreferredMode() then
+    if gamepadPreferred == false then
         Vendor._openedInGamepadMode = false
+        TraceVendorEvent("vendor.store_event", "skipped", {
+            fn = "Vendor.OnOpenStore",
+            event = "EVENT_OPEN_STORE",
+            reason = "keyboardMode",
+            openedInGamepadMode = Vendor._openedInGamepadMode,
+        })
         return
     end
     Vendor._openedInGamepadMode = true
+    TraceVendorEvent("vendor.store_event", "open_requested", {
+        fn = "Vendor.OnOpenStore",
+        event = "EVENT_OPEN_STORE",
+        interactionType = GetInteractionType and GetInteractionType() or nil,
+        openedInGamepadMode = Vendor._openedInGamepadMode,
+    })
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
         .OpenStore({
             runtime = VendorLifecycleRuntime,
@@ -1259,12 +1280,33 @@ end
 ---@param enableSell boolean|nil Whether fence sell is enabled (default true)
 ---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
+    local gamepadPreferred = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    TraceVendorEvent("vendor.fence_event", "received", {
+        fn = "Vendor.OnOpenFence",
+        event = "EVENT_OPEN_FENCE",
+        enableSell = enableSell,
+        enableLaunder = enableLaunder,
+        gamepadPreferred = gamepadPreferred,
+    })
     -- Same gamepad-mode gate as OnOpenStore (native parity).
-    if IsInGamepadPreferredMode and not IsInGamepadPreferredMode() then
+    if gamepadPreferred == false then
         Vendor._openedInGamepadMode = false
+        TraceVendorEvent("vendor.fence_event", "skipped", {
+            fn = "Vendor.OnOpenFence",
+            event = "EVENT_OPEN_FENCE",
+            reason = "keyboardMode",
+            openedInGamepadMode = Vendor._openedInGamepadMode,
+        })
         return
     end
     Vendor._openedInGamepadMode = true
+    TraceVendorEvent("vendor.fence_event", "open_requested", {
+        fn = "Vendor.OnOpenFence",
+        event = "EVENT_OPEN_FENCE",
+        enableSell = enableSell,
+        enableLaunder = enableLaunder,
+        openedInGamepadMode = Vendor._openedInGamepadMode,
+    })
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
         .OpenFence({
             runtime = VendorLifecycleRuntime,
@@ -1292,14 +1334,29 @@ local function OnStableInteractEnd()
 end
 
 local function OnCloseStore()
+    TraceVendorEvent("vendor.store_event", "close_received", {
+        fn = "Vendor.OnCloseStore",
+        event = "EVENT_CLOSE_STORE",
+        openedInGamepadMode = Vendor._openedInGamepadMode,
+    })
     -- Unlike the open handlers, close is NOT gated on the current preferred
     -- mode: a store opened in gamepad mode must still clean up even if the
     -- player switched to keyboard mid-interaction. Only skip when we never
     -- opened (i.e. the open was suppressed because it started in keyboard mode).
     if Vendor._openedInGamepadMode == false then
+        TraceVendorEvent("vendor.store_event", "close_skipped", {
+            fn = "Vendor.OnCloseStore",
+            event = "EVENT_CLOSE_STORE",
+            reason = "notOpenedInGamepadMode",
+        })
         return
     end
     Vendor._openedInGamepadMode = false
+    TraceVendorEvent("vendor.store_event", "close_requested", {
+        fn = "Vendor.OnCloseStore",
+        event = "EVENT_CLOSE_STORE",
+        openedInGamepadMode = Vendor._openedInGamepadMode,
+    })
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
         .CloseStore({
             runtime = VendorLifecycleRuntime,

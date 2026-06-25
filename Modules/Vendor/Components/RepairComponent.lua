@@ -22,6 +22,69 @@ local function GetTargetRowData(vendorInstance)
     return list:GetSelectedData()
 end
 
+local function TraceRepair(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Vendor"
+    data.scene = rawget(_G, "BETTERUI_VENDOR_SCENE_NAME") or "BETTERUI_VENDOR"
+    data.feature = data.feature or "vendor-repair"
+    data.fn = data.fn or "Vendor.RepairComponent"
+    L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
+end
+
+Repair.pendingRepairAllTrace = nil
+local repairAllDialogHooksInstalled = false
+
+local function TakePendingRepairAllTrace(phase, reason)
+    local pending = Repair.pendingRepairAllTrace
+    if not pending then return nil end
+    if reason ~= nil then
+        pending.reason = reason
+    end
+    TraceRepair("vendor.repair_all_dialog", phase, pending)
+    Repair.pendingRepairAllTrace = nil
+    return pending
+end
+
+local function EnsureRepairAllDialogHooks()
+    if repairAllDialogHooksInstalled then return end
+    repairAllDialogHooksInstalled = true
+    if type(RepairAll) == "function" then
+        local originalRepairAll = RepairAll
+        RepairAll = function(...)
+            local pending = TakePendingRepairAllTrace("confirm", nil)
+            local result = originalRepairAll(...)
+            if pending then
+                TraceRepair("vendor.repair_all", "dispatched", {
+                    fn = "Vendor.RepairComponent.RepairAll",
+                    cost = pending.cost,
+                    dialogName = pending.dialogName,
+                })
+            end
+            return result
+        end
+    end
+    if type(ZO_Dialogs_ReleaseDialog) == "function" then
+        local originalReleaseDialog = ZO_Dialogs_ReleaseDialog
+        ZO_Dialogs_ReleaseDialog = function(dialogName, ...)
+            if dialogName == "REPAIR_ALL" then
+                TakePendingRepairAllTrace("cancel", "dialogReleased")
+            end
+            return originalReleaseDialog(dialogName, ...)
+        end
+    end
+    if type(ZO_Dialogs_ReleaseDialogOnButtonPress) == "function" then
+        local originalReleaseDialogOnButtonPress = ZO_Dialogs_ReleaseDialogOnButtonPress
+        ZO_Dialogs_ReleaseDialogOnButtonPress = function(dialogName, ...)
+            if dialogName == "REPAIR_ALL" then
+                TakePendingRepairAllTrace("cancel", "buttonPressRelease")
+            end
+            return originalReleaseDialogOnButtonPress(dialogName, ...)
+        end
+    end
+end
+
 -- ACTIVATE / DEACTIVATE
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -31,7 +94,7 @@ end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:Deactivate(vendorInstance)
-    -- No cleanup needed
+    TakePendingRepairAllTrace("cancel", "componentDeactivated")
 end
 
 -- PRIMARY ACTION
@@ -55,17 +118,46 @@ end
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:OnPrimaryAction(vendorInstance)
     local selectedData = GetTargetRowData(vendorInstance)
-    if not selectedData then return end
+    if not selectedData then
+        TraceRepair("vendor.repair", "blocked", {
+            fn = "Vendor.RepairComponent.OnPrimaryAction",
+            reason = "missingSelection",
+        })
+        return
+    end
     local ds = selectedData.dataSource or selectedData
 
     local bagId = ds.bagId
     local slotIndex = ds.slotIndex
-    if bagId == nil or slotIndex == nil then return end
+    if bagId == nil or slotIndex == nil then
+        TraceRepair("vendor.repair", "blocked", {
+            fn = "Vendor.RepairComponent.OnPrimaryAction",
+            reason = "missingSlot",
+            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        })
+        return
+    end
 
     local repairCost = ds.repairCost or 0
-    if repairCost <= 0 then return end
+    if repairCost <= 0 then
+        TraceRepair("vendor.repair", "blocked", {
+            fn = "Vendor.RepairComponent.OnPrimaryAction",
+            reason = "zeroCost",
+            bagId = bagId,
+            slotIndex = slotIndex,
+            cost = repairCost,
+        })
+        return
+    end
 
     if not vendorInstance:CanAfford(repairCost) then
+        TraceRepair("vendor.repair", "blocked", {
+            fn = "Vendor.RepairComponent.OnPrimaryAction",
+            reason = "cannotAfford",
+            bagId = bagId,
+            slotIndex = slotIndex,
+            cost = repairCost,
+        })
         BETTERUI.CIM.UserAlertText("Repair:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
@@ -110,31 +202,58 @@ end
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:RepairAll(vendorInstance)
     local repairAllCost = GetRepairAllCost and GetRepairAllCost() or 0
-    if repairAllCost <= 0 then return end
+    if repairAllCost <= 0 then
+        TraceRepair("vendor.repair_all", "skipped", {
+            fn = "Vendor.RepairComponent.RepairAll",
+            reason = "zeroCost",
+            cost = repairAllCost,
+        })
+        return
+    end
 
     if not vendorInstance:CanAfford(repairAllCost) then
+        TraceRepair("vendor.repair_all", "blocked", {
+            fn = "Vendor.RepairComponent.RepairAll",
+            reason = "cannotAfford",
+            cost = repairAllCost,
+        })
         BETTERUI.CIM.UserAlertText("Repair:CannotAffordAll",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor repair all started", {
-            cost = repairAllCost
-        })
-    end
+    TraceRepair("vendor.repair_all", "request", {
+        fn = "Vendor.RepairComponent.RepairAll",
+        cost = repairAllCost,
+        dialogName = "REPAIR_ALL",
+        hasDialogApi = type(ZO_Dialogs_ShowGamepadDialog) == "function",
+    })
 
     -- ESO's own store uses "REPAIR_ALL" dialog (storewindow_gamepad.lua:309)
+    TraceRepair("vendor.repair_all_dialog", "show", {
+        fn = "Vendor.RepairComponent.RepairAll",
+        cost = repairAllCost,
+        dialogName = "REPAIR_ALL",
+    })
+    EnsureRepairAllDialogHooks()
+    Repair.pendingRepairAllTrace = {
+        fn = "Vendor.RepairComponent.RepairAll",
+        cost = repairAllCost,
+        dialogName = "REPAIR_ALL",
+    }
     ZO_Dialogs_ShowGamepadDialog("REPAIR_ALL", {
         cost = repairAllCost,
         callback = function()
-            if BETTERUI.Log then
-                BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor repair all confirmed", {
-                    cost = repairAllCost
-                })
-            end
             RepairAll()
         end,
+        declineCallback = function()
+            TakePendingRepairAllTrace("cancel", "declineCallback")
+        end,
+    })
+    TraceRepair("vendor.repair_all_dialog", "awaiting_choice", {
+        fn = "Vendor.RepairComponent.RepairAll",
+        cost = repairAllCost,
+        dialogName = "REPAIR_ALL",
     })
 end
 

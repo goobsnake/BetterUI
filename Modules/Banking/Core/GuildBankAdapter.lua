@@ -17,6 +17,16 @@ local DENY = assert(
 assert(type(DENY.GUILD_PERMISSION) == "string",
     "BetterUI: CIM.ProtectionPolicy.DENY.GUILD_PERMISSION must be defined")
 
+local function TraceGuildBank(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = data.module or "Banking"
+    data.feature = data.feature or "guildBank"
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.STATE or categories.ACTION, event, phase, data)
+end
+
 local function GetBankingWindow()
     return BETTERUI.Banking and BETTERUI.Banking.Window
 end
@@ -238,17 +248,45 @@ end
 
 function GuildBank.SetLoading(loading)
     GetGuildBankRuntimeState().isLoading = loading == true
+    TraceGuildBank("bank.guild_bank", "loading_set", {
+        fn = "GuildBank.SetLoading",
+        loading = loading == true,
+        guildId = GuildBank.GetSelectedGuildId(),
+    })
 end
 
 function GuildBank.ChangeGuildBank(guildBankId)
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "change guild bank", { guildId = guildBankId })
     end
-    if guildBankId ~= GetSelectedGuildBankId() then
+    local currentGuildId = GetSelectedGuildBankId()
+    TraceGuildBank("bank.guild_selector", "change_requested", {
+        fn = "GuildBank.ChangeGuildBank",
+        requestedGuildId = guildBankId,
+        currentGuildId = currentGuildId,
+        changed = guildBankId ~= currentGuildId,
+    })
+    if guildBankId ~= currentGuildId then
         GuildBank.SetLoading(true)
         if ZO_GUILD_SELECTOR_MANAGER and ZO_GUILD_SELECTOR_MANAGER.SetSelectedGuildBankId then
             ZO_GUILD_SELECTOR_MANAGER:SetSelectedGuildBankId(guildBankId)
+            TraceGuildBank("bank.guild_selector", "native_selection_set", {
+                fn = "GuildBank.ChangeGuildBank",
+                requestedGuildId = guildBankId,
+            })
+        else
+            TraceGuildBank("bank.guild_selector", "native_selection_skipped", {
+                fn = "GuildBank.ChangeGuildBank",
+                reason = "missingGuildSelectorManager",
+                requestedGuildId = guildBankId,
+            })
         end
+    else
+        TraceGuildBank("bank.guild_selector", "change_skipped", {
+            fn = "GuildBank.ChangeGuildBank",
+            reason = "alreadySelected",
+            guildId = guildBankId,
+        })
     end
 end
 
@@ -259,9 +297,18 @@ function GuildBank.OnGuildBankSelected()
     GuildBank.SetLoading(true)
     local window = GetBankingWindow()
     if window then
-        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
+        if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearTooltip then
+            GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
+        end
         window:SetListUpdatesSuppressed(true)
     end
+    TraceGuildBank("bank.guild_bank", "selected", {
+        fn = "GuildBank.OnGuildBankSelected",
+        guildId = GuildBank.GetSelectedGuildId(),
+        hasWindow = window ~= nil,
+        clearedTooltip = GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearTooltip ~= nil or false,
+        listUpdatesSuppressed = window ~= nil,
+    })
 end
 
 function GuildBank.OnGuildBankDeselected()
@@ -270,6 +317,11 @@ function GuildBank.OnGuildBankDeselected()
         window.list:Clear()
         window.list:Commit()
     end
+    TraceGuildBank("bank.guild_bank", "deselected", {
+        fn = "GuildBank.OnGuildBankDeselected",
+        guildId = GuildBank.GetSelectedGuildId(),
+        clearedList = window and window.list ~= nil or false,
+    })
 end
 
 function GuildBank.OnGuildBankReady()
@@ -285,12 +337,30 @@ function GuildBank.OnGuildBankReady()
             KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
         end
     end
+    TraceGuildBank("bank.guild_bank", "ready", {
+        fn = "GuildBank.OnGuildBankReady",
+        guildId = GuildBank.GetSelectedGuildId(),
+        hasWindow = window ~= nil,
+        refreshedWindow = window ~= nil,
+        refreshedKeybinds = window and window.coreKeybinds ~= nil or false,
+    })
 end
 
 function GuildBank.OnGuildBankUpdated()
     local window = GetBankingWindow()
     if window and not GuildBank.IsLoading() then
         BETTERUI.Banking.RefreshWindowView(window)
+        TraceGuildBank("bank.guild_bank", "updated", {
+            fn = "GuildBank.OnGuildBankUpdated",
+            guildId = GuildBank.GetSelectedGuildId(),
+            refreshedWindow = true,
+        })
+    else
+        TraceGuildBank("bank.guild_bank", "update_skipped", {
+            fn = "GuildBank.OnGuildBankUpdated",
+            guildId = GuildBank.GetSelectedGuildId(),
+            reason = not window and "missingWindow" or "loading",
+        })
     end
 end
 
@@ -306,6 +376,12 @@ function GuildBank.OnGuildBankOpenError()
             window.list:Commit()
         end
     end
+    TraceGuildBank("bank.guild_bank", "open_error", {
+        fn = "GuildBank.OnGuildBankOpenError",
+        guildId = GuildBank.GetSelectedGuildId(),
+        hasWindow = window ~= nil,
+        clearedList = window and window.list ~= nil or false,
+    })
 end
 
 --- Called when guild banked money is updated. Refreshes footer and lists.
@@ -318,6 +394,12 @@ function GuildBank.OnGuildBankedMoneyUpdate()
             window:RefreshFooter()
         end
     end
+    TraceGuildBank("bank.guild_bank", "money_updated", {
+        fn = "GuildBank.OnGuildBankedMoneyUpdate",
+        guildId = GuildBank.GetSelectedGuildId(),
+        hasWindow = window ~= nil,
+        refreshedFooter = window and window.RefreshFooter ~= nil or false,
+    })
 end
 
 --- Called when guild ranks change. Refreshes keybinds if it affects the selected guild.
@@ -332,6 +414,20 @@ function GuildBank.OnGuildRanksChanged(_, guildId)
             end
             window:RefreshList()
         end
+        TraceGuildBank("bank.guild_permissions", "ranks_changed", {
+            fn = "GuildBank.OnGuildRanksChanged",
+            guildId = guildId,
+            selected = true,
+            refreshedWindow = window ~= nil,
+            refreshedKeybinds = window and window.coreKeybinds ~= nil or false,
+        })
+    else
+        TraceGuildBank("bank.guild_permissions", "ranks_changed_skipped", {
+            fn = "GuildBank.OnGuildRanksChanged",
+            guildId = guildId,
+            selectedGuildId = GetSelectedGuildBankId(),
+            reason = "notSelectedGuild",
+        })
     end
 end
 
@@ -348,6 +444,20 @@ function GuildBank.OnGuildMemberRankChanged(_, guildId, displayName)
             end
             window:RefreshList()
         end
+        TraceGuildBank("bank.guild_permissions", "member_rank_changed", {
+            fn = "GuildBank.OnGuildMemberRankChanged",
+            guildId = guildId,
+            player = true,
+            refreshedWindow = window ~= nil,
+            refreshedKeybinds = window and window.coreKeybinds ~= nil or false,
+        })
+    else
+        TraceGuildBank("bank.guild_permissions", "member_rank_changed_skipped", {
+            fn = "GuildBank.OnGuildMemberRankChanged",
+            guildId = guildId,
+            selectedGuildId = GetSelectedGuildBankId(),
+            player = displayName == GetDisplayName(),
+        })
     end
 end
 
@@ -355,6 +465,9 @@ end
 ---@return nil
 function GuildBank.OnGuildSelfLeft()
     ZO_Dialogs_ReleaseAllDialogsOfName("BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD")
+    TraceGuildBank("bank.guild_selector", "released_on_self_left", {
+        fn = "GuildBank.OnGuildSelfLeft",
+    })
 end
 
 -- GUILD SELECTOR DIALOG
@@ -363,7 +476,14 @@ end
 ---@return nil
 function GuildBank.RegisterGuildSelectorDialog()
     local dialogName = "BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD"
-    if ESO_Dialogs[dialogName] then return end
+    if ESO_Dialogs[dialogName] then
+        TraceGuildBank("bank.guild_selector", "register_skipped", {
+            fn = "GuildBank.RegisterGuildSelectorDialog",
+            reason = "alreadyRegistered",
+            dialogName = dialogName,
+        })
+        return
+    end
 
     ESO_Dialogs[dialogName] = {
         gamepadInfo = {
@@ -392,6 +512,12 @@ function GuildBank.RegisterGuildSelectorDialog()
                 text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                 callback = function(dialog)
                     local selected = dialog.entryList and dialog.entryList:GetTargetData()
+                    TraceGuildBank("bank.guild_selector", "confirm", {
+                        fn = "GuildSelectorDialog.primary",
+                        dialogName = dialogName,
+                        selectedGuildId = selected and selected.guildId or nil,
+                        selectedGuildName = selected and selected.guildName or nil,
+                    })
                     if selected and selected.guildId then
                         GuildBank.ChangeGuildBank(selected.guildId)
                         -- Update title immediately
@@ -405,6 +531,12 @@ function GuildBank.RegisterGuildSelectorDialog()
             {
                 keybind = "DIALOG_NEGATIVE",
                 text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
+                callback = function()
+                    TraceGuildBank("bank.guild_selector", "cancel", {
+                        fn = "GuildSelectorDialog.negative",
+                        dialogName = dialogName,
+                    })
+                end,
             },
         },
     }
@@ -452,5 +584,16 @@ function GuildBank.RegisterGuildSelectorDialog()
         dialog.info.parametricList = parametricList
         dialog:setupFunc()
         dialog.entryList:SetSelectedDataByEval(IsActiveGuild)
+        TraceGuildBank("bank.guild_selector", "setup", {
+            fn = "GuildSelectorDialog.setup",
+            dialogName = dialogName,
+            currentGuildId = currentGuildId,
+            guildCount = numGuilds,
+            selectedApplied = true,
+        })
     end
+    TraceGuildBank("bank.guild_selector", "registered", {
+        fn = "GuildBank.RegisterGuildSelectorDialog",
+        dialogName = dialogName,
+    })
 end

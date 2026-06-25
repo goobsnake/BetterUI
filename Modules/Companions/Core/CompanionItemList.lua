@@ -29,6 +29,20 @@ local function TraceCompanionList(event, phase, data, category)
     L.TraceEvent(category or categories.LIST or categories.GENERAL, event, phase, payload)
 end
 
+local function GetCompanionTraitName(bagId, slotIndex)
+    if type(GetItemTrait) ~= "function" then return "" end
+    local ok, traitType = pcall(GetItemTrait, bagId, slotIndex)
+    if not ok or not traitType or traitType == 0 or traitType == ITEM_TRAIT_TYPE_NONE then
+        return ""
+    end
+    if type(GetString) ~= "function" then return tostring(traitType) end
+    local okName, traitName = pcall(GetString, "SI_ITEMTRAITTYPE", traitType)
+    if okName and traitName then
+        return traitName
+    end
+    return tostring(traitType)
+end
+
 function BETTERUI.Companions.Class:UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
     if ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText then
         ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot, GAMEPLAY_ACTOR_CATEGORY_COMPANION)
@@ -310,6 +324,7 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
                             and GetBestItemCategoryDescription({ bagId = BAG_COMPANION_WORN, slotIndex = slotIndex })
                             or "",
                         bestItemTypeName = GetString("SI_ITEMTYPE", itemType),
+                        traitName = GetCompanionTraitName(BAG_COMPANION_WORN, slotIndex),
                         cached_itemLink = itemLink,
                         cached_itemType = itemType,
                         uniqueId = slotData and slotData.uniqueId or nil,
@@ -412,6 +427,7 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
                             and GetBestItemCategoryDescription({ bagId = BAG_BACKPACK, slotIndex = slotIndex })
                             or "",
                         bestItemTypeName = GetString("SI_ITEMTYPE", itemType),
+                        traitName = GetCompanionTraitName(BAG_BACKPACK, slotIndex),
                         cached_itemLink = itemLink,
                         cached_itemType = itemType,
                         uniqueId = slotData and slotData.uniqueId or nil,

@@ -60,9 +60,9 @@ check(#cap.lines >= 1, "Activate emits a startup preamble record")
 check(cap.lines[1].cat == "STATE", "preamble is a STATE record")
 check(#laters == 1, "Activate schedules a snapshot heartbeat via zo_callLater")
 check(Watch.IsActive() == true, "IsActive true after Activate")
-check(cap.mutes["LIST"] == true and cap.mutes["SEARCH"] == true and cap.mutes["SORT"] == true
-    and cap.mutes["BATCH"] == true and cap.mutes["FOOTER"] == true and cap.mutes["KEYBIND"] == true,
-    "Activate applies documented default watch mutes")
+check(cap.mutes["LIST"] ~= true and cap.mutes["SEARCH"] ~= true and cap.mutes["SORT"] ~= true
+    and cap.mutes["BATCH"] ~= true and cap.mutes["FOOTER"] ~= true and cap.mutes["KEYBIND"] ~= true,
+    "Activate keeps replay-critical categories unmuted by default")
 
 -- Context suffix carries scene + flow + lastAction.
 cap.lastAction = { message = "pressed A", flow = "deposit#1" }

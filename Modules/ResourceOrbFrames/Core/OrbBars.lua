@@ -39,6 +39,23 @@ local CAST_BAR_ORB_FILL_STYLES = {
 }
 local CAST_BAR_POWER_PROBE_WINDOW_MS = 450
 
+local function TraceCastBar(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "resourceOrbs"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION, event, phase, data)
+end
+
+Bars.TraceCastBar = TraceCastBar
+
 local function ResolveTexturePath(filename)
     return string.format("%s/%s", "BetterUI/Modules/ResourceOrbFrames/Textures", filename)
 end
@@ -399,9 +416,9 @@ function CastBar:Initialize(parent)
         local castDepthColor = nil
 
         if abilityId and abilityId > 0 then
-            local castTime, channelTime
-            isChanneled, castTime, channelTime = GetAbilityCastInfo(abilityId)
-            castDurationMs = math.max(castTime or 0, channelTime or 0)
+            local durationValue
+            isChanneled, durationValue = GetAbilityCastInfo(abilityId, nil, "player")
+            castDurationMs = tonumber(durationValue) or 0
             abilityName = GetAbilityName(abilityId)
             showCountdown = castDurationMs > 0
             castFillColor, castDepthColor = ResolveCastBarFillColor(slotIndex, abilityId, hotbar)
@@ -423,11 +440,39 @@ function CastBar:Initialize(parent)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "SlotAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
-            if not slotIndex then return end
+            if not slotIndex then
+                TraceCastBar("resource_orbs.cast_bar", "ability_used_skipped", {
+                    fn = "CastBar.EVENT_ACTION_SLOT_ABILITY_USED",
+                    reason = "missingSlotIndex",
+                })
+                return
+            end
             local hotbar = GetActiveHotbarCategory()
             local name, duration, isChanneled, showCountdown, castFillColor, castDepthColor = ResolveCastDisplayData(
             slotIndex, hotbar)
-            if not name or duration <= 0 then return end
+            local abilityId = type(GetSlotBoundId) == "function" and GetSlotBoundId(slotIndex, hotbar) or nil
+            if not name or duration <= 0 then
+                TraceCastBar("resource_orbs.cast_bar", "ability_used_skipped", {
+                    fn = "CastBar.EVENT_ACTION_SLOT_ABILITY_USED",
+                    reason = not name and "missingAbilityName" or "invalidDuration",
+                    slot = slotIndex,
+                    hotbar = hotbar,
+                    abilityId = abilityId,
+                    durationMs = duration,
+                })
+                return
+            end
+            TraceCastBar("resource_orbs.cast_bar", "ability_used", {
+                fn = "CastBar.EVENT_ACTION_SLOT_ABILITY_USED",
+                slot = slotIndex,
+                hotbar = hotbar,
+                abilityId = abilityId,
+                abilityName = name,
+                durationMs = duration,
+                channeled = isChanneled,
+                countdown = showCountdown,
+                hasColorOverride = castFillColor ~= nil,
+            })
             self:OnCastStart("player", name, duration, isChanneled, showCountdown, castFillColor, castDepthColor)
         end, REGISTER_FILTER_UNIT_TAG, "player")
 
@@ -448,10 +493,26 @@ function CastBar:Initialize(parent)
             if previous <= powerValue then return end
 
             local probeStart = self.pendingPowerProbeStartMs or 0
-            if probeStart <= 0 then return end
+            if probeStart <= 0 then
+                TraceCastBar("resource_orbs.cast_bar", "power_probe_skipped", {
+                    fn = "CastBar.EVENT_POWER_UPDATE",
+                    reason = "notArmed",
+                    powerType = powerType,
+                    previous = previous,
+                    current = powerValue,
+                })
+                return
+            end
 
             local elapsedMs = GetFrameTimeMilliseconds() - probeStart
             if elapsedMs < 0 or elapsedMs > CAST_BAR_POWER_PROBE_WINDOW_MS then
+                TraceCastBar("resource_orbs.cast_bar", "power_probe_skipped", {
+                    fn = "CastBar.EVENT_POWER_UPDATE",
+                    reason = "outsideWindow",
+                    powerType = powerType,
+                    elapsedMs = elapsedMs,
+                    windowMs = CAST_BAR_POWER_PROBE_WINDOW_MS,
+                })
                 self.pendingPowerProbeStartMs = 0
                 return
             end
@@ -461,6 +522,19 @@ function CastBar:Initialize(parent)
                 self.currentFillColor = sampledColor
                 self.currentDepthColor = sampledDepthColor or self.defaultDepthColor
                 self:ApplyFillStyle(self.currentFillColor, self.currentDepthColor)
+                TraceCastBar("resource_orbs.cast_bar", "power_probe_applied", {
+                    fn = "CastBar.EVENT_POWER_UPDATE",
+                    powerType = powerType,
+                    previous = previous,
+                    current = powerValue,
+                    elapsedMs = elapsedMs,
+                })
+            else
+                TraceCastBar("resource_orbs.cast_bar", "power_probe_skipped", {
+                    fn = "CastBar.EVENT_POWER_UPDATE",
+                    reason = "unsupportedPowerType",
+                    powerType = powerType,
+                })
             end
             self.pendingPowerProbeStartMs = 0
         end, REGISTER_FILTER_UNIT_TAG, "player")

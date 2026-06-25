@@ -157,6 +157,52 @@ local function NormalizeStyleValue(style)
     return style
 end
 
+local function GetFontLocalization()
+    return BETTERUI
+        and BETTERUI.CIM
+        and BETTERUI.CIM.Font
+        and BETTERUI.CIM.Font.Localization
+        or nil
+end
+
+local function ResolveLanguageGroup(currentLang)
+    local localization = GetFontLocalization()
+    if localization and type(localization.GetCurrentLanguageGroup) == "function" then
+        return localization.GetCurrentLanguageGroup()
+    end
+    local groups = localization and localization.LANGUAGE_GROUPS or nil
+    if type(groups) == "table" and currentLang and groups[currentLang] then
+        return groups[currentLang]
+    end
+    if currentLang == "jp" or currentLang == "zh" then
+        return "cjk"
+    elseif currentLang == "ru" then
+        return "cyrillic"
+    end
+    return "western"
+end
+
+local function IsFontLocalizedForCurrentLanguage(fontPath, languageGroup)
+    if fontPath and string.sub(fontPath, 1, 2) == "$(" then
+        return true
+    end
+
+    local localization = GetFontLocalization()
+    if localization and type(localization.IsFontLocalizedForLanguage) == "function" then
+        return localization.IsFontLocalizedForLanguage(fontPath)
+    end
+
+    if languageGroup == "western" then
+        return true
+    end
+
+    if localization and type(localization.IsFontWesternOnly) == "function" then
+        return not localization.IsFontWesternOnly(fontPath)
+    end
+    local westernOnlyFonts = localization and localization.WESTERN_ONLY_FONTS or nil
+    return not (type(westernOnlyFonts) == "table" and westernOnlyFonts[fontPath] == true)
+end
+
 local function GetSettings()
     local settings = BETTERUI.GetModuleSettings("Nameplates")
     if settings and next(settings) then
@@ -298,13 +344,37 @@ local function ApplyNameplateFont(font, style, size)
     local fontString = font .. "|" .. tostring(size)
     local keyboardApplied = false
     local gamepadApplied = false
+    local keyboardSkipped = false
+    local gamepadSkipped = false
     if type(SetNameplateKeyboardFont) == "function" then
-        SetNameplateKeyboardFont(fontString, style)
-        keyboardApplied = true
+        local currentFont, currentStyle
+        if type(GetNameplateKeyboardFont) == "function" then
+            local ok, currentFontResult, currentStyleResult = pcall(GetNameplateKeyboardFont)
+            if ok then
+                currentFont, currentStyle = currentFontResult, currentStyleResult
+            end
+        end
+        if currentFont == fontString and currentStyle == style then
+            keyboardSkipped = true
+        else
+            SetNameplateKeyboardFont(fontString, style)
+            keyboardApplied = true
+        end
     end
     if type(SetNameplateGamepadFont) == "function" then
-        SetNameplateGamepadFont(fontString, style)
-        gamepadApplied = true
+        local currentFont, currentStyle
+        if type(GetNameplateGamepadFont) == "function" then
+            local ok, currentFontResult, currentStyleResult = pcall(GetNameplateGamepadFont)
+            if ok then
+                currentFont, currentStyle = currentFontResult, currentStyleResult
+            end
+        end
+        if currentFont == fontString and currentStyle == style then
+            gamepadSkipped = true
+        else
+            SetNameplateGamepadFont(fontString, style)
+            gamepadApplied = true
+        end
     end
     TraceNameplates("nameplates.font_apply", "end", {
         fn = "Nameplates.ApplyNameplateFont",
@@ -313,6 +383,8 @@ local function ApplyNameplateFont(font, style, size)
         size = size,
         keyboardApplied = keyboardApplied,
         gamepadApplied = gamepadApplied,
+        keyboardSkipped = keyboardSkipped,
+        gamepadSkipped = gamepadSkipped,
     })
 end
 
@@ -380,14 +452,29 @@ local function ResetToDefaults()
         return
     end
 
-    local defaults = Nameplates.DEFAULTS
-    TraceNameplates("nameplates.reset", "fallback_defaults", {
+    local currentKeyboardFont, currentKeyboardStyle, currentGamepadFont, currentGamepadStyle
+    if type(GetNameplateKeyboardFont) == "function" then
+        local ok, font, style = pcall(GetNameplateKeyboardFont)
+        if ok then
+            currentKeyboardFont, currentKeyboardStyle = font, style
+        end
+    end
+    if type(GetNameplateGamepadFont) == "function" then
+        local ok, font, style = pcall(GetNameplateGamepadFont)
+        if ok then
+            currentGamepadFont, currentGamepadStyle = font, style
+        end
+    end
+    TraceNameplates("nameplates.reset", "skipped", {
         fn = "Nameplates.ResetToDefaults",
-        font = defaults.font,
-        style = defaults.style,
-        size = defaults.size,
+        reason = "originalFontsNotCaptured",
+        currentKeyboardFont = currentKeyboardFont,
+        currentKeyboardStyle = currentKeyboardStyle,
+        currentGamepadFont = currentGamepadFont,
+        currentGamepadStyle = currentGamepadStyle,
+        hasKeyboardGetter = type(GetNameplateKeyboardFont) == "function",
+        hasGamepadGetter = type(GetNameplateGamepadFont) == "function",
     })
-    ApplyNameplateFont(defaults.font, defaults.style, defaults.size)
 end
 
 function Nameplates.Setup()
@@ -463,24 +550,23 @@ function Nameplates.InitModule(m_options)
     m_options.size = ClampNameplateSize(m_options.size, defaults.size)
 
     local currentLang = GetCVar("language.2") or "en"
-    local isEnglish = (currentLang == "en")
+    local languageGroup = ResolveLanguageGroup(currentLang)
 
-    if not isEnglish then
-        if m_options.font and BETTERUI.CIM.Font.Localization.IsFontWesternOnly(m_options.font) then
-            TraceNameplates("nameplates.init", "localized_font_fallback", {
-                fn = "Nameplates.InitModule",
-                language = currentLang,
-                originalFont = m_options.font,
-                fallbackFont = "$(BOLD_FONT)",
-            })
-            m_options.font = "$(BOLD_FONT)"
-        end
+    if not IsFontLocalizedForCurrentLanguage(m_options.font, languageGroup) then
+        TraceNameplates("nameplates.init", "localized_font_fallback", {
+            fn = "Nameplates.InitModule",
+            language = currentLang,
+            languageGroup = languageGroup,
+            originalFont = m_options.font,
+            fallbackFont = "$(BOLD_FONT)",
+        })
+        m_options.font = "$(BOLD_FONT)"
     end
 
     TraceNameplates("nameplates.init", "end", {
         fn = "Nameplates.InitModule",
         language = currentLang,
-        isEnglish = isEnglish,
+        languageGroup = languageGroup,
         enabled = m_options.m_enabled,
         font = m_options.font,
         style = m_options.style,

@@ -101,41 +101,129 @@ end
 
 function TH.CaptureNativeScene(sceneManager)
     if TH.nativeTHScene ~= nil then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "capture_skipped", {
+            fn = "TradingHouse.CaptureNativeScene",
+            feature = "trading-house-scene",
+            reason = "alreadyCaptured",
+            hasNativeScene = TH.nativeTHScene ~= nil,
+        })
         return
     end
     if not sceneManager or type(sceneManager.GetScene) ~= "function" then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "capture_skipped", {
+            fn = "TradingHouse.CaptureNativeScene",
+            feature = "trading-house-scene",
+            reason = "missingSceneManager",
+        })
         return
     end
     TH.nativeTHScene = sceneManager:GetScene("gamepad_trading_house")
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "captured", {
+        fn = "TradingHouse.CaptureNativeScene",
+        feature = "trading-house-scene",
+        hasNativeScene = TH.nativeTHScene ~= nil,
+    })
 end
 
 function TH.SetTradingHouseSceneOwnership(sceneObject)
     if not sceneObject then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "apply_skipped", {
+            fn = "TradingHouse.SetTradingHouseSceneOwnership",
+            feature = "trading-house-scene",
+            reason = "missingScene",
+        })
         return
     end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "apply_begin", {
+        fn = "TradingHouse.SetTradingHouseSceneOwnership",
+        feature = "trading-house-scene",
+        hasSceneManager = SCENE_MANAGER ~= nil,
+        hasSceneTable = SCENE_MANAGER and SCENE_MANAGER.scenes ~= nil or false,
+        hasSystems = SYSTEMS ~= nil,
+        hadNativeSystemRoot = TH.nativeTHSystemGamepadRootScene ~= nil,
+    })
     SetTHSceneAlias(sceneObject)
     SetTHSystemGamepadRootScene(sceneObject)
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "apply_end", {
+        fn = "TradingHouse.SetTradingHouseSceneOwnership",
+        feature = "trading-house-scene",
+        aliasApplied = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["gamepad_trading_house"] == sceneObject or false,
+        capturedNativeSystemRoot = TH.nativeTHSystemGamepadRootScene ~= nil,
+    })
 end
 
 function TH.RestoreNativeSceneAlias()
+    if not TH.nativeTHScene and not TH.nativeTHSystemGamepadRootScene then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "restore_skipped", {
+            fn = "TradingHouse.RestoreNativeSceneAlias",
+            feature = "trading-house-scene",
+            reason = "nothingCaptured",
+        })
+        return
+    end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "restore_begin", {
+        fn = "TradingHouse.RestoreNativeSceneAlias",
+        feature = "trading-house-scene",
+        hasNativeScene = TH.nativeTHScene ~= nil,
+        hasNativeSystemRoot = TH.nativeTHSystemGamepadRootScene ~= nil,
+    })
     if TH.nativeTHScene then
         SetTHSceneAlias(TH.nativeTHScene)
     end
     if TH.nativeTHSystemGamepadRootScene then
         SetTHSystemGamepadRootScene(TH.nativeTHSystemGamepadRootScene)
     end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "restore_end", {
+        fn = "TradingHouse.RestoreNativeSceneAlias",
+        feature = "trading-house-scene",
+        aliasRestored = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["gamepad_trading_house"] == TH.nativeTHScene or false,
+    })
 end
 
 function TH.AliasSceneToBetterUI()
     if TH.instance and TH.instance.scene then
         TH.SetTradingHouseSceneOwnership(TH.instance.scene)
+    else
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "apply_skipped", {
+            fn = "TradingHouse.AliasSceneToBetterUI",
+            feature = "trading-house-scene",
+            reason = "missingInstanceScene",
+            hasInstance = TH.instance ~= nil,
+        })
     end
 end
 
 function TH.ResetBrowseState()
     if TH.BrowseComponent then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.browse_state", "reset_begin", {
+            fn = "TradingHouse.ResetBrowseState",
+            feature = "trading-house-search",
+            pageBefore = TH.BrowseComponent.currentPage,
+            searchPendingBefore = TH.BrowseComponent.searchPending == true,
+            hasMorePagesBefore = TH.BrowseComponent.hasMorePages == true,
+            resultsInvalidatedBefore = TH.BrowseComponent.resultsInvalidated == true,
+            deferredTokenBefore = TH.BrowseComponent.deferredSearchToken,
+        })
         TH.BrowseComponent.currentPage = 0
         TH.BrowseComponent.searchPending = false
+        TH.BrowseComponent.hasMorePages = false
+        TH.BrowseComponent.resultsInvalidated = false
+        TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.browse_state", "reset_end", {
+            fn = "TradingHouse.ResetBrowseState",
+            feature = "trading-house-search",
+            pageAfter = TH.BrowseComponent.currentPage,
+            searchPendingAfter = TH.BrowseComponent.searchPending == true,
+            hasMorePagesAfter = TH.BrowseComponent.hasMorePages == true,
+            resultsInvalidatedAfter = TH.BrowseComponent.resultsInvalidated == true,
+            deferredTokenAfter = TH.BrowseComponent.deferredSearchToken,
+        })
+    else
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.browse_state", "reset_skipped", {
+            fn = "TradingHouse.ResetBrowseState",
+            feature = "trading-house-search",
+            reason = "missingBrowseComponent",
+        })
     end
 end
 
@@ -149,17 +237,56 @@ function TH.ScheduleOwnershipReassert()
     local function ReassertTradingHouseOwnership()
         local currentInteraction = GetInteractionType and GetInteractionType() or nil
         if currentInteraction and currentInteraction ~= INTERACTION_TRADINGHOUSE then
+            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "reassert_aborted", {
+                fn = "TradingHouse.ScheduleOwnershipReassert",
+                feature = "trading-house-scene",
+                reason = "interactionTypeMismatch",
+                interactionType = currentInteraction,
+            })
+            return
+        end
+        if not TH.instance or not TH.instance.scene then
+            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "reassert_skipped", {
+                fn = "TradingHouse.ScheduleOwnershipReassert",
+                feature = "trading-house-scene",
+                reason = "missingInstanceScene",
+                hasInstance = TH.instance ~= nil,
+            })
             return
         end
         TH.AliasSceneToBetterUI()
         TH.ShowScene()
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "reasserted", {
+            fn = "TradingHouse.ScheduleOwnershipReassert",
+            feature = "trading-house-scene",
+            interactionType = currentInteraction,
+            sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+        })
     end
 
     if TH.Tasks then
         TH.Tasks:Cancel("sceneOwnershipOpen")
         TH.Tasks:Schedule("sceneOwnershipOpen", 30, ReassertTradingHouseOwnership)
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "reassert_scheduled", {
+            fn = "TradingHouse.ScheduleOwnershipReassert",
+            feature = "trading-house-scene",
+            scheduler = "tasks",
+            delayMs = 30,
+        })
     elseif type(zo_callLater) == "function" then
         zo_callLater(ReassertTradingHouseOwnership, 30)
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "reassert_scheduled", {
+            fn = "TradingHouse.ScheduleOwnershipReassert",
+            feature = "trading-house-scene",
+            scheduler = "zo_callLater",
+            delayMs = 30,
+        })
+    else
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "reassert_skipped", {
+            fn = "TradingHouse.ScheduleOwnershipReassert",
+            feature = "trading-house-scene",
+            reason = "missingScheduler",
+        })
     end
 end
 
@@ -199,9 +326,20 @@ end
 function TH.TakeOverNativeTradingHouse()
     local nativeTH = rawget(_G, "TRADING_HOUSE_GAMEPAD")
     if not nativeTH then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.native_takeover", "skipped", {
+            fn = "TradingHouse.TakeOverNativeTradingHouse",
+            feature = "trading-house-scene",
+            reason = "missingNativeTradingHouse",
+        })
         return
     end
 
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.native_takeover", "begin", {
+        fn = "TradingHouse.TakeOverNativeTradingHouse",
+        feature = "trading-house-scene",
+        hasControl = nativeTH.control ~= nil,
+        hadSceneName = nativeTH.sceneName,
+    })
     if nativeTH.control then
         nativeTH.control:UnregisterForEvent(EVENT_OPEN_TRADING_HOUSE)
         nativeTH.control:UnregisterForEvent(EVENT_CLOSE_TRADING_HOUSE)
@@ -219,6 +357,11 @@ function TH.TakeOverNativeTradingHouse()
     nativeTH.CloseTradingHouse = function(_)
         TH.OnCloseTradingHouse()
     end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.native_takeover", "end", {
+        fn = "TradingHouse.TakeOverNativeTradingHouse",
+        feature = "trading-house-scene",
+        sceneName = nativeTH.sceneName,
+    })
 end
 
 function TH.RegisterCreateListingDialog()
@@ -661,6 +804,11 @@ function TH.OnCloseTradingHouse()
     })
     if TH.Tasks then
         TH.Tasks:Cancel("sceneOwnershipOpen")
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "reassert_cancelled", {
+            fn = "TradingHouse.OnCloseTradingHouse",
+            feature = "trading-house-scene",
+            scheduler = "tasks",
+        })
     end
 
     local sceneName = BETTERUI_TRADING_HOUSE_SCENE_NAME
@@ -674,6 +822,7 @@ function TH.OnCloseTradingHouse()
     -- Mirror native close flow (tradinghouse_gamepad.lua:509): disassociate
     -- search features and reset the search singleton's pending state.
     DisassociateSearchFeatures()
+    TH.ResetBrowseState()
 
     TH.AliasSceneToBetterUI()
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "close_complete", {
@@ -686,6 +835,13 @@ end
 function TH.OnSearchResultsReceived()
     if TH.BrowseComponent then
         TH.BrowseComponent:OnSearchResultsReceived(TH.instance)
+    else
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.search_results", "skipped", {
+            fn = "TradingHouse.OnSearchResultsReceived",
+            feature = "trading-house-search",
+            reason = "missingBrowseComponent",
+            sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+        })
     end
 end
 
@@ -766,14 +922,91 @@ function TH.OnTradingHouseResponse(_, responseType, result)
             TH.OnSearchResultsReceived()
         end
         TH.ScheduleListRefresh()
+    elseif isSearchResponse then
+        if TH.BrowseComponent then
+            TH.BrowseComponent.searchPending = false
+            TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
+        end
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.response", "failed", {
+            fn = "TradingHouse.OnTradingHouseResponse",
+            feature = "trading-house-search",
+            guildId = guildId,
+            mode = mode,
+            responseType = responseType,
+            result = result,
+            searchPendingAfter = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+            deferredToken = TH.BrowseComponent and TH.BrowseComponent.deferredSearchToken or nil,
+        })
+        if TH.instance and TH.instance:IsSceneShowing() and KEYBIND_STRIP then
+            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
+                fn = "TradingHouse.OnTradingHouseResponse",
+                feature = "trading-house-keybinds",
+                reason = "searchResponseFailed",
+                searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+            })
+            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
+                fn = "TradingHouse.OnTradingHouseResponse",
+                feature = "trading-house-keybinds",
+                reason = "searchResponseFailed",
+                searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+            })
+        end
     end
     -- Failed search responses are already alerted by ZOS (alerthandlers.lua
     -- listens to EVENT_TRADING_HOUSE_RESPONSE_RECEIVED); avoid a duplicate.
 end
 
 function TH.OnGuildRosterChanged()
-    if TH.instance and TH.instance:IsSceneShowing() then
+    local sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.guild_roster", "received", {
+        fn = "TradingHouse.OnGuildRosterChanged",
+        feature = "trading-house-guild",
+        sceneShowing = sceneShowing,
+        guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil,
+        searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+    })
+    if sceneShowing then
         TH.instance:UpdateTabHeader()
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.guild_roster", "header_refreshed", {
+            fn = "TradingHouse.OnGuildRosterChanged",
+            feature = "trading-house-guild",
+        })
+    else
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.guild_roster", "skipped", {
+            fn = "TradingHouse.OnGuildRosterChanged",
+            feature = "trading-house-guild",
+            reason = "sceneHidden",
+        })
+    end
+end
+
+function TH.OnTradingHouseError(_, errorCode)
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.error", "received", {
+        fn = "TradingHouse.OnTradingHouseError",
+        feature = "trading-house-search",
+        errorCode = errorCode,
+        searchPendingBefore = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+    })
+    if TH.BrowseComponent then
+        TH.BrowseComponent.searchPending = false
+        TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
+    end
+    if TH.instance and TH.instance:IsSceneShowing() and KEYBIND_STRIP then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
+            fn = "TradingHouse.OnTradingHouseError",
+            feature = "trading-house-keybinds",
+            reason = "tradingHouseError",
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
+        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
+            fn = "TradingHouse.OnTradingHouseError",
+            feature = "trading-house-keybinds",
+            reason = "tradingHouseError",
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
     end
 end
 
@@ -818,6 +1051,7 @@ function TH.OnTradingHouseResponseTimeout()
     })
     if TH.BrowseComponent then
         TH.BrowseComponent.searchPending = false
+        TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
     end
     if TH.instance and TH.instance:IsSceneShowing() then
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
@@ -847,6 +1081,7 @@ function TH.OnTradingHouseOperationTimeout()
     })
     if TH.BrowseComponent then
         TH.BrowseComponent.searchPending = false
+        TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
     end
     if TH.instance and TH.instance:IsSceneShowing() then
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
@@ -874,6 +1109,14 @@ function TH.OnSelectedTradingHouseGuildChanged()
     -- off-scene and must not trigger a server RequestTradingHouseListings call
     -- or a list rebuild while our scene is hidden.
     if not TH.instance or not TH.instance:IsSceneShowing() then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.guild", "selected_changed_skipped", {
+            fn = "TradingHouse.OnSelectedTradingHouseGuildChanged",
+            feature = "trading-house-guild",
+            reason = "sceneHidden",
+            hasInstance = TH.instance ~= nil,
+            guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil,
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
         return
     end
     local guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil
@@ -968,6 +1211,10 @@ function TH.RegisterEvents(eventManager)
         EVENT_TRADING_HOUSE_RESPONSE_TIMEOUT, TH.OnTradingHouseResponseTimeout)
     eventManager:RegisterForEvent(EVENT_NS .. "_OperationTimeout",
         EVENT_TRADING_HOUSE_OPERATION_TIME_OUT, TH.OnTradingHouseOperationTimeout)
+    if EVENT_TRADING_HOUSE_ERROR then
+        eventManager:RegisterForEvent(EVENT_NS .. "_Error",
+            EVENT_TRADING_HOUSE_ERROR, TH.OnTradingHouseError)
+    end
     eventManager:RegisterForEvent(EVENT_NS .. "_ListingOp",
         EVENT_TRADING_HOUSE_CONFIRM_ITEM_PURCHASE, TH.OnListingOperation)
     eventManager:RegisterForEvent(EVENT_NS .. "_GuildJoin",

@@ -192,7 +192,7 @@ function Nameplates.GetSettingsOptions()
             choicesValues = Nameplates.FONTSTYLE_VALUES or {},
             default = Nameplates.DEFAULTS and Nameplates.DEFAULTS.style,
             getFunc = function()
-                local defaults = Nameplates.DEFAULTS or { style = "outline" }
+                local defaults = Nameplates.DEFAULTS or { style = FONT_STYLE_OUTLINE or 1 }
                 local settings = GetNameplateSettings()
                 return (settings and settings.style) or defaults.style
             end,

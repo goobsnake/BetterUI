@@ -100,7 +100,7 @@ assert_true(source:find('"CONFIRM_EQUIP_BOE"', 1, true) == nil,
     "TryEquipCompanionItem no longer probes the nonexistent native CONFIRM_EQUIP_BOE dialog")
 assert_true(source:find("local dialogName = ", 1, true) == nil,
     "TryEquipCompanionItem no longer branches on a probed native dialog name")
-assert_true(source:find("ZO_Dialogs_ShowPlatformDialog%(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, %{ callback = DoEquip %}") ~= nil,
+assert_true(source:find("ZO_Dialogs_ShowPlatformDialog%(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, %{ callback = DoEquip") ~= nil,
     "TryEquipCompanionItem shows the custom BoE confirm dialog directly")
 assert_true(source:find("FindFirstEmptySlotInBag%(BAG_BACKPACK%)") ~= nil,
     "TryUnequipCompanionItem finds the destination slot via FindFirstEmptySlotInBag")

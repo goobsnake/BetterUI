@@ -4,6 +4,56 @@ local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 
+local function TraceBankState(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    L.TraceEvent(L.CATEGORY.STATE, event, phase, data)
+end
+
+local function ReadCurrencyAmount(currencyType, location)
+    if currencyType == nil or location == nil then return nil end
+    local L = BETTERUI.Log
+    if L and L.GetCurrencyAmountForLocation then
+        return L.GetCurrencyAmountForLocation(currencyType, location)
+    end
+    if GetCurrencyAmount then
+        local ok, amount = pcall(GetCurrencyAmount, currencyType, location)
+        if ok then return amount end
+    end
+    return nil
+end
+
+local function CurrencyRefreshSnapshot(prefix)
+    prefix = prefix or ""
+    return {
+        [prefix .. "CarriedGold"] = ReadCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER),
+        [prefix .. "BankGold"] = ReadCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_BANK),
+        [prefix .. "GuildBankGold"] = ReadCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_GUILD_BANK),
+    }
+end
+
+local function BankCapacitySnapshot(prefix)
+    prefix = prefix or ""
+    local function ReadBagValue(fn, bagId)
+        if type(fn) ~= "function" or bagId == nil then return nil end
+        local ok, value = pcall(fn, bagId)
+        if ok then return value end
+        return nil
+    end
+    local primarySize = ReadBagValue(GetBagUseableSize, BAG_BANK)
+    local subscriberSize = ReadBagValue(GetBagUseableSize, BAG_SUBSCRIBER_BANK)
+    return {
+        [prefix .. "BankUsed"] = ReadBagValue(GetNumBagUsedSlots, BAG_BANK),
+        [prefix .. "BankSize"] = primarySize,
+        [prefix .. "SubscriberBankUsed"] = ReadBagValue(GetNumBagUsedSlots, BAG_SUBSCRIBER_BANK),
+        [prefix .. "SubscriberBankSize"] = subscriberSize,
+        [prefix .. "TotalBankSize"] = primarySize and subscriberSize and (primarySize + subscriberSize) or nil,
+        [prefix .. "CurrentUpgrade"] = GetCurrentBankUpgrade and GetCurrentBankUpgrade() or nil,
+        [prefix .. "MaxUpgrade"] = GetMaxBankUpgrade and GetMaxBankUpgrade() or nil,
+        [prefix .. "NextUpgradePrice"] = GetNextBankUpgradePrice and GetNextBankUpgradePrice() or nil,
+    }
+end
+
 local function CreateBankingItemActions(alignment)
     local createItemActions = BETTERUI.Banking and BETTERUI.Banking.CreateItemActions or nil
     if type(createItemActions) == "function" then
@@ -21,17 +71,24 @@ end
 
 local function SyncGamepadBankingSceneGlobal()
     if not SCENE_MANAGER or not SCENE_MANAGER.scenes then
+        TraceBankState("bank.scene_global", "skipped", { reason = "missingSceneManager" })
         return
     end
 
     local targetScene = SCENE_MANAGER.scenes[BETTERUI_BANKING_SCENE_NAME]
     if not targetScene then
+        TraceBankState("bank.scene_global", "skipped", { reason = "missingTargetScene" })
         return
     end
 
+    local changed = GAMEPAD_BANKING_SCENE ~= targetScene
     if GAMEPAD_BANKING_SCENE ~= targetScene then
         GAMEPAD_BANKING_SCENE = targetScene
     end
+    TraceBankState("bank.scene_global", "synced", {
+        changed = changed,
+        sceneName = BETTERUI_BANKING_SCENE_NAME,
+    })
 end
 
 local function SetInitialBankingWatchView(mode)
@@ -185,8 +242,16 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
     end
 
-    local function UpdateCurrency_Handler()
+    local function UpdateCurrency_Handler(eventCode)
+        local beforeCurrency = CurrencyRefreshSnapshot("before")
         if not BETTERUI.Utils.IsBankingSceneShowing() then
+            TraceBankState("bank.currency_ui_refresh", "skipped", {
+                reason = "sceneHidden",
+                eventCode = eventCode,
+                beforeCarriedGold = beforeCurrency.beforeCarriedGold,
+                beforeBankGold = beforeCurrency.beforeBankGold,
+                beforeGuildBankGold = beforeCurrency.beforeGuildBankGold,
+            })
             if BETTERUI.Log and BETTERUI.Log.Trace then
                 BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.STATE, "bank currency UI refresh skipped", {
                     reason = "sceneHidden",
@@ -201,8 +266,24 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 mode = self.currentMode,
             })
         end
+        TraceBankState("bank.currency_ui_refresh", "scheduled", {
+            eventCode = eventCode,
+            delayMs = CURRENCY_UI_REFRESH_DELAY_MS,
+            mode = self.currentMode,
+            beforeCarriedGold = beforeCurrency.beforeCarriedGold,
+            beforeBankGold = beforeCurrency.beforeBankGold,
+            beforeGuildBankGold = beforeCurrency.beforeGuildBankGold,
+        })
         BETTERUI.Banking.Tasks:Schedule("currencyUiRefresh", CURRENCY_UI_REFRESH_DELAY_MS, function()
             if not BETTERUI.Utils.IsBankingSceneShowing() then
+                TraceBankState("bank.currency_ui_refresh", "skipped", {
+                    reason = "sceneHiddenDeferred",
+                    eventCode = eventCode,
+                    mode = self.currentMode,
+                    beforeCarriedGold = beforeCurrency.beforeCarriedGold,
+                    beforeBankGold = beforeCurrency.beforeBankGold,
+                    beforeGuildBankGold = beforeCurrency.beforeGuildBankGold,
+                })
                 if BETTERUI.Log and BETTERUI.Log.Trace then
                     BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.STATE, "bank currency UI refresh skipped", {
                         reason = "sceneHiddenDeferred",
@@ -229,6 +310,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
             end
             self:RefreshCurrencyTooltip()
+            local afterCurrency = CurrencyRefreshSnapshot("after")
             if BETTERUI.Log then
                 BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "bank currency UI refresh complete", {
                     mode = self.currentMode,
@@ -236,7 +318,92 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                     showingCurrencyRows = showingCurrencyRows,
                 })
             end
+            TraceBankState("bank.currency_ui_refresh", "complete", {
+                eventCode = eventCode,
+                mode = self.currentMode,
+                categoryKey = activeCategoryForHeader and activeCategoryForHeader.key or nil,
+                showingCurrencyRows = showingCurrencyRows,
+                refreshedList = showingCurrencyRows,
+                refreshedFooter = true,
+                refreshedTooltip = true,
+                keybindRefresh = KEYBIND_STRIP and self.coreKeybinds and "core" or "none",
+                beforeCarriedGold = beforeCurrency.beforeCarriedGold,
+                beforeBankGold = beforeCurrency.beforeBankGold,
+                beforeGuildBankGold = beforeCurrency.beforeGuildBankGold,
+                afterCarriedGold = afterCurrency.afterCarriedGold,
+                afterBankGold = afterCurrency.afterBankGold,
+                afterGuildBankGold = afterCurrency.afterGuildBankGold,
+            })
         end)
+    end
+
+    local function RefreshBankCapacityUi(eventCode, reason)
+        if not BETTERUI.Utils.IsBankingSceneShowing() then
+            TraceBankState("bank.capacity_ui_refresh", "skipped", {
+                reason = "sceneHidden",
+                source = reason,
+                eventCode = eventCode,
+            })
+            return
+        end
+
+        self.isDirty = true
+        self:RefreshList()
+        self:RefreshFooter()
+        self:RefreshCurrencyTooltip()
+        if KEYBIND_STRIP then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+        end
+        local capacity = BankCapacitySnapshot("after")
+        TraceBankState("bank.capacity_ui_refresh", "complete", {
+            source = reason,
+            eventCode = eventCode,
+            refreshedList = true,
+            refreshedFooter = true,
+            refreshedTooltip = true,
+            keybindRefresh = KEYBIND_STRIP and self.coreKeybinds and "core" or "none",
+            afterBankUsed = capacity.afterBankUsed,
+            afterBankSize = capacity.afterBankSize,
+            afterSubscriberBankUsed = capacity.afterSubscriberBankUsed,
+            afterSubscriberBankSize = capacity.afterSubscriberBankSize,
+            afterTotalBankSize = capacity.afterTotalBankSize,
+            afterCurrentUpgrade = capacity.afterCurrentUpgrade,
+            afterMaxUpgrade = capacity.afterMaxUpgrade,
+            afterNextUpgradePrice = capacity.afterNextUpgradePrice,
+        })
+    end
+
+    local function TraceBankUpgradeEvent(phase, eventCode, data)
+        local currency = CurrencyRefreshSnapshot("current")
+        local capacity = BankCapacitySnapshot("current")
+        data = data or {}
+        data.eventCode = eventCode
+        data.currentCarriedGold = currency.currentCarriedGold
+        data.currentBankGold = currency.currentBankGold
+        data.currentGuildBankGold = currency.currentGuildBankGold
+        data.currentBankUsed = capacity.currentBankUsed
+        data.currentBankSize = capacity.currentBankSize
+        data.currentSubscriberBankUsed = capacity.currentSubscriberBankUsed
+        data.currentSubscriberBankSize = capacity.currentSubscriberBankSize
+        data.currentTotalBankSize = capacity.currentTotalBankSize
+        data.currentUpgrade = capacity.currentCurrentUpgrade
+        data.maxUpgrade = capacity.currentMaxUpgrade
+        data.nextUpgradePrice = capacity.currentNextUpgradePrice
+        TraceBankState("bank.upgrade", phase, data)
+    end
+
+    local function RegisterBankingControlEvent(eventName, eventId, handler)
+        if eventId == nil then
+            TraceBankState("bank.event_registration", "skipped", {
+                event = eventName,
+                reason = "missingEventConstant",
+            })
+            return
+        end
+        self.control:RegisterForEvent(eventId, handler)
+        if BETTERUI.Log then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = eventName })
+        end
     end
 
     local selectorContainer = self.control:GetNamedChild("Container"):GetNamedChild("InputContainer")
@@ -271,7 +438,21 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     EVENT_MANAGER:UnregisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK)
     EVENT_MANAGER:RegisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK, function(_, bankBag)
-        BETTERUI.Banking.SetLastOpenedBankBag(bankBag or BAG_BANK)
+        local openedBag = bankBag or BAG_BANK
+        BETTERUI.Banking.SetLastOpenedBankBag(openedBag)
+        local capacity = BankCapacitySnapshot("open")
+        TraceBankState("bank.open", "event", {
+            bankBag = openedBag,
+            currentUsedBank = BETTERUI.Banking.GetCurrentUsedBank and BETTERUI.Banking.GetCurrentUsedBank() or nil,
+            openBankUsed = capacity.openBankUsed,
+            openBankSize = capacity.openBankSize,
+            openSubscriberBankUsed = capacity.openSubscriberBankUsed,
+            openSubscriberBankSize = capacity.openSubscriberBankSize,
+            openTotalBankSize = capacity.openTotalBankSize,
+            openCurrentUpgrade = capacity.openCurrentUpgrade,
+            openMaxUpgrade = capacity.openMaxUpgrade,
+            openNextUpgradePrice = capacity.openNextUpgradePrice,
+        })
     end)
     if BETTERUI.Log then
         BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_OPEN_BANK" })
@@ -282,19 +463,40 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         if IsBankOpen and IsBankOpen() then
             BETTERUI.Banking.SetLastOpenedBankBag(GetBankingBag())
         end
+        TraceBankState("bank.close", "event", {
+            isBankOpen = IsBankOpen and IsBankOpen() or nil,
+            currentUsedBank = BETTERUI.Banking.GetCurrentUsedBank and BETTERUI.Banking.GetCurrentUsedBank() or nil,
+        })
     end)
     if BETTERUI.Log then
         BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_CLOSE_BANK" })
     end
 
-    self.control:RegisterForEvent(EVENT_CARRIED_CURRENCY_UPDATE, UpdateCurrency_Handler)
-    if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_CARRIED_CURRENCY_UPDATE" })
-    end
-    self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
-    if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_BANKED_CURRENCY_UPDATE" })
-    end
+    RegisterBankingControlEvent("EVENT_CARRIED_CURRENCY_UPDATE", EVENT_CARRIED_CURRENCY_UPDATE, UpdateCurrency_Handler)
+    RegisterBankingControlEvent("EVENT_BANKED_CURRENCY_UPDATE", EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
+    RegisterBankingControlEvent("EVENT_INVENTORY_BUY_BANK_SPACE", EVENT_INVENTORY_BUY_BANK_SPACE,
+        function(eventCode, cost)
+            TraceBankUpgradeEvent("prompted", eventCode, {
+                cost = cost,
+            })
+        end)
+    RegisterBankingControlEvent("EVENT_INVENTORY_BOUGHT_BANK_SPACE", EVENT_INVENTORY_BOUGHT_BANK_SPACE,
+        function(eventCode, numberOfSlots)
+            TraceBankUpgradeEvent("bought", eventCode, {
+                numberOfSlots = numberOfSlots,
+            })
+            RefreshBankCapacityUi(eventCode, "EVENT_INVENTORY_BOUGHT_BANK_SPACE")
+        end)
+    RegisterBankingControlEvent("EVENT_INVENTORY_BANK_CAPACITY_CHANGED", EVENT_INVENTORY_BANK_CAPACITY_CHANGED,
+        function(eventCode, previousCapacity, currentCapacity, previousUpgrade, currentUpgrade)
+            TraceBankUpgradeEvent("capacity_changed", eventCode, {
+                previousCapacity = previousCapacity,
+                currentCapacity = currentCapacity,
+                previousUpgrade = previousUpgrade,
+                currentUpgrade = currentUpgrade,
+            })
+            RefreshBankCapacityUi(eventCode, "EVENT_INVENTORY_BANK_CAPACITY_CHANGED")
+        end)
 
     if BETTERUI.Log then
         BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "banking class initialized", { scene = scene_name })

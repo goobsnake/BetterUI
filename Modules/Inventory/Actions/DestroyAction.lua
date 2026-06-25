@@ -29,9 +29,15 @@ local function TraceDestroyAction(phase, data)
     if not IsDestroyTraceActive() then
         return
     end
+    local L = BETTERUI.Log
     data = data or {}
-    data.phase = phase
-    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "inventory destroy", data)
+    data.feature = data.feature or "destroy"
+    if L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "inventory.destroy", phase, data, L.LEVEL.INFO)
+    elseif L.Trace then
+        data.phase = phase
+        L.Trace(L.CATEGORY.ACTION, "inventory destroy", data)
+    end
 end
 
 local function BuildDestroyTracePayload(bagId, slotIndex, slotType, data)
@@ -52,6 +58,9 @@ local function BuildDestroyTracePayload(bagId, slotIndex, slotType, data)
     data.skipLiveSlotRead = nil
     return data
 end
+
+BETTERUI.Inventory.TraceDestroyAction = TraceDestroyAction
+BETTERUI.Inventory.BuildDestroyTracePayload = BuildDestroyTracePayload
 
 local function CanDestroyItemWithPolicy(bagId, slotIndex, slotType)
     return RequireProtectionPolicyMethod("CanDestroyItem")(bagId, slotIndex, slotType) == true
@@ -117,16 +126,45 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRe
                 SHARED_INVENTORY:PerformFullUpdateOnBagCache(bagId)
             end
             BETTERUI.Inventory.Tasks:Schedule("destroyItemRefresh", 80, function()
-                if GAMEPAD_INVENTORY then
-                    if GAMEPAD_INVENTORY.RefreshItemList then
-                        GAMEPAD_INVENTORY:RefreshItemList()
+                TraceDestroyAction("refresh_start", BuildDestroyTracePayload(bagId, slotIndex, slotType, {
+                    delayMs = 80,
+                    hasGamepadInventory = GAMEPAD_INVENTORY ~= nil,
+                    skipLiveSlotRead = true,
+                }))
+                local itemListRefreshed = false
+                local categoryListRefreshed = false
+                local headerRefreshed = false
+                local okRefresh, refreshError = pcall(function()
+                    if GAMEPAD_INVENTORY then
+                        if GAMEPAD_INVENTORY.RefreshItemList then
+                            GAMEPAD_INVENTORY:RefreshItemList()
+                            itemListRefreshed = true
+                        end
+                        if GAMEPAD_INVENTORY.RefreshCategoryList then
+                            GAMEPAD_INVENTORY:RefreshCategoryList()
+                            categoryListRefreshed = true
+                        end
+                        if GAMEPAD_INVENTORY.RefreshHeader then
+                            GAMEPAD_INVENTORY:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                            headerRefreshed = true
+                        end
                     end
-                    if GAMEPAD_INVENTORY.RefreshCategoryList then
-                        GAMEPAD_INVENTORY:RefreshCategoryList()
-                    end
-                    if GAMEPAD_INVENTORY.RefreshHeader then
-                        GAMEPAD_INVENTORY:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-                    end
+                end)
+                TraceDestroyAction(okRefresh and "refresh_complete" or "refresh_failed", BuildDestroyTracePayload(bagId, slotIndex, slotType, {
+                    delayMs = 80,
+                    hasGamepadInventory = GAMEPAD_INVENTORY ~= nil,
+                    itemListRefreshed = itemListRefreshed,
+                    categoryListRefreshed = categoryListRefreshed,
+                    headerRefreshed = headerRefreshed,
+                    error = okRefresh and nil or tostring(refreshError),
+                    skipLiveSlotRead = true,
+                }))
+                if not okRefresh and BETTERUI.Log and BETTERUI.Log.Warn then
+                    BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.ACTION, "destroy item refresh failed", {
+                        bagId = bagId,
+                        slotIndex = slotIndex,
+                        error = tostring(refreshError),
+                    })
                 end
             end)
         else
@@ -185,13 +223,22 @@ function BETTERUI.Inventory.HookDestroyItem()
         end
         local link = GetItemLink(bag, index)
         local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, index, inventorySlot)
+        TraceDestroyAction("confirm_dialog_request", BuildDestroyTracePayload(bag, index, slotType, {
+            itemLink = link,
+            quickDestroy = quick == true,
+            expectedSlotIdentity = expectedSlotIdentity,
+            dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
+        }))
+        local shownDialog = ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+            { bagId = bag, slotIndex = index, slotType = slotType, itemLink = link, expectedSlotIdentity = expectedSlotIdentity }, nil, true, true)
         TraceDestroyAction("confirm_dialog_show", BuildDestroyTracePayload(bag, index, slotType, {
             itemLink = link,
             quickDestroy = quick == true,
             expectedSlotIdentity = expectedSlotIdentity,
+            dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
+            showReturnedDialog = shownDialog ~= nil,
+            showingAfter = ZO_Dialogs_IsShowing and ZO_Dialogs_IsShowing("BETTERUI_CONFIRM_DESTROY_DIALOG") == true or nil,
         }))
-        ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
-            { bagId = bag, slotIndex = index, slotType = slotType, itemLink = link, expectedSlotIdentity = expectedSlotIdentity }, nil, true, true)
         return true
     end)
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "ZO_InventorySlot_InitiateDestroyItem", target = type("ZO_InventorySlot_InitiateDestroyItem") }) end

@@ -153,12 +153,15 @@ end
 
 function BETTERUI.CIM.UI.HeaderSortController:ClearSort()
     if #self.columns == 0 then
-        return false
+        self._lastClearSortReason = "noColumns"
+        TraceHeaderSortController(self, "clear_sort_skipped", { reason = "noColumns" })
+        return false, "noColumns"
     end
 
     local activeColumnIndex = self.activeSortColumnIndex
     local currentDirection = activeColumnIndex and self.sortDirections[activeColumnIndex]
     if currentDirection and currentDirection ~= SORT_DIRECTION.NONE then
+        self._lastClearSortReason = nil
         self.sortDirections[activeColumnIndex] = SORT_DIRECTION.NONE
         local clearedColumn = self.columns[activeColumnIndex]
 
@@ -173,12 +176,33 @@ function BETTERUI.CIM.UI.HeaderSortController:ClearSort()
         self:UpdateVisuals()
 
         if self.onSortChangedCallback and clearedColumn then
-            BETTERUI.CIM.SafeExecute("HeaderSortController:onSortChangedCallback", self.onSortChangedCallback, clearedColumn.key, SORT_DIRECTION.NONE, clearedColumn.sortFn)
+            TraceHeaderSortController(self, "callback_before", {
+                action = "clear",
+                callbackColumnKey = clearedColumn.key,
+                callbackDirection = SORT_DIRECTION.NONE,
+                hasSortFn = clearedColumn.sortFn ~= nil,
+            })
+            local callbackOk, callbackResult = BETTERUI.CIM.SafeExecute("HeaderSortController:onSortChangedCallback", self.onSortChangedCallback, clearedColumn.key, SORT_DIRECTION.NONE, clearedColumn.sortFn)
+            TraceHeaderSortController(self, "callback_after", {
+                action = "clear",
+                callbackColumnKey = clearedColumn.key,
+                callbackDirection = SORT_DIRECTION.NONE,
+                hasSortFn = clearedColumn.sortFn ~= nil,
+                callbackOk = callbackOk == true,
+                callbackError = callbackOk and nil or tostring(callbackResult),
+            })
+        else
+            TraceHeaderSortController(self, "callback_skipped", {
+                action = "clear",
+                reason = clearedColumn and "missingCallback" or "missingColumn",
+            })
         end
         return true
     end
 
-    return false
+    self._lastClearSortReason = "noActiveSort"
+    TraceHeaderSortController(self, "clear_sort_skipped", { reason = "noActiveSort" })
+    return false, "noActiveSort"
 end
 
 function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
@@ -241,7 +265,29 @@ function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
     local callbackColumn = self.columns[columnIndex]
     if not callbackColumn then return false end
     if self.onSortChangedCallback then
-        BETTERUI.CIM.SafeExecute("HeaderSortController:onSortChangedCallback", self.onSortChangedCallback, callbackColumn.key, newDirection, callbackColumn.sortFn)
+        TraceHeaderSortController(self, "callback_before", {
+            action = "toggle",
+            callbackColumnKey = callbackColumn.key,
+            callbackDirection = newDirection,
+            hasSortFn = callbackColumn.sortFn ~= nil,
+        })
+        local callbackOk, callbackResult = BETTERUI.CIM.SafeExecute("HeaderSortController:onSortChangedCallback", self.onSortChangedCallback, callbackColumn.key, newDirection, callbackColumn.sortFn)
+        TraceHeaderSortController(self, "callback_after", {
+            action = "toggle",
+            callbackColumnKey = callbackColumn.key,
+            callbackDirection = newDirection,
+            hasSortFn = callbackColumn.sortFn ~= nil,
+            callbackOk = callbackOk == true,
+            callbackError = callbackOk and nil or tostring(callbackResult),
+        })
+    else
+        TraceHeaderSortController(self, "callback_skipped", {
+            action = "toggle",
+            reason = "missingCallback",
+            callbackColumnKey = callbackColumn.key,
+            callbackDirection = newDirection,
+            hasSortFn = callbackColumn.sortFn ~= nil,
+        })
     end
 
     return true

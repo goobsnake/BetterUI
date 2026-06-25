@@ -169,10 +169,14 @@ local function InstallMailDeleteHook()
 					local selectedMail = SnapshotSelectedMail(mailInbox)
 					if moduleSettings and moduleSettings.removeDeleteDialog and type(mailInbox.Delete) == "function" then
 						TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = true, selectedMail = selectedMail })
-						return mailInbox:Delete()
+						local result = mailInbox:Delete()
+						TraceGeneralInterface("general_interface.mail_delete", "direct_delete_dispatched", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, result = result })
+						return result
 					end
 					TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = false, selectedMail = selectedMail })
-					return origCallback(...)
+					local result = origCallback(...)
+					TraceGeneralInterface("general_interface.mail_delete", "native_callback_dispatched", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, result = result })
+					return result
 				end
 				descriptor._betteruiDeleteHookInstalled = true
 				TraceGeneralInterface("general_interface.mail_delete", "hook_installed", { fn = "HookMailDeleteDescriptor", shortcut = descriptor.keybind })

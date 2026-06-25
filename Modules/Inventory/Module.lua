@@ -10,6 +10,17 @@ local Inventory = BETTERUI.Inventory
 local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
 local RUNTIME_COORDINATOR = ARCHETYPES.RUNTIME_COORDINATOR or "runtime-coordinator"
 
+local function TraceInventoryModule(event, phase, data, category)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = data.module or "Inventory"
+    data.scene = data.scene or (BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.GetCurrentSceneName
+        and BETTERUI.CIM.Utils.GetCurrentSceneName())
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(category or categories.ACTION, event, phase, data)
+end
+
 ---@type BetterUIModuleArchetypeRuntimeCoordinator
 Inventory.ARCHETYPE = RUNTIME_COORDINATOR
 ---@type BetterUIModuleRootContract
@@ -335,10 +346,18 @@ function Inventory.Setup()
 	if not Inventory._splitStackHookInstalled and type(ZO_PreHook) == "function" then
 		ZO_PreHook("ZO_StackSplit_SplitItem", function(inventorySlotControl)
 			if Inventory._splitStackLock then
+				TraceInventoryModule("inventory.split_stack_lock", "blocked_duplicate", {
+					fn = "ZO_StackSplit_SplitItem",
+					hasSlotControl = inventorySlotControl ~= nil,
+				})
 				return true
 			end
 
 			Inventory._splitStackLock = true
+			TraceInventoryModule("inventory.split_stack_lock", "acquired", {
+				fn = "ZO_StackSplit_SplitItem",
+				hasSlotControl = inventorySlotControl ~= nil,
+			})
 
 			local retriesRemaining = 20
 			local function ReleaseSplitLockIfNoDialog()
@@ -350,6 +369,12 @@ function Inventory.Setup()
 					if inventorySceneShowing and GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RestoreStateAfterDialog then
 						GAMEPAD_INVENTORY:RestoreStateAfterDialog("splitStackLockFallbackRelease")
 					end
+					TraceInventoryModule("inventory.split_stack_lock", "released_no_dialog", {
+						fn = "ReleaseSplitLockIfNoDialog",
+						inventorySceneShowing = inventorySceneShowing == true,
+						restoredState = inventorySceneShowing and GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RestoreStateAfterDialog ~= nil or false,
+						retriesRemaining = retriesRemaining,
+					})
 					return
 				end
 
@@ -357,25 +382,55 @@ function Inventory.Setup()
 				if retriesRemaining <= 0 then
 					-- Safety release to avoid persistent lock if dialog lifecycle callbacks are missed.
 					Inventory._splitStackLock = nil
+					TraceInventoryModule("inventory.split_stack_lock", "released_timeout", {
+						fn = "ReleaseSplitLockIfNoDialog",
+					})
 					return
 				end
 
 				if Inventory.Tasks and Inventory.Tasks.Schedule then
 					Inventory.Tasks:Schedule("splitStackLockFallbackRelease", 100, ReleaseSplitLockIfNoDialog)
+					TraceInventoryModule("inventory.split_stack_lock", "release_retry_scheduled", {
+						fn = "ReleaseSplitLockIfNoDialog",
+						scheduler = "Inventory.Tasks",
+						retriesRemaining = retriesRemaining,
+						delayMs = 100,
+					})
 				else
 					zo_callLater(ReleaseSplitLockIfNoDialog, 100)
+					TraceInventoryModule("inventory.split_stack_lock", "release_retry_scheduled", {
+						fn = "ReleaseSplitLockIfNoDialog",
+						scheduler = "zo_callLater",
+						retriesRemaining = retriesRemaining,
+						delayMs = 100,
+					})
 				end
 			end
 
 			if Inventory.Tasks and Inventory.Tasks.Schedule then
 				Inventory.Tasks:Schedule("splitStackLockFallbackRelease", 120, ReleaseSplitLockIfNoDialog)
+				TraceInventoryModule("inventory.split_stack_lock", "fallback_scheduled", {
+					fn = "ZO_StackSplit_SplitItem",
+					scheduler = "Inventory.Tasks",
+					delayMs = 120,
+				})
 			else
 				zo_callLater(ReleaseSplitLockIfNoDialog, 120)
+				TraceInventoryModule("inventory.split_stack_lock", "fallback_scheduled", {
+					fn = "ZO_StackSplit_SplitItem",
+					scheduler = "zo_callLater",
+					delayMs = 120,
+				})
 			end
 
 			return false
 		end)
-		if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "ZO_StackSplit_SplitItem", target = type("ZO_StackSplit_SplitItem") }) end
+		if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "ZO_StackSplit_SplitItem", target = type(_G.ZO_StackSplit_SplitItem) }) end
+		TraceInventoryModule("inventory.split_stack_lock", "hook_installed", {
+			fn = "Inventory.Setup",
+			method = "ZO_StackSplit_SplitItem",
+			targetType = type(_G.ZO_StackSplit_SplitItem),
+		}, BETTERUI.Log and BETTERUI.Log.CATEGORY and BETTERUI.Log.CATEGORY.LIFECYCLE or nil)
 		Inventory._splitStackHookInstalled = true
 	end
 

@@ -11,6 +11,8 @@ local TH = BETTERUI.TradingHouse
 -- COMPONENT TABLE
 TH.ListingsComponent = {}
 local Listings = TH.ListingsComponent
+Listings.pendingCancelTrace = nil
+local cancelDialogHooksInstalled = false
 
 local function TraceListings(event, phase, thInstance, data, category)
     if type(TH.Trace) == "function" then
@@ -18,6 +20,52 @@ local function TraceListings(event, phase, thInstance, data, category)
         data.feature = data.feature or "trading-house-listings"
         data.fn = data.fn or "TradingHouse.ListingsComponent"
         TH.Trace(category or (BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST), event, phase, thInstance or TH.instance, data)
+    end
+end
+
+local function TracePendingCancelDialog(phase, reason)
+    local pending = Listings.pendingCancelTrace
+    if not pending then return false end
+    if reason ~= nil then
+        pending.reason = reason
+    end
+    TraceListings("trading_house.cancel_listing_dialog", phase, TH.instance, pending,
+        BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+    Listings.pendingCancelTrace = nil
+    return true
+end
+
+local function EnsureCancelDialogHooks()
+    if cancelDialogHooksInstalled then return end
+    cancelDialogHooksInstalled = true
+    if type(CancelTradingHouseListing) == "function" then
+        local originalCancelTradingHouseListing = CancelTradingHouseListing
+        CancelTradingHouseListing = function(index, ...)
+            local pending = Listings.pendingCancelTrace
+            if pending then
+                pending.confirmedIndex = index
+                TracePendingCancelDialog("confirm", nil)
+            end
+            return originalCancelTradingHouseListing(index, ...)
+        end
+    end
+    if type(ZO_Dialogs_ReleaseDialog) == "function" then
+        local originalReleaseDialog = ZO_Dialogs_ReleaseDialog
+        ZO_Dialogs_ReleaseDialog = function(dialogName, ...)
+            if dialogName == "TRADING_HOUSE_CONFIRM_REMOVE_LISTING" then
+                TracePendingCancelDialog("cancel", "dialogReleased")
+            end
+            return originalReleaseDialog(dialogName, ...)
+        end
+    end
+    if type(ZO_Dialogs_ReleaseDialogOnButtonPress) == "function" then
+        local originalReleaseDialogOnButtonPress = ZO_Dialogs_ReleaseDialogOnButtonPress
+        ZO_Dialogs_ReleaseDialogOnButtonPress = function(dialogName, ...)
+            if dialogName == "TRADING_HOUSE_CONFIRM_REMOVE_LISTING" then
+                TracePendingCancelDialog("cancel", "buttonPressRelease")
+            end
+            return originalReleaseDialogOnButtonPress(dialogName, ...)
+        end
     end
 end
 
@@ -65,7 +113,7 @@ end
 
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Listings:Deactivate(thInstance)
-    -- No cleanup needed
+    TracePendingCancelDialog("cancel", "componentDeactivated")
 end
 
 -- PRIMARY ACTION
@@ -88,11 +136,24 @@ end
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Listings:OnPrimaryAction(thInstance)
     local selectedData = GetTargetRowData(thInstance)
-    if not selectedData then return end
+    if not selectedData then
+        TraceListings("trading_house.cancel_listing", "blocked", thInstance, {
+            fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
+            reason = "noSelection",
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
+        return
+    end
     local ds = selectedData.dataSource or selectedData
 
     local listingIndex = ds.listingIndex
-    if not listingIndex then return end
+    if not listingIndex then
+        TraceListings("trading_house.cancel_listing", "blocked", thInstance, {
+            fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
+            reason = "missingListingIndex",
+            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
+        return
+    end
 
     TraceListings("trading_house.cancel_listing", "request", thInstance, {
         fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
@@ -111,6 +172,14 @@ function Listings:OnPrimaryAction(thInstance)
         currencyType = CURT_MONEY,
     }
     local price = ds.purchasePrice or 0
+    EnsureCancelDialogHooks()
+    Listings.pendingCancelTrace = {
+        fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
+        dialog = "TRADING_HOUSE_CONFIRM_REMOVE_LISTING",
+        listingIndex = listingIndex,
+        price = price,
+        item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+    }
     if ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog then
         ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog(dialogItemData,
             "TRADING_HOUSE_CONFIRM_REMOVE_LISTING", price, ds.icon)
@@ -137,6 +206,8 @@ function Listings:OnPrimaryAction(thInstance)
             item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     end
+    TraceListings("trading_house.cancel_listing_dialog", "awaiting_choice", thInstance, Listings.pendingCancelTrace,
+        BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
 end
 
 -- LIST BUILDING

@@ -209,6 +209,31 @@ local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settin
     end
     buttonControl.quickslotCount = count
     buttonControl.quickslotEmpty = isEmpty
+    local traceState = table.concat({
+        tostring(slotIndex),
+        tostring(hotbarCategory),
+        tostring(slotType),
+        tostring(count),
+        tostring(showCount),
+        tostring(isEmpty),
+        tostring(countText ~= nil),
+        tostring(unusableOverlay ~= nil),
+    }, ":")
+    if buttonControl._betteruiQuickslotCountTraceState ~= traceState then
+        buttonControl._betteruiQuickslotCountTraceState = traceState
+        TraceFrontCooldown("resource_orbs.quickslot_count", "state", {
+            fn = "SkillBar.UpdateQuickslotCountAndEmptyState",
+            slot = slotIndex,
+            category = hotbarCategory,
+            slotType = slotType,
+            isItemSlot = isItemSlot,
+            count = count,
+            showCount = showCount,
+            empty = isEmpty,
+            hasCountText = countText ~= nil,
+            hasUnusableOverlay = unusableOverlay ~= nil,
+        })
+    end
     return isEmpty
 end
 

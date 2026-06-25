@@ -141,32 +141,71 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         return CanJunkWithPolicy(targetData.bagId, targetData.slotIndex)
     end
 
+    local function TraceBankingActionDialog(event, phase, data)
+        local L = BETTERUI.Log
+        if not (L and L.TraceEvent) then return end
+        L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
+    end
+
+    local function DescribeBankTarget(targetData)
+        local L = BETTERUI.Log
+        if L and L.DescribeItem and targetData then
+            return L.DescribeItem(targetData, "target")
+        end
+        return nil
+    end
+
     local function ToggleBankingItemJunk(targetData, shouldMarkAsJunk)
         if not targetData or not targetData.bagId or not targetData.slotIndex then
+            TraceBankingActionDialog("bank.junk_toggle", "blocked", {
+                reason = "missingTarget",
+                requestedJunk = shouldMarkAsJunk == true,
+            })
             return false
         end
         if self:IsFurnitureVaultContext() then
+            TraceBankingActionDialog("bank.junk_toggle", "blocked", {
+                reason = "furnitureVault",
+                requestedJunk = shouldMarkAsJunk == true,
+                target = DescribeBankTarget(targetData),
+            })
             return false
         end
 
         local isCurrentlyJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex)
         if shouldMarkAsJunk == true then
             if isCurrentlyJunk or not CanJunkWithPolicy(targetData.bagId, targetData.slotIndex) then
+                TraceBankingActionDialog("bank.junk_toggle", "blocked", {
+                    reason = isCurrentlyJunk and "alreadyJunk" or "protectionPolicy",
+                    requestedJunk = true,
+                    target = DescribeBankTarget(targetData),
+                })
                 return false
             end
         elseif not isCurrentlyJunk or not CanUnjunkWithPolicy(targetData.bagId, targetData.slotIndex) then
+            TraceBankingActionDialog("bank.junk_toggle", "blocked", {
+                reason = not isCurrentlyJunk and "notJunk" or "protectionPolicy",
+                requestedJunk = false,
+                target = DescribeBankTarget(targetData),
+            })
             return false
         end
 
+        TraceBankingActionDialog("bank.junk_toggle", "before", {
+            requestedJunk = shouldMarkAsJunk == true,
+            wasJunk = isCurrentlyJunk == true,
+            categoryKey = GetCurrentCategoryKey(),
+            target = DescribeBankTarget(targetData),
+        })
         SetItemIsJunk(targetData.bagId, targetData.slotIndex, shouldMarkAsJunk)
         self:RequestJunkCategoryRefresh(140, GetCurrentCategoryKey())
+        TraceBankingActionDialog("bank.junk_toggle", "after", {
+            requestedJunk = shouldMarkAsJunk == true,
+            refreshScheduled = true,
+            categoryKey = GetCurrentCategoryKey(),
+            target = DescribeBankTarget(targetData),
+        })
         return true
-    end
-
-    local function TraceBankingActionDialog(event, phase, data)
-        local L = BETTERUI.Log
-        if not (L and L.TraceEvent) then return end
-        L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
     end
 
     local function ActionDialogSetup(dialog)
@@ -299,11 +338,13 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function ActionDialogFinish(dialog)
         local closeCause = dialog and dialog._betteruiCloseCause or "dismissed"
         if BETTERUI.Utils.IsBankingSceneShowing() then
+            local pendingHeaderSort = self._pendingHeaderSortFromDialog == true
             if BETTERUI.Log then
                 BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "bank dialog finish restore", {
                     fn = "Banking.ActionDialogFinish",
                     closeCause = closeCause,
                     headerSort = self.isInHeaderSortMode == true,
+                    pendingHeaderSort = pendingHeaderSort,
                     main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
                 })
             end
@@ -311,16 +352,21 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 mode = self.currentMode,
                 closeCause = closeCause,
                 headerSort = self.isInHeaderSortMode == true,
+                pendingHeaderSort = pendingHeaderSort,
                 main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
             })
-            if not self.isInHeaderSortMode then
+            if not self.isInHeaderSortMode and not pendingHeaderSort then
                 self:AddKeybinds()
             end
-            self:RefreshItemActions()
+            if not pendingHeaderSort then
+                self:RefreshItemActions()
+            end
             TraceBankingActionDialog("bank.action_dialog", "finish_after", {
                 mode = self.currentMode,
                 closeCause = closeCause,
                 headerSort = self.isInHeaderSortMode == true,
+                pendingHeaderSort = pendingHeaderSort,
+                skippedKeybindRestore = pendingHeaderSort,
                 main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
             })
         end
@@ -338,35 +384,81 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 isStowAllFurniture = selectedEntry and selectedEntry.isBetterUIStowAllFurniture == true,
             })
             if selectedEntry and selectedEntry.isBetterUIStowAllFurniture then
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "before", {
+                    branch = "stow_all_furniture",
+                    mode = self.currentMode,
+                })
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                 self:SaveListPosition()
+                local invoked = false
                 if type(StowAllFurnitureItems) == "function" then
                     StowAllFurnitureItems()
+                    invoked = true
                 end
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "after", {
+                    branch = "stow_all_furniture",
+                    mode = self.currentMode,
+                    releaseRequested = true,
+                    invoked = invoked,
+                    savedListPosition = true,
+                })
                 return
             end
 
             if selectedEntry and selectedEntry.isBetterUIBankJunkToggle then
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "before", {
+                    branch = "junk_toggle",
+                    mode = self.currentMode,
+                    markAsJunk = selectedEntry.markAsJunk == true,
+                    target = DescribeBankTarget(selectedEntry.targetData),
+                })
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-                ToggleBankingItemJunk(selectedEntry.targetData, selectedEntry.markAsJunk == true)
+                local toggled = ToggleBankingItemJunk(selectedEntry.targetData, selectedEntry.markAsJunk == true)
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "after", {
+                    branch = "junk_toggle",
+                    mode = self.currentMode,
+                    markAsJunk = selectedEntry.markAsJunk == true,
+                    releaseRequested = true,
+                    result = toggled == true,
+                    target = DescribeBankTarget(selectedEntry.targetData),
+                })
                 return
             end
 
             if selectedEntry and selectedEntry.isBetterUIStackTransfer then
                 local stackCount = selectedEntry.stackCount or 1
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "before", {
+                    branch = "stack_transfer",
+                    mode = self.currentMode,
+                    stackCount = stackCount,
+                    selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
+                })
                 self:SaveListPosition()
                 self:MoveItem(self.list, stackCount)
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "after", {
+                    branch = "stack_transfer",
+                    mode = self.currentMode,
+                    stackCount = stackCount,
+                    releaseRequested = true,
+                    moveRequested = true,
+                    savedListPosition = true,
+                })
                 return
             end
 
             if selectedEntry and selectedEntry.isSortAction then
+                local sortContext = selectedEntry.sortContext or self
+                self._pendingHeaderSortFromDialog = true
+                if sortContext then
+                    sortContext._pendingHeaderSortFromDialog = true
+                end
                 TraceBankingActionDialog("bank.action_dialog.sort", "release_dialog", {
                     mode = self.currentMode,
+                    pendingHeaderSort = true,
                     selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
                 })
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-                local sortContext = selectedEntry.sortContext or self
                 if BETTERUI.Log then
                     BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "bank dialog sort confirmed", {
                         fn = "Banking.ActionDialogButtonConfirm",
@@ -383,33 +475,83 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                             TraceBankingActionDialog("bank.action_dialog.sort", "waiting_for_close", {
                                 attempts = attempts,
                                 headerSort = sortContext and sortContext.isInHeaderSortMode == true,
+                                pendingHeaderSort = sortContext and sortContext._pendingHeaderSortFromDialog == true,
                                 main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and sortContext and BETTERUI.Log.DescribeKeybindDescriptor(sortContext.mainKeybindStripDescriptor, "main") or nil,
                             })
                             if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
                                 BETTERUI.Banking.Tasks:Schedule("enterHeaderSortAfterDialog", 10, EnterSortWhenDialogClosed)
-                            elseif zo_callLater then
+                                return
+                            elseif type(zo_callLater) == "function" then
                                 zo_callLater(EnterSortWhenDialogClosed, 10)
+                                return
                             end
+                            if sortContext then
+                                sortContext._pendingHeaderSortFromDialog = nil
+                            end
+                            if sortContext ~= self then
+                                self._pendingHeaderSortFromDialog = nil
+                            end
+                            TraceBankingActionDialog("bank.action_dialog.sort", "enter_skipped", {
+                                reason = "missingScheduler",
+                                attemptsRemaining = attempts,
+                                headerSort = sortContext and sortContext.isInHeaderSortMode == true,
+                                pendingHeaderSort = false,
+                            })
                             return
                         end
                         local entered = sortContext:EnterHeaderSortMode()
+                        if sortContext then
+                            sortContext._pendingHeaderSortFromDialog = nil
+                        end
+                        if sortContext ~= self then
+                            self._pendingHeaderSortFromDialog = nil
+                        end
                         TraceBankingActionDialog("bank.action_dialog.sort", "enter_attempted", {
                             entered = entered == true,
                             attemptsRemaining = attempts,
                             headerSort = sortContext and sortContext.isInHeaderSortMode == true,
+                            pendingHeaderSort = false,
                             main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and sortContext and BETTERUI.Log.DescribeKeybindDescriptor(sortContext.mainKeybindStripDescriptor, "main") or nil,
                         })
                     end
                     EnterSortWhenDialogClosed()
+                else
+                    if sortContext then
+                        sortContext._pendingHeaderSortFromDialog = nil
+                    end
+                    if sortContext ~= self then
+                        self._pendingHeaderSortFromDialog = nil
+                    end
+                    TraceBankingActionDialog("bank.action_dialog.sort", "enter_skipped", {
+                        reason = "missingSortContext",
+                        pendingHeaderSort = false,
+                    })
                 end
                 return
             end
 
             local selectedAction = self.itemActions and self.itemActions.selectedAction or nil
-            if not selectedAction then return end
+            if not selectedAction then
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "blocked", {
+                    branch = "native_slot_action",
+                    mode = self.currentMode,
+                    reason = "missingSelectedAction",
+                })
+                return
+            end
             local selectedName = ZO_InventorySlotActions:GetRawActionName(selectedAction)
             if selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")) then
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "before", {
+                    branch = "link_to_chat",
+                    mode = self.currentMode,
+                    selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
+                })
                 BETTERUI.CIM.HandleLinkToChat(self:GetList().selectedData)
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "after", {
+                    branch = "link_to_chat",
+                    mode = self.currentMode,
+                    invoked = true,
+                })
             elseif selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_BANK_WITHDRAW")) or
                 selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_BANK_DEPOSIT")) then
                 local selectedData = self.list and self.list:GetSelectedData()
@@ -417,21 +559,66 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                     local stackCount = selectedData.stackCount or 1
                     local guildBank = BETTERUI.Banking.GuildBank
                     local isGuildBankMode = guildBank and guildBank.IsGuildBankMode() or false
+                    local branch = selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_BANK_WITHDRAW")) and "withdraw" or "deposit"
+                    TraceBankingActionDialog("bank.action_dialog.confirm_branch", "before", {
+                        branch = branch,
+                        mode = self.currentMode,
+                        stackCount = stackCount,
+                        guild = isGuildBankMode,
+                        target = DescribeBankTarget(selectedData),
+                    })
                     if stackCount > 1 and not isGuildBankMode then
                         local isDeposit = (selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_BANK_DEPOSIT")))
                         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                         self:SaveListPosition()
                         self:ShowQuantityDialog(isDeposit)
+                        TraceBankingActionDialog("bank.action_dialog.confirm_branch", "after", {
+                            branch = branch,
+                            mode = self.currentMode,
+                            stackCount = stackCount,
+                            guild = isGuildBankMode,
+                            releaseRequested = true,
+                            quantityDialog = true,
+                            savedListPosition = true,
+                            target = DescribeBankTarget(selectedData),
+                        })
                     else
                         -- Guild bank transfer APIs always move the whole stack,
                         -- so the quantity dialog is skipped in guild-bank mode.
-                        ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                         self:SaveListPosition()
                         self:MoveItem(self.list, stackCount)
+                        ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                        TraceBankingActionDialog("bank.action_dialog.confirm_branch", "after", {
+                            branch = branch,
+                            mode = self.currentMode,
+                            stackCount = stackCount,
+                            guild = isGuildBankMode,
+                            releaseRequested = true,
+                            moveRequested = true,
+                            savedListPosition = true,
+                            target = DescribeBankTarget(selectedData),
+                        })
                     end
+                else
+                    TraceBankingActionDialog("bank.action_dialog.confirm_branch", "blocked", {
+                        branch = selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_BANK_WITHDRAW")) and "withdraw" or "deposit",
+                        mode = self.currentMode,
+                        reason = "missingSelectedData",
+                    })
                 end
             else
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "before", {
+                    branch = "native_slot_action",
+                    mode = self.currentMode,
+                    action = selectedName,
+                })
                 self.itemActions:DoSelectedAction()
+                TraceBankingActionDialog("bank.action_dialog.confirm_branch", "after", {
+                    branch = "native_slot_action",
+                    mode = self.currentMode,
+                    action = selectedName,
+                    invoked = true,
+                })
             end
         end
     end

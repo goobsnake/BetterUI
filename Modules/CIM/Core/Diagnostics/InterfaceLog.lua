@@ -169,6 +169,20 @@ local function budgetAllows()
     return true
 end
 
+local function IsPriorityLine(line)
+    if type(line) ~= "string" then return false end
+    -- Verbose presets may rate-limit TRACE/DEBUG chatter, but warning/error
+    -- breadcrumbs plus replay-critical UI transitions must survive.
+    return line:find(" WARN ", 1, true) ~= nil
+        or line:find(" ERROR ", 1, true) ~= nil
+        or line:find(" STATE |", 1, true) ~= nil
+        or line:find(" SCENE |", 1, true) ~= nil
+        or line:find(" LIFECYCLE |", 1, true) ~= nil
+        or line:find(" ACTION |", 1, true) ~= nil
+        or line:find(" DIALOG |", 1, true) ~= nil
+        or line:find(" KEYBIND |", 1, true) ~= nil
+end
+
 -- Raise one of OUR throwaway breadcrumb errors. CRITICALLY, re-assert popup
 -- suppression FIRST: the engine writes every uncaught error to Interface.log (what we
 -- want) but ALSO shows the UI error viewer unless ZO_ERROR_FRAME.suppressErrorDialog
@@ -221,16 +235,17 @@ end
 -- Schedule a deferred, throwaway, popup-suppressed error carrying exactly `line`.
 -- Raised uncaught from a throwaway callback so the engine logs it to Interface.log
 -- without aborting caller code; level 0 keeps the engine from prefixing file:line noise.
-local function RawEmit(line)
+local function RawEmit(line, priority)
     local deferer = G("zo_callLater")
     if type(deferer) ~= "function" then return false end
-    if budget.maxPending > 0 and pendingCount >= budget.maxPending then
+    priority = priority == true
+    if not priority and budget.maxPending > 0 and pendingCount >= budget.maxPending then
         stats.dropped = stats.dropped + 1
         pendingDrops = pendingDrops + 1
         ScheduleDropSummary(deferer)
         return false
     end
-    if not budgetAllows() then
+    if not priority and not budgetAllows() then
         stats.dropped = stats.dropped + 1
         pendingDrops = pendingDrops + 1
         ScheduleDropSummary(deferer)
@@ -249,7 +264,8 @@ end
 
 function InterfaceLog.Write(message)
     if not enabled then return false end
-    return RawEmit(FormatLine(message))
+    local line = FormatLine(message)
+    return RawEmit(line, IsPriorityLine(line))
 end
 
 --- Writes a pre-formatted line verbatim to Interface.log. Used by BETTERUI.Log, which
@@ -260,7 +276,8 @@ function InterfaceLog.WriteRaw(line)
     if not enabled then return false end
     -- Defensive: callers (Log.sinkFile) already flatten, but never let a stray newline
     -- split one record across lines for a tailer.
-    return RawEmit(Flatten(line, false))
+    line = Flatten(line, false)
+    return RawEmit(line, IsPriorityLine(line))
 end
 
 --- Sets the file-sink rate-limit budget. Pass any subset of:

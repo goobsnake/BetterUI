@@ -92,6 +92,10 @@ end
 
 local function EnsureCombatIconControl(rootFrame, frontBarContainer)
     if not rootFrame then
+        TraceCombatIndicators("resource_orbs.combat_icon", "skipped", {
+            fn = "CombatIndicators.EnsureCombatIconControl",
+            reason = "missingRoot",
+        })
         return nil
     end
 
@@ -99,20 +103,33 @@ local function EnsureCombatIconControl(rootFrame, frontBarContainer)
         local rootName = rootFrame.GetName and rootFrame:GetName() or nil
         local frontBarName = frontBarContainer and frontBarContainer.GetName and frontBarContainer:GetName() or nil
 
+        local source = nil
         m_combatIconControl = (frontBarContainer and GetNamedChildDirect(frontBarContainer, "CombatIcon"))
             or GetNamedChildDirect(rootFrame, "CombatIcon")
             or (type(frontBarName) == "string" and frontBarName ~= "" and _G[frontBarName .. "CombatIcon"] or nil)
             or (type(rootName) == "string" and rootName ~= "" and (_G[rootName .. "FrontBarContainerCombatIcon"]
                 or _G[rootName .. "BgMiddleFrontBarContainerCombatIcon"]) or nil)
 
+        if m_combatIconControl then
+            source = "existing"
+        end
         if not m_combatIconControl then
             m_combatIconControl = WINDOW_MANAGER:CreateControl("BetterUI_ResourceOrbFrames_CombatIcon", rootFrame, CT_TEXTURE)
             m_combatIconControl:SetHidden(true)
+            source = "created"
         end
+        TraceCombatIndicators("resource_orbs.combat_icon", "resolved", {
+            fn = "CombatIndicators.EnsureCombatIconControl",
+            source = source,
+            hasFrontBar = frontBarContainer ~= nil,
+        })
     end
 
     if m_combatIconControl.GetParent and m_combatIconControl:GetParent() ~= rootFrame then
         m_combatIconControl:SetParent(rootFrame)
+        TraceCombatIndicators("resource_orbs.combat_icon", "reparented", {
+            fn = "CombatIndicators.EnsureCombatIconControl",
+        })
     end
 
     return m_combatIconControl
@@ -173,6 +190,10 @@ end
 
 local function ResolveQuickslotAnchorFallback(rootFrame)
     if not rootFrame or not BETTERUI_ORB_FRAMES or not BETTERUI_ORB_FRAMES.bars then
+        TraceCombatIndicators("resource_orbs.combat_icon_anchor", "fallback_skipped", {
+            fn = "CombatIndicators.ResolveQuickslotAnchorFallback",
+            reason = not rootFrame and "missingRoot" or "missingConfig",
+        })
         return nil
     end
 
@@ -181,11 +202,19 @@ local function ResolveQuickslotAnchorFallback(rootFrame)
     local frontBarCfg = barsCfg.customFrontBar
     local slotCfg = frontBarCfg and frontBarCfg.quickslotButton
     if not quickslotCfg or not slotCfg then
+        TraceCombatIndicators("resource_orbs.combat_icon_anchor", "fallback_skipped", {
+            fn = "CombatIndicators.ResolveQuickslotAnchorFallback",
+            reason = not quickslotCfg and "missingQuickslotConfig" or "missingSlotConfig",
+        })
         return nil
     end
 
     local bgMiddle = FindControl(rootFrame, "BgMiddle")
     if not bgMiddle then
+        TraceCombatIndicators("resource_orbs.combat_icon_anchor", "fallback_skipped", {
+            fn = "CombatIndicators.ResolveQuickslotAnchorFallback",
+            reason = "missingBgMiddle",
+        })
         return nil
     end
 
@@ -197,6 +226,13 @@ local function ResolveQuickslotAnchorFallback(rootFrame)
 
     local quickslotX = (quickslotCfg.x or 0) + (slotCfg.offsetX or 0)
     local quickslotY = (quickslotCfg.y or 0) + (slotCfg.offsetY or 0)
+    TraceCombatIndicators("resource_orbs.combat_icon_anchor", "fallback_resolved", {
+        fn = "CombatIndicators.ResolveQuickslotAnchorFallback",
+        mode = isGamepad and "gamepad" or "keyboard",
+        quickslotX = quickslotX,
+        quickslotY = quickslotY,
+        buttonSize = buttonSize,
+    })
     return bgMiddle, quickslotX, quickslotY, buttonSize
 end
 
@@ -270,6 +306,10 @@ end
 
 local function AnchorCombatIcon(rootFrame, iconControl)
     if not rootFrame or not iconControl then
+        TraceCombatIndicators("resource_orbs.combat_icon_anchor", "skipped", {
+            fn = "CombatIndicators.AnchorCombatIcon",
+            reason = not rootFrame and "missingRoot" or "missingIcon",
+        })
         return
     end
 
@@ -285,19 +325,24 @@ local function AnchorCombatIcon(rootFrame, iconControl)
 
     iconControl:SetDimensions(iconSize, iconSize)
     iconControl:ClearAnchors()
+    local anchorSource
     if quickslotButton then
         -- Default placement: above quickslot for high visibility.
         iconControl:SetAnchor(BOTTOM, quickslotButton, TOP, offsetX, offsetY)
+        anchorSource = "quickslotButton"
     else
         local bgMiddle, quickslotX, quickslotY, quickslotButtonSize = ResolveQuickslotAnchorFallback(rootFrame)
         if bgMiddle then
             local quickslotTopY = quickslotY - (quickslotButtonSize * 0.5)
             iconControl:SetAnchor(BOTTOM, bgMiddle, BOTTOM, quickslotX + offsetX, quickslotTopY + offsetY)
+            anchorSource = "configFallback"
         elseif frontBarContainer then
             -- Fallback when quickslot controls are unavailable: top-left front bar anchor model.
             iconControl:SetAnchor(BOTTOMLEFT, frontBarContainer, TOPLEFT, offsetX, offsetY)
+            anchorSource = "frontBarFallback"
         else
             iconControl:SetAnchor(CENTER, rootFrame, CENTER, offsetX, offsetY)
+            anchorSource = "rootFallback"
         end
     end
 
@@ -308,6 +353,14 @@ local function AnchorCombatIcon(rootFrame, iconControl)
     iconControl:SetDrawTier(DT_HIGH)
     iconControl:SetDrawLevel(200)
     iconControl:SetDesaturation(0)
+    TraceCombatIndicators("resource_orbs.combat_icon_anchor", "anchored", {
+        fn = "CombatIndicators.AnchorCombatIcon",
+        source = anchorSource,
+        iconSize = iconSize,
+        offsetX = offsetX,
+        offsetY = offsetY,
+        texture = iconTexture,
+    })
 end
 
 local function GetGlowTargets(rootFrame)

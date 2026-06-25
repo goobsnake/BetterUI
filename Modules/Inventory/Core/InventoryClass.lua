@@ -77,12 +77,27 @@ end
 local function LogInventoryDialogRestore(message, data, warn)
     local L = BETTERUI.Log
     if not L then return end
+    if L.TraceEvent then
+        local phase = "state"
+        if message and message:find("complete", 1, true) then
+            phase = "complete"
+        elseif message and message:find("waiting", 1, true) then
+            phase = "waiting"
+        elseif message and message:find("skipped", 1, true) then
+            phase = "skipped"
+        elseif message and message:find("abandoned", 1, true) then
+            phase = "abandoned"
+        end
+        L.TraceEvent(L.CATEGORY.STATE, "inventory.action_dialog.restore", phase, data, warn and L.LEVEL.WARN or L.LEVEL.INFO)
+    end
     if warn and L.Warn then
         L.Warn(L.CATEGORY.STATE, message, data)
     elseif L.Debug then
         L.Debug(L.CATEGORY.STATE, message, data)
     end
 end
+
+local inventoryDialogRestoreSequence = 0
 
 
 -- CACHING & DATA MANAGEMENT
@@ -500,12 +515,28 @@ param: taskName (string|nil) - Optional task identifier prefix for retries.
 ]]
 function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
     local retriesRemaining = 120
+    inventoryDialogRestoreSequence = inventoryDialogRestoreSequence + 1
     local retryTaskName = (taskName or "inventoryDialogRestore")
         .. "_"
         .. tostring((GetGameTimeMilliseconds and GetGameTimeMilliseconds()) or 0)
+        .. "_"
+        .. tostring(inventoryDialogRestoreSequence)
+    local waitLogged = false
 
     local function TryRestore()
         if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
+            if not waitLogged then
+                waitLogged = true
+                LogInventoryDialogRestore("inventory dialog restore waiting", {
+                    task = taskName or "inventoryDialogRestore",
+                    reason = "dialogShowing",
+                    dialogsShowing = true,
+                    retryTaskName = retryTaskName,
+                    retriesRemaining = retriesRemaining,
+                    pendingHeaderSort = self._pendingHeaderSortFromDialog == true,
+                    actionMode = self.actionMode,
+                })
+            end
             return false
         end
 
@@ -517,6 +548,7 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
             LogInventoryDialogRestore("inventory dialog restore skipped", {
                 task = taskName or "inventoryDialogRestore",
                 reason = "sceneHidden",
+                retryTaskName = retryTaskName,
             })
             return true
         end
@@ -603,6 +635,7 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
             headerSort = self.isInHeaderSortMode == true,
             main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
             active = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or nil,
+            retryTaskName = retryTaskName,
         })
         return true
     end
@@ -622,6 +655,7 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
                 task = taskName or "inventoryDialogRestore",
                 actionMode = self.actionMode,
                 reason = "retry_exhausted",
+                retryTaskName = retryTaskName,
             }, true)
             return
         end

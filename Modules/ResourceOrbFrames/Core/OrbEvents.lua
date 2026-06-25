@@ -164,7 +164,12 @@ local m_hideCallLaterId = nil
 local function DeferredEnforceHide(delayMs)
     if m_hideCallLaterId then
         zo_removeCallLater(m_hideCallLaterId)
+        TraceOrbEvents("resource_orbs.native_bars", "hide_enforce_rescheduled", {
+            previousTaskCanceled = true,
+            delayMs = delayMs or 50,
+        })
     end
+    TraceOrbEvents("resource_orbs.native_bars", "hide_enforce_scheduled", { delayMs = delayMs or 50 })
     m_hideCallLaterId = zo_callLater(function()
         m_hideCallLaterId = nil
         TraceOrbEvents("resource_orbs.native_bars", "hide_enforce_task", { delayMs = delayMs or 50 })

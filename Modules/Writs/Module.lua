@@ -3,6 +3,7 @@ BETTERUI.Writs = BETTERUI.Writs or {}
 local Writs = BETTERUI.Writs
 local ARCHETYPES = BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES or {}
 local THIN_ENTRYPOINT = ARCHETYPES.THIN_ENTRYPOINT or "thin-entrypoint"
+local currentCraftingType = nil
 
 ---@type BetterUIModuleArchetypeThinEntrypoint
 Writs.ARCHETYPE = THIN_ENTRYPOINT
@@ -71,12 +72,47 @@ local function OnCraftStation(_, craftId)
         return
     end
 
-    SafeExecuteWrits("Writs:OnCraftStation", BETTERUI.Writs.ShowForCraftType, id)
+    currentCraftingType = id
+    SafeExecuteWrits("Writs:OnCraftStation", BETTERUI.Writs.ShowForCraftType, id, {
+        source = "station_opened",
+        craftId = craftId,
+        event = "EVENT_CRAFTING_STATION_INTERACT",
+    })
 end
 
 local function OnCloseCraftStation(_)
     TraceWritEvent("writ.station", "closed")
+    currentCraftingType = nil
     SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.HidePanel)
+end
+
+local function ScheduleCraftCompletionRefresh(id, craftId)
+    local later = rawget(_G, "zo_callLater")
+    if type(later) ~= "function" then
+        TraceWritEvent("writ.craft", "deferred_skipped", {
+            craftId = craftId,
+            reason = "missingTimer",
+        })
+        return
+    end
+    TraceWritEvent("writ.craft", "deferred_scheduled", {
+        craftId = craftId,
+        delayMs = 150,
+    })
+    later(function()
+        if not IsWritsModuleEnabled() then
+            TraceWritEvent("writ.craft", "deferred_skipped", {
+                craftId = craftId,
+                reason = "moduleDisabled",
+            })
+            return
+        end
+        SafeExecuteWrits("Writs:OnCraftItemDeferred", BETTERUI.Writs.ShowForCraftType, id, {
+            source = "craft_completed_deferred",
+            craftId = craftId,
+            event = "EVENT_CRAFT_COMPLETED",
+        })
+    end, 150)
 end
 
 local function OnCraftItem(_, craftId)
@@ -92,7 +128,33 @@ local function OnCraftItem(_, craftId)
         return
     end
 
-    SafeExecuteWrits("Writs:OnCraftItem", BETTERUI.Writs.ShowForCraftType, id)
+    SafeExecuteWrits("Writs:OnCraftItem", BETTERUI.Writs.ShowForCraftType, id, {
+        source = "craft_completed_immediate",
+        craftId = craftId,
+        event = "EVENT_CRAFT_COMPLETED",
+    })
+    ScheduleCraftCompletionRefresh(id, craftId)
+end
+
+local function OnQuestJournalChanged(eventCode, questIndex)
+    local cachedWritsBefore = 0
+    for _ in pairs(Writs.List or {}) do
+        cachedWritsBefore = cachedWritsBefore + 1
+    end
+    TraceWritEvent("writ.quest", "invalidated", {
+        eventCode = eventCode,
+        questIndex = questIndex,
+        activeCraftingType = currentCraftingType,
+        cachedWritsBefore = cachedWritsBefore,
+    })
+    Writs.List = {}
+    if currentCraftingType and IsWritsModuleEnabled() then
+        SafeExecuteWrits("Writs:OnQuestJournalChanged", BETTERUI.Writs.ShowForCraftType, currentCraftingType, {
+            source = "quest_journal_event",
+            event = eventCode,
+            questIndex = questIndex,
+        })
+    end
 end
 
 ---@param m_options BetterUIModuleOptions|nil Module options table
@@ -114,6 +176,15 @@ function Writs.Setup()
     BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_CRAFTING_STATION_INTERACT, OnCraftStation)
     BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_END_CRAFTING_STATION_INTERACT, OnCloseCraftStation)
     BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_CRAFT_COMPLETED, OnCraftItem)
+    if EVENT_QUEST_ADDED then
+        BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_QUEST_ADDED, OnQuestJournalChanged)
+    end
+    if EVENT_QUEST_REMOVED then
+        BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_QUEST_REMOVED, OnQuestJournalChanged)
+    end
+    if EVENT_QUEST_CONDITION_COUNTER_CHANGED then
+        BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_QUEST_CONDITION_COUNTER_CHANGED, OnQuestJournalChanged)
+    end
 
     Writs.CacheControls()
 

@@ -519,9 +519,19 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
     -- fallback so a missed event can never stall the batch.
     function runner:RegisterInventoryAckCallbacks()
         if not self.delayPolicy.awaitInventoryAck or self.ackCallbacksRegistered then
+            TraceVendorBatch("vendor.batch_ack", "register_skipped", {
+                fn = "Vendor.BatchRunner.RegisterInventoryAckCallbacks",
+                reason = not self.delayPolicy.awaitInventoryAck and "ackDisabled" or "alreadyRegistered",
+                mode = self.mode,
+            })
             return
         end
         if not SHARED_INVENTORY or not SHARED_INVENTORY.RegisterCallback then
+            TraceVendorBatch("vendor.batch_ack", "register_skipped", {
+                fn = "Vendor.BatchRunner.RegisterInventoryAckCallbacks",
+                reason = "missingSharedInventory",
+                mode = self.mode,
+            })
             return
         end
         self.singleSlotAckCallback = function(bagId, slotIndex)
@@ -534,10 +544,20 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self.singleSlotAckCallback)
         SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self.fullInventoryAckCallback)
         self.ackCallbacksRegistered = true
+        TraceVendorBatch("vendor.batch_ack", "registered", {
+            fn = "Vendor.BatchRunner.RegisterInventoryAckCallbacks",
+            mode = self.mode,
+            total = self.totalItems,
+        })
     end
 
     function runner:UnregisterInventoryAckCallbacks()
         if not self.ackCallbacksRegistered then
+            TraceVendorBatch("vendor.batch_ack", "unregister_skipped", {
+                fn = "Vendor.BatchRunner.UnregisterInventoryAckCallbacks",
+                reason = "notRegistered",
+                mode = self.mode,
+            })
             return
         end
         if SHARED_INVENTORY and SHARED_INVENTORY.UnregisterCallback then
@@ -551,6 +571,10 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         self.singleSlotAckCallback = nil
         self.fullInventoryAckCallback = nil
         self.ackCallbacksRegistered = false
+        TraceVendorBatch("vendor.batch_ack", "unregistered", {
+            fn = "Vendor.BatchRunner.UnregisterInventoryAckCallbacks",
+            mode = self.mode,
+        })
     end
 
     -- A SingleSlot ack only releases the wait when it matches the slot the
@@ -569,9 +593,24 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
 
     function runner:OnInventoryAck(bagId, slotIndex)
         if not self:AckMatchesCurrentStep(bagId, slotIndex) then
+            TraceVendorBatch("vendor.batch_ack", "ignored", {
+                fn = "Vendor.BatchRunner.OnInventoryAck",
+                mode = self.mode,
+                bagId = bagId,
+                slotIndex = slotIndex,
+                expectedBagId = self.expectedAckBagId,
+                expectedSlotIndex = self.expectedAckSlotIndex,
+            })
             return
         end
         self.ackReceived = true
+        TraceVendorBatch("vendor.batch_ack", "received", {
+            fn = "Vendor.BatchRunner.OnInventoryAck",
+            mode = self.mode,
+            bagId = bagId,
+            slotIndex = slotIndex,
+            awaitingAck = self.awaitingAck == true,
+        })
         if self.awaitingAck then
             self.awaitingAck = false
             -- Invalidate the pending ack-timeout fallback before stepping.
@@ -582,6 +621,12 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
 
     function runner:ContinueAfterDelay(shouldAwaitAck)
         if not shouldAwaitAck or self.ackReceived then
+            TraceVendorBatch("vendor.batch_ack", "continue", {
+                fn = "Vendor.BatchRunner.ContinueAfterDelay",
+                mode = self.mode,
+                shouldAwaitAck = shouldAwaitAck == true,
+                ackReceived = self.ackReceived == true,
+            })
             self:Step()
             return
         end
@@ -594,9 +639,24 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         if not timeoutMs or timeoutMs <= 0 then
             timeoutMs = self.delayPolicy.baseDelayMs or 145
         end
+        TraceVendorBatch("vendor.batch_ack", "waiting", {
+            fn = "Vendor.BatchRunner.ContinueAfterDelay",
+            mode = self.mode,
+            token = token,
+            timeoutMs = timeoutMs,
+            expectedBagId = self.expectedAckBagId,
+            expectedSlotIndex = self.expectedAckSlotIndex,
+        })
         zo_callLater(function()
             if self.awaitingAck and token == self.ackWaitToken then
                 self.awaitingAck = false
+                TraceVendorBatch("vendor.batch_ack", "timeout", {
+                    fn = "Vendor.BatchRunner.ContinueAfterDelay.timeout",
+                    mode = self.mode,
+                    token = token,
+                    expectedBagId = self.expectedAckBagId,
+                    expectedSlotIndex = self.expectedAckSlotIndex,
+                })
                 self:Step()
             end
         end, timeoutMs)
@@ -711,12 +771,26 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
     function runner:Step()
         if not self:IsSceneActive() then
             self.stopReason = "sceneExit"
+            TraceVendorBatch("vendor.batch", "stopping", {
+                fn = "Vendor.BatchRunner.Step",
+                reason = "sceneExit",
+                processed = self.processedCount,
+                total = self.totalItems,
+                index = self.index,
+            })
             self:Finish()
             return
         end
 
         if Vendor._batchAbortRequested then
             self.stopReason = "aborted"
+            TraceVendorBatch("vendor.batch", "stopping", {
+                fn = "Vendor.BatchRunner.Step",
+                reason = "aborted",
+                processed = self.processedCount,
+                total = self.totalItems,
+                index = self.index,
+            })
             self:Finish()
             return
         end
@@ -731,16 +805,36 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
 
         self.index = self.index + 1
         if self.index > self.totalItems then
+            TraceVendorBatch("vendor.batch", "complete_reached", {
+                fn = "Vendor.BatchRunner.Step",
+                processed = self.processedCount,
+                skipped = self.skippedCount or 0,
+                total = self.totalItems,
+            })
             self:Finish()
             return
         end
 
         local stepResult = self.BatchConfig.NormalizeBatchStepResult(BatchRuntime.ExecuteBatchAction(self.mode, self.items[self.index]))
+        TraceVendorBatch("vendor.batch_step", "result", {
+            fn = "Vendor.BatchRunner.Step",
+            mode = self.mode,
+            index = self.index,
+            status = stepResult.status,
+            reason = stepResult.reason,
+        })
 
         if stepResult.status == self.BatchConfig.BATCH_STEP_STATUS.STOPPED then
             -- A STOPPED step performed no mutation (e.g. fence limit hit before
             -- the action); do not count it as processed.
             self.stopReason = stepResult.reason or "stopped"
+            TraceVendorBatch("vendor.batch", "stopping", {
+                fn = "Vendor.BatchRunner.Step",
+                reason = self.stopReason,
+                index = self.index,
+                processed = self.processedCount,
+                total = self.totalItems,
+            })
             self:Finish()
             return
         end
@@ -773,6 +867,14 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
                 end
                 if bagFull then
                     self.stopReason = "bagFull"
+                    TraceVendorBatch("vendor.batch", "stopping", {
+                        fn = "Vendor.BatchRunner.Step",
+                        reason = "bagFull",
+                        index = self.index,
+                        nextItem = DescribeBatchItem(nextDs),
+                        processed = self.processedCount,
+                        total = self.totalItems,
+                    })
                     self:Finish()
                     return
                 end
@@ -805,27 +907,58 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         end
         self.ackReceived = false
         self.awaitingAck = false
+        local nextDelayMs = self:ResolveDelayMs()
+        TraceVendorBatch("vendor.batch_step", "scheduled_next", {
+            fn = "Vendor.BatchRunner.Step",
+            mode = self.mode,
+            index = self.index,
+            delayMs = nextDelayMs,
+            shouldAwaitAck = shouldAwaitAck == true,
+            expectedBagId = self.expectedAckBagId,
+            expectedSlotIndex = self.expectedAckSlotIndex,
+        })
         zo_callLater(function()
             self:ContinueAfterDelay(shouldAwaitAck)
-        end, self:ResolveDelayMs())
+        end, nextDelayMs)
     end
 
     function runner:StartAfterDialogDismiss(remainingMs)
         if not Vendor._batchProcessing then
+            TraceVendorBatch("vendor.batch_start", "skipped", {
+                fn = "Vendor.BatchRunner.StartAfterDialogDismiss",
+                reason = "notProcessing",
+                mode = self.mode,
+            })
             return
         end
         if Vendor._batchAbortRequested then
             self.stopReason = "aborted"
+            TraceVendorBatch("vendor.batch_start", "aborted", {
+                fn = "Vendor.BatchRunner.StartAfterDialogDismiss",
+                mode = self.mode,
+                remainingMs = remainingMs,
+            })
             self:Finish()
             return
         end
         if not self:IsSceneActive() then
             self.stopReason = "sceneExit"
+            TraceVendorBatch("vendor.batch_start", "aborted", {
+                fn = "Vendor.BatchRunner.StartAfterDialogDismiss",
+                mode = self.mode,
+                reason = "sceneExit",
+                remainingMs = remainingMs,
+            })
             self:Finish()
             return
         end
 
         if self.BatchOverlay.IsAnyBatchActionDialogShowing and self.BatchOverlay.IsAnyBatchActionDialogShowing() and remainingMs > 0 then
+            TraceVendorBatch("vendor.batch_start", "waiting_dialog", {
+                fn = "Vendor.BatchRunner.StartAfterDialogDismiss",
+                mode = self.mode,
+                remainingMs = remainingMs,
+            })
             zo_callLater(function()
                 self:StartAfterDialogDismiss(remainingMs - 25)
             end, 25)
@@ -834,14 +967,31 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
 
         zo_callLater(function()
             if not Vendor._batchProcessing then
+                TraceVendorBatch("vendor.batch_start", "skipped", {
+                    fn = "Vendor.BatchRunner.StartAfterDialogDismiss.startTask",
+                    reason = "notProcessing",
+                    mode = self.mode,
+                })
                 return
             end
             self:UpdateProgress()
+            TraceVendorBatch("vendor.batch_start", "started", {
+                fn = "Vendor.BatchRunner.StartAfterDialogDismiss.startTask",
+                mode = self.mode,
+                total = self.totalItems,
+            })
             self:Step()
         end, 160)
     end
 
     function runner:Start()
+        TraceVendorBatch("vendor.batch_start", "begin", {
+            fn = "Vendor.BatchRunner.Start",
+            mode = self.mode,
+            total = self.totalItems,
+            awaitInventoryAck = self.delayPolicy.awaitInventoryAck == true,
+            showProgress = self.showProgress == true,
+        })
         self:RegisterInventoryAckCallbacks()
         self:StartAfterDialogDismiss(1800)
     end
@@ -865,6 +1015,12 @@ function BatchRuntime.ExecuteBatchThrottled(request)
     end
 
     if totalItems == 0 then
+        TraceVendorBatch("vendor.batch", "start_skipped", {
+            fn = "Vendor.BatchRuntime.ExecuteBatchThrottled",
+            reason = "empty",
+            mode = mode,
+            actionName = request.actionName,
+        })
         if request.onComplete then
             request.onComplete()
         end
@@ -885,6 +1041,13 @@ function BatchRuntime.ExecuteBatchThrottled(request)
         -- dangling (matches the empty-list early return above, which also fires
         -- onComplete). Callers treat any reason like the stopReason arg they
         -- already accept from Finish().
+        TraceVendorBatch("vendor.batch", "start_skipped", {
+            fn = "Vendor.BatchRuntime.ExecuteBatchThrottled",
+            reason = "busy",
+            mode = mode,
+            total = totalItems,
+            actionName = request.actionName,
+        })
         if request.onComplete then
             request.onComplete("busy")
         end
@@ -895,6 +1058,14 @@ function BatchRuntime.ExecuteBatchThrottled(request)
 
     local resolvedOptions = Internal.ResolveBatchOptions(request.options)
     local runner = Internal.CreateBatchRunner(mode, batchItems, request.onComplete, resolvedOptions)
+    TraceVendorBatch("vendor.batch", "started", {
+        fn = "Vendor.BatchRuntime.ExecuteBatchThrottled",
+        mode = mode,
+        total = totalItems,
+        actionName = request.actionName,
+        awaitInventoryAck = runner.delayPolicy and runner.delayPolicy.awaitInventoryAck == true or false,
+        showProgress = runner.showProgress == true,
+    })
     runner:Start()
 end
 
@@ -906,5 +1077,10 @@ function BatchRuntime.RequestBatchAbort()
             processed = Vendor.instance and Vendor.instance.processedCount or 0,
         })
         Vendor._batchAbortRequested = true
+    else
+        TraceVendorBatch("vendor.batch", "abort_skipped", {
+            fn = "Vendor.BatchRuntime.RequestBatchAbort",
+            reason = "notProcessing",
+        })
     end
 end

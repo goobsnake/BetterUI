@@ -33,7 +33,7 @@ local function TraceCraftingPriceTooltip(event, phase, data)
     payload.scene = GetCurrentSceneName()
     payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
     if type(L.SetLastAction) == "function" then
-        L.SetLastAction(event)
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
     end
     local categories = L.CATEGORY or {}
     L.TraceEvent(categories.GENERAL, event, phase, payload)

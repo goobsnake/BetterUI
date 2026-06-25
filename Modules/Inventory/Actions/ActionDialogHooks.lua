@@ -62,6 +62,27 @@ function BETTERUI.Inventory.HookActionDialog()
         L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
     end
 
+    local function TraceInventoryDestroyAction(phase, targetData, data)
+        local L = BETTERUI.Log
+        if not (L and L.TraceEvent) then return end
+        data = data or {}
+        if targetData and type(ZO_Inventory_GetBagAndIndex) == "function" then
+            local ok, bag, slot = pcall(ZO_Inventory_GetBagAndIndex, targetData)
+            if ok then
+                data.bagId = data.bagId or bag
+                data.slotIndex = data.slotIndex or slot
+            end
+        end
+        local ds = targetData and (targetData.dataSource or targetData) or nil
+        data.slotType = data.slotType or (ds and ds.slotType) or (targetData and targetData.slotType)
+        data.dialogName = data.dialogName or ZO_GAMEPAD_INVENTORY_ACTION_DIALOG
+        data.feature = data.feature or "destroy"
+        if L.DescribeItem and targetData and not data.target then
+            data.target = L.DescribeItem(targetData, "target")
+        end
+        L.TraceEvent(L.CATEGORY.ACTION, "inventory.destroy", phase, data, L.LEVEL.INFO)
+    end
+
     local function ActionsDialogSetup(dialog, data)
         local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
             SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
@@ -249,23 +270,63 @@ function BETTERUI.Inventory.HookActionDialog()
                         BETTERUI.Utils.SafeGetTargetData(dialog.entryList)
                     if selectedRow and selectedRow.isBetterUIDestroy then
                         local targetData = ResolveTargetDataFromDialog()
-                        if targetData then
-                            local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+                        if not targetData then
+                            TraceInventoryDestroyAction("blocked", nil, {
+                                source = "fallback",
+                                reason = "missingTarget",
+                                dialogName = ZO_GAMEPAD_INVENTORY_ACTION_DIALOG,
+                            })
+                        else
+                            local okSlot, bag, slot = pcall(ZO_Inventory_GetBagAndIndex, targetData)
+                            if not okSlot or not bag or not slot then
+                                TraceInventoryDestroyAction("blocked", targetData, {
+                                    source = "fallback",
+                                    reason = "invalidSlot",
+                                    dialogName = ZO_GAMEPAD_INVENTORY_ACTION_DIALOG,
+                                    error = okSlot and nil or tostring(bag),
+                                })
+                                return
+                            end
                             if bag and slot then
+                                local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
+                                TraceInventoryDestroyAction("action_dialog_selected", targetData, {
+                                    source = "fallback",
+                                    quickDestroy = quick,
+                                })
                                 if not CanDestroyTargetWithPolicy(targetData) then
+                                    TraceInventoryDestroyAction("blocked", targetData, {
+                                        source = "fallback",
+                                        reason = "protectionPolicy",
+                                        quickDestroy = quick,
+                                    })
                                     return
                                 end
-                                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                                local released = ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                                 local ds = targetData.dataSource or targetData
                                 local slotType = ds and ds.slotType or targetData.slotType
                                 local itemLink = GetItemLink(bag, slot)
-                                local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
+                                TraceInventoryDestroyAction("action_dialog_released", targetData, {
+                                    source = "fallback",
+                                    quickDestroy = quick,
+                                    releaseReturned = released ~= nil,
+                                })
                                 if quick then
+                                    TraceInventoryDestroyAction("quick_requested", targetData, {
+                                        source = "fallback",
+                                        slotType = slotType,
+                                    })
                                     BETTERUI.Inventory.TryDestroyItem(bag, slot, true, false, slotType)
                                 else
                                     local expectedSlotIdentity =
                                         BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, slot, targetData)
-                                    ZO_Dialogs_ShowDialog(
+                                    TraceInventoryDestroyAction("confirm_dialog_request", targetData, {
+                                        source = "fallback",
+                                        slotType = slotType,
+                                        itemLink = itemLink,
+                                        expectedSlotIdentity = expectedSlotIdentity,
+                                        dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
+                                    })
+                                    local shownDialog = ZO_Dialogs_ShowDialog(
                                         "BETTERUI_CONFIRM_DESTROY_DIALOG",
                                         {
                                             bagId = bag,
@@ -278,6 +339,15 @@ function BETTERUI.Inventory.HookActionDialog()
                                         true,
                                         true
                                     )
+                                    TraceInventoryDestroyAction("confirm_dialog_show", targetData, {
+                                        source = "fallback",
+                                        slotType = slotType,
+                                        itemLink = itemLink,
+                                        expectedSlotIdentity = expectedSlotIdentity,
+                                        dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
+                                        showReturnedDialog = shownDialog ~= nil,
+                                        showingAfter = ZO_Dialogs_IsShowing and ZO_Dialogs_IsShowing("BETTERUI_CONFIRM_DESTROY_DIALOG") == true or nil,
+                                    })
                                 end
                             end
                         end

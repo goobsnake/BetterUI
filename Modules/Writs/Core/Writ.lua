@@ -74,17 +74,78 @@ end
 function Writs.GetFormattedObjectives(questId)
 	local writLines = {}
 	local writConcate = ''
-	for lineId = 1, GetJournalQuestNumConditions(questId, 1) do
-		local writLine, current, maximum, isFailCondition, complete, _, isVisible = GetJournalQuestConditionInfo(questId, 1, lineId)
-		-- Skip empty, invisible, or fail conditions
-		if writLine ~= '' and isVisible ~= false and not isFailCondition then
-			local colour
-			if complete then
-				colour = Writs.CONST.COLORS.COMPLETE
-			else
-				colour = Writs.CONST.COLORS.INCOMPLETE
+	local summary = {
+		questId = questId,
+		stepCount = 1,
+		visibleCount = 0,
+		completeCount = 0,
+		incompleteCount = 0,
+		hiddenCount = 0,
+		failCount = 0,
+		readErrorCount = 0,
+		objectives = {},
+	}
+	if type(GetJournalQuestNumSteps) == "function" then
+		local okSteps, numSteps = pcall(GetJournalQuestNumSteps, questId)
+		if okSteps and type(numSteps) == "number" and numSteps > 0 then
+			summary.stepCount = numSteps
+		end
+	end
+	for stepIndex = 1, summary.stepCount do
+		local okConditionCount, conditionCount = pcall(GetJournalQuestNumConditions, questId, stepIndex)
+		if not okConditionCount then
+			summary.readErrorCount = summary.readErrorCount + 1
+			summary.objectives[#summary.objectives + 1] = {
+				stepIndex = stepIndex,
+				error = "GetJournalQuestNumConditionsFailed",
+			}
+			conditionCount = 0
+		end
+		conditionCount = conditionCount or 0
+		for lineId = 1, conditionCount do
+			local okConditionInfo, writLine, current, maximum, isFailCondition, complete, _, isVisible =
+				pcall(GetJournalQuestConditionInfo, questId, stepIndex, lineId)
+			if not okConditionInfo then
+				summary.readErrorCount = summary.readErrorCount + 1
+				summary.objectives[#summary.objectives + 1] = {
+					stepIndex = stepIndex,
+					lineId = lineId,
+					error = "GetJournalQuestConditionInfoFailed",
+				}
+				writLine = ''
 			end
-			writLines[#writLines + 1] = { line = zo_strformat("|c<<1>><<2>>|r", colour, writLine), cur = current, max = maximum }
+			if isFailCondition then
+				summary.failCount = summary.failCount + 1
+			elseif isVisible == false then
+				summary.hiddenCount = summary.hiddenCount + 1
+			end
+			-- Skip empty, invisible, or fail conditions
+			if writLine ~= '' and isVisible ~= false and not isFailCondition then
+				local colour
+				if complete then
+					colour = Writs.CONST.COLORS.COMPLETE
+					summary.completeCount = summary.completeCount + 1
+				else
+					colour = Writs.CONST.COLORS.INCOMPLETE
+					summary.incompleteCount = summary.incompleteCount + 1
+				end
+				summary.visibleCount = summary.visibleCount + 1
+				summary.objectives[#summary.objectives + 1] = {
+					text = writLine,
+					current = current,
+					maximum = maximum,
+					complete = complete == true,
+					stepIndex = stepIndex,
+					lineId = lineId,
+				}
+				writLines[#writLines + 1] = {
+					line = zo_strformat("|c<<1>><<2>>|r", colour, writLine),
+					cur = current,
+					max = maximum,
+					stepIndex = stepIndex,
+					lineId = lineId,
+				}
+			end
 		end
 	end
 	-- Sequential insertion ensures deterministic ordering via ipairs
@@ -92,7 +153,8 @@ function Writs.GetFormattedObjectives(questId)
 		writConcate = zo_strformat("<<1>><<2>>\n", writConcate, line.line)
 	end
 
-	return writConcate
+	TraceWrit("writ.objectives", "built", summary)
+	return writConcate, summary
 end
 
 local function BuildActiveWritLookup()
@@ -127,9 +189,11 @@ local function BuildActiveWritLookup()
 						nextQuestName = questName,
 					})
 				end
+				local writLines, objectiveSummary = Writs.GetFormattedObjectives(questId)
 				activeWrits[currentWrit] = {
 					id = questId,
-					writLines = Writs.GetFormattedObjectives(questId),
+					writLines = writLines,
+					objectiveSummary = objectiveSummary,
 				}
 			else
 				TraceWrit("writ.lookup", "unmatched_quest", {
@@ -147,9 +211,14 @@ end
 --- Rebuilds the active writ lookup from the quest journal.
 ---@return boolean ok
 ---@return string|nil err
-function Writs.RefreshActiveWrits()
+function Writs.RefreshActiveWrits(context)
 	local nextList = nil
-	TraceWrit("writ.refresh", "begin")
+	context = context or {}
+	TraceWrit("writ.refresh", "begin", {
+		source = context.source,
+		craftId = context.craftId,
+		event = context.event,
+	})
 	local ok, err = BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_REFRESH, function()
 		nextList = BuildActiveWritLookup()
 	end)
@@ -160,7 +229,12 @@ function Writs.RefreshActiveWrits()
 	Writs.List = nextList or {}
 	local count = 0
 	for _ in pairs(Writs.List) do count = count + 1 end
-	TraceWrit("writ.refresh", "end", { activeCount = count })
+	TraceWrit("writ.refresh", "end", {
+		activeCount = count,
+		source = context.source,
+		craftId = context.craftId,
+		event = context.event,
+	})
 	return true, nil
 end
 
@@ -168,9 +242,10 @@ end
 ---@param writType number CRAFTING_TYPE_* constant for the station
 ---@return boolean ok
 ---@return string|nil err
-function Writs.ShowForCraftType(writType)
-	TraceWrit("writ.panel", "show_begin", { writType = writType })
-	local refreshOk, refreshErr = Writs.RefreshActiveWrits()
+function Writs.ShowForCraftType(writType, context)
+	context = context or {}
+	TraceWrit("writ.panel", "show_begin", { writType = writType, source = context.source, event = context.event })
+	local refreshOk, refreshErr = Writs.RefreshActiveWrits(context)
 	if not refreshOk then
 		TraceWrit("writ.panel", "show_error", { writType = writType, error = refreshErr })
 		return false, refreshErr
@@ -184,7 +259,13 @@ function Writs.ShowForCraftType(writType)
 
 	local ok, err = BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_SHOW, function()
 		local questName = GetJournalQuestInfo(writEntry.id)
-		TraceWrit("writ.panel", "render", { writType = writType, questId = writEntry.id, questName = questName })
+		TraceWrit("writ.panel", "render", {
+			writType = writType,
+			questId = writEntry.id,
+			questName = questName,
+			source = context.source,
+			objectiveSummary = writEntry.objectiveSummary,
+		})
 		if m_writNameLabel then
 			m_writNameLabel:SetText(zo_strformat("|c0066ff[BETTERUI]|r <<1>>", questName))
 		end
@@ -199,7 +280,7 @@ function Writs.ShowForCraftType(writType)
 		TraceWrit("writ.panel", "show_error", { writType = writType, questId = writEntry.id, error = err })
 		return false, err
 	end
-	TraceWrit("writ.panel", "shown", { writType = writType, questId = writEntry.id })
+	TraceWrit("writ.panel", "shown", { writType = writType, questId = writEntry.id, source = context.source })
 	return true, nil
 end
 

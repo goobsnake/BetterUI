@@ -24,6 +24,58 @@ Browse.currentPage = 0
 Browse.hasMorePages = false
 Browse.searchPending = false
 Browse.resultsInvalidated = false
+Browse.deferredSearchToken = 0
+Browse.pendingBuyTrace = nil
+local buyDialogHooksInstalled = false
+
+local function TracePendingBuyDialog(phase, reason)
+    local pending = Browse.pendingBuyTrace
+    if not pending then return false end
+    if reason ~= nil then
+        pending.reason = reason
+    end
+    TraceBrowse("trading_house.buy_dialog", phase, TH.instance, pending,
+        BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+    Browse.pendingBuyTrace = nil
+    return true
+end
+
+local function EnsureBuyDialogHooks()
+    if buyDialogHooksInstalled then return end
+    buyDialogHooksInstalled = true
+    if type(ConfirmPendingItemPurchase) == "function" then
+        local originalConfirmPendingItemPurchase = ConfirmPendingItemPurchase
+        ConfirmPendingItemPurchase = function(...)
+            TracePendingBuyDialog("confirm", nil)
+            return originalConfirmPendingItemPurchase(...)
+        end
+    end
+    if type(ClearPendingItemPurchase) == "function" then
+        local originalClearPendingItemPurchase = ClearPendingItemPurchase
+        ClearPendingItemPurchase = function(...)
+            TracePendingBuyDialog("cancel", "ClearPendingItemPurchase")
+            return originalClearPendingItemPurchase(...)
+        end
+    end
+    if type(ZO_Dialogs_ReleaseDialog) == "function" then
+        local originalReleaseDialog = ZO_Dialogs_ReleaseDialog
+        ZO_Dialogs_ReleaseDialog = function(dialogName, ...)
+            if dialogName == "TRADING_HOUSE_CONFIRM_BUY_ITEM" then
+                TracePendingBuyDialog("cancel", "dialogReleased")
+            end
+            return originalReleaseDialog(dialogName, ...)
+        end
+    end
+    if type(ZO_Dialogs_ReleaseDialogOnButtonPress) == "function" then
+        local originalReleaseDialogOnButtonPress = ZO_Dialogs_ReleaseDialogOnButtonPress
+        ZO_Dialogs_ReleaseDialogOnButtonPress = function(dialogName, ...)
+            if dialogName == "TRADING_HOUSE_CONFIRM_BUY_ITEM" then
+                TracePendingBuyDialog("cancel", "buttonPressRelease")
+            end
+            return originalReleaseDialogOnButtonPress(dialogName, ...)
+        end
+    end
+end
 
 --- Resolve the focused row the same way the Vendor keybind strip does
 --- (GetTargetData when available, falling back to GetSelectedData).
@@ -42,15 +94,41 @@ end
 --- tradingHouseIndex values are no longer purchasable (e.g. after a guild
 --- switch). Cleared when fresh results arrive.
 function Browse:InvalidateResults()
+    TraceBrowse("trading_house.search_results", "invalidated", TH.instance, {
+        fn = "TradingHouse.BrowseComponent.InvalidateResults",
+        page = Browse.currentPage,
+        hadMorePagesBefore = Browse.hasMorePages == true,
+        resultsInvalidatedBefore = Browse.resultsInvalidated == true,
+    })
     Browse.resultsInvalidated = true
     Browse.hasMorePages = false
 end
 
 function Browse:Activate(thInstance)
+    TraceBrowse("trading_house.browse", "activate", thInstance, {
+        fn = "TradingHouse.BrowseComponent.Activate",
+        page = Browse.currentPage,
+        searchPending = Browse.searchPending == true,
+        hasMorePages = Browse.hasMorePages == true,
+        resultsInvalidated = Browse.resultsInvalidated == true,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIFECYCLE)
     thInstance:RefreshList()
 end
 
 function Browse:Deactivate(thInstance)
+    TracePendingBuyDialog("cancel", "componentDeactivated")
+    local pendingBefore = Browse.searchPending == true
+    if pendingBefore then
+        Browse.deferredSearchToken = (Browse.deferredSearchToken or 0) + 1
+        Browse.searchPending = false
+    end
+    TraceBrowse("trading_house.browse", "deactivate", thInstance, {
+        fn = "TradingHouse.BrowseComponent.Deactivate",
+        page = Browse.currentPage,
+        searchPendingBefore = pendingBefore,
+        searchPendingAfter = Browse.searchPending == true,
+        deferredToken = Browse.deferredSearchToken,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIFECYCLE)
 end
 
 function Browse:GetPrimaryActionName()
@@ -135,6 +213,14 @@ function Browse:OnPrimaryAction(thInstance)
             item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
     end
+    EnsureBuyDialogHooks()
+    Browse.pendingBuyTrace = {
+        fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
+        dialog = "TRADING_HOUSE_CONFIRM_BUY_ITEM",
+        tradingHouseIndex = tradingHouseIndex,
+        price = price,
+        item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+    }
 
     local dialogItemData = {
         slotIndex = tradingHouseIndex,
@@ -169,6 +255,8 @@ function Browse:OnPrimaryAction(thInstance)
             item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     end
+    TraceBrowse("trading_house.buy_dialog", "awaiting_choice", thInstance, Browse.pendingBuyTrace,
+        BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
 end
 
 ---@param useLastExecutedSearchFilters boolean|nil True for page flips: reuse
@@ -248,23 +336,61 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
         and TRADING_HOUSE_SEARCH.DoSearchWhenReady
         and not TRADING_HOUSE_SEARCH:CanPerformSearch() then
         Browse.searchPending = true
+        Browse.deferredSearchToken = Browse.deferredSearchToken + 1
+        local token = Browse.deferredSearchToken
         TraceBrowse("trading_house.search", "deferred", TH.instance, {
             fn = "TradingHouse.BrowseComponent.ExecuteSearch",
             page = Browse.currentPage,
             reason = "nativeSearchNotReady",
             reuseLastExecutedSearchFilters = useLastExecutedSearchFilters == true,
+            deferredToken = token,
         })
         TRADING_HOUSE_SEARCH:DoSearchWhenReady()
+        TraceBrowse("trading_house.search", "deferred_requested", TH.instance, {
+            fn = "TradingHouse.BrowseComponent.ExecuteSearch",
+            page = Browse.currentPage,
+            reason = "nativeSearchNotReady",
+            deferredToken = token,
+            searchPending = Browse.searchPending == true,
+        })
+        local later = rawget(_G, "zo_callLater")
+        if type(later) == "function" then
+            later(function()
+                if Browse.deferredSearchToken == token and Browse.searchPending == true then
+                    Browse.searchPending = false
+                    TraceBrowse("trading_house.search", "deferred_timeout", TH.instance, {
+                        fn = "TradingHouse.BrowseComponent.ExecuteSearch",
+                        page = Browse.currentPage,
+                        reason = "nativeSearchNotReadyTimeout",
+                        deferredToken = token,
+                    })
+                end
+            end, 10000)
+        else
+            Browse.searchPending = false
+            Browse.deferredSearchToken = Browse.deferredSearchToken + 1
+            TraceBrowse("trading_house.search", "deferred_timeout_skipped", TH.instance, {
+                fn = "TradingHouse.BrowseComponent.ExecuteSearch",
+                page = Browse.currentPage,
+                reason = "missingScheduler",
+                deferredToken = token,
+                invalidatedToken = Browse.deferredSearchToken,
+                searchPendingAfter = Browse.searchPending == true,
+            })
+        end
         return true
     end
 
     Browse.searchPending = true
+    Browse.deferredSearchToken = Browse.deferredSearchToken + 1
+    local token = Browse.deferredSearchToken
     TraceBrowse("trading_house.search", "request", TH.instance, {
         fn = "TradingHouse.BrowseComponent.ExecuteSearch",
         page = Browse.currentPage,
         sortType = TRADING_HOUSE_SORT_SALE_PRICE,
         sortAscending = true,
         reuseLastExecutedSearchFilters = useLastExecutedSearchFilters == true,
+        deferredToken = token,
     })
     ExecuteTradingHouseSearch(Browse.currentPage, TRADING_HOUSE_SORT_SALE_PRICE, true,
         useLastExecutedSearchFilters == true)
@@ -274,6 +400,7 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
         sortType = TRADING_HOUSE_SORT_SALE_PRICE,
         sortAscending = true,
         reuseLastExecutedSearchFilters = useLastExecutedSearchFilters == true,
+        deferredToken = token,
     })
     return true
 end
@@ -334,6 +461,7 @@ function Browse:OnSearchResultsReceived(thInstance)
         hadMorePagesBefore = Browse.hasMorePages == true,
     })
     Browse.searchPending = false
+    Browse.deferredSearchToken = (Browse.deferredSearchToken or 0) + 1
     Browse.hasMorePages = false
     Browse.resultsInvalidated = false
 
@@ -358,6 +486,21 @@ function Browse:OnSearchResultsReceived(thInstance)
     if thInstance and thInstance:IsSceneShowing() and
        thInstance:GetCurrentMode() == TH.MODE.BROWSE then
         thInstance:RefreshList()
+        TraceBrowse("trading_house.search_results", "list_refreshed", thInstance, {
+            fn = "TradingHouse.BrowseComponent.OnSearchResultsReceived",
+            page = Browse.currentPage,
+            mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+            sceneShowing = true,
+        })
+    else
+        TraceBrowse("trading_house.search_results", "list_refresh_skipped", thInstance, {
+            fn = "TradingHouse.BrowseComponent.OnSearchResultsReceived",
+            page = Browse.currentPage,
+            reason = "sceneHiddenOrModeMismatch",
+            hasInstance = thInstance ~= nil,
+            mode = thInstance and thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+            sceneShowing = thInstance and thInstance.IsSceneShowing and thInstance:IsSceneShowing() or false,
+        })
     end
 end
 

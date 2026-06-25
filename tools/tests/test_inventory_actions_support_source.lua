@@ -75,7 +75,7 @@ assert_true(itemActionHandlers:find("if not BETTERUI%.Inventory%.ActionHandlers 
     "ItemActionHandlers initializes the shared action-handler table")
 assert_true(itemActionHandlers:find("function ActionHandlers%.OnSetup%(self, dialog, data%)") ~= nil,
     "ItemActionHandlers exposes OnSetup")
-assert_true(itemActionHandlers:find("function ActionHandlers%.OnFinish%(self%)") ~= nil,
+assert_true(itemActionHandlers:find("function ActionHandlers%.OnFinish%(self, dialog%)") ~= nil,
     "ItemActionHandlers exposes OnFinish")
 assert_true(itemActionHandlers:find("function ActionHandlers%.OnConfirm%(self, dialog%)") ~= nil,
     "ItemActionHandlers exposes OnConfirm")

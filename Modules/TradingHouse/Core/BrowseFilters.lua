@@ -328,8 +328,16 @@ function Filters.ShowFilterDialog()
                         if control.highlight then
                             control.highlight:SetHidden(not selected)
                         end
-                        if control.editBoxControl and control.editBoxControl.Clear then
-                            control.editBoxControl:Clear()
+                        if control.editBoxControl and control.editBoxControl.SetText then
+                            local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.PARAMETRIC)
+                            local value = dialog and dialog.data and dialog.data[fieldKey] or nil
+                            control.editBoxControl:SetText(value ~= nil and tostring(value) or "")
+                            TraceFilters("trading_house.filters_dialog", "field_setup", {
+                                fn = "Filters.ShowFilterDialog",
+                                field = fieldKey,
+                                selected = selected == true,
+                                restored = value ~= nil,
+                            })
                         end
                     end,
                     textChangedCallback = function(control)

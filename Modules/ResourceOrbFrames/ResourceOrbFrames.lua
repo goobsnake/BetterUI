@@ -90,6 +90,57 @@ local function TraceROF(event, phase, data, category)
     BETTERUI.Log.TraceEvent(category or categories.STATE, event, phase, data)
 end
 
+local function GetControlTraceName(control)
+    if not control then return nil end
+    if type(control.GetName) == "function" then
+        local ok, name = pcall(control.GetName, control)
+        if ok and name ~= nil then return tostring(name) end
+    end
+    if control.name ~= nil then return tostring(control.name) end
+    return tostring(control)
+end
+
+local function CallControlNumber(control, methodName)
+    local method = control and control[methodName] or nil
+    if type(method) ~= "function" then return nil end
+    local ok, value = pcall(method, control)
+    if ok then return value end
+    return nil
+end
+
+local function DescribeControlForTrace(control, label)
+    if not control then
+        return tostring(label) .. ":missing"
+    end
+    local parts = { tostring(label) .. "=" .. tostring(GetControlTraceName(control)) }
+    if type(control.IsHidden) == "function" then
+        local ok, hidden = pcall(control.IsHidden, control)
+        if ok then parts[#parts + 1] = "hidden:" .. tostring(hidden) end
+    end
+    local left = CallControlNumber(control, "GetLeft")
+    local top = CallControlNumber(control, "GetTop")
+    if left ~= nil or top ~= nil then
+        parts[#parts + 1] = "xy:" .. tostring(left) .. "," .. tostring(top)
+    end
+    local width = CallControlNumber(control, "GetWidth")
+    local height = CallControlNumber(control, "GetHeight")
+    if width ~= nil or height ~= nil then
+        parts[#parts + 1] = "wh:" .. tostring(width) .. "," .. tostring(height)
+    end
+    if type(control.GetScale) == "function" then
+        local ok, scale = pcall(control.GetScale, control)
+        if ok then parts[#parts + 1] = "scale:" .. tostring(scale) end
+    end
+    if type(control.GetAnchor) == "function" then
+        local ok, point, relativeTo, relativePoint, offsetX, offsetY = pcall(control.GetAnchor, control, 0)
+        if ok and point ~= nil then
+            parts[#parts + 1] = "anchor:" .. tostring(point) .. ">" .. tostring(GetControlTraceName(relativeTo)) ..
+                ":" .. tostring(relativePoint) .. ":" .. tostring(offsetX) .. "," .. tostring(offsetY)
+        end
+    end
+    return table.concat(parts, ";")
+end
+
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
 local function GetROFDeferredTaskRuntime()
@@ -128,7 +179,8 @@ local function RegisterResourceOrbSnapshotProvider()
     watch.RegisterSnapshotProvider("resourceOrbs", function()
         local power = CapturePowerState()
         local frontBarCfg = GetFrontBarConfig and GetFrontBarConfig()
-        return string.format("init=%s root=%s combat=%s gp=%s hp=%s/%s mag=%s/%s stam=%s/%s front=%s swap=%s",
+        local settings = GetSettings and GetSettings() or {}
+        return string.format("init=%s root=%s combat=%s gp=%s hp=%s/%s mag=%s/%s stam=%s/%s front=%s swap=%s scale=%s offset=%s,%s orbOffset=%s,%s linked=%s",
             tostring(m_isInitialized),
             tostring(m_rootFrame ~= nil),
             tostring(type(IsUnitInCombat) == "function" and IsUnitInCombat("player") or nil),
@@ -137,7 +189,11 @@ local function RegisterResourceOrbSnapshotProvider()
             tostring(power.magicka), tostring(power.magickaMax),
             tostring(power.stamina), tostring(power.staminaMax),
             tostring(frontBarCfg and frontBarCfg.m_enabled),
-            tostring(SkillBar and SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating() or false))
+            tostring(SkillBar and SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating() or false),
+            tostring(settings.scale),
+            tostring(settings.offsetX), tostring(settings.offsetY),
+            tostring(settings.orbOffsetX), tostring(settings.orbOffsetY),
+            DescribeControlForTrace(m_bgMiddle, "bg"))
     end)
 end
 
@@ -324,6 +380,9 @@ local function ApplyLayout(updateOrbs, updateSkills)
         fn = "ResourceOrbFrames.ApplyLayout",
         updateOrbs = updateOrbs,
         updateSkills = updateSkills,
+        scale = settings.scale,
+        offsetX = settings.offsetX,
+        offsetY = settings.offsetY,
         independentOrbOffset = settings.enableIndependentOrbOffset,
         orbOffsetX = orbOffsetX,
         orbOffsetY = orbOffsetY,
@@ -333,6 +392,15 @@ local function ApplyLayout(updateOrbs, updateSkills)
         hasExperienceBar = m_experienceBar ~= nil,
         hasMountStaminaBar = m_mountStaminaBar ~= nil,
         hasCastBar = m_castBar ~= nil,
+        rootControl = DescribeControlForTrace(m_rootFrame, "root"),
+        bgMiddleControl = DescribeControlForTrace(m_bgMiddle, "bg"),
+        frontBarControl = DescribeControlForTrace(m_frontBarContainer, "frontBar"),
+        backBarControl = DescribeControlForTrace(m_backBarContainer, "backBar"),
+        leftOrnamentControl = DescribeControlForTrace(m_leftOrnament, "leftOrnament"),
+        rightOrnamentControl = DescribeControlForTrace(m_rightOrnament, "rightOrnament"),
+        xpControl = DescribeControlForTrace(m_experienceBar and m_experienceBar.control, "xp"),
+        mountControl = DescribeControlForTrace(m_mountStaminaBar and m_mountStaminaBar.control, "mount"),
+        castControl = DescribeControlForTrace(m_castBar and m_castBar.control, "cast"),
     })
 end
 
@@ -824,24 +892,40 @@ end
 ---@return nil
 function ResourceOrbFrames.ApplySettings()
     local settings = GetSettings()
+    local lifecycleCategory = BETTERUI.Log and BETTERUI.Log.CATEGORY and BETTERUI.Log.CATEGORY.LIFECYCLE or nil
     if not m_rootFrame then
+        TraceROF("resource_orbs.apply_settings", "skipped", {
+            fn = "ResourceOrbFrames.ApplySettings",
+            reason = "missingRootFrame",
+        }, lifecycleCategory)
         if BETTERUI.Log then
             BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "orb setup aborted", { reason = "rootFrame" })
         end
         return
     end
     if not settings then
+        TraceROF("resource_orbs.apply_settings", "skipped", {
+            fn = "ResourceOrbFrames.ApplySettings",
+            reason = "missingSettings",
+        }, lifecycleCategory)
         if BETTERUI.Log then
             BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "orb setup aborted", { reason = "settings" })
         end
         return
     end
 
+    TraceROF("resource_orbs.apply_settings", "begin", {
+        fn = "ResourceOrbFrames.ApplySettings",
+        enabled = settings.m_enabled == true,
+    }, lifecycleCategory)
     if settings.m_enabled then
         if not m_isInitialized then
             -- Attempt initialization; if it fails, bail out
             local ok = BETTERUI.CIM.SafeExecute("ResourceOrbFrames:SetupModule", SetupModule, m_rootFrame)
             if not ok then
+                TraceROF("resource_orbs.apply_settings", "setup_failed", {
+                    fn = "ResourceOrbFrames.ApplySettings",
+                }, lifecycleCategory)
                 if BETTERUI.Log then
                     BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "orb setup aborted", { reason = "setupFailed" })
                 end
@@ -850,6 +934,10 @@ function ResourceOrbFrames.ApplySettings()
         end
         -- Double-check initialization succeeded before proceeding
         if not m_isInitialized then
+            TraceROF("resource_orbs.apply_settings", "skipped", {
+                fn = "ResourceOrbFrames.ApplySettings",
+                reason = "setupDidNotInitialize",
+            }, lifecycleCategory)
             return
         end
         if BETTERUI.Log then
@@ -868,6 +956,12 @@ function ResourceOrbFrames.ApplySettings()
         if Events.RefreshCombatIndicators then
             Events.RefreshCombatIndicators(m_rootFrame)
         end
+        TraceROF("resource_orbs.apply_settings", "enabled", {
+            fn = "ResourceOrbFrames.ApplySettings",
+            loopsRegistered = Events.SetLoopsEnabled ~= nil,
+            sceneHandlersRequested = Events.SetupSceneHandlers ~= nil,
+            refreshedCombatIndicators = Events.RefreshCombatIndicators ~= nil,
+        }, lifecycleCategory)
     else
         if BETTERUI.Log then
             BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "orb apply settings disabled")
@@ -879,6 +973,10 @@ function ResourceOrbFrames.ApplySettings()
         if events and events.SetLoopsEnabled then
             events.SetLoopsEnabled(false)
         end
+        TraceROF("resource_orbs.apply_settings", "disabled", {
+            fn = "ResourceOrbFrames.ApplySettings",
+            loopsDisabled = events and events.SetLoopsEnabled ~= nil,
+        }, lifecycleCategory)
         -- Restore Default UI is handled by reload/re-login mostly,
         -- but we could try to unhide?
         -- BetterUI philosophy is usually Reload Required for disable.

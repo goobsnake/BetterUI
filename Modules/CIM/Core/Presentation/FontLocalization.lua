@@ -77,12 +77,13 @@ function Localization.IsFontLocalizedForLanguage(fontPath)
         return true
     end
 
-    -- For English users, all fonts are compatible
-    if Localization.IsEnglish() then
+    -- Western-script clients (English/German/French/Spanish) can use the
+    -- bundled Western-only font files; only CJK/Cyrillic clients need fallback.
+    if Localization.GetCurrentLanguageGroup() == "western" then
         return true
     end
 
-    -- For non-English users, Western-only fonts are NOT localized
+    -- For non-Western users, Western-only fonts are NOT localized.
     return not Localization.IsFontWesternOnly(fontPath)
 end
 
@@ -99,7 +100,7 @@ end
 ---@param fontPath string?
 ---@return string?
 function Localization.GetFontCompatibilityWarning(fontPath)
-    if Localization.IsEnglish() then
+    if Localization.GetCurrentLanguageGroup() == "western" then
         return nil
     end
 

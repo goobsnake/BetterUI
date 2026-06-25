@@ -126,6 +126,13 @@ local function TraceBankKeybind(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
     data = data or {}
+    data.module = data.module or "Banking"
+    if data.scene == nil and BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.GetCurrentSceneName then
+        data.scene = BETTERUI.CIM.Utils.GetCurrentSceneName()
+    end
+    if data.gamepad == nil and IsInGamepadPreferredMode then
+        data.gamepad = IsInGamepadPreferredMode()
+    end
     L.TraceEvent(L.CATEGORY.KEYBIND, event, phase, data)
 end
 
@@ -195,12 +202,30 @@ local function CanUsePrimaryTransfer(self)
         return false, denialText
     end
 
-    -- Prevent double-press during furniture vault / deposit server round-trip.
-    if self.currentMode == LIST_DEPOSIT then
-        local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
-        if bagId and slotIndex and BETTERUI.Banking.IsTransferPending(bagId, slotIndex) then
-            return false
+    local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
+    if bagId and slotIndex and BETTERUI.Banking.IsTransferPending(bagId, slotIndex) then
+        local pendingKey = tostring(bagId) .. ":" .. tostring(slotIndex)
+        if self._betteruiLastPrimaryTransferPendingBlock ~= pendingKey then
+            self._betteruiLastPrimaryTransferPendingBlock = pendingKey
+            TraceBankKeybind("bank.primary_transfer", "blocked", {
+                reason = "transferPending",
+                mode = self.currentMode,
+                bagId = bagId,
+                slotIndex = slotIndex,
+                selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
+            })
         end
+        return false
+    end
+    if self._betteruiLastPrimaryTransferPendingBlock ~= nil then
+        TraceBankKeybind("bank.primary_transfer", "unblocked", {
+            reason = "transferPendingCleared",
+            previousPendingKey = self._betteruiLastPrimaryTransferPendingBlock,
+            mode = self.currentMode,
+            bagId = bagId,
+            slotIndex = slotIndex,
+        })
+        self._betteruiLastPrimaryTransferPendingBlock = nil
     end
 
     return true
@@ -216,7 +241,20 @@ local function CreateCoreNavigationKeybinds(self)
                 if self:IsBatchProcessing() then
                     return
                 end
+                local fromMode = self.currentMode
+                local toMode = self.currentMode == LIST_DEPOSIT and LIST_WITHDRAW or LIST_DEPOSIT
+                TraceBankKeybind("bank.mode_toggle", "before", {
+                    fromMode = fromMode,
+                    toMode = toMode,
+                })
                 self:ToggleList(self.currentMode == LIST_DEPOSIT)
+                TraceBankKeybind("bank.mode_toggle", "after", {
+                    fromMode = fromMode,
+                    requestedMode = toMode,
+                    mode = self.currentMode,
+                    core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
+                    transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
+                })
             end,
             visible = function()
                 return not self:IsBatchProcessing()
@@ -320,6 +358,12 @@ local function CreateCoreNavigationKeybinds(self)
                     -- Banking never assigns mainKeybindStripDescriptor (its groups are
                     -- coreKeybinds/withdrawDepositKeybinds/...); the upgrade dialog
                     -- manages its own keybind layer, so no teardown is needed here.
+                    TraceBankKeybind("bank.upgrade", "dialog_show", {
+                        cost = cost,
+                        carriedGold = GetCarriedCurrencyAmount(CURT_MONEY),
+                        currentUpgrade = GetCurrentBankUpgrade and GetCurrentBankUpgrade() or nil,
+                        maxUpgrade = GetMaxBankUpgrade and GetMaxBankUpgrade() or nil,
+                    })
                     DisplayBankUpgrade()
                 end
             end
@@ -366,23 +410,79 @@ local function CreateCoreNavigationKeybinds(self)
             order = 1500,
             disabledDuringSceneHiding = true,
             visible = function()
-                return self.list and not self.list:IsEmpty() and not self:IsBatchProcessing()
+                local visible = self.list and not self.list:IsEmpty() and not self:IsBatchProcessing()
+                if self._betteruiLastStackAllVisible ~= visible then
+                    self._betteruiLastStackAllVisible = visible
+                    TraceBankKeybind("bank.stack_all", "visibility", {
+                        visible = visible == true,
+                        hasList = self.list ~= nil,
+                        listEmpty = self.list and self.list.IsEmpty and self.list:IsEmpty() or nil,
+                        batchProcessing = self.IsBatchProcessing and self:IsBatchProcessing() or nil,
+                        mode = self.currentMode,
+                    })
+                end
+                return visible
             end,
             callback = function()
                 if self:IsBatchProcessing() then
+                    TraceBankKeybind("bank.stack_all", "blocked", {
+                        reason = "batchProcessing",
+                        mode = self.currentMode,
+                    })
                     return
                 end
                 local transferContext = ReadTransferContextSnapshot()
                 local transferSourceBankBag = transferContext.interactionBag or BAG_BANK
+                local targetBags = {}
                 if self.currentMode == LIST_WITHDRAW then
                     if transferSourceBankBag == BAG_BANK then
-                        StackBag(BAG_BANK)
-                        StackBag(BAG_SUBSCRIBER_BANK)
+                        targetBags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
                     else
-                        StackBag(transferSourceBankBag)
+                        targetBags = { transferSourceBankBag }
                     end
                 else
-                    StackBag(BAG_BACKPACK)
+                    targetBags = { BAG_BACKPACK }
+                end
+                if type(StackBag) ~= "function" then
+                    TraceBankKeybind("bank.stack_all", "blocked", {
+                        reason = "missingStackBagApi",
+                        mode = self.currentMode,
+                        transferKind = transferContext.kind,
+                        targetBags = targetBags,
+                    })
+                    return
+                end
+                TraceBankKeybind("bank.stack_all", "before", {
+                    mode = self.currentMode,
+                    transferKind = transferContext.kind,
+                    transferSourceBankBag = transferSourceBankBag,
+                    targetBags = targetBags,
+                })
+                for i = 1, #targetBags do
+                    StackBag(targetBags[i])
+                end
+                TraceBankKeybind("bank.stack_all", "after", {
+                    mode = self.currentMode,
+                    transferKind = transferContext.kind,
+                    targetBags = targetBags,
+                    requestCount = #targetBags,
+                })
+                if BETTERUI.Banking and BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
+                    BETTERUI.Banking.Tasks:Schedule("stackAllRefresh", 120, function()
+                        if self.RefreshList then self:RefreshList() end
+                        if self.RefreshFooter then self:RefreshFooter() end
+                        if self.UpdateKeybinds then self:UpdateKeybinds() end
+                        TraceBankKeybind("bank.stack_all", "refresh_task", {
+                            mode = self.currentMode,
+                            refreshedList = self.RefreshList ~= nil,
+                            refreshedFooter = self.RefreshFooter ~= nil,
+                            refreshedKeybinds = self.UpdateKeybinds ~= nil,
+                        })
+                    end)
+                    TraceBankKeybind("bank.stack_all", "refresh_scheduled", {
+                        delayMs = 120,
+                        scheduler = "Banking.Tasks",
+                    })
                 end
             end,
         },
@@ -601,7 +701,7 @@ local function CreateCurrencySelectorKeybinds(self)
                 end
                 self:RefreshFooter()
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-                EndCurrencyTransferFlow(flow, "bank currency transfer requested", {
+                EndCurrencyTransferFlow(flow, "bank currency transfer completed", {
                     currencyType = currencyType,
                     amount = amount,
                     guild = isGuildBankMode,
