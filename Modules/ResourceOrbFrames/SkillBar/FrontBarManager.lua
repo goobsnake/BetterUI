@@ -45,6 +45,21 @@ local m_nonCostFailureLastSeenMsBySlotCategory = {}
 local TARGET_FAILURE_CAST_HOLD_MS = 200
 local NON_COST_FAILURE_CAST_HOLD_MS = 250
 
+local function TraceFrontBar(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "resourceOrbs"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION, event, phase, data)
+end
+
 -- Expose button cache to sibling modules (FrontBarCooldowns, FrontBarPressFeedback)
 SkillBar._frontBarButtonCache = m_buttonCache
 
@@ -267,6 +282,7 @@ local function SetupFrontBarKeybinds(rootFrame)
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
+    local registeredKeybinds = 0
 
     for i = 1, 5 do
         local btn = FindControl(frontBarContainer, 'Button' .. i)
@@ -275,6 +291,7 @@ local function SetupFrontBarKeybinds(rootFrame)
             local bindings = SLOT_KEYBINDS[i]
             if buttonText and bindings then
                 ZO_Keybindings_RegisterLabelForBindingUpdate(buttonText, bindings.keyboard, HIDE_UNBOUND, bindings.gamepad)
+                registeredKeybinds = registeredKeybinds + 1
             end
         end
     end
@@ -284,6 +301,7 @@ local function SetupFrontBarKeybinds(rootFrame)
         local buttonText = ultBtn:GetNamedChild("ButtonText")
         if buttonText then
             ZO_Keybindings_RegisterLabelForBindingUpdate(buttonText, "ACTION_BUTTON_8", HIDE_UNBOUND, "GAMEPAD_ACTION_BUTTON_8")
+            registeredKeybinds = registeredKeybinds + 1
         end
         local isGamepad = IsInGamepadPreferredMode()
         local l = ultBtn:GetNamedChild("LeftKeybind")
@@ -297,6 +315,7 @@ local function SetupFrontBarKeybinds(rootFrame)
         local buttonText = qsBtn:GetNamedChild("ButtonText")
         if buttonText then
             ZO_Keybindings_RegisterLabelForBindingUpdate(buttonText, "ACTION_BUTTON_9", HIDE_UNBOUND, "GAMEPAD_ACTION_BUTTON_9")
+            registeredKeybinds = registeredKeybinds + 1
         end
         local countText = qsBtn:GetNamedChild("CountText")
         if countText then
@@ -319,6 +338,7 @@ local function SetupFrontBarKeybinds(rootFrame)
         local buttonText = compBtn:GetNamedChild("ButtonText")
         if buttonText then
             ZO_Keybindings_RegisterLabelForBindingUpdate(buttonText, "COMMAND_PET", HIDE_UNBOUND, "COMMAND_PET")
+            registeredKeybinds = registeredKeybinds + 1
         end
         local isGamepad = IsInGamepadPreferredMode()
         local l = compBtn:GetNamedChild("LeftKeybind")
@@ -326,6 +346,13 @@ local function SetupFrontBarKeybinds(rootFrame)
         if l then l:SetHidden(not isGamepad) end
         if r then r:SetHidden(not isGamepad) end
     end
+    TraceFrontBar("resource_orbs.front_bar_keybinds", "setup_end", {
+        registered = registeredKeybinds,
+        hasUltimate = ultBtn ~= nil,
+        hasQuickslot = qsBtn ~= nil,
+        hasCompanion = compBtn ~= nil,
+        gamepad = IsInGamepadPreferredMode(),
+    })
 end
 
 -- LAYOUT
@@ -481,9 +508,19 @@ local function UpdateFrontBarQuickslot(rootFrame)
         end
     end
     local settings = GetSettings()
-    SkillBar.UpdateQuickslotCountAndEmptyState(qsBtn, nil, settings, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    local quickslotEmpty = SkillBar.UpdateQuickslotCountAndEmptyState(qsBtn, nil, settings, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
     qsBtn.slotIndex = slotIndex
     qsBtn.hotbarCategory = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+    local quickslotTraceState = table.concat({ tostring(slotIndex), tostring(icon), tostring(qsBtn.quickslotCount), tostring(quickslotEmpty) }, ":")
+    if qsBtn._betteruiTraceState ~= quickslotTraceState then
+        qsBtn._betteruiTraceState = quickslotTraceState
+        TraceFrontBar("resource_orbs.quickslot", "updated", {
+            slot = slotIndex,
+            icon = icon,
+            count = qsBtn.quickslotCount,
+            empty = quickslotEmpty,
+        })
+    end
     if not qsBtn.tooltipHandlersAdded then
         SkillBar.SetupButtonTooltip(qsBtn, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL, RIGHT, -5, 0)
         qsBtn.tooltipHandlersAdded = true
@@ -517,12 +554,29 @@ local function UpdateFrontBarCompanion(rootFrame)
         end
         compBtn.slotIndex = slotIndex
         compBtn.hotbarCategory = HOTBAR_CATEGORY_COMPANION
+        local companionTraceState = table.concat({ tostring(companionActive), tostring(slotIndex), tostring(icon) }, ":")
+        if compBtn._betteruiTraceState ~= companionTraceState then
+            compBtn._betteruiTraceState = companionTraceState
+            TraceFrontBar("resource_orbs.companion_button", "updated", {
+                active = companionActive,
+                slot = slotIndex,
+                icon = icon,
+                hidden = false,
+            })
+        end
         if not compBtn.tooltipHandlersAdded then
             SkillBar.SetupButtonTooltip(compBtn, slotIndex, HOTBAR_CATEGORY_COMPANION, RIGHT, -5, 0)
             compBtn.tooltipHandlersAdded = true
         end
     else
         compBtn:SetHidden(true)
+        if compBtn._betteruiTraceState ~= "inactive" then
+            compBtn._betteruiTraceState = "inactive"
+            TraceFrontBar("resource_orbs.companion_button", "updated", {
+                active = false,
+                hidden = true,
+            })
+        end
     end
 end
 

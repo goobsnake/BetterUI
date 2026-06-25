@@ -30,6 +30,12 @@ BETTERUI.CIM.Dialogs.Registry = {
     _dialogs = {},
 }
 
+local function TraceDialog(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
+end
+
 ---@param dialogName string
 ---@param dialogInfo table
 ---@param options {overwrite: boolean?}?
@@ -70,14 +76,18 @@ end
 function BETTERUI.CIM.Dialogs.Show(dialogName, data)
     if not BETTERUI.CIM.Dialogs.IsRegistered(dialogName) then
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, string.format("[Dialog] '%s' not registered", dialogName)) end
+        TraceDialog("dialog.show", "rejected", { dialog = dialogName, reason = "notRegistered", hasData = data ~= nil })
         return
     end
 
+    local method = ZO_Dialogs_ShowGamepadDialog and "gamepad" or (ZO_Dialogs_ShowDialog and "standard" or "missing")
+    TraceDialog("dialog.show", "before", { dialog = dialogName, method = method, hasData = data ~= nil })
     if ZO_Dialogs_ShowGamepadDialog then
         ZO_Dialogs_ShowGamepadDialog(dialogName, data)
     elseif ZO_Dialogs_ShowDialog then
         ZO_Dialogs_ShowDialog(dialogName, data)
     end
+    TraceDialog("dialog.show", "after", { dialog = dialogName, method = method, shown = method ~= "missing" })
 end
 
 ---@param label string

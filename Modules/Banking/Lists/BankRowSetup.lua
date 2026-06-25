@@ -204,6 +204,9 @@ end
 
 local function UpdateKeybindsForSelection(self, isCurrencyRow)
     if self.isInHeaderSortMode then
+        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.selection_keybinds", "skipped", { reason = "headerSort" })
+        end
         return
     end
 
@@ -212,6 +215,16 @@ local function UpdateKeybindsForSelection(self, isCurrencyRow)
         isCurrencyRow = false
     end
 
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.selection_keybinds", "before", {
+            isCurrencyRow = isCurrencyRow == true,
+            selectionMode = selectionModeActive == true,
+            selected = BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
+            currency = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.currencyKeybinds, "currency") or nil,
+            transfer = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
+            core = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
+        })
+    end
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     if isCurrencyRow then
@@ -222,6 +235,14 @@ local function UpdateKeybindsForSelection(self, isCurrencyRow)
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
     end
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.selection_keybinds", "after", {
+            isCurrencyRow = isCurrencyRow == true,
+            selectionMode = selectionModeActive == true,
+            selected = BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
+            activeGroup = isCurrencyRow and "currency" or "transfer",
+        })
+    end
 end
 
 local function ResolveSelectedSlotData(selectedData)

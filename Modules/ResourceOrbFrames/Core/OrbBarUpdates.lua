@@ -26,7 +26,13 @@ local ExperienceBar = Bars.ExperienceBar
 local MountStaminaBar = Bars.MountStaminaBar
 
 local function TraceValueBracketChange(current, max, state)
-    if not BETTERUI.Log then
+    local L = BETTERUI.Log
+    if not (L and L.Trace) then
+        return
+    end
+    local categories = L.CATEGORY or {}
+    local levels = L.LEVEL or {}
+    if L.EnabledFor and not L.EnabledFor(levels.TRACE, categories.GENERAL) then
         return
     end
 
@@ -40,7 +46,7 @@ local function TraceValueBracketChange(current, max, state)
     end
 
     state._betteruiLastValueBracket = bracket
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orb value bracket", { cur = current, max = max, pct = percent }) end
+    L.Trace(categories.GENERAL, "orb value bracket", { cur = current, max = max, pct = percent, bracket = bracket })
 end
 
 ---@param fillColor table|nil Fill colour {r,g,b,a}

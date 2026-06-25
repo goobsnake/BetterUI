@@ -14,6 +14,39 @@ local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "CloseStore:beforeSweep"
 local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "CloseStore:afterSweep"
 local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.CloseStore:NativeOnHide"
 
+local function BuildTraceState(state)
+    state = state or {}
+    return {
+        isFenceInteraction = state.isFenceInteraction == true,
+        isStableInteraction = state.isStableInteraction == true,
+        fenceEnableSell = state.fenceEnableSell == true,
+        fenceEnableLaunder = state.fenceEnableLaunder == true,
+        sessionHasBuyMode = state.sessionHasBuyMode == true,
+        isClosing = state.isClosing == true,
+        openStoreSyncAttempt = state.openStoreSyncAttempt or 0,
+    }
+end
+
+local function TraceVendorInteraction(event, phase, state, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then
+        return
+    end
+    data = data or {}
+    local traceState = BuildTraceState(state)
+    for key, value in pairs(traceState) do
+        if data[key] == nil then
+            data[key] = value
+        end
+    end
+    data.module = data.module or "Vendor"
+    data.scene = data.scene or BETTERUI_VENDOR_SCENE_NAME
+    data.feature = data.feature or "vendor-interaction"
+    data.fn = data.fn or "Vendor.InteractionRuntime"
+    data["function"] = data["function"] or data.fn
+    L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data)
+end
+
 -- Dialogs that may still be open when the store interaction ends. Native
 -- ZO_GamepadStoreManager:OnCloseStore releases REPAIR_ALL; the BetterUI batch
 -- and sell-all-junk dialogs are registered in Vendor.lua and must be released
@@ -392,6 +425,9 @@ local function OpenStoreInternal(state, deps, publishState)
         interactionType = resolved.getInteractionType()
     end
 
+    TraceVendorInteraction("vendor.store", "open_begin", state, {
+        interactionType = interactionType,
+    })
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "store opened", {
             interactionType = interactionType,
@@ -423,6 +459,10 @@ local function OpenStoreInternal(state, deps, publishState)
         -- native EVENT_OPEN_STORE handler, so nothing would show the store UI
         -- on its own. Explicitly drive the native open flow here, mirroring
         -- ZO_GamepadStoreManager:OnOpenStore (storewindow_gamepad.lua:22-45).
+        TraceVendorInteraction("vendor.store", "native_handoff", state, {
+            interactionType = interactionType,
+            reason = "unsupportedInteraction",
+        })
         resolved.restoreSceneAlias()
         ShowNativeStore(resolved)
         return state
@@ -445,18 +485,32 @@ local function OpenStoreInternal(state, deps, publishState)
     end
 
     local targetMode = resolved.resolveTargetMode()
+    TraceVendorInteraction("vendor.store", "target_resolved", state, {
+        targetMode = targetMode,
+    })
     if targetMode then
         resolved.applyResolvedMode(targetMode, false)
     end
     resolved.showScene()
+    TraceVendorInteraction("vendor.store", "scene_shown", state, {
+        targetMode = targetMode,
+    })
     if targetMode then
         resolved.scheduleOpenStoreSync(targetMode, 120)
     end
 
-    return SyncSessionBuyModeFromLiveState(state)
+    local finalState = SyncSessionBuyModeFromLiveState(state)
+    TraceVendorInteraction("vendor.store", "open_end", finalState, {
+        targetMode = targetMode,
+    })
+    return finalState
 end
 
 local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publishState)
+    TraceVendorInteraction("vendor.fence", "open_begin", state, {
+        enableSell = enableSell,
+        enableLaunder = enableLaunder,
+    })
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "fence opened", {
             enableSell = enableSell,
@@ -503,10 +557,16 @@ local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publish
     end
     resolved.showScene()
 
-    return SyncSessionBuyModeFromLiveState(state)
+    local finalState = SyncSessionBuyModeFromLiveState(state)
+    TraceVendorInteraction("vendor.fence", "open_end", finalState, {
+        enableSell = enableSell,
+        enableLaunder = enableLaunder,
+    })
+    return finalState
 end
 
 local function CloseStoreInternal(state, deps)
+    TraceVendorInteraction("vendor.store", "close_begin", state, nil)
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "store closed")
     end
@@ -515,6 +575,9 @@ local function CloseStoreInternal(state, deps)
     -- Release any store dialogs still open at interaction end (native parity +
     -- BetterUI batch/sell-all-junk dialogs) so they cannot linger post-close.
     ReleaseVendorDialogs()
+    TraceVendorInteraction("vendor.dialogs", "released", state, {
+        dialogs = table.concat(VENDOR_CLEANUP_DIALOG_NAMES, ","),
+    })
     state.isClosing = true
     state.isFenceInteraction = false
     state.isStableInteraction = false
@@ -550,6 +613,7 @@ local function CloseStoreInternal(state, deps)
     end
     resolved.logVendorDebug("SCENE_TRANSITIONS", "VendorScene", "CloseStore complete")
     resolved.aliasSceneToBetterUI(instance)
+    TraceVendorInteraction("vendor.store", "close_end", state, nil)
 
     return state
 end

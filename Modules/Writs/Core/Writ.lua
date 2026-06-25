@@ -11,12 +11,29 @@ local WRIT_CONTEXT_REFRESH = "Writs:RefreshActiveWrits"
 local WRIT_CONTEXT_SHOW = "Writs:ShowForCraftType"
 local Writs = BETTERUI.Writs
 
+local function TraceWrit(event, phase, data)
+	local L = BETTERUI.Log
+	if not (L and L.TraceEvent) then return end
+	data = data or {}
+	data.module = data.module or "Writs"
+	data.scene = data.scene or (SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil)
+	data.feature = data.feature or "writ-panel"
+	data.fn = data.fn or "Writs.Core"
+	data["function"] = data["function"] or data.fn
+	L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data)
+end
+
 --- Caches the writ panel controls used by Show and Hide.
 ---@return nil
 function Writs.CacheControls()
 	m_writNameLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritName
 	m_writDescLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritDesc
 	m_writsPanel = BETTERUI_WritsPanel
+	TraceWrit("writ.controls", "cached", {
+		hasNameLabel = m_writNameLabel ~= nil,
+		hasDescLabel = m_writDescLabel ~= nil,
+		hasPanel = m_writsPanel ~= nil,
+	})
 end
 
 --- Returns the formatted objective lines for a writ quest.
@@ -51,8 +68,11 @@ local function BuildActiveWritLookup()
 	-- Resolve localized patterns once per scan (not per quest) — avoids
 	-- repeated GetCVar("language.2") calls inside a hot loop
 	local patterns = Writs.CONST.GetLocalizedPatterns()
+	local scanned = 0
+	local matched = 0
 	for questId = 1, MAX_JOURNAL_QUESTS do
 		if IsValidQuestIndex(questId) and GetJournalQuestType(questId) == QUEST_TYPE_CRAFTING then
+			scanned = scanned + 1
 			local questName = GetJournalQuestInfo(questId)
 			local currentWrit = -1
 			local questNameLower = string.lower(questName or "")
@@ -66,6 +86,7 @@ local function BuildActiveWritLookup()
 			end
 
 			if currentWrit ~= -1 then
+				matched = matched + 1
 				activeWrits[currentWrit] = {
 					id = questId,
 					writLines = Writs.GetFormattedObjectives(questId),
@@ -73,6 +94,7 @@ local function BuildActiveWritLookup()
 			end
 		end
 	end
+	TraceWrit("writ.lookup", "rebuilt", { scanned = scanned, matched = matched, patternCount = #patterns })
 	return activeWrits
 end
 
@@ -81,13 +103,18 @@ end
 ---@return string|nil err
 function Writs.RefreshActiveWrits()
 	local nextList = nil
+	TraceWrit("writ.refresh", "begin")
 	local ok, err = BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_REFRESH, function()
 		nextList = BuildActiveWritLookup()
 	end)
 	if ok == false then
+		TraceWrit("writ.refresh", "error", { error = err })
 		return false, err
 	end
 	Writs.List = nextList or {}
+	local count = 0
+	for _ in pairs(Writs.List) do count = count + 1 end
+	TraceWrit("writ.refresh", "end", { activeCount = count })
 	return true, nil
 end
 
@@ -96,21 +123,22 @@ end
 ---@return boolean ok
 ---@return string|nil err
 function Writs.ShowForCraftType(writType)
-	if BETTERUI.Log then
-		BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "writ panel shown", { writType = writType })
-	end
+	TraceWrit("writ.panel", "show_begin", { writType = writType })
 	local refreshOk, refreshErr = Writs.RefreshActiveWrits()
 	if not refreshOk then
+		TraceWrit("writ.panel", "show_error", { writType = writType, error = refreshErr })
 		return false, refreshErr
 	end
 
 	local writEntry = Writs.List[writType]
 	if writEntry == nil then
+		TraceWrit("writ.panel", "no_active_writ", { writType = writType })
 		return false, "no_active_writ"
 	end
 
 	local ok, err = BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_SHOW, function()
 		local questName = GetJournalQuestInfo(writEntry.id)
+		TraceWrit("writ.panel", "render", { writType = writType, questId = writEntry.id, questName = questName })
 		if m_writNameLabel then
 			m_writNameLabel:SetText(zo_strformat("|c0066ff[BETTERUI]|r <<1>>", questName))
 		end
@@ -122,19 +150,19 @@ function Writs.ShowForCraftType(writType)
 		end
 	end)
 	if ok == false then
+		TraceWrit("writ.panel", "show_error", { writType = writType, questId = writEntry.id, error = err })
 		return false, err
 	end
+	TraceWrit("writ.panel", "shown", { writType = writType, questId = writEntry.id })
 	return true, nil
 end
 
 --- Hides the writ panel.
 ---@return nil
 function Writs.HidePanel()
-	if BETTERUI.Log then
-		BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "writ panel hidden")
-	end
 	local panel = m_writsPanel or BETTERUI_WritsPanel
 	if panel then
 		panel:SetHidden(true)
 	end
+	TraceWrit("writ.panel", "hidden", { hadPanel = panel ~= nil })
 end

@@ -20,6 +20,79 @@ local ResetGeneralInterfaceGeneralSettings = H.ResetGeneralInterfaceGeneralSetti
 local ResetMarketIntegrationSettings = H.ResetMarketIntegrationSettings
 local ResetEnhancedTooltipSettings = H.ResetEnhancedTooltipSettings
 
+local function GetCurrentSceneName()
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
+        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
+        if ok then return sceneName end
+    end
+    return nil
+end
+
+local function TraceGeneralSetting(settingName, phase, data)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not L or type(L.TraceEvent) ~= "function" then return end
+    local payload = data or {}
+    payload.module = "GeneralInterface"
+    payload.feature = "settings"
+    payload.setting = settingName
+    payload.scene = GetCurrentSceneName()
+    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction("GeneralInterface.settings." .. tostring(settingName))
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.SETTING or categories.GENERAL, "general_interface.setting", phase, payload)
+end
+
+local function ResolveSettingTraceName(control, groupKey)
+    if type(control) ~= "table" then return groupKey or "unknown" end
+    return control.key or control.reference or control.name or control.type or groupKey or "unknown"
+end
+
+local function CapturePcallResults(ok, ...)
+    return { ok = ok, n = select("#", ...), ... }
+end
+
+local function WrapGeneralInterfaceSettingControls(controls, groupKey)
+    if type(controls) ~= "table" then return end
+    for index, control in ipairs(controls) do
+        if type(control) == "table" then
+            local settingName = ResolveSettingTraceName(control, groupKey)
+            if type(control.setFunc) == "function" and not control._betteruiLogWrappedSetFunc then
+                local originalSetFunc = control.setFunc
+                control.setFunc = function(value, ...)
+                    TraceGeneralSetting(settingName, "set_begin", { type = control.type, group = groupKey, index = index, value = value })
+                    local results = CapturePcallResults(pcall(originalSetFunc, value, ...))
+                    if not results.ok then
+                        TraceGeneralSetting(settingName, "set_error", { type = control.type, group = groupKey, index = index, value = value, error = tostring(results[1]) })
+                        error(results[1], 2)
+                    end
+                    TraceGeneralSetting(settingName, "set_end", { type = control.type, group = groupKey, index = index, value = value })
+                    return unpack(results, 1, results.n)
+                end
+                control._betteruiLogWrappedSetFunc = true
+            end
+            if type(control.func) == "function" and not control._betteruiLogWrappedFunc then
+                local originalFunc = control.func
+                control.func = function(...)
+                    TraceGeneralSetting(settingName, "button_begin", { type = control.type, group = groupKey, index = index })
+                    local results = CapturePcallResults(pcall(originalFunc, ...))
+                    if not results.ok then
+                        TraceGeneralSetting(settingName, "button_error", { type = control.type, group = groupKey, index = index, error = tostring(results[1]) })
+                        error(results[1], 2)
+                    end
+                    TraceGeneralSetting(settingName, "button_end", { type = control.type, group = groupKey, index = index })
+                    return unpack(results, 1, results.n)
+                end
+                control._betteruiLogWrappedFunc = true
+            end
+            if type(control.controls) == "table" then
+                WrapGeneralInterfaceSettingControls(control.controls, tostring(settingName))
+            end
+        end
+    end
+end
+
 function BETTERUI.GeneralInterface.GetSettingsOptions()
     local styleTraitIcon = ""
     local icons = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS
@@ -373,7 +446,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                     local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
                     for _, tooltipType in ipairs(tooltipTypes) do
                         if sharedItemSupport and type(sharedItemSupport.UpdateTooltipEquippedText) == "function" then
-                            sharedItemSupport.UpdateTooltipEquippedText(tonumber(tooltipType) or 0, nil)
+                            sharedItemSupport.UpdateTooltipEquippedText(tooltipType, nil)
                         end
                         if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearTooltip then
                             GAMEPAD_TOOLTIPS:ClearTooltip(tooltipType)
@@ -550,5 +623,11 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         controls = enhancedTooltipControls,
     })
 
+    WrapGeneralInterfaceSettingControls(generalControls, "general")
+    TraceGeneralSetting("settings_options", "built", {
+        generalControls = #generalControls,
+        marketIntegrationControls = #marketIntegrationControls,
+        enhancedTooltipControls = #enhancedTooltipControls,
+    })
     return generalControls
 end

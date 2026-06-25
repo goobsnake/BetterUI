@@ -46,33 +46,51 @@ local function IsWritsModuleEnabled()
     return BETTERUI.GetModuleEnabled("Writs")
 end
 
+local function TraceWritEvent(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = data.module or "Writs"
+    data.scene = data.scene or (SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil)
+    data.feature = data.feature or "writ-events"
+    data.fn = data.fn or "Writs.Module"
+    data["function"] = data["function"] or data.fn
+    L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data)
+end
+
 local function OnCraftStation(_, craftId)
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "writ craft station opened", { craftId = craftId })
+    TraceWritEvent("writ.station", "opened", { craftId = craftId })
+    if not IsWritsModuleEnabled() then
+        TraceWritEvent("writ.station", "skipped", { craftId = craftId, reason = "moduleDisabled" })
+        return
     end
-    if not IsWritsModuleEnabled() then return end
 
     local id = craftId and tonumber(craftId)
-    if not id then return end
+    if not id then
+        TraceWritEvent("writ.station", "skipped", { craftId = craftId, reason = "invalidCraftId" })
+        return
+    end
 
     SafeExecuteWrits("Writs:OnCraftStation", BETTERUI.Writs.ShowForCraftType, id)
 end
 
 local function OnCloseCraftStation(_)
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "writ craft station closed")
-    end
+    TraceWritEvent("writ.station", "closed")
     SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.HidePanel)
 end
 
 local function OnCraftItem(_, craftId)
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "writ craft item", { craftId = craftId })
+    TraceWritEvent("writ.craft", "completed", { craftId = craftId })
+    if not IsWritsModuleEnabled() then
+        TraceWritEvent("writ.craft", "skipped", { craftId = craftId, reason = "moduleDisabled" })
+        return
     end
-    if not IsWritsModuleEnabled() then return end
 
     local id = craftId and tonumber(craftId)
-    if not id then return end
+    if not id then
+        TraceWritEvent("writ.craft", "skipped", { craftId = craftId, reason = "invalidCraftId" })
+        return
+    end
 
     SafeExecuteWrits("Writs:OnCraftItem", BETTERUI.Writs.ShowForCraftType, id)
 end
@@ -88,6 +106,7 @@ end
 
 ---@type BetterUIModuleSetupHook
 function Writs.Setup()
+    TraceWritEvent("writ.setup", "begin")
     local tlw = BETTERUI.WindowManager:CreateTopLevelWindow("BETTERUI_Writs_TLW")
     local BETTERUI_WP = BETTERUI.WindowManager:CreateControlFromVirtual("BETTERUI_WritsPanel", tlw, "BETTERUI_WritsPanel")
 
@@ -99,4 +118,5 @@ function Writs.Setup()
     Writs.CacheControls()
 
     BETTERUI_WP:SetHidden(true)
+    TraceWritEvent("writ.setup", "end", { hidden = true })
 end

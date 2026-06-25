@@ -16,6 +16,29 @@ local MARKET_INTEGRATION = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
 -- Hook installation state (idempotent)
 local _hooksInstalled = false
 
+local function GetCurrentSceneName()
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
+        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
+        if ok then return sceneName end
+    end
+    return nil
+end
+
+local function TraceCraftingPriceTooltip(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not L or type(L.TraceEvent) ~= "function" then return end
+    local payload = data or {}
+    payload.module = "GeneralInterface"
+    payload.feature = "crafting_price_tooltip"
+    payload.scene = GetCurrentSceneName()
+    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction(event)
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.GENERAL, event, phase, payload)
+end
+
 ---@return boolean
 local function IsCraftingMarketPriceEnabled()
     if not BETTERUI.GetSetting then return false end
@@ -29,20 +52,29 @@ end
 ---@param tooltipControl table
 ---@param itemLink string
 local function AppendPriceLine(tooltipControl, itemLink)
-    if not tooltipControl or not itemLink or itemLink == "" then return end
-    if not IsCraftingMarketPriceEnabled() then return end
+    if not tooltipControl or not itemLink or itemLink == "" then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "append_skipped", { fn = "AppendPriceLine", reason = "missingTooltipOrItem", itemLink = itemLink })
+        return
+    end
+    if not IsCraftingMarketPriceEnabled() then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "append_skipped", { fn = "AppendPriceLine", reason = "settingDisabled", itemLink = itemLink })
+        return
+    end
     if not MARKET_INTEGRATION or type(MARKET_INTEGRATION.GetMarketPriceInfo) ~= "function" then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "append_skipped", { fn = "AppendPriceLine", reason = "missingMarketIntegration", itemLink = itemLink })
         return
     end
     -- Gamepad tooltips only: keyboard tooltip controls lack the section API.
     if type(tooltipControl.AcquireSection) ~= "function"
         or type(tooltipControl.GetStyle) ~= "function"
         or type(tooltipControl.AddSection) ~= "function" then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "append_skipped", { fn = "AppendPriceLine", reason = "unsupportedTooltipControl", itemLink = itemLink })
         return
     end
 
     local priceInfo = MARKET_INTEGRATION.GetMarketPriceInfo(itemLink, 1)
     if not priceInfo or not priceInfo.hasData or not priceInfo.price or priceInfo.price <= 0 then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "append_skipped", { fn = "AppendPriceLine", reason = "noMarketData", itemLink = itemLink, hasData = priceInfo and priceInfo.hasData or false, price = priceInfo and priceInfo.price or nil, sourceKey = priceInfo and priceInfo.sourceKey or nil })
         return
     end
 
@@ -65,6 +97,7 @@ local function AppendPriceLine(tooltipControl, itemLink)
     local section = tooltipControl:AcquireSection(tooltipControl:GetStyle("bodySection"))
     section:AddLine(lineText, tooltipControl:GetStyle("bodyDescription"))
     tooltipControl:AddSection(section)
+    TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "appended", { fn = "AppendPriceLine", itemLink = itemLink, price = priceInfo.price, sourceKey = priceInfo.sourceKey, displayPrice = displayPrice })
 end
 
 -- Exposed for unit tests.
@@ -107,18 +140,18 @@ function CraftingPriceTooltip.InstallHooks()
     local creationClass = rawget(_G, "ZO_GamepadSmithingCreation")
     if creationClass and creationClass.SetupResultTooltip then
         ZO_PostHook(creationClass, "SetupResultTooltip", OnCreationResultTooltip)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "SetupResultTooltip", target = type(creationClass) }) end
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip_hooks", "posthook_installed", { fn = "InstallHooks", class = "ZO_GamepadSmithingCreation", method = "SetupResultTooltip", target = type(creationClass) })
         hooked = true
     end
     local improvementClass = rawget(_G, "ZO_GamepadSmithingImprovement")
     if improvementClass and improvementClass.SetupResultTooltip then
         ZO_PostHook(improvementClass, "SetupResultTooltip", OnImprovementResultTooltip)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "SetupResultTooltip", target = type(improvementClass) }) end
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip_hooks", "posthook_installed", { fn = "InstallHooks", class = "ZO_GamepadSmithingImprovement", method = "SetupResultTooltip", target = type(improvementClass) })
         hooked = true
     end
 
     _hooksInstalled = hooked
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "crafting price tooltip hooks installed", { installed = hooked }) end
+    TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip_hooks", "install_end", { fn = "InstallHooks", installed = hooked })
 end
 
 --- Returns whether hooks are currently installed.

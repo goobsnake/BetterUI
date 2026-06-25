@@ -43,6 +43,71 @@ end
 BETTERUI.TradingHouse.EnsureTaskManager = EnsureTradingHouseTaskManager
 BETTERUI.TradingHouse.Tasks = BETTERUI.TradingHouse.Tasks or TradingHouseDeferredTask.CreateLazyManagerProxy(EnsureTradingHouseTaskManager)
 
+local function GetTHModeName(mode)
+    local modeTable = BETTERUI.TradingHouse.MODE or {}
+    for name, value in pairs(modeTable) do
+        if value == mode then
+            return name
+        end
+    end
+    return tostring(mode or "<none>")
+end
+
+local function CountTHList(instance)
+    local dataList = instance and instance.list and instance.list.dataList
+    return type(dataList) == "table" and #dataList or nil
+end
+
+local function DescribeTHSelection(instance)
+    local L = BETTERUI.Log
+    local list = instance and instance.list
+    if not list then
+        return nil
+    end
+    if L and L.DescribeListSelection then
+        local ok, description = pcall(L.DescribeListSelection, list, "selection")
+        if ok then
+            return description
+        end
+    end
+    local selectedData = nil
+    if list.GetTargetData then
+        selectedData = list:GetTargetData()
+    elseif list.GetSelectedData then
+        selectedData = list:GetSelectedData()
+    end
+    local dataSource = selectedData and (selectedData.dataSource or selectedData) or nil
+    if L and L.DescribeItem and dataSource then
+        local ok, description = pcall(L.DescribeItem, dataSource, "selection")
+        if ok then
+            return description
+        end
+    end
+    return dataSource and (dataSource.name or dataSource.itemLink or tostring(dataSource.bagId or "")) or nil
+end
+
+local function TraceTH(category, event, phase, instance, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then
+        return
+    end
+    data = data or {}
+    local mode = data.mode or (instance and instance.GetCurrentMode and instance:GetCurrentMode()) or nil
+    data.module = data.module or "TradingHouse"
+    data.scene = data.scene or BETTERUI_TRADING_HOUSE_SCENE_NAME
+    data.feature = data.feature or "trading-house"
+    data.fn = data.fn or "TradingHouse.Class"
+    data["function"] = data["function"] or data.fn
+    data.mode = mode
+    data.modeName = data.modeName or GetTHModeName(mode)
+    data.guildId = data.guildId or (GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil)
+    data.rowCount = data.rowCount or CountTHList(instance)
+    data.selection = data.selection or DescribeTHSelection(instance)
+    L.TraceEvent(category or L.CATEGORY.ACTION, event, phase, data)
+end
+
+BETTERUI.TradingHouse.Trace = BETTERUI.TradingHouse.Trace or TraceTH
+
 -- CLASS DEFINITION
 
 ---@class BETTERUI.TradingHouse.Class : BETTERUI.CIM.GenericWindow
@@ -77,27 +142,80 @@ end
 
 ---@param mode number TH mode constant from BETTERUI.TradingHouse.MODE
 function BETTERUI.TradingHouse.Class:SetMode(mode)
-    if not mode then return end
-    if self.currentMode == mode then return end
+    local L = BETTERUI.Log
+    local oldMode = self.currentMode
+    if not mode then
+        TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.mode", "skipped", self, {
+            reason = "missingMode",
+            oldMode = oldMode,
+        })
+        return
+    end
+    if oldMode == mode then
+        TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.mode", "skipped", self, {
+            reason = "sameMode",
+            oldMode = oldMode,
+            targetMode = mode,
+        })
+        return
+    end
+
+    TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.mode", "begin", self, {
+        oldMode = oldMode,
+        oldModeName = GetTHModeName(oldMode),
+        targetMode = mode,
+        targetModeName = GetTHModeName(mode),
+    })
 
     -- Deactivate the current component if any
     local oldComponent = self:GetActiveComponent()
     if oldComponent and oldComponent.Deactivate then
+        TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.component", "deactivate_before", self, {
+            oldMode = oldMode,
+            targetMode = mode,
+        })
         oldComponent:Deactivate(self)
+        TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.component", "deactivate_after", self, {
+            oldMode = oldMode,
+            targetMode = mode,
+        })
     end
 
     self.currentMode = mode
+    TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.mode", "applied", self, {
+        oldMode = oldMode,
+        targetMode = mode,
+    })
 
     -- Activate the new component
     local newComponent = self:GetActiveComponent()
     if newComponent and newComponent.Activate then
+        TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.component", "activate_before", self, {
+            oldMode = oldMode,
+        })
         newComponent:Activate(self)
+        TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.component", "activate_after", self, {
+            oldMode = oldMode,
+        })
     end
 
     -- Update keybinds for new mode
-    if self:IsSceneShowing() then
+    if self:IsSceneShowing() and KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+        TraceTH(L and L.CATEGORY.ACTION, "trading_house.keybinds", "refresh_before", self, {
+            reason = "modeChanged",
+            keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
+        })
         KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        TraceTH(L and L.CATEGORY.ACTION, "trading_house.keybinds", "refresh_after", self, {
+            reason = "modeChanged",
+            keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
+        })
     end
+
+    TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.mode", "end", self, {
+        oldMode = oldMode,
+        targetMode = mode,
+    })
 end
 
 ---@return THComponent|nil component The currently active component, or nil
@@ -118,37 +236,67 @@ end
 
 --- Clears and rebuilds the list from the active component's BuildList.
 function BETTERUI.TradingHouse.Class:RefreshList()
+    local L = BETTERUI.Log
     if self._suppressListUpdates then
         self._isDirty = true
+        TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "skipped", self, {
+            reason = "suppressed",
+            isDirty = true,
+        })
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "TH list update suppressed/missing") end
         return
     end
 
     if not self.list then
+        TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "skipped", self, {
+            reason = "missingList",
+        })
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "TH list update suppressed/missing") end
         return
     end
 
+    TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "begin", self, {
+        isDirty = self._isDirty == true,
+    })
     self.list:Clear()
 
     local component = self:GetActiveComponent()
     if component and component.BuildList then
+        TraceTH(L and L.CATEGORY.LIST, "trading_house.list_build", "before", self, nil)
         component:BuildList(self)
+        TraceTH(L and L.CATEGORY.LIST, "trading_house.list_build", "after", self, {
+            rowCount = CountTHList(self),
+        })
+    else
+        TraceTH(L and L.CATEGORY.LIST, "trading_house.list_build", "skipped", self, {
+            reason = "missingComponentBuildList",
+        })
     end
 
     self.list:Commit()
     self._isDirty = false
+    TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "committed", self, {
+        rowCount = CountTHList(self),
+    })
+    TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "end", self, {
+        rowCount = CountTHList(self),
+    })
 end
 
 --- Suppresses list refreshes until FlushListUpdates is called.
 function BETTERUI.TradingHouse.Class:SuppressListUpdates()
     self._suppressListUpdates = true
     self._isDirty = false
+    TraceTH(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.list_updates", "suppressed", self, nil)
 end
 
 --- Releases suppressed list updates and refreshes if dirty.
 function BETTERUI.TradingHouse.Class:FlushListUpdates()
+    local wasDirty = self._isDirty == true
     self._suppressListUpdates = false
+    TraceTH(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.list_updates", "flushed", self, {
+        wasDirty = wasDirty,
+    })
     if self._isDirty then
         self:RefreshList()
     end

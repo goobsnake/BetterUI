@@ -21,6 +21,29 @@ local function AsFunctionOrBoolean(value)
     return nil
 end
 
+local function TraceKeybind(scope, keybind, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.scope = scope
+    data.keybind = keybind
+    L.TraceEvent(L.CATEGORY.KEYBIND, "keybind.callback", phase, data)
+end
+
+local function InvokeKeybind(scope, keybind, action, callback, data)
+    if type(callback) ~= "function" then
+        TraceKeybind(scope, keybind, "end", { action = action, handled = false, reason = "missingCallback" })
+        return nil
+    end
+    data = data or {}
+    data.action = action
+    TraceKeybind(scope, keybind, "start", data)
+    local r1, r2, r3 = callback()
+    data.handled = true
+    TraceKeybind(scope, keybind, "end", data)
+    return r1, r2, r3
+end
+
 -- KEYBIND FACTORY FUNCTIONS
 
 ---@param callback function|nil
@@ -34,8 +57,10 @@ function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
         name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
         keybind = "UI_SHORTCUT_NEGATIVE",
         order = 2000,
-        callback = callback or function()
-            SCENE_MANAGER:HideCurrentScene()
+        callback = function()
+            return InvokeKeybind("generic", "UI_SHORTCUT_NEGATIVE", "back", callback or function()
+                SCENE_MANAGER:HideCurrentScene()
+            end)
         end,
     }
 end
@@ -54,7 +79,9 @@ function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
         disabledDuringSceneHiding = true,
         visible = visibleFn or function() return true end,
         callback = function()
-            StackBag(bagId)
+            return InvokeKeybind("generic", "UI_SHORTCUT_LEFT_STICK", "stack_all", function()
+                StackBag(bagId)
+            end, { bagId = bagId })
         end,
     }
 end
@@ -72,7 +99,9 @@ function BETTERUI.CIM.Keybinds.CreateActionsKeybind(showActionsFn, visibleFn)
         keybind = "UI_SHORTCUT_TERTIARY",
         order = 1000,
         visible = visibleFn or function() return true end,
-        callback = showActionsFn,
+        callback = type(showActionsFn) == "function" and function()
+            return InvokeKeybind("generic", "UI_SHORTCUT_TERTIARY", "actions", showActionsFn)
+        end or nil,
     }
 end
 
@@ -101,7 +130,9 @@ function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn
             end
             return baseVisible
         end,
-        callback = clearSearchFn,
+        callback = function()
+            return InvokeKeybind("generic", "UI_SHORTCUT_QUATERNARY", "clear_search", clearSearchFn)
+        end,
     }
 end
 
@@ -112,18 +143,12 @@ end
 --- "Multi-Select" mode-entry keybind label.
 ---@return string
 function BETTERUI.CIM.Keybinds.GetMultiSelectLabel()
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "keybind: multi-select label resolved", {count = 0})
-    end
     return GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT") or "SI_BETTERUI_MULTI_SELECT")
 end
 
 --- "Select All" batch-dialog entry label.
 ---@return string
 function BETTERUI.CIM.Keybinds.GetSelectAllLabel()
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "keybind: multi-select label resolved", {count = 0})
-    end
     return GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL") or "SI_BETTERUI_SELECT_ALL")
 end
 
@@ -131,9 +156,6 @@ end
 ---@param selectedCount number Current number of selected rows
 ---@return string
 function BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount)
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "keybind: multi-select label resolved", {count = selectedCount})
-    end
     return zo_strformat("<<1>> (<<2>>)",
         GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL") or "SI_BETTERUI_DESELECT_ALL"), selectedCount)
 end
@@ -161,9 +183,6 @@ function BETTERUI.CIM.Keybinds.GetMultiSelectToggleLabel(manager, target, afterT
         else
             count = count + 1
         end
-    end
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "keybind: multi-select label resolved", {count = count})
     end
     return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT") or "SI_BETTERUI_SELECT_WITH_COUNT"), count)
 end
@@ -253,25 +272,63 @@ BuildTriggerKeybinds = function(contract)
         return 1
     end
 
+    local function TraceListTrigger(direction, phase, list, data)
+        local L = BETTERUI.Log
+        if not (L and L.TraceEvent) then return end
+        data = data or {}
+        data.direction = direction
+        data.keybind = direction == "previous" and "UI_SHORTCUT_LEFT_TRIGGER" or "UI_SHORTCUT_RIGHT_TRIGGER"
+        if list and L.DescribeListSelection then
+            data.selected = L.DescribeListSelection(list, "selection")
+        end
+        L.TraceEvent(L.CATEGORY.KEYBIND, "keybind.list_trigger", phase, data)
+    end
+
     local leftTrigger = {
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",
         ethereal = true,
         callback = function()
-            if not IsEnabled() then return end
-            local list = ResolveList(listOrGetter)
-            if list and (not list.IsActive or list:IsActive()) then
-                local jumpByCategory = false
-                if type(categoryJumpGetter) == "function" then
-                    jumpByCategory = categoryJumpGetter() == true
-                end
-
-                if jumpByCategory and list.JumpToPreviousHeader then
-                    list:JumpToPreviousHeader()
-                elseif not list.IsEmpty or not list:IsEmpty() then
-                    local speed = GetSpeed()
-                    list:SetSelectedIndex(GetSelectedIndex(list) - speed)
-                end
+            if not IsEnabled() then
+                TraceListTrigger("previous", "skipped", nil, { reason = "disabled" })
+                return
             end
+            local list = ResolveList(listOrGetter)
+            if not list then
+                TraceListTrigger("previous", "skipped", nil, { reason = "missingList" })
+                return
+            end
+            if list.IsActive and not list:IsActive() then
+                TraceListTrigger("previous", "skipped", list, { reason = "inactiveList" })
+                return
+            end
+            local jumpByCategory = false
+            if type(categoryJumpGetter) == "function" then
+                jumpByCategory = categoryJumpGetter() == true
+            end
+            local speed = GetSpeed()
+            local selectedBefore = GetSelectedIndex(list)
+            TraceListTrigger("previous", "start", list, {
+                jumpByCategory = jumpByCategory,
+                speed = speed,
+                selectedBefore = selectedBefore,
+            })
+            local action = "none"
+            if jumpByCategory and list.JumpToPreviousHeader then
+                action = "previousHeader"
+                list:JumpToPreviousHeader()
+            elseif not list.IsEmpty or not list:IsEmpty() then
+                action = "offset"
+                list:SetSelectedIndex(selectedBefore - speed)
+            else
+                action = "empty"
+            end
+            TraceListTrigger("previous", "end", list, {
+                action = action,
+                jumpByCategory = jumpByCategory,
+                speed = speed,
+                selectedBefore = selectedBefore,
+                selectedAfter = GetSelectedIndex(list),
+            })
         end
     }
 
@@ -279,21 +336,47 @@ BuildTriggerKeybinds = function(contract)
         keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
         ethereal = true,
         callback = function()
-            if not IsEnabled() then return end
-            local list = ResolveList(listOrGetter)
-            if list and (not list.IsActive or list:IsActive()) then
-                local jumpByCategory = false
-                if type(categoryJumpGetter) == "function" then
-                    jumpByCategory = categoryJumpGetter() == true
-                end
-
-                if jumpByCategory and list.JumpToNextHeader then
-                    list:JumpToNextHeader()
-                elseif not list.IsEmpty or not list:IsEmpty() then
-                    local speed = GetSpeed()
-                    list:SetSelectedIndex(GetSelectedIndex(list) + speed)
-                end
+            if not IsEnabled() then
+                TraceListTrigger("next", "skipped", nil, { reason = "disabled" })
+                return
             end
+            local list = ResolveList(listOrGetter)
+            if not list then
+                TraceListTrigger("next", "skipped", nil, { reason = "missingList" })
+                return
+            end
+            if list.IsActive and not list:IsActive() then
+                TraceListTrigger("next", "skipped", list, { reason = "inactiveList" })
+                return
+            end
+            local jumpByCategory = false
+            if type(categoryJumpGetter) == "function" then
+                jumpByCategory = categoryJumpGetter() == true
+            end
+            local speed = GetSpeed()
+            local selectedBefore = GetSelectedIndex(list)
+            TraceListTrigger("next", "start", list, {
+                jumpByCategory = jumpByCategory,
+                speed = speed,
+                selectedBefore = selectedBefore,
+            })
+            local action = "none"
+            if jumpByCategory and list.JumpToNextHeader then
+                action = "nextHeader"
+                list:JumpToNextHeader()
+            elseif not list.IsEmpty or not list:IsEmpty() then
+                action = "offset"
+                list:SetSelectedIndex(selectedBefore + speed)
+            else
+                action = "empty"
+            end
+            TraceListTrigger("next", "end", list, {
+                action = action,
+                jumpByCategory = jumpByCategory,
+                speed = speed,
+                selectedBefore = selectedBefore,
+                selectedAfter = GetSelectedIndex(list),
+            })
         end,
     }
 

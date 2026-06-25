@@ -1,5 +1,30 @@
 if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
+
+local function GetCurrentSceneName()
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
+        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
+        if ok then
+            return sceneName
+        end
+    end
+    return nil
+end
+
+local function TraceCompanionAction(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not L or type(L.TraceEvent) ~= "function" then return end
+    local payload = data or {}
+    payload.module = "Companions"
+    payload.feature = "actions"
+    payload.scene = GetCurrentSceneName()
+    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction(event)
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION or categories.GENERAL, event, phase, payload)
+end
 local function GetProtectionPolicy()
     local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil
     assert(type(policy) == "table",
@@ -47,6 +72,7 @@ end
 --- Alerts the user when a secure RequestMoveItem call is rejected by the client.
 ---@param context string Logging context label
 local function NotifySecureMoveFailed(context)
+    TraceCompanionAction("companions.secure_move", "failed", { fn = "NotifySecureMoveFailed", context = context })
     local stringId = rawget(_G, "SI_BETTERUI_ITEM_MOVE_FAILED")
     BETTERUI.CIM.UserNotify(context, stringId and GetString(stringId) or "Item move request failed")
 end
@@ -66,18 +92,30 @@ function Companions.CanPreviewCompanionItem(bagId, slotIndex)
 end
 
 function Companions.TryPreviewCompanionItem(bagId, slotIndex)
-    if not Companions.CanPreviewCompanionItem(bagId, slotIndex) then return false end
-    if type(PreviewInventoryItem) ~= "function" then return false end
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companion item previewed", { bagId = bagId, slotIndex = slotIndex })
+    TraceCompanionAction("companions.preview", "requested", { fn = "TryPreviewCompanionItem", bagId = bagId, slotIndex = slotIndex })
+    if not Companions.CanPreviewCompanionItem(bagId, slotIndex) then
+        TraceCompanionAction("companions.preview", "rejected", { fn = "TryPreviewCompanionItem", reason = "notPreviewable", bagId = bagId, slotIndex = slotIndex })
+        return false
     end
-    PreviewInventoryItem(bagId, slotIndex)
+    local previewManager = SYSTEMS and SYSTEMS.GetObject and SYSTEMS:GetObject("itemPreview") or nil
+    if previewManager and type(previewManager.PreviewInventoryItem) == "function" then
+        previewManager:PreviewInventoryItem(bagId, slotIndex)
+        TraceCompanionAction("companions.preview", "shown", { fn = "TryPreviewCompanionItem", source = "itemPreviewSystem", bagId = bagId, slotIndex = slotIndex })
+        return true
+    end
+    if type(PreviewInventoryItem) ~= "function" then
+        TraceCompanionAction("companions.preview", "rejected", { fn = "TryPreviewCompanionItem", reason = "missingPreviewApi", bagId = bagId, slotIndex = slotIndex })
+        return false
+    end
+    PreviewInventoryItem(bagId, slotIndex, 1)
+    TraceCompanionAction("companions.preview", "shown", { fn = "TryPreviewCompanionItem", source = "engine", variation = 1, bagId = bagId, slotIndex = slotIndex })
     return true
 end
 
 function Companions.EndCompanionItemPreview()
     if type(EndCurrentItemPreview) == "function" then
         EndCurrentItemPreview()
+        TraceCompanionAction("companions.preview", "ended", { fn = "EndCompanionItemPreview" })
     end
 end
 
@@ -133,9 +171,11 @@ end
 function Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
     local equipType = GetItemEquipType and GetItemEquipType(bagId, slotIndex) or nil
     if equipType == nil or equipType == 0 or equipType == EQUIP_TYPE_INVALID then
+        TraceCompanionAction("companions.equip_slot", "rejected", { fn = "ResolveCompanionEquipSlot", reason = "invalidEquipType", bagId = bagId, slotIndex = slotIndex, equipType = equipType })
         return nil
     end
     if not ZO_Character_EnumerateOrderedEquipSlots or not ZO_Character_DoesEquipSlotUseEquipType then
+        TraceCompanionAction("companions.equip_slot", "rejected", { fn = "ResolveCompanionEquipSlot", reason = "missingEquipSlotApi", bagId = bagId, slotIndex = slotIndex, equipType = equipType })
         return nil
     end
     local isTwoHanded = IsTwoHandedWeapon(bagId, slotIndex)
@@ -153,27 +193,34 @@ function Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
                     firstCompatibleSlot = equipSlot
                 end
                 if not HasItemInSlot or not HasItemInSlot(BAG_COMPANION_WORN, equipSlot) then
+                    TraceCompanionAction("companions.equip_slot", "selected", { fn = "ResolveCompanionEquipSlot", source = "emptyCompatible", bagId = bagId, slotIndex = slotIndex, equipType = equipType, equipSlot = equipSlot, twoHanded = isTwoHanded })
                     return equipSlot
                 end
             end
         end
     end
+    TraceCompanionAction("companions.equip_slot", "selected", { fn = "ResolveCompanionEquipSlot", source = "fallbackCompatible", bagId = bagId, slotIndex = slotIndex, equipType = equipType, equipSlot = firstCompatibleSlot, twoHanded = isTwoHanded })
     return firstCompatibleSlot
 end
 
 local function DoEquipCompanionItem(bagId, slotIndex)
+    TraceCompanionAction("companions.equip", "secure_move_begin", { fn = "DoEquipCompanionItem", bagId = bagId, slotIndex = slotIndex })
     local equipSlot = Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
     if not equipSlot then
         NotifySecureMoveFailed("Companions:ResolveEquipSlot")
+        TraceCompanionAction("companions.equip", "secure_move_rejected", { fn = "DoEquipCompanionItem", reason = "noEquipSlot", bagId = bagId, slotIndex = slotIndex })
         return false
     end
     if CallSecureProtected then
         if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1) then
             NotifySecureMoveFailed("Companions:Equip")
+            TraceCompanionAction("companions.equip", "secure_move_failed", { fn = "DoEquipCompanionItem", bagId = bagId, slotIndex = slotIndex, destinationBag = BAG_COMPANION_WORN, destinationSlot = equipSlot })
             return false
         end
+        TraceCompanionAction("companions.equip", "secure_move_requested", { fn = "DoEquipCompanionItem", bagId = bagId, slotIndex = slotIndex, destinationBag = BAG_COMPANION_WORN, destinationSlot = equipSlot })
         return true
     end
+    TraceCompanionAction("companions.equip", "secure_move_rejected", { fn = "DoEquipCompanionItem", reason = "missingCallSecureProtected", bagId = bagId, slotIndex = slotIndex, destinationBag = BAG_COMPANION_WORN, destinationSlot = equipSlot })
     return false
 end
 
@@ -199,7 +246,12 @@ local function EnsureCompanionEquipBoEDialogRegistered()
             {
                 text = SI_DIALOG_ACCEPT,
                 callback = function(dialog)
-                    dialog.data.callback()
+                    TraceCompanionAction("companions.equip_boe_dialog", "accepted", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG })
+                    local callback = dialog and dialog.data and dialog.data.callback or nil
+                    if type(callback) == "function" then
+                        return callback()
+                    end
+                    TraceCompanionAction("companions.equip_boe_dialog", "callback_missing", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG })
                 end,
             },
             {
@@ -210,11 +262,13 @@ local function EnsureCompanionEquipBoEDialogRegistered()
 end
 
 function Companions.TryEquipCompanionItem(bagId, slotIndex)
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companion item equipped", { bagId = bagId, slotIndex = slotIndex })
+    TraceCompanionAction("companions.equip", "requested", { fn = "TryEquipCompanionItem", bagId = bagId, slotIndex = slotIndex })
+    if bagId == nil or slotIndex == nil then
+        TraceCompanionAction("companions.equip", "rejected", { fn = "TryEquipCompanionItem", reason = "missingSlot", bagId = bagId, slotIndex = slotIndex })
+        return false
     end
-    if bagId == nil or slotIndex == nil then return false end
     if GetItemActorCategory and GetItemActorCategory(bagId, slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+        TraceCompanionAction("companions.equip", "rejected", { fn = "TryEquipCompanionItem", reason = "notCompanionItem", bagId = bagId, slotIndex = slotIndex, actorCategory = GetItemActorCategory(bagId, slotIndex) })
         return false
     end
     local function DoEquip()
@@ -226,23 +280,32 @@ function Companions.TryEquipCompanionItem(bagId, slotIndex)
             -- BetterUI uses a queued, companion-specific BoE confirm dialog (custom callback
             -- contract + canQueue) rather than native CONFIRM_EQUIP_ITEM.
             EnsureCompanionEquipBoEDialogRegistered()
+            if type(ZO_Dialogs_ShowPlatformDialog) ~= "function" then
+                TraceCompanionAction("companions.equip_boe_dialog", "rejected", { fn = "TryEquipCompanionItem", reason = "missingDialogApi", bagId = bagId, slotIndex = slotIndex, itemLink = itemLink })
+                return false
+            end
             ZO_Dialogs_ShowPlatformDialog(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, { callback = DoEquip }, { mainTextParams = { itemLink } })
+            TraceCompanionAction("companions.equip_boe_dialog", "shown", { fn = "TryEquipCompanionItem", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG, bagId = bagId, slotIndex = slotIndex, itemLink = itemLink })
             return true
         end
     end
-    return DoEquip()
+    local moved = DoEquip()
+    TraceCompanionAction("companions.equip", "result", { fn = "TryEquipCompanionItem", bagId = bagId, slotIndex = slotIndex, requested = moved })
+    return moved
 end
 
 function Companions.TryUnequipCompanionItem(slotIndex)
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "companion item unequipped", { slotIndex = slotIndex })
+    TraceCompanionAction("companions.unequip", "requested", { fn = "TryUnequipCompanionItem", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex })
+    if slotIndex == nil then
+        TraceCompanionAction("companions.unequip", "rejected", { fn = "TryUnequipCompanionItem", reason = "missingSlot", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex })
+        return false
     end
-    if slotIndex == nil then return false end
     -- FindFirstEmptySlotInBag(bagId) -> nilable slotIndex; slot 0 may be occupied.
     -- Use a single lookup to avoid a TOCTOU between GetNumBagFreeSlots and
     -- finding the actual empty slot.
     local destinationSlot = FindFirstEmptySlotInBag and FindFirstEmptySlotInBag(BAG_BACKPACK) or nil
     if destinationSlot == nil then
+        TraceCompanionAction("companions.unequip", "rejected", { fn = "TryUnequipCompanionItem", reason = "backpackFull", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK })
         BETTERUI.CIM.UserAlertText("Companions:BagFull",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY") or "SI_BETTERUI_VENDOR_CANNOT_CARRY"))
         return false
@@ -250,10 +313,13 @@ function Companions.TryUnequipCompanionItem(slotIndex)
     if CallSecureProtected then
         if not CallSecureProtected("RequestMoveItem", BAG_COMPANION_WORN, slotIndex, BAG_BACKPACK, destinationSlot, 1) then
             NotifySecureMoveFailed("Companions:Unequip")
+            TraceCompanionAction("companions.unequip", "secure_move_failed", { fn = "TryUnequipCompanionItem", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
             return false
         end
+        TraceCompanionAction("companions.unequip", "secure_move_requested", { fn = "TryUnequipCompanionItem", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
         return true
     end
+    TraceCompanionAction("companions.unequip", "rejected", { fn = "TryUnequipCompanionItem", reason = "missingCallSecureProtected", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
     return false
 end
 
@@ -266,6 +332,7 @@ end
 
 function Companions.ToggleCompanionItemLock(bagId, slotIndex)
     local locked = Companions.IsCompanionItemLocked(bagId, slotIndex)
+    TraceCompanionAction("companions.lock_toggle", "requested", { fn = "ToggleCompanionItemLock", bagId = bagId, slotIndex = slotIndex, locked = locked, targetLocked = not locked })
     -- Explicit branch: `locked and CanUnlockItem(...) or CanLockItem(...)` falls
     -- through to CanLockItem when CanUnlockItem returns false.
     local canToggle
@@ -275,9 +342,12 @@ function Companions.ToggleCompanionItemLock(bagId, slotIndex)
         canToggle = CanLockItem(bagId, slotIndex)
     end
     if not canToggle then
+        TraceCompanionAction("companions.lock_toggle", "rejected", { fn = "ToggleCompanionItemLock", bagId = bagId, slotIndex = slotIndex, locked = locked, targetLocked = not locked })
         return false
     end
-    return SetCompanionItemLockState(bagId, slotIndex, not locked)
+    local changed = SetCompanionItemLockState(bagId, slotIndex, not locked)
+    TraceCompanionAction("companions.lock_toggle", "result", { fn = "ToggleCompanionItemLock", bagId = bagId, slotIndex = slotIndex, locked = locked, targetLocked = not locked, changed = changed })
+    return changed
 end
 
 function Companions.IsCompanionItemJunk(bagId, slotIndex)
@@ -289,10 +359,12 @@ end
 
 function Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     if not SetItemIsJunk then
+        TraceCompanionAction("companions.junk_toggle", "rejected", { fn = "ToggleCompanionItemJunk", reason = "missingJunkApi", bagId = bagId, slotIndex = slotIndex })
         return false
     end
 
     local junk = Companions.IsCompanionItemJunk(bagId, slotIndex)
+    TraceCompanionAction("companions.junk_toggle", "requested", { fn = "ToggleCompanionItemJunk", bagId = bagId, slotIndex = slotIndex, junk = junk, targetJunk = not junk })
     -- Explicit branch (see ToggleCompanionItemLock): avoid falling through to
     -- CanJunkItem when CanUnjunkItem returns false.
     local canToggle
@@ -302,20 +374,24 @@ function Companions.ToggleCompanionItemJunk(bagId, slotIndex)
         canToggle = CanJunkItem(bagId, slotIndex)
     end
     if not canToggle then
+        TraceCompanionAction("companions.junk_toggle", "rejected", { fn = "ToggleCompanionItemJunk", bagId = bagId, slotIndex = slotIndex, junk = junk, targetJunk = not junk })
         return false
     end
 
     SetItemIsJunk(bagId, slotIndex, not junk)
+    TraceCompanionAction("companions.junk_toggle", "result", { fn = "ToggleCompanionItemJunk", bagId = bagId, slotIndex = slotIndex, junk = junk, targetJunk = not junk, changed = true })
     return true
 end
 
 function Companions.ShowCompanionDestroyDialog(bagId, slotIndex, slotType)
     if not CanDestroyItem(bagId, slotIndex, slotType) then
+        TraceCompanionAction("companions.destroy_dialog", "rejected", { fn = "ShowCompanionDestroyDialog", reason = "policyBlocked", bagId = bagId, slotIndex = slotIndex, slotType = slotType })
         return false
     end
     local itemLink = GetItemLink(bagId, slotIndex)
     ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
         { bagId = bagId, slotIndex = slotIndex, itemLink = itemLink }, nil, true, true)
+    TraceCompanionAction("companions.destroy_dialog", "shown", { fn = "ShowCompanionDestroyDialog", dialog = "BETTERUI_CONFIRM_DESTROY_DIALOG", bagId = bagId, slotIndex = slotIndex, slotType = slotType, itemLink = itemLink })
     return true
 end
 
@@ -345,28 +421,41 @@ end
 ---@return boolean destroyed
 function Companions.QuickDestroyCompanionItem(bagId, slotIndex, slotType, expectedIdentity)
     if not MatchesCapturedItemIdentity(bagId, slotIndex, expectedIdentity) then
+        TraceCompanionAction("companions.quick_destroy", "skipped", { fn = "QuickDestroyCompanionItem", reason = "identityMismatch", bagId = bagId, slotIndex = slotIndex, slotType = slotType })
         return false
     end
     if not CanDestroyItem(bagId, slotIndex, slotType) then
+        TraceCompanionAction("companions.quick_destroy", "rejected", { fn = "QuickDestroyCompanionItem", reason = "policyBlocked", bagId = bagId, slotIndex = slotIndex, slotType = slotType })
         return false
     end
-    return RequireInventoryDestroyExecutor()(bagId, slotIndex, true, false, slotType) == true
+    local destroyed = RequireInventoryDestroyExecutor()(bagId, slotIndex, true, false, slotType) == true
+    TraceCompanionAction("companions.quick_destroy", "result", { fn = "QuickDestroyCompanionItem", bagId = bagId, slotIndex = slotIndex, slotType = slotType, destroyed = destroyed })
+    return destroyed
 end
 
 function Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
     local stackSize = GetSlotStackSize(bagId, slotIndex) or 1
     if stackSize > 1 and ZO_Dialogs_ShowGamepadDialog then
         ZO_Dialogs_ShowGamepadDialog("ZO_GAMEPAD_SPLIT_STACK_DIALOG", { bag = bagId, slot = slotIndex, stack = stackSize })
+        TraceCompanionAction("companions.split_stack_dialog", "shown", { fn = "ShowCompanionSplitStackDialog", dialog = "ZO_GAMEPAD_SPLIT_STACK_DIALOG", bagId = bagId, slotIndex = slotIndex, stackSize = stackSize })
+    else
+        TraceCompanionAction("companions.split_stack_dialog", "skipped", { fn = "ShowCompanionSplitStackDialog", reason = stackSize <= 1 and "singleItem" or "missingDialogApi", bagId = bagId, slotIndex = slotIndex, stackSize = stackSize })
     end
 end
 
 function Companions.BuildActionList(selectedData)
     local actions = {}
-    if not selectedData then return actions end
+    if not selectedData then
+        TraceCompanionAction("companions.action_menu", "built", { fn = "BuildActionList", reason = "noSelection", actionCount = 0 })
+        return actions
+    end
     local ds = selectedData.dataSource or selectedData
     local bagId = ds.bagId
     local slotIndex = ds.slotIndex
-    if not bagId or not slotIndex then return actions end
+    if not bagId or not slotIndex then
+        TraceCompanionAction("companions.action_menu", "built", { fn = "BuildActionList", reason = "missingSlot", bagId = bagId, slotIndex = slotIndex, actionCount = 0 })
+        return actions
+    end
 
     -- Equip / Unequip
     if ds.isEquipped then
@@ -411,43 +500,54 @@ function Companions.BuildActionList(selectedData)
         table.insert(actions, { id = "split", name = GetString(SI_ITEM_ACTION_SPLIT_STACK) })
     end
 
+    local actionIds = {}
+    for i = 1, #actions do
+        actionIds[i] = actions[i].id
+    end
+    TraceCompanionAction("companions.action_menu", "built", { fn = "BuildActionList", bagId = bagId, slotIndex = slotIndex, equipped = ds.isEquipped == true, stackCount = stackCount, actionCount = #actions, actionIds = table.concat(actionIds, ",") })
     return actions
 end
 
 function Companions.ExecuteAction(actionId, selectedData)
-    if not selectedData then return false end
+    TraceCompanionAction("companions.action", "requested", { fn = "ExecuteAction", actionId = actionId })
+    if not selectedData then
+        TraceCompanionAction("companions.action", "rejected", { fn = "ExecuteAction", reason = "noSelection", actionId = actionId })
+        return false
+    end
     local ds, bagId, slotIndex, slotType = ResolveCompanionActionTarget(selectedData)
     if not Companions.CanExecuteAction(actionId, ds) then
+        TraceCompanionAction("companions.action", "rejected", { fn = "ExecuteAction", reason = "cannotExecute", actionId = actionId, bagId = bagId, slotIndex = slotIndex, slotType = slotType })
         return false
     end
 
+    local result = false
     if actionId == "equip" then
-        return Companions.TryEquipCompanionItem(bagId, slotIndex)
+        result = Companions.TryEquipCompanionItem(bagId, slotIndex)
     elseif actionId == "unequip" then
-        return Companions.TryUnequipCompanionItem(slotIndex)
+        result = Companions.TryUnequipCompanionItem(slotIndex)
     elseif actionId == "preview" then
-        return Companions.TryPreviewCompanionItem(bagId, slotIndex)
+        result = Companions.TryPreviewCompanionItem(bagId, slotIndex)
     elseif actionId == "destroy" then
         if not CanDestroyItem(bagId, slotIndex, slotType) then
-            return false
-        end
-
-        if Companions.GetSetting("quickDestroy") == true then
-            return RequireInventoryDestroyExecutor()(bagId, slotIndex, true, false, slotType)
+            TraceCompanionAction("companions.action", "rejected", { fn = "ExecuteAction", reason = "destroyPolicyBlocked", actionId = actionId, bagId = bagId, slotIndex = slotIndex, slotType = slotType })
+            result = false
+        elseif Companions.GetSetting("quickDestroy") == true then
+            result = RequireInventoryDestroyExecutor()(bagId, slotIndex, true, false, slotType)
         else
-            return Companions.ShowCompanionDestroyDialog(bagId, slotIndex, slotType)
+            result = Companions.ShowCompanionDestroyDialog(bagId, slotIndex, slotType)
         end
     elseif actionId == "lock" then
-        return Companions.ToggleCompanionItemLock(bagId, slotIndex)
+        result = Companions.ToggleCompanionItemLock(bagId, slotIndex)
     elseif actionId == "unlock" then
-        return Companions.ToggleCompanionItemLock(bagId, slotIndex)
+        result = Companions.ToggleCompanionItemLock(bagId, slotIndex)
     elseif actionId == "junk" then
-        return Companions.ToggleCompanionItemJunk(bagId, slotIndex)
+        result = Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     elseif actionId == "unjunk" then
-        return Companions.ToggleCompanionItemJunk(bagId, slotIndex)
+        result = Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     elseif actionId == "split" then
         Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
-        return true
+        result = true
     end
-    return false
+    TraceCompanionAction("companions.action", "result", { fn = "ExecuteAction", actionId = actionId, bagId = bagId, slotIndex = slotIndex, slotType = slotType, result = result == true })
+    return result
 end

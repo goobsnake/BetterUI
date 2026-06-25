@@ -115,7 +115,12 @@ end
 
 --- Ensures header tab bar keybinds are active.
 function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "ensure header keybinds", { hasMain = self.mainKeybindStripDescriptor ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "ensure header keybinds", {
+        fn = "GenericWindow:EnsureHeaderKeybindsActive",
+        main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or tostring(self.mainKeybindStripDescriptor),
+        tab = BETTERUI.Log.DescribeKeybindDescriptor and self.headerGeneric and self.headerGeneric.tabBar and BETTERUI.Log.DescribeKeybindDescriptor(self.headerGeneric.tabBar.keybindStripDescriptor, "tab") or nil,
+        search = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.textSearchKeybindStripDescriptor, "search") or tostring(self.textSearchKeybindStripDescriptor),
+    }) end
     if self.headerGeneric and self.headerGeneric.tabBar then
         local tabBar = self.headerGeneric.tabBar
         if tabBar.keybindStripDescriptor then
@@ -139,7 +144,11 @@ end
 function BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds()
     if not KEYBIND_STRIP then return end
 
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refresh active keybinds", { hasCore = self.coreKeybinds ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refresh active keybinds", {
+        fn = "GenericWindow:RefreshActiveKeybinds",
+        main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or tostring(self.mainKeybindStripDescriptor),
+        core = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.coreKeybinds, "core") or tostring(self.coreKeybinds),
+    }) end
     if self.mainKeybindStripDescriptor then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
     end

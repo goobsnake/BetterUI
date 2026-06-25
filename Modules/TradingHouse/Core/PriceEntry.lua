@@ -12,6 +12,15 @@ local TH = BETTERUI.TradingHouse
 TH.PriceEntry = {}
 local PriceEntry = TH.PriceEntry
 
+local function TracePriceEntry(event, phase, data, category)
+    if type(TH.Trace) == "function" then
+        data = data or {}
+        data.feature = data.feature or "trading-house-price-entry"
+        data.fn = data.fn or "TradingHouse.PriceEntry"
+        TH.Trace(category or (BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG), event, phase, TH.instance, data)
+    end
+end
+
 -- PURE HELPERS ----------------------------------------------------------------
 
 --- Clamp and sanitize a listing price to an integer within [min, max].
@@ -58,11 +67,26 @@ end
 ---@param onConfirm function(price)
 ---@return boolean shown
 function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onConfirm)
+    TracePriceEntry("trading_house.price_entry", "show_begin", {
+        fn = "TradingHouse.PriceEntry.ShowDigitPriceDialog",
+        defaultPrice = defaultPrice,
+        minPrice = minPrice,
+        maxPrice = maxPrice,
+        hasConfirm = type(onConfirm) == "function",
+    })
     if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_ShowGamepadDialog) then
+        TracePriceEntry("trading_house.price_entry", "show_rejected", {
+            fn = "TradingHouse.PriceEntry.ShowDigitPriceDialog",
+            reason = "missingDialogApi",
+        })
         return false
     end
 
     if type(onConfirm) ~= "function" then
+        TracePriceEntry("trading_house.price_entry", "show_rejected", {
+            fn = "TradingHouse.PriceEntry.ShowDigitPriceDialog",
+            reason = "missingConfirmCallback",
+        })
         return false
     end
 
@@ -124,9 +148,22 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
                         end
                         local value = data._priceSelector and data._priceSelector:GetValue()
                         value = PriceEntry.ClampListingPrice(value, data.min, data.max)
+                        TracePriceEntry("trading_house.price_entry", "confirm", {
+                            fn = "TradingHouse.PriceEntry.confirm",
+                            value = value,
+                            min = data.min,
+                            max = data.max,
+                        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
                         local ok, err = pcall(data.onConfirm, value)
-                        if not ok and BETTERUI.Log then
-                            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "price digit confirmed", { error = err })
+                        if not ok then
+                            TracePriceEntry("trading_house.price_entry", "confirm_error", {
+                                fn = "TradingHouse.PriceEntry.confirm",
+                                value = value,
+                                error = err,
+                            }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
+                            if BETTERUI.Log then
+                                BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "price digit confirmed", { error = err })
+                            end
                         end
                     end,
                 },
@@ -142,6 +179,13 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
         min = minPrice,
         max = maxPrice,
         onConfirm = onConfirm,
+    })
+    TracePriceEntry("trading_house.price_entry", "shown", {
+        fn = "TradingHouse.PriceEntry.ShowDigitPriceDialog",
+        dialog = DIGIT_PRICE_DIALOG,
+        defaultPrice = defaultPrice,
+        min = minPrice,
+        max = maxPrice,
     })
     return true
 end

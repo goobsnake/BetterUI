@@ -56,6 +56,12 @@ end
 --- Hooks the native Y-button Action Dialog.
 ---@return nil
 function BETTERUI.Inventory.HookActionDialog()
+    local function TraceInventoryActionDialog(event, phase, data)
+        local L = BETTERUI.Log
+        if not (L and L.TraceEvent) then return end
+        L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
+    end
+
     local function ActionsDialogSetup(dialog, data)
         local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
             SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
@@ -139,16 +145,33 @@ function BETTERUI.Inventory.HookActionDialog()
                 and BETTERUI.Utils.IsBankingSceneShowing()
 
             if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Y-Action Dialog setup fired", {invShowing = invShowing, bankShowing = bankShowing}) end
+            TraceInventoryActionDialog("inventory.action_dialog", "setup_before", {
+                invShowing = invShowing == true,
+                bankShowing = bankShowing == true,
+                managed = invShowing == true or bankShowing == true,
+                hasData = data ~= nil,
+            })
 
             if invShowing or bankShowing then
                 dialog._betteruiManaged = true
                 -- Fire callback for BetterUI modules to populate the dialog
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_SETUP", dialog, data)
+                TraceInventoryActionDialog("inventory.action_dialog", "setup_after", {
+                    managed = true,
+                    invShowing = invShowing == true,
+                    bankShowing = bankShowing == true,
+                    entryCount = dialog.info and dialog.info.parametricList and #dialog.info.parametricList or nil,
+                    selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
+                })
                 return
             end
             dialog._betteruiManaged = false
             -- Original function for unsupported scenes
             ActionsDialogSetup(dialog, data)
+            TraceInventoryActionDialog("inventory.action_dialog", "setup_after", {
+                managed = false,
+                entryCount = dialog.info and dialog.info.parametricList and #dialog.info.parametricList or nil,
+            })
         end,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = {
@@ -160,8 +183,13 @@ function BETTERUI.Inventory.HookActionDialog()
         parametricList = {}, --we'll generate the entries on setup
         finishedCallback = function(dialog)
             if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Y-Action Dialog finished", {managed = dialog and dialog._betteruiManaged}) end
+            TraceInventoryActionDialog("inventory.action_dialog", "finish_before", {
+                managed = dialog and dialog._betteruiManaged == true,
+                selected = dialog and BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
+            })
             if dialog and dialog._betteruiManaged then
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH", dialog)
+                TraceInventoryActionDialog("inventory.action_dialog", "finish_after", { managed = true })
                 dialog._betteruiManaged = nil
                 return
             end
@@ -183,8 +211,13 @@ function BETTERUI.Inventory.HookActionDialog()
                 keybind = "DIALOG_PRIMARY",
                 text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                 callback = function(dialog)
+                    TraceInventoryActionDialog("inventory.action_dialog", "primary_callback", {
+                        managed = dialog and dialog._betteruiManaged == true,
+                        selected = dialog and BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
+                    })
                     if dialog and dialog._betteruiManaged then
                         CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", dialog)
+                        TraceInventoryActionDialog("inventory.action_dialog", "primary_dispatched", { managed = true })
                         return
                     end
 

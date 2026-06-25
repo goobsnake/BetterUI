@@ -12,6 +12,47 @@ BETTERUI.CIM.UI.HeaderSortIntegration = {}
 
 local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
 
+local function DescribeDescriptor(descriptor, label)
+    local L = BETTERUI.Log
+    if L and L.DescribeKeybindDescriptor then
+        return L.DescribeKeybindDescriptor(descriptor, label)
+    end
+    return tostring(descriptor)
+end
+
+local function DescribeDescriptors(descriptors, label)
+    local L = BETTERUI.Log
+    if L and L.DescribeKeybindDescriptors then
+        return L.DescribeKeybindDescriptors(descriptors, label)
+    end
+    return tostring(descriptors)
+end
+
+local function DescribeOwnerScene(owner)
+    if not owner then return "nil" end
+    if owner.scene and owner.scene.GetName then
+        local ok, name = pcall(owner.scene.GetName, owner.scene)
+        if ok and name then return tostring(name) end
+    end
+    return tostring(owner.sceneName or owner.scene_name or owner.name or "unknown")
+end
+
+local function GetListItemCount(list)
+    if list and list.GetNumItems then
+        local ok, count = pcall(list.GetNumItems, list)
+        if ok then return count end
+    end
+    return nil
+end
+
+local function HasKeybindGroup(descriptor)
+    if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
+        return false
+    end
+    local ok, present = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, descriptor)
+    return ok and present == true
+end
+
 ---@param options BetterUIHeaderSortInstallOptions|nil
 ---@return BetterUIHeaderSortControllerContract
 local function NormalizeControllerContract(options)
@@ -209,7 +250,15 @@ function HeaderSortIntegration.Install(owner, options)
     options = options or {}
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "header sort install", { hasColumns = options.columns ~= nil and #options.columns > 0, autoEnterOnListStart = options.autoEnterOnListStart == true })
+        local keybinds = options.keybinds or {}
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "header sort install", {
+            fn = "HeaderSortIntegration.Install",
+            scene = DescribeOwnerScene(owner),
+            columns = options.columns and #options.columns or 0,
+            autoEnter = options.autoEnterOnListStart == true,
+            main = DescribeDescriptor(keybinds.mainDescriptor, "main"),
+            owned = DescribeDescriptors(keybinds.ownedDescriptors, "owned"),
+        })
     end
 
     local controllerContract = NormalizeControllerContract(options)
@@ -271,10 +320,18 @@ end
 ---@return boolean
 function HeaderSortIntegration.EnterHeaderMode(integration)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "enter header mode", { active = integration.isActive })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "enter header mode", {
+            fn = "HeaderSortIntegration.EnterHeaderMode",
+            active = integration.isActive,
+            scene = DescribeOwnerScene(integration.owner),
+            main = DescribeDescriptor(integration.keybinds and integration.keybinds.mainDescriptor, "main"),
+            activeKeybind = DescribeDescriptor(integration.activeKeybindDescriptor, "active"),
+            stripHasMain = HasKeybindGroup(integration.keybinds and integration.keybinds.mainDescriptor),
+        })
     end
 
     if integration.isActive then
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SORT, "header sort enter skipped", { fn = "HeaderSortIntegration.EnterHeaderMode", reason = "alreadyActive", scene = DescribeOwnerScene(integration.owner) }) end
         return false
     end
 
@@ -287,6 +344,7 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
 
     local list = ResolveList(integration)
     if not list or not list.GetNumItems or list:GetNumItems() == 0 then
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SORT, "header sort enter skipped", { fn = "HeaderSortIntegration.EnterHeaderMode", reason = "emptyList", scene = DescribeOwnerScene(owner), listItems = GetListItemCount(list) }) end
         if navigationSuspended and integration.navigation.reactivate then
             integration.navigation.reactivate(owner)
         end
@@ -295,6 +353,7 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
 
     local controller = ResolveController(integration)
     if not controller or not controller.EnterHeaderMode then
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "header sort enter failed", { fn = "HeaderSortIntegration.EnterHeaderMode", reason = "missingController", scene = DescribeOwnerScene(owner) }) end
         if navigationSuspended and integration.navigation.reactivate then
             integration.navigation.reactivate(owner)
         end
@@ -302,6 +361,7 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
     end
 
     if controller:EnterHeaderMode() == false then
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SORT, "header sort enter skipped", { fn = "HeaderSortIntegration.EnterHeaderMode", reason = "controllerRejected", scene = DescribeOwnerScene(owner) }) end
         if navigationSuspended and integration.navigation.reactivate then
             integration.navigation.reactivate(owner)
         end
@@ -326,6 +386,13 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
     for _, ownedDescriptor in ipairs(integration.keybinds.ownedDescriptors or {}) do
         ownedGroups[#ownedGroups + 1] = ownedDescriptor
     end
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "header sort suspend owner keybinds", {
+            fn = "HeaderSortIntegration.EnterHeaderMode",
+            scene = DescribeOwnerScene(owner),
+            owned = DescribeDescriptors(ownedGroups, "owned"),
+        })
+    end
 
     local removeOwnedGroups = BETTERUI.Interface and BETTERUI.Interface.RemoveOwnedKeybindGroups
     if removeOwnedGroups then
@@ -340,10 +407,35 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
         end
         integration.suspendedKeybindGroups = removed
     end
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "header sort owner keybinds suspended", {
+            fn = "HeaderSortIntegration.EnterHeaderMode",
+            scene = DescribeOwnerScene(owner),
+            suspended = DescribeDescriptors(integration.suspendedKeybindGroups, "suspended"),
+        })
+    end
 
     integration.activeKeybindDescriptor = GetHeaderKeybindDescriptor(integration, controller)
+    local activeKeybindRefresh = "none"
     if integration.activeKeybindDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
         KEYBIND_STRIP:AddKeybindButtonGroup(integration.activeKeybindDescriptor)
+        if KEYBIND_STRIP.UpdateKeybindButtonGroup then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.activeKeybindDescriptor)
+            activeKeybindRefresh = "descriptor"
+        elseif KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+            activeKeybindRefresh = "current"
+        end
+    end
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "header sort keybind active", {
+            fn = "HeaderSortIntegration.EnterHeaderMode",
+            scene = DescribeOwnerScene(owner),
+            descriptor = DescribeDescriptor(integration.activeKeybindDescriptor, "header"),
+            listItems = GetListItemCount(list),
+            stripHasHeader = HasKeybindGroup(integration.activeKeybindDescriptor),
+            refresh = activeKeybindRefresh,
+        })
     end
 
     if integration.callbacks.onEnterHeaderMode then
@@ -358,10 +450,17 @@ end
 ---@return boolean
 function HeaderSortIntegration.ExitHeaderMode(integration)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "exit header mode", { active = integration.isActive })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "exit header mode", {
+            fn = "HeaderSortIntegration.ExitHeaderMode",
+            active = integration.isActive,
+            scene = DescribeOwnerScene(integration.owner),
+            activeKeybind = DescribeDescriptor(integration.activeKeybindDescriptor, "active"),
+            suspended = DescribeDescriptors(integration.suspendedKeybindGroups, "suspended"),
+        })
     end
 
     if not integration.isActive then
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SORT, "header sort exit skipped", { fn = "HeaderSortIntegration.ExitHeaderMode", reason = "notActive", scene = DescribeOwnerScene(integration.owner) }) end
         return false
     end
 
@@ -379,6 +478,7 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
 
     if integration.activeKeybindDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.RemoveKeybindButtonGroup then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(integration.activeKeybindDescriptor)
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "header sort keybind removed", { fn = "HeaderSortIntegration.ExitHeaderMode", descriptor = DescribeDescriptor(integration.activeKeybindDescriptor, "header"), scene = DescribeOwnerScene(owner) }) end
         integration.activeKeybindDescriptor = nil
     end
 
@@ -387,7 +487,9 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
     local suspendedGroups = integration.suspendedKeybindGroups
     integration.suspendedKeybindGroups = nil
     local restoreGroups = BETTERUI.Interface and BETTERUI.Interface.RestoreKeybindGroups
+    local restorePath = "none"
     if suspendedGroups and #suspendedGroups > 0 then
+        restorePath = "suspended"
         if restoreGroups then
             restoreGroups(suspendedGroups)
         elseif KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
@@ -396,10 +498,30 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
             end
         end
     elseif integration.keybinds.mainDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
+        restorePath = "fallbackMain"
         KEYBIND_STRIP:AddKeybindButtonGroup(integration.keybinds.mainDescriptor)
         if KEYBIND_STRIP.UpdateKeybindButtonGroup then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.keybinds.mainDescriptor)
         end
+    end
+    local restoreRefresh = "none"
+    if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        restoreRefresh = "current"
+    elseif integration.keybinds.mainDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.UpdateKeybindButtonGroup then
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.keybinds.mainDescriptor)
+        restoreRefresh = "main"
+    end
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "header sort keybinds restored", {
+            fn = "HeaderSortIntegration.ExitHeaderMode",
+            scene = DescribeOwnerScene(owner),
+            restored = DescribeDescriptors(suspendedGroups, "restored"),
+            restorePath = restorePath,
+            main = DescribeDescriptor(integration.keybinds.mainDescriptor, "main"),
+            stripHasMain = HasKeybindGroup(integration.keybinds.mainDescriptor),
+            refresh = restoreRefresh,
+        })
     end
 
     if owner.EnsureHeaderKeybindsActive then
@@ -424,7 +546,7 @@ function HeaderSortIntegration.EnsureController(integration)
         return nil
     end
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "header sort ensure controller")
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "header sort ensure controller", { fn = "HeaderSortIntegration.EnsureController", scene = DescribeOwnerScene(integration.owner) })
     end
     return ResolveController(integration)
 end

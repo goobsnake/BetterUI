@@ -554,6 +554,14 @@ local function ScheduleTooltipEquippedRefresh(tooltipControl, itemLink, tooltipT
         return
     end
 
+    local normalizedTooltipType = tonumber(tooltipType) or tooltipType
+    if normalizedTooltipType == nil then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "tooltip refresh skipped", { reason = "invalidTooltipType" })
+        end
+        return
+    end
+
     local tooltipRef = tooltipControl
     local capturedItemLink = itemLink
     zo_callLater(function()
@@ -583,7 +591,7 @@ local function ScheduleTooltipEquippedRefresh(tooltipControl, itemLink, tooltipT
         end
 
         if BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
-            BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(tonumber(tooltipType) or 0, nil)
+            BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(normalizedTooltipType, nil)
         end
     end, 1)
 end
@@ -603,6 +611,11 @@ end
 --- drives the native UpdateTooltipEquippedText stock branch so the visible item
 --- reverts immediately instead of only on the next hover.
 local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
+    local normalizedTooltipType = tonumber(tooltipType) or tooltipType
+    if normalizedTooltipType == nil then
+        return
+    end
+
     local tooltipRef = tooltipControl
     zo_callLater(function()
         if not tooltipRef or tooltipRef:IsHidden() then return end
@@ -613,7 +626,7 @@ local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
                 BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType)
             end
             if type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
-                BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(tonumber(tooltipType) or 0, nil)
+                BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(normalizedTooltipType, nil)
             end
         end
     end, 1)

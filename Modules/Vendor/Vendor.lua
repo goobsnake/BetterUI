@@ -64,6 +64,45 @@ local function RunVendorSetupStep(stepName, setupFn)
     return ok, err
 end
 
+local function DescribeVendorKeybinds(instance)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.DescribeKeybindDescriptors and instance) then
+        return nil
+    end
+
+    return {
+        core = instance.coreKeybinds and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
+        search = instance.textSearchKeybindStripDescriptor and L.DescribeKeybindDescriptors(instance.textSearchKeybindStripDescriptor, "search") or nil,
+    }
+end
+
+local function TraceVendorEvent(event, phase, data, category)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then
+        return
+    end
+
+    data = data or {}
+    local instance = Vendor.instance
+    local currentMode = data.mode
+    if currentMode == nil and instance and instance.GetCurrentMode then
+        currentMode = instance:GetCurrentMode()
+    end
+
+    data.module = data.module or "Vendor"
+    data.scene = data.scene or rawget(_G, "BETTERUI_VENDOR_SCENE_NAME") or "BETTERUI_VENDOR"
+    data.currentScene = data.currentScene or (SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName()) or nil
+    data.feature = data.feature or "vendor"
+    data.fn = data.fn or event
+    data.functionName = data.functionName or data.fn
+    data.mode = currentMode
+    data.modeName = data.modeName or (currentMode ~= nil and Vendor.ResolveModeName and Vendor.ResolveModeName(currentMode)) or nil
+    data.isFenceInteraction = data.isFenceInteraction ~= nil and data.isFenceInteraction or isFenceInteraction
+    data.isStableInteraction = data.isStableInteraction ~= nil and data.isStableInteraction or isStableInteraction
+    data.batchProcessing = Vendor._batchProcessing == true
+    L.TraceEvent(category or L.CATEGORY.LIFECYCLE, event, phase, data)
+end
+
 -- TAB DEFINITIONS
 
 ---@alias VendorTabDef {mode: number, name: fun(): string}
@@ -1207,47 +1246,157 @@ local function OnCloseStore()
 end
 
 local function OnInventoryUpdated()
-    if not Vendor.instance then return end
-    if not Vendor.instance:IsSceneShowing() then return end
+    local instance = Vendor.instance
+    local sceneShowing = instance and instance.IsSceneShowing and instance:IsSceneShowing() or false
+    TraceVendorEvent("vendor.inventory_update", "received", {
+        fn = "Vendor.OnInventoryUpdated",
+        feature = "vendor-refresh",
+        hasInstance = instance ~= nil,
+        sceneShowing = sceneShowing,
+        keybinds = DescribeVendorKeybinds(instance),
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+    if not instance then return end
+    if not sceneShowing then return end
 
     -- Coalesce rapid updates
+    TraceVendorEvent("vendor.inventory_update", "scheduled", {
+        fn = "Vendor.OnInventoryUpdated",
+        feature = "vendor-refresh",
+        delayMs = 100,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
     Vendor.Tasks:Cancel("listRefresh")
     Vendor.Tasks:Schedule("listRefresh", 100, function()
         if Vendor.instance and Vendor.instance:IsSceneShowing() then
+            TraceVendorEvent("vendor.inventory_update", "refresh_begin", {
+                fn = "Vendor.OnInventoryUpdated:listRefresh",
+                feature = "vendor-refresh",
+                selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(Vendor.instance.list, "vendor-list") or nil,
+                keybinds = DescribeVendorKeybinds(Vendor.instance),
+            }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
             Vendor.instance:RefreshList()
             if Vendor.instance.RefreshVendorFooter then
                 Vendor.instance:RefreshVendorFooter()
             end
+            TraceVendorEvent("vendor.inventory_update", "refresh_end", {
+                fn = "Vendor.OnInventoryUpdated:listRefresh",
+                feature = "vendor-refresh",
+                selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(Vendor.instance.list, "vendor-list") or nil,
+                keybinds = DescribeVendorKeybinds(Vendor.instance),
+            }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+        else
+            TraceVendorEvent("vendor.inventory_update", "refresh_skipped", {
+                fn = "Vendor.OnInventoryUpdated:listRefresh",
+                feature = "vendor-refresh",
+                hasInstance = Vendor.instance ~= nil,
+                sceneShowing = Vendor.instance and Vendor.instance.IsSceneShowing and Vendor.instance:IsSceneShowing() or false,
+            }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
         end
     end)
 end
 
 local function OnMoneyUpdated()
-    if not Vendor.instance then return end
-    if not Vendor.instance:IsSceneShowing() then return end
+    local instance = Vendor.instance
+    local sceneShowing = instance and instance.IsSceneShowing and instance:IsSceneShowing() or false
+    TraceVendorEvent("vendor.money_update", "received", {
+        fn = "Vendor.OnMoneyUpdated",
+        feature = "vendor-currency",
+        hasInstance = instance ~= nil,
+        sceneShowing = sceneShowing,
+        carriedGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_CHARACTER")) or nil,
+        bankGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_BANK")) or nil,
+        keybinds = DescribeVendorKeybinds(instance),
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY)
+    if not instance then return end
+    if not sceneShowing then return end
 
     if Vendor.Tasks then
+        TraceVendorEvent("vendor.money_update", "scheduled", {
+            fn = "Vendor.OnMoneyUpdated",
+            feature = "vendor-currency",
+            delayMs = 40,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY)
         Vendor.Tasks:Cancel("footerRefresh")
         Vendor.Tasks:Schedule("footerRefresh", 40, function()
             if Vendor.instance and Vendor.instance:IsSceneShowing() and Vendor.instance.RefreshVendorFooter then
+                TraceVendorEvent("vendor.money_update", "refresh_begin", {
+                    fn = "Vendor.OnMoneyUpdated:footerRefresh",
+                    feature = "vendor-currency",
+                    keybinds = DescribeVendorKeybinds(Vendor.instance),
+                }, BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY)
                 Vendor.instance:RefreshVendorFooter()
                 if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                    TraceVendorEvent("vendor.keybinds", "refresh_before", {
+                        fn = "Vendor.OnMoneyUpdated:footerRefresh",
+                        feature = "vendor-keybinds",
+                        reason = "moneyUpdated",
+                        keybinds = DescribeVendorKeybinds(Vendor.instance),
+                    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                    TraceVendorEvent("vendor.keybinds", "refresh_after", {
+                        fn = "Vendor.OnMoneyUpdated:footerRefresh",
+                        feature = "vendor-keybinds",
+                        reason = "moneyUpdated",
+                        keybinds = DescribeVendorKeybinds(Vendor.instance),
+                    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
                 end
+                TraceVendorEvent("vendor.money_update", "refresh_end", {
+                    fn = "Vendor.OnMoneyUpdated:footerRefresh",
+                    feature = "vendor-currency",
+                    carriedGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_CHARACTER")) or nil,
+                    bankGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_BANK")) or nil,
+                    keybinds = DescribeVendorKeybinds(Vendor.instance),
+                }, BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY)
+            else
+                TraceVendorEvent("vendor.money_update", "refresh_skipped", {
+                    fn = "Vendor.OnMoneyUpdated:footerRefresh",
+                    feature = "vendor-currency",
+                    hasInstance = Vendor.instance ~= nil,
+                    sceneShowing = Vendor.instance and Vendor.instance.IsSceneShowing and Vendor.instance:IsSceneShowing() or false,
+                    hasFooterRefresh = Vendor.instance and Vendor.instance.RefreshVendorFooter ~= nil or false,
+                }, BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY)
             end
         end)
         return
     end
 
     if Vendor.instance.RefreshVendorFooter then
+        TraceVendorEvent("vendor.money_update", "refresh_begin", {
+            fn = "Vendor.OnMoneyUpdated:immediate",
+            feature = "vendor-currency",
+            keybinds = DescribeVendorKeybinds(Vendor.instance),
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY)
         Vendor.instance:RefreshVendorFooter()
         if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+            TraceVendorEvent("vendor.keybinds", "refresh_before", {
+                fn = "Vendor.OnMoneyUpdated:immediate",
+                feature = "vendor-keybinds",
+                reason = "moneyUpdated",
+                keybinds = DescribeVendorKeybinds(Vendor.instance),
+            }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
             KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+            TraceVendorEvent("vendor.keybinds", "refresh_after", {
+                fn = "Vendor.OnMoneyUpdated:immediate",
+                feature = "vendor-keybinds",
+                reason = "moneyUpdated",
+                keybinds = DescribeVendorKeybinds(Vendor.instance),
+            }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
         end
+        TraceVendorEvent("vendor.money_update", "refresh_end", {
+            fn = "Vendor.OnMoneyUpdated:immediate",
+            feature = "vendor-currency",
+            carriedGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_CHARACTER")) or nil,
+            bankGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_BANK")) or nil,
+            keybinds = DescribeVendorKeybinds(Vendor.instance),
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY)
     end
 end
 
 local function OnSellReceipt()
+    TraceVendorEvent("vendor.sell_receipt", "received", {
+        fn = "Vendor.OnSellReceipt",
+        feature = "vendor-sell",
+        keybinds = DescribeVendorKeybinds(Vendor.instance),
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
     -- Refresh after selling an item
     OnInventoryUpdated()
 end
@@ -1266,8 +1415,22 @@ local function OnRepairFailure(_, reason)
     elseif reason == nil then
         message = GetString(rawget(_G, "SI_REPAIR_ALL_CANNOT_AFFORD") or "SI_REPAIR_ALL_CANNOT_AFFORD")
     end
+    TraceVendorEvent("vendor.repair_failure", "received", {
+        fn = "Vendor.OnRepairFailure",
+        feature = "vendor-repair",
+        reason = reason,
+        message = message,
+        hasUserAlert = message ~= nil and message ~= "",
+        keybinds = DescribeVendorKeybinds(Vendor.instance),
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
     if message and message ~= "" and BETTERUI.CIM and BETTERUI.CIM.UserAlertText then
         BETTERUI.CIM.UserAlertText("Vendor:RepairFailure", message)
+        TraceVendorEvent("vendor.repair_failure", "alert_shown", {
+            fn = "Vendor.OnRepairFailure",
+            feature = "vendor-repair",
+            reason = reason,
+            message = message,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
     end
     OnInventoryUpdated()
 end

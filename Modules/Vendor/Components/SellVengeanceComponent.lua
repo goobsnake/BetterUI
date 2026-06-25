@@ -167,16 +167,38 @@ function SellVengeance:OnPrimaryAction(vendorInstance)
         return
     end
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor vengeance item sold", {
+    local L = BETTERUI.Log
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.sell_vengeance", "request", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-sell-vengeance",
+            fn = "Vendor.SellVengeanceComponent.OnPrimaryAction",
+            ["function"] = "Vendor.SellVengeanceComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
             bagId = bagId,
             slotIndex = slotIndex,
             stackSize = stackSize,
-            name = ds.name
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
         })
     end
 
     SellInventoryItem(bagId, slotIndex, stackSize)
+
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.sell_vengeance", "requested", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-sell-vengeance",
+            fn = "Vendor.SellVengeanceComponent.OnPrimaryAction",
+            ["function"] = "Vendor.SellVengeanceComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+            bagId = bagId,
+            slotIndex = slotIndex,
+            stackSize = stackSize,
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+        })
+    end
 end
 
 function SellVengeance:GetCategories(_vendorInstance)

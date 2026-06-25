@@ -19,6 +19,21 @@ local SKILL_TEXT_SIZE_MAX = 30
 
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
+local function TraceFrontCooldown(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "resourceOrbs"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION, event, phase, data)
+end
+
 --- Sets icon desaturation only when the value changes, avoiding per-frame
 --- redundant API calls in the cooldown hot path.
 ---@param iconControl table|nil Icon texture control
@@ -296,9 +311,12 @@ local function UpdateFrontBarCooldowns(rootFrame)
             if showCooldown then
                 if btn._betteruiLastCooldownState ~= true then
                     btn._betteruiLastCooldownState = true
-                    if BETTERUI.Log then
-                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown start", { slot = mapping.slot, duration = durationMs })
-                    end
+                    TraceFrontCooldown("resource_orbs.cooldown", "start", {
+                        button = mapping.buttonName,
+                        slot = mapping.slot,
+                        category = mapping.category,
+                        duration = durationMs,
+                    })
                 end
                 local visualRemainMs = CooldownUtils.GetSmoothedRemaining(cooldownStateKey, remainMs, durationMs)
                 if isGamepad then
@@ -357,9 +375,11 @@ local function UpdateFrontBarCooldowns(rootFrame)
             else
                 if btn._betteruiLastCooldownState == true then
                     btn._betteruiLastCooldownState = false
-                    if BETTERUI.Log then
-                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown end", { slot = mapping.slot })
-                    end
+                    TraceFrontCooldown("resource_orbs.cooldown", "end", {
+                        button = mapping.buttonName,
+                        slot = mapping.slot,
+                        category = mapping.category,
+                    })
                 end
                 CooldownUtils.ResetSmoothedRemaining(cooldownStateKey)
                 SetIconDesaturation(iconControl, baseDesaturation)

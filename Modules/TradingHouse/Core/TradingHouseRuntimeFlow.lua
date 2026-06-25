@@ -11,6 +11,21 @@ local EVENT_NS = "BetterUI_TradingHouse"
 ---@alias TradingHouseCreateListingDialogData {stackCount: integer|nil, selectedStackCount: integer|nil, defaultPrice: integer|nil, selectedPrice: integer|nil}
 ---@alias TradingHouseResponsePayload {responseType: integer|nil, result: integer|nil}
 
+local function TraceTHFlow(category, event, phase, data)
+    local tracer = TH.Trace
+    if type(tracer) == "function" then
+        tracer(category, event, phase, TH.instance, data)
+    elseif BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        data = data or {}
+        data.module = data.module or "TradingHouse"
+        data.scene = data.scene or BETTERUI_TRADING_HOUSE_SCENE_NAME
+        data.feature = data.feature or "trading-house"
+        data.fn = data.fn or "TradingHouse.RuntimeFlow"
+        data["function"] = data["function"] or data.fn
+        BETTERUI.Log.TraceEvent(category or BETTERUI.Log.CATEGORY.SCENE, event, phase, data)
+    end
+end
+
 local function AssociateSearchFeatures()
     local browse = rawget(_G, "GAMEPAD_TRADING_HOUSE_BROWSE")
     local search = rawget(_G, "TRADING_HOUSE_SEARCH")
@@ -62,10 +77,26 @@ end
 
 local function RefreshVisibleTradingHouseScene()
     if not TH.instance or not TH.instance:IsSceneShowing() then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.list_refresh", "skipped", {
+            fn = "TradingHouse.RefreshVisibleTradingHouseScene",
+            feature = "trading-house-list",
+            hasInstance = TH.instance ~= nil,
+            sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+        })
         return
     end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.list_refresh", "begin", {
+        fn = "TradingHouse.RefreshVisibleTradingHouseScene",
+        feature = "trading-house-list",
+        searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+    })
     TH.instance:RefreshList()
     TH.instance:RefreshTHFooter()
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.list_refresh", "end", {
+        fn = "TradingHouse.RefreshVisibleTradingHouseScene",
+        feature = "trading-house-list",
+        searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+    })
 end
 
 function TH.CaptureNativeScene(sceneManager)
@@ -136,11 +167,24 @@ function TH.ScheduleListRefresh()
     local guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil
     local mode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() or nil
     local searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "list refresh scheduled",
-            { guildId = guildId, mode = mode, searchPending = searchPending })
-    end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.list_refresh", "scheduled", {
+        fn = "TradingHouse.ScheduleListRefresh",
+        feature = "trading-house-list",
+        guildId = guildId,
+        mode = mode,
+        searchPending = searchPending,
+        delayMs = TH.Tasks and 100 or 0,
+    })
     if not TH.instance or not TH.instance:IsSceneShowing() then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.list_refresh", "schedule_skipped", {
+            fn = "TradingHouse.ScheduleListRefresh",
+            feature = "trading-house-list",
+            guildId = guildId,
+            mode = mode,
+            searchPending = searchPending,
+            hasInstance = TH.instance ~= nil,
+            sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+        })
         return
     end
 
@@ -249,6 +293,15 @@ function TH.RegisterCreateListingDialog()
         },
         finishedCallback = function(dialog)
             local dialogData = dialog and dialog.data
+            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.create_listing_dialog", "finished", {
+                fn = "TradingHouse.RegisterCreateListingDialog.finishedCallback",
+                feature = "trading-house-create-listing",
+                submitted = dialogData and dialogData._submitted == true or false,
+                bagId = dialogData and dialogData.bagId or nil,
+                slotIndex = dialogData and dialogData.slotIndex or nil,
+                selectedStackCount = dialogData and dialogData.selectedStackCount or nil,
+                selectedPrice = dialogData and dialogData.selectedPrice or nil,
+            })
             if dialogData and dialogData._activeSlider then
                 dialogData._activeSlider:Deactivate()
                 dialogData._activeSlider = nil
@@ -259,6 +312,11 @@ function TH.RegisterCreateListingDialog()
             -- RequestPostItemOnTradingHouse.
             if dialogData and not dialogData._submitted and SetPendingItemPost then
                 SetPendingItemPost(BAG_BACKPACK, 0, 0)
+                TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION, "trading_house.pending_post", "cleared", {
+                    fn = "TradingHouse.RegisterCreateListingDialog.finishedCallback",
+                    feature = "trading-house-create-listing",
+                    reason = "dialogClosedWithoutSubmit",
+                })
             end
         end,
         title = {
@@ -371,9 +429,21 @@ function TH.RegisterCreateListingDialog()
                 callback = function(dialog)
                     local data = dialog.data
                     if not data then
+                        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.create_listing_dialog", "confirm_rejected", {
+                            fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                            feature = "trading-house-create-listing",
+                            reason = "missingDialogData",
+                        })
                         return
                     end
                     if data._submitted then
+                        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.create_listing_dialog", "confirm_rejected", {
+                            fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                            feature = "trading-house-create-listing",
+                            reason = "alreadySubmitted",
+                            bagId = data.bagId,
+                            slotIndex = data.slotIndex,
+                        })
                         return
                     end
                     data._submitted = true
@@ -382,9 +452,26 @@ function TH.RegisterCreateListingDialog()
                     local slotIndex = data.slotIndex
                     local stackCount = data.selectedStackCount or data.stackCount or 1
                     local price = data.selectedPrice or data.defaultPrice or 0
+                    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.create_listing_dialog", "confirm_begin", {
+                        fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                        feature = "trading-house-create-listing",
+                        bagId = bagId,
+                        slotIndex = slotIndex,
+                        stackCount = stackCount,
+                        price = price,
+                        item = data.itemName,
+                    })
 
                     if price <= 0 then
                         data._submitted = false
+                        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.create_listing_dialog", "confirm_rejected", {
+                            fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                            feature = "trading-house-create-listing",
+                            reason = "invalidPrice",
+                            bagId = bagId,
+                            slotIndex = slotIndex,
+                            price = price,
+                        })
                         BETTERUI.CIM.UserAlertText("TH:NoPrice",
                             GetString(rawget(_G, "SI_BETTERUI_TH_ENTER_PRICE")))
                         return
@@ -395,6 +482,14 @@ function TH.RegisterCreateListingDialog()
                     local currentStack = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
                     if currentStack <= 0 then
                         data._submitted = false
+                        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.create_listing_dialog", "confirm_rejected", {
+                            fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                            feature = "trading-house-create-listing",
+                            reason = "slotEmpty",
+                            bagId = bagId,
+                            slotIndex = slotIndex,
+                            currentStack = currentStack,
+                        })
                         BETTERUI.CIM.UserAlertText("TH:ListingUnavailable",
                             GetString(rawget(_G, "SI_BETTERUI_TH_ITEM_UNAVAILABLE")) or "Item is no longer available")
                         return
@@ -409,6 +504,15 @@ function TH.RegisterCreateListingDialog()
                         local currentItemLink = GetItemLink(bagId, slotIndex)
                         if currentItemLink ~= data.itemLink then
                             data._submitted = false
+                            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.create_listing_dialog", "confirm_rejected", {
+                                fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                                feature = "trading-house-create-listing",
+                                reason = "itemChanged",
+                                bagId = bagId,
+                                slotIndex = slotIndex,
+                                originalItem = data.itemLink,
+                                currentItem = currentItemLink,
+                            })
                             BETTERUI.CIM.UserAlertText("TH:ListingUnavailable",
                                 GetString(rawget(_G, "SI_BETTERUI_TH_ITEM_UNAVAILABLE")) or "Item is no longer available")
                             return
@@ -421,6 +525,16 @@ function TH.RegisterCreateListingDialog()
                         local gold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
                         if (listingFee or 0) > gold then
                             data._submitted = false
+                            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.create_listing_dialog", "confirm_rejected", {
+                                fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                                feature = "trading-house-create-listing",
+                                reason = "cannotAffordListingFee",
+                                bagId = bagId,
+                                slotIndex = slotIndex,
+                                price = price,
+                                listingFee = listingFee,
+                                carriedGold = gold,
+                            })
                             BETTERUI.CIM.UserAlertText("TH:CannotAffordFee",
                                 GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
                             return
@@ -432,12 +546,49 @@ function TH.RegisterCreateListingDialog()
                     -- item post before requesting the listing.
                     if SetPendingItemPost then
                         SetPendingItemPost(bagId, slotIndex, stackCount)
+                        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION, "trading_house.pending_post", "set", {
+                            fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                            feature = "trading-house-create-listing",
+                            bagId = bagId,
+                            slotIndex = slotIndex,
+                            stackCount = stackCount,
+                            price = price,
+                        })
                     end
 
                     -- API 50: PostItemOnTradingHouse was removed; posting now
                     -- goes through RequestPostItemOnTradingHouse.
                     if RequestPostItemOnTradingHouse then
+                        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION, "trading_house.create_listing", "request", {
+                            fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                            feature = "trading-house-create-listing",
+                            bagId = bagId,
+                            slotIndex = slotIndex,
+                            stackCount = stackCount,
+                            price = price,
+                            item = data.itemName,
+                        })
                         RequestPostItemOnTradingHouse(bagId, slotIndex, stackCount, price)
+                        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION, "trading_house.create_listing", "requested", {
+                            fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                            feature = "trading-house-create-listing",
+                            bagId = bagId,
+                            slotIndex = slotIndex,
+                            stackCount = stackCount,
+                            price = price,
+                            item = data.itemName,
+                        })
+                    else
+                        data._submitted = false
+                        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION, "trading_house.create_listing", "blocked", {
+                            fn = "TradingHouse.RegisterCreateListingDialog.confirm",
+                            feature = "trading-house-create-listing",
+                            reason = "missingRequestPostItemOnTradingHouse",
+                            bagId = bagId,
+                            slotIndex = slotIndex,
+                            stackCount = stackCount,
+                            price = price,
+                        })
                     end
                 end,
             },
@@ -449,15 +600,29 @@ function TH.RegisterCreateListingDialog()
 end
 
 function TH.OnOpenTradingHouse()
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "trading house opened")
-    end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "open_received", {
+        fn = "TradingHouse.OnOpenTradingHouse",
+        feature = "trading-house-scene",
+        hasInstance = TH.instance ~= nil,
+        interactionType = GetInteractionType and GetInteractionType() or nil,
+    })
     if not TH.instance then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "open_skipped", {
+            fn = "TradingHouse.OnOpenTradingHouse",
+            feature = "trading-house-scene",
+            reason = "noInstance",
+        })
         return
     end
 
     local interactionType = GetInteractionType and GetInteractionType() or nil
     if interactionType and interactionType ~= INTERACTION_TRADINGHOUSE then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "open_skipped", {
+            fn = "TradingHouse.OnOpenTradingHouse",
+            feature = "trading-house-scene",
+            reason = "interactionTypeMismatch",
+            interactionType = interactionType,
+        })
         TH.RestoreNativeSceneAlias()
         return
     end
@@ -481,12 +646,19 @@ function TH.OnOpenTradingHouse()
     TH.ResetBrowseState()
     TH.ShowScene()
     TH.ScheduleOwnershipReassert()
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "open_shown", {
+        fn = "TradingHouse.OnOpenTradingHouse",
+        feature = "trading-house-scene",
+        searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+    })
 end
 
 function TH.OnCloseTradingHouse()
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "trading house closed")
-    end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "close_received", {
+        fn = "TradingHouse.OnCloseTradingHouse",
+        feature = "trading-house-scene",
+        sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+    })
     if TH.Tasks then
         TH.Tasks:Cancel("sceneOwnershipOpen")
     end
@@ -504,6 +676,11 @@ function TH.OnCloseTradingHouse()
     DisassociateSearchFeatures()
 
     TH.AliasSceneToBetterUI()
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "close_complete", {
+        fn = "TradingHouse.OnCloseTradingHouse",
+        feature = "trading-house-scene",
+        searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+    })
 end
 
 function TH.OnSearchResultsReceived()
@@ -514,7 +691,27 @@ end
 
 function TH.OnSearchCooldownUpdate()
     if TH.instance and TH.instance:IsSceneShowing() then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
+            fn = "TradingHouse.OnSearchCooldownUpdate",
+            feature = "trading-house-keybinds",
+            reason = "searchCooldownUpdate",
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
         KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
+            fn = "TradingHouse.OnSearchCooldownUpdate",
+            feature = "trading-house-keybinds",
+            reason = "searchCooldownUpdate",
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
+    else
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
+            fn = "TradingHouse.OnSearchCooldownUpdate",
+            feature = "trading-house-keybinds",
+            reason = "searchCooldownUpdate",
+            hasInstance = TH.instance ~= nil,
+            sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+        })
     end
 end
 
@@ -539,12 +736,28 @@ function TH.OnTradingHouseResponse(_, responseType, result)
     local guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil
     local mode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() or nil
     local searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "trading house response received",
-            { guildId = guildId, mode = mode, searchPending = searchPending })
-    end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.response", "received", {
+        fn = "TradingHouse.OnTradingHouseResponse",
+        feature = "trading-house-search",
+        guildId = guildId,
+        mode = mode,
+        searchPending = searchPending,
+        responseType = responseType,
+        result = result,
+        isSearchResponse = isSearchResponse,
+    })
 
     if not TH.instance or not TH.instance:IsSceneShowing() then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.response", "skipped", {
+            fn = "TradingHouse.OnTradingHouseResponse",
+            feature = "trading-house-search",
+            guildId = guildId,
+            mode = mode,
+            searchPending = searchPending,
+            responseType = responseType,
+            result = result,
+            reason = "sceneHidden",
+        })
         return
     end
 
@@ -565,15 +778,31 @@ function TH.OnGuildRosterChanged()
 end
 
 function TH.OnListingOperation()
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.listing_operation", "received", {
+        fn = "TradingHouse.OnListingOperation",
+        feature = "trading-house-listings",
+        sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+    })
     if not TH.instance or not TH.instance:IsSceneShowing() then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.listing_operation", "skipped", {
+            fn = "TradingHouse.OnListingOperation",
+            feature = "trading-house-listings",
+            reason = "sceneHidden",
+        })
         return
     end
     TH.ScheduleListRefresh()
 end
 
 function TH.OnInventorySingleSlotUpdate()
-    if TH.instance and TH.instance:IsSceneShowing() and
-       TH.instance:GetCurrentMode() == MODE.SELL then
+    local isSellMode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() == MODE.SELL
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.inventory_slot_update", "received", {
+        fn = "TradingHouse.OnInventorySingleSlotUpdate",
+        feature = "trading-house-sell",
+        sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+        isSellMode = isSellMode == true,
+    })
+    if TH.instance and TH.instance:IsSceneShowing() and isSellMode then
         TH.OnListingOperation()
     end
 end
@@ -581,22 +810,58 @@ end
 function TH.OnTradingHouseResponseTimeout()
     -- EVENT_TRADING_HOUSE_RESPONSE_TIMEOUT: the server did not return a
     -- response in time. Clear the pending flag so Search/paging can retry.
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.response", "timeout", {
+        fn = "TradingHouse.OnTradingHouseResponseTimeout",
+        feature = "trading-house-search",
+        timeoutType = "response",
+        searchPendingBefore = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+    })
     if TH.BrowseComponent then
         TH.BrowseComponent.searchPending = false
     end
     if TH.instance and TH.instance:IsSceneShowing() then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
+            fn = "TradingHouse.OnTradingHouseResponseTimeout",
+            feature = "trading-house-keybinds",
+            reason = "responseTimeout",
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
         KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
+            fn = "TradingHouse.OnTradingHouseResponseTimeout",
+            feature = "trading-house-keybinds",
+            reason = "responseTimeout",
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
     end
 end
 
 function TH.OnTradingHouseOperationTimeout()
     -- EVENT_TRADING_HOUSE_OPERATION_TIME_OUT: a general operation timed out.
     -- Treat it like a response timeout for browse pending state.
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.response", "timeout", {
+        fn = "TradingHouse.OnTradingHouseOperationTimeout",
+        feature = "trading-house-search",
+        timeoutType = "operation",
+        searchPendingBefore = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+    })
     if TH.BrowseComponent then
         TH.BrowseComponent.searchPending = false
     end
     if TH.instance and TH.instance:IsSceneShowing() then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
+            fn = "TradingHouse.OnTradingHouseOperationTimeout",
+            feature = "trading-house-keybinds",
+            reason = "operationTimeout",
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
         KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
+            fn = "TradingHouse.OnTradingHouseOperationTimeout",
+            feature = "trading-house-keybinds",
+            reason = "operationTimeout",
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
     end
 end
 
@@ -614,10 +879,13 @@ function TH.OnSelectedTradingHouseGuildChanged()
     local guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil
     local mode = TH.instance and TH.instance.GetCurrentMode and TH.instance:GetCurrentMode() or nil
     local searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "selected trading house guild changed",
-            { guildId = guildId, mode = mode, searchPending = searchPending })
-    end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.guild", "selected_changed", {
+        fn = "TradingHouse.OnSelectedTradingHouseGuildChanged",
+        feature = "trading-house-guild",
+        guildId = guildId,
+        mode = mode,
+        searchPending = searchPending,
+    })
     TH.ResetBrowseState()
     if TH.BrowseComponent and TH.BrowseComponent.InvalidateResults then
         TH.BrowseComponent:InvalidateResults()
@@ -635,23 +903,51 @@ end
 function TH.OnTradingHouseStatusReceived()
     -- EVENT_TRADING_HOUSE_STATUS_RECEIVED: refresh listings when the listings
     -- tab is active so counts stay current.
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.status", "received", {
+        fn = "TradingHouse.OnTradingHouseStatusReceived",
+        feature = "trading-house-status",
+        sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+    })
     if not TH.instance or not TH.instance:IsSceneShowing() then
         return
     end
     if TH.instance:GetCurrentMode() == MODE.LISTINGS and RequestTradingHouseListings then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.listings", "request", {
+            fn = "TradingHouse.OnTradingHouseStatusReceived",
+            feature = "trading-house-listings",
+            reason = "statusReceived",
+        })
         RequestTradingHouseListings()
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.listings", "requested", {
+            fn = "TradingHouse.OnTradingHouseStatusReceived",
+            feature = "trading-house-listings",
+            reason = "statusReceived",
+        })
     end
 end
 
 function TH.OnMoneyUpdate()
     -- EVENT_MONEY_UPDATE: refresh the gold footer and schedule a list refresh
     -- while the trading house scene is showing.
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY, "trading_house.money_update", "received", {
+        fn = "TradingHouse.OnMoneyUpdate",
+        feature = "trading-house-currency",
+        carriedGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_CHARACTER")) or nil,
+        bankGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_BANK")) or nil,
+        sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
+    })
     if not TH.instance or not TH.instance:IsSceneShowing() then
         return
     end
     if TH.instance.RefreshTHFooter then
         TH.instance:RefreshTHFooter()
     end
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY, "trading_house.money_update", "footer_refreshed", {
+        fn = "TradingHouse.OnMoneyUpdate",
+        feature = "trading-house-currency",
+        carriedGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_CHARACTER")) or nil,
+        bankGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_BANK")) or nil,
+    })
     TH.ScheduleListRefresh()
 end
 

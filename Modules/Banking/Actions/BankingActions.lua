@@ -163,6 +163,12 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         return true
     end
 
+    local function TraceBankingActionDialog(event, phase, data)
+        local L = BETTERUI.Log
+        if not (L and L.TraceEvent) then return end
+        L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
+    end
+
     local function ActionDialogSetup(dialog)
         if BETTERUI.Utils.IsBankingSceneShowing() then
             dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
@@ -173,6 +179,11 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             ZO_ClearNumericallyIndexedTable(parametricList)
 
             local targetData = self:GetList() and self:GetList().selectedData or nil
+            TraceBankingActionDialog("bank.action_dialog", "setup_before", {
+                mode = self.currentMode,
+                target = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(targetData, "target") or nil,
+                selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
+            })
             RebuildDiscoveredActions(self, targetData)
             PopulateFilteredActions(self, parametricList)
 
@@ -252,6 +263,15 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                     entryData = sortEntry,
                 }
                 table.insert(parametricList, listItem)
+                if BETTERUI.Log then
+                    BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "bank dialog sort entry added", {
+                        fn = "Banking.ActionDialogSetup",
+                        mode = self.currentMode,
+                        headerSort = self.isInHeaderSortMode == true,
+                        listItems = self.list.GetNumItems and self.list:GetNumItems() or nil,
+                        main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+                    })
+                end
             end
 
             local getHelpName = GetString(rawget(_G, "SI_ITEM_ACTION_REPORT_ITEM"))
@@ -268,21 +288,51 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             end
 
             dialog:setupFunc()
+            TraceBankingActionDialog("bank.action_dialog", "setup_after", {
+                mode = self.currentMode,
+                entryCount = #parametricList,
+                selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
+            })
         end
     end
 
     local function ActionDialogFinish()
         if BETTERUI.Utils.IsBankingSceneShowing() then
+            if BETTERUI.Log then
+                BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "bank dialog finish restore", {
+                    fn = "Banking.ActionDialogFinish",
+                    headerSort = self.isInHeaderSortMode == true,
+                    main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+                })
+            end
+            TraceBankingActionDialog("bank.action_dialog", "finish_before", {
+                mode = self.currentMode,
+                headerSort = self.isInHeaderSortMode == true,
+                main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+            })
             if not self.isInHeaderSortMode then
                 self:AddKeybinds()
             end
             self:RefreshItemActions()
+            TraceBankingActionDialog("bank.action_dialog", "finish_after", {
+                mode = self.currentMode,
+                headerSort = self.isInHeaderSortMode == true,
+                main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+            })
         end
     end
 
     local function ActionDialogButtonConfirm(dialog)
         if BETTERUI.Utils.IsBankingSceneShowing() then
             local selectedEntry = dialog.entryList and dialog.entryList:GetTargetData()
+            TraceBankingActionDialog("bank.action_dialog", "confirm", {
+                mode = self.currentMode,
+                selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
+                isSort = selectedEntry and selectedEntry.isSortAction == true,
+                isStackTransfer = selectedEntry and selectedEntry.isBetterUIStackTransfer == true,
+                isJunkToggle = selectedEntry and selectedEntry.isBetterUIBankJunkToggle == true,
+                isStowAllFurniture = selectedEntry and selectedEntry.isBetterUIStowAllFurniture == true,
+            })
             if selectedEntry and selectedEntry.isBetterUIStowAllFurniture then
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                 self:SaveListPosition()
@@ -307,10 +357,46 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             end
 
             if selectedEntry and selectedEntry.isSortAction then
+                TraceBankingActionDialog("bank.action_dialog.sort", "release_dialog", {
+                    mode = self.currentMode,
+                    selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
+                })
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                 local sortContext = selectedEntry.sortContext or self
+                if BETTERUI.Log then
+                    BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "bank dialog sort confirmed", {
+                        fn = "Banking.ActionDialogButtonConfirm",
+                        mode = self.currentMode,
+                        headerSort = sortContext and sortContext.isInHeaderSortMode == true,
+                        main = BETTERUI.Log.DescribeKeybindDescriptor and sortContext and BETTERUI.Log.DescribeKeybindDescriptor(sortContext.mainKeybindStripDescriptor, "main") or nil,
+                    })
+                end
                 if sortContext and sortContext.EnterHeaderSortMode then
-                    sortContext:EnterHeaderSortMode()
+                    local attempts = 60
+                    local function EnterSortWhenDialogClosed()
+                        attempts = attempts - 1
+                        if attempts > 0 and ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
+                            TraceBankingActionDialog("bank.action_dialog.sort", "waiting_for_close", {
+                                attempts = attempts,
+                                headerSort = sortContext and sortContext.isInHeaderSortMode == true,
+                                main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and sortContext and BETTERUI.Log.DescribeKeybindDescriptor(sortContext.mainKeybindStripDescriptor, "main") or nil,
+                            })
+                            if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
+                                BETTERUI.Banking.Tasks:Schedule("enterHeaderSortAfterDialog", 10, EnterSortWhenDialogClosed)
+                            elseif zo_callLater then
+                                zo_callLater(EnterSortWhenDialogClosed, 10)
+                            end
+                            return
+                        end
+                        local entered = sortContext:EnterHeaderSortMode()
+                        TraceBankingActionDialog("bank.action_dialog.sort", "enter_attempted", {
+                            entered = entered == true,
+                            attemptsRemaining = attempts,
+                            headerSort = sortContext and sortContext.isInHeaderSortMode == true,
+                            main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and sortContext and BETTERUI.Log.DescribeKeybindDescriptor(sortContext.mainKeybindStripDescriptor, "main") or nil,
+                        })
+                    end
+                    EnterSortWhenDialogClosed()
                 end
                 return
             end

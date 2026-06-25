@@ -12,6 +12,15 @@ local TH = BETTERUI.TradingHouse
 TH.ListingsComponent = {}
 local Listings = TH.ListingsComponent
 
+local function TraceListings(event, phase, thInstance, data, category)
+    if type(TH.Trace) == "function" then
+        data = data or {}
+        data.feature = data.feature or "trading-house-listings"
+        data.fn = data.fn or "TradingHouse.ListingsComponent"
+        TH.Trace(category or (BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST), event, phase, thInstance or TH.instance, data)
+    end
+end
+
 -- Shared narration text helper avoids a per-entry closure allocation.
 local function GetEntryNarrationText(entryData)
     local ds = entryData:GetDataSource()
@@ -35,12 +44,21 @@ end
 
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Listings:Activate(thInstance)
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "trading house listings active")
-    end
+    TraceListings("trading_house.listings", "activate", thInstance, {
+        fn = "TradingHouse.ListingsComponent.Activate",
+        hasRequestApi = RequestTradingHouseListings ~= nil,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE)
     -- Request fresh listing data from server
     if RequestTradingHouseListings then
+        TraceListings("trading_house.listings", "request", thInstance, {
+            fn = "TradingHouse.ListingsComponent.Activate",
+            reason = "activate",
+        })
         RequestTradingHouseListings()
+        TraceListings("trading_house.listings", "requested", thInstance, {
+            fn = "TradingHouse.ListingsComponent.Activate",
+            reason = "activate",
+        })
     end
     thInstance:RefreshList()
 end
@@ -76,9 +94,12 @@ function Listings:OnPrimaryAction(thInstance)
     local listingIndex = ds.listingIndex
     if not listingIndex then return end
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "trading house cancel listing started", { name = ds.name, index = listingIndex })
-    end
+    TraceListings("trading_house.cancel_listing", "request", thInstance, {
+        fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
+        listingIndex = listingIndex,
+        price = ds.purchasePrice or 0,
+        item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
 
     -- ZOS gamepad cancel flow (tradinghouse_listings_gamepad.lua): the gamepad
     -- TRADING_HOUSE_CONFIRM_REMOVE_LISTING dialog expects listingIndex/stackCount/price.
@@ -93,12 +114,28 @@ function Listings:OnPrimaryAction(thInstance)
     if ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog then
         ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog(dialogItemData,
             "TRADING_HOUSE_CONFIRM_REMOVE_LISTING", price, ds.icon)
+        TraceListings("trading_house.cancel_listing_dialog", "shown", thInstance, {
+            fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
+            dialog = "TRADING_HOUSE_CONFIRM_REMOVE_LISTING",
+            path = "nativeGamepadConfirmation",
+            listingIndex = listingIndex,
+            price = price,
+            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     else
         ZO_Dialogs_ShowGamepadDialog("TRADING_HOUSE_CONFIRM_REMOVE_LISTING", {
             listingIndex = listingIndex,
             stackCount = dialogItemData.stackCount,
             price = price,
         })
+        TraceListings("trading_house.cancel_listing_dialog", "shown", thInstance, {
+            fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
+            dialog = "TRADING_HOUSE_CONFIRM_REMOVE_LISTING",
+            path = "fallbackDialog",
+            listingIndex = listingIndex,
+            price = price,
+            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     end
 end
 
@@ -110,9 +147,10 @@ function Listings:BuildList(thInstance)
     if not list then return end
 
     local numListings = GetNumTradingHouseListings and GetNumTradingHouseListings() or 0
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "listings list built", { count = numListings })
-    end
+    TraceListings("trading_house.listings_list", "build", thInstance, {
+        fn = "TradingHouse.ListingsComponent.BuildList",
+        listingCount = numListings,
+    })
     if numListings == 0 then return end
 
     for i = 1, numListings do

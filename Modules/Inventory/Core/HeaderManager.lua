@@ -180,6 +180,7 @@ local function EnsureHeaderKeybindsActive(self)
     end
 
     local descriptor = tabBar.keybindStripDescriptor
+    local L = BETTERUI.Log
     -- PB-002: When an action dialog closes, KEYBIND_STRIP:PopKeybindGroupState()
     -- can restore a snapshot that no longer carries the ethereal LB/RB carousel
     -- group, while tabBar.active is left stale-true (the PARAMETRIC action dialog
@@ -188,6 +189,14 @@ local function EnsureHeaderKeybindsActive(self)
     -- and force a real re-activation cycle.
     local carouselMissing = descriptor and KEYBIND_STRIP
         and not KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
+
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.header_keybinds", "before", {
+            active = tabBar.active == true,
+            carouselMissing = carouselMissing == true,
+            descriptor = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(descriptor, "tabBar") or nil,
+        })
+    end
 
     if carouselMissing and tabBar.Deactivate and tabBar.Activate then
         -- Guarded Deactivate/Activate (NOT raw tabBar.active = false) so the
@@ -209,13 +218,34 @@ local function EnsureHeaderKeybindsActive(self)
     if descriptor then
         BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     end
+    local carouselMissingAfter = descriptor and KEYBIND_STRIP
+        and not KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.header_keybinds", "after", {
+            active = tabBar.active == true,
+            carouselMissing = carouselMissingAfter == true,
+            carouselMissingBefore = carouselMissing == true,
+            descriptor = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(descriptor, "tabBar") or nil,
+        })
+    end
 end
 
 --- @param self BetterUI_InventoryClass
 local function ExitSearchFocus(self)
+    local L = BETTERUI.Log
     -- Skip if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
+        if L and L.TraceEvent then
+            L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.search_keybinds", "skipped", { reason = "headerSort" })
+        end
         return
+    end
+
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.search_keybinds", "before", {
+            search = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.textSearchKeybindStripDescriptor, "search") or nil,
+            main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+        })
     end
 
     -- Remove search keybinds first
@@ -227,6 +257,13 @@ local function ExitSearchFocus(self)
     if self.mainKeybindStripDescriptor then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+    end
+
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.search_keybinds", "after", {
+            search = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.textSearchKeybindStripDescriptor, "search") or nil,
+            main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+        })
     end
 
     -- Deactivate the search header focus

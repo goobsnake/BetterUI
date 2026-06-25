@@ -84,6 +84,32 @@ local function IsAtGoldCap()
     return maxPossible > 0 and carried >= maxPossible
 end
 
+local function DescribeBatchItem(ds)
+    local L = BETTERUI and BETTERUI.Log
+    if L and L.DescribeItem then
+        return L.DescribeItem(ds, "batch")
+    end
+    return ds and (ds.name or ds.itemLink) or nil
+end
+
+local function TraceVendorBatch(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then
+        return
+    end
+
+    data = data or {}
+    data.module = data.module or "Vendor"
+    data.scene = data.scene or rawget(_G, "BETTERUI_VENDOR_SCENE_NAME") or "BETTERUI_VENDOR"
+    data.currentScene = data.currentScene or (SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName()) or nil
+    data.feature = data.feature or "vendor-batch"
+    data.fn = data.fn or "Vendor.BatchRuntime"
+    data.functionName = data.functionName or data.fn
+    data.modeName = data.modeName or (data.mode ~= nil and Vendor.ResolveModeName and Vendor.ResolveModeName(data.mode)) or nil
+    data.batchProcessing = Vendor._batchProcessing == true
+    L.TraceEvent(L.CATEGORY.BATCH, event, phase, data)
+end
+
 local function NormalizeBatchRuntimeRequest(request)
     assert(type(request) == "table", "Vendor batch runtime expects BetterUIVendorBatchRequest table")
     assert(request.batchOptions == nil,
@@ -185,7 +211,23 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
                 return batchStepSkipped()
             end
         end
+        TraceVendorBatch("vendor.batch_step", "request", {
+            fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+            mode = mode,
+            action = "buy",
+            entryIndex = entryIndex,
+            quantity = 1,
+            item = DescribeBatchItem(ds),
+        })
         BuyStoreItem(entryIndex, 1)
+        TraceVendorBatch("vendor.batch_step", "requested", {
+            fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+            mode = mode,
+            action = "buy",
+            entryIndex = entryIndex,
+            quantity = 1,
+            item = DescribeBatchItem(ds),
+        })
         return batchStepQueued()
     elseif IsSellMode(mode) then
         -- Selling for gold while at the wallet cap fails server-side for every
@@ -212,7 +254,25 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
             end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
             if stackSize > 0 then
+                TraceVendorBatch("vendor.batch_step", "request", {
+                    fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+                    mode = mode,
+                    action = (mode == MODE.SELL_VENGEANCE and "sellVengeance") or "sell",
+                    bagId = bagId,
+                    slotIndex = slotIndex,
+                    quantity = stackSize,
+                    item = DescribeBatchItem(ds),
+                })
                 SellInventoryItem(bagId, slotIndex, stackSize)
+                TraceVendorBatch("vendor.batch_step", "requested", {
+                    fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+                    mode = mode,
+                    action = (mode == MODE.SELL_VENGEANCE and "sellVengeance") or "sell",
+                    bagId = bagId,
+                    slotIndex = slotIndex,
+                    quantity = stackSize,
+                    item = DescribeBatchItem(ds),
+                })
                 return batchStepQueued()
             end
             return batchStepHandled()
@@ -245,7 +305,28 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
             end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
             if stackSize > 0 then
-                SellInventoryItem(bagId, slotIndex, (remaining < stackSize) and remaining or stackSize)
+                local quantity = (remaining < stackSize) and remaining or stackSize
+                TraceVendorBatch("vendor.batch_step", "request", {
+                    fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+                    mode = mode,
+                    action = "fenceSell",
+                    bagId = bagId,
+                    slotIndex = slotIndex,
+                    quantity = quantity,
+                    remainingFenceTransactions = remaining,
+                    item = DescribeBatchItem(ds),
+                })
+                SellInventoryItem(bagId, slotIndex, quantity)
+                TraceVendorBatch("vendor.batch_step", "requested", {
+                    fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+                    mode = mode,
+                    action = "fenceSell",
+                    bagId = bagId,
+                    slotIndex = slotIndex,
+                    quantity = quantity,
+                    remainingFenceTransactions = remaining,
+                    item = DescribeBatchItem(ds),
+                })
                 return batchStepQueued()
             end
             return batchStepHandled()
@@ -278,7 +359,28 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
             end
             local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
             if stackSize > 0 then
-                LaunderItem(bagId, slotIndex, (remaining < stackSize) and remaining or stackSize)
+                local quantity = (remaining < stackSize) and remaining or stackSize
+                TraceVendorBatch("vendor.batch_step", "request", {
+                    fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+                    mode = mode,
+                    action = "fenceLaunder",
+                    bagId = bagId,
+                    slotIndex = slotIndex,
+                    quantity = quantity,
+                    remainingFenceTransactions = remaining,
+                    item = DescribeBatchItem(ds),
+                })
+                LaunderItem(bagId, slotIndex, quantity)
+                TraceVendorBatch("vendor.batch_step", "requested", {
+                    fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+                    mode = mode,
+                    action = "fenceLaunder",
+                    bagId = bagId,
+                    slotIndex = slotIndex,
+                    quantity = quantity,
+                    remainingFenceTransactions = remaining,
+                    item = DescribeBatchItem(ds),
+                })
                 return batchStepQueued()
             end
             return batchStepHandled()
@@ -299,7 +401,25 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
                     return batchStepSkipped()
                 end
             end
+            TraceVendorBatch("vendor.batch_step", "request", {
+                fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+                mode = mode,
+                action = "buyback",
+                entryIndex = entryIndex,
+                quantity = 1,
+                price = ds.price,
+                item = DescribeBatchItem(ds),
+            })
             BuybackItem(entryIndex)
+            TraceVendorBatch("vendor.batch_step", "requested", {
+                fn = "Vendor.BatchRuntime.ExecuteBatchAction",
+                mode = mode,
+                action = "buyback",
+                entryIndex = entryIndex,
+                quantity = 1,
+                price = ds.price,
+                item = DescribeBatchItem(ds),
+            })
             return batchStepQueued()
         end
         return batchStepHandled()
@@ -494,14 +614,14 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         Vendor._batchProcessing = false
         Vendor._batchAbortRequested = false
 
-        if BETTERUI.Log then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch finished", {
-                processed = self.processedCount,
-                total = self.totalItems,
-                skipped = self.skippedCount or 0,
-                stopReason = self.stopReason
-            })
-        end
+        TraceVendorBatch("vendor.batch", "finished", {
+            fn = "Vendor.BatchRunner.Finish",
+            processed = self.processedCount,
+            total = self.totalItems,
+            skipped = self.skippedCount or 0,
+            stopReason = self.stopReason,
+            showProgress = self.showProgress == true,
+        })
 
         if self.showProgress or self.stopReason then
             local completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PROCESSING_COMPLETE")),
@@ -775,11 +895,10 @@ end
 ---@return nil
 function BatchRuntime.RequestBatchAbort()
     if Vendor._batchProcessing then
-        if BETTERUI.Log then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch abort requested", {
-                processed = Vendor.instance and Vendor.instance.processedCount or 0
-            })
-        end
+        TraceVendorBatch("vendor.batch", "abort_requested", {
+            fn = "Vendor.BatchRuntime.RequestBatchAbort",
+            processed = Vendor.instance and Vendor.instance.processedCount or 0,
+        })
         Vendor._batchAbortRequested = true
     end
 end

@@ -6,6 +6,12 @@ Purpose: Shared action dialog utilities for Inventory and Banking modules.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
+local function TraceActionDialog(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
+end
+
 -- QUICKSLOT DIALOG UTILITIES
 
 -- Ordered clockwise starting at North: N, NE, E, SE, S, SW, W, NW
@@ -96,9 +102,12 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
         table.insert(parametricList, { template = templateName, entryData = entryData })
     end
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "action: quickslot entries built", {hasUnassign = hasUnassign, assignedIndex = assignedIndex})
-    end
+    TraceActionDialog("action.dialog.quickslot", "built", {
+        target = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(target, "target") or nil,
+        hasUnassign = hasUnassign,
+        assignedIndex = assignedIndex,
+        entryCount = #parametricList,
+    })
     return {
         hasUnassign = hasUnassign,
         assignedIndex = assignedIndex,
@@ -119,6 +128,7 @@ function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options
 
     local numActions = slotActions:GetNumSlotActions()
     local includedCount = 0
+    local includedNames = {}
 
     for i = 1, numActions do
         local action = slotActions:GetSlotAction(i)
@@ -138,6 +148,9 @@ function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options
 
         if shouldInclude then
             includedCount = includedCount + 1
+            if #includedNames < 12 then
+                includedNames[#includedNames + 1] = tostring(actionName or "nil")
+            end
             local entryData = ZO_GamepadEntryData:New(actionName)
             entryData:SetIconTintOnSelection(true)
             entryData.action = action
@@ -150,9 +163,12 @@ function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options
         end
     end
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "action: action entries populated", {numActions = numActions, includedCount = includedCount})
-    end
+    TraceActionDialog("action.dialog.entries", "populated", {
+        numActions = numActions,
+        includedCount = includedCount,
+        hiddenDestroy = hideDestroy == true,
+        included = table.concat(includedNames, "|"),
+    })
 end
 
 -- LINK TO CHAT HANDLER
@@ -211,15 +227,16 @@ end
 function BETTERUI.CIM.InvokeInventoryDialog(methodName, ...)
     local invokeDialog = BETTERUI.CIM._inventoryDialogInvoker
     if type(invokeDialog) ~= "function" then
-        if BETTERUI.Log then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "action: dialog invoker registered", {registered = false, methodName = methodName})
-        end
+        TraceActionDialog("action.dialog.invoke", "missing_invoker", { methodName = methodName })
         return false
     end
 
+    TraceActionDialog("action.dialog.invoke", "before", { methodName = methodName })
     local result = invokeDialog(methodName, ...)
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "action: dialog invoker registered", {registered = true, methodName = methodName})
-    end
+    TraceActionDialog("action.dialog.invoke", "after", {
+        methodName = methodName,
+        result = result == true,
+        handled = result ~= false,
+    })
     return result
 end

@@ -4,6 +4,18 @@ local function NotifySecureActionFailed(context)
         (failedStringId and GetString(failedStringId)) or "The action could not be completed.")
 end
 
+local function TraceInventoryEquip(phase, bagId, slotIndex, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.bagId = data.bagId or bagId
+    data.slotIndex = data.slotIndex or slotIndex
+    if not data.target and L.DescribeItem and bagId and slotIndex then
+        data.target = L.DescribeItem({ bagId = bagId, slotIndex = slotIndex }, "target")
+    end
+    L.TraceEvent(L.CATEGORY.ACTION, "inventory.equip", phase, data, L.LEVEL.INFO)
+end
+
 local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
     local targetPrimary = (isPrimary ~= false)
 
@@ -25,12 +37,50 @@ local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
         targetSlot = mainSlot and EQUIP_SLOT_RING1 or EQUIP_SLOT_RING2
     end
 
-    if targetSlot then
-        if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetSlot, 1) then
-            if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.ACTION, "RequestMoveItem failed via CallSecureProtected", {bagId = bagId, slotIndex = slotIndex, targetSlot = targetSlot}) end
-            NotifySecureActionFailed("EquipAction:EquipMove")
-        end
+    TraceInventoryEquip("move_resolved", bagId, slotIndex, {
+        equipType = equipType,
+        targetBag = BAG_WORN,
+        targetSlot = targetSlot,
+        mainSlot = mainSlot == true,
+        primaryWeaponSet = targetPrimary,
+        route = "equipSlotDialog",
+    })
+    if not targetSlot then
+        TraceInventoryEquip("blocked", bagId, slotIndex, {
+            reason = "missingTargetSlot",
+            equipType = equipType,
+            mainSlot = mainSlot == true,
+            primaryWeaponSet = targetPrimary,
+            route = "equipSlotDialog",
+        })
+        return false
     end
+
+    TraceInventoryEquip("move_requested", bagId, slotIndex, {
+        targetBag = BAG_WORN,
+        targetSlot = targetSlot,
+        quantity = 1,
+        route = "equipSlotDialog",
+    })
+    local ok = CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetSlot, 1)
+    if not ok then
+        TraceInventoryEquip("request_failed", bagId, slotIndex, {
+            targetBag = BAG_WORN,
+            targetSlot = targetSlot,
+            quantity = 1,
+            route = "equipSlotDialog",
+        })
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.ACTION, "RequestMoveItem failed via CallSecureProtected", {bagId = bagId, slotIndex = slotIndex, targetSlot = targetSlot}) end
+        NotifySecureActionFailed("EquipAction:EquipMove")
+        return false
+    end
+    TraceInventoryEquip("requested", bagId, slotIndex, {
+        targetBag = BAG_WORN,
+        targetSlot = targetSlot,
+        quantity = 1,
+        route = "equipSlotDialog",
+    })
+    return true
 end
 
 local COMPANION_EQUIP_PATCH_EVENT_NAME = "BETTERUI_CompanionEquipPatch"
@@ -60,18 +110,48 @@ local function AttemptCompanionEquipPatch()
             local sourceBag, sourceSlot = ZO_Inventory_GetBagAndIndex(inventorySlot)
             if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Companion TryEquipItem hook fired", {sourceBag = sourceBag, sourceSlot = sourceSlot}) end
             if sourceBag and sourceSlot then
+                TraceInventoryEquip("companion_hook", sourceBag, sourceSlot, {
+                    targetBag = BAG_COMPANION_WORN,
+                    targetSlot = self.selectedEquipSlot,
+                })
                 local function DoEquip()
+                    TraceInventoryEquip("move_requested", sourceBag, sourceSlot, {
+                        targetBag = BAG_COMPANION_WORN,
+                        targetSlot = self.selectedEquipSlot,
+                        quantity = 1,
+                        route = "companion",
+                    })
                     if not CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, BAG_COMPANION_WORN,
                             self.selectedEquipSlot, 1) then
+                        TraceInventoryEquip("request_failed", sourceBag, sourceSlot, {
+                            targetBag = BAG_COMPANION_WORN,
+                            targetSlot = self.selectedEquipSlot,
+                            quantity = 1,
+                            route = "companion",
+                        })
                         NotifySecureActionFailed("EquipAction:EquipCompanion")
+                    else
+                        TraceInventoryEquip("requested", sourceBag, sourceSlot, {
+                            targetBag = BAG_COMPANION_WORN,
+                            targetSlot = self.selectedEquipSlot,
+                            quantity = 1,
+                            route = "companion",
+                        })
                     end
                 end
                 if ZO_InventorySlot_WillItemBecomeBoundOnEquip(sourceBag, sourceSlot) then
                     local itemDisplayQuality = GetItemDisplayQuality(sourceBag, sourceSlot)
                     local itemDisplayQualityColor = GetItemQualityColor(itemDisplayQuality)
+                    TraceInventoryEquip("boe_prompted", sourceBag, sourceSlot, {
+                        dialog = "CONFIRM_EQUIP_ITEM",
+                        route = "companion",
+                    })
                     ZO_Dialogs_ShowPlatformDialog("CONFIRM_EQUIP_ITEM", { onAcceptCallback = DoEquip },
                         { mainTextParams = { itemDisplayQualityColor:Colorize(GetItemName(sourceBag, sourceSlot)) } })
                 else
+                    TraceInventoryEquip("boe_skipped", sourceBag, sourceSlot, {
+                        route = "companion",
+                    })
                     DoEquip()
                 end
                 return true
@@ -128,11 +208,19 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
     end
 
     local ds = inventorySlot and inventorySlot.dataSource
-    if not ds then return end
+    if not ds then
+        TraceInventoryEquip("skipped", nil, nil, { reason = "missingDataSource" })
+        return
+    end
 
     local equipType = ds.equipType
     local bagId = ds.bagId
     local slotIndex = ds.slotIndex
+    TraceInventoryEquip("requested", bagId, slotIndex, {
+        equipType = equipType,
+        fromActionDialog = isCallingFromActionDialog == true,
+        actorCategory = GetItemActorCategory and GetItemActorCategory(bagId, slotIndex) or nil,
+    })
 
     local uid = ds.uniqueId or GetItemUniqueId(bagId, slotIndex)
     if uid then
@@ -147,13 +235,19 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
     local bindType = GetItemLinkBindType(equipItemLink)
 
     local function showBindOnEquipDialog(callback)
+        local boeProtection = BETTERUI.GetSetting("Inventory", "bindOnEquipProtection", true)
         if
             not bound
             and bindType == BIND_TYPE_ON_EQUIP
             -- Protection must default ON so unset profiles still get the BOE confirm.
-            and BETTERUI.GetSetting("Inventory", "bindOnEquipProtection", true)
+            and boeProtection
         then
             local function promptForBindOnEquip()
+                TraceInventoryEquip("boe_prompted", bagId, slotIndex, {
+                    dialog = "CONFIRM_EQUIP_BOE",
+                    queued = isCallingFromActionDialog == true,
+                    route = "tryEquip",
+                })
                 ZO_Dialogs_ShowPlatformDialog(
                     "CONFIRM_EQUIP_BOE",
                     { callback = callback },
@@ -167,6 +261,12 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
                 promptForBindOnEquip()
             end
         else
+            TraceInventoryEquip("boe_skipped", bagId, slotIndex, {
+                bound = bound == true,
+                bindType = bindType,
+                protection = boeProtection == true,
+                route = "tryEquip",
+            })
             callback()
         end
     end
@@ -177,12 +277,35 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex, inventorySlot)
         showBindOnEquipDialog(function()
             if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(expectedSlotIdentity, bagId, slotIndex) ~= true then
+                TraceInventoryEquip("stale", bagId, slotIndex, {
+                    route = "costume",
+                    reason = "slotIdentityChanged",
+                })
                 BETTERUI.CIM.UserNotify("EquipAction:StaleSlot",
                     GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
                 return
             end
+            TraceInventoryEquip("move_requested", bagId, slotIndex, {
+                targetBag = BAG_WORN,
+                targetSlot = EQUIP_SLOT_COSTUME,
+                quantity = 1,
+                route = "costume",
+            })
             if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_COSTUME, 1) then
+                TraceInventoryEquip("request_failed", bagId, slotIndex, {
+                    targetBag = BAG_WORN,
+                    targetSlot = EQUIP_SLOT_COSTUME,
+                    quantity = 1,
+                    route = "costume",
+                })
                 NotifySecureActionFailed("EquipAction:EquipCostume")
+            else
+                TraceInventoryEquip("requested", bagId, slotIndex, {
+                    targetBag = BAG_WORN,
+                    targetSlot = EQUIP_SLOT_COSTUME,
+                    quantity = 1,
+                    route = "costume",
+                })
             end
         end)
     elseif
@@ -198,6 +321,12 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
             -- cancelled if the slot contents change while the dialog (or the queued
             -- bind-on-equip confirmation) is up.
             local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex, inventorySlot)
+            TraceInventoryEquip("slot_dialog_show", bagId, slotIndex, {
+                dialog = GetEquipSlotDialogName(),
+                equipType = equipType,
+                primaryWeaponSet = self.isPrimaryWeapon == true,
+                fromActionDialog = isCallingFromActionDialog == true,
+            })
             ZO_Dialogs_ShowDialog(
                 GetEquipSlotDialogName(),
                 { inventorySlot, self.isPrimaryWeapon, expectedSlotIdentity = expectedSlotIdentity },
@@ -207,6 +336,11 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         end
 
         if isCallingFromActionDialog then
+            TraceInventoryEquip("slot_dialog_queued", bagId, slotIndex, {
+                dialog = GetEquipSlotDialogName(),
+                equipType = equipType,
+                delayMs = BETTERUI.Inventory.CONST.DIALOG_QUEUE_TIMEOUT_MS,
+            })
             BETTERUI.Inventory.Tasks:Schedule("equipSlotDialog", BETTERUI.Inventory.CONST.DIALOG_QUEUE_TIMEOUT_MS,
                 showEquipDialog)
         else
@@ -218,16 +352,37 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bagId, slotIndex, inventorySlot)
         showBindOnEquipDialog(function()
             if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(expectedSlotIdentity, bagId, slotIndex) ~= true then
+                TraceInventoryEquip("stale", bagId, slotIndex, {
+                    route = "directEquip",
+                    reason = "slotIdentityChanged",
+                })
                 BETTERUI.CIM.UserNotify("EquipAction:StaleSlot",
                     GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
                 return
             end
             local equipSucceeds, possibleError = IsEquipable(bagId, slotIndex)
+            TraceInventoryEquip("equipable_checked", bagId, slotIndex, {
+                result = equipSucceeds == true,
+                reason = possibleError,
+                route = "directEquip",
+            })
             if equipSucceeds then
                 local wornBag = GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_PLAYER and BAG_WORN or
                     BAG_COMPANION_WORN
+                TraceInventoryEquip("request_equip_requested", bagId, slotIndex, {
+                    targetBag = wornBag,
+                    route = "directEquip",
+                })
                 RequestEquipItem(bagId, slotIndex, wornBag)
+                TraceInventoryEquip("request_equip_dispatched", bagId, slotIndex, {
+                    targetBag = wornBag,
+                    route = "directEquip",
+                })
             else
+                TraceInventoryEquip("blocked", bagId, slotIndex, {
+                    reason = possibleError,
+                    route = "directEquip",
+                })
                 BETTERUI.CIM.UserNotify("EquipAction:Equip",
                     possibleError or GetString(rawget(_G, "SI_INVENTORY_ERROR_ITEM_CANNOT_BE_EQUIPPED")))
             end
@@ -244,15 +399,30 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         local equipItemLink = GetItemLink(ds.bagId, ds.slotIndex)
         local bindType = GetItemLinkBindType(equipItemLink)
         local expectedSlotIdentity = data.expectedSlotIdentity
+        TraceInventoryEquip("slot_dialog_release", ds.bagId, ds.slotIndex, {
+            dialog = GetEquipSlotDialogName(),
+            equipType = equipType,
+            mainSlot = mainSlot == true,
+            primaryWeaponSet = data[2] ~= false,
+        })
 
         local equipItemCallback = function()
             -- Re-verify at execution time: the slot may have changed while the
             -- equip-slot dialog or the delayed bind-on-equip confirmation was up.
             if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(expectedSlotIdentity, ds.bagId, ds.slotIndex) ~= true then
+                TraceInventoryEquip("stale", ds.bagId, ds.slotIndex, {
+                    route = "equipSlotDialog",
+                    reason = "slotIdentityChanged",
+                })
                 BETTERUI.CIM.UserNotify("EquipAction:StaleSlot",
                     GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
                 return
             end
+            TraceInventoryEquip("slot_dialog_accept", ds.bagId, ds.slotIndex, {
+                dialog = GetEquipSlotDialogName(),
+                mainSlot = mainSlot == true,
+                primaryWeaponSet = data[2] ~= false,
+            })
             DoEquipMove(ds.bagId, ds.slotIndex, equipType, mainSlot, data[2])
         end
 
@@ -267,7 +437,16 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
             -- Let the equip-slot dialog finish releasing before queueing the
             -- bind-on-equip confirmation (no engine constant exposes this).
             local delay = 300
+            TraceInventoryEquip("boe_queued", ds.bagId, ds.slotIndex, {
+                dialog = "CONFIRM_EQUIP_BOE",
+                route = "equipSlotDialog",
+                delayMs = delay,
+            })
             BETTERUI.Inventory.Tasks:Schedule("equipBOEConfirmDialog", delay, function()
+                TraceInventoryEquip("boe_prompted", ds.bagId, ds.slotIndex, {
+                    dialog = "CONFIRM_EQUIP_BOE",
+                    route = "equipSlotDialog",
+                })
                 ZO_Dialogs_ShowPlatformDialog(
                     "CONFIRM_EQUIP_BOE",
                     { callback = equipItemCallback },
@@ -275,6 +454,12 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                 )
             end)
         else
+            TraceInventoryEquip("boe_skipped", ds.bagId, ds.slotIndex, {
+                bound = bound == true,
+                bindType = bindType,
+                protection = BETTERUI.GetSetting("Inventory", "bindOnEquipProtection", true) == true,
+                route = "equipSlotDialog",
+            })
             equipItemCallback()
         end
     end
@@ -355,6 +540,13 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                     return ""
                 end,
                 callback = function(dialog)
+                    local ds = dialog and dialog.data and dialog.data[1] and dialog.data[1].dataSource
+                    if ds then
+                        TraceInventoryEquip("slot_dialog_button", ds.bagId, ds.slotIndex, {
+                            button = "primary",
+                            dialog = GetEquipSlotDialogName(),
+                        })
+                    end
                     ReleaseDialog(dialog.data, true)
                 end,
             },
@@ -384,6 +576,13 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                     return false
                 end,
                 callback = function(dialog)
+                    local ds = dialog and dialog.data and dialog.data[1] and dialog.data[1].dataSource
+                    if ds then
+                        TraceInventoryEquip("slot_dialog_button", ds.bagId, ds.slotIndex, {
+                            button = "secondary",
+                            dialog = GetEquipSlotDialogName(),
+                        })
+                    end
                     ReleaseDialog(dialog.data, false)
                 end,
             },
@@ -400,6 +599,13 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                     return equipType ~= nil and equipType ~= EQUIP_TYPE_RING
                 end,
                 callback = function(dialog)
+                    local ds = dialog and dialog.data and dialog.data[1] and dialog.data[1].dataSource
+                    if ds then
+                        TraceInventoryEquip("slot_dialog_toggle", ds.bagId, ds.slotIndex, {
+                            oldPrimaryWeaponSet = dialog.data[2] == true,
+                            newPrimaryWeaponSet = dialog.data[2] ~= true,
+                        })
+                    end
                     dialog.data[2] = not dialog.data[2]
                     GAMEPAD_INVENTORY.isPrimaryWeapon = dialog.data[2]
                     GAMEPAD_INVENTORY:RefreshHeader()
@@ -410,13 +616,24 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                         ""
                     )
                     ZO_GenericGamepadDialog_RefreshKeybinds(dialog)
+                    if ds then
+                        TraceInventoryEquip("slot_dialog_keybinds_refreshed", ds.bagId, ds.slotIndex, {
+                            primaryWeaponSet = dialog.data[2] == true,
+                        })
+                    end
                 end,
             },
             {
                 keybind = "DIALOG_NEGATIVE",
                 alignment = KEYBIND_STRIP_ALIGN_RIGHT,
                 text = SI_DIALOG_CANCEL,
-                callback = function()
+                callback = function(dialog)
+                    local ds = dialog and dialog.data and dialog.data[1] and dialog.data[1].dataSource
+                    if ds then
+                        TraceInventoryEquip("slot_dialog_cancel", ds.bagId, ds.slotIndex, {
+                            dialog = GetEquipSlotDialogName(),
+                        })
+                    end
                     ZO_Dialogs_ReleaseDialogOnButtonPress(GetEquipSlotDialogName())
                 end,
             },

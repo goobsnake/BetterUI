@@ -225,6 +225,15 @@ end
 function BETTERUI.Banking.Class:OnSceneHidden()
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hidden")
+        local integration = self._headerSortIntegration
+        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "bank scene pre-cleanup snapshot", {
+            fn = "Banking:OnSceneHidden",
+            headerSort = self.isInHeaderSortMode == true,
+            active = integration and integration.isActive == true,
+            activeKeybind = BETTERUI.Log.DescribeKeybindDescriptor and integration and BETTERUI.Log.DescribeKeybindDescriptor(integration.activeKeybindDescriptor, "active") or nil,
+            suspendedCount = BETTERUI.Log.CountKeybindDescriptors and integration and BETTERUI.Log.CountKeybindDescriptors(integration.suspendedKeybindGroups) or 0,
+            main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+        })
     end
 
     -- PB-016: the Banking refresh manager lives at module scope, so the in-scope
@@ -273,6 +282,12 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         }
         for _, group in ipairs(keybindGroups) do
             if group then
+                if BETTERUI.Log then
+                    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "bank scene remove keybind", {
+                        fn = "Banking:OnSceneHidden",
+                        descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "remove") or tostring(group),
+                    })
+                end
                 KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
             end
         end

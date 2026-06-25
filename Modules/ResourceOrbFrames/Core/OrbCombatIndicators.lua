@@ -32,6 +32,21 @@ local GetLiveSettings = (OrbUtils.Settings and OrbUtils.Settings.GetLive) or Orb
 
 local ClampNumber = BETTERUI.ClampNumber
 
+local function TraceCombatIndicators(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "resourceOrbs"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.STATE, event, phase, data)
+end
+
 --- Resolves the front bar container control from the root frame.
 ---@param rootFrame table Root ResourceOrbFrames control
 ---@return table|nil frontBarContainer The front bar container, or nil
@@ -343,6 +358,7 @@ end
 --- Stops all active combat glow animations and hides glow controls.
 ---@return nil
 function CombatIndicators.HideAllCombatGlows()
+    local hiddenCount = 0
     for control, timeline in pairs(m_combatGlowTimelinesByControl) do
         if timeline and timeline.IsPlaying and timeline:IsPlaying() then
             timeline:Stop()
@@ -351,8 +367,10 @@ function CombatIndicators.HideAllCombatGlows()
             control:SetAlpha(0)
             control:SetHidden(true)
         end
+        hiddenCount = hiddenCount + 1
     end
     ZO_ClearNumericallyIndexedTable(m_activeCombatGlowControls)
+    TraceCombatIndicators("resource_orbs.combat_glow", "hidden", { count = hiddenCount })
 end
 
 local function ApplyCombatGlow(rootFrame, glowColor)
@@ -379,6 +397,7 @@ local function ApplyCombatGlow(rootFrame, glowColor)
 
         table.insert(m_activeCombatGlowControls, glowControl)
     end
+    TraceCombatIndicators("resource_orbs.combat_glow", "shown", { count = #glowTargets })
 end
 
 local function TryPlayCombatAudioCue(isInCombat, settings)
@@ -412,12 +431,34 @@ function CombatIndicators.ApplyCombatIndicators(rootFrame, isInCombat, playAudio
         and isInCombat
         and not IsUnitDead("player")
 
+    local traceState = table.concat({
+        tostring(isInCombat),
+        tostring(indicatorsEnabled),
+        tostring(canRenderIndicators),
+        tostring(settings and settings.showCombatGlow),
+        tostring(settings and settings.showCombatIcon),
+    }, ":")
+    if CombatIndicators._lastTraceState ~= traceState then
+        CombatIndicators._lastTraceState = traceState
+        TraceCombatIndicators("resource_orbs.combat_indicators", "state", {
+            inCombat = isInCombat,
+            enabled = indicatorsEnabled,
+            canRender = canRenderIndicators,
+            showGlow = settings and settings.showCombatGlow,
+            showIcon = settings and settings.showCombatIcon,
+        })
+    end
+
     -- Evaluate the combat-state transition before the render gate: leaving
     -- combat always fails the gate, so the exit cue must be decided here.
     if playAudioCue and indicatorsEnabled
         and CombatIndicators._lastCombatState ~= nil
         and CombatIndicators._lastCombatState ~= isInCombat then
         TryPlayCombatAudioCue(isInCombat, settings)
+        TraceCombatIndicators("resource_orbs.combat_audio", "played", {
+            inCombat = isInCombat,
+            previous = CombatIndicators._lastCombatState,
+        })
     end
     CombatIndicators._lastCombatState = isInCombat
 
@@ -428,6 +469,11 @@ function CombatIndicators.ApplyCombatIndicators(rootFrame, isInCombat, playAudio
             ApplyCombatIconTint(icon, false)
             icon:SetHidden(true)
         end
+        TraceCombatIndicators("resource_orbs.combat_indicators", "render_disabled", {
+            inCombat = isInCombat,
+            enabled = indicatorsEnabled,
+            hasIcon = icon ~= nil,
+        })
         return
     end
 
@@ -451,5 +497,10 @@ function CombatIndicators.ApplyCombatIndicators(rootFrame, isInCombat, playAudio
             icon:SetHidden(true)
         end
     end
-
+    TraceCombatIndicators("resource_orbs.combat_indicators", "rendered", {
+        inCombat = isInCombat,
+        showGlow = settings.showCombatGlow,
+        showIcon = settings.showCombatIcon == true,
+        hasIcon = icon ~= nil,
+    })
 end

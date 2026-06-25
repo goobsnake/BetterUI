@@ -6,6 +6,29 @@ Purpose: Tooltip, list-refresh, and row-construction logic for companion equipme
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 local Companions = BETTERUI.Companions
 
+local function GetCurrentSceneName()
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
+        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
+        if ok then return sceneName end
+    end
+    return nil
+end
+
+local function TraceCompanionList(event, phase, data, category)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not L or type(L.TraceEvent) ~= "function" then return end
+    local payload = data or {}
+    payload.module = "Companions"
+    payload.feature = "item_list"
+    payload.scene = GetCurrentSceneName()
+    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction(event)
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(category or categories.LIST or categories.GENERAL, event, phase, payload)
+end
+
 function BETTERUI.Companions.Class:UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
     if ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText then
         ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot, GAMEPLAY_ACTOR_CATEGORY_COMPANION)
@@ -28,27 +51,24 @@ end
 
 function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
     if not GAMEPAD_TOOLTIPS then
+        TraceCompanionList("companions.tooltip", "skipped", { fn = "UpdateItemTooltips", reason = "missingGamepadTooltips" })
         return
     end
 
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "companion tooltip updated", {
-            bagId = ds and ds.bagId or nil,
-            slotIndex = ds and ds.slotIndex or nil,
-            name = ds and ds.name or nil
-        })
-    end
+    TraceCompanionList("companions.tooltip", "update_begin", { fn = "UpdateItemTooltips", bagId = ds and ds.bagId or nil, slotIndex = ds and ds.slotIndex or nil, name = ds and ds.name or nil, equipped = ds and ds.bagId == BAG_COMPANION_WORN or false })
     if not ds or ds.bagId == nil or ds.slotIndex == nil then
         if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip then
             BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
         end
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
+        TraceCompanionList("companions.tooltip", "reset", { fn = "UpdateItemTooltips", reason = "noSelection", leftTooltip = GAMEPAD_LEFT_TOOLTIP, rightTooltip = GAMEPAD_RIGHT_TOOLTIP })
         return
     end
 
     GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
+    TraceCompanionList("companions.tooltip", "left_shown", { fn = "UpdateItemTooltips", tooltip = GAMEPAD_LEFT_TOOLTIP, bagId = ds.bagId, slotIndex = ds.slotIndex })
 
     -- Prevent GeneralInterface posthook from firing a second enhanced tooltip.
     -- BETTERUI.Inventory.UpdateTooltipEquippedText sets _betterui_priceRendered = true
@@ -69,11 +89,14 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
             GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_RIGHT_TOOLTIP, BAG_COMPANION_WORN, compareSlot)
             self:UpdateTooltipEquippedIndicatorText(GAMEPAD_RIGHT_TOOLTIP, compareSlot)
             BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_RIGHT_TOOLTIP, compareSlot)
+            TraceCompanionList("companions.tooltip", "right_shown", { fn = "UpdateItemTooltips", tooltip = GAMEPAD_RIGHT_TOOLTIP, sourceBag = ds.bagId, sourceSlot = ds.slotIndex, compareBag = BAG_COMPANION_WORN, compareSlot = compareSlot })
         else
             GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
+            TraceCompanionList("companions.tooltip", "right_reset", { fn = "UpdateItemTooltips", tooltip = GAMEPAD_RIGHT_TOOLTIP, sourceBag = ds.bagId, sourceSlot = ds.slotIndex, compareSlot = compareSlot })
         end
     else
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
+        TraceCompanionList("companions.tooltip", "right_reset", { fn = "UpdateItemTooltips", tooltip = GAMEPAD_RIGHT_TOOLTIP, reason = "selectedEquippedItem", sourceBag = ds.bagId, sourceSlot = ds.slotIndex })
     end
 
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(GAMEPAD_LEFT_TOOLTIP)
@@ -85,8 +108,10 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
         local itemLink = GetItemLink(ds.bagId, ds.slotIndex)
         local result = BETTERUI.CIM.SharedItemSupport.CompareItem(itemLink, ds.bagId, ds.slotIndex, BAG_COMPANION_WORN)
         BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip(container, result)
+        TraceCompanionList("companions.tooltip", "comparison_shown", { fn = "UpdateItemTooltips", bagId = ds.bagId, slotIndex = ds.slotIndex, itemLink = itemLink, hasResult = result ~= nil })
     else
         BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip(container, nil)
+        TraceCompanionList("companions.tooltip", "comparison_cleared", { fn = "UpdateItemTooltips", bagId = ds.bagId, slotIndex = ds.slotIndex, reason = ds.bagId == BAG_COMPANION_WORN and "selectedEquippedItem" or "comparisonDisabled" })
     end
 end
 
@@ -141,7 +166,10 @@ local COMPANION_SORT_COMPARATORS = {
 }
 
 function BETTERUI.Companions.Class:ApplySortToList()
-    if not self.list or not self.list.dataList then return end
+    if not self.list or not self.list.dataList then
+        TraceCompanionList("companions.sort", "skipped", { fn = "ApplySortToList", reason = "missingList" })
+        return
+    end
     local sortKey = "name"
     local sortOrder = ZO_SORT_ORDER_UP
     if self.sortController and self.sortController.GetActiveSortColumn then
@@ -158,22 +186,23 @@ function BETTERUI.Companions.Class:ApplySortToList()
         local base = comparator
         comparator = function(a, b) return base(b, a) end
     end
+    TraceCompanionList("companions.sort", "begin", { fn = "ApplySortToList", sortKey = sortKey, sortOrder = sortOrder, count = #self.list.dataList })
     table.sort(self.list.dataList, comparator)
+    local firstEntry = self.list.dataList[1]
+    local firstData = firstEntry and (firstEntry.dataSource or firstEntry) or nil
+    TraceCompanionList("companions.sort", "end", { fn = "ApplySortToList", sortKey = sortKey, sortOrder = sortOrder, count = #self.list.dataList, firstBag = firstData and firstData.bagId or nil, firstSlot = firstData and firstData.slotIndex or nil, firstName = firstData and firstData.name or nil })
 end
 
 ---@return boolean ok
 ---@return string|nil errorMessage
 function BETTERUI.Companions.Class:RefreshList()
     if not self.list then
-        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "RefreshList no-op: list missing") end
+        TraceCompanionList("companions.list_refresh", "skipped", { fn = "RefreshList", reason = "missingList" })
         return true
     end
 
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "companion list refreshed")
-    end
-
     self._isRefreshing = true
+    TraceCompanionList("companions.list_refresh", "begin", { fn = "RefreshList", existingCount = self.list.dataList and #self.list.dataList or 0, searchQuery = self.searchQuery })
     local boundary = Companions.GetBoundary()
     local ok, result = boundary.ExecuteBoundary("Companions.RefreshList", function()
         self.list:Clear()
@@ -186,6 +215,7 @@ function BETTERUI.Companions.Class:RefreshList()
 
         self:ApplySortToList()
         self.list:Commit()
+        TraceCompanionList("companions.list_refresh", "committed", { fn = "RefreshList", category = currentCategory and currentCategory.key or nil, filterType = filterType, count = self.list.dataList and #self.list.dataList or 0 })
         self:EnsureColumnHeadersVisible()
         self:UpdateScrollIndicator(self.list)
 
@@ -194,35 +224,49 @@ function BETTERUI.Companions.Class:RefreshList()
             local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition("Companions", currentCategory.key, self.list, self.list.dataList)
             if self.list.SetSelectedIndex then
                 self.list:SetSelectedIndex(targetIndex)
+                TraceCompanionList("companions.selection", "restored", { fn = "RefreshList", category = currentCategory.key, selectedIndex = targetIndex, count = self.list.dataList and #self.list.dataList or 0 })
             end
         end
 
         -- Refresh multi-select visuals
         if Companions.multiSelectManager then
             Companions.multiSelectManager:RefreshSelections()
+            TraceCompanionList("companions.multiselect", "refreshed", { fn = "RefreshList" })
         end
     end)
     self._isRefreshing = false
     if not ok then
+        TraceCompanionList("companions.list_refresh", "error", { fn = "RefreshList", error = tostring(result) })
         return false, boundary.WrapError("RefreshList", result)
     end
 
+    TraceCompanionList("companions.list_refresh", "end", { fn = "RefreshList", count = self.list.dataList and #self.list.dataList or 0 })
     return true
 end
 
 function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
     local list = self.list
-    if not list then return end
-    if not HasActiveCompanion or not HasActiveCompanion() then return end
+    if not list then
+        TraceCompanionList("companions.list_build", "skipped", { fn = "BuildEquippedItems", sourceBag = BAG_COMPANION_WORN, reason = "missingList", filterType = filterType })
+        return
+    end
+    if not HasActiveCompanion or not HasActiveCompanion() then
+        TraceCompanionList("companions.list_build", "skipped", { fn = "BuildEquippedItems", sourceBag = BAG_COMPANION_WORN, reason = "noActiveCompanion", filterType = filterType })
+        return
+    end
 
     local bagSize = GetBagSize(BAG_COMPANION_WORN)
-    if not bagSize or bagSize == 0 then return end
+    if not bagSize or bagSize == 0 then
+        TraceCompanionList("companions.list_build", "skipped", { fn = "BuildEquippedItems", sourceBag = BAG_COMPANION_WORN, reason = "emptyBag", filterType = filterType, bagSize = bagSize })
+        return
+    end
 
     local searchQuery = self.searchQuery
     if searchQuery and searchQuery ~= "" then
         searchQuery = zo_strlower(searchQuery)
     end
 
+    local addedCount = 0
     for slotIndex = 0, bagSize - 1 do
         local matchesFilter, filterSlotData = self:DoesSlotMatchFilterType(BAG_COMPANION_WORN, slotIndex, filterType)
         if matchesFilter then
@@ -301,15 +345,20 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
                     end
 
                     list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+                    addedCount = addedCount + 1
                 end
             end
         end
     end
+    TraceCompanionList("companions.list_build", "end", { fn = "BuildEquippedItems", sourceBag = BAG_COMPANION_WORN, filterType = filterType, searchQuery = searchQuery, bagSize = bagSize, added = addedCount })
 end
 
 function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
     local list = self.list
-    if not list then return end
+    if not list then
+        TraceCompanionList("companions.list_build", "skipped", { fn = "BuildBackpackItems", sourceBag = BAG_BACKPACK, reason = "missingList", filterType = filterType })
+        return
+    end
 
     local bagSize = GetBagSize(BAG_BACKPACK) or 0
     local searchQuery = self.searchQuery
@@ -317,6 +366,7 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
         searchQuery = zo_strlower(searchQuery)
     end
 
+    local addedCount = 0
     for slotIndex = 0, bagSize - 1 do
         local icon, stackCount, sellPrice = GetItemInfo(BAG_BACKPACK, slotIndex)
         local actorCategory = GetItemActorCategory and GetItemActorCategory(BAG_BACKPACK, slotIndex)
@@ -397,10 +447,12 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
                     end
 
                     list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+                    addedCount = addedCount + 1
                 end
             end
         end
     end
+    TraceCompanionList("companions.list_build", "end", { fn = "BuildBackpackItems", sourceBag = BAG_BACKPACK, filterType = filterType, searchQuery = searchQuery, bagSize = bagSize, added = addedCount })
 end
 
 function BETTERUI.Companions.Class:ApplyMultiSelectVisual(entry, entryData)

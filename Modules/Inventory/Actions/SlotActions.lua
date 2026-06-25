@@ -233,6 +233,45 @@ local function LogPrimaryActionInvoked(actionName, selectedAction, hasNamedOverr
         selectedAction = selectedAction == true,
         override = hasNamedOverride == true,
     }))
+    if L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "inventory.primary_action", "invoked", SlotActionData(bag, slot, {
+            action = actionName,
+            selectedAction = selectedAction == true,
+            override = hasNamedOverride == true,
+            target = L.DescribeItem and L.DescribeItem(target, "target") or nil,
+        }), L.LEVEL.INFO)
+    end
+end
+
+local ACTION_KEY = 1
+
+local function CountSlotActions(slotActions)
+    return slotActions and slotActions.m_slotActions and #slotActions.m_slotActions or 0
+end
+
+local function DescribeSlotActions(slotActions, limit)
+    if not (slotActions and slotActions.m_slotActions) then return nil end
+    local actions = {}
+    local count = math.min(#slotActions.m_slotActions, limit or 12)
+    for i = 1, count do
+        local actionEntry = slotActions.m_slotActions[i]
+        actions[#actions + 1] = tostring(actionEntry and actionEntry[ACTION_KEY] or "<unknown>")
+    end
+    if #slotActions.m_slotActions > count then
+        actions[#actions + 1] = "..."
+    end
+    return table.concat(actions, "|")
+end
+
+local function TraceSlotActions(event, phase, inventorySlot, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    local bag, slot = SafeResolveBagAndSlot(inventorySlot)
+    data = data or {}
+    if not data.target and L.DescribeItem and inventorySlot then
+        data.target = L.DescribeItem(inventorySlot.dataSource or inventorySlot, "target")
+    end
+    L.TraceEvent(L.CATEGORY.ACTION, event, phase, SlotActionData(bag, slot, data), L.LEVEL.INFO)
 end
 
 local function TryMarkAsJunk(inventorySlot)
@@ -412,7 +451,6 @@ local function ShouldReplacePrimaryAction(primaryAction)
     -- available in the Y (actions) list.
 end
 
-local ACTION_KEY = 1
 local VISIBILITY_FUNCTION = 4
 
 local function LogVisibilityFailure(actionName, err)
@@ -625,6 +663,9 @@ end
 ---@return nil
 function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
     local slotActions = self.slotActions
+    TraceSlotActions("inventory.slot_actions", "activate_start", inventorySlot, {
+        hadSlot = inventorySlot ~= nil,
+    })
     slotActions:Clear()
     slotActions:SetInventorySlot(inventorySlot)
     slotActions._betterui_primaryOverride = nil
@@ -632,40 +673,81 @@ function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
     self.selectedAction = nil
 
     if not inventorySlot then
+        TraceSlotActions("inventory.slot_actions", "activate_skipped", nil, {
+            reason = "missingInventorySlot",
+        })
         self.actionName = nil
         return
     end
 
+    TraceSlotActions("inventory.slot_actions", "discover_before", inventorySlot, {
+        actionCount = CountSlotActions(slotActions),
+    })
     ZO_InventorySlot_DiscoverSlotActionsFromActionList(inventorySlot, slotActions)
+    TraceSlotActions("inventory.slot_actions", "discover_after", inventorySlot, {
+        actionCount = CountSlotActions(slotActions),
+        actions = DescribeSlotActions(slotActions),
+    })
 
     -- 1. Secure "Open Skills" callback
     BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
 
-    local primaryAction = slotActions:GetPrimaryActionName()
+    local discoveredPrimaryAction = slotActions:GetPrimaryActionName()
+    local primaryAction = discoveredPrimaryAction
+    local fallbackPrimaryAction = nil
     local canUseItem = false
 
     if not primaryAction and #slotActions.m_slotActions > 0 then
-        primaryAction = slotActions.m_slotActions[1][1]
+        fallbackPrimaryAction = slotActions.m_slotActions[1][1]
+        primaryAction = fallbackPrimaryAction
     end
 
     primaryAction = ResolvePreferredPrimaryAction(slotActions, primaryAction, inventorySlot)
+    TraceSlotActions("inventory.slot_actions", "primary_resolved", inventorySlot, {
+        discoveredPrimary = discoveredPrimaryAction,
+        fallbackPrimary = fallbackPrimaryAction,
+        resolvedPrimary = primaryAction,
+        replacement = primaryAction and ShouldReplacePrimaryAction(primaryAction) == true,
+        actionCount = CountSlotActions(slotActions),
+        actions = DescribeSlotActions(slotActions),
+    })
 
     -- Handle primary action replacement logic
     if primaryAction and ShouldReplacePrimaryAction(primaryAction) then
-        if not RemoveSlotActionByName(slotActions, primaryAction) and #slotActions.m_slotActions > 0 then
+        local removedByName = RemoveSlotActionByName(slotActions, primaryAction)
+        local removedFallback = false
+        if not removedByName and #slotActions.m_slotActions > 0 then
             table.remove(slotActions.m_slotActions, 1)
+            removedFallback = true
         end
+        TraceSlotActions("inventory.slot_actions", "primary_removed", inventorySlot, {
+            primary = primaryAction,
+            removedByName = removedByName == true,
+            removedFallback = removedFallback == true,
+            actionCount = CountSlotActions(slotActions),
+            actions = DescribeSlotActions(slotActions),
+        })
 
         if not IsSlotInCraftBag(inventorySlot) and CanItemMoveToCraftBag(inventorySlot) and IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) then
             canUseItem = true
             for i = #slotActions.m_slotActions, 1, -1 do
                 if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
                     table.remove(slotActions.m_slotActions, i)
+                    TraceSlotActions("inventory.slot_actions", "secondary_removed", inventorySlot, {
+                        action = GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG),
+                        reason = "craftBagUsePrimary",
+                        actionCount = CountSlotActions(slotActions),
+                        actions = DescribeSlotActions(slotActions),
+                    })
                     break
                 end
             end
         end
     elseif not primaryAction then
+        TraceSlotActions("inventory.slot_actions", "primary_missing", inventorySlot, {
+            actionCount = CountSlotActions(slotActions),
+            actions = DescribeSlotActions(slotActions),
+        })
         self.actionName = nil
         slotActions._betterui_primaryOverride = nil
         slotActions._betterui_primaryName = nil
@@ -680,6 +762,10 @@ function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
                 ZO_InventorySlot_TrySplitStack(inventorySlot)
             end
         end
+        TraceSlotActions("inventory.slot_actions", "override_set", inventorySlot, {
+            action = primaryAction,
+            override = "splitStack",
+        })
     else
         slotActions._betterui_primaryOverride = nil
     end
@@ -694,17 +780,47 @@ function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
             replacement = primaryAction and ShouldReplacePrimaryAction(primaryAction) == true,
         }))
     end
+    TraceSlotActions("inventory.slot_actions", "action_resolved", inventorySlot, {
+        primary = primaryAction,
+        action = self.actionName,
+        canUseItem = canUseItem == true,
+        replacement = primaryAction and ShouldReplacePrimaryAction(primaryAction) == true,
+    })
 
     -- 3. Setup secure actions based on action type
     if primaryAction and ShouldReplacePrimaryAction(primaryAction) then
         SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
+        TraceSlotActions("inventory.slot_actions", "primary_setup", inventorySlot, {
+            primary = primaryAction,
+            action = self.actionName,
+            override = type(slotActions._betterui_primaryOverride) == "function",
+            overrideName = slotActions._betterui_primaryName,
+            actionCount = CountSlotActions(slotActions),
+            actions = DescribeSlotActions(slotActions),
+        })
     end
 
     -- 4. Inject custom registered actions from external addons
+    TraceSlotActions("inventory.slot_actions", "custom_before", inventorySlot, {
+        actionCount = CountSlotActions(slotActions),
+        actions = DescribeSlotActions(slotActions),
+    })
     InjectCustomActions(slotActions, inventorySlot)
+    TraceSlotActions("inventory.slot_actions", "custom_after", inventorySlot, {
+        actionCount = CountSlotActions(slotActions),
+        actions = DescribeSlotActions(slotActions),
+    })
 
     -- 5. Deduplicate Action List
     BETTERUI.CIM.DeduplicateActions(slotActions)
+    TraceSlotActions("inventory.slot_actions", "finalized", inventorySlot, {
+        primary = primaryAction,
+        action = self.actionName,
+        override = type(slotActions._betterui_primaryOverride) == "function",
+        overrideName = slotActions._betterui_primaryName,
+        actionCount = CountSlotActions(slotActions),
+        actions = DescribeSlotActions(slotActions),
+    })
 end
 
 --- Initializes the slot actions controller, defining how actions are prioritized and executed.
@@ -750,22 +866,48 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             local craftBagMultiSelectActive = inventory and inventory.craftBagMultiSelectManager
                 and inventory.craftBagMultiSelectManager.IsActive and inventory.craftBagMultiSelectManager:IsActive()
             if inventoryMultiSelectActive or craftBagMultiSelectActive then
+                TraceSlotActions("inventory.primary_action", "skipped", ResolveCurrentInventoryActionTarget(), {
+                    reason = "multiSelectActive",
+                    inventoryMultiSelect = inventoryMultiSelectActive == true,
+                    craftBagMultiSelect = craftBagMultiSelectActive == true,
+                })
                 return
             end
 
             if selfRef.selectedAction then
-                LogPrimaryActionInvoked(slotActions:GetRawActionName(selfRef.selectedAction), true, false)
+                local rawActionName = slotActions:GetRawActionName(selfRef.selectedAction)
+                TraceSlotActions("inventory.primary_action", "dispatch_before", ResolveCurrentInventoryActionTarget(), {
+                    route = "selectedAction",
+                    action = rawActionName,
+                })
+                LogPrimaryActionInvoked(rawActionName, true, false)
                 selfRef:DoSelectedAction()
+                TraceSlotActions("inventory.primary_action", "dispatch_after", ResolveCurrentInventoryActionTarget(), {
+                    route = "selectedAction",
+                    action = rawActionName,
+                })
             else
                 local hasNamedOverride = type(slotActions._betterui_primaryOverride) == "function"
                     and type(slotActions._betterui_primaryName) == "string"
                     and slotActions._betterui_primaryName ~= ""
-                LogPrimaryActionInvoked(selfRef.actionName or slotActions._betterui_primaryName, false, hasNamedOverride)
+                local actionName = selfRef.actionName or slotActions._betterui_primaryName
+                local route = hasNamedOverride and "namedOverride" or "enginePrimary"
+                TraceSlotActions("inventory.primary_action", "dispatch_before", ResolveCurrentInventoryActionTarget(), {
+                    route = route,
+                    action = actionName,
+                    override = hasNamedOverride == true,
+                })
+                LogPrimaryActionInvoked(actionName, false, hasNamedOverride)
                 if hasNamedOverride then
                     slotActions._betterui_primaryOverride()
                 else
                     slotActions:DoPrimaryAction()
                 end
+                TraceSlotActions("inventory.primary_action", "dispatch_after", ResolveCurrentInventoryActionTarget(), {
+                    route = route,
+                    action = actionName,
+                    override = hasNamedOverride == true,
+                })
             end
         end,
         visible = function()

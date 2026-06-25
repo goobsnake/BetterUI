@@ -119,6 +119,7 @@ function BETTERUI.Banking.Class:RefreshList()
     if not self.list then
         return
     end
+    local selectedBeforeRefresh = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "before") or nil
 
     local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     local transferSourceBankBag = transferContext.interactionBag
@@ -126,6 +127,12 @@ function BETTERUI.Banking.Class:RefreshList()
     local isSourceMainBank = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
     local isSourceFurnitureVault = transferContext.sourceIsFurnitureVault == true
     if self._suppressListUpdates or self.isBatchProcessing then
+        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "bank.list_refresh", "skipped", {
+                mode = self.currentMode, suppressed = self._suppressListUpdates == true,
+                batch = self.isBatchProcessing == true, before = selectedBeforeRefresh,
+            })
+        end
         return
     end
 
@@ -366,7 +373,21 @@ function BETTERUI.Banking.Class:RefreshList()
         self.list:Activate()
     end
 
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "bank.list_refresh", "committed", {
+            mode = self.currentMode, rowCount = entryCount, categoryKey = activeCategory and activeCategory.key,
+            searchLen = self.searchQuery and #tostring(self.searchQuery) or 0,
+            before = selectedBeforeRefresh,
+            afterCommit = BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "afterCommit") or nil,
+        })
+    end
     self:ReturnToSaved()
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "bank.list_refresh", "restored", {
+            mode = self.currentMode, rowCount = entryCount,
+            selected = BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "afterRestore") or nil,
+        })
+    end
     self:UpdateActions()
     self:RefreshFooter()
 end

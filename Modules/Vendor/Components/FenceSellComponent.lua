@@ -170,16 +170,38 @@ function FenceSell:OnPrimaryAction(vendorInstance)
     -- like ZOS does (fencewindowsell_gamepad.lua spinnerMax).
     local quantity = zo_min(stackSize, remaining)
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor fence sell item", {
+    local L = BETTERUI.Log
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.fence_sell", "request", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-fence-sell",
+            fn = "Vendor.FenceSellComponent.OnPrimaryAction",
+            ["function"] = "Vendor.FenceSellComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
             bagId = bagId,
             slotIndex = slotIndex,
             quantity = quantity,
-            name = ds.name
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
         })
     end
 
     SellInventoryItem(bagId, slotIndex, quantity)
+
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.fence_sell", "requested", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-fence-sell",
+            fn = "Vendor.FenceSellComponent.OnPrimaryAction",
+            ["function"] = "Vendor.FenceSellComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+            bagId = bagId,
+            slotIndex = slotIndex,
+            quantity = quantity,
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+        })
+    end
 end
 
 -- LIST BUILDING

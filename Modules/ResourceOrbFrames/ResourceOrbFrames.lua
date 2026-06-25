@@ -37,6 +37,59 @@ local m_experienceBar = nil
 local m_castBar = nil
 local m_mountStaminaBar = nil
 
+local function GetCurrentSceneName()
+    if SCENE_MANAGER and SCENE_MANAGER.GetCurrentScene then
+        local scene = SCENE_MANAGER:GetCurrentScene()
+        if scene and scene.GetName then
+            return scene:GetName()
+        end
+    end
+    return nil
+end
+
+local function CapturePowerState()
+    local state = {}
+    if type(GetUnitPower) ~= "function" then
+        return state
+    end
+    if POWERTYPE_HEALTH ~= nil then
+        state.health, state.healthMax = GetUnitPower("player", POWERTYPE_HEALTH)
+    end
+    if POWERTYPE_MAGICKA ~= nil then
+        state.magicka, state.magickaMax = GetUnitPower("player", POWERTYPE_MAGICKA)
+    end
+    if POWERTYPE_STAMINA ~= nil then
+        state.stamina, state.staminaMax = GetUnitPower("player", POWERTYPE_STAMINA)
+    end
+    if POWERTYPE_ULTIMATE ~= nil then
+        state.ultimate, state.ultimateMax = GetUnitPower("player", POWERTYPE_ULTIMATE)
+    end
+    return state
+end
+
+local function TraceROF(event, phase, data, category)
+    if not (BETTERUI and BETTERUI.Log and BETTERUI.Log.TraceEvent) then
+        return
+    end
+    data = data or {}
+    data.module = data.module or "ResourceOrbFrames"
+    data.feature = data.feature or "resource_orbs"
+    data.scene = data.scene or GetCurrentSceneName()
+    data.initialized = data.initialized ~= nil and data.initialized or m_isInitialized
+    data.hasRootFrame = data.hasRootFrame ~= nil and data.hasRootFrame or m_rootFrame ~= nil
+    if data.gamepadMode == nil and type(IsInGamepadPreferredMode) == "function" then
+        data.gamepadMode = IsInGamepadPreferredMode()
+    end
+    if data.inCombat == nil and type(IsUnitInCombat) == "function" then
+        data.inCombat = IsUnitInCombat("player")
+    end
+    if BETTERUI.Log.SetLastAction then
+        BETTERUI.Log.SetLastAction({ flow = event, message = event .. ":" .. phase })
+    end
+    local categories = BETTERUI.Log.CATEGORY or {}
+    BETTERUI.Log.TraceEvent(category or categories.STATE, event, phase, data)
+end
+
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
 local function GetROFDeferredTaskRuntime()
@@ -67,10 +120,47 @@ local GetSettings = SettingsUtils.Get
 local GetFrontBarConfig = SettingsUtils.GetCustomFrontBar
 local FindControl = ControlUtils.Find
 
+local function RegisterResourceOrbSnapshotProvider()
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and watch.RegisterSnapshotProvider) then
+        return
+    end
+    watch.RegisterSnapshotProvider("resourceOrbs", function()
+        local power = CapturePowerState()
+        local frontBarCfg = GetFrontBarConfig and GetFrontBarConfig()
+        return string.format("init=%s root=%s combat=%s gp=%s hp=%s/%s mag=%s/%s stam=%s/%s front=%s swap=%s",
+            tostring(m_isInitialized),
+            tostring(m_rootFrame ~= nil),
+            tostring(type(IsUnitInCombat) == "function" and IsUnitInCombat("player") or nil),
+            tostring(type(IsInGamepadPreferredMode) == "function" and IsInGamepadPreferredMode() or nil),
+            tostring(power.health), tostring(power.healthMax),
+            tostring(power.magicka), tostring(power.magickaMax),
+            tostring(power.stamina), tostring(power.staminaMax),
+            tostring(frontBarCfg and frontBarCfg.m_enabled),
+            tostring(SkillBar and SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating() or false))
+    end)
+end
+
 -- UPDATE HELPERS
 
 local function RefreshAllData()
-    if not m_isInitialized then return end
+    if not m_isInitialized then
+        TraceROF("resource_orbs.refresh_all", "skipped", {
+            fn = "ResourceOrbFrames.RefreshAllData",
+            reason = "notInitialized",
+        })
+        return
+    end
+    TraceROF("resource_orbs.refresh_all", "begin", {
+        fn = "ResourceOrbFrames.RefreshAllData",
+        hasDeathFragment = m_updateDeathFragment ~= nil,
+        poolCount = m_pools and NonContiguousCount and NonContiguousCount(m_pools) or nil,
+        hasShieldBar = m_shieldBar ~= nil,
+        hasExperienceBar = m_experienceBar ~= nil,
+        hasCastBar = m_castBar ~= nil,
+        hasMountStaminaBar = m_mountStaminaBar ~= nil,
+        power = CapturePowerState(),
+    })
     if m_updateDeathFragment then m_updateDeathFragment() end
 
     -- Update Power Pools
@@ -101,12 +191,42 @@ local function RefreshAllData()
     if m_experienceBar then m_experienceBar:Update() end
     if m_castBar then m_castBar:Update() end
     if m_mountStaminaBar then m_mountStaminaBar:Update() end
+    TraceROF("resource_orbs.refresh_all", "end", {
+        fn = "ResourceOrbFrames.RefreshAllData",
+        hasShieldBar = m_shieldBar ~= nil,
+        hasExperienceBar = m_experienceBar ~= nil,
+        hasCastBar = m_castBar ~= nil,
+        hasMountStaminaBar = m_mountStaminaBar ~= nil,
+        power = CapturePowerState(),
+    })
 end
 
 ---@param updateOrbs boolean Whether to update orb frame layout
 ---@param updateSkills boolean Whether to update skill bar layout
 local function ApplyLayout(updateOrbs, updateSkills)
-    if not m_rootFrame or not m_isInitialized then return end
+    if not m_rootFrame or not m_isInitialized then
+        TraceROF("resource_orbs.layout", "skipped", {
+            fn = "ResourceOrbFrames.ApplyLayout",
+            reason = not m_rootFrame and "missingRootFrame" or "notInitialized",
+            updateOrbs = updateOrbs,
+            updateSkills = updateSkills,
+        })
+        return
+    end
+
+    local frontBarCfg = GetFrontBarConfig()
+    TraceROF("resource_orbs.layout", "begin", {
+        fn = "ResourceOrbFrames.ApplyLayout",
+        updateOrbs = updateOrbs,
+        updateSkills = updateSkills,
+        frontBarEnabled = frontBarCfg and frontBarCfg.m_enabled,
+        weaponSwapAnimating = SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating() or nil,
+        hasBgMiddle = m_bgMiddle ~= nil,
+        hasFrontBarContainer = m_frontBarContainer ~= nil,
+        hasBackBarContainer = m_backBarContainer ~= nil,
+        hasLeftOrnament = m_leftOrnament ~= nil,
+        hasRightOrnament = m_rightOrnament ~= nil,
+    })
 
     if updateSkills then
         -- Update Skill Bar Layouts
@@ -200,6 +320,20 @@ local function ApplyLayout(updateOrbs, updateSkills)
         end
         m_castBar:Update()
     end
+    TraceROF("resource_orbs.layout", "end", {
+        fn = "ResourceOrbFrames.ApplyLayout",
+        updateOrbs = updateOrbs,
+        updateSkills = updateSkills,
+        independentOrbOffset = settings.enableIndependentOrbOffset,
+        orbOffsetX = orbOffsetX,
+        orbOffsetY = orbOffsetY,
+        hideLeftOrnament = settings.hideLeftOrnament,
+        hideRightOrnament = settings.hideRightOrnament,
+        hideBackBar = settings.hideBackBar,
+        hasExperienceBar = m_experienceBar ~= nil,
+        hasMountStaminaBar = m_mountStaminaBar ~= nil,
+        hasCastBar = m_castBar ~= nil,
+    })
 end
 
 local function ApplyFullLayout()
@@ -216,6 +350,13 @@ end
 ---@param control table Root ResourceOrbFrames control
 local function SetupFrontBarHandlers(control)
     local skillBar = GetSkillBarModule()
+    TraceROF("resource_orbs.front_bar_handlers", "begin", {
+        fn = "ResourceOrbFrames.SetupFrontBarHandlers",
+        hasControl = control ~= nil,
+        hasKeybindSetup = skillBar and skillBar.SetupFrontBarKeybinds ~= nil,
+        hasPressFeedbackSetup = skillBar and skillBar.SetupFrontBarPressFeedbackHooks ~= nil,
+        hasTooltipSetup = skillBar and skillBar.SetupFrontBarTooltips ~= nil,
+    })
     if skillBar.SetupFrontBarKeybinds then
         skillBar.SetupFrontBarKeybinds(control)
     end
@@ -225,35 +366,75 @@ local function SetupFrontBarHandlers(control)
     if skillBar.SetupFrontBarTooltips then
         skillBar.SetupFrontBarTooltips(control)
     end
+    TraceROF("resource_orbs.front_bar_handlers", "end", {
+        fn = "ResourceOrbFrames.SetupFrontBarHandlers",
+        hasControl = control ~= nil,
+    })
 end
 
 --- Suppresses native action bar and attribute bars.
 local function SuppressNativeBars()
     local skillBar = GetSkillBarModule()
+    TraceROF("resource_orbs.native_bars", "suppress_begin", {
+        fn = "ResourceOrbFrames.SuppressNativeBars",
+        hasHideNativeActionBar = skillBar and skillBar.HideNativeActionBar ~= nil,
+        hasAttributeBarsFragment = PLAYER_ATTRIBUTE_BARS_FRAGMENT ~= nil,
+    })
     if skillBar and skillBar.HideNativeActionBar then
         skillBar.HideNativeActionBar()
     end
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
     end
+    TraceROF("resource_orbs.native_bars", "suppress_end", {
+        fn = "ResourceOrbFrames.SuppressNativeBars",
+        hiddenReason = "ResourceOrbFrames",
+    })
 end
 
 --- Registers all dynamic event callbacks after initial component setup.
 ---@param control table Root ResourceOrbFrames control
 local function RegisterDynamicEvents(control)
+    TraceROF("resource_orbs.events", "register_begin", {
+        fn = "ResourceOrbFrames.RegisterDynamicEvents",
+        hasControl = control ~= nil,
+    })
     -- Layout force update (skip during weapon swap animation to prevent orb shifting)
     CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
-        if not SkillBar.IsWeaponSwapAnimating() then
+        local isAnimating = SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating()
+        TraceROF("resource_orbs.force_layout", isAnimating and "skipped" or "received", {
+            fn = "ResourceOrbFrames.BetterUI_ForceLayoutUpdate",
+            reason = isAnimating and "weaponSwapAnimating" or nil,
+            hasRefreshCombatIndicators = Events.RefreshCombatIndicators ~= nil,
+        })
+        if not isAnimating then
             ApplyFullLayout()
             if Events.RefreshCombatIndicators then
                 Events.RefreshCombatIndicators(control)
             end
+            TraceROF("resource_orbs.force_layout", "end", {
+                fn = "ResourceOrbFrames.BetterUI_ForceLayoutUpdate",
+                refreshedCombatIndicators = Events.RefreshCombatIndicators ~= nil,
+            })
         end
     end)
 
     -- Gamepad switch (dynamic re-skin instead of ReloadUI)
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
-        if not m_isInitialized or not m_rootFrame then return end
+        if not m_isInitialized or not m_rootFrame then
+            TraceROF("resource_orbs.gamepad_mode", "skipped", {
+                fn = "ResourceOrbFrames.EVENT_GAMEPAD_PREFERRED_MODE_CHANGED",
+                reason = not m_rootFrame and "missingRootFrame" or "notInitialized",
+            })
+            return
+        end
+
+        TraceROF("resource_orbs.gamepad_mode", "begin", {
+            fn = "ResourceOrbFrames.EVENT_GAMEPAD_PREFERRED_MODE_CHANGED",
+            stoppingWeaponSwapAnimation = SkillBar.StopWeaponSwapAnimation ~= nil,
+            frontBarControlsCached = SkillBar.CacheFrontBarControls ~= nil,
+            backBarControlsCached = SkillBar.CacheBackBarControls ~= nil,
+        })
 
         if SkillBar.StopWeaponSwapAnimation then
             SkillBar.StopWeaponSwapAnimation(m_rootFrame)
@@ -291,70 +472,173 @@ local function RegisterDynamicEvents(control)
         if Events.RefreshCombatIndicators then
             Events.RefreshCombatIndicators(m_rootFrame)
         end
+        TraceROF("resource_orbs.gamepad_mode", "end", {
+            fn = "ResourceOrbFrames.EVENT_GAMEPAD_PREFERRED_MODE_CHANGED",
+            frontBarEnabled = cfg and cfg.m_enabled,
+            refreshedCombatIndicators = Events.RefreshCombatIndicators ~= nil,
+            power = CapturePowerState(),
+        })
     end)
 
     -- Dynamic bar updates
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED,
         function()
+            TraceROF("resource_orbs.weapon_pair", "changed", {
+                fn = "ResourceOrbFrames.EVENT_ACTIVE_WEAPON_PAIR_CHANGED",
+                delayMs = BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
+            })
             SkillBar.WeaponSwapAnimation(control)
+            TraceROF("resource_orbs.weapon_pair", "layout_scheduled", {
+                fn = "ResourceOrbFrames.EVENT_ACTIVE_WEAPON_PAIR_CHANGED",
+                task = "weaponSwapLayout",
+                delayMs = BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
+            })
             GetROFTasks():Schedule("weaponSwapLayout", BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
-                function() ApplyLayout(false, true) end)
+                function()
+                    TraceROF("resource_orbs.weapon_pair", "layout_task", {
+                        fn = "ResourceOrbFrames.weaponSwapLayout",
+                    })
+                    ApplyLayout(false, true)
+                end)
         end)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE,
         function()
-            SkillBar.UpdateBackBar(control)
             local cfg = GetFrontBarConfig()
+            TraceROF("resource_orbs.action_slots", "full_update", {
+                fn = "ResourceOrbFrames.EVENT_ACTION_SLOTS_FULL_UPDATE",
+                frontBarEnabled = cfg and cfg.m_enabled,
+            })
+            SkillBar.UpdateBackBar(control)
             if cfg and cfg.m_enabled then SkillBar.UpdateFrontBar(control) end
             ApplyLayout(false, true)
+            TraceROF("resource_orbs.action_slots", "full_update_end", {
+                fn = "ResourceOrbFrames.EVENT_ACTION_SLOTS_FULL_UPDATE",
+                frontBarUpdated = cfg and cfg.m_enabled,
+            })
         end)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlot", EVENT_ACTION_SLOT_UPDATED,
-        function()
-            SkillBar.UpdateBackBar(control)
+        function(_, slotIndex)
             local cfg = GetFrontBarConfig()
+            TraceROF("resource_orbs.action_slot", "updated", {
+                fn = "ResourceOrbFrames.EVENT_ACTION_SLOT_UPDATED",
+                slotIndex = slotIndex,
+                frontBarEnabled = cfg and cfg.m_enabled,
+            })
+            SkillBar.UpdateBackBar(control)
             if cfg and cfg.m_enabled then SkillBar.UpdateFrontBar(control) end
+            TraceROF("resource_orbs.action_slot", "updated_end", {
+                fn = "ResourceOrbFrames.EVENT_ACTION_SLOT_UPDATED",
+                slotIndex = slotIndex,
+                frontBarUpdated = cfg and cfg.m_enabled,
+            })
         end)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CompanionState",
         EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
             local cfg = GetFrontBarConfig()
+            TraceROF("resource_orbs.companion", "state_changed", {
+                fn = "ResourceOrbFrames.EVENT_ACTIVE_COMPANION_STATE_CHANGED",
+                frontBarEnabled = cfg and cfg.m_enabled,
+                delayMs = BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS,
+            })
             if cfg and cfg.m_enabled then
                 SkillBar.UpdateFrontBarCompanion(control)
             end
-            GetROFTasks():Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, ApplyFullLayout)
+            TraceROF("resource_orbs.companion", "layout_scheduled", {
+                fn = "ResourceOrbFrames.EVENT_ACTIVE_COMPANION_STATE_CHANGED",
+                task = "companionLayout",
+                frontBarUpdated = cfg and cfg.m_enabled,
+                delayMs = BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS,
+            })
+            GetROFTasks():Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, function()
+                TraceROF("resource_orbs.companion", "layout_task", {
+                    fn = "ResourceOrbFrames.companionLayout",
+                })
+                ApplyFullLayout()
+            end)
         end)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED,
         function()
             local cfg = GetFrontBarConfig()
+            TraceROF("resource_orbs.quickslot", "changed", {
+                fn = "ResourceOrbFrames.EVENT_ACTIVE_QUICKSLOT_CHANGED",
+                frontBarEnabled = cfg and cfg.m_enabled,
+            })
             if cfg and cfg.m_enabled then
                 SkillBar.UpdateFrontBarQuickslot(control)
             end
+            TraceROF("resource_orbs.quickslot", "changed_end", {
+                fn = "ResourceOrbFrames.EVENT_ACTIVE_QUICKSLOT_CHANGED",
+                frontBarUpdated = cfg and cfg.m_enabled,
+            })
         end)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_FrontBarPressFeedbackAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
-            if not slotIndex then return end
+            if not slotIndex then
+                TraceROF("resource_orbs.press_feedback", "skipped", {
+                    fn = "ResourceOrbFrames.EVENT_ACTION_SLOT_ABILITY_USED",
+                    reason = "missingSlotIndex",
+                })
+                return
+            end
             local frontBarSettings = GetFrontBarConfig()
-            if not frontBarSettings or not frontBarSettings.m_enabled then return end
+            if not frontBarSettings or not frontBarSettings.m_enabled then
+                TraceROF("resource_orbs.press_feedback", "skipped", {
+                    fn = "ResourceOrbFrames.EVENT_ACTION_SLOT_ABILITY_USED",
+                    reason = "frontBarDisabled",
+                    slotIndex = slotIndex,
+                })
+                return
+            end
             if SkillBar.PlayFrontBarPressFeedbackForSlot then
+                TraceROF("resource_orbs.press_feedback", "play", {
+                    fn = "ResourceOrbFrames.EVENT_ACTION_SLOT_ABILITY_USED",
+                    slotIndex = slotIndex,
+                    fromAbilityUsedEvent = true,
+                })
                 SkillBar.PlayFrontBarPressFeedbackForSlot(control, slotIndex, nil, true)
+            else
+                TraceROF("resource_orbs.press_feedback", "skipped", {
+                    fn = "ResourceOrbFrames.EVENT_ACTION_SLOT_ABILITY_USED",
+                    reason = "handlerMissing",
+                    slotIndex = slotIndex,
+                })
             end
         end, REGISTER_FILTER_UNIT_TAG, "player")
 
     -- Zone change cleanup (for subsequent zones after initial setup)
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED,
         function()
+            TraceROF("resource_orbs.player_activated", "received", {
+                fn = "ResourceOrbFrames.EVENT_PLAYER_ACTIVATED",
+                delayMs = BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS,
+            })
             GetROFTasks():Schedule("playerActivatedRefresh", BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS, function()
+                TraceROF("resource_orbs.player_activated", "refresh_task", {
+                    fn = "ResourceOrbFrames.playerActivatedRefresh",
+                    hasRefreshCombatIndicators = Events.RefreshCombatIndicators ~= nil,
+                })
                 SuppressNativeBars()
                 ApplyFullLayout()
                 RefreshAllData()
                 if Events.RefreshCombatIndicators then
                     Events.RefreshCombatIndicators(control)
                 end
+                TraceROF("resource_orbs.player_activated", "refresh_end", {
+                    fn = "ResourceOrbFrames.playerActivatedRefresh",
+                    refreshedCombatIndicators = Events.RefreshCombatIndicators ~= nil,
+                    power = CapturePowerState(),
+                })
             end)
         end)
+    TraceROF("resource_orbs.events", "register_end", {
+        fn = "ResourceOrbFrames.RegisterDynamicEvents",
+        hasControl = control ~= nil,
+    })
 end
 
 -- INITIALIZATION
@@ -367,6 +651,13 @@ local m_dynamicEventsRegistered = false
 ---@param control table Root ResourceOrbFrames control
 local function SetupModule(control)
     m_rootFrame = control
+    TraceROF("resource_orbs.setup", "begin", {
+        fn = "ResourceOrbFrames.SetupModule",
+        hasControl = control ~= nil,
+        alreadyInitialized = m_isInitialized,
+        dynamicEventsRegistered = m_dynamicEventsRegistered,
+    })
+    RegisterResourceOrbSnapshotProvider()
 
     -- 1. Load Sub-modules (ensure they are ready)
     Visuals = BETTERUI.ResourceOrbFrames.Visuals
@@ -380,6 +671,14 @@ local function SetupModule(control)
     m_backBarContainer = FindControl(control, 'BackBarContainer')
     m_leftOrnament = FindControl(control, 'OrnamentLeft')
     m_rightOrnament = FindControl(control, 'OrnamentRight')
+    TraceROF("resource_orbs.setup", "controls_cached", {
+        fn = "ResourceOrbFrames.SetupModule",
+        hasBgMiddle = m_bgMiddle ~= nil,
+        hasFrontBarContainer = m_frontBarContainer ~= nil,
+        hasBackBarContainer = m_backBarContainer ~= nil,
+        hasLeftOrnament = m_leftOrnament ~= nil,
+        hasRightOrnament = m_rightOrnament ~= nil,
+    })
 
     -- 3. Setup Visual Components (reuse instances on retried setup)
     if not next(m_pools) then
@@ -389,6 +688,14 @@ local function SetupModule(control)
     m_experienceBar = m_experienceBar or Bars.CreateExperienceBar(control)
     m_castBar = m_castBar or Bars.CreateCastBar(control)
     m_mountStaminaBar = m_mountStaminaBar or Bars.CreateMountStaminaBar(control)
+    TraceROF("resource_orbs.setup", "components_ready", {
+        fn = "ResourceOrbFrames.SetupModule",
+        poolCount = m_pools and NonContiguousCount and NonContiguousCount(m_pools) or nil,
+        hasShieldBar = m_shieldBar ~= nil,
+        hasExperienceBar = m_experienceBar ~= nil,
+        hasCastBar = m_castBar ~= nil,
+        hasMountStaminaBar = m_mountStaminaBar ~= nil,
+    })
 
     -- 4. Setup Events & Visibility (latched: fragments register callbacks once)
     if not m_updateDeathFragment then
@@ -399,8 +706,17 @@ local function SetupModule(control)
     local isGamePad = IsInGamepadPreferredMode()
     local layout = isGamePad and BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.GAMEPAD or BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.KEYBOARD
     SkillBar.ApplyActionBarSkin(control, layout)
+    TraceROF("resource_orbs.setup", "skin_applied", {
+        fn = "ResourceOrbFrames.SetupModule",
+        gamepadMode = isGamePad,
+        hasLayout = layout ~= nil,
+    })
 
     local frontBarCfg = GetFrontBarConfig()
+    TraceROF("resource_orbs.setup", "front_bar_config", {
+        fn = "ResourceOrbFrames.SetupModule",
+        frontBarEnabled = frontBarCfg and frontBarCfg.m_enabled,
+    })
     if frontBarCfg and frontBarCfg.m_enabled then
         local frontBarContainer = FindControl(control, 'FrontBarContainer')
         if frontBarContainer then

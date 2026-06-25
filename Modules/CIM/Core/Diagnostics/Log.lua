@@ -14,8 +14,8 @@ Design:
   - The logger is INERT unless logging is active (InterfaceLog or CIM.Debug enabled), so
     normal players incur zero cost and see no behavior change. The active-state decision
     is memoized and invalidated by the InterfaceLog/FeatureFlags setters that flip it.
-  - Named presets (off/debug/verbose) layer over the low-level knobs for a one-word
-    troubleshooting UX; see Log.ApplyPreset.
+  - Named presets (off/info/watch/debug/trace/inspect) layer over the low-level knobs
+    for a one-word troubleshooting UX; see Log.ApplyPreset.
   - EnabledFor() is the exact preflight gate: hot paths (and the lazy Log.*Lazy
     variants) build NO payload when a record would be dropped.
   - BETTERUI.Debug / DebugError / CIM.Debug.Log become thin wrappers over this, and
@@ -35,7 +35,8 @@ local LEVEL_NAME = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR" }
 Log.CATEGORY = {
     SCENE = "SCENE", LIST = "LIST", NAV = "NAV", KEYBIND = "KEYBIND", FOOTER = "FOOTER",
     CATEGORY = "CATEGORY", SEARCH = "SEARCH", SORT = "SORT", BATCH = "BATCH",
-    ACTION = "ACTION", LIFECYCLE = "LIFECYCLE", SAFE = "SAFE", SETTINGS = "SETTINGS",
+    ACTION = "ACTION", DIALOG = "DIALOG", CURRENCY = "CURRENCY",
+    LIFECYCLE = "LIFECYCLE", SAFE = "SAFE", SETTINGS = "SETTINGS", SETTING = "SETTINGS",
     -- CONTROL: control resolution/cache (was GENERAL). PERF: timing/budget signals.
     -- STATE: watch-mode startup preamble, heartbeat, and periodic state snapshots.
     CONTROL = "CONTROL", PERF = "PERF", STATE = "STATE",
@@ -46,9 +47,9 @@ Log.CATEGORY = {
 local minLevel = Log.LEVEL.TRACE
 
 -- Payload capture: when false, the optional `data` argument is NOT rendered into
--- the line (the cheap "debug" preset -- message only); when true, key=value /
--- function payloads reach the log (the "verbose" preset). Default true preserves
--- legacy behavior (data always rendered when present).
+-- the line (used by tight summary modes); when true, key=value / function payloads
+-- reach the log. Debug/watch/trace/inspect keep payloads on so AI triage has the
+-- exact state needed to follow addon behavior.
 local payloadCapture = true
 
 -- Last applied named preset (informational; see Log.ApplyPreset). Becomes "custom"
@@ -137,7 +138,21 @@ function Log.Summarize(value)
         local keyCount = 0
         for _ in pairs(value) do keyCount = keyCount + 1 end
         if len > 0 and len == keyCount then
-            return string.format("[%d]", len)
+            local sample = {}
+            local limit = math.min(len, 3)
+            for i = 1, limit do
+                local item = value[i]
+                if type(item) == "table" and type(Log.DescribeItem) == "function" then
+                    sample[#sample + 1] = i .. ":" .. Log.DescribeItem(item)
+                elseif type(item) == "table" then
+                    local itemKeys = 0
+                    for _ in pairs(item) do itemKeys = itemKeys + 1 end
+                    sample[#sample + 1] = i .. ":{" .. itemKeys .. "}"
+                else
+                    sample[#sample + 1] = i .. ":" .. Log.Summarize(item)
+                end
+            end
+            return string.format("[%d:%s%s]", len, table.concat(sample, ";"), len > limit and ";.." or "")
         end
         local keys = {}
         for k in pairs(value) do
@@ -148,7 +163,7 @@ function Log.Summarize(value)
     elseif t == "string" then
         -- Neutralize the field separator: a payload value must not inject a bare `|`
         -- (the host parser's k=v separator). Quote so a reader sees it's a string value.
-        local s = (value:gsub("|", "/"))
+        local s = (value:gsub("\\", "\\\\"):gsub("\"", "\\\""):gsub("|", "/"))
         if #s > 80 then return '"' .. s:sub(1, 80) .. '..."' end
         return '"' .. s .. '"'
     elseif t == "userdata" then
@@ -163,12 +178,210 @@ function Log.Summarize(value)
     return safeTostring(value)
 end
 
+local keybindDescriptorIds = setmetatable({}, { __mode = "k" })
+local nextKeybindDescriptorId = 0
+
+local function getKeybindDescriptorId(descriptor)
+    if type(descriptor) ~= "table" then
+        return safeTostring(descriptor, type(descriptor))
+    end
+    local id = keybindDescriptorIds[descriptor]
+    if not id then
+        nextKeybindDescriptorId = nextKeybindDescriptorId + 1
+        id = "kb" .. tostring(nextKeybindDescriptorId)
+        keybindDescriptorIds[descriptor] = id
+    end
+    return id
+end
+
+local function summarizeKeybindName(name)
+    if type(name) == "function" then
+        local ok, value = pcall(name)
+        if not ok then return "name_error" end
+        return normalizeLogToken(value, "empty"):sub(1, 24)
+    end
+    return normalizeLogToken(name, "unnamed"):sub(1, 24)
+end
+
+local function summarizeKeybindVisible(visible)
+    if type(visible) ~= "function" then return "v-" end
+    local ok, value = pcall(visible)
+    if not ok then return "vE" end
+    return value and "v1" or "v0"
+end
+
+--- Compact, stable identity for a ZOS keybind button group descriptor.
+--- The id is local to the UI session and lets the live log correlate add/remove/update calls.
+---@param descriptor table|nil
+---@param label string|nil
+---@return string
+function Log.DescribeKeybindDescriptor(descriptor, label)
+    local prefix = label and (normalizeLogToken(label, "descriptor") .. ":") or ""
+    if descriptor == nil then return prefix .. "nil" end
+    if type(descriptor) ~= "table" then return prefix .. "<" .. type(descriptor) .. ">" end
+
+    local count = 0
+    local parts = {}
+    for i, entry in ipairs(descriptor) do
+        count = count + 1
+        if #parts < 4 then
+            if type(entry) == "table" then
+                local keybind = normalizeLogToken(entry.keybind or entry.key or i, "?")
+                    :gsub("^UI_SHORTCUT_", "")
+                    :sub(1, 12)
+                local callback = type(entry.callback) == "function" and "cb1" or "cb0"
+                parts[#parts + 1] = keybind .. ":" .. summarizeKeybindName(entry.name):sub(1, 14)
+                    .. ":" .. summarizeKeybindVisible(entry.visible) .. ":" .. callback
+            else
+                parts[#parts + 1] = normalizeLogToken(type(entry), "?")
+            end
+        end
+    end
+
+    return string.format("%s%s[n=%d %s]", prefix, getKeybindDescriptorId(descriptor), count, table.concat(parts, ","))
+end
+
+---@param descriptors table|nil
+---@param label string|nil
+---@return string
+function Log.DescribeKeybindDescriptors(descriptors, label)
+    local prefix = label and (normalizeLogToken(label, "descriptors") .. ":") or ""
+    if descriptors == nil then return prefix .. "nil" end
+    if type(descriptors) ~= "table" then return prefix .. "<" .. type(descriptors) .. ">" end
+
+    local first = descriptors[1]
+    local looksLikeSingleDescriptor = descriptors.alignment ~= nil
+        or (type(first) == "table" and (first.keybind ~= nil or first.name ~= nil or first.callback ~= nil))
+    if looksLikeSingleDescriptor then
+        return Log.DescribeKeybindDescriptor(descriptors, label)
+    end
+
+    local count = 0
+    local parts = {}
+    for _, descriptor in ipairs(descriptors) do
+        count = count + 1
+        if #parts < 3 then
+            parts[#parts + 1] = Log.DescribeKeybindDescriptor(descriptor)
+        end
+    end
+
+    return string.format("%sgroups=%d[%s]", prefix, count, table.concat(parts, ";"))
+end
+
+---@param descriptors table|nil
+---@return number
+function Log.CountKeybindDescriptors(descriptors)
+    if type(descriptors) ~= "table" then return 0 end
+    local count = 0
+    for _ in ipairs(descriptors) do count = count + 1 end
+    return count
+end
+
+local function rawEntryData(value)
+    if type(value) ~= "table" then return nil end
+    return value.dataSource or value
+end
+
+local function callGlobal(fnName, ...)
+    local fn = G(fnName)
+    if type(fn) ~= "function" then return nil end
+    local ok, value = pcall(fn, ...)
+    if ok then return value end
+    return nil
+end
+
+--- Compact item identity for replay logs. Stable enough to correlate list rows,
+--- keybind targets, action requests, and row-icon state without dumping whole rows.
+---@param value table|nil
+---@param label string|nil
+---@return string
+function Log.DescribeItem(value, label)
+    local raw = rawEntryData(value)
+    local prefix = label and (normalizeLogToken(label, "item") .. ":") or ""
+    if type(raw) ~= "table" then return prefix .. "nil" end
+
+    local bagId = raw.bagId or raw.bag
+    local slotIndex = raw.slotIndex or raw.slot
+    local parts = {}
+    parts[#parts + 1] = "bag=" .. normalizeLogToken(bagId, "nil")
+    parts[#parts + 1] = "slot=" .. normalizeLogToken(slotIndex, "nil")
+    if raw.uniqueId ~= nil then parts[#parts + 1] = "uid=" .. normalizeLogToken(raw.uniqueId, "?") end
+    if raw.itemType ~= nil then parts[#parts + 1] = "type=" .. normalizeLogToken(raw.itemType, "?") end
+    if raw.equipType ~= nil then parts[#parts + 1] = "equip=" .. normalizeLogToken(raw.equipType, "?") end
+    if raw.slotType ~= nil then parts[#parts + 1] = "slotType=" .. normalizeLogToken(raw.slotType, "?") end
+    if raw.stackCount ~= nil then parts[#parts + 1] = "stack=" .. normalizeLogToken(raw.stackCount, "?") end
+    if raw.itemId ~= nil then parts[#parts + 1] = "itemId=" .. normalizeLogToken(raw.itemId, "?") end
+    if raw.tradingHouseIndex ~= nil then parts[#parts + 1] = "thIndex=" .. normalizeLogToken(raw.tradingHouseIndex, "?") end
+    if raw.listingIndex ~= nil then parts[#parts + 1] = "listing=" .. normalizeLogToken(raw.listingIndex, "?") end
+    if raw.entryIndex ~= nil then parts[#parts + 1] = "entry=" .. normalizeLogToken(raw.entryIndex, "?") end
+    if raw.slotId ~= nil then parts[#parts + 1] = "slotId=" .. normalizeLogToken(raw.slotId, "?") end
+
+    if bagId ~= nil and slotIndex ~= nil then
+        local uid = raw.uniqueId or callGlobal("GetItemUniqueId", bagId, slotIndex)
+        if uid ~= nil and raw.uniqueId == nil then parts[#parts + 1] = "uid=" .. normalizeLogToken(uid, "?") end
+        local name = callGlobal("GetItemName", bagId, slotIndex)
+        if name and name ~= "" then parts[#parts + 1] = "name=" .. normalizeLogToken(name, "?"):sub(1, 36) end
+        local stack = raw.stackCount or callGlobal("GetSlotStackSize", bagId, slotIndex)
+        if stack ~= nil and raw.stackCount == nil then parts[#parts + 1] = "stack=" .. normalizeLogToken(stack, "?") end
+        local link = raw.itemLink or callGlobal("GetItemLink", bagId, slotIndex)
+        if link and link ~= "" then parts[#parts + 1] = "link=" .. normalizeLogToken(link, "?"):sub(1, 64) end
+    elseif raw.currencyType ~= nil then
+        parts[#parts + 1] = "currency=" .. normalizeLogToken(raw.currencyType, "?")
+    else
+        local rawName = raw.name or raw.itemName or raw.displayName
+        if rawName and rawName ~= "" then parts[#parts + 1] = "name=" .. normalizeLogToken(rawName, "?"):sub(1, 36) end
+        local rawLink = raw.itemLink or raw.link
+        if rawLink and rawLink ~= "" then parts[#parts + 1] = "link=" .. normalizeLogToken(rawLink, "?"):sub(1, 64) end
+    end
+
+    return prefix .. "{" .. table.concat(parts, ",") .. "}"
+end
+
+---@param list table|nil
+---@param label string|nil
+---@return string
+function Log.DescribeListSelection(list, label)
+    local prefix = label and (normalizeLogToken(label, "selection") .. ":") or ""
+    if type(list) ~= "table" and type(list) ~= "userdata" then return prefix .. "nil" end
+    local okIndex, selectedIndex = pcall(function()
+        if list.GetSelectedIndex then return list:GetSelectedIndex() end
+        return list.selectedIndex or list.targetSelectedIndex
+    end)
+    local okCount, count = pcall(function()
+        if list.GetNumItems then return list:GetNumItems() end
+        return list.dataList and #list.dataList or nil
+    end)
+    local okData, selectedData = pcall(function()
+        if list.GetSelectedData then return list:GetSelectedData() end
+        return list.selectedData
+    end)
+    return string.format("%sidx=%s count=%s %s", prefix,
+        normalizeLogToken(okIndex and selectedIndex or nil, "nil"),
+        normalizeLogToken(okCount and count or nil, "nil"),
+        Log.DescribeItem(okData and selectedData or nil, "selected"))
+end
+
+function Log.GetCurrencyAmountForLocation(currencyType, location)
+    local getCurrencyAmount = G("GetCurrencyAmount")
+    if type(getCurrencyAmount) == "function" then
+        local ok, amount = pcall(getCurrencyAmount, currencyType, location)
+        if ok then return amount end
+    end
+    if location == rawget(_G, "CURRENCY_LOCATION_CHARACTER") then
+        return callGlobal("GetCarriedCurrencyAmount", currencyType)
+    end
+    if location == rawget(_G, "CURRENCY_LOCATION_BANK") then
+        return callGlobal("GetBankedCurrencyAmount", currencyType)
+    end
+    return nil
+end
+
 -- Render the optional data argument for a log line. A record-style table (named
 -- fields) renders as `key=value key=value` (deterministic key order, values via
 -- Summarize, field-capped) so the actual VALUES reach the log -- what an external
 -- reader/AI needs to act on, not just the field shape. Pure arrays and scalars
 -- defer to Summarize (`[n]` / the value), keeping lines high-density. logfmt-style.
-local MAX_LOG_FIELDS = 8
+local MAX_LOG_FIELDS = 20
 local function renderData(data)
     if type(data) ~= "table" then return Log.Summarize(data) end
     local len = #data
@@ -341,6 +554,10 @@ local lastAction = nil
 ---@param message any
 ---@param flow string|nil
 function Log.SetLastAction(message, flow)
+    if type(message) == "table" then
+        if flow == nil then flow = message.flow end
+        message = message.message or message.action or message.name or ""
+    end
     local msg = (message == nil) and "" or normalizeLogText(message, "")
     lastAction = { message = msg, flow = flow and normalizeLogToken(flow, "?") or nil }
 end
@@ -369,6 +586,10 @@ local function dispatch(level, category, message, data)
         local ok, suffix = pcall(contextProvider, level, category)
         if ok and type(suffix) == "string" and suffix ~= "" then
             text = text .. " " .. normalizeLogText(suffix, "")
+        elseif not ok then
+            text = text .. " contextError=true"
+        elseif suffix ~= nil and type(suffix) ~= "string" then
+            text = text .. " contextError=nonString"
         end
     end
 
@@ -409,6 +630,31 @@ function Log.Debug(category, message, data) emit(Log.LEVEL.DEBUG, category, mess
 function Log.Info(category, message, data)  emit(Log.LEVEL.INFO,  category, message, data) end
 function Log.Warn(category, message, data)  emit(Log.LEVEL.WARN,  category, message, data) end
 function Log.Error(category, message, data) emit(Log.LEVEL.ERROR, category, message, data) end
+
+--- Emit a canonical replay trace record. Existing human messages stay compatible;
+--- replay consumers can key off the first tokens: `event=<name> phase=<phase>`.
+---@param category string|nil
+---@param event string
+---@param phase string|nil
+---@param data table|any|nil
+---@param level number|nil
+function Log.TraceEvent(category, event, phase, data, level)
+    category = category or Log.CATEGORY.GENERAL
+    event = normalizeLogToken(event, "unknown")
+    phase = normalizeLogToken(phase or "state", "state")
+    local payload = {}
+    if type(data) == "table" then
+        for k, v in pairs(data) do payload[normalizeLogToken(k, "field")] = v end
+    elseif data ~= nil then
+        payload.value = data
+    end
+    payload.traceVersion = payload.traceVersion or 1
+    payload.eventName = event
+    payload.phaseName = phase
+    local la = lastAction
+    if payload.flow == nil and type(la) == "table" and la.flow then payload.flow = la.flow end
+    emit(level or Log.LEVEL.DEBUG, category, "event=" .. event .. " phase=" .. phase, payload)
+end
 
 -- Flow envelopes: correlate the records of one multi-step operation. FlowBegin allocates
 -- a flow id, records it as the last action (so the in-between watch lines carry flow=<id>
@@ -507,15 +753,15 @@ function Log.GetPayloadCapture() return payloadCapture end
 --   off    -> stop file logging, restore error popups, reset the rate-limit budget.
 --   info   -> INFO/WARN/ERROR, payloads off. Milestones + problems: "is it working?"
 --             Safe to run during live play, so it keeps the TIGHT anti-hitch budget.
---   watch  -> DEBUG+ payloads on, the curated live-AI stream (Phase 3 adds category
---             auto-mute + per-line context + startup preamble + state snapshots).
+--   watch  -> DEBUG+ payloads on PLUS WatchMode enrichment (per-line context +
+--             startup preamble + heartbeat snapshots). This is the AI-debug preset.
 --   debug  -> DEBUG+ (the user-action flow shows), payloads on. The everyday "what is
---             it doing?" view. LOOSE budget -- a debugger accepts the FPS cost.
+--             it doing?" view. Same volume tier as watch, without AI enrichment.
 --   trace  -> TRACE+ (every step), payloads on. LOOSEST budget; high enough only to
 --             stop a runaway hot loop from crashing/freezing the client.
 --   inspect-> trace verbosity (TRACE+, payloads) PLUS the full watch enrichment (per-line
---             context suffix + state snapshots + startup preamble + category auto-mute).
---             "watch, at trace depth" -- the richest live-AI stream.
+--             context suffix + heartbeat snapshots + startup preamble).
+--             "trace, with AI enrichment" -- the richest live-AI stream.
 -- "verbose" is accepted as a back-compat alias for "trace". "inspect" is a DISTINCT preset,
 -- not an alias (GetPreset() returns "inspect").
 local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trace = true, inspect = true, verbose = true, ai = true }
@@ -529,7 +775,7 @@ local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trac
 local PRESET_BUDGET = {
     off   = { maxPerFrame = 0,    maxPerSecond = 0,     maxPending = 0 },
     info  = { maxPerFrame = 8,    maxPerSecond = 100,   maxPending = 200 },
-    watch = { maxPerFrame = 300,  maxPerSecond = 6000,  maxPending = 6000 },
+    watch = { maxPerFrame = 1000, maxPerSecond = 20000, maxPending = 20000 }, -- debug volume + WatchMode enrichment
     debug = { maxPerFrame = 1000, maxPerSecond = 20000, maxPending = 20000 },
     trace = { maxPerFrame = 2000, maxPerSecond = 40000, maxPending = 40000 },
     inspect = { maxPerFrame = 2000, maxPerSecond = 40000, maxPending = 40000 }, -- trace volume + watch enrichment
@@ -543,7 +789,7 @@ local function applyAllSinks(fileFromLevel, chatOn)
     end
 end
 
----@param name string  "off" | "info" | "watch" | "debug" | "trace"  (alias: "verbose" -> "trace")
+---@param name string  "off" | "info" | "watch" | "debug" | "trace" | "inspect" (aliases: "verbose" -> "trace", "ai" -> "watch")
 ---@return boolean applied
 ---@return string preset
 function Log.ApplyPreset(name)
@@ -554,6 +800,9 @@ function Log.ApplyPreset(name)
     local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
 
     if name == "off" then
+        applyAllSinks(nil, false)
+        categoryDisabled = {}
+        payloadCapture = false
         if il and il.SetEnabled then il.SetEnabled(false) end
     elseif name == "info" then
         minLevel = Log.LEVEL.INFO
@@ -562,10 +811,9 @@ function Log.ApplyPreset(name)
         payloadCapture = false
         if il and il.SetEnabled then il.SetEnabled(true) end
     elseif name == "watch" then
-        -- Curated live-AI stream. Phase 1: DEBUG+ with payloads at the watch budget.
-        -- Phase 3 layers on category auto-mute, a per-line context suffix, a startup
-        -- preamble, and periodic state snapshots that make it materially richer than
-        -- `debug` for an AI tailing Interface.log in real time.
+        -- AI-debug stream: same DEBUG+ payload depth/budget as debug, plus WatchMode
+        -- enrichment below (context suffix, startup preamble, heartbeat snapshots) for
+        -- an AI tailing Interface.log in real time.
         minLevel = Log.LEVEL.DEBUG
         applyAllSinks(Log.LEVEL.DEBUG, false)
         categoryDisabled = {}
@@ -573,7 +821,7 @@ function Log.ApplyPreset(name)
         if il and il.SetEnabled then il.SetEnabled(true) end
     elseif name == "debug" then
         minLevel = Log.LEVEL.DEBUG
-        applyAllSinks(Log.LEVEL.DEBUG, false) -- DEBUG+ -> file (the user-action flow)
+        applyAllSinks(Log.LEVEL.DEBUG, false) -- DEBUG+ payloads -> file (no WatchMode enrichment)
         categoryDisabled = {}
         payloadCapture = true
         if il and il.SetEnabled then il.SetEnabled(true) end
@@ -594,7 +842,7 @@ function Log.ApplyPreset(name)
     Log.RefreshActive()
     currentPreset = name
 
-    -- Watch-mode enrichment lifecycle (context suffix, preamble, snapshots, mutes).
+    -- AI enrichment lifecycle (context suffix, preamble, heartbeat snapshots, mutes).
     -- Resolved lazily: WatchMode loads after Log. Activate for the ENRICHMENT presets
     -- (watch + inspect); Deactivate for every OTHER preset so leaving them cleanly drops
     -- the context provider + restores mutes.
@@ -602,13 +850,21 @@ function Log.ApplyPreset(name)
     if watch then
         -- pcall: a watch lifecycle hiccup (preamble/snapshot/mute) must never break
         -- preset application or raise out of the /builog slash command.
+        local categories = Log.CATEGORY or {}
         if name == "watch" or name == "inspect" then
-            if watch.Activate then pcall(watch.Activate) end
+            if watch.Activate then
+                local okWatch, watchErr = pcall(watch.Activate)
+                if not okWatch then
+                    Log.Warn(categories.STATE, "watch mode activate failed", { preset = name, error = watchErr })
+                end
+            end
         elseif watch.Deactivate then
-            pcall(watch.Deactivate)
+            local okWatch, watchErr = pcall(watch.Deactivate)
+            if not okWatch then
+                Log.Warn(categories.STATE, "watch mode deactivate failed", { preset = name, error = watchErr })
+            end
         end
     end
-
     return true, name
 end
 

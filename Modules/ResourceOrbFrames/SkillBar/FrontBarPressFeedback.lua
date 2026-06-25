@@ -32,6 +32,21 @@ local m_buttonCache = nil
 -- Canonical implementation lives in Core/Utils.lua (Utils.Controls).
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
+local function TracePressFeedback(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "resourceOrbs"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION, event, phase, data)
+end
+
 -- BUTTON NAME RESOLUTION
 
 local function ResolvePressFeedbackButtonName(slotIndex, hotbarCategory)
@@ -243,9 +258,15 @@ end
 ---@param bypassUsableGate boolean|nil Skip usability checks
 local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCategory, bypassUsableGate)
     local frontBarCfg = GetLiveSettings().customFrontBar
-    if not frontBarCfg or not frontBarCfg.m_enabled then return end
+    if not frontBarCfg or not frontBarCfg.m_enabled then
+        TracePressFeedback("resource_orbs.press_feedback", "skipped", { reason = "frontBarDisabled", slot = slotIndex, category = hotbarCategory })
+        return
+    end
     local resolvedRootFrame = rootFrame or m_pressFeedbackRootFrame
-    if not resolvedRootFrame then return end
+    if not resolvedRootFrame then
+        TracePressFeedback("resource_orbs.press_feedback", "skipped", { reason = "missingRoot", slot = slotIndex, category = hotbarCategory })
+        return
+    end
 
     -- Lazy-resolve container and cache references from FrontBarManager
     if not m_frontBarContainer or (m_frontBarContainer.IsHidden and m_frontBarContainer:IsHidden()) then
@@ -258,30 +279,57 @@ local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCate
     local isPrimaryCategory = resolvedCategory == activeCategory
     local isQuickslot = resolvedCategory == HOTBAR_CATEGORY_QUICKSLOT_WHEEL
     local isCompanion = resolvedCategory == HOTBAR_CATEGORY_COMPANION
-    if not (isPrimaryCategory or isQuickslot or isCompanion) then return end
+    if not (isPrimaryCategory or isQuickslot or isCompanion) then
+        TracePressFeedback("resource_orbs.press_feedback", "skipped", { reason = "unsupportedCategory", slot = slotIndex, category = resolvedCategory, activeCategory = activeCategory })
+        return
+    end
 
     local buttonName = ResolvePressFeedbackButtonName(slotIndex, resolvedCategory)
-    if not buttonName then return end
+    if not buttonName then
+        TracePressFeedback("resource_orbs.press_feedback", "skipped", { reason = "unmappedSlot", slot = slotIndex, category = resolvedCategory })
+        return
+    end
 
     if not bypassUsableGate then
         local nativeUsable = GetNativeActionBarUsableState(slotIndex, resolvedCategory)
-        if nativeUsable == false then return end
-        if HasFallbackPressUseFailure(slotIndex, resolvedCategory) then return end
+        if nativeUsable == false then
+            TracePressFeedback("resource_orbs.press_feedback", "skipped", { reason = "nativeUnusable", button = buttonName, slot = slotIndex, category = resolvedCategory })
+            return
+        end
+        if HasFallbackPressUseFailure(slotIndex, resolvedCategory) then
+            TracePressFeedback("resource_orbs.press_feedback", "skipped", { reason = "fallbackUseFailure", button = buttonName, slot = slotIndex, category = resolvedCategory })
+            return
+        end
     end
 
     local frontBarContainer = m_frontBarContainer or FindControl(resolvedRootFrame, 'FrontBarContainer')
     local buttonControl = GetFrontBarButtonControl(resolvedRootFrame, frontBarContainer, buttonName)
-    if not buttonControl or buttonControl:IsHidden() then return end
+    if not buttonControl or buttonControl:IsHidden() then
+        TracePressFeedback("resource_orbs.press_feedback", "skipped", { reason = "buttonHiddenOrMissing", button = buttonName, slot = slotIndex, category = resolvedCategory })
+        return
+    end
 
     local cachedButton = m_buttonCache and m_buttonCache[buttonName] or nil
     local children = cachedButton and cachedButton.children or nil
     local iconControl = (children and children.Icon) or buttonControl:GetNamedChild("Icon")
-    if iconControl and iconControl:IsHidden() then return end
+    if iconControl and iconControl:IsHidden() then
+        TracePressFeedback("resource_orbs.press_feedback", "skipped", { reason = "iconHidden", button = buttonName, slot = slotIndex, category = resolvedCategory })
+        return
+    end
     if not bypassUsableGate then
         local unusableOverlay = (children and children.UnusableOverlay) or buttonControl:GetNamedChild("UnusableOverlay")
-        if unusableOverlay and not unusableOverlay:IsHidden() then return end
+        if unusableOverlay and not unusableOverlay:IsHidden() then
+            TracePressFeedback("resource_orbs.press_feedback", "skipped", { reason = "unusableOverlayShown", button = buttonName, slot = slotIndex, category = resolvedCategory })
+            return
+        end
     end
 
+    TracePressFeedback("resource_orbs.press_feedback", "play", {
+        button = buttonName,
+        slot = slotIndex,
+        category = resolvedCategory,
+        bypassUsableGate = bypassUsableGate,
+    })
     PlayButtonPressFeedback(buttonControl, children, buttonName)
 end
 
@@ -296,9 +344,9 @@ local function SetupFrontBarPressFeedbackHooks(rootFrame)
     ZO_PreHook("ZO_ActionBar_OnActionButtonUp", function(slotNum, hotbarCategory)
         PlayFrontBarPressFeedbackForSlot(m_pressFeedbackRootFrame, slotNum, hotbarCategory)
     end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "ZO_ActionBar_OnActionButtonUp", target = type("ZO_ActionBar_OnActionButtonUp") }) end
+    TracePressFeedback("resource_orbs.press_feedback_hook", "raw_hook_installed", { method = "ZO_ActionBar_OnActionButtonUp", target = type("ZO_ActionBar_OnActionButtonUp") })
     m_pressFeedbackHooksInstalled = true
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "front bar press feedback hooks installed") end
+    TracePressFeedback("resource_orbs.press_feedback_hook", "installed", {})
 end
 
 -- MODULE EXPORTS

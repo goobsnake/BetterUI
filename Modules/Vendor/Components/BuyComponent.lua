@@ -643,16 +643,38 @@ function Buy:OnPrimaryAction(vendorInstance)
     -- its chosen value through Vendor.ClampPurchaseQuantity to buy a full stack.
     local quantity = 1
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor item bought", {
+    local L = BETTERUI.Log
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.buy", "request", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-buy",
+            fn = "Vendor.BuyComponent.OnPrimaryAction",
+            ["function"] = "Vendor.BuyComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
             entryIndex = entryIndex,
             quantity = quantity,
-            name = ds.name,
-            itemLink = ds.itemLink
+            price = ds.price,
+            currencyType = ds.currencyType,
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
         })
     end
 
     BuyStoreItem(entryIndex, quantity)
+
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.buy", "requested", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-buy",
+            fn = "Vendor.BuyComponent.OnPrimaryAction",
+            ["function"] = "Vendor.BuyComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+            entryIndex = entryIndex,
+            quantity = quantity,
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+        })
+    end
 end
 
 -- LIST BUILDING

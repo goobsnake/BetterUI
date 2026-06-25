@@ -340,6 +340,7 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
         statusIndicator:SetHidden(false)
     end
 
+    local equipIconShown = false
     if data.isEquippedInCurrentCategory or data.isEquippedInAnotherCategory then
         local slotIndex = data.dataSource.slotIndex
         local equipType = data.dataSource.equipType
@@ -353,9 +354,19 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
                 equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_SLOT)
             end
             equippedIcon:SetHidden(false)
+            equipIconShown = true
         end
     else
         HideEquippedIcon()
+    end
+    if BETTERUI.Log and BETTERUI.Log.EnabledFor and BETTERUI.Log.EnabledFor(BETTERUI.Log.LEVEL.TRACE, BETTERUI.Log.CATEGORY.LIST) and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "inventory.row.equip_icon", "state", {
+            item = BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(data, "row") or nil,
+            shown = equipIconShown,
+            current = data.isEquippedInCurrentCategory == true,
+            other = data.isEquippedInAnotherCategory == true,
+            isNew = isItemNew == true,
+        }, BETTERUI.Log.LEVEL.TRACE)
     end
 end
 

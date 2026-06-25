@@ -69,6 +69,8 @@ local function LogInventoryKeybindRefresh(inv, mode)
             hasDescriptor = hasDescriptor,
             hasStrip = hasStrip,
             updated = updated,
+            main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(inv and inv.mainKeybindStripDescriptor, "main") or nil,
+            active = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(inv and inv.activeKeybindDescriptor, "active") or nil,
         })
 end
 
@@ -244,14 +246,34 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
     -- RefreshKeybinds on every selection change, which was overwriting our header keybinds
     if self.isInHeaderSortMode then
         if L then
-            L.Debug(L.CATEGORY.STATE, "inventory keybind refresh skipped", { reason = "headerSort" })
+            L.Debug(L.CATEGORY.STATE, "inventory keybind refresh skipped", {
+                fn = "Inventory:RefreshKeybinds",
+                reason = "headerSort",
+                main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+            })
+            if L.TraceEvent then
+                L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "skipped", {
+                    reason = "headerSort",
+                    main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+                })
+            end
         end
         return
     end
     -- Guard: Skip keybind refresh during batch processing to prevent flickering
     if self:IsBatchProcessing() then
         if L then
-            L.Debug(L.CATEGORY.STATE, "inventory keybind refresh skipped", { reason = "batch" })
+            L.Debug(L.CATEGORY.STATE, "inventory keybind refresh skipped", {
+                fn = "Inventory:RefreshKeybinds",
+                reason = "batch",
+                main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+            })
+            if L.TraceEvent then
+                L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "skipped", {
+                    reason = "batch",
+                    main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+                })
+            end
         end
         return
     end
@@ -265,8 +287,22 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
     -- before list reselection settles, and the later same-frame refresh is what
     -- corrects stale/blank A-button labels without waiting for another input.
     if inPrimaryActionTransition then
+        if L and L.TraceEvent then
+            L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "before", {
+                reason = "transition",
+                main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+                selection = L.DescribeListSelection and L.DescribeListSelection(self.itemList or self.list, "selection") or nil,
+            })
+        end
         if self.mainKeybindStripDescriptor and KEYBIND_STRIP then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        end
+        if L and L.TraceEvent then
+            L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "after", {
+                reason = "transition",
+                main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+                selection = L.DescribeListSelection and L.DescribeListSelection(self.itemList or self.list, "selection") or nil,
+            })
         end
         LogInventoryKeybindRefresh(self, "transition")
         return
@@ -276,8 +312,22 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
     -- ZO_GamepadInventory.RefreshKeybinds updates ESO's base keybindStripDescriptor,
     -- which may not be the active group. BetterUI uses mainKeybindStripDescriptor
     -- set via SetActiveKeybinds, so we update that directly.
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "before", {
+            reason = "main",
+            main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+            selection = L.DescribeListSelection and L.DescribeListSelection(self.itemList or self.list, "selection") or nil,
+        })
+    end
     if self.mainKeybindStripDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+    end
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "after", {
+            reason = "main",
+            main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+            selection = L.DescribeListSelection and L.DescribeListSelection(self.itemList or self.list, "selection") or nil,
+        })
     end
     LogInventoryKeybindRefresh(self, "main")
 end
@@ -551,6 +601,8 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
             hasList = selectedList ~= nil,
             keybinds = self.mainKeybindStripDescriptor ~= nil and KEYBIND_STRIP ~= nil,
             headerSort = self.isInHeaderSortMode == true,
+            main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+            active = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or nil,
         })
         return true
     end

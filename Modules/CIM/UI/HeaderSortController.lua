@@ -9,6 +9,48 @@ local SORT_DIRECTION = {
 
 BETTERUI.CIM.UI.HeaderSortController = ZO_Object:Subclass()
 
+local function DescribeColumn(column, index)
+    if type(column) ~= "table" then return tostring(index) .. ":nil" end
+    return tostring(index) .. ":" .. tostring(column.key or column.name or "?")
+end
+
+local function DescribeColumns(columns)
+    if type(columns) ~= "table" then return nil end
+    local parts = {}
+    for i = 1, #columns do
+        if i > 6 then
+            parts[#parts + 1] = "..."
+            break
+        end
+        parts[#parts + 1] = DescribeColumn(columns[i], i)
+    end
+    return table.concat(parts, "|")
+end
+
+local function AddColumnPayload(self, data)
+    data = data or {}
+    data.columnIndex = self and self.currentColumnIndex or nil
+    data.columnCount = self and self.columns and #self.columns or 0
+    data.headerActive = self and self.isHeaderModeActive == true
+    local currentColumn = self and self.columns and self.columns[self.currentColumnIndex] or nil
+    data.columnKey = currentColumn and currentColumn.key or nil
+    data.columnName = currentColumn and (currentColumn.originalText or currentColumn.name) or nil
+    if self and self.GetActiveSortColumn then
+        local ok, column, direction = pcall(function() return self:GetActiveSortColumn() end)
+        if ok then
+            data.activeColumnKey = column and column.key or nil
+            data.activeDirection = direction
+        end
+    end
+    return data
+end
+
+local function TraceHeaderSortController(self, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    L.TraceEvent(L.CATEGORY.SORT, "sort.header_controller", phase, AddColumnPayload(self, data or {}))
+end
+
 function BETTERUI.CIM.UI.HeaderSortController:New(listControl, columns, onSortChangedCallback)
     local obj = ZO_Object.New(self)
     obj:Initialize(listControl, columns, onSortChangedCallback)
@@ -28,30 +70,29 @@ function BETTERUI.CIM.UI.HeaderSortController:Initialize(listControl, columns, o
     end
 
     self.activeSortColumnIndex = nil
+    TraceHeaderSortController(self, "initialized", {
+        columns = DescribeColumns(self.columns),
+        hasSortCallback = type(self.onSortChangedCallback) == "function",
+    })
 end
 
 function BETTERUI.CIM.UI.HeaderSortController:EnterHeaderMode()
     if #self.columns == 0 then
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "enter header mode no columns")
-        end
+        TraceHeaderSortController(self, "enter_skipped", { reason = "noColumns" })
         return false
     end
 
     self.isHeaderModeActive = true
     self.currentColumnIndex = self.activeSortColumnIndex or 1
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "enter header mode", { currentColumnIndex = self.currentColumnIndex })
-    end
+    TraceHeaderSortController(self, "entered", { reason = self.activeSortColumnIndex and "activeSort" or "firstColumn" })
     self:UpdateVisuals()
     return true
 end
 
 function BETTERUI.CIM.UI.HeaderSortController:ExitHeaderMode()
+    local wasActive = self.isHeaderModeActive == true
     self.isHeaderModeActive = false
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "exit header mode")
-    end
+    TraceHeaderSortController(self, "exited", { wasActive = wasActive })
     self:UpdateVisuals()
 end
 
@@ -61,33 +102,35 @@ end
 
 function BETTERUI.CIM.UI.HeaderSortController:NavigateLeft()
     if not self.isHeaderModeActive or #self.columns == 0 then
+        TraceHeaderSortController(self, "navigate_left_skipped", { reason = self.isHeaderModeActive and "noColumns" or "inactive" })
         return false
     end
 
     if self.currentColumnIndex > 1 then
+        local previousIndex = self.currentColumnIndex
         self.currentColumnIndex = self.currentColumnIndex - 1
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "sort navigate left", { currentColumnIndex = self.currentColumnIndex })
-        end
+        TraceHeaderSortController(self, "navigate_left", { previousColumnIndex = previousIndex })
         self:UpdateVisuals()
         return true
     end
+    TraceHeaderSortController(self, "navigate_left_skipped", { reason = "firstColumn" })
     return false
 end
 
 function BETTERUI.CIM.UI.HeaderSortController:NavigateRight()
     if not self.isHeaderModeActive or #self.columns == 0 then
+        TraceHeaderSortController(self, "navigate_right_skipped", { reason = self.isHeaderModeActive and "noColumns" or "inactive" })
         return false
     end
 
     if self.currentColumnIndex < #self.columns then
+        local previousIndex = self.currentColumnIndex
         self.currentColumnIndex = self.currentColumnIndex + 1
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "sort navigate right", { currentColumnIndex = self.currentColumnIndex })
-        end
+        TraceHeaderSortController(self, "navigate_right", { previousColumnIndex = previousIndex })
         self:UpdateVisuals()
         return true
     end
+    TraceHeaderSortController(self, "navigate_right_skipped", { reason = "lastColumn" })
     return false
 end
 
@@ -101,6 +144,7 @@ end
 
 function BETTERUI.CIM.UI.HeaderSortController:ToggleSort()
     if #self.columns == 0 then
+        TraceHeaderSortController(self, "toggle_skipped", { reason = "noColumns" })
         return false
     end
 
@@ -120,9 +164,11 @@ function BETTERUI.CIM.UI.HeaderSortController:ClearSort()
 
         self.activeSortColumnIndex = nil
 
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then
-            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SORT, "clear sort", { columnIndex = activeColumnIndex, key = clearedColumn and clearedColumn.key })
-        end
+        TraceHeaderSortController(self, "clear_sort", {
+            clearedColumnIndex = activeColumnIndex,
+            clearedColumnKey = clearedColumn and clearedColumn.key,
+            oldDirection = currentDirection,
+        })
 
         self:UpdateVisuals()
 
@@ -137,12 +183,14 @@ end
 
 function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
     if not columnIndex or columnIndex < 1 or columnIndex > #self.columns then
+        TraceHeaderSortController(self, "toggle_skipped", { reason = "invalidColumn", requestedColumnIndex = columnIndex })
         return false
     end
 
     self.currentColumnIndex = columnIndex
 
     local currentDirection = self.sortDirections[columnIndex] or SORT_DIRECTION.NONE
+    local oldDirection = currentDirection
     local column = self.columns[columnIndex]
     local startsDescending = column and column.defaultDirection == "descending"
 
@@ -167,9 +215,14 @@ function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
         end
     end
 
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "toggle sort", { col = columnIndex, dir = newDirection })
-    end
+    TraceHeaderSortController(self, "toggle_sort", {
+        targetColumnIndex = columnIndex,
+        targetColumnKey = column and column.key,
+        targetColumnName = column and (column.originalText or column.name),
+        oldDirection = oldDirection,
+        newDirection = newDirection,
+        startsDescending = startsDescending == true,
+    })
 
     if newDirection ~= SORT_DIRECTION.NONE then
         for i = 1, #self.columns do
@@ -212,10 +265,9 @@ function BETTERUI.CIM.UI.HeaderSortController:HasActiveSort()
 end
 
 function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
-    local logActive = BETTERUI.Log and BETTERUI.Log.IsActive()
-    if logActive then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SORT, "update visuals", { columnCount = #self.columns, active = self.isHeaderModeActive, currentColumnIndex = self.currentColumnIndex })
-    end
+    TraceHeaderSortController(self, "visuals_update", {
+        columns = DescribeColumns(self.columns),
+    })
     for i, column in ipairs(self.columns) do
         if column.labelControl then
             local baseName = column.originalText or column.name or ""
@@ -253,7 +305,10 @@ end
 
 function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelControl)
     local column = self.columns[columnIndex]
-    if not column then return end
+    if not column then
+        TraceHeaderSortController(self, "label_bind_skipped", { reason = "missingColumn", requestedColumnIndex = columnIndex })
+        return
+    end
 
     column.labelControl = labelControl
 
@@ -262,38 +317,100 @@ function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelC
         column.originalText = originalText
     end
 
+    local arrowName
     if not column.arrowTexture then
         local baseName = labelControl:GetName()
-        local arrowName
         if baseName and baseName ~= "" then
             arrowName = baseName .. "Arrow"
         else
             arrowName = "BETTERUI_HeaderSortArrow_" .. columnIndex
         end
         -- CreateControl returns nil on a duplicate name (e.g. a rebuilt
-        -- controller over the same persistent label controls), so reuse the
-        -- existing control instead of recreating it.
+        -- controller over the same persistent label controls), so reuse only
+        -- controls still parented to this label; stale arrows from a prior
+        -- scene/control tree get a local fallback name instead.
+        local baseArrowName = arrowName
         local arrow = WINDOW_MANAGER:GetControlByName(arrowName)
+        if arrow and arrow.GetParent then
+            local okParent, parent = pcall(function() return arrow:GetParent() end)
+            if okParent and parent ~= labelControl then
+                TraceHeaderSortController(self, "arrow_reuse_rejected", {
+                    targetColumnIndex = columnIndex,
+                    arrowName = arrowName,
+                })
+                arrow = nil
+                local suffix = 1
+                while suffix <= 20 do
+                    local candidateName = baseArrowName .. "Local" .. tostring(suffix)
+                    local candidate = WINDOW_MANAGER:GetControlByName(candidateName)
+                    if not candidate then
+                        arrowName = candidateName
+                        break
+                    end
+                    local okCandidateParent, candidateParent = candidate.GetParent and pcall(function() return candidate:GetParent() end)
+                    if okCandidateParent and candidateParent == labelControl then
+                        arrowName = candidateName
+                        arrow = candidate
+                        break
+                    end
+                    suffix = suffix + 1
+                end
+            end
+        end
         if not arrow then
             arrow = WINDOW_MANAGER:CreateControl(arrowName, labelControl, CT_TEXTURE)
-            arrow:SetDimensions(24, 24)
-            arrow:SetAnchor(RIGHT, labelControl, LEFT, -4, 0)
-            arrow:SetHidden(true)
+            if arrow then
+                arrow:SetDimensions(24, 24)
+                arrow:SetAnchor(RIGHT, labelControl, LEFT, -4, 0)
+                arrow:SetHidden(true)
+            end
         end
         column.arrowTexture = arrow
     end
+    if not arrowName and column.arrowTexture and column.arrowTexture.GetName then
+        local okArrowName, existingArrowName = pcall(function() return column.arrowTexture:GetName() end)
+        if okArrowName and existingArrowName and existingArrowName ~= "" then
+            arrowName = existingArrowName
+        end
+    end
+
+    TraceHeaderSortController(self, "label_bound", {
+        targetColumnIndex = columnIndex,
+        targetColumnKey = column.key,
+        label = column.originalText or column.name,
+        arrow = arrowName,
+        arrowCreated = column.arrowTexture ~= nil,
+    })
 
     local controller = self
     labelControl:SetMouseEnabled(true)
     labelControl:SetHandler("OnMouseUp", function(_, button)
-        if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+        TraceHeaderSortController(controller, "mouse_sort_start", {
+            targetColumnIndex = columnIndex,
+            button = button,
+        })
+        if button ~= MOUSE_BUTTON_INDEX_LEFT then
+            TraceHeaderSortController(controller, "mouse_sort_skipped", {
+                targetColumnIndex = columnIndex,
+                reason = "nonLeftButton",
+                button = button,
+            })
+            return
+        end
+        local entered = true
         if not controller.isHeaderModeActive then
-            controller:EnterHeaderMode()
+            entered = controller:EnterHeaderMode() ~= false
         end
         controller.currentColumnIndex = columnIndex
-        controller:ToggleSortForColumn(columnIndex)
+        local handled = controller:ToggleSortForColumn(columnIndex) ~= false
         PlaySound(SOUNDS.MENU_BAR_CLICK)
+        TraceHeaderSortController(controller, "mouse_sort_end", {
+            targetColumnIndex = columnIndex,
+            entered = entered,
+            handled = handled,
+        })
     end)
+    self:UpdateVisuals()
 end
 
 function BETTERUI.CIM.UI.HeaderSortController:RefreshColumnLabels(headerContainer, columnNamePattern)

@@ -9,6 +9,27 @@ local InventoryKeybinds = BETTERUI.Inventory.Keybinds
 -- Shared implementation lives in Modules/CIM/Keybinds/ActionContext.lua (CIM loads before Inventory).
 InventoryKeybinds.IsQuickslottable = BETTERUI.CIM.IsQuickslottable
 
+local function TraceInventoryKeybind(self, keybind, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.scope = "inventory"
+    data.keybind = keybind
+    data.mode = self and self.actionMode
+    data.headerSort = self and self.isInHeaderSortMode == true
+    data.batch = self and self.IsBatchProcessing and self:IsBatchProcessing() == true
+    local list = self and self.GetCurrentList and self:GetCurrentList() or nil
+    data.selection = L.DescribeListSelection and L.DescribeListSelection(list, "current") or nil
+    L.TraceEvent(L.CATEGORY.KEYBIND, "keybind.callback", phase, data)
+end
+
+local function RunInventoryKeybind(self, keybind, action, callback)
+    TraceInventoryKeybind(self, keybind, "start", { action = action })
+    local r1, r2, r3 = callback()
+    TraceInventoryKeybind(self, keybind, "end", { action = action, handled = true })
+    return r1, r2, r3
+end
+
 --- Initializes the main inventory keybind strip.
 ---@return nil
 function BETTERUI.Inventory.Class:InitializeKeybindStrip()
@@ -62,7 +83,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return InventoryKeybinds.IsPrimaryKeybindVisible(self)
             end,
             callback = function()
-                InventoryKeybinds.HandlePrimaryKeybind(self)
+                return RunInventoryKeybind(self, "UI_SHORTCUT_PRIMARY", "primary", function()
+                    InventoryKeybinds.HandlePrimaryKeybind(self)
+                end)
             end,
         },
         {
@@ -75,7 +98,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return InventoryKeybinds.IsSecondaryKeybindVisible(self)
             end,
             callback = function()
-                InventoryKeybinds.HandleSecondaryKeybind(self)
+                return RunInventoryKeybind(self, "UI_SHORTCUT_SECONDARY", "secondary", function()
+                    InventoryKeybinds.HandleSecondaryKeybind(self)
+                end)
             end,
         },
         {
@@ -92,7 +117,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return InventoryKeybinds.IsTertiaryKeybindVisible(self)
             end,
             callback = function()
-                InventoryKeybinds.HandleTertiaryKeybind(self)
+                return RunInventoryKeybind(self, "UI_SHORTCUT_TERTIARY", "tertiary", function()
+                    InventoryKeybinds.HandleTertiaryKeybind(self)
+                end)
             end,
         },
         BETTERUI.CIM.Keybinds.CreateStackAllKeybind(
@@ -123,10 +150,12 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     and not InventoryKeybinds.IsBagUpgradeCategorySelected(self)
             end,
             callback = function()
-                if self:IsBatchProcessing() then
-                    return
-                end
-                self:Switch()
+                return RunInventoryKeybind(self, "UI_SHORTCUT_RIGHT_STICK", "switch_inventory_craftbag", function()
+                    if self:IsBatchProcessing() then
+                        return
+                    end
+                    self:Switch()
+                end)
             end,
         },
         BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(
@@ -167,7 +196,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return InventoryKeybinds.IsMultiSelectEntryVisible(self)
             end,
             callback = function()
-                InventoryKeybinds.HandleMultiSelectEntry(self)
+                return RunInventoryKeybind(self, "UI_SHORTCUT_QUINARY", "multi_select", function()
+                    InventoryKeybinds.HandleMultiSelectEntry(self)
+                end)
             end,
         },
     }
@@ -190,4 +221,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
     table.insert(self.mainKeybindStripDescriptor, leftTrigger)
     table.insert(self.mainKeybindStripDescriptor, rightTrigger)
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON)
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.KEYBIND, "inventory main keybind descriptor created", {
+            fn = "Inventory:InitializeKeybindStrip",
+            main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+        })
+    end
 end

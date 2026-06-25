@@ -253,41 +253,259 @@ local function NormalizePanelRegistrationId(panelIdOrModuleName)
     return "BETTERUI_" .. normalized
 end
 
+local function DescribeSettingsValue(value, depth)
+    local valueType = type(value)
+    if valueType == "nil" or valueType == "boolean" or valueType == "number" then
+        return tostring(value)
+    end
+    if valueType == "string" then
+        if #value > 160 then
+            return value:sub(1, 157) .. "..."
+        end
+        return value
+    end
+    if valueType == "function" then
+        return "<function>"
+    end
+    if valueType ~= "table" then
+        return "<" .. valueType .. ">"
+    end
+    depth = depth or 0
+    if depth >= 2 then
+        return "<table>"
+    end
+    local parts = {}
+    local count = 0
+    for key, item in pairs(value) do
+        count = count + 1
+        if count > 6 then
+            parts[#parts + 1] = "..."
+            break
+        end
+        parts[#parts + 1] = tostring(key) .. "=" .. DescribeSettingsValue(item, depth + 1)
+    end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function DescribeSettingsValues(...)
+    local count = select("#", ...)
+    if count == 0 then
+        return nil
+    end
+    if count == 1 then
+        return DescribeSettingsValue((...))
+    end
+    local values = {}
+    for i = 1, count do
+        values[#values + 1] = DescribeSettingsValue(select(i, ...))
+    end
+    return table.concat(values, "|")
+end
+
+
+local function CapturePcallResults(ok, ...)
+    return { ok = ok, n = select("#", ...), ... }
+end
+
+local function DescribePackedResults(results)
+    if type(results) ~= "table" then return nil end
+    return DescribeSettingsValues(unpack(results, 1, results.n or 0))
+end
+
+local function ResolveControlTraceName(control)
+    if type(control) ~= "table" then return nil end
+    if type(control.name) == "function" then
+        return "<dynamic>"
+    end
+    if control.name ~= nil then
+        return tostring(control.name)
+    end
+    if type(control.text) == "function" then
+        return "<dynamicText>"
+    end
+    if control.text ~= nil then
+        return tostring(control.text)
+    end
+    return nil
+end
+
+local function SettingsTraceEnabled()
+    local L = BETTERUI.Log
+    if not L then return false end
+    if L.EnabledFor and L.LEVEL and L.CATEGORY then
+        return L.EnabledFor(L.LEVEL.INFO, L.CATEGORY.SETTINGS)
+    end
+    return type(L.TraceEvent) == "function"
+end
+
+local function TraceSettings(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    L.TraceEvent(L.CATEGORY.SETTINGS, event, phase, data or {}, L.LEVEL.INFO)
+end
+
+local function CountControls(controls)
+    if type(controls) ~= "table" then return 0 end
+    local count = 0
+    for _, control in ipairs(controls) do
+        count = count + 1
+        if type(control) == "table" and type(control.controls) == "table" then
+            count = count + CountControls(control.controls)
+        end
+    end
+    return count
+end
+
+local function BuildControlTraceData(panelId, control, path, extra)
+    local data = extra or {}
+    data.panel = panelId
+    data.path = path
+    if type(control) == "table" then
+        data.type = control.type
+        data.name = data.name or ResolveControlTraceName(control)
+        data.width = control.width
+        data.requiresReload = control.requiresReload == true
+        data.hasGet = type(control.getFunc) == "function"
+        data.hasSet = type(control.setFunc) == "function"
+        data.hasFunc = type(control.func) == "function"
+        data.hasDisabled = type(control.disabled) == "function"
+        data.hasWarning = type(control.warning) == "function"
+        data.default = control.default ~= nil and DescribeSettingsValue(control.default) or nil
+        data.min = control.min
+        data.max = control.max
+        data.step = control.step
+    end
+    return data
+end
+
 --- Wraps each control's setFunc so user-driven setting changes stream to the
 --- diagnostics sink (panel + setting name + new value). Inert when logging is
 --- inactive — the wrapper only formats a line behind Log.IsActive(); the original
 --- setter always runs. Recurses into submenu controls and is idempotent via a
 --- private marker so panel refresh/re-registration never stacks wrappers.
-local function InstrumentSettingControls(controls, panelId)
+local function InstrumentSettingControls(controls, panelId, parentPath)
     if type(controls) ~= "table" then return end
-    for _, control in ipairs(controls) do
+    for index, control in ipairs(controls) do
         if type(control) == "table" then
+            local controlPath = parentPath and (parentPath .. "." .. tostring(index)) or tostring(index)
+            TraceSettings("settings.control", "registered", BuildControlTraceData(panelId, control, controlPath))
+            if type(control.getFunc) == "function" and not control.__buiGetFuncInstrumented then
+                local originalGetFunc = control.getFunc
+                control.getFunc = function(...)
+                    local results = CapturePcallResults(pcall(originalGetFunc, ...))
+                    if not results.ok then
+                        TraceSettings("settings.control", "get_error", BuildControlTraceData(panelId, control, controlPath, {
+                            error = tostring(results[1]),
+                        }))
+                        error(results[1], 2)
+                    end
+                    TraceSettings("settings.control", "get", BuildControlTraceData(panelId, control, controlPath, {
+                        value = DescribePackedResults(results),
+                    }))
+                    return unpack(results, 1, results.n)
+                end
+                control.__buiGetFuncInstrumented = true
+            end
             if type(control.setFunc) == "function" and not control.__buiSetFuncInstrumented then
                 local originalSetFunc = control.setFunc
-                local settingName = control.name
                 control.setFunc = function(...)
-                    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-                        local label = type(settingName) == "function" and "<dynamic>" or settingName
-                        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "setting changed", {
-                            panel = panelId,
-                            name = label,
-                            value = (...),
-                        })
+                    local captureValues = SettingsTraceEnabled()
+                    local oldValue = nil
+                    if captureValues and type(control.getFunc) == "function" then
+                        local oldResults = CapturePcallResults(pcall(control.getFunc))
+                        oldValue = oldResults.ok and DescribePackedResults(oldResults) or ("error:" .. tostring(oldResults[1]))
                     end
-                    return originalSetFunc(...)
+                    TraceSettings("settings.control", "set_before", BuildControlTraceData(panelId, control, controlPath, {
+                        oldValue = oldValue,
+                        newValue = DescribeSettingsValues(...),
+                    }))
+                    local results = CapturePcallResults(pcall(originalSetFunc, ...))
+                    if not results.ok then
+                        TraceSettings("settings.control", "set_error", BuildControlTraceData(panelId, control, controlPath, {
+                            oldValue = oldValue,
+                            newValue = DescribeSettingsValues(...),
+                            error = tostring(results[1]),
+                        }))
+                        error(results[1], 2)
+                    end
+                    local newValue = nil
+                    if captureValues and type(control.getFunc) == "function" then
+                        local newResults = CapturePcallResults(pcall(control.getFunc))
+                        newValue = newResults.ok and DescribePackedResults(newResults) or ("error:" .. tostring(newResults[1]))
+                    end
+                    TraceSettings("settings.control", "set_after", BuildControlTraceData(panelId, control, controlPath, {
+                        oldValue = oldValue,
+                        newValue = newValue,
+                        result = DescribePackedResults(results),
+                    }))
+                    return unpack(results, 1, results.n)
                 end
                 control.__buiSetFuncInstrumented = true
             end
+            if type(control.func) == "function" and not control.__buiFuncInstrumented then
+                local originalFunc = control.func
+                control.func = function(...)
+                    TraceSettings("settings.control", "button_before", BuildControlTraceData(panelId, control, controlPath, {
+                        args = DescribeSettingsValues(...),
+                    }))
+                    local results = CapturePcallResults(pcall(originalFunc, ...))
+                    if not results.ok then
+                        TraceSettings("settings.control", "button_error", BuildControlTraceData(panelId, control, controlPath, {
+                            error = tostring(results[1]),
+                        }))
+                        error(results[1], 2)
+                    end
+                    TraceSettings("settings.control", "button_after", BuildControlTraceData(panelId, control, controlPath, {
+                        result = DescribePackedResults(results),
+                    }))
+                    return unpack(results, 1, results.n)
+                end
+                control.__buiFuncInstrumented = true
+            end
+            if type(control.disabled) == "function" and not control.__buiDisabledInstrumented then
+                local originalDisabled = control.disabled
+                control.disabled = function(...)
+                    local result = originalDisabled(...)
+                    if BETTERUI.Log and BETTERUI.Log.EnabledFor
+                        and BETTERUI.Log.EnabledFor(BETTERUI.Log.LEVEL.TRACE, BETTERUI.Log.CATEGORY.SETTINGS) then
+                        TraceSettings("settings.control", "disabled", BuildControlTraceData(panelId, control, controlPath, {
+                            result = result == true,
+                        }))
+                    end
+                    return result
+                end
+                control.__buiDisabledInstrumented = true
+            end
+            if type(control.warning) == "function" and not control.__buiWarningInstrumented then
+                local originalWarning = control.warning
+                control.warning = function(...)
+                    local result = originalWarning(...)
+                    if BETTERUI.Log and BETTERUI.Log.EnabledFor
+                        and BETTERUI.Log.EnabledFor(BETTERUI.Log.LEVEL.TRACE, BETTERUI.Log.CATEGORY.SETTINGS) then
+                        TraceSettings("settings.control", "warning", BuildControlTraceData(panelId, control, controlPath, {
+                            result = DescribeSettingsValue(result),
+                        }))
+                    end
+                    return result
+                end
+                control.__buiWarningInstrumented = true
+            end
             if type(control.controls) == "table" then
-                InstrumentSettingControls(control.controls, panelId)
+                InstrumentSettingControls(control.controls, panelId, controlPath)
             end
         end
     end
 end
 
+BETTERUI.CIM.Settings.InstrumentSettingControls = InstrumentSettingControls
+
 function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelData, optionsData)
     local panelId = NormalizePanelRegistrationId(panelIdOrModuleName)
     if not panelId or type(panelData) ~= "table" then
+        TraceSettings("settings.panel", "rejected", {
+            panel = panelIdOrModuleName,
+            reason = "invalid_panel_registration",
+        })
         if BETTERUI.Log then
             BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration invalid",
                 { panel = panelIdOrModuleName })
@@ -296,26 +514,60 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
     end
 
     optionsData = type(optionsData) == "table" and optionsData or {}
+    TraceSettings("settings.panel", "sort_before", {
+        panel = panelId,
+        topLevelControls = #optionsData,
+        totalControls = CountControls(optionsData),
+    })
     BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically(optionsData)
     BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsData, true)
+    TraceSettings("settings.panel", "sort_after", {
+        panel = panelId,
+        topLevelControls = #optionsData,
+        totalControls = CountControls(optionsData),
+    })
     InstrumentSettingControls(optionsData, panelId)
 
     local lam = LibAddonMenu2
     if not lam or not lam.RegisterAddonPanel or not lam.RegisterOptionControls then
+        TraceSettings("settings.panel", "rejected", {
+            panel = panelId,
+            reason = "lam_unavailable",
+        })
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel LAM unavailable", { panel = panelId }) end
         return nil, "lam_unavailable"
     end
 
+    TraceSettings("settings.panel", "register_before", {
+        panel = panelId,
+        stage = "addonPanel",
+        topLevelControls = #optionsData,
+        totalControls = CountControls(optionsData),
+    })
     local panelOk = pcall(lam.RegisterAddonPanel, lam, panelId, panelData)
     if not panelOk then
+        TraceSettings("settings.panel", "register_failed", {
+            panel = panelId,
+            stage = "addonPanel",
+        })
         if BETTERUI.Log then
             BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", { panel = panelId, stage = "addonPanel" })
         end
         return nil, "register_addon_panel_failed"
     end
 
+    TraceSettings("settings.panel", "register_before", {
+        panel = panelId,
+        stage = "optionControls",
+        topLevelControls = #optionsData,
+        totalControls = CountControls(optionsData),
+    })
     local controlsOk = pcall(lam.RegisterOptionControls, lam, panelId, optionsData)
     if not controlsOk then
+        TraceSettings("settings.panel", "register_failed", {
+            panel = panelId,
+            stage = "optionControls",
+        })
         if BETTERUI.Log then
             BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", { panel = panelId, stage = "optionControls" })
         end
@@ -325,6 +577,11 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registered", { panel = panelId, controls = #optionsData })
     end
+    TraceSettings("settings.panel", "registered", {
+        panel = panelId,
+        topLevelControls = #optionsData,
+        totalControls = CountControls(optionsData),
+    })
     return panelId
 end
 

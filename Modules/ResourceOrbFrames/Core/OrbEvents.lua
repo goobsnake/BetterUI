@@ -51,14 +51,39 @@ local function IsModuleEnabled()
     return not (settings and settings.m_enabled == false)
 end
 
+local function TraceOrbEvents(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "resourceOrbs"
+    local currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.currentScene = currentScene
+    if data.scene == nil then
+        data.scene = currentScene
+    end
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.STATE, event, phase, data)
+end
+
 ---@param rootFrame table|nil Root frame to refresh, or nil to use cached frame
 function Events.RefreshCombatIndicators(rootFrame)
     local targetRootFrame = rootFrame or m_combatIndicatorRootFrame
     if not targetRootFrame then
+        TraceOrbEvents("resource_orbs.combat_indicators", "refresh_skipped", { reason = "missingRoot" })
         return
     end
 
     local isInCombat = IsUnitInCombat("player")
+    TraceOrbEvents("resource_orbs.combat_indicators", "refresh", {
+        fn = "Events.RefreshCombatIndicators",
+        inCombat = isInCombat,
+        hasApply = CI.ApplyCombatIndicators ~= nil,
+    })
     if CI.ApplyCombatIndicators then
         CI.ApplyCombatIndicators(targetRootFrame, isInCombat, false)
     end
@@ -68,7 +93,13 @@ end
 ---@param rootFrame table Root ResourceOrbFrames control
 function Events.SetupCombatIndicators(rootFrame)
     m_combatIndicatorRootFrame = rootFrame
+    TraceOrbEvents("resource_orbs.combat_indicators", "setup_begin", {
+        fn = "Events.SetupCombatIndicators",
+        hasRoot = m_combatIndicatorRootFrame ~= nil,
+        registered = m_hasRegisteredCombatIndicators,
+    })
     if not m_combatIndicatorRootFrame then
+        TraceOrbEvents("resource_orbs.combat_indicators", "setup_skipped", { reason = "missingRoot" })
         return
     end
 
@@ -77,18 +108,21 @@ function Events.SetupCombatIndicators(rootFrame)
 
         BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatState", EVENT_PLAYER_COMBAT_STATE,
             function(_, inCombat)
+                TraceOrbEvents("resource_orbs.combat_event", "combat_state", { inCombat = inCombat })
                 if CI.ApplyCombatIndicators then
                     CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, inCombat, true)
                 end
             end)
 
         BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatDead", EVENT_PLAYER_DEAD, function()
+            TraceOrbEvents("resource_orbs.combat_event", "dead", {})
             if CI.ApplyCombatIndicators then
                 CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, false, false)
             end
         end)
 
         BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatAlive", EVENT_PLAYER_ALIVE, function()
+            TraceOrbEvents("resource_orbs.combat_event", "alive", { inCombat = IsUnitInCombat("player") })
             if CI.ApplyCombatIndicators then
                 CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, IsUnitInCombat("player"), false)
             end
@@ -96,6 +130,7 @@ function Events.SetupCombatIndicators(rootFrame)
 
         BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatActivated", EVENT_PLAYER_ACTIVATED,
             function()
+                TraceOrbEvents("resource_orbs.combat_event", "player_activated", { inCombat = IsUnitInCombat("player") })
                 if CI.ApplyCombatIndicators then
                     CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, IsUnitInCombat("player"), false)
                 end
@@ -105,11 +140,16 @@ function Events.SetupCombatIndicators(rootFrame)
     if CI.ApplyCombatIndicators then
         CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, IsUnitInCombat("player"), false)
     end
+    TraceOrbEvents("resource_orbs.combat_indicators", "setup_end", {
+        registered = m_hasRegisteredCombatIndicators,
+        inCombat = IsUnitInCombat("player"),
+    })
 end
 
 local function EnforceDefaultUIHidden()
     if not IsModuleEnabled() then return end
 
+    TraceOrbEvents("resource_orbs.native_bars", "hide_enforce", { hasAttributeFragment = PLAYER_ATTRIBUTE_BARS_FRAGMENT ~= nil })
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
     end
@@ -127,6 +167,7 @@ local function DeferredEnforceHide(delayMs)
     end
     m_hideCallLaterId = zo_callLater(function()
         m_hideCallLaterId = nil
+        TraceOrbEvents("resource_orbs.native_bars", "hide_enforce_task", { delayMs = delayMs or 50 })
         EnforceDefaultUIHidden()
     end, delayMs or 50)
 end
@@ -136,11 +177,14 @@ end
 ---@return function UpdateDeathFragment Callback to manually refresh death visibility
 function Events.SetupVisibilityFragments(rootFrame)
     local fragment = ZO_HUDFadeSceneFragment:New(rootFrame)
+    TraceOrbEvents("resource_orbs.visibility", "setup_begin", { hasRoot = rootFrame ~= nil, hasFragment = fragment ~= nil })
     HUD_SCENE:AddFragment(fragment)
     HUD_UI_SCENE:AddFragment(fragment)
 
     local function UpdateDeathFragment()
-        fragment:SetHiddenForReason("Dead", IsUnitDead("player"))
+        local isDead = IsUnitDead("player")
+        TraceOrbEvents("resource_orbs.visibility", "death_fragment", { dead = isDead })
+        fragment:SetHiddenForReason("Dead", isDead)
     end
 
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
@@ -195,17 +239,20 @@ function Events.SetupVisibilityFragments(rootFrame)
 
         m_specialSceneCallLaterId = zo_callLater(function()
             m_specialSceneCallLaterId = nil
-            fragment:SetHiddenForReason(SPECIAL_SCENE_HIDE_REASON, IsSpecialSceneActive())
+            local specialSceneActive = IsSpecialSceneActive()
+            TraceOrbEvents("resource_orbs.visibility", "special_scene_sync", { hidden = specialSceneActive })
+            fragment:SetHiddenForReason(SPECIAL_SCENE_HIDE_REASON, specialSceneActive)
         end, 0)
     end
 
     if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
-        SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(_, _, newState)
+        SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(_, oldState, newState)
             if newState == SCENE_SHOWING
                 or newState == SCENE_SHOWN
                 or newState == SCENE_HIDING
                 or newState == SCENE_HIDDEN
             then
+                TraceOrbEvents("resource_orbs.scene", "state_changed", { oldState = oldState, newState = newState })
                 DeferredSyncSpecialSceneVisibility()
             end
         end)
@@ -220,6 +267,7 @@ function Events.SetupVisibilityFragments(rootFrame)
     if lootScene then
         lootScene:RegisterCallback("StateChange", function(oldState, newState)
             if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+                TraceOrbEvents("resource_orbs.scene", "loot_exit", { scene = "loot", oldState = oldState, newState = newState })
                 DeferredEnforceHide(50)
             end
         end)
@@ -228,11 +276,13 @@ function Events.SetupVisibilityFragments(rootFrame)
     if lootGamepadScene then
         lootGamepadScene:RegisterCallback("StateChange", function(oldState, newState)
             if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+                TraceOrbEvents("resource_orbs.scene", "loot_exit", { scene = "lootGamepad", oldState = oldState, newState = newState })
                 DeferredEnforceHide(50)
             end
         end)
     end
 
+    TraceOrbEvents("resource_orbs.visibility", "setup_end", { hasFragment = fragment ~= nil })
     return UpdateDeathFragment
 end
 
@@ -262,11 +312,16 @@ end
 --- Called from ResourceOrbFrames.ApplySettings on module enable/disable.
 ---@param enabled boolean Whether the loops should be running
 function Events.SetLoopsEnabled(enabled)
+    TraceOrbEvents("resource_orbs.loops", enabled and "enable_requested" or "disable_requested", {
+        registered = m_loopsRegistered,
+        hasTicks = m_loopTicks ~= nil,
+    })
     if enabled then
         RegisterLoopUpdates()
     else
         UnregisterLoopUpdates()
     end
+    TraceOrbEvents("resource_orbs.loops", enabled and "enabled" or "disabled", { registered = m_loopsRegistered })
 end
 
 --- Registers periodic update ticks for status, cooldowns, and orb animation.
@@ -275,6 +330,18 @@ end
 ---@param shieldBar BetterUIShieldBar|nil Shield bar instance
 ---@param castBar table|nil Cast bar instance with isCasting field
 function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
+    local poolCount = 0
+    if pools then
+        for _ in pairs(pools) do
+            poolCount = poolCount + 1
+        end
+    end
+    TraceOrbEvents("resource_orbs.loops", "setup_begin", {
+        hasRoot = rootFrame ~= nil,
+        poolCount = poolCount,
+        hasShield = shieldBar ~= nil,
+        hasCast = castBar ~= nil,
+    })
     -- Re-entry safe: drop previously registered loops before rebuilding.
     UnregisterLoopUpdates()
 
@@ -328,16 +395,24 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
         orbAnimation = AnimationTick,
     }
     RegisterLoopUpdates()
+    TraceOrbEvents("resource_orbs.loops", "setup_end", { registered = m_loopsRegistered })
 end
 
 --- Registers HUD/HUDUI scene-showing callbacks to keep native action bar hidden.
 ---@param rootFrame table Root ResourceOrbFrames control
 function Events.SetupSceneHandlers(rootFrame)
     -- Registration latch: SetupModule may retry; scene callbacks must not stack.
-    if m_sceneHandlersRegistered then return end
+    if m_sceneHandlersRegistered then
+        TraceOrbEvents("resource_orbs.scene_handlers", "setup_skipped", { reason = "alreadyRegistered" })
+        return
+    end
     local frontBarCfg = GetLiveSettings().customFrontBar
-    if not frontBarCfg or not frontBarCfg.m_enabled then return end
+    if not frontBarCfg or not frontBarCfg.m_enabled then
+        TraceOrbEvents("resource_orbs.scene_handlers", "setup_skipped", { reason = "frontBarDisabled" })
+        return
+    end
     m_sceneHandlersRegistered = true
+    TraceOrbEvents("resource_orbs.scene_handlers", "setup_begin", { hasRoot = rootFrame ~= nil })
 
     -- Shared callback for HUD scene visibility changes.
     -- Debounced to coalesce rapid scene transitions.
@@ -349,6 +424,7 @@ function Events.SetupSceneHandlers(rootFrame)
         m_sceneCallLaterId = zo_callLater(function()
             m_sceneCallLaterId = nil
             SkillBar.HideNativeActionBar()
+            TraceOrbEvents("resource_orbs.scene_handlers", "hud_showing_task", { firedForceLayout = true })
             CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
         end, 50)
     end
@@ -357,6 +433,7 @@ function Events.SetupSceneHandlers(rootFrame)
     if hudScene then
         hudScene:RegisterCallback("StateChange", function(oldState, newState)
             if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+                TraceOrbEvents("resource_orbs.scene_handlers", "hud_state", { scene = "hud", oldState = oldState, newState = newState })
                 OnHUDSceneShowing()
             end
         end)
@@ -366,8 +443,10 @@ function Events.SetupSceneHandlers(rootFrame)
     if hudUIScene then
         hudUIScene:RegisterCallback("StateChange", function(oldState, newState)
             if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+                TraceOrbEvents("resource_orbs.scene_handlers", "hud_state", { scene = "hudui", oldState = oldState, newState = newState })
                 OnHUDSceneShowing()
             end
         end)
     end
+    TraceOrbEvents("resource_orbs.scene_handlers", "setup_end", { registered = m_sceneHandlersRegistered })
 end

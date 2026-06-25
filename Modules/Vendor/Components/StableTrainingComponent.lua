@@ -188,14 +188,35 @@ function StableTraining:OnPrimaryAction(vendorInstance)
         return
     end
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor riding trained", {
+    local L = BETTERUI.Log
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.stable_train", "request", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-stable",
+            fn = "Vendor.StableTrainingComponent.OnPrimaryAction",
+            ["function"] = "Vendor.StableTrainingComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
             trainingType = ds.trainingType,
-            name = ds.name
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
         })
     end
 
     TrainRiding(ds.trainingType)
+
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.stable_train", "requested", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-stable",
+            fn = "Vendor.StableTrainingComponent.OnPrimaryAction",
+            ["function"] = "Vendor.StableTrainingComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+            trainingType = ds.trainingType,
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+        })
+    end
+
     vendorInstance:RefreshList()
 end
 

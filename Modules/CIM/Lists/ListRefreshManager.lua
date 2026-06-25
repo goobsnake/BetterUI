@@ -59,6 +59,13 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh save position", { savedPosition = self.savedPosition, savedUniqueId = self.savedUniqueId })
     end
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "saved", {
+            selected = BETTERUI.Log.DescribeListSelection(list, "saved"),
+            savedPosition = self.savedPosition,
+            savedUniqueId = self.savedUniqueId,
+        })
+    end
 end
 
 ---@param list table
@@ -92,7 +99,12 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
 
     -- Clamp to valid range
     local numItems = list:GetNumItems() or 0
-    if numItems == 0 then return false, restoredById end
+    if numItems == 0 then
+        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", { restored = false, restoredById = restoredById == true, reason = "empty" })
+        end
+        return false, restoredById
+    end
 
     targetIndex = math.min(targetIndex, numItems)
     targetIndex = math.max(targetIndex, 1)
@@ -100,9 +112,21 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     -- Set the position
     if list.SetSelectedIndex then
         list:SetSelectedIndex(targetIndex)
+        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
+                restored = true, method = restoredById and "id" or "index", targetIndex = targetIndex,
+                selected = BETTERUI.Log.DescribeListSelection(list, "after"),
+            })
+        end
         return true, restoredById
     elseif list.SetSelectedDataIndex then
         list:SetSelectedDataIndex(targetIndex)
+        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
+                restored = true, method = restoredById and "id" or "index", targetIndex = targetIndex,
+                selected = BETTERUI.Log.DescribeListSelection(list, "after"),
+            })
+        end
         return true, restoredById
     end
 
@@ -116,6 +140,12 @@ end
 function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, savePosition)
     local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "queue refresh", { numItems = numItems, coalesceDelay = self.coalesceDelay }) end
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "queued", {
+            numItems = numItems, coalesceDelay = self.coalesceDelay, savePosition = savePosition ~= false,
+            selected = BETTERUI.Log.DescribeListSelection(list, "before"),
+        })
+    end
 
     if savePosition ~= false then
         self:SavePosition(list)
@@ -142,6 +172,7 @@ end
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     self.isDirty = false
+    local beforeCount = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
 
     -- Execute the refresh function
     if refreshFn then
@@ -152,6 +183,12 @@ function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     local success, restoredById = self:RestorePosition(list)
     local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "execute refresh", { numItems = numItems, restoredById = restoredById == true, coalesceDelay = self.coalesceDelay }) end
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "executed", {
+            beforeCount = beforeCount, afterCount = numItems, restored = success == true,
+            restoredById = restoredById == true, selected = BETTERUI.Log.DescribeListSelection(list, "after"),
+        })
+    end
 end
 
 ---@return nil

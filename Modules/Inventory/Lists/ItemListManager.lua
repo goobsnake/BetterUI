@@ -314,6 +314,15 @@ function BETTERUI.Inventory.Class:PrepareInventoryListEntry(itemData, filteredEq
     if itemData.itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
         itemData.cached_isBook = true
     end
+    if BETTERUI.Log and BETTERUI.Log.EnabledFor and BETTERUI.Log.EnabledFor(BETTERUI.Log.LEVEL.TRACE, BETTERUI.Log.CATEGORY.LIST) and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "inventory.row.prepare", "state", {
+            item = BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(itemData, "row") or nil,
+            filteredEquipSlot = filteredEquipSlot,
+            equippedCurrent = itemData.isEquippedInCurrentCategory == true,
+            equippedOther = itemData.isEquippedInAnotherCategory == true,
+            hiddenByWardrobe = itemData.isHiddenByWardrobe == true,
+        }, BETTERUI.Log.LEVEL.TRACE)
+    end
 end
 
 --- Captures the preferred selection target before rebuilding the item list.

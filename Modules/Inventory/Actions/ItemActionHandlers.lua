@@ -103,6 +103,12 @@ local function LogActionDialogRestore(message, data, warn)
     end
 end
 
+local function TraceInventoryActionDialog(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
+end
+
 local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
         return
@@ -216,6 +222,11 @@ function ActionHandlers.OnSetup(self, dialog, data)
     ZO_ClearNumericallyIndexedTable(parametricList)
 
     local target = ResolveCurrentTarget(self)
+    TraceInventoryActionDialog("inventory.action_dialog.handler", "setup_before", {
+        actionMode = self.actionMode,
+        target = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(target, "target") or nil,
+        selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self:GetCurrentList(), "selection") or nil,
+    })
 
     if self.itemActions and self.itemActions.SetInventorySlot and target then
         if target and not target.slotType then
@@ -418,6 +429,15 @@ function ActionHandlers.OnSetup(self, dialog, data)
         sortEntry.sortContext = sortContext
         sortEntry.setup = ZO_SharedGamepadEntry_OnSetup
         table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = sortEntry })
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "inventory dialog sort entry added", {
+                fn = "ItemActionHandlers.OnSetup",
+                actionMode = self.actionMode,
+                headerSort = sortContext.isInHeaderSortMode == true,
+                listItems = currentList.GetNumItems and currentList:GetNumItems() or nil,
+                main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(sortContext.mainKeybindStripDescriptor, "main") or nil,
+            })
+        end
     end
 
     local getHelpName = GetString(rawget(_G, "SI_ITEM_ACTION_REPORT_ITEM"))
@@ -434,6 +454,11 @@ function ActionHandlers.OnSetup(self, dialog, data)
     end
 
     dialog:setupFunc()
+    TraceInventoryActionDialog("inventory.action_dialog.handler", "setup_after", {
+        actionMode = self.actionMode,
+        entryCount = #parametricList,
+        selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
+    })
 end
 
 function ActionHandlers.OnFinish(self)
@@ -535,8 +560,18 @@ function ActionHandlers.OnConfirm(self, dialog)
     end
 
     local selectedRow = dialog.entryList and BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
+    local confirmedTarget = dialog and dialog.data and dialog.data.target or ResolveCurrentTarget(self)
+    TraceInventoryActionDialog("inventory.action_dialog.handler", "confirm", {
+        actionMode = self.actionMode,
+        action = selectedRow and ResolveActionText(selectedRow) or nil,
+        sort = selectedRow and selectedRow.isSortAction == true,
+        junk = selectedRow and selectedRow.isJunkToggleAction == true,
+        stow = selectedRow and selectedRow.isStowStackAction == true,
+        retrieve = selectedRow and selectedRow.isRetrieveStackAction == true,
+        target = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(confirmedTarget, "target") or nil,
+        selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
+    })
     if selectedRow and BETTERUI.Log and BETTERUI.Log.Info then
-        local confirmedTarget = dialog and dialog.data and dialog.data.target or ResolveCurrentTarget(self)
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "inventory dialog action confirmed", AddTargetFields({
             action = ResolveActionText(selectedRow),
             sort = selectedRow.isSortAction == true,
@@ -547,8 +582,20 @@ function ActionHandlers.OnConfirm(self, dialog)
     end
 
     if selectedRow and selectedRow.isSortAction then
+        TraceInventoryActionDialog("inventory.action_dialog.sort", "release_dialog", {
+            actionMode = self.actionMode,
+            selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
+        })
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         local sortContext = selectedRow.sortContext or self
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "inventory dialog sort confirmed", {
+                fn = "ItemActionHandlers.OnConfirm",
+                actionMode = self.actionMode,
+                headerSort = sortContext and sortContext.isInHeaderSortMode == true,
+                main = BETTERUI.Log.DescribeKeybindDescriptor and sortContext and BETTERUI.Log.DescribeKeybindDescriptor(sortContext.mainKeybindStripDescriptor, "main") or nil,
+            })
+        end
         if sortContext and sortContext.EnterHeaderSortMode then
             -- Defer until the action dialog has fully released its keybind state. Calling
             -- EnterHeaderSortMode synchronously here applies the header-sort keybind swap to the
@@ -558,6 +605,11 @@ function ActionHandlers.OnConfirm(self, dialog)
             local function EnterSortWhenDialogClosed()
                 attempts = attempts - 1
                 if attempts > 0 and ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
+                    TraceInventoryActionDialog("inventory.action_dialog.sort", "waiting_for_close", {
+                        attempts = attempts,
+                        headerSort = sortContext and sortContext.isInHeaderSortMode == true,
+                        main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and sortContext and BETTERUI.Log.DescribeKeybindDescriptor(sortContext.mainKeybindStripDescriptor, "main") or nil,
+                    })
                     if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
                         BETTERUI.Inventory.Tasks:Schedule("enterHeaderSortAfterDialog", 10, EnterSortWhenDialogClosed)
                     elseif zo_callLater then
@@ -565,7 +617,13 @@ function ActionHandlers.OnConfirm(self, dialog)
                     end
                     return
                 end
-                sortContext:EnterHeaderSortMode()
+                local entered = sortContext:EnterHeaderSortMode()
+                TraceInventoryActionDialog("inventory.action_dialog.sort", "enter_attempted", {
+                    entered = entered == true,
+                    attemptsRemaining = attempts,
+                    headerSort = sortContext and sortContext.isInHeaderSortMode == true,
+                    main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and sortContext and BETTERUI.Log.DescribeKeybindDescriptor(sortContext.mainKeybindStripDescriptor, "main") or nil,
+                })
             end
             EnterSortWhenDialogClosed()
         end

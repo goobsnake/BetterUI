@@ -15,7 +15,16 @@ BETTERUI.CIM.SceneCleanup = {}
 ---            code duplication and ensure consistent cleanup behavior.
 ---
 function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "input state cleaned up", { hasScreen = screen ~= nil }) end
+    local headerSortIntegrationState = screen and screen._headerSortIntegration or nil
+    local suspendedGroupsBeforeCleanup = headerSortIntegrationState and headerSortIntegrationState.suspendedKeybindGroups or nil
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "input state cleanup begin", {
+        fn = "SceneCleanup.CleanupInputState",
+        hasScreen = screen ~= nil,
+        headerSort = screen and screen.isInHeaderSortMode == true,
+        activeHeader = screen and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(screen._activeHeaderSortKeybindDescriptor, "activeHeader") or nil,
+        header = screen and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(screen.headerSortKeybindDescriptor, "header") or nil,
+        suspendedCount = BETTERUI.Log.CountKeybindDescriptors and BETTERUI.Log.CountKeybindDescriptors(suspendedGroupsBeforeCleanup) or 0,
+    }) end
     if not screen then return end
 
     -- Clear spinner confirmation state so the next scene show does not remain in spinner mode.
@@ -61,8 +70,14 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     -- otherwise the next EnterHeaderMode bails on "if integration.isActive then return false",
     -- permanently dead-ending the sort action after one scene exit. (The current keybind state
     -- on screen.isInHeaderSortMode is cleared above.)
-    local headerSortIntegrationState = screen._headerSortIntegration
     if headerSortIntegrationState then
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "scene cleanup header sort integration reset", {
+            fn = "SceneCleanup.CleanupInputState",
+            active = headerSortIntegrationState.isActive == true,
+            activeKeybind = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(headerSortIntegrationState.activeKeybindDescriptor, "active") or tostring(headerSortIntegrationState.activeKeybindDescriptor),
+            suspended = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(headerSortIntegrationState.suspendedKeybindGroups, "suspended") or tostring(headerSortIntegrationState.suspendedKeybindGroups),
+            suspendedGroupsDropped = BETTERUI.Log.CountKeybindDescriptors and BETTERUI.Log.CountKeybindDescriptors(headerSortIntegrationState.suspendedKeybindGroups) or 0,
+        }) end
         headerSortIntegrationState.isActive = false
         if headerSortIntegrationState.activeKeybindDescriptor and KEYBIND_STRIP
             and KEYBIND_STRIP.RemoveKeybindButtonGroup then
@@ -71,6 +86,13 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
         headerSortIntegrationState.activeKeybindDescriptor = nil
         headerSortIntegrationState.suspendedKeybindGroups = nil
     end
+    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "input state cleanup complete", {
+        fn = "SceneCleanup.CleanupInputState",
+        headerSort = screen.isInHeaderSortMode == true,
+        suspendedGroupsDropped = BETTERUI.Log.CountKeybindDescriptors and BETTERUI.Log.CountKeybindDescriptors(suspendedGroupsBeforeCleanup) or 0,
+        activeHeaderCleared = screen._activeHeaderSortKeybindDescriptor == nil,
+        headerCleared = screen.headerSortKeybindDescriptor == nil,
+    }) end
 
     -- 2. Exit selection mode if active
     if screen.isInSelectionMode then

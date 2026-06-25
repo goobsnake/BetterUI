@@ -21,6 +21,12 @@ local function GetBankingWindow()
     return BETTERUI.Banking and BETTERUI.Banking.Window
 end
 
+local function TraceQuantityDialog(phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    L.TraceEvent(L.CATEGORY.ACTION, "bank.quantity_dialog", phase, data or {}, L.LEVEL.INFO)
+end
+
 --[[
 Function: BETTERUI.Banking.InitializeQuantityDialog
 Description: Registers the quantity selection dialog for banking operations.
@@ -99,6 +105,14 @@ local function SetupSliderKeybindHints(dialog)
     dialog._minTextLabel:SetText(leftLabel .. ":")
     dialog._maxTextLabel:SetText(rightLabel .. ":")
 
+    TraceQuantityDialog("keybind_hints", {
+        isDeposit = isDeposit == true,
+        minKeybind = xIcon,
+        maxKeybind = yIcon,
+        leftLabel = leftLabel,
+        rightLabel = rightLabel,
+    })
+
     -- Ensure controls are visible (split stack dialog hides them on the shared template)
     dialog._minIconLabel:SetHidden(false)
     dialog._maxIconLabel:SetHidden(false)
@@ -122,6 +136,13 @@ function BETTERUI.Banking.InitializeQuantityDialog()
                 dialog:setupFunc()
             end
             SetupSliderKeybindHints(dialog)
+            TraceQuantityDialog("setup", {
+                isDeposit = dialog and dialog.data and dialog.data.isDeposit == true,
+                sliderMin = dialog and dialog.data and dialog.data.sliderMin or nil,
+                sliderMax = dialog and dialog.data and dialog.data.sliderMax or nil,
+                sliderStartValue = dialog and dialog.data and dialog.data.sliderStartValue or nil,
+                target = BETTERUI.Log and BETTERUI.Log.DescribeItem and dialog and dialog.data and BETTERUI.Log.DescribeItem(dialog.data, "target") or nil,
+            })
         end,
 
         title = {
@@ -154,6 +175,14 @@ function BETTERUI.Banking.InitializeQuantityDialog()
                 if dialog.sliderValue2 then
                     dialog.sliderValue2:SetText(tostring(value))
                 end
+                TraceQuantityDialog("slider_changed", {
+                    value = value,
+                    remaining = remaining,
+                    sliderMin = dialog.data.sliderMin or 1,
+                    sliderMax = sliderMax,
+                    isDeposit = dialog.data.isDeposit == true,
+                    target = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(dialog.data, "target") or nil,
+                })
             end
         end,
 
@@ -184,6 +213,13 @@ function BETTERUI.Banking.InitializeQuantityDialog()
 
                     local window = GetBankingWindow()
                     if window and window.MoveItem then
+                        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+                            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.ACTION, "bank.quantity_dialog", "confirm", {
+                                quantity = quantity,
+                                isDeposit = dialog.data.isDeposit == true,
+                                target = BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(dialog.data, "target") or nil,
+                            }, BETTERUI.Log.LEVEL.INFO)
+                        end
                         if BETTERUI.Log then
                             BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "QuantityDialog confirmed", {
                                 quantity = quantity,
@@ -193,6 +229,11 @@ function BETTERUI.Banking.InitializeQuantityDialog()
                         window:MoveItem(window.list, quantity)
                     end
 
+                    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+                        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.ACTION, "bank.quantity_dialog", "closed", {
+                            result = "confirm", quantity = quantity, isDeposit = dialog.data.isDeposit == true,
+                        }, BETTERUI.Log.LEVEL.INFO)
+                    end
                     ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_BANK_QUANTITY_DIALOG)
                 end,
             },
@@ -200,6 +241,11 @@ function BETTERUI.Banking.InitializeQuantityDialog()
                 keybind = "DIALOG_NEGATIVE",
                 text = GetString(rawget(_G, "SI_DIALOG_CANCEL")),
                 callback = function(dialog)
+                    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+                        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.ACTION, "bank.quantity_dialog", "closed", {
+                            result = "cancel", isDeposit = dialog and dialog.data and dialog.data.isDeposit == true,
+                        }, BETTERUI.Log.LEVEL.INFO)
+                    end
                     ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_BANK_QUANTITY_DIALOG)
                 end,
             },
@@ -208,7 +254,20 @@ function BETTERUI.Banking.InitializeQuantityDialog()
                 text = GetString(rawget(_G, "SI_BETTERUI_BANK_SLIDER_MIN")),
                 callback = function(dialog)
                     if dialog and dialog.slider then
-                        dialog.slider:SetValue(dialog.data.sliderMin or 1)
+                        local value = dialog.data.sliderMin or 1
+                        TraceQuantityDialog("keybind_before", {
+                            keybind = "DIALOG_SECONDARY",
+                            action = "slider_min",
+                            value = value,
+                            isDeposit = dialog.data.isDeposit == true,
+                        })
+                        dialog.slider:SetValue(value)
+                        TraceQuantityDialog("keybind_after", {
+                            keybind = "DIALOG_SECONDARY",
+                            action = "slider_min",
+                            value = dialog.slider.GetValue and dialog.slider:GetValue() or value,
+                            isDeposit = dialog.data.isDeposit == true,
+                        })
                     end
                 end,
             },
@@ -217,7 +276,20 @@ function BETTERUI.Banking.InitializeQuantityDialog()
                 text = GetString(rawget(_G, "SI_BETTERUI_BANK_SLIDER_MAX")),
                 callback = function(dialog)
                     if dialog and dialog.slider then
-                        dialog.slider:SetValue(dialog.data.sliderMax or 1)
+                        local value = dialog.data.sliderMax or 1
+                        TraceQuantityDialog("keybind_before", {
+                            keybind = "DIALOG_TERTIARY",
+                            action = "slider_max",
+                            value = value,
+                            isDeposit = dialog.data.isDeposit == true,
+                        })
+                        dialog.slider:SetValue(value)
+                        TraceQuantityDialog("keybind_after", {
+                            keybind = "DIALOG_TERTIARY",
+                            action = "slider_max",
+                            value = dialog.slider.GetValue and dialog.slider:GetValue() or value,
+                            isDeposit = dialog.data.isDeposit == true,
+                        })
                     end
                 end,
             },
@@ -236,6 +308,13 @@ function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
 
     -- If only 1 item, just move it directly without dialog
     if stackCount <= 1 then
+        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.ACTION, "bank.quantity_dialog", "skipped", {
+                reason = "singleStack", isDeposit = isDeposit == true,
+                target = BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(targetData, "target") or nil,
+                stackCount = stackCount,
+            }, BETTERUI.Log.LEVEL.INFO)
+        end
         self:MoveItem(list, 1)
         return
     end
@@ -247,6 +326,16 @@ function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
             slotIndex = targetData.slotIndex,
             stackCount = stackCount,
         })
+    end
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.ACTION, "bank.quantity_dialog", "show", {
+            isDeposit = isDeposit == true,
+            target = BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(targetData, "target") or nil,
+            stackCount = stackCount,
+            sliderMin = 1,
+            sliderMax = stackCount,
+            sliderStartValue = stackCount,
+        }, BETTERUI.Log.LEVEL.INFO)
     end
 
     local itemLink = GetItemLink(targetData.bagId, targetData.slotIndex)

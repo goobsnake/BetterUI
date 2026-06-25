@@ -190,9 +190,16 @@ end
 --- Sets the active keybind group, removing any previous one.
 ---@param keybindDescriptor BetterUIKeybindDescriptorGroup?
 function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "set active keybinds", { hasDescriptor = keybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "set active keybinds", {
+        fn = "UnifiedScreen:SetActiveKeybinds",
+        current = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "current") or tostring(self.activeKeybindDescriptor),
+        next = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(keybindDescriptor, "next") or tostring(keybindDescriptor),
+        same = self.activeKeybindDescriptor == keybindDescriptor,
+        headerSortMode = self.isInHeaderSortMode == true,
+    }) end
     -- Skip keybind changes if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
+        if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.KEYBIND, "set active keybinds skipped", { fn = "UnifiedScreen:SetActiveKeybinds", reason = "headerSortMode" }) end
         return
     end
     if self.activeKeybindDescriptor == keybindDescriptor then
@@ -212,7 +219,11 @@ end
 
 --- Refreshes the currently active keybind group.
 function BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refresh active keybinds", { hasDescriptor = self.activeKeybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refresh active keybinds", {
+        fn = "UnifiedScreen:RefreshActiveKeybinds",
+        descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or tostring(self.activeKeybindDescriptor),
+        headerSortMode = self.isInHeaderSortMode == true,
+    }) end
     -- Skip refreshing active keybinds if in header sort mode
     if self.isInHeaderSortMode then
         return
@@ -225,6 +236,11 @@ end
 --- Removes only this screen's own keybind button groups from the strip.
 --- Never wipes groups owned by the native UI or other addons.
 function BETTERUI.CIM.UnifiedScreen:ClearActiveKeybinds()
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "clear active keybinds", {
+        fn = "UnifiedScreen:ClearActiveKeybinds",
+        active = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or tostring(self.activeKeybindDescriptor),
+        search = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.searchKeybindDescriptor, "search") or tostring(self.searchKeybindDescriptor),
+    }) end
     if KEYBIND_STRIP then
         if self.activeKeybindDescriptor and KEYBIND_STRIP:HasKeybindButtonGroup(self.activeKeybindDescriptor) then
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.activeKeybindDescriptor)
@@ -242,7 +258,11 @@ end
 --- Overrides base class RefreshKeybinds with header mode guard.
 --- Prevents keybind updates during header sort mode.
 function BETTERUI.CIM.UnifiedScreen:RefreshKeybinds()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refresh keybinds", { hasDescriptor = self.activeKeybindDescriptor ~= nil, headerSortMode = self.isInHeaderSortMode == true }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "refresh keybinds", {
+        fn = "UnifiedScreen:RefreshKeybinds",
+        descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or tostring(self.activeKeybindDescriptor),
+        headerSortMode = self.isInHeaderSortMode == true,
+    }) end
     -- Block keybind refresh during header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
         return

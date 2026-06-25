@@ -89,20 +89,28 @@ function BetterUIOrbBar:UpdateValue(value)
     self.currentValue = value
     self:RefreshVisuals()
     self:RefreshLabel()
-    if BETTERUI.Log then
-        local percent = 0
-        local max = self.maxValue
-        if max and max > 0 then
-            percent = math.floor((value / max) * 100)
-        end
-        local bracket = math.floor(percent / 10)
-        if self._betteruiLastValueBracket ~= bracket then
-            self._betteruiLastValueBracket = bracket
-            -- Combat hot path: only allocate the payload table when logging is active.
-            if BETTERUI.Log and BETTERUI.Log.IsActive() then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "orb value bracket", { powerType = self.powerType, cur = value, max = max, pct = percent })
-            end
-        end
+    local L = BETTERUI.Log
+    if not (L and L.Trace) then return end
+    local categories = L.CATEGORY or {}
+    local levels = L.LEVEL or {}
+    if L.EnabledFor and not L.EnabledFor(levels.TRACE, categories.GENERAL) then return end
+    local percent = 0
+    local max = self.maxValue
+    if max and max > 0 then
+        percent = math.floor((value / max) * 100)
+    end
+    local bracket = math.floor(percent / 10)
+    if self._betteruiLastValueBracket ~= bracket then
+        self._betteruiLastValueBracket = bracket
+        L.Trace(categories.GENERAL, "orb value bracket", {
+            module = "ResourceOrbFrames",
+            feature = "resourceOrbs",
+            powerType = self.powerType,
+            cur = value,
+            max = max,
+            pct = percent,
+            bracket = bracket,
+        })
     end
 end
 

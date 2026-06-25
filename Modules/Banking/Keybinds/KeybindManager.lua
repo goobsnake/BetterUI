@@ -122,6 +122,33 @@ local function LogBankKeybindState(message, data)
     end
 end
 
+local function TraceBankKeybind(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    L.TraceEvent(L.CATEGORY.KEYBIND, event, phase, data)
+end
+
+local function ReadCurrencyAmount(currencyType, location)
+    local L = BETTERUI.Log
+    if L and L.GetCurrencyAmountForLocation then
+        return L.GetCurrencyAmountForLocation(currencyType, location)
+    end
+    if GetCurrencyAmount then
+        local ok, amount = pcall(GetCurrencyAmount, currencyType, location)
+        if ok then return amount end
+    end
+    return nil
+end
+
+local function CurrencySnapshot(currencyType, fromLocation, toLocation, prefix)
+    prefix = prefix or ""
+    return {
+        [prefix .. "From"] = ReadCurrencyAmount(currencyType, fromLocation),
+        [prefix .. "To"] = ReadCurrencyAmount(currencyType, toLocation),
+    }
+end
+
 local function GetPrimaryTransferLabel(self)
     if IsSelectionToggleMode(self) then
         local target = GetSelectedTransferEntry(self)
@@ -526,7 +553,14 @@ local function CreateCurrencySelectorKeybinds(self)
                         fromLocation, toLocation = CURRENCY_LOCATION_CHARACTER, CURRENCY_LOCATION_BANK
                     end
                 end
+                local before = CurrencySnapshot(currencyType, fromLocation, toLocation, "before")
+                TraceBankKeybind("bank.currency_transfer", "before", {
+                    currencyType = currencyType, amount = amount, mode = self.currentMode,
+                    from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
+                    beforeTo = before.beforeTo, guild = isGuildBankMode,
+                })
                 local okTransfer, transferResult = pcall(TransferCurrency, currencyType, amount, fromLocation, toLocation)
+                local postCall = CurrencySnapshot(currencyType, fromLocation, toLocation, "postCall")
                 if not okTransfer or transferResult == false then
                     EndCurrencyTransferFlow(flow, "bank currency transfer failed", {
                         currencyType = currencyType,
@@ -535,6 +569,16 @@ local function CreateCurrencySelectorKeybinds(self)
                         from = fromLocation,
                         to = toLocation,
                         reason = okTransfer and "transfer_returned_false" or tostring(transferResult),
+                        beforeFrom = before.beforeFrom,
+                        beforeTo = before.beforeTo,
+                        postCallFrom = postCall.postCallFrom,
+                        postCallTo = postCall.postCallTo,
+                    })
+                    TraceBankKeybind("bank.currency_transfer", "end", {
+                        status = "failed", currencyType = currencyType, amount = amount,
+                        from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
+                        beforeTo = before.beforeTo, postCallFrom = postCall.postCallFrom,
+                        postCallTo = postCall.postCallTo,
                     })
                     return
                 end
@@ -543,13 +587,33 @@ local function CreateCurrencySelectorKeybinds(self)
                 end
                 self:RefreshFooter()
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-                EndCurrencyTransferFlow(flow, "bank currency transfer completed", {
+                EndCurrencyTransferFlow(flow, "bank currency transfer requested", {
                     currencyType = currencyType,
                     amount = amount,
                     guild = isGuildBankMode,
                     from = fromLocation,
                     to = toLocation,
+                    beforeFrom = before.beforeFrom,
+                    beforeTo = before.beforeTo,
+                    postCallFrom = postCall.postCallFrom,
+                    postCallTo = postCall.postCallTo,
                 })
+                TraceBankKeybind("bank.currency_transfer", "end", {
+                    status = "requested", currencyType = currencyType, amount = amount,
+                    from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
+                    beforeTo = before.beforeTo, postCallFrom = postCall.postCallFrom,
+                    postCallTo = postCall.postCallTo,
+                })
+                if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
+                    BETTERUI.Banking.Tasks:Schedule("currencyTransferSettledTrace", 100, function()
+                        local settled = CurrencySnapshot(currencyType, fromLocation, toLocation, "settled")
+                        TraceBankKeybind("bank.currency_transfer", "settled", {
+                            currencyType = currencyType, amount = amount, from = fromLocation,
+                            to = toLocation, beforeFrom = before.beforeFrom, beforeTo = before.beforeTo,
+                            settledFrom = settled.settledFrom, settledTo = settled.settledTo,
+                        })
+                    end)
+                end
             end,
         }
     }
@@ -676,6 +740,12 @@ function BETTERUI.Banking.Class:AddKeybinds()
     if BETTERUI.Log then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "add keybinds")
     end
+    TraceBankKeybind("bank.keybind_groups", "before_add", {
+        mode = self.currentMode,
+        core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
+        transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
+        search = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.textSearchKeybindStripDescriptor, "search") or nil,
+    })
     if self.textSearchKeybindStripDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
@@ -685,6 +755,11 @@ function BETTERUI.Banking.Class:AddKeybinds()
     KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
     self:UpdateActions()
     self:EnsureHeaderKeybindsActive()
+    TraceBankKeybind("bank.keybind_groups", "after_add", {
+        mode = self.currentMode,
+        core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
+        transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
+    })
     LogBankKeybindState("bank keybind groups refreshed", {
         core = self.coreKeybinds ~= nil,
         transfer = self.withdrawDepositKeybinds ~= nil,
@@ -697,8 +772,18 @@ function BETTERUI.Banking.Class:RemoveKeybinds()
     if BETTERUI.Log then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "remove keybinds")
     end
+    TraceBankKeybind("bank.keybind_groups", "before_remove", {
+        mode = self.currentMode,
+        core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
+        transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
+    })
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+    TraceBankKeybind("bank.keybind_groups", "after_remove", {
+        mode = self.currentMode,
+        core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
+        transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
+    })
     LogBankKeybindState("bank keybind groups removed", {
         core = self.coreKeybinds ~= nil,
         transfer = self.withdrawDepositKeybinds ~= nil,

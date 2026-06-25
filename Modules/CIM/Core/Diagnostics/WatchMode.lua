@@ -1,8 +1,8 @@
 --[[
 File: Modules/CIM/Core/Diagnostics/WatchMode.lua
-Purpose: The enrichment layer that makes the `watch` preset materially richer than
-         `debug` for an AI tailing Interface.log in real time. Activated/deactivated by
-         Log.ApplyPreset when entering/leaving `watch`. Five differentiators:
+Purpose: The enrichment layer used by the AI presets: `watch` (debug depth + AI
+         context) and `inspect` (trace depth + AI context). Activated/deactivated by
+         Log.ApplyPreset when entering/leaving those presets. Five differentiators:
 
            1. Per-line context suffix  -> every line self-anchors with
               `scene= view= flow= lastAction=` so a tailer reading ONE line knows where
@@ -14,11 +14,11 @@ Purpose: The enrichment layer that makes the `watch` preset materially richer th
               record aggregating registered snapshot providers (liveness + live state).
            4. Flow envelopes           -> Log.FlowBegin/FlowEnd correlate multi-step ops;
               the flow id rides the context suffix until the next action.
-           5. Curated auto-mute        -> categories that are pure noise for AI monitoring
-              are silenced in watch only; STATE/ACTION lines keep flow visibility.
+           5. Optional category policy -> replay-grade sessions default to no hidden
+              categories, but this hook can mute proven noise without touching callers.
 
-         Everything is pcall-guarded and inert unless watch is active, so non-watch play
-         pays nothing. Depends on BETTERUI.Log (loaded first) and BETTERUI.CIM.Names.
+         Everything is pcall-guarded and inert unless an AI preset is active, so normal
+         play pays nothing. Depends on BETTERUI.Log (loaded first) and BETTERUI.CIM.Names.
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -39,7 +39,9 @@ local snapshotScheduled = false
 local snapshotTimerId = nil     -- pending heartbeat timer id (cancelled on Deactivate)
 
 local SNAPSHOT_INTERVAL_MS = 10000
-local DEFAULT_MUTED_CATEGORIES = { "LIST", "SEARCH", "SORT", "BATCH", "FOOTER", "KEYBIND" }
+-- Replay-grade watch/inspect must not hide the exact surfaces an AI needs to
+-- reconstruct gameplay. Keep the hook for user overrides, but default to no mutes.
+local DEFAULT_MUTED_CATEGORIES = {}
 
 local function BuildDefaultMutedCategories()
     local out = {}
@@ -116,6 +118,7 @@ end
 
 local function emitActiveAddons()
     local L = log()
+    if not (L and L.Info) then return end
     local getNum = G("GetNumAddOns")
     local getInfo = G("GetAddOnInfo")
     if type(getNum) ~= "function" or type(getInfo) ~= "function" then return end
@@ -130,7 +133,8 @@ local function emitActiveAddons()
             if #listed < 40 then listed[#listed + 1] = name or ("addon" .. i) end
         end
     end
-    L.Info(L.CATEGORY.STATE, "active addons", { count = total, names = table.concat(listed, ",") })
+    local categories = L.CATEGORY or {}
+    L.Info(categories.STATE, "active addons", { count = total, names = table.concat(listed, ",") })
 end
 
 local function emitPreamble()
@@ -145,7 +149,8 @@ local function emitPreamble()
         player = safeCall("GetUnitName", "player"),
         zone = safeCall("GetUnitZone", "player"),
     }
-    L.Info(L.CATEGORY.STATE, "watch session started -- live AI stream; grep '[BUI]' for the clean feed", data)
+    local categories = L.CATEGORY or {}
+    L.Info(categories.STATE, "AI diagnostic session started -- live Interface.log stream; grep '[BUI]' for the clean feed", data)
     emitActiveAddons()
 end
 
@@ -237,12 +242,12 @@ end
 function Watch.IsActive() return active end
 function Watch.SetView(label) currentView = (type(label) == "string" and label ~= "") and label or nil end
 
---- Enter watch enrichment: register the context provider, apply mutes, emit the
+--- Enter AI enrichment: register the context provider, apply mutes, emit the
 --- preamble, and start the snapshot heartbeat. Idempotent.
 function Watch.Activate()
     local L = log()
-    -- (Re)assert the provider + mutes on EVERY call: Log.ApplyPreset('watch') resets
-    -- categoryDisabled before invoking us, so re-applying watch must restore the mutes
+    -- (Re)assert the provider + mutes on EVERY call: Log.ApplyPreset resets
+    -- categoryDisabled before invoking us, so re-applying an AI preset must restore the mutes
     -- (and re-register the provider) even when already active.
     if L and L.SetContextProvider then L.SetContextProvider(contextSuffix) end
     if L and L.SetCategoryEnabled then
@@ -254,7 +259,7 @@ function Watch.Activate()
     scheduleSnapshot()
 end
 
---- Leave watch enrichment: drop the context provider and restore muted categories.
+--- Leave AI enrichment: drop the context provider and restore muted categories.
 --- The snapshot heartbeat self-stops on its next tick (active=false). Idempotent.
 function Watch.Deactivate()
     if not active then return end

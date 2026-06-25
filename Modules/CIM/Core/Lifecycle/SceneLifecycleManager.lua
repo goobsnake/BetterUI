@@ -46,6 +46,11 @@ local function ResolveKeybindGroups(config)
     return {}
 end
 
+local function DescribeKeybindGroups(groups)
+    local L = BETTERUI.Log
+    return L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(groups, "scene") or tostring(#(groups or {}))
+end
+
 local function BuildStateChangeHandler(screen, config)
     config = config or {}
 
@@ -59,20 +64,36 @@ local function BuildStateChangeHandler(screen, config)
 
         if newState == SCENE_SHOWING then
             local showingGroups = ResolveKeybindGroups(config)
-            for _, group in ipairs(showingGroups) do
+            for index, group in ipairs(showingGroups) do
+                if BETTERUI.Log then
+                    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "scene lifecycle add keybind", {
+                        fn = "SceneLifecycle:showing",
+                        scene = sceneName,
+                        index = index,
+                        descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "add") or tostring(group),
+                    })
+                end
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:addKeybind", function() KEYBIND_STRIP:AddKeybindButtonGroup(group) end)
             end
             local wasPushed = (oldState == SCENE_HIDDEN)
-            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene showing", { scene = sceneName, wasPushed = wasPushed, keybindGroups = #showingGroups }) end
+            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene showing", { scene = sceneName, wasPushed = wasPushed, keybindGroups = #showingGroups, descriptors = DescribeKeybindGroups(showingGroups) }) end
             if config.onShowing then
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onShowing", config.onShowing, screen, wasPushed)
             end
         elseif newState == SCENE_HIDING then
             local hidingGroups = ResolveKeybindGroups(config)
-            for _, group in ipairs(hidingGroups) do
+            for index, group in ipairs(hidingGroups) do
+                if BETTERUI.Log then
+                    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "scene lifecycle remove keybind", {
+                        fn = "SceneLifecycle:hiding",
+                        scene = sceneName,
+                        index = index,
+                        descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "remove") or tostring(group),
+                    })
+                end
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:removeKeybind", function() KEYBIND_STRIP:RemoveKeybindButtonGroup(group) end)
             end
-            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hiding", { scene = sceneName, keybindGroups = #hidingGroups }) end
+            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hiding", { scene = sceneName, keybindGroups = #hidingGroups, descriptors = DescribeKeybindGroups(hidingGroups) }) end
             if config.taskManager and config.taskManager.CancelAll then
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:cancelTasks", function() config.taskManager:CancelAll() end)
             end

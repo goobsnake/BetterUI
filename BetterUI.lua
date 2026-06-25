@@ -340,8 +340,33 @@ function BETTERUI.InitModuleOptions()
 		width = "full",
 	})
 
-	LAM:RegisterAddonPanel("BETTERUI_" .. "Modules", panelData)
-	LAM:RegisterOptionControls("BETTERUI_" .. "Modules", optionsTable)
+	local panelId = "BETTERUI_" .. "Modules"
+	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
+	if settingsApi and settingsApi.InstrumentSettingControls then
+		settingsApi.InstrumentSettingControls(optionsTable, panelId)
+	end
+	if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+		BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.SETTINGS, "settings.panel", "register_before", {
+			panel = panelId,
+			stage = "master",
+			controls = #optionsTable,
+		}, BETTERUI.Log.LEVEL.INFO)
+	end
+	LAM:RegisterAddonPanel(panelId, panelData)
+	LAM:RegisterOptionControls(panelId, optionsTable)
+	if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+		BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.SETTINGS, "settings.panel", "registered", {
+			panel = panelId,
+			stage = "master",
+			controls = #optionsTable,
+		}, BETTERUI.Log.LEVEL.INFO)
+	end
+end
+
+local function TraceModuleLifecycle(event, phase, data)
+	local L = BETTERUI.Log
+	if not (L and L.TraceEvent) then return end
+	L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data or {}, L.LEVEL.INFO)
 end
 
 --- Wrap module initialization and isolate failures.
@@ -352,9 +377,18 @@ end
 function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 	local moduleContract = type(m_namespace) == "table" and type(m_namespace.ROOT_CONTRACT) == "table" and m_namespace.ROOT_CONTRACT or nil
 	local shouldCallInit = moduleContract == nil or moduleContract.init ~= false
+	TraceModuleLifecycle("module.init", "begin", {
+		module = moduleName or "unknown",
+		hasNamespace = type(m_namespace) == "table",
+		shouldCallInit = shouldCallInit == true,
+	})
 	if shouldCallInit then
 		if not (m_namespace and m_namespace.InitModule) then
 			local name = moduleName or "unknown"
+			TraceModuleLifecycle("module.init", "failed", {
+				module = name,
+				reason = "missing_InitModule",
+			})
 			BETTERUI.DebugError("[Validation] Module has no InitModule: " .. name)
 			if moduleName then
 				BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
@@ -370,8 +404,17 @@ function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 				BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
 				BETTERUI.Settings.Modules[moduleName] = result
 			end
+			TraceModuleLifecycle("module.init", "end", {
+				module = moduleName or "unknown",
+				resultType = type(result),
+				replacedSettings = type(result) == "table" and moduleName ~= nil and result ~= m_options,
+			})
 		else
 			local name = moduleName or "unknown"
+			TraceModuleLifecycle("module.init", "failed", {
+				module = name,
+				reason = tostring(result),
+			})
 			BETTERUI.DebugError("[Error] InitModule failed for " .. name .. ": " .. tostring(result))
 			if moduleName then
 				BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
@@ -380,6 +423,12 @@ function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 			end
 			return nil
 		end
+	end
+	if not shouldCallInit then
+		TraceModuleLifecycle("module.init", "skipped", {
+			module = moduleName or "unknown",
+			reason = "contract_init_false",
+		})
 	end
 	return m_namespace
 end
@@ -405,14 +454,28 @@ local function RecordModuleSetupFailure(failedModules, moduleName, moduleNamespa
 	end
 end
 local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules)
+	TraceModuleLifecycle("module.setup", "begin", {
+		module = moduleName,
+		hasNamespace = type(moduleNamespace) == "table",
+	})
 	if not moduleNamespace then
 		BETTERUI.Debug(string.format("[Validation] Module '%s' namespace is nil", moduleName))
 		RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
+		TraceModuleLifecycle("module.setup", "failed", {
+			module = moduleName,
+			reason = "missing_namespace",
+		})
 		return false
 	end
 
 	-- Prevent double Setup (LAM:RegisterAddonPanel will crash with "Duplicate name")
-	if moduleNamespace._setupComplete then return true end
+	if moduleNamespace._setupComplete then
+		TraceModuleLifecycle("module.setup", "skipped", {
+			module = moduleName,
+			reason = "already_complete",
+		})
+		return true
+	end
 
 	-- Validate using CIM interface validation if available
 	local interfaces = BETTERUI.CIM and BETTERUI.CIM.Interfaces
@@ -424,6 +487,11 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules
 		if not valid then
 			BETTERUI.Debug(string.format("[Validation] Module '%s' failed validation: %s", moduleName, tostring(err)))
 			RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
+			TraceModuleLifecycle("module.setup", "failed", {
+				module = moduleName,
+				reason = "interface_validation_failed",
+				detail = tostring(err),
+			})
 			return false
 		end
 	else
@@ -431,12 +499,20 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules
 		if shouldCallSetup and type(moduleNamespace.Setup) ~= "function" then
 			BETTERUI.Debug(string.format("[Validation] Module '%s' has no Setup function", moduleName))
 			RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
+			TraceModuleLifecycle("module.setup", "failed", {
+				module = moduleName,
+				reason = "missing_Setup",
+			})
 			return false
 		end
 	end
 
 	if not shouldCallSetup then
 		moduleNamespace._setupComplete = true
+		TraceModuleLifecycle("module.setup", "skipped", {
+			module = moduleName,
+			reason = "contract_setup_false",
+		})
 		return true
 	end
 
@@ -445,6 +521,10 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules
 	if not success then
 		BETTERUI.DebugError(string.format("[Error] Setup() failed for '%s': %s", moduleName, tostring(setupResult)))
 		RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
+		TraceModuleLifecycle("module.setup", "failed", {
+			module = moduleName,
+			reason = tostring(setupResult),
+		})
 		return false
 	end
 
@@ -452,9 +532,18 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules
 		local detail = setupDetail ~= nil and tostring(setupDetail) or "setup returned false"
 		BETTERUI.DebugError(string.format("[Error] Setup() returned false for '%s': %s", moduleName, detail))
 		RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
+		TraceModuleLifecycle("module.setup", "failed", {
+			module = moduleName,
+			reason = "setup_returned_false",
+			detail = detail,
+		})
 		return false
 	end
 	moduleNamespace._setupComplete = true
+	TraceModuleLifecycle("module.setup", "end", {
+		module = moduleName,
+		resultType = type(setupResult),
+	})
 	return true
 end
 
@@ -567,6 +656,9 @@ end
 local function SetupKeyboardModeModules()
 	local failedModules = {}
 	local allModulesLoaded = true
+	TraceModuleLifecycle("module.keyboard_setup", "begin", {
+		moduleCount = #MODULE_REGISTRY,
+	})
 	for _, entry in ipairs(MODULE_REGISTRY) do
 		if ShouldSetupKeyboardModeModule(entry) then
 			local setupSucceeded = ValidateAndSetupModule(entry.name, BETTERUI[entry.namespace], failedModules)
@@ -575,6 +667,10 @@ local function SetupKeyboardModeModules()
 			end
 		end
 	end
+	TraceModuleLifecycle("module.keyboard_setup", "end", {
+		success = allModulesLoaded == true,
+		failedCount = #failedModules,
+	})
 	return allModulesLoaded, failedModules
 end
 
@@ -613,16 +709,32 @@ end
 local function LoadConfiguredModules()
 	local failedModules = {}
 	local allModulesLoaded = true
+	TraceModuleLifecycle("module.load", "begin", {
+		moduleCount = #MODULE_REGISTRY,
+		gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() == true or nil,
+	})
 	for _, entry in ipairs(MODULE_REGISTRY) do
 		if ShouldLoadModule(entry) then
 			local moduleLoaded = true
 			local moduleNamespace = BETTERUI[entry.namespace]
 			if entry.preSetup then
+				TraceModuleLifecycle("module.pre_setup", "begin", {
+					module = entry.name,
+				})
 				local preSetupSucceeded, preSetupErr = pcall(entry.preSetup)
 				if not preSetupSucceeded then
+					TraceModuleLifecycle("module.pre_setup", "failed", {
+						module = entry.name,
+						reason = tostring(preSetupErr),
+					})
 					BETTERUI.DebugError(string.format("[Error] preSetup() failed for '%s': %s", entry.name, tostring(preSetupErr)))
 					RecordModuleSetupFailure(failedModules, entry.name, moduleNamespace)
 					moduleLoaded = false
+				else
+					TraceModuleLifecycle("module.pre_setup", "end", {
+						module = entry.name,
+						result = preSetupErr,
+					})
 				end
 			end
 			if moduleLoaded then
@@ -631,8 +743,23 @@ local function LoadConfiguredModules()
 			if not moduleLoaded then
 				allModulesLoaded = false
 			end
+		else
+			TraceModuleLifecycle("module.load", "skipped", {
+				module = entry.name,
+				namespace = entry.namespace,
+				required = entry.required == true,
+				enabled = entry.required == true or BETTERUI.GetModuleEnabled(entry.name) == true,
+				dependsOnCIM = entry.dependsOnCIM == true,
+				cimEnabled = BETTERUI.GetModuleEnabled("CIM") == true,
+				depends = entry.depends,
+				dependencyEnabled = entry.depends and BETTERUI.GetModuleEnabled(entry.depends) == true or nil,
+			})
 		end
 	end
+	TraceModuleLifecycle("module.load", "end", {
+		success = allModulesLoaded == true,
+		failedCount = #failedModules,
+	})
 	return allModulesLoaded, failedModules
 end
 

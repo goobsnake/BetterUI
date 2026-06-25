@@ -20,6 +20,46 @@ local function CloneSettingsValue(value)
     return clone
 end
 
+local function DescribeSettingsValue(value, depth)
+    local valueType = type(value)
+    if valueType == "nil" or valueType == "boolean" or valueType == "number" then
+        return tostring(value)
+    end
+    if valueType == "string" then
+        if #value > 160 then
+            return value:sub(1, 157) .. "..."
+        end
+        return value
+    end
+    if valueType == "function" then
+        return "<function>"
+    end
+    if valueType ~= "table" then
+        return "<" .. valueType .. ">"
+    end
+    depth = depth or 0
+    if depth >= 2 then
+        return "<table>"
+    end
+    local parts = {}
+    local count = 0
+    for key, item in pairs(value) do
+        count = count + 1
+        if count > 6 then
+            parts[#parts + 1] = "..."
+            break
+        end
+        parts[#parts + 1] = tostring(key) .. "=" .. DescribeSettingsValue(item, depth + 1)
+    end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function TraceSettingAccess(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    L.TraceEvent(L.CATEGORY.SETTINGS, event, phase, data or {}, L.LEVEL.INFO)
+end
+
 ---@overload fun(moduleName: "Inventory", defaults: BetterUIInventorySettings|nil): BetterUIInventorySettings
 ---@overload fun(moduleName: "Banking", defaults: BetterUIBankingSettings|nil): BetterUIBankingSettings
 ---@overload fun(moduleName: "Vendor", defaults: BetterUIVendorSettings|nil): BetterUIVendorSettings
@@ -57,11 +97,20 @@ function BETTERUI.GetModuleSettingsLive(moduleName, defaults)
 
     local liveSettings = {}
     BETTERUI.Settings.Modules[moduleName] = liveSettings
+    TraceSettingAccess("settings.module", "created", {
+        module = moduleName,
+        source = "GetModuleSettingsLive",
+        hadDefaults = type(defaults) == "table",
+    })
 
     if type(defaults) == "table" then
         for key, value in pairs(defaults) do
             liveSettings[key] = CloneSettingsValue(value)
         end
+        TraceSettingAccess("settings.module", "defaults_applied", {
+            module = moduleName,
+            source = "GetModuleSettingsLive",
+        })
     end
 
     return liveSettings
@@ -91,6 +140,10 @@ function BETTERUI.EnsureModuleSettings(moduleName)
     end
     if type(BETTERUI.Settings.Modules[moduleName]) ~= "table" then
         BETTERUI.Settings.Modules[moduleName] = {}
+        TraceSettingAccess("settings.module", "created", {
+            module = moduleName,
+            source = "EnsureModuleSettings",
+        })
     end
     return BETTERUI.Settings.Modules[moduleName]
 end
@@ -139,9 +192,22 @@ function BETTERUI.GetSetting(moduleName, key, default)
     local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
     local settings = modules and modules[moduleName]
     if settings and settings[key] ~= nil then
+        TraceSettingAccess("settings.value", "read", {
+            module = moduleName,
+            key = tostring(key),
+            source = "saved",
+            value = DescribeSettingsValue(settings[key]),
+        })
         return CloneSettingsValue(settings[key])
     end
-    return CloneSettingsValue(ResolveSettingDefault(moduleName, key, default))
+    local resolvedDefault = ResolveSettingDefault(moduleName, key, default)
+    TraceSettingAccess("settings.value", "read", {
+        module = moduleName,
+        key = tostring(key),
+        source = "default",
+        value = DescribeSettingsValue(resolvedDefault),
+    })
+    return CloneSettingsValue(resolvedDefault)
 end
 
 ---@overload fun(moduleName: "Inventory", key: BetterUIInventorySettingKey, value: BetterUIInventorySettingValue): boolean
@@ -160,16 +226,41 @@ end
 ---@return boolean success True when the value was written
 function BETTERUI.SetSetting(moduleName, key, value)
     if type(moduleName) ~= "string" or moduleName == "" or key == nil then
+        TraceSettingAccess("settings.value", "write_rejected", {
+            module = moduleName,
+            key = key ~= nil and tostring(key) or nil,
+            reason = "invalid_arguments",
+            newValue = DescribeSettingsValue(value),
+        })
         return false
     end
 
     local settings = BETTERUI.EnsureModuleSettings(moduleName)
+    local oldValue = settings[key]
+    TraceSettingAccess("settings.value", "write_before", {
+        module = moduleName,
+        key = tostring(key),
+        oldValue = DescribeSettingsValue(oldValue),
+        newValue = DescribeSettingsValue(value),
+    })
     settings[key] = value
 
     if CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
         CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_SETTING_CHANGED", moduleName, key, value)
+        TraceSettingAccess("settings.value", "callbacks_fired", {
+            module = moduleName,
+            key = tostring(key),
+            callback = "BETTERUI_EVENT_SETTING_CHANGED",
+            newValue = DescribeSettingsValue(value),
+        })
     end
 
+    TraceSettingAccess("settings.value", "write_after", {
+        module = moduleName,
+        key = tostring(key),
+        oldValue = DescribeSettingsValue(oldValue),
+        newValue = DescribeSettingsValue(settings[key]),
+    })
     return true
 end
 

@@ -19,6 +19,29 @@ local function EnsureControllerReady()
     return SORT_DIRECTION ~= nil
 end
 
+local function TraceHeaderSortKeybind(controller, action, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.action = action
+    data.columnIndex = controller and controller.currentColumnIndex
+    data.columnCount = controller and controller.columns and #controller.columns or 0
+    local currentColumn = controller and controller.columns and controller.columns[controller.currentColumnIndex] or nil
+    data.currentColumnKey = currentColumn and currentColumn.key
+    data.currentColumnName = currentColumn and (currentColumn.originalText or currentColumn.name) or nil
+    if controller and controller._headerSortKeybindDescriptor and L.DescribeKeybindDescriptor then
+        data.headerKeybinds = L.DescribeKeybindDescriptor(controller._headerSortKeybindDescriptor, "header")
+    end
+    if controller and controller.GetActiveSortColumn then
+        local ok, column, direction = pcall(function() return controller:GetActiveSortColumn() end)
+        if ok then
+            data.sortColumn = column and column.key
+            data.direction = direction
+        end
+    end
+    L.TraceEvent(L.CATEGORY.SORT, "sort.header_keybind", phase, data)
+end
+
 -- SORT FUNCTION HELPERS
 
 ---@return fun(left: table, right: table): boolean|nil
@@ -78,16 +101,30 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             name = GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT")),
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
-                controller:ToggleSort()
+                TraceHeaderSortKeybind(controller, "primary", "start")
+                local result = controller:ToggleSort()
                 PlaySound(SOUNDS.DEFAULT_CLICK)
                 KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                TraceHeaderSortKeybind(controller, "primary", "end", { handled = result ~= false })
             end,
         },
         -- B button: Exit header mode
         {
             name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
             keybind = "UI_SHORTCUT_NEGATIVE",
-            callback = exitCallback,
+            callback = function()
+                TraceHeaderSortKeybind(controller, "back", "start")
+                if type(exitCallback) ~= "function" then
+                    TraceHeaderSortKeybind(controller, "back", "end", {
+                        handled = false,
+                        reason = "missingCallback",
+                    })
+                    return nil
+                end
+                local r1, r2, r3 = exitCallback()
+                TraceHeaderSortKeybind(controller, "back", "end", { handled = true })
+                return r1, r2, r3
+            end,
         },
         -- X button: Clear sort
         {
@@ -100,10 +137,14 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
                 return controller:HasActiveSort()
             end,
             callback = function()
+                TraceHeaderSortKeybind(controller, "clear", "start")
+                local handled = false
                 if controller:ClearSort() then
                     PlaySound(SOUNDS.DEFAULT_CLICK)
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                    handled = true
                 end
+                TraceHeaderSortKeybind(controller, "clear", "end", { handled = handled })
             end,
         },
         -- LB: Navigate to previous column (visible on keybind strip)
@@ -123,10 +164,14 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
                 return controller.currentColumnIndex > 1
             end,
             callback = function()
+                TraceHeaderSortKeybind(controller, "left", "start")
+                local handled = false
                 if controller:NavigateLeft() then
                     PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                    handled = true
                 end
+                TraceHeaderSortKeybind(controller, "left", "end", { handled = handled })
             end,
         },
         -- RB: Navigate to next column (visible on keybind strip)
@@ -146,10 +191,14 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
                 return controller.currentColumnIndex < #controller.columns
             end,
             callback = function()
+                TraceHeaderSortKeybind(controller, "right", "start")
+                local handled = false
                 if controller:NavigateRight() then
                     PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                    handled = true
                 end
+                TraceHeaderSortKeybind(controller, "right", "end", { handled = handled })
             end,
         },
         -- Y button: Already in header mode, show current state (no-op)
@@ -159,6 +208,8 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             keybind = "UI_SHORTCUT_QUINARY",
             ethereal = true, -- Hidden since A already shows "Sort"
             callback = function()
+                TraceHeaderSortKeybind(controller, "quinary", "start", { handled = true, reason = "alreadyInHeaderMode" })
+                TraceHeaderSortKeybind(controller, "quinary", "end", { handled = true, reason = "alreadyInHeaderMode" })
                 -- Already in header mode, no action needed
                 -- This captures the Y press to prevent it from falling through
             end,

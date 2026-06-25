@@ -149,6 +149,17 @@ local function OnSceneHiding(self)
 end
 
 local function OnSceneHidden(self)
+	if BETTERUI.Log then
+		local integration = self._headerSortIntegration
+		BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.STATE, "inventory scene pre-cleanup snapshot", {
+			fn = "InventorySceneLifecycle.OnSceneHidden",
+			headerSort = self.isInHeaderSortMode == true,
+			active = integration and integration.isActive == true,
+			activeKeybind = BETTERUI.Log.DescribeKeybindDescriptor and integration and BETTERUI.Log.DescribeKeybindDescriptor(integration.activeKeybindDescriptor, "active") or nil,
+			suspendedCount = BETTERUI.Log.CountKeybindDescriptors and integration and BETTERUI.Log.CountKeybindDescriptors(integration.suspendedKeybindGroups) or 0,
+			main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+		})
+	end
 	-- Use shared CIM cleanup for input state (header sort, selection mode, search focus, tab bar)
 	BETTERUI.CIM.SceneCleanup.CleanupInputState(self)
 

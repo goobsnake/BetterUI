@@ -61,6 +61,75 @@ local VENDOR_SORT_COMPARATORS = {
     end,
 }
 
+local function GetVendorModeName(mode)
+    if Vendor.ResolveModeName then
+        local ok, name = pcall(Vendor.ResolveModeName, mode)
+        if ok and name ~= nil then
+            return tostring(name)
+        end
+    end
+    return tostring(mode or "<none>")
+end
+
+local function GetVendorComponentName(component)
+    if type(component) ~= "table" then
+        return nil
+    end
+    return component.traceName or component.name or component.id or component.label
+end
+
+local function CountVendorList(instance)
+    local dataList = instance and instance.list and instance.list.dataList
+    return type(dataList) == "table" and #dataList or nil
+end
+
+local function DescribeVendorSelection(instance)
+    local L = BETTERUI.Log
+    local list = instance and instance.list
+    if not list then
+        return nil
+    end
+    if L and L.DescribeListSelection then
+        local ok, description = pcall(L.DescribeListSelection, list, "selection")
+        if ok then
+            return description
+        end
+    end
+    local selectedData = nil
+    if list.GetTargetData then
+        selectedData = list:GetTargetData()
+    elseif list.GetSelectedData then
+        selectedData = list:GetSelectedData()
+    end
+    local dataSource = selectedData and (selectedData.dataSource or selectedData) or nil
+    if L and L.DescribeItem and dataSource then
+        local ok, description = pcall(L.DescribeItem, dataSource, "selection")
+        if ok then
+            return description
+        end
+    end
+    return dataSource and (dataSource.name or dataSource.itemLink or tostring(dataSource.bagId or "")) or nil
+end
+
+local function TraceVendor(category, event, phase, instance, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then
+        return
+    end
+    data = data or {}
+    local mode = data.mode or (instance and instance.GetCurrentMode and instance:GetCurrentMode()) or nil
+    data.module = data.module or "Vendor"
+    data.scene = data.scene or BETTERUI_VENDOR_SCENE_NAME
+    data.feature = data.feature or "vendor-controller"
+    data.fn = data.fn or "Vendor.ControllerRuntime"
+    data["function"] = data["function"] or data.fn
+    data.mode = mode
+    data.modeName = data.modeName or GetVendorModeName(mode)
+    data.rowCount = data.rowCount or CountVendorList(instance)
+    data.selection = data.selection or DescribeVendorSelection(instance)
+    L.TraceEvent(category or L.CATEGORY.ACTION, event, phase, data)
+end
+
 ---@param instance BETTERUI.Vendor.Class
 ---@param deps table
 ---@return nil
@@ -271,14 +340,36 @@ end
 ---@param mode number
 ---@return nil
 function ControllerRuntime.SetMode(instance, mode)
-    if not mode or instance.currentMode == mode then
+    local L = BETTERUI.Log
+    local oldMode = instance and instance.currentMode or nil
+    if not mode then
+        TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.mode", "skipped", instance, {
+            targetMode = mode,
+            oldMode = oldMode,
+            reason = "missingMode",
+        })
         return
     end
+    if oldMode == mode then
+        TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.mode", "skipped", instance, {
+            targetMode = mode,
+            oldMode = oldMode,
+            reason = "sameMode",
+        })
+        return
+    end
+
+    TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.mode", "begin", instance, {
+        targetMode = mode,
+        targetModeName = GetVendorModeName(mode),
+        oldMode = oldMode,
+        oldModeName = GetVendorModeName(oldMode),
+    })
 
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "vendor mode set", {
             mode = mode,
-            oldMode = instance.currentMode
+            oldMode = oldMode
         })
     end
 
@@ -292,10 +383,24 @@ function ControllerRuntime.SetMode(instance, mode)
 
     local oldComponent = instance:GetActiveComponent()
     if oldComponent and oldComponent.Deactivate then
+        TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.component", "deactivate_before", instance, {
+            component = GetVendorComponentName(oldComponent),
+            targetMode = mode,
+            oldMode = oldMode,
+        })
         oldComponent:Deactivate(instance)
+        TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.component", "deactivate_after", instance, {
+            component = GetVendorComponentName(oldComponent),
+            targetMode = mode,
+            oldMode = oldMode,
+        })
     end
 
     instance.currentMode = mode
+    TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.mode", "applied", instance, {
+        targetMode = mode,
+        oldMode = oldMode,
+    })
 
     if Vendor.multiSelectManager then
         Vendor.multiSelectManager:ExitSelectionMode()
@@ -312,29 +417,62 @@ function ControllerRuntime.SetMode(instance, mode)
 
     local newComponent = instance:GetActiveComponent()
     if newComponent and newComponent.Activate then
+        TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.component", "activate_before", instance, {
+            component = GetVendorComponentName(newComponent),
+            oldMode = oldMode,
+        })
         newComponent:Activate(instance)
+        TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.component", "activate_after", instance, {
+            component = GetVendorComponentName(newComponent),
+            oldMode = oldMode,
+        })
     end
 
     if instance:IsSceneShowing() and KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+        TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_before", instance, {
+            keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
+            reason = "modeChanged",
+        })
         KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_after", instance, {
+            keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
+            reason = "modeChanged",
+        })
     end
 
     instance:RebuildCategoryHeader()
     instance:RefreshVendorFooter()
+    TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.mode", "end", instance, {
+        targetMode = mode,
+        oldMode = oldMode,
+    })
 end
 
 ---@param instance BETTERUI.Vendor.Class
 ---@param deps table
 ---@return nil
 function ControllerRuntime.RefreshList(instance, deps)
+    local L = BETTERUI.Log
     if instance._suppressListUpdates then
         instance._isDirty = true
+        TraceVendor(L and L.CATEGORY.LIST, "vendor.list_refresh", "skipped", instance, {
+            reason = "suppressed",
+            isDirty = true,
+        })
         return
     end
 
     if not instance.list then
+        TraceVendor(L and L.CATEGORY.LIST, "vendor.list_refresh", "skipped", instance, {
+            reason = "missingList",
+        })
         return
     end
+
+    TraceVendor(L and L.CATEGORY.LIST, "vendor.list_refresh", "begin", instance, {
+        isDirty = instance._isDirty == true,
+        searchQuery = instance.searchQuery,
+    })
 
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIST, "vendor list refreshed", {
@@ -353,9 +491,24 @@ function ControllerRuntime.RefreshList(instance, deps)
     end
 
     instance.list:Clear()
+    TraceVendor(L and L.CATEGORY.LIST, "vendor.list_refresh", "cleared", instance, {
+        component = GetVendorComponentName(component),
+    })
 
     if component and component.BuildList then
+        TraceVendor(L and L.CATEGORY.LIST, "vendor.list_build", "before", instance, {
+            component = GetVendorComponentName(component),
+        })
         component:BuildList(instance)
+        TraceVendor(L and L.CATEGORY.LIST, "vendor.list_build", "after", instance, {
+            component = GetVendorComponentName(component),
+            rowCount = CountVendorList(instance),
+        })
+    else
+        TraceVendor(L and L.CATEGORY.LIST, "vendor.list_build", "skipped", instance, {
+            reason = "missingComponentBuildList",
+            component = GetVendorComponentName(component),
+        })
     end
 
     local currentMode = instance:GetCurrentMode()
@@ -372,8 +525,14 @@ function ControllerRuntime.RefreshList(instance, deps)
     end
 
     instance:ApplySortToList()
+    TraceVendor(L and L.CATEGORY.LIST, "vendor.list_sort", "applied", instance, {
+        rowCount = CountVendorList(instance),
+    })
     instance.list:Commit()
     instance._isDirty = false
+    TraceVendor(L and L.CATEGORY.LIST, "vendor.list_refresh", "committed", instance, {
+        rowCount = CountVendorList(instance),
+    })
 
     if currentMode and instance.list and instance.list.dataList and #instance.list.dataList > 0 then
         local moduleKey = deps.getModeModuleKey(currentMode)
@@ -384,6 +543,15 @@ function ControllerRuntime.RefreshList(instance, deps)
         elseif instance.list.SetSelectedIndex then
             instance.list:SetSelectedIndex(targetIndex)
         end
+        TraceVendor(L and L.CATEGORY.LIST, "vendor.selection", "restored", instance, {
+            moduleKey = moduleKey,
+            categoryKey = categoryKey,
+            targetIndex = targetIndex,
+        })
+    else
+        TraceVendor(L and L.CATEGORY.LIST, "vendor.selection", "skipped", instance, {
+            reason = "emptyList",
+        })
     end
 
     if Vendor.multiSelectManager then
@@ -397,7 +565,15 @@ function ControllerRuntime.RefreshList(instance, deps)
         end
         instance:OnItemSelectedChange(instance.list, instance.list:GetTargetData())
         if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+            TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_before", instance, {
+                keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
+                reason = "listRefresh",
+            })
             KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+            TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_after", instance, {
+                keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
+                reason = "listRefresh",
+            })
         end
     end
     instance:UpdateScrollIndicator(instance.list)
@@ -423,17 +599,34 @@ function ControllerRuntime.RefreshList(instance, deps)
         local hasNonDefaultCategory = activeCategory ~= nil and activeCategory.key ~= nil and activeCategory.key ~= "all"
         if entryCount == 0 and storeReportsEmpty and (instance._buyListRetryCount or 0) >= 1 then
             instance._buyListRetryCount = 0
+            TraceVendor(L and L.CATEGORY.LIST, "vendor.buy_retry", "skipped", instance, {
+                reason = "storeEmptyAfterRetry",
+                entryCount = entryCount,
+            })
         elseif entryCount == 0 and (hasActiveSearch or hasNonDefaultCategory) then
             -- User filtering produced the empty list; nothing to retry.
             instance._buyListRetryCount = 0
+            TraceVendor(L and L.CATEGORY.LIST, "vendor.buy_retry", "skipped", instance, {
+                reason = "userFilterEmpty",
+                hasActiveSearch = hasActiveSearch,
+                hasNonDefaultCategory = hasNonDefaultCategory,
+            })
         elseif entryCount == 0 and instance:IsSceneActiveOrShowing() then
             local retryCount = (instance._buyListRetryCount or 0) + 1
             instance._buyListRetryCount = retryCount
             if retryCount <= 20 then
+                TraceVendor(L and L.CATEGORY.LIST, "vendor.buy_retry", "scheduled", instance, {
+                    retryCount = retryCount,
+                    delayMs = 180,
+                })
                 Vendor.Tasks:Cancel("buyListRetry")
                 Vendor.Tasks:Schedule("buyListRetry", 180, function()
                     if Vendor.ShouldAbortDeferredVendorRefresh
                         and Vendor.ShouldAbortDeferredVendorRefresh(instance, MODE.BUY) then
+                        TraceVendor(L and L.CATEGORY.LIST, "vendor.buy_retry", "aborted", instance, {
+                            retryCount = retryCount,
+                            reason = "deferredRefreshAbort",
+                        })
                         return
                     end
                     if Vendor.EnsureNativeStoreComponents then
@@ -442,6 +635,11 @@ function ControllerRuntime.RefreshList(instance, deps)
                     instance:ApplyNativeStoreMode(MODE.BUY)
                     instance:RefreshList()
                 end)
+            else
+                TraceVendor(L and L.CATEGORY.LIST, "vendor.buy_retry", "skipped", instance, {
+                    retryCount = retryCount,
+                    reason = "retryLimit",
+                })
             end
         else
             instance._buyListRetryCount = 0
@@ -449,4 +647,8 @@ function ControllerRuntime.RefreshList(instance, deps)
     else
         instance._buyListRetryCount = 0
     end
+
+    TraceVendor(L and L.CATEGORY.LIST, "vendor.list_refresh", "end", instance, {
+        rowCount = CountVendorList(instance),
+    })
 end

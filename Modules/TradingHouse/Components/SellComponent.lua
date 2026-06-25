@@ -12,6 +12,15 @@ local TH = BETTERUI.TradingHouse
 TH.SellComponent = {}
 local Sell = TH.SellComponent
 
+local function TraceSell(event, phase, thInstance, data, category)
+    if type(TH.Trace) == "function" then
+        data = data or {}
+        data.feature = data.feature or "trading-house-sell"
+        data.fn = data.fn or "TradingHouse.SellComponent"
+        TH.Trace(category or (BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION), event, phase, thInstance or TH.instance, data)
+    end
+end
+
 -- Shared narration text helper avoids a per-entry closure allocation.
 local function GetEntryNarrationText(entryData)
     local ds = entryData:GetDataSource()
@@ -91,9 +100,12 @@ function Sell:OnPrimaryAction(thInstance)
     local slotIndex = ds.slotIndex
     if not bagId or not slotIndex then return end
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "trading house sell item started", { name = ds.name, bagId = bagId, slotIndex = slotIndex })
-    end
+    TraceSell("trading_house.create_listing", "begin", thInstance, {
+        fn = "TradingHouse.SellComponent.OnPrimaryAction",
+        bagId = bagId,
+        slotIndex = slotIndex,
+        item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+    })
 
     -- Gate on the guild's sell privilege first, matching the native sell
     -- screen (tradinghouse_sell_gamepad.lua:178-179). Without sell permission
@@ -153,6 +165,15 @@ function Sell:OnPrimaryAction(thInstance)
         icon         = icon,
         defaultPrice = defaultPrice,
     })
+    TraceSell("trading_house.create_listing_dialog", "shown", thInstance, {
+        fn = "TradingHouse.SellComponent.OnPrimaryAction",
+        dialog = "BETTERUI_TRADING_HOUSE_CREATE_LISTING",
+        bagId = bagId,
+        slotIndex = slotIndex,
+        stackCount = stackCount,
+        defaultPrice = defaultPrice,
+        item = itemName,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
 end
 
 -- LIST BUILDING
@@ -165,9 +186,11 @@ function Sell:BuildList(thInstance)
     local bagId = BAG_BACKPACK
     local bagSlots = GetBagSize(bagId) or 0
 
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "sell list built", { slots = bagSlots })
-    end
+    TraceSell("trading_house.sell_list", "build", thInstance, {
+        fn = "TradingHouse.SellComponent.BuildList",
+        bagId = bagId,
+        bagSlots = bagSlots,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
 
     for slotIndex = 0, bagSlots - 1 do
         -- Skip empty slots

@@ -81,16 +81,36 @@ function Buyback:OnPrimaryAction(vendorInstance)
         return
     end
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "vendor item bought back", {
+    local L = BETTERUI.Log
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.buyback", "request", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-buyback",
+            fn = "Vendor.BuybackComponent.OnPrimaryAction",
+            ["function"] = "Vendor.BuybackComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
             entryIndex = entryIndex,
             price = price,
-            name = ds.name,
-            itemLink = ds.itemLink
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
         })
     end
 
     BuybackItem(entryIndex)
+
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "vendor.buyback", "requested", {
+            module = "Vendor",
+            scene = BETTERUI_VENDOR_SCENE_NAME,
+            feature = "vendor-buyback",
+            fn = "Vendor.BuybackComponent.OnPrimaryAction",
+            ["function"] = "Vendor.BuybackComponent.OnPrimaryAction",
+            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+            entryIndex = entryIndex,
+            price = price,
+            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+        })
+    end
 end
 
 function Buyback:BuildList(vendorInstance)
