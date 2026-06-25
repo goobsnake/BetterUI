@@ -253,13 +253,13 @@ function Nameplates.GetSettingsOptions()
                     value = value,
                     effectiveValue = ClampNameplateSize(value, defaultSize),
                 })
-                settings.size = value
+                settings.size = ClampNameplateSize(value, defaultSize)
                 TraceNameplateSetting("size", "set_end", {
                     fn = "Nameplates.Settings.size.setFunc",
                     value = settings.size,
                     effectiveValue = ClampNameplateSize(settings.size, defaultSize),
                 })
-                ApplyCurrentNameplateSettings("size", value)
+                ApplyCurrentNameplateSettings("size", settings.size)
             end,
             disabled = function() return not IsNameplateEnabled() end,
             width = "full",

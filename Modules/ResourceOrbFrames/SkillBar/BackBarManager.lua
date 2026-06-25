@@ -292,7 +292,7 @@ local function UpdateBackBarCooldowns(rootFrame)
                     if button._betteruiLastCooldownState ~= true then
                         button._betteruiLastCooldownState = true
                         if BETTERUI.Log then
-                            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown start", { slot = slotIndex, duration = durationMs })
+                            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown start", { buttonIndex = i, slot = slotIndex, hotbarCategory = backBarCategory, abilityId = abilityId, remainMs = remainMs, durationMs = durationMs, stateKey = stateKey })
                         end
                     end
                     local visualRemainMs = CooldownUtils.GetSmoothedRemaining(stateKey, remainMs, durationMs)
@@ -326,7 +326,7 @@ local function UpdateBackBarCooldowns(rootFrame)
                     if button._betteruiLastCooldownState == true then
                         button._betteruiLastCooldownState = false
                         if BETTERUI.Log then
-                            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown end", { slot = slotIndex })
+                            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown end", { buttonIndex = i, slot = slotIndex, hotbarCategory = backBarCategory, abilityId = abilityId, remainMs = remainMs, durationMs = durationMs, stateKey = stateKey })
                         end
                     end
                     CooldownUtils.ResetSmoothedRemaining(stateKey)

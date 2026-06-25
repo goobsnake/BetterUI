@@ -526,12 +526,20 @@ function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, resetGroup
     -- Shared metadata first, then module metadata to allow module-specific overrides.
     local sharedCount = applyRegistryReset(SETTINGS_METADATA_REGISTRY.Shared)
     local moduleCount = applyRegistryReset(SETTINGS_METADATA_REGISTRY[moduleName])
+    local appliedCount = sharedCount + moduleCount
     TraceSettingsMetadata("settings.group_reset", "end", {
         targetModule = moduleName,
         resetGroup = resetGroup,
         sharedCount = sharedCount,
         moduleCount = moduleCount,
-        appliedCount = sharedCount + moduleCount,
+        appliedCount = appliedCount,
     })
+    if appliedCount == 0 then
+        TraceSettingsMetadata("settings.group_reset", "empty", {
+            targetModule = moduleName,
+            resetGroup = resetGroup,
+        })
+        return false
+    end
     return true
 end

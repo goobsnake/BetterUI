@@ -20,6 +20,21 @@ local TH_TABS = {
     { mode = MODE.LISTINGS, name = function() return GetString(rawget(_G, "SI_BETTERUI_TH_TAB_LISTINGS")) end },
 }
 
+local function TraceTHRuntime(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "TradingHouse"
+    data.feature = data.feature or "trading-house"
+    data.scene = data.scene or (SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName()) or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION or categories.GENERAL, event, phase, data)
+end
+
 ---@return THTabDef[] tabs
 function TH.GetTabs()
     local tabs = {}
@@ -53,10 +68,19 @@ function TH.SetupSelectionTooltip(instance)
         ---@param _ unknown
         ---@param selectedData TradingHouseSelectionPayload|nil
         instance.list:SetOnSelectedDataChangedCallback(function(_, selectedData)
+            local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+            TraceTHRuntime("trading_house.selection", "changed", {
+                fn = "TH.SetupSelectionTooltip",
+                mode = instance.GetCurrentMode and instance:GetCurrentMode() or nil,
+                bagId = ds and ds.bagId or nil,
+                slotIndex = ds and ds.slotIndex or nil,
+                itemLink = ds and ds.itemLink or nil,
+                listingIndex = ds and (ds.index or ds.listingIndex) or nil,
+                hasTooltips = GAMEPAD_TOOLTIPS ~= nil,
+            })
             if not GAMEPAD_TOOLTIPS then
                 return
             end
-            local ds = selectedData and (selectedData.dataSource or selectedData) or nil
             if ds and ds.bagId and ds.slotIndex then
                 GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
             else

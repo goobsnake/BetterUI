@@ -19,7 +19,7 @@ local function TraceGeneralInterface(event, phase, data, category)
 	payload.scene = GetCurrentSceneName()
 	payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
 	if type(L.SetLastAction) == "function" then
-		L.SetLastAction(event)
+		L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
 	end
 	local categories = L.CATEGORY or {}
 	L.TraceEvent(category or categories.GENERAL, event, phase, payload)
@@ -53,6 +53,30 @@ local function HasGeneralInterfaceMailDeleteHook(mailInbox)
 		end
 	end
 	return false
+end
+
+local function SnapshotSelectedMail(mailInbox)
+	local snapshot = {}
+	local selectedData
+	local list = mailInbox and (mailInbox.mailList or mailInbox.list or mailInbox.mailInboxList) or nil
+	if list and type(list.GetTargetData) == "function" then
+		local ok, data = pcall(function() return list:GetTargetData() end)
+		if ok then selectedData = data end
+	end
+	local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+	if ds then
+		snapshot.mailId = ds.mailId or ds.id or ds.mailIndex
+		snapshot.index = ds.mailIndex or ds.index
+		snapshot.sender = ds.senderDisplayName or ds.sender
+		snapshot.subject = ds.subject
+		snapshot.hasAttachments = ds.hasAttachments or (type(ds.numAttachments) == "number" and ds.numAttachments > 0) or nil
+		snapshot.codAmount = ds.codAmount
+	end
+	if mailInbox and type(mailInbox.GetSelectedMailId) == "function" then
+		local ok, mailId = pcall(function() return mailInbox:GetSelectedMailId() end)
+		if ok then snapshot.mailId = snapshot.mailId or mailId end
+	end
+	return next(snapshot) and snapshot or nil
 end
 
 local function RegisterGeneralInterfaceSnapshotProvider()
@@ -131,11 +155,12 @@ local function InstallMailDeleteHook()
 
 				descriptor.callback = function(...)
 					local moduleSettings = BETTERUI.GetModuleSettings("GeneralInterface")
+					local selectedMail = SnapshotSelectedMail(mailInbox)
 					if moduleSettings and moduleSettings.removeDeleteDialog and type(mailInbox.Delete) == "function" then
-						TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = true })
+						TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = true, selectedMail = selectedMail })
 						return mailInbox:Delete()
 					end
-					TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = false })
+					TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = false, selectedMail = selectedMail })
 					return origCallback(...)
 				end
 				descriptor._betteruiDeleteHookInstalled = true

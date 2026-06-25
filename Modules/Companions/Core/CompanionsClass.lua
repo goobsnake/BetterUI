@@ -103,8 +103,37 @@ end
 
 -- SEARCH FOCUS HELPERS
 
+local function TraceCompanionClass(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Companions"
+    data.feature = data.feature or "companion-search"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.KEYBIND or categories.ACTION, event, phase, data)
+end
+
 function BETTERUI.Companions.Class:EnterSearchMode()
-    if not self.textSearchHeaderControl or self.textSearchHeaderControl:IsHidden() then return end
+    if not self.textSearchHeaderControl or self.textSearchHeaderControl:IsHidden() then
+        TraceCompanionClass("companions.search_mode", "enter_skipped", {
+            fn = "Companions.Class:EnterSearchMode",
+            reason = "missingOrHiddenHeader",
+            hasHeader = self.textSearchHeaderControl ~= nil,
+        })
+        return
+    end
+    TraceCompanionClass("companions.search_mode", "enter_begin", {
+        fn = "Companions.Class:EnterSearchMode",
+        hadSearchMode = self._searchModeActive == true,
+        hadHeaderActive = self._searchHeaderActive == true,
+        hasSearchKeybinds = self.textSearchKeybindStripDescriptor ~= nil,
+        hasCoreKeybinds = self.coreKeybinds ~= nil,
+    })
     if self.textSearchHeaderFocus then
         self.textSearchHeaderFocus:Activate()
         if self.SetTextSearchFocused then
@@ -114,13 +143,35 @@ function BETTERUI.Companions.Class:EnterSearchMode()
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP and self.coreKeybinds then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
         KEYBIND_STRIP:AddKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        TraceCompanionClass("companions.search_keybinds", "swapped_to_search", {
+            fn = "Companions.Class:EnterSearchMode",
+            removedCore = true,
+            addedSearch = true,
+        })
     end
     self._searchModeActive = true
     self._searchHeaderActive = true
+    TraceCompanionClass("companions.search_mode", "entered", {
+        fn = "Companions.Class:EnterSearchMode",
+        searchModeActive = self._searchModeActive == true,
+        searchHeaderActive = self._searchHeaderActive == true,
+    })
 end
 
 function BETTERUI.Companions.Class:ExitSearchMode()
-    if not self._searchModeActive and not self._searchHeaderActive then return end
+    if not self._searchModeActive and not self._searchHeaderActive then
+        TraceCompanionClass("companions.search_mode", "exit_skipped", {
+            fn = "Companions.Class:ExitSearchMode",
+            reason = "notActive",
+        })
+        return
+    end
+    TraceCompanionClass("companions.search_mode", "exit_begin", {
+        fn = "Companions.Class:ExitSearchMode",
+        hadSearchMode = self._searchModeActive == true,
+        hadHeaderActive = self._searchHeaderActive == true,
+        hasRemovedGroups = self._searchRemovedKeybindGroups ~= nil,
+    })
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
@@ -144,6 +195,12 @@ function BETTERUI.Companions.Class:ExitSearchMode()
     if self.coreKeybinds and KEYBIND_STRIP then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
     end
+    TraceCompanionClass("companions.search_mode", "exited", {
+        fn = "Companions.Class:ExitSearchMode",
+        searchModeActive = self._searchModeActive == true,
+        searchHeaderActive = self._searchHeaderActive == true,
+        hasCoreKeybinds = self.coreKeybinds ~= nil,
+    })
 end
 
 function BETTERUI.Companions.Class:EnterSearchFocus()

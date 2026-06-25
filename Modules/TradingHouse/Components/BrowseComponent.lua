@@ -68,12 +68,27 @@ end
 
 function Browse:OnPrimaryAction(thInstance)
     local selectedData = GetTargetRowData(thInstance)
-    if not selectedData then return end
+    if not selectedData then
+        TraceBrowse("trading_house.buy", "blocked", thInstance, {
+            fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
+            reason = "noSelection",
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
+        return
+    end
     local ds = selectedData.dataSource or selectedData
 
     local tradingHouseIndex = ds.tradingHouseIndex
     local price = ds.purchasePrice or 0
-    if not tradingHouseIndex or price <= 0 then return end
+    if not tradingHouseIndex or price <= 0 then
+        TraceBrowse("trading_house.buy", "blocked", thInstance, {
+            fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
+            reason = "invalidListing",
+            tradingHouseIndex = tradingHouseIndex,
+            price = price,
+            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
+        return
+    end
 
     TraceBrowse("trading_house.buy", "request", thInstance, {
         fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
@@ -83,12 +98,26 @@ function Browse:OnPrimaryAction(thInstance)
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
 
     if not thInstance:CanAfford(price) then
+        TraceBrowse("trading_house.buy", "blocked", thInstance, {
+            fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
+            reason = "cannotAfford",
+            tradingHouseIndex = tradingHouseIndex,
+            price = price,
+            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
         BETTERUI.CIM.UserAlertText("TH:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 
     if not thInstance:HasInventorySpace() then
+        TraceBrowse("trading_house.buy", "blocked", thInstance, {
+            fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
+            reason = "cannotCarry",
+            tradingHouseIndex = tradingHouseIndex,
+            price = price,
+            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
         BETTERUI.CIM.UserAlertText("TH:CannotCarry",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY")))
         return
@@ -250,23 +279,49 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
 end
 
 function Browse:NextPage(thInstance)
-    if not Browse.hasMorePages then return end
+    if not Browse.hasMorePages then
+        TraceBrowse("trading_house.page", "next_skipped", thInstance, {
+            fn = "TradingHouse.BrowseComponent.NextPage",
+            reason = "noMorePages",
+            page = Browse.currentPage,
+        })
+        return
+    end
     -- Only commit the page change when the search actually dispatches.
     local USE_LAST_EXECUTED_SEARCH_FILTERS = true
     local previousPage = Browse.currentPage
     Browse.currentPage = previousPage + 1
     if not Browse:ExecuteSearch(USE_LAST_EXECUTED_SEARCH_FILTERS) then
+        TraceBrowse("trading_house.page", "rollback", thInstance, {
+            fn = "TradingHouse.BrowseComponent.NextPage",
+            reason = "searchNotDispatched",
+            rollbackFrom = Browse.currentPage,
+            rollbackTo = previousPage,
+        })
         Browse.currentPage = previousPage
     end
 end
 
 function Browse:PrevPage(thInstance)
-    if Browse.currentPage <= 0 then return end
+    if Browse.currentPage <= 0 then
+        TraceBrowse("trading_house.page", "prev_skipped", thInstance, {
+            fn = "TradingHouse.BrowseComponent.PrevPage",
+            reason = "firstPage",
+            page = Browse.currentPage,
+        })
+        return
+    end
     -- Only commit the page change when the search actually dispatches.
     local USE_LAST_EXECUTED_SEARCH_FILTERS = true
     local previousPage = Browse.currentPage
     Browse.currentPage = previousPage - 1
     if not Browse:ExecuteSearch(USE_LAST_EXECUTED_SEARCH_FILTERS) then
+        TraceBrowse("trading_house.page", "rollback", thInstance, {
+            fn = "TradingHouse.BrowseComponent.PrevPage",
+            reason = "searchNotDispatched",
+            rollbackFrom = Browse.currentPage,
+            rollbackTo = previousPage,
+        })
         Browse.currentPage = previousPage
     end
 end
@@ -286,11 +341,18 @@ function Browse:OnSearchResultsReceived(thInstance)
     -- now comes from GetTradingHouseSearchResultsInfo() which returns
     -- numItemsOnPage, currentPage, hasMorePages.
     if GetTradingHouseSearchResultsInfo then
-        local _, currentPage, hasMorePages = GetTradingHouseSearchResultsInfo()
+        local numItemsOnPage, currentPage, hasMorePages = GetTradingHouseSearchResultsInfo()
         if currentPage ~= nil then
             Browse.currentPage = currentPage
         end
         Browse.hasMorePages = hasMorePages == true
+        TraceBrowse("trading_house.search_results", "state", thInstance, {
+            fn = "TradingHouse.BrowseComponent.OnSearchResultsReceived",
+            numItemsOnPage = numItemsOnPage,
+            currentPage = Browse.currentPage,
+            hasMorePages = Browse.hasMorePages,
+            resultsInvalidated = Browse.resultsInvalidated == true,
+        })
     end
 
     if thInstance and thInstance:IsSceneShowing() and

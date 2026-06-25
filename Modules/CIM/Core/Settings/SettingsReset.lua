@@ -84,6 +84,12 @@ local function GetRawStoreData(store)
     if type(rawData) == "table" then
         return rawData
     end
+    if type(rawData) == "function" then
+        TraceSettingsReset("raw_store_proxy", {
+            reason = "functionIndexProxy",
+            storeType = type(store),
+        })
+    end
     return store
 end
 

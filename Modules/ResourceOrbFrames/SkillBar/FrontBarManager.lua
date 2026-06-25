@@ -188,12 +188,19 @@ local function UpdateFrontBar(rootFrame)
     if not frontBarContainer then return end
 
     local slotMapping = FRONT_BAR_SLOTS
+    local traceSlots = {}
+    local stateParts = {}
 
     for _, mapping in ipairs(slotMapping) do
         local btn = FindControl(frontBarContainer, mapping.buttonName)
         if btn then
             local iconControl = btn:GetNamedChild("Icon")
             local slotTexture = GetSlotTexture(mapping.slot, activeCategory)
+            local abilityId = type(GetSlotBoundId) == "function" and GetSlotBoundId(mapping.slot, activeCategory) or nil
+            local hasHighlight = ActionSlotHasActivationHighlight(mapping.slot, activeCategory)
+            local hasCostFailure = ActionSlotHasCostFailure(mapping.slot, activeCategory)
+            local hasStateFailure = ActionSlotHasNonCostStateFailure(mapping.slot, activeCategory)
+            local isUsable = not hasCostFailure and not hasStateFailure
             if iconControl then
                 if slotTexture and slotTexture ~= "" then
                     iconControl:SetTexture(slotTexture)
@@ -206,13 +213,38 @@ local function UpdateFrontBar(rootFrame)
             btn.hotbarCategory = activeCategory
             local highlight = btn:GetNamedChild("ActivationHighlight")
             if highlight then
-                local hasHighlight = ActionSlotHasActivationHighlight(mapping.slot, activeCategory)
-                local hasCostFailure = ActionSlotHasCostFailure(mapping.slot, activeCategory)
-                local hasStateFailure = ActionSlotHasNonCostStateFailure(mapping.slot, activeCategory)
-                local isUsable = not hasCostFailure and not hasStateFailure
                 highlight:SetHidden(not (hasHighlight and isUsable))
             end
+            table.insert(traceSlots, {
+                buttonName = mapping.buttonName,
+                slot = mapping.slot,
+                abilityId = abilityId,
+                texture = slotTexture,
+                hasHighlight = hasHighlight,
+                hasCostFailure = hasCostFailure,
+                hasStateFailure = hasStateFailure,
+                isUsable = isUsable,
+            })
+            table.insert(stateParts, table.concat({
+                tostring(mapping.buttonName),
+                tostring(mapping.slot),
+                tostring(abilityId),
+                tostring(slotTexture),
+                tostring(hasHighlight),
+                tostring(hasCostFailure),
+                tostring(hasStateFailure),
+            }, ":"))
         end
+    end
+    local stateKey = table.concat(stateParts, "|")
+    if frontBarContainer._betteruiLastFrontBarTraceState ~= stateKey then
+        frontBarContainer._betteruiLastFrontBarTraceState = stateKey
+        TraceFrontBar("resource_orbs.front_bar", "refreshed", {
+            fn = "UpdateFrontBar",
+            activeCategory = activeCategory,
+            slotCount = #traceSlots,
+            slots = traceSlots,
+        })
     end
     frontBarContainer:SetHidden(false)
 end
@@ -283,6 +315,7 @@ local function SetupFrontBarKeybinds(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
     local registeredKeybinds = 0
+    local keybindEntries = {}
 
     for i = 1, 5 do
         local btn = FindControl(frontBarContainer, 'Button' .. i)
@@ -292,6 +325,13 @@ local function SetupFrontBarKeybinds(rootFrame)
             if buttonText and bindings then
                 ZO_Keybindings_RegisterLabelForBindingUpdate(buttonText, bindings.keyboard, HIDE_UNBOUND, bindings.gamepad)
                 registeredKeybinds = registeredKeybinds + 1
+                keybindEntries[#keybindEntries + 1] = {
+                    buttonName = "Button" .. tostring(i),
+                    slotIndex = FRONT_BAR_SLOTS[i] and FRONT_BAR_SLOTS[i].slot or nil,
+                    keyboardBinding = bindings.keyboard,
+                    gamepadBinding = bindings.gamepad,
+                    visible = true,
+                }
             end
         end
     end
@@ -302,6 +342,13 @@ local function SetupFrontBarKeybinds(rootFrame)
         if buttonText then
             ZO_Keybindings_RegisterLabelForBindingUpdate(buttonText, "ACTION_BUTTON_8", HIDE_UNBOUND, "GAMEPAD_ACTION_BUTTON_8")
             registeredKeybinds = registeredKeybinds + 1
+            keybindEntries[#keybindEntries + 1] = {
+                buttonName = "UltimateButton",
+                slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX and ACTION_BAR_ULTIMATE_SLOT_INDEX + 1 or nil,
+                keyboardBinding = "ACTION_BUTTON_8",
+                gamepadBinding = "GAMEPAD_ACTION_BUTTON_8",
+                visible = true,
+            }
         end
         local isGamepad = IsInGamepadPreferredMode()
         local l = ultBtn:GetNamedChild("LeftKeybind")
@@ -316,6 +363,13 @@ local function SetupFrontBarKeybinds(rootFrame)
         if buttonText then
             ZO_Keybindings_RegisterLabelForBindingUpdate(buttonText, "ACTION_BUTTON_9", HIDE_UNBOUND, "GAMEPAD_ACTION_BUTTON_9")
             registeredKeybinds = registeredKeybinds + 1
+            keybindEntries[#keybindEntries + 1] = {
+                buttonName = "QuickslotButton",
+                slotIndex = ACTION_BAR_QUICKSLOT_SLOT_INDEX,
+                keyboardBinding = "ACTION_BUTTON_9",
+                gamepadBinding = "GAMEPAD_ACTION_BUTTON_9",
+                visible = true,
+            }
         end
         local countText = qsBtn:GetNamedChild("CountText")
         if countText then
@@ -339,6 +393,12 @@ local function SetupFrontBarKeybinds(rootFrame)
         if buttonText then
             ZO_Keybindings_RegisterLabelForBindingUpdate(buttonText, "COMMAND_PET", HIDE_UNBOUND, "COMMAND_PET")
             registeredKeybinds = registeredKeybinds + 1
+            keybindEntries[#keybindEntries + 1] = {
+                buttonName = "CompanionButton",
+                keyboardBinding = "COMMAND_PET",
+                gamepadBinding = "COMMAND_PET",
+                visible = true,
+            }
         end
         local isGamepad = IsInGamepadPreferredMode()
         local l = compBtn:GetNamedChild("LeftKeybind")
@@ -352,6 +412,7 @@ local function SetupFrontBarKeybinds(rootFrame)
         hasQuickslot = qsBtn ~= nil,
         hasCompanion = compBtn ~= nil,
         gamepad = IsInGamepadPreferredMode(),
+        keybinds = keybindEntries,
     })
 end
 

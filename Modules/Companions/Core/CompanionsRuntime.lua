@@ -503,6 +503,30 @@ end
 
 ---@param instance BETTERUI.Companions.Class
 ---@return table keybindGroup
+local function TraceCompanionKeybind(phase, instance, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Companions"
+    data.scene = rawget(_G, "BETTERUI_COMPANION_EQUIP_SCENE_NAME") or "BETTERUI_CompanionEquipment"
+    data.currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.feature = "companion-keybinds"
+    data.fn = data.fn or "Companions.BuildCoreKeybinds"
+    data.sceneShowing = instance and instance.IsSceneShowing and instance:IsSceneShowing() or false
+    local ms = Companions.multiSelectManager
+    data.multiSelectActive = ms and ms:IsActive() or false
+    data.selectedCount = ms and ms.GetSelectedCount and ms:GetSelectedCount() or nil
+    local selectedData = instance and instance.list and instance.list.GetSelectedData and instance.list:GetSelectedData() or nil
+    local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+    if ds then
+        data.selectedBagId = data.selectedBagId or ds.bagId
+        data.selectedSlotIndex = data.selectedSlotIndex or ds.slotIndex
+        data.selectedEquipped = data.selectedEquipped or ds.isEquipped
+        data.selectedItem = data.selectedItem or (L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name)
+    end
+    L.TraceEvent((L.CATEGORY or {}).KEYBIND or (L.CATEGORY or {}).ACTION, "companions.keybind", phase, data)
+end
+
 function Companions.BuildCoreKeybinds(instance)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -523,6 +547,7 @@ function Companions.BuildCoreKeybinds(instance)
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
+                TraceCompanionKeybind("primary_begin", instance, { keybind = "UI_SHORTCUT_PRIMARY" })
                 local ms = Companions.multiSelectManager
                 if ms and ms:IsActive() then
                     local selectedData = instance.list and instance.list:GetSelectedData()
@@ -531,25 +556,31 @@ function Companions.BuildCoreKeybinds(instance)
                         instance:RefreshList()
                         instance:EnsureListInputActive()
                     end
+                    TraceCompanionKeybind("primary_multiselect_toggle", instance, { keybind = "UI_SHORTCUT_PRIMARY", hadSelection = selectedData ~= nil })
                     return
                 end
                 local selectedData = instance.list and instance.list:GetSelectedData()
                 if not selectedData then
+                    TraceCompanionKeybind("primary_skipped", instance, { keybind = "UI_SHORTCUT_PRIMARY", reason = "noSelection" })
                     return
                 end
                 local ds = selectedData.dataSource or selectedData
                 local bagId = ds.bagId
                 local slotIndex = ds.slotIndex
                 if bagId == nil or slotIndex == nil then
+                    TraceCompanionKeybind("primary_skipped", instance, { keybind = "UI_SHORTCUT_PRIMARY", reason = "missingBagSlot" })
                     return
                 end
                 if ds.isEquipped then
                     Companions.TryUnequipCompanionItem(slotIndex)
+                    TraceCompanionKeybind("primary_requested", instance, { keybind = "UI_SHORTCUT_PRIMARY", action = "unequip", slotIndex = slotIndex })
                 else
                     Companions.TryEquipCompanionItem(bagId, slotIndex)
+                    TraceCompanionKeybind("primary_requested", instance, { keybind = "UI_SHORTCUT_PRIMARY", action = "equip", bagId = bagId, slotIndex = slotIndex })
                 end
                 Companions.Tasks:Schedule("keybindRefresh", 100, function()
                     if Companions.instance and Companions.instance:IsSceneShowing() and Companions.instance.coreKeybinds then
+                        TraceCompanionKeybind("refresh_scheduled_update", Companions.instance, { keybind = "UI_SHORTCUT_PRIMARY", delayMs = 100 })
                         KEYBIND_STRIP:UpdateKeybindButtonGroup(Companions.instance.coreKeybinds)
                     end
                 end)
@@ -580,16 +611,21 @@ function Companions.BuildCoreKeybinds(instance)
                 return true
             end,
             callback = function()
+                TraceCompanionKeybind("actions_begin", instance, { keybind = "UI_SHORTCUT_TERTIARY" })
                 local ms = Companions.multiSelectManager
                 if ms and ms:IsActive() then
                     if ZO_Dialogs_ShowGamepadDialog then
                         ZO_Dialogs_ShowGamepadDialog("BETTERUI_COMPANION_BATCH_DIALOG")
+                        TraceCompanionKeybind("actions_dialog_shown", instance, { keybind = "UI_SHORTCUT_TERTIARY", dialog = "BETTERUI_COMPANION_BATCH_DIALOG" })
                     end
                     return
                 end
                 local selectedData = instance.list and instance.list:GetSelectedData()
                 if selectedData and ZO_Dialogs_ShowGamepadDialog then
                     ZO_Dialogs_ShowGamepadDialog("BETTERUI_COMPANION_ACTION_DIALOG", { selectedData = selectedData })
+                    TraceCompanionKeybind("actions_dialog_shown", instance, { keybind = "UI_SHORTCUT_TERTIARY", dialog = "BETTERUI_COMPANION_ACTION_DIALOG" })
+                else
+                    TraceCompanionKeybind("actions_skipped", instance, { keybind = "UI_SHORTCUT_TERTIARY", reason = selectedData and "missingDialogApi" or "noSelection" })
                 end
             end,
         },
@@ -617,6 +653,8 @@ function Companions.BuildCoreKeybinds(instance)
                 return instance.textSearchHeaderControl ~= nil and not instance.textSearchHeaderControl:IsHidden()
             end,
             callback = function()
+                local action = (instance.searchQuery and instance.searchQuery ~= "") and "clear" or "requestEnter"
+                TraceCompanionKeybind("search_begin", instance, { keybind = "UI_SHORTCUT_QUATERNARY", action = action })
                 if instance.searchQuery and instance.searchQuery ~= "" then
                     CallCompanionSearchLifecycle(instance, "clear")
                 else
@@ -625,6 +663,7 @@ function Companions.BuildCoreKeybinds(instance)
                 if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
                 end
+                TraceCompanionKeybind("search_end", instance, { keybind = "UI_SHORTCUT_QUATERNARY", action = action })
             end,
         },
         {
@@ -640,14 +679,18 @@ function Companions.BuildCoreKeybinds(instance)
                 return IsMultiSelectAvailable()
             end,
             callback = function()
+                TraceCompanionKeybind("multiselect_begin", instance, { keybind = "UI_SHORTCUT_QUINARY" })
                 local ms = Companions.multiSelectManager
                 if not ms then
+                    TraceCompanionKeybind("multiselect_skipped", instance, { keybind = "UI_SHORTCUT_QUINARY", reason = "missingManager" })
                     return
                 end
                 if ms:IsActive() then
                     ms:ExitSelectionMode()
+                    TraceCompanionKeybind("multiselect_exit", instance, { keybind = "UI_SHORTCUT_QUINARY" })
                 else
                     ms:EnterSelectionMode()
+                    TraceCompanionKeybind("multiselect_enter", instance, { keybind = "UI_SHORTCUT_QUINARY" })
                 end
                 instance:RefreshList()
                 instance:EnsureListInputActive()
@@ -670,8 +713,10 @@ function Companions.BuildCoreKeybinds(instance)
                 return ms and ms:IsActive() or false
             end,
             callback = function()
+                TraceCompanionKeybind("cancel_begin", instance, { keybind = "UI_SHORTCUT_RIGHT_STICK" })
                 local ms = Companions.multiSelectManager
                 if not ms or not ms:IsActive() then
+                    TraceCompanionKeybind("cancel_skipped", instance, { keybind = "UI_SHORTCUT_RIGHT_STICK", reason = "notActive" })
                     return
                 end
                 ms:ExitSelectionMode()
@@ -680,12 +725,14 @@ function Companions.BuildCoreKeybinds(instance)
                 if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
                 end
+                TraceCompanionKeybind("cancel_end", instance, { keybind = "UI_SHORTCUT_RIGHT_STICK" })
             end,
         },
         {
             name = GetString(SI_GAMEPAD_BACK_OPTION),
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = function()
+                TraceCompanionKeybind("back_begin", instance, { keybind = "UI_SHORTCUT_NEGATIVE" })
                 local ms = Companions.multiSelectManager
                 if ms and ms:IsActive() then
                     ms:ExitSelectionMode()
@@ -694,9 +741,11 @@ function Companions.BuildCoreKeybinds(instance)
                     if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
                         KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
                     end
+                    TraceCompanionKeybind("back_cancelled_multiselect", instance, { keybind = "UI_SHORTCUT_NEGATIVE" })
                     return
                 end
                 SCENE_MANAGER:HideCurrentScene()
+                TraceCompanionKeybind("back_hide_scene", instance, { keybind = "UI_SHORTCUT_NEGATIVE" })
             end,
         },
     }

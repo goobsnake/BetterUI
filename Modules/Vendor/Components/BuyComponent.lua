@@ -608,18 +608,45 @@ function Buy:IsPrimaryActionEnabled(vendorInstance)
         and vendorInstance:CanCarry(ds.itemLink)
 end
 
+local function TraceBuyBlocked(vendorInstance, reason, ds, extra)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    extra = extra or {}
+    extra.module = "Vendor"
+    extra.scene = BETTERUI_VENDOR_SCENE_NAME
+    extra.feature = "vendor-buy"
+    extra.fn = "Vendor.BuyComponent.OnPrimaryAction"
+    extra["function"] = "Vendor.BuyComponent.OnPrimaryAction"
+    extra.mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil
+    extra.reason = reason
+    if ds then
+        extra.entryIndex = extra.entryIndex or ds.entryIndex or ds.slotIndex
+        extra.item = extra.item or (L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name)
+    end
+    L.TraceEvent(L.CATEGORY.ACTION, "vendor.buy", "blocked", extra)
+end
+
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:OnPrimaryAction(vendorInstance)
     local selectedData = GetFocusedStoreData(vendorInstance)
-    if not selectedData then return end
+    if not selectedData then
+        TraceBuyBlocked(vendorInstance, "noSelection")
+        return
+    end
     local ds = selectedData.dataSource or selectedData
 
     local entryIndex = ds.entryIndex or ds.slotIndex
-    if not entryIndex then return end
+    if not entryIndex then
+        TraceBuyBlocked(vendorInstance, "missingEntryIndex", ds)
+        return
+    end
 
     -- Block purchase of locked entries; surface the store-failure reason text
     -- captured from GetStoreEntryInfo when available.
     if ds.meetsRequirementsToBuy == false then
+        TraceBuyBlocked(vendorInstance, "requirementsNotMet", ds, {
+            requiredToBuyErrorText = ds.requiredToBuyErrorText,
+        })
         BETTERUI.CIM.UserAlertText("Buy:Locked",
             ds.requiredToBuyErrorText or GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_BUY")))
         return
@@ -627,12 +654,14 @@ function Buy:OnPrimaryAction(vendorInstance)
 
     -- Validate affordability (both currencies) one more time
     if not CanAffordStoreEntry(vendorInstance, ds) then
+        TraceBuyBlocked(vendorInstance, "cannotAfford", ds)
         BETTERUI.CIM.UserAlertText("Buy:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 
     if not vendorInstance:CanCarry(ds.itemLink) then
+        TraceBuyBlocked(vendorInstance, "cannotCarry", ds)
         BETTERUI.CIM.UserAlertText("Buy:CannotCarry",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY")))
         return

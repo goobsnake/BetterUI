@@ -93,12 +93,27 @@ end
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Sell:OnPrimaryAction(thInstance)
     local selectedData = GetTargetRowData(thInstance)
-    if not selectedData then return end
+    if not selectedData then
+        TraceSell("trading_house.create_listing", "blocked", thInstance, {
+            fn = "TradingHouse.SellComponent.OnPrimaryAction",
+            reason = "noSelection",
+        })
+        return
+    end
     local ds = selectedData.dataSource or selectedData
 
     local bagId    = ds.bagId
     local slotIndex = ds.slotIndex
-    if not bagId or not slotIndex then return end
+    if not bagId or not slotIndex then
+        TraceSell("trading_house.create_listing", "blocked", thInstance, {
+            fn = "TradingHouse.SellComponent.OnPrimaryAction",
+            reason = "missingBagSlot",
+            bagId = bagId,
+            slotIndex = slotIndex,
+            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        })
+        return
+    end
 
     TraceSell("trading_house.create_listing", "begin", thInstance, {
         fn = "TradingHouse.SellComponent.OnPrimaryAction",
@@ -112,6 +127,13 @@ function Sell:OnPrimaryAction(thInstance)
     -- in the selected guild the post would be rejected server-side.
     if CanSellOnTradingHouse and GetSelectedTradingHouseGuildId then
         if not CanSellOnTradingHouse(GetSelectedTradingHouseGuildId()) then
+            TraceSell("trading_house.create_listing", "blocked", thInstance, {
+                fn = "TradingHouse.SellComponent.OnPrimaryAction",
+                reason = "guildCannotSell",
+                guildId = GetSelectedTradingHouseGuildId(),
+                bagId = bagId,
+                slotIndex = slotIndex,
+            })
             BETTERUI.CIM.UserAlertText("TH:CannotSellGuild",
                 GetString(rawget(_G, "SI_BETTERUI_TH_CANNOT_LIST")) or "This item cannot be listed")
             return
@@ -123,6 +145,12 @@ function Sell:OnPrimaryAction(thInstance)
     -- hand-rolled bound/sell-info/BoP chain, which excluded sellable
     -- BoP-tradeable items.
     if IsItemSellableOnTradingHouse and not IsItemSellableOnTradingHouse(bagId, slotIndex) then
+        TraceSell("trading_house.create_listing", "blocked", thInstance, {
+            fn = "TradingHouse.SellComponent.OnPrimaryAction",
+            reason = "notSellableOnTradingHouse",
+            bagId = bagId,
+            slotIndex = slotIndex,
+        })
         BETTERUI.CIM.UserAlertText("TH:CannotList",
             GetString(rawget(_G, "SI_BETTERUI_TH_CANNOT_LIST")) or "This item cannot be listed")
         return
@@ -132,6 +160,14 @@ function Sell:OnPrimaryAction(thInstance)
     if GetTradingHouseListingCounts then
         local currentListings, maxListings = GetTradingHouseListingCounts()
         if currentListings and maxListings and currentListings >= maxListings then
+            TraceSell("trading_house.create_listing", "blocked", thInstance, {
+                fn = "TradingHouse.SellComponent.OnPrimaryAction",
+                reason = "listingCap",
+                currentListings = currentListings,
+                maxListings = maxListings,
+                bagId = bagId,
+                slotIndex = slotIndex,
+            })
             BETTERUI.CIM.UserAlertText("TH:ListingCap",
                 GetString(rawget(_G, "SI_BETTERUI_TH_LISTING_CAP")) or "You have reached the maximum number of listings")
             return

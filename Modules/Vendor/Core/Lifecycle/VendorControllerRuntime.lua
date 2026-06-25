@@ -524,9 +524,40 @@ function ControllerRuntime.RefreshList(instance, deps)
         end
     end
 
+    local sortBeforeSample = {}
+    if instance.list and instance.list.dataList then
+        for i = 1, math.min(3, #instance.list.dataList) do
+            local ds = instance.list.dataList[i] and (instance.list.dataList[i].dataSource or instance.list.dataList[i]) or nil
+            sortBeforeSample[i] = ds and {
+                name = ds.name,
+                itemLink = ds.itemLink,
+                entryIndex = ds.entryIndex,
+                bagId = ds.bagId,
+                slotIndex = ds.slotIndex,
+            } or nil
+        end
+    end
     instance:ApplySortToList()
+    local sortAfterSample = {}
+    if instance.list and instance.list.dataList then
+        for i = 1, math.min(3, #instance.list.dataList) do
+            local ds = instance.list.dataList[i] and (instance.list.dataList[i].dataSource or instance.list.dataList[i]) or nil
+            sortAfterSample[i] = ds and {
+                name = ds.name,
+                itemLink = ds.itemLink,
+                entryIndex = ds.entryIndex,
+                bagId = ds.bagId,
+                slotIndex = ds.slotIndex,
+            } or nil
+        end
+    end
     TraceVendor(L and L.CATEGORY.LIST, "vendor.list_sort", "applied", instance, {
         rowCount = CountVendorList(instance),
+        mode = currentMode,
+        sortKey = instance.sortKey or instance._sortKey,
+        sortOrder = instance.sortOrder or instance._sortOrder or instance.sortDirection,
+        before = sortBeforeSample,
+        after = sortAfterSample,
     })
     instance.list:Commit()
     instance._isDirty = false

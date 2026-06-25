@@ -30,6 +30,10 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
         if not (BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup
                 and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Companions", "general")) then
             Companions.SetSetting("enableCompanionEquipment", true)
+            Companions.SetSetting("quickDestroy", false)
+            Companions.SetSetting("batchDestroy", true)
+            Companions.SetSetting("bindOnEquipProtection", true)
+            Companions.SetSetting("enableCompanionJunk", true)
         end
         RefreshCompanionWindow()
     end

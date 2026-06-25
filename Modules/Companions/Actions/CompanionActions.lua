@@ -246,16 +246,21 @@ local function EnsureCompanionEquipBoEDialogRegistered()
             {
                 text = SI_DIALOG_ACCEPT,
                 callback = function(dialog)
-                    TraceCompanionAction("companions.equip_boe_dialog", "accepted", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG })
-                    local callback = dialog and dialog.data and dialog.data.callback or nil
+                    local data = dialog and dialog.data or {}
+                    TraceCompanionAction("companions.equip_boe_dialog", "accepted", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG, bagId = data.bagId, slotIndex = data.slotIndex, itemLink = data.itemLink })
+                    local callback = data.callback
                     if type(callback) == "function" then
                         return callback()
                     end
-                    TraceCompanionAction("companions.equip_boe_dialog", "callback_missing", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG })
+                    TraceCompanionAction("companions.equip_boe_dialog", "callback_missing", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG, bagId = data.bagId, slotIndex = data.slotIndex, itemLink = data.itemLink })
                 end,
             },
             {
                 text = SI_DIALOG_CANCEL,
+                callback = function(dialog)
+                    local data = dialog and dialog.data or {}
+                    TraceCompanionAction("companions.equip_boe_dialog", "cancelled", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG, bagId = data.bagId, slotIndex = data.slotIndex, itemLink = data.itemLink })
+                end,
             },
         },
     }
@@ -284,7 +289,7 @@ function Companions.TryEquipCompanionItem(bagId, slotIndex)
                 TraceCompanionAction("companions.equip_boe_dialog", "rejected", { fn = "TryEquipCompanionItem", reason = "missingDialogApi", bagId = bagId, slotIndex = slotIndex, itemLink = itemLink })
                 return false
             end
-            ZO_Dialogs_ShowPlatformDialog(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, { callback = DoEquip }, { mainTextParams = { itemLink } })
+            ZO_Dialogs_ShowPlatformDialog(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, { callback = DoEquip, bagId = bagId, slotIndex = slotIndex, itemLink = itemLink }, { mainTextParams = { itemLink } })
             TraceCompanionAction("companions.equip_boe_dialog", "shown", { fn = "TryEquipCompanionItem", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG, bagId = bagId, slotIndex = slotIndex, itemLink = itemLink })
             return true
         end
@@ -438,9 +443,10 @@ function Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
     if stackSize > 1 and ZO_Dialogs_ShowGamepadDialog then
         ZO_Dialogs_ShowGamepadDialog("ZO_GAMEPAD_SPLIT_STACK_DIALOG", { bag = bagId, slot = slotIndex, stack = stackSize })
         TraceCompanionAction("companions.split_stack_dialog", "shown", { fn = "ShowCompanionSplitStackDialog", dialog = "ZO_GAMEPAD_SPLIT_STACK_DIALOG", bagId = bagId, slotIndex = slotIndex, stackSize = stackSize })
-    else
-        TraceCompanionAction("companions.split_stack_dialog", "skipped", { fn = "ShowCompanionSplitStackDialog", reason = stackSize <= 1 and "singleItem" or "missingDialogApi", bagId = bagId, slotIndex = slotIndex, stackSize = stackSize })
+        return true
     end
+    TraceCompanionAction("companions.split_stack_dialog", "skipped", { fn = "ShowCompanionSplitStackDialog", reason = stackSize <= 1 and "singleItem" or "missingDialogApi", bagId = bagId, slotIndex = slotIndex, stackSize = stackSize })
+    return false
 end
 
 function Companions.BuildActionList(selectedData)
@@ -545,8 +551,7 @@ function Companions.ExecuteAction(actionId, selectedData)
     elseif actionId == "unjunk" then
         result = Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     elseif actionId == "split" then
-        Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
-        result = true
+        result = Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
     end
     TraceCompanionAction("companions.action", "result", { fn = "ExecuteAction", actionId = actionId, bagId = bagId, slotIndex = slotIndex, slotType = slotType, result = result == true })
     return result

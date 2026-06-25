@@ -20,6 +20,19 @@ local function CountEligibleActionTargets(actionId, items)
     return eligibleCount
 end
 
+local function TraceCompanionDialog(dialogId, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Companions"
+    data.scene = rawget(_G, "BETTERUI_COMPANION_EQUIP_SCENE_NAME") or "BETTERUI_CompanionEquipment"
+    data.currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.feature = "companion-dialogs"
+    data.dialogId = dialogId
+    data.fn = data.fn or "Companions.Dialogs"
+    L.TraceEvent((L.CATEGORY or {}).DIALOG or (L.CATEGORY or {}).ACTION, "companions.dialog", phase, data)
+end
+
 --- Destroys the given slot descriptors via the quick path, staggered to avoid
 --- flooding the server with destroy requests.
 local function ExecuteBatchDestroy(destroyTargets)
@@ -65,12 +78,23 @@ local function RegisterCompanionBatchDestroyDialog()
             {
                 keybind = "DIALOG_NEGATIVE",
                 text = GetString(rawget(_G, "SI_DIALOG_CANCEL") or "SI_DIALOG_CANCEL"),
+                callback = function(dialog)
+                    TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "cancel", {
+                        fn = "RegisterCompanionBatchDestroyDialog",
+                        itemCount = dialog and dialog.data and dialog.data.itemCount or nil,
+                    })
+                end,
             },
             {
                 keybind = "DIALOG_PRIMARY",
                 text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION") or "SI_GAMEPAD_SELECT_OPTION"),
                 callback = function(dialog)
                     local data = dialog and dialog.data
+                    TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "confirm", {
+                        fn = "RegisterCompanionBatchDestroyDialog",
+                        itemCount = data and data.itemCount or nil,
+                        hasTargets = data and data.destroyTargets ~= nil or false,
+                    })
                     if data and data.destroyTargets then
                         ExecuteBatchDestroy(data.destroyTargets)
                     end
@@ -100,14 +124,27 @@ function Companions.ShowBatchDestroyConfirmation(items)
         end
     end
     if #destroyTargets == 0 then
+        TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "show_skipped", {
+            fn = "Companions.ShowBatchDestroyConfirmation",
+            reason = "noEligibleTargets",
+            inputCount = #(items or {}),
+        })
         return
     end
 
     if Companions.GetSetting("quickDestroy") == true then
+        TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "quick_execute", {
+            fn = "Companions.ShowBatchDestroyConfirmation",
+            itemCount = #destroyTargets,
+        })
         ExecuteBatchDestroy(destroyTargets)
         return
     end
 
+    TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "shown", {
+        fn = "Companions.ShowBatchDestroyConfirmation",
+        itemCount = #destroyTargets,
+    })
     ZO_Dialogs_ShowGamepadDialog(COMPANION_BATCH_DESTROY_DIALOG, {
         itemCount = #destroyTargets,
         destroyTargets = destroyTargets,
@@ -129,6 +166,11 @@ local function RegisterCompanionActionDialog()
             local actions = Companions.BuildActionList(data and data.selectedData)
             local parametricList = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(parametricList)
+            TraceCompanionDialog("BETTERUI_COMPANION_ACTION_DIALOG", "setup", {
+                fn = "RegisterCompanionActionDialog",
+                actionCount = #actions,
+                hasSelectedData = data and data.selectedData ~= nil or false,
+            })
 
             for _, action in ipairs(actions) do
                 local entryData = ZO_GamepadEntryData:New(action.name)
@@ -147,12 +189,20 @@ local function RegisterCompanionActionDialog()
             {
                 text = SI_DIALOG_CANCEL,
                 keybind = "DIALOG_NEGATIVE",
+                callback = function()
+                    TraceCompanionDialog("BETTERUI_COMPANION_ACTION_DIALOG", "cancel", { fn = "RegisterCompanionActionDialog" })
+                end,
             },
             {
                 text = SI_GAMEPAD_SELECT_OPTION,
                 keybind = "DIALOG_PRIMARY",
                 callback = function(dialog)
                     local selected = dialog.entryList and GetDialogListTargetData(dialog.entryList) or nil
+                    TraceCompanionDialog("BETTERUI_COMPANION_ACTION_DIALOG", "confirm", {
+                        fn = "RegisterCompanionActionDialog",
+                        actionId = selected and selected.actionId or nil,
+                        hasSelectedData = dialog.data and dialog.data.selectedData ~= nil or false,
+                    })
                     if selected and selected.actionId then
                         local data = dialog.data
                         if data and data.selectedData then
@@ -174,14 +224,20 @@ local function RegisterCompanionBatchDialog()
         canQueue = true,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = { text = SI_BETTERUI_INV_BATCH_ACTIONS or SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
-        setup = function(dialog)
-            local parametricList = dialog.info.parametricList
-            ZO_ClearNumericallyIndexedTable(parametricList)
+            setup = function(dialog)
+                local parametricList = dialog.info.parametricList
+                ZO_ClearNumericallyIndexedTable(parametricList)
 
-            local ms = Companions.multiSelectManager
-            if ms then
-                local items = ms:GetSelectedItems()
-                local allSelected = #items > 0 and ms:GetSelectedCount() == (Companions.instance.list and Companions.instance.list:GetNumItems() or 0)
+                local ms = Companions.multiSelectManager
+                if ms then
+                    local items = ms:GetSelectedItems()
+                    local allSelected = #items > 0 and ms:GetSelectedCount() == (Companions.instance.list and Companions.instance.list:GetNumItems() or 0)
+                    TraceCompanionDialog("BETTERUI_COMPANION_BATCH_DIALOG", "setup", {
+                        fn = "RegisterCompanionBatchDialog",
+                        itemCount = #items,
+                        selectedCount = ms:GetSelectedCount(),
+                        allSelected = allSelected,
+                    })
                 if not allSelected then
                     table.insert(parametricList,
                         BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_BETTERUI_INV_MARK_ALL or "Mark All"), "selectAll"))
@@ -227,12 +283,19 @@ local function RegisterCompanionBatchDialog()
             {
                 text = SI_DIALOG_CANCEL,
                 keybind = "DIALOG_NEGATIVE",
+                callback = function()
+                    TraceCompanionDialog("BETTERUI_COMPANION_BATCH_DIALOG", "cancel", { fn = "RegisterCompanionBatchDialog" })
+                end,
             },
             {
                 text = SI_GAMEPAD_SELECT_OPTION,
                 keybind = "DIALOG_PRIMARY",
                 callback = function(dialog)
                     local selected = dialog.entryList and GetDialogListTargetData(dialog.entryList) or nil
+                    TraceCompanionDialog("BETTERUI_COMPANION_BATCH_DIALOG", "confirm", {
+                        fn = "RegisterCompanionBatchDialog",
+                        actionId = selected and selected.actionId or nil,
+                    })
                     if not selected or not selected.actionId then return end
                     local ms = Companions.multiSelectManager
                     if not ms then return end

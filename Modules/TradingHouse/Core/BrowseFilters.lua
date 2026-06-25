@@ -17,6 +17,21 @@ local Filters = TH.BrowseFilters
 -- Pending filter spec applied during the next ExecuteSearch.
 Filters.pendingSpec = nil
 
+local function TraceFilters(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "TradingHouse"
+    data.feature = "browse-filters"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.SEARCH or categories.ACTION, event, phase, data)
+end
+
 -- PURE HELPERS ----------------------------------------------------------------
 
 --- Build a validated price-range filter table.
@@ -165,8 +180,23 @@ end
 ---@param spec table|nil
 function Filters.SetBrowseFilterSpec(spec)
     spec = spec or {}
+    TraceFilters("trading_house.filters", "set_begin", {
+        fn = "Filters.SetBrowseFilterSpec",
+        nameText = spec.nameText,
+        priceMin = spec.priceMin,
+        priceMax = spec.priceMax,
+        qualityIndex = spec.qualityIndex,
+        categoryIndex = spec.categoryIndex,
+        levelMin = spec.levelMin,
+        levelMax = spec.levelMax,
+        isChampionRank = spec.isChampionRank,
+    })
     local features = GetBrowseFeatures()
     if not features then
+        TraceFilters("trading_house.filters", "set_skipped", {
+            fn = "Filters.SetBrowseFilterSpec",
+            reason = "missingBrowseFeatures",
+        })
         BETTERUI.CIM.UserAlertText("TH:FiltersUnavailable",
             GetString(rawget(_G, "SI_BETTERUI_TH_FILTERS_UNAVAILABLE")) or "Browse filters are not available")
         return false
@@ -178,6 +208,7 @@ function Filters.SetBrowseFilterSpec(spec)
         and features.nameSearchFeature
         and features.nameSearchFeature.SetSearchText then
         features.nameSearchFeature:SetSearchText(spec.nameText)
+        TraceFilters("trading_house.filters", "name_applied", { fn = "Filters.SetBrowseFilterSpec", nameText = spec.nameText })
     end
 
     -- Price range has a native feature on gamepad browse.
@@ -186,6 +217,7 @@ function Filters.SetBrowseFilterSpec(spec)
         and features.priceRangeFeature.SetPriceRange then
         local priceFilter = Filters.BuildPriceRangeFilter(spec.priceMin, spec.priceMax)
         features.priceRangeFeature:SetPriceRange(priceFilter.min, priceFilter.max)
+        TraceFilters("trading_house.filters", "price_applied", { fn = "Filters.SetBrowseFilterSpec", min = priceFilter.min, max = priceFilter.max, valid = priceFilter.valid })
     end
 
     -- Quality is a dropdown feature.
@@ -193,6 +225,7 @@ function Filters.SetBrowseFilterSpec(spec)
         and features.qualityFeature
         and features.qualityFeature.SelectChoice then
         features.qualityFeature:SelectChoice(spec.qualityIndex)
+        TraceFilters("trading_house.filters", "quality_applied", { fn = "Filters.SetBrowseFilterSpec", qualityIndex = spec.qualityIndex })
     end
 
     -- Category is a dropdown feature.
@@ -200,6 +233,7 @@ function Filters.SetBrowseFilterSpec(spec)
         and features.searchCategoryFeature
         and features.searchCategoryFeature.SelectChoice then
         features.searchCategoryFeature:SelectChoice(spec.categoryIndex)
+        TraceFilters("trading_house.filters", "category_applied", { fn = "Filters.SetBrowseFilterSpec", categoryIndex = spec.categoryIndex })
     end
 
     -- Level range is not a default gamepad browse feature, so it is stored and
@@ -209,8 +243,10 @@ function Filters.SetBrowseFilterSpec(spec)
         Filters.pendingSpec.levelMin = spec.levelMin
         Filters.pendingSpec.levelMax = spec.levelMax
         Filters.pendingSpec.isChampionRank = spec.isChampionRank
+        TraceFilters("trading_house.filters", "pending_level", { fn = "Filters.SetBrowseFilterSpec", levelMin = spec.levelMin, levelMax = spec.levelMax, isChampionRank = spec.isChampionRank })
     end
 
+    TraceFilters("trading_house.filters", "set_complete", { fn = "Filters.SetBrowseFilterSpec", hasPendingSpec = Filters.pendingSpec ~= nil })
     return true
 end
 
@@ -219,9 +255,15 @@ end
 ---@param search table|nil
 ---@return boolean applied
 function Filters.ApplyPendingFilters(search)
-    if not search then return false end
+    if not search then
+        TraceFilters("trading_house.filters", "pending_skipped", { fn = "Filters.ApplyPendingFilters", reason = "missingSearch" })
+        return false
+    end
     local pending = Filters.pendingSpec
-    if not pending then return false end
+    if not pending then
+        TraceFilters("trading_house.filters", "pending_skipped", { fn = "Filters.ApplyPendingFilters", reason = "none" })
+        return false
+    end
 
     local applied = false
 
@@ -235,9 +277,11 @@ function Filters.ApplyPendingFilters(search)
             min = minLevel,
             max = maxLevel,
         }) or applied
+        TraceFilters("trading_house.filters", "pending_level_applied", { fn = "Filters.ApplyPendingFilters", minLevel = minLevel, maxLevel = maxLevel, isChampionRank = isCP, filterType = filterType, applied = applied })
     end
 
     Filters.pendingSpec = nil
+    TraceFilters("trading_house.filters", "pending_cleared", { fn = "Filters.ApplyPendingFilters", applied = applied })
     return applied
 end
 
@@ -270,6 +314,7 @@ end
 --- replace this with a polished gamepad UI later.
 function Filters.ShowFilterDialog()
     if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_ShowGamepadDialog) then
+        TraceFilters("trading_house.filters_dialog", "show_skipped", { fn = "Filters.ShowFilterDialog", reason = "missingDialogApi" })
         return
     end
 
@@ -330,8 +375,10 @@ function Filters.ShowFilterDialog()
                     text = SI_DIALOG_CONFIRM,
                     callback = function(dialog)
                         local data = dialog.data or {}
+                        TraceFilters("trading_house.filters_dialog", "confirm", { fn = "Filters.ShowFilterDialog", data = data })
                         if Filters.SetBrowseFilterSpec(data) then
                             if TH.BrowseComponent then
+                                TraceFilters("trading_house.filters_dialog", "execute_search", { fn = "Filters.ShowFilterDialog" })
                                 TH.BrowseComponent:ExecuteSearch()
                             end
                         end
@@ -339,10 +386,14 @@ function Filters.ShowFilterDialog()
                 },
                 {
                     text = SI_DIALOG_CANCEL,
+                    callback = function()
+                        TraceFilters("trading_house.filters_dialog", "cancel", { fn = "Filters.ShowFilterDialog" })
+                    end,
                 },
             },
         })
     end
 
+    TraceFilters("trading_house.filters_dialog", "shown", { fn = "Filters.ShowFilterDialog" })
     ZO_Dialogs_ShowGamepadDialog(FILTER_DIALOG_NAME, {})
 end

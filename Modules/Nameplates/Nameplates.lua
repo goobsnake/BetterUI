@@ -279,11 +279,14 @@ local function ApplyNameplateFont(font, style, size)
         end
         return
     end
+    local requestedSize = size
+    size = ClampNameplateSize(size, DEFAULT_NAMEPLATE_SIZE)
     TraceNameplates("nameplates.font_apply", "begin", {
         fn = "Nameplates.ApplyNameplateFont",
         font = font,
         style = style,
         size = size,
+        requestedSize = requestedSize,
         hasKeyboardSetter = type(SetNameplateKeyboardFont) == "function",
         hasGamepadSetter = type(SetNameplateGamepadFont) == "function",
     })

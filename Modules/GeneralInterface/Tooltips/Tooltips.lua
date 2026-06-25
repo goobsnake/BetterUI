@@ -838,23 +838,36 @@ function Tooltips.InventoryHook(config)
     if type(ZO_PreHook) ~= "function" or type(ZO_PostHook) ~= "function" then
         return
     end
-    if not tooltipControl[layoutItemName] or not tooltipControl[layoutBagName] or not tooltipControl[layoutStoreName] then
+    local hasItemLayout = layoutItemName and tooltipControl[layoutItemName] ~= nil
+    local hasBagLayout = layoutBagName and tooltipControl[layoutBagName] ~= nil
+    local hasStoreLayout = layoutStoreName and tooltipControl[layoutStoreName] ~= nil
+    if not (hasItemLayout or hasBagLayout or hasStoreLayout) then
         return
     end
 
     local stateHelpers = Tooltips.InventoryHookState
     local hookRuntime = Tooltips.InventoryHookOrchestrator
     local state = stateHelpers.Ensure(tooltipControl)
-    local hookKey = string.format("%s|%s|%s|%s", tostring(layoutItemName), tostring(layoutBagName), tostring(layoutStoreName), tostring(tooltipType))
+    local hookKey = string.format("%s|%s|%s|%s",
+        hasItemLayout and tostring(layoutItemName) or "-",
+        hasBagLayout and tostring(layoutBagName) or "-",
+        hasStoreLayout and tostring(layoutStoreName) or "-",
+        tostring(tooltipType))
     if state.installedHooks[hookKey] then
         return
     end
     state.installedHooks[hookKey] = true
 
     hookRuntime.InstallClearLinesHook(tooltipControl, state, tooltipType)
-    hookRuntime.InstallBagLayoutHook(tooltipControl, layoutBagName, state, tooltipType, layoutBagDataFn)
-    hookRuntime.InstallStoreLayoutHook(tooltipControl, layoutStoreName, state, tooltipType, layoutStoreDataFn)
-    hookRuntime.InstallItemLayoutHooks(tooltipControl, layoutItemName, state, tooltipType, layoutItemDataFn)
+    if hasBagLayout then
+        hookRuntime.InstallBagLayoutHook(tooltipControl, layoutBagName, state, tooltipType, layoutBagDataFn)
+    end
+    if hasStoreLayout then
+        hookRuntime.InstallStoreLayoutHook(tooltipControl, layoutStoreName, state, tooltipType, layoutStoreDataFn)
+    end
+    if hasItemLayout then
+        hookRuntime.InstallItemLayoutHooks(tooltipControl, layoutItemName, state, tooltipType, layoutItemDataFn)
+    end
 end
 
 -- Passthrough helpers for tooltip hook data extraction

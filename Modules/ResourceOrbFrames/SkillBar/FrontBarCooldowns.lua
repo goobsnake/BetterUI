@@ -307,6 +307,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
             local iconControl = children.Icon or btn:GetNamedChild("Icon")
             local timerText = children.TimerText or btn:GetNamedChild("TimerText")
             local altTimerText = children.CooldownText or btn:GetNamedChild("CooldownText")
+            local abilityId = type(GetSlotBoundId) == "function" and GetSlotBoundId(mapping.slot, mapping.category) or nil
 
             if showCooldown then
                 if btn._betteruiLastCooldownState ~= true then
@@ -315,7 +316,10 @@ local function UpdateFrontBarCooldowns(rootFrame)
                         button = mapping.buttonName,
                         slot = mapping.slot,
                         category = mapping.category,
+                        abilityId = abilityId,
+                        remainMs = remainMs,
                         duration = durationMs,
+                        stateKey = cooldownStateKey,
                     })
                 end
                 local visualRemainMs = CooldownUtils.GetSmoothedRemaining(cooldownStateKey, remainMs, durationMs)
@@ -379,6 +383,10 @@ local function UpdateFrontBarCooldowns(rootFrame)
                         button = mapping.buttonName,
                         slot = mapping.slot,
                         category = mapping.category,
+                        abilityId = abilityId,
+                        remainMs = remainMs,
+                        duration = durationMs,
+                        stateKey = cooldownStateKey,
                     })
                 end
                 CooldownUtils.ResetSmoothedRemaining(cooldownStateKey)

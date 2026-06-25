@@ -363,7 +363,10 @@ function BETTERUI.Companions.Class:RefreshCategories()
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "companion categories built", {
             prevKey = previousKey,
-            newKey = newKey
+            newKey = newKey,
+            visibleCount = #visibleCategories,
+            selectedIndex = selectedIndex,
+            itemCount = newCategory and newCategory.itemCount or nil,
         })
     end
 
@@ -450,10 +453,21 @@ end
 function BETTERUI.Companions.Class:CycleCategory(delta)
     local categories = self.companionCategories or {}
     if #categories <= 1 then
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "companion category cycle skipped", {
+                reason = "notEnoughCategories",
+                categoryCount = #categories,
+                delta = delta,
+            })
+        end
         return
     end
 
-    local nextIndex = (self.currentCategoryIndex or 1) + delta
+    local previousIndex = self.currentCategoryIndex or 1
+    local previousCategory = categories[previousIndex]
+    local previousTarget = self.list and self.list.GetTargetData and self.list:GetTargetData() or nil
+    local previousDs = previousTarget and (previousTarget.dataSource or previousTarget) or nil
+    local nextIndex = previousIndex + delta
     if nextIndex > #categories then
         nextIndex = 1
     elseif nextIndex < 1 then
@@ -473,6 +487,23 @@ function BETTERUI.Companions.Class:CycleCategory(delta)
         self._suppressCompanionHeaderSelection = true
         tabBar:SetSelectedIndexWithoutAnimation(nextIndex, true, true)
         self._suppressCompanionHeaderSelection = false
+    end
+    local nextCategory = categories[nextIndex]
+    local nextTarget = self.list and self.list.GetTargetData and self.list:GetTargetData() or nil
+    local nextDs = nextTarget and (nextTarget.dataSource or nextTarget) or nil
+    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.CATEGORY, "companion category cycled", {
+            delta = delta,
+            previousIndex = previousIndex,
+            nextIndex = nextIndex,
+            previousKey = previousCategory and previousCategory.key or nil,
+            nextKey = nextCategory and nextCategory.key or nil,
+            categoryCount = #categories,
+            selectedBagIdBefore = previousDs and previousDs.bagId or nil,
+            selectedSlotIndexBefore = previousDs and previousDs.slotIndex or nil,
+            selectedBagIdAfter = nextDs and nextDs.bagId or nil,
+            selectedSlotIndexAfter = nextDs and nextDs.slotIndex or nil,
+        })
     end
 end
 

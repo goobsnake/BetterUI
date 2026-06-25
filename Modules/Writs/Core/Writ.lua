@@ -119,10 +119,24 @@ local function BuildActiveWritLookup()
 
 			if currentWrit ~= -1 then
 				matched = matched + 1
+				if activeWrits[currentWrit] then
+					TraceWrit("writ.lookup", "duplicate_overwrite", {
+						craftType = currentWrit,
+						previousQuestId = activeWrits[currentWrit].id,
+						nextQuestId = questId,
+						nextQuestName = questName,
+					})
+				end
 				activeWrits[currentWrit] = {
 					id = questId,
 					writLines = Writs.GetFormattedObjectives(questId),
 				}
+			else
+				TraceWrit("writ.lookup", "unmatched_quest", {
+					questId = questId,
+					questName = questName,
+					patternCount = #patterns,
+				})
 			end
 		end
 	end

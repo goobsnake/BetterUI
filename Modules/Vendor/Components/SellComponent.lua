@@ -167,6 +167,25 @@ function Sell:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_SELL"))
 end
 
+local function TraceSellBlocked(vendorInstance, reason, ds, extra)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    extra = extra or {}
+    extra.module = "Vendor"
+    extra.scene = BETTERUI_VENDOR_SCENE_NAME
+    extra.feature = "vendor-sell"
+    extra.fn = extra.fn or "Vendor.SellComponent.OnPrimaryAction"
+    extra["function"] = extra["function"] or extra.fn
+    extra.mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil
+    extra.reason = reason
+    if ds then
+        extra.bagId = extra.bagId or ds.bagId
+        extra.slotIndex = extra.slotIndex or ds.slotIndex
+        extra.item = extra.item or (L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name)
+    end
+    L.TraceEvent(L.CATEGORY.ACTION, "vendor.sell", "blocked", extra)
+end
+
 function Sell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = GetTargetRowData(vendorInstance)
     if not selectedData then return false end
@@ -195,26 +214,37 @@ end
 
 function Sell:OnPrimaryAction(vendorInstance)
     local selectedData = GetTargetRowData(vendorInstance)
-    if not selectedData then return end
+    if not selectedData then
+        TraceSellBlocked(vendorInstance, "noSelection")
+        return
+    end
     local ds = selectedData.dataSource or selectedData
 
     local bagId = ds.bagId
     local slotIndex = ds.slotIndex
-    if bagId == nil or slotIndex == nil then return end
+    if bagId == nil or slotIndex == nil then
+        TraceSellBlocked(vendorInstance, "missingBagSlot", ds)
+        return
+    end
 
     -- Block selling at the gold cap with a user-visible alert (native parity).
     if IsAtGoldCap() then
+        TraceSellBlocked(vendorInstance, "goldCap", ds)
         BETTERUI.CIM.UserAlertText("Sell:GoldCap", GoldCapMessage())
         return
     end
 
     local canSell = AuthorizeVendorAction(Vendor.ACTION.SELL, bagId, slotIndex, vendorInstance)
     if canSell ~= true then
+        TraceSellBlocked(vendorInstance, "authorizationDenied", ds)
         return
     end
 
     local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
-    if stackSize <= 0 then return end
+    if stackSize <= 0 then
+        TraceSellBlocked(vendorInstance, "emptyStack", ds, { stackSize = stackSize })
+        return
+    end
 
     local L = BETTERUI.Log
     if L and L.TraceEvent then
@@ -255,12 +285,14 @@ function Sell:SellAllJunk(vendorInstance)
     -- so pre-check the cap before collecting/queuing (pairs with the per-item
     -- sell block above).
     if IsAtGoldCap() then
+        TraceSellBlocked(vendorInstance, "goldCap", nil, { fn = "Vendor.SellComponent.SellAllJunk", action = "sellAllJunk" })
         BETTERUI.CIM.UserAlertText("Sell:GoldCap", GoldCapMessage())
         return
     end
 
     local _, itemCount = Vendor.GetJunkSellSummary()
     if itemCount <= 0 then
+        TraceSellBlocked(vendorInstance, "noJunk", nil, { fn = "Vendor.SellComponent.SellAllJunk", action = "sellAllJunk", candidateCount = itemCount })
         BETTERUI.CIM.UserAlertText("Sell:NoJunk",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_JUNK")))
         return
@@ -300,6 +332,7 @@ function Sell:SellAllJunk(vendorInstance)
     if #items == 0 then
         -- Junk exists but authorization filtered every slot (player-locked,
         -- stolen, zero-value, ...); tell the user instead of silently no-oping.
+        TraceSellBlocked(vendorInstance, "noAuthorizedJunk", nil, { fn = "Vendor.SellComponent.SellAllJunk", action = "sellAllJunk", candidateCount = itemCount, eligibleCount = #items })
         BETTERUI.CIM.UserAlertText("Sell:NoJunk",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_JUNK")))
         return

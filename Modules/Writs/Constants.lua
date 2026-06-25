@@ -37,6 +37,7 @@ BETTERUI.Writs.CONST = {
             {pattern = "schreiner",  craftType = CRAFTING_TYPE_WOODWORKING},
             {pattern = "verzauber",  craftType = CRAFTING_TYPE_ENCHANTING},
             {pattern = "versorger",  craftType = CRAFTING_TYPE_PROVISIONING},
+            {pattern = "hexen",      craftType = CRAFTING_TYPE_PROVISIONING}, -- Festival event
             {pattern = "alchemist",  craftType = CRAFTING_TYPE_ALCHEMY},
             {pattern = "schmuck",    craftType = CRAFTING_TYPE_JEWELRYCRAFTING},
         },
@@ -46,6 +47,7 @@ BETTERUI.Writs.CONST = {
             {pattern = "travail du bois", craftType = CRAFTING_TYPE_WOODWORKING},
             {pattern = "enchant",    craftType = CRAFTING_TYPE_ENCHANTING},
             {pattern = "cuisine",    craftType = CRAFTING_TYPE_PROVISIONING},
+            {pattern = "sorci",      craftType = CRAFTING_TYPE_PROVISIONING}, -- Festival event
             {pattern = "alchimiste", craftType = CRAFTING_TYPE_ALCHEMY},
             {pattern = "joaillerie", craftType = CRAFTING_TYPE_JEWELRYCRAFTING},
         }

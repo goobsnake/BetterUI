@@ -139,18 +139,21 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
 
     local ds = itemData and (itemData.dataSource or itemData) or nil
     if not ds then
+        TraceVendorBatch("vendor.batch_step", "skipped", { fn = "BatchRuntime.ExecuteBatchAction", mode = mode, reason = "missingData" })
         return batchStepHandled()
     end
 
     if mode == MODE.BUY then
         local entryIndex = ds.entryIndex or ds.slotIndex
         if not entryIndex then
+            TraceVendorBatch("vendor.batch_step", "skipped", { fn = "BatchRuntime.ExecuteBatchAction", mode = mode, reason = "missingEntryIndex", item = DescribeBatchItem(ds) })
             return batchStepHandled()
         end
         -- Locked entries (missing requirements, already-owned collectible, ...)
         -- cannot be purchased; mirror BuyComponent's single-buy guard so the
         -- batch skips them instead of attempting a doomed BuyStoreItem.
         if ds.meetsRequirementsToBuy == false then
+            TraceVendorBatch("vendor.batch_step", "skipped", { fn = "BatchRuntime.ExecuteBatchAction", mode = mode, reason = "requirementsNotMet", entryIndex = entryIndex, item = DescribeBatchItem(ds) })
             return batchStepSkipped()
         end
         -- Stores re-index entries when rows sell out mid-batch; the
@@ -159,11 +162,13 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         if type(GetStoreEntryInfo) == "function" then
             local _, liveName = GetStoreEntryInfo(entryIndex)
             if not liveName or liveName == "" then
+                TraceVendorBatch("vendor.batch_step", "skipped", { fn = "BatchRuntime.ExecuteBatchAction", mode = mode, reason = "liveEntryMissing", entryIndex = entryIndex, item = DescribeBatchItem(ds) })
                 return batchStepSkipped()
             end
             local liveLink = (type(GetStoreItemLink) == "function") and GetStoreItemLink(entryIndex) or nil
             if ds.itemLink and liveLink then
                 if liveLink ~= ds.itemLink then
+                    TraceVendorBatch("vendor.batch_step", "skipped", { fn = "BatchRuntime.ExecuteBatchAction", mode = mode, reason = "liveLinkMismatch", entryIndex = entryIndex, expectedItemLink = ds.itemLink, liveItemLink = liveLink, item = DescribeBatchItem(ds) })
                     return batchStepSkipped()
                 end
             elseif ds.name then
@@ -173,6 +178,7 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
                     formattedLiveName = zo_strformat(SI_TOOLTIP_ITEM_NAME, liveName)
                 end
                 if ds.name ~= liveName and ds.name ~= formattedLiveName then
+                    TraceVendorBatch("vendor.batch_step", "skipped", { fn = "BatchRuntime.ExecuteBatchAction", mode = mode, reason = "liveNameMismatch", entryIndex = entryIndex, expectedName = ds.name, liveName = liveName, formattedLiveName = formattedLiveName, item = DescribeBatchItem(ds) })
                     return batchStepSkipped()
                 end
             end
