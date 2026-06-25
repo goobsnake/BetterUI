@@ -606,6 +606,16 @@ local function SnapshotInventoryVisible(inv)
 	return SnapshotControlVisible(inv.control)
 end
 
+local function SnapshotKeybindPresent(descriptor)
+	if descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
+		local ok, hasGroup = pcall(function()
+			return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
+		end)
+		return (ok and hasGroup) and 1 or 0
+	end
+	return 0
+end
+
 local function RegisterInventorySnapshotProvider()
 	local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
 	if not (watch and watch.RegisterSnapshotProvider) then return end
@@ -613,15 +623,11 @@ local function RegisterInventorySnapshotProvider()
 		local inv = rawget(_G, "GAMEPAD_INVENTORY")
 		if not inv then return "window=0" end
 		if not SnapshotInventoryVisible(inv) then return "window=1 visible=0" end
-		local keybindMain = 0
-		if inv.mainKeybindStripDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
-			local ok, hasGroup = pcall(function()
-				return KEYBIND_STRIP:HasKeybindButtonGroup(inv.mainKeybindStripDescriptor)
-			end)
-			keybindMain = (ok and hasGroup) and 1 or 0
-		end
+		local integration = inv._headerSortIntegration
+		local keybindMain = SnapshotKeybindPresent(inv.mainKeybindStripDescriptor)
+		local keybindHeader = SnapshotKeybindPresent((integration and integration.activeKeybindDescriptor) or inv.headerSortKeybindDescriptor)
 		return string.format(
-			"window=1 visible=1 mode=%s category=%s itemRows=%d craftRows=%d itemIdx=%d craftIdx=%d dirty=%d batch=%d headerSort=%d keybindMain=%d",
+			"window=1 visible=1 mode=%s category=%s itemRows=%d craftRows=%d itemIdx=%d craftIdx=%d dirty=%d batch=%d headerSort=%d keybindMain=%d keybindHeader=%d headerActive=%d",
 			tostring(inv.actionMode or inv.currentListType or "?"),
 			tostring(SnapshotCategoryKey(inv)),
 			CountSnapshotRows(inv.itemList),
@@ -631,7 +637,9 @@ local function RegisterInventorySnapshotProvider()
 			inv.isDirty and 1 or 0,
 			(inv.pendingBatchData or (inv.IsBatchProcessing and inv:IsBatchProcessing())) and 1 or 0,
 			inv.isInHeaderSortMode and 1 or 0,
-			keybindMain)
+			keybindMain,
+			keybindHeader,
+			integration and integration.isActive and 1 or 0)
 	end)
 end
 

@@ -8,6 +8,8 @@ local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 -- Module-level dialog info references; created once and mutated before each show call.
 local _batchDialogInfo = nil
 local _craftBagDialogInfo = nil
+local TraceInventoryBatch
+local ResolveDialogEntryLabel
 
 -- Shared frame template for both batch dialogs (title, buttons, and gamepadInfo are identical).
 local function BuildBatchDialogTemplate()
@@ -36,7 +38,17 @@ local function BuildBatchDialogTemplate()
                     local selected = dialog.entryList and
                         BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
                     if selected and selected.callback then
+                        TraceInventoryBatch("action_selected", {
+                            dialogName = dialog and dialog.data and dialog.data.dialogName,
+                            action = ResolveDialogEntryLabel(selected),
+                        })
                         selected.callback()
+                    else
+                        TraceInventoryBatch("action_skipped", {
+                            dialogName = dialog and dialog.data and dialog.data.dialogName,
+                            reason = "missingCallback",
+                            action = ResolveDialogEntryLabel(selected),
+                        })
                     end
                 end,
             },
@@ -55,6 +67,94 @@ local function BuildBatchDialogTemplate()
     }
 end
 
+local function IsInventoryBatchTraceActive()
+    return BETTERUI.Log and BETTERUI.Log.IsActive and BETTERUI.Log.IsActive()
+end
+
+TraceInventoryBatch = function(phase, data)
+    if not IsInventoryBatchTraceActive() then
+        return
+    end
+    data = data or {}
+    data.phase = phase
+    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "inventory batch menu", data)
+end
+
+local function NormalizeTraceValue(value)
+    if value == nil then
+        return nil
+    end
+    local normalize = BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
+    if normalize then
+        return normalize(value)
+    end
+    return tostring(value)
+end
+
+local function DescribeSelectionItem(itemData, index)
+    local rawData = itemData and (itemData.dataSource or itemData) or nil
+    if not rawData then
+        return nil
+    end
+    local bagId = rawData.bagId or itemData.bagId
+    local slotIndex = rawData.slotIndex or itemData.slotIndex
+    local stackCount
+    if bagId and slotIndex and GetSlotStackSize then
+        stackCount = GetSlotStackSize(bagId, slotIndex)
+    end
+    return {
+        index = index,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        name = rawData.name or itemData.name,
+        uniqueId = NormalizeTraceValue(rawData.uniqueId or itemData.uniqueId),
+        stackCount = stackCount,
+        selected = rawData.selected == true or itemData.selected == true,
+    }
+end
+
+local function BuildSelectionSample(selectedItems, maxItems)
+    if not IsInventoryBatchTraceActive() then
+        return nil
+    end
+    local sample = {}
+    local limit = math.min(#selectedItems, maxItems or 10)
+    for i = 1, limit do
+        sample[#sample + 1] = DescribeSelectionItem(selectedItems[i], i)
+    end
+    return sample
+end
+
+ResolveDialogEntryLabel = function(entry)
+    local data = entry and (entry.entryData or entry) or nil
+    if not data then
+        return nil
+    end
+    if type(data.GetText) == "function" then
+        local ok, label = pcall(data.GetText, data)
+        if ok then
+            return label
+        end
+    end
+    return data.text or data.name or data.label
+end
+
+local function BuildDialogEntryLabels(parametricList)
+    if not IsInventoryBatchTraceActive() then
+        return nil
+    end
+    local labels = {}
+    for index, entry in ipairs(parametricList or {}) do
+        labels[#labels + 1] = {
+            index = index,
+            label = ResolveDialogEntryLabel(entry),
+            hasCallback = entry and entry.entryData and type(entry.entryData.callback) == "function"
+                or type(entry and entry.callback) == "function",
+        }
+    end
+    return labels
+end
+
 -- MULTI-SELECT MODE (delegates to CIM.MultiSelectMixin)
 -- The mixin is applied during InitializeKeybindStrip (InventoryKeybinds.lua).
 
@@ -70,13 +170,22 @@ MultiSelectMixin.BindDelegates(Class, {
 ---@return nil
 function Class:ShowBatchActionsMenu()
     if not self.multiSelectManager or not self.multiSelectManager:IsActive() then
+        TraceInventoryBatch("show_skipped", { dialogName = "BETTERUI_BATCH_ACTIONS_DIALOG", reason = "inactive" })
         return
     end
 
     local selectedItems = self.multiSelectManager:GetSelectedItems()
     local selectedCount = #selectedItems
     if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "Opening batch actions menu", {selectedCount = selectedCount}) end
-    if selectedCount == 0 then return end
+    TraceInventoryBatch("show_request", {
+        dialogName = "BETTERUI_BATCH_ACTIONS_DIALOG",
+        selectedCount = selectedCount,
+        selected = BuildSelectionSample(selectedItems, 10),
+    })
+    if selectedCount == 0 then
+        TraceInventoryBatch("show_skipped", { dialogName = "BETTERUI_BATCH_ACTIONS_DIALOG", reason = "emptySelection" })
+        return
+    end
 
     -- Analyze selected items using shared mixin (lock/unlock/junk counts)
     local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
@@ -151,7 +260,17 @@ function Class:ShowBatchActionsMenu()
     ))
 
     _batchDialogInfo.parametricList = parametricList
-    BETTERUI.CIM.Dialogs.Show(dialogName, { selectedCount = selectedCount })
+    TraceInventoryBatch("show_dialog", {
+        dialogName = dialogName,
+        selectedCount = selectedCount,
+        counts = counts,
+        canDestroyCount = canDestroyCount,
+        canStowCount = canStowCount,
+        batchDestroyEnabled = batchDestroyEnabled == true,
+        actions = BuildDialogEntryLabels(parametricList),
+        selected = BuildSelectionSample(selectedItems, 10),
+    })
+    BETTERUI.CIM.Dialogs.Show(dialogName, { selectedCount = selectedCount, dialogName = dialogName })
 end
 
 -- CRAFTBAG MULTI-SELECT MODE
@@ -215,12 +334,21 @@ end
 --- Shows the batch actions menu for multi-selected craftbag items.
 function Class:ShowCraftBagBatchActionsMenu()
     if not self.craftBagMultiSelectManager or not self.craftBagMultiSelectManager:IsActive() then
+        TraceInventoryBatch("show_skipped", { dialogName = "BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG", reason = "inactive" })
         return
     end
 
     local selectedItems = self.craftBagMultiSelectManager:GetSelectedItems()
     local selectedCount = #selectedItems
-    if selectedCount == 0 then return end
+    TraceInventoryBatch("show_request", {
+        dialogName = "BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG",
+        selectedCount = selectedCount,
+        selected = BuildSelectionSample(selectedItems, 10),
+    })
+    if selectedCount == 0 then
+        TraceInventoryBatch("show_skipped", { dialogName = "BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG", reason = "emptySelection" })
+        return
+    end
 
     local dialogName = "BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG"
     if not _craftBagDialogInfo then
@@ -272,7 +400,13 @@ function Class:ShowCraftBagBatchActionsMenu()
     })
 
     _craftBagDialogInfo.parametricList = parametricList
-    BETTERUI.CIM.Dialogs.Show(dialogName, { selectedCount = selectedCount })
+    TraceInventoryBatch("show_dialog", {
+        dialogName = dialogName,
+        selectedCount = selectedCount,
+        actions = BuildDialogEntryLabels(parametricList),
+        selected = BuildSelectionSample(selectedItems, 10),
+    })
+    BETTERUI.CIM.Dialogs.Show(dialogName, { selectedCount = selectedCount, dialogName = dialogName })
 end
 
 --- Selects all items in the current craftbag category.

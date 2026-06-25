@@ -42,6 +42,48 @@ local function TraceHeaderSortKeybind(controller, action, phase, data)
     L.TraceEvent(L.CATEGORY.SORT, "sort.header_keybind", phase, data)
 end
 
+local function IsHeaderSortKeybindPresent(controller)
+    local descriptor = controller and controller._headerSortKeybindDescriptor
+    if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
+        return false
+    end
+    local ok, present = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) end)
+    return ok and present == true
+end
+
+local function RefreshHeaderSortKeybinds(controller, action)
+    local descriptor = controller and controller._headerSortKeybindDescriptor
+    local refreshPath = "none"
+    local refreshOk = false
+    local refreshError = nil
+
+    if KEYBIND_STRIP and type(KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups) == "function" then
+        refreshPath = "current"
+        local ok, err = pcall(function() KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups() end)
+        refreshOk = ok == true
+        refreshError = ok and nil or tostring(err)
+    end
+
+    if not refreshOk and descriptor and KEYBIND_STRIP and type(KEYBIND_STRIP.UpdateKeybindButtonGroup) == "function" then
+        refreshPath = refreshPath == "none" and "descriptor" or "descriptorFallback"
+        local ok, err = pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor) end)
+        refreshOk = ok == true
+        refreshError = ok and nil or tostring(err)
+    end
+
+    if refreshPath == "none" then
+        refreshError = "missingKeybindRefresh"
+    end
+
+    TraceHeaderSortKeybind(controller, action, "refresh", {
+        refreshPath = refreshPath,
+        refreshOk = refreshOk,
+        refreshError = refreshError,
+        stripHasHeader = IsHeaderSortKeybindPresent(controller),
+    })
+    return refreshOk, refreshPath
+end
+
 -- SORT FUNCTION HELPERS
 
 ---@return fun(left: table, right: table): boolean|nil
@@ -104,8 +146,8 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
                 TraceHeaderSortKeybind(controller, "primary", "start")
                 local result = controller:ToggleSort()
                 PlaySound(SOUNDS.DEFAULT_CLICK)
-                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                TraceHeaderSortKeybind(controller, "primary", "end", { handled = result ~= false })
+                local refreshOk, refreshPath = RefreshHeaderSortKeybinds(controller, "primary")
+                TraceHeaderSortKeybind(controller, "primary", "end", { handled = result ~= false, refreshOk = refreshOk, refreshPath = refreshPath })
             end,
         },
         -- B button: Exit header mode
@@ -139,12 +181,14 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             callback = function()
                 TraceHeaderSortKeybind(controller, "clear", "start")
                 local handled = false
+                local refreshOk = nil
+                local refreshPath = nil
                 if controller:ClearSort() then
                     PlaySound(SOUNDS.DEFAULT_CLICK)
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                    refreshOk, refreshPath = RefreshHeaderSortKeybinds(controller, "clear")
                     handled = true
                 end
-                TraceHeaderSortKeybind(controller, "clear", "end", { handled = handled })
+                TraceHeaderSortKeybind(controller, "clear", "end", { handled = handled, refreshOk = refreshOk, refreshPath = refreshPath })
             end,
         },
         -- LB: Navigate to previous column (visible on keybind strip)
@@ -166,12 +210,14 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             callback = function()
                 TraceHeaderSortKeybind(controller, "left", "start")
                 local handled = false
+                local refreshOk = nil
+                local refreshPath = nil
                 if controller:NavigateLeft() then
                     PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                    refreshOk, refreshPath = RefreshHeaderSortKeybinds(controller, "left")
                     handled = true
                 end
-                TraceHeaderSortKeybind(controller, "left", "end", { handled = handled })
+                TraceHeaderSortKeybind(controller, "left", "end", { handled = handled, refreshOk = refreshOk, refreshPath = refreshPath })
             end,
         },
         -- RB: Navigate to next column (visible on keybind strip)
@@ -193,12 +239,14 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             callback = function()
                 TraceHeaderSortKeybind(controller, "right", "start")
                 local handled = false
+                local refreshOk = nil
+                local refreshPath = nil
                 if controller:NavigateRight() then
                     PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                    refreshOk, refreshPath = RefreshHeaderSortKeybinds(controller, "right")
                     handled = true
                 end
-                TraceHeaderSortKeybind(controller, "right", "end", { handled = handled })
+                TraceHeaderSortKeybind(controller, "right", "end", { handled = handled, refreshOk = refreshOk, refreshPath = refreshPath })
             end,
         },
         -- Y button: Already in header mode, show current state (no-op)

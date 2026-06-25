@@ -61,13 +61,44 @@ local function WrapGeneralInterfaceSettingControls(controls, groupKey)
             if type(control.setFunc) == "function" and not control._betteruiLogWrappedSetFunc then
                 local originalSetFunc = control.setFunc
                 control.setFunc = function(value, ...)
-                    TraceGeneralSetting(settingName, "set_begin", { type = control.type, group = groupKey, index = index, value = value })
+                    local oldValue = nil
+                    if type(control.getFunc) == "function" then
+                        local okOld, oldResult = pcall(control.getFunc)
+                        if okOld then oldValue = oldResult end
+                    end
+                    TraceGeneralSetting(settingName, "set_begin", {
+                        type = control.type,
+                        group = groupKey,
+                        index = index,
+                        oldValue = oldValue,
+                        newValue = value,
+                    })
                     local results = CapturePcallResults(pcall(originalSetFunc, value, ...))
                     if not results.ok then
-                        TraceGeneralSetting(settingName, "set_error", { type = control.type, group = groupKey, index = index, value = value, error = tostring(results[1]) })
+                        TraceGeneralSetting(settingName, "set_error", {
+                            type = control.type,
+                            group = groupKey,
+                            index = index,
+                            oldValue = oldValue,
+                            newValue = value,
+                            error = tostring(results[1]),
+                        })
                         error(results[1], 2)
                     end
-                    TraceGeneralSetting(settingName, "set_end", { type = control.type, group = groupKey, index = index, value = value })
+                    local appliedValue = value
+                    if type(control.getFunc) == "function" then
+                        local okApplied, appliedResult = pcall(control.getFunc)
+                        if okApplied then appliedValue = appliedResult end
+                    end
+                    TraceGeneralSetting(settingName, "set_end", {
+                        type = control.type,
+                        group = groupKey,
+                        index = index,
+                        oldValue = oldValue,
+                        newValue = value,
+                        appliedValue = appliedValue,
+                        changed = oldValue ~= appliedValue,
+                    })
                     return unpack(results, 1, results.n)
                 end
                 control._betteruiLogWrappedSetFunc = true

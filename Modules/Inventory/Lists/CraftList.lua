@@ -54,6 +54,45 @@ end
 -- the canonical default comparator instead of a bare global.
 BETTERUI.Inventory.CraftListDefaultSortComparator = BETTERUI_CraftList_DefaultItemSortComparator
 
+local function TraceCraftList(phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Inventory"
+    data.feature = "craftBagList"
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.LIST or "LIST", "craftbag.list_refresh", phase, data)
+end
+
+local function DescribeCraftFilter(filterType)
+    if type(filterType) ~= "table" then return filterType end
+    local out = {}
+    local count = 0
+    for _, value in pairs(filterType) do
+        count = count + 1
+        if #out < 5 then out[#out + 1] = value end
+    end
+    return { count = count, sample = out }
+end
+
+local function BuildCraftListSample(items, limit)
+    local sample = {}
+    local count = items and #items or 0
+    local sampleCount = math.min(count, limit or 5)
+    for i = 1, sampleCount do
+        local itemData = items[i]
+        sample[#sample + 1] = {
+            index = i,
+            name = itemData and itemData.name,
+            bagId = itemData and itemData.bagId,
+            slotIndex = itemData and itemData.slotIndex,
+            uniqueId = itemData and itemData.uniqueId and tostring(itemData.uniqueId) or nil,
+            category = itemData and itemData.bestItemCategoryName,
+        }
+    end
+    return sample
+end
+
 function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or
@@ -89,6 +128,11 @@ function BETTERUI.Inventory.CraftList:RefreshList(...)
     end
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "Refreshing CraftList", {filterType = filterType}) end
+    TraceCraftList("begin", {
+        filterType = DescribeCraftFilter(filterType),
+        searchLength = searchQuery and #tostring(searchQuery) or 0,
+        explicitArgs = select("#", ...) > 0,
+    })
 
     -- Cancel any in-flight deferred batch and reset pending state BEFORE the
     -- hidden early-out, so a refresh while hidden cannot leave a stale batch
@@ -105,6 +149,11 @@ function BETTERUI.Inventory.CraftList:RefreshList(...)
     -- the OnEffectivelyShown handler sees isDirty and refreshes on show.
     if self.control and self.control.IsHidden and self.control:IsHidden() then
         self.isDirty = true
+        TraceCraftList("skipped", {
+            reason = "hidden",
+            filterType = DescribeCraftFilter(filterType),
+            searchLength = searchQuery and #tostring(searchQuery) or 0,
+        })
         return
     end
     self.isDirty = false
@@ -120,6 +169,12 @@ function BETTERUI.Inventory.CraftList:RefreshList(...)
 
     self.itemFilterFunction = BETTERUI.Inventory.GetFilterComparator(filterType)
     local filteredDataTable = self:GenerateSlotTable()
+    TraceCraftList("filtered", {
+        rowCount = #filteredDataTable,
+        filterType = DescribeCraftFilter(filterType),
+        searchLength = searchQuery and #tostring(searchQuery) or 0,
+        sample = BuildCraftListSample(filteredDataTable, 5),
+    })
 
     -- Apply text search filtering when requested (case-insensitive substring match on item name only)
     -- Intentionally exclude category/type fields from the craft-bag search so
@@ -140,12 +195,22 @@ function BETTERUI.Inventory.CraftList:RefreshList(...)
             end
         end
         filteredDataTable = self.searchMatches
+        TraceCraftList("search_filtered", {
+            rowCount = #filteredDataTable,
+            searchLength = #tostring(searchQuery),
+            sample = BuildCraftListSample(filteredDataTable, 5),
+        })
     end
 
 
     -- Sort the filtered data using custom sort function if set, otherwise default
     local sortFunc = self.sortFunction or BETTERUI_CraftList_DefaultItemSortComparator
     table.sort(filteredDataTable, sortFunc)
+    TraceCraftList("sorted", {
+        rowCount = #filteredDataTable,
+        customSort = self.sortFunction ~= nil,
+        sample = BuildCraftListSample(filteredDataTable, 5),
+    })
 
     -- BATCH PROCESSING CONSTANTS (Using global BetterUI.Inventory.CONST)
 
@@ -172,27 +237,54 @@ function BETTERUI.Inventory.CraftList:RefreshList(...)
             end
         end
         self.list:Commit()
+        TraceCraftList("committed", {
+            mode = "sync",
+            rowCount = #filteredDataTable,
+            sample = BuildCraftListSample(filteredDataTable, 5),
+        })
         return
     end
 
     -- Large List: Batch
     self.pendingBatchData = filteredDataTable
     self.pendingBatchIndex = 1
-    self.pendingContext = { lastBestItemCategoryName = nil }
+    self.pendingContext = {
+        lastBestItemCategoryName = nil,
+        filterType = DescribeCraftFilter(filterType),
+        searchLength = searchQuery and #tostring(searchQuery) or 0,
+        sample = BuildCraftListSample(filteredDataTable, 5),
+    }
+    TraceCraftList("batch_begin", {
+        rowCount = #filteredDataTable,
+        filterType = self.pendingContext.filterType,
+        searchLength = self.pendingContext.searchLength,
+        sample = self.pendingContext.sample,
+    })
 
     self:ProcessBatch()
 end
 
 --- Processes a batch of craft bag items.
 function BETTERUI.Inventory.CraftList:ProcessBatch()
-    if not self.pendingBatchData or not self.list then return end
+    if not self.pendingBatchData or not self.list then
+        TraceCraftList("batch_skipped", {
+            reason = self.list and "missingPendingData" or "missingList",
+        })
+        return
+    end
 
     local startIndex = self.pendingBatchIndex or 1
     local totalItems = #self.pendingBatchData
 
     if startIndex > totalItems then
+        TraceCraftList("batch_complete", {
+            reason = "indexPastEnd",
+            rowCount = totalItems,
+            sample = self.pendingContext and self.pendingContext.sample or nil,
+        })
         self.pendingBatchData = nil
         self.pendingBatchIndex = nil
+        self.pendingContext = nil
         return
     end
 
@@ -222,10 +314,24 @@ function BETTERUI.Inventory.CraftList:ProcessBatch()
     self.pendingContext.lastBestItemCategoryName = lastBestItemCategoryName
     self.list:Commit()
     self.pendingBatchIndex = endIndex + 1
+    TraceCraftList("chunk_committed", {
+        startIndex = startIndex,
+        endIndex = endIndex,
+        nextIndex = self.pendingBatchIndex,
+        rowCount = totalItems,
+        sample = self.pendingContext and self.pendingContext.sample or nil,
+    })
 
     if self.pendingBatchIndex <= totalItems then
         BETTERUI.Inventory.Tasks:Schedule("craftBatchProcess", 10, function() self:ProcessBatch() end)
     else
+        TraceCraftList("committed", {
+            mode = "batch",
+            rowCount = totalItems,
+            sample = self.pendingContext and self.pendingContext.sample or nil,
+        })
         self.pendingBatchData = nil
+        self.pendingBatchIndex = nil
+        self.pendingContext = nil
     end
 end

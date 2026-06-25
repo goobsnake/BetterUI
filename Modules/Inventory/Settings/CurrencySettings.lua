@@ -125,6 +125,38 @@ local function EnsureInventorySettings()
     return BETTERUI.EnsureModuleSettings("Inventory")
 end
 
+local function TraceCurrencySetting(phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Inventory"
+    data.feature = "currencySettings"
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.SETTINGS or categories.SETTING or "SETTINGS", "inventory.currency_setting", phase, data)
+end
+
+local function SetCurrencySetting(settings, key, value, source)
+    if not settings then
+        TraceCurrencySetting("set_skipped", {
+            key = key,
+            newValue = value,
+            source = source,
+            reason = "missingSettings",
+        })
+        return false
+    end
+    local oldValue = settings[key]
+    settings[key] = value
+    TraceCurrencySetting("set", {
+        key = key,
+        oldValue = oldValue,
+        newValue = value,
+        changed = oldValue ~= value,
+        source = source,
+    })
+    return true
+end
+
 local function GetCurrencyLabel(dataEntry)
     return GetString(dataEntry.labelStr)
 end
@@ -167,9 +199,16 @@ local function CanEnableMoreCurrencies()
     return count < max
 end
 
-local function NotifyCurrencyEnableLimitReached()
+local function NotifyCurrencyEnableLimitReached(data)
     local maxVisible = BETTERUI_MAX_VISIBLE_CURRENCIES or 5
     local warningText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING")), maxVisible)
+    TraceCurrencySetting("change_blocked", {
+        currencyId = data and data.currencyId,
+        settingKey = data and data.settingKey,
+        attemptedValue = data and data.attemptedValue,
+        maxVisible = maxVisible,
+        reason = "visibleLimitReached",
+    })
     BETTERUI.Debug(warningText)
     if PlaySound and SOUNDS and SOUNDS.NEGATIVE_CLICK then
         PlaySound(SOUNDS.NEGATIVE_CLICK)
@@ -198,7 +237,7 @@ local function RecomputeCurrencyOrderString()
 
     local out = {}
     for i = 1, #items do out[i] = items[i].key end
-    inv.currencyOrder = table.concat(out, ",")
+    SetCurrencySetting(inv, "currencyOrder", table.concat(out, ","), "orderRecompute")
 end
 
 --- Applies a currency preset by enabling/disabling specific currencies.
@@ -208,15 +247,21 @@ function BETTERUI.ApplyCurrencyPreset(presetName)
 
     -- Use centralized preset definitions from Modules/CIM/Constants.lua
     if BETTERUI.CURRENCY_PRESETS and BETTERUI.CURRENCY_PRESETS[presetName] then
+        local applied = 0
+        TraceCurrencySetting("preset_begin", { preset = presetName, knownPreset = true })
         for k, v in pairs(BETTERUI.CURRENCY_PRESETS[presetName]) do
-            inv[k] = v
+            if SetCurrencySetting(inv, k, v, "preset:" .. tostring(presetName)) then
+                applied = applied + 1
+            end
         end
+        TraceCurrencySetting("preset_end", { preset = presetName, knownPreset = true, applied = applied })
         return
     end
+    TraceCurrencySetting("preset_begin", { preset = presetName, knownPreset = false })
 
     -- Fallback handling
     local function SetState(key, state)
-        inv[key] = state
+        SetCurrencySetting(inv, key, state, "preset:" .. tostring(presetName))
     end
 
     -- Default all to ON (true)
@@ -274,7 +319,7 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                 if not settings then
                     return
                 end
-                settings.currencyPreset = value
+                SetCurrencySetting(settings, "currencyPreset", value, "presetDropdown")
                 BETTERUI.ApplyCurrencyPreset(value)
                 RecomputeCurrencyOrderString()
                 SafeRefresh(true)
@@ -317,11 +362,15 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                         return
                     end
                     if value and not CanEnableMoreCurrencies() then
-                        NotifyCurrencyEnableLimitReached()
+                        NotifyCurrencyEnableLimitReached({
+                            currencyId = data.id,
+                            settingKey = data.settingKey,
+                            attemptedValue = value,
+                        })
                         return
                     end
-                    settings[data.settingKey] = value
-                    settings.currencyPreset = "custom"
+                    SetCurrencySetting(settings, data.settingKey, value, "currencyToggle")
+                    SetCurrencySetting(settings, "currencyPreset", "custom", "currencyToggle")
                     SafeRefresh(true)
                 end,
                 width = "half",
@@ -355,8 +404,8 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                     if not settings then
                         return
                     end
-                    settings[data.orderKey] = value
-                    settings.currencyPreset = "custom"
+                    SetCurrencySetting(settings, data.orderKey, value, "currencyOrder")
+                    SetCurrencySetting(settings, "currencyPreset", "custom", "currencyOrder")
                     RecomputeCurrencyOrderString()
                     SafeRefresh(true)
                 end,
@@ -378,7 +427,7 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
             BETTERUI.ApplyCurrencyPreset("default")
             local settings = EnsureInventorySettings()
             if settings then
-                settings.currencyPreset = "default"
+                SetCurrencySetting(settings, "currencyPreset", "default", "currencyReset")
             end
             RecomputeCurrencyOrderString()
             SafeRefresh(true)

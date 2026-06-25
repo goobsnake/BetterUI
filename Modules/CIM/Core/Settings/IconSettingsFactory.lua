@@ -131,11 +131,47 @@ local function EnsureModuleSettings(moduleName)
     return BETTERUI.Settings.Modules[moduleName]
 end
 
+local function TraceIconSetting(moduleName, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = moduleName
+    data.feature = "iconSettings"
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.SETTINGS or categories.SETTING or "SETTINGS", "settings.icon", phase, data)
+end
+
+local function SetIconSetting(moduleName, settings, key, value, source)
+    if not settings then
+        TraceIconSetting(moduleName, "set_skipped", {
+            key = key,
+            newValue = value,
+            source = source,
+            reason = "missingSettings",
+        })
+        return false
+    end
+    local oldValue = settings[key]
+    settings[key] = value
+    TraceIconSetting(moduleName, "set", {
+        key = key,
+        oldValue = oldValue,
+        newValue = value,
+        changed = oldValue ~= value,
+        source = source,
+    })
+    return true
+end
+
 local function ResetIconCustomizationSettings(moduleName, refreshFn)
     -- Registry reset first; the manual fallback only runs when the registry
     -- is absent or reports it did not handle the group (returns non-true).
     local settingsApi = BETTERUI.CIM.Settings
     local registryHandled = false
+    TraceIconSetting(moduleName, "reset_begin", {
+        group = "iconCustomization",
+        hasRegistry = settingsApi and type(settingsApi.ResetModuleSettingsByGroup) == "function",
+    })
     if settingsApi and type(settingsApi.ResetModuleSettingsByGroup) == "function" then
         registryHandled = settingsApi.ResetModuleSettingsByGroup(moduleName, "iconCustomization") == true
     end
@@ -144,11 +180,15 @@ local function ResetIconCustomizationSettings(moduleName, refreshFn)
         if settings then
             for _, iconDef in ipairs(ICON_DEFINITIONS) do
                 local defaultValue = GetIconToggleDefault(moduleName, iconDef)
-                settings[iconDef.key] = defaultValue
+                SetIconSetting(moduleName, settings, iconDef.key, defaultValue, "reset")
             end
         end
     end
 
+    TraceIconSetting(moduleName, "reset_end", {
+        group = "iconCustomization",
+        registryHandled = registryHandled,
+    })
     if refreshFn then
         refreshFn()
     end
@@ -179,7 +219,7 @@ function BETTERUI.CIM.Settings.CreateIconToggleOptions(moduleName, refreshFn)
             setFunc = function(value)
                 local settings = EnsureModuleSettings(moduleName)
                 if settings then
-                    settings[iconDef.key] = value
+                    SetIconSetting(moduleName, settings, iconDef.key, value, "checkbox")
                 end
                 -- Live refresh
                 if refreshFn then

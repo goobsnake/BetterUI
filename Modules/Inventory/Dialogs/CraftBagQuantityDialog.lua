@@ -8,6 +8,32 @@ end
 
 local MAX_STACK_TRANSFER = 200
 
+local function IsCraftBagQuantityTraceActive()
+    local L = BETTERUI.Log
+    return L and L.TraceEvent and (not L.IsActive or L.IsActive())
+end
+
+local function TraceCraftBagQuantity(phase, data)
+    local L = BETTERUI.Log
+    if not IsCraftBagQuantityTraceActive() then return end
+    data = data or {}
+    data.module = "Inventory"
+    data.feature = "craftBagQuantityDialog"
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION or "ACTION", "craftbag.quantity_dialog", phase, data)
+end
+
+local function TraceSlotPayload(bagId, slotIndex, data)
+    data = data or {}
+    data.bagId = bagId
+    data.slotIndex = slotIndex
+    if bagId and slotIndex and IsCraftBagQuantityTraceActive() and type(GetItemLink) == "function" then
+        local ok, link = pcall(GetItemLink, bagId, slotIndex, LINK_STYLE_BRACKETS)
+        if ok and link ~= "" then data.itemLink = link end
+    end
+    return data
+end
+
 local function SetupSliderKeybindHints(dialog)
     if not dialog then return end
 
@@ -125,6 +151,14 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
         setup = function(dialog, data)
             dialog:setupFunc()
             SetupSliderKeybindHints(dialog)
+            data = data or dialog.data or {}
+            TraceCraftBagQuantity("setup", TraceSlotPayload(data.bagId, data.slotIndex, {
+                isStow = data.isStow,
+                sliderMin = data.sliderMin,
+                sliderMax = data.sliderMax,
+                sliderStartValue = data.sliderStartValue,
+                itemName = data.itemName,
+            }))
         end,
         OnSliderValueChanged = function(dialog, sliderControl, value)
             if dialog and dialog.data and value then
@@ -136,6 +170,12 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                 if dialog.sliderValue2 then
                     dialog.sliderValue2:SetText(tostring(value))
                 end
+                TraceCraftBagQuantity("slider_changed", TraceSlotPayload(dialog.data.bagId, dialog.data.slotIndex, {
+                    isStow = dialog.data.isStow,
+                    value = value,
+                    remaining = remaining,
+                    sliderMax = sliderMax,
+                }))
             end
         end,
         buttons = {
@@ -143,12 +183,22 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                 keybind = "DIALOG_PRIMARY",
                 text = SI_GAMEPAD_SELECT_OPTION,
                 callback = function(dialog)
-                    if not dialog or not dialog.data then return end
+                    if not dialog or not dialog.data then
+                        TraceCraftBagQuantity("confirm_skipped", { reason = "missingDialogData" })
+                        return
+                    end
 
                     local data = dialog.data
                     local quantity = ZO_GenericGamepadItemSliderDialogTemplate_GetSliderValue(dialog)
 
-                    if not quantity or quantity <= 0 then return end
+                    if not quantity or quantity <= 0 then
+                        TraceCraftBagQuantity("confirm_skipped", TraceSlotPayload(data.bagId, data.slotIndex, {
+                            reason = "invalidQuantity",
+                            quantity = quantity,
+                            isStow = data.isStow,
+                        }))
+                        return
+                    end
 
                     local bagId = data.bagId
                     local slotIndex = data.slotIndex
@@ -156,6 +206,11 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
 
                     if bagId and slotIndex then
                         if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(data.expectedSlotIdentity, bagId, slotIndex) ~= true then
+                            TraceCraftBagQuantity("confirm_skipped", TraceSlotPayload(bagId, slotIndex, {
+                                reason = "staleSlot",
+                                quantity = quantity,
+                                isStow = isStow,
+                            }))
                             BETTERUI.CIM.UserNotify("CraftBagQuantity:StaleSlot",
                                 GetString(rawget(_G, "SI_BETTERUI_ITEM_CHANGED_CANCELLED")))
                             ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_CRAFTBAG_QUANTITY_DIALOG)
@@ -163,6 +218,12 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                         end
                         local liveStackCount = GetSlotStackSize(bagId, slotIndex) or 0
                         if liveStackCount <= 0 then
+                            TraceCraftBagQuantity("confirm_skipped", TraceSlotPayload(bagId, slotIndex, {
+                                reason = "emptyLiveStack",
+                                quantity = quantity,
+                                isStow = isStow,
+                                liveStackCount = liveStackCount,
+                            }))
                             ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_CRAFTBAG_QUANTITY_DIALOG)
                             return
                         end
@@ -178,11 +239,22 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                             moved = BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_BACKPACK, quantity)
                         end
 
+                        TraceCraftBagQuantity("move_result", TraceSlotPayload(bagId, slotIndex, {
+                            quantity = quantity,
+                            requestedQuantity = ZO_GenericGamepadItemSliderDialogTemplate_GetSliderValue(dialog),
+                            isStow = isStow,
+                            destinationBag = isStow and BAG_VIRTUAL or BAG_BACKPACK,
+                            moved = moved == true,
+                        }))
                         if not moved then
                             return
                         end
 
                         CALLBACK_MANAGER:FireCallbacks(BETTERUI_EVENT_CRAFTBAG_QUANTITY_DIALOG_FINISHED)
+                        TraceCraftBagQuantity("finished", TraceSlotPayload(bagId, slotIndex, {
+                            quantity = quantity,
+                            isStow = isStow,
+                        }))
                     end
 
                     ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_CRAFTBAG_QUANTITY_DIALOG)
@@ -192,6 +264,10 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                 keybind = "DIALOG_NEGATIVE",
                 text = SI_DIALOG_CANCEL,
                 callback = function(dialog)
+                    local data = dialog and dialog.data or {}
+                    TraceCraftBagQuantity("cancel", TraceSlotPayload(data.bagId, data.slotIndex, {
+                        isStow = data.isStow,
+                    }))
                     ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_CRAFTBAG_QUANTITY_DIALOG)
                 end,
             },
@@ -200,7 +276,12 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                 text = GetString(rawget(_G, "SI_BETTERUI_BANK_SLIDER_MIN")),
                 callback = function(dialog)
                     if dialog and dialog.slider then
-                        dialog.slider:SetValue(dialog.data.sliderMin or 1)
+                        local data = dialog.data or {}
+                        TraceCraftBagQuantity("slider_min", TraceSlotPayload(data.bagId, data.slotIndex, {
+                            isStow = data.isStow,
+                            value = data.sliderMin or 1,
+                        }))
+                        dialog.slider:SetValue(data.sliderMin or 1)
                     end
                 end,
             },
@@ -209,7 +290,12 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                 text = GetString(rawget(_G, "SI_BETTERUI_BANK_SLIDER_MAX")),
                 callback = function(dialog)
                     if dialog and dialog.slider then
-                        dialog.slider:SetValue(dialog.data.sliderMax or 1)
+                        local data = dialog.data or {}
+                        TraceCraftBagQuantity("slider_max", TraceSlotPayload(data.bagId, data.slotIndex, {
+                            isStow = data.isStow,
+                            value = data.sliderMax or 1,
+                        }))
+                        dialog.slider:SetValue(data.sliderMax or 1)
                     end
                 end,
             },
@@ -222,30 +308,50 @@ end
 ---@return nil
 function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, isStow)
     if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Showing craft bag quantity dialog") end
-    if not inventorySlot then return end
+    TraceCraftBagQuantity("show_request", { isStow = isStow })
+    if not inventorySlot then
+        TraceCraftBagQuantity("show_skipped", { reason = "missingInventorySlot", isStow = isStow })
+        return
+    end
 
     local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    if not bagId or not slotIndex then return end
+    if not bagId or not slotIndex then
+        TraceCraftBagQuantity("show_skipped", { reason = "invalidSlot", isStow = isStow })
+        return
+    end
 
     local stackCount = GetSlotStackSize(bagId, slotIndex) or 1
 
     if stackCount <= 1 then
-        if isStow then
-            BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
-        else
-            BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_BACKPACK)
-        end
+        local destinationBag = isStow and BAG_VIRTUAL or BAG_BACKPACK
+        local moved = BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, destinationBag)
+        TraceCraftBagQuantity("full_stack_move", TraceSlotPayload(bagId, slotIndex, {
+            isStow = isStow,
+            stackCount = stackCount,
+            destinationBag = destinationBag,
+            moved = moved == true,
+        }))
         return
     end
 
     local itemLink = GetItemLink(bagId, slotIndex)
     local itemName = GetItemName(bagId, slotIndex)
+    local sliderMax = math.min(stackCount, MAX_STACK_TRANSFER)
+
+    TraceCraftBagQuantity("show_dialog", TraceSlotPayload(bagId, slotIndex, {
+        isStow = isStow,
+        stackCount = stackCount,
+        sliderMin = 1,
+        sliderMax = sliderMax,
+        sliderStartValue = 1,
+        itemName = itemName,
+    }))
 
     ZO_Dialogs_ShowGamepadDialog(BETTERUI_CRAFTBAG_QUANTITY_DIALOG, {
         bagId = bagId,
         slotIndex = slotIndex,
         sliderMin = 1,
-        sliderMax = math.min(stackCount, MAX_STACK_TRANSFER),
+        sliderMax = sliderMax,
         sliderStartValue = 1,
         isStow = isStow,
         itemLink = itemLink,

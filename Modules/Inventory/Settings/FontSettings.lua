@@ -17,6 +17,38 @@ local function EnsureInventorySettings()
     return BETTERUI.EnsureModuleSettings("Inventory")
 end
 
+local function TraceFontSetting(phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Inventory"
+    data.feature = "fontSettings"
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.SETTINGS or categories.SETTING or "SETTINGS", "inventory.font_setting", phase, data)
+end
+
+local function SetFontSetting(settings, key, value, source)
+    if not settings then
+        TraceFontSetting("set_skipped", {
+            key = key,
+            newValue = value,
+            source = source,
+            reason = "missingSettings",
+        })
+        return false
+    end
+    local oldValue = settings[key]
+    settings[key] = value
+    TraceFontSetting("set", {
+        key = key,
+        oldValue = oldValue,
+        newValue = value,
+        changed = oldValue ~= value,
+        source = source,
+    })
+    return true
+end
+
 local function IsCIMEnabled()
     return BETTERUI.GetModuleEnabled("CIM")
 end
@@ -117,7 +149,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         local settings = EnsureInventorySettings()
                         if settings then
-                            settings.nameFont = value
+                            SetFontSetting(settings, "nameFont", value, "nameFontControl")
                         end
                         RefreshInventoryList()
                     end,
@@ -144,7 +176,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         local settings = EnsureInventorySettings()
                         if settings then
-                            settings.nameFontSize = value
+                            SetFontSetting(settings, "nameFontSize", value, "nameFontSizeControl")
                         end
                         RefreshInventoryList()
                     end,
@@ -168,7 +200,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         local settings = EnsureInventorySettings()
                         if settings then
-                            settings.nameFontStyle = value
+                            SetFontSetting(settings, "nameFontStyle", value, "nameFontStyleControl")
                         end
                         RefreshInventoryList()
                     end,
@@ -186,9 +218,11 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         if not s then
                             return
                         end
-                        s.nameFont = d.nameFont
-                        s.nameFontSize = d.nameFontSize
-                        s.nameFontStyle = d.nameFontStyle
+                        TraceFontSetting("reset_begin", { group = "name", source = "nameFontReset" })
+                        SetFontSetting(s, "nameFont", d.nameFont, "nameFontReset")
+                        SetFontSetting(s, "nameFontSize", d.nameFontSize, "nameFontReset")
+                        SetFontSetting(s, "nameFontStyle", d.nameFontStyle, "nameFontReset")
+                        TraceFontSetting("reset_end", { group = "name", source = "nameFontReset" })
                         RefreshInventoryList()
                     end,
                     disabled = function() return not IsCIMEnabled() end,
@@ -216,7 +250,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         local settings = EnsureInventorySettings()
                         if settings then
-                            settings.columnFont = value
+                            SetFontSetting(settings, "columnFont", value, "columnFontControl")
                         end
                         RefreshInventoryList()
                     end,
@@ -243,7 +277,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         local settings = EnsureInventorySettings()
                         if settings then
-                            settings.columnFontSize = value
+                            SetFontSetting(settings, "columnFontSize", value, "columnFontSizeControl")
                         end
                         RefreshInventoryList()
                     end,
@@ -267,7 +301,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         local settings = EnsureInventorySettings()
                         if settings then
-                            settings.columnFontStyle = value
+                            SetFontSetting(settings, "columnFontStyle", value, "columnFontStyleControl")
                         end
                         RefreshInventoryList()
                     end,
@@ -285,9 +319,11 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         if not s then
                             return
                         end
-                        s.columnFont = d.columnFont
-                        s.columnFontSize = d.columnFontSize
-                        s.columnFontStyle = d.columnFontStyle
+                        TraceFontSetting("reset_begin", { group = "column", source = "columnFontReset" })
+                        SetFontSetting(s, "columnFont", d.columnFont, "columnFontReset")
+                        SetFontSetting(s, "columnFontSize", d.columnFontSize, "columnFontReset")
+                        SetFontSetting(s, "columnFontStyle", d.columnFontStyle, "columnFontReset")
+                        TraceFontSetting("reset_end", { group = "column", source = "columnFontReset" })
                         RefreshInventoryList()
                     end,
                     disabled = function() return not IsCIMEnabled() end,

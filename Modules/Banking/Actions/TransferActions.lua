@@ -215,6 +215,43 @@ local function NotifyDepositBlocked(targetBankBag, denyReason)
     end
 end
 
+local function ExecuteDirectTransfer(bag, index, data)
+    data = data or {}
+    data.transferPath = "directCursor"
+    TraceBankTransfer("bank.item_transfer", "pickup_before", bag, index, data)
+    local pickupOk = CallSecureProtected("PickupInventoryItem", bag, index)
+    TraceBankTransfer("bank.item_transfer", "pickup_after", bag, index, {
+        transferPath = data.transferPath,
+        mode = data.mode,
+        guild = data.guild,
+        toBag = data.toBag,
+        pickupOk = pickupOk == true,
+    })
+    if not pickupOk then
+        WarnBankTransferBlocked("pickup_failed", bag, index, data)
+        return false, "pickup_failed"
+    end
+
+    TraceBankTransfer("bank.item_transfer", "place_before", bag, index, data)
+    local placeOk = CallSecureProtected("PlaceInTransfer")
+    TraceBankTransfer("bank.item_transfer", "place_after", bag, index, {
+        transferPath = data.transferPath,
+        mode = data.mode,
+        guild = data.guild,
+        toBag = data.toBag,
+        placeOk = placeOk == true,
+    })
+    if not placeOk then
+        local clearCursor = rawget(_G, "ClearCursor")
+        if type(clearCursor) == "function" then pcall(clearCursor) end
+        WarnBankTransferBlocked("place_failed", bag, index, data)
+        return false, "place_failed"
+    end
+
+    TraceBankTransfer("bank.item_transfer", "requested", bag, index, data)
+    return true
+end
+
 function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
     if not inventorySlot then
         return false, "no_slot"
@@ -260,9 +297,11 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
         end
 
         if DoesBagHaveSpaceFor(BAG_BACKPACK, bag, index) then
-            CallSecureProtected("PickupInventoryItem", bag, index)
-            CallSecureProtected("PlaceInTransfer")
-            return true
+            return ExecuteDirectTransfer(bag, index, {
+                mode = LIST_WITHDRAW,
+                guild = isGuildBankMode,
+                toBag = BAG_BACKPACK,
+            })
         end
 
         BETTERUI.CIM.UserNotify("TryTransferItem:Withdraw", SI_INVENTORY_ERROR_INVENTORY_FULL)
@@ -299,11 +338,18 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
     end
 
     local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
-    if DoesBagHaveSpaceFor(bankingBag, bag, index)
-        or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
-        CallSecureProtected("PickupInventoryItem", bag, index)
-        CallSecureProtected("PlaceInTransfer")
-        return true
+    local resolvedDepositBag = nil
+    if DoesBagHaveSpaceFor(bankingBag, bag, index) then
+        resolvedDepositBag = bankingBag
+    elseif canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index) then
+        resolvedDepositBag = BAG_SUBSCRIBER_BANK
+    end
+    if resolvedDepositBag then
+        return ExecuteDirectTransfer(bag, index, {
+            mode = LIST_DEPOSIT,
+            guild = isGuildBankMode,
+            toBag = resolvedDepositBag,
+        })
     end
 
     if isGuildBankMode then

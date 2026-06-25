@@ -259,6 +259,86 @@ Transfer.NotifyTransferDenied = function(context, targetBankBag, denyReason)
     BETTERUI.CIM.UserNotify(context, notification.stringId)
 end
 
+local function IsBankingBatchTraceActive()
+    return BETTERUI.Log and BETTERUI.Log.IsActive and BETTERUI.Log.IsActive()
+end
+
+local function TraceBankingBatch(phase, data)
+    if not IsBankingBatchTraceActive() then
+        return
+    end
+    data = data or {}
+    data.phase = phase
+    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "bank batch menu", data)
+end
+
+local function NormalizeBankingTraceValue(value)
+    if value == nil then
+        return nil
+    end
+    local normalize = BETTERUI.Inventory and BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
+    if normalize then
+        return normalize(value)
+    end
+    return tostring(value)
+end
+
+local function DescribeBankingSelectionItem(itemData, index)
+    local bagId, slotIndex = ExtractSlot(itemData)
+    local rawData = itemData and (itemData.dataSource or itemData) or nil
+    return {
+        index = index,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        name = rawData and rawData.name or itemData and itemData.name,
+        uniqueId = NormalizeBankingTraceValue(rawData and rawData.uniqueId or itemData and itemData.uniqueId),
+        stackCount = bagId and slotIndex and ResolveStackCount(itemData, bagId, slotIndex) or nil,
+        hasItem = bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) == true or false,
+    }
+end
+
+local function BuildBankingSelectionSample(selectedItems, maxItems)
+    if not IsBankingBatchTraceActive() then
+        return nil
+    end
+    local sample = {}
+    local limit = math.min(#selectedItems, maxItems or 10)
+    for i = 1, limit do
+        sample[#sample + 1] = DescribeBankingSelectionItem(selectedItems[i], i)
+    end
+    return sample
+end
+
+local function ResolveBankingDialogEntryLabel(entry)
+    local data = entry and (entry.entryData or entry) or nil
+    if not data then
+        return nil
+    end
+    if type(data.GetText) == "function" then
+        local ok, label = pcall(data.GetText, data)
+        if ok then
+            return label
+        end
+    end
+    return data.text or data.name or data.label
+end
+
+local function BuildBankingDialogEntryLabels(parametricList)
+    if not IsBankingBatchTraceActive() then
+        return nil
+    end
+    local labels = {}
+    for index, entry in ipairs(parametricList or {}) do
+        labels[#labels + 1] = {
+            index = index,
+            label = ResolveBankingDialogEntryLabel(entry),
+            hasCallback = entry and entry.entryData and type(entry.entryData.callback) == "function"
+                or type(entry and entry.callback) == "function",
+        }
+    end
+    return labels
+end
+
 ---@param mode number
 ---@param bagId BagId
 ---@param slotIndex SlotIndex
@@ -453,20 +533,34 @@ end
 --- then adds Banking-specific Transfer action and mode-aware junk filtering.
 function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     if not self.multiSelectManager or not self.multiSelectManager:IsActive() then
+        TraceBankingBatch("show_skipped", { dialogName = "BETTERUI_BANKING_BATCH_ACTIONS_DIALOG", reason = "inactive" })
         return
     end
 
     local selectedItems = self.multiSelectManager:GetSelectedItems()
     local selectedCount = #selectedItems
-    if selectedCount == 0 then return end
-
-    -- Use shared mixin to analyze selected items
-    local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
     local transferState = ReadTransferContextSnapshot()
     local transferDestinationBankBag = transferState.depositTargetBag
     local isGuildMode = transferState.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local guildTransferMode = isDepositMode and LIST_DEPOSIT or LIST_WITHDRAW
+    TraceBankingBatch("show_request", {
+        dialogName = "BETTERUI_BANKING_BATCH_ACTIONS_DIALOG",
+        selectedCount = selectedCount,
+        isDepositMode = isDepositMode,
+        transferMode = self.currentMode,
+        transferKind = transferState.kind,
+        depositTargetBag = transferDestinationBankBag,
+        isGuildMode = isGuildMode,
+        selected = BuildBankingSelectionSample(selectedItems, 10),
+    })
+    if selectedCount == 0 then
+        TraceBankingBatch("show_skipped", { dialogName = "BETTERUI_BANKING_BATCH_ACTIONS_DIALOG", reason = "emptySelection" })
+        return
+    end
+
+    -- Use shared mixin to analyze selected items
+    local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
     local transferCount = 0
     local firstTransferDeniedLabel = nil
 
@@ -521,7 +615,17 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                     callback = function(dialog)
                         local selected = dialog.entryList and dialog.entryList:GetTargetData()
                         if selected and selected.callback then
+                            TraceBankingBatch("action_selected", {
+                                dialogName = dialog and dialog.data and dialog.data.dialogName,
+                                action = ResolveBankingDialogEntryLabel(selected),
+                            })
                             selected.callback()
+                        else
+                            TraceBankingBatch("action_skipped", {
+                                dialogName = dialog and dialog.data and dialog.data.dialogName,
+                                reason = "missingCallback",
+                                action = ResolveBankingDialogEntryLabel(selected),
+                            })
                         end
                     end,
                 },
@@ -600,8 +704,23 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
 
     local dialogInfo = ESO_Dialogs[dialogName]
     if not dialogInfo then
+        TraceBankingBatch("show_skipped", { dialogName = dialogName, reason = "missingDialogInfo" })
         return
     end
     dialogInfo.parametricList = parametricList
-    ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
+    TraceBankingBatch("show_dialog", {
+        dialogName = dialogName,
+        selectedCount = selectedCount,
+        isDepositMode = isDepositMode,
+        isGuildMode = isGuildMode,
+        transferMode = self.currentMode,
+        transferKind = transferState.kind,
+        transferCount = transferCount,
+        firstTransferDeniedLabel = firstTransferDeniedLabel,
+        suppressJunkActions = suppressJunkActions == true,
+        counts = counts,
+        actions = BuildBankingDialogEntryLabels(parametricList),
+        selected = BuildBankingSelectionSample(selectedItems, 10),
+    })
+    ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount, dialogName = dialogName })
 end

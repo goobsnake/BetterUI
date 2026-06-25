@@ -504,11 +504,16 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
     if not panelId or type(panelData) ~= "table" then
         TraceSettings("settings.panel", "rejected", {
             panel = panelIdOrModuleName,
+            normalizedPanel = panelId,
+            panelDataType = type(panelData),
             reason = "invalid_panel_registration",
         })
         if BETTERUI.Log then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration invalid",
-                { panel = panelIdOrModuleName })
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration invalid", {
+                panel = panelIdOrModuleName,
+                normalizedPanel = panelId,
+                panelDataType = type(panelData),
+            })
         end
         return nil, "invalid_panel_registration"
     end
@@ -533,8 +538,18 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
         TraceSettings("settings.panel", "rejected", {
             panel = panelId,
             reason = "lam_unavailable",
+            hasLam = lam ~= nil,
+            hasRegisterAddonPanel = lam and type(lam.RegisterAddonPanel) == "function",
+            hasRegisterOptionControls = lam and type(lam.RegisterOptionControls) == "function",
         })
-        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel LAM unavailable", { panel = panelId }) end
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel LAM unavailable", {
+                panel = panelId,
+                hasLam = lam ~= nil,
+                hasRegisterAddonPanel = lam and type(lam.RegisterAddonPanel) == "function",
+                hasRegisterOptionControls = lam and type(lam.RegisterOptionControls) == "function",
+            })
+        end
         return nil, "lam_unavailable"
     end
 
@@ -544,14 +559,21 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
         topLevelControls = #optionsData,
         totalControls = CountControls(optionsData),
     })
-    local panelOk = pcall(lam.RegisterAddonPanel, lam, panelId, panelData)
+    local panelOk, panelErr = pcall(lam.RegisterAddonPanel, lam, panelId, panelData)
     if not panelOk then
         TraceSettings("settings.panel", "register_failed", {
             panel = panelId,
             stage = "addonPanel",
+            error = tostring(panelErr),
+            exceptionType = type(panelErr),
         })
         if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", { panel = panelId, stage = "addonPanel" })
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", {
+                panel = panelId,
+                stage = "addonPanel",
+                error = tostring(panelErr),
+                exceptionType = type(panelErr),
+            })
         end
         return nil, "register_addon_panel_failed"
     end
@@ -562,14 +584,21 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
         topLevelControls = #optionsData,
         totalControls = CountControls(optionsData),
     })
-    local controlsOk = pcall(lam.RegisterOptionControls, lam, panelId, optionsData)
+    local controlsOk, controlsErr = pcall(lam.RegisterOptionControls, lam, panelId, optionsData)
     if not controlsOk then
         TraceSettings("settings.panel", "register_failed", {
             panel = panelId,
             stage = "optionControls",
+            error = tostring(controlsErr),
+            exceptionType = type(controlsErr),
         })
         if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", { panel = panelId, stage = "optionControls" })
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", {
+                panel = panelId,
+                stage = "optionControls",
+                error = tostring(controlsErr),
+                exceptionType = type(controlsErr),
+            })
         end
         return nil, "register_option_controls_failed"
     end

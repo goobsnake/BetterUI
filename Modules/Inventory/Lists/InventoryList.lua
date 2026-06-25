@@ -590,11 +590,66 @@ function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, s
     end
 end
 
+local function TraceInventoryListRefresh(phase, data)
+    if not (BETTERUI.Log and BETTERUI.Log.IsActive and BETTERUI.Log.IsActive()) then
+        return
+    end
+    data = data or {}
+    data.phase = phase
+    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "inventory list refresh", data)
+end
+
+local function DescribeInventorySlotForTrace(itemData, index)
+    local rawData = GetEntryDataSource(itemData)
+    if not rawData then
+        return nil
+    end
+    return {
+        index = index,
+        bagId = rawData.bagId,
+        slotIndex = rawData.slotIndex,
+        name = rawData.name,
+        category = rawData.bestGamepadItemCategoryName or rawData.bestItemCategoryName,
+        uniqueId = NormalizeEntryUniqueId(rawData.uniqueId),
+        stackCount = rawData.stackCount,
+        isEquipped = rawData.equipType ~= nil and rawData.equipType ~= EQUIP_TYPE_INVALID,
+    }
+end
+
+local function BuildInventorySlotSample(slots, maxItems)
+    local sample = {}
+    local limit = math.min(#slots, maxItems or 10)
+    for i = 1, limit do
+        sample[#sample + 1] = DescribeInventorySlotForTrace(slots[i], i)
+    end
+    return sample
+end
+
+local function BuildInventoryTargetSnapshot(list)
+    if not (list and list.GetTargetData) then
+        return nil
+    end
+    local targetData = list:GetTargetData()
+    local rawData = GetEntryDataSource(targetData)
+    if not rawData then
+        return nil
+    end
+    return DescribeInventorySlotForTrace(rawData, targetData and targetData.sortIndex)
+end
+
 --- Refreshes the inventory list from current source data.
 ---@return nil
 function BETTERUI.Inventory.List:RefreshList()
-    if self.control:IsHidden() then
+    local isHidden = self.control:IsHidden()
+    TraceInventoryListRefresh("begin", {
+        listModuleName = self.listModuleName,
+        hidden = isHidden,
+        dirty = self.isDirty == true,
+        inventoryTypes = self.inventoryTypes,
+    })
+    if isHidden then
         self.isDirty = true
+        TraceInventoryListRefresh("skipped", { listModuleName = self.listModuleName, reason = "hidden" })
         return
     end
     self.isDirty = false
@@ -603,7 +658,18 @@ function BETTERUI.Inventory.List:RefreshList()
     self.dataBySlotIndex = {}
 
     local slots = self:GenerateSlotTable()
+    TraceInventoryListRefresh("generated", {
+        listModuleName = self.listModuleName,
+        rowCount = #slots,
+        sample = BuildInventorySlotSample(slots, 10),
+    })
     table.sort(slots, self.sortFunction or BETTERUI_Inventory_DefaultItemSortComparator)
+    TraceInventoryListRefresh("sorted", {
+        listModuleName = self.listModuleName,
+        rowCount = #slots,
+        hasCustomSort = self.sortFunction ~= nil and self.sortFunction ~= BETTERUI_Inventory_DefaultItemSortComparator,
+        sample = BuildInventorySlotSample(slots, 10),
+    })
     local currentBestCategoryName
     for i, itemData in ipairs(slots) do
         local entry = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
@@ -630,6 +696,12 @@ function BETTERUI.Inventory.List:RefreshList()
     end
 
     self.list:Commit()
+    TraceInventoryListRefresh("committed", {
+        listModuleName = self.listModuleName,
+        rowCount = #slots,
+        selected = BuildInventoryTargetSnapshot(self.list),
+        sample = BuildInventorySlotSample(slots, 10),
+    })
 
     local listCtrl = self.list and self.list.control
     if listCtrl then

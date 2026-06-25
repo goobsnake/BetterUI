@@ -41,10 +41,29 @@ end
 ---@param token table|nil
 ---@param data table|nil
 function Perf.End(token, data)
-    if type(token) ~= "table" or type(token.t0) ~= "number" or token.finished then return end
-    token.finished = true -- consume the token so a double-End can't emit a duplicate timing
     local L = BETTERUI.Log
-    if not (L and L.Debug) then return end
+    local function TraceEndError(reason, extra)
+        if not (L and L.TraceEvent) then return end
+        extra = extra or {}
+        extra.reason = reason
+        extra.tokenPresent = token ~= nil
+        extra.tokenType = type(token)
+        local categories = L.CATEGORY or {}
+        L.TraceEvent(categories.PERF or "PERF", "perf.span", "end_error", extra)
+    end
+    if type(token) ~= "table" or type(token.t0) ~= "number" then
+        if token ~= nil then TraceEndError("invalidToken") end
+        return
+    end
+    if token.finished then
+        TraceEndError("alreadyFinished", { label = token.label, ageMs = now() - token.t0 })
+        return
+    end
+    token.finished = true -- consume the token so a double-End can't emit a duplicate timing
+    if not (L and L.Debug) then
+        TraceEndError("loggerUnavailable", { label = token.label })
+        return
+    end
     local ms = now() - token.t0
     if ms < 0 then ms = 0 end -- a clock that went backwards / disappeared must not emit junk
     local payload = { ms = ms }

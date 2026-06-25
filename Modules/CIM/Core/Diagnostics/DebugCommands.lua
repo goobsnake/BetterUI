@@ -516,6 +516,42 @@ local function InspectControl(controlName)
     end
 end
 
+local function TraceDebugCommand(command, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    local payload = data or {}
+    payload.command = command
+    payload.feature = "debugCommand"
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction({ flow = "debug.command", message = tostring(command) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.DEBUG or categories.STATE or "DEBUG", "debug.command", phase, payload)
+end
+
+local function NormalizeDebugArgs(args)
+    local value = tostring(args or "")
+    if #value > 160 then
+        return value:sub(1, 160) .. "..."
+    end
+    return value
+end
+
+local function WrapDebugSlashCommand(command)
+    local original = SLASH_COMMANDS[command]
+    if type(original) ~= "function" then return end
+    SLASH_COMMANDS[command] = function(args)
+        local traceId = tostring(command) .. ":" .. tostring(GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0)
+        TraceDebugCommand(command, "begin", { args = NormalizeDebugArgs(args), traceId = traceId })
+        local ok, err = pcall(original, args)
+        if not ok then
+            TraceDebugCommand(command, "error", { args = NormalizeDebugArgs(args), traceId = traceId, error = tostring(err) })
+            error(err, 2)
+        end
+        TraceDebugCommand(command, "complete", { args = NormalizeDebugArgs(args), traceId = traceId, resultStatus = "ok" })
+    end
+end
+
 function Debug.RegisterCommands()
     if commandsRegistered then
         return
@@ -694,6 +730,14 @@ function Debug.RegisterCommands()
         d("  /buiprofile [start|stop|report|reset] - Performance profiler")
         d("  /buiflag [flag] [on|off] - Toggle debug flags")
         d("  /buihelp - Show this help")
+    end
+
+    local debugCommands = {
+        "/buidebug", "/buiscene", "/buikeybinds", "/builist", "/buievents", "/buisettings",
+        "/buicontrol", "/buiprofile", "/buiflag", "/buimemory", "/buibatch", "/buihelp",
+    }
+    for i = 1, #debugCommands do
+        WrapDebugSlashCommand(debugCommands[i])
     end
 
     commandsRegistered = true

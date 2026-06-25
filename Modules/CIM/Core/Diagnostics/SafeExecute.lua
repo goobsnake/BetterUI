@@ -13,6 +13,15 @@ local function safeStr(v, fallback)
     return fallback or "<?>"
 end
 
+local function now()
+    local clock = rawget(_G, "GetGameTimeMilliseconds")
+    if type(clock) == "function" then
+        local ok, value = pcall(clock)
+        if ok and type(value) == "number" then return value end
+    end
+    return math.floor((os.clock and os.clock() or 0) * 1000)
+end
+
 -- Route a SAFE-category error through the unified logger when present (guarded so a
 -- partially-loaded logger can't raise from the error handler), else the legacy Debug seam.
 local function logSafeError(context, msg, src)
@@ -23,6 +32,19 @@ local function logSafeError(context, msg, src)
     elseif type(BETTERUI.Debug) == "function" then
         BETTERUI.Debug(string.format("[Error] %s: %s", context, msg))
     end
+end
+
+local function logSafeSuccess(context, elapsedMs, result)
+    local L = BETTERUI.Log
+    if not (L and type(L.TraceEvent) == "function") then return end
+    local categories = L.CATEGORY or {}
+    local resultType = type(result)
+    pcall(L.TraceEvent, categories.SAFE or "SAFE", "safe_execute", "success", {
+        context = context,
+        elapsedMs = elapsedMs,
+        resultType = resultType,
+        result = resultType ~= "table" and safeStr(result, "<?>") or "<table>",
+    })
 end
 
 local function normalizeLuaSrc(path, lno)
@@ -60,7 +82,9 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
     -- Call pcall directly with the varargs: packing into a table and unpack(args) would
     -- truncate argument lists containing embedded nils. Keeps the hot SUCCESS path
     -- allocation-free (no xpcall/closure).
+    local startMs = now()
     local ok, result = pcall(fn, ...)
+    local elapsedMs = now() - startMs
 
     if not ok then
         -- Surface the caught error through the unified logger: ERROR level -> Interface.log
@@ -74,6 +98,8 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
         -- SafeExecute call boundary so swallowed faults still have a navigable src.
         local src = srcFromErrorMessage(msg) or srcFromSafeExecuteBoundary()
         logSafeError(context, msg, src)
+    else
+        logSafeSuccess(context, elapsedMs, result)
     end
 
     return ok, result

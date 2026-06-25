@@ -769,6 +769,63 @@ end
 function BETTERUI.Banking.Class:OnHeaderSortChanged(columnKey, direction)
     local SORT_DIRECTION = BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION
 
+    local function TraceBankSort(phase, data)
+        local L = BETTERUI.Log
+        if not (L and L.TraceEvent) then return end
+        data = data or {}
+        data.module = "Banking"
+        data.feature = "headerSort"
+        local categories = L.CATEGORY or {}
+        L.TraceEvent(categories.SORT or categories.LIST or "LIST", "bank.sort", phase, data)
+    end
+
+    local function GetEntryRawData(entry)
+        return entry and (entry.dataSource or entry.data or entry) or nil
+    end
+
+    local function FirstNonNil(...)
+        for i = 1, select("#", ...) do
+            local value = select(i, ...)
+            if value ~= nil then
+                return value
+            end
+        end
+        return nil
+    end
+
+    local function GetSortIdentity(entry)
+        local rawData = GetEntryRawData(entry)
+        local uniqueId = FirstNonNil(rawData and rawData.uniqueId, entry and entry.uniqueId)
+        if uniqueId ~= nil then return "uid:" .. tostring(uniqueId) end
+        local bagId = FirstNonNil(rawData and rawData.bagId, entry and entry.bagId)
+        local slotIndex = FirstNonNil(rawData and rawData.slotIndex, entry and entry.slotIndex)
+        if bagId ~= nil and slotIndex ~= nil then
+            return "slot:" .. tostring(bagId) .. ":" .. tostring(slotIndex)
+        end
+        local currencyType = FirstNonNil(rawData and rawData.currencyType, entry and entry.currencyType)
+        if currencyType ~= nil then return "currency:" .. tostring(currencyType) end
+        return nil
+    end
+
+    local function BuildRowSample(dataList, limit)
+        local sample = {}
+        local count = dataList and #dataList or 0
+        local sampleCount = zo_min and zo_min(count, limit or 5) or math.min(count, limit or 5)
+        for i = 1, sampleCount do
+            local entry = dataList[i]
+            local rawData = GetEntryRawData(entry)
+            sample[#sample + 1] = {
+                index = i,
+                identity = GetSortIdentity(entry),
+                bagId = rawData and rawData.bagId,
+                slotIndex = rawData and rawData.slotIndex,
+                name = rawData and rawData.name,
+                currencyType = rawData and rawData.currencyType,
+            }
+        end
+        return sample
+    end
+
     -- Find the column definition
     local column = nil
     for _, col in ipairs(BANKING_SORT_COLUMNS) do
@@ -778,7 +835,22 @@ function BETTERUI.Banking.Class:OnHeaderSortChanged(columnKey, direction)
         end
     end
 
-    if not column then return end
+    if not column then
+        TraceBankSort("skipped", { columnKey = columnKey, direction = direction, reason = "unknownColumn" })
+        return
+    end
+
+    local dataListBefore = self.list and self.list.dataList or nil
+    local selectedData = self.list and self.list.GetSelectedData and self.list:GetSelectedData() or nil
+    local savedIdentity = GetSortIdentity(selectedData)
+    TraceBankSort("before", {
+        columnKey = columnKey,
+        direction = direction,
+        sortKey = column.sortKey,
+        rowCount = dataListBefore and #dataListBefore or 0,
+        selectedIdentity = savedIdentity,
+        sample = BuildRowSample(dataListBefore, 5),
+    })
 
     -- Store sort comparator in instance variable (NOT on list)
     -- This ensures currency rows at the top are not affected by sorting
@@ -790,23 +862,34 @@ function BETTERUI.Banking.Class:OnHeaderSortChanged(columnKey, direction)
         self.itemSortComparator = CreateColumnSortComparator(column.sortKey, ascending)
     end
 
-    -- Save current selection before refreshing
-    local selectedData = self.list:GetSelectedData()
-    local savedUniqueId = selectedData and selectedData.uniqueId
-
     -- Refresh the list to apply new sort
     self:RefreshList()
 
-    -- Restore selection by finding the item with the same uniqueId
-    if savedUniqueId then
-        local dataList = self.list.dataList
+    local restoredIndex = nil
+    local canRestoreSelection = self.list and type(self.list.SetSelectedIndexWithoutAnimation) == "function"
+    if savedIdentity and canRestoreSelection then
+        local dataList = self.list and self.list.dataList or nil
         for i, entry in ipairs(dataList or {}) do
-            if entry.uniqueId == savedUniqueId then
+            if GetSortIdentity(entry) == savedIdentity then
                 self.list:SetSelectedIndexWithoutAnimation(i)
+                restoredIndex = i
                 break
             end
         end
     end
+
+    local dataListAfter = self.list and self.list.dataList or nil
+    TraceBankSort("after", {
+        columnKey = columnKey,
+        direction = direction,
+        sortKey = column.sortKey,
+        rowCount = dataListAfter and #dataListAfter or 0,
+        selectedIdentity = savedIdentity,
+        restored = restoredIndex ~= nil,
+        restoredIndex = restoredIndex,
+        restoreAvailable = canRestoreSelection == true,
+        sample = BuildRowSample(dataListAfter, 5),
+    })
     -- Keybinds are protected by UpdateActions guard which skips
     -- itemActions:SetInventorySlot() when isInHeaderSortMode is true
 end

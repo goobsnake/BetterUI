@@ -440,6 +440,16 @@ local function BankingSnapshotVisible(window)
     return BankingSnapshotControlVisible(window.control)
 end
 
+local function BankingSnapshotKeybindPresent(descriptor)
+    if descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
+        local ok, hasGroup = pcall(function()
+            return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
+        end)
+        return (ok and hasGroup) and 1 or 0
+    end
+    return 0
+end
+
 local function RegisterBankingSnapshotProvider()
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
     if not (watch and watch.RegisterSnapshotProvider) then return end
@@ -452,13 +462,16 @@ local function RegisterBankingSnapshotProvider()
             local ok, count = pcall(BETTERUI.Banking.CountPendingTransfers)
             if ok and type(count) == "number" then pending = count end
         end
-        local keybindCore = 0
-        if window.coreKeybinds and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
-            local ok, hasGroup = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(window.coreKeybinds) end)
-            keybindCore = (ok and hasGroup) and 1 or 0
-        end
+        local integration = window._headerSortIntegration
+        local headerSortController = window.headerSortController
+        local keybindCore = BankingSnapshotKeybindPresent(window.coreKeybinds)
+        local keybindHeader = BankingSnapshotKeybindPresent(
+            (headerSortController and headerSortController._headerSortKeybindDescriptor)
+            or (integration and integration.activeKeybindDescriptor)
+            or window.headerSortKeybindDescriptor)
+        local headerActive = (window.isInHeaderSortMode == true or (integration and integration.isActive == true)) and 1 or 0
         return string.format(
-            "window=1 visible=1 mode=%s category=%s rows=%d suppressed=%d dirty=%d pending=%d search=%d keybindCore=%d",
+            "window=1 visible=1 mode=%s category=%s rows=%d suppressed=%d dirty=%d pending=%d search=%d keybindCore=%d keybindHeader=%d headerActive=%d",
             tostring(window.currentMode or "?"),
             tostring(BankingSnapshotCategoryKey(window)),
             CountBankingSnapshotRows(window.list),
@@ -466,7 +479,9 @@ local function RegisterBankingSnapshotProvider()
             window.isDirty and 1 or 0,
             pending,
             window.searchQuery and #tostring(window.searchQuery) or 0,
-            keybindCore)
+            keybindCore,
+            keybindHeader,
+            headerActive)
     end)
 end
 

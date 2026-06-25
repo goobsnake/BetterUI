@@ -738,19 +738,44 @@ end
 ---@param self BETTERUI.Banking.Class
 ---@return nil
 function BETTERUI.Banking.Class:UpdateActions()
+    local function DescribeTarget(targetData)
+        local rawData = targetData and (targetData.dataSource or targetData.data or targetData) or nil
+        if not rawData then return nil end
+        return {
+            bagId = rawData.bagId,
+            slotIndex = rawData.slotIndex,
+            uniqueId = rawData.uniqueId and tostring(rawData.uniqueId) or nil,
+            name = rawData.name,
+            currencyType = rawData.currencyType,
+        }
+    end
+
     -- Skip itemActions updates when in header sort mode to prevent keybind flicker
     -- itemActions:SetInventorySlot directly manipulates KEYBIND_STRIP, bypassing guards
     if self.isInHeaderSortMode then
+        TraceBankKeybind("bank.item_actions", "skipped", {
+            reason = "headerSortMode",
+            mode = self.currentMode,
+        })
         return
     end
 
     if not self.itemActions then
+        TraceBankKeybind("bank.item_actions", "skipped", {
+            reason = "missingItemActions",
+            mode = self.currentMode,
+        })
         return
     end
 
-    local targetData = self:GetList() and self:GetList().selectedData or nil
+    local list = self:GetList()
+    local targetData = list and list.selectedData or nil
     if not targetData then
         self.itemActions:SetInventorySlot(nil)
+        TraceBankKeybind("bank.item_actions", "cleared", {
+            reason = "noSelection",
+            mode = self.currentMode,
+        })
         return
     end
 
@@ -758,8 +783,17 @@ function BETTERUI.Banking.Class:UpdateActions()
     -- Faux rows (currency/header/empty labels) can crash ESO slot action discovery.
     if not IsActionableListEntry(targetData) then
         self.itemActions:SetInventorySlot(nil)
+        TraceBankKeybind("bank.item_actions", "cleared", {
+            reason = "nonActionableSelection",
+            mode = self.currentMode,
+            target = DescribeTarget(targetData),
+        })
     else
         self.itemActions:SetInventorySlot(targetData)
+        TraceBankKeybind("bank.item_actions", "set", {
+            mode = self.currentMode,
+            target = DescribeTarget(targetData),
+        })
     end
 end
 
