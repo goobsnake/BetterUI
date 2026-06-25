@@ -253,6 +253,69 @@ local function GetCurrentVendorTargetData(vendorInstance)
     return list.selectedData
 end
 
+local function CountVendorSnapshotRows(list)
+    if not list then return 0 end
+    if list.GetNumItems then
+        local ok, count = pcall(function() return list:GetNumItems() end)
+        if ok and type(count) == "number" then return count end
+    end
+    return type(list.dataList) == "table" and #list.dataList or 0
+end
+
+local function GetVendorSnapshotSelectedIndex(list)
+    if not list then return 0 end
+    if type(list.selectedIndex) == "number" then return list.selectedIndex end
+    if list.GetSelectedIndex then
+        local ok, index = pcall(function() return list:GetSelectedIndex() end)
+        if ok and type(index) == "number" then return index end
+    end
+    return 0
+end
+
+local function IsVendorSnapshotKeybindPresent(descriptor)
+    if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
+        return 0
+    end
+    local ok, hasGroup = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) end)
+    return (ok and hasGroup) and 1 or 0
+end
+
+local function RegisterVendorSnapshotProvider()
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and watch.RegisterSnapshotProvider) then return end
+    watch.RegisterSnapshotProvider("vendor", function()
+        local instance = Vendor.instance
+        if not instance then
+            return string.format("init=%s window=0", tostring(Vendor.initialized == true))
+        end
+
+        local visible = instance.IsSceneShowing and instance:IsSceneShowing() or false
+        local mode = instance.GetCurrentMode and instance:GetCurrentMode() or instance.currentMode
+        local selectedOk, selected = pcall(GetCurrentVendorTargetData, instance)
+        local selectedData = selectedOk and selected and (selected.dataSource or selected) or nil
+        local selectedToken = selectedData and string.format("bag=%s,slot=%s,entry=%s", tostring(selectedData.bagId or "nil"), tostring(selectedData.slotIndex or "nil"), tostring(selectedData.entryIndex or selectedData.listingIndex or "nil")) or (selectedOk and "nil" or "error")
+        return string.format(
+            "init=%s window=1 visible=%s mode=%s modeName=%s rows=%s selectedIndex=%s selectedId=%s suppressed=%s dirty=%s search=%d fence=%s stable=%s batch=%s keybindCore=%s keybindSearch=%s",
+            tostring(Vendor.initialized == true),
+            tostring(visible),
+            tostring(mode),
+            tostring(mode ~= nil and Vendor.ResolveModeName and Vendor.ResolveModeName(mode) or nil),
+            tostring(CountVendorSnapshotRows(instance.list)),
+            tostring(GetVendorSnapshotSelectedIndex(instance.list)),
+            tostring(selectedToken),
+            tostring(instance._suppressListUpdates == true),
+            tostring(instance.isDirty == true or instance._isDirty == true),
+            instance.searchQuery and #tostring(instance.searchQuery) or 0,
+            tostring(isFenceInteraction == true),
+            tostring(isStableInteraction == true),
+            tostring(Vendor._batchProcessing == true),
+            tostring(IsVendorSnapshotKeybindPresent(instance.coreKeybinds)),
+            tostring(IsVendorSnapshotKeybindPresent(instance.textSearchKeybindStripDescriptor)))
+    end)
+end
+
+RegisterVendorSnapshotProvider()
+
 ---@param tabs VendorTabDef[]|nil
 ---@return number targetMode
 local function ResolveInitialStoreMode(tabs)
@@ -1264,6 +1327,14 @@ local function OnInventoryUpdated()
         feature = "vendor-refresh",
         delayMs = 100,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+    if not (Vendor.Tasks and Vendor.Tasks.Cancel and Vendor.Tasks.Schedule) then
+        TraceVendorEvent("vendor.inventory_update", "schedule_skipped", {
+            fn = "Vendor.OnInventoryUpdated",
+            feature = "vendor-refresh",
+            reason = "missingTaskManager",
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+        return
+    end
     Vendor.Tasks:Cancel("listRefresh")
     Vendor.Tasks:Schedule("listRefresh", 100, function()
         if Vendor.instance and Vendor.instance:IsSceneShowing() then

@@ -13,8 +13,8 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
         ActionHandlers.OnSetup(self, dialog, data)
     end)
 
-    CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", function()
-        ActionHandlers.OnFinish(self)
+    CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", function(dialog)
+        ActionHandlers.OnFinish(self, dialog)
     end)
 
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", function(dialog)

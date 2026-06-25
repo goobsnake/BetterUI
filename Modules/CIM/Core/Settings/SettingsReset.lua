@@ -7,6 +7,26 @@ if not BETTERUI then BETTERUI = {} end
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Settings then BETTERUI.CIM.Settings = {} end
 
+local function CountTableKeys(value)
+    if type(value) ~= "table" then return 0 end
+    local count = 0
+    for _ in pairs(value) do count = count + 1 end
+    return count
+end
+
+local function TraceSettingsReset(phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "CIM"
+    data.feature = "settingsReset"
+    if L.SetLastAction then
+        L.SetLastAction({ flow = "settings.reset", message = "settings.reset:" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.SETTINGS or categories.SETTING or "SETTINGS", "settings.reset", phase, data)
+end
+
 local MODULE_RESET_ORDER = {
     { "CIM", BETTERUI.CIM },
     { "Inventory", BETTERUI.Inventory },
@@ -72,6 +92,12 @@ end
 local function BuildModuleDefaults(moduleName, moduleNamespace)
     local moduleSettings = {}
 
+    TraceSettingsReset("module_defaults_begin", {
+        targetModule = moduleName,
+        hasInitModule = moduleNamespace and type(moduleNamespace.InitModule) == "function" or false,
+        hasDefaultsRegistry = BETTERUI.Defaults and type(BETTERUI.Defaults.ApplyModuleDefaults) == "function" or false,
+    })
+
     -- Phase: build-module-defaults
     if moduleNamespace and type(moduleNamespace.InitModule) == "function" then
         local success, result = BETTERUI.CIM.SafeExecute(
@@ -86,13 +112,19 @@ local function BuildModuleDefaults(moduleName, moduleNamespace)
         moduleSettings = BETTERUI.Defaults.ApplyModuleDefaults(moduleName, moduleSettings)
     end
 
-    return DeepCopy(moduleSettings)
+    local defaults = DeepCopy(moduleSettings)
+    TraceSettingsReset("module_defaults_end", {
+        targetModule = moduleName,
+        keyCount = CountTableKeys(defaults),
+    })
+    return defaults
 end
 
 --- Resets the settings store to defaults.
 ---
 local function ResetSettingsStore(store)
     if type(store) ~= "table" then
+        TraceSettingsReset("store_reset_skipped", { reason = "invalidStore" })
         return
     end
 
@@ -100,12 +132,17 @@ local function ResetSettingsStore(store)
     -- live in the raw backing table behind the metatable __index. Operate on
     -- the raw table so stale keys are actually cleared.
     local rawStore = GetRawStoreData(store)
+    TraceSettingsReset("store_reset_begin", {
+        topLevelKeyCount = CountTableKeys(rawStore),
+    })
 
     local preservedUseAccountWide = rawStore.useAccountWide
+    local clearedKeyCount = 0
 
     for key in pairs(rawStore) do
         if not IsRetainedTopLevelKey(key) then
             rawStore[key] = nil
+            clearedKeyCount = clearedKeyCount + 1
         end
     end
 
@@ -118,10 +155,12 @@ local function ResetSettingsStore(store)
     rawStore.SortOptions = {}
     rawStore.Modules = {}
 
+    local resetModuleCount = 0
     for _, moduleInfo in ipairs(MODULE_RESET_ORDER) do
         local moduleName = moduleInfo[1]
         local moduleNamespace = moduleInfo[2]
         rawStore.Modules[moduleName] = BuildModuleDefaults(moduleName, moduleNamespace)
+        resetModuleCount = resetModuleCount + 1
     end
 
     if BETTERUI.Defaults and type(BETTERUI.Defaults.ApplyFirstInstallDefaults) == "function" then
@@ -129,6 +168,11 @@ local function ResetSettingsStore(store)
     end
 
     rawStore.firstInstall = false
+    TraceSettingsReset("store_reset_end", {
+        clearedKeyCount = clearedKeyCount,
+        resetModuleCount = resetModuleCount,
+        useAccountWide = rawStore.useAccountWide,
+    })
 end
 
 --- Gets the active settings store.
@@ -160,24 +204,44 @@ end
 function BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
     local targetStore = GetActiveSettingsStore()
     if type(targetStore) ~= "table" then
+        TraceSettingsReset("all_reset_skipped", { reason = "missingActiveStore" })
         return
     end
+
+    TraceSettingsReset("all_reset_begin", {
+        hasSavedVars = type(BETTERUI.SavedVars) == "table",
+        hasGlobalVars = type(BETTERUI.GlobalVars) == "table",
+        activeKeyCount = CountTableKeys(GetRawStoreData(targetStore)),
+    })
 
     ResetSettingsStore(targetStore)
     BETTERUI.Settings = targetStore
 
     local nameplatesSettings = targetStore.Modules and targetStore.Modules["Nameplates"]
+    local restoredNameplates = false
     if BETTERUI.Nameplates and type(BETTERUI.Nameplates.OnEnabledChanged) == "function" and
         (type(nameplatesSettings) ~= "table" or nameplatesSettings.m_enabled ~= true) then
         -- Nameplate font overrides can persist until explicitly restored.
         BETTERUI.Nameplates.OnEnabledChanged(false, true)
+        restoredNameplates = true
     end
 
+    local resetFeatureFlags = false
     if BETTERUI.CIM.FeatureFlags and type(BETTERUI.CIM.FeatureFlags.ResetToDefaults) == "function" then
         BETTERUI.CIM.FeatureFlags.ResetToDefaults()
+        resetFeatureFlags = true
     end
 
+    local updatedCimState = false
     if BETTERUI.UpdateCIMState then
         BETTERUI.UpdateCIMState()
+        updatedCimState = true
     end
+
+    TraceSettingsReset("all_reset_end", {
+        restoredNameplates = restoredNameplates,
+        resetFeatureFlags = resetFeatureFlags,
+        updatedCimState = updatedCimState,
+        moduleCount = targetStore.Modules and CountTableKeys(targetStore.Modules) or 0,
+    })
 end

@@ -158,7 +158,7 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
         ctx.filterType == ITEMFILTERTYPE_JEWELRY
     )
     ctx.isEquipment = ctx.isGear
-    ctx.isUsableQuest = ctx.isQuestItem and ctx.meetsUsage == true or false
+    ctx.isUsableQuest = (ctx.isQuestItem == true and ctx.meetsUsage == true) or false
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.KEYBIND, "keybind: action context resolved", {actionMode = ctx.actionMode, hasTarget = ctx.target ~= nil})

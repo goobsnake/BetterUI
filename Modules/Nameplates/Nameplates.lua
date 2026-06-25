@@ -33,7 +33,17 @@ local function TraceNameplates(event, phase, data)
         BETTERUI.Log.SetLastAction({ flow = event, message = event .. ":" .. phase })
     end
     local categories = BETTERUI.Log.CATEGORY or {}
-    BETTERUI.Log.TraceEvent(categories.SETTINGS, event, phase, data)
+    local category = categories.SETTINGS
+    if event == "nameplates.event" then
+        category = categories.STATE or categories.LIFECYCLE or categories.SETTINGS
+    elseif event == "nameplates.font_capture"
+        or event == "nameplates.font_apply"
+        or event == "nameplates.apply_current"
+        or event == "nameplates.reset"
+        or event == "nameplates.events" then
+        category = categories.LIFECYCLE or categories.STATE or categories.SETTINGS
+    end
+    BETTERUI.Log.TraceEvent(category, event, phase, data)
 end
 
 local function ClampNameplateSize(value, fallback)
@@ -154,7 +164,15 @@ local function GetSettings()
             settings.style = NormalizeStyleValue(settings.style)
             -- GetModuleSettings returns a detached snapshot; write the
             -- normalized enum to the live table so the migration persists.
-            BETTERUI.GetModuleSettingsLive("Nameplates").style = settings.style
+            local liveSettings = BETTERUI.GetModuleSettingsLive and BETTERUI.GetModuleSettingsLive("Nameplates") or nil
+            if type(liveSettings) == "table" then
+                liveSettings.style = settings.style
+            else
+                TraceNameplates("nameplates.settings", "migration_skipped", {
+                    fn = "Nameplates.GetSettings",
+                    reason = "missingLiveSettings",
+                })
+            end
         end
         return settings
     end
@@ -275,13 +293,23 @@ local function ApplyNameplateFont(font, style, size)
     CaptureOriginalNameplateFonts()
     style = NormalizeStyleValue(style)
     local fontString = font .. "|" .. tostring(size)
-    SetNameplateKeyboardFont(fontString, style)
-    SetNameplateGamepadFont(fontString, style)
+    local keyboardApplied = false
+    local gamepadApplied = false
+    if type(SetNameplateKeyboardFont) == "function" then
+        SetNameplateKeyboardFont(fontString, style)
+        keyboardApplied = true
+    end
+    if type(SetNameplateGamepadFont) == "function" then
+        SetNameplateGamepadFont(fontString, style)
+        gamepadApplied = true
+    end
     TraceNameplates("nameplates.font_apply", "end", {
         fn = "Nameplates.ApplyNameplateFont",
         fontString = fontString,
         style = style,
         size = size,
+        keyboardApplied = keyboardApplied,
+        gamepadApplied = gamepadApplied,
     })
 end
 
@@ -333,10 +361,10 @@ local function ResetToDefaults()
         hasGamepadOriginal = originalGamepadFont ~= nil,
     })
     if originalFontsCaptured then
-        if originalKeyboardFont ~= nil then
+        if originalKeyboardFont ~= nil and type(SetNameplateKeyboardFont) == "function" then
             SetNameplateKeyboardFont(originalKeyboardFont, originalKeyboardStyle)
         end
-        if originalGamepadFont ~= nil then
+        if originalGamepadFont ~= nil and type(SetNameplateGamepadFont) == "function" then
             SetNameplateGamepadFont(originalGamepadFont, originalGamepadStyle)
         end
         TraceNameplates("nameplates.reset", "restored_original", {

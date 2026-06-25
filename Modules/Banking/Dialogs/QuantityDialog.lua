@@ -220,12 +220,6 @@ function BETTERUI.Banking.InitializeQuantityDialog()
                                 target = BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(dialog.data, "target") or nil,
                             }, BETTERUI.Log.LEVEL.INFO)
                         end
-                        if BETTERUI.Log then
-                            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "QuantityDialog confirmed", {
-                                quantity = quantity,
-                                isDeposit = dialog.data.isDeposit,
-                            })
-                        end
                         window:MoveItem(window.list, quantity)
                     end
 

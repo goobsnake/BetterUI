@@ -51,6 +51,87 @@ local function NotifyCompanionSetupFailure(messageText)
     end
 end
 
+local function CountCompanionSnapshotRows(list)
+    if not list then return 0 end
+    if list.GetNumItems then
+        local ok, count = pcall(function() return list:GetNumItems() end)
+        if ok and type(count) == "number" then return count end
+    end
+    return type(list.dataList) == "table" and #list.dataList or 0
+end
+
+local function GetCompanionSnapshotSelectedIndex(list)
+    if not list then return 0 end
+    if type(list.selectedIndex) == "number" then return list.selectedIndex end
+    if list.GetSelectedIndex then
+        local ok, index = pcall(function() return list:GetSelectedIndex() end)
+        if ok and type(index) == "number" then return index end
+    end
+    return 0
+end
+
+local function GetCompanionSnapshotSelectionToken(list)
+    if not list then return "nil" end
+    local selectedOk, selected = pcall(function()
+        if list.GetTargetData then
+            return list:GetTargetData()
+        elseif list.GetSelectedData then
+            return list:GetSelectedData()
+        end
+        return list.selectedData
+    end)
+    if not selectedOk then return "error" end
+    local data = selected and (selected.dataSource or selected) or nil
+    return data and string.format("companion=%s,collectible=%s,bag=%s,slot=%s,entry=%s", tostring(data.companionId or data.companionDefId or "nil"), tostring(data.collectibleId or "nil"), tostring(data.bagId or "nil"), tostring(data.slotIndex or "nil"), tostring(data.entryIndex or "nil")) or "nil"
+end
+
+local function GetCompanionSnapshotCategory(instance)
+    local category = instance and instance.GetCurrentCategory and instance:GetCurrentCategory() or nil
+    return category and (category.key or category.name or category.filterType) or nil
+end
+
+local function IsCompanionSnapshotKeybindPresent(descriptor)
+    if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
+        return 0
+    end
+    local ok, hasGroup = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) end)
+    return (ok and hasGroup) and 1 or 0
+end
+
+local function RegisterCompanionSnapshotProvider()
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and watch.RegisterSnapshotProvider) then return end
+    watch.RegisterSnapshotProvider("companions", function()
+        local instance = Companions.instance
+        if not instance then
+            return string.format("init=%s window=0 error=%s", tostring(Companions.initialized == true), tostring(Companions._initError or "nil"))
+        end
+        local visible = instance.IsSceneShowing and instance:IsSceneShowing() or false
+        local multiSelect = Companions.multiSelectManager or instance.multiSelectManager
+        local selectedCount = 0
+        if multiSelect and multiSelect.GetSelectedItems then
+            local selectedItems = multiSelect:GetSelectedItems()
+            selectedCount = type(selectedItems) == "table" and #selectedItems or 0
+        end
+        return string.format(
+            "init=%s window=1 visible=%s category=%s rows=%s selectedIndex=%s selectedId=%s refreshing=%s search=%d sortReady=%s sortDegraded=%s multiselect=%s keybindCore=%s",
+            tostring(Companions.initialized == true),
+            tostring(visible),
+            tostring(GetCompanionSnapshotCategory(instance)),
+            tostring(CountCompanionSnapshotRows(instance.list)),
+            tostring(GetCompanionSnapshotSelectedIndex(instance.list)),
+            tostring(GetCompanionSnapshotSelectionToken(instance.list)),
+            tostring(instance._isRefreshing == true),
+            instance.searchQuery and #tostring(instance.searchQuery) or 0,
+            tostring(instance.sortSetupReady == true),
+            tostring(instance.sortSetupDegraded == true),
+            tostring(selectedCount),
+            tostring(IsCompanionSnapshotKeybindPresent(instance.coreKeybinds)))
+    end)
+end
+
+RegisterCompanionSnapshotProvider()
+
 ---@param m_options BetterUIModuleOptions|nil Module options table
 ---@return BetterUIModuleOptions m_options Initialized options with defaults applied
 ---@type BetterUIModuleInitHook

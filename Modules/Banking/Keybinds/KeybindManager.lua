@@ -605,12 +605,39 @@ local function CreateCurrencySelectorKeybinds(self)
                     postCallTo = postCall.postCallTo,
                 })
                 if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
-                    BETTERUI.Banking.Tasks:Schedule("currencyTransferSettledTrace", 100, function()
+                    BETTERUI.Banking.Tasks:Schedule("currencyTransferSettled", 100, function()
                         local settled = CurrencySnapshot(currencyType, fromLocation, toLocation, "settled")
+                        local refreshedFooter = false
+                        local keybindRefresh = "none"
+                        local refreshOk = true
+                        local refreshError = nil
+                        if self.RefreshFooter then
+                            local okFooter, footerErr = pcall(function() self:RefreshFooter() end)
+                            refreshedFooter = okFooter == true
+                            if not okFooter then
+                                refreshOk = false
+                                refreshError = tostring(footerErr)
+                            end
+                        end
+                        if KEYBIND_STRIP and self.coreKeybinds and KEYBIND_STRIP.UpdateKeybindButtonGroup then
+                            local okKeybind, keybindErr = pcall(function()
+                                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+                            end)
+                            if okKeybind then
+                                keybindRefresh = "core"
+                            else
+                                refreshOk = false
+                                keybindRefresh = "error"
+                                refreshError = refreshError or tostring(keybindErr)
+                            end
+                        end
                         TraceBankKeybind("bank.currency_transfer", "settled", {
                             currencyType = currencyType, amount = amount, from = fromLocation,
                             to = toLocation, beforeFrom = before.beforeFrom, beforeTo = before.beforeTo,
                             settledFrom = settled.settledFrom, settledTo = settled.settledTo,
+                            refreshedFooter = refreshedFooter, refreshedTooltip = false,
+                            keybindRefresh = keybindRefresh, refreshOk = refreshOk,
+                            refreshError = refreshError,
                         })
                     end)
                 end

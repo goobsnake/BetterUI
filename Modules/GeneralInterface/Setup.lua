@@ -25,6 +25,61 @@ local function TraceGeneralInterface(event, phase, data, category)
 	L.TraceEvent(category or categories.GENERAL, event, phase, payload)
 end
 
+local function CountGeneralInterfaceTooltipHooks(flagName)
+	if not (GAMEPAD_TOOLTIPS and type(GAMEPAD_TOOLTIPS.GetTooltip) == "function") then
+		return 0
+	end
+	local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
+	local count = 0
+	for i = 1, #tooltipTypes do
+		local tooltipType = tooltipTypes[i]
+		if tooltipType ~= nil then
+			local tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
+			if tooltipControl and tooltipControl[flagName] == true then
+				count = count + 1
+			end
+		end
+	end
+	return count
+end
+
+local function HasGeneralInterfaceMailDeleteHook(mailInbox)
+	if type(mailInbox) ~= "table" or type(mailInbox.mainKeybindDescriptor) ~= "table" then
+		return false
+	end
+	for _, descriptor in ipairs(mailInbox.mainKeybindDescriptor) do
+		if type(descriptor) == "table" and descriptor.keybind == "UI_SHORTCUT_SECONDARY" then
+			return descriptor._betteruiDeleteHookInstalled == true
+		end
+	end
+	return false
+end
+
+local function RegisterGeneralInterfaceSnapshotProvider()
+	local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+	if not (watch and watch.RegisterSnapshotProvider) then return end
+	watch.RegisterSnapshotProvider("generalInterface", function()
+		local settings = type(BETTERUI.GetModuleSettings) == "function" and BETTERUI.GetModuleSettings("GeneralInterface") or nil
+		local mailInbox = rawget(_G, "MAIL_INBOX_GAMEPAD") or rawget(_G, "ZO_MailInbox_Gamepad")
+		local tooltipHelpers = GeneralInterface.Tooltips
+		return string.format(
+			"enabled=%s scene=%s removeDeleteDialog=%s guildStoreSuppress=%s chatHistory=%s mailHook=%s mailPrehook=%s tooltipRuntime=%s storeHooks=%s topLineHooks=%s researchCache=%s",
+			tostring(type(BETTERUI.GetModuleEnabled) == "function" and BETTERUI.GetModuleEnabled("GeneralInterface") or nil),
+			tostring(GetCurrentSceneName()),
+			tostring(settings and settings.removeDeleteDialog == true or false),
+			tostring(settings and settings.guildStoreErrorSuppress == true or false),
+			tostring(settings and settings.chatHistory or nil),
+			tostring(HasGeneralInterfaceMailDeleteHook(mailInbox)),
+			tostring(mailInbox and mailInbox._betteruiDeleteDescriptorPreHookInstalled == true or false),
+			tostring(tooltipHelpers and type(tooltipHelpers.InitializeRuntime) == "function" or false),
+			tostring(CountGeneralInterfaceTooltipHooks("_betteruiStoreLayoutHookInstalled")),
+			tostring(CountGeneralInterfaceTooltipHooks("_betteruiTopLinesHookInstalled")),
+			tostring(type(GeneralInterface.InvalidateResearchableTraitCache) == "function"))
+	end)
+end
+
+RegisterGeneralInterfaceSnapshotProvider()
+
 local function GetGeneralInterfaceOptions()
 	if type(GeneralInterface.GetSettingsOptions) ~= "function" then
 		return nil

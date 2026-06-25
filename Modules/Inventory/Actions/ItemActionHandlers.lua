@@ -461,7 +461,8 @@ function ActionHandlers.OnSetup(self, dialog, data)
     })
 end
 
-function ActionHandlers.OnFinish(self)
+function ActionHandlers.OnFinish(self, dialog)
+    local closeCause = dialog and dialog._betteruiCloseCause or "dismissed"
     local function RestoreInventoryAfterDialog()
         if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
             return false
@@ -473,6 +474,7 @@ function ActionHandlers.OnFinish(self)
         if not sceneShowing then
             LogActionDialogRestore("inventory dialog finish restore skipped", {
                 actionMode = self.actionMode,
+                closeCause = closeCause,
                 reason = "sceneHidden",
             })
             return true
@@ -513,6 +515,7 @@ function ActionHandlers.OnFinish(self)
         end
         LogActionDialogRestore("inventory dialog finish restore complete", {
             actionMode = self.actionMode,
+            closeCause = closeCause,
             headerSort = self.isInHeaderSortMode == true,
         })
         return true
@@ -533,6 +536,7 @@ function ActionHandlers.OnFinish(self)
         if retriesRemaining <= 0 then
             LogActionDialogRestore("inventory dialog finish restore abandoned", {
                 actionMode = self.actionMode,
+                closeCause = closeCause,
                 reason = "retry_exhausted",
             }, true)
             return

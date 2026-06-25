@@ -14,6 +14,19 @@ local OptionalAddons = assert(BETTERUI.CIM.OptionalAddons,
 local ADDON_KEYS = assert(OptionalAddons.KEYS,
     "BetterUI: CIM.OptionalAddons.KEYS must load before SettingsMetadata")
 
+local function TraceSettingsMetadata(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "CIM"
+    data.feature = "settingsMetadata"
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.SETTINGS or categories.SETTING or "SETTINGS", event, phase, data)
+end
+
 -- SETTINGS METADATA REGISTRY
 
 local SETTINGS_METADATA_REGISTRY = {
@@ -469,31 +482,56 @@ end
 --- with their own fallback (e.g. IconSettingsFactory) only skip it on true.
 function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, resetGroup)
     if type(moduleName) ~= "string" or type(resetGroup) ~= "string" then
+        TraceSettingsMetadata("settings.group_reset", "skipped", {
+            reason = "invalidArguments",
+            targetModule = moduleName,
+            resetGroup = resetGroup,
+        })
         return false
     end
 
+    TraceSettingsMetadata("settings.group_reset", "begin", {
+        targetModule = moduleName,
+        resetGroup = resetGroup,
+    })
+
     local settings = BETTERUI.EnsureModuleSettings(moduleName)
-    if not next(settings) then
+    if type(settings) ~= "table" or not next(settings) then
+        TraceSettingsMetadata("settings.group_reset", "skipped", {
+            reason = "missingSettings",
+            targetModule = moduleName,
+            resetGroup = resetGroup,
+        })
         return false
     end
 
     local function applyRegistryReset(registryTable)
         if type(registryTable) ~= "table" then
-            return
+            return 0
         end
 
+        local appliedCount = 0
         for settingKey, metadata in pairs(registryTable) do
             if type(metadata) == "table" and metadata.resetGroup == resetGroup then
                 local defaultValue = BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, nil)
                 if defaultValue ~= nil then
                     settings[settingKey] = defaultValue
+                    appliedCount = appliedCount + 1
                 end
             end
         end
+        return appliedCount
     end
 
     -- Shared metadata first, then module metadata to allow module-specific overrides.
-    applyRegistryReset(SETTINGS_METADATA_REGISTRY.Shared)
-    applyRegistryReset(SETTINGS_METADATA_REGISTRY[moduleName])
+    local sharedCount = applyRegistryReset(SETTINGS_METADATA_REGISTRY.Shared)
+    local moduleCount = applyRegistryReset(SETTINGS_METADATA_REGISTRY[moduleName])
+    TraceSettingsMetadata("settings.group_reset", "end", {
+        targetModule = moduleName,
+        resetGroup = resetGroup,
+        sharedCount = sharedCount,
+        moduleCount = moduleCount,
+        appliedCount = sharedCount + moduleCount,
+    })
     return true
 end

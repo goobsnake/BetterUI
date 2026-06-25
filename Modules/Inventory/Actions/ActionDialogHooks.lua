@@ -182,20 +182,24 @@ function BETTERUI.Inventory.HookActionDialog()
 
         parametricList = {}, --we'll generate the entries on setup
         finishedCallback = function(dialog)
-            if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Y-Action Dialog finished", {managed = dialog and dialog._betteruiManaged}) end
+            local closeCause = dialog and dialog._betteruiCloseCause or "dismissed"
+            if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Y-Action Dialog finished", {managed = dialog and dialog._betteruiManaged, closeCause = closeCause}) end
             TraceInventoryActionDialog("inventory.action_dialog", "finish_before", {
                 managed = dialog and dialog._betteruiManaged == true,
+                closeCause = closeCause,
                 selected = dialog and BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
             })
             if dialog and dialog._betteruiManaged then
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH", dialog)
                 TraceInventoryActionDialog("inventory.action_dialog", "finish_after", { managed = true })
                 dialog._betteruiManaged = nil
+                dialog._betteruiCloseCause = nil
                 return
             end
             --original function
             dialog.itemActions = nil
             dialog._betteruiManaged = nil
+            dialog._betteruiCloseCause = nil
             if dialog.finishedCallback then
                 dialog.finishedCallback()
             end
@@ -211,6 +215,7 @@ function BETTERUI.Inventory.HookActionDialog()
                 keybind = "DIALOG_PRIMARY",
                 text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                 callback = function(dialog)
+                    if dialog then dialog._betteruiCloseCause = "primary" end
                     TraceInventoryActionDialog("inventory.action_dialog", "primary_callback", {
                         managed = dialog and dialog._betteruiManaged == true,
                         selected = dialog and BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,

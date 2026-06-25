@@ -2,6 +2,88 @@
 
 local TH = BETTERUI.TradingHouse
 
+local function GetTradingHouseSnapshotModeName(mode)
+    for name, value in pairs(TH.MODE or {}) do
+        if value == mode then return name end
+    end
+    return tostring(mode or "<none>")
+end
+
+local function CountTradingHouseSnapshotRows(list)
+    if not list then return 0 end
+    if list.GetNumItems then
+        local ok, count = pcall(function() return list:GetNumItems() end)
+        if ok and type(count) == "number" then return count end
+    end
+    return type(list.dataList) == "table" and #list.dataList or 0
+end
+
+local function GetTradingHouseSnapshotSelectedIndex(list)
+    if not list then return 0 end
+    if type(list.selectedIndex) == "number" then return list.selectedIndex end
+    if list.GetSelectedIndex then
+        local ok, index = pcall(function() return list:GetSelectedIndex() end)
+        if ok and type(index) == "number" then return index end
+    end
+    return 0
+end
+
+local function GetTradingHouseSnapshotSelectionToken(list)
+    if not list then return "nil" end
+    local selectedOk, selected = pcall(function()
+        if list.GetTargetData then
+            return list:GetTargetData()
+        elseif list.GetSelectedData then
+            return list:GetSelectedData()
+        end
+        return list.selectedData
+    end)
+    if not selectedOk then return "error" end
+    local data = selected and (selected.dataSource or selected) or nil
+    return data and string.format("listing=%s,bag=%s,slot=%s,entry=%s", tostring(data.listingIndex or data.uniqueId or data.itemUniqueId or "nil"), tostring(data.bagId or "nil"), tostring(data.slotIndex or "nil"), tostring(data.entryIndex or "nil")) or "nil"
+end
+
+local function IsTradingHouseSnapshotKeybindPresent(descriptor)
+    if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
+        return 0
+    end
+    local ok, hasGroup = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) end)
+    return (ok and hasGroup) and 1 or 0
+end
+
+local function RegisterTradingHouseSnapshotProvider()
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and watch.RegisterSnapshotProvider) then return end
+    watch.RegisterSnapshotProvider("tradingHouse", function()
+        local instance = TH.instance
+        if not instance then
+            return string.format("init=%s window=0", tostring(TH.initialized == true))
+        end
+        local browse = TH.BrowseComponent
+        local mode = instance.GetCurrentMode and instance:GetCurrentMode() or instance.currentMode
+        local visible = instance.IsSceneShowing and instance:IsSceneShowing() or false
+        return string.format(
+            "init=%s window=1 visible=%s mode=%s modeName=%s rows=%s selectedIndex=%s selectedId=%s suppressed=%s dirty=%s search=%d page=%s pending=%s more=%s keybindCore=%s keybindTabs=%s",
+            tostring(TH.initialized == true),
+            tostring(visible),
+            tostring(mode),
+            tostring(GetTradingHouseSnapshotModeName(mode)),
+            tostring(CountTradingHouseSnapshotRows(instance.list)),
+            tostring(GetTradingHouseSnapshotSelectedIndex(instance.list)),
+            tostring(GetTradingHouseSnapshotSelectionToken(instance.list)),
+            tostring(instance._suppressListUpdates == true),
+            tostring(instance._isDirty == true),
+            instance.searchQuery and #tostring(instance.searchQuery) or 0,
+            tostring(browse and browse.currentPage or nil),
+            tostring(browse and browse.searchPending == true or false),
+            tostring(browse and browse.hasMorePages == true or false),
+            tostring(IsTradingHouseSnapshotKeybindPresent(instance.coreKeybinds)),
+            tostring(IsTradingHouseSnapshotKeybindPresent(instance.tabKeybinds)))
+    end)
+end
+
+RegisterTradingHouseSnapshotProvider()
+
 function BETTERUI.TradingHouse.Init()
     if TH.initialized then
         return

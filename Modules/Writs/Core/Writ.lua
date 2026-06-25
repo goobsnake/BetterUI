@@ -23,6 +23,38 @@ local function TraceWrit(event, phase, data)
 	L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data)
 end
 
+local function CountWritSnapshotEntries()
+	local count = 0
+	for _ in pairs(Writs.List or {}) do
+		count = count + 1
+	end
+	return count
+end
+
+local function IsWritSnapshotPanelHidden(panel)
+	if not (panel and panel.IsHidden) then return nil end
+	local ok, hidden = pcall(function() return panel:IsHidden() end)
+	return ok and hidden or nil
+end
+
+local function RegisterWritSnapshotProvider()
+	local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+	if not (watch and watch.RegisterSnapshotProvider) then return end
+	watch.RegisterSnapshotProvider("writs", function()
+		local panel = m_writsPanel or rawget(_G, "BETTERUI_WritsPanel")
+		return string.format(
+			"writCount=%s panel=%s hidden=%s nameLabel=%s descLabel=%s scene=%s",
+			tostring(CountWritSnapshotEntries()),
+			tostring(panel ~= nil),
+			tostring(IsWritSnapshotPanelHidden(panel)),
+			tostring(m_writNameLabel ~= nil),
+			tostring(m_writDescLabel ~= nil),
+			tostring(SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil))
+	end)
+end
+
+RegisterWritSnapshotProvider()
+
 --- Caches the writ panel controls used by Show and Hide.
 ---@return nil
 function Writs.CacheControls()

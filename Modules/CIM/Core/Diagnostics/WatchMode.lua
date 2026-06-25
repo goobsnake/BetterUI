@@ -37,8 +37,10 @@ local snapshotProviders = {}    -- name -> fn
 local snapshotOrder = {}        -- ordered provider names (stable snapshot field order)
 local snapshotScheduled = false
 local snapshotTimerId = nil     -- pending heartbeat timer id (cancelled on Deactivate)
+local snapshotTimerIntervalMs = nil -- interval used by the pending heartbeat timer
 
-local SNAPSHOT_INTERVAL_MS = 10000
+local WATCH_SNAPSHOT_INTERVAL_MS = 10000
+local INSPECT_SNAPSHOT_INTERVAL_MS = 3000
 -- Replay-grade watch/inspect must not hide the exact surfaces an AI needs to
 -- reconstruct gameplay. Keep the hook for user overrides, but default to no mutes.
 local DEFAULT_MUTED_CATEGORIES = {}
@@ -58,6 +60,15 @@ local function safeCall(fnName, ...)
     local ok, v = pcall(fn, ...)
     if ok then return v end
     return nil
+end
+
+local function snapshotIntervalMs()
+    local L = log()
+    local preset = L and L.GetPreset and L.GetPreset() or nil
+    if preset == "inspect" then
+        return INSPECT_SNAPSHOT_INTERVAL_MS
+    end
+    return WATCH_SNAPSHOT_INTERVAL_MS
 end
 
 -- Current scene name via SCENE_MANAGER, resolved through Names (handles userdata).
@@ -143,6 +154,7 @@ local function emitPreamble()
     local data = {
         schema = L.SCHEMA,
         preset = (L.GetPreset and L.GetPreset()) or "watch", -- watch OR inspect (both activate WatchMode)
+        heartbeatMs = snapshotIntervalMs(),
         sid = L.GetSessionId and L.GetSessionId() or nil,
         api = safeCall("GetAPIVersion"),
         world = safeCall("GetWorldName"),
@@ -174,7 +186,7 @@ function Watch.Snapshot()
     local L = log()
     if not L or not L.Debug then return end
     if L.EnabledFor and not L.EnabledFor(L.LEVEL.DEBUG, L.CATEGORY.STATE) then return end
-    local data = { scene = currentSceneName() or "<none>" }
+    local data = { scene = currentSceneName() or "<none>", heartbeatMs = snapshotIntervalMs() }
     -- Surface the file-sink drop count so an AI tailing the log can SEE when a burst shed
     -- records (i.e. it may have missed context) straight from the heartbeat.
     local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
@@ -202,13 +214,30 @@ local function scheduleSnapshot()
     if snapshotScheduled then return end
     local later = G("zo_callLater")
     if type(later) ~= "function" then return end
+    local intervalMs = snapshotIntervalMs()
     snapshotScheduled = true
+    snapshotTimerIntervalMs = intervalMs
     snapshotTimerId = later(function()
         snapshotScheduled = false
+        snapshotTimerIntervalMs = nil
         if not active then return end -- watch left; stop the heartbeat
         pcall(Watch.Snapshot) -- a snapshot hiccup must not break the reschedule
         scheduleSnapshot()
-    end, SNAPSHOT_INTERVAL_MS)
+    end, intervalMs)
+end
+
+local function rescheduleSnapshotIfIntervalChanged()
+    if not snapshotScheduled then return end
+    local desiredIntervalMs = snapshotIntervalMs()
+    if snapshotTimerIntervalMs == desiredIntervalMs then return end
+    local remove = G("zo_removeCallLater")
+    if not (snapshotTimerId and type(remove) == "function") then return end
+    local cancelOk, removed = pcall(remove, snapshotTimerId)
+    if not (cancelOk and removed ~= false) then return end
+    snapshotTimerId = nil
+    snapshotScheduled = false
+    snapshotTimerIntervalMs = nil
+    scheduleSnapshot()
 end
 
 -- ============================================================================
@@ -253,7 +282,10 @@ function Watch.Activate()
     if L and L.SetCategoryEnabled then
         for cat in pairs(mutedCategories) do L.SetCategoryEnabled(cat, false) end
     end
-    if active then return end -- preamble + heartbeat fire once per activation
+    if active then
+        rescheduleSnapshotIfIntervalChanged()
+        return
+    end -- preamble + heartbeat fire once per activation
     active = true
     emitPreamble()
     scheduleSnapshot()
@@ -270,6 +302,7 @@ function Watch.Deactivate()
     if snapshotTimerId and type(remove) == "function" then pcall(remove, snapshotTimerId) end
     snapshotTimerId = nil
     snapshotScheduled = false
+    snapshotTimerIntervalMs = nil
     local L = log()
     if L and L.SetContextProvider then L.SetContextProvider(nil) end
     if L and L.SetCategoryEnabled then

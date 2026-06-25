@@ -296,17 +296,20 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         end
     end
 
-    local function ActionDialogFinish()
+    local function ActionDialogFinish(dialog)
+        local closeCause = dialog and dialog._betteruiCloseCause or "dismissed"
         if BETTERUI.Utils.IsBankingSceneShowing() then
             if BETTERUI.Log then
                 BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "bank dialog finish restore", {
                     fn = "Banking.ActionDialogFinish",
+                    closeCause = closeCause,
                     headerSort = self.isInHeaderSortMode == true,
                     main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
                 })
             end
             TraceBankingActionDialog("bank.action_dialog", "finish_before", {
                 mode = self.currentMode,
+                closeCause = closeCause,
                 headerSort = self.isInHeaderSortMode == true,
                 main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
             })
@@ -316,6 +319,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             self:RefreshItemActions()
             TraceBankingActionDialog("bank.action_dialog", "finish_after", {
                 mode = self.currentMode,
+                closeCause = closeCause,
                 headerSort = self.isInHeaderSortMode == true,
                 main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
             })
