@@ -55,6 +55,14 @@ local function HasGeneralInterfaceMailDeleteHook(mailInbox)
 	return false
 end
 
+local function DescribeRedactedMailText(value)
+	if value == nil then return nil end
+	if type(value) == "string" then
+		return { present = value ~= "", length = #value }
+	end
+	return { present = true, type = type(value) }
+end
+
 local function SnapshotSelectedMail(mailInbox)
 	local snapshot = {}
 	local selectedData
@@ -65,16 +73,19 @@ local function SnapshotSelectedMail(mailInbox)
 	end
 	local ds = selectedData and (selectedData.dataSource or selectedData) or nil
 	if ds then
-		snapshot.mailId = ds.mailId or ds.id or ds.mailIndex
+		local mailId = ds.mailId or ds.id or ds.mailIndex
+		local sender = ds.senderDisplayName or ds.sender
+		local subject = ds.subject
+		snapshot.hasMailId = mailId ~= nil
 		snapshot.index = ds.mailIndex or ds.index
-		snapshot.sender = ds.senderDisplayName or ds.sender
-		snapshot.subject = ds.subject
+		snapshot.sender = DescribeRedactedMailText(sender)
+		snapshot.subject = DescribeRedactedMailText(subject)
 		snapshot.hasAttachments = ds.hasAttachments or (type(ds.numAttachments) == "number" and ds.numAttachments > 0) or nil
-		snapshot.codAmount = ds.codAmount
+		snapshot.hasCOD = type(ds.codAmount) == "number" and ds.codAmount > 0 or nil
 	end
 	if mailInbox and type(mailInbox.GetSelectedMailId) == "function" then
 		local ok, mailId = pcall(function() return mailInbox:GetSelectedMailId() end)
-		if ok then snapshot.mailId = snapshot.mailId or mailId end
+		if ok and mailId ~= nil then snapshot.hasMailId = true end
 	end
 	return next(snapshot) and snapshot or nil
 end

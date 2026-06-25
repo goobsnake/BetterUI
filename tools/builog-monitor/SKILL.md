@@ -48,7 +48,7 @@ with a short stack traceback after it — **ignore those tracebacks**; they are 
 |---|---|---|---|---|
 | `off` | — | — | — | stop; restores the player's real error popups |
 | `info` | INFO+ | no | 8 / 100 | always-on, FPS-safe milestones only |
-| `watch` | DEBUG+ | **yes** | 300 / 6000 | curated live-AI stream (no TRACE spam) |
+| `watch` | DEBUG+ | **yes** | 300 / 6000 | AI-enriched live stream (no TRACE spam) |
 | `debug` | DEBUG+ | no | 1000 / 20000 | "what is it doing" developer flow |
 | `trace` | TRACE+ | no | 2000 / 40000 | every step, no enrichment |
 | `inspect` | TRACE+ | **yes** | 2000 / 40000 | **richest live-AI stream — default for this skill** |
@@ -196,10 +196,11 @@ context suffix appended to every line.
 
 When the user describes a symptom, correlate it to the stream: find the `seq` window where it
 happened (use `/builog mark`), then read the surrounding `ACTION`/`STATE` lines and the
-nearest `snapshot`. In `watch`, high-volume `LIST`/`KEYBIND` detail is muted by default;
-skipped or incomplete keybind/list outcomes still surface through compact `STATE` lines, and
-the inventory/banking snapshot provider fields include `visible=0/1` so hidden singleton UI
-state is not mistaken for the active screen. A missing expected line is as diagnostic as an error.
+nearest `snapshot`. In `watch`, no categories are muted by default; if the user temporarily
+mutes high-volume categories, skipped or incomplete keybind/list outcomes should still surface
+through compact `STATE` lines, and the inventory/banking snapshot provider fields include
+`visible=0/1` so hidden singleton UI state is not mistaken for the active screen. A missing
+expected line is as diagnostic as an error.
 
 For common UI-flow bugs, look for these landmarks in the marked `seq` window:
 

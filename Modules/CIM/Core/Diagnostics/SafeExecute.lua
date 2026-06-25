@@ -47,6 +47,22 @@ local function logSafeSuccess(context, elapsedMs, result)
     })
 end
 
+local function SafeSuccessTraceEnabled()
+    local L = BETTERUI.Log
+    if not (L and type(L.TraceEvent) == "function") then return false end
+    if type(L.EnabledFor) == "function" then
+        local category = (L.CATEGORY and L.CATEGORY.SAFE) or "SAFE"
+        local level = L.LEVEL and L.LEVEL.INFO or nil
+        if level ~= nil then
+            return L.EnabledFor(level, category)
+        end
+    end
+    if type(L.IsActive) == "function" then
+        return L.IsActive()
+    end
+    return true
+end
+
 local function normalizeLuaSrc(path, lno)
     if not path then return nil end
     return ((path:match("[Bb]etter[Uu][Ii][/\\](.+)$") or path):gsub("\\", "/")) .. ":" .. lno
@@ -82,9 +98,10 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
     -- Call pcall directly with the varargs: packing into a table and unpack(args) would
     -- truncate argument lists containing embedded nils. Keeps the hot SUCCESS path
     -- allocation-free (no xpcall/closure).
-    local startMs = now()
+    local traceSuccess = SafeSuccessTraceEnabled()
+    local startMs = traceSuccess and now() or nil
     local ok, result = pcall(fn, ...)
-    local elapsedMs = now() - startMs
+    local elapsedMs = traceSuccess and (now() - startMs) or nil
 
     if not ok then
         -- Surface the caught error through the unified logger: ERROR level -> Interface.log
@@ -98,7 +115,7 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
         -- SafeExecute call boundary so swallowed faults still have a navigable src.
         local src = srcFromErrorMessage(msg) or srcFromSafeExecuteBoundary()
         logSafeError(context, msg, src)
-    else
+    elseif traceSuccess then
         logSafeSuccess(context, elapsedMs, result)
     end
 

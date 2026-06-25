@@ -208,6 +208,17 @@ local SETTINGS_METADATA_REGISTRY = {
         },
     },
 
+    TradingHouse = {
+        enableCarousel = {
+            labelStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV,
+            tooltipStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
+    },
+
     Companions = {
         quickDestroy = {
             labelStringId = SI_BETTERUI_INV_QUICK_DESTROY,
@@ -505,6 +516,25 @@ function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, resetGroup
         return false
     end
 
+    local function applyDefaultSetting(settingKey, defaultValue)
+        local usedSetSetting = false
+        local applied = false
+        if type(BETTERUI.SetSetting) == "function" then
+            usedSetSetting = true
+            applied = BETTERUI.SetSetting(moduleName, settingKey, defaultValue) == true
+        else
+            settings[settingKey] = defaultValue
+            applied = true
+        end
+        TraceSettingsMetadata("settings.group_reset", applied and "setting_applied" or "setting_failed", {
+            targetModule = moduleName,
+            resetGroup = resetGroup,
+            key = tostring(settingKey),
+            viaSetSetting = usedSetSetting,
+        })
+        return applied
+    end
+
     local function applyRegistryReset(registryTable)
         if type(registryTable) ~= "table" then
             return 0
@@ -515,8 +545,9 @@ function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, resetGroup
             if type(metadata) == "table" and metadata.resetGroup == resetGroup then
                 local defaultValue = BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, nil)
                 if defaultValue ~= nil then
-                    settings[settingKey] = defaultValue
-                    appliedCount = appliedCount + 1
+                    if applyDefaultSetting(settingKey, defaultValue) then
+                        appliedCount = appliedCount + 1
+                    end
                 end
             end
         end

@@ -83,7 +83,7 @@ local function ModuleDependsOnCIM(moduleName)
 end
 
 BETTERUI.name = "BetterUI"
-BETTERUI.version = "3.06"
+BETTERUI.version = "3.07"
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Banking = BETTERUI.Banking or {}
@@ -142,7 +142,7 @@ local MODULE_TOGGLE_BLUEPRINTS = {
 	{ moduleName = "GeneralInterface", nameStringId = "SI_BETTERUI_ENABLE_TOOLTIPS", tooltipStringId = "SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", updatesCIM = true },
 	{ moduleName = "Nameplates", nameStringId = "SI_BETTERUI_NAMEPLATES_ENABLED", tooltipStringId = "SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", updatesCIM = true },
 	{ moduleName = "Inventory", nameStringId = "SI_BETTERUI_ENABLE_INVENTORY", tooltipStringId = "SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", updatesCIM = true },
-	{ moduleName = "ResourceOrbFrames", nameStringId = "SI_BETTERUI_ENABLE_ORBS", tooltipStringId = "SI_BETTERUI_ENABLE_ORBS_TOOLTIP" },
+	{ moduleName = "ResourceOrbFrames", nameStringId = "SI_BETTERUI_ENABLE_ORBS", tooltipStringId = "SI_BETTERUI_ENABLE_ORBS_TOOLTIP", updatesCIM = true },
 	{ moduleName = "Writs", nameStringId = "SI_BETTERUI_ENABLE_WRITS", tooltipStringId = "SI_BETTERUI_ENABLE_WRITS_TOOLTIP" },
 }
 

@@ -63,13 +63,13 @@ local function EndInventoryDialogFlow(flow, message, data)
     end
 end
 
-local function GetTargetItemLink(target)
-    if not (target and target.bagId and target.slotIndex and type(GetItemLink) == "function") then
+local function GetTargetItemName(target)
+    if not (target and target.bagId and target.slotIndex and type(GetItemName) == "function") then
         return nil
     end
-    local ok, link = pcall(GetItemLink, target.bagId, target.slotIndex, LINK_STYLE_BRACKETS)
-    if ok and type(link) == "string" and link ~= "" then
-        return link
+    local ok, name = pcall(GetItemName, target.bagId, target.slotIndex)
+    if ok and type(name) == "string" and name ~= "" then
+        return name
     end
     return nil
 end
@@ -79,7 +79,7 @@ local function AddTargetFields(data, target)
     if target then
         data.bag = target.bagId
         data.slot = target.slotIndex
-        data.item = GetTargetItemLink(target)
+        data.item = GetTargetItemName(target)
     end
     return data
 end

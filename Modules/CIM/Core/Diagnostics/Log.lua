@@ -324,14 +324,14 @@ function Log.DescribeItem(value, label)
         local stack = raw.stackCount or callGlobal("GetSlotStackSize", bagId, slotIndex)
         if stack ~= nil and raw.stackCount == nil then parts[#parts + 1] = "stack=" .. normalizeLogToken(stack, "?") end
         local link = raw.itemLink or callGlobal("GetItemLink", bagId, slotIndex)
-        if link and link ~= "" then parts[#parts + 1] = "link=" .. normalizeLogToken(link, "?"):sub(1, 64) end
+        if link and link ~= "" then parts[#parts + 1] = "hasLink=1" end
     elseif raw.currencyType ~= nil then
         parts[#parts + 1] = "currency=" .. normalizeLogToken(raw.currencyType, "?")
     else
         local rawName = raw.name or raw.itemName or raw.displayName
         if rawName and rawName ~= "" then parts[#parts + 1] = "name=" .. normalizeLogToken(rawName, "?"):sub(1, 36) end
         local rawLink = raw.itemLink or raw.link
-        if rawLink and rawLink ~= "" then parts[#parts + 1] = "link=" .. normalizeLogToken(rawLink, "?"):sub(1, 64) end
+        if rawLink and rawLink ~= "" then parts[#parts + 1] = "hasLink=1" end
     end
 
     return prefix .. "{" .. table.concat(parts, ",") .. "}"
@@ -574,7 +574,7 @@ local function dispatch(level, category, message, data)
     local sid = ensureSessionId()
 
     local text = normalizeLogText(message, "") -- never raise on a hostile __tostring
-    if data ~= nil and payloadCapture then
+    if data ~= nil and (payloadCapture or level >= Log.LEVEL.WARN) then
         -- belt: the payload render can never raise the log call (renderData is already
         -- safeTostring-guarded, but a pathological value must still not escape).
         local okR, rendered = pcall(renderData, data)
@@ -620,6 +620,35 @@ local function emit(level, category, message, data)
     dispatch(level, category, message, data)
 end
 
+local function captureWarnErrorSource()
+    local debugInfo = BETTERUI.CIM and BETTERUI.CIM.DebugInfo
+    if not (debugInfo and type(debugInfo.CaptureCallerFrame) == "function") then
+        return nil
+    end
+    local ok, src = pcall(debugInfo.CaptureCallerFrame, 4, {
+        "Diagnostics[/\\]Log%.lua",
+        "Diagnostics[/\\]InterfaceLog%.lua",
+        "Diagnostics[/\\]DebugInfo%.lua",
+    })
+    return ok and src or nil
+end
+
+local function withWarnErrorContext(message, data)
+    local payload = {}
+    if type(data) == "table" then
+        for key, value in pairs(data) do payload[key] = value end
+    elseif data ~= nil then
+        payload.value = data
+    end
+    if payload.caller == nil then
+        payload.caller = "log:" .. normalizeLogToken(message, "warn"):sub(1, 48)
+    end
+    if payload.src == nil then
+        payload.src = captureWarnErrorSource()
+    end
+    return payload
+end
+
 ---@param level number  one of Log.LEVEL
 ---@param category string
 ---@param message any
@@ -628,8 +657,8 @@ function Log.Write(level, category, message, data) emit(level, category, message
 function Log.Trace(category, message, data) emit(Log.LEVEL.TRACE, category, message, data) end
 function Log.Debug(category, message, data) emit(Log.LEVEL.DEBUG, category, message, data) end
 function Log.Info(category, message, data)  emit(Log.LEVEL.INFO,  category, message, data) end
-function Log.Warn(category, message, data)  emit(Log.LEVEL.WARN,  category, message, data) end
-function Log.Error(category, message, data) emit(Log.LEVEL.ERROR, category, message, data) end
+function Log.Warn(category, message, data)  emit(Log.LEVEL.WARN,  category, message, withWarnErrorContext(message, data)) end
+function Log.Error(category, message, data) emit(Log.LEVEL.ERROR, category, message, withWarnErrorContext(message, data)) end
 
 --- Emit a canonical replay trace record. Existing human messages stay compatible;
 --- replay consumers can key off the first tokens: `event=<name> phase=<phase>`.

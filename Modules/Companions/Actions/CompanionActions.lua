@@ -527,6 +527,7 @@ function Companions.ExecuteAction(actionId, selectedData)
     end
 
     local result = false
+    local resultDetails = nil
     if actionId == "equip" then
         result = Companions.TryEquipCompanionItem(bagId, slotIndex)
     elseif actionId == "unequip" then
@@ -551,8 +552,16 @@ function Companions.ExecuteAction(actionId, selectedData)
     elseif actionId == "unjunk" then
         result = Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     elseif actionId == "split" then
-        result = Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
+        local didShowDialog = Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
+        result = true
+        resultDetails = { didShowDialog = didShowDialog == true }
     end
-    TraceCompanionAction("companions.action", "result", { fn = "ExecuteAction", actionId = actionId, bagId = bagId, slotIndex = slotIndex, slotType = slotType, result = result == true })
+    local traceData = { fn = "ExecuteAction", actionId = actionId, bagId = bagId, slotIndex = slotIndex, slotType = slotType, result = result == true }
+    if resultDetails then
+        for key, value in pairs(resultDetails) do
+            traceData[key] = value
+        end
+    end
+    TraceCompanionAction("companions.action", "result", traceData)
     return result
 end

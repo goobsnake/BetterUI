@@ -16,13 +16,13 @@ local function EndBankTransferFlow(flow, message, data)
     end
 end
 
-local function GetTransferItemLink(bag, slot)
-    if not (bag and slot and type(GetItemLink) == "function") then
+local function GetTransferItemName(bag, slot)
+    if not (bag and slot and type(GetItemName) == "function") then
         return nil
     end
-    local ok, link = pcall(GetItemLink, bag, slot, LINK_STYLE_BRACKETS)
-    if ok and type(link) == "string" and link ~= "" then
-        return link
+    local ok, name = pcall(GetItemName, bag, slot)
+    if ok and type(name) == "string" and name ~= "" then
+        return name
     end
     return nil
 end
@@ -31,7 +31,7 @@ local function TransferData(bag, slot, data)
     data = data or {}
     if bag ~= nil then data.fromBag = bag end
     if slot ~= nil then data.fromSlot = slot end
-    data.item = GetTransferItemLink(bag, slot)
+    data.item = GetTransferItemName(bag, slot)
     return data
 end
 

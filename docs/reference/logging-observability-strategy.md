@@ -70,7 +70,7 @@ attempted=child,ancestorGlobal,global scene=bank view=bank flow=none lastAction=
 | Preset | Min level | Payloads | Budget (frame/sec) | Purpose |
 |---|---|---|---|---|
 | `info` | INFO | off | 8 / 100 | "Is it working?" — FPS-safe live |
-| `watch` | DEBUG | on | ~300 / 6000 (calibrated) | **Live AI monitoring** — curated stream (see section 3) |
+| `watch` | DEBUG | on | ~300 / 6000 (calibrated) | **Live AI monitoring** — AI-enriched stream (see section 3) |
 | `debug` | DEBUG | on | 1000 / 20000 (loose) | broad developer stream, all categories |
 | `trace` | TRACE | on | 2000 / 40000 (crash-guard) | "Every step" |
 | `inspect` | TRACE | on | 2000 / 40000 (crash-guard) | `watch` enrichment at `trace` depth — richest live-AI stream |
@@ -86,7 +86,7 @@ deferred-sink backlog cap and exposed in `/builog status`/`/buihealth` stats as 
 monotonic in `Log.lua` dispatch; both mandatory when active. Parse boundary = first `|`; `[BUI]` is the
 filter; tagged-error tracebacks are ignorable, untagged `Lua Error:` blocks are real.
 
-**`/builog preset watch` — the curated AI stream. Five things make it genuinely ≠ `debug`+heartbeat:**
+**`/builog preset watch` — the AI-enriched debug stream. Five things make it genuinely ≠ `debug`+heartbeat:**
 1. **Per-line context suffix** on EVERY line: `scene=<s> view=<v> flow=<f|none> lastAction=<a|none>` from
    cached logger state (cheap, no UI traversal) — the AI never lacks context. WARN/ERROR always get it.
 2. **Startup context preamble** once per load (`INFO STATE | context: startup -> betterui=<v> api=<v>
@@ -104,10 +104,10 @@ filter; tagged-error tracebacks are ignorable, untagged `Lua Error:` blocks are 
    resolved/invoked, dialog action confirmed/restored/skipped, keybind-group refresh summaries, category/list
    refresh scheduled/refreshed with `updates=`, bank item transfer blocked with `reason=`, and bank currency
    transfer completed/failed.
-5. **Curated auto-mute** (the main reason it's its own preset): at DEBUG, enable `STATE,LIFECYCLE,SCENE,NAV,
-   CATEGORY,ACTION,CONTROL,SAFE,PERF,SETTINGS`; mute `LIST,SEARCH,SORT,BATCH,FOOTER,KEYBIND`. WARN/ERROR
-   always pass; TRACE never passes in `watch`. Override from addon code via
-   `WatchMode.SetMutedCategories`.
+5. **Replay-grade category policy**: `watch` and `inspect` default to no muted categories so AI monitoring can
+   reconstruct sort/search/list/keybind/currency flows without guessing. The mute hook remains available for
+   temporary user overrides via `WatchMode.SetMutedCategories`; WARN/ERROR always pass, and TRACE only passes in
+   `inspect`/`trace`.
 
 **Dev controls:** `/builog mark "<text>"` injects a marker (`INFO STATE | watch: mark -> "..."`) so you tell
 the AI exactly where a bug hit. `Log.NewFlow(kind,name)` + `Log.SetLastAction(...)` feed flow/context.
@@ -139,7 +139,7 @@ file). **Capture mode** `/builog capture start|stop|dump` (bounded temporary pre
    `maxPending` sink-backlog cap.
 2. **Name + caller/src infra** — new `Names.lua`; `DebugInfo.lua` (`CaptureCallerFrame` via guarded sync
    `debug.traceback`, parse rules, caps); canonical keys; `Log.NewFlow`/`Log.SetLastAction`.
-3. **`watch` preset** — curated auto-mute; per-line context suffix; startup preamble (incl. active addons);
+3. **`watch` preset** — no-default-mute category policy; per-line context suffix; startup preamble (incl. active addons);
    rich state snapshot (provider registry); flow envelopes; `/builog mark`; host tail/parse spec + reference
    snippet.
 4. **`ControlUtils` repair** — `FindControl(parent,name,caller)` (back-compat 2-arg); miss WARN -> `CONTROL`
@@ -160,7 +160,7 @@ file). **Capture mode** `/builog capture start|stop|dump` (bounded temporary pre
 gamepad-safe per-emit popup suppression; global `SceneLog`; `/builog`,`/buiscene`; findControl flood fix.
 
 ## 6. Risks & guardrails
-Deferred-error cost ceiling (gate hot paths with `EnabledFor`/`*Lazy`; `watch` auto-mutes noise; `src`
+Deferred-error cost ceiling (gate hot paths with `EnabledFor`/`*Lazy`; `watch` supports temporary category mutes when needed; `src`
 traceback only on WARN/ERROR); gamepad popup safety (per-emit suppression re-assert + health check; wrap raise
 in pcall); **taint: additive `RegisterCallback`/`ZO_PreHook` only, never wrap `SCENE_MANAGER`/protected fns**;
 inert-when-off (no resolver/payload/traceback work before gates except WARN/ERROR); privacy (no account/char/

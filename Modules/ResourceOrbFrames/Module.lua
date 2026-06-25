@@ -60,17 +60,50 @@ local function InitSettingsPanel(mId, moduleName)
 
     local CloneColor = BETTERUI.CloneColor
 
+    local function TraceResourceOrbSettingsReset(phase, data)
+        local L = BETTERUI and BETTERUI.Log
+        if not (L and L.TraceEvent) then return end
+        data = data or {}
+        data.module = "ResourceOrbFrames"
+        data.feature = "settingsReset"
+        if L.SetLastAction then
+            L.SetLastAction({ flow = "resource_orbs.settings_reset", message = "resource_orbs.settings_reset:" .. tostring(phase) })
+        end
+        local categories = L.CATEGORY or {}
+        L.TraceEvent(categories.SETTINGS or categories.GENERAL or "SETTINGS", "resource_orbs.settings_reset", phase, data)
+    end
+
     local function ResetSettingsGroup(keyDefaults)
         local settings = EnsureResourceOrbSettings()
-        if not settings then return end
-        for _, entry in ipairs(keyDefaults) do
+        TraceResourceOrbSettingsReset("begin", { count = type(keyDefaults) == "table" and #keyDefaults or 0 })
+        if not settings then
+            TraceResourceOrbSettingsReset("skipped", { reason = "missingSettings" })
+            return
+        end
+        local appliedCount = 0
+        for _, entry in ipairs(keyDefaults or {}) do
+            local value
             if entry.isColor then
-                settings[entry.key] = CloneColor(Default(entry.key, nil), entry.colorFallback)
+                value = CloneColor(Default(entry.key, nil), entry.colorFallback)
             else
-                settings[entry.key] = Default(entry.key, entry.value)
+                value = Default(entry.key, entry.value)
             end
+            local applied = false
+            if type(BETTERUI.SetSetting) == "function" then
+                applied = BETTERUI.SetSetting("ResourceOrbFrames", entry.key, value) == true
+            else
+                settings[entry.key] = value
+                applied = true
+            end
+            if applied then appliedCount = appliedCount + 1 end
+            TraceResourceOrbSettingsReset(applied and "setting_applied" or "setting_failed", {
+                key = tostring(entry.key),
+                isColor = entry.isColor == true,
+                viaSetSetting = type(BETTERUI.SetSetting) == "function",
+            })
         end
         Apply()
+        TraceResourceOrbSettingsReset("end", { appliedCount = appliedCount })
     end
 
     local GetSet = BETTERUI.CreateSettingAccessors("ResourceOrbFrames", Apply)

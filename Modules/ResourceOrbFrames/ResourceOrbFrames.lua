@@ -768,11 +768,18 @@ end
 ---@param control table Root UI control created from XML template
 function ResourceOrbFrames.Initialize(control)
     m_rootFrame = control
+    TraceROF("resource_orbs.initialize", "begin", {
+        fn = "ResourceOrbFrames.Initialize",
+        hasControl = control ~= nil,
+    })
 
     -- Defer full setup until player is actually in the world
     -- This ensures all ESO UI fragments and systems are ready
     -- Guard: m_isInitialized check in DeferredTask callback (L331) prevents double SetupModule()
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
+        TraceROF("resource_orbs.initialize", "player_activated", {
+            fn = "ResourceOrbFrames.EVENT_PLAYER_ACTIVATED:init",
+        })
         -- Unregister through the registry so its bookkeeping stays accurate.
         BETTERUI.CIM.EventRegistry.Unregister("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
 
@@ -780,10 +787,17 @@ function ResourceOrbFrames.Initialize(control)
             local settings = GetSettings()
             if not settings or not settings.m_enabled then
                 m_rootFrame:SetHidden(true)
+                TraceROF("resource_orbs.initialize", "setup_skipped", {
+                    fn = "ResourceOrbFrames.initModuleSetup",
+                    reason = not settings and "missingSettings" or "moduleDisabled",
+                })
                 return
             end
 
             if not m_isInitialized then
+                TraceROF("resource_orbs.initialize", "setup_begin", {
+                    fn = "ResourceOrbFrames.initModuleSetup",
+                })
                 SetupModule(control)
             end
 
@@ -797,6 +811,11 @@ function ResourceOrbFrames.Initialize(control)
             if Events.RefreshCombatIndicators then
                 Events.RefreshCombatIndicators(control)
             end
+            TraceROF("resource_orbs.initialize", "end", {
+                fn = "ResourceOrbFrames.initModuleSetup",
+                initialized = m_isInitialized,
+                refreshedCombatIndicators = Events.RefreshCombatIndicators ~= nil,
+            })
         end)
     end)
 end
@@ -840,6 +859,9 @@ function ResourceOrbFrames.ApplySettings()
         -- Re-register the periodic update loops on enable.
         if Events.SetLoopsEnabled then
             Events.SetLoopsEnabled(true)
+        end
+        if Events.SetupSceneHandlers then
+            Events.SetupSceneHandlers(m_rootFrame)
         end
         ApplyFullLayout()
         RefreshAllData()

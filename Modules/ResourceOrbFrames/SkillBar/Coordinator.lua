@@ -19,14 +19,33 @@ local FindControl = BETTERUI.ControlUtils.FindControl
 
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
+local function TraceCoordinator(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "skillBarCoordinator"
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.STATE or categories.LIFECYCLE, event, phase, data)
+end
+
 -- MAIN BAR & LAYOUT ORCHESTRATION
 
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateBarPositions(rootFrame)
+    TraceCoordinator("resource_orbs.skill_bar_layout", "positions_begin", { fn = "UpdateBarPositions", hasRoot = rootFrame ~= nil })
     local actionBarContainer = FindControl(rootFrame, 'ActionBarContainer')
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
-    if not actionBarContainer or not backBarContainer or not bgMiddle then return end
+    if not actionBarContainer or not backBarContainer or not bgMiddle then
+        TraceCoordinator("resource_orbs.skill_bar_layout", "positions_skipped", {
+            fn = "UpdateBarPositions",
+            hasActionBar = actionBarContainer ~= nil,
+            hasBackBar = backBarContainer ~= nil,
+            hasBgMiddle = bgMiddle ~= nil,
+        })
+        return
+    end
 
     local isGamePad = IsInGamepadPreferredMode()
     local bars = BETTERUI_ORB_FRAMES.bars
@@ -48,11 +67,20 @@ local function UpdateBarPositions(rootFrame)
     backBarContainer:ClearAnchors()
     actionBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, bottomX, bottomY)
     backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, m_backBarBaseX, m_backBarBaseY)
+    TraceCoordinator("resource_orbs.skill_bar_layout", "positions_end", {
+        fn = "UpdateBarPositions",
+        gamepad = isGamePad,
+        bottomX = bottomX,
+        bottomY = bottomY,
+        backBarX = m_backBarBaseX,
+        backBarY = m_backBarBaseY,
+    })
 end
 
 --- Updates main action bar dimensions and hides native weapon swap.
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateMainBarLayout(rootFrame)
+    TraceCoordinator("resource_orbs.skill_bar_layout", "main_begin", { fn = "UpdateMainBarLayout", hasRoot = rootFrame ~= nil })
     local isGamePad = IsInGamepadPreferredMode()
     local slots = isGamePad and BETTERUI_ORB_FRAMES.slots.gamepad or BETTERUI_ORB_FRAMES.slots.keyboard
     local width = slots.width
@@ -64,6 +92,13 @@ local function UpdateMainBarLayout(rootFrame)
         barParent:SetDimensions(totalWidth, width)
         if ZO_ActionBar1WeaponSwap then ZO_ActionBar1WeaponSwap:SetHidden(true) end
     end
+    TraceCoordinator("resource_orbs.skill_bar_layout", barParent and "main_end" or "main_skipped", {
+        fn = "UpdateMainBarLayout",
+        gamepad = isGamePad,
+        hasBarParent = barParent ~= nil,
+        width = width,
+        totalWidth = totalWidth,
+    })
 end
 
 --- Applies the BetterUI template skin to the action bar and updates sub-bars.
@@ -72,6 +107,13 @@ end
 local function ApplyActionBarSkin(rootFrame, layout)
     local isGamePad = IsInGamepadPreferredMode()
     local template = isGamePad and 'ResourceOrbFrames_Double_Gamepad' or 'ResourceOrbFrames_Double_Keyboard'
+    TraceCoordinator("resource_orbs.skill_bar_skin", "begin", {
+        fn = "ApplyActionBarSkin",
+        template = template,
+        gamepad = isGamePad,
+        hasRoot = rootFrame ~= nil,
+        hasLayout = layout ~= nil,
+    })
 
     if ZO_ActionBar1WeaponSwap then
         ZO_ActionBar1WeaponSwap:SetHidden(true)
@@ -95,7 +137,15 @@ local function ApplyActionBarSkin(rootFrame, layout)
     ZO_HUDEquipmentStatus:ClearAnchors()
     ZO_HUDEquipmentStatus:SetAnchor(RIGHT, GuiRoot, RIGHT, -(layout.abilitySlotOffsetX + 13), 0)
 
-    ApplyTemplateToControl(rootFrame, template)
+    local okTemplate, templateErr = pcall(ApplyTemplateToControl, rootFrame, template)
+    if not okTemplate then
+        TraceCoordinator("resource_orbs.skill_bar_skin", "template_error", {
+            fn = "ApplyActionBarSkin",
+            template = template,
+            error = tostring(templateErr),
+        })
+        error(templateErr, 2)
+    end
 
     SkillBar.UpdateBackBar(rootFrame)
     SkillBar.UpdateBackBarLayout(rootFrame)
@@ -103,16 +153,33 @@ local function ApplyActionBarSkin(rootFrame, layout)
 
     local indicator = FindControl(rootFrame, 'ActiveBarIndicator')
     if indicator then indicator:SetHidden(true) end
+    TraceCoordinator("resource_orbs.skill_bar_skin", "end", {
+        fn = "ApplyActionBarSkin",
+        template = template,
+        hasIndicator = indicator ~= nil,
+    })
 end
 
 -- Stops an in-flight weapon-swap animation and resets both bars to their resting positions.
 -- Safe to call when no animation is running (no-op).
 local function StopWeaponSwapAnimation(rootFrame)
-    if not (m_swapTimeline and m_swapTimeline:IsPlaying()) then return end
+    if not (m_swapTimeline and m_swapTimeline:IsPlaying()) then
+        TraceCoordinator("resource_orbs.weapon_swap", "stop_skipped", { fn = "StopWeaponSwapAnimation", reason = "notPlaying" })
+        return
+    end
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
-    if not backBarContainer or not frontBarContainer or not bgMiddle then return end
+    if not backBarContainer or not frontBarContainer or not bgMiddle then
+        TraceCoordinator("resource_orbs.weapon_swap", "stop_skipped", {
+            fn = "StopWeaponSwapAnimation",
+            reason = "missingControls",
+            hasBackBar = backBarContainer ~= nil,
+            hasFrontBar = frontBarContainer ~= nil,
+            hasBgMiddle = bgMiddle ~= nil,
+        })
+        return
+    end
 
     m_swapTimeline:Stop()
     backBarContainer:SetAlpha(1)
@@ -126,6 +193,7 @@ local function StopWeaponSwapAnimation(rootFrame)
     frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)
     SkillBar.UpdateBackBar(rootFrame)
     SkillBar.UpdateFrontBar(rootFrame)
+    TraceCoordinator("resource_orbs.weapon_swap", "stopped", { fn = "StopWeaponSwapAnimation" })
 end
 
 --- Plays the weapon-swap slide animation for front and back bars.
@@ -135,10 +203,24 @@ local function WeaponSwapAnimation(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
+    TraceCoordinator("resource_orbs.weapon_swap", "begin", {
+        fn = "WeaponSwapAnimation",
+        enabled = settings and settings.weaponSwapAnimation,
+        hideBackBar = settings and settings.hideBackBar,
+        hasBackBar = backBarContainer ~= nil,
+        hasFrontBar = frontBarContainer ~= nil,
+        hasBgMiddle = bgMiddle ~= nil,
+    })
 
     if not settings.weaponSwapAnimation or settings.hideBackBar or not backBarContainer or not frontBarContainer or not bgMiddle then
         SkillBar.UpdateBackBar(rootFrame)
         SkillBar.UpdateFrontBar(rootFrame)
+        TraceCoordinator("resource_orbs.weapon_swap", "skipped", {
+            fn = "WeaponSwapAnimation",
+            reason = not settings.weaponSwapAnimation and "settingDisabled"
+                or settings.hideBackBar and "backBarHidden"
+                or "missingControls",
+        })
         return
     end
 
@@ -149,6 +231,7 @@ local function WeaponSwapAnimation(rootFrame)
     if not m_swapTimeline then
         m_swapTimeline = ANIMATION_MANAGER:CreateTimeline()
         local SLIDE_DIST = 60
+        local animationBgMiddle = bgMiddle
 
         local anim = m_swapTimeline:InsertAnimation(ANIMATION_CUSTOM, backBarContainer)
         anim:SetDuration(300)
@@ -157,7 +240,7 @@ local function WeaponSwapAnimation(rootFrame)
         anim:SetUpdateFunction(function(self, progress)
             local backCtr = backBarContainer
             local frontCtr = frontBarContainer
-            local bg = FindControl(rootFrame, 'BgMiddle')
+            local bg = animationBgMiddle
             if not backCtr or not frontCtr or not bg then return end
             local frontBarConst = BETTERUI_ORB_FRAMES.bars.customFrontBar or {}
             local frontBaseX = (frontBarConst.offsetX or 0) + 10
@@ -196,8 +279,10 @@ local function WeaponSwapAnimation(rootFrame)
             SkillBar.UpdateBackBar(rootFrame)
             SkillBar.UpdateFrontBar(rootFrame)
         end, 150)
+        TraceCoordinator("resource_orbs.weapon_swap", "timeline_created", { fn = "WeaponSwapAnimation" })
     end
     m_swapTimeline:PlayFromStart()
+    TraceCoordinator("resource_orbs.weapon_swap", "play", { fn = "WeaponSwapAnimation" })
 end
 
 ---@return boolean isAnimating Whether a weapon swap animation is in progress

@@ -14,7 +14,7 @@ game's `Interface.log` while you reproduce an issue — no `/reloadui`, no Saved
 
 ```
 /builog on                  -- start streaming [BUI] breadcrumbs to Interface.log
-/builog preset watch        -- the curated live-AI stream (recommended while play-testing)
+/builog preset watch        -- the AI-enriched live stream (recommended while play-testing)
 ... reproduce the issue ...
 /buihealth                  -- one-line health: preset, errors, file-sink budget, scene/watch state
 /builog errors              -- dump the recent WARN/ERROR ring in chat
@@ -35,10 +35,10 @@ Presets are min-level gates layered over the low-level knobs. Pick by intent:
 |---|---|---|---|---|
 | `off`   | —      | —   | 0      | stop logging, restore popups |
 | `info`  | INFO+  | off | 8/100  | "is it working?" — milestones + problems. **FPS-safe for live play.** |
-| `watch` | DEBUG+ | on  | 300/6000 | the curated **live-AI** stream (preamble, per-line context, snapshots, flows) |
+| `watch` | DEBUG+ | on  | 300/6000 | the AI-enriched **live-AI** stream (preamble, per-line context, snapshots, flows) |
 | `debug` | DEBUG+ | on  | 1000/20000 | "what is it doing?" — the everyday user-action flow |
 | `trace` | TRACE+ | on  | 2000/40000 | every step; loosest budget (only guards against a runaway hot loop) |
-| `inspect` | TRACE+ | on | 2000/40000 | **`watch` enrichment at `trace` depth** — every step PLUS per-line context, state snapshots, preamble, auto-mute. The richest live-AI stream. |
+| `inspect` | TRACE+ | on | 2000/40000 | **`watch` enrichment at `trace` depth** — every step PLUS per-line context, state snapshots, and preamble. The richest live-AI stream. |
 
 `ai` is a deprecated alias for `watch`; `verbose` for `trace`. `inspect` is a DISTINCT preset
 (not an alias — `GetPreset()` returns `inspect`): use it when `watch` (DEBUG+) isn't deep
@@ -63,16 +63,16 @@ is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
    visible handoff lines such as `inventory primary action resolved`, `inventory primary action invoked`,
    `inventory dialog action confirmed`, `bank primary transfer invoked`, `bank action dialog shown`, and
    `bank currency transfer completed/failed`.
-5. **Curated auto-mute** — `watch` mutes `LIST`, `SEARCH`, `SORT`, `BATCH`, `FOOTER`,
-   and `KEYBIND` by default. `ACTION` and `STATE` stay visible, so flows, refresh
-   outcomes, and keybind/list summaries remain inspectable. Override in-client via
-   `WatchMode.SetMutedCategories`.
+5. **Replay-grade category policy** — `watch` and `inspect` default to no muted
+   categories, so sort/search/list/keybind/currency flows remain visible to an AI
+   tailing the stream. Temporary mutes are still available in-client via
+   `WatchMode.SetMutedCategories`; WARN/ERROR always pass.
 
 ## Flow landmarks to expect
 
 When play-testing inventory or banking, the live stream should show the cause-and-effect chain, not just the
-final error. These compact lines remain visible in `watch`/`inspect` even when noisy `LIST` and `KEYBIND`
-categories are muted:
+final error. These compact lines remain visible in `watch`/`inspect`; if the user temporarily mutes noisy
+categories, `ACTION` and `STATE` landmarks should still preserve the flow:
 
 | User-visible flow | Expected landmarks |
 |---|---|

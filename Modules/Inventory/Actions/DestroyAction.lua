@@ -44,10 +44,6 @@ local function BuildDestroyTracePayload(bagId, slotIndex, slotType, data)
             local ok, name = pcall(GetItemName, bagId, slotIndex)
             if ok then data.name = name end
         end
-        if GetItemLink then
-            local ok, itemLink = pcall(GetItemLink, bagId, slotIndex)
-            if ok then data.itemLink = itemLink end
-        end
         if GetSlotStackSize then
             local ok, stackCount = pcall(GetSlotStackSize, bagId, slotIndex)
             if ok then data.stackCount = stackCount end

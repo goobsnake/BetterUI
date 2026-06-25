@@ -129,6 +129,14 @@ local function TraceBankKeybind(event, phase, data)
     L.TraceEvent(L.CATEGORY.KEYBIND, event, phase, data)
 end
 
+local function TraceBankCurrencyAction(phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.feature = data.feature or "currencyTransfer"
+    L.TraceEvent(L.CATEGORY.ACTION, "bank.currency_transfer", phase, data)
+end
+
 local function ReadCurrencyAmount(currencyType, location)
     local L = BETTERUI.Log
     if L and L.GetCurrencyAmountForLocation then
@@ -580,6 +588,12 @@ local function CreateCurrencySelectorKeybinds(self)
                         beforeTo = before.beforeTo, postCallFrom = postCall.postCallFrom,
                         postCallTo = postCall.postCallTo,
                     })
+                    TraceBankCurrencyAction("failed", {
+                        currencyType = currencyType, amount = amount, guild = isGuildBankMode,
+                        from = fromLocation, to = toLocation, reason = okTransfer and "transfer_returned_false" or tostring(transferResult),
+                        beforeFrom = before.beforeFrom, beforeTo = before.beforeTo,
+                        postCallFrom = postCall.postCallFrom, postCallTo = postCall.postCallTo,
+                    })
                     return
                 end
                 if currencySelector and currencySelector.HideSelector then
@@ -600,6 +614,12 @@ local function CreateCurrencySelectorKeybinds(self)
                 })
                 TraceBankKeybind("bank.currency_transfer", "end", {
                     status = "requested", currencyType = currencyType, amount = amount,
+                    from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
+                    beforeTo = before.beforeTo, postCallFrom = postCall.postCallFrom,
+                    postCallTo = postCall.postCallTo,
+                })
+                TraceBankCurrencyAction("requested", {
+                    currencyType = currencyType, amount = amount, guild = isGuildBankMode,
                     from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
                     beforeTo = before.beforeTo, postCallFrom = postCall.postCallFrom,
                     postCallTo = postCall.postCallTo,
@@ -639,7 +659,24 @@ local function CreateCurrencySelectorKeybinds(self)
                             keybindRefresh = keybindRefresh, refreshOk = refreshOk,
                             refreshError = refreshError,
                         })
+                        TraceBankCurrencyAction("completed", {
+                            currencyType = currencyType, amount = amount, guild = isGuildBankMode,
+                            from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
+                            beforeTo = before.beforeTo, settledFrom = settled.settledFrom,
+                            settledTo = settled.settledTo, refreshedFooter = refreshedFooter,
+                            refreshedTooltip = false, keybindRefresh = keybindRefresh,
+                            refreshOk = refreshOk, refreshError = refreshError,
+                        })
                     end)
+                else
+                    TraceBankCurrencyAction("completed", {
+                        currencyType = currencyType, amount = amount, guild = isGuildBankMode,
+                        from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
+                        beforeTo = before.beforeTo, settledFrom = postCall.postCallFrom,
+                        settledTo = postCall.postCallTo, refreshedFooter = true,
+                        refreshedTooltip = false, keybindRefresh = "core", refreshOk = true,
+                        reason = "noScheduler",
+                    })
                 end
             end,
         }
