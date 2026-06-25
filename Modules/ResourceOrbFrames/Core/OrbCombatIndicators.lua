@@ -356,6 +356,8 @@ local function AnchorCombatIcon(rootFrame, iconControl)
     TraceCombatIndicators("resource_orbs.combat_icon_anchor", "anchored", {
         fn = "CombatIndicators.AnchorCombatIcon",
         source = anchorSource,
+        quickslotButton = GetControlTraceName(quickslotButton),
+        anchor = DescribeControlForTrace(iconControl, "combatIcon"),
         iconSize = iconSize,
         offsetX = offsetX,
         offsetY = offsetY,

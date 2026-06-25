@@ -39,7 +39,9 @@ local function InvokeKeybind(scope, keybind, action, callback, data)
     data.action = action
     TraceKeybind(scope, keybind, "start", data)
     local r1, r2, r3 = callback()
-    data.handled = true
+    data.handled = r1 ~= false
+    data.reason = r2
+    data.branch = r3
     TraceKeybind(scope, keybind, "end", data)
     return r1, r2, r3
 end

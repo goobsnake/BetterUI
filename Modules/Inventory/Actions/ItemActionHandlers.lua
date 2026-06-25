@@ -151,6 +151,13 @@ local function TraceInventoryDestroyAction(phase, targetData, data)
     L.TraceEvent(L.CATEGORY.ACTION, "inventory.destroy", phase, payload, L.LEVEL.INFO)
 end
 
+local function TraceInventoryConfirmBranch(phase, branch, targetData, data)
+    data = BuildDestroyTracePayloadFromTarget(targetData, data or {})
+    data.branch = branch
+    data.feature = data.feature or "action-dialog-confirm"
+    TraceInventoryActionDialog("inventory.action_dialog.confirm_branch", phase, data)
+end
+
 local function ToggleJunkState(self, isJunk, target, expectedSlotIdentity)
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
         TraceInventoryActionDialog("inventory.junk_toggle", "skipped", {
@@ -1013,13 +1020,45 @@ function ActionHandlers.OnConfirm(self, dialog)
         local isCompanionScene = SCENE_MANAGER and SCENE_MANAGER.scenes
             and SCENE_MANAGER.scenes["companionEquipmentGamepad"]
             and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
-        if isCompanionScene then return end
+        if isCompanionScene then
+            TraceInventoryConfirmBranch("skipped", "link_to_chat", nil, {
+                source = "action_dialog",
+                selectedActionName = selectedActionName,
+                reason = "companionScene",
+            })
+            return
+        end
         local targetData = ResolveCurrentTarget(self)
-        local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+        TraceInventoryConfirmBranch("before", "link_to_chat", targetData, {
+            source = "action_dialog",
+            selectedActionName = selectedActionName,
+        })
+        local okSlot, bag, slot = pcall(ZO_Inventory_GetBagAndIndex, targetData)
+        if not okSlot or not bag or not slot then
+            TraceInventoryConfirmBranch("blocked", "link_to_chat", targetData, {
+                source = "action_dialog",
+                selectedActionName = selectedActionName,
+                reason = okSlot and "missingSlot" or "slotLookupFailed",
+                error = okSlot and nil or tostring(bag),
+            })
+            return
+        end
         if bag and slot then
             local itemLink = GetItemLink(bag, slot, LINK_STYLE_BRACKETS)
             if itemLink and itemLink ~= "" then
                 ZO_LinkHandler_InsertLink(zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink))
+                TraceInventoryConfirmBranch("after", "link_to_chat", targetData, {
+                    source = "action_dialog",
+                    selectedActionName = selectedActionName,
+                    itemLink = itemLink,
+                    inserted = true,
+                })
+            else
+                TraceInventoryConfirmBranch("blocked", "link_to_chat", targetData, {
+                    source = "action_dialog",
+                    selectedActionName = selectedActionName,
+                    reason = "missingItemLink",
+                })
             end
         end
         return
@@ -1027,9 +1066,26 @@ function ActionHandlers.OnConfirm(self, dialog)
 
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_EQUIP")) then
         local targetData = ResolveCurrentTarget(self)
+        TraceInventoryConfirmBranch("before", "equip", targetData, {
+            source = "action_dialog",
+            selectedActionName = selectedActionName,
+        })
         if targetData and targetData.dataSource then
-            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local released = ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             self:TryEquipItem(targetData, true)
+            TraceInventoryConfirmBranch("after", "equip", targetData, {
+                source = "action_dialog",
+                selectedActionName = selectedActionName,
+                actionDialogReleased = true,
+                releaseReturned = released ~= nil,
+                dispatched = true,
+            })
+        else
+            TraceInventoryConfirmBranch("blocked", "equip", targetData, {
+                source = "action_dialog",
+                selectedActionName = selectedActionName,
+                reason = targetData and "missingDataSource" or "missingTarget",
+            })
         end
         return
     end
@@ -1039,39 +1095,113 @@ function ActionHandlers.OnConfirm(self, dialog)
         or selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_SKILL_RESPEC"))
         or selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC")) then
         local targetData = ResolveCurrentTarget(self)
+        TraceInventoryConfirmBranch("before", "use_or_special", targetData, {
+            source = "action_dialog",
+            selectedActionName = selectedActionName,
+        })
         if targetData then
-            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local released = ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             local ds = targetData.dataSource or targetData
             local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType and
                 ZO_InventoryUtils_DoesNewItemMatchFilterType(targetData, ITEMFILTERTYPE_QUEST)
             if isQuestItem and ds.toolIndex then
                 UseQuestTool(ds.questIndex, ds.toolIndex)
+                TraceInventoryConfirmBranch("after", "use_or_special", targetData, {
+                    source = "action_dialog",
+                    selectedActionName = selectedActionName,
+                    questDispatch = "tool",
+                    questIndex = ds.questIndex,
+                    toolIndex = ds.toolIndex,
+                    actionDialogReleased = true,
+                    releaseReturned = released ~= nil,
+                })
             elseif isQuestItem and ds.stepIndex and ds.conditionIndex then
                 UseQuestItem(ds.questIndex, ds.stepIndex, ds.conditionIndex)
+                TraceInventoryConfirmBranch("after", "use_or_special", targetData, {
+                    source = "action_dialog",
+                    selectedActionName = selectedActionName,
+                    questDispatch = "condition",
+                    questIndex = ds.questIndex,
+                    stepIndex = ds.stepIndex,
+                    conditionIndex = ds.conditionIndex,
+                    actionDialogReleased = true,
+                    releaseReturned = released ~= nil,
+                })
             else
                 local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
                 if bag and slot then
-                    if not CallSecureProtected("UseItem", bag, slot) then
+                    local secureOk = CallSecureProtected("UseItem", bag, slot)
+                    if not secureOk then
                         local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
                         BETTERUI.CIM.UserNotify("ItemActionHandlers:UseItem",
                             (failedStringId and GetString(failedStringId))
                             or "The action could not be completed.")
                     end
+                    TraceInventoryConfirmBranch(secureOk and "after" or "blocked", "use_or_special", targetData, {
+                        source = "action_dialog",
+                        selectedActionName = selectedActionName,
+                        actionDialogReleased = true,
+                        releaseReturned = released ~= nil,
+                        secureProtectedCall = "UseItem",
+                        secureOk = secureOk == true,
+                        reason = secureOk and nil or "secureUseFailed",
+                    })
+                else
+                    TraceInventoryConfirmBranch("blocked", "use_or_special", targetData, {
+                        source = "action_dialog",
+                        selectedActionName = selectedActionName,
+                        actionDialogReleased = true,
+                        releaseReturned = released ~= nil,
+                        reason = "missingSlot",
+                    })
                 end
             end
+        else
+            TraceInventoryConfirmBranch("blocked", "use_or_special", targetData, {
+                source = "action_dialog",
+                selectedActionName = selectedActionName,
+                reason = "missingTarget",
+            })
         end
         return
     end
 
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_PLACE_FURNITURE")) then
         local targetData = ResolveCurrentTarget(self)
+        TraceInventoryConfirmBranch("before", "place_furniture", targetData, {
+            source = "action_dialog",
+            selectedActionName = selectedActionName,
+        })
         if targetData then
-            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local released = ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             local ds = targetData.dataSource or targetData
             local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
             if bag and slot and ZO_CanPlaceItemInCurrentHouse(bag, slot) then
                 ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
+                TraceInventoryConfirmBranch("after", "place_furniture", targetData, {
+                    source = "action_dialog",
+                    selectedActionName = selectedActionName,
+                    actionDialogReleased = true,
+                    releaseReturned = released ~= nil,
+                    canPlace = true,
+                    dispatched = true,
+                })
+            else
+                TraceInventoryConfirmBranch("blocked", "place_furniture", targetData, {
+                    source = "action_dialog",
+                    selectedActionName = selectedActionName,
+                    actionDialogReleased = true,
+                    releaseReturned = released ~= nil,
+                    canPlace = bag and slot and ZO_CanPlaceItemInCurrentHouse(bag, slot) == true or false,
+                    reason = not (bag and slot) and "missingSlot" or "cannotPlaceInCurrentHouse",
+                })
             end
+        else
+            TraceInventoryConfirmBranch("blocked", "place_furniture", targetData, {
+                source = "action_dialog",
+                selectedActionName = selectedActionName,
+                reason = "missingTarget",
+            })
         end
         return
     end
@@ -1084,23 +1214,71 @@ function ActionHandlers.OnConfirm(self, dialog)
     -- and silently no-ops. Dispatch it explicitly from our own data, mirroring the USE branch.
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_SHOW_QUEST")) then
         local targetData = ResolveCurrentTarget(self)
+        TraceInventoryConfirmBranch("before", "show_quest", targetData, {
+            source = "action_dialog",
+            selectedActionName = selectedActionName,
+        })
         if targetData then
-            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local released = ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             local ds = targetData.dataSource or targetData
             local questJournal = SYSTEMS and SYSTEMS.GetObject and SYSTEMS:GetObject("questJournal")
             if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "show quest in journal",
                 {questIndex = ds.questIndex, hasJournal = questJournal ~= nil}) end
             if questJournal and questJournal.OpenQuestJournalToQuest and ds.questIndex then
                 questJournal:OpenQuestJournalToQuest(ds.questIndex)
+                TraceInventoryConfirmBranch("after", "show_quest", targetData, {
+                    source = "action_dialog",
+                    selectedActionName = selectedActionName,
+                    actionDialogReleased = true,
+                    releaseReturned = released ~= nil,
+                    questIndex = ds.questIndex,
+                    hasJournal = true,
+                    dispatched = true,
+                })
+            else
+                TraceInventoryConfirmBranch("blocked", "show_quest", targetData, {
+                    source = "action_dialog",
+                    selectedActionName = selectedActionName,
+                    actionDialogReleased = true,
+                    releaseReturned = released ~= nil,
+                    questIndex = ds.questIndex,
+                    hasJournal = questJournal ~= nil,
+                    reason = not questJournal and "missingJournal" or "missingQuestIndex",
+                })
             end
+        else
+            TraceInventoryConfirmBranch("blocked", "show_quest", targetData, {
+                source = "action_dialog",
+                selectedActionName = selectedActionName,
+                reason = "missingTarget",
+            })
         end
         return
     end
 
     if selectedRow and selectedRow.action then
+        local targetData = ResolveCurrentTarget(self)
+        TraceInventoryConfirmBranch("before", "native_action", targetData, {
+            source = "action_dialog",
+            selectedActionName = selectedActionName,
+            action = selectedRow.action,
+        })
         local slotActions = self.itemActions and self.itemActions:GetSlotActions()
         if slotActions then
             slotActions:DoAction(selectedRow.action)
+            TraceInventoryConfirmBranch("after", "native_action", targetData, {
+                source = "action_dialog",
+                selectedActionName = selectedActionName,
+                action = selectedRow.action,
+                dispatched = true,
+            })
+        else
+            TraceInventoryConfirmBranch("blocked", "native_action", targetData, {
+                source = "action_dialog",
+                selectedActionName = selectedActionName,
+                action = selectedRow.action,
+                reason = "missingSlotActions",
+            })
         end
     end
 end

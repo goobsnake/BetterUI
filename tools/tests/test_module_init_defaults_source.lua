@@ -75,6 +75,14 @@ assert_true(writsSource:find('RegisterModuleAccessors%("Writs"%)') == nil,
 assert_true(writsSource:find("local%s+fallbackDefaults%s*=%s*%{") == nil,
     "Writs Module.lua avoids inline fallback default tables")
 
+local generalInterfaceSource = read_file("Modules/GeneralInterface/Module.lua")
+assert_true(generalInterfaceSource:find('ApplyModuleDefaults%("GeneralInterface",%s*m_options%)') ~= nil,
+    "GeneralInterface InitModule delegates to Defaults.ApplyModuleDefaults")
+assert_true(generalInterfaceSource:find('m_options%["showCraftingMarketPrice"%]%s*=%s*true') ~= nil,
+    "GeneralInterface fallback defaults preserve crafting market price visibility")
+assert_true(generalInterfaceSource:find('m_options%["showItemComparison"%]%s*=%s*true') ~= nil,
+    "GeneralInterface fallback defaults preserve item comparison visibility")
+
 local cimSource = read_file("Modules/CIM/Module.lua")
 assert_true(cimSource:find('local%s+defaultsApi%s*=%s*BETTERUI%.Defaults') ~= nil,
     "CIM InitModule binds DefaultsRegistry directly")

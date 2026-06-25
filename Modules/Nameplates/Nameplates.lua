@@ -157,6 +157,16 @@ local function NormalizeStyleValue(style)
     return style
 end
 
+Nameplates.NormalizeStyleValue = NormalizeStyleValue
+
+local function CloneSettingsValue(source)
+    local clone = {}
+    for key, value in pairs(source or {}) do
+        clone[key] = value
+    end
+    return clone
+end
+
 local function GetFontLocalization()
     return BETTERUI
         and BETTERUI.CIM
@@ -222,7 +232,7 @@ local function GetSettings()
         end
         return settings
     end
-    return Nameplates.DEFAULTS
+    return CloneSettingsValue(Nameplates.DEFAULTS)
 end
 
 local function GetNameplatePanelOptions()
@@ -283,11 +293,31 @@ local function CaptureOriginalNameplateFonts()
         hasGamepadGetter = type(GetNameplateGamepadFont) == "function",
     })
 
+    local keyboardOk, keyboardFont, keyboardStyle = true, nil, nil
     if type(GetNameplateKeyboardFont) == "function" then
-        originalKeyboardFont, originalKeyboardStyle = GetNameplateKeyboardFont()
+        keyboardOk, keyboardFont, keyboardStyle = pcall(GetNameplateKeyboardFont)
+        if keyboardOk then
+            originalKeyboardFont, originalKeyboardStyle = keyboardFont, keyboardStyle
+        else
+            TraceNameplates("nameplates.font_capture", "getter_failed", {
+                fn = "Nameplates.CaptureOriginalNameplateFonts",
+                target = "keyboard",
+                error = tostring(keyboardFont),
+            })
+        end
     end
+    local gamepadOk, gamepadFont, gamepadStyle = true, nil, nil
     if type(GetNameplateGamepadFont) == "function" then
-        originalGamepadFont, originalGamepadStyle = GetNameplateGamepadFont()
+        gamepadOk, gamepadFont, gamepadStyle = pcall(GetNameplateGamepadFont)
+        if gamepadOk then
+            originalGamepadFont, originalGamepadStyle = gamepadFont, gamepadStyle
+        else
+            TraceNameplates("nameplates.font_capture", "getter_failed", {
+                fn = "Nameplates.CaptureOriginalNameplateFonts",
+                target = "gamepad",
+                error = tostring(gamepadFont),
+            })
+        end
     end
 
     originalFontsCaptured = originalKeyboardFont ~= nil or originalGamepadFont ~= nil
@@ -298,6 +328,8 @@ local function CaptureOriginalNameplateFonts()
         keyboardStyle = originalKeyboardStyle,
         gamepadFont = originalGamepadFont,
         gamepadStyle = originalGamepadStyle,
+        keyboardOk = keyboardOk,
+        gamepadOk = gamepadOk,
     })
 end
 
@@ -346,6 +378,10 @@ local function ApplyNameplateFont(font, style, size)
     local gamepadApplied = false
     local keyboardSkipped = false
     local gamepadSkipped = false
+    local keyboardOk = true
+    local gamepadOk = true
+    local keyboardError = nil
+    local gamepadError = nil
     if type(SetNameplateKeyboardFont) == "function" then
         local currentFont, currentStyle
         if type(GetNameplateKeyboardFont) == "function" then
@@ -357,8 +393,17 @@ local function ApplyNameplateFont(font, style, size)
         if currentFont == fontString and currentStyle == style then
             keyboardSkipped = true
         else
-            SetNameplateKeyboardFont(fontString, style)
-            keyboardApplied = true
+            keyboardOk, keyboardError = pcall(SetNameplateKeyboardFont, fontString, style)
+            keyboardApplied = keyboardOk == true
+            if not keyboardOk then
+                TraceNameplates("nameplates.font_apply", "setter_failed", {
+                    fn = "Nameplates.ApplyNameplateFont",
+                    target = "keyboard",
+                    fontString = fontString,
+                    style = style,
+                    error = tostring(keyboardError),
+                })
+            end
         end
     end
     if type(SetNameplateGamepadFont) == "function" then
@@ -372,8 +417,17 @@ local function ApplyNameplateFont(font, style, size)
         if currentFont == fontString and currentStyle == style then
             gamepadSkipped = true
         else
-            SetNameplateGamepadFont(fontString, style)
-            gamepadApplied = true
+            gamepadOk, gamepadError = pcall(SetNameplateGamepadFont, fontString, style)
+            gamepadApplied = gamepadOk == true
+            if not gamepadOk then
+                TraceNameplates("nameplates.font_apply", "setter_failed", {
+                    fn = "Nameplates.ApplyNameplateFont",
+                    target = "gamepad",
+                    fontString = fontString,
+                    style = style,
+                    error = tostring(gamepadError),
+                })
+            end
         end
     end
     TraceNameplates("nameplates.font_apply", "end", {
@@ -385,6 +439,10 @@ local function ApplyNameplateFont(font, style, size)
         gamepadApplied = gamepadApplied,
         keyboardSkipped = keyboardSkipped,
         gamepadSkipped = gamepadSkipped,
+        keyboardOk = keyboardOk,
+        gamepadOk = gamepadOk,
+        keyboardError = keyboardOk and nil or tostring(keyboardError),
+        gamepadError = gamepadOk and nil or tostring(gamepadError),
     })
 end
 
@@ -436,11 +494,15 @@ local function ResetToDefaults()
         hasGamepadOriginal = originalGamepadFont ~= nil,
     })
     if originalFontsCaptured then
+        local keyboardOk = true
+        local gamepadOk = true
+        local keyboardError = nil
+        local gamepadError = nil
         if originalKeyboardFont ~= nil and type(SetNameplateKeyboardFont) == "function" then
-            SetNameplateKeyboardFont(originalKeyboardFont, originalKeyboardStyle)
+            keyboardOk, keyboardError = pcall(SetNameplateKeyboardFont, originalKeyboardFont, originalKeyboardStyle)
         end
         if originalGamepadFont ~= nil and type(SetNameplateGamepadFont) == "function" then
-            SetNameplateGamepadFont(originalGamepadFont, originalGamepadStyle)
+            gamepadOk, gamepadError = pcall(SetNameplateGamepadFont, originalGamepadFont, originalGamepadStyle)
         end
         TraceNameplates("nameplates.reset", "restored_original", {
             fn = "Nameplates.ResetToDefaults",
@@ -448,6 +510,17 @@ local function ResetToDefaults()
             keyboardStyle = originalKeyboardStyle,
             gamepadFont = originalGamepadFont,
             gamepadStyle = originalGamepadStyle,
+            keyboardOk = keyboardOk,
+            gamepadOk = gamepadOk,
+            keyboardError = keyboardOk and nil or tostring(keyboardError),
+            gamepadError = gamepadOk and nil or tostring(gamepadError),
+        })
+        TraceNameplates("nameplates.reset", "end", {
+            fn = "Nameplates.ResetToDefaults",
+            restored = true,
+            originalFontsCaptured = true,
+            keyboardOk = keyboardOk,
+            gamepadOk = gamepadOk,
         })
         return
     end
@@ -474,6 +547,11 @@ local function ResetToDefaults()
         currentGamepadStyle = currentGamepadStyle,
         hasKeyboardGetter = type(GetNameplateKeyboardFont) == "function",
         hasGamepadGetter = type(GetNameplateGamepadFont) == "function",
+    })
+    TraceNameplates("nameplates.reset", "end", {
+        fn = "Nameplates.ResetToDefaults",
+        restored = false,
+        originalFontsCaptured = false,
     })
 end
 
@@ -547,6 +625,7 @@ function Nameplates.InitModule(m_options)
     if m_options.font == nil then m_options.font = defaults.font end
     if m_options.style == nil then m_options.style = defaults.style end
     if m_options.size == nil then m_options.size = defaults.size end
+    m_options.style = NormalizeStyleValue(m_options.style)
     m_options.size = ClampNameplateSize(m_options.size, defaults.size)
 
     local currentLang = GetCVar("language.2") or "en"

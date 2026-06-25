@@ -6,6 +6,17 @@ Purpose: Manages the Category list (tabs) for the Inventory module.
 local INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
 local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
+local function TraceInventoryCategory(phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Inventory"
+    data.feature = "category-list"
+    data.scene = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.GetCurrentSceneName
+        and BETTERUI.CIM.Utils.GetCurrentSceneName() or nil
+    L.TraceEvent(L.CATEGORY.CATEGORY, "inventory.category", phase, data)
+end
+
 --- @param list table Scroll list instance
 local function SetupCategoryList(list)
     -- PB-005: pass a short controlPoolPrefix ("BUI_Cat") so pooled category entry
@@ -36,14 +47,37 @@ function BETTERUI.Inventory.Class:InitializeCategoryList()
     -- Match the tooltip to the selected data because it looks nicer
     local function OnSelectedCategoryChanged(list, selectedData)
         if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.CATEGORY, "Category selection changed", {name = selectedData and selectedData.text}) end
+        local previousList = self:GetCurrentList()
+        TraceInventoryCategory("begin", {
+            fn = "OnSelectedCategoryChanged",
+            previousList = previousList == self.craftBagList and INVENTORY_CRAFT_BAG_LIST or INVENTORY_ITEM_LIST,
+            selectedCategory = BETTERUI.Inventory.GetCategoryKey(selectedData),
+            selectedText = selectedData and selectedData.text or selectedData and selectedData.name or nil,
+            sceneShowing = self.scene and self.scene.IsShowing and self.scene:IsShowing() or false,
+        })
         if selectedData ~= nil and self.scene and self.scene:IsShowing() then
             self:UpdateCategoryLeftTooltip(selectedData)
 
             if selectedData.onClickDirection then
                 self:SwitchActiveList(INVENTORY_CRAFT_BAG_LIST)
+                TraceInventoryCategory("applied", {
+                    fn = "OnSelectedCategoryChanged",
+                    selectedCategory = BETTERUI.Inventory.GetCategoryKey(selectedData),
+                    activeList = INVENTORY_CRAFT_BAG_LIST,
+                })
             else
                 self:SwitchActiveList(INVENTORY_ITEM_LIST)
+                TraceInventoryCategory("applied", {
+                    fn = "OnSelectedCategoryChanged",
+                    selectedCategory = BETTERUI.Inventory.GetCategoryKey(selectedData),
+                    activeList = INVENTORY_ITEM_LIST,
+                })
             end
+        else
+            TraceInventoryCategory("skipped", {
+                fn = "OnSelectedCategoryChanged",
+                reason = selectedData == nil and "missingSelectedData" or "sceneHidden",
+            })
         end
     end
 
@@ -209,6 +243,7 @@ end
 function BETTERUI.Inventory.Class:RefreshCategoryList()
     -- Skip refresh during batch processing to prevent flickering
     if self:IsBatchProcessing() then
+        TraceInventoryCategory("skipped", { fn = "RefreshCategoryList", reason = "batchProcessing" })
         return
     end
 
@@ -216,6 +251,13 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
     -- re-entrant calls can land before they exist. Bail until ready -- the body dereferences
     -- self.categoryList.selectedData and self.header.tabBar:Clear()/:Commit().
     if not self.categoryList or not self.header or not self.header.tabBar then
+        TraceInventoryCategory("skipped", {
+            fn = "RefreshCategoryList",
+            reason = "deferredInit",
+            hasCategoryList = self.categoryList ~= nil,
+            hasHeader = self.header ~= nil,
+            hasTabBar = self.header and self.header.tabBar ~= nil or false,
+        })
         return
     end
 
@@ -252,6 +294,12 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
     end
     local previousCategoryKeyByIndex = BETTERUI.Inventory.GetCategoryKey(previousCategoryDataByIndex)
     local effectivePreviousCategoryKey = previousCategoryKey or previousCategoryKeyByIndex
+    TraceInventoryCategory("begin", {
+        fn = "RefreshCategoryList",
+        previousCategory = effectivePreviousCategoryKey,
+        previousIndex = previousSelectedIndex,
+        activeList = self:GetCurrentList() == self.craftBagList and INVENTORY_CRAFT_BAG_LIST or INVENTORY_ITEM_LIST,
+    })
 
     local function ResetSavedInventoryCategorySelection()
         self.savedInventoryCategoryKey = nil
@@ -492,6 +540,23 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
         else
             self:RefreshItemList()
         end
+        TraceInventoryCategory("restored", {
+            fn = "RefreshCategoryList",
+            previousCategory = effectivePreviousCategoryKey,
+            currentCategory = currentCategoryKey,
+            desiredIndex = desiredIndex,
+            categoryCount = categoryCount,
+            refreshedList = self:GetCurrentList() == self.craftBagList and INVENTORY_CRAFT_BAG_LIST or INVENTORY_ITEM_LIST,
+        })
     end
     self:EnsureHeaderKeybindsActive()
+    TraceInventoryCategory("committed", {
+        fn = "RefreshCategoryList",
+        previousCategory = effectivePreviousCategoryKey,
+        currentCategory = currentCategoryKey,
+        desiredIndex = desiredIndex,
+        categoryCount = categoryCount,
+        selectedIndexChanged = selectedIndexChanged == true,
+        selectedCategoryChanged = selectedCategoryChanged == true,
+    })
 end

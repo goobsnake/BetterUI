@@ -88,6 +88,9 @@ assert_true(craftBagDialogSource:find("BETTERUI_EVENT_CRAFTBAG_QUANTITY_DIALOG_F
     "CraftBagQuantityDialog defines the finished callback event")
 assert_true(craftBagDialogSource:find("expectedSlotIdentity") ~= nil,
     "CraftBagQuantityDialog validates the selected stack identity before applying a quantity")
+assert_true(craftBagDialogSource:find("dialog%._betteruiLastSliderTraceKey = nil") ~= nil
+    and craftBagDialogSource:find("dialog%._betteruiLastSliderTraceBucket = nil") ~= nil,
+    "CraftBagQuantityDialog resets slider trace throttle state during setup")
 
 local inventoryDialogsSource = read_file("Modules/Inventory/Dialogs/InventoryDialogs.lua")
 assert_true(inventoryDialogsSource:find("function BETTERUI%.Inventory%.Class:InitializeSplitStackDialog%(%)") ~= nil,

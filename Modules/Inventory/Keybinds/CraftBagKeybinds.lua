@@ -392,12 +392,12 @@ end
 ---@return nil
 function InventoryKeybinds.HandlePrimaryKeybind(self)
     if self:IsBatchProcessing() then
-        return
+        return false, "batchProcessing"
     end
 
     if IsBagUpgradeCategorySelected(self) then
         ZO_Dialogs_ShowGamepadDialog("BUY_BAG_SPACE_FROM_INVENTORY_GAMEPAD", { cost = GetNextBackpackUpgradePrice() })
-        return
+        return true, nil, "bagUpgradeDialog"
     end
 
     if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
@@ -406,8 +406,9 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
             StartPrimaryActionTransition(self, ResolveMultiSelectActionName(self, target, true, true))
             self.craftBagMultiSelectManager:ToggleSelection(target)
             self:RefreshCraftBagList()
+            return true, nil, "craftBagMultiSelectToggle"
         end
-        return
+        return false, "noCraftBagTarget", "craftBagMultiSelectToggle"
     end
 
     if self.multiSelectManager and self.multiSelectManager:IsActive() then
@@ -419,8 +420,9 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
             StartPrimaryActionTransition(self, ResolveMultiSelectActionName(self, target, false, true))
             self.multiSelectManager:ToggleSelection(target)
             self:RefreshItemList()
+            return true, nil, "inventoryMultiSelectToggle"
         end
-        return
+        return false, "noInventoryTarget", "inventoryMultiSelectToggle"
     end
 
     local actionName, slotActions = ResolvePrimaryActionState(self)
@@ -432,7 +434,7 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
         currentTarget = InventoryUtils.SafeGetTargetData(self.craftBagList)
     end
     if not currentTarget then
-        return
+        return false, "noTarget"
     end
 
     -- While the selected item is on use-cooldown its "Use" slot action is
@@ -443,7 +445,7 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
     if pinnedUseName then
         StartPrimaryActionTransition(self, pinnedUseName)
         ExecuteTargetUse(currentTarget)
-        return
+        return true, nil, "cooldownPinnedUse"
     end
 
     if self.itemActions and slotActions then
@@ -511,7 +513,7 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
         end
 
         if not actionName or not slotActions then
-            return
+            return false, "noPrimaryAction"
         end
 
         StartPrimaryActionTransition(self, actionName)
@@ -530,10 +532,12 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
             local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
             if bag and slot and ZO_CanPlaceItemInCurrentHouse(bag, slot) then
                 ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
+                return true, nil, "placeFurniture"
             end
+            return false, "cannotPlaceFurniture", "placeFurniture"
         else
             if ExecutePrimaryAction(slotActions, actionName) then
-                return
+                return true, nil, "slotAction"
             end
 
             if self.RefreshItemActions then
@@ -542,12 +546,16 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
             actionName, slotActions = ResolvePrimaryActionState(self)
             if actionName and slotActions then
                 StartPrimaryActionTransition(self, actionName)
-                ExecutePrimaryAction(slotActions, actionName)
+                if ExecutePrimaryAction(slotActions, actionName) then
+                    return true, nil, "refreshedSlotAction"
+                end
+                return false, "noExecutablePrimaryAction", "refreshedSlotAction"
             else
                 ClearStalePrimaryOverride(slotActions)
+                return false, "stalePrimaryAction"
             end
         end
-        return
+        return true, nil, "primaryAction"
     end
 
     StartPrimaryActionTransition(self, actionName)
@@ -556,12 +564,16 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
         if IsEquipable(target.bagId, target.slotIndex) then
             local inventorySlot = target.dataSource and target or { dataSource = target }
             self:TryEquipItem(inventorySlot, false)
+            return true, nil, "equip"
         else
             if not CallSecureProtected("UseItem", target.bagId, target.slotIndex) then
                 NotifySecureActionFailed("CraftBagKeybinds:PrimaryUseItem")
+                return false, "secureUseFailed", "useItem"
             end
+            return true, nil, "useItem"
         end
     end
+    return false, "invalidTarget"
 end
 
 ---@param self table Inventory class instance
@@ -629,17 +641,21 @@ end
 ---@return nil
 function InventoryKeybinds.HandleSecondaryKeybind(self)
     if self:IsBatchProcessing() then
-        return
+        return false, "batchProcessing"
     end
 
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
-        InsertTargetLink(GetCurrentTarget(self))
-        return
+        local target = GetCurrentTarget(self)
+        if not target then
+            return false, "noTarget", "linkCraftBag"
+        end
+        InsertTargetLink(target)
+        return true, nil, "linkCraftBag"
     end
 
     local actionContext = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     if not actionContext then
-        return
+        return false, "noActionContext"
     end
 
     if actionContext.isQuickslottable then
@@ -685,25 +701,27 @@ function InventoryKeybinds.HandleSecondaryKeybind(self)
             else
                 zo_callLater(RefreshAfterQuickslotUnassign, 80)
             end
+            return true, nil, "quickslotUnassign"
         else
             zo_callLater(function()
                 self:ShowQuickslot()
             end, 50)
+            return true, nil, "quickslotAssign"
         end
-        return
     end
 
     if not actionContext.isQuestItem and actionContext.isEquipment then
         self:SwitchInfo()
-        return
+        return true, nil, "switchInfo"
     end
 
     if actionContext.isUsableQuest then
         ExecuteTargetUse(actionContext.target)
-        return
+        return true, nil, "questUse"
     end
 
     InsertTargetLink(actionContext.target)
+    return true, nil, "linkToChat"
 end
 
 ---@param self table Inventory class instance
@@ -733,25 +751,26 @@ end
 function InventoryKeybinds.HandleTertiaryKeybind(self)
     if self:IsBatchProcessing() then
         self:RequestBatchAbort()
-        return
+        return true, nil, "batchAbort"
     end
 
     if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
         self:ShowCraftBagBatchActionsMenu()
-        return
+        return true, nil, "craftBagBatchActions"
     end
 
     if self.multiSelectManager and self.multiSelectManager:IsActive() then
         self:ShowBatchActionsMenu()
-        return
+        return true, nil, "inventoryBatchActions"
     end
 
     if not InventoryKeybinds.HasStableActionsTarget(self) then
-        return
+        return false, "unstableActionsTarget"
     end
 
     self:SaveListPosition()
     self:ShowActions()
+    return true, nil, "showActions"
 end
 
 ---@param self table Inventory class instance
@@ -785,17 +804,20 @@ end
 ---@return nil
 function InventoryKeybinds.HandleMultiSelectEntry(self)
     if self:IsBatchProcessing() then
-        return
+        return false, "batchProcessing"
     end
 
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
         if self.craftBagMultiSelectManager and not self.craftBagMultiSelectManager:IsActive() then
             self:EnterCraftBagSelectionMode()
+            return true, nil, "craftBagSelectionMode"
         end
-        return
+        return false, "craftBagSelectionUnavailable"
     end
 
     if self.multiSelectManager and not self.multiSelectManager:IsActive() then
         self:EnterSelectionMode()
+        return true, nil, "inventorySelectionMode"
     end
+    return false, "inventorySelectionUnavailable"
 end

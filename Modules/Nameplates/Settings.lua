@@ -71,15 +71,16 @@ local function TraceNameplateSetting(settingName, phase, data)
     BETTERUI.Log.TraceEvent(categories.SETTINGS, "nameplates.setting", phase, data)
 end
 
-local function NotifyNameplateToggleChanged(value)
+local function NotifyNameplateToggleChanged(value, suppressCleanupLog)
     local hasHandler = type(Nameplates.OnEnabledChanged) == "function"
     TraceNameplateSetting("m_enabled", hasHandler and "notify" or "notify_skipped", {
         fn = "Nameplates.NotifyNameplateToggleChanged",
         value = value,
         hasHandler = hasHandler,
+        suppressCleanupLog = suppressCleanupLog,
     })
     if hasHandler then
-        Nameplates.OnEnabledChanged(value)
+        Nameplates.OnEnabledChanged(value, suppressCleanupLog)
     end
 end
 
@@ -194,7 +195,11 @@ function Nameplates.GetSettingsOptions()
             getFunc = function()
                 local defaults = Nameplates.DEFAULTS or { style = FONT_STYLE_OUTLINE or 1 }
                 local settings = GetNameplateSettings()
-                return (settings and settings.style) or defaults.style
+                local style = (settings and settings.style) or defaults.style
+                if type(Nameplates.NormalizeStyleValue) == "function" then
+                    return Nameplates.NormalizeStyleValue(style)
+                end
+                return style
             end,
             setFunc = function(value)
                 local settings = EnsureNameplateSettings()

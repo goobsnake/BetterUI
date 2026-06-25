@@ -30,22 +30,40 @@ local function TraceCompanionDialog(dialogId, phase, data)
     data.feature = "companion-dialogs"
     data.dialogId = dialogId
     data.fn = data.fn or "Companions.Dialogs"
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction({ flow = "companions.dialog", message = tostring(dialogId) .. ":" .. tostring(phase) })
+    end
     L.TraceEvent((L.CATEGORY or {}).DIALOG or (L.CATEGORY or {}).ACTION, "companions.dialog", phase, data)
 end
+
+local COMPANION_BATCH_DESTROY_DIALOG = "BETTERUI_COMPANION_BATCH_DESTROY_DIALOG"
 
 --- Destroys the given slot descriptors via the quick path, staggered to avoid
 --- flooding the server with destroy requests.
 local function ExecuteBatchDestroy(destroyTargets)
+    local batchId = string.format("companionDestroy:%s:%s",
+        tostring(GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0),
+        tostring(#(destroyTargets or {})))
+    TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "batch_begin", {
+        fn = "ExecuteBatchDestroy",
+        batchId = batchId,
+        targetCount = #(destroyTargets or {}),
+    })
     local delay = 0
-    for _, target in ipairs(destroyTargets) do
+    for _, target in ipairs(destroyTargets or {}) do
         zo_callLater(function()
-            Companions.QuickDestroyCompanionItem(target.bagId, target.slotIndex, target.slotType, target)
+            Companions.QuickDestroyCompanionItem(target.bagId, target.slotIndex, target.slotType, target, batchId)
         end, delay)
         delay = delay + 80
     end
+    zo_callLater(function()
+        TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "batch_end", {
+            fn = "ExecuteBatchDestroy",
+            batchId = batchId,
+            targetCount = #(destroyTargets or {}),
+        })
+    end, delay)
 end
-
-local COMPANION_BATCH_DESTROY_DIALOG = "BETTERUI_COMPANION_BATCH_DESTROY_DIALOG"
 
 --- Registers the single batch-destroy confirmation dialog. Confirming destroys
 --- every selected item through the quick path instead of queueing one
@@ -231,11 +249,13 @@ local function RegisterCompanionBatchDialog()
                 local ms = Companions.multiSelectManager
                 if ms then
                     local items = ms:GetSelectedItems()
-                    local allSelected = #items > 0 and ms:GetSelectedCount() == (Companions.instance.list and Companions.instance.list:GetNumItems() or 0)
+                    local listCount = Companions.instance and Companions.instance.list and Companions.instance.list:GetNumItems() or 0
+                    local allSelected = #items > 0 and ms:GetSelectedCount() == listCount
                     TraceCompanionDialog("BETTERUI_COMPANION_BATCH_DIALOG", "setup", {
                         fn = "RegisterCompanionBatchDialog",
                         itemCount = #items,
                         selectedCount = ms:GetSelectedCount(),
+                        listCount = listCount,
                         allSelected = allSelected,
                     })
                 if not allSelected then
@@ -302,10 +322,22 @@ local function RegisterCompanionBatchDialog()
 
                     local actionId = selected.actionId
                     if actionId == "selectAll" then
+                        local beforeCount = ms:GetSelectedCount()
                         ms:SelectAll()
+                        TraceCompanionDialog("BETTERUI_COMPANION_BATCH_DIALOG", "select_all", {
+                            fn = "RegisterCompanionBatchDialog",
+                            selectedCountBefore = beforeCount,
+                            selectedCountAfter = ms:GetSelectedCount(),
+                        })
                         return
                     elseif actionId == "deselectAll" then
+                        local beforeCount = ms:GetSelectedCount()
                         ms:ClearSelections()
+                        TraceCompanionDialog("BETTERUI_COMPANION_BATCH_DIALOG", "deselect_all", {
+                            fn = "RegisterCompanionBatchDialog",
+                            selectedCountBefore = beforeCount,
+                            selectedCountAfter = ms:GetSelectedCount(),
+                        })
                         return
                     end
 

@@ -15,6 +15,9 @@ local MARKET_INTEGRATION = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
 
 -- Hook installation state (idempotent)
 local _hooksInstalled = false
+local _hookInstallRetryCallId = nil
+local _hookInstallRetryCount = 0
+local MAX_HOOK_INSTALL_RETRIES = 5
 
 local function GetCurrentSceneName()
     if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
@@ -72,9 +75,16 @@ local function AppendPriceLine(tooltipControl, itemLink)
         return
     end
 
-    local priceInfo = MARKET_INTEGRATION.GetMarketPriceInfo(itemLink, 1)
+    local generalInterfaceSettings = type(BETTERUI.GetModuleSettings) == "function"
+        and (BETTERUI.GetModuleSettings("GeneralInterface") or {}) or {}
+    local stackCount = 1
+    local ok, priceInfo = pcall(MARKET_INTEGRATION.GetMarketPriceInfo, itemLink, stackCount, generalInterfaceSettings)
+    if not ok then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "append_skipped", { fn = "AppendPriceLine", reason = "marketApiError", itemLink = itemLink, error = tostring(priceInfo), priority = generalInterfaceSettings.marketPricePriority, stackCount = stackCount })
+        return
+    end
     if not priceInfo or not priceInfo.hasData or not priceInfo.price or priceInfo.price <= 0 then
-        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "append_skipped", { fn = "AppendPriceLine", reason = "noMarketData", itemLink = itemLink, hasData = priceInfo and priceInfo.hasData or false, price = priceInfo and priceInfo.price or nil, sourceKey = priceInfo and priceInfo.sourceKey or nil })
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "append_skipped", { fn = "AppendPriceLine", reason = "noMarketData", itemLink = itemLink, hasData = priceInfo and priceInfo.hasData or false, price = priceInfo and priceInfo.price or nil, sourceKey = priceInfo and priceInfo.sourceKey or nil, priority = generalInterfaceSettings.marketPricePriority, stackCount = stackCount })
         return
     end
 
@@ -97,7 +107,7 @@ local function AppendPriceLine(tooltipControl, itemLink)
     local section = tooltipControl:AcquireSection(tooltipControl:GetStyle("bodySection"))
     section:AddLine(lineText, tooltipControl:GetStyle("bodyDescription"))
     tooltipControl:AddSection(section)
-    TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "appended", { fn = "AppendPriceLine", itemLink = itemLink, price = priceInfo.price, sourceKey = priceInfo.sourceKey, displayPrice = displayPrice })
+    TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "appended", { fn = "AppendPriceLine", itemLink = itemLink, price = priceInfo.price, sourceKey = priceInfo.sourceKey, priority = generalInterfaceSettings.marketPricePriority, stackCount = stackCount, displayPrice = displayPrice })
 end
 
 -- Exposed for unit tests.
@@ -105,21 +115,35 @@ CraftingPriceTooltip.AppendPriceLine = AppendPriceLine
 
 --- Post-hook for ZO_GamepadSmithingCreation:SetupResultTooltip.
 local function OnCreationResultTooltip(smithingCreation, patternIndex, materialIndex, materialQuantity, styleId, traitIndex)
-    if type(GetSmithingPatternResultLink) ~= "function" then return end
+    if type(GetSmithingPatternResultLink) ~= "function" then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "link_failed", { fn = "OnCreationResultTooltip", reason = "missingApi" })
+        return
+    end
     local tip = smithingCreation and smithingCreation.resultTooltip and smithingCreation.resultTooltip.tip
     if not tip then return end
 
-    local itemLink = GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, styleId, traitIndex)
+    local ok, itemLink = pcall(GetSmithingPatternResultLink, patternIndex, materialIndex, materialQuantity, styleId, traitIndex)
+    if not ok or not itemLink or itemLink == "" then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "link_failed", { fn = "OnCreationResultTooltip", reason = ok and "nilLink" or "apiError", error = ok and nil or tostring(itemLink), patternIndex = patternIndex, materialIndex = materialIndex, materialQuantity = materialQuantity, styleId = styleId, traitIndex = traitIndex })
+        return
+    end
     AppendPriceLine(tip, itemLink)
 end
 
 --- Post-hook for ZO_GamepadSmithingImprovement:SetupResultTooltip.
 local function OnImprovementResultTooltip(smithingImprovement, itemToImproveBagId, itemToImproveSlotIndex, craftingSkillType)
-    if type(GetSmithingImprovedItemLink) ~= "function" then return end
+    if type(GetSmithingImprovedItemLink) ~= "function" then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "link_failed", { fn = "OnImprovementResultTooltip", reason = "missingApi" })
+        return
+    end
     local tip = smithingImprovement and smithingImprovement.resultTooltip and smithingImprovement.resultTooltip.tip
     if not tip then return end
 
-    local itemLink = GetSmithingImprovedItemLink(itemToImproveBagId, itemToImproveSlotIndex, craftingSkillType)
+    local ok, itemLink = pcall(GetSmithingImprovedItemLink, itemToImproveBagId, itemToImproveSlotIndex, craftingSkillType)
+    if not ok or not itemLink or itemLink == "" then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip", "link_failed", { fn = "OnImprovementResultTooltip", reason = ok and "nilLink" or "apiError", error = ok and nil or tostring(itemLink), bagId = itemToImproveBagId, slotIndex = itemToImproveSlotIndex, craftingSkillType = craftingSkillType })
+        return
+    end
     AppendPriceLine(tip, itemLink)
 end
 
@@ -152,6 +176,23 @@ function CraftingPriceTooltip.InstallHooks()
 
     _hooksInstalled = hooked
     TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip_hooks", "install_end", { fn = "InstallHooks", installed = hooked })
+    if not hooked and type(zo_callLater) == "function" and not _hookInstallRetryCallId and _hookInstallRetryCount < MAX_HOOK_INSTALL_RETRIES then
+        _hookInstallRetryCount = _hookInstallRetryCount + 1
+        _hookInstallRetryCallId = zo_callLater(function()
+            _hookInstallRetryCallId = nil
+            CraftingPriceTooltip.InstallHooks()
+        end, 1000)
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip_hooks", "retry_scheduled", {
+            fn = "InstallHooks",
+            retry = _hookInstallRetryCount,
+            delayMs = 1000,
+        })
+    elseif not hooked and _hookInstallRetryCount >= MAX_HOOK_INSTALL_RETRIES then
+        TraceCraftingPriceTooltip("general_interface.crafting_price_tooltip_hooks", "retry_exhausted", {
+            fn = "InstallHooks",
+            retries = _hookInstallRetryCount,
+        })
+    end
 end
 
 --- Returns whether hooks are currently installed.

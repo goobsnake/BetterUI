@@ -95,15 +95,27 @@ local function RegisterGeneralInterfaceSnapshotProvider()
 	if not (watch and watch.RegisterSnapshotProvider) then return end
 	watch.RegisterSnapshotProvider("generalInterface", function()
 		local settings = type(BETTERUI.GetModuleSettings) == "function" and BETTERUI.GetModuleSettings("GeneralInterface") or nil
+		local cimSettings = type(BETTERUI.GetModuleSettings) == "function" and BETTERUI.GetModuleSettings("CIM") or nil
 		local mailInbox = rawget(_G, "MAIL_INBOX_GAMEPAD") or rawget(_G, "ZO_MailInbox_Gamepad")
 		local tooltipHelpers = GeneralInterface.Tooltips
 		return string.format(
-			"enabled=%s scene=%s removeDeleteDialog=%s guildStoreSuppress=%s chatHistory=%s mailHook=%s mailPrehook=%s tooltipRuntime=%s storeHooks=%s topLineHooks=%s researchCache=%s",
+			"enabled=%s scene=%s removeDeleteDialog=%s guildStoreSuppress=%s chatHistory=%s showMarketPrice=%s marketPriority=%s craftingPrice=%s tooltipEnhancements=%s tooltipSize=%s styleTrait=%s knowledge=%s comparison=%s ttc=%s mm=%s att=%s mailHook=%s mailPrehook=%s tooltipRuntime=%s storeHooks=%s topLineHooks=%s researchCache=%s",
 			tostring(type(BETTERUI.GetModuleEnabled) == "function" and BETTERUI.GetModuleEnabled("GeneralInterface") or nil),
 			tostring(GetCurrentSceneName()),
 			tostring(settings and settings.removeDeleteDialog == true or false),
 			tostring(settings and settings.guildStoreErrorSuppress == true or false),
 			tostring(settings and settings.chatHistory or nil),
+			tostring(settings and settings.showMarketPrice == true or false),
+			tostring(settings and settings.marketPricePriority or nil),
+			tostring(settings and settings.showCraftingMarketPrice == true or false),
+			tostring(cimSettings and cimSettings.enableTooltipEnhancements == true or false),
+			tostring(cimSettings and cimSettings.tooltipSize or nil),
+			tostring(settings and settings.showStyleTrait == true or false),
+			tostring(settings and settings.showKnowledgeStatus == true or false),
+			tostring(settings and settings.showItemComparison == true or false),
+			tostring(settings and settings.ttcIntegration == true or false),
+			tostring(settings and settings.mmIntegration == true or false),
+			tostring(settings and settings.attIntegration == true or false),
 			tostring(HasGeneralInterfaceMailDeleteHook(mailInbox)),
 			tostring(mailInbox and mailInbox._betteruiDeleteDescriptorPreHookInstalled == true or false),
 			tostring(tooltipHelpers and type(tooltipHelpers.InitializeRuntime) == "function" or false),
@@ -154,6 +166,7 @@ GeneralInterface.Settings.RegisterPanel = Init
 local function InstallMailDeleteHook()
 	local function HookMailDeleteDescriptor(mailInbox)
 		if type(mailInbox) ~= "table" or type(mailInbox.mainKeybindDescriptor) ~= "table" then
+			TraceGeneralInterface("general_interface.mail_delete", "hook_skipped", { fn = "HookMailDeleteDescriptor", reason = "missingInbox" })
 			return false
 		end
 
@@ -169,12 +182,20 @@ local function InstallMailDeleteHook()
 					local selectedMail = SnapshotSelectedMail(mailInbox)
 					if moduleSettings and moduleSettings.removeDeleteDialog and type(mailInbox.Delete) == "function" then
 						TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = true, selectedMail = selectedMail })
-						local result = mailInbox:Delete()
+						local ok, result = pcall(function() return mailInbox:Delete() end)
+						if not ok then
+							TraceGeneralInterface("general_interface.mail_delete", "direct_delete_failed", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, error = tostring(result) })
+							return nil
+						end
 						TraceGeneralInterface("general_interface.mail_delete", "direct_delete_dispatched", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, result = result })
 						return result
 					end
 					TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = false, selectedMail = selectedMail })
-					local result = origCallback(...)
+					local ok, result = pcall(origCallback, ...)
+					if not ok then
+						TraceGeneralInterface("general_interface.mail_delete", "native_callback_failed", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, error = tostring(result) })
+						return nil
+					end
 					TraceGeneralInterface("general_interface.mail_delete", "native_callback_dispatched", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, result = result })
 					return result
 				end
@@ -184,6 +205,7 @@ local function InstallMailDeleteHook()
 			end
 		end
 
+		TraceGeneralInterface("general_interface.mail_delete", "hook_skipped", { fn = "HookMailDeleteDescriptor", reason = "missingDescriptor" })
 		return false
 	end
 
@@ -208,7 +230,43 @@ local function InstallMailDeleteHook()
 		return
 	end
 
-	InstallOnLiveMailInbox(rawget(_G, "ZO_MailInbox_Gamepad"))
+	if not InstallOnLiveMailInbox(rawget(_G, "ZO_MailInbox_Gamepad")) then
+		TraceGeneralInterface("general_interface.mail_delete", "hook_skipped", { fn = "InstallMailDeleteHook", reason = "missingInbox" })
+		local retryCount = GeneralInterface._mailDeleteHookRetryCount or 0
+		if retryCount < 5 and type(zo_callLater) == "function" and not GeneralInterface._mailDeleteHookRetryCallId then
+			GeneralInterface._mailDeleteHookRetryCount = retryCount + 1
+			GeneralInterface._mailDeleteHookRetryCallId = zo_callLater(function()
+				GeneralInterface._mailDeleteHookRetryCallId = nil
+				InstallMailDeleteHook()
+			end, 1000)
+			TraceGeneralInterface("general_interface.mail_delete", "retry_scheduled", {
+				fn = "InstallMailDeleteHook",
+				retry = GeneralInterface._mailDeleteHookRetryCount,
+				delayMs = 1000,
+			})
+		elseif retryCount >= 5 then
+			TraceGeneralInterface("general_interface.mail_delete", "retry_exhausted", { fn = "InstallMailDeleteHook", retries = retryCount })
+		end
+	end
+end
+
+local function InstallCraftingPriceTooltipHooks()
+	local craftingPriceTooltip = GeneralInterface.Tooltips and GeneralInterface.Tooltips.CraftingPriceTooltip or nil
+	if craftingPriceTooltip and type(craftingPriceTooltip.InstallHooks) == "function" then
+		local installedBefore = craftingPriceTooltip.AreHooksInstalled and craftingPriceTooltip.AreHooksInstalled() == true or false
+		craftingPriceTooltip.InstallHooks()
+		local installedAfter = craftingPriceTooltip.AreHooksInstalled and craftingPriceTooltip.AreHooksInstalled() == true or false
+		TraceGeneralInterface("general_interface.crafting_price_tooltip_hooks", "setup_retry", {
+			fn = "InstallCraftingPriceTooltipHooks",
+			installedBefore = installedBefore,
+			installedAfter = installedAfter,
+		})
+	else
+		TraceGeneralInterface("general_interface.crafting_price_tooltip_hooks", "skipped", {
+			fn = "InstallCraftingPriceTooltipHooks",
+			reason = "missingInstaller",
+		})
+	end
 end
 
 local function InstallInventoryTooltipHooks(tooltipHelpers)
@@ -270,8 +328,13 @@ end
 -- context where BetterUI renders nothing to replace it. Mirrors the LayoutItem /
 -- equipped-text hooks in Tooltips.lua. (Compat fix; do not regress PB-004.)
 local function ShouldSuppressNativeTopLines()
-	local settings = BETTERUI.GetModuleSettings("CIM")
-	local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
+	local settings = BETTERUI.GetModuleSettings and BETTERUI.GetModuleSettings("CIM") or nil
+	local enhancementsEnabled = true
+	if type(BETTERUI.GetSetting) == "function" then
+		enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
+	elseif settings and settings.enableTooltipEnhancements ~= nil then
+		enhancementsEnabled = settings.enableTooltipEnhancements ~= false
+	end
 	if not enhancementsEnabled then
 		TraceGeneralInterface("general_interface.top_lines", "suppression_decision", { fn = "ShouldSuppressNativeTopLines", suppress = false, reason = "enhancementsDisabled" })
 		return false
@@ -374,20 +437,46 @@ function GeneralInterface.ApplyChatHistoryLimit(numLines)
 		TraceGeneralInterface("general_interface.chat_history", "skipped", { fn = "ApplyChatHistoryLimit", reason = "invalidLineCount", numLines = numLines })
 		return
 	end
-	local chatSystems = { KEYBOARD_CHAT_SYSTEM, GAMEPAD_CHAT_SYSTEM }
+	local chatSystems = {
+		{ name = "keyboard", system = rawget(_G, "KEYBOARD_CHAT_SYSTEM") },
+		{ name = "gamepad", system = rawget(_G, "GAMEPAD_CHAT_SYSTEM") },
+	}
 	local appliedWindows = 0
 	for i = 1, #chatSystems do
-		local chatSystem = chatSystems[i]
-		local containers = chatSystem and chatSystem.containers
+		local chatSystem = chatSystems[i].system
+		local ok, containers = pcall(function() return chatSystem and chatSystem.containers or nil end)
+		if not ok then
+			TraceGeneralInterface("general_interface.chat_history", "system_skipped", {
+				fn = "ApplyChatHistoryLimit",
+				index = i,
+				system = chatSystems[i].name,
+				reason = "containerReadError",
+				error = tostring(containers),
+			})
+			containers = nil
+		end
 		if containers then
 			for _, container in ipairs(containers) do
 				for _, window in ipairs(container.windows or {}) do
-					if window.buffer and window.buffer.SetMaxHistoryLines then
-						window.buffer:SetMaxHistoryLines(numLines)
-						appliedWindows = appliedWindows + 1
+					local buffer = window and window.buffer or nil
+					if buffer and buffer.SetMaxHistoryLines then
+						local setOk, setErr = pcall(function() buffer:SetMaxHistoryLines(numLines) end)
+						if setOk then
+							appliedWindows = appliedWindows + 1
+						else
+							TraceGeneralInterface("general_interface.chat_history", "window_skipped", {
+								fn = "ApplyChatHistoryLimit",
+								index = i,
+								system = chatSystems[i].name,
+								reason = "setFailed",
+								error = tostring(setErr),
+							})
+						end
 					end
 				end
 			end
+		else
+			TraceGeneralInterface("general_interface.chat_history", "system_skipped", { fn = "ApplyChatHistoryLimit", index = i, system = chatSystems[i].name, reason = "missingChatSystem" })
 		end
 	end
 	TraceGeneralInterface("general_interface.chat_history", "applied", { fn = "ApplyChatHistoryLimit", numLines = numLines, windows = appliedWindows })
@@ -437,6 +526,7 @@ function GeneralInterface.Setup()
 	InstallInventoryTooltipHooks(tooltipHelpers)
 	InstallStoreTooltipHooks()
 	InstallTopLineSuppressionHooks()
+	InstallCraftingPriceTooltipHooks()
 	RegisterGuildStoreSuppression(tooltipHelpers)
 	RegisterTooltipCacheInvalidation()
 	ApplyChatHistoryLimit()

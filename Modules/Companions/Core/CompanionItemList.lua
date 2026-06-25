@@ -281,6 +281,8 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
     end
 
     local addedCount = 0
+    local firstTraitName = nil
+    local hasTraits = false
     for slotIndex = 0, bagSize - 1 do
         local matchesFilter, filterSlotData = self:DoesSlotMatchFilterType(BAG_COMPANION_WORN, slotIndex, filterType)
         if matchesFilter then
@@ -335,6 +337,10 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
                         equipSlot = slotIndex,
                         statValue = "",
                     }
+                    if entryData.traitName and entryData.traitName ~= "" then
+                        firstTraitName = firstTraitName or entryData.traitName
+                        hasTraits = true
+                    end
 
                     if GetItemStatValue then
                         local statValue = GetItemStatValue(BAG_COMPANION_WORN, slotIndex)
@@ -365,7 +371,7 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
             end
         end
     end
-    TraceCompanionList("companions.list_build", "end", { fn = "BuildEquippedItems", sourceBag = BAG_COMPANION_WORN, filterType = filterType, searchQuery = searchQuery, bagSize = bagSize, added = addedCount })
+    TraceCompanionList("companions.list_build", "end", { fn = "BuildEquippedItems", sourceBag = BAG_COMPANION_WORN, filterType = filterType, searchQuery = searchQuery, bagSize = bagSize, added = addedCount, hasTraits = hasTraits, sampleTraitName = firstTraitName })
 end
 
 function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
@@ -382,6 +388,8 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
     end
 
     local addedCount = 0
+    local firstTraitName = nil
+    local hasTraits = false
     for slotIndex = 0, bagSize - 1 do
         local icon, stackCount, sellPrice = GetItemInfo(BAG_BACKPACK, slotIndex)
         local actorCategory = GetItemActorCategory and GetItemActorCategory(BAG_BACKPACK, slotIndex)
@@ -438,6 +446,10 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
                         equipSlot = equipSlot,
                         statValue = "",
                     }
+                    if entryData.traitName and entryData.traitName ~= "" then
+                        firstTraitName = firstTraitName or entryData.traitName
+                        hasTraits = true
+                    end
 
                     if GetItemStatValue then
                         local statValue = GetItemStatValue(BAG_BACKPACK, slotIndex)
@@ -468,7 +480,7 @@ function BETTERUI.Companions.Class:BuildBackpackItems(filterType)
             end
         end
     end
-    TraceCompanionList("companions.list_build", "end", { fn = "BuildBackpackItems", sourceBag = BAG_BACKPACK, filterType = filterType, searchQuery = searchQuery, bagSize = bagSize, added = addedCount })
+    TraceCompanionList("companions.list_build", "end", { fn = "BuildBackpackItems", sourceBag = BAG_BACKPACK, filterType = filterType, searchQuery = searchQuery, bagSize = bagSize, added = addedCount, hasTraits = hasTraits, sampleTraitName = firstTraitName })
 end
 
 function BETTERUI.Companions.Class:ApplyMultiSelectVisual(entry, entryData)

@@ -75,8 +75,8 @@ local function TraceROF(event, phase, data, category)
     data.module = data.module or "ResourceOrbFrames"
     data.feature = data.feature or "resource_orbs"
     data.scene = data.scene or GetCurrentSceneName()
-    data.initialized = data.initialized ~= nil and data.initialized or m_isInitialized
-    data.hasRootFrame = data.hasRootFrame ~= nil and data.hasRootFrame or m_rootFrame ~= nil
+    if data.initialized == nil then data.initialized = m_isInitialized end
+    if data.hasRootFrame == nil then data.hasRootFrame = m_rootFrame ~= nil end
     if data.gamepadMode == nil and type(IsInGamepadPreferredMode) == "function" then
         data.gamepadMode = IsInGamepadPreferredMode()
     end
@@ -170,6 +170,22 @@ local ControlUtils = Utils.Controls
 local GetSettings = SettingsUtils.Get
 local GetFrontBarConfig = SettingsUtils.GetCustomFrontBar
 local FindControl = ControlUtils.Find
+
+local function IsResourceOrbFramesEnabled()
+    local settings = GetSettings and GetSettings() or nil
+    return settings and settings.m_enabled == true
+end
+
+local function SkipDisabledCallback(fn, event)
+    if IsResourceOrbFramesEnabled() then
+        return false
+    end
+    TraceROF(event or "resource_orbs.callback", "skipped_disabled", {
+        fn = fn,
+        reason = "moduleDisabled",
+    })
+    return true
+end
 
 local function RegisterResourceOrbSnapshotProvider()
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
@@ -460,15 +476,36 @@ local function SuppressNativeBars()
     })
 end
 
+--- Restores native action bar and attribute bars when the module is disabled.
+local function RestoreNativeBars()
+    local skillBar = GetSkillBarModule()
+    TraceROF("resource_orbs.native_bars", "restore_begin", {
+        fn = "ResourceOrbFrames.RestoreNativeBars",
+        hasRestoreNativeActionBar = skillBar and skillBar.RestoreNativeActionBar ~= nil,
+        hasAttributeBarsFragment = PLAYER_ATTRIBUTE_BARS_FRAGMENT ~= nil,
+    })
+    if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
+        PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', false)
+    end
+    if skillBar and skillBar.RestoreNativeActionBar then
+        skillBar.RestoreNativeActionBar()
+    end
+    TraceROF("resource_orbs.native_bars", "restore_end", {
+        fn = "ResourceOrbFrames.RestoreNativeBars",
+        hiddenReason = "ResourceOrbFrames",
+    })
+end
+
 --- Registers all dynamic event callbacks after initial component setup.
 ---@param control table Root ResourceOrbFrames control
 local function RegisterDynamicEvents(control)
     TraceROF("resource_orbs.events", "register_begin", {
         fn = "ResourceOrbFrames.RegisterDynamicEvents",
         hasControl = control ~= nil,
-    })
+    })    
     -- Layout force update (skip during weapon swap animation to prevent orb shifting)
     CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
+        if SkipDisabledCallback("ResourceOrbFrames.BetterUI_ForceLayoutUpdate", "resource_orbs.force_layout") then return end
         local isAnimating = SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating()
         TraceROF("resource_orbs.force_layout", isAnimating and "skipped" or "received", {
             fn = "ResourceOrbFrames.BetterUI_ForceLayoutUpdate",
@@ -489,6 +526,7 @@ local function RegisterDynamicEvents(control)
 
     -- Gamepad switch (dynamic re-skin instead of ReloadUI)
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
+        if SkipDisabledCallback("ResourceOrbFrames.EVENT_GAMEPAD_PREFERRED_MODE_CHANGED", "resource_orbs.gamepad_mode") then return end
         if not m_isInitialized or not m_rootFrame then
             TraceROF("resource_orbs.gamepad_mode", "skipped", {
                 fn = "ResourceOrbFrames.EVENT_GAMEPAD_PREFERRED_MODE_CHANGED",
@@ -551,6 +589,7 @@ local function RegisterDynamicEvents(control)
     -- Dynamic bar updates
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED,
         function()
+            if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTIVE_WEAPON_PAIR_CHANGED", "resource_orbs.weapon_pair") then return end
             TraceROF("resource_orbs.weapon_pair", "changed", {
                 fn = "ResourceOrbFrames.EVENT_ACTIVE_WEAPON_PAIR_CHANGED",
                 delayMs = BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
@@ -563,6 +602,7 @@ local function RegisterDynamicEvents(control)
             })
             GetROFTasks():Schedule("weaponSwapLayout", BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
                 function()
+                    if SkipDisabledCallback("ResourceOrbFrames.weaponSwapLayout", "resource_orbs.weapon_pair") then return end
                     TraceROF("resource_orbs.weapon_pair", "layout_task", {
                         fn = "ResourceOrbFrames.weaponSwapLayout",
                     })
@@ -572,6 +612,7 @@ local function RegisterDynamicEvents(control)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE,
         function()
+            if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTION_SLOTS_FULL_UPDATE", "resource_orbs.action_slots") then return end
             local cfg = GetFrontBarConfig()
             TraceROF("resource_orbs.action_slots", "full_update", {
                 fn = "ResourceOrbFrames.EVENT_ACTION_SLOTS_FULL_UPDATE",
@@ -588,6 +629,7 @@ local function RegisterDynamicEvents(control)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlot", EVENT_ACTION_SLOT_UPDATED,
         function(_, slotIndex)
+            if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTION_SLOT_UPDATED", "resource_orbs.action_slot") then return end
             local cfg = GetFrontBarConfig()
             TraceROF("resource_orbs.action_slot", "updated", {
                 fn = "ResourceOrbFrames.EVENT_ACTION_SLOT_UPDATED",
@@ -605,6 +647,7 @@ local function RegisterDynamicEvents(control)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CompanionState",
         EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
+            if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTIVE_COMPANION_STATE_CHANGED", "resource_orbs.companion") then return end
             local cfg = GetFrontBarConfig()
             TraceROF("resource_orbs.companion", "state_changed", {
                 fn = "ResourceOrbFrames.EVENT_ACTIVE_COMPANION_STATE_CHANGED",
@@ -621,6 +664,7 @@ local function RegisterDynamicEvents(control)
                 delayMs = BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS,
             })
             GetROFTasks():Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, function()
+                if SkipDisabledCallback("ResourceOrbFrames.companionLayout", "resource_orbs.companion") then return end
                 TraceROF("resource_orbs.companion", "layout_task", {
                     fn = "ResourceOrbFrames.companionLayout",
                 })
@@ -630,6 +674,7 @@ local function RegisterDynamicEvents(control)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED,
         function()
+            if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTIVE_QUICKSLOT_CHANGED", "resource_orbs.quickslot") then return end
             local cfg = GetFrontBarConfig()
             TraceROF("resource_orbs.quickslot", "changed", {
                 fn = "ResourceOrbFrames.EVENT_ACTIVE_QUICKSLOT_CHANGED",
@@ -646,6 +691,7 @@ local function RegisterDynamicEvents(control)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_FrontBarPressFeedbackAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
+            if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTION_SLOT_ABILITY_USED", "resource_orbs.press_feedback") then return end
             if not slotIndex then
                 TraceROF("resource_orbs.press_feedback", "skipped", {
                     fn = "ResourceOrbFrames.EVENT_ACTION_SLOT_ABILITY_USED",
@@ -681,11 +727,13 @@ local function RegisterDynamicEvents(control)
     -- Zone change cleanup (for subsequent zones after initial setup)
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED,
         function()
+            if SkipDisabledCallback("ResourceOrbFrames.EVENT_PLAYER_ACTIVATED", "resource_orbs.player_activated") then return end
             TraceROF("resource_orbs.player_activated", "received", {
                 fn = "ResourceOrbFrames.EVENT_PLAYER_ACTIVATED",
                 delayMs = BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS,
             })
             GetROFTasks():Schedule("playerActivatedRefresh", BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS, function()
+                if SkipDisabledCallback("ResourceOrbFrames.playerActivatedRefresh", "resource_orbs.player_activated") then return end
                 TraceROF("resource_orbs.player_activated", "refresh_task", {
                     fn = "ResourceOrbFrames.playerActivatedRefresh",
                     hasRefreshCombatIndicators = Events.RefreshCombatIndicators ~= nil,
@@ -866,7 +914,14 @@ function ResourceOrbFrames.Initialize(control)
                 TraceROF("resource_orbs.initialize", "setup_begin", {
                     fn = "ResourceOrbFrames.initModuleSetup",
                 })
-                SetupModule(control)
+                local ok = BETTERUI.CIM.SafeExecute("ResourceOrbFrames:Initialize:SetupModule", SetupModule, control)
+                if not ok then
+                    TraceROF("resource_orbs.initialize", "setup_failed", {
+                        fn = "ResourceOrbFrames.initModuleSetup",
+                        error = "SafeExecuteFailed",
+                    })
+                    return
+                end
             end
 
             -- Enforce state after setup
@@ -973,13 +1028,13 @@ function ResourceOrbFrames.ApplySettings()
         if events and events.SetLoopsEnabled then
             events.SetLoopsEnabled(false)
         end
+        RestoreNativeBars()
         TraceROF("resource_orbs.apply_settings", "disabled", {
             fn = "ResourceOrbFrames.ApplySettings",
             loopsDisabled = events and events.SetLoopsEnabled ~= nil,
+            callbacksGuarded = true,
+            nativeBarsRestored = true,
         }, lifecycleCategory)
-        -- Restore Default UI is handled by reload/re-login mostly,
-        -- but we could try to unhide?
-        -- BetterUI philosophy is usually Reload Required for disable.
     end
 end
 
@@ -992,4 +1047,5 @@ end
 ResourceOrbFrames._Internals = {
     SetupFrontBarHandlers = SetupFrontBarHandlers,
     SuppressNativeBars = SuppressNativeBars,
+    RestoreNativeBars = RestoreNativeBars,
 }

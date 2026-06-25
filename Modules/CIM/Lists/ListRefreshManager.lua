@@ -22,6 +22,22 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 --- @field savedUniqueId string|nil Last saved item uniqueId for position restoration
 BETTERUI.CIM.Lists.ListRefreshManager = ZO_Object:Subclass()
 
+local function SafeDescribeListSelection(list, phase)
+    local log = BETTERUI and BETTERUI.Log or nil
+    if log and type(log.DescribeListSelection) == "function" then
+        local ok, selected = pcall(log.DescribeListSelection, list, phase)
+        if ok then return selected end
+        return { phase = phase, describeError = tostring(selected) }
+    end
+
+    local selectedIndex = nil
+    if list and type(list.GetSelectedIndex) == "function" then
+        local ok, index = pcall(function() return list:GetSelectedIndex() end)
+        if ok then selectedIndex = index end
+    end
+    return { phase = phase, selectedIndex = selectedIndex, reason = "describeHelperUnavailable" }
+end
+
 ---@param ... any
 ---@return table
 function BETTERUI.CIM.Lists.ListRefreshManager:New(...)
@@ -61,7 +77,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
     end
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "saved", {
-            selected = BETTERUI.Log.DescribeListSelection(list, "saved"),
+            selected = SafeDescribeListSelection(list, "saved"),
             savedPosition = self.savedPosition,
             savedUniqueId = self.savedUniqueId,
         })
@@ -75,6 +91,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
 
     local targetIndex = nil
     local restoredById = false
+    local restoreReason = nil
 
     -- Try to find by uniqueId first
     if self.savedUniqueId then
@@ -90,24 +107,40 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
                 break
             end
         end
+        if restoredById then
+            restoreReason = "savedUniqueId"
+        else
+            restoreReason = "savedUniqueIdNotFound"
+        end
     end
 
     -- Fall back to saved index
     if not targetIndex then
         targetIndex = self.savedPosition or 1
+        restoreReason = restoreReason or (self.savedPosition and "savedIndex" or "defaultIndex")
     end
 
     -- Clamp to valid range
     local numItems = list:GetNumItems() or 0
     if numItems == 0 then
         if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", { restored = false, restoredById = restoredById == true, reason = "empty" })
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
+                restored = false,
+                restoredById = restoredById == true,
+                method = nil,
+                restoreReason = "empty",
+                reason = "empty",
+            })
         end
         return false, restoredById
     end
 
+    local unclampedTargetIndex = targetIndex
     targetIndex = math.min(targetIndex, numItems)
     targetIndex = math.max(targetIndex, 1)
+    if unclampedTargetIndex ~= targetIndex then
+        restoreReason = "indexClamped"
+    end
 
     -- Set the position
     if list.SetSelectedIndex then
@@ -115,7 +148,9 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
         if BETTERUI.Log and BETTERUI.Log.TraceEvent then
             BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
                 restored = true, method = restoredById and "id" or "index", targetIndex = targetIndex,
-                selected = BETTERUI.Log.DescribeListSelection(list, "after"),
+                restoredById = restoredById == true,
+                restoreReason = restoreReason,
+                selected = SafeDescribeListSelection(list, "after"),
             })
         end
         return true, restoredById
@@ -124,12 +159,25 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
         if BETTERUI.Log and BETTERUI.Log.TraceEvent then
             BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
                 restored = true, method = restoredById and "id" or "index", targetIndex = targetIndex,
-                selected = BETTERUI.Log.DescribeListSelection(list, "after"),
+                restoredById = restoredById == true,
+                restoreReason = restoreReason,
+                selected = SafeDescribeListSelection(list, "after"),
             })
         end
         return true, restoredById
     end
 
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
+            restored = false,
+            method = nil,
+            targetIndex = targetIndex,
+            restoredById = restoredById == true,
+            restoreReason = restoreReason,
+            reason = "missingSelectionSetter",
+            selected = SafeDescribeListSelection(list, "after"),
+        })
+    end
     return false, restoredById
 end
 
@@ -143,7 +191,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "queued", {
             numItems = numItems, coalesceDelay = self.coalesceDelay, savePosition = savePosition ~= false,
-            selected = BETTERUI.Log.DescribeListSelection(list, "before"),
+            selected = SafeDescribeListSelection(list, "before"),
         })
     end
 
@@ -186,7 +234,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "executed", {
             beforeCount = beforeCount, afterCount = numItems, restored = success == true,
-            restoredById = restoredById == true, selected = BETTERUI.Log.DescribeListSelection(list, "after"),
+            restoredById = restoredById == true, selected = SafeDescribeListSelection(list, "after"),
         })
     end
 end

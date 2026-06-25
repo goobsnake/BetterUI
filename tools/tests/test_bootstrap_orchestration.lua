@@ -38,6 +38,15 @@ local function deepcopy(value)
     return copy
 end
 
+local function read_source(path)
+    local handle = io.open(path, "r")
+    assert_true(handle ~= nil, "opens source file " .. tostring(path))
+    if not handle then return "" end
+    local content = handle:read("*a") or ""
+    handle:close()
+    return content
+end
+
 local function post_hook(control, methodName, callback)
     local original = control[methodName]
     control[methodName] = function(self, ...)
@@ -496,6 +505,12 @@ end
 assert_eq(moduleToggleNames[1], "Enable Banking", "module toggles sort alphabetically by displayed feature name")
 assert_eq(moduleToggleNames[#moduleToggleNames], "Enable Writs", "module toggle list includes all configured modules")
 assert_true(addonPanels["BETTERUI_Modules"] ~= nil, "master settings panel registers once")
+
+local betterUiSource = read_source("BetterUI.lua")
+assert_true(betterUiSource:find('{ name = "Writs", namespace = "Writs", dependsOnCIM = true }', 1, true) ~= nil,
+    "Writs registry entry declares the CIM dependency")
+assert_true(betterUiSource:find('{ moduleName = "Writs", nameStringId = "SI_BETTERUI_ENABLE_WRITS", tooltipStringId = "SI_BETTERUI_ENABLE_WRITS_TOOLTIP", updatesCIM = true }', 1, true) ~= nil,
+    "Writs module toggle updates CIM state")
 
 BETTERUI.Settings = {
     firstInstall = false,

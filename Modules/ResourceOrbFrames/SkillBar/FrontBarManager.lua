@@ -176,6 +176,26 @@ local function HideNativeActionBar()
     end
 end
 
+--- Restores the native ESO action bar and timer after ResourceOrbFrames is disabled.
+local function RestoreNativeActionBar()
+    if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
+        ZO_ActionBar1:SetHidden(false)
+        if ZO_ActionBar1.SetAlpha then ZO_ActionBar1:SetAlpha(1) end
+    end
+    if ZO_ActionBarTimer and ZO_ActionBarTimer.SetHidden then
+        ZO_ActionBarTimer:SetHidden(false)
+    end
+    if ZO_ActionBar1WeaponSwap then
+        if ZO_WeaponSwap_SetPermanentlyHidden then
+            ZO_WeaponSwap_SetPermanentlyHidden(ZO_ActionBar1WeaponSwap, false)
+        end
+        if ZO_ActionBar1WeaponSwap.SetHidden then ZO_ActionBar1WeaponSwap:SetHidden(false) end
+    end
+    if ZO_ActionBar1KeybindBG and ZO_ActionBar1KeybindBG.SetHidden then
+        ZO_ActionBar1KeybindBG:SetHidden(false)
+    end
+end
+
 -- UPDATE FRONT BAR (icons, slot data, highlights)
 
 --- Updates front bar button icons, slot data, and highlights.
@@ -281,6 +301,32 @@ local function UpdateFrontBarUsability(rootFrame, isCasting)
                 local hasActiveCooldown = ShouldSuppressUnusableOverlayForCooldown(mapping.slot, activeCategory)
                 if unusableOverlay then
                     unusableOverlay:SetHidden(not (unusable and not hasActiveCooldown))
+                end
+                local stateTraceKey = table.concat({
+                    tostring(mapping.slot),
+                    tostring(activeCategory),
+                    tostring(hasCostFailure),
+                    tostring(hasLatchedStateFailure),
+                    tostring(hasLatchedTargetFailure),
+                    tostring(hasInsufficientUlt),
+                    tostring(hasActiveCooldown),
+                    tostring(unusable),
+                }, ":")
+                if btn._betteruiUsabilityTraceKey ~= stateTraceKey then
+                    btn._betteruiUsabilityTraceKey = stateTraceKey
+                    TraceFrontBar("resource_orbs.front_bar_usability", "refreshed", {
+                        fn = "UpdateFrontBarUsability",
+                        buttonName = mapping.buttonName,
+                        slotIndex = mapping.slot,
+                        hotbarCategory = activeCategory,
+                        costFailure = hasCostFailure,
+                        stateFailure = hasLatchedStateFailure,
+                        targetFailure = hasLatchedTargetFailure,
+                        insufficientUltimate = hasInsufficientUlt,
+                        cooldownSuppressed = hasActiveCooldown,
+                        unusable = unusable,
+                        overlayVisible = unusable and not hasActiveCooldown,
+                    })
                 end
             end
         end
@@ -546,6 +592,19 @@ local function UpdateFrontBarLayout(rootFrame)
         frontBarContainer:ClearAnchors()
         frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)
     end
+    TraceFrontBar("resource_orbs.front_bar_layout", "applied", {
+        fn = "UpdateFrontBarLayout",
+        buttonSize = buttonSize,
+        spacing = spacing,
+        ultimateSize = ultimateSize,
+        barOffsetX = barOffsetX,
+        barOffsetY = barOffsetY,
+        totalWidth = totalWidth,
+        hasQuickslot = qsBtn ~= nil,
+        hasCompanion = compBtn ~= nil,
+        hasUltimate = ultBtn ~= nil,
+        gamepad = isGamePad,
+    })
 end
 
 -- QUICKSLOT + COMPANION UPDATES
@@ -645,6 +704,7 @@ end
 -- Press feedback and cooldown exports are set by their respective sibling files.
 SkillBar.CacheFrontBarControls = CacheFrontBarControls
 SkillBar.HideNativeActionBar = HideNativeActionBar
+SkillBar.RestoreNativeActionBar = RestoreNativeActionBar
 SkillBar.UpdateFrontBar = UpdateFrontBar
 SkillBar.UpdateFrontBarUsability = UpdateFrontBarUsability
 SkillBar.SetupFrontBarTooltips = SetupFrontBarTooltips

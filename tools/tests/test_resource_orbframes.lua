@@ -338,6 +338,9 @@ end
 function SkillBar.HideNativeActionBar()
     RecordSkillCall("HideNativeActionBar")
 end
+function SkillBar.RestoreNativeActionBar()
+    RecordSkillCall("RestoreNativeActionBar")
+end
 function SkillBar.UpdateBackBar()
     RecordSkillCall("UpdateBackBar")
 end
@@ -409,6 +412,9 @@ assert_eq(skillCalls.SetupFrontBarTooltips, 1, "front bar handler setup replays 
 internals.SuppressNativeBars()
 assert_eq(skillCalls.HideNativeActionBar, 1, "native bar suppression hides the default action bar")
 assert_eq(fragmentCalls[#fragmentCalls].reason, "ResourceOrbFrames", "native bar suppression hides the attribute fragment for the module reason")
+internals.RestoreNativeBars()
+assert_eq(skillCalls.RestoreNativeActionBar, 1, "native bar restore shows the default action bar")
+assert_eq(fragmentCalls[#fragmentCalls].hidden, false, "native bar restore clears the ResourceOrbFrames attribute fragment hide reason")
 
 ResourceOrbFrames.Initialize(rootFrame)
 assert_true(registeredEvents["ResourceOrbFrames_InitSetup"] ~= nil, "initialize registers a deferred setup callback for player activation")
@@ -427,6 +433,8 @@ assert_true((eventCalls.RefreshCombatIndicators or 0) >= 1, "deferred initializa
 settings.m_enabled = false
 ResourceOrbFrames.ApplySettings()
 assert_true(rootFrame.hidden, "apply settings hides the root frame when the module is disabled")
+assert_true((skillCalls.RestoreNativeActionBar or 0) >= 2, "apply settings restores the native action bar when disabled")
+assert_eq(fragmentCalls[#fragmentCalls].hidden, false, "apply settings restores the native attribute fragment when disabled")
 
 settings.m_enabled = true
 ResourceOrbFrames.ApplySettings()

@@ -33,8 +33,8 @@ assert_contains(source, '---@field dependsOnCIM boolean|nil Whether the module r
     "ModuleRegistryEntry documents dependsOnCIM")
 assert_contains(source, '{ name = "GeneralInterface", namespace = "GeneralInterface", dependsOnCIM = true },',
     "GeneralInterface registry entry declares its CIM dependency")
-assert_contains(source, '{ name = "Writs", namespace = "Writs" },',
-    "Writs registry entry stays independent of CIM-enabled gating")
+assert_contains(source, '{ name = "Writs", namespace = "Writs", dependsOnCIM = true },',
+    "Writs registry entry declares its CIM dependency")
 assert_contains(source, 'name = "Nameplates",',
     "Nameplates remains a first-class registry entry")
 assert_contains(source, 'dependsOnCIM = true,',

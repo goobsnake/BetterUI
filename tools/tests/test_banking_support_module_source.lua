@@ -101,6 +101,28 @@ assert_true(currencySelector:find("function BETTERUI%.Banking%.Class:RefreshCurr
 local quantityDialog = read_file("Modules/Banking/Dialogs/QuantityDialog.lua")
 assert_true(quantityDialog:find('BETTERUI_BANK_QUANTITY_DIALOG = "BETTERUI_BANK_QUANTITY_DIALOG"') ~= nil,
     "QuantityDialog declares the banking quantity dialog name")
+assert_true(quantityDialog:find("local function CaptureBankSlotIdentity%(bagId, slotIndex, slotData%)") ~= nil,
+    "QuantityDialog captures the slot identity at dialog open")
+assert_true(quantityDialog:find("local function IsBankSlotIdentityCurrent%(identity, bagId, slotIndex%)") ~= nil,
+    "QuantityDialog validates the captured slot identity before confirm")
+assert_true(quantityDialog:find("local function CreateQuantityDialogListProxy%(data%)") ~= nil,
+    "QuantityDialog builds a list proxy for the captured dialog target")
+assert_true(quantityDialog:find("window:MoveItem%(CreateQuantityDialogListProxy%(data%), quantity%)") ~= nil,
+    "QuantityDialog confirms against the captured target instead of the current list selection")
+assert_true(quantityDialog:find("local function ClearQuantityDialogSuppression%(result, data, forceTrace%)") ~= nil,
+    "QuantityDialog centralizes idempotent suppression cleanup")
+assert_true(quantityDialog:find("noChoiceCallback = function%(dialog%)") ~= nil,
+    "QuantityDialog clears suppression on non-button dialog release")
+assert_true(quantityDialog:find("dialog%._betteruiLastSliderTraceKey = nil") ~= nil
+    and quantityDialog:find("dialog%._betteruiLastSliderTraceBucket = nil") ~= nil,
+    "QuantityDialog resets slider trace throttle state during setup")
+assert_true(quantityDialog:find('reason = "invalidQuantity"') ~= nil
+    and quantityDialog:find('reason = "staleSlot"') ~= nil
+    and quantityDialog:find('reason = "emptyLiveStack"') ~= nil
+    and quantityDialog:find('reason = "missingMoveItem"') ~= nil,
+    "QuantityDialog emits explicit blocked confirm reasons")
+assert_true(quantityDialog:find('ReleaseQuantityDialog%("confirm_blocked", data%)%s*return') ~= nil,
+    "QuantityDialog does not fall through to successful close after blocked confirm")
 assert_true(quantityDialog:find("local function SetupSliderKeybindHints%(dialog%)") ~= nil,
     "QuantityDialog exposes slider keybind hint setup")
 assert_true(quantityDialog:find("function BETTERUI%.Banking%.InitializeQuantityDialog%(%)") ~= nil,

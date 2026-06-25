@@ -25,9 +25,14 @@ end
 
 local function RunInventoryKeybind(self, keybind, action, callback)
     TraceInventoryKeybind(self, keybind, "start", { action = action })
-    local r1, r2, r3 = callback()
-    TraceInventoryKeybind(self, keybind, "end", { action = action, handled = true })
-    return r1, r2, r3
+    local handled, reason, branch = callback()
+    TraceInventoryKeybind(self, keybind, "end", {
+        action = action,
+        handled = handled == true,
+        reason = reason,
+        branch = branch,
+    })
+    return handled, reason, branch
 end
 
 --- Initializes the main inventory keybind strip.
@@ -84,7 +89,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
             callback = function()
                 return RunInventoryKeybind(self, "UI_SHORTCUT_PRIMARY", "primary", function()
-                    InventoryKeybinds.HandlePrimaryKeybind(self)
+                    return InventoryKeybinds.HandlePrimaryKeybind(self)
                 end)
             end,
         },
@@ -99,7 +104,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
             callback = function()
                 return RunInventoryKeybind(self, "UI_SHORTCUT_SECONDARY", "secondary", function()
-                    InventoryKeybinds.HandleSecondaryKeybind(self)
+                    return InventoryKeybinds.HandleSecondaryKeybind(self)
                 end)
             end,
         },
@@ -118,7 +123,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
             callback = function()
                 return RunInventoryKeybind(self, "UI_SHORTCUT_TERTIARY", "tertiary", function()
-                    InventoryKeybinds.HandleTertiaryKeybind(self)
+                    return InventoryKeybinds.HandleTertiaryKeybind(self)
                 end)
             end,
         },
@@ -152,9 +157,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             callback = function()
                 return RunInventoryKeybind(self, "UI_SHORTCUT_RIGHT_STICK", "switch_inventory_craftbag", function()
                     if self:IsBatchProcessing() then
-                        return
+                        return false, "batchProcessing"
                     end
                     self:Switch()
+                    return true, nil, "switch"
                 end)
             end,
         },
@@ -197,7 +203,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
             callback = function()
                 return RunInventoryKeybind(self, "UI_SHORTCUT_QUINARY", "multi_select", function()
-                    InventoryKeybinds.HandleMultiSelectEntry(self)
+                    return InventoryKeybinds.HandleMultiSelectEntry(self)
                 end)
             end,
         },

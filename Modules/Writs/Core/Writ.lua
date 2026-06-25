@@ -247,13 +247,15 @@ function Writs.ShowForCraftType(writType, context)
 	TraceWrit("writ.panel", "show_begin", { writType = writType, source = context.source, event = context.event })
 	local refreshOk, refreshErr = Writs.RefreshActiveWrits(context)
 	if not refreshOk then
-		TraceWrit("writ.panel", "show_error", { writType = writType, error = refreshErr })
+		Writs.HidePanel()
+		TraceWrit("writ.panel", "show_error", { writType = writType, error = refreshErr, panelHidden = true })
 		return false, refreshErr
 	end
 
 	local writEntry = Writs.List[writType]
 	if writEntry == nil then
-		TraceWrit("writ.panel", "no_active_writ", { writType = writType })
+		Writs.HidePanel()
+		TraceWrit("writ.panel", "no_active_writ", { writType = writType, source = context.source, event = context.event, panelHidden = true })
 		return false, "no_active_writ"
 	end
 

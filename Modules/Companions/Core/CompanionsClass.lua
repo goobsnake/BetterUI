@@ -332,13 +332,13 @@ function BETTERUI.Companions.Class:RefreshCompanionFooter()
     if not footerRoot then return end
 
     -- LEFT SIDE: Active companion name
+    local companionName = ""
     local withdraw = footerRoot:GetNamedChild("Withdraw")
     if withdraw then
         local btn = withdraw:GetNamedChild("Button")
         if btn then
             local spaceLabel = btn:GetNamedChild("SpaceLabel")
             if spaceLabel then
-                local companionName = ""
                 if HasActiveCompanion and HasActiveCompanion() then
                     local defId = GetActiveCompanionDefId and GetActiveCompanionDefId()
                     if defId and GetCompanionName then
@@ -351,6 +351,8 @@ function BETTERUI.Companions.Class:RefreshCompanionFooter()
     end
 
     -- RIGHT SIDE: Bag capacity
+    local bagUsed = GetNumBagUsedSlots(BAG_BACKPACK)
+    local bagSize = GetBagSize(BAG_BACKPACK)
     local deposit = footerRoot:GetNamedChild("Deposit")
     if deposit then
         local btn = deposit:GetNamedChild("Button")
@@ -360,8 +362,18 @@ function BETTERUI.Companions.Class:RefreshCompanionFooter()
                 spaceLabel:SetText(
                     "|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t " ..
                     zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
-                        GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK)))
+                        bagUsed, bagSize))
             end
         end
+    end
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.STATE, "companions.footer", "refreshed", {
+            module = "Companions",
+            feature = "footer",
+            fn = "RefreshCompanionFooter",
+            companionName = companionName ~= "" and companionName or nil,
+            bagUsed = bagUsed,
+            bagSize = bagSize,
+        })
     end
 end

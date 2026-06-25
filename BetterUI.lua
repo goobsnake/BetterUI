@@ -62,7 +62,7 @@ local MODULE_REGISTRY = {
 	{ name = "Companions", namespace = "Companions", dependsOnCIM = true },
 
 	-- CIM-dependent interface and feature modules
-	{ name = "Writs", namespace = "Writs" },
+	{ name = "Writs", namespace = "Writs", dependsOnCIM = true },
 	{ name = "GeneralInterface", namespace = "GeneralInterface", dependsOnCIM = true },
 	{
 		name = "Nameplates",
@@ -143,7 +143,7 @@ local MODULE_TOGGLE_BLUEPRINTS = {
 	{ moduleName = "Nameplates", nameStringId = "SI_BETTERUI_NAMEPLATES_ENABLED", tooltipStringId = "SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", updatesCIM = true },
 	{ moduleName = "Inventory", nameStringId = "SI_BETTERUI_ENABLE_INVENTORY", tooltipStringId = "SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", updatesCIM = true },
 	{ moduleName = "ResourceOrbFrames", nameStringId = "SI_BETTERUI_ENABLE_ORBS", tooltipStringId = "SI_BETTERUI_ENABLE_ORBS_TOOLTIP", updatesCIM = true },
-	{ moduleName = "Writs", nameStringId = "SI_BETTERUI_ENABLE_WRITS", tooltipStringId = "SI_BETTERUI_ENABLE_WRITS_TOOLTIP" },
+	{ moduleName = "Writs", nameStringId = "SI_BETTERUI_ENABLE_WRITS", tooltipStringId = "SI_BETTERUI_ENABLE_WRITS_TOOLTIP", updatesCIM = true },
 }
 
 local function SetModuleToggleEnabled(moduleName, value, updatesCIM)

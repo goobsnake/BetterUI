@@ -13,6 +13,21 @@ local OptionalAddons = BETTERUI.CIM and BETTERUI.CIM.OptionalAddons
 assert(SettingsApi and SettingsApi.GetSettingDefault and SettingsApi.ResetModuleSettingsByGroup,
     "BetterUI: CIM.Settings metadata helpers must load before GeneralInterface tooltip settings helpers")
 
+local function TraceGeneralSetting(resetName, phase, data)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "GeneralInterface"
+    data.feature = "settings-reset"
+    data.resetName = resetName
+    data.fn = data.fn or resetName
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction({ flow = "general_interface.setting", message = tostring(resetName) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.SETTINGS or categories.GENERAL, "general_interface.setting", phase, data)
+end
+
 --- Applies tooltip visual settings from the current configuration.
 local function ApplyTooltipVisualSettings()
     if BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.ApplyTooltipStyles) == "function" then
@@ -203,6 +218,7 @@ end
 
 --- Resets the general settings for the GeneralInterface module.
 local function ResetGeneralInterfaceGeneralSettings()
+    TraceGeneralSetting("general", "reset_begin", { fn = "ResetGeneralInterfaceGeneralSettings" })
     SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "general")
     SettingsApi.ResetModuleSettingsByGroup("CIM", "generalInterfaceGeneral")
 
@@ -213,17 +229,21 @@ local function ResetGeneralInterfaceGeneralSettings()
             (generalInterfaceSettings and generalInterfaceSettings.chatHistory) or 200
         )
     end
+    TraceGeneralSetting("general", "reset_end", { fn = "ResetGeneralInterfaceGeneralSettings", chatHistory = generalInterfaceSettings and generalInterfaceSettings.chatHistory })
 end
 
 --- Resets the market integration settings to defaults.
 local function ResetMarketIntegrationSettings()
+    TraceGeneralSetting("marketIntegration", "reset_begin", { fn = "ResetMarketIntegrationSettings" })
     SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "marketIntegration")
 
     RefreshInventoryAndBankingLists()
+    TraceGeneralSetting("marketIntegration", "reset_end", { fn = "ResetMarketIntegrationSettings" })
 end
 
 --- Resets the enhanced tooltip settings to defaults.
 local function ResetEnhancedTooltipSettings()
+    TraceGeneralSetting("enhancedTooltips", "reset_begin", { fn = "ResetEnhancedTooltipSettings" })
     SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "enhancedTooltips")
     SettingsApi.ResetModuleSettingsByGroup("CIM", "enhancedTooltips")
 
@@ -233,8 +253,14 @@ local function ResetEnhancedTooltipSettings()
     else
         RestoreTooltipVisualSettings()
         CleanupTooltipEnhancementArtifacts()
+        if BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
+            BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
+            BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_RIGHT_TOOLTIP, nil)
+            BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_MOVABLE_TOOLTIP, nil)
+        end
     end
     RefreshInventoryAndBankingLists()
+    TraceGeneralSetting("enhancedTooltips", "reset_end", { fn = "ResetEnhancedTooltipSettings", enhancementsEnabled = cimSettings and cimSettings.enableTooltipEnhancements == true, relayoutRequested = BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" or false })
 end
 
 -- SHARED HELPERS EXPORT

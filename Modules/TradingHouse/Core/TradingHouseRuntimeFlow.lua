@@ -20,10 +20,53 @@ local function TraceTHFlow(category, event, phase, data)
         data.module = data.module or "TradingHouse"
         data.scene = data.scene or BETTERUI_TRADING_HOUSE_SCENE_NAME
         data.feature = data.feature or "trading-house"
-        data.fn = data.fn or "TradingHouse.RuntimeFlow"
-        data["function"] = data["function"] or data.fn
+        local fn = data.fn or data["function"] or "TradingHouse.RuntimeFlow"
+        data.fn = fn
+        data["function"] = fn
         BETTERUI.Log.TraceEvent(category or BETTERUI.Log.CATEGORY.SCENE, event, phase, data)
     end
+end
+
+local function RefreshCurrentTradingHouseKeybinds(fn, reason)
+    local sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false
+    if not sceneShowing then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
+            fn = fn,
+            feature = "trading-house-keybinds",
+            reason = reason,
+            skipReason = "sceneHidden",
+            hasInstance = TH.instance ~= nil,
+            sceneShowing = sceneShowing,
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
+        return false
+    end
+
+    if not (KEYBIND_STRIP and type(KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups) == "function") then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
+            fn = fn,
+            feature = "trading-house-keybinds",
+            reason = "missingKeybindStrip",
+            requestedReason = reason,
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
+        return false
+    end
+
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
+        fn = fn,
+        feature = "trading-house-keybinds",
+        reason = reason,
+        searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+    })
+    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
+        fn = fn,
+        feature = "trading-house-keybinds",
+        reason = reason,
+        searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+    })
+    return true
 end
 
 local function AssociateSearchFeatures()
@@ -847,19 +890,7 @@ end
 
 function TH.OnSearchCooldownUpdate()
     if TH.instance and TH.instance:IsSceneShowing() then
-        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
-            fn = "TradingHouse.OnSearchCooldownUpdate",
-            feature = "trading-house-keybinds",
-            reason = "searchCooldownUpdate",
-            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-        })
-        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
-            fn = "TradingHouse.OnSearchCooldownUpdate",
-            feature = "trading-house-keybinds",
-            reason = "searchCooldownUpdate",
-            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-        })
+        RefreshCurrentTradingHouseKeybinds("TradingHouse.OnSearchCooldownUpdate", "searchCooldownUpdate")
     else
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
             fn = "TradingHouse.OnSearchCooldownUpdate",
@@ -921,6 +952,17 @@ function TH.OnTradingHouseResponse(_, responseType, result)
         if isSearchResponse then
             TH.OnSearchResultsReceived()
         end
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.response", "succeeded", {
+            fn = "TradingHouse.OnTradingHouseResponse",
+            feature = "trading-house-search",
+            guildId = guildId,
+            mode = mode,
+            responseType = responseType,
+            result = result,
+            isSearchResponse = isSearchResponse,
+            searchPendingAfter = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+            listRefreshScheduled = true,
+        })
         TH.ScheduleListRefresh()
     elseif isSearchResponse then
         if TH.BrowseComponent then
@@ -937,21 +979,7 @@ function TH.OnTradingHouseResponse(_, responseType, result)
             searchPendingAfter = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
             deferredToken = TH.BrowseComponent and TH.BrowseComponent.deferredSearchToken or nil,
         })
-        if TH.instance and TH.instance:IsSceneShowing() and KEYBIND_STRIP then
-            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
-                fn = "TradingHouse.OnTradingHouseResponse",
-                feature = "trading-house-keybinds",
-                reason = "searchResponseFailed",
-                searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-            })
-            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
-                fn = "TradingHouse.OnTradingHouseResponse",
-                feature = "trading-house-keybinds",
-                reason = "searchResponseFailed",
-                searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-            })
-        end
+        RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseResponse", "searchResponseFailed")
     end
     -- Failed search responses are already alerted by ZOS (alerthandlers.lua
     -- listens to EVENT_TRADING_HOUSE_RESPONSE_RECEIVED); avoid a duplicate.
@@ -1053,21 +1081,7 @@ function TH.OnTradingHouseResponseTimeout()
         TH.BrowseComponent.searchPending = false
         TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
     end
-    if TH.instance and TH.instance:IsSceneShowing() then
-        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
-            fn = "TradingHouse.OnTradingHouseResponseTimeout",
-            feature = "trading-house-keybinds",
-            reason = "responseTimeout",
-            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-        })
-        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
-            fn = "TradingHouse.OnTradingHouseResponseTimeout",
-            feature = "trading-house-keybinds",
-            reason = "responseTimeout",
-            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-        })
-    end
+    RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseResponseTimeout", "responseTimeout")
 end
 
 function TH.OnTradingHouseOperationTimeout()
@@ -1083,21 +1097,7 @@ function TH.OnTradingHouseOperationTimeout()
         TH.BrowseComponent.searchPending = false
         TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
     end
-    if TH.instance and TH.instance:IsSceneShowing() then
-        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
-            fn = "TradingHouse.OnTradingHouseOperationTimeout",
-            feature = "trading-house-keybinds",
-            reason = "operationTimeout",
-            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-        })
-        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
-            fn = "TradingHouse.OnTradingHouseOperationTimeout",
-            feature = "trading-house-keybinds",
-            reason = "operationTimeout",
-            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-        })
-    end
+    RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseOperationTimeout", "operationTimeout")
 end
 
 function TH.OnSelectedTradingHouseGuildChanged()

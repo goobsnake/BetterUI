@@ -96,8 +96,9 @@ local function TraceTH(category, event, phase, instance, data)
     data.module = data.module or "TradingHouse"
     data.scene = data.scene or BETTERUI_TRADING_HOUSE_SCENE_NAME
     data.feature = data.feature or "trading-house"
-    data.fn = data.fn or "TradingHouse.Class"
-    data["function"] = data["function"] or data.fn
+    local fn = data.fn or data["function"] or "TradingHouse.Class"
+    data.fn = fn
+    data["function"] = fn
     data.mode = mode
     data.modeName = data.modeName or GetTHModeName(mode)
     data.guildId = data.guildId or (GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil)

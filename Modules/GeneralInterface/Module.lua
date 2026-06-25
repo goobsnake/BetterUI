@@ -26,9 +26,11 @@ function GeneralInterface.InitModule(m_options)
     else
         if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
         if m_options["showMarketPrice"] == nil then m_options["showMarketPrice"] = true end
+        if m_options["showCraftingMarketPrice"] == nil then m_options["showCraftingMarketPrice"] = true end
         if m_options["marketPricePriority"] == nil then m_options["marketPricePriority"] = "mm_att_ttc" end
         if m_options["showStyleTrait"] == nil then m_options["showStyleTrait"] = true end
         if m_options["showKnowledgeStatus"] == nil then m_options["showKnowledgeStatus"] = true end
+        if m_options["showItemComparison"] == nil then m_options["showItemComparison"] = true end
         if m_options["removeDeleteDialog"] == nil then m_options["removeDeleteDialog"] = false end
         if m_options["guildStoreErrorSuppress"] == nil then m_options["guildStoreErrorSuppress"] = true end
         if m_options["attIntegration"] == nil then m_options["attIntegration"] = true end

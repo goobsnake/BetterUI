@@ -24,6 +24,7 @@ local GetLiveSettings = (Utils.Settings and Utils.Settings.GetLive) or Utils.Get
 local CastBar = Bars.CastBar
 local ExperienceBar = Bars.ExperienceBar
 local MountStaminaBar = Bars.MountStaminaBar
+local TraceMountStamina = Bars.TraceMountStamina or TraceCastBar
 
 local function TraceCastBar(event, phase, data)
     if Bars.TraceCastBar then
@@ -446,7 +447,16 @@ function MountStaminaBar:Update()
     end
 
     if IsMounted() then
-        self.appliedMountedState = true
+        if self.appliedMountedState ~= true then
+            self.appliedMountedState = true
+            TraceMountStamina("resource_orbs.mount_stamina", "state_changed", {
+                fn = "MountStaminaBar.Update",
+                isMounted = true,
+                current = self.currentValue,
+                max = self.maxValue,
+                hidden = self.appliedHidden == true,
+            })
+        end
         local current = self.currentValue or 0
         local max = self.maxValue or 1
         if max <= 0 then max = 1 end
@@ -475,6 +485,13 @@ function MountStaminaBar:Update()
             self.appliedMountedState = false
             self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_MOUNT_STAMINA")))
             if self.fill then self.fill:SetHidden(true) end
+            TraceMountStamina("resource_orbs.mount_stamina", "state_changed", {
+                fn = "MountStaminaBar.Update",
+                isMounted = false,
+                current = self.currentValue,
+                max = self.maxValue,
+                hidden = self.appliedHidden == true,
+            })
         end
         self.appliedCurrent = nil
         self.appliedEffectiveMax = nil

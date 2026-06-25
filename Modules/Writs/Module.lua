@@ -98,8 +98,16 @@ local function ScheduleCraftCompletionRefresh(id, craftId)
     TraceWritEvent("writ.craft", "deferred_scheduled", {
         craftId = craftId,
         delayMs = 150,
-    })
+    }) 
     later(function()
+        if currentCraftingType ~= id then
+            TraceWritEvent("writ.craft", "deferred_skipped", {
+                craftId = craftId,
+                activeCraftingType = currentCraftingType,
+                reason = "stationClosedOrChanged",
+            })
+            return
+        end
         if not IsWritsModuleEnabled() then
             TraceWritEvent("writ.craft", "deferred_skipped", {
                 craftId = craftId,
@@ -173,6 +181,8 @@ function Writs.Setup()
     local BETTERUI_WP = BETTERUI.WindowManager:CreateControlFromVirtual("BETTERUI_WritsPanel", tlw, "BETTERUI_WritsPanel")
 
     local writsNamespace = BETTERUI.name .. "_Writs"
+    Writs.CacheControls()
+
     BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_CRAFTING_STATION_INTERACT, OnCraftStation)
     BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_END_CRAFTING_STATION_INTERACT, OnCloseCraftStation)
     BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_CRAFT_COMPLETED, OnCraftItem)
@@ -185,8 +195,6 @@ function Writs.Setup()
     if EVENT_QUEST_CONDITION_COUNTER_CHANGED then
         BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_QUEST_CONDITION_COUNTER_CHANGED, OnQuestJournalChanged)
     end
-
-    Writs.CacheControls()
 
     BETTERUI_WP:SetHidden(true)
     TraceWritEvent("writ.setup", "end", { hidden = true })

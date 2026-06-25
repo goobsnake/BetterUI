@@ -23,6 +23,22 @@ local function TraceCraftBagQuantity(phase, data)
     L.TraceEvent(categories.ACTION or "ACTION", "craftbag.quantity_dialog", phase, data)
 end
 
+local function ShouldTraceSliderPreview(dialog, value)
+    if not (dialog and dialog.data and value) then return false end
+    local sliderMin = dialog.data.sliderMin or 1
+    local sliderMax = dialog.data.sliderMax or sliderMin
+    local span = math.max(sliderMax - sliderMin, 1)
+    local bucketSize = math.max(1, math.floor(span / 10))
+    local bucket = math.floor((value - sliderMin) / bucketSize)
+    local key = table.concat({ tostring(bucket), tostring(value == sliderMin), tostring(value == sliderMax) }, ":")
+    if dialog._betteruiLastSliderTraceKey == key then
+        return false
+    end
+    dialog._betteruiLastSliderTraceKey = key
+    dialog._betteruiLastSliderTraceBucket = bucket
+    return true
+end
+
 local function TraceSlotPayload(bagId, slotIndex, data)
     data = data or {}
     data.bagId = bagId
@@ -149,9 +165,15 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
             end,
         },
         setup = function(dialog, data)
-            dialog:setupFunc()
+            if dialog then
+                dialog._betteruiLastSliderTraceKey = nil
+                dialog._betteruiLastSliderTraceBucket = nil
+            end
+            if dialog and dialog.setupFunc then
+                dialog:setupFunc()
+            end
             SetupSliderKeybindHints(dialog)
-            data = data or dialog.data or {}
+            data = data or dialog and dialog.data or {}
             TraceCraftBagQuantity("setup", TraceSlotPayload(data.bagId, data.slotIndex, {
                 isStow = data.isStow,
                 sliderMin = data.sliderMin,
@@ -170,12 +192,17 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                 if dialog.sliderValue2 then
                     dialog.sliderValue2:SetText(tostring(value))
                 end
-                TraceCraftBagQuantity("slider_changed", TraceSlotPayload(dialog.data.bagId, dialog.data.slotIndex, {
-                    isStow = dialog.data.isStow,
-                    value = value,
-                    remaining = remaining,
-                    sliderMax = sliderMax,
-                }))
+                if ShouldTraceSliderPreview(dialog, value) then
+                    TraceCraftBagQuantity("slider_changed", TraceSlotPayload(dialog.data.bagId, dialog.data.slotIndex, {
+                        isStow = dialog.data.isStow,
+                        value = value,
+                        remaining = remaining,
+                        sliderMin = dialog.data.sliderMin or 1,
+                        sliderMax = sliderMax,
+                        traceBucket = dialog._betteruiLastSliderTraceBucket,
+                        coalesced = true,
+                    }))
+                end
             end
         end,
         buttons = {
@@ -184,7 +211,7 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                 text = SI_GAMEPAD_SELECT_OPTION,
                 callback = function(dialog)
                     if not dialog or not dialog.data then
-                        TraceCraftBagQuantity("confirm_skipped", { reason = "missingDialogData" })
+                        TraceCraftBagQuantity("confirm_blocked", { reason = "missingDialogData" })
                         return
                     end
 
@@ -192,7 +219,7 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                     local quantity = ZO_GenericGamepadItemSliderDialogTemplate_GetSliderValue(dialog)
 
                     if not quantity or quantity <= 0 then
-                        TraceCraftBagQuantity("confirm_skipped", TraceSlotPayload(data.bagId, data.slotIndex, {
+                        TraceCraftBagQuantity("confirm_blocked", TraceSlotPayload(data.bagId, data.slotIndex, {
                             reason = "invalidQuantity",
                             quantity = quantity,
                             isStow = data.isStow,
@@ -206,7 +233,7 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
 
                     if bagId and slotIndex then
                         if BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(data.expectedSlotIdentity, bagId, slotIndex) ~= true then
-                            TraceCraftBagQuantity("confirm_skipped", TraceSlotPayload(bagId, slotIndex, {
+                            TraceCraftBagQuantity("confirm_blocked", TraceSlotPayload(bagId, slotIndex, {
                                 reason = "staleSlot",
                                 quantity = quantity,
                                 isStow = isStow,
@@ -218,7 +245,7 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                         end
                         local liveStackCount = GetSlotStackSize(bagId, slotIndex) or 0
                         if liveStackCount <= 0 then
-                            TraceCraftBagQuantity("confirm_skipped", TraceSlotPayload(bagId, slotIndex, {
+                            TraceCraftBagQuantity("confirm_blocked", TraceSlotPayload(bagId, slotIndex, {
                                 reason = "emptyLiveStack",
                                 quantity = quantity,
                                 isStow = isStow,
@@ -310,13 +337,13 @@ function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, is
     if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Showing craft bag quantity dialog") end
     TraceCraftBagQuantity("show_request", { isStow = isStow })
     if not inventorySlot then
-        TraceCraftBagQuantity("show_skipped", { reason = "missingInventorySlot", isStow = isStow })
+        TraceCraftBagQuantity("show_blocked", { reason = "missingInventorySlot", isStow = isStow })
         return
     end
 
     local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
     if not bagId or not slotIndex then
-        TraceCraftBagQuantity("show_skipped", { reason = "invalidSlot", isStow = isStow })
+        TraceCraftBagQuantity("show_blocked", { reason = "invalidSlot", isStow = isStow })
         return
     end
 

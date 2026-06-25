@@ -56,6 +56,23 @@ end
 
 Bars.TraceCastBar = TraceCastBar
 
+local function TraceMountStamina(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "mountStamina"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION or categories.STATE, event, phase, data)
+end
+
+Bars.TraceMountStamina = TraceMountStamina
+
 local function ResolveTexturePath(filename)
     return string.format("%s/%s", "BetterUI/Modules/ResourceOrbFrames/Textures", filename)
 end
@@ -614,6 +631,12 @@ function MountStaminaBar:OnMountedStateChanged(isMounted)
         self.currentValue = current
         self.maxValue = max
     end
+    TraceMountStamina("resource_orbs.mount_stamina", "mounted_changed", {
+        fn = "MountStaminaBar.OnMountedStateChanged",
+        isMounted = isMounted == true,
+        current = self.currentValue,
+        max = self.maxValue,
+    })
 end
 
 -- Share class tables with OrbBarUpdates.lua before factory functions are attached.

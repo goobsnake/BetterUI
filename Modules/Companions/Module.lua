@@ -51,6 +51,17 @@ local function NotifyCompanionSetupFailure(messageText)
     end
 end
 
+local function TraceCompanionInit(phase, data)
+    local log = BETTERUI and BETTERUI.Log or nil
+    if not (log and log.TraceEvent) then return end
+    data = data or {}
+    data.module = "Companions"
+    data.scene = BETTERUI_COMPANION_EQUIP_SCENE_NAME
+    data.feature = "companion-init"
+    data.fn = data.fn or "Companions.Init"
+    log.TraceEvent((log.CATEGORY or {}).LIFECYCLE, "companions.init", phase, data)
+end
+
 local function CountCompanionSnapshotRows(list)
     if not list then return 0 end
     if list.GetNumItems then
@@ -82,7 +93,8 @@ local function GetCompanionSnapshotSelectionToken(list)
     end)
     if not selectedOk then return "error" end
     local data = selected and (selected.dataSource or selected) or nil
-    return data and string.format("companion=%s,collectible=%s,bag=%s,slot=%s,entry=%s", tostring(data.companionId or data.companionDefId or "nil"), tostring(data.collectibleId or "nil"), tostring(data.bagId or "nil"), tostring(data.slotIndex or "nil"), tostring(data.entryIndex or "nil")) or "nil"
+    local activeCompanionId = HasActiveCompanion and HasActiveCompanion() and GetActiveCompanionDefId and GetActiveCompanionDefId() or nil
+    return data and string.format("companion=%s,activeCompanion=%s,collectible=%s,bag=%s,slot=%s,entry=%s", tostring(data.companionId or data.companionDefId or activeCompanionId or "nil"), tostring(activeCompanionId or "nil"), tostring(data.collectibleId or "nil"), tostring(data.bagId or "nil"), tostring(data.slotIndex or "nil"), tostring(data.entryIndex or "nil")) or string.format("activeCompanion=%s", tostring(activeCompanionId or "nil"))
 end
 
 local function GetCompanionSnapshotCategory(instance)
@@ -162,12 +174,19 @@ end
 -- INITIALIZATION
 
 function BETTERUI.Companions.Init()
-    if Companions.initialized then return end
+    if Companions.initialized then
+        TraceCompanionInit("skipped", { reason = "alreadyInitialized", hasInstance = Companions.instance ~= nil })
+        return true
+    end
+
+    TraceCompanionInit("begin", { hasInteraction = INTERACTION_COMPANION_MENU ~= nil })
 
     if not INTERACTION_COMPANION_MENU then
+        local initErr = "missingInteraction"
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "companion menu interaction missing; init skipped") end
-        Companions.initialized = true
-        return
+        Companions._initError = initErr
+        TraceCompanionInit("skipped", { reason = initErr, initialized = false })
+        return false, initErr
     end
 
     local instance, initErr = Companions.InitializeRuntime()
@@ -176,10 +195,12 @@ function BETTERUI.Companions.Init()
         if initErr then
             NotifyCompanionSetupFailure(initErr)
         end
+        TraceCompanionInit("failed", { reason = tostring(initErr or "unknown"), initialized = false })
         return false, initErr
     end
 
     Companions._initError = nil
     Companions.initialized = true
+    TraceCompanionInit("end", { initialized = true, hasInstance = true })
     return true
 end

@@ -37,6 +37,21 @@ local function ResolveTexturePath(filename)
     return string.format("%s/%s", GetTextureRootPath(), filename)
 end
 
+local function TraceOrbVisuals(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "orbVisuals"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.STATE or categories.ACTION, event, phase, data)
+end
+
 ---@class BetterUIOrbBar : ZO_Object
 ---@field control table Parent UI control
 ---@field fog table Fill texture control
@@ -444,20 +459,24 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     end
 
     local leftOrb = FindControl(rootFrame, 'OrbHealth')
+    local leftBranch = "missingOrb"
     if leftOrb then
         leftOrb:ClearAnchors()
         if settings.hideLeftOrnament then
+            leftBranch = "noOrnament"
             local nx = ((cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.x ~= nil)
                 and cfg.orbs.left.noOrnament.x or (cfg.ornaments.left.x + cfg.orbs.left.x)) + orbOffsetX
             local ny = ((cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.y ~= nil)
                 and cfg.orbs.left.noOrnament.y or (cfg.ornaments.left.y + cfg.orbs.left.y)) + orbOffsetY
             leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif leftOrnament then
+            leftBranch = "ornament"
             -- Ornament anchor already carries the orb offset; don't re-apply.
             leftOrb:SetAnchor(CENTER, leftOrnament, CENTER,
                 cfg.orbs.left.x * leftVisibleScale,
                 cfg.orbs.left.y * leftVisibleScale)
         else
+            leftBranch = "bgMiddleFallback"
             -- Fallback: ornament expected but not found; anchor to bgMiddle
             leftOrb:SetAnchor(CENTER, bgMiddle, CENTER,
                 cfg.ornaments.left.x + cfg.orbs.left.x + orbOffsetX,
@@ -469,20 +488,24 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     end
 
     local rightOrb = FindControl(rootFrame, 'OrbResource')
+    local rightBranch = "missingOrb"
     if rightOrb then
         rightOrb:ClearAnchors()
         if settings.hideRightOrnament then
+            rightBranch = "noOrnament"
             local nx = ((cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.x ~= nil)
                 and cfg.orbs.right.noOrnament.x or (cfg.ornaments.right.x + cfg.orbs.right.x)) + orbOffsetX
             local ny = ((cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.y ~= nil)
                 and cfg.orbs.right.noOrnament.y or (cfg.ornaments.right.y + cfg.orbs.right.y)) + orbOffsetY
             rightOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif rightOrnament then
+            rightBranch = "ornament"
             -- Ornament anchor already carries the orb offset; don't re-apply.
             rightOrb:SetAnchor(CENTER, rightOrnament, CENTER,
                 cfg.orbs.right.x * rightVisibleScale,
                 cfg.orbs.right.y * rightVisibleScale)
         else
+            rightBranch = "bgMiddleFallback"
             rightOrb:SetAnchor(CENTER, bgMiddle, CENTER,
                 cfg.ornaments.right.x + cfg.orbs.right.x + orbOffsetX,
                 cfg.ornaments.right.y + cfg.orbs.right.y + orbOffsetY)
@@ -607,6 +630,18 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         shieldBar.fillOffsetX = fillParams.shield.x
         shieldBar.fillOffsetY = fillParams.shield.y
     end
+    TraceOrbVisuals("resource_orbs.orb_layout", "applied", {
+        fn = "Visuals.UpdateOrbLayout",
+        leftBranch = leftBranch,
+        rightBranch = rightBranch,
+        leftBorderSize = leftBorderSize,
+        rightBorderSize = rightBorderSize,
+        orbOffsetX = orbOffsetX,
+        orbOffsetY = orbOffsetY,
+        hideLeftOrnament = settings.hideLeftOrnament == true,
+        hideRightOrnament = settings.hideRightOrnament == true,
+        hasShield = shieldBar ~= nil,
+    })
 end
 
 -- Setup Functions

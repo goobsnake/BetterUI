@@ -30,21 +30,91 @@ local function CanStowToCraftBagWithPolicy(bagId, slotIndex)
     return canStowToCraftBag(bagId, slotIndex)
 end
 
+local function TraceGenericSlotAction(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log or nil
+    if not (L and type(L.TraceEvent) == "function") then return end
+    data = data or {}
+    data.module = data.module or "CIM"
+    data.feature = data.feature or "generic-slot-actions"
+    data.fn = data.fn or "CIM.GenericSlotActions"
+    if data.target == nil and L.DescribeItem and data.bagId and data.slotIndex then
+        local ok, description = pcall(L.DescribeItem, { bagId = data.bagId, slotIndex = data.slotIndex }, "slot")
+        if ok then
+            data.target = description
+        end
+    end
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION or categories.GENERAL, event, phase, data)
+end
+
 --- Securely picks up a stack and places it in the target bag/slot.
 --- Checks both protected calls; drops a held item if placement fails.
 ---@return boolean ok
 ---@return string|nil reason denial reason on failure
-local function SecurePickupAndPlace(bag, index, stackSize, targetBag, destinationSlot)
+local function SecurePickupAndPlace(bag, index, stackSize, targetBag, destinationSlot, traceData)
+    traceData = traceData or {}
+    TraceGenericSlotAction("cim.slot_action.secure_move", "pickup_before", {
+        fn = "SecurePickupAndPlace",
+        bagId = bag,
+        slotIndex = index,
+        targetBagId = targetBag,
+        targetSlotIndex = destinationSlot,
+        quantity = stackSize,
+        action = traceData.action,
+    })
     if not CallSecureProtected("PickupInventoryItem", bag, index, stackSize) then
+        TraceGenericSlotAction("cim.slot_action.secure_move", "pickup_failed", {
+            fn = "SecurePickupAndPlace",
+            bagId = bag,
+            slotIndex = index,
+            targetBagId = targetBag,
+            targetSlotIndex = destinationSlot,
+            quantity = stackSize,
+            action = traceData.action,
+            reason = "pickup_failed",
+        })
         return false, "pickup_failed"
     end
+    TraceGenericSlotAction("cim.slot_action.secure_move", "place_before", {
+        fn = "SecurePickupAndPlace",
+        bagId = bag,
+        slotIndex = index,
+        targetBagId = targetBag,
+        targetSlotIndex = destinationSlot,
+        quantity = stackSize,
+        action = traceData.action,
+    })
     if not CallSecureProtected("PlaceInInventory", targetBag, destinationSlot) then
         -- Don't leave the picked-up item stuck on the cursor
         if ClearCursor then
             ClearCursor()
         end
+        TraceGenericSlotAction("cim.slot_action.secure_move", "place_failed", {
+            fn = "SecurePickupAndPlace",
+            bagId = bag,
+            slotIndex = index,
+            targetBagId = targetBag,
+            targetSlotIndex = destinationSlot,
+            quantity = stackSize,
+            action = traceData.action,
+            reason = "place_failed",
+            cursorCleared = ClearCursor ~= nil,
+        })
         return false, "place_failed"
     end
+    TraceGenericSlotAction("cim.slot_action.secure_move", "place_after", {
+        fn = "SecurePickupAndPlace",
+        bagId = bag,
+        slotIndex = index,
+        targetBagId = targetBag,
+        targetSlotIndex = destinationSlot,
+        quantity = stackSize,
+        action = traceData.action,
+        result = true,
+    })
     return true
 end
 
@@ -57,32 +127,97 @@ end
 --- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryUseItem(inventorySlot)
     if not inventorySlot then
+        TraceGenericSlotAction("cim.slot_action.use", "blocked", { fn = "TryUseItem", reason = "no_slot" })
         return false, "no_slot"
     end
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     if slotType == SLOT_TYPE_QUEST_ITEM then
+        local ds = inventorySlot.dataSource or inventorySlot
+        TraceGenericSlotAction("cim.slot_action.use", "before", {
+            fn = "TryUseItem",
+            slotType = slotType,
+            questIndex = ds and ds.questIndex,
+            stepIndex = ds and ds.stepIndex,
+            conditionIndex = ds and ds.conditionIndex,
+            toolIndex = ds and ds.toolIndex,
+            questItem = true,
+        })
         -- UseQuestTool and UseQuestItem are NOT protected functions - call them directly
         -- (this matches how the base game's TryUseQuestItem works in inventoryslot.lua:420)
         -- Do NOT hide the scene manually — ESO's engine handles the scene transition
         -- (e.g., opening book reader, world map) and keeps inventory on the scene stack
         -- so WasSceneOnStack returns true on re-entry, preserving category/position
-        if inventorySlot.toolIndex then
-            UseQuestTool(inventorySlot.questIndex, inventorySlot.toolIndex)
+        if ds and ds.toolIndex then
+            UseQuestTool(ds.questIndex, ds.toolIndex)
+            TraceGenericSlotAction("cim.slot_action.use", "after", {
+                fn = "TryUseItem",
+                slotType = slotType,
+                questIndex = ds.questIndex,
+                toolIndex = ds.toolIndex,
+                questItem = true,
+                result = true,
+            })
             return true
-        elseif inventorySlot.conditionIndex then
-            UseQuestItem(inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+        elseif ds and ds.conditionIndex then
+            UseQuestItem(ds.questIndex, ds.stepIndex, ds.conditionIndex)
+            TraceGenericSlotAction("cim.slot_action.use", "after", {
+                fn = "TryUseItem",
+                slotType = slotType,
+                questIndex = ds.questIndex,
+                stepIndex = ds.stepIndex,
+                conditionIndex = ds.conditionIndex,
+                questItem = true,
+                result = true,
+            })
             return true
         end
+        TraceGenericSlotAction("cim.slot_action.use", "blocked", {
+            fn = "TryUseItem",
+            slotType = slotType,
+            questItem = true,
+            reason = "no_quest_action",
+        })
         return false, "no_quest_action"
     else
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
         local usable, onlyFromActionSlot = IsItemUsable(bag, index)
+        TraceGenericSlotAction("cim.slot_action.use", "before", {
+            fn = "TryUseItem",
+            bagId = bag,
+            slotIndex = index,
+            slotType = slotType,
+            usable = usable == true,
+            onlyFromActionSlot = onlyFromActionSlot == true,
+        })
         if usable and not onlyFromActionSlot then
             if not CallSecureProtected("UseItem", bag, index) then
+                TraceGenericSlotAction("cim.slot_action.use", "blocked", {
+                    fn = "TryUseItem",
+                    bagId = bag,
+                    slotIndex = index,
+                    slotType = slotType,
+                    reason = "use_failed",
+                })
                 return false, "use_failed"
             end
+            TraceGenericSlotAction("cim.slot_action.use", "after", {
+                fn = "TryUseItem",
+                bagId = bag,
+                slotIndex = index,
+                slotType = slotType,
+                result = true,
+            })
             return true
         end
+        TraceGenericSlotAction("cim.slot_action.use", "blocked", {
+            fn = "TryUseItem",
+            bagId = bag,
+            slotIndex = index,
+            slotType = slotType,
+            usable = usable == true,
+            onlyFromActionSlot = onlyFromActionSlot == true,
+            reason = "not_usable",
+        })
         return false, "not_usable"
     end
 end
@@ -106,16 +241,39 @@ end
 --- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
     if not inventorySlot then
+        TraceGenericSlotAction("cim.slot_action.craft_bag_transfer", "blocked", {
+            fn = "TryMoveToCraftBag",
+            targetBagId = targetBag,
+            quantity = quantity,
+            reason = "no_slot",
+        })
         return false, "no_slot"
     end
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    if not bag then return false, "no_slot" end
+    if not bag then
+        TraceGenericSlotAction("cim.slot_action.craft_bag_transfer", "blocked", {
+            fn = "TryMoveToCraftBag",
+            targetBagId = targetBag,
+            quantity = quantity,
+            reason = "no_slot",
+        })
+        return false, "no_slot"
+    end
 
     -- Maximum items that can be transferred in a single operation (ESO game limit)
     local MAX_STACK_TRANSFER = 200
 
     local stackSize, maxStackSize = GetSlotStackSize(bag, index)
     if not stackSize or stackSize <= 0 then
+        TraceGenericSlotAction("cim.slot_action.craft_bag_transfer", "blocked", {
+            fn = "TryMoveToCraftBag",
+            bagId = bag,
+            slotIndex = index,
+            targetBagId = targetBag,
+            quantity = quantity,
+            stackSize = stackSize,
+            reason = ResolvePolicyDeny("NO_ITEM"),
+        })
         return false, ResolvePolicyDeny("NO_ITEM")
     end
     if maxStackSize and stackSize >= maxStackSize then
@@ -133,12 +291,32 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
         stackSize = MAX_STACK_TRANSFER
     end
 
+    TraceGenericSlotAction("cim.slot_action.craft_bag_transfer", "before", {
+        fn = "TryMoveToCraftBag",
+        bagId = bag,
+        slotIndex = index,
+        targetBagId = targetBag,
+        quantity = quantity,
+        stackSize = stackSize,
+        maxStackSize = maxStackSize,
+        cappedAt = MAX_STACK_TRANSFER,
+    })
+
     if targetBag == BAG_VIRTUAL then
         local canStow, denyReason = CanStowToCraftBagWithPolicy(bag, index)
         if not canStow then
             if BETTERUI.Log then
-                BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.ACTION, "craftbag move denied", { reason = denyReason })
+                    BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.ACTION, "craftbag move denied", { reason = denyReason })
             end
+            TraceGenericSlotAction("cim.slot_action.craft_bag_transfer", "blocked", {
+                fn = "TryMoveToCraftBag",
+                bagId = bag,
+                slotIndex = index,
+                targetBagId = targetBag,
+                quantity = quantity,
+                stackSize = stackSize,
+                reason = denyReason,
+            })
             return false, denyReason
         end
     end
@@ -148,15 +326,57 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag, quantity)
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bag, index, targetBag)
             if destinationSlot == nil then
                 BETTERUI.CIM.UserNotify("TryMoveToCraftBag:NoSlot", SI_INVENTORY_ERROR_INVENTORY_FULL)
+                TraceGenericSlotAction("cim.slot_action.craft_bag_transfer", "blocked", {
+                    fn = "TryMoveToCraftBag",
+                    bagId = bag,
+                    slotIndex = index,
+                    targetBagId = targetBag,
+                    quantity = quantity,
+                    stackSize = stackSize,
+                    reason = "inventory_full",
+                })
                 return false, "inventory_full"
             end
-            return SecurePickupAndPlace(bag, index, stackSize, targetBag, destinationSlot)
+            local ok, reason = SecurePickupAndPlace(bag, index, stackSize, targetBag, destinationSlot, { action = "craft_bag_transfer" })
+            TraceGenericSlotAction("cim.slot_action.craft_bag_transfer", ok and "after" or "blocked", {
+                fn = "TryMoveToCraftBag",
+                bagId = bag,
+                slotIndex = index,
+                targetBagId = targetBag,
+                targetSlotIndex = destinationSlot,
+                quantity = quantity,
+                stackSize = stackSize,
+                result = ok == true,
+                reason = reason,
+            })
+            return ok, reason
         else
             BETTERUI.CIM.UserNotify("TryMoveToCraftBag:Full", SI_INVENTORY_ERROR_INVENTORY_FULL)
+            TraceGenericSlotAction("cim.slot_action.craft_bag_transfer", "blocked", {
+                fn = "TryMoveToCraftBag",
+                bagId = bag,
+                slotIndex = index,
+                targetBagId = targetBag,
+                quantity = quantity,
+                stackSize = stackSize,
+                reason = "inventory_full",
+            })
             return false, "inventory_full"
         end
     else
-        return SecurePickupAndPlace(bag, index, stackSize, targetBag, 0)
+        local ok, reason = SecurePickupAndPlace(bag, index, stackSize, targetBag, 0, { action = "craft_bag_transfer" })
+        TraceGenericSlotAction("cim.slot_action.craft_bag_transfer", ok and "after" or "blocked", {
+            fn = "TryMoveToCraftBag",
+            bagId = bag,
+            slotIndex = index,
+            targetBagId = targetBag,
+            targetSlotIndex = 0,
+            quantity = quantity,
+            stackSize = stackSize,
+            result = ok == true,
+            reason = reason,
+        })
+        return ok, reason
     end
 end
 

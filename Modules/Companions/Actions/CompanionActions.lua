@@ -127,28 +127,49 @@ local function ResolveCompanionActionTarget(selectedData)
     return ds, bagId, slotIndex, slotType
 end
 
-function Companions.CanExecuteAction(actionId, selectedData)
+local function ResolveActionEligibility(actionId, selectedData)
     local ds, bagId, slotIndex, slotType = ResolveCompanionActionTarget(selectedData)
-    if actionId == "equip" then
-        return ds ~= nil and bagId ~= nil and slotIndex ~= nil and not ds.isEquipped
-    elseif actionId == "unequip" then
-        return ds ~= nil and slotIndex ~= nil and ds.isEquipped == true
-    elseif actionId == "preview" then
-        return Companions.CanPreviewCompanionItem(bagId, slotIndex)
-    elseif actionId == "destroy" then
-        return CanDestroyItem(bagId, slotIndex, slotType)
-    elseif actionId == "lock" then
-        return CanLockItem(bagId, slotIndex)
-    elseif actionId == "unlock" then
-        return CanUnlockItem(bagId, slotIndex)
-    elseif actionId == "junk" then
-        return CanJunkItem(bagId, slotIndex)
-    elseif actionId == "unjunk" then
-        return CanUnjunkItem(bagId, slotIndex)
-    elseif actionId == "split" then
-        return ds ~= nil and (ds.stackCount or 1) > 1
+    if not ds then
+        return false, "missingTarget"
     end
-    return false
+    if actionId ~= "unequip" and (bagId == nil or slotIndex == nil) then
+        return false, "missingSlot"
+    end
+    if actionId == "equip" then
+        if ds.isEquipped then return false, "alreadyEquipped" end
+        return true
+    elseif actionId == "unequip" then
+        if slotIndex == nil then return false, "missingSlot" end
+        return ds.isEquipped == true, ds.isEquipped == true and nil or "notEquipped"
+    elseif actionId == "preview" then
+        local canPreview = Companions.CanPreviewCompanionItem(bagId, slotIndex)
+        return canPreview, canPreview and nil or "notPreviewable"
+    elseif actionId == "destroy" then
+        local canDestroy = CanDestroyItem(bagId, slotIndex, slotType)
+        return canDestroy, canDestroy and nil or "policyBlocked"
+    elseif actionId == "lock" then
+        local canLock = CanLockItem(bagId, slotIndex)
+        return canLock, canLock and nil or "cannotLock"
+    elseif actionId == "unlock" then
+        local canUnlock = CanUnlockItem(bagId, slotIndex)
+        return canUnlock, canUnlock and nil or "cannotUnlock"
+    elseif actionId == "junk" then
+        local canJunk = CanJunkItem(bagId, slotIndex)
+        return canJunk, canJunk and nil or "cannotJunk"
+    elseif actionId == "unjunk" then
+        local canUnjunk = CanUnjunkItem(bagId, slotIndex)
+        return canUnjunk, canUnjunk and nil or "cannotUnjunk"
+    elseif actionId == "split" then
+        local canSplit = (ds.stackCount or 1) > 1
+        return canSplit, canSplit and nil or "singleItem"
+    end
+    return false, "unknownAction"
+end
+
+Companions.GetActionEligibility = ResolveActionEligibility
+
+function Companions.CanExecuteAction(actionId, selectedData)
+    return ResolveActionEligibility(actionId, selectedData)
 end
 
 local TWO_HANDED_WEAPON_TYPES = {
@@ -424,17 +445,17 @@ end
 --- single batch-level confirmation has already been shown.
 ---@param expectedIdentity {uniqueId: id64|nil, itemLink: string|nil}|nil when provided, skip the destroy if the slot no longer matches
 ---@return boolean destroyed
-function Companions.QuickDestroyCompanionItem(bagId, slotIndex, slotType, expectedIdentity)
+function Companions.QuickDestroyCompanionItem(bagId, slotIndex, slotType, expectedIdentity, batchId)
     if not MatchesCapturedItemIdentity(bagId, slotIndex, expectedIdentity) then
-        TraceCompanionAction("companions.quick_destroy", "skipped", { fn = "QuickDestroyCompanionItem", reason = "identityMismatch", bagId = bagId, slotIndex = slotIndex, slotType = slotType })
+        TraceCompanionAction("companions.quick_destroy", "skipped", { fn = "QuickDestroyCompanionItem", reason = "identityMismatch", bagId = bagId, slotIndex = slotIndex, slotType = slotType, batchId = batchId })
         return false
     end
     if not CanDestroyItem(bagId, slotIndex, slotType) then
-        TraceCompanionAction("companions.quick_destroy", "rejected", { fn = "QuickDestroyCompanionItem", reason = "policyBlocked", bagId = bagId, slotIndex = slotIndex, slotType = slotType })
+        TraceCompanionAction("companions.quick_destroy", "rejected", { fn = "QuickDestroyCompanionItem", reason = "policyBlocked", bagId = bagId, slotIndex = slotIndex, slotType = slotType, batchId = batchId })
         return false
     end
     local destroyed = RequireInventoryDestroyExecutor()(bagId, slotIndex, true, false, slotType) == true
-    TraceCompanionAction("companions.quick_destroy", "result", { fn = "QuickDestroyCompanionItem", bagId = bagId, slotIndex = slotIndex, slotType = slotType, destroyed = destroyed })
+    TraceCompanionAction("companions.quick_destroy", "result", { fn = "QuickDestroyCompanionItem", bagId = bagId, slotIndex = slotIndex, slotType = slotType, destroyed = destroyed, batchId = batchId })
     return destroyed
 end
 
@@ -463,46 +484,76 @@ function Companions.BuildActionList(selectedData)
         return actions
     end
 
+    local eligibility = {}
+
     -- Equip / Unequip
     if ds.isEquipped then
+        local canUnequip, unequipReason = Companions.CanExecuteAction("unequip", ds)
+        eligibility.unequip = { allowed = canUnequip == true, reason = unequipReason }
+        eligibility.equip = { allowed = false, reason = "alreadyEquipped" }
         table.insert(actions, { id = "unequip", name = GetString(SI_ITEM_ACTION_UNEQUIP) })
     else
+        local canEquip, equipReason = Companions.CanExecuteAction("equip", ds)
+        eligibility.equip = { allowed = canEquip == true, reason = equipReason }
+        eligibility.unequip = { allowed = false, reason = "notEquipped" }
         table.insert(actions, { id = "equip", name = GetString(SI_ITEM_ACTION_EQUIP) })
     end
 
     -- Preview
-    if Companions.CanExecuteAction("preview", ds) then
+    local canPreview, previewReason = Companions.CanExecuteAction("preview", ds)
+    eligibility.preview = { allowed = canPreview == true, reason = previewReason }
+    if canPreview then
         local previewStringId = rawget(_G, "SI_ITEM_ACTION_PREVIEW")
         local previewName = previewStringId and GetString(previewStringId) or "Preview"
         table.insert(actions, { id = "preview", name = previewName })
     end
 
     -- Destroy
-    if Companions.CanExecuteAction("destroy", ds) then
+    local canDestroy, destroyReason = Companions.CanExecuteAction("destroy", ds)
+    eligibility.destroy = { allowed = canDestroy == true, reason = destroyReason }
+    if canDestroy then
         table.insert(actions, { id = "destroy", name = GetString(SI_ITEM_ACTION_DESTROY) })
     end
 
     -- Lock / Unlock
     if IsItemPlayerLocked then
-        if Companions.IsCompanionItemLocked(bagId, slotIndex) and Companions.CanExecuteAction("unlock", ds) then
+        local locked = Companions.IsCompanionItemLocked(bagId, slotIndex)
+        local canUnlock, unlockReason = Companions.CanExecuteAction("unlock", ds)
+        local canLock, lockReason = Companions.CanExecuteAction("lock", ds)
+        eligibility.unlock = { allowed = canUnlock == true, reason = unlockReason }
+        eligibility.lock = { allowed = canLock == true, reason = lockReason }
+        if locked and canUnlock then
             table.insert(actions, { id = "unlock", name = GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED) })
-        elseif Companions.CanExecuteAction("lock", ds) then
+        elseif canLock then
             table.insert(actions, { id = "lock", name = GetString(SI_ITEM_ACTION_MARK_AS_LOCKED) })
         end
+    else
+        eligibility.lock = { allowed = false, reason = "missingLockApi" }
+        eligibility.unlock = { allowed = false, reason = "missingLockApi" }
     end
 
     -- Junk / Unjunk
     if IsItemJunk then
-        if Companions.IsCompanionItemJunk(bagId, slotIndex) and Companions.CanExecuteAction("unjunk", ds) then
+        local junk = Companions.IsCompanionItemJunk(bagId, slotIndex)
+        local canUnjunk, unjunkReason = Companions.CanExecuteAction("unjunk", ds)
+        local canJunk, junkReason = Companions.CanExecuteAction("junk", ds)
+        eligibility.unjunk = { allowed = canUnjunk == true, reason = unjunkReason }
+        eligibility.junk = { allowed = canJunk == true, reason = junkReason }
+        if junk and canUnjunk then
             table.insert(actions, { id = "unjunk", name = GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK) })
-        elseif Companions.CanExecuteAction("junk", ds) then
+        elseif canJunk then
             table.insert(actions, { id = "junk", name = GetString(SI_ITEM_ACTION_MARK_AS_JUNK) })
         end
+    else
+        eligibility.junk = { allowed = false, reason = "missingJunkApi" }
+        eligibility.unjunk = { allowed = false, reason = "missingJunkApi" }
     end
 
     -- Split Stack
     local stackCount = ds.stackCount or 1
-    if stackCount > 1 then
+    local canSplit, splitReason = Companions.CanExecuteAction("split", ds)
+    eligibility.split = { allowed = canSplit == true, reason = splitReason }
+    if canSplit then
         table.insert(actions, { id = "split", name = GetString(SI_ITEM_ACTION_SPLIT_STACK) })
     end
 
@@ -510,7 +561,7 @@ function Companions.BuildActionList(selectedData)
     for i = 1, #actions do
         actionIds[i] = actions[i].id
     end
-    TraceCompanionAction("companions.action_menu", "built", { fn = "BuildActionList", bagId = bagId, slotIndex = slotIndex, equipped = ds.isEquipped == true, stackCount = stackCount, actionCount = #actions, actionIds = table.concat(actionIds, ",") })
+    TraceCompanionAction("companions.action_menu", "built", { fn = "BuildActionList", bagId = bagId, slotIndex = slotIndex, equipped = ds.isEquipped == true, stackCount = stackCount, actionCount = #actions, actionIds = table.concat(actionIds, ","), eligibility = eligibility })
     return actions
 end
 
@@ -521,8 +572,9 @@ function Companions.ExecuteAction(actionId, selectedData)
         return false
     end
     local ds, bagId, slotIndex, slotType = ResolveCompanionActionTarget(selectedData)
-    if not Companions.CanExecuteAction(actionId, ds) then
-        TraceCompanionAction("companions.action", "rejected", { fn = "ExecuteAction", reason = "cannotExecute", actionId = actionId, bagId = bagId, slotIndex = slotIndex, slotType = slotType })
+    local canExecute, denyReason = Companions.CanExecuteAction(actionId, ds)
+    if not canExecute then
+        TraceCompanionAction("companions.action", "rejected", { fn = "ExecuteAction", reason = denyReason or "cannotExecute", actionId = actionId, bagId = bagId, slotIndex = slotIndex, slotType = slotType })
         return false
     end
 
@@ -553,7 +605,7 @@ function Companions.ExecuteAction(actionId, selectedData)
         result = Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     elseif actionId == "split" then
         local didShowDialog = Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
-        result = true
+        result = didShowDialog == true
         resultDetails = { didShowDialog = didShowDialog == true }
     end
     local traceData = { fn = "ExecuteAction", actionId = actionId, bagId = bagId, slotIndex = slotIndex, slotType = slotType, result = result == true }

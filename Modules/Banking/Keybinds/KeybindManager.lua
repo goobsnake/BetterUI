@@ -203,7 +203,9 @@ local function CanUsePrimaryTransfer(self)
     end
 
     local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
-    if bagId and slotIndex and BETTERUI.Banking.IsTransferPending(bagId, slotIndex) then
+    if bagId and slotIndex
+        and type(BETTERUI.Banking.IsTransferPending) == "function"
+        and BETTERUI.Banking.IsTransferPending(bagId, slotIndex) then
         local pendingKey = tostring(bagId) .. ":" .. tostring(slotIndex)
         if self._betteruiLastPrimaryTransferPendingBlock ~= pendingKey then
             self._betteruiLastPrimaryTransferPendingBlock = pendingKey
@@ -336,23 +338,37 @@ local function CreateCoreNavigationKeybinds(self)
                 return cost ~= nil and GetCarriedCurrencyAmount(CURT_MONEY) >= cost
             end,
             callback = function()
+                local _, isGuildBankMode, isMainBankContext = ResolveKeybindTransferContext(self)
+                TraceBankKeybind("bank.upgrade", "requested", {
+                    batch = self:IsBatchProcessing() == true,
+                    guildBank = isGuildBankMode == true,
+                    mainBank = isMainBankContext == true,
+                })
                 if self:IsBatchProcessing() then
+                    TraceBankKeybind("bank.upgrade", "skipped", { reason = "batchProcessing" })
                     return
                 end
 
-                local _, isGuildBankMode, isMainBankContext = ResolveKeybindTransferContext(self)
                 if isGuildBankMode then
+                    TraceBankKeybind("bank.guild_selector", "dialog_show", { reason = "guildBankMode" })
                     ZO_Dialogs_ShowGamepadDialog("BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD")
                     return
                 end
                 if not isMainBankContext then
+                    TraceBankKeybind("bank.upgrade", "skipped", { reason = "notMainBankContext" })
                     return
                 end
                 local cost = GetNextBankUpgradePrice()
                 if not cost or cost <= 0 then
+                    TraceBankKeybind("bank.upgrade", "skipped", { reason = "missingCost", cost = cost })
                     return
                 end
                 if cost > GetCarriedCurrencyAmount(CURT_MONEY) then
+                    TraceBankKeybind("bank.upgrade", "blocked", {
+                        reason = "cannotAfford",
+                        cost = cost,
+                        carriedGold = GetCarriedCurrencyAmount(CURT_MONEY),
+                    })
                     BETTERUI.CIM.UserAlertText("Banking.Keybinds", GetString(rawget(_G, "SI_BUY_BANK_SPACE_CANNOT_AFFORD")))
                 else
                     -- Banking never assigns mainKeybindStripDescriptor (its groups are
@@ -535,6 +551,17 @@ local function CreateTransferKeybinds(self)
                     return
                 end
 
+                local canTransfer, denialText = CanUsePrimaryTransfer(self)
+                if canTransfer ~= true then
+                    TraceBankKeybind("bank.primary_transfer", "blocked", {
+                        reason = "callbackRecheckFailed",
+                        denialText = denialText,
+                        mode = self.currentMode,
+                        selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
+                    })
+                    return
+                end
+
                 self:SaveListPosition()
                 local selectedData = GetSelectedBankEntry(self)
                 if selectedData then
@@ -586,6 +613,11 @@ local function CreateCurrencySelectorKeybinds(self)
             callback = function()
                 local amount = self.selector:GetValue()
                 if not amount or amount <= 0 then
+                    TraceBankCurrencyAction("blocked", {
+                        reason = "invalidAmount",
+                        amount = amount,
+                        mode = self.currentMode,
+                    })
                     LogBankKeybindState("bank currency transfer skipped", {
                         reason = "amount",
                         amount = amount,
@@ -602,6 +634,11 @@ local function CreateCurrencySelectorKeybinds(self)
                     currencyType = selectedData and selectedData.currencyType or nil
                 end
                 if currencyType == nil then
+                    TraceBankCurrencyAction("blocked", {
+                        reason = "missingCurrencyType",
+                        amount = amount,
+                        mode = self.currentMode,
+                    })
                     LogBankKeybindState("bank currency transfer skipped", {
                         reason = "currency",
                         amount = amount,
@@ -808,8 +845,18 @@ local function CreateCurrencyRowKeybinds(self)
             callback = function()
                 self:SaveListPosition()
                 local currencySelector = GetCurrencySelector()
-                if currencySelector and currencySelector.DisplaySelector then
-                    currencySelector.DisplaySelector(self, self:GetList().selectedData.currencyType)
+                local list = self:GetList()
+                local selectedData = list and list.selectedData or nil
+                local currencyType = selectedData and selectedData.currencyType or nil
+                TraceBankKeybind("bank.currency_selector", "requested", { currencyType = currencyType })
+                if currencySelector and currencySelector.DisplaySelector and currencyType ~= nil then
+                    currencySelector.DisplaySelector(self, currencyType)
+                    TraceBankKeybind("bank.currency_selector", "shown", { currencyType = currencyType })
+                else
+                    TraceBankKeybind("bank.currency_selector", "skipped", {
+                        reason = currencyType == nil and "missingCurrencyType" or "missingSelector",
+                        hasSelector = currencySelector ~= nil,
+                    })
                 end
             end,
             visible = function()

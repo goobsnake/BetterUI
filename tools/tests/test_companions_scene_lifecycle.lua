@@ -320,7 +320,17 @@ dofile("Modules/Companions/Module.lua")
 
 print("[Companions scene lifecycle]")
 
-BETTERUI.Companions.Init()
+local originalCompanionInteraction = INTERACTION_COMPANION_MENU
+INTERACTION_COMPANION_MENU = nil
+local missingInteractionOk, missingInteractionErr = BETTERUI.Companions.Init()
+assert_eq(missingInteractionOk, false, "missing companion interaction reports init failure")
+assert_eq(missingInteractionErr, "missingInteraction", "missing companion interaction returns a retryable reason")
+assert_eq(BETTERUI.Companions.initialized == true, false, "missing companion interaction does not mark the module initialized")
+assert_eq(BETTERUI.Companions.instance, nil, "missing companion interaction does not create a runtime instance")
+
+INTERACTION_COMPANION_MENU = originalCompanionInteraction
+local retryOk = BETTERUI.Companions.Init()
+assert_eq(retryOk, true, "companion init retries successfully after interaction appears")
 local instance = BETTERUI.Companions.instance
 local scene = instance.scene
 scene.showing = true

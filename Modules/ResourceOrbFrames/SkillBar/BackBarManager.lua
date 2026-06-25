@@ -22,6 +22,21 @@ local BACK_BAR_SLOTS = CONST.BACK_BAR_SLOTS or { 3, 4, 5, 6, 7, 8 }
 local SKILL_TEXT_SIZE_MIN = 12
 local SKILL_TEXT_SIZE_MAX = 30
 
+local function TraceBackBar(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "backBar"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION or categories.STATE, event, phase, data)
+end
+
 local function CanUseBackBar()
     return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
 end
@@ -83,11 +98,23 @@ local function UpdateBackBar(rootFrame)
     local settings = GetLiveSettings()
     if settings.hideBackBar then
         backBarContainer:SetHidden(true)
+        TraceBackBar("resource_orbs.back_bar", "updated", {
+            fn = "UpdateBackBar",
+            hidden = true,
+            reason = "settingHidden",
+            slotCount = #BACK_BAR_SLOTS,
+        })
         return
     end
 
     if not CanUseBackBar() then
         backBarContainer:SetHidden(true)
+        TraceBackBar("resource_orbs.back_bar", "updated", {
+            fn = "UpdateBackBar",
+            hidden = true,
+            reason = "weaponSwapLocked",
+            slotCount = #BACK_BAR_SLOTS,
+        })
         return
     end
 
@@ -95,6 +122,7 @@ local function UpdateBackBar(rootFrame)
     local backBarOpacity = settings.backBarOpacity or 1
 
     local slots = BACK_BAR_SLOTS
+    local visibleSlots = 0
 
     for i, slotIndex in ipairs(slots) do
         local btn = FindControl(backBarContainer, 'Button' .. i)
@@ -110,6 +138,9 @@ local function UpdateBackBar(rootFrame)
                 else
                     iconControl:SetHidden(true)
                 end
+                if icon and icon ~= '' then
+                    visibleSlots = visibleSlots + 1
+                end
             end
 
             local backdrop = btn:GetNamedChild("Backdrop")
@@ -123,6 +154,14 @@ local function UpdateBackBar(rootFrame)
     end
 
     backBarContainer:SetHidden(false)
+    TraceBackBar("resource_orbs.back_bar", "updated", {
+        fn = "UpdateBackBar",
+        hidden = false,
+        category = backBarCategory,
+        opacity = backBarOpacity,
+        slotCount = #slots,
+        visibleSlots = visibleSlots,
+    })
 end
 
 --- Updates back bar button sizes, positions, and anchor layout.
@@ -216,6 +255,14 @@ local function UpdateBackBarLayout(rootFrame)
             if backdrop then backdrop:SetHidden(true) end
         end
     end
+    TraceBackBar("resource_orbs.back_bar_layout", "applied", {
+        fn = "UpdateBackBarLayout",
+        buttonSize = buttonSize,
+        spacing = spacing,
+        ultimateSize = ultimateSize,
+        totalWidth = totalWidth,
+        gamepad = isGamePad,
+    })
 end
 
 --- Sets up tooltip handlers for back bar buttons.

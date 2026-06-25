@@ -55,6 +55,9 @@ local function TraceCompanionRuntime(event, phase, data, category)
     payload.sceneShowing = Companions.instance and Companions.instance.IsSceneShowing and Companions.instance:IsSceneShowing() or false
     payload.activeCompanion = HasActiveCompanion and HasActiveCompanion() or nil
     payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
     local categories = L.CATEGORY or {}
     L.TraceEvent(category or categories.STATE or categories.GENERAL, event, phase, payload)
 end
@@ -480,6 +483,12 @@ local function OnInventoryUpdated(eventCode, bagId, slotIndex)
         return
     end
 
+    TraceCompanionRuntime("companions.inventory_update", "coalesced", {
+        eventCode = eventCode,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        task = "listRefresh",
+    })
     Companions.Tasks:Cancel("listRefresh")
     TraceCompanionRuntime("companions.inventory_update", "scheduled", {
         eventCode = eventCode,

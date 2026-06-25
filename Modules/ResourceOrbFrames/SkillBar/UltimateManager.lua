@@ -21,6 +21,21 @@ local CELLS_WIDE = 8
 local CELLS_HIGH = 4
 local TOTAL_FRAMES = 32
 
+local function TraceUltimate(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = "ultimate"
+    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+    if L.SetLastAction then
+        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.ACTION or categories.STATE, event, phase, data)
+end
+
 --- Maps a frame index onto the sprite sheet texture coordinates.
 --- Hoisted to file scope so the 100ms meter tick does not allocate a closure
 --- per call.
@@ -101,6 +116,12 @@ local function PlayUltimateReadyAnimations(btn)
         if glowAnim then
             glowAnim:PingPong(0, 1, 500 * (1 / 3), 1) -- Bounce duration approx 167ms
         end
+        TraceUltimate("resource_orbs.ultimate_meter", "ready_animation_started", {
+            fn = "PlayUltimateReadyAnimations",
+            hasBurst = readyBurst ~= nil,
+            hasLoop = readyLoop ~= nil,
+            hasGlow = glowAnim ~= nil,
+        })
     end
 end
 
@@ -156,17 +177,42 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
                 end
 
                 -- Handle Ultimate Ready Animation
+                local readyState = currentUltimate >= abilityCost
                 if currentUltimate >= abilityCost then
                     if not ultBtn.isUltimateReady then
                         ultBtn.isUltimateReady = true
                         PlayUltimateReadyAnimations(ultBtn)
                         PlaySound(SOUNDS.ABILITY_ULTIMATE_READY)
+                        TraceUltimate("resource_orbs.ultimate_meter", "ready", {
+                            fn = "UpdateFrontBarUltimateMeter",
+                            currentUltimate = currentUltimate,
+                            abilityCost = abilityCost,
+                            frameIndex = frameIndex,
+                            sound = "ABILITY_ULTIMATE_READY",
+                        })
                     end
                 else
                     if ultBtn.isUltimateReady then
                         ultBtn.isUltimateReady = false
                         StopUltimateReadyAnimations(ultBtn)
                     end
+                end
+                local traceKey = table.concat({
+                    tostring(currentUltimate),
+                    tostring(abilityCost),
+                    tostring(frameIndex),
+                    tostring(readyState),
+                }, ":")
+                if ultBtn._betteruiUltimateMeterTraceKey ~= traceKey then
+                    ultBtn._betteruiUltimateMeterTraceKey = traceKey
+                    TraceUltimate("resource_orbs.ultimate_meter", readyState and "updated_ready" or "updated", {
+                        fn = "UpdateFrontBarUltimateMeter",
+                        currentUltimate = currentUltimate,
+                        abilityCost = abilityCost,
+                        frameIndex = frameIndex,
+                        fillPercent = fillPercent,
+                        ready = readyState,
+                    })
                 end
             else
                 if ultBtn.appliedFillHidden ~= true then
@@ -180,6 +226,15 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
                 end
                 ultBtn.appliedUltimateCost = nil
                 ultBtn.appliedFrameIndex = nil
+                if ultBtn._betteruiUltimateMeterTraceKey ~= "hidden:noCost" then
+                    ultBtn._betteruiUltimateMeterTraceKey = "hidden:noCost"
+                    TraceUltimate("resource_orbs.ultimate_meter", "not_ready", {
+                        fn = "UpdateFrontBarUltimateMeter",
+                        reason = "missingAbilityCost",
+                        currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE) or 0,
+                        abilityCost = abilityCost,
+                    })
+                end
             end
         end
     end
@@ -226,6 +281,12 @@ local function UpdateFrontBarUltimateNumber(rootFrame)
                 if countText.appliedText ~= ultimateStr then
                     countText.appliedText = ultimateStr
                     countText:SetText(ultimateStr)
+                    TraceUltimate("resource_orbs.ultimate_number", "updated", {
+                        fn = "UpdateFrontBarUltimateNumber",
+                        currentUltimate = currentUltimate,
+                        text = ultimateStr,
+                        visible = true,
+                    })
                 end
                 if countText.appliedHidden ~= false then
                     countText.appliedHidden = false
@@ -236,6 +297,10 @@ local function UpdateFrontBarUltimateNumber(rootFrame)
                 if countText.appliedHidden ~= true then
                     countText.appliedHidden = true
                     countText:SetHidden(true)
+                    TraceUltimate("resource_orbs.ultimate_number", "hidden", {
+                        fn = "UpdateFrontBarUltimateNumber",
+                        reason = "settingDisabled",
+                    })
                 end
             end
         end

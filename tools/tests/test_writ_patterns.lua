@@ -26,6 +26,8 @@ local questJournal = {}
 local safeExecuteContexts = {}
 local safeExecuteFailureContext = nil
 local registeredEvents = {}
+local delayedCalls = {}
+local fireCraftEnterDuringSetup = false
 
 local passed, failed = 0, 0
 
@@ -131,12 +133,15 @@ BETTERUI = {
             end
             return fn(...)
         end,
-        EventRegistry = {
-            Register = function(_, namespace, eventCode, callback)
-                EVENT_MANAGER:RegisterForEvent(namespace, eventCode, callback)
-                return true
-            end,
-        },
+    EventRegistry = {
+        Register = function(_, namespace, eventCode, callback)
+            EVENT_MANAGER:RegisterForEvent(namespace, eventCode, callback)
+            if fireCraftEnterDuringSetup and eventCode == EVENT_CRAFTING_STATION_INTERACT then
+                callback(nil, tostring(CRAFTING_TYPE_BLACKSMITHING))
+            end
+            return true
+        end,
+    },
     },
     WindowManager = {
         CreateTopLevelWindow = function(_, name)
@@ -162,6 +167,14 @@ function EVENT_MANAGER:RegisterForEvent(name, eventCode, callback)
     registeredEvents[name .. ":" .. tostring(eventCode)] = callback
 end
 
+function zo_callLater(callback, delayMs)
+    delayedCalls[#delayedCalls + 1] = {
+        callback = callback,
+        delayMs = delayMs,
+    }
+    return #delayedCalls
+end
+
 local function getEventCallback(eventCode)
     return registeredEvents["BetterUI_Writs:" .. tostring(eventCode)]
 end
@@ -172,6 +185,7 @@ local function resetUiState()
     writPanelHidden = nil
     safeExecuteContexts = {}
     safeExecuteFailureContext = nil
+    delayedCalls = {}
 end
 
 local function hasSafeExecuteContext(expectedContext)
@@ -281,6 +295,15 @@ assert_eq(writPanelHidden, false, "show reveals the writ panel")
 BETTERUI.Writs.HidePanel()
 assert_eq(writPanelHidden, true, "hide conceals the writ panel")
 
+questJournal = {}
+writPanelHidden = false
+local noWritOk, noWritErr = BETTERUI.Writs.ShowForCraftType(CRAFTING_TYPE_BLACKSMITHING, {
+    source = "quest_journal_event",
+})
+assert_eq(noWritOk, false, "show-for-craft returns false when the active writ is removed")
+assert_eq(noWritErr, "no_active_writ", "show-for-craft reports no active writ after quest removal")
+assert_eq(writPanelHidden, true, "show-for-craft hides stale panel when the active writ disappears")
+
 print("[Locale fallback pattern matching]")
 
 do
@@ -364,7 +387,10 @@ print("[Writ module lifecycle]")
 resetUiState()
 moduleEnabled = true
 BETTERUI.Writs.List = {}
+fireCraftEnterDuringSetup = true
 BETTERUI.Writs.Setup()
+fireCraftEnterDuringSetup = false
+assert_contains(writNameText, "Blacksmith Writ", "setup caches writ controls before registering craft-station events")
 assert_eq(writPanelHidden, true, "setup hides the writ panel by default")
 assert_true(type(getEventCallback(EVENT_CRAFTING_STATION_INTERACT)) == "function", "setup registers craft-station enter handler")
 assert_true(type(getEventCallback(EVENT_END_CRAFTING_STATION_INTERACT)) == "function", "setup registers craft-station exit handler")
@@ -382,9 +408,17 @@ assert_eq(#safeExecuteContexts, 0, "disabled writ module ignores craft-station e
 
 moduleEnabled = true
 resetUiState()
+getEventCallback(EVENT_CRAFTING_STATION_INTERACT)(nil, tostring(CRAFTING_TYPE_PROVISIONING))
+resetUiState()
 getEventCallback(EVENT_CRAFT_COMPLETED)(nil, tostring(CRAFTING_TYPE_PROVISIONING))
 assert_eq(safeExecuteContexts[1], "Writs:OnCraftItem", "craft completion refreshes writ display through SafeExecute")
 assert_contains(writNameText, "Witches Festival Cloth Donation", "craft completion refreshes the current station writ")
+assert_eq(#delayedCalls, 1, "craft completion schedules a deferred station-bound refresh")
+getEventCallback(EVENT_END_CRAFTING_STATION_INTERACT)(nil)
+local contextCountAfterClose = #safeExecuteContexts
+delayedCalls[1].callback()
+assert_eq(#safeExecuteContexts, contextCountAfterClose, "deferred craft refresh is skipped after the station closes")
+assert_eq(writPanelHidden, true, "deferred craft refresh does not reopen the writ panel after close")
 
 resetUiState()
 writPanelHidden = false

@@ -108,6 +108,12 @@ assert_contains(
 
 assert_contains(
     keybindManager,
+    "type(BETTERUI.Banking.IsTransferPending) == \"function\"",
+    "KeybindManager guards optional pending-transfer helper before calling it"
+)
+
+assert_contains(
+    keybindManager,
     "BETTERUI.Banking.IsTransferPending(bagId, slotIndex)",
     "KeybindManager blocks repeated transfer keybinds while any selected transfer is pending"
 )
@@ -206,6 +212,18 @@ assert_contains(
     keybindManager,
     "TraceBankKeybind(\"bank.primary_transfer\", \"blocked\"",
     "Primary transfer keybind traces pending-transfer disabled state"
+)
+
+assert_contains(
+    keybindManager,
+    "local canTransfer, denialText = CanUsePrimaryTransfer(self)",
+    "Primary transfer callback re-checks the enabled transfer contract before moving"
+)
+
+assert_contains(
+    keybindManager,
+    "callbackRecheckFailed",
+    "Primary transfer callback traces stale callback re-check denials"
 )
 
 assert_contains(
