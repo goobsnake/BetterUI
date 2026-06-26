@@ -143,6 +143,7 @@ Modules\ResourceOrbFrames\Textures\OrbSplitter.dds
 Modules\ResourceOrbFrames\Textures\OrnamentLeft.dds
 Modules\ResourceOrbFrames\Textures\OrnamentRight.dds
 Modules\ResourceOrbFrames\Core\OrbAnimations.lua
+Modules\ResourceOrbFrames\Core\ElementDrag.lua
 Modules\ResourceOrbFrames\Core\OrbVisuals.lua
 Modules\ResourceOrbFrames\Core\OrbOverlays.lua
 Modules\ResourceOrbFrames\Core\OrbBars.lua

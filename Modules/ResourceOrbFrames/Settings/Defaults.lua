@@ -63,6 +63,16 @@ local function GetDefaults()
         customFrontBar = {
             m_enabled = true,
         },
+        elementPositions = {
+            leftOrb = { locked = true, offsetX = 0, offsetY = 0 },
+            rightOrb = { locked = true, offsetX = 0, offsetY = 0 },
+            skillBars = { locked = true, offsetX = 0, offsetY = 0 },
+            xpBar = { locked = true, offsetX = 0, offsetY = 0 },
+            mountBar = { locked = true, offsetX = 0, offsetY = 0 },
+            castBar = { locked = true, offsetX = 0, offsetY = 0 },
+            quickslot = { locked = true, offsetX = 0, offsetY = 0 },
+            companionUltimate = { locked = true, offsetX = 0, offsetY = 0 },
+        },
     }
 end
 
@@ -116,6 +126,17 @@ local function NormalizeNumericSettings(m_options, defaults)
     m_options.orbOffsetX = ClampInteger(m_options.orbOffsetX, -300, 300, defaults.orbOffsetX or 0)
     m_options.orbOffsetY = ClampInteger(m_options.orbOffsetY, -300, 300, defaults.orbOffsetY or 0)
 
+    local ep = m_options.elementPositions
+    if type(ep) == "table" then
+        local keys = { "leftOrb", "rightOrb", "skillBars", "xpBar", "mountBar", "castBar", "quickslot", "companionUltimate" }
+        for _, k in ipairs(keys) do
+            if type(ep[k]) == "table" then
+                ep[k].offsetX = ClampInteger(ep[k].offsetX, -600, 600, 0)
+                ep[k].offsetY = ClampInteger(ep[k].offsetY, -600, 600, 0)
+            end
+        end
+    end
+
     -- Orb value text: enforce 12-26.
     m_options.healthTextSize = ClampInteger(m_options.healthTextSize, 12, 26, defaults.healthTextSize or 20)
     m_options.magickaTextSize = ClampInteger(m_options.magickaTextSize, 12, 26, defaults.magickaTextSize or 20)
@@ -132,6 +153,7 @@ local function NormalizeNumericSettings(m_options, defaults)
     m_options.cooldownTextSize = ClampInteger(m_options.cooldownTextSize, 12, 30, defaults.cooldownTextSize or 27)
     m_options.quickslotTextSize = ClampInteger(m_options.quickslotTextSize, 12, 30, defaults.quickslotTextSize or 27)
     m_options.ultimateTextSize = ClampInteger(m_options.ultimateTextSize, 12, 30, defaults.ultimateTextSize or 27)
+
 end
 
 --- Delegated defaults helper for ResourceOrbFrames.InitModule.
@@ -150,7 +172,7 @@ local function InitializeDefaults(m_options)
 
     -- Apply simple defaults
     for key, value in pairs(defaults) do
-        if key ~= "customFrontBar" and m_options[key] == nil then
+        if key ~= "customFrontBar" and key ~= "elementPositions" and m_options[key] == nil then
             m_options[key] = value
         end
     end
@@ -160,6 +182,13 @@ local function InitializeDefaults(m_options)
         m_options.customFrontBar = CloneTable(defaults.customFrontBar)
     else
         MergeMissingDefaults(m_options.customFrontBar, defaults.customFrontBar)
+    end
+
+    -- Deep merge for elementPositions
+    if m_options.elementPositions == nil then
+        m_options.elementPositions = CloneTable(defaults.elementPositions)
+    else
+        MergeMissingDefaults(m_options.elementPositions, defaults.elementPositions)
     end
 
     -- Migration/sanitization: normalize persisted numeric settings to current slider limits.

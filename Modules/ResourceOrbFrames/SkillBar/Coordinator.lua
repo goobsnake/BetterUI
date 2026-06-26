@@ -20,6 +20,12 @@ local FindOptionalControl = BETTERUI.ControlUtils.FindOptionalControl
 
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
+local function GetElemOffset(settings, key)
+    local ep = settings and settings.elementPositions
+    if not ep or not ep[key] then return 0, 0 end
+    return ep[key].offsetX or 0, ep[key].offsetY or 0
+end
+
 local function TraceCoordinator(event, phase, data)
     local L = BETTERUI and BETTERUI.Log
     if not (L and L.TraceEvent) then return end
@@ -52,17 +58,18 @@ local function UpdateBarPositions(rootFrame)
     local bars = BETTERUI_ORB_FRAMES.bars
 
     local shiftY = bars.shiftY
-    local bottomY = (isGamePad and bars.bottom.gamepadY or bars.bottom.keyboardY) + shiftY
+    local sbX, sbY = GetElemOffset(GetSettings(), "skillBars")
+    local bottomY = (isGamePad and bars.bottom.gamepadY or bars.bottom.keyboardY) + shiftY + sbY
     local topY = (isGamePad and bars.top.gamepadY or bars.top.keyboardY) + shiftY
-    local bottomX = bars.bottom.x
+    local bottomX = bars.bottom.x + sbX
     local topX = bars.top.x
 
     local backBarCfg = bars.customBackBar
     local backBarOffsetX = (backBarCfg and backBarCfg.offsetX) or 0
     local backBarOffsetY = (backBarCfg and backBarCfg.offsetY) or 0
 
-    m_backBarBaseX = topX + backBarOffsetX
-    m_backBarBaseY = topY + backBarOffsetY
+    m_backBarBaseX = topX + backBarOffsetX + sbX
+    m_backBarBaseY = topY + backBarOffsetY + sbY
 
     actionBarContainer:ClearAnchors()
     backBarContainer:ClearAnchors()
@@ -75,6 +82,12 @@ local function UpdateBarPositions(rootFrame)
         bottomY = bottomY,
         backBarX = m_backBarBaseX,
         backBarY = m_backBarBaseY,
+        backBarOffsetX = backBarOffsetX,
+        backBarOffsetY = backBarOffsetY,
+        skillBarOffsetX = sbX,
+        skillBarOffsetY = sbY,
+        skillBarsOffsetX = sbX,
+        skillBarsOffsetY = sbY,
     })
 end
 
@@ -191,12 +204,25 @@ local function StopWeaponSwapAnimation(rootFrame)
     local frontBarConst = BETTERUI_ORB_FRAMES.bars.customFrontBar
     local barOffsetX = frontBarConst and frontBarConst.offsetX or 0
     local barOffsetY = frontBarConst and frontBarConst.offsetY or 0
+    local sbX, sbY = GetElemOffset(GetSettings(), "skillBars")
+    local frontX = barOffsetX + 10 + sbX
+    local frontY = -15 + barOffsetY + sbY
     frontBarContainer:SetAlpha(1)
     frontBarContainer:ClearAnchors()
-    frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)
+    frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, frontX, frontY)
     SkillBar.UpdateBackBar(rootFrame)
     SkillBar.UpdateFrontBar(rootFrame)
-    TraceCoordinator("resource_orbs.weapon_swap", "stopped", { fn = "StopWeaponSwapAnimation" })
+    TraceCoordinator("resource_orbs.weapon_swap", "stopped", {
+        fn = "StopWeaponSwapAnimation",
+        skillBarOffsetX = sbX,
+        skillBarOffsetY = sbY,
+        skillBarsOffsetX = sbX,
+        skillBarsOffsetY = sbY,
+        frontBarX = frontX,
+        frontBarY = frontY,
+        backBarX = m_backBarBaseX or 0,
+        backBarY = m_backBarBaseY or 0,
+    })
 end
 
 --- Plays the weapon-swap slide animation for front and back bars.
@@ -206,6 +232,7 @@ local function WeaponSwapAnimation(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
+    local traceSbX, traceSbY = GetElemOffset(settings, "skillBars")
     TraceCoordinator("resource_orbs.weapon_swap", "begin", {
         fn = "WeaponSwapAnimation",
         enabled = settings and settings.weaponSwapAnimation,
@@ -213,16 +240,25 @@ local function WeaponSwapAnimation(rootFrame)
         hasBackBar = backBarContainer ~= nil,
         hasFrontBar = frontBarContainer ~= nil,
         hasBgMiddle = bgMiddle ~= nil,
+        skillBarOffsetX = traceSbX,
+        skillBarOffsetY = traceSbY,
+        skillBarsOffsetX = traceSbX,
+        skillBarsOffsetY = traceSbY,
     })
 
-    if not settings.weaponSwapAnimation or settings.hideBackBar or not backBarContainer or not frontBarContainer or not bgMiddle then
+    if not settings or not settings.weaponSwapAnimation or settings.hideBackBar or not backBarContainer or not frontBarContainer or not bgMiddle then
         SkillBar.UpdateBackBar(rootFrame)
         SkillBar.UpdateFrontBar(rootFrame)
         TraceCoordinator("resource_orbs.weapon_swap", "skipped", {
             fn = "WeaponSwapAnimation",
-            reason = not settings.weaponSwapAnimation and "settingDisabled"
+            reason = not settings and "missingSettings"
+                or not settings.weaponSwapAnimation and "settingDisabled"
                 or settings.hideBackBar and "backBarHidden"
                 or "missingControls",
+            skillBarOffsetX = traceSbX,
+            skillBarOffsetY = traceSbY,
+            skillBarsOffsetX = traceSbX,
+            skillBarsOffsetY = traceSbY,
         })
         return
     end
@@ -246,8 +282,9 @@ local function WeaponSwapAnimation(rootFrame)
             local bg = animationBgMiddle
             if not backCtr or not frontCtr or not bg then return end
             local frontBarConst = BETTERUI_ORB_FRAMES.bars.customFrontBar or {}
-            local frontBaseX = (frontBarConst.offsetX or 0) + 10
-            local frontBaseY = -15 + (frontBarConst.offsetY or 0)
+            local sbX, sbY = GetElemOffset(GetSettings(), "skillBars")
+            local frontBaseX = (frontBarConst.offsetX or 0) + 10 + sbX
+            local frontBaseY = -15 + (frontBarConst.offsetY or 0) + sbY
 
             if progress < 0.5 then
                 local p = progress * 2
@@ -282,10 +319,36 @@ local function WeaponSwapAnimation(rootFrame)
             SkillBar.UpdateBackBar(rootFrame)
             SkillBar.UpdateFrontBar(rootFrame)
         end, 150)
-        TraceCoordinator("resource_orbs.weapon_swap", "timeline_created", { fn = "WeaponSwapAnimation" })
+        TraceCoordinator("resource_orbs.weapon_swap", "timeline_created", {
+            fn = "WeaponSwapAnimation",
+            skillBarOffsetX = traceSbX,
+            skillBarOffsetY = traceSbY,
+            skillBarsOffsetX = traceSbX,
+            skillBarsOffsetY = traceSbY,
+        })
     end
+    local frontBarConst = BETTERUI_ORB_FRAMES.bars.customFrontBar or {}
+    TraceCoordinator("resource_orbs.weapon_swap", "offsets_applied", {
+        fn = "WeaponSwapAnimation",
+        skillBarOffsetX = traceSbX,
+        skillBarOffsetY = traceSbY,
+        skillBarsOffsetX = traceSbX,
+        skillBarsOffsetY = traceSbY,
+        frontBarX = (frontBarConst.offsetX or 0) + 10 + traceSbX,
+        frontBarY = -15 + (frontBarConst.offsetY or 0) + traceSbY,
+        backBarX = m_backBarBaseX,
+        backBarY = m_backBarBaseY,
+    })
     m_swapTimeline:PlayFromStart()
-    TraceCoordinator("resource_orbs.weapon_swap", "play", { fn = "WeaponSwapAnimation" })
+    TraceCoordinator("resource_orbs.weapon_swap", "play", {
+        fn = "WeaponSwapAnimation",
+        skillBarOffsetX = traceSbX,
+        skillBarOffsetY = traceSbY,
+        skillBarsOffsetX = traceSbX,
+        skillBarsOffsetY = traceSbY,
+        backBarX = m_backBarBaseX,
+        backBarY = m_backBarBaseY,
+    })
 end
 
 ---@return boolean isAnimating Whether a weapon swap animation is in progress

@@ -30,6 +30,12 @@ local FindControl = BETTERUI.ControlUtils.FindControl
 local FindOptionalControl = BETTERUI.ControlUtils.FindOptionalControl
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
+local function GetElemOffset(settings, key)
+    local ep = settings and settings.elementPositions
+    if not ep or not ep[key] then return 0, 0 end
+    return ep[key].offsetX or 0, ep[key].offsetY or 0
+end
+
 local function GetTextureRootPath()
     return "BetterUI/Modules/ResourceOrbFrames/Textures"
 end
@@ -465,17 +471,19 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     -- shift, and ornament-anchored orbs follow them (no double-apply).
     local orbOffsetX = settings.enableIndependentOrbOffset and (settings.orbOffsetX or 0) or 0
     local orbOffsetY = settings.enableIndependentOrbOffset and (settings.orbOffsetY or 0) or 0
+    local loX, loY = GetElemOffset(settings, "leftOrb")
+    local roX, roY = GetElemOffset(settings, "rightOrb")
 
     if leftOrnament then
         local size = cfg.ornaments.left.size * cfg.ornaments.left.scale
         leftOrnament:SetDimensions(size, size)
-        leftOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.left.x + orbOffsetX, cfg.ornaments.left.y + orbOffsetY)
+        leftOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.left.x + orbOffsetX + loX, cfg.ornaments.left.y + orbOffsetY + loY)
         leftOrnament:SetHidden(settings.hideLeftOrnament)
     end
     if rightOrnament then
         local size = cfg.ornaments.right.size * cfg.ornaments.right.scale
         rightOrnament:SetDimensions(size, size)
-        rightOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.right.x + orbOffsetX, cfg.ornaments.right.y + orbOffsetY)
+        rightOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.right.x + orbOffsetX + roX, cfg.ornaments.right.y + orbOffsetY + roY)
         rightOrnament:SetHidden(settings.hideRightOrnament)
     end
 
@@ -486,9 +494,9 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         if settings.hideLeftOrnament then
             leftBranch = "noOrnament"
             local nx = ((cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.x ~= nil)
-                and cfg.orbs.left.noOrnament.x or (cfg.ornaments.left.x + cfg.orbs.left.x)) + orbOffsetX
+                and cfg.orbs.left.noOrnament.x or (cfg.ornaments.left.x + cfg.orbs.left.x)) + orbOffsetX + loX
             local ny = ((cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.y ~= nil)
-                and cfg.orbs.left.noOrnament.y or (cfg.ornaments.left.y + cfg.orbs.left.y)) + orbOffsetY
+                and cfg.orbs.left.noOrnament.y or (cfg.ornaments.left.y + cfg.orbs.left.y)) + orbOffsetY + loY
             leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif leftOrnament then
             leftBranch = "ornament"
@@ -500,8 +508,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             leftBranch = "bgMiddleFallback"
             -- Fallback: ornament expected but not found; anchor to bgMiddle
             leftOrb:SetAnchor(CENTER, bgMiddle, CENTER,
-                cfg.ornaments.left.x + cfg.orbs.left.x + orbOffsetX,
-                cfg.ornaments.left.y + cfg.orbs.left.y + orbOffsetY)
+                cfg.ornaments.left.x + cfg.orbs.left.x + orbOffsetX + loX,
+                cfg.ornaments.left.y + cfg.orbs.left.y + orbOffsetY + loY)
         end
         leftOrb:SetDimensions(leftBorderSize, leftBorderSize)
         local border = FindControl(leftOrb, 'Border')
@@ -515,9 +523,9 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         if settings.hideRightOrnament then
             rightBranch = "noOrnament"
             local nx = ((cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.x ~= nil)
-                and cfg.orbs.right.noOrnament.x or (cfg.ornaments.right.x + cfg.orbs.right.x)) + orbOffsetX
+                and cfg.orbs.right.noOrnament.x or (cfg.ornaments.right.x + cfg.orbs.right.x)) + orbOffsetX + roX
             local ny = ((cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.y ~= nil)
-                and cfg.orbs.right.noOrnament.y or (cfg.ornaments.right.y + cfg.orbs.right.y)) + orbOffsetY
+                and cfg.orbs.right.noOrnament.y or (cfg.ornaments.right.y + cfg.orbs.right.y)) + orbOffsetY + roY
             rightOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif rightOrnament then
             rightBranch = "ornament"
@@ -528,8 +536,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         else
             rightBranch = "bgMiddleFallback"
             rightOrb:SetAnchor(CENTER, bgMiddle, CENTER,
-                cfg.ornaments.right.x + cfg.orbs.right.x + orbOffsetX,
-                cfg.ornaments.right.y + cfg.orbs.right.y + orbOffsetY)
+                cfg.ornaments.right.x + cfg.orbs.right.x + orbOffsetX + roX,
+                cfg.ornaments.right.y + cfg.orbs.right.y + orbOffsetY + roY)
         end
         rightOrb:SetDimensions(rightBorderSize, rightBorderSize)
 
@@ -641,8 +649,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
                 sOrb:SetAnchor(CENTER, leftOrb, CENTER, 0, 0)
             else
                 sOrb:SetAnchor(CENTER, bgMiddle, CENTER,
-                    cfg.ornaments.left.x + cfg.orbs.left.x + orbOffsetX,
-                    cfg.ornaments.left.y + cfg.orbs.left.y + orbOffsetY)
+                    cfg.ornaments.left.x + cfg.orbs.left.x + orbOffsetX + loX,
+                    cfg.ornaments.left.y + cfg.orbs.left.y + orbOffsetY + loY)
             end
             local lbl = FindControl(sOrb, 'Label')
             if lbl then

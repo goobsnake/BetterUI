@@ -34,6 +34,13 @@ local FRONT_BAR_SLOTS = CONST.FRONT_BAR_SLOTS or {
 
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
+-- Quickslot and companion ultimate anchors are owned here rather than in Coordinator.lua.
+local function GetElemOffset(settings, key)
+    local ep = settings and settings.elementPositions
+    if not ep or not ep[key] then return 0, 0 end
+    return ep[key].offsetX or 0, ep[key].offsetY or 0
+end
+
 -- Cached control references
 local m_buttonCache = {}
 local m_frontBarContainer = nil
@@ -468,11 +475,31 @@ end
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBarLayout(rootFrame)
     local frontBarSettings = GetSettings().customFrontBar
-    if not frontBarSettings or not frontBarSettings.m_enabled then return end
+    if not frontBarSettings or not frontBarSettings.m_enabled then
+        TraceFrontBar("resource_orbs.front_bar_layout", "skipped", {
+            fn = "UpdateFrontBarLayout",
+            reason = "disabled",
+            hasSettings = frontBarSettings ~= nil,
+        })
+        return
+    end
     local frontBarLayoutConfig = BETTERUI_ORB_FRAMES.bars.customFrontBar
-    if not frontBarLayoutConfig then return end
+    if not frontBarLayoutConfig then
+        TraceFrontBar("resource_orbs.front_bar_layout", "skipped", {
+            fn = "UpdateFrontBarLayout",
+            reason = "missingLayoutConfig",
+        })
+        return
+    end
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
-    if not frontBarContainer then return end
+    if not frontBarContainer then
+        TraceFrontBar("resource_orbs.front_bar_layout", "skipped", {
+            fn = "UpdateFrontBarLayout",
+            reason = "missingFrontBarContainer",
+            hasRoot = rootFrame ~= nil,
+        })
+        return
+    end
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
 
     local isGamePad = IsInGamepadPreferredMode()
@@ -544,6 +571,10 @@ local function UpdateFrontBarLayout(rootFrame)
     -- must add it themselves to move with the bar.
     local barOffsetX = frontBarLayoutConfig.offsetX or 0
     local barOffsetY = frontBarLayoutConfig.offsetY or 0
+    local settings = GetSettings() or {}
+    local sbX, sbY = GetElemOffset(settings, "skillBars")
+    local qsX, qsY = GetElemOffset(settings, "quickslot")
+    local cuX, cuY = GetElemOffset(settings, "companionUltimate")
 
     local qsBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "QuickslotButton")
     if qsBtn then
@@ -557,7 +588,8 @@ local function UpdateFrontBarLayout(rootFrame)
         qsBtn.cooldownRevealHeight = buttonSize
         qsBtn:ClearAnchors()
         if bgMiddle then
-            qsBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX + barOffsetX, baseY + offsetY + barOffsetY)
+            qsBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX + barOffsetX + qsX,
+                baseY + offsetY + barOffsetY + qsY)
         end
         local flipCard = qsBtn:GetNamedChild("FlipCard")
         if flipCard then flipCard:SetDimensions(buttonInnerSize, buttonInnerSize) end
@@ -579,7 +611,8 @@ local function UpdateFrontBarLayout(rootFrame)
         compBtn.cooldownRevealHeight = ultimateSize
         compBtn:ClearAnchors()
         if bgMiddle then
-            compBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX + barOffsetX, baseY + offsetY + barOffsetY)
+            compBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX + barOffsetX + cuX,
+                baseY + offsetY + barOffsetY + cuY)
         end
         local flipCard = compBtn:GetNamedChild("FlipCard")
         if flipCard then flipCard:SetDimensions(ultimateInnerSize, ultimateInnerSize) end
@@ -588,9 +621,11 @@ local function UpdateFrontBarLayout(rootFrame)
         SetPressFeedbackBaseSize(compBtn, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize)
     end
 
+    local frontBarX = barOffsetX + 10 + sbX
+    local frontBarY = -15 + barOffsetY + sbY
     if bgMiddle then
         frontBarContainer:ClearAnchors()
-        frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)
+        frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, frontBarX, frontBarY)
     end
     TraceFrontBar("resource_orbs.front_bar_layout", "applied", {
         fn = "UpdateFrontBarLayout",
@@ -599,6 +634,22 @@ local function UpdateFrontBarLayout(rootFrame)
         ultimateSize = ultimateSize,
         barOffsetX = barOffsetX,
         barOffsetY = barOffsetY,
+        skillBarOffsetX = sbX,
+        skillBarOffsetY = sbY,
+        skillBarsOffsetX = sbX,
+        skillBarsOffsetY = sbY,
+        frontBarX = frontBarX,
+        frontBarY = frontBarY,
+        quickslotOffsetX = qsX,
+        quickslotOffsetY = qsY,
+        companionUltimateOffsetX = cuX,
+        companionUltimateOffsetY = cuY,
+        frontBarAnchorX = barOffsetX + 10 + sbX,
+        frontBarAnchorY = -15 + barOffsetY + sbY,
+        quickslotAnchorOffsetX = barOffsetX + qsX,
+        quickslotAnchorOffsetY = barOffsetY + qsY,
+        companionAnchorOffsetX = barOffsetX + cuX,
+        companionAnchorOffsetY = barOffsetY + cuY,
         totalWidth = totalWidth,
         hasQuickslot = qsBtn ~= nil,
         hasCompanion = compBtn ~= nil,

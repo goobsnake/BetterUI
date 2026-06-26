@@ -43,6 +43,32 @@ local LAST_ACTION_SUPPRESSED_EVENTS = {
     ["resource_orbs.force_layout"] = true,
 }
 
+local function GetElemOffset(settings, key)
+    local ep = settings and settings.elementPositions
+    if not ep or not ep[key] then return 0, 0 end
+    return ep[key].offsetX or 0, ep[key].offsetY or 0
+end
+
+local ELEMENT_OFFSET_TRACE_KEYS = {
+    "leftOrb",
+    "rightOrb",
+    "skillBars",
+    "xpBar",
+    "mountBar",
+    "castBar",
+    "quickslot",
+    "companionUltimate",
+}
+
+local function BuildElementOffsetSummary(settings)
+    local parts = {}
+    for _, key in ipairs(ELEMENT_OFFSET_TRACE_KEYS) do
+        local x, y = GetElemOffset(settings, key)
+        parts[#parts + 1] = key .. ":" .. tostring(x) .. "," .. tostring(y)
+    end
+    return table.concat(parts, ";")
+end
+
 local function GetCurrentSceneName()
     if SCENE_MANAGER and SCENE_MANAGER.GetCurrentScene then
         local scene = SCENE_MANAGER:GetCurrentScene()
@@ -102,6 +128,18 @@ local function TraceROF(event, phase, data, category)
     end
     local categories = BETTERUI.Log.CATEGORY or {}
     BETTERUI.Log.TraceEvent(category or categories.STATE, event, phase, data)
+end
+
+local function TraceDrag(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = data.module or "ResourceOrbFrames"
+    data.feature = data.feature or "element-drag"
+    data.fn = data.fn or "ElementDrag"
+    data["function"] = data["function"] or data.fn
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.STATE or categories.GENERAL, event, phase, data)
 end
 
 local function RunTraceWithoutLastAction(callback)
@@ -379,13 +417,29 @@ local function ApplyLayout(updateOrbs, updateSkills)
 
     -- Update Bar Frames Layout (Anchoring) - use cached control references
     local settings = GetSettings() or {}
+    local exX, exY = GetElemOffset(settings, "xpBar")
+    local moX, moY = GetElemOffset(settings, "mountBar")
+    local caX, caY = GetElemOffset(settings, "castBar")
+    if exX ~= 0 or exY ~= 0 or moX ~= 0 or moY ~= 0 or caX ~= 0 or caY ~= 0 then
+        TraceDrag("resource_orbs.element_offsets", "layout_applied", { fn = "ResourceOrbFrames.ApplyLayout", exX = exX, exY = exY, moX = moX, moY = moY, caX = caX, caY = caY })
+    end
 
     -- Independent orb offset: ornament-anchored branches follow the ornaments
     -- automatically; bgMiddle-anchored branches must add the offset themselves
     -- so the XP/mount bars stay with the orb composite.
     local orbOffsetX = settings.enableIndependentOrbOffset and (settings.orbOffsetX or 0) or 0
     local orbOffsetY = settings.enableIndependentOrbOffset and (settings.orbOffsetY or 0) or 0
+    local elementOffsetSummary = BuildElementOffsetSummary(settings)
 
+    TraceROF("resource_orbs.layout_offsets", "applied", {
+        fn = "ResourceOrbFrames.ApplyLayout",
+        updateOrbs = updateOrbs,
+        updateSkills = updateSkills,
+        offsets = elementOffsetSummary,
+        independentOrbOffset = settings.enableIndependentOrbOffset == true,
+        orbOffsetX = orbOffsetX,
+        orbOffsetY = orbOffsetY,
+    })
 
     -- Lazily resolve BARS reference (Constants.lua loads before this runs)
     if not BARS then BARS = BETTERUI.ResourceOrbFrames.CONST.BARS end
@@ -393,16 +447,16 @@ local function ApplyLayout(updateOrbs, updateSkills)
     if m_experienceBar and m_experienceBar.control then
         m_experienceBar.control:ClearAnchors()
         if settings.hideLeftOrnament then
-            local nx = (BARS.XP.NO_ORNAMENT_OFFSET_X or -350) + orbOffsetX
-            local ny = (BARS.XP.NO_ORNAMENT_OFFSET_Y or 108) + orbOffsetY
+            local nx = (BARS.XP.NO_ORNAMENT_OFFSET_X or -350) + orbOffsetX + exX
+            local ny = (BARS.XP.NO_ORNAMENT_OFFSET_Y or 108) + orbOffsetY + exY
             m_experienceBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
             if m_leftOrnament then
-                m_experienceBar.control:SetAnchor(TOP, m_leftOrnament, BOTTOM, BARS.XP.OFFSET_X,
-                    BARS.XP.OFFSET_Y)
+                m_experienceBar.control:SetAnchor(TOP, m_leftOrnament, BOTTOM, BARS.XP.OFFSET_X + exX,
+                    BARS.XP.OFFSET_Y + exY)
             else
-                m_experienceBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, XP_NO_ORNAMENT_FALLBACK_OFFSET_X + orbOffsetX,
-                    BAR_FALLBACK_OFFSET_Y + orbOffsetY)
+                m_experienceBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, XP_NO_ORNAMENT_FALLBACK_OFFSET_X + orbOffsetX + exX,
+                    BAR_FALLBACK_OFFSET_Y + orbOffsetY + exY)
             end
         end
         m_experienceBar:Update()
@@ -411,15 +465,15 @@ local function ApplyLayout(updateOrbs, updateSkills)
     if m_mountStaminaBar and m_mountStaminaBar.control then
         m_mountStaminaBar.control:ClearAnchors()
         if settings.hideRightOrnament then
-            local nx = (BARS.MOUNT.NO_ORNAMENT_OFFSET_X or 375) + orbOffsetX
-            local ny = (BARS.MOUNT.NO_ORNAMENT_OFFSET_Y or 108) + orbOffsetY
+            local nx = (BARS.MOUNT.NO_ORNAMENT_OFFSET_X or 375) + orbOffsetX + moX
+            local ny = (BARS.MOUNT.NO_ORNAMENT_OFFSET_Y or 108) + orbOffsetY + moY
             m_mountStaminaBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
             if m_rightOrnament then
-                m_mountStaminaBar.control:SetAnchor(TOP, m_rightOrnament, BOTTOM, BARS.MOUNT.OFFSET_X,
-                    BARS.MOUNT.OFFSET_Y)
+                m_mountStaminaBar.control:SetAnchor(TOP, m_rightOrnament, BOTTOM, BARS.MOUNT.OFFSET_X + moX,
+                    BARS.MOUNT.OFFSET_Y + moY)
             else
-                m_mountStaminaBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X + orbOffsetX, BAR_FALLBACK_OFFSET_Y + orbOffsetY)
+                m_mountStaminaBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X + orbOffsetX + moX, BAR_FALLBACK_OFFSET_Y + orbOffsetY + moY)
             end
         end
         m_mountStaminaBar:Update()
@@ -430,13 +484,13 @@ local function ApplyLayout(updateOrbs, updateSkills)
         if settings.hideBackBar or not m_backBarContainer then
             -- When back bar is hidden (e.g. Oakensoul builds), anchor cast bar to the front bar instead
             if m_frontBarContainer then
-                m_castBar.control:SetAnchor(BOTTOM, m_frontBarContainer, TOP, BARS.CAST.OFFSET_X, BARS.CAST.OFFSET_Y)
+                m_castBar.control:SetAnchor(BOTTOM, m_frontBarContainer, TOP, BARS.CAST.OFFSET_X + caX, BARS.CAST.OFFSET_Y + caY)
             else
-                m_castBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, BARS.CAST.OFFSET_X, -200)
+                m_castBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, BARS.CAST.OFFSET_X + caX, -200 + caY)
             end
         else
-            m_castBar.control:SetAnchor(BOTTOM, m_backBarContainer, TOP, BARS.CAST.OFFSET_X,
-                BARS.CAST.OFFSET_Y)
+            m_castBar.control:SetAnchor(BOTTOM, m_backBarContainer, TOP, BARS.CAST.OFFSET_X + caX,
+                BARS.CAST.OFFSET_Y + caY)
         end
         m_castBar:Update()
     end
@@ -444,6 +498,7 @@ local function ApplyLayout(updateOrbs, updateSkills)
         fn = "ResourceOrbFrames.ApplyLayout",
         updateOrbs = updateOrbs,
         updateSkills = updateSkills,
+        offsets = elementOffsetSummary,
         scale = settings.scale,
         offsetX = settings.offsetX,
         offsetY = settings.offsetY,
@@ -470,6 +525,88 @@ end
 
 local function ApplyFullLayout()
     ApplyLayout(true, true)
+end
+
+local function AttachElementDragHandles()
+    if not m_rootFrame then
+        TraceROF("resource_orbs.element_drag_handles", "skipped", {
+            fn = "ResourceOrbFrames.AttachElementDragHandles",
+            reason = "missingRootFrame",
+        })
+        return
+    end
+    local drag = ResourceOrbFrames.Drag
+    if not (drag and drag.AttachDragHandle) then
+        TraceROF("resource_orbs.element_drag_handles", "skipped", {
+            fn = "ResourceOrbFrames.AttachElementDragHandles",
+            reason = "missingDragApi",
+        })
+        return
+    end
+
+    local attachedCount = 0
+    local skippedCount = 0
+    local function attach(hostControl, elemKey)
+        TraceDrag("resource_orbs.element_drag_handles", "attach_call", { fn = "ResourceOrbFrames.AttachElementDragHandles", elemKey = elemKey, hasHostControl = hostControl ~= nil })
+        if not hostControl then
+            skippedCount = skippedCount + 1
+            TraceROF("resource_orbs.element_drag_handles", "attach_skipped", {
+                fn = "ResourceOrbFrames.AttachElementDragHandles",
+                elemKey = elemKey,
+                reason = "missingHostControl",
+            })
+            return
+        end
+        if drag.GetHandle and drag.GetHandle(elemKey) then
+            skippedCount = skippedCount + 1
+            TraceROF("resource_orbs.element_drag_handles", "attach_skipped", {
+                fn = "ResourceOrbFrames.AttachElementDragHandles",
+                elemKey = elemKey,
+                reason = "alreadyAttached",
+                hostControl = DescribeControlForTrace(hostControl, elemKey),
+            })
+            return
+        end
+        local handle = drag.AttachDragHandle(hostControl, elemKey, GetSettings, ApplyFullLayout)
+        if handle then
+            attachedCount = attachedCount + 1
+        else
+            skippedCount = skippedCount + 1
+        end
+        TraceROF("resource_orbs.element_drag_handles", handle and "attached" or "attach_failed", {
+            fn = "ResourceOrbFrames.AttachElementDragHandles",
+            elemKey = elemKey,
+            hostControl = DescribeControlForTrace(hostControl, elemKey),
+            handleControl = DescribeControlForTrace(handle, elemKey .. "Handle"),
+        })
+    end
+
+    TraceROF("resource_orbs.element_drag_handles", "begin", {
+        fn = "ResourceOrbFrames.AttachElementDragHandles",
+    })
+    local actionBarContainer = FindControl(m_rootFrame, 'ActionBarContainer')
+    local quickslotButton = FindControl(m_rootFrame, 'QuickslotButton')
+    local companionButton = FindControl(m_rootFrame, 'CompanionButton')
+    if not quickslotButton and m_frontBarContainer then
+        quickslotButton = FindControl(m_frontBarContainer, 'QuickslotButton')
+    end
+    if not companionButton and m_frontBarContainer then
+        companionButton = FindControl(m_frontBarContainer, 'CompanionButton')
+    end
+
+    attach(FindControl(m_rootFrame, 'OrbHealth'), "leftOrb")
+    attach(FindControl(m_rootFrame, 'OrbResource'), "rightOrb")
+    attach(m_frontBarContainer or actionBarContainer, "skillBars")
+    attach(m_experienceBar and m_experienceBar.control, "xpBar")
+    attach(m_mountStaminaBar and m_mountStaminaBar.control, "mountBar")
+    attach(m_castBar and m_castBar.control, "castBar")
+    attach(quickslotButton, "quickslot")
+    attach(companionButton, "companionUltimate")
+    TraceROF("resource_orbs.element_drag_handles", "end", {
+        fn = "ResourceOrbFrames.AttachElementDragHandles",
+        attachedCount = attachedCount,
+        skippedCount = skippedCount,
+    })
 end
 
 -- INITIALIZATION HELPERS
@@ -917,6 +1054,7 @@ local function SetupModule(control)
         SkillBar.CacheBackBarControls(control)
     end
 
+    AttachElementDragHandles()
     Visuals.UpdateOrbLayout(control, m_pools, m_shieldBar)
     RefreshAllData()
 

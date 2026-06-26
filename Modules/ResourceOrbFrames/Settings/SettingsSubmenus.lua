@@ -11,6 +11,30 @@ if not ROF then return end
 BETTERUI.ResourceOrbFrames.SettingsSubmenus = {}
 local Submenus = BETTERUI.ResourceOrbFrames.SettingsSubmenus
 
+local function TraceSettingsSubmenu(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "ResourceOrbFrames"
+    data.feature = data.feature or "settingsSubmenus"
+    data.fn = data.fn or "ResourceOrbFrames.SettingsSubmenus"
+    data["function"] = data["function"] or data.fn
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.SETTINGS or categories.GENERAL or categories.STATE, event, phase, data)
+end
+
+local function TraceDrag(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = data.module or "ResourceOrbFrames"
+    data.feature = data.feature or "element-drag"
+    data.fn = data.fn or "ElementDrag"
+    data["function"] = data["function"] or data.fn
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.STATE or categories.GENERAL, event, phase, data)
+end
+
 local function GetSharedSettings(shared)
     return shared and shared.getSettings and shared.getSettings() or nil
 end
@@ -19,6 +43,64 @@ local function ResetSharedSettingsGroup(shared, entries)
     if shared and shared.resetSettingsGroup then
         shared.resetSettingsGroup(entries)
     end
+end
+
+local function ApplySharedSettings(shared)
+    if shared and type(shared.applySettings) == "function" then
+        shared.applySettings()
+    else
+        ResetSharedSettingsGroup(shared, {})
+    end
+end
+
+local function RefreshSettingsPanel()
+    local drag = BETTERUI.ResourceOrbFrames.Drag
+    if drag and type(drag.RefreshSettingsPanel) == "function" then
+        drag.RefreshSettingsPanel()
+    end
+end
+
+local function GetElemPosContract(shared, key) return shared and shared.elemPos and shared.elemPos[key] end
+
+local function ResetElemPos(shared, keys)
+    local s = shared and shared.getSettings and shared.getSettings()
+    if s and s.elementPositions then
+        for _, k in ipairs(keys) do
+            s.elementPositions[k] = { locked = true, offsetX = 0, offsetY = 0 }
+            TraceDrag("resource_orbs.element_position", "reset_element", { fn = "SettingsSubmenus.ResetElemPos", elemKey = k })
+            local drag = BETTERUI.ResourceOrbFrames.Drag
+            if drag and drag.SetElementLocked then drag.SetElementLocked(k, true, shared.getSettings) end
+        end
+    else
+        TraceDrag("resource_orbs.element_position", "reset_skipped", { fn = "SettingsSubmenus.ResetElemPos", reason = "missingElementPositions" })
+    end
+    ApplySharedSettings(shared)
+    RefreshSettingsPanel()
+end
+
+local function BuildElemPosControls(label, c, resetFunc)
+    if not c then return {} end
+    local resetLabel = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_RESET_POSITION"))
+    return {
+        { type = "checkbox", name = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_LOCK_LABEL")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_LOCK_TOOLTIP")), getFunc = c.locked.get, setFunc = c.locked.set, width = "full" },
+        { type = "slider", name = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_X_LABEL")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_X_TOOLTIP")), min = -600, max = 600, step = 1, getFunc = c.offsetX.get, setFunc = c.offsetX.set, width = "full" },
+        { type = "slider", name = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_Y_LABEL")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_Y_TOOLTIP")), min = -600, max = 600, step = 1, getFunc = c.offsetY.get, setFunc = c.offsetY.set, width = "full" },
+        { type = "button", name = resetLabel, tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_RESET_POSITION_TOOLTIP")), func = resetFunc, disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end, width = "half" },
+    }
+end
+
+local function InsertElemPosSectionBeforeTrailingButton(controls, shared, entries)
+    local trailing = type(controls[#controls]) == "table" and controls[#controls].type == "button" and controls[#controls] or nil
+    if trailing then controls[#controls] = nil end
+    controls[#controls + 1] = { type = "header", name = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_POSITION_HEADER")) }
+    for _, entry in ipairs(entries) do
+        local entryKey = entry.key
+        local resetFunc = function() ResetElemPos(shared, { entryKey }) end
+        for _, ctrl in ipairs(BuildElemPosControls(entry.label, GetElemPosContract(shared, entryKey), resetFunc)) do
+            controls[#controls + 1] = ctrl
+        end
+    end
+    if trailing then controls[#controls + 1] = trailing end
 end
 
 local function WrapLayoutRefresh(setFunc)
@@ -39,7 +121,7 @@ function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
     local backBar = skillBars.backBar
     local ultimate = skillBars.ultimate
     local combatIndicators = skillBars.combatIndicators
-    return {
+    local submenu = {
         type = "submenu",
         name = GetString(rawget(_G, "SI_BETTERUI_SKILL_BARS_SUBMENU")),
         controls = {
@@ -218,6 +300,12 @@ function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
             },
         },
     }
+    InsertElemPosSectionBeforeTrailingButton(submenu.controls, shared, {
+        { label = "Skill Bars", key = "skillBars" },
+        { label = "Quickslot", key = "quickslot" },
+        { label = "Companion Ult.", key = "companionUltimate" },
+    }, { "skillBars", "quickslot", "companionUltimate" })
+    return submenu
 end
 
 ---@param orbText table Section-scoped orb text contracts
@@ -227,7 +315,7 @@ function Submenus.BuildOrbTextSubmenu(orbText, shared)
     local visuals = orbText.visuals
     local resourceText = orbText.resourceText
     local refreshLayout = WrapLayoutRefresh
-    return {
+    local submenu = {
         type = "submenu",
         name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SUBMENU")),
         controls = {
@@ -322,6 +410,11 @@ function Submenus.BuildOrbTextSubmenu(orbText, shared)
             },
         },
     }
+    InsertElemPosSectionBeforeTrailingButton(submenu.controls, shared, {
+        { label = "Health Orb", key = "leftOrb" },
+        { label = "Resource Orb", key = "rightOrb" },
+    }, { "leftOrb", "rightOrb" })
+    return submenu
 end
 
 ---@param bars table Section-scoped bar contracts
@@ -370,6 +463,15 @@ function Submenus.BuildBarSubmenus(bars, shared)
                 disabled = function() local s = GetSharedSettings(shared); return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and s and s.mountStaminaBarEnabled == true) end, width = "half" },
         },
     }
+    InsertElemPosSectionBeforeTrailingButton(xpSubmenu.controls, shared, {
+        { label = "XP Bar", key = "xpBar" },
+    }, { "xpBar" })
+    InsertElemPosSectionBeforeTrailingButton(castSubmenu.controls, shared, {
+        { label = "Cast Bar", key = "castBar" },
+    }, { "castBar" })
+    InsertElemPosSectionBeforeTrailingButton(mountSubmenu.controls, shared, {
+        { label = "Mount Bar", key = "mountBar" },
+    }, { "mountBar" })
     return xpSubmenu, castSubmenu, mountSubmenu
 end
 
@@ -402,9 +504,16 @@ local function SortSubmenuHeaderSectionsAlphabetically(controls)
     end
 
     local trailingButtons = {}
+    local positionResetName = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_RESET_POSITION"))
+    local function IsPositionResetButton(control)
+        return type(control) == "table"
+            and control.type == "button"
+            and type(control.name) == "string"
+            and control.name:find(positionResetName, 1, true) ~= nil
+    end
     while #controls > 0 do
         local lastControl = controls[#controls]
-        if type(lastControl) == "table" and lastControl.type == "button" then
+        if type(lastControl) == "table" and lastControl.type == "button" and not IsPositionResetButton(lastControl) then
             table.insert(trailingButtons, 1, lastControl)
             table.remove(controls, #controls)
         else

@@ -73,6 +73,18 @@ local function InitSettingsPanel(mId, moduleName)
         L.TraceEvent(categories.SETTINGS or categories.GENERAL or "SETTINGS", "resource_orbs.settings_reset", phase, data)
     end
 
+    local function TraceDrag(event, phase, data)
+        local L = BETTERUI and BETTERUI.Log
+        if not (L and L.TraceEvent) then return end
+        data = data or {}
+        data.module = data.module or "ResourceOrbFrames"
+        data.feature = data.feature or "element-drag"
+        data.fn = data.fn or "ElementDrag"
+        data["function"] = data["function"] or data.fn
+        local categories = L.CATEGORY or {}
+        L.TraceEvent(categories.STATE or categories.GENERAL, event, phase, data)
+    end
+
     local function ResetSettingsGroup(keyDefaults)
         local settings = EnsureResourceOrbSettings()
         TraceResourceOrbSettingsReset("begin", { count = type(keyDefaults) == "table" and #keyDefaults or 0 })
@@ -150,7 +162,151 @@ local function InitSettingsPanel(mId, moduleName)
     local sharedContracts = {
         getSettings = GetResourceOrbSettings,
         resetSettingsGroup = ResetSettingsGroup,
+        applySettings = Apply,
     }
+
+    local ELEMENT_POSITION_KEYS = {
+        "leftOrb", "rightOrb", "skillBars", "xpBar", "mountBar", "castBar", "quickslot", "companionUltimate"
+    }
+
+    local function CreateDefaultElementPositions()
+        return {
+            leftOrb = { locked = true, offsetX = 0, offsetY = 0 },
+            rightOrb = { locked = true, offsetX = 0, offsetY = 0 },
+            skillBars = { locked = true, offsetX = 0, offsetY = 0 },
+            xpBar = { locked = true, offsetX = 0, offsetY = 0 },
+            mountBar = { locked = true, offsetX = 0, offsetY = 0 },
+            castBar = { locked = true, offsetX = 0, offsetY = 0 },
+            quickslot = { locked = true, offsetX = 0, offsetY = 0 },
+            companionUltimate = { locked = true, offsetX = 0, offsetY = 0 },
+        }
+    end
+
+    local function ResetElementPositions(settings)
+        if not settings then
+            TraceResourceOrbSettingsReset("element_positions_reset_skipped", { reason = "missingSettings" })
+            return
+        end
+        local previousPositions = settings.elementPositions
+        TraceDrag("resource_orbs.element_positions", "global_reset", { fn = "ResourceOrbFrames.ResetElementPositions", count = #ELEMENT_POSITION_KEYS })
+        TraceResourceOrbSettingsReset("element_positions_reset_begin", { count = #ELEMENT_POSITION_KEYS })
+        settings.elementPositions = CreateDefaultElementPositions()
+        local drag = BETTERUI.ResourceOrbFrames.Drag
+        for _, elemKey in ipairs(ELEMENT_POSITION_KEYS) do
+            local previous = previousPositions and previousPositions[elemKey]
+            TraceResourceOrbSettingsReset("element_position_reset", {
+                elemKey = elemKey,
+                previousLocked = previous and previous.locked,
+                previousOffsetX = previous and previous.offsetX,
+                previousOffsetY = previous and previous.offsetY,
+                updatedHandle = drag and drag.SetElementLocked ~= nil,
+            })
+            if drag and drag.SetElementLocked then
+                drag.SetElementLocked(elemKey, true, GetResourceOrbSettings)
+            end
+        end
+        if drag and type(drag.RefreshSettingsPanel) == "function" then
+            drag.RefreshSettingsPanel()
+            TraceResourceOrbSettingsReset("settings_panel_refresh_requested", { source = "ResetElementPositions" })
+        end
+        TraceResourceOrbSettingsReset("element_positions_reset_end", { count = #ELEMENT_POSITION_KEYS })
+    end
+
+    local function CreateElemPosContract(elemKey)
+        return {
+            locked = {
+                get = function()
+                    local s = GetResourceOrbSettings()
+                    local ep = s and s.elementPositions and s.elementPositions[elemKey]
+                    return ep == nil or ep.locked ~= false
+                end,
+                set = function(v)
+                    local s = EnsureResourceOrbSettings()
+                    if s and s.elementPositions and s.elementPositions[elemKey] then
+                        local previous = s.elementPositions[elemKey].locked
+                        s.elementPositions[elemKey].locked = v
+                        TraceResourceOrbSettingsReset("element_lock_toggle", {
+                            elemKey = elemKey,
+                            previousLocked = previous,
+                            locked = v,
+                        })
+                        local drag = BETTERUI.ResourceOrbFrames.Drag
+                        if drag and drag.SetElementLocked then
+                            drag.SetElementLocked(elemKey, v, GetResourceOrbSettings)
+                        end
+                        Apply()
+                    else
+                        TraceResourceOrbSettingsReset("element_lock_toggle_skipped", {
+                            elemKey = elemKey,
+                            reason = "missingElementPosition",
+                        })
+                    end
+                end,
+            },
+            offsetX = {
+                get = function()
+                    local s = GetResourceOrbSettings()
+                    local ep = s and s.elementPositions and s.elementPositions[elemKey]
+                    return ep and ep.offsetX or 0
+                end,
+                set = function(v)
+                    local s = EnsureResourceOrbSettings()
+                    if s and s.elementPositions and s.elementPositions[elemKey] then
+                        local previous = s.elementPositions[elemKey].offsetX
+                        s.elementPositions[elemKey].offsetX = v
+                        TraceResourceOrbSettingsReset("element_offset_set", {
+                            elemKey = elemKey,
+                            axis = "x",
+                            previousOffset = previous,
+                            offset = v,
+                        })
+                        Apply()
+                    else
+                        TraceResourceOrbSettingsReset("element_offset_set_skipped", {
+                            elemKey = elemKey,
+                            axis = "x",
+                            reason = "missingElementPosition",
+                        })
+                    end
+                end,
+            },
+            offsetY = {
+                get = function()
+                    local s = GetResourceOrbSettings()
+                    local ep = s and s.elementPositions and s.elementPositions[elemKey]
+                    return ep and ep.offsetY or 0
+                end,
+                set = function(v)
+                    local s = EnsureResourceOrbSettings()
+                    if s and s.elementPositions and s.elementPositions[elemKey] then
+                        local previous = s.elementPositions[elemKey].offsetY
+                        s.elementPositions[elemKey].offsetY = v
+                        TraceResourceOrbSettingsReset("element_offset_set", {
+                            elemKey = elemKey,
+                            axis = "y",
+                            previousOffset = previous,
+                            offset = v,
+                        })
+                        Apply()
+                    else
+                        TraceResourceOrbSettingsReset("element_offset_set_skipped", {
+                            elemKey = elemKey,
+                            axis = "y",
+                            reason = "missingElementPosition",
+                        })
+                    end
+                end,
+            },
+        }
+    end
+
+    local elemPosContracts = {
+        leftOrb = CreateElemPosContract("leftOrb"), rightOrb = CreateElemPosContract("rightOrb"),
+        skillBars = CreateElemPosContract("skillBars"), xpBar = CreateElemPosContract("xpBar"),
+        mountBar = CreateElemPosContract("mountBar"), castBar = CreateElemPosContract("castBar"),
+        quickslot = CreateElemPosContract("quickslot"), companionUltimate = CreateElemPosContract("companionUltimate"),
+    }
+    sharedContracts.elemPos = elemPosContracts
 
     local settingsContracts = {
         skillBars = {
@@ -311,6 +467,19 @@ local function InitSettingsPanel(mId, moduleName)
                     { key = "orbOffsetX", value = 0 },
                     { key = "orbOffsetY", value = 0 },
                 })
+                ResetElementPositions(EnsureResourceOrbSettings())
+                Apply()
+            end,
+            disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = GetString(rawget(_G, "SI_BETTERUI_ROF_RESET_ALL_POSITIONS")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_RESET_ALL_POSITIONS_TOOLTIP")),
+            func = function()
+                ResetElementPositions(EnsureResourceOrbSettings())
+                Apply()
             end,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
             width = "half",

@@ -394,9 +394,9 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X", "Offset (Left/Right)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP",
     "Move the frame left/right. Negative moves left; positive moves right.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Reset General Settings")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Resource Orb Frames Reset")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
-    "Reset settings in this section to their default values.")
+    "Reset general frame settings and all movable element positions to defaults, then lock movable elements in place.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET", "Move Orbs Independently")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET_TOOLTIP", "When enabled, the health and resource orbs can be positioned separately from the action bar.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y", "Orb Offset (Up/Down)")
@@ -594,6 +594,19 @@ ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_SIZE", "Mount Stamina Text Size")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP", "Adjust the font size of the mount stamina text")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_COLOR", "Mount Stamina Text Color")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_COLOR_TOOLTIP", "Adjust the color of the mount stamina text")
+
+-- Element Position Settings
+ZO_CreateStringId("SI_BETTERUI_ROF_ELEM_POSITION_HEADER", "Position")
+ZO_CreateStringId("SI_BETTERUI_ROF_ELEM_LOCK_LABEL", "Lock In Place")
+ZO_CreateStringId("SI_BETTERUI_ROF_ELEM_LOCK_TOOLTIP", "When enabled, this element cannot be dragged. Uncheck to freely reposition by dragging or using the offset sliders below.")
+ZO_CreateStringId("SI_BETTERUI_ROF_ELEM_OFFSET_X_LABEL", "Offset (Left/Right)")
+ZO_CreateStringId("SI_BETTERUI_ROF_ELEM_OFFSET_X_TOOLTIP", "Horizontal position offset in pixels. Positive moves right, negative moves left.")
+ZO_CreateStringId("SI_BETTERUI_ROF_ELEM_OFFSET_Y_LABEL", "Offset (Up/Down)")
+ZO_CreateStringId("SI_BETTERUI_ROF_ELEM_OFFSET_Y_TOOLTIP", "Vertical position offset in pixels. Positive moves down, negative moves up.")
+ZO_CreateStringId("SI_BETTERUI_ROF_ELEM_RESET_POSITION", "Reset Position")
+ZO_CreateStringId("SI_BETTERUI_ROF_ELEM_RESET_POSITION_TOOLTIP", "Reset this element to its default position and lock it in place.")
+ZO_CreateStringId("SI_BETTERUI_ROF_RESET_ALL_POSITIONS", "Reset All Positions")
+ZO_CreateStringId("SI_BETTERUI_ROF_RESET_ALL_POSITIONS_TOOLTIP", "Reset all element position offsets to defaults and re-lock all elements.")
 
 -- Inventory / Banking Shared Icon Settings
 ZO_CreateStringId("SI_BETTERUI_ICON_UNBOUND", "Item Icon - Unbound Items")
