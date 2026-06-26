@@ -56,6 +56,12 @@ end
 
 --- Initializes the companion footer — hides banking controls, shows companion info.
 function BETTERUI.Companions.Class:InitCompanionFooter()
+    -- P2(compatibility): The footer controls (Withdraw/Deposit/DividerCentre)
+    -- come from the GenericWindow virtual template. If that template is ever
+    -- shared with Banking/Vendor, mutating handlers/icons/labels here without
+    -- capturing and restoring the original state on scene hide would leak
+    -- companion-specific changes into those scenes. Consider adding a restore
+    -- pass hooked to the scene's StateChange/Hidden callback.
     local footerRoot = self.footer and self.footer:GetNamedChild("Footer")
     if not footerRoot then return end
 

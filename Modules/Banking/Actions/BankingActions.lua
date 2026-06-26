@@ -141,6 +141,35 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         return CanJunkWithPolicy(targetData.bagId, targetData.slotIndex)
     end
 
+    local function UnregisterDialogSelectionCallback(dialog)
+        local entryList = dialog and dialog.entryList or nil
+        local callback = dialog and dialog._betteruiBankingActionSelectionCallback or nil
+        if not callback then
+            return true
+        end
+        if not (entryList and entryList.RemoveOnSelectedDataChangedCallback) then
+            return false
+        end
+        entryList:RemoveOnSelectedDataChangedCallback(callback)
+        dialog._betteruiBankingActionSelectionCallback = nil
+        return true
+    end
+
+    local function RegisterDialogSelectionCallback(dialog)
+        local entryList = dialog and dialog.entryList or nil
+        if not (entryList and entryList.SetOnSelectedDataChangedCallback) then
+            return
+        end
+        if not UnregisterDialogSelectionCallback(dialog) then
+            return
+        end
+        local callback = function(list, selectedData)
+            self.itemActions:SetSelectedAction(selectedData and selectedData.action)
+        end
+        dialog._betteruiBankingActionSelectionCallback = callback
+        entryList:SetOnSelectedDataChangedCallback(callback)
+    end
+
     local function TraceBankingActionDialog(event, phase, data)
         local L = BETTERUI.Log
         if not (L and L.TraceEvent) then return end
@@ -210,9 +239,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 
     local function ActionDialogSetup(dialog)
         if BETTERUI.Utils.IsBankingSceneShowing() then
-            dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
-                self.itemActions:SetSelectedAction(selectedData and selectedData.action)
-            end)
+            RegisterDialogSelectionCallback(dialog)
 
             local parametricList = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(parametricList)
@@ -336,6 +363,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     end
 
     local function ActionDialogFinish(dialog)
+        UnregisterDialogSelectionCallback(dialog)
         local closeCause = dialog and dialog._betteruiCloseCause or "dismissed"
         if BETTERUI.Utils.IsBankingSceneShowing() then
             local pendingHeaderSort = self._pendingHeaderSortFromDialog == true
@@ -623,6 +651,25 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         end
     end
 
+    if not (CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback) then
+        return
+    end
+
+    local previousCallbacks = self._betteruiBankingActionDialogCallbacks
+    if previousCallbacks then
+        if not CALLBACK_MANAGER.UnregisterCallback then
+            return
+        end
+        CALLBACK_MANAGER:UnregisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", previousCallbacks.setup)
+        CALLBACK_MANAGER:UnregisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", previousCallbacks.finish)
+        CALLBACK_MANAGER:UnregisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", previousCallbacks.confirm)
+    end
+
+    self._betteruiBankingActionDialogCallbacks = {
+        setup = ActionDialogSetup,
+        finish = ActionDialogFinish,
+        confirm = ActionDialogButtonConfirm,
+    }
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", ActionDialogFinish)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)

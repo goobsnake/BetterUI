@@ -561,13 +561,30 @@ function BETTERUI.Inventory.List:Initialize(control, options)
         end
     end
 
+    local shouldRegisterSharedInventoryCallbacks = true
+    local previousSharedInventoryCallbacks = self._betteruiSharedInventoryCallbacks
+    if previousSharedInventoryCallbacks then
+        if SHARED_INVENTORY.UnregisterCallback then
+            SHARED_INVENTORY:UnregisterCallback("FullInventoryUpdate", previousSharedInventoryCallbacks.full)
+            SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", previousSharedInventoryCallbacks.single)
+        else
+            shouldRegisterSharedInventoryCallbacks = false
+        end
+    end
+
     self:SetOnSelectedDataChangedCallback(SelectionChangedCallback)
 
     self.control:SetHandler("OnEffectivelyShown", OnEffectivelyShown)
     self.control:SetHandler("OnEffectivelyHidden", OnEffectivelyHidden)
 
-    SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", OnInventoryUpdated)
-    SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", OnSingleSlotInventoryUpdate)
+    if shouldRegisterSharedInventoryCallbacks then
+        self._betteruiSharedInventoryCallbacks = {
+            full = OnInventoryUpdated,
+            single = OnSingleSlotInventoryUpdate,
+        }
+        SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", OnInventoryUpdated)
+        SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", OnSingleSlotInventoryUpdate)
+    end
 end
 
 --- Populates the slot table with accepted item data for the list.

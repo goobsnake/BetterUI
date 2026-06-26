@@ -39,6 +39,20 @@ local CAST_BAR_ORB_FILL_STYLES = {
 }
 local CAST_BAR_POWER_PROBE_WINDOW_MS = 450
 
+-- Compatibility: capture the original hidden state of native ESO cast-bar
+-- controls before hiding them, and restore on module disable. The suppression
+-- is also gated on the module being enabled so EVENT_PLAYER_ACTIVATED cannot
+-- re-hide the controls while the module is turned off.
+local m_originalPlayerProgressHidden = nil
+local m_originalGamepadProgressHidden = nil
+local m_defaultCastBarStateCaptured = false
+
+local function IsCastBarSuppressionEnabled()
+    return BETTERUI.ResourceOrbFrames
+        and BETTERUI.ResourceOrbFrames.IsEnabled
+        and BETTERUI.ResourceOrbFrames.IsEnabled() == true
+end
+
 local function TraceCastBar(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
@@ -416,8 +430,29 @@ function CastBar:Initialize(parent)
         -- ZO_PlayerProgressBar_Gamepad (gamepad). ESO has no default cast bar
         -- control, and PLAYER_PROGRESS_BAR_FRAGMENT is a plain ZO_SceneFragment
         -- without SetHiddenForReason, so hide the top-level controls directly.
-        if ZO_PlayerProgress then ZO_PlayerProgress:SetHidden(true) end
-        if ZO_PlayerProgressBar_Gamepad then ZO_PlayerProgressBar_Gamepad:SetHidden(true) end
+        -- Compatibility: only suppress while the module is enabled, and capture
+        -- the original hidden state so it can be restored on disable.
+        if not IsCastBarSuppressionEnabled() then
+            return
+        end
+
+        if ZO_PlayerProgress then
+            if not m_defaultCastBarStateCaptured then
+                local ok, hidden = pcall(function() return ZO_PlayerProgress:IsHidden() end)
+                m_originalPlayerProgressHidden = ok and hidden or false
+            end
+            ZO_PlayerProgress:SetHidden(true)
+        end
+
+        if ZO_PlayerProgressBar_Gamepad then
+            if not m_defaultCastBarStateCaptured then
+                local ok, hidden = pcall(function() return ZO_PlayerProgressBar_Gamepad:IsHidden() end)
+                m_originalGamepadProgressHidden = ok and hidden or false
+            end
+            ZO_PlayerProgressBar_Gamepad:SetHidden(true)
+        end
+
+        m_defaultCastBarStateCaptured = true
     end
     HideDefaultCastBar()
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED,
@@ -637,6 +672,26 @@ function MountStaminaBar:OnMountedStateChanged(isMounted)
         current = self.currentValue,
         max = self.maxValue,
     })
+end
+
+--- Restores the hidden state of the native cast-bar controls that were
+--- suppressed by HideDefaultCastBar. Called from ResourceOrbFrames.RestoreNativeBars.
+function Bars.RestoreDefaultCastBar()
+    if not m_defaultCastBarStateCaptured then
+        return
+    end
+
+    if ZO_PlayerProgress then
+        pcall(function() ZO_PlayerProgress:SetHidden(m_originalPlayerProgressHidden) end)
+    end
+
+    if ZO_PlayerProgressBar_Gamepad then
+        pcall(function() ZO_PlayerProgressBar_Gamepad:SetHidden(m_originalGamepadProgressHidden) end)
+    end
+
+    -- Reset capture so the next enable re-captures the current state rather
+    -- than assuming the UI still matches the initial load state.
+    m_defaultCastBarStateCaptured = false
 end
 
 -- Share class tables with OrbBarUpdates.lua before factory functions are attached.

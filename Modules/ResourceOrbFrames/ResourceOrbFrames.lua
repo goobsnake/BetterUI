@@ -37,6 +37,7 @@ local m_experienceBar = nil
 local m_castBar = nil
 local m_mountStaminaBar = nil
 local m_traceLastActionSuppressionDepth = 0
+local m_sceneHandlersRegistered = false
 
 local LAST_ACTION_SUPPRESSED_EVENTS = {
     ["resource_orbs.force_layout"] = true,
@@ -220,6 +221,8 @@ local function IsResourceOrbFramesEnabled()
     local settings = GetSettings and GetSettings() or nil
     return settings and settings.m_enabled == true
 end
+
+ResourceOrbFrames.IsEnabled = IsResourceOrbFramesEnabled
 
 local function SkipDisabledCallback(fn, event)
     if IsResourceOrbFramesEnabled() then
@@ -535,6 +538,10 @@ local function RestoreNativeBars()
     if skillBar and skillBar.RestoreNativeActionBar then
         skillBar.RestoreNativeActionBar()
     end
+    -- Restore the native cast-bar controls that OrbBars suppressed.
+    if Bars and Bars.RestoreDefaultCastBar then
+        Bars.RestoreDefaultCastBar()
+    end
     TraceROF("resource_orbs.native_bars", "restore_end", {
         fn = "ResourceOrbFrames.RestoreNativeBars",
         hiddenReason = "ResourceOrbFrames",
@@ -549,6 +556,10 @@ local function RegisterDynamicEvents(control)
         hasControl = control ~= nil,
     })    
     -- Layout force update (skip during weapon swap animation to prevent orb shifting)
+    -- P2(compatibility): This callback stays registered while the module is
+    -- disabled; it early-exits via SkipDisabledCallback, but it still runs on
+    -- every BetterUI_ForceLayoutUpdate broadcast. If other modules fire this
+    -- callback frequently, consider unregistering when disabled.
     CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
         RunTraceWithoutLastAction(function()
             if SkipDisabledCallback("ResourceOrbFrames.BetterUI_ForceLayoutUpdate", "resource_orbs.force_layout") then return end
@@ -1050,8 +1061,12 @@ function ResourceOrbFrames.ApplySettings()
         if Events.SetLoopsEnabled then
             Events.SetLoopsEnabled(true)
         end
-        if Events.SetupSceneHandlers then
+        -- Guard scene-handler registration so repeated enable toggles do not
+        -- accumulate SCENE_MANAGER callbacks if Events.SetupSceneHandlers is not
+        -- internally idempotent.
+        if Events.SetupSceneHandlers and not m_sceneHandlersRegistered then
             Events.SetupSceneHandlers(m_rootFrame)
+            m_sceneHandlersRegistered = true
         end
         ApplyFullLayout()
         RefreshAllData()

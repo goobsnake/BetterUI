@@ -85,6 +85,61 @@ local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselec
     end
 end
 
+local function AppendUniqueCallback(callbacks, seen, callback)
+    if type(callback) ~= "function" or seen[callback] then
+        return
+    end
+    seen[callback] = true
+    callbacks[#callbacks + 1] = callback
+end
+
+local function SetCooperativeSelectedDataChangedCallbacks(tabBar, callbacks)
+    if not tabBar or type(tabBar.SetOnSelectedDataChangedCallback) ~= "function" then
+        return
+    end
+
+    local previousBetterUICallback = rawget(tabBar, "_betteruiSelectedDataChangedCallback")
+    if previousBetterUICallback and type(tabBar.RemoveOnSelectedDataChangedCallback) == "function" then
+        tabBar:RemoveOnSelectedDataChangedCallback(previousBetterUICallback)
+    end
+
+    local installedCallbacks = {}
+    local seen = {}
+    local preservedExternalCallback = nil
+
+    local currentCallback = rawget(tabBar, "onSelectedDataChangedCallback")
+    if type(currentCallback) == "function" and currentCallback ~= previousBetterUICallback then
+        preservedExternalCallback = currentCallback
+        AppendUniqueCallback(installedCallbacks, seen, currentCallback)
+    end
+
+    local previousExternalCallback = rawget(tabBar, "_betteruiPreservedSelectedDataChangedCallback")
+    if type(previousExternalCallback) == "function" then
+        preservedExternalCallback = preservedExternalCallback or previousExternalCallback
+        AppendUniqueCallback(installedCallbacks, seen, previousExternalCallback)
+    end
+
+    for _, callback in ipairs(callbacks or {}) do
+        AppendUniqueCallback(installedCallbacks, seen, callback)
+    end
+
+    if #installedCallbacks == 0 then
+        tabBar._betteruiSelectedDataChangedCallback = nil
+        tabBar._betteruiPreservedSelectedDataChangedCallback = nil
+        return
+    end
+
+    local compositeCallback = function(...)
+        for i = 1, #installedCallbacks do
+            installedCallbacks[i](...)
+        end
+    end
+
+    tabBar._betteruiSelectedDataChangedCallback = compositeCallback
+    tabBar._betteruiPreservedSelectedDataChangedCallback = preservedExternalCallback
+    tabBar:SetOnSelectedDataChangedCallback(compositeCallback)
+end
+
 ---@param control table
 ---@param data table
 ---@return nil
@@ -225,6 +280,13 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
     local tabBar = control.tabBar
     if not tabBar then return end
 
+    local selectedDataCallbacks = {}
+    local function AddSelectedDataCallback(callback)
+        if type(callback) == "function" then
+            selectedDataCallbacks[#selectedDataCallbacks + 1] = callback
+        end
+    end
+
     local carouselConfig = data.carouselConfig
     if carouselConfig then
         if carouselConfig.startOffset then
@@ -241,9 +303,8 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
         end
     end
 
-    if data.callback then
-        tabBar:SetOnSelectedDataChangedCallback(data.callback)
-    end
+    AddSelectedDataCallback(data.callback)
+    SetCooperativeSelectedDataChangedCallbacks(tabBar, selectedDataCallbacks)
 
     tabBar:Commit(blockTabBarCallbacks)
 
@@ -254,13 +315,12 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
     end
 
     if onChange then
-        if blockTabBarCallbacks then
-            tabBar:RemoveOnSelectedDataChangedCallback(onChange)
-        else
-            tabBar:SetOnSelectedDataChangedCallback(onChange)
+        if not blockTabBarCallbacks then
+            AddSelectedDataCallback(onChange)
         end
+        SetCooperativeSelectedDataChangedCallbacks(tabBar, selectedDataCallbacks)
     else
-        tabBar:RemoveOnSelectedDataChangedCallback(nil)
+        SetCooperativeSelectedDataChangedCallbacks(tabBar, selectedDataCallbacks)
     end
 
     if data.activatedCallback then
@@ -270,6 +330,7 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
     tabBar:Commit()
 
     if blockTabBarCallbacks and onChange then
-        tabBar:SetOnSelectedDataChangedCallback(onChange)
+        AddSelectedDataCallback(onChange)
+        SetCooperativeSelectedDataChangedCallbacks(tabBar, selectedDataCallbacks)
     end
 end

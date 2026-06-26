@@ -173,10 +173,15 @@ local function InstallMailDeleteHook()
 		for _, descriptor in ipairs(mailInbox.mainKeybindDescriptor) do
 			if type(descriptor) == "table" and descriptor.keybind == "UI_SHORTCUT_SECONDARY" then
 				local origCallback = descriptor.callback
-				if type(origCallback) ~= "function" or descriptor._betteruiDeleteHookInstalled then
-					return descriptor._betteruiDeleteHookInstalled == true
+				if descriptor._betteruiDeleteHookInstalled
+					and origCallback == descriptor._betteruiDeleteHookCallback then
+					return true
+				end
+				if type(origCallback) ~= "function" then
+					return false
 				end
 
+				descriptor._betteruiDeleteHookOriginalCallback = origCallback
 				descriptor.callback = function(...)
 					local moduleSettings = BETTERUI.GetModuleSettings("GeneralInterface")
 					local selectedMail = SnapshotSelectedMail(mailInbox)
@@ -199,6 +204,7 @@ local function InstallMailDeleteHook()
 					TraceGeneralInterface("general_interface.mail_delete", "native_callback_dispatched", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, result = result })
 					return result
 				end
+				descriptor._betteruiDeleteHookCallback = descriptor.callback
 				descriptor._betteruiDeleteHookInstalled = true
 				TraceGeneralInterface("general_interface.mail_delete", "hook_installed", { fn = "HookMailDeleteDescriptor", shortcut = descriptor.keybind })
 				return true
@@ -214,13 +220,17 @@ local function InstallMailDeleteHook()
 			return false
 		end
 
-		if type(mailInbox.InitializeKeybindDescriptors) == "function" and not mailInbox._betteruiDeleteDescriptorPreHookInstalled then
-			ZO_PreHook(mailInbox, "InitializeKeybindDescriptors", function(self)
+		local hookInstaller = type(ZO_PostHook) == "function" and ZO_PostHook or ZO_PreHook
+		if type(mailInbox.InitializeKeybindDescriptors) == "function"
+			and hookInstaller
+			and not mailInbox._betteruiDeleteDescriptorHookInstalled then
+			hookInstaller(mailInbox, "InitializeKeybindDescriptors", function(self)
 				TraceGeneralInterface("general_interface.mail_delete", "descriptor_rebuilt", { fn = "InitializeKeybindDescriptors" })
 				HookMailDeleteDescriptor(self)
 			end)
+			mailInbox._betteruiDeleteDescriptorHookInstalled = true
 			mailInbox._betteruiDeleteDescriptorPreHookInstalled = true
-			TraceGeneralInterface("general_interface.mail_delete", "prehook_installed", { fn = "InstallOnLiveMailInbox", method = "InitializeKeybindDescriptors" })
+			TraceGeneralInterface("general_interface.mail_delete", "hook_installed", { fn = "InstallOnLiveMailInbox", method = "InitializeKeybindDescriptors", postHook = hookInstaller == ZO_PostHook })
 		end
 
 		return HookMailDeleteDescriptor(mailInbox)
@@ -385,19 +395,26 @@ local function RegisterGuildStoreSuppression(tooltipHelpers)
 		return
 	end
 
+	GeneralInterface._guildStoreSuppressionRegisteredScenes = GeneralInterface._guildStoreSuppressionRegisteredScenes or {}
+	if GeneralInterface._guildStoreSuppressionRegisteredScenes.gamepad_trading_house then
+		TraceGeneralInterface("general_interface.guild_store_suppression", "skipped", { fn = "RegisterGuildStoreSuppression", reason = "alreadyRegistered", scene = "gamepad_trading_house" })
+		return
+	end
+
 	-- IMPORTANT: never touch the global "ErrorFrame" EVENT_LUA_ERROR registration.
 	-- Unregistering it would permanently disable Lua error display game-wide
 	-- (ZOS registers it once with a callback we cannot restore). Suppression is
 	-- handled entirely through the addon-local SetGuildStoreErrorSuppressed flag.
 	scene:RegisterCallback("StateChange", function(oldState, newState)
-		if not (tooltipHelpers and type(tooltipHelpers.SetGuildStoreErrorSuppressed) == "function") then
+		local activeTooltipHelpers = GeneralInterface.Tooltips or tooltipHelpers
+		if not (activeTooltipHelpers and type(activeTooltipHelpers.SetGuildStoreErrorSuppressed) == "function") then
 			TraceGeneralInterface("general_interface.guild_store_suppression", "state_skipped", { fn = "StateChange", reason = "missingHelper", oldState = oldState, newState = newState })
 			return
 		end
 		if newState == SCENE_SHOWING then
 			local moduleSettings = BETTERUI.GetModuleSettings("GeneralInterface")
 			if moduleSettings and moduleSettings.guildStoreErrorSuppress then
-				tooltipHelpers.SetGuildStoreErrorSuppressed(true)
+				activeTooltipHelpers.SetGuildStoreErrorSuppressed(true)
 				TraceGeneralInterface("general_interface.guild_store_suppression", "state_changed", { fn = "StateChange", oldState = oldState, newState = newState, suppressed = true })
 			else
 				TraceGeneralInterface("general_interface.guild_store_suppression", "state_changed", { fn = "StateChange", oldState = oldState, newState = newState, suppressed = false, reason = "settingDisabled" })
@@ -405,14 +422,24 @@ local function RegisterGuildStoreSuppression(tooltipHelpers)
 		elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
 			-- Always clear on hide so suppression cannot leak past the scene
 			-- (even if the setting was toggled off while the scene was showing).
-			tooltipHelpers.SetGuildStoreErrorSuppressed(false)
+			activeTooltipHelpers.SetGuildStoreErrorSuppressed(false)
 			TraceGeneralInterface("general_interface.guild_store_suppression", "state_changed", { fn = "StateChange", oldState = oldState, newState = newState, suppressed = false })
 		end
 	end)
+	GeneralInterface._guildStoreSuppressionRegisteredScenes.gamepad_trading_house = true
 	TraceGeneralInterface("general_interface.guild_store_suppression", "registered", { fn = "RegisterGuildStoreSuppression", scene = "gamepad_trading_house" })
 end
 
 local function RegisterTooltipCacheInvalidation()
+	if GeneralInterface._tooltipCacheInvalidationRegistered then
+		TraceGeneralInterface("general_interface.tooltip_cache", "events_skipped", { fn = "RegisterTooltipCacheInvalidation", reason = "alreadyRegistered" })
+		return
+	end
+	if not (BETTERUI.EventManager and type(BETTERUI.EventManager.RegisterForEvent) == "function") then
+		TraceGeneralInterface("general_interface.tooltip_cache", "events_skipped", { fn = "RegisterTooltipCacheInvalidation", reason = "missingEventManager" })
+		return
+	end
+
 	local function invalidateCacheOnUpdate(_, bagId)
 		if type(GeneralInterface.InvalidateResearchableTraitCache) == "function" then
 			GeneralInterface.InvalidateResearchableTraitCache(bagId)
@@ -426,6 +453,7 @@ local function RegisterTooltipCacheInvalidation()
 		invalidateCacheOnUpdate)
 	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvFull", EVENT_INVENTORY_FULL_UPDATE,
 		invalidateCacheOnUpdate)
+	GeneralInterface._tooltipCacheInvalidationRegistered = true
 	TraceGeneralInterface("general_interface.tooltip_cache", "events_registered", { fn = "RegisterTooltipCacheInvalidation" })
 end
 

@@ -23,6 +23,8 @@ Vendor._sessionHasBuyMode = false
 
 local SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME = "BETTERUI_VENDOR_SELL_ALL_JUNK_DIALOG"
 local DEFAULT_STABLE_INTERACTION_ICON = "EsoUI/Art/Collections/Default/collections_default_mount.dds"
+local vendorSellAllJunkDialogRegistered = false
+local vendorBatchDialogRegistered = false
 
 local function ResolveVendorRuntimeDependency(fieldName, label)
     local dependency = Vendor[fieldName]
@@ -778,11 +780,11 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
-                    ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
+                    local ok, registered = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
                         "Vendor.RegisterBatchDialog",
                         RegisterVendorBatchDialog
                     )
-                    if ZO_Dialogs_ShowGamepadDialog then
+                    if ok and registered ~= false and ZO_Dialogs_ShowGamepadDialog then
                         ZO_Dialogs_ShowGamepadDialog("BETTERUI_VENDOR_BATCH_DIALOG")
                     end
                     return
@@ -991,10 +993,14 @@ function Vendor.ResolveBatchOptions(batchOptions)
 end
 
 local function RegisterVendorSellAllJunkDialog()
+    if vendorSellAllJunkDialogRegistered then
+        return true
+    end
     if not (ZO_Dialogs_RegisterCustomDialog and GAMEPAD_DIALOGS and GAMEPAD_DIALOGS.BASIC) then
         return false
     end
     if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME) then
+        vendorSellAllJunkDialogRegistered = true
         return true
     end
 
@@ -1027,6 +1033,7 @@ local function RegisterVendorSellAllJunkDialog()
         },
     })
 
+    vendorSellAllJunkDialogRegistered = true
     return true
 end
 
@@ -1044,11 +1051,11 @@ function Vendor.ShowSellAllJunkDialog(vendorInstance, component)
     }
 
     if ZO_Dialogs_ShowGamepadDialog then
-                local ok = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
-                    "Vendor.RegisterSellAllJunkDialog",
-                    RegisterVendorSellAllJunkDialog
-                )
-        if ok and (not ZO_Dialogs_IsDialogRegistered or ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME)) then
+        local ok, registered = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
+            "Vendor.RegisterSellAllJunkDialog",
+            RegisterVendorSellAllJunkDialog
+        )
+        if ok and registered ~= false and (not ZO_Dialogs_IsDialogRegistered or ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME)) then
             ZO_Dialogs_ShowGamepadDialog(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME, dialogData)
             return true
         end
@@ -1063,8 +1070,15 @@ function Vendor.ShowSellAllJunkDialog(vendorInstance, component)
 end
 
 RegisterVendorBatchDialog = function()
+    if vendorBatchDialogRegistered then
+        return true
+    end
+    if not (ZO_Dialogs_RegisterCustomDialog and GAMEPAD_DIALOGS and GAMEPAD_DIALOGS.PARAMETRIC) then
+        return false
+    end
     if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered("BETTERUI_VENDOR_BATCH_DIALOG") then
-        return
+        vendorBatchDialogRegistered = true
+        return true
     end
     ZO_Dialogs_RegisterCustomDialog("BETTERUI_VENDOR_BATCH_DIALOG", {
         canQueue = true,
@@ -1181,6 +1195,8 @@ RegisterVendorBatchDialog = function()
             },
         },
     })
+    vendorBatchDialogRegistered = true
+    return true
 end
 
 -- TAB CYCLING

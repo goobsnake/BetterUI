@@ -452,6 +452,9 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             })
             return
         end
+        if self.control.UnregisterForEvent then
+            self.control:UnregisterForEvent(eventId)
+        end
         self.control:RegisterForEvent(eventId, handler)
         if BETTERUI.Log then
             BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = eventName })
@@ -467,6 +470,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     -- Extend this BetterUI-owned list to move "up" from the top into the header.
     -- When there is no previous entry, go to search bar (like Inventory) instead of header sort mode.
+    -- Compatibility: this wrapper changes the return value, so a post-hook cannot preserve behavior.
     if self.list and self.list.MovePrevious and not self.list._betteruiMovePreviousWrapperInstalled then
         local _origMovePrevious = self.list.MovePrevious
         self.list._betteruiMovePreviousWrapperInstalled = true
