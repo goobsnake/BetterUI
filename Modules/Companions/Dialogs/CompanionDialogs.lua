@@ -67,13 +67,27 @@ local function ExecuteBatchDestroy(destroyTargets)
     local delay = 0
     for _, target in ipairs(destroyTargets or {}) do
         zo_callLater(function()
-            if not IsCompanionActionDelaySafe() then return end
+            if not IsCompanionActionDelaySafe() then
+                TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "guard_exit", {
+                    fn = "ExecuteBatchDestroy",
+                    batchId = batchId,
+                    reason = "actionDelayUnsafe",
+                })
+                return
+            end
             Companions.QuickDestroyCompanionItem(target.bagId, target.slotIndex, target.slotType, target, batchId)
         end, delay)
         delay = delay + 80
     end
     zo_callLater(function()
-        if not IsCompanionActionDelaySafe() then return end
+        if not IsCompanionActionDelaySafe() then
+            TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "guard_exit", {
+                fn = "ExecuteBatchDestroy",
+                batchId = batchId,
+                reason = "actionDelayUnsafe",
+            })
+            return
+        end
         TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "batch_end", {
             fn = "ExecuteBatchDestroy",
             batchId = batchId,
@@ -375,7 +389,14 @@ local function RegisterCompanionBatchDialog()
                         local slotIndex = ds.slotIndex
                         if bagId and slotIndex then
                             zo_callLater(function()
-                                if not IsCompanionActionDelaySafe() then return end
+                                if not IsCompanionActionDelaySafe() then
+                                    TraceCompanionDialog("BETTERUI_COMPANION_BATCH_DIALOG", "guard_exit", {
+                                        fn = "RegisterCompanionBatchDialog",
+                                        actionId = actionId,
+                                        reason = "actionDelayUnsafe",
+                                    })
+                                    return
+                                end
                                 Companions.ExecuteAction(actionId, itemData)
                             end, delay)
                             delay = delay + 80

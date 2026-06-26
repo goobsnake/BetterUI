@@ -363,6 +363,10 @@ function Inventory.Setup()
 			local function ReleaseSplitLockIfNoDialog()
 				if not BETTERUI.GetModuleEnabled("Inventory") then
 					Inventory._splitStackLock = nil
+					TraceInventoryModule("inventory.split_stack_lock", "module_disabled", {
+						fn = "ReleaseSplitLockIfNoDialog",
+						lockReleased = true,
+					})
 					return
 				end
 				if ZO_Dialogs_IsShowing and not ZO_Dialogs_IsShowing(ZO_GAMEPAD_SPLIT_STACK_DIALOG) then

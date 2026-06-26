@@ -410,6 +410,14 @@ end
 ---@field templateSetupFunction function|nil Full template setup override
 ---@field listModuleName string|nil Owning list module name
 
+local function TraceInventoryListCallback(event, phase, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.listModuleName = data.listModuleName or "Inventory"
+    L.TraceEvent(L.CATEGORY.LIST, event, phase, data)
+end
+
 --- Initializes the inventory list.
 --- Purpose: Sets up the parametric scroll list, data templates, and update callbacks.
 ---@param control table UI control for the list container
@@ -567,6 +575,10 @@ function BETTERUI.Inventory.List:Initialize(control, options)
         if SHARED_INVENTORY.UnregisterCallback then
             SHARED_INVENTORY:UnregisterCallback("FullInventoryUpdate", previousSharedInventoryCallbacks.full)
             SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", previousSharedInventoryCallbacks.single)
+            TraceInventoryListCallback("inventory.shared_inventory_callbacks", "unregistered", {
+                listModuleName = self.listModuleName,
+                callbacks = { "FullInventoryUpdate", "SingleSlotInventoryUpdate" },
+            })
         else
             shouldRegisterSharedInventoryCallbacks = false
         end

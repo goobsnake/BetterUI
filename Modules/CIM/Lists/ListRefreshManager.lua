@@ -212,6 +212,9 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
     -- Schedule coalesced refresh
     self.pendingRefreshCallId = zo_callLater(function()
         if refreshToken ~= self.refreshToken then
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh stale token", { expected = refreshToken, actual = self.refreshToken })
+            end
             return
         end
         self.pendingRefreshCallId = nil

@@ -278,6 +278,9 @@ local function SetupThumbDragHandlers(instance)
     -- registration for this instance before installing the new callback.
     if instance.globalMouseUpEventName and EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
         EVENT_MANAGER:UnregisterForEvent(instance.globalMouseUpEventName, EVENT_GLOBAL_MOUSE_UP)
+        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scroll indicator unregistered global mouse up", { eventName = instance.globalMouseUpEventName })
+        end
     end
     instance.globalMouseUpHandler = nil
     instance.globalMouseUpEventName = nil

@@ -9,6 +9,7 @@ local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 local _batchDialogInfo = nil
 local _craftBagDialogInfo = nil
 local TraceInventoryBatch
+local TraceDeferredGuardExit
 local ResolveDialogEntryLabel
 
 local function IsInventorySceneShowing()
@@ -69,7 +70,7 @@ local function BuildBatchDialogTemplate()
                 text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
                 callback = function()
                     zo_callLater(function()
-                        if not IsInventorySceneShowing() then return end
+                        if TraceDeferredGuardExit(nil, "refreshKeybinds") then return end
                         if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshKeybinds then
                             GAMEPAD_INVENTORY:RefreshKeybinds()
                         end
@@ -91,6 +92,25 @@ TraceInventoryBatch = function(phase, data)
     data = data or {}
     data.phase = phase
     BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "inventory batch menu", data)
+end
+
+TraceDeferredGuardExit = function(dialogName, action, manager)
+    if not IsInventorySceneShowing() then
+        TraceInventoryBatch("scene_inactive", {
+            dialogName = dialogName,
+            action = action,
+        })
+        return true
+    end
+    if manager ~= nil and not IsSelectionManagerActive(manager) then
+        TraceInventoryBatch("guard_exit", {
+            dialogName = dialogName,
+            action = action,
+            reason = "selectionInactive",
+        })
+        return true
+    end
+    return false
 end
 
 local function NormalizeTraceValue(value)
@@ -269,7 +289,7 @@ function Class:ShowBatchActionsMenu()
         function()
             ZO_Dialogs_ReleaseDialog("BETTERUI_BATCH_ACTIONS_DIALOG")
             zo_callLater(function()
-                if not IsInventorySceneShowing() or not IsSelectionManagerActive(self.multiSelectManager) then return end
+                if TraceDeferredGuardExit("BETTERUI_BATCH_ACTIONS_DIALOG", "exitSelectionMode", self.multiSelectManager) then return end
                 self:ExitSelectionMode()
             end, 50)
         end
@@ -407,7 +427,7 @@ function Class:ShowCraftBagBatchActionsMenu()
     deselectEntry.callback = function()
         ZO_Dialogs_ReleaseDialog("BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG")
         zo_callLater(function()
-            if not IsInventorySceneShowing() or not IsSelectionManagerActive(self.craftBagMultiSelectManager) then return end
+            if TraceDeferredGuardExit("BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG", "exitCraftBagSelectionMode", self.craftBagMultiSelectManager) then return end
             self:ExitCraftBagSelectionMode()
         end, 50)
     end
@@ -436,7 +456,7 @@ function Class:SelectAllCraftBagItems()
 
     ZO_Dialogs_ReleaseDialog("BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG")
     zo_callLater(function()
-        if not IsInventorySceneShowing() or not IsSelectionManagerActive(self.craftBagMultiSelectManager) then return end
+        if TraceDeferredGuardExit("BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG", "showCraftBagBatchActionsMenu", self.craftBagMultiSelectManager) then return end
         self:ShowCraftBagBatchActionsMenu()
     end, 100)
 end
@@ -452,7 +472,7 @@ function Class:SelectAllItems()
 
     ZO_Dialogs_ReleaseDialog("BETTERUI_BATCH_ACTIONS_DIALOG")
     zo_callLater(function()
-        if not IsInventorySceneShowing() or not IsSelectionManagerActive(self.multiSelectManager) then return end
+        if TraceDeferredGuardExit("BETTERUI_BATCH_ACTIONS_DIALOG", "showBatchActionsMenu", self.multiSelectManager) then return end
         self:RefreshItemList()
         self:RefreshKeybinds()
         self:ShowBatchActionsMenu()

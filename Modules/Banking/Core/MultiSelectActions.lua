@@ -527,8 +527,14 @@ function BETTERUI.Banking.Class:SelectAllItems()
     zo_callLater(function()
         -- The scene may have closed (or selection mode exited) during the delay;
         -- don't refresh/re-key/re-open the dialog against a dead scene.
-        if not IsSelectionManagerActive(self.multiSelectManager) then return end
-        if not IsBankingSceneShowing() then return end
+        if not IsSelectionManagerActive(self.multiSelectManager) then
+            TraceBankingBatch("select_all_guard_exit", { reason = "selectionManagerInactive" })
+            return
+        end
+        if not IsBankingSceneShowing() then
+            TraceBankingBatch("select_all_guard_exit", { reason = "sceneNotShowing" })
+            return
+        end
         self:RefreshList()
         BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
         self:ShowBatchActionsMenu()
@@ -643,7 +649,10 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                     text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
                     callback = function()
                         zo_callLater(function()
-                            if not IsBankingSceneShowing() then return end
+                            if not IsBankingSceneShowing() then
+                                TraceBankingBatch("dialog_dismiss_guard_exit", { reason = "sceneNotShowing" })
+                                return
+                            end
                             local window = GetBankingWindow()
                             local updateGroup = BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup
                             if window and updateGroup then
@@ -710,7 +719,14 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
         function()
             ZO_Dialogs_ReleaseDialog(dialogName)
             zo_callLater(function()
-                if not IsBankingSceneShowing() or not IsSelectionManagerActive(self.multiSelectManager) then return end
+                if not IsBankingSceneShowing() then
+                    TraceBankingBatch("deselect_all_guard_exit", { reason = "sceneNotShowing" })
+                    return
+                end
+                if not IsSelectionManagerActive(self.multiSelectManager) then
+                    TraceBankingBatch("deselect_all_guard_exit", { reason = "selectionManagerInactive" })
+                    return
+                end
                 self:ExitSelectionMode()
             end, 50)
         end

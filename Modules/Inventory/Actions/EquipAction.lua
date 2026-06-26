@@ -92,8 +92,22 @@ local function UnregisterCompanionEquipPatchEvent()
     local eventRegistry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
     if eventRegistry and type(eventRegistry.Unregister) == "function" then
         eventRegistry.Unregister("Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED)
+        TraceInventoryEquip("event_unregistered", nil, nil, {
+            route = "companion",
+            event = COMPANION_EQUIP_PATCH_EVENT_NAME,
+            eventCode = EVENT_PLAYER_ACTIVATED,
+            registry = "CIM.EventRegistry",
+            queued = companionEquipPatchQueued == true,
+        })
     elseif EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
         EVENT_MANAGER:UnregisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED)
+        TraceInventoryEquip("event_unregistered", nil, nil, {
+            route = "companion",
+            event = COMPANION_EQUIP_PATCH_EVENT_NAME,
+            eventCode = EVENT_PLAYER_ACTIVATED,
+            registry = "EVENT_MANAGER",
+            queued = companionEquipPatchQueued == true,
+        })
     end
 end
 
@@ -190,12 +204,23 @@ local function EnsureCompanionEquipPatched()
             EnsureCompanionEquipPatched()
         end
 
+        local registryName = nil
         if eventRegistry and type(eventRegistry.Register) == "function" then
             companionEquipPatchQueued = eventRegistry.Register(
                 "Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated) == true
+            registryName = "CIM.EventRegistry"
         elseif EVENT_MANAGER and EVENT_MANAGER.RegisterForEvent then
             companionEquipPatchQueued = true
             EVENT_MANAGER:RegisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+            registryName = "EVENT_MANAGER"
+        end
+        if companionEquipPatchQueued and registryName then
+            TraceInventoryEquip("event_registered", nil, nil, {
+                route = "companion",
+                event = COMPANION_EQUIP_PATCH_EVENT_NAME,
+                eventCode = EVENT_PLAYER_ACTIVATED,
+                registry = registryName,
+            })
         end
     end
     if not companionEquipPatchRetryPending and BETTERUI.Inventory.Tasks then

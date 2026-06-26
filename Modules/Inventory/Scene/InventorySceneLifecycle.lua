@@ -30,14 +30,31 @@ local function NormalizeInventoryListType(listType, fallback)
 	return fallback
 end
 
+local function TraceInventorySceneCallback(event, phase, data)
+	local L = BETTERUI.Log
+	if not (L and L.TraceEvent) then return end
+	data = data or {}
+	data.fn = data.fn or "InventorySceneLifecycle"
+	data.scene = ZO_GAMEPAD_INVENTORY_SCENE_NAME
+	data.currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+	local categories = L.CATEGORY or {}
+	L.TraceEvent(categories.LIFECYCLE or categories.SCENE, event, phase, data)
+end
+
 local function RegisterSharedInventoryCallback(callbackName, callback)
 	if not (SHARED_INVENTORY and callbackName and callback and SHARED_INVENTORY.RegisterCallback) then
 		return
 	end
 	if SHARED_INVENTORY.UnregisterCallback then
 		SHARED_INVENTORY:UnregisterCallback(callbackName, callback)
+		TraceInventorySceneCallback("inventory.shared_inventory_callback", "unregistered", {
+			callbackName = callbackName,
+		})
 	end
 	SHARED_INVENTORY:RegisterCallback(callbackName, callback)
+	TraceInventorySceneCallback("inventory.shared_inventory_callback", "registered", {
+		callbackName = callbackName,
+	})
 end
 
 local function RegisterItemPreviewCallback(callbackName, callback)

@@ -662,6 +662,12 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         })
         zo_callLater(function()
             if not self:IsBatchActive() then
+                TraceVendorBatch("vendor.batch_ack", "stale_callback_skipped", {
+                    fn = "Vendor.BatchRunner.ContinueAfterDelay.timeout",
+                    mode = self.mode,
+                    reason = "notProcessing",
+                    token = token,
+                })
                 return
             end
             if self.awaitingAck and token == self.ackWaitToken then
@@ -944,6 +950,13 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         })
         zo_callLater(function()
             if not self:IsBatchActive() then
+                TraceVendorBatch("vendor.batch_step", "stale_callback_skipped", {
+                    fn = "Vendor.BatchRunner.Step.delay",
+                    mode = self.mode,
+                    reason = "notProcessing",
+                    index = self.index,
+                    delayMs = nextDelayMs,
+                })
                 return
             end
             self:ContinueAfterDelay(shouldAwaitAck)
@@ -989,6 +1002,12 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
             })
             zo_callLater(function()
                 if not self:IsBatchActive() then
+                    TraceVendorBatch("vendor.batch_start", "stale_callback_skipped", {
+                        fn = "Vendor.BatchRunner.StartAfterDialogDismiss.waitDialog",
+                        mode = self.mode,
+                        reason = "notProcessing",
+                        remainingMs = remainingMs,
+                    })
                     return
                 end
                 self:StartAfterDialogDismiss(remainingMs - 25)

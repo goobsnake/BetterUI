@@ -139,15 +139,20 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     --    RestorePosition cannot fire after teardown (against a hidden/torn-down scene).
     --    Covers managers held on the screen via the conventional field names.
     local cancelledRefreshManagers = {}
-    local function CancelRefreshManager(refreshManager)
+    local cancelledAliases = {}
+    local function CancelRefreshManager(refreshManager, alias)
         if refreshManager and refreshManager.Cancel and not cancelledRefreshManagers[refreshManager] then
             cancelledRefreshManagers[refreshManager] = true
+            table.insert(cancelledAliases, alias)
             refreshManager:Cancel()
         end
     end
-    CancelRefreshManager(screen.refreshManager)
-    CancelRefreshManager(screen.listRefreshManager)
-    CancelRefreshManager(screen.RefreshManager)
+    CancelRefreshManager(screen.refreshManager, "refreshManager")
+    CancelRefreshManager(screen.listRefreshManager, "listRefreshManager")
+    CancelRefreshManager(screen.RefreshManager, "RefreshManager")
+    if BETTERUI.Log and BETTERUI.Log.IsActive() and #cancelledAliases > 0 then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "scene cleanup cancelled refresh managers", { aliases = cancelledAliases })
+    end
 
     -- 7. Cancel any pending coalesced header-navigation category-change timer.
     if BETTERUI.CIM.HeaderNavigation and BETTERUI.CIM.HeaderNavigation.CancelPending then

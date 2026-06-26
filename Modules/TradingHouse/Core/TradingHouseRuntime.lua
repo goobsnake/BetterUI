@@ -96,6 +96,11 @@ local function AddSceneFragmentIfMissing(scene, fragment)
         return
     end
     if scene.HasFragment and scene:HasFragment(fragment) then
+        TraceTHRuntime("trading_house.scene_fragment", "skipped", {
+            fn = "AddSceneFragmentIfMissing",
+            reason = "alreadyPresent",
+            fragment = tostring(fragment),
+        })
         return
     end
     scene:AddFragment(fragment)

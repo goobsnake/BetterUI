@@ -57,17 +57,21 @@ end
 --- Hooks the native Y-button Action Dialog.
 ---@return nil
 function BETTERUI.Inventory.HookActionDialog()
-    local existingActionDialogInfo = ESO_Dialogs and ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG] or nil
-    if BETTERUI.Inventory._actionDialogHookInstalled
-        or (existingActionDialogInfo and existingActionDialogInfo._betteruiInventoryActionDialogHook) then
-        BETTERUI.Inventory._actionDialogHookInstalled = true
-        return
-    end
-
     local function TraceInventoryActionDialog(event, phase, data)
         local L = BETTERUI.Log
         if not (L and L.TraceEvent) then return end
         L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
+    end
+
+    local existingActionDialogInfo = ESO_Dialogs and ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG] or nil
+    if BETTERUI.Inventory._actionDialogHookInstalled
+        or (existingActionDialogInfo and existingActionDialogInfo._betteruiInventoryActionDialogHook) then
+        TraceInventoryActionDialog("inventory.action_dialog", "already_hooked", {
+            installedFlag = BETTERUI.Inventory._actionDialogHookInstalled == true,
+            dialogMarked = existingActionDialogInfo and existingActionDialogInfo._betteruiInventoryActionDialogHook == true,
+        })
+        BETTERUI.Inventory._actionDialogHookInstalled = true
+        return
     end
 
     local function TraceInventoryDestroyAction(phase, targetData, data)

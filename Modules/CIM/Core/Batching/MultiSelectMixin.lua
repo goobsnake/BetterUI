@@ -625,7 +625,12 @@ function Mixin.ProcessBatchThrottled(self, request)
 
     processNext = function()
         -- Pipeline token guard: reject stale timer callbacks from previous batch
-        if pipelineToken ~= self_ref.batchPipelineToken then return end
+        if pipelineToken ~= self_ref.batchPipelineToken then
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch pipeline stale token", { expected = pipelineToken, actual = self_ref.batchPipelineToken })
+            end
+            return
+        end
         local actionQueued
         local bagId, slotIndex
         while true do
@@ -731,22 +736,42 @@ function Mixin.ProcessBatchThrottled(self, request)
     end
 
     local function StartBatchAfterDialogDismiss(remainingWaitMs, settleDelayMs)
-        if pipelineToken ~= self_ref.batchPipelineToken then return end
-        if not self_ref.isBatchProcessing then return end
+        if pipelineToken ~= self_ref.batchPipelineToken then
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch dialog dismiss stale token", { expected = pipelineToken, actual = self_ref.batchPipelineToken })
+            end
+            return
+        end
+        if not self_ref.isBatchProcessing then
+            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch dialog dismiss not processing", { pipelineToken = pipelineToken })
+            end
+            return
+        end
         if self_ref.batchAbortRequested then stopReason = "aborted"; finishBatch(); return end
         if not BatchConfig.IsBatchSceneShowing(self_ref) then stopReason = "sceneExit"; finishBatch(); return end
 
         local dialogShowing = BatchOverlay.IsAnyBatchActionDialogShowing()
         if dialogShowing and remainingWaitMs > 0 then
             zo_callLater(function()
-                if pipelineToken ~= self_ref.batchPipelineToken then return end
+                if pipelineToken ~= self_ref.batchPipelineToken then
+                    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch dialog poll stale token", { expected = pipelineToken, actual = self_ref.batchPipelineToken })
+                    end
+                    return
+                end
                 StartBatchAfterDialogDismiss(zo_max(remainingWaitMs - BatchConfig.BATCH_STATUS_DIALOG_CLOSE_POLL_MS, 0), settleDelayMs)
             end, BatchConfig.BATCH_STATUS_DIALOG_CLOSE_POLL_MS)
             return
         end
         if (not dialogShowing) and (settleDelayMs or 0) > 0 then
             zo_callLater(function()
-                if pipelineToken ~= self_ref.batchPipelineToken then return end
+                if pipelineToken ~= self_ref.batchPipelineToken then
+                    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch settle stale token", { expected = pipelineToken, actual = self_ref.batchPipelineToken })
+                    end
+                    return
+                end
                 StartBatchAfterDialogDismiss(remainingWaitMs, 0)
             end, settleDelayMs)
             return

@@ -48,69 +48,76 @@ GUILD STORE (TRADING HOUSE, continued):
 VENDOR (continued):
 28. Fixed: "Buy All" now skips locked and requirement-failing store entries, matching single-item buy rules
 29. Fixed: Alternate-currency buy rows now display their correct currency icon
-30. Improved: Batch buy/sell pacing no longer counts skipped (no-op) steps against the server rate limit, so large batches complete more smoothly
 
-COMPANIONS (continued):
-31. Fixed: Hardened companion item-destroy eligibility checks against acting on the wrong item
-
-RESOURCE ORB FRAMES:
-32. Fixed: The ultimate orb fill meter and the insufficient-ultimate overlay now reflect the real ability cost of the slotted ultimate
-
-STABILITY:
-33. Improved: Batch Junk, Unmark Junk, Lock, Unlock, and vendor sell/launder operations now re-verify each item at the moment they act, so an item that shifts into a freed slot mid-batch is never acted on by mistake
-
-HEADERS (INVENTORY / BANKING / VENDOR / COMPANIONS):
-34. Fixed: Switching the active tab in a module header now fires the selection change exactly once, eliminating duplicate refreshes and redundant work when paging the top tab bar
-35. Fixed: Selecting a header tab without its slide animation no longer leaks a stray animation flag, so suppressed-animation tab changes behave consistently
+CORE & COMPATIBILITY (continued):
+30. Improved: Eliminated direct global monkey-patching across all modules — BetterUI now uses `ZO_PostHook` and `_G` cooperative chains so other addons' hooks on the same functions remain intact. `SetHandler` calls that would overwrite other addons' handlers are replaced with `ZO_PostHookHandler` plus idempotency guards.
+31. Improved: Fixed callback accumulation on scene re-entry — `RegisterForEvent`, `CALLBACK_MANAGER:RegisterCallback`, `SHARED_INVENTORY:RegisterCallback`, and LAM panel registration are now idempotent; unregister-before-register prevents stale listener buildup across scene transitions.
+32. Improved: Guarded all deferred callbacks (`zo_callLater`) against stale execution after module disable or scene change; batch pipeline token races are prevented, and `BatchOverlay` delayed animations now cancel before reschedule on rapid show/hide sequences.
 
 VENDOR (continued):
-36. Fixed: A multi-select Sell or Sell-Vengeance batch now stops with clear feedback when it would exceed the gold cap, instead of firing a run of sales that the server silently rejects (fence and launder are unaffected)
+33. Improved: Batch buy/sell pacing no longer counts skipped (no-op) steps against the server rate limit, so large batches complete more smoothly
+
+COMPANIONS (continued):
+34. Fixed: Hardened companion item-destroy eligibility checks against acting on the wrong item
+
+RESOURCE ORB FRAMES:
+35. Fixed: The ultimate orb fill meter and the insufficient-ultimate overlay now reflect the real ability cost of the slotted ultimate
+
+STABILITY:
+36. Improved: Batch Junk, Unmark Junk, Lock, Unlock, and vendor sell/launder operations now re-verify each item at the moment they act, so an item that shifts into a freed slot mid-batch is never acted on by mistake
+
+HEADERS (INVENTORY / BANKING / VENDOR / COMPANIONS):
+37. Fixed: Switching the active tab in a module header now fires the selection change exactly once, eliminating duplicate refreshes and redundant work when paging the top tab bar
+38. Fixed: Selecting a header tab without its slide animation no longer leaks a stray animation flag, so suppressed-animation tab changes behave consistently
+
+VENDOR (continued):
+39. Fixed: A multi-select Sell or Sell-Vengeance batch now stops with clear feedback when it would exceed the gold cap, instead of firing a run of sales that the server silently rejects (fence and launder are unaffected)
 
 BANKING (continued):
-37. Fixed: Depositing and withdrawing currency at the personal bank now uses the current ESO currency-transfer path, keeping it working if the older compatibility functions are removed
+40. Fixed: Depositing and withdrawing currency at the personal bank now uses the current ESO currency-transfer path, keeping it working if the older compatibility functions are removed
 
 INVENTORY (continued):
-38. Improved: Entering an inventory category now plays the standard forward navigation sound, and the header refreshes immediately when a currency cap changes, matching native behavior
+41. Improved: Entering an inventory category now plays the standard forward navigation sound, and the header refreshes immediately when a currency cap changes, matching native behavior
 
 RESOURCE ORB FRAMES (continued):
-39. Improved: The experience and resource orb bars no longer redo full styling and text work every HUD frame — font, size, anchors, and label/value text are now latched and only re-applied when they actually change, removing continuous per-frame string allocation and control churn
+42. Improved: The experience and resource orb bars no longer redo full styling and text work every HUD frame — font, size, anchors, and label/value text are now latched and only re-applied when they actually change, removing continuous per-frame string allocation and control churn
 
 TOOLTIPS (continued):
-40. Fixed: Enhanced gamepad tooltips no longer suppress other addons' (or the native) top-section tooltip lines outside BetterUI-enhanced contexts — the set-collection tag and third-party top lines are preserved everywhere except where BetterUI actually renders its enhancement
+43. Fixed: Enhanced gamepad tooltips no longer suppress other addons' (or the native) top-section tooltip lines outside BetterUI-enhanced contexts — the set-collection tag and third-party top lines are preserved everywhere except where BetterUI actually renders its enhancement
 
 COMPATIBILITY (continued):
-41. Fixed: Internal resource-orb update registrations are now namespace-prefixed, preventing rare collisions with other addons that register an update loop of the same name
+44. Fixed: Internal resource-orb update registrations are now namespace-prefixed, preventing rare collisions with other addons that register an update loop of the same name
 
 STABILITY (continued):
-42. Improved: Hardened several rarely-hit code paths (ultimate/XP power reads, banking and footer refresh, quantity-dialog narration, companion cooldown comparison, and saved-search dialogs) against missing optional engine return values, preventing Lua errors in edge cases
+45. Improved: Hardened several rarely-hit code paths (ultimate/XP power reads, banking and footer refresh, quantity-dialog narration, companion cooldown comparison, and saved-search dialogs) against missing optional engine return values, preventing Lua errors in edge cases
 
 INVENTORY (shared-module migration repair):
-43. Fixed: Major regression repaired in the gamepad inventory — it again opens to the category list (instead of the craft bag), with category tab icons, LB/RB tab paging, the footer keybinds, the MAIN/BACKUP equipped-weapon icons, and the search bar all restored; the inventory and craft bag are once again separate lists
-44. Fixed: Currency values (gold, Tel Var, transmute crystals, and the rest) once again populate along the bottom of the inventory
-45. Fixed: Item icons across the inventory, craft bag, bank, and vendor no longer pulse/animate — they render as static icons again
-46. Fixed: The VALUE column's market prices are shown in gold again instead of red
-47. Fixed: Column sort (Actions menu -> Sort) works correctly — the sort keybinds now appear and stay while sorting, pressing Sort repeatedly no longer drops the A button, and backing out returns to the inventory with its keybinds intact and lets you re-enter sort afterward
+46. Fixed: Major regression repaired in the gamepad inventory — it again opens to the category list (instead of the craft bag), with category tab icons, LB/RB tab paging, the footer keybinds, the MAIN/BACKUP equipped-weapon icons, and the search bar all restored; the inventory and craft bag are once again separate lists
+47. Fixed: Currency values (gold, Tel Var, transmute crystals, and the rest) once again populate along the bottom of the inventory
+48. Fixed: Item icons across the inventory, craft bag, bank, and vendor no longer pulse/animate — they render as static icons again
+49. Fixed: The VALUE column's market prices are shown in gold again instead of red
+50. Fixed: Column sort (Actions menu -> Sort) works correctly — the sort keybinds now appear and stay while sorting, pressing Sort repeatedly no longer drops the A button, and backing out returns to the inventory with its keybinds intact and lets you re-enter sort afterward
 
 CIM & MODULE HARDENING (reliability pass):
-48. Fixed: A gamepad screen's core keybind group could be silently dropped when the screen built its keybinds after the scene was created — the group is now resolved at show time so it always appears
-49. Fixed: Re-opening a screen could stack duplicate lifecycle handlers (double refresh/cleanup work) — handlers are now properly unregistered and guarded against double-registration
-50. Fixed: The clear-sort (X) keybind now stays available based on whether a sort is active, so you can clear a column sort even after moving the cursor to a different column
-51. Fixed: Item-destroy authorization now fails safe when a slot's data is incomplete, so a degraded slot can never authorize a destroy without the engine's eligibility check
-52. Fixed: The mail delete-confirmation bypass setting now actually takes effect (it previously hooked a path that never ran on the live gamepad inbox)
-53. Fixed: Resource orbs no longer stay frozen in a skewed position when the orb-flow animation is turned off — the orb textures reset cleanly
-54. Fixed: Resource-orb cooldown display now uses the engine's global-cooldown flag to hide the GCD instead of a time threshold, matching the action bar and correctly showing real short cooldowns
-55. Fixed: The equipped/banked tooltip status line is now bounded with padding so a dense stack of status tags (Lock, Bound, Stolen, Junk, set-collection, counts) can't overlap on lower resolutions
-56. Improved: Gamepad screen-reader narration is hardened so an error inside a narration callback can no longer interrupt the readout
-57. Improved: Several internal cleanup paths were hardened — coalesced UI timers are cancelled on teardown, list-refresh cancellation is wired into scene cleanup, sort decoration is nil-guarded, settings reads return detached copies (mutate through the setter to persist), and the inventory batch dialogs are registered through the shared dialog system
+51. Fixed: A gamepad screen's core keybind group could be silently dropped when the screen built its keybinds after the scene was created — the group is now resolved at show time so it always appears
+52. Fixed: Re-opening a screen could stack duplicate lifecycle handlers (double refresh/cleanup work) — handlers are now properly unregistered and guarded against double-registration
+53. Fixed: The clear-sort (X) keybind now stays available based on whether a sort is active, so you can clear a column sort even after moving the cursor to a different column
+54. Fixed: Item-destroy authorization now fails safe when a slot's data is incomplete, so a degraded slot can never authorize a destroy without the engine's eligibility check
+55. Fixed: The mail delete-confirmation bypass setting now actually takes effect (it previously hooked a path that never ran on the live gamepad inbox)
+56. Fixed: Resource orbs no longer stay frozen in a skewed position when the orb-flow animation is turned off — the orb textures reset cleanly
+57. Fixed: Resource-orb cooldown display now uses the engine's global-cooldown flag to hide the GCD instead of a time threshold, matching the action bar and correctly showing real short cooldowns
+58. Fixed: The equipped/banked tooltip status line is now bounded with padding so a dense stack of status tags (Lock, Bound, Stolen, Junk, set-collection, counts) can't overlap on lower resolutions
+59. Improved: Gamepad screen-reader narration is hardened so an error inside a narration callback can no longer interrupt the readout
+60. Improved: Several internal cleanup paths were hardened — coalesced UI timers are cancelled on teardown, list-refresh cancellation is wired into scene cleanup, sort decoration is nil-guarded, settings reads return detached copies (mutate through the setter to persist), and the inventory batch dialogs are registered through the shared dialog system
 
 CIM & MODULE HARDENING (review remediation):
-58. Fixed: A Banking list refresh that was already queued when you leave the bank no longer fires after the screen closes — the module's refresh timer is now cancelled and multi-select is exited on teardown; leaving during a "Select All" likewise can no longer reopen the batch menu against a closed screen
-59. Improved: Scene show/hide cleanup is more resilient — keybind add/remove, task cancellation, and event-unregister steps are each error-isolated, so one failing step can no longer abort the rest of the teardown
-60. Improved: When an optional market or item-category addon errors, the fault is now logged for diagnostics instead of silently blanking the price/category column
-61. Improved: Additional HUD per-frame work is latched — the cast bar, mounted-stamina bar, skill-bar cooldown timers, quickslot/stack counts, and the ultimate fill meter now skip redundant text, anchor, and sprite updates when nothing has changed
-62. Fixed: Header sort and category-navigation callbacks are error-isolated so a faulty owner callback can no longer strand the keybind strip, tab bar, or category-change state; added guards for missing column labels, navigation getters, and corrupt saved module settings
-63. Fixed: Turning off enhanced tooltips now reverts the current tooltip's enlarged body text to the stock font immediately (without needing to re-open it), and equipped-item tooltips stay safe when the General Interface module is disabled
-64. Improved: Item-destroy authorization now also fails safe if the engine's destroy-eligibility check itself is unavailable, and multi-select identity stamps survive a list refresh so the batch Lock/Junk/Destroy safety re-check keeps working after the list updates mid-selection
+61. Fixed: A Banking list refresh that was already queued when you leave the bank no longer fires after the screen closes — the module's refresh timer is now cancelled and multi-select is exited on teardown; leaving during a "Select All" likewise can no longer reopen the batch menu against a closed screen
+62. Improved: Scene show/hide cleanup is more resilient — keybind add/remove, task cancellation, and event-unregister steps are each error-isolated, so one failing step can no longer abort the rest of the teardown
+63. Improved: When an optional market or item-category addon errors, the fault is now logged for diagnostics instead of silently blanking the price/category column
+64. Improved: Additional HUD per-frame work is latched — the cast bar, mounted-stamina bar, skill-bar cooldown timers, quickslot/stack counts, and the ultimate fill meter now skip redundant text, anchor, and sprite updates when nothing has changed
+65. Fixed: Header sort and category-navigation callbacks are error-isolated so a faulty owner callback can no longer strand the keybind strip, tab bar, or category-change state; added guards for missing column labels, navigation getters, and corrupt saved module settings
+66. Fixed: Turning off enhanced tooltips now reverts the current tooltip's enlarged body text to the stock font immediately (without needing to re-open it), and equipped-item tooltips stay safe when the General Interface module is disabled
+67. Improved: Item-destroy authorization now also fails safe if the engine's destroy-eligibility check itself is unavailable, and multi-select identity stamps survive a list refresh so the batch Lock/Junk/Destroy safety re-check keeps working after the list updates mid-selection
 [/INDENT]
 
 

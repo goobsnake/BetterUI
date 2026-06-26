@@ -87,6 +87,19 @@ end
 
 Bars.TraceMountStamina = TraceMountStamina
 
+local m_disabledGateTraceKeys = {}
+
+local function TraceDisabledGateOnce(traceFn, event, fn)
+    if m_disabledGateTraceKeys[fn] then
+        return
+    end
+    m_disabledGateTraceKeys[fn] = true
+    traceFn(event, "module_disabled", {
+        fn = fn,
+        reason = "moduleDisabled",
+    })
+end
+
 local function ResolveTexturePath(filename)
     return string.format("%s/%s", "BetterUI/Modules/ResourceOrbFrames/Textures", filename)
 end
@@ -433,6 +446,7 @@ function CastBar:Initialize(parent)
         -- Compatibility: only suppress while the module is enabled, and capture
         -- the original hidden state so it can be restored on disable.
         if not IsResourceOrbFramesEnabled() then
+            TraceDisabledGateOnce(TraceCastBar, "resource_orbs.cast_bar", "CastBar.HideDefaultCastBar")
             return
         end
 
@@ -492,7 +506,10 @@ function CastBar:Initialize(parent)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "SlotAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
-            if not IsResourceOrbFramesEnabled() then return end
+            if not IsResourceOrbFramesEnabled() then
+                TraceDisabledGateOnce(TraceCastBar, "resource_orbs.cast_bar", "CastBar.EVENT_ACTION_SLOT_ABILITY_USED")
+                return
+            end
             if not slotIndex then
                 TraceCastBar("resource_orbs.cast_bar", "ability_used_skipped", {
                     fn = "CastBar.EVENT_ACTION_SLOT_ABILITY_USED",
@@ -531,7 +548,10 @@ function CastBar:Initialize(parent)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "CastColorPowerProbe",
         EVENT_POWER_UPDATE, function(_, unitTag, powerPoolIndex, powerType, powerValue)
-            if not IsResourceOrbFramesEnabled() then return end
+            if not IsResourceOrbFramesEnabled() then
+                TraceDisabledGateOnce(TraceCastBar, "resource_orbs.cast_bar", "CastBar.EVENT_POWER_UPDATE")
+                return
+            end
             if unitTag ~= "player" then return end
             if powerType ~= COST_TYPE_HEALTH and powerType ~= COST_TYPE_MAGICKA and powerType ~= COST_TYPE_STAMINA then
                 return
@@ -647,13 +667,19 @@ function MountStaminaBar:Initialize(parent)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "MountStaminaMount", EVENT_MOUNTED_STATE_CHANGED,
         function(_, isMounted)
-            if not IsResourceOrbFramesEnabled() then return end
+            if not IsResourceOrbFramesEnabled() then
+                TraceDisabledGateOnce(TraceMountStamina, "resource_orbs.mount_stamina", "MountStaminaBar.EVENT_MOUNTED_STATE_CHANGED")
+                return
+            end
             self:OnMountedStateChanged(isMounted)
         end)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "MountStaminaPower", EVENT_POWER_UPDATE,
         function(_, unitTag, powerPoolIndex, powerType, powerValue, powerMax)
-            if not IsResourceOrbFramesEnabled() then return end
+            if not IsResourceOrbFramesEnabled() then
+                TraceDisabledGateOnce(TraceMountStamina, "resource_orbs.mount_stamina", "MountStaminaBar.EVENT_POWER_UPDATE")
+                return
+            end
             if unitTag == "player" and powerType == COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA then
                 self.currentValue = powerValue
                 self.maxValue = powerMax
