@@ -1256,6 +1256,9 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     if not self._searchModeActive and not self._searchHeaderActive then
         return
     end
+    if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
+        BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
+    end
     self._searchModeActive = false
     self._searchHeaderActive = false
 
@@ -1309,6 +1312,7 @@ function BETTERUI.Vendor.Class:OnHeaderEntered()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()
 
+        BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
         BETTERUI.Vendor.Tasks:Schedule("searchKeybindCleanup", 20, function()
             if not self._searchModeActive or not KEYBIND_STRIP then
                 return

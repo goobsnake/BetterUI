@@ -138,12 +138,16 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     -- 6. Cancel any pending coalesced list refresh so an in-flight refresh +
     --    RestorePosition cannot fire after teardown (against a hidden/torn-down scene).
     --    Covers managers held on the screen via the conventional field names.
-    local refreshManager = screen.refreshManager
-        or screen.listRefreshManager
-        or screen.RefreshManager
-    if refreshManager and refreshManager.Cancel then
-        refreshManager:Cancel()
+    local cancelledRefreshManagers = {}
+    local function CancelRefreshManager(refreshManager)
+        if refreshManager and refreshManager.Cancel and not cancelledRefreshManagers[refreshManager] then
+            cancelledRefreshManagers[refreshManager] = true
+            refreshManager:Cancel()
+        end
     end
+    CancelRefreshManager(screen.refreshManager)
+    CancelRefreshManager(screen.listRefreshManager)
+    CancelRefreshManager(screen.RefreshManager)
 
     -- 7. Cancel any pending coalesced header-navigation category-change timer.
     if BETTERUI.CIM.HeaderNavigation and BETTERUI.CIM.HeaderNavigation.CancelPending then

@@ -121,6 +121,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         end
 
         if self:IsBatchProcessing() then
+            BETTERUI.Banking.Tasks:Cancel("sharedInventoryUpdate")
             BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", SHARED_INVENTORY_UPDATE_DELAY_MS,
                 TryRefreshAfterInventoryUpdate)
             return
@@ -161,6 +162,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         end
         if not isRelevant then return end
 
+        BETTERUI.Banking.Tasks:Cancel("sharedInventoryUpdate")
         BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", SHARED_INVENTORY_UPDATE_DELAY_MS,
             TryRefreshAfterInventoryUpdate)
     end
@@ -184,6 +186,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     self._onDialogHiddenCallback = function()
         if BETTERUI.Utils.IsBankingSceneShowing() and self.list then
             self:SetListUpdatesSuppressed(false)
+            BETTERUI.Banking.Tasks:Cancel("dialogHiddenRefresh")
             BETTERUI.Banking.Tasks:Schedule("dialogHiddenRefresh", 50, function()
                 if BETTERUI.Utils.IsBankingSceneShowing() then
                     RebuildCategoriesAndRefreshList()

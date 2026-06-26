@@ -58,9 +58,47 @@ local BATCH_STATUS_OVERLAY = {
     secondaryLabel = nil,
     updateToken = 0,
     hideToken = 0,
+    updateCallId = nil,
+    hideCallId = nil,
     lockedWidth = nil,
     lockedHeight = nil,
 }
+
+local function CancelCallLater(callId)
+    if callId and zo_removeCallLater then
+        zo_removeCallLater(callId)
+    end
+end
+
+local function CancelOverlayUpdate(overlay)
+    if overlay and overlay.updateCallId then
+        CancelCallLater(overlay.updateCallId)
+        overlay.updateCallId = nil
+    end
+end
+
+local function CancelOverlayHide(overlay)
+    if overlay and overlay.hideCallId then
+        CancelCallLater(overlay.hideCallId)
+        overlay.hideCallId = nil
+    end
+end
+
+local function ScheduleOverlayUpdate(overlay, callback)
+    CancelOverlayUpdate(overlay)
+    overlay.updateCallId = zo_callLater(function()
+        overlay.updateCallId = nil
+        callback()
+    end, BATCH_DYNAMIC_LAYOUT_REFRESH_MS)
+end
+
+local function ScheduleOverlayHide(overlay, callback, delay)
+    CancelOverlayHide(overlay)
+    overlay.hideCallId = zo_callLater(function()
+        overlay.hideCallId = nil
+        callback()
+    end, delay)
+end
 
 function BatchOverlay.IsAnyBatchActionDialogShowing()
     if ZO_Dialogs_IsShowing then
@@ -419,6 +457,8 @@ function BatchOverlay.ShowStatus(displayRequest)
         return
     end
 
+    CancelOverlayUpdate(overlay)
+    CancelOverlayHide(overlay)
     overlay.hideToken = overlay.hideToken + 1
     overlay.updateToken = overlay.updateToken + 1
     local updateToken = overlay.updateToken
@@ -442,7 +482,7 @@ function BatchOverlay.ShowStatus(displayRequest)
             firstRenderPending = true
             if hasDynamicText or suppressRetryCount > 0 then
                 suppressRetryCount = zo_max(suppressRetryCount - 1, 0)
-                zo_callLater(UpdateOverlayText, BATCH_DYNAMIC_LAYOUT_REFRESH_MS)
+                ScheduleOverlayUpdate(overlay, UpdateOverlayText)
             end
             return
         end
@@ -485,7 +525,7 @@ function BatchOverlay.ShowStatus(displayRequest)
         firstRenderPending = false
 
         if hasDynamicText then
-            zo_callLater(UpdateOverlayText, BATCH_DYNAMIC_LAYOUT_REFRESH_MS)
+            ScheduleOverlayUpdate(overlay, UpdateOverlayText)
         end
     end
 
@@ -510,6 +550,8 @@ function BatchOverlay.Hide(delayMs)
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.BATCH, "batch hide", { delay = delay })
     end
 
+    CancelOverlayUpdate(overlay)
+    CancelOverlayHide(overlay)
     overlay.updateToken = overlay.updateToken + 1
     overlay.hideToken = overlay.hideToken + 1
     local hideToken = overlay.hideToken
@@ -524,7 +566,7 @@ function BatchOverlay.Hide(delayMs)
     end
 
     if delay > 0 then
-        zo_callLater(HideNow, delay)
+        ScheduleOverlayHide(overlay, HideNow, delay)
     else
         HideNow()
     end
@@ -532,6 +574,7 @@ end
 
 function BatchOverlay.StopLayoutPulse()
     local overlay = BATCH_STATUS_OVERLAY
+    CancelOverlayUpdate(overlay)
     overlay.updateToken = overlay.updateToken + 1
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch stop layout pulse", { updateToken = overlay.updateToken })
@@ -546,6 +589,8 @@ BatchOverlay._Internals = {
         return BATCH_STATUS_OVERLAY
     end,
     ResetOverlayState = function()
+        CancelOverlayUpdate(BATCH_STATUS_OVERLAY)
+        CancelOverlayHide(BATCH_STATUS_OVERLAY)
         for key in pairs(BATCH_STATUS_OVERLAY) do
             if key == "updateToken" or key == "hideToken" then
                 BATCH_STATUS_OVERLAY[key] = 0

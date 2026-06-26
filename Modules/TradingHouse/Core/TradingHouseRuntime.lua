@@ -91,6 +91,16 @@ function TH.SetupSelectionTooltip(instance)
     end
 end
 
+local function AddSceneFragmentIfMissing(scene, fragment)
+    if not (scene and fragment) then
+        return
+    end
+    if scene.HasFragment and scene:HasFragment(fragment) then
+        return
+    end
+    scene:AddFragment(fragment)
+end
+
 ---@param instance BETTERUI.TradingHouse.Class
 ---@return table scene
 function TH.CreateScene(instance)
@@ -108,12 +118,12 @@ function TH.CreateScene(instance)
 
     scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
     scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
-    scene:AddFragment(instance.fragment)
-    scene:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
-    scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
-    scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
-    scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
-    scene:AddFragment(instance.footerFragment)
+    AddSceneFragmentIfMissing(scene, instance.fragment)
+    AddSceneFragmentIfMissing(scene, FRAME_EMOTE_FRAGMENT_INVENTORY)
+    AddSceneFragmentIfMissing(scene, GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+    AddSceneFragmentIfMissing(scene, MINIMIZE_CHAT_FRAGMENT)
+    AddSceneFragmentIfMissing(scene, GAMEPAD_MENU_SOUND_FRAGMENT)
+    AddSceneFragmentIfMissing(scene, instance.footerFragment)
     return scene
 end
 

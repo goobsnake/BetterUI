@@ -58,6 +58,11 @@ end
 ---@return nil
 function BETTERUI.Inventory.HookActionDialog()
     local existingActionDialogInfo = ESO_Dialogs and ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG] or nil
+    if BETTERUI.Inventory._actionDialogHookInstalled
+        or (existingActionDialogInfo and existingActionDialogInfo._betteruiInventoryActionDialogHook) then
+        BETTERUI.Inventory._actionDialogHookInstalled = true
+        return
+    end
 
     local function TraceInventoryActionDialog(event, phase, data)
         local L = BETTERUI.Log
@@ -195,6 +200,7 @@ function BETTERUI.Inventory.HookActionDialog()
     end
 
     BETTERUI.CIM.Dialogs.Register(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, {
+        _betteruiInventoryActionDialogHook = true,
         blockDirectionalInput = true,
         canQueue = true,
         --[[
@@ -448,4 +454,5 @@ function BETTERUI.Inventory.HookActionDialog()
             },
         },
     })
+    BETTERUI.Inventory._actionDialogHookInstalled = true
 end

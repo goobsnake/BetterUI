@@ -11,6 +11,7 @@ Note: Settings metadata registry and default/reset functions are in SettingsMeta
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Settings then BETTERUI.CIM.Settings = {} end
+if not BETTERUI.CIM.Settings._registeredPanels then BETTERUI.CIM.Settings._registeredPanels = {} end
 
 -- SETTINGS SORT HELPERS
 
@@ -521,6 +522,14 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
     end
 
     optionsData = type(optionsData) == "table" and optionsData or {}
+
+    if BETTERUI.CIM.Settings._registeredPanels[panelId] then
+        TraceSettings("settings.panel", "already_registered", {
+            panel = panelId,
+        })
+        return panelId
+    end
+
     TraceSettings("settings.panel", "sort_before", {
         panel = panelId,
         topLevelControls = #optionsData,
@@ -613,6 +622,7 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
         topLevelControls = #optionsData,
         totalControls = CountControls(optionsData),
     })
+    BETTERUI.CIM.Settings._registeredPanels[panelId] = true
     return panelId
 end
 

@@ -88,6 +88,15 @@ local COMPANION_EQUIP_PATCH_RETRY_MS = 400
 local companionEquipPatchQueued = false
 local companionEquipPatchRetryPending = false
 
+local function UnregisterCompanionEquipPatchEvent()
+    local eventRegistry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
+    if eventRegistry and type(eventRegistry.Unregister) == "function" then
+        eventRegistry.Unregister("Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED)
+    elseif EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
+        EVENT_MANAGER:UnregisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED)
+    end
+end
+
 local function GetEquipSlotDialogName()
     assert(BETTERUI.Inventory and BETTERUI.Inventory.GetEquipSlotDialogName,
         "BetterUI: Inventory.GetEquipSlotDialogName must load before EquipAction")
@@ -168,23 +177,26 @@ end
 
 local function EnsureCompanionEquipPatched()
     if AttemptCompanionEquipPatch() then
-        if EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
-            EVENT_MANAGER:UnregisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED)
-        end
+        UnregisterCompanionEquipPatchEvent()
         companionEquipPatchQueued = false
         companionEquipPatchRetryPending = false
         return true
     end
-    if EVENT_MANAGER and EVENT_MANAGER.RegisterForEvent and not companionEquipPatchQueued then
-        companionEquipPatchQueued = true
+    if not companionEquipPatchQueued then
+        local eventRegistry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
+        local function OnPlayerActivated()
+            UnregisterCompanionEquipPatchEvent()
+            companionEquipPatchQueued = false
+            EnsureCompanionEquipPatched()
+        end
 
-        BETTERUI.CIM.EventRegistry.Register("Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED,
-            function()
-                BETTERUI.CIM.EventRegistry.Unregister("Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME,
-                    EVENT_PLAYER_ACTIVATED)
-                companionEquipPatchQueued = false
-                EnsureCompanionEquipPatched()
-            end)
+        if eventRegistry and type(eventRegistry.Register) == "function" then
+            companionEquipPatchQueued = eventRegistry.Register(
+                "Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated) == true
+        elseif EVENT_MANAGER and EVENT_MANAGER.RegisterForEvent then
+            companionEquipPatchQueued = true
+            EVENT_MANAGER:RegisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+        end
     end
     if not companionEquipPatchRetryPending and BETTERUI.Inventory.Tasks then
         companionEquipPatchRetryPending = true
