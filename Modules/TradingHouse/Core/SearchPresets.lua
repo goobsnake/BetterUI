@@ -198,10 +198,32 @@ end
 local SAVE_DIALOG_NAME = "BETTERUI_TH_SAVE_SEARCH_PRESET"
 local LOAD_DIALOG_NAME = "BETTERUI_TH_LOAD_SEARCH_PRESET"
 
+local function RegisterPresetDialog(dialogName, markerKey, dialogInfo)
+    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then
+        return
+    end
+    local priorDialog = ESO_Dialogs and ESO_Dialogs[dialogName] or nil
+    if priorDialog and priorDialog[markerKey] then
+        return
+    end
+    local setup = dialogInfo.setup
+    if priorDialog and type(priorDialog.setup) == "function" then
+        dialogInfo.setup = function(dialog, ...)
+            priorDialog.setup(dialog, ...)
+            if type(setup) == "function" then
+                return setup(dialog, ...)
+            end
+        end
+    end
+    dialogInfo[markerKey] = true
+    ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
+end
+
 --- Registers and shows the save-preset dialog (text input for name).
 function Presets.ShowSaveDialog()
-    if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered(SAVE_DIALOG_NAME)) then
-        ZO_Dialogs_RegisterCustomDialog(SAVE_DIALOG_NAME, {
+    local saveDialog = ESO_Dialogs and ESO_Dialogs[SAVE_DIALOG_NAME] or nil
+    if not (saveDialog and saveDialog._betteruiTradingHouseSavePresetDialog) then
+        RegisterPresetDialog(SAVE_DIALOG_NAME, "_betteruiTradingHouseSavePresetDialog", {
             canQueue = true,
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
@@ -261,8 +283,9 @@ end
 
 --- Registers and shows the load-preset dialog (list of saved presets).
 function Presets.ShowLoadDialog()
-    if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered(LOAD_DIALOG_NAME)) then
-        ZO_Dialogs_RegisterCustomDialog(LOAD_DIALOG_NAME, {
+    local loadDialog = ESO_Dialogs and ESO_Dialogs[LOAD_DIALOG_NAME] or nil
+    if not (loadDialog and loadDialog._betteruiTradingHouseLoadPresetDialog) then
+        RegisterPresetDialog(LOAD_DIALOG_NAME, "_betteruiTradingHouseLoadPresetDialog", {
             canQueue = true,
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,

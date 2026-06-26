@@ -309,16 +309,26 @@ local function ParseBoolean(text)
     return nil
 end
 
+local function ChainPriorDialogSetup(priorDialog, setup)
+    return function(dialog, ...)
+        if priorDialog and type(priorDialog.setup) == "function" then
+            priorDialog.setup(dialog, ...)
+        end
+        return setup(dialog, ...)
+    end
+end
+
 --- Registers and shows a first-cut filter-entry dialog. Numeric fields accept
 --- plain numbers; quality/category are choice indices. The maintainer can
 --- replace this with a polished gamepad UI later.
 function Filters.ShowFilterDialog()
-    if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_ShowGamepadDialog) then
+    if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_ShowGamepadDialog and ZO_Dialogs_RegisterCustomDialog) then
         TraceFilters("trading_house.filters_dialog", "show_skipped", { fn = "Filters.ShowFilterDialog", reason = "missingDialogApi" })
         return
     end
 
-    if not ZO_Dialogs_IsDialogRegistered(FILTER_DIALOG_NAME) then
+    local priorDialog = ESO_Dialogs and ESO_Dialogs[FILTER_DIALOG_NAME] or nil
+    if not (priorDialog and priorDialog._betteruiTradingHouseFilterDialog) then
         local function AddTextField(labelKey, fieldKey, numeric)
             return {
                 template = "ZO_Gamepad_GenericDialog_Parametric_TextFieldItem",
@@ -357,7 +367,8 @@ function Filters.ShowFilterDialog()
             }
         end
 
-        ZO_Dialogs_RegisterCustomDialog(FILTER_DIALOG_NAME, {
+        local dialogInfo = {
+            _betteruiTradingHouseFilterDialog = true,
             canQueue = true,
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
@@ -365,9 +376,9 @@ function Filters.ShowFilterDialog()
             title = {
                 text = L("SI_BETTERUI_TH_FILTER_TITLE") or "Edit Search Filters",
             },
-            setup = function(dialog)
+            setup = ChainPriorDialogSetup(priorDialog, function(dialog)
                 dialog:setupFunc()
-            end,
+            end),
             parametricList = {
                 AddTextField("SI_BETTERUI_TH_FILTER_NAME", "nameText", false),
                 AddTextField("SI_BETTERUI_TH_FILTER_PRICE_MIN", "priceMin", true),
@@ -399,7 +410,8 @@ function Filters.ShowFilterDialog()
                     end,
                 },
             },
-        })
+        }
+        ZO_Dialogs_RegisterCustomDialog(FILTER_DIALOG_NAME, dialogInfo)
     end
 
     TraceFilters("trading_house.filters_dialog", "shown", { fn = "Filters.ShowFilterDialog" })

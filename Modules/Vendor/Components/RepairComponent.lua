@@ -35,6 +35,7 @@ end
 
 Repair.pendingRepairAllTrace = nil
 local repairAllDialogHooksInstalled = false
+local repairAllPreHookPending = nil
 
 local function TakePendingRepairAllTrace(phase, reason)
     local pending = Repair.pendingRepairAllTrace
@@ -50,11 +51,19 @@ end
 local function EnsureRepairAllDialogHooks()
     if repairAllDialogHooksInstalled then return end
     repairAllDialogHooksInstalled = true
-    if type(RepairAll) == "function" then
-        local originalRepairAll = RepairAll
-        RepairAll = function(...)
+
+    if type(RepairAll) == "function" and type(ZO_PreHook) == "function" then
+        ZO_PreHook(_G, "RepairAll", function(...)
             local pending = TakePendingRepairAllTrace("confirm", nil)
-            local result = originalRepairAll(...)
+            if pending then
+                repairAllPreHookPending = pending
+            end
+        end)
+    end
+    if type(RepairAll) == "function" and type(ZO_PostHook) == "function" then
+        ZO_PostHook(_G, "RepairAll", function(...)
+            local pending = repairAllPreHookPending
+            repairAllPreHookPending = nil
             if pending then
                 TraceRepair("vendor.repair_all", "dispatched", {
                     fn = "Vendor.RepairComponent.RepairAll",
@@ -62,26 +71,22 @@ local function EnsureRepairAllDialogHooks()
                     dialogName = pending.dialogName,
                 })
             end
-            return result
-        end
+        end)
     end
-    if type(ZO_Dialogs_ReleaseDialog) == "function" then
-        local originalReleaseDialog = ZO_Dialogs_ReleaseDialog
-        ZO_Dialogs_ReleaseDialog = function(dialogName, ...)
+
+    if type(ZO_Dialogs_ReleaseDialog) == "function" and type(ZO_PostHook) == "function" then
+        ZO_PostHook(_G, "ZO_Dialogs_ReleaseDialog", function(dialogName, ...)
             if dialogName == "REPAIR_ALL" then
                 TakePendingRepairAllTrace("cancel", "dialogReleased")
             end
-            return originalReleaseDialog(dialogName, ...)
-        end
+        end)
     end
-    if type(ZO_Dialogs_ReleaseDialogOnButtonPress) == "function" then
-        local originalReleaseDialogOnButtonPress = ZO_Dialogs_ReleaseDialogOnButtonPress
-        ZO_Dialogs_ReleaseDialogOnButtonPress = function(dialogName, ...)
+    if type(ZO_Dialogs_ReleaseDialogOnButtonPress) == "function" and type(ZO_PostHook) == "function" then
+        ZO_PostHook(_G, "ZO_Dialogs_ReleaseDialogOnButtonPress", function(dialogName, ...)
             if dialogName == "REPAIR_ALL" then
                 TakePendingRepairAllTrace("cancel", "buttonPressRelease")
             end
-            return originalReleaseDialogOnButtonPress(dialogName, ...)
-        end
+        end)
     end
 end
 

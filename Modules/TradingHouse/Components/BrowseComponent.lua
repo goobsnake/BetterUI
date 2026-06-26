@@ -43,37 +43,36 @@ end
 local function EnsureBuyDialogHooks()
     if buyDialogHooksInstalled then return end
     buyDialogHooksInstalled = true
+    if type(ZO_PostHook) ~= "function" then
+        TraceBrowse("trading_house.buy_dialog", "hooks_skipped", TH.instance, {
+            fn = "TradingHouse.BrowseComponent.EnsureBuyDialogHooks",
+            reason = "missingZO_PostHook",
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+        return
+    end
     if type(ConfirmPendingItemPurchase) == "function" then
-        local originalConfirmPendingItemPurchase = ConfirmPendingItemPurchase
-        ConfirmPendingItemPurchase = function(...)
+        ZO_PostHook(_G, "ConfirmPendingItemPurchase", function(...)
             TracePendingBuyDialog("confirm", nil)
-            return originalConfirmPendingItemPurchase(...)
-        end
+        end)
     end
     if type(ClearPendingItemPurchase) == "function" then
-        local originalClearPendingItemPurchase = ClearPendingItemPurchase
-        ClearPendingItemPurchase = function(...)
+        ZO_PostHook(_G, "ClearPendingItemPurchase", function(...)
             TracePendingBuyDialog("cancel", "ClearPendingItemPurchase")
-            return originalClearPendingItemPurchase(...)
-        end
+        end)
     end
     if type(ZO_Dialogs_ReleaseDialog) == "function" then
-        local originalReleaseDialog = ZO_Dialogs_ReleaseDialog
-        ZO_Dialogs_ReleaseDialog = function(dialogName, ...)
+        ZO_PostHook(_G, "ZO_Dialogs_ReleaseDialog", function(dialogName, ...)
             if dialogName == "TRADING_HOUSE_CONFIRM_BUY_ITEM" then
                 TracePendingBuyDialog("cancel", "dialogReleased")
             end
-            return originalReleaseDialog(dialogName, ...)
-        end
+        end)
     end
     if type(ZO_Dialogs_ReleaseDialogOnButtonPress) == "function" then
-        local originalReleaseDialogOnButtonPress = ZO_Dialogs_ReleaseDialogOnButtonPress
-        ZO_Dialogs_ReleaseDialogOnButtonPress = function(dialogName, ...)
+        ZO_PostHook(_G, "ZO_Dialogs_ReleaseDialogOnButtonPress", function(dialogName, ...)
             if dialogName == "TRADING_HOUSE_CONFIRM_BUY_ITEM" then
                 TracePendingBuyDialog("cancel", "buttonPressRelease")
             end
-            return originalReleaseDialogOnButtonPress(dialogName, ...)
-        end
+        end)
     end
 end
 

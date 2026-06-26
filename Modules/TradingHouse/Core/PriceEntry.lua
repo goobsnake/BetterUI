@@ -59,6 +59,15 @@ local function L(stringIdName)
     return GetString(rawget(_G, stringIdName) or stringIdName)
 end
 
+local function ChainPriorDialogSetup(priorDialog, setup)
+    return function(dialog, ...)
+        if priorDialog and type(priorDialog.setup) == "function" then
+            priorDialog.setup(dialog, ...)
+        end
+        return setup(dialog, ...)
+    end
+end
+
 --- Show a first-cut digit-spinner price selector. onConfirm receives the
 --- clamped price chosen by the player.
 ---@param defaultPrice number
@@ -74,7 +83,7 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
         maxPrice = maxPrice,
         hasConfirm = type(onConfirm) == "function",
     })
-    if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_ShowGamepadDialog) then
+    if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_ShowGamepadDialog and ZO_Dialogs_RegisterCustomDialog) then
         TracePriceEntry("trading_house.price_entry", "show_rejected", {
             fn = "TradingHouse.PriceEntry.ShowDigitPriceDialog",
             reason = "missingDialogApi",
@@ -94,8 +103,10 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
     maxPrice = tonumber(maxPrice) or (MAX_PLAYER_CURRENCY or 999999999)
     defaultPrice = PriceEntry.ClampListingPrice(defaultPrice, minPrice, maxPrice)
 
-    if not ZO_Dialogs_IsDialogRegistered(DIGIT_PRICE_DIALOG) then
-        ZO_Dialogs_RegisterCustomDialog(DIGIT_PRICE_DIALOG, {
+    local priorDialog = ESO_Dialogs and ESO_Dialogs[DIGIT_PRICE_DIALOG] or nil
+    if not (priorDialog and priorDialog._betteruiTradingHouseDigitPriceDialog) then
+        local dialogInfo = {
+            _betteruiTradingHouseDigitPriceDialog = true,
             canQueue = true,
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
@@ -103,9 +114,9 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
             title = {
                 text = L("SI_BETTERUI_TH_PRICE_LABEL") or "SI_TRADING_HOUSE_POSTING_PRICE",
             },
-            setup = function(dialog)
+            setup = ChainPriorDialogSetup(priorDialog, function(dialog)
                 dialog:setupFunc()
-            end,
+            end),
             parametricList = {
                 {
                     template = "ZO_GamepadCurrencySelectorTemplate",
@@ -179,7 +190,8 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
                     text = SI_DIALOG_CANCEL,
                 },
             },
-        })
+        }
+        ZO_Dialogs_RegisterCustomDialog(DIGIT_PRICE_DIALOG, dialogInfo)
     end
 
     ZO_Dialogs_ShowGamepadDialog(DIGIT_PRICE_DIALOG, {

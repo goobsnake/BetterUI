@@ -738,10 +738,13 @@ function BETTERUI.Inventory.Class:Initialize(control)
 
     self:InitializeSplitStackDialog()
 
+    control._betteruiInventoryInstance = self
+
     -- Guard update loop so we only process while the inventory scene is visible.
     local function OnUpdate(updateControl, currentFrameTimeSeconds)
-        if self.scene and self.scene:IsShowing() then
-            self:OnUpdate(currentFrameTimeSeconds)
+        local inventory = updateControl and updateControl._betteruiInventoryInstance or self
+        if inventory.scene and inventory.scene:IsShowing() then
+            inventory:OnUpdate(currentFrameTimeSeconds)
         end
     end
 
@@ -750,18 +753,34 @@ function BETTERUI.Inventory.Class:Initialize(control)
     end
 
     local function RefreshVisualLayer()
-        if self.scene and self.scene:IsShowing() then
-            self:OnUpdate()
-            if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
-                self:RefreshCategoryList()
-                self:SwitchActiveList(BETTERUI.Inventory.CONST.LIST_TYPES.ITEM)
+        local inventory = control._betteruiInventoryInstance or self
+        if inventory.scene and inventory.scene:IsShowing() then
+            inventory:OnUpdate()
+            if inventory.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
+                inventory:RefreshCategoryList()
+                inventory:SwitchActiveList(BETTERUI.Inventory.CONST.LIST_TYPES.ITEM)
             end
         end
     end
 
-    -- Do not intercept base destroy cancel events to avoid input blockage
-    control:RegisterForEvent(EVENT_VISUAL_LAYER_CHANGED, RefreshVisualLayer)
-    control:SetHandler("OnUpdate", OnUpdate)
+    -- Do not intercept base destroy cancel events to avoid input blockage.
+    if not control._betteruiInventoryVisualLayerRegistered then
+        control._betteruiInventoryVisualLayerRegistered = true
+        control:RegisterForEvent(EVENT_VISUAL_LAYER_CHANGED, RefreshVisualLayer)
+    end
+    if not control._betteruiInventoryOnUpdateHooked then
+        control._betteruiInventoryOnUpdateHooked = true
+        if ZO_PostHookHandler then
+            ZO_PostHookHandler(control, "OnUpdate", OnUpdate)
+        else
+            local previousHandler = control.GetHandler and control:GetHandler("OnUpdate") or nil
+            control:SetHandler("OnUpdate", function(updateControl, ...)
+                local returns = previousHandler and { previousHandler(updateControl, ...) } or nil
+                OnUpdate(updateControl, ...)
+                if returns then return unpack(returns) end
+            end)
+        end
+    end
 
     -- Add gamepad text search support using the shared helper
     local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin

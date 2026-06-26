@@ -105,6 +105,17 @@ local function ComputeListingPriceBreakdown(price)
     return listingFee or 0, tradingHouseCut or 0, profit or 0
 end
 
+local CREATE_LISTING_DIALOG_NAME = "BETTERUI_TRADING_HOUSE_CREATE_LISTING"
+
+local function ChainPriorDialogSetup(priorDialog, setup)
+    return function(dialog, ...)
+        if priorDialog and type(priorDialog.setup) == "function" then
+            priorDialog.setup(dialog, ...)
+        end
+        return setup(dialog, ...)
+    end
+end
+
 local function SetTHSceneAlias(sceneObject)
     TH.activeTHSceneObject = sceneObject
 end
@@ -119,9 +130,25 @@ local function SetTHSystemGamepadRootScene(sceneObject)
     if not system then
         return
     end
+    local currentRootScene = system.gamepadRootScene
     if TH.nativeTHSystemGamepadRootScene == nil then
-        TH.nativeTHSystemGamepadRootScene = system.gamepadRootScene
+        TH.nativeTHSystemGamepadRootScene = currentRootScene
     end
+    local betterUIRootScene = TH.instance and TH.instance.scene or nil
+    if sceneObject == betterUIRootScene and currentRootScene ~= sceneObject then
+        TH.previousTHSystemGamepadRootScene = currentRootScene
+    elseif sceneObject ~= betterUIRootScene
+        and betterUIRootScene ~= nil
+        and currentRootScene ~= betterUIRootScene then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "restore_skipped", {
+            fn = "TradingHouse.SetTHSystemGamepadRootScene",
+            feature = "trading-house-scene",
+            reason = "externalOwnerChanged",
+        })
+        return
+    end
+    -- This is an exclusive scene-owner slot; restore only while BetterUI still
+    -- owns it so another addon's later owner is not overwritten.
     system.gamepadRootScene = sceneObject
 end
 
@@ -220,8 +247,10 @@ function TH.RestoreNativeSceneAlias()
     if TH.nativeTHScene then
         SetTHSceneAlias(TH.nativeTHScene)
     end
-    if TH.nativeTHSystemGamepadRootScene then
-        SetTHSystemGamepadRootScene(TH.nativeTHSystemGamepadRootScene)
+    local rootScene = TH.previousTHSystemGamepadRootScene or TH.nativeTHSystemGamepadRootScene
+    if rootScene then
+        SetTHSystemGamepadRootScene(rootScene)
+        TH.previousTHSystemGamepadRootScene = nil
     end
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "restore_end", {
         fn = "TradingHouse.RestoreNativeSceneAlias",
@@ -407,7 +436,11 @@ function TH.TakeOverNativeTradingHouse()
 end
 
 function TH.RegisterCreateListingDialog()
-    if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered("BETTERUI_TRADING_HOUSE_CREATE_LISTING") then
+    local priorDialog = ESO_Dialogs and ESO_Dialogs[CREATE_LISTING_DIALOG_NAME] or nil
+    if priorDialog and priorDialog._betteruiTradingHouseCreateListing then
+        return
+    end
+    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then
         return
     end
 
@@ -471,7 +504,8 @@ function TH.RegisterCreateListingDialog()
         valueLabel:SetText(text)
     end
 
-    ZO_Dialogs_RegisterCustomDialog("BETTERUI_TRADING_HOUSE_CREATE_LISTING", {
+    local dialogInfo = {
+        _betteruiTradingHouseCreateListing = true,
         canQueue = true,
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
@@ -507,9 +541,9 @@ function TH.RegisterCreateListingDialog()
         title = {
             text = rawget(_G, "SI_BETTERUI_TH_LIST_ITEM") or SI_TRADING_HOUSE_POST_ITEM,
         },
-        setup = function(dialog)
+        setup = ChainPriorDialogSetup(priorDialog, function(dialog)
             dialog:setupFunc()
-        end,
+        end),
         parametricList = {
             {
                 template = "ZO_GamepadGuildStoreBrowseSliderTemplate",
@@ -781,7 +815,8 @@ function TH.RegisterCreateListingDialog()
                 text = SI_DIALOG_CANCEL,
             },
         },
-    })
+    }
+    ZO_Dialogs_RegisterCustomDialog(CREATE_LISTING_DIALOG_NAME, dialogInfo)
 end
 
 function TH.OnOpenTradingHouse()

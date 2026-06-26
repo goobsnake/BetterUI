@@ -428,16 +428,22 @@ function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelC
         arrowCreated = column.arrowTexture ~= nil,
     })
 
-    local controller = self
+    labelControl._betteruiHeaderSortController = self
+    labelControl._betteruiHeaderSortColumnIndex = columnIndex
     labelControl:SetMouseEnabled(true)
-    labelControl:SetHandler("OnMouseUp", function(_, button)
+
+    local function OnHeaderSortMouseUp(control, button)
+        local controller = control and control._betteruiHeaderSortController
+        local activeColumnIndex = control and control._betteruiHeaderSortColumnIndex
+        if not (controller and activeColumnIndex) then return end
+
         TraceHeaderSortController(controller, "mouse_sort_start", {
-            targetColumnIndex = columnIndex,
+            targetColumnIndex = activeColumnIndex,
             button = button,
         })
         if button ~= MOUSE_BUTTON_INDEX_LEFT then
             TraceHeaderSortController(controller, "mouse_sort_skipped", {
-                targetColumnIndex = columnIndex,
+                targetColumnIndex = activeColumnIndex,
                 reason = "nonLeftButton",
                 button = button,
             })
@@ -447,15 +453,29 @@ function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelC
         if not controller.isHeaderModeActive then
             entered = controller:EnterHeaderMode() ~= false
         end
-        controller.currentColumnIndex = columnIndex
-        local handled = controller:ToggleSortForColumn(columnIndex) ~= false
+        controller.currentColumnIndex = activeColumnIndex
+        local handled = controller:ToggleSortForColumn(activeColumnIndex) ~= false
         PlaySound(SOUNDS.MENU_BAR_CLICK)
         TraceHeaderSortController(controller, "mouse_sort_end", {
-            targetColumnIndex = columnIndex,
+            targetColumnIndex = activeColumnIndex,
             entered = entered,
             handled = handled,
         })
-    end)
+    end
+
+    if not labelControl._betteruiHeaderSortMouseUpHooked then
+        labelControl._betteruiHeaderSortMouseUpHooked = true
+        if ZO_PostHookHandler then
+            ZO_PostHookHandler(labelControl, "OnMouseUp", OnHeaderSortMouseUp)
+        else
+            local previousHandler = labelControl.GetHandler and labelControl:GetHandler("OnMouseUp") or nil
+            labelControl:SetHandler("OnMouseUp", function(control, ...)
+                local returns = previousHandler and { previousHandler(control, ...) } or nil
+                OnHeaderSortMouseUp(control, ...)
+                if returns then return unpack(returns) end
+            end)
+        end
+    end
     self:UpdateVisuals()
 end
 

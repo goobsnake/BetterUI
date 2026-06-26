@@ -57,6 +57,46 @@ function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onAct
     return list
 end
 
+local function AddSelectedDataChangedCallback(list, callback)
+    if type(callback) ~= "function" then return false end
+    list._betteruiSelectedDataChangedCallbacks = list._betteruiSelectedDataChangedCallbacks or {}
+    local callbacks = list._betteruiSelectedDataChangedCallbacks
+    for i = 1, #callbacks do
+        if callbacks[i] == callback then
+            return false
+        end
+    end
+    callbacks[#callbacks + 1] = callback
+    list.onSelectedDataChangedCallback = callback
+    return true
+end
+
+local function RemoveSelectedDataChangedCallback(list, callback)
+    local callbacks = list._betteruiSelectedDataChangedCallbacks
+    if not callbacks then return end
+    if callback then
+        for i = #callbacks, 1, -1 do
+            if callbacks[i] == callback then
+                table.remove(callbacks, i)
+            end
+        end
+    else
+        ZO_ClearNumericallyIndexedTable(callbacks)
+    end
+    list.onSelectedDataChangedCallback = callbacks[#callbacks]
+end
+
+local function DispatchSelectedDataChangedCallbacks(list, selectedData, oldSelectedData, reselectingDuringRebuild)
+    local callbacks = list._betteruiSelectedDataChangedCallbacks
+    if callbacks and #callbacks > 0 then
+        for i = 1, #callbacks do
+            callbacks[i](list, selectedData, oldSelectedData, reselectingDuringRebuild)
+        end
+    elseif list.onSelectedDataChangedCallback then
+        list.onSelectedDataChangedCallback(list, selectedData, oldSelectedData, reselectingDuringRebuild)
+    end
+end
+
 --- Override UpdateAnchors to implement CAROUSEL rotation behavior.
 ---@param continousTargetOffset number
 ---@param initialUpdate boolean?
@@ -157,8 +197,8 @@ function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialU
         -- mode, where the wrapper above suppresses itself. Gating this to
         -- carousel mode keeps dispatch exactly-once in both modes (carousel:
         -- this direct call; non-carousel: the wrapper). See SetSelectedIndex.
-        if self.carouselMode and self.onSelectedDataChangedCallback then
-            self.onSelectedDataChangedCallback(self, self.selectedData, oldSelectedData, reselectingDuringRebuild)
+        if self.carouselMode then
+            DispatchSelectedDataChangedCallbacks(self, self.selectedData, oldSelectedData, reselectingDuringRebuild)
         end
     end
 end
@@ -186,21 +226,18 @@ end
 --- Sets the data change callback.
 ---@param callback fun(list: table, selectedData: table?, oldSelectedData: table?, reselectingDuringRebuild: boolean)?
 function BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback(callback)
-    self.onSelectedDataChangedCallback = callback -- For Carousel mode
-
-    -- Clean up old wrapper
-    if self._zo_selectedDataChangedWrapper then
-        self:UnregisterCallback("SelectedDataChanged", self._zo_selectedDataChangedWrapper)
-        self._zo_selectedDataChangedWrapper = nil
+    local added = AddSelectedDataChangedCallback(self, callback)
+    if not added then
+        return
     end
 
-    -- Register wrapper for Non-Carousel mode (acting as standard list)
-    if callback then
+    -- Register one wrapper for Non-Carousel mode (acting as standard list).
+    if not self._zo_selectedDataChangedWrapper then
         self._zo_selectedDataChangedWrapper = function(list, selectedData, oldSelectedData, reachedTarget,
                                                        targetSelectedIndex)
             if not self.carouselMode then
                 if reachedTarget == false then return end -- wait for animation end
-                callback(list, selectedData, oldSelectedData, false)
+                DispatchSelectedDataChangedCallbacks(self, selectedData, oldSelectedData, false)
             end
         end
         self:RegisterCallback("SelectedDataChanged", self._zo_selectedDataChangedWrapper)
@@ -210,8 +247,9 @@ end
 --- Removes the data change callback.
 ---@param callback fun()?
 function BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback(callback)
-    self.onSelectedDataChangedCallback = nil
-    if self._zo_selectedDataChangedWrapper then
+    RemoveSelectedDataChangedCallback(self, callback)
+    local callbacks = self._betteruiSelectedDataChangedCallbacks
+    if (not callbacks or #callbacks == 0) and self._zo_selectedDataChangedWrapper then
         self:UnregisterCallback("SelectedDataChanged", self._zo_selectedDataChangedWrapper)
         self._zo_selectedDataChangedWrapper = nil
     end

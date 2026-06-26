@@ -11,6 +11,7 @@ local NativeStoreBridge = Vendor.NativeStoreBridge
 local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "OnCloseStore:beforeSweep"
 local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "OnCloseStore:afterSweep"
 local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.OnCloseStore:NativeOnHide"
+local updateDirectionalInputHookedManagers = {}
 
 local function LogVendorDebug(flagName, category, message)
     if Vendor.LogDebug then
@@ -413,7 +414,7 @@ function NativeStoreBridge.TakeOverScene(instance)
         end
 
         if type(storeManager.UpdateDirectionalInput) == "function" then
-            if not storeManager._betteruiUpdateDirectionalInputPreHookInstalled and type(ZO_PreHook) == "function" then
+            if not updateDirectionalInputHookedManagers[storeManager] and type(ZO_PreHook) == "function" then
                 ZO_PreHook(storeManager, "UpdateDirectionalInput", function()
                     local nativeScene = Vendor.nativeStoreScene
                     if nativeScene and nativeScene.IsShowing and nativeScene:IsShowing() then
@@ -421,11 +422,11 @@ function NativeStoreBridge.TakeOverScene(instance)
                     end
                     return true
                 end)
-                storeManager._betteruiUpdateDirectionalInputPreHookInstalled = true
+                updateDirectionalInputHookedManagers[storeManager] = true
                 TraceNativeStoreBridge("vendor.native_store_directional_input", "hook_installed", {
                     fn = "NativeStoreBridge.TakeOverScene",
                 })
-            elseif not storeManager._betteruiUpdateDirectionalInputPreHookInstalled then
+            elseif not updateDirectionalInputHookedManagers[storeManager] then
                 TraceNativeStoreBridge("vendor.native_store_directional_input", "hook_skipped", {
                     fn = "NativeStoreBridge.TakeOverScene",
                     reason = "missing ZO_PreHook",

@@ -341,9 +341,22 @@ end
 function ActionHandlers.OnSetup(self, dialog, data)
     if not self.scene:IsShowing() then return end
 
-    dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
-        self.itemActions:SetSelectedAction(selectedData and selectedData.action)
-    end)
+    local entryList = dialog.entryList
+    if entryList and entryList.SetOnSelectedDataChangedCallback then
+        if entryList._betteruiActionDialogSelectedDataChangedCallback then
+            if entryList.RemoveOnSelectedDataChangedCallback then
+                entryList:RemoveOnSelectedDataChangedCallback(entryList._betteruiActionDialogSelectedDataChangedCallback)
+            elseif entryList.UnregisterCallback then
+                entryList:UnregisterCallback("SelectedDataChanged", entryList._betteruiActionDialogSelectedDataChangedCallback)
+            end
+        end
+        entryList._betteruiActionDialogSelectedDataChangedCallback = function(list, selectedData)
+            if self.itemActions then
+                self.itemActions:SetSelectedAction(selectedData and selectedData.action)
+            end
+        end
+        entryList:SetOnSelectedDataChangedCallback(entryList._betteruiActionDialogSelectedDataChangedCallback)
+    end
 
     local parametricList = dialog.info.parametricList
     ZO_ClearNumericallyIndexedTable(parametricList)

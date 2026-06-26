@@ -38,34 +38,35 @@ end
 local function EnsureCancelDialogHooks()
     if cancelDialogHooksInstalled then return end
     cancelDialogHooksInstalled = true
+    if type(ZO_PostHook) ~= "function" then
+        TraceListings("trading_house.cancel_listing_dialog", "hooks_skipped", TH.instance, {
+            fn = "TradingHouse.ListingsComponent.EnsureCancelDialogHooks",
+            reason = "missingZO_PostHook",
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+        return
+    end
     if type(CancelTradingHouseListing) == "function" then
-        local originalCancelTradingHouseListing = CancelTradingHouseListing
-        CancelTradingHouseListing = function(index, ...)
+        ZO_PostHook(_G, "CancelTradingHouseListing", function(index, ...)
             local pending = Listings.pendingCancelTrace
             if pending then
                 pending.confirmedIndex = index
                 TracePendingCancelDialog("confirm", nil)
             end
-            return originalCancelTradingHouseListing(index, ...)
-        end
+        end)
     end
     if type(ZO_Dialogs_ReleaseDialog) == "function" then
-        local originalReleaseDialog = ZO_Dialogs_ReleaseDialog
-        ZO_Dialogs_ReleaseDialog = function(dialogName, ...)
+        ZO_PostHook(_G, "ZO_Dialogs_ReleaseDialog", function(dialogName, ...)
             if dialogName == "TRADING_HOUSE_CONFIRM_REMOVE_LISTING" then
                 TracePendingCancelDialog("cancel", "dialogReleased")
             end
-            return originalReleaseDialog(dialogName, ...)
-        end
+        end)
     end
     if type(ZO_Dialogs_ReleaseDialogOnButtonPress) == "function" then
-        local originalReleaseDialogOnButtonPress = ZO_Dialogs_ReleaseDialogOnButtonPress
-        ZO_Dialogs_ReleaseDialogOnButtonPress = function(dialogName, ...)
+        ZO_PostHook(_G, "ZO_Dialogs_ReleaseDialogOnButtonPress", function(dialogName, ...)
             if dialogName == "TRADING_HOUSE_CONFIRM_REMOVE_LISTING" then
                 TracePendingCancelDialog("cancel", "buttonPressRelease")
             end
-            return originalReleaseDialogOnButtonPress(dialogName, ...)
-        end
+        end)
     end
 end
 

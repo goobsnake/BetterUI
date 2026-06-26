@@ -26,6 +26,15 @@ function EventBridge.Register(eventManager, eventNamespace, handlers)
     if not eventManager then
         return
     end
+    if not eventNamespace then
+        return
+    end
+
+    EventBridge._registeredNamespaces = EventBridge._registeredNamespaces or {}
+    if EventBridge._registeredNamespaces[eventNamespace] then
+        return
+    end
+    EventBridge._registeredNamespaces[eventNamespace] = true
 
     RegisterEvent(eventManager, eventNamespace, "StableStart", rawget(_G, "EVENT_STABLE_INTERACT_START"), handlers.onStableInteractStart)
     RegisterEvent(eventManager, eventNamespace, "StableEnd", rawget(_G, "EVENT_STABLE_INTERACT_END"), handlers.onStableInteractEnd)

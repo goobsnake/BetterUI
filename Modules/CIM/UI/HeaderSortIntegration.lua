@@ -409,11 +409,15 @@ function HeaderSortIntegration.Install(owner, options)
     if integration.autoEnterOnListStart then
         local list = ResolveList(integration)
         if list and list.SetOnHitBeginningOfListCallback then
-            list:SetOnHitBeginningOfListCallback(function()
+            if list._betteruiHeaderSortHitBeginningCallback and list.UnregisterCallback then
+                list:UnregisterCallback("HitBeginningOfList", list._betteruiHeaderSortHitBeginningCallback)
+            end
+            list._betteruiHeaderSortHitBeginningCallback = function()
                 if not integration.isActive then
                     owner:EnterHeaderSortMode()
                 end
-            end)
+            end
+            list:SetOnHitBeginningOfListCallback(list._betteruiHeaderSortHitBeginningCallback)
         end
     end
 

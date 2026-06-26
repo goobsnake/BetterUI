@@ -313,12 +313,19 @@ function PresentationRuntime.InitVendorFooter(instance, isStableInteractionActiv
     if withdraw then
         local btn = withdraw:GetNamedChild("Button")
         if btn then
-            btn:SetHandler("OnClicked", function()
+            local function OnWithdrawClicked()
                 if Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() then
                     instance:SetMode(MODE.FENCE_SELL)
                     return
                 end
                 instance:SetMode(MODE.BUY)
+            end
+            local existingHandler = btn:GetHandler("OnClicked")
+            btn:SetHandler("OnClicked", function(...)
+                if type(existingHandler) == "function" then
+                    existingHandler(...)
+                end
+                OnWithdrawClicked(...)
             end)
 
             local label = btn:GetNamedChild("Label")
@@ -336,7 +343,7 @@ function PresentationRuntime.InitVendorFooter(instance, isStableInteractionActiv
     if deposit then
         local btn = deposit:GetNamedChild("Button")
         if btn then
-            btn:SetHandler("OnClicked", function()
+            local function OnDepositClicked()
                 if Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() then
                     instance:SetMode(MODE.FENCE_LAUNDER)
                     return
@@ -346,6 +353,13 @@ function PresentationRuntime.InitVendorFooter(instance, isStableInteractionActiv
                 else
                     instance:SetMode(MODE.SELL)
                 end
+            end
+            local existingHandler = btn:GetHandler("OnClicked")
+            btn:SetHandler("OnClicked", function(...)
+                if type(existingHandler) == "function" then
+                    existingHandler(...)
+                end
+                OnDepositClicked(...)
             end)
 
             local label = btn:GetNamedChild("Label")

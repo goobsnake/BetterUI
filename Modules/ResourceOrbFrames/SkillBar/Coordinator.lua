@@ -135,6 +135,8 @@ local function ApplyActionBarSkin(rootFrame, layout)
         end)
     end
 
+    -- P2 compatibility note: BetterUI intentionally reanchors this native HUD
+    -- control so equipment status clears the custom action-bar layout.
     ZO_HUDEquipmentStatus:ClearAnchors()
     ZO_HUDEquipmentStatus:SetAnchor(RIGHT, GuiRoot, RIGHT, -(layout.abilitySlotOffsetX + 13), 0)
 
