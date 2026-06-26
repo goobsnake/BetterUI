@@ -213,7 +213,7 @@ do
 
     NativeStoreBridge.EnsureComponents("test-search")
 
-    assert_eq(storeManager.sceneName, "betterui_native_store_blocked", "ensure components blocks native scene while rebuilding")
+    assert_eq(storeManager.sceneName, "gamepad_store", "ensure components leaves native sceneName metadata intact while rebuilding")
     assert_eq(#setActiveCalls, 1, "ensure components rebuilds native active components when required")
     assert_eq(setActiveCalls[1].searchContext, "test-search", "ensure components forwards explicit search context")
     assert_true(#setActiveCalls[1].modes >= 3, "rebuild includes all eligible non-stable store modes")

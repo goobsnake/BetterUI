@@ -257,6 +257,10 @@ do
             removedGroups = removedGroups + 1
         end,
     }
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent = function(group)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+        return true
+    end
 
     local screen, editBox, calls = buildScreen()
     BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)

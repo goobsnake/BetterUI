@@ -44,10 +44,11 @@ end
 
 --- Hooks the native Y-button Action Dialog.
 ---
---- Purpose: Replaces or extends the `ZO_GAMEPAD_INVENTORY_ACTION_DIALOG`.
+--- Purpose: Extends the `ZO_GAMEPAD_INVENTORY_ACTION_DIALOG`.
 --- Mechanics:
+--- - Captures the existing dialog definition before registering BetterUI's
+---   extension so unsupported scenes can delegate back to the prior owner.
 --- - Registers a **custom** dialog with the **same name** as the engine's dialog (`ZO_GAMEPAD_INVENTORY_ACTION_DIALOG`).
---- - This effectively overrides the native dialog definition.
 --- - Implements custom `setup` to handle:
 ---   - Quickslot Assignment (embedded).
 ---   - Safe "Destroy" (BetterUI replacement).
@@ -56,6 +57,8 @@ end
 --- Hooks the native Y-button Action Dialog.
 ---@return nil
 function BETTERUI.Inventory.HookActionDialog()
+    local existingActionDialogInfo = ESO_Dialogs and ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG] or nil
+
     local function TraceInventoryActionDialog(event, phase, data)
         local L = BETTERUI.Log
         if not (L and L.TraceEvent) then return end
@@ -139,6 +142,58 @@ function BETTERUI.Inventory.HookActionDialog()
         dialog:setupFunc()
     end
 
+    local function FindExistingButtonCallback(keybind)
+        local buttons = existingActionDialogInfo and existingActionDialogInfo.buttons or nil
+        if type(buttons) ~= "table" then return nil end
+        for _, button in ipairs(buttons) do
+            if type(button) == "table" and button.keybind == keybind and type(button.callback) == "function" then
+                return button.callback
+            end
+        end
+        return nil
+    end
+
+    local existingPrimaryCallback = FindExistingButtonCallback("DIALOG_PRIMARY")
+
+    local function CallExistingActionDialogSetup(dialog, data)
+        local setup = existingActionDialogInfo and existingActionDialogInfo.setup or nil
+        if type(setup) == "function" then
+            local ok, err = pcall(setup, dialog, data)
+            if ok then
+                return true
+            end
+            TraceInventoryActionDialog("inventory.action_dialog", "previous_setup_failed", {
+                error = tostring(err),
+                hasData = data ~= nil,
+            })
+        end
+        ActionsDialogSetup(dialog, data)
+        return false
+    end
+
+    local function CallExistingFinishedCallback(dialog)
+        local callback = existingActionDialogInfo and existingActionDialogInfo.finishedCallback or nil
+        if type(callback) ~= "function" then return false end
+        local ok, err = pcall(callback, dialog)
+        if not ok then
+            TraceInventoryActionDialog("inventory.action_dialog", "previous_finish_failed", {
+                error = tostring(err),
+            })
+        end
+        return ok == true
+    end
+
+    local function CallExistingPrimaryCallback(dialog)
+        if type(existingPrimaryCallback) ~= "function" then return false end
+        local ok, err = pcall(existingPrimaryCallback, dialog)
+        if not ok then
+            TraceInventoryActionDialog("inventory.action_dialog", "previous_primary_failed", {
+                error = tostring(err),
+            })
+        end
+        return ok == true
+    end
+
     BETTERUI.CIM.Dialogs.Register(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, {
         blockDirectionalInput = true,
         canQueue = true,
@@ -152,10 +207,11 @@ function BETTERUI.Inventory.HookActionDialog()
             2. Then checks scene to determine context:
                - gamepad_inventory_root → fires BETTERUI_EVENT_ACTION_DIALOG_SETUP for Inventory
                - gamepad_banking → fires BETTERUI_EVENT_ACTION_DIALOG_SETUP for Banking
-               - Other scenes → falls back to original ActionsDialogSetup
+               - Other scenes → delegates to the previously registered dialog setup
 
-            Do NOT register another ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG]
-            elsewhere as it will overwrite this registration and break scene detection.
+            BetterUI must not assume it is the only addon extending this shared
+            dialog; unsupported scenes delegate back to the definition captured
+            before this registration.
         ]]
         setup = function(dialog, data)
             -- Normal BetterUI override path when enabled/visible
@@ -187,10 +243,10 @@ function BETTERUI.Inventory.HookActionDialog()
                 return
             end
             dialog._betteruiManaged = false
-            -- Original function for unsupported scenes
-            ActionsDialogSetup(dialog, data)
+            local delegated = CallExistingActionDialogSetup(dialog, data)
             TraceInventoryActionDialog("inventory.action_dialog", "setup_after", {
                 managed = false,
+                delegated = delegated == true,
                 entryCount = dialog.info and dialog.info.parametricList and #dialog.info.parametricList or nil,
             })
         end,
@@ -217,11 +273,11 @@ function BETTERUI.Inventory.HookActionDialog()
                 dialog._betteruiCloseCause = nil
                 return
             end
-            --original function
+            local delegated = CallExistingFinishedCallback(dialog)
             dialog.itemActions = nil
             dialog._betteruiManaged = nil
             dialog._betteruiCloseCause = nil
-            if dialog.finishedCallback then
+            if not delegated and dialog.finishedCallback then
                 dialog.finishedCallback()
             end
             dialog.finishedCallback = nil
@@ -377,6 +433,10 @@ function BETTERUI.Inventory.HookActionDialog()
                             return
                         end
                     end
+                    if CallExistingPrimaryCallback(dialog) then
+                        return
+                    end
+
                     --original function
                     do
                         local actionController = dialog.itemActions

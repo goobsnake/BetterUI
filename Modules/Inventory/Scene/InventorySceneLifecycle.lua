@@ -31,11 +31,7 @@ local function NormalizeInventoryListType(listType, fallback)
 end
 
 local function IsKeybindGroupPresent(group)
-	if not (group and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
-		return false
-	end
-	local ok, present = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, group)
-	return ok and present == true
+	return BETTERUI.Interface.HasKeybindGroup(group)
 end
 
 local function DescribeKeybindGroup(group, label)
@@ -74,8 +70,8 @@ local function RemoveInventoryKeybindGroup(self, group, label, phase)
 		return false
 	end
 	local beforePresent = IsKeybindGroupPresent(group)
-	if beforePresent and KEYBIND_STRIP and KEYBIND_STRIP.RemoveKeybindButtonGroup then
-		KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+	if beforePresent then
+		BETTERUI.Interface.RemoveKeybindGroupIfPresent(group)
 	end
 	local afterPresent = IsKeybindGroupPresent(group)
 	TraceInventoryKeybindOwnership(self, phase, {
@@ -86,6 +82,46 @@ local function RemoveInventoryKeybindGroup(self, group, label, phase)
 		removed = beforePresent and not afterPresent,
 	}, afterPresent)
 	return beforePresent and not afterPresent
+end
+
+local function IsInventoryInstanceShowing(instance)
+	if not instance then return false end
+	if instance.IsSceneShowing then
+		local ok, showing = pcall(instance.IsSceneShowing, instance)
+		return ok and showing == true
+	end
+	if instance.scene and instance.scene.IsShowing then
+		local ok, showing = pcall(instance.scene.IsShowing, instance.scene)
+		return ok and showing == true
+	end
+	return false
+end
+
+local function EnsureInventorySlotUpdateHook(instance)
+	local inventory = BETTERUI.Inventory
+	if not inventory then return false end
+	inventory._slotUpdateHookInstance = instance
+	if inventory._slotUpdateHookInstalled then
+		return true
+	end
+	if type(ZO_PostHook) ~= "function" then
+		if BETTERUI.Log and BETTERUI.Log.Warn then
+			BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "inventory slot update hook skipped", {
+				fn = "InventorySceneLifecycle.EnsureInventorySlotUpdateHook",
+				reason = "missing ZO_PostHook",
+			})
+		end
+		return false
+	end
+
+	ZO_PostHook("UpdateMouseoverCommand", function()
+		local activeInventory = BETTERUI.Inventory and BETTERUI.Inventory._slotUpdateHookInstance or nil
+		if activeInventory and activeInventory.RefreshItemActions and IsInventoryInstanceShowing(activeInventory) then
+			activeInventory:RefreshItemActions()
+		end
+	end)
+	inventory._slotUpdateHookInstalled = true
+	return true
 end
 
 local function RemoveInventoryKeybindsForSceneExit(self, phase)
@@ -175,9 +211,7 @@ local function OnSceneShowing(self)
 
 	BETTERUI.CIM.Utils.SetExternalToolbarHidden(true)
 
-	ZO_InventorySlot_SetUpdateCallback(function()
-		self:RefreshItemActions()
-	end)
+	EnsureInventorySlotUpdateHook(self)
 
 	-- Register for item preview refresh callbacks (native ESO feature)
 	if ITEM_PREVIEW_GAMEPAD then
@@ -205,7 +239,9 @@ local function OnSceneShowing(self)
 end
 
 local function OnSceneHiding(self)
-	ZO_InventorySlot_SetUpdateCallback(nil)
+	if BETTERUI.Inventory and BETTERUI.Inventory._slotUpdateHookInstance == self then
+		BETTERUI.Inventory._slotUpdateHookInstance = nil
+	end
 	if self:IsBatchProcessing() then
 		self:RequestBatchAbort()
 	end

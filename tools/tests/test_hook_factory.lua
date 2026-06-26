@@ -1,6 +1,6 @@
 --[[
 File: tools/tests/test_hook_factory.lua
-Purpose: Unit tests for HookFactory (PreHook, PostHook, ReplaceHook).
+Purpose: Unit tests for HookFactory (PreHook, PostHook, ReplaceHook shim).
          These tests run standalone with a Lua interpreter (no ESO environment).
 
 Usage:
@@ -137,8 +137,8 @@ ctrl5:DoWork()
 assert_equal("original", order5[1], "Original runs first")
 assert_equal("post", order5[2], "Post-hook runs second")
 
--- Test 6: ReplaceHook replaces original entirely
-print("\nTest: ReplaceHook replaces original entirely")
+-- Test 6: ReplaceHook suppresses original through native prehook semantics
+print("\nTest: ReplaceHook suppresses original through native prehook semantics")
 local order6 = {}
 local ctrl6 = {}
 ctrl6.DoWork = function(self) table.insert(order6, "original") end
@@ -204,6 +204,14 @@ ctrl11:DoWork()
 assert_equal("hook2", order11[1], "Outer hook runs first")
 assert_equal("hook1", order11[2], "Inner hook runs second")
 assert_equal("original", order11[3], "Original runs last")
+
+-- Test 12: ReplaceHook implementation does not directly assign method slots
+print("\nTest: ReplaceHook avoids direct method-slot assignment")
+local fh = assert(io.open("Modules/CIM/Core/Integration/HookFactory.lua", "r"))
+local hookFactorySource = fh:read("*a")
+fh:close()
+assert_true(hookFactorySource:find("control%[method%]%s*=") == nil,
+    "ReplaceHook avoids monkey-patching target method slots")
 
 -- ============================================================================
 -- SUMMARY

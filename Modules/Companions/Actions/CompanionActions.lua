@@ -251,8 +251,7 @@ local function EnsureCompanionEquipBoEDialogRegistered()
     if ESO_Dialogs and ESO_Dialogs[COMPANION_CONFIRM_EQUIP_BOE_DIALOG] then
         return
     end
-    ESO_Dialogs = ESO_Dialogs or {}
-    ESO_Dialogs[COMPANION_CONFIRM_EQUIP_BOE_DIALOG] = {
+    local dialogInfo = {
         canQueue = true,
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.BASIC,
@@ -285,6 +284,14 @@ local function EnsureCompanionEquipBoEDialogRegistered()
             },
         },
     }
+    if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
+        BETTERUI.CIM.Dialogs.Register(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, dialogInfo)
+    elseif ZO_Dialogs_RegisterCustomDialog then
+        ZO_Dialogs_RegisterCustomDialog(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, dialogInfo)
+    else
+        ESO_Dialogs = ESO_Dialogs or {}
+        ESO_Dialogs[COMPANION_CONFIRM_EQUIP_BOE_DIALOG] = dialogInfo
+    end
 end
 
 function Companions.TryEquipCompanionItem(bagId, slotIndex)

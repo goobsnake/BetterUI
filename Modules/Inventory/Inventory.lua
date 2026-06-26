@@ -419,7 +419,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	if self.RefreshKeybinds then
 		self:RefreshKeybinds()
 	elseif self.mainKeybindStripDescriptor then
-		KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+		BETTERUI.Interface.UpdateKeybindGroup(self.mainKeybindStripDescriptor)
 		if self.SetActiveKeybinds then
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 		end
@@ -607,13 +607,7 @@ local function SnapshotInventoryVisible(inv)
 end
 
 local function SnapshotKeybindPresent(descriptor)
-	if descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
-		local ok, hasGroup = pcall(function()
-			return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
-		end)
-		return (ok and hasGroup) and 1 or 0
-	end
-	return 0
+	return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
 end
 
 local function RegisterInventorySnapshotProvider()

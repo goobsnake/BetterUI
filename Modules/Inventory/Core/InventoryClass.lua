@@ -258,13 +258,9 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
     local L = BETTERUI.Log
     local sceneShowing = not (self.scene and self.scene.IsShowing) or self.scene:IsShowing()
     if not sceneShowing then
-        local stripHasMain = false
-        if self.mainKeybindStripDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
-            local ok, present = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, self.mainKeybindStripDescriptor)
-            stripHasMain = ok and present == true
-        end
-        if stripHasMain and KEYBIND_STRIP.RemoveKeybindButtonGroup then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        local stripHasMain = BETTERUI.Interface.HasKeybindGroup(self.mainKeybindStripDescriptor)
+        if stripHasMain then
+            BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.mainKeybindStripDescriptor)
         end
         if L then
             local payload = {
@@ -341,7 +337,7 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
             })
         end
         if self.mainKeybindStripDescriptor and KEYBIND_STRIP then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+            BETTERUI.Interface.UpdateKeybindGroup(self.mainKeybindStripDescriptor)
         end
         if L and L.TraceEvent then
             L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "after", {
@@ -366,7 +362,7 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
         })
     end
     if self.mainKeybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        BETTERUI.Interface.UpdateKeybindGroup(self.mainKeybindStripDescriptor)
     end
     if L and L.TraceEvent then
         L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "after", {
@@ -813,7 +809,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
         if self.RefreshKeybinds then
             self:RefreshKeybinds()
         elseif self.mainKeybindStripDescriptor then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+            BETTERUI.Interface.UpdateKeybindGroup(self.mainKeybindStripDescriptor)
         end
     end
 end

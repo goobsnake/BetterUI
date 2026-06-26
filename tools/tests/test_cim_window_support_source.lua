@@ -53,10 +53,10 @@ assert_true(unifiedScreen:find("function BETTERUI%.CIM%.UnifiedScreen:ClearActiv
     "UnifiedScreen exposes ClearActiveKeybinds")
 assert_true(unifiedScreen:find("RemoveAllKeyButtonGroups") == nil,
     "ClearActiveKeybinds never wipes the shared keybind strip")
-assert_true(unifiedScreen:find("KEYBIND_STRIP:HasKeybindButtonGroup%(self%.activeKeybindDescriptor%)") ~= nil,
-    "ClearActiveKeybinds checks the screen-owned active descriptor via the public API")
-assert_true(unifiedScreen:find("KEYBIND_STRIP:HasKeybindButtonGroup%(self%.searchKeybindDescriptor%)") ~= nil,
-    "ClearActiveKeybinds checks the screen-owned search descriptor via the public API")
+assert_true(unifiedScreen:find("BETTERUI%.Interface%.RemoveKeybindGroupIfPresent%(self%.activeKeybindDescriptor%)") ~= nil,
+    "ClearActiveKeybinds removes the screen-owned active descriptor through the keybind helper")
+assert_true(unifiedScreen:find("BETTERUI%.Interface%.RemoveKeybindGroupIfPresent%(self%.searchKeybindDescriptor%)") ~= nil,
+    "ClearActiveKeybinds removes the screen-owned search descriptor through the keybind helper")
 
 local tooltipLayout = read_file("Modules/CIM/Core/Window/TooltipLayout.lua")
 assert_true(tooltipLayout:find("function BETTERUI%.CIM%.SetTooltipWidth%(width%)") ~= nil,
@@ -71,6 +71,8 @@ assert_true(dialogRegistry:find("BETTERUI%.CIM%.Dialogs%.Registry = %{%s*") ~= n
     "DialogRegistry defines the shared dialog registry table")
 assert_true(dialogRegistry:find("function BETTERUI%.CIM%.Dialogs%.Register%(dialogName, dialogInfo, options%)") ~= nil,
     "DialogRegistry exposes Register")
+assert_true(dialogRegistry:find("function BETTERUI%.CIM%.Dialogs%.GetPreviousInfo%(dialogName%)") ~= nil,
+    "DialogRegistry exposes previous-dialog lookup for compatibility chaining")
 assert_true(dialogRegistry:find("function BETTERUI%.CIM%.Dialogs%.IsRegistered%(dialogName%)") ~= nil,
     "DialogRegistry exposes IsRegistered")
 assert_true(dialogRegistry:find("function BETTERUI%.CIM%.Dialogs%.Show%(dialogName, data%)") ~= nil,

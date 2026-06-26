@@ -176,8 +176,8 @@ function SelectionRuntime.ToggleSelectionPreview(instance, isStableInteraction)
         end
     end
 
-    if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+    if BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups then
+        BETTERUI.Interface.UpdateCurrentKeybindGroups()
     end
 end
 

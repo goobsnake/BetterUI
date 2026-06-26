@@ -44,6 +44,14 @@ assert_contains(runtimeSource, "function Companions.InitializeRuntime()",
     "Companions runtime helper owns the single runtime bootstrap entrypoint")
 assert_contains(runtimeSource, "function Companions.CreateScene(instance)",
     "Companions runtime helper owns scene creation")
+assert_contains(runtimeSource, "EVENT_OPEN_COMPANION_MENU",
+    "Companions runtime opens the BetterUI scene from the native companion open event")
+assert_not_contains(runtimeSource, "SCENE_MANAGER.scenes[\"companionEquipmentGamepad\"] =",
+    "Companions runtime leaves the native companion scene table entry untouched")
+assert_not_contains(runtimeSource, "COMPANION_EQUIPMENT_GAMEPAD = instance",
+    "Companions runtime leaves the native companion global object untouched")
+assert_not_contains(runtimeSource, "COMPANION_EQUIPMENT_GAMEPAD_SCENE = scene",
+    "Companions runtime leaves the native companion scene global untouched")
 assert_contains(runtimeSource, "function Companions.RegisterSceneLifecycle(instance)",
     "Companions runtime helper owns scene lifecycle registration")
 assert_contains(runtimeSource, "function Companions.RegisterEvents(eventManager)",

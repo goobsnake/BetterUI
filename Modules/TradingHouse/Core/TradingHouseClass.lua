@@ -201,14 +201,16 @@ function BETTERUI.TradingHouse.Class:SetMode(mode)
     end
 
     -- Update keybinds for new mode
-    if self:IsSceneShowing() and KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+    if self:IsSceneShowing() then
         TraceTH(L and L.CATEGORY.ACTION, "trading_house.keybinds", "refresh_before", self, {
             reason = "modeChanged",
             keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         })
-        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+        local refreshed = updateCurrentKeybinds and updateCurrentKeybinds() or false
         TraceTH(L and L.CATEGORY.ACTION, "trading_house.keybinds", "refresh_after", self, {
             reason = "modeChanged",
+            refreshed = refreshed == true,
             keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         })
     end

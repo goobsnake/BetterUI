@@ -29,16 +29,51 @@ BETTERUI.Interface = BETTERUI.Interface or {}
 
 -- LOCAL HELPERS
 
+local function InvokePreviousMouseHandler(handler, control, ...)
+    if type(handler) ~= "function" then
+        return nil
+    end
+
+    local ok, result = pcall(handler, control, ...)
+    if not ok then
+        if BETTERUI.Log and BETTERUI.Log.Warn then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SEARCH, "previous search mouse handler failed", {
+                error = tostring(result),
+            })
+        end
+        return nil
+    end
+    return result
+end
+
+local function ChainSearchMouseHandler(control, focusHandler)
+    if not (control and control.SetHandler) then
+        return
+    end
+    if control._betteruiSearchMouseUpHandlerInstalled then
+        return
+    end
+
+    local previousHandler = control.GetHandler and control:GetHandler("OnMouseUp") or nil
+    control._betteruiSearchMouseUpHandlerInstalled = true
+    control:SetHandler("OnMouseUp", function(mouseControl, ...)
+        local previousResult = InvokePreviousMouseHandler(previousHandler, mouseControl, ...)
+        if previousResult == true then
+            return true
+        end
+        if focusHandler and focusHandler.SetFocused then
+            focusHandler:SetFocused(true)
+        end
+        return previousResult
+    end)
+end
+
 --- Makes the search control and its children interactive for mouse users.
 local function PatchMouseInteractivity(searchControl, focusHandler)
     if searchControl.SetMouseEnabled then
         searchControl:SetMouseEnabled(true)
     end
-    searchControl:SetHandler("OnMouseUp", function()
-        if focusHandler and focusHandler.SetFocused then
-            focusHandler:SetFocused(true)
-        end
-    end)
+    ChainSearchMouseHandler(searchControl, focusHandler)
 
     -- Use centralized child name list for search box components
     local childCandidates = BETTERUI.CIM.CONST.SEARCH_CHILD_NAMES
@@ -47,13 +82,7 @@ local function PatchMouseInteractivity(searchControl, focusHandler)
             local child = searchControl:GetNamedChild(name)
             if child then
                 if child.SetMouseEnabled then child:SetMouseEnabled(true) end
-                if child.SetHandler then
-                    child:SetHandler("OnMouseUp", function()
-                        if focusHandler and focusHandler.SetFocused then
-                            focusHandler:SetFocused(true)
-                        end
-                    end)
-                end
+                ChainSearchMouseHandler(child, focusHandler)
                 -- enlarge icon/texture children if possible
                 if child.SetDimensions then
                     child:SetDimensions(28, 28)

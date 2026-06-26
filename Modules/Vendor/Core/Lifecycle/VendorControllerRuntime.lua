@@ -221,7 +221,7 @@ function ControllerRuntime.ReleaseNativeStoreInputOwnership(instance, deps)
     end
 
     if storeManager.keybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(storeManager.keybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(storeManager.keybindStripDescriptor)
     end
 
     if type(storeManager.Deactivate) == "function" then
@@ -428,14 +428,17 @@ function ControllerRuntime.SetMode(instance, mode)
         })
     end
 
-    if instance:IsSceneShowing() and KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+    if instance:IsSceneShowing() then
         TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_before", instance, {
             keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
             reason = "modeChanged",
         })
-        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        local refreshed = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+            and BETTERUI.Interface.UpdateCurrentKeybindGroups()
+            or false
         TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_after", instance, {
             keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
+            refreshed = refreshed == true,
             reason = "modeChanged",
         })
     end
@@ -595,17 +598,17 @@ function ControllerRuntime.RefreshList(instance, deps)
             instance:EnsureListInputActive()
         end
         instance:OnItemSelectedChange(instance.list, instance.list:GetTargetData())
-        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-            TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_before", instance, {
-                keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
-                reason = "listRefresh",
-            })
-            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-            TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_after", instance, {
-                keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
-                reason = "listRefresh",
-            })
-        end
+        TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_before", instance, {
+            keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
+            reason = "listRefresh",
+        })
+        local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+        local refreshed = updateCurrentKeybinds and updateCurrentKeybinds() or false
+        TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_after", instance, {
+            keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
+            refreshed = refreshed == true,
+            reason = "listRefresh",
+        })
     end
     instance:UpdateScrollIndicator(instance.list)
 

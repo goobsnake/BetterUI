@@ -35,8 +35,9 @@ function BootstrapRuntime.InitializeList(instance, deps)
     end)
     if instance.list then
         instance.list.owner = instance
-        if instance.list.MovePrevious then
+        if instance.list.MovePrevious and not instance.list._betteruiMovePreviousWrapperInstalled then
             local originalMovePrevious = instance.list.MovePrevious
+            instance.list._betteruiMovePreviousWrapperInstalled = true
             instance.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
                 local didMove = originalMovePrevious(list, allowWrapping, suppressFailSound)
                 if didMove then
@@ -99,9 +100,7 @@ function BootstrapRuntime.InitializeSearch(instance)
                     end
                 end
                 searchHandlerRevision = searchCallbackRevision
-                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
+                BETTERUI.Interface.UpdateCurrentKeybindGroups()
             end,
             enterHeaderFn = function(window)
                 if window.RequestHeaderFocus then
@@ -122,9 +121,7 @@ function BootstrapRuntime.InitializeInteractiveSurfaces(instance, deps)
 
     if BETTERUI.CIM and BETTERUI.CIM.MultiSelectManager and BETTERUI.CIM.MultiSelectManager.Create then
         Vendor.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(instance.list, function()
-            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-            end
+            BETTERUI.Interface.UpdateCurrentKeybindGroups()
         end)
     else
         Vendor.multiSelectManager = nil
@@ -212,8 +209,8 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                     screen.onItemPreviewRefreshActionsCallback = function()
                         if screen.RefreshVendorActionKeybinds then
                             screen:RefreshVendorActionKeybinds()
-                        elseif KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                        else
+                            BETTERUI.Interface.UpdateCurrentKeybindGroups()
                         end
                     end
                 end
@@ -223,9 +220,7 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 screen:OnItemSelectedChange(screen.list, screen.list:GetTargetData())
                 screen:UpdateScrollIndicator(screen.list)
             end
-            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-            end
+            BETTERUI.Interface.UpdateCurrentKeybindGroups()
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)

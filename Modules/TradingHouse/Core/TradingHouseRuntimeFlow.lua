@@ -42,11 +42,12 @@ local function RefreshCurrentTradingHouseKeybinds(fn, reason)
         return false
     end
 
-    if not (KEYBIND_STRIP and type(KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups) == "function") then
+    local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+    if type(updateCurrentKeybinds) ~= "function" then
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
             fn = fn,
             feature = "trading-house-keybinds",
-            reason = "missingKeybindStrip",
+            reason = "missingKeybindHelper",
             requestedReason = reason,
             searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
         })
@@ -59,7 +60,16 @@ local function RefreshCurrentTradingHouseKeybinds(fn, reason)
         reason = reason,
         searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
     })
-    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+    if not updateCurrentKeybinds() then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
+            fn = fn,
+            feature = "trading-house-keybinds",
+            reason = "missingKeybindStrip",
+            requestedReason = reason,
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
+        return false
+    end
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
         fn = fn,
         feature = "trading-house-keybinds",
@@ -96,10 +106,7 @@ local function ComputeListingPriceBreakdown(price)
 end
 
 local function SetTHSceneAlias(sceneObject)
-    if not SCENE_MANAGER or not SCENE_MANAGER.scenes then
-        return
-    end
-    SCENE_MANAGER.scenes["gamepad_trading_house"] = sceneObject
+    TH.activeTHSceneObject = sceneObject
 end
 
 local function SetTHSystemGamepadRootScene(sceneObject)
@@ -190,7 +197,7 @@ function TH.SetTradingHouseSceneOwnership(sceneObject)
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "apply_end", {
         fn = "TradingHouse.SetTradingHouseSceneOwnership",
         feature = "trading-house-scene",
-        aliasApplied = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["gamepad_trading_house"] == sceneObject or false,
+        sceneRecorded = TH.activeTHSceneObject == sceneObject,
         capturedNativeSystemRoot = TH.nativeTHSystemGamepadRootScene ~= nil,
     })
 end
@@ -219,7 +226,7 @@ function TH.RestoreNativeSceneAlias()
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "restore_end", {
         fn = "TradingHouse.RestoreNativeSceneAlias",
         feature = "trading-house-scene",
-        aliasRestored = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["gamepad_trading_house"] == TH.nativeTHScene or false,
+        sceneRecorded = TH.activeTHSceneObject == TH.nativeTHScene,
     })
 end
 
@@ -391,19 +398,11 @@ function TH.TakeOverNativeTradingHouse()
         EVENT_MANAGER:UnregisterForEvent(ZO_TRADING_HOUSE_SYSTEM_NAME, EVENT_OPEN_TRADING_HOUSE)
         EVENT_MANAGER:UnregisterForEvent(ZO_TRADING_HOUSE_SYSTEM_NAME, EVENT_CLOSE_TRADING_HOUSE)
     end
-    if nativeTH.sceneName then
-        nativeTH.sceneName = "betterui_native_th_blocked"
-    end
-    nativeTH.OpenTradingHouse = function(_)
-        TH.OnOpenTradingHouse()
-    end
-    nativeTH.CloseTradingHouse = function(_)
-        TH.OnCloseTradingHouse()
-    end
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.native_takeover", "end", {
         fn = "TradingHouse.TakeOverNativeTradingHouse",
         feature = "trading-house-scene",
         sceneName = nativeTH.sceneName,
+        nativeMethodsUntouched = true,
     })
 end
 
@@ -1028,7 +1027,10 @@ function TH.OnTradingHouseError(_, errorCode)
             reason = "tradingHouseError",
             searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
         })
-        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+        if updateCurrentKeybinds then
+            updateCurrentKeybinds()
+        end
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
             fn = "TradingHouse.OnTradingHouseError",
             feature = "trading-house-keybinds",

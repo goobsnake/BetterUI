@@ -8,6 +8,15 @@ Usage:
 
 BETTERUI = {
     TradingHouse = {},
+    Interface = {
+        UpdateCurrentKeybindGroups = function()
+            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                return true
+            end
+            return false
+        end,
+    },
     CIM = {},
 }
 

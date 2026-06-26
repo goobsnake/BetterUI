@@ -41,6 +41,12 @@ assert_true(actionDialogHooks:find("BETTERUI%.CIM%.Dialogs%.Register%(ZO_GAMEPAD
     "ActionDialogHooks registers the shared inventory action dialog")
 assert_true(actionDialogHooks:find('CALLBACK_MANAGER:FireCallbacks%("BETTERUI_EVENT_ACTION_DIALOG_SETUP", dialog, data%)') ~= nil,
     "ActionDialogHooks routes setup through the BetterUI action-dialog callback")
+assert_true(actionDialogHooks:find("existingActionDialogInfo = ESO_Dialogs and ESO_Dialogs%[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG%]") ~= nil,
+    "ActionDialogHooks captures the existing shared action dialog before registering")
+assert_true(actionDialogHooks:find("CallExistingActionDialogSetup%(dialog, data%)") ~= nil,
+    "ActionDialogHooks delegates unsupported scene setup to the previously registered dialog")
+assert_true(actionDialogHooks:find("CallExistingPrimaryCallback%(dialog%)") ~= nil,
+    "ActionDialogHooks delegates unsupported scene primary actions to the previous dialog callback")
 assert_true(actionDialogHooks:find("CanDestroyTargetWithPolicy%(targetData%)") ~= nil,
     "ActionDialogHooks guards synthetic destroy actions with the shared destroy-policy seam")
 assert_true(actionDialogHooks:find("local function GetProtectionPolicy%(") ~= nil,

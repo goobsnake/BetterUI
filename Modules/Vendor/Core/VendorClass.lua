@@ -1231,7 +1231,7 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
     self._searchHeaderActive = true
 
     if self.coreKeybinds and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
     end
 
     if self.textSearchKeybindStripDescriptor then
@@ -1260,7 +1260,7 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     self._searchHeaderActive = false
 
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
 
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate and self.textSearchHeaderFocus:IsActive() then
@@ -1382,7 +1382,7 @@ function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
     ReleaseHeaderDirectionalInput(self.headerGeneric, "Vendor.EnsureHeaderKeybindsActive:HeaderGeneric")
     ReleaseHeaderDirectionalInput(self.header, "Vendor.EnsureHeaderKeybindsActive:Header")
     if tabBar.keybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(tabBar.keybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
     end
     SetTabBarVisualActive(tabBar, true)
 end
@@ -1585,20 +1585,15 @@ function BETTERUI.Vendor.Class:DeactivateHeaderKeybinds()
         tabBar:Deactivate()
     end
     ReleaseDirectionalInputRegistrations(tabBar, true)
-    if tabBar.keybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(tabBar.keybindStripDescriptor)
-    end
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
 end
 
 ---@return nil
 function BETTERUI.Vendor.Class:RefreshVendorActionKeybinds()
-    if not (KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups) then
-        return
-    end
     if self.IsSceneShowing and not self:IsSceneShowing() then
         return
     end
-    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+    BETTERUI.Interface.UpdateCurrentKeybindGroups()
 end
 
 ---@return nil

@@ -26,6 +26,38 @@ local function assert_true(value, message)
 end
 
 BETTERUI = {
+    Interface = {
+        HasKeybindGroup = function(descriptor)
+            return KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup
+                and KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) == true
+        end,
+        EnsureKeybindGroupAdded = function(descriptor)
+            if descriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
+                KEYBIND_STRIP:AddKeybindButtonGroup(descriptor)
+                return true
+            end
+            return false
+        end,
+        RemoveKeybindGroupIfPresent = function(descriptor)
+            if descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup
+                    and KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
+                    and KEYBIND_STRIP.RemoveKeybindButtonGroup then
+                KEYBIND_STRIP:RemoveKeybindButtonGroup(descriptor)
+                return true
+            end
+            return false
+        end,
+        UpdateCurrentKeybindGroups = function()
+            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                return true
+            end
+            return false
+        end,
+        UpdateKeybindGroup = function(descriptor)
+            return BETTERUI.Interface.HasKeybindGroup(descriptor)
+        end,
+    },
     CIM = {
         UI = {},
         -- Production loads SafeExecute before CIM/UI; stub it for the harness.

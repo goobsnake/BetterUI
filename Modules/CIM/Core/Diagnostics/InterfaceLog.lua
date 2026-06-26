@@ -544,11 +544,16 @@ local function HandleCommand(args)
 end
 
 if type(G("SLASH_COMMANDS")) == "table" then
-    SLASH_COMMANDS["/builog"] = HandleCommand
+    local registerSlash = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.RegisterSlashCommand
+    if type(registerSlash) == "function" then
+        registerSlash("/builog", HandleCommand, { owner = "InterfaceLog" })
+    elseif type(SLASH_COMMANDS["/builog"]) ~= "function" then
+        SLASH_COMMANDS["/builog"] = HandleCommand
+    end
 
     -- /buihealth: one-shot health summary in chat (preset, session, error count, file-sink
     -- budget/drops, scene-logger + watch state) without tailing the file. pcall-guarded.
-    SLASH_COMMANDS["/buihealth"] = function()
+    local function HandleHealthCommand()
         local out = G("d")
         if type(out) ~= "function" then return end
         -- Fully crash-proof: any partially-loaded/faulty getter must not raise from a slash
@@ -581,5 +586,10 @@ if type(G("SLASH_COMMANDS")) == "table" then
                 tostring(W and W.IsActive and W.IsActive())))
         end)
         if not ok then out("  (health check error: " .. tostring(err) .. ")") end
+    end
+    if type(registerSlash) == "function" then
+        registerSlash("/buihealth", HandleHealthCommand, { owner = "InterfaceLog" })
+    elseif type(SLASH_COMMANDS["/buihealth"]) ~= "function" then
+        SLASH_COMMANDS["/buihealth"] = HandleHealthCommand
     end
 end

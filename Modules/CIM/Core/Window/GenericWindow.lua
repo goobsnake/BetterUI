@@ -130,13 +130,13 @@ function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
 
     -- Also ensure text search keybinds are removed when not in search mode
     if not self._searchModeActive and self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
 
     -- And ensure main keybinds are present
     if self.mainKeybindStripDescriptor then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        BETTERUI.Interface.UpdateKeybindGroup(self.mainKeybindStripDescriptor)
     end
 end
 
@@ -150,11 +150,11 @@ function BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds()
         core = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.coreKeybinds, "core") or tostring(self.coreKeybinds),
     }) end
     if self.mainKeybindStripDescriptor then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        BETTERUI.Interface.UpdateKeybindGroup(self.mainKeybindStripDescriptor)
     end
 
     if self.coreKeybinds then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+        BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
     end
 end
 

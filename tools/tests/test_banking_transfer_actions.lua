@@ -239,6 +239,16 @@ GAMEPAD_LEFT_TOOLTIP = {}
 SOUNDS = { NEGATIVE_CLICK = "negative" }
 
 BETTERUI = {
+    Interface = {
+        EnsureKeybindGroupAdded = function(group)
+            KEYBIND_STRIP:AddKeybindButtonGroup(group)
+            return true
+        end,
+        RemoveKeybindGroupIfPresent = function(group)
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+            return true
+        end,
+    },
     Banking = {
         LIST_WITHDRAW = 1,
         LIST_DEPOSIT = 2,

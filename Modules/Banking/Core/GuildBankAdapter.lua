@@ -333,8 +333,8 @@ function GuildBank.OnGuildBankReady()
     if window then
         window:SetListUpdatesSuppressed(false)
         BETTERUI.Banking.RefreshWindowView(window)
-        if window.coreKeybinds then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
+        if window.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup then
+            BETTERUI.Interface.UpdateKeybindGroup(window.coreKeybinds)
         end
     end
     TraceGuildBank("bank.guild_bank", "ready", {
@@ -409,8 +409,8 @@ function GuildBank.OnGuildRanksChanged(_, guildId)
     if guildId == GetSelectedGuildBankId() then
         local window = GetBankingWindow()
         if window then
-            if window.coreKeybinds then
-                KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
+            if window.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup then
+                BETTERUI.Interface.UpdateKeybindGroup(window.coreKeybinds)
             end
             window:RefreshList()
         end
@@ -439,8 +439,8 @@ function GuildBank.OnGuildMemberRankChanged(_, guildId, displayName)
     if guildId == GetSelectedGuildBankId() and displayName == GetDisplayName() then
         local window = GetBankingWindow()
         if window then
-            if window.coreKeybinds then
-                KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
+            if window.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup then
+                BETTERUI.Interface.UpdateKeybindGroup(window.coreKeybinds)
             end
             window:RefreshList()
         end
@@ -485,7 +485,7 @@ function GuildBank.RegisterGuildSelectorDialog()
         return
     end
 
-    ESO_Dialogs[dialogName] = {
+    local dialogInfo = {
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
             -- Center the title text — PARAMETRIC dialogs default to left-align
@@ -542,9 +542,15 @@ function GuildBank.RegisterGuildSelectorDialog()
     }
 
     -- Pre-populate on each show
-    ZO_Dialogs_RegisterCustomDialog(dialogName, ESO_Dialogs[dialogName])
+    if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
+        BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo)
+    elseif ZO_Dialogs_RegisterCustomDialog then
+        ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
+    elseif type(ESO_Dialogs) == "table" then
+        ESO_Dialogs[dialogName] = dialogInfo
+    end
     -- Override setup to build guild list dynamically
-    local orig = ESO_Dialogs[dialogName]
+    local orig = (type(ESO_Dialogs) == "table" and ESO_Dialogs[dialogName]) or dialogInfo
     local CHECKED_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_equipped.dds"
     local GUILD_ENTRY_TEMPLATE = "ZO_GamepadSubMenuEntryWithStatusTemplate"
 

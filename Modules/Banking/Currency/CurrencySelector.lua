@@ -16,6 +16,22 @@ local function GetSelectorState(self)
     return self._currencySelectorState
 end
 
+local function RemoveKeybindGroupIfPresent(descriptor)
+    local removeGroup = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent
+    if type(removeGroup) == "function" then
+        return removeGroup(descriptor)
+    end
+    return false
+end
+
+local function EnsureKeybindGroupAdded(descriptor)
+    local ensureGroup = BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded
+    if type(ensureGroup) == "function" then
+        return ensureGroup(descriptor)
+    end
+    return false
+end
+
 ---@return {rows: {stat: string, value: string}[]}? details Bank upgrade details, or nil if not personal bank
 local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
@@ -256,9 +272,9 @@ function CurrencySelector.DisplaySelector(self, currencyType)
                 selector = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.currencySelectorKeybinds, "selector") or nil,
             })
         end
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.currencySelectorKeybinds)
+        RemoveKeybindGroupIfPresent(self.currencyKeybinds)
+        RemoveKeybindGroupIfPresent(self.coreKeybinds)
+        EnsureKeybindGroupAdded(self.currencySelectorKeybinds)
         if BETTERUI.Log and BETTERUI.Log.TraceEvent then
             BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.currency_selector", "after", {
                 action = "show",
@@ -317,11 +333,11 @@ function CurrencySelector.HideSelector(self)
     selectorState.currencyType = nil
     selectorState.mode = nil
     selectorState.isGuildBank = nil
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencySelectorKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+    RemoveKeybindGroupIfPresent(self.currencySelectorKeybinds)
+    RemoveKeybindGroupIfPresent(self.currencyKeybinds)
+    RemoveKeybindGroupIfPresent(self.coreKeybinds)
+    EnsureKeybindGroupAdded(self.currencyKeybinds)
+    EnsureKeybindGroupAdded(self.coreKeybinds)
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.currency_selector", "after", {
             action = "hide",

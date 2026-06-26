@@ -23,6 +23,13 @@ KEYBIND_STRIP = {
     AddKeybindButtonGroup = function(self, group) end,
 }
 
+BETTERUI.Interface = {
+    RemoveKeybindGroupIfPresent = function(group)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+        return true
+    end,
+}
+
 dofile("Modules/CIM/Core/Lifecycle/SceneCleanup.lua")
 
 -- ============================================================================

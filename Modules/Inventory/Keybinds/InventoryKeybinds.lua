@@ -68,7 +68,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 
             if s:IsBatchProcessing() then
                 if s.mainKeybindStripDescriptor then
-                    KEYBIND_STRIP:UpdateKeybindButtonGroup(s.mainKeybindStripDescriptor)
+                    BETTERUI.Interface.UpdateKeybindGroup(s.mainKeybindStripDescriptor)
                 end
                 return
             end

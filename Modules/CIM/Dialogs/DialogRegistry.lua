@@ -28,12 +28,32 @@ Rationale: Provides a single point of truth for dialog registration,
 ]]
 BETTERUI.CIM.Dialogs.Registry = {
     _dialogs = {},
+    _previousDialogs = {},
 }
 
 local function TraceDialog(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
     L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
+end
+
+local function GetCurrentDialogInfo(dialogName)
+    if type(ESO_Dialogs) == "table" then
+        return ESO_Dialogs[dialogName]
+    end
+    return nil
+end
+
+---@param dialogName string
+---@return table|nil
+function BETTERUI.CIM.Dialogs.GetPreviousInfo(dialogName)
+    return BETTERUI.CIM.Dialogs.Registry._previousDialogs[dialogName]
+end
+
+---@param dialogName string
+---@return table|nil
+function BETTERUI.CIM.Dialogs.GetCurrentInfo(dialogName)
+    return GetCurrentDialogInfo(dialogName)
 end
 
 ---@param dialogName string
@@ -49,15 +69,30 @@ function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
         return false
     end
 
+    local previousInfo = GetCurrentDialogInfo(dialogName)
+    local replacingExisting = previousInfo ~= nil and previousInfo ~= dialogInfo
+    if replacingExisting then
+        BETTERUI.CIM.Dialogs.Registry._previousDialogs[dialogName] = previousInfo
+        TraceDialog("dialog.register", "replacing_existing", {
+            dialog = dialogName,
+            overwrite = options.overwrite == true,
+            previousTracked = BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] ~= nil,
+        })
+    end
+
     -- Register with ZO_Dialogs
     if ZO_Dialogs_RegisterCustomDialog then
         ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
+    elseif type(ESO_Dialogs) == "table" then
+        ESO_Dialogs[dialogName] = dialogInfo
     end
 
     -- Track in registry
     BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] = {
         name = dialogName,
         info = dialogInfo,
+        previousInfo = previousInfo,
+        replacedExisting = replacingExisting,
         registeredAt = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0,
     }
 

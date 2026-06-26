@@ -263,10 +263,6 @@ local function ApplyRebuildPlan(snapshot, rebuildPlan)
     end
 
     local storeManager = snapshot.storeManager
-    if storeManager.sceneName ~= "betterui_native_store_blocked" then
-        storeManager.sceneName = "betterui_native_store_blocked"
-    end
-
     local okSetActive = GuardedBridgeCall(
         "Vendor.NativeStoreBridge:SetActiveComponents",
         storeManager.SetActiveComponents,
@@ -376,10 +372,7 @@ function NativeStoreBridge.CleanupAfterCloseStore(storeManager, safeCall, logInp
 end
 
 function NativeStoreBridge.SetSceneAlias(sceneObject)
-    if not SCENE_MANAGER or not SCENE_MANAGER.scenes then
-        return
-    end
-    SCENE_MANAGER.scenes["gamepad_store"] = sceneObject
+    Vendor.activeStoreSceneObject = sceneObject
 end
 
 function NativeStoreBridge.RestoreSceneAlias()
@@ -410,7 +403,6 @@ function NativeStoreBridge.TakeOverScene(instance)
 
     local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
     if storeManager then
-        storeManager.sceneName = "betterui_native_store_blocked"
         if storeManager.control then
             storeManager.control:UnregisterForEvent(EVENT_OPEN_STORE)
             storeManager.control:UnregisterForEvent(EVENT_CLOSE_STORE)
@@ -420,20 +412,31 @@ function NativeStoreBridge.TakeOverScene(instance)
             EVENT_MANAGER:UnregisterForEvent("ZO_StoreWindow_Gamepad", EVENT_CLOSE_STORE)
         end
 
-        local origStoreManagerUpdateDI = storeManager.UpdateDirectionalInput
-        storeManager.UpdateDirectionalInput = function(self, ...)
-            local nativeScene = Vendor.nativeStoreScene
-            if nativeScene and nativeScene.IsShowing and nativeScene:IsShowing() then
-                if origStoreManagerUpdateDI then
-                    return origStoreManagerUpdateDI(self, ...)
-                end
+        if type(storeManager.UpdateDirectionalInput) == "function" then
+            if not storeManager._betteruiUpdateDirectionalInputPreHookInstalled and type(ZO_PreHook) == "function" then
+                ZO_PreHook(storeManager, "UpdateDirectionalInput", function()
+                    local nativeScene = Vendor.nativeStoreScene
+                    if nativeScene and nativeScene.IsShowing and nativeScene:IsShowing() then
+                        return false
+                    end
+                    return true
+                end)
+                storeManager._betteruiUpdateDirectionalInputPreHookInstalled = true
+                TraceNativeStoreBridge("vendor.native_store_directional_input", "hook_installed", {
+                    fn = "NativeStoreBridge.TakeOverScene",
+                })
+            elseif not storeManager._betteruiUpdateDirectionalInputPreHookInstalled then
+                TraceNativeStoreBridge("vendor.native_store_directional_input", "hook_skipped", {
+                    fn = "NativeStoreBridge.TakeOverScene",
+                    reason = "missing ZO_PreHook",
+                })
             end
         end
     end
 
     NativeStoreBridge.AliasSceneToBetterUI(instance)
     if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "scene alias applied without hook", {
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "scene ownership recorded without scene-manager hook", {
             fn = "NativeStoreBridge.TakeOverScene",
             sceneName = "gamepad_store",
             hasInstanceScene = instance and instance.scene ~= nil,

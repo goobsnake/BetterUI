@@ -158,10 +158,10 @@ function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
     if not self.triggerSpinnerBinds or next(self.triggerSpinnerBinds) == nil then return end
     if toggleValue then
         -- Spinner just activated: show its keybinds (if provided by the subclass)
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.triggerSpinnerBinds)
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.triggerSpinnerBinds)
     else
         -- Spinner deactivated: remove spinner keybinds (if present)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.triggerSpinnerBinds)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.triggerSpinnerBinds)
     end
 end
 

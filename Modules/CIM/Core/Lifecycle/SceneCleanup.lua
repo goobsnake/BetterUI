@@ -8,6 +8,14 @@ Purpose: Shared scene cleanup utilities to ensure proper DIRECTIONAL_INPUT relea
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.SceneCleanup = {}
 
+local function RemoveKeybindGroupIfPresent(descriptor)
+    local removeGroup = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent
+    if removeGroup then
+        return removeGroup(descriptor)
+    end
+    return false
+end
+
 --- Cleans up all input-related state when a scene is hidden.
 ---
 --- Purpose: Ensures DIRECTIONAL_INPUT registrations are properly released and mode flags are cleared.
@@ -54,11 +62,11 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     end
     -- Remove sort keybinds if they were added (safety net)
     if screen._activeHeaderSortKeybindDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(screen._activeHeaderSortKeybindDescriptor)
+        RemoveKeybindGroupIfPresent(screen._activeHeaderSortKeybindDescriptor)
         screen._activeHeaderSortKeybindDescriptor = nil
     end
     if screen.headerSortKeybindDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(screen.headerSortKeybindDescriptor)
+        RemoveKeybindGroupIfPresent(screen.headerSortKeybindDescriptor)
         -- Symmetric with _activeHeaderSortKeybindDescriptor above: clear the reference
         -- after removal so a stale descriptor cannot dangle past scene exit.
         screen.headerSortKeybindDescriptor = nil
@@ -79,10 +87,7 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
             suspendedGroupsDropped = BETTERUI.Log.CountKeybindDescriptors and BETTERUI.Log.CountKeybindDescriptors(headerSortIntegrationState.suspendedKeybindGroups) or 0,
         }) end
         headerSortIntegrationState.isActive = false
-        if headerSortIntegrationState.activeKeybindDescriptor and KEYBIND_STRIP
-            and KEYBIND_STRIP.RemoveKeybindButtonGroup then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(headerSortIntegrationState.activeKeybindDescriptor)
-        end
+        RemoveKeybindGroupIfPresent(headerSortIntegrationState.activeKeybindDescriptor)
         headerSortIntegrationState.activeKeybindDescriptor = nil
         headerSortIntegrationState.suspendedKeybindGroups = nil
     end
@@ -212,7 +217,7 @@ function BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
 
     -- Remove search keybinds if present
     if screen.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(screen.textSearchKeybindStripDescriptor)
+        RemoveKeybindGroupIfPresent(screen.textSearchKeybindStripDescriptor)
     end
 
     if callSearchLifecycle then

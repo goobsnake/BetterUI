@@ -204,16 +204,16 @@ function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
     end
     if self.activeKeybindDescriptor == keybindDescriptor then
         if keybindDescriptor and KEYBIND_STRIP then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(keybindDescriptor)
+            BETTERUI.Interface.UpdateKeybindGroup(keybindDescriptor)
         end
         return
     end
     if self.activeKeybindDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.activeKeybindDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.activeKeybindDescriptor)
     end
     self.activeKeybindDescriptor = keybindDescriptor
     if keybindDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:AddKeybindButtonGroup(keybindDescriptor)
+        BETTERUI.Interface.EnsureKeybindGroupAdded(keybindDescriptor)
     end
 end
 
@@ -229,7 +229,7 @@ function BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds()
         return
     end
     if self.activeKeybindDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.activeKeybindDescriptor)
+        BETTERUI.Interface.UpdateKeybindGroup(self.activeKeybindDescriptor)
     end
 end
 
@@ -241,14 +241,8 @@ function BETTERUI.CIM.UnifiedScreen:ClearActiveKeybinds()
         active = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or tostring(self.activeKeybindDescriptor),
         search = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.searchKeybindDescriptor, "search") or tostring(self.searchKeybindDescriptor),
     }) end
-    if KEYBIND_STRIP then
-        if self.activeKeybindDescriptor and KEYBIND_STRIP:HasKeybindButtonGroup(self.activeKeybindDescriptor) then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.activeKeybindDescriptor)
-        end
-        if self.searchKeybindDescriptor and KEYBIND_STRIP:HasKeybindButtonGroup(self.searchKeybindDescriptor) then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.searchKeybindDescriptor)
-        end
-    end
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.activeKeybindDescriptor)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.searchKeybindDescriptor)
     self.activeKeybindDescriptor = nil
     -- Reset search mode so the next EnterSearchMode is not a no-op for
     -- subclasses whose teardown does not route through SceneCleanup.
@@ -290,9 +284,9 @@ function BETTERUI.CIM.UnifiedScreen:EnterSearchMode()
     if self.searchKeybindDescriptor and KEYBIND_STRIP then
         -- Swap to search keybinds
         if self.activeKeybindDescriptor then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.activeKeybindDescriptor)
+            BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.activeKeybindDescriptor)
         end
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.searchKeybindDescriptor)
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.searchKeybindDescriptor)
     end
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "search mode", { active = self._searchModeActive }) end
 end
@@ -304,10 +298,10 @@ function BETTERUI.CIM.UnifiedScreen:ExitSearchMode()
 
     if KEYBIND_STRIP then
         if self.searchKeybindDescriptor then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.searchKeybindDescriptor)
+            BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.searchKeybindDescriptor)
         end
         if self.activeKeybindDescriptor then
-            KEYBIND_STRIP:AddKeybindButtonGroup(self.activeKeybindDescriptor)
+            BETTERUI.Interface.EnsureKeybindGroupAdded(self.activeKeybindDescriptor)
         end
     end
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "search mode", { active = self._searchModeActive }) end

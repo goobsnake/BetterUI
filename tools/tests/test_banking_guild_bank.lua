@@ -36,6 +36,8 @@ SI_BETTERUI_BANKING_COLUMN_VALUE = "SI_BETTERUI_BANKING_COLUMN_VALUE"
 GAMEPAD_LEFT_TOOLTIP = {}
 GAMEPAD_DIALOGS = { PARAMETRIC = "PARAMETRIC" }
 TEXT_ALIGN_CENTER = "center"
+EVENT_OPEN_GUILD_BANK = 1001
+EVENT_CLOSE_GUILD_BANK = 1002
 
 BETTERUI_BANKING_SCENE_NAME = "betterui_banking"
 BETTERUI_GUILD_BANKING_SCENE_NAME = "betterui_guild_banking"
@@ -75,6 +77,10 @@ local sceneLifecycleCalls = {}
 local refreshManagerCalls = 0
 local quantityDialogCalls = 0
 local sceneInterceptionCalls = 0
+local eventRegistrations = {}
+local unregisteredEvents = {}
+local shownSceneName = nil
+local hiddenSceneName = nil
 
 local function assertTrue(condition, message)
     if condition then
@@ -413,6 +419,13 @@ BETTERUI = {
             return {}
         end,
     },
+    Interface = {
+        UpdateKeybindGroup = function(descriptor)
+            if descriptor then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
+            end
+        end,
+    },
     CIM = {
         ProtectionPolicy = {
             DENY = {
@@ -455,7 +468,30 @@ SCENE_MANAGER = {
         [BETTERUI_BANKING_SCENE_NAME] = personalBankScene,
         ["gamepad_guild_bank"] = vanillaGuildScene,
     },
+    Show = function(_, sceneName)
+        shownSceneName = sceneName
+    end,
+    Hide = function(_, sceneName)
+        hiddenSceneName = sceneName
+    end,
+    IsShowing = function(_, sceneName)
+        return shownSceneName == sceneName
+    end,
 }
+
+EVENT_MANAGER = {
+    RegisterForEvent = function(_, namespace, eventId, handler)
+        eventRegistrations[namespace .. ":" .. tostring(eventId)] = handler
+    end,
+    UnregisterForEvent = function(_, namespace, eventId)
+        table.insert(unregisteredEvents, namespace .. ":" .. tostring(eventId))
+        eventRegistrations[namespace .. ":" .. tostring(eventId)] = nil
+    end,
+}
+
+function zo_callLater(callback)
+    callback()
+end
 
 ZO_InteractScene = {
     New = function(name, _, interaction)
@@ -720,6 +756,10 @@ local function resetInitState(enableGuildBank)
     lifecycleRegistrations = {}
     tooltipWidths = {}
     sceneLifecycleCalls = {}
+    eventRegistrations = {}
+    unregisteredEvents = {}
+    shownSceneName = nil
+    hiddenSceneName = nil
     activeWindow = createWindow()
     activeWindow.scene = { name = "window_personal_scene" }
     BETTERUI.Banking.Class.New = function()
@@ -758,7 +798,15 @@ assertEqual(6, #BETTERUI_GUILD_BANKING_SCENE.fragments, "Guild bank scene adds a
 assertEqual(1, #lifecycleRegistrations, "Init registers guild bank lifecycle callbacks")
 assertTrue(lifecycleRegistrations[1].scene == BETTERUI_GUILD_BANKING_SCENE, "Lifecycle registration targets guild scene")
 assertEqual("window_personal_scene", BETTERUI.Banking.Window.scene.name, "Init restores personal scene after lifecycle registration")
-assertTrue(SCENE_MANAGER.scenes["gamepad_guild_bank"] == SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME], "Init aliases vanilla guild bank scene")
+assertTrue(SCENE_MANAGER.scenes["gamepad_guild_bank"] == vanillaGuildScene, "Init leaves the vanilla guild bank scene entry untouched")
+assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_OPEN_GUILD_BANK)] ~= nil,
+    "Init registers a guild bank open redirect event")
+assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_CLOSE_GUILD_BANK)] ~= nil,
+    "Init registers a guild bank close redirect event")
+eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_OPEN_GUILD_BANK)]()
+assertEqual(BETTERUI_GUILD_BANKING_SCENE_NAME, shownSceneName, "Guild bank open event shows the BetterUI guild scene")
+eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_CLOSE_GUILD_BANK)]()
+assertEqual(BETTERUI_GUILD_BANKING_SCENE_NAME, hiddenSceneName, "Guild bank close event hides the BetterUI guild scene")
 assertEqual(1, refreshManagerCalls, "Init configures the refresh manager")
 assertEqual(1, quantityDialogCalls, "Init configures the quantity dialog")
 assertEqual(1, sceneInterceptionCalls, "Init installs scene interception")

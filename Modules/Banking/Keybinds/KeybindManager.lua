@@ -9,6 +9,30 @@ local function GetCurrencySelector()
     return BETTERUI.Banking and BETTERUI.Banking.CurrencySelector
 end
 
+local function RemoveKeybindGroupIfPresent(descriptor)
+    local removeGroup = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent
+    if type(removeGroup) == "function" then
+        return removeGroup(descriptor)
+    end
+    return false
+end
+
+local function EnsureKeybindGroupAdded(descriptor)
+    local ensureGroup = BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded
+    if type(ensureGroup) == "function" then
+        return ensureGroup(descriptor)
+    end
+    return false
+end
+
+local function UpdateKeybindGroup(descriptor)
+    local updateGroup = BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup
+    if type(updateGroup) == "function" then
+        return updateGroup(descriptor)
+    end
+    return false
+end
+
 local function GetEntryBagAndSlot(entryData)
     local resolveListEntrySlot = BETTERUI.Banking and BETTERUI.Banking.ResolveListEntrySlot or nil
     if type(resolveListEntrySlot) == "function" then
@@ -343,12 +367,12 @@ local function CreateCoreNavigationKeybinds(self)
                     self:ClearSearchInput()
                 end
                 if self.textSearchKeybindStripDescriptor then
-                    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+                    RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
                 end
                 if self.coreKeybinds then
-                    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-                    KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
-                    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+                    RemoveKeybindGroupIfPresent(self.coreKeybinds)
+                    EnsureKeybindGroupAdded(self.coreKeybinds)
+                    UpdateKeybindGroup(self.coreKeybinds)
                 end
                 self:RefreshActiveKeybinds()
             end,
@@ -807,7 +831,7 @@ local function CreateCurrencySelectorKeybinds(self)
                     currencySelector.HideSelector(self)
                 end
                 self:RefreshFooter()
-                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+                UpdateKeybindGroup(self.coreKeybinds)
                 EndCurrencyTransferFlow(flow, "bank currency transfer completed", {
                     currencyType = currencyType,
                     amount = amount,
@@ -846,9 +870,9 @@ local function CreateCurrencySelectorKeybinds(self)
                                 refreshError = tostring(footerErr)
                             end
                         end
-                        if KEYBIND_STRIP and self.coreKeybinds and KEYBIND_STRIP.UpdateKeybindButtonGroup then
+                        if self.coreKeybinds then
                             local okKeybind, keybindErr = pcall(function()
-                                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+                                UpdateKeybindGroup(self.coreKeybinds)
                             end)
                             if okKeybind then
                                 keybindRefresh = "core"
@@ -1062,12 +1086,12 @@ function BETTERUI.Banking.Class:AddKeybinds()
         search = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.textSearchKeybindStripDescriptor, "search") or nil,
     })
     if self.textSearchKeybindStripDescriptor then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+    RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
+    RemoveKeybindGroupIfPresent(self.coreKeybinds)
+    EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
+    EnsureKeybindGroupAdded(self.coreKeybinds)
     self:UpdateActions()
     self:EnsureHeaderKeybindsActive()
     TraceBankKeybind("bank.keybind_groups", "after_add", {
@@ -1092,8 +1116,8 @@ function BETTERUI.Banking.Class:RemoveKeybinds()
         core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
     })
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+    RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
+    RemoveKeybindGroupIfPresent(self.coreKeybinds)
     TraceBankKeybind("bank.keybind_groups", "after_remove", {
         mode = self.currentMode,
         core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,

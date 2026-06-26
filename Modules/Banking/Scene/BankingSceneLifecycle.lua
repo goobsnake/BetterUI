@@ -288,7 +288,7 @@ function BETTERUI.Banking.Class:OnSceneHidden()
                         descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "remove") or tostring(group),
                     })
                 end
-                KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+                BETTERUI.Interface.RemoveKeybindGroupIfPresent(group)
             end
         end
         self._activeHeaderSortKeybindDescriptor = nil

@@ -10,6 +10,58 @@ local function TraceBankState(event, phase, data)
     L.TraceEvent(L.CATEGORY.STATE, event, phase, data)
 end
 
+local GUILD_BANK_SCENE_REDIRECT_EVENT_NAME = "BETTERUI_GUILD_BANK_SCENE_REDIRECT"
+
+local function ShowBetterUIGuildBankScene()
+    if BETTERUI.Banking.GetSetting("enableGuildBank") == false then
+        return
+    end
+    if not (SCENE_MANAGER and SCENE_MANAGER.Show and BETTERUI_GUILD_BANKING_SCENE_NAME and BETTERUI_GUILD_BANKING_SCENE) then
+        return
+    end
+    if SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing(BETTERUI_GUILD_BANKING_SCENE_NAME) then
+        return
+    end
+    SCENE_MANAGER:Show(BETTERUI_GUILD_BANKING_SCENE_NAME)
+end
+
+local function HideBetterUIGuildBankScene()
+    if not (SCENE_MANAGER and SCENE_MANAGER.Hide and BETTERUI_GUILD_BANKING_SCENE_NAME) then
+        return
+    end
+    if SCENE_MANAGER.IsShowing and not SCENE_MANAGER:IsShowing(BETTERUI_GUILD_BANKING_SCENE_NAME) then
+        return
+    end
+    SCENE_MANAGER:Hide(BETTERUI_GUILD_BANKING_SCENE_NAME)
+end
+
+local function InstallGuildBankSceneRedirect()
+    if not (EVENT_MANAGER and EVENT_OPEN_GUILD_BANK and EVENT_CLOSE_GUILD_BANK) then
+        TraceBankState("bank.guild_scene_redirect", "skipped", { reason = "missingEvents" })
+        return
+    end
+
+    EVENT_MANAGER:UnregisterForEvent(GUILD_BANK_SCENE_REDIRECT_EVENT_NAME, EVENT_OPEN_GUILD_BANK)
+    EVENT_MANAGER:RegisterForEvent(GUILD_BANK_SCENE_REDIRECT_EVENT_NAME, EVENT_OPEN_GUILD_BANK, function()
+        TraceBankState("bank.guild_scene_redirect", "open_event", {
+            sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
+        })
+        if type(zo_callLater) == "function" then
+            zo_callLater(ShowBetterUIGuildBankScene, 0)
+        else
+            ShowBetterUIGuildBankScene()
+        end
+    end)
+
+    EVENT_MANAGER:UnregisterForEvent(GUILD_BANK_SCENE_REDIRECT_EVENT_NAME, EVENT_CLOSE_GUILD_BANK)
+    EVENT_MANAGER:RegisterForEvent(GUILD_BANK_SCENE_REDIRECT_EVENT_NAME, EVENT_CLOSE_GUILD_BANK, function()
+        TraceBankState("bank.guild_scene_redirect", "close_event", {
+            sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
+        })
+        HideBetterUIGuildBankScene()
+    end)
+end
+
 local function ReadCurrencyAmount(currencyType, location)
     if currencyType == nil or location == nil then return nil end
     local L = BETTERUI.Log
@@ -307,7 +359,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
             self:RefreshFooter()
             if KEYBIND_STRIP then
-                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+                BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
             end
             self:RefreshCurrencyTooltip()
             local afterCurrency = CurrencyRefreshSnapshot("after")
@@ -352,7 +404,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self:RefreshFooter()
         self:RefreshCurrencyTooltip()
         if KEYBIND_STRIP then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+            BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
         end
         local capacity = BankCapacitySnapshot("after")
         TraceBankState("bank.capacity_ui_refresh", "complete", {
@@ -413,10 +465,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     self.list:SetOnSelectedDataChangedCallback(SelectionChangedCallback)
 
-    -- Monkeypatch MovePrevious to allow moving "up" from the top of the list into the header.
+    -- Extend this BetterUI-owned list to move "up" from the top into the header.
     -- When there is no previous entry, go to search bar (like Inventory) instead of header sort mode.
-    if self.list and self.list.MovePrevious then
+    if self.list and self.list.MovePrevious and not self.list._betteruiMovePreviousWrapperInstalled then
         local _origMovePrevious = self.list.MovePrevious
+        self.list._betteruiMovePreviousWrapperInstalled = true
         self.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
             local ok = _origMovePrevious(list, allowWrapping, suppressFailSound)
 
@@ -567,9 +620,9 @@ function BETTERUI.Banking.Init()
                 end
             end,
         })
-        -- Restore personal bank scene after registration, then remap the global guild scene key.
+        -- Restore personal bank scene after registration; opening is redirected by event.
         BETTERUI.Banking.Window.scene = personalScene
-        SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
+        InstallGuildBankSceneRedirect()
     end
 
     if BETTERUI.Banking.InitializeRefreshManager then
@@ -643,13 +696,7 @@ local function BankingSnapshotVisible(window)
 end
 
 local function BankingSnapshotKeybindPresent(descriptor)
-    if descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
-        local ok, hasGroup = pcall(function()
-            return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
-        end)
-        return (ok and hasGroup) and 1 or 0
-    end
-    return 0
+    return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
 end
 
 local function RegisterBankingSnapshotProvider()

@@ -32,6 +32,17 @@ KEYBIND_STRIP = {
     RemoveKeybindButtonGroup = function(self, group) table.insert(removedGroups, group) end,
 }
 
+BETTERUI.Interface = {
+    EnsureKeybindGroupAdded = function(group)
+        KEYBIND_STRIP:AddKeybindButtonGroup(group)
+        return true
+    end,
+    RemoveKeybindGroupIfPresent = function(group)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+        return true
+    end,
+}
+
 dofile("Modules/CIM/Core/Lifecycle/SceneLifecycleManager.lua")
 
 -- ============================================================================

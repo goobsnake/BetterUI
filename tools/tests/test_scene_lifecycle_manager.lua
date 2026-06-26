@@ -36,6 +36,17 @@ KEYBIND_STRIP = {
     end,
 }
 
+BETTERUI.Interface = {
+    EnsureKeybindGroupAdded = function(group)
+        KEYBIND_STRIP:AddKeybindButtonGroup(group)
+        return true
+    end,
+    RemoveKeybindGroupIfPresent = function(group)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+        return true
+    end,
+}
+
 -- EventRegistry mock
 BETTERUI.CIM.EventRegistry = {
     _unregisteredModules = {},

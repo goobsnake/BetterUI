@@ -44,6 +44,7 @@ local commandsRegistered = false
 
 local directionalTrace = {}
 local directionalTraceInstalled = false
+local TraceDebugCommand
 local MAX_DIRECTIONAL_TRACE = 40
 
 local function FindDirectionalInputControl(obj)
@@ -221,24 +222,21 @@ local function EnsureDirectionalInputTraceInstalled()
         return
     end
 
-    local originalActivate = DIRECTIONAL_INPUT.Activate
-    local originalDeactivate = DIRECTIONAL_INPUT.Deactivate
-
-    if type(originalActivate) == "function" then
-        DIRECTIONAL_INPUT.Activate = function(self, obj, control, ...)
-            local results = { originalActivate(self, obj, control, ...) }
-            AppendDirectionalTrace("activate", obj, FindDirectionalInputControl(obj) or control)
-            return unpack(results)
-        end
+    if type(ZO_PostHook) ~= "function" then
+        TraceDebugCommand("/buidebug", "directional_input_trace_skipped", { reason = "missingZO_PostHook" })
+        return
     end
 
-    if type(originalDeactivate) == "function" then
-        DIRECTIONAL_INPUT.Deactivate = function(self, obj, ...)
-            local controlForTrace = FindDirectionalInputControl(obj)
-            local results = { originalDeactivate(self, obj, ...) }
-            AppendDirectionalTrace("deactivate", obj, controlForTrace)
-            return unpack(results)
-        end
+    if type(DIRECTIONAL_INPUT.Activate) == "function" then
+        ZO_PostHook(DIRECTIONAL_INPUT, "Activate", function(_, obj, control)
+            AppendDirectionalTrace("activate", obj, FindDirectionalInputControl(obj) or control)
+        end)
+    end
+
+    if type(DIRECTIONAL_INPUT.Deactivate) == "function" then
+        ZO_PostHook(DIRECTIONAL_INPUT, "Deactivate", function(_, obj)
+            AppendDirectionalTrace("deactivate", obj, FindDirectionalInputControl(obj))
+        end)
     end
 
     directionalTraceInstalled = true
@@ -516,7 +514,7 @@ local function InspectControl(controlName)
     end
 end
 
-local function TraceDebugCommand(command, phase, data)
+TraceDebugCommand = function(command, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
     local payload = data or {}
@@ -537,19 +535,30 @@ local function NormalizeDebugArgs(args)
     return value
 end
 
-local function WrapDebugSlashCommand(command)
-    local original = SLASH_COMMANDS[command]
-    if type(original) ~= "function" then return end
-    SLASH_COMMANDS[command] = function(args)
+local function RegisterDebugSlashCommand(command, handler)
+    if type(handler) ~= "function" then
+        return false
+    end
+    local tracedHandler = function(args)
         local traceId = tostring(command) .. ":" .. tostring(GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0)
         TraceDebugCommand(command, "begin", { args = NormalizeDebugArgs(args), traceId = traceId })
-        local ok, err = pcall(original, args)
+        local ok, err = pcall(handler, args)
         if not ok then
             TraceDebugCommand(command, "error", { args = NormalizeDebugArgs(args), traceId = traceId, error = tostring(err) })
             error(err, 2)
         end
         TraceDebugCommand(command, "complete", { args = NormalizeDebugArgs(args), traceId = traceId, resultStatus = "ok" })
     end
+
+    local registerSlash = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.RegisterSlashCommand
+    if type(registerSlash) == "function" then
+        return registerSlash(command, tracedHandler, { owner = "DebugCommands" })
+    end
+    if type(SLASH_COMMANDS) ~= "table" or type(SLASH_COMMANDS[command]) == "function" then
+        return false
+    end
+    SLASH_COMMANDS[command] = tracedHandler
+    return true
 end
 
 function Debug.RegisterCommands()
@@ -557,7 +566,7 @@ function Debug.RegisterCommands()
         return
     end
 
-    SLASH_COMMANDS["/buidebug"] = function(args)
+    RegisterDebugSlashCommand("/buidebug", function(args)
         local normalizedArgs = args and zo_strlower and zo_strlower(args) or args or ""
         normalizedArgs = normalizedArgs and normalizedArgs:gsub("^%s+", ""):gsub("%s+$", "") or ""
 
@@ -577,52 +586,52 @@ function Debug.RegisterCommands()
         end
         EnsureDirectionalInputTraceInstalled()
         InspectDirectionalInput()
-    end
+    end)
 
-    SLASH_COMMANDS["/buiscene"] = function(args)
+    RegisterDebugSlashCommand("/buiscene", function(args)
         if not EnsureDebugModeForCommand("/buiscene", { "SCENE_TRANSITIONS" }) then
             return
         end
         EnsureDirectionalInputTraceInstalled()
         InspectScenes()
-    end
+    end)
 
-    SLASH_COMMANDS["/buikeybinds"] = function(args)
+    RegisterDebugSlashCommand("/buikeybinds", function(args)
         if not EnsureDebugModeForCommand("/buikeybinds", { "LIST_OPERATIONS" }) then
             return
         end
         InspectKeybinds()
-    end
+    end)
 
-    SLASH_COMMANDS["/builist"] = function(args)
+    RegisterDebugSlashCommand("/builist", function(args)
         if not EnsureDebugModeForCommand("/builist", { "LIST_OPERATIONS" }) then
             return
         end
         InspectList(args)
-    end
+    end)
 
-    SLASH_COMMANDS["/buievents"] = function(args)
+    RegisterDebugSlashCommand("/buievents", function(args)
         if not EnsureDebugModeForCommand("/buievents") then
             return
         end
         InspectEvents()
-    end
+    end)
 
-    SLASH_COMMANDS["/buisettings"] = function(args)
+    RegisterDebugSlashCommand("/buisettings", function(args)
         if not EnsureDebugModeForCommand("/buisettings") then
             return
         end
         DumpSettings()
-    end
+    end)
 
-    SLASH_COMMANDS["/buicontrol"] = function(args)
+    RegisterDebugSlashCommand("/buicontrol", function(args)
         if not EnsureDebugModeForCommand("/buicontrol") then
             return
         end
         InspectControl(args)
-    end
+    end)
 
-    SLASH_COMMANDS["/buiprofile"] = function(args)
+    RegisterDebugSlashCommand("/buiprofile", function(args)
         if not EnsureDebugModeForCommand("/buiprofile") then
             return
         end
@@ -649,9 +658,9 @@ function Debug.RegisterCommands()
         else
             d("|c00ccff[BetterUI]|r Usage: /buiprofile [start|stop|report|reset]")
         end
-    end
+    end)
 
-    SLASH_COMMANDS["/buiflag"] = function(args)
+    RegisterDebugSlashCommand("/buiflag", function(args)
         if not EnsureDebugModeForCommand("/buiflag") then
             return
         end
@@ -680,16 +689,16 @@ function Debug.RegisterCommands()
         else
             Debug.SetFlag(flag, not Debug.FLAGS[flag])
         end
-    end
+    end)
 
-    SLASH_COMMANDS["/buimemory"] = function(args)
+    RegisterDebugSlashCommand("/buimemory", function(args)
         if not EnsureDebugModeForCommand("/buimemory") then
             return
         end
         InspectMemory()
-    end
+    end)
 
-    SLASH_COMMANDS["/buibatch"] = function(args)
+    RegisterDebugSlashCommand("/buibatch", function(args)
         if not EnsureDebugModeForCommand("/buibatch") then
             return
         end
@@ -713,9 +722,9 @@ function Debug.RegisterCommands()
         if not found then
             d("  No batch has been executed this session.")
         end
-    end
+    end)
 
-    SLASH_COMMANDS["/buihelp"] = function(args)
+    RegisterDebugSlashCommand("/buihelp", function(args)
         d("|c00ccff[BetterUI Debug Commands]|r")
         d("  /buidebug - Inspect DIRECTIONAL_INPUT stack (debug mode required)")
         d("  /buidebug off - Disable BetterUI debug mode")
@@ -730,15 +739,7 @@ function Debug.RegisterCommands()
         d("  /buiprofile [start|stop|report|reset] - Performance profiler")
         d("  /buiflag [flag] [on|off] - Toggle debug flags")
         d("  /buihelp - Show this help")
-    end
-
-    local debugCommands = {
-        "/buidebug", "/buiscene", "/buikeybinds", "/builist", "/buievents", "/buisettings",
-        "/buicontrol", "/buiprofile", "/buiflag", "/buimemory", "/buibatch", "/buihelp",
-    }
-    for i = 1, #debugCommands do
-        WrapDebugSlashCommand(debugCommands[i])
-    end
+    end)
 
     commandsRegistered = true
 end

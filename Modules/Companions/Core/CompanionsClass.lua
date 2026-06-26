@@ -141,8 +141,8 @@ function BETTERUI.Companions.Class:EnterSearchMode()
         end
     end
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP and self.coreKeybinds then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
         TraceCompanionClass("companions.search_keybinds", "swapped_to_search", {
             fn = "Companions.Class:EnterSearchMode",
             removedCore = true,
@@ -173,7 +173,7 @@ function BETTERUI.Companions.Class:ExitSearchMode()
         hasRemovedGroups = self._searchRemovedKeybindGroups ~= nil,
     })
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
     -- Restore exactly the groups the search-mode cleanup removed.
     if self._searchRemovedKeybindGroups then
@@ -181,7 +181,7 @@ function BETTERUI.Companions.Class:ExitSearchMode()
         self._searchRemovedKeybindGroups = nil
     end
     if self.coreKeybinds and KEYBIND_STRIP then
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
     end
     if self.textSearchHeaderFocus then
         self.textSearchHeaderFocus:Deactivate()
@@ -193,7 +193,7 @@ function BETTERUI.Companions.Class:ExitSearchMode()
     self._searchHeaderActive = false
     self:EnsureListInputActive()
     if self.coreKeybinds and KEYBIND_STRIP then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+        BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
     end
     TraceCompanionClass("companions.search_mode", "exited", {
         fn = "Companions.Class:ExitSearchMode",

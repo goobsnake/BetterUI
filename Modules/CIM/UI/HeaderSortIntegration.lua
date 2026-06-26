@@ -72,11 +72,8 @@ local function DescribeListState(list)
 end
 
 local function HasKeybindGroup(descriptor)
-    if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
-        return false
-    end
-    local ok, present = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, descriptor)
-    return ok and present == true
+    local hasGroup = BETTERUI.Interface and BETTERUI.Interface.HasKeybindGroup
+    return type(hasGroup) == "function" and hasGroup(descriptor) == true
 end
 
 ---@param options BetterUIHeaderSortInstallOptions|nil
@@ -520,15 +517,6 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
     local removeOwnedGroups = BETTERUI.Interface and BETTERUI.Interface.RemoveOwnedKeybindGroups
     if removeOwnedGroups then
         integration.suspendedKeybindGroups = removeOwnedGroups(ownedGroups)
-    elseif KEYBIND_STRIP and KEYBIND_STRIP.RemoveKeybindButtonGroup then
-        local removed = {}
-        for _, group in ipairs(ownedGroups) do
-            if not KEYBIND_STRIP.HasKeybindButtonGroup or KEYBIND_STRIP:HasKeybindButtonGroup(group) then
-                KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
-                removed[#removed + 1] = group
-            end
-        end
-        integration.suspendedKeybindGroups = removed
     end
     if BETTERUI.Log then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "header sort owner keybinds suspended", {
@@ -540,13 +528,18 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
 
     integration.activeKeybindDescriptor = GetHeaderKeybindDescriptor(integration, controller)
     local activeKeybindRefresh = "none"
-    if integration.activeKeybindDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
-        KEYBIND_STRIP:AddKeybindButtonGroup(integration.activeKeybindDescriptor)
-        if KEYBIND_STRIP.UpdateKeybindButtonGroup then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.activeKeybindDescriptor)
+    if integration.activeKeybindDescriptor then
+        local ensureGroup = BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded
+        local updateGroup = BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup
+        local updateCurrent = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+        if type(ensureGroup) == "function" then
+            ensureGroup(integration.activeKeybindDescriptor)
+        end
+        if type(updateGroup) == "function" then
+            updateGroup(integration.activeKeybindDescriptor)
             activeKeybindRefresh = "descriptor"
-        elseif KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        elseif type(updateCurrent) == "function" then
+            updateCurrent()
             activeKeybindRefresh = "current"
         end
     end
@@ -611,8 +604,8 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
 
     PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
 
-    if integration.activeKeybindDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.RemoveKeybindButtonGroup then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(integration.activeKeybindDescriptor)
+    if integration.activeKeybindDescriptor then
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(integration.activeKeybindDescriptor)
         if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "header sort keybind removed", { fn = "HeaderSortIntegration.ExitHeaderMode", descriptor = DescribeDescriptor(integration.activeKeybindDescriptor, "header"), scene = DescribeOwnerScene(owner) }) end
         integration.activeKeybindDescriptor = nil
     end
@@ -627,24 +620,19 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
         restorePath = "suspended"
         if restoreGroups then
             restoreGroups(suspendedGroups)
-        elseif KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
-            for _, group in ipairs(suspendedGroups) do
-                KEYBIND_STRIP:AddKeybindButtonGroup(group)
-            end
         end
-    elseif integration.keybinds.mainDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
+    elseif integration.keybinds.mainDescriptor then
         restorePath = "fallbackMain"
-        KEYBIND_STRIP:AddKeybindButtonGroup(integration.keybinds.mainDescriptor)
-        if KEYBIND_STRIP.UpdateKeybindButtonGroup then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.keybinds.mainDescriptor)
+        BETTERUI.Interface.EnsureKeybindGroupAdded(integration.keybinds.mainDescriptor)
+        if BETTERUI.Interface.UpdateKeybindGroup then
+            BETTERUI.Interface.UpdateKeybindGroup(integration.keybinds.mainDescriptor)
         end
     end
     local restoreRefresh = "none"
-    if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+    if BETTERUI.Interface.UpdateCurrentKeybindGroups and BETTERUI.Interface.UpdateCurrentKeybindGroups() then
         restoreRefresh = "current"
-    elseif integration.keybinds.mainDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.UpdateKeybindButtonGroup then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.keybinds.mainDescriptor)
+    elseif integration.keybinds.mainDescriptor and BETTERUI.Interface.UpdateKeybindGroup then
+        BETTERUI.Interface.UpdateKeybindGroup(integration.keybinds.mainDescriptor)
         restoreRefresh = "main"
     end
     if BETTERUI.Log then

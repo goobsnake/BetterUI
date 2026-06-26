@@ -51,6 +51,22 @@ local function DescribeKeybindGroups(groups)
     return L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(groups, "scene") or tostring(#(groups or {}))
 end
 
+local function EnsureKeybindGroupAdded(group)
+    local ensureGroup = BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded
+    if ensureGroup then
+        return ensureGroup(group)
+    end
+    return false
+end
+
+local function RemoveKeybindGroupIfPresent(group)
+    local removeGroup = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent
+    if removeGroup then
+        return removeGroup(group)
+    end
+    return false
+end
+
 local function BuildStateChangeHandler(screen, config)
     config = config or {}
 
@@ -73,7 +89,7 @@ local function BuildStateChangeHandler(screen, config)
                         descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "add") or tostring(group),
                     })
                 end
-                BETTERUI.CIM.SafeExecute("SceneLifecycle:addKeybind", function() KEYBIND_STRIP:AddKeybindButtonGroup(group) end)
+                BETTERUI.CIM.SafeExecute("SceneLifecycle:addKeybind", function() EnsureKeybindGroupAdded(group) end)
             end
             local wasPushed = (oldState == SCENE_HIDDEN)
             if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene showing", { scene = sceneName, wasPushed = wasPushed, keybindGroups = #showingGroups, descriptors = DescribeKeybindGroups(showingGroups) }) end
@@ -91,7 +107,7 @@ local function BuildStateChangeHandler(screen, config)
                         descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "remove") or tostring(group),
                     })
                 end
-                BETTERUI.CIM.SafeExecute("SceneLifecycle:removeKeybind", function() KEYBIND_STRIP:RemoveKeybindButtonGroup(group) end)
+                BETTERUI.CIM.SafeExecute("SceneLifecycle:removeKeybind", function() RemoveKeybindGroupIfPresent(group) end)
             end
             if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hiding", { scene = sceneName, keybindGroups = #hidingGroups, descriptors = DescribeKeybindGroups(hidingGroups) }) end
             if config.taskManager and config.taskManager.CancelAll then

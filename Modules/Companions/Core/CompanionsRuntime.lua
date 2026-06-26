@@ -62,6 +62,35 @@ local function TraceCompanionRuntime(event, phase, data, category)
     L.TraceEvent(category or categories.STATE or categories.GENERAL, event, phase, payload)
 end
 
+local function ShowBetterUICompanionScene()
+    if not (SCENE_MANAGER and SCENE_MANAGER.Show and BETTERUI_COMPANION_EQUIP_SCENE_NAME and Companions.instance and Companions.instance.scene) then
+        return
+    end
+    if SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing(BETTERUI_COMPANION_EQUIP_SCENE_NAME) then
+        return
+    end
+    SCENE_MANAGER:Show(BETTERUI_COMPANION_EQUIP_SCENE_NAME)
+end
+
+local function InstallCompanionSceneRedirect()
+    if not (EVENT_MANAGER and EVENT_OPEN_COMPANION_MENU) then
+        TraceCompanionRuntime("companions.scene_redirect", "skipped", { reason = "missingEvent" })
+        return
+    end
+
+    EVENT_MANAGER:UnregisterForEvent(EVENT_NS .. "_SceneRedirect", EVENT_OPEN_COMPANION_MENU)
+    EVENT_MANAGER:RegisterForEvent(EVENT_NS .. "_SceneRedirect", EVENT_OPEN_COMPANION_MENU, function()
+        TraceCompanionRuntime("companions.scene_redirect", "open_event", {
+            sceneName = BETTERUI_COMPANION_EQUIP_SCENE_NAME,
+        })
+        if type(zo_callLater) == "function" then
+            zo_callLater(ShowBetterUICompanionScene, 0)
+        else
+            ShowBetterUICompanionScene()
+        end
+    end)
+end
+
 local function RefreshVisibleCompanionScene(screen, options)
     if not screen or not screen.IsSceneShowing or not screen:IsSceneShowing() then
         return false
@@ -110,8 +139,12 @@ local function PatchCompanionListMovePrevious(instance)
     if not (instance and instance.list and instance.list.MovePrevious) then
         return
     end
+    if instance.list._betteruiMovePreviousWrapperInstalled then
+        return
+    end
 
     local originalMovePrevious = instance.list.MovePrevious
+    instance.list._betteruiMovePreviousWrapperInstalled = true
     instance.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
         local didMove = originalMovePrevious(list, allowWrapping, suppressFailSound)
         if didMove then
@@ -142,9 +175,7 @@ end
 local function InitializeCompanionMultiSelect(instance)
     if BETTERUI.CIM and BETTERUI.CIM.MultiSelectManager and BETTERUI.CIM.MultiSelectManager.Create then
         Companions.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(instance.list, function()
-            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-            end
+            BETTERUI.Interface.UpdateCurrentKeybindGroups()
         end)
     else
         Companions.multiSelectManager = nil
@@ -325,12 +356,10 @@ function Companions.CreateScene(instance)
         end
     end)
 
-    SCENE_MANAGER.scenes["companionEquipmentGamepad"] = scene
-    COMPANION_EQUIPMENT_GAMEPAD_SCENE = scene
-    -- COMPANION_EQUIPMENT_GAMEPAD is replaced with the BetterUI screen object.
-    -- ZOS code or other addons may still call ZO_CompanionEquipment_Gamepad
-    -- methods the replacement does not shim; resolve those to a logged no-op
-    -- instead of crashing on a nil method call.
+    Companions.activeEquipmentSceneObject = scene
+    InstallCompanionSceneRedirect()
+    -- Keep native companion globals intact; BetterUI uses Companions.instance.
+    -- Resolve unexpected method lookups to logged no-ops instead of crashing.
     do
         local classMeta = getmetatable(instance)
         local classIndex = classMeta and classMeta.__index
@@ -368,7 +397,6 @@ function Companions.CreateScene(instance)
             end,
         })
     end
-    COMPANION_EQUIPMENT_GAMEPAD = instance
     return scene
 end
 
@@ -646,7 +674,7 @@ function Companions.BuildCoreKeybinds(instance)
                 Companions.Tasks:Schedule("keybindRefresh", 100, function()
                     if Companions.instance and Companions.instance:IsSceneShowing() and Companions.instance.coreKeybinds then
                         TraceCompanionKeybind("refresh_scheduled_update", Companions.instance, { keybind = "UI_SHORTCUT_PRIMARY", delayMs = 100 })
-                        KEYBIND_STRIP:UpdateKeybindButtonGroup(Companions.instance.coreKeybinds)
+                        BETTERUI.Interface.UpdateKeybindGroup(Companions.instance.coreKeybinds)
                     end
                 end)
             end,
@@ -725,9 +753,7 @@ function Companions.BuildCoreKeybinds(instance)
                 else
                     CallCompanionSearchLifecycle(instance, "requestEnter")
                 end
-                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
+                BETTERUI.Interface.UpdateCurrentKeybindGroups()
                 TraceCompanionKeybind("search_end", instance, { keybind = "UI_SHORTCUT_QUATERNARY", action = action })
             end,
         },
@@ -759,9 +785,7 @@ function Companions.BuildCoreKeybinds(instance)
                 end
                 instance:RefreshList()
                 instance:EnsureListInputActive()
-                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
+                BETTERUI.Interface.UpdateCurrentKeybindGroups()
             end,
         },
         {
@@ -787,9 +811,7 @@ function Companions.BuildCoreKeybinds(instance)
                 ms:ExitSelectionMode()
                 instance:RefreshList()
                 instance:EnsureListInputActive()
-                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
+                BETTERUI.Interface.UpdateCurrentKeybindGroups()
                 TraceCompanionKeybind("cancel_end", instance, { keybind = "UI_SHORTCUT_RIGHT_STICK" })
             end,
         },
@@ -803,9 +825,7 @@ function Companions.BuildCoreKeybinds(instance)
                     ms:ExitSelectionMode()
                     instance:RefreshList()
                     instance:EnsureListInputActive()
-                    if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                    end
+                    BETTERUI.Interface.UpdateCurrentKeybindGroups()
                     TraceCompanionKeybind("back_cancelled_multiselect", instance, { keybind = "UI_SHORTCUT_NEGATIVE" })
                     return
                 end

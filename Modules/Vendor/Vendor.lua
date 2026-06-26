@@ -276,11 +276,7 @@ local function GetVendorSnapshotSelectedIndex(list)
 end
 
 local function IsVendorSnapshotKeybindPresent(descriptor)
-    if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
-        return 0
-    end
-    local ok, hasGroup = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) end)
-    return (ok and hasGroup) and 1 or 0
+    return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
 end
 
 local function RegisterVendorSnapshotProvider()
@@ -702,9 +698,7 @@ local function BuildCoreKeybinds(vendorInstance)
                 elseif vendorInstance.ClearSearchInput then
                     vendorInstance:ClearSearchInput()
                 end
-                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
+                BETTERUI.Interface.UpdateCurrentKeybindGroups()
             end,
             function()
                 local ms = Vendor.multiSelectManager
@@ -831,9 +825,7 @@ local function BuildCoreKeybinds(vendorInstance)
                     vendorInstance:RefreshList()
                     vendorInstance:EnsureListInputActive()
                 end
-                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
+                BETTERUI.Interface.UpdateCurrentKeybindGroups()
             end,
         },
         -- Preview toggle
@@ -887,9 +879,7 @@ local function BuildCoreKeybinds(vendorInstance)
                     ms:ExitSelectionMode()
                     vendorInstance:RefreshList()
                     vendorInstance:EnsureListInputActive()
-                    if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                    end
+                    BETTERUI.Interface.UpdateCurrentKeybindGroups()
                     return
                 end
                 -- Close the interaction
@@ -1184,9 +1174,7 @@ RegisterVendorBatchDialog = function()
                                 end
                                 Vendor.instance:EnsureListInputActive()
                             end
-                            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                            end
+                            BETTERUI.Interface.UpdateCurrentKeybindGroups()
                         end,
                     })
                 end,
@@ -1452,21 +1440,20 @@ local function OnMoneyUpdated()
                     keybinds = DescribeVendorKeybinds(Vendor.instance),
                 }, BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY)
                 Vendor.instance:RefreshVendorFooter()
-                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                    TraceVendorEvent("vendor.keybinds", "refresh_before", {
-                        fn = "Vendor.OnMoneyUpdated:footerRefresh",
-                        feature = "vendor-keybinds",
-                        reason = "moneyUpdated",
-                        keybinds = DescribeVendorKeybinds(Vendor.instance),
-                    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                    TraceVendorEvent("vendor.keybinds", "refresh_after", {
-                        fn = "Vendor.OnMoneyUpdated:footerRefresh",
-                        feature = "vendor-keybinds",
-                        reason = "moneyUpdated",
-                        keybinds = DescribeVendorKeybinds(Vendor.instance),
-                    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
-                end
+                TraceVendorEvent("vendor.keybinds", "refresh_before", {
+                    fn = "Vendor.OnMoneyUpdated:footerRefresh",
+                    feature = "vendor-keybinds",
+                    reason = "moneyUpdated",
+                    keybinds = DescribeVendorKeybinds(Vendor.instance),
+                }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
+                local refreshed = BETTERUI.Interface.UpdateCurrentKeybindGroups()
+                TraceVendorEvent("vendor.keybinds", "refresh_after", {
+                    fn = "Vendor.OnMoneyUpdated:footerRefresh",
+                    feature = "vendor-keybinds",
+                    reason = "moneyUpdated",
+                    refreshed = refreshed == true,
+                    keybinds = DescribeVendorKeybinds(Vendor.instance),
+                }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
                 TraceVendorEvent("vendor.money_update", "refresh_end", {
                     fn = "Vendor.OnMoneyUpdated:footerRefresh",
                     feature = "vendor-currency",
@@ -1494,21 +1481,20 @@ local function OnMoneyUpdated()
             keybinds = DescribeVendorKeybinds(Vendor.instance),
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY)
         Vendor.instance:RefreshVendorFooter()
-        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-            TraceVendorEvent("vendor.keybinds", "refresh_before", {
-                fn = "Vendor.OnMoneyUpdated:immediate",
-                feature = "vendor-keybinds",
-                reason = "moneyUpdated",
-                keybinds = DescribeVendorKeybinds(Vendor.instance),
-            }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
-            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-            TraceVendorEvent("vendor.keybinds", "refresh_after", {
-                fn = "Vendor.OnMoneyUpdated:immediate",
-                feature = "vendor-keybinds",
-                reason = "moneyUpdated",
-                keybinds = DescribeVendorKeybinds(Vendor.instance),
-            }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
-        end
+        TraceVendorEvent("vendor.keybinds", "refresh_before", {
+            fn = "Vendor.OnMoneyUpdated:immediate",
+            feature = "vendor-keybinds",
+            reason = "moneyUpdated",
+            keybinds = DescribeVendorKeybinds(Vendor.instance),
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
+        local refreshed = BETTERUI.Interface.UpdateCurrentKeybindGroups()
+        TraceVendorEvent("vendor.keybinds", "refresh_after", {
+            fn = "Vendor.OnMoneyUpdated:immediate",
+            feature = "vendor-keybinds",
+            reason = "moneyUpdated",
+            refreshed = refreshed == true,
+            keybinds = DescribeVendorKeybinds(Vendor.instance),
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND)
         TraceVendorEvent("vendor.money_update", "refresh_end", {
             fn = "Vendor.OnMoneyUpdated:immediate",
             feature = "vendor-currency",

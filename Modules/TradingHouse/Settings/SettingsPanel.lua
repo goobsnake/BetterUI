@@ -36,8 +36,9 @@ function TH.Settings.RegisterPanel(mId, moduleName)
         if instance.UpdateTabHeader then
             instance:UpdateTabHeader()
         end
-        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+        if updateCurrentKeybinds then
+            updateCurrentKeybinds()
         end
     end
 

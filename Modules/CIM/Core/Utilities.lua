@@ -73,10 +73,50 @@ end
 BETTERUI.CIM = BETTERUI.CIM or {}
 
 BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
+BETTERUI.CIM.Utils._slashCommands = BETTERUI.CIM.Utils._slashCommands or {}
 local researchableTraitMatcher = function()
     return 0
 end
 local IsBankingSceneShowing
+
+---@param command string
+---@param handler function
+---@param options {owner: string?, fallbackCommand: string?, overwrite: boolean?}?
+---@return boolean registered
+---@return string|nil activeCommand
+function BETTERUI.CIM.Utils.RegisterSlashCommand(command, handler, options)
+    local slashCommands = rawget(_G, "SLASH_COMMANDS")
+    if type(slashCommands) ~= "table" or type(command) ~= "string" or type(handler) ~= "function" then
+        return false, nil
+    end
+
+    options = options or {}
+    local activeCommand = command
+    local existing = slashCommands[activeCommand]
+    if type(existing) == "function" and not options.overwrite then
+        local fallback = options.fallbackCommand
+        if type(fallback) == "string" and type(slashCommands[fallback]) ~= "function" then
+            activeCommand = fallback
+            existing = slashCommands[activeCommand]
+        else
+            if BETTERUI.Log and BETTERUI.Log.Warn then
+                BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "slash command already registered", {
+                    command = command,
+                    owner = options.owner or "unknown",
+                })
+            end
+            return false, command
+        end
+    end
+
+    slashCommands[activeCommand] = handler
+    BETTERUI.CIM.Utils._slashCommands[activeCommand] = {
+        owner = options.owner or "BetterUI",
+        requestedCommand = command,
+        replacedExisting = type(existing) == "function",
+    }
+    return true, activeCommand
+end
 
 function BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher(matcher)
     if type(matcher) == "function" then

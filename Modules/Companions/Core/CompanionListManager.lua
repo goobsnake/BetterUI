@@ -538,7 +538,7 @@ function BETTERUI.Companions.Class:DeactivateHeaderKeybinds()
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if not tabBar then return end
     if tabBar.keybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(tabBar.keybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
     end
     if tabBar.Deactivate and tabBar.active then
         tabBar:Deactivate()
@@ -689,7 +689,7 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
                 self:UpdateItemTooltips(selectedData)
                 self:PrepareNextClearNewStatus(selectedData)
                 if self.coreKeybinds then
-                    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+                    BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
                 end
             end
             self:UpdateScrollIndicator(list)

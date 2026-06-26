@@ -225,16 +225,16 @@ local function UpdateKeybindsForSelection(self, isCurrencyRow)
             core = BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         })
     end
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.currencyKeybinds)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
     if isCurrencyRow then
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.currencyKeybinds)
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.currencyKeybinds)
+        BETTERUI.Interface.UpdateKeybindGroup(self.currencyKeybinds)
     else
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
+        BETTERUI.Interface.UpdateKeybindGroup(self.withdrawDepositKeybinds)
     end
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+    BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.selection_keybinds", "after", {
             isCurrencyRow = isCurrencyRow == true,

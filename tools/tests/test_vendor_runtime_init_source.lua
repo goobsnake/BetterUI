@@ -86,8 +86,18 @@ do
     local nativeStoreBridgeSource = read_file("Modules/Vendor/Core/Bridge/VendorNativeStoreBridge.lua")
     assert_true(nativeStoreBridgeSource:find("ZO_PreHook%(SCENE_MANAGER", 1, false) == nil,
         "native store bridge does not hook SCENE_MANAGER")
-    assert_true(nativeStoreBridgeSource:find("scene alias applied without hook", 1, true) ~= nil,
-        "native store bridge logs hook-free scene alias takeover")
+    assert_true(nativeStoreBridgeSource:find("storeManager.UpdateDirectionalInput = function", 1, true) == nil,
+        "native store bridge does not monkey-patch UpdateDirectionalInput")
+    assert_true(nativeStoreBridgeSource:find('_betteruiUpdateDirectionalInputPreHookInstalled', 1, true) ~= nil,
+        "native store bridge uses an idempotent directional-input hook marker")
+    assert_true(nativeStoreBridgeSource:find('ZO_PreHook(storeManager, "UpdateDirectionalInput"', 1, true) ~= nil,
+        "native store bridge hooks directional input through the ESOUI hook API")
+    assert_true(nativeStoreBridgeSource:find('SCENE_MANAGER.scenes["gamepad_store"]', 1, true) == nil,
+        "native store bridge does not replace the shared gamepad_store scene table entry")
+    assert_true(nativeStoreBridgeSource:find('storeManager.sceneName =', 1, true) == nil,
+        "native store bridge leaves native store sceneName metadata intact")
+    assert_true(nativeStoreBridgeSource:find("scene ownership recorded without scene-manager hook", 1, true) ~= nil,
+        "native store bridge logs scene-manager-hook-free scene ownership")
 end
 
 assert_true(type(BootstrapRuntime.InitializeList) == "function", "bootstrap runtime exposes list initialization")

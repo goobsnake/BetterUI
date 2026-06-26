@@ -20,6 +20,15 @@ local selectionRefreshes = 0
 local scheduledTasks = {}
 
 BETTERUI = {
+    Interface = {
+        UpdateCurrentKeybindGroups = function()
+            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                return true
+            end
+            return false
+        end,
+    },
     Vendor = {
         MODE = {
             BUY = 1,

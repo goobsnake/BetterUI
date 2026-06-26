@@ -521,7 +521,7 @@ function BETTERUI.Banking.Class:SelectAllItems()
             return
         end
         self:RefreshList()
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+        BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
         self:ShowBatchActionsMenu()
     end, 50)
 end
@@ -635,8 +635,9 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                     callback = function()
                         zo_callLater(function()
                             local window = GetBankingWindow()
-                            if window then
-                                KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
+                            local updateGroup = BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup
+                            if window and updateGroup then
+                                updateGroup(window.coreKeybinds)
                             end
                         end, 50)
                     end,
@@ -647,7 +648,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
             BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, { overwrite = true })
         elseif ZO_Dialogs_RegisterCustomDialog then
             ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
-        else
+        elseif type(ESO_Dialogs) == "table" then
             ESO_Dialogs[dialogName] = dialogInfo
         end
     end

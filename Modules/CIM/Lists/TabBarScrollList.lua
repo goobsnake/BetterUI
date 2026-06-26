@@ -168,7 +168,7 @@ function BETTERUI_TabBarScrollList:Activate()
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tab bar activate")
     end
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindStripDescriptor)
+    BETTERUI.Interface.EnsureKeybindGroupAdded(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Activate(self)
 end
 
@@ -177,7 +177,7 @@ function BETTERUI_TabBarScrollList:Deactivate()
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tab bar deactivate")
     end
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindStripDescriptor)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Deactivate(self)
 end
 

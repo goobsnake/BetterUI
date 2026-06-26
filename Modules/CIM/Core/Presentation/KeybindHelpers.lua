@@ -7,15 +7,96 @@ Purpose: Keybind utility functions shared across BetterUI modules.
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
----@param descriptor table?
-function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
-    if not descriptor or not KEYBIND_STRIP then return end
-    if KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
-        return
+local function GetKeybindStrip()
+    return rawget(_G, "KEYBIND_STRIP")
+end
+
+local function TraceKeybindHelper(event, data)
+    if BETTERUI.Log and BETTERUI.Log.Trace then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, event, data or {})
     end
-    KEYBIND_STRIP:AddKeybindButtonGroup(descriptor)
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
+end
+
+local function WarnKeybindHelper(event, data)
+    if BETTERUI.Log and BETTERUI.Log.Warn then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.KEYBIND, event, data or {})
+    end
+end
+
+local function InvokeKeybindStrip(methodName, ...)
+    local strip = GetKeybindStrip()
+    local method = strip and strip[methodName]
+    if type(method) ~= "function" then
+        return false, nil
+    end
+
+    local ok, result = pcall(method, strip, ...)
+    if not ok then
+        WarnKeybindHelper("keybind strip call failed", {
+            fn = "KeybindHelpers." .. tostring(methodName),
+            error = tostring(result),
+        })
+        return false, nil
+    end
+    return true, result
+end
+
+---@param descriptor table?
+---@return boolean present
+function BETTERUI.Interface.HasKeybindGroup(descriptor)
+    if not descriptor then return false end
+    local ok, present = InvokeKeybindStrip("HasKeybindButtonGroup", descriptor)
+    return ok and present == true
+end
+
+---@param descriptor table?
+---@return boolean updated
+function BETTERUI.Interface.UpdateKeybindGroup(descriptor)
+    if not descriptor then return false end
+    local ok, updated = InvokeKeybindStrip("UpdateKeybindButtonGroup", descriptor)
+    return ok and updated ~= false
+end
+
+---@return boolean updated
+function BETTERUI.Interface.UpdateCurrentKeybindGroups()
+    local ok, updated = InvokeKeybindStrip("UpdateCurrentKeybindButtonGroups")
+    return ok and updated ~= false
+end
+
+---@param descriptor table?
+---@return boolean addedOrUpdated
+function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
+    if not descriptor then return false end
+    if BETTERUI.Interface.HasKeybindGroup(descriptor) then
+        BETTERUI.Interface.UpdateKeybindGroup(descriptor)
+        return true
+    end
+
+    local ok, added = InvokeKeybindStrip("AddKeybindButtonGroup", descriptor)
+    if ok and added ~= false then
+        BETTERUI.Interface.UpdateKeybindGroup(descriptor)
+        return true
+    end
+
+    TraceKeybindHelper("keybind group add skipped", {
+        fn = "KeybindHelpers.EnsureKeybindGroupAdded",
+        hasDescriptor = descriptor ~= nil,
+    })
+    return false
+end
+
+---@param descriptor table?
+---@return boolean removed
+function BETTERUI.Interface.RemoveKeybindGroupIfPresent(descriptor)
+    if not descriptor then return false end
+    local strip = GetKeybindStrip()
+    if strip and type(strip.HasKeybindButtonGroup) == "function"
+        and not BETTERUI.Interface.HasKeybindGroup(descriptor) then
+        return false
+    end
+
+    local ok, removed = InvokeKeybindStrip("RemoveKeybindButtonGroup", descriptor)
+    return ok and removed ~= false
 end
 
 --- Removes only the caller-owned keybind groups from the strip, skipping
@@ -27,10 +108,9 @@ end
 ---@return table removed descriptors actually removed, in removal order
 function BETTERUI.Interface.RemoveOwnedKeybindGroups(ownedGroups, keepDescriptor)
     local removed = {}
-    if not ownedGroups or not KEYBIND_STRIP then return removed end
+    if not ownedGroups then return removed end
     for _, group in ipairs(ownedGroups) do
-        if group and group ~= keepDescriptor and KEYBIND_STRIP:HasKeybindButtonGroup(group) then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+        if group and group ~= keepDescriptor and BETTERUI.Interface.RemoveKeybindGroupIfPresent(group) then
             removed[#removed + 1] = group
         end
     end

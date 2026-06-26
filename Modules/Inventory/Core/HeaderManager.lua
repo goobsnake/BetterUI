@@ -187,8 +187,7 @@ local function EnsureHeaderKeybindsActive(self)
     -- never calls tabBar:Deactivate()). A stale-true active flag would skip the
     -- plain Activate() below, leaving LB/RB paging dead. Detect the missing group
     -- and force a real re-activation cycle.
-    local carouselMissing = descriptor and KEYBIND_STRIP
-        and not KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
+    local carouselMissing = descriptor and not BETTERUI.Interface.HasKeybindGroup(descriptor)
 
     if L and L.TraceEvent then
         L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.header_keybinds", "before", {
@@ -218,8 +217,7 @@ local function EnsureHeaderKeybindsActive(self)
     if descriptor then
         BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     end
-    local carouselMissingAfter = descriptor and KEYBIND_STRIP
-        and not KEYBIND_STRIP:HasKeybindButtonGroup(descriptor)
+    local carouselMissingAfter = descriptor and not BETTERUI.Interface.HasKeybindGroup(descriptor)
     if L and L.TraceEvent then
         L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.header_keybinds", "after", {
             active = tabBar.active == true,
@@ -250,13 +248,13 @@ local function ExitSearchFocus(self)
 
     -- Remove search keybinds first
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
 
     -- Add back main keybinds
     if self.mainKeybindStripDescriptor then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        BETTERUI.Interface.UpdateKeybindGroup(self.mainKeybindStripDescriptor)
     end
 
     if L and L.TraceEvent then

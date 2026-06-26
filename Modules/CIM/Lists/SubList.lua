@@ -97,9 +97,9 @@ function BETTERUI_VerticalParametricScrollListSubList:Activate()
     end
 
     self.parentList:Deactivate()
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.parentKeybinds)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.parentKeybinds)
     BETTERUI_VerticalParametricScrollList.Activate(self)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindStripDescriptor)
+    BETTERUI.Interface.EnsureKeybindGroupAdded(self.keybindStripDescriptor)
     self.control:SetHidden(false)
     self.indexOnOpen = self.selectedIndex
     self.didSelectEntry = false
@@ -117,8 +117,8 @@ function BETTERUI_VerticalParametricScrollListSubList:Deactivate()
         self:CancelSelection()
     end
     BETTERUI_VerticalParametricScrollList.Deactivate(self)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindStripDescriptor)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.keybindStripDescriptor)
     self.parentList:Activate()
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.parentKeybinds)
+    BETTERUI.Interface.EnsureKeybindGroupAdded(self.parentKeybinds)
     self.control:SetHidden(true)
 end

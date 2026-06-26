@@ -118,6 +118,7 @@ assert_true(batchActions:find('RequireProtectionPolicyMethod%("CanUnlockItem"%)'
 
 local genericSlotActions = read_file("Modules/CIM/Actions/GenericSlotActions.lua")
 local cimUtilities = read_file("Modules/CIM/Core/Utilities.lua")
+local debugCommands = read_file("Modules/CIM/Core/Diagnostics/DebugCommands.lua")
 local companionDialogs = read_file("Modules/Companions/Dialogs/CompanionDialogs.lua")
 local vendorBuyComponent = read_file("Modules/Vendor/Components/BuyComponent.lua")
 local tooltipSettingsHelpers = read_file("Modules/GeneralInterface/Tooltips/SettingsHelpers.lua")
@@ -158,6 +159,18 @@ assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.CreateInventorySlo
     "CIM Utilities no longer exposes the inventory slot-action forwarding seam")
 assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.ClearTrackedInventorySlot") == nil,
     "CIM Utilities no longer exposes the inventory tracker forwarding seam")
+assert_true(cimUtilities:find("function BETTERUI%.CIM%.Utils%.RegisterSlashCommand%(command, handler, options%)") ~= nil,
+    "CIM Utilities exposes the collision-aware slash command registrar")
+assert_true(debugCommands:find("DIRECTIONAL_INPUT%.Activate%s*=") == nil,
+    "DebugCommands does not monkey-patch DIRECTIONAL_INPUT.Activate")
+assert_true(debugCommands:find("DIRECTIONAL_INPUT%.Deactivate%s*=") == nil,
+    "DebugCommands does not monkey-patch DIRECTIONAL_INPUT.Deactivate")
+assert_true(debugCommands:find('ZO_PostHook%(DIRECTIONAL_INPUT, "Activate"') ~= nil,
+    "DebugCommands traces directional input through ESOUI post-hooks")
+assert_true(debugCommands:find("RegisterDebugSlashCommand%(") ~= nil,
+    "DebugCommands registers slash commands through the collision-aware wrapper")
+assert_true(debugCommands:find("SLASH_COMMANDS%[\"/bui") == nil,
+    "DebugCommands does not directly overwrite BetterUI slash commands")
 assert_true(companionDialogs:find("CIM%.Utils%.SafeGetTargetData") ~= nil,
     "Companion dialogs resolve list targets through the canonical CIM utility helper")
 assert_true(companionDialogs:find("CIM%.Utils%.GetListTargetData") ~= nil,

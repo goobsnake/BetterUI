@@ -355,9 +355,7 @@ function Sell:SellAllJunk(vendorInstance)
             if vendorInstance.RefreshVendorFooter then
                 vendorInstance:RefreshVendorFooter()
             end
-            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-            end
+            BETTERUI.Interface.UpdateCurrentKeybindGroups()
         end,
     })
 end

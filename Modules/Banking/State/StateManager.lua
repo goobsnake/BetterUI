@@ -36,7 +36,7 @@ function BETTERUI.Banking.Class:HandleEmptyList()
     if totalEntries == 0 then
         if KEYBIND_STRIP then
             if self.currencyKeybinds then
-                KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+                BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.currencyKeybinds)
             end
             if self.withdrawDepositKeybinds then
                 -- Guarded add: AddKeybindButtonGroup raises a duplicate-group UI
@@ -197,8 +197,8 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     footer:GetNamedChild("SelectBg"):SetTextureRotation(isWithdraw and 0 or BETTERUI_BANK_DEPOSIT_ARROW_ROTATION)
     footer:GetNamedChild("DepositButtonLabel"):SetColor(unpack(isWithdraw and BETTERUI_BANK_INACTIVE_LABEL_COLOR or activeColor))
     footer:GetNamedChild("WithdrawButtonLabel"):SetColor(unpack(isWithdraw and activeColor or BETTERUI_BANK_INACTIVE_LABEL_COLOR))
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-    --KEYBIND_STRIP:UpdateKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
+    BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
+    --BETTERUI.Interface.UpdateKeybindGroup(self.spinnerKeybindStripDescriptor)
     self:RefreshList()
     state.justToggledMode = false
 end

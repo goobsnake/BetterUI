@@ -44,11 +44,7 @@ local function GetTradingHouseSnapshotSelectionToken(list)
 end
 
 local function IsTradingHouseSnapshotKeybindPresent(descriptor)
-    if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
-        return 0
-    end
-    local ok, hasGroup = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) end)
-    return (ok and hasGroup) and 1 or 0
+    return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
 end
 
 local function RegisterTradingHouseSnapshotProvider()

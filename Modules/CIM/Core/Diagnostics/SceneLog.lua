@@ -190,7 +190,7 @@ SceneLog.EnsureRegistered()
 -- /buiscene: print the current scene + recent transition ring, without tailing the file.
 local SLASH = G("SLASH_COMMANDS")
 if type(SLASH) == "table" then
-    SLASH["/buiscene"] = function()
+    local function PrintSceneLogCommand()
         local chat = G("d")
         if type(chat) ~= "function" then return end
         chat(string.format("|c0066ff[BetterUI]|r scene now: %s | logging %s | registered=%s",
@@ -202,5 +202,16 @@ if type(SLASH) == "table" then
             local e = recent[i]
             if e then chat(string.format("  %s %s @%s", tostring(e.scene), tostring(e.verb), tostring(e.t))) end
         end
+    end
+    local registerSlash = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.RegisterSlashCommand
+    if type(registerSlash) == "function" then
+        registerSlash("/buiscene", PrintSceneLogCommand, {
+            owner = "SceneLog",
+            fallbackCommand = "/buiscenelog",
+        })
+    elseif type(SLASH["/buiscene"]) ~= "function" then
+        SLASH["/buiscene"] = PrintSceneLogCommand
+    elseif type(SLASH["/buiscenelog"]) ~= "function" then
+        SLASH["/buiscenelog"] = PrintSceneLogCommand
     end
 end

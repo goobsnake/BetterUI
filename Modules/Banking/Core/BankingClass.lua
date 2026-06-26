@@ -923,9 +923,9 @@ function BETTERUI.Banking.Class:InitializeMultiSelectManager()
             return GetString(rawget(_G, "SI_BETTERUI_SCENE_BANKING"))
         end,
         refreshKeybinds = function(s)
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(s.coreKeybinds)
+            BETTERUI.Interface.UpdateKeybindGroup(s.coreKeybinds)
             if s.withdrawDepositKeybinds then
-                KEYBIND_STRIP:UpdateKeybindButtonGroup(s.withdrawDepositKeybinds)
+                BETTERUI.Interface.UpdateKeybindGroup(s.withdrawDepositKeybinds)
             end
         end,
     })

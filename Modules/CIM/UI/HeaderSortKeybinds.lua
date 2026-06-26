@@ -47,11 +47,8 @@ local function TraceHeaderSortKeybind(controller, action, phase, data)
 end
 
 local function IsKeybindGroupPresent(descriptor)
-    if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
-        return false
-    end
-    local ok, present = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) end)
-    return ok and present == true
+    local hasGroup = BETTERUI.Interface and BETTERUI.Interface.HasKeybindGroup
+    return type(hasGroup) == "function" and hasGroup(descriptor) == true
 end
 
 local function IsHeaderSortKeybindPresent(controller)
@@ -59,50 +56,19 @@ local function IsHeaderSortKeybindPresent(controller)
 end
 
 local function RemoveKeybindGroupIfPresent(descriptor)
-    if not descriptor or not KEYBIND_STRIP or not KEYBIND_STRIP.RemoveKeybindButtonGroup then
-        return false
-    end
-    if not IsKeybindGroupPresent(descriptor) then
-        return false
-    end
-    local ok = pcall(function() KEYBIND_STRIP:RemoveKeybindButtonGroup(descriptor) end)
-    return ok == true
+    local removeGroup = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent
+    if type(removeGroup) ~= "function" then return false end
+    local ok, removed = pcall(removeGroup, descriptor)
+    return ok and removed == true
 end
 
 local function EnsureKeybindGroupAdded(descriptor)
-    if not descriptor or not KEYBIND_STRIP then
-        return false, "missingDescriptorOrStrip"
-    end
-
     local ensure = BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded or nil
     if type(ensure) == "function" then
-        local ok, err = pcall(ensure, descriptor)
-        return ok == true, ok and nil or tostring(err)
+        local ok, added = pcall(ensure, descriptor)
+        return ok and added == true, ok and nil or tostring(added)
     end
-
-    if IsKeybindGroupPresent(descriptor) then
-        if KEYBIND_STRIP.UpdateKeybindButtonGroup then
-            local ok, err = pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor) end)
-            return ok == true, ok and nil or tostring(err)
-        end
-        return true, nil
-    end
-
-    if not KEYBIND_STRIP.AddKeybindButtonGroup then
-        return false, "missingAddKeybindButtonGroup"
-    end
-
-    local addOk, addErr = pcall(function() KEYBIND_STRIP:AddKeybindButtonGroup(descriptor) end)
-    if not addOk then
-        return false, tostring(addErr)
-    end
-    if KEYBIND_STRIP.UpdateKeybindButtonGroup then
-        local updateOk, updateErr = pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor) end)
-        if not updateOk then
-            return false, tostring(updateErr)
-        end
-    end
-    return true, nil
+    return false, "missingKeybindHelper"
 end
 
 function AddOwnershipPayload(controller, data)
@@ -201,18 +167,20 @@ local function RefreshHeaderSortKeybinds(controller, action)
     local refreshOk = false
     local refreshError = nil
 
-    if KEYBIND_STRIP and type(KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups) == "function" then
+    local updateCurrent = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+    if type(updateCurrent) == "function" then
         refreshPath = "current"
-        local ok, err = pcall(function() KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups() end)
-        refreshOk = ok == true
-        refreshError = ok and nil or tostring(err)
+        local ok, updated = pcall(updateCurrent)
+        refreshOk = ok and updated == true
+        refreshError = ok and nil or tostring(updated)
     end
 
-    if not refreshOk and descriptor and KEYBIND_STRIP and type(KEYBIND_STRIP.UpdateKeybindButtonGroup) == "function" then
+    local updateGroup = BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup
+    if not refreshOk and descriptor and type(updateGroup) == "function" then
         refreshPath = refreshPath == "none" and "descriptor" or "descriptorFallback"
-        local ok, err = pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor) end)
-        refreshOk = ok == true
-        refreshError = ok and nil or tostring(err)
+        local ok, updated = pcall(updateGroup, descriptor)
+        refreshOk = ok and updated == true
+        refreshError = ok and nil or tostring(updated)
     end
 
     if refreshPath == "none" then

@@ -149,6 +149,12 @@ assert_true(sceneSource:find("CreateStateChangeHandler") ~= nil,
     "InventorySceneLifecycle uses the shared SceneLifecycle adapter path")
 assert_true(sceneSource:find("BETTERUI%.Inventory%.RegisterSceneLifecycle%(self%)") ~= nil,
     "InventorySceneLifecycle routes native scene callbacks through the explicit registration seam")
+assert_true(sceneSource:find("EnsureInventorySlotUpdateHook%(self%)") ~= nil,
+    "InventorySceneLifecycle refreshes item actions through an idempotent mouseover hook")
+assert_true(sceneSource:find('ZO_PostHook%("UpdateMouseoverCommand"') ~= nil,
+    "InventorySceneLifecycle uses ESOUI hook chaining instead of owning the global update callback slot")
+assert_true(sceneSource:find("ZO_InventorySlot_SetUpdateCallback") == nil,
+    "InventorySceneLifecycle does not claim ESO's single inventory-slot update callback")
 assert_true(sceneSource:find("HandleInventoryStateChange%(self, oldState, newState%)") == nil,
     "InventorySceneLifecycle no longer falls back to a second local state-change orchestration path")
 

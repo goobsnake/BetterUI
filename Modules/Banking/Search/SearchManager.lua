@@ -41,10 +41,10 @@ function BETTERUI.Banking.Class:EnterSearchMode()
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "enter search") end
 
     if self.coreKeybinds then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
     end
     if self.withdrawDepositKeybinds then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
     end
 
     if self.isInHeaderSortMode and self.ExitHeaderSortMode then
@@ -70,7 +70,7 @@ function BETTERUI.Banking.Class:ExitSearchMode()
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "exit search") end
 
     if self.textSearchKeybindStripDescriptor then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
 
     -- Restore exactly the groups the search-mode cleanup removed.
@@ -81,7 +81,7 @@ function BETTERUI.Banking.Class:ExitSearchMode()
 
     if self.coreKeybinds then
         EnsureKeybindGroupAdded(self.coreKeybinds)
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+        BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
     end
 
     self:RefreshActiveKeybinds()

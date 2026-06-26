@@ -1,6 +1,6 @@
 --[[
 File: tools/tests/test_trading_house_scene_alias.lua
-Purpose: Regression tests for Trading House scene alias ownership lifecycle.
+Purpose: Regression tests for Trading House scene ownership lifecycle.
 Usage:
   lua tools/tests/test_trading_house_scene_alias.lua
 ]]
@@ -8,9 +8,15 @@ Usage:
 BETTERUI = {
     TradingHouse = {},
     CIM = {},
+    Interface = {},
 }
 
 local TH = BETTERUI.TradingHouse
+
+function BETTERUI.Interface.UpdateCurrentKeybindGroups()
+    KEYBIND_STRIP.updateCount = KEYBIND_STRIP.updateCount + 1
+    return true
+end
 
 local passed = 0
 local failed = 0
@@ -335,33 +341,33 @@ assert_eq(type(responseCallback), "function", "response callback is registered")
 assert_eq(type(listingOpCallback), "function", "listing operation callback is registered")
 assert_eq(type(inventoryUpdateCallback), "function", "inventory slot callback is registered")
 
-assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], TH.instance.scene,
-    "init keeps BetterUI scene aliased by default")
+assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], nativeScene,
+    "init leaves native trading-house scene table entry untouched")
 assert_eq(SYSTEMS:GetSystem(ZO_TRADING_HOUSE_SYSTEM_NAME).gamepadRootScene, TH.instance.scene,
     "init redirects trading-house system gamepad root scene to BetterUI")
 
--- Non-trading interactions should restore native alias and abort BetterUI show.
+-- Non-trading interactions should restore native system ownership and abort BetterUI show.
 interactionType = INTERACTION_VENDOR
 openCallback()
 assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], nativeScene,
-    "non-trading interaction restores native trading-house alias")
+    "non-trading interaction leaves native trading-house scene table entry untouched")
 assert_eq(SYSTEMS:GetSystem(ZO_TRADING_HOUSE_SYSTEM_NAME).gamepadRootScene, nativeScene,
     "non-trading interaction restores native system root scene")
 
 -- Interaction type can be nil briefly; BetterUI must still claim ownership.
 interactionType = nil
 openCallback()
-assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], TH.instance.scene,
-    "nil interaction still aliases trading-house scene to BetterUI")
+assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], nativeScene,
+    "nil interaction still leaves native trading-house scene table entry untouched")
 assert_eq(SYSTEMS:GetSystem(ZO_TRADING_HOUSE_SYSTEM_NAME).gamepadRootScene, TH.instance.scene,
     "nil interaction still redirects system root scene to BetterUI")
 assert_eq(SCENE_MANAGER.lastShown, BETTERUI_TRADING_HOUSE_SCENE_NAME,
     "open callback shows BetterUI trading-house scene")
 
--- Close should keep BetterUI alias for the next open cycle.
+-- Close should keep BetterUI system ownership for the next open cycle.
 closeCallback()
-assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], TH.instance.scene,
-    "close callback keeps BetterUI alias for next open")
+assert_eq(SCENE_MANAGER.scenes["gamepad_trading_house"], nativeScene,
+    "close callback leaves native trading-house scene table entry untouched")
 assert_eq(SYSTEMS:GetSystem(ZO_TRADING_HOUSE_SYSTEM_NAME).gamepadRootScene, TH.instance.scene,
     "close callback keeps BetterUI system root ownership for next open")
 assert_eq(SCENE_MANAGER.lastHidden, BETTERUI_TRADING_HOUSE_SCENE_NAME,

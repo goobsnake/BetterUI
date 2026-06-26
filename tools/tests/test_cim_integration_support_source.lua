@@ -185,12 +185,16 @@ assert_true(keybindHelpers:find("BETTERUI%.Interface = BETTERUI%.Interface or %{
     "KeybindHelpers initializes the shared interface helper table")
 assert_true(keybindHelpers:find("function BETTERUI%.Interface%.EnsureKeybindGroupAdded%(descriptor%)") ~= nil,
     "KeybindHelpers exposes EnsureKeybindGroupAdded")
-assert_true(keybindHelpers:find("KEYBIND_STRIP:AddKeybindButtonGroup%(descriptor%)") ~= nil,
-    "KeybindHelpers adds missing keybind groups")
-assert_true(keybindHelpers:find("KEYBIND_STRIP:UpdateKeybindButtonGroup%(descriptor%)") ~= nil,
-    "KeybindHelpers refreshes keybind groups after ensuring them")
-assert_true(keybindHelpers:find("KEYBIND_STRIP:HasKeybindButtonGroup%(descriptor%)") ~= nil,
+assert_true(keybindHelpers:find('InvokeKeybindStrip%("AddKeybindButtonGroup", descriptor%)') ~= nil,
+    "KeybindHelpers adds missing keybind groups through guarded dispatch")
+assert_true(keybindHelpers:find('InvokeKeybindStrip%("UpdateKeybindButtonGroup", descriptor%)') ~= nil,
+    "KeybindHelpers refreshes keybind groups through guarded dispatch")
+assert_true(keybindHelpers:find('InvokeKeybindStrip%("HasKeybindButtonGroup", descriptor%)') ~= nil,
     "KeybindHelpers dedupes through the public HasKeybindButtonGroup API")
+assert_true(keybindHelpers:find("function BETTERUI%.Interface%.UpdateCurrentKeybindGroups%(%)") ~= nil,
+    "KeybindHelpers exposes guarded current-keybind refresh")
+assert_true(keybindHelpers:find("function BETTERUI%.Interface%.RemoveKeybindGroupIfPresent%(descriptor%)") ~= nil,
+    "KeybindHelpers exposes guarded owned-group removal")
 assert_true(keybindHelpers:find("keybindButtonGroups") == nil,
     "KeybindHelpers never reads the nonexistent keybindButtonGroups field")
 assert_true(keybindHelpers:find("function BETTERUI%.Interface%.RemoveOwnedKeybindGroups%(ownedGroups, keepDescriptor%)") ~= nil,
@@ -279,6 +283,7 @@ KEYBIND_STRIP = {
     added = {},
     removed = {},
     groups = {},
+    updatedCurrent = 0,
     AddKeybindButtonGroup = function(self, descriptor)
         table.insert(self.added, descriptor)
         self.groups[descriptor] = true
@@ -291,6 +296,9 @@ KEYBIND_STRIP = {
         return self.groups[descriptor] == true
     end,
     UpdateKeybindButtonGroup = function() end,
+    UpdateCurrentKeybindButtonGroups = function(self)
+        self.updatedCurrent = self.updatedCurrent + 1
+    end,
 }
 
 KEYBIND_STRIP_ALIGN_LEFT = 1

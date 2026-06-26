@@ -1,7 +1,7 @@
 --[[
 File: Modules/CIM/Core/Integration/HookFactory.lua
-Purpose: Hook utilities for extending or replacing UI methods.
-         Provides PreHook, PostHook, and ReplaceHook patterns.
+Purpose: Hook utilities for extending UI methods without owning method slots.
+         Provides PreHook, PostHook, and a compatibility ReplaceHook shim.
 ]]
 
 -- HOOK FACTORY (Internal)
@@ -26,9 +26,13 @@ local function createHookInternal(control, method, fn, position)
             ZO_PostHook(control, method, fn)
         end
     elseif position == "replace" then
-        -- Full replacement is intentionally explicit and should be used sparingly.
-        control[method] = function(self, ...)
-            return fn(self, ...)
+        -- Preserve the legacy API without directly replacing the target method.
+        -- Returning true from the native prehook suppresses the original call.
+        if type(ZO_PreHook) == "function" then
+            ZO_PreHook(control, method, function(self, ...)
+                fn(self, ...)
+                return true
+            end)
         end
     end
 end
@@ -53,7 +57,10 @@ function BETTERUI.PostHook(control, method, fn)
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "hook registered", { position = "after", method = method }) end
 end
 
---- Replaces a method entirely with fn.
+--- Compatibility shim for legacy replacement hooks.
+--- Runs fn before the original and suppresses the original without directly
+--- assigning to the target method. Return values from fn are intentionally not
+--- propagated; prefer PreHook/PostHook for new code.
 --- @param control table The object to hook
 --- @param method string Method name to replace
 --- @param fn fun(self: table, ...) Replacement function

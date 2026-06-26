@@ -54,6 +54,14 @@ assert_contains(runtimeSource, "function TH.BuildTabKeybinds(thInstance)",
     "Trading House runtime helper owns tab keybind construction")
 assert_contains(flowSource, "function TH.TakeOverNativeTradingHouse()",
     "Trading House flow helper owns native scene takeover")
+assert_not_contains(flowSource, "SCENE_MANAGER.scenes[\"gamepad_trading_house\"] =",
+    "Trading House does not replace the shared gamepad_trading_house scene table entry")
+assert_not_contains(flowSource, "nativeTH.OpenTradingHouse = function",
+    "Trading House leaves the native OpenTradingHouse method untouched")
+assert_not_contains(flowSource, "nativeTH.CloseTradingHouse = function",
+    "Trading House leaves the native CloseTradingHouse method untouched")
+assert_not_contains(flowSource, "nativeTH.sceneName =",
+    "Trading House leaves native sceneName metadata intact")
 assert_contains(flowSource, "local function AssociateSearchFeatures()",
     "Trading House flow helper owns search-feature association")
 assert_contains(flowSource, "local function DisassociateSearchFeatures()",
