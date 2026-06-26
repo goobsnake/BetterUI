@@ -10,6 +10,26 @@ Vendor.ModePolicy = Vendor.ModePolicy or {}
 local ModePolicy = Vendor.ModePolicy
 local DEFAULT_VENDOR_CATEGORY_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
 
+local function AddIfValue(tableRef, value)
+    if value ~= nil then
+        tableRef[value] = true
+    end
+end
+
+local function BuildNativeStoreFallbackEntryTypes()
+    local types = {}
+    AddIfValue(types, rawget(_G, "STORE_ENTRY_TYPE_ANTIQUITY_LEAD"))
+    AddIfValue(types, rawget(_G, "STORE_ENTRY_TYPE_COLLECTIBLE"))
+    AddIfValue(types, rawget(_G, "STORE_ENTRY_TYPE_HOUSE_WITH_TEMPLATE"))
+    AddIfValue(types, rawget(_G, "STORE_ENTRY_TYPE_INTERACTABLE"))
+    AddIfValue(types, rawget(_G, "STORE_ENTRY_TYPE_MONSTER"))
+    AddIfValue(types, rawget(_G, "STORE_ENTRY_TYPE_QUEST_ITEM"))
+    AddIfValue(types, rawget(_G, "STORE_ENTRY_TYPE_SUBSTORE"))
+    return types
+end
+
+local NATIVE_STORE_FALLBACK_ENTRY_TYPES = BuildNativeStoreFallbackEntryTypes()
+
 local function BuildFallbackCategory()
     return {
         key = "all",
@@ -411,10 +431,7 @@ function ModePolicy.ResolveVendorInitialStoreMode(request)
         end
     end
 
-    if nativeModesReady
-        and modeSet[mode.BUY]
-        and type(request.hasVendorBuyInventory) == "function"
-        and request.hasVendorBuyInventory() then
+    if nativeModesReady and modeSet[mode.BUY] then
         return mode.BUY, true
     end
     if modeSet[mode.SELL] then
@@ -453,6 +470,36 @@ function ModePolicy.ResolveStableInitialStoreMode(request)
     end
 
     return mode.BUY, shouldRememberBuyMode
+end
+
+function ModePolicy.ShouldUseNativeStoreFallback(request)
+    request = request or {}
+    if request.isStableInteraction or request.isFenceInteraction then
+        return false
+    end
+
+    local getNumStoreItems = request.getNumStoreItems or rawget(_G, "GetNumStoreItems")
+    local getStoreEntryInfo = request.getStoreEntryInfo or rawget(_G, "GetStoreEntryInfo")
+    if type(getNumStoreItems) ~= "function" or type(getStoreEntryInfo) ~= "function" then
+        return false
+    end
+
+    local itemEntryType = rawget(_G, "STORE_ENTRY_TYPE_ITEM")
+    local entryCount = getNumStoreItems() or 0
+    if entryCount <= 0 then
+        return false
+    end
+
+    for entryIndex = 1, entryCount do
+        local entryType = select(14, getStoreEntryInfo(entryIndex))
+        if entryType ~= nil
+            and (NATIVE_STORE_FALLBACK_ENTRY_TYPES[entryType]
+                or (itemEntryType ~= nil and entryType ~= itemEntryType)) then
+            return true, "nonItemStoreEntry", entryType, entryIndex
+        end
+    end
+
+    return false
 end
 
 function ModePolicy.GetActiveTabs(context)

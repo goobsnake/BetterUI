@@ -76,6 +76,30 @@ end
 
 local ExecuteSafely = Vendor.ExecuteSafely
 
+local function TraceBuyList(event, phase, vendorInstance, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Vendor"
+    data.scene = BETTERUI_VENDOR_SCENE_NAME
+    data.feature = data.feature or "vendor-buy-list"
+    data.fn = data.fn or "Vendor.BuyComponent"
+    data["function"] = data["function"] or data.fn
+    if data.mode == nil and vendorInstance and vendorInstance.GetCurrentMode then
+        data.mode = vendorInstance:GetCurrentMode()
+    end
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.LIST or categories.STATE or categories.GENERAL, event, phase, data)
+end
+
+local function BuildCategorySummary(categories)
+    local parts = {}
+    for _, category in ipairs(categories or {}) do
+        parts[#parts + 1] = tostring(category.key or "<nil>") .. ":" .. tostring(category.itemCount or 0)
+    end
+    return table.concat(parts, ",")
+end
+
 local function BuildStoreRowFromDataSource(ds)
     if not ds then
         return nil
@@ -309,56 +333,136 @@ local function BuildRowsFromIndexProbe()
     return rows
 end
 
-local function BuildStoreRows()
+local function BuildStoreRows(vendorInstance)
+    TraceBuyList("vendor.buy_population", "begin", vendorInstance, {
+        hasNativeComponent = rawget(_G, "STORE_WINDOW_GAMEPAD") ~= nil,
+        storeCount = (type(GetNumStoreItems) == "function") and GetNumStoreItems() or nil,
+    })
     if BETTERUI.Vendor and BETTERUI.Vendor.EnsureNativeStoreComponents then
+        TraceBuyList("vendor.buy_rows", "ensure_native_components", vendorInstance, {
+            reason = "buildRows",
+        })
         BETTERUI.Vendor.EnsureNativeStoreComponents("storeTextSearch")
     end
 
     local rows = BuildRowsFromNativeBuyComponent()
     if #rows > 0 then
+        TraceBuyList("vendor.buy_rows", "built", vendorInstance, {
+            source = "nativeBuyComponent",
+            rowCount = #rows,
+        })
         return rows
     end
 
     rows = BuildRowsFromStoreManager()
     if #rows > 0 then
+        TraceBuyList("vendor.buy_rows", "built", vendorInstance, {
+            source = "storeManager",
+            rowCount = #rows,
+        })
         return rows
     end
 
     rows = BuildRowsFromStoreCount()
     if #rows > 0 then
+        TraceBuyList("vendor.buy_rows", "built", vendorInstance, {
+            source = "storeCount",
+            rowCount = #rows,
+        })
         return rows
     end
 
     rows = BuildRowsFromIndexProbe()
     if #rows > 0 then
+        TraceBuyList("vendor.buy_rows", "built", vendorInstance, {
+            source = "indexProbe",
+            rowCount = #rows,
+        })
         return rows
     end
 
+    TraceBuyList("vendor.buy_rows", "empty", vendorInstance, {
+        source = "all",
+        rowCount = 0,
+    })
     return rows
 end
 
 -- One refresh pass calls GetCategories and BuildList back to back, each of
--- which needs the store rows; cache the built rows per frame so the
+-- which needs the store rows; cache populated rows per frame so the
 -- multi-source build (and its index probe fallback) runs once per refresh.
+-- Empty snapshots are intentionally not cached: native store population can
+-- arrive later in the same frame as the scene open.
 local cachedStoreRows = nil
 local cachedStoreRowsFrameMs = nil
 
-local function GetStoreRowsCached()
+local function GetStoreRowsCached(vendorInstance)
     local frameMs = (type(GetFrameTimeMilliseconds) == "function") and GetFrameTimeMilliseconds() or nil
-    if frameMs and cachedStoreRows and cachedStoreRowsFrameMs == frameMs then
+    if frameMs and cachedStoreRows and cachedStoreRowsFrameMs == frameMs and #cachedStoreRows > 0 then
+        TraceBuyList("vendor.buy_rows", "cache_hit", vendorInstance, {
+            rowCount = #cachedStoreRows,
+        })
         return cachedStoreRows
     end
 
-    local rows = BuildStoreRows()
-    if frameMs then
+    local rows = BuildStoreRows(vendorInstance)
+    if frameMs and #rows > 0 then
         cachedStoreRows = rows
         cachedStoreRowsFrameMs = frameMs
     else
-        -- No frame clock (test harness): never reuse stale rows.
+        -- No frame clock (test harness), or native store is not populated yet:
+        -- never reuse stale/empty rows.
         cachedStoreRows = nil
         cachedStoreRowsFrameMs = nil
     end
     return rows
+end
+
+local function ScheduleBuyListRetry(vendorInstance, reason)
+    if not (vendorInstance and BETTERUI.Vendor and BETTERUI.Vendor.Tasks) then
+        TraceBuyList("vendor.buy_list_retry", "skipped", vendorInstance, {
+            reason = reason or "missingTaskQueue",
+        })
+        return
+    end
+
+    local retryCount = (vendorInstance._buyListRetryCount or 0) + 1
+    if retryCount > 3 then
+        TraceBuyList("vendor.buy_list_retry", "skipped", vendorInstance, {
+            reason = reason or "maxRetries",
+            retryCount = retryCount,
+        })
+        return
+    end
+
+    vendorInstance._buyListRetryCount = retryCount
+    BETTERUI.Vendor.Tasks:Cancel("buyListRetry")
+    BETTERUI.Vendor.Tasks:Schedule("buyListRetry", 80 * retryCount, function()
+        if Vendor.ShouldAbortDeferredVendorRefresh
+            and Vendor.ShouldAbortDeferredVendorRefresh(vendorInstance, Vendor.MODE.BUY) then
+            TraceBuyList("vendor.buy_list_retry", "aborted", vendorInstance, {
+                reason = "deferredRefreshAborted",
+                retryCount = retryCount,
+            })
+            return
+        end
+
+        cachedStoreRows = nil
+        cachedStoreRowsFrameMs = nil
+        if vendorInstance.ApplyNativeStoreMode then
+            vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
+        end
+        TraceBuyList("vendor.buy_list_retry", "refresh", vendorInstance, {
+            reason = reason,
+            retryCount = retryCount,
+        })
+        vendorInstance:RefreshList()
+    end)
+    TraceBuyList("vendor.buy_list_retry", "scheduled", vendorInstance, {
+        reason = reason,
+        retryCount = retryCount,
+        delayMs = 80 * retryCount,
+    })
 end
 
 local function GetStoreItemCategoryName(itemLink)
@@ -379,11 +483,14 @@ end
 ---@param vendorInstance BETTERUI.Vendor.Class
 ---@return table[]
 function Buy:GetCategories(vendorInstance)
+    TraceBuyList("vendor.buy_categories", "begin", vendorInstance, {
+        storeCount = (type(GetNumStoreItems) == "function") and GetNumStoreItems() or nil,
+    })
     if vendorInstance and vendorInstance.ApplyNativeStoreMode then
         vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
     end
 
-    local rows = GetStoreRowsCached()
+    local rows = GetStoreRowsCached(vendorInstance)
     local totalCount = #rows
     local categories = {}
 
@@ -419,6 +526,11 @@ function Buy:GetCategories(vendorInstance)
         }
     end
 
+    TraceBuyList("vendor.buy_categories", "refreshed", vendorInstance, {
+        rowCount = totalCount,
+        categoryCount = #categories,
+        categories = BuildCategorySummary(categories),
+    })
     return categories
 end
 
@@ -426,23 +538,43 @@ end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:Activate(vendorInstance)
+    TraceBuyList("vendor.buy_list", "activate_begin", vendorInstance)
+    vendorInstance._buyListRetryCount = 0
     vendorInstance:RefreshList()
 
     -- Opening/switching to Buy can race native store population.
     -- Run one deferred pass after mode settles so rows are consistently visible.
     if BETTERUI.Vendor and BETTERUI.Vendor.Tasks then
         BETTERUI.Vendor.Tasks:Cancel("buyActivateRefresh")
+        TraceBuyList("vendor.buy_list", "deferred_scheduled", vendorInstance, {
+            delayMs = 120,
+        })
         BETTERUI.Vendor.Tasks:Schedule("buyActivateRefresh", 120, function()
             if Vendor.ShouldAbortDeferredVendorRefresh
                 and Vendor.ShouldAbortDeferredVendorRefresh(vendorInstance, Vendor.MODE.BUY) then
+                TraceBuyList("vendor.buy_list", "deferred_refresh_aborted", vendorInstance)
                 return
             end
             if vendorInstance.ApplyNativeStoreMode then
                 vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
             end
+            cachedStoreRows = nil
+            cachedStoreRowsFrameMs = nil
+            TraceBuyList("vendor.buy_list", "deferred_refresh_begin", vendorInstance, {
+                delayMs = 120,
+            })
             vendorInstance:RefreshList()
+            TraceBuyList("vendor.buy_list", "deferred_refresh_end", vendorInstance, {
+                delayMs = 120,
+                rowCount = vendorInstance.list and vendorInstance.list.dataList and #vendorInstance.list.dataList or nil,
+            })
         end)
+    else
+        TraceBuyList("vendor.buy_list", "deferred_skipped", vendorInstance, {
+            reason = "missingTaskQueue",
+        })
     end
+    TraceBuyList("vendor.buy_list", "activate_end", vendorInstance)
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -451,6 +583,10 @@ function Buy:Deactivate(vendorInstance)
     -- reused after the store closes or the Buy mode deactivates.
     cachedStoreRows = nil
     cachedStoreRowsFrameMs = nil
+    if vendorInstance then
+        vendorInstance._buyListRetryCount = 0
+    end
+    TraceBuyList("vendor.buy_list", "deactivate", vendorInstance)
 end
 
 -- PRIMARY ACTION
@@ -711,17 +847,38 @@ end
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:BuildList(vendorInstance)
     local list = vendorInstance.list
-    if not list then return end
+    if not list then
+        TraceBuyList("vendor.buy_list", "skipped", vendorInstance, {
+            reason = "missingList",
+        })
+        return
+    end
 
     if vendorInstance and vendorInstance.ApplyNativeStoreMode then
         vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
     end
 
-    local rows = GetStoreRowsCached()
-    if #rows == 0 then return end
-
+    local rows = GetStoreRowsCached(vendorInstance)
     local activeCategory = vendorInstance:GetCurrentCategory()
     local searchQuery = Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery) or nil
+    TraceBuyList("vendor.buy_list", "populate_begin", vendorInstance, {
+        rowCount = #rows,
+        categoryKey = activeCategory and activeCategory.key or nil,
+        hasSearchQuery = searchQuery ~= nil,
+    })
+    if #rows == 0 then
+        TraceBuyList("vendor.buy_list", "empty", vendorInstance, {
+            reason = "emptyRows",
+            rowCount = 0,
+            categoryKey = activeCategory and activeCategory.key or nil,
+            hasSearchQuery = searchQuery ~= nil,
+        })
+        ScheduleBuyListRetry(vendorInstance, "emptyRows")
+        return
+    end
+
+    vendorInstance._buyListRetryCount = 0
+    local addedCount = 0
     for _, row in ipairs(rows) do
         if MatchesCategory(row, activeCategory)
             and (not Vendor.MatchesSearchQuery or Vendor.MatchesSearchQuery(searchQuery, row.name))
@@ -784,6 +941,14 @@ function Buy:BuildList(vendorInstance)
             end
 
             list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+            addedCount = addedCount + 1
         end
     end
+
+    TraceBuyList("vendor.buy_list", "populated", vendorInstance, {
+        rowCount = #rows,
+        addedCount = addedCount,
+        categoryKey = activeCategory and activeCategory.key or nil,
+        searchQuery = searchQuery,
+    })
 end

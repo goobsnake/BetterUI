@@ -14,6 +14,14 @@ local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "CloseStore:beforeSweep"
 local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "CloseStore:afterSweep"
 local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.CloseStore:NativeOnHide"
 
+local SPECIALIZED_NATIVE_VENDOR_SCENES = {
+    "TamrielTomesSceneGamepad",
+    "TamrielTomesIntroSceneGamepad",
+    "TamrielTomesPurchaseSceneGamepad",
+    "tamrielTomesPurchasePreview_Gamepad",
+    "TamrielTomesRewardPreviewSceneGamepad",
+}
+
 local function BuildTraceState(state)
     state = state or {}
     return {
@@ -46,6 +54,70 @@ local function TraceVendorInteraction(event, phase, state, data)
     data["function"] = data["function"] or data.fn
     L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data)
 end
+
+local function GetCurrentSceneName()
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
+        return SCENE_MANAGER:GetCurrentSceneName()
+    end
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentScene) == "function" then
+        local scene = SCENE_MANAGER:GetCurrentScene()
+        if scene and type(scene.GetName) == "function" then
+            return scene:GetName()
+        end
+    end
+    return nil
+end
+
+local function GetSceneState(scene)
+    if scene and type(scene.GetState) == "function" then
+        local ok, state = pcall(scene.GetState, scene)
+        if ok then
+            return state
+        end
+    end
+    return nil
+end
+
+local function IsSceneShowing(scene)
+    if scene and type(scene.IsShowing) == "function" then
+        local ok, showing = pcall(scene.IsShowing, scene)
+        return ok and showing == true
+    end
+    return false
+end
+
+local function IsSceneShowingNext(sceneName)
+    if SCENE_MANAGER and type(SCENE_MANAGER.IsShowingNext) == "function" then
+        local ok, showingNext = pcall(SCENE_MANAGER.IsShowingNext, SCENE_MANAGER, sceneName)
+        return ok and showingNext == true
+    end
+    return false
+end
+
+local function FindSpecializedNativeScene()
+    if not SCENE_MANAGER then
+        return nil, nil
+    end
+
+    local currentSceneName = GetCurrentSceneName()
+    for _, sceneName in ipairs(SPECIALIZED_NATIVE_VENDOR_SCENES) do
+        local scene = SCENE_MANAGER.GetScene and SCENE_MANAGER:GetScene(sceneName) or nil
+        local state = GetSceneState(scene)
+        local isCurrent = currentSceneName == sceneName
+        local showingNext = IsSceneShowingNext(sceneName)
+        local showing = IsSceneShowing(scene)
+        local activeState = state ~= nil
+            and (state == rawget(_G, "SCENE_SHOWING") or state == rawget(_G, "SCENE_SHOWN"))
+
+        if isCurrent or showingNext or showing or activeState then
+            return sceneName, state or (showingNext and "showingNext") or (isCurrent and "current") or "showing"
+        end
+    end
+
+    return nil, nil
+end
+
+InteractionRuntime.FindSpecializedNativeScene = FindSpecializedNativeScene
 
 -- Dialogs that may still be open when the store interaction ends. Native
 -- ZO_GamepadStoreManager:OnCloseStore releases REPAIR_ALL; the BetterUI batch
@@ -233,6 +305,8 @@ local function ResolveDeps(deps)
     local applyResolvedMode = ResolveBridgeMethod(nativeStoreBridge, deps, "applyResolvedMode", "ApplyResolvedMode")
     local scheduleOpenStoreSync = ResolveBridgeMethod(nativeStoreBridge, deps, "scheduleOpenStoreSync", "ScheduleOpenStoreSync")
     local cleanupCloseStore = ResolveOptionalBridgeMethod(nativeStoreBridge, deps, "cleanupCloseStore", "CleanupAfterCloseStore")
+    local shouldUseNativeStoreFallback = deps.shouldUseNativeStoreFallback
+        or (Vendor.ModePolicy and Vendor.ModePolicy.ShouldUseNativeStoreFallback)
     local logNativeStoreInputState = deps.logNativeStoreInputState
         or (nativeStoreBridge and nativeStoreBridge.LogInputState)
         or function()
@@ -260,6 +334,8 @@ local function ResolveDeps(deps)
         resolveTargetMode = resolveTargetMode,
         applyResolvedMode = applyResolvedMode,
         scheduleOpenStoreSync = scheduleOpenStoreSync,
+        findSpecializedNativeScene = deps.findSpecializedNativeScene or FindSpecializedNativeScene,
+        shouldUseNativeStoreFallback = shouldUseNativeStoreFallback,
         sellMode = deps.sellMode or (Vendor.MODE and Vendor.MODE.FENCE_SELL),
         fenceLaunderMode = deps.fenceLaunderMode or (Vendor.MODE and Vendor.MODE.FENCE_LAUNDER),
         getStoreManager = getStoreManager,
@@ -328,6 +404,8 @@ local function BuildLifecycleDeps(runtime, nativeStoreBridge, instance, options)
         resolveTargetMode = options.resolveTargetMode,
         applyResolvedMode = options.applyResolvedMode,
         scheduleOpenStoreSync = options.scheduleOpenStoreSync,
+        findSpecializedNativeScene = options.findSpecializedNativeScene or FindSpecializedNativeScene,
+        shouldUseNativeStoreFallback = options.shouldUseNativeStoreFallback,
         sellMode = options.sellMode,
         fenceLaunderMode = options.fenceLaunderMode,
         getStoreManager = function()
@@ -381,6 +459,106 @@ end
 local function SyncSessionBuyModeFromLiveState(state)
     state.sessionHasBuyMode = Vendor._sessionHasBuyMode == true
     return state
+end
+
+local function ReadStoreEntryType(entryIndex)
+    if type(GetStoreEntryInfo) ~= "function" then
+        return nil, nil
+    end
+
+    local _, name, _, _, _, _, _, _, _, _, _, _, _, entryType = GetStoreEntryInfo(entryIndex)
+    return name, entryType
+end
+
+local function ShouldHandOffStoreToNative(resolved, interactionType)
+    if type(resolved.findSpecializedNativeScene) == "function" then
+        local specializedSceneName, specializedSceneState = resolved.findSpecializedNativeScene()
+        if specializedSceneName then
+            return true, "specializedNativeScene", {
+                interactionType = interactionType,
+                specializedSceneName = specializedSceneName,
+                specializedSceneState = specializedSceneState,
+            }
+        end
+    end
+
+    if interactionType
+        and interactionType ~= resolved.interactionVendor
+        and interactionType ~= resolved.interactionStable
+    then
+        return true, "unsupportedInteraction", {
+            interactionType = interactionType,
+        }
+    end
+
+    if interactionType ~= resolved.interactionVendor then
+        return false
+    end
+
+    if type(resolved.shouldUseNativeStoreFallback) == "function" then
+        local okFallback, useNativeFallback, fallbackReason, fallbackEntryType, fallbackEntryIndex = resolved.safeCall(
+            "Vendor.OpenStore:ShouldUseNativeStoreFallback",
+            resolved.shouldUseNativeStoreFallback,
+            {
+                interactionType = interactionType,
+                isStableInteraction = false,
+                isFenceInteraction = false,
+                storeManager = resolved.getStoreManager and resolved.getStoreManager() or nil,
+            }
+        )
+        if okFallback and useNativeFallback then
+            return true, fallbackReason or "nativeStoreFallback", {
+                interactionType = interactionType,
+                entryIndex = fallbackEntryIndex,
+                entryType = fallbackEntryType,
+            }
+        end
+        if not okFallback then
+            TraceVendorInteraction("vendor.store_guard", "error", nil, {
+                fn = "ShouldHandOffStoreToNative",
+                interactionType = interactionType,
+                reason = "guardFailed",
+                error = tostring(useNativeFallback),
+            })
+        end
+    end
+
+    -- BetterUI's vendor scene owns the store keybind layer. Specialized event
+    -- merchants can expose non-item store entries whose native keybinds include
+    -- alternate verbs such as hold-to-acquire; leave those entries on native UI.
+    local standardEntryType = rawget(_G, "STORE_ENTRY_TYPE_ITEM")
+    if standardEntryType == nil or type(GetStoreEntryInfo) ~= "function" then
+        return false
+    end
+
+    local numStoreItems = 0
+    if type(GetNumStoreItems) == "function" then
+        numStoreItems = GetNumStoreItems() or 0
+    end
+    local maxProbe = numStoreItems > 0 and math.min(numStoreItems, 10) or 10
+    local probedEntries = 0
+
+    for entryIndex = 1, maxProbe do
+        local name, entryType = ReadStoreEntryType(entryIndex)
+        if name and name ~= "" then
+            probedEntries = probedEntries + 1
+            if entryType ~= nil and entryType ~= standardEntryType then
+                return true, "specialStoreEntryType", {
+                    interactionType = interactionType,
+                    entryIndex = entryIndex,
+                    entryType = entryType,
+                    standardEntryType = standardEntryType,
+                    probedEntries = probedEntries,
+                }
+            end
+        end
+    end
+
+    return false, nil, {
+        interactionType = interactionType,
+        standardEntryType = standardEntryType,
+        probedEntries = probedEntries,
+    }
 end
 
 -- Mirror ZO_GamepadStoreManager:OnOpenStore (storewindow_gamepad.lua:22-45):
@@ -459,23 +637,31 @@ local function OpenStoreInternal(state, deps, publishState)
             tostring(interactionType), tostring(state.isFenceInteraction), tostring(state.isStableInteraction))
     )
 
-    if interactionType
-        and interactionType ~= resolved.interactionVendor
-        and interactionType ~= resolved.interactionStable
-    then
-        -- Unsupported interaction type: hand the store back to native. The
-        -- alias is restored, but TakeOverScene permanently unregistered the
-        -- native EVENT_OPEN_STORE handler, so nothing would show the store UI
-        -- on its own. Explicitly drive the native open flow here, mirroring
+    local nativeHandoff, nativeReason, nativeData = ShouldHandOffStoreToNative(resolved, interactionType)
+    if nativeHandoff then
+        -- Hand specialized store interactions back to native. The alias is
+        -- restored, but TakeOverScene permanently unregistered the native
+        -- EVENT_OPEN_STORE handler, so nothing would show the store UI on its
+        -- own. Explicitly drive the native open flow here, mirroring
         -- ZO_GamepadStoreManager:OnOpenStore (storewindow_gamepad.lua:22-45).
+        nativeData = nativeData or {}
         TraceVendorInteraction("vendor.store", "native_handoff", state, {
             interactionType = interactionType,
-            reason = "unsupportedInteraction",
+            reason = nativeReason,
+            entryIndex = nativeData.entryIndex,
+            entryType = nativeData.entryType,
+            standardEntryType = nativeData.standardEntryType,
+            probedEntries = nativeData.probedEntries,
+            specializedSceneName = nativeData.specializedSceneName,
+            specializedSceneState = nativeData.specializedSceneState,
         })
         resolved.restoreSceneAlias()
-        ShowNativeStore(resolved)
+        if nativeReason ~= "specializedNativeScene" then
+            ShowNativeStore(resolved)
+        end
         return state
     end
+
 
     local instance = resolved.instance
     resolved.aliasSceneToBetterUI(instance)
@@ -500,8 +686,11 @@ local function OpenStoreInternal(state, deps, publishState)
     if targetMode then
         resolved.applyResolvedMode(targetMode, false)
     end
+    TraceVendorInteraction("vendor.store_scene", "show_request", state, {
+        targetMode = targetMode,
+    })
     resolved.showScene()
-    TraceVendorInteraction("vendor.store", "scene_shown", state, {
+    TraceVendorInteraction("vendor.store_scene", "show_complete", state, {
         targetMode = targetMode,
     })
     if targetMode then
@@ -604,7 +793,9 @@ local function CloseStoreInternal(state, deps)
 
     resolved.cancelRuntimeTasks()
     resolved.logVendorDebug("SCENE_TRANSITIONS", "VendorScene", "CloseStore begin")
+    TraceVendorInteraction("vendor.store_scene", "hide_request", state, nil)
     resolved.hideScene()
+    TraceVendorInteraction("vendor.store_scene", "hide_complete", state, nil)
 
     local storeManager = resolved.getStoreManager()
     TraceVendorInteraction("vendor.store", "cleanup_begin", state, {

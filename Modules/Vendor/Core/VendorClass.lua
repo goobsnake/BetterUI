@@ -531,6 +531,25 @@ local ExecuteSafely = assert(Vendor.ExecuteSafely, "Vendor safe execute helper m
 
 local LogVendorDebug = Vendor.LogDebug
 
+local function TraceVendorKeybindLayer(phase, instance, descriptor, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = "Vendor"
+    data.scene = BETTERUI_VENDOR_SCENE_NAME
+    data.feature = data.feature or "vendor-keybind-layer"
+    data.fn = data.fn or "Vendor.Class"
+    data["function"] = data["function"] or data.fn
+    if instance and instance.GetCurrentMode and data.mode == nil then
+        data.mode = instance:GetCurrentMode()
+    end
+    if descriptor and data.keybinds == nil and L.DescribeKeybindDescriptors then
+        data.keybinds = L.DescribeKeybindDescriptors(descriptor, data.keybindLabel or "vendor-keybinds")
+    end
+    local category = L.CATEGORY and (L.CATEGORY.KEYBIND or L.CATEGORY.LIFECYCLE) or nil
+    L.TraceEvent(category, "vendor.keybind_layer", phase, data)
+end
+
 ---@return boolean
 function IsStableInteractionActive()
     return BETTERUI.Vendor
@@ -1231,11 +1250,27 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
     self._searchHeaderActive = true
 
     if self.coreKeybinds and KEYBIND_STRIP then
+        TraceVendorKeybindLayer("remove_before", self, self.coreKeybinds, {
+            reason = "enterSearchMode",
+            keybindLabel = "vendor-core",
+        })
         BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
+        TraceVendorKeybindLayer("remove_after", self, self.coreKeybinds, {
+            reason = "enterSearchMode",
+            keybindLabel = "vendor-core",
+        })
     end
 
     if self.textSearchKeybindStripDescriptor then
+        TraceVendorKeybindLayer("add_before", self, self.textSearchKeybindStripDescriptor, {
+            reason = "enterSearchMode",
+            keybindLabel = "vendor-search",
+        })
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
+        TraceVendorKeybindLayer("add_after", self, self.textSearchKeybindStripDescriptor, {
+            reason = "enterSearchMode",
+            keybindLabel = "vendor-search",
+        })
     end
 
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Activate and not self.textSearchHeaderFocus:IsActive() then
@@ -1263,7 +1298,15 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     self._searchHeaderActive = false
 
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+        TraceVendorKeybindLayer("remove_before", self, self.textSearchKeybindStripDescriptor, {
+            reason = "exitSearchMode",
+            keybindLabel = "vendor-search",
+        })
         BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
+        TraceVendorKeybindLayer("remove_after", self, self.textSearchKeybindStripDescriptor, {
+            reason = "exitSearchMode",
+            keybindLabel = "vendor-search",
+        })
     end
 
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate and self.textSearchHeaderFocus:IsActive() then
@@ -1278,11 +1321,27 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     end
     -- Restore exactly the groups the search-mode cleanup removed.
     if self._searchRemovedKeybindGroups then
+        TraceVendorKeybindLayer("restore_before", self, nil, {
+            reason = "exitSearchMode",
+            restoredGroupCount = #self._searchRemovedKeybindGroups,
+        })
         BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
+        TraceVendorKeybindLayer("restore_after", self, nil, {
+            reason = "exitSearchMode",
+            restoredGroupCount = #self._searchRemovedKeybindGroups,
+        })
         self._searchRemovedKeybindGroups = nil
     end
     if self.coreKeybinds then
+        TraceVendorKeybindLayer("add_before", self, self.coreKeybinds, {
+            reason = "exitSearchMode",
+            keybindLabel = "vendor-core",
+        })
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
+        TraceVendorKeybindLayer("add_after", self, self.coreKeybinds, {
+            reason = "exitSearchMode",
+            keybindLabel = "vendor-core",
+        })
     end
 
     if self.EnsureHeaderKeybindsActive then
@@ -1322,11 +1381,27 @@ function BETTERUI.Vendor.Class:OnHeaderEntered()
             -- was removed so ExitSearchMode restores exactly that.
             local owned = {}
             owned[#owned + 1] = self.coreKeybinds
+            TraceVendorKeybindLayer("remove_owned_before", self, nil, {
+                reason = "searchKeybindCleanup",
+                ownedGroupCount = #owned,
+            })
             self._searchRemovedKeybindGroups = BETTERUI.Interface.RemoveOwnedKeybindGroups(
                 owned, self.textSearchKeybindStripDescriptor)
+            TraceVendorKeybindLayer("remove_owned_after", self, nil, {
+                reason = "searchKeybindCleanup",
+                removedGroupCount = self._searchRemovedKeybindGroups and #self._searchRemovedKeybindGroups or 0,
+            })
 
             if self._searchModeActive and self.textSearchKeybindStripDescriptor then
+                TraceVendorKeybindLayer("add_before", self, self.textSearchKeybindStripDescriptor, {
+                    reason = "searchKeybindCleanup",
+                    keybindLabel = "vendor-search",
+                })
                 BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
+                TraceVendorKeybindLayer("add_after", self, self.textSearchKeybindStripDescriptor, {
+                    reason = "searchKeybindCleanup",
+                    keybindLabel = "vendor-search",
+                })
             end
         end)
     end
@@ -1386,7 +1461,15 @@ function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
     ReleaseHeaderDirectionalInput(self.headerGeneric, "Vendor.EnsureHeaderKeybindsActive:HeaderGeneric")
     ReleaseHeaderDirectionalInput(self.header, "Vendor.EnsureHeaderKeybindsActive:Header")
     if tabBar.keybindStripDescriptor and KEYBIND_STRIP then
+        TraceVendorKeybindLayer("remove_before", self, tabBar.keybindStripDescriptor, {
+            reason = "ensureHeaderKeybindsActive",
+            keybindLabel = "vendor-header-tabbar",
+        })
         BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+        TraceVendorKeybindLayer("remove_after", self, tabBar.keybindStripDescriptor, {
+            reason = "ensureHeaderKeybindsActive",
+            keybindLabel = "vendor-header-tabbar",
+        })
     end
     SetTabBarVisualActive(tabBar, true)
 end
@@ -1589,7 +1672,15 @@ function BETTERUI.Vendor.Class:DeactivateHeaderKeybinds()
         tabBar:Deactivate()
     end
     ReleaseDirectionalInputRegistrations(tabBar, true)
+    TraceVendorKeybindLayer("remove_before", self, tabBar.keybindStripDescriptor, {
+        reason = "deactivateHeaderKeybinds",
+        keybindLabel = "vendor-header-tabbar",
+    })
     BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+    TraceVendorKeybindLayer("remove_after", self, tabBar.keybindStripDescriptor, {
+        reason = "deactivateHeaderKeybinds",
+        keybindLabel = "vendor-header-tabbar",
+    })
 end
 
 ---@return nil

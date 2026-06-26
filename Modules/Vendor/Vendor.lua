@@ -1259,12 +1259,35 @@ local function OnOpenStore()
         })
         return
     end
+
+    local specializedSceneName, specializedSceneState = nil, nil
+    if Vendor.InteractionRuntime and Vendor.InteractionRuntime.FindSpecializedNativeScene then
+        specializedSceneName, specializedSceneState = Vendor.InteractionRuntime.FindSpecializedNativeScene()
+    end
+    if specializedSceneName then
+        Vendor._openedInGamepadMode = false
+        if Vendor.NativeStoreBridge and Vendor.NativeStoreBridge.RestoreSceneAlias then
+            Vendor.NativeStoreBridge.RestoreSceneAlias()
+        end
+        TraceVendorEvent("vendor.store_event", "skipped", {
+            fn = "Vendor.OnOpenStore",
+            event = "EVENT_OPEN_STORE",
+            reason = "specializedNativeScene",
+            specializedSceneName = specializedSceneName,
+            specializedSceneState = specializedSceneState,
+            openedInGamepadMode = Vendor._openedInGamepadMode,
+        })
+        return
+    end
+
     Vendor._openedInGamepadMode = true
+    local shouldUseNativeStoreFallback = Vendor.ModePolicy and Vendor.ModePolicy.ShouldUseNativeStoreFallback or nil
     TraceVendorEvent("vendor.store_event", "open_requested", {
         fn = "Vendor.OnOpenStore",
         event = "EVENT_OPEN_STORE",
         interactionType = GetInteractionType and GetInteractionType() or nil,
         openedInGamepadMode = Vendor._openedInGamepadMode,
+        hasNativeStoreFallbackGuard = shouldUseNativeStoreFallback ~= nil,
     })
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
         .OpenStore({
@@ -1276,6 +1299,7 @@ local function OnOpenStore()
                 interactionVendor = INTERACTION_VENDOR,
                 interactionStable = INTERACTION_STABLE,
                 isNativeStableModeActive = IsNativeStableModeActive,
+                shouldUseNativeStoreFallback = shouldUseNativeStoreFallback,
             }
         })
 end

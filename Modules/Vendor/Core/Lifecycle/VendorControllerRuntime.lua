@@ -9,6 +9,7 @@ Vendor.ControllerRuntime = Vendor.ControllerRuntime or {}
 local ControllerRuntime = Vendor.ControllerRuntime
 
 local MODE = assert(Vendor.MODE, "Vendor mode constants must load before controller runtime")
+local BUY_EMPTY_STORE_RETRY_LIMIT = 8
 
 local VENDOR_SORT_COMPARATORS = {
     name = function(a, b)
@@ -631,11 +632,12 @@ function ControllerRuntime.RefreshList(instance, deps)
         end
         local activeCategory = instance.GetCurrentCategory and instance:GetCurrentCategory() or nil
         local hasNonDefaultCategory = activeCategory ~= nil and activeCategory.key ~= nil and activeCategory.key ~= "all"
-        if entryCount == 0 and storeReportsEmpty and (instance._buyListRetryCount or 0) >= 1 then
+        if entryCount == 0 and storeReportsEmpty and (instance._buyListRetryCount or 0) >= BUY_EMPTY_STORE_RETRY_LIMIT then
             instance._buyListRetryCount = 0
             TraceVendor(L and L.CATEGORY.LIST, "vendor.buy_retry", "skipped", instance, {
-                reason = "storeEmptyAfterRetry",
+                reason = "storeEmptyAfterRetryLimit",
                 entryCount = entryCount,
+                maxEmptyStoreRetries = BUY_EMPTY_STORE_RETRY_LIMIT,
             })
         elseif entryCount == 0 and (hasActiveSearch or hasNonDefaultCategory) then
             -- User filtering produced the empty list; nothing to retry.
@@ -666,8 +668,15 @@ function ControllerRuntime.RefreshList(instance, deps)
                     if Vendor.EnsureNativeStoreComponents then
                         Vendor.EnsureNativeStoreComponents("storeTextSearch")
                     end
+                    TraceVendor(L and L.CATEGORY.LIST, "vendor.buy_retry", "refresh_begin", instance, {
+                        retryCount = retryCount,
+                    })
                     instance:ApplyNativeStoreMode(MODE.BUY)
                     instance:RefreshList()
+                    TraceVendor(L and L.CATEGORY.LIST, "vendor.buy_retry", "refresh_end", instance, {
+                        retryCount = retryCount,
+                        rowCount = CountVendorList(instance),
+                    })
                 end)
             else
                 TraceVendor(L and L.CATEGORY.LIST, "vendor.buy_retry", "skipped", instance, {

@@ -8,6 +8,27 @@ local Vendor = BETTERUI.Vendor
 Vendor.BootstrapRuntime = Vendor.BootstrapRuntime or {}
 local BootstrapRuntime = Vendor.BootstrapRuntime
 
+local function TraceVendorBootstrap(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+    data = data or {}
+    data.module = data.module or "Vendor"
+    data.scene = data.scene or BETTERUI_VENDOR_SCENE_NAME
+    data.feature = data.feature or "vendor-bootstrap"
+    data.fn = data.fn or "Vendor.BootstrapRuntime"
+    data["function"] = data["function"] or data.fn
+    local categories = L.CATEGORY or {}
+    L.TraceEvent(categories.LIFECYCLE or categories.GENERAL, event, phase, data)
+end
+
+local function DescribeKeybinds(descriptor, label)
+    local L = BETTERUI and BETTERUI.Log
+    if L and L.DescribeKeybindDescriptors and descriptor then
+        return L.DescribeKeybindDescriptors(descriptor, label or "vendor-keybinds")
+    end
+    return nil
+end
+
 ---@param instance BETTERUI.Vendor.Class
 ---@param deps table
 ---@return nil
@@ -189,10 +210,19 @@ end
 ---@param deps table
 ---@return nil
 function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
+    TraceVendorBootstrap("vendor.bootstrap", "scene_lifecycle_register", {
+        hasInstance = instance ~= nil,
+        keybinds = DescribeKeybinds(instance and instance.coreKeybinds, "vendor-core"),
+    })
     BETTERUI.CIM.SceneLifecycle.Register(instance, {
         keybinds = { instance.coreKeybinds },
         taskManager = deps.taskManager,
         onShowing = function(screen, wasPushed)
+            TraceVendorBootstrap("vendor.scene", "showing_begin", {
+                wasPushed = wasPushed,
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+                keybinds = DescribeKeybinds(screen and screen.coreKeybinds, "vendor-core"),
+            })
             screen._vendorCloseCleanupApplied = false
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             if screen.ReleaseNativeStoreInputOwnership then
@@ -223,9 +253,29 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 screen:OnItemSelectedChange(screen.list, screen.list:GetTargetData())
                 screen:UpdateScrollIndicator(screen.list)
             end
-            BETTERUI.Interface.UpdateCurrentKeybindGroups()
+            TraceVendorBootstrap("vendor.keybind_layer", "add_before", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+                keybinds = DescribeKeybinds(screen and screen.coreKeybinds, "vendor-core"),
+            })
+            local refreshed = BETTERUI.Interface.UpdateCurrentKeybindGroups()
+            TraceVendorBootstrap("vendor.keybind_layer", "add_after", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+                keybinds = DescribeKeybinds(screen and screen.coreKeybinds, "vendor-core"),
+                refreshed = refreshed == true,
+            })
+            TraceVendorBootstrap("vendor.bootstrap", "showing_complete", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+                hasList = screen.list ~= nil,
+            })
+            TraceVendorBootstrap("vendor.scene", "showing_end", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+                hasList = screen.list ~= nil,
+            })
         end,
         onHiding = function(screen)
+            TraceVendorBootstrap("vendor.scene", "hiding_begin", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+            })
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.UnregisterCallback and screen.onItemPreviewRefreshActionsCallback then
                 ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", screen.onItemPreviewRefreshActionsCallback)
@@ -252,8 +302,15 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                     screen:ForceReleaseDirectionalInput()
                 end
             end
+            TraceVendorBootstrap("vendor.keybind_layer", "remove_before", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+                keybinds = DescribeKeybinds(screen and screen.coreKeybinds, "vendor-core"),
+            })
             screen:DeactivateHeaderKeybinds()
             screen:DeactivateListInput()
+            TraceVendorBootstrap("vendor.keybind_layer", "remove_after", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+            })
             if BETTERUI.CIM and BETTERUI.CIM.SceneCleanup then
                 BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
                 BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
@@ -270,8 +327,14 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             if screen.list and screen.list.control and BETTERUI.CIM and BETTERUI.CIM.ScrollIndicator then
                 BETTERUI.CIM.ScrollIndicator.Hide(screen.list.control)
             end
+            TraceVendorBootstrap("vendor.scene", "hiding_end", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+            })
         end,
         onHidden = function(screen)
+            TraceVendorBootstrap("vendor.scene", "hidden_begin", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+            })
             if Vendor.RunLifecycleCloseCleanup then
                 Vendor.RunLifecycleCloseCleanup(screen)
             else
@@ -294,6 +357,10 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             if component and component.Deactivate then
                 component:Deactivate(screen)
             end
+            TraceVendorBootstrap("vendor.scene", "hidden_end", {
+                currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
+                hadComponent = component ~= nil,
+            })
         end,
     })
 end
