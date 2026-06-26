@@ -68,6 +68,7 @@ local transferCalls = {}
 local withdrawCurrencyCalls = {}
 local depositCurrencyCalls = {}
 local logEvents = {}
+local depositPolicyCalls = {}
 local transferCurrencyShouldFail = false
 
 local guildBankMode = false
@@ -79,6 +80,8 @@ local guildCount = 2
 local batchProcessing = false
 local guildTransferAllowed = true
 local guildTransferDenialText = nil
+local depositAllowed = true
+local depositDenialReason = nil
 
 local function assertTrue(condition, message)
     if condition then
@@ -119,6 +122,7 @@ local function resetGlobals()
     withdrawCurrencyCalls = {}
     depositCurrencyCalls = {}
     logEvents = {}
+    depositPolicyCalls = {}
     transferCurrencyShouldFail = false
     guildBankMode = false
     guildBankLoading = false
@@ -129,6 +133,8 @@ local function resetGlobals()
     batchProcessing = false
     guildTransferAllowed = true
     guildTransferDenialText = nil
+    depositAllowed = true
+    depositDenialReason = nil
 end
 
 function GetString(id)
@@ -286,6 +292,14 @@ BETTERUI = {
             end,
         },
         Transfer = {
+            CanDepositIntoBank = function(bagId, slotIndex, targetBag)
+                depositPolicyCalls[#depositPolicyCalls + 1] = {
+                    bagId = bagId,
+                    slotIndex = slotIndex,
+                    targetBag = targetBag,
+                }
+                return depositAllowed, depositDenialReason
+            end,
             ResolveGuildBankTransferDecision = function()
                 return guildTransferAllowed, guildTransferDenialText and "denied" or nil, guildTransferDenialText, nil
             end,
@@ -387,6 +401,9 @@ BETTERUI = {
         end,
         Trace = function(category, message, data)
             table.insert(logEvents, { category = category, message = message, data = data })
+        end,
+        TraceEvent = function(category, event, phase, data)
+            table.insert(logEvents, { category = category, event = event, phase = phase, data = data })
         end,
         Warn = function(category, message, data)
             table.insert(logEvents, { category = category, message = message, data = data })
@@ -539,6 +556,37 @@ local function findDescriptor(descriptors, keybind)
     return nil
 end
 
+local function hasTraceEvent(event, phase, reason)
+    for _, entry in ipairs(logEvents) do
+        if entry.event == event and entry.phase == phase then
+            if reason == nil or (entry.data and entry.data.reason == reason) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function findTraceEvent(event, phase, reason)
+    for _, entry in ipairs(logEvents) do
+        if entry.event == event and entry.phase == phase then
+            if reason == nil or (entry.data and entry.data.reason == reason) then
+                return entry
+            end
+        end
+    end
+    return nil
+end
+
+local function hasLogMessage(message)
+    for _, entry in ipairs(logEvents) do
+        if entry.message == message then
+            return true
+        end
+    end
+    return false
+end
+
 print("\n=== Banking keybind behavior ===\n")
 
 resetGlobals()
@@ -637,6 +685,47 @@ slotStacks["1:1"] = 1
 assertEqual("No guild permission", primary.name(), "Primary transfer keybind reuses the shared denial text in guild-bank mode")
 assertTrue(not primary.enabled(), "Primary transfer keybind disables when the shared guild-bank gate denies transfer")
 
+guildBankMode = false
+guildTransferAllowed = true
+guildTransferDenialText = nil
+currentBank = BAG_BANK
+window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
+window.multiSelectManager.active = false
+window.list.selectedData = { bagId = BAG_BACKPACK, slotIndex = 8, stackCount = 1 }
+slotStacks["1:8"] = 1
+depositAllowed = false
+depositDenialReason = "bop_backpack"
+logEvents = {}
+assertTrue(not primary.enabled(), "Primary deposit keybind disables when the transfer policy denies the item")
+assertEqual(1, #depositPolicyCalls, "Primary deposit policy receives exactly one visibility check")
+assertEqual(BAG_BACKPACK, depositPolicyCalls[1].bagId, "Primary deposit policy receives the selected bag")
+assertEqual(8, depositPolicyCalls[1].slotIndex, "Primary deposit policy receives the selected slot")
+assertEqual(BAG_BANK, depositPolicyCalls[1].targetBag, "Primary deposit policy receives the active deposit bag")
+local movedBeforeDeniedDeposit = #window.movedItems
+primary.callback()
+assertEqual(movedBeforeDeniedDeposit, #window.movedItems, "Primary deposit callback does not move policy-denied items")
+local policyTrace = findTraceEvent("bank.primary_transfer", "blocked", "transferPolicy")
+assertTrue(policyTrace ~= nil,
+    "Primary deposit policy denial emits a keybind trace")
+assertEqual(BAG_BACKPACK, policyTrace and policyTrace.data and policyTrace.data.bagId,
+    "Primary deposit policy trace includes selected bag")
+assertEqual(8, policyTrace and policyTrace.data and policyTrace.data.slotIndex,
+    "Primary deposit policy trace includes selected slot")
+assertEqual(BAG_BANK, policyTrace and policyTrace.data and policyTrace.data.targetBag,
+    "Primary deposit policy trace includes target bag")
+depositAllowed = true
+depositDenialReason = nil
+assertTrue(primary.enabled(), "Primary deposit keybind re-enables when transfer policy allows the item")
+
+window.list.selectedData = { bagId = BAG_BACKPACK, stackCount = 1 }
+slotStacks["1:8"] = nil
+logEvents = {}
+depositPolicyCalls = {}
+assertTrue(not primary.enabled(), "Primary deposit keybind disables when the selected item has no slot")
+assertEqual(0, #depositPolicyCalls, "Primary deposit policy is not called for missing-slot selections")
+assertTrue(hasTraceEvent("bank.primary_transfer", "blocked", "invalidSelection"),
+    "Primary deposit missing-slot selection emits an invalid-selection trace")
+
 window.multiSelectManager.active = false
 window.list.selectedData = { bagId = BAG_BANK, slotIndex = 1, stackCount = 4 }
 slotStacks["2:1"] = 4
@@ -708,7 +797,7 @@ assertEqual(1, window.hiddenSelectorCount, "Currency confirmation hides the sele
 assertEqual(1, window.refreshedFooterCount, "Currency confirmation refreshes the footer")
 assertEqual(window.coreKeybinds, updatedGroups[1], "Currency confirmation updates core keybinds")
 assertEqual("bankCurrencyTransfer", logEvents[1].kind, "Currency confirmation begins a builog flow")
-assertEqual("bank currency transfer completed", logEvents[#logEvents].message, "Currency confirmation ends with a completed flow")
+assertTrue(hasLogMessage("bank currency transfer completed"), "Currency confirmation ends with a completed flow")
 
 transferCalls = {}
 updatedGroups = {}
@@ -739,7 +828,7 @@ logEvents = {}
 transferCurrencyShouldFail = true
 currencySelectorPrimary.callback()
 assertEqual("bankCurrencyTransfer", logEvents[1].kind, "Failed currency transfer still begins a builog flow")
-assertEqual("bank currency transfer failed", logEvents[#logEvents].message, "Failed currency transfer closes the flow with failure")
+assertTrue(hasLogMessage("bank currency transfer failed"), "Failed currency transfer closes the flow with failure")
 transferCurrencyShouldFail = false
 
 window.selectedDataCallback = function(self, control, data)

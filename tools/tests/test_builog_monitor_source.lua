@@ -34,6 +34,11 @@ check(monitor:find("grep -c 'reason=rate_limit'", 1, true) == nil,
     "monitor no longer counts drop-summary lines as dropped records")
 check(monitor:find("rate_limit dropped-records", 1, true) ~= nil,
     "totals label reports dropped records")
+check(monitor:find("status: clean", 1, true) ~= nil
+    and monitor:find("status: NOT CLEAN", 1, true) ~= nil,
+    "monitor emits an explicit clean/not-clean footer based on final totals")
+check(monitor:find("0 non-BUI errors + 0 parse violations", 1, true) == nil,
+    "monitor no longer prints a static clean sentence after nonzero totals")
 
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", passed))

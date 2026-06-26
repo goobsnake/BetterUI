@@ -307,22 +307,114 @@ end
 ---@param data BetterUIInventoryEntryData ZO_GamepadEntryData with dataSource
 ---@return nil
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
+    local function ClearTexture(control)
+        if not (control and control.SetTexture) then
+            return
+        end
+        local ok = pcall(control.SetTexture, control, nil)
+        if not ok then
+            pcall(control.SetTexture, control, "")
+        end
+    end
+
     local function ClearStatusIndicator()
         if statusIndicator and statusIndicator.ClearIcons then
             statusIndicator:ClearIcons()
         end
+        ClearTexture(statusIndicator)
+        if statusIndicator and statusIndicator.SetHidden then
+            statusIndicator:SetHidden(true)
+        end
     end
 
     local function HideEquippedIcon()
+        ClearTexture(equippedIcon)
         if equippedIcon and equippedIcon.SetHidden then
             equippedIcon:SetHidden(true)
         end
+    end
+
+    local function IsControlVisible(control)
+        if control and control.IsHidden then
+            local ok, hidden = pcall(control.IsHidden, control)
+            if ok then
+                return hidden == false
+            end
+        end
+        return false
     end
 
     -- Guard against non-item entries (currency rows, headers)
     if not data or not data.dataSource then
         ClearStatusIndicator()
         HideEquippedIcon()
+        return
+    end
+
+    local dataSource = data.dataSource
+    local function IsQuestSlotType(slotType)
+        return SLOT_TYPE_QUEST_ITEM ~= nil and slotType == SLOT_TYPE_QUEST_ITEM
+    end
+
+    local function IsQuestUniqueId(uniqueId)
+        return type(uniqueId) == "string" and uniqueId:find("^quest:") ~= nil
+    end
+
+    local isQuestEntry = data.isQuestItem == true
+        or dataSource.isQuestItem == true
+        or dataSource.questIndex ~= nil
+        or IsQuestSlotType(data.slotType)
+        or IsQuestSlotType(dataSource.slotType)
+        or IsQuestUniqueId(data.uniqueId)
+        or IsQuestUniqueId(dataSource.uniqueId)
+    local hasEquippedVisualState = data.isEquippedInCurrentCategory == true
+        or data.isEquippedInAnotherCategory == true
+        or data.equipSlot ~= nil
+        or dataSource.equipSlot ~= nil
+    local hadVisibleStatus = IsControlVisible(statusIndicator)
+    local hadVisibleEquippedIcon = IsControlVisible(equippedIcon)
+    local L = BETTERUI.Log
+    local categories = (L and L.CATEGORY) or {}
+    local levels = (L and L.LEVEL) or {}
+    if isQuestEntry and hasEquippedVisualState then
+        if not data._betteruiWarnedQuestEquipVisual and L and L.Warn then
+            data._betteruiWarnedQuestEquipVisual = true
+            dataSource._betteruiWarnedQuestEquipVisual = true
+            L.Warn(categories.LIST, "quest item equipment icon suppressed", {
+                item = L.DescribeItem and L.DescribeItem(data, "row") or nil,
+                questIndex = dataSource.questIndex,
+                current = data.isEquippedInCurrentCategory == true,
+                other = data.isEquippedInAnotherCategory == true,
+                equipSlot = data.equipSlot or dataSource.equipSlot,
+            })
+        end
+    end
+    if isQuestEntry and (hadVisibleStatus or hadVisibleEquippedIcon) then
+        if not data._betteruiWarnedQuestRecycledVisual and L and L.Warn then
+            data._betteruiWarnedQuestRecycledVisual = true
+            dataSource._betteruiWarnedQuestRecycledVisual = true
+            L.Warn(categories.LIST, "quest item recycled status icon suppressed", {
+                item = L.DescribeItem and L.DescribeItem(data, "row") or nil,
+                questIndex = dataSource.questIndex,
+                statusVisibleBefore = hadVisibleStatus == true,
+                equippedVisibleBefore = hadVisibleEquippedIcon == true,
+            })
+        end
+    end
+    if isQuestEntry then
+        ClearStatusIndicator()
+        HideEquippedIcon()
+        if L and L.EnabledFor and L.EnabledFor(levels.TRACE, categories.LIST) and L.TraceEvent then
+            L.TraceEvent(categories.LIST, "inventory.row.equip_icon", "state", {
+                item = L.DescribeItem and L.DescribeItem(data, "row") or nil,
+                shown = false,
+                current = data.isEquippedInCurrentCategory == true,
+                other = data.isEquippedInAnotherCategory == true,
+                isNew = false,
+                quest = true,
+                statusSuppressed = true,
+            }, levels.TRACE)
+        end
         return
     end
 
@@ -359,14 +451,15 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     else
         HideEquippedIcon()
     end
-    if BETTERUI.Log and BETTERUI.Log.EnabledFor and BETTERUI.Log.EnabledFor(BETTERUI.Log.LEVEL.TRACE, BETTERUI.Log.CATEGORY.LIST) and BETTERUI.Log.TraceEvent then
-        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "inventory.row.equip_icon", "state", {
-            item = BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(data, "row") or nil,
+    if L and L.EnabledFor and L.EnabledFor(levels.TRACE, categories.LIST) and L.TraceEvent then
+        L.TraceEvent(categories.LIST, "inventory.row.equip_icon", "state", {
+            item = L.DescribeItem and L.DescribeItem(data, "row") or nil,
             shown = equipIconShown,
             current = data.isEquippedInCurrentCategory == true,
             other = data.isEquippedInAnotherCategory == true,
             isNew = isItemNew == true,
-        }, BETTERUI.Log.LEVEL.TRACE)
+            quest = isQuestEntry == true,
+        }, levels.TRACE)
     end
 end
 

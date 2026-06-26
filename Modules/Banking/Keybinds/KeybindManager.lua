@@ -183,6 +183,64 @@ local function GetPrimaryTransferLabel(self)
     return label or ""
 end
 
+local function TracePrimaryTransferPolicyState(self, phase, bagId, slotIndex, denyReason, targetBag)
+    local traceKey = table.concat({
+        phase,
+        tostring(self and self.currentMode or ""),
+        tostring(bagId or ""),
+        tostring(slotIndex or ""),
+        tostring(targetBag or ""),
+        tostring(denyReason or ""),
+    }, "|")
+
+    if phase == "blocked" then
+        if self._betteruiLastPrimaryTransferPolicyBlock == traceKey then
+            return
+        end
+        self._betteruiLastPrimaryTransferPolicyBlock = traceKey
+    else
+        if self._betteruiLastPrimaryTransferPolicyBlock == nil then
+            return
+        end
+        self._betteruiLastPrimaryTransferPolicyBlock = nil
+    end
+
+    TraceBankKeybind("bank.primary_transfer", phase, {
+        reason = phase == "blocked" and "transferPolicy" or "transferPolicyCleared",
+        denyReason = denyReason,
+        mode = self and self.currentMode,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        targetBag = targetBag,
+        selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
+    })
+end
+
+local function CanUseTransferPolicy(self, bagId, slotIndex)
+    if self.currentMode ~= LIST_DEPOSIT then
+        TracePrimaryTransferPolicyState(self, "unblocked", bagId, slotIndex)
+        return true
+    end
+
+    local transferContext = ReadTransferContextSnapshot()
+    local targetBag = transferContext and transferContext.depositTargetBag or BAG_BANK
+    local transferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService and BETTERUI.Banking.GetTransferService()
+    local canDepositIntoBank = transferService and transferService.CanDepositIntoBank or nil
+    if type(canDepositIntoBank) ~= "function" then
+        TracePrimaryTransferPolicyState(self, "unblocked", bagId, slotIndex, nil, targetBag)
+        return true
+    end
+
+    local canDeposit, denyReason = canDepositIntoBank(bagId, slotIndex, targetBag)
+    if canDeposit ~= true then
+        TracePrimaryTransferPolicyState(self, "blocked", bagId, slotIndex, denyReason or "deposit_denied", targetBag)
+        return false, nil, denyReason
+    end
+
+    TracePrimaryTransferPolicyState(self, "unblocked", bagId, slotIndex, nil, targetBag)
+    return true
+end
+
 local function CanUsePrimaryTransfer(self)
     if self:IsBatchProcessing() then
         return false
@@ -192,8 +250,16 @@ local function CanUsePrimaryTransfer(self)
     end
 
     local selectedData = GetSelectedBankEntry(self)
-    local hasSelection = self.list and not self.list:IsEmpty() and selectedData ~= nil and selectedData.bagId ~= nil
+    local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
+    local hasSelection = self.list and not self.list:IsEmpty() and selectedData ~= nil and bagId ~= nil and slotIndex ~= nil
     if not hasSelection then
+        TraceBankKeybind("bank.primary_transfer", "blocked", {
+            reason = "invalidSelection",
+            mode = self and self.currentMode,
+            bagId = bagId,
+            slotIndex = slotIndex,
+            selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
+        })
         return false
     end
 
@@ -202,7 +268,11 @@ local function CanUsePrimaryTransfer(self)
         return false, denialText
     end
 
-    local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
+    local policyAllowed, policyDenialText = CanUseTransferPolicy(self, bagId, slotIndex)
+    if policyAllowed ~= true then
+        return false, policyDenialText
+    end
+
     if bagId and slotIndex
         and type(BETTERUI.Banking.IsTransferPending) == "function"
         and BETTERUI.Banking.IsTransferPending(bagId, slotIndex) then

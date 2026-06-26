@@ -105,6 +105,10 @@ assert_true(itemActionHandlers:find('GetString%(rawget%(_G, "SI_ITEM_ACTION_SHOW
     "ItemActionHandlers handles the Show-in-Quest-Journal action explicitly")
 assert_true(itemActionHandlers:find("OpenQuestJournalToQuest%(ds%.questIndex%)") ~= nil,
     "ItemActionHandlers opens the quest journal from BetterUI's own dataSource questIndex (not the native closure)")
+assert_true(itemActionHandlers:find("IsQuestActionTarget") ~= nil
+    and itemActionHandlers:find("inventory quest action filter failed", 1, true) ~= nil
+    and itemActionHandlers:find("ZO_InventoryUtils_DoesNewItemMatchFilterType%(targetData, ITEMFILTERTYPE_QUEST%)") == nil,
+    "ItemActionHandlers guards quest action detection against native filter failures on synthetic rows")
 
 local itemActionsDialog = read_file("Modules/Inventory/Actions/ItemActionsDialog.lua")
 assert_true(itemActionsDialog:find("function BETTERUI%.Inventory%.Class:InitializeItemActions%(%)") ~= nil,

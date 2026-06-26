@@ -31,6 +31,7 @@ local transferActions = readFile("Modules/Banking/Actions/TransferActions.lua")
 local inventory = readFile("Modules/Inventory/Inventory.lua")
 local banking = readFile("Modules/Banking/Banking.lua")
 local keybinds = readFile("Modules/Inventory/Core/InventoryClass.lua")
+local inventorySceneLifecycle = readFile("Modules/Inventory/Scene/InventorySceneLifecycle.lua")
 local inventoryKeybinds = readFile("Modules/Inventory/Keybinds/InventoryKeybinds.lua")
 local craftBagKeybinds = readFile("Modules/Inventory/Keybinds/CraftBagKeybinds.lua")
 local inventoryCategories = readFile("Modules/Inventory/Lists/CategoryListManager.lua")
@@ -44,10 +45,12 @@ local bankingState = readFile("Modules/Banking/State/StateManager.lua")
 local bankingKeybinds = readFile("Modules/Banking/Keybinds/KeybindManager.lua")
 local bankingActions = readFile("Modules/Banking/Actions/BankingActions.lua")
 local currencySelector = readFile("Modules/Banking/Currency/CurrencySelector.lua")
+local positionManager = readFile("Modules/CIM/Core/Data/PositionManager.lua")
 local resourceOrbs = readFile("Modules/ResourceOrbFrames/ResourceOrbFrames.lua")
 local genericSlotActions = readFile("Modules/CIM/Actions/GenericSlotActions.lua")
 local listRefreshManager = readFile("Modules/CIM/Lists/ListRefreshManager.lua")
 local headerSortController = readFile("Modules/CIM/UI/HeaderSortController.lua")
+local headerSortIntegration = readFile("Modules/CIM/UI/HeaderSortIntegration.lua")
 local headerSortKeybinds = readFile("Modules/CIM/UI/HeaderSortKeybinds.lua")
 local interfaceLog = readFile("Modules/CIM/Core/Diagnostics/InterfaceLog.lua")
 local companionActions = readFile("Modules/Companions/Actions/CompanionActions.lua")
@@ -88,6 +91,8 @@ local betterUiRoot = readFile("BetterUI.lua")
 local generalModule = readFile("Modules/GeneralInterface/Module.lua")
 local generalSetup = readFile("Modules/GeneralInterface/Setup.lua")
 local tooltips = readFile("Modules/GeneralInterface/Tooltips/Tooltips.lua")
+local tooltipSettings = readFile("Modules/GeneralInterface/Tooltips/Settings.lua")
+local settingsAccessor = readFile("Modules/CIM/Core/Settings/SettingsAccessor.lua")
 local craftingPriceTooltip = readFile("Modules/GeneralInterface/Tooltips/CraftingPriceTooltip.lua")
 local bankingHeader = readFile("Modules/Banking/UI/HeaderManager.lua")
 local bankingFooter = readFile("Modules/Banking/UI/FooterManager.lua")
@@ -171,6 +176,13 @@ check(inventoryKeybinds:find("handled = handled == true", 1, true) ~= nil
     and craftBagKeybinds:find('return false, "noTarget"', 1, true) ~= nil
     and craftBagKeybinds:find('"showActions"', 1, true) ~= nil,
     "inventory keybind callbacks report handled/reason/branch outcomes")
+check(inventorySceneLifecycle:find('"inventory.keybind_ownership"', 1, true) ~= nil
+    and inventorySceneLifecycle:find("RemoveInventoryKeybindsForSceneExit(self, \"hiding\")", 1, true) ~= nil
+    and inventorySceneLifecycle:find("stripHasMain", 1, true) ~= nil
+    and inventorySceneLifecycle:find("inventory keybind ownership warning", 1, true) ~= nil
+    and keybinds:find('reason = "sceneNotShowing"', 1, true) ~= nil
+    and keybinds:find("inventory keybind refresh outside scene removed stale group", 1, true) ~= nil,
+    "inventory scene exits and hidden refreshes expose keybind ownership cleanup")
 check(inventoryCategories:find('"inventory.category"', 1, true) ~= nil
     and inventoryCategories:find('"restored"', 1, true) ~= nil
     and inventoryCategories:find('"committed"', 1, true) ~= nil
@@ -216,6 +228,11 @@ check(inventory:find("visible=0", 1, true) ~= nil and inventory:find("visible=1"
 check(keybinds:find("inventory keybind refreshed", 1, true) ~= nil
     and keybinds:find("CATEGORY.STATE", 1, true) ~= nil,
     "successful inventory keybind refresh outcomes are visible at STATE level")
+check(positionManager:find('"list.position"', 1, true) ~= nil
+    and positionManager:find('"saved"', 1, true) ~= nil
+    and positionManager:find('"restored"', 1, true) ~= nil
+    and positionManager:find('"cleared"', 1, true) ~= nil,
+    "saved list positions emit structured save/restore/clear diagnostics")
 check(keybinds:find("inventory keybind refresh incomplete", 1, true) ~= nil,
     "incomplete inventory keybind refresh outcomes remain visible at STATE level")
 check(keybinds:find("inventory dialog restore complete", 1, true) ~= nil
@@ -226,6 +243,9 @@ check(itemActions:find("pendingHeaderSort", 1, true) ~= nil
     and bankingActions:find("pendingHeaderSort", 1, true) ~= nil
     and itemActions:find('"inventory.action_dialog.restore"', 1, true) ~= nil,
     "sort action-dialog handoff avoids transient keybind restore and logs restore state")
+check(headerSortIntegration:find("header sort list preserved", 1, true) ~= nil
+    and headerSortIntegration:find("suspendList", 1, true) ~= nil,
+    "header sort mode logs list preservation and keeps list suspension explicitly opt-in")
 check(itemActions:find("inventory dialog finish restore waiting", 1, true) ~= nil
     and keybinds:find("inventory dialog restore waiting", 1, true) ~= nil
     and keybinds:find("inventoryDialogRestoreSequence", 1, true) ~= nil,
@@ -282,11 +302,17 @@ check(resourceOrbs:find("DescribeControlForTrace", 1, true) ~= nil
     and resourceOrbs:find("rootControl", 1, true) ~= nil
     and resourceOrbs:find("orbOffset", 1, true) ~= nil,
     "resource orb layout/watch traces include linked control positions and settings offsets")
+check(resourceOrbs:find("RunTraceWithoutLastAction", 1, true) ~= nil
+    and resourceOrbs:find("updatesLastAction", 1, true) ~= nil
+    and resourceOrbs:find('["resource_orbs.force_layout"] = true', 1, true) ~= nil
+    and resourceOrbs:find('RunTraceWithoutLastAction(function()', 1, true) ~= nil,
+    "resource orb force-layout maintenance traces do not overwrite lastAction context")
 check(headerSortController:find("clear_sort_skipped", 1, true) ~= nil
     and headerSortController:find("callback_before", 1, true) ~= nil
     and headerSortController:find("callback_after", 1, true) ~= nil
-    and headerSortKeybinds:find("header sort keybind refresh failed", 1, true) ~= nil,
-    "header sort traces clear/apply reasons and keybind refresh failures")
+    and headerSortKeybinds:find("header sort keybind refresh failed", 1, true) ~= nil
+    and headerSortKeybinds:find("header sort keybind ownership lost", 1, true) ~= nil,
+    "header sort traces clear/apply reasons plus keybind refresh and ownership failures")
 check(interfaceLog:find("IsPriorityLine", 1, true) ~= nil
     and interfaceLog:find("STATE |", 1, true) ~= nil
     and interfaceLog:find("SCENE |", 1, true) ~= nil
@@ -465,6 +491,10 @@ check(generalSetup:find('GetModuleSettings("CIM")', 1, true) ~= nil
     and generalSetup:find("settings and settings.mmIntegration", 1, true) ~= nil
     and generalSetup:find("settings and settings.attIntegration", 1, true) ~= nil,
     "general interface snapshots read canonical CIM and market-integration setting keys")
+check(settingsAccessor:find('"general_interface.tooltip_feature"', 1, true) ~= nil
+    and settingsAccessor:find("TraceTooltipFeatureSetting", 1, true) ~= nil
+    and tooltipSettings:find('SetModuleSetting("CIM", "enableTooltipEnhancements"', 1, true) ~= nil,
+    "tooltip enhancement setting changes emit shared setting writes and feature diagnostics")
 check(nameplates:find("NormalizeStyleValue", 1, true) ~= nil
     and nameplates:find("CloneSettingsValue", 1, true) ~= nil
     and nameplates:find("getter_failed", 1, true) ~= nil

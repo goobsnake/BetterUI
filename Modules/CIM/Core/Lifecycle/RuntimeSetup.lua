@@ -8,8 +8,6 @@ local RuntimeSetup = BETTERUI.CIM.RuntimeSetup
 
 -- Track whether patches have been applied (prevents double-application)
 local patchesApplied = false
-local tamrielTomesSelectionGuardInstalled = false
-local TAMRIEL_TOMES_GUARD_RETRY_EVENT = "BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"
 
 local function EnsureSharedTaskManager()
     local deferredTask = BETTERUI.CIM and BETTERUI.CIM.DeferredTask
@@ -65,57 +63,8 @@ local function ApplyAPIPatches()
     -- Global monkeypatches can taint gamepad keybind execution paths and cause protected
     -- function access failures in native callbacks.
 
-    -- Guard against selecting non-reward placeholder rows in Tamriel Tomes grid navigation.
-    -- Some category jumps can surface placeholder rows as selectedData, which then crashes
-    -- keybind visibility callbacks that expect reward-data methods.
-    local function TryInstallTamrielTomesSelectionGuard()
-        if tamrielTomesSelectionGuardInstalled then
-            return true
-        end
-        if type(ZO_PreHook) ~= "function" or not ZO_TamrielTomesScreen_Shared then
-            if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIFECYCLE, "tamriel tomes patch skipped: deps missing") end
-            return false
-        end
-        if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "Tamriel Tomes guard installed", { installed = tamrielTomesSelectionGuardInstalled, retried = patchesApplied }) end
-
-        ZO_PreHook(ZO_TamrielTomesScreen_Shared, "SetSelectedTamrielTomesRewardData", function(self, newData)
-            if newData == nil then
-                return false
-            end
-
-            local isValidRewardData = type(newData) == "table"
-                and type(newData.CanClaimReward) == "function"
-                and type(newData.CanPreviewReward) == "function"
-                and type(newData.GetRewardData) == "function"
-
-            if isValidRewardData then
-                return false
-            end
-
-            if self and self.gridList and self.gridList.RefreshSelection then
-                zo_callLater(function()
-                    if self and self.gridList and self.gridList.RefreshSelection then
-                        self.gridList:RefreshSelection(true, true)
-                    end
-                end, 0)
-            end
-
-            return true
-        end)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "SetSelectedTamrielTomesRewardData", target = type(ZO_TamrielTomesScreen_Shared) }) end
-
-        tamrielTomesSelectionGuardInstalled = true
-        if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "Tamriel Tomes guard installed", { installed = true, retried = patchesApplied }) end
-        return true
-    end
-
-    if not TryInstallTamrielTomesSelectionGuard() and EVENT_MANAGER then
-        EVENT_MANAGER:RegisterForEvent(TAMRIEL_TOMES_GUARD_RETRY_EVENT, EVENT_PLAYER_ACTIVATED, function()
-            if TryInstallTamrielTomesSelectionGuard() then
-                EVENT_MANAGER:UnregisterForEvent(TAMRIEL_TOMES_GUARD_RETRY_EVENT, EVENT_PLAYER_ACTIVATED)
-            end
-        end)
-    end
+    -- Do not hook Tamriel Tomes / DirectPurchase classes. Even narrow native-class
+    -- hooks can make secure store callstacks untrusted when those scenes open.
 
     patchesApplied = true
 end

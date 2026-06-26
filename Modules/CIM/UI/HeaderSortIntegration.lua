@@ -45,6 +45,32 @@ local function GetListItemCount(list)
     return nil
 end
 
+local function GetMethod(instance, methodName)
+    if not instance then return nil end
+    local ok, method = pcall(function() return instance[methodName] end)
+    if ok and type(method) == "function" then
+        return method
+    end
+    return nil
+end
+
+local function IsListActive(list)
+    local isActive = GetMethod(list, "IsActive")
+    if not isActive then return nil end
+    local ok, active = pcall(isActive, list)
+    if ok then return active == true end
+    return nil
+end
+
+local function DescribeListState(list)
+    return {
+        items = GetListItemCount(list),
+        active = IsListActive(list),
+        canDeactivate = GetMethod(list, "Deactivate") ~= nil,
+        canActivate = GetMethod(list, "Activate") ~= nil,
+    }
+end
+
 local function HasKeybindGroup(descriptor)
     if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
         return false
@@ -86,6 +112,7 @@ local function NormalizeNavigationContract(options)
         deactivate = contract.deactivate or nil,
         reactivate = contract.reactivate or nil,
         suspendTabBar = contract.suspendTabBar == true,
+        suspendList = contract.suspendList == true,
     }
 end
 
@@ -228,6 +255,87 @@ local function RestoreOwnerTabBar(owner)
     end
 end
 
+local function SuspendActiveList(integration, list)
+    integration.suspendedList = nil
+    integration.reactivateListAfterHeaderSort = false
+
+    local deactivate = GetMethod(list, "Deactivate")
+    local listActive = IsListActive(list)
+    if not deactivate or listActive == false then
+        if BETTERUI.Log then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "header sort list suspend skipped", {
+                fn = "HeaderSortIntegration.SuspendActiveList",
+                reason = deactivate and "inactive" or "missingDeactivate",
+                scene = DescribeOwnerScene(integration.owner),
+                list = DescribeListState(list),
+            })
+        end
+        return
+    end
+
+    local ok, err = pcall(deactivate, list)
+    if ok then
+        integration.suspendedList = list
+        integration.reactivateListAfterHeaderSort = true
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.KEYBIND, "header sort list suspended", {
+                fn = "HeaderSortIntegration.SuspendActiveList",
+                scene = DescribeOwnerScene(integration.owner),
+                list = DescribeListState(list),
+            })
+        end
+    elseif BETTERUI.Log and BETTERUI.Log.Warn then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.KEYBIND, "header sort list suspend failed", {
+            fn = "HeaderSortIntegration.SuspendActiveList",
+            scene = DescribeOwnerScene(integration.owner),
+            error = tostring(err),
+            list = DescribeListState(list),
+        })
+    end
+end
+
+local function RestoreActiveList(integration)
+    local list = integration.suspendedList
+    local shouldReactivate = integration.reactivateListAfterHeaderSort == true
+    integration.suspendedList = nil
+    integration.reactivateListAfterHeaderSort = false
+
+    if not shouldReactivate then
+        return
+    end
+
+    local activate = GetMethod(list, "Activate")
+    if not activate then
+        if BETTERUI.Log and BETTERUI.Log.Warn then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.KEYBIND, "header sort list restore failed", {
+                fn = "HeaderSortIntegration.RestoreActiveList",
+                reason = "missingActivate",
+                scene = DescribeOwnerScene(integration.owner),
+                list = DescribeListState(list),
+            })
+        end
+        return
+    end
+
+    local ok, err = pcall(activate, list)
+    if ok then
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.KEYBIND, "header sort list restored", {
+                fn = "HeaderSortIntegration.RestoreActiveList",
+                scene = DescribeOwnerScene(integration.owner),
+                list = DescribeListState(list),
+            })
+        end
+    elseif BETTERUI.Log and BETTERUI.Log.Warn then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.KEYBIND, "header sort list restore failed", {
+            fn = "HeaderSortIntegration.RestoreActiveList",
+            scene = DescribeOwnerScene(integration.owner),
+            error = tostring(err),
+            list = DescribeListState(list),
+        })
+    end
+end
+
 local function GetHeaderKeybindDescriptor(integration, controller)
     if not controller then
         return nil
@@ -327,6 +435,7 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
             main = DescribeDescriptor(integration.keybinds and integration.keybinds.mainDescriptor, "main"),
             activeKeybind = DescribeDescriptor(integration.activeKeybindDescriptor, "active"),
             stripHasMain = HasKeybindGroup(integration.keybinds and integration.keybinds.mainDescriptor),
+            list = DescribeListState(ResolveList(integration)),
         })
     end
 
@@ -371,6 +480,20 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
     integration.controller = controller
     integration.isActive = true
     owner.isInHeaderSortMode = true
+    controller._headerSortIntegration = integration
+    if integration.navigation.suspendList then
+        SuspendActiveList(integration, list)
+    else
+        integration.suspendedList = nil
+        integration.reactivateListAfterHeaderSort = false
+        if BETTERUI.Log then
+            BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.KEYBIND, "header sort list preserved", {
+                fn = "HeaderSortIntegration.EnterHeaderMode",
+                scene = DescribeOwnerScene(owner),
+                list = DescribeListState(list),
+            })
+        end
+    end
 
     PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
 
@@ -434,7 +557,18 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
             descriptor = DescribeDescriptor(integration.activeKeybindDescriptor, "header"),
             listItems = GetListItemCount(list),
             stripHasHeader = HasKeybindGroup(integration.activeKeybindDescriptor),
+            stripHasMain = HasKeybindGroup(integration.keybinds and integration.keybinds.mainDescriptor),
             refresh = activeKeybindRefresh,
+            list = DescribeListState(list),
+        })
+    end
+    if not HasKeybindGroup(integration.activeKeybindDescriptor) and BETTERUI.Log and BETTERUI.Log.Warn then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.KEYBIND, "header sort keybind activation failed", {
+            fn = "HeaderSortIntegration.EnterHeaderMode",
+            scene = DescribeOwnerScene(owner),
+            descriptor = DescribeDescriptor(integration.activeKeybindDescriptor, "header"),
+            refresh = activeKeybindRefresh,
+            list = DescribeListState(list),
         })
     end
 
@@ -456,6 +590,7 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
             scene = DescribeOwnerScene(integration.owner),
             activeKeybind = DescribeDescriptor(integration.activeKeybindDescriptor, "active"),
             suspended = DescribeDescriptors(integration.suspendedKeybindGroups, "suspended"),
+            list = DescribeListState(integration.suspendedList or ResolveList(integration)),
         })
     end
 
@@ -531,6 +666,8 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
     if integration.navigation.reactivate then
         integration.navigation.reactivate(owner)
     end
+
+    RestoreActiveList(integration)
 
     if integration.callbacks.onExitHeaderMode then
         BETTERUI.CIM.SafeExecute("HeaderSortIntegration:onExitHeaderMode", integration.callbacks.onExitHeaderMode, owner, controller)

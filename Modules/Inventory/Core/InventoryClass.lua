@@ -256,6 +256,37 @@ References: Called by ESO base class in selection callbacks.
 --- Refreshes the keybind strip (override with guards).
 function BETTERUI.Inventory.Class:RefreshKeybinds()
     local L = BETTERUI.Log
+    local sceneShowing = not (self.scene and self.scene.IsShowing) or self.scene:IsShowing()
+    if not sceneShowing then
+        local stripHasMain = false
+        if self.mainKeybindStripDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup then
+            local ok, present = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, self.mainKeybindStripDescriptor)
+            stripHasMain = ok and present == true
+        end
+        if stripHasMain and KEYBIND_STRIP.RemoveKeybindButtonGroup then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        end
+        if L then
+            local payload = {
+                fn = "Inventory:RefreshKeybinds",
+                reason = "sceneNotShowing",
+                scene = self.scene and self.scene.GetName and self.scene:GetName() or nil,
+                currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil,
+                stripHadMain = stripHasMain,
+                main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
+                active = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or nil,
+            }
+            if L.TraceEvent then
+                L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "skipped", payload)
+            end
+            if stripHasMain and L.Warn then
+                L.Warn(L.CATEGORY.KEYBIND, "inventory keybind refresh outside scene removed stale group", payload)
+            elseif L.Debug then
+                L.Debug(L.CATEGORY.KEYBIND, "inventory keybind refresh skipped", payload)
+            end
+        end
+        return
+    end
     -- Guard: Skip keybind refresh if in header sort mode to preserve header keybinds
     -- This is the critical fix for the "A-Button Burn" issue - ESO's base class calls
     -- RefreshKeybinds on every selection change, which was overwriting our header keybinds

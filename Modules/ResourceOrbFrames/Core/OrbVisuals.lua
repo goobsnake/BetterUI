@@ -27,6 +27,7 @@ local ORB_CONFIG = {
 
 -- Local helpers
 local FindControl = BETTERUI.ControlUtils.FindControl
+local FindOptionalControl = BETTERUI.ControlUtils.FindOptionalControl
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 local function GetTextureRootPath()
@@ -50,6 +51,23 @@ local function TraceOrbVisuals(event, phase, data)
     end
     local categories = L.CATEGORY or {}
     L.TraceEvent(categories.STATE or categories.ACTION, event, phase, data)
+end
+
+local function InitializeOrbState(orbBar, powerType)
+    orbBar.powerType = powerType
+    orbBar.currentValue = 0
+    orbBar.minValue = 0
+    orbBar.maxValue = 0
+
+    local baseCoordLeft, baseCoordRight, baseAnchorX = unpack(ORB_CONFIG[powerType])
+    orbBar.baseCoordLeft = baseCoordLeft
+    orbBar.baseCoordRight = baseCoordRight
+    orbBar.baseAnchorX = baseAnchorX
+
+    orbBar.animState = {
+        time = 0,
+        rotationAngle = 0,
+    }
 end
 
 ---@class BetterUIOrbBar : ZO_Object
@@ -82,21 +100,7 @@ function BetterUIOrbBar:Initialize(control, powerType)
     self.fog = FindControl(control, 'Fog')
     self.fog2 = FindControl(control, 'Fog2')
     self.label = FindControl(control, 'Label')
-    self.powerType = powerType
-    self.currentValue = 0
-    self.minValue = 0
-    self.maxValue = 0
-
-    local baseCoordLeft, baseCoordRight, baseAnchorX = unpack(ORB_CONFIG[powerType])
-    self.baseCoordLeft = baseCoordLeft
-    self.baseCoordRight = baseCoordRight
-    self.baseAnchorX = baseAnchorX
-
-    -- Animation state for flow effects (horizontal oscillation)
-    self.animState = {
-        time = 0,          -- Accumulated time for animation cycle
-        rotationAngle = 0, -- Current rotation angle (health orb)
-    }
+    InitializeOrbState(self, powerType)
 end
 
 ---@param value number New resource value to display
@@ -304,6 +308,14 @@ function BetterUIShieldBar:New(...)
     return obj
 end
 
+function BetterUIShieldBar:Initialize(control, powerType)
+    self.control = control
+    self.fog = FindControl(control, 'Fog')
+    self.fog2 = nil
+    self.label = FindControl(control, 'Label')
+    InitializeOrbState(self, powerType)
+end
+
 -- Shield overlay is always static (no animation)
 function BetterUIShieldBar:UpdateAnimation() end
 
@@ -387,16 +399,12 @@ function Visuals.ApplyThemeVisuals(rootFrame)
         end
     end
 
-    local function ApplyOrbTextures(parentName)
+    local function ApplyOrbTextures(parentName, textures)
         local parent = FindControl(rootFrame, parentName)
         if not parent then return end
-        local textures = {
-            Fog = 'OrbFill.dds',
-            Fog2 = 'OrbFill.dds',
-            Border = 'OrbBorder.dds',
-            Divide = 'OrbSplitter.dds'
-        }
-        for childName, textureFile in pairs(textures) do
+        for _, texture in ipairs(textures) do
+            local childName = texture[1]
+            local textureFile = texture[2]
             local child = FindControl(parent, childName)
             if child and child.SetTexture then
                 child:SetTexture(ResolveTexturePath(textureFile))
@@ -404,9 +412,21 @@ function Visuals.ApplyThemeVisuals(rootFrame)
         end
     end
 
-    ApplyOrbTextures('OrbHealth')
-    ApplyOrbTextures('OrbMagicka')
-    ApplyOrbTextures('OrbStamina')
+    ApplyOrbTextures('OrbHealth', {
+        { 'Fog', 'OrbFill.dds' },
+        { 'Fog2', 'OrbFill.dds' },
+        { 'Border', 'OrbBorder.dds' },
+    })
+    ApplyOrbTextures('OrbMagicka', {
+        { 'Fog', 'OrbFill.dds' },
+        { 'Fog2', 'OrbFill.dds' },
+        { 'Border', 'OrbBorder.dds' },
+        { 'Divide', 'OrbSplitter.dds' },
+    })
+    ApplyOrbTextures('OrbStamina', {
+        { 'Fog', 'OrbFill.dds' },
+        { 'Fog2', 'OrbFill.dds' },
+    })
 
     local shieldOrb = FindControl(rootFrame, 'OrbShield')
     if shieldOrb then
@@ -518,9 +538,19 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
                 cont:SetDimensions(rightBorderSize, rightBorderSize)
                 cont:ClearAnchors()
                 cont:SetAnchor(CENTER, rightOrb, CENTER, 0, 0)
-                local b = FindControl(cont, 'Border')
+                local b
+                if name == 'OrbStamina' then
+                    b = FindOptionalControl(cont, 'Border', 'Visuals.UpdateOrbLayout')
+                else
+                    b = FindControl(cont, 'Border', 'Visuals.UpdateOrbLayout')
+                end
                 if b then b:SetDimensions(rightBorderSize, rightBorderSize) end
-                local div = FindControl(cont, 'Divide')
+                local div
+                if name == 'OrbStamina' then
+                    div = FindOptionalControl(cont, 'Divide', 'Visuals.UpdateOrbLayout')
+                else
+                    div = FindControl(cont, 'Divide', 'Visuals.UpdateOrbLayout')
+                end
                 if div then
                     local rightBaseSize = cfg.orbs.right.borderSize or rightBorderSize
                     local splitterWidth = math.min(

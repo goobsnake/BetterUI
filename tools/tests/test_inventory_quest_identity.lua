@@ -162,8 +162,10 @@ local questRow = questInstance.processedBatchData[1]
 assert_eq(questRow.slotType, SLOT_TYPE_QUEST_ITEM, "Quest refresh assigns quest slot type")
 assert_eq(questRow.bestItemTypeName, "Quest", "Quest refresh supplies safe category metadata")
 assert_eq(questRow.uniqueId, "quest:4:2::", "Quest refresh derives a stable non-bag unique id")
-assert_eq(questRow.isEquippedInCurrentCategory, true,
-    "Quest refresh marks quickslotted quest items as equipped in the current category")
+assert_eq(questRow.isQuestQuickslotted, true,
+    "Quest refresh preserves quickslot state in quest-specific metadata")
+assert_eq(questRow.isEquippedInCurrentCategory, nil,
+    "Quest refresh does not map quickslot state onto equipped icon metadata")
 
 assert_eq(BETTERUI.Inventory.Utils.NormalizeIdentityValue("quest:4:2::"), "quest:4:2::",
     "Synthetic quest unique ids normalize without Id64 conversion")
@@ -174,6 +176,31 @@ assert_eq(BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(identity, BAG_BACKPACK,
 slotUniqueIds["1:70"] = "new"
 assert_eq(BETTERUI.Inventory.Utils.IsSlotIdentityCurrent(identity, BAG_BACKPACK, 70), false,
     "Captured slot identity rejects a changed live slot")
+
+local filterWarnings = {}
+BETTERUI.Log = {
+    CATEGORY = { LIST = "LIST" },
+    Warn = function(_, message, data)
+        filterWarnings[#filterWarnings + 1] = { message = message, data = data }
+    end,
+    DescribeItem = function(item, label)
+        return { label = label, name = item and item.name }
+    end,
+}
+ZO_InventoryUtils_DoesNewItemMatchFilterType = function()
+    error("native filter rejected synthetic BetterUI row")
+end
+local safeComparator = questInstance:GetItemDataFilterComparator(nil, ITEMFILTERTYPE_ARMOR)
+assert_eq(safeComparator({ name = "Synthetic Row" }), false,
+    "Inventory filter comparator fails closed when native filter rejects a synthetic row")
+assert_eq(#filterWarnings, 1,
+    "Inventory filter comparator logs the first native filter failure")
+assert_eq(filterWarnings[1] and filterWarnings[1].message, "inventory filter match failed",
+    "Inventory filter comparator emits a monitor-visible failure reason")
+assert_eq(safeComparator({ name = "Synthetic Row" }), false,
+    "Inventory filter comparator keeps failing closed after a native filter failure")
+assert_eq(#filterWarnings, 1,
+    "Repeated native filter failures are warning-throttled")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

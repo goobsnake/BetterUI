@@ -33,6 +33,7 @@ local function newHarness(options)
         registeredEvents = {},
         unregisteredEvents = {},
         preHooks = {},
+        sceneLogRegistrations = 0,
         refreshSelectionCalls = 0,
         lastRefreshSelectionArgs = nil,
         delayedCalls = {},
@@ -67,6 +68,13 @@ local function newHarness(options)
     BETTERUI.CIM.EventRegistry = {
         EnsureRuntimeState = function()
             state.ensureRuntimeStateCalls = state.ensureRuntimeStateCalls + 1
+        end,
+    }
+
+    BETTERUI.CIM.SceneLog = {
+        EnsureRegistered = function()
+            state.sceneLogRegistrations = state.sceneLogRegistrations + 1
+            return true
         end,
     }
 
@@ -142,38 +150,14 @@ do
         "Apply ensures shared task manager state on every call")
     assert_eq(harness.ensureRuntimeStateCalls, 2,
         "Apply ensures lifecycle runtime state on every call")
+    assert_eq(harness.sceneLogRegistrations, 2,
+        "Apply ensures framework scene logging is registered on every call")
     assert_eq(harness.debugRegistrationCalls(), 0,
         "Apply skips debug command registration while debug tooling is disabled")
     assert_eq(harness.registeredEvents["BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"], nil,
-        "Apply does not register a retry event when Tamriel Tomes is already available")
-    assert_not_nil(harness.preHooks.SetSelectedTamrielTomesRewardData,
-        "Apply installs the Tamriel Tomes selection guard")
-
-    local invalidSelectionScreen = {
-        gridList = {
-            RefreshSelection = function(_, ...)
-                harness.refreshSelectionCalls = harness.refreshSelectionCalls + 1
-                harness.lastRefreshSelectionArgs = { ... }
-            end,
-        },
-    }
-    local hook = harness.preHooks.SetSelectedTamrielTomesRewardData
-    assert_true(hook(invalidSelectionScreen, { bogus = true }),
-        "selection guard blocks invalid placeholder data")
-    assert_eq(harness.refreshSelectionCalls, 1,
-        "selection guard schedules a grid refresh for invalid placeholder data")
-    assert_eq(harness.lastRefreshSelectionArgs[1], true,
-        "selection guard refresh preserves the force-refresh flag")
-    assert_eq(harness.lastRefreshSelectionArgs[2], true,
-        "selection guard refresh preserves the maintain-focus flag")
-
-    local validSelection = {
-        CanClaimReward = function() end,
-        CanPreviewReward = function() end,
-        GetRewardData = function() end,
-    }
-    assert_eq(hook(invalidSelectionScreen, validSelection), false,
-        "selection guard allows valid reward rows through")
+        "Apply does not register a Tamriel Tomes retry event")
+    assert_eq(harness.preHooks.SetSelectedTamrielTomesRewardData, nil,
+        "Apply leaves Tamriel Tomes unhooked to avoid DirectPurchase taint")
 
     assert_not_nil(settings.Modules.GeneralInterface,
         "Apply migrates Tooltips settings onto the canonical GeneralInterface module")
@@ -191,23 +175,12 @@ do
 
     harness.Apply(settings)
 
-    local retryRegistration = harness.registeredEvents["BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"]
     assert_eq(harness.debugRegistrationCalls(), 0,
         "Apply keeps debug command registration disabled when debug tooling is inactive")
-    assert_not_nil(retryRegistration,
-        "Apply registers a retry event when Tamriel Tomes is not available yet")
-    assert_eq(retryRegistration.eventCode, EVENT_PLAYER_ACTIVATED,
-        "retry guard waits for player activation")
-
-    ZO_TamrielTomesScreen_Shared = {}
-    retryRegistration.callback()
-
-    assert_not_nil(harness.preHooks.SetSelectedTamrielTomesRewardData,
-        "retry callback installs the selection guard once Tamriel Tomes becomes available")
     assert_eq(harness.registeredEvents["BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"], nil,
-        "retry callback clears the retry registration after a successful install")
-    assert_eq(harness.unregisteredEvents[1].name, "BETTERUI_RuntimeSetup_TamrielTomesGuardRetry",
-        "retry callback unregisters the retry event after the guard is installed")
+        "Apply does not register a Tamriel Tomes retry event when the native class is absent")
+    assert_eq(harness.preHooks.SetSelectedTamrielTomesRewardData, nil,
+        "Apply still avoids Tamriel Tomes hooks when the native class appears later")
 end
 
 do

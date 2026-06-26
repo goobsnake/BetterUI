@@ -19,7 +19,11 @@ SCENE_SHOWN   = 2
 SCENE_HIDING  = 3
 SCENE_HIDDEN  = 4
 
-function GetGameTimeMilliseconds() return 4242 end
+local fakeClock = 4241
+function GetGameTimeMilliseconds()
+    fakeClock = fakeClock + 1
+    return fakeClock
+end
 
 -- Names stub (production resolves scenes -- incl. userdata -- via BETTERUI.CIM.Names.Scene).
 BETTERUI.CIM.Names = {
@@ -133,6 +137,27 @@ check(rec ~= nil and rec.category == "SCENE", "active -> emits at CATEGORY.SCENE
 check(rec ~= nil and contains(rec.message, "gamepad_banking"), "message carries the scene name")
 check(rec ~= nil and contains(rec.message, "showing"), "message carries the state verb")
 check(rec ~= nil and rec.data and rec.data.wasPushed == true, "wasPushed true when coming from HIDDEN")
+check(rec ~= nil and rec.data and rec.data.wasHidden == true, "wasHidden true when coming from HIDDEN")
+check(rec ~= nil and rec.data and rec.data.cur == "hud", "data.cur carries current scene")
+
+BETTERUI.CIM.WatchMode = {
+    DescribeActiveKeybinds = function()
+        return "n=1[A:Sort:e1]"
+    end,
+}
+infoCalls = {}
+handler(bankScene, SCENE_SHOWING, SCENE_SHOWN)
+check(lastInfo() ~= nil and lastInfo().data and lastInfo().data.keybinds == "n=1[A:Sort:e1]",
+    "scene transition log includes WatchMode keybind summary")
+BETTERUI.CIM.WatchMode = {
+    DescribeActiveKeybinds = function()
+        error("keybind failure")
+    end,
+}
+local okKeybindFailure = pcall(handler, bankScene, SCENE_SHOWN, SCENE_HIDING)
+check(okKeybindFailure and lastInfo() ~= nil and not (lastInfo().data and lastInfo().data.keybinds),
+    "scene transition survives WatchMode keybind summary failure")
+BETTERUI.CIM.WatchMode = nil
 
 -- (5) Full lifecycle SHOWING->SHOWN->HIDING->HIDDEN yields one record each, correct verbs.
 infoCalls = {}
@@ -176,6 +201,12 @@ local ring = SL.GetRecent()
 local ringCount = 0
 for _ in pairs(ring) do ringCount = ringCount + 1 end
 check(ringCount > 0 and ringCount <= 24, "recent-transition ring is bounded (<=24)")
+local ordered = SL.GetRecentChronological()
+check(#ordered == ringCount, "chronological recent-transition view matches ring count")
+if #ordered >= 2 then
+    check(ordered[#ordered - 1].t <= ordered[#ordered].t,
+        "chronological recent-transition view is oldest-to-newest")
+end
 
 -- (9) /buiscene slash command is registered and runs without error.
 check(type(SLASH_COMMANDS["/buiscene"]) == "function", "/buiscene registered")

@@ -27,6 +27,8 @@ local skillCalls = {}
 local visualCalls = {}
 local barCalls = {}
 local eventCalls = {}
+local logEvents = {}
+local lastAction = nil
 
 local function CountCall(store, key)
     store[key] = (store[key] or 0) + 1
@@ -65,6 +67,14 @@ local function NewControl(name)
         self.anchor = { ... }
     end
 
+    function control:GetAnchor()
+        return true, 4, self.anchorRelativeTo, 4, 0, 0
+    end
+
+    function control:GetName()
+        return self.name
+    end
+
     function control:SetDimensions(width, height)
         self.dimensions = { width, height }
     end
@@ -93,6 +103,25 @@ BETTERUI = {
                 GAMEPAD = { mode = "gamepad" },
             },
         },
+    },
+    Log = {
+        CATEGORY = {
+            STATE = "STATE",
+            LIFECYCLE = "LIFECYCLE",
+        },
+        SetLastAction = function(action, flow)
+            if type(action) == "table" then
+                lastAction = { message = action.message, flow = action.flow }
+            else
+                lastAction = { message = action, flow = flow }
+            end
+        end,
+        TraceEvent = function(category, event, phase, data)
+            table.insert(logEvents, { category = category, event = event, phase = phase, data = data })
+        end,
+        Info = function() end,
+        Warn = function() end,
+        Error = function() end,
     },
     ControlUtils = {
         InvalidateControlCache = function()
@@ -180,8 +209,11 @@ function BETTERUI.CIM.EventRegistry.RegisterFiltered(_, name, eventCode, callbac
 end
 
 CALLBACK_MANAGER = {
-    RegisterCallback = function(_, name)
-        callbackRegistrations[name] = (callbackRegistrations[name] or 0) + 1
+    RegisterCallback = function(_, name, callback)
+        local registration = callbackRegistrations[name] or { count = 0 }
+        registration.count = registration.count + 1
+        registration.callback = callback
+        callbackRegistrations[name] = registration
     end,
 }
 
@@ -400,6 +432,16 @@ local function assert_true(value, label)
     assert_eq(value == true, true, label)
 end
 
+local function find_log_event(event, phase)
+    for i = #logEvents, 1, -1 do
+        local record = logEvents[i]
+        if record.event == event and record.phase == phase then
+            return record
+        end
+    end
+    return nil
+end
+
 print("[ResourceOrbFrames]")
 
 assert_true(type(internals) == "table", "resource orb frames exports test internals")
@@ -429,6 +471,24 @@ assert_eq(quickslotButton.parent, rootFrame, "deferred initialization hoists the
 assert_eq(companionButton.parent, rootFrame, "deferred initialization hoists the companion button out of the front bar container")
 assert_eq(tryCalls["ControlUtils.InvalidateControlCache"], 1, "deferred initialization invalidates cached control references after reparenting")
 assert_true((eventCalls.RefreshCombatIndicators or 0) >= 1, "deferred initialization refreshes combat indicators after setup")
+
+local forceLayoutRegistration = callbackRegistrations.BetterUI_ForceLayoutUpdate
+local forceLayoutCallback = forceLayoutRegistration and forceLayoutRegistration.callback
+assert_true(type(forceLayoutCallback) == "function", "dynamic events register a force-layout callback")
+if type(forceLayoutCallback) == "function" then
+    logEvents = {}
+    lastAction = { message = "inventory selection", flow = "inventory#1" }
+    forceLayoutCallback()
+    assert_eq(lastAction.message, "inventory selection", "background force-layout callback preserves the prior action label")
+    assert_eq(lastAction.flow, "inventory#1", "background force-layout callback preserves the prior flow id")
+
+    local forceLayoutEnd = find_log_event("resource_orbs.force_layout", "end")
+    assert_true(forceLayoutEnd ~= nil and forceLayoutEnd.data and forceLayoutEnd.data.updatesLastAction == false,
+        "force-layout trace declares that it does not update lastAction")
+    local nestedLayoutEnd = find_log_event("resource_orbs.layout", "end")
+    assert_true(nestedLayoutEnd ~= nil and nestedLayoutEnd.data and nestedLayoutEnd.data.updatesLastAction == false,
+        "nested layout trace during force-layout does not update lastAction")
+end
 
 settings.m_enabled = false
 ResourceOrbFrames.ApplySettings()

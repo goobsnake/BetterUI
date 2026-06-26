@@ -94,9 +94,20 @@ function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     data.bestItemTypeName = itemData.bestItemTypeName
     data.listModuleName = itemData.listModuleName
 
-    -- Copy equipped/junk status
-    data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
-    data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
+    -- Copy equipped/junk status. Quest rows are synthetic action entries, not
+    -- equippable inventory slots; keep quickslot state separate from equipped
+    -- icon fields so pooled row controls cannot show gear/quickslot badges.
+    local isQuestItem = options.isQuestItem == true or itemData.isQuestItem == true
+    data.isQuestItem = isQuestItem or nil
+    data.isQuestQuickslotted = itemData.isQuestQuickslotted
+    if isQuestItem then
+        data.isEquippedInCurrentCategory = nil
+        data.isEquippedInAnotherCategory = nil
+        data.equipSlot = nil
+    else
+        data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
+        data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
+    end
     data.isJunk = itemData.isJunk
 
     -- Explicitly copy slot metadata for action discovery (Y-menu)

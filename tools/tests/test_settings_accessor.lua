@@ -34,6 +34,20 @@ BETTERUI = {
         },
     },
 }
+local traceEvents = {}
+BETTERUI.Log = {
+    CATEGORY = { SETTINGS = "SETTINGS", GENERAL = "GENERAL" },
+    LEVEL = { INFO = "INFO", TRACE = "TRACE" },
+    TraceEvent = function(category, event, phase, data, level)
+        traceEvents[#traceEvents + 1] = {
+            category = category,
+            event = event,
+            phase = phase,
+            data = data,
+            level = level,
+        }
+    end,
+}
 CALLBACK_MANAGER = {
     _fired = {},
     FireCallbacks = function(self, event, ...)
@@ -79,6 +93,7 @@ end
 local function reset_settings()
     BETTERUI.Settings = { Modules = {} }
     CALLBACK_MANAGER._fired = {}
+    traceEvents = {}
 end
 
 -- ============================================================================
@@ -241,6 +256,21 @@ do
     local ok = BETTERUI.SetSetting("CIM", "x", 1)
     assert_equal(true, ok, "SetSetting reports success when creating root settings table")
     assert_equal(1, BETTERUI.Settings.Modules["CIM"].x, "nil Settings auto-creates settings tree")
+end
+
+do
+    reset_settings()
+    BETTERUI.Settings.Modules["CIM"] = { enableTooltipEnhancements = true }
+    BETTERUI.SetSetting("CIM", "enableTooltipEnhancements", false)
+    local featureTrace
+    for _, event in ipairs(traceEvents) do
+        if event.event == "general_interface.tooltip_feature" and event.phase == "setting_changed" then
+            featureTrace = event
+        end
+    end
+    assert_not_nil(featureTrace, "tooltip enhancement setting writes emit feature-level diagnostics")
+    assert_equal("tooltipEnhancements", featureTrace.data.feature, "feature diagnostic names tooltip enhancements")
+    assert_equal(false, featureTrace.data.enabled, "feature diagnostic records disabled state")
 end
 
 -- ============================================================================

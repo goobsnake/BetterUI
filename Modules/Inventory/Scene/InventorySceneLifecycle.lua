@@ -30,6 +30,81 @@ local function NormalizeInventoryListType(listType, fallback)
 	return fallback
 end
 
+local function IsKeybindGroupPresent(group)
+	if not (group and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
+		return false
+	end
+	local ok, present = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, group)
+	return ok and present == true
+end
+
+local function DescribeKeybindGroup(group, label)
+	local L = BETTERUI.Log
+	return L and L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(group, label) or tostring(group)
+end
+
+local function TraceInventoryKeybindOwnership(self, phase, data, warn)
+	local L = BETTERUI.Log
+	if not L then return end
+	data = data or {}
+	data.fn = data.fn or "InventorySceneLifecycle"
+	data.scene = ZO_GAMEPAD_INVENTORY_SCENE_NAME
+	data.currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+	data.nextScene = SCENE_MANAGER and SCENE_MANAGER.GetNextScene and SCENE_MANAGER:GetNextScene() or nil
+	data.main = DescribeKeybindGroup(self and self.mainKeybindStripDescriptor, "main")
+	data.active = DescribeKeybindGroup(self and self.activeKeybindDescriptor, "active")
+	data.search = DescribeKeybindGroup(self and self.textSearchKeybindStripDescriptor, "search")
+	data.stripHasMain = IsKeybindGroupPresent(self and self.mainKeybindStripDescriptor)
+	data.stripHasActive = IsKeybindGroupPresent(self and self.activeKeybindDescriptor)
+	data.stripHasSearch = IsKeybindGroupPresent(self and self.textSearchKeybindStripDescriptor)
+	if L.TraceEvent then
+		L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_ownership", phase, data)
+	elseif warn and L.Warn then
+		L.Warn(L.CATEGORY.KEYBIND, "inventory keybind ownership warning", data)
+	elseif L.Debug then
+		L.Debug(L.CATEGORY.KEYBIND, "inventory keybind ownership", data)
+	end
+	if warn and L.Warn then
+		L.Warn(L.CATEGORY.KEYBIND, "inventory keybind ownership warning", data)
+	end
+end
+
+local function RemoveInventoryKeybindGroup(self, group, label, phase)
+	if not group then
+		return false
+	end
+	local beforePresent = IsKeybindGroupPresent(group)
+	if beforePresent and KEYBIND_STRIP and KEYBIND_STRIP.RemoveKeybindButtonGroup then
+		KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+	end
+	local afterPresent = IsKeybindGroupPresent(group)
+	TraceInventoryKeybindOwnership(self, phase, {
+		descriptorLabel = label,
+		descriptor = DescribeKeybindGroup(group, label),
+		beforePresent = beforePresent,
+		afterPresent = afterPresent,
+		removed = beforePresent and not afterPresent,
+	}, afterPresent)
+	return beforePresent and not afterPresent
+end
+
+local function RemoveInventoryKeybindsForSceneExit(self, phase)
+	TraceInventoryKeybindOwnership(self, phase .. "_before", {})
+	local integration = self and self._headerSortIntegration
+	if integration and integration.activeKeybindDescriptor then
+		RemoveInventoryKeybindGroup(self, integration.activeKeybindDescriptor, "header", phase .. "_header")
+		integration.activeKeybindDescriptor = nil
+	end
+	if self then
+		RemoveInventoryKeybindGroup(self, self.activeKeybindDescriptor, "active", phase .. "_active")
+		RemoveInventoryKeybindGroup(self, self.mainKeybindStripDescriptor, "main", phase .. "_main")
+		RemoveInventoryKeybindGroup(self, self.textSearchKeybindStripDescriptor, "search", phase .. "_search")
+		self.activeKeybindDescriptor = nil
+		self._searchModeActive = false
+	end
+	TraceInventoryKeybindOwnership(self, phase .. "_after", {})
+end
+
 local function OnSceneShowing(self)
 	local inventoryCategoryList = GetInventoryListType("CATEGORY")
 	local inventoryItemList = GetInventoryListType("ITEM")
@@ -134,6 +209,7 @@ local function OnSceneHiding(self)
 	if self:IsBatchProcessing() then
 		self:RequestBatchAbort()
 	end
+	RemoveInventoryKeybindsForSceneExit(self, "hiding")
 	self:Deactivate()
 	self:DeactivateHeader()
 
@@ -180,6 +256,7 @@ local function OnSceneHidden(self)
 	BETTERUI.Inventory.NewItemTracker.CommitPendingClears()
 
 	self:ClearActiveKeybinds()
+	RemoveInventoryKeybindsForSceneExit(self, "hidden")
 
 	-- Unregister item preview callbacks
 	if ITEM_PREVIEW_GAMEPAD and self.onItemPreviewRefreshActionsCallback then

@@ -26,7 +26,15 @@ local function assert_true(value, label)
     assert_eq(value, true, label)
 end
 
+local function read_file(path)
+    local handle = assert(io.open(path, "r"))
+    local content = handle:read("*a")
+    handle:close()
+    return content
+end
+
 local createdControllers = {}
+local logEvents = {}
 
 BETTERUI = {
     CIM = {
@@ -34,7 +42,34 @@ BETTERUI = {
         -- Production loads SafeExecute before CIM/UI; stub it for the harness.
         SafeExecute = function(_, fn, ...) return pcall(fn, ...) end,
     },
+    Log = {
+        CATEGORY = { KEYBIND = "KEYBIND", NAV = "NAV", SORT = "SORT" },
+        IsActive = function()
+            return true
+        end,
+        Trace = function(category, message, data)
+            logEvents[#logEvents + 1] = { level = "Trace", category = category, message = message, data = data }
+        end,
+        Debug = function(category, message, data)
+            logEvents[#logEvents + 1] = { level = "Debug", category = category, message = message, data = data }
+        end,
+        Info = function(category, message, data)
+            logEvents[#logEvents + 1] = { level = "Info", category = category, message = message, data = data }
+        end,
+        Warn = function(category, message, data)
+            logEvents[#logEvents + 1] = { level = "Warn", category = category, message = message, data = data }
+        end,
+    },
 }
+
+local function findLogMessage(message)
+    for _, event in ipairs(logEvents) do
+        if event.message == message then
+            return event
+        end
+    end
+    return nil
+end
 
 KEYBIND_STRIP = {
     added = {},
@@ -105,16 +140,32 @@ BETTERUI.CIM.UI.HeaderSortController = {
 dofile("Modules/CIM/Core/Presentation/KeybindHelpers.lua")
 dofile("Modules/CIM/UI/HeaderSortIntegration.lua")
 
+local typesSource = read_file("Modules/CIM/Core/Data/Types.lua")
+assert_true(typesSource:find("ownedDescriptors table%[%]|nil", 1, false) ~= nil,
+    "Header sort keybind contract documents ownedDescriptors")
+assert_true(typesSource:find("suspendedKeybindGroups table%[%]|nil", 1, false) ~= nil,
+    "Header sort integration contract documents suspended keybind groups")
+
 local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
 
 local function buildOwner()
     return {
         list = {
+            active = true,
+            deactivateCalls = 0,
             activateCalls = 0,
             GetNumItems = function()
                 return 3
             end,
+            IsActive = function(self)
+                return self.active
+            end,
+            Deactivate = function(self)
+                self.active = false
+                self.deactivateCalls = self.deactivateCalls + 1
+            end,
             Activate = function(self)
+                self.active = true
                 self.activateCalls = self.activateCalls + 1
             end,
         },
@@ -182,6 +233,7 @@ do
 end
 
 do
+    logEvents = {}
     local owner = buildOwner()
     local integration = HeaderSortIntegration.Install(owner, {
         list = owner.list,
@@ -205,17 +257,46 @@ do
     local controller = HeaderSortIntegration.EnsureController(integration)
     HeaderSortIntegration.EnterHeaderMode(integration)
     assert_eq(owner.headerGeneric.tabBar.deactivateCalls, 1, "enter header mode suspends tab bar")
+    assert_eq(owner.list.deactivateCalls, 0, "enter header mode preserves the active list by default")
+    assert_true(findLogMessage("header sort list preserved") ~= nil,
+        "enter header mode logs that the active list was preserved")
     assert_eq(#KEYBIND_STRIP.added, 1, "enter header mode adds header keybinds")
     assert_eq(controller.enterCalls, 1, "enter header mode delegates to controller")
     assert_true(integration.isActive, "enter header mode marks integration active")
 
     HeaderSortIntegration.ExitHeaderMode(integration)
     assert_eq(owner.headerGeneric.tabBar.activateCalls, 1, "exit header mode restores tab bar")
-    assert_eq(owner.list.activateCalls, 0, "exit header mode leaves list activation to owner callbacks")
+    assert_eq(owner.list.activateCalls, 0, "exit header mode does not reactivate a preserved list")
     assert_eq(#KEYBIND_STRIP.removed, 1, "exit header mode removes header keybinds")
     assert_eq(controller.exitCalls, 1, "exit header mode delegates to controller")
     assert_true(not integration.isActive, "exit header mode clears integration active flag")
     assert_eq(#KEYBIND_STRIP.added, 2, "exit header mode restores owner keybinds")
+end
+
+do
+    local owner = buildOwner()
+    local integration = HeaderSortIntegration.Install(owner, {
+        list = owner.list,
+        columns = {
+            { key = "value", defaultDirection = "descending" },
+        },
+        callbacks = {
+            onSortChanged = function() end,
+        },
+        keybinds = {
+            mainDescriptor = owner.coreKeybinds,
+        },
+        navigation = {
+            suspendList = true,
+        },
+    })
+
+    HeaderSortIntegration.EnsureController(integration)
+    HeaderSortIntegration.EnterHeaderMode(integration)
+    assert_eq(owner.list.deactivateCalls, 1, "explicit suspendList keeps the legacy list suspension path available")
+
+    HeaderSortIntegration.ExitHeaderMode(integration)
+    assert_eq(owner.list.activateCalls, 1, "explicit suspendList restores the active list on exit")
 end
 
 do

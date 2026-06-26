@@ -10,6 +10,7 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 local GetItemLink = GetItemLink
 local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
 local INVENTORY_LIST_MODULE_NAME = "Inventory"
+local nativeFilterFailureWarnings = {}
 
 --- @param itemData table
 --- @return boolean
@@ -25,9 +26,62 @@ local function BuildQuestItemUniqueId(itemData)
         tostring(itemData.conditionIndex or ""))
 end
 
+local function SafeDoesNewItemMatchFilterType(itemData, filterType, caller)
+    if not itemData or filterType == nil or type(ZO_InventoryUtils_DoesNewItemMatchFilterType) ~= "function" then
+        return false
+    end
+
+    local ok, matches = pcall(ZO_InventoryUtils_DoesNewItemMatchFilterType, itemData, filterType)
+    if ok then
+        return matches == true
+    end
+
+    local warningKey = table.concat({ tostring(caller or "unknown"), tostring(filterType), tostring(matches) }, "|")
+    if not nativeFilterFailureWarnings[warningKey] and BETTERUI.Log and BETTERUI.Log.Warn then
+        nativeFilterFailureWarnings[warningKey] = true
+        local L = BETTERUI.Log
+        local categories = L.CATEGORY or {}
+        L.Warn(categories.LIST, "inventory filter match failed", {
+            fn = caller or "ItemListFiltering",
+            filterType = filterType,
+            error = tostring(matches),
+            item = L.DescribeItem and L.DescribeItem(itemData.dataSource or itemData, "item") or nil,
+        })
+    end
+
+    return false
+end
+
+local function IsQuestItemData(itemData)
+    if type(itemData) ~= "table" then
+        return false
+    end
+    local source = itemData.dataSource or itemData
+    if type(source) ~= "table" then
+        return false
+    end
+
+    local function IsQuestUniqueId(uniqueId)
+        return type(uniqueId) == "string" and uniqueId:find("^quest:") ~= nil
+    end
+
+    return itemData.isQuestItem == true
+        or source.isQuestItem == true
+        or source.questIndex ~= nil
+        or (SLOT_TYPE_QUEST_ITEM ~= nil and itemData.slotType == SLOT_TYPE_QUEST_ITEM)
+        or (SLOT_TYPE_QUEST_ITEM ~= nil and source.slotType == SLOT_TYPE_QUEST_ITEM)
+        or IsQuestUniqueId(itemData.uniqueId)
+        or IsQuestUniqueId(source.uniqueId)
+        or SafeDoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_QUEST, "ItemListFiltering.IsQuestItemData")
+end
+
 function BETTERUI.Inventory.Class:PrepareQuestItemListEntry(itemData)
     local questStringId = rawget(_G, "SI_GAMEPAD_INVENTORY_QUEST_ITEMS")
     local questCategoryName = questStringId and GetString(questStringId) or "Quest"
+    local hadImpossibleEquipState = itemData.isEquippedInCurrentCategory == true
+        or itemData.isEquippedInAnotherCategory == true
+        or itemData.equipSlot ~= nil
+        or itemData.isHiddenByWardrobe == true
 
     itemData.isQuestItem = true
     itemData.stackCount = itemData.stackCount or 1
@@ -41,9 +95,31 @@ function BETTERUI.Inventory.Class:PrepareQuestItemListEntry(itemData)
     itemData.sortPriorityName = itemData.sortPriorityName or string.format("%s%s", questCategoryName,
         tostring(itemData.name or ""))
     itemData.listModuleName = INVENTORY_LIST_MODULE_NAME
-    if itemData.questItemId and FindActionSlotMatchingSimpleAction then
-        itemData.isEquippedInCurrentCategory = FindActionSlotMatchingSimpleAction(ACTION_TYPE_QUEST_ITEM,
-            itemData.questItemId, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) ~= nil
+
+    local questItemId = itemData.questItemId
+    if not questItemId and itemData.toolIndex and GetQuestToolQuestItemId then
+        questItemId = GetQuestToolQuestItemId(itemData.questIndex, itemData.toolIndex)
+    elseif not questItemId and itemData.stepIndex and itemData.conditionIndex and GetQuestConditionQuestItemId then
+        questItemId = GetQuestConditionQuestItemId(itemData.questIndex, itemData.stepIndex, itemData.conditionIndex)
+    end
+    itemData.questItemId = questItemId
+    itemData.isQuestQuickslotted = nil
+    if questItemId and FindActionSlotMatchingSimpleAction then
+        itemData.isQuestQuickslotted = FindActionSlotMatchingSimpleAction(ACTION_TYPE_QUEST_ITEM,
+            questItemId, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) ~= nil or nil
+    end
+
+    itemData.isEquippedInCurrentCategory = nil
+    itemData.isEquippedInAnotherCategory = nil
+    itemData.equipSlot = nil
+    itemData.isHiddenByWardrobe = nil
+
+    if hadImpossibleEquipState and BETTERUI.Log and BETTERUI.Log.Warn then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "quest item carried equipment visual state; cleared", {
+            item = BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(itemData, "quest") or nil,
+            questIndex = itemData.questIndex,
+            questItemId = questItemId,
+        })
     end
     ZO_InventorySlot_SetType(itemData, SLOT_TYPE_QUEST_ITEM)
 end
@@ -63,8 +139,9 @@ function BETTERUI.Inventory.Class:GetItemDataFilterComparator(filteredEquipSlot,
                 return itemData and itemData.actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION
             end
 
-            return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, nonEquipableFilterType)
-                or (itemData.equipType == EQUIP_TYPE_POISON and nonEquipableFilterType == ITEMFILTERTYPE_WEAPONS)
+            return SafeDoesNewItemMatchFilterType(itemData, nonEquipableFilterType,
+                "ItemListFiltering.GetItemDataFilterComparator")
+                or (itemData and itemData.equipType == EQUIP_TYPE_POISON and nonEquipableFilterType == ITEMFILTERTYPE_WEAPONS)
         else
             -- for "All"
             return true
@@ -301,9 +378,7 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
     local bagId = selectedDataSource.bagId or selectedData.bagId
     local slotIndex = selectedDataSource.slotIndex or selectedData.slotIndex
 
-    local isQuest = selectedData.isQuestItem == true
-        or selectedDataSource.isQuestItem == true
-        or ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_QUEST)
+    local isQuest = IsQuestItemData(selectedData)
 
     if not isQuest and bagId == nil then
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
@@ -329,9 +404,12 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
     else
         -- Normal items
         local showRightTooltip = false
-        if ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_WEAPONS)
-            or ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_ARMOR)
-            or ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_JEWELRY)
+        if SafeDoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_WEAPONS,
+                "ItemListFiltering.UpdateItemLeftTooltip")
+            or SafeDoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_ARMOR,
+                "ItemListFiltering.UpdateItemLeftTooltip")
+            or SafeDoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_JEWELRY,
+                "ItemListFiltering.UpdateItemLeftTooltip")
         then
             if self.switchInfo then
                 showRightTooltip = true

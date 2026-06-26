@@ -152,6 +152,57 @@ do
     freezeFrame = false
 end
 
+do
+    local warnings = {}
+    BETTERUI.Log = {
+        CATEGORY = { ACTION = "ACTION", KEYBIND = "KEYBIND" },
+        IsActive = function() return false end,
+        Warn = function(_, message, data)
+            warnings[#warnings + 1] = { message = message, data = data }
+        end,
+        DescribeItem = function(item, label)
+            return { label = label, uniqueId = item and item.uniqueId, bagId = item and item.bagId, slotIndex = item and item.slotIndex }
+        end,
+    }
+    ZO_InventoryUtils_DoesNewItemMatchFilterType = function()
+        error("native filter rejected synthetic BetterUI action-context row")
+    end
+    BETTERUI.CIM.Keybinds.InvalidateActionContext()
+
+    local questControl = {
+        actionMode = 20,
+        itemList = {
+            selectedData = {
+                uniqueId = "quest:9:1::",
+                questIndex = 9,
+                meetsUsageRequirement = true,
+            },
+        },
+    }
+    assert_eq(BETTERUI.CIM.Keybinds.GetXButtonName(questControl), "Use",
+        "explicit quest action-context rows do not call the native filter")
+    assert_eq(#warnings, 0,
+        "explicit quest action-context rows do not log native filter failures")
+
+    BETTERUI.CIM.Keybinds.InvalidateActionContext()
+    local normalControl = {
+        actionMode = 20,
+        itemList = {
+            selectedData = {
+                bagId = 7,
+                slotIndex = 8,
+                meetsUsageRequirement = false,
+            },
+        },
+    }
+    assert_eq(BETTERUI.CIM.Keybinds.GetXButtonName(normalControl), "Switch info",
+        "action-context filter failures fail closed without hiding gear info")
+    assert_true(#warnings >= 1,
+        "action-context native filter failures are monitor-visible")
+    assert_eq(warnings[1] and warnings[1].message, "keybind action filter failed",
+        "action-context native filter failure logs a canonical reason")
+end
+
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)

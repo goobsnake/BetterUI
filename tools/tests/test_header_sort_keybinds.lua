@@ -49,8 +49,22 @@ end
 KEYBIND_STRIP_ALIGN_LEFT = 1
 KEYBIND_STRIP = {
     updateCalls = 0,
+    groups = {},
+    addCalls = 0,
+    removeCalls = 0,
+    AddKeybindButtonGroup = function(self, descriptor)
+        self.addCalls = self.addCalls + 1
+        self.groups[descriptor] = true
+    end,
+    RemoveKeybindButtonGroup = function(self, descriptor)
+        self.removeCalls = self.removeCalls + 1
+        self.groups[descriptor] = nil
+    end,
     UpdateCurrentKeybindButtonGroups = function(self)
         self.updateCalls = self.updateCalls + 1
+    end,
+    HasKeybindButtonGroup = function(self, descriptor)
+        return self.groups[descriptor] == true
     end,
 }
 
@@ -107,6 +121,51 @@ do
     assert_equal(SORT_DIRECTION.NONE, callbacks[#callbacks].direction, "clear-sort callback reports NONE direction")
 end
 
+do
+    local capturedWarn
+    BETTERUI.Log = {
+        CATEGORY = { KEYBIND = "KEYBIND", SORT = "SORT" },
+        IsActive = function() return true end,
+        Trace = function() end,
+        TraceEvent = function() end,
+        Warn = function(category, message, data)
+            capturedWarn = { category = category, message = message, data = data }
+        end,
+    }
+
+    KEYBIND_STRIP.groups = {}
+    local mainDescriptor = { id = "main" }
+    local controller = HeaderSortController:New(nil, {
+        { key = "name", sortFn = function() return false end },
+    }, function() end)
+    controller:EnterHeaderMode()
+
+    local descriptor = controller:CreateKeybindDescriptor(function() end)
+    controller._headerSortKeybindDescriptor = descriptor
+    controller._headerSortIntegration = {
+        isActive = true,
+        owner = { isInHeaderSortMode = true },
+        keybinds = { mainDescriptor = mainDescriptor },
+        reactivateListAfterHeaderSort = true,
+    }
+
+    KEYBIND_STRIP.groups[mainDescriptor] = true
+    descriptor[1].callback()
+
+    assert_equal("header sort keybind ownership repaired", capturedWarn and capturedWarn.message,
+        "primary refresh warns when owner keybinds reclaim the strip and are repaired")
+    assert_equal(true, capturedWarn and capturedWarn.data and capturedWarn.data.beforeStripHasMain,
+        "ownership warning records that the owner main keybind was present")
+    assert_equal(false, capturedWarn and capturedWarn.data and capturedWarn.data.beforeStripHasHeader,
+        "ownership warning records that the header keybind was missing")
+    assert_equal(false, KEYBIND_STRIP.groups[mainDescriptor] == true,
+        "primary refresh removes the owner main keybind from the active strip")
+    assert_equal(true, KEYBIND_STRIP.groups[descriptor] == true,
+        "primary refresh restores the header sort keybind group")
+
+    BETTERUI.Log = nil
+end
+
 print("\n=== Summary ===")
 print(string.format("Passed: %d", passed))
 print(string.format("Failed: %d", failed))
@@ -114,4 +173,3 @@ print(string.format("Failed: %d", failed))
 if failed > 0 then
     os.exit(1)
 end
-

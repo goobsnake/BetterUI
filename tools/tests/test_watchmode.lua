@@ -25,6 +25,15 @@ SCENE_MANAGER = { GetCurrentScene = function() return fakeScene end }
 local laters = {}
 function zo_callLater(fn, ms) laters[#laters + 1] = { fn = fn, ms = ms }; return #laters end
 
+KEYBIND_STRIP = {
+    GetOrderedNarratableKeybindButtonInfo = function()
+        return {
+            { keybindName = "A", name = "Acquire", enabled = true },
+            { keybindName = "B", name = "Back", enabled = false },
+        }
+    end,
+}
+
 -- Fake Log capturing emitted records + the registered context provider.
 local cap = { lines = {}, provider = nil, lastAction = nil, mutes = {} }
 BETTERUI.Log = {
@@ -77,6 +86,34 @@ check(cap.provider(2, "GENERAL"):find("view=DepositTab", 1, true) ~= nil, "SetVi
 Watch.SetView(nil)
 check(cap.provider(2, "GENERAL"):find("view=", 1, true) == nil, "SetView(nil) clears view")
 
+Watch.SetView("banking.withdraw")
+check(cap.provider(2, "GENERAL"):find("view=banking.withdraw", 1, true) ~= nil,
+    "banking view is emitted in the banking scene")
+fakeScene = { name = "hud" }
+check(cap.provider(2, "GENERAL"):find("view=", 1, true) == nil,
+    "banking view is suppressed outside the banking scene")
+fakeScene = { name = "gamepad_banking" }
+check(cap.provider(2, "GENERAL"):find("view=", 1, true) == nil,
+    "suppressed banking view is discarded")
+
+Watch.SetView("inventory.items")
+fakeScene = { name = "gamepad_inventory_root" }
+check(cap.provider(2, "GENERAL"):find("view=inventory.items", 1, true) ~= nil,
+    "inventory view is emitted in the inventory scene")
+fakeScene = { name = "gamepad_banking" }
+check(cap.provider(2, "GENERAL"):find("view=", 1, true) == nil,
+    "inventory view is suppressed outside the inventory scene")
+fakeScene = { name = "gamepad_banking" }
+
+Watch.SetView("vendor.sell")
+check(cap.provider(2, "GENERAL"):find("view=", 1, true) == nil,
+    "unknown namespaced views are suppressed instead of leaking across scenes")
+
+Watch.SetView("banking.deposit")
+fakeScene = { name = "gamepad_banking" }
+check(cap.provider(2, "GENERAL"):find("view=banking.deposit", 1, true) ~= nil,
+    "banking view is restored before deactivate coverage")
+
 -- Snapshot registry: registered provider value appears in the STATE snapshot.
 Watch.RegisterSnapshotProvider("bankSlots", function() return 42 end)
 cap.lastAction = { message = "withdraw item", flow = "bankTransfer#1" }
@@ -89,6 +126,11 @@ check(snap.data and snap.data.bankSlots == 42, "Snapshot includes registered pro
 check(snap.data and snap.data.scene == "gamepad_banking", "Snapshot includes current scene")
 check(snap.data and snap.data.flow == "bankTransfer#1" and snap.data.lastAction == "withdraw item",
     "Snapshot includes current flow + lastAction")
+check(snap.data and snap.data.keybinds and snap.data.keybinds:find("A:Acquire:e1", 1, true) ~= nil
+    and snap.data.keybinds:find("B:Back:e0", 1, true) ~= nil,
+    "Snapshot includes visible keybind strip narration state")
+check(Watch.DescribeActiveKeybinds():find("A:Acquire:e1", 1, true) ~= nil,
+    "DescribeActiveKeybinds exposes visible keybind strip state")
 
 -- A provider that errors is pcall-guarded (does not break the snapshot).
 Watch.RegisterSnapshotProvider("boom", function() error("nope") end)
@@ -120,6 +162,11 @@ Watch.Deactivate()
 check(cap.provider == nil, "Deactivate clears the context provider")
 check(cap.mutes["PERF"] == false, "Deactivate restores muted category")
 check(Watch.IsActive() == false, "IsActive false after Deactivate")
+Watch.Activate()
+fakeScene = { name = "gamepad_banking" }
+check(cap.provider(2, "GENERAL"):find("view=", 1, true) == nil,
+    "Deactivate clears the previous view before a later Activate")
+Watch.Deactivate()
 local latersAfterDeact = #laters
 laters[#laters].fn() -- run the pending heartbeat tick after Deactivate
 check(#laters == latersAfterDeact, "heartbeat does not reschedule after Deactivate")

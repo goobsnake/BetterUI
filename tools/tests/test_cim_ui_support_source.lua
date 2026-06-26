@@ -113,7 +113,7 @@ local selectionHighlight = read_file("Modules/CIM/UI/SelectionHighlight.lua")
 assert_true(selectionHighlight:find("BETTERUI%.CIM%.SelectionHighlight = %{%}") ~= nil
         or selectionHighlight:find("BETTERUI%.CIM%.SelectionHighlight = BETTERUI%.CIM%.SelectionHighlight or %{%}") ~= nil,
     "SelectionHighlight initializes the shared selection-highlight table")
-assert_true(selectionHighlight:find("function SelectionHighlight%.Setup%(control, selected%)") ~= nil,
+assert_true(selectionHighlight:find("function SelectionHighlight%.Setup%(control, selected, data%)") ~= nil,
     "SelectionHighlight exposes Setup")
 
 local unifiedFooter = read_file("Modules/CIM/UI/UnifiedFooter.lua")

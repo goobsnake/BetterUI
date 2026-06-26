@@ -666,6 +666,14 @@ BETTERUI.EnsureModuleSettings = function(moduleName)
     return BETTERUI.Settings.Modules[moduleName]
 end
 
+local settingWrites = {}
+BETTERUI.SetSetting = function(moduleName, key, value)
+    local settings = BETTERUI.EnsureModuleSettings(moduleName)
+    settings[key] = value
+    settingWrites[#settingWrites + 1] = { module = moduleName, key = key, value = value }
+    return true
+end
+
 BETTERUI.CIM.Settings = {
     GetSettingDefault = function(moduleName, key, fallback)
         local defaults = {
@@ -899,11 +907,15 @@ assertEqual(2, bankingRefreshes, "Market integration reset refreshes banking aga
 
 tooltipEnhancementsToggle.setFunc(false)
 assertEqual(false, BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements, "Enhanced-tooltips toggle can disable live tooltip enhancements")
+assertEqual("enableTooltipEnhancements", settingWrites[#settingWrites].key, "Enhanced-tooltips toggle writes through shared SetSetting")
+assertEqual(false, settingWrites[#settingWrites].value, "Enhanced-tooltips shared setting write records disabled value")
 assertEqual(3, tooltipCleanupCalls, "Disabling enhanced tooltips cleans up all tooltip surfaces")
 assertEqual(3, #clearedTooltips, "Disabling enhanced tooltips clears each tooltip surface")
 
 tooltipEnhancementsToggle.setFunc(true)
 assertEqual(true, BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements, "Enhanced-tooltips toggle can re-enable live tooltip enhancements")
+assertEqual("enableTooltipEnhancements", settingWrites[#settingWrites].key, "Enhanced-tooltips re-enable writes through shared SetSetting")
+assertEqual(true, settingWrites[#settingWrites].value, "Enhanced-tooltips shared setting write records enabled value")
 assertEqual(1, tooltipApplyCalls, "Re-enabling enhanced tooltips reapplies live tooltip styles")
 assertEqual(6, #clearedTooltips, "Re-enabling enhanced tooltips clears each tooltip surface again")
 

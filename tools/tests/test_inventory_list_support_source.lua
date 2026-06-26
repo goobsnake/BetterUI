@@ -101,6 +101,9 @@ assert_true(itemListFilteringSource:find("SafeGetTargetData%(self%.categoryList%
     "ItemListFiltering resolves category targets through the safe target-data helper")
 assert_true(itemListFilteringSource:find("PrepareQuestItemListEntry") ~= nil,
     "ItemListFiltering prepares quest-cache rows before normal item processing")
+assert_true(itemListFilteringSource:find("SafeDoesNewItemMatchFilterType") ~= nil
+    and itemListFilteringSource:find("inventory filter match failed", 1, true) ~= nil,
+    "ItemListFiltering guards native filter calls and logs filter failures")
 assert_true(itemListFilteringSource:find("function BETTERUI%.Inventory%.Class:UpdateItemLeftTooltip%(selectedData%)") ~= nil,
     "ItemListFiltering exposes UpdateItemLeftTooltip")
 

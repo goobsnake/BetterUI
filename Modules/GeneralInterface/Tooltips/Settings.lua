@@ -20,6 +20,19 @@ local ResetGeneralInterfaceGeneralSettings = H.ResetGeneralInterfaceGeneralSetti
 local ResetMarketIntegrationSettings = H.ResetMarketIntegrationSettings
 local ResetEnhancedTooltipSettings = H.ResetEnhancedTooltipSettings
 
+local function SetModuleSetting(moduleName, key, value)
+    if type(BETTERUI.SetSetting) == "function" then
+        return BETTERUI.SetSetting(moduleName, key, value)
+    end
+
+    local settings = EnsureModuleSettings(moduleName)
+    if settings then
+        settings[key] = value
+        return true
+    end
+    return false
+end
+
 local function GetCurrentSceneName()
     if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
         local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
@@ -261,7 +274,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                 if settings then
                     local defaultValue = GetMetadataDefault("CIM", "rhScrollSpeed", 50)
                     local currentValue = tonumber(settings.rhScrollSpeed) or defaultValue
-                    settings.rhScrollSpeed = ParseIntegerInput(value, currentValue, 1, 1000)
+                    SetModuleSetting("CIM", "rhScrollSpeed", ParseIntegerInput(value, currentValue, 1, 1000))
                 end
             end,
             disabled = function() return not IsCIMEnabled() end,
@@ -453,10 +466,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                 return settings.enableTooltipEnhancements
             end,
             setFunc = function(value)
-                local settings = EnsureModuleSettings("CIM")
-                if settings then
-                    settings.enableTooltipEnhancements = value
-                end
+                SetModuleSetting("CIM", "enableTooltipEnhancements", value)
                 if value then
                     ApplyTooltipVisualSettings()
                     local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
@@ -598,10 +608,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                 return val
             end,
             setFunc = function(value)
-                local settings = EnsureModuleSettings("CIM")
-                if settings then
-                    settings.tooltipSize = value
-                end
+                SetModuleSetting("CIM", "tooltipSize", value)
                 ApplyTooltipVisualSettings()
             end,
             disabled = function()

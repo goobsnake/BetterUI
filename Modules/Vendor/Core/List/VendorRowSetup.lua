@@ -221,7 +221,7 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
     end
 
     -- Apply gradient selection bar
-    BETTERUI.CIM.SelectionHighlight.Setup(control, selected)
+    BETTERUI.CIM.SelectionHighlight.Setup(control, selected, data)
 
     -- Show selection indicator for multi-selected entries (inventory/banking parity)
     local selectionIndicator = control:GetNamedChild("SelectionIndicator")

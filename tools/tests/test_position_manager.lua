@@ -204,6 +204,49 @@ do
     assert_equal("wrapped", saved.uniqueId, "SavePosition wrapped: saves inner list uniqueId")
 end
 
+-- Structured diagnostics
+print("\n-- Structured diagnostics --")
+do
+    local events = {}
+    BETTERUI.Log = {
+        CATEGORY = { NAV = "NAV" },
+        TraceEvent = function(category, event, phase, data)
+            events[#events + 1] = { category = category, event = event, phase = phase, data = data }
+        end,
+    }
+    local function find_event(event, phase)
+        for _, record in ipairs(events) do
+            if record.event == event and record.phase == phase then
+                return record
+            end
+        end
+        return nil
+    end
+
+    PM.GetCategoryKey({ filterType = 42 })
+    PM.SavePosition("Diag", "f:42", { selectedIndex = 2, selectedData = { uniqueId = "diag-item" } })
+    PM.GetSavedPosition("Diag", "f:42")
+    PM.RestorePosition("Diag", "f:42", nil, { { uniqueId = "other" }, { uniqueId = "diag-item" } })
+    PM.ClearCategory("Diag", "f:42")
+
+    assert_equal("list.position.category_key", events[1] and events[1].event,
+        "PositionManager logs category-key resolution as a structured event")
+    local saveEvent = find_event("list.position", "saved")
+    local readEvent = find_event("list.position", "read")
+    local restoreEvent = find_event("list.position", "restored")
+    local clearEvent = find_event("list.position", "cleared")
+    assert_equal("saved", saveEvent and saveEvent.phase,
+        "PositionManager logs save phase")
+    assert_equal("read", readEvent and readEvent.phase,
+        "PositionManager logs saved-position reads")
+    assert_equal("restored", restoreEvent and restoreEvent.phase,
+        "PositionManager logs restore phase")
+    assert_equal(2, restoreEvent and restoreEvent.data and restoreEvent.data.targetIndex,
+        "PositionManager restore log includes target index")
+    assert_equal("cleared", clearEvent and clearEvent.phase,
+        "PositionManager logs clear phase")
+end
+
 -- ============================================================================
 -- RESULTS
 -- ============================================================================

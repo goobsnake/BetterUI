@@ -73,6 +73,24 @@ local function PushRing(entry)
     m_ring[m_ringIdx] = entry
 end
 
+local function RecentChronological()
+    local count = 0
+    for _, entry in pairs(m_ring) do
+        if entry then count = count + 1 end
+    end
+
+    local ordered = {}
+    if count == 0 then return ordered end
+
+    local startIdx = count < RING_SIZE and 1 or ((m_ringIdx % RING_SIZE) + 1)
+    for offset = 0, count - 1 do
+        local idx = ((startIdx + offset - 1) % RING_SIZE) + 1
+        local entry = m_ring[idx]
+        if entry then ordered[#ordered + 1] = entry end
+    end
+    return ordered
+end
+
 local function Now()
     local clock = G("GetGameTimeMilliseconds")
     return type(clock) == "function" and clock() or 0
@@ -111,13 +129,21 @@ local function OnSceneStateChanged(scene, oldState, newState)
     -- only the data table), because the 'debug' preset drops the data table at dispatch.
     -- from/to are human verbs (showing/shown/hiding/hidden), never raw state constants.
     local msg = "scene " .. name .. " " .. verb .. " (from " .. fromVerb .. ")"
+    local wasHidden = (SCENE_HIDDEN ~= nil and oldState == SCENE_HIDDEN)
     local data = {
         scene = name,
         from = fromVerb,
         to = verb,
-        wasPushed = (SCENE_HIDDEN ~= nil and oldState == SCENE_HIDDEN),
+        wasHidden = wasHidden,
+        -- Backward-compatible alias for existing log consumers.
+        wasPushed = wasHidden,
         cur = CurrentSceneName(),
     }
+    local W = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if W and type(W.DescribeActiveKeybinds) == "function" then
+        local ok, keybinds = pcall(W.DescribeActiveKeybinds)
+        if ok then data.keybinds = keybinds end
+    end
 
     -- Tier by settledness: SHOWN/HIDDEN are the milestones a user cares about (INFO --
     -- survive the 'info' preset); SHOWING/HIDING are intermediate flow (DEBUG). When the
@@ -153,6 +179,9 @@ function SceneLog.IsRegistered() return m_registered end
 ---@return table
 function SceneLog.GetRecent() return m_ring end
 
+---@return table ordered oldest -> newest
+function SceneLog.GetRecentChronological() return RecentChronological() end
+
 -- Register now if SCENE_MANAGER already exists (the common case at load); RuntimeSetup
 -- .Apply re-calls post-SavedVars as a belt-and-suspenders. Self-gating means the
 -- registration timing relative to logging on/off does not matter.
@@ -168,8 +197,9 @@ if type(SLASH) == "table" then
             tostring(CurrentSceneName()),
             (BETTERUI.Log and BETTERUI.Log.IsActive()) and "|c00ff00ON|r" or "off",
             tostring(m_registered)))
-        for i = 1, RING_SIZE do
-            local e = m_ring[i]
+        local recent = RecentChronological()
+        for i = 1, #recent do
+            local e = recent[i]
             if e then chat(string.format("  %s %s @%s", tostring(e.scene), tostring(e.verb), tostring(e.t))) end
         end
     end

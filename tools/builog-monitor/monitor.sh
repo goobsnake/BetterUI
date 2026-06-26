@@ -227,4 +227,8 @@ end=$(wc -l < "$LOG")
 echo "===== totals ====="
 echo "file lines: start=$start_lines end=$end (+$((end-start_lines)))"
 echo "[BUI]=$tb | non-BUI errors=$te | Id64=$ti | rate_limit dropped-records=$td | parse violations=$tp"
-echo "(0 non-BUI errors + 0 parse violations + 0 rate-limit dropped records = clean. Any non-zero -> notate above.)"
+if [ "$te" -eq 0 ] && [ "$tp" -eq 0 ] && [ "$td" -eq 0 ]; then
+  echo "status: clean (0 non-BUI errors, 0 parse violations, 0 rate-limit dropped records)"
+else
+  echo "status: NOT CLEAN - nonzero error/parse/drop totals above must be investigated"
+fi

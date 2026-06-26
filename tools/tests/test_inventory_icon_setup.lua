@@ -28,6 +28,14 @@ BETTERUI = {
     },
 }
 
+local warnings = {}
+BETTERUI.Log = {
+    CATEGORY = { LIST = "LIST" },
+    Warn = function(_, message, data)
+        warnings[#warnings + 1] = { message = message, data = data }
+    end,
+}
+
 local passed = 0
 local failed = 0
 
@@ -50,6 +58,10 @@ EQUIP_SLOT_RING2 = 3
 EQUIP_SLOT_TRINKET2 = 4
 EQUIP_SLOT_BACKUP_POISON = 5
 EQUIP_TYPE_INVALID = 99
+SLOT_TYPE_QUEST_ITEM = 101
+ZO_InventoryUtils_DoesNewItemMatchFilterType = function()
+    error("BETTERUI_IconSetup must not call native filter matching with shared row data")
+end
 
 dofile("Modules/Inventory/Lists/InventoryEntryFormatting.lua")
 
@@ -64,6 +76,9 @@ local function CreateStatusIndicator()
         SetHidden = function(self, hidden)
             self.hidden = hidden
         end,
+        IsHidden = function(self)
+            return self.hidden
+        end,
         SetTexture = function(self, texture)
             self.texture = texture
         end,
@@ -76,6 +91,9 @@ local function CreateEquippedIcon()
         texture = nil,
         SetHidden = function(self, hidden)
             self.hidden = hidden
+        end,
+        IsHidden = function(self)
+            return self.hidden
         end,
         SetTexture = function(self, texture)
             self.texture = texture
@@ -90,6 +108,7 @@ do
     local equippedIcon = CreateEquippedIcon()
     BETTERUI_IconSetup(statusIndicator, equippedIcon, nil)
     assert_eq(statusIndicator.clearCount, 1, "nil data clears the status indicator when present")
+    assert_eq(statusIndicator.hidden, true, "nil data hides the status indicator when present")
     assert_eq(equippedIcon.hidden, true, "nil data hides the equipped icon when present")
 end
 
@@ -125,6 +144,69 @@ do
         "status indicator still updates when equipped icon is missing")
     assert_eq(statusIndicator.hidden, false,
         "status indicator remains visible for new items when equipped icon is missing")
+end
+
+do
+    local statusIndicator = CreateStatusIndicator()
+    local equippedIcon = CreateEquippedIcon()
+    local ok = pcall(BETTERUI_IconSetup, statusIndicator, equippedIcon, {
+        dataSource = {
+            slotIndex = 10,
+            equipType = EQUIP_TYPE_INVALID,
+        },
+        brandNew = false,
+        enabled = true,
+    })
+    assert_true(ok, "shared non-quest rows do not call unsafe native quest filter helpers")
+end
+
+do
+    local statusIndicator = CreateStatusIndicator()
+    local equippedIcon = CreateEquippedIcon()
+    statusIndicator.hidden = false
+    statusIndicator.texture = "recycled_status"
+    equippedIcon.hidden = false
+    equippedIcon.texture = "recycled_equipped"
+    warnings = {}
+    local ok = pcall(BETTERUI_IconSetup, statusIndicator, equippedIcon, {
+        dataSource = {
+            questIndex = 42,
+            slotIndex = EQUIP_SLOT_BACKUP_MAIN,
+            equipType = 1,
+        },
+        enabled = true,
+        isQuestItem = true,
+        isEquippedInCurrentCategory = true,
+    })
+    assert_true(ok, "quest rows with stale equipped metadata do not raise an error")
+    assert_eq(equippedIcon.hidden, true,
+        "quest rows suppress equipped/quickslot-style icons even if stale metadata is present")
+    assert_eq(statusIndicator.hidden, true,
+        "quest rows suppress recycled status icons before they can display")
+    assert_eq(equippedIcon.texture, nil,
+        "quest rows do not assign an equipment texture")
+    assert_eq(warnings[1] and warnings[1].message, "quest item equipment icon suppressed",
+        "quest rows with impossible equipment metadata emit a monitor-visible warning")
+    assert_eq(warnings[2] and warnings[2].message, "quest item recycled status icon suppressed",
+        "quest rows with recycled status/equipment controls emit a monitor-visible warning")
+end
+
+do
+    local statusIndicator = CreateStatusIndicator()
+    local equippedIcon = CreateEquippedIcon()
+    statusIndicator.hidden = false
+    equippedIcon.hidden = false
+    warnings = {}
+    local ok = pcall(BETTERUI_IconSetup, statusIndicator, equippedIcon, {
+        dataSource = {
+            slotType = SLOT_TYPE_QUEST_ITEM,
+            uniqueId = "quest:7:1",
+        },
+        enabled = true,
+    })
+    assert_true(ok, "quest slot-type rows suppress recycled visuals without native filter matching")
+    assert_eq(statusIndicator.hidden, true, "quest slot-type rows hide recycled status icons")
+    assert_eq(equippedIcon.hidden, true, "quest slot-type rows hide recycled equipped icons")
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

@@ -431,13 +431,13 @@ function NativeStoreBridge.TakeOverScene(instance)
         end
     end
 
-    if SCENE_MANAGER and ZO_PreHook then
-        ZO_PreHook(SCENE_MANAGER, "Show", function(self, shownSceneName, ...)
-            if shownSceneName == "gamepad_store" and instance and instance.scene then
-                self.scenes["gamepad_store"] = instance.scene
-            end
-        end)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "Show", target = type(SCENE_MANAGER) }) end
+    NativeStoreBridge.AliasSceneToBetterUI(instance)
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "scene alias applied without hook", {
+            fn = "NativeStoreBridge.TakeOverScene",
+            sceneName = "gamepad_store",
+            hasInstanceScene = instance and instance.scene ~= nil,
+        })
     end
 end
 

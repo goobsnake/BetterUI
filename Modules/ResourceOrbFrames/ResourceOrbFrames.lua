@@ -36,6 +36,11 @@ local m_shieldBar = nil
 local m_experienceBar = nil
 local m_castBar = nil
 local m_mountStaminaBar = nil
+local m_traceLastActionSuppressionDepth = 0
+
+local LAST_ACTION_SUPPRESSED_EVENTS = {
+    ["resource_orbs.force_layout"] = true,
+}
 
 local function GetCurrentSceneName()
     if SCENE_MANAGER and SCENE_MANAGER.GetCurrentScene then
@@ -72,6 +77,14 @@ local function TraceROF(event, phase, data, category)
         return
     end
     data = data or {}
+    local updateLastAction = data.updateLastAction
+    data.updateLastAction = nil
+    local updatesLastAction = updateLastAction == true or (
+        updateLastAction == nil
+        and m_traceLastActionSuppressionDepth <= 0
+        and not LAST_ACTION_SUPPRESSED_EVENTS[event]
+    )
+    data.updatesLastAction = updatesLastAction
     data.module = data.module or "ResourceOrbFrames"
     data.feature = data.feature or "resource_orbs"
     data.scene = data.scene or GetCurrentSceneName()
@@ -83,25 +96,44 @@ local function TraceROF(event, phase, data, category)
     if data.inCombat == nil and type(IsUnitInCombat) == "function" then
         data.inCombat = IsUnitInCombat("player")
     end
-    if BETTERUI.Log.SetLastAction then
+    if updatesLastAction and BETTERUI.Log.SetLastAction then
         BETTERUI.Log.SetLastAction({ flow = event, message = event .. ":" .. phase })
     end
     local categories = BETTERUI.Log.CATEGORY or {}
     BETTERUI.Log.TraceEvent(category or categories.STATE, event, phase, data)
 end
 
+local function RunTraceWithoutLastAction(callback)
+    m_traceLastActionSuppressionDepth = m_traceLastActionSuppressionDepth + 1
+    local ok, err = pcall(callback)
+    m_traceLastActionSuppressionDepth = m_traceLastActionSuppressionDepth - 1
+    if not ok then
+        error(err)
+    end
+end
+
 local function GetControlTraceName(control)
     if not control then return nil end
-    if type(control.GetName) == "function" then
-        local ok, name = pcall(control.GetName, control)
+    local controlType = type(control)
+    if controlType ~= "table" and controlType ~= "userdata" then
+        return tostring(control)
+    end
+    local okGetName, getName = pcall(function() return control.GetName end)
+    if okGetName and type(getName) == "function" then
+        local ok, name = pcall(getName, control)
         if ok and name ~= nil then return tostring(name) end
     end
-    if control.name ~= nil then return tostring(control.name) end
+    local okName, name = pcall(function() return control.name end)
+    if okName and name ~= nil then return tostring(name) end
     return tostring(control)
 end
 
 local function CallControlNumber(control, methodName)
-    local method = control and control[methodName] or nil
+    if not control then return nil end
+    local controlType = type(control)
+    if controlType ~= "table" and controlType ~= "userdata" then return nil end
+    local okMethod, method = pcall(function() return control[methodName] end)
+    if not okMethod then return nil end
     if type(method) ~= "function" then return nil end
     local ok, value = pcall(method, control)
     if ok then return value end
@@ -112,9 +144,14 @@ local function DescribeControlForTrace(control, label)
     if not control then
         return tostring(label) .. ":missing"
     end
+    local controlType = type(control)
+    if controlType ~= "table" and controlType ~= "userdata" then
+        return tostring(label) .. "=" .. tostring(control)
+    end
     local parts = { tostring(label) .. "=" .. tostring(GetControlTraceName(control)) }
-    if type(control.IsHidden) == "function" then
-        local ok, hidden = pcall(control.IsHidden, control)
+    local okIsHidden, isHidden = pcall(function() return control.IsHidden end)
+    if okIsHidden and type(isHidden) == "function" then
+        local ok, hidden = pcall(isHidden, control)
         if ok then parts[#parts + 1] = "hidden:" .. tostring(hidden) end
     end
     local left = CallControlNumber(control, "GetLeft")
@@ -127,12 +164,20 @@ local function DescribeControlForTrace(control, label)
     if width ~= nil or height ~= nil then
         parts[#parts + 1] = "wh:" .. tostring(width) .. "," .. tostring(height)
     end
-    if type(control.GetScale) == "function" then
-        local ok, scale = pcall(control.GetScale, control)
+    local okGetScale, getScale = pcall(function() return control.GetScale end)
+    if okGetScale and type(getScale) == "function" then
+        local ok, scale = pcall(getScale, control)
         if ok then parts[#parts + 1] = "scale:" .. tostring(scale) end
     end
-    if type(control.GetAnchor) == "function" then
-        local ok, point, relativeTo, relativePoint, offsetX, offsetY = pcall(control.GetAnchor, control, 0)
+    local okGetAnchor, getAnchor = pcall(function() return control.GetAnchor end)
+    if okGetAnchor and type(getAnchor) == "function" then
+        local ok, first, second, third, fourth, fifth, sixth = pcall(getAnchor, control, 0)
+        local point, relativeTo, relativePoint, offsetX, offsetY
+        if ok and type(first) == "boolean" then
+            point, relativeTo, relativePoint, offsetX, offsetY = second, third, fourth, fifth, sixth
+        elseif ok then
+            point, relativeTo, relativePoint, offsetX, offsetY = first, second, third, fourth, fifth
+        end
         if ok and point ~= nil then
             parts[#parts + 1] = "anchor:" .. tostring(point) .. ">" .. tostring(GetControlTraceName(relativeTo)) ..
                 ":" .. tostring(relativePoint) .. ":" .. tostring(offsetX) .. "," .. tostring(offsetY)
@@ -505,23 +550,25 @@ local function RegisterDynamicEvents(control)
     })    
     -- Layout force update (skip during weapon swap animation to prevent orb shifting)
     CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
-        if SkipDisabledCallback("ResourceOrbFrames.BetterUI_ForceLayoutUpdate", "resource_orbs.force_layout") then return end
-        local isAnimating = SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating()
-        TraceROF("resource_orbs.force_layout", isAnimating and "skipped" or "received", {
-            fn = "ResourceOrbFrames.BetterUI_ForceLayoutUpdate",
-            reason = isAnimating and "weaponSwapAnimating" or nil,
-            hasRefreshCombatIndicators = Events.RefreshCombatIndicators ~= nil,
-        })
-        if not isAnimating then
-            ApplyFullLayout()
-            if Events.RefreshCombatIndicators then
-                Events.RefreshCombatIndicators(control)
-            end
-            TraceROF("resource_orbs.force_layout", "end", {
+        RunTraceWithoutLastAction(function()
+            if SkipDisabledCallback("ResourceOrbFrames.BetterUI_ForceLayoutUpdate", "resource_orbs.force_layout") then return end
+            local isAnimating = SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating()
+            TraceROF("resource_orbs.force_layout", isAnimating and "skipped" or "received", {
                 fn = "ResourceOrbFrames.BetterUI_ForceLayoutUpdate",
-                refreshedCombatIndicators = Events.RefreshCombatIndicators ~= nil,
+                reason = isAnimating and "weaponSwapAnimating" or nil,
+                hasRefreshCombatIndicators = Events.RefreshCombatIndicators ~= nil,
             })
-        end
+            if not isAnimating then
+                ApplyFullLayout()
+                if Events.RefreshCombatIndicators then
+                    Events.RefreshCombatIndicators(control)
+                end
+                TraceROF("resource_orbs.force_layout", "end", {
+                    fn = "ResourceOrbFrames.BetterUI_ForceLayoutUpdate",
+                    refreshedCombatIndicators = Events.RefreshCombatIndicators ~= nil,
+                })
+            end
+        end)
     end)
 
     -- Gamepad switch (dynamic re-skin instead of ReloadUI)

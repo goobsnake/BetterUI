@@ -1,6 +1,59 @@
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Keybinds = BETTERUI.CIM.Keybinds or {}
 
+local actionContextFilterWarnings = {}
+
+local function SafeDoesNewItemMatchFilterType(itemData, filterType, caller)
+    if not itemData or filterType == nil or type(ZO_InventoryUtils_DoesNewItemMatchFilterType) ~= "function" then
+        return false
+    end
+
+    local ok, matches = pcall(ZO_InventoryUtils_DoesNewItemMatchFilterType, itemData, filterType)
+    if ok then
+        return matches == true
+    end
+
+    local warningKey = table.concat({ tostring(caller or "unknown"), tostring(filterType), tostring(matches) }, "|")
+    if not actionContextFilterWarnings[warningKey] and BETTERUI.Log and BETTERUI.Log.Warn then
+        actionContextFilterWarnings[warningKey] = true
+        local L = BETTERUI.Log
+        local categories = L.CATEGORY or {}
+        local itemForLog = type(itemData) == "table" and (itemData.dataSource or itemData) or itemData
+        L.Warn(categories.KEYBIND, "keybind action filter failed", {
+            fn = caller or "ActionContext",
+            filterType = filterType,
+            error = tostring(matches),
+            item = L.DescribeItem and L.DescribeItem(itemForLog, "target") or nil,
+        })
+    end
+
+    return false
+end
+
+local function IsQuestTarget(target)
+    if type(target) ~= "table" then
+        return false
+    end
+
+    local dataSource = target.dataSource or target
+    if type(dataSource) ~= "table" then
+        return false
+    end
+
+    local function IsQuestUniqueId(uniqueId)
+        return type(uniqueId) == "string" and uniqueId:find("^quest:") ~= nil
+    end
+
+    return target.isQuestItem == true
+        or dataSource.isQuestItem == true
+        or dataSource.questIndex ~= nil
+        or (SLOT_TYPE_QUEST_ITEM ~= nil and target.slotType == SLOT_TYPE_QUEST_ITEM)
+        or (SLOT_TYPE_QUEST_ITEM ~= nil and dataSource.slotType == SLOT_TYPE_QUEST_ITEM)
+        or IsQuestUniqueId(target.uniqueId)
+        or IsQuestUniqueId(dataSource.uniqueId)
+        or SafeDoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST, "ActionContext.IsQuestTarget")
+end
+
 --- Shared quickslot eligibility check for inventory slot data.
 --- Re-exported by Modules/Inventory/Keybinds/InventoryKeybinds.lua as
 --- BETTERUI.Inventory.Keybinds.IsQuickslottable (CIM loads before Inventory).
@@ -20,10 +73,10 @@ function BETTERUI.CIM.IsQuickslottable(slotData)
         and FindActionSlotMatchingItem(bagId, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
         result = true
     elseif ZO_InventoryUtils_DoesNewItemMatchFilterType then
-        if ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUICKSLOT) then
+        if SafeDoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUICKSLOT, "ActionContext.IsQuickslottable") then
             result = true
         elseif ITEMFILTERTYPE_QUEST_QUICKSLOT
-            and ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUEST_QUICKSLOT) then
+            and SafeDoesNewItemMatchFilterType(slotData, ITEMFILTERTYPE_QUEST_QUICKSLOT, "ActionContext.IsQuickslottable") then
             result = true
         end
     elseif IsValidItemForSlot and IsValidItemForSlot(bagId, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
@@ -143,7 +196,7 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     end
 
     -- Quest item check
-    ctx.isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
+    ctx.isQuestItem = IsQuestTarget(target)
 
     -- Quickslot check
     ctx.isQuickslottable = BETTERUI.CIM.IsQuickslottable(target)
@@ -161,7 +214,9 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     ctx.isUsableQuest = (ctx.isQuestItem == true and ctx.meetsUsage == true) or false
 
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.KEYBIND, "keybind: action context resolved", {actionMode = ctx.actionMode, hasTarget = ctx.target ~= nil})
+        local L = BETTERUI.Log
+        local categories = L.CATEGORY or {}
+        L.Debug(categories.KEYBIND, "keybind: action context resolved", {actionMode = ctx.actionMode, hasTarget = ctx.target ~= nil})
     end
     return ctx
 end
@@ -169,8 +224,10 @@ end
 function BETTERUI.CIM.Keybinds.InvalidateActionContext()
     cachedFrame = -1
     contextCacheByReceiver = setmetatable({}, { __mode = "k" })
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "keybind: action context invalidated")
+    if BETTERUI.Log and type(BETTERUI.Log.Trace) == "function" then
+        local L = BETTERUI.Log
+        local categories = L.CATEGORY or {}
+        L.Trace(categories.KEYBIND, "keybind: action context invalidated")
     end
 end
 

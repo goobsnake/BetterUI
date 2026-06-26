@@ -16,6 +16,14 @@ local function assert_true(value, message)
     assert_eq(value, true, message)
 end
 
+local function read_file(path)
+    local handle = io.open(path, "r")
+    if not handle then return "" end
+    local content = handle:read("*a") or ""
+    handle:close()
+    return content
+end
+
 print("test_vendor_runtime_init_source")
 
 BETTERUI_VENDOR_SCENE_NAME = "BETTERUI_VENDOR"
@@ -74,6 +82,13 @@ assert_true(type(NativeStoreBridge.TakeOverScene) == "function", "native store b
 assert_true(type(NativeStoreBridge.EnsureComponents) == "function", "native store bridge exposes component reconciliation")
 assert_true(type(NativeStoreBridge.ResolveTargetMode) == "function", "native store bridge exposes target mode resolution")
 assert_true(type(NativeStoreBridge.ScheduleOpenStoreSync) == "function", "native store bridge exposes deferred sync")
+do
+    local nativeStoreBridgeSource = read_file("Modules/Vendor/Core/Bridge/VendorNativeStoreBridge.lua")
+    assert_true(nativeStoreBridgeSource:find("ZO_PreHook%(SCENE_MANAGER", 1, false) == nil,
+        "native store bridge does not hook SCENE_MANAGER")
+    assert_true(nativeStoreBridgeSource:find("scene alias applied without hook", 1, true) ~= nil,
+        "native store bridge logs hook-free scene alias takeover")
+end
 
 assert_true(type(BootstrapRuntime.InitializeList) == "function", "bootstrap runtime exposes list initialization")
 assert_true(type(BootstrapRuntime.InitializeSearch) == "function", "bootstrap runtime exposes search initialization")

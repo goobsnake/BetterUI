@@ -38,6 +38,7 @@ function Utils.ClampTextSize(value, minValue, maxValue, fallback)
 end
 
 Controls.Find = BETTERUI.ControlUtils.FindControl
+Controls.FindOptional = BETTERUI.ControlUtils.FindOptionalControl
 
 --- Module settings snapshot accessor for brevity in ResourceOrbFrames code.
 ---@return table settings Detached module settings snapshot

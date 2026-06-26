@@ -276,7 +276,7 @@ local function ApplySelectionVisualState(control, data, selected)
         control.highlight:SetHidden(true)
     end
 
-    BETTERUI.CIM.SelectionHighlight.Setup(control, selected)
+    BETTERUI.CIM.SelectionHighlight.Setup(control, selected, data)
 
     local selectionIndicator = control:GetNamedChild("SelectionIndicator")
     local selectionBar = control:GetNamedChild("SelectionBar")

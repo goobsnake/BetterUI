@@ -172,6 +172,49 @@ local function ResolveSettingDefault(moduleName, key, fallback)
     return fallback
 end
 
+local function TraceTooltipFeatureSetting(moduleName, key, oldValue, newValue, source)
+    if moduleName ~= "CIM" then return end
+    if key ~= "enableTooltipEnhancements" and key ~= "tooltipSize" and key ~= "rhScrollSpeed" then return end
+
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then return end
+
+    local effectiveOldValue = oldValue
+    if effectiveOldValue == nil then
+        effectiveOldValue = ResolveSettingDefault(moduleName, key, nil)
+    end
+
+    local payload = {
+        module = moduleName,
+        key = tostring(key),
+        source = source or "SetSetting",
+        oldValue = DescribeSettingsValue(effectiveOldValue),
+        newValue = DescribeSettingsValue(newValue),
+        changed = effectiveOldValue ~= newValue,
+    }
+
+    if key == "enableTooltipEnhancements" then
+        payload.feature = "tooltipEnhancements"
+        payload.oldEnabled = effectiveOldValue ~= false
+        payload.enabled = newValue ~= false
+        payload.effects = newValue ~= false
+            and "enhancedFonts,equippedRefresh,duplicateCleanup"
+            or "stockFonts,stockRelayout,enhancementCleanup"
+    elseif key == "tooltipSize" then
+        payload.feature = "tooltipFontSize"
+        payload.size = tonumber(newValue)
+        payload.effects = "tooltipFontScale"
+    elseif key == "rhScrollSpeed" then
+        payload.feature = "tooltipScrollSpeed"
+        payload.speed = tonumber(newValue)
+        payload.effects = "tooltipMouseWheel"
+    end
+
+    local categories = L.CATEGORY or {}
+    local levels = L.LEVEL or {}
+    L.TraceEvent(categories.GENERAL or categories.SETTINGS, "general_interface.tooltip_feature", "setting_changed", payload, levels.INFO)
+end
+
 ---@overload fun(moduleName: "Inventory", key: BetterUIInventorySettingKey, default: BetterUIInventorySettingValue|nil): BetterUIInventorySettingValue|nil
 ---@overload fun(moduleName: "Banking", key: BetterUIBankingSettingKey, default: BetterUIBankingSettingValue|nil): BetterUIBankingSettingValue|nil
 ---@overload fun(moduleName: "Vendor", key: BetterUIVendorSettingKey, default: BetterUIVendorSettingValue|nil): BetterUIVendorSettingValue|nil
@@ -261,6 +304,7 @@ function BETTERUI.SetSetting(moduleName, key, value)
         oldValue = DescribeSettingsValue(oldValue),
         newValue = DescribeSettingsValue(settings[key]),
     })
+    TraceTooltipFeatureSetting(moduleName, key, oldValue, settings[key], "SetSetting")
     return true
 end
 

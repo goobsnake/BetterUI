@@ -201,11 +201,13 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 
 ---@class BetterUIHeaderSortKeybindContract
 ---@field mainDescriptor table|nil Owner keybind descriptor restored after header mode exits
+---@field ownedDescriptors table[]|nil Owner keybind descriptors that must be suspended while header mode owns navigation
 
 ---@class BetterUIHeaderSortNavigationContract
 ---@field deactivate fun(owner: table)|nil Callback that suspends owner navigation before header mode
 ---@field reactivate fun(owner: table)|nil Callback that restores owner navigation after header mode
 ---@field suspendTabBar boolean|nil When true, use the shared tab-bar suspend/restore behavior
+---@field suspendList boolean|nil When true, deactivate/reactivate the item list during header-sort mode
 
 ---@class BetterUIHeaderSortCallbackContract
 ---@field onSortChanged fun(columnKey: string, direction: HeaderSortState, sortFn: function|nil)|nil
@@ -233,6 +235,9 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field columns BetterUIHeaderSortColumnDef[]|nil Column descriptors
 ---@field callbacks BetterUIHeaderSortCallbackContract
 ---@field keybinds BetterUIHeaderSortKeybindContract
+---@field suspendedList table|nil List suspended while header-sort owns keybinds
+---@field reactivateListAfterHeaderSort boolean|nil Whether suspendedList should reactivate on exit
+---@field suspendedKeybindGroups table[]|nil Owner keybind groups removed while header-sort owns navigation
 ---@field navigation BetterUIHeaderSortNavigationContract
 ---@field createControllerFn fun(owner: table, list: table|nil): table|nil
 ---@field autoEnterOnListStart boolean

@@ -138,6 +138,12 @@ local result8 = BETTERUI.ControlUtils.FindControl(bottomParent, "Label")
 assert_equal(deepCtrl, result8, "Finds via grandparent name concatenation")
 _G["GrandParentLabel"] = nil
 
+-- Test 9: FindOptionalControl returns nil for absent optional controls
+print("\nTest: FindOptionalControl returns nil for missing optional control")
+BETTERUI.ControlUtils.InvalidateControlCache()
+local result9 = BETTERUI.ControlUtils.FindOptionalControl(emptyParent, "Optional")
+assert_nil(result9, "Returns nil for optional miss")
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================

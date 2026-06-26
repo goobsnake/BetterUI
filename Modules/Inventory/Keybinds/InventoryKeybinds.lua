@@ -151,13 +151,13 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             disabledDuringSceneHiding = true,
             visible = function()
-                return not self:IsBatchProcessing()
-                    and not InventoryKeybinds.IsBagUpgradeCategorySelected(self)
+                return InventoryKeybinds.CanShowCraftBagSwitch(self)
             end,
             callback = function()
                 return RunInventoryKeybind(self, "UI_SHORTCUT_RIGHT_STICK", "switch_inventory_craftbag", function()
-                    if self:IsBatchProcessing() then
-                        return false, "batchProcessing"
+                    local visible, reason = InventoryKeybinds.CanShowCraftBagSwitch(self)
+                    if not visible then
+                        return false, reason or "hidden"
                     end
                     self:Switch()
                     return true, nil, "switch"

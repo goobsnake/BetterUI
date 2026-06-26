@@ -100,11 +100,63 @@ local function safeToken(s)
     return (str:gsub("%s+", "_"):gsub("|", "/"))
 end
 
+local function viewMatchesScene(view, scene)
+    if not view then return false end
+    if type(scene) ~= "string" or scene == "" then return true end
+
+    if view == "inventory" or view:sub(1, 10) == "inventory." then
+        return scene == "gamepad_inventory_root"
+    end
+
+    if view:sub(1, 8) == "banking." then
+        return scene == "gamepad_banking"
+    end
+
+    if view:find("%.") then
+        return false
+    end
+
+    return true
+end
+
+local function currentViewForScene(scene)
+    if not currentView then return nil end
+    if viewMatchesScene(currentView, scene) then return currentView end
+    currentView = nil
+    return nil
+end
+
+local function describeActiveKeybinds()
+    local strip = G("KEYBIND_STRIP")
+    if not (strip and type(strip.GetOrderedNarratableKeybindButtonInfo) == "function") then return nil end
+
+    local ok, keybinds = pcall(function() return strip:GetOrderedNarratableKeybindButtonInfo() end)
+    if not ok then return "error" end
+    if type(keybinds) ~= "table" then return "n=0[]" end
+
+    local parts = {}
+    for i = 1, #keybinds do
+        if #parts >= 8 then break end
+        local entry = keybinds[i]
+        if type(entry) == "table" then
+            local keybindName = safeToken(entry.keybindName or "?"):sub(1, 18)
+            local name = safeToken(entry.name or "?"):sub(1, 28)
+            local enabled = (entry.enabled == false) and "0" or "1"
+            parts[#parts + 1] = keybindName .. ":" .. name .. ":e" .. enabled
+        else
+            parts[#parts + 1] = safeToken(type(entry)):sub(1, 18)
+        end
+    end
+
+    return string.format("n=%d[%s]", #keybinds, table.concat(parts, ";"))
+end
+
 local function contextSuffix(_level, _category)
     local parts = {}
     local scene = currentSceneName()
     if scene then parts[#parts + 1] = "scene=" .. safeToken(scene) end
-    if currentView then parts[#parts + 1] = "view=" .. safeToken(currentView) end
+    local view = currentViewForScene(scene)
+    if view then parts[#parts + 1] = "view=" .. safeToken(view) end
     local L = log()
     local la = L and L.GetLastAction and L.GetLastAction()
     if type(la) == "table" then
@@ -187,6 +239,9 @@ function Watch.Snapshot()
     if not L or not L.Debug then return end
     if L.EnabledFor and not L.EnabledFor(L.LEVEL.DEBUG, L.CATEGORY.STATE) then return end
     local data = { scene = currentSceneName() or "<none>", heartbeatMs = snapshotIntervalMs() }
+    local view = currentViewForScene(data.scene)
+    if view then data.view = view end
+    data.keybinds = describeActiveKeybinds()
     -- Surface the file-sink drop count so an AI tailing the log can SEE when a burst shed
     -- records (i.e. it may have missed context) straight from the heartbeat.
     local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
@@ -270,6 +325,7 @@ end
 
 function Watch.IsActive() return active end
 function Watch.SetView(label) currentView = (type(label) == "string" and label ~= "") and label or nil end
+function Watch.DescribeActiveKeybinds() return describeActiveKeybinds() end
 
 --- Enter AI enrichment: register the context provider, apply mutes, emit the
 --- preamble, and start the snapshot heartbeat. Idempotent.

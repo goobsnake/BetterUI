@@ -109,7 +109,7 @@ function BETTERUI.TradingHouse.THEntrySetup(control, data, selected, reselecting
     end
 
     -- Apply gradient selection bar
-    BETTERUI.CIM.SelectionHighlight.Setup(control, selected)
+    BETTERUI.CIM.SelectionHighlight.Setup(control, selected, data)
 
     -- Cooldown and status icons
     if BETTERUI_CooldownSetup then

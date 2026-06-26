@@ -85,6 +85,56 @@ local function AddTargetFields(data, target)
     return data
 end
 
+local questActionFilterWarnings = {}
+
+local function IsQuestActionTarget(target, caller)
+    if type(target) ~= "table" then
+        return false
+    end
+
+    local dataSource = target.dataSource or target
+    if type(dataSource) ~= "table" then
+        return false
+    end
+
+    local function IsQuestUniqueId(uniqueId)
+        return type(uniqueId) == "string" and uniqueId:find("^quest:") ~= nil
+    end
+
+    if target.isQuestItem == true
+        or dataSource.isQuestItem == true
+        or dataSource.questIndex ~= nil
+        or (SLOT_TYPE_QUEST_ITEM ~= nil and target.slotType == SLOT_TYPE_QUEST_ITEM)
+        or (SLOT_TYPE_QUEST_ITEM ~= nil and dataSource.slotType == SLOT_TYPE_QUEST_ITEM)
+        or IsQuestUniqueId(target.uniqueId)
+        or IsQuestUniqueId(dataSource.uniqueId) then
+        return true
+    end
+
+    if type(ZO_InventoryUtils_DoesNewItemMatchFilterType) ~= "function" or ITEMFILTERTYPE_QUEST == nil then
+        return false
+    end
+
+    local ok, matches = pcall(ZO_InventoryUtils_DoesNewItemMatchFilterType, target, ITEMFILTERTYPE_QUEST)
+    if ok then
+        return matches == true
+    end
+
+    local warningKey = table.concat({ tostring(caller or "unknown"), tostring(matches) }, "|")
+    if not questActionFilterWarnings[warningKey] and BETTERUI.Log and BETTERUI.Log.Warn then
+        questActionFilterWarnings[warningKey] = true
+        local L = BETTERUI.Log
+        local categories = L.CATEGORY or {}
+        L.Warn(categories.ACTION, "inventory quest action filter failed", {
+            fn = caller or "ItemActionHandlers.IsQuestActionTarget",
+            error = tostring(matches),
+            item = L.DescribeItem and L.DescribeItem(dataSource, "target") or nil,
+        })
+    end
+
+    return false
+end
+
 local function ResolveActionText(row)
     if not row then return nil end
     if type(row.GetText) == "function" then
@@ -340,11 +390,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
 
     local isQuestItem = false
     if target then
-        if ZO_InventoryUtils_DoesNewItemMatchFilterType then
-            isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
-        else
-            isQuestItem = (target.questIndex ~= nil) or (target.toolIndex ~= nil)
-        end
+        isQuestItem = IsQuestActionTarget(target, "ItemActionHandlers.OnSetup")
     end
 
     local canDestroyTarget = target and CanDestroyTargetData(target) or false
@@ -1102,8 +1148,7 @@ function ActionHandlers.OnConfirm(self, dialog)
         if targetData then
             local released = ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             local ds = targetData.dataSource or targetData
-            local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType and
-                ZO_InventoryUtils_DoesNewItemMatchFilterType(targetData, ITEMFILTERTYPE_QUEST)
+            local isQuestItem = IsQuestActionTarget(targetData, "ItemActionHandlers.OnConfirm")
             if isQuestItem and ds.toolIndex then
                 UseQuestTool(ds.questIndex, ds.toolIndex)
                 TraceInventoryConfirmBranch("after", "use_or_special", targetData, {

@@ -89,6 +89,12 @@ check(type(capturedExtraSkip) == "table" and tostring(capturedExtraSkip[1]):find
 CU.FindControl(parent, "Missing", "FooterSetup")
 check(#cap.warns == 1, "repeated miss does not re-warn (deduped per key)")
 
+-- Optional miss -> nil, no WARN.
+local warnsBeforeOptional = #cap.warns
+local optional = CU.FindOptionalControl(parent, "OptionalAdornment", "SkinSetup")
+check(optional == nil, "FindOptionalControl returns nil for a missing optional control")
+check(#cap.warns == warnsBeforeOptional, "FindOptionalControl miss does not warn")
+
 -- InvalidateControlCache clears the dedupe so a new layout re-reports.
 CU.InvalidateControlCache()
 CU.FindControl(parent, "Missing", "FooterSetup")

@@ -132,6 +132,124 @@ local function GetCurrentTarget(self)
     return nil
 end
 
+local function GetCurrentSceneName()
+    local sceneManager = rawget(_G, "SCENE_MANAGER")
+    if sceneManager and sceneManager.GetCurrentSceneName then
+        local ok, sceneName = pcall(sceneManager.GetCurrentSceneName, sceneManager)
+        if ok then
+            return sceneName
+        end
+    end
+    return nil
+end
+
+local function IsQuestTarget(target)
+    if type(target) ~= "table" then
+        return false
+    end
+    local dataSource = target and (target.dataSource or target) or nil
+    if type(dataSource) ~= "table" then
+        return false
+    end
+
+    if target.isQuestItem == true
+        or dataSource.isQuestItem == true
+        or dataSource.questIndex ~= nil
+        or dataSource.slotType == SLOT_TYPE_QUEST_ITEM
+        or target.slotType == SLOT_TYPE_QUEST_ITEM then
+        return true
+    end
+
+    local uniqueId = dataSource.uniqueId or target.uniqueId
+    return type(uniqueId) == "string" and uniqueId:find("^quest:") ~= nil
+end
+
+local function DescribeKeybindTarget(target)
+    local L = BETTERUI.Log
+    if L and L.DescribeItem and target then
+        return L.DescribeItem(target.dataSource or target, "target")
+    end
+    return nil
+end
+
+local function TraceCraftBagSwitchVisibility(self, visible, reason, target)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then
+        return
+    end
+
+    local sceneName = GetCurrentSceneName()
+    local uniqueId = target and (target.uniqueId or (target.dataSource and target.dataSource.uniqueId)) or nil
+    local traceKey = table.concat({
+        tostring(visible == true),
+        tostring(reason or ""),
+        tostring(sceneName or ""),
+        tostring(self and self.actionMode or ""),
+        tostring(uniqueId or ""),
+    }, "|")
+    if self and self._betteruiCraftBagSwitchVisibilityTraceKey == traceKey then
+        return
+    end
+    if self then
+        self._betteruiCraftBagSwitchVisibilityTraceKey = traceKey
+    end
+
+    local data = {
+        visible = visible == true,
+        reason = reason,
+        scene = sceneName,
+        actionMode = self and self.actionMode,
+        target = DescribeKeybindTarget(target),
+    }
+
+    if visible then
+        L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.craft_bag_switch_keybind", "visible", data)
+    elseif reason == "questTarget" or reason == "sceneMismatch" then
+        L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.craft_bag_switch_keybind", "blocked", data)
+    else
+        L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.craft_bag_switch_keybind", "hidden", data)
+    end
+end
+
+local function ResolveQuestIndex(target)
+    local dataSource = target and (target.dataSource or target) or nil
+    return dataSource and dataSource.questIndex or nil
+end
+
+local function OpenQuestJournalForTarget(target, source)
+    local questIndex = ResolveQuestIndex(target)
+    local questJournal = SYSTEMS and SYSTEMS.GetObject and SYSTEMS:GetObject("questJournal") or nil
+    local L = BETTERUI.Log
+    local data = {
+        source = source,
+        questIndex = questIndex,
+        hasJournal = questJournal ~= nil,
+        target = DescribeKeybindTarget(target),
+    }
+
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "inventory.show_quest", "before", data, L.LEVEL.INFO)
+    end
+
+    if questJournal and questJournal.OpenQuestJournalToQuest and questIndex then
+        questJournal:OpenQuestJournalToQuest(questIndex)
+        if L and L.TraceEvent then
+            data.dispatched = true
+            L.TraceEvent(L.CATEGORY.ACTION, "inventory.show_quest", "after", data, L.LEVEL.INFO)
+        end
+        return true
+    end
+
+    local reason = not questJournal and "missingJournal" or "missingQuestIndex"
+    data.reason = reason
+    if L and L.Warn then
+        L.Warn(L.CATEGORY.ACTION, "show quest in journal blocked", data)
+    elseif L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.ACTION, "inventory.show_quest", "blocked", data, L.LEVEL.INFO)
+    end
+    return false, reason
+end
+
 --- A usable item on use-cooldown (e.g. a just-opened container) temporarily
 --- loses its "Use" slot action, letting the next action (often "Mark as Junk")
 --- float to primary. Pin the primary to "Use" while the cooldown runs so
@@ -193,8 +311,7 @@ local function ExecuteTargetUse(target)
     end
 
     local dataSource = target.dataSource or target
-    local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType
-        and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
+    local isQuestItem = IsQuestTarget(target)
 
     if isQuestItem and dataSource.toolIndex then
         UseQuestTool(dataSource.questIndex, dataSource.toolIndex)
@@ -277,6 +394,51 @@ end
 InventoryKeybinds.IsBagUpgradeCategorySelected = IsBagUpgradeCategorySelected
 
 ---@param self table Inventory class instance
+---@return boolean visible Whether the inventory/craft-bag switch keybind is valid now
+---@return string|nil reason Hidden reason for diagnostics
+function InventoryKeybinds.CanShowCraftBagSwitch(self)
+    if not self then
+        return false, "missingInventory"
+    end
+
+    if self:IsBatchProcessing() then
+        return false, "batchProcessing"
+    end
+
+    if self.actionMode ~= InventoryConst.ITEM_LIST_ACTION_MODE
+        and self.actionMode ~= InventoryConst.CRAFT_BAG_ACTION_MODE then
+        TraceCraftBagSwitchVisibility(self, false, "actionMode", nil)
+        return false, "actionMode"
+    end
+
+    if IsBagUpgradeCategorySelected(self) then
+        TraceCraftBagSwitchVisibility(self, false, "bagUpgrade", nil)
+        return false, "bagUpgrade"
+    end
+
+    local sceneName = GetCurrentSceneName()
+    if sceneName and sceneName ~= "gamepad_inventory_root" then
+        TraceCraftBagSwitchVisibility(self, false, "sceneMismatch", nil)
+        return false, "sceneMismatch"
+    end
+
+    local currentList = self.GetCurrentList and self:GetCurrentList() or nil
+    if currentList ~= self.itemList and currentList ~= self.craftBagList then
+        TraceCraftBagSwitchVisibility(self, false, "listMismatch", nil)
+        return false, "listMismatch"
+    end
+
+    local target = GetCurrentTarget(self)
+    if self.actionMode == InventoryConst.ITEM_LIST_ACTION_MODE and IsQuestTarget(target) then
+        TraceCraftBagSwitchVisibility(self, false, "questTarget", target)
+        return false, "questTarget"
+    end
+
+    TraceCraftBagSwitchVisibility(self, true, nil, target)
+    return true, nil
+end
+
+---@param self table Inventory class instance
 ---@return string name Localized keybind label for primary action
 function InventoryKeybinds.GetPrimaryKeybindName(self)
     if self.actionMode ~= InventoryConst.ITEM_LIST_ACTION_MODE
@@ -291,7 +453,7 @@ function InventoryKeybinds.GetPrimaryKeybindName(self)
     local target = GetCurrentTarget(self)
 
     if self.multiSelectManager and self.multiSelectManager:IsActive() then
-        if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
+        if target and IsQuestTarget(target) then
             return ""
         end
         local multiSelectActionName = ResolveMultiSelectActionName(self, target, false, false)
@@ -354,7 +516,7 @@ function InventoryKeybinds.IsPrimaryKeybindVisible(self)
         if not target and self.itemList then
             target = self.itemList.selectedData
         end
-        if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
+        if target and IsQuestTarget(target) then
             return false
         end
         return true
@@ -527,6 +689,12 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
             or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_SKILL_RESPEC"))
             or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC")) then
             ExecuteTargetUse(currentTarget)
+        elseif actionName == GetString(rawget(_G, "SI_ITEM_ACTION_SHOW_QUEST")) then
+            local opened, reason = OpenQuestJournalForTarget(currentTarget, "primary_keybind")
+            if opened then
+                return true, nil, "showQuest"
+            end
+            return false, reason, "showQuest"
         elseif actionName == GetString(rawget(_G, "SI_ITEM_ACTION_PLACE_FURNITURE")) then
             local ds = currentTarget.dataSource or currentTarget
             local bag, slot = ZO_Inventory_GetBagAndIndex(ds)

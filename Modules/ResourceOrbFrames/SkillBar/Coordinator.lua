@@ -16,6 +16,7 @@ local m_swapTimeline = nil
 
 -- Helpers
 local FindControl = BETTERUI.ControlUtils.FindControl
+local FindOptionalControl = BETTERUI.ControlUtils.FindOptionalControl
 
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
@@ -151,7 +152,7 @@ local function ApplyActionBarSkin(rootFrame, layout)
     SkillBar.UpdateBackBarLayout(rootFrame)
     SkillBar.SetupBackBarTooltips(rootFrame)
 
-    local indicator = FindControl(rootFrame, 'ActiveBarIndicator')
+    local indicator = FindOptionalControl(rootFrame, 'ActiveBarIndicator', 'ApplyActionBarSkin')
     if indicator then indicator:SetHidden(true) end
     TraceCoordinator("resource_orbs.skill_bar_skin", "end", {
         fn = "ApplyActionBarSkin",

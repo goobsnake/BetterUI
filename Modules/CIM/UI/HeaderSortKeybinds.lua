@@ -10,6 +10,7 @@ if not BETTERUI.CIM.UI then BETTERUI.CIM.UI = {} end
 -- Deferred reference: resolved on first use rather than at parse time,
 -- removing the hard dependency on load order between Controller and Keybinds.
 local SORT_DIRECTION
+local AddOwnershipPayload
 
 local function EnsureControllerReady()
     if SORT_DIRECTION then return true end
@@ -39,16 +40,159 @@ local function TraceHeaderSortKeybind(controller, action, phase, data)
             data.direction = direction
         end
     end
+    if AddOwnershipPayload then
+        AddOwnershipPayload(controller, data)
+    end
     L.TraceEvent(L.CATEGORY.SORT, "sort.header_keybind", phase, data)
 end
 
-local function IsHeaderSortKeybindPresent(controller)
-    local descriptor = controller and controller._headerSortKeybindDescriptor
+local function IsKeybindGroupPresent(descriptor)
     if not (descriptor and KEYBIND_STRIP and KEYBIND_STRIP.HasKeybindButtonGroup) then
         return false
     end
     local ok, present = pcall(function() return KEYBIND_STRIP:HasKeybindButtonGroup(descriptor) end)
     return ok and present == true
+end
+
+local function IsHeaderSortKeybindPresent(controller)
+    return IsKeybindGroupPresent(controller and controller._headerSortKeybindDescriptor)
+end
+
+local function RemoveKeybindGroupIfPresent(descriptor)
+    if not descriptor or not KEYBIND_STRIP or not KEYBIND_STRIP.RemoveKeybindButtonGroup then
+        return false
+    end
+    if not IsKeybindGroupPresent(descriptor) then
+        return false
+    end
+    local ok = pcall(function() KEYBIND_STRIP:RemoveKeybindButtonGroup(descriptor) end)
+    return ok == true
+end
+
+local function EnsureKeybindGroupAdded(descriptor)
+    if not descriptor or not KEYBIND_STRIP then
+        return false, "missingDescriptorOrStrip"
+    end
+
+    local ensure = BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded or nil
+    if type(ensure) == "function" then
+        local ok, err = pcall(ensure, descriptor)
+        return ok == true, ok and nil or tostring(err)
+    end
+
+    if IsKeybindGroupPresent(descriptor) then
+        if KEYBIND_STRIP.UpdateKeybindButtonGroup then
+            local ok, err = pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor) end)
+            return ok == true, ok and nil or tostring(err)
+        end
+        return true, nil
+    end
+
+    if not KEYBIND_STRIP.AddKeybindButtonGroup then
+        return false, "missingAddKeybindButtonGroup"
+    end
+
+    local addOk, addErr = pcall(function() KEYBIND_STRIP:AddKeybindButtonGroup(descriptor) end)
+    if not addOk then
+        return false, tostring(addErr)
+    end
+    if KEYBIND_STRIP.UpdateKeybindButtonGroup then
+        local updateOk, updateErr = pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor) end)
+        if not updateOk then
+            return false, tostring(updateErr)
+        end
+    end
+    return true, nil
+end
+
+function AddOwnershipPayload(controller, data)
+    data = data or {}
+    local integration = controller and controller._headerSortIntegration or nil
+    local owner = integration and integration.owner or nil
+    local mainDescriptor = integration and integration.keybinds and integration.keybinds.mainDescriptor or nil
+    data.integrationActive = integration and integration.isActive == true or false
+    data.ownerHeaderSort = owner and owner.isInHeaderSortMode == true or false
+    data.stripHasHeader = IsHeaderSortKeybindPresent(controller)
+    data.stripHasMain = IsKeybindGroupPresent(mainDescriptor)
+    data.listSuspended = integration and integration.reactivateListAfterHeaderSort == true or false
+    return data
+end
+
+local function EnsureHeaderSortOwnership(controller, action)
+    local integration = controller and controller._headerSortIntegration or nil
+    local descriptor = controller and controller._headerSortKeybindDescriptor or nil
+    local before = AddOwnershipPayload(controller, {})
+
+    if not (integration and integration.isActive == true) then
+        return {
+            neededRepair = false,
+            repaired = false,
+            ensureOk = true,
+            before = before,
+            after = before,
+        }
+    end
+
+    local neededRepair = before.stripHasHeader ~= true or before.stripHasMain == true
+    local removedOwnerGroups = 0
+    local keybinds = integration.keybinds or {}
+
+    if RemoveKeybindGroupIfPresent(keybinds.mainDescriptor) then
+        removedOwnerGroups = removedOwnerGroups + 1
+    end
+    for _, ownedDescriptor in ipairs(keybinds.ownedDescriptors or {}) do
+        if RemoveKeybindGroupIfPresent(ownedDescriptor) then
+            removedOwnerGroups = removedOwnerGroups + 1
+        end
+    end
+
+    local ensureOk, ensureError = EnsureKeybindGroupAdded(descriptor)
+    local after = AddOwnershipPayload(controller, {})
+    local repaired = neededRepair and after.stripHasHeader == true and after.stripHasMain ~= true
+
+    if neededRepair and BETTERUI.Log and BETTERUI.Log.Warn then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT,
+            repaired and "header sort keybind ownership repaired" or "header sort keybind ownership lost", {
+                action = action,
+                ensureOk = ensureOk,
+                ensureError = ensureError,
+                removedOwnerGroups = removedOwnerGroups,
+                beforeStripHasHeader = before.stripHasHeader,
+                beforeStripHasMain = before.stripHasMain,
+                afterStripHasHeader = after.stripHasHeader,
+                afterStripHasMain = after.stripHasMain,
+                integrationActive = after.integrationActive,
+                ownerHeaderSort = after.ownerHeaderSort,
+                listSuspended = after.listSuspended,
+            })
+    end
+
+    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.SORT, "sort.header_keybind_ownership",
+            neededRepair and (repaired and "repaired" or "repair_failed") or "verified", {
+                action = action,
+                ensureOk = ensureOk,
+                ensureError = ensureError,
+                removedOwnerGroups = removedOwnerGroups,
+                beforeStripHasHeader = before.stripHasHeader,
+                beforeStripHasMain = before.stripHasMain,
+                afterStripHasHeader = after.stripHasHeader,
+                afterStripHasMain = after.stripHasMain,
+                integrationActive = after.integrationActive,
+                ownerHeaderSort = after.ownerHeaderSort,
+                listSuspended = after.listSuspended,
+            })
+    end
+
+    return {
+        neededRepair = neededRepair,
+        repaired = repaired,
+        ensureOk = ensureOk,
+        ensureError = ensureError,
+        removedOwnerGroups = removedOwnerGroups,
+        before = before,
+        after = after,
+    }
 end
 
 local function RefreshHeaderSortKeybinds(controller, action)
@@ -75,18 +219,45 @@ local function RefreshHeaderSortKeybinds(controller, action)
         refreshError = "missingKeybindRefresh"
     end
 
-    TraceHeaderSortKeybind(controller, action, "refresh", {
+    local repair = EnsureHeaderSortOwnership(controller, action)
+    local ownership = AddOwnershipPayload(controller, {
         refreshPath = refreshPath,
         refreshOk = refreshOk,
         refreshError = refreshError,
-        stripHasHeader = IsHeaderSortKeybindPresent(controller),
+        ownershipRepairNeeded = repair and repair.neededRepair == true or false,
+        ownershipRepaired = repair and repair.repaired == true or false,
+        ownershipEnsureOk = repair and repair.ensureOk == true or false,
+        ownershipEnsureError = repair and repair.ensureError or nil,
+        removedOwnerGroups = repair and repair.removedOwnerGroups or 0,
     })
-    if not refreshOk and BETTERUI.Log and BETTERUI.Log.Warn then
+    TraceHeaderSortKeybind(controller, action, "refresh", ownership)
+
+    local ownershipLost = ownership.integrationActive == true and ownership.stripHasHeader ~= true
+    local ownerMainReappeared = ownership.integrationActive == true and ownership.stripHasMain == true
+    if (ownershipLost or ownerMainReappeared) and not (repair and repair.neededRepair == true)
+        and BETTERUI.Log and BETTERUI.Log.Warn then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "header sort keybind ownership lost", {
+            action = action,
+            refreshPath = refreshPath,
+            refreshOk = refreshOk,
+            refreshError = refreshError,
+            reason = ownershipLost and "missingHeaderKeybind" or "ownerMainKeybindActive",
+            stripHasHeader = ownership.stripHasHeader,
+            stripHasMain = ownership.stripHasMain,
+            integrationActive = ownership.integrationActive,
+            ownerHeaderSort = ownership.ownerHeaderSort,
+            listSuspended = ownership.listSuspended,
+        })
+    elseif not refreshOk and BETTERUI.Log and BETTERUI.Log.Warn then
         BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SORT, "header sort keybind refresh failed", {
             action = action,
             refreshPath = refreshPath,
             refreshError = refreshError,
-            stripHasHeader = IsHeaderSortKeybindPresent(controller),
+            stripHasHeader = ownership.stripHasHeader,
+            stripHasMain = ownership.stripHasMain,
+            integrationActive = ownership.integrationActive,
+            ownerHeaderSort = ownership.ownerHeaderSort,
+            listSuspended = ownership.listSuspended,
         })
     end
     return refreshOk, refreshPath

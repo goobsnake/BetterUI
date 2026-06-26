@@ -71,24 +71,13 @@ local function TraceResolved(parent, name, via, levels, caller)
         { control = name, parent = nameOf(parent, "<no-parent>"), via = via, levels = levels, caller = caller or "<unspecified>" })
 end
 
---- Finds a control by name, handling ESO's complex naming conventions.
----
---- Purpose: Robust control lookup traversing parent hierarchies with caching.
---- Mechanics:
---- 1. Checks `ControlCache` for a hit.
---- 2. Checks direct child (`GetNamedChild`).
---- 3. Walks up 6 levels of parents, checking for global name matches (`ParentName..Name`).
---- 4. Falls back to global `_G[name]`.
---- 5. Stores result in cache.
----
---- References: Used pervasively in this module to find XML-defined controls.
----
----@param parent any        parent control to search under
----@param name string       short control name
----@param caller string|nil optional label of the calling site -- enriches miss/resolved logs
-function BETTERUI.ControlUtils.FindControl(parent, name, caller)
+-- Shared implementation for strict and optional control lookups.
+local function FindControlInternal(parent, name, caller, warnOnMiss)
+    if warnOnMiss == nil then warnOnMiss = true end
     if not parent then
-        WarnMissOnce("nil|" .. tostring(name), name, nil, caller)
+        if warnOnMiss then
+            WarnMissOnce("nil|" .. tostring(name), name, nil, caller)
+        end
         return nil
     end
 
@@ -143,6 +132,36 @@ function BETTERUI.ControlUtils.FindControl(parent, name, caller)
         return globalCtrl
     end
 
-    WarnMissOnce(cacheKey, name, parent, caller)
+    if warnOnMiss then
+        WarnMissOnce(cacheKey, name, parent, caller)
+    end
     return nil
+end
+
+--- Finds a control by name, handling ESO's complex naming conventions.
+---
+--- Purpose: Robust control lookup traversing parent hierarchies with caching.
+--- Mechanics:
+--- 1. Checks `ControlCache` for a hit.
+--- 2. Checks direct child (`GetNamedChild`).
+--- 3. Walks up 6 levels of parents, checking for global name matches (`ParentName..Name`).
+--- 4. Falls back to global `_G[name]`.
+--- 5. Stores result in cache.
+---
+--- References: Used pervasively in this module to find XML-defined controls.
+---
+---@param parent any        parent control to search under
+---@param name string       short control name
+---@param caller string|nil optional label of the calling site -- enriches miss/resolved logs
+function BETTERUI.ControlUtils.FindControl(parent, name, caller)
+    return FindControlInternal(parent, name, caller, true)
+end
+
+--- Finds a control without emitting a miss WARN when the control is absent.
+--- Use only for XML children that are intentionally optional for a template/style.
+---@param parent any        parent control to search under
+---@param name string       short control name
+---@param caller string|nil optional label of the calling site
+function BETTERUI.ControlUtils.FindOptionalControl(parent, name, caller)
+    return FindControlInternal(parent, name, caller, false)
 end
