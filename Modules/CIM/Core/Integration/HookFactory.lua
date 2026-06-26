@@ -65,6 +65,7 @@ end
 --- @param method string Method name to replace
 --- @param fn fun(self: table, ...) Replacement function
 function BETTERUI.ReplaceHook(control, method, fn)
+    -- CAUTION: avoid for methods already patched by other addons; prefer PreHook/PostHook.
     createHookInternal(control, method, fn, "replace")
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "hook registered", { position = "replace", method = method }) end
 end

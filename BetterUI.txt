@@ -5,8 +5,8 @@
 ## Contributers: prasoc, RockingDice
 ## Version: 3.07
 ## DependsOn: LibAddonMenu-2.0>=41
-## OptionalDependsOn: MasterMerchant ArkadiusTradeTools TamrielTradeCentre AutoCategory
-; Keep OptionalDependsOn keys in sync with Modules/CIM/Core/Integration/OptionalAddonRegistry.lua (OPTIONAL_ADDON_KEYS)
+## OptionalDependsOn: MasterMerchant ArkadiusTradeTools TamrielTradeCentre AutoCategory FCO_ItemSaver Dolgubon_LazyWritCrafter AlphaGear
+; Keep OptionalDependsOn keys in sync with Modules/CIM/Core/Integration/OptionalAddonRegistry.lua (OPTIONAL_ADDON_KEYS) and Y-menu dialog chain addons (FCO_ItemSaver, Dolgubon_LazyWritCrafter, AlphaGear)
 ## SavedVariables: BetterUISavedVars
  
 ; Core Initialization (Must load first)

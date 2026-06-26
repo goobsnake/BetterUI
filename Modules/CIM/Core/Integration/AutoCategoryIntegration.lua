@@ -25,6 +25,11 @@ function AutoCategoryIntegration.GetCustomCategory(itemData)
 
     local useCustomCategory = false
     local autoCategory = OptionalAddons.GetGlobal("AutoCategory")
+    if type(autoCategory) == "table" and not autoCategory.Inited then
+        if BETTERUI.Log then
+            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.CATEGORY, "AutoCategory loaded but Inited is nil/false; category rules skipped", { bagId = itemData.bagId, slotIndex = itemData.slotIndex })
+        end
+    end
     if type(autoCategory) == "table" and autoCategory.Inited and type(autoCategory.MatchCategoryRules) == "function" then
         useCustomCategory = true
         local bagId = itemData.bagId

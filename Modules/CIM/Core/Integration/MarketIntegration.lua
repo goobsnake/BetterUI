@@ -172,6 +172,9 @@ local function FetchTTCPriceInfo(itemLink)
         end
     end
 
+    if BETTERUI.Log then
+        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "TTC fallback path: TamrielTradeCentre_ItemInfo.New unavailable; using raw itemLink (best-effort, may return nil)", { itemLink = itemLink })
+    end
     local priceInfo = CallOptionalAddon(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, itemLink)
     if type(priceInfo) == "table" then
         return priceInfo

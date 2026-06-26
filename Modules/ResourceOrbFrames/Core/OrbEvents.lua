@@ -250,42 +250,45 @@ function Events.SetupVisibilityFragments(rootFrame)
         end, 0)
     end
 
-    if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
-        SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(_, oldState, newState)
-            if newState == SCENE_SHOWING
-                or newState == SCENE_SHOWN
-                or newState == SCENE_HIDING
-                or newState == SCENE_HIDDEN
-            then
-                TraceOrbEvents("resource_orbs.scene", "state_changed", { oldState = oldState, newState = newState })
-                DeferredSyncSpecialSceneVisibility()
-            end
-        end)
+    if not m_sceneHandlersRegistered then
+        m_sceneHandlersRegistered = true
+        if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
+            SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(_, oldState, newState)
+                if newState == SCENE_SHOWING
+                    or newState == SCENE_SHOWN
+                    or newState == SCENE_HIDING
+                    or newState == SCENE_HIDDEN
+                then
+                    TraceOrbEvents("resource_orbs.scene", "state_changed", { oldState = oldState, newState = newState })
+                    DeferredSyncSpecialSceneVisibility()
+                end
+            end)
+        end
+
+        local lootScene = SCENE_MANAGER:GetScene("loot")
+        if lootScene then
+            lootScene:RegisterCallback("StateChange", function(oldState, newState)
+                if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+                    TraceOrbEvents("resource_orbs.scene", "loot_exit", { scene = "loot", oldState = oldState, newState = newState })
+                    DeferredEnforceHide(50)
+                end
+            end)
+        end
+        local lootGamepadScene = SCENE_MANAGER:GetScene("lootGamepad")
+        if lootGamepadScene then
+            lootGamepadScene:RegisterCallback("StateChange", function(oldState, newState)
+                if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+                    TraceOrbEvents("resource_orbs.scene", "loot_exit", { scene = "lootGamepad", oldState = oldState, newState = newState })
+                    DeferredEnforceHide(50)
+                end
+            end)
+        end
     end
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivatedSpecialSceneSync",
         EVENT_PLAYER_ACTIVATED, function()
             DeferredSyncSpecialSceneVisibility()
         end)
-
-    local lootScene = SCENE_MANAGER:GetScene("loot")
-    if lootScene then
-        lootScene:RegisterCallback("StateChange", function(oldState, newState)
-            if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
-                TraceOrbEvents("resource_orbs.scene", "loot_exit", { scene = "loot", oldState = oldState, newState = newState })
-                DeferredEnforceHide(50)
-            end
-        end)
-    end
-    local lootGamepadScene = SCENE_MANAGER:GetScene("lootGamepad")
-    if lootGamepadScene then
-        lootGamepadScene:RegisterCallback("StateChange", function(oldState, newState)
-            if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
-                TraceOrbEvents("resource_orbs.scene", "loot_exit", { scene = "lootGamepad", oldState = oldState, newState = newState })
-                DeferredEnforceHide(50)
-            end
-        end)
-    end
 
     TraceOrbEvents("resource_orbs.visibility", "setup_end", { hasFragment = fragment ~= nil })
     return UpdateDeathFragment

@@ -723,7 +723,7 @@ local function ApplyTooltipLabelFonts(tooltipControl)
     local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
     for i = 1, tooltipControl:GetNumChildren() do
         local child = tooltipControl:GetChild(i)
-        if child and child:GetType() == CT_LABEL then
+        if child and child:GetType() == CT_LABEL and not child:IsHidden() then
             child:SetFont(fontStr)
         end
     end
@@ -732,7 +732,7 @@ end
 local function RestoreTooltipLabelFonts(tooltipControl)
     for i = 1, tooltipControl:GetNumChildren() do
         local child = tooltipControl:GetChild(i)
-        if child and child:GetType() == CT_LABEL then
+        if child and child:GetType() == CT_LABEL and not child:IsHidden() then
             child:SetFont(STOCK_TOOLTIP_BODY_FONT)
         end
     end
@@ -769,12 +769,10 @@ local function HideDuplicateAddonLabels(control)
                 if text then
                     if IsDuplicateAddonLabelText(child, text) then
                         child:SetHidden(true)
-                        child:SetHeight(0)
                         if i > 1 then
                             local prevChild = control:GetChild(i - 1)
                             if prevChild and prevChild:GetType() == CT_TEXTURE then
                                 prevChild:SetHidden(true)
-                                prevChild:SetHeight(0)
                             end
                         end
                     end

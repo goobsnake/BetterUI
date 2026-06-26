@@ -143,6 +143,9 @@ local function PatchCompanionListMovePrevious(instance)
         return
     end
 
+    -- Direct assignment is intentional: ZO_PostHook does not expose the original
+    -- return value, which we need to detect a failed move (list at top).
+    -- The _betteruiMovePreviousWrapperInstalled guard prevents double-wrapping.
     local originalMovePrevious = instance.list.MovePrevious
     instance.list._betteruiMovePreviousWrapperInstalled = true
     instance.list.MovePrevious = function(list, allowWrapping, suppressFailSound)

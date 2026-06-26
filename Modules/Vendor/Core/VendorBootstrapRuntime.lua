@@ -35,6 +35,9 @@ function BootstrapRuntime.InitializeList(instance, deps)
     end)
     if instance.list then
         instance.list.owner = instance
+        -- Direct assignment is intentional: ZO_PostHook does not expose the original
+        -- return value, which we need to detect a failed move (list at top).
+        -- The _betteruiMovePreviousWrapperInstalled guard prevents double-wrapping.
         if instance.list.MovePrevious and not instance.list._betteruiMovePreviousWrapperInstalled then
             local originalMovePrevious = instance.list.MovePrevious
             instance.list._betteruiMovePreviousWrapperInstalled = true
