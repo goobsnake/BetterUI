@@ -189,6 +189,11 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     if self.isGuildBankMode and GuildBank then
         GuildBank.RegisterGuildSelectorDialog()
         local ns = BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING"
+        -- HIDING -> SHOWING can re-enter without OnSceneHidden running, which would
+        -- leak the previous guild-bank event registrations. Unregister first.
+        for _, event in ipairs(GUILD_BANK_EVENTS) do
+            EVENT_MANAGER:UnregisterForEvent(ns, event)
+        end
         local eventHandlers = {
             [EVENT_GUILD_BANK_SELECTED]         = GuildBank.OnGuildBankSelected,
             [EVENT_GUILD_BANK_DESELECTED]       = GuildBank.OnGuildBankDeselected,

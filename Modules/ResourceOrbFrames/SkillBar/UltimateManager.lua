@@ -21,6 +21,29 @@ local CELLS_WIDE = 8
 local CELLS_HIGH = 4
 local TOTAL_FRAMES = 32
 
+local function InstallTimelinePostHook(timeline, handlerName, hookFn, hookedField)
+    if not timeline or timeline[hookedField] then return end
+
+    local installed = false
+    if type(ZO_PostHookHandler) == "function" then
+        ZO_PostHookHandler(timeline, handlerName, hookFn)
+        installed = true
+    elseif type(timeline.SetHandler) == "function" then
+        local previousHandler = timeline.GetHandler and timeline:GetHandler(handlerName) or nil
+        timeline:SetHandler(handlerName, function(...)
+            if type(previousHandler) == "function" then
+                previousHandler(...)
+            end
+            hookFn(...)
+        end)
+        installed = true
+    end
+
+    if installed then
+        timeline[hookedField] = true
+    end
+end
+
 local function TraceUltimate(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
@@ -90,9 +113,8 @@ local function PlayUltimateReadyAnimations(btn)
         btn.readyLoopTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("ResourceOrbFrames_UltimateReadyLoop",
             readyLoop)
 
-        btn.readyBurstTimeline:SetHandler("OnPlay", function()
-            -- Sound is handled in UpdateFrontBarUltimateMeter to ensure it plays only once per threshold crossing
-        end)
+        -- Sound is handled in UpdateFrontBarUltimateMeter to ensure it plays only once per threshold crossing.
+        -- No OnPlay hook is needed here.
 
         local function OnStop(timeline)
             if timeline:GetProgress() == 1.0 then
@@ -101,7 +123,7 @@ local function PlayUltimateReadyAnimations(btn)
                 if readyLoop then readyLoop:SetHidden(false) end
             end
         end
-        btn.readyBurstTimeline:SetHandler("OnStop", OnStop)
+        InstallTimelinePostHook(btn.readyBurstTimeline, "OnStop", OnStop, "_betteruiUltimateReadyBurstStopHooked")
     end
 
     local isBursting = btn.readyBurstTimeline:IsPlaying()

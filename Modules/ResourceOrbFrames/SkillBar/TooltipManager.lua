@@ -85,6 +85,29 @@ local function TryShowSlotDataTooltip(control, slotIndex, hotbarCategory, point,
     return true
 end
 
+local function InstallPostHookHandler(control, handlerName, hookFn, hookedField)
+    if not control or control[hookedField] then return end
+
+    local installed = false
+    if type(ZO_PostHookHandler) == "function" then
+        ZO_PostHookHandler(control, handlerName, hookFn)
+        installed = true
+    elseif type(control.SetHandler) == "function" then
+        local previousHandler = control.GetHandler and control:GetHandler(handlerName) or nil
+        control:SetHandler(handlerName, function(...)
+            if type(previousHandler) == "function" then
+                previousHandler(...)
+            end
+            hookFn(...)
+        end)
+        installed = true
+    end
+
+    if installed then
+        control[hookedField] = true
+    end
+end
+
 --- Sets up standard tooltip behavior for a button.
 ---@param control table Button control to attach tooltip handlers to
 ---@param slotIndex number Action bar slot index
@@ -96,11 +119,20 @@ local function SetupButtonTooltip(control, slotIndex, category, point, offsetX, 
     if not control then return end
 
     control:SetMouseEnabled(true)
-    control:SetHandler("OnMouseEnter", function(c)
+    control._betteruiTooltipSlotIndex = slotIndex
+    control._betteruiTooltipCategory = category
+    control._betteruiTooltipPoint = point
+    control._betteruiTooltipOffsetX = offsetX
+    control._betteruiTooltipOffsetY = offsetY
+
+    InstallPostHookHandler(control, "OnMouseEnter", function(c)
         ClearActiveTooltip(c)
 
-        local cat = c.hotbarCategory or category
-        local slot = c.slotIndex or slotIndex
+        local cat = c.hotbarCategory or c._betteruiTooltipCategory or category
+        local slot = c.slotIndex or c._betteruiTooltipSlotIndex or slotIndex
+        local tooltipPoint = c._betteruiTooltipPoint or point
+        local tooltipOffsetX = c._betteruiTooltipOffsetX or offsetX
+        local tooltipOffsetY = c._betteruiTooltipOffsetY or offsetY
         TraceSkillTooltip("resource_orbs.tooltip", "enter", { slot = slot, category = cat })
 
         -- Highlight
@@ -112,7 +144,7 @@ local function SetupButtonTooltip(control, slotIndex, category, point, offsetX, 
             if slotType and slotType ~= ACTION_TYPE_NOTHING then
                 -- Try to show Item Tooltip for Items and Collectibles (using link)
                 if slotType == ACTION_TYPE_ITEM or slotType == ACTION_TYPE_COLLECTIBLE then
-                    InitializeTooltip(ItemTooltip, c, point, offsetX, offsetY)
+                    InitializeTooltip(ItemTooltip, c, tooltipPoint, tooltipOffsetX, tooltipOffsetY)
                     ItemTooltip:SetAction(slot, cat)
                     c.betterUIActiveTooltip = ItemTooltip
                     TraceSkillTooltip("resource_orbs.tooltip", "shown", { source = "item", slot = slot, category = cat, slotType = slotType })
@@ -121,19 +153,19 @@ local function SetupButtonTooltip(control, slotIndex, category, point, offsetX, 
 
                 -- Use native slot-data tooltip routing (SkillTooltip/AbilityTooltip), which includes
                 -- progression rank XP bars for slotted skills.
-                if TryShowSlotDataTooltip(c, slot, cat, point, offsetX, offsetY) then
+                if TryShowSlotDataTooltip(c, slot, cat, tooltipPoint, tooltipOffsetX, tooltipOffsetY) then
                     return
                 end
 
-                InitializeTooltip(AbilityTooltip, c, point, offsetX, offsetY)
+                InitializeTooltip(AbilityTooltip, c, tooltipPoint, tooltipOffsetX, tooltipOffsetY)
                 AbilityTooltip:SetAction(slot, cat)
                 c.betterUIActiveTooltip = AbilityTooltip
                 TraceSkillTooltip("resource_orbs.tooltip", "shown", { source = "ability", slot = slot, category = cat, slotType = slotType })
             end
         end
-    end)
+    end, "_betteruiSkillTooltipEnterHooked")
 
-    control:SetHandler("OnMouseExit", function(c)
+    InstallPostHookHandler(control, "OnMouseExit", function(c)
         local highlight = c:GetNamedChild("MouseOverHighlight")
         if highlight then highlight:SetHidden(true) end
         ClearActiveTooltip(c)
@@ -142,8 +174,8 @@ local function SetupButtonTooltip(control, slotIndex, category, point, offsetX, 
         if SkillTooltip then
             ClearTooltip(SkillTooltip)
         end
-        TraceSkillTooltip("resource_orbs.tooltip", "exit", { slot = c.slotIndex or slotIndex, category = c.hotbarCategory or category })
-    end)
+        TraceSkillTooltip("resource_orbs.tooltip", "exit", { slot = c.slotIndex or c._betteruiTooltipSlotIndex or slotIndex, category = c.hotbarCategory or c._betteruiTooltipCategory or category })
+    end, "_betteruiSkillTooltipExitHooked")
 end
 
 -- MODULE EXPORTS

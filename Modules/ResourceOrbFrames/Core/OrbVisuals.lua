@@ -373,6 +373,7 @@ function Visuals.UpdateFrameDimensions(rootFrame)
         -- Instant set (initial load or no change)
         rootFrame:SetScale(scale)
         rootFrame:ClearAnchors()
+        -- Anchor to GuiRoot intentionally: orb frames are HUD-level overlays independent of scene fragments.
         rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, offsetX, -offsetY)
         Animations.SetState(scale, offsetX, offsetY)
     end

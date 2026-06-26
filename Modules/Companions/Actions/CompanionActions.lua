@@ -248,6 +248,9 @@ end
 local COMPANION_CONFIRM_EQUIP_BOE_DIALOG = "BETTERUI_COMPANIONS_CONFIRM_EQUIP_BOE"
 
 local function EnsureCompanionEquipBoEDialogRegistered()
+    if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered(COMPANION_CONFIRM_EQUIP_BOE_DIALOG) then
+        return
+    end
     if ESO_Dialogs and ESO_Dialogs[COMPANION_CONFIRM_EQUIP_BOE_DIALOG] then
         return
     end

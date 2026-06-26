@@ -47,7 +47,8 @@ function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetX, tar
 
             rootFrame:SetScale(currentScale)
             rootFrame:ClearAnchors()
-            -- Invert offsetY: positive settings value means UP, so we used negative anchor Y
+            -- Anchor to GuiRoot intentionally: orb frames are HUD-level overlays independent of scene fragments.
+            -- Invert offsetY: positive settings value means UP, so we used negative anchor Y.
             rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, currentX, -currentY)
         end)
     end

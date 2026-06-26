@@ -269,12 +269,22 @@ local function SetupThumbDragHandlers(instance)
         end
     end
 
-    -- Register for global mouse up to handle release outside thumb
-    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
+    -- Register for global mouse up to handle release outside thumb. Re-setup can
+    -- happen without Destroy when named controls are reused, so clear any prior
+    -- registration for this instance before installing the new callback.
+    if instance.globalMouseUpEventName and EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
+        EVENT_MANAGER:UnregisterForEvent(instance.globalMouseUpEventName, EVENT_GLOBAL_MOUSE_UP)
+    end
+    instance.globalMouseUpHandler = nil
+    instance.globalMouseUpEventName = nil
 
-    -- Store for cleanup (used by ScrollIndicator.Destroy)
-    instance.globalMouseUpHandler = OnGlobalMouseUp
-    instance.globalMouseUpEventName = eventName
+    if EVENT_MANAGER and EVENT_MANAGER.RegisterForEvent then
+        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
+
+        -- Store for cleanup (used by ScrollIndicator.Destroy)
+        instance.globalMouseUpHandler = OnGlobalMouseUp
+        instance.globalMouseUpEventName = eventName
+    end
 end
 
 -- HELPER FUNCTIONS

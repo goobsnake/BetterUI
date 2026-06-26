@@ -62,18 +62,46 @@ function Settings.GetCustomFrontBar()
     return settings and settings.customFrontBar
 end
 
+local function InstallPostHookHandler(control, handlerName, hookFn, hookedField)
+    if not control or control[hookedField] then return end
+
+    local installed = false
+    if type(ZO_PostHookHandler) == "function" then
+        ZO_PostHookHandler(control, handlerName, hookFn)
+        installed = true
+    elseif type(control.SetHandler) == "function" then
+        local previousHandler = control.GetHandler and control:GetHandler(handlerName) or nil
+        control:SetHandler(handlerName, function(...)
+            if type(previousHandler) == "function" then
+                previousHandler(...)
+            end
+            hookFn(...)
+        end)
+        installed = true
+    end
+
+    if installed then
+        control[hookedField] = true
+    end
+end
+
 --- Attaches a tooltip to an orb control showing current/max resource power.
 ---@param control table|nil UI control to attach tooltip handlers to
 ---@param powerType number ESO POWERTYPE_* constant
 function Tooltips.AddOrbTooltip(control, powerType)
     if not control then return end
     control:SetMouseEnabled(true)
-    control:SetHandler("OnMouseEnter", function(self)
+    control._betteruiOrbTooltipPowerType = powerType
+
+    InstallPostHookHandler(control, "OnMouseEnter", function(self)
         InitializeTooltip(InformationTooltip, self, RIGHT, -5, 0)
-        local current, max = GetUnitPower("player", powerType)
+        local current, max = GetUnitPower("player", self._betteruiOrbTooltipPowerType or powerType)
         SetTooltipText(InformationTooltip, string.format("%d / %d", current, max))
-    end)
-    control:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
+    end, "_betteruiOrbTooltipEnterHooked")
+
+    InstallPostHookHandler(control, "OnMouseExit", function()
+        ClearTooltip(InformationTooltip)
+    end, "_betteruiOrbTooltipExitHooked")
 end
 
 --- Calculates border sizes for left/right orbs based on hide state and scaling.

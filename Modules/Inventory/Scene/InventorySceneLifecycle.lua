@@ -30,6 +30,26 @@ local function NormalizeInventoryListType(listType, fallback)
 	return fallback
 end
 
+local function RegisterSharedInventoryCallback(callbackName, callback)
+	if not (SHARED_INVENTORY and callbackName and callback and SHARED_INVENTORY.RegisterCallback) then
+		return
+	end
+	if SHARED_INVENTORY.UnregisterCallback then
+		SHARED_INVENTORY:UnregisterCallback(callbackName, callback)
+	end
+	SHARED_INVENTORY:RegisterCallback(callbackName, callback)
+end
+
+local function RegisterItemPreviewCallback(callbackName, callback)
+	if not (ITEM_PREVIEW_GAMEPAD and callbackName and callback and ITEM_PREVIEW_GAMEPAD.RegisterCallback) then
+		return
+	end
+	if ITEM_PREVIEW_GAMEPAD.UnregisterCallback then
+		ITEM_PREVIEW_GAMEPAD:UnregisterCallback(callbackName, callback)
+	end
+	ITEM_PREVIEW_GAMEPAD:RegisterCallback(callbackName, callback)
+end
+
 local function IsKeybindGroupPresent(group)
 	return BETTERUI.Interface.HasKeybindGroup(group)
 end
@@ -220,16 +240,16 @@ local function OnSceneShowing(self)
 				self:RefreshItemActions()
 			end
 		end
-		ITEM_PREVIEW_GAMEPAD:RegisterCallback("RefreshActions", self.onItemPreviewRefreshActionsCallback)
+		RegisterItemPreviewCallback("RefreshActions", self.onItemPreviewRefreshActionsCallback)
 	end
 
 	-- Register SHARED_INVENTORY callbacks for scene lifecycle (prevent memory leaks)
 	-- Callbacks are unregistered in SCENE_HIDDEN and re-registered here on subsequent shows
 	-- Skip on first show (already registered in PerformDeferredInitialize)
 	if self._inventoryUpdateCallback and self._inventoryCallbacksUnregistered then
-		SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
-		SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
-		SHARED_INVENTORY:RegisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
+		RegisterSharedInventoryCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
+		RegisterSharedInventoryCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
+		RegisterSharedInventoryCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
 		self._inventoryCallbacksUnregistered = false
 	end
 

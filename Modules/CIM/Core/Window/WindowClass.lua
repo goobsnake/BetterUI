@@ -279,22 +279,27 @@ function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     label.columnIndex = colNumber
     label.owner = self
 
-    -- Mouse click handler to toggle sort on this column
-    label:SetHandler("OnMouseUp", function(control, button, upInside)
-        if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
-            local owner = control.owner
-            local headerSortIntegration = BETTERUI.CIM and BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration
-            local controller = (headerSortIntegration
-                and headerSortIntegration.EnsureControllerForOwner
-                and headerSortIntegration.EnsureControllerForOwner(owner))
-                or (owner and (owner.headerSortController or owner.sortController))
-            if controller then
-                -- Toggle sort for this specific column (UpdateVisuals called internally)
-                controller:ToggleSortForColumn(control.columnIndex)
-                PlaySound(SOUNDS.DEFAULT_CLICK)
+    -- Mouse click handler to toggle sort on this column.
+    -- Use ZO_PostHookHandler so any existing OnMouseUp handler on the label is
+    -- preserved instead of being clobbered by a direct SetHandler assignment.
+    if not label._betteruiColumnMouseUpHooked then
+        label._betteruiColumnMouseUpHooked = true
+        ZO_PostHookHandler(label, "OnMouseUp", function(control, button, upInside)
+            if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
+                local owner = control.owner
+                local headerSortIntegration = BETTERUI.CIM and BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration
+                local controller = (headerSortIntegration
+                    and headerSortIntegration.EnsureControllerForOwner
+                    and headerSortIntegration.EnsureControllerForOwner(owner))
+                    or (owner and (owner.headerSortController or owner.sortController))
+                if controller then
+                    -- Toggle sort for this specific column (UpdateVisuals called internally)
+                    controller:ToggleSortForColumn(control.columnIndex)
+                    PlaySound(SOUNDS.DEFAULT_CLICK)
+                end
             end
-        end
-    end)
+        end)
+    end
 end
 
 --- Sets the window title text.

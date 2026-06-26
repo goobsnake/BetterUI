@@ -565,78 +565,97 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
     if not editBox then return end
 
     options = options or {}
-    local isSceneShowing = options.isSceneShowing or function() return true end
-    local onTextChanged = options.onTextChanged
-    local onExitFocus = options.onExitFocus or function(_)
-        BETTERUI.Interface.SearchMixin.CallSearchLifecycle(self, "exit")
+    local state = editBox._betteruiSearchEditBoxHandlerState
+    if not state then
+        state = {
+            origOnFocusGained = editBox:GetHandler("OnFocusGained"),
+            origOnFocusLost = editBox:GetHandler("OnFocusLost"),
+            origOnTextChanged = editBox:GetHandler("OnTextChanged"),
+            origOnKeyDown = editBox:GetHandler("OnKeyDown"),
+            origOnShortcut = editBox:GetHandler("OnShortcut"),
+        }
+        editBox._betteruiSearchEditBoxHandlerState = state
     end
-    local enterHeaderFn = options.enterHeaderFn
 
-    -- Preserve original handlers
-    local origOnFocusGained = editBox:GetHandler("OnFocusGained")
-    local origOnFocusLost = editBox:GetHandler("OnFocusLost")
-    local origOnTextChanged = editBox:GetHandler("OnTextChanged")
-    local origOnKeyDown = editBox:GetHandler("OnKeyDown")
-    local origOnShortcut = editBox:GetHandler("OnShortcut")
+    state.owner = self
+    state.isSceneShowing = options.isSceneShowing or function() return true end
+    state.onTextChanged = options.onTextChanged
+    state.onExitFocus = options.onExitFocus or function(owner)
+        BETTERUI.Interface.SearchMixin.CallSearchLifecycle(owner, "exit")
+    end
+    state.enterHeaderFn = options.enterHeaderFn
+
+    if state.handlersInstalled then return end
+    state.handlersInstalled = true
 
     -- OnFocusGained: Request header mode if needed
     editBox:SetHandler("OnFocusGained", function(eb)
-        if origOnFocusGained then origOnFocusGained(eb) end
-        if not isSceneShowing() then return end
-        if enterHeaderFn then
-            enterHeaderFn(self)
-        elseif not BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(self) then
-            BETTERUI.Interface.SearchMixin.CallSearchLifecycle(self, "requestEnter")
+        local handlerState = eb._betteruiSearchEditBoxHandlerState or state
+        local owner = handlerState.owner
+        if handlerState.origOnFocusGained then handlerState.origOnFocusGained(eb) end
+        if not owner or not handlerState.isSceneShowing() then return end
+        if handlerState.enterHeaderFn then
+            handlerState.enterHeaderFn(owner)
+        elseif not BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(owner) then
+            BETTERUI.Interface.SearchMixin.CallSearchLifecycle(owner, "requestEnter")
         end
     end)
 
     -- OnFocusLost: Exit search focus
     editBox:SetHandler("OnFocusLost", function(eb)
-        if origOnFocusLost then origOnFocusLost(eb) end
-        if not isSceneShowing() then return end
-        onExitFocus(self)
+        local handlerState = eb._betteruiSearchEditBoxHandlerState or state
+        local owner = handlerState.owner
+        if handlerState.origOnFocusLost then handlerState.origOnFocusLost(eb) end
+        if not owner or not handlerState.isSceneShowing() then return end
+        handlerState.onExitFocus(owner)
     end)
 
     -- OnTextChanged: Update search query and optionally refresh
     editBox:SetHandler("OnTextChanged", function(eb)
-        if origOnTextChanged then origOnTextChanged(eb) end
-        if not isSceneShowing() then return end
+        local handlerState = eb._betteruiSearchEditBoxHandlerState or state
+        local owner = handlerState.owner
+        if handlerState.origOnTextChanged then handlerState.origOnTextChanged(eb) end
+        if not owner or not handlerState.isSceneShowing() then return end
 
         local txt = eb:GetText() or ""
-        self.searchQuery = txt
+        owner.searchQuery = txt
 
-        local list = BETTERUI.Interface.SearchMixin.GetActiveList(self)
+        local list = BETTERUI.Interface.SearchMixin.GetActiveList(owner)
         local n = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
         if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "search text changed", { textLen = #txt, numItems = n }) end
 
-        if onTextChanged then
-            onTextChanged(self, txt)
+        if handlerState.onTextChanged then
+            handlerState.onTextChanged(owner, txt)
         end
     end)
 
     -- OnKeyDown: Handle D-pad Down to exit search
     editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
-        if origOnKeyDown then
-            local handled = origOnKeyDown(eb, key, ctrl, alt, shift, command)
+        local handlerState = eb._betteruiSearchEditBoxHandlerState or state
+        local owner = handlerState.owner
+        if handlerState.origOnKeyDown then
+            local handled = handlerState.origOnKeyDown(eb, key, ctrl, alt, shift, command)
             if handled then return handled end
         end
-        if not isSceneShowing() then return end
+        if not owner or not handlerState.isSceneShowing() then return end
 
         if command == "UI_SHORTCUT_DOWN" then
-            onExitFocus(self)
+            handlerState.onExitFocus(owner)
             return true
         end
     end)
 
     -- OnShortcut: Handle UI shortcuts (e.g., gamepad equivalents)
-    if origOnShortcut then
+    if state.origOnShortcut then
         editBox:SetHandler("OnShortcut", function(eb, shortcut)
-            local handled = origOnShortcut(eb, shortcut)
+            local handlerState = eb._betteruiSearchEditBoxHandlerState or state
+            local owner = handlerState.owner
+            local handled = handlerState.origOnShortcut(eb, shortcut)
             if handled then return handled end
-            if not isSceneShowing() then return end
+            if not owner or not handlerState.isSceneShowing() then return end
 
             if shortcut == "UI_SHORTCUT_DOWN" then
-                onExitFocus(self)
+                handlerState.onExitFocus(owner)
                 return true
             end
         end)

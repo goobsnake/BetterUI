@@ -183,15 +183,35 @@ local function InitializeDeferredInventoryDialogs(self)
 	end
 end
 
+local function RegisterInventoryControlEvent(control, eventId, callback)
+	if not (control and eventId and callback and control.RegisterForEvent) then
+		return
+	end
+	if control.UnregisterForEvent then
+		control:UnregisterForEvent(eventId)
+	end
+	control:RegisterForEvent(eventId, callback)
+end
+
+local function RegisterSharedInventoryCallback(callbackName, callback)
+	if not (SHARED_INVENTORY and callbackName and callback and SHARED_INVENTORY.RegisterCallback) then
+		return
+	end
+	if SHARED_INVENTORY.UnregisterCallback then
+		SHARED_INVENTORY:UnregisterCallback(callbackName, callback)
+	end
+	SHARED_INVENTORY:RegisterCallback(callbackName, callback)
+end
+
 local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSelectedData)
-	self.control:RegisterForEvent(EVENT_MONEY_UPDATE, refreshHeader)
-	self.control:RegisterForEvent(EVENT_ALLIANCE_POINT_UPDATE, refreshHeader)
-	self.control:RegisterForEvent(EVENT_TELVAR_STONE_UPDATE, refreshHeader)
+	RegisterInventoryControlEvent(self.control, EVENT_MONEY_UPDATE, refreshHeader)
+	RegisterInventoryControlEvent(self.control, EVENT_ALLIANCE_POINT_UPDATE, refreshHeader)
+	RegisterInventoryControlEvent(self.control, EVENT_TELVAR_STONE_UPDATE, refreshHeader)
 	if EVENT_CURRENCY_UPDATE then
-		self.control:RegisterForEvent(EVENT_CURRENCY_UPDATE, refreshHeader)
+		RegisterInventoryControlEvent(self.control, EVENT_CURRENCY_UPDATE, refreshHeader)
 	end
 	if EVENT_CURRENCY_CAPS_CHANGED then
-		self.control:RegisterForEvent(EVENT_CURRENCY_CAPS_CHANGED, refreshHeader)
+		RegisterInventoryControlEvent(self.control, EVENT_CURRENCY_CAPS_CHANGED, refreshHeader)
 	end
 
 	local function OnBagSpaceChanged()
@@ -212,10 +232,10 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 			keybinds = self.RefreshKeybinds ~= nil,
 		})
 	end
-	self.control:RegisterForEvent(EVENT_INVENTORY_BOUGHT_BAG_SPACE, OnBagSpaceChanged)
-	self.control:RegisterForEvent(EVENT_INVENTORY_BAG_CAPACITY_CHANGED, OnBagSpaceChanged)
-	self.control:RegisterForEvent(EVENT_PLAYER_DEAD, refreshSelectedData)
-	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, refreshSelectedData)
+	RegisterInventoryControlEvent(self.control, EVENT_INVENTORY_BOUGHT_BAG_SPACE, OnBagSpaceChanged)
+	RegisterInventoryControlEvent(self.control, EVENT_INVENTORY_BAG_CAPACITY_CHANGED, OnBagSpaceChanged)
+	RegisterInventoryControlEvent(self.control, EVENT_PLAYER_DEAD, refreshSelectedData)
+	RegisterInventoryControlEvent(self.control, EVENT_PLAYER_REINCARNATED, refreshSelectedData)
 
 	-- Learning a recipe/style flips the known/unknown state of OTHER copies of
 	-- the same item without any slot update for them; drop the per-item caches
@@ -240,10 +260,10 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 		LogInventoryState("inventory item list refreshed", { reason = "knowledgeChanged" })
 	end
 	if EVENT_RECIPE_LEARNED then
-		self.control:RegisterForEvent(EVENT_RECIPE_LEARNED, OnItemKnowledgeChanged)
+		RegisterInventoryControlEvent(self.control, EVENT_RECIPE_LEARNED, OnItemKnowledgeChanged)
 	end
 	if EVENT_STYLE_LEARNED then
-		self.control:RegisterForEvent(EVENT_STYLE_LEARNED, OnItemKnowledgeChanged)
+		RegisterInventoryControlEvent(self.control, EVENT_STYLE_LEARNED, OnItemKnowledgeChanged)
 	end
 
 	local function OnInventoryUpdated(bagId, slotIndex)
@@ -366,9 +386,9 @@ local function RegisterDeferredInventoryCallbacks(self, refreshHeader, refreshSe
 	end
 
 	self._inventoryUpdateCallback = OnInventoryUpdated
-	SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
-	SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
-	SHARED_INVENTORY:RegisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
+	RegisterSharedInventoryCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
+	RegisterSharedInventoryCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
+	RegisterSharedInventoryCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
 end
 
 function BETTERUI.Inventory.Class:OnDeferredInitialize()

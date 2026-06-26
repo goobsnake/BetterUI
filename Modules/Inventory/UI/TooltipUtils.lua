@@ -98,19 +98,34 @@ function BETTERUI.Inventory.EnableTooltipMouseWheel()
     if tip and tipScroll then
         tip:SetMouseEnabled(true)
         tipScroll:SetMouseEnabled(true)
-        tip:SetHandler("OnMouseWheel", function(self, delta)
-            local speed = BETTERUI.GetSetting("CIM", "rhScrollSpeed", 20)
-            local newScrollValue
-            if delta > 0 then
-                newScrollValue = (self.scrollValue or 0) - speed
+        if not tip._betteruiMouseWheelHooked then
+            local function OnTooltipMouseWheel(self, delta)
+                local speed = BETTERUI.GetSetting("CIM", "rhScrollSpeed", 20)
+                local newScrollValue
+                if delta > 0 then
+                    newScrollValue = (self.scrollValue or 0) - speed
+                else
+                    newScrollValue = (self.scrollValue or 0) + speed
+                end
+                self.scrollValue = newScrollValue
+                if self.scroll and self.scroll.SetVerticalScroll then
+                    self.scroll:SetVerticalScroll(newScrollValue)
+                end
+            end
+
+            if type(ZO_PostHookHandler) == "function" then
+                ZO_PostHookHandler(tip, "OnMouseWheel", OnTooltipMouseWheel)
             else
-                newScrollValue = (self.scrollValue or 0) + speed
+                local previousHandler = tip.GetHandler and tip:GetHandler("OnMouseWheel") or nil
+                tip:SetHandler("OnMouseWheel", function(self, delta)
+                    if type(previousHandler) == "function" then
+                        previousHandler(self, delta)
+                    end
+                    OnTooltipMouseWheel(self, delta)
+                end)
             end
-            self.scrollValue = newScrollValue
-            if self.scroll and self.scroll.SetVerticalScroll then
-                self.scroll:SetVerticalScroll(newScrollValue)
-            end
-        end)
+            tip._betteruiMouseWheelHooked = true
+        end
     end
 end
 

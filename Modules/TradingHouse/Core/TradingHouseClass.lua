@@ -349,6 +349,12 @@ end
 
 -- FOOTER
 
+local function DisableFooterButtonInteraction(button)
+    if button and button.SetMouseEnabled then
+        button:SetMouseEnabled(false)
+    end
+end
+
 --- Initializes the TH footer by relabelling the embedded Withdraw/Deposit
 --- controls to show gold and bag capacity.
 function BETTERUI.TradingHouse.Class:InitTHFooter()
@@ -364,7 +370,7 @@ function BETTERUI.TradingHouse.Class:InitTHFooter()
     if withdraw then
         local btn = withdraw:GetNamedChild("Button")
         if btn then
-            btn:SetHandler("OnClicked", nil)
+            DisableFooterButtonInteraction(btn)
             local label = btn:GetNamedChild("Label")
             if label then
                 label:SetText(GetString(rawget(_G, "SI_BETTERUI_FOOTER_GOLD") or "SI_BETTERUI_FOOTER_GOLD"))
@@ -381,7 +387,7 @@ function BETTERUI.TradingHouse.Class:InitTHFooter()
     if deposit then
         local btn = deposit:GetNamedChild("Button")
         if btn then
-            btn:SetHandler("OnClicked", nil)
+            DisableFooterButtonInteraction(btn)
             local label = btn:GetNamedChild("Label")
             if label then
                 label:SetText(GetString(rawget(_G, "SI_BETTERUI_FOOTER_BAG_CAPACITY") or "SI_BETTERUI_FOOTER_BAG_CAPACITY"))
