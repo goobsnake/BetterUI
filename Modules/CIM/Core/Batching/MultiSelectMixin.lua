@@ -731,6 +731,7 @@ function Mixin.ProcessBatchThrottled(self, request)
     end
 
     local function StartBatchAfterDialogDismiss(remainingWaitMs, settleDelayMs)
+        if pipelineToken ~= self_ref.batchPipelineToken then return end
         if not self_ref.isBatchProcessing then return end
         if self_ref.batchAbortRequested then stopReason = "aborted"; finishBatch(); return end
         if not BatchConfig.IsBatchSceneShowing(self_ref) then stopReason = "sceneExit"; finishBatch(); return end
@@ -738,12 +739,16 @@ function Mixin.ProcessBatchThrottled(self, request)
         local dialogShowing = BatchOverlay.IsAnyBatchActionDialogShowing()
         if dialogShowing and remainingWaitMs > 0 then
             zo_callLater(function()
+                if pipelineToken ~= self_ref.batchPipelineToken then return end
                 StartBatchAfterDialogDismiss(zo_max(remainingWaitMs - BatchConfig.BATCH_STATUS_DIALOG_CLOSE_POLL_MS, 0), settleDelayMs)
             end, BatchConfig.BATCH_STATUS_DIALOG_CLOSE_POLL_MS)
             return
         end
         if (not dialogShowing) and (settleDelayMs or 0) > 0 then
-            zo_callLater(function() StartBatchAfterDialogDismiss(remainingWaitMs, 0) end, settleDelayMs)
+            zo_callLater(function()
+                if pipelineToken ~= self_ref.batchPipelineToken then return end
+                StartBatchAfterDialogDismiss(remainingWaitMs, 0)
+            end, settleDelayMs)
             return
         end
 

@@ -59,7 +59,11 @@ end
 --- Cancel all pending tasks.
 --- Call this on scene exit to prevent orphaned callbacks.
 function DeferredTaskManager:CancelAll()
+    local taskIds = {}
     for taskId, _ in pairs(self._tasks) do
+        taskIds[#taskIds + 1] = taskId
+    end
+    for _, taskId in ipairs(taskIds) do
         self:Cancel(taskId)
     end
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "all deferred tasks cancelled", { taskId = "*", pending = self:GetPendingCount() }) end

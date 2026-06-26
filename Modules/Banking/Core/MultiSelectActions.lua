@@ -57,6 +57,18 @@ local function GetBankingWindow()
     return BETTERUI.Banking and BETTERUI.Banking.Window
 end
 
+local function IsBankingSceneShowing()
+    local utils = BETTERUI.Utils
+    if utils and type(utils.IsBankingSceneShowing) == "function" then
+        return utils.IsBankingSceneShowing() == true
+    end
+    return true
+end
+
+local function IsSelectionManagerActive(manager)
+    return manager and type(manager.IsActive) == "function" and manager:IsActive()
+end
+
 local ExtractSlot = BETTERUI.CIM.BatchActions.ExtractSlot
 local HasItemAtSlot = BETTERUI.CIM.BatchActions.HasItemAtSlot
 local ResolveStackCount = BETTERUI.CIM.BatchActions.ResolveStackCount
@@ -515,11 +527,8 @@ function BETTERUI.Banking.Class:SelectAllItems()
     zo_callLater(function()
         -- The scene may have closed (or selection mode exited) during the delay;
         -- don't refresh/re-key/re-open the dialog against a dead scene.
-        if not (self.multiSelectManager and self.multiSelectManager:IsActive()) then return end
-        if BETTERUI.Utils and BETTERUI.Utils.IsBankingSceneShowing
-            and not BETTERUI.Utils.IsBankingSceneShowing() then
-            return
-        end
+        if not IsSelectionManagerActive(self.multiSelectManager) then return end
+        if not IsBankingSceneShowing() then return end
         self:RefreshList()
         BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
         self:ShowBatchActionsMenu()
@@ -634,6 +643,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                     text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
                     callback = function()
                         zo_callLater(function()
+                            if not IsBankingSceneShowing() then return end
                             local window = GetBankingWindow()
                             local updateGroup = BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup
                             if window and updateGroup then
@@ -699,7 +709,10 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
         BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount),
         function()
             ZO_Dialogs_ReleaseDialog(dialogName)
-            zo_callLater(function() self:ExitSelectionMode() end, 50)
+            zo_callLater(function()
+                if not IsBankingSceneShowing() or not IsSelectionManagerActive(self.multiSelectManager) then return end
+                self:ExitSelectionMode()
+            end, 50)
         end
     ))
 

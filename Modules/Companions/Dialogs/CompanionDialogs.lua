@@ -1,6 +1,21 @@
 if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
 
+local function IsCompanionSceneShowing()
+    local sceneName = rawget(_G, "BETTERUI_COMPANION_EQUIP_SCENE_NAME") or "BETTERUI_CompanionEquipment"
+    if SCENE_MANAGER and SCENE_MANAGER.GetScene then
+        local scene = SCENE_MANAGER:GetScene(sceneName)
+        if scene and type(scene.IsShowing) == "function" then
+            return scene:IsShowing() == true
+        end
+    end
+    return true
+end
+
+local function IsCompanionActionDelaySafe()
+    return BETTERUI and BETTERUI.Companions == Companions and IsCompanionSceneShowing()
+end
+
 local function GetDialogListTargetData(list)
     local getTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils
         and (BETTERUI.CIM.Utils.GetListTargetData or BETTERUI.CIM.Utils.SafeGetTargetData)
@@ -52,11 +67,13 @@ local function ExecuteBatchDestroy(destroyTargets)
     local delay = 0
     for _, target in ipairs(destroyTargets or {}) do
         zo_callLater(function()
+            if not IsCompanionActionDelaySafe() then return end
             Companions.QuickDestroyCompanionItem(target.bagId, target.slotIndex, target.slotType, target, batchId)
         end, delay)
         delay = delay + 80
     end
     zo_callLater(function()
+        if not IsCompanionActionDelaySafe() then return end
         TraceCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, "batch_end", {
             fn = "ExecuteBatchDestroy",
             batchId = batchId,
@@ -358,6 +375,7 @@ local function RegisterCompanionBatchDialog()
                         local slotIndex = ds.slotIndex
                         if bagId and slotIndex then
                             zo_callLater(function()
+                                if not IsCompanionActionDelaySafe() then return end
                                 Companions.ExecuteAction(actionId, itemData)
                             end, delay)
                             delay = delay + 80

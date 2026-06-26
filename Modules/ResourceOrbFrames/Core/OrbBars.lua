@@ -47,7 +47,7 @@ local m_originalPlayerProgressHidden = nil
 local m_originalGamepadProgressHidden = nil
 local m_defaultCastBarStateCaptured = false
 
-local function IsCastBarSuppressionEnabled()
+local function IsResourceOrbFramesEnabled()
     return BETTERUI.ResourceOrbFrames
         and BETTERUI.ResourceOrbFrames.IsEnabled
         and BETTERUI.ResourceOrbFrames.IsEnabled() == true
@@ -432,7 +432,7 @@ function CastBar:Initialize(parent)
         -- without SetHiddenForReason, so hide the top-level controls directly.
         -- Compatibility: only suppress while the module is enabled, and capture
         -- the original hidden state so it can be restored on disable.
-        if not IsCastBarSuppressionEnabled() then
+        if not IsResourceOrbFramesEnabled() then
             return
         end
 
@@ -492,6 +492,7 @@ function CastBar:Initialize(parent)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "SlotAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
+            if not IsResourceOrbFramesEnabled() then return end
             if not slotIndex then
                 TraceCastBar("resource_orbs.cast_bar", "ability_used_skipped", {
                     fn = "CastBar.EVENT_ACTION_SLOT_ABILITY_USED",
@@ -530,6 +531,7 @@ function CastBar:Initialize(parent)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "CastColorPowerProbe",
         EVENT_POWER_UPDATE, function(_, unitTag, powerPoolIndex, powerType, powerValue)
+            if not IsResourceOrbFramesEnabled() then return end
             if unitTag ~= "player" then return end
             if powerType ~= COST_TYPE_HEALTH and powerType ~= COST_TYPE_MAGICKA and powerType ~= COST_TYPE_STAMINA then
                 return
@@ -645,11 +647,13 @@ function MountStaminaBar:Initialize(parent)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "MountStaminaMount", EVENT_MOUNTED_STATE_CHANGED,
         function(_, isMounted)
+            if not IsResourceOrbFramesEnabled() then return end
             self:OnMountedStateChanged(isMounted)
         end)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "MountStaminaPower", EVENT_POWER_UPDATE,
         function(_, unitTag, powerPoolIndex, powerType, powerValue, powerMax)
+            if not IsResourceOrbFramesEnabled() then return end
             if unitTag == "player" and powerType == COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA then
                 self.currentValue = powerValue
                 self.maxValue = powerMax

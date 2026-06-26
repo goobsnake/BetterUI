@@ -619,7 +619,20 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
         end
     end
 
+    function runner:IsBatchActive()
+        return Vendor._batchProcessing == true
+    end
+
     function runner:ContinueAfterDelay(shouldAwaitAck)
+        if not self:IsBatchActive() then
+            TraceVendorBatch("vendor.batch", "stale_callback_skipped", {
+                fn = "Vendor.BatchRunner.ContinueAfterDelay",
+                mode = self.mode,
+                reason = "notProcessing",
+            })
+            return
+        end
+
         if not shouldAwaitAck or self.ackReceived then
             TraceVendorBatch("vendor.batch_ack", "continue", {
                 fn = "Vendor.BatchRunner.ContinueAfterDelay",
@@ -648,6 +661,9 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
             expectedSlotIndex = self.expectedAckSlotIndex,
         })
         zo_callLater(function()
+            if not self:IsBatchActive() then
+                return
+            end
             if self.awaitingAck and token == self.ackWaitToken then
                 self.awaitingAck = false
                 TraceVendorBatch("vendor.batch_ack", "timeout", {
@@ -769,6 +785,15 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
     end
 
     function runner:Step()
+        if not self:IsBatchActive() then
+            TraceVendorBatch("vendor.batch", "stale_callback_skipped", {
+                fn = "Vendor.BatchRunner.Step",
+                mode = self.mode,
+                reason = "notProcessing",
+            })
+            return
+        end
+
         if not self:IsSceneActive() then
             self.stopReason = "sceneExit"
             TraceVendorBatch("vendor.batch", "stopping", {
@@ -918,6 +943,9 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
             expectedSlotIndex = self.expectedAckSlotIndex,
         })
         zo_callLater(function()
+            if not self:IsBatchActive() then
+                return
+            end
             self:ContinueAfterDelay(shouldAwaitAck)
         end, nextDelayMs)
     end
@@ -960,6 +988,9 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
                 remainingMs = remainingMs,
             })
             zo_callLater(function()
+                if not self:IsBatchActive() then
+                    return
+                end
                 self:StartAfterDialogDismiss(remainingMs - 25)
             end, 25)
             return
@@ -972,6 +1003,16 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
                     reason = "notProcessing",
                     mode = self.mode,
                 })
+                return
+            end
+            if not self:IsSceneActive() then
+                self.stopReason = "sceneExit"
+                TraceVendorBatch("vendor.batch_start", "aborted", {
+                    fn = "Vendor.BatchRunner.StartAfterDialogDismiss.startTask",
+                    reason = "sceneExit",
+                    mode = self.mode,
+                })
+                self:Finish()
                 return
             end
             self:UpdateProgress()

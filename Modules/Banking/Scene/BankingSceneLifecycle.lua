@@ -28,6 +28,14 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     -- suppression. Always clear it on scene entry.
     self:SetListUpdatesSuppressed(false)
 
+    -- Cancel any pending scene-recovery zo_callLater from a previous hidden
+    -- transition; a HIDING -> SHOWING re-entry would otherwise let the stale
+    -- callback fire after the scene is active again.
+    if self._bankingSceneRecoverCallLaterId then
+        zo_removeCallLater(self._bankingSceneRecoverCallLaterId)
+        self._bankingSceneRecoverCallLaterId = nil
+    end
+
     -- Ensure currency selector is hidden on scene entry
     if self.selector and self.selector.control then
         self.selector.control:GetParent():SetHidden(true)
@@ -248,6 +256,12 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         BETTERUI.Banking.RefreshManager:Cancel()
     end
 
+    -- Cancel any in-flight Banking deferred tasks (stack-all refresh, currency
+    -- transfer settle, etc.) so they cannot fire after the scene is hidden.
+    if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.CancelAll then
+        BETTERUI.Banking.Tasks:CancelAll()
+    end
+
     -- Exit multi-select so the shared active-instance / global selection state is
     -- not left stale after leaving Banking.
     if self.multiSelectManager and self.multiSelectManager:IsActive() then
@@ -327,7 +341,8 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     -- Reset category positions when leaving the bank
     self.lastPositionsByCategory = {}
 
-    zo_callLater(function()
+    self._bankingSceneRecoverCallLaterId = zo_callLater(function()
+        self._bankingSceneRecoverCallLaterId = nil
         if not IsInGamepadPreferredMode() then
             return
         end

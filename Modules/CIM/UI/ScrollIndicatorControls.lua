@@ -53,20 +53,23 @@ local function StartArrowRepeat(instance, direction)
     -- Store the direction for the repeat handler
     instance.arrowRepeatDirection = direction
     instance.arrowRepeatActive = true
+    instance.arrowRepeatToken = (instance.arrowRepeatToken or 0) + 1
+    local repeatToken = instance.arrowRepeatToken
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "scroll indicator start arrow repeat", { direction = direction })
     end
 
     -- Use a unique update name per instance to avoid collisions
     local updateName = "BetterUI_ScrollIndicatorArrowRepeat_" .. tostring(instance.listControl:GetName())
+    EVENT_MANAGER:UnregisterForUpdate(updateName)
 
     -- Initial delay before repeat starts
     zo_callLater(function()
-        if not instance.arrowRepeatActive then return end
+        if repeatToken ~= instance.arrowRepeatToken or not instance.arrowRepeatActive then return end
 
         -- Start the repeat interval
         EVENT_MANAGER:RegisterForUpdate(updateName, MOUSE_INTERACTION.ARROW_REPEAT_INTERVAL_MS, function()
-            if not instance.arrowRepeatActive or not instance.listObject then
+            if repeatToken ~= instance.arrowRepeatToken or not instance.arrowRepeatActive or not instance.listObject then
                 EVENT_MANAGER:UnregisterForUpdate(updateName)
                 return
             end
@@ -85,6 +88,7 @@ local function StopArrowRepeat(instance)
 
     instance.arrowRepeatActive = false
     instance.arrowRepeatDirection = nil
+    instance.arrowRepeatToken = (instance.arrowRepeatToken or 0) + 1
 
     local updateName = "BetterUI_ScrollIndicatorArrowRepeat_" .. tostring(instance.listControl:GetName())
     EVENT_MANAGER:UnregisterForUpdate(updateName)

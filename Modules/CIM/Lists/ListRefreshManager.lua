@@ -56,6 +56,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
 
     self.isDirty = false
     self.pendingRefreshCallId = nil
+    self.refreshToken = 0
     self.savedPosition = nil
     self.savedUniqueId = nil
 end
@@ -200,6 +201,8 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
     end
 
     self.isDirty = true
+    self.refreshToken = (self.refreshToken or 0) + 1
+    local refreshToken = self.refreshToken
 
     -- Cancel any pending refresh
     if self.pendingRefreshCallId then
@@ -208,6 +211,9 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
 
     -- Schedule coalesced refresh
     self.pendingRefreshCallId = zo_callLater(function()
+        if refreshToken ~= self.refreshToken then
+            return
+        end
         self.pendingRefreshCallId = nil
         if self.isDirty then
             self:ExecuteRefresh(list, refreshFn)
@@ -241,6 +247,7 @@ end
 
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
+    self.refreshToken = (self.refreshToken or 0) + 1
     if self.pendingRefreshCallId then
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
             BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIST, "refresh cancel")

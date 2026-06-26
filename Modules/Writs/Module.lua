@@ -183,6 +183,12 @@ function Writs.Setup()
     local writsNamespace = BETTERUI.name .. "_Writs"
     Writs.CacheControls()
 
+    -- Guard against duplicate registration if Setup is invoked more than once.
+    if Writs._eventsRegistered then
+        TraceWritEvent("writ.setup", "skipped", { reason = "eventsAlreadyRegistered" })
+        return
+    end
+
     BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_CRAFTING_STATION_INTERACT, OnCraftStation)
     BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_END_CRAFTING_STATION_INTERACT, OnCloseCraftStation)
     BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_CRAFT_COMPLETED, OnCraftItem)
@@ -196,6 +202,7 @@ function Writs.Setup()
         BETTERUI.CIM.EventRegistry.Register("Writs", writsNamespace, EVENT_QUEST_CONDITION_COUNTER_CHANGED, OnQuestJournalChanged)
     end
 
+    Writs._eventsRegistered = true
     BETTERUI_WP:SetHidden(true)
     TraceWritEvent("writ.setup", "end", { hidden = true })
 end

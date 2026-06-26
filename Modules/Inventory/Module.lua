@@ -361,6 +361,10 @@ function Inventory.Setup()
 
 			local retriesRemaining = 20
 			local function ReleaseSplitLockIfNoDialog()
+				if not BETTERUI.GetModuleEnabled("Inventory") then
+					Inventory._splitStackLock = nil
+					return
+				end
 				if ZO_Dialogs_IsShowing and not ZO_Dialogs_IsShowing(ZO_GAMEPAD_SPLIT_STACK_DIALOG) then
 					Inventory._splitStackLock = nil
 					local inventorySceneShowing = BETTERUI.CIM and BETTERUI.CIM.Utils
