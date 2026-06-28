@@ -38,7 +38,7 @@ function BETTERUI.CIM.InitializeSharedItemVisualData(row, itemData)
 end
 
 ---@param itemData table
----@param options {visualDataInit: fun(self: table, data: table)?, isQuestItem: boolean?}?
+---@param options {visualDataInit: fun(self: table, data: table)?, isQuestItem: boolean?, listModuleName: string?}?
 ---@return table?
 function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     options = options or {}
@@ -92,7 +92,9 @@ function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     data.itemCategoryName = itemData.itemCategoryName or data.bestItemCategoryName
     data.bestGamepadItemCategoryName = categoryName or data.bestItemCategoryName
     data.bestItemTypeName = itemData.bestItemTypeName
-    data.listModuleName = itemData.listModuleName
+    local listModuleName = options.listModuleName or itemData.listModuleName
+    data.listModuleName = listModuleName
+    itemData.listModuleName = listModuleName
 
     -- Copy equipped/junk status. Quest rows are synthetic action entries, not
     -- equippable inventory slots; keep quickslot state separate from equipped

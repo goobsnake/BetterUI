@@ -397,6 +397,8 @@ assertTrue(bankListManager:match("BETTERUI%.Inventory%.DefaultSortComparator") =
     "BankListManager no longer reaches through Inventory for sort comparison")
 assertTrue(bankListManager:match("BETTERUI%.CIM%.InitializeSharedItemVisualData") ~= nil,
     "BankListManager uses the neutral shared item visual initializer")
+assertTrue(bankListManager:match("listModuleName%s*=%s*BANKING_LIST_MODULE_NAME") ~= nil,
+    "BankListManager pins banking rows to the Banking module for shared list context")
 assertTrue(bankListManager:match("BETTERUI%.Inventory%.Class%.InitializeInventoryVisualData") == nil,
     "BankListManager no longer reaches through Inventory for row visual setup")
 

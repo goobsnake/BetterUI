@@ -76,6 +76,8 @@ end
 
 local GetBestItemCategoryDescription = BETTERUI.CIM.SharedItemSupport.GetBestItemCategoryDescription
 
+local BANKING_LIST_MODULE_NAME = BETTERUI.CIM.CONST.MODULES.BANKING
+
 local function ResolveBagsAndSlotType(self)
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
     local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
@@ -333,7 +335,8 @@ function BETTERUI.Banking.Class:RefreshList()
 
     for _, itemData in ipairs(filteredDataTable) do
         local entryData = BETTERUI.CIM.CreateItemEntryData(itemData, {
-            visualDataInit = BETTERUI.CIM.InitializeSharedItemVisualData
+            visualDataInit = BETTERUI.CIM.InitializeSharedItemVisualData,
+            listModuleName = BANKING_LIST_MODULE_NAME,
         })
 
         if entryData and ((not entryData.isJunk and not showJunkCategory) or (entryData.isJunk and showJunkCategory)) then

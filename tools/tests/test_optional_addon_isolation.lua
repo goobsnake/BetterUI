@@ -21,11 +21,30 @@ local function assert_no_error(ok, label)
     assert_eq(ok, true, label)
 end
 
+local function assert_count(actual, expected, label)
+    if #actual == expected then
+        passed = passed + 1
+    else
+        failed = failed + 1
+        print(string.format("  FAIL: %s -- expected %d, got %d", label, expected, #actual))
+    end
+end
+
 local function assert_empty_price_info(ok, priceInfo, label)
     assert_no_error(ok, label .. " does not escape GetSourcePriceInfo")
     if ok then
         assert_eq(priceInfo.hasData, false, label .. " returns no price data")
         assert_eq(priceInfo.price, 0, label .. " returns empty price")
+    end
+end
+
+local function assert_price_info(ok, priceInfo, expectedPrice, label)
+    assert_no_error(ok, label .. " does not escape GetSourcePriceInfo")
+    if ok then
+        assert_eq(priceInfo.sourceKey, "ttc", label .. " uses TTC source")
+        if expectedPrice ~= nil then
+            assert_eq(priceInfo.price, expectedPrice, label .. " returns expected price")
+        end
     end
 end
 
@@ -55,6 +74,36 @@ end
 function GetString(value)
     return tostring(value)
 end
+
+local capturedLogWarnings = {}
+local capturedLogInfos = {}
+BETTERUI.Log = {
+    CATEGORY = {
+        GENERAL = "GENERAL",
+    },
+    Error = function(_, category, message, data)
+        capturedLogWarnings[#capturedLogWarnings + 1] = {
+            category = category,
+            message = message,
+            data = data,
+        }
+    end,
+    Warn = function(_, category, message, data)
+        capturedLogWarnings[#capturedLogWarnings + 1] = {
+            category = category,
+            message = message,
+            data = data,
+        }
+    end,
+    Info = function(_, category, message, data)
+        capturedLogInfos[#capturedLogInfos + 1] = {
+            category = category,
+            message = message,
+            data = data,
+        }
+    end,
+}
+BETTERUI.CIM.Log = BETTERUI.Log
 
 dofile("Modules/CIM/Core/Integration/OptionalAddonRegistry.lua")
 dofile("Modules/CIM/Core/Integration/MarketIntegration.lua")
@@ -118,7 +167,7 @@ TamrielTradeCentrePrice = {
     end,
 }
 ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", "|H1:item:1|h", 2, settings)
-assert_empty_price_info(ok, priceInfo, "throwing TTC item-info factory")
+assert_price_info(ok, priceInfo, 40, "throwing TTC item-info factory")
 
 TamrielTradeCentre_ItemInfo.New = function()
     return {
@@ -139,6 +188,59 @@ TamrielTradeCentrePrice.GetPriceInfo = function()
 end
 ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", "|H1:item:1|h", 2, settings)
 assert_empty_price_info(ok, priceInfo, "malformed TTC price info")
+
+capturedLogWarnings = {}
+capturedLogInfos = {}
+TamrielTradeCentre_ItemInfo = {}
+TamrielTradeCentrePrice.GetPriceInfo = function(_, itemRef)
+    itemRef = itemRef or _
+    if type(itemRef) == "table" and type(itemRef.itemLink) == "string" then
+        itemRef = itemRef.itemLink
+    end
+    if itemRef == "|H1:item:1|h" then
+        return {
+            Avg = 11,
+            SuggestedPrice = 13,
+        }
+    end
+    return {
+        Avg = 21,
+        SuggestedPrice = 23,
+    }
+end
+
+ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", "|H1:item:1|h", 2, settings)
+assert_no_error(ok, "TTC fallback from missing ItemInfo.New does not error")
+assert_eq(priceInfo.hasData, true, "TTC fallback from missing ItemInfo.New returns data")
+assert_eq(priceInfo.price, 22, "TTC fallback from missing ItemInfo.New uses raw Avg")
+assert_count(capturedLogWarnings, 1, "TTC missing ItemInfo.New emits one warn")
+
+ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", "|H1:item:1|h", 2, settings)
+assert_no_error(ok, "repeated TTC fallback from missing ItemInfo.New does not error")
+assert_eq(priceInfo.price, 22, "TTC fallback from missing ItemInfo.New returns same data")
+assert_count(capturedLogWarnings, 1, "repeated TTC missing ItemInfo.New does not re-warn")
+
+TamrielTradeCentre_ItemInfo.New = function()
+    return {
+        itemLink = "|H1:item:1|h",
+    }
+end
+ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", "|H1:item:1|h", 2, settings)
+assert_eq(priceInfo.hasData, true, "TTC API restoration returns data")
+assert_eq(priceInfo.price, 22, "TTC API restoration keeps pricing path")
+assert_count(capturedLogInfos, 1, "TTC API restoration emits info")
+
+TamrielTradeCentre_ItemInfo.New = function()
+    return "bad"
+end
+ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", "|H1:item:1|h", 2, settings)
+assert_eq(priceInfo.hasData, true, "TTC malformed ItemInfo.New returns fallback data")
+assert_eq(priceInfo.price, 22, "TTC malformed ItemInfo.New keeps fallback pricing")
+assert_count(capturedLogWarnings, 2, "TTC malformed ItemInfo.New emits one warn")
+
+ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", "|H1:item:1|h", 2, settings)
+assert_eq(priceInfo.hasData, true, "repeated TTC malformed ItemInfo.New does not re-warn")
+assert_count(capturedLogWarnings, 2, "repeated TTC malformed ItemInfo.New reuses warning gate")
 
 AutoCategory = {
     Inited = true,

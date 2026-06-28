@@ -48,10 +48,10 @@ with a short stack traceback after it — **ignore those tracebacks**; they are 
 |---|---|---|---|---|
 | `off` | — | — | — | stop; restores the player's real error popups |
 | `info` | INFO+ | no | 8 / 100 | always-on, FPS-safe milestones only |
-| `watch` | DEBUG+ | **yes** | 300 / 6000 | AI-enriched live stream (no TRACE spam) |
-| `debug` | DEBUG+ | no | 1000 / 20000 | "what is it doing" developer flow |
-| `trace` | TRACE+ | no | 2000 / 40000 | every step, no enrichment |
-| `inspect` | TRACE+ | **yes** | 2000 / 40000 | **richest live-AI stream — default for this skill** |
+| `watch` | DEBUG+ | **yes** | 2000 / 40000 | AI-enriched live stream (no TRACE spam) |
+| `debug` | DEBUG+ | no | 2000 / 40000 | "what is it doing" developer flow |
+| `trace` | TRACE+ | no | 4000 / 80000 | every step, no enrichment |
+| `inspect` | TRACE+ | **yes** | 4000 / 80000 | **richest live-AI stream — default for this skill** |
 
 "Enrichment" = each line gets `scene=… view=… flow=… lastAction=…` context + a startup
 preamble + periodic state snapshots. `inspect` = `trace` depth + `watch` enrichment.

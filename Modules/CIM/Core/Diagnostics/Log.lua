@@ -809,12 +809,12 @@ local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trac
 -- ~800+ records/frame at inspect depth, so the per-frame caps clear that with headroom
 -- (verified: no in-game FPS impact at inspect during heavy scrolling/category switches).
 local PRESET_BUDGET = {
-    off   = { maxPerFrame = 0,    maxPerSecond = 0,     maxPending = 0 },
-    info  = { maxPerFrame = 8,    maxPerSecond = 100,   maxPending = 200 },
-    watch = { maxPerFrame = 1000, maxPerSecond = 20000, maxPending = 20000 }, -- debug volume + WatchMode enrichment
-    debug = { maxPerFrame = 1000, maxPerSecond = 20000, maxPending = 20000 },
-    trace = { maxPerFrame = 2000, maxPerSecond = 40000, maxPending = 40000 },
-    inspect = { maxPerFrame = 2000, maxPerSecond = 40000, maxPending = 40000 }, -- trace volume + watch enrichment
+    off     = { maxPerFrame = 0,    maxPerSecond = 0,     maxPending = 0 },
+    info    = { maxPerFrame = 8,    maxPerSecond = 100,   maxPending = 200 },
+    watch   = { maxPerFrame = 2000, maxPerSecond = 40000, maxPending = 40000 }, -- debug volume + WatchMode enrichment
+    debug   = { maxPerFrame = 2000, maxPerSecond = 40000, maxPending = 40000 },
+    trace   = { maxPerFrame = 4000, maxPerSecond = 80000, maxPending = 80000 },
+    inspect = { maxPerFrame = 4000, maxPerSecond = 80000, maxPending = 80000 }, -- trace volume + watch enrichment
 }
 
 -- file ON for levels >= fileFromLevel (nil = all file sinks off); chat per chatOn.

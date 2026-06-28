@@ -172,6 +172,46 @@ end
 
 -- HIDE NATIVE ACTION BAR
 
+-- Suppresses native action bar per-button keybind labels that can reappear
+-- after scene transitions if we only hide top-level containers.
+local function HideNativeActionBarButtonText()
+    if not ACTION_BAR_FIRST_NORMAL_SLOT_INDEX or not ACTION_BAR_SLOTS_PER_PAGE then
+        return
+    end
+
+    local stopSlot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1
+    for slot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, stopSlot do
+        local btn = ZO_ActionBar_GetButton(slot)
+        if btn and btn.buttonText then
+            btn.buttonText:SetHidden(true)
+        end
+    end
+
+    local quickslotButton = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    if quickslotButton and quickslotButton.buttonText then
+        quickslotButton.buttonText:SetHidden(true)
+    end
+end
+
+local function RestoreNativeActionBarButtonText()
+    if not ACTION_BAR_FIRST_NORMAL_SLOT_INDEX or not ACTION_BAR_SLOTS_PER_PAGE then
+        return
+    end
+
+    local stopSlot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1
+    for slot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, stopSlot do
+        local btn = ZO_ActionBar_GetButton(slot)
+        if btn and btn.buttonText then
+            btn.buttonText:SetHidden(false)
+        end
+    end
+
+    local quickslotButton = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    if quickslotButton and quickslotButton.buttonText then
+        quickslotButton.buttonText:SetHidden(false)
+    end
+end
+
 --- Hides the native ESO action bar and timer.
 local function HideNativeActionBar()
     if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
@@ -181,6 +221,10 @@ local function HideNativeActionBar()
     if ZO_ActionBarTimer and ZO_ActionBarTimer.SetHidden then
         ZO_ActionBarTimer:SetHidden(true)
     end
+    if ZO_ActionBar1KeybindBG and ZO_ActionBar1KeybindBG.SetHidden then
+        ZO_ActionBar1KeybindBG:SetHidden(true)
+    end
+    HideNativeActionBarButtonText()
 end
 
 --- Restores the native ESO action bar and timer after ResourceOrbFrames is disabled.
@@ -201,6 +245,7 @@ local function RestoreNativeActionBar()
     if ZO_ActionBar1KeybindBG and ZO_ActionBar1KeybindBG.SetHidden then
         ZO_ActionBar1KeybindBG:SetHidden(false)
     end
+    RestoreNativeActionBarButtonText()
 end
 
 -- UPDATE FRONT BAR (icons, slot data, highlights)

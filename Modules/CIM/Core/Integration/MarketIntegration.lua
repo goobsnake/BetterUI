@@ -91,6 +91,50 @@ end
 
 local EMPTY_MARKET_PRICE_INFO = CreateMarketPriceInfo({})
 
+local TTC_FALLBACK_NOTICE = {
+    unavailable = {
+        warned = false,
+    },
+    malformed = {
+        warned = false,
+    },
+    apiAvailable = nil,
+}
+
+local function MaybeWarnTTCFallback(reason, itemLink)
+    if not BETTERUI.Log or type(BETTERUI.Log.Warn) ~= "function" then return end
+    local notice = TTC_FALLBACK_NOTICE[reason]
+    if not notice or notice.warned then return end
+    local message
+    if reason == "unavailable" then
+        message = "TTC fallback path: TamrielTradeCentre_ItemInfo.New unavailable; using raw itemLink (best-effort, may return nil)"
+    elseif reason == "malformed" then
+        message = "TTC fallback path: TamrielTradeCentre_ItemInfo.New returned invalid payload; using raw itemLink (best-effort, may return nil)"
+    else
+        return
+    end
+    pcall(BETTERUI.Log.Warn, BETTERUI.Log.CATEGORY.GENERAL, message, { itemLink = itemLink })
+    notice.warned = true
+end
+
+local function TrackTTCItemInfoApiAvailability(itemLink)
+    local hasApi = type(TamrielTradeCentre_ItemInfo) == "table" and type(TamrielTradeCentre_ItemInfo.New) == "function"
+    if not hasApi and TTC_FALLBACK_NOTICE.apiAvailable ~= false then
+        MaybeWarnTTCFallback("unavailable", itemLink)
+        TTC_FALLBACK_NOTICE.apiAvailable = false
+        TTC_FALLBACK_NOTICE.malformed.warned = false
+        return false
+    end
+    if hasApi and TTC_FALLBACK_NOTICE.apiAvailable == false and BETTERUI.Log and type(BETTERUI.Log.Info) == "function" then
+        pcall(BETTERUI.Log.Info, BETTERUI.Log.CATEGORY.GENERAL, "TTC item-info API restored; using TamrielTradeCentre_ItemInfo.New path")
+        TTC_FALLBACK_NOTICE.unavailable.warned = false
+    end
+    if hasApi then
+        TTC_FALLBACK_NOTICE.apiAvailable = true
+    end
+    return hasApi
+end
+
 local function CallOptionalAddon(method, self, ...)
     local ok, result = pcall(method, self, ...)
     if not ok then
@@ -160,21 +204,20 @@ local function FetchTTCPriceInfo(itemLink)
         return nil
     end
 
-    if type(TamrielTradeCentre_ItemInfo) == "table" and type(TamrielTradeCentre_ItemInfo.New) == "function" then
+    local hasItemInfoApi = TrackTTCItemInfoApiAvailability(itemLink)
+    if hasItemInfoApi then
         local itemInfo = CallOptionalAddon(TamrielTradeCentre_ItemInfo.New, TamrielTradeCentre_ItemInfo, itemLink)
-        if type(itemInfo) ~= "table" then
-            return nil
-        end
-
-        local priceInfo = CallOptionalAddon(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, itemInfo)
-        if type(priceInfo) == "table" then
-            return priceInfo
+        if type(itemInfo) == "table" then
+            local priceInfo = CallOptionalAddon(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, itemInfo)
+            if type(priceInfo) == "table" then
+                TTC_FALLBACK_NOTICE.malformed.warned = false
+                return priceInfo
+            end
+        else
+            MaybeWarnTTCFallback("malformed", itemLink)
         end
     end
 
-    if BETTERUI.Log then
-        BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "TTC fallback path: TamrielTradeCentre_ItemInfo.New unavailable; using raw itemLink (best-effort, may return nil)", { itemLink = itemLink })
-    end
     local priceInfo = CallOptionalAddon(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, itemLink)
     if type(priceInfo) == "table" then
         return priceInfo
