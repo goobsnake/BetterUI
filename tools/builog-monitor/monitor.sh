@@ -5,7 +5,7 @@
 # time. Pairs with the builog-monitor skill (tools/builog-monitor/SKILL.md, same dir).
 #
 # Usage:
-#   tools/builog-monitor/monitor.sh [minutes] [interval_seconds] [log_path]
+#   tools/builog-monitor/monitor.sh [minutes] [interval_seconds] [log_path] [screenshot_dir]
 #
 #   minutes          how long to watch (default 2). Fractional ok (e.g. 0.5).
 #   interval_seconds seconds between samples (default 10). 5 to pinpoint a repro,
@@ -17,6 +17,8 @@
 #                    Override for other OSes:
 #                      Windows: <Documents>/Elder Scrolls Online/live/Logs/interface.log
 #                      macOS:   ~/Documents/Elder Scrolls Online/live/Logs/interface.log
+#   screenshot_dir   path/URI to live/Screenshots, or "remote". Default: derived from
+#                    log_path, or $BUILOG_SCREENSHOT_DIR when set.
 #
 # Prerequisite in-game: /builog preset inspect   (richest stream: trace depth + watch
 # enrichment). Lighter options: watch | debug | trace. /builog status shows counters.
@@ -33,6 +35,9 @@ INTERVAL="${2:-10}"
 DEFAULT_LOG="/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Logs/interface.log"
 REMOTE_LOG="${BUILOG_REMOTE_INTERFACE_LOG:-smb://goobers/elder%20scrolls%20online/live/Logs/interface.log}"
 LOG_REQUEST="${3:-${BUILOG_INTERFACE_LOG:-$DEFAULT_LOG}}"
+DEFAULT_SCREENSHOT_DIR="/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots"
+REMOTE_SCREENSHOT_DIR="${BUILOG_REMOTE_SCREENSHOT_DIR:-smb://goobers/elder%20scrolls%20online/live/Screenshots}"
+SCREENSHOT_REQUEST="${4:-${BUILOG_SCREENSHOT_DIR:-}}"
 
 die() {
   printf 'BUILOG MONITOR: %s\n' "$*" >&2
@@ -135,10 +140,66 @@ resolve_log_request() {
   esac
 }
 
+derive_screenshot_dir() {
+  local log_path="$1"
+  case "$log_path" in
+    */Logs/interface.log|*/Logs/Interface.log|*/logs/interface.log)
+      printf '%s/Screenshots\n' "${log_path%/*/*}"
+      return 0
+      ;;
+  esac
+
+  case "$LOG_REQUEST" in
+    remote|REMOTE|--remote|smb://*)
+      case "$REMOTE_SCREENSHOT_DIR" in
+        smb://*) resolve_smb_uri "$REMOTE_SCREENSHOT_DIR" ;;
+        *) printf '%s\n' "$REMOTE_SCREENSHOT_DIR" ;;
+      esac
+      ;;
+    *)
+      printf '%s\n' "$DEFAULT_SCREENSHOT_DIR"
+      ;;
+  esac
+}
+
+resolve_screenshot_request() {
+  local request="$1"
+  case "$request" in
+    remote|REMOTE|--remote) request="$REMOTE_SCREENSHOT_DIR" ;;
+  esac
+
+  case "$request" in
+    "") derive_screenshot_dir "$LOG" ;;
+    smb://*) resolve_smb_uri "$request" ;;
+    *) printf '%s\n' "$request" ;;
+  esac
+}
+
+list_recent_screenshots() {
+  local dir="$1"
+
+  if find "$dir" -maxdepth 0 -printf '' >/dev/null 2>&1; then
+    find "$dir" -maxdepth 1 -type f -printf '%T@ %TY-%Tm-%Td %TH:%TM:%TS %p\n' 2>/dev/null \
+      | sort -nr | head -5 | cut -d' ' -f2-
+    return 0
+  fi
+
+  find "$dir" -maxdepth 1 -type f -print 2>/dev/null | while IFS= read -r file; do
+    if stat -c '%Y %y %n' "$file" >/dev/null 2>&1; then
+      stat -c '%Y %y %n' "$file"
+    elif stat -f '%m %Sm %N' -t '%Y-%m-%d %H:%M:%S' "$file" >/dev/null 2>&1; then
+      stat -f '%m %Sm %N' -t '%Y-%m-%d %H:%M:%S' "$file"
+    else
+      printf '0 %s\n' "$file"
+    fi
+  done | sort -nr | head -5 | cut -d' ' -f2-
+}
+
 awk -v m="$MINUTES" 'BEGIN { exit !(m > 0) }' || die "minutes must be a positive number: $MINUTES"
 awk -v i="$INTERVAL" 'BEGIN { exit !(i > 0) }' || die "interval_seconds must be a positive number: $INTERVAL"
 
 LOG="$(resolve_log_request "$LOG_REQUEST")"
+SCREENSHOT_DIR="$(resolve_screenshot_request "$SCREENSHOT_REQUEST")"
 
 if [ ! -f "$LOG" ]; then
   echo "BUILOG MONITOR: interface.log not found at:" >&2
@@ -167,6 +228,7 @@ if [ "$LOG_REQUEST" != "$LOG" ]; then
   echo "    requested log: $LOG_REQUEST"
 fi
 echo "    log: $LOG"
+echo "    screenshots: $SCREENSHOT_DIR"
 
 for i in $(seq 1 "$SAMPLES"); do
   sleep "$INTERVAL"
@@ -217,6 +279,17 @@ for i in $(seq 1 "$SAMPLES"); do
   if [ -n "$warns" ]; then
     echo "  !! BUI WARN/ERROR:"
     printf '%s\n' "$warns" | sed 's/.*\[BUI\]/[BUI]/; s/|r$//' | head -8 | sed 's/^/     /'
+  fi
+  shots=$(printf '%s\n' "$chunk" | grep '\[BUI\]' | grep ' SCREENSHOT | ')
+  if [ -n "$shots" ]; then
+    echo "  screenshot markers:"
+    printf '%s\n' "$shots" | sed 's/.*\[BUI\]/[BUI]/; s/|r$//' | head -8 | sed 's/^/     /'
+    if [ -d "$SCREENSHOT_DIR" ]; then
+      echo "  screenshot files (latest 5 by mtime):"
+      list_recent_screenshots "$SCREENSHOT_DIR" | sed 's/^/     /'
+    else
+      echo "  screenshot dir unavailable: $SCREENSHOT_DIR"
+    fi
   fi
   echo "  trail (last 10 BUI):"
   printf '%s\n' "$chunk" | grep '\[BUI\]' | tail -10 | sed 's/.*\[BUI\]/[BUI]/; s/|r$//' | sed 's/^/     /'

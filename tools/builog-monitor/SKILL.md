@@ -58,9 +58,14 @@ preamble + periodic state snapshots. `inspect` = `trace` depth + `watch` enrichm
 
 Other useful in-game commands: `/builog status` (preset + counters incl. `dropped` /
 `suppressed`), `/buihealth` (one-line health), `/builog mark <text>` (drop a labeled marker
-into the stream — ask the user to mark "about to test X" so you can find it), `/builog off`.
+into the stream — ask the user to mark "about to test X" so you can find it),
+`/builog screenshot [label]` (manual visual capture), `/builog screenshot auto
+error|warn|off` (session-only opt-in auto capture), `/builog off`.
+Auto capture can include private UI/chat/account context; keep it off outside the
+current play-test window. Saved markers are emitted only for screenshots BetterUI requested.
 Full surface: `/builog on|off | preset … | chat on|off | popups on|off | level <lvl> |
-mark <text> | recent [n] | errors [n] | capture [secs] | snapshot | test | status`.
+mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] |
+screenshot auto off|error|warn | snapshot | test | status`.
 
 ## Step 2 — find interface.log
 
@@ -117,7 +122,7 @@ has written at least one line this session (any Lua error, or `/builog on`).
 
 The user gives a duration in **minutes**. Run:
 ```
-tools/builog-monitor/monitor.sh <minutes> [interval_seconds] [log_path]
+tools/builog-monitor/monitor.sh <minutes> [interval_seconds] [log_path] [screenshot_dir]
 ```
 Run that command through native terminal/shell execution, not MCP `process_run`.
 
@@ -142,6 +147,9 @@ BUILOG_INTERFACE_LOG="$LOG" tools/builog-monitor/monitor.sh <minutes> [interval_
 - `interval_seconds` — **default 10** (a good back-and-forth cadence). Drop to **5** to pin a
   specific repro; raise to **15–20** for long (>10 min) or quiet sessions, because `inspect`
   can emit hundreds of lines/second during list rebuilds and 10s samples stay readable.
+- `screenshot_dir` — optional path/URI to `<ESO live>/Screenshots`. Defaults to
+  `BUILOG_SCREENSHOT_DIR` or a path derived from `log_path`; pass `remote` to use the remote
+  shared-machine screenshot folder.
 
 The monitor reads only lines appended **after** it starts, so confirm a preset is already
 active (Step 1) before launching; for earlier history `grep '\[BUI\]'` the file directly. Have
@@ -151,7 +159,8 @@ that action's `seq` window in the stream.
 Run it in the background if your platform supports it; otherwise it blocks for the duration.
 Each `----- sample N -----` block reports: new `[BUI]` count, level mix, **real (non-BUI)
 errors with messages**, rate-limit dropped-record totals, parse-contract violations, your
-own `WARN`/`ERROR` breadcrumbs, and a 10-line trail. A `===== totals =====` footer closes it.
+own `WARN`/`ERROR` breadcrumbs, `SCREENSHOT` markers plus latest screenshot files when
+available, and a 10-line trail. A `===== totals =====` footer closes it.
 
 The helper prints both `requested log:` and resolved `log:` when it is resolving `remote` or
 an `smb://` URI. If it errors, do not silently fall back to the local Proton log; fix the
@@ -177,7 +186,7 @@ context suffix appended to every line.
 - `sid` = session id, new each UI load (changes on `/reloadui` — a natural discontinuity).
   `seq` = monotonic counter; **gaps mean dropped or suppressed lines**, not lost events.
 - `LEVEL` ∈ TRACE/DEBUG/INFO/WARN/ERROR. `CATEGORY` ∈ SCENE, LIST, NAV, KEYBIND, ACTION,
-  BATCH, LIFECYCLE, SORT, STATE, GENERAL, LOG, …
+  BATCH, LIFECYCLE, SORT, STATE, SCREENSHOT, GENERAL, LOG, …
 - Filter the stream with `grep '\[BUI\]'`. The engine wraps each line as
   `<ISO-ts> |cff0000Lua Error: [BUI] …|r` followed by a `stack traceback:` block — strip the
   color codes and ignore the traceback.
@@ -191,6 +200,7 @@ context suffix appended to every line.
 | `WARN LOG \| dropped=<n> reason=rate_limit` | sink shed `n` lines (budget hit) | usually fine at inspect during bursts; only worry if huge/constant |
 | `>1` ` | ` in a `[BUI]` line | a value injected the field separator | parse-contract bug — report the line |
 | `WARN`/`ERROR` `[BUI]` lines | BetterUI flagging its own problem | read the event; often the real lead |
+| `SCREENSHOT` markers | manual/auto capture request, suppression, or saved filename | inspect the listed screenshot file when troubleshooting visual state |
 | `seq` jumps with no `dropped=` summary | suppression-guard drops (e.g. mid-reloadui) | check `/builog status` `suppressed=` counter |
 | behavior the user reports ≠ what the log shows | e.g. a keybind that "does nothing" | search for the action's CATEGORY/ACTION line near that `seq`; absence of a line often *is* the bug |
 

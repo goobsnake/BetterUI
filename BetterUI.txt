@@ -45,6 +45,7 @@ Modules\CIM\Core\Diagnostics\FeatureFlags.lua
 Modules\CIM\Core\Diagnostics\DeveloperDebug.lua
 Modules\CIM\Core\Diagnostics\InterfaceLog.lua
 Modules\CIM\Core\Diagnostics\Log.lua
+Modules\CIM\Core\Diagnostics\Screenshot.lua
 Modules\CIM\Core\Diagnostics\Names.lua
 Modules\CIM\Core\Diagnostics\DebugInfo.lua
 Modules\CIM\Core\Diagnostics\WatchMode.lua

@@ -14,6 +14,8 @@ Usage:
 local fileLines = {}
 local chatLines = {}
 local ilEnabled = true
+local screenshots = {}
+local gameTimeMs = 100
 
 BETTERUI = { CIM = {} }
 BETTERUI.CIM.InterfaceLog = {
@@ -29,10 +31,16 @@ BETTERUI.CIM.InterfaceLog = {
 }
 
 function d(msg) chatLines[#chatLines + 1] = msg end
-function GetGameTimeMilliseconds() return 100 end
+function GetGameTimeMilliseconds() return gameTimeMs end
+function TakeScreenshot()
+    screenshots[#screenshots + 1] = { t = gameTimeMs }
+    return true
+end
 
 dofile("Modules/CIM/Core/Diagnostics/Log.lua")
+pcall(dofile, "Modules/CIM/Core/Diagnostics/Screenshot.lua")
 local Log = BETTERUI.Log
+local Screenshot = BETTERUI.CIM.Screenshot or {}
 
 -- Flip the (stubbed) InterfaceLog enable state AND invalidate the logger's memoized
 -- active-state, the way the real InterfaceLog.SetEnabled does. Tests that toggle
@@ -48,12 +56,14 @@ end
 
 local tests_passed = 0
 local tests_failed = 0
+local failed_messages = {}
 local function check(cond, message)
     if cond then
         tests_passed = tests_passed + 1
         print("  [OK] " .. message)
     else
         tests_failed = tests_failed + 1
+        failed_messages[#failed_messages + 1] = message
         print("  [X] " .. message)
     end
 end
@@ -301,6 +311,116 @@ check(pcall(function() Log.FlowBegin("x", Log.CATEGORY.ACTION, { bad = true }) e
 check(pcall(function() Log.FlowEnd({ weird = 1 }, Log.CATEGORY.ACTION, hostileMsg) end),
     "FlowEnd tolerates non-string flow + hostile __tostring message")
 
+-- Screenshot capture service: manual requests, auto policy, duplicate-aware throttling,
+-- and saved-event filename markers for host-side AI correlation.
+check(type(Screenshot) == "table", "Screenshot service is loaded")
+check(type(Screenshot.RequestManual) == "function", "Screenshot service exposes RequestManual")
+check(type(Screenshot.OnLogRecord) == "function", "Screenshot service exposes OnLogRecord")
+check(type(Screenshot.OnSaved) == "function", "Screenshot service exposes OnSaved")
+check(type(Screenshot.SetAutoMode) == "function", "Screenshot service exposes SetAutoMode")
+
+if type(Screenshot.RequestManual) == "function"
+    and type(Screenshot.OnLogRecord) == "function"
+    and type(Screenshot.OnSaved) == "function"
+    and type(Screenshot.SetAutoMode) == "function"
+    and type(Screenshot._ResetForTests) == "function" then
+    fileLines = {}; screenshots = {}; gameTimeMs = 900
+    local initialOk, initialResult = pcall(Screenshot.RequestManual, "initial limits")
+    check(initialOk == true and initialResult == true, "screenshot limits are initialized before test reset helpers run")
+    Screenshot.OnSaved("Screenshots", "Screenshot_initial.png")
+
+    Screenshot._ResetForTests()
+    Log.ApplyPreset("watch")
+    fileLines = {}; screenshots = {}; gameTimeMs = 1000
+    local manualOk, manualReason = Screenshot.RequestManual("manual label")
+    check(manualOk == true and manualReason == "requested", "manual screenshot request succeeds")
+    check(#screenshots == 1, "manual screenshot calls TakeScreenshot once")
+    check(fileLines[1] and fileLines[1]:find("INFO SCREENSHOT | screenshot request", 1, true) ~= nil,
+        "manual screenshot emits a request marker")
+
+    fileLines = {}
+    Screenshot.OnSaved("Screenshots", "Screenshot_001.png")
+    check(fileLines[1] and fileLines[1]:find("screenshot saved", 1, true) ~= nil
+        and fileLines[1]:find("filename=\"Screenshot_001.png\"", 1, true) ~= nil,
+        "screenshot saved event emits filename marker")
+
+    Screenshot._ResetForTests()
+    Screenshot.SetAutoMode("error")
+    fileLines = {}; screenshots = {}; gameTimeMs = 2000
+    Log.Error(Log.CATEGORY.SAFE, "same issue", { src = "Modules/Foo.lua:10" })
+    check(#screenshots == 1, "auto error mode captures first ERROR")
+    gameTimeMs = 2010
+    Log.Error(Log.CATEGORY.SAFE, "same issue", { src = "Modules/Foo.lua:10" })
+    check(#screenshots == 1, "same error fingerprint is duplicate-throttled")
+    check(fileLines[#fileLines] and fileLines[#fileLines]:find("status=\"suppressed\"", 1, true) ~= nil,
+        "duplicate throttle emits a suppressed marker")
+    gameTimeMs = 2020
+    Log.Error(Log.CATEGORY.SAFE, "different issue", { src = "Modules/Foo.lua:11" })
+    check(#screenshots == 2, "different error fingerprint captures while prior fingerprint is throttled")
+    gameTimeMs = 2030
+    Log.Error(Log.CATEGORY.SAFE, "same issue count=1234", { src = "Modules/Foo.lua:12" })
+    gameTimeMs = 2040
+    Log.Error(Log.CATEGORY.SAFE, "same issue count=5678", { src = "Modules/Foo.lua:12" })
+    check(#screenshots == 3, "dynamic numeric text does not bypass duplicate throttling")
+
+    Screenshot._ResetForTests()
+    Screenshot.SetAutoMode("warn")
+    fileLines = {}; screenshots = {}; gameTimeMs = 3000
+    Log.Warn(Log.CATEGORY.ACTION, "expected user denial", { reason = "cannotAfford" })
+    check(#screenshots == 0, "expected user-denial WARN does not auto-capture")
+    Log.Warn(Log.CATEGORY.KEYBIND, "header sort keybind activation failed", { reason = "missingGroup" })
+    check(#screenshots == 1, "UI-state WARN auto-captures in warn mode")
+    Log.Info(Log.CATEGORY.STATE, "non-warning explicit screenshot", { screenshot = true, reason = "visualProbe" })
+    check(#screenshots == 2, "explicit screenshot payload captures below WARN when auto is on")
+
+    Screenshot._ResetForTests()
+    Screenshot.SetAutoMode("error")
+    fileLines = {}; screenshots = {}; gameTimeMs = 3500
+    IsUnitInCombat = function(unitTag) return unitTag == "player" end
+    Log.Error(Log.CATEGORY.SAFE, "combat issue", { src = "Modules/Foo.lua:12" })
+    check(#screenshots == 0, "auto screenshot suppresses while player is in combat")
+    check(fileLines[#fileLines] and fileLines[#fileLines]:find("reason=\"combat\"", 1, true) ~= nil,
+        "combat suppression emits a marker")
+    IsUnitInCombat = nil
+
+    Screenshot._ResetForTests()
+    fileLines = {}; screenshots = {}; gameTimeMs = 4000
+    local savedTakeScreenshot = TakeScreenshot
+    TakeScreenshot = nil
+    local missingOk, missingReason = Screenshot.RequestManual("missing api")
+    check(missingOk == false and missingReason == "unavailable", "missing TakeScreenshot is reported without raising")
+    TakeScreenshot = savedTakeScreenshot
+
+    Screenshot._ResetForTests()
+    fileLines = {}
+    Screenshot.OnSaved("C:/Users/steamuser/Documents/Elder Scrolls Online/live/Screenshots", "external.png")
+    check(#fileLines == 0, "unrequested external screenshot saves do not emit privacy-sensitive markers")
+
+    Screenshot._ResetForTests()
+    Log.ApplyPreset("watch")
+    fileLines = {}; screenshots = {}; gameTimeMs = 5000
+    local firstOk, _, firstId = Screenshot.RequestManual("first")
+    gameTimeMs = 5010
+    local secondOk, _, secondId = Screenshot.RequestManual("second")
+    check(firstOk == true and secondOk == true and firstId ~= secondId,
+        "manual screenshot requests return distinct correlation ids")
+    fileLines = {}
+    Screenshot.OnTooFrequent()
+    check(fileLines[1] and fileLines[1]:find(firstId, 1, true) ~= nil
+        and fileLines[1]:find("engine_too_frequent", 1, true) ~= nil,
+        "too-frequent engine feedback marks the oldest pending request failed")
+    fileLines = {}
+    Screenshot.OnSaved("C:/Users/steamuser/Documents/Elder Scrolls Online/live/Screenshots", "Screenshot_002.png")
+    check(fileLines[1] and fileLines[1]:find(secondId, 1, true) ~= nil
+        and fileLines[1]:find(firstId, 1, true) == nil,
+        "too-frequent feedback pops failed request so the next save keeps FIFO correlation")
+    check(fileLines[1] and fileLines[1]:find("C:/Users", 1, true) == nil
+        and fileLines[1]:find("Elder Scrolls Online/live/Screenshots", 1, true) ~= nil,
+        "saved screenshot directory marker strips host username path prefix")
+else
+    check(false, "Screenshot service behavior tests are runnable")
+end
+
 -- Dedicated error ring: captures only WARN/ERROR, counts them, returns them in order.
 Log.ClearErrors()
 Log.Warn(Log.CATEGORY.GENERAL, "w-ring")
@@ -333,6 +453,9 @@ Log.ClearErrors()
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", tests_passed))
 print(string.format("Failed: %d", tests_failed))
+for i = 1, #failed_messages do
+    print(string.format("Failed[%d]: %s", i, failed_messages[i]))
+end
 
 if tests_failed > 0 then
     os.exit(1)

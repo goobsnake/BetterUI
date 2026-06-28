@@ -42,7 +42,7 @@ wraps it. One on-disk record looks like:
 | `sid=<sid>` | Session id — one UI load. Changes on `/reloadui`. Group records by `sid`. |
 | `seq=<seq>` | Monotonic per-record counter. **Order by `seq`**, not by ISO ts (ts has 1s resolution). |
 | `<LEVEL>` | `TRACE` < `DEBUG` < `INFO` < `WARN` < `ERROR`. |
-| `<CATEGORY>` | `SCENE LIST NAV KEYBIND FOOTER CATEGORY SEARCH SORT BATCH ACTION LIFECYCLE SAFE SETTINGS CONTROL PERF STATE GENERAL` — plus `LOG`, the logger's own meta-lines: the startup header, the `disabled` marker, `/builog test` breadcrumbs, and the `dropped=` rate-limit summary. Every line, meta or not, carries a `<LEVEL> <CATEGORY>` pair, so one regex parses the whole stream. |
+| `<CATEGORY>` | `SCENE LIST NAV KEYBIND FOOTER CATEGORY SEARCH SORT BATCH ACTION LIFECYCLE SAFE SETTINGS CONTROL PERF STATE SCREENSHOT GENERAL` — plus `LOG`, the logger's own meta-lines: the startup header, the `disabled` marker, `/builog test` breadcrumbs, and the `dropped=` rate-limit summary. Every line, meta or not, carries a `<LEVEL> <CATEGORY>` pair, so one regex parses the whole stream. |
 | `\| <event>` | Everything after the first ` \| ` is the human message + `k=v` payload. The ` \| ` is the parse boundary. |
 
 The ISO-8601 timestamp at line start is authoritative **wall-clock**; `<gameMs>` is
@@ -81,6 +81,12 @@ backslash-escaped.
 - **Refresh landmarks** — `STATE | inventory category list refresh scheduled/refreshed updates=<n>` and
   `STATE | bank list refresh scheduled/refreshed` are the expected follow-ups after item mutation flows.
 - **`STATE | mark: <text>`** — a user annotation placed with `/builog mark "<text>"`.
+- **`SCREENSHOT | screenshot request/requested/saved ...`** — a manual or opt-in auto
+  screenshot marker. `request` carries `id`, `trigger`, `status`, and fingerprint;
+  `saved` carries the authoritative `directory` and `filename` from
+  `EVENT_SCREENSHOT_SAVED` for a BetterUI-requested screenshot. Unrequested user screenshots are not logged.
+  If a saved event is missed, correlate by the marker ISO timestamp and the newest file mtime
+  in `<ESO live dir>/Screenshots`.
 - **`WARN LOG | dropped=<n> reason=rate_limit`** — the file-sink budget shed `n`
   records in a burst. Coverage gap, not an error. Sum `dropped=<n>` values; do not count
   drop-summary lines as the dropped-record total.

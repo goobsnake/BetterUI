@@ -170,6 +170,25 @@ BETTERUI.Log = {
     LevelFromName = function() return nil end,
     InvalidateActive = function() end,
 }
+local screenshotRequests = {}
+local screenshotAutoMode = "off"
+BETTERUI.CIM.Screenshot = {
+    RequestManual = function(label)
+        screenshotRequests[#screenshotRequests + 1] = label
+        return true, "requested"
+    end,
+    SetAutoMode = function(mode)
+        if mode == "off" or mode == "error" or mode == "warn" then
+            screenshotAutoMode = mode
+            return true, mode
+        end
+        return false, screenshotAutoMode
+    end,
+    GetAutoMode = function() return screenshotAutoMode end,
+    GetStatus = function()
+        return { autoMode = screenshotAutoMode, shots = 2, suppressed = 1, pending = 0, sessionLimit = 40 }
+    end,
+}
 
 local builog = SLASH_COMMANDS["/builog"]
 check(type(builog) == "function", "/builog slash command is registered")
@@ -188,6 +207,24 @@ check(persisted["CIM:interfaceLogEnabled"] == false, "/builog preset off persist
 builog("on")
 builog("off")
 check(persisted["CIM:interfaceLogEnabled"] == false, "/builog off persists enabled=false")
+
+-- Screenshot command surface stays routed through the screenshot service. Auto mode is
+-- session-only (not persisted with /builog state) to avoid surprising private captures.
+screenshotRequests = {}
+builog("screenshot")
+check(#screenshotRequests == 1 and screenshotRequests[1] == "", "/builog screenshot requests a manual capture")
+builog("screenshot manual Label")
+check(#screenshotRequests == 2 and screenshotRequests[2] == "manual Label",
+    "/builog screenshot <label> preserves label text")
+builog("screenshot auto warn")
+check(screenshotAutoMode == "warn", "/builog screenshot auto warn enables WARN auto capture")
+builog("screenshot auto error")
+check(screenshotAutoMode == "error", "/builog screenshot auto error enables ERROR auto capture")
+builog("screenshot auto off")
+check(screenshotAutoMode == "off", "/builog screenshot auto off disables auto capture")
+check(persisted["CIM:interfaceLogEnabled"] == false,
+    "/builog screenshot auto changes do not persist interfaceLogEnabled")
+check(pcall(builog, "screenshot status"), "/builog screenshot status is safe")
 
 -- Pre-SavedVars guard: with no Settings table the write is a silent no-op, not a crash.
 BETTERUI.Settings = nil

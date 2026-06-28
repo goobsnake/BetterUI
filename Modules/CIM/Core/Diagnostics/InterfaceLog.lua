@@ -28,7 +28,7 @@ Mechanism (proof of concept):
   (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
   "Lua Error:" entries are real game errors whose traceback matters.
 
-Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | test | popups on|off | status
+Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | screenshot [label] | screenshot auto off|error|warn | test | popups on|off | status
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -381,7 +381,74 @@ local function PrintStatus()
         s.maxPerFrame > 0 and tostring(s.maxPerFrame) or "inf",
         s.maxPerSecond > 0 and tostring(s.maxPerSecond) or "inf",
         s.scheduled, s.dropped, s.suppressed or 0))
+    local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
+    if S and S.GetStatus then
+        local okShot, shot = pcall(S.GetStatus)
+        if okShot and type(shot) == "table" then
+            Out(string.format("Screenshots: auto=%s | shots=%s/%s suppressed=%s pending=%s",
+                tostring(shot.autoMode or "off"), tostring(shot.shots or 0),
+                tostring(shot.sessionLimit or "?"), tostring(shot.suppressed or 0),
+                tostring(shot.pending or 0)))
+        end
+    end
     Out("Real Lua errors always log to Interface.log; [BUI] lines are BetterUI's own stream.")
+end
+
+local function PrintScreenshotStatus()
+    local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
+    if not (S and S.GetStatus) then Out("Screenshot service not loaded.") return end
+    local ok, status = pcall(S.GetStatus)
+    if not ok or type(status) ~= "table" then Out("Screenshot status unavailable.") return end
+    Out(string.format("Screenshots: auto=%s | shots=%s/%s suppressed=%s pending=%s burst=%s/%s duplicate=%sms pendingTtl=%sms",
+        tostring(status.autoMode or "off"), tostring(status.shots or 0),
+        tostring(status.sessionLimit or "?"), tostring(status.suppressed or 0),
+        tostring(status.pending or 0), tostring(status.burst or 0),
+        tostring(status.burstLimit or "?"), tostring(status.duplicateMs or "?"),
+        tostring(status.pendingTtlMs or "?")))
+end
+
+local function HandleScreenshotCommand(raw)
+    local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
+    if not S then Out("Screenshot service not loaded.") return end
+    local subRaw = raw:match("^[Ss][Cc][Rr][Ee][Ee][Nn][Ss][Hh][Oo][Tt]%s*(.*)$") or ""
+    local sub = subRaw:lower():gsub("^%s+", ""):gsub("%s+$", "")
+
+    if sub == "status" or sub == "auto status" then
+        PrintScreenshotStatus()
+        return
+    end
+
+    if sub == "auto" then
+        Out("Usage: /builog screenshot auto off|error|warn")
+        return
+    end
+
+    if sub:match("^auto%s+%a+$") then
+        local mode = sub:match("^auto%s+(%a+)$")
+        if S.SetAutoMode then
+            local ok, applied = S.SetAutoMode(mode)
+            if ok then
+                Out("Screenshot auto capture = |c00ff00" .. tostring(applied):upper() .. "|r.")
+                PrintScreenshotStatus()
+            else
+                Out("Unknown screenshot auto mode. Use off|error|warn.")
+            end
+        else
+            Out("Screenshot auto mode unavailable.")
+        end
+        return
+    end
+
+    if S.RequestManual then
+        local ok, reason = S.RequestManual(subRaw)
+        if ok then
+            Out("Screenshot requested" .. (subRaw ~= "" and (": " .. subRaw) or "") .. ".")
+        else
+            Out("Screenshot not taken: " .. tostring(reason or "unavailable") .. ".")
+        end
+    else
+        Out("Screenshot capture unavailable.")
+    end
 end
 
 -- capture [seconds]: temporarily raise to TRACE for a bounded window, then auto-revert to
@@ -529,6 +596,8 @@ local function HandleCommand(args)
         DumpRecords(L and L.GetRecentErrors, tonumber(args:match("(%d+)")) or 20, "error")
     elseif args == "capture" or args:match("^capture%s+%d+$") then
         StartCapture(tonumber(args:match("(%d+)")))
+    elseif args == "screenshot" or args:match("^screenshot%s+") then
+        HandleScreenshotCommand(raw)
     elseif args == "mark" then
         Out("Usage: /builog mark <text>  -- annotates the live log with <text>.")
     elseif args == "snapshot" then
@@ -539,7 +608,7 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | snapshot | test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | test | status")
     end
 end
 

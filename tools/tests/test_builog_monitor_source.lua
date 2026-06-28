@@ -39,6 +39,20 @@ check(monitor:find("status: clean", 1, true) ~= nil
     "monitor emits an explicit clean/not-clean footer based on final totals")
 check(monitor:find("0 non-BUI errors + 0 parse violations", 1, true) == nil,
     "monitor no longer prints a static clean sentence after nonzero totals")
+check(monitor:find("BUILOG_SCREENSHOT_DIR", 1, true) ~= nil
+    and monitor:find("resolve_screenshot_request", 1, true) ~= nil,
+    "monitor accepts/derives a screenshot directory")
+check(monitor:find("LOG_REQUEST", 1, true) ~= nil
+    and monitor:find("REMOTE_SCREENSHOT_DIR", 1, true) ~= nil,
+    "monitor falls back to the remote screenshot folder for remote log requests")
+check(monitor:find(" SCREENSHOT | ", 1, true) ~= nil
+    and monitor:find("screenshot markers", 1, true) ~= nil,
+    "monitor surfaces BUI screenshot markers")
+check(monitor:find("screenshot files (latest 5 by mtime)", 1, true) ~= nil
+    and monitor:find("find \"$dir\"", 1, true) ~= nil
+    and monitor:find("stat -f", 1, true) ~= nil
+    and monitor:find("list_recent_screenshots", 1, true) ~= nil,
+    "monitor lists recent screenshot files for marker correlation")
 
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", passed))

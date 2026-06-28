@@ -15,6 +15,7 @@ game's `Interface.log` while you reproduce an issue — no `/reloadui`, no Saved
 ```
 /builog on                  -- start streaming [BUI] breadcrumbs to Interface.log
 /builog preset watch        -- the AI-enriched live stream (recommended while play-testing)
+/builog screenshot auto warn -- optional: capture distinct visual context on WARN/ERROR
 ... reproduce the issue ...
 /buihealth                  -- one-line health: preset, errors, file-sink budget, scene/watch state
 /builog errors              -- dump the recent WARN/ERROR ring in chat
@@ -100,6 +101,8 @@ that absence as an instrumentation or control-flow bug.
 | `recent [n]` | dump the last n records (any level) in chat |
 | `errors [n]` | dump the last n WARN/ERROR records in chat |
 | `capture [secs]` | raise to TRACE for a bounded window (default 5s, 1–60), then auto-revert |
+| `screenshot [label]` | call ESO `TakeScreenshot()` and emit request/saved markers for host correlation |
+| `screenshot auto off\|error\|warn` | session-only opt-in auto capture: off, ERROR only, or WARN+ERROR with duplicate-aware per-issue throttling |
 | `snapshot` | emit one STATE snapshot now |
 | `test` / `status` | write test breadcrumbs / print current state |
 
@@ -163,3 +166,19 @@ never measurably cost a player with logging disabled.
 Filter to `[BUI]`; order by `seq`; a `Lua Error:` line WITHOUT `[BUI]` is a real game error
 (keep its traceback). Full parse recipe in
 [logging-host-tail-parse.md](logging-host-tail-parse.md).
+
+## Screenshot correlation
+
+`/builog screenshot [label]` and opt-in auto capture emit `INFO SCREENSHOT` records:
+
+- `screenshot request ... status=pending|suppressed|unavailable`
+- `screenshot requested ... status=requested|failed`
+- `screenshot saved ... directory=<dir> filename=<file> status=saved`
+
+The saved marker is authoritative because ESO fires `EVENT_SCREENSHOT_SAVED(directory,
+filename)`, but BetterUI only logs saved markers for screenshots it requested. If a host
+process joins late or misses the saved marker, match the request marker's ISO timestamp
+to the newest file mtime in `<ESO live>/Screenshots`. The bundled monitor accepts an
+optional fourth argument or `BUILOG_SCREENSHOT_DIR` for that folder. Auto capture can
+include private UI/chat/account context; leave it `off` except during the current
+play-test window.

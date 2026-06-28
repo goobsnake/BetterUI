@@ -39,7 +39,7 @@ Log.CATEGORY = {
     LIFECYCLE = "LIFECYCLE", SAFE = "SAFE", SETTINGS = "SETTINGS", SETTING = "SETTINGS",
     -- CONTROL: control resolution/cache (was GENERAL). PERF: timing/budget signals.
     -- STATE: watch-mode startup preamble, heartbeat, and periodic state snapshots.
-    CONTROL = "CONTROL", PERF = "PERF", STATE = "STATE",
+    CONTROL = "CONTROL", PERF = "PERF", STATE = "STATE", SCREENSHOT = "SCREENSHOT",
     GENERAL = "GENERAL",
 }
 
@@ -610,6 +610,13 @@ local function dispatch(level, category, message, data)
         message = text, sinkDropped = sinkDropped })
     if level >= Log.LEVEL.WARN then
         pushError({ seq = seq, t = ts, level = LEVEL_NAME[level], category = category, message = text })
+    end
+    local screenshot = BETTERUI.CIM and BETTERUI.CIM.Screenshot
+    if screenshot and type(screenshot.OnLogRecord) == "function" then
+        pcall(screenshot.OnLogRecord, {
+            seq = seq, t = ts, sid = sid, level = level, levelName = LEVEL_NAME[level],
+            category = category, message = text, data = data, sinkDropped = sinkDropped,
+        })
     end
 end
 
