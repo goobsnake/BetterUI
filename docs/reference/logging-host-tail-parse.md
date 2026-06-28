@@ -86,7 +86,11 @@ backslash-escaped.
   `saved` carries the authoritative `directory` and `filename` from
   `EVENT_SCREENSHOT_SAVED` for a BetterUI-requested screenshot. Unrequested user screenshots are not logged.
   If a saved event is missed, correlate by the marker ISO timestamp and the newest file mtime
-  in `<ESO live dir>/Screenshots`.
+  in the local screenshots folder
+  `/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots`
+  or remote screenshots folder `smb://goobers/elder%20scrolls%20online/live/Screenshots`.
+  Remote screenshot access uses the same SMB/GVFS mount root as remote `interface.log`
+  (`/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*/live/Screenshots`).
 - **`WARN LOG | dropped=<n> reason=rate_limit`** — the file-sink budget shed `n`
   records in a burst. Coverage gap, not an error. Sum `dropped=<n>` values; do not count
   drop-summary lines as the dropped-record total.

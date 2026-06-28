@@ -18,7 +18,13 @@
 #                      Windows: <Documents>/Elder Scrolls Online/live/Logs/interface.log
 #                      macOS:   ~/Documents/Elder Scrolls Online/live/Logs/interface.log
 #   screenshot_dir   path/URI to live/Screenshots, or "remote". Default: derived from
-#                    log_path, or $BUILOG_SCREENSHOT_DIR when set.
+#                    log_path, or $BUILOG_SCREENSHOT_DIR when set. Resolution mirrors
+#                    log_path: raw smb:// URIs are mapped through the GVFS mount, and
+#                    "remote" uses $BUILOG_REMOTE_SCREENSHOT_DIR.
+#                    Local default:
+#                      /mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots
+#                    Remote default:
+#                      smb://goobers/elder%20scrolls%20online/live/Screenshots
 #
 # Prerequisite in-game: /builog preset inspect   (richest stream: trace depth + watch
 # enrichment). Lighter options: watch | debug | trace. /builog status shows counters.

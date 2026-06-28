@@ -118,6 +118,30 @@ instead). The file may sit **outside** sandbox/MCP roots — read it with a plai
 override the path via the script's 3rd arg or `BUILOG_INTERFACE_LOG`. It only exists once ESO
 has written at least one line this session (any Lua error, or `/builog on`).
 
+Screenshot folders follow the same local/remote `live/` root:
+```
+/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots
+smb://goobers/elder%20scrolls%20online/live/Screenshots
+```
+The helper resolves screenshots the same way it resolves `interface.log`: pass `remote`, pass
+the raw `smb://.../live/Screenshots` URI, pass a mounted filesystem path, or set
+`BUILOG_SCREENSHOT_DIR`. Use `BUILOG_REMOTE_SCREENSHOT_DIR` only when the remote screenshot URI
+changes. On non-Linux hosts, mount/open the share first and pass the resulting filesystem path.
+
+If the helper cannot list remote screenshots, verify the same GVFS mount root used for the log:
+```
+gio mount 'smb://goobers/elder%20scrolls%20online' 2>/dev/null || true
+for root in /run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*; do
+  shots="$root/live/Screenshots"
+  [ -d "$shots" ] && printf '%s\n' "$shots" && break
+done
+```
+Valid mounted screenshot paths mirror the log examples:
+```
+/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder scrolls online/live/Screenshots
+/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder%20scrolls%20online/live/Screenshots
+```
+
 ## Step 3 — run the timed monitor
 
 The user gives a duration in **minutes**. Run:
@@ -136,20 +160,25 @@ tools/builog-monitor/monitor.sh <minutes> [interval_seconds] 'smb://goobers/elde
 ```
 Manual fallback after discovering the mounted path:
 ```
-LOG="$(for root in /run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*; do
+LOG=""
+SCREENSHOTS=""
+for root in /run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*; do
   log="$root/live/Logs/interface.log"
-  [ -f "$log" ] && printf '%s\n' "$log" && break
-done)"
+  shots="$root/live/Screenshots"
+  [ -f "$log" ] && { LOG="$log"; SCREENSHOTS="$shots"; break; }
+done
 [ -n "$LOG" ] || { echo "remote interface.log not found"; exit 1; }
-BUILOG_INTERFACE_LOG="$LOG" tools/builog-monitor/monitor.sh <minutes> [interval_seconds]
+BUILOG_INTERFACE_LOG="$LOG" BUILOG_SCREENSHOT_DIR="$SCREENSHOTS" tools/builog-monitor/monitor.sh <minutes> [interval_seconds]
 ```
 - `minutes` — how long to watch (the user's number; fractional ok).
 - `interval_seconds` — **default 10** (a good back-and-forth cadence). Drop to **5** to pin a
   specific repro; raise to **15–20** for long (>10 min) or quiet sessions, because `inspect`
   can emit hundreds of lines/second during list rebuilds and 10s samples stay readable.
-- `screenshot_dir` — optional path/URI to `<ESO live>/Screenshots`. Defaults to
+- `screenshot_dir` — optional path/URI to the ESO screenshots folder. Defaults to
   `BUILOG_SCREENSHOT_DIR` or a path derived from `log_path`; pass `remote` to use the remote
   shared-machine screenshot folder.
+  Local default: `/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots`
+  Remote default: `smb://goobers/elder%20scrolls%20online/live/Screenshots`
 
 The monitor reads only lines appended **after** it starts, so confirm a preset is already
 active (Step 1) before launching; for earlier history `grep '\[BUI\]'` the file directly. Have

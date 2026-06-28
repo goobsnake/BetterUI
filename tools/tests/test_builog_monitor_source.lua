@@ -23,6 +23,7 @@ end
 print("\n=== builog monitor source contract ===\n")
 
 local monitor = readFile("tools/builog-monitor/monitor.sh") or ""
+local skill = readFile("tools/builog-monitor/SKILL.md") or ""
 
 check(monitor:find("dropped=", 1, true) ~= nil,
     "monitor scans dropped=N fields")
@@ -42,6 +43,13 @@ check(monitor:find("0 non-BUI errors + 0 parse violations", 1, true) == nil,
 check(monitor:find("BUILOG_SCREENSHOT_DIR", 1, true) ~= nil
     and monitor:find("resolve_screenshot_request", 1, true) ~= nil,
     "monitor accepts/derives a screenshot directory")
+check(monitor:find("/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots", 1, true) ~= nil
+    and monitor:find("smb://goobers/elder%20scrolls%20online/live/Screenshots", 1, true) ~= nil,
+    "monitor documents the exact local and remote screenshot defaults")
+check(skill:find("gio mount 'smb://goobers/elder%20scrolls%20online'", 1, true) ~= nil
+    and skill:find("live/Screenshots", 1, true) ~= nil
+    and skill:find('BUILOG_SCREENSHOT_DIR="$SCREENSHOTS"', 1, true) ~= nil,
+    "skill documents remote screenshot mount discovery alongside interface.log")
 check(monitor:find("LOG_REQUEST", 1, true) ~= nil
     and monitor:find("REMOTE_SCREENSHOT_DIR", 1, true) ~= nil,
     "monitor falls back to the remote screenshot folder for remote log requests")

@@ -178,7 +178,12 @@ Filter to `[BUI]`; order by `seq`; a `Lua Error:` line WITHOUT `[BUI]` is a real
 The saved marker is authoritative because ESO fires `EVENT_SCREENSHOT_SAVED(directory,
 filename)`, but BetterUI only logs saved markers for screenshots it requested. If a host
 process joins late or misses the saved marker, match the request marker's ISO timestamp
-to the newest file mtime in `<ESO live>/Screenshots`. The bundled monitor accepts an
-optional fourth argument or `BUILOG_SCREENSHOT_DIR` for that folder. Auto capture can
-include private UI/chat/account context; leave it `off` except during the current
-play-test window.
+to the newest file mtime in the screenshots folder. Local default:
+`/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots`.
+Remote default: `smb://goobers/elder%20scrolls%20online/live/Screenshots`. The bundled
+monitor accepts an optional fourth argument or `BUILOG_SCREENSHOT_DIR` for that folder.
+Remote screenshot access uses the same SMB/GVFS connection as the remote `interface.log`;
+mount `smb://goobers/elder%20scrolls%20online` first, then use the mounted
+`.../live/Screenshots` path if the `remote` alias cannot resolve it automatically.
+Auto capture can include private UI/chat/account context; leave it `off` except during
+the current play-test window.
