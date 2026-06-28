@@ -242,6 +242,49 @@ ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", 
 assert_eq(priceInfo.hasData, true, "repeated TTC malformed ItemInfo.New does not re-warn")
 assert_count(capturedLogWarnings, 2, "repeated TTC malformed ItemInfo.New reuses warning gate")
 
+capturedLogWarnings = {}
+capturedLogInfos = {}
+TamrielTradeCentre_ItemInfo.New = function()
+    return {
+        GetItemLink = function()
+            return "|H1:item:1|h"
+        end,
+    }
+end
+TamrielTradeCentrePrice = {
+    GetPriceInfo = function(_, itemRef)
+        if type(itemRef) == "table" then
+            return nil
+        end
+        return {
+            Avg = 31,
+            SuggestedPrice = 33,
+        }
+    end,
+}
+ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", "|H1:item:1|h", 2, settings)
+assert_eq(priceInfo.hasData, true, "TTC item-info object with GetItemLink is converted and priced")
+assert_eq(priceInfo.price, 62, "TTC price lookup from extracted itemLink works")
+assert_count(capturedLogWarnings, 0, "TTC GetItemLink itemInfo path does not warn")
+
+TamrielTradeCentre_ItemInfo.New = function()
+    return {
+        itemLink = "|H1:item:1|h",
+    }
+end
+TamrielTradeCentrePrice = {
+    GetPriceInfo = nil,
+    GetPriceInfoForItem = function(_, itemRef)
+        return {
+            Avg = 25,
+            SuggestedPrice = 26,
+        }
+    end,
+}
+ok, priceInfo = pcall(BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo, "ttc", "|H1:item:1|h", 2, settings)
+assert_eq(priceInfo.hasData, true, "TTC alternative GetPriceInfoForItem API is supported")
+assert_eq(priceInfo.price, 50, "TTC alternative price API still applies stack count")
+
 AutoCategory = {
     Inited = true,
     MatchCategoryRules = function()

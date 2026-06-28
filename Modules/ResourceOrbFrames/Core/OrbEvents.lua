@@ -22,18 +22,34 @@ local ANIMATION_TICK_MS = 33 -- 30fps
 local CI = BETTERUI.ResourceOrbFrames.CombatIndicators or {}
 local SPECIAL_SCENE_HIDE_REASON = "ResourceOrbFramesSpecialScene"
 local SPECIAL_SCENE_NAME_SET = {
-    TamrielTomesIntroSceneGamepad = true,
-    TamrielTomesSceneGamepad = true,
-    TamrielTomesPurchaseSceneGamepad = true,
-    TamrielTomesRewardPreviewSceneGamepad = true,
-    tamrielTomesPurchasePreview_Gamepad = true,
-    TamrielTomesIntroSceneKeyboard = true,
-    TamrielTomesSceneKeyboard = true,
-    TamrielTomesPurchaseSceneKeyboard = true,
-    TimedActivitiesGamepad = true,
-    TimedActivitiesKeyboard = true,
-    bookSetGamepad = true,
+    tamrieltomesintrosceneGamepad = true,
+    tamrieltomessceneGamepad = true,
+    tamrieltomespurchasesceneGamepad = true,
+    tamrieltomesrewardpreviewsceneGamepad = true,
+    tamrieltomespurchasepreview_gamepad = true,
+    tamrieltomesintroscenekeyboard = true,
+    tamrieltomesscenekeyboard = true,
+    tamrieltomespurchasescenekeyboard = true,
+    timedactivitiesgamepad = true,
+    timedactivitieskeyboard = true,
+    booksetgamepad = true,
 }
+
+local function NormalizeSceneName(sceneName)
+    return sceneName and tostring(sceneName):lower():gsub("%s+", "") or nil
+end
+
+local function IsConfiguredSpecialScene(sceneName)
+    return sceneName ~= nil and SPECIAL_SCENE_NAME_SET[NormalizeSceneName(sceneName)] == true
+end
+
+local function IsSpecialSceneNameDrift(sceneName)
+    if not sceneName then
+        return false
+    end
+    local normalized = NormalizeSceneName(sceneName)
+    return normalized ~= nil and normalized:find("tamrieltomes", 1, true) ~= nil
+end
 
 local m_combatIndicatorRootFrame = nil
 local m_hasRegisteredCombatIndicators = false
@@ -233,7 +249,7 @@ function Events.SetupVisibilityFragments(rootFrame)
             end
         end
 
-        return sceneName ~= nil and SPECIAL_SCENE_NAME_SET[sceneName] == true
+        return IsConfiguredSpecialScene(sceneName) or IsSpecialSceneNameDrift(sceneName)
     end
 
     local m_specialSceneCallLaterId = nil

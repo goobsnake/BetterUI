@@ -100,10 +100,13 @@ local function FindSpecializedNativeScene()
     end
 
     local currentSceneName = GetCurrentSceneName()
+    local currentSceneNameLower = currentSceneName and currentSceneName:lower() or nil
+
     for _, sceneName in ipairs(SPECIALIZED_NATIVE_VENDOR_SCENES) do
+        local sceneNameLower = sceneName:lower()
         local scene = SCENE_MANAGER.GetScene and SCENE_MANAGER:GetScene(sceneName) or nil
         local state = GetSceneState(scene)
-        local isCurrent = currentSceneName == sceneName
+        local isCurrent = currentSceneNameLower ~= nil and currentSceneNameLower == sceneNameLower
         local showingNext = IsSceneShowingNext(sceneName)
         local showing = IsSceneShowing(scene)
         local activeState = state ~= nil
@@ -112,6 +115,10 @@ local function FindSpecializedNativeScene()
         if isCurrent or showingNext or showing or activeState then
             return sceneName, state or (showingNext and "showingNext") or (isCurrent and "current") or "showing"
         end
+    end
+
+    if currentSceneNameLower and currentSceneNameLower:find("tamrieltomes", 1, true) ~= nil then
+        return currentSceneName, "current"
     end
 
     return nil, nil
@@ -144,6 +151,46 @@ local function ReleaseVendorDialogs()
             fn = "ReleaseVendorDialogs",
             dialogName = dialogName,
         })
+    end
+end
+
+local function PurgeNativeHandoffKeybindInterference(instance)
+    if not instance then
+        return
+    end
+
+    if instance.DeactivateHeaderKeybinds then
+        instance:DeactivateHeaderKeybinds()
+    end
+    if instance.DeactivateListInput then
+        instance:DeactivateListInput()
+    end
+    if instance.ForceReleaseDirectionalInput then
+        instance:ForceReleaseDirectionalInput()
+    end
+    if instance.ReleaseNativeStoreInputOwnership then
+        instance:ReleaseNativeStoreInputOwnership()
+    end
+
+    local interface = BETTERUI.Interface
+    if interface and type(interface.RemoveKeybindGroupIfPresent) == "function" then
+        interface.RemoveKeybindGroupIfPresent(instance.coreKeybinds)
+        interface.RemoveKeybindGroupIfPresent(instance.textSearchKeybindStripDescriptor)
+
+        local header = instance.headerGeneric
+        local tabBar = header and header.tabBar
+        if tabBar then
+            interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+        end
+        header = instance.header
+        tabBar = header and header.tabBar
+        if tabBar then
+            interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+        end
+    end
+
+    if interface and type(interface.UpdateCurrentKeybindGroups) == "function" then
+        interface.UpdateCurrentKeybindGroups()
     end
 end
 
@@ -540,7 +587,7 @@ local function ShouldHandOffStoreToNative(resolved, interactionType)
 
     for entryIndex = 1, maxProbe do
         local name, entryType = ReadStoreEntryType(entryIndex)
-        if name and name ~= "" then
+        if entryType ~= nil then
             probedEntries = probedEntries + 1
             if entryType ~= nil and entryType ~= standardEntryType then
                 return true, "specialStoreEntryType", {
@@ -655,6 +702,7 @@ local function OpenStoreInternal(state, deps, publishState)
             specializedSceneName = nativeData.specializedSceneName,
             specializedSceneState = nativeData.specializedSceneState,
         })
+        PurgeNativeHandoffKeybindInterference(resolved.instance)
         resolved.restoreSceneAlias()
         if nativeReason ~= "specializedNativeScene" then
             ShowNativeStore(resolved)

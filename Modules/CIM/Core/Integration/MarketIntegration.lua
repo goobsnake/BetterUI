@@ -91,6 +91,15 @@ end
 
 local EMPTY_MARKET_PRICE_INFO = CreateMarketPriceInfo({})
 
+local TTC_PRICE_INFO_METHODS = {
+    "GetPriceInfo",
+    "GetPriceInfoForItem",
+    "GetPriceForItem",
+    "GetItemPriceInfo",
+    "GetPriceInfoForItemLink",
+    "GetPriceForItemLink",
+}
+
 local TTC_FALLBACK_NOTICE = {
     unavailable = {
         warned = false,
@@ -133,6 +142,59 @@ local function TrackTTCItemInfoApiAvailability(itemLink)
         TTC_FALLBACK_NOTICE.apiAvailable = true
     end
     return hasApi
+end
+
+local function ResolveTTCPriceInfoMethod()
+    if type(TamrielTradeCentrePrice) ~= "table" then
+        return nil
+    end
+
+    for _, methodName in ipairs(TTC_PRICE_INFO_METHODS) do
+        local method = TamrielTradeCentrePrice[methodName]
+        if type(method) == "function" then
+            return method
+        end
+    end
+    return nil
+end
+
+local function ExtractTTCItemLink(itemInfo)
+    if type(itemInfo) == "string" then
+        if itemInfo ~= "" then
+            return itemInfo
+        end
+        return nil
+    end
+
+    if type(itemInfo) ~= "table" and type(itemInfo) ~= "userdata" then
+        return nil
+    end
+
+    local directLink = itemInfo.itemLink
+    if type(directLink) ~= "string" then
+        directLink = itemInfo.link
+    end
+    if type(directLink) == "string" and directLink ~= "" then
+        return directLink
+    end
+
+    local getItemLink = itemInfo.GetItemLink
+    if type(getItemLink) == "function" then
+        local ok, link = pcall(getItemLink, itemInfo)
+        if ok and type(link) == "string" and link ~= "" then
+            return link
+        end
+    end
+
+    local getLink = itemInfo.GetLink
+    if type(getLink) == "function" then
+        local ok, link = pcall(getLink, itemInfo)
+        if ok and type(link) == "string" and link ~= "" then
+            return link
+        end
+    end
+
+    return nil
 end
 
 local function CallOptionalAddon(method, self, ...)
@@ -200,25 +262,37 @@ local function FetchTTCPriceInfo(itemLink)
         return nil
     end
 
-    if type(TamrielTradeCentrePrice) ~= "table" or type(TamrielTradeCentrePrice.GetPriceInfo) ~= "function" then
+    local getPriceInfo = ResolveTTCPriceInfoMethod()
+    if type(getPriceInfo) ~= "function" then
         return nil
     end
 
     local hasItemInfoApi = TrackTTCItemInfoApiAvailability(itemLink)
     if hasItemInfoApi then
         local itemInfo = CallOptionalAddon(TamrielTradeCentre_ItemInfo.New, TamrielTradeCentre_ItemInfo, itemLink)
-        if type(itemInfo) == "table" then
-            local priceInfo = CallOptionalAddon(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, itemInfo)
+        local itemInfoType = type(itemInfo)
+        if itemInfoType == "table" or itemInfoType == "userdata" then
+            local priceInfo = CallOptionalAddon(getPriceInfo, TamrielTradeCentrePrice, itemInfo)
             if type(priceInfo) == "table" then
                 TTC_FALLBACK_NOTICE.malformed.warned = false
                 return priceInfo
             end
-        else
+
+            local itemInfoLink = ExtractTTCItemLink(itemInfo)
+            if itemInfoLink then
+                priceInfo = CallOptionalAddon(getPriceInfo, TamrielTradeCentrePrice, itemInfoLink)
+                if type(priceInfo) == "table" then
+                    TTC_FALLBACK_NOTICE.malformed.warned = false
+                    return priceInfo
+                end
+            end
+            MaybeWarnTTCFallback("malformed", itemLink)
+        elseif itemInfo ~= nil then
             MaybeWarnTTCFallback("malformed", itemLink)
         end
     end
 
-    local priceInfo = CallOptionalAddon(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, itemLink)
+    local priceInfo = CallOptionalAddon(getPriceInfo, TamrielTradeCentrePrice, itemLink)
     if type(priceInfo) == "table" then
         return priceInfo
     end
@@ -276,7 +350,7 @@ local SOURCE_DEFS = {
         isAvailable = function()
             return OptionalAddons.IsLoaded(ADDON_KEYS.TAMRIEL_TRADE_CENTRE)
                 and type(TamrielTradeCentrePrice) == "table"
-                and type(TamrielTradeCentrePrice.GetPriceInfo) == "function"
+                and type(ResolveTTCPriceInfoMethod()) == "function"
         end,
         fetch = function(itemLink, stackCount)
             local priceInfo = FetchTTCPriceInfo(itemLink)
@@ -284,8 +358,8 @@ local SOURCE_DEFS = {
                 return EMPTY_MARKET_PRICE_INFO
             end
 
-            local avgPrice = NormalizeNumber(priceInfo.Avg)
-            local suggestedPrice = NormalizeNumber(priceInfo.SuggestedPrice)
+            local avgPrice = NormalizeNumber(priceInfo.Avg or priceInfo.averagePrice or priceInfo.AveragePrice or priceInfo.Average)
+            local suggestedPrice = NormalizeNumber(priceInfo.SuggestedPrice or priceInfo.suggestedPrice or priceInfo.Suggested)
             if avgPrice and avgPrice > 0 then
                 return CreateMarketPriceInfo({
                     price = avgPrice * stackCount,

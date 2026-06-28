@@ -229,6 +229,172 @@ local function BuildModuleToggleOptions()
 	return moduleToggleOptions
 end
 
+local MODULE_PANEL_ID_ALIASES = {
+	Bank = "Banking",
+}
+
+local MODULE_SETTINGS_GATE_STRING_IDS = {
+	Banking = {
+		"SI_BETTERUI_GUILD_BANK_ENABLED",
+	},
+	Nameplates = {
+		"SI_BETTERUI_NAMEPLATES_ENABLED",
+	},
+}
+
+local function ResolveCapturedModuleName(panel)
+	if type(panel) ~= "table" then
+		return nil
+	end
+	if type(panel.moduleName) == "string" and panel.moduleName ~= "" then
+		return panel.moduleName
+	end
+	local panelId = type(panel.panelId) == "string" and panel.panelId or ""
+	local moduleName = panelId:gsub("^BETTERUI_", "")
+	return MODULE_PANEL_ID_ALIASES[moduleName] or moduleName
+end
+
+local function NormalizeModuleSettingsTabName(panel, moduleName)
+	if type(panel) == "table" then
+		if type(panel.moduleLabel) == "string" and panel.moduleLabel ~= "" then
+			return panel.moduleLabel
+		end
+		local panelData = panel.panelData
+		if type(panelData) == "table" and type(panelData.name) == "string" then
+			local name = panelData.name:gsub("^|t[^|]+|t%s*", "")
+			local captured = name:match("^" .. BETTERUI.name .. "%s*%((.-)%)$")
+			return captured or name
+		end
+	end
+	return moduleName or "Module"
+end
+
+local function ResolveControlName(control)
+	if type(control) ~= "table" then
+		return nil
+	end
+
+	local name = control.name
+	if type(name) == "function" then
+		local ok, value = pcall(name)
+		name = ok and value or nil
+	end
+	if type(name) == "number" then
+		return GetString(name)
+	end
+	if type(name) == "string" then
+		return name
+	end
+	return nil
+end
+
+local function ControlNameMatchesStringId(control, stringIdName)
+	local stringId = rawget(_G, stringIdName)
+	if stringId == nil then
+		return false
+	end
+	return ResolveControlName(control) == GetString(stringId)
+end
+
+local function IsRedundantModuleGateControl(moduleName, control)
+	if type(control) ~= "table" or control.type ~= "checkbox" then
+		return false
+	end
+	if control.key == "m_enabled" or control.setting == "m_enabled" then
+		return true
+	end
+
+	local gateStringIds = MODULE_SETTINGS_GATE_STRING_IDS[moduleName]
+	if type(gateStringIds) ~= "table" then
+		return false
+	end
+	for _, stringIdName in ipairs(gateStringIds) do
+		if ControlNameMatchesStringId(control, stringIdName) then
+			return true
+		end
+	end
+	return false
+end
+
+local function BuildModuleSettingsTabControls(moduleName, optionsData)
+	local controls = {}
+	if type(optionsData) ~= "table" then
+		return controls
+	end
+
+	for _, control in ipairs(optionsData) do
+		if not IsRedundantModuleGateControl(moduleName, control) then
+			controls[#controls + 1] = control
+		end
+	end
+	return controls
+end
+
+local function AppendEnabledModuleSettingsTabs(optionsTable)
+	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
+	local getRegisteredPanels = settingsApi and settingsApi.GetRegisteredModulePanels
+	if type(getRegisteredPanels) ~= "function" then
+		return
+	end
+
+	local modulePanels = getRegisteredPanels()
+	if type(modulePanels) ~= "table" or #modulePanels == 0 then
+		return
+	end
+
+	local tabPanels = {}
+	for _, panel in ipairs(modulePanels) do
+		local moduleName = ResolveCapturedModuleName(panel)
+		if moduleName ~= nil and moduleName ~= "" and moduleName ~= "CIM" and BETTERUI.GetModuleEnabled(moduleName) then
+			local controls = BuildModuleSettingsTabControls(moduleName, panel.optionsData)
+			if #controls > 0 then
+				tabPanels[#tabPanels + 1] = {
+					moduleName = moduleName,
+					name = NormalizeModuleSettingsTabName(panel, moduleName),
+					controls = controls,
+				}
+			end
+		end
+	end
+
+	table.sort(tabPanels, function(left, right)
+		local leftKey = NormalizeModuleToggleSortName(left.name)
+		local rightKey = NormalizeModuleToggleSortName(right.name)
+		if leftKey == rightKey then
+			return tostring(left.name) < tostring(right.name)
+		end
+		return leftKey < rightKey
+	end)
+
+	if #tabPanels == 0 then
+		return
+	end
+
+	optionsTable[#optionsTable + 1] = {
+		type = "divider",
+		width = "full",
+	}
+	optionsTable[#optionsTable + 1] = {
+		type = "header",
+		name = GetString(SI_BETTERUI_ENABLED_MODULE_SETTINGS_HEADER),
+		width = "full",
+	}
+	optionsTable[#optionsTable + 1] = {
+		type = "description",
+		text = GetString(SI_BETTERUI_ENABLED_MODULE_SETTINGS_DESC),
+		width = "full",
+	}
+
+	for _, panel in ipairs(tabPanels) do
+		optionsTable[#optionsTable + 1] = {
+			type = "submenu",
+			name = panel.name,
+			controls = panel.controls,
+			width = "full",
+		}
+	end
+end
+
 local function InitializeRegisteredModuleSettings()
 	for _, entry in ipairs(MODULE_REGISTRY) do
 		local moduleName, moduleNamespace = entry.name, BETTERUI[entry.namespace]
@@ -269,6 +435,9 @@ function BETTERUI.InitModuleOptions()
 	for _, control in ipairs(moduleToggleOptions) do
 		table.insert(optionsTable, control)
 	end
+
+	local panelId = "BETTERUI_" .. "Modules"
+	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
 
 	local cimDebug = BETTERUI.CIM and BETTERUI.CIM.Debug
 	local showDeveloperSettings = cimDebug
@@ -340,11 +509,10 @@ function BETTERUI.InitModuleOptions()
 		width = "full",
 	})
 
-	local panelId = "BETTERUI_" .. "Modules"
-	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
 	if settingsApi and settingsApi.InstrumentSettingControls then
 		settingsApi.InstrumentSettingControls(optionsTable, panelId)
 	end
+	AppendEnabledModuleSettingsTabs(optionsTable)
 	if BETTERUI.Log and BETTERUI.Log.TraceEvent then
 		BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.SETTINGS, "settings.panel", "register_before", {
 			panel = panelId,
@@ -813,7 +981,6 @@ function BETTERUI.Initialize(event, addon)
 
 	BETTERUI.EventManager:UnregisterForEvent(BETTERUI.name, EVENT_ADD_ON_LOADED)
 
-	BETTERUI.InitModuleOptions()
 	BETTERUI.UpdateCIMState()
 
 	local function SetupInitialModuleState()
@@ -828,6 +995,7 @@ function BETTERUI.Initialize(event, addon)
 	end
 
 	local setupSucceeded = SetupInitialModuleState()
+	BETTERUI.InitModuleOptions()
 
 	if BETTERUI.Inventory and BETTERUI.Inventory.EnsureCompanionEquipPatched then
 		BETTERUI.Inventory.EnsureCompanionEquipPatched()

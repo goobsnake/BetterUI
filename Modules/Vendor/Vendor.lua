@@ -81,6 +81,72 @@ local function DescribeVendorKeybinds(instance)
     }
 end
 
+local function IsTomesSpecializedSceneActive()
+    local interactionRuntime = Vendor.InteractionRuntime
+    if interactionRuntime and interactionRuntime.FindSpecializedNativeScene then
+        local sceneName = interactionRuntime.FindSpecializedNativeScene()
+        return sceneName ~= nil
+    end
+    return false
+end
+
+local function IsPrimaryActionAllowed()
+    return not IsTomesSpecializedSceneActive()
+end
+
+local function RemoveTomesKeybindDescriptors(instance)
+    local interface = BETTERUI.Interface
+    if not interface or type(interface.RemoveKeybindGroupIfPresent) ~= "function" then
+        return
+    end
+
+    if not instance then
+        return
+    end
+
+    interface.RemoveKeybindGroupIfPresent(instance.coreKeybinds)
+    interface.RemoveKeybindGroupIfPresent(instance.textSearchKeybindStripDescriptor)
+
+    local header = instance.headerGeneric
+    local tabBar = header and header.tabBar
+    if tabBar then
+        interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+    end
+    header = instance.header
+    tabBar = header and header.tabBar
+    if tabBar then
+        interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+    end
+
+    if interface.UpdateCurrentKeybindGroups then
+        interface.UpdateCurrentKeybindGroups()
+    end
+end
+
+local function PurgeTomesSceneKeybindInterference()
+    local instance = Vendor.instance
+    if instance then
+        if instance.DeactivateHeaderKeybinds then
+            instance:DeactivateHeaderKeybinds()
+        end
+        if instance.DeactivateListInput then
+            instance:DeactivateListInput()
+        end
+        if instance.ForceReleaseDirectionalInput then
+            instance:ForceReleaseDirectionalInput()
+        end
+        if instance.ReleaseNativeStoreInputOwnership then
+            instance:ReleaseNativeStoreInputOwnership()
+        end
+    end
+    RemoveTomesKeybindDescriptors(instance)
+    TraceVendorEvent("vendor.store_event", "handoff_cleanup", {
+        fn = "Vendor.PurgeTomesSceneKeybindInterference",
+        reason = "specializedNativeScene",
+        hasInstance = instance ~= nil,
+    })
+end
+
 local function TraceVendorEvent(event, phase, data, category)
     local L = BETTERUI and BETTERUI.Log
     if not (L and L.TraceEvent) then
@@ -631,7 +697,13 @@ local function BuildCoreKeybinds(vendorInstance)
                 return GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION"))
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
+            visible = function()
+                return IsPrimaryActionAllowed()
+            end,
             callback = function()
+                if not IsPrimaryActionAllowed() then
+                    return
+                end
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
                     local selectedData = GetCurrentVendorTargetData(vendorInstance)
@@ -649,6 +721,10 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
             end,
             enabled = function()
+                if not IsPrimaryActionAllowed() then
+                    return false
+                end
+
                 local ms = Vendor.multiSelectManager
                 local selectedData = GetCurrentVendorTargetData(vendorInstance)
                 if ms and ms:IsActive() then
@@ -1265,6 +1341,7 @@ local function OnOpenStore()
         specializedSceneName, specializedSceneState = Vendor.InteractionRuntime.FindSpecializedNativeScene()
     end
     if specializedSceneName then
+        PurgeTomesSceneKeybindInterference()
         Vendor._openedInGamepadMode = false
         if Vendor.NativeStoreBridge and Vendor.NativeStoreBridge.RestoreSceneAlias then
             Vendor.NativeStoreBridge.RestoreSceneAlias()

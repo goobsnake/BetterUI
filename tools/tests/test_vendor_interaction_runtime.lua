@@ -158,6 +158,91 @@ do
     local calls = {}
     local runtime = BuildRuntime(calls)
     local bridge = BuildBridge(calls)
+    local originalInterface = BETTERUI.Interface
+    BETTERUI.Interface = {
+        RemoveKeybindGroupIfPresent = function(group)
+            calls[#calls + 1] = "remove-keybind:" .. tostring(group)
+        end,
+        UpdateCurrentKeybindGroups = function()
+            calls[#calls + 1] = "update-current-keybinds"
+        end,
+    }
+    local instance = {
+        coreKeybinds = "core-kb",
+        textSearchKeybindStripDescriptor = "search-kb",
+        headerGeneric = {
+            tabBar = {
+                keybindStripDescriptor = "generic-tabbar-kb",
+            },
+        },
+        header = {
+            tabBar = {
+                keybindStripDescriptor = "legacy-tabbar-kb",
+            },
+        },
+        DeactivateHeaderKeybinds = function()
+            calls[#calls + 1] = "deactivate-header-keybinds"
+        end,
+        DeactivateListInput = function()
+            calls[#calls + 1] = "deactivate-list-input"
+        end,
+        ForceReleaseDirectionalInput = function()
+            calls[#calls + 1] = "release-directional-input"
+        end,
+        ReleaseNativeStoreInputOwnership = function()
+            calls[#calls + 1] = "release-native-input"
+        end,
+    }
+
+    InteractionRuntime.OpenStore({
+        runtime = runtime,
+        nativeStoreBridge = bridge,
+        instance = instance,
+        options = {
+            interactionType = 10,
+            interactionVendor = 10,
+            interactionStable = 20,
+            isNativeStableModeActive = function()
+                return false
+            end,
+            findSpecializedNativeScene = function()
+                return "TamrielTomesSceneGamepad", "showing"
+            end,
+        },
+    })
+
+    BETTERUI.Interface = originalInterface
+
+    assert_true(table.concat(calls, ","):find("deactivate-header-keybinds", 1, true) ~= nil,
+        "native handoff deactivates header keybinds")
+    assert_true(table.concat(calls, ","):find("deactivate-list-input", 1, true) ~= nil,
+        "native handoff deactivates list input")
+    assert_true(table.concat(calls, ","):find("release-directional-input", 1, true) ~= nil,
+        "native handoff releases directional input")
+    assert_true(table.concat(calls, ","):find("release-native-input", 1, true) ~= nil,
+        "native handoff releases native input ownership")
+    assert_true(table.concat(calls, ","):find("remove-keybind:core-kb", 1, true) ~= nil,
+        "native handoff removes core keybind strip")
+    assert_true(table.concat(calls, ","):find("remove-keybind:search-kb", 1, true) ~= nil,
+        "native handoff removes search keybind strip")
+    assert_true(table.concat(calls, ","):find("remove-keybind:generic-tabbar-kb", 1, true) ~= nil,
+        "native handoff removes generic header tab keybind strip")
+    assert_true(table.concat(calls, ","):find("remove-keybind:legacy-tabbar-kb", 1, true) ~= nil,
+        "native handoff removes legacy header tab keybind strip")
+    assert_true(table.concat(calls, ","):find("update-current-keybinds", 1, true) ~= nil,
+        "native handoff updates current keybind groups")
+    assert_true(table.concat(calls, ","):find("restore-alias", 1, true) ~= nil,
+        "native handoff restores scene alias")
+    assert_true(table.concat(calls, ","):find("alias-scene", 1, true) == nil,
+        "native handoff does not try to alias into BetterUI scene")
+    assert_true(table.concat(calls, ","):find("show-native-store", 1, true) == nil,
+        "native handoff skips ShowNativeStore for specialized scene")
+end
+
+do
+    local calls = {}
+    local runtime = BuildRuntime(calls)
+    local bridge = BuildBridge(calls)
     local instance = {
         ReleaseNativeStoreInputOwnership = function()
             calls[#calls + 1] = "release-native-input"
@@ -264,6 +349,37 @@ do
 
     assert_true(table.concat(calls, ","):find("safe-context:Vendor.CloseStore:NativeOnHide", 1, true) ~= nil,
         "close-store fallback safe call preserves context when runtime safe-call dependency is absent")
+end
+
+do
+    local originalSceneManager = SCENE_MANAGER
+    local sceneName, sceneState = nil, nil
+    SCENE_MANAGER = {
+        GetCurrentSceneName = function()
+            return "Tamrieltomes_PurchasePreview_Gamepad"
+        end,
+        IsShowingNext = function(_, candidateScene)
+            assert_eq(type(candidateScene), "string", "scene manager receives scene-name lookup in ShowNext check")
+            return false
+        end,
+        GetScene = function(_, sceneName)
+            assert_eq(type(sceneName), "string", "scene manager receives scene-name lookup")
+            return {
+                IsShowing = function()
+                    return false
+                end,
+                GetState = function()
+                    return nil
+                end,
+            }
+        end,
+    }
+
+    sceneName, sceneState = InteractionRuntime.FindSpecializedNativeScene()
+    assert_eq(sceneName, "Tamrieltomes_PurchasePreview_Gamepad", "FindSpecializedNativeScene matches Tamriel Tomes scene-name drift")
+    assert_eq(sceneState, "current", "FindSpecializedNativeScene reports scene state as current for drift names")
+
+    SCENE_MANAGER = originalSceneManager
 end
 
 do

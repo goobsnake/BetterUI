@@ -12,6 +12,8 @@ Note: Settings metadata registry and default/reset functions are in SettingsMeta
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Settings then BETTERUI.CIM.Settings = {} end
 if not BETTERUI.CIM.Settings._registeredPanels then BETTERUI.CIM.Settings._registeredPanels = {} end
+if not BETTERUI.CIM.Settings._registeredModulePanels then BETTERUI.CIM.Settings._registeredModulePanels = {} end
+if not BETTERUI.CIM.Settings._registeredModulePanelOrder then BETTERUI.CIM.Settings._registeredModulePanelOrder = {} end
 
 -- SETTINGS SORT HELPERS
 
@@ -544,86 +546,51 @@ function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelDat
     })
     InstrumentSettingControls(optionsData, panelId)
 
-    local lam = LibAddonMenu2
-    if not lam or not lam.RegisterAddonPanel or not lam.RegisterOptionControls then
-        TraceSettings("settings.panel", "rejected", {
-            panel = panelId,
-            reason = "lam_unavailable",
-            hasLam = lam ~= nil,
-            hasRegisterAddonPanel = lam and type(lam.RegisterAddonPanel) == "function",
-            hasRegisterOptionControls = lam and type(lam.RegisterOptionControls) == "function",
-        })
-        if BETTERUI.Log then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel LAM unavailable", {
-                panel = panelId,
-                hasLam = lam ~= nil,
-                hasRegisterAddonPanel = lam and type(lam.RegisterAddonPanel) == "function",
-                hasRegisterOptionControls = lam and type(lam.RegisterOptionControls) == "function",
-            })
-        end
-        return nil, "lam_unavailable"
-    end
-
     TraceSettings("settings.panel", "register_before", {
         panel = panelId,
-        stage = "addonPanel",
+        stage = "moduleCapture",
         topLevelControls = #optionsData,
         totalControls = CountControls(optionsData),
     })
-    local panelOk, panelErr = pcall(lam.RegisterAddonPanel, lam, panelId, panelData)
-    if not panelOk then
-        TraceSettings("settings.panel", "register_failed", {
-            panel = panelId,
-            stage = "addonPanel",
-            error = tostring(panelErr),
-            exceptionType = type(panelErr),
-        })
-        if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", {
-                panel = panelId,
-                stage = "addonPanel",
-                error = tostring(panelErr),
-                exceptionType = type(panelErr),
-            })
-        end
-        return nil, "register_addon_panel_failed"
-    end
-
-    TraceSettings("settings.panel", "register_before", {
-        panel = panelId,
-        stage = "optionControls",
-        topLevelControls = #optionsData,
-        totalControls = CountControls(optionsData),
-    })
-    local controlsOk, controlsErr = pcall(lam.RegisterOptionControls, lam, panelId, optionsData)
-    if not controlsOk then
-        TraceSettings("settings.panel", "register_failed", {
-            panel = panelId,
-            stage = "optionControls",
-            error = tostring(controlsErr),
-            exceptionType = type(controlsErr),
-        })
-        if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registration failed", {
-                panel = panelId,
-                stage = "optionControls",
-                error = tostring(controlsErr),
-                exceptionType = type(controlsErr),
-            })
-        end
-        return nil, "register_option_controls_failed"
-    end
+    local moduleName = BETTERUI.CIM.Settings._activeModulePanelName
+    local moduleLabel = BETTERUI.CIM.Settings._activeModulePanelLabel
+    BETTERUI.CIM.Settings._registeredModulePanels[panelId] = {
+        panelId = panelId,
+        moduleName = moduleName,
+        moduleLabel = moduleLabel,
+        panelData = panelData,
+        optionsData = optionsData,
+    }
+    table.insert(BETTERUI.CIM.Settings._registeredModulePanelOrder, panelId)
 
     if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel registered", { panel = panelId, controls = #optionsData })
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SETTINGS, "settings panel captured for master panel", {
+            panel = panelId,
+            module = moduleName,
+            controls = #optionsData,
+        })
     end
     TraceSettings("settings.panel", "registered", {
         panel = panelId,
+        stage = "moduleCapture",
+        module = moduleName,
         topLevelControls = #optionsData,
         totalControls = CountControls(optionsData),
     })
     BETTERUI.CIM.Settings._registeredPanels[panelId] = true
     return panelId
+end
+
+function BETTERUI.CIM.Settings.GetRegisteredModulePanels()
+    local panels = {}
+    for _, panelId in ipairs(BETTERUI.CIM.Settings._registeredModulePanelOrder or {}) do
+        local panel = BETTERUI.CIM.Settings._registeredModulePanels
+            and BETTERUI.CIM.Settings._registeredModulePanels[panelId]
+        if panel then
+            panels[#panels + 1] = panel
+        end
+    end
+    return panels
 end
 
 -- FONT SETTINGS FACTORY

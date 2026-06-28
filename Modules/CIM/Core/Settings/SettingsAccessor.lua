@@ -544,7 +544,13 @@ function BETTERUI.CIM.TryRegisterModulePanel(moduleOrNamespace, moduleName, pane
         return false, "missing_register_panel"
     end
 
+    local previousPanelName = BETTERUI.CIM.Settings._activeModulePanelName
+    local previousPanelLabel = BETTERUI.CIM.Settings._activeModulePanelLabel
+    BETTERUI.CIM.Settings._activeModulePanelName = resolvedModuleName
+    BETTERUI.CIM.Settings._activeModulePanelLabel = panelLabel or resolvedModuleName
     local ok, panelResult, panelReason = pcall(registerPanel, panelId, panelLabel)
+    BETTERUI.CIM.Settings._activeModulePanelName = previousPanelName
+    BETTERUI.CIM.Settings._activeModulePanelLabel = previousPanelLabel
     if not ok then
         if BETTERUI.Log then
             BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SETTINGS, string.format("[%s] Settings panel registration failed: %s", resolvedModuleName, tostring(panelResult)))
