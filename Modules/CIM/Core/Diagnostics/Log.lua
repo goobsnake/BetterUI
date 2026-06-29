@@ -48,7 +48,7 @@ local minLevel = Log.LEVEL.TRACE
 
 -- Payload capture: when false, the optional `data` argument is NOT rendered into
 -- the line (used by tight summary modes); when true, key=value / function payloads
--- reach the log. Debug/watch/trace/inspect keep payloads on so AI triage has the
+-- reach the log. Debug/watch/trace/inspect keep payloads on so diagnostics have the
 -- exact state needed to follow addon behavior.
 local payloadCapture = true
 
@@ -379,7 +379,7 @@ end
 -- Render the optional data argument for a log line. A record-style table (named
 -- fields) renders as `key=value key=value` (deterministic key order, values via
 -- Summarize, field-capped) so the actual VALUES reach the log -- what an external
--- reader/AI needs to act on, not just the field shape. Pure arrays and scalars
+-- reader needs to act on, not just the field shape. Pure arrays and scalars
 -- defer to Summarize (`[n]` / the value), keeping lines high-density. logfmt-style.
 local MAX_LOG_FIELDS = 20
 local function renderData(data)
@@ -423,7 +423,7 @@ end
 
 -- Schema + session/sequence metadata ----------------------------------------
 -- Every dispatched record carries `sid` (per-UI-load id; groups reload sessions)
--- and a monotonic `seq`, so a tailing AI/human can order and correlate lines even
+-- and a monotonic `seq`, so a log reader can order and correlate lines even
 -- when the engine interleaves traceback blocks. A bounded in-memory ring backs the
 -- "what just happened" reads (/builog recent).
 Log.SCHEMA = 1
@@ -520,7 +520,7 @@ function Log.ClearErrors() errorRing = {}; errorWriteIdx = 0; errorCount = 0 end
 
 -- Context provider: a fn(level, category) -> suffix string appended to every
 -- dispatched line. The watch preset sets it to inject scene/view/flow/lastAction so
--- a tailing AI never lacks context; nil (default) means no suffix.
+-- troubleshooting never lacks context; nil (default) means no suffix.
 local contextProvider = nil
 function Log.SetContextProvider(fn) contextProvider = (type(fn) == "function") and fn or nil end
 function Log.GetContextProvider() return contextProvider end
@@ -790,17 +790,17 @@ function Log.GetPayloadCapture() return payloadCapture end
 --   info   -> INFO/WARN/ERROR, payloads off. Milestones + problems: "is it working?"
 --             Safe to run during live play, so it keeps the TIGHT anti-hitch budget.
 --   watch  -> DEBUG+ payloads on PLUS WatchMode enrichment (per-line context +
---             startup preamble + heartbeat snapshots). This is the AI-debug preset.
+--             startup preamble + heartbeat snapshots). This is the guided-debug preset.
 --   debug  -> DEBUG+ (the user-action flow shows), payloads on. The everyday "what is
---             it doing?" view. Same volume tier as watch, without AI enrichment.
+--             it doing?" view. Same volume tier as watch, without extra enrichment.
 --   trace  -> TRACE+ (every step), payloads on. LOOSEST budget; high enough only to
 --             stop a runaway hot loop from crashing/freezing the client.
 --   inspect-> trace verbosity (TRACE+, payloads) PLUS the full watch enrichment (per-line
 --             context suffix + heartbeat snapshots + startup preamble).
---             "trace, with AI enrichment" -- the richest live-AI stream.
--- "verbose" is accepted as a back-compat alias for "trace". "inspect" is a DISTINCT preset,
+--             "trace, with guided context" -- the richest diagnostics stream.
+-- "verbose" remains accepted as a back-compat alias for "trace". "inspect" is a DISTINCT preset,
 -- not an alias (GetPreset() returns "inspect").
-local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trace = true, inspect = true, verbose = true, ai = true }
+local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trace = true, inspect = true, verbose = true }
 
 -- Per-preset file-sink rate limits. info stays tight (FPS-safe for live play); debug,
 -- trace, watch and inspect are greatly loosened because an active debugger accepts the
@@ -825,14 +825,13 @@ local function applyAllSinks(fileFromLevel, chatOn)
     end
 end
 
----@param name string  "off" | "info" | "watch" | "debug" | "trace" | "inspect" (aliases: "verbose" -> "trace", "ai" -> "watch")
+---@param name string  "off" | "info" | "watch" | "debug" | "trace" | "inspect" (alias: "verbose" -> "trace")
 ---@return boolean applied
 ---@return string preset
 function Log.ApplyPreset(name)
     name = type(name) == "string" and name:lower() or ""
     if not PRESET_NAMES[name] then return false, currentPreset end
     if name == "verbose" then name = "trace" end -- back-compat alias
-    if name == "ai" then name = "watch" end -- deprecated alias for "watch"
     local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
 
     if name == "off" then
@@ -847,9 +846,9 @@ function Log.ApplyPreset(name)
         payloadCapture = false
         if il and il.SetEnabled then il.SetEnabled(true) end
     elseif name == "watch" then
-        -- AI-debug stream: same DEBUG+ payload depth/budget as debug, plus WatchMode
+        -- Guided-debug stream: same DEBUG+ payload depth/budget as debug, plus WatchMode
         -- enrichment below (context suffix, startup preamble, heartbeat snapshots) for
-        -- an AI tailing Interface.log in real time.
+        -- reviewing Interface.log in real time.
         minLevel = Log.LEVEL.DEBUG
         applyAllSinks(Log.LEVEL.DEBUG, false)
         categoryDisabled = {}
@@ -878,7 +877,7 @@ function Log.ApplyPreset(name)
     Log.RefreshActive()
     currentPreset = name
 
-    -- AI enrichment lifecycle (context suffix, preamble, heartbeat snapshots, mutes).
+    -- Diagnostic enrichment lifecycle (context suffix, preamble, heartbeat snapshots, mutes).
     -- Resolved lazily: WatchMode loads after Log. Activate for the ENRICHMENT presets
     -- (watch + inspect); Deactivate for every OTHER preset so leaving them cleanly drops
     -- the context provider + restores mutes.

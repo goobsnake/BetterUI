@@ -356,7 +356,7 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC", "Personnalisez le compor
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "R\xe9initialiser les param\xe8tres des infobulles")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP", "R\xe9initialise tous les param\xe8tres de cette section Infobulles am\xe9lior\xe9es \xe0 leurs valeurs par d\xe9faut.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Int\xe9gration des prix du march\xe9")
-ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "Configurez les sources de prix du march\xe9 pour les infobulles d'objets. Les prix apparaissent dans les colonnes de valeur de l'inventaire et de la banque, ainsi que dans l'infobulle de l'UI par d\xe9faut et l'infobulle am\xe9lior\xe9e BetterUI dans toutes les sc\xe8nes applicables (boutiques de guilde, marchands, assistants, etc.).")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "Configurez les sources de prix du march\xe9 pour les infobulles d'objets. Les prix apparaissent dans les colonnes de valeur de l'inventaire et de la banque, ainsi que dans les infobulles BetterUI et par d\xe9faut des sc\xe8nes applicables.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "R\xe9initialiser les param\xe8tres du march\xe9")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP", "R\xe9initialise tous les param\xe8tres de cette section Int\xe9gration des prix du march\xe9 \xe0 leurs valeurs par d\xe9faut.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "Priorit\xe9 de source des prix du march\xe9")

@@ -1,7 +1,7 @@
 --[[
 File: Modules/CIM/Core/Diagnostics/Perf.lua
 Purpose: Lightweight performance markers. Time a span and emit a DEBUG/PERF record
-         ("<label> took <ms>ms" + optional fields) so a tailing AI/human can see WHICH
+         ("<label> took <ms>ms" + optional fields) so a log reader can see WHICH
          operations are slow during a capture, not just that the client hitched.
 
          Gated by Log.EnabledFor(DEBUG, PERF): when PERF logging is off, Perf.Begin

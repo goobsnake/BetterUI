@@ -1,14 +1,14 @@
 --[[
 File: Modules/CIM/Core/Diagnostics/WatchMode.lua
-Purpose: The enrichment layer used by the AI presets: `watch` (debug depth + AI
-         context) and `inspect` (trace depth + AI context). Activated/deactivated by
+Purpose: The enrichment layer used by diagnostics presets: `watch` (debug depth +
+         context) and `inspect` (trace depth + context). Activated/deactivated by
          Log.ApplyPreset when entering/leaving those presets. Five differentiators:
 
            1. Per-line context suffix  -> every line self-anchors with
               `scene= view= flow= lastAction=` so a tailer reading ONE line knows where
               the player is and what they last did (registered via SetContextProvider).
            2. Startup preamble         -> on activate, a STATE record with addon/schema/
-              api/world/player/zone + the enabled-addon list, so an AI joining mid-stream
+              api/world/player/zone + the enabled-addon list, so a reader joining mid-stream
               can anchor the session.
            3. Periodic state snapshot  -> a self-rescheduling heartbeat that emits a STATE
               record aggregating registered snapshot providers (liveness + live state).
@@ -17,7 +17,7 @@ Purpose: The enrichment layer used by the AI presets: `watch` (debug depth + AI
            5. Optional category policy -> replay-grade sessions default to no hidden
               categories, but this hook can mute proven noise without touching callers.
 
-         Everything is pcall-guarded and inert unless an AI preset is active, so normal
+         Everything is pcall-guarded and inert unless a diagnostics preset is active, so normal
          play pays nothing. Depends on BETTERUI.Log (loaded first) and BETTERUI.CIM.Names.
 ]]
 
@@ -41,7 +41,7 @@ local snapshotTimerIntervalMs = nil -- interval used by the pending heartbeat ti
 
 local WATCH_SNAPSHOT_INTERVAL_MS = 10000
 local INSPECT_SNAPSHOT_INTERVAL_MS = 3000
--- Replay-grade watch/inspect must not hide the exact surfaces an AI needs to
+-- Replay-grade watch/inspect must not hide the exact surfaces diagnostics need to
 -- reconstruct gameplay. Keep the hook for user overrides, but default to no mutes.
 local DEFAULT_MUTED_CATEGORIES = {}
 
@@ -214,7 +214,7 @@ local function emitPreamble()
         zone = safeCall("GetUnitZone", "player"),
     }
     local categories = L.CATEGORY or {}
-    L.Info(categories.STATE, "AI diagnostic session started -- live Interface.log stream; grep '[BUI]' for the clean feed", data)
+    L.Info(categories.STATE, "diagnostic session started -- live Interface.log stream; grep '[BUI]' for the clean feed", data)
     emitActiveAddons()
 end
 
@@ -242,7 +242,7 @@ function Watch.Snapshot()
     local view = currentViewForScene(data.scene)
     if view then data.view = view end
     data.keybinds = describeActiveKeybinds()
-    -- Surface the file-sink drop count so an AI tailing the log can SEE when a burst shed
+    -- Surface the file-sink drop count so log readers can SEE when a burst shed
     -- records (i.e. it may have missed context) straight from the heartbeat.
     local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
     if il and il.GetStats then
@@ -327,12 +327,12 @@ function Watch.IsActive() return active end
 function Watch.SetView(label) currentView = (type(label) == "string" and label ~= "") and label or nil end
 function Watch.DescribeActiveKeybinds() return describeActiveKeybinds() end
 
---- Enter AI enrichment: register the context provider, apply mutes, emit the
+--- Enter diagnostics enrichment: register the context provider, apply mutes, emit the
 --- preamble, and start the snapshot heartbeat. Idempotent.
 function Watch.Activate()
     local L = log()
     -- (Re)assert the provider + mutes on EVERY call: Log.ApplyPreset resets
-    -- categoryDisabled before invoking us, so re-applying an AI preset must restore the mutes
+    -- categoryDisabled before invoking us, so re-applying a diagnostics preset must restore the mutes
     -- (and re-register the provider) even when already active.
     if L and L.SetContextProvider then L.SetContextProvider(contextSuffix) end
     if L and L.SetCategoryEnabled then
@@ -347,7 +347,7 @@ function Watch.Activate()
     scheduleSnapshot()
 end
 
---- Leave AI enrichment: drop the context provider and restore muted categories.
+--- Leave diagnostics enrichment: drop the context provider and restore muted categories.
 --- The snapshot heartbeat self-stops on its next tick (active=false). Idempotent.
 function Watch.Deactivate()
     if not active then return end

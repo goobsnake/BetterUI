@@ -1,7 +1,7 @@
 --[[
 File: Modules/CIM/Core/Diagnostics/InterfaceLog.lua
 Purpose: Stream BetterUI debug breadcrumbs into the game's Interface.log in real time,
-         so an external process (e.g. an AI assistant) can tail it while you play.
+         so diagnostics can be reviewed while you play.
 
 Mechanism (proof of concept):
   The retail client exposes NO API to write arbitrary text to Interface.log -- the
