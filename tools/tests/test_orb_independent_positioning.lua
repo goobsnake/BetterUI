@@ -39,10 +39,10 @@ assertTrue(source:find("orbOffsetY = settings%.enableIndependentOrbOffset and %(
 
 -- Test 2: Ornament anchors carry the offset (the ornaments are the root of
 -- the orb composite; everything anchored to them follows automatically)
-assertTrue(source:find("cfg%.ornaments%.left%.x %+ orbOffsetX, cfg%.ornaments%.left%.y %+ orbOffsetY") ~= nil,
-    "Left ornament anchor includes orb offset")
-assertTrue(source:find("cfg%.ornaments%.right%.x %+ orbOffsetX, cfg%.ornaments%.right%.y %+ orbOffsetY") ~= nil,
-    "Right ornament anchor includes orb offset")
+assertTrue(source:find("cfg%.ornaments%.left%.x %+ orbOffsetX %+ loX, cfg%.ornaments%.left%.y %+ orbOffsetY %+ loY") ~= nil,
+    "Left ornament anchor includes orb and element offsets")
+assertTrue(source:find("cfg%.ornaments%.right%.x %+ orbOffsetX %+ roX, cfg%.ornaments%.right%.y %+ orbOffsetY %+ roY") ~= nil,
+    "Right ornament anchor includes orb and element offsets")
 
 -- Test 3: Ornament-anchored orb branches must NOT re-apply the offset
 -- (the ornament already moved; adding it again would double-apply)
@@ -60,27 +60,27 @@ assertTrue(source:find("cfg%.orbs%.right%.x %* rightVisibleScale") ~= nil,
     "Right orb ornament-anchored branch still anchors via ornament scale")
 
 -- Test 4: Hidden-ornament and bgMiddle-fallback orb branches still add the offset
-assertTrue(source:find("cfg%.orbs%.left%.noOrnament%.x or %(cfg%.ornaments%.left%.x %+ cfg%.orbs%.left%.x%)%) %+ orbOffsetX") ~= nil,
-    "Left orb hidden-ornament branch includes offset (X)")
-assertTrue(source:find("cfg%.orbs%.left%.noOrnament%.y or %(cfg%.ornaments%.left%.y %+ cfg%.orbs%.left%.y%)%) %+ orbOffsetY") ~= nil,
-    "Left orb hidden-ornament branch includes offset (Y)")
-assertTrue(source:find("cfg%.orbs%.right%.noOrnament%.x or %(cfg%.ornaments%.right%.x %+ cfg%.orbs%.right%.x%)%) %+ orbOffsetX") ~= nil,
-    "Right orb hidden-ornament branch includes offset (X)")
-assertTrue(source:find("cfg%.orbs%.right%.noOrnament%.y or %(cfg%.ornaments%.right%.y %+ cfg%.orbs%.right%.y%)%) %+ orbOffsetY") ~= nil,
-    "Right orb hidden-ornament branch includes offset (Y)")
-assertTrue(source:find("cfg%.ornaments%.left%.x %+ cfg%.orbs%.left%.x %+ orbOffsetX") ~= nil,
-    "Left orb bgMiddle fallback includes offset (X)")
-assertTrue(source:find("cfg%.ornaments%.left%.y %+ cfg%.orbs%.left%.y %+ orbOffsetY") ~= nil,
-    "Left orb bgMiddle fallback includes offset (Y)")
-assertTrue(source:find("cfg%.ornaments%.right%.x %+ cfg%.orbs%.right%.x %+ orbOffsetX") ~= nil,
-    "Right orb bgMiddle fallback includes offset (X)")
-assertTrue(source:find("cfg%.ornaments%.right%.y %+ cfg%.orbs%.right%.y %+ orbOffsetY") ~= nil,
-    "Right orb bgMiddle fallback includes offset (Y)")
+assertTrue(source:find("cfg%.orbs%.left%.noOrnament%.x or %(cfg%.ornaments%.left%.x %+ cfg%.orbs%.left%.x%)%) %+ orbOffsetX %+ loX") ~= nil,
+    "Left orb hidden-ornament branch includes orb and element offsets (X)")
+assertTrue(source:find("cfg%.orbs%.left%.noOrnament%.y or %(cfg%.ornaments%.left%.y %+ cfg%.orbs%.left%.y%)%) %+ orbOffsetY %+ loY") ~= nil,
+    "Left orb hidden-ornament branch includes orb and element offsets (Y)")
+assertTrue(source:find("cfg%.orbs%.right%.noOrnament%.x or %(cfg%.ornaments%.right%.x %+ cfg%.orbs%.right%.x%)%) %+ orbOffsetX %+ roX") ~= nil,
+    "Right orb hidden-ornament branch includes orb and element offsets (X)")
+assertTrue(source:find("cfg%.orbs%.right%.noOrnament%.y or %(cfg%.ornaments%.right%.y %+ cfg%.orbs%.right%.y%)%) %+ orbOffsetY %+ roY") ~= nil,
+    "Right orb hidden-ornament branch includes orb and element offsets (Y)")
+assertTrue(source:find("cfg%.ornaments%.left%.x %+ cfg%.orbs%.left%.x %+ orbOffsetX %+ loX") ~= nil,
+    "Left orb bgMiddle fallback includes orb and element offsets (X)")
+assertTrue(source:find("cfg%.ornaments%.left%.y %+ cfg%.orbs%.left%.y %+ orbOffsetY %+ loY") ~= nil,
+    "Left orb bgMiddle fallback includes orb and element offsets (Y)")
+assertTrue(source:find("cfg%.ornaments%.right%.x %+ cfg%.orbs%.right%.x %+ orbOffsetX %+ roX") ~= nil,
+    "Right orb bgMiddle fallback includes orb and element offsets (X)")
+assertTrue(source:find("cfg%.ornaments%.right%.y %+ cfg%.orbs%.right%.y %+ orbOffsetY %+ roY") ~= nil,
+    "Right orb bgMiddle fallback includes orb and element offsets (Y)")
 
 -- Test 5: Shield orb bgMiddle fallback applies the offset exactly once.
 -- The left-orb fallback and the shield fallback are the only two sites using
 -- this exact sum; more or fewer copies indicates a drift in offset handling.
-assertTrue(count_occurrences(source, "cfg%.ornaments%.left%.x %+ cfg%.orbs%.left%.x %+ orbOffsetX") == 2,
+assertTrue(count_occurrences(source, "cfg%.ornaments%.left%.x %+ cfg%.orbs%.left%.x %+ orbOffsetX %+ loX") == 2,
     "Orb offset applied exactly once in left-orb and shield bgMiddle fallbacks")
 
 -- Test 6: XP/mount bars follow the composite in their bgMiddle-anchored

@@ -66,17 +66,31 @@ assert_not_contains(registry, "local MARKET_ADDON_KEYS = {",
 assert_not_contains(registry, "local GUILD_STORE_ADDON_KEYS = {",
     "OptionalAddonRegistry no longer carries a second guild-store addon key list")
 assert_contains(registry, "function OptionalAddons.GetManifestGlobals()",
-    "OptionalAddonRegistry keeps the manifest-facing globals seam")
-assert_contains(registry, "return OptionalAddons.GetGlobals(OPTIONAL_ADDON_KEYS)",
-    "Manifest globals are derived from the canonical optional-addon key list")
+    "OptionalAddonRegistry keeps the backwards-compatible manifest-facing seam")
+assert_contains(registry, "function OptionalAddons.GetManifestNames(addonKeys)",
+    "OptionalAddonRegistry exposes manifest dependency names separately from runtime globals")
+assert_contains(registry, "return OptionalAddons.GetManifestNames(OPTIONAL_ADDON_KEYS)",
+    "Manifest dependency names are derived from the canonical optional-addon key list")
 assert_contains(registry, "function OptionalAddons.GetAddonKeys()",
     "OptionalAddonRegistry exposes canonical addon keys for contract checks")
 assert_contains(registry, "OptionalAddons.KEYS.MASTER_MERCHANT = \"MasterMerchant\"",
     "OptionalAddonRegistry exposes typed addon-key constants")
 assert_contains(registry, "function OptionalAddons.ResolveKey(addonKeyOrGlobal)",
     "OptionalAddonRegistry resolves public addon keys and globals through one seam")
+assert_contains(registry, "manifest = \"FCOItemSaver\"",
+    "FCO ItemSaver manifest name is tracked separately")
+assert_contains(registry, "global = \"FCOIS\"",
+    "FCO ItemSaver runtime global is tracked separately")
+assert_contains(registry, "manifest = \"DolgubonsLazyWritCreator\"",
+    "Dolgubon Lazy Writ Crafter manifest name is tracked separately")
+assert_contains(registry, "global = \"WritCreater\"",
+    "Dolgubon Lazy Writ Crafter runtime global is tracked separately")
+assert_contains(registry, "manifest = \"AlphaGear\"",
+    "AlphaGear manifest name is tracked separately")
+assert_contains(registry, "global = \"AG\"",
+    "AlphaGear runtime global is tracked separately")
 
-local expectedManifest = "MasterMerchant ArkadiusTradeTools TamrielTradeCentre AutoCategory"
+local expectedManifest = "MasterMerchant ArkadiusTradeTools TamrielTradeCentre AutoCategory FCOItemSaver DolgubonsLazyWritCreator AlphaGear"
 if manifestLine ~= expectedManifest then
     error("OptionalDependsOn must stay aligned with OptionalAddonRegistry OPTIONAL_ADDON_KEYS\nExpected: "
         .. expectedManifest .. "\nActual: " .. manifestLine)

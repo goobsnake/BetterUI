@@ -23,9 +23,10 @@ Files:
   (`on|off|preset off|info|watch|debug|trace|inspect|chat on|off|popups on|off|level <lvl>|mark|snapshot|screenshot [label]|screenshot auto off|error|warn|test|status`).
 - `Screenshot.lua` — wraps ESO `TakeScreenshot()` and `EVENT_SCREENSHOT_SAVED` with
   manual `/builog screenshot`, opt-in auto capture (`off|error|warn`), duplicate-aware
-  per-issue throttling, and `SCREENSHOT` markers carrying request ids/status/filenames
-  for host-side AI correlation. Saved markers are emitted only for BetterUI-requested screenshots;
-  unrelated user screenshots are ignored.
+  per-issue throttling, and `SCREENSHOT` markers carrying `source="user"|"auto"`, request
+  ids/status/filenames for host-side AI correlation. Saved markers cover both BetterUI
+  requests (`requested=true correlation="fifo"|"expired_fifo"`) and user/client
+  screenshots observed through ESO's saved event (`trigger="external" requested=false`).
 - `WatchMode.lua` — live-AI enrichment for `watch`/`inspect`: per-line scene/view/flow/
   lastAction context, startup preamble, periodic `STATE` snapshots, and default watch-only
   mutes for `LIST`, `SEARCH`, `SORT`, `BATCH`, `FOOTER`, and `KEYBIND`. Module snapshot

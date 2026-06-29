@@ -4,7 +4,8 @@ Purpose: In-game screenshot capture hooks for builog live testing.
 
 ESO provides TakeScreenshot() and EVENT_SCREENSHOT_SAVED(directory, filename). This
 module wraps them with opt-in auto capture, duplicate-aware throttling, and [BUI]
-markers so diagnostics can correlate warnings/errors with saved screenshot files.
+markers so diagnostics can correlate warnings/errors and user captures with saved
+screenshot files.
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -16,14 +17,18 @@ local VALID_AUTO_MODE = { off = true, error = true, warn = true }
 local autoMode = "off"
 local requestCounter = 0
 local shotCount = 0
+local userShotCount = 0
 local suppressedCount = 0
 local pendingIds = {}
 local pendingById = {}
+local expiredIds = {}
+local expiredById = {}
 local lastByFingerprint = {}
 local recentShotTimes = {}
 local emittingMarker = false
 local registeredSaved = false
 local registeredTooFrequent = false
+local EXPIRED_CORRELATION_GRACE_MS = 5000
 
 local DEFAULT_LIMITS = {
     duplicateMs = 120000,
@@ -164,6 +169,41 @@ local function pruneRecent(t)
     end
 end
 
+local function emitExpiredRequest(request, t)
+    emitMarker("screenshot requested", {
+        id = request.id,
+        trigger = request.trigger,
+        source = request.source or "auto",
+        label = request.label,
+        status = "expired",
+        reason = "pending_ttl",
+        ageMs = t - request.t,
+        fingerprint = request.fingerprint,
+    })
+end
+
+local function pruneExpiredCorrelations(t)
+    local kept = {}
+    for i = 1, #expiredIds do
+        local id = expiredIds[i]
+        local request = expiredById[id]
+        if request and (t - (request.expiredAt or t)) <= EXPIRED_CORRELATION_GRACE_MS then
+            kept[#kept + 1] = id
+        else
+            expiredById[id] = nil
+        end
+    end
+    expiredIds = kept
+end
+
+local function rememberExpiredRequest(request, t)
+    if not request or not request.id then return end
+    request.expiredAt = t
+    expiredById[request.id] = request
+    expiredIds[#expiredIds + 1] = request.id
+    pruneExpiredCorrelations(t)
+end
+
 local function prunePending(t)
     local ttl = limits.pendingTtlMs
     if ttl <= 0 then return end
@@ -174,6 +214,10 @@ local function prunePending(t)
         if request and (t - request.t) <= ttl then
             kept[#kept + 1] = id
         else
+            if request then
+                emitExpiredRequest(request, t)
+                rememberExpiredRequest(request, t)
+            end
             pendingById[id] = nil
         end
     end
@@ -194,18 +238,64 @@ local function rememberShot(t, fingerprint)
 end
 
 local function pushPending(id, request)
-    prunePending(nowMs())
+    local t = nowMs()
+    prunePending(t)
+    pruneExpiredCorrelations(t)
     pendingIds[#pendingIds + 1] = id
     pendingById[id] = request
 end
 
-local function popPending()
-    prunePending(nowMs())
-    if #pendingIds == 0 then return nil end
+local function removePending(id)
+    if id == nil or pendingById[id] == nil then return end
+    pendingById[id] = nil
+    local kept = {}
+    for i = 1, #pendingIds do
+        if pendingIds[i] ~= id then kept[#kept + 1] = pendingIds[i] end
+    end
+    pendingIds = kept
+end
+
+local function popPendingRaw()
     local id = table.remove(pendingIds, 1)
+    if id == nil then return nil end
     local request = pendingById[id]
     pendingById[id] = nil
     return request
+end
+
+local function popExpiredCorrelation(t)
+    pruneExpiredCorrelations(t)
+    local id = table.remove(expiredIds, 1)
+    if id == nil then return nil end
+    local request = expiredById[id]
+    expiredById[id] = nil
+    return request
+end
+
+local function isExpired(request, t)
+    return request and limits.pendingTtlMs > 0 and (t - request.t) > limits.pendingTtlMs
+end
+
+local function isBeyondExpiredGrace(request, t)
+    return request and limits.pendingTtlMs > 0
+        and (t - request.t) > (limits.pendingTtlMs + EXPIRED_CORRELATION_GRACE_MS)
+end
+
+local function popCorrelatableRequest(t)
+    local request = popExpiredCorrelation(t)
+    if request then return request, true end
+
+    while true do
+        request = popPendingRaw()
+        if not request then return nil, false end
+        if isBeyondExpiredGrace(request, t) then
+            emitExpiredRequest(request, t)
+        else
+            local expired = isExpired(request, t)
+            if expired then emitExpiredRequest(request, t) end
+            return request, expired
+        end
+    end
 end
 
 local function canCapture(t, fingerprint, manual)
@@ -290,6 +380,7 @@ local function requestCapture(opts)
     local t = nowMs()
     local manual = opts.manual == true
     local trigger = normalizeToken(opts.trigger, manual and "manual" or "auto")
+    local source = manual and "user" or "auto"
     local label = normalizeText(opts.label, "")
     local fingerprint = opts.fingerprint or ""
     local id = nextRequestId(t)
@@ -300,7 +391,7 @@ local function requestCapture(opts)
     if type(takeScreenshot) ~= "function" then
         emitMarker("screenshot request", {
             id = id, trigger = trigger, label = label, status = "unavailable",
-            reason = "missing_TakeScreenshot", fingerprint = fingerprint,
+            source = source, reason = "missing_TakeScreenshot", fingerprint = fingerprint,
         })
         return false, "unavailable"
     end
@@ -309,7 +400,7 @@ local function requestCapture(opts)
         suppressedCount = suppressedCount + 1
         emitMarker("screenshot request", {
             id = id, trigger = trigger, label = label, status = "suppressed",
-            reason = "combat", fingerprint = fingerprint,
+            source = source, reason = "combat", fingerprint = fingerprint,
         })
         return false, "combat"
     end
@@ -319,20 +410,28 @@ local function requestCapture(opts)
         suppressedCount = suppressedCount + 1
         emitMarker("screenshot request", {
             id = id, trigger = trigger, label = label, status = "suppressed",
-            reason = reason, fingerprint = fingerprint,
+            source = source, reason = reason, fingerprint = fingerprint,
         })
         return false, reason
     end
 
     emitMarker("screenshot request", {
         id = id, trigger = trigger, label = label, status = "pending",
-        fingerprint = fingerprint, sourceLevel = opts.sourceLevel, sourceCategory = opts.sourceCategory,
+        source = source, fingerprint = fingerprint, sourceLevel = opts.sourceLevel,
+        sourceCategory = opts.sourceCategory,
+    })
+
+    pushPending(id, {
+        id = id, t = t, trigger = trigger, label = label, fingerprint = fingerprint,
+        source = source, sourceLevel = opts.sourceLevel, sourceCategory = opts.sourceCategory,
     })
 
     local ok, result = pcall(takeScreenshot)
     if not ok or result == false then
+        removePending(id)
         emitMarker("screenshot requested", {
             id = id, trigger = trigger, label = label, status = "failed",
+            source = source,
             reason = ok and "TakeScreenshot_returned_false" or "TakeScreenshot_error",
             error = ok and nil or normalizeText(result, "error"),
             fingerprint = fingerprint,
@@ -341,13 +440,10 @@ local function requestCapture(opts)
     end
 
     rememberShot(t, fingerprint)
-    pushPending(id, {
-        id = id, t = t, trigger = trigger, label = label, fingerprint = fingerprint,
-        sourceLevel = opts.sourceLevel, sourceCategory = opts.sourceCategory,
-    })
+    if source == "user" then userShotCount = userShotCount + 1 end
     emitMarker("screenshot requested", {
         id = id, trigger = trigger, label = label, status = "requested",
-        fingerprint = fingerprint,
+        source = source, fingerprint = fingerprint,
     })
     return true, "requested", id
 end
@@ -389,27 +485,52 @@ function Screenshot.OnLogRecord(record)
 end
 
 function Screenshot.OnSaved(directory, filename)
-    local request = popPending()
-    if not request then return end
+    local t = nowMs()
+    local request, expired = popCorrelatableRequest(t)
+    if not request then
+        userShotCount = userShotCount + 1
+        emitMarker("screenshot saved", {
+            id = nextRequestId(t),
+            trigger = "external",
+            source = "user",
+            status = "saved",
+            requested = false,
+            correlation = "event",
+            directory = sanitizeDirectory(directory),
+            filename = normalizeText(filename, ""),
+        })
+        return
+    end
     emitMarker("screenshot saved", {
         id = request.id,
         trigger = request.trigger,
+        source = request.source or "auto",
         status = "saved",
+        requested = true,
+        correlation = expired and "expired_fifo" or "fifo",
+        late = expired or nil,
+        ageMs = t - request.t,
         directory = sanitizeDirectory(directory),
         filename = normalizeText(filename, ""),
         fingerprint = request.fingerprint,
+        sourceLevel = request.sourceLevel,
+        sourceCategory = request.sourceCategory,
     })
 end
 
 function Screenshot.OnTooFrequent()
-    local request = popPending()
+    local t = nowMs()
+    local request, expired = popCorrelatableRequest(t)
     suppressedCount = suppressedCount + 1
     emitMarker("screenshot requested", {
         id = request and request.id or "engine",
-        trigger = request and request.trigger or "auto",
+        trigger = request and request.trigger or "external",
+        source = request and request.source or "user",
         label = request and request.label or nil,
         status = "failed",
         reason = "engine_too_frequent",
+        requested = request ~= nil,
+        correlation = request and (expired and "expired_fifo" or "fifo") or "event",
         fingerprint = request and request.fingerprint or nil,
     })
 end
@@ -424,10 +545,14 @@ end
 function Screenshot.GetAutoMode() return autoMode end
 
 function Screenshot.GetStatus()
-    pruneRecent(nowMs())
+    local t = nowMs()
+    pruneRecent(t)
+    prunePending(t)
+    pruneExpiredCorrelations(t)
     return {
         autoMode = autoMode,
         shots = shotCount,
+        userShots = userShotCount,
         suppressed = suppressedCount,
         pending = #pendingIds,
         burst = #recentShotTimes,
@@ -442,9 +567,12 @@ function Screenshot._ResetForTests()
     autoMode = "off"
     requestCounter = 0
     shotCount = 0
+    userShotCount = 0
     suppressedCount = 0
     pendingIds = {}
     pendingById = {}
+    expiredIds = {}
+    expiredById = {}
     lastByFingerprint = {}
     recentShotTimes = {}
     emittingMarker = false

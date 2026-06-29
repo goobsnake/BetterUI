@@ -102,7 +102,7 @@ that absence as an instrumentation or control-flow bug.
 | `errors [n]` | dump the last n WARN/ERROR records in chat |
 | `capture [secs]` | raise to TRACE for a bounded window (default 5s, 1–60), then auto-revert |
 | `screenshot [label]` | call ESO `TakeScreenshot()` and emit request/saved markers for host correlation |
-| `screenshot auto off\|error\|warn` | session-only opt-in auto capture: off, ERROR only, or WARN+ERROR with duplicate-aware per-issue throttling |
+| `screenshot auto off\|error\|warn` | persisted opt-in auto capture: off, ERROR only, or WARN+ERROR with duplicate-aware per-issue throttling |
 | `snapshot` | emit one STATE snapshot now |
 | `test` / `status` | write test breadcrumbs / print current state |
 
@@ -169,21 +169,33 @@ Filter to `[BUI]`; order by `seq`; a `Lua Error:` line WITHOUT `[BUI]` is a real
 
 ## Screenshot correlation
 
-`/builog screenshot [label]` and opt-in auto capture emit `INFO SCREENSHOT` records:
+`/builog screenshot [label]`, opt-in auto capture, and user/client screenshots observed
+through ESO's saved event emit `INFO SCREENSHOT` records:
 
 - `screenshot request ... status=pending|suppressed|unavailable`
-- `screenshot requested ... status=requested|failed`
+- `screenshot requested ... status=requested|failed|expired`
 - `screenshot saved ... directory=<dir> filename=<file> status=saved`
 
 The saved marker is authoritative because ESO fires `EVENT_SCREENSHOT_SAVED(directory,
-filename)`, but BetterUI only logs saved markers for screenshots it requested. If a host
-process joins late or misses the saved marker, match the request marker's ISO timestamp
-to the newest file mtime in the screenshots folder. Local default:
+filename)`. BetterUI-requested markers carry a correlation `id`, `source="user"|"auto"`,
+`requested=true`, and `correlation="fifo"` or `correlation="expired_fifo"` because ESO
+does not provide a request id in the saved event. `expired_fifo` means the save arrived
+after BetterUI's pending TTL, but close enough to preserve the recently expired request's
+`source`/`trigger` instead of mislabeling it as a fresh external screenshot. Saves after
+that short grace window are treated as external. While a
+BetterUI request is pending, ESO's saved event cannot prove whether the next saved file
+came from that request or a native screenshot key, so treat FIFO attribution as best
+effort. Unrequested saved events with no pending or recently expired BetterUI request are
+logged as `source="user" trigger="external" requested=false` so a later investigation can see
+what happened around a player-initiated screenshot. If a host process joins late or misses the
+saved marker, match the marker's ISO timestamp to the newest file mtime in the screenshots
+folder. Local default:
 `/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots`.
 Remote default: `smb://goobers/elder%20scrolls%20online/live/Screenshots`. The bundled
 monitor accepts an optional fourth argument or `BUILOG_SCREENSHOT_DIR` for that folder.
 Remote screenshot access uses the same SMB/GVFS connection as the remote `interface.log`;
 mount `smb://goobers/elder%20scrolls%20online` first, then use the mounted
 `.../live/Screenshots` path if the `remote` alias cannot resolve it automatically.
-Auto capture can include private UI/chat/account context; leave it `off` except during
-the current play-test window.
+Auto capture and user/client saved-event markers can include private UI/chat/account
+context through the screenshot file itself; leave auto capture `off` except during the
+current play-test window.

@@ -78,10 +78,12 @@ local options = {
 
 BETTERUI.CIM.Settings.RegisterModulePanel("General", { name = "General Interface" }, options)
 
-assert_equal("BETTERUI_General", registeredPanels[1].id, "register helper prefixes panel id")
-assert_equal("BETTERUI_General", registeredOptions[1].id, "options registration reuses normalized panel id")
-assert_equal("Alpha", registeredOptions[1].data[1].name, "top-level submenu order is centralized before registration")
-assert_equal("Zulu", registeredOptions[1].data[2].name, "later submenu remains after alphabetical sort")
+assert_equal(0, #registeredPanels, "register helper captures module panels instead of registering standalone LAM panels")
+assert_equal(0, #registeredOptions, "register helper defers module options to the master panel")
+local capturedPanels = BETTERUI.CIM.Settings.GetRegisteredModulePanels()
+assert_equal("BETTERUI_General", capturedPanels[1].panelId, "register helper prefixes panel id")
+assert_equal("Alpha", capturedPanels[1].optionsData[1].name, "top-level submenu order is centralized before capture")
+assert_equal("Zulu", capturedPanels[1].optionsData[2].name, "later submenu remains after alphabetical sort")
 
 local seamRegisterCalls = 0
 local lifecycleModule = {
@@ -98,7 +100,9 @@ assert_equal(true, BETTERUI.CIM.TryRegisterModulePanel(lifecycleModule, "Lifecyc
 assert_equal(true, BETTERUI.CIM.TryRegisterModulePanel(lifecycleModule, "LifecycleModule", "Lifecycle", "Lifecycle"),
     "lifecycle-safe helper is idempotent for repeated setup calls")
 assert_equal(1, seamRegisterCalls, "settings seam is invoked only once for repeated setup calls")
-assert_equal("BETTERUI_Lifecycle", registeredPanels[2].id, "lifecycle-safe helper routes through normalized panel registration")
+capturedPanels = BETTERUI.CIM.Settings.GetRegisteredModulePanels()
+assert_equal("BETTERUI_Lifecycle", capturedPanels[2].panelId,
+    "lifecycle-safe helper routes through normalized module-panel capture")
 assert_equal(true, lifecycleModule._panelRegistered, "lifecycle-safe helper marks panel registration state")
 
 local missingSeamOk, missingSeamReason = BETTERUI.CIM.TryRegisterModulePanel({}, "MissingSeamModule", "Missing", "Missing")

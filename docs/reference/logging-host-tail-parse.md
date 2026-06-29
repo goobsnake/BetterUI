@@ -81,10 +81,18 @@ backslash-escaped.
 - **Refresh landmarks** — `STATE | inventory category list refresh scheduled/refreshed updates=<n>` and
   `STATE | bank list refresh scheduled/refreshed` are the expected follow-ups after item mutation flows.
 - **`STATE | mark: <text>`** — a user annotation placed with `/builog mark "<text>"`.
-- **`SCREENSHOT | screenshot request/requested/saved ...`** — a manual or opt-in auto
-  screenshot marker. `request` carries `id`, `trigger`, `status`, and fingerprint;
-  `saved` carries the authoritative `directory` and `filename` from
-  `EVENT_SCREENSHOT_SAVED` for a BetterUI-requested screenshot. Unrequested user screenshots are not logged.
+- **`SCREENSHOT | screenshot request/requested/saved ...`** — a user or opt-in auto
+  screenshot marker. `request` carries `id`, `trigger`, `source="user"|"auto"`, `status`,
+  and fingerprint; `saved` carries the authoritative `directory` and `filename` from
+  `EVENT_SCREENSHOT_SAVED`. BetterUI-requested saved markers keep the request `id`
+  with `requested=true correlation="fifo"`; late saves for a recently expired request use
+  `requested=true correlation="expired_fifo"`. Saves after that short grace window are
+  treated as external. Unrequested saved events with no pending or recently expired
+  BetterUI request are logged as `source="user" trigger="external" requested=false`.
+  A `status="expired" reason="pending_ttl"` marker means a requested
+  screenshot was still unsaved after the pending TTL. ESO's saved event has no request id,
+  so a native screenshot taken while a BetterUI request is pending can be FIFO-attributed
+  to that request.
   If a saved event is missed, correlate by the marker ISO timestamp and the newest file mtime
   in the local screenshots folder
   `/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots`

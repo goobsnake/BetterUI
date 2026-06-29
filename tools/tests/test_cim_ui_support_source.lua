@@ -89,6 +89,10 @@ assert_true(headerSortKeybinds:find('keybind = "UI_SHORTCUT_LEFT_SHOULDER"') ~= 
     "HeaderSortKeybinds defines the previous-column shoulder keybind")
 assert_true(headerSortKeybinds:find('keybind = "UI_SHORTCUT_RIGHT_SHOULDER"') ~= nil,
     "HeaderSortKeybinds defines the next-column shoulder keybind")
+assert_true(headerSortKeybinds:find('keybind = "UI_SHORTCUT_TERTIARY"') ~= nil,
+    "HeaderSortKeybinds captures the hidden Y/tertiary keybind while in header mode")
+assert_true(headerSortKeybinds:find('keybind = "UI_SHORTCUT_QUINARY"') == nil,
+    "HeaderSortKeybinds does not use quinary/R3 for the Y capture")
 
 local scrollIndicator = read_file("Modules/CIM/UI/ScrollIndicator.lua")
 assert_true(scrollIndicator:find("BETTERUI%.CIM%.ScrollIndicator = %{%}") ~= nil

@@ -404,11 +404,11 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
         -- This prevents Y from being "lost" when main keybinds are removed
         {
             name = GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT")),
-            keybind = "UI_SHORTCUT_QUINARY",
+            keybind = "UI_SHORTCUT_TERTIARY",
             ethereal = true, -- Hidden since A already shows "Sort"
             callback = function()
-                TraceHeaderSortKeybind(controller, "quinary", "start", { handled = true, reason = "alreadyInHeaderMode" })
-                TraceHeaderSortKeybind(controller, "quinary", "end", { handled = true, reason = "alreadyInHeaderMode" })
+                TraceHeaderSortKeybind(controller, "tertiary", "start", { handled = true, reason = "alreadyInHeaderMode" })
+                TraceHeaderSortKeybind(controller, "tertiary", "end", { handled = true, reason = "alreadyInHeaderMode" })
                 -- Already in header mode, no action needed
                 -- This captures the Y press to prevent it from falling through
             end,

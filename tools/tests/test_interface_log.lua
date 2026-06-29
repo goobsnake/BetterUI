@@ -222,7 +222,7 @@ builog("off")
 check(persisted["CIM:interfaceLogEnabled"] == false, "/builog off persists enabled=false")
 
 -- Screenshot command surface stays routed through the screenshot service. Auto mode is
--- session-only (not persisted with /builog state) to avoid surprising private captures.
+-- persisted separately from the main /builog on/off state and restored after reload.
 screenshotRequests = {}
 builog("screenshot")
 check(#screenshotRequests == 1 and screenshotRequests[1] == "", "/builog screenshot requests a manual capture")
@@ -237,6 +237,8 @@ builog("screenshot auto off")
 check(screenshotAutoMode == "off", "/builog screenshot auto off disables auto capture")
 check(persisted["CIM:interfaceLogEnabled"] == false,
     "/builog screenshot auto changes do not persist interfaceLogEnabled")
+check(persisted["CIM:interfaceLogScreenshotAutoMode"] == "off",
+    "/builog screenshot auto changes persist the screenshot auto mode separately")
 check(pcall(builog, "screenshot status"), "/builog screenshot status is safe")
 
 -- Pre-SavedVars guard: with no Settings table the write is a silent no-op, not a crash.

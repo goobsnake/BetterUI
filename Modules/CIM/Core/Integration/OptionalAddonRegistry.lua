@@ -13,9 +13,13 @@ OptionalAddons.KEYS.MASTER_MERCHANT = "MasterMerchant"
 OptionalAddons.KEYS.ARKADIUS_TRADE_TOOLS = "ArkadiusTradeTools"
 OptionalAddons.KEYS.TAMRIEL_TRADE_CENTRE = "TamrielTradeCentre"
 OptionalAddons.KEYS.AUTO_CATEGORY = "AutoCategory"
+OptionalAddons.KEYS.FCO_ITEM_SAVER = "FCOItemSaver"
+OptionalAddons.KEYS.DOLGUBON_LAZY_WRIT_CRAFTER = "DolgubonsLazyWritCreator"
+OptionalAddons.KEYS.ALPHA_GEAR = "AlphaGear"
 
 local ADDON_DEFS = {
     [OptionalAddons.KEYS.MASTER_MERCHANT] = {
+        manifest = "MasterMerchant",
         global = "MasterMerchant",
         displayName = "Master Merchant",
         groups = {
@@ -24,6 +28,7 @@ local ADDON_DEFS = {
         },
     },
     [OptionalAddons.KEYS.ARKADIUS_TRADE_TOOLS] = {
+        manifest = "ArkadiusTradeTools",
         global = "ArkadiusTradeTools",
         displayName = "Arkadius Trade Tools",
         groups = {
@@ -32,6 +37,7 @@ local ADDON_DEFS = {
         },
     },
     [OptionalAddons.KEYS.TAMRIEL_TRADE_CENTRE] = {
+        manifest = "TamrielTradeCentre",
         global = "TamrielTradeCentre",
         displayName = "Tamriel Trade Centre",
         groups = {
@@ -39,8 +45,27 @@ local ADDON_DEFS = {
         },
     },
     [OptionalAddons.KEYS.AUTO_CATEGORY] = {
+        manifest = "AutoCategory",
         global = "AutoCategory",
         displayName = "Auto Category",
+        groups = {},
+    },
+    [OptionalAddons.KEYS.FCO_ITEM_SAVER] = {
+        manifest = "FCOItemSaver",
+        global = "FCOIS",
+        displayName = "FCO ItemSaver",
+        groups = {},
+    },
+    [OptionalAddons.KEYS.DOLGUBON_LAZY_WRIT_CRAFTER] = {
+        manifest = "DolgubonsLazyWritCreator",
+        global = "WritCreater",
+        displayName = "Dolgubon's Lazy Writ Crafter",
+        groups = {},
+    },
+    [OptionalAddons.KEYS.ALPHA_GEAR] = {
+        manifest = "AlphaGear",
+        global = "AG",
+        displayName = "AlphaGear",
         groups = {},
     },
 }
@@ -52,10 +77,18 @@ local OPTIONAL_ADDON_KEYS = {
     OptionalAddons.KEYS.ARKADIUS_TRADE_TOOLS,
     OptionalAddons.KEYS.TAMRIEL_TRADE_CENTRE,
     OptionalAddons.KEYS.AUTO_CATEGORY,
+    OptionalAddons.KEYS.FCO_ITEM_SAVER,
+    OptionalAddons.KEYS.DOLGUBON_LAZY_WRIT_CRAFTER,
+    OptionalAddons.KEYS.ALPHA_GEAR,
 }
 
 local GLOBAL_TO_KEY = {}
+local MANIFEST_TO_KEY = {}
 for addonKey, addonDef in pairs(ADDON_DEFS) do
+    local manifestName = addonDef and addonDef.manifest
+    if type(manifestName) == "string" and manifestName ~= "" then
+        MANIFEST_TO_KEY[manifestName] = addonKey
+    end
     local globalName = addonDef and addonDef.global
     if type(globalName) == "string" and globalName ~= "" then
         GLOBAL_TO_KEY[globalName] = addonKey
@@ -77,7 +110,7 @@ function OptionalAddons.ResolveKey(addonKeyOrGlobal)
     if ADDON_DEFS[addonKeyOrGlobal] then
         return addonKeyOrGlobal
     end
-    return GLOBAL_TO_KEY[addonKeyOrGlobal]
+    return GLOBAL_TO_KEY[addonKeyOrGlobal] or MANIFEST_TO_KEY[addonKeyOrGlobal]
 end
 
 function OptionalAddons.GetKeyForGlobal(globalName)
@@ -113,7 +146,7 @@ function OptionalAddons.GetAddonKeysByGroup(groupName)
 end
 
 function OptionalAddons.GetManifestGlobals()
-    return OptionalAddons.GetGlobals(OPTIONAL_ADDON_KEYS)
+    return OptionalAddons.GetManifestNames(OPTIONAL_ADDON_KEYS)
 end
 
 function OptionalAddons.GetAddonKeys()
@@ -138,6 +171,19 @@ function OptionalAddons.GetGlobals(addonKeys)
         end
     end
     return globals
+end
+
+function OptionalAddons.GetManifestNames(addonKeys)
+    local manifests = {}
+    for _, addonKeyOrGlobal in ipairs(addonKeys or {}) do
+        local resolvedKey = OptionalAddons.ResolveKey(addonKeyOrGlobal)
+        local addonDef = resolvedKey and ADDON_DEFS[resolvedKey] or nil
+        local manifestName = addonDef and addonDef.manifest or nil
+        if type(manifestName) == "string" and manifestName ~= "" then
+            manifests[#manifests + 1] = manifestName
+        end
+    end
+    return manifests
 end
 
 function OptionalAddons.GetGlobal(addonKeyOrGlobal)

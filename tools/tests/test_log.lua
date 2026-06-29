@@ -339,18 +339,30 @@ if type(Screenshot.RequestManual) == "function"
     check(#screenshots == 1, "manual screenshot calls TakeScreenshot once")
     check(fileLines[1] and fileLines[1]:find("INFO SCREENSHOT | screenshot request", 1, true) ~= nil,
         "manual screenshot emits a request marker")
+    check(fileLines[1] and fileLines[1]:find('source="user"', 1, true) ~= nil
+        and fileLines[1]:find('trigger="manual"', 1, true) ~= nil,
+        "manual screenshot request marker identifies a user-initiated capture")
+    check(Screenshot.GetStatus().userShots == 1, "manual screenshot requests increment user screenshot status")
 
     fileLines = {}
     Screenshot.OnSaved("Screenshots", "Screenshot_001.png")
     check(fileLines[1] and fileLines[1]:find("screenshot saved", 1, true) ~= nil
         and fileLines[1]:find("filename=\"Screenshot_001.png\"", 1, true) ~= nil,
         "screenshot saved event emits filename marker")
+    check(fileLines[1] and fileLines[1]:find('source="user"', 1, true) ~= nil
+        and fileLines[1]:find('trigger="manual"', 1, true) ~= nil,
+        "manual screenshot saved marker preserves user source attribution")
+    check(fileLines[1] and fileLines[1]:find("requested=true", 1, true) ~= nil
+        and fileLines[1]:find('correlation="fifo"', 1, true) ~= nil,
+        "BetterUI-requested saved marker declares FIFO request correlation")
 
     Screenshot._ResetForTests()
     Screenshot.SetAutoMode("error")
     fileLines = {}; screenshots = {}; gameTimeMs = 2000
     Log.Error(Log.CATEGORY.SAFE, "same issue", { src = "Modules/Foo.lua:10" })
     check(#screenshots == 1, "auto error mode captures first ERROR")
+    check(fileLines[#fileLines] and fileLines[#fileLines]:find('source="auto"', 1, true) ~= nil,
+        "auto screenshot request marker identifies auto capture")
     gameTimeMs = 2010
     Log.Error(Log.CATEGORY.SAFE, "same issue", { src = "Modules/Foo.lua:10" })
     check(#screenshots == 1, "same error fingerprint is duplicate-throttled")
@@ -396,7 +408,125 @@ if type(Screenshot.RequestManual) == "function"
     Screenshot._ResetForTests()
     fileLines = {}
     Screenshot.OnSaved("C:/Users/steamuser/Documents/Elder Scrolls Online/live/Screenshots", "external.png")
-    check(#fileLines == 0, "unrequested external screenshot saves do not emit privacy-sensitive markers")
+    check(fileLines[1] and fileLines[1]:find("screenshot saved", 1, true) ~= nil
+        and fileLines[1]:find('source="user"', 1, true) ~= nil
+        and fileLines[1]:find('trigger="external"', 1, true) ~= nil
+        and fileLines[1]:find('requested=false', 1, true) ~= nil,
+        "unrequested external screenshot saves emit user/client attribution markers")
+    check(fileLines[1] and fileLines[1]:find("C:/Users", 1, true) == nil
+        and fileLines[1]:find("Elder Scrolls Online/live/Screenshots", 1, true) ~= nil,
+        "external screenshot marker strips host username path prefix")
+    check(Screenshot.GetStatus().userShots == 1, "external user/client screenshot saves are counted separately")
+
+    Screenshot._ResetForTests()
+    Screenshot._SetLimitsForTests({ pendingTtlMs = 1 })
+    Log.ApplyPreset("watch")
+    fileLines = {}; screenshots = {}; gameTimeMs = 4500
+    local slowOk = Screenshot.RequestManual("slow save")
+    gameTimeMs = 4505
+    fileLines = {}
+    Screenshot.OnSaved("Screenshots", "late.png")
+    check(slowOk == true and fileLines[1] and fileLines[1]:find('status="expired"', 1, true) ~= nil
+        and fileLines[1]:find('reason="pending_ttl"', 1, true) ~= nil,
+        "late screenshot saves emit an expired pending-request marker")
+    check(fileLines[2] and fileLines[2]:find('trigger="manual"', 1, true) ~= nil
+        and fileLines[2]:find('source="user"', 1, true) ~= nil
+        and fileLines[2]:find('requested=true', 1, true) ~= nil
+        and fileLines[2]:find('correlation="expired_fifo"', 1, true) ~= nil
+        and fileLines[2]:find('filename="late.png"', 1, true) ~= nil,
+        "late screenshot saved event keeps expired FIFO user attribution")
+    check(Screenshot.GetStatus().userShots == 1,
+        "late user-requested save does not double count as a fresh external screenshot")
+
+    Screenshot._ResetForTests()
+    Screenshot._SetLimitsForTests({ pendingTtlMs = 1 })
+    Log.ApplyPreset("watch")
+    fileLines = {}; screenshots = {}; gameTimeMs = 4600
+    local statusOk = Screenshot.RequestManual("status prune")
+    gameTimeMs = 4605
+    fileLines = {}
+    local staleStatus = Screenshot.GetStatus()
+    check(statusOk == true and staleStatus.pending == 0
+        and fileLines[1] and fileLines[1]:find('status="expired"', 1, true) ~= nil
+        and fileLines[1]:find('reason="pending_ttl"', 1, true) ~= nil,
+        "screenshot status prunes expired pending requests")
+    fileLines = {}
+    Screenshot.OnSaved("Screenshots", "status_late.png")
+    check(#fileLines == 1 and fileLines[1]:find('correlation="expired_fifo"', 1, true) ~= nil
+        and fileLines[1]:find('filename="status_late.png"', 1, true) ~= nil,
+        "late save after status pruning still uses recently expired request attribution")
+
+    Screenshot._ResetForTests()
+    Screenshot._SetLimitsForTests({ pendingTtlMs = 1 })
+    Log.ApplyPreset("watch")
+    fileLines = {}; screenshots = {}; gameTimeMs = 4620
+    local oldOk, _, oldId = Screenshot.RequestManual("old")
+    gameTimeMs = 4625
+    fileLines = {}
+    Screenshot.GetStatus()
+    gameTimeMs = 4630
+    local newOk, _, newId = Screenshot.RequestManual("new")
+    fileLines = {}
+    Screenshot.OnSaved("Screenshots", "old_late.png")
+    check(oldOk == true and newOk == true and fileLines[1] and fileLines[1]:find(oldId, 1, true) ~= nil
+        and fileLines[1]:find(newId, 1, true) == nil
+        and fileLines[1]:find('correlation="expired_fifo"', 1, true) ~= nil,
+        "recently expired screenshot correlation is consumed before newer pending requests")
+    check(Screenshot.GetStatus().pending == 1,
+        "newer pending screenshot remains queued after older expired save is matched")
+    fileLines = {}
+    Screenshot.OnSaved("Screenshots", "new.png")
+    check(fileLines[1] and fileLines[1]:find(newId, 1, true) ~= nil
+        and fileLines[1]:find('correlation="fifo"', 1, true) ~= nil,
+        "newer pending screenshot keeps FIFO correlation after expired save is consumed")
+
+    Screenshot._ResetForTests()
+    Screenshot._SetLimitsForTests({ pendingTtlMs = 1 })
+    Log.ApplyPreset("watch")
+    fileLines = {}; screenshots = {}; gameTimeMs = 4700
+    local ancientOk = Screenshot.RequestManual("ancient")
+    gameTimeMs = 9800
+    fileLines = {}
+    Screenshot.OnSaved("Screenshots", "external_after_stale.png")
+    check(ancientOk == true and fileLines[1] and fileLines[1]:find('status="expired"', 1, true) ~= nil
+        and fileLines[2] and fileLines[2]:find('trigger="external"', 1, true) ~= nil
+        and fileLines[2]:find('requested=false', 1, true) ~= nil
+        and fileLines[2]:find('filename="external_after_stale.png"', 1, true) ~= nil,
+        "saves after the expired correlation grace are treated as external events")
+
+    Screenshot._ResetForTests()
+    Screenshot._SetLimitsForTests({ pendingTtlMs = 1 })
+    Log.ApplyPreset("watch")
+    fileLines = {}; screenshots = {}; gameTimeMs = 9900
+    local staleTooFrequentOk = Screenshot.RequestManual("stale too frequent")
+    gameTimeMs = 15000
+    fileLines = {}
+    Screenshot.OnTooFrequent()
+    check(staleTooFrequentOk == true and fileLines[1] and fileLines[1]:find('status="expired"', 1, true) ~= nil
+        and fileLines[2] and fileLines[2]:find('trigger="external"', 1, true) ~= nil
+        and fileLines[2]:find('requested=false', 1, true) ~= nil
+        and fileLines[2]:find('reason="engine_too_frequent"', 1, true) ~= nil,
+        "too-frequent events after the expired correlation grace are not assigned to stale requests")
+
+    Screenshot._ResetForTests()
+    Log.ApplyPreset("watch")
+    fileLines = {}; screenshots = {}; gameTimeMs = 4700
+    savedTakeScreenshot = TakeScreenshot
+    TakeScreenshot = function()
+        screenshots[#screenshots + 1] = { t = gameTimeMs, sync = true }
+        Screenshot.OnSaved("Screenshots", "sync.png")
+        return true
+    end
+    local syncOk = Screenshot.RequestManual("sync save")
+    TakeScreenshot = savedTakeScreenshot
+    check(syncOk == true and #screenshots == 1, "synchronous screenshot callback path succeeds")
+    check(fileLines[2] and fileLines[2]:find("screenshot saved", 1, true) ~= nil
+        and fileLines[2]:find('requested=true', 1, true) ~= nil
+        and fileLines[2]:find('correlation="fifo"', 1, true) ~= nil
+        and fileLines[2]:find('trigger="manual"', 1, true) ~= nil
+        and fileLines[2]:find('trigger="external"', 1, true) == nil,
+        "synchronous saved callback keeps BetterUI request correlation")
+    check(Screenshot.GetStatus().pending == 0, "synchronous saved callback drains pending request")
 
     Screenshot._ResetForTests()
     Log.ApplyPreset("watch")

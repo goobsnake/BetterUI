@@ -502,9 +502,10 @@ local function PrintStatus()
     if S and S.GetStatus then
         local okShot, shot = pcall(S.GetStatus)
         if okShot and type(shot) == "table" then
-            Out(string.format("Screenshots: auto=%s | shots=%s/%s suppressed=%s pending=%s",
+            Out(string.format("Screenshots: auto=%s | shots=%s/%s user=%s suppressed=%s pending=%s",
                 tostring(shot.autoMode or "off"), tostring(shot.shots or 0),
-                tostring(shot.sessionLimit or "?"), tostring(shot.suppressed or 0),
+                tostring(shot.sessionLimit or "?"), tostring(shot.userShots or 0),
+                tostring(shot.suppressed or 0),
                 tostring(shot.pending or 0)))
         end
     end
@@ -516,9 +517,10 @@ local function PrintScreenshotStatus()
     if not (S and S.GetStatus) then Out("Screenshot service not loaded.") return end
     local ok, status = pcall(S.GetStatus)
     if not ok or type(status) ~= "table" then Out("Screenshot status unavailable.") return end
-    Out(string.format("Screenshots: auto=%s | shots=%s/%s suppressed=%s pending=%s burst=%s/%s duplicate=%sms pendingTtl=%sms",
+    Out(string.format("Screenshots: auto=%s | shots=%s/%s user=%s suppressed=%s pending=%s burst=%s/%s duplicate=%sms pendingTtl=%sms",
         tostring(status.autoMode or "off"), tostring(status.shots or 0),
-        tostring(status.sessionLimit or "?"), tostring(status.suppressed or 0),
+        tostring(status.sessionLimit or "?"), tostring(status.userShots or 0),
+        tostring(status.suppressed or 0),
         tostring(status.pending or 0), tostring(status.burst or 0),
         tostring(status.burstLimit or "?"), tostring(status.duplicateMs or "?"),
         tostring(status.pendingTtlMs or "?")))

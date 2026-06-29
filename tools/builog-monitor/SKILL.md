@@ -60,9 +60,12 @@ Other useful in-game commands: `/builog status` (preset + budget counters incl.
 `pending`, `dropped`, and `suppressed`), `/buihealth` (one-line health), `/builog mark <text>` (drop a labeled marker
 into the stream — ask the user to mark "about to test X" so you can find it),
 `/builog screenshot [label]` (manual visual capture), `/builog screenshot auto
-error|warn|off` (session-only opt-in auto capture), `/builog off`.
+error|warn|off` (persisted opt-in auto capture), `/builog off`.
 Auto capture can include private UI/chat/account context; keep it off outside the
-current play-test window. Saved markers are emitted only for screenshots BetterUI requested.
+current play-test window. Saved markers identify `source="user"|"auto"`; BetterUI-requested
+saves use `requested=true correlation="fifo"|"expired_fifo"`. External user/client saved
+events with no pending BetterUI request are logged as `source="user" trigger="external"
+requested=false`.
 Full surface: `/builog on|off | preset … | chat on|off | popups on|off | level <lvl> |
 mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] |
 screenshot auto off|error|warn | snapshot | test | status`.
@@ -229,7 +232,7 @@ context suffix appended to every line.
 | `WARN LOG \| dropped=<n> reason=rate_limit` | sink shed `n` lines (budget hit) | usually fine at inspect during bursts; only worry if huge/constant |
 | `>1` ` | ` in a `[BUI]` line | a value injected the field separator | parse-contract bug — report the line |
 | `WARN`/`ERROR` `[BUI]` lines | BetterUI flagging its own problem | read the event; often the real lead |
-| `SCREENSHOT` markers | manual/auto capture request, suppression, or saved filename | inspect the listed screenshot file when troubleshooting visual state |
+| `SCREENSHOT` markers | user/auto capture request, suppression, or saved filename | inspect the listed screenshot file when troubleshooting visual state |
 | `seq` jumps with no `dropped=` summary | suppression-guard drops (e.g. mid-reloadui) | check `/builog status` `suppressed` and `pending/maxPending` counters |
 | behavior the user reports ≠ what the log shows | e.g. a keybind that "does nothing" | search for the action's CATEGORY/ACTION line near that `seq`; absence of a line often *is* the bug |
 
