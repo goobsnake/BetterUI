@@ -94,11 +94,24 @@ local enabledModules = {
 
 local stringMap = {
     SI_BETTERUI_MASTER_SETTINGS_TITLE = "Master Settings",
-    SI_BETTERUI_MASTER_SETTINGS_HEADER = "Modules",
+    SI_BETTERUI_MASTER_SETTINGS_HEADER = "General Settings",
+    SI_BETTERUI_ENABLED_MODULE_SETTINGS_DESC = "Each tab has its module toggle and settings. Disabled modules remain available.",
+    SI_BETTERUI_SETTINGS_TAB_GENERAL = "General",
+    SI_BETTERUI_SETTINGS_TAB_BANKING = "Banking",
+    SI_BETTERUI_SETTINGS_TAB_VENDOR = "Vendor",
+    SI_BETTERUI_SETTINGS_TAB_COMPANIONS = "Companions",
+    SI_BETTERUI_SETTINGS_TAB_TRADING = "Trading",
+    SI_BETTERUI_SETTINGS_TAB_INTERFACE = "Interface",
+    SI_BETTERUI_SETTINGS_TAB_NAMEPLATES = "Nameplates",
+    SI_BETTERUI_SETTINGS_TAB_INVENTORY = "Inventory",
+    SI_BETTERUI_SETTINGS_TAB_RESOURCE_ORBS = "Resource Orbs",
+    SI_BETTERUI_SETTINGS_TAB_WRITS = "Writs",
     SI_BETTERUI_ENABLE_GLOBAL_SETTINGS = "Use Global Settings",
     SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP = "Toggle global settings",
     SI_BETTERUI_ENABLE_BANKING = "Enable Banking",
     SI_BETTERUI_ENABLE_BANKING_TOOLTIP = "Banking tooltip",
+    SI_BETTERUI_GUILD_BANK_ENABLED = "Enable Guild Bank",
+    SI_BETTERUI_GUILD_BANK_ENABLED_TOOLTIP = "Guild bank tooltip",
     SI_BETTERUI_ENABLE_VENDOR = "Enable Vendor",
     SI_BETTERUI_ENABLE_VENDOR_TOOLTIP = "Vendor tooltip",
     SI_BETTERUI_ENABLE_COMPANIONS = "Enable Companions",
@@ -107,6 +120,8 @@ local stringMap = {
     SI_BETTERUI_ENABLE_TRADING_HOUSE_TOOLTIP = "Trading House tooltip",
     SI_BETTERUI_ENABLE_TOOLTIPS = "Enable General Interface",
     SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP = "General Interface tooltip",
+    SI_BETTERUI_NAMEPLATES_ENABLED = "Enable Nameplates",
+    SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP = "Nameplates tooltip",
     SI_BETTERUI_ENABLE_INVENTORY = "Enable Inventory",
     SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP = "Inventory tooltip",
     SI_BETTERUI_ENABLE_ORBS = "Enable Resource Orb Frames",
@@ -495,22 +510,62 @@ assert_true(type(BETTERUI.Nameplates.ROOT_CONTRACT) == "table",
 
 BETTERUI.InitModuleOptions()
 local controls = optionControls["BETTERUI_Modules"] or {}
-local moduleToggleNames = {}
-for _, control in ipairs(controls) do
-    if control.type == "checkbox" and type(control.name) == "string" and control.name:match("^Enable ") then
-        moduleToggleNames[#moduleToggleNames + 1] = control.name
+local tabControl = controls[1] or {}
+local pages = tabControl.pages or {}
+local pageByKey = {}
+for _, page in ipairs(pages) do
+    if page.key then
+        pageByKey[page.key] = page
     end
 end
 
-assert_eq(moduleToggleNames[1], "Enable Banking", "module toggles sort alphabetically by displayed feature name")
-assert_eq(moduleToggleNames[#moduleToggleNames], "Enable Writs", "module toggle list includes all configured modules")
+assert_eq("custom", tabControl.type, "master settings panel uses a custom tab window control")
+assert_eq("General", pages[1] and pages[1].key, "General tab is first for module-agnostic settings")
+assert_eq("General", pages[1] and pages[1].name, "General tab uses localized label text")
+assert_eq("Trading", pageByKey.TradingHouse and pageByKey.TradingHouse.name,
+    "module tabs use short localized labels")
+assert_eq("Enable Banking", pageByKey.Banking and pageByKey.Banking.controls[1].name,
+    "Banking tab starts with its master module toggle")
+assert_eq("Enable Writs", pageByKey.Writs and pageByKey.Writs.controls[1].name,
+    "Writs tab exists even without dedicated sub-settings")
+assert_true(pageByKey.Inventory ~= nil and pageByKey.ResourceOrbFrames ~= nil,
+    "module tab list includes configured module pages")
+local hasBankingGuildBankGate = false
+for _, control in ipairs((pageByKey.Banking and pageByKey.Banking.controls) or {}) do
+    hasBankingGuildBankGate = hasBankingGuildBankGate or control.name == "Enable Guild Bank"
+end
+assert_true(not hasBankingGuildBankGate, "Banking tab strips the redundant guild-bank enable gate")
+local nameplateEnableControlCount = 0
+for _, control in ipairs((pageByKey.Nameplates and pageByKey.Nameplates.controls) or {}) do
+    if control.name == "Enable Nameplates" then
+        nameplateEnableControlCount = nameplateEnableControlCount + 1
+    end
+end
+assert_eq(1, nameplateEnableControlCount, "Nameplates tab keeps only the master enable gate")
 assert_true(addonPanels["BETTERUI_Modules"] ~= nil, "master settings panel registers once")
 
 local betterUiSource = read_source("BetterUI.lua")
+assert_true(betterUiSource:find("GetSettingsTabButtonsPerRow", 1, true) ~= nil
+    and betterUiSource:find("minButtonWidth = 150", 1, true) ~= nil,
+    "tab window uses a minimum button width before adding another tab column")
+assert_true(betterUiSource:find("CreateSettingsWidgetRow", 1, true) ~= nil
+    and betterUiSource:find("RefreshSettingsWidgetTree", 1, true) ~= nil,
+    "tab window keeps half-width rows stable and refreshes visible lazy controls")
+assert_true(betterUiSource:find("tabControl.__betterUiTabsCreated = true", 1, true) ~= nil
+    and betterUiSource:find("tabControl.__betterUiTabContent = content", 1, true) ~= nil,
+    "tab window creation only becomes reusable after content exists")
 assert_true(betterUiSource:find('{ name = "Writs", namespace = "Writs", dependsOnCIM = true }', 1, true) ~= nil,
     "Writs registry entry declares the CIM dependency")
 assert_true(betterUiSource:find('{ moduleName = "Writs", nameStringId = "SI_BETTERUI_ENABLE_WRITS", tooltipStringId = "SI_BETTERUI_ENABLE_WRITS_TOOLTIP", updatesCIM = true }', 1, true) ~= nil,
     "Writs module toggle updates CIM state")
+local elementDragSource = read_source("Modules/ResourceOrbFrames/Core/ElementDrag.lua")
+assert_true(elementDragSource:find('"BETTERUI_Modules"', 1, true) ~= nil,
+    "Resource Orbs settings refresh targets the unified tabbed BetterUI panel")
+assert_true(elementDragSource:find('"BETTERUI_ResourceOrbFrames"', 1, true) ~= nil,
+    "Resource Orbs settings refresh keeps the legacy panel fallback")
+assert_true(elementDragSource:find("m_handleHosts", 1, true) ~= nil
+    and elementDragSource:find("hostChanged", 1, true) ~= nil,
+    "Resource Orbs drag handles reattach when rebuilt controls replace their host")
 
 BETTERUI.Settings = {
     firstInstall = false,

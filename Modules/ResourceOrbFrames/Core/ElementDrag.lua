@@ -9,12 +9,16 @@ if not BETTERUI.ResourceOrbFrames.Drag then BETTERUI.ResourceOrbFrames.Drag = {}
 local Drag = BETTERUI.ResourceOrbFrames.Drag
 
 local m_handles = {}
+local m_handleHosts = {}
 local HANDLE_SIZE = 80
 local DRAG_THRESHOLD = 2
 local DRAG_REFRESH_INTERVAL_MS = 75
 local OFFSET_MIN = -600
 local OFFSET_MAX = 600
-local SETTINGS_PANEL_ID = "BETTERUI_ResourceOrbFrames"
+local SETTINGS_PANEL_IDS = {
+    "BETTERUI_Modules",
+    "BETTERUI_ResourceOrbFrames",
+}
 
 local function TraceDrag(event, phase, data)
     local L = BETTERUI and BETTERUI.Log
@@ -89,22 +93,32 @@ local function SetHandleVisual(handle, locked)
 end
 
 local function GetBetterUISettingsPanel()
-    local panel = rawget(_G, SETTINGS_PANEL_ID)
-    if panel then return panel end
+    for _, panelId in ipairs(SETTINGS_PANEL_IDS) do
+        local panel = rawget(_G, panelId)
+        if panel then return panel, panelId end
+    end
 
     local lam = rawget(_G, "LibAddonMenu2") or rawget(_G, "LibAddonMenu")
     if type(lam) == "table" then
         local panels = rawget(lam, "panels") or rawget(lam, "addonPanels")
-        if type(panels) == "table" and panels[SETTINGS_PANEL_ID] then
-            return panels[SETTINGS_PANEL_ID]
+        if type(panels) == "table" then
+            for _, panelId in ipairs(SETTINGS_PANEL_IDS) do
+                if panels[panelId] then
+                    return panels[panelId], panelId
+                end
+            end
         end
     end
 
-    panel = lam and lam.currentAddonPanel or nil
+    local panel = lam and lam.currentAddonPanel or nil
     if panel and panel.GetName then
         local ok, name = pcall(panel.GetName, panel)
-        if ok and name == SETTINGS_PANEL_ID then
-            return panel
+        if ok then
+            for _, panelId in ipairs(SETTINGS_PANEL_IDS) do
+                if name == panelId then
+                    return panel, panelId
+                end
+            end
         end
     end
     return nil
@@ -164,11 +178,16 @@ local function RefreshPanelControls(panel)
 end
 
 local function RefreshSettingsPanel()
-    local panel = GetBetterUISettingsPanel()
+    local panel, resolvedPanelId = GetBetterUISettingsPanel()
     local lam = rawget(_G, "LibAddonMenu2") or rawget(_G, "LibAddonMenu")
     local requestedRefresh = false
 
-    TraceDrag("resource_orbs.settings_panel", "refresh_attempt", { requestedRefresh = requestedRefresh == true, hasPanel = panel ~= nil, hasLam = type(lam) == "table" })
+    TraceDrag("resource_orbs.settings_panel", "refresh_attempt", {
+        requestedRefresh = requestedRefresh == true,
+        hasPanel = panel ~= nil,
+        hasLam = type(lam) == "table",
+        panelId = resolvedPanelId,
+    })
 
     if type(lam) == "table" and type(lam.RefreshPanel) == "function" then
         if panel then
@@ -177,14 +196,17 @@ local function RefreshSettingsPanel()
             TraceDrag("resource_orbs.settings_panel", okPanel and "refresh_attempt_success" or "refresh_attempt_failed", {
                 method = "LibAddonMenu.RefreshPanel(panel)",
                 hasPanel = true,
+                panelId = resolvedPanelId,
             })
         end
-        local okId = pcall(lam.RefreshPanel, lam, SETTINGS_PANEL_ID)
-        requestedRefresh = okId or requestedRefresh
-        TraceDrag("resource_orbs.settings_panel", okId and "refresh_attempt_success" or "refresh_attempt_failed", {
-            method = "LibAddonMenu.RefreshPanel(id)",
-            panelId = SETTINGS_PANEL_ID,
-        })
+        for _, panelId in ipairs(SETTINGS_PANEL_IDS) do
+            local okId = pcall(lam.RefreshPanel, lam, panelId)
+            requestedRefresh = okId or requestedRefresh
+            TraceDrag("resource_orbs.settings_panel", okId and "refresh_attempt_success" or "refresh_attempt_failed", {
+                method = "LibAddonMenu.RefreshPanel(id)",
+                panelId = panelId,
+            })
+        end
     end
 
     local util = lam and lam.util
@@ -194,6 +216,7 @@ local function RefreshSettingsPanel()
         TraceDrag("resource_orbs.settings_panel", okRequest and "refresh_attempt_success" or "refresh_attempt_failed", {
             method = "LibAddonMenu.util.RequestRefreshIfNeeded",
             hasPanel = true,
+            panelId = resolvedPanelId,
         })
     end
 
@@ -201,10 +224,12 @@ local function RefreshSettingsPanel()
     TraceDrag("resource_orbs.settings_panel", controlsRefreshed and "refresh_attempt_success" or "refresh_attempt_failed", {
         method = "RefreshControls",
         hasPanel = panel ~= nil,
+        panelId = resolvedPanelId,
     })
     if controlsRefreshed then
         TraceDrag("resource_orbs.settings_panel", "refresh_result", {
             hasPanel = panel ~= nil,
+            panelId = resolvedPanelId,
             requestedRefresh = requestedRefresh == true,
             controlsRefreshed = true,
             callbacksFired = false,
@@ -214,15 +239,18 @@ local function RefreshSettingsPanel()
     end
 
     if CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
-        local ok = pcall(CALLBACK_MANAGER.FireCallbacks, CALLBACK_MANAGER, "LAM-RefreshPanel", panel or SETTINGS_PANEL_ID)
+        local callbackTarget = panel or resolvedPanelId or SETTINGS_PANEL_IDS[1]
+        local ok = pcall(CALLBACK_MANAGER.FireCallbacks, CALLBACK_MANAGER, "LAM-RefreshPanel", callbackTarget)
         TraceDrag("resource_orbs.settings_panel", ok and "refresh_attempt_success" or "refresh_attempt_failed", {
             method = "CALLBACK_MANAGER.FireCallbacks",
             callback = "LAM-RefreshPanel",
             hasPanel = panel ~= nil,
+            panelId = resolvedPanelId,
         })
         local result = ok == true or requestedRefresh
         TraceDrag("resource_orbs.settings_panel", "refresh_result", {
             hasPanel = panel ~= nil,
+            panelId = resolvedPanelId,
             requestedRefresh = requestedRefresh == true,
             controlsRefreshed = false,
             callbacksFired = ok == true,
@@ -233,6 +261,7 @@ local function RefreshSettingsPanel()
 
     TraceDrag("resource_orbs.settings_panel", "refresh_result", {
         hasPanel = panel ~= nil,
+        panelId = resolvedPanelId,
         requestedRefresh = requestedRefresh == true,
         controlsRefreshed = false,
         callbacksFired = false,
@@ -301,11 +330,20 @@ function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallba
         return nil
     end
     if m_handles[elemKey] then
-        TraceDrag("resource_orbs.element_drag_handle", "attach_skipped", {
+        if m_handleHosts[elemKey] == hostControl then
+            TraceDrag("resource_orbs.element_drag_handle", "attach_skipped", {
+                elemKey = elemKey,
+                reason = "alreadyAttached",
+            })
+            return m_handles[elemKey]
+        end
+        TraceDrag("resource_orbs.element_drag_handle", "reattach", {
             elemKey = elemKey,
-            reason = "alreadyAttached",
+            reason = "hostChanged",
+            previousHost = GetControlName(m_handleHosts[elemKey]),
+            nextHost = GetControlName(hostControl),
         })
-        return m_handles[elemKey]
+        Drag.DetachDragHandle(elemKey)
     end
 
     TraceDrag("resource_orbs.element_drag_handle", "attach_begin", {
@@ -388,6 +426,7 @@ function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallba
     end)
 
     m_handles[elemKey] = handle
+    m_handleHosts[elemKey] = hostControl
     TraceDrag("resource_orbs.element_drag_handle", "attached", { elemKey = elemKey, hostControl = GetControlName(hostControl) })
     return handle
 end
@@ -413,6 +452,7 @@ function Drag.DetachDragHandle(elemKey)
         handle:SetHidden(true)
     end
     m_handles[elemKey] = nil
+    m_handleHosts[elemKey] = nil
     TraceDrag("resource_orbs.element_drag_handle", "detached", {
         elemKey = elemKey,
     })

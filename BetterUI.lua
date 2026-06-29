@@ -146,6 +146,36 @@ local MODULE_TOGGLE_BLUEPRINTS = {
 	{ moduleName = "Writs", nameStringId = "SI_BETTERUI_ENABLE_WRITS", tooltipStringId = "SI_BETTERUI_ENABLE_WRITS_TOOLTIP", updatesCIM = true },
 }
 
+local MODULE_TOGGLE_BLUEPRINT_BY_NAME = {}
+for _, blueprint in ipairs(MODULE_TOGGLE_BLUEPRINTS) do
+	MODULE_TOGGLE_BLUEPRINT_BY_NAME[blueprint.moduleName] = blueprint
+end
+
+local MODULE_TAB_LABEL_STRING_IDS = {
+	Banking = "SI_BETTERUI_SETTINGS_TAB_BANKING",
+	Vendor = "SI_BETTERUI_SETTINGS_TAB_VENDOR",
+	Companions = "SI_BETTERUI_SETTINGS_TAB_COMPANIONS",
+	TradingHouse = "SI_BETTERUI_SETTINGS_TAB_TRADING",
+	GeneralInterface = "SI_BETTERUI_SETTINGS_TAB_INTERFACE",
+	Nameplates = "SI_BETTERUI_SETTINGS_TAB_NAMEPLATES",
+	Inventory = "SI_BETTERUI_SETTINGS_TAB_INVENTORY",
+	ResourceOrbFrames = "SI_BETTERUI_SETTINGS_TAB_RESOURCE_ORBS",
+	Writs = "SI_BETTERUI_SETTINGS_TAB_WRITS",
+}
+
+local function GetModuleTabLabel(moduleName)
+	local stringIdName = MODULE_TAB_LABEL_STRING_IDS[moduleName]
+	if stringIdName then
+		return GetStringByName(stringIdName)
+	end
+	return moduleName or "Module"
+end
+
+local SETTINGS_TAB_CONTROL_REFERENCE = "BetterUISettingsTabWindows"
+local SETTINGS_TAB_STATE = {
+	selectedKey = "General",
+}
+
 local function SetModuleToggleEnabled(moduleName, value, updatesCIM)
 	BETTERUI.SetSetting(moduleName, "m_enabled", value)
 	if updatesCIM then
@@ -184,49 +214,34 @@ local function NormalizeModuleToggleSortName(name)
 	return string.lower(normalized)
 end
 
-local function BuildModuleToggleOptions()
-	local moduleToggleOptions = {}
+local function GetModuleToggleBlueprint(moduleName)
+	return MODULE_TOGGLE_BLUEPRINT_BY_NAME[moduleName]
+end
 
-	for _, blueprint in ipairs(MODULE_TOGGLE_BLUEPRINTS) do
-		local moduleName = blueprint.moduleName
-		local updatesCIM = blueprint.updatesCIM
-		if updatesCIM == nil then
-			updatesCIM = ModuleDependsOnCIM(moduleName)
-		end
-		local toggleName = GetStringByName(blueprint.nameStringId)
-		local tooltip = GetStringByName(blueprint.tooltipStringId)
-
-		moduleToggleOptions[#moduleToggleOptions + 1] = {
-			type = "checkbox",
-			name = toggleName,
-			tooltip = tooltip,
-			getFunc = function()
-				return BETTERUI.GetModuleEnabled(moduleName)
-			end,
-			setFunc = function(value)
-				SetModuleToggleEnabled(moduleName, value, updatesCIM)
-			end,
-			width = "full",
-			requiresReload = true,
-		}
+local function BuildModuleMasterToggleOption(moduleName)
+	local blueprint = GetModuleToggleBlueprint(moduleName) or {}
+	local updatesCIM = blueprint.updatesCIM
+	if updatesCIM == nil then
+		updatesCIM = ModuleDependsOnCIM(moduleName)
 	end
+	local tabName = GetModuleTabLabel(moduleName)
+	local toggleName = blueprint.nameStringId and GetStringByName(blueprint.nameStringId) or ("Enable " .. tabName)
+	local tooltip = blueprint.tooltipStringId and GetStringByName(blueprint.tooltipStringId) or toggleName
 
-	for _, control in ipairs(moduleToggleOptions) do
-		control.sortKey = NormalizeModuleToggleSortName(control.name)
-	end
-
-	table.sort(moduleToggleOptions, function(left, right)
-		if left.sortKey == right.sortKey then
-			return tostring(left.name) < tostring(right.name)
-		end
-		return left.sortKey < right.sortKey
-	end)
-
-	for _, control in ipairs(moduleToggleOptions) do
-		control.sortKey = nil
-	end
-
-	return moduleToggleOptions
+	return {
+		type = "checkbox",
+		name = toggleName,
+		tooltip = tooltip,
+		getFunc = function()
+			return BETTERUI.GetModuleEnabled(moduleName)
+		end,
+		setFunc = function(value)
+			SetModuleToggleEnabled(moduleName, value, updatesCIM)
+		end,
+		width = "full",
+		requiresReload = true,
+		sortAlwaysFirst = true,
+	}
 end
 
 local MODULE_PANEL_ID_ALIASES = {
@@ -234,6 +249,9 @@ local MODULE_PANEL_ID_ALIASES = {
 }
 
 local MODULE_SETTINGS_GATE_STRING_IDS = {
+	Banking = {
+		"SI_BETTERUI_GUILD_BANK_ENABLED",
+	},
 	Nameplates = {
 		"SI_BETTERUI_NAMEPLATES_ENABLED",
 	},
@@ -336,55 +354,90 @@ local function BuildModuleSettingsTabControls(moduleName, optionsData)
 	return controls, redundantGateControls
 end
 
-local function AppendEnabledModuleSettingsTabs(optionsTable)
-	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
-	local getRegisteredPanels = settingsApi and settingsApi.GetRegisteredModulePanels
-	if type(getRegisteredPanels) ~= "function" then
-		TraceSettingsPanel("settings.enabled_modules", "skipped", {
-			reason = "missing_registered_panel_api",
-		})
+local function AppendControls(target, controls)
+	if type(target) ~= "table" or type(controls) ~= "table" then
 		return
 	end
-
-	local modulePanels = getRegisteredPanels()
-	if type(modulePanels) ~= "table" or #modulePanels == 0 then
-		TraceSettingsPanel("settings.enabled_modules", "skipped", {
-			reason = "no_registered_module_panels",
-			registeredPanels = type(modulePanels) == "table" and #modulePanels or 0,
-		})
-		return
+	for _, control in ipairs(controls) do
+		target[#target + 1] = control
 	end
+end
 
-	local tabPanels = {}
-	local skippedDisabled = 0
+local function ResolveModuleSettingsTabLabel(panel, moduleName)
+	local stringIdName = MODULE_TAB_LABEL_STRING_IDS[moduleName]
+	if stringIdName then
+		return GetStringByName(stringIdName)
+	end
+	return NormalizeModuleSettingsTabName(panel, moduleName)
+end
+
+local function BuildRegisteredModulePanelMap(modulePanels)
+	local panelByModuleName = {}
 	local skippedCore = 0
 	local skippedUnknown = 0
-	local skippedEmpty = 0
-	local redundantGateControls = 0
+	if type(modulePanels) ~= "table" then
+		return panelByModuleName, skippedCore, skippedUnknown
+	end
+
 	for _, panel in ipairs(modulePanels) do
 		local moduleName = ResolveCapturedModuleName(panel)
 		if moduleName == nil or moduleName == "" then
 			skippedUnknown = skippedUnknown + 1
 		elseif moduleName == "CIM" then
 			skippedCore = skippedCore + 1
-		elseif not BETTERUI.GetModuleEnabled(moduleName) then
-			skippedDisabled = skippedDisabled + 1
 		else
-			local controls, gateControlCount = BuildModuleSettingsTabControls(moduleName, panel.optionsData)
-			redundantGateControls = redundantGateControls + (gateControlCount or 0)
-			if #controls > 0 then
-				tabPanels[#tabPanels + 1] = {
-					moduleName = moduleName,
-					name = NormalizeModuleSettingsTabName(panel, moduleName),
-					controls = controls,
-				}
-			else
-				skippedEmpty = skippedEmpty + 1
-			end
+			panelByModuleName[moduleName] = panel
 		end
 	end
 
-	table.sort(tabPanels, function(left, right)
+	return panelByModuleName, skippedCore, skippedUnknown
+end
+
+local function BuildModuleSettingsTabPages()
+	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
+	local getRegisteredPanels = settingsApi and settingsApi.GetRegisteredModulePanels
+	local modulePanels = {}
+	if type(getRegisteredPanels) ~= "function" then
+		TraceSettingsPanel("settings.module_tabs", "skipped", {
+			reason = "missing_registered_panel_api",
+		})
+	else
+		modulePanels = getRegisteredPanels()
+	end
+
+	local panelByModuleName, skippedCore, skippedUnknown = BuildRegisteredModulePanelMap(modulePanels)
+	local pages = {}
+	local pagesWithoutSubSettings = 0
+	local redundantGateControls = 0
+
+	for _, blueprint in ipairs(MODULE_TOGGLE_BLUEPRINTS) do
+		local moduleName = blueprint.moduleName
+		local panel = panelByModuleName[moduleName]
+		local controls = {
+			BuildModuleMasterToggleOption(moduleName),
+		}
+		local moduleControls, gateControlCount = BuildModuleSettingsTabControls(moduleName, panel and panel.optionsData or {})
+		redundantGateControls = redundantGateControls + (gateControlCount or 0)
+
+		if #moduleControls > 0 then
+			controls[#controls + 1] = {
+				type = "divider",
+				width = "full",
+			}
+			AppendControls(controls, moduleControls)
+		else
+			pagesWithoutSubSettings = pagesWithoutSubSettings + 1
+		end
+
+		pages[#pages + 1] = {
+			key = moduleName,
+			moduleName = moduleName,
+			name = ResolveModuleSettingsTabLabel(panel, moduleName),
+			controls = controls,
+		}
+	end
+
+	table.sort(pages, function(left, right)
 		local leftKey = NormalizeModuleToggleSortName(left.name)
 		local rightKey = NormalizeModuleToggleSortName(right.name)
 		if leftKey == rightKey then
@@ -393,51 +446,281 @@ local function AppendEnabledModuleSettingsTabs(optionsTable)
 		return leftKey < rightKey
 	end)
 
-	if #tabPanels == 0 then
-		TraceSettingsPanel("settings.enabled_modules", "empty", {
-			registeredPanels = #modulePanels,
-			skippedDisabled = skippedDisabled,
-			skippedCore = skippedCore,
-			skippedUnknown = skippedUnknown,
-			skippedEmpty = skippedEmpty,
-			redundantGateControls = redundantGateControls,
-		})
+	TraceSettingsPanel("settings.module_tabs", "registered", {
+		registeredPanels = type(modulePanels) == "table" and #modulePanels or 0,
+		tabs = #pages,
+		skippedCore = skippedCore,
+		skippedUnknown = skippedUnknown,
+		pagesWithoutSubSettings = pagesWithoutSubSettings,
+		redundantGateControls = redundantGateControls,
+	})
+
+	return pages
+end
+
+local function GetControlWidth(control)
+	if control and type(control.GetWidth) == "function" then
+		local ok, width = pcall(control.GetWidth, control)
+		width = ok and tonumber(width) or 0
+		if width and width > 0 then
+			return width
+		end
+	end
+	return 510
+end
+
+local function EnableResizeToFitY(control)
+	if not control then return end
+	if control.SetResizeToFitDescendents then
+		control:SetResizeToFitDescendents(true)
+	end
+	if control.SetResizeToFitConstrains and rawget(_G, "ANCHOR_CONSTRAINS_Y") then
+		control:SetResizeToFitConstrains(ANCHOR_CONSTRAINS_Y)
+	end
+end
+
+local function CreateSettingsWidgetRow(parent, anchorTarget)
+	local wm = BETTERUI.WindowManager or (GetWindowManager and GetWindowManager())
+	if not wm then
+		return nil
+	end
+	local row = wm:CreateControl(nil, parent, CT_CONTROL)
+	row.panel = parent.panel or parent
+	row:SetWidth(GetControlWidth(parent))
+	if anchorTarget then
+		row:SetAnchor(TOPLEFT, anchorTarget, BOTTOMLEFT, 0, 15)
+	else
+		row:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
+	end
+	EnableResizeToFitY(row)
+	return row
+end
+
+local function CreateSettingsPageWidgets(parent, controls)
+	if not parent or type(controls) ~= "table" then
 		return
 	end
 
-	optionsTable[#optionsTable + 1] = {
-		type = "divider",
-		width = "full",
-	}
-	optionsTable[#optionsTable + 1] = {
-		type = "header",
-		name = GetString(SI_BETTERUI_ENABLED_MODULE_SETTINGS_HEADER),
-		width = "full",
-	}
-	optionsTable[#optionsTable + 1] = {
-		type = "description",
-		text = GetString(SI_BETTERUI_ENABLED_MODULE_SETTINGS_DESC),
-		width = "full",
-	}
+	local anchorTarget = nil
+	local pendingHalf = nil
+	local pendingHalfRow = nil
+	for _, widgetData in ipairs(controls) do
+		if type(widgetData) == "table" and widgetData.type then
+			local isHalf = widgetData.width == "half"
+			local widgetParent = parent
+			if isHalf then
+				pendingHalfRow = pendingHalfRow or CreateSettingsWidgetRow(parent, anchorTarget)
+				widgetParent = pendingHalfRow or parent
+			end
+			local creator = rawget(_G, "LAMCreateControl") and LAMCreateControl[widgetData.type]
+			if type(creator) == "function" then
+				local ok, widget = pcall(creator, widgetParent, widgetData)
+				if ok and widget then
+					if pendingHalf and isHalf then
+						widget:SetAnchor(TOPLEFT, pendingHalf, TOPRIGHT, 10, 0)
+						anchorTarget = pendingHalfRow or widget
+						pendingHalf = nil
+						pendingHalfRow = nil
+					else
+						if isHalf then
+							widget:SetAnchor(TOPLEFT, widgetParent, TOPLEFT, 0, 0)
+							anchorTarget = pendingHalfRow or widget
+							pendingHalf = widget
+						else
+							if anchorTarget then
+								widget:SetAnchor(TOPLEFT, anchorTarget, BOTTOMLEFT, 0, 15)
+							else
+								widget:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
+							end
+							anchorTarget = widget
+							pendingHalf = nil
+							pendingHalfRow = nil
+						end
+					end
 
-	for _, panel in ipairs(tabPanels) do
-		optionsTable[#optionsTable + 1] = {
-			type = "submenu",
-			name = panel.name,
-			controls = panel.controls,
-			width = "full",
-		}
+					if widgetData.type == "submenu" and type(widgetData.controls) == "table" then
+						CreateSettingsPageWidgets(widget, widgetData.controls)
+					end
+				else
+					BETTERUI.DebugError("Settings tab control failed: " .. tostring(widgetData.type) .. " " .. tostring(widget))
+				end
+			else
+				BETTERUI.DebugError("Settings tab control unavailable: " .. tostring(widgetData.type))
+			end
+		end
+	end
+end
+
+local GetSettingsTabControlWidth
+
+local function RefreshSettingsWidgetTree(control)
+	if not control then return false end
+	local refreshed = false
+	for _, methodName in ipairs({ "UpdateValue", "UpdateDisabled" }) do
+		local okMethod, method = pcall(function() return control[methodName] end)
+		if okMethod and type(method) == "function" then
+			local ok = pcall(method, control)
+			refreshed = ok or refreshed
+		end
 	end
 
-	TraceSettingsPanel("settings.enabled_modules", "registered", {
-		registeredPanels = #modulePanels,
-		tabs = #tabPanels,
-		skippedDisabled = skippedDisabled,
-		skippedCore = skippedCore,
-		skippedUnknown = skippedUnknown,
-		skippedEmpty = skippedEmpty,
-		redundantGateControls = redundantGateControls,
+	local okCount, childCount = pcall(function()
+		return control.GetNumChildren and control:GetNumChildren() or 0
+	end)
+	if okCount and type(childCount) == "number" then
+		for index = 1, childCount do
+			local okChild, child = pcall(function() return control:GetChild(index) end)
+			if okChild and child then
+				refreshed = RefreshSettingsWidgetTree(child) or refreshed
+			end
+		end
+	end
+	return refreshed
+end
+
+local function EnsureSettingsTabPageCreated(tabControl, pageIndex)
+	local page = tabControl.__betterUiTabPages and tabControl.__betterUiTabPages[pageIndex]
+	if not page or page.container then
+		return
+	end
+
+	local wm = BETTERUI.WindowManager or (GetWindowManager and GetWindowManager())
+	if not wm or not tabControl.__betterUiTabContent then
+		return
+	end
+
+	local container = wm:CreateControl(nil, tabControl.__betterUiTabContent, CT_CONTROL)
+	container.panel = tabControl.panel or tabControl
+	container:SetWidth(GetSettingsTabControlWidth(tabControl))
+	container:SetAnchor(TOPLEFT, tabControl.__betterUiTabContent, TOPLEFT, 0, 0)
+	EnableResizeToFitY(container)
+	container:SetHidden(true)
+
+	CreateSettingsPageWidgets(container, page.controls)
+	page.container = container
+end
+
+local function RefreshSettingsTabButtonStates(tabControl)
+	local selectedIndex = tabControl.__betterUiSelectedTabIndex or 1
+	local normalState = rawget(_G, "BSTATE_NORMAL") or 0
+	local selectedState = rawget(_G, "BSTATE_PRESSED") or 1
+	for index, button in ipairs(tabControl.__betterUiTabButtons or {}) do
+		if button.SetState then
+			button:SetState(index == selectedIndex and selectedState or normalState, index == selectedIndex)
+		end
+	end
+end
+
+local function SelectSettingsTabPage(tabControl, pageIndex)
+	local pages = tabControl.__betterUiTabPages
+	if type(pages) ~= "table" or not pages[pageIndex] then
+		return
+	end
+
+	EnsureSettingsTabPageCreated(tabControl, pageIndex)
+	for index, page in ipairs(pages) do
+		if page.container then
+			page.container:SetHidden(index ~= pageIndex)
+		end
+	end
+	if pages[pageIndex].container then
+		RefreshSettingsWidgetTree(pages[pageIndex].container)
+	end
+	tabControl.__betterUiSelectedTabIndex = pageIndex
+	SETTINGS_TAB_STATE.selectedKey = pages[pageIndex].key or "General"
+	RefreshSettingsTabButtonStates(tabControl)
+
+	TraceSettingsPanel("settings.tab", "selected", {
+		tab = SETTINGS_TAB_STATE.selectedKey,
+		index = pageIndex,
 	})
+end
+
+local function GetInitialSettingsTabIndex(pages)
+	local selectedKey = SETTINGS_TAB_STATE.selectedKey
+	for index, page in ipairs(pages or {}) do
+		if page.key == selectedKey then
+			return index
+		end
+	end
+	return 1
+end
+
+GetSettingsTabControlWidth = function(tabControl)
+	if tabControl and type(tabControl.GetWidth) == "function" then
+		local ok, width = pcall(tabControl.GetWidth, tabControl)
+		width = ok and tonumber(width) or 0
+		if width and width > 0 then
+			return width
+		end
+	end
+	return 510
+end
+
+local function GetSettingsTabButtonsPerRow(pageCount, width, buttonGap)
+	local minButtonWidth = 150
+	local maxButtonsPerRow = pageCount > 6 and 3 or math.min(4, pageCount)
+	local widthLimitedCount = math.floor((width + buttonGap) / (minButtonWidth + buttonGap))
+	widthLimitedCount = math.max(1, widthLimitedCount)
+	return math.max(1, math.min(maxButtonsPerRow, widthLimitedCount, pageCount))
+end
+
+local function CreateSettingsTabsControl(tabControl)
+	if tabControl.__betterUiTabsCreated then
+		return
+	end
+
+	local pages = tabControl.data and tabControl.data.pages or {}
+	tabControl.__betterUiTabPages = pages
+	if #pages == 0 then
+		return
+	end
+
+	local wm = BETTERUI.WindowManager or (GetWindowManager and GetWindowManager())
+	if not wm then
+		return
+	end
+
+	EnableResizeToFitY(tabControl)
+
+	local width = GetSettingsTabControlWidth(tabControl)
+	local buttonHeight = 30
+	local buttonGap = 4
+	local buttonsPerRow = GetSettingsTabButtonsPerRow(#pages, width, buttonGap)
+	local rows = math.ceil(#pages / buttonsPerRow)
+	local buttonWidth = math.floor((width - (buttonGap * (buttonsPerRow - 1))) / buttonsPerRow)
+
+	tabControl.__betterUiTabButtons = {}
+	for index, page in ipairs(pages) do
+		local button = wm:CreateControlFromVirtual(nil, tabControl, "ZO_DefaultButton")
+		local row = math.floor((index - 1) / buttonsPerRow)
+		local col = (index - 1) % buttonsPerRow
+		button:SetDimensions(buttonWidth, buttonHeight)
+		button:SetText(page.name or tostring(page.key or index))
+		button:SetAnchor(TOPLEFT, tabControl, TOPLEFT, col * (buttonWidth + buttonGap), row * (buttonHeight + buttonGap))
+		button:SetHandler("OnClicked", function()
+			SelectSettingsTabPage(tabControl, index)
+		end)
+		tabControl.__betterUiTabButtons[index] = button
+	end
+
+	local content = wm:CreateControl(nil, tabControl, CT_CONTROL)
+	content.panel = tabControl.panel or tabControl
+	content:SetWidth(width)
+	content:SetAnchor(TOPLEFT, tabControl, TOPLEFT, 0, rows * (buttonHeight + buttonGap) + 10)
+	EnableResizeToFitY(content)
+	tabControl.__betterUiTabContent = content
+	tabControl.__betterUiTabsCreated = true
+
+	SelectSettingsTabPage(tabControl, GetInitialSettingsTabIndex(pages))
+end
+
+local function RefreshSettingsTabsControl(tabControl)
+	if not tabControl.__betterUiTabsCreated then
+		CreateSettingsTabsControl(tabControl)
+		return
+	end
+	SelectSettingsTabPage(tabControl, tabControl.__betterUiSelectedTabIndex or GetInitialSettingsTabIndex(tabControl.__betterUiTabPages))
 end
 
 local function InitializeRegisteredModuleSettings()
@@ -584,11 +867,18 @@ end
 
 function BETTERUI.InitModuleOptions()
 	local panelData = BETTERUI.Init_ModulePanel("Master", GetStringByName("SI_BETTERUI_MASTER_SETTINGS_TITLE"))
+	local panelId = "BETTERUI_" .. "Modules"
+	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
 
-	local optionsTable = {
+	local generalControls = {
 		{
 			type = "header",
 			name = GetStringByName("SI_BETTERUI_MASTER_SETTINGS_HEADER"),
+			width = "full",
+		},
+		{
+			type = "description",
+			text = GetStringByName("SI_BETTERUI_ENABLED_MODULE_SETTINGS_DESC"),
 			width = "full",
 		},
 		{
@@ -603,15 +893,6 @@ function BETTERUI.InitModuleOptions()
 			requiresReload = true,
 		},
 	}
-
-	local moduleToggleOptions = BuildModuleToggleOptions()
-
-	for _, control in ipairs(moduleToggleOptions) do
-		table.insert(optionsTable, control)
-	end
-
-	local panelId = "BETTERUI_" .. "Modules"
-	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
 
 	local cimDebug = BETTERUI.CIM and BETTERUI.CIM.Debug
 	local showDeveloperSettings = cimDebug
@@ -661,18 +942,18 @@ function BETTERUI.InitModuleOptions()
 			end
 
 			for _, control in ipairs(flagControls) do
-				table.insert(optionsTable, control)
+				table.insert(generalControls, control)
 			end
 		end
 	end
 
-	table.insert(optionsTable, {
+	table.insert(generalControls, {
 		type = "divider",
 		width = "full",
 	})
-	AppendBuilogSettingsPanel(optionsTable)
+	AppendBuilogSettingsPanel(generalControls)
 
-	table.insert(optionsTable, {
+	table.insert(generalControls, {
 		type = "button",
 		name = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL"),
 		tooltip = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP"),
@@ -685,13 +966,41 @@ function BETTERUI.InitModuleOptions()
 		width = "full",
 	})
 
-	AppendEnabledModuleSettingsTabs(optionsTable)
+	local pages = {
+		{
+			key = "General",
+			name = GetStringByName("SI_BETTERUI_SETTINGS_TAB_GENERAL"),
+			controls = generalControls,
+		},
+	}
+	AppendControls(pages, BuildModuleSettingsTabPages())
+
+	if settingsApi and settingsApi.InstrumentSettingControls then
+		for _, page in ipairs(pages) do
+			settingsApi.InstrumentSettingControls(page.controls, panelId .. "." .. tostring(page.key or "tab"))
+		end
+	end
+
+	local optionsTable = {
+		{
+			type = "custom",
+			reference = SETTINGS_TAB_CONTROL_REFERENCE,
+			width = "full",
+			minHeight = 260,
+			maxHeight = 4000,
+			pages = pages,
+			createFunc = CreateSettingsTabsControl,
+			refreshFunc = RefreshSettingsTabsControl,
+		},
+	}
+
 	if settingsApi and settingsApi.InstrumentSettingControls then
 		settingsApi.InstrumentSettingControls(optionsTable, panelId)
 		TraceSettingsPanel("settings.panel", "instrumented", {
 			panel = panelId,
 			stage = "master",
 			controls = #optionsTable,
+			tabs = #pages,
 		})
 	end
 	if BETTERUI.Log and BETTERUI.Log.TraceEvent then
@@ -699,6 +1008,7 @@ function BETTERUI.InitModuleOptions()
 			panel = panelId,
 			stage = "master",
 			controls = #optionsTable,
+			tabs = #pages,
 		}, BETTERUI.Log.LEVEL.INFO)
 	end
 	LAM:RegisterAddonPanel(panelId, panelData)
@@ -708,6 +1018,7 @@ function BETTERUI.InitModuleOptions()
 			panel = panelId,
 			stage = "master",
 			controls = #optionsTable,
+			tabs = #pages,
 		}, BETTERUI.Log.LEVEL.INFO)
 	end
 end

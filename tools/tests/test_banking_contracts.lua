@@ -402,8 +402,8 @@ assertTrue(bankListManager:match("listModuleName%s*=%s*BANKING_LIST_MODULE_NAME"
     "BankListManager pins banking rows to the Banking module for shared list context")
 assertTrue(bankListManager:match("BETTERUI%.Inventory%.Class%.InitializeInventoryVisualData") == nil,
     "BankListManager no longer reaches through Inventory for row visual setup")
-assertTrue(betterUiRoot:find("SI_BETTERUI_GUILD_BANK_ENABLED", 1, true) == nil,
-    "Master settings keeps the Banking guild-bank toggle visible because it is not the module enable gate")
+assertTrue(betterUiRoot:find("SI_BETTERUI_GUILD_BANK_ENABLED", 1, true) ~= nil,
+    "BetterUI declares the Banking guild-bank gate as a tab-level redundant setting")
 
 local bankingActions = readFile("Modules/Banking/Actions/BankingActions.lua")
 assertTrue(containsTransferSnapshotReader(bankingActions) and bankingActions:match("sourceIsFurnitureVault") ~= nil,
