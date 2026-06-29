@@ -171,9 +171,11 @@ Log.Debug(Log.CATEGORY.GENERAL, "debug action", { code = 7 })
 check(#fileLines == 1, "debug preset captures DEBUG")
 check(fileLines[1]:find("code=7", 1, true) ~= nil, "debug preset includes the payload (capture on)")
 
--- trace preset: everything + payloads. "verbose" is a back-compat alias for trace.
+-- trace preset: everything + payloads. Deprecated preset aliases still normalize safely.
 Log.ApplyPreset("verbose")
 check(Log.GetPreset() == "trace", "ApplyPreset('verbose') aliases to trace")
+local aliasOk, aliasPreset = Log.ApplyPreset("ai")
+check(aliasOk == true and aliasPreset == "watch" and Log.GetPreset() == "watch", "ApplyPreset('ai') remains a compatibility alias to watch")
 Log.ApplyPreset("trace")
 check(Log.GetPreset() == "trace", "GetPreset reports trace")
 check(Log.GetMinLevel() == Log.LEVEL.TRACE, "trace preset floors min level at TRACE")

@@ -798,9 +798,9 @@ function Log.GetPayloadCapture() return payloadCapture end
 --   inspect-> trace verbosity (TRACE+, payloads) PLUS the full watch enrichment (per-line
 --             context suffix + heartbeat snapshots + startup preamble).
 --             "trace, with guided context" -- the richest diagnostics stream.
--- "verbose" remains accepted as a back-compat alias for "trace". "inspect" is a DISTINCT preset,
+-- "verbose" and "ai" remain accepted as back-compat aliases. "inspect" is a DISTINCT preset,
 -- not an alias (GetPreset() returns "inspect").
-local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trace = true, inspect = true, verbose = true }
+local PRESET_NAMES = { off = true, info = true, watch = true, debug = true, trace = true, inspect = true, verbose = true, ai = true }
 
 -- Per-preset file-sink rate limits. info stays tight (FPS-safe for live play); debug,
 -- trace, watch and inspect are greatly loosened because an active debugger accepts the
@@ -825,13 +825,14 @@ local function applyAllSinks(fileFromLevel, chatOn)
     end
 end
 
----@param name string  "off" | "info" | "watch" | "debug" | "trace" | "inspect" (alias: "verbose" -> "trace")
+---@param name string  "off" | "info" | "watch" | "debug" | "trace" | "inspect" (aliases: "verbose" -> "trace", "ai" -> "watch")
 ---@return boolean applied
 ---@return string preset
 function Log.ApplyPreset(name)
     name = type(name) == "string" and name:lower() or ""
     if not PRESET_NAMES[name] then return false, currentPreset end
     if name == "verbose" then name = "trace" end -- back-compat alias
+    if name == "ai" then name = "watch" end -- deprecated alias for "watch"
     local il = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
 
     if name == "off" then

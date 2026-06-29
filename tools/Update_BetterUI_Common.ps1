@@ -40,6 +40,40 @@ function Test-BetterUIDeployExcludedPath {
     return $false
 }
 
+function Remove-BetterUIDeployExcludedArtifacts {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Target
+    )
+
+    if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
+        return
+    }
+
+    $excludedArtifacts = Get-ChildItem -LiteralPath $Target -Force -Directory -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -in $BetterUIDeployExcludeItems } |
+        Sort-Object { $_.FullName.Length } -Descending
+
+    foreach ($artifact in $excludedArtifacts) {
+        $artifactPath = $artifact.FullName
+        $removeFailed = $false
+        if ($IsLinux) {
+            & rm -rf -- $artifactPath
+            $removeFailed = $LASTEXITCODE -ne 0
+        } else {
+            try {
+                Remove-Item -LiteralPath $artifactPath -Recurse -Force -ErrorAction Stop
+            } catch {
+                $removeFailed = $true
+            }
+        }
+
+        if ($removeFailed -or (Test-Path -LiteralPath $artifactPath)) {
+            Write-Warning "Excluded deploy artifact could not be removed: $artifactPath"
+        }
+    }
+}
+
 function Join-PathSegments {
     param(
         [Parameter(Mandatory = $true)]
@@ -181,6 +215,9 @@ function Copy-BetterUIAddon {
     if (Test-Path -LiteralPath $Target) {
         if ($IsLinux) {
             & rm -rf -- $Target
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to remove existing target directory: $Target"
+            }
         } else {
             Remove-Item -LiteralPath $Target -Recurse -Force
         }
@@ -210,11 +247,19 @@ function Copy-BetterUIAddon {
         if ($IsLinux) {
             # Copy-Item is unreliable on GVFS SMB mounts; use native cp per file.
             & cp -- $item.FullName $destinationPath
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to copy deploy file: $($item.FullName) -> $destinationPath"
+            }
         } else {
-            Copy-Item -LiteralPath $item.FullName -Destination $destinationPath -Force
+            Copy-Item -LiteralPath $item.FullName -Destination $destinationPath -Force -ErrorAction Stop
+        }
+
+        if (-not (Test-Path -LiteralPath $destinationPath -PathType Leaf)) {
+            throw "Deploy file missing after copy: $destinationPath"
         }
     }
 
+    Remove-BetterUIDeployExcludedArtifacts -Target $Target
     Write-Host "Files copied successfully to: $Target" -ForegroundColor Green
 }
 
