@@ -20,7 +20,7 @@ Mechanism (proof of concept):
   high-volume logging is rate-limited by an optional per-frame/second BUDGET so a
   burst on a hot path can't schedule thousands of errors and hitch a frame; overflow
   is dropped and summarized once as `dropped=N reason=rate_limit`. The budget is
-  unlimited by default and is set by the "verbose" preset (see Log.ApplyPreset).
+  unlimited by default and is set by named presets (see Log.ApplyPreset).
 
   On disk the engine therefore wraps each emitted line as:
     <ISO-8601 ts±tz> |cff0000Lua Error: <our [BUI] line>
@@ -28,7 +28,7 @@ Mechanism (proof of concept):
   (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
   "Lua Error:" entries are real game errors whose traceback matters.
 
-Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | screenshot [label] | screenshot auto off|error|warn | test | popups on|off | status
+Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | screenshot [label] | screenshot auto off|error|warn | check | popups on|off | status
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -43,7 +43,7 @@ local suppressPopups = true    -- hide the error frame for our log-errors
 local savedSuppressState = nil -- prior ZO_ERROR_FRAME.suppressErrorDialog, for restore
 
 -- Backpressure budget for the file sink. 0 = unlimited (default; preserves legacy
--- behavior). The "verbose" preset sets a per-frame/second cap; overflow is dropped
+-- behavior). Log presets set per-frame/second caps; overflow is dropped
 -- and a single coalesced "dropped=N" summary is emitted. maxPending caps deferred
 -- breadcrumbs that have been scheduled but not yet raised, protecting frame recovery
 -- after a burst.
@@ -315,6 +315,11 @@ function InterfaceLog.SetSuppressPopups(suppress)
     ApplyPopupSuppression(enabled and suppressPopups)
 end
 
+---@return boolean
+function InterfaceLog.GetSuppressPopups()
+    return suppressPopups
+end
+
 --- Enables/disables breadcrumb logging for this session.
 ---@param value boolean
 function InterfaceLog.SetEnabled(value)
@@ -345,22 +350,124 @@ end
 -- InterfaceLog 'enabled' flag is otherwise session-only (reset to false each load);
 -- RuntimeSetup.Apply restores from these keys after SavedVars load. Guarded so a
 -- pre-SavedVars / test-harness call is a silent no-op. preset="" means "plain on"
--- (defaults, no named preset); a named preset ("debug"/"verbose") restores its knobs.
-local function PersistLogState(enabled, preset)
+-- (defaults, no named preset); a named preset restores its logging knobs.
+local LEVEL_NAMES_BY_VALUE = { [1] = "trace", [2] = "debug", [3] = "info", [4] = "warn", [5] = "error" }
+
+local function LevelNameFromValue(level)
+    return LEVEL_NAMES_BY_VALUE[level] or "info"
+end
+
+local function TraceBuilogSetting(key, value)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent and L.CATEGORY and L.CATEGORY.SETTINGS and L.LEVEL) then return end
+    L.TraceEvent(L.CATEGORY.SETTINGS, "settings.builog", "write", {
+        key = key,
+        value = tostring(value),
+    }, L.LEVEL.INFO)
+end
+
+local function PersistLogSetting(key, value)
     if type(BETTERUI.SetSetting) ~= "function" or not BETTERUI.Settings then return end
-    BETTERUI.SetSetting("CIM", "interfaceLogEnabled", enabled and true or false)
+    BETTERUI.SetSetting("CIM", key, value)
+end
+
+local function PersistLogState(enabled, preset)
+    PersistLogSetting("interfaceLogEnabled", enabled and true or false)
     if preset ~= nil then
-        BETTERUI.SetSetting("CIM", "interfaceLogPreset", preset)
+        PersistLogSetting("interfaceLogPreset", preset)
     end
 end
 
 local function SetChatSurface(on)
     local L = BETTERUI.Log
-    if not L then Out("Logger not loaded yet."); return end
+    if not (L and L.SetSink and L.LEVEL) then Out("Logger not loaded yet."); return false end
     -- Surface INFO/WARN/ERROR to chat; TRACE/DEBUG stay file-only to avoid spam.
     L.SetSink(L.LEVEL.INFO, "chat", on)
     L.SetSink(L.LEVEL.WARN, "chat", on)
     L.SetSink(L.LEVEL.ERROR, "chat", on)
+    return true
+end
+
+function InterfaceLog.SetLoggingEnabled(value)
+    local nextEnabled = value and true or false
+    InterfaceLog.SetEnabled(nextEnabled)
+    PersistLogState(nextEnabled, "")
+    TraceBuilogSetting("enabled", nextEnabled)
+    return true
+end
+
+function InterfaceLog.ApplyLogPreset(name)
+    local L = BETTERUI.Log
+    if not (L and L.ApplyPreset) then return false, "logger_unavailable" end
+    local applied, presetName = L.ApplyPreset(name)
+    if applied then
+        local normalized = tostring(presetName or "")
+        PersistLogState(normalized ~= "off", normalized ~= "off" and normalized or "")
+        PersistLogSetting("interfaceLogMinLevel", "")
+        TraceBuilogSetting("preset", normalized)
+    end
+    return applied, presetName
+end
+
+function InterfaceLog.SetChatSurface(on, persist)
+    local enabledChat = on and true or false
+    if not SetChatSurface(enabledChat) then return false end
+    if persist ~= false then
+        PersistLogSetting("interfaceLogChat", enabledChat)
+        TraceBuilogSetting("chat", enabledChat)
+    end
+    return true
+end
+
+function InterfaceLog.GetChatSurface()
+    local L = BETTERUI.Log
+    return (L and L.GetSink and L.LEVEL and L.GetSink(L.LEVEL.ERROR, "chat")) and true or false
+end
+
+function InterfaceLog.SetPopupSuppression(suppress, persist)
+    local nextSuppress = suppress and true or false
+    InterfaceLog.SetSuppressPopups(nextSuppress)
+    if persist ~= false then
+        PersistLogSetting("interfaceLogSuppressPopups", nextSuppress)
+        TraceBuilogSetting("popups", nextSuppress and "suppressed" or "visible")
+    end
+    return true
+end
+
+function InterfaceLog.GetMinLevelName()
+    local L = BETTERUI.Log
+    local level = L and L.GetMinLevel and L.GetMinLevel()
+    return LevelNameFromValue(level)
+end
+
+function InterfaceLog.SetMinLevelSetting(name, persist)
+    local L = BETTERUI.Log
+    local level = L and L.LevelFromName and L.LevelFromName(name)
+    if not (level and L.SetMinLevel) then return false, InterfaceLog.GetMinLevelName() end
+    L.SetMinLevel(level)
+    local levelName = LevelNameFromValue(level)
+    if persist ~= false then
+        PersistLogSetting("interfaceLogMinLevel", levelName)
+        TraceBuilogSetting("minLevel", levelName)
+    end
+    return true, levelName
+end
+
+function InterfaceLog.SetScreenshotAutoMode(mode, persist)
+    local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
+    if not (S and S.SetAutoMode) then return false, "unavailable" end
+    local ok, applied = S.SetAutoMode(mode)
+    if ok and persist ~= false then
+        PersistLogSetting("interfaceLogScreenshotAutoMode", applied)
+        TraceBuilogSetting("screenshotAuto", applied)
+    end
+    return ok, applied
+end
+
+function InterfaceLog.GetScreenshotAutoMode()
+    local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
+    if S and S.GetAutoMode then return S.GetAutoMode() end
+    return "off"
 end
 
 local function PrintStatus()
@@ -377,9 +484,11 @@ local function PrintStatus()
         Out(string.format("Logger chat surface (ERROR) = %s", L.GetSink(L.LEVEL.ERROR, "chat") and "on" or "off"))
     end
     local s = InterfaceLog.GetStats()
-    Out(string.format("Sink budget: frame=%s sec=%s | scheduled=%d dropped=%d suppressed=%d",
+    Out(string.format("Sink budget: frame=%s sec=%s pending=%s/%s | scheduled=%d dropped=%d suppressed=%d",
         s.maxPerFrame > 0 and tostring(s.maxPerFrame) or "inf",
         s.maxPerSecond > 0 and tostring(s.maxPerSecond) or "inf",
+        tostring(s.pending or 0),
+        s.maxPending > 0 and tostring(s.maxPending) or "inf",
         s.scheduled, s.dropped, s.suppressed or 0))
     local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
     if S and S.GetStatus then
@@ -425,8 +534,8 @@ local function HandleScreenshotCommand(raw)
 
     if sub:match("^auto%s+%a+$") then
         local mode = sub:match("^auto%s+(%a+)$")
-        if S.SetAutoMode then
-            local ok, applied = S.SetAutoMode(mode)
+        if InterfaceLog.SetScreenshotAutoMode then
+            local ok, applied = InterfaceLog.SetScreenshotAutoMode(mode)
             if ok then
                 Out("Screenshot auto capture = |c00ff00" .. tostring(applied):upper() .. "|r.")
                 PrintScreenshotStatus()
@@ -537,23 +646,19 @@ local function HandleCommand(args)
     args = raw:lower()
 
     if args == "on" then
-        InterfaceLog.SetEnabled(true)
-        PersistLogState(true, "")
+        InterfaceLog.SetLoggingEnabled(true)
         InterfaceLog.Write("logging started -- breadcrumbs are tagged [BUI]; grep '[BUI]' for the clean stream. On disk each is engine-wrapped: <ISO-8601 ts> |cff0000Lua Error: [BUI] <gameMs> sid=<sid> seq=<seq> <LEVEL> <CATEGORY> | <event> <key=value ...> then a 'stack traceback:' block (ignore it for [BUI] lines). sid groups one UI-load session; seq is a monotonic order. Levels TRACE<DEBUG<INFO<WARN<ERROR. The ISO timestamp is authoritative wall-clock. 'Lua Error:' entries WITHOUT [BUI] are real game errors -- keep their traceback.")
-        Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] log streaming to Interface.log (no popups). Tip: /builog preset watch (or inspect for trace-depth) for live AI monitoring, or debug|trace for full capture.")
+        Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] diagnostics stream to Interface.log. Tip: /builog preset watch for guided troubleshooting, or debug|trace for detail.")
     elseif args == "off" then
         InterfaceLog.Write("InterfaceLog disabled via /builog off")
-        InterfaceLog.SetEnabled(false)
-        PersistLogState(false, "")
+        InterfaceLog.SetLoggingEnabled(false)
         Out("InterfaceLog disabled; error popups restored.")
     elseif args:match("^preset%s+%a+$") then
         local name = args:match("^preset%s+(%a+)$")
         local L = BETTERUI.Log
         if L and L.ApplyPreset then
-            local applied, presetName = L.ApplyPreset(name)
+            local applied, presetName = InterfaceLog.ApplyLogPreset(name)
             if applied then
-                -- "off" preset disables; named presets ("debug"/"verbose") stay enabled.
-                PersistLogState(presetName ~= "off", presetName ~= "off" and tostring(presetName) or "")
                 Out("Log preset = |c00ff00" .. tostring(presetName):upper() .. "|r.")
                 PrintStatus()
             else
@@ -562,31 +667,30 @@ local function HandleCommand(args)
         else
             Out("Logger not loaded yet.")
         end
-    elseif args == "test" then
+    elseif args == "check" then
         local wasEnabled = enabled
         if not wasEnabled then InterfaceLog.SetEnabled(true) end
-        InterfaceLog.Write("PoC test breadcrumb A (direct Write)")
-        BETTERUI.Debug("PoC test breadcrumb B (via BETTERUI.Debug)")
-        if BETTERUI.Log then BETTERUI.Log.Error("SAFE", "PoC test breadcrumb C (via Log.Error)") end
-        Out("Wrote test breadcrumbs -- grep Interface.log for [BUI].")
+        InterfaceLog.Write("diagnostic check breadcrumb A (direct Write)")
+        BETTERUI.Debug("diagnostic check breadcrumb B (via BETTERUI.Debug)")
+        if BETTERUI.Log then BETTERUI.Log.Error("SAFE", "diagnostic check breadcrumb C (via Log.Error)") end
+        Out("Wrote diagnostic breadcrumbs to Interface.log.")
         if not wasEnabled then Out("(Logging was off; left it ON. Use /builog off to stop.)") end
     elseif args == "popups on" then
-        InterfaceLog.SetSuppressPopups(false)
+        InterfaceLog.SetPopupSuppression(false)
         Out("Error popups will now SHOW (file writes pop too).")
     elseif args == "popups off" then
-        InterfaceLog.SetSuppressPopups(true)
+        InterfaceLog.SetPopupSuppression(true)
         Out("Error popups suppressed (errors still log to file).")
     elseif args == "chat on" then
-        SetChatSurface(true)
+        InterfaceLog.SetChatSurface(true)
         Out("Chat surfacing ON for INFO/WARN/ERROR (file logging unchanged).")
     elseif args == "chat off" then
-        SetChatSurface(false)
+        InterfaceLog.SetChatSurface(false)
         Out("Chat surfacing OFF (file-only).")
     elseif args:match("^level%s+%a+$") then
         local name = args:match("^level%s+(%a+)$")
-        local L = BETTERUI.Log
-        local lvl = L and L.LevelFromName(name)
-        if lvl then L.SetMinLevel(lvl); Out("Min log level set to " .. name:upper() .. ".")
+        local ok, applied = InterfaceLog.SetMinLevelSetting(name)
+        if ok then Out("Min log level set to " .. tostring(applied):upper() .. ".")
         else Out("Unknown level. Use trace|debug|info|warn|error.") end
     elseif args == "recent" or args:match("^recent%s+%d+$") then
         local L = BETTERUI.Log
@@ -608,7 +712,7 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check | status")
     end
 end
 

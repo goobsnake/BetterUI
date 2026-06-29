@@ -81,6 +81,8 @@ local function DescribeVendorKeybinds(instance)
     }
 end
 
+local TraceVendorEvent
+
 local function IsTomesSpecializedSceneActive()
     local interactionRuntime = Vendor.InteractionRuntime
     if interactionRuntime and interactionRuntime.FindSpecializedNativeScene then
@@ -94,52 +96,12 @@ local function IsPrimaryActionAllowed()
     return not IsTomesSpecializedSceneActive()
 end
 
-local function RemoveTomesKeybindDescriptors(instance)
-    local interface = BETTERUI.Interface
-    if not interface or type(interface.RemoveKeybindGroupIfPresent) ~= "function" then
-        return
-    end
-
-    if not instance then
-        return
-    end
-
-    interface.RemoveKeybindGroupIfPresent(instance.coreKeybinds)
-    interface.RemoveKeybindGroupIfPresent(instance.textSearchKeybindStripDescriptor)
-
-    local header = instance.headerGeneric
-    local tabBar = header and header.tabBar
-    if tabBar then
-        interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
-    end
-    header = instance.header
-    tabBar = header and header.tabBar
-    if tabBar then
-        interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
-    end
-
-    if interface.UpdateCurrentKeybindGroups then
-        interface.UpdateCurrentKeybindGroups()
-    end
-end
-
 local function PurgeTomesSceneKeybindInterference()
     local instance = Vendor.instance
-    if instance then
-        if instance.DeactivateHeaderKeybinds then
-            instance:DeactivateHeaderKeybinds()
-        end
-        if instance.DeactivateListInput then
-            instance:DeactivateListInput()
-        end
-        if instance.ForceReleaseDirectionalInput then
-            instance:ForceReleaseDirectionalInput()
-        end
-        if instance.ReleaseNativeStoreInputOwnership then
-            instance:ReleaseNativeStoreInputOwnership()
-        end
+    local interactionRuntime = Vendor.InteractionRuntime
+    if interactionRuntime and type(interactionRuntime.PurgeNativeHandoffKeybindInterference) == "function" then
+        interactionRuntime.PurgeNativeHandoffKeybindInterference(instance)
     end
-    RemoveTomesKeybindDescriptors(instance)
     TraceVendorEvent("vendor.store_event", "handoff_cleanup", {
         fn = "Vendor.PurgeTomesSceneKeybindInterference",
         reason = "specializedNativeScene",
@@ -147,7 +109,7 @@ local function PurgeTomesSceneKeybindInterference()
     })
 end
 
-local function TraceVendorEvent(event, phase, data, category)
+function TraceVendorEvent(event, phase, data, category)
     local L = BETTERUI and BETTERUI.Log
     if not (L and L.TraceEvent) then
         return

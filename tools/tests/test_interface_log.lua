@@ -28,6 +28,11 @@ end
 
 ZO_ERROR_FRAME = { suppressErrorDialog = false }
 SLASH_COMMANDS = {}
+local chatOutput = {}
+
+function d(message)
+    chatOutput[#chatOutput + 1] = tostring(message)
+end
 
 -- ============================================================================
 -- IMPORT MODULE UNDER TEST
@@ -196,6 +201,14 @@ check(type(builog) == "function", "/builog slash command is registered")
 builog("on")
 check(persisted["CIM:interfaceLogEnabled"] == true, "/builog on persists interfaceLogEnabled=true")
 check(persisted["CIM:interfaceLogPreset"] == "", "/builog on persists empty preset (plain on)")
+
+IL.SetBudget({ maxPerFrame = 2, maxPerSecond = 4, maxPending = 6 })
+chatOutput = {}
+builog("status")
+local statusText = table.concat(chatOutput, "\n")
+check(statusText:find("Sink budget: frame=2 sec=4 pending=", 1, true) ~= nil
+    and statusText:find("/6", 1, true) ~= nil,
+    "/builog status reports frame/sec and pending/maxPending budget")
 
 builog("preset debug")
 check(persisted["CIM:interfaceLogEnabled"] == true, "/builog preset debug persists enabled=true")

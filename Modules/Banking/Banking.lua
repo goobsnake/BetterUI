@@ -13,12 +13,31 @@ end
 local GUILD_BANK_SCENE_REDIRECT_EVENT_NAME = "BETTERUI_GUILD_BANK_SCENE_REDIRECT"
 
 local function ShowBetterUIGuildBankScene()
+    if BETTERUI.Banking.GetSetting("enableGuildBank") == false then
+        TraceBankState("bank.guild_scene_redirect", "bypassed", {
+            reason = "guild_bank_disabled",
+        })
+        return
+    end
     if not (SCENE_MANAGER and SCENE_MANAGER.Show and BETTERUI_GUILD_BANKING_SCENE_NAME and BETTERUI_GUILD_BANKING_SCENE) then
+        TraceBankState("bank.guild_scene_redirect", "skipped", {
+            reason = "missing_scene_api",
+            hasSceneManager = SCENE_MANAGER ~= nil,
+            hasSceneName = BETTERUI_GUILD_BANKING_SCENE_NAME ~= nil,
+            hasScene = BETTERUI_GUILD_BANKING_SCENE ~= nil,
+        })
         return
     end
     if SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing(BETTERUI_GUILD_BANKING_SCENE_NAME) then
+        TraceBankState("bank.guild_scene_redirect", "skipped", {
+            reason = "already_showing",
+            sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
+        })
         return
     end
+    TraceBankState("bank.guild_scene_redirect", "show", {
+        sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
+    })
     SCENE_MANAGER:Show(BETTERUI_GUILD_BANKING_SCENE_NAME)
 end
 
@@ -579,50 +598,56 @@ function BETTERUI.Banking.Init()
 
     SyncGamepadBankingSceneGlobal()
 
-    BETTERUI_GUILD_BANKING_SCENE = ZO_InteractScene:New(
-        BETTERUI_GUILD_BANKING_SCENE_NAME,
-        SCENE_MANAGER,
-        BETTERUI.Banking.GUILD_BANK_INTERACTION
-    )
-    BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
-    BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
-    local bankingFragment = BETTERUI.Banking.Window.fragment
-    if bankingFragment then
-        BETTERUI_GUILD_BANKING_SCENE:AddFragment(bankingFragment)
+    if BETTERUI.Banking.GetSetting("enableGuildBank") ~= false then
+        BETTERUI_GUILD_BANKING_SCENE = ZO_InteractScene:New(
+            BETTERUI_GUILD_BANKING_SCENE_NAME,
+            SCENE_MANAGER,
+            BETTERUI.Banking.GUILD_BANK_INTERACTION
+        )
+        BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+        BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
+        local bankingFragment = BETTERUI.Banking.Window.fragment
+        if bankingFragment then
+            BETTERUI_GUILD_BANKING_SCENE:AddFragment(bankingFragment)
+        end
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(MINIMIZE_CHAT_FRAGMENT)
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
+        if BETTERUI.Banking.Window.footerFragment then
+            BETTERUI_GUILD_BANKING_SCENE:AddFragment(BETTERUI.Banking.Window.footerFragment)
+        end
+        local personalScene = BETTERUI.Banking.Window.scene
+        BETTERUI.Banking.Window.scene = BETTERUI_GUILD_BANKING_SCENE
+        BETTERUI.CIM.SceneLifecycle.Register(BETTERUI.Banking.Window, {
+            keybinds = { BETTERUI.Banking.Window.coreKeybinds },
+            taskManager = BETTERUI.Banking.Tasks,
+            onShowing = function(screen, wasPushed)
+                BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
+                if screen.OnSceneShowing then
+                    screen:OnSceneShowing(wasPushed)
+                end
+            end,
+            onHiding = function(screen)
+                BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+                if screen.OnSceneHiding then
+                    screen:OnSceneHiding()
+                end
+            end,
+            onHidden = function(screen)
+                if screen.OnSceneHidden then
+                    screen:OnSceneHidden()
+                end
+            end,
+        })
+        -- Restore personal bank scene after registration; opening is redirected by event.
+        BETTERUI.Banking.Window.scene = personalScene
+        InstallGuildBankSceneRedirect()
+    else
+        TraceBankState("bank.guild_scene_redirect", "registration_skipped", {
+            reason = "guild_bank_disabled",
+        })
     end
-    BETTERUI_GUILD_BANKING_SCENE:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
-    BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
-    BETTERUI_GUILD_BANKING_SCENE:AddFragment(MINIMIZE_CHAT_FRAGMENT)
-    BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
-    if BETTERUI.Banking.Window.footerFragment then
-        BETTERUI_GUILD_BANKING_SCENE:AddFragment(BETTERUI.Banking.Window.footerFragment)
-    end
-    local personalScene = BETTERUI.Banking.Window.scene
-    BETTERUI.Banking.Window.scene = BETTERUI_GUILD_BANKING_SCENE
-    BETTERUI.CIM.SceneLifecycle.Register(BETTERUI.Banking.Window, {
-        keybinds = { BETTERUI.Banking.Window.coreKeybinds },
-        taskManager = BETTERUI.Banking.Tasks,
-        onShowing = function(screen, wasPushed)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
-            if screen.OnSceneShowing then
-                screen:OnSceneShowing(wasPushed)
-            end
-        end,
-        onHiding = function(screen)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
-            if screen.OnSceneHiding then
-                screen:OnSceneHiding()
-            end
-        end,
-        onHidden = function(screen)
-            if screen.OnSceneHidden then
-                screen:OnSceneHidden()
-            end
-        end,
-    })
-    -- Restore personal bank scene after registration; opening is redirected by event.
-    BETTERUI.Banking.Window.scene = personalScene
-    InstallGuildBankSceneRedirect()
 
     if BETTERUI.Banking.InitializeRefreshManager then
         BETTERUI.Banking.InitializeRefreshManager()
@@ -649,7 +674,7 @@ function BETTERUI.Banking.Init()
 
     if BETTERUI.Log then
         BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "banking initialized", {
-            guildBank = true,
+            guildBank = BETTERUI.Banking.GetSetting("enableGuildBank") ~= false,
         })
     end
 end

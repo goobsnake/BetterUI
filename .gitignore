@@ -8,3 +8,7 @@
 
 # AI Orchestrator workspace sessions
 .agent_workspace/
+
+# Localization/tool backup artifacts
+.zff-mcp-backups/
+**/.zff-mcp-backups/

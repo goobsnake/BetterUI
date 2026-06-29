@@ -194,6 +194,8 @@ local function PurgeNativeHandoffKeybindInterference(instance)
     end
 end
 
+InteractionRuntime.PurgeNativeHandoffKeybindInterference = PurgeNativeHandoffKeybindInterference
+
 local function PackResults(...)
     return {
         n = select("#", ...),

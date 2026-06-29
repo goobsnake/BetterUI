@@ -582,14 +582,15 @@ Interface.log. Verified: suppression hides the dialog but the line still logs.
   keys sorted, capped at 8 fields). Don't pre-`Summarize` a field value (the renderer does
   it; double-summarizing double-quotes). Arrays render as `[n]`; nested tables collapse to
   `{n:keys}` shape, so never pass a full item list.
-- **Line format**: BetterUI emits `[BUI] <gameTimeMs> <LEVEL> <CATEGORY> | <event> <key=value ...>`,
+- **Line format**: BetterUI emits `[BUI] <gameTimeMs> sid=<sessionId> seq=<n> <LEVEL> <CATEGORY> | <event> <key=value ...>`,
   but because breadcrumbs are raised as deferred errors the **engine wraps every line on disk** as:
-  `<ISO-8601 ts±tz> |cff0000Lua Error: [BUI] <gameMs> <LEVEL> <CAT> | <event> k=v ...` followed by a
+  `<ISO-8601 ts±tz> |cff0000Lua Error: [BUI] <gameMs> sid=<sid> seq=<n> <LEVEL> <CAT> | <event> k=v ...` followed by a
   `stack traceback:` block. Parser rules: (1) entries start at the ISO timestamp; (2) strip `|cXXXXXX`/`|r`
   colour codes; (3) a message containing `[BUI]` is a BetterUI breadcrumb — parse the fields and **ignore
   its traceback**; (4) a `Lua Error:` message **without** `[BUI]` is a real game error — keep its traceback.
   Fastest clean stream: `grep '\[BUI\]' Interface.log`. The engine ISO timestamp is the authoritative
-  wall-clock; `gameTimeMs` is a secondary session-relative counter. One record per line (newlines collapsed).
+  wall-clock; `gameTimeMs` is a secondary session-relative counter; `seq` is the in-session ordering key.
+  One record per line (newlines collapsed).
 - **Default routing**: every level → file ON, chat OFF, popup OFF (suppressed by
   default). Inert unless logging is enabled, so normal players pay nothing.
 - **Crash-safety convention**: every call site is nil-guarded `if BETTERUI.Log then ... end`
@@ -597,18 +598,17 @@ Interface.log. Verified: suppression hides the dialog but the line still logs.
   `BETTERUI.Log.IsActive()` — or `Log.EnabledFor(level, category)` (the exact sink-aware
   pre-check) / the lazy `Log.WriteLazy|DebugLazy|TraceLazy(.., dataFn)` builders — so no
   payload is constructed when the record would be dropped.
-- **Presets** (`Log.ApplyPreset`, or `/builog preset`): `off` (stop file logging + restore
-  popups), `debug` (INFO/WARN/ERROR file capture, payloads off — surfaces real failures
-  incl. `SafeExecute` pcall/nil-function faults plus INFO breadcrumbs for context),
-  `verbose` (TRACE+, all categories,
-  payloads on). `verbose` arms a per-frame/second file-sink budget
-  (`InterfaceLog.SetBudget`/`GetStats`) that drops + summarizes overflow (`dropped=N
-  reason=rate_limit`) so a hot-path burst can't hitch a frame. `Log.SetPayloadCapture`
-  toggles payload rendering; `Log.GetPreset()` reads back `custom` once a low-level setter
-  diverges from a preset.
-- **Surface toggles** (`/builog`): `on|off` (enable/disable), `preset off|debug|verbose`,
+- **Presets** (`Log.ApplyPreset`, or `/builog preset`): `off` stops file logging and restores
+  popups; `info` captures INFO+ milestones; `watch` captures DEBUG+ with AI context enrichment;
+  `debug` captures DEBUG+ without enrichment; `trace` captures TRACE+; `inspect` captures TRACE+
+  with watch enrichment. `verbose` remains an alias for `trace`; `ai` remains an alias for `watch`.
+  Presets arm per-frame/second/pending file-sink budgets (`InterfaceLog.SetBudget`/`GetStats`) that
+  drop + summarize overflow (`dropped=N reason=rate_limit`) so a hot-path burst cannot hitch a frame.
+  `Log.SetPayloadCapture` toggles payload rendering; `Log.GetPreset()` reads back `custom` once a
+  low-level setter diverges from a preset.
+- **Surface toggles** (`/builog`): `on|off` (enable/disable), `preset off|info|watch|debug|trace|inspect`,
   `test`, `chat on|off` (mirror INFO/WARN/ERROR to chat), `popups on|off` (native error
-  frame), `level <lvl>`, `status`.
+  frame), `level <lvl>`, `status` (frame/sec/pending budget + scheduled/dropped/suppressed counters).
 - `BETTERUI.Debug` / `BETTERUI.DebugError` / `BETTERUI.CIM.Debug.Log` are back-compat
   wrappers that route through `BETTERUI.Log`. `SafeExecute` caught errors route through
   `Log.Error("SAFE", ...)` — silent for normal players, in the file when logging is on.

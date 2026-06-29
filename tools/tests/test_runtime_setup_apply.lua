@@ -202,8 +202,22 @@ do
     local harness = newHarness({ withTamrielTomes = true })
     local applyPresetCalls = {}
     local setEnabledCalls = {}
+    local suppressPopupCalls = {}
+    local screenshotAutoCalls = {}
+    local chatSurfaceCalls = {}
+    local minLevelCalls = {}
     BETTERUI.CIM.InterfaceLog = {
         SetEnabled = function(value) setEnabledCalls[#setEnabledCalls + 1] = value end,
+        SetSuppressPopups = function(value) suppressPopupCalls[#suppressPopupCalls + 1] = value end,
+        SetScreenshotAutoMode = function(mode, persist)
+            screenshotAutoCalls[#screenshotAutoCalls + 1] = { mode = mode, persist = persist }
+        end,
+        SetChatSurface = function(value, persist)
+            chatSurfaceCalls[#chatSurfaceCalls + 1] = { value = value, persist = persist }
+        end,
+        SetMinLevelSetting = function(name, persist)
+            minLevelCalls[#minLevelCalls + 1] = { name = name, persist = persist }
+        end,
         Write = function() end,
     }
     -- Permissive Log stub: explicit IsActive/ApplyPreset; any other method (Trace/etc.)
@@ -214,7 +228,14 @@ do
         ApplyPreset = function(name) applyPresetCalls[#applyPresetCalls + 1] = name end,
         CATEGORY = setmetatable({}, { __index = function() return "CAT" end }),
     }, { __index = function() return function() end end })
-    local store = { interfaceLogEnabled = true, interfaceLogPreset = "debug" }
+    local store = {
+        interfaceLogEnabled = true,
+        interfaceLogPreset = "debug",
+        interfaceLogSuppressPopups = false,
+        interfaceLogScreenshotAutoMode = "warn",
+        interfaceLogChat = true,
+        interfaceLogMinLevel = "trace",
+    }
     BETTERUI.GetSetting = function(_, key, default)
         local v = store[key]
         if v == nil then return default end
@@ -224,6 +245,20 @@ do
     harness.Apply({ Modules = {} })
     assert_eq(applyPresetCalls[1], "debug",
         "Apply restores the persisted /builog preset after reload")
+    assert_eq(suppressPopupCalls[1], false,
+        "Apply restores persisted /builog popup visibility after reload")
+    assert_eq(screenshotAutoCalls[1] and screenshotAutoCalls[1].mode, "warn",
+        "Apply restores persisted /builog screenshot auto mode after reload")
+    assert_eq(screenshotAutoCalls[1] and screenshotAutoCalls[1].persist, false,
+        "Apply restores screenshot auto mode without re-persisting it")
+    assert_eq(chatSurfaceCalls[1] and chatSurfaceCalls[1].value, true,
+        "Apply restores persisted /builog chat surfacing after reload")
+    assert_eq(chatSurfaceCalls[1] and chatSurfaceCalls[1].persist, false,
+        "Apply restores chat surfacing without re-persisting it")
+    assert_eq(minLevelCalls[1] and minLevelCalls[1].name, "trace",
+        "Apply restores persisted /builog min-level override after reload")
+    assert_eq(minLevelCalls[1] and minLevelCalls[1].persist, false,
+        "Apply restores min-level override without re-persisting it")
 
     store.interfaceLogPreset = ""
     applyPresetCalls = {}

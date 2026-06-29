@@ -481,12 +481,18 @@ do
     })
 
     assert_eq(panelId, "BETTERUI_Inventory", "SettingsFactory normalizes module names to canonical panel IDs")
-    assert_eq(LibAddonMenu2.panelCalls[#LibAddonMenu2.panelCalls].panelId, "BETTERUI_Inventory",
-        "SettingsFactory registers the normalized panel ID")
-    assert_eq(LibAddonMenu2.optionCalls[#LibAddonMenu2.optionCalls].optionsData[1].name, "Alpha",
-        "SettingsFactory sorts top-level submenu registrations alphabetically")
-    assert_eq(LibAddonMenu2.optionCalls[#LibAddonMenu2.optionCalls].optionsData[3].name, "Alpha",
-        "SettingsFactory sorts contiguous setting controls alphabetically before registration")
+    assert_eq(#LibAddonMenu2.panelCalls, 0,
+        "SettingsFactory captures module panels for the master panel instead of registering standalone LAM panels")
+    assert_eq(#LibAddonMenu2.optionCalls, 0,
+        "SettingsFactory defers module option controls to the master panel")
+    local panels = BETTERUI.CIM.Settings.GetRegisteredModulePanels()
+    assert_eq(#panels, 1, "SettingsFactory exposes captured module panels")
+    assert_eq(panels[1].panelId, "BETTERUI_Inventory",
+        "SettingsFactory captures the normalized panel ID")
+    assert_eq(panels[1].optionsData[1].name, "Alpha",
+        "SettingsFactory sorts top-level submenu registrations alphabetically before capture")
+    assert_eq(panels[1].optionsData[3].name, "Alpha",
+        "SettingsFactory sorts contiguous setting controls alphabetically before capture")
 end
 
 if failed > 0 then

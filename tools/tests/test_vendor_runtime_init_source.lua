@@ -88,8 +88,8 @@ do
         "native store bridge does not hook SCENE_MANAGER")
     assert_true(nativeStoreBridgeSource:find("storeManager.UpdateDirectionalInput = function", 1, true) == nil,
         "native store bridge does not monkey-patch UpdateDirectionalInput")
-    assert_true(nativeStoreBridgeSource:find('_betteruiUpdateDirectionalInputPreHookInstalled', 1, true) ~= nil,
-        "native store bridge uses an idempotent directional-input hook marker")
+    assert_true(nativeStoreBridgeSource:find('local updateDirectionalInputHookedManagers = setmetatable({}, { __mode = "k" })', 1, true) ~= nil,
+        "native store bridge uses an idempotent weak-key directional-input hook registry")
     assert_true(nativeStoreBridgeSource:find('ZO_PreHook(storeManager, "UpdateDirectionalInput"', 1, true) ~= nil,
         "native store bridge hooks directional input through the ESOUI hook API")
     assert_true(nativeStoreBridgeSource:find('SCENE_MANAGER.scenes["gamepad_store"]', 1, true) == nil,

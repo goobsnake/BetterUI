@@ -69,6 +69,8 @@ BETTERUI.CIM.ControlCache.CacheButtonChildren = function(button)
 end
 
 ACTION_BAR_ULTIMATE_SLOT_INDEX = 7
+ACTION_BAR_FIRST_NORMAL_SLOT_INDEX = 3
+ACTION_BAR_SLOTS_PER_PAGE = 5
 HOTBAR_CATEGORY_QUICKSLOT_WHEEL = 9
 HOTBAR_CATEGORY_COMPANION = 10
 POWERTYPE_ULTIMATE = 11
@@ -88,6 +90,7 @@ local activationHighlights = {}
 local costFailures = {}
 local stateFailures = {}
 local targetFailures = {}
+local nativeActionButtons = {}
 local rangeFailures = {}
 local abilityCosts = {}
 local slotCooldowns = {}
@@ -196,6 +199,34 @@ ZO_ActionBarTimer = {
         self.hidden = value
     end,
 }
+
+ZO_ActionBar1KeybindBG = {
+    hidden = false,
+    SetHidden = function(self, value)
+        self.hidden = value
+    end,
+}
+
+local function NewNativeActionButton(name)
+    return {
+        buttonText = {
+            name = name .. "Text",
+            hidden = false,
+            SetHidden = function(self, value)
+                self.hidden = value
+            end,
+        },
+    }
+end
+
+for slot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX, ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1 do
+    nativeActionButtons[tostring(slot) .. "_nil"] = NewNativeActionButton("NativeSlot" .. tostring(slot))
+end
+nativeActionButtons["1_" .. tostring(HOTBAR_CATEGORY_QUICKSLOT_WHEEL)] = NewNativeActionButton("NativeQuickslot")
+
+function ZO_ActionBar_GetButton(slot, hotbarCategory)
+    return nativeActionButtons[tostring(slot) .. "_" .. tostring(hotbarCategory)]
+end
 
 ZO_AlphaAnimation = {}
 function ZO_AlphaAnimation:New(control)
@@ -413,6 +444,13 @@ assert_true(SkillBar._frontBarButtonCache.QuickslotButton ~= nil, "front bar cac
 SkillBar.HideNativeActionBar()
 assert_true(ZO_ActionBar1.hidden, "hide native action bar hides the default action bar")
 assert_true(ZO_ActionBarTimer.hidden, "hide native action bar hides the default timer")
+assert_true(ZO_ActionBar1KeybindBG.hidden, "hide native action bar hides the native keybind background")
+assert_true(nativeActionButtons["3_nil"].buttonText.hidden, "hide native action bar hides the first normal native button text")
+assert_true(nativeActionButtons["7_nil"].buttonText.hidden, "hide native action bar hides the last normal native button text")
+assert_true(nativeActionButtons["1_" .. tostring(HOTBAR_CATEGORY_QUICKSLOT_WHEEL)].buttonText.hidden,
+    "hide native action bar hides the native quickslot button text")
+SkillBar.RestoreNativeActionBar()
+assert_true(not nativeActionButtons["3_nil"].buttonText.hidden, "restore native action bar restores the first normal native button text")
 
 texturesBySlot["3_" .. activeHotbarCategory] = "front-icon-3"
 activationHighlights["3_" .. activeHotbarCategory] = true

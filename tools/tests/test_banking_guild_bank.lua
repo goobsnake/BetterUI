@@ -835,6 +835,10 @@ resetInitState(false)
 BETTERUI.Banking.Init()
 assertTrue(BETTERUI_GUILD_BANKING_SCENE == nil, "Init skips guild bank scene when disabled")
 assertTrue(SCENE_MANAGER.scenes["gamepad_guild_bank"] == vanillaGuildScene, "Init leaves vanilla guild scene untouched when disabled")
+assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_OPEN_GUILD_BANK)] == nil,
+    "Init skips guild bank open redirect when disabled")
+assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_CLOSE_GUILD_BANK)] == nil,
+    "Init skips guild bank close redirect when disabled")
 assertEqual(1, refreshManagerCalls, "Shared init steps still run when guild bank disabled")
 
 print("\n=== Test Summary ===")

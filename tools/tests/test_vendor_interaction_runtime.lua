@@ -383,6 +383,54 @@ do
 end
 
 do
+    local removedGroups = {}
+    local updateCalls = 0
+    local originalInterface = BETTERUI.Interface
+    BETTERUI.Interface = {
+        RemoveKeybindGroupIfPresent = function(group)
+            removedGroups[#removedGroups + 1] = group
+        end,
+        UpdateCurrentKeybindGroups = function()
+            updateCalls = updateCalls + 1
+        end,
+    }
+
+    local calls = {}
+    local instance = {
+        coreKeybinds = "core",
+        textSearchKeybindStripDescriptor = "search",
+        headerGeneric = {
+            tabBar = { keybindStripDescriptor = "generic-header" },
+        },
+        header = {
+            tabBar = { keybindStripDescriptor = "header" },
+        },
+        DeactivateHeaderKeybinds = function()
+            calls[#calls + 1] = "deactivate-header"
+        end,
+        DeactivateListInput = function()
+            calls[#calls + 1] = "deactivate-list"
+        end,
+        ForceReleaseDirectionalInput = function()
+            calls[#calls + 1] = "release-directional"
+        end,
+        ReleaseNativeStoreInputOwnership = function()
+            calls[#calls + 1] = "release-native-input"
+        end,
+    }
+
+    InteractionRuntime.PurgeNativeHandoffKeybindInterference(instance)
+
+    assert_eq(table.concat(calls, ","), "deactivate-header,deactivate-list,release-directional,release-native-input",
+        "handoff purge releases BetterUI input ownership in order")
+    assert_eq(table.concat(removedGroups, ","), "core,search,generic-header,header",
+        "handoff purge removes all BetterUI keybind descriptors from the strip")
+    assert_eq(updateCalls, 1, "handoff purge refreshes active keybind groups")
+
+    BETTERUI.Interface = originalInterface
+end
+
+do
     local openStoreOk = pcall(function()
         InteractionRuntime.OpenStore("invalid")
     end)

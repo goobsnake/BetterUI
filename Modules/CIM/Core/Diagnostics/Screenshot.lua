@@ -4,7 +4,7 @@ Purpose: In-game screenshot capture hooks for builog live testing.
 
 ESO provides TakeScreenshot() and EVENT_SCREENSHOT_SAVED(directory, filename). This
 module wraps them with opt-in auto capture, duplicate-aware throttling, and [BUI]
-markers so a host-side AI can correlate warnings/errors with saved screenshot files.
+markers so diagnostics can correlate warnings/errors with saved screenshot files.
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}

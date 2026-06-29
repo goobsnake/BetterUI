@@ -234,9 +234,6 @@ local MODULE_PANEL_ID_ALIASES = {
 }
 
 local MODULE_SETTINGS_GATE_STRING_IDS = {
-	Banking = {
-		"SI_BETTERUI_GUILD_BANK_ENABLED",
-	},
 	Nameplates = {
 		"SI_BETTERUI_NAMEPLATES_ENABLED",
 	},
@@ -316,43 +313,73 @@ local function IsRedundantModuleGateControl(moduleName, control)
 	return false
 end
 
+local function TraceSettingsPanel(event, phase, data)
+	local L = BETTERUI.Log
+	if not (L and L.TraceEvent) then return end
+	L.TraceEvent(L.CATEGORY.SETTINGS, event, phase, data or {}, L.LEVEL.INFO)
+end
+
 local function BuildModuleSettingsTabControls(moduleName, optionsData)
 	local controls = {}
+	local redundantGateControls = 0
 	if type(optionsData) ~= "table" then
-		return controls
+		return controls, redundantGateControls
 	end
 
 	for _, control in ipairs(optionsData) do
-		if not IsRedundantModuleGateControl(moduleName, control) then
+		if IsRedundantModuleGateControl(moduleName, control) then
+			redundantGateControls = redundantGateControls + 1
+		else
 			controls[#controls + 1] = control
 		end
 	end
-	return controls
+	return controls, redundantGateControls
 end
 
 local function AppendEnabledModuleSettingsTabs(optionsTable)
 	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
 	local getRegisteredPanels = settingsApi and settingsApi.GetRegisteredModulePanels
 	if type(getRegisteredPanels) ~= "function" then
+		TraceSettingsPanel("settings.enabled_modules", "skipped", {
+			reason = "missing_registered_panel_api",
+		})
 		return
 	end
 
 	local modulePanels = getRegisteredPanels()
 	if type(modulePanels) ~= "table" or #modulePanels == 0 then
+		TraceSettingsPanel("settings.enabled_modules", "skipped", {
+			reason = "no_registered_module_panels",
+			registeredPanels = type(modulePanels) == "table" and #modulePanels or 0,
+		})
 		return
 	end
 
 	local tabPanels = {}
+	local skippedDisabled = 0
+	local skippedCore = 0
+	local skippedUnknown = 0
+	local skippedEmpty = 0
+	local redundantGateControls = 0
 	for _, panel in ipairs(modulePanels) do
 		local moduleName = ResolveCapturedModuleName(panel)
-		if moduleName ~= nil and moduleName ~= "" and moduleName ~= "CIM" and BETTERUI.GetModuleEnabled(moduleName) then
-			local controls = BuildModuleSettingsTabControls(moduleName, panel.optionsData)
+		if moduleName == nil or moduleName == "" then
+			skippedUnknown = skippedUnknown + 1
+		elseif moduleName == "CIM" then
+			skippedCore = skippedCore + 1
+		elseif not BETTERUI.GetModuleEnabled(moduleName) then
+			skippedDisabled = skippedDisabled + 1
+		else
+			local controls, gateControlCount = BuildModuleSettingsTabControls(moduleName, panel.optionsData)
+			redundantGateControls = redundantGateControls + (gateControlCount or 0)
 			if #controls > 0 then
 				tabPanels[#tabPanels + 1] = {
 					moduleName = moduleName,
 					name = NormalizeModuleSettingsTabName(panel, moduleName),
 					controls = controls,
 				}
+			else
+				skippedEmpty = skippedEmpty + 1
 			end
 		end
 	end
@@ -367,6 +394,14 @@ local function AppendEnabledModuleSettingsTabs(optionsTable)
 	end)
 
 	if #tabPanels == 0 then
+		TraceSettingsPanel("settings.enabled_modules", "empty", {
+			registeredPanels = #modulePanels,
+			skippedDisabled = skippedDisabled,
+			skippedCore = skippedCore,
+			skippedUnknown = skippedUnknown,
+			skippedEmpty = skippedEmpty,
+			redundantGateControls = redundantGateControls,
+		})
 		return
 	end
 
@@ -393,6 +428,16 @@ local function AppendEnabledModuleSettingsTabs(optionsTable)
 			width = "full",
 		}
 	end
+
+	TraceSettingsPanel("settings.enabled_modules", "registered", {
+		registeredPanels = #modulePanels,
+		tabs = #tabPanels,
+		skippedDisabled = skippedDisabled,
+		skippedCore = skippedCore,
+		skippedUnknown = skippedUnknown,
+		skippedEmpty = skippedEmpty,
+		redundantGateControls = redundantGateControls,
+	})
 end
 
 local function InitializeRegisteredModuleSettings()
@@ -406,6 +451,135 @@ local function InitializeRegisteredModuleSettings()
 			end
 		end
 	end
+end
+
+local BUILOG_PRESET_CHOICES = { "off", "info", "watch", "debug", "trace", "inspect", "custom" }
+local BUILOG_PRESET_VALUES = { "off", "info", "watch", "debug", "trace", "inspect", "custom" }
+local BUILOG_PRESET_VALUE_SET = { off = true, info = true, watch = true, debug = true, trace = true, inspect = true, custom = true }
+local BUILOG_LEVEL_CHOICES = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR" }
+local BUILOG_LEVEL_VALUES = { "trace", "debug", "info", "warn", "error" }
+local BUILOG_SCREENSHOT_CHOICES = { "off", "error", "warn" }
+local BUILOG_SCREENSHOT_VALUES = { "off", "error", "warn" }
+
+local function GetBetterUISettingsString(idName)
+	local id = rawget(_G, idName)
+	if id ~= nil then return GetString(id) end
+	return idName
+end
+
+local function GetBuilogInterfaceLog()
+	return BETTERUI.CIM and BETTERUI.CIM.InterfaceLog or nil
+end
+
+local function GetBuilogPreset()
+	local L = BETTERUI.Log
+	local preset = L and L.GetPreset and L.GetPreset() or "custom"
+	preset = type(preset) == "string" and preset:lower() or "custom"
+	if preset == "verbose" then return "trace" end
+	if preset == "ai" then return "watch" end
+	return BUILOG_PRESET_VALUE_SET[preset] and preset or "custom"
+end
+
+local function AppendBuilogSettingsPanel(optionsTable)
+	optionsTable[#optionsTable + 1] = {
+		type = "submenu",
+		name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_SETTINGS_HEADER"),
+		controls = {
+			{
+				type = "description",
+				text = GetBetterUISettingsString("SI_BETTERUI_BUILOG_SETTINGS_DESC"),
+				width = "full",
+			},
+			{
+				type = "checkbox",
+				name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_ENABLED"),
+				tooltip = GetBetterUISettingsString("SI_BETTERUI_BUILOG_ENABLED_TOOLTIP"),
+				getFunc = function()
+					local interfaceLog = GetBuilogInterfaceLog()
+					return interfaceLog and interfaceLog.IsEnabled and interfaceLog.IsEnabled() or false
+				end,
+				setFunc = function(value)
+					local interfaceLog = GetBuilogInterfaceLog()
+					if interfaceLog and interfaceLog.SetLoggingEnabled then interfaceLog.SetLoggingEnabled(value) end
+				end,
+				width = "full",
+			},
+			{
+				type = "dropdown",
+				name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_PRESET"),
+				tooltip = GetBetterUISettingsString("SI_BETTERUI_BUILOG_PRESET_TOOLTIP"),
+				choices = BUILOG_PRESET_CHOICES,
+				choicesValues = BUILOG_PRESET_VALUES,
+				getFunc = GetBuilogPreset,
+				setFunc = function(value)
+					if value == "custom" then return end
+					local interfaceLog = GetBuilogInterfaceLog()
+					if interfaceLog and interfaceLog.ApplyLogPreset then interfaceLog.ApplyLogPreset(value) end
+				end,
+				width = "full",
+			},
+			{
+				type = "dropdown",
+				name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_MIN_LEVEL"),
+				tooltip = GetBetterUISettingsString("SI_BETTERUI_BUILOG_MIN_LEVEL_TOOLTIP"),
+				choices = BUILOG_LEVEL_CHOICES,
+				choicesValues = BUILOG_LEVEL_VALUES,
+				getFunc = function()
+					local interfaceLog = GetBuilogInterfaceLog()
+					return interfaceLog and interfaceLog.GetMinLevelName and interfaceLog.GetMinLevelName() or "info"
+				end,
+				setFunc = function(value)
+					local interfaceLog = GetBuilogInterfaceLog()
+					if interfaceLog and interfaceLog.SetMinLevelSetting then interfaceLog.SetMinLevelSetting(value) end
+				end,
+				width = "full",
+			},
+			{
+				type = "checkbox",
+				name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_CHAT"),
+				tooltip = GetBetterUISettingsString("SI_BETTERUI_BUILOG_CHAT_TOOLTIP"),
+				getFunc = function()
+					local interfaceLog = GetBuilogInterfaceLog()
+					return interfaceLog and interfaceLog.GetChatSurface and interfaceLog.GetChatSurface() or false
+				end,
+				setFunc = function(value)
+					local interfaceLog = GetBuilogInterfaceLog()
+					if interfaceLog and interfaceLog.SetChatSurface then interfaceLog.SetChatSurface(value) end
+				end,
+				width = "full",
+			},
+			{
+				type = "checkbox",
+				name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_POPUPS"),
+				tooltip = GetBetterUISettingsString("SI_BETTERUI_BUILOG_POPUPS_TOOLTIP"),
+				getFunc = function()
+					local interfaceLog = GetBuilogInterfaceLog()
+					return interfaceLog and interfaceLog.GetSuppressPopups and interfaceLog.GetSuppressPopups() or true
+				end,
+				setFunc = function(value)
+					local interfaceLog = GetBuilogInterfaceLog()
+					if interfaceLog and interfaceLog.SetPopupSuppression then interfaceLog.SetPopupSuppression(value) end
+				end,
+				width = "full",
+			},
+			{
+				type = "dropdown",
+				name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_SCREENSHOT_AUTO"),
+				tooltip = GetBetterUISettingsString("SI_BETTERUI_BUILOG_SCREENSHOT_AUTO_TOOLTIP"),
+				choices = BUILOG_SCREENSHOT_CHOICES,
+				choicesValues = BUILOG_SCREENSHOT_VALUES,
+				getFunc = function()
+					local interfaceLog = GetBuilogInterfaceLog()
+					return interfaceLog and interfaceLog.GetScreenshotAutoMode and interfaceLog.GetScreenshotAutoMode() or "off"
+				end,
+				setFunc = function(value)
+					local interfaceLog = GetBuilogInterfaceLog()
+					if interfaceLog and interfaceLog.SetScreenshotAutoMode then interfaceLog.SetScreenshotAutoMode(value) end
+				end,
+				width = "full",
+			},
+		},
+	}
 end
 
 function BETTERUI.InitModuleOptions()
@@ -496,6 +670,8 @@ function BETTERUI.InitModuleOptions()
 		type = "divider",
 		width = "full",
 	})
+	AppendBuilogSettingsPanel(optionsTable)
+
 	table.insert(optionsTable, {
 		type = "button",
 		name = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL"),
@@ -509,10 +685,15 @@ function BETTERUI.InitModuleOptions()
 		width = "full",
 	})
 
+	AppendEnabledModuleSettingsTabs(optionsTable)
 	if settingsApi and settingsApi.InstrumentSettingControls then
 		settingsApi.InstrumentSettingControls(optionsTable, panelId)
+		TraceSettingsPanel("settings.panel", "instrumented", {
+			panel = panelId,
+			stage = "master",
+			controls = #optionsTable,
+		})
 	end
-	AppendEnabledModuleSettingsTabs(optionsTable)
 	if BETTERUI.Log and BETTERUI.Log.TraceEvent then
 		BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.SETTINGS, "settings.panel", "register_before", {
 			panel = panelId,

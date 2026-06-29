@@ -232,17 +232,39 @@ function RuntimeSetup.Apply(settings)
     -- the chosen preset) now that SavedVars are loaded. SceneLog self-gates on the
     -- active memo, so it picks this up on the next scene transition.
     local interfaceLog = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
-    if interfaceLog and type(BETTERUI.GetSetting) == "function"
-        and BETTERUI.GetSetting("CIM", "interfaceLogEnabled", false) then
-        local logPreset = BETTERUI.GetSetting("CIM", "interfaceLogPreset", "")
-        if logPreset ~= "" and BETTERUI.Log and type(BETTERUI.Log.ApplyPreset) == "function" then
-            BETTERUI.Log.ApplyPreset(logPreset)
-        elseif type(interfaceLog.SetEnabled) == "function" then
-            interfaceLog.SetEnabled(true)
+    if interfaceLog and type(BETTERUI.GetSetting) == "function" then
+        local suppressPopups = BETTERUI.GetSetting("CIM", "interfaceLogSuppressPopups", nil)
+        if suppressPopups ~= nil and type(interfaceLog.SetSuppressPopups) == "function" then
+            interfaceLog.SetSuppressPopups(suppressPopups ~= false)
         end
-        if type(interfaceLog.Write) == "function" then
-            interfaceLog.Write("logging restored after /reloadui (preset=" ..
-                (logPreset ~= "" and logPreset or "on") .. ") -- /builog off to stop")
+
+        local screenshotAuto = BETTERUI.GetSetting("CIM", "interfaceLogScreenshotAutoMode", "")
+        if screenshotAuto ~= "" and type(interfaceLog.SetScreenshotAutoMode) == "function" then
+            interfaceLog.SetScreenshotAutoMode(screenshotAuto, false)
+        end
+
+        local chatSurface = BETTERUI.GetSetting("CIM", "interfaceLogChat", nil)
+        if chatSurface ~= nil and type(interfaceLog.SetChatSurface) == "function" then
+            interfaceLog.SetChatSurface(chatSurface == true, false)
+        end
+
+        if BETTERUI.GetSetting("CIM", "interfaceLogEnabled", false) then
+            local logPreset = BETTERUI.GetSetting("CIM", "interfaceLogPreset", "")
+            if logPreset ~= "" and BETTERUI.Log and type(BETTERUI.Log.ApplyPreset) == "function" then
+                BETTERUI.Log.ApplyPreset(logPreset)
+            elseif type(interfaceLog.SetEnabled) == "function" then
+                interfaceLog.SetEnabled(true)
+            end
+
+            local minLevel = BETTERUI.GetSetting("CIM", "interfaceLogMinLevel", "")
+            if minLevel ~= "" and type(interfaceLog.SetMinLevelSetting) == "function" then
+                interfaceLog.SetMinLevelSetting(minLevel, false)
+            end
+
+            if type(interfaceLog.Write) == "function" then
+                interfaceLog.Write("logging restored after /reloadui (preset=" ..
+                    (logPreset ~= "" and logPreset or "on") .. ") -- /builog off to stop")
+            end
         end
     end
 

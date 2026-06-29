@@ -180,7 +180,7 @@ local function HideNativeActionBarButtonText()
     end
 
     local stopSlot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1
-    for slot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, stopSlot do
+    for slot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX, stopSlot do
         local btn = ZO_ActionBar_GetButton(slot)
         if btn and btn.buttonText then
             btn.buttonText:SetHidden(true)
@@ -199,7 +199,7 @@ local function RestoreNativeActionBarButtonText()
     end
 
     local stopSlot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1
-    for slot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, stopSlot do
+    for slot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX, stopSlot do
         local btn = ZO_ActionBar_GetButton(slot)
         if btn and btn.buttonText then
             btn.buttonText:SetHidden(false)

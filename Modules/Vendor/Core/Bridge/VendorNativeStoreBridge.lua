@@ -11,7 +11,7 @@ local NativeStoreBridge = Vendor.NativeStoreBridge
 local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "OnCloseStore:beforeSweep"
 local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "OnCloseStore:afterSweep"
 local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.OnCloseStore:NativeOnHide"
-local updateDirectionalInputHookedManagers = {}
+local updateDirectionalInputHookedManagers = setmetatable({}, { __mode = "k" })
 
 local function LogVendorDebug(flagName, category, message)
     if Vendor.LogDebug then

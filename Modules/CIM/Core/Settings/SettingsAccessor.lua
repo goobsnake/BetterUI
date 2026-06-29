@@ -57,7 +57,8 @@ end
 local function TraceSettingAccess(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
-    L.TraceEvent(L.CATEGORY.SETTINGS, event, phase, data or {}, L.LEVEL.INFO)
+    local level = phase == "read" and L.LEVEL.TRACE or L.LEVEL.INFO
+    L.TraceEvent(L.CATEGORY.SETTINGS, event, phase, data or {}, level)
 end
 
 ---@overload fun(moduleName: "Inventory", defaults: BetterUIInventorySettings|nil): BetterUIInventorySettings

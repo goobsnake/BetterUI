@@ -379,6 +379,7 @@ assertTrue(multiSelectActionsSource:match("RequireTransferSupport") == nil,
     "MultiSelectActions no longer dispatches through a generic transfer-support table")
 
 local bankListManager = readFile("Modules/Banking/Lists/BankListManager.lua")
+local betterUiRoot = readFile("BetterUI.lua")
 assertTrue(bankListManager:match("GetTransferContext") == nil,
     "BankListManager no longer reads transfer-context fields directly")
 assertTrue(containsTransferSnapshotReader(bankListManager),
@@ -401,6 +402,8 @@ assertTrue(bankListManager:match("listModuleName%s*=%s*BANKING_LIST_MODULE_NAME"
     "BankListManager pins banking rows to the Banking module for shared list context")
 assertTrue(bankListManager:match("BETTERUI%.Inventory%.Class%.InitializeInventoryVisualData") == nil,
     "BankListManager no longer reaches through Inventory for row visual setup")
+assertTrue(betterUiRoot:find("SI_BETTERUI_GUILD_BANK_ENABLED", 1, true) == nil,
+    "Master settings keeps the Banking guild-bank toggle visible because it is not the module enable gate")
 
 local bankingActions = readFile("Modules/Banking/Actions/BankingActions.lua")
 assertTrue(containsTransferSnapshotReader(bankingActions) and bankingActions:match("sourceIsFurnitureVault") ~= nil,

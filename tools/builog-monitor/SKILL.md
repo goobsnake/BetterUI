@@ -56,8 +56,8 @@ with a short stack traceback after it — **ignore those tracebacks**; they are 
 "Enrichment" = each line gets `scene=… view=… flow=… lastAction=…` context + a startup
 preamble + periodic state snapshots. `inspect` = `trace` depth + `watch` enrichment.
 
-Other useful in-game commands: `/builog status` (preset + counters incl. `dropped` /
-`suppressed`), `/buihealth` (one-line health), `/builog mark <text>` (drop a labeled marker
+Other useful in-game commands: `/builog status` (preset + budget counters incl.
+`pending`, `dropped`, and `suppressed`), `/buihealth` (one-line health), `/builog mark <text>` (drop a labeled marker
 into the stream — ask the user to mark "about to test X" so you can find it),
 `/builog screenshot [label]` (manual visual capture), `/builog screenshot auto
 error|warn|off` (session-only opt-in auto capture), `/builog off`.
@@ -230,7 +230,7 @@ context suffix appended to every line.
 | `>1` ` | ` in a `[BUI]` line | a value injected the field separator | parse-contract bug — report the line |
 | `WARN`/`ERROR` `[BUI]` lines | BetterUI flagging its own problem | read the event; often the real lead |
 | `SCREENSHOT` markers | manual/auto capture request, suppression, or saved filename | inspect the listed screenshot file when troubleshooting visual state |
-| `seq` jumps with no `dropped=` summary | suppression-guard drops (e.g. mid-reloadui) | check `/builog status` `suppressed=` counter |
+| `seq` jumps with no `dropped=` summary | suppression-guard drops (e.g. mid-reloadui) | check `/builog status` `suppressed` and `pending/maxPending` counters |
 | behavior the user reports ≠ what the log shows | e.g. a keybind that "does nothing" | search for the action's CATEGORY/ACTION line near that `seq`; absence of a line often *is* the bug |
 
 When the user describes a symptom, correlate it to the stream: find the `seq` window where it
