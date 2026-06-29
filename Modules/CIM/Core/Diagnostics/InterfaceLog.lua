@@ -388,11 +388,19 @@ local function SetChatSurface(on)
     return true
 end
 
-function InterfaceLog.SetLoggingEnabled(value)
+function InterfaceLog.SetLoggingEnabled(value, source)
     local nextEnabled = value and true or false
+    local sourceName = type(source) == "string" and source or "settings panel"
+    if not nextEnabled then
+        TraceBuilogSetting("enabled", false)
+        InterfaceLog.Write("builog disabled via " .. sourceName)
+    end
     InterfaceLog.SetEnabled(nextEnabled)
     PersistLogState(nextEnabled, "")
-    TraceBuilogSetting("enabled", nextEnabled)
+    if nextEnabled then
+        InterfaceLog.Write("builog enabled via " .. sourceName)
+        TraceBuilogSetting("enabled", true)
+    end
     return true
 end
 
@@ -646,12 +654,11 @@ local function HandleCommand(args)
     args = raw:lower()
 
     if args == "on" then
-        InterfaceLog.SetLoggingEnabled(true)
+        InterfaceLog.SetLoggingEnabled(true, "slash command")
         InterfaceLog.Write("logging started -- breadcrumbs are tagged [BUI]; grep '[BUI]' for the clean stream. On disk each is engine-wrapped: <ISO-8601 ts> |cff0000Lua Error: [BUI] <gameMs> sid=<sid> seq=<seq> <LEVEL> <CATEGORY> | <event> <key=value ...> then a 'stack traceback:' block (ignore it for [BUI] lines). sid groups one UI-load session; seq is a monotonic order. Levels TRACE<DEBUG<INFO<WARN<ERROR. The ISO timestamp is authoritative wall-clock. 'Lua Error:' entries WITHOUT [BUI] are real game errors -- keep their traceback.")
         Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] diagnostics stream to Interface.log. Tip: /builog preset watch for guided troubleshooting, or debug|trace for detail.")
     elseif args == "off" then
-        InterfaceLog.Write("InterfaceLog disabled via /builog off")
-        InterfaceLog.SetLoggingEnabled(false)
+        InterfaceLog.SetLoggingEnabled(false, "slash command")
         Out("InterfaceLog disabled; error popups restored.")
     elseif args:match("^preset%s+%a+$") then
         local name = args:match("^preset%s+(%a+)$")

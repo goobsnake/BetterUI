@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
 
 $BetterUIDeployExcludeItems = @(
     '.agent_workspace',
+    '.zff-mcp-backups',
     '.worktrees',
     '.git',
     '.gitignore',
@@ -19,6 +20,25 @@ $BetterUIDeployExcludeItems = @(
     '.luacheckrc',
     '.package_tmp'
 )
+
+function Test-BetterUIDeployExcludedPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SourceRoot,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $relativePath = [System.IO.Path]::GetRelativePath($SourceRoot, $Path)
+    $segments = @($relativePath -split '[\\/]') | Where-Object { $_ }
+    foreach ($segment in $segments) {
+        if ($segment -in $BetterUIDeployExcludeItems) {
+            return $true
+        }
+    }
+    return $false
+}
 
 function Join-PathSegments {
     param(
@@ -167,26 +187,31 @@ function Copy-BetterUIAddon {
     }
     New-Item -ItemType Directory -Path $Target -Force | Out-Null
 
-    $items = Get-ChildItem -LiteralPath $SourceDir -Force |
-        Where-Object { $_.Name -notin $BetterUIDeployExcludeItems }
+    $sourceRoot = (Resolve-Path -LiteralPath $SourceDir).Path
+    $items = Get-ChildItem -LiteralPath $SourceDir -Force -Recurse |
+        Where-Object { -not (Test-BetterUIDeployExcludedPath -SourceRoot $sourceRoot -Path $_.FullName) } |
+        Sort-Object { $_.FullName.Length }
 
-    if ($IsLinux) {
-        # Copy-Item is unreliable on GVFS SMB mounts; use native cp instead.
-        foreach ($item in $items) {
-            if ($item.PSIsContainer) {
-                & cp -r -- $item.FullName $Target
-            } else {
-                & cp -- $item.FullName $Target
-            }
+    foreach ($item in $items) {
+        $relativePath = [System.IO.Path]::GetRelativePath($sourceRoot, $item.FullName)
+        $relativeSegments = @($relativePath -split '[\\/]') | Where-Object { $_ }
+        $destinationPath = Join-PathSegments -Root $Target -Segments $relativeSegments
+
+        if ($item.PSIsContainer) {
+            New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
+            continue
         }
-    } else {
-        foreach ($item in $items) {
-            $destinationPath = Join-Path $Target $item.Name
-            if ($item.PSIsContainer) {
-                Copy-Item -LiteralPath $item.FullName -Destination $destinationPath -Recurse -Force
-            } else {
-                Copy-Item -LiteralPath $item.FullName -Destination $destinationPath -Force
-            }
+
+        $destinationParent = Split-Path $destinationPath -Parent
+        if (-not (Test-Path -LiteralPath $destinationParent -PathType Container)) {
+            New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
+        }
+
+        if ($IsLinux) {
+            # Copy-Item is unreliable on GVFS SMB mounts; use native cp per file.
+            & cp -- $item.FullName $destinationPath
+        } else {
+            Copy-Item -LiteralPath $item.FullName -Destination $destinationPath -Force
         }
     }
 
