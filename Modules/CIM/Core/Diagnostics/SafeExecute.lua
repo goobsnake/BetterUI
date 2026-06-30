@@ -84,7 +84,7 @@ local function SafeSuccessTraceEnabled()
     if not (L and type(L.TraceEvent) == "function") then return false end
     if type(L.EnabledFor) == "function" then
         local category = (L.CATEGORY and L.CATEGORY.SAFE) or "SAFE"
-        local level = L.LEVEL and L.LEVEL.INFO or nil
+        local level = L.LEVEL and L.LEVEL.DEBUG or nil
         if level ~= nil then
             return L.EnabledFor(level, category)
         end

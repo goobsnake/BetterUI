@@ -35,7 +35,7 @@ automatically resizing each to the target dimensions defined in Get-ResourceOrbF
 .\ConvertPngToDds.ps1 -InputPath '.\foo.png' -OutputDir '.\out' -SkipMipmaps
 
 .EXAMPLE
-.\ConvertPngToDds.ps1 -InputPath '.\Modules\ResourceOrbFrames\CustomTextures' -Profile ResourceOrbFrames -Format DXT5
+.\ConvertPngToDds.ps1 -InputPath '.\Modules\ResourceOrbFrames\Textures' -Profile ResourceOrbFrames -Format DXT5
 #>
 param(
     [Parameter(Mandatory = $true, Position = 0, HelpMessage = 'Path to PNG/DDS file or directory containing files')]

@@ -93,6 +93,29 @@ assert_true(ok1, "SafeExecute returns true on success")
 assert_equal(5, result1, "Result is correct (2 + 3 = 5)")
 assert_equal(0, #debugOutput, "No error logged")
 
+print("\nTest: success trace uses the DEBUG sink gate")
+reset()
+local enabledChecks = {}
+local traceEvents = {}
+BETTERUI.Log = {
+    CATEGORY = { SAFE = "SAFE" },
+    LEVEL = { DEBUG = 10, INFO = 20 },
+    EnabledFor = function(level, category)
+        enabledChecks[#enabledChecks + 1] = { level = level, category = category }
+        return level == 10 and category == "SAFE"
+    end,
+    TraceEvent = function(category, event, phase, data)
+        traceEvents[#traceEvents + 1] = { category = category, event = event, phase = phase, data = data }
+    end,
+}
+local ok1b, result1b = BETTERUI.CIM.SafeExecute("TraceSuccess", function() return "ok" end)
+assert_true(ok1b, "SafeExecute still succeeds with success tracing enabled")
+assert_equal("ok", result1b, "success result survives tracing")
+assert_equal(10, enabledChecks[1] and enabledChecks[1].level, "success trace pre-check uses DEBUG level")
+assert_equal(1, #traceEvents, "success trace is emitted when DEBUG SAFE is enabled")
+assert_equal("safe_execute", traceEvents[1] and traceEvents[1].event, "success trace event name is stable")
+BETTERUI.Log = nil
+
 -- Test 2: Error in function is caught
 print("\nTest: Error in function is caught")
 reset()

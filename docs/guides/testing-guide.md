@@ -89,12 +89,15 @@ The static validators above are part of the **regular test routine** — run the
 ## Pre-Testing Checklist
 
 1. **Backup SavedVariables** - Copy `Documents/Elder Scrolls Online/live/SavedVariables/BetterUI.lua`
-2. **Enable debug output** - Logging streams to `live/Logs/Interface.log` in real time (tail it while you play; filter with `grep '[BUI]'`). Pick a level with a preset:
-   - `/builog preset debug` - captures INFO/WARN/ERROR plus caught `pcall`/nil-function faults; low volume, message-only. Use to surface bugs and what led to them.
-   - `/builog preset verbose` - captures everything including data payloads/return values; rate-limited (per-frame/second budget) so it can't hitch a frame. Use for a full play-by-play.
+2. **Enable builog output** - Logging streams to `live/Logs/Interface.log` in real time (tail it while you play; filter with `grep '[BUI]'`). Pick a preset by intent:
+   - `/builog preset info` - INFO/WARN/ERROR milestones, payloads off, tight live-play budget.
+   - `/builog preset watch` - DEBUG+ with AI context, snapshots, and flow landmarks; default for live play-test diagnosis.
+   - `/builog preset debug` - DEBUG+ without watch enrichment; useful for focused developer flow checks.
+   - `/builog preset inspect` - TRACE+ with watch enrichment; richest stream for short repro windows.
+   - `/builog preset trace` - TRACE+ without watch enrichment; use only when you need raw step detail.
    - `/builog preset off` - stop file logging and restore error popups.
 
-   Lower-level toggles still work under the presets: `/builog on|off` (legacy full capture), `/builog level <trace|debug|info|warn|error>`, `/builog popups on|off` (legacy no-op; builog stays file-only), `/builog test` (writes a verification line), `/builog status`. Logging is inert and file-only, so legacy `/script BETTERUI.Debug("test")` (now routed through `BETTERUI.Log`) only writes once logging is enabled.
+   Lower-level commands still work under the presets: `/builog on|off`, `/builog level <trace|debug|info|warn|error>`, `/builog mark <text>`, `/builog recent|errors [n]`, `/builog capture [secs]`, `/builog screenshot [label]`, `/builog snapshot`, `/builog check` or `/builog test`, and `/builog status`. `chat on|off` and `popups on|off` are compatibility no-ops for BetterUI breadcrumbs; builog stays file-only while enabled. Logging is inert until enabled, so legacy `/script BETTERUI.Debug("test")` (now routed through `BETTERUI.Log`) only writes once logging is enabled. See [builog-developer-guide.md](../reference/builog-developer-guide.md) for instrumentation standards.
 3. **Clear UI errors** - `/reloadui` before starting session
 
 ---

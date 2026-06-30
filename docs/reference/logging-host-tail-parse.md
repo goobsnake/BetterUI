@@ -42,15 +42,15 @@ wraps it. One on-disk record looks like:
 | `sid=<sid>` | Session id — one UI load. Changes on `/reloadui`. Group records by `sid`. |
 | `seq=<seq>` | Monotonic per-record counter. **Order by `seq`**, not by ISO ts (ts has 1s resolution). |
 | `<LEVEL>` | `TRACE` < `DEBUG` < `INFO` < `WARN` < `ERROR`. |
-| `<CATEGORY>` | `SCENE LIST NAV KEYBIND FOOTER CATEGORY SEARCH SORT BATCH ACTION LIFECYCLE SAFE SETTINGS CONTROL PERF STATE SCREENSHOT GENERAL` — plus `LOG`, the logger's own meta-lines: the startup header, the `disabled` marker, `/builog test` breadcrumbs, and the `dropped=` rate-limit summary. Every line, meta or not, carries a `<LEVEL> <CATEGORY>` pair, so one regex parses the whole stream. |
+| `<CATEGORY>` | `SCENE LIST NAV KEYBIND FOOTER CATEGORY SEARCH SORT BATCH ACTION DIALOG CURRENCY LIFECYCLE SAFE SETTINGS CONTROL PERF STATE SCREENSHOT GENERAL` — plus `LOG`, the logger's own meta-lines: the startup header, the `disabled` marker, `/builog check`/`test` breadcrumbs, and the `dropped=` rate-limit summary. Every line, meta or not, carries a `<LEVEL> <CATEGORY>` pair, so one regex parses the whole stream. |
 | `\| <event>` | Everything after the first ` \| ` is the human message + `k=v` payload. The ` \| ` is the parse boundary. |
 
 The ISO-8601 timestamp at line start is authoritative **wall-clock**; `<gameMs>` is
 uptime. Use `seq` for ordering, ISO ts for wall-clock correlation.
 
-### Context suffix (watch preset only)
+### Context suffix (watch and inspect presets)
 
-In `watch`, every line self-anchors with the parts that are set:
+In `watch` and `inspect`, every line self-anchors with the parts that are set:
 
 ```
 scene=<sceneName> view=<subView> flow=<flowId> lastAction="<last user action>"
@@ -64,7 +64,7 @@ backslash-escaped.
 
 ## Watch-stream landmarks
 
-- **`STATE | watch session started ...`** — startup preamble: `schema preset sid api
+- **`STATE | diagnostic session started -- live Interface.log stream ...`** — startup preamble: `schema preset sid api
   world player zone`, followed by `STATE | active addons count=.. names=..`. An AI
   joining mid-stream should scan back to the most recent one to anchor the session.
 - **`STATE | snapshot scene=.. <provider fields>`** — periodic heartbeat (~10s) + live

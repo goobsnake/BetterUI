@@ -5,6 +5,7 @@ turn on logging, play, and have a human **or an AI** read the live stream out of
 game's `Interface.log` while you reproduce an issue — no `/reloadui`, no SavedVars export.
 
 - Design: [logging-observability-strategy.md](logging-observability-strategy.md)
+- Developer standards: [builog-developer-guide.md](builog-developer-guide.md)
 - Host tail/parse contract: [logging-host-tail-parse.md](logging-host-tail-parse.md)
 - AI live-monitor skill (timed back-and-forth play-test): [tools/builog-monitor/SKILL.md](../../tools/builog-monitor/SKILL.md), driven by [tools/builog-monitor/monitor.sh](../../tools/builog-monitor/monitor.sh)
 - On-disk path of the live log: see the `interface-log-location` memory (it's outside the
@@ -50,9 +51,10 @@ is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
 
 `watch` is `debug` plus five things an AI tailing the log needs:
 
-1. **Per-line context suffix** — every line self-anchors with `scene= view= flow=
-   lastAction=".."`, so one line tells you where the player is and what they last did.
-2. **Startup preamble** — a `STATE | watch session started` record with schema/api/world/
+1. **Per-line context suffix** — every `watch` and `inspect` line self-anchors with
+   `scene= view= flow= lastAction=".."`, so one line tells you where the player is and
+   what they last did.
+2. **Startup preamble** — a `STATE | diagnostic session started -- live Interface.log stream` record with schema/api/world/
    player/zone + the enabled-addon list, so an AI joining mid-stream can anchor.
 3. **Periodic state snapshot** — a `STATE | snapshot` heartbeat (~10s) of registered
    providers; built-ins include `visible=0/1`, inventory/banking rows, category, pending
@@ -104,7 +106,7 @@ that absence as an instrumentation or control-flow bug.
 | `screenshot [label]` | call ESO `TakeScreenshot()` and emit request/saved markers for host correlation |
 | `screenshot auto off\|error\|warn` | persisted opt-in auto capture: off, ERROR only, or WARN+ERROR with duplicate-aware per-issue throttling |
 | `snapshot` | emit one STATE snapshot now |
-| `test` / `status` | write test breadcrumbs / print current state |
+| `check` / `test` / `status` | write diagnostic breadcrumbs / print current state |
 
 `/buihealth` — one-shot health summary (preset, active, sid, schema, error count, file-sink
 scheduled/pending/dropped/budget, sceneLog + watch state).
@@ -117,7 +119,7 @@ scheduled/pending/dropped/budget, sceneLog + watch state).
 <area>: <what happened> [-> <named value>]
 ```
 
-- **Self-describing in the MESSAGE.** Under `debug`/`info` the payload table is dropped, so
+- **Self-describing in the MESSAGE.** Under `info` the payload table is dropped, so
   the message must stand alone: `"category change started -> index 3"`, not
   `"startCategoryChange"`. The static lint enforces this:
 

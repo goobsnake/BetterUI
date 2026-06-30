@@ -2,7 +2,7 @@
 
 BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, configurable layouts, and high-impact quality-of-life upgrades for Inventory, Banking, and Resource Frames.
 
-[COLOR="darkorange"][SIZE="3"][B]What's New in v3.00 (Major Update)[/B][/SIZE][/COLOR]
+[COLOR="darkorange"][SIZE="3"][B]Current Release Highlights[/B][/SIZE][/COLOR]
 [LIST]
 [*]Major system architecture migration offering increased UI performance and error handling
 [*]Complete modernization of Resource Orb Frames with new high-res textures, fluid animations, and combat indicators

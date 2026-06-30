@@ -97,8 +97,10 @@ check(p1 and p2 and p2.seq == p1.seq + 1, "seq increments by one per record")
 
 -- 5. Meta-line fixture (InterfaceLog.FormatLine shape): startup/header lines carry an
 --    explicit INFO LOG level/category so a strict tailer keeps them instead of dropping.
-p = parse("[BUI] 100 sid=12345678 seq=42 INFO LOG | watch session started -- schema=...")
+p = parse("[BUI] 100 sid=12345678 seq=42 INFO LOG | diagnostic session started -- live Interface.log stream schema=...")
 check(p ~= nil and p.level == "INFO" and p.cat == "LOG", "meta-line parses as INFO LOG")
+p = parse("[BUI] 100 sid=00000000 seq=0 INFO LOG | diagnostic breadcrumb")
+check(p ~= nil and p.sid == "00000000", "fallback meta-line sid remains parser-safe hex")
 
 -- 6. drop-summary fixture: the documented coverage-gap marker parses as WARN LOG.
 p = parse("[BUI] 100 sid=12345678 seq=99 WARN LOG | dropped=12 reason=rate_limit")

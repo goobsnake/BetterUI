@@ -28,7 +28,7 @@ Mechanism (proof of concept):
   (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
   "Lua Error:" entries are real game errors whose traceback matters.
 
-Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | screenshot [label] | screenshot auto off|error|warn | check | status
+Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | screenshot [label] | screenshot auto off|error|warn | check|test | status
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -116,7 +116,7 @@ end
 -- resolve it at call time; degrade to placeholders if it isn't ready.
 local function LogMeta()
     local L = BETTERUI.Log
-    local sid = (L and L.GetSessionId and L.GetSessionId()) or "------"
+    local sid = (L and L.GetSessionId and L.GetSessionId()) or "00000000"
     local seq = (L and L.NextSeq and L.NextSeq()) or 0
     return sid, seq
 end
@@ -789,12 +789,12 @@ local function HandleCommand(args)
         else
             Out("Logger not loaded yet.")
         end
-    elseif args == "check" then
+    elseif args == "check" or args == "test" then
         local wasEnabled = enabled
         if not wasEnabled then InterfaceLog.SetEnabled(true) end
         InterfaceLog.Write("diagnostic check breadcrumb A (direct Write)")
         BETTERUI.Debug("diagnostic check breadcrumb B (via BETTERUI.Debug)")
-        if BETTERUI.Log then BETTERUI.Log.Error("SAFE", "diagnostic check breadcrumb C (via Log.Error)") end
+        if BETTERUI.Log and BETTERUI.Log.Error then BETTERUI.Log.Error("SAFE", "diagnostic check breadcrumb C (via Log.Error)") end
         Out("Wrote diagnostic breadcrumbs to Interface.log.")
         if not wasEnabled then Out("(Logging was off; left it ON. Use /builog off to stop.)") end
     elseif args == "popups on" then
@@ -834,7 +834,7 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check|test | status")
     end
 end
 

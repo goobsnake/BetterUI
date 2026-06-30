@@ -576,7 +576,7 @@ popup-suppressed throwaway Lua error — the engine logs every uncaught error to
 Interface.log. Verified: suppression hides the dialog but the line still logs.
 
 - **API** (`Modules/CIM/Core/Diagnostics/Log.lua`): `BETTERUI.Log.Trace/Debug/Info/Warn/Error(category, message, data?)`.
-  `category` ∈ `BETTERUI.Log.CATEGORY.{SCENE,LIST,NAV,KEYBIND,FOOTER,CATEGORY,SEARCH,SORT,BATCH,ACTION,LIFECYCLE,SAFE,SETTINGS,GENERAL}`.
+  `category` ∈ `BETTERUI.Log.CATEGORY.{SCENE,LIST,NAV,KEYBIND,FOOTER,CATEGORY,SEARCH,SORT,BATCH,ACTION,DIALOG,CURRENCY,LIFECYCLE,SAFE,SETTINGS,CONTROL,PERF,STATE,SCREENSHOT,GENERAL}`.
   `data` (optional) is the structured payload. Pass a **small table of scalar fields** —
   it renders logfmt-style as `key=value key=value` (values via `BETTERUI.Log.Summarize`,
   keys sorted, capped at 8 fields). Don't pre-`Summarize` a field value (the renderer does
@@ -607,9 +607,11 @@ Interface.log. Verified: suppression hides the dialog but the line still logs.
   `Log.SetPayloadCapture` toggles payload rendering; `Log.GetPreset()` reads back `custom` once a
   low-level setter diverges from a preset.
 - **Surface toggles** (`/builog`): `on|off` (enable/disable), `preset off|info|watch|debug|trace|inspect`,
-  `test`, `popups on|off` (legacy no-op; builog stays file-only), `level <lvl>`, `status`
-  (frame/sec/pending budget + scheduled/dropped/suppressed counters). `chat on|off` is a
-  legacy no-op; builog stays file-only.
+  `check|test`, `mark <text>`, `recent|errors [n]`, `capture [secs]`, `screenshot [label]`,
+  `screenshot auto off|error|warn`, `snapshot`, `popups on|off` (legacy no-op; builog stays
+  file-only), `level <lvl>`, `status` (frame/sec/pending budget + scheduled/dropped/suppressed
+  counters). `chat on|off` is a legacy no-op; builog stays file-only.
 - `BETTERUI.Debug` / `BETTERUI.DebugError` / `BETTERUI.CIM.Debug.Log` are back-compat
   wrappers that route through `BETTERUI.Log`. `SafeExecute` caught errors route through
   `Log.Error("SAFE", ...)` while builog is active, or ESO's native Lua error popup when it is off.
+- Detailed standards for new instrumentation live in [builog-developer-guide.md](builog-developer-guide.md).

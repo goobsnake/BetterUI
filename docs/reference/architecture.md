@@ -1,7 +1,7 @@
 # BetterUI Architecture Overview
 
 > **Audience**: Developers working on the BetterUI codebase.
-> **Last Updated**: 2026-04-21
+> **Last Updated**: 2026-06-30
 
 ---
 
@@ -124,7 +124,7 @@ CIM/
 ├── Core/
 │   ├── Batching/          # BatchActions, BatchConfig, MultiSelectManager/Mixin
 │   ├── Data/              # Types, SearchManager, SortManager, navigation state
-│   ├── Diagnostics/       # Log, InterfaceLog, SafeExecute, FeatureFlags, DebugCommands
+│   ├── Diagnostics/       # Log, InterfaceLog, WatchMode, SceneLog, Screenshot, SafeExecute
 │   ├── Integration/       # HookFactory, MarketIntegration, ResearchCache
 │   ├── Lifecycle/         # RuntimeSetup, EventRegistry, scene helpers
 │   ├── Presentation/      # Fonts, number formatting, keybind helpers
@@ -222,7 +222,7 @@ All addon code lives under the global `BETTERUI` table. `BetterUI.lua` creates t
 ```lua
 BETTERUI = {
     name = "BetterUI",
-    version = "3.06",
+    version = "3.07",
     WindowManager = GetWindowManager(),
     EventManager = GetEventManager(),
     DefaultSettings = { Modules = {} },

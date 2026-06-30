@@ -18,7 +18,6 @@ BetterUI always resolves orb and bar art from this folder.
 - `OrbSplitter.dds`
 - `OrnamentLeft.dds`
 - `OrnamentRight.dds`
-- `Shield.dds`
 
 ## 2) Fast drop-in workflow
 
@@ -51,18 +50,19 @@ Notes:
 
 ## 4) File contract (recommended defaults)
 
-| File | Canvas | Shipped Compression | Shipped Mips | Render Role | Key art requirement |
-|---|---:|---|---:|---|---|
-| `Bar.dds` | 1024x512 | DXT5 | 11 | XP/Cast/Mount frame backdrop | Ornate horizontal frame with a COMPLETELY transparent center window; optional glass detail belongs on the surrounding frame only |
-| `OrnamentLeft.dds` | 512x512 | DXT5 | 1 | Left health ornament | Portrait-scale Daedric/demon Elder Scrolls look; red jewels/trinkets; orb socket must match right ornament circumference |
-| `OrnamentRight.dds` | 512x512 | DXT5 | 1 | Right magicka/stamina ornament | Portrait-scale hero/elven Elder Scrolls look; blue/green jewels/trinkets; orb socket must match left ornament circumference |
-| `OrbBorder.dds` | 512x512 | DXT5 | 1 | Health/Magicka/Stamina border ring | Must include a globe glass-lens look; center must stay transparent enough to reveal `OrbFill.dds`; rim must still read clearly in ornament-hidden slim mode |
-| `OrbFill.dds` | 256x256 | DXT5 | 1 | Animated orb fill | Full circular noise/liquid tile; left half feeds Magicka, mirrored right half feeds Stamina |
-| `OrbSplitter.dds` | 512x512 | DXT5 | 1 | Magicka/Stamina divider | Vertical divider motif, centered with transparent padding |
-| `OrbOverlay_Shield.dds` | 256x256 | DXT5 | 1 | Shield overlay ring fill | Circular shield-energy texture with clean alpha edges |
-| `Shield.dds` | 64x64 | DXT5 | 1 | Small shield icon near shield value | Readable at very small size (drawn around 32x32 base) |
-| `Health.dds` | 512x512 | DXT5 | 10 | Overlay when left ornament hidden | Decorative health emblem that overlays left orb when ornament hidden |
-| `MagStam.dds` | 512x512 | DXT5 | 10 | Overlay when right ornament hidden | Decorative right-side emblem for hidden-ornament mode |
+| File | Profile Canvas | Render Role | Key art requirement |
+|---|---:|---|---|
+| `Bar.dds` | 512x512 | XP/back-bar frame backdrop | Ornate horizontal frame with a COMPLETELY transparent center window; optional glass detail belongs on the surrounding frame only |
+| `CastBar.dds` | 512x512 | Cast-bar frame backdrop | Shares the bar-frame visual language; center window must remain transparent for runtime fill |
+| `MountBar.dds` | 512x512 | Mount-stamina frame backdrop | Shares the bar-frame visual language; center window must remain transparent for runtime fill |
+| `OrnamentLeft.dds` | 512x512 | Left health ornament | Portrait-scale Daedric/demon Elder Scrolls look; red jewels/trinkets; orb socket must match right ornament circumference |
+| `OrnamentRight.dds` | 512x512 | Right magicka/stamina ornament | Portrait-scale hero/elven Elder Scrolls look; blue/green jewels/trinkets; orb socket must match left ornament circumference |
+| `OrbBorder.dds` | 512x512 | Health/Magicka/Stamina border ring | Must include a globe glass-lens look; center must stay transparent enough to reveal `OrbFill.dds`; rim must still read clearly in ornament-hidden slim mode |
+| `OrbFill.dds` | 512x512 | Animated orb fill | Full circular noise/liquid tile; left half feeds Magicka, mirrored right half feeds Stamina |
+| `OrbSplitter.dds` | 512x512 | Magicka/Stamina divider | Vertical divider motif, centered with transparent padding |
+| `OrbOverlay_Shield.dds` | 512x512 | Shield overlay ring fill | Circular shield-energy texture with clean alpha edges |
+
+The ResourceOrbFrames converter profile currently normalizes every required asset to `512x512`.
 
 ## 5) Runtime size and placement summary
 
@@ -105,9 +105,9 @@ Global layout (ornaments visible):
 Global layout (ornaments hidden):
 
 ```text
-[OrbHealth + Health.dds overlay] [Back Bar / Front Bar / Quickslot / Companion] [OrbResource + MagStam.dds overlay]
-               |                                   |                                           |
-             [XP Bar]                           [Cast Bar]                                 [Mount Bar]
+[OrbHealth] [Back Bar / Front Bar / Quickslot / Companion] [OrbResource]
+     |                         |                         |
+   [XP Bar]                [Cast Bar]              [Mount Bar]
 ```
 
 Left orb layer stack (front to back):
@@ -122,7 +122,6 @@ OrbFill.dds (Fog2, dark base)
 Shield stack (front to back):
 
 ```text
-Shield.dds icon
 Shield label
 OrbOverlay_Shield.dds
 ```
@@ -162,17 +161,45 @@ Use each prompt block independently. Each prompt includes its own style rules an
 Batch consistency recommendations:
 - Use one fixed seed for the entire set (if the model supports seeds).
 - Keep one reference board/style image set for all files.
-- Keep model/render settings constant across all 10 assets.
+- Keep model/render settings constant across all 9 assets.
 
-### `Bar.dds` (1024x512)
+### `Bar.dds` (512x512)
 
 ```text
 Create an Elder Scrolls fantasy ARPG UI bar-frame texture.
-Canvas: 1024x512, transparent background and the graphic is REQUIRED to be centered in the canvas, no art should be outside the canvas or clipped.
+Canvas: 512x512, transparent background and the graphic is REQUIRED to be centered in the canvas, no art should be outside the canvas or clipped.
 Style: painterly-realistic game UI texture art (not photoreal, not flat vector), aged metal/stone filigree, subtle grime, controlled highlights, top-left key light.
 Design: ornate horizontal frame with decorative end caps and a center window.
 Critical center rule: the middle window must be COMPLETELY transparent so runtime fill is clearly visible; optional glass effects should stay on the surrounding frame, not in the clear window area.
 Composition: centered and balanced, with strongest detail on left/right caps and lighter detail near center.
+Alpha quality: smooth anti-aliased transparency with no halo artifacts.
+Forbidden: text, logos, watermarks, signatures, UI labels, jewels, trinkets, unrelated symbols.
+Avoid: opaque center slabs, heavy fog in center window, cropped frame edges, blur, watermark artifacts, lettering.
+```
+
+### `CastBar.dds` (512x512)
+
+```text
+Create an Elder Scrolls fantasy ARPG cast-bar frame texture.
+Canvas: 512x512, transparent background and the graphic is REQUIRED to be centered in the canvas, no art should be outside the canvas or clipped.
+Style: same cohesive painterly-realistic metal/stone filigree family as Bar.dds, but visually tuned for a cast/channel bar.
+Design: compact horizontal frame with a transparent center window for runtime cast progress fill.
+Critical center rule: the middle window must be COMPLETELY transparent so runtime fill is clearly visible.
+Composition: centered and balanced, readable at small cast-bar scale.
+Alpha quality: smooth anti-aliased transparency with no halo artifacts.
+Forbidden: text, logos, watermarks, signatures, UI labels, jewels, trinkets, unrelated symbols.
+Avoid: opaque center slabs, heavy fog in center window, cropped frame edges, blur, watermark artifacts, lettering.
+```
+
+### `MountBar.dds` (512x512)
+
+```text
+Create an Elder Scrolls fantasy ARPG mount-stamina bar frame texture.
+Canvas: 512x512, transparent background and the graphic is REQUIRED to be centered in the canvas, no art should be outside the canvas or clipped.
+Style: same cohesive painterly-realistic metal/stone filigree family as Bar.dds, with subtle motion/stamina identity rather than a separate color theme.
+Design: compact horizontal frame with a transparent center window for runtime mount-stamina fill.
+Critical center rule: the middle window must be COMPLETELY transparent so runtime fill is clearly visible.
+Composition: centered and balanced, readable at small mount-bar scale.
 Alpha quality: smooth anti-aliased transparency with no halo artifacts.
 Forbidden: text, logos, watermarks, signatures, UI labels, jewels, trinkets, unrelated symbols.
 Avoid: opaque center slabs, heavy fog in center window, cropped frame edges, blur, watermark artifacts, lettering.
@@ -231,11 +258,11 @@ Forbidden: text, logos, watermarks, signatures, UI labels, unrelated symbols.
 Avoid: fully opaque center regions, weak/indistinct rim silhouette, square mask edges, flat plastic look, text artifacts.
 ```
 
-### `OrbFill.dds` (256x256)
+### `OrbFill.dds` (512x512)
 
 ```text
 Create an animated-friendly orb fill texture tile for ESO BetterUI ResourceOrbFrames.
-Canvas: 256x256.
+Canvas: 512x512.
 Style: fantasy ARPG energy texture, painterly-realistic liquid/smoke pattern with smooth gradients and in black and white.
 Behavior requirement: must work as full-circle fill and as left-half/right-half mirrored usage without visible directional breakage.
 Color behavior: keep texture tint-friendly so runtime red/blue/green colorization remains clear and high-contrast.
@@ -257,11 +284,11 @@ Forbidden: text, logos, watermarks, signatures, UI labels, unrelated symbols.
 Avoid: thick blocky divider bars, off-center divider placement, opaque full-width backgrounds.
 ```
 
-### `OrbOverlay_Shield.dds` (256x256)
+### `OrbOverlay_Shield.dds` (512x512)
 
 ```text
 Create a circular shield-energy overlay texture.
-Canvas: 256x256, transparent background.
+Canvas: 512x512, transparent background.
 Style: Elder Scrolls fantasy ARPG magical effect, painterly-realistic glow with controlled highlights.
 Design: centered shield ring/glow motif with soft alpha falloff.
 Behavior requirement: readable over health orb without hiding underlying orb form.
@@ -270,58 +297,21 @@ Forbidden: text, logos, watermarks, signatures, UI labels, unrelated symbols.
 Avoid: hard-edged opaque disks, square corners, lettering/text artifacts.
 ```
 
-### `Shield.dds` (64x64)
-
-```text
-Create a tiny shield icon for UI display.
-Canvas: 64x64, transparent background.
-Style: Elder Scrolls fantasy ARPG icon style, painterly-realistic but clean silhouette.
-Design: high readability at small size (~32x32 on-screen equivalent), minimal noise.
-Forbidden: text, logos, watermarks, signatures, UI labels, unrelated symbols.
-Avoid: tiny unreadable micro-detail, low-contrast muddy silhouettes, text artifacts.
-```
-
-### `Health.dds` (512x512)
-
-```text
-Create a left-side health overlay emblem used when the left ornament is hidden.
-Canvas: 512x512, transparent background.
-Style: Elder Scrolls fantasy ARPG overlay motif, painterly-realistic ornamental design.
-Design: centered circular emblem with health-side identity and red-accent bias.
-Behavior requirement: must not block center number readability when layered over the orb.
-Alpha quality: smooth anti-aliased transparency with no halo artifacts.
-Forbidden: text, logos, watermarks, signatures, UI labels, unrelated symbols.
-Avoid: opaque center plates, busy high-noise center areas over text zone, literal typography.
-```
-
-### `MagStam.dds` (512x512)
-
-```text
-Create a right-side magicka/stamina overlay emblem used when the right ornament is hidden.
-Canvas: 512x512, transparent background.
-Style: Elder Scrolls fantasy ARPG overlay motif, painterly-realistic ornamental design.
-Design: centered circular emblem that complements split blue/green orb usage.
-Color rule: bias details toward blue/green accents.
-Behavior requirement: must not block center number readability when layered over the orb.
-Alpha quality: smooth anti-aliased transparency with no halo artifacts.
-Forbidden: text, logos, watermarks, signatures, UI labels, unrelated symbols.
-Avoid: opaque center blocking layers, style mismatch versus health overlay, text artifacts.
-```
 
 ## 9) AI Batch Instruction Template (All Files)
 
 Use this when your image model supports multi-image output in one request:
 
 ```text
-Generate a 10-file ESO BetterUI ResourceOrbFrames custom texture set.
+Generate a 9-file ESO BetterUI ResourceOrbFrames custom texture set.
 Use the per-file prompts exactly as written (they are self-contained and style-locked).
 Output these files with exact canvas sizes and transparent backgrounds where required:
-Bar (1024x512), OrnamentLeft (512x512), OrnamentRight (512x512), OrbBorder (512x512),
-OrbFill (256x256), OrbSplitter (512x512), OrbOverlay_Shield (256x256), Shield (64x64),
-Health (512x512), MagStam (512x512).
+Bar (512x512), CastBar (512x512), MountBar (512x512), OrnamentLeft (512x512),
+OrnamentRight (512x512), OrbBorder (512x512), OrbFill (512x512), OrbSplitter (512x512),
+OrbOverlay_Shield (512x512).
 Hard requirements:
 - OrbBorder has glass-lens interior + transparent center for OrbFill visibility.
-- Bar center window is COMPLETELY transparent; optional glass detail is allowed on the surrounding frame only.
+- Bar/CastBar/MountBar center windows are COMPLETELY transparent; optional glass detail is allowed on the surrounding frame only.
 - Ornaments are portrait/bust scale (not giant statues), with matched geometry and mirrored socket placement.
 - Left ornament = Daedric/demon Elder Scrolls identity with red accents.
 - Right ornament = hero/elven Elder Scrolls identity with blue/green accents.

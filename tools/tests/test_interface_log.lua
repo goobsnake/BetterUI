@@ -115,6 +115,7 @@ err = tostring(err)
 check(ok == false, "Deferred callback raises an error (engine logs it to file)")
 check(err:find("[BUI]", 1, true) ~= nil, "Logged line carries the [BUI] tag")
 check(err:find("4242", 1, true) ~= nil, "Logged line carries the timestamp")
+check(err:find("sid=00000000", 1, true) ~= nil, "Fallback session id is parser-safe hex")
 -- Newlines collapse to a SPACE, never the ` | ` field separator (which would split one
 -- record into bogus fields for a host parser); tabs collapse to a space too.
 check(err:find("hello world tab", 1, true) ~= nil, "Newlines/tabs flattened to one record (space, not the | separator)")
@@ -252,6 +253,10 @@ local statusText = table.concat(chatOutput, "\n")
 check(statusText:find("Sink budget: frame=2 sec=4 pending=", 1, true) ~= nil
     and statusText:find("/6", 1, true) ~= nil,
     "/builog status reports frame/sec and pending/maxPending budget")
+
+chatOutput = {}
+check(pcall(builog, "test") and table.concat(chatOutput, "\n"):find("Wrote diagnostic breadcrumbs", 1, true) ~= nil,
+    "/builog test aliases the diagnostic check command")
 
 builog("preset debug")
 check(persisted["CIM:interfaceLogEnabled"] == true, "/builog preset debug persists enabled=true")

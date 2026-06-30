@@ -72,6 +72,12 @@ BetterUI follows a 4-level testing strategy:
 | Tooltip Helpers | `test_tooltip_helpers.lua` | Tooltip utility testing |
 | Utilities | `test_utilities.lua` | Core utility function testing |
 | Nameplates Reset | `test_nameplates_reset.lua` | Nameplates settings reset |
+| Builog Logger | `test_log.lua` | Log facade, presets, flow records, screenshots, recent/error rings |
+| InterfaceLog | `test_interface_log.lua` | `/builog` command surface, file sink, budgets, popup suppression |
+| Log Parse Contract | `test_log_parse_contract.lua` | Golden `[BUI]` line shape for host parsers |
+| Builog Flow Source | `test_builog_flow_source.lua` | Source-level replay landmarks for live diagnosis |
+| Builog Monitor Source | `test_builog_monitor_source.lua` | Host monitor parser and output contracts |
+| WatchMode | `test_watchmode.lua` | Watch/inspect context, snapshots, and lifecycle behavior |
 
 ## How to Run Tests
 

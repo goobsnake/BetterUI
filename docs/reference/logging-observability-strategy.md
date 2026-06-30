@@ -1,6 +1,6 @@
 # BetterUI Logging & Observability Strategy
 
-Status: **approved design, ready to implement.** Produced by a 4-model collaboration (Claude + GPT-5.5 +
+Status: **implemented strategy and calibration reference.** Produced by a 4-model collaboration (Claude + GPT-5.5 +
 Kimi + Gemini 3.1 Pro) across **four adversarial rounds** with ESOUI + BetterUI source evidence. Round
 working notes: `docs/tmp/logging-observability-*` (safe to delete once this lands).
 
@@ -39,12 +39,12 @@ focus: changed -> "Rubedite Ingot" row=14 list=bank
 category: changed -> "Weapons" from="Armor" via=rightBumper
 ```
 
-**Categories:** keep the set; **add `CONTROL`, `PERF`, and `STATE`** (`STATE` = startup preamble, heartbeat,
-periodic snapshots).
+**Categories:** keep the set stable. Current public categories include `CONTROL`, `PERF`, `STATE`,
+`SCREENSHOT`, `DIALOG`, and `CURRENCY`; `LOG` is reserved for logger meta-lines.
 
-**Identifier resolution** (Phase-1 prerequisite — new `Diagnostics/Names.lua`): cheap `Control/Parent/Scene/
+**Identifier resolution** (implemented in `Diagnostics/Names.lua`): cheap `Control/Parent/Scene/
 Category/Sort/Item/FlattenText/PreviewText`; only behind `EnabledFor` or in WARN/ERROR. Human names; on
-failure `<unresolved:type:id>`, never `tostring(userdata)`. *(Must exist before the sweep.)*
+failure `<unresolved:type:id>`, never `tostring(userdata)`.
 
 **Caller + source location.** Two fields:
 - `caller` = explicit cheap tag, **required on WARN/ERROR** (`caller=bank:listRefresh`). Friendly display.
@@ -76,8 +76,8 @@ attempted=child,ancestorGlobal,global scene=bank view=bank flow=none lastAction=
 | `inspect` | TRACE | on | 4000 / 80000 (loosened) | `watch` enrichment at `trace` depth — richest live-AI stream |
 
 `verbose` -> alias of `trace` (`ai` -> `watch` for one release with a deprecation notice). Maintainer's call:
-**ship loose, calibrate in-client.** Safety valves: `/builog cat <CATEGORY> off|on` (WARN/ERROR always pass)
-and `/builog capture` burst mode (temporary budget, auto-restore <=15s). `maxPending` is enforced as a hard
+**ship loose, calibrate in-client.** Safety valves: temporary category mutes through `WatchMode.SetMutedCategories`
+and `/builog capture [secs]` burst mode (temporary trace window, default 5s, capped 1-60s). `maxPending` is enforced as a hard
 deferred-sink backlog cap and exposed in `/builog status`/`/buihealth` stats as `pending`.
 
 ## 3. Real-time AI monitoring (the only handoff)
@@ -109,8 +109,8 @@ filter; tagged-error tracebacks are ignorable, untagged `Lua Error:` blocks are 
    temporary user overrides via `WatchMode.SetMutedCategories`; WARN/ERROR always pass, and TRACE only passes in
    `inspect`/`trace`.
 
-**Dev controls:** `/builog mark "<text>"` injects a marker (`INFO STATE | watch: mark -> "..."`) so you tell
-the AI exactly where a bug hit. `Log.NewFlow(kind,name)` + `Log.SetLastAction(...)` feed flow/context.
+**Dev controls:** `/builog mark "<text>"` injects a marker (`INFO STATE | mark: ...`) so you tell
+the AI exactly where a bug hit. `Log.FlowBegin(...)`, `Log.FlowEnd(...)`, and `Log.SetLastAction(...)` feed flow/context.
 
 **In-memory rings** (live, no file): recent-events ring + error ring; `/builog recent [n]`, `/builog errors
 [n]`. **Host tail/parse contract (ship the spec):** filter `[BUI]`, drop tagged tracebacks, keep untagged
@@ -124,7 +124,7 @@ guarded capped traceback at the protected-call boundary); never suppress *real* 
 policy. **Perf markers** (`Perf.lua`, behind `EnabledFor`, WARN on threshold). **Health `/buihealth`** (sink
 availability, popup suppression wanted-vs-current, preset/level/payload/muted-cats, GetStats, scene
 registration, ring counts). **Snapshot providers** emit bounded `STATE` lines to the stream (never staged for
-file). **Capture mode** `/builog capture start|stop|dump` (bounded temporary preset+budget, auto-stop).
+file). **Capture mode** `/builog capture [secs]` temporarily raises to TRACE and auto-restores the previous preset.
 
 ## 5. Phased roadmap (real-time first; file-level; host-validated each slice)
 > **Status: phases 1–9 implemented + dual-model-reviewed.** Operator guide:
@@ -138,7 +138,7 @@ file). **Capture mode** `/builog capture start|stop|dump` (bounded temporary pre
    -> `off|info|watch|debug|trace|inspect` (inspect = trace verbosity + watch enrichment); budgets; enforced
    `maxPending` sink-backlog cap.
 2. **Name + caller/src infra** — new `Names.lua`; `DebugInfo.lua` (`CaptureCallerFrame` via guarded sync
-   `debug.traceback`, parse rules, caps); canonical keys; `Log.NewFlow`/`Log.SetLastAction`.
+   `debug.traceback`, parse rules, caps); canonical keys; `Log.FlowBegin`/`Log.FlowEnd`/`Log.SetLastAction`.
 3. **`watch` preset** — no-default-mute category policy; per-line context suffix; startup preamble (incl. active addons);
    rich state snapshot (provider registry); flow envelopes; `/builog mark`; host tail/parse spec + reference
    snippet.
@@ -153,11 +153,12 @@ file). **Capture mode** `/builog capture start|stop|dump` (bounded temporary pre
 8. **Broad ~170-site sweep + enforcement** — WARN/ERROR first -> ACTION/SAFE -> SCENE/LIFECYCLE ->
    CATEGORY/NAV/SORT/SEARCH -> LIST/KEYBIND/FOOTER -> TRACE-only; static check (missing `-> value`, missing
    WARN/ERROR caller, raw `userdata`/`tostring(parent)`/`cacheKey=`).
-9. **Docs/playbook** — `Diagnostics/README.md`, `docs/guides/logging-playbook.md` (watch workflow, host
-   tail/parse, known limits), command help, close the planning task.
+9. **Docs/playbook** — `Diagnostics/README.md`, `docs/reference/logging-playbook.md`, and
+   `docs/reference/builog-developer-guide.md` (watch workflow, host tail/parse, developer standards,
+   known limits), command help, close the planning task.
 
-**Already shipped this cycle:** 3-tier `info/debug/trace` presets + tier budgets + reload persistence;
-gamepad-safe per-emit popup suppression; global `SceneLog`; `/builog`,`/buiscene`; findControl flood fix.
+**Already shipped this cycle:** `info/watch/debug/trace/inspect` presets + tier budgets + reload persistence;
+gamepad-safe per-emit popup suppression; global `SceneLog`; `/builog`, `/buihealth`, `/buiscene`; findControl flood fix.
 
 ## 6. Risks & guardrails
 Deferred-error cost ceiling (gate hot paths with `EnabledFor`/`*Lazy`; `watch` supports temporary category mutes when needed; `src`

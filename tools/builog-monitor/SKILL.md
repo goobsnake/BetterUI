@@ -68,7 +68,7 @@ events with no pending BetterUI request are logged as `source="user" trigger="ex
 requested=false`.
 Full surface: `/builog on|off | preset … | popups on|off | level <lvl> |
 mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] |
-screenshot auto off|error|warn | snapshot | test | status`.
+screenshot auto off|error|warn | snapshot | check|test | status`.
 
 ## Step 2 — find interface.log
 

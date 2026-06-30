@@ -12,6 +12,10 @@
 
 - [architecture.md](./reference/architecture.md) - addon structure, module boundaries, and runtime flow
 - [events-reference.md](./reference/events-reference.md) - BetterUI custom callback events and payloads
+- [builog-developer-guide.md](./reference/builog-developer-guide.md) - developer standards for BetterUI live diagnostics and instrumentation
+- [logging-observability-strategy.md](./reference/logging-observability-strategy.md) - implemented logging strategy and calibration notes
+- [logging-playbook.md](./reference/logging-playbook.md) - operator workflow for `/builog` capture and live diagnosis
+- [logging-host-tail-parse.md](./reference/logging-host-tail-parse.md) - host parser contract for `[BUI]` records in `Interface.log`
 - [tribal-knowledge.md](./reference/tribal-knowledge.md) - ESO engine quirks and hard-won implementation patterns
 
 ## Specialized Guides
@@ -24,6 +28,7 @@
 - [feature-requests.md](./planning/feature-requests.md) - durable feature requests and parity gaps
 - [priority-backlog.md](./planning/priority-backlog.md) - active critical/high-priority execution backlog
 - [project-improvements.md](./planning/project-improvements.md) - phased implementation tracker
+- [completed-improvements.md](./planning/completed-improvements.md) - dated summaries of closed improvement work
 
 ## Publishing Assets
 
@@ -33,5 +38,5 @@
 ## Audience Map
 
 - Contributors: `guides/contributing-guide.md`, `guides/testing-guide.md`, `guides/agent-collaboration-guide.md`
-- Maintainers: `guides/iterative-improvement-guide.md`, `planning/priority-backlog.md`, `planning/project-improvements.md`
+- Maintainers: `guides/iterative-improvement-guide.md`, `reference/builog-developer-guide.md`, `planning/priority-backlog.md`, `planning/project-improvements.md`
 - Release management: `publishing/addon-description.txt`, `publishing/changelog.txt`

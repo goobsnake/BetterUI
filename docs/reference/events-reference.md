@@ -16,13 +16,13 @@ All BetterUI custom events follow the pattern:
 
 **Purpose**: Fired when the Y-button action dialog is being initialized.
 
-**Publisher**: `Inventory/Actions/ItemActionsDialog.lua`
+**Publisher**: `Inventory/Actions/ActionDialogHooks.lua`
 
 **Consumers**:
-- `Inventory/Actions/ItemActionHandlers.lua` - Registers inventory dialog keybinds
+- `Inventory/Actions/ItemActionsDialog.lua` - Populates inventory dialog entries and keybinds
 - `Banking/Actions/BankingActions.lua` - Registers banking dialog keybinds
 
-**Payload**: `(inventorySlot)` - The slot data for the selected item
+**Payload**: `(dialog, data)` - The active ESO dialog object and the original setup payload.
 
 ---
 
@@ -30,14 +30,13 @@ All BetterUI custom events follow the pattern:
 
 **Purpose**: Fired when the action dialog is closing.
 
-**Publisher**: `Inventory/Actions/ItemActionsDialog.lua`
+**Publisher**: `Inventory/Actions/ActionDialogHooks.lua`
 
 **Consumers**:
 - `Inventory/Actions/ItemActionsDialog.lua` - Removes dialog keybinds
-- `Inventory/Inventory.lua` - Restores main keybinds
 - `Banking/Actions/BankingActions.lua` - Removes banking dialog keybinds
 
-**Payload**: None
+**Payload**: `(dialog)` - The dialog being closed.
 
 ---
 
@@ -45,12 +44,13 @@ All BetterUI custom events follow the pattern:
 
 **Purpose**: Fired when a user confirms an action in the dialog.
 
-**Publisher**: `Inventory/Actions/ItemActionsDialog.lua`
+**Publisher**: `Inventory/Actions/ActionDialogHooks.lua`
 
 **Consumers**:
-- `Inventory/Inventory.lua` - Executes the selected action
+- `Inventory/Actions/ItemActionsDialog.lua` - Executes the selected inventory action
+- `Banking/Actions/BankingActions.lua` - Executes the selected banking action
 
-**Payload**: `(actionIndex)` - The index of the selected action
+**Payload**: `(dialog)` - The dialog whose selected entry should be confirmed.
 
 ---
 
@@ -60,12 +60,12 @@ All BetterUI custom events follow the pattern:
 
 **Purpose**: Forces an immediate layout refresh of orb frames.
 
-**Publisher**: 
-- `ResourceOrbFrames/ResourceOrbFrames.lua` (weapon swap)
-- Settings panel (scale/offset changes)
+**Publisher**:
+- `ResourceOrbFrames/Core/OrbEvents.lua` (weapon swap/resource layout changes)
+- `ResourceOrbFrames/Settings/SettingsSubmenus.lua` (scale/offset changes)
 
 **Consumers**:
-- `ResourceOrbFrames/Core/OrbVisuals.lua` - Rebuilds orb positions
+- `ResourceOrbFrames/ResourceOrbFrames.lua` - Rebuilds orb positions through the active visuals/layout pipeline
 
 **Payload**: None
 
@@ -75,10 +75,10 @@ All BetterUI custom events follow the pattern:
 
 ```lua
 -- Firing an event
-CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH")
+CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH", dialog)
 
 -- Registering for an event
-CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", function()
+CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", function(dialog)
     -- Handle the event
 end)
 
