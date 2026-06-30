@@ -251,8 +251,8 @@ do
         "Apply restores persisted /builog screenshot auto mode after reload")
     assert_eq(screenshotAutoCalls[1] and screenshotAutoCalls[1].persist, false,
         "Apply restores screenshot auto mode without re-persisting it")
-    assert_eq(chatSurfaceCalls[1] and chatSurfaceCalls[1].value, true,
-        "Apply restores persisted /builog chat surfacing after reload")
+    assert_eq(chatSurfaceCalls[1] and chatSurfaceCalls[1].value, false,
+        "Apply forces legacy /builog chat surfacing off after reload")
     assert_eq(chatSurfaceCalls[1] and chatSurfaceCalls[1].persist, false,
         "Apply restores chat surfacing without re-persisting it")
     assert_eq(minLevelCalls[1] and minLevelCalls[1].name, "trace",

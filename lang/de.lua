@@ -388,8 +388,8 @@ ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "\xc4ndert, wie viele Zeil
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "L\xf6schbest\xe4tigung f\xfcr Post \xfcberspringen")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Maus-Scrollgeschwindigkeit im linken Tooltip")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "\xc4ndert, wie schnell das Men\xfc beim Dr\xfccken der Trigger springt.")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Anzahl der zu \xfcberspringenden Zeilen bei Trigger")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "\xc4ndert, wie schnell das Men\xfc beim Dr\xfccken der Trigger springt.")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Zeilen pro Trigger")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Zeilen je Triggerdruck. Bereich: 1-1000.")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Tooltip-Schriftgr\xf6\xdfe")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Erm\xf6glicht die Anzeige von mehr oder weniger Gegenstandsinformationen auf einmal in Tooltips")
 
@@ -460,8 +460,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "Setzt die Gegenstan
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Schnellzerst\xf6rungsfunktion aktivieren")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP", "**VORSICHTIG VERWENDEN** Zerst\xf6rt Gegenst\xe4nde schnell ohne Best\xe4tigungsdialog!")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Trigger verwenden, um zum n\xe4chsten Gegenstand zu springen")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Anstatt bei jedem Triggerdruck eine bestimmte Anzahl von Elementen zu \xfcberspringen (Standardverhalten), springt dies zum n\xe4chsten Element")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Trigger springt zum n\u{e4}chsten Gegenstand")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Springt direkt zum n\u{e4}chsten Gegenstand statt nach Zeilenzahl.")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "\"Wert\" durch Marktpreis ersetzen")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Ersetzt die Wert-Spalte in Inventar und Bank, sofern verf\xfcgbar, durch Marktpreise aus MM, ATT oder TTC.")
 ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Preis in Handwerks-Tooltips anzeigen")

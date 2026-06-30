@@ -524,17 +524,16 @@ assert_eq("General", pages[1] and pages[1].key, "General tab is first for module
 assert_eq("General", pages[1] and pages[1].name, "General tab uses localized label text")
 assert_eq("Trading", pageByKey.TradingHouse and pageByKey.TradingHouse.name,
     "module tabs use short localized labels")
-assert_eq("Enable Banking", pageByKey.Banking and pageByKey.Banking.controls[1].name,
-    "Banking tab starts with its master module toggle")
-assert_eq("Enable Writs", pageByKey.Writs and pageByKey.Writs.controls[1].name,
-    "Writs tab exists even without dedicated sub-settings")
+assert_eq("General", pageByKey.Banking and pageByKey.Banking.controls[1].name,
+    "Banking tab starts with its General section")
+assert_eq("Enable Banking", pageByKey.Banking and pageByKey.Banking.controls[2].name,
+    "Banking master module toggle is the top option in General")
+assert_eq("General", pageByKey.Writs and pageByKey.Writs.controls[1].name,
+    "Writs tab creates a General section without dedicated sub-settings")
+assert_eq("Enable Writs", pageByKey.Writs and pageByKey.Writs.controls[2].name,
+    "Writs master module toggle is inside General")
 assert_true(pageByKey.Inventory ~= nil and pageByKey.ResourceOrbFrames ~= nil,
     "module tab list includes configured module pages")
-local hasBankingGuildBankGate = false
-for _, control in ipairs((pageByKey.Banking and pageByKey.Banking.controls) or {}) do
-    hasBankingGuildBankGate = hasBankingGuildBankGate or control.name == "Enable Guild Bank"
-end
-assert_true(not hasBankingGuildBankGate, "Banking tab strips the redundant guild-bank enable gate")
 local nameplateEnableControlCount = 0
 for _, control in ipairs((pageByKey.Nameplates and pageByKey.Nameplates.controls) or {}) do
     if control.name == "Enable Nameplates" then
@@ -542,18 +541,106 @@ for _, control in ipairs((pageByKey.Nameplates and pageByKey.Nameplates.controls
     end
 end
 assert_eq(1, nameplateEnableControlCount, "Nameplates tab keeps only the master enable gate")
+assert_true((pageByKey.Banking and pageByKey.Banking.controls[2].disabled) == nil,
+    "module master toggle remains available when the module is off")
 assert_true(addonPanels["BETTERUI_Modules"] ~= nil, "master settings panel registers once")
 
 local betterUiSource = read_source("BetterUI.lua")
+local bankingSettingsSource = read_source("Modules/Banking/Settings/SettingsPanel.lua")
+assert_true(betterUiSource:find("SI_BETTERUI_GUILD_BANK_ENABLED", 1, true) == nil
+    and bankingSettingsSource:find("SI_BETTERUI_GUILD_BANK_ENABLED", 1, true) ~= nil,
+    "module tab redundant-gate filter does not remove Banking's module-specific Guild Bank setting")
+assert_true(betterUiSource:find('if controls[2] and controls[2].type == "description" then', 1, true) ~= nil
+    and betterUiSource:find("InsertModuleMasterToggleInGeneralSection", 1, true) ~= nil,
+    "module master toggles insert after any General description row")
 assert_true(betterUiSource:find("GetSettingsTabButtonsPerRow", 1, true) ~= nil
     and betterUiSource:find("minButtonWidth = 150", 1, true) ~= nil,
     "tab window uses a minimum button width before adding another tab column")
-assert_true(betterUiSource:find("CreateSettingsWidgetRow", 1, true) ~= nil
-    and betterUiSource:find("RefreshSettingsWidgetTree", 1, true) ~= nil,
+assert_true(betterUiSource:find("CreateSettingsTwinContainer", 1, true) ~= nil
+    and betterUiSource:find("RefreshSettingsWidgetTree", 1, true) ~= nil
+    and betterUiSource:find("GetWidgetCreationParent", 1, true) ~= nil,
     "tab window keeps half-width rows stable and refreshes visible lazy controls")
+assert_true(betterUiSource:find("GetControlHeight", 1, true) ~= nil
+    and betterUiSource:find("container:SetHeight(math.max(GetControlHeight(leftWidget), GetControlHeight(rightWidget)))", 1, true) ~= nil,
+    "half-width tab rows reserve child height so submenu children cannot collapse together")
+assert_true(betterUiSource:find("SETTINGS_TAB_MIN_USABLE_WIDTH = 320", 1, true) ~= nil
+    and betterUiSource:find("ReadMeasuredWidth", 1, true) ~= nil
+    and betterUiSource:find("local contentWidth = width - 60", 1, true) ~= nil
+    and betterUiSource:find("return SETTINGS_TAB_DEFAULT_WIDTH", 1, true) ~= nil,
+    "tab layout derives width from the resolved LAM panel instead of the narrow custom tab control")
+assert_true(betterUiSource:find("local pageParent = ReadControlField(lamPanel, \"scroll\") or lamPanel or tabControl", 1, true) ~= nil
+    and betterUiSource:find("local container = wm:CreateControl(nil, pageParent, CT_CONTROL)", 1, true) ~= nil
+    and betterUiSource:find("container.panel = lamPanel or tabControl", 1, true) ~= nil
+    and betterUiSource:find("container:SetAnchor(TOPLEFT, tabControl, BOTTOMLEFT, 0, 10)", 1, true) ~= nil,
+    "tab pages are S'rendarr-style siblings under the LAM scroll, not children of the tab custom control")
+assert_true(betterUiSource:find("local controlPanel", 1, true) ~= nil
+    and betterUiSource:find("controlPanel = LAM:RegisterAddonPanel(panelId, panelData)", 1, true) ~= nil
+    and betterUiSource:find("RegisterSettingsTabsLamCallbacks(controlPanel, pages)", 1, true) ~= nil
+    and betterUiSource:find("LAM-PanelControlsCreated", 1, true) ~= nil,
+    "tab creation waits for LAM-PanelControlsCreated with the actual LAM panel, matching S'rendarr's lifecycle")
+assert_true(betterUiSource:find("CreateSettingsTabsControlNow", 1, true) ~= nil
+    and betterUiSource:find("tabControl.__betterUiTabsPending = true", 1, true) ~= nil
+    and betterUiSource:find("defer(function()", 1, true) ~= nil
+    and betterUiSource:find("SETTINGS_TAB_CREATE_DELAY_MS", 1, true) ~= nil,
+    "tab control creation is deferred until the LAM panel reports settled dimensions")
+assert_true(betterUiSource:find("GetSettingsTabButtonPanelHeight", 1, true) ~= nil
+    and betterUiSource:find("minHeight = function() return GetSettingsTabButtonPanelHeight(#pages, SETTINGS_TAB_DEFAULT_WIDTH) end", 1, true) ~= nil
+    and betterUiSource:find("maxHeight = function() return GetSettingsTabButtonPanelHeight(#pages, SETTINGS_TAB_DEFAULT_WIDTH) end", 1, true) ~= nil
+    and betterUiSource:find("maxHeight = 220", 1, true) == nil,
+    "tab custom control reserves only the multi-row tab strip height")
+assert_true(betterUiSource:find("container.panel = ResolveLamPanel(parent)", 1, true) ~= nil,
+    "half-width paired setting containers preserve LAM panel metadata")
+assert_true(betterUiSource:find("ConfigureLamPanelProxy", 1, true) == nil
+    and betterUiSource:find("GetLamPanelWidth", 1, true) == nil,
+    "tab layout avoids proxy width shims that truncate native LAM controls")
+assert_true(betterUiSource:find("CreateSettingsSimulatedSubmenuHeader", 1, true) ~= nil
+    and betterUiSource:find("AddSettingsLayoutEntry", 1, true) ~= nil
+    and betterUiSource:find("CreateSettingsPageWidgets(parent, widgetData.controls, true, context, childStates)", 1, true) ~= nil
+    and betterUiSource:find("CreateSettingsPageWidgets(widget, widgetData.controls, true)", 1, true) == nil,
+    "submenu tab controls render S'rendarr-style flat sibling controls instead of native nested LAM submenus")
+assert_true(betterUiSource:find("ApplySettingsDropdownGeometry", 1, true) ~= nil
+    and betterUiSource:find("dropdown.m_containerWidth = width", 1, true) ~= nil
+    and betterUiSource:find("combobox:SetDimensions(width, height)", 1, true) ~= nil,
+    "tab dropdowns repair combobox and dropdown-list width after LAM creates them")
+assert_true(betterUiSource:find("SETTINGS_SIMULATED_SUBMENU_TYPE = \"betterui_submenu\"", 1, true) ~= nil
+    and betterUiSource:find("ReflowSettingsPageLayout", 1, true) ~= nil
+    and betterUiSource:find("RefreshSettingsPanelScroll", 1, true) ~= nil
+    and betterUiSource:find("SetControlHidden(control, not visible)", 1, true) ~= nil
+    and betterUiSource:find("RefreshSettingsWidgetTree(layoutParent)", 1, true) ~= nil
+    and betterUiSource:find("SETTINGS_SUBMENU_ARROW_DOWN_TEXTURE", 1, true) ~= nil
+    and betterUiSource:find("SETTINGS_SUBMENU_ARROW_UP_TEXTURE", 1, true) ~= nil
+    and betterUiSource:find("wm:CreateControl(nil, header, CT_TEXTURE)", 1, true) ~= nil
+    and betterUiSource:find("RefreshSettingsSubmenuBlockBackground(entries, width)", 1, true) ~= nil
+    and betterUiSource:find("disabled = widgetData.disabled", 1, true) ~= nil
+    and betterUiSource:find("\t\tApplySettingsSubmenuGeometry(parent, widget)", 1, true) == nil,
+    "tab submenus keep full-width flat layout with S'rendarr-style disclosure panels")
+assert_true(betterUiSource:find("ApplySettingsEditboxGeometry", 1, true) ~= nil
+    and betterUiSource:find("clone.isExtraWide = true", 1, true) ~= nil
+    and betterUiSource:find("widgetData.isExtraWide = true", 1, true) ~= nil
+    and betterUiSource:find("container:SetAnchor(BOTTOMLEFT, widget, BOTTOMLEFT, 0, 0)", 1, true) ~= nil
+    and betterUiSource:find("editbox:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, -4, -2)", 1, true) ~= nil,
+    "tab editboxes use full-width LAM layout and visible input geometry")
+local utilitiesSource = read_source("Modules/CIM/Core/Utilities.lua")
+assert_true(betterUiSource:find("BETTERUI.RaiseNativeError", 1, true) ~= nil
+    and betterUiSource:find("chatPrint(\"|c0066ff[BETTERUI]|r", 1, true) == nil
+    and utilitiesSource:find("IsBuilogEnabled", 1, true) ~= nil
+    and utilitiesSource:find("RaiseNativeError", 1, true) ~= nil
+    and utilitiesSource:find("chatRouter", 1, true) == nil,
+    "DebugError writes to builog or native errors without leaking to chat")
+assert_true(betterUiSource:find("SI_BETTERUI_BUILOG_POPUPS", 1, true) == nil,
+    "builog settings do not expose a popup toggle that can leak generated breadcrumbs")
+assert_true(betterUiSource:find("CloneControlForModuleTab", 1, true) ~= nil
+    and betterUiSource:find("CombineModuleDisabled", 1, true) ~= nil
+    and betterUiSource:find("clone.disabledLabel = CombineModuleDisabled", 1, true) ~= nil,
+    "module tabs clone settings with visible disabled-state wrappers and openable submenus")
 assert_true(betterUiSource:find("tabControl.__betterUiTabsCreated = true", 1, true) ~= nil
-    and betterUiSource:find("tabControl.__betterUiTabContent = content", 1, true) ~= nil,
-    "tab window creation only becomes reusable after content exists")
+    and betterUiSource:find("local buttonCreator = rawget(_G, \"LAMCreateControl\") and LAMCreateControl.button", 1, true) ~= nil
+    and betterUiSource:find("tabControl.__betterUiTabButtons[index] = buttonControl", 1, true) ~= nil
+    and betterUiSource:find("LayoutSettingsTabButtons(tabControl, width)", 1, true) ~= nil,
+    "tab window creation uses LAM button controls and relayouts existing buttons on refresh")
+assert_true(betterUiSource:find("for index = 1, #pages do\n\t\tEnsureSettingsTabPageCreated(tabControl, index)", 1, true) == nil
+    and betterUiSource:find("SelectSettingsTabPage(tabControl, GetInitialSettingsTabIndex(pages))", 1, true) ~= nil,
+    "tab window lazily creates selected pages while visible so LAM submenu/dropdown sizing can resolve")
 assert_true(betterUiSource:find('{ name = "Writs", namespace = "Writs", dependsOnCIM = true }', 1, true) ~= nil,
     "Writs registry entry declares the CIM dependency")
 assert_true(betterUiSource:find('{ moduleName = "Writs", nameStringId = "SI_BETTERUI_ENABLE_WRITS", tooltipStringId = "SI_BETTERUI_ENABLE_WRITS_TOOLTIP", updatesCIM = true }', 1, true) ~= nil,

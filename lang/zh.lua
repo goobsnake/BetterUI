@@ -387,8 +387,8 @@ ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "\u{66f4}\u{6539}\u{804a}\
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "\u{8df3}\u{8fc7}\u{90ae}\u{4ef6}\u{5220}\u{9664}\u{786e}\u{8ba4}")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "\u{5de6}\u{624b}\u{63d0}\u{793a}\u{4e0a}\u{7684}\u{9f20}\u{6807}\u{6eda}\u{52a8}\u{901f}\u{5ea6}")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "\u{66f4}\u{6539}\u{6309}\u{6273}\u{673a}\u{952e}\u{65f6}\u{83dc}\u{5355}\u{8df3}\u{8fc7}\u{7684}\u{901f}\u{5ea6}\u{3002}")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "\u{6273}\u{673a}\u{952e}\u{8df3}\u{8fc7}\u{7684}\u{884c}\u{6570}")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "\u{66f4}\u{6539}\u{6309}\u{6273}\u{673a}\u{952e}\u{65f6}\u{83dc}\u{5355}\u{8df3}\u{8fc7}\u{7684}\u{901f}\u{5ea6}\u{3002}")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "\u{6bcf}\u{6b21}\u{6273}\u{673a}\u{8df3}\u{8fc7}\u{884c}\u{6570}")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "\u{6bcf}\u{6b21}\u{6309}\u{6273}\u{673a}\u{524d}\u{8fdb}\u{7684}\u{884c}\u{6570}\u{3002}\u{8303}\u{56f4}\u{ff1a}1-1000\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "\u{63d0}\u{793a}\u{5b57}\u{4f53}\u{5927}\u{5c0f}")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "\u{5141}\u{8bb8}\u{5728}\u{63d0}\u{793a}\u{4e2d}\u{4e00}\u{6b21}\u{663e}\u{793a}\u{66f4}\u{591a}\u{6216}\u{66f4}\u{5c11}\u{7684}\u{7269}\u{54c1}\u{4fe1}\u{606f}")
 
@@ -459,8 +459,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "\u{5c06}\u{7269}\u{
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "\u{542f}\u{7528}\u{5feb}\u{901f}\u{9500}\u{6bc1}\u{529f}\u{80fd}")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP", "**\u{8bf7}\u{8c28}\u{614e}\u{4f7f}\u{7528}** \u{5feb}\u{901f}\u{9500}\u{6bc1}\u{7269}\u{54c1}\u{ff0c}\u{65e0}\u{786e}\u{8ba4}\u{5bf9}\u{8bdd}\u{6846}\u{ff01}")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "\u{4f7f}\u{7528}\u{6273}\u{673a}\u{952e}\u{79fb}\u{52a8}\u{5230}\u{4e0b}\u{4e00}\u{4e2a}\u{7269}\u{54c1}")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "\u{6bcf}\u{6b21}\u{6309}\u{6273}\u{673a}\u{952e}\u{79fb}\u{52a8}\u{5230}\u{4e0b}\u{4e00}\u{4e2a}\u{7269}\u{54c1}\u{ff0c}\u{800c}\u{4e0d}\u{662f}\u{8df3}\u{8fc7}\u{4e00}\u{5b9a}\u{6570}\u{91cf}\u{7684}\u{7269}\u{54c1}\u{ff08}\u{9ed8}\u{8ba4}\u{5168}\u{5c40}\u{884c}\u{4e3a}\u{ff09}")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "\u{6273}\u{673a}\u{8df3}\u{5230}\u{4e0b}\u{4e00}\u{4e2a}\u{7269}\u{54c1}")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "\u{76f4}\u{63a5}\u{8df3}\u{5230}\u{4e0b}\u{4e00}\u{4e2a}\u{7269}\u{54c1}\u{ff0c}\u{800c}\u{4e0d}\u{662f}\u{6309}\u{884c}\u{6570}\u{524d}\u{8fdb}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "\u{5c06}\"\u{4ef7}\u{503c}\"\u{66ff}\u{6362}\u{4e3a}\u{5e02}\u{573a}\u{4ef7}\u{683c}")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "\u{5c06}\u{80cc}\u{5305}\u{548c}\u{94f6}\u{884c}\u{4e2d}\u{7684}\u{201c}\u{4ef7}\u{503c}\u{201d}\u{5217}\u{5728}\u{53ef}\u{7528}\u{65f6}\u{66ff}\u{6362}\u{4e3a} MM\u{3001}ATT \u{6216} TTC \u{7684}\u{5e02}\u{573a}\u{4ef7}\u{683c}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "\u{88c5}\u{5907}\u{7ed1}\u{5b9a}\u{4fdd}\u{62a4}")

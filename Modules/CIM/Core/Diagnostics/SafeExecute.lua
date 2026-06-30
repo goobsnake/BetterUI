@@ -22,16 +22,48 @@ local function now()
     return math.floor((os.clock and os.clock() or 0) * 1000)
 end
 
--- Route a SAFE-category error through the unified logger when present (guarded so a
--- partially-loaded logger can't raise from the error handler), else the legacy Debug seam.
+local function IsBuilogEnabled()
+    local interfaceLog = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
+    return interfaceLog and interfaceLog.IsEnabled and interfaceLog.IsEnabled() == true
+end
+
+local function raiseNativeError(context, msg, src)
+    local message = string.format("%s: %s", context, msg)
+    if src then
+        message = message .. "\n" .. src
+    end
+
+    if type(BETTERUI.RaiseNativeError) == "function" then
+        return BETTERUI.RaiseNativeError(message)
+    end
+
+    local defer = rawget(_G, "zo_callLater")
+    if type(defer) == "function" then
+        defer(function() error("[BETTERUI] " .. message, 0) end, 0)
+        return true
+    end
+    return false
+end
+
+-- Route a SAFE-category error through builog when active, otherwise surface the
+-- caught fault through the native Lua error popup path.
 local function logSafeError(context, msg, src)
     local L = BETTERUI.Log
-    if L and type(L.Error) == "function" then
+    if IsBuilogEnabled() and L and type(L.Error) == "function" then
         local category = (L.CATEGORY and L.CATEGORY.SAFE) or "SAFE"
         pcall(L.Error, category, string.format("%s: %s", context, msg), src and { src = src } or nil)
-    elseif type(BETTERUI.Debug) == "function" then
-        BETTERUI.Debug(string.format("[Error] %s: %s", context, msg))
+        return
     end
+
+    if IsBuilogEnabled() then
+        local interfaceLog = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
+        if interfaceLog and type(interfaceLog.Write) == "function" then
+            pcall(interfaceLog.Write, string.format("%s: %s", context, msg))
+            return
+        end
+    end
+
+    raiseNativeError(context, msg, src)
 end
 
 local function logSafeSuccess(context, elapsedMs, result)
@@ -104,15 +136,14 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
     local elapsedMs = traceSuccess and (now() - startMs) or nil
 
     if not ok then
-        -- Surface the caught error through the unified logger: ERROR level -> Interface.log
-        -- when logging is active (so swallowed faults stop being invisible). Inert (silent)
-        -- for normal players with logging disabled, preserving the legacy swallow behavior.
+        -- Surface the caught error through builog when active; otherwise schedule a
+        -- native Lua error so normal players get ESO's standard error popup.
         local msg = safeStr(result, "<error>")
         -- Lift the boundary fault location: Lua error() prefixes the message with
         -- "<file>.lua:<line>: " at the START, so anchor to ^ (never capture a .lua:line that
         -- appears LATER in the message), and allow spaces/parens in the path. For
         -- error(table) / engine errors without a leading prefix, fall back to the
-        -- SafeExecute call boundary so swallowed faults still have a navigable src.
+        -- SafeExecute call boundary so caught faults still have a navigable src.
         local src = srcFromErrorMessage(msg) or srcFromSafeExecuteBoundary()
         logSafeError(context, msg, src)
     elseif traceSuccess then

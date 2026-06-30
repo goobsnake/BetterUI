@@ -22,16 +22,38 @@ function zo_callLater(callback, ms)
     return "stub-call-name"
 end
 
+local fakeTime = 4242
 function GetGameTimeMilliseconds()
-    return 4242
+    return fakeTime
 end
 
 ZO_ERROR_FRAME = { suppressErrorDialog = false }
 SLASH_COMMANDS = {}
 local chatOutput = {}
+EVENT_PLAYER_DEACTIVATED = 9001
+local registeredEvents = {}
+EVENT_MANAGER = {}
+function EVENT_MANAGER:RegisterForEvent(name, eventCode, callback)
+    registeredEvents[name] = { eventCode = eventCode, callback = callback }
+    return true
+end
 
 function d(message)
     chatOutput[#chatOutput + 1] = tostring(message)
+end
+
+local exitCalls = {}
+function ReloadUI(scope)
+    exitCalls[#exitCalls + 1] = { name = "ReloadUI", scope = scope }
+    return "reload:" .. tostring(scope)
+end
+function LogOut()
+    exitCalls[#exitCalls + 1] = { name = "LogOut" }
+    return "logout"
+end
+function Quit()
+    exitCalls[#exitCalls + 1] = { name = "Quit" }
+    return "quit"
 end
 
 -- ============================================================================
@@ -71,11 +93,17 @@ check(capturedDeferred == nil, "No error scheduled while disabled")
 
 -- Slash command registers at load.
 check(type(SLASH_COMMANDS["/builog"]) == "function", "/builog command registered")
+check(registeredEvents.BetterUI_InterfaceLogReloadQuiesce
+    and registeredEvents.BetterUI_InterfaceLogReloadQuiesce.eventCode == EVENT_PLAYER_DEACTIVATED,
+    "reload quiesce event registered")
 
 -- Enabling turns on global popup suppression.
 IL.SetEnabled(true)
 check(IL.IsEnabled() == true, "Enabled after SetEnabled(true)")
 check(ZO_ERROR_FRAME.suppressErrorDialog == true, "Popup suppression applied on enable")
+IL.SetSuppressPopups(false)
+check(IL.GetSuppressPopups() == true, "legacy popup suppression setter remains file-only")
+check(ZO_ERROR_FRAME.suppressErrorDialog == true, "generated builog breadcrumbs stay popup-suppressed")
 
 -- Write schedules a deferred error carrying a formatted, flattened line.
 local scheduled = IL.Write("hello\nworld\ttab")
@@ -163,14 +191,17 @@ end
 BETTERUI.Settings = { Modules = {} }
 
 -- Minimal Log facade so the /builog preset branch (ApplyPreset + PrintStatus) resolves.
+local sinkState = {}
 BETTERUI.Log = {
     LEVEL = { TRACE = 1, DEBUG = 2, INFO = 3, WARN = 4, ERROR = 5 },
     ApplyPreset = function(name) return true, name end,
     GetPreset = function() return "debug" end,
     GetMinLevel = function() return 3 end,
     GetPayloadCapture = function() return false end,
-    GetSink = function() return false end,
-    SetSink = function() end,
+    GetSink = function(level, sinkName) return sinkState[tostring(level) .. ":" .. tostring(sinkName)] == true end,
+    SetSink = function(level, sinkName, on)
+        sinkState[tostring(level) .. ":" .. tostring(sinkName)] = on and true or false
+    end,
     SetMinLevel = function() end,
     LevelFromName = function() return nil end,
     InvalidateActive = function() end,
@@ -197,6 +228,18 @@ BETTERUI.CIM.Screenshot = {
 
 local builog = SLASH_COMMANDS["/builog"]
 check(type(builog) == "function", "/builog slash command is registered")
+
+sinkState = {}
+IL.SetChatSurface(true)
+check(sinkState["3:chat"] == false and sinkState["4:chat"] == false and sinkState["5:chat"] == false,
+    "SetChatSurface(true) is forced file-only")
+check(IL.GetChatSurface() == false, "GetChatSurface always reports disabled")
+check(persisted["CIM:interfaceLogChat"] == false, "legacy chat surface preference is cleared to false")
+
+chatOutput = {}
+builog("chat on")
+check(IL.GetChatSurface() == false and table.concat(chatOutput, "\n"):find("file-only", 1, true) ~= nil,
+    "/builog chat on cannot enable chat surfacing")
 
 builog("on")
 check(persisted["CIM:interfaceLogEnabled"] == true, "/builog on persists interfaceLogEnabled=true")
@@ -293,6 +336,60 @@ capturedDeferred = nil
 IL.WriteRaw("frame-present-test")
 check(pcall(capturedDeferred) == false, "breadcrumb is raised once the error frame exists again")
 check(ZO_ERROR_FRAME.suppressErrorDialog == true, "suppression re-asserted before raising (frame present)")
+IL.SetEnabled(false)
+
+-- ============================================================================
+-- RELOAD QUIESCE: BetterUI breadcrumbs are not raised during player deactivation
+-- ============================================================================
+
+ZO_ERROR_FRAME.suppressErrorDialog = false
+IL.SetEnabled(true)
+capturedDeferred = nil
+IL.WriteRaw("[BUI] 4242 sid=test seq=exit DEBUG STATE | queued before ReloadUI")
+local preReloadUiCallback = capturedDeferred
+check(type(preReloadUiCallback) == "function", "pre-ReloadUI breadcrumb scheduled")
+check(ReloadUI("ingame") == "reload:ingame", "ReloadUI hook preserves original return value")
+check(exitCalls[#exitCalls] and exitCalls[#exitCalls].name == "ReloadUI", "ReloadUI hook calls the original function")
+check(IL.IsQuiescing() == true, "ReloadUI hook enters InterfaceLog quiesce before teardown")
+check(pcall(preReloadUiCallback) == true, "pre-ReloadUI deferred breadcrumb is canceled by generation guard")
+fakeTime = fakeTime + 6000
+check(IL.IsQuiescing() == false, "ReloadUI hook quiesce expires")
+
+capturedDeferred = nil
+IL.WriteRaw("[BUI] 4242 sid=test seq=0 DEBUG STATE | queued before reload scene")
+local preUnsafeSceneCallback = capturedDeferred
+check(type(preUnsafeSceneCallback) == "function", "pre-scene breadcrumb scheduled before reload scene")
+local suppressedBeforeUnsafeScene = IL.GetStats().suppressed
+check(IL.WriteRaw('[BUI] 4242 sid=test seq=1 DEBUG SCENE | scene hudui hiding (from shown) scene="hudui" to="hiding"') == false,
+    "hudui hiding scene breadcrumb is dropped before it can popup during reload")
+check(IL.IsQuiescing() == true, "hudui hiding scene breadcrumb enters reload quiesce before player deactivation")
+check(pcall(preUnsafeSceneCallback) == true, "pre-scene deferred breadcrumb is canceled by reload-scene generation guard")
+check(capturedDeferred == preUnsafeSceneCallback, "hudui hiding scene breadcrumb does not schedule a new throwaway error")
+check(IL.GetStats().suppressed == suppressedBeforeUnsafeScene + 1, "unsafe reload-scene drop is counted")
+fakeTime = fakeTime + 6000
+check(IL.IsQuiescing() == false, "reload-scene quiesce expires before later logging resumes")
+
+capturedDeferred = nil
+IL.WriteRaw("[BUI] 4242 sid=test seq=2 DEBUG STATE | pre reload queued breadcrumb")
+local preReloadCallback = capturedDeferred
+local reloadHandler = registeredEvents.BetterUI_InterfaceLogReloadQuiesce.callback
+check(type(preReloadCallback) == "function", "pre-reload breadcrumb scheduled")
+check(type(reloadHandler) == "function", "reload quiesce callback is available")
+reloadHandler()
+check(IL.IsQuiescing() == true, "player deactivation enters InterfaceLog quiesce")
+check(pcall(preReloadCallback) == true, "pre-quiesce deferred breadcrumb is canceled by generation guard")
+
+local suppressedBeforeQuiesce = IL.GetStats().suppressed
+capturedDeferred = nil
+check(IL.WriteRaw("[BUI] 4242 sid=test seq=3 DEBUG STATE | during reload quiesce") == false,
+    "quiesce blocks new BetterUI breadcrumbs")
+check(capturedDeferred == nil, "quiesce does not schedule a throwaway error")
+check(IL.GetStats().suppressed == suppressedBeforeQuiesce + 1, "quiesced breadcrumb drop is counted")
+fakeTime = fakeTime + 6000
+check(IL.IsQuiescing() == false, "quiesce expires after the reload guard window")
+capturedDeferred = nil
+check(IL.WriteRaw("post-quiesce-test") == true, "file breadcrumb scheduling resumes after quiesce")
+if capturedDeferred then pcall(capturedDeferred) end
 IL.SetEnabled(false)
 
 -- A callback captured before /builog off must stay stale even if logging is turned back on

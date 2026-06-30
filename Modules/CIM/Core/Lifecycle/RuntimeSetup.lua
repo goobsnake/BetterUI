@@ -245,7 +245,9 @@ function RuntimeSetup.Apply(settings)
 
         local chatSurface = BETTERUI.GetSetting("CIM", "interfaceLogChat", nil)
         if chatSurface ~= nil and type(interfaceLog.SetChatSurface) == "function" then
-            interfaceLog.SetChatSurface(chatSurface == true, false)
+            -- Legacy saved chat-surface state is intentionally not restored:
+            -- builog diagnostics are file-only.
+            interfaceLog.SetChatSurface(false, false)
         end
 
         if BETTERUI.GetSetting("CIM", "interfaceLogEnabled", false) then

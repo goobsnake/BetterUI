@@ -95,8 +95,8 @@ that absence as an instrumentation or control-flow bug.
 | `on` / `off` | start / stop streaming (off restores error popups) |
 | `preset <name>` | apply a preset (off\|info\|watch\|debug\|trace\|inspect) |
 | `level <lvl>` | set just the min level (trace\|debug\|info\|warn\|error) |
-| `chat on\|off` | also surface INFO/WARN/ERROR to chat (file logging unchanged) |
-| `popups on\|off` | show / suppress the native Lua-error popup (errors still log) |
+| `chat on\|off` | legacy no-op; builog remains file-only |
+| `popups on\|off` | legacy no-op; BetterUI breadcrumbs stay file-only while builog is on |
 | `mark <text>` | drop a `STATE | mark: <text>` annotation into the live stream |
 | `recent [n]` | dump the last n records (any level) in chat |
 | `errors [n]` | dump the last n WARN/ERROR records in chat |

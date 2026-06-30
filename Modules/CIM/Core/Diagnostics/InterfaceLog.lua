@@ -28,7 +28,7 @@ Mechanism (proof of concept):
   (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
   "Lua Error:" entries are real game errors whose traceback matters.
 
-Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | screenshot [label] | screenshot auto off|error|warn | check | popups on|off | status
+Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | screenshot [label] | screenshot auto off|error|warn | check | status
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -39,7 +39,7 @@ BETTERUI.CIM.InterfaceLog = InterfaceLog
 local TAG = "[BUI]"
 
 local enabled = false          -- session breadcrumb logging on/off
-local suppressPopups = true    -- hide the error frame for our log-errors
+local suppressPopups = true    -- kept for saved-state compatibility; our log-errors are always suppressed
 local savedSuppressState = nil -- prior ZO_ERROR_FRAME.suppressErrorDialog, for restore
 
 -- Backpressure budget for the file sink. 0 = unlimited (default; preserves legacy
@@ -57,6 +57,10 @@ local pendingDrops = 0
 local dropSummaryScheduled = false
 local pendingCount = 0
 local emitGeneration = 0
+local quiesceUntilMs = 0
+local DEFAULT_RELOAD_QUIESCE_MS = 5000
+local reloadExitHooks = {}
+local reloadExitFunctionNames = { "ReloadUI", "LogOut", "Quit" }
 
 -- Engine globals are absent in the unit-test harness; resolve them defensively.
 local function G(name)
@@ -74,6 +78,21 @@ local function FrameStamp()
     local frameClock = G("GetFrameTimeMilliseconds")
     if type(frameClock) == "function" then return frameClock() end
     return Timestamp()
+end
+
+local function IsQuiescing()
+    return quiesceUntilMs > Timestamp()
+end
+
+local function EnterQuiesce(durationMs)
+    local duration = tonumber(durationMs) or DEFAULT_RELOAD_QUIESCE_MS
+    if duration < 0 then duration = 0 end
+    local untilMs = Timestamp() + duration
+    if untilMs > quiesceUntilMs then quiesceUntilMs = untilMs end
+    emitGeneration = emitGeneration + 1
+    pendingDrops = 0
+    dropSummaryScheduled = false
+    return true
 end
 
 -- Collapse newlines/tabs so each breadcrumb stays a single greppable record. Newlines
@@ -183,6 +202,20 @@ local function IsPriorityLine(line)
         or line:find(" KEYBIND |", 1, true) ~= nil
 end
 
+local function IsUnsafeReloadSceneLine(line)
+    if type(line) ~= "string" then return false end
+    if line:find(" DEBUG SCENE |", 1, true) == nil then return false end
+    return line:find("scene hudui hiding", 1, true) ~= nil
+        or (line:find('scene="hudui"', 1, true) ~= nil and line:find('to="hiding"', 1, true) ~= nil)
+end
+
+local function DropReloadSceneLine(line)
+    if not IsUnsafeReloadSceneLine(line) then return false end
+    EnterQuiesce(DEFAULT_RELOAD_QUIESCE_MS)
+    stats.suppressed = stats.suppressed + 1
+    return true
+end
+
 -- Raise one of OUR throwaway breadcrumb errors. CRITICALLY, re-assert popup
 -- suppression FIRST: the engine writes every uncaught error to Interface.log (what we
 -- want) but ALSO shows the UI error viewer unless ZO_ERROR_FRAME.suppressErrorDialog
@@ -197,12 +230,17 @@ local function RaiseSuppressed(line)
     -- player's real error popups). Bail before error() so a stale in-flight emit can't pop
     -- the error viewer once logging is disabled.
     if not enabled then return end
+    if IsQuiescing() then
+        stats.suppressed = stats.suppressed + 1
+        return
+    end
+    if DropReloadSceneLine(line) then return end
     -- When suppression is requested but cannot be guaranteed (ZO_ERROR_FRAME is mid-recreate
     -- during a /reloadui), DROP this breadcrumb instead of raising it. Raising an error we
     -- can't suppress is exactly what leaks the (undismissable, in gamepad) error viewer: the
     -- engine queues the unsuppressed error and pops it once the frame returns. A breadcrumb
     -- lost across a reloadui boundary (where sid changes anyway) is the right trade.
-    if suppressPopups and not ApplyPopupSuppression(true) then
+    if not ApplyPopupSuppression(true) then
         stats.suppressed = stats.suppressed + 1
         return
     end
@@ -238,6 +276,11 @@ end
 local function RawEmit(line, priority)
     local deferer = G("zo_callLater")
     if type(deferer) ~= "function" then return false end
+    if IsQuiescing() then
+        stats.suppressed = stats.suppressed + 1
+        return false
+    end
+    if DropReloadSceneLine(line) then return false end
     priority = priority == true
     if not priority and budget.maxPending > 0 and pendingCount >= budget.maxPending then
         stats.dropped = stats.dropped + 1
@@ -307,17 +350,29 @@ function InterfaceLog.GetStats()
     }
 end
 
---- Controls whether our log-errors suppress the on-screen error frame.
---- NOTE: suppression is global -- real error popups are hidden too (they still log).
+--- Compatibility setter for the old popup option.
+--- BetterUI's own log transport is always file-only while builog is enabled.
 ---@param suppress boolean
 function InterfaceLog.SetSuppressPopups(suppress)
-    suppressPopups = suppress and true or false
-    ApplyPopupSuppression(enabled and suppressPopups)
+    -- BetterUI's Interface.log transport is deliberately implemented with
+    -- throwaway Lua errors; letting those reach the native error frame makes
+    -- builog unusable. Preserve the setter for saved-vars/slash compatibility,
+    -- but enforce file-only breadcrumbs whenever builog is enabled.
+    suppressPopups = true
+    ApplyPopupSuppression(enabled)
 end
 
 ---@return boolean
 function InterfaceLog.GetSuppressPopups()
-    return suppressPopups
+    return true
+end
+
+function InterfaceLog.Quiesce(durationMs)
+    return EnterQuiesce(durationMs)
+end
+
+function InterfaceLog.IsQuiescing()
+    return IsQuiescing()
 end
 
 --- Enables/disables breadcrumb logging for this session.
@@ -330,10 +385,64 @@ function InterfaceLog.SetEnabled(value)
         dropSummaryScheduled = false
     end
     enabled = nextEnabled
-    ApplyPopupSuppression(enabled and suppressPopups)
+    ApplyPopupSuppression(enabled)
+    InterfaceLog.InstallReloadQuiesceHooks()
     -- Enabling/disabling the file sink flips the logger's active state.
     if BETTERUI.Log and BETTERUI.Log.InvalidateActive then BETTERUI.Log.InvalidateActive() end
 end
+
+local function ResolveEventManager()
+    local eventManager = G("EVENT_MANAGER")
+    if type(eventManager) == "table" then return eventManager end
+    local getter = G("GetEventManager")
+    if type(getter) == "function" then
+        local ok, value = pcall(getter)
+        if ok then return value end
+    end
+    return nil
+end
+
+function InterfaceLog.RegisterReloadQuiesce()
+    local eventManager = ResolveEventManager()
+    local eventCode = G("EVENT_PLAYER_DEACTIVATED")
+    if type(eventManager) ~= "table" or type(eventManager.RegisterForEvent) ~= "function" or eventCode == nil then
+        return false
+    end
+    local ok, registered = pcall(function()
+        return eventManager:RegisterForEvent("BetterUI_InterfaceLogReloadQuiesce", eventCode, function()
+            InterfaceLog.Quiesce(DEFAULT_RELOAD_QUIESCE_MS)
+        end)
+    end)
+    return ok and registered ~= false
+end
+
+function InterfaceLog.InstallReloadQuiesceHooks()
+    local installed = false
+    for _, name in ipairs(reloadExitFunctionNames) do
+        local current = G(name)
+        local existing = reloadExitHooks[name]
+        if existing and current == existing.wrapper then
+            installed = true
+        elseif type(current) == "function" then
+            local original = current
+            local wrapper = function(...)
+                InterfaceLog.Quiesce(DEFAULT_RELOAD_QUIESCE_MS)
+                return original(...)
+            end
+            local ok = pcall(function()
+                _G[name] = wrapper
+            end)
+            if ok then
+                reloadExitHooks[name] = { original = original, wrapper = wrapper }
+                installed = true
+            end
+        end
+    end
+    return installed
+end
+
+InterfaceLog.RegisterReloadQuiesce()
+InterfaceLog.InstallReloadQuiesceHooks()
 
 -- ---------------------------------------------------------------------------
 -- Slash command (proof of concept; fold into /betterui later if desired)
@@ -378,13 +487,17 @@ local function PersistLogState(enabled, preset)
     end
 end
 
-local function SetChatSurface(on)
+local function SetChatSurface(_on, silent)
     local L = BETTERUI.Log
-    if not (L and L.SetSink and L.LEVEL) then Out("Logger not loaded yet."); return false end
-    -- Surface INFO/WARN/ERROR to chat; TRACE/DEBUG stay file-only to avoid spam.
-    L.SetSink(L.LEVEL.INFO, "chat", on)
-    L.SetSink(L.LEVEL.WARN, "chat", on)
-    L.SetSink(L.LEVEL.ERROR, "chat", on)
+    if not (L and L.SetSink and L.LEVEL) then
+        if not silent then Out("Logger not loaded yet.") end
+        return false
+    end
+    -- Builog is file-only. Keep this legacy helper as a forced-off compatibility
+    -- path so old saved state or /builog chat on cannot leak diagnostics to chat.
+    L.SetSink(L.LEVEL.INFO, "chat", false)
+    L.SetSink(L.LEVEL.WARN, "chat", false)
+    L.SetSink(L.LEVEL.ERROR, "chat", false)
     return true
 end
 
@@ -396,6 +509,7 @@ function InterfaceLog.SetLoggingEnabled(value, source)
         InterfaceLog.Write("builog disabled via " .. sourceName)
     end
     InterfaceLog.SetEnabled(nextEnabled)
+    SetChatSurface(false, true)
     PersistLogState(nextEnabled, "")
     if nextEnabled then
         InterfaceLog.Write("builog enabled via " .. sourceName)
@@ -409,6 +523,7 @@ function InterfaceLog.ApplyLogPreset(name)
     if not (L and L.ApplyPreset) then return false, "logger_unavailable" end
     local applied, presetName = L.ApplyPreset(name)
     if applied then
+        SetChatSurface(false, true)
         local normalized = tostring(presetName or "")
         PersistLogState(normalized ~= "off", normalized ~= "off" and normalized or "")
         PersistLogSetting("interfaceLogMinLevel", "")
@@ -417,27 +532,25 @@ function InterfaceLog.ApplyLogPreset(name)
     return applied, presetName
 end
 
-function InterfaceLog.SetChatSurface(on, persist)
-    local enabledChat = on and true or false
-    if not SetChatSurface(enabledChat) then return false end
+function InterfaceLog.SetChatSurface(_on, persist)
+    if not SetChatSurface(false) then return false end
     if persist ~= false then
-        PersistLogSetting("interfaceLogChat", enabledChat)
-        TraceBuilogSetting("chat", enabledChat)
+        PersistLogSetting("interfaceLogChat", false)
+        TraceBuilogSetting("chat", false)
     end
     return true
 end
 
 function InterfaceLog.GetChatSurface()
-    local L = BETTERUI.Log
-    return (L and L.GetSink and L.LEVEL and L.GetSink(L.LEVEL.ERROR, "chat")) and true or false
+    return false
 end
 
 function InterfaceLog.SetPopupSuppression(suppress, persist)
-    local nextSuppress = suppress and true or false
-    InterfaceLog.SetSuppressPopups(nextSuppress)
+    local nextSuppress = true
+    InterfaceLog.SetSuppressPopups(true)
     if persist ~= false then
         PersistLogSetting("interfaceLogSuppressPopups", nextSuppress)
-        TraceBuilogSetting("popups", nextSuppress and "suppressed" or "visible")
+        TraceBuilogSetting("popups", "suppressed")
     end
     return true
 end
@@ -685,14 +798,14 @@ local function HandleCommand(args)
         Out("Wrote diagnostic breadcrumbs to Interface.log.")
         if not wasEnabled then Out("(Logging was off; left it ON. Use /builog off to stop.)") end
     elseif args == "popups on" then
-        InterfaceLog.SetPopupSuppression(false)
-        Out("Error popups will now SHOW (file writes pop too).")
+        InterfaceLog.SetPopupSuppression(true)
+        Out("BetterUI breadcrumbs stay file-only while builog is on.")
     elseif args == "popups off" then
         InterfaceLog.SetPopupSuppression(true)
-        Out("Error popups suppressed (errors still log to file).")
+        Out("BetterUI breadcrumbs are file-only while builog is on.")
     elseif args == "chat on" then
-        InterfaceLog.SetChatSurface(true)
-        Out("Chat surfacing ON for INFO/WARN/ERROR (file logging unchanged).")
+        InterfaceLog.SetChatSurface(false)
+        Out("Chat surfacing is disabled; builog remains file-only.")
     elseif args == "chat off" then
         InterfaceLog.SetChatSurface(false)
         Out("Chat surfacing OFF (file-only).")
@@ -721,7 +834,7 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check | status")
     end
 end
 

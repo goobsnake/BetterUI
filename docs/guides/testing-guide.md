@@ -94,7 +94,7 @@ The static validators above are part of the **regular test routine** — run the
    - `/builog preset verbose` - captures everything including data payloads/return values; rate-limited (per-frame/second budget) so it can't hitch a frame. Use for a full play-by-play.
    - `/builog preset off` - stop file logging and restore error popups.
 
-   Lower-level toggles still work under the presets: `/builog on|off` (legacy full capture), `/builog level <trace|debug|info|warn|error>`, `/builog chat on|off` (mirror INFO/WARN/ERROR to chat), `/builog popups on|off`, `/builog test` (writes a verification line), `/builog status`. Logging is inert and chat-off by default, so legacy `/script BETTERUI.Debug("test")` (now routed through `BETTERUI.Log`) only surfaces once logging is enabled.
+   Lower-level toggles still work under the presets: `/builog on|off` (legacy full capture), `/builog level <trace|debug|info|warn|error>`, `/builog popups on|off` (legacy no-op; builog stays file-only), `/builog test` (writes a verification line), `/builog status`. Logging is inert and file-only, so legacy `/script BETTERUI.Debug("test")` (now routed through `BETTERUI.Log`) only writes once logging is enabled.
 3. **Clear UI errors** - `/reloadui` before starting session
 
 ---

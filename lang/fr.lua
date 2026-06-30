@@ -387,8 +387,8 @@ ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Modifie le nombre de lign
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Ignorer confirmation de suppression du courrier")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Vitesse de d\xe9filement souris (infobulle gauche)")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "Change la rapidit\xe9 avec laquelle le menu saute lors de l'appui sur les g\xe2chettes.")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Nombre de lignes \xe0 sauter par g\xe2chette")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Change la rapidit\xe9 avec laquelle le menu saute lors de l'appui sur les g\xe2chettes.")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Lignes par g\u{e2}chette")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Lignes par appui de g\u{e2}chette. Plage : 1-1000.")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Taille de police des infobulles")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Permet d'afficher plus ou moins d'informations d'objet \xe0 la fois dans les infobulles")
 
@@ -459,8 +459,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "R\xe9initialise les
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Activer la destruction rapide")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP", "**UTILISER AVEC PRUDENCE** D\xe9truit rapidement les objets sans bo\xeete de confirmation !")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Utiliser les g\xe2chettes pour passer \xe0 l'objet suivant")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Plut\xf4t que de sauter un certain nombre d'\xe9l\xe9ments \xe0 chaque pression sur la g\xe2chette (comportement global par d\xe9faut), cela passera \xe0 l'\xe9l\xe9ment suivant")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "La g\u{e2}chette passe \u{e0} l'objet suivant")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Passe directement \u{e0} l'objet suivant au lieu d'avancer par lignes.")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Remplacer \"Valeur\" par le prix du march\xe9")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Remplace la colonne \"Valeur\" dans l'inventaire et la banque par les prix du march\xe9 MM, ATT ou TTC lorsqu'ils sont disponibles.")
 ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Afficher le prix dans les infobulles d'artisanat")

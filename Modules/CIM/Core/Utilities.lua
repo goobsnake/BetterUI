@@ -15,24 +15,45 @@ function BETTERUI.Debug(str)
     return d("|c0066ff[BETTERUI]|r " .. str)
 end
 
+local function IsBuilogEnabled()
+    local interfaceLog = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
+    return interfaceLog and interfaceLog.IsEnabled and interfaceLog.IsEnabled() == true
+end
+
+local function RaiseNativeError(str)
+    if type(BETTERUI.RaiseNativeError) == "function" then
+        return BETTERUI.RaiseNativeError(str)
+    end
+
+    local defer = rawget(_G, "zo_callLater")
+    if type(defer) == "function" then
+        local message = "[BETTERUI] " .. tostring(str)
+        defer(function() error(message, 0) end, 0)
+        return true
+    end
+    return false
+end
+
 --- Ungated diagnostic output for error/recovery reporting.
---- Unlike BETTERUI.Debug this is never suppressed by the debug flag, so
---- failures stay visible to users even with debugging disabled.
----@param str string Message to display in chat with [BETTERUI] prefix
+--- When builog is active this is file-only. When builog is off, raise a
+--- deferred native Lua error so ESO's own popup handles visibility.
+---@param str string Error or recovery message
 function BETTERUI.DebugError(str)
-    -- Also stream to Interface.log (ERROR level) when logging is active.
-    if BETTERUI.Log then
-        BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, tostring(str))
+    local message = tostring(str)
+    if IsBuilogEnabled() then
+        if BETTERUI.Log and BETTERUI.Log.Error then
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.GENERAL, message)
+            return
+        end
+
+        local interfaceLog = BETTERUI.CIM and BETTERUI.CIM.InterfaceLog
+        if interfaceLog and interfaceLog.Write then
+            interfaceLog.Write(message)
+            return
+        end
     end
-    local message = "|c0066ff[BETTERUI]|r " .. tostring(str)
-    local chatPrint = rawget(_G, "d")
-    if type(chatPrint) == "function" then
-        return chatPrint(message)
-    end
-    local chatRouter = rawget(_G, "CHAT_ROUTER")
-    if chatRouter and type(chatRouter.AddSystemMessage) == "function" then
-        return chatRouter:AddSystemMessage(message)
-    end
+
+    return RaiseNativeError(message)
 end
 
 -- As of v2.8, 'm_enabled' is the canonical key. Legacy 'enabled' fallback was removed

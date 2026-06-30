@@ -20,7 +20,7 @@ Files:
   directly). The sink is rate-limited (`SetBudget{maxPerFrame,maxPerSecond,maxPending}`
   / `GetStats`); overflow is dropped and summarized (`dropped=N reason=rate_limit`)
   so verbose logging can't hitch a frame. Slash command: `/builog`
-  (`on|off|preset off|info|watch|debug|trace|inspect|chat on|off|popups on|off|level <lvl>|mark|snapshot|screenshot [label]|screenshot auto off|error|warn|test|status`).
+  (`on|off|preset off|info|watch|debug|trace|inspect|popups on|off|level <lvl>|mark|snapshot|screenshot [label]|screenshot auto off|error|warn|test|status`).
 - `Screenshot.lua` — wraps ESO `TakeScreenshot()` and `EVENT_SCREENSHOT_SAVED` with
   manual `/builog screenshot`, opt-in auto capture (`off|error|warn`), duplicate-aware
   per-issue throttling, and `SCREENSHOT` markers carrying `source="user"|"auto"`, request

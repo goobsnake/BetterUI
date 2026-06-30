@@ -442,8 +442,8 @@ ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Chat lines to keep. Defau
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Skip Mail Delete Confirmation")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Mouse Scrolling speed on Left Hand tooltip")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "Mouse wheel scroll speed.")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Number of lines to skip on trigger")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Trigger-button menu skip speed.")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Lines to skip per trigger")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Rows advanced on each trigger press. Range: 1-1000.")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Tooltip Font Size")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Controls how much item info fits in tooltips.")
 
@@ -572,8 +572,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "Reset item icon set
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Enable quick destroy functionality")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP", "USE WITH CAUTION: Destroys items without confirmation. Batch destroy still requires confirmation.")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Use triggers to move to next item")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Use triggers to jump to the next item while browsing.")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Trigger jumps to next item")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Jump directly to the next item instead of skipping by row count.")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Replace \"Value\" with the market's price")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Replaces the Value column in Inventory and Banking with MM, ATT, or TTC market prices when available.")
 ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Show Price on Crafting Tooltips")

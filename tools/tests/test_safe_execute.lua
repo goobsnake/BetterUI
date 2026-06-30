@@ -15,9 +15,20 @@ Usage:
 BETTERUI = { CIM = {} }
 
 local debugOutput = {}
+local nativeErrors = {}
+local fileWrites = {}
+local interfaceLogEnabled = false
 function BETTERUI.Debug(msg)
     table.insert(debugOutput, msg)
 end
+function BETTERUI.RaiseNativeError(msg)
+    nativeErrors[#nativeErrors + 1] = tostring(msg)
+    return true
+end
+BETTERUI.CIM.InterfaceLog = {
+    IsEnabled = function() return interfaceLogEnabled end,
+    Write = function(msg) fileWrites[#fileWrites + 1] = tostring(msg); return true end,
+}
 
 -- Stub: string.gmatch pattern used by TryCall (available in standard Lua)
 
@@ -34,6 +45,10 @@ dofile("Modules/CIM/Core/Diagnostics/SafeExecute.lua")
 -- Reset helper
 local function reset()
     debugOutput = {}
+    nativeErrors = {}
+    fileWrites = {}
+    interfaceLogEnabled = false
+    BETTERUI.Log = nil
 end
 
 -- ============================================================================
@@ -84,7 +99,8 @@ reset()
 local fn2 = function() error("Test error") end
 local ok2, result2 = BETTERUI.CIM.SafeExecute("FailingFunc", fn2)
 assert_false(ok2, "SafeExecute returns false on error")
-assert_equal(1, #debugOutput, "Error was logged")
+assert_equal(1, #nativeErrors, "Error was surfaced through the native error path")
+assert_equal(0, #debugOutput, "Error does not leak to debug/chat output")
 
 -- Test 3: Nil function handled gracefully
 print("\nTest: Nil function handled gracefully")
@@ -92,7 +108,7 @@ reset()
 local ok3, result3 = BETTERUI.CIM.SafeExecute("NilTest", nil)
 assert_false(ok3, "SafeExecute returns false for nil function")
 assert_equal("No function provided", result3, "Correct error message")
-assert_equal(1, #debugOutput, "Error was logged")
+assert_equal(1, #nativeErrors, "Nil function error uses native error path")
 
 -- Test 4: Arguments are passed through
 print("\nTest: Arguments are passed through")
@@ -126,6 +142,7 @@ assert_equal(nil, BETTERUI.CIM.SafeCall, "SafeCall is not exported on BETTERUI.C
 print("\nTest: caught error routes to Log.Error with a boundary src")
 reset()
 local logErrors = {}
+interfaceLogEnabled = true
 BETTERUI.Log = {
     CATEGORY = { SAFE = "SAFE" },
     Error = function(cat, msg, data) logErrors[#logErrors + 1] = { cat = cat, msg = msg, data = data } end,
@@ -141,12 +158,29 @@ assert_true(logErrors[1].data ~= nil and type(logErrors[1].data.src) == "string"
     and logErrors[1].data.src:find("%.lua:%d") ~= nil,
     "boundary src (file:line) lifted from the error message")
 BETTERUI.Log = nil
+interfaceLogEnabled = false
+
+-- Test 8b: logger presence alone is not enough; when builog is off, caught
+-- errors use the native popup path instead of silently disappearing into Log.Error.
+print("\nTest: logger present but builog off routes to native error")
+reset()
+local logErrorsOff = {}
+BETTERUI.Log = {
+    CATEGORY = { SAFE = "SAFE" },
+    Error = function(cat, msg, data) logErrorsOff[#logErrorsOff + 1] = { cat = cat, msg = msg, data = data } end,
+}
+local ok8b = BETTERUI.CIM.SafeExecute("Ctx8b", function() error("boom8b") end)
+assert_false(ok8b, "SafeExecute returns false on error (builog off)")
+assert_equal(0, #logErrorsOff, "Log.Error is not used while builog is off")
+assert_equal(1, #nativeErrors, "Caught error is surfaced through native error path")
+BETTERUI.Log = nil
 
 -- Test 9: src parse robustness -- error(table) falls back to a SafeExecute boundary src;
 -- a backslash (Windows) repo path normalizes to a repo-relative forward-slash src.
 print("\nTest: boundary src parse handles error(table) + backslash paths")
 reset()
 local logErrors2 = {}
+interfaceLogEnabled = true
 BETTERUI.Log = {
     CATEGORY = { SAFE = "SAFE" },
     Error = function(cat, msg, data) logErrors2[#logErrors2 + 1] = { cat = cat, msg = msg, data = data } end,
@@ -163,6 +197,7 @@ assert_false(okB, "backslash-path error returns false")
 assert_equal("Modules/Foo.lua:5", logErrors2[#logErrors2].data and logErrors2[#logErrors2].data.src,
     "backslash repo path normalized to repo-relative src")
 BETTERUI.Log = nil
+interfaceLogEnabled = false
 
 -- ============================================================================
 -- SUMMARY

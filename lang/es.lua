@@ -362,8 +362,8 @@ ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Cambia cu\xe1ntas l\xedne
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Omitir confirmaci\xf3n al borrar correo")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Velocidad desplazamiento rat\xf3n (Tooltip izq.)")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "Cambia qu\xe9 tan r\xe1pido salta el men\xfa al presionar los gatillos.")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "L\xedneas a saltar con gatillo")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Cambia qu\xe9 tan r\xe1pido salta el men\xfa al presionar los gatillos.")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "L\u{ed}neas por gatillo")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Filas por pulsaci\u{f3}n de gatillo. Rango: 1-1000.")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Tama\xf1o fuente tooltip")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Permite ver m\xe1s o menos informaci\xf3n del objeto a la vez en las descripciones")
 
@@ -434,8 +434,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "Restablece los ajus
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Activar destrucci\xf3n r\xe1pida")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP", "**USAR CON PRECAUCI\xd3N** \xa1Destruye objetos r\xe1pidamente sin di\xe1logo de confirmaci\xf3n!")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Usar gatillos para saltar al siguiente objeto")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "En lugar de saltar un n\xfamero de elementos (comportamiento habitual), esto saltar\xe1 al siguiente elemento")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "El gatillo salta al siguiente objeto")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Salta al siguiente objeto en vez de avanzar por filas.")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Reemplazar \"Valor\" con precio de mercado")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Reemplaza la columna \"Valor\" en Inventario y Banco por precios de mercado de MM, ATT o TTC cuando est\xe9n disponibles.")
 ZO_CreateStringId("SI_BETTERUI_SHOW_CRAFTING_MARKET_PRICE", "Mostrar precio en tooltips de fabricaci\xf3n")

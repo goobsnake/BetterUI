@@ -66,7 +66,7 @@ current play-test window. Saved markers identify `source="user"|"auto"`; BetterU
 saves use `requested=true correlation="fifo"|"expired_fifo"`. External user/client saved
 events with no pending BetterUI request are logged as `source="user" trigger="external"
 requested=false`.
-Full surface: `/builog on|off | preset … | chat on|off | popups on|off | level <lvl> |
+Full surface: `/builog on|off | preset … | popups on|off | level <lvl> |
 mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] |
 screenshot auto off|error|warn | snapshot | test | status`.
 

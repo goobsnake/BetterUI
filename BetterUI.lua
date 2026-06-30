@@ -13,14 +13,25 @@ end
 
 if BETTERUI == nil then BETTERUI = {} end
 
+if BETTERUI.RaiseNativeError == nil then
+	function BETTERUI.RaiseNativeError(str)
+		local message = "[BETTERUI] " .. tostring(str)
+		local defer = rawget(_G, "zo_callLater")
+		if type(defer) == "function" then
+			defer(function() error(message, 0) end, 0)
+			return true
+		end
+		return false
+	end
+end
+
 -- Bootstrap error channel: BetterUI.lua loads before CIM Utilities, which
 -- replaces this with the full ungated implementation. Kept minimal so error
 -- reporting works even if CIM never loads.
 if BETTERUI.DebugError == nil then
 	function BETTERUI.DebugError(str)
-		local chatPrint = rawget(_G, "d")
-		if type(chatPrint) == "function" then
-			chatPrint("|c0066ff[BETTERUI]|r " .. tostring(str))
+		if type(BETTERUI.RaiseNativeError) == "function" then
+			BETTERUI.RaiseNativeError(str)
 		end
 	end
 end
@@ -175,11 +186,15 @@ local SETTINGS_TAB_CONTROL_REFERENCE = "BetterUISettingsTabWindows"
 local SETTINGS_TAB_STATE = {
 	selectedKey = "General",
 }
+local RefreshActiveSettingsTabs
 
 local function SetModuleToggleEnabled(moduleName, value, updatesCIM)
 	BETTERUI.SetSetting(moduleName, "m_enabled", value)
 	if updatesCIM then
 		BETTERUI.UpdateCIMState()
+	end
+	if RefreshActiveSettingsTabs then
+		RefreshActiveSettingsTabs()
 	end
 end
 
@@ -240,8 +255,33 @@ local function BuildModuleMasterToggleOption(moduleName)
 		end,
 		width = "full",
 		requiresReload = true,
-		sortAlwaysFirst = true,
 	}
+end
+
+local function BuildModuleGeneralHeaderOption()
+	return {
+		type = "header",
+		name = GetStringByName("SI_BETTERUI_SETTINGS_TAB_GENERAL"),
+		width = "full",
+	}
+end
+
+local function InsertModuleMasterToggleInGeneralSection(moduleName, controls)
+	controls = type(controls) == "table" and controls or {}
+	local insertIndex = 1
+
+	if controls[1] and controls[1].type == "header" then
+		insertIndex = 2
+		if controls[2] and controls[2].type == "description" then
+			insertIndex = 3
+		end
+	else
+		table.insert(controls, 1, BuildModuleGeneralHeaderOption())
+		insertIndex = 2
+	end
+
+	table.insert(controls, insertIndex, BuildModuleMasterToggleOption(moduleName))
+	return controls
 end
 
 local MODULE_PANEL_ID_ALIASES = {
@@ -249,9 +289,6 @@ local MODULE_PANEL_ID_ALIASES = {
 }
 
 local MODULE_SETTINGS_GATE_STRING_IDS = {
-	Banking = {
-		"SI_BETTERUI_GUILD_BANK_ENABLED",
-	},
 	Nameplates = {
 		"SI_BETTERUI_NAMEPLATES_ENABLED",
 	},
@@ -331,6 +368,54 @@ local function IsRedundantModuleGateControl(moduleName, control)
 	return false
 end
 
+local function EvaluateSettingDisabled(disabled)
+	if type(disabled) == "function" then
+		local ok, value = pcall(disabled)
+		return ok and value == true
+	end
+	return disabled == true
+end
+
+local function CombineModuleDisabled(moduleName, existingDisabled)
+	return function()
+		return not BETTERUI.GetModuleEnabled(moduleName) or EvaluateSettingDisabled(existingDisabled)
+	end
+end
+
+local function CloneControlForModuleTab(moduleName, control)
+	if type(control) ~= "table" then
+		return control
+	end
+
+	local clone = {}
+	for key, value in pairs(control) do
+		if key ~= "controls" then
+			clone[key] = value
+		end
+	end
+
+	if type(control.controls) == "table" then
+		clone.controls = {}
+		for index, child in ipairs(control.controls) do
+			clone.controls[index] = CloneControlForModuleTab(moduleName, child)
+		end
+	end
+
+	if clone.type == "submenu" then
+		-- Keep submenus openable while greying their labels when the module is off.
+		clone.disabledLabel = CombineModuleDisabled(moduleName, clone.disabledLabel)
+	elseif clone.type == "editbox" then
+		if clone.isExtraWide == nil then
+			clone.isExtraWide = true
+		end
+		clone.disabled = CombineModuleDisabled(moduleName, clone.disabled)
+	elseif clone.type ~= "header" and clone.type ~= "divider" then
+		clone.disabled = CombineModuleDisabled(moduleName, clone.disabled)
+	end
+
+	return clone
+end
+
 local function TraceSettingsPanel(event, phase, data)
 	local L = BETTERUI.Log
 	if not (L and L.TraceEvent) then return end
@@ -348,7 +433,7 @@ local function BuildModuleSettingsTabControls(moduleName, optionsData)
 		if IsRedundantModuleGateControl(moduleName, control) then
 			redundantGateControls = redundantGateControls + 1
 		else
-			controls[#controls + 1] = control
+			controls[#controls + 1] = CloneControlForModuleTab(moduleName, control)
 		end
 	end
 	return controls, redundantGateControls
@@ -413,21 +498,13 @@ local function BuildModuleSettingsTabPages()
 	for _, blueprint in ipairs(MODULE_TOGGLE_BLUEPRINTS) do
 		local moduleName = blueprint.moduleName
 		local panel = panelByModuleName[moduleName]
-		local controls = {
-			BuildModuleMasterToggleOption(moduleName),
-		}
 		local moduleControls, gateControlCount = BuildModuleSettingsTabControls(moduleName, panel and panel.optionsData or {})
 		redundantGateControls = redundantGateControls + (gateControlCount or 0)
 
-		if #moduleControls > 0 then
-			controls[#controls + 1] = {
-				type = "divider",
-				width = "full",
-			}
-			AppendControls(controls, moduleControls)
-		else
+		if #moduleControls == 0 then
 			pagesWithoutSubSettings = pagesWithoutSubSettings + 1
 		end
+		local controls = InsertModuleMasterToggleInGeneralSection(moduleName, moduleControls)
 
 		pages[#pages + 1] = {
 			key = moduleName,
@@ -458,7 +535,20 @@ local function BuildModuleSettingsTabPages()
 	return pages
 end
 
-local function GetControlWidth(control)
+local GetSettingsTabControlWidth
+local ReflowSettingsPageLayout
+local RefreshSettingsWidgetTree
+local SETTINGS_TAB_DEFAULT_WIDTH = 510
+local SETTINGS_TAB_MIN_USABLE_WIDTH = 320
+local SETTINGS_TAB_CREATE_DELAY_MS = 50
+local SETTINGS_SIMULATED_SUBMENU_TYPE = "betterui_submenu"
+local SETTINGS_SUBMENU_HEADER_HEIGHT = 38
+local SETTINGS_SUBMENU_ARROW_DOWN_TEXTURE = "EsoUI\\Art\\Miscellaneous\\list_sortdown.dds"
+local SETTINGS_SUBMENU_ARROW_UP_TEXTURE = "EsoUI\\Art\\Miscellaneous\\list_sortup.dds"
+local SETTINGS_EDITBOX_HEIGHT = 30
+local SETTINGS_EDITBOX_MULTILINE_HEIGHT = 86
+
+local function ReadMeasuredWidth(control)
 	if control and type(control.GetWidth) == "function" then
 		local ok, width = pcall(control.GetWidth, control)
 		width = ok and tonumber(width) or 0
@@ -466,7 +556,82 @@ local function GetControlWidth(control)
 			return width
 		end
 	end
-	return 510
+	return 0
+end
+
+local function GetControlHeight(control)
+	if control and type(control.GetHeight) == "function" then
+		local ok, height = pcall(control.GetHeight, control)
+		height = ok and tonumber(height) or 0
+		if height and height > 0 then
+			return height
+		end
+	end
+	return 26
+end
+
+local function ReadControlField(control, fieldName)
+	if not control then return nil end
+	local ok, value = pcall(function()
+		return control[fieldName]
+	end)
+	return ok and value or nil
+end
+
+local function IsLamPanelControl(control)
+	local data = ReadControlField(control, "data")
+	return type(data) == "table"
+		and (data.type == "panel" or data.registerForRefresh ~= nil or data.registerForDefaults ~= nil)
+end
+
+local function ResolveLamPanel(control)
+	local current = control
+	for _ = 1, 8 do
+		if not current then break end
+		if IsLamPanelControl(current) then
+			return current
+		end
+
+		local panel = ReadControlField(current, "panel")
+		if not panel or panel == current then
+			break
+		end
+		current = panel
+	end
+
+	return ReadControlField(control, "panel") or control
+end
+
+local function SetControlHidden(control, hidden)
+	if control and control.SetHidden then
+		pcall(function() control:SetHidden(hidden) end)
+	end
+end
+
+local function RefreshSettingsPanelScroll(control)
+	local panel = ResolveLamPanel(control)
+	local scroll = ReadControlField(panel, "scroll")
+	for _, candidate in ipairs({ scroll, panel }) do
+		if candidate then
+			for _, methodName in ipairs({ "UpdateScroll", "UpdateScrollBar", "RefreshLayout" }) do
+				local okMethod, method = pcall(function() return candidate[methodName] end)
+				if okMethod and type(method) == "function" then
+					pcall(method, candidate)
+				end
+			end
+		end
+	end
+end
+
+local function ResolveSettingsWidgetWidth(parent)
+	local width = ReadMeasuredWidth(parent)
+	if width < SETTINGS_TAB_MIN_USABLE_WIDTH then
+		width = ReadMeasuredWidth(ReadControlField(parent, "panel")) - 60
+	end
+	if width < SETTINGS_TAB_MIN_USABLE_WIDTH then
+		width = SETTINGS_TAB_DEFAULT_WIDTH
+	end
+	return width
 end
 
 local function EnableResizeToFitY(control)
@@ -479,83 +644,552 @@ local function EnableResizeToFitY(control)
 	end
 end
 
-local function CreateSettingsWidgetRow(parent, anchorTarget)
-	local wm = BETTERUI.WindowManager or (GetWindowManager and GetWindowManager())
-	if not wm then
-		return nil
+local function SafeSetDrawLayer(control, layer)
+	if control and layer and control.SetDrawLayer then
+		pcall(function() control:SetDrawLayer(layer) end)
 	end
-	local row = wm:CreateControl(nil, parent, CT_CONTROL)
-	row.panel = parent.panel or parent
-	row:SetWidth(GetControlWidth(parent))
-	if anchorTarget then
-		row:SetAnchor(TOPLEFT, anchorTarget, BOTTOMLEFT, 0, 15)
-	else
-		row:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
-	end
-	EnableResizeToFitY(row)
-	return row
 end
 
-local function CreateSettingsPageWidgets(parent, controls)
-	if not parent or type(controls) ~= "table" then
+local function SafeSetDrawTier(control, tier)
+	if control and tier and control.SetDrawTier then
+		pcall(function() control:SetDrawTier(tier) end)
+	end
+end
+
+local function ApplySettingsDropdownGeometry(widget)
+	local container = ReadControlField(widget, "container")
+	local combobox = ReadControlField(widget, "combobox")
+	if not container or not combobox then
 		return
 	end
 
-	local anchorTarget = nil
-	local pendingHalf = nil
-	local pendingHalfRow = nil
-	for _, widgetData in ipairs(controls) do
-		if type(widgetData) == "table" and widgetData.type then
-			local isHalf = widgetData.width == "half"
-			local widgetParent = parent
-			if isHalf then
-				pendingHalfRow = pendingHalfRow or CreateSettingsWidgetRow(parent, anchorTarget)
-				widgetParent = pendingHalfRow or parent
+	local width = ReadMeasuredWidth(container)
+	local height = GetControlHeight(container)
+	if width > 0 and height > 0 and combobox.SetDimensions then
+		pcall(function() combobox:SetDimensions(width, height) end)
+	elseif width > 0 and combobox.SetWidth then
+		pcall(function() combobox:SetWidth(width) end)
+	end
+
+	local dropdown = ReadControlField(widget, "dropdown")
+	if dropdown and width > 0 then
+		dropdown.m_containerWidth = width
+	end
+end
+
+local function ApplySettingsEditboxGeometry(parent, widget, widgetData)
+	local container = ReadControlField(widget, "container")
+	local editbox = ReadControlField(widget, "editbox")
+	if not container or not editbox then
+		return
+	end
+
+	local width = ResolveSettingsWidgetWidth(parent)
+	if widgetData.width == "half" then
+		width = ReadMeasuredWidth(widget)
+	end
+	if width < SETTINGS_TAB_MIN_USABLE_WIDTH and widgetData.width ~= "half" then
+		width = SETTINGS_TAB_DEFAULT_WIDTH
+	end
+	local height = widgetData.isMultiline and SETTINGS_EDITBOX_MULTILINE_HEIGHT or SETTINGS_EDITBOX_HEIGHT
+
+	if widget.SetWidth and width > 0 then
+		pcall(function() widget:SetWidth(width) end)
+	end
+	if container.ClearAnchors then
+		pcall(function() container:ClearAnchors() end)
+	end
+	if container.SetAnchor then
+		pcall(function()
+			container:SetAnchor(BOTTOMLEFT, widget, BOTTOMLEFT, 0, 0)
+			container:SetAnchor(BOTTOMRIGHT, widget, BOTTOMRIGHT, 0, 0)
+		end)
+	end
+	if container.SetHeight then
+		pcall(function() container:SetHeight(height) end)
+	end
+
+	local bg = ReadControlField(widget, "bg")
+	if bg and bg.ClearAnchors then
+		pcall(function() bg:ClearAnchors() end)
+	end
+	if bg and bg.SetAnchor then
+		pcall(function()
+			bg:SetAnchor(TOPLEFT, container, TOPLEFT, 0, 0)
+			bg:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
+		end)
+	end
+	if editbox.ClearAnchors then
+		pcall(function() editbox:ClearAnchors() end)
+	end
+	if editbox.SetAnchor then
+		pcall(function()
+			editbox:SetAnchor(TOPLEFT, container, TOPLEFT, 4, 2)
+			editbox:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, -4, -2)
+		end)
+	end
+end
+
+
+local function ApplySettingsWidgetDrawLayers(widget, inSubmenu)
+	local controlsLayer = rawget(_G, "DL_CONTROLS")
+	local overlayLayer = rawget(_G, "DL_OVERLAY")
+	local layer = inSubmenu and overlayLayer or controlsLayer
+	local tier = rawget(_G, "DT_HIGH")
+
+	SafeSetDrawTier(widget, tier)
+	SafeSetDrawLayer(widget, layer)
+	for _, childName in ipairs({ "container", "combobox", "slider", "slidervalue", "editbox", "bg", "button", "texture", "warning", "color", "thumb", "checkbox", "arrow", "label" }) do
+		local child = ReadControlField(widget, childName)
+		SafeSetDrawLayer(child, layer)
+		local okLabel, label = pcall(function()
+			return child and child.GetLabelControl and child:GetLabelControl()
+		end)
+		if okLabel then
+			SafeSetDrawLayer(label, layer)
+		end
+	end
+end
+
+local function ApplySettingsWidgetLayoutFixes(parent, widget, widgetData, inSubmenu)
+	if type(widgetData) ~= "table" or not widget then
+		return
+	end
+	ApplySettingsWidgetDrawLayers(widget, inSubmenu)
+	if widgetData.type == "dropdown" then
+		ApplySettingsDropdownGeometry(widget)
+	elseif widgetData.type == "editbox" then
+		ApplySettingsEditboxGeometry(parent, widget, widgetData)
+	end
+end
+
+local function GetWidgetCreationParent(parent)
+	return ReadControlField(parent, "scroll") or parent
+end
+
+local function CreateSettingsTwinContainer(parent, leftWidget, rightWidget)
+	local wm = BETTERUI.WindowManager or (GetWindowManager and GetWindowManager())
+	local creationParent = GetWidgetCreationParent(parent)
+	if not wm or not creationParent or not leftWidget or not rightWidget then
+		return rightWidget
+	end
+
+	local container = wm:CreateControl(nil, creationParent, CT_CONTROL)
+	container.panel = ResolveLamPanel(parent)
+	container.data = { type = "container" }
+	EnableResizeToFitY(container)
+
+	if leftWidget.GetAnchor then
+		local ok = pcall(function()
+			container:SetAnchor(select(2, leftWidget:GetAnchor(0)))
+		end)
+		if not ok then
+			container:SetAnchor(TOPLEFT, leftWidget, TOPLEFT, 0, 0)
+		end
+	else
+		container:SetAnchor(TOPLEFT, leftWidget, TOPLEFT, 0, 0)
+	end
+
+	if leftWidget.ClearAnchors then leftWidget:ClearAnchors() end
+	leftWidget:SetAnchor(TOPLEFT, container, TOPLEFT, 0, 0)
+	rightWidget:SetAnchor(TOPLEFT, leftWidget, TOPRIGHT, 5, 0)
+
+	if leftWidget.SetParent then leftWidget:SetParent(container) end
+	if rightWidget.SetParent then rightWidget:SetParent(container) end
+	if leftWidget.GetWidth and leftWidget.SetWidth then
+		local okWidth, width = pcall(leftWidget.GetWidth, leftWidget)
+		width = okWidth and tonumber(width) or nil
+		if width and width > 5 then
+			leftWidget:SetWidth(width - 2.5)
+		end
+	end
+	if rightWidget.GetWidth and rightWidget.SetWidth then
+		local okWidth, width = pcall(rightWidget.GetWidth, rightWidget)
+		width = okWidth and tonumber(width) or nil
+		if width and width > 5 then
+			rightWidget:SetWidth(width - 2.5)
+		end
+	end
+	if container.SetHeight then
+		container:SetHeight(math.max(GetControlHeight(leftWidget), GetControlHeight(rightWidget)))
+	end
+
+	return container
+end
+
+local function AttachSettingsControlTooltip(control)
+	if not control or not control.SetHandler then
+		return
+	end
+	control:SetHandler("OnMouseEnter", function(current)
+		local data = ReadControlField(current, "data")
+		local tooltip = type(data) == "table" and data.tooltip or nil
+		if tooltip == nil or tooltip == "" then
+			return
+		end
+		local lam = rawget(_G, "LibAddonMenu2")
+		local util = type(lam) == "table" and lam.util or nil
+		if util and type(util.ShowTooltip) == "function" then
+			pcall(util.ShowTooltip, current, tooltip)
+		end
+	end)
+	control:SetHandler("OnMouseExit", function(current)
+		local lam = rawget(_G, "LibAddonMenu2")
+		local util = type(lam) == "table" and lam.util or nil
+		if util and type(util.HideTooltip) == "function" then
+			pcall(util.HideTooltip, current)
+		end
+	end)
+end
+
+local function UpdateSettingsSimulatedSubmenuHeader(header)
+	local state = ReadControlField(header, "__betterUiSubmenuState")
+	if type(state) ~= "table" then
+		return
+	end
+	local arrow = ReadControlField(header, "arrow")
+	if arrow and arrow.SetTexture then
+		pcall(function()
+			arrow:SetTexture(state.expanded and SETTINGS_SUBMENU_ARROW_UP_TEXTURE or SETTINGS_SUBMENU_ARROW_DOWN_TEXTURE)
+		end)
+	end
+	local label = ReadControlField(header, "label")
+	if label and label.SetColor then
+		local data = ReadControlField(header, "data")
+		local labelDisabled = type(data) == "table"
+			and (EvaluateSettingDisabled(data.disabledLabel) or EvaluateSettingDisabled(data.disabled))
+		pcall(function()
+			if labelDisabled then
+				label:SetColor(0.55, 0.55, 0.55, 1)
+			else
+				label:SetColor(1, 1, 1, 1)
 			end
-			local creator = rawget(_G, "LAMCreateControl") and LAMCreateControl[widgetData.type]
-			if type(creator) == "function" then
-				local ok, widget = pcall(creator, widgetParent, widgetData)
-				if ok and widget then
-					if pendingHalf and isHalf then
-						widget:SetAnchor(TOPLEFT, pendingHalf, TOPRIGHT, 10, 0)
-						anchorTarget = pendingHalfRow or widget
-						pendingHalf = nil
-						pendingHalfRow = nil
-					else
-						if isHalf then
-							widget:SetAnchor(TOPLEFT, widgetParent, TOPLEFT, 0, 0)
-							anchorTarget = pendingHalfRow or widget
-							pendingHalf = widget
-						else
-							if anchorTarget then
-								widget:SetAnchor(TOPLEFT, anchorTarget, BOTTOMLEFT, 0, 15)
-							else
-								widget:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
+		end)
+	end
+end
+
+local function CreateSettingsSimulatedSubmenuHeader(parent, widgetData)
+	local wm = BETTERUI.WindowManager or (GetWindowManager and GetWindowManager())
+	local creationParent = GetWidgetCreationParent(parent)
+	if not wm or not creationParent then
+		return nil
+	end
+
+	local header = wm:CreateControl(nil, creationParent, CT_CONTROL)
+	if not header then
+		return nil
+	end
+
+	local width = ResolveSettingsWidgetWidth(parent)
+	header.panel = ResolveLamPanel(parent)
+	header.data = {
+		type = SETTINGS_SIMULATED_SUBMENU_TYPE,
+		name = widgetData.name,
+		tooltip = widgetData.tooltip,
+		disabledLabel = widgetData.disabledLabel,
+		disabled = widgetData.disabled,
+	}
+	header.__betterUiSimulatedSubmenuHeader = true
+	header.__betterUiSubmenuState = {
+		expanded = widgetData.defaultOpen == true,
+		name = widgetData.name,
+	}
+	if header.SetDimensions then
+		header:SetDimensions(width, SETTINGS_SUBMENU_HEADER_HEIGHT)
+	end
+	if header.SetMouseEnabled then
+		header:SetMouseEnabled(true)
+	end
+
+	local blockBackdrop = wm:CreateControl(nil, creationParent, CT_BACKDROP)
+	if blockBackdrop then
+		if blockBackdrop.SetCenterColor then
+			pcall(function() blockBackdrop:SetCenterColor(0.015, 0.015, 0.015, 0.82) end)
+		end
+		if blockBackdrop.SetEdgeColor then
+			pcall(function() blockBackdrop:SetEdgeColor(0.48, 0.48, 0.48, 0.92) end)
+		end
+		SafeSetDrawTier(blockBackdrop, rawget(_G, "DT_MEDIUM"))
+		SafeSetDrawLayer(blockBackdrop, rawget(_G, "DL_CONTROLS"))
+		SetControlHidden(blockBackdrop, true)
+	end
+	header.blockBackdrop = blockBackdrop
+
+	local backdrop = wm:CreateControl(nil, header, CT_BACKDROP)
+	if backdrop then
+		if backdrop.SetAnchorFill then
+			backdrop:SetAnchorFill(header)
+		else
+			backdrop:SetAnchor(TOPLEFT, header, TOPLEFT, 0, 0)
+			backdrop:SetAnchor(BOTTOMRIGHT, header, BOTTOMRIGHT, 0, 0)
+		end
+		if backdrop.SetCenterColor then
+			pcall(function() backdrop:SetCenterColor(0.02, 0.02, 0.02, 0.90) end)
+		end
+		if backdrop.SetEdgeColor then
+			pcall(function() backdrop:SetEdgeColor(0.64, 0.64, 0.64, 0.95) end)
+		end
+	end
+	header.backdrop = backdrop
+
+	local arrow = wm:CreateControl(nil, header, CT_TEXTURE)
+	if arrow then
+		if arrow.SetDimensions then arrow:SetDimensions(26, 26) end
+		if arrow.SetAnchor then arrow:SetAnchor(RIGHT, header, RIGHT, -10, 0) end
+		if arrow.SetColor then
+			pcall(function() arrow:SetColor(1, 1, 1, 1) end)
+		end
+	end
+	header.arrow = arrow
+
+	local label = wm:CreateControl(nil, header, CT_LABEL)
+	if label then
+		if label.SetAnchor then
+			label:SetAnchor(LEFT, header, LEFT, 12, 0)
+			label:SetAnchor(RIGHT, arrow or header, arrow and LEFT or RIGHT, arrow and -8 or -12, 0)
+		end
+		if label.SetFont then pcall(function() label:SetFont("ZoFontWinH3") end) end
+		if label.SetText then pcall(function() label:SetText(tostring(widgetData.name or "")) end) end
+		if label.SetVerticalAlignment and rawget(_G, "TEXT_ALIGN_CENTER") then
+			label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+		end
+	end
+	header.label = label
+
+	if header.SetHandler then
+		header:SetHandler("OnMouseUp", function(control, button, upInside)
+			if upInside == false then return end
+			local leftButton = rawget(_G, "MOUSE_BUTTON_INDEX_LEFT")
+			if leftButton ~= nil and button ~= nil and button ~= leftButton then
+				return
+			end
+			local state = ReadControlField(control, "__betterUiSubmenuState")
+			if type(state) ~= "table" then return end
+			state.expanded = not state.expanded
+			UpdateSettingsSimulatedSubmenuHeader(control)
+			local layoutParent = ReadControlField(control, "__betterUiLayoutParent") or parent
+			ReflowSettingsPageLayout(layoutParent)
+			if RefreshSettingsWidgetTree then
+				RefreshSettingsWidgetTree(layoutParent)
+			end
+			RefreshSettingsPanelScroll(layoutParent)
+		end)
+	end
+
+	AttachSettingsControlTooltip(header)
+	UpdateSettingsSimulatedSubmenuHeader(header)
+	return header
+end
+
+local function CopySettingsSubmenuStates(submenuStates, appendedState)
+	local copy = {}
+	for index, state in ipairs(submenuStates or {}) do
+		copy[index] = state
+	end
+	if appendedState then
+		copy[#copy + 1] = appendedState
+	end
+	return copy
+end
+
+local function AreSettingsEntryStatesExpanded(submenuStates)
+	for _, state in ipairs(submenuStates or {}) do
+		if type(state) == "table" and not state.expanded then
+			return false
+		end
+	end
+	return true
+end
+
+local function SettingsEntryContainsSubmenuState(entry, targetState)
+	if type(entry) ~= "table" or type(targetState) ~= "table" then
+		return false
+	end
+	for _, state in ipairs(entry.submenuStates or {}) do
+		if state == targetState then
+			return true
+		end
+	end
+	return false
+end
+
+local function RefreshSettingsSubmenuBlockBackground(entries, width)
+	if type(entries) ~= "table" then
+		return
+	end
+
+	for index, entry in ipairs(entries) do
+		local control = entry.control
+		if control and control.__betterUiSimulatedSubmenuHeader then
+			local blockBackdrop = ReadControlField(control, "blockBackdrop")
+			if blockBackdrop then
+				local visible = AreSettingsEntryStatesExpanded(entry.submenuStates)
+				if not visible then
+					SetControlHidden(blockBackdrop, true)
+				else
+					local state = ReadControlField(control, "__betterUiSubmenuState")
+					local height = SETTINGS_SUBMENU_HEADER_HEIGHT
+					if type(state) == "table" and state.expanded then
+						for childIndex = index + 1, #entries do
+							local childEntry = entries[childIndex]
+							if not SettingsEntryContainsSubmenuState(childEntry, state) then
+								break
 							end
-							anchorTarget = widget
-							pendingHalf = nil
-							pendingHalfRow = nil
+							if AreSettingsEntryStatesExpanded(childEntry.submenuStates) then
+								height = height + (childEntry.spacing or 15) + GetControlHeight(childEntry.control)
+							end
 						end
 					end
-
-					if widgetData.type == "submenu" and type(widgetData.controls) == "table" then
-						CreateSettingsPageWidgets(widget, widgetData.controls)
+					if blockBackdrop.ClearAnchors then
+						pcall(function() blockBackdrop:ClearAnchors() end)
 					end
-				else
-					BETTERUI.DebugError("Settings tab control failed: " .. tostring(widgetData.type) .. " " .. tostring(widget))
+					if blockBackdrop.SetAnchor then
+						pcall(function() blockBackdrop:SetAnchor(TOPLEFT, control, TOPLEFT, -9, 0) end)
+					end
+					if blockBackdrop.SetDimensions then
+						pcall(function() blockBackdrop:SetDimensions(width + 18, height + 4) end)
+					end
+					SetControlHidden(blockBackdrop, false)
 				end
-			else
-				BETTERUI.DebugError("Settings tab control unavailable: " .. tostring(widgetData.type))
 			end
 		end
 	end
 end
 
-local GetSettingsTabControlWidth
+local function AddSettingsLayoutEntry(parent, context, control, widgetData, submenuStates, inSubmenu)
+	local entry = {
+		control = control,
+		widgetData = widgetData,
+		submenuStates = CopySettingsSubmenuStates(submenuStates),
+		inSubmenu = inSubmenu or #(submenuStates or {}) > 0,
+		spacing = 15,
+	}
+	context.entries[#context.entries + 1] = entry
+	if control then
+		control.__betterUiTabParent = parent
+		control.__betterUiLayoutParent = parent
+		control.__betterUiInSimulatedSubmenu = entry.inSubmenu
+	end
+	return entry
+end
 
-local function RefreshSettingsWidgetTree(control)
+ReflowSettingsPageLayout = function(parent)
+	if not parent then return end
+	local entries = ReadControlField(parent, "__betterUiLayoutEntries")
+	if type(entries) ~= "table" then
+		return
+	end
+
+	local anchorTarget = nil
+	local width = ResolveSettingsWidgetWidth(parent)
+	for _, entry in ipairs(entries) do
+		local control = entry.control
+		if control then
+			local visible = AreSettingsEntryStatesExpanded(entry.submenuStates)
+			SetControlHidden(control, not visible)
+			if visible then
+				if control.__betterUiSimulatedSubmenuHeader then
+					if control.SetDimensions then control:SetDimensions(width, SETTINGS_SUBMENU_HEADER_HEIGHT) end
+					UpdateSettingsSimulatedSubmenuHeader(control)
+				elseif entry.widgetData and entry.widgetData.width ~= "half" and control.SetWidth then
+					pcall(function() control:SetWidth(width) end)
+				end
+				if type(entry.widgetData) == "table" then
+					ApplySettingsWidgetLayoutFixes(parent, control, entry.widgetData, entry.inSubmenu)
+				end
+				if control.ClearAnchors then control:ClearAnchors() end
+				if control.SetAnchor then
+					if anchorTarget then
+						control:SetAnchor(TOPLEFT, anchorTarget, BOTTOMLEFT, 0, entry.spacing or 15)
+					else
+						control:SetAnchor(TOPLEFT)
+					end
+				end
+				anchorTarget = control
+			end
+		end
+	end
+
+	RefreshSettingsSubmenuBlockBackground(entries, width)
+	EnableResizeToFitY(parent)
+	RefreshSettingsPanelScroll(parent)
+end
+
+local function CreateSettingsPageWidgets(parent, controls, inSubmenu, context, submenuStates)
+	if not parent or type(controls) ~= "table" then
+		return
+	end
+
+	context = context or { entries = {} }
+	submenuStates = submenuStates or {}
+	parent.__betterUiLayoutEntries = context.entries
+
+	local pendingHalfEntry = nil
+	for _, widgetData in ipairs(controls) do
+		if type(widgetData) == "table" and widgetData.type then
+			if widgetData.type == "submenu" then
+				pendingHalfEntry = nil
+				local header = CreateSettingsSimulatedSubmenuHeader(parent, widgetData)
+				if header then
+					AddSettingsLayoutEntry(parent, context, header, header.data, submenuStates, inSubmenu)
+					if type(widgetData.controls) == "table" then
+						local childStates = CopySettingsSubmenuStates(submenuStates, header.__betterUiSubmenuState)
+						CreateSettingsPageWidgets(parent, widgetData.controls, true, context, childStates)
+					end
+				else
+					BETTERUI.DebugError("Settings tab submenu failed: " .. tostring(widgetData.name))
+				end
+			else
+				local isHalf = widgetData.width == "half"
+				if widgetData.type == "editbox" and widgetData.isExtraWide == nil then
+					widgetData.isExtraWide = true
+				end
+				local creator = rawget(_G, "LAMCreateControl") and LAMCreateControl[widgetData.type]
+				if type(creator) == "function" then
+					local ok, widget = pcall(creator, parent, widgetData)
+					if ok and widget then
+						widget.__betterUiTabParent = parent
+						widget.__betterUiInSimulatedSubmenu = inSubmenu or #submenuStates > 0
+						ApplySettingsWidgetLayoutFixes(parent, widget, widgetData, widget.__betterUiInSimulatedSubmenu)
+						if pendingHalfEntry and isHalf then
+							widget.lineControl = pendingHalfEntry.control
+							local twinContainer = CreateSettingsTwinContainer(parent, pendingHalfEntry.control, widget)
+							pendingHalfEntry.control = twinContainer
+							pendingHalfEntry.widgetData = { type = "container" }
+							if twinContainer then
+								twinContainer.__betterUiTabParent = parent
+								twinContainer.__betterUiLayoutParent = parent
+								twinContainer.__betterUiInSimulatedSubmenu = pendingHalfEntry.inSubmenu
+							end
+							pendingHalfEntry = nil
+						else
+							local entry = AddSettingsLayoutEntry(parent, context, widget, widgetData, submenuStates, inSubmenu)
+							pendingHalfEntry = isHalf and entry or nil
+						end
+					else
+						BETTERUI.DebugError("Settings tab control failed: " .. tostring(widgetData.type) .. " " .. tostring(widget))
+					end
+				else
+					BETTERUI.DebugError("Settings tab control unavailable: " .. tostring(widgetData.type))
+				end
+			end
+		end
+	end
+
+	if not inSubmenu then
+		ReflowSettingsPageLayout(parent)
+	end
+end
+
+RefreshSettingsWidgetTree = function(control, inSubmenu)
 	if not control then return false end
 	local refreshed = false
+	local data = ReadControlField(control, "data")
+	local simulatedSubmenu = ReadControlField(control, "__betterUiInSimulatedSubmenu") or false
+	local nestedInSubmenu = inSubmenu or simulatedSubmenu
+	if type(data) == "table" then
+		ApplySettingsWidgetLayoutFixes(ReadControlField(control, "__betterUiTabParent") or ReadControlField(control, "panel"), control, data, nestedInSubmenu)
+	end
 	for _, methodName in ipairs({ "UpdateValue", "UpdateDisabled" }) do
 		local okMethod, method = pcall(function() return control[methodName] end)
 		if okMethod and type(method) == "function" then
@@ -571,7 +1205,7 @@ local function RefreshSettingsWidgetTree(control)
 		for index = 1, childCount do
 			local okChild, child = pcall(function() return control:GetChild(index) end)
 			if okChild and child then
-				refreshed = RefreshSettingsWidgetTree(child) or refreshed
+				refreshed = RefreshSettingsWidgetTree(child, nestedInSubmenu or (type(data) == "table" and data.type == SETTINGS_SIMULATED_SUBMENU_TYPE)) or refreshed
 			end
 		end
 	end
@@ -585,16 +1219,17 @@ local function EnsureSettingsTabPageCreated(tabControl, pageIndex)
 	end
 
 	local wm = BETTERUI.WindowManager or (GetWindowManager and GetWindowManager())
-	if not wm or not tabControl.__betterUiTabContent then
+	if not wm then
 		return
 	end
 
-	local container = wm:CreateControl(nil, tabControl.__betterUiTabContent, CT_CONTROL)
-	container.panel = tabControl.panel or tabControl
+	local lamPanel = tabControl.__betterUiLamPanel or ResolveLamPanel(tabControl)
+	local pageParent = ReadControlField(lamPanel, "scroll") or lamPanel or tabControl
+	local container = wm:CreateControl(nil, pageParent, CT_CONTROL)
+	container.panel = lamPanel or tabControl
 	container:SetWidth(GetSettingsTabControlWidth(tabControl))
-	container:SetAnchor(TOPLEFT, tabControl.__betterUiTabContent, TOPLEFT, 0, 0)
+	container:SetAnchor(TOPLEFT, tabControl, BOTTOMLEFT, 0, 10)
 	EnableResizeToFitY(container)
-	container:SetHidden(true)
 
 	CreateSettingsPageWidgets(container, page.controls)
 	page.container = container
@@ -604,7 +1239,8 @@ local function RefreshSettingsTabButtonStates(tabControl)
 	local selectedIndex = tabControl.__betterUiSelectedTabIndex or 1
 	local normalState = rawget(_G, "BSTATE_NORMAL") or 0
 	local selectedState = rawget(_G, "BSTATE_PRESSED") or 1
-	for index, button in ipairs(tabControl.__betterUiTabButtons or {}) do
+	for index, buttonControl in ipairs(tabControl.__betterUiTabButtons or {}) do
+		local button = ReadControlField(buttonControl, "button") or buttonControl
 		if button.SetState then
 			button:SetState(index == selectedIndex and selectedState or normalState, index == selectedIndex)
 		end
@@ -624,7 +1260,9 @@ local function SelectSettingsTabPage(tabControl, pageIndex)
 		end
 	end
 	if pages[pageIndex].container then
+		ReflowSettingsPageLayout(pages[pageIndex].container)
 		RefreshSettingsWidgetTree(pages[pageIndex].container)
+		RefreshSettingsPanelScroll(pages[pageIndex].container)
 	end
 	tabControl.__betterUiSelectedTabIndex = pageIndex
 	SETTINGS_TAB_STATE.selectedKey = pages[pageIndex].key or "General"
@@ -647,14 +1285,20 @@ local function GetInitialSettingsTabIndex(pages)
 end
 
 GetSettingsTabControlWidth = function(tabControl)
-	if tabControl and type(tabControl.GetWidth) == "function" then
-		local ok, width = pcall(tabControl.GetWidth, tabControl)
-		width = ok and tonumber(width) or 0
-		if width and width > 0 then
-			return width
-		end
+	local lamPanel = tabControl and tabControl.__betterUiLamPanel or ResolveLamPanel(tabControl)
+	local width = ReadMeasuredWidth(lamPanel)
+	local contentWidth = width - 60
+	if contentWidth >= SETTINGS_TAB_MIN_USABLE_WIDTH then
+		return contentWidth
 	end
-	return 510
+
+	local scroll = ReadControlField(lamPanel, "scroll")
+	width = ReadMeasuredWidth(scroll)
+	if width >= SETTINGS_TAB_MIN_USABLE_WIDTH then
+		return width
+	end
+
+	return SETTINGS_TAB_DEFAULT_WIDTH
 end
 
 local function GetSettingsTabButtonsPerRow(pageCount, width, buttonGap)
@@ -665,7 +1309,67 @@ local function GetSettingsTabButtonsPerRow(pageCount, width, buttonGap)
 	return math.max(1, math.min(maxButtonsPerRow, widthLimitedCount, pageCount))
 end
 
-local function CreateSettingsTabsControl(tabControl)
+local function GetSettingsTabButtonPanelHeight(pageCount, width)
+	local buttonHeight = 30
+	local buttonGap = 4
+	local buttonsPerRow = GetSettingsTabButtonsPerRow(pageCount, width or SETTINGS_TAB_DEFAULT_WIDTH, buttonGap)
+	local rows = math.ceil(pageCount / buttonsPerRow)
+	return math.max(buttonHeight, rows * buttonHeight + math.max(0, rows - 1) * buttonGap)
+end
+
+local function ResolveSettingsTabHeightLimit(tabControl, key, fallback)
+	local data = tabControl and tabControl.data or nil
+	local value = data and data[key] or nil
+	if type(value) == "function" then
+		local ok, resolved = pcall(value)
+		value = ok and resolved or nil
+	end
+	value = tonumber(value)
+	return value or fallback
+end
+
+local function ApplySettingsTabDimensions(tabControl, width, height)
+	if not tabControl then return end
+	width = tonumber(width) or SETTINGS_TAB_DEFAULT_WIDTH
+	height = tonumber(height)
+	local minHeight = height or ResolveSettingsTabHeightLimit(tabControl, "minHeight", 260)
+	local maxHeight = height or ResolveSettingsTabHeightLimit(tabControl, "maxHeight", 4000)
+	if tabControl.SetDimensionConstraints then
+		tabControl:SetDimensionConstraints(width, minHeight, width, maxHeight)
+	end
+	if tabControl.SetWidth then
+		tabControl:SetWidth(width)
+	end
+	if height and tabControl.SetHeight then
+		tabControl:SetHeight(height)
+	end
+end
+
+local function LayoutSettingsTabButtons(tabControl, width)
+	local pages = tabControl and tabControl.__betterUiTabPages or nil
+	local pageCount = type(pages) == "table" and #pages or 0
+	if pageCount == 0 then return end
+	width = tonumber(width) or GetSettingsTabControlWidth(tabControl)
+	local buttonHeight = 30
+	local buttonGap = 4
+	local buttonsPerRow = GetSettingsTabButtonsPerRow(pageCount, width, buttonGap)
+	local buttonWidth = math.floor((width - (buttonGap * (buttonsPerRow - 1))) / buttonsPerRow)
+	for index, buttonControl in ipairs(tabControl.__betterUiTabButtons or {}) do
+		local row = math.floor((index - 1) / buttonsPerRow)
+		local col = (index - 1) % buttonsPerRow
+		if buttonControl.ClearAnchors then buttonControl:ClearAnchors() end
+		if buttonControl.SetDimensions then buttonControl:SetDimensions(buttonWidth, buttonHeight) end
+		if buttonControl.SetAnchor then
+			buttonControl:SetAnchor(TOPLEFT, tabControl, TOPLEFT, col * (buttonWidth + buttonGap), row * (buttonHeight + buttonGap))
+		end
+		local button = ReadControlField(buttonControl, "button")
+		if button and button.SetWidth then
+			button:SetWidth(buttonWidth)
+		end
+	end
+end
+
+local function CreateSettingsTabsControlNow(tabControl)
 	if tabControl.__betterUiTabsCreated then
 		return
 	end
@@ -683,36 +1387,69 @@ local function CreateSettingsTabsControl(tabControl)
 
 	EnableResizeToFitY(tabControl)
 
+	local lamPanel = ResolveLamPanel(tabControl)
+	tabControl.__betterUiLamPanel = lamPanel
+
 	local width = GetSettingsTabControlWidth(tabControl)
 	local buttonHeight = 30
 	local buttonGap = 4
 	local buttonsPerRow = GetSettingsTabButtonsPerRow(#pages, width, buttonGap)
 	local rows = math.ceil(#pages / buttonsPerRow)
 	local buttonWidth = math.floor((width - (buttonGap * (buttonsPerRow - 1))) / buttonsPerRow)
+	local buttonPanelHeight = GetSettingsTabButtonPanelHeight(#pages, width)
+	ApplySettingsTabDimensions(tabControl, width, buttonPanelHeight)
 
 	tabControl.__betterUiTabButtons = {}
 	for index, page in ipairs(pages) do
-		local button = wm:CreateControlFromVirtual(nil, tabControl, "ZO_DefaultButton")
+		local buttonControl
+		local buttonCreator = rawget(_G, "LAMCreateControl") and LAMCreateControl.button
+		if type(buttonCreator) == "function" then
+			buttonControl = buttonCreator(tabControl, {
+				type = "button",
+				name = page.name or tostring(page.key or index),
+				func = function()
+					SelectSettingsTabPage(tabControl, index)
+				end,
+			})
+		else
+			buttonControl = wm:CreateControlFromVirtual(nil, tabControl, "ZO_DefaultButton")
+			buttonControl:SetText(page.name or tostring(page.key or index))
+			buttonControl:SetHandler("OnClicked", function()
+				SelectSettingsTabPage(tabControl, index)
+			end)
+		end
 		local row = math.floor((index - 1) / buttonsPerRow)
 		local col = (index - 1) % buttonsPerRow
-		button:SetDimensions(buttonWidth, buttonHeight)
-		button:SetText(page.name or tostring(page.key or index))
-		button:SetAnchor(TOPLEFT, tabControl, TOPLEFT, col * (buttonWidth + buttonGap), row * (buttonHeight + buttonGap))
-		button:SetHandler("OnClicked", function()
-			SelectSettingsTabPage(tabControl, index)
-		end)
-		tabControl.__betterUiTabButtons[index] = button
+		buttonControl:SetDimensions(buttonWidth, buttonHeight)
+		buttonControl:SetAnchor(TOPLEFT, tabControl, TOPLEFT, col * (buttonWidth + buttonGap), row * (buttonHeight + buttonGap))
+		local button = ReadControlField(buttonControl, "button")
+		if button and button.SetWidth then
+			button:SetWidth(buttonWidth)
+		end
+		tabControl.__betterUiTabButtons[index] = buttonControl
 	end
 
-	local content = wm:CreateControl(nil, tabControl, CT_CONTROL)
-	content.panel = tabControl.panel or tabControl
-	content:SetWidth(width)
-	content:SetAnchor(TOPLEFT, tabControl, TOPLEFT, 0, rows * (buttonHeight + buttonGap) + 10)
-	EnableResizeToFitY(content)
-	tabControl.__betterUiTabContent = content
 	tabControl.__betterUiTabsCreated = true
 
 	SelectSettingsTabPage(tabControl, GetInitialSettingsTabIndex(pages))
+end
+
+local function CreateSettingsTabsControl(tabControl)
+	if tabControl.__betterUiTabsCreated or tabControl.__betterUiTabsPending then
+		return
+	end
+
+	local defer = rawget(_G, "zo_callLater")
+	if type(defer) ~= "function" then
+		CreateSettingsTabsControlNow(tabControl)
+		return
+	end
+
+	tabControl.__betterUiTabsPending = true
+	defer(function()
+		tabControl.__betterUiTabsPending = false
+		CreateSettingsTabsControlNow(tabControl)
+	end, SETTINGS_TAB_CREATE_DELAY_MS)
 end
 
 local function RefreshSettingsTabsControl(tabControl)
@@ -720,7 +1457,65 @@ local function RefreshSettingsTabsControl(tabControl)
 		CreateSettingsTabsControl(tabControl)
 		return
 	end
+	local width = GetSettingsTabControlWidth(tabControl)
+	local buttonPanelHeight = GetSettingsTabButtonPanelHeight(#(tabControl.__betterUiTabPages or {}), width)
+	ApplySettingsTabDimensions(tabControl, width, buttonPanelHeight)
+	LayoutSettingsTabButtons(tabControl, width)
+	for _, page in ipairs(tabControl.__betterUiTabPages or {}) do
+		if page.container and page.container.SetWidth then
+			page.container:SetWidth(width)
+		end
+		if page.container and page.container.SetAnchor then
+			if page.container.ClearAnchors then page.container:ClearAnchors() end
+			page.container:SetAnchor(TOPLEFT, tabControl, BOTTOMLEFT, 0, 10)
+		end
+	end
 	SelectSettingsTabPage(tabControl, tabControl.__betterUiSelectedTabIndex or GetInitialSettingsTabIndex(tabControl.__betterUiTabPages))
+end
+
+RefreshActiveSettingsTabs = function()
+	local tabControl = rawget(_G, SETTINGS_TAB_CONTROL_REFERENCE)
+	if tabControl and tabControl.__betterUiTabsCreated then
+		RefreshSettingsTabsControl(tabControl)
+	end
+end
+
+local function AttachSettingsTabsToLamPanel(controlPanel, pages)
+	local tabControl = rawget(_G, SETTINGS_TAB_CONTROL_REFERENCE)
+	if not tabControl then
+		return false
+	end
+
+	tabControl.__betterUiLamPanel = controlPanel or ResolveLamPanel(tabControl)
+	tabControl.__betterUiTabPages = pages or (tabControl.data and tabControl.data.pages) or {}
+	CreateSettingsTabsControlNow(tabControl)
+	RefreshSettingsTabsControl(tabControl)
+	return true
+end
+
+local function RegisterSettingsTabsLamCallbacks(controlPanel, pages)
+	local callbacks = rawget(_G, "CALLBACK_MANAGER")
+	if not controlPanel or not callbacks or type(callbacks.RegisterCallback) ~= "function" then
+		return false
+	end
+	if controlPanel.__betterUiTabCallbacksRegistered then
+		return true
+	end
+	controlPanel.__betterUiTabCallbacksRegistered = true
+
+	callbacks:RegisterCallback("LAM-PanelControlsCreated", function(panel)
+		if panel ~= controlPanel then
+			return
+		end
+		AttachSettingsTabsToLamPanel(controlPanel, pages)
+	end)
+	callbacks:RegisterCallback("LAM-PanelOpened", function(panel)
+		if panel ~= controlPanel then
+			return
+		end
+		AttachSettingsTabsToLamPanel(controlPanel, pages)
+	end)
+	return true
 end
 
 local function InitializeRegisteredModuleSettings()
@@ -818,34 +1613,6 @@ local function AppendBuilogSettingsPanel(optionsTable)
 				width = "full",
 			},
 			{
-				type = "checkbox",
-				name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_CHAT"),
-				tooltip = GetBetterUISettingsString("SI_BETTERUI_BUILOG_CHAT_TOOLTIP"),
-				getFunc = function()
-					local interfaceLog = GetBuilogInterfaceLog()
-					return interfaceLog and interfaceLog.GetChatSurface and interfaceLog.GetChatSurface() or false
-				end,
-				setFunc = function(value)
-					local interfaceLog = GetBuilogInterfaceLog()
-					if interfaceLog and interfaceLog.SetChatSurface then interfaceLog.SetChatSurface(value) end
-				end,
-				width = "full",
-			},
-			{
-				type = "checkbox",
-				name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_POPUPS"),
-				tooltip = GetBetterUISettingsString("SI_BETTERUI_BUILOG_POPUPS_TOOLTIP"),
-				getFunc = function()
-					local interfaceLog = GetBuilogInterfaceLog()
-					return interfaceLog and interfaceLog.GetSuppressPopups and interfaceLog.GetSuppressPopups() or true
-				end,
-				setFunc = function(value)
-					local interfaceLog = GetBuilogInterfaceLog()
-					if interfaceLog and interfaceLog.SetPopupSuppression then interfaceLog.SetPopupSuppression(value) end
-				end,
-				width = "full",
-			},
-			{
 				type = "dropdown",
 				name = GetBetterUISettingsString("SI_BETTERUI_BUILOG_SCREENSHOT_AUTO"),
 				tooltip = GetBetterUISettingsString("SI_BETTERUI_BUILOG_SCREENSHOT_AUTO_TOOLTIP"),
@@ -869,6 +1636,7 @@ function BETTERUI.InitModuleOptions()
 	local panelData = BETTERUI.Init_ModulePanel("Master", GetStringByName("SI_BETTERUI_MASTER_SETTINGS_TITLE"))
 	local panelId = "BETTERUI_" .. "Modules"
 	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
+	local controlPanel
 
 	local generalControls = {
 		{
@@ -986,10 +1754,15 @@ function BETTERUI.InitModuleOptions()
 			type = "custom",
 			reference = SETTINGS_TAB_CONTROL_REFERENCE,
 			width = "full",
-			minHeight = 260,
-			maxHeight = 4000,
+			minHeight = function() return GetSettingsTabButtonPanelHeight(#pages, SETTINGS_TAB_DEFAULT_WIDTH) end,
+			maxHeight = function() return GetSettingsTabButtonPanelHeight(#pages, SETTINGS_TAB_DEFAULT_WIDTH) end,
 			pages = pages,
-			createFunc = CreateSettingsTabsControl,
+			createFunc = function(tabControl)
+				tabControl.__betterUiLamPanel = controlPanel or ResolveLamPanel(tabControl)
+				if not controlPanel or not rawget(_G, "CALLBACK_MANAGER") then
+					CreateSettingsTabsControl(tabControl)
+				end
+			end,
 			refreshFunc = RefreshSettingsTabsControl,
 		},
 	}
@@ -1011,8 +1784,9 @@ function BETTERUI.InitModuleOptions()
 			tabs = #pages,
 		}, BETTERUI.Log.LEVEL.INFO)
 	end
-	LAM:RegisterAddonPanel(panelId, panelData)
+	controlPanel = LAM:RegisterAddonPanel(panelId, panelData)
 	LAM:RegisterOptionControls(panelId, optionsTable)
+	RegisterSettingsTabsLamCallbacks(controlPanel, pages)
 	if BETTERUI.Log and BETTERUI.Log.TraceEvent then
 		BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.SETTINGS, "settings.panel", "registered", {
 			panel = panelId,
