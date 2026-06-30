@@ -615,11 +615,17 @@ assert_true(betterUiSource:find("SETTINGS_SIMULATED_SUBMENU_TYPE = \"betterui_su
     and betterUiSource:find("\t\tApplySettingsSubmenuGeometry(parent, widget)", 1, true) == nil,
     "tab submenus keep full-width flat layout with S'rendarr-style disclosure panels")
 assert_true(betterUiSource:find("ApplySettingsEditboxGeometry", 1, true) ~= nil
-    and betterUiSource:find("clone.isExtraWide = true", 1, true) ~= nil
-    and betterUiSource:find("widgetData.isExtraWide = true", 1, true) ~= nil
-    and betterUiSource:find("container:SetAnchor(BOTTOMLEFT, widget, BOTTOMLEFT, 0, 0)", 1, true) ~= nil
+    and betterUiSource:find("SETTINGS_EDITBOX_COMPACT_WIDTH", 1, true) ~= nil
+    and betterUiSource:find("container:SetAnchor(RIGHT, widget, RIGHT, 0, 0)", 1, true) ~= nil
     and betterUiSource:find("editbox:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, -4, -2)", 1, true) ~= nil,
-    "tab editboxes use full-width LAM layout and visible input geometry")
+    "tab editboxes use compact same-line geometry with visible input text")
+assert_true(betterUiSource:find("SETTINGS_SUBMENU_SIDE_EXTENSION", 1, true) ~= nil
+    and betterUiSource:find("GetSettingsSubmenuVisualWidth(width)", 1, true) ~= nil
+    and betterUiSource:find("SETTINGS_SUBMENU_ARROW_SIZE", 1, true) ~= nil,
+    "tab submenu headers keep a S'rendarr-style wider header and larger arrow")
+assert_true(betterUiSource:find("name = BETTERUI.name", 1, true) ~= nil
+    and betterUiSource:find("displayName = BETTERUI.name", 1, true) ~= nil,
+    "master settings panel registers with a plain BetterUI add-on list name")
 local utilitiesSource = read_source("Modules/CIM/Core/Utilities.lua")
 assert_true(betterUiSource:find("BETTERUI.RaiseNativeError", 1, true) ~= nil
     and betterUiSource:find("chatPrint(\"|c0066ff[BETTERUI]|r", 1, true) == nil

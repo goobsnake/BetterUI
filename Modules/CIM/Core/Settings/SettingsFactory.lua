@@ -225,11 +225,15 @@ param: moduleName (string) - The display name of the module.
 param: moduleDesc (string) - The description text.
 return: table - The LAM panel configuration table.
 ]]
-function BETTERUI.Init_ModulePanel(moduleName, moduleDesc)
+function BETTERUI.Init_ModulePanel(moduleName, moduleDesc, options)
+    options = type(options) == "table" and options or {}
+    local panelName = options.name or ("|t24:24:/esoui/art/buttons/gamepad/xbox/nav_xbone_b.dds|t " .. BETTERUI.name .. " (" .. moduleName .. ")")
+    local displayName = options.displayName or ("|c0066ffBETTERUI|r :: " .. moduleDesc)
+
     return {
         type = "panel",
-        name = "|t24:24:/esoui/art/buttons/gamepad/xbox/nav_xbone_b.dds|t " .. BETTERUI.name .. " (" .. moduleName .. ")",
-        displayName = "|c0066ffBETTERUI|r :: " .. moduleDesc,
+        name = panelName,
+        displayName = displayName,
         author = "prasoc, RockingDice, Goobsnake",
         version = BETTERUI.version,
         slashCommand = "/betterui",

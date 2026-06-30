@@ -405,9 +405,6 @@ local function CloneControlForModuleTab(moduleName, control)
 		-- Keep submenus openable while greying their labels when the module is off.
 		clone.disabledLabel = CombineModuleDisabled(moduleName, clone.disabledLabel)
 	elseif clone.type == "editbox" then
-		if clone.isExtraWide == nil then
-			clone.isExtraWide = true
-		end
 		clone.disabled = CombineModuleDisabled(moduleName, clone.disabled)
 	elseif clone.type ~= "header" and clone.type ~= "divider" then
 		clone.disabled = CombineModuleDisabled(moduleName, clone.disabled)
@@ -543,9 +540,15 @@ local SETTINGS_TAB_MIN_USABLE_WIDTH = 320
 local SETTINGS_TAB_CREATE_DELAY_MS = 50
 local SETTINGS_SIMULATED_SUBMENU_TYPE = "betterui_submenu"
 local SETTINGS_SUBMENU_HEADER_HEIGHT = 38
+local SETTINGS_SUBMENU_SIDE_EXTENSION = 19
+local SETTINGS_SUBMENU_CHILD_INSET = 6
+local SETTINGS_SUBMENU_BOTTOM_PADDING = 4
+local SETTINGS_SUBMENU_ARROW_SIZE = 32
 local SETTINGS_SUBMENU_ARROW_DOWN_TEXTURE = "EsoUI\\Art\\Miscellaneous\\list_sortdown.dds"
 local SETTINGS_SUBMENU_ARROW_UP_TEXTURE = "EsoUI\\Art\\Miscellaneous\\list_sortup.dds"
-local SETTINGS_EDITBOX_HEIGHT = 30
+local SETTINGS_DROPDOWN_FONT = "ZoFontWinH4"
+local SETTINGS_EDITBOX_HEIGHT = 28
+local SETTINGS_EDITBOX_COMPACT_WIDTH = 96
 local SETTINGS_EDITBOX_MULTILINE_HEIGHT = 86
 
 local function ReadMeasuredWidth(control)
@@ -656,6 +659,17 @@ local function SafeSetDrawTier(control, tier)
 	end
 end
 
+local function SafeSetFont(control, font)
+	if control and font and control.SetFont then
+		pcall(function() control:SetFont(font) end)
+	end
+end
+
+local function GetSettingsSubmenuVisualWidth(width)
+	width = tonumber(width) or SETTINGS_TAB_DEFAULT_WIDTH
+	return width + SETTINGS_SUBMENU_SIDE_EXTENSION
+end
+
 local function ApplySettingsDropdownGeometry(widget)
 	local container = ReadControlField(widget, "container")
 	local combobox = ReadControlField(widget, "combobox")
@@ -674,7 +688,12 @@ local function ApplySettingsDropdownGeometry(widget)
 	local dropdown = ReadControlField(widget, "dropdown")
 	if dropdown and width > 0 then
 		dropdown.m_containerWidth = width
+		SafeSetFont(dropdown, SETTINGS_DROPDOWN_FONT)
+		SafeSetFont(ReadControlField(dropdown, "m_selectedItemText"), SETTINGS_DROPDOWN_FONT)
 	end
+
+	SafeSetFont(combobox, SETTINGS_DROPDOWN_FONT)
+	SafeSetFont(ReadControlField(widget, "label"), SETTINGS_DROPDOWN_FONT)
 end
 
 local function ApplySettingsEditboxGeometry(parent, widget, widgetData)
@@ -691,22 +710,50 @@ local function ApplySettingsEditboxGeometry(parent, widget, widgetData)
 	if width < SETTINGS_TAB_MIN_USABLE_WIDTH and widgetData.width ~= "half" then
 		width = SETTINGS_TAB_DEFAULT_WIDTH
 	end
-	local height = widgetData.isMultiline and SETTINGS_EDITBOX_MULTILINE_HEIGHT or SETTINGS_EDITBOX_HEIGHT
+	local isMultiline = widgetData.isMultiline == true
+	local height = isMultiline and SETTINGS_EDITBOX_MULTILINE_HEIGHT or SETTINGS_EDITBOX_HEIGHT
+	local editWidth = isMultiline and width or math.min(SETTINGS_EDITBOX_COMPACT_WIDTH, math.max(64, width / 3))
+	local label = ReadControlField(widget, "label")
 
 	if widget.SetWidth and width > 0 then
 		pcall(function() widget:SetWidth(width) end)
+	end
+	if widget.SetHeight then
+		local labelHeight = GetControlHeight(label)
+		local rowHeight = isMultiline and (height + labelHeight) or math.max(height, labelHeight)
+		pcall(function() widget:SetHeight(rowHeight) end)
 	end
 	if container.ClearAnchors then
 		pcall(function() container:ClearAnchors() end)
 	end
 	if container.SetAnchor then
 		pcall(function()
-			container:SetAnchor(BOTTOMLEFT, widget, BOTTOMLEFT, 0, 0)
-			container:SetAnchor(BOTTOMRIGHT, widget, BOTTOMRIGHT, 0, 0)
+			if isMultiline then
+				container:SetAnchor(BOTTOMLEFT, widget, BOTTOMLEFT, 0, 0)
+				container:SetAnchor(BOTTOMRIGHT, widget, BOTTOMRIGHT, 0, 0)
+			else
+				container:SetAnchor(RIGHT, widget, RIGHT, 0, 0)
+			end
 		end)
+	end
+	if container.SetWidth and editWidth > 0 then
+		pcall(function() container:SetWidth(editWidth) end)
 	end
 	if container.SetHeight then
 		pcall(function() container:SetHeight(height) end)
+	end
+	if label and label.ClearAnchors then
+		pcall(function() label:ClearAnchors() end)
+	end
+	if label and label.SetAnchor then
+		pcall(function()
+			label:SetAnchor(TOPLEFT, widget, TOPLEFT, 0, 0)
+			if isMultiline then
+				label:SetAnchor(TOPRIGHT, widget, TOPRIGHT, 0, 0)
+			else
+				label:SetAnchor(TOPRIGHT, container, TOPLEFT, -8, 0)
+			end
+		end)
 	end
 
 	local bg = ReadControlField(widget, "bg")
@@ -727,6 +774,30 @@ local function ApplySettingsEditboxGeometry(parent, widget, widgetData)
 			editbox:SetAnchor(TOPLEFT, container, TOPLEFT, 4, 2)
 			editbox:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, -4, -2)
 		end)
+	end
+	SafeSetFont(label, SETTINGS_DROPDOWN_FONT)
+	SafeSetFont(editbox, SETTINGS_DROPDOWN_FONT)
+end
+
+local function ApplySettingsButtonGeometry(widget)
+	local button = ReadControlField(widget, "button")
+	if not button then
+		return
+	end
+	SafeSetFont(button, SETTINGS_DROPDOWN_FONT)
+	local okLabel, label = pcall(function()
+		return button.GetLabelControl and button:GetLabelControl()
+	end)
+	if okLabel then
+		SafeSetFont(label, SETTINGS_DROPDOWN_FONT)
+		SafeSetDrawLayer(label, rawget(_G, "DL_OVERLAY"))
+		SafeSetDrawTier(label, rawget(_G, "DT_HIGH"))
+	end
+	if button.SetNormalFontColor then
+		pcall(function() button:SetNormalFontColor(1, 1, 1, 1) end)
+	end
+	if button.SetMouseOverFontColor then
+		pcall(function() button:SetMouseOverFontColor(1, 0.86, 0.38, 1) end)
 	end
 end
 
@@ -760,6 +831,8 @@ local function ApplySettingsWidgetLayoutFixes(parent, widget, widgetData, inSubm
 		ApplySettingsDropdownGeometry(widget)
 	elseif widgetData.type == "editbox" then
 		ApplySettingsEditboxGeometry(parent, widget, widgetData)
+	elseif widgetData.type == "button" then
+		ApplySettingsButtonGeometry(widget)
 	end
 end
 
@@ -881,6 +954,7 @@ local function CreateSettingsSimulatedSubmenuHeader(parent, widgetData)
 	end
 
 	local width = ResolveSettingsWidgetWidth(parent)
+	local visualWidth = GetSettingsSubmenuVisualWidth(width)
 	header.panel = ResolveLamPanel(parent)
 	header.data = {
 		type = SETTINGS_SIMULATED_SUBMENU_TYPE,
@@ -895,7 +969,7 @@ local function CreateSettingsSimulatedSubmenuHeader(parent, widgetData)
 		name = widgetData.name,
 	}
 	if header.SetDimensions then
-		header:SetDimensions(width, SETTINGS_SUBMENU_HEADER_HEIGHT)
+		header:SetDimensions(visualWidth, SETTINGS_SUBMENU_HEADER_HEIGHT)
 	end
 	if header.SetMouseEnabled then
 		header:SetMouseEnabled(true)
@@ -915,26 +989,9 @@ local function CreateSettingsSimulatedSubmenuHeader(parent, widgetData)
 	end
 	header.blockBackdrop = blockBackdrop
 
-	local backdrop = wm:CreateControl(nil, header, CT_BACKDROP)
-	if backdrop then
-		if backdrop.SetAnchorFill then
-			backdrop:SetAnchorFill(header)
-		else
-			backdrop:SetAnchor(TOPLEFT, header, TOPLEFT, 0, 0)
-			backdrop:SetAnchor(BOTTOMRIGHT, header, BOTTOMRIGHT, 0, 0)
-		end
-		if backdrop.SetCenterColor then
-			pcall(function() backdrop:SetCenterColor(0.02, 0.02, 0.02, 0.90) end)
-		end
-		if backdrop.SetEdgeColor then
-			pcall(function() backdrop:SetEdgeColor(0.64, 0.64, 0.64, 0.95) end)
-		end
-	end
-	header.backdrop = backdrop
-
 	local arrow = wm:CreateControl(nil, header, CT_TEXTURE)
 	if arrow then
-		if arrow.SetDimensions then arrow:SetDimensions(26, 26) end
+		if arrow.SetDimensions then arrow:SetDimensions(SETTINGS_SUBMENU_ARROW_SIZE, SETTINGS_SUBMENU_ARROW_SIZE) end
 		if arrow.SetAnchor then arrow:SetAnchor(RIGHT, header, RIGHT, -10, 0) end
 		if arrow.SetColor then
 			pcall(function() arrow:SetColor(1, 1, 1, 1) end)
@@ -1044,10 +1101,10 @@ local function RefreshSettingsSubmenuBlockBackground(entries, width)
 						pcall(function() blockBackdrop:ClearAnchors() end)
 					end
 					if blockBackdrop.SetAnchor then
-						pcall(function() blockBackdrop:SetAnchor(TOPLEFT, control, TOPLEFT, -9, 0) end)
+						pcall(function() blockBackdrop:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 0) end)
 					end
 					if blockBackdrop.SetDimensions then
-						pcall(function() blockBackdrop:SetDimensions(width + 18, height + 4) end)
+						pcall(function() blockBackdrop:SetDimensions(GetSettingsSubmenuVisualWidth(width), height + SETTINGS_SUBMENU_BOTTOM_PADDING) end)
 					end
 					SetControlHidden(blockBackdrop, false)
 				end
@@ -1089,7 +1146,7 @@ ReflowSettingsPageLayout = function(parent)
 			SetControlHidden(control, not visible)
 			if visible then
 				if control.__betterUiSimulatedSubmenuHeader then
-					if control.SetDimensions then control:SetDimensions(width, SETTINGS_SUBMENU_HEADER_HEIGHT) end
+					if control.SetDimensions then control:SetDimensions(GetSettingsSubmenuVisualWidth(width), SETTINGS_SUBMENU_HEADER_HEIGHT) end
 					UpdateSettingsSimulatedSubmenuHeader(control)
 				elseif entry.widgetData and entry.widgetData.width ~= "half" and control.SetWidth then
 					pcall(function() control:SetWidth(width) end)
@@ -1099,10 +1156,19 @@ ReflowSettingsPageLayout = function(parent)
 				end
 				if control.ClearAnchors then control:ClearAnchors() end
 				if control.SetAnchor then
+					local offsetX = 0
+					if entry.inSubmenu and not control.__betterUiSimulatedSubmenuHeader
+						and anchorTarget and anchorTarget.__betterUiSimulatedSubmenuHeader then
+						offsetX = SETTINGS_SUBMENU_CHILD_INSET
+					end
 					if anchorTarget then
-						control:SetAnchor(TOPLEFT, anchorTarget, BOTTOMLEFT, 0, entry.spacing or 15)
+						control:SetAnchor(TOPLEFT, anchorTarget, BOTTOMLEFT, offsetX, entry.spacing or 15)
 					else
-						control:SetAnchor(TOPLEFT)
+						if offsetX ~= 0 then
+							control:SetAnchor(TOPLEFT, nil, TOPLEFT, offsetX, 0)
+						else
+							control:SetAnchor(TOPLEFT)
+						end
 					end
 				end
 				anchorTarget = control
@@ -1141,9 +1207,6 @@ local function CreateSettingsPageWidgets(parent, controls, inSubmenu, context, s
 				end
 			else
 				local isHalf = widgetData.width == "half"
-				if widgetData.type == "editbox" and widgetData.isExtraWide == nil then
-					widgetData.isExtraWide = true
-				end
 				local creator = rawget(_G, "LAMCreateControl") and LAMCreateControl[widgetData.type]
 				if type(creator) == "function" then
 					local ok, widget = pcall(creator, parent, widgetData)
@@ -1633,7 +1696,10 @@ local function AppendBuilogSettingsPanel(optionsTable)
 end
 
 function BETTERUI.InitModuleOptions()
-	local panelData = BETTERUI.Init_ModulePanel("Master", GetStringByName("SI_BETTERUI_MASTER_SETTINGS_TITLE"))
+	local panelData = BETTERUI.Init_ModulePanel("Master", GetStringByName("SI_BETTERUI_MASTER_SETTINGS_TITLE"), {
+		name = BETTERUI.name,
+		displayName = BETTERUI.name,
+	})
 	local panelId = "BETTERUI_" .. "Modules"
 	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
 	local controlPanel
