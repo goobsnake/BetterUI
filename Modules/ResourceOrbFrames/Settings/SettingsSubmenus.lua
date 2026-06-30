@@ -391,6 +391,7 @@ function Submenus.BuildOrbTextSubmenu(orbText, shared)
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
                 func = function()
                     ResetSharedSettingsGroup(shared, {
+                        { key = "orbAnimFlow", value = true },
                         { key = "hideLeftOrnament", value = false },
                         { key = "hideRightOrnament", value = false },
                         { key = "leftOrbSizeScale", value = 1.0 },

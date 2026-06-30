@@ -4,7 +4,7 @@ Purpose: Settings sort helpers, panel factory, and font settings factory.
          Provides alphabetical sorting for LAM controls, module panel creation,
          and font submenu option generation.
 
-Note: Settings metadata registry and default/reset functions are in SettingsMetadata.lua.
+Note: Settings metadata is in SettingsMetadata.lua; reset helpers are in SettingsReset.lua.
 ]]
 
 -- NAMESPACE INITIALIZATION

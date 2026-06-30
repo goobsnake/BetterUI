@@ -358,6 +358,7 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field marketPricePriority string|nil
 ---@field showStyleTrait boolean|nil
 ---@field showKnowledgeStatus boolean|nil
+---@field showItemComparison boolean|nil
 ---@field chatHistory number|nil
 ---@field attIntegration boolean|nil
 ---@field mmIntegration boolean|nil
@@ -517,6 +518,7 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---| "marketPricePriority"
 ---| "showStyleTrait"
 ---| "showKnowledgeStatus"
+---| "showItemComparison"
 ---| "chatHistory"
 ---| "attIntegration"
 ---| "mmIntegration"

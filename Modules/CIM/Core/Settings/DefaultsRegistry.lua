@@ -104,6 +104,7 @@ BETTERUI.Defaults.Modules = {
         -- Trait & Research
         showStyleTrait = true,      -- Show style/trait info in tooltips
         showKnowledgeStatus = true, -- Show recipe/motif/book known status in enhanced tooltip
+        showItemComparison = true,  -- Show item stat comparison in enhanced tooltip
 
         -- Chat History
         chatHistory = 200, -- Reasonable default
@@ -152,10 +153,10 @@ BETTERUI.Defaults.Modules = {
         playCombatAudio = true,
 
         -- Quickslot Settings
-        showQuickslotCooldown = false, -- Personal preference
+        showQuickslotCooldown = true,
 
         -- Orb Settings
-        orbAnimFlow = false,
+        orbAnimFlow = true,
         hideLeftOrnament = false,
         hideRightOrnament = false,
         leftOrbSizeScale = 1.0,
@@ -169,7 +170,7 @@ BETTERUI.Defaults.Modules = {
         staminaTextSize = 20,
         staminaTextColor = { 1, 1, 1, 1 },
         shieldTextSize = 20,
-        shieldTextColor = { 0, 1, 1, 1 },
+        shieldTextColor = { 0.4, 0.9, 1, 1 },
 
         -- Skill Bar Text
         cooldownTextSize = 27,
@@ -203,7 +204,7 @@ BETTERUI.Defaults.Modules = {
 
     -- WRITS MODULE (minimal settings)
     Writs = {
-        -- No specific settings, just m_enabled controlled by Master Settings
+        -- No specific settings, just m_enabled controlled by the module tab
     },
 
     -- VENDOR MODULE

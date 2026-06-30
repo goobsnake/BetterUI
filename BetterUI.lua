@@ -550,6 +550,8 @@ local SETTINGS_DROPDOWN_FONT = "ZoFontWinH4"
 local SETTINGS_EDITBOX_HEIGHT = 28
 local SETTINGS_EDITBOX_COMPACT_WIDTH = 96
 local SETTINGS_EDITBOX_MULTILINE_HEIGHT = 86
+local SETTINGS_BUTTON_MIN_WIDTH = 170
+local SETTINGS_BUTTON_MAX_WIDTH = 250
 
 local function ReadMeasuredWidth(control)
 	if control and type(control.GetWidth) == "function" then
@@ -783,6 +785,12 @@ local function ApplySettingsButtonGeometry(widget)
 	local button = ReadControlField(widget, "button")
 	if not button then
 		return
+	end
+	local width = ReadMeasuredWidth(widget)
+	if width > 0 and button.SetWidth then
+		pcall(function()
+			button:SetWidth(math.min(SETTINGS_BUTTON_MAX_WIDTH, math.max(SETTINGS_BUTTON_MIN_WIDTH, width * 0.82)))
+		end)
 	end
 	SafeSetFont(button, SETTINGS_DROPDOWN_FONT)
 	local okLabel, label = pcall(function()

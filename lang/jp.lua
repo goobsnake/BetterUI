@@ -137,7 +137,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "|c0066FF\u{62e1}\u{5f35}\u{30d0
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "\u{9280}\u{884c}\u{30a4}\u{30f3}\u{30bf}\u{30fc}\u{30d5}\u{30a7}\u{30fc}\u{30b9}\u{3092}\u{5b8c}\u{5168}\u{306b}\u{518d}\u{8a2d}\u{8a08} (\u{30b2}\u{30fc}\u{30e0}\u{30d1}\u{30c3}\u{30c9}UI\u{306e}\u{307f})")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "|c0066FF\u{30c7}\u{30a4}\u{30ea}\u{30fc}\u{30af}\u{30e9}\u{30d5}\u{30c8}\u{4f9d}\u{983c}|r\u{3092}\u{6709}\u{52b9}\u{5316}")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "\u{5404}\u{30af}\u{30e9}\u{30d5}\u{30c8}\u{30b9}\u{30c6}\u{30fc}\u{30b7}\u{30e7}\u{30f3}\u{3067}\u{30c7}\u{30a4}\u{30ea}\u{30fc}\u{4f9d}\u{983c}\u{3068}\u{9032}\u{6357}\u{3092}\u{8868}\u{793a}")
-ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "\u{3059}\u{3079}\u{3066}\u{3092}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{306b}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "\u{3059}\u{3079}\u{3066}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP", "BetterUI \u{306e}\u{3059}\u{3079}\u{3066}\u{306e}\u{8a2d}\u{5b9a}\u{3092}\u{65e2}\u{5b9a}\u{5024}\u{306b}\u{623b}\u{3057}\u{307e}\u{3059}\u{3002}\u{5fa9}\u{5143}\u{3057}\u{305f}\u{65e2}\u{5b9a}\u{5024}\u{3092}\u{5b8c}\u{5168}\u{306b}\u{9069}\u{7528}\u{3059}\u{308b}\u{306b}\u{306f}\u{3001}\u{305d}\u{306e}\u{5f8c} UI \u{3092}\u{518d}\u{8aad}\u{307f}\u{8fbc}\u{307f}\u{3057}\u{3066}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}")
 
 
@@ -170,10 +170,10 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_PVP", "PvP\u{30d5}\u{30a9}\u{30fc
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CRAFTER", "\u{30af}\u{30e9}\u{30d5}\u{30bf}\u{30fc}\u{30d5}\u{30a9}\u{30fc}\u{30ab}\u{30b9}")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_EVENTS", "\u{30a4}\u{30d9}\u{30f3}\u{30c8}\u{30d5}\u{30a9}\u{30fc}\u{30ab}\u{30b9}")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CUSTOM", "\u{30ab}\u{30b9}\u{30bf}\u{30e0}")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "\u{901a}\u{8ca8}\u{8868}\u{793a}\u{3068}\u{4e26}\u{3073}\u{9806}\u{306e}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "\u{901a}\u{8ca8}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET_TOOLTIP", "\u{3059}\u{3079}\u{3066}\u{306e}\u{901a}\u{8ca8}\u{8868}\u{793a}\u{3068}\u{9806}\u{5e8f}\u{8a2d}\u{5b9a}\u{3092}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{5024}\u{306b}\u{30ea}\u{30bb}\u{30c3}\u{30c8}\u{3057}\u{307e}\u{3059}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING", "\u{8868}\u{793a}\u{3067}\u{304d}\u{308b}\u{901a}\u{8ca8}\u{306e}\u{4e0a}\u{9650} (<<1>>) \u{306b}\u{9054}\u{3057}\u{307e}\u{3057}\u{305f}\u{3002}\u{5225}\u{306e}\u{901a}\u{8ca8}\u{3092}\u{6709}\u{52b9}\u{5316}\u{3059}\u{308b}\u{524d}\u{306b}1\u{3064}\u{7121}\u{52b9}\u{5316}\u{3057}\u{3066}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}")
-ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET", "\u{4e00}\u{822c}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET", "\u{4e00}\u{822c}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET_TOOLTIP", "\u{3053}\u{306e}\u{4e00}\u{822c}\u{30bb}\u{30af}\u{30b7}\u{30e7}\u{30f3}\u{306e}\u{8a2d}\u{5b9a}\u{3092}\u{3059}\u{3079}\u{3066}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{5024}\u{306b}\u{623b}\u{3057}\u{307e}\u{3059}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_1", "1\u{756a}\u{76ee}")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_2", "2\u{756a}\u{76ee}")
@@ -226,8 +226,8 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "\u{30d5}\u{30a9}\u{30f3}\u{30
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "\u{30cd}\u{30fc}\u{30e0}\u{30d7}\u{30ec}\u{30fc}\u{30c8}\u{30c6}\u{30ad}\u{30b9}\u{30c8}\u{306e}\u{30b9}\u{30bf}\u{30a4}\u{30eb}\u{52b9}\u{679c}\u{ff08}\u{30a2}\u{30a6}\u{30c8}\u{30e9}\u{30a4}\u{30f3}\u{3001}\u{5f71}\u{306a}\u{3069}\u{ff09}\u{3092}\u{9078}\u{629e}\u{3057}\u{307e}\u{3059}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "\u{30b5}\u{30a4}\u{30ba}")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "\u{30cd}\u{30fc}\u{30e0}\u{30d7}\u{30ec}\u{30fc}\u{30c8}\u{30c6}\u{30ad}\u{30b9}\u{30c8}\u{306e}\u{30b5}\u{30a4}\u{30ba}\u{3092}\u{8abf}\u{6574}\u{3057}\u{307e}\u{3059}\u{3002}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{306f}16\u{3067}\u{3059}\u{3002}")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "\u{30cd}\u{30fc}\u{30e0}\u{30d7}\u{30ec}\u{30fc}\u{30c8}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "\u{3059}\u{3079}\u{3066}\u{306e}\u{30cd}\u{30fc}\u{30e0}\u{30d7}\u{30ec}\u{30fc}\u{30c8}\u{8a2d}\u{5b9a}\u{3092}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{5024}\u{306b}\u{30ea}\u{30bb}\u{30c3}\u{30c8}\u{3057}\u{307e}\u{3059}\u{3002}")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "\u{5916}\u{89b3}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "\u{30cd}\u{30fc}\u{30e0}\u{30d7}\u{30ec}\u{30fc}\u{30c8}\u{306e}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{3001}\u{30b9}\u{30bf}\u{30a4}\u{30eb}\u{3001}\u{30b5}\u{30a4}\u{30ba}\u{3092}\u{65e2}\u{5b9a}\u{5024}\u{306b}\u{623b}\u{3057}\u{307e}\u{3059}\u{3002}")
 
 -- Inventory General Settings
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "\u{4e00}\u{822c}")
@@ -284,9 +284,9 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "\u{30d5}\u{30a9}\u{30f3
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "\u{5217}\u{30c7}\u{30fc}\u{30bf}\u{306e}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{30b9}\u{30bf}\u{30a4}\u{30eb}\u{3092}\u{9078}\u{629e}\u{3057}\u{307e}\u{3059}\u{3002}")
 
 -- Individual Reset Strings
-ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "\u{540d}\u{524d}\u{5217}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "\u{540d}\u{524d}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "\u{540d}\u{524d}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{8a2d}\u{5b9a}\u{3092}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{306b}\u{30ea}\u{30bb}\u{30c3}\u{30c8}\u{3057}\u{307e}\u{3059}\u{3002}")
-ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "\u{305d}\u{306e}\u{4ed6}\u{5217}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "\u{5217}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "\u{5217}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{8a2d}\u{5b9a}\u{3092}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{306b}\u{30ea}\u{30bb}\u{30c3}\u{30c8}\u{3057}\u{307e}\u{3059}\u{3002}")
 
 -- Orb Text Settings
@@ -319,7 +319,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "\u{5782}\u{76f4}\u{
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP", "\u{30d5}\u{30ec}\u{30fc}\u{30e0}\u{3092}\u{4e0a}\u{4e0b}\u{306b}\u{79fb}\u{52d5}\u{3057}\u{307e}\u{3059}\u{3002}\u{6b63}\u{306e}\u{5024}\u{306f}\u{4e0a}\u{306b}\u{3001}\u{8ca0}\u{306e}\u{5024}\u{306f}\u{4e0b}\u{306b}\u{79fb}\u{52d5}\u{3057}\u{307e}\u{3059}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X", "\u{6c34}\u{5e73}\u{30aa}\u{30d5}\u{30bb}\u{30c3}\u{30c8}\u{ff08}\u{5de6}/\u{53f3}\u{ff09}")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP", "\u{30d5}\u{30ec}\u{30fc}\u{30e0}\u{3092}\u{5de6}\u{53f3}\u{306b}\u{79fb}\u{52d5}\u{3057}\u{307e}\u{3059}\u{3002}\u{8ca0}\u{306e}\u{5024}\u{306f}\u{5de6}\u{306b}\u{3001}\u{6b63}\u{306e}\u{5024}\u{306f}\u{53f3}\u{306b}\u{79fb}\u{52d5}\u{3057}\u{307e}\u{3059}\u{3002}")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "\u{4e00}\u{822c}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "\u{30aa}\u{30fc}\u{30d6}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "\u{3053}\u{306e}\u{30bb}\u{30af}\u{30b7}\u{30e7}\u{30f3}\u{306e}\u{8a2d}\u{5b9a}\u{3092}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{5024}\u{306b}\u{30ea}\u{30bb}\u{30c3}\u{30c8}\u{3057}\u{307e}\u{3059}\u{3002}")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET", "\u{30aa}\u{30fc}\u{30d6}\u{3092}\u{500b}\u{5225}\u{306b}\u{79fb}\u{52d5}")
@@ -353,11 +353,11 @@ ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "\u{4e00}\u{82
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC", "\u{30a4}\u{30f3}\u{30bf}\u{30fc}\u{30d5}\u{30a7}\u{30fc}\u{30b9}\u{306e}\u{57fa}\u{672c}\u{52d5}\u{4f5c}\u{3001}\u{30c4}\u{30fc}\u{30eb}\u{30c1}\u{30c3}\u{30d7}\u{9023}\u{643a}\u{3001}\u{5229}\u{4fbf}\u{6027}\u{30aa}\u{30d7}\u{30b7}\u{30e7}\u{30f3}\u{3092}\u{8a2d}\u{5b9a}\u{3057}\u{307e}\u{3059}\u{3002}\u{3053}\u{308c}\u{3089}\u{306e}\u{8a2d}\u{5b9a}\u{306f}\u{30b2}\u{30fc}\u{30e0}\u{30d1}\u{30c3}\u{30c9}UI\u{306e}\u{307f}\u{306b}\u{9069}\u{7528}\u{3055}\u{308c}\u{307e}\u{3059}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "\u{5f37}\u{5316}\u{30c4}\u{30fc}\u{30eb}\u{30c1}\u{30c3}\u{30d7}")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC", "\u{30b9}\u{30bf}\u{30a4}\u{30eb}/\u{7279}\u{6027}\u{60c5}\u{5831}\u{3084}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{30b5}\u{30a4}\u{30ba}\u{3092}\u{542b}\u{3080}\u{3001}\u{5f37}\u{5316}\u{30c4}\u{30fc}\u{30eb}\u{30c1}\u{30c3}\u{30d7}\u{306e}\u{52d5}\u{4f5c}\u{3092}\u{30ab}\u{30b9}\u{30bf}\u{30de}\u{30a4}\u{30ba}\u{3057}\u{307e}\u{3059}\u{3002}")
-ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "\u{30c4}\u{30fc}\u{30eb}\u{30c1}\u{30c3}\u{30d7}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "\u{30c4}\u{30fc}\u{30eb}\u{30c1}\u{30c3}\u{30d7}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP", "\u{3053}\u{306e}\u{5f37}\u{5316}\u{30c4}\u{30fc}\u{30eb}\u{30c1}\u{30c3}\u{30d7}\u{30bb}\u{30af}\u{30b7}\u{30e7}\u{30f3}\u{306e}\u{8a2d}\u{5b9a}\u{3092}\u{3059}\u{3079}\u{3066}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{5024}\u{306b}\u{623b}\u{3057}\u{307e}\u{3059}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "\u{30de}\u{30fc}\u{30b1}\u{30c3}\u{30c8}\u{4fa1}\u{683c}\u{9023}\u{643a}")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "\u{30a2}\u{30a4}\u{30c6}\u{30e0}\u{30c4}\u{30fc}\u{30eb}\u{30c1}\u{30c3}\u{30d7}\u{306e}\u{30de}\u{30fc}\u{30b1}\u{30c3}\u{30c8}\u{4fa1}\u{683c}\u{30bd}\u{30fc}\u{30b9}\u{3092}\u{8a2d}\u{5b9a}\u{3057}\u{307e}\u{3059}\u{3002}\u{4fa1}\u{683c}\u{306f}\u{6240}\u{6301}\u{54c1}\u{30fb}\u{9280}\u{884c}\u{306e}\u{4fa1}\u{5024}\u{5217}\u{3001}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}UIToolTip\u{3001}\u{304a}\u{3088}\u{3073}BetterUI\u{5f37}\u{5316}\u{30c4}\u{30fc}\u{30eb}\u{30c1}\u{30c3}\u{30d7}\u{306b}\u{8868}\u{793a}\u{3055}\u{308c}\u{307e}\u{3059}\u{ff08}\u{30ae}\u{30eb}\u{30c9}\u{30b9}\u{30c8}\u{30a2}\u{3001}\u{5546}\u{4eba}\u{3001}\u{30a2}\u{30b7}\u{30b9}\u{30bf}\u{30f3}\u{30c8}\u{3001}\u{4ed6}\u{ff09}\u{3002}")
-ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "\u{30de}\u{30fc}\u{30b1}\u{30c3}\u{30c8}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "\u{5e02}\u{5834}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP", "\u{3053}\u{306e}\u{30de}\u{30fc}\u{30b1}\u{30c3}\u{30c8}\u{4fa1}\u{683c}\u{9023}\u{643a}\u{30bb}\u{30af}\u{30b7}\u{30e7}\u{30f3}\u{306e}\u{8a2d}\u{5b9a}\u{3092}\u{3059}\u{3079}\u{3066}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{5024}\u{306b}\u{623b}\u{3057}\u{307e}\u{3059}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "\u{30de}\u{30fc}\u{30b1}\u{30c3}\u{30c8}\u{4fa1}\u{683c}\u{30bd}\u{30fc}\u{30b9}\u{306e}\u{512a}\u{5148}\u{9806}\u{4f4d}")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP", "\u{30a4}\u{30f3}\u{30d9}\u{30f3}\u{30c8}\u{30ea}\u{3068}\u{9280}\u{884c}\u{306e}\u{4fa1}\u{5024}\u{5217}\u{3092}\u{7f6e}\u{304d}\u{63db}\u{3048}\u{308b}\u{969b}\u{306b}\u{4f7f}\u{7528}\u{3059}\u{308b}\u{30bd}\u{30fc}\u{30b9}\u{9806}\u{3092}\u{9078}\u{629e}\u{3057}\u{307e}\u{3059}\u{3002}")
@@ -405,11 +405,11 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "\u{30d0}\u{30c3}\u{30af}\u{30
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP", "\u{30d0}\u{30c3}\u{30af}\u{30d0}\u{30fc}\u{30a2}\u{30a4}\u{30b3}\u{30f3}\u{306e}\u{6697}\u{3055}\u{3092}\u{8abf}\u{6574}\u{3057}\u{307e}\u{3059}\u{3002}\u{4f4e}\u{3044}\u{5024}\u{307b}\u{3069}\u{76ee}\u{7acb}\u{305f}\u{306a}\u{304f}\u{306a}\u{308a}\u{307e}\u{3059}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR", "\u{30d0}\u{30c3}\u{30af}\u{30d0}\u{30fc}\u{3092}\u{975e}\u{8868}\u{793a}")
 ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR_TOOLTIP", "\u{30d0}\u{30c3}\u{30af}\u{30d0}\u{30fc}\u{ff08}\u{4e0a}\u{90e8}\u{30b9}\u{30ad}\u{30eb}\u{30d0}\u{30fc}\u{ff09}\u{3092}\u{5b8c}\u{5168}\u{306b}\u{975e}\u{8868}\u{793a}\u{306b}\u{3057}\u{307e}\u{3059}\u{3002}\u{30aa}\u{30fc}\u{30b1}\u{30f3}\u{30bd}\u{30a6}\u{30eb}\u{3084}\u{30ef}\u{30f3}\u{30d0}\u{30fc}\u{30d3}\u{30eb}\u{30c9}\u{306b}\u{4fbf}\u{5229}\u{3067}\u{3059}\u{3002}")
-ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "\u{30b9}\u{30ad}\u{30eb}\u{30d0}\u{30fc}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
-ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "\u{30aa}\u{30fc}\u{30d6}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
-ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "EXP\u{30d0}\u{30fc}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_RESET", "\u{30ad}\u{30e3}\u{30b9}\u{30c8}\u{30d0}\u{30fc}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_RESET", "\u{30de}\u{30a6}\u{30f3}\u{30c8}\u{30d0}\u{30fc}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "\u{30b9}\u{30ad}\u{30eb}\u{30d0}\u{30fc}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "\u{30aa}\u{30fc}\u{30d6}\u{6587}\u{5b57}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "XP\u{30d0}\u{30fc}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_RESET", "\u{8a60}\u{5531}\u{30d0}\u{30fc}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_RESET", "\u{30de}\u{30a6}\u{30f3}\u{30c8}\u{30d0}\u{30fc}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 
 -- XP Bar Settings
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED", "\u{7d4c}\u{9a13}\u{5024}\u{30d0}\u{30fc}\u{3092}\u{6709}\u{52b9}\u{5316}")
@@ -453,7 +453,7 @@ ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK_TOOLTIP", "\u{307e}\u{3060}\u{7
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_HEADER", "\u{30a2}\u{30a4}\u{30c6}\u{30e0}\u{30a2}\u{30a4}\u{30b3}\u{30f3}\u{306e}\u{30ab}\u{30b9}\u{30bf}\u{30de}\u{30a4}\u{30ba}")
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP", "\u{30a2}\u{30a4}\u{30c6}\u{30e0}\u{540d}\u{306e}\u{6a2a}\u{306b}\u{8868}\u{793a}\u{3059}\u{308b}\u{72b6}\u{614b}\u{30a2}\u{30a4}\u{30b3}\u{30f3}\u{3092}\u{8a2d}\u{5b9a}\u{3057}\u{307e}\u{3059}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_DESC", "\u{30a4}\u{30f3}\u{30d9}\u{30f3}\u{30c8}\u{30ea}\u{3068}\u{9280}\u{884c}\u{30ea}\u{30b9}\u{30c8}\u{306b}\u{8868}\u{793a}\u{3059}\u{308b}\u{30a2}\u{30a4}\u{30c6}\u{30e0}\u{72b6}\u{614b}\u{30a2}\u{30a4}\u{30b3}\u{30f3}\u{3092}\u{9078}\u{629e}\u{3057}\u{307e}\u{3059}\u{3002}\u{30a2}\u{30a4}\u{30b3}\u{30f3}\u{306f}\u{540d}\u{524d}\u{5217}\u{306e}\u{30d5}\u{30a9}\u{30f3}\u{30c8}\u{30b5}\u{30a4}\u{30ba}\u{306b}\u{5408}\u{308f}\u{305b}\u{3066}\u{62e1}\u{5927}\u{7e2e}\u{5c0f}\u{3055}\u{308c}\u{3001}\u{500b}\u{5225}\u{306b}\u{5207}\u{308a}\u{66ff}\u{3048}\u{3067}\u{304d}\u{307e}\u{3059}\u{3002}")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "\u{30a2}\u{30a4}\u{30c6}\u{30e0}\u{30a2}\u{30a4}\u{30b3}\u{30f3}\u{8a2d}\u{5b9a}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "\u{30a2}\u{30a4}\u{30b3}\u{30f3}\u{3092}\u{30ea}\u{30bb}\u{30c3}\u{30c8}")
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "\u{30a2}\u{30a4}\u{30c6}\u{30e0}\u{30a2}\u{30a4}\u{30b3}\u{30f3}\u{8a2d}\u{5b9a}\u{3092}\u{30c7}\u{30d5}\u{30a9}\u{30eb}\u{30c8}\u{5024}\u{306b}\u{30ea}\u{30bb}\u{30c3}\u{30c8}\u{3057}\u{307e}\u{3059}\u{3002}")
 
 -- Inventory Specific Settings

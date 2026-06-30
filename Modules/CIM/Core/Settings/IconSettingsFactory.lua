@@ -1,7 +1,7 @@
 --[[
 File: Modules/CIM/Core/Settings/IconSettingsFactory.lua
 Purpose: Shared factory for generating icon visibility toggle LAM settings.
-         Eliminates duplicate settings code between Banking and Inventory.
+         Eliminates duplicate icon settings code across shared list modules.
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}

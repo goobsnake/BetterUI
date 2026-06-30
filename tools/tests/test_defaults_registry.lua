@@ -115,6 +115,7 @@ assert_true(bank.enableGuildBank, "Banking.enableGuildBank defaults true")
 print("\nTest: GeneralInterface defaults")
 local gi = BETTERUI.Defaults.Modules.GeneralInterface
 assert_true(gi.showMarketPrice, "GI.showMarketPrice defaults true")
+assert_true(gi.showItemComparison, "GI.showItemComparison defaults true")
 assert_false(gi.removeDeleteDialog, "GI.removeDeleteDialog defaults false (destructive)")
 assert_equal(200, gi.chatHistory, "GI.chatHistory defaults to 200")
 
@@ -129,6 +130,10 @@ local rof = BETTERUI.Defaults.Modules.ResourceOrbFrames
 assert_equal(1.0, rof.scale, "ROF.scale defaults to 1.0")
 assert_true(rof.showUltimateNumber, "ROF.showUltimateNumber defaults true")
 assert_true(rof.xpBarEnabled, "ROF.xpBarEnabled defaults true")
+assert_true(rof.showQuickslotCooldown, "ROF.showQuickslotCooldown defaults true")
+assert_true(rof.orbAnimFlow, "ROF.orbAnimFlow defaults true")
+assert_equal(0.4, rof.shieldTextColor[1], "ROF.shieldTextColor red defaults to electric shield color")
+assert_equal(0.9, rof.shieldTextColor[2], "ROF.shieldTextColor green defaults to electric shield color")
 
 print("\nTest: Nameplates defaults")
 local np = BETTERUI.Defaults.Modules.Nameplates
