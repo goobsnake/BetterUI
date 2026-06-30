@@ -615,10 +615,10 @@ assert_true(betterUiSource:find("SETTINGS_SIMULATED_SUBMENU_TYPE = \"betterui_su
     and betterUiSource:find("\t\tApplySettingsSubmenuGeometry(parent, widget)", 1, true) == nil,
     "tab submenus keep full-width flat layout with S'rendarr-style disclosure panels")
 assert_true(betterUiSource:find("ApplySettingsEditboxGeometry", 1, true) ~= nil
-    and betterUiSource:find("SETTINGS_EDITBOX_COMPACT_WIDTH", 1, true) ~= nil
+    and betterUiSource:find("SETTINGS_EDITBOX_VALUE_COLUMN_WIDTH = 170", 1, true) ~= nil
     and betterUiSource:find("container:SetAnchor(RIGHT, widget, RIGHT, 0, 0)", 1, true) ~= nil
     and betterUiSource:find("editbox:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, -4, -2)", 1, true) ~= nil,
-    "tab editboxes use compact same-line geometry with visible input text")
+    "tab editboxes use right-aligned value-column geometry with visible input text")
 assert_true(betterUiSource:find("SETTINGS_SUBMENU_SIDE_EXTENSION", 1, true) ~= nil
     and betterUiSource:find("GetSettingsSubmenuVisualWidth(width)", 1, true) ~= nil
     and betterUiSource:find("SETTINGS_SUBMENU_ARROW_SIZE", 1, true) ~= nil,

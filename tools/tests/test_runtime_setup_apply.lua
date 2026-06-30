@@ -275,6 +275,15 @@ do
     harness.Apply({ Modules = {} })
     assert_eq(#setEnabledCalls, 0,
         "Apply restores nothing when persisted logging is disabled")
+
+    store.interfaceLogEnabled = nil
+    setEnabledCalls = {}
+    applyPresetCalls = {}
+    harness.Apply({ Modules = {} })
+    assert_eq(#setEnabledCalls, 0,
+        "Apply leaves builog off when the persisted logging flag is missing")
+    assert_eq(#applyPresetCalls, 0,
+        "missing builog flag does not restore a preset on new installs")
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

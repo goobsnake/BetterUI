@@ -66,6 +66,28 @@ local function assert_equal(expected, actual, message)
     end
 end
 
+local function assert_contains(haystack, needle, message)
+    if haystack:find(needle, 1, true) then
+        passed = passed + 1
+        print("  [OK] " .. message)
+    else
+        failed = failed + 1
+        print("  [X] " .. message)
+        print("    Missing: " .. tostring(needle))
+    end
+end
+
+local function assert_not_contains(haystack, needle, message)
+    if not haystack:find(needle, 1, true) then
+        passed = passed + 1
+        print("  [OK] " .. message)
+    else
+        failed = failed + 1
+        print("  [X] " .. message)
+        print("    Unexpected: " .. tostring(needle))
+    end
+end
+
 print("\n=== Settings Panel Registration Tests ===\n")
 
 dofile("Modules/CIM/Core/Settings/SettingsFactory.lua")
@@ -181,6 +203,16 @@ assert_equal(false, failingLoggedModule._panelRegistrationDeferred,
 assert_equal(6, #debugMessages, "explicit seam failures add the standardized registration report trace")
 assert_equal("[FailingLoggedModule] Settings panel registration reported: lam_unavailable",
     debugMessages[#debugMessages], "logging helper standardizes the non-deferred failure report format")
+
+local betterUiFile = assert(io.open("BetterUI.lua", "r"))
+local betterUiSource = betterUiFile:read("*a")
+betterUiFile:close()
+assert_contains(betterUiSource, 'container:SetAnchor(RIGHT, widget, RIGHT, 0, 0)',
+    "single-line editboxes anchor to the right-side value column")
+assert_contains(betterUiSource, "SETTINGS_EDITBOX_VALUE_COLUMN_WIDTH = 170",
+    "single-line editboxes use the same value-column footprint as action controls")
+assert_not_contains(betterUiSource, "SETTINGS_EDITBOX_VALUE_COLUMN_LEFT",
+    "single-line editboxes avoid a fixed-left offset that can truncate labels")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

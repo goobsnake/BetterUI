@@ -539,16 +539,23 @@ local SETTINGS_TAB_DEFAULT_WIDTH = 510
 local SETTINGS_TAB_MIN_USABLE_WIDTH = 320
 local SETTINGS_TAB_CREATE_DELAY_MS = 50
 local SETTINGS_SIMULATED_SUBMENU_TYPE = "betterui_submenu"
-local SETTINGS_SUBMENU_HEADER_HEIGHT = 38
+local SETTINGS_SUBMENU_HEADER_HEIGHT = 40
 local SETTINGS_SUBMENU_SIDE_EXTENSION = 19
 local SETTINGS_SUBMENU_CHILD_INSET = 6
 local SETTINGS_SUBMENU_BOTTOM_PADDING = 4
 local SETTINGS_SUBMENU_ARROW_SIZE = 32
 local SETTINGS_SUBMENU_ARROW_DOWN_TEXTURE = "EsoUI\\Art\\Miscellaneous\\list_sortdown.dds"
 local SETTINGS_SUBMENU_ARROW_UP_TEXTURE = "EsoUI\\Art\\Miscellaneous\\list_sortup.dds"
+local SETTINGS_SUBMENU_HEADER_FONT = "ZoFontWinH2"
+local SETTINGS_SUBMENU_CENTER_TEXTURE = "EsoUI\\Art\\Tooltips\\UI-TooltipCenter.dds"
+local SETTINGS_SUBMENU_EDGE_TEXTURE = "EsoUI\\Art\\Tooltips\\UI-Border.dds"
+local SETTINGS_SUBMENU_EDGE_TEXTURE_WIDTH = 128
+local SETTINGS_SUBMENU_EDGE_TEXTURE_HEIGHT = 16
+local SETTINGS_SUBMENU_BACKDROP_INSET = 16
 local SETTINGS_DROPDOWN_FONT = "ZoFontWinH4"
 local SETTINGS_EDITBOX_HEIGHT = 28
-local SETTINGS_EDITBOX_COMPACT_WIDTH = 96
+local SETTINGS_EDITBOX_VALUE_COLUMN_WIDTH = 170
+local SETTINGS_EDITBOX_MIN_WIDTH = 96
 local SETTINGS_EDITBOX_MULTILINE_HEIGHT = 86
 local SETTINGS_BUTTON_MIN_WIDTH = 170
 local SETTINGS_BUTTON_MAX_WIDTH = 250
@@ -714,7 +721,7 @@ local function ApplySettingsEditboxGeometry(parent, widget, widgetData)
 	end
 	local isMultiline = widgetData.isMultiline == true
 	local height = isMultiline and SETTINGS_EDITBOX_MULTILINE_HEIGHT or SETTINGS_EDITBOX_HEIGHT
-	local editWidth = isMultiline and width or math.min(SETTINGS_EDITBOX_COMPACT_WIDTH, math.max(64, width / 3))
+	local editWidth = isMultiline and width or math.min(SETTINGS_EDITBOX_VALUE_COLUMN_WIDTH, math.max(SETTINGS_EDITBOX_MIN_WIDTH, width / 3))
 	local label = ReadControlField(widget, "label")
 
 	if widget.SetWidth and width > 0 then
@@ -757,6 +764,9 @@ local function ApplySettingsEditboxGeometry(parent, widget, widgetData)
 			end
 		end)
 	end
+	if label and label.SetWrapMode and rawget(_G, "TEXT_WRAP_MODE_ELLIPSIS") then
+		pcall(function() label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end)
+	end
 
 	local bg = ReadControlField(widget, "bg")
 	if bg and bg.ClearAnchors then
@@ -793,6 +803,8 @@ local function ApplySettingsButtonGeometry(widget)
 		end)
 	end
 	SafeSetFont(button, SETTINGS_DROPDOWN_FONT)
+	SafeSetDrawLayer(button, rawget(_G, "DL_OVERLAY"))
+	SafeSetDrawTier(button, rawget(_G, "DT_HIGH"))
 	local okLabel, label = pcall(function()
 		return button.GetLabelControl and button:GetLabelControl()
 	end)
@@ -800,12 +812,21 @@ local function ApplySettingsButtonGeometry(widget)
 		SafeSetFont(label, SETTINGS_DROPDOWN_FONT)
 		SafeSetDrawLayer(label, rawget(_G, "DL_OVERLAY"))
 		SafeSetDrawTier(label, rawget(_G, "DT_HIGH"))
+		if label and label.SetColor then
+			pcall(function() label:SetColor(1, 1, 1, 1) end)
+		end
 	end
 	if button.SetNormalFontColor then
 		pcall(function() button:SetNormalFontColor(1, 1, 1, 1) end)
 	end
 	if button.SetMouseOverFontColor then
 		pcall(function() button:SetMouseOverFontColor(1, 0.86, 0.38, 1) end)
+	end
+	if button.SetPressedFontColor then
+		pcall(function() button:SetPressedFontColor(1, 1, 1, 1) end)
+	end
+	if button.SetDisabledFontColor then
+		pcall(function() button:SetDisabledFontColor(0.82, 0.78, 0.66, 1) end)
 	end
 end
 
@@ -821,11 +842,13 @@ local function ApplySettingsWidgetDrawLayers(widget, inSubmenu)
 	for _, childName in ipairs({ "container", "combobox", "slider", "slidervalue", "editbox", "bg", "button", "texture", "warning", "color", "thumb", "checkbox", "arrow", "label" }) do
 		local child = ReadControlField(widget, childName)
 		SafeSetDrawLayer(child, layer)
+		SafeSetDrawTier(child, tier)
 		local okLabel, label = pcall(function()
 			return child and child.GetLabelControl and child:GetLabelControl()
 		end)
 		if okLabel then
 			SafeSetDrawLayer(label, layer)
+			SafeSetDrawTier(label, tier)
 		end
 	end
 end
@@ -985,11 +1008,33 @@ local function CreateSettingsSimulatedSubmenuHeader(parent, widgetData)
 
 	local blockBackdrop = wm:CreateControl(nil, creationParent, CT_BACKDROP)
 	if blockBackdrop then
+		if blockBackdrop.SetCenterTexture then
+			pcall(function() blockBackdrop:SetCenterTexture(SETTINGS_SUBMENU_CENTER_TEXTURE) end)
+		end
+		if blockBackdrop.SetEdgeTexture then
+			pcall(function()
+				blockBackdrop:SetEdgeTexture(
+					SETTINGS_SUBMENU_EDGE_TEXTURE,
+					SETTINGS_SUBMENU_EDGE_TEXTURE_WIDTH,
+					SETTINGS_SUBMENU_EDGE_TEXTURE_HEIGHT
+				)
+			end)
+		end
+		if blockBackdrop.SetInsets then
+			pcall(function()
+				blockBackdrop:SetInsets(
+					SETTINGS_SUBMENU_BACKDROP_INSET,
+					SETTINGS_SUBMENU_BACKDROP_INSET,
+					-SETTINGS_SUBMENU_BACKDROP_INSET,
+					-SETTINGS_SUBMENU_BACKDROP_INSET
+				)
+			end)
+		end
 		if blockBackdrop.SetCenterColor then
-			pcall(function() blockBackdrop:SetCenterColor(0.015, 0.015, 0.015, 0.82) end)
+			pcall(function() blockBackdrop:SetCenterColor(1, 1, 1, 0.92) end)
 		end
 		if blockBackdrop.SetEdgeColor then
-			pcall(function() blockBackdrop:SetEdgeColor(0.48, 0.48, 0.48, 0.92) end)
+			pcall(function() blockBackdrop:SetEdgeColor(1, 1, 1, 1) end)
 		end
 		SafeSetDrawTier(blockBackdrop, rawget(_G, "DT_MEDIUM"))
 		SafeSetDrawLayer(blockBackdrop, rawget(_G, "DL_CONTROLS"))
@@ -1004,20 +1049,38 @@ local function CreateSettingsSimulatedSubmenuHeader(parent, widgetData)
 		if arrow.SetColor then
 			pcall(function() arrow:SetColor(1, 1, 1, 1) end)
 		end
+		SafeSetDrawLayer(arrow, rawget(_G, "DL_OVERLAY"))
+		SafeSetDrawTier(arrow, rawget(_G, "DT_HIGH"))
 	end
 	header.arrow = arrow
 
-	local label = wm:CreateControl(nil, header, CT_LABEL)
+	local label
+	if wm.CreateControlFromVirtual then
+		local okVirtual, virtualLabel = pcall(function()
+			return wm:CreateControlFromVirtual(nil, header, "ZO_Options_SectionTitleLabel")
+		end)
+		if okVirtual then
+			label = virtualLabel
+		end
+	end
+	if not label then
+		label = wm:CreateControl(nil, header, CT_LABEL)
+	end
 	if label then
 		if label.SetAnchor then
 			label:SetAnchor(LEFT, header, LEFT, 12, 0)
 			label:SetAnchor(RIGHT, arrow or header, arrow and LEFT or RIGHT, arrow and -8 or -12, 0)
 		end
-		if label.SetFont then pcall(function() label:SetFont("ZoFontWinH3") end) end
+		SafeSetFont(label, SETTINGS_SUBMENU_HEADER_FONT)
 		if label.SetText then pcall(function() label:SetText(tostring(widgetData.name or "")) end) end
 		if label.SetVerticalAlignment and rawget(_G, "TEXT_ALIGN_CENTER") then
 			label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 		end
+		if label.SetWrapMode and rawget(_G, "TEXT_WRAP_MODE_ELLIPSIS") then
+			pcall(function() label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end)
+		end
+		SafeSetDrawLayer(label, rawget(_G, "DL_OVERLAY"))
+		SafeSetDrawTier(label, rawget(_G, "DT_HIGH"))
 	end
 	header.label = label
 
@@ -1697,6 +1760,11 @@ local function AppendBuilogSettingsPanel(optionsTable)
 					local interfaceLog = GetBuilogInterfaceLog()
 					if interfaceLog and interfaceLog.SetScreenshotAutoMode then interfaceLog.SetScreenshotAutoMode(value) end
 				end,
+				width = "full",
+			},
+			{
+				type = "description",
+				text = " ",
 				width = "full",
 			},
 		},
