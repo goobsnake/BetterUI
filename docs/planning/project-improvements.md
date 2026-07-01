@@ -1,6 +1,6 @@
 # Project Improvements
 
-Last Updated: 2026-06-25
+Last Updated: 2026-06-30
 Status: Active
 
 ## Purpose
@@ -44,9 +44,3 @@ Goal: make `Interface.log` dense enough for an AI reviewer to reconstruct in-gam
 - [ ] Task: run delegated critical review across Kimi, Antigravity, Codex, and Claude for trace semantics, overlogging, privacy, and parser usability (est: 5 min; validation: host review of artifacts)
 - [ ] Task: run host Lua/static validation and fix valid findings from delegated review (est: 10 min; validation: host validation command)
 - [ ] Task: run a 5-minute in-game builog monitor and compare observed gameplay against expected trace reconstruction questions (est: 10 min; validation: monitor summary)
-
-## Completed & Migrated
-
-All previously tracked phases have been completed and archived:
-- Multi-Select Anti-Spam Hardening Plan (Phases 0–5) — migrated 2026-03-14
-- See `completed-improvements.md` for full archive.

@@ -253,6 +253,20 @@ local statusText = table.concat(chatOutput, "\n")
 check(statusText:find("Sink budget: frame=2 sec=4 pending=", 1, true) ~= nil
     and statusText:find("/6", 1, true) ~= nil,
     "/builog status reports frame/sec and pending/maxPending budget")
+check(statusText:find("Usage:", 1, true) == nil,
+    "/builog status prints status without falling through to generic usage")
+
+local health = SLASH_COMMANDS["/buihealth"]
+chatOutput = {}
+check(type(health) == "function", "/buihealth slash command is registered")
+check(pcall(health), "/buihealth command is safe")
+local healthText = table.concat(chatOutput, "\n")
+check(healthText:find("file: scheduled=", 1, true) ~= nil
+    and healthText:find("pending=", 1, true) ~= nil
+    and healthText:find("/6", 1, true) ~= nil
+    and healthText:find("dropped=", 1, true) ~= nil
+    and healthText:find("budget=2/frame 4/sec", 1, true) ~= nil,
+    "/buihealth reports scheduled, pending/maxPending, dropped, and budget")
 
 chatOutput = {}
 check(pcall(builog, "test") and table.concat(chatOutput, "\n"):find("Wrote diagnostic breadcrumbs", 1, true) ~= nil,

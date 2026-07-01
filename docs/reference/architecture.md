@@ -434,11 +434,13 @@ end
 | Dependency | Required | Purpose | Reference |
 |------------|----------|---------|-----------|
 | **LibAddonMenu-2.0** | Yes | Settings panels | [ESOUI](https://www.esoui.com/downloads/info7-LibAddonMenu.html) |
-| **LibDebugLogger** | Optional | Advanced logging | [ESOUI](https://www.esoui.com/downloads/info2275-LibDebugLogger.html) |
 | **AutoCategory** | Optional | Custom category integration | External addon |
 | **MasterMerchant** | Optional | Price data in tooltips | External addon |
 | **TamrielTradeCentre** | Optional | Price data in tooltips | External addon |
 | **ArkadiusTradeTools** | Optional | Price data in tooltips | External addon |
+| **FCOItemSaver** | Optional | Inventory action compatibility | External addon |
+| **DolgubonsLazyWritCreator** | Optional | Writ action compatibility | External addon |
+| **AlphaGear** | Optional | Equipment action compatibility | External addon |
 
 ---
 
@@ -507,7 +509,7 @@ end
 | `RuntimeSetup.lua` | CIM/Core/ | API patches, migrations, initialization |
 | `Utilities.lua` | CIM/Core/ | `BETTERUI.CIM.Utils` shared helpers, incl. slot-identity (`CaptureSlotIdentity`, `IsSlotIdentityCurrent`, `NormalizeIdentityValue`); `BETTERUI.Inventory.Utils` delegates here |
 | `Log.lua` | CIM/Core/Diagnostics/ | `BETTERUI.Log` unified logging facade (levels/categories/file+chat sinks) |
-| `InterfaceLog.lua` | CIM/Core/Diagnostics/ | Real-time `live/Logs/Interface.log` file sink; `/builog` command |
+| `InterfaceLog.lua` | CIM/Core/Diagnostics/ | Real-time `live/Logs/interface.log` file sink; `/builog` command |
 | `FeatureFlags.lua` | CIM/Core/Diagnostics/ | Runtime feature flag system |
 | `SettingsAccessor.lua` | CIM/Core/ | Settings get/set factory |
 | `WindowClass.lua` | CIM/Core/ | Base Window class implementation |

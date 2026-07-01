@@ -26,7 +26,8 @@ suppresses the player-facing error frame and keeps real, untagged Lua errors dis
 
 The pipeline is:
 
-1. Feature code calls `BETTERUI.Log.<Level>(category, message, data)` or `Log.TraceEvent`.
+1. Feature code calls `BETTERUI.Log.<Level>(category, message, data)`, `Log.TraceEvent`,
+   `Log.FlowBegin` / `Log.FlowEnd`, or a lazy helper.
 2. `Log.lua` applies level/category/sink gates, renders one normalized line, adds `sid`
    and `seq`, keeps recent/error rings, and notifies screenshot auto-capture.
 3. `InterfaceLog.WriteRaw` schedules the line through the suppressed-error file sink,
@@ -42,7 +43,7 @@ The pipeline is:
 
 | Command | Contract |
 |---|---|
-| `on` / `off` | Enable/disable the file stream. `off` restores the prior error-popup state. |
+| `on` / `off` | Enable/disable the file stream. `off` restores the prior error-popup state. Prefer `preset <name>` over plain `on`; plain `on` preserves the current low-level logger knobs and persists an empty preset name. |
 | `preset off|info|watch|debug|trace|inspect` | Apply the standard logging tiers. |
 | `level trace|debug|info|warn|error` | Override only the minimum level; preset becomes `custom`. |
 | `mark <text>` | Emit `STATE | mark: <text>` for host correlation. |
@@ -51,7 +52,7 @@ The pipeline is:
 | `screenshot [label]` | Request a screenshot and emit request/saved markers. |
 | `screenshot auto off|error|warn` | Persisted opt-in auto capture for current play-test windows. |
 | `snapshot` | Emit one `STATE | snapshot` immediately. |
-| `check` / `test` | Emit diagnostic breadcrumbs; `test` is a compatibility alias. |
+| `check` / `test` | Emit diagnostic breadcrumbs; `test` is a compatibility alias. If logging was off, this command enables the session stream and leaves it on so the breadcrumbs reach `Interface.log`. |
 | `status` | Print preset, active sink budget, counters, and screenshot state. |
 
 `/buihealth` reports a compact health summary. `/buiscene` reports scene state and recent
@@ -71,6 +72,19 @@ scene transitions.
 `verbose` remains an alias for `trace`; `ai` remains an alias for `watch`. `inspect` is
 not an alias: it keeps `trace` depth and enables watch enrichment. The `watch` and
 `inspect` presets are the standard replay-grade modes for host-side diagnosis.
+
+## API Selection
+
+| API | Use For | Output Shape |
+|---|---|---|
+| `Log.Info/Debug/Trace(category, message, data)` | Human-readable milestones and state changes. | `<message> key=value ...` |
+| `Log.Warn/Error(category, message, data)` | Actionable problems. These auto-add `caller` when absent and `src` when `DebugInfo` can capture it. | `<message> caller=... src=...` |
+| `Log.TraceEvent(category, event, phase, data, level?)` | Machine-replay records that need stable tokens. | `event=<event> phase=<phase> traceVersion=1 eventName=<event> phaseName=<phase>` |
+| `Log.FlowBegin(kind, category, message, data)` / `Log.FlowEnd(flow, ...)` | Multi-step user flows such as transfers, dialog confirmations, and category changes. | `[flow begin] flow=<kind>#<n>` / `[flow end] flow=<kind>#<n>` |
+| `Log.DebugLazy` / `Log.TraceLazy` | Expensive payload or message construction on hot paths. | Same as normal debug/trace after the exact gate passes. |
+
+Never build an expensive payload before the gate. For hot paths use `Log.EnabledFor(level,
+category)` or a lazy helper; `Log.IsActive()` is only the coarse active check.
 
 ## Output Contract
 
@@ -99,6 +113,19 @@ values, and context suffixes must not introduce raw `|`, newlines, or tabs; `Log
 The monitor reports samples with new `[BUI]` count, level mix, real non-BUI errors,
 dropped-record totals, parse-contract violations, BetterUI WARN/ERROR records,
 screenshot markers, recent screenshot files, and a final clean/not-clean footer.
+
+## Replay Coverage Expectations
+
+Replay-grade flows should answer these questions from the log alone:
+
+| Flow Area | Required Breadcrumbs |
+|---|---|
+| User input and keybinds | Which keybind/action was shown, which callback ran, whether it was handled, and why it was blocked or skipped. |
+| List and category refreshes | What changed, whether refresh was scheduled/refreshed/skipped, row/update counts, active view/category, and selected-row identity when available. |
+| Dialogs | Show request, branch/choice, confirm/cancel/close, stale-target blockers, and restore/cleanup result. |
+| Item/currency mutation | Requested operation, item/currency identity summary, amount/count, source/destination, server/protected-action blocker, completion/failure, and follow-up refresh. |
+| Settings | Setting key, old/new/default or source where cheap, disabled-state evaluation, and panel/control registration failures. |
+| Visual/HUD state | Coalesced threshold/visibility/state changes only; avoid per-frame spam unless TRACE is explicitly needed. |
 
 ## Adding Or Changing Builog Records
 

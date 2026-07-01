@@ -26,7 +26,7 @@ game's `Interface.log` while you reproduce an issue — no `/reloadui`, no Saved
 Then tail the clean stream on the host:
 
 ```sh
-grep -a '\[BUI\]' "<ESO live>/Logs/Interface.log"
+grep -a '\[BUI\]' "<ESO live>/Logs/interface.log"
 ```
 
 ## Presets (`/builog preset <name>`)
@@ -94,7 +94,7 @@ that absence as an instrumentation or control-flow bug.
 
 | Command | Does |
 |---|---|
-| `on` / `off` | start / stop streaming (off restores error popups) |
+| `on` / `off` | start / stop streaming (off restores error popups); prefer named presets over plain `on` for bounded budgets |
 | `preset <name>` | apply a preset (off\|info\|watch\|debug\|trace\|inspect) |
 | `level <lvl>` | set just the min level (trace\|debug\|info\|warn\|error) |
 | `chat on\|off` | legacy no-op; builog remains file-only |
@@ -106,7 +106,8 @@ that absence as an instrumentation or control-flow bug.
 | `screenshot [label]` | call ESO `TakeScreenshot()` and emit request/saved markers for host correlation |
 | `screenshot auto off\|error\|warn` | persisted opt-in auto capture: off, ERROR only, or WARN+ERROR with duplicate-aware per-issue throttling |
 | `snapshot` | emit one STATE snapshot now |
-| `check` / `test` / `status` | write diagnostic breadcrumbs / print current state |
+| `check` / `test` | write diagnostic breadcrumbs; if logging was off, leaves the session stream on so the breadcrumbs reach `Interface.log` |
+| `status` | print current preset, payload, sink budget, counters, and screenshot state |
 
 `/buihealth` — one-shot health summary (preset, active, sid, schema, error count, file-sink
 scheduled/pending/dropped/budget, sceneLog + watch state).

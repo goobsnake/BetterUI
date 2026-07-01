@@ -20,30 +20,28 @@
 
 ### File Headers
 
-Every Lua file must begin with:
+Every Lua source file should start with a short file-purpose header. Keep it factual and
+current; do not add synthetic author/date churn when editing old files.
 
 ```lua
 --[[
 File: Modules/[ModuleName]/[FileName].lua
 Purpose: [High-level summary]
-Author: BetterUI Team
-Last Modified: [YYYY-MM-DD]
 ]]
 ```
 
 ### Function Documentation
 
-Important functions must include:
+Important exported or non-obvious functions should use the local documentation style already
+present in that module. Prefer EmmyLua annotations for parameters and returns when a type hint
+helps tests and future agents.
 
 ```lua
---[[
-Function: BETTERUI.Module.FunctionName
-Description: What the function does.
-Rationale: Why it exists.
-Mechanism: How it works.
-param: paramName (type) - Description.
-return: type - Description.
-]]
+--- Brief behavior summary.
+---@param paramName string
+---@return boolean ok
+function BETTERUI.Module.FunctionName(paramName)
+end
 ```
 
 ### TODOs

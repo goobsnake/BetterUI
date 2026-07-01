@@ -89,7 +89,7 @@ The static validators above are part of the **regular test routine** — run the
 ## Pre-Testing Checklist
 
 1. **Backup SavedVariables** - Copy `Documents/Elder Scrolls Online/live/SavedVariables/BetterUI.lua`
-2. **Enable builog output** - Logging streams to `live/Logs/Interface.log` in real time (tail it while you play; filter with `grep '[BUI]'`). Pick a preset by intent:
+2. **Enable builog output** - Logging streams to `live/Logs/interface.log` in real time (tail it while you play; filter with `grep '[BUI]'`). Pick a preset by intent:
    - `/builog preset info` - INFO/WARN/ERROR milestones, payloads off, tight live-play budget.
    - `/builog preset watch` - DEBUG+ with AI context, snapshots, and flow landmarks; default for live play-test diagnosis.
    - `/builog preset debug` - DEBUG+ without watch enrichment; useful for focused developer flow checks.

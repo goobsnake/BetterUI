@@ -34,7 +34,7 @@ local FLAG_DEFINITIONS = {
     },
     DEBUG_LOGGING = {
         name = "DEBUG_LOGGING",
-        description = "Enable verbose debug logging to chat",
+        description = "Enable developer debug commands and legacy debug wrappers",
         defaultEnabled = false,
         version = "1.0",
     },

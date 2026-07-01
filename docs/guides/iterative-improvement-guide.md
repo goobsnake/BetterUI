@@ -28,12 +28,12 @@ This guide defines a repeatable improvement loop for BetterUI so planning, imple
 - Use existing module patterns before introducing new abstractions.
 
 4. Validate
-- Run syntax checks (`luac -p`) on changed Lua/XML-adjacent files.
-- Run any available standalone test scripts.
+- Run syntax checks on changed Lua/XML-adjacent files.
+- Run the impacted standalone Lua tests and static validators listed in `testing-guide.md`.
 - Perform in-game sanity checks for affected modules/scenes.
 
 5. Closeout
-- Update status in `priority-backlog.md` and `project-improvements.md`.
+- Migrate completed planning items to `completed-improvements.md`, then remove them from the active planning file.
 - Record durable lessons in `docs/reference/tribal-knowledge.md`.
 - Update `docs/publishing/changelog.txt` for user-visible changes.
 

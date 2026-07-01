@@ -568,7 +568,7 @@ The Banking footer has **two horizontal dividers** with a gap between them:
 
 ## Unified logging: BETTERUI.Log → Interface.log
 
-BetterUI streams debug + caught errors to the game's `live/Logs/Interface.log` in
+BetterUI streams debug + caught errors to the game's `live/Logs/interface.log` in
 real time so an external tool (or AI) can tail it while you play. The retail client
 has **no** API to write arbitrary text to that file (`WriteToInterfaceLog` exists
 only in ZOS-internal builds), so the file sink works by raising a deferred,

@@ -9,11 +9,15 @@ canonical design).
 
 ## Where
 
-`<ESO live dir>/Logs/Interface.log`. On this dev machine (Steam/Proton, appid 306130):
+`<ESO live dir>/Logs/interface.log`. On this dev machine (Steam/Proton, appid 306130):
 
 ```
-/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Logs/Interface.log
+/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Logs/interface.log
 ```
+
+Use lowercase `interface.log` for concrete host paths under the `live/` subtree. Some
+prose uses `Interface.log` as the ESO log-stream name, but scripts and shell examples
+should use the actual lowercase filename.
 
 The engine appends; reopen/seek-to-end to tail. Enable with `/builog preset watch`
 (live-AI stream) or `/builog on` then `/builog preset debug|trace`. `/builog preset inspect`
@@ -67,6 +71,9 @@ backslash-escaped.
 - **`STATE | diagnostic session started -- live Interface.log stream ...`** — startup preamble: `schema preset sid api
   world player zone`, followed by `STATE | active addons count=.. names=..`. An AI
   joining mid-stream should scan back to the most recent one to anchor the session.
+- **`event=<name> phase=<phase>` records** — emitted by `Log.TraceEvent`. Payloads include
+  `traceVersion=1`, `eventName=<name>`, and `phaseName=<phase>` for replay parsers. Existing
+  legacy event tokens remain stable until source, docs, tests, and monitor expectations migrate together.
 - **`STATE | snapshot scene=.. <provider fields>`** — periodic heartbeat (~10s) + live
   state. Built-in provider fields include `inventory="window=1 visible=1 ... itemRows=.. keybindMain=.."`
   and `banking="window=1 visible=1 ... rows=.. pending=.. keybindCore=.."`; hidden windows report
@@ -108,7 +115,7 @@ backslash-escaped.
 Clean stream, ordered by seq within the current session:
 
 ```sh
-grep -a '\[BUI\]' Interface.log
+grep -a '\[BUI\]' interface.log
 ```
 
 Field extraction (POSIX ERE — `grep -oE`, or feed to any PCRE engine). Anchor on the

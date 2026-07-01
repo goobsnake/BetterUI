@@ -5,7 +5,7 @@ Kimi + Gemini 3.1 Pro) across **four adversarial rounds** with ESOUI + BetterUI 
 working notes: `docs/tmp/logging-observability-*` (safe to delete once this lands).
 
 ## 0. North star & the one mechanism
-**Real-time capture during play-testing, monitored LIVE by an AI tailing `live/Logs/Interface.log`, is THE
+**Real-time capture during play-testing, monitored LIVE by an AI tailing `live/Logs/interface.log`, is THE
 requirement.** A developer plays the addon while an AI assistant reads the live `[BUI]` stream and explains
 what the user did, what the addon did, scene/list/control context, perf warnings, and real Lua errors — and
 proposes fixes, **without reading source and without `/reloadui`.**
@@ -89,10 +89,10 @@ filter; tagged-error tracebacks are ignorable, untagged `Lua Error:` blocks are 
 **`/builog preset watch` — the AI-enriched debug stream. Five things make it genuinely ≠ `debug`+heartbeat:**
 1. **Per-line context suffix** on EVERY line: `scene=<s> view=<v> flow=<f|none> lastAction=<a|none>` from
    cached logger state (cheap, no UI traversal) — the AI never lacks context. WARN/ERROR always get it.
-2. **Startup context preamble** once per load (`INFO STATE | context: startup -> betterui=<v> api=<v>
-   preset=watch scene=<s> addons=<n> settings=<summary>` + per-enabled-addon lines, cap 30 then a truncation
-   line). The **active-addons list goes to the live stream** (taint/conflict sources) — replaces the old
-   SavedVars env block.
+2. **Startup context preamble** once per load (`INFO STATE | diagnostic session started -- live Interface.log
+   stream ...` with schema/api/world/player/zone), followed by one `INFO STATE | active addons count=<n>
+   names=<comma-list>` line capped at 40 addon names. The **active-addons list goes to the live stream**
+   (taint/conflict sources) — replaces the old SavedVars env block.
 3. **Rich periodic state snapshot** (`DEBUG STATE | snapshot scene=bank inventory="window=1 visible=1 ..."
    banking="window=1 visible=1 ..." flow=deposit#48 lastAction="pressed A"`) every ~10s.
    Hidden window providers emit compact `window=1 visible=0` instead of stale singleton state.

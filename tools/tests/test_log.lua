@@ -95,6 +95,24 @@ Log.Info(Log.CATEGORY.LIST, "refresh", { count = 7, name = "bag" })
 check(fileLines[1] and fileLines[1]:find("count=7", 1, true) ~= nil, "record data renders key=value")
 check(fileLines[1] and fileLines[1]:find('name="bag"', 1, true) ~= nil, "record data carries string values")
 
+-- WARN/ERROR records carry caller/source context for actionability. The source field is
+-- best-effort in production, so this harness stubs DebugInfo to make the contract explicit.
+BETTERUI.CIM.DebugInfo = {
+    CaptureCallerFrame = function() return "tools/tests/test_log.lua:warn_contract" end,
+}
+fileLines = {}
+Log.Warn(Log.CATEGORY.GENERAL, "warning needs context")
+check(fileLines[1]
+    and fileLines[1]:find('caller="log:warning_needs_context"', 1, true) ~= nil
+    and fileLines[1]:find('src="tools/tests/test_log.lua:warn_contract"', 1, true) ~= nil,
+    "WARN auto-adds caller and src context")
+fileLines = {}
+Log.Error(Log.CATEGORY.GENERAL, "error keeps explicit context", { caller = "explicit", src = "manual.lua:1" })
+check(fileLines[1]
+    and fileLines[1]:find('caller="explicit"', 1, true) ~= nil
+    and fileLines[1]:find('src="manual.lua:1"', 1, true) ~= nil,
+    "ERROR preserves explicit caller and src context")
+
 -- Category gating drops TRACE/DEBUG but never WARN/ERROR.
 fileLines = {}
 Log.SetCategoryEnabled(Log.CATEGORY.LIST, false)

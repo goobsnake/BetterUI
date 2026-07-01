@@ -53,6 +53,10 @@ check(skill:find("gio mount 'smb://goobers/elder%20scrolls%20online'", 1, true) 
 check(monitor:find("LOG_REQUEST", 1, true) ~= nil
     and monitor:find("REMOTE_SCREENSHOT_DIR", 1, true) ~= nil,
     "monitor falls back to the remote screenshot folder for remote log requests")
+check(monitor:find("/Logs/interface.log", 1, true) ~= nil
+    and skill:find("live\\Logs\\interface.log", 1, true) ~= nil
+    and skill:find("live/Logs/interface.log", 1, true) ~= nil,
+    "monitor and skill document the lowercase interface.log host path")
 check(monitor:find(" SCREENSHOT | ", 1, true) ~= nil
     and monitor:find("screenshot markers", 1, true) ~= nil,
     "monitor surfaces BUI screenshot markers")

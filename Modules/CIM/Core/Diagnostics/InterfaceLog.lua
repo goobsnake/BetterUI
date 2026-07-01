@@ -28,7 +28,7 @@ Mechanism (proof of concept):
   (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
   "Lua Error:" entries are real game errors whose traceback matters.
 
-Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | screenshot [label] | screenshot auto off|error|warn | check|test | status
+Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | level <lvl> | mark <text> | recent|errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check|test | status
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -445,7 +445,7 @@ InterfaceLog.RegisterReloadQuiesce()
 InterfaceLog.InstallReloadQuiesceHooks()
 
 -- ---------------------------------------------------------------------------
--- Slash command (proof of concept; fold into /betterui later if desired)
+-- Slash command surface
 -- ---------------------------------------------------------------------------
 
 local function Out(msg)
@@ -824,6 +824,8 @@ local function HandleCommand(args)
         StartCapture(tonumber(args:match("(%d+)")))
     elseif args == "screenshot" or args:match("^screenshot%s+") then
         HandleScreenshotCommand(raw)
+    elseif args == "status" then
+        PrintStatus()
     elseif args == "mark" then
         Out("Usage: /builog mark <text>  -- annotates the live log with <text>.")
     elseif args == "snapshot" then
@@ -847,7 +849,7 @@ if type(G("SLASH_COMMANDS")) == "table" then
     end
 
     -- /buihealth: one-shot health summary in chat (preset, session, error count, file-sink
-    -- budget/drops, scene-logger + watch state) without tailing the file. pcall-guarded.
+    -- budget/pending/drops, scene-logger + watch state) without tailing the file. pcall-guarded.
     local function HandleHealthCommand()
         local out = G("d")
         if type(out) ~= "function" then return end
@@ -870,8 +872,10 @@ if type(G("SLASH_COMMANDS")) == "table" then
                 out("  logger not loaded")
             end
             local s = InterfaceLog.GetStats()
-            out(string.format("  file: scheduled=%s dropped=%s budget=%s/frame %s/sec",
-                tostring(s.scheduled), tostring(s.dropped),
+            out(string.format("  file: scheduled=%s pending=%s/%s dropped=%s budget=%s/frame %s/sec",
+                tostring(s.scheduled), tostring(s.pending or 0),
+                s.maxPending > 0 and tostring(s.maxPending) or "inf",
+                tostring(s.dropped),
                 s.maxPerFrame > 0 and tostring(s.maxPerFrame) or "inf",
                 s.maxPerSecond > 0 and tostring(s.maxPerSecond) or "inf"))
             local SL = BETTERUI.CIM and BETTERUI.CIM.SceneLog

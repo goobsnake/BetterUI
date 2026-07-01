@@ -9,8 +9,8 @@ Design:
   - Levels: TRACE < DEBUG < INFO < WARN < ERROR.
   - Categories gate instrumentation noise (SCENE/LIST/NAV/...); WARN/ERROR always pass.
   - Sinks: file (Interface.log via InterfaceLog), chat (colored d()). Per-level on/off.
-  - Popup surfacing is the global InterfaceLog suppression toggle (errors + file writes
-    pop only when popups are enabled); see /builog popups.
+  - Builog breadcrumbs are file-only while active: the legacy /builog chat/popups toggles
+    stay forced off/suppressed so throwaway breadcrumb errors never surface to players.
   - The logger is INERT unless logging is active (InterfaceLog or CIM.Debug enabled), so
     normal players incur zero cost and see no behavior change. The active-state decision
     is memoized and invalidated by the InterfaceLog/FeatureFlags setters that flip it.
@@ -56,7 +56,7 @@ local payloadCapture = true
 -- once a low-level setter diverges from a preset's shape.
 local currentPreset = "custom"
 
--- Per-level sink masks. Default: file ON, chat OFF (popup is the global suppression toggle).
+-- Per-level sink masks. Default: file ON, chat OFF. InterfaceLog owns popup suppression.
 local function defaultMask() return { file = true, chat = false } end
 local sinks = {}
 for i = 1, #LEVEL_NAME do sinks[i] = defaultMask() end

@@ -20,7 +20,7 @@ Files:
   directly). The sink is rate-limited (`SetBudget{maxPerFrame,maxPerSecond,maxPending}`
   / `GetStats`); overflow is dropped and summarized (`dropped=N reason=rate_limit`)
   so verbose logging can't hitch a frame. Slash command: `/builog`
-  (`on|off|preset off|info|watch|debug|trace|inspect|popups on|off|level <lvl>|mark|recent|errors|capture|snapshot|screenshot [label]|screenshot auto off|error|warn|check|test|status`).
+  (`on|off|preset off|info|watch|debug|trace|inspect|chat on|off|popups on|off|level <lvl>|mark|recent|errors|capture|snapshot|screenshot [label]|screenshot auto off|error|warn|check|test|status`).
 - `Screenshot.lua` — wraps ESO `TakeScreenshot()` and `EVENT_SCREENSHOT_SAVED` with
   manual `/builog screenshot`, opt-in auto capture (`off|error|warn`), duplicate-aware
   per-issue throttling, and `SCREENSHOT` markers carrying `source="user"|"auto"`, request
@@ -35,7 +35,11 @@ Files:
   raising high-volume trace detail.
 - `SafeExecute.lua` — `pcall` wrapper; caught errors and missing-function faults
   route through `BETTERUI.Log.Error("SAFE", ...)`.
-- `PerformanceProfiler.lua` — lightweight timing/profiling helpers.
+- `Perf.lua` — live lightweight performance markers gated by
+  `Log.EnabledFor(DEBUG, PERF)`; use `Perf.Begin`/`Perf.End` or `Perf.Measure`
+  when a play-test needs slow-operation landmarks in builog.
+- `PerformanceProfiler.lua` — dormant legacy profiling helpers kept for future
+  developer debugging; it has no active runtime consumers.
 - `DebugCommands.lua` — `/buidebug`, `/buiscene` developer trace commands.
 - `DeveloperDebug.lua` — developer-only debug toggles.
 - `FeatureFlags.lua` — runtime feature-flag system for safer rollouts.

@@ -1,6 +1,6 @@
 # Priority Backlog (P0/P1)
 
-Last Audited: 2026-06-19
+Last Audited: 2026-06-30
 Status: Active
 
 ## Purpose
@@ -27,5 +27,5 @@ PB-001–PB-016 were resolved and archived in `completed-improvements.md` (PB-00
 ## Execution Rhythm
 
 - Weekly: select top 1-2 active items for implementation.
-- After implementation: update status and acceptance notes immediately.
+- After implementation: migrate the accepted result to `completed-improvements.md` and remove the active row.
 - Monthly: audit priority, remove stale entries, and demote non-critical work back to feature backlog.
