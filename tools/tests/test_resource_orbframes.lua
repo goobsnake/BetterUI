@@ -175,7 +175,31 @@ BETTERUI = {
     },
 }
 
+-- Mirrors production BETTERUI.GetModuleSettings: a fresh deep clone on every
+-- call. Writes through a Get() result are silently discarded -- this is the
+-- exact shape of the reported bug (drag deltas/Reset Position writes
+-- vanishing), so the mock must reproduce it instead of just returning the
+-- live `settings` reference, or this suite could never catch a regression
+-- where some caller is wired to the snapshot getter instead of GetLive.
+local function CloneSettingsValue(value)
+    if type(value) ~= "table" then
+        return value
+    end
+    local clone = {}
+    for key, item in pairs(value) do
+        clone[key] = CloneSettingsValue(item)
+    end
+    return clone
+end
+
 function BETTERUI.ResourceOrbFrames.Utils.Settings.Get()
+    return CloneSettingsValue(settings)
+end
+
+-- Mirrors production BETTERUI.GetModuleSettingsLive: the real, persistent
+-- settings table. Code that needs a write (e.g. drag-handle attachment) must
+-- use this, not Get().
+function BETTERUI.ResourceOrbFrames.Utils.Settings.GetLive()
     return settings
 end
 
@@ -305,9 +329,11 @@ function BETTERUI.ResourceOrbFrames.Bars.CreateExperienceBar()
     return NewBar("ExperienceBar")
 end
 
+local createdCastBar = nil
 function BETTERUI.ResourceOrbFrames.Bars.CreateCastBar()
     CountCall(barCalls, "CreateCastBar")
-    return NewBar("CastBar")
+    createdCastBar = NewBar("CastBar")
+    return createdCastBar
 end
 
 function BETTERUI.ResourceOrbFrames.Bars.CreateMountStaminaBar()
@@ -395,6 +421,25 @@ function SkillBar.SetupCombatIndicators()
     RecordSkillCall("SetupCombatIndicators")
 end
 
+-- Captures the settingsGetter AttachElementDragHandles wires into each drag
+-- handle, so the test can verify it is the LIVE getter (writes persist
+-- across calls) and not the detached snapshot getter (writes are discarded
+-- on the next call). This is the exact mechanism behind the reported bug:
+-- drag deltas applied during OnUpdate appeared in traces but the final
+-- OnMouseUp read-back showed offsetX=0/offsetY=0.
+local capturedDragHandles = {}
+local capturedDragGetters = {}
+BETTERUI.ResourceOrbFrames.Drag = {
+    AttachDragHandle = function(hostControl, elemKey, settingsGetter, applyCallback)
+        capturedDragGetters[elemKey] = settingsGetter
+        capturedDragHandles[elemKey] = { elemKey = elemKey }
+        return capturedDragHandles[elemKey]
+    end,
+    GetHandle = function(elemKey)
+        return capturedDragHandles[elemKey]
+    end,
+}
+
 local rootFrame = NewControl("Root")
 local bgMiddle = NewControl("BgMiddle")
 local frontBarContainer = NewControl("FrontBarContainer")
@@ -403,6 +448,8 @@ local leftOrnament = NewControl("OrnamentLeft")
 local rightOrnament = NewControl("OrnamentRight")
 local quickslotButton = NewControl("QuickslotButton")
 local companionButton = NewControl("CompanionButton")
+local orbHealth = NewControl("OrbHealth")
+local orbResource = NewControl("OrbResource")
 
 frontBarContainer.children.QuickslotButton = quickslotButton
 frontBarContainer.children.CompanionButton = companionButton
@@ -411,6 +458,8 @@ rootFrame.children.FrontBarContainer = frontBarContainer
 rootFrame.children.BackBarContainer = backBarContainer
 rootFrame.children.OrnamentLeft = leftOrnament
 rootFrame.children.OrnamentRight = rightOrnament
+rootFrame.children.OrbHealth = orbHealth
+rootFrame.children.OrbResource = orbResource
 
 dofile("Modules/ResourceOrbFrames/ResourceOrbFrames.lua")
 
@@ -472,6 +521,25 @@ assert_eq(companionButton.parent, rootFrame, "deferred initialization hoists the
 assert_eq(tryCalls["ControlUtils.InvalidateControlCache"], 1, "deferred initialization invalidates cached control references after reparenting")
 assert_true((eventCalls.RefreshCombatIndicators or 0) >= 1, "deferred initialization refreshes combat indicators after setup")
 
+-- Regression guard for the reported drag/reset persistence bug: the settings
+-- getter wired into each drag handle must be the LIVE table, so a write made
+-- through one call of the getter is visible on a later call of the SAME
+-- getter (this is what OnMouseUp's read-back and Reset Position depend on).
+-- If AttachElementDragHandles is ever rewired back to the detached snapshot
+-- getter (Utils.Settings.Get), this assertion fails because each call
+-- returns an independent clone and the mutation below would not survive.
+assert_true(type(capturedDragGetters.leftOrb) == "function", "leftOrb drag handle is attached with a settings getter")
+if type(capturedDragGetters.leftOrb) == "function" then
+    local liveGetter = capturedDragGetters.leftOrb
+    settings.elementPositions = settings.elementPositions or {}
+    settings.elementPositions.leftOrb = { locked = false, offsetX = 0, offsetY = 0 }
+    local firstRead = liveGetter()
+    firstRead.elementPositions.leftOrb.offsetX = 42
+    local secondRead = liveGetter()
+    assert_eq(secondRead.elementPositions.leftOrb.offsetX, 42,
+        "a write through the drag handle's settings getter persists across calls (live table, not a detached snapshot)")
+end
+
 local forceLayoutRegistration = callbackRegistrations.BetterUI_ForceLayoutUpdate
 local forceLayoutCallback = forceLayoutRegistration and forceLayoutRegistration.callback
 assert_true(type(forceLayoutCallback) == "function", "dynamic events register a force-layout callback")
@@ -500,6 +568,23 @@ settings.m_enabled = true
 ResourceOrbFrames.ApplySettings()
 assert_true(not rootFrame.hidden, "apply settings shows the root frame when the module is enabled")
 assert_true((barCalls.CastBarUpdate or 0) >= 1, "apply settings refreshes bar visuals after enabling the module")
+
+-- Element-position offsets (HUD drag/reset positioning): ApplyLayout must
+-- fold elementPositions[key].offsetX/offsetY into the anchor it computes --
+-- this is the only path that makes a persisted drag/reset offset visible,
+-- so a regression here would silently re-create the "orb stays fixed" bug
+-- even when the settings write itself is correct.
+settings.elementPositions = { castBar = { offsetX = 37, offsetY = -19 } }
+ResourceOrbFrames.ApplySettings()
+assert_true(createdCastBar ~= nil, "cast bar control is created")
+if createdCastBar then
+    local anchor = createdCastBar.control.anchor
+    assert_true(anchor ~= nil, "cast bar anchor is set after layout")
+    if anchor then
+        assert_eq(anchor[4], 37, "cast bar anchor X includes the persisted elementPositions offset")
+        assert_eq(anchor[5], -43, "cast bar anchor Y includes the persisted elementPositions offset")
+    end
+end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

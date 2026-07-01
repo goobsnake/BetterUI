@@ -32,6 +32,38 @@ local GetLiveSettings = (OrbUtils.Settings and OrbUtils.Settings.GetLive) or Orb
 
 local ClampNumber = BETTERUI.ClampNumber
 
+local function GetElemOffset(settings, key)
+    local ep = settings and settings.elementPositions
+    if not ep or not ep[key] then return 0, 0 end
+    return ep[key].offsetX or 0, ep[key].offsetY or 0
+end
+
+local function GetModeBarY(barCfg, isGamepad, fallbackY)
+    if not barCfg then return fallbackY end
+    local modeY = isGamepad and barCfg.gamepadY or barCfg.keyboardY
+    if type(modeY) == "number" then return modeY end
+    return fallbackY
+end
+
+local function ResolveFallbackQuickslotY(barsCfg, settings, isGamepad, quickslotCfg, slotCfg, frontBarCfg)
+    local _, skillBarOffsetY = GetElemOffset(settings, "skillBars")
+    local _, quickslotOffsetY = GetElemOffset(settings, "quickslot")
+    local frontBarOffsetY = frontBarCfg.offsetY or 0
+    local baseY = quickslotCfg.y or 0
+    local slotOffsetY = slotCfg.offsetY or 0
+    local bottomY = GetModeBarY(barsCfg.bottom, isGamepad, -15)
+    local frontBarY = bottomY + frontBarOffsetY + skillBarOffsetY
+    local topY = GetModeBarY(barsCfg.top, isGamepad, nil)
+
+    if type(topY) ~= "number" then
+        return baseY + slotOffsetY + frontBarOffsetY + quickslotOffsetY, nil, frontBarY
+    end
+
+    local backBarCfg = barsCfg.customBackBar or {}
+    local backBarY = topY + (barsCfg.shiftY or 0) + (backBarCfg.offsetY or 0) + skillBarOffsetY
+    return ((frontBarY + backBarY) / 2) + baseY + slotOffsetY + quickslotOffsetY, backBarY, frontBarY
+end
+
 local function TraceCombatIndicators(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
@@ -45,6 +77,85 @@ local function TraceCombatIndicators(event, phase, data)
     end
     local categories = L.CATEGORY or {}
     L.TraceEvent(categories.STATE, event, phase, data)
+end
+
+local function GetControlTraceName(control)
+    if not control then return nil end
+    local controlType = type(control)
+    if controlType ~= "table" and controlType ~= "userdata" then
+        return tostring(control)
+    end
+    local okGetName, getName = pcall(function() return control.GetName end)
+    if okGetName and type(getName) == "function" then
+        local ok, name = pcall(getName, control)
+        if ok and name ~= nil then return tostring(name) end
+    end
+    local okName, name = pcall(function() return control.name end)
+    if okName and name ~= nil then return tostring(name) end
+    return tostring(control)
+end
+
+local function CallControlNumber(control, methodName)
+    if not control then return nil end
+    local controlType = type(control)
+    if controlType ~= "table" and controlType ~= "userdata" then return nil end
+    local okMethod, method = pcall(function() return control[methodName] end)
+    if not okMethod or type(method) ~= "function" then return nil end
+    local ok, value = pcall(method, control)
+    if ok then return value end
+    return nil
+end
+
+local function DescribeControlForTrace(control, label)
+    if not control then
+        return tostring(label) .. ":missing"
+    end
+    local controlType = type(control)
+    if controlType ~= "table" and controlType ~= "userdata" then
+        return tostring(label) .. "=" .. tostring(control)
+    end
+
+    local parts = { tostring(label) .. "=" .. tostring(GetControlTraceName(control)) }
+    local okIsHidden, isHidden = pcall(function() return control.IsHidden end)
+    if okIsHidden and type(isHidden) == "function" then
+        local ok, hidden = pcall(isHidden, control)
+        if ok then parts[#parts + 1] = "hidden:" .. tostring(hidden) end
+    end
+    local left = CallControlNumber(control, "GetLeft")
+    local top = CallControlNumber(control, "GetTop")
+    if left ~= nil or top ~= nil then
+        parts[#parts + 1] = "xy:" .. tostring(left) .. "," .. tostring(top)
+    end
+    local width = CallControlNumber(control, "GetWidth")
+    local height = CallControlNumber(control, "GetHeight")
+    if width ~= nil or height ~= nil then
+        parts[#parts + 1] = "wh:" .. tostring(width) .. "," .. tostring(height)
+    end
+    local okGetAnchor, getAnchor = pcall(function() return control.GetAnchor end)
+    if okGetAnchor and type(getAnchor) == "function" then
+        local ok, first, second, third, fourth, fifth, sixth = pcall(getAnchor, control, 0)
+        local point, relativeTo, relativePoint, offsetX, offsetY
+        if ok and type(first) == "boolean" then
+            point, relativeTo, relativePoint, offsetX, offsetY = second, third, fourth, fifth, sixth
+        elseif ok then
+            point, relativeTo, relativePoint, offsetX, offsetY = first, second, third, fourth, fifth
+        end
+        if ok and point ~= nil then
+            parts[#parts + 1] = "anchor:" .. tostring(point) .. ">" .. tostring(GetControlTraceName(relativeTo)) ..
+                ":" .. tostring(relativePoint) .. ":" .. tostring(offsetX) .. "," .. tostring(offsetY)
+        end
+    end
+    return table.concat(parts, ";")
+end
+
+local function CallOptionalControlMethod(control, methodName, ...)
+    if not control then return false end
+    local controlType = type(control)
+    if controlType ~= "table" and controlType ~= "userdata" then return false end
+    local okMethod, method = pcall(function() return control[methodName] end)
+    if not okMethod or type(method) ~= "function" then return false end
+    local ok = pcall(method, control, ...)
+    return ok
 end
 
 --- Resolves the front bar container control from the root frame.
@@ -224,13 +335,18 @@ local function ResolveQuickslotAnchorFallback(rootFrame)
     local buttonSize = (modeCfg and modeCfg.buttonSize) or (slotsCfg and slotsCfg.width) or 64
     buttonSize = math.max(1, tonumber(buttonSize) or 64)
 
-    local quickslotX = (quickslotCfg.x or 0) + (slotCfg.offsetX or 0)
-    local quickslotY = (quickslotCfg.y or 0) + (slotCfg.offsetY or 0)
+    local settings = GetLiveSettings()
+    local quickslotOffsetX = GetElemOffset(settings, "quickslot")
+    local quickslotX = (quickslotCfg.x or 0) + (slotCfg.offsetX or 0) + (frontBarCfg.offsetX or 0) + quickslotOffsetX
+    local quickslotY, backBarY, frontBarY = ResolveFallbackQuickslotY(barsCfg, settings, isGamepad, quickslotCfg, slotCfg, frontBarCfg)
     TraceCombatIndicators("resource_orbs.combat_icon_anchor", "fallback_resolved", {
         fn = "CombatIndicators.ResolveQuickslotAnchorFallback",
         mode = isGamepad and "gamepad" or "keyboard",
         quickslotX = quickslotX,
         quickslotY = quickslotY,
+        frontBarY = frontBarY,
+        backBarY = backBarY,
+        quickslotUsesMidpoint = backBarY ~= nil,
         buttonSize = buttonSize,
     })
     return bgMiddle, quickslotX, quickslotY, buttonSize
@@ -347,12 +463,12 @@ local function AnchorCombatIcon(rootFrame, iconControl)
     end
 
     local iconTexture = ResolveCombatIconTexturePath()
-    iconControl:SetTexture(iconTexture)
-    iconControl:SetTextureCoords(0, 1, 0, 1)
-    iconControl:SetDrawLayer(DL_OVERLAY)
-    iconControl:SetDrawTier(DT_HIGH)
-    iconControl:SetDrawLevel(200)
-    iconControl:SetDesaturation(0)
+    local didSetTexture = CallOptionalControlMethod(iconControl, "SetTexture", iconTexture)
+    local didSetTextureCoords = CallOptionalControlMethod(iconControl, "SetTextureCoords", 0, 1, 0, 1)
+    local didSetDrawLayer = CallOptionalControlMethod(iconControl, "SetDrawLayer", DL_OVERLAY)
+    local didSetDrawTier = CallOptionalControlMethod(iconControl, "SetDrawTier", DT_HIGH)
+    local didSetDrawLevel = CallOptionalControlMethod(iconControl, "SetDrawLevel", 200)
+    local didSetDesaturation = CallOptionalControlMethod(iconControl, "SetDesaturation", 0)
     TraceCombatIndicators("resource_orbs.combat_icon_anchor", "anchored", {
         fn = "CombatIndicators.AnchorCombatIcon",
         source = anchorSource,
@@ -362,6 +478,12 @@ local function AnchorCombatIcon(rootFrame, iconControl)
         offsetX = offsetX,
         offsetY = offsetY,
         texture = iconTexture,
+        didSetTexture = didSetTexture,
+        didSetTextureCoords = didSetTextureCoords,
+        didSetDrawLayer = didSetDrawLayer,
+        didSetDrawTier = didSetDrawTier,
+        didSetDrawLevel = didSetDrawLevel,
+        didSetDesaturation = didSetDesaturation,
     })
 end
 

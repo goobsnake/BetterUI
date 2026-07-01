@@ -554,8 +554,8 @@ local SETTINGS_SUBMENU_EDGE_TEXTURE_HEIGHT = 16
 local SETTINGS_SUBMENU_BACKDROP_INSET = 16
 local SETTINGS_DROPDOWN_FONT = "ZoFontWinH4"
 local SETTINGS_EDITBOX_HEIGHT = 28
-local SETTINGS_EDITBOX_VALUE_COLUMN_WIDTH = 170
-local SETTINGS_EDITBOX_MIN_WIDTH = 96
+local SETTINGS_EDITBOX_SINGLE_LINE_WIDTH = 96
+local SETTINGS_EDITBOX_VALUE_COLUMN_START = 405
 local SETTINGS_EDITBOX_MULTILINE_HEIGHT = 86
 local SETTINGS_BUTTON_MIN_WIDTH = 170
 local SETTINGS_BUTTON_MAX_WIDTH = 250
@@ -679,6 +679,15 @@ local function GetSettingsSubmenuVisualWidth(width)
 	return width + SETTINGS_SUBMENU_SIDE_EXTENSION
 end
 
+local function ResolveSettingsEditboxColumnStart(width, editWidth)
+	width = tonumber(width) or 0
+	editWidth = tonumber(editWidth) or 0
+	if width <= editWidth then
+		return 0
+	end
+	return math.min(SETTINGS_EDITBOX_VALUE_COLUMN_START, math.max(0, width - editWidth))
+end
+
 local function ApplySettingsDropdownGeometry(widget)
 	local container = ReadControlField(widget, "container")
 	local combobox = ReadControlField(widget, "combobox")
@@ -721,7 +730,8 @@ local function ApplySettingsEditboxGeometry(parent, widget, widgetData)
 	end
 	local isMultiline = widgetData.isMultiline == true
 	local height = isMultiline and SETTINGS_EDITBOX_MULTILINE_HEIGHT or SETTINGS_EDITBOX_HEIGHT
-	local editWidth = isMultiline and width or math.min(SETTINGS_EDITBOX_VALUE_COLUMN_WIDTH, math.max(SETTINGS_EDITBOX_MIN_WIDTH, width / 3))
+	local editWidth = isMultiline and width or math.min(SETTINGS_EDITBOX_SINGLE_LINE_WIDTH, math.max(0, width))
+	local editLeft = isMultiline and 0 or ResolveSettingsEditboxColumnStart(width, editWidth)
 	local label = ReadControlField(widget, "label")
 
 	if widget.SetWidth and width > 0 then
@@ -741,7 +751,7 @@ local function ApplySettingsEditboxGeometry(parent, widget, widgetData)
 				container:SetAnchor(BOTTOMLEFT, widget, BOTTOMLEFT, 0, 0)
 				container:SetAnchor(BOTTOMRIGHT, widget, BOTTOMRIGHT, 0, 0)
 			else
-				container:SetAnchor(RIGHT, widget, RIGHT, 0, 0)
+				container:SetAnchor(LEFT, widget, LEFT, editLeft, 0)
 			end
 		end)
 	end

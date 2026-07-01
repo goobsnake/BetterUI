@@ -126,10 +126,10 @@ BETTERUI_ORB_FRAMES = {
         frontUltimateOffsetX = -22, -- Front bar ultimate (+ right, - left)
         backUltimateOffsetX = -40,  -- Back bar ultimate (+ right, - left)
 
-        -- Quickslot icon position (relative to BgMiddle center)
+        -- Quickslot icon position (X relative to BgMiddle center; Y is a nudge from the midpoint between skill bars)
         quickslot = {
             x = 285, -- Horizontal offset (+ right, - left)
-            y = -18, -- Vertical offset (+ down, - up)
+            y = 0,   -- Vertical nudge from bar midpoint (+ down, - up)
         },
 
         -- Companion Ultimate icon position (relative to BgMiddle center)

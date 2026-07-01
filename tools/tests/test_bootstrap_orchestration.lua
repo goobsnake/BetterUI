@@ -615,10 +615,11 @@ assert_true(betterUiSource:find("SETTINGS_SIMULATED_SUBMENU_TYPE = \"betterui_su
     and betterUiSource:find("\t\tApplySettingsSubmenuGeometry(parent, widget)", 1, true) == nil,
     "tab submenus keep full-width flat layout with S'rendarr-style disclosure panels")
 assert_true(betterUiSource:find("ApplySettingsEditboxGeometry", 1, true) ~= nil
-    and betterUiSource:find("SETTINGS_EDITBOX_VALUE_COLUMN_WIDTH = 170", 1, true) ~= nil
-    and betterUiSource:find("container:SetAnchor(RIGHT, widget, RIGHT, 0, 0)", 1, true) ~= nil
+    and betterUiSource:find("SETTINGS_EDITBOX_SINGLE_LINE_WIDTH = 96", 1, true) ~= nil
+    and betterUiSource:find("SETTINGS_EDITBOX_VALUE_COLUMN_START = 405", 1, true) ~= nil
+    and betterUiSource:find("container:SetAnchor(LEFT, widget, LEFT, editLeft, 0)", 1, true) ~= nil
     and betterUiSource:find("editbox:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, -4, -2)", 1, true) ~= nil,
-    "tab editboxes use right-aligned value-column geometry with visible input text")
+    "tab editboxes use compact value-column geometry with visible input text")
 assert_true(betterUiSource:find("SETTINGS_SUBMENU_SIDE_EXTENSION", 1, true) ~= nil
     and betterUiSource:find("GetSettingsSubmenuVisualWidth(width)", 1, true) ~= nil
     and betterUiSource:find("SETTINGS_SUBMENU_ARROW_SIZE", 1, true) ~= nil,
@@ -1287,6 +1288,79 @@ local unsupportedArchetypeModule = {
 local unsupportedArchetypeValid = validateModule(unsupportedArchetypeModule, nil, "GeneralInterface")
 assert_true(unsupportedArchetypeValid == false,
     "module validation rejects unsupported archetype values")
+
+print("[ResourceOrbFrames element drag live settings]")
+-- Reproduce the production bug where ElementDrag receives a snapshot getter
+-- (BETTERUI.GetModuleSettings) while live settings live in GetModuleSettingsLive.
+-- The drag layer must still persist offsets into the live table.
+BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
+BETTERUI.ResourceOrbFrames.Utils = BETTERUI.ResourceOrbFrames.Utils or { Settings = {} }
+
+local dragLiveSettings = {
+    elementPositions = {
+        castBar = { locked = false, offsetX = 0, offsetY = 0 },
+    },
+}
+local function dragSnapshotGetter()
+    return deepcopy(dragLiveSettings)
+end
+BETTERUI.ResourceOrbFrames.Utils.Settings.GetLive = function() return dragLiveSettings end
+
+_G.WINDOW_MANAGER = {
+    CreateControl = function(_, name, parent, _)
+        local control = {
+            name = name,
+            parent = parent,
+            handlers = {},
+            _alpha = 1,
+            _mouseEnabled = true,
+        }
+        control.SetDimensions = function() end
+        control.SetAnchor = function() end
+        control.SetDrawLayer = function() end
+        control.SetDrawLevel = function() end
+        control.SetCenterColor = function() end
+        control.SetEdgeColor = function() end
+        control.SetColor = function() end
+        control.SetAlpha = function(self, a) self._alpha = a end
+        control.SetMouseEnabled = function(self, b) self._mouseEnabled = b end
+        control.SetHandler = function(self, eventName, fn) self.handlers[eventName] = fn end
+        return control
+    end,
+}
+_G.MOUSE_BUTTON_INDEX_LEFT = 1
+_G.CT_BACKDROP = 1
+_G.DL_OVERLAY = 1
+local dragMouseX, dragMouseY = 100, 100
+_G.GetUIMousePosition = function() return dragMouseX, dragMouseY end
+_G.GetFrameTimeMilliseconds = function() return 0 end
+
+dofile("Modules/ResourceOrbFrames/Core/ElementDrag.lua")
+local Drag = BETTERUI.ResourceOrbFrames.Drag
+local dragHost = WINDOW_MANAGER:CreateControl("DragHost", nil, CT_BACKDROP)
+local dragApplyCalls = 0
+local dragHandle = Drag.AttachDragHandle(dragHost, "castBar", dragSnapshotGetter, function() dragApplyCalls = dragApplyCalls + 1 end)
+assert_true(dragHandle ~= nil, "drag handle attaches with mock controls")
+
+dragMouseX, dragMouseY = 100, 100
+dragHandle.handlers["OnMouseDown"](dragHandle, MOUSE_BUTTON_INDEX_LEFT)
+dragMouseX, dragMouseY = 120, 130
+dragHandle.handlers["OnUpdate"]()
+local dragX, dragY = Drag.GetOffset("castBar", dragSnapshotGetter)
+assert_eq(dragX, 20, "drag writes offsetX to live settings even when getter returns a clone")
+assert_eq(dragY, 30, "drag writes offsetY to live settings even when getter returns a clone")
+assert_eq(dragApplyCalls, 1, "drag applyCallback fires when offset changes")
+
+dragMouseX, dragMouseY = 120, 130
+dragHandle.handlers["OnMouseUp"](dragHandle, MOUSE_BUTTON_INDEX_LEFT)
+dragX, dragY = Drag.GetOffset("castBar", dragSnapshotGetter)
+assert_eq(dragX, 20, "mouse up preserves offsetX in live settings")
+assert_eq(dragY, 30, "mouse up preserves offsetY in live settings")
+
+Drag.ResetOffset("castBar", dragSnapshotGetter)
+dragX, dragY = Drag.GetOffset("castBar", dragSnapshotGetter)
+assert_eq(dragX, 0, "ResetOffset clears offsetX in live settings")
+assert_eq(dragY, 0, "ResetOffset clears offsetY in live settings")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

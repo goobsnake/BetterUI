@@ -41,6 +41,28 @@ local function GetElemOffset(settings, key)
     return ep[key].offsetX or 0, ep[key].offsetY or 0
 end
 
+local function GetModeBarY(barCfg, isGamePad, fallbackY)
+    if not barCfg then return fallbackY end
+    local modeY = isGamePad and barCfg.gamepadY or barCfg.keyboardY
+    if type(modeY) == "number" then return modeY end
+    return fallbackY
+end
+
+local function ResolveQuickslotMidpointY(barsCfg, frontBarY, skillBarOffsetY, isGamePad)
+    if not barsCfg or not barsCfg.top then
+        return nil
+    end
+
+    local topY = GetModeBarY(barsCfg.top, isGamePad, nil)
+    if type(topY) ~= "number" then
+        return nil
+    end
+
+    local backBarCfg = barsCfg.customBackBar or {}
+    local backBarY = topY + (barsCfg.shiftY or 0) + (backBarCfg.offsetY or 0) + (skillBarOffsetY or 0)
+    return (frontBarY + backBarY) / 2, backBarY
+end
+
 -- Cached control references
 local m_buttonCache = {}
 local m_frontBarContainer = nil
@@ -56,11 +78,13 @@ local function TraceFrontBar(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
     data = data or {}
+    local updateLastAction = data.updateLastAction
+    data.updateLastAction = nil
     data.module = "ResourceOrbFrames"
     data.feature = "resourceOrbs"
     data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
     data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if L.SetLastAction then
+    if L.SetLastAction and updateLastAction ~= false then
         L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
     end
     local categories = L.CATEGORY or {}
@@ -172,48 +196,52 @@ end
 
 -- HIDE NATIVE ACTION BAR
 
--- Suppresses native action bar per-button keybind labels that can reappear
--- after scene transitions if we only hide top-level containers.
-local function HideNativeActionBarButtonText()
-    if not ACTION_BAR_FIRST_NORMAL_SLOT_INDEX or not ACTION_BAR_SLOTS_PER_PAGE then
-        return
+local function SetNativeButtonHidden(button, hidden)
+    if not button then return false end
+    local slotControl = button.slot or button
+    if slotControl.SetHidden then
+        slotControl:SetHidden(hidden)
     end
-
-    local stopSlot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1
-    for slot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX, stopSlot do
-        local btn = ZO_ActionBar_GetButton(slot)
-        if btn and btn.buttonText then
-            btn.buttonText:SetHidden(true)
-        end
+    if slotControl.SetAlpha then
+        slotControl:SetAlpha(hidden and 0 or 1)
     end
-
-    local quickslotButton = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-    if quickslotButton and quickslotButton.buttonText then
-        quickslotButton.buttonText:SetHidden(true)
+    if button.buttonText and button.buttonText.SetHidden then
+        button.buttonText:SetHidden(hidden)
     end
+    return true
 end
 
-local function RestoreNativeActionBarButtonText()
+-- Suppresses native action bar buttons that can reappear after scene/style
+-- transitions if we only hide top-level containers.
+local function SetNativeActionBarButtonsHidden(hidden)
+    local hiddenCount = 0
     if not ACTION_BAR_FIRST_NORMAL_SLOT_INDEX or not ACTION_BAR_SLOTS_PER_PAGE then
-        return
+        return hiddenCount, false
     end
 
     local stopSlot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1
     for slot = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX, stopSlot do
         local btn = ZO_ActionBar_GetButton(slot)
-        if btn and btn.buttonText then
-            btn.buttonText:SetHidden(false)
+        if SetNativeButtonHidden(btn, hidden) then
+            hiddenCount = hiddenCount + 1
         end
     end
 
-    local quickslotButton = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-    if quickslotButton and quickslotButton.buttonText then
-        quickslotButton.buttonText:SetHidden(false)
+    local quickslotButton = ZO_ActionBar_GetButton(nil, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    local quickslotHidden = SetNativeButtonHidden(quickslotButton, hidden)
+    if quickslotHidden then
+        hiddenCount = hiddenCount + 1
     end
+
+    return hiddenCount, quickslotHidden
 end
 
 --- Hides the native ESO action bar and timer.
-local function HideNativeActionBar()
+local function HideNativeActionBar(source)
+    local hasActionBar = ZO_ActionBar1 ~= nil
+    local hasTimer = ZO_ActionBarTimer ~= nil
+    local hasKeybindBg = ZO_ActionBar1KeybindBG ~= nil
+    local hasWeaponSwap = ZO_ActionBar1WeaponSwap ~= nil
     if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
         ZO_ActionBar1:SetHidden(true)
         if ZO_ActionBar1.SetAlpha then ZO_ActionBar1:SetAlpha(0) end
@@ -224,11 +252,34 @@ local function HideNativeActionBar()
     if ZO_ActionBar1KeybindBG and ZO_ActionBar1KeybindBG.SetHidden then
         ZO_ActionBar1KeybindBG:SetHidden(true)
     end
-    HideNativeActionBarButtonText()
+    if ZO_ActionBar1WeaponSwap then
+        if ZO_WeaponSwap_SetPermanentlyHidden then
+            ZO_WeaponSwap_SetPermanentlyHidden(ZO_ActionBar1WeaponSwap, true)
+        end
+        if ZO_ActionBar1WeaponSwap.SetHidden then ZO_ActionBar1WeaponSwap:SetHidden(true) end
+    end
+    local nativeButtonsHidden, nativeQuickslotHidden = SetNativeActionBarButtonsHidden(true)
+    TraceFrontBar("resource_orbs.native_action_bar", "hidden", {
+        fn = "HideNativeActionBar",
+        source = source,
+        updateLastAction = source ~= "ApplyFullLayout",
+        hasActionBar = hasActionBar,
+        hasTimer = hasTimer,
+        hasKeybindBg = hasKeybindBg,
+        hasWeaponSwap = hasWeaponSwap,
+        actionBarAlphaZeroed = hasActionBar and ZO_ActionBar1.SetAlpha ~= nil,
+        weaponSwapPermanentlyHidden = hasWeaponSwap and ZO_WeaponSwap_SetPermanentlyHidden ~= nil,
+        nativeButtonsHidden = nativeButtonsHidden,
+        nativeQuickslotHidden = nativeQuickslotHidden,
+    })
 end
 
 --- Restores the native ESO action bar and timer after ResourceOrbFrames is disabled.
 local function RestoreNativeActionBar()
+    local hasActionBar = ZO_ActionBar1 ~= nil
+    local hasTimer = ZO_ActionBarTimer ~= nil
+    local hasKeybindBg = ZO_ActionBar1KeybindBG ~= nil
+    local hasWeaponSwap = ZO_ActionBar1WeaponSwap ~= nil
     if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
         ZO_ActionBar1:SetHidden(false)
         if ZO_ActionBar1.SetAlpha then ZO_ActionBar1:SetAlpha(1) end
@@ -245,7 +296,18 @@ local function RestoreNativeActionBar()
     if ZO_ActionBar1KeybindBG and ZO_ActionBar1KeybindBG.SetHidden then
         ZO_ActionBar1KeybindBG:SetHidden(false)
     end
-    RestoreNativeActionBarButtonText()
+    local nativeButtonsRestored, nativeQuickslotRestored = SetNativeActionBarButtonsHidden(false)
+    TraceFrontBar("resource_orbs.native_action_bar", "restored", {
+        fn = "RestoreNativeActionBar",
+        hasActionBar = hasActionBar,
+        hasTimer = hasTimer,
+        hasKeybindBg = hasKeybindBg,
+        hasWeaponSwap = hasWeaponSwap,
+        actionBarAlphaRestored = hasActionBar and ZO_ActionBar1.SetAlpha ~= nil,
+        weaponSwapPermanentHideCleared = hasWeaponSwap and ZO_WeaponSwap_SetPermanentlyHidden ~= nil,
+        nativeButtonsRestored = nativeButtonsRestored,
+        nativeQuickslotRestored = nativeQuickslotRestored,
+    })
 end
 
 -- UPDATE FRONT BAR (icons, slot data, highlights)
@@ -616,16 +678,23 @@ local function UpdateFrontBarLayout(rootFrame)
     -- must add it themselves to move with the bar.
     local barOffsetX = frontBarLayoutConfig.offsetX or 0
     local barOffsetY = frontBarLayoutConfig.offsetY or 0
-    local settings = GetSettings() or {}
+    local settings = GetLiveSettings() or {}
     local sbX, sbY = GetElemOffset(settings, "skillBars")
     local qsX, qsY = GetElemOffset(settings, "quickslot")
     local cuX, cuY = GetElemOffset(settings, "companionUltimate")
+    local barsCfg = BETTERUI_ORB_FRAMES.bars
+    local frontBarBaseY = GetModeBarY(barsCfg.bottom, isGamePad, -15)
+    local frontBarX = barOffsetX + 10 + sbX
+    local frontBarY = frontBarBaseY + barOffsetY + sbY
+    local quickslotMidpointY = nil
+    local quickslotBackBarY = nil
+    local quickslotAnchorY = nil
 
     local qsBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "QuickslotButton")
     if qsBtn then
         local quickslotCfg = frontBarLayoutConfig.quickslotButton
-        local baseX = BETTERUI_ORB_FRAMES.bars.quickslot.x
-        local baseY = BETTERUI_ORB_FRAMES.bars.quickslot.y
+        local baseX = barsCfg.quickslot.x
+        local baseY = barsCfg.quickslot.y
         local offsetX = quickslotCfg.offsetX or 0
         local offsetY = quickslotCfg.offsetY or 0
         qsBtn:SetDimensions(buttonSize, buttonSize)
@@ -633,8 +702,14 @@ local function UpdateFrontBarLayout(rootFrame)
         qsBtn.cooldownRevealHeight = buttonSize
         qsBtn:ClearAnchors()
         if bgMiddle then
+            quickslotMidpointY, quickslotBackBarY = ResolveQuickslotMidpointY(barsCfg, frontBarY, sbY, isGamePad)
+            if quickslotMidpointY ~= nil then
+                quickslotAnchorY = quickslotMidpointY + baseY + offsetY + qsY
+            else
+                quickslotAnchorY = baseY + offsetY + barOffsetY + qsY
+            end
             qsBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX + barOffsetX + qsX,
-                baseY + offsetY + barOffsetY + qsY)
+                quickslotAnchorY)
         end
         local flipCard = qsBtn:GetNamedChild("FlipCard")
         if flipCard then flipCard:SetDimensions(buttonInnerSize, buttonInnerSize) end
@@ -666,8 +741,6 @@ local function UpdateFrontBarLayout(rootFrame)
         SetPressFeedbackBaseSize(compBtn, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize)
     end
 
-    local frontBarX = barOffsetX + 10 + sbX
-    local frontBarY = -15 + barOffsetY + sbY
     if bgMiddle then
         frontBarContainer:ClearAnchors()
         frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, frontBarX, frontBarY)
@@ -690,9 +763,13 @@ local function UpdateFrontBarLayout(rootFrame)
         companionUltimateOffsetX = cuX,
         companionUltimateOffsetY = cuY,
         frontBarAnchorX = barOffsetX + 10 + sbX,
-        frontBarAnchorY = -15 + barOffsetY + sbY,
+        frontBarAnchorY = frontBarY,
         quickslotAnchorOffsetX = barOffsetX + qsX,
-        quickslotAnchorOffsetY = barOffsetY + qsY,
+        quickslotAnchorOffsetY = quickslotAnchorY,
+        quickslotMidpointY = quickslotMidpointY,
+        quickslotBackBarY = quickslotBackBarY,
+        quickslotBaseY = BETTERUI_ORB_FRAMES.bars.quickslot.y,
+        quickslotUsesMidpoint = quickslotMidpointY ~= nil,
         companionAnchorOffsetX = barOffsetX + cuX,
         companionAnchorOffsetY = barOffsetY + cuY,
         totalWidth = totalWidth,

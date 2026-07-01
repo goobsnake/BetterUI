@@ -107,6 +107,14 @@ assertTrue(orchestratorSource:find("MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X %+ orbOf
     "Mount bar bgMiddle fallback includes offset (X)")
 assertTrue(count_occurrences(orchestratorSource, "BAR_FALLBACK_OFFSET_Y %+ orbOffsetY") == 2,
     "Both bar bgMiddle fallbacks include offset (Y)")
+assertTrue(orchestratorSource:find("BARS%.XP%.OFFSET_X %+ exX %- loX") ~= nil,
+    "XP bar ornament branch subtracts left-orb offset so XP can move independently")
+assertTrue(orchestratorSource:find("BARS%.MOUNT%.OFFSET_X %+ moX %- roX") ~= nil,
+    "Mount bar ornament branch subtracts right-orb offset so mount can move independently")
+assertTrue(orchestratorSource:find("BARS%.CAST%.OFFSET_X %+ caX %- sbX") ~= nil,
+    "Cast bar bar-container branches subtract skill-bar offset so cast can move independently")
+assertTrue(orchestratorSource:find("decoupledAnchors = true") ~= nil,
+    "Orchestrator: element offset trace records decoupled anchor mode")
 
 -- Test 7: Defaults include the new settings
 local defaultsSource = read_file("Modules/ResourceOrbFrames/Settings/Defaults.lua")
@@ -139,5 +147,85 @@ assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X") ~= 
     "Module: orbOffsetX slider exists")
 assertTrue(moduleSource:find("not generalContracts%.enableIndependentOrbOffset%.get%(") ~= nil,
     "Module: Sliders disabled when toggle is off")
+
+-- Test 10: Mouse drag positioning must write through live settings. The
+-- remote interface.log showed delta_applied changed=true followed by drag
+-- end offsetX/offsetY=0, which is the signature of mutating a detached
+-- settings snapshot.
+assertTrue(orchestratorSource:find("local GetLiveSettings = SettingsUtils%.GetLive or GetSettings") ~= nil,
+    "Orchestrator: live settings getter is available")
+assertTrue(orchestratorSource:find("drag%.AttachDragHandle%(hostControl, elemKey, GetLiveSettings, ApplyFullLayout%)") ~= nil,
+    "Orchestrator: drag handles mutate live settings")
+assertTrue(orchestratorSource:find("local settings = GetLiveSettings%(%) or {}") ~= nil,
+    "Orchestrator: layout reads live element offsets after drag mutation")
+assertTrue(orchestratorSource:find("resolveCustomFrontBarButton%(\"QuickslotButton\"%)") ~= nil,
+    "Orchestrator: quickslot drag handle resolves only the custom quickslot control")
+assertTrue(orchestratorSource:find("local quickslotButton = FindControl%(m_rootFrame, 'QuickslotButton'%)") == nil,
+    "Orchestrator: quickslot drag handle does not fall through to the native global QuickslotButton")
+assertTrue(orchestratorSource:find("custom_buttons_resolved") ~= nil,
+    "Orchestrator: quickslot/companion drag host resolution emits builog trace")
+
+-- Test 11: Drag-driven full layouts must also reassert native ESO action bar
+-- suppression, otherwise the default bar can bleed into the custom bars when
+-- movement/settings changes wake native UI controls.
+assertTrue(orchestratorSource:find("local SuppressNativeBars") ~= nil,
+    "Orchestrator: native bar suppression is forward declared for layout")
+assertTrue(orchestratorSource:find("SuppressNativeBars%(\"ApplyFullLayout\"%)") ~= nil,
+    "Orchestrator: full layout reasserts native bar suppression with trace source")
+assertTrue(orchestratorSource:find("SuppressNativeBars%(\"weaponSwapLayout\"%)") ~= nil,
+    "Orchestrator: weapon-swap partial layout reasserts native bar suppression")
+assertTrue(orchestratorSource:find("SuppressNativeBars%(\"EVENT_ACTION_SLOTS_FULL_UPDATE\"%)") ~= nil,
+    "Orchestrator: full action-slot update reasserts native bar suppression")
+assertTrue(orchestratorSource:find("SuppressNativeBars%(\"EVENT_ACTION_SLOT_UPDATED\"%)") ~= nil,
+    "Orchestrator: single action-slot update reasserts native bar suppression")
+
+-- Test 12: Per-element Reset Position must use the live settings contract and
+-- canonical Drag.ResetOffset path so offset persistence, handle state, and
+-- builog reset/reset_end traces stay aligned.
+assertTrue(moduleSource:find("GetLiveResourceOrbSettings = SettingsUtils%.GetLive or SettingsUtils%.Ensure") ~= nil,
+    "Module: live ResourceOrbFrames settings getter exists")
+assertTrue(moduleSource:find("getLiveSettings = GetLiveResourceOrbSettings") ~= nil,
+    "Module: shared contracts expose live settings")
+assertTrue(moduleSource:find("usesLiveSettings = true") ~= nil,
+    "Module: element reset/lock traces record live-settings usage")
+assertTrue(moduleSource:find("drag%.SetElementLocked%(elemKey, true, GetLiveResourceOrbSettings%)") ~= nil,
+    "Module: reset-all updates drag lock state through live settings")
+assertTrue(moduleSource:find("drag%.SetElementLocked%(elemKey, v, GetLiveResourceOrbSettings%)") ~= nil,
+    "Module: lock toggle updates drag lock state through live settings")
+
+local settingsSubmenusSource2 = read_file("Modules/ResourceOrbFrames/Settings/SettingsSubmenus.lua")
+assertTrue(settingsSubmenusSource2 ~= nil, "SettingsSubmenus.lua readable")
+assertTrue(settingsSubmenusSource2:find("shared%.getLiveSettings") ~= nil,
+    "SettingsSubmenus: ResetElemPos prefers the shared live settings getter")
+assertTrue(settingsSubmenusSource2:find("drag%.ResetOffset%(k, liveGetter, nil%)") ~= nil,
+    "SettingsSubmenus: ResetElemPos calls Drag.ResetOffset with the live settings getter")
+assertTrue(settingsSubmenusSource2:find("drag%.SetElementLocked%(k, true, liveGetter%)") ~= nil,
+    "SettingsSubmenus: ResetElemPos locks the element via the live settings getter")
+assertTrue(settingsSubmenusSource2:find("usesLiveSettings = usesLiveSettings") ~= nil,
+    "SettingsSubmenus: ResetElemPos trace records live-settings usage")
+assertTrue(settingsSubmenusSource2:find("local s = shared and shared%.getSettings and shared%.getSettings%(%)") == nil,
+    "SettingsSubmenus: ResetElemPos no longer mutates the detached shared.getSettings() snapshot")
+
+local frontBarSource = read_file("Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua")
+assertTrue(frontBarSource ~= nil, "FrontBarManager.lua readable")
+assertTrue(frontBarSource:find("resource_orbs%.native_action_bar") ~= nil,
+    "FrontBarManager: native action bar hide/restore emits builog traces")
+assertTrue(frontBarSource:find("ZO_WeaponSwap_SetPermanentlyHidden%(ZO_ActionBar1WeaponSwap, true%)") ~= nil,
+    "FrontBarManager: native weapon swap is permanently hidden with the native action bar")
+assertTrue(frontBarSource:find("SetNativeActionBarButtonsHidden%(true%)") ~= nil,
+    "FrontBarManager: suppression hides native action button controls, not only labels")
+assertTrue(frontBarSource:find("ZO_ActionBar_GetButton%(nil, HOTBAR_CATEGORY_QUICKSLOT_WHEEL%)") ~= nil,
+    "FrontBarManager: suppression resolves the native quickslot through ESOUI's quickslot category")
+assertTrue(frontBarSource:find("nativeQuickslotHidden = nativeQuickslotHidden") ~= nil,
+    "FrontBarManager: suppression trace reports native quickslot hiding")
+
+local orbEventsSource = read_file("Modules/ResourceOrbFrames/Core/OrbEvents.lua")
+assertTrue(orbEventsSource ~= nil, "OrbEvents.lua readable")
+assertTrue(orbEventsSource:find("m_visibilitySceneCallbacksRegistered") ~= nil,
+    "OrbEvents: visibility scene callback latch is separate")
+assertTrue(orbEventsSource:find("m_hudSceneHandlersRegistered") ~= nil,
+    "OrbEvents: HUD native suppression scene-handler latch is separate")
+assertTrue(orbEventsSource:find("DeferredEnforceHide%(50%)") ~= nil,
+    "OrbEvents: scene changes schedule native UI suppression reassertion")
 
 print("test_orb_independent_positioning.lua: ALL TESTS PASSED")

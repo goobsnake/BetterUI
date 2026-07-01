@@ -53,7 +53,8 @@ end
 
 local m_combatIndicatorRootFrame = nil
 local m_hasRegisteredCombatIndicators = false
-local m_sceneHandlersRegistered = false
+local m_visibilitySceneCallbacksRegistered = false
+local m_hudSceneHandlersRegistered = false
 
 -- Hot-path accessor: returns the live settings table by reference (no deep
 -- clone per tick). Read-only by convention.
@@ -266,8 +267,8 @@ function Events.SetupVisibilityFragments(rootFrame)
         end, 0)
     end
 
-    if not m_sceneHandlersRegistered then
-        m_sceneHandlersRegistered = true
+    if not m_visibilitySceneCallbacksRegistered then
+        m_visibilitySceneCallbacksRegistered = true
         if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
             SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(_, oldState, newState)
                 if newState == SCENE_SHOWING
@@ -277,6 +278,7 @@ function Events.SetupVisibilityFragments(rootFrame)
                 then
                     TraceOrbEvents("resource_orbs.scene", "state_changed", { oldState = oldState, newState = newState })
                     DeferredSyncSpecialSceneVisibility()
+                    DeferredEnforceHide(50)
                 end
             end)
         end
@@ -426,7 +428,7 @@ end
 ---@param rootFrame table Root ResourceOrbFrames control
 function Events.SetupSceneHandlers(rootFrame)
     -- Registration latch: SetupModule may retry; scene callbacks must not stack.
-    if m_sceneHandlersRegistered then
+    if m_hudSceneHandlersRegistered then
         TraceOrbEvents("resource_orbs.scene_handlers", "setup_skipped", { reason = "alreadyRegistered" })
         return
     end
@@ -435,7 +437,7 @@ function Events.SetupSceneHandlers(rootFrame)
         TraceOrbEvents("resource_orbs.scene_handlers", "setup_skipped", { reason = "frontBarDisabled" })
         return
     end
-    m_sceneHandlersRegistered = true
+    m_hudSceneHandlersRegistered = true
     TraceOrbEvents("resource_orbs.scene_handlers", "setup_begin", { hasRoot = rootFrame ~= nil })
 
     -- Shared callback for HUD scene visibility changes.
@@ -472,5 +474,5 @@ function Events.SetupSceneHandlers(rootFrame)
             end
         end)
     end
-    TraceOrbEvents("resource_orbs.scene_handlers", "setup_end", { registered = m_sceneHandlersRegistered })
+    TraceOrbEvents("resource_orbs.scene_handlers", "setup_end", { registered = m_hudSceneHandlersRegistered })
 end

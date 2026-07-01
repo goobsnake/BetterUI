@@ -7,6 +7,9 @@ Usage:
   lua tools/tests/test_front_bar_manager.lua
 ]]
 
+local traceEvents = {}
+local lastAction = nil
+
 BETTERUI = {
     ResourceOrbFrames = {
         SkillBar = {
@@ -35,6 +38,23 @@ BETTERUI = {
     },
     CIM = {
         ControlCache = {},
+    },
+    Log = {
+        CATEGORY = {
+            ACTION = "ACTION",
+            GENERAL = "GENERAL",
+        },
+        SetLastAction = function(action)
+            lastAction = action
+        end,
+        TraceEvent = function(category, event, phase, data)
+            traceEvents[#traceEvents + 1] = {
+                category = category,
+                event = event,
+                phase = phase,
+                data = data,
+            }
+        end,
     },
 }
 
@@ -207,8 +227,40 @@ ZO_ActionBar1KeybindBG = {
     end,
 }
 
+ZO_ActionBar1WeaponSwap = {
+    hidden = false,
+    permanentlyHidden = false,
+    SetHidden = function(self, value)
+        self.hidden = value
+    end,
+}
+
+function ZO_WeaponSwap_SetPermanentlyHidden(control, value)
+    control.permanentlyHidden = value
+end
+
 local function NewNativeActionButton(name)
     return {
+        name = name,
+        hidden = false,
+        alpha = 1,
+        SetHidden = function(self, value)
+            self.hidden = value
+        end,
+        SetAlpha = function(self, value)
+            self.alpha = value
+        end,
+        slot = {
+            name = name .. "Slot",
+            hidden = false,
+            alpha = 1,
+            SetHidden = function(self, value)
+                self.hidden = value
+            end,
+            SetAlpha = function(self, value)
+                self.alpha = value
+            end,
+        },
         buttonText = {
             name = name .. "Text",
             hidden = false,
@@ -225,6 +277,9 @@ end
 nativeActionButtons["1_" .. tostring(HOTBAR_CATEGORY_QUICKSLOT_WHEEL)] = NewNativeActionButton("NativeQuickslot")
 
 function ZO_ActionBar_GetButton(slot, hotbarCategory)
+    if hotbarCategory == HOTBAR_CATEGORY_QUICKSLOT_WHEEL then
+        return nativeActionButtons["1_" .. tostring(HOTBAR_CATEGORY_QUICKSLOT_WHEEL)]
+    end
     return nativeActionButtons[tostring(slot) .. "_" .. tostring(hotbarCategory)]
 end
 
@@ -244,8 +299,9 @@ BETTERUI_ORB_FRAMES = {
         gamepad = { width = 40, spacing = 5 },
     },
     bars = {
+        shiftY = 70,
         ultimateGap = 8,
-        quickslot = { x = -120, y = 40 },
+        quickslot = { x = -120, y = 2 },
         companionUltimate = { x = 120, y = 40 },
         customFrontBar = {
             offsetX = 4,
@@ -255,6 +311,17 @@ BETTERUI_ORB_FRAMES = {
             ultimate = { offsetX = 3, offsetY = 2 },
             quickslotButton = { offsetX = 7, offsetY = 8 },
             companionButton = { offsetX = -9, offsetY = 10 },
+        },
+        customBackBar = {
+            offsetY = -5,
+        },
+        bottom = {
+            gamepadY = -15,
+            keyboardY = -15,
+        },
+        top = {
+            gamepadY = -95,
+            keyboardY = -95,
         },
     },
 }
@@ -404,6 +471,16 @@ local function assert_true(value, label)
     assert_eq(value == true, true, label)
 end
 
+local function count_trace(event, phase)
+    local count = 0
+    for _, entry in ipairs(traceEvents) do
+        if entry.event == event and entry.phase == phase then
+            count = count + 1
+        end
+    end
+    return count
+end
+
 print("[FrontBarManager]")
 
 assert_true(type(internals) == "table", "front bar manager exports test internals")
@@ -445,12 +522,32 @@ SkillBar.HideNativeActionBar()
 assert_true(ZO_ActionBar1.hidden, "hide native action bar hides the default action bar")
 assert_true(ZO_ActionBarTimer.hidden, "hide native action bar hides the default timer")
 assert_true(ZO_ActionBar1KeybindBG.hidden, "hide native action bar hides the native keybind background")
+assert_true(ZO_ActionBar1WeaponSwap.hidden, "hide native action bar hides the native weapon swap control")
+assert_true(ZO_ActionBar1WeaponSwap.permanentlyHidden, "hide native action bar permanently hides the native weapon swap control")
+assert_true(nativeActionButtons["3_nil"].slot.hidden, "hide native action bar hides the first normal native button slot")
+assert_eq(nativeActionButtons["3_nil"].slot.alpha, 0, "hide native action bar zeroes native button slot alpha")
 assert_true(nativeActionButtons["3_nil"].buttonText.hidden, "hide native action bar hides the first normal native button text")
 assert_true(nativeActionButtons["7_nil"].buttonText.hidden, "hide native action bar hides the last normal native button text")
+assert_true(nativeActionButtons["1_" .. tostring(HOTBAR_CATEGORY_QUICKSLOT_WHEEL)].slot.hidden,
+    "hide native action bar hides the native quickslot button slot")
 assert_true(nativeActionButtons["1_" .. tostring(HOTBAR_CATEGORY_QUICKSLOT_WHEEL)].buttonText.hidden,
     "hide native action bar hides the native quickslot button text")
+assert_true(count_trace("resource_orbs.native_action_bar", "hidden") == 1,
+    "hide native action bar emits a builog trace")
+assert_eq(traceEvents[#traceEvents].data.nativeQuickslotHidden, true,
+    "hide native action bar trace records native quickslot suppression")
+assert_true(lastAction ~= nil and lastAction.flow == "resource_orbs.native_action_bar",
+    "hide native action bar updates last-action diagnostics")
 SkillBar.RestoreNativeActionBar()
+assert_true(not ZO_ActionBar1WeaponSwap.hidden, "restore native action bar restores the native weapon swap control")
+assert_true(not ZO_ActionBar1WeaponSwap.permanentlyHidden, "restore native action bar clears permanent weapon swap hiding")
+assert_true(not nativeActionButtons["3_nil"].slot.hidden, "restore native action bar restores the first normal native button slot")
+assert_eq(nativeActionButtons["3_nil"].slot.alpha, 1, "restore native action bar restores native button slot alpha")
 assert_true(not nativeActionButtons["3_nil"].buttonText.hidden, "restore native action bar restores the first normal native button text")
+assert_true(not nativeActionButtons["1_" .. tostring(HOTBAR_CATEGORY_QUICKSLOT_WHEEL)].slot.hidden,
+    "restore native action bar restores the native quickslot button slot")
+assert_true(count_trace("resource_orbs.native_action_bar", "restored") == 1,
+    "restore native action bar emits a builog trace")
 
 texturesBySlot["3_" .. activeHotbarCategory] = "front-icon-3"
 activationHighlights["3_" .. activeHotbarCategory] = true
@@ -485,7 +582,10 @@ SkillBar.UpdateFrontBarLayout(rootFrame)
 assert_eq(frontBarContainer.children.Button1.dimensions[1], 40, "front bar layout sizes normal buttons from config")
 assert_eq(frontBarContainer.children.UltimateButton.dimensions[1], 48, "front bar layout sizes the ultimate button from config")
 assert_eq(frontBarContainer.children.QuickslotButton.anchor[4], BETTERUI_ORB_FRAMES.bars.quickslot.x + BETTERUI_ORB_FRAMES.bars.customFrontBar.quickslotButton.offsetX + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetX, "front bar layout positions the quickslot button relative to the orb frame plus the whole-bar offset")
-assert_eq(frontBarContainer.children.QuickslotButton.anchor[5], BETTERUI_ORB_FRAMES.bars.quickslot.y + BETTERUI_ORB_FRAMES.bars.customFrontBar.quickslotButton.offsetY + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetY, "front bar layout applies the whole-bar Y offset to the quickslot button")
+local expectedFrontBarY = BETTERUI_ORB_FRAMES.bars.bottom.gamepadY + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetY
+local expectedBackBarY = BETTERUI_ORB_FRAMES.bars.top.gamepadY + BETTERUI_ORB_FRAMES.bars.shiftY + BETTERUI_ORB_FRAMES.bars.customBackBar.offsetY
+local expectedQuickslotY = ((expectedFrontBarY + expectedBackBarY) / 2) + BETTERUI_ORB_FRAMES.bars.quickslot.y + BETTERUI_ORB_FRAMES.bars.customFrontBar.quickslotButton.offsetY
+assert_eq(frontBarContainer.children.QuickslotButton.anchor[5], expectedQuickslotY, "front bar layout positions quickslot vertically between the skill bars")
 assert_eq(frontBarContainer.children.CompanionButton.anchor[4], BETTERUI_ORB_FRAMES.bars.companionUltimate.x + BETTERUI_ORB_FRAMES.bars.customFrontBar.companionButton.offsetX + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetX, "front bar layout positions the companion button relative to the orb frame plus the whole-bar offset")
 assert_eq(frontBarContainer.children.CompanionButton.anchor[5], BETTERUI_ORB_FRAMES.bars.companionUltimate.y + BETTERUI_ORB_FRAMES.bars.customFrontBar.companionButton.offsetY + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetY, "front bar layout applies the whole-bar Y offset to the companion button")
 assert_true(frontBarContainer.children.UltimateButton.glowAnimation ~= nil, "front bar layout rebuilds the ultimate glow animation")

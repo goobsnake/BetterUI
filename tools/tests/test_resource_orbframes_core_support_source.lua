@@ -86,6 +86,14 @@ assert_true(combatIndicatorsSource:find("function CombatIndicators%.HideAllComba
     "OrbCombatIndicators exposes HideAllCombatGlows")
 assert_true(combatIndicatorsSource:find("function CombatIndicators%.ApplyCombatIndicators%(rootFrame, isInCombat, playAudioCue%)") ~= nil,
     "OrbCombatIndicators exposes ApplyCombatIndicators")
+assert_true(combatIndicatorsSource:find("local function GetControlTraceName%(control%)") ~= nil,
+    "OrbCombatIndicators has local trace-name helper used by combat icon diagnostics")
+assert_true(combatIndicatorsSource:find("local function DescribeControlForTrace%(control, label%)") ~= nil,
+    "OrbCombatIndicators can describe controls without depending on the root module")
+assert_true(combatIndicatorsSource:find("local function CallOptionalControlMethod%(control, methodName, %.%.%.%)") ~= nil,
+    "OrbCombatIndicators guards optional texture-control methods")
+assert_true(combatIndicatorsSource:find("didSetTextureCoords = didSetTextureCoords") ~= nil,
+    "OrbCombatIndicators logs optional combat-icon texture method availability")
 
 local eventsSource = read_file("Modules/ResourceOrbFrames/Core/OrbEvents.lua")
 assert_true(eventsSource:find("function Events%.RefreshCombatIndicators%(rootFrame%)") ~= nil,

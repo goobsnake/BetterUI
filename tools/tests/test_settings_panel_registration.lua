@@ -207,12 +207,18 @@ assert_equal("[FailingLoggedModule] Settings panel registration reported: lam_un
 local betterUiFile = assert(io.open("BetterUI.lua", "r"))
 local betterUiSource = betterUiFile:read("*a")
 betterUiFile:close()
-assert_contains(betterUiSource, 'container:SetAnchor(RIGHT, widget, RIGHT, 0, 0)',
-    "single-line editboxes anchor to the right-side value column")
-assert_contains(betterUiSource, "SETTINGS_EDITBOX_VALUE_COLUMN_WIDTH = 170",
-    "single-line editboxes use the same value-column footprint as action controls")
+assert_contains(betterUiSource, "SETTINGS_EDITBOX_SINGLE_LINE_WIDTH = 96",
+    "single-line editboxes stay about ten characters wide")
+assert_contains(betterUiSource, "SETTINGS_EDITBOX_VALUE_COLUMN_START = 405",
+    "single-line editboxes start at the shared value column")
+assert_contains(betterUiSource, "container:SetAnchor(LEFT, widget, LEFT, editLeft, 0)",
+    "single-line editboxes anchor from the value-column start")
+assert_not_contains(betterUiSource, 'container:SetAnchor(RIGHT, widget, RIGHT, 0, 0)',
+    "single-line editboxes do not stretch against the row's right edge")
 assert_not_contains(betterUiSource, "SETTINGS_EDITBOX_VALUE_COLUMN_LEFT",
     "single-line editboxes avoid a fixed-left offset that can truncate labels")
+assert_not_contains(betterUiSource, "SETTINGS_EDITBOX_VALUE_COLUMN_WIDTH = 170",
+    "single-line editboxes avoid the oversized value-column footprint")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

@@ -7,6 +7,17 @@ if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
 if not BETTERUI.ResourceOrbFrames.Drag then BETTERUI.ResourceOrbFrames.Drag = {} end
 
 local Drag = BETTERUI.ResourceOrbFrames.Drag
+local ResourceOrbFrames = BETTERUI.ResourceOrbFrames
+local UtilsSettings = ResourceOrbFrames and ResourceOrbFrames.Utils and ResourceOrbFrames.Utils.Settings
+
+--- Returns a live settings accessor when the module exposes one.
+--- Element drag writes must mutate persisted settings, not a snapshot clone.
+local function ResolveLiveSettingsGetter(settingsGetter)
+    if UtilsSettings and type(UtilsSettings.GetLive) == "function" then
+        return function() return UtilsSettings.GetLive() end
+    end
+    return settingsGetter
+end
 
 local m_handles = {}
 local m_handleHosts = {}
@@ -296,7 +307,8 @@ local function RefreshSettingsPanelThrottled(dragState, force)
 end
 
 local function ApplyDragOffset(elemKey, settingsGetter, dragState, dx, dy, applyCallback, forceRefresh)
-    local s = settingsGetter and settingsGetter()
+    local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
+    local s = liveSettingsGetter and liveSettingsGetter()
     local ep = s and s.elementPositions and s.elementPositions[elemKey]
     if not ep then
         TraceDrag("resource_orbs.element_drag", "delta_skipped", {
@@ -356,7 +368,8 @@ function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallba
     handle:SetDrawLayer(DL_OVERLAY)
     handle:SetDrawLevel(510)
 
-    local s = settingsGetter and settingsGetter()
+    local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
+    local s = liveSettingsGetter and liveSettingsGetter()
     local locked = true
     if s and s.elementPositions and s.elementPositions[elemKey] then
         locked = s.elementPositions[elemKey].locked ~= false
@@ -367,7 +380,8 @@ function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallba
 
     handle:SetHandler("OnMouseDown", function(self, button)
         if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
-        local settings = settingsGetter and settingsGetter()
+        local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
+        local settings = liveSettingsGetter and liveSettingsGetter()
         if not settings then
             TraceDrag("resource_orbs.element_drag", "start_skipped", {
                 elemKey = elemKey,
@@ -412,7 +426,8 @@ function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallba
             local mx, my = GetMouseXY()
             ApplyDragOffset(elemKey, settingsGetter, dragState,
                 mx - (dragState.startX or mx), my - (dragState.startY or my), applyCallback, true)
-            local settings = settingsGetter and settingsGetter()
+            local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
+            local settings = liveSettingsGetter and liveSettingsGetter()
             local ep = settings and settings.elementPositions and settings.elementPositions[elemKey]
             TraceDrag("resource_orbs.element_drag", "end", { elemKey = elemKey, offsetX = ep and ep.offsetX or nil, offsetY = ep and ep.offsetY or nil })
         else
@@ -460,7 +475,8 @@ function Drag.DetachDragHandle(elemKey)
 end
 
 function Drag.SetElementLocked(elemKey, locked, settingsGetter)
-    local s = settingsGetter and settingsGetter()
+    local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
+    local s = liveSettingsGetter and liveSettingsGetter()
     local changed = false
     if s and s.elementPositions and s.elementPositions[elemKey] then
         changed = s.elementPositions[elemKey].locked ~= locked
@@ -471,7 +487,8 @@ function Drag.SetElementLocked(elemKey, locked, settingsGetter)
 end
 
 function Drag.GetOffset(elemKey, settingsGetter)
-    local s = settingsGetter and settingsGetter()
+    local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
+    local s = liveSettingsGetter and liveSettingsGetter()
     if s and s.elementPositions and s.elementPositions[elemKey] then
         return s.elementPositions[elemKey].offsetX or 0, s.elementPositions[elemKey].offsetY or 0
     end
@@ -479,7 +496,8 @@ function Drag.GetOffset(elemKey, settingsGetter)
 end
 
 function Drag.ResetOffset(elemKey, settingsGetter, applyCallback)
-    local s = settingsGetter and settingsGetter()
+    local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
+    local s = liveSettingsGetter and liveSettingsGetter()
     local ep = s and s.elementPositions and s.elementPositions[elemKey]
     if not ep then
         TraceDrag("resource_orbs.element_position", "reset_skipped", {

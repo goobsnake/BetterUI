@@ -225,6 +225,7 @@ end
 
 Utils.FindControl = Controls.Find
 Utils.GetSettings = Settings.Get
+Utils.GetSettingsLive = Settings.GetLive
 Utils.GetCustomFrontBar = Settings.GetCustomFrontBar
 Utils.AddOrbTooltip = Tooltips.AddOrbTooltip
 Utils.CalculateBorderSizes = Layout.CalculateBorderSizes

@@ -38,6 +38,7 @@ local m_castBar = nil
 local m_mountStaminaBar = nil
 local m_traceLastActionSuppressionDepth = 0
 local m_sceneHandlersRegistered = false
+local SuppressNativeBars
 
 local LAST_ACTION_SUPPRESSED_EVENTS = {
     ["resource_orbs.force_layout"] = true,
@@ -252,6 +253,7 @@ local SettingsUtils = Utils.Settings
 local ControlUtils = Utils.Controls
 
 local GetSettings = SettingsUtils.Get
+local GetLiveSettings = SettingsUtils.GetLive or GetSettings
 local GetFrontBarConfig = SettingsUtils.GetCustomFrontBar
 local FindControl = ControlUtils.Find
 
@@ -416,12 +418,30 @@ local function ApplyLayout(updateOrbs, updateSkills)
     end
 
     -- Update Bar Frames Layout (Anchoring) - use cached control references
-    local settings = GetSettings() or {}
+    local settings = GetLiveSettings() or {}
     local exX, exY = GetElemOffset(settings, "xpBar")
     local moX, moY = GetElemOffset(settings, "mountBar")
     local caX, caY = GetElemOffset(settings, "castBar")
-    if exX ~= 0 or exY ~= 0 or moX ~= 0 or moY ~= 0 or caX ~= 0 or caY ~= 0 then
-        TraceDrag("resource_orbs.element_offsets", "layout_applied", { fn = "ResourceOrbFrames.ApplyLayout", exX = exX, exY = exY, moX = moX, moY = moY, caX = caX, caY = caY })
+    local loX, loY = GetElemOffset(settings, "leftOrb")
+    local roX, roY = GetElemOffset(settings, "rightOrb")
+    local sbX, sbY = GetElemOffset(settings, "skillBars")
+    if exX ~= 0 or exY ~= 0 or moX ~= 0 or moY ~= 0 or caX ~= 0 or caY ~= 0 or loX ~= 0 or loY ~= 0 or roX ~= 0 or roY ~= 0 or sbX ~= 0 or sbY ~= 0 then
+        TraceDrag("resource_orbs.element_offsets", "layout_applied", {
+            fn = "ResourceOrbFrames.ApplyLayout",
+            exX = exX,
+            exY = exY,
+            moX = moX,
+            moY = moY,
+            caX = caX,
+            caY = caY,
+            loX = loX,
+            loY = loY,
+            roX = roX,
+            roY = roY,
+            sbX = sbX,
+            sbY = sbY,
+            decoupledAnchors = true,
+        })
     end
 
     -- Independent orb offset: ornament-anchored branches follow the ornaments
@@ -452,8 +472,8 @@ local function ApplyLayout(updateOrbs, updateSkills)
             m_experienceBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
             if m_leftOrnament then
-                m_experienceBar.control:SetAnchor(TOP, m_leftOrnament, BOTTOM, BARS.XP.OFFSET_X + exX,
-                    BARS.XP.OFFSET_Y + exY)
+                m_experienceBar.control:SetAnchor(TOP, m_leftOrnament, BOTTOM, BARS.XP.OFFSET_X + exX - loX,
+                    BARS.XP.OFFSET_Y + exY - loY)
             else
                 m_experienceBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, XP_NO_ORNAMENT_FALLBACK_OFFSET_X + orbOffsetX + exX,
                     BAR_FALLBACK_OFFSET_Y + orbOffsetY + exY)
@@ -470,8 +490,8 @@ local function ApplyLayout(updateOrbs, updateSkills)
             m_mountStaminaBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
             if m_rightOrnament then
-                m_mountStaminaBar.control:SetAnchor(TOP, m_rightOrnament, BOTTOM, BARS.MOUNT.OFFSET_X + moX,
-                    BARS.MOUNT.OFFSET_Y + moY)
+                m_mountStaminaBar.control:SetAnchor(TOP, m_rightOrnament, BOTTOM, BARS.MOUNT.OFFSET_X + moX - roX,
+                    BARS.MOUNT.OFFSET_Y + moY - roY)
             else
                 m_mountStaminaBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X + orbOffsetX + moX, BAR_FALLBACK_OFFSET_Y + orbOffsetY + moY)
             end
@@ -484,13 +504,13 @@ local function ApplyLayout(updateOrbs, updateSkills)
         if settings.hideBackBar or not m_backBarContainer then
             -- When back bar is hidden (e.g. Oakensoul builds), anchor cast bar to the front bar instead
             if m_frontBarContainer then
-                m_castBar.control:SetAnchor(BOTTOM, m_frontBarContainer, TOP, BARS.CAST.OFFSET_X + caX, BARS.CAST.OFFSET_Y + caY)
+                m_castBar.control:SetAnchor(BOTTOM, m_frontBarContainer, TOP, BARS.CAST.OFFSET_X + caX - sbX, BARS.CAST.OFFSET_Y + caY - sbY)
             else
                 m_castBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, BARS.CAST.OFFSET_X + caX, -200 + caY)
             end
         else
-            m_castBar.control:SetAnchor(BOTTOM, m_backBarContainer, TOP, BARS.CAST.OFFSET_X + caX,
-                BARS.CAST.OFFSET_Y + caY)
+            m_castBar.control:SetAnchor(BOTTOM, m_backBarContainer, TOP, BARS.CAST.OFFSET_X + caX - sbX,
+                BARS.CAST.OFFSET_Y + caY - sbY)
         end
         m_castBar:Update()
     end
@@ -525,6 +545,9 @@ end
 
 local function ApplyFullLayout()
     ApplyLayout(true, true)
+    if SuppressNativeBars then
+        SuppressNativeBars("ApplyFullLayout")
+    end
 end
 
 local function AttachElementDragHandles()
@@ -567,7 +590,7 @@ local function AttachElementDragHandles()
             })
             return
         end
-        local handle = drag.AttachDragHandle(hostControl, elemKey, GetSettings, ApplyFullLayout)
+        local handle = drag.AttachDragHandle(hostControl, elemKey, GetLiveSettings, ApplyFullLayout)
         if handle then
             attachedCount = attachedCount + 1
         else
@@ -585,14 +608,26 @@ local function AttachElementDragHandles()
         fn = "ResourceOrbFrames.AttachElementDragHandles",
     })
     local actionBarContainer = FindControl(m_rootFrame, 'ActionBarContainer')
-    local quickslotButton = FindControl(m_rootFrame, 'QuickslotButton')
-    local companionButton = FindControl(m_rootFrame, 'CompanionButton')
-    if not quickslotButton and m_frontBarContainer then
-        quickslotButton = FindControl(m_frontBarContainer, 'QuickslotButton')
+
+    local function resolveCustomFrontBarButton(buttonName)
+        local getDirect = ControlUtils.GetNamedChildDirect
+        local button = getDirect and getDirect(m_frontBarContainer, buttonName) or nil
+        if button then return button, "frontBarChild" end
+        button = getDirect and getDirect(m_rootFrame, buttonName) or nil
+        if button then return button, "rootChild" end
+        local cache = SkillBar and SkillBar._frontBarButtonCache and SkillBar._frontBarButtonCache[buttonName] or nil
+        if cache and cache.control then return cache.control, "frontBarCache" end
+        return nil, "missingCustomControl"
     end
-    if not companionButton and m_frontBarContainer then
-        companionButton = FindControl(m_frontBarContainer, 'CompanionButton')
-    end
+    local quickslotButton, quickslotResolvedVia = resolveCustomFrontBarButton("QuickslotButton")
+    local companionButton, companionResolvedVia = resolveCustomFrontBarButton("CompanionButton")
+    TraceROF("resource_orbs.element_drag_handles", "custom_buttons_resolved", {
+        fn = "ResourceOrbFrames.AttachElementDragHandles",
+        quickslotResolvedVia = quickslotResolvedVia,
+        companionResolvedVia = companionResolvedVia,
+        hasQuickslot = quickslotButton ~= nil,
+        hasCompanion = companionButton ~= nil,
+    })
 
     attach(FindControl(m_rootFrame, 'OrbHealth'), "leftOrb")
     attach(FindControl(m_rootFrame, 'OrbResource'), "rightOrb")
@@ -642,21 +677,25 @@ local function SetupFrontBarHandlers(control)
 end
 
 --- Suppresses native action bar and attribute bars.
-local function SuppressNativeBars()
+SuppressNativeBars = function(source)
     local skillBar = GetSkillBarModule()
     TraceROF("resource_orbs.native_bars", "suppress_begin", {
         fn = "ResourceOrbFrames.SuppressNativeBars",
+        source = source,
+        updateLastAction = source ~= "ApplyFullLayout",
         hasHideNativeActionBar = skillBar and skillBar.HideNativeActionBar ~= nil,
         hasAttributeBarsFragment = PLAYER_ATTRIBUTE_BARS_FRAGMENT ~= nil,
     })
     if skillBar and skillBar.HideNativeActionBar then
-        skillBar.HideNativeActionBar()
+        skillBar.HideNativeActionBar(source)
     end
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
     end
     TraceROF("resource_orbs.native_bars", "suppress_end", {
         fn = "ResourceOrbFrames.SuppressNativeBars",
+        source = source,
+        updateLastAction = source ~= "ApplyFullLayout",
         hiddenReason = "ResourceOrbFrames",
     })
 end
@@ -802,6 +841,9 @@ local function RegisterDynamicEvents(control)
                         fn = "ResourceOrbFrames.weaponSwapLayout",
                     })
                     ApplyLayout(false, true)
+                    if SuppressNativeBars then
+                        SuppressNativeBars("weaponSwapLayout")
+                    end
                 end)
         end)
 
@@ -816,6 +858,9 @@ local function RegisterDynamicEvents(control)
             SkillBar.UpdateBackBar(control)
             if cfg and cfg.m_enabled then SkillBar.UpdateFrontBar(control) end
             ApplyLayout(false, true)
+            if SuppressNativeBars then
+                SuppressNativeBars("EVENT_ACTION_SLOTS_FULL_UPDATE")
+            end
             TraceROF("resource_orbs.action_slots", "full_update_end", {
                 fn = "ResourceOrbFrames.EVENT_ACTION_SLOTS_FULL_UPDATE",
                 frontBarUpdated = cfg and cfg.m_enabled,
@@ -833,6 +878,9 @@ local function RegisterDynamicEvents(control)
             })
             SkillBar.UpdateBackBar(control)
             if cfg and cfg.m_enabled then SkillBar.UpdateFrontBar(control) end
+            if SuppressNativeBars then
+                SuppressNativeBars("EVENT_ACTION_SLOT_UPDATED")
+            end
             TraceROF("resource_orbs.action_slot", "updated_end", {
                 fn = "ResourceOrbFrames.EVENT_ACTION_SLOT_UPDATED",
                 slotIndex = slotIndex,

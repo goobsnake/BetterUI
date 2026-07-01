@@ -62,17 +62,63 @@ end
 
 local function GetElemPosContract(shared, key) return shared and shared.elemPos and shared.elemPos[key] end
 
+local function GetSharedLiveSettingsGetter(shared)
+    if shared and type(shared.getLiveSettings) == "function" then
+        return shared.getLiveSettings, true
+    end
+    if shared and type(shared.getSettings) == "function" then
+        return shared.getSettings, false
+    end
+    return nil, false
+end
+
 local function ResetElemPos(shared, keys)
-    local s = shared and shared.getSettings and shared.getSettings()
+    local drag = BETTERUI.ResourceOrbFrames.Drag
+    local liveGetter, usesLiveSettings = GetSharedLiveSettingsGetter(shared)
+    local s = liveGetter and liveGetter() or nil
     if s and s.elementPositions then
         for _, k in ipairs(keys) do
-            s.elementPositions[k] = { locked = true, offsetX = 0, offsetY = 0 }
-            TraceDrag("resource_orbs.element_position", "reset_element", { fn = "SettingsSubmenus.ResetElemPos", elemKey = k })
-            local drag = BETTERUI.ResourceOrbFrames.Drag
-            if drag and drag.SetElementLocked then drag.SetElementLocked(k, true, shared.getSettings) end
+            local ep = s.elementPositions[k]
+            if not ep then
+                ep = { locked = true, offsetX = 0, offsetY = 0 }
+                s.elementPositions[k] = ep
+            end
+            local previousLocked = ep.locked
+            local previousOffsetX = ep.offsetX
+            local previousOffsetY = ep.offsetY
+            if drag and drag.ResetOffset then
+                drag.ResetOffset(k, liveGetter, nil)
+            else
+                ep.offsetX = 0
+                ep.offsetY = 0
+            end
+            if drag and drag.SetElementLocked then
+                drag.SetElementLocked(k, true, liveGetter)
+            else
+                ep.locked = true
+            end
+            ep = s.elementPositions[k]
+            TraceDrag("resource_orbs.element_position", "reset_element", {
+                fn = "SettingsSubmenus.ResetElemPos",
+                elemKey = k,
+                previousLocked = previousLocked,
+                previousOffsetX = previousOffsetX,
+                previousOffsetY = previousOffsetY,
+                locked = ep and ep.locked,
+                offsetX = ep and ep.offsetX,
+                offsetY = ep and ep.offsetY,
+                usesLiveSettings = usesLiveSettings,
+                viaDragReset = drag and drag.ResetOffset ~= nil,
+                updatedHandle = drag and drag.SetElementLocked ~= nil,
+            })
         end
     else
-        TraceDrag("resource_orbs.element_position", "reset_skipped", { fn = "SettingsSubmenus.ResetElemPos", reason = "missingElementPositions" })
+        TraceDrag("resource_orbs.element_position", "reset_skipped", {
+            fn = "SettingsSubmenus.ResetElemPos",
+            reason = "missingElementPositions",
+            hasSettingsGetter = liveGetter ~= nil,
+            usesLiveSettings = usesLiveSettings,
+        })
     end
     ApplySharedSettings(shared)
     RefreshSettingsPanel()

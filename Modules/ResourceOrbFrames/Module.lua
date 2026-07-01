@@ -57,6 +57,12 @@ local function InitSettingsPanel(mId, moduleName)
     local EnsureResourceOrbSettings = SettingsUtils.Ensure or function()
         return BETTERUI.EnsureModuleSettings("ResourceOrbFrames")
     end
+    local GetLiveResourceOrbSettings = SettingsUtils.GetLive or SettingsUtils.Ensure or function()
+        if type(BETTERUI.GetModuleSettingsLive) == "function" then
+            return BETTERUI.GetModuleSettingsLive("ResourceOrbFrames")
+        end
+        return EnsureResourceOrbSettings()
+    end
 
     local CloneColor = BETTERUI.CloneColor
 
@@ -161,6 +167,7 @@ local function InitSettingsPanel(mId, moduleName)
 
     local sharedContracts = {
         getSettings = GetResourceOrbSettings,
+        getLiveSettings = GetLiveResourceOrbSettings,
         resetSettingsGroup = ResetSettingsGroup,
         applySettings = Apply,
     }
@@ -199,10 +206,11 @@ local function InitSettingsPanel(mId, moduleName)
                 previousLocked = previous and previous.locked,
                 previousOffsetX = previous and previous.offsetX,
                 previousOffsetY = previous and previous.offsetY,
+                usesLiveSettings = true,
                 updatedHandle = drag and drag.SetElementLocked ~= nil,
             })
             if drag and drag.SetElementLocked then
-                drag.SetElementLocked(elemKey, true, GetResourceOrbSettings)
+                drag.SetElementLocked(elemKey, true, GetLiveResourceOrbSettings)
             end
         end
         if drag and type(drag.RefreshSettingsPanel) == "function" then
@@ -229,10 +237,11 @@ local function InitSettingsPanel(mId, moduleName)
                             elemKey = elemKey,
                             previousLocked = previous,
                             locked = v,
+                            usesLiveSettings = true,
                         })
                         local drag = BETTERUI.ResourceOrbFrames.Drag
                         if drag and drag.SetElementLocked then
-                            drag.SetElementLocked(elemKey, v, GetResourceOrbSettings)
+                            drag.SetElementLocked(elemKey, v, GetLiveResourceOrbSettings)
                         end
                         Apply()
                     else
