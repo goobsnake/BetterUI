@@ -56,6 +56,11 @@ with a short stack traceback after it — **ignore those tracebacks**; they are 
 "Enrichment" = each line gets `scene=… view=… flow=… lastAction=…` context + a startup
 preamble + periodic state snapshots. `inspect` = `trace` depth + `watch` enrichment.
 
+Privacy mode is optional: `/builog privacy on` redacts player/zone/addon names, item names,
+and absolute currency balances while preserving counts, ids, deltas, and flow context.
+`lastAction` is truncated to 48 characters in all modes; treat omitted names under privacy as
+expected, not as parse loss.
+
 Other useful in-game commands: `/builog status` (preset + budget counters incl.
 `pending`, `dropped`, and `suppressed`), `/buihealth` (one-line health), `/builog mark <text>` (drop a labeled marker
 into the stream — ask the user to mark "about to test X" so you can find it),
@@ -68,7 +73,7 @@ events with no pending BetterUI request are logged as `source="user" trigger="ex
 requested=false`.
 Full surface: `/builog on|off | preset … | popups on|off | level <lvl> |
 mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] |
-screenshot auto off|error|warn | snapshot | check|test | status`.
+screenshot auto off|error|warn | privacy on|off | snapshot | check|test | status`.
 
 ## Step 2 — find interface.log
 
@@ -190,7 +195,7 @@ that action's `seq` window in the stream.
 
 Run it in the background if your platform supports it; otherwise it blocks for the duration.
 Each `----- sample N -----` block reports: new `[BUI]` count, level mix, **real (non-BUI)
-errors with messages**, rate-limit dropped-record totals, parse-contract violations, your
+errors with messages**, normal/priority rate-limit dropped-record totals, parse-contract violations, your
 own `WARN`/`ERROR` breadcrumbs, `SCREENSHOT` markers plus latest screenshot files when
 available, and a 10-line trail. A `===== totals =====` footer closes it.
 
@@ -217,8 +222,9 @@ context suffix appended to every line.
 - **Parse boundary is the FIRST ` | `**: left of it is `[BUI] <ms> sid=… seq=… <LEVEL> <CATEGORY>`, right is the human event + `key=value` pairs. A correct line has exactly **one** ` | `.
 - `sid` = session id, new each UI load (changes on `/reloadui` — a natural discontinuity).
   `seq` = monotonic counter; **gaps mean dropped or suppressed lines**, not lost events.
-- `LEVEL` ∈ TRACE/DEBUG/INFO/WARN/ERROR. `CATEGORY` ∈ SCENE, LIST, NAV, KEYBIND, ACTION,
-  BATCH, LIFECYCLE, SORT, STATE, SCREENSHOT, GENERAL, LOG, …
+- `LEVEL` ∈ TRACE/DEBUG/INFO/WARN/ERROR. `CATEGORY` ∈ SCENE, LIST, NAV, KEYBIND, FOOTER,
+  CATEGORY, SEARCH, SORT, BATCH, ACTION, TRANSFER, DIALOG, CURRENCY, LIFECYCLE, SAFE,
+  SETTINGS, CONTROL, PERF, STATE, SCREENSHOT, GENERAL, LOG, …
 - Filter the stream with `grep '\[BUI\]'`. The engine wraps each line as
   `<ISO-ts> |cff0000Lua Error: [BUI] …|r` followed by a `stack traceback:` block — strip the
   color codes and ignore the traceback.
@@ -229,15 +235,16 @@ context suffix appended to every line.
 |---|---|---|
 | `Lua Error:` **without** `[BUI]` | a real game/addon error | investigate; capture the message + traceback |
 | `Checking type on argument id failed in Id64ToString_lua` | a known class of quest-item bug | should be **0** now; if seen, regression |
-| `WARN LOG \| dropped=<n> reason=rate_limit` | sink shed `n` lines (budget hit) | usually fine at inspect during bursts; only worry if huge/constant |
+| `WARN LOG \| dropped=<n> reason=rate_limit` or `reason=priority_rate_limit` | sink shed `n` normal or replay-critical lines (budget hit) | usually fine at inspect during bursts; treat as a coverage gap; only worry if huge/constant |
+| line ends with `truncated=1` | file-sink byte cap clipped the record | keep the record, but treat later payload fields as incomplete |
 | `>1` ` | ` in a `[BUI]` line | a value injected the field separator | parse-contract bug — report the line |
 | `WARN`/`ERROR` `[BUI]` lines | BetterUI flagging its own problem | read the event; often the real lead |
 | `SCREENSHOT` markers | user/auto capture request, suppression, or saved filename | inspect the listed screenshot file when troubleshooting visual state |
 | `seq` jumps with no `dropped=` summary | suppression-guard drops (e.g. mid-reloadui) | check `/builog status` `suppressed` and `pending/maxPending` counters |
-| behavior the user reports ≠ what the log shows | e.g. a keybind that "does nothing" | search for the action's CATEGORY/ACTION line near that `seq`; absence of a line often *is* the bug |
+| behavior the user reports ≠ what the log shows | e.g. a keybind that "does nothing" | search for the action's CATEGORY/ACTION/TRANSFER line near that `seq`; absence of a line often *is* the bug |
 
 When the user describes a symptom, correlate it to the stream: find the `seq` window where it
-happened (use `/builog mark`), then read the surrounding `ACTION`/`STATE` lines and the
+happened (use `/builog mark`), then read the surrounding `ACTION`/`TRANSFER`/`STATE` lines and the
 nearest `snapshot`. In `watch`, no categories are muted by default; if the user temporarily
 mutes high-volume categories, skipped or incomplete keybind/list outcomes should still surface
 through compact `STATE` lines, and the inventory/banking snapshot provider fields include
@@ -248,12 +255,19 @@ For common UI-flow bugs, look for these landmarks in the marked `seq` window:
 
 | Symptom | Expected evidence |
 |---|---|
-| Action/keybind did nothing | `ACTION | inventory primary action resolved`, `ACTION | inventory primary action invoked`, `ACTION | bank primary transfer invoked`, or `ACTION | bank action dialog shown`. |
+| Action/keybind did nothing | `ACTION | inventory primary action resolved`, `ACTION | inventory primary action invoked`, `TRANSFER | bank primary transfer invoked`, or `ACTION | bank action dialog shown`. |
 | Keybind strip stale | `STATE | inventory keybind groups refreshed` or `STATE | bank keybind groups refreshed/removed`. |
 | Item deposit/withdraw list stale | transfer flow end followed by `STATE | bank list refresh scheduled/refreshed` or `STATE | inventory category list refresh scheduled/refreshed updates=<n>`. |
 | Junk/category did not refresh | junk/dialog `ACTION` confirmation followed by the inventory category refresh scheduled/refreshed pair. |
-| Currency transfer failed silently | `ACTION | bank currency transfer failed` with `amount`, `currency`, and `reason`; success should say `bank currency transfer completed`. |
-| Transfer blocked | `WARN ACTION | bank transfer blocked` with `reason`, `fromBag`, `toBag`, `slot`, and item context. |
+| Currency transfer failed silently | `TRANSFER | bank currency transfer failed` with `amount`, `currency`, and `reason`; success should say `bank currency transfer completed`. |
+| Transfer blocked | `WARN TRANSFER | bank transfer blocked` with `reason`, `fromBag`, `toBag`, `slot`, and item context. |
+| Vendor action or mode did not line up | `KEYBIND | event=vendor.keybind`, `SCENE | event=vendor.scene`, and `NAV | event=vendor.mode`. |
+| Trading House list/search stale | Search records with a shared op id, `NAV | event=th.mode`, and one aggregate `LIST | event=th.list` count per Browse/Sell/Listings rebuild. |
+| Writ panel stale | `STATE | event=writs.state` after active-writ refresh, show-for-craft-type, craft-complete refresh, and station close. |
+
+If privacy mode is on, currency rows should use delta fields instead of absolute balances and
+item context may omit names. That is expected as long as ids, bags/slots, amounts, reasons,
+and follow-up flow landmarks remain present.
 
 ## How each platform uses this skill
 

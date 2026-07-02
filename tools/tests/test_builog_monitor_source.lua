@@ -31,6 +31,10 @@ check(monitor:find("sum += a[2]", 1, true) ~= nil,
     "monitor sums dropped=N values")
 check(monitor:find("dropped=[0-9][0-9]*", 1, true) ~= nil,
     "monitor uses a POSIX awk-compatible numeric dropped=N matcher")
+check(monitor:find("/reason=rate_limit/ || /reason=priority_rate_limit/", 1, true) ~= nil,
+    "monitor sums normal and priority rate-limit summaries")
+check(monitor:find("reason=priority_rate_limit", 1, true) ~= nil,
+    "monitor counts priority rate-limit summaries as dropped records")
 check(monitor:find("grep -c 'reason=rate_limit'", 1, true) == nil,
     "monitor no longer counts drop-summary lines as dropped records")
 check(monitor:find("rate_limit dropped-records", 1, true) ~= nil,

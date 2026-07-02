@@ -30,8 +30,9 @@
 # enrichment). Lighter options: watch | debug | trace. /builog status shows counters.
 #
 # Output: one "----- sample N -----" block per interval (BUI line count, level mix,
-# real game errors with messages, rate-limit drops, parse-contract violations, our own
+# real game errors with messages, normal/priority rate-limit drops, parse-contract violations, our own
 # WARN/ERROR breadcrumbs, and a short trail), then a "===== totals =====" footer.
+# Replay-critical economy records may appear under ACTION or TRANSFER.
 # Exit 0 normally, 1 if the log file cannot be found.
 
 set -u
@@ -251,7 +252,7 @@ for i in $(seq 1 "$SAMPLES"); do
   errc=$(printf '%s\n' "$errs" | grep -c .)
   id64=$(printf '%s\n' "$chunk" | grep -c 'Id64ToString_lua')
   drop=$(printf '%s\n' "$chunk" | awk '
-    /reason=rate_limit/ {
+    /reason=rate_limit/ || /reason=priority_rate_limit/ {
       for (i = 1; i <= NF; i++) {
         if ($i ~ /^dropped=[0-9][0-9]*$/) {
           split($i, a, "="); sum += a[2]
@@ -305,7 +306,7 @@ done
 end=$(wc -l < "$LOG")
 echo "===== totals ====="
 echo "file lines: start=$start_lines end=$end (+$((end-start_lines)))"
-echo "[BUI]=$tb | non-BUI errors=$te | Id64=$ti | rate_limit dropped-records=$td | parse violations=$tp"
+echo "[BUI]=$tb | non-BUI errors=$te | Id64=$ti | rate_limit/priority_rate_limit dropped-records=$td | parse violations=$tp"
 if [ "$te" -eq 0 ] && [ "$tp" -eq 0 ] && [ "$td" -eq 0 ]; then
   echo "status: clean (0 non-BUI errors, 0 parse violations, 0 rate-limit dropped records)"
 else

@@ -23,6 +23,11 @@ The engine appends; reopen/seek-to-end to tail. Enable with `/builog preset watc
 (live-AI stream) or `/builog on` then `/builog preset debug|trace`. `/builog preset inspect`
 is `watch` enrichment at `trace` verbosity — the deepest live stream.
 
+`/builog privacy on` is optional and persisted. Parsers must tolerate redacted identity fields:
+watch/inspect preambles may omit `player` and `zone`, active-addons records may include only
+`count`, item payloads may omit `name=`, currency payloads may use `*Delta` fields instead of
+absolute balances. `lastAction` is capped at 48 characters in all modes.
+
 ## Line shape
 
 Each breadcrumb is emitted as a deferred, popup-suppressed `error()`, so the engine
@@ -46,7 +51,7 @@ wraps it. One on-disk record looks like:
 | `sid=<sid>` | Session id — one UI load. Changes on `/reloadui`. Group records by `sid`. |
 | `seq=<seq>` | Monotonic per-record counter. **Order by `seq`**, not by ISO ts (ts has 1s resolution). |
 | `<LEVEL>` | `TRACE` < `DEBUG` < `INFO` < `WARN` < `ERROR`. |
-| `<CATEGORY>` | `SCENE LIST NAV KEYBIND FOOTER CATEGORY SEARCH SORT BATCH ACTION DIALOG CURRENCY LIFECYCLE SAFE SETTINGS CONTROL PERF STATE SCREENSHOT GENERAL` — plus `LOG`, the logger's own meta-lines: the startup header, the `disabled` marker, `/builog check`/`test` breadcrumbs, and the `dropped=` rate-limit summary. Every line, meta or not, carries a `<LEVEL> <CATEGORY>` pair, so one regex parses the whole stream. |
+| `<CATEGORY>` | `SCENE LIST NAV KEYBIND FOOTER CATEGORY SEARCH SORT BATCH ACTION TRANSFER DIALOG CURRENCY LIFECYCLE SAFE SETTINGS CONTROL PERF STATE SCREENSHOT GENERAL` - plus `LOG`, the logger's own meta-lines: the startup header, the `disabled` marker, `/builog check`/`test` breadcrumbs, and `dropped=` rate-limit summaries. Capped records use a trailing `truncated=1` suffix regardless of category. Every line, meta or not, carries a `<LEVEL> <CATEGORY>` pair, so one regex parses the whole stream. |
 | `\| <event>` | Everything after the first ` \| ` is the human message + `k=v` payload. The ` \| ` is the parse boundary. |
 
 The ISO-8601 timestamp at line start is authoritative **wall-clock**; `<gameMs>` is
@@ -63,17 +68,18 @@ scene=<sceneName> view=<subView> flow=<flowId> lastAction="<last user action>"
 So a host reading a single mid-stream line knows where the player is (`scene`/`view`),
 which multi-step operation it belongs to (`flow`), and what the player last did
 (`lastAction`). `scene/view/flow` are bare tokens (internal whitespace is collapsed to
-`_` and any `|` to `/` so they stay single tokens); `lastAction` is quoted with `"` and
-backslash-escaped.
+`_` and any `|` to `/` so they stay single tokens); `lastAction` is quoted with `"`,
+backslash-escaped, and capped at 48 characters in both privacy and non-privacy modes.
 
 ## Watch-stream landmarks
 
-- **`STATE | diagnostic session started -- live Interface.log stream ...`** — startup preamble: `schema preset sid api
+- **`STATE | diagnostic session started -- live Interface.log stream ...`** — startup preamble: `schema eventSchema preset sid api
   world player zone`, followed by `STATE | active addons count=.. names=..`. An AI
-  joining mid-stream should scan back to the most recent one to anchor the session.
-- **`event=<name> phase=<phase>` records** — emitted by `Log.TraceEvent`. Payloads include
-  `traceVersion=1`, `eventName=<name>`, and `phaseName=<phase>` for replay parsers. Existing
-  legacy event tokens remain stable until source, docs, tests, and monitor expectations migrate together.
+  joining mid-stream should scan back to the most recent one to anchor the session. With
+  privacy on, `player`, `zone`, and addon `names` are omitted; `count` remains.
+- **`event=<name> phase=<phase>` records** — emitted by `Log.TraceEvent`. Parsers should key
+  compatibility on the startup preamble `eventSchema=<n>`; per-event `traceVersion=<n>` is a
+  legacy mirror included with `eventName=<name>` and `phaseName=<phase>`.
 - **`STATE | snapshot scene=.. <provider fields>`** — periodic heartbeat (~10s) + live
   state. Built-in provider fields include `inventory="window=1 visible=1 ... itemRows=.. keybindMain=.."`
   and `banking="window=1 visible=1 ... rows=.. pending=.. keybindCore=.."`; hidden windows report
@@ -82,9 +88,14 @@ backslash-escaped.
 - **`... [flow begin]` / `... [flow end]`** carrying `flow=<kind>#<n>` — bracket one
   multi-step operation; correlate everything sharing that `flow` id.
 - **Inventory/banking action landmarks** — `ACTION | inventory primary action resolved`, `ACTION | inventory
-  primary action invoked`, `ACTION | inventory dialog action confirmed`, `ACTION | bank primary transfer
-  invoked`, `ACTION | bank currency transfer completed/failed`, and `WARN ACTION | bank transfer blocked`
+  primary action invoked`, `ACTION | inventory dialog action confirmed`, `TRANSFER | bank primary transfer
+  invoked`, `TRANSFER | bank currency transfer completed/failed`, and `WARN TRANSFER | bank transfer blocked`
   explain why a keybind, item move, currency transfer, or dialog action progressed or stopped.
+- **Vendor / Trading House / Writs landmarks** — `KEYBIND | event=vendor.keybind`,
+  `SCENE | event=vendor.scene`, `NAV | event=vendor.mode`, `NAV | event=th.mode`,
+  `LIST | event=th.list`, and `STATE | event=writs.state` provide the same replay envelope
+  outside inventory/banking: scene/mode/keybind outcomes, list rebuild counts, and coalesced
+  writ panel state.
 - **Refresh landmarks** — `STATE | inventory category list refresh scheduled/refreshed updates=<n>` and
   `STATE | bank list refresh scheduled/refreshed` are the expected follow-ups after item mutation flows.
 - **`STATE | mark: <text>`** — a user annotation placed with `/builog mark "<text>"`.
@@ -106,9 +117,14 @@ backslash-escaped.
   or remote screenshots folder `smb://goobers/elder%20scrolls%20online/live/Screenshots`.
   Remote screenshot access uses the same SMB/GVFS mount root as remote `interface.log`
   (`/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*/live/Screenshots`).
-- **`WARN LOG | dropped=<n> reason=rate_limit`** — the file-sink budget shed `n`
-  records in a burst. Coverage gap, not an error. Sum `dropped=<n>` values; do not count
-  drop-summary lines as the dropped-record total.
+- **`WARN LOG | dropped=<n> reason=rate_limit`** or
+  **`WARN LOG | dropped=<n> reason=priority_rate_limit`** — the file-sink budget shed `n`
+  normal or replay-critical records in a burst. Coverage gap, not an error. Priority records
+  are WARN/ERROR or `STATE`, `SCENE`, `LIFECYCLE`, `ACTION`, `TRANSFER`, `DIALOG`, and
+  `KEYBIND` lines; they get expanded caps but can still drop under sustained pressure. Sum
+  `dropped=<n>` values; do not count drop-summary lines as the dropped-record total.
+- **`truncated=1`** — the physical log line was capped at the file-sink byte limit; keep the
+  record, but treat trailing payload fields as possibly incomplete.
 
 ## Minimal recipes
 

@@ -16,6 +16,7 @@ game's `Interface.log` while you reproduce an issue — no `/reloadui`, no Saved
 ```
 /builog on                  -- start streaming [BUI] breadcrumbs to Interface.log
 /builog preset watch        -- the AI-enriched live stream (recommended while play-testing)
+/builog privacy on          -- optional: redact player/zone/addon names, item names, and absolute balances
 /builog screenshot auto warn -- optional: capture distinct visual context on WARN/ERROR
 ... reproduce the issue ...
 /buihealth                  -- one-line health: preset, errors, file-sink budget, scene/watch state
@@ -45,7 +46,14 @@ Presets are min-level gates layered over the low-level knobs. Pick by intent:
 `ai` is a deprecated alias for `watch`; `verbose` for `trace`. `inspect` is a DISTINCT preset
 (not an alias — `GetPreset()` returns `inspect`): use it when `watch` (DEBUG+) isn't deep
 enough and you want every TRACE step still wrapped in the watch context. Overflow past a budget
-is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
+is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line; replay-critical
+priority lines use the same summary shape with `reason=priority_rate_limit`.
+
+`/builog privacy on|off` is a persisted switch layered over every preset. It defaults off. When
+on, watch/inspect preambles omit player and zone, active-addons records keep only the addon
+count, item descriptions omit `name=`, banking/vendor currency records expose delta fields
+instead of absolute balances. `lastAction` context/snapshots are capped at 48 characters in
+all modes.
 
 ## Why `watch` (vs `debug` + a heartbeat)
 
@@ -54,8 +62,9 @@ is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
 1. **Per-line context suffix** — every `watch` and `inspect` line self-anchors with
    `scene= view= flow= lastAction=".."`, so one line tells you where the player is and
    what they last did.
-2. **Startup preamble** — a `STATE | diagnostic session started -- live Interface.log stream` record with schema/api/world/
-   player/zone + the enabled-addon list, so an AI joining mid-stream can anchor.
+2. **Startup preamble** — a `STATE | diagnostic session started -- live Interface.log stream` record with schema/eventSchema/api/world/
+   player/zone + the enabled-addon list, so an AI joining mid-stream can anchor. With privacy
+   mode on, `player`, `zone`, and addon names are omitted; the addon count remains.
 3. **Periodic state snapshot** — a `STATE | snapshot` heartbeat (~10s) of registered
    providers; built-ins include `visible=0/1`, inventory/banking rows, category, pending
    transfer, and keybind-group state. Hidden windows report compact `window=1 visible=0`
@@ -64,8 +73,8 @@ is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
 4. **Flow envelopes** — `[flow begin]` / `[flow end]` with `flow=<kind>#<n>` bracket one
    multi-step operation; everything sharing that id is correlated. Inventory/banking action flows also emit
    visible handoff lines such as `inventory primary action resolved`, `inventory primary action invoked`,
-   `inventory dialog action confirmed`, `bank primary transfer invoked`, `bank action dialog shown`, and
-   `bank currency transfer completed/failed`.
+   `inventory dialog action confirmed`, `bank primary transfer invoked` (`TRANSFER`),
+   `bank action dialog shown`, and `bank currency transfer completed/failed` (`TRANSFER`).
 5. **Replay-grade category policy** — `watch` and `inspect` default to no muted
    categories, so sort/search/list/keybind/currency flows remain visible to an AI
    tailing the stream. Temporary mutes are still available in-client via
@@ -75,15 +84,18 @@ is dropped and coalesced into a `WARN LOG | dropped=N reason=rate_limit` line.
 
 When play-testing inventory or banking, the live stream should show the cause-and-effect chain, not just the
 final error. These compact lines remain visible in `watch`/`inspect`; if the user temporarily mutes noisy
-categories, `ACTION` and `STATE` landmarks should still preserve the flow:
+categories, `ACTION`, `TRANSFER`, and `STATE` landmarks should still preserve the flow:
 
 | User-visible flow | Expected landmarks |
 |---|---|
 | Keybind strip did not update | `STATE | inventory keybind groups refreshed` or `STATE | bank keybind groups refreshed/removed` with mode/list context. |
-| Deposit/withdraw item did not refresh list | `ACTION | bank primary transfer invoked`, a transfer flow end, then `STATE | bank list refresh scheduled/refreshed` or `STATE | inventory category list refresh scheduled/refreshed updates=<n>`. |
+| Deposit/withdraw item did not refresh list | `TRANSFER | bank primary transfer invoked`, a `TRANSFER` flow end, then `STATE | bank list refresh scheduled/refreshed` or `STATE | inventory category list refresh scheduled/refreshed updates=<n>`. |
 | Junk toggle did not update category | `ACTION | inventory dialog action confirmed` or junk flow begin/end, then `STATE | inventory category list refresh scheduled/refreshed updates=<n>`. |
-| Currency transfer failed or seemed ignored | `ACTION | bank currency transfer completed` or `ACTION | bank currency transfer failed` with `amount`, `currency`, and `reason`. |
+| Currency transfer failed or seemed ignored | `TRANSFER | bank currency transfer completed` or `TRANSFER | bank currency transfer failed` with `amount`, `currency`, and `reason`. |
 | A setting/action looked enabled but did nothing | `ACTION` lines should show the resolved action and invocation; `WARN` lines should carry `caller`/`src` when a dependency or protected action blocks it. |
+| Vendor action or mode looked wrong | `KEYBIND | event=vendor.keybind`, `SCENE | event=vendor.scene`, and `NAV | event=vendor.mode` should bracket user-fired actions and store/fence mode changes. |
+| Trading House list/search looked stale | Search records should share an operation id, `NAV | event=th.mode` should show mode changes, and each Browse/Sell/Listings rebuild should end with one aggregate `LIST | event=th.list` count. |
+| Writ panel looked stale | `STATE | event=writs.state` should appear after active-writ refresh, show-for-craft-type, immediate craft-complete refresh, and station close. |
 
 If the user reports one of these flows and the corresponding landmark is absent near the marked `seq`, treat
 that absence as an instrumentation or control-flow bug.
@@ -105,9 +117,10 @@ that absence as an instrumentation or control-flow bug.
 | `capture [secs]` | raise to TRACE for a bounded window (default 5s, 1–60), then auto-revert |
 | `screenshot [label]` | call ESO `TakeScreenshot()` and emit request/saved markers for host correlation |
 | `screenshot auto off\|error\|warn` | persisted opt-in auto capture: off, ERROR only, or WARN+ERROR with duplicate-aware per-issue throttling |
+| `privacy on\|off` | persisted privacy mode; on redacts player/zone/addon names, item names, and absolute currency balances; `lastAction` is capped at 48 chars in all modes |
 | `snapshot` | emit one STATE snapshot now |
 | `check` / `test` | write diagnostic breadcrumbs; if logging was off, leaves the session stream on so the breadcrumbs reach `Interface.log` |
-| `status` | print current preset, payload, sink budget, counters, and screenshot state |
+| `status` | print current preset, payload, privacy, sink budget, counters, and screenshot state |
 
 `/buihealth` — one-shot health summary (preset, active, sid, schema, error count, file-sink
 scheduled/pending/dropped/budget, sceneLog + watch state).
@@ -152,9 +165,9 @@ local p = BETTERUI.CIM.Perf and BETTERUI.CIM.Perf.Begin("applyTextFilter")
 if p then BETTERUI.CIM.Perf.End(p, { rows = n }) end
 
 -- correlate a multi-step operation:
-local flow = BETTERUI.Log.FlowBegin("deposit", BETTERUI.Log.CATEGORY.ACTION, "deposit 50g")
+local flow = BETTERUI.Log.FlowBegin("deposit", BETTERUI.Log.CATEGORY.TRANSFER, "deposit 50g")
 ... steps (their watch lines carry flow=deposit#N) ...
-BETTERUI.Log.FlowEnd(flow, BETTERUI.Log.CATEGORY.ACTION, "deposit done")
+BETTERUI.Log.FlowEnd(flow, BETTERUI.Log.CATEGORY.TRANSFER, "deposit done")
 ```
 
 Every logging call is pcall-guarded and inert when off — a log call must never raise and
@@ -167,7 +180,8 @@ never measurably cost a player with logging disabled.
 ```
 
 Filter to `[BUI]`; order by `seq`; a `Lua Error:` line WITHOUT `[BUI]` is a real game error
-(keep its traceback). Full parse recipe in
+(keep its traceback). A trailing `truncated=1` means the line was capped and later payload
+fields may be incomplete. Full parse recipe in
 [logging-host-tail-parse.md](logging-host-tail-parse.md).
 
 ## Screenshot correlation

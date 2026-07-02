@@ -25,9 +25,225 @@ local ALLOW = {
     showing = true, shown = true, hiding = true, hidden = true,
 }
 
+local CANONICAL_PHASE = {
+    requested = true,
+    begin = true,
+    ["end"] = true,
+    completed = true,
+    confirmed = true,
+    settled = true,
+    blocked = true,
+    failed = true,
+    skipped = true,
+    pending = true,
+    changed = true,
+    snapshot = true,
+    queued = true,
+    executed = true,
+    expired = true,
+    step = true,
+    abort = true,
+}
+
+-- Existing event tokens that remain accepted until their owning module phase migrates.
+-- They still print WARN lines so a repo-wide lint keeps the remaining migration visible.
+local APPROVED_LEGACY_PHASE = {
+    aborted = true,
+    abort_requested = true,
+    abort_skipped = true,
+    activate = true,
+    activate_after = true,
+    activate_before = true,
+    alert_shown = true,
+    applied = true,
+    apply_begin = true,
+    apply_end = true,
+    apply_skipped = true,
+    after = true,
+    add_after = true,
+    add_before = true,
+    awaiting_choice = true,
+    batch_begin = true,
+    batch_end = true,
+    before = true,
+    build = true,
+    built = true,
+    cached = true,
+    cancel = true,
+    capture_skipped = true,
+    captured = true,
+    close_complete = true,
+    close_received = true,
+    close_requested = true,
+    close_skipped = true,
+    closed = true,
+    coalesced = true,
+    complete_reached = true,
+    committed = true,
+    confirm = true,
+    confirm_begin = true,
+    confirm_rejected = true,
+    continue = true,
+    cleared = true,
+    deactivate = true,
+    deactivate_after = true,
+    deactivate_before = true,
+    deferred = true,
+    deferred_scheduled = true,
+    deferred_skipped = true,
+    deferred_timeout = true,
+    deferred_timeout_skipped = true,
+    deselect_all = true,
+    dialog_show = true,
+    duplicate_overwrite = true,
+    end_error = true,
+    enter_attempted = true,
+    enter_skipped = true,
+    error = true,
+    finished = true,
+    flushed = true,
+    footer_refreshed = true,
+    guard_exit = true,
+    guild_requested = true,
+    guild_slot_update = true,
+    handoff_cleanup = true,
+    header_refreshed = true,
+    hidden = true,
+    hidden_begin = true,
+    hidden_end = true,
+    hiding_begin = true,
+    hiding_end = true,
+    hooks_skipped = true,
+    ignored = true,
+    invoked = true,
+    invalidated = true,
+    list_refreshed = true,
+    list_refresh_skipped = true,
+    move_requested = true,
+    no_active_writ = true,
+    next_skipped = true,
+    open_event = true,
+    open_received = true,
+    open_requested = true,
+    open_shown = true,
+    open_skipped = true,
+    opened = true,
+    pending_cleared = true,
+    pending_expired = true,
+    pending_mark_skipped = true,
+    pending_marked = true,
+    pending_set = true,
+    pickup_after = true,
+    pickup_before = true,
+    place_after = true,
+    place_before = true,
+    prev_skipped = true,
+    quick_execute = true,
+    reassert_aborted = true,
+    reassert_cancelled = true,
+    reassert_scheduled = true,
+    reassert_skipped = true,
+    reasserted = true,
+    received = true,
+    rebuilt = true,
+    refresh_after = true,
+    refresh_before = true,
+    refresh_begin = true,
+    refresh_complete = true,
+    refresh_end = true,
+    refreshed = true,
+    refresh_skipped = true,
+    register_skipped = true,
+    registered = true,
+    remove_after = true,
+    remove_before = true,
+    render = true,
+    request = true,
+    refresh_decision = true,
+    refresh_scheduled = true,
+    refresh_task = true,
+    release_dialog = true,
+    reset_begin = true,
+    reset_end = true,
+    reset_skipped = true,
+    restore_begin = true,
+    restore_end = true,
+    restore_skipped = true,
+    restored = true,
+    result = true,
+    route = true,
+    rollback = true,
+    saved = true,
+    schedule_skipped = true,
+    scheduled = true,
+    scheduled_next = true,
+    scene_hide_requested = true,
+    scene_lifecycle_register = true,
+    select_all = true,
+    selected_changed = true,
+    selected_changed_skipped = true,
+    setting_changed = true,
+    set = true,
+    setup = true,
+    show = true,
+    show_begin = true,
+    show_error = true,
+    show_skipped = true,
+    shown = true,
+    showing_begin = true,
+    showing_complete = true,
+    showing_end = true,
+    slot_update = true,
+    stale_callback_skipped = true,
+    start_skipped = true,
+    started = true,
+    state = true,
+    stopping = true,
+    succeeded = true,
+    suppressed = true,
+    timeout = true,
+    unmatched_quest = true,
+    unblocked = true,
+    unregister_skipped = true,
+    unregistered = true,
+    visible = true,
+    visibility = true,
+    waiting = true,
+    waiting_for_close = true,
+    waiting_dialog = true,
+    write = true,
+}
+
 -- Log.<Level>(<category>, "<message>"  -- capture the message literal (2nd positional).
 -- Levels that take (category, message, ...): Trace/Debug/Info/Warn/Error.
 local CALL = '[Ll]og%.[TDIWE][a-z]+%s*%(%s*[%w_%.]+%s*,%s*"([^"]*)"'
+local TRACE_EVENT_PHASE = 'TraceEvent%s*%(%s*[^,]+%s*,%s*"[^"]*"%s*,%s*"([^"]+)"'
+local PHASE_PATTERNS = {
+    { label = "TraceEvent", pattern = TRACE_EVENT_PHASE },
+    { label = "TraceBankTransfer", pattern = 'TraceBankTransfer%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceBankKeybind", pattern = 'TraceBankKeybind%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceBankingActionDialog", pattern = 'TraceBankingActionDialog%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceListTrigger", pattern = 'TraceListTrigger%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceKeybind", pattern = 'TraceKeybind%s*%(%s*[^,]+%s*,%s*[^,]+%s*,%s*"([^"]+)"' },
+    { label = "TraceBankCurrencyAction", pattern = 'TraceBankCurrencyAction%s*%(%s*"([^"]+)"' },
+    { label = "TraceVendorEvent", pattern = 'TraceVendorEvent%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceVendor", pattern = 'TraceVendor%s*%(%s*[^,]+%s*,%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceVendorBatch", pattern = 'TraceVendorBatch%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceVendorBootstrap", pattern = 'TraceVendorBootstrap%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceBrowse", pattern = 'TraceBrowse%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceSell", pattern = 'TraceSell%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceListings", pattern = 'TraceListings%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceTH", pattern = 'TraceTH%s*%(%s*[^,]+%s*,%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceTHFlow", pattern = 'TraceTHFlow%s*%(%s*[^,]+%s*,%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceWrit", pattern = 'TraceWrit%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceWritEvent", pattern = 'TraceWritEvent%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceCompanionRuntime", pattern = 'TraceCompanionRuntime%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceCompanionRuntime", pattern = 'TraceCompanionRuntime%s*%(%s*"[^"]+"%s*,%s*[^,]-and%s*"([^"]+)"' },
+    { label = "TraceCompanionRuntime", pattern = 'TraceCompanionRuntime%s*%(%s*"[^"]+"%s*,%s*[^,]-or%s*"([^"]+)"' },
+    { label = "TraceCompanionDialog", pattern = 'TraceCompanionDialog%s*%(%s*[^,]+%s*,%s*"([^"]+)"' },
+    { label = "TraceTHFlow", pattern = 'TraceTHFlow%s*%(%s*[^,]+%s*,%s*"[^"]+"%s*,%s*[^,]-and%s*"([^"]+)"' },
+    { label = "TraceTHFlow", pattern = 'TraceTHFlow%s*%(%s*[^,]+%s*,%s*"[^"]+"%s*,%s*[^,]-or%s*"([^"]+)"' },
+}
 
 -- A "terse" message: a single identifier token (letters/digits/underscore), no space,
 -- no sentence punctuation. "enterSearch" matches; "filter list by 'x'" does not.
@@ -56,11 +272,28 @@ if #files == 0 then
 end
 
 local total = 0
+local phaseTotal = 0
+local legacyPhaseTotal = 0
 local byDir = {}
 local function dirOf(path)
     local d = path:match("^Modules/([^/]+)") or path:match("([^/]+)/[^/]+$") or path
     return d
 end
+
+local function checkPhase(path, lineNo, phase, label)
+    if CANONICAL_PHASE[phase] then return end
+    if APPROVED_LEGACY_PHASE[phase] then
+        legacyPhaseTotal = legacyPhaseTotal + 1
+        print(string.format("%s:%d: WARN legacy %s phase %q -- migrate when this module's event schema changes",
+            path, lineNo, label, phase))
+    else
+        phaseTotal = phaseTotal + 1
+        byDir[dirOf(path)] = (byDir[dirOf(path)] or 0) + 1
+        print(string.format("%s:%d: non-canonical %s phase %q -- use the EVENT_SCHEMA phase vocabulary",
+            path, lineNo, label, phase))
+    end
+end
+
 for _, path in ipairs(files) do
     local fh = io.open(path, "r")
     if fh then
@@ -89,12 +322,17 @@ for _, path in ipairs(files) do
                     print(string.format("%s:%d: terse log message %q -- make it self-describing", path, lineNo, msg))
                 end
             end
+            for _, phasePattern in ipairs(PHASE_PATTERNS) do
+                for phase in scan:gmatch(phasePattern.pattern) do
+                    checkPhase(path, lineNo, phase, phasePattern.label)
+                end
+            end
         end
         fh:close()
     end
 end
 
-if total > 0 then
+if total > 0 or phaseTotal > 0 then
     local dirs = {}
     for d in pairs(byDir) do dirs[#dirs + 1] = d end
     table.sort(dirs, function(a, b) return byDir[a] > byDir[b] end)
@@ -102,10 +340,18 @@ if total > 0 then
     for _, d in ipairs(dirs) do print(string.format("  %4d  %s", byDir[d], d)) end
 end
 
-if total > 0 then
-    print(string.format("\n%d terse log message(s) found. Messages should be self-describing phrases.", total))
+if total > 0 or phaseTotal > 0 then
+    if total > 0 then
+        print(string.format("\n%d terse log message(s) found. Messages should be self-describing phrases.", total))
+    end
+    if phaseTotal > 0 then
+        print(string.format("\n%d non-canonical TraceEvent phase(s) found.", phaseTotal))
+    end
     os.exit(1)
 else
+    if legacyPhaseTotal > 0 then
+        print(string.format("WARN: %d approved legacy TraceEvent phase(s) remain.", legacyPhaseTotal))
+    end
     print("OK: no terse log messages found.")
     os.exit(0)
 end
