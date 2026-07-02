@@ -10,10 +10,11 @@ description: >
 
 # BetterUI live-log monitor (`/builog` + interface.log)
 
-**TL;DR** — the user runs `/builog preset inspect` in-game; you run
-`tools/builog-monitor/monitor.sh <minutes>` and read each printed sample, flagging — live, as it
-appears — any non-BUI `Lua Error:`, parse-contract violation, or behavior that doesn't match
-what the user just did; then summarize. Everything below is detail on that loop.
+**TL;DR** — the user runs `/builog preset inspect` in-game; for live watching you run
+`tools/builog-monitor/monitor.sh <minutes>` and read each printed sample, flagging issues as
+they appear. For a completed or long log, ask the user to run `/builog report`, then run
+`tools/builog-monitor/monitor.sh digest --last <n> [--jsonl] <log>` first and drill into raw
+`seq` windows only for flagged flows.
 
 BetterUI streams its own debug breadcrumbs into ESO's `interface.log` in real time, so an
 AI assistant can tail that file **while the user plays** and call out problems as they
@@ -64,6 +65,7 @@ expected, not as parse loss.
 Other useful in-game commands: `/builog status` (preset + budget counters incl.
 `pending`, `dropped`, and `suppressed`), `/buihealth` (one-line health), `/builog mark <text>` (drop a labeled marker
 into the stream — ask the user to mark "about to test X" so you can find it),
+`/builog report` (write a session report anchor with sink/error/watchdog/screenshot counters),
 `/builog screenshot [label]` (manual visual capture), `/builog screenshot auto
 error|warn|off` (persisted opt-in auto capture), `/builog off`.
 Auto capture can include private UI/chat/account context; keep it off outside the
@@ -71,9 +73,11 @@ current play-test window. Saved markers identify `source="user"|"auto"`; BetterU
 saves use `requested=true correlation="fifo"|"expired_fifo"`. External user/client saved
 events with no pending BetterUI request are logged as `source="user" trigger="external"
 requested=false`.
-Full surface: `/builog on|off | preset … | popups on|off | level <lvl> |
+`/builog chat on` reports unsupported and leaves the stream file-only; `/builog popups off`
+points the user to `/builog off`, which is what restores player-visible error popups.
+Full surface: `/builog on|off | preset … | chat on|off | popups on|off | level <lvl> |
 mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] |
-screenshot auto off|error|warn | privacy on|off | snapshot | check|test | status`.
+screenshot auto off|error|warn | privacy on|off | snapshot | report | check|test | status`.
 
 ## Step 2 — find interface.log
 
@@ -150,7 +154,7 @@ Valid mounted screenshot paths mirror the log examples:
 /run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder%20scrolls%20online/live/Screenshots
 ```
 
-## Step 3 — run the timed monitor
+## Step 3 — run the timed monitor or digest
 
 The user gives a duration in **minutes**. Run:
 ```
@@ -202,6 +206,17 @@ available, and a 10-line trail. A `===== totals =====` footer closes it.
 The helper prints both `requested log:` and resolved `log:` when it is resolving `remote` or
 an `smb://` URI. If it errors, do not silently fall back to the local Proton log; fix the
 remote mount/path or ask the user to create the remote log with `/builog preset inspect`.
+
+For completed logs, run digest mode before raw reading:
+```
+tools/builog-monitor/monitor.sh digest --last 2000 [--jsonl] [log_path|remote]
+```
+Digest mode uses only the existing shell/awk stack. It groups by `flow`, then `opId`, then
+`batchId`, prints unresolved timelines as `UNRESOLVED`, separates anomalies, BUI WARN/ERROR
+records, real non-BUI Lua errors, drop summaries, screenshot markers, session preamble data,
+and `/builog report` anchors. Use `--jsonl` when another AI/tool needs one object per parsed
+`[BUI]` record with `ts`, `gameMs`, `sid`, `seq`, `level`, `category`, `event`, `phase`,
+`kv`, and `context`.
 
 **Between samples, notate.** As each sample prints, write down anything that looks wrong (see
 Step 4). Don't wait for the end — the value is catching issues live so the user can react.
@@ -255,13 +270,13 @@ For common UI-flow bugs, look for these landmarks in the marked `seq` window:
 
 | Symptom | Expected evidence |
 |---|---|
-| Action/keybind did nothing | `ACTION | inventory primary action resolved`, `ACTION | inventory primary action invoked`, `TRANSFER | bank primary transfer invoked`, or `ACTION | bank action dialog shown`. |
+| Action/keybind did nothing | Start with the canonical `KEYBIND | event=input.keybind phase=fired` cause anchor, then check `ACTION | inventory primary action resolved`, `ACTION | inventory primary action invoked`, `TRANSFER | bank primary transfer invoked`, or `ACTION | bank action dialog shown`. |
 | Keybind strip stale | `STATE | inventory keybind groups refreshed` or `STATE | bank keybind groups refreshed/removed`. |
 | Item deposit/withdraw list stale | transfer flow end followed by `STATE | bank list refresh scheduled/refreshed` or `STATE | inventory category list refresh scheduled/refreshed updates=<n>`. |
 | Junk/category did not refresh | junk/dialog `ACTION` confirmation followed by the inventory category refresh scheduled/refreshed pair. |
 | Currency transfer failed silently | `TRANSFER | bank currency transfer failed` with `amount`, `currency`, and `reason`; success should say `bank currency transfer completed`. |
 | Transfer blocked | `WARN TRANSFER | bank transfer blocked` with `reason`, `fromBag`, `toBag`, `slot`, and item context. |
-| Vendor action or mode did not line up | `KEYBIND | event=vendor.keybind`, `SCENE | event=vendor.scene`, and `NAV | event=vendor.mode`. |
+| Vendor action or mode did not line up | `KEYBIND | event=input.keybind phase=fired` is the cause anchor; `KEYBIND | event=vendor.keybind`, `SCENE | event=vendor.scene`, and `NAV | event=vendor.mode` add vendor-specific detail. |
 | Trading House list/search stale | Search records with a shared op id, `NAV | event=th.mode`, and one aggregate `LIST | event=th.list` count per Browse/Sell/Listings rebuild. |
 | Writ panel stale | `STATE | event=writs.state` after active-writ refresh, show-for-craft-type, craft-complete refresh, and station close. |
 

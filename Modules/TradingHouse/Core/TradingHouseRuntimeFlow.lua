@@ -39,6 +39,20 @@ local function CopyTracePayload(data)
     return payload
 end
 
+local function WatchdogExpectOperation(operation, timeoutMs, context)
+    local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+    if watchdog and type(watchdog.Expect) == "function" then
+        pcall(watchdog.Expect, "th.op", operation, timeoutMs or 30000, context)
+    end
+end
+
+local function WatchdogResolveOperation(operation, outcome)
+    local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+    if watchdog and type(watchdog.Resolve) == "function" then
+        pcall(watchdog.Resolve, "th.op", operation, outcome)
+    end
+end
+
 local function ReadSelectedTradingHouseGuildId()
     return GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or nil
 end
@@ -69,6 +83,12 @@ function TH.BeginPendingOperation(operation, event, data, emitRequested)
         operation = operation,
         guildId = payload.guildId,
     }
+    WatchdogExpectOperation(operation, 30000, {
+        opId = opId,
+        operation = operation,
+        event = event,
+        guildId = payload.guildId,
+    })
     if emitRequested ~= false then
         TraceTHFlow(L and L.CATEGORY.ACTION, event, "requested", payload)
     end
@@ -81,6 +101,9 @@ function TH.ClearPendingOperation(operation)
     local pending = TH._pendingOperations and TH._pendingOperations[operation] or nil
     if TH._pendingOperations then
         TH._pendingOperations[operation] = nil
+    end
+    if pending then
+        WatchdogResolveOperation(operation, "cleared")
     end
     return pending
 end
@@ -148,8 +171,10 @@ local function TracePendingOperationFailure(failureType, errorText)
         operations[#operations + 1] = operation
     end
     for _, operation in ipairs(operations) do
-        local pending = TH._pendingOperations[operation]
-        TH._pendingOperations[operation] = nil
+        local pending = TH.ClearPendingOperation and TH.ClearPendingOperation(operation) or TH._pendingOperations[operation]
+        if TH._pendingOperations then
+            TH._pendingOperations[operation] = nil
+        end
         TraceTHFlow(L and L.CATEGORY.ACTION, "trading_house.response", "failed", {
             fn = "TradingHouse.TracePendingOperationFailure",
             feature = "trading-house-operation",

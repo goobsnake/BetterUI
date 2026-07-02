@@ -71,6 +71,7 @@ SI_SELL_ALL_JUNK_CONFIRM = "Sell"
 SI_DIALOG_CANCEL = "Cancel"
 
 dofile("Modules/Vendor/Core/VendorSafeExecute.lua")
+dofile("Modules/Vendor/Core/VendorKeybinds.lua")
 dofile("Modules/Vendor/Vendor.lua")
 
 do

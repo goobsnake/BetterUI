@@ -15,14 +15,27 @@ local function TraceGeneralInterface(event, phase, data, category)
 	local L = BETTERUI and BETTERUI.Log or nil
 	if not L or type(L.TraceEvent) ~= "function" then return end
 	local payload = data or {}
-	payload.module = "GeneralInterface"
+	local inputAnchorDetail = payload._inputAnchorDetail == true
+	payload._inputAnchorDetail = nil
+	if not inputAnchorDetail then
+		payload.module = "GeneralInterface"
+		payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
+	end
 	payload.scene = GetCurrentSceneName()
-	payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
 	if type(L.SetLastAction) == "function" then
 		L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
 	end
 	local categories = L.CATEGORY or {}
 	L.TraceEvent(category or categories.GENERAL, event, phase, payload)
+end
+
+local function WrapGeneralInterfaceKeybind(descriptor, action)
+	local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+	local anchor = keybinds and keybinds.InputAnchor
+	if anchor and type(anchor.Wrap) == "function" then
+		return anchor.Wrap(descriptor, { module = "GeneralInterface", action = action })
+	end
+	return descriptor
 end
 
 local function CountGeneralInterfaceTooltipHooks(flagName)
@@ -185,17 +198,22 @@ local function InstallMailDeleteHook()
 				descriptor.callback = function(...)
 					local moduleSettings = BETTERUI.GetModuleSettings("GeneralInterface")
 					local selectedMail = SnapshotSelectedMail(mailInbox)
-					if moduleSettings and moduleSettings.removeDeleteDialog and type(mailInbox.Delete) == "function" then
-						TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = true, selectedMail = selectedMail })
+					local directDelete = moduleSettings and moduleSettings.removeDeleteDialog and type(mailInbox.Delete) == "function"
+					TraceGeneralInterface("general_interface.mail_delete", "requested", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = directDelete == true, selectedMail = selectedMail })
+					if directDelete then
+						TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = true, selectedMail = selectedMail, _inputAnchorDetail = true })
 						local ok, result = pcall(function() return mailInbox:Delete() end)
 						if not ok then
 							TraceGeneralInterface("general_interface.mail_delete", "direct_delete_failed", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, error = tostring(result) })
+							TraceGeneralInterface("general_interface.mail_delete", "skipped", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, reason = "directDeleteFailed" })
 							return nil
 						end
 						TraceGeneralInterface("general_interface.mail_delete", "direct_delete_dispatched", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, result = result })
+						TraceGeneralInterface("general_interface.mail_delete", "confirmed", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, result = result })
 						return result
 					end
-					TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = false, selectedMail = selectedMail })
+					TraceGeneralInterface("general_interface.mail_delete", "skipped", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = false, selectedMail = selectedMail, reason = "nativeDialogKept" })
+					TraceGeneralInterface("general_interface.mail_delete", "keybind_fired", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, directDelete = false, selectedMail = selectedMail, _inputAnchorDetail = true })
 					local ok, result = pcall(origCallback, ...)
 					if not ok then
 						TraceGeneralInterface("general_interface.mail_delete", "native_callback_failed", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, error = tostring(result) })
@@ -204,6 +222,7 @@ local function InstallMailDeleteHook()
 					TraceGeneralInterface("general_interface.mail_delete", "native_callback_dispatched", { fn = "mailDeleteDescriptor.callback", shortcut = descriptor.keybind, selectedMail = selectedMail, result = result })
 					return result
 				end
+				WrapGeneralInterfaceKeybind(descriptor, "mail_delete")
 				descriptor._betteruiDeleteHookCallback = descriptor.callback
 				descriptor._betteruiDeleteHookInstalled = true
 				TraceGeneralInterface("general_interface.mail_delete", "hook_installed", { fn = "HookMailDeleteDescriptor", shortcut = descriptor.keybind })
@@ -465,6 +484,7 @@ function GeneralInterface.ApplyChatHistoryLimit(numLines)
 		TraceGeneralInterface("general_interface.chat_history", "skipped", { fn = "ApplyChatHistoryLimit", reason = "invalidLineCount", numLines = numLines })
 		return
 	end
+	TraceGeneralInterface("general_interface.chat_history", "requested", { fn = "ApplyChatHistoryLimit", numLines = numLines })
 	local chatSystems = {
 		{ name = "keyboard", system = rawget(_G, "KEYBOARD_CHAT_SYSTEM") },
 		{ name = "gamepad", system = rawget(_G, "GAMEPAD_CHAT_SYSTEM") },
@@ -508,6 +528,7 @@ function GeneralInterface.ApplyChatHistoryLimit(numLines)
 		end
 	end
 	TraceGeneralInterface("general_interface.chat_history", "applied", { fn = "ApplyChatHistoryLimit", numLines = numLines, windows = appliedWindows })
+	TraceGeneralInterface("general_interface.chat_history", "confirmed", { fn = "ApplyChatHistoryLimit", numLines = numLines, windows = appliedWindows })
 end
 
 local function ApplyChatHistoryLimit()

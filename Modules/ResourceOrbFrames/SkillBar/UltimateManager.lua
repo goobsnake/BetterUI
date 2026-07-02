@@ -59,6 +59,40 @@ local function TraceUltimate(event, phase, data)
     L.TraceEvent(categories.ACTION or categories.STATE, event, phase, data)
 end
 
+local function ShouldTraceUltimate()
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return false end
+    if type(L.EnabledFor) ~= "function" then return true end
+    local categories = L.CATEGORY or {}
+    local levels = L.LEVEL or {}
+    local level = levels.DEBUG
+    if type(level) ~= "number" then
+        return type(L.IsActive) ~= "function" or L.IsActive()
+    end
+    return L.EnabledFor(level, categories.ACTION or categories.STATE)
+end
+
+local function TraceUltimateChanged(ultBtn, currentUltimate, abilityCost, frameIndex, ready, reason)
+    if not ultBtn then return end
+    if not ShouldTraceUltimate() then return end
+    local stateKey = table.concat({
+        tostring(abilityCost),
+        tostring(frameIndex),
+        tostring(ready == true),
+        tostring(reason),
+    }, ":")
+    if ultBtn._betteruiUltimateChangedKey == stateKey then return end
+    ultBtn._betteruiUltimateChangedKey = stateKey
+    TraceUltimate("resource_orbs.ultimate", "changed", {
+        fn = "UpdateFrontBarUltimateMeter",
+        currentUltimate = currentUltimate,
+        abilityCost = abilityCost,
+        frameIndex = frameIndex,
+        ready = ready == true,
+        reason = reason,
+    })
+end
+
 --- Maps a frame index onto the sprite sheet texture coordinates.
 --- Hoisted to file scope so the 100ms meter tick does not allocate a closure
 --- per call.
@@ -200,6 +234,7 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
 
                 -- Handle Ultimate Ready Animation
                 local readyState = currentUltimate >= abilityCost
+                TraceUltimateChanged(ultBtn, currentUltimate, abilityCost, frameIndex, readyState, "meter")
                 if currentUltimate >= abilityCost then
                     if not ultBtn.isUltimateReady then
                         ultBtn.isUltimateReady = true
@@ -250,6 +285,8 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
                 ultBtn.appliedFrameIndex = nil
                 if ultBtn._betteruiUltimateMeterTraceKey ~= "hidden:noCost" then
                     ultBtn._betteruiUltimateMeterTraceKey = "hidden:noCost"
+                    TraceUltimateChanged(ultBtn, GetUnitPower("player", POWERTYPE_ULTIMATE) or 0, abilityCost, nil, false,
+                        "missingAbilityCost")
                     TraceUltimate("resource_orbs.ultimate_meter", "not_ready", {
                         fn = "UpdateFrontBarUltimateMeter",
                         reason = "missingAbilityCost",

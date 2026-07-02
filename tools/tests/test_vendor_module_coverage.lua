@@ -27,6 +27,7 @@ local vendorCoverageTargets = {
     "Modules/Vendor/Components/StableTrainingComponent.lua",
     "Modules/Vendor/Components/SellComponent.lua",
     "Modules/Vendor/Components/SellVengeanceComponent.lua",
+    "Modules/Vendor/Core/VendorKeybinds.lua",
     "Modules/Vendor/Vendor.lua",
 }
 
@@ -46,7 +47,7 @@ local function assertEqual(expected, actual, message)
     assertTrue(expected == actual, string.format("%s (expected=%s, actual=%s)", message, tostring(expected), tostring(actual)))
 end
 
-assertEqual(24, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor manifest-backed runtime surface")
+assertEqual(25, #vendorCoverageTargets, "coverage list stays aligned with the live Vendor manifest-backed runtime surface")
 
 BETTERUI = {
     Vendor = {

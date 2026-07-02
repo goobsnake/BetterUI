@@ -30,6 +30,8 @@ local function load_vendor_root_without_runtime_collaborators()
         CIM = {},
     }
 
+    local okKeybinds, keybindsErr = pcall(dofile, "Modules/Vendor/Core/VendorKeybinds.lua")
+    assert_true(okKeybinds, "Vendor keybind root loads before vendor runtime collaborators are populated: " .. tostring(keybindsErr))
     local ok, err = pcall(dofile, "Modules/Vendor/Vendor.lua")
     assert_true(ok, "Vendor root loads before vendor runtime collaborators are populated: " .. tostring(err))
 end

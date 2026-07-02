@@ -20,9 +20,12 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 --- @field pendingRefreshCallId number|nil zo_callLater handle for pending refresh
 --- @field pendingRefreshFlow string|nil Flow id carried by the pending coalesced refresh
 --- @field pendingRefreshCoalescedCount integer Number of queue calls coalesced into the pending refresh
+--- @field pendingRefreshWatchdogKey string|nil Watchdog expectation key for the pending refresh
 --- @field savedPosition integer|nil Last saved scroll position
 --- @field savedUniqueId string|nil Last saved item uniqueId for position restoration
 BETTERUI.CIM.Lists.ListRefreshManager = ZO_Object:Subclass()
+
+local nextRefreshManagerId = 0
 
 local function SafeDescribeListSelection(list, phase)
     local log = BETTERUI and BETTERUI.Log or nil
@@ -60,6 +63,27 @@ local function AddRefreshTraceContext(data, options)
     return data
 end
 
+local function WatchdogExpectRefresh(key, options)
+    local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+    if watchdog and type(watchdog.Expect) == "function" then
+        options = options or {}
+        pcall(watchdog.Expect, "list.refresh", key, 5000, {
+            flow = options.flow,
+            source = options.source,
+            reason = options.reason,
+            token = options.token,
+        })
+    end
+end
+
+local function WatchdogResolveRefresh(key, outcome)
+    if key == nil then return end
+    local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+    if watchdog and type(watchdog.Resolve) == "function" then
+        pcall(watchdog.Resolve, "list.refresh", key, outcome)
+    end
+end
+
 ---@param ... any
 ---@return table
 function BETTERUI.CIM.Lists.ListRefreshManager:New(...)
@@ -84,6 +108,9 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     self.pendingRefreshReason = nil
     self.pendingRefreshToken = nil
     self.pendingRefreshCoalescedCount = 0
+    self.pendingRefreshWatchdogKey = nil
+    nextRefreshManagerId = nextRefreshManagerId + 1
+    self.refreshWatchdogPrefix = "manager" .. tostring(nextRefreshManagerId)
     self.savedPosition = nil
     self.savedUniqueId = nil
 end
@@ -271,6 +298,17 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
     self.isDirty = true
     self.refreshToken = (self.refreshToken or 0) + 1
     local refreshToken = self.refreshToken
+    local watchdogKey = tostring(self.refreshWatchdogPrefix or "manager") .. ":" .. tostring(refreshToken)
+    if self.pendingRefreshWatchdogKey then
+        WatchdogResolveRefresh(self.pendingRefreshWatchdogKey, "coalesced")
+    end
+    self.pendingRefreshWatchdogKey = watchdogKey
+    WatchdogExpectRefresh(watchdogKey, {
+        flow = traceFlow,
+        source = traceSource,
+        reason = traceReason,
+        token = traceToken,
+    })
 
     -- Cancel any pending refresh
     if self.pendingRefreshCallId then
@@ -283,6 +321,10 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
             if BETTERUI.Log and BETTERUI.Log.IsActive() then
                 BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh stale token", { expected = refreshToken, actual = self.refreshToken })
             end
+            WatchdogResolveRefresh(watchdogKey, "stale")
+            if self.pendingRefreshWatchdogKey == watchdogKey then
+                self.pendingRefreshWatchdogKey = nil
+            end
             return
         end
         self.pendingRefreshCallId = nil
@@ -293,13 +335,20 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
                 reason = self.pendingRefreshReason,
                 token = self.pendingRefreshToken,
                 coalescedCount = self.pendingRefreshCoalescedCount or 0,
+                watchdogKey = self.pendingRefreshWatchdogKey,
             }
             self.pendingRefreshFlow = nil
             self.pendingRefreshSource = nil
             self.pendingRefreshReason = nil
             self.pendingRefreshToken = nil
             self.pendingRefreshCoalescedCount = 0
+            self.pendingRefreshWatchdogKey = nil
             self:ExecuteRefresh(list, refreshFn, executeOptions)
+        else
+            WatchdogResolveRefresh(watchdogKey, "clean")
+            if self.pendingRefreshWatchdogKey == watchdogKey then
+                self.pendingRefreshWatchdogKey = nil
+            end
         end
     end, self.coalesceDelay)
 end
@@ -339,6 +388,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn, o
             restoredById = restoredById == true, selected = SafeDescribeListSelection(list, "after"),
         }, options))
     end
+    WatchdogResolveRefresh(options.watchdogKey, "executed")
 end
 
 ---@return nil
@@ -351,11 +401,13 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
         zo_removeCallLater(self.pendingRefreshCallId)
         self.pendingRefreshCallId = nil
     end
+    WatchdogResolveRefresh(self.pendingRefreshWatchdogKey, "cancelled")
     self.pendingRefreshFlow = nil
     self.pendingRefreshSource = nil
     self.pendingRefreshReason = nil
     self.pendingRefreshToken = nil
     self.pendingRefreshCoalescedCount = 0
+    self.pendingRefreshWatchdogKey = nil
     self.isDirty = false
 end
 

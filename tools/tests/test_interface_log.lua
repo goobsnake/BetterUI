@@ -61,7 +61,9 @@ end
 -- ============================================================================
 
 dofile("Modules/CIM/Core/Diagnostics/InterfaceLog.lua")
+dofile("Modules/CIM/Core/Diagnostics/BuilogCommands.lua")
 local IL = BETTERUI.CIM.InterfaceLog
+local BuilogCommands = BETTERUI.CIM.BuilogCommands
 
 -- ============================================================================
 -- TEST HARNESS
@@ -93,6 +95,14 @@ local function runDeferredsSince(startIndex)
         end
     end
     return table.concat(errors, "\n")
+end
+
+local function readText(path)
+    local handle, err = io.open(path, "r")
+    if not handle then error(string.format("failed to open %s: %s", tostring(path), tostring(err))) end
+    local text = handle:read("*a")
+    handle:close()
+    return text
 end
 
 local function isValidUtf8(text)
@@ -130,6 +140,12 @@ print("\n=== InterfaceLog Tests ===\n")
 check(IL.IsEnabled() == false, "Disabled by default")
 check(IL.Write("nope") == false, "Write no-ops while disabled")
 check(capturedDeferred == nil, "No error scheduled while disabled")
+check(type(BuilogCommands) == "table", "BuilogCommands module loads after InterfaceLog")
+local manifest = readText("BetterUI.txt")
+local interfaceLogIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\InterfaceLog.lua", 1, true)
+local builogCommandsIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\BuilogCommands.lua", 1, true)
+check(interfaceLogIndex ~= nil and builogCommandsIndex ~= nil and interfaceLogIndex < builogCommandsIndex,
+    "manifest loads InterfaceLog before BuilogCommands")
 
 -- Slash command registers at load.
 check(type(SLASH_COMMANDS["/builog"]) == "function", "/builog command registered")
@@ -327,6 +343,7 @@ local logPreset = "debug"
 local logMinLevel = 3
 local logPayloadCapture = false
 local logPrivacyMode = false
+local tracedEvents = {}
 local function applyTestPreset(name)
     name = tostring(name or ""):lower()
     if name == "off" then
@@ -379,6 +396,17 @@ BETTERUI.Log = {
     end,
     InvalidateActive = function() end,
     Info = function() end,
+    TraceEvent = function(category, event, phase, data, level)
+        tracedEvents[#tracedEvents + 1] = {
+            category = category,
+            event = event,
+            phase = phase,
+            data = data,
+            level = level,
+        }
+    end,
+    GetRecentErrors = function() return { { message = "one" }, { message = "two" } } end,
+    GetErrorCount = function() return 7 end,
 }
 local screenshotRequests = {}
 local screenshotAutoMode = "off"
@@ -399,21 +427,43 @@ BETTERUI.CIM.Screenshot = {
         return { autoMode = screenshotAutoMode, shots = 2, suppressed = 1, pending = 0, sessionLimit = 40 }
     end,
 }
+local watchdogDeactivateCalls = 0
+local watchdogDeactivateScheduledAt = nil
+BETTERUI.CIM.Watchdog = {
+    GetStats = function()
+        return { pending = 3, pendingFlows = 2, detected = 4, resolved = 5 }
+    end,
+    Deactivate = function()
+        watchdogDeactivateCalls = watchdogDeactivateCalls + 1
+        watchdogDeactivateScheduledAt = #capturedDeferreds
+    end,
+}
 
 local builog = SLASH_COMMANDS["/builog"]
 check(type(builog) == "function", "/builog slash command is registered")
 
 sinkState = {}
-IL.SetChatSurface(true)
+check(IL.SetChatSurface(true) == false, "SetChatSurface(true) rejects unsupported chat surfacing")
 check(sinkState["3:chat"] == false and sinkState["4:chat"] == false and sinkState["5:chat"] == false,
-    "SetChatSurface(true) is forced file-only")
+    "SetChatSurface(true) still forces file-only sinks")
 check(IL.GetChatSurface() == false, "GetChatSurface always reports disabled")
 check(persisted["CIM:interfaceLogChat"] == false, "legacy chat surface preference is cleared to false")
 
 chatOutput = {}
 builog("chat on")
-check(IL.GetChatSurface() == false and table.concat(chatOutput, "\n"):find("file-only", 1, true) ~= nil,
-    "/builog chat on cannot enable chat surfacing")
+check(IL.GetChatSurface() == false and table.concat(chatOutput, "\n"):find("not supported", 1, true) ~= nil,
+    "/builog chat on explicitly rejects chat surfacing")
+
+chatOutput = {}
+check(IL.SetPopupSuppression(false) == false, "SetPopupSuppression(false) rejects visible popups while builog is file-only")
+builog("popups on")
+check(table.concat(chatOutput, "\n"):find("file-only", 1, true) ~= nil,
+    "/builog popups on reports the file-only popup policy")
+chatOutput = {}
+builog("popups off")
+local popupsOffText = table.concat(chatOutput, "\n")
+check(IL.GetSuppressPopups() == true and popupsOffText:find("use /builog off", 1, true) ~= nil,
+    "/builog popups off points users to /builog off instead of pretending popups are visible")
 
 builog("on")
 check(persisted["CIM:interfaceLogEnabled"] == true, "/builog on persists interfaceLogEnabled=true")
@@ -430,6 +480,28 @@ check(statusText:find("privacy=off", 1, true) ~= nil,
     "/builog status reports privacy=off by default")
 check(statusText:find("Usage:", 1, true) == nil,
     "/builog status prints status without falling through to generic usage")
+
+tracedEvents = {}
+chatOutput = {}
+builog("report")
+local report = tracedEvents[#tracedEvents]
+check(report and report.category == "STATE" and report.event == "session" and report.phase == "report",
+    "/builog report emits a STATE session report trace")
+check(report and report.data
+    and report.data.scheduled ~= nil
+    and report.data.dropped ~= nil
+    and report.data.suppressed ~= nil
+    and report.data.pending ~= nil
+    and report.data.errorCount == 7
+    and report.data.retainedErrors == 2
+    and report.data.unresolvedFlows == 2
+    and report.data.anomalyDetected == 4
+    and report.data.anomalyResolved == 5
+    and report.data.screenshots == 2
+    and report.data.screenshotSuppressed == 1,
+    "/builog report includes sink, error, watchdog, anomaly, and screenshot counters")
+check(table.concat(chatOutput, "\n"):find("Session report", 1, true) ~= nil,
+    "/builog report confirms the emitted report in chat")
 
 chatOutput = {}
 builog("privacy on")
@@ -473,17 +545,23 @@ IL.SetEnabled(true)
 logPreset = "custom"
 logMinLevel = 4
 logPayloadCapture = false
+BETTERUI.Log.SetSink(3, "chat", true)
+BETTERUI.Log.SetSink(4, "file", false)
 local captureStart = #capturedDeferreds
 builog("capture 1")
 check(logPreset == "trace" and logMinLevel == 1 and logPayloadCapture == true,
     "/builog capture temporarily switches to trace payload capture")
+BETTERUI.Log.SetSink(3, "chat", false)
+BETTERUI.Log.SetSink(4, "file", true)
 local captureRevert = capturedDeferreds[#capturedDeferreds] and capturedDeferreds[#capturedDeferreds].callback
 check(#capturedDeferreds > captureStart and type(captureRevert) == "function",
     "/builog capture schedules an auto-revert callback")
 if type(captureRevert) == "function" then pcall(captureRevert) end
-check(logPreset == "custom" and logMinLevel == 4 and logPayloadCapture == false and IL.IsEnabled() == true,
-    string.format("/builog capture restores custom preset knobs and enabled state (preset=%s level=%s payload=%s enabled=%s)",
-        tostring(logPreset), tostring(logMinLevel), tostring(logPayloadCapture), tostring(IL.IsEnabled())))
+check(logPreset == "custom" and logMinLevel == 4 and logPayloadCapture == false and IL.IsEnabled() == true
+        and sinkState["3:chat"] == true and sinkState["4:file"] == false,
+    string.format("/builog capture restores custom preset knobs, sinks, and enabled state (preset=%s level=%s payload=%s enabled=%s chat=%s file=%s)",
+        tostring(logPreset), tostring(logMinLevel), tostring(logPayloadCapture), tostring(IL.IsEnabled()),
+        tostring(sinkState["3:chat"]), tostring(sinkState["4:file"])))
 
 IL.SetEnabled(true)
 logPreset = "debug"
@@ -499,6 +577,56 @@ check(#capturedDeferreds > namedCaptureStart and type(namedCaptureRevert) == "fu
 if type(namedCaptureRevert) == "function" then pcall(namedCaptureRevert) end
 check(logPreset == "debug" and logMinLevel == 4 and logPayloadCapture == false and IL.IsEnabled() == true,
     string.format("/builog capture restores captured knobs even when the snapshot preset is named (preset=%s level=%s payload=%s enabled=%s)",
+        tostring(logPreset), tostring(logMinLevel), tostring(logPayloadCapture), tostring(IL.IsEnabled())))
+
+IL.SetEnabled(false)
+logPreset = "custom"
+logMinLevel = 4
+logPayloadCapture = false
+local disabledCaptureStart = #capturedDeferreds
+builog("capture 1")
+check(IL.IsEnabled() == true and logPreset == "trace" and logMinLevel == 1 and logPayloadCapture == true,
+    "/builog capture enables a disabled logger for the trace window")
+local disabledCaptureRevert = capturedDeferreds[#capturedDeferreds] and capturedDeferreds[#capturedDeferreds].callback
+check(#capturedDeferreds > disabledCaptureStart and type(disabledCaptureRevert) == "function",
+    "/builog capture schedules a disabled-start auto-revert callback")
+if type(disabledCaptureRevert) == "function" then pcall(disabledCaptureRevert) end
+check(logPreset == "custom" and logMinLevel == 4 and logPayloadCapture == false and IL.IsEnabled() == false,
+    string.format("/builog capture restores disabled-start state (preset=%s level=%s payload=%s enabled=%s)",
+        tostring(logPreset), tostring(logMinLevel), tostring(logPayloadCapture), tostring(IL.IsEnabled())))
+
+IL.SetEnabled(true)
+logPreset = "custom"
+logMinLevel = 4
+logPayloadCapture = false
+local manualOffCaptureStart = #capturedDeferreds
+builog("capture 1")
+local manualOffCaptureRevert = capturedDeferreds[#capturedDeferreds] and capturedDeferreds[#capturedDeferreds].callback
+check(#capturedDeferreds > manualOffCaptureStart and type(manualOffCaptureRevert) == "function",
+    "/builog capture schedules a manual-off interaction callback")
+builog("off")
+if type(manualOffCaptureRevert) == "function" then pcall(manualOffCaptureRevert) end
+check(IL.IsEnabled() == false and logPreset == "custom" and logMinLevel == 4 and logPayloadCapture == false,
+    string.format("/builog off during capture prevents timer re-enable while restoring knobs (preset=%s level=%s payload=%s enabled=%s)",
+        tostring(logPreset), tostring(logMinLevel), tostring(logPayloadCapture), tostring(IL.IsEnabled())))
+
+IL.SetEnabled(true)
+logPreset = "custom"
+logMinLevel = 4
+logPayloadCapture = false
+local settingsOffCaptureStart = #capturedDeferreds
+builog("capture 1")
+local settingsOffCaptureRevert = capturedDeferreds[#capturedDeferreds] and capturedDeferreds[#capturedDeferreds].callback
+check(#capturedDeferreds > settingsOffCaptureStart and type(settingsOffCaptureRevert) == "function",
+    "/builog capture schedules a settings-off interaction callback")
+watchdogDeactivateCalls = 0
+watchdogDeactivateScheduledAt = nil
+IL.SetLoggingEnabled(false, "settings panel")
+check(watchdogDeactivateCalls == 1 and watchdogDeactivateScheduledAt and watchdogDeactivateScheduledAt > settingsOffCaptureStart,
+    "non-slash logging disable deactivates the watchdog after queuing the disabled breadcrumb")
+if type(settingsOffCaptureRevert) == "function" then pcall(settingsOffCaptureRevert) end
+check(IL.IsEnabled() == false and logPreset == "custom" and logMinLevel == 4 and logPayloadCapture == false,
+    string.format("non-slash logging disable during capture prevents timer re-enable while restoring knobs (preset=%s level=%s payload=%s enabled=%s)",
         tostring(logPreset), tostring(logMinLevel), tostring(logPayloadCapture), tostring(IL.IsEnabled())))
 
 builog("on")

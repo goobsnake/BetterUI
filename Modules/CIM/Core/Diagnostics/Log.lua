@@ -72,6 +72,7 @@ local function G(name) return rawget(_G, name) end
 
 -- tostring that can never raise (a hostile/missing __tostring must not break a log call).
 -- Defined early so the payload path (Summarize/renderData) can use it too.
+-- Keep text normalization aligned with DomainLog.lua; DomainLog loads before Log.lua.
 local function safeTostring(v, fallback)
     local ok, s = pcall(tostring, v)
     if ok and type(s) == "string" then return s end
@@ -182,206 +183,14 @@ function Log.Summarize(value)
     return safeTostring(value)
 end
 
-local keybindDescriptorIds = setmetatable({}, { __mode = "k" })
-local nextKeybindDescriptorId = 0
-
-local function getKeybindDescriptorId(descriptor)
-    if type(descriptor) ~= "table" then
-        return safeTostring(descriptor, type(descriptor))
-    end
-    local id = keybindDescriptorIds[descriptor]
-    if not id then
-        nextKeybindDescriptorId = nextKeybindDescriptorId + 1
-        id = "kb" .. tostring(nextKeybindDescriptorId)
-        keybindDescriptorIds[descriptor] = id
-    end
-    return id
-end
-
-local function summarizeKeybindName(name)
-    if type(name) == "function" then
-        local ok, value = pcall(name)
-        if not ok then return "name_error" end
-        return normalizeLogToken(value, "empty"):sub(1, 24)
-    end
-    return normalizeLogToken(name, "unnamed"):sub(1, 24)
-end
-
-local function summarizeKeybindVisible(visible)
-    if type(visible) ~= "function" then return "v-" end
-    local ok, value = pcall(visible)
-    if not ok then return "vE" end
-    return value and "v1" or "v0"
-end
-
---- Compact, stable identity for a ZOS keybind button group descriptor.
---- The id is local to the UI session and lets the live log correlate add/remove/update calls.
----@param descriptor table|nil
----@param label string|nil
----@return string
-function Log.DescribeKeybindDescriptor(descriptor, label)
-    local prefix = label and (normalizeLogToken(label, "descriptor") .. ":") or ""
-    if descriptor == nil then return prefix .. "nil" end
-    if type(descriptor) ~= "table" then return prefix .. "<" .. type(descriptor) .. ">" end
-
-    local count = 0
-    local parts = {}
-    for i, entry in ipairs(descriptor) do
-        count = count + 1
-        if #parts < 4 then
-            if type(entry) == "table" then
-                local keybind = normalizeLogToken(entry.keybind or entry.key or i, "?")
-                    :gsub("^UI_SHORTCUT_", "")
-                    :sub(1, 12)
-                local callback = type(entry.callback) == "function" and "cb1" or "cb0"
-                parts[#parts + 1] = keybind .. ":" .. summarizeKeybindName(entry.name):sub(1, 14)
-                    .. ":" .. summarizeKeybindVisible(entry.visible) .. ":" .. callback
-            else
-                parts[#parts + 1] = normalizeLogToken(type(entry), "?")
-            end
-        end
-    end
-
-    return string.format("%s%s[n=%d %s]", prefix, getKeybindDescriptorId(descriptor), count, table.concat(parts, ","))
-end
-
----@param descriptors table|nil
----@param label string|nil
----@return string
-function Log.DescribeKeybindDescriptors(descriptors, label)
-    local prefix = label and (normalizeLogToken(label, "descriptors") .. ":") or ""
-    if descriptors == nil then return prefix .. "nil" end
-    if type(descriptors) ~= "table" then return prefix .. "<" .. type(descriptors) .. ">" end
-
-    local first = descriptors[1]
-    local looksLikeSingleDescriptor = descriptors.alignment ~= nil
-        or (type(first) == "table" and (first.keybind ~= nil or first.name ~= nil or first.callback ~= nil))
-    if looksLikeSingleDescriptor then
-        return Log.DescribeKeybindDescriptor(descriptors, label)
-    end
-
-    local count = 0
-    local parts = {}
-    for _, descriptor in ipairs(descriptors) do
-        count = count + 1
-        if #parts < 3 then
-            parts[#parts + 1] = Log.DescribeKeybindDescriptor(descriptor)
-        end
-    end
-
-    return string.format("%sgroups=%d[%s]", prefix, count, table.concat(parts, ";"))
-end
-
----@param descriptors table|nil
----@return number
-function Log.CountKeybindDescriptors(descriptors)
-    if type(descriptors) ~= "table" then return 0 end
-    local count = 0
-    for _ in ipairs(descriptors) do count = count + 1 end
-    return count
-end
-
-local function rawEntryData(value)
-    if type(value) ~= "table" then return nil end
-    return value.dataSource or value
-end
-
-local function callGlobal(fnName, ...)
-    local fn = G(fnName)
-    if type(fn) ~= "function" then return nil end
-    local ok, value = pcall(fn, ...)
-    if ok then return value end
-    return nil
-end
-
---- Compact item identity for replay logs. Stable enough to correlate list rows,
---- keybind targets, action requests, and row-icon state without dumping whole rows.
----@param value table|nil
----@param label string|nil
----@return string
-function Log.DescribeItem(value, label)
-    local raw = rawEntryData(value)
-    local prefix = label and (normalizeLogToken(label, "item") .. ":") or ""
-    if type(raw) ~= "table" then return prefix .. "nil" end
-    local redactNames = privacyMode == true
-
-    local bagId = raw.bagId or raw.bag
-    local slotIndex = raw.slotIndex or raw.slot
-    local parts = {}
-    parts[#parts + 1] = "bag=" .. normalizeLogToken(bagId, "nil")
-    parts[#parts + 1] = "slot=" .. normalizeLogToken(slotIndex, "nil")
-    if raw.uniqueId ~= nil then parts[#parts + 1] = "uid=" .. normalizeLogToken(raw.uniqueId, "?") end
-    if raw.itemType ~= nil then parts[#parts + 1] = "type=" .. normalizeLogToken(raw.itemType, "?") end
-    if raw.equipType ~= nil then parts[#parts + 1] = "equip=" .. normalizeLogToken(raw.equipType, "?") end
-    if raw.slotType ~= nil then parts[#parts + 1] = "slotType=" .. normalizeLogToken(raw.slotType, "?") end
-    if raw.stackCount ~= nil then parts[#parts + 1] = "stack=" .. normalizeLogToken(raw.stackCount, "?") end
-    if raw.itemId ~= nil then parts[#parts + 1] = "itemId=" .. normalizeLogToken(raw.itemId, "?") end
-    if raw.tradingHouseIndex ~= nil then parts[#parts + 1] = "thIndex=" .. normalizeLogToken(raw.tradingHouseIndex, "?") end
-    if raw.listingIndex ~= nil then parts[#parts + 1] = "listing=" .. normalizeLogToken(raw.listingIndex, "?") end
-    if raw.entryIndex ~= nil then parts[#parts + 1] = "entry=" .. normalizeLogToken(raw.entryIndex, "?") end
-    if raw.slotId ~= nil then parts[#parts + 1] = "slotId=" .. normalizeLogToken(raw.slotId, "?") end
-
-    if bagId ~= nil and slotIndex ~= nil then
-        local uid = raw.uniqueId or callGlobal("GetItemUniqueId", bagId, slotIndex)
-        if uid ~= nil and raw.uniqueId == nil then parts[#parts + 1] = "uid=" .. normalizeLogToken(uid, "?") end
-        if not redactNames then
-            local name = callGlobal("GetItemName", bagId, slotIndex)
-            if name and name ~= "" then parts[#parts + 1] = "name=" .. normalizeLogToken(name, "?"):sub(1, 36) end
-        end
-        local stack = raw.stackCount or callGlobal("GetSlotStackSize", bagId, slotIndex)
-        if stack ~= nil and raw.stackCount == nil then parts[#parts + 1] = "stack=" .. normalizeLogToken(stack, "?") end
-        local link = raw.itemLink or callGlobal("GetItemLink", bagId, slotIndex)
-        if link and link ~= "" then parts[#parts + 1] = "hasLink=1" end
-    elseif raw.currencyType ~= nil then
-        parts[#parts + 1] = "currency=" .. normalizeLogToken(raw.currencyType, "?")
-    else
-        local rawName = raw.name or raw.itemName or raw.displayName
-        if not redactNames and rawName and rawName ~= "" then parts[#parts + 1] = "name=" .. normalizeLogToken(rawName, "?"):sub(1, 36) end
-        local rawLink = raw.itemLink or raw.link
-        if rawLink and rawLink ~= "" then parts[#parts + 1] = "hasLink=1" end
-    end
-
-    return prefix .. "{" .. table.concat(parts, ",") .. "}"
-end
-
----@param list table|nil
----@param label string|nil
----@return string
-function Log.DescribeListSelection(list, label)
-    local prefix = label and (normalizeLogToken(label, "selection") .. ":") or ""
-    if type(list) ~= "table" and type(list) ~= "userdata" then return prefix .. "nil" end
-    local okIndex, selectedIndex = pcall(function()
-        if list.GetSelectedIndex then return list:GetSelectedIndex() end
-        return list.selectedIndex or list.targetSelectedIndex
-    end)
-    local okCount, count = pcall(function()
-        if list.GetNumItems then return list:GetNumItems() end
-        return list.dataList and #list.dataList or nil
-    end)
-    local okData, selectedData = pcall(function()
-        if list.GetSelectedData then return list:GetSelectedData() end
-        return list.selectedData
-    end)
-    return string.format("%sidx=%s count=%s %s", prefix,
-        normalizeLogToken(okIndex and selectedIndex or nil, "nil"),
-        normalizeLogToken(okCount and count or nil, "nil"),
-        Log.DescribeItem(okData and selectedData or nil, "selected"))
-end
-
-function Log.GetCurrencyAmountForLocation(currencyType, location)
-    local getCurrencyAmount = G("GetCurrencyAmount")
-    if type(getCurrencyAmount) == "function" then
-        local ok, amount = pcall(getCurrencyAmount, currencyType, location)
-        if ok then return amount end
-    end
-    if location == rawget(_G, "CURRENCY_LOCATION_CHARACTER") then
-        return callGlobal("GetCarriedCurrencyAmount", currencyType)
-    end
-    if location == rawget(_G, "CURRENCY_LOCATION_BANK") then
-        return callGlobal("GetBankedCurrencyAmount", currencyType)
-    end
-    return nil
-end
+local DomainLog = BETTERUI.CIM and BETTERUI.CIM.DomainLog
+assert(type(DomainLog) == "table", "DomainLog.lua must load before Log.lua")
+Log.DescribeKeybindDescriptor = DomainLog.DescribeKeybindDescriptor
+Log.DescribeKeybindDescriptors = DomainLog.DescribeKeybindDescriptors
+Log.CountKeybindDescriptors = DomainLog.CountKeybindDescriptors
+Log.DescribeItem = DomainLog.DescribeItem
+Log.DescribeListSelection = DomainLog.DescribeListSelection
+Log.GetCurrencyAmountForLocation = DomainLog.GetCurrencyAmountForLocation
 
 -- Render the optional data argument for a log line. A record-style table (named
 -- fields) renders as `key=value key=value` (deterministic key order, values via
@@ -710,9 +519,20 @@ end
 --- @return string flow  -- the allocated flow id (pass to FlowEnd)
 function Log.FlowBegin(kind, category, message, data)
     local flow = Log.NewFlow(kind) -- always a string
+    local flowCategory = category or Log.CATEGORY.GENERAL
     local msg = (message ~= nil) and normalizeLogText(message, "flow") or normalizeLogText(kind, "flow")
     Log.SetLastAction(msg, flow)
-    emit(Log.LEVEL.DEBUG, category or Log.CATEGORY.GENERAL, msg .. " [flow begin] flow=" .. flow, data)
+    local shouldExpect = Log.EnabledFor(Log.LEVEL.DEBUG, flowCategory)
+    emit(Log.LEVEL.DEBUG, flowCategory, msg .. " [flow begin] flow=" .. flow, data)
+    local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+    if shouldExpect and watchdog and type(watchdog.Expect) == "function" then
+        pcall(watchdog.Expect, "flow", flow, 30000, {
+            flow = flow,
+            flowKind = normalizeLogToken(kind, "flow"),
+            category = flowCategory,
+            message = msg,
+        })
+    end
     return flow
 end
 
@@ -720,6 +540,10 @@ function Log.FlowEnd(flow, category, message, data)
     local msg = (message ~= nil) and normalizeLogText(message, "flow") or "flow"
     emit(Log.LEVEL.DEBUG, category or Log.CATEGORY.GENERAL,
         msg .. " [flow end] flow=" .. normalizeLogToken(flow, "?"), data)
+    local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+    if watchdog and type(watchdog.Resolve) == "function" then
+        pcall(watchdog.Resolve, "flow", flow, "ended")
+    end
 end
 
 --- Lazy payload variants: the message/data builders run ONLY after the exact gate
@@ -901,11 +725,11 @@ function Log.ApplyPreset(name)
     -- Resolved lazily: WatchMode loads after Log. Activate for the ENRICHMENT presets
     -- (watch + inspect); Deactivate for every OTHER preset so leaving them cleanly drops
     -- the context provider + restores mutes.
+    local categories = Log.CATEGORY or {}
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
     if watch then
         -- pcall: a watch lifecycle hiccup (preamble/snapshot/mute) must never break
         -- preset application or raise out of the /builog slash command.
-        local categories = Log.CATEGORY or {}
         if name == "watch" or name == "inspect" then
             if watch.Activate then
                 local okWatch, watchErr = pcall(watch.Activate)
@@ -917,6 +741,15 @@ function Log.ApplyPreset(name)
             local okWatch, watchErr = pcall(watch.Deactivate)
             if not okWatch then
                 Log.Warn(categories.STATE, "watch mode deactivate failed", { preset = name, error = watchErr })
+            end
+        end
+    end
+    if name == "off" then
+        local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+        if watchdog and type(watchdog.Deactivate) == "function" then
+            local okWatchdog, watchdogErr = pcall(watchdog.Deactivate)
+            if not okWatchdog then
+                Log.Warn(categories.STATE, "watchdog deactivate failed", { preset = name, error = watchdogErr })
             end
         end
     end

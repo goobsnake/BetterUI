@@ -19,6 +19,7 @@ game's `Interface.log` while you reproduce an issue — no `/reloadui`, no Saved
 /builog privacy on          -- optional: redact player/zone/addon names, item names, and absolute balances
 /builog screenshot auto warn -- optional: capture distinct visual context on WARN/ERROR
 ... reproduce the issue ...
+/builog report              -- emit an end-of-session INFO STATE report anchor
 /buihealth                  -- one-line health: preset, errors, file-sink budget, scene/watch state
 /builog errors              -- dump the recent WARN/ERROR ring in chat
 /builog off                 -- stop + restore error popups
@@ -29,6 +30,17 @@ Then tail the clean stream on the host:
 ```sh
 grep -a '\[BUI\]' "<ESO live>/Logs/interface.log"
 ```
+
+For a completed or long window, digest first and drill into raw lines second:
+
+```sh
+tools/builog-monitor/monitor.sh digest --last 2000 "<ESO live>/Logs/interface.log"
+tools/builog-monitor/monitor.sh digest --last 2000 --jsonl "<ESO live>/Logs/interface.log"
+```
+
+The digest groups by `flow=`, then `opId=`, then `batchId=`, highlights unresolved
+timelines, and separates anomalies, BUI WARN/ERROR records, real non-BUI Lua errors,
+drop summaries, screenshot markers, preamble data, and `/builog report` anchors.
 
 ## Presets (`/builog preset <name>`)
 
@@ -75,7 +87,11 @@ all modes.
    visible handoff lines such as `inventory primary action resolved`, `inventory primary action invoked`,
    `inventory dialog action confirmed`, `bank primary transfer invoked` (`TRANSFER`),
    `bank action dialog shown`, and `bank currency transfer completed/failed` (`TRANSFER`).
-5. **Replay-grade category policy** — `watch` and `inspect` default to no muted
+5. **Anomaly watchdog** — expected follow-ups that do not arrive emit
+   `WARN STATE | event=anomaly phase=detected` with `kind`, `key`, `ageMs`, and `timeoutMs`.
+   These records point to missing flow ends, unresolved bank transfers, Trading House
+   operations, or list refreshes. `phase=overflow` means the 64-live-expectation cap was hit.
+6. **Replay-grade category policy** — `watch` and `inspect` default to no muted
    categories, so sort/search/list/keybind/currency flows remain visible to an AI
    tailing the stream. Temporary mutes are still available in-client via
    `WatchMode.SetMutedCategories`; WARN/ERROR always pass.
@@ -93,7 +109,7 @@ categories, `ACTION`, `TRANSFER`, and `STATE` landmarks should still preserve th
 | Junk toggle did not update category | `ACTION | inventory dialog action confirmed` or junk flow begin/end, then `STATE | inventory category list refresh scheduled/refreshed updates=<n>`. |
 | Currency transfer failed or seemed ignored | `TRANSFER | bank currency transfer completed` or `TRANSFER | bank currency transfer failed` with `amount`, `currency`, and `reason`. |
 | A setting/action looked enabled but did nothing | `ACTION` lines should show the resolved action and invocation; `WARN` lines should carry `caller`/`src` when a dependency or protected action blocks it. |
-| Vendor action or mode looked wrong | `KEYBIND | event=vendor.keybind`, `SCENE | event=vendor.scene`, and `NAV | event=vendor.mode` should bracket user-fired actions and store/fence mode changes. |
+| Vendor action or mode looked wrong | Start with the canonical `KEYBIND | event=input.keybind phase=fired` cause anchor, then use `KEYBIND | event=vendor.keybind`, `SCENE | event=vendor.scene`, and `NAV | event=vendor.mode` for vendor-specific outcome, scene, and mode detail. |
 | Trading House list/search looked stale | Search records should share an operation id, `NAV | event=th.mode` should show mode changes, and each Browse/Sell/Listings rebuild should end with one aggregate `LIST | event=th.list` count. |
 | Writ panel looked stale | `STATE | event=writs.state` should appear after active-writ refresh, show-for-craft-type, immediate craft-complete refresh, and station close. |
 
@@ -109,8 +125,8 @@ that absence as an instrumentation or control-flow bug.
 | `on` / `off` | start / stop streaming (off restores error popups); prefer named presets over plain `on` for bounded budgets |
 | `preset <name>` | apply a preset (off\|info\|watch\|debug\|trace\|inspect) |
 | `level <lvl>` | set just the min level (trace\|debug\|info\|warn\|error) |
-| `chat on\|off` | legacy no-op; builog remains file-only |
-| `popups on\|off` | legacy no-op; BetterUI breadcrumbs stay file-only while builog is on |
+| `chat on\|off` | compatibility commands; `chat on` reports unsupported and leaves builog file-only, while `chat off` keeps chat sinks disabled |
+| `popups on\|off` | compatibility commands; generated breadcrumb popups remain suppressed while builog is enabled, and `popups off` points to `/builog off` for restoration |
 | `mark <text>` | drop a `STATE | mark: <text>` annotation into the live stream |
 | `recent [n]` | dump the last n records (any level) in chat |
 | `errors [n]` | dump the last n WARN/ERROR records in chat |
@@ -119,6 +135,7 @@ that absence as an instrumentation or control-flow bug.
 | `screenshot auto off\|error\|warn` | persisted opt-in auto capture: off, ERROR only, or WARN+ERROR with duplicate-aware per-issue throttling |
 | `privacy on\|off` | persisted privacy mode; on redacts player/zone/addon names, item names, and absolute currency balances; `lastAction` is capped at 48 chars in all modes |
 | `snapshot` | emit one STATE snapshot now |
+| `report` | emit one `INFO STATE | event=session phase=report` anchor with sink, error, watchdog, unresolved-flow, and screenshot counters |
 | `check` / `test` | write diagnostic breadcrumbs; if logging was off, leaves the session stream on so the breadcrumbs reach `Interface.log` |
 | `status` | print current preset, payload, privacy, sink budget, counters, and screenshot state |
 

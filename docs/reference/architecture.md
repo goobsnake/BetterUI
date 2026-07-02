@@ -124,7 +124,7 @@ CIM/
 ├── Core/
 │   ├── Batching/          # BatchActions, BatchConfig, MultiSelectManager/Mixin
 │   ├── Data/              # Types, SearchManager, SortManager, navigation state
-│   ├── Diagnostics/       # Log, InterfaceLog, WatchMode, SceneLog, Screenshot, SafeExecute
+│   ├── Diagnostics/       # Log, DomainLog, InterfaceLog, BuilogCommands, Watchdog, WatchMode, SceneLog, Screenshot, SafeExecute
 │   ├── Integration/       # HookFactory, MarketIntegration, ResearchCache
 │   ├── Lifecycle/         # RuntimeSetup, EventRegistry, scene helpers
 │   ├── Presentation/      # Fonts, number formatting, keybind helpers
@@ -509,13 +509,17 @@ end
 | `RuntimeSetup.lua` | CIM/Core/ | API patches, migrations, initialization |
 | `Utilities.lua` | CIM/Core/ | `BETTERUI.CIM.Utils` shared helpers, incl. slot-identity (`CaptureSlotIdentity`, `IsSlotIdentityCurrent`, `NormalizeIdentityValue`); `BETTERUI.Inventory.Utils` delegates here |
 | `Log.lua` | CIM/Core/Diagnostics/ | `BETTERUI.Log` unified logging facade (levels/categories/file+chat sinks) |
-| `InterfaceLog.lua` | CIM/Core/Diagnostics/ | Real-time `live/Logs/interface.log` file sink; `/builog` command |
+| `DomainLog.lua` | CIM/Core/Diagnostics/ | Domain-specific log describers for items, keybind descriptors, list selections, and currency locations |
+| `InterfaceLog.lua` | CIM/Core/Diagnostics/ | Real-time `live/Logs/interface.log` transport, persistence, and popup/chat suppression policy |
+| `BuilogCommands.lua` | CIM/Core/Diagnostics/ | `/builog` and `/buihealth` slash-command handlers |
+| `Watchdog.lua` | CIM/Core/Diagnostics/ | Expected follow-up tracking and anomaly WARN emission for live builog flows |
 | `FeatureFlags.lua` | CIM/Core/Diagnostics/ | Runtime feature flag system |
 | `SettingsAccessor.lua` | CIM/Core/ | Settings get/set factory |
 | `WindowClass.lua` | CIM/Core/ | Base Window class implementation |
 | `BatchOverlay.lua` | CIM/UI/ | Batch progress overlay extracted from multi-select runtime |
 | `MarketIntegration.lua` | CIM/Core/Integration/ | Namespaced market-price integration service |
 | `GenericSlotActions.lua` | CIM/Actions/ | Shared item slot action utilities |
+| `InputAnchor.lua` | CIM/Keybinds/ | Shared keybind callback wrapper that emits `input.keybind fired` cause anchors |
 | `GenericHeader.lua` | CIM/UI/ | Tab bar header with LB/RB navigation |
 | `GenericFooter.lua` | CIM/UI/ | Currency display footer |
 | `Coordinator.lua` | ResourceOrbFrames/SkillBar/ | Skill bar orchestration |
@@ -523,6 +527,7 @@ end
 | `Tooltips.lua` | GeneralInterface/Tooltips/ | Tooltip rendering, market prices, research display |
 | `Nameplates.lua` | Nameplates/ | Nameplate runtime ownership and setup |
 | `BankListManager.lua` | Banking/Lists/ | Banking list and keybind management |
+| `VendorKeybinds.lua` | Vendor/Core/ | Vendor keybind descriptor construction and keybind trace wrapping |
 
 ---
 

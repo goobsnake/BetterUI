@@ -54,6 +54,11 @@ local function countPlain(haystack, needle)
     end
 end
 
+local function containsAfter(haystack, anchor, needle)
+    local anchorIndex = haystack:find(anchor, 1, true)
+    return anchorIndex ~= nil and haystack:find(needle, anchorIndex, true) ~= nil
+end
+
 local passed, failed = 0, 0
 local function check(cond, msg)
     if cond then passed = passed + 1; print("  [OK] " .. msg)
@@ -92,16 +97,21 @@ local watchMode = readFile("Modules/CIM/Core/Diagnostics/WatchMode.lua")
 local headerSortController = readFile("Modules/CIM/UI/HeaderSortController.lua")
 local headerSortIntegration = readFile("Modules/CIM/UI/HeaderSortIntegration.lua")
 local headerSortKeybinds = readFile("Modules/CIM/UI/HeaderSortKeybinds.lua")
+local domainLog = readFile("Modules/CIM/Core/Diagnostics/DomainLog.lua")
+local logCore = readFile("Modules/CIM/Core/Diagnostics/Log.lua")
 local interfaceLog = readFile("Modules/CIM/Core/Diagnostics/InterfaceLog.lua")
+local builogCommands = readFile("Modules/CIM/Core/Diagnostics/BuilogCommands.lua")
 local companionActions = readFile("Modules/Companions/Actions/CompanionActions.lua")
 local companionDialogs = readFile("Modules/Companions/Dialogs/CompanionDialogs.lua")
 local companionModule = readFile("Modules/Companions/Module.lua")
 local companionsRuntime = readFile("Modules/Companions/Core/CompanionsRuntime.lua")
+local companionListManager = readFile("Modules/Companions/Core/CompanionListManager.lua")
 local companionItemList = readFile("Modules/Companions/Core/CompanionItemList.lua")
 local fontLocalization = readFile("Modules/CIM/Core/Presentation/FontLocalization.lua")
 local nameplates = readFile("Modules/Nameplates/Nameplates.lua")
 local nameplateSettings = readFile("Modules/Nameplates/Settings.lua")
 local vendor = readFile("Modules/Vendor/Vendor.lua")
+local vendorKeybinds = readFile("Modules/Vendor/Core/VendorKeybinds.lua")
 local vendorBuy = readFile("Modules/Vendor/Components/BuyComponent.lua")
 local vendorSell = readFile("Modules/Vendor/Components/SellComponent.lua")
 local vendorRepair = readFile("Modules/Vendor/Components/RepairComponent.lua")
@@ -139,6 +149,13 @@ local craftingPriceTooltip = readFile("Modules/GeneralInterface/Tooltips/Craftin
 local bankingHeader = readFile("Modules/Banking/UI/HeaderManager.lua")
 local bankingFooter = readFile("Modules/Banking/UI/FooterManager.lua")
 local guildBankAdapter = readFile("Modules/Banking/Core/GuildBankAdapter.lua")
+local manifest = readFile("BetterUI.txt")
+local inputAnchor = readFile("Modules/CIM/Keybinds/InputAnchor.lua")
+local watchdog = readFile("Modules/CIM/Core/Diagnostics/Watchdog.lua")
+local genericKeybinds = readFile("Modules/CIM/Keybinds/GenericKeybinds.lua")
+local tradingHouseRuntime = readFile("Modules/TradingHouse/Core/TradingHouseRuntime.lua")
+local hostParseDocs = readFile("docs/reference/logging-host-tail-parse.md")
+local developerGuide = readFile("docs/reference/builog-developer-guide.md")
 
 check(slotActions:find("inventoryJunk", 1, true) ~= nil and slotActions:find("FlowBegin", 1, true) ~= nil,
     "primary inventory junk actions begin builog flows")
@@ -213,6 +230,14 @@ check(logMessageLint:find("PHASE_PATTERNS", 1, true) ~= nil
     and logMessageLint:find("TraceWritEvent", 1, true) ~= nil
     and logMessageLint:find("TraceCompanionRuntime", 1, true) ~= nil
     and logMessageLint:find("TraceCompanionDialog", 1, true) ~= nil
+    and logMessageLint:find("TraceUltimate", 1, true) ~= nil
+    and logMessageLint:find("TraceCoordinator", 1, true) ~= nil
+    and logMessageLint:find("TraceCastBar", 1, true) ~= nil
+    and logMessageLint:find("TraceOrbEvents", 1, true) ~= nil
+    and logMessageLint:find("TraceNameplates", 1, true) ~= nil
+    and logMessageLint:find("TraceGeneralInterface", 1, true) ~= nil
+    and logMessageLint:find("TraceGeneralSetting", 1, true) ~= nil
+    and logMessageLint:find("TraceDrag", 1, true) ~= nil
     and logMessageLint:find("legacyPhaseTotal", 1, true) ~= nil
     and logMessageLint:find("WARN: %d approved legacy TraceEvent phase(s) remain.", 1, true) ~= nil
     and logMessageLint:find("pending_expired", 1, true) ~= nil,
@@ -285,6 +310,126 @@ check(inventoryKeybinds:find("handled = handled == true", 1, true) ~= nil
     and craftBagKeybinds:find('return false, "noTarget"', 1, true) ~= nil
     and craftBagKeybinds:find('"showActions"', 1, true) ~= nil,
     "inventory keybind callbacks report handled/reason/branch outcomes")
+local inputAnchorIndex = manifest:find("Modules\\CIM\\Keybinds\\InputAnchor.lua", 1, true)
+local genericKeybindIndex = manifest:find("Modules\\CIM\\Keybinds\\GenericKeybinds.lua", 1, true)
+local actionContextIndex = manifest:find("Modules\\CIM\\Keybinds\\ActionContext.lua", 1, true)
+check(inputAnchorIndex ~= nil
+    and genericKeybindIndex ~= nil
+    and actionContextIndex ~= nil
+    and inputAnchorIndex < genericKeybindIndex
+    and inputAnchorIndex < actionContextIndex,
+    "InputAnchor loads before shared and module keybind factories")
+check(inputAnchor:find('BETTERUI.CIM.Keybinds.InputAnchor = InputAnchor', 1, true) ~= nil
+    and inputAnchor:find('InputAnchor.Wrap(descriptorEntry', 1, true) ~= nil
+    and inputAnchor:find('InputAnchor.WrapGroup(descriptor', 1, true) ~= nil
+    and inputAnchor:find('"input.keybind", "fired"', 1, true) ~= nil
+    and inputAnchor:find('return callback(...)', 1, true) ~= nil
+    and inputAnchor:find('resolveEnabled(entry)', 1, true) ~= nil,
+    "InputAnchor exposes wrap APIs, emits the standard fired anchor, and preserves callback dispatch")
+local domainLogIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\DomainLog.lua", 1, true)
+local logIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\Log.lua", 1, true)
+local watchdogIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\Watchdog.lua", 1, true)
+local watchModeIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\WatchMode.lua", 1, true)
+local builogCommandsIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\BuilogCommands.lua", 1, true)
+check(domainLogIndex ~= nil
+    and logIndex ~= nil
+    and watchdogIndex ~= nil
+    and watchModeIndex ~= nil
+    and builogCommandsIndex ~= nil
+    and domainLogIndex < logIndex
+    and logIndex < watchdogIndex
+    and watchdogIndex < watchModeIndex
+    and watchModeIndex < builogCommandsIndex,
+    "DomainLog/Log/Watchdog/WatchMode/BuilogCommands load in dependency order")
+check(domainLog:find("function DomainLog.DescribeItem", 1, true) ~= nil
+    and domainLog:find("function DomainLog.DescribeKeybindDescriptor", 1, true) ~= nil
+    and logCore:find("Log.DescribeItem = DomainLog.DescribeItem", 1, true) ~= nil
+    and logCore:find("Log.GetCurrencyAmountForLocation = DomainLog.GetCurrencyAmountForLocation", 1, true) ~= nil,
+    "Domain-specific log describers live in DomainLog behind thin Log aliases")
+check(builogCommands:find("local function HandleCommand(args)", 1, true) ~= nil
+    and builogCommands:find("local function HandleHealthCommand()", 1, true) ~= nil
+    and builogCommands:find("BuilogCommands.Register = Register", 1, true) ~= nil
+    and interfaceLog:find("local function HandleCommand(args)", 1, true) == nil
+    and interfaceLog:find("SLASH_COMMANDS", 1, true) == nil,
+    "builog slash command surface lives outside InterfaceLog transport")
+check(watchdog:find("BETTERUI.CIM.Watchdog = Watchdog", 1, true) ~= nil
+    and watchdog:find("function Watchdog.Expect", 1, true) ~= nil
+    and watchdog:find("function Watchdog.Resolve", 1, true) ~= nil
+    and watchdog:find("function Watchdog.GetStats", 1, true) ~= nil
+    and watchdog:find('traceAnomaly("detected"', 1, true) ~= nil
+    and watchdog:find('traceAnomaly("overflow"', 1, true) ~= nil
+    and watchdog:find("MAX_PENDING = 64", 1, true) ~= nil,
+    "Watchdog core exposes expectation APIs, anomaly events, and the live pending cap")
+check(logCore:find('pcall(watchdog.Expect, "flow"', 1, true) ~= nil
+    and logCore:find('pcall(watchdog.Resolve, "flow"', 1, true) ~= nil
+    and logCore:find("Log.EnabledFor(Log.LEVEL.DEBUG, flowCategory)", 1, true) ~= nil
+    and logCore:find('pcall(watchdog.Deactivate)', 1, true) ~= nil
+    and watchMode:find('pcall(watchdog.Deactivate)', 1, true) ~= nil,
+    "flow envelopes use the exact DEBUG gate and preset/watch deactivation is wired to Watchdog")
+check(hostParseDocs:find("event=anomaly phase=detected", 1, true) ~= nil
+    and hostParseDocs:find("event=anomaly phase=overflow", 1, true) ~= nil
+    and developerGuide:find("Watchdog.Expect(kind, key, timeoutMs, context)", 1, true) ~= nil
+    and developerGuide:find("Log.FlowBegin", 1, true) ~= nil
+    and developerGuide:find("anomaly", 1, true) ~= nil,
+    "anomaly watchdog record family and API rules are documented with the parse contract")
+local keybindAdoptionSource = table.concat({
+    bankingKeybinds,
+    inventoryKeybinds,
+    vendorKeybinds,
+    tradingHouseRuntime,
+    companionsRuntime,
+    companionListManager,
+    companionDialogs,
+    generalSetup,
+}, "\n")
+check(bankingKeybinds:find("WrapBankingKeybindGroup", 1, true) ~= nil
+    and inventoryKeybinds:find("WrapInventoryKeybindGroup", 1, true) ~= nil
+    and vendorKeybinds:find("WrapVendorKeybindGroup", 1, true) ~= nil
+    and tradingHouseRuntime:find("WrapTradingHouseKeybindGroup", 1, true) ~= nil
+    and companionsRuntime:find("WrapCompanionKeybindGroup", 1, true) ~= nil
+    and companionListManager:find("WrapCompanionHeaderKeybindGroup", 1, true) ~= nil
+    and companionDialogs:find("WrapCompanionDialogKeybind", 1, true) ~= nil
+    and generalSetup:find("WrapGeneralInterfaceKeybind", 1, true) ~= nil,
+    "module keybind descriptor surfaces route through InputAnchor wrappers")
+check(bankingKeybinds:find("WrapBankingKeybindGroup(self.coreKeybinds)", 1, true) ~= nil
+    and bankingKeybinds:find("WrapBankingKeybindGroup(self.withdrawDepositKeybinds)", 1, true) ~= nil
+    and bankingKeybinds:find("WrapBankingKeybindGroup(self.currencySelectorKeybinds)", 1, true) ~= nil
+    and bankingKeybinds:find("WrapBankingKeybindGroup(self.currencyKeybinds)", 1, true) ~= nil
+    and inventoryKeybinds:find("WrapInventoryKeybindGroup(self.mainKeybindStripDescriptor)", 1, true) ~= nil
+    and vendorKeybinds:find("return WrapVendorKeybindGroup({", 1, true) ~= nil
+    and vendor:find("VendorKeybinds.BuildCoreKeybinds(vendorInstance", 1, true) ~= nil
+    and containsAfter(tradingHouseRuntime, "function TH.BuildCoreKeybinds", "return WrapTradingHouseKeybindGroup({")
+    and containsAfter(tradingHouseRuntime, "function TH.BuildTabKeybinds", "return WrapTradingHouseKeybindGroup({")
+    and containsAfter(companionsRuntime, "function Companions.BuildCoreKeybinds", "return WrapCompanionKeybindGroup({")
+    and companionListManager:find("WrapCompanionHeaderKeybindGroup(tabBar.keybindStripDescriptor)", 1, true) ~= nil
+    and generalSetup:find("WrapGeneralInterfaceKeybind(descriptor, \"mail_delete\")", 1, true) ~= nil,
+    "keybind construction sites wrap the live descriptor groups, not just helper definitions")
+check(countPlain(companionDialogs, "WrapCompanionDialogKeybind({") >= 6
+    and companionDialogs:find("}, \"batch_destroy_cancel\")", 1, true) ~= nil
+    and companionDialogs:find("}, \"batch_destroy_confirm\")", 1, true) ~= nil
+    and companionDialogs:find("}, \"action_dialog_cancel\")", 1, true) ~= nil
+    and companionDialogs:find("}, \"action_dialog_confirm\")", 1, true) ~= nil
+    and companionDialogs:find("}, \"batch_dialog_cancel\")", 1, true) ~= nil
+    and companionDialogs:find("}, \"batch_dialog_confirm\")", 1, true) ~= nil,
+    "companion dialog button descriptors are wrapped at each cancel/confirm site")
+check(genericKeybinds:find("data.keybind = keybind", 1, true) == nil
+    and inventoryKeybinds:find("data.keybind = keybind", 1, true) == nil
+    and companionsRuntime:find("data.keybind = nil", 1, true) ~= nil
+    and generalSetup:find("payload._inputAnchorDetail == true", 1, true) ~= nil
+    and generalSetup:find("_inputAnchorDetail = true", 1, true) ~= nil
+    and generalSetup:find('payload.fn == "mailDeleteDescriptor.callback"', 1, true) == nil
+    and vendorKeybinds:find("data._inputAnchorDetail = true", 1, true) ~= nil,
+    "keybind detail records avoid duplicating anchor-owned module/keybind/gamepad fields")
+check(keybindAdoptionSource:find('"fired"', 1, true) == nil,
+    "module keybind files do not add bespoke fired KEYBIND emits outside InputAnchor")
+check(generalSetup:find('"general_interface.mail_delete", "requested"', 1, true) ~= nil
+    and generalSetup:find('"general_interface.mail_delete", "confirmed"', 1, true) ~= nil
+    and generalSetup:find('"general_interface.mail_delete", "skipped"', 1, true) ~= nil
+    and generalSetup:find('"general_interface.chat_history", "requested"', 1, true) ~= nil
+    and generalSetup:find('"general_interface.chat_history", "confirmed"', 1, true) ~= nil,
+    "GeneralInterface mail delete and chat-history mutations expose canonical requested/confirmed/skipped lifecycles")
+check((writCore .. "\n" .. writModule):find("keybind%s*=") == nil,
+    "Writs scheduled files currently have no user-fired keybind descriptors to wrap")
 check(inventorySceneLifecycle:find('"inventory.keybind_ownership"', 1, true) ~= nil
     and inventorySceneLifecycle:find("RemoveInventoryKeybindsForSceneExit(self, \"hiding\")", 1, true) ~= nil
     and inventorySceneLifecycle:find("stripHasMain", 1, true) ~= nil
@@ -420,6 +565,30 @@ check(listRefreshManager:find("pendingRefreshFlow", 1, true) ~= nil
     and listRefreshManager:find("options.flow", 1, true) ~= nil
     and transferActions:find("coalesce = true", 1, true) ~= nil,
     "list refresh coalescing carries the latest flow and coalesced count")
+check(transferActions:find('pcall(watchdog.Expect, "bank.transfer"', 1, true) ~= nil
+    and transferActions:find('pcall(watchdog.Resolve, "bank.transfer"', 1, true) ~= nil
+    and countPlain(transferActions, 'WatchdogResolveTransfer(key, "expired")') >= 2,
+    "bank pending transfers register and all expiry paths resolve watchdog expectations")
+check(tradingHouseFlow:find('pcall(watchdog.Expect, "th.op"', 1, true) ~= nil
+    and tradingHouseFlow:find('pcall(watchdog.Resolve, "th.op"', 1, true) ~= nil
+    and tradingHouseFlow:find("TH.ClearPendingOperation and TH.ClearPendingOperation(operation)", 1, true) ~= nil,
+    "trading house pending operations register and resolve watchdog expectations")
+check(listRefreshManager:find('pcall(watchdog.Expect, "list.refresh"', 1, true) ~= nil
+    and listRefreshManager:find('refreshWatchdogPrefix = "manager"', 1, true) ~= nil
+    and listRefreshManager:find('local watchdogKey = tostring(self.refreshWatchdogPrefix or "manager") .. ":" .. tostring(refreshToken)', 1, true) ~= nil
+    and listRefreshManager:find('WatchdogResolveRefresh(options.watchdogKey, "executed")', 1, true) ~= nil
+    and listRefreshManager:find('WatchdogResolveRefresh(self.pendingRefreshWatchdogKey, "cancelled")', 1, true) ~= nil,
+    "list refresh queue/execute/cancel paths register namespaced watchdog expectations")
+check(containsAfter(listRefreshManager, 'BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "executed"',
+    'WatchdogResolveRefresh(options.watchdogKey, "executed")'),
+    "list refresh resolves watchdog expectations after the executed outcome record")
+check(listRefreshManager:find('WatchdogResolveRefresh(watchdogKey, "stale")', 1, true) ~= nil
+    and containsAfter(listRefreshManager, 'WatchdogResolveRefresh(watchdogKey, "stale")',
+        'self.pendingRefreshWatchdogKey = nil'),
+    "list refresh stale-token path resolves and clears its active watchdog key")
+check(builogCommands:find("Watchdog: pending=%s flows=%s detected=%s resolved=%s", 1, true) ~= nil
+    and builogCommands:find("watchdog: pending=%s flows=%s detected=%s resolved=%s", 1, true) ~= nil,
+    "builog status and buihealth include watchdog stats")
 check(vendor:find('RegisterViewScene("vendor"', 1, true) ~= nil
     and vendorControllerRuntime:find('RegisterViewScene("vendor"', 1, true) ~= nil
     and vendorControllerRuntime:find('watch.SetView("vendor."', 1, true) ~= nil

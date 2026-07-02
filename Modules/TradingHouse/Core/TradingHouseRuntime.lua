@@ -35,6 +35,15 @@ local function TraceTHRuntime(event, phase, data)
     L.TraceEvent(categories.ACTION or categories.GENERAL, event, phase, data)
 end
 
+local function WrapTradingHouseKeybindGroup(group)
+    local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+    local anchor = keybinds and keybinds.InputAnchor
+    if anchor and type(anchor.WrapGroup) == "function" then
+        return anchor.WrapGroup(group, "TradingHouse")
+    end
+    return group
+end
+
 ---@return THTabDef[] tabs
 function TH.GetTabs()
     local tabs = {}
@@ -173,7 +182,7 @@ end
 ---@param thInstance BETTERUI.TradingHouse.Class
 ---@return TradingHouseKeybindGroup keybindGroup
 function TH.BuildCoreKeybinds(thInstance)
-    return {
+    return WrapTradingHouseKeybindGroup({
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
             name = function()
@@ -369,13 +378,13 @@ function TH.BuildCoreKeybinds(thInstance)
                 end
             end,
         },
-    }
+    })
 end
 
 ---@param thInstance BETTERUI.TradingHouse.Class
 ---@return TradingHouseKeybindGroup keybindGroup
 function TH.BuildTabKeybinds(thInstance)
-    return {
+    return WrapTradingHouseKeybindGroup({
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
             name = GetString(rawget(_G, "SI_GAMEPAD_PAGED_LIST_PAGE_LEFT_NARRATION")),
@@ -397,7 +406,7 @@ function TH.BuildTabKeybinds(thInstance)
                 return #TH_TABS > 1
             end,
         },
-    }
+    })
 end
 
 function BETTERUI.TradingHouse.Class:CycleTabs(direction)

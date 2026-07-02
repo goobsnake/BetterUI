@@ -12,14 +12,18 @@ Items are phased by dependency and risk. Completed items are migrated to `comple
 
 ### BUI-TRACE-002: Closeout — release-gate checkpoint
 
-All implementation phases (1–10) and the host validation/docs/review gate are complete and archived in `completed-improvements.md` (entries dated 2026-07-01/02). One release-only item remains:
+All implementation phases (1–10) and the host validation/docs/review gate are complete and archived in `completed-improvements.md`. One release-only item remains (extended by BUI-TRACE-003 Phase 6.3):
 
 - [ ] Task: In-game monitor checkpoint (L4, user-assisted) (est: 10 min)
-  - A 5-minute `/builog preset inspect` play-test with `tools/builog-monitor/monitor.sh` covering: one bank deposit+withdraw (expect `requested→confirmed→list.refresh flow=bankTransfer#N`), one vendor buy+sell (expect `requested→settled` with `goldDelta`), one Trading House search (expect `requested→completed` with a shared `opId`), one settings toggle (expect `settings.value write_before/write_after`), and one `/builog privacy on` sample (expect redacted preamble + delta-only currency).
-  - This gates **release/tag only** — the branch is commit-ready on host validation alone. On success, migrate this item and close BUI-TRACE-002; on failure, record findings as a new remediation phase.
+  - A 5-minute `/builog preset inspect` play-test with `tools/builog-monitor/monitor.sh` covering:
+    - one bank deposit+withdraw (expect `requested→confirmed→list.refresh flow=bankTransfer#N`);
+    - one vendor buy+sell (expect `requested→settled` with `goldDelta`);
+    - one Trading House search (expect `requested→completed` with a shared `opId`);
+    - one settings toggle (expect `settings.value write_before/write_after`);
+    - one `/builog privacy on` sample (expect redacted preamble + delta-only currency);
+    - one keybind press in each touched module showing `event=input.keybind phase=fired` (keyboard mode and gamepad mode when available);
+    - one forced anomaly, such as a blocked/stalled bank or list-refresh flow, showing `WARN STATE | event=anomaly phase=detected`;
+    - one combat/HUD sample showing `resource_orbs.ultimate`, `resource_orbs.bar_swap`, and `resource_orbs.cast` records when those in-game actions are available;
+    - one `tools/builog-monitor/monitor.sh digest --last <n>` run over the session, reviewed by the user's AI assistant before release/tag.
+  - Gates **release/tag only** — the branch is commit-ready on host validation alone. On success, migrate this item; on failure, record findings as a remediation phase.
 
-#### Deferred (recorded, deliberately not scheduled)
-
-- Extract ESO-domain describers (`DescribeItem`, `DescribeKeybindDescriptor(s)`, `DescribeListSelection`, `GetCurrencyAmountForLocation`) from `Log.lua` into a `DomainLog.lua` — structural only; revisit if `Log.lua` grows past the ~600-line split threshold again.
-- Per-line `schema=` token (preamble-only is sufficient while `sid` anchors sessions).
-- Legacy phase migration: 336 approved-legacy phase tokens remain visible as lint WARNs (up from 90 once the wrapper surfaces were covered — pure visibility gain, not regression). Migrate per module opportunistically when an `EVENT_SCHEMA` bump is already planned; never as a standalone mass rename.

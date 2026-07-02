@@ -192,14 +192,38 @@ assert_contains(
 
 assert_contains(
     keybindManager,
-    "data.module = data.module or \"Banking\"",
-    "Banking keybind traces always include module context"
+    "WrapBankingKeybindGroup",
+    "Banking keybind descriptors route through the shared input anchor"
 )
 
 assert_contains(
     keybindManager,
-    "data.gamepad = IsInGamepadPreferredMode()",
-    "Banking keybind traces capture live input mode context"
+    "anchor.WrapGroup(group, \"Banking\")",
+    "Banking input anchors carry module and live input mode context"
+)
+
+assert_contains(
+    keybindManager,
+    "WrapBankingKeybindGroup(self.coreKeybinds)",
+    "Banking wraps the core keybind descriptor group at construction"
+)
+
+assert_contains(
+    keybindManager,
+    "WrapBankingKeybindGroup(self.withdrawDepositKeybinds)",
+    "Banking wraps the item transfer keybind descriptor group at construction"
+)
+
+assert_contains(
+    keybindManager,
+    "WrapBankingKeybindGroup(self.currencySelectorKeybinds)",
+    "Banking wraps the currency selector keybind descriptor group at construction"
+)
+
+assert_contains(
+    keybindManager,
+    "WrapBankingKeybindGroup(self.currencyKeybinds)",
+    "Banking wraps the currency transfer keybind descriptor group at construction"
 )
 
 assert_contains(

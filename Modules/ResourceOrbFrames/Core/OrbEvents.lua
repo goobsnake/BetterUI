@@ -55,6 +55,7 @@ local m_combatIndicatorRootFrame = nil
 local m_hasRegisteredCombatIndicators = false
 local m_visibilitySceneCallbacksRegistered = false
 local m_hudSceneHandlersRegistered = false
+local m_lastCombatState = nil
 
 -- Hot-path accessor: returns the live settings table by reference (no deep
 -- clone per tick). Read-only by convention.
@@ -85,6 +86,18 @@ local function TraceOrbEvents(event, phase, data)
     end
     local categories = L.CATEGORY or {}
     L.TraceEvent(categories.STATE, event, phase, data)
+end
+
+local function TraceCombatChanged(inCombat, source)
+    local combat = inCombat == true
+    if m_lastCombatState == combat then return end
+    local previous = m_lastCombatState
+    m_lastCombatState = combat
+    TraceOrbEvents("resource_orbs.combat", "changed", {
+        fn = source,
+        inCombat = combat,
+        previous = previous,
+    })
 end
 
 ---@param rootFrame table|nil Root frame to refresh, or nil to use cached frame
@@ -126,6 +139,7 @@ function Events.SetupCombatIndicators(rootFrame)
         BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatState", EVENT_PLAYER_COMBAT_STATE,
             function(_, inCombat)
                 TraceOrbEvents("resource_orbs.combat_event", "combat_state", { inCombat = inCombat })
+                TraceCombatChanged(inCombat, "EVENT_PLAYER_COMBAT_STATE")
                 if CI.ApplyCombatIndicators then
                     CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, inCombat, true)
                 end
@@ -133,23 +147,28 @@ function Events.SetupCombatIndicators(rootFrame)
 
         BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatDead", EVENT_PLAYER_DEAD, function()
             TraceOrbEvents("resource_orbs.combat_event", "dead", {})
+            TraceCombatChanged(false, "EVENT_PLAYER_DEAD")
             if CI.ApplyCombatIndicators then
                 CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, false, false)
             end
         end)
 
         BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatAlive", EVENT_PLAYER_ALIVE, function()
-            TraceOrbEvents("resource_orbs.combat_event", "alive", { inCombat = IsUnitInCombat("player") })
+            local inCombat = IsUnitInCombat("player")
+            TraceOrbEvents("resource_orbs.combat_event", "alive", { inCombat = inCombat })
+            TraceCombatChanged(inCombat, "EVENT_PLAYER_ALIVE")
             if CI.ApplyCombatIndicators then
-                CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, IsUnitInCombat("player"), false)
+                CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, inCombat, false)
             end
         end)
 
         BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatActivated", EVENT_PLAYER_ACTIVATED,
             function()
-                TraceOrbEvents("resource_orbs.combat_event", "player_activated", { inCombat = IsUnitInCombat("player") })
+                local inCombat = IsUnitInCombat("player")
+                TraceOrbEvents("resource_orbs.combat_event", "player_activated", { inCombat = inCombat })
+                TraceCombatChanged(inCombat, "EVENT_PLAYER_ACTIVATED")
                 if CI.ApplyCombatIndicators then
-                    CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, IsUnitInCombat("player"), false)
+                    CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, inCombat, false)
                 end
             end)
     end

@@ -44,11 +44,14 @@ Modules\CIM\Core\Integration\Interfaces.lua
 Modules\CIM\Core\Diagnostics\FeatureFlags.lua
 Modules\CIM\Core\Diagnostics\DeveloperDebug.lua
 Modules\CIM\Core\Diagnostics\InterfaceLog.lua
+Modules\CIM\Core\Diagnostics\DomainLog.lua
 Modules\CIM\Core\Diagnostics\Log.lua
+Modules\CIM\Core\Diagnostics\Watchdog.lua
 Modules\CIM\Core\Diagnostics\Screenshot.lua
 Modules\CIM\Core\Diagnostics\Names.lua
 Modules\CIM\Core\Diagnostics\DebugInfo.lua
 Modules\CIM\Core\Diagnostics\WatchMode.lua
+Modules\CIM\Core\Diagnostics\BuilogCommands.lua
 Modules\CIM\Core\Diagnostics\Perf.lua
 Modules\CIM\Core\Diagnostics\DebugCommands.lua
 Modules\CIM\Core\Diagnostics\PerformanceProfiler.lua
@@ -105,6 +108,7 @@ Modules\CIM\Core\Window\GenericWindow.lua
 Modules\CIM\Actions\GenericSlotActions.lua
 Modules\CIM\Actions\ProtectionPolicy.lua
 Modules\CIM\Actions\ActionDialogUtils.lua
+Modules\CIM\Keybinds\InputAnchor.lua
 Modules\CIM\Keybinds\GenericKeybinds.lua
 Modules\CIM\Keybinds\ActionContext.lua
 Modules\CIM\Dialogs\DialogRegistry.lua
@@ -278,6 +282,7 @@ Modules\Vendor\Components\StableTrainingComponent.lua
 Modules\Vendor\Components\BuybackComponent.lua
 Modules\Vendor\Components\FenceSellComponent.lua
 Modules\Vendor\Components\FenceLaunderComponent.lua
+Modules\Vendor\Core\VendorKeybinds.lua
 Modules\Vendor\Vendor.lua
 Modules\Vendor\Settings\SettingsPanel.lua
 

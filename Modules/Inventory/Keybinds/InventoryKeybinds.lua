@@ -14,7 +14,6 @@ local function TraceInventoryKeybind(self, keybind, phase, data)
     if not (L and L.TraceEvent) then return end
     data = data or {}
     data.scope = "inventory"
-    data.keybind = keybind
     data.mode = self and self.actionMode
     data.headerSort = self and self.isInHeaderSortMode == true
     data.batch = self and self.IsBatchProcessing and self:IsBatchProcessing() == true
@@ -33,6 +32,15 @@ local function RunInventoryKeybind(self, keybind, action, callback)
         branch = branch,
     })
     return handled, reason, branch
+end
+
+local function WrapInventoryKeybindGroup(group)
+    local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+    local anchor = keybinds and keybinds.InputAnchor
+    if anchor and type(anchor.WrapGroup) == "function" then
+        return anchor.WrapGroup(group, "Inventory")
+    end
+    return group
 end
 
 --- Initializes the main inventory keybind strip.
@@ -227,6 +235,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
     table.insert(self.mainKeybindStripDescriptor, leftTrigger)
     table.insert(self.mainKeybindStripDescriptor, rightTrigger)
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON)
+    WrapInventoryKeybindGroup(self.mainKeybindStripDescriptor)
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.KEYBIND, "inventory main keybind descriptor created", {
             fn = "Inventory:InitializeKeybindStrip",

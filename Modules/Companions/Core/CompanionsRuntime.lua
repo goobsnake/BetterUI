@@ -622,7 +622,7 @@ local function TraceCompanionKeybind(phase, instance, data)
     local L = BETTERUI and BETTERUI.Log
     if not (L and L.TraceEvent) then return end
     data = data or {}
-    data.module = "Companions"
+    data.keybind = nil
     data.scene = rawget(_G, "BETTERUI_COMPANION_EQUIP_SCENE_NAME") or "BETTERUI_CompanionEquipment"
     data.currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
     data.feature = "companion-keybinds"
@@ -642,8 +642,17 @@ local function TraceCompanionKeybind(phase, instance, data)
     L.TraceEvent((L.CATEGORY or {}).KEYBIND or (L.CATEGORY or {}).ACTION, "companions.keybind", phase, data)
 end
 
+local function WrapCompanionKeybindGroup(group)
+    local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+    local anchor = keybinds and keybinds.InputAnchor
+    if anchor and type(anchor.WrapGroup) == "function" then
+        return anchor.WrapGroup(group, "Companions")
+    end
+    return group
+end
+
 function Companions.BuildCoreKeybinds(instance)
-    return {
+    return WrapCompanionKeybindGroup({
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
             name = function()
@@ -855,5 +864,5 @@ function Companions.BuildCoreKeybinds(instance)
                 TraceCompanionKeybind("back_hide_scene", instance, { keybind = "UI_SHORTCUT_NEGATIVE" })
             end,
         },
-    }
+    })
 end

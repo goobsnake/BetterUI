@@ -51,6 +51,15 @@ local function TraceCompanionDialog(dialogId, phase, data)
     L.TraceEvent((L.CATEGORY or {}).DIALOG or (L.CATEGORY or {}).ACTION, "companions.dialog", phase, data)
 end
 
+local function WrapCompanionDialogKeybind(entry, action)
+    local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+    local anchor = keybinds and keybinds.InputAnchor
+    if anchor and type(anchor.Wrap) == "function" then
+        return anchor.Wrap(entry, { module = "Companions", action = action })
+    end
+    return entry
+end
+
 local COMPANION_BATCH_DESTROY_DIALOG = "BETTERUI_COMPANION_BATCH_DESTROY_DIALOG"
 
 --- Destroys the given slot descriptors via the quick path, staggered to avoid
@@ -124,7 +133,7 @@ local function RegisterCompanionBatchDestroyDialog()
             end,
         },
         buttons = {
-            {
+            WrapCompanionDialogKeybind({
                 keybind = "DIALOG_NEGATIVE",
                 text = GetString(rawget(_G, "SI_DIALOG_CANCEL") or "SI_DIALOG_CANCEL"),
                 callback = function(dialog)
@@ -133,8 +142,8 @@ local function RegisterCompanionBatchDestroyDialog()
                         itemCount = dialog and dialog.data and dialog.data.itemCount or nil,
                     })
                 end,
-            },
-            {
+            }, "batch_destroy_cancel"),
+            WrapCompanionDialogKeybind({
                 keybind = "DIALOG_PRIMARY",
                 text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION") or "SI_GAMEPAD_SELECT_OPTION"),
                 callback = function(dialog)
@@ -148,7 +157,7 @@ local function RegisterCompanionBatchDestroyDialog()
                         ExecuteBatchDestroy(data.destroyTargets)
                     end
                 end,
-            },
+            }, "batch_destroy_confirm"),
         },
     })
 end
@@ -235,14 +244,14 @@ local function RegisterCompanionActionDialog()
             dialog:setupFunc()
         end,
         buttons = {
-            {
+            WrapCompanionDialogKeybind({
                 text = SI_DIALOG_CANCEL,
                 keybind = "DIALOG_NEGATIVE",
                 callback = function()
                     TraceCompanionDialog("BETTERUI_COMPANION_ACTION_DIALOG", "cancel", { fn = "RegisterCompanionActionDialog" })
                 end,
-            },
-            {
+            }, "action_dialog_cancel"),
+            WrapCompanionDialogKeybind({
                 text = SI_GAMEPAD_SELECT_OPTION,
                 keybind = "DIALOG_PRIMARY",
                 callback = function(dialog)
@@ -259,7 +268,7 @@ local function RegisterCompanionActionDialog()
                         end
                     end
                 end,
-            },
+            }, "action_dialog_confirm"),
         },
     })
 end
@@ -331,14 +340,14 @@ local function RegisterCompanionBatchDialog()
             dialog:setupFunc()
         end,
         buttons = {
-            {
+            WrapCompanionDialogKeybind({
                 text = SI_DIALOG_CANCEL,
                 keybind = "DIALOG_NEGATIVE",
                 callback = function()
                     TraceCompanionDialog("BETTERUI_COMPANION_BATCH_DIALOG", "cancel", { fn = "RegisterCompanionBatchDialog" })
                 end,
-            },
-            {
+            }, "batch_dialog_cancel"),
+            WrapCompanionDialogKeybind({
                 text = SI_GAMEPAD_SELECT_OPTION,
                 keybind = "DIALOG_PRIMARY",
                 callback = function(dialog)
@@ -403,7 +412,7 @@ local function RegisterCompanionBatchDialog()
                         end
                     end
                 end,
-            },
+            }, "batch_dialog_confirm"),
         },
     })
 end

@@ -2,6 +2,15 @@ if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 
 local Companions = BETTERUI.Companions
 
+local function WrapCompanionHeaderKeybindGroup(group)
+    local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+    local anchor = keybinds and keybinds.InputAnchor
+    if anchor and type(anchor.WrapGroup) == "function" then
+        return anchor.WrapGroup(group, "Companions")
+    end
+    return group
+end
+
 local function IsDirectionalInputListening(obj)
     if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening) then
         return false
@@ -530,6 +539,7 @@ function BETTERUI.Companions.Class:EnsureHeaderKeybindsActive()
     end
 
     if tabBar.keybindStripDescriptor then
+        WrapCompanionHeaderKeybindGroup(tabBar.keybindStripDescriptor)
         BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
     end
 end

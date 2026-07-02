@@ -264,6 +264,25 @@ end
 
 ResourceOrbFrames.IsEnabled = IsResourceOrbFramesEnabled
 
+local function DescribeActiveWeaponBar()
+    if type(GetActiveWeaponPairInfo) ~= "function" then return nil end
+    local pair = GetActiveWeaponPairInfo()
+    if pair == ACTIVE_WEAPON_PAIR_MAIN then return "main" end
+    if pair == ACTIVE_WEAPON_PAIR_BACKUP then return "backup" end
+    return tostring(pair)
+end
+
+local function IsUltimateReady()
+    if not (type(GetSlotAbilityCost) == "function" and type(GetUnitPower) == "function") then return nil end
+    local slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
+    if slotIndex == nil then return nil end
+    local hotbar = type(GetActiveHotbarCategory) == "function" and GetActiveHotbarCategory() or nil
+    local cost = GetSlotAbilityCost(slotIndex, COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE, hotbar)
+    local current = GetUnitPower("player", POWERTYPE_ULTIMATE) or 0
+    if not cost or cost <= 0 then return false end
+    return current >= cost
+end
+
 local function SkipDisabledCallback(fn, event)
     if IsResourceOrbFramesEnabled() then
         return false
@@ -284,10 +303,12 @@ local function RegisterResourceOrbSnapshotProvider()
         local power = CapturePowerState()
         local frontBarCfg = GetFrontBarConfig and GetFrontBarConfig()
         local settings = GetSettings and GetSettings() or {}
-        return string.format("init=%s root=%s combat=%s gp=%s hp=%s/%s mag=%s/%s stam=%s/%s front=%s swap=%s scale=%s offset=%s,%s orbOffset=%s,%s linked=%s",
+        return string.format("init=%s root=%s combat=%s bar=%s ultReady=%s gp=%s hp=%s/%s mag=%s/%s stam=%s/%s front=%s swap=%s scale=%s offset=%s,%s orbOffset=%s,%s linked=%s",
             tostring(m_isInitialized),
             tostring(m_rootFrame ~= nil),
             tostring(type(IsUnitInCombat) == "function" and IsUnitInCombat("player") or nil),
+            tostring(DescribeActiveWeaponBar()),
+            tostring(IsUltimateReady()),
             tostring(type(IsInGamepadPreferredMode) == "function" and IsInGamepadPreferredMode() or nil),
             tostring(power.health), tostring(power.healthMax),
             tostring(power.magicka), tostring(power.magickaMax),

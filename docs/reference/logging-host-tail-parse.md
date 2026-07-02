@@ -77,16 +77,32 @@ backslash-escaped, and capped at 48 characters in both privacy and non-privacy m
   world player zone`, followed by `STATE | active addons count=.. names=..`. An AI
   joining mid-stream should scan back to the most recent one to anchor the session. With
   privacy on, `player`, `zone`, and addon `names` are omitted; `count` remains.
+- **`INFO STATE | event=session phase=report ...`** — explicit `/builog report` anchor.
+  It summarizes file-sink counters, retained/error counts, watchdog anomaly totals,
+  unresolved flow count, and screenshot counters so a host digest can close a session
+  without guessing from chat-only status output.
 - **`event=<name> phase=<phase>` records** — emitted by `Log.TraceEvent`. Parsers should key
   compatibility on the startup preamble `eventSchema=<n>`; per-event `traceVersion=<n>` is a
   legacy mirror included with `eventName=<name>` and `phaseName=<phase>`.
 - **`STATE | snapshot scene=.. <provider fields>`** — periodic heartbeat (~10s) + live
   state. Built-in provider fields include `inventory="window=1 visible=1 ... itemRows=.. keybindMain=.."`
-  and `banking="window=1 visible=1 ... rows=.. pending=.. keybindCore=.."`; hidden windows report
-  compact `window=1 visible=0` instead of stale rows. Absence for ≫10s while
-  the client is up suggests a freeze/hang.
+  and `banking="window=1 visible=1 ... rows=.. pending=.. keybindCore=.."`; combat/HUD
+  providers add `resourceOrbs="... combat=.. bar=.. ultReady=.."` and `nameplates` providers
+  add active-rule/count fields. Hidden windows report compact `window=1 visible=0` instead
+  of stale rows. Absence for ≫10s while the client is up suggests a freeze/hang.
 - **`... [flow begin]` / `... [flow end]`** carrying `flow=<kind>#<n>` — bracket one
   multi-step operation; correlate everything sharing that `flow` id.
+- **`KEYBIND | event=input.keybind phase=fired ...`** — canonical user-input cause anchor.
+  Expected fields are `module`, `action`, `keybind`, `gamepad`, and optional TRACE-only
+  `binding`; module-specific KEYBIND records may add outcome/detail fields but should not
+  duplicate the anchor fields.
+- **`WARN STATE | event=anomaly phase=detected kind=<kind> key=<key> ageMs=<ms> timeoutMs=<ms> ...`**
+  — the addon expected a follow-up record and the timeout elapsed. The key identifies the
+  expected chain, such as `flow`, `bank.transfer`, `th.op`, or `list.refresh`.
+- **`WARN STATE | event=anomaly phase=overflow ...`** — more than 64 expectations were live,
+  so the oldest expectation was dropped. Treat this as a coverage gap and inspect the
+  preceding flow/list/operation records. Expectations run only while builog is active and
+  are cleared by `/builog preset off` and watch-mode deactivation.
 - **Inventory/banking action landmarks** — `ACTION | inventory primary action resolved`, `ACTION | inventory
   primary action invoked`, `ACTION | inventory dialog action confirmed`, `TRANSFER | bank primary transfer
   invoked`, `TRANSFER | bank currency transfer completed/failed`, and `WARN TRANSFER | bank transfer blocked`
@@ -147,3 +163,16 @@ trailing `|r` in post:
 Tail loop (host): seek to EOF, read appended lines, keep those matching `[BUI]`, parse
 per the ERE above, strip a trailing `|r` colour reset from the event, then sort a window
 by `seq`.
+
+Digest mode for completed windows:
+
+```sh
+tools/builog-monitor/monitor.sh digest --last 2000 "<ESO live>/Logs/interface.log"
+tools/builog-monitor/monitor.sh digest --last 2000 --jsonl "<ESO live>/Logs/interface.log"
+```
+
+The human digest groups records by `flow=`, then `opId=`, then `batchId=` and prints
+session preamble info, session reports, timelines with `UNRESOLVED` outcomes, anomalies,
+BUI WARN/ERROR records, real non-BUI Lua errors, drop summaries, and screenshot markers.
+`--jsonl` emits one object per parsed `[BUI]` line with `ts`, `gameMs`, `sid`, `seq`,
+`level`, `category`, `event`, `phase`, `kv`, and `context` fields for AI/tool ingestion.

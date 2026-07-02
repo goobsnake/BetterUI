@@ -26,7 +26,6 @@ local function TraceKeybind(scope, keybind, phase, data)
     if not (L and L.TraceEvent) then return end
     data = data or {}
     data.scope = scope
-    data.keybind = keybind
     L.TraceEvent(L.CATEGORY.KEYBIND, "keybind.callback", phase, data)
 end
 

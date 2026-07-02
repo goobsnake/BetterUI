@@ -150,14 +150,19 @@ local function TraceBankKeybind(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
     data = data or {}
-    data.module = data.module or "Banking"
     if data.scene == nil and BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.GetCurrentSceneName then
         data.scene = BETTERUI.CIM.Utils.GetCurrentSceneName()
     end
-    if data.gamepad == nil and IsInGamepadPreferredMode then
-        data.gamepad = IsInGamepadPreferredMode()
-    end
     L.TraceEvent(L.CATEGORY.KEYBIND, event, phase, data)
+end
+
+local function WrapBankingKeybindGroup(group)
+    local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+    local anchor = keybinds and keybinds.InputAnchor
+    if anchor and type(anchor.WrapGroup) == "function" then
+        return anchor.WrapGroup(group, "Banking")
+    end
+    return group
 end
 
 local function TraceBankCurrencyAction(phase, data)
@@ -1185,6 +1190,10 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     local leftTrigger, rightTrigger = self:CreateListTriggerKeybindDescriptors(function() return self.list end)
     table.insert(self.coreKeybinds, leftTrigger)
     table.insert(self.coreKeybinds, rightTrigger)
+    WrapBankingKeybindGroup(self.coreKeybinds)
+    WrapBankingKeybindGroup(self.withdrawDepositKeybinds)
+    WrapBankingKeybindGroup(self.currencySelectorKeybinds)
+    WrapBankingKeybindGroup(self.currencyKeybinds)
 end
 
 --- Triggers the selection callback to update keybinds for the current selection.

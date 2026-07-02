@@ -28,7 +28,7 @@ Mechanism (proof of concept):
   (grep '[BUI]') for a clean breadcrumb stream and ignore those tracebacks; untagged
   "Lua Error:" entries are real game errors whose traceback matters.
 
-Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | level <lvl> | mark <text> | recent|errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check|test | status
+Usage (slash command): /builog on | off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | privacy on|off | level <lvl> | mark <text> | recent|errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | report | check|test | status
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -524,15 +524,8 @@ InterfaceLog.RegisterReloadQuiesce()
 InterfaceLog.InstallReloadQuiesceHooks()
 
 -- ---------------------------------------------------------------------------
--- Slash command surface
+-- Persisted builog settings surface
 -- ---------------------------------------------------------------------------
-
-local function Out(msg)
-    local chat = G("d")
-    if type(chat) == "function" then
-        chat("|c0066ff[BetterUI]|r " .. msg)
-    end
-end
 
 -- Persist the user's explicit /builog intent so logging survives /reloadui. The
 -- InterfaceLog 'enabled' flag is otherwise session-only (reset to false each load);
@@ -566,10 +559,9 @@ local function PersistLogState(enabled, preset)
     end
 end
 
-local function SetChatSurface(_on, silent)
+local function ForceChatSurfaceOff()
     local L = BETTERUI.Log
     if not (L and L.SetSink and L.LEVEL) then
-        if not silent then Out("Logger not loaded yet.") end
         return false
     end
     -- Builog is file-only. Keep this legacy helper as a forced-off compatibility
@@ -586,9 +578,13 @@ function InterfaceLog.SetLoggingEnabled(value, source)
     if not nextEnabled then
         TraceBuilogSetting("enabled", false)
         InterfaceLog.Write("builog disabled via " .. sourceName)
+        local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+        if watchdog and type(watchdog.Deactivate) == "function" then
+            pcall(watchdog.Deactivate)
+        end
     end
     InterfaceLog.SetEnabled(nextEnabled)
-    SetChatSurface(false, true)
+    ForceChatSurfaceOff()
     PersistLogState(nextEnabled, "")
     if nextEnabled then
         InterfaceLog.Write("builog enabled via " .. sourceName)
@@ -602,7 +598,7 @@ function InterfaceLog.ApplyLogPreset(name)
     if not (L and L.ApplyPreset) then return false, "logger_unavailable" end
     local applied, presetName = L.ApplyPreset(name)
     if applied then
-        SetChatSurface(false, true)
+        ForceChatSurfaceOff()
         local normalized = tostring(presetName or "")
         PersistLogState(normalized ~= "off", normalized ~= "off" and normalized or "")
         PersistLogSetting("interfaceLogMinLevel", "")
@@ -611,13 +607,13 @@ function InterfaceLog.ApplyLogPreset(name)
     return applied, presetName
 end
 
-function InterfaceLog.SetChatSurface(_on, persist)
-    if not SetChatSurface(false) then return false end
+function InterfaceLog.SetChatSurface(on, persist)
+    if not ForceChatSurfaceOff() then return false end
     if persist ~= false then
         PersistLogSetting("interfaceLogChat", false)
         TraceBuilogSetting("chat", false)
     end
-    return true
+    return on ~= true
 end
 
 function InterfaceLog.GetChatSurface()
@@ -631,7 +627,7 @@ function InterfaceLog.SetPopupSuppression(suppress, persist)
         PersistLogSetting("interfaceLogSuppressPopups", nextSuppress)
         TraceBuilogSetting("popups", "suppressed")
     end
-    return true
+    return suppress ~= false
 end
 
 function InterfaceLog.GetMinLevelName()
@@ -687,356 +683,4 @@ function InterfaceLog.GetScreenshotAutoMode()
     return "off"
 end
 
-local function PrintStatus()
-    local L = BETTERUI.Log
-    Out(string.format("InterfaceLog: %s | popups: %s | path: %s",
-        enabled and "|c00ff00ON|r" or "off",
-        suppressPopups and "suppressed" or "visible",
-        InterfaceLog.IsAvailable() and "ready" or "UNAVAILABLE"))
-    if L then
-        Out(string.format("Preset: %s | min level: %s | payloads: %s | privacy=%s",
-            L.GetPreset and tostring(L.GetPreset()):upper() or "?",
-            L.GetMinLevel and (({ "TRACE", "DEBUG", "INFO", "WARN", "ERROR" })[L.GetMinLevel()] or "?") or "?",
-            (L.GetPayloadCapture and L.GetPayloadCapture()) and "on" or "off",
-            InterfaceLog.GetPrivacyMode() and "on" or "off"))
-        Out(string.format("Logger chat surface (ERROR) = %s", L.GetSink(L.LEVEL.ERROR, "chat") and "on" or "off"))
-    end
-    local s = InterfaceLog.GetStats()
-    Out(string.format("Sink budget: frame=%s sec=%s pending=%s/%s | scheduled=%d dropped=%d suppressed=%d",
-        s.maxPerFrame > 0 and tostring(s.maxPerFrame) or "inf",
-        s.maxPerSecond > 0 and tostring(s.maxPerSecond) or "inf",
-        tostring(s.pending or 0),
-        s.maxPending > 0 and tostring(s.maxPending) or "inf",
-        s.scheduled, s.dropped, s.suppressed or 0))
-    local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
-    if S and S.GetStatus then
-        local okShot, shot = pcall(S.GetStatus)
-        if okShot and type(shot) == "table" then
-            Out(string.format("Screenshots: auto=%s | shots=%s/%s user=%s suppressed=%s pending=%s",
-                tostring(shot.autoMode or "off"), tostring(shot.shots or 0),
-                tostring(shot.sessionLimit or "?"), tostring(shot.userShots or 0),
-                tostring(shot.suppressed or 0),
-                tostring(shot.pending or 0)))
-        end
-    end
-    Out("Real Lua errors always log to Interface.log; [BUI] lines are BetterUI's own stream.")
-end
-
-local function PrintScreenshotStatus()
-    local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
-    if not (S and S.GetStatus) then Out("Screenshot service not loaded.") return end
-    local ok, status = pcall(S.GetStatus)
-    if not ok or type(status) ~= "table" then Out("Screenshot status unavailable.") return end
-    Out(string.format("Screenshots: auto=%s | shots=%s/%s user=%s suppressed=%s pending=%s burst=%s/%s duplicate=%sms pendingTtl=%sms",
-        tostring(status.autoMode or "off"), tostring(status.shots or 0),
-        tostring(status.sessionLimit or "?"), tostring(status.userShots or 0),
-        tostring(status.suppressed or 0),
-        tostring(status.pending or 0), tostring(status.burst or 0),
-        tostring(status.burstLimit or "?"), tostring(status.duplicateMs or "?"),
-        tostring(status.pendingTtlMs or "?")))
-end
-
-local function HandleScreenshotCommand(raw)
-    local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
-    if not S then Out("Screenshot service not loaded.") return end
-    local subRaw = raw:match("^[Ss][Cc][Rr][Ee][Ee][Nn][Ss][Hh][Oo][Tt]%s*(.*)$") or ""
-    local sub = subRaw:lower():gsub("^%s+", ""):gsub("%s+$", "")
-
-    if sub == "status" or sub == "auto status" then
-        PrintScreenshotStatus()
-        return
-    end
-
-    if sub == "auto" then
-        Out("Usage: /builog screenshot auto off|error|warn")
-        return
-    end
-
-    if sub:match("^auto%s+%a+$") then
-        local mode = sub:match("^auto%s+(%a+)$")
-        if InterfaceLog.SetScreenshotAutoMode then
-            local ok, applied = InterfaceLog.SetScreenshotAutoMode(mode)
-            if ok then
-                Out("Screenshot auto capture = |c00ff00" .. tostring(applied):upper() .. "|r.")
-                PrintScreenshotStatus()
-            else
-                Out("Unknown screenshot auto mode. Use off|error|warn.")
-            end
-        else
-            Out("Screenshot auto mode unavailable.")
-        end
-        return
-    end
-
-    if S.RequestManual then
-        local ok, reason = S.RequestManual(subRaw)
-        if ok then
-            Out("Screenshot requested" .. (subRaw ~= "" and (": " .. subRaw) or "") .. ".")
-        else
-            Out("Screenshot not taken: " .. tostring(reason or "unavailable") .. ".")
-        end
-    else
-        Out("Screenshot capture unavailable.")
-    end
-end
-
--- capture [seconds]: temporarily raise to TRACE for a bounded window, then auto-revert to
--- the prior preset, so you can grab the next operation in FULL detail without leaving
--- trace running. Cancels a prior pending capture; pcall-guarded.
-local captureRevertId = nil
-local captureGen = 0
-
-local function SnapshotCaptureState(L)
-    local snapshot = { enabled = enabled, preset = "debug", minLevel = nil, payloadCapture = nil }
-    if type(L.GetPreset) == "function" then
-        local okP, preset = pcall(L.GetPreset)
-        if okP and type(preset) == "string" then snapshot.preset = preset end
-    end
-    if type(L.GetMinLevel) == "function" then
-        local okL, level = pcall(L.GetMinLevel)
-        if okL and type(level) == "number" then snapshot.minLevel = level end
-    end
-    if type(L.GetPayloadCapture) == "function" then
-        local okPayload, payload = pcall(L.GetPayloadCapture)
-        if okPayload and type(payload) == "boolean" then snapshot.payloadCapture = payload end
-    end
-    return snapshot
-end
-
-local function RestoreCaptureState(L, snapshot)
-    snapshot = type(snapshot) == "table" and snapshot or { enabled = false, preset = "debug" }
-    local preset = type(snapshot.preset) == "string" and snapshot.preset or "debug"
-    local restoredPreset = false
-    if preset ~= "custom" then
-        local pok, applied = pcall(L.ApplyPreset, preset)
-        restoredPreset = pok and applied
-        if not restoredPreset then pcall(L.ApplyPreset, "debug") end
-    end
-    local preservePreset = preset ~= "custom" and restoredPreset == true
-    if type(snapshot.minLevel) == "number" and type(L.SetMinLevel) == "function" then
-        local okCurrent, current = false, nil
-        if type(L.GetMinLevel) == "function" then
-            okCurrent, current = pcall(L.GetMinLevel)
-        end
-        if not okCurrent or current ~= snapshot.minLevel then
-            pcall(L.SetMinLevel, snapshot.minLevel, preservePreset)
-        end
-    end
-    if type(snapshot.payloadCapture) == "boolean" and type(L.SetPayloadCapture) == "function" then
-        local okCurrent, current = false, nil
-        if type(L.GetPayloadCapture) == "function" then
-            okCurrent, current = pcall(L.GetPayloadCapture)
-        end
-        if not okCurrent or current ~= snapshot.payloadCapture then
-            pcall(L.SetPayloadCapture, snapshot.payloadCapture, preservePreset)
-        end
-    end
-    InterfaceLog.SetEnabled(snapshot.enabled == true)
-end
-
-local function StartCapture(secs)
-    local L = BETTERUI.Log
-    if not (L and L.ApplyPreset and L.GetPreset) then Out("Logger not loaded.") return end
-    local later = G("zo_callLater")
-    -- Require the timer BEFORE applying trace: without it we could never auto-revert and
-    -- would strand the client at TRACE.
-    if type(later) ~= "function" then Out("Capture unavailable (no timer); use /builog preset trace manually.") return end
-    secs = (type(secs) == "number") and math.max(1, math.min(60, secs)) or 5
-
-    -- Cancel any prior pending capture + bump the generation so a stale/raced callback
-    -- (if removal is unavailable or fails) no-ops instead of reverting a newer capture.
-    local remove = G("zo_removeCallLater")
-    if captureRevertId and type(remove) == "function" then pcall(remove, captureRevertId) end
-    captureRevertId = nil
-    captureGen = captureGen + 1
-    local gen = captureGen
-
-    local snapshot = SnapshotCaptureState(L)
-    if not enabled then InterfaceLog.SetEnabled(true) end
-    pcall(L.ApplyPreset, "trace")
-    if L.Info then pcall(L.Info, L.CATEGORY.STATE, "capture window started (" .. secs .. "s, was " .. tostring(snapshot.preset) .. ")") end
-    Out(string.format("Capturing at |c00ff00TRACE|r for %ds, then reverting to %s.", secs, tostring(snapshot.preset)))
-
-    captureRevertId = later(function()
-        if gen ~= captureGen then return end -- superseded by a newer capture: no-op
-        captureRevertId = nil
-        -- Only revert if WE still own the stream (still at the capture's 'trace' preset). If
-        -- the user manually switched presets mid-capture, leave their choice alone -- the
-        -- capture's job is moot.
-        -- pcall GetPreset: this runs inside a deferred zo_callLater, so a faulting getter
-        -- must degrade (revert as if we still own the stream), not raise into the engine's
-        -- callback dispatch. Only SKIP the revert when a DIFFERENT preset is now active.
-        local okP, preset = pcall(function() return L.GetPreset and L.GetPreset() or nil end)
-        if okP and preset and preset ~= "trace" then return end
-        RestoreCaptureState(L, snapshot)
-        if L.Info then pcall(L.Info, L.CATEGORY.STATE, "capture window ended") end
-    end, secs * 1000)
-end
-
--- Dump the last n records from a Log ring getter (GetRecent / GetRecentErrors) to chat,
--- without tailing the file. Bounded + pcall-guarded so a /builog command can never raise.
-local function DumpRecords(getter, n, label)
-    if type(getter) ~= "function" then Out("Logger not loaded.") return end
-    local ok, records = pcall(getter, n)
-    if not ok or type(records) ~= "table" or #records == 0 then
-        Out("No " .. label .. " records captured (logging may be off).") return
-    end
-    Out(string.format("|c0066ff[BetterUI]|r last %d %s record(s):", #records, label))
-    for i = 1, #records do
-        local r = records[i]
-        Out(string.format("  seq=%s %s %s | %s",
-            tostring(r.seq), tostring(r.level), tostring(r.category), tostring(r.message)))
-    end
-end
-
-local function HandleCommand(args)
-    local raw = tostring(args or ""):gsub("^%s+", ""):gsub("%s+$", "")
-
-    -- "mark <text>": a user-placed annotation in the live stream (e.g. /builog mark
-    -- "about to open bank"). Handled before lower() so the annotation keeps its case.
-    local markText = raw:match("^[Mm][Aa][Rr][Kk]%s+(.+)$")
-    if markText then
-        local L = BETTERUI.Log
-        if L and L.Info then
-            pcall(L.Info, L.CATEGORY.STATE, "mark: " .. markText)
-            Out("Marked: " .. markText)
-        else
-            Out("Logger not loaded yet.")
-        end
-        return
-    end
-
-    args = raw:lower()
-
-    if args == "on" then
-        InterfaceLog.SetLoggingEnabled(true, "slash command")
-        InterfaceLog.Write("logging started -- breadcrumbs are tagged [BUI]; grep '[BUI]' for the clean stream. On disk each is engine-wrapped: <ISO-8601 ts> |cff0000Lua Error: [BUI] <gameMs> sid=<sid> seq=<seq> <LEVEL> <CATEGORY> | <event> <key=value ...> then a 'stack traceback:' block (ignore it for [BUI] lines). sid groups one UI-load session; seq is a monotonic order. Levels TRACE<DEBUG<INFO<WARN<ERROR. The ISO timestamp is authoritative wall-clock. 'Lua Error:' entries WITHOUT [BUI] are real game errors -- keep their traceback.")
-        Out("InterfaceLog |c00ff00ENABLED|r -- [BUI] diagnostics stream to Interface.log. Tip: /builog preset watch for guided troubleshooting, or debug|trace for detail.")
-    elseif args == "off" then
-        InterfaceLog.SetLoggingEnabled(false, "slash command")
-        Out("InterfaceLog disabled; error popups restored.")
-    elseif args:match("^preset%s+%a+$") then
-        local name = args:match("^preset%s+(%a+)$")
-        local L = BETTERUI.Log
-        if L and L.ApplyPreset then
-            local applied, presetName = InterfaceLog.ApplyLogPreset(name)
-            if applied then
-                Out("Log preset = |c00ff00" .. tostring(presetName):upper() .. "|r.")
-                PrintStatus()
-            else
-                Out("Unknown preset. Use off|info|watch|debug|trace|inspect.")
-            end
-        else
-            Out("Logger not loaded yet.")
-        end
-    elseif args == "check" or args == "test" then
-        local wasEnabled = enabled
-        if not wasEnabled then InterfaceLog.SetEnabled(true) end
-        InterfaceLog.Write("diagnostic check breadcrumb A (direct Write)")
-        BETTERUI.Debug("diagnostic check breadcrumb B (via BETTERUI.Debug)")
-        if BETTERUI.Log and BETTERUI.Log.Error then BETTERUI.Log.Error("SAFE", "diagnostic check breadcrumb C (via Log.Error)") end
-        Out("Wrote diagnostic breadcrumbs to Interface.log.")
-        if not wasEnabled then Out("(Logging was off; left it ON. Use /builog off to stop.)") end
-    elseif args == "popups on" then
-        InterfaceLog.SetPopupSuppression(true)
-        Out("BetterUI breadcrumbs stay file-only while builog is on.")
-    elseif args == "popups off" then
-        InterfaceLog.SetPopupSuppression(true)
-        Out("BetterUI breadcrumbs are file-only while builog is on.")
-    elseif args == "chat on" then
-        InterfaceLog.SetChatSurface(false)
-        Out("Chat surfacing is disabled; builog remains file-only.")
-    elseif args == "chat off" then
-        InterfaceLog.SetChatSurface(false)
-        Out("Chat surfacing OFF (file-only).")
-    elseif args == "privacy on" or args == "privacy off" then
-        local on = args == "privacy on"
-        if InterfaceLog.SetPrivacyMode(on) then
-            Out("Privacy mode " .. (on and "|c00ff00ON|r" or "off") .. ".")
-            PrintStatus()
-        else
-            Out("Privacy mode unavailable; logger not loaded yet.")
-        end
-    elseif args:match("^level%s+%a+$") then
-        local name = args:match("^level%s+(%a+)$")
-        local ok, applied = InterfaceLog.SetMinLevelSetting(name)
-        if ok then Out("Min log level set to " .. tostring(applied):upper() .. ".")
-        else Out("Unknown level. Use trace|debug|info|warn|error.") end
-    elseif args == "recent" or args:match("^recent%s+%d+$") then
-        local L = BETTERUI.Log
-        DumpRecords(L and L.GetRecent, tonumber(args:match("(%d+)")) or 20, "recent")
-    elseif args == "errors" or args:match("^errors%s+%d+$") then
-        local L = BETTERUI.Log
-        DumpRecords(L and L.GetRecentErrors, tonumber(args:match("(%d+)")) or 20, "error")
-    elseif args == "capture" or args:match("^capture%s+%d+$") then
-        StartCapture(tonumber(args:match("(%d+)")))
-    elseif args == "screenshot" or args:match("^screenshot%s+") then
-        HandleScreenshotCommand(raw)
-    elseif args == "status" then
-        PrintStatus()
-    elseif args == "mark" then
-        Out("Usage: /builog mark <text>  -- annotates the live log with <text>.")
-    elseif args == "snapshot" then
-        local W = BETTERUI.CIM and BETTERUI.CIM.WatchMode
-        if W and W.Snapshot then
-            local ok = pcall(W.Snapshot)
-            Out(ok and "Emitted a STATE snapshot to the log." or "Snapshot failed.")
-        else Out("Watch mode not loaded.") end
-    else
-        PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | privacy on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check|test | status")
-    end
-end
-
-if type(G("SLASH_COMMANDS")) == "table" then
-    local registerSlash = BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.RegisterSlashCommand
-    if type(registerSlash) == "function" then
-        registerSlash("/builog", HandleCommand, { owner = "InterfaceLog" })
-    elseif type(SLASH_COMMANDS["/builog"]) ~= "function" then
-        SLASH_COMMANDS["/builog"] = HandleCommand
-    end
-
-    -- /buihealth: one-shot health summary in chat (preset, session, error count, file-sink
-    -- budget/pending/drops, scene-logger + watch state) without tailing the file. pcall-guarded.
-    local function HandleHealthCommand()
-        local out = G("d")
-        if type(out) ~= "function" then return end
-        -- Fully crash-proof: any partially-loaded/faulty getter must not raise from a slash
-        -- command. Per-field nil guards PLUS a top-level pcall belt; `#` only on a table.
-        local ok, err = pcall(function()
-            local L = BETTERUI.Log
-            out("|c0066ff[BetterUI health]|r")
-            if L then
-                out(string.format("  preset=%s active=%s sid=%s schema=%s",
-                    tostring(L.GetPreset and L.GetPreset()),
-                    tostring(L.IsActive and L.IsActive()),
-                    tostring(L.GetSessionId and L.GetSessionId()),
-                    tostring(L.SCHEMA)))
-                local errsT = L.GetRecentErrors and L.GetRecentErrors()
-                local retained = (type(errsT) == "table") and #errsT or "?"
-                out(string.format("  errors=%s (retained=%s) -- /builog errors to list",
-                    tostring(L.GetErrorCount and L.GetErrorCount()), tostring(retained)))
-            else
-                out("  logger not loaded")
-            end
-            local s = InterfaceLog.GetStats()
-            out(string.format("  file: scheduled=%s pending=%s/%s dropped=%s budget=%s/frame %s/sec",
-                tostring(s.scheduled), tostring(s.pending or 0),
-                s.maxPending > 0 and tostring(s.maxPending) or "inf",
-                tostring(s.dropped),
-                s.maxPerFrame > 0 and tostring(s.maxPerFrame) or "inf",
-                s.maxPerSecond > 0 and tostring(s.maxPerSecond) or "inf"))
-            local SL = BETTERUI.CIM and BETTERUI.CIM.SceneLog
-            local W = BETTERUI.CIM and BETTERUI.CIM.WatchMode
-            out(string.format("  sceneLog=%s watch=%s",
-                tostring(SL and SL.IsRegistered and SL.IsRegistered()),
-                tostring(W and W.IsActive and W.IsActive())))
-        end)
-        if not ok then out("  (health check error: " .. tostring(err) .. ")") end
-    end
-    if type(registerSlash) == "function" then
-        registerSlash("/buihealth", HandleHealthCommand, { owner = "InterfaceLog" })
-    elseif type(SLASH_COMMANDS["/buihealth"]) ~= "function" then
-        SLASH_COMMANDS["/buihealth"] = HandleHealthCommand
-    end
-end
+-- Slash-command handlers and registration live in BuilogCommands.lua.

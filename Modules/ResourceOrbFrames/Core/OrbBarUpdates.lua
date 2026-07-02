@@ -148,6 +148,13 @@ function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, sh
         hasColorOverride = castFillColor ~= nil,
         powerProbeArmed = self.pendingPowerProbeStartMs > 0,
     })
+    TraceCastBar("resource_orbs.cast", "begin", {
+        fn = "CastBar.OnCastStart",
+        abilityName = abilityName,
+        durationMs = castDuration,
+        channeled = self.isChanneled,
+        countdown = self.showCountdown,
+    })
 end
 
 ---@param unitTag string Unit tag (e.g. "player")
@@ -169,6 +176,11 @@ function CastBar:OnCastStop(unitTag, wasInterrupted)
     self.appliedCastLabelText = nil
     self:Update()
     TraceCastBar("resource_orbs.cast_bar", "cast_stop", {
+        fn = "CastBar.OnCastStop",
+        abilityName = abilityName,
+        interrupted = wasInterrupted == true,
+    })
+    TraceCastBar("resource_orbs.cast", "end", {
         fn = "CastBar.OnCastStop",
         abilityName = abilityName,
         interrupted = wasInterrupted == true,

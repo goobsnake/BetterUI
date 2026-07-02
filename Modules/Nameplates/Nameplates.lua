@@ -257,6 +257,31 @@ local originalKeyboardStyle = nil
 local originalGamepadFont = nil
 local originalGamepadStyle = nil
 local originalFontsCaptured = false
+local lastNameplatesVisible = nil
+
+local function CountActiveNameplateRules(settings)
+    if not (settings and settings.m_enabled == true) then return 0 end
+    local count = 0
+    count = count + 1
+    if settings and settings.font ~= nil then count = count + 1 end
+    if settings and settings.style ~= nil then count = count + 1 end
+    if settings and settings.size ~= nil then count = count + 1 end
+    return count
+end
+
+local function TraceNameplateVisibility(visible, reason)
+    local state = visible == true
+    if lastNameplatesVisible == state then return end
+    local previous = lastNameplatesVisible
+    lastNameplatesVisible = state
+    TraceNameplates("nameplates.visibility", "changed", {
+        fn = "Nameplates.TraceNameplateVisibility",
+        rule = "moduleEnabled",
+        reason = reason,
+        visible = state,
+        previous = previous,
+    })
+end
 
 local function RegisterNameplateSnapshotProvider()
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
@@ -265,8 +290,9 @@ local function RegisterNameplateSnapshotProvider()
     end
     watch.RegisterSnapshotProvider("nameplates", function()
         local settings = GetSettings()
-        return string.format("enabled=%s font=%s style=%s size=%s captured=%s kb=%s gp=%s",
+        return string.format("enabled=%s activeRules=%s font=%s style=%s size=%s captured=%s kb=%s gp=%s",
             tostring(settings and settings.m_enabled),
+            tostring(CountActiveNameplateRules(settings)),
             tostring(settings and settings.font),
             tostring(settings and settings.style),
             tostring(settings and settings.size),
@@ -444,6 +470,12 @@ local function ApplyNameplateFont(font, style, size)
         keyboardError = keyboardOk and nil or tostring(keyboardError),
         gamepadError = gamepadOk and nil or tostring(gamepadError),
     })
+    TraceNameplates("nameplates.refresh", "end", {
+        fn = "Nameplates.ApplyNameplateFont",
+        appliedCount = (keyboardApplied and 1 or 0) + (gamepadApplied and 1 or 0),
+        skippedCount = (keyboardSkipped and 1 or 0) + (gamepadSkipped and 1 or 0),
+        failedCount = (keyboardOk and 0 or 1) + (gamepadOk and 0 or 1),
+    })
 end
 
 local function SetupEvents(enabled, suppressCleanupLog)
@@ -569,6 +601,7 @@ function Nameplates.Setup()
         size = settings and settings.size,
     })
     if settings.m_enabled then
+        TraceNameplateVisibility(true, "setup")
         ApplyNameplateFont(settings.font, settings.style, settings.size)
         SetupEvents(true)
     end
@@ -581,6 +614,7 @@ function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
         enabled = m_enabled,
         suppressCleanupLog = suppressCleanupLog,
     })
+    TraceNameplateVisibility(m_enabled == true, "enabledChanged")
     SetupEvents(m_enabled, suppressCleanupLog)
     if m_enabled then
         local settings = GetSettings()

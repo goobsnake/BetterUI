@@ -505,6 +505,24 @@ local function CountPendingTransfersRaw()
     return count
 end
 
+local function WatchdogExpectTransfer(key, bagId, slotIndex, flow)
+    local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+    if watchdog and type(watchdog.Expect) == "function" then
+        pcall(watchdog.Expect, "bank.transfer", key, PENDING_TRANSFER_TIMEOUT_MS, {
+            bagId = bagId,
+            slotIndex = slotIndex,
+            flow = flow,
+        })
+    end
+end
+
+local function WatchdogResolveTransfer(key, outcome)
+    local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+    if watchdog and type(watchdog.Resolve) == "function" then
+        pcall(watchdog.Resolve, "bank.transfer", key, outcome)
+    end
+end
+
 function MarkTransferPending(bagId, slotIndex, flow)
     if bagId == nil or slotIndex == nil then
         TraceBankTransfer("bank.item_transfer", "pending_mark_skipped", bagId, slotIndex, {
@@ -512,10 +530,12 @@ function MarkTransferPending(bagId, slotIndex, flow)
         })
         return
     end
-    _pendingTransfers[MakeTransferKey(bagId, slotIndex)] = {
+    local key = MakeTransferKey(bagId, slotIndex)
+    _pendingTransfers[key] = {
         timestamp = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0,
         flow = flow,
     }
+    WatchdogExpectTransfer(key, bagId, slotIndex, flow)
     TraceBankTransfer("bank.item_transfer", "pending_marked", bagId, slotIndex, {
         pendingAfter = CountPendingTransfersRaw(),
         flow = flow,
@@ -527,7 +547,10 @@ local function ClearTransferPending(bagId, slotIndex)
     local key = MakeTransferKey(bagId, slotIndex)
     local entry = _pendingTransfers[key]
     local hadPending = entry ~= nil
-    _pendingTransfers[MakeTransferKey(bagId, slotIndex)] = nil
+    _pendingTransfers[key] = nil
+    if hadPending then
+        WatchdogResolveTransfer(key, "cleared")
+    end
     return hadPending, entry
 end
 
@@ -541,6 +564,7 @@ local function IsTransferPending(bagId, slotIndex)
     local now = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or timestamp
     if (now - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
         _pendingTransfers[key] = nil
+        WatchdogResolveTransfer(key, "expired")
         TraceBankTransfer("bank.item_transfer", "expired", bagId, slotIndex, {
             source = "IsTransferPending",
             ageMs = now - timestamp,
@@ -559,6 +583,7 @@ function SweepStaleTransfers()
         local timestamp = PendingTimestamp(entry)
         if (now - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
             _pendingTransfers[key] = nil
+            WatchdogResolveTransfer(key, "expired")
             local bagId, slotIndex = key:match("^([^:]+):([^:]+)$")
             TraceBankTransfer("bank.item_transfer", "expired", tonumber(bagId), tonumber(slotIndex), {
                 source = "SweepStaleTransfers",

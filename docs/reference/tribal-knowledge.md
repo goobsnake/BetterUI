@@ -608,9 +608,10 @@ Interface.log. Verified: suppression hides the dialog but the line still logs.
   low-level setter diverges from a preset.
 - **Surface toggles** (`/builog`): `on|off` (enable/disable), `preset off|info|watch|debug|trace|inspect`,
   `check|test`, `mark <text>`, `recent|errors [n]`, `capture [secs]`, `screenshot [label]`,
-  `screenshot auto off|error|warn`, `snapshot`, `popups on|off` (legacy no-op; builog stays
-  file-only), `level <lvl>`, `status` (frame/sec/pending budget + scheduled/dropped/suppressed
-  counters). `chat on|off` is a legacy no-op; builog stays file-only.
+  `screenshot auto off|error|warn`, `snapshot`, `report`, `popups on|off` (breadcrumbs stay
+  suppressed while builog is enabled; use `/builog off` to restore player-visible error popups),
+  `level <lvl>`, `status` (frame/sec/pending budget + scheduled/dropped/suppressed counters),
+  and `chat on|off` (chat surfacing is unsupported, so builog stays file-only).
 - `BETTERUI.Debug` / `BETTERUI.DebugError` / `BETTERUI.CIM.Debug.Log` are back-compat
   wrappers that route through `BETTERUI.Log`. `SafeExecute` caught errors route through
   `Log.Error("SAFE", ...)` while builog is active, or ESO's native Lua error popup when it is off.

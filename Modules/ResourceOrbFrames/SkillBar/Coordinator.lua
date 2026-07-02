@@ -13,6 +13,7 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 local m_backBarBaseX = 0
 local m_backBarBaseY = 0
 local m_swapTimeline = nil
+local m_lastActiveWeaponPair = nil
 
 -- Helpers
 local FindControl = BETTERUI.ControlUtils.FindControl
@@ -34,6 +35,42 @@ local function TraceCoordinator(event, phase, data)
     data.feature = "skillBarCoordinator"
     local categories = L.CATEGORY or {}
     L.TraceEvent(categories.STATE or categories.LIFECYCLE, event, phase, data)
+end
+
+local function ShouldTraceCoordinator()
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return false end
+    if type(L.EnabledFor) ~= "function" then return true end
+    local categories = L.CATEGORY or {}
+    local levels = L.LEVEL or {}
+    local level = levels.DEBUG
+    if type(level) ~= "number" then
+        return type(L.IsActive) ~= "function" or L.IsActive()
+    end
+    return L.EnabledFor(level, categories.STATE or categories.LIFECYCLE)
+end
+
+local function DescribeWeaponPair(pair)
+    if pair == ACTIVE_WEAPON_PAIR_MAIN then return "main" end
+    if pair == ACTIVE_WEAPON_PAIR_BACKUP then return "backup" end
+    if pair == nil then return nil end
+    return tostring(pair)
+end
+
+local function TraceBarSwapChanged()
+    if not ShouldTraceCoordinator() then return end
+    if type(GetActiveWeaponPairInfo) ~= "function" then return end
+    local newPair = GetActiveWeaponPairInfo()
+    local oldPair = m_lastActiveWeaponPair
+    m_lastActiveWeaponPair = newPair
+    if oldPair == newPair then return end
+    TraceCoordinator("resource_orbs.bar_swap", "changed", {
+        fn = "WeaponSwapAnimation",
+        oldBar = DescribeWeaponPair(oldPair),
+        newBar = DescribeWeaponPair(newPair),
+        oldPair = oldPair,
+        newPair = newPair,
+    })
 end
 
 -- MAIN BAR & LAYOUT ORCHESTRATION
@@ -247,6 +284,7 @@ local function WeaponSwapAnimation(rootFrame)
     })
 
     if not settings or not settings.weaponSwapAnimation or settings.hideBackBar or not backBarContainer or not frontBarContainer or not bgMiddle then
+        TraceBarSwapChanged()
         SkillBar.UpdateBackBar(rootFrame)
         SkillBar.UpdateFrontBar(rootFrame)
         TraceCoordinator("resource_orbs.weapon_swap", "skipped", {
@@ -262,6 +300,7 @@ local function WeaponSwapAnimation(rootFrame)
         })
         return
     end
+    TraceBarSwapChanged()
 
     if m_swapTimeline and m_swapTimeline:IsPlaying() then
         StopWeaponSwapAnimation(rootFrame)

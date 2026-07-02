@@ -30,6 +30,7 @@ function GetGameTimeMilliseconds() return 100 end
 function GetTimeStamp() return 305419896 end -- stable sid input (-> hex sid)
 function zo_strformat(_, s) return s end     -- Names.Item dependency (unused here)
 
+dofile("Modules/CIM/Core/Diagnostics/DomainLog.lua")
 dofile("Modules/CIM/Core/Diagnostics/Log.lua")
 dofile("Modules/CIM/Core/Diagnostics/Names.lua")
 local Log = BETTERUI.Log
@@ -115,6 +116,11 @@ check(p ~= nil and p.level == "WARN" and p.event:find("dropped=12", 1, true) ~= 
 p = parse("[BUI] 100 sid=12345678 seq=100 INFO LOG | long payload truncated=1")
 check(p ~= nil and p.event:find("truncated=1", 1, true) ~= nil,
     "truncated marker parses as a normal event field")
+p = parse("[BUI] 100 sid=12345678 seq=101 WARN STATE | event=anomaly phase=detected kind=flow key=flow#1 ageMs=30001 timeoutMs=30000")
+check(p ~= nil and p.level == "WARN" and p.cat == "STATE"
+    and p.event:find("event=anomaly", 1, true) ~= nil
+    and p.event:find("phase=detected", 1, true) ~= nil,
+    "anomaly watchdog records parse as WARN STATE event/phase records")
 
 -- 7. Engine-wrapped on-disk form: apply the host strip recipe (anchor on [BUI], drop |r).
 local wrapped = '2026-06-20T12:00:00.000Z |cff0000Lua Error: '

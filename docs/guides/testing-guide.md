@@ -49,6 +49,15 @@ These suites were added/extended alongside the v3.06 fix batch:
 | `test_orb_latch.lua` | MPR-4 — drives the real `ExperienceBar:Update` / orb-label bar code and asserts no redundant `SetText`/`SetFont` on unchanged font/dimensions/anchors/value (per-frame HUD latching) |
 | `test_tooltip_helpers.lua` | MPR-4 (extended) — the `AddTopLinesToTopSection` suppression hook returns `true` only in BetterUI-enhanced contexts and `false` otherwise (native/other-addon top lines preserved); PB-004 set-collection tag still appears in-enhancement |
 
+#### BUI-TRACE-003 Contract Coverage
+
+| File | Covers |
+|------|--------|
+| `test_input_anchor.lua` | Canonical `event=input.keybind phase=fired` keybind cause anchor, gamepad flag, callback behavior, and zero emission while logging is off |
+| `test_watchdog.lua` | Expectation watchdog resolve/timeout/overflow behavior and timer shutdown while logging is inactive |
+| `test_resource_orbs_trace_source.lua` | Coalesced resource-orb ultimate, bar-swap, cast, and combat trace families |
+| `test_builog_monitor_source.lua` | Host monitor digest, unresolved-flow/anomaly sections, drop totals, screenshot markers, session reports, and JSONL output |
+
 > **Load-order note**: any standalone test that `dofile`s `Inventory/Core/Utils.lua` must load `CIM/Core/Utilities.lua` first — `BETTERUI.Inventory.Utils` delegates slot-identity helpers to `BETTERUI.CIM.Utils` (CIM-before-Inventory).
 
 ### Running Tests
@@ -59,6 +68,12 @@ lua tools/tests/run_all_tests.lua
 
 # Run individual test
 lua tools/tests/test_feature_flags.lua
+
+# Run BUI-TRACE-003 diagnostics contract tests
+lua tools/tests/test_input_anchor.lua
+lua tools/tests/test_watchdog.lua
+lua tools/tests/test_resource_orbs_trace_source.lua
+lua tools/tests/test_builog_monitor_source.lua
 
 # Syntax validation
 luac -p tools/tests/*.lua
@@ -97,7 +112,7 @@ The static validators above are part of the **regular test routine** — run the
    - `/builog preset trace` - TRACE+ without watch enrichment; use only when you need raw step detail.
    - `/builog preset off` - stop file logging and restore error popups.
 
-   Lower-level commands still work under the presets: `/builog on|off`, `/builog level <trace|debug|info|warn|error>`, `/builog mark <text>`, `/builog recent|errors [n]`, `/builog capture [secs]`, `/builog screenshot [label]`, `/builog snapshot`, `/builog check` or `/builog test`, and `/builog status`. `chat on|off` and `popups on|off` are compatibility no-ops for BetterUI breadcrumbs; builog stays file-only while enabled. Logging is inert until enabled, so legacy `/script BETTERUI.Debug("test")` (now routed through `BETTERUI.Log`) only writes once logging is enabled. See [builog-developer-guide.md](../reference/builog-developer-guide.md) for instrumentation standards.
+   Lower-level commands still work under the presets: `/builog on|off`, `/builog level <trace|debug|info|warn|error>`, `/builog mark <text>`, `/builog recent|errors [n]`, `/builog capture [secs]`, `/builog screenshot [label]`, `/builog screenshot auto off|error|warn`, `/builog privacy on|off`, `/builog snapshot`, `/builog report`, `/builog check` or `/builog test`, and `/builog status`. `chat on|off` and `popups on|off` are compatibility commands: chat surfacing remains unsupported/file-only, generated breadcrumb popups stay suppressed while builog is enabled, and `/builog off` restores player-visible error popups. Logging is inert until enabled, so legacy `/script BETTERUI.Debug("test")` (now routed through `BETTERUI.Log`) only writes once logging is enabled. See [builog-developer-guide.md](../reference/builog-developer-guide.md) for instrumentation standards.
 3. **Clear UI errors** - `/reloadui` before starting session
 
 ---

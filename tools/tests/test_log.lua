@@ -39,9 +39,11 @@ function TakeScreenshot()
     return true
 end
 
+dofile("Modules/CIM/Core/Diagnostics/DomainLog.lua")
 dofile("Modules/CIM/Core/Diagnostics/Log.lua")
 pcall(dofile, "Modules/CIM/Core/Diagnostics/Screenshot.lua")
 local Log = BETTERUI.Log
+local DomainLog = BETTERUI.CIM.DomainLog
 local Screenshot = BETTERUI.CIM.Screenshot or {}
 
 -- Flip the (stubbed) InterfaceLog enable state AND invalidate the logger's memoized
@@ -75,6 +77,13 @@ print("\n=== Log Tests ===\n")
 check(Log.SCHEMA == 1, "Log exposes the line schema version")
 check(Log.EVENT_SCHEMA == 1, "Log exposes the event taxonomy schema version")
 check(Log.CATEGORY.TRANSFER == "TRANSFER", "Log exposes the TRANSFER category")
+check(type(DomainLog) == "table", "DomainLog module loads before Log")
+check(Log.DescribeItem == DomainLog.DescribeItem, "Log.DescribeItem aliases DomainLog")
+check(Log.DescribeKeybindDescriptor == DomainLog.DescribeKeybindDescriptor, "Log.DescribeKeybindDescriptor aliases DomainLog")
+check(Log.DescribeKeybindDescriptors == DomainLog.DescribeKeybindDescriptors, "Log.DescribeKeybindDescriptors aliases DomainLog")
+check(Log.CountKeybindDescriptors == DomainLog.CountKeybindDescriptors, "Log.CountKeybindDescriptors aliases DomainLog")
+check(Log.DescribeListSelection == DomainLog.DescribeListSelection, "Log.DescribeListSelection aliases DomainLog")
+check(Log.GetCurrencyAmountForLocation == DomainLog.GetCurrencyAmountForLocation, "Log.GetCurrencyAmountForLocation aliases DomainLog")
 
 -- Default routing: DEBUG -> file only, formatted with level+category+ts.
 fileLines = {}; chatLines = {}
@@ -105,6 +114,55 @@ check(privateItemDesc:find("bag=1", 1, true) ~= nil
     "DescribeItem keeps non-identifying item anchors when privacy is on")
 Log.SetPrivacyMode(false)
 check(Log.GetPrivacyMode() == false, "SetPrivacyMode(false) disables privacy mode")
+
+local descriptor = {
+    {
+        keybind = "UI_SHORTCUT_PRIMARY",
+        name = function() return "Take Item" end,
+        visible = function() return true end,
+        callback = function() end,
+    },
+}
+local descriptorText = Log.DescribeKeybindDescriptor(descriptor, "group")
+local descriptorId = descriptorText:match("group:(kb%d+)%[")
+check(descriptorId ~= nil
+    and descriptorText:find("PRIMARY:Take_Item:v1:cb1", 1, true) ~= nil,
+    "DomainLog describes keybind descriptor shape")
+check(Log.DescribeKeybindDescriptor(descriptor):find(descriptorId, 1, true) ~= nil,
+    "DomainLog keeps keybind descriptor ids stable")
+check(Log.DescribeKeybindDescriptors({ descriptor }, "groups"):find("groups:groups=1", 1, true) ~= nil,
+    "DomainLog describes keybind descriptor groups")
+check(Log.CountKeybindDescriptors({ descriptor, descriptor }) == 2,
+    "DomainLog counts descriptor groups")
+
+local listSelection = Log.DescribeListSelection({
+    selectedIndex = 2,
+    dataList = { { name = "One" }, { name = "Two" } },
+    selectedData = { name = "Two", itemId = 99 },
+}, "list")
+check(listSelection:find("list:idx=2 count=2 selected:{", 1, true) ~= nil
+    and listSelection:find("name=Two", 1, true) ~= nil,
+    "DomainLog describes list selection with selected item")
+
+CURRENCY_LOCATION_CHARACTER = 1
+CURRENCY_LOCATION_BANK = 2
+function GetCurrencyAmount(currencyType, location)
+    if location == CURRENCY_LOCATION_BANK then
+        return (currencyType * 1000) + location
+    end
+    error("unsupported location")
+end
+function GetCarriedCurrencyAmount(currencyType) return (currencyType * 10) + 1 end
+function GetBankedCurrencyAmount(currencyType) return (currencyType * 10) + 2 end
+check(Log.GetCurrencyAmountForLocation(7, CURRENCY_LOCATION_BANK) == 7002,
+    "DomainLog prefers GetCurrencyAmount when available")
+check(Log.GetCurrencyAmountForLocation(7, CURRENCY_LOCATION_CHARACTER) == 71,
+    "DomainLog falls back to carried currency amount when direct lookup errors")
+check(Log.GetCurrencyAmountForLocation(7, CURRENCY_LOCATION_BANK) == 7002,
+    "DomainLog preserves direct currency lookup after fallback path")
+GetCurrencyAmount = function() error("forced fallback") end
+check(Log.GetCurrencyAmountForLocation(7, CURRENCY_LOCATION_BANK) == 72,
+    "DomainLog falls back to banked currency amount when direct lookup errors")
 
 -- data argument is summarized and appended.
 fileLines = {}
@@ -336,15 +394,48 @@ check(la ~= nil and la.message == "pressed A" and la.flow == f1, "SetLastAction/
 
 -- Flow envelopes emit begin/end records carrying flow=<id> (watch preset: DEBUG -> file).
 fileLines = {}
+local watchdogExpectations = {}
+local watchdogResolutions = {}
+BETTERUI.CIM.Watchdog = {
+    Expect = function(kind, key, timeoutMs, context)
+        watchdogExpectations[#watchdogExpectations + 1] = {
+            kind = kind,
+            key = key,
+            timeoutMs = timeoutMs,
+            context = context,
+        }
+        return true
+    end,
+    Resolve = function(kind, key, outcome)
+        watchdogResolutions[#watchdogResolutions + 1] = { kind = kind, key = key, outcome = outcome }
+        return true
+    end,
+}
 local flow = Log.FlowBegin("withdraw", Log.CATEGORY.ACTION, "withdraw 50g")
 check(type(flow) == "string" and flow:find("withdraw#%d") ~= nil, "FlowBegin returns a flow id")
 check(#fileLines == 1 and fileLines[1]:find("[flow begin]", 1, true) ~= nil
     and fileLines[1]:find("flow=" .. flow, 1, true) ~= nil, "FlowBegin emits a begin envelope with flow=<id>")
 check(Log.GetLastAction() and Log.GetLastAction().flow == flow, "FlowBegin records the flow as last action")
+check(#watchdogExpectations == 1
+    and watchdogExpectations[1].kind == "flow"
+    and watchdogExpectations[1].key == flow
+    and watchdogExpectations[1].timeoutMs == 30000,
+    "FlowBegin creates a watchdog expectation when the DEBUG flow envelope is emitted")
 fileLines = {}
 Log.FlowEnd(flow, Log.CATEGORY.ACTION, "done")
 check(#fileLines == 1 and fileLines[1]:find("[flow end]", 1, true) ~= nil
     and fileLines[1]:find("flow=" .. flow, 1, true) ~= nil, "FlowEnd emits an end envelope with flow=<id>")
+check(#watchdogResolutions == 1
+    and watchdogResolutions[1].kind == "flow"
+    and watchdogResolutions[1].key == flow
+    and watchdogResolutions[1].outcome == "ended",
+    "FlowEnd resolves the matching watchdog expectation")
+fileLines = {}; watchdogExpectations = {}
+Log.ApplyPreset("info")
+Log.FlowBegin("infoOnly", Log.CATEGORY.ACTION, "info-only flow")
+check(#fileLines == 0 and #watchdogExpectations == 0,
+    "FlowBegin does not create watchdog expectations when the DEBUG flow envelope is gated off")
+Log.ApplyPreset("watch")
 
 -- Flow envelopes never raise on non-string message/flow (safeTostring guards them).
 local hostileMsg = setmetatable({}, { __tostring = function() error("no") end })

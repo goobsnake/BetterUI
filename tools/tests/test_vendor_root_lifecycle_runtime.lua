@@ -343,6 +343,7 @@ BETTERUI.CIM.Runner = {
 dofile("Modules/Vendor/Core/VendorSafeExecute.lua")
 dofile("Modules/Vendor/Core/Lifecycle/VendorEventBridge.lua")
 dofile("Modules/Vendor/Core/Lifecycle/VendorInteractionRuntime.lua")
+dofile("Modules/Vendor/Core/VendorKeybinds.lua")
 dofile("Modules/Vendor/Vendor.lua")
 
 -- Vendor init-time collaborators required after loading root table.

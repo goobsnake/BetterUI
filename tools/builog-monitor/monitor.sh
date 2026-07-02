@@ -6,6 +6,7 @@
 #
 # Usage:
 #   tools/builog-monitor/monitor.sh [minutes] [interval_seconds] [log_path] [screenshot_dir]
+#   tools/builog-monitor/monitor.sh digest [--since <ISO>] [--last <n-lines>] [--jsonl] [log_path|remote]
 #
 #   minutes          how long to watch (default 2). Fractional ok (e.g. 0.5).
 #   interval_seconds seconds between samples (default 10). 5 to pinpoint a repro,
@@ -25,6 +26,8 @@
 #                      /mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots
 #                    Remote default:
 #                      smb://goobers/elder%20scrolls%20online/live/Screenshots
+#   digest           parse an existing log window into timelines, anomalies, real Lua
+#                    errors, drop summaries, screenshots, and optional JSONL records.
 #
 # Prerequisite in-game: /builog preset inspect   (richest stream: trace depth + watch
 # enrichment). Lighter options: watch | debug | trace. /builog status shows counters.
@@ -36,6 +39,12 @@
 # Exit 0 normally, 1 if the log file cannot be found.
 
 set -u
+
+MODE="watch"
+if [ "${1:-}" = "digest" ]; then
+  MODE="digest"
+  shift
+fi
 
 MINUTES="${1:-2}"
 INTERVAL="${2:-10}"
@@ -181,6 +190,297 @@ resolve_screenshot_request() {
     *) printf '%s\n' "$request" ;;
   esac
 }
+
+run_digest() {
+  local jsonl=0
+  local since=""
+  local last_lines=""
+  local log_request="${BUILOG_INTERFACE_LOG:-$DEFAULT_LOG}"
+  local log_path
+  local iso_ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$'
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --jsonl)
+        jsonl=1
+        ;;
+      --since)
+        shift
+        [ "$#" -gt 0 ] || die "digest --since requires an ISO timestamp"
+        since="$1"
+        ;;
+      --last)
+        shift
+        [ "$#" -gt 0 ] || die "digest --last requires a line count"
+        last_lines="$1"
+        awk -v n="$last_lines" 'BEGIN { exit !(n ~ /^[0-9]+$/ && n > 0) }' || die "digest --last must be a positive integer: $last_lines"
+        ;;
+      --help|-h)
+        cat <<'EOF'
+Usage:
+  tools/builog-monitor/monitor.sh digest [--since <ISO>] [--last <n-lines>] [--jsonl] [log_path|remote]
+
+Reads an existing interface.log window and prints a flow-oriented digest. With --jsonl,
+prints one JSON object per parsed [BUI] record for machine ingestion.
+EOF
+        return 0
+        ;;
+      *)
+        log_request="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ -n "$since" ] && [[ ! "$since" =~ $iso_ts_re ]]; then
+    die "digest --since must be an ISO-8601 timestamp, for example 2026-07-02T06:00:00Z: $since"
+  fi
+
+  log_path="$(resolve_log_request "$log_request")"
+  [ -f "$log_path" ] || die "interface.log not found at: $log_path"
+
+  if [ -n "$last_lines" ]; then
+    tail -n "$last_lines" "$log_path"
+  else
+    sed -n '1,$p' "$log_path"
+  fi | awk -v since="$since" -v jsonl="$jsonl" '
+function esc(s) {
+  gsub(/\\/,"\\\\",s)
+  gsub(/"/,"\\\"",s)
+  gsub(/\t/,"\\t",s)
+  gsub(/\r/,"",s)
+  return s
+}
+function clean_line(s) {
+  gsub(/\|c[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]/, "", s)
+  gsub(/\|r/, "", s)
+  return s
+}
+function add_line(name, value) {
+  if (value == "") value = "none"
+  return name ": " value
+}
+function remember_group(corr, summary, event, phase) {
+  if (corr == "") return
+  if (!(corr in seenGroup)) {
+    groupOrder[++groupCount] = corr
+    seenGroup[corr] = 1
+  }
+  groupLines[corr] = groupLines[corr] "\n    " summary
+  if (event == "input.keybind") groupCause[corr] = summary
+  if (phase ~ /^(completed|confirmed|settled|end|skipped|failed|blocked|expired)$/) groupOutcome[corr] = summary
+}
+function build_kv_json(    k, sep, kvjson) {
+  kvjson = "{"
+  sep = ""
+  for (k in kv) {
+    kvjson = kvjson sep "\"" esc(k) "\":\"" esc(kv[k]) "\""
+    sep = ","
+  }
+  kvjson = kvjson "}"
+  return kvjson
+}
+function make_json_record(ts, gameMs, sid, seq, level, category, event, phase, context, kvjson) {
+  return sprintf("{\"ts\":\"%s\",\"gameMs\":\"%s\",\"sid\":\"%s\",\"seq\":%s,\"level\":\"%s\",\"category\":\"%s\",\"event\":\"%s\",\"phase\":\"%s\",\"kv\":%s,\"context\":\"%s\"}",
+    esc(ts), esc(gameMs), esc(sid), (seq ~ /^[0-9]+$/ ? seq : 0), esc(level), esc(category), esc(event), esc(phase), kvjson, esc(context))
+}
+function parse_kv(parts, n,    i, eq, key, value) {
+  for (key in kv) delete kv[key]
+  for (i = 1; i <= n; i++) {
+    eq = index(parts[i], "=")
+    if (eq <= 1) continue
+    key = substr(parts[i], 1, eq - 1)
+    value = substr(parts[i], eq + 1)
+    gsub(/^"/, "", value)
+    gsub(/"$/, "", value)
+    kv[key] = value
+  }
+}
+function store_record(ts, gameMs, sid, seq, level, category, event, phase, body, context, corr, summary,    r) {
+  r = ++recordCount
+  recordOrder[r] = r
+  recordTs[r] = ts
+  recordGameMs[r] = gameMs
+  recordSid[r] = sid
+  recordSeq[r] = seq
+  recordLevel[r] = level
+  recordCategory[r] = category
+  recordEvent[r] = event
+  recordPhase[r] = phase
+  recordBody[r] = body
+  recordContext[r] = context
+  recordCorr[r] = corr
+  recordSummary[r] = summary
+  recordJson[r] = make_json_record(ts, gameMs, sid, seq, level, category, event, phase, context, build_kv_json())
+}
+function compare_records(a, b) {
+  if (recordSid[a] < recordSid[b]) return -1
+  if (recordSid[a] > recordSid[b]) return 1
+  if ((recordSeq[a] + 0) < (recordSeq[b] + 0)) return -1
+  if ((recordSeq[a] + 0) > (recordSeq[b] + 0)) return 1
+  return a - b
+}
+function sort_records(    i, j, current) {
+  for (i = 2; i <= recordCount; i++) {
+    current = recordOrder[i]
+    j = i - 1
+    while (j >= 1 && compare_records(recordOrder[j], current) > 0) {
+      recordOrder[j + 1] = recordOrder[j]
+      j--
+    }
+    recordOrder[j + 1] = current
+  }
+}
+function process_record(r,    corr, summary, event, phase, body, level, category, dropped) {
+  corr = recordCorr[r]
+  summary = recordSummary[r]
+  event = recordEvent[r]
+  phase = recordPhase[r]
+  body = recordBody[r]
+  level = recordLevel[r]
+  category = recordCategory[r]
+
+  remember_group(corr, summary, event, phase)
+
+  if (event == "anomaly") anomalies[++anomalyCount] = summary
+  if (level == "WARN" || level == "ERROR") warnErrors[++warnErrorCount] = summary
+  if ((event == "drop" || body ~ /reason=(rate_limit|priority_rate_limit)/) && body ~ /dropped=[0-9][0-9]*/) {
+    drops[++dropCount] = summary
+    if (body ~ /dropped=[0-9][0-9]*/) {
+      dropped = body
+      sub(/^.*dropped=/, "", dropped)
+      sub(/[^0-9].*$/, "", dropped)
+      droppedRecords += dropped + 0
+    }
+  }
+  if (category == "SCREENSHOT" || event ~ /screenshot/) screenshots[++screenshotCount] = summary
+  if (event == "session" && phase == "report") sessionReports[++sessionReportCount] = summary
+  if ((event == "session" && phase != "report") || body ~ /preamble|schema|preset/) preamble[++preambleCount] = summary
+}
+function parse_bui(raw,    line, ts, bui, sep, header, body, h, hn, parts, pn, i, sid, seq, gameMs, level, category, event, phase, corr, context, summary) {
+  line = clean_line(raw)
+
+  ts = line
+  sub(/[[:space:]]*Lua Error:.*$/, "", ts)
+  if (ts == line || index(ts, "[BUI]") > 0) ts = ""
+  if (since != "" && (ts == "" || ts < since)) return
+
+  if (index(line, "[BUI]") == 0) {
+    if (line ~ /Lua Error:/) realErrors[++realErrorCount] = line
+    return
+  }
+
+  bui = line
+  sub(/^.*\[BUI\][[:space:]]*/, "", bui)
+  sep = index(bui, " | ")
+  if (sep <= 0) {
+    parseViolations[++parseViolationCount] = line
+    return
+  }
+
+  header = substr(bui, 1, sep - 1)
+  body = substr(bui, sep + 3)
+  hn = split(header, h, /[[:space:]]+/)
+  if (hn < 5) {
+    parseViolations[++parseViolationCount] = line
+    return
+  }
+
+  gameMs = h[1]
+  level = h[hn - 1]
+  category = h[hn]
+  sid = "unknown"
+  seq = "0"
+  for (i = 2; i <= hn - 2; i++) {
+    if (h[i] ~ /^sid=/) sid = substr(h[i], 5)
+    if (h[i] ~ /^seq=/) seq = substr(h[i], 5)
+  }
+
+  pn = split(body, parts, /[[:space:]]+/)
+  parse_kv(parts, pn)
+  event = (("event" in kv) && kv["event"] != "") ? kv["event"] : (pn >= 1 ? parts[1] : "unknown")
+  phase = (("phase" in kv) && kv["phase"] != "") ? kv["phase"] : (pn >= 2 ? parts[2] : "state")
+
+  context = ""
+  if (("flow" in kv) && kv["flow"] != "") context = context "flow=" kv["flow"] " "
+  if (("opId" in kv) && kv["opId"] != "") context = context "opId=" kv["opId"] " "
+  if (("batchId" in kv) && kv["batchId"] != "") context = context "batchId=" kv["batchId"] " "
+  if (("scene" in kv) && kv["scene"] != "") context = context "scene=" kv["scene"] " "
+  gsub(/[[:space:]]+$/, "", context)
+
+  corr = ("flow" in kv) ? kv["flow"] : ""
+  if (corr == "" && ("opId" in kv)) corr = kv["opId"]
+  if (corr == "" && ("batchId" in kv)) corr = kv["batchId"]
+  summary = "seq=" seq " " level " " category " | " event " " phase
+  if (context != "") summary = summary " " context
+  store_record(ts, gameMs, sid, seq, level, category, event, phase, body, context, corr, summary)
+}
+{
+  parse_bui($0)
+}
+END {
+  sort_records()
+  if (jsonl == 1) {
+    for (i = 1; i <= recordCount; i++) print recordJson[recordOrder[i]]
+    exit
+  }
+  for (i = 1; i <= recordCount; i++) process_record(recordOrder[i])
+  print "=== builog digest ==="
+  print "records=" (recordCount + 0) " groups=" (groupCount + 0) " anomalies=" (anomalyCount + 0) " warnings=" (warnErrorCount + 0) " realLuaErrors=" (realErrorCount + 0) " droppedRecords=" (droppedRecords + 0)
+
+  print ""
+  print "session preamble info:"
+  if (preambleCount == 0) print "  none"
+  for (i = 1; i <= preambleCount; i++) print "  " preamble[i]
+
+  print ""
+  print "session reports:"
+  if (sessionReportCount == 0) print "  none"
+  for (i = 1; i <= sessionReportCount; i++) print "  " sessionReports[i]
+
+  print ""
+  print "timelines:"
+  if (groupCount == 0) print "  none"
+  for (i = 1; i <= groupCount; i++) {
+    corr = groupOrder[i]
+    print "  " corr
+    print "    cause=" (groupCause[corr] != "" ? groupCause[corr] : "unknown")
+    print "    outcome=" (groupOutcome[corr] != "" ? groupOutcome[corr] : "UNRESOLVED")
+    printf "%s\n", groupLines[corr]
+  }
+
+  print ""
+  print "anomalies:"
+  if (anomalyCount == 0) print "  none"
+  for (i = 1; i <= anomalyCount; i++) print "  " anomalies[i]
+
+  print ""
+  print "WARN/ERROR records:"
+  if (warnErrorCount == 0) print "  none"
+  for (i = 1; i <= warnErrorCount; i++) print "  " warnErrors[i]
+
+  print ""
+  print "real Lua errors:"
+  if (realErrorCount == 0) print "  none"
+  for (i = 1; i <= realErrorCount; i++) print "  " clean_line(realErrors[i])
+
+  print ""
+  print "drop summaries:"
+  if (dropCount == 0) print "  none"
+  for (i = 1; i <= dropCount; i++) print "  " drops[i]
+
+  print ""
+  print "screenshot markers:"
+  if (screenshotCount == 0) print "  none"
+  for (i = 1; i <= screenshotCount; i++) print "  " screenshots[i]
+}
+'
+}
+
+if [ "$MODE" = "digest" ]; then
+  run_digest "$@"
+  exit $?
+fi
 
 list_recent_screenshots() {
   local dir="$1"

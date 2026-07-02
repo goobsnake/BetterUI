@@ -411,6 +411,10 @@ end
 function Watch.Deactivate()
     if not active then return end
     active = false
+    local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
+    if watchdog and type(watchdog.Deactivate) == "function" then
+        pcall(watchdog.Deactivate)
+    end
     -- Cancel the pending heartbeat timer so a rapid watch->off->watch re-arms ONE clean
     -- timer instead of leaking/doubling (don't just rely on the active=false self-stop).
     local remove = G("zo_removeCallLater")
