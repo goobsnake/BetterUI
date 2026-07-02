@@ -247,36 +247,27 @@ function Sell:OnPrimaryAction(vendorInstance)
     end
 
     local L = BETTERUI.Log
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.sell", "request", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-sell",
-            fn = "Vendor.SellComponent.OnPrimaryAction",
-            ["function"] = "Vendor.SellComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            stackSize = stackSize,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
-    end
+    local expectedPrice = ds.stackSellPrice or ((ds.sellPrice or 0) * stackSize)
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-sell",
+        fn = "Vendor.SellComponent.OnPrimaryAction",
+        ["function"] = "Vendor.SellComponent.OnPrimaryAction",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        quantity = stackSize,
+        stackSize = stackSize,
+        expectedPrice = expectedPrice,
+        currencyType = rawget(_G, "CURT_MONEY"),
+        item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+    }
+    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.sell", traceData) or nil
 
     SellInventoryItem(bagId, slotIndex, stackSize)
-
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.sell", "requested", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-sell",
-            fn = "Vendor.SellComponent.OnPrimaryAction",
-            ["function"] = "Vendor.SellComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            stackSize = stackSize,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
+    if Vendor.ScheduleActionSettled then
+        Vendor.ScheduleActionSettled("vendor.sell", traceData, goldBefore)
     end
 end
 
@@ -290,7 +281,7 @@ function Sell:SellAllJunk(vendorInstance)
         return
     end
 
-    local _, itemCount = Vendor.GetJunkSellSummary()
+    local totalValue, itemCount = Vendor.GetJunkSellSummary()
     if itemCount <= 0 then
         TraceSellBlocked(vendorInstance, "noJunk", nil, { fn = "Vendor.SellComponent.SellAllJunk", action = "sellAllJunk", candidateCount = itemCount })
         BETTERUI.CIM.UserAlertText("Sell:NoJunk",
@@ -338,10 +329,27 @@ function Sell:SellAllJunk(vendorInstance)
         return
     end
 
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-sell-all-junk",
+        fn = "Vendor.SellComponent.SellAllJunk",
+        ["function"] = "Vendor.SellComponent.SellAllJunk",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        action = "sellAllJunk",
+        itemCount = itemCount,
+        expectedPrice = totalValue,
+        currencyType = rawget(_G, "CURT_MONEY"),
+    }
+    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.sell_all_junk", traceData) or nil
+
     Vendor.ExecuteBatchThrottled({
         mode = Vendor.MODE.SELL,
         items = items,
         onComplete = function()
+            if Vendor.ScheduleActionSettled then
+                Vendor.ScheduleActionSettled("vendor.sell_all_junk", traceData, goldBefore)
+            end
             -- The final batch ack already scheduled the coalesced "listRefresh"
             -- task; this direct refresh renders the same final state, so drop
             -- the pending duplicate rebuild (and take over its footer refresh).

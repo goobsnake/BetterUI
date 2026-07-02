@@ -72,6 +72,14 @@ local function GetVendorModeName(mode)
     return tostring(mode or "<none>")
 end
 
+local function SetVendorWatchView(mode)
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and type(watch.SetView) == "function") then return end
+    if watch.RegisterViewScene then watch.RegisterViewScene("vendor", BETTERUI_VENDOR_SCENE_NAME or "BETTERUI_VENDOR") end
+    local modeName = GetVendorModeName(mode):lower():gsub("%s+", "_")
+    watch.SetView("vendor." .. modeName)
+end
+
 local function GetVendorComponentName(component)
     if type(component) ~= "table" then
         return nil
@@ -357,6 +365,7 @@ function ControllerRuntime.SetMode(instance, mode)
             oldMode = oldMode,
             reason = "sameMode",
         })
+        SetVendorWatchView(mode)
         return
     end
 
@@ -398,6 +407,14 @@ function ControllerRuntime.SetMode(instance, mode)
     end
 
     instance.currentMode = mode
+    SetVendorWatchView(mode)
+    TraceVendor(L and L.CATEGORY.NAV, "vendor.mode", "changed", instance, {
+        old = oldMode,
+        ["new"] = mode,
+        oldMode = oldMode,
+        targetMode = mode,
+        trigger = "SetMode",
+    })
     TraceVendor(L and L.CATEGORY.LIFECYCLE, "vendor.mode", "applied", instance, {
         targetMode = mode,
         oldMode = oldMode,

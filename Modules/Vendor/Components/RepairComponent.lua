@@ -169,44 +169,56 @@ function Repair:OnPrimaryAction(vendorInstance)
     end
 
     local L = BETTERUI.Log
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.repair", "request", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-repair",
-            fn = "Vendor.RepairComponent.OnPrimaryAction",
-            ["function"] = "Vendor.RepairComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            cost = repairCost,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
-    end
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-repair",
+        fn = "Vendor.RepairComponent.OnPrimaryAction",
+        ["function"] = "Vendor.RepairComponent.OnPrimaryAction",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        quantity = 1,
+        expectedPrice = repairCost,
+        cost = repairCost,
+        currencyType = rawget(_G, "CURT_MONEY"),
+        item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+    }
+    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.repair", traceData) or nil
 
     RepairItem(bagId, slotIndex)
-
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.repair", "requested", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-repair",
-            fn = "Vendor.RepairComponent.OnPrimaryAction",
-            ["function"] = "Vendor.RepairComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            cost = repairCost,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
+    if Vendor.ScheduleActionSettled then
+        Vendor.ScheduleActionSettled("vendor.repair", traceData, goldBefore)
     end
 end
 
 -- REPAIR ALL
 
+local function CountRepairableItemsInBag(bagId)
+    if bagId == nil or type(GetBagSize) ~= "function" or type(GetItemRepairCost) ~= "function" then
+        return 0
+    end
+
+    local count = 0
+    local bagSize = GetBagSize(bagId) or 0
+    for slotIndex = 0, bagSize - 1 do
+        local condition = type(GetItemCondition) == "function" and (GetItemCondition(bagId, slotIndex) or 100) or 100
+        local stolen = type(IsItemStolen) == "function" and IsItemStolen(bagId, slotIndex) or false
+        if condition < 100 and not stolen and (GetItemRepairCost(bagId, slotIndex) or 0) > 0 then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+local function CountRepairAllItems()
+    return CountRepairableItemsInBag(rawget(_G, "BAG_WORN")) + CountRepairableItemsInBag(rawget(_G, "BAG_BACKPACK"))
+end
+
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:RepairAll(vendorInstance)
     local repairAllCost = GetRepairAllCost and GetRepairAllCost() or 0
+    local repairAllItemCount = CountRepairAllItems()
     if repairAllCost <= 0 then
         TraceRepair("vendor.repair_all", "skipped", {
             fn = "Vendor.RepairComponent.RepairAll",
@@ -227,13 +239,6 @@ function Repair:RepairAll(vendorInstance)
         return
     end
 
-    TraceRepair("vendor.repair_all", "request", {
-        fn = "Vendor.RepairComponent.RepairAll",
-        cost = repairAllCost,
-        dialogName = "REPAIR_ALL",
-        hasDialogApi = type(ZO_Dialogs_ShowGamepadDialog) == "function",
-    })
-
     -- ESO's own store uses "REPAIR_ALL" dialog (storewindow_gamepad.lua:309)
     TraceRepair("vendor.repair_all_dialog", "show", {
         fn = "Vendor.RepairComponent.RepairAll",
@@ -246,10 +251,27 @@ function Repair:RepairAll(vendorInstance)
         cost = repairAllCost,
         dialogName = "REPAIR_ALL",
     }
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-repair-all",
+        fn = "Vendor.RepairComponent.RepairAll",
+        ["function"] = "Vendor.RepairComponent.RepairAll",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        action = "repairAll",
+        itemCount = repairAllItemCount,
+        expectedPrice = repairAllCost,
+        cost = repairAllCost,
+        currencyType = rawget(_G, "CURT_MONEY"),
+    }
     ZO_Dialogs_ShowGamepadDialog("REPAIR_ALL", {
         cost = repairAllCost,
         callback = function()
+            local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.repair_all", traceData) or nil
             RepairAll()
+            if Vendor.ScheduleActionSettled then
+                Vendor.ScheduleActionSettled("vendor.repair_all", traceData, goldBefore)
+            end
         end,
         declineCallback = function()
             TakePendingRepairAllTrace("cancel", "declineCallback")

@@ -83,6 +83,22 @@ end
 
 local TraceVendorEvent
 
+local function IsLogPrivacyMode()
+    local L = BETTERUI and BETTERUI.Log
+    return L and L.GetPrivacyMode and L.GetPrivacyMode() == true
+end
+
+local function ScrubVendorPrivacy(data)
+    if not IsLogPrivacyMode() or type(data) ~= "table" then
+        return data
+    end
+    data.carriedGold = nil
+    data.bankGold = nil
+    data.goldBefore = nil
+    data.goldAfter = nil
+    return data
+end
+
 local function IsTomesSpecializedSceneActive()
     local interactionRuntime = Vendor.InteractionRuntime
     if interactionRuntime and interactionRuntime.FindSpecializedNativeScene then
@@ -133,7 +149,103 @@ function TraceVendorEvent(event, phase, data, category)
     data.isFenceInteraction = data.isFenceInteraction ~= nil and data.isFenceInteraction or isFenceInteraction
     data.isStableInteraction = data.isStableInteraction ~= nil and data.isStableInteraction or isStableInteraction
     data.batchProcessing = Vendor._batchProcessing == true
+    ScrubVendorPrivacy(data)
     L.TraceEvent(category or L.CATEGORY.LIFECYCLE, event, phase, data)
+end
+
+local function TraceVendorKeybind(key, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then
+        return
+    end
+    data = data or {}
+    data.key = data.key or key
+    data.action = data.action or key
+    data.feature = data.feature or "vendor-keybind"
+    data.fn = data.fn or "Vendor.BuildCoreKeybinds"
+    if type(L.SetLastAction) == "function" then
+        L.SetLastAction({
+            flow = "vendor.keybind",
+            message = tostring(key) .. ":" .. tostring(data.action) .. ":" .. tostring(phase),
+        })
+    end
+    TraceVendorEvent("vendor.keybind", phase, data, L.CATEGORY.KEYBIND)
+end
+
+local function ExecuteVendorKeybindAction(key, action, fn, endData)
+    TraceVendorKeybind(key, "begin", { action = action })
+    local ok, result
+    if type(Vendor.ExecuteSafely) == "function" then
+        ok, result = Vendor.ExecuteSafely("Vendor.Keybind:" .. tostring(action), fn)
+    else
+        ok, result = pcall(fn)
+    end
+    if not ok then
+        TraceVendorKeybind(key, "failed", {
+            action = action,
+            reason = "error",
+            error = result,
+        })
+        return false, result
+    end
+    local payload = {}
+    for payloadKey, value in pairs(endData or {}) do
+        payload[payloadKey] = value
+    end
+    payload.action = action
+    payload.result = payload.result or "dispatched"
+    TraceVendorKeybind(key, "end", payload)
+    return true, result
+end
+
+local function CopyTracePayload(data)
+    local copy = {}
+    for key, value in pairs(data or {}) do
+        copy[key] = value
+    end
+    return copy
+end
+
+function Vendor.ReadActionGold()
+    local L = BETTERUI and BETTERUI.Log
+    if L and L.GetCurrencyAmountForLocation then
+        return L.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_CHARACTER"))
+    end
+    return nil
+end
+
+function Vendor.TraceActionRequested(event, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return nil end
+    if L.IsActive and not L.IsActive() then return nil end
+    local payload = CopyTracePayload(data)
+    local goldBefore = Vendor.ReadActionGold()
+    if not IsLogPrivacyMode() then
+        payload.goldBefore = goldBefore
+    end
+    TraceVendorEvent(event, "requested", payload, L.CATEGORY.ACTION)
+    return goldBefore
+end
+
+function Vendor.ScheduleActionSettled(event, data, goldBefore)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.IsActive and L.IsActive()) then return end
+    if type(zo_callLater) ~= "function" then return end
+    local payload = CopyTracePayload(data)
+    zo_callLater(function()
+        local L = BETTERUI and BETTERUI.Log
+        if not (L and L.TraceEvent) then return end
+        if L.IsActive and not L.IsActive() then return end
+        local goldAfter = Vendor.ReadActionGold()
+        if type(goldBefore) == "number" and type(goldAfter) == "number" then
+            payload.goldDelta = goldAfter - goldBefore
+        end
+        if not IsLogPrivacyMode() then
+            payload.goldBefore = goldBefore
+            payload.goldAfter = goldAfter
+        end
+        TraceVendorEvent(event, "settled", payload, L.CATEGORY.ACTION)
+    end, 100)
 end
 
 -- TAB DEFINITIONS
@@ -311,7 +423,9 @@ end
 
 local function RegisterVendorSnapshotProvider()
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
-    if not (watch and watch.RegisterSnapshotProvider) then return end
+    if not watch then return end
+    if watch.RegisterViewScene then watch.RegisterViewScene("vendor", BETTERUI_VENDOR_SCENE_NAME or "BETTERUI_VENDOR") end
+    if not watch.RegisterSnapshotProvider then return end
     watch.RegisterSnapshotProvider("vendor", function()
         local instance = Vendor.instance
         if not instance then
@@ -351,19 +465,25 @@ local function ResolveInitialStoreMode(tabs)
     if Vendor.ModePolicy then
         local request = {
             tabs = tabs or {},
+            vendorTabs = VENDOR_TABS,
             storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD"),
+            isStableInteraction = isStableInteraction,
+            isFenceInteraction = isFenceInteraction,
+            sessionHasBuyMode = Vendor._sessionHasBuyMode == true,
+            trigger = "Vendor.ResolveInitialStoreMode",
             hasVendorBuyInventory = function()
                 return HasVendorBuyInventory("Vendor.ResolveInitialStoreMode")
             end,
         }
-        local resolver = nil
-        if isStableInteraction and Vendor.ModePolicy.ResolveStableInitialStoreMode then
-            resolver = Vendor.ModePolicy.ResolveStableInitialStoreMode
-        elseif Vendor.ModePolicy.ResolveVendorInitialStoreMode then
-            request.vendorTabs = VENDOR_TABS
-            resolver = Vendor.ModePolicy.ResolveVendorInitialStoreMode
+        if Vendor.ModePolicy.ResolveInitialStoreMode then
+            local targetMode, shouldRememberBuyMode = Vendor.ModePolicy.ResolveInitialStoreMode(request)
+            if shouldRememberBuyMode then
+                Vendor._sessionHasBuyMode = true
+            end
+            return targetMode
         end
-
+        local resolver = isStableInteraction and Vendor.ModePolicy.ResolveStableInitialStoreMode
+            or Vendor.ModePolicy.ResolveVendorInitialStoreMode
         if resolver then
             local targetMode, shouldRememberBuyMode = resolver(request)
             if shouldRememberBuyMode then
@@ -626,7 +746,9 @@ local function BuildCoreKeybinds(vendorInstance)
                 return #GetActiveTabs() > 1
             end,
             callback = function()
-                vendorInstance:CycleTabs(-1)
+                ExecuteVendorKeybindAction("UI_SHORTCUT_LEFT_SHOULDER", "cycle_tabs_previous", function()
+                    vendorInstance:CycleTabs(-1)
+                end, { result = "cycled", direction = "previous" })
             end,
         },
         {
@@ -642,7 +764,9 @@ local function BuildCoreKeybinds(vendorInstance)
                 return #GetActiveTabs() > 1
             end,
             callback = function()
-                vendorInstance:CycleTabs(1)
+                ExecuteVendorKeybindAction("UI_SHORTCUT_RIGHT_SHOULDER", "cycle_tabs_next", function()
+                    vendorInstance:CycleTabs(1)
+                end, { result = "cycled", direction = "next" })
             end,
         },
         -- Primary action (keybind A / GAMEPAD_BUTTON_1)
@@ -663,23 +787,42 @@ local function BuildCoreKeybinds(vendorInstance)
                 return IsPrimaryActionAllowed()
             end,
             callback = function()
+                local key = "UI_SHORTCUT_PRIMARY"
                 if not IsPrimaryActionAllowed() then
+                    TraceVendorKeybind(key, "skipped", {
+                        action = "primary",
+                        reason = "primaryActionNotAllowed",
+                    })
                     return
                 end
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
                     local selectedData = GetCurrentVendorTargetData(vendorInstance)
-                    if selectedData then
+                    if not selectedData then
+                        TraceVendorKeybind(key, "skipped", {
+                            action = "multi_select_toggle",
+                            reason = "missingSelection",
+                        })
+                        return
+                    end
+                    ExecuteVendorKeybindAction(key, "multi_select_toggle", function()
                         vendorInstance:SaveListPosition()
                         ms:ToggleSelection(selectedData)
                         vendorInstance:RefreshList()
                         vendorInstance:EnsureListInputActive()
-                    end
+                    end, { result = "toggled" })
                     return
                 end
                 local component = vendorInstance:GetActiveComponent()
                 if component and component.OnPrimaryAction then
-                    component:OnPrimaryAction(vendorInstance)
+                    ExecuteVendorKeybindAction(key, "primary", function()
+                        component:OnPrimaryAction(vendorInstance)
+                    end, { result = "dispatched" })
+                else
+                    TraceVendorKeybind(key, "skipped", {
+                        action = "primary",
+                        reason = "missingComponentAction",
+                    })
                 end
             end,
             enabled = function()
@@ -723,22 +866,51 @@ local function BuildCoreKeybinds(vendorInstance)
                 return true
             end,
             callback = function()
-                vendorInstance:ToggleBuySellMode()
+                local key = "UI_SHORTCUT_SECONDARY"
+                local firstMode, secondMode = GetToggleModePair()
+                if not firstMode or not secondMode then
+                    TraceVendorKeybind(key, "skipped", {
+                        action = "toggle_mode",
+                        reason = "missingTogglePair",
+                    })
+                    return
+                end
+                local oldMode = vendorInstance:GetCurrentMode()
+                local targetMode = oldMode == firstMode and secondMode or firstMode
+                ExecuteVendorKeybindAction(key, "toggle_mode", function()
+                    vendorInstance:ToggleBuySellMode()
+                end, {
+                    result = "toggled",
+                    old = oldMode,
+                    ["new"] = targetMode,
+                    mode = targetMode,
+                })
             end,
         },
         -- Quaternary action (Clear search when active)
         BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(
             function()
+                local key = "UI_SHORTCUT_QUATERNARY"
                 if not (vendorInstance.textSearchHeaderControl and not vendorInstance.textSearchHeaderControl:IsHidden()) then
-                    return
+                    TraceVendorKeybind(key, "skipped", {
+                        action = "clear_search",
+                        reason = "searchHidden",
+                    })
+                    return false, "searchHidden", "clear_search"
                 end
-                local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
-                if searchMixin and searchMixin.CallSearchLifecycle then
-                    searchMixin.CallSearchLifecycle(vendorInstance, "clear")
-                elseif vendorInstance.ClearSearchInput then
-                    vendorInstance:ClearSearchInput()
+                local ok, err = ExecuteVendorKeybindAction(key, "clear_search", function()
+                    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+                    if searchMixin and searchMixin.CallSearchLifecycle then
+                        searchMixin.CallSearchLifecycle(vendorInstance, "clear")
+                    elseif vendorInstance.ClearSearchInput then
+                        vendorInstance:ClearSearchInput()
+                    end
+                    BETTERUI.Interface.UpdateCurrentKeybindGroups()
+                end, { result = "cleared" })
+                if not ok then
+                    return false, err, "clear_search"
                 end
-                BETTERUI.Interface.UpdateCurrentKeybindGroups()
+                return true, nil, "clear_search"
             end,
             function()
                 local ms = Vendor.multiSelectManager
@@ -811,32 +983,76 @@ local function BuildCoreKeybinds(vendorInstance)
                 return false
             end,
             callback = function()
+                local key = "UI_SHORTCUT_TERTIARY"
                 -- During batch processing, Y aborts
                 if Vendor._batchProcessing then
-                    Vendor.RequestBatchAbort()
+                    ExecuteVendorKeybindAction(key, "batch_abort", function()
+                        Vendor.RequestBatchAbort()
+                    end, { result = "abort_requested" })
                     return
                 end
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
-                    local ok, registered = ResolveVendorRuntimeDependency("ExecuteSafely", "safe execute helper")(
-                        "Vendor.RegisterBatchDialog",
-                        RegisterVendorBatchDialog
-                    )
-                    if ok and registered ~= false and ZO_Dialogs_ShowGamepadDialog then
+                    TraceVendorKeybind(key, "begin", { action = "batch_dialog" })
+                    local function showBatchDialog()
+                        local registered = RegisterVendorBatchDialog()
+                        if registered == false or not ZO_Dialogs_ShowGamepadDialog then
+                            return "dialogUnavailable"
+                        end
                         ZO_Dialogs_ShowGamepadDialog("BETTERUI_VENDOR_BATCH_DIALOG")
+                        return "dialog_shown"
+                    end
+                    local ok, result
+                    if type(Vendor.ExecuteSafely) == "function" then
+                        ok, result = Vendor.ExecuteSafely("Vendor.Keybind:batch_dialog", showBatchDialog)
+                    else
+                        ok, result = pcall(showBatchDialog)
+                    end
+                    if not ok then
+                        TraceVendorKeybind(key, "failed", {
+                            action = "batch_dialog",
+                            reason = "error",
+                            error = result,
+                        })
+                    elseif result == "dialog_shown" then
+                        TraceVendorKeybind(key, "end", {
+                            action = "batch_dialog",
+                            result = "dialog_shown",
+                        })
+                    else
+                        TraceVendorKeybind(key, "skipped", {
+                            action = "batch_dialog",
+                            reason = "dialogUnavailable",
+                        })
                     end
                     return
                 end
                 local component = vendorInstance:GetActiveComponent()
-                if not component then return end
+                if not component then
+                    TraceVendorKeybind(key, "skipped", {
+                        action = "item_actions",
+                        reason = "missingComponent",
+                    })
+                    return
+                end
                 local mode = vendorInstance:GetCurrentMode()
                 if mode == MODE.SELL and component.SellAllJunk then
-                    Vendor.ShowSellAllJunkDialog(vendorInstance, component)
+                    ExecuteVendorKeybindAction(key, "sell_all_junk", function()
+                        Vendor.ShowSellAllJunkDialog(vendorInstance, component)
+                    end, { result = "dialog_shown" })
                     return
                 end
                 if mode == MODE.REPAIR and component.RepairAll then
-                    component:RepairAll(vendorInstance)
+                    ExecuteVendorKeybindAction(key, "repair_all", function()
+                        component:RepairAll(vendorInstance)
+                    end, { result = "dispatched" })
+                    return
                 end
+                TraceVendorKeybind(key, "skipped", {
+                    action = "item_actions",
+                    reason = "unsupportedMode",
+                    mode = mode,
+                })
             end,
         },
         -- Quinary: Enter/Exit Multi-Select
@@ -851,9 +1067,23 @@ local function BuildCoreKeybinds(vendorInstance)
                 return CanMultiSelectInCurrentMode() and IsMultiSelectAvailable()
             end,
             callback = function()
+                local key = "UI_SHORTCUT_QUINARY"
                 local ms = Vendor.multiSelectManager
-                if not ms then return end
-                if not ms:IsActive() then
+                if not ms then
+                    TraceVendorKeybind(key, "skipped", {
+                        action = "multi_select_enter",
+                        reason = "missingMultiSelectManager",
+                    })
+                    return
+                end
+                if ms:IsActive() then
+                    TraceVendorKeybind(key, "skipped", {
+                        action = "multi_select_enter",
+                        reason = "alreadyActive",
+                    })
+                    return
+                end
+                ExecuteVendorKeybindAction(key, "multi_select_enter", function()
                     vendorInstance:SaveListPosition()
                     ms:EnterSelectionMode()
                     local target = GetCurrentVendorTargetData(vendorInstance)
@@ -864,8 +1094,8 @@ local function BuildCoreKeybinds(vendorInstance)
                     end
                     vendorInstance:RefreshList()
                     vendorInstance:EnsureListInputActive()
-                end
-                BETTERUI.Interface.UpdateCurrentKeybindGroups()
+                    BETTERUI.Interface.UpdateCurrentKeybindGroups()
+                end, { result = "entered" })
             end,
         },
         -- Preview toggle
@@ -889,9 +1119,17 @@ local function BuildCoreKeybinds(vendorInstance)
                 return true
             end,
             callback = function()
-                if Vendor.SelectionRuntime and Vendor.SelectionRuntime.ToggleSelectionPreview then
-                    Vendor.SelectionRuntime.ToggleSelectionPreview(vendorInstance, isStableInteraction)
+                local key = "UI_SHORTCUT_RIGHT_STICK"
+                if not (Vendor.SelectionRuntime and Vendor.SelectionRuntime.ToggleSelectionPreview) then
+                    TraceVendorKeybind(key, "skipped", {
+                        action = "toggle_preview",
+                        reason = "missingSelectionRuntime",
+                    })
+                    return
                 end
+                ExecuteVendorKeybindAction(key, "toggle_preview", function()
+                    Vendor.SelectionRuntime.ToggleSelectionPreview(vendorInstance, isStableInteraction)
+                end, { result = "toggled" })
             end,
         },
         -- Fence-only: Stack All Items (left stick)
@@ -905,7 +1143,9 @@ local function BuildCoreKeybinds(vendorInstance)
                 return isFenceInteraction
             end,
             callback = function()
-                StackBag(BAG_BACKPACK)
+                ExecuteVendorKeybindAction("UI_SHORTCUT_LEFT_STICK", "stack_all", function()
+                    StackBag(BAG_BACKPACK)
+                end, { result = "stacked" })
             end,
         },
         -- Back / Exit (keybind B / GAMEPAD_BUTTON_2)
@@ -914,16 +1154,21 @@ local function BuildCoreKeybinds(vendorInstance)
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = function()
                 local ms = Vendor.multiSelectManager
-                if ms and ms:IsActive() then
-                    vendorInstance:SaveListPosition()
-                    ms:ExitSelectionMode()
-                    vendorInstance:RefreshList()
-                    vendorInstance:EnsureListInputActive()
-                    BETTERUI.Interface.UpdateCurrentKeybindGroups()
-                    return
-                end
-                -- Close the interaction
-                SCENE_MANAGER:HideCurrentScene()
+                local action = ms and ms:IsActive() and "multi_select_exit" or "close_scene"
+                ExecuteVendorKeybindAction("UI_SHORTCUT_NEGATIVE", action, function()
+                    if ms and ms:IsActive() then
+                        vendorInstance:SaveListPosition()
+                        ms:ExitSelectionMode()
+                        vendorInstance:RefreshList()
+                        vendorInstance:EnsureListInputActive()
+                        BETTERUI.Interface.UpdateCurrentKeybindGroups()
+                        return
+                    end
+                    -- Close the interaction
+                    SCENE_MANAGER:HideCurrentScene()
+                end, {
+                    result = action == "multi_select_exit" and "exited" or "closed",
+                })
             end,
         },
     }

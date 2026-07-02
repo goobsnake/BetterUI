@@ -82,34 +82,25 @@ function Buyback:OnPrimaryAction(vendorInstance)
     end
 
     local L = BETTERUI.Log
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.buyback", "request", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-buyback",
-            fn = "Vendor.BuybackComponent.OnPrimaryAction",
-            ["function"] = "Vendor.BuybackComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            entryIndex = entryIndex,
-            price = price,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
-    end
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-buyback",
+        fn = "Vendor.BuybackComponent.OnPrimaryAction",
+        ["function"] = "Vendor.BuybackComponent.OnPrimaryAction",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        entryIndex = entryIndex,
+        quantity = 1,
+        expectedPrice = price,
+        price = price,
+        currencyType = rawget(_G, "CURT_MONEY"),
+        item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+    }
+    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.buyback", traceData) or nil
 
     BuybackItem(entryIndex)
-
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.buyback", "requested", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-buyback",
-            fn = "Vendor.BuybackComponent.OnPrimaryAction",
-            ["function"] = "Vendor.BuybackComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            entryIndex = entryIndex,
-            price = price,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
+    if Vendor.ScheduleActionSettled then
+        Vendor.ScheduleActionSettled("vendor.buyback", traceData, goldBefore)
     end
 end
 

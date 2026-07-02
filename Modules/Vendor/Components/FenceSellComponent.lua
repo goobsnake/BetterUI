@@ -171,36 +171,31 @@ function FenceSell:OnPrimaryAction(vendorInstance)
     local quantity = zo_min(stackSize, remaining)
 
     local L = BETTERUI.Log
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.fence_sell", "request", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-fence-sell",
-            fn = "Vendor.FenceSellComponent.OnPrimaryAction",
-            ["function"] = "Vendor.FenceSellComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            quantity = quantity,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
-    end
+    local unitPrice = ds.sellPrice
+        or (stackSize > 0 and ds.stackSellPrice and (ds.stackSellPrice / stackSize))
+        or (GetItemSellValueWithBonuses and GetItemSellValueWithBonuses(bagId, slotIndex))
+        or 0
+    local expectedPrice = unitPrice * quantity
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-fence-sell",
+        fn = "Vendor.FenceSellComponent.OnPrimaryAction",
+        ["function"] = "Vendor.FenceSellComponent.OnPrimaryAction",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        quantity = quantity,
+        expectedPrice = expectedPrice,
+        unitPrice = unitPrice,
+        currencyType = rawget(_G, "CURT_MONEY"),
+        item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+    }
+    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.fence_sell", traceData) or nil
 
     SellInventoryItem(bagId, slotIndex, quantity)
-
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.fence_sell", "requested", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-fence-sell",
-            fn = "Vendor.FenceSellComponent.OnPrimaryAction",
-            ["function"] = "Vendor.FenceSellComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            quantity = quantity,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
+    if Vendor.ScheduleActionSettled then
+        Vendor.ScheduleActionSettled("vendor.fence_sell", traceData, goldBefore)
     end
 end
 

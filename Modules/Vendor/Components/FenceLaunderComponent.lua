@@ -180,38 +180,26 @@ function FenceLaunder:OnPrimaryAction(vendorInstance)
     end
 
     local L = BETTERUI.Log
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.fence_launder", "request", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-fence-launder",
-            fn = "Vendor.FenceLaunderComponent.OnPrimaryAction",
-            ["function"] = "Vendor.FenceLaunderComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            quantity = quantity,
-            cost = cost,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
-    end
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-fence-launder",
+        fn = "Vendor.FenceLaunderComponent.OnPrimaryAction",
+        ["function"] = "Vendor.FenceLaunderComponent.OnPrimaryAction",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        quantity = quantity,
+        expectedPrice = cost,
+        cost = cost,
+        currencyType = rawget(_G, "CURT_MONEY"),
+        item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+    }
+    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.fence_launder", traceData) or nil
 
     LaunderItem(bagId, slotIndex, quantity)
-
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.fence_launder", "requested", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-fence-launder",
-            fn = "Vendor.FenceLaunderComponent.OnPrimaryAction",
-            ["function"] = "Vendor.FenceLaunderComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            quantity = quantity,
-            cost = cost,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
+    if Vendor.ScheduleActionSettled then
+        Vendor.ScheduleActionSettled("vendor.fence_launder", traceData, goldBefore)
     end
 end
 

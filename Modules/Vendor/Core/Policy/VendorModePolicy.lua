@@ -544,17 +544,35 @@ end
 function ModePolicy.ResolveInitialStoreMode(context)
     context = context or {}
     local initialMode
+    local shouldRememberBuyMode
     if context.isStableInteraction then
-        initialMode = ModePolicy.ResolveStableInitialStoreMode({
+        initialMode, shouldRememberBuyMode = ModePolicy.ResolveStableInitialStoreMode({
             tabs = context.tabs,
             storeManager = context.storeManager,
         })
     else
-        initialMode = ModePolicy.ResolveVendorInitialStoreMode({
+        initialMode, shouldRememberBuyMode = ModePolicy.ResolveVendorInitialStoreMode({
             tabs = context.tabs,
             vendorTabs = context.vendorTabs or context.tabs,
             storeManager = context.storeManager,
             hasVendorBuyInventory = context.hasVendorBuyInventory,
+        })
+    end
+
+    local L = BETTERUI.Log
+    if L and L.TraceEvent then
+        L.TraceEvent(L.CATEGORY.NAV, "vendor.mode", "changed", {
+            module = "Vendor",
+            feature = "vendor-mode-policy",
+            fn = "Vendor.ModePolicy.ResolveInitialStoreMode",
+            ["function"] = "Vendor.ModePolicy.ResolveInitialStoreMode",
+            old = context.oldMode or context.currentMode,
+            ["new"] = initialMode,
+            mode = initialMode,
+            targetMode = initialMode,
+            trigger = context.trigger or "ResolveInitialStoreMode",
+            isStable = context.isStableInteraction == true,
+            isFence = context.isFenceInteraction == true,
         })
     end
 
@@ -566,7 +584,7 @@ function ModePolicy.ResolveInitialStoreMode(context)
         })
     end
 
-    return initialMode
+    return initialMode, shouldRememberBuyMode
 end
 
 Vendor.ResolveModeName = ModePolicy.ResolveModeName

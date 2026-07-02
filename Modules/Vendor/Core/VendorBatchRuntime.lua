@@ -92,6 +92,14 @@ local function DescribeBatchItem(ds)
     return ds and (ds.name or ds.itemLink) or nil
 end
 
+local function NewVendorBatchId()
+    local L = BETTERUI and BETTERUI.Log
+    if L and type(L.NewFlow) == "function" then
+        return L.NewFlow("batch")
+    end
+    return nil
+end
+
 local function TraceVendorBatch(event, phase, data)
     local L = BETTERUI and BETTERUI.Log
     if not (L and L.TraceEvent) then
@@ -491,6 +499,7 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
     local delayPolicy = ResolveBatchDelayPolicy(#items, batchOptions)
     local batchConfig = GetBatchConfig()
     local runner = {
+        batchId = NewVendorBatchId(),
         mode = mode,
         items = items,
         onComplete = onComplete,
@@ -710,6 +719,16 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
             stopReason = self.stopReason,
             showProgress = self.showProgress == true,
         })
+        TraceVendorBatch("vendor.batch", self.stopReason and "abort" or "end", {
+            fn = "Vendor.BatchRunner.Finish",
+            batchId = self.batchId,
+            mode = self.mode,
+            processedCount = self.processedCount,
+            skippedCount = self.skippedCount or 0,
+            totalSteps = self.totalItems,
+            abortReason = self.stopReason,
+            showProgress = self.showProgress == true,
+        })
 
         if self.showProgress or self.stopReason then
             local completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PROCESSING_COMPLETE")),
@@ -853,6 +872,16 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
             index = self.index,
             status = stepResult.status,
             reason = stepResult.reason,
+        })
+        TraceVendorBatch("vendor.batch", "step", {
+            fn = "Vendor.BatchRunner.Step",
+            batchId = self.batchId,
+            mode = self.mode,
+            stepIndex = self.index,
+            totalSteps = self.totalItems,
+            processedCount = self.processedCount,
+            status = stepResult.status,
+            stepReason = stepResult.reason,
         })
 
         if stepResult.status == self.BatchConfig.BATCH_STEP_STATUS.STOPPED then
@@ -1049,6 +1078,14 @@ local function CreateBatchRunner(mode, items, onComplete, batchOptions)
             fn = "Vendor.BatchRunner.Start",
             mode = self.mode,
             total = self.totalItems,
+            awaitInventoryAck = self.delayPolicy.awaitInventoryAck == true,
+            showProgress = self.showProgress == true,
+        })
+        TraceVendorBatch("vendor.batch", "begin", {
+            fn = "Vendor.BatchRunner.Start",
+            batchId = self.batchId,
+            mode = self.mode,
+            totalSteps = self.totalItems,
             awaitInventoryAck = self.delayPolicy.awaitInventoryAck == true,
             showProgress = self.showProgress == true,
         })

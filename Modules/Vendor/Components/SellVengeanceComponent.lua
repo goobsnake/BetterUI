@@ -168,36 +168,27 @@ function SellVengeance:OnPrimaryAction(vendorInstance)
     end
 
     local L = BETTERUI.Log
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.sell_vengeance", "request", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-sell-vengeance",
-            fn = "Vendor.SellVengeanceComponent.OnPrimaryAction",
-            ["function"] = "Vendor.SellVengeanceComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            stackSize = stackSize,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
-    end
+    local expectedPrice = ds.stackSellPrice or ((ds.sellPrice or 0) * stackSize)
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-sell-vengeance",
+        fn = "Vendor.SellVengeanceComponent.OnPrimaryAction",
+        ["function"] = "Vendor.SellVengeanceComponent.OnPrimaryAction",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        quantity = stackSize,
+        stackSize = stackSize,
+        expectedPrice = expectedPrice,
+        currencyType = rawget(_G, "CURT_MONEY"),
+        item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+    }
+    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.sell_vengeance", traceData) or nil
 
     SellInventoryItem(bagId, slotIndex, stackSize)
-
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.sell_vengeance", "requested", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-sell-vengeance",
-            fn = "Vendor.SellVengeanceComponent.OnPrimaryAction",
-            ["function"] = "Vendor.SellVengeanceComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            bagId = bagId,
-            slotIndex = slotIndex,
-            stackSize = stackSize,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
+    if Vendor.ScheduleActionSettled then
+        Vendor.ScheduleActionSettled("vendor.sell_vengeance", traceData, goldBefore)
     end
 end
 

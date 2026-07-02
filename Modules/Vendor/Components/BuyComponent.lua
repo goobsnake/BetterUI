@@ -809,36 +809,25 @@ function Buy:OnPrimaryAction(vendorInstance)
     local quantity = 1
 
     local L = BETTERUI.Log
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.buy", "request", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-buy",
-            fn = "Vendor.BuyComponent.OnPrimaryAction",
-            ["function"] = "Vendor.BuyComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            entryIndex = entryIndex,
-            quantity = quantity,
-            price = ds.price,
-            currencyType = ds.currencyType,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
-    end
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-buy",
+        fn = "Vendor.BuyComponent.OnPrimaryAction",
+        ["function"] = "Vendor.BuyComponent.OnPrimaryAction",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        entryIndex = entryIndex,
+        quantity = quantity,
+        expectedPrice = ds.price,
+        price = ds.price,
+        currencyType = ds.currencyType,
+        item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
+    }
+    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.buy", traceData) or nil
 
     BuyStoreItem(entryIndex, quantity)
-
-    if L and L.TraceEvent then
-        L.TraceEvent(L.CATEGORY.ACTION, "vendor.buy", "requested", {
-            module = "Vendor",
-            scene = BETTERUI_VENDOR_SCENE_NAME,
-            feature = "vendor-buy",
-            fn = "Vendor.BuyComponent.OnPrimaryAction",
-            ["function"] = "Vendor.BuyComponent.OnPrimaryAction",
-            mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-            entryIndex = entryIndex,
-            quantity = quantity,
-            item = L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-        })
+    if Vendor.ScheduleActionSettled then
+        Vendor.ScheduleActionSettled("vendor.buy", traceData, goldBefore)
     end
 end
 

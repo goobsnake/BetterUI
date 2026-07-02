@@ -55,6 +55,29 @@ local function TraceVendorInteraction(event, phase, state, data)
     L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data)
 end
 
+local function TraceVendorScene(phase, state, data)
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent) then
+        return
+    end
+    data = data or {}
+    local traceState = BuildTraceState(state)
+    for key, value in pairs(traceState) do
+        if data[key] == nil then
+            data[key] = value
+        end
+    end
+    data.isFence = data.isFence ~= nil and data.isFence or traceState.isFenceInteraction
+    data.isStable = data.isStable ~= nil and data.isStable or traceState.isStableInteraction
+    data.interactionType = data.interactionType or (data.isFence and "fence" or (data.isStable and "stable" or "store"))
+    data.module = data.module or "Vendor"
+    data.scene = data.scene or BETTERUI_VENDOR_SCENE_NAME
+    data.feature = data.feature or "vendor-scene"
+    data.fn = data.fn or "Vendor.InteractionRuntime"
+    data["function"] = data["function"] or data.fn
+    L.TraceEvent(L.CATEGORY.SCENE, "vendor.scene", phase, data)
+end
+
 local function GetCurrentSceneName()
     if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
         return SCENE_MANAGER:GetCurrentSceneName()
@@ -673,6 +696,11 @@ local function OpenStoreInternal(state, deps, publishState)
     local allowNativeStableFallback = interactionType == nil
     state.isStableInteraction = interactionType == resolved.interactionStable
         or (allowNativeStableFallback and resolved.isNativeStableModeActive())
+    TraceVendorScene("begin", state, {
+        interactionType = interactionType,
+        isFence = false,
+        isStable = state.isStableInteraction == true,
+    })
     -- Publish the interaction flags BEFORE any native component work:
     -- EnsureComponents and ResolveTargetMode read the live module state
     -- (Vendor.IsStableInteraction / Vendor.GetActiveTabs) during the open
@@ -703,6 +731,13 @@ local function OpenStoreInternal(state, deps, publishState)
             probedEntries = nativeData.probedEntries,
             specializedSceneName = nativeData.specializedSceneName,
             specializedSceneState = nativeData.specializedSceneState,
+        })
+        TraceVendorScene("end", state, {
+            interactionType = interactionType,
+            isFence = false,
+            isStable = state.isStableInteraction == true,
+            result = "native_handoff",
+            reason = nativeReason,
         })
         PurgeNativeHandoffKeybindInterference(resolved.instance)
         resolved.restoreSceneAlias()
@@ -748,6 +783,13 @@ local function OpenStoreInternal(state, deps, publishState)
     end
 
     local finalState = SyncSessionBuyModeFromLiveState(state)
+    TraceVendorScene("end", finalState, {
+        interactionType = interactionType,
+        isFence = false,
+        isStable = finalState.isStableInteraction == true,
+        result = "shown",
+        targetMode = targetMode,
+    })
     TraceVendorInteraction("vendor.store", "open_end", finalState, {
         targetMode = targetMode,
     })
@@ -772,6 +814,11 @@ local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publish
     state.isFenceInteraction = true
     state.fenceEnableSell = enableSell ~= false
     state.fenceEnableLaunder = enableLaunder ~= false
+    TraceVendorScene("begin", state, {
+        interactionType = "fence",
+        isFence = true,
+        isStable = false,
+    })
     -- Publish fence flags BEFORE SetMode/ShowScene so Vendor.GetActiveTabs
     -- builds FENCE_TABS during the open flow instead of stale VENDOR_TABS.
     publishState(state)
@@ -783,6 +830,13 @@ local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publish
 
     local instance = resolved.instance
     if not instance then
+        TraceVendorScene("end", state, {
+            interactionType = "fence",
+            isFence = true,
+            isStable = false,
+            result = "skipped",
+            reason = "missingInstance",
+        })
         return state
     end
 
@@ -806,6 +860,12 @@ local function OpenFenceInternal(state, deps, enableSell, enableLaunder, publish
     resolved.showScene()
 
     local finalState = SyncSessionBuyModeFromLiveState(state)
+    TraceVendorScene("end", finalState, {
+        interactionType = "fence",
+        isFence = true,
+        isStable = false,
+        result = "shown",
+    })
     TraceVendorInteraction("vendor.fence", "open_end", finalState, {
         enableSell = enableSell,
         enableLaunder = enableLaunder,
@@ -815,6 +875,11 @@ end
 
 local function CloseStoreInternal(state, deps)
     TraceVendorInteraction("vendor.store", "close_begin", state, nil)
+    TraceVendorScene("begin", state, {
+        interactionType = "close",
+        isFence = state and state.isFenceInteraction == true,
+        isStable = state and state.isStableInteraction == true,
+    })
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "store closed")
     end
@@ -885,6 +950,12 @@ local function CloseStoreInternal(state, deps)
     resolved.logVendorDebug("SCENE_TRANSITIONS", "VendorScene", "CloseStore complete")
     resolved.aliasSceneToBetterUI(instance)
     TraceVendorInteraction("vendor.store", "close_end", state, nil)
+    TraceVendorScene("end", state, {
+        interactionType = "close",
+        isFence = false,
+        isStable = false,
+        result = "hidden",
+    })
 
     return state
 end
