@@ -71,6 +71,12 @@ check(p and p.level == "INFO" and p.cat == "LIST", "level + category extracted")
 check(p and p.event == "refresh", "event is the message after ' | '")
 check(p and tonumber(p.ms) == 100 and p.sid:match("^%x+$") ~= nil, "gameMs numeric, sid hex")
 
+-- Transfer replay anchors parse as their own category, not generic ACTION.
+fileLines = {}
+Log.Info(Log.CATEGORY.TRANSFER, "bank transfer requested")
+p = parse(fileLines[1])
+check(p ~= nil and p.cat == "TRANSFER", "TRANSFER category line matches the host ERE")
+
 -- 2. record-style payload renders its VALUES inside the event field.
 fileLines = {}
 Log.Info(Log.CATEGORY.LIST, "refresh", { count = 7, name = "bag" })
@@ -106,6 +112,9 @@ check(p ~= nil and p.sid == "00000000", "fallback meta-line sid remains parser-s
 p = parse("[BUI] 100 sid=12345678 seq=99 WARN LOG | dropped=12 reason=rate_limit")
 check(p ~= nil and p.level == "WARN" and p.event:find("dropped=12", 1, true) ~= nil,
     "drop-summary marker parses (WARN LOG dropped=n)")
+p = parse("[BUI] 100 sid=12345678 seq=100 INFO LOG | long payload truncated=1")
+check(p ~= nil and p.event:find("truncated=1", 1, true) ~= nil,
+    "truncated marker parses as a normal event field")
 
 -- 7. Engine-wrapped on-disk form: apply the host strip recipe (anchor on [BUI], drop |r).
 local wrapped = '2026-06-20T12:00:00.000Z |cff0000Lua Error: '

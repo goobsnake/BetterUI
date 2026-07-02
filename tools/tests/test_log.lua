@@ -32,6 +32,8 @@ BETTERUI.CIM.InterfaceLog = {
 
 function d(msg) chatLines[#chatLines + 1] = msg end
 function GetGameTimeMilliseconds() return gameTimeMs end
+function GetItemName() return "Private Sword" end
+function GetSlotStackSize() return 12 end
 function TakeScreenshot()
     screenshots[#screenshots + 1] = { t = gameTimeMs }
     return true
@@ -70,6 +72,10 @@ end
 
 print("\n=== Log Tests ===\n")
 
+check(Log.SCHEMA == 1, "Log exposes the line schema version")
+check(Log.EVENT_SCHEMA == 1, "Log exposes the event taxonomy schema version")
+check(Log.CATEGORY.TRANSFER == "TRANSFER", "Log exposes the TRANSFER category")
+
 -- Default routing: DEBUG -> file only, formatted with level+category+ts.
 fileLines = {}; chatLines = {}
 Log.Debug(Log.CATEGORY.GENERAL, "hi")
@@ -83,6 +89,22 @@ check(Log.Summarize({ 10, 20, 30 }):find("^%[3:", 1) ~= nil, "Summarize array ->
 check(Log.Summarize({ a = 1, b = 2 }):find("^{2:") ~= nil, "Summarize map -> {n:keys}")
 check(Log.Summarize(string.rep("x", 100)):find("%.%.%.", 1) ~= nil, "Summarize long string truncates")
 check(Log.Summarize(42) == "42", "Summarize number passthrough")
+
+check(Log.GetPrivacyMode() == false, "Privacy mode defaults off")
+local itemDesc = Log.DescribeItem({ bagId = 1, slotIndex = 2, uniqueId = "abc", itemId = 42 }, "target")
+check(itemDesc:find("name=Private_Sword", 1, true) ~= nil, "DescribeItem includes item name when privacy is off")
+Log.SetPrivacyMode(true)
+check(Log.GetPrivacyMode() == true, "SetPrivacyMode(true) enables privacy mode")
+local privateItemDesc = Log.DescribeItem({ bagId = 1, slotIndex = 2, uniqueId = "abc", itemId = 42 }, "target")
+check(privateItemDesc:find("name=", 1, true) == nil, "DescribeItem omits item name when privacy is on")
+check(privateItemDesc:find("bag=1", 1, true) ~= nil
+    and privateItemDesc:find("slot=2", 1, true) ~= nil
+    and privateItemDesc:find("uid=abc", 1, true) ~= nil
+    and privateItemDesc:find("itemId=42", 1, true) ~= nil
+    and privateItemDesc:find("stack=12", 1, true) ~= nil,
+    "DescribeItem keeps non-identifying item anchors when privacy is on")
+Log.SetPrivacyMode(false)
+check(Log.GetPrivacyMode() == false, "SetPrivacyMode(false) disables privacy mode")
 
 -- data argument is summarized and appended.
 fileLines = {}

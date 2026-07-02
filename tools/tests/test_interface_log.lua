@@ -69,6 +69,7 @@ local IL = BETTERUI.CIM.InterfaceLog
 
 local tests_passed = 0
 local tests_failed = 0
+local failed_messages = {}
 
 local function check(cond, message)
     if cond then
@@ -76,8 +77,47 @@ local function check(cond, message)
         print("  [OK] " .. message)
     else
         tests_failed = tests_failed + 1
+        failed_messages[#failed_messages + 1] = message
         print("  [X] " .. message)
     end
+end
+
+local function runDeferredsSince(startIndex)
+    local errors = {}
+    for i = (startIndex or 0) + 1, #capturedDeferreds do
+        local deferred = capturedDeferreds[i]
+        local callback = deferred and deferred.callback
+        if type(callback) == "function" then
+            local ok, err = pcall(callback)
+            if not ok then errors[#errors + 1] = tostring(err) end
+        end
+    end
+    return table.concat(errors, "\n")
+end
+
+local function isValidUtf8(text)
+    local i = 1
+    while i <= #text do
+        local b = text:byte(i)
+        if b < 0x80 then
+            i = i + 1
+        elseif b >= 0xC2 and b <= 0xDF then
+            local b2 = text:byte(i + 1)
+            if not (b2 and b2 >= 0x80 and b2 <= 0xBF) then return false end
+            i = i + 2
+        elseif b >= 0xE0 and b <= 0xEF then
+            local b2, b3 = text:byte(i + 1), text:byte(i + 2)
+            if not (b2 and b2 >= 0x80 and b2 <= 0xBF and b3 and b3 >= 0x80 and b3 <= 0xBF) then return false end
+            i = i + 3
+        elseif b >= 0xF0 and b <= 0xF4 then
+            local b2, b3, b4 = text:byte(i + 1), text:byte(i + 2), text:byte(i + 3)
+            if not (b2 and b2 >= 0x80 and b2 <= 0xBF and b3 and b3 >= 0x80 and b3 <= 0xBF and b4 and b4 >= 0x80 and b4 <= 0xBF) then return false end
+            i = i + 4
+        else
+            return false
+        end
+    end
+    return true
 end
 
 -- ============================================================================
@@ -164,14 +204,104 @@ capturedDeferred = nil
 local callbackStart = #capturedDeferreds
 beforeStats = IL.GetStats()
 IL.WriteRaw("pending-1")
-local firstPendingCallback = capturedDeferreds[callbackStart + 1] and capturedDeferreds[callbackStart + 1].callback
 IL.WriteRaw("pending-2")
 afterStats = IL.GetStats()
 check(afterStats.scheduled - beforeStats.scheduled == 1, "maxPending schedules only available pending capacity")
 check(afterStats.dropped - beforeStats.dropped == 1, "maxPending drops overflow while a breadcrumb is pending")
 check(afterStats.pending == 1, "maxPending exposes the pending count in diagnostics")
-if firstPendingCallback then pcall(firstPendingCallback) end
+runDeferredsSince(callbackStart)
 check(IL.GetStats().pending == 0, "pending count drains when the deferred breadcrumb raises")
+
+-- Priority detection is anchored to the header. A payload containing " WARN " must
+-- not promote an otherwise normal LIST record past the active frame budget.
+IL.SetBudget({ maxPerFrame = 1, maxPerSecond = 0, maxPending = 100 })
+local headerOnlyStart = #capturedDeferreds
+beforeStats = IL.GetStats()
+for i = 1, 4 do
+    IL.WriteRaw(string.format("[BUI] 4242 sid=test seq=%d INFO LIST | payload contains WARN marker", i))
+end
+afterStats = IL.GetStats()
+check(afterStats.scheduled - beforeStats.scheduled == 1,
+    "payload WARN text does not promote a non-priority header past the frame cap")
+check(afterStats.dropped - beforeStats.dropped == 3,
+    "non-priority payload WARN overflow uses the normal rate limit")
+runDeferredsSince(headerOnlyStart)
+
+-- Priority lines can exceed normal frame/second caps, but only up to the bounded 4x
+-- priority allowance and with a distinct drop reason.
+IL.SetBudget({ maxPerFrame = 1, maxPerSecond = 0, maxPending = 100 })
+local priorityCapStart = #capturedDeferreds
+beforeStats = IL.GetStats()
+for i = 1, 5 do
+    IL.WriteRaw(string.format("[BUI] 4242 sid=test seq=%d WARN LOG | priority frame cap", i))
+end
+afterStats = IL.GetStats()
+check(afterStats.scheduled - beforeStats.scheduled == 4,
+    "priority frame budget allows up to 4x the active frame cap")
+check(afterStats.dropped - beforeStats.dropped == 1,
+    "priority frame budget drops overflow beyond the 4x cap")
+local priorityCapErrors = runDeferredsSince(priorityCapStart)
+check(priorityCapErrors:find("reason=priority_rate_limit", 1, true) ~= nil,
+    "priority frame overflow emits the priority_rate_limit summary reason; got " .. priorityCapErrors)
+
+-- Priority lines still respect maxPending.
+IL.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 1 })
+local priorityPendingStart = #capturedDeferreds
+beforeStats = IL.GetStats()
+IL.WriteRaw("[BUI] 4242 sid=test seq=1 ERROR LOG | priority pending cap 1")
+IL.WriteRaw("[BUI] 4242 sid=test seq=2 ERROR LOG | priority pending cap 2")
+afterStats = IL.GetStats()
+check(afterStats.scheduled - beforeStats.scheduled == 1,
+    "priority maxPending schedules only available pending capacity")
+check(afterStats.dropped - beforeStats.dropped == 1,
+    "priority maxPending drops overflow while a breadcrumb is pending")
+local priorityPendingErrors = runDeferredsSince(priorityPendingStart)
+check(priorityPendingErrors:find("reason=priority_rate_limit", 1, true) ~= nil,
+    "priority maxPending overflow emits the priority_rate_limit summary reason; got " .. priorityPendingErrors)
+
+-- Pregame zero-clock transport should not consume the per-second window.
+IL.SetBudget({ maxPerFrame = 0, maxPerSecond = 1, maxPending = 0 })
+local originalFakeTime = fakeTime
+fakeTime = 0
+local zeroClockStart = #capturedDeferreds
+beforeStats = IL.GetStats()
+IL.WriteRaw("[BUI] 0 sid=test seq=1 INFO LIST | zero clock 1")
+IL.WriteRaw("[BUI] 0 sid=test seq=2 INFO LIST | zero clock 2")
+IL.WriteRaw("[BUI] 0 sid=test seq=3 INFO LIST | zero clock 3")
+fakeTime = 100
+IL.WriteRaw("[BUI] 100 sid=test seq=4 INFO LIST | first real second")
+IL.WriteRaw("[BUI] 100 sid=test seq=5 INFO LIST | first real second overflow")
+afterStats = IL.GetStats()
+check(afterStats.scheduled - beforeStats.scheduled == 4,
+    "Timestamp zero skips per-second accounting until the first real clock tick")
+check(afterStats.dropped - beforeStats.dropped == 1,
+    "first real second still enforces the per-second cap")
+runDeferredsSince(zeroClockStart)
+fakeTime = originalFakeTime
+
+-- RawEmit is the single line-length choke point.
+IL.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 })
+local longLine = "[BUI] 4242 sid=test seq=99 INFO LOG | " .. string.rep("x", 3000)
+capturedDeferred = nil
+IL.WriteRaw(longLine)
+local okLong, longErr = pcall(capturedDeferred)
+longErr = tostring(longErr)
+check(okLong == false, "long InterfaceLog line still raises through the file sink")
+check(#longErr <= 2048, "long InterfaceLog line is capped at 2048 characters")
+check(longErr:sub(-#"truncated=1") == "truncated=1", "truncated InterfaceLog line carries the truncated marker")
+
+local truncationMarker = " truncated=1"
+local utf8PrefixLength = 2048 - #truncationMarker
+local twoByteChar = string.char(0xC3, 0xA9)
+local utf8BoundaryLine = string.rep("x", utf8PrefixLength - 1) .. twoByteChar .. string.rep("y", 32)
+capturedDeferred = nil
+IL.WriteRaw(utf8BoundaryLine)
+local okUtf8, utf8Err = pcall(capturedDeferred)
+utf8Err = tostring(utf8Err)
+check(okUtf8 == false, "UTF-8 boundary line still raises through the file sink")
+check(#utf8Err <= 2048, "UTF-8 boundary line remains capped at 2048 characters")
+check(utf8Err:sub(-#"truncated=1") == "truncated=1", "UTF-8 boundary truncation carries the marker")
+check(isValidUtf8(utf8Err), "UTF-8 boundary truncation preserves a valid byte sequence")
 
 -- Restore unlimited + disabled so nothing leaks past these tests.
 IL.SetBudget({ maxPerFrame = 0, maxPerSecond = 0, maxPending = 0 })
@@ -193,19 +323,62 @@ BETTERUI.Settings = { Modules = {} }
 
 -- Minimal Log facade so the /builog preset branch (ApplyPreset + PrintStatus) resolves.
 local sinkState = {}
+local logPreset = "debug"
+local logMinLevel = 3
+local logPayloadCapture = false
+local logPrivacyMode = false
+local function applyTestPreset(name)
+    name = tostring(name or ""):lower()
+    if name == "off" then
+        logPreset = "off"
+        logMinLevel = 3
+        logPayloadCapture = false
+    elseif name == "info" then
+        logPreset = "info"
+        logMinLevel = 3
+        logPayloadCapture = false
+    elseif name == "watch" or name == "debug" then
+        logPreset = name
+        logMinLevel = 2
+        logPayloadCapture = true
+    elseif name == "trace" or name == "inspect" then
+        logPreset = name
+        logMinLevel = 1
+        logPayloadCapture = true
+    else
+        return false, logPreset
+    end
+    return true, logPreset
+end
 BETTERUI.Log = {
     LEVEL = { TRACE = 1, DEBUG = 2, INFO = 3, WARN = 4, ERROR = 5 },
-    ApplyPreset = function(name) return true, name end,
-    GetPreset = function() return "debug" end,
-    GetMinLevel = function() return 3 end,
-    GetPayloadCapture = function() return false end,
+    CATEGORY = { STATE = "STATE" },
+    ApplyPreset = applyTestPreset,
+    GetPreset = function() return logPreset end,
+    GetMinLevel = function() return logMinLevel end,
+    GetPayloadCapture = function() return logPayloadCapture end,
     GetSink = function(level, sinkName) return sinkState[tostring(level) .. ":" .. tostring(sinkName)] == true end,
     SetSink = function(level, sinkName, on)
         sinkState[tostring(level) .. ":" .. tostring(sinkName)] = on and true or false
     end,
-    SetMinLevel = function() end,
-    LevelFromName = function() return nil end,
+    SetMinLevel = function(level, preservePreset)
+        if type(level) == "number" then
+            logMinLevel = level
+            if not preservePreset then logPreset = "custom" end
+        end
+    end,
+    SetPayloadCapture = function(on, preservePreset)
+        logPayloadCapture = on and true or false
+        if not preservePreset then logPreset = "custom" end
+    end,
+    SetPrivacyMode = function(on) logPrivacyMode = on and true or false end,
+    GetPrivacyMode = function() return logPrivacyMode end,
+    LevelFromName = function(name)
+        local levels = { trace = 1, debug = 2, info = 3, warn = 4, error = 5 }
+        return levels[tostring(name or ""):lower()]
+    end,
     InvalidateActive = function() end,
+    Info = function() end,
 }
 local screenshotRequests = {}
 local screenshotAutoMode = "off"
@@ -253,8 +426,25 @@ local statusText = table.concat(chatOutput, "\n")
 check(statusText:find("Sink budget: frame=2 sec=4 pending=", 1, true) ~= nil
     and statusText:find("/6", 1, true) ~= nil,
     "/builog status reports frame/sec and pending/maxPending budget")
+check(statusText:find("privacy=off", 1, true) ~= nil,
+    "/builog status reports privacy=off by default")
 check(statusText:find("Usage:", 1, true) == nil,
     "/builog status prints status without falling through to generic usage")
+
+chatOutput = {}
+builog("privacy on")
+statusText = table.concat(chatOutput, "\n")
+check(logPrivacyMode == true and persisted["CIM:interfaceLogPrivacy"] == true,
+    "/builog privacy on enables and persists privacy mode")
+check(statusText:find("privacy=on", 1, true) ~= nil,
+    "/builog privacy on status reports privacy=on")
+chatOutput = {}
+builog("privacy off")
+statusText = table.concat(chatOutput, "\n")
+check(logPrivacyMode == false and persisted["CIM:interfaceLogPrivacy"] == false,
+    "/builog privacy off disables and persists privacy mode")
+check(statusText:find("privacy=off", 1, true) ~= nil,
+    "/builog privacy off status reports privacy=off")
 
 local health = SLASH_COMMANDS["/buihealth"]
 chatOutput = {}
@@ -278,6 +468,38 @@ check(persisted["CIM:interfaceLogPreset"] == "debug", "/builog preset debug pers
 
 builog("preset off")
 check(persisted["CIM:interfaceLogEnabled"] == false, "/builog preset off persists enabled=false")
+
+IL.SetEnabled(true)
+logPreset = "custom"
+logMinLevel = 4
+logPayloadCapture = false
+local captureStart = #capturedDeferreds
+builog("capture 1")
+check(logPreset == "trace" and logMinLevel == 1 and logPayloadCapture == true,
+    "/builog capture temporarily switches to trace payload capture")
+local captureRevert = capturedDeferreds[#capturedDeferreds] and capturedDeferreds[#capturedDeferreds].callback
+check(#capturedDeferreds > captureStart and type(captureRevert) == "function",
+    "/builog capture schedules an auto-revert callback")
+if type(captureRevert) == "function" then pcall(captureRevert) end
+check(logPreset == "custom" and logMinLevel == 4 and logPayloadCapture == false and IL.IsEnabled() == true,
+    string.format("/builog capture restores custom preset knobs and enabled state (preset=%s level=%s payload=%s enabled=%s)",
+        tostring(logPreset), tostring(logMinLevel), tostring(logPayloadCapture), tostring(IL.IsEnabled())))
+
+IL.SetEnabled(true)
+logPreset = "debug"
+logMinLevel = 4
+logPayloadCapture = false
+local namedCaptureStart = #capturedDeferreds
+builog("capture 1")
+check(logPreset == "trace" and logMinLevel == 1 and logPayloadCapture == true,
+    "/builog capture switches a named-preset snapshot to trace payload capture")
+local namedCaptureRevert = capturedDeferreds[#capturedDeferreds] and capturedDeferreds[#capturedDeferreds].callback
+check(#capturedDeferreds > namedCaptureStart and type(namedCaptureRevert) == "function",
+    "/builog capture schedules a named-preset auto-revert callback")
+if type(namedCaptureRevert) == "function" then pcall(namedCaptureRevert) end
+check(logPreset == "debug" and logMinLevel == 4 and logPayloadCapture == false and IL.IsEnabled() == true,
+    string.format("/builog capture restores captured knobs even when the snapshot preset is named (preset=%s level=%s payload=%s enabled=%s)",
+        tostring(logPreset), tostring(logMinLevel), tostring(logPayloadCapture), tostring(IL.IsEnabled())))
 
 builog("on")
 builog("off")
@@ -430,6 +652,12 @@ IL.SetEnabled(false)
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", tests_passed))
 print(string.format("Failed: %d", tests_failed))
+if tests_failed > 0 then
+    print("Failed assertions:")
+    for i = 1, #failed_messages do
+        print("  - " .. failed_messages[i])
+    end
+end
 
 if tests_failed > 0 then
     os.exit(1)

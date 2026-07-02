@@ -35,7 +35,7 @@ local LEVEL_NAME = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR" }
 Log.CATEGORY = {
     SCENE = "SCENE", LIST = "LIST", NAV = "NAV", KEYBIND = "KEYBIND", FOOTER = "FOOTER",
     CATEGORY = "CATEGORY", SEARCH = "SEARCH", SORT = "SORT", BATCH = "BATCH",
-    ACTION = "ACTION", DIALOG = "DIALOG", CURRENCY = "CURRENCY",
+    ACTION = "ACTION", TRANSFER = "TRANSFER", DIALOG = "DIALOG", CURRENCY = "CURRENCY",
     LIFECYCLE = "LIFECYCLE", SAFE = "SAFE", SETTINGS = "SETTINGS", SETTING = "SETTINGS",
     -- CONTROL: control resolution/cache (was GENERAL). PERF: timing/budget signals.
     -- STATE: watch-mode startup preamble, heartbeat, and periodic state snapshots.
@@ -51,6 +51,10 @@ local minLevel = Log.LEVEL.TRACE
 -- reach the log. Debug/watch/trace/inspect keep payloads on so diagnostics have the
 -- exact state needed to follow addon behavior.
 local payloadCapture = true
+
+-- Privacy mode keeps local diagnostics useful while making shared builog files omit
+-- player-identifying names and absolute balances. It is off by default.
+local privacyMode = false
 
 -- Last applied named preset (informational; see Log.ApplyPreset). Becomes "custom"
 -- once a low-level setter diverges from a preset's shape.
@@ -299,6 +303,7 @@ function Log.DescribeItem(value, label)
     local raw = rawEntryData(value)
     local prefix = label and (normalizeLogToken(label, "item") .. ":") or ""
     if type(raw) ~= "table" then return prefix .. "nil" end
+    local redactNames = privacyMode == true
 
     local bagId = raw.bagId or raw.bag
     local slotIndex = raw.slotIndex or raw.slot
@@ -319,8 +324,10 @@ function Log.DescribeItem(value, label)
     if bagId ~= nil and slotIndex ~= nil then
         local uid = raw.uniqueId or callGlobal("GetItemUniqueId", bagId, slotIndex)
         if uid ~= nil and raw.uniqueId == nil then parts[#parts + 1] = "uid=" .. normalizeLogToken(uid, "?") end
-        local name = callGlobal("GetItemName", bagId, slotIndex)
-        if name and name ~= "" then parts[#parts + 1] = "name=" .. normalizeLogToken(name, "?"):sub(1, 36) end
+        if not redactNames then
+            local name = callGlobal("GetItemName", bagId, slotIndex)
+            if name and name ~= "" then parts[#parts + 1] = "name=" .. normalizeLogToken(name, "?"):sub(1, 36) end
+        end
         local stack = raw.stackCount or callGlobal("GetSlotStackSize", bagId, slotIndex)
         if stack ~= nil and raw.stackCount == nil then parts[#parts + 1] = "stack=" .. normalizeLogToken(stack, "?") end
         local link = raw.itemLink or callGlobal("GetItemLink", bagId, slotIndex)
@@ -329,7 +336,7 @@ function Log.DescribeItem(value, label)
         parts[#parts + 1] = "currency=" .. normalizeLogToken(raw.currencyType, "?")
     else
         local rawName = raw.name or raw.itemName or raw.displayName
-        if rawName and rawName ~= "" then parts[#parts + 1] = "name=" .. normalizeLogToken(rawName, "?"):sub(1, 36) end
+        if not redactNames and rawName and rawName ~= "" then parts[#parts + 1] = "name=" .. normalizeLogToken(rawName, "?"):sub(1, 36) end
         local rawLink = raw.itemLink or raw.link
         if rawLink and rawLink ~= "" then parts[#parts + 1] = "hasLink=1" end
     end
@@ -427,6 +434,7 @@ end
 -- when the engine interleaves traceback blocks. A bounded in-memory ring backs the
 -- "what just happened" reads (/builog recent).
 Log.SCHEMA = 1
+Log.EVENT_SCHEMA = 1
 
 local sessionId = nil
 local seqCounter = 0
@@ -684,7 +692,7 @@ function Log.TraceEvent(category, event, phase, data, level)
     elseif data ~= nil then
         payload.value = data
     end
-    payload.traceVersion = payload.traceVersion or 1
+    payload.traceVersion = payload.traceVersion or Log.EVENT_SCHEMA
     payload.eventName = event
     payload.phaseName = phase
     local la = lastAction
@@ -741,8 +749,11 @@ function Log.DebugLazy(category, message, dataFn) Log.WriteLazy(Log.LEVEL.DEBUG,
 function Log.TraceLazy(category, message, dataFn) Log.WriteLazy(Log.LEVEL.TRACE, category, message, dataFn) end
 
 -- Configuration API ---------------------------------------------------------
-function Log.SetMinLevel(level)
-    if type(level) == "number" and LEVEL_NAME[level] then minLevel = level; currentPreset = "custom" end
+function Log.SetMinLevel(level, preservePreset)
+    if type(level) == "number" and LEVEL_NAME[level] then
+        minLevel = level
+        if not preservePreset then currentPreset = "custom" end
+    end
 end
 
 function Log.GetMinLevel() return minLevel end
@@ -779,9 +790,17 @@ end
 --- Whether optional `data`/payload arguments are rendered into log lines. The
 --- "debug" and "trace" presets turn this on; "info" leaves it off (message-only).
 ---@param on boolean
-function Log.SetPayloadCapture(on) payloadCapture = on and true or false; currentPreset = "custom" end
+function Log.SetPayloadCapture(on, preservePreset)
+    payloadCapture = on and true or false
+    if not preservePreset then currentPreset = "custom" end
+end
 ---@return boolean
 function Log.GetPayloadCapture() return payloadCapture end
+
+---@param on boolean
+function Log.SetPrivacyMode(on) privacyMode = on and true or false end
+---@return boolean
+function Log.GetPrivacyMode() return privacyMode == true end
 
 -- Presets -------------------------------------------------------------------
 -- Three named tiers (plus off) layered over the low-level knobs, mapped to the

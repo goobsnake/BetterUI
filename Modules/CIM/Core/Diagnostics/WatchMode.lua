@@ -33,6 +33,7 @@ local function names() return BETTERUI.CIM and BETTERUI.CIM.Names end
 
 local active = false
 local currentView = nil         -- optional module-set sub-view label (e.g. "DepositTab")
+local viewSceneRegistry = {}    -- view prefix -> scene name
 local snapshotProviders = {}    -- name -> fn
 local snapshotOrder = {}        -- ordered provider names (stable snapshot field order)
 local snapshotScheduled = false
@@ -100,16 +101,43 @@ local function safeToken(s)
     return (str:gsub("%s+", "_"):gsub("|", "/"))
 end
 
+local function privacyEnabled()
+    local L = log()
+    return L and L.GetPrivacyMode and L.GetPrivacyMode() == true
+end
+
+local function limitedLastAction(message)
+    local okM, m = pcall(tostring, message)
+    m = (okM and type(m) == "string") and m or "?"
+    if #m > 48 then
+        m = m:sub(1, 48)
+    end
+    return m
+end
+
+local function registeredSceneMatches(registeredScene, scene)
+    if type(registeredScene) == "table" then
+        return registeredScene[scene] == true
+    end
+    return scene == registeredScene
+end
+
 local function viewMatchesScene(view, scene)
     if not view then return false end
     if type(scene) ~= "string" or scene == "" then return true end
 
-    if view == "inventory" or view:sub(1, 10) == "inventory." then
-        return scene == "gamepad_inventory_root"
+    local matchedScene = nil
+    local matchedPrefixLength = 0
+    for prefix, sceneName in pairs(viewSceneRegistry) do
+        if view == prefix or view:sub(1, #prefix + 1) == prefix .. "." then
+            if #prefix > matchedPrefixLength then
+                matchedPrefixLength = #prefix
+                matchedScene = sceneName
+            end
+        end
     end
-
-    if view:sub(1, 8) == "banking." then
-        return scene == "gamepad_banking"
+    if matchedScene ~= nil then
+        return registeredSceneMatches(matchedScene, scene)
     end
 
     if view:find("%.") then
@@ -165,8 +193,7 @@ local function contextSuffix(_level, _category)
             -- Collapse newlines/tabs (a raw newline would split the record into two physical
             -- lines) and neutralize the pipe, THEN escape backslash + quote so an embedded "
             -- can't break the k=v contract.
-            local okM, m = pcall(tostring, la.message)
-            m = (okM and type(m) == "string") and m or "?"
+            local m = limitedLastAction(la.message)
             m = m:gsub("[\r\n\t]+", " "):gsub("|", "/"):gsub("\\", "\\\\"):gsub('"', '\\"')
             parts[#parts + 1] = 'lastAction="' .. m .. '"'
         end
@@ -193,11 +220,13 @@ local function emitActiveAddons()
         local ok, name, _title, _author, _desc, enabled = pcall(getInfo, i)
         if ok and enabled then
             total = total + 1
-            if #listed < 40 then listed[#listed + 1] = name or ("addon" .. i) end
+            if not privacyEnabled() and #listed < 40 then listed[#listed + 1] = name or ("addon" .. i) end
         end
     end
     local categories = L.CATEGORY or {}
-    L.Info(categories.STATE, "active addons", { count = total, names = table.concat(listed, ",") })
+    local data = { count = total }
+    if not privacyEnabled() then data.names = table.concat(listed, ",") end
+    L.Info(categories.STATE, "active addons", data)
 end
 
 local function emitPreamble()
@@ -205,14 +234,17 @@ local function emitPreamble()
     if not L then return end
     local data = {
         schema = L.SCHEMA,
+        eventSchema = L.EVENT_SCHEMA,
         preset = (L.GetPreset and L.GetPreset()) or "watch", -- watch OR inspect (both activate WatchMode)
         heartbeatMs = snapshotIntervalMs(),
         sid = L.GetSessionId and L.GetSessionId() or nil,
         api = safeCall("GetAPIVersion"),
         world = safeCall("GetWorldName"),
-        player = safeCall("GetUnitName", "player"),
-        zone = safeCall("GetUnitZone", "player"),
     }
+    if not privacyEnabled() then
+        data.player = safeCall("GetUnitName", "player")
+        data.zone = safeCall("GetUnitZone", "player")
+    end
     local categories = L.CATEGORY or {}
     L.Info(categories.STATE, "diagnostic session started -- live Interface.log stream; grep '[BUI]' for the clean feed", data)
     emitActiveAddons()
@@ -252,7 +284,7 @@ function Watch.Snapshot()
     local la = L.GetLastAction and L.GetLastAction()
     if type(la) == "table" then
         if la.flow then data.flow = la.flow end
-        if la.message and la.message ~= "" then data.lastAction = la.message end
+        if la.message and la.message ~= "" then data.lastAction = limitedLastAction(la.message) end
     end
     for i = 1, #snapshotOrder do
         local nm = snapshotOrder[i]
@@ -325,6 +357,33 @@ end
 
 function Watch.IsActive() return active end
 function Watch.SetView(label) currentView = (type(label) == "string" and label ~= "") and label or nil end
+function Watch.ClearView(viewPrefix)
+    if type(viewPrefix) ~= "string" or viewPrefix == "" then
+        currentView = nil
+        return
+    end
+    if currentView == viewPrefix or (type(currentView) == "string" and currentView:sub(1, #viewPrefix + 1) == viewPrefix .. ".") then
+        currentView = nil
+    end
+end
+function Watch.RegisterViewScene(viewPrefix, sceneName)
+    if type(viewPrefix) ~= "string" or viewPrefix == "" then return end
+    if type(sceneName) ~= "string" or sceneName == "" then
+        viewSceneRegistry[viewPrefix] = nil
+        return
+    end
+    local existing = viewSceneRegistry[viewPrefix]
+    if existing == nil then
+        viewSceneRegistry[viewPrefix] = sceneName
+    elseif type(existing) == "table" then
+        existing[sceneName] = true
+    elseif existing ~= sceneName then
+        viewSceneRegistry[viewPrefix] = {
+            [existing] = true,
+            [sceneName] = true,
+        }
+    end
+end
 function Watch.DescribeActiveKeybinds() return describeActiveKeybinds() end
 
 --- Enter diagnostics enrichment: register the context provider, apply mutes, emit the

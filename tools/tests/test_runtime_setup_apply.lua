@@ -205,6 +205,7 @@ do
     local suppressPopupCalls = {}
     local screenshotAutoCalls = {}
     local chatSurfaceCalls = {}
+    local privacyCalls = {}
     local minLevelCalls = {}
     BETTERUI.CIM.InterfaceLog = {
         SetEnabled = function(value) setEnabledCalls[#setEnabledCalls + 1] = value end,
@@ -214,6 +215,9 @@ do
         end,
         SetChatSurface = function(value, persist)
             chatSurfaceCalls[#chatSurfaceCalls + 1] = { value = value, persist = persist }
+        end,
+        SetPrivacyMode = function(value, persist)
+            privacyCalls[#privacyCalls + 1] = { value = value, persist = persist }
         end,
         SetMinLevelSetting = function(name, persist)
             minLevelCalls[#minLevelCalls + 1] = { name = name, persist = persist }
@@ -234,6 +238,7 @@ do
         interfaceLogSuppressPopups = false,
         interfaceLogScreenshotAutoMode = "warn",
         interfaceLogChat = true,
+        interfaceLogPrivacy = true,
         interfaceLogMinLevel = "trace",
     }
     BETTERUI.GetSetting = function(_, key, default)
@@ -255,6 +260,10 @@ do
         "Apply forces legacy /builog chat surfacing off after reload")
     assert_eq(chatSurfaceCalls[1] and chatSurfaceCalls[1].persist, false,
         "Apply restores chat surfacing without re-persisting it")
+    assert_eq(privacyCalls[1] and privacyCalls[1].value, true,
+        "Apply restores persisted /builog privacy mode after reload")
+    assert_eq(privacyCalls[1] and privacyCalls[1].persist, false,
+        "Apply restores privacy mode without re-persisting it")
     assert_eq(minLevelCalls[1] and minLevelCalls[1].name, "trace",
         "Apply restores persisted /builog min-level override after reload")
     assert_eq(minLevelCalls[1] and minLevelCalls[1].persist, false,
@@ -272,9 +281,14 @@ do
     store.interfaceLogEnabled = false
     setEnabledCalls = {}
     applyPresetCalls = {}
+    privacyCalls = {}
     harness.Apply({ Modules = {} })
     assert_eq(#setEnabledCalls, 0,
-        "Apply restores nothing when persisted logging is disabled")
+        "Apply does not re-enable builog when persisted logging is disabled")
+    assert_eq(privacyCalls[1] and privacyCalls[1].value, true,
+        "Apply still restores privacy mode when the builog stream is disabled")
+    assert_eq(privacyCalls[1] and privacyCalls[1].persist, false,
+        "Apply restores disabled-stream privacy mode without re-persisting it")
 
     store.interfaceLogEnabled = nil
     setEnabledCalls = {}

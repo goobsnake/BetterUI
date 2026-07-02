@@ -37,6 +37,8 @@ local InterfaceLog = {}
 BETTERUI.CIM.InterfaceLog = InterfaceLog
 
 local TAG = "[BUI]"
+local MAX_LINE_LENGTH = 2048
+local TRUNCATED_MARKER = " truncated=1"
 
 local enabled = false          -- session breadcrumb logging on/off
 local suppressPopups = true    -- kept for saved-state compatibility; our log-errors are always suppressed
@@ -53,7 +55,7 @@ local frameMarker = nil
 local emittedThisFrame = 0
 local secondWindowStart = nil
 local emittedThisSecond = 0
-local pendingDrops = 0
+local pendingDropsByReason = {}
 local dropSummaryScheduled = false
 local pendingCount = 0
 local emitGeneration = 0
@@ -70,6 +72,42 @@ end
 local function Timestamp()
     local clock = G("GetGameTimeMilliseconds")
     return type(clock) == "function" and clock() or 0
+end
+
+local Flatten
+
+local function ResetPendingDrops()
+    pendingDropsByReason = {}
+end
+
+local function HasPendingDrops()
+    for _, n in pairs(pendingDropsByReason) do
+        if n and n > 0 then return true end
+    end
+    return false
+end
+
+local function TakePendingDropSummary()
+    local priorityDrops = pendingDropsByReason.priority_rate_limit or 0
+    if priorityDrops > 0 then
+        pendingDropsByReason.priority_rate_limit = nil
+        return "priority_rate_limit", priorityDrops
+    end
+    local normalDrops = pendingDropsByReason.rate_limit or 0
+    if normalDrops > 0 then
+        pendingDropsByReason.rate_limit = nil
+        return "rate_limit", normalDrops
+    end
+    for reason, n in pairs(pendingDropsByReason) do
+        if n and n > 0 then
+            pendingDropsByReason[reason] = nil
+            reason = Flatten(reason, true):gsub("%s+", "_")
+            if reason == "" then reason = "rate_limit" end
+            return reason, n
+        end
+        pendingDropsByReason[reason] = nil
+    end
+    return nil, 0
 end
 
 -- A value that stays constant within one rendered frame, so we can count emissions
@@ -90,7 +128,7 @@ local function EnterQuiesce(durationMs)
     local untilMs = Timestamp() + duration
     if untilMs > quiesceUntilMs then quiesceUntilMs = untilMs end
     emitGeneration = emitGeneration + 1
-    pendingDrops = 0
+    ResetPendingDrops()
     dropSummaryScheduled = false
     return true
 end
@@ -99,7 +137,7 @@ end
 -- collapse to a SPACE -- never the ` | ` field separator (which would split one record into
 -- bogus fields for a host parser); matches Log.sinkFile's single-space collapse. tostring is
 -- guarded so a non-string meta-line argument can't raise.
-local function Flatten(text, neutralizePipes)
+function Flatten(text, neutralizePipes)
     local ok, s = pcall(tostring, text)
     text = (ok and type(s) == "string") and s or "<?>"
     text = text:gsub("[\r\n]+", " ")
@@ -164,42 +202,60 @@ function InterfaceLog.IsAvailable()
     return type(G("zo_callLater")) == "function"
 end
 
+local PRIORITY_CATEGORIES = {
+    STATE = true,
+    SCENE = true,
+    LIFECYCLE = true,
+    ACTION = true,
+    TRANSFER = true,
+    DIALOG = true,
+    KEYBIND = true,
+}
+
+local function EffectiveCap(cap, priority)
+    if cap <= 0 then return 0 end
+    return priority and (cap * 4) or cap
+end
+
 -- Returns true while the current frame/second window still has budget headroom,
 -- accounting the emission when it does. Unlimited (both caps 0) always allows.
-local function budgetAllows()
-    if budget.maxPerFrame <= 0 and budget.maxPerSecond <= 0 then return true end
+local function budgetAllows(priority)
+    local maxPerFrame = EffectiveCap(budget.maxPerFrame, priority == true)
+    local maxPerSecond = EffectiveCap(budget.maxPerSecond, priority == true)
+    if maxPerFrame <= 0 and maxPerSecond <= 0 then return true end
 
-    if budget.maxPerFrame > 0 then
+    if maxPerFrame > 0 then
         local fid = FrameStamp()
         if fid ~= frameMarker then frameMarker = fid; emittedThisFrame = 0 end
-        if emittedThisFrame >= budget.maxPerFrame then return false end
+        if emittedThisFrame >= maxPerFrame then return false end
     end
 
-    if budget.maxPerSecond > 0 then
+    local countSecond = false
+    if maxPerSecond > 0 then
         local now = Timestamp()
-        if secondWindowStart == nil or (now - secondWindowStart) >= 1000 then
-            secondWindowStart = now; emittedThisSecond = 0
+        if now > 0 then
+            countSecond = true
+            if secondWindowStart == nil or (now - secondWindowStart) >= 1000 then
+                secondWindowStart = now; emittedThisSecond = 0
+            end
+            if emittedThisSecond >= maxPerSecond then return false end
         end
-        if emittedThisSecond >= budget.maxPerSecond then return false end
     end
 
-    emittedThisFrame = emittedThisFrame + 1
-    emittedThisSecond = emittedThisSecond + 1
+    if maxPerFrame > 0 then emittedThisFrame = emittedThisFrame + 1 end
+    if countSecond then emittedThisSecond = emittedThisSecond + 1 end
     return true
 end
 
 local function IsPriorityLine(line)
     if type(line) ~= "string" then return false end
+    local header = line:match("^(.-) | ") or line
+    local level, category = header:match("%s([A-Z]+)%s+([A-Z]+)$")
     -- Verbose presets may rate-limit TRACE/DEBUG chatter, but warning/error
     -- breadcrumbs plus replay-critical UI transitions must survive.
-    return line:find(" WARN ", 1, true) ~= nil
-        or line:find(" ERROR ", 1, true) ~= nil
-        or line:find(" STATE |", 1, true) ~= nil
-        or line:find(" SCENE |", 1, true) ~= nil
-        or line:find(" LIFECYCLE |", 1, true) ~= nil
-        or line:find(" ACTION |", 1, true) ~= nil
-        or line:find(" DIALOG |", 1, true) ~= nil
-        or line:find(" KEYBIND |", 1, true) ~= nil
+    return level == "WARN"
+        or level == "ERROR"
+        or PRIORITY_CATEGORIES[category] == true
 end
 
 local function IsUnsafeReloadSceneLine(line)
@@ -256,14 +312,40 @@ local function ScheduleDropSummary(deferer)
     deferer(function()
         dropSummaryScheduled = false
         if gen ~= emitGeneration then return end
-        local n = pendingDrops
-        pendingDrops = 0
+        local reason, n = TakePendingDropSummary()
+        if HasPendingDrops() then ScheduleDropSummary(deferer) end
         if n > 0 then
             local sid, seq = LogMeta()
-            RaiseSuppressed(string.format("%s %d sid=%s seq=%d WARN LOG | dropped=%d reason=rate_limit",
-                TAG, Timestamp(), sid, seq, n))
+            RaiseSuppressed(string.format("%s %d sid=%s seq=%d WARN LOG | dropped=%d reason=%s",
+                TAG, Timestamp(), sid, seq, n, reason))
         end
     end, 250)
+end
+
+local function RecordDrop(reason, deferer)
+    reason = type(reason) == "string" and reason or "rate_limit"
+    stats.dropped = stats.dropped + 1
+    pendingDropsByReason[reason] = (pendingDropsByReason[reason] or 0) + 1
+    ScheduleDropSummary(deferer)
+end
+
+local function Utf8SafePrefix(line, maxBytes)
+    if maxBytes >= #line then return line end
+    local cut = maxBytes
+    while cut > 0 do
+        local nextByte = line:byte(cut + 1)
+        if nextByte == nil or nextByte < 0x80 or nextByte > 0xBF then break end
+        cut = cut - 1
+    end
+    if cut < 1 then return "" end
+    return line:sub(1, cut)
+end
+
+local function CapLineLength(line)
+    if type(line) ~= "string" or #line <= MAX_LINE_LENGTH then return line end
+    local prefixLength = MAX_LINE_LENGTH - #TRUNCATED_MARKER
+    if prefixLength < 1 then return line:sub(1, MAX_LINE_LENGTH) end
+    return Utf8SafePrefix(line, prefixLength) .. TRUNCATED_MARKER
 end
 
 --- Writes one tagged breadcrumb to Interface.log via a deferred, suppressed error.
@@ -276,22 +358,19 @@ end
 local function RawEmit(line, priority)
     local deferer = G("zo_callLater")
     if type(deferer) ~= "function" then return false end
+    line = CapLineLength(line)
     if IsQuiescing() then
         stats.suppressed = stats.suppressed + 1
         return false
     end
     if DropReloadSceneLine(line) then return false end
     priority = priority == true
-    if not priority and budget.maxPending > 0 and pendingCount >= budget.maxPending then
-        stats.dropped = stats.dropped + 1
-        pendingDrops = pendingDrops + 1
-        ScheduleDropSummary(deferer)
+    if budget.maxPending > 0 and pendingCount >= budget.maxPending then
+        RecordDrop(priority and "priority_rate_limit" or "rate_limit", deferer)
         return false
     end
-    if not priority and not budgetAllows() then
-        stats.dropped = stats.dropped + 1
-        pendingDrops = pendingDrops + 1
-        ScheduleDropSummary(deferer)
+    if not budgetAllows(priority) then
+        RecordDrop(priority and "priority_rate_limit" or "rate_limit", deferer)
         return false
     end
     stats.scheduled = stats.scheduled + 1
@@ -381,7 +460,7 @@ function InterfaceLog.SetEnabled(value)
     local nextEnabled = value and true or false
     if enabled ~= nextEnabled then
         emitGeneration = emitGeneration + 1
-        pendingDrops = 0
+        ResetPendingDrops()
         dropSummaryScheduled = false
     end
     enabled = nextEnabled
@@ -561,6 +640,23 @@ function InterfaceLog.GetMinLevelName()
     return LevelNameFromValue(level)
 end
 
+function InterfaceLog.SetPrivacyMode(on, persist)
+    local L = BETTERUI.Log
+    if not (L and L.SetPrivacyMode) then return false end
+    local enabledPrivacy = on and true or false
+    L.SetPrivacyMode(enabledPrivacy)
+    if persist ~= false then
+        PersistLogSetting("interfaceLogPrivacy", enabledPrivacy)
+        TraceBuilogSetting("privacy", enabledPrivacy and "on" or "off")
+    end
+    return true
+end
+
+function InterfaceLog.GetPrivacyMode()
+    local L = BETTERUI.Log
+    return (L and L.GetPrivacyMode and L.GetPrivacyMode() == true) or false
+end
+
 function InterfaceLog.SetMinLevelSetting(name, persist)
     local L = BETTERUI.Log
     local level = L and L.LevelFromName and L.LevelFromName(name)
@@ -598,10 +694,11 @@ local function PrintStatus()
         suppressPopups and "suppressed" or "visible",
         InterfaceLog.IsAvailable() and "ready" or "UNAVAILABLE"))
     if L then
-        Out(string.format("Preset: %s | min level: %s | payloads: %s",
+        Out(string.format("Preset: %s | min level: %s | payloads: %s | privacy=%s",
             L.GetPreset and tostring(L.GetPreset()):upper() or "?",
             L.GetMinLevel and (({ "TRACE", "DEBUG", "INFO", "WARN", "ERROR" })[L.GetMinLevel()] or "?") or "?",
-            (L.GetPayloadCapture and L.GetPayloadCapture()) and "on" or "off"))
+            (L.GetPayloadCapture and L.GetPayloadCapture()) and "on" or "off",
+            InterfaceLog.GetPrivacyMode() and "on" or "off"))
         Out(string.format("Logger chat surface (ERROR) = %s", L.GetSink(L.LEVEL.ERROR, "chat") and "on" or "off"))
     end
     local s = InterfaceLog.GetStats()
@@ -688,6 +785,55 @@ end
 -- trace running. Cancels a prior pending capture; pcall-guarded.
 local captureRevertId = nil
 local captureGen = 0
+
+local function SnapshotCaptureState(L)
+    local snapshot = { enabled = enabled, preset = "debug", minLevel = nil, payloadCapture = nil }
+    if type(L.GetPreset) == "function" then
+        local okP, preset = pcall(L.GetPreset)
+        if okP and type(preset) == "string" then snapshot.preset = preset end
+    end
+    if type(L.GetMinLevel) == "function" then
+        local okL, level = pcall(L.GetMinLevel)
+        if okL and type(level) == "number" then snapshot.minLevel = level end
+    end
+    if type(L.GetPayloadCapture) == "function" then
+        local okPayload, payload = pcall(L.GetPayloadCapture)
+        if okPayload and type(payload) == "boolean" then snapshot.payloadCapture = payload end
+    end
+    return snapshot
+end
+
+local function RestoreCaptureState(L, snapshot)
+    snapshot = type(snapshot) == "table" and snapshot or { enabled = false, preset = "debug" }
+    local preset = type(snapshot.preset) == "string" and snapshot.preset or "debug"
+    local restoredPreset = false
+    if preset ~= "custom" then
+        local pok, applied = pcall(L.ApplyPreset, preset)
+        restoredPreset = pok and applied
+        if not restoredPreset then pcall(L.ApplyPreset, "debug") end
+    end
+    local preservePreset = preset ~= "custom" and restoredPreset == true
+    if type(snapshot.minLevel) == "number" and type(L.SetMinLevel) == "function" then
+        local okCurrent, current = false, nil
+        if type(L.GetMinLevel) == "function" then
+            okCurrent, current = pcall(L.GetMinLevel)
+        end
+        if not okCurrent or current ~= snapshot.minLevel then
+            pcall(L.SetMinLevel, snapshot.minLevel, preservePreset)
+        end
+    end
+    if type(snapshot.payloadCapture) == "boolean" and type(L.SetPayloadCapture) == "function" then
+        local okCurrent, current = false, nil
+        if type(L.GetPayloadCapture) == "function" then
+            okCurrent, current = pcall(L.GetPayloadCapture)
+        end
+        if not okCurrent or current ~= snapshot.payloadCapture then
+            pcall(L.SetPayloadCapture, snapshot.payloadCapture, preservePreset)
+        end
+    end
+    InterfaceLog.SetEnabled(snapshot.enabled == true)
+end
+
 local function StartCapture(secs)
     local L = BETTERUI.Log
     if not (L and L.ApplyPreset and L.GetPreset) then Out("Logger not loaded.") return end
@@ -705,13 +851,11 @@ local function StartCapture(secs)
     captureGen = captureGen + 1
     local gen = captureGen
 
-    local prevEnabled = enabled
-    local okP, prevPreset = pcall(L.GetPreset)
-    if not okP or type(prevPreset) ~= "string" then prevPreset = "debug" end
+    local snapshot = SnapshotCaptureState(L)
     if not enabled then InterfaceLog.SetEnabled(true) end
     pcall(L.ApplyPreset, "trace")
-    if L.Info then pcall(L.Info, L.CATEGORY.STATE, "capture window started (" .. secs .. "s, was " .. prevPreset .. ")") end
-    Out(string.format("Capturing at |c00ff00TRACE|r for %ds, then reverting to %s.", secs, prevPreset))
+    if L.Info then pcall(L.Info, L.CATEGORY.STATE, "capture window started (" .. secs .. "s, was " .. tostring(snapshot.preset) .. ")") end
+    Out(string.format("Capturing at |c00ff00TRACE|r for %ds, then reverting to %s.", secs, tostring(snapshot.preset)))
 
     captureRevertId = later(function()
         if gen ~= captureGen then return end -- superseded by a newer capture: no-op
@@ -724,11 +868,7 @@ local function StartCapture(secs)
         -- callback dispatch. Only SKIP the revert when a DIFFERENT preset is now active.
         local okP, preset = pcall(function() return L.GetPreset and L.GetPreset() or nil end)
         if okP and preset and preset ~= "trace" then return end
-        -- Restore the prior preset (fall back to debug if it was custom/unknown), then the
-        -- prior ENABLED state (capture force-enabled logging if it had been off).
-        local pok, applied = pcall(L.ApplyPreset, prevPreset)
-        if not (pok and applied) then pcall(L.ApplyPreset, "debug") end
-        InterfaceLog.SetEnabled(prevEnabled)
+        RestoreCaptureState(L, snapshot)
         if L.Info then pcall(L.Info, L.CATEGORY.STATE, "capture window ended") end
     end, secs * 1000)
 end
@@ -809,6 +949,14 @@ local function HandleCommand(args)
     elseif args == "chat off" then
         InterfaceLog.SetChatSurface(false)
         Out("Chat surfacing OFF (file-only).")
+    elseif args == "privacy on" or args == "privacy off" then
+        local on = args == "privacy on"
+        if InterfaceLog.SetPrivacyMode(on) then
+            Out("Privacy mode " .. (on and "|c00ff00ON|r" or "off") .. ".")
+            PrintStatus()
+        else
+            Out("Privacy mode unavailable; logger not loaded yet.")
+        end
     elseif args:match("^level%s+%a+$") then
         local name = args:match("^level%s+(%a+)$")
         local ok, applied = InterfaceLog.SetMinLevelSetting(name)
@@ -836,7 +984,7 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check|test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | privacy on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | check|test | status")
     end
 end
 

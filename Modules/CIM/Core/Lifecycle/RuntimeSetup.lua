@@ -250,6 +250,11 @@ function RuntimeSetup.Apply(settings)
             interfaceLog.SetChatSurface(false, false)
         end
 
+        local privacy = BETTERUI.GetSetting("CIM", "interfaceLogPrivacy", nil)
+        if privacy ~= nil and type(interfaceLog.SetPrivacyMode) == "function" then
+            interfaceLog.SetPrivacyMode(privacy == true, false)
+        end
+
         if BETTERUI.GetSetting("CIM", "interfaceLogEnabled", false) then
             local logPreset = BETTERUI.GetSetting("CIM", "interfaceLogPreset", "")
             if logPreset ~= "" and BETTERUI.Log and type(BETTERUI.Log.ApplyPreset) == "function" then
