@@ -15,6 +15,45 @@ local function readFile(path)
     return content
 end
 
+local function writeFile(path, content)
+    local handle = io.open(path, "w")
+    if not handle then return false end
+    handle:write(content)
+    handle:close()
+    return true
+end
+
+local function shellQuote(path)
+    return '"' .. tostring(path):gsub('"', '\\"') .. '"'
+end
+
+local function commandSucceeded(commandOk, statusCode)
+    return commandOk == true or commandOk == 0 or statusCode == 0
+end
+
+local function runLintFixture(content)
+    local sourcePath = os.tmpname() .. ".lua"
+    local outputPath = os.tmpname()
+    if not writeFile(sourcePath, content) then return "", false end
+    local commandOk, _, statusCode = os.execute("lua tools/lint/lint_log_messages.lua "
+        .. shellQuote(sourcePath) .. " > " .. shellQuote(outputPath) .. " 2>&1")
+    local output = readFile(outputPath)
+    os.remove(sourcePath)
+    os.remove(outputPath)
+    return output, commandSucceeded(commandOk, statusCode)
+end
+
+local function countPlain(haystack, needle)
+    local count = 0
+    local pos = 1
+    while true do
+        local found = haystack:find(needle, pos, true)
+        if not found then return count end
+        count = count + 1
+        pos = found + #needle
+    end
+end
+
 local passed, failed = 0, 0
 local function check(cond, msg)
     if cond then passed = passed + 1; print("  [OK] " .. msg)
@@ -49,6 +88,7 @@ local positionManager = readFile("Modules/CIM/Core/Data/PositionManager.lua")
 local resourceOrbs = readFile("Modules/ResourceOrbFrames/ResourceOrbFrames.lua")
 local genericSlotActions = readFile("Modules/CIM/Actions/GenericSlotActions.lua")
 local listRefreshManager = readFile("Modules/CIM/Lists/ListRefreshManager.lua")
+local watchMode = readFile("Modules/CIM/Core/Diagnostics/WatchMode.lua")
 local headerSortController = readFile("Modules/CIM/UI/HeaderSortController.lua")
 local headerSortIntegration = readFile("Modules/CIM/UI/HeaderSortIntegration.lua")
 local headerSortKeybinds = readFile("Modules/CIM/UI/HeaderSortKeybinds.lua")
@@ -66,6 +106,7 @@ local vendorBuy = readFile("Modules/Vendor/Components/BuyComponent.lua")
 local vendorSell = readFile("Modules/Vendor/Components/SellComponent.lua")
 local vendorRepair = readFile("Modules/Vendor/Components/RepairComponent.lua")
 local vendorBridge = readFile("Modules/Vendor/Core/Bridge/VendorNativeStoreBridge.lua")
+local vendorControllerRuntime = readFile("Modules/Vendor/Core/Lifecycle/VendorControllerRuntime.lua")
 local vendorLifecycle = readFile("Modules/Vendor/Core/Lifecycle/VendorInteractionRuntime.lua")
 local vendorBatch = readFile("Modules/Vendor/Core/VendorBatchRuntime.lua")
 local writCore = readFile("Modules/Writs/Core/Writ.lua")
@@ -78,6 +119,7 @@ local tradingHouseFilters = readFile("Modules/TradingHouse/Core/BrowseFilters.lu
 local tradingHousePrice = readFile("Modules/TradingHouse/Core/PriceEntry.lua")
 local orbBars = readFile("Modules/ResourceOrbFrames/Core/OrbBars.lua")
 local orbBarUpdates = readFile("Modules/ResourceOrbFrames/Core/OrbBarUpdates.lua")
+local logMessageLint = readFile("tools/lint/lint_log_messages.lua")
 local orbCombat = readFile("Modules/ResourceOrbFrames/Core/OrbCombatIndicators.lua")
 local orbVisuals = readFile("Modules/ResourceOrbFrames/Core/OrbVisuals.lua")
 local orbEvents = readFile("Modules/ResourceOrbFrames/Core/OrbEvents.lua")
@@ -139,15 +181,78 @@ check(slotActions:find("primary_selected", 1, true) ~= nil
     "primary destroy action traces native and fallback routes")
 check(transferActions:find("bankTransfer", 1, true) ~= nil and transferActions:find("bank transfer refresh decision", 1, true) ~= nil,
     "bank transfers emit flow context through refresh scheduling")
+check(transferActions:find("L.CATEGORY.TRANSFER", 1, true) ~= nil
+    and transferActions:find("L.TraceEvent(L.CATEGORY.ACTION, event, phase", 1, true) == nil
+    and transferActions:find("L.FlowBegin(\"bankTransfer\", L.CATEGORY.ACTION", 1, true) == nil,
+    "bank item-transfer trace helpers use TRANSFER, not ACTION")
 check(transferActions:find("move_requested", 1, true) ~= nil
     and transferActions:find("pending_marked", 1, true) ~= nil
-    and transferActions:find("pending_expired", 1, true) ~= nil,
-    "bank transfers distinguish move requests from cursor requests and trace pending timeout state")
+    and transferActions:find('"confirmed"', 1, true) ~= nil
+    and transferActions:find('"expired"', 1, true) ~= nil
+    and transferActions:find('BeginBankTransferFlow("bank transfer direct requested"', 1, true) ~= nil
+    and transferActions:find("MarkTransferPending(bag, index, flow)", 1, true) ~= nil
+    and transferActions:find("PendingFlow", 1, true) ~= nil,
+    "bank transfers distinguish move requests from cursor requests and trace confirmed/expired outcome state")
+check(logMessageLint:find("PHASE_PATTERNS", 1, true) ~= nil
+    and logMessageLint:find("TraceBankTransfer", 1, true) ~= nil
+    and logMessageLint:find("TraceBankKeybind", 1, true) ~= nil
+    and logMessageLint:find("TraceBankingActionDialog", 1, true) ~= nil
+    and logMessageLint:find("TraceListTrigger", 1, true) ~= nil
+    and logMessageLint:find("TraceKeybind", 1, true) ~= nil
+    and logMessageLint:find("TraceBankCurrencyAction", 1, true) ~= nil
+    and logMessageLint:find("TraceVendorEvent", 1, true) ~= nil
+    and logMessageLint:find("TraceVendor", 1, true) ~= nil
+    and logMessageLint:find("TraceVendorBatch", 1, true) ~= nil
+    and logMessageLint:find("TraceVendorBootstrap", 1, true) ~= nil
+    and logMessageLint:find("TraceBrowse", 1, true) ~= nil
+    and logMessageLint:find("TraceSell", 1, true) ~= nil
+    and logMessageLint:find("TraceListings", 1, true) ~= nil
+    and logMessageLint:find("TraceTH", 1, true) ~= nil
+    and logMessageLint:find("TraceTHFlow", 1, true) ~= nil
+    and logMessageLint:find("TraceWrit", 1, true) ~= nil
+    and logMessageLint:find("TraceWritEvent", 1, true) ~= nil
+    and logMessageLint:find("TraceCompanionRuntime", 1, true) ~= nil
+    and logMessageLint:find("TraceCompanionDialog", 1, true) ~= nil
+    and logMessageLint:find("legacyPhaseTotal", 1, true) ~= nil
+    and logMessageLint:find("WARN: %d approved legacy TraceEvent phase(s) remain.", 1, true) ~= nil
+    and logMessageLint:find("pending_expired", 1, true) ~= nil,
+    "log message lint scans project Trace* wrappers and warns on approved legacy phases")
+local lintCanonicalOutput, lintCanonicalOk = runLintFixture([[
+local ready = true
+TraceVendorEvent("vendor.mode", "begin", {})
+TraceTHFlow(nil, "tradinghouse.listing", ready and "blocked" or "completed", {})
+TraceCompanionRuntime("companion.state", ready and "begin" or "completed", {})
+]])
+check(lintCanonicalOk
+    and lintCanonicalOutput:find("OK: no terse log messages found.", 1, true) ~= nil,
+    "log message lint accepts canonical wrapper phases, including conditional wrapper forms")
+local lintLegacyOutput, lintLegacyOk = runLintFixture([[
+local ready = true
+TraceVendorEvent("vendor.mode", "activate", {})
+TraceTHFlow(nil, "tradinghouse.listing", ready and "refresh_begin" or "refresh_end", {})
+TraceCompanionRuntime("companion.state", ready and "show_begin" or "showing_end", {})
+]])
+check(lintLegacyOk
+    and lintLegacyOutput:find("WARN legacy TraceVendorEvent phase \"activate\"", 1, true) ~= nil
+    and lintLegacyOutput:find("WARN legacy TraceTHFlow phase \"refresh_begin\"", 1, true) ~= nil
+    and lintLegacyOutput:find("WARN legacy TraceTHFlow phase \"refresh_end\"", 1, true) ~= nil
+    and lintLegacyOutput:find("WARN legacy TraceCompanionRuntime phase \"show_begin\"", 1, true) ~= nil
+    and lintLegacyOutput:find("WARN legacy TraceCompanionRuntime phase \"showing_end\"", 1, true) ~= nil
+    and lintLegacyOutput:find("WARN: 5 approved legacy TraceEvent phase(s) remain.", 1, true) ~= nil,
+    "log message lint warns but passes approved legacy wrapper phases")
+local lintUnknownOutput, lintUnknownOk = runLintFixture([[
+TraceVendorEvent("vendor.mode", "banana_phase", {})
+]])
+check(not lintUnknownOk
+    and lintUnknownOutput:find("non-canonical TraceVendorEvent phase \"banana_phase\"", 1, true) ~= nil
+    and lintUnknownOutput:find("1 non-canonical TraceEvent phase(s) found.", 1, true) ~= nil,
+    "log message lint fails unknown wrapper phases")
 check(transferActions:find("bank transfer blocked", 1, true) ~= nil
     and transferActions:find("guild_transfer_denied", 1, true) ~= nil
     and transferActions:find("request_move_failed", 1, true) ~= nil
-    and transferActions:find("GetTransferItemName", 1, true) ~= nil,
-    "bank transfers log blocked capacity/permission paths and item metadata")
+    and transferActions:find("GetTransferItemSummary", 1, true) ~= nil
+    and transferActions:find("L.DescribeItem({ bagId = bag, slotIndex = slot }, \"item\")", 1, true) ~= nil,
+    "bank transfers log blocked capacity/permission paths and privacy-aware item metadata")
 check(transferActions:find("guild bank transfer requested", 1, true) ~= nil
     and transferActions:find("guild bank transfer refresh decision", 1, true) ~= nil,
     "guild bank transfers emit flow context through refresh scheduling")
@@ -155,6 +260,10 @@ check(bankingKeybinds:find("bankCurrencyTransfer", 1, true) ~= nil
     and bankingKeybinds:find('TraceBankCurrencyAction("completed"', 1, true) ~= nil
     and bankingKeybinds:find("bank currency transfer failed", 1, true) ~= nil,
     "bank currency transfers emit completed and failed builog flow context")
+check(bankingKeybinds:find('L.TraceEvent(L.CATEGORY.TRANSFER, "bank.currency_transfer"', 1, true) ~= nil
+    and bankingKeybinds:find('L.FlowBegin("bankCurrencyTransfer", L.CATEGORY.TRANSFER', 1, true) ~= nil
+    and bankingKeybinds:find("L.FlowEnd(flow, L.CATEGORY.TRANSFER", 1, true) ~= nil,
+    "bank currency transfer trace helpers use TRANSFER, not ACTION")
 check(bankingKeybinds:find('TraceBankCurrencyAction("blocked"', 1, true) ~= nil
     and bankingKeybinds:find('"invalidAmount"', 1, true) ~= nil
     and bankingKeybinds:find('"bank.currency_selector"', 1, true) ~= nil
@@ -219,6 +328,18 @@ check(inventory:find('RegisterSnapshotProvider("inventory"', 1, true) ~= nil,
     "inventory registers a watch snapshot provider")
 check(banking:find('RegisterSnapshotProvider("banking"', 1, true) ~= nil,
     "banking registers a watch snapshot provider")
+check(watchMode:find("function Watch.RegisterViewScene", 1, true) ~= nil
+    and watchMode:find("viewSceneRegistry", 1, true) ~= nil
+    and watchMode:find("registeredSceneMatches", 1, true) ~= nil
+    and watchMode:find('view == "inventory"', 1, true) == nil
+    and watchMode:find('view:sub(1, 8) == "banking."', 1, true) == nil,
+    "watch mode uses registered view/scene pairs instead of hardcoded inventory/banking branches")
+check(inventory:find('RegisterViewScene("inventory"', 1, true) ~= nil
+    and banking:find('RegisterViewScene("banking"', 1, true) ~= nil
+    and banking:find("BETTERUI_GUILD_BANKING_SCENE_NAME", 1, true) ~= nil
+    and inventoryState:find('RegisterViewScene("inventory"', 1, true) ~= nil
+    and bankingState:find('RegisterViewScene("banking"', 1, true) ~= nil,
+    "inventory and banking register their watch view scene pairs before setting views")
 check(inventoryState:find("SetInventoryWatchView", 1, true) ~= nil
     and bankingState:find("SetBankingWatchView", 1, true) ~= nil,
     "inventory and banking feed production view context into watch mode")
@@ -265,8 +386,10 @@ check(inventory:find("inventory category list refreshed", 1, true) ~= nil
 check(bankList:find("bank list refreshed", 1, true) ~= nil,
     "bank list refresh outcomes are visible at STATE level")
 check(bankingKeybinds:find("bank primary transfer invoked", 1, true) ~= nil
+    and bankingKeybinds:find('LogBankKeybindState("bank primary transfer invoked"', 1, true) ~= nil
+    and bankingKeybinds:find('}, "TRANSFER")', 1, true) ~= nil
     and transferActions:find("bank action dialog shown", 1, true) ~= nil,
-    "banking primary transfer and action dialog hand-offs are visible")
+    "banking primary transfer and action dialog hand-offs are visible with transfer-category landmarks")
 check(banking:find("bank currency UI refresh complete", 1, true) ~= nil,
     "bank currency event refreshes emit STATE outcomes")
 check(banking:find("beforeCarriedGold", 1, true) ~= nil
@@ -292,6 +415,27 @@ check(transferActions:find("bank transfer list refresh scheduled", 1, true) ~= n
     and transferActions:find("bank transfer list refresh skipped", 1, true) ~= nil
     and transferActions:find("flow = flow", 1, true) ~= nil,
     "bank transfer refresh scheduling, skipped paths, and deferred flow context are visible")
+check(listRefreshManager:find("pendingRefreshFlow", 1, true) ~= nil
+    and listRefreshManager:find("coalescedCount", 1, true) ~= nil
+    and listRefreshManager:find("options.flow", 1, true) ~= nil
+    and transferActions:find("coalesce = true", 1, true) ~= nil,
+    "list refresh coalescing carries the latest flow and coalesced count")
+check(vendor:find('RegisterViewScene("vendor"', 1, true) ~= nil
+    and vendorControllerRuntime:find('RegisterViewScene("vendor"', 1, true) ~= nil
+    and vendorControllerRuntime:find('watch.SetView("vendor."', 1, true) ~= nil
+    and countPlain(vendorControllerRuntime, "SetVendorWatchView(mode)") >= 2
+    and tradingHouseClass:find('RegisterViewScene("th"', 1, true) ~= nil
+    and tradingHouseClass:find('watch.SetView("th."', 1, true) ~= nil
+    and countPlain(tradingHouseClass, "SetTradingHouseWatchView(mode)") >= 2
+    and companionModule:find('RegisterViewScene("companions"', 1, true) ~= nil
+    and companionsRuntime:find('RegisterViewScene("companions"', 1, true) ~= nil
+    and companionsRuntime:find('SetCompanionWatchView("companions.list"', 1, true) ~= nil
+    and companionsRuntime:find("onShowing = function", 1, true) ~= nil
+    and companionsRuntime:find('reason = "sceneHidden"', 1, true) ~= nil
+    and not companionsRuntime:find('SetCompanionWatchView(nil)%s*TraceCompanionRuntime%("companions.event", "skipped"', 1, false)
+    and writCore:find('SetWritWatchView("writs.panel"', 1, true) ~= nil
+    and writCore:find("SetWritWatchView(nil)", 1, true) ~= nil,
+    "vendor, trading house, companions, and writs publish watch view context")
 check(transferActions:find("guild_slot_update", 1, true) ~= nil
     and transferActions:find("EVENT_GUILD_BANK_ITEM_ADDED", 1, true) ~= nil
     and transferActions:find("EVENT_GUILD_BANK_ITEM_REMOVED", 1, true) ~= nil
@@ -314,10 +458,12 @@ check(headerSortController:find("clear_sort_skipped", 1, true) ~= nil
     and headerSortKeybinds:find("header sort keybind ownership lost", 1, true) ~= nil,
     "header sort traces clear/apply reasons plus keybind refresh and ownership failures")
 check(interfaceLog:find("IsPriorityLine", 1, true) ~= nil
-    and interfaceLog:find("STATE |", 1, true) ~= nil
-    and interfaceLog:find("SCENE |", 1, true) ~= nil
-    and interfaceLog:find("DIALOG |", 1, true) ~= nil
-    and interfaceLog:find("RawEmit(line, priority)", 1, true) ~= nil,
+    and interfaceLog:find("PRIORITY_CATEGORIES", 1, true) ~= nil
+    and interfaceLog:find("STATE = true", 1, true) ~= nil
+    and interfaceLog:find("SCENE = true", 1, true) ~= nil
+    and interfaceLog:find("DIALOG = true", 1, true) ~= nil
+    and interfaceLog:find("local level, category = header:match", 1, true) ~= nil
+    and interfaceLog:find("RawEmit(line, IsPriorityLine(line))", 1, true) ~= nil,
     "interface log priority lines keep trace state visible under throttle pressure")
 check(listRefreshManager:find("restoreReason", 1, true) ~= nil
     and listRefreshManager:find("restoredById", 1, true) ~= nil
@@ -363,19 +509,23 @@ check(vendorRepair:find('"vendor.repair"', 1, true) ~= nil
     "vendor repair, repair-all confirmation, and batch ack/step progression are traceable")
 check(vendorBuy:find('"vendor.buy"', 1, true) ~= nil
     and vendorBuy:find('"blocked"', 1, true) ~= nil
-    and vendorBuy:find('"request"', 1, true) ~= nil
-    and vendorBuy:find('"requested"', 1, true) ~= nil
+    and vendorBuy:find('Vendor.TraceActionRequested("vendor.buy"', 1, true) ~= nil
+    and vendorBuy:find('Vendor.ScheduleActionSettled("vendor.buy"', 1, true) ~= nil
+    and vendorBuy:find("goldBefore", 1, true) ~= nil
+    and vendorBuy:find("expectedPrice", 1, true) ~= nil
     and vendorBuy:find('"cannotAfford"', 1, true) ~= nil
     and vendorBuy:find('"cannotCarry"', 1, true) ~= nil
     and vendorBuy:find("IsPrimaryActionEnabled", 1, true) ~= nil
     and vendorSell:find('"vendor.sell"', 1, true) ~= nil
     and vendorSell:find('"blocked"', 1, true) ~= nil
-    and vendorSell:find('"request"', 1, true) ~= nil
-    and vendorSell:find('"requested"', 1, true) ~= nil
+    and vendorSell:find('Vendor.TraceActionRequested("vendor.sell"', 1, true) ~= nil
+    and vendorSell:find('Vendor.ScheduleActionSettled("vendor.sell"', 1, true) ~= nil
+    and vendorSell:find("goldBefore", 1, true) ~= nil
+    and vendorSell:find("expectedPrice", 1, true) ~= nil
     and vendorSell:find('"goldCap"', 1, true) ~= nil
     and vendorSell:find("Sell:SellAllJunk", 1, true) ~= nil
     and vendorSell:find("IsPrimaryActionEnabled", 1, true) ~= nil,
-    "vendor buy/sell primary gating, denial reasons, junk sale, and request/result traces are traceable")
+    "vendor buy/sell primary gating, denial reasons, junk sale, and requested/settled outcome traces are traceable")
 check(writCore:find('"writ.objectives"', 1, true) ~= nil
     and writCore:find("objectiveSummary", 1, true) ~= nil
     and writCore:find("GetJournalQuestNumSteps", 1, true) ~= nil

@@ -108,7 +108,9 @@ end
 
 local function RegisterCompanionSnapshotProvider()
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
-    if not (watch and watch.RegisterSnapshotProvider) then return end
+    if not watch then return end
+    if watch.RegisterViewScene then watch.RegisterViewScene("companions", BETTERUI_COMPANION_EQUIP_SCENE_NAME or "BETTERUI_CompanionEquipment") end
+    if not watch.RegisterSnapshotProvider then return end
     watch.RegisterSnapshotProvider("companions", function()
         local instance = Companions.instance
         if not instance then

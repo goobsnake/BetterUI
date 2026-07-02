@@ -62,13 +62,28 @@ local function TraceCompanionRuntime(event, phase, data, category)
     L.TraceEvent(category or categories.STATE or categories.GENERAL, event, phase, payload)
 end
 
+local function SetCompanionWatchView(label)
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not watch then return end
+    if label and watch.RegisterViewScene then watch.RegisterViewScene("companions", BETTERUI_COMPANION_EQUIP_SCENE_NAME or "BETTERUI_CompanionEquipment") end
+    if label and type(watch.SetView) == "function" then
+        watch.SetView(label)
+    elseif not label and type(watch.ClearView) == "function" then
+        watch.ClearView("companions")
+    elseif not label and type(watch.SetView) == "function" then
+        watch.SetView(nil)
+    end
+end
+
 local function ShowBetterUICompanionScene()
     if not (SCENE_MANAGER and SCENE_MANAGER.Show and BETTERUI_COMPANION_EQUIP_SCENE_NAME and Companions.instance and Companions.instance.scene) then
         return
     end
     if SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing(BETTERUI_COMPANION_EQUIP_SCENE_NAME) then
+        SetCompanionWatchView("companions.list")
         return
     end
+    SetCompanionWatchView("companions.list")
     SCENE_MANAGER:Show(BETTERUI_COMPANION_EQUIP_SCENE_NAME)
 end
 
@@ -408,6 +423,7 @@ function Companions.RegisterSceneLifecycle(instance)
         keybinds = { instance.coreKeybinds },
         taskManager = Companions.Tasks,
         onShowing = function(screen)
+            SetCompanionWatchView("companions.list")
             if BETTERUI.Log and BETTERUI.Log.IsActive() then
                 local listCount = (screen.list and screen.list.GetNumItems) and screen.list:GetNumItems() or 0
                 BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "companion shown", {
@@ -424,6 +440,7 @@ function Companions.RegisterSceneLifecycle(instance)
             })
         end,
         onHiding = function(screen)
+            SetCompanionWatchView(nil)
             if BETTERUI.Log then
                 BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "companion hidden")
             end
@@ -453,6 +470,7 @@ function Companions.RegisterSceneLifecycle(instance)
             end
         end,
         onHidden = function(screen)
+            SetCompanionWatchView(nil)
             screen:DeactivateListInput()
             screen:DeactivateHeaderKeybinds()
             if screen.ForceReleaseDirectionalInput then
@@ -491,6 +509,7 @@ local function OnCompanionDeactivated(eventCode)
         return
     end
     if Companions.instance:IsSceneShowing() then
+        SetCompanionWatchView(nil)
         SCENE_MANAGER:HideCurrentScene()
         TraceCompanionRuntime("companions.event", "scene_hide_requested", {
             event = "EVENT_COMPANION_DEACTIVATED",

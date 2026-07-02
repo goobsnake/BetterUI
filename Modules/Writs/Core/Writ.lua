@@ -11,7 +11,7 @@ local WRIT_CONTEXT_REFRESH = "Writs:RefreshActiveWrits"
 local WRIT_CONTEXT_SHOW = "Writs:ShowForCraftType"
 local Writs = BETTERUI.Writs
 
-local function TraceWrit(event, phase, data)
+local function TraceWrit(event, phase, data, category)
 	local L = BETTERUI.Log
 	if not (L and L.TraceEvent) then return end
 	data = data or {}
@@ -20,7 +20,27 @@ local function TraceWrit(event, phase, data)
 	data.feature = data.feature or "writ-panel"
 	data.fn = data.fn or "Writs.Core"
 	data["function"] = data["function"] or data.fn
-	L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data)
+	L.TraceEvent(category or L.CATEGORY.LIFECYCLE, event, phase, data)
+end
+
+local function CurrentWritSceneName()
+	return SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+end
+
+local function SetWritWatchView(label)
+	local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+	if not watch then return end
+	if label and watch.RegisterViewScene then
+		local sceneName = CurrentWritSceneName()
+		if sceneName then watch.RegisterViewScene("writs", sceneName) end
+	end
+	if label and watch.SetView then
+		watch.SetView(label)
+	elseif not label and watch.ClearView then
+		watch.ClearView("writs")
+	elseif not label and watch.SetView then
+		watch.SetView(nil)
+	end
 end
 
 local function CountWritSnapshotEntries()
@@ -35,6 +55,37 @@ local function IsWritSnapshotPanelHidden(panel)
 	if not (panel and panel.IsHidden) then return nil end
 	local ok, hidden = pcall(function() return panel:IsHidden() end)
 	return ok and hidden or nil
+end
+
+local function CountCompletedWritObjectives()
+	local count = 0
+	for _, writEntry in pairs(Writs.List or {}) do
+		local summary = writEntry and writEntry.objectiveSummary
+		if type(summary) == "table" and type(summary.completeCount) == "number" then
+			count = count + summary.completeCount
+		end
+	end
+	return count
+end
+
+local function IsWritPanelVisible()
+	local panel = m_writsPanel or rawget(_G, "BETTERUI_WritsPanel")
+	local hidden = IsWritSnapshotPanelHidden(panel)
+	if hidden == nil then return nil end
+	return hidden ~= true
+end
+
+local function TraceWritState(trigger, craftType, data)
+	data = data or {}
+	data.craftType = data.craftType or craftType
+	data.activeWritCount = data.activeWritCount or CountWritSnapshotEntries()
+	data.completedCount = data.completedCount or CountCompletedWritObjectives()
+	if data.panelVisible == nil then
+		data.panelVisible = IsWritPanelVisible()
+	end
+	data.trigger = data.trigger or trigger
+	data.feature = data.feature or "writ-state"
+	TraceWrit("writs.state", "changed", data, BETTERUI.Log and BETTERUI.Log.CATEGORY.STATE)
 end
 
 local function RegisterWritSnapshotProvider()
@@ -224,11 +275,23 @@ function Writs.RefreshActiveWrits(context)
 	end)
 	if ok == false then
 		TraceWrit("writ.refresh", "error", { error = err })
+		TraceWritState("refresh_active_writs", context.craftId, {
+			source = context.source,
+			event = context.event,
+			result = "error",
+			error = err,
+		})
 		return false, err
 	end
 	Writs.List = nextList or {}
 	local count = 0
 	for _ in pairs(Writs.List) do count = count + 1 end
+	TraceWritState("refresh_active_writs", context.craftId, {
+		activeWritCount = count,
+		source = context.source,
+		event = context.event,
+		result = "refreshed",
+	})
 	TraceWrit("writ.refresh", "end", {
 		activeCount = count,
 		source = context.source,
@@ -244,11 +307,21 @@ end
 ---@return string|nil err
 function Writs.ShowForCraftType(writType, context)
 	context = context or {}
+	local normalizedCraftId = tonumber(context.craftId) or tonumber(writType) or writType
+	context.craftId = normalizedCraftId
+	writType = normalizedCraftId
 	TraceWrit("writ.panel", "show_begin", { writType = writType, source = context.source, event = context.event })
 	local refreshOk, refreshErr = Writs.RefreshActiveWrits(context)
 	if not refreshOk then
 		Writs.HidePanel()
 		TraceWrit("writ.panel", "show_error", { writType = writType, error = refreshErr, panelHidden = true })
+		TraceWritState("show_for_craft_type", writType, {
+			source = context.source,
+			event = context.event,
+			panelVisible = false,
+			result = "refresh_error",
+			error = refreshErr,
+		})
 		return false, refreshErr
 	end
 
@@ -256,6 +329,12 @@ function Writs.ShowForCraftType(writType, context)
 	if writEntry == nil then
 		Writs.HidePanel()
 		TraceWrit("writ.panel", "no_active_writ", { writType = writType, source = context.source, event = context.event, panelHidden = true })
+		TraceWritState("show_for_craft_type", writType, {
+			source = context.source,
+			event = context.event,
+			panelVisible = false,
+			result = "no_active_writ",
+		})
 		return false, "no_active_writ"
 	end
 
@@ -276,13 +355,28 @@ function Writs.ShowForCraftType(writType, context)
 		end
 		if m_writsPanel then
 			m_writsPanel:SetHidden(false)
+			SetWritWatchView("writs.panel")
 		end
 	end)
 	if ok == false then
+		Writs.HidePanel()
 		TraceWrit("writ.panel", "show_error", { writType = writType, questId = writEntry.id, error = err })
+		TraceWritState("show_for_craft_type", writType, {
+			source = context.source,
+			event = context.event,
+			panelVisible = false,
+			result = "render_error",
+			error = err,
+		})
 		return false, err
 	end
 	TraceWrit("writ.panel", "shown", { writType = writType, questId = writEntry.id, source = context.source })
+	TraceWritState("show_for_craft_type", writType, {
+		source = context.source,
+		event = context.event,
+		panelVisible = true,
+		result = "shown",
+	})
 	return true, nil
 end
 
@@ -293,5 +387,6 @@ function Writs.HidePanel()
 	if panel then
 		panel:SetHidden(true)
 	end
+	SetWritWatchView(nil)
 	TraceWrit("writ.panel", "hidden", { hadPanel = panel ~= nil })
 end

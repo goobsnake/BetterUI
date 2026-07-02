@@ -632,7 +632,9 @@ end
 
 local function RegisterInventorySnapshotProvider()
 	local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
-	if not (watch and watch.RegisterSnapshotProvider) then return end
+	if not watch then return end
+	if watch.RegisterViewScene then watch.RegisterViewScene("inventory", "gamepad_inventory_root") end
+	if not watch.RegisterSnapshotProvider then return end
 	watch.RegisterSnapshotProvider("inventory", function()
 		local inv = rawget(_G, "GAMEPAD_INVENTORY")
 		if not inv then return "window=0" end

@@ -47,7 +47,7 @@ local function IsWritsModuleEnabled()
     return BETTERUI.GetModuleEnabled("Writs")
 end
 
-local function TraceWritEvent(event, phase, data)
+local function TraceWritEvent(event, phase, data, category)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
     data = data or {}
@@ -56,7 +56,47 @@ local function TraceWritEvent(event, phase, data)
     data.feature = data.feature or "writ-events"
     data.fn = data.fn or "Writs.Module"
     data["function"] = data["function"] or data.fn
-    L.TraceEvent(L.CATEGORY.LIFECYCLE, event, phase, data)
+    L.TraceEvent(category or L.CATEGORY.LIFECYCLE, event, phase, data)
+end
+
+local function CountActiveWrits()
+    local count = 0
+    for _ in pairs(Writs.List or {}) do
+        count = count + 1
+    end
+    return count
+end
+
+local function CountCompletedWritObjectives()
+    local count = 0
+    for _, writEntry in pairs(Writs.List or {}) do
+        local summary = writEntry and writEntry.objectiveSummary
+        if type(summary) == "table" and type(summary.completeCount) == "number" then
+            count = count + summary.completeCount
+        end
+    end
+    return count
+end
+
+local function IsWritPanelVisible()
+    local panel = rawget(_G, "BETTERUI_WritsPanel")
+    if not (panel and panel.IsHidden) then return nil end
+    local ok, hidden = pcall(function() return panel:IsHidden() end)
+    if not ok then return nil end
+    return hidden ~= true
+end
+
+local function TraceWritState(trigger, craftType, data)
+    data = data or {}
+    data.craftType = data.craftType or craftType
+    data.activeWritCount = data.activeWritCount or CountActiveWrits()
+    data.completedCount = data.completedCount or CountCompletedWritObjectives()
+    if data.panelVisible == nil then
+        data.panelVisible = IsWritPanelVisible()
+    end
+    data.trigger = data.trigger or trigger
+    data.feature = data.feature or "writ-state"
+    TraceWritEvent("writs.state", "changed", data, BETTERUI.Log and BETTERUI.Log.CATEGORY.STATE)
 end
 
 local function OnCraftStation(_, craftId)
@@ -82,8 +122,13 @@ end
 
 local function OnCloseCraftStation(_)
     TraceWritEvent("writ.station", "closed")
+    local previousCraftingType = currentCraftingType
     currentCraftingType = nil
     SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.HidePanel)
+    TraceWritState("station_closed", previousCraftingType, {
+        event = "EVENT_END_CRAFTING_STATION_INTERACT",
+        panelVisible = false,
+    })
 end
 
 local function ScheduleCraftCompletionRefresh(id, craftId)
@@ -140,6 +185,10 @@ local function OnCraftItem(_, craftId)
         source = "craft_completed_immediate",
         craftId = craftId,
         event = "EVENT_CRAFT_COMPLETED",
+    })
+    TraceWritState("craft_completed_immediate", id, {
+        event = "EVENT_CRAFT_COMPLETED",
+        source = "craft_completed_immediate",
     })
     ScheduleCraftCompletionRefresh(id, craftId)
 end

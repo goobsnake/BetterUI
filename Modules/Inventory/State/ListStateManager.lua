@@ -13,6 +13,7 @@ local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 local function SetInventoryWatchView(listDescriptor)
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
     if not (watch and type(watch.SetView) == "function") then return end
+    if watch.RegisterViewScene then watch.RegisterViewScene("inventory", "gamepad_inventory_root") end
 
     local view = "inventory"
     if listDescriptor == INVENTORY_CATEGORY_LIST then
