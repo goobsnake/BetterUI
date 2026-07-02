@@ -807,19 +807,35 @@ function Vendor.ResolveBatchOptions(batchOptions)
     return resolveBatchOptions(batchOptions)
 end
 
+local function GetCurrentDialogInfo(dialogName)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if dialogs and type(dialogs.GetCurrentInfo) == "function" then
+        return dialogs.GetCurrentInfo(dialogName)
+    end
+    return nil
+end
+
+local function RegisterVendorDialog(dialogName, dialogInfo)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if not (dialogs and type(dialogs.Register) == "function") then
+        return false
+    end
+    return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
+end
+
 local function RegisterVendorSellAllJunkDialog()
     if vendorSellAllJunkDialogRegistered then
         return true
     end
-    if not (ZO_Dialogs_RegisterCustomDialog and GAMEPAD_DIALOGS and GAMEPAD_DIALOGS.BASIC) then
+    if not (GAMEPAD_DIALOGS and GAMEPAD_DIALOGS.BASIC) then
         return false
     end
-    if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME) then
+    if GetCurrentDialogInfo(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME) then
         vendorSellAllJunkDialogRegistered = true
         return true
     end
 
-    ZO_Dialogs_RegisterCustomDialog(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME, {
+    if not RegisterVendorDialog(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME, {
         canQueue = true,
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.BASIC,
@@ -846,7 +862,9 @@ local function RegisterVendorSellAllJunkDialog()
                 text = rawget(_G, "SI_DIALOG_CANCEL") or "SI_DIALOG_CANCEL",
             },
         },
-    })
+    }) then
+        return false
+    end
 
     vendorSellAllJunkDialogRegistered = true
     return true
@@ -870,7 +888,9 @@ function Vendor.ShowSellAllJunkDialog(vendorInstance, component)
             "Vendor.RegisterSellAllJunkDialog",
             RegisterVendorSellAllJunkDialog
         )
-        if ok and registered ~= false and (not ZO_Dialogs_IsDialogRegistered or ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME)) then
+        if ok and registered ~= false
+            and ((not ZO_Dialogs_IsDialogRegistered or ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME))
+                or GetCurrentDialogInfo(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME)) then
             ZO_Dialogs_ShowGamepadDialog(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME, dialogData)
             return true
         end
@@ -888,14 +908,14 @@ RegisterVendorBatchDialog = function()
     if vendorBatchDialogRegistered then
         return true
     end
-    if not (ZO_Dialogs_RegisterCustomDialog and GAMEPAD_DIALOGS and GAMEPAD_DIALOGS.PARAMETRIC) then
+    if not (GAMEPAD_DIALOGS and GAMEPAD_DIALOGS.PARAMETRIC) then
         return false
     end
-    if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered("BETTERUI_VENDOR_BATCH_DIALOG") then
+    if GetCurrentDialogInfo("BETTERUI_VENDOR_BATCH_DIALOG") then
         vendorBatchDialogRegistered = true
         return true
     end
-    ZO_Dialogs_RegisterCustomDialog("BETTERUI_VENDOR_BATCH_DIALOG", {
+    if not RegisterVendorDialog("BETTERUI_VENDOR_BATCH_DIALOG", {
         canQueue = true,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = { text = SI_BETTERUI_INV_BATCH_ACTIONS or SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
@@ -1009,7 +1029,9 @@ RegisterVendorBatchDialog = function()
                 end,
             },
         },
-    })
+    }) then
+        return false
+    end
     vendorBatchDialogRegistered = true
     return true
 end

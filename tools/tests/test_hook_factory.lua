@@ -1,6 +1,6 @@
 --[[
 File: tools/tests/test_hook_factory.lua
-Purpose: Unit tests for HookFactory (PreHook, PostHook, ReplaceHook shim).
+Purpose: Unit tests for HookFactory (PreHook, PostHook).
          These tests run standalone with a Lua interpreter (no ESO environment).
 
 Usage:
@@ -137,19 +137,7 @@ ctrl5:DoWork()
 assert_equal("original", order5[1], "Original runs first")
 assert_equal("post", order5[2], "Post-hook runs second")
 
--- Test 6: ReplaceHook suppresses original through native prehook semantics
-print("\nTest: ReplaceHook suppresses original through native prehook semantics")
-local order6 = {}
-local ctrl6 = {}
-ctrl6.DoWork = function(self) table.insert(order6, "original") end
-BETTERUI.ReplaceHook(ctrl6, "DoWork", function(self)
-    table.insert(order6, "replaced")
-end)
-ctrl6:DoWork()
-assert_equal(1, #order6, "Only replacement ran")
-assert_equal("replaced", order6[1], "Replacement function executed")
-
--- Test 7: Arguments are forwarded through PreHook
+-- Test 6: Arguments are forwarded through PreHook
 print("\nTest: Arguments forwarded through PreHook")
 local received7 = {}
 local ctrl7 = {}
@@ -180,7 +168,6 @@ print("\nTest: Nil control handled gracefully")
 -- Should not error
 BETTERUI.PreHook(nil, "DoWork", function() end)
 BETTERUI.PostHook(nil, "DoWork", function() end)
-BETTERUI.ReplaceHook(nil, "DoWork", function() end)
 tests_passed = tests_passed + 1
 print("  [OK] No error on nil control")
 
@@ -205,13 +192,15 @@ assert_equal("hook2", order11[1], "Outer hook runs first")
 assert_equal("hook1", order11[2], "Inner hook runs second")
 assert_equal("original", order11[3], "Original runs last")
 
--- Test 12: ReplaceHook implementation does not directly assign method slots
-print("\nTest: ReplaceHook avoids direct method-slot assignment")
+-- Test 12: ReplaceHook API removed from HookFactory source
+print("\nTest: ReplaceHook API removed")
 local fh = assert(io.open("Modules/CIM/Core/Integration/HookFactory.lua", "r"))
 local hookFactorySource = fh:read("*a")
 fh:close()
-assert_true(hookFactorySource:find("control%[method%]%s*=") == nil,
-    "ReplaceHook avoids monkey-patching target method slots")
+assert_true(hookFactorySource:find("ReplaceHook") == nil,
+    "ReplaceHook symbol not present")
+assert_true(hookFactorySource:find("position == \"replace\"") == nil,
+    "Replace branch removed from hook position switch")
 
 -- ============================================================================
 -- SUMMARY

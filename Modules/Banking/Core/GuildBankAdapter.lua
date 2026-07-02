@@ -476,13 +476,37 @@ end
 ---@return nil
 function GuildBank.RegisterGuildSelectorDialog()
     local dialogName = "BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD"
-    if ESO_Dialogs[dialogName] then
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs or nil
+    if not (dialogs and type(dialogs.Register) == "function" and type(dialogs.GetCurrentInfo) == "function") then
+        TraceGuildBank("bank.guild_selector", "register_skipped", {
+            fn = "GuildBank.RegisterGuildSelectorDialog",
+            reason = "missingDialogRegistry",
+            dialogName = dialogName,
+        })
+        return
+    end
+    if dialogs.GetCurrentInfo(dialogName) then
         TraceGuildBank("bank.guild_selector", "register_skipped", {
             fn = "GuildBank.RegisterGuildSelectorDialog",
             reason = "alreadyRegistered",
             dialogName = dialogName,
         })
         return
+    end
+
+    local CHECKED_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_equipped.dds"
+    local GUILD_ENTRY_TEMPLATE = "ZO_GamepadSubMenuEntryWithStatusTemplate"
+
+    local function IsActiveGuild(data)
+        return data.isCurrentGuild
+    end
+
+    local function SetupGuildBankItem(control, data, ...)
+        ZO_SharedGamepadEntry_OnSetup(control, data, ...)
+        if IsActiveGuild(data) then
+            control.statusIndicator:AddIcon(CHECKED_ICON)
+            control.statusIndicator:Show()
+        end
     end
 
     local dialogInfo = {
@@ -501,9 +525,40 @@ function GuildBank.RegisterGuildSelectorDialog()
         },
         title = {
             text = GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL")),
-        },
+        },        
         setup = function(dialog)
+            local currentGuildId = GetSelectedGuildBankId()
+            local parametricList = {}
+            local numGuilds = GetNumGuilds()
+            for i = 1, numGuilds do
+                local guildId = GetGuildId(i)
+                local guildName = GetGuildName(guildId)
+                local allianceId = GetGuildAlliance(guildId)
+                local icon = ZO_GetLargeAllianceSymbolIcon(allianceId)
+                local entryData = ZO_GamepadEntryData:New(guildName, icon)
+                entryData:SetFontScaleOnSelection(false)
+                entryData:SetIconTintOnSelection(true)
+                entryData.guildId = guildId
+                entryData.guildName = guildName
+                entryData.isCurrentGuild = (guildId == currentGuildId)
+                entryData.setup = SetupGuildBankItem
+                table.insert(parametricList, {
+                    template = GUILD_ENTRY_TEMPLATE,
+                    entryData = entryData,
+                })
+            end
+            local info = dialog.info or dialogInfo
+            info.parametricList = parametricList
+            dialog.info = info
             dialog:setupFunc()
+            dialog.entryList:SetSelectedDataByEval(IsActiveGuild)
+            TraceGuildBank("bank.guild_selector", "setup", {
+                fn = "GuildSelectorDialog.setup",
+                dialogName = dialogName,
+                currentGuildId = currentGuildId,
+                guildCount = numGuilds,
+                selectedApplied = true,
+            })
         end,
         parametricList = {},
         buttons = {
@@ -541,62 +596,13 @@ function GuildBank.RegisterGuildSelectorDialog()
         },
     }
 
-    -- Pre-populate on each show
-    if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
-        BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo)
-    elseif ZO_Dialogs_RegisterCustomDialog then
-        ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
-    elseif type(ESO_Dialogs) == "table" then
-        ESO_Dialogs[dialogName] = dialogInfo
-    end
-    -- Override setup to build guild list dynamically
-    local orig = (type(ESO_Dialogs) == "table" and ESO_Dialogs[dialogName]) or dialogInfo
-    local CHECKED_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_equipped.dds"
-    local GUILD_ENTRY_TEMPLATE = "ZO_GamepadSubMenuEntryWithStatusTemplate"
-
-    local function IsActiveGuild(data)
-        return data.isCurrentGuild
-    end
-
-    local function SetupGuildBankItem(control, data, ...)
-        ZO_SharedGamepadEntry_OnSetup(control, data, ...)
-        if IsActiveGuild(data) then
-            control.statusIndicator:AddIcon(CHECKED_ICON)
-            control.statusIndicator:Show()
-        end
-    end
-
-    orig.setup = function(dialog)
-        local currentGuildId = GetSelectedGuildBankId()
-        local parametricList = {}
-        local numGuilds = GetNumGuilds()
-        for i = 1, numGuilds do
-            local guildId = GetGuildId(i)
-            local guildName = GetGuildName(guildId)
-            local allianceId = GetGuildAlliance(guildId)
-            local icon = ZO_GetLargeAllianceSymbolIcon(allianceId)
-            local entryData = ZO_GamepadEntryData:New(guildName, icon)
-            entryData:SetFontScaleOnSelection(false)
-            entryData:SetIconTintOnSelection(true)
-            entryData.guildId = guildId
-            entryData.guildName = guildName
-            entryData.isCurrentGuild = (guildId == currentGuildId)
-            entryData.setup = SetupGuildBankItem
-            table.insert(parametricList, {
-                template = GUILD_ENTRY_TEMPLATE,
-                entryData = entryData,
-            })
-        end
-        dialog.info.parametricList = parametricList
-        dialog:setupFunc()
-        dialog.entryList:SetSelectedDataByEval(IsActiveGuild)
-        TraceGuildBank("bank.guild_selector", "setup", {
-            fn = "GuildSelectorDialog.setup",
+    if not dialogs.Register(dialogName, dialogInfo) then
+        TraceGuildBank("bank.guild_selector", "register_skipped", {
+            fn = "GuildBank.RegisterGuildSelectorDialog",
+            reason = "registryRejected",
             dialogName = dialogName,
-            currentGuildId = currentGuildId,
-            guildCount = numGuilds,
-            selectedApplied = true,
         })
+        return
     end
     TraceGuildBank("bank.guild_selector", "registered", {
         fn = "GuildBank.RegisterGuildSelectorDialog",

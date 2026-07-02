@@ -2,6 +2,10 @@ if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
 
 local function GetCurrentSceneName()
+    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    if utils and type(utils.GetCurrentSceneName) == "function" then
+        return utils.GetCurrentSceneName()
+    end
     if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
         local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
         if ok then
@@ -248,10 +252,17 @@ end
 local COMPANION_CONFIRM_EQUIP_BOE_DIALOG = "BETTERUI_COMPANIONS_CONFIRM_EQUIP_BOE"
 
 local function EnsureCompanionEquipBoEDialogRegistered()
-    if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered(COMPANION_CONFIRM_EQUIP_BOE_DIALOG) then
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs or nil
+    if dialogs and type(dialogs.GetCurrentInfo) == "function"
+        and dialogs.GetCurrentInfo(COMPANION_CONFIRM_EQUIP_BOE_DIALOG) then
         return
     end
-    if ESO_Dialogs and ESO_Dialogs[COMPANION_CONFIRM_EQUIP_BOE_DIALOG] then
+    if not (dialogs and type(dialogs.Register) == "function") then
+        TraceCompanionAction("companions.equip_boe_dialog", "register_skipped", {
+            fn = "EnsureCompanionEquipBoEDialogRegistered",
+            dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG,
+            reason = "missingDialogRegistry",
+        })
         return
     end
     local dialogInfo = {
@@ -287,13 +298,12 @@ local function EnsureCompanionEquipBoEDialogRegistered()
             },
         },
     }
-    if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
-        BETTERUI.CIM.Dialogs.Register(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, dialogInfo)
-    elseif ZO_Dialogs_RegisterCustomDialog then
-        ZO_Dialogs_RegisterCustomDialog(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, dialogInfo)
-    else
-        ESO_Dialogs = ESO_Dialogs or {}
-        ESO_Dialogs[COMPANION_CONFIRM_EQUIP_BOE_DIALOG] = dialogInfo
+    if not dialogs.Register(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, dialogInfo) then
+        TraceCompanionAction("companions.equip_boe_dialog", "register_skipped", {
+            fn = "EnsureCompanionEquipBoEDialogRegistered",
+            dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG,
+            reason = "registryRejected",
+        })
     end
 end
 

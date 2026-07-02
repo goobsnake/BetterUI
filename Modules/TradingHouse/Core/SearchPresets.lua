@@ -198,13 +198,27 @@ end
 local SAVE_DIALOG_NAME = "BETTERUI_TH_SAVE_SEARCH_PRESET"
 local LOAD_DIALOG_NAME = "BETTERUI_TH_LOAD_SEARCH_PRESET"
 
-local function RegisterPresetDialog(dialogName, markerKey, dialogInfo)
-    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then
-        return
+local function GetCurrentDialogInfo(dialogName)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if dialogs and type(dialogs.GetCurrentInfo) == "function" then
+        return dialogs.GetCurrentInfo(dialogName)
     end
-    local priorDialog = ESO_Dialogs and ESO_Dialogs[dialogName] or nil
+    return nil
+end
+
+local function RegisterPresetDialog(dialogName, markerKey, dialogInfo)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if not (dialogs and type(dialogs.Register) == "function") then
+        TracePresets("trading_house.presets_dialog", "register_skipped", {
+            fn = "RegisterPresetDialog",
+            dialogName = dialogName,
+            reason = "missingDialogRegistry",
+        })
+        return false
+    end
+    local priorDialog = GetCurrentDialogInfo(dialogName)
     if priorDialog and priorDialog[markerKey] then
-        return
+        return true
     end
     local setup = dialogInfo.setup
     if priorDialog and type(priorDialog.setup) == "function" then
@@ -216,14 +230,14 @@ local function RegisterPresetDialog(dialogName, markerKey, dialogInfo)
         end
     end
     dialogInfo[markerKey] = true
-    ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
+    return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
 end
 
 --- Registers and shows the save-preset dialog (text input for name).
 function Presets.ShowSaveDialog()
-    local saveDialog = ESO_Dialogs and ESO_Dialogs[SAVE_DIALOG_NAME] or nil
+    local saveDialog = GetCurrentDialogInfo(SAVE_DIALOG_NAME)
     if not (saveDialog and saveDialog._betteruiTradingHouseSavePresetDialog) then
-        RegisterPresetDialog(SAVE_DIALOG_NAME, "_betteruiTradingHouseSavePresetDialog", {
+        if not RegisterPresetDialog(SAVE_DIALOG_NAME, "_betteruiTradingHouseSavePresetDialog", {
             canQueue = true,
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
@@ -274,7 +288,13 @@ function Presets.ShowSaveDialog()
                     end,
                 },
             },
-        })
+        }) then
+            TracePresets("trading_house.presets_dialog", "save_show_skipped", {
+                fn = "Presets.ShowSaveDialog",
+                reason = "registryRejected",
+            })
+            return
+        end
     end
 
     TracePresets("trading_house.presets_dialog", "save_shown", { fn = "Presets.ShowSaveDialog" })
@@ -283,9 +303,9 @@ end
 
 --- Registers and shows the load-preset dialog (list of saved presets).
 function Presets.ShowLoadDialog()
-    local loadDialog = ESO_Dialogs and ESO_Dialogs[LOAD_DIALOG_NAME] or nil
+    local loadDialog = GetCurrentDialogInfo(LOAD_DIALOG_NAME)
     if not (loadDialog and loadDialog._betteruiTradingHouseLoadPresetDialog) then
-        RegisterPresetDialog(LOAD_DIALOG_NAME, "_betteruiTradingHouseLoadPresetDialog", {
+        if not RegisterPresetDialog(LOAD_DIALOG_NAME, "_betteruiTradingHouseLoadPresetDialog", {
             canQueue = true,
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
@@ -374,7 +394,13 @@ function Presets.ShowLoadDialog()
                     end,
                 },
             },
-        })
+        }) then
+            TracePresets("trading_house.presets_dialog", "load_show_skipped", {
+                fn = "Presets.ShowLoadDialog",
+                reason = "registryRejected",
+            })
+            return
+        end
     end
 
     TracePresets("trading_house.presets_dialog", "load_shown", { fn = "Presets.ShowLoadDialog", presetCount = #Presets.GetAll() })

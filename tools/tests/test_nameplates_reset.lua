@@ -133,6 +133,10 @@ function BETTERUI.GetModuleSettings(moduleName)
     return BETTERUI.Settings.Modules[moduleName]
 end
 
+function BETTERUI.GetModuleSettingsLive(moduleName)
+    return BETTERUI.Settings.Modules[moduleName]
+end
+
 function BETTERUI.EnsureModuleSettings(moduleName)
     BETTERUI.Settings.Modules[moduleName] = BETTERUI.Settings.Modules[moduleName] or {}
     return BETTERUI.Settings.Modules[moduleName]
@@ -158,6 +162,7 @@ print("\n=== Nameplates Reset Tests ===\n")
 dofile("Modules/Nameplates/Settings.lua")
 dofile("Modules/Nameplates/Nameplates.lua")
 
+local realApplyCurrentSettings = BETTERUI.Nameplates.ApplyCurrentSettings
 BETTERUI.Nameplates.ApplyCurrentSettings = function()
     applyCurrentSettingsCalls = applyCurrentSettingsCalls + 1
 end
@@ -202,6 +207,14 @@ assertEqual(BETTERUI.Nameplates.DEFAULTS.font, BETTERUI.Settings.Modules.Namepla
 assertEqual(BETTERUI.Nameplates.DEFAULTS.style, BETTERUI.Settings.Modules.Nameplates.style, "Reset restores the default style")
 assertEqual(BETTERUI.Nameplates.DEFAULTS.size, BETTERUI.Settings.Modules.Nameplates.size, "Reset restores the default size")
 assertEqual(1, applyCurrentSettingsCalls, "Reset reapplies the current nameplate settings")
+
+print("\nTest: Lifecycle apply path migrates legacy string style settings before getters read them")
+BETTERUI.Settings.Modules.Nameplates.style = "outline"
+realApplyCurrentSettings()
+assertEqual(FONT_STYLE_OUTLINE, BETTERUI.Settings.Modules.Nameplates.style,
+    "ApplyCurrentSettings migrates legacy string style settings on the live table")
+assertEqual(FONT_STYLE_OUTLINE, appliedKeyboardStyle,
+    "ApplyCurrentSettings uses the migrated style enum when reapplying the font")
 
 print("\nTest: InitModule clamps size and migrates western fonts for non-English clients")
 currentLang = "jp"

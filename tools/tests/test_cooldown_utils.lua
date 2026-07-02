@@ -238,6 +238,51 @@ do
     assert_eq(cooldownOverlay.hidden, true, "missing cooldown edge still hides overlay")
 end
 
+print("[Cooldown visual arming]")
+do
+    CooldownUtils.ResetCooldownVisualArming()
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), false, "arming starts disarmed")
+
+    CooldownUtils.NotifyCooldownActiveState(true)
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), true, "first active button arms the latch")
+
+    CooldownUtils.NotifyCooldownActiveState(true)
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), true, "second active button keeps the latch armed")
+
+    CooldownUtils.NotifyCooldownActiveState(false)
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), true, "one button ending keeps the latch armed")
+
+    CooldownUtils.NotifyCooldownActiveState(false)
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), false, "last button ending disarms the latch")
+
+    CooldownUtils.NotifyCooldownActiveState(false)
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), false, "disarm is idempotent")
+
+    CooldownUtils.ResetCooldownVisualArming()
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), false, "reset disarms the latch")
+
+    local button = {}
+    assert_eq(CooldownUtils.ReportButtonCooldownState(button, true), true,
+        "active button reports a new cooldown transition")
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), true,
+        "button reporter arms the aggregate latch")
+    assert_eq(CooldownUtils.ReportButtonCooldownState(button, true), false,
+        "same generation does not double-count an already active button")
+
+    local generationBeforeReset = CooldownUtils.GetCooldownVisualArmingGeneration()
+    CooldownUtils.ResetCooldownVisualArming()
+    assert_eq(CooldownUtils.GetCooldownVisualArmingGeneration(), generationBeforeReset + 1,
+        "reset advances the button latch generation")
+    assert_eq(CooldownUtils.ReportButtonCooldownState(button, true), true,
+        "active button re-arms after aggregate reset even when its local state is still active")
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), true,
+        "re-armed button restores aggregate armed state after reset")
+    assert_eq(CooldownUtils.ReportButtonCooldownState(button, false), true,
+        "inactive button reports a cooldown end transition")
+    assert_eq(CooldownUtils.IsCooldownVisualsArmed(), false,
+        "button reporter disarms after the last active button ends")
+end
+
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)

@@ -19,19 +19,33 @@ local SKILL_TEXT_SIZE_MAX = 30
 
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
+local function GetCurrentSceneName()
+    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    if utils and type(utils.GetCurrentSceneName) == "function" then
+        return utils.GetCurrentSceneName()
+    end
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
+        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
+        if ok then return sceneName end
+    end
+    return nil
+end
+
 local function TraceFrontCooldown(event, phase, data)
     local L = BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
+    if not (L and L.TraceEvent and L.EnabledFor and L.CATEGORY and L.LEVEL) then return end
+    -- Preflight before building any payload so scene/gamepad lookups and table
+    -- allocation run only when tracing is active (BUI-DEEPDIVE-001 P2).
+    if not L.EnabledFor(L.LEVEL.DEBUG, L.CATEGORY.ACTION) then return end
     data = data or {}
     data.module = "ResourceOrbFrames"
     data.feature = "resourceOrbs"
-    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    data.scene = GetCurrentSceneName()
     data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
     if L.SetLastAction then
         L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
     end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.ACTION, event, phase, data)
+    L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
 end
 
 --- Sets icon desaturation only when the value changes, avoiding per-frame
@@ -335,8 +349,10 @@ local function UpdateFrontBarCooldowns(rootFrame)
             local abilityId = type(GetSlotBoundId) == "function" and GetSlotBoundId(mapping.slot, mapping.category) or nil
 
             if showCooldown then
-                if btn._betteruiLastCooldownState ~= true then
-                    btn._betteruiLastCooldownState = true
+                local cooldownStateChanged = CooldownUtils.ReportButtonCooldownState
+                    and CooldownUtils.ReportButtonCooldownState(btn, true)
+                    or false
+                if cooldownStateChanged then
                     TraceFrontCooldown("resource_orbs.cooldown", "start", {
                         button = mapping.buttonName,
                         slot = mapping.slot,
@@ -402,8 +418,10 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     ApplyCooldownTextStyle(altTimerText, cooldownSize, cooldownColor, false)
                 end
             else
-                if btn._betteruiLastCooldownState == true then
-                    btn._betteruiLastCooldownState = false
+                local cooldownStateChanged = CooldownUtils.ReportButtonCooldownState
+                    and CooldownUtils.ReportButtonCooldownState(btn, false)
+                    or false
+                if cooldownStateChanged then
                     TraceFrontCooldown("resource_orbs.cooldown", "end", {
                         button = mapping.buttonName,
                         slot = mapping.slot,

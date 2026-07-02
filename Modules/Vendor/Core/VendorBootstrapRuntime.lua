@@ -8,18 +8,13 @@ local Vendor = BETTERUI.Vendor
 Vendor.BootstrapRuntime = Vendor.BootstrapRuntime or {}
 local BootstrapRuntime = Vendor.BootstrapRuntime
 
-local function TraceVendorBootstrap(event, phase, data)
-    local L = BETTERUI and BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
-    data = data or {}
-    data.module = data.module or "Vendor"
-    data.scene = data.scene or BETTERUI_VENDOR_SCENE_NAME
-    data.feature = data.feature or "vendor-bootstrap"
-    data.fn = data.fn or "Vendor.BootstrapRuntime"
-    data["function"] = data["function"] or data.fn
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.LIFECYCLE or categories.GENERAL, event, phase, data)
-end
+local TraceVendorBootstrap = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "Vendor",
+        feature = "vendor-bootstrap",
+        category = (BETTERUI.Log and BETTERUI.Log.CATEGORY or {}).LIFECYCLE or "LIFECYCLE",
+    }
+    or function() end
 
 local function DescribeKeybinds(descriptor, label)
     local L = BETTERUI and BETTERUI.Log
@@ -56,25 +51,16 @@ function BootstrapRuntime.InitializeList(instance, deps)
     end)
     if instance.list then
         instance.list.owner = instance
-        -- Direct assignment is intentional: ZO_PostHook does not expose the original
-        -- return value, which we need to detect a failed move (list at top).
-        -- The _betteruiMovePreviousWrapperInstalled guard prevents double-wrapping.
-        if instance.list.MovePrevious and not instance.list._betteruiMovePreviousWrapperInstalled then
-            local originalMovePrevious = instance.list.MovePrevious
-            instance.list._betteruiMovePreviousWrapperInstalled = true
-            instance.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
-                local didMove = originalMovePrevious(list, allowWrapping, suppressFailSound)
-                if didMove then
-                    return true
-                end
-
+        -- Use the shared CIM.Lists.WrapMovePreviousToHeader helper extracted from the
+        -- identical pattern that was duplicated in Banking, Companions, and Vendor.
+        if BETTERUI.CIM.Lists and BETTERUI.CIM.Lists.WrapMovePreviousToHeader then
+            BETTERUI.CIM.Lists.WrapMovePreviousToHeader(instance.list, function()
                 if instance.OnHeaderEntered then
                     instance:OnHeaderEntered()
                 elseif instance.RequestHeaderFocus then
                     instance:RequestHeaderFocus()
                 end
-                return true
-            end
+            end)
         end
     end
 

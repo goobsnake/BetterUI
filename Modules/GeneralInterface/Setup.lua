@@ -4,16 +4,16 @@ local GeneralInterface = BETTERUI.GeneralInterface
 GeneralInterface.Settings = GeneralInterface.Settings or {}
 
 local function GetCurrentSceneName()
-	if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
-		local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
-		if ok then return sceneName end
-	end
-	return nil
+	local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+	return utils and utils.GetCurrentSceneName and utils.GetCurrentSceneName() or nil
 end
 
 local function TraceGeneralInterface(event, phase, data, category)
 	local L = BETTERUI and BETTERUI.Log or nil
 	if not L or type(L.TraceEvent) ~= "function" then return end
+	local categories = L.CATEGORY or {}
+	local traceCategory = category or categories.GENERAL
+	if L.EnabledFor and not L.EnabledFor(L.LEVEL.TRACE, traceCategory) then return end
 	local payload = data or {}
 	local inputAnchorDetail = payload._inputAnchorDetail == true
 	payload._inputAnchorDetail = nil
@@ -25,8 +25,7 @@ local function TraceGeneralInterface(event, phase, data, category)
 	if type(L.SetLastAction) == "function" then
 		L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
 	end
-	local categories = L.CATEGORY or {}
-	L.TraceEvent(category or categories.GENERAL, event, phase, payload)
+	L.TraceEvent(traceCategory, event, phase, payload)
 end
 
 local function WrapGeneralInterfaceKeybind(descriptor, action)
@@ -239,17 +238,27 @@ local function InstallMailDeleteHook()
 			return false
 		end
 
-		local hookInstaller = type(ZO_PostHook) == "function" and ZO_PostHook or ZO_PreHook
+		if type(ZO_PostHook) ~= "function" then
+			TraceGeneralInterface("general_interface.mail_delete", "hook_skipped", {
+				fn = "InstallOnLiveMailInbox",
+				reason = "missing ZO_PostHook",
+			})
+			return false
+		end
+
 		if type(mailInbox.InitializeKeybindDescriptors) == "function"
-			and hookInstaller
 			and not mailInbox._betteruiDeleteDescriptorHookInstalled then
-			hookInstaller(mailInbox, "InitializeKeybindDescriptors", function(self)
+			ZO_PostHook(mailInbox, "InitializeKeybindDescriptors", function(self)
 				TraceGeneralInterface("general_interface.mail_delete", "descriptor_rebuilt", { fn = "InitializeKeybindDescriptors" })
 				HookMailDeleteDescriptor(self)
 			end)
 			mailInbox._betteruiDeleteDescriptorHookInstalled = true
 			mailInbox._betteruiDeleteDescriptorPreHookInstalled = true
-			TraceGeneralInterface("general_interface.mail_delete", "hook_installed", { fn = "InstallOnLiveMailInbox", method = "InitializeKeybindDescriptors", postHook = hookInstaller == ZO_PostHook })
+			TraceGeneralInterface("general_interface.mail_delete", "hook_installed", {
+				fn = "InstallOnLiveMailInbox",
+				method = "InitializeKeybindDescriptors",
+				postHook = true,
+			})
 		end
 
 		return HookMailDeleteDescriptor(mailInbox)

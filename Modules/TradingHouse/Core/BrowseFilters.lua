@@ -318,16 +318,37 @@ local function ChainPriorDialogSetup(priorDialog, setup)
     end
 end
 
+local function GetCurrentDialogInfo(dialogName)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if dialogs and type(dialogs.GetCurrentInfo) == "function" then
+        return dialogs.GetCurrentInfo(dialogName)
+    end
+    return nil
+end
+
+local function RegisterFilterDialog(dialogName, dialogInfo)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if not (dialogs and type(dialogs.Register) == "function") then
+        TraceFilters("trading_house.filters_dialog", "register_skipped", {
+            fn = "RegisterFilterDialog",
+            reason = "missingDialogRegistry",
+            dialogName = dialogName,
+        })
+        return false
+    end
+    return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
+end
+
 --- Registers and shows a first-cut filter-entry dialog. Numeric fields accept
 --- plain numbers; quality/category are choice indices. The maintainer can
 --- replace this with a polished gamepad UI later.
 function Filters.ShowFilterDialog()
-    if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_ShowGamepadDialog and ZO_Dialogs_RegisterCustomDialog) then
+    if not ZO_Dialogs_ShowGamepadDialog then
         TraceFilters("trading_house.filters_dialog", "show_skipped", { fn = "Filters.ShowFilterDialog", reason = "missingDialogApi" })
         return
     end
 
-    local priorDialog = ESO_Dialogs and ESO_Dialogs[FILTER_DIALOG_NAME] or nil
+    local priorDialog = GetCurrentDialogInfo(FILTER_DIALOG_NAME)
     if not (priorDialog and priorDialog._betteruiTradingHouseFilterDialog) then
         local function AddTextField(labelKey, fieldKey, numeric)
             return {
@@ -411,7 +432,13 @@ function Filters.ShowFilterDialog()
                 },
             },
         }
-        ZO_Dialogs_RegisterCustomDialog(FILTER_DIALOG_NAME, dialogInfo)
+        if not RegisterFilterDialog(FILTER_DIALOG_NAME, dialogInfo) then
+            TraceFilters("trading_house.filters_dialog", "show_skipped", {
+                fn = "Filters.ShowFilterDialog",
+                reason = "registryRejected",
+            })
+            return
+        end
     end
 
     TraceFilters("trading_house.filters_dialog", "shown", { fn = "Filters.ShowFilterDialog" })

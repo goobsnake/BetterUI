@@ -457,6 +457,36 @@ BETTERUI = {
                 table.insert(narrationCalls, sceneName)
             end,
         },
+        Dialogs = {
+            GetCurrentInfo = function(name)
+                return ESO_Dialogs[name]
+            end,
+            Register = function(name, info)
+                ESO_Dialogs[name] = info
+                return true
+            end,
+        },
+        Utils = {
+            InstallNativeSceneRedirect = function(options)
+                eventRegistrations[options.namespace .. ":" .. tostring(options.openEventId)] = function()
+                    if options.isEnabled and not options.isEnabled() then
+                        return
+                    end
+                    if type(options.showFn) == "function" then
+                        options.showFn()
+                    elseif SCENE_MANAGER and SCENE_MANAGER.Show then
+                        SCENE_MANAGER:Show(options.sceneName)
+                    end
+                end
+                if options.closeEventId then
+                    eventRegistrations[options.namespace .. ":" .. tostring(options.closeEventId)] = function()
+                        if SCENE_MANAGER and SCENE_MANAGER.Hide then
+                            SCENE_MANAGER:Hide(options.sceneName)
+                        end
+                    end
+                end
+            end,
+        },
     },
 }
 

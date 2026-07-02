@@ -65,12 +65,54 @@ local function BETTERUI_TryPlaceInventoryItemInEmptySlot(targetBag)
 	end
 end
 
+local function IsInventoryDialogManagedScene()
+	if type(BETTERUI.GetModuleEnabled) == "function" and BETTERUI.GetModuleEnabled("Inventory") ~= true then
+		return false
+	end
+	return type(BETTERUI.Utils) == "table" and type(BETTERUI.Utils.IsInventorySceneShowing) == "function"
+		and BETTERUI.Utils.IsInventorySceneShowing() == true
+end
+
+local function GetDialogButtonCallback(dialogInfo, keybind)
+	local buttons = dialogInfo and dialogInfo.buttons
+	if type(buttons) ~= "table" then
+		return nil
+	end
+	for _, button in ipairs(buttons) do
+		if type(button) == "table" and button.keybind == keybind and type(button.callback) == "function" then
+			return button.callback
+		end
+	end
+	return nil
+end
+
+local function CallPreviousDialogCallback(callback, dialog, ...)
+	if type(callback) ~= "function" then
+		return false
+	end
+	local ok, err = pcall(callback, dialog, ...)
+	if not ok then
+		TraceInventoryDialog("inventory.dialog_restore", "callback_error", {
+			fn = "InventoryDialogs.RestoreDelegate",
+			error = tostring(err),
+		})
+		return false
+	end
+	return true
+end
+
 --- Initializes the split stack dialog for moving items.
 --- Purpose: Allows splitting stacks when moving to/from bank.
 --- Mechanics: Registers `ZO_GAMEPAD_SPLIT_STACK_DIALOG` with custom callback to `PickupInventoryItem`.
 --- References: Called by Initialize.
 ---@return nil
 function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
+	local existingDialogInfo = BETTERUI.CIM.Dialogs.GetCurrentInfo(ZO_GAMEPAD_SPLIT_STACK_DIALOG)
+	local existingSetup = existingDialogInfo and existingDialogInfo.setup
+	local existingHidden = existingDialogInfo and existingDialogInfo.OnHiddenCallback
+	local existingNegative = GetDialogButtonCallback(existingDialogInfo, "DIALOG_NEGATIVE")
+	local existingPrimary = GetDialogButtonCallback(existingDialogInfo, "DIALOG_PRIMARY")
+
 	BETTERUI.CIM.Dialogs.Register(ZO_GAMEPAD_SPLIT_STACK_DIALOG, {
 		canQueue = true,
 
@@ -79,21 +121,40 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 		},
 
 		setup = function(dialog, data)
-			dialog:setupFunc()
+			local isManaged = IsInventoryDialogManagedScene()
+			dialog._betteruiManaged = isManaged == true
+			if isManaged then
+				dialog:setupFunc()
+				TraceInventoryDialog("inventory.split_stack_dialog", "setup", {
+					fn = "InventoryDialogs.InitializeSplitStackDialog.setup",
+					bagId = data and data.bagId,
+					slotIndex = data and data.slotIndex,
+					stackSize = data and data.stackSize,
+					hasSlider = dialog and dialog.slider ~= nil,
+					managed = true,
+				})
+				-- Hide custom slider hint controls from CraftBagQuantityDialog
+				-- Both dialogs share the GAMEPAD_DIALOGS.ITEM_SLIDER template, so
+				-- controls created by SetupSliderKeybindHints persist between uses
+				if dialog._minIconLabel then dialog._minIconLabel:SetHidden(true) end
+				if dialog._maxIconLabel then dialog._maxIconLabel:SetHidden(true) end
+				if dialog._minTextLabel then dialog._minTextLabel:SetHidden(true) end
+				if dialog._maxTextLabel then dialog._maxTextLabel:SetHidden(true) end
+				return
+			end
+
+			local delegated = CallPreviousDialogCallback(existingSetup, dialog, data)
 			TraceInventoryDialog("inventory.split_stack_dialog", "setup", {
 				fn = "InventoryDialogs.InitializeSplitStackDialog.setup",
 				bagId = data and data.bagId,
 				slotIndex = data and data.slotIndex,
 				stackSize = data and data.stackSize,
-				hasSlider = dialog and dialog.slider ~= nil,
+				managed = false,
+				delegated = delegated,
 			})
-			-- Hide custom slider hint controls from CraftBagQuantityDialog
-			-- Both dialogs share the GAMEPAD_DIALOGS.ITEM_SLIDER template, so
-			-- controls created by SetupSliderKeybindHints persist between uses
-			if dialog._minIconLabel then dialog._minIconLabel:SetHidden(true) end
-			if dialog._maxIconLabel then dialog._maxIconLabel:SetHidden(true) end
-			if dialog._minTextLabel then dialog._minTextLabel:SetHidden(true) end
-			if dialog._maxTextLabel then dialog._maxTextLabel:SetHidden(true) end
+			if not delegated then
+				dialog:setupFunc()
+			end
 		end,
 
 		title = {
@@ -136,19 +197,30 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 				keybind = "DIALOG_NEGATIVE",
 				text = GetString(rawget(_G, "SI_DIALOG_CANCEL")),
 				callback = function(dialog)
-					local dialogData = dialog and dialog.data
-					TraceInventoryDialog("inventory.split_stack_dialog", "cancel", {
-						fn = "InventoryDialogs.InitializeSplitStackDialog.cancel",
-						bagId = dialogData and dialogData.bagId,
-						slotIndex = dialogData and dialogData.slotIndex,
-						stackSize = dialogData and dialogData.stackSize,
-					})
+					if dialog and dialog._betteruiManaged then
+						local dialogData = dialog.data
+						TraceInventoryDialog("inventory.split_stack_dialog", "cancel", {
+							fn = "InventoryDialogs.InitializeSplitStackDialog.cancel",
+							bagId = dialogData and dialogData.bagId,
+							slotIndex = dialogData and dialogData.slotIndex,
+							stackSize = dialogData and dialogData.stackSize,
+							managed = true,
+						})
+						return
+					end
+
+					CallPreviousDialogCallback(existingNegative, dialog)
 				end,
 			},
 			{
 				keybind = "DIALOG_PRIMARY",
 				text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
 				callback = function(dialog)
+					if not (dialog and dialog._betteruiManaged) then
+						CallPreviousDialogCallback(existingPrimary, dialog)
+						return
+					end
+
 					local dialogData = dialog.data
 					local quantity = ZO_GenericGamepadItemSliderDialogTemplate_GetSliderValue(dialog)
 					TraceInventoryDialog("inventory.split_stack_dialog", "confirm", {
@@ -157,6 +229,7 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 						slotIndex = dialogData and dialogData.slotIndex,
 						stackSize = dialogData and dialogData.stackSize,
 						quantity = quantity,
+						managed = true,
 					})
 					if not dialogData or not dialogData.bagId or not dialogData.slotIndex or not quantity then
 						TraceInventoryDialog("inventory.split_stack_dialog", "blocked", {
@@ -185,6 +258,7 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 						slotIndex = dialogData and dialogData.slotIndex,
 						quantity = quantity,
 						uniqueId = uniqueId,
+						managed = true,
 					})
 					if pickupSucceeded then
 						BETTERUI_TryPlaceInventoryItemInEmptySlot(dialogData.bagId)
@@ -200,19 +274,30 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 		-- OnHiddenCallback clears the lock set by the hooked ZO_StackSplit_SplitItem
 		-- This must fire BEFORE keybinds are restored to prevent re-triggering
 		OnHiddenCallback = function(dialog)
-			BETTERUI.Inventory._splitStackLock = nil
-			local inv = GAMEPAD_INVENTORY
-			local inventorySceneShowing = BETTERUI.CIM and BETTERUI.CIM.Utils
-				and BETTERUI.CIM.Utils.IsInventorySceneShowing
-				and BETTERUI.CIM.Utils.IsInventorySceneShowing()
-			if inventorySceneShowing and inv and inv.RestoreStateAfterDialog then
-				inv:RestoreStateAfterDialog("splitStackDialogPostHideRefresh")
+			if dialog and dialog._betteruiManaged then
+				BETTERUI.Inventory._splitStackLock = nil
+				local inv = GAMEPAD_INVENTORY
+				local inventorySceneShowing = BETTERUI.CIM and BETTERUI.CIM.Utils
+					and BETTERUI.CIM.Utils.IsInventorySceneShowing
+					and BETTERUI.CIM.Utils.IsInventorySceneShowing()
+				if inventorySceneShowing and inv and inv.RestoreStateAfterDialog then
+					inv:RestoreStateAfterDialog("splitStackDialogPostHideRefresh")
+				end
+				TraceInventoryDialog("inventory.split_stack_dialog", "hidden", {
+					fn = "InventoryDialogs.InitializeSplitStackDialog.OnHiddenCallback",
+					inventorySceneShowing = inventorySceneShowing == true,
+					restoredState = inventorySceneShowing and inv and inv.RestoreStateAfterDialog ~= nil or false,
+					lockCleared = BETTERUI.Inventory._splitStackLock == nil,
+					managed = true,
+				})
+				return
 			end
+
+			local delegated = CallPreviousDialogCallback(existingHidden, dialog)
 			TraceInventoryDialog("inventory.split_stack_dialog", "hidden", {
 				fn = "InventoryDialogs.InitializeSplitStackDialog.OnHiddenCallback",
-				inventorySceneShowing = inventorySceneShowing == true,
-				restoredState = inventorySceneShowing and inv and inv.RestoreStateAfterDialog ~= nil or false,
-				lockCleared = BETTERUI.Inventory._splitStackLock == nil,
+				delegated = delegated,
+				managed = false,
 			})
 		end,
 	})
@@ -297,10 +382,10 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 							refreshScheduled = true
 							BETTERUI.Inventory.Tasks:Schedule("destroyRefresh",
 								BETTERUI.CIM.CONST.TIMING.LIST_DESTRUCTION_DELAY_MS, function()
-									if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
-										GAMEPAD_INVENTORY:RefreshItemList()
-									end
-								end)
+								if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+								GAMEPAD_INVENTORY:RefreshItemList()
+							end
+							end)
 						end
 						local released = ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_CONFIRM_DESTROY_DIALOG")
 						TraceInventoryDialog("inventory.destroy_dialog", "complete", {
@@ -341,6 +426,12 @@ end
 --- Purpose: Safety prompt before destroying armory-related items with 2-second cooldown.
 --- Mechanics: Registers `ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG` with native `RespondToDestroyRequest()`.
 function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
+	local existingDialogInfo = BETTERUI.CIM.Dialogs.GetCurrentInfo(ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG)
+	local existingSetup = existingDialogInfo and existingDialogInfo.setup
+	local existingNoChoice = existingDialogInfo and existingDialogInfo.noChoiceCallback
+	local existingPrimary = GetDialogButtonCallback(existingDialogInfo, "DIALOG_PRIMARY")
+	local existingNegative = GetDialogButtonCallback(existingDialogInfo, "DIALOG_NEGATIVE")
+
 	local function ReleaseDialog(destroyItem, source)
 		TraceInventoryDialog("inventory.armory_destroy_dialog", destroyItem and "confirm" or "cancel", {
 			fn = "InventoryDialogs.InitializeConfirmDestroyArmoryItemDialog.ReleaseDialog",
@@ -360,19 +451,51 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
 			allowRightStickPassThrough = true,
 		},
 		setup = function(dialog)
-			self.destroyConfirmText = nil
-			dialog:setupFunc()
+			local isManaged = IsInventoryDialogManagedScene()
+			dialog._betteruiManaged = isManaged == true
+			if isManaged then
+				self.destroyConfirmText = nil
+				dialog:setupFunc()
+				TraceInventoryDialog("inventory.armory_destroy_dialog", "setup", {
+					fn = "InventoryDialogs.InitializeConfirmDestroyArmoryItemDialog.setup",
+					dialogName = ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG,
+					managed = true,
+				})
+				return
+			end
+
+			local delegated = CallPreviousDialogCallback(existingSetup, dialog)
 			TraceInventoryDialog("inventory.armory_destroy_dialog", "setup", {
 				fn = "InventoryDialogs.InitializeConfirmDestroyArmoryItemDialog.setup",
 				dialogName = ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG,
+				managed = false,
+				delegated = delegated,
 			})
+			if not delegated then
+				dialog:setupFunc()
+			end
 		end,
 		noChoiceCallback = function(dialog)
+			if dialog and dialog._betteruiManaged then
+				TraceInventoryDialog("inventory.armory_destroy_dialog", "no_choice", {
+					fn = "InventoryDialogs.InitializeConfirmDestroyArmoryItemDialog.noChoiceCallback",
+					dialogName = ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG,
+					managed = true,
+				})
+				RespondToDestroyRequest(false)
+				return
+			end
+
+			local delegated = CallPreviousDialogCallback(existingNoChoice, dialog)
 			TraceInventoryDialog("inventory.armory_destroy_dialog", "no_choice", {
 				fn = "InventoryDialogs.InitializeConfirmDestroyArmoryItemDialog.noChoiceCallback",
 				dialogName = ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG,
+				managed = false,
+				delegated = delegated,
 			})
-			RespondToDestroyRequest(false)
+			if not delegated then
+				RespondToDestroyRequest(false)
+			end
 		end,
 		title = {
 			text = SI_DIALOG_DESTROY_ARMORY_ITEM_TITLE,
@@ -385,15 +508,39 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
 				onShowCooldown = 2000,
 				keybind = "DIALOG_PRIMARY",
 				text = GetString(rawget(_G, "SI_YES")),
-				callback = function()
-					ReleaseDialog(true, "primary")
+				callback = function(dialog)
+					if dialog and dialog._betteruiManaged then
+						ReleaseDialog(true, "primary")
+						return
+					end
+					TraceInventoryDialog("inventory.armory_destroy_dialog", "confirm", {
+						fn = "InventoryDialogs.InitializeConfirmDestroyArmoryItemDialog.primary",
+						dialogName = ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG,
+						managed = false,
+					})
+					local delegated = CallPreviousDialogCallback(existingPrimary, dialog)
+					if not delegated then
+						RespondToDestroyRequest(true)
+					end
 				end,
 			},
 			{
 				keybind = "DIALOG_NEGATIVE",
 				text = GetString(rawget(_G, "SI_NO")),
-				callback = function()
-					ReleaseDialog(false, "negative")
+				callback = function(dialog)
+					if dialog and dialog._betteruiManaged then
+						ReleaseDialog(false, "negative")
+						return
+					end
+					TraceInventoryDialog("inventory.armory_destroy_dialog", "cancel", {
+						fn = "InventoryDialogs.InitializeConfirmDestroyArmoryItemDialog.negative",
+						dialogName = ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG,
+						managed = false,
+					})
+					local delegated = CallPreviousDialogCallback(existingNegative, dialog)
+					if not delegated then
+						RespondToDestroyRequest(false)
+					end
 				end,
 			},
 		}

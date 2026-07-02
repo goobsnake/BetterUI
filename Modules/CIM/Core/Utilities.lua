@@ -100,6 +100,129 @@ local researchableTraitMatcher = function()
 end
 local IsBankingSceneShowing
 
+---@return string|nil sceneName Current scene name, if the scene manager exposes one
+function BETTERUI.CIM.Utils.GetCurrentSceneName()
+    local sceneManager = rawget(_G, "SCENE_MANAGER")
+    if not sceneManager then
+        return nil
+    end
+    if type(sceneManager.GetCurrentSceneName) == "function" then
+        local ok, sceneName = pcall(function() return sceneManager:GetCurrentSceneName() end)
+        if ok and sceneName ~= nil then
+            return sceneName
+        end
+    end
+    if type(sceneManager.GetCurrentScene) == "function" then
+        local ok, scene = pcall(function() return sceneManager:GetCurrentScene() end)
+        if ok and scene and type(scene.GetName) == "function" then
+            local okName, sceneName = pcall(function() return scene:GetName() end)
+            if okName then
+                return sceneName
+            end
+        end
+    end
+    return nil
+end
+
+local function TraceSceneRedirect(traceFn, phase, data)
+    if type(traceFn) == "function" then
+        traceFn("scene_redirect", phase, data)
+    end
+end
+
+---@param options {namespace:string, openEventId:any, closeEventId:any?, sceneName:string?, sceneObject:table|function|nil, isEnabled:function?, onOpen:function?, onClose:function?, showFn:function?, hideFn:function?, traceFn:function?}
+---@return boolean installed
+function BETTERUI.CIM.Utils.InstallNativeSceneRedirect(options)
+    options = options or {}
+    local namespace = options.namespace
+    local openEventId = options.openEventId
+    local sceneName = options.sceneName
+    if not (EVENT_MANAGER and namespace and openEventId) then
+        TraceSceneRedirect(options.traceFn, "skipped", {
+            reason = "missingRequiredInput",
+            hasEventManager = EVENT_MANAGER ~= nil,
+            hasNamespace = namespace ~= nil,
+            hasOpenEvent = openEventId ~= nil,
+        })
+        return false
+    end
+
+    local function ShouldRedirect()
+        if type(options.isEnabled) == "function" then
+            return options.isEnabled() ~= false
+        end
+        return true
+    end
+
+    local function ShowRedirectedScene(...)
+        if not ShouldRedirect() then
+            TraceSceneRedirect(options.traceFn, "bypassed", { reason = "module_disabled", sceneName = sceneName })
+            return
+        end
+        if type(options.onOpen) == "function" then
+            TraceSceneRedirect(options.traceFn, "show", { sceneName = sceneName })
+            options.onOpen(...)
+            return
+        end
+
+        local sceneObject = options.sceneObject
+        if type(sceneObject) == "function" then
+            sceneObject = sceneObject()
+        end
+        if sceneObject == false then
+            TraceSceneRedirect(options.traceFn, "skipped", { reason = "no_scene_object", sceneName = sceneName })
+            return
+        end
+
+        local sceneManager = rawget(_G, "SCENE_MANAGER")
+        if not (sceneManager and sceneManager.Show and sceneName) then
+            TraceSceneRedirect(options.traceFn, "skipped", { reason = "missing_scene_api", sceneName = sceneName })
+            return
+        end
+        if sceneManager.IsShowing and sceneManager:IsShowing(sceneName) then
+            TraceSceneRedirect(options.traceFn, "skipped", { reason = "already_showing", sceneName = sceneName })
+            return
+        end
+        TraceSceneRedirect(options.traceFn, "show", { sceneName = sceneName })
+        if type(options.showFn) == "function" then
+            options.showFn(...)
+        else
+            sceneManager:Show(sceneName)
+        end
+    end
+
+    EVENT_MANAGER:UnregisterForEvent(namespace, openEventId)
+    EVENT_MANAGER:RegisterForEvent(namespace, openEventId, function(...)
+        TraceSceneRedirect(options.traceFn, "open_event", { sceneName = sceneName })
+        if type(zo_callLater) == "function" then
+            local args = { ... }
+            zo_callLater(function() ShowRedirectedScene(unpack(args)) end, 0)
+        else
+            ShowRedirectedScene(...)
+        end
+    end)
+
+    if options.closeEventId then
+        EVENT_MANAGER:UnregisterForEvent(namespace, options.closeEventId)
+        EVENT_MANAGER:RegisterForEvent(namespace, options.closeEventId, function(...)
+            TraceSceneRedirect(options.traceFn, "close_event", { sceneName = sceneName })
+            if type(options.onClose) == "function" then
+                options.onClose(...)
+                return
+            end
+            if type(options.hideFn) == "function" then
+                options.hideFn(...)
+                return
+            end
+            local sceneManager = rawget(_G, "SCENE_MANAGER")
+            if sceneManager and sceneManager.Hide and sceneManager.IsShowing and sceneName and sceneManager:IsShowing(sceneName) then
+                sceneManager:Hide(sceneName)
+            end
+        end)
+    end
+    return true
+end
+
 ---@param command string
 ---@param handler function
 ---@param options {owner: string?, fallbackCommand: string?, overwrite: boolean?}?

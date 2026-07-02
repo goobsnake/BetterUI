@@ -59,6 +59,27 @@ local function L(stringIdName)
     return GetString(rawget(_G, stringIdName) or stringIdName)
 end
 
+local function GetCurrentDialogInfo(dialogName)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if dialogs and type(dialogs.GetCurrentInfo) == "function" then
+        return dialogs.GetCurrentInfo(dialogName)
+    end
+    return nil
+end
+
+local function RegisterPriceDialog(dialogName, dialogInfo)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if not (dialogs and type(dialogs.Register) == "function") then
+        TracePriceEntry("trading_house.price_entry", "register_skipped", {
+            fn = "RegisterPriceDialog",
+            reason = "missingDialogRegistry",
+            dialog = dialogName,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+        return false
+    end
+    return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
+end
+
 local function ChainPriorDialogSetup(priorDialog, setup)
     return function(dialog, ...)
         if priorDialog and type(priorDialog.setup) == "function" then
@@ -83,7 +104,7 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
         maxPrice = maxPrice,
         hasConfirm = type(onConfirm) == "function",
     })
-    if not (ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_ShowGamepadDialog and ZO_Dialogs_RegisterCustomDialog) then
+    if not ZO_Dialogs_ShowGamepadDialog then
         TracePriceEntry("trading_house.price_entry", "show_rejected", {
             fn = "TradingHouse.PriceEntry.ShowDigitPriceDialog",
             reason = "missingDialogApi",
@@ -103,7 +124,7 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
     maxPrice = tonumber(maxPrice) or (MAX_PLAYER_CURRENCY or 999999999)
     defaultPrice = PriceEntry.ClampListingPrice(defaultPrice, minPrice, maxPrice)
 
-    local priorDialog = ESO_Dialogs and ESO_Dialogs[DIGIT_PRICE_DIALOG] or nil
+    local priorDialog = GetCurrentDialogInfo(DIGIT_PRICE_DIALOG)
     if not (priorDialog and priorDialog._betteruiTradingHouseDigitPriceDialog) then
         local dialogInfo = {
             _betteruiTradingHouseDigitPriceDialog = true,
@@ -191,7 +212,14 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
                 },
             },
         }
-        ZO_Dialogs_RegisterCustomDialog(DIGIT_PRICE_DIALOG, dialogInfo)
+        if not RegisterPriceDialog(DIGIT_PRICE_DIALOG, dialogInfo) then
+            TracePriceEntry("trading_house.price_entry", "show_rejected", {
+                fn = "TradingHouse.PriceEntry.ShowDigitPriceDialog",
+                reason = "registryRejected",
+                dialog = DIGIT_PRICE_DIALOG,
+            }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+            return false
+        end
     end
 
     ZO_Dialogs_ShowGamepadDialog(DIGIT_PRICE_DIALOG, {

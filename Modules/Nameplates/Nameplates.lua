@@ -9,6 +9,10 @@ local NAMEPLATE_SIZE_MAX = 64
 local DEFAULT_NAMEPLATE_SIZE = 16
 
 local function GetCurrentSceneName()
+    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    if utils and type(utils.GetCurrentSceneName) == "function" then
+        return utils.GetCurrentSceneName()
+    end
     if SCENE_MANAGER and SCENE_MANAGER.GetCurrentScene then
         local scene = SCENE_MANAGER:GetCurrentScene()
         if scene and scene.GetName then
@@ -213,24 +217,41 @@ local function IsFontLocalizedForCurrentLanguage(fontPath, languageGroup)
     return not (type(westernOnlyFonts) == "table" and westernOnlyFonts[fontPath] == true)
 end
 
+local function MigrateLegacyStyleSetting(context)
+    local liveSettings = BETTERUI.GetModuleSettingsLive and BETTERUI.GetModuleSettingsLive("Nameplates") or nil
+    if type(liveSettings) ~= "table" and type(BETTERUI.EnsureModuleSettings) == "function" then
+        liveSettings = BETTERUI.EnsureModuleSettings("Nameplates")
+    end
+
+    if type(liveSettings) ~= "table" then
+        TraceNameplates("nameplates.settings", "migration_skipped", {
+            fn = context,
+            reason = "missingLiveSettings",
+        })
+        return
+    end
+
+    if type(liveSettings.style) ~= "string" then
+        return
+    end
+
+    local originalStyle = liveSettings.style
+    liveSettings.style = NormalizeStyleValue(originalStyle)
+    TraceNameplates("nameplates.settings", "style_migrated", {
+        fn = context,
+        originalStyle = originalStyle,
+        migratedStyle = liveSettings.style,
+    })
+end
+
 local function GetSettings()
     local settings = BETTERUI.GetModuleSettings("Nameplates")
     if settings and next(settings) then
-        if type(settings.style) == "string" then
-            settings.style = NormalizeStyleValue(settings.style)
-            -- GetModuleSettings returns a detached snapshot; write the
-            -- normalized enum to the live table so the migration persists.
-            local liveSettings = BETTERUI.GetModuleSettingsLive and BETTERUI.GetModuleSettingsLive("Nameplates") or nil
-            if type(liveSettings) == "table" then
-                liveSettings.style = settings.style
-            else
-                TraceNameplates("nameplates.settings", "migration_skipped", {
-                    fn = "Nameplates.GetSettings",
-                    reason = "missingLiveSettings",
-                })
-            end
+        local snapshot = CloneSettingsValue(settings)
+        if snapshot.style ~= nil then
+            snapshot.style = NormalizeStyleValue(snapshot.style)
         end
-        return settings
+        return snapshot
     end
     return CloneSettingsValue(Nameplates.DEFAULTS)
 end
@@ -592,6 +613,7 @@ function Nameplates.Setup()
     RegisterNameplateSnapshotProvider()
     BETTERUI.CIM.RegisterModulePanelWithLogging(Nameplates, "Nameplates", "Nameplates", "Nameplates")
 
+    MigrateLegacyStyleSetting("Nameplates.Setup")
     local settings = GetSettings()
     TraceNameplates("nameplates.setup", "settings_loaded", {
         fn = "Nameplates.Setup",
@@ -617,6 +639,7 @@ function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
     TraceNameplateVisibility(m_enabled == true, "enabledChanged")
     SetupEvents(m_enabled, suppressCleanupLog)
     if m_enabled then
+        MigrateLegacyStyleSetting("Nameplates.OnEnabledChanged")
         local settings = GetSettings()
         TraceNameplates("nameplates.enabled_changed", "apply_enabled", {
             fn = "Nameplates.OnEnabledChanged",
@@ -632,6 +655,7 @@ function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
 end
 
 function Nameplates.ApplyCurrentSettings()
+    MigrateLegacyStyleSetting("Nameplates.ApplyCurrentSettings")
     local settings = GetSettings()
     TraceNameplates("nameplates.apply_current", settings.m_enabled and "apply" or "skipped", {
         fn = "Nameplates.ApplyCurrentSettings",

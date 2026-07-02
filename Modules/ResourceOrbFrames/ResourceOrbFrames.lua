@@ -780,7 +780,7 @@ local function RegisterDynamicEvents(control)
     end)
 
     -- Gamepad switch (dynamic re-skin instead of ReloadUI)
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
         if SkipDisabledCallback("ResourceOrbFrames.EVENT_GAMEPAD_PREFERRED_MODE_CHANGED", "resource_orbs.gamepad_mode") then return end
         if not m_isInitialized or not m_rootFrame then
             TraceROF("resource_orbs.gamepad_mode", "skipped", {
@@ -842,7 +842,7 @@ local function RegisterDynamicEvents(control)
     end)
 
     -- Dynamic bar updates
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED,
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED,
         function()
             if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTIVE_WEAPON_PAIR_CHANGED", "resource_orbs.weapon_pair") then return end
             TraceROF("resource_orbs.weapon_pair", "changed", {
@@ -868,7 +868,7 @@ local function RegisterDynamicEvents(control)
                 end)
         end)
 
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE,
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE,
         function()
             if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTION_SLOTS_FULL_UPDATE", "resource_orbs.action_slots") then return end
             local cfg = GetFrontBarConfig()
@@ -888,7 +888,7 @@ local function RegisterDynamicEvents(control)
             })
         end)
 
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlot", EVENT_ACTION_SLOT_UPDATED,
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_BackBarSlot", EVENT_ACTION_SLOT_UPDATED,
         function(_, slotIndex)
             if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTION_SLOT_UPDATED", "resource_orbs.action_slot") then return end
             local cfg = GetFrontBarConfig()
@@ -909,7 +909,7 @@ local function RegisterDynamicEvents(control)
             })
         end)
 
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CompanionState",
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_CompanionState",
         EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
             if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTIVE_COMPANION_STATE_CHANGED", "resource_orbs.companion") then return end
             local cfg = GetFrontBarConfig()
@@ -936,7 +936,7 @@ local function RegisterDynamicEvents(control)
             end)
         end)
 
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED,
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED,
         function()
             if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTIVE_QUICKSLOT_CHANGED", "resource_orbs.quickslot") then return end
             local cfg = GetFrontBarConfig()
@@ -953,7 +953,7 @@ local function RegisterDynamicEvents(control)
             })
         end)
 
-    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_FrontBarPressFeedbackAbilityUsed",
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("BETTERUI_ResourceOrbFrames", NAME .. "_FrontBarPressFeedbackAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
             if SkipDisabledCallback("ResourceOrbFrames.EVENT_ACTION_SLOT_ABILITY_USED", "resource_orbs.press_feedback") then return end
             if not slotIndex then
@@ -989,7 +989,7 @@ local function RegisterDynamicEvents(control)
         end, REGISTER_FILTER_UNIT_TAG, "player")
 
     -- Zone change cleanup (for subsequent zones after initial setup)
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED,
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED,
         function()
             if SkipDisabledCallback("ResourceOrbFrames.EVENT_PLAYER_ACTIVATED", "resource_orbs.player_activated") then return end
             TraceROF("resource_orbs.player_activated", "received", {
@@ -1157,7 +1157,7 @@ function ResourceOrbFrames.Initialize(control)
     -- Defer full setup until player is actually in the world
     -- This ensures all ESO UI fragments and systems are ready
     -- Guard: m_isInitialized check in DeferredTask callback (L331) prevents double SetupModule()
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
         TraceROF("resource_orbs.initialize", "player_activated", {
             fn = "ResourceOrbFrames.EVENT_PLAYER_ACTIVATED:init",
         })

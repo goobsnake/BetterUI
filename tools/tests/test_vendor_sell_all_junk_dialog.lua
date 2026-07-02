@@ -27,6 +27,7 @@ BETTERUI = {
         Class = {},
     },
     CIM = {
+        Dialogs = {},
         SafeExecute = function(_, fn, ...)
             return true, fn(...)
         end,
@@ -49,6 +50,15 @@ end
 
 function ZO_Dialogs_RegisterCustomDialog(name, info)
     registeredDialogs[name] = info
+end
+
+function BETTERUI.CIM.Dialogs.GetCurrentInfo(name)
+    return registeredDialogs[name]
+end
+
+function BETTERUI.CIM.Dialogs.Register(name, info)
+    registeredDialogs[name] = info
+    return true
 end
 
 function ZO_Dialogs_ShowGamepadDialog(name, data)

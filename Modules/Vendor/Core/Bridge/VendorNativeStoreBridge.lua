@@ -12,6 +12,7 @@ local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "OnCloseStore:beforeSweep"
 local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "OnCloseStore:afterSweep"
 local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.OnCloseStore:NativeOnHide"
 local updateDirectionalInputHookedManagers = setmetatable({}, { __mode = "k" })
+local nativeStoreEventHookedManagers = setmetatable({}, { __mode = "k" })
 
 local function LogVendorDebug(flagName, category, message)
     if Vendor.LogDebug then
@@ -34,6 +35,18 @@ local function GetVendorExecuteSafely()
     local executor = Vendor.ExecuteSafely
     assert(type(executor) == "function", "Vendor safe execute helper must load before NativeStoreBridge use")
     return executor
+end
+
+local function IsBetterUIVendorSceneActive()
+    if type(BETTERUI.GetModuleEnabled) == "function" and BETTERUI.GetModuleEnabled("Vendor") ~= true then
+        return false
+    end
+    local nativeScene = Vendor.nativeStoreScene
+    if nativeScene and type(nativeScene.IsShowing) == "function" then
+        local ok, isShowing = pcall(nativeScene.IsShowing, nativeScene)
+        return ok and isShowing == true
+    end
+    return false
 end
 
 local function IsDirectionalInputListening(obj)
@@ -174,6 +187,51 @@ local function SweepDirectionalInput(storeManager, includeComponentLists)
         and DIRECTIONAL_INPUT:IsListening(storeManager.headerFocus) then
         DIRECTIONAL_INPUT:Deactivate(storeManager.headerFocus)
     end
+end
+
+local function InstallNativeStoreSuppressionHooks(storeManager)
+    if type(storeManager) ~= "table" or type(ZO_PreHook) ~= "function" then
+        return
+    end
+
+    local managerHooks = nativeStoreEventHookedManagers[storeManager]
+    if managerHooks == nil then
+        managerHooks = {
+            OnOpenStore = false,
+            OnCloseStore = false,
+            OpenStore = false,
+            CloseStore = false,
+        }
+        nativeStoreEventHookedManagers[storeManager] = managerHooks
+    end
+
+    local methods = { "OnOpenStore", "OnCloseStore", "OpenStore", "CloseStore" }
+    for _, methodName in ipairs(methods) do
+        if not managerHooks[methodName] then
+            if type(storeManager[methodName]) == "function" then
+                ZO_PreHook(storeManager, methodName, function()
+                    return IsBetterUIVendorSceneActive()
+                end)
+                managerHooks[methodName] = true
+                TraceNativeStoreBridge("vendor.native_store_takeover", "event_hook_installed", {
+                    fn = "NativeStoreBridge.TakeOverScene",
+                    method = methodName,
+                })
+            else
+                TraceNativeStoreBridge("vendor.native_store_takeover", "event_hook_skipped", {
+                    fn = "NativeStoreBridge.TakeOverScene",
+                    method = methodName,
+                    reason = "missing method",
+                })
+            end
+        else
+            TraceNativeStoreBridge("vendor.native_store_takeover", "event_hook_cached", {
+                fn = "NativeStoreBridge.TakeOverScene",
+                method = methodName,
+            })
+        end
+    end
+    nativeStoreEventHookedManagers[storeManager] = managerHooks
 end
 
 local function BuildRebuildPlan(snapshot)
@@ -404,15 +462,6 @@ function NativeStoreBridge.TakeOverScene(instance)
 
     local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
     if storeManager then
-        if storeManager.control then
-            storeManager.control:UnregisterForEvent(EVENT_OPEN_STORE)
-            storeManager.control:UnregisterForEvent(EVENT_CLOSE_STORE)
-        end
-        if EVENT_MANAGER then
-            EVENT_MANAGER:UnregisterForEvent("ZO_StoreWindow_Gamepad", EVENT_OPEN_STORE)
-            EVENT_MANAGER:UnregisterForEvent("ZO_StoreWindow_Gamepad", EVENT_CLOSE_STORE)
-        end
-
         if type(storeManager.UpdateDirectionalInput) == "function" then
             if not updateDirectionalInputHookedManagers[storeManager] and type(ZO_PreHook) == "function" then
                 ZO_PreHook(storeManager, "UpdateDirectionalInput", function()
@@ -433,6 +482,8 @@ function NativeStoreBridge.TakeOverScene(instance)
                 })
             end
         end
+
+        InstallNativeStoreSuppressionHooks(storeManager)
     end
 
     NativeStoreBridge.AliasSceneToBetterUI(instance)

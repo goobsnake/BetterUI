@@ -44,6 +44,58 @@ local function GetCurrentDialogInfo(dialogName)
     return nil
 end
 
+---@param dialog table|nil
+---@param value number|nil
+---@return boolean
+function BETTERUI.CIM.Dialogs.ShouldTraceSliderPreview(dialog, value)
+    if not (dialog and dialog.data and value) then
+        return false
+    end
+
+    local sliderMin = dialog.data.sliderMin or 1
+    local sliderMax = dialog.data.sliderMax or sliderMin
+    local span = math.max(sliderMax - sliderMin, 1)
+    local bucketSize = math.max(1, math.floor(span / 10))
+    local bucket = math.floor((value - sliderMin) / bucketSize)
+    local key = table.concat({
+        tostring(bucket),
+        tostring(value == sliderMin),
+        tostring(value == sliderMax),
+    }, ":")
+
+    if dialog._betteruiLastSliderTraceKey == key then
+        return false
+    end
+
+    dialog._betteruiLastSliderTraceKey = key
+    dialog._betteruiLastSliderTraceBucket = bucket
+    return true
+end
+
+local function WarnDialogOwnershipLost(dialogName, expectedInfo, observedInfo)
+    if not (BETTERUI.Log and BETTERUI.Log.Warn) then
+        return
+    end
+    BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "dialog ownership changed after BetterUI registration", {
+        fn = "BETTERUI.CIM.Dialogs.Register",
+        dialog = dialogName,
+        hadExpectedOwner = expectedInfo ~= nil and expectedInfo == observedInfo,
+        expectedOwnerType = type(expectedInfo),
+        observedOwnerType = type(observedInfo),
+    })
+end
+
+---@param dialogName string
+---@param dialogInfo table
+---@return boolean
+function BETTERUI.CIM.Dialogs.IsCurrentOwner(dialogName, dialogInfo)
+    local currentInfo = GetCurrentDialogInfo(dialogName)
+    if currentInfo == nil then
+        return false
+    end
+    return currentInfo == dialogInfo
+end
+
 ---@param dialogName string
 ---@return table|nil
 function BETTERUI.CIM.Dialogs.GetPreviousInfo(dialogName)
@@ -57,6 +109,41 @@ function BETTERUI.CIM.Dialogs.GetCurrentInfo(dialogName)
 end
 
 ---@param dialogName string
+---@return boolean
+function BETTERUI.CIM.Dialogs.Restore(dialogName)
+    local record = BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName]
+    if not record then
+        return false
+    end
+    if not BETTERUI.CIM.Dialogs.IsCurrentOwner(dialogName, record.info) then
+        WarnDialogOwnershipLost(dialogName, record.info, GetCurrentDialogInfo(dialogName))
+        return false
+    end
+    if not record.previousInfo then
+        if type(ESO_Dialogs) == "table" then
+            ESO_Dialogs[dialogName] = nil
+        end
+        BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] = nil
+        BETTERUI.CIM.Dialogs.Registry._previousDialogs[dialogName] = nil
+        TraceDialog("dialog.restore", "removed", { dialog = dialogName })
+        return true
+    end
+
+    if ZO_Dialogs_RegisterCustomDialog then
+        ZO_Dialogs_RegisterCustomDialog(dialogName, record.previousInfo)
+    elseif type(ESO_Dialogs) == "table" then
+        ESO_Dialogs[dialogName] = record.previousInfo
+    else
+        return false
+    end
+
+    BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] = nil
+    BETTERUI.CIM.Dialogs.Registry._previousDialogs[dialogName] = nil
+    TraceDialog("dialog.restore", "restored", { dialog = dialogName })
+    return true
+end
+
+---@param dialogName string
 ---@param dialogInfo table
 ---@param options {overwrite: boolean?}?
 ---@return boolean
@@ -64,12 +151,17 @@ function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
     options = options or {}
 
     -- Check for duplicate registration
+    local priorOwnedInfo = BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName]
+    local observedBefore = GetCurrentDialogInfo(dialogName)
+    if priorOwnedInfo and observedBefore ~= priorOwnedInfo.info then
+        WarnDialogOwnershipLost(dialogName, priorOwnedInfo.info, observedBefore)
+    end
     if BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] and not options.overwrite then
         if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, string.format("[Dialog] '%s' already registered, skipping", dialogName)) end
         return false
     end
 
-    local previousInfo = GetCurrentDialogInfo(dialogName)
+    local previousInfo = observedBefore
     local replacingExisting = previousInfo ~= nil and previousInfo ~= dialogInfo
     if replacingExisting then
         BETTERUI.CIM.Dialogs.Registry._previousDialogs[dialogName] = previousInfo
@@ -78,6 +170,17 @@ function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
             overwrite = options.overwrite == true,
             previousTracked = BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] ~= nil,
         })
+    end
+
+    local registered = BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName]
+    if registered and registered.info and previousInfo ~= registered.info and previousInfo ~= nil then
+        local L = BETTERUI.Log
+        if L and L.Warn then
+            L.Warn(L.CATEGORY.DIALOG or L.CATEGORY.GENERAL, "dialog ownership changed before re-register", {
+                dialog = dialogName,
+                ownerLost = true,
+            })
+        end
     end
 
     -- Register with ZO_Dialogs

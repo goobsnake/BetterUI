@@ -611,7 +611,12 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
 
     -- Register dialog on first use
     local dialogName = "BETTERUI_BANKING_BATCH_ACTIONS_DIALOG"
-    if not ESO_Dialogs[dialogName] then
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs or nil
+    if not (dialogs and type(dialogs.Register) == "function" and type(dialogs.GetCurrentInfo) == "function") then
+        TraceBankingBatch("show_skipped", { dialogName = dialogName, reason = "missingDialogRegistry" })
+        return
+    end
+    if not dialogs.GetCurrentInfo(dialogName) then
         local dialogInfo = {
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
@@ -669,12 +674,9 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                 },
             },
         }
-        if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
-            BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, { overwrite = true })
-        elseif ZO_Dialogs_RegisterCustomDialog then
-            ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
-        elseif type(ESO_Dialogs) == "table" then
-            ESO_Dialogs[dialogName] = dialogInfo
+        if not dialogs.Register(dialogName, dialogInfo, { overwrite = true }) then
+            TraceBankingBatch("show_skipped", { dialogName = dialogName, reason = "registryRejected" })
+            return
         end
     end
 
@@ -738,7 +740,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
         end
     ))
 
-    local dialogInfo = ESO_Dialogs[dialogName]
+    local dialogInfo = dialogs.GetCurrentInfo(dialogName)
     if not dialogInfo then
         TraceBankingBatch("show_skipped", { dialogName = dialogName, reason = "missingDialogInfo" })
         return

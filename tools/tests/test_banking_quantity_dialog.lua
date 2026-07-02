@@ -18,6 +18,7 @@ SI_GAMEPAD_INVENTORY_SPLIT_STACK_LEFT_NARRATION = "Left"
 SI_GAMEPAD_INVENTORY_SPLIT_STACK_RIGHT_NARRATION = "Right"
 
 GAMEPAD_DIALOGS = { ITEM_SLIDER = "ITEM_SLIDER" }
+ESO_Dialogs = {}
 
 local passed, failed = 0, 0
 local registeredDialog = nil
@@ -80,6 +81,12 @@ function ZO_Dialogs_ReleaseDialogOnButtonPress(name)
     releasedDialogs[#releasedDialogs + 1] = name
 end
 
+function ZO_Dialogs_RegisterCustomDialog(name, descriptor)
+    registeredDialog = descriptor
+    registeredDialog.name = name
+    ESO_Dialogs[name] = descriptor
+end
+
 function ZO_Dialogs_ShowGamepadDialog(name, data)
     shownDialogData = data
     shownDialogData.dialogName = name
@@ -87,6 +94,10 @@ end
 
 function ZO_Keybindings_GetHighestPriorityBindingStringFromAction()
     return ""
+end
+
+function GetGameTimeMilliseconds()
+    return 12345
 end
 
 BETTERUI = {
@@ -103,12 +114,6 @@ BETTERUI = {
         end,
     },
     CIM = {
-        Dialogs = {
-            Register = function(name, descriptor)
-                registeredDialog = descriptor
-                registeredDialog.name = name
-            end,
-        },
         Utils = {
             CaptureSlotIdentity = function(bagId, slotIndex)
                 return { bagId = bagId, slotIndex = slotIndex }
@@ -150,6 +155,7 @@ local window = {
 
 BETTERUI.Banking.Window = window
 
+dofile("Modules/CIM/Dialogs/DialogRegistry.lua")
 dofile("Modules/Banking/Dialogs/QuantityDialog.lua")
 BETTERUI.Banking.InitializeQuantityDialog()
 
@@ -258,6 +264,27 @@ local setupDialog = {
 registeredDialog.setup(setupDialog, setupDialog.data)
 assert_eq(setupDialog._betteruiLastSliderTraceKey, nil, "setup resets slider trace key")
 assert_eq(setupDialog._betteruiLastSliderTraceBucket, nil, "setup resets slider trace bucket")
+
+local sliderPreviewDialog = {
+    data = { bagId = BAG_BANK, slotIndex = 12, sliderMin = 1, sliderMax = 101, isDeposit = false },
+    sliderValue1 = {
+        text = nil,
+        SetText = function(self, value) self.text = value end,
+    },
+    sliderValue2 = {
+        text = nil,
+        SetText = function(self, value) self.text = value end,
+    },
+}
+local sliderTraceCountBefore = #traceEvents
+registeredDialog.OnSliderValueChanged(sliderPreviewDialog, nil, 41)
+registeredDialog.OnSliderValueChanged(sliderPreviewDialog, nil, 41)
+registeredDialog.OnSliderValueChanged(sliderPreviewDialog, nil, 49)
+local sliderTraceCountAfter = #traceEvents
+assert_eq(sliderPreviewDialog.sliderValue1.text, "52", "slider preview updates the remaining count label")
+assert_eq(sliderPreviewDialog.sliderValue2.text, "49", "slider preview updates the selected count label")
+assert_eq(sliderTraceCountAfter - sliderTraceCountBefore, 1, "shared slider preview helper coalesces duplicate bucket traces")
+assert_eq(sliderPreviewDialog._betteruiLastSliderTraceBucket, 4, "shared slider preview helper records the active trace bucket")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

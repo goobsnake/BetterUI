@@ -63,7 +63,9 @@ function BETTERUI.Inventory.HookActionDialog()
         L.TraceEvent(L.CATEGORY.ACTION, event, phase, data)
     end
 
-    local existingActionDialogInfo = ESO_Dialogs and ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG] or nil
+    local existingActionDialogInfo = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+        and BETTERUI.CIM.Dialogs.GetCurrentInfo(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+        or nil
     if BETTERUI.Inventory._actionDialogHookInstalled
         or (existingActionDialogInfo and existingActionDialogInfo._betteruiInventoryActionDialogHook) then
         TraceInventoryActionDialog("inventory.action_dialog", "already_hooked", {

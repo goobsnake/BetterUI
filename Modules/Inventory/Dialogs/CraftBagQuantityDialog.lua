@@ -24,19 +24,11 @@ local function TraceCraftBagQuantity(phase, data)
 end
 
 local function ShouldTraceSliderPreview(dialog, value)
-    if not (dialog and dialog.data and value) then return false end
-    local sliderMin = dialog.data.sliderMin or 1
-    local sliderMax = dialog.data.sliderMax or sliderMin
-    local span = math.max(sliderMax - sliderMin, 1)
-    local bucketSize = math.max(1, math.floor(span / 10))
-    local bucket = math.floor((value - sliderMin) / bucketSize)
-    local key = table.concat({ tostring(bucket), tostring(value == sliderMin), tostring(value == sliderMax) }, ":")
-    if dialog._betteruiLastSliderTraceKey == key then
-        return false
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if type(dialogs and dialogs.ShouldTraceSliderPreview) == "function" then
+        return dialogs.ShouldTraceSliderPreview(dialog, value)
     end
-    dialog._betteruiLastSliderTraceKey = key
-    dialog._betteruiLastSliderTraceBucket = bucket
-    return true
+    return false
 end
 
 local function TraceSlotPayload(bagId, slotIndex, data)

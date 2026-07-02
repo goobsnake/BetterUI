@@ -106,8 +106,48 @@ assert_true(eventsSource:find("function Events%.SetupLoopEvents%(rootFrame, pool
     "OrbEvents exposes SetupLoopEvents")
 assert_true(eventsSource:find("function Events%.SetupSceneHandlers%(rootFrame%)") ~= nil,
     "OrbEvents exposes SetupSceneHandlers")
+assert_true(eventsSource:find('EventRegistry%.Register%("BETTERUI_ResourceOrbFrames"') ~= nil,
+    "OrbEvents uses BETTERUI_ prefixed EventRegistry namespaces")
+assert_true(eventsSource:find('EventRegistry%.Register%("ResourceOrbFrames"') == nil,
+    "OrbEvents has no bare ResourceOrbFrames EventRegistry namespaces")
+assert_true(eventsSource:find("function Events%.SetLoopsEnabled%(enabled%)") ~= nil,
+    "OrbEvents exposes SetLoopsEnabled")
+assert_true(eventsSource:find("IsCooldownVisualsArmed") ~= nil,
+    "OrbEvents references the cooldown visuals armed latch")
+assert_true(eventsSource:find("L%.EnabledFor%(L%.LEVEL%.DEBUG, L%.CATEGORY%.STATE%)") ~= nil,
+    "OrbEvents trace wrapper preflights with EnabledFor before building payload")
+assert_true(eventsSource:find('NAME %.%. "_PlayerDead"') ~= nil,
+    "OrbEvents consolidates EVENT_PLAYER_DEAD under a single namespace")
+
+local orbBarsSource = read_file("Modules/ResourceOrbFrames/Core/OrbBars.lua")
+assert_true(orbBarsSource:find('EventRegistry%.Register%("BETTERUI_ResourceOrbFrames"') ~= nil,
+    "OrbBars uses BETTERUI_ prefixed EventRegistry namespaces")
+assert_true(orbBarsSource:find('EventRegistry%.Register%("ResourceOrbFrames"') == nil,
+    "OrbBars has no bare ResourceOrbFrames EventRegistry namespaces")
+
+local orbVisualsSource = read_file("Modules/ResourceOrbFrames/Core/OrbVisuals.lua")
+assert_true(orbVisualsSource:find('EventRegistry%.RegisterFiltered%("BETTERUI_ResourceOrbFrames"') ~= nil,
+    "OrbVisuals uses BETTERUI_ prefixed EventRegistry namespaces")
+assert_true(orbVisualsSource:find('EventRegistry%.RegisterFiltered%("ResourceOrbFrames"') == nil,
+    "OrbVisuals has no bare ResourceOrbFrames EventRegistry namespaces")
+
+local frontBarCooldownsSource = read_file("Modules/ResourceOrbFrames/SkillBar/FrontBarCooldowns.lua")
+assert_true(frontBarCooldownsSource:find("L%.EnabledFor%(L%.LEVEL%.DEBUG, L%.CATEGORY%.ACTION%)") ~= nil,
+    "FrontBarCooldowns trace wrapper preflights with EnabledFor before building payload")
+assert_true(frontBarCooldownsSource:find("ReportButtonCooldownState") ~= nil,
+    "FrontBarCooldowns reports per-button cooldown transitions through the armed latch helper")
+
+local backBarManagerSource = read_file("Modules/ResourceOrbFrames/SkillBar/BackBarManager.lua")
+assert_true(backBarManagerSource:find("ReportButtonCooldownState") ~= nil,
+    "BackBarManager reports per-button cooldown transitions through the armed latch helper")
 
 local resourceOrbFramesSource = read_file("Modules/ResourceOrbFrames/ResourceOrbFrames.lua")
+assert_true(resourceOrbFramesSource:find('EventRegistry%.Register%("BETTERUI_ResourceOrbFrames"') ~= nil,
+    "ROF root uses BETTERUI_ prefixed EventRegistry namespaces")
+assert_true(resourceOrbFramesSource:find('EventRegistry%.Register%("ResourceOrbFrames"') == nil,
+    "ROF root has no bare ResourceOrbFrames EventRegistry namespaces")
+assert_true(resourceOrbFramesSource:find('EventRegistry%.RegisterFiltered%("ResourceOrbFrames"') == nil,
+    "ROF root has no bare ResourceOrbFrames filtered EventRegistry namespaces")
 assert_true(resourceOrbFramesSource:find("local function GetROFDeferredTaskRuntime%(%)") ~= nil,
     "ROF root resolves DeferredTask through a lazy runtime getter")
 assert_true(resourceOrbFramesSource:find("local function GetROFTasks%(%)") ~= nil,

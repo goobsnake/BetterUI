@@ -949,6 +949,9 @@ local function newMockControl(controlType)
         _wrapMode = nil,
         _horizontalAlignment = nil,
         _setFontCalls = 0,
+        _mouseEnabled = false,
+        _handlers = {},
+        _verticalScroll = nil,
     }
     function control:GetType() return self._type end
     function control:GetNumChildren() return #self._children end
@@ -965,6 +968,11 @@ local function newMockControl(controlType)
     function control:SetWrapMode(value) self._wrapMode = value end
     function control:SetColor(...) end
     function control:SetHorizontalAlignment(value) self._horizontalAlignment = value end
+    function control:SetMouseEnabled(enabled) self._mouseEnabled = enabled == true end
+    function control:IsMouseEnabled() return self._mouseEnabled == true end
+    function control:GetHandler(name) return self._handlers[name] end
+    function control:SetHandler(name, handler) self._handlers[name] = handler end
+    function control:SetVerticalScroll(value) self._verticalScroll = value end
     function control:ClearAnchors() self._anchors = {} end
     function control:SetAnchor(point, rel, relPoint, x, y)
         self._anchors[#self._anchors + 1] = { point = point, rel = rel, relPoint = relPoint, x = x, y = y }
@@ -1142,6 +1150,44 @@ dofile("Modules/Inventory/UI/TooltipEquipped.lua")
 BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip = BETTERUI.Inventory.CleanupEnhancedTooltip
 BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText = BETTERUI.Inventory.UpdateTooltipEquippedText
 
+print("\nTest: PB-003 tooltip mouse-wheel restore preserves native mouse flags and handler chaining")
+local leftTooltipTip = newMockControl(CT_CONTROL)
+local leftTooltipScroll = newMockControl(CT_CONTROL)
+local originalWheelCalls = 0
+local originalWheelDelta = nil
+leftTooltipTip.scroll = leftTooltipScroll
+leftTooltipTip:SetHandler("OnMouseWheel", function(_, delta)
+    originalWheelCalls = originalWheelCalls + 1
+    originalWheelDelta = delta
+end)
+ZO_GamepadTooltipTopLevelLeftTooltipContainerTip = leftTooltipTip
+ZO_GamepadTooltipTopLevelLeftTooltipContainerTipScroll = leftTooltipScroll
+
+BETTERUI.Inventory.EnableTooltipMouseWheel()
+assertEqual(true, leftTooltipTip:IsMouseEnabled(), "PB-003: EnableTooltipMouseWheel enables mouse input on the tooltip body")
+assertEqual(true, leftTooltipScroll:IsMouseEnabled(), "PB-003: EnableTooltipMouseWheel enables mouse input on the tooltip scroll")
+local installedWheelHandler = leftTooltipTip:GetHandler("OnMouseWheel")
+assertEqual(true, type(installedWheelHandler) == "function", "PB-003: EnableTooltipMouseWheel installs an OnMouseWheel handler when post-hooks are unavailable")
+installedWheelHandler(leftTooltipTip, -1)
+assertEqual(1, originalWheelCalls, "PB-003: fallback mouse-wheel handler preserves the prior OnMouseWheel callback")
+assertEqual(-1, originalWheelDelta, "PB-003: prior OnMouseWheel callback receives the original delta")
+assertEqual(20, leftTooltipTip.scrollValue, "PB-003: tooltip mouse-wheel handler stores the updated scroll value")
+assertEqual(20, leftTooltipScroll._verticalScroll, "PB-003: tooltip mouse-wheel handler forwards the updated scroll value to the scroll control")
+
+BETTERUI.Inventory.RestoreTooltipMouseWheel()
+assertEqual(false, leftTooltipTip:IsMouseEnabled(), "PB-003: RestoreTooltipMouseWheel restores the tooltip body's native mouse-enabled state")
+assertEqual(false, leftTooltipScroll:IsMouseEnabled(), "PB-003: RestoreTooltipMouseWheel restores the tooltip scroll's native mouse-enabled state")
+local restoredWheelHandler = leftTooltipTip:GetHandler("OnMouseWheel")
+assertEqual(true, restoredWheelHandler ~= nil and restoredWheelHandler ~= installedWheelHandler,
+    "PB-003: RestoreTooltipMouseWheel reinstates the previous OnMouseWheel handler")
+restoredWheelHandler(leftTooltipTip, 2)
+assertEqual(2, originalWheelCalls, "PB-003: restored OnMouseWheel handler still receives events after teardown")
+assertEqual(2, originalWheelDelta, "PB-003: restored OnMouseWheel handler receives the new delta after teardown")
+BETTERUI.Inventory.EnableTooltipMouseWheel()
+local reinstalledWheelHandler = leftTooltipTip:GetHandler("OnMouseWheel")
+assertEqual(true, reinstalledWheelHandler ~= nil and reinstalledWheelHandler ~= restoredWheelHandler,
+    "PB-003: re-enabling tooltip mouse wheel reinstalls the BetterUI wheel handler after restore")
+
 -- --- PB-003: PostHook gating + total/idempotent cleanup ---------------------
 print("\nTest: PB-003 LayoutItem PostHook does not re-apply enhanced fonts when enhancements are OFF")
 
@@ -1193,6 +1239,12 @@ end
 
 BETTERUI.Inventory.CleanupEnhancedTooltip("PB003_CLEANUP")
 
+assertEqual(false, leftTooltipTip:IsMouseEnabled(),
+    "PB-003: CleanupEnhancedTooltip restores mouse input state captured before tooltip wheel enhancement")
+assertEqual(false, leftTooltipScroll:IsMouseEnabled(),
+    "PB-003: CleanupEnhancedTooltip restores scroll mouse input state captured before tooltip wheel enhancement")
+assertEqual(true, leftTooltipTip:GetHandler("OnMouseWheel") == restoredWheelHandler,
+    "PB-003: CleanupEnhancedTooltip restores the previous tooltip mouse-wheel handler")
 assertEqual("", cleanupSurface.container._betterUiStatus:GetText(),
     "PB-003: CleanupEnhancedTooltip clears the _betterUiStatus text")
 assertEqual(true, cleanupSurface.container._betterUiStatus:IsHidden(),

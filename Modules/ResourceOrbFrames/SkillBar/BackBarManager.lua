@@ -336,8 +336,10 @@ local function UpdateBackBarCooldowns(rootFrame)
 
             if cooldownOverlay and cooldownText then
                 if showCooldown and remainMs > 0 and durationMs > 0 then
-                    if button._betteruiLastCooldownState ~= true then
-                        button._betteruiLastCooldownState = true
+                    local cooldownStateChanged = CooldownUtils.ReportButtonCooldownState
+                        and CooldownUtils.ReportButtonCooldownState(button, true)
+                        or false
+                    if cooldownStateChanged then
                         if BETTERUI.Log then
                             BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown start", { buttonIndex = i, slot = slotIndex, hotbarCategory = backBarCategory, abilityId = abilityId, remainMs = remainMs, durationMs = durationMs, stateKey = stateKey })
                         end
@@ -370,8 +372,10 @@ local function UpdateBackBarCooldowns(rootFrame)
                     cooldownText:SetText(string.format("%.1f", visualRemainMs / 1000))
                     ApplyCooldownTextStyle(cooldownText, cooldownSize, cooldownColor)
                 else
-                    if button._betteruiLastCooldownState == true then
-                        button._betteruiLastCooldownState = false
+                    local cooldownStateChanged = CooldownUtils.ReportButtonCooldownState
+                        and CooldownUtils.ReportButtonCooldownState(button, false)
+                        or false
+                    if cooldownStateChanged then
                         if BETTERUI.Log then
                             BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "cooldown end", { buttonIndex = i, slot = slotIndex, hotbarCategory = backBarCategory, abilityId = abilityId, remainMs = remainMs, durationMs = durationMs, stateKey = stateKey })
                         end

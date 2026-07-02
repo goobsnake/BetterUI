@@ -735,7 +735,7 @@ function Visuals.SetupPowerPools(rootFrame)
         staminaOrb:SetMouseEnabled(false)
     end
 
-    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_PowerUpdate", EVENT_POWER_UPDATE,
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("BETTERUI_ResourceOrbFrames", NAME .. "_PowerUpdate", EVENT_POWER_UPDATE,
         function(_, _, _, powerType, powerValue, powerMax)
             local pool = pools[powerType]
             if pool ~= nil then
@@ -773,7 +773,7 @@ function Visuals.SetupShieldBar(rootFrame, pools)
         end
     end
 
-    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_ShieldAdded",
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("BETTERUI_ResourceOrbFrames", NAME .. "_ShieldAdded",
         EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED,
         function(_, _, unitAttributeVisual, _, _, _, value)
             if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
@@ -783,7 +783,7 @@ function Visuals.SetupShieldBar(rootFrame, pools)
             end
         end, REGISTER_FILTER_UNIT_TAG, "player")
 
-    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_ShieldUpdated",
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("BETTERUI_ResourceOrbFrames", NAME .. "_ShieldUpdated",
         EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED,
         function(_, _, unitAttributeVisual, _, _, _, _, newValue)
             if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
@@ -791,7 +791,7 @@ function Visuals.SetupShieldBar(rootFrame, pools)
             end
         end, REGISTER_FILTER_UNIT_TAG, "player")
 
-    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_ShieldRemoved",
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("BETTERUI_ResourceOrbFrames", NAME .. "_ShieldRemoved",
         EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(_, _, unitAttributeVisual)
         if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING and not debugShield then
             ZO_StatusBar_SmoothTransition(shieldBar, 0, pools[POWERTYPE_HEALTH]:GetMax())

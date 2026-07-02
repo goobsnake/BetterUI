@@ -636,7 +636,6 @@ end
 -- Mirror ZO_GamepadStoreManager:OnOpenStore (storewindow_gamepad.lua:22-45):
 -- rebuild the native store components and show the native gamepad_store scene.
 -- Used when an unsupported interaction type hands the store back to native,
--- since TakeOverScene permanently unregistered native's EVENT_OPEN_STORE.
 ---@param resolved table Resolved dependency table from ResolveDeps
 ---@return nil
 local function ShowNativeStore(resolved)
@@ -717,9 +716,7 @@ local function OpenStoreInternal(state, deps, publishState)
     local nativeHandoff, nativeReason, nativeData = ShouldHandOffStoreToNative(resolved, interactionType)
     if nativeHandoff then
         -- Hand specialized store interactions back to native. The alias is
-        -- restored, but TakeOverScene permanently unregistered the native
-        -- EVENT_OPEN_STORE handler, so nothing would show the store UI on its
-        -- own. Explicitly drive the native open flow here, mirroring
+        -- restored. Explicitly drive the native open flow here, mirroring
         -- ZO_GamepadStoreManager:OnOpenStore (storewindow_gamepad.lua:22-45).
         nativeData = nativeData or {}
         TraceVendorInteraction("vendor.store", "native_handoff", state, {

@@ -8,7 +8,9 @@ Usage:
 BETTERUI = {
     ResourceOrbFrames = {
         Utils = {},
-        SkillBar = {},
+        SkillBar = {
+            CooldownUtils = {},
+        },
         CombatIndicators = {},
     },
     CIM = {
@@ -119,6 +121,50 @@ do
     assert_eq(#shieldCalls, 1, "disabled module suppresses further shield animation updates")
     liveSettings.m_enabled = true
     liveSettings.orbAnimFlow = true
+end
+
+print("[CooldownVisualTick arming]")
+do
+    local backBarCalls = 0
+    local frontBarCalls = 0
+    BETTERUI.ResourceOrbFrames.SkillBar.UpdateBackBarCooldowns = function()
+        backBarCalls = backBarCalls + 1
+    end
+    BETTERUI.ResourceOrbFrames.SkillBar.UpdateFrontBarCooldowns = function()
+        frontBarCalls = frontBarCalls + 1
+    end
+
+    -- Reset state and rebuild loops so CooldownVisualTick uses the new stubs.
+    Events.SetupLoopEvents({}, {}, nil, { isCasting = false })
+    local cooldownUpdate = registeredUpdates["BETTERUI_ResourceOrbFramesCooldownVisuals"]
+    assert_true(type(cooldownUpdate and cooldownUpdate.callback) == "function",
+        "setup registers the cooldown visuals update loop")
+
+    -- SetupLoopEvents requests an initial scan, so the first tick always runs.
+    BETTERUI.ResourceOrbFrames.SkillBar.CooldownUtils.IsCooldownVisualsArmed = function()
+        return false
+    end
+    cooldownUpdate.callback()
+    assert_eq(backBarCalls, 1, "first cooldown tick performs the requested initial scan")
+    assert_eq(frontBarCalls, 1, "first cooldown tick scans the front bar during initial scan")
+
+    -- With no active cooldowns, subsequent ticks should early-return without scanning.
+    cooldownUpdate.callback()
+    assert_eq(backBarCalls, 1, "disarmed cooldown tick skips back bar scan")
+    assert_eq(frontBarCalls, 1, "disarmed cooldown tick skips front bar scan")
+
+    -- When armed, the tick should scan both bars again.
+    BETTERUI.ResourceOrbFrames.SkillBar.CooldownUtils.IsCooldownVisualsArmed = function()
+        return true
+    end
+    cooldownUpdate.callback()
+    assert_eq(backBarCalls, 2, "armed cooldown tick runs back bar scan")
+    assert_eq(frontBarCalls, 2, "armed cooldown tick runs front bar scan")
+
+    -- Module disable unregisters the loop.
+    Events.SetLoopsEnabled(false)
+    assert_eq(registeredUpdates["BETTERUI_ResourceOrbFramesCooldownVisuals"], nil,
+        "disabling loops unregisters the cooldown visuals update")
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

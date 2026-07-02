@@ -45,22 +45,13 @@ end
 Companions.WrapBoundaryError = Companions.WrapBoundaryError or companionsBoundaryHelpers.WrapError
 Companions.ExecuteBoundary = Companions.ExecuteBoundary or companionsBoundaryHelpers.ExecuteBoundary
 
-local function TraceCompanionRuntime(event, phase, data, category)
-    local L = BETTERUI and BETTERUI.Log or nil
-    if not (L and type(L.TraceEvent) == "function") then return end
-    local payload = data or {}
-    payload.module = "Companions"
-    payload.feature = payload.feature or "runtime"
-    payload.scene = BETTERUI_COMPANION_EQUIP_SCENE_NAME
-    payload.sceneShowing = Companions.instance and Companions.instance.IsSceneShowing and Companions.instance:IsSceneShowing() or false
-    payload.activeCompanion = HasActiveCompanion and HasActiveCompanion() or nil
-    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if type(L.SetLastAction) == "function" then
-        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
-    end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(category or categories.STATE or categories.GENERAL, event, phase, payload)
-end
+local TraceCompanionRuntime = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "Companions",
+        feature = "runtime",
+        category = (BETTERUI.Log.CATEGORY or {}).STATE or "STATE",
+    }
+    or function() end
 
 local function SetCompanionWatchView(label)
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
@@ -88,22 +79,19 @@ local function ShowBetterUICompanionScene()
 end
 
 local function InstallCompanionSceneRedirect()
-    if not (EVENT_MANAGER and EVENT_OPEN_COMPANION_MENU) then
-        TraceCompanionRuntime("companions.scene_redirect", "skipped", { reason = "missingEvent" })
-        return
-    end
-
-    EVENT_MANAGER:UnregisterForEvent(EVENT_NS .. "_SceneRedirect", EVENT_OPEN_COMPANION_MENU)
-    EVENT_MANAGER:RegisterForEvent(EVENT_NS .. "_SceneRedirect", EVENT_OPEN_COMPANION_MENU, function()
-        TraceCompanionRuntime("companions.scene_redirect", "open_event", {
-            sceneName = BETTERUI_COMPANION_EQUIP_SCENE_NAME,
-        })
-        if type(zo_callLater) == "function" then
-            zo_callLater(ShowBetterUICompanionScene, 0)
-        else
-            ShowBetterUICompanionScene()
-        end
-    end)
+    BETTERUI.CIM.Utils.InstallNativeSceneRedirect({
+        namespace = EVENT_NS .. "_SceneRedirect",
+        openEventId = EVENT_OPEN_COMPANION_MENU,
+        sceneName = BETTERUI_COMPANION_EQUIP_SCENE_NAME,
+        sceneObject = function() return Companions.instance and Companions.instance.scene end,
+        showFn = function()
+            SetCompanionWatchView("companions.list")
+            SCENE_MANAGER:Show(BETTERUI_COMPANION_EQUIP_SCENE_NAME)
+        end,
+        traceFn = function(event, phase, data)
+            TraceCompanionRuntime("companions." .. event, phase, data)
+        end,
+    })
 end
 
 local function RefreshVisibleCompanionScene(screen, options)
@@ -151,26 +139,12 @@ local function CallCompanionSearchLifecycle(instance, action)
 end
 
 local function PatchCompanionListMovePrevious(instance)
-    if not (instance and instance.list and instance.list.MovePrevious) then
+    if not (BETTERUI.CIM.Lists and BETTERUI.CIM.Lists.WrapMovePreviousToHeader) then
         return
     end
-    if instance.list._betteruiMovePreviousWrapperInstalled then
-        return
-    end
-
-    -- Direct assignment is intentional: ZO_PostHook does not expose the original
-    -- return value, which we need to detect a failed move (list at top).
-    -- The _betteruiMovePreviousWrapperInstalled guard prevents double-wrapping.
-    local originalMovePrevious = instance.list.MovePrevious
-    instance.list._betteruiMovePreviousWrapperInstalled = true
-    instance.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
-        local didMove = originalMovePrevious(list, allowWrapping, suppressFailSound)
-        if didMove then
-            return true
-        end
+    BETTERUI.CIM.Lists.WrapMovePreviousToHeader(instance and instance.list, function()
         CallCompanionSearchLifecycle(instance, "requestEnter")
-        return true
-    end
+    end)
 end
 
 local function ConfigureCompanionListLayout(instance)

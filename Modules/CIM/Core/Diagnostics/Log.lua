@@ -237,6 +237,53 @@ function Log.EnabledFor(level, category)
     return (mask and (mask.file or mask.chat)) and true or false
 end
 
+---@param options {module:string?, feature:string?, category:string?, level:number?, includeScene:boolean?, includeGamepad:boolean?, setLastAction:boolean?}
+---@return function tracer
+function Log.MakeTracer(options)
+    options = options or {}
+    local moduleName = options.module
+    local feature = options.feature
+    local defaultCategory = options.category or Log.CATEGORY.GENERAL
+    local defaultLevel = options.level or Log.LEVEL.DEBUG
+    local includeScene = options.includeScene ~= false
+    local includeGamepad = options.includeGamepad ~= false
+    local setLastAction = options.setLastAction ~= false
+
+    return function(event, phase, data, category, level)
+        local emitCategory = category or defaultCategory
+        local emitLevel = level or defaultLevel
+        if not Log.EnabledFor(emitLevel, emitCategory) then
+            return
+        end
+
+        local payload = {}
+        if type(data) == "table" then
+            for k, v in pairs(data) do
+                payload[k] = v
+            end
+        elseif data ~= nil then
+            payload.value = data
+        end
+        if moduleName and payload.module == nil then
+            payload.module = moduleName
+        end
+        if feature and payload.feature == nil then
+            payload.feature = feature
+        end
+        if includeScene and payload.scene == nil then
+            local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+            payload.scene = utils and utils.GetCurrentSceneName and utils.GetCurrentSceneName() or nil
+        end
+        if includeGamepad and payload.gamepad == nil and type(IsInGamepadPreferredMode) == "function" then
+            payload.gamepad = IsInGamepadPreferredMode()
+        end
+        if setLastAction and Log.SetLastAction then
+            Log.SetLastAction({ flow = event, message = safeTostring(event, "?") .. ":" .. safeTostring(phase, "state") })
+        end
+        Log.TraceEvent(emitCategory, event, phase, payload, emitLevel)
+    end
+end
+
 -- Schema + session/sequence metadata ----------------------------------------
 -- Every dispatched record carries `sid` (per-UI-load id; groups reload sessions)
 -- and a monotonic `seq`, so a log reader can order and correlate lines even

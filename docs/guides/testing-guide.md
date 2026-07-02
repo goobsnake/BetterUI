@@ -22,10 +22,11 @@ Located in `tools/tests/`, these test files can be run without ESO:
 | `test_utilities.lua` | Utilities | WrapValue, SafeCall, SafeIcon |
 | `test_sort_comparators.lua` | Sort helpers | Multi-key sorting, nil handling |
 | `test_batch_safety.lua` | BatchConfig | Guard-clause validation, batch safety checks |
-| `test_nameplates_reset.lua` | Nameplates | Settings reset, font restoration |
+| `test_control_utils.lua` | ControlUtils | FindControl lookups, cache invalidation, trace/warn payloads |
+| `test_nameplates_reset.lua` | Nameplates | Settings reset, legacy style migration, font restoration |
 | `test_settings_group_resets.lua` | SettingsReset | Per-group reset isolation |
 | `test_settings_reset.lua` | SettingsReset | Full reset, partial reset, defaults |
-| `test_tooltip_helpers.lua` | Tooltips | Tooltip formatting, nil handling |
+| `test_tooltip_helpers.lua` | Tooltips | Tooltip formatting, nil handling, restore/teardown helpers |
 
 > The table above lists the original core-utility suites. The harness now ships a much larger set of module/contract suites under `tools/tests/` (run them all via `run_all_tests.lua`).
 
@@ -59,6 +60,16 @@ These suites were added/extended alongside the v3.06 fix batch:
 | `test_builog_monitor_source.lua` | Host monitor digest, unresolved-flow/anomaly sections, drop totals, screenshot markers, session reports, and JSONL output |
 
 > **Load-order note**: any standalone test that `dofile`s `Inventory/Core/Utils.lua` must load `CIM/Core/Utilities.lua` first — `BETTERUI.Inventory.Utils` delegates slot-identity helpers to `BETTERUI.CIM.Utils` (CIM-before-Inventory).
+
+#### BUI-DEEPDIVE-001 Cleanup Coverage
+
+| File | Covers |
+|------|--------|
+| `test_banking_quantity_dialog.lua` | Banking quantity-dialog slot snapshots, suppression clearing, and shared slider-trace coalescing |
+| `test_control_utils.lua` | Canonical `ControlUtils` lookup/cache behavior plus self-describing WARN/TRACE payloads |
+| `test_inventory_multiselect_dialogs.lua` | Inventory/Craft Bag batch dialogs register through `BETTERUI.CIM.Dialogs` instead of raw `ESO_Dialogs` writes |
+| `test_nameplates_reset.lua` | Nameplates lifecycle resets plus live-table migration of legacy string `style` settings |
+| `test_tooltip_helpers.lua` | Enhanced-tooltip cleanup, mouse-wheel restore path, and stable status/anchor/font teardown |
 
 ### Running Tests
 

@@ -39,6 +39,27 @@ local function NormalizeSceneName(sceneName)
     return sceneName and tostring(sceneName):lower():gsub("%s+", "") or nil
 end
 
+local function GetCurrentSceneName()
+    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    if utils and type(utils.GetCurrentSceneName) == "function" then
+        return utils.GetCurrentSceneName()
+    end
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
+        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
+        if ok and sceneName ~= nil then
+            return sceneName
+        end
+    end
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentScene) == "function" then
+        local ok, scene = pcall(function() return SCENE_MANAGER:GetCurrentScene() end)
+        if ok and scene and type(scene.GetName) == "function" then
+            local nameOk, sceneName = pcall(function() return scene:GetName() end)
+            if nameOk then return sceneName end
+        end
+    end
+    return nil
+end
+
 local function IsConfiguredSpecialScene(sceneName)
     return sceneName ~= nil and SPECIAL_SCENE_NAME_SET[NormalizeSceneName(sceneName)] == true
 end
@@ -71,11 +92,14 @@ end
 
 local function TraceOrbEvents(event, phase, data)
     local L = BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
+    if not (L and L.TraceEvent and L.EnabledFor and L.CATEGORY and L.LEVEL) then return end
+    -- Preflight before building any payload so the scene/gamepad lookups and
+    -- table allocation run only when tracing is active (BUI-DEEPDIVE-001 P2).
+    if not L.EnabledFor(L.LEVEL.DEBUG, L.CATEGORY.STATE) then return end
     data = data or {}
     data.module = "ResourceOrbFrames"
     data.feature = "resourceOrbs"
-    local currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+    local currentScene = GetCurrentSceneName()
     data.currentScene = currentScene
     if data.scene == nil then
         data.scene = currentScene
@@ -84,8 +108,7 @@ local function TraceOrbEvents(event, phase, data)
     if L.SetLastAction then
         L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
     end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.STATE, event, phase, data)
+    L.TraceEvent(L.CATEGORY.STATE, event, phase, data)
 end
 
 local function TraceCombatChanged(inCombat, source)
@@ -136,7 +159,7 @@ function Events.SetupCombatIndicators(rootFrame)
     if not m_hasRegisteredCombatIndicators then
         m_hasRegisteredCombatIndicators = true
 
-        BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatState", EVENT_PLAYER_COMBAT_STATE,
+        BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_CombatState", EVENT_PLAYER_COMBAT_STATE,
             function(_, inCombat)
                 TraceOrbEvents("resource_orbs.combat_event", "combat_state", { inCombat = inCombat })
                 TraceCombatChanged(inCombat, "EVENT_PLAYER_COMBAT_STATE")
@@ -145,15 +168,10 @@ function Events.SetupCombatIndicators(rootFrame)
                 end
             end)
 
-        BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatDead", EVENT_PLAYER_DEAD, function()
-            TraceOrbEvents("resource_orbs.combat_event", "dead", {})
-            TraceCombatChanged(false, "EVENT_PLAYER_DEAD")
-            if CI.ApplyCombatIndicators then
-                CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, false, false)
-            end
-        end)
-
-        BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatAlive", EVENT_PLAYER_ALIVE, function()
+        -- EVENT_PLAYER_DEAD is handled by the consolidated visibility handler in
+        -- SetupVisibilityFragments so combat-indicator, death-fragment, and hide-
+        -- enforce actions all fire from a single registration (BUI-DEEPDIVE-001 P2).
+        BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_CombatAlive", EVENT_PLAYER_ALIVE, function()
             local inCombat = IsUnitInCombat("player")
             TraceOrbEvents("resource_orbs.combat_event", "alive", { inCombat = inCombat })
             TraceCombatChanged(inCombat, "EVENT_PLAYER_ALIVE")
@@ -162,7 +180,7 @@ function Events.SetupCombatIndicators(rootFrame)
             end
         end)
 
-        BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CombatActivated", EVENT_PLAYER_ACTIVATED,
+        BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_CombatActivated", EVENT_PLAYER_ACTIVATED,
             function()
                 local inCombat = IsUnitInCombat("player")
                 TraceOrbEvents("resource_orbs.combat_event", "player_activated", { inCombat = inCombat })
@@ -228,24 +246,32 @@ function Events.SetupVisibilityFragments(rootFrame)
         fragment:SetHiddenForReason("Dead", isDead)
     end
 
+    -- Single consolidated death handler: updates the death fragment, forces
+    -- combat indicators off, and re-enforces native UI hiding. This replaces the
+    -- previous three separate EVENT_PLAYER_DEAD registrations (combat indicators,
+    -- death fragment, hide enforce) with one namespace entry.
+    local function OnPlayerDead()
+        TraceOrbEvents("resource_orbs.combat_event", "dead", {})
+        TraceCombatChanged(false, "EVENT_PLAYER_DEAD")
+        if CI.ApplyCombatIndicators then
+            CI.ApplyCombatIndicators(m_combatIndicatorRootFrame, false, false)
+        end
+        fragment:SetHiddenForReason("Dead", IsUnitDead("player"))
+        DeferredEnforceHide(100)
+    end
+
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
     end
 
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_PLAYER_DEAD, UpdateDeathFragment)
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_PLAYER_ALIVE, UpdateDeathFragment)
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_PlayerDead", EVENT_PLAYER_DEAD, OnPlayerDead)
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_PlayerAlive", EVENT_PLAYER_ALIVE, UpdateDeathFragment)
 
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_DeathEnforce", EVENT_PLAYER_DEAD, function()
-        DeferredEnforceHide(100)
-    end)
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_AliveEnforce", EVENT_PLAYER_ALIVE, function()
-        DeferredEnforceHide(100)
-    end)
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Reincarnated", EVENT_PLAYER_REINCARNATED,
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_Reincarnated", EVENT_PLAYER_REINCARNATED,
         function()
             DeferredEnforceHide(100)
         end)
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_EndSiege", EVENT_END_SIEGE_CONTROL, function()
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_EndSiege", EVENT_END_SIEGE_CONTROL, function()
         DeferredEnforceHide(100)
     end)
 
@@ -254,21 +280,7 @@ function Events.SetupVisibilityFragments(rootFrame)
     -- can taint protected gamepad execution paths.
 
     local function IsSpecialSceneActive()
-        if not SCENE_MANAGER then
-            return false
-        end
-
-        local sceneName = nil
-        if SCENE_MANAGER.GetCurrentSceneName then
-            sceneName = SCENE_MANAGER:GetCurrentSceneName()
-        end
-        if sceneName == nil and SCENE_MANAGER.GetCurrentScene then
-            local scene = SCENE_MANAGER:GetCurrentScene()
-            if scene and scene.GetName then
-                sceneName = scene:GetName()
-            end
-        end
-
+        local sceneName = GetCurrentSceneName()
         return IsConfiguredSpecialScene(sceneName) or IsSpecialSceneNameDrift(sceneName)
     end
 
@@ -322,7 +334,7 @@ function Events.SetupVisibilityFragments(rootFrame)
         end
     end
 
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivatedSpecialSceneSync",
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_PlayerActivatedSpecialSceneSync",
         EVENT_PLAYER_ACTIVATED, function()
             DeferredSyncSpecialSceneVisibility()
         end)
@@ -335,38 +347,71 @@ end
 -- so a disabled module pays no per-tick cost (the ticks are not merely
 -- early-returning, they are unregistered).
 local m_loopTicks = nil
-local m_loopsRegistered = false
+local m_loopRegistered = {
+    coreStatus = false,
+    cooldownVisuals = false,
+    orbAnimation = false,
+}
+local LOOP_UPDATE_SUFFIX = {
+    coreStatus = "CoreStatus",
+    cooldownVisuals = "CooldownVisuals",
+    orbAnimation = "OrbAnimation",
+}
+-- Forces one cooldown scan after the module is enabled so that cooldowns which
+-- started while the loop was unregistered are discovered immediately.
+local m_cooldownScanNeeded = false
+
+local function RegisterLoopUpdate(name)
+    if m_loopRegistered[name] or not m_loopTicks or not m_loopTicks[name] then return end
+    local intervalMs = (name == "coreStatus" and CORE_STATUS_TICK_MS)
+        or (name == "cooldownVisuals" and COOLDOWN_VISUAL_TICK_MS)
+        or (name == "orbAnimation" and ANIMATION_TICK_MS)
+        or 100
+    EVENT_MANAGER:RegisterForUpdate(UPDATE_NS_PREFIX .. (LOOP_UPDATE_SUFFIX[name] or name), intervalMs, m_loopTicks[name])
+    m_loopRegistered[name] = true
+end
+
+local function UnregisterLoopUpdate(name)
+    if not m_loopRegistered[name] then return end
+    EVENT_MANAGER:UnregisterForUpdate(UPDATE_NS_PREFIX .. (LOOP_UPDATE_SUFFIX[name] or name))
+    m_loopRegistered[name] = false
+end
 
 local function RegisterLoopUpdates()
-    if m_loopsRegistered or not m_loopTicks then return end
-    EVENT_MANAGER:RegisterForUpdate(UPDATE_NS_PREFIX .. "CoreStatus", CORE_STATUS_TICK_MS, m_loopTicks.coreStatus)
-    EVENT_MANAGER:RegisterForUpdate(UPDATE_NS_PREFIX .. "CooldownVisuals", COOLDOWN_VISUAL_TICK_MS, m_loopTicks.cooldownVisuals)
-    EVENT_MANAGER:RegisterForUpdate(UPDATE_NS_PREFIX .. "OrbAnimation", ANIMATION_TICK_MS, m_loopTicks.orbAnimation)
-    m_loopsRegistered = true
+    RegisterLoopUpdate("coreStatus")
+    RegisterLoopUpdate("cooldownVisuals")
+    RegisterLoopUpdate("orbAnimation")
 end
 
 local function UnregisterLoopUpdates()
-    if not m_loopsRegistered then return end
-    EVENT_MANAGER:UnregisterForUpdate(UPDATE_NS_PREFIX .. "CoreStatus")
-    EVENT_MANAGER:UnregisterForUpdate(UPDATE_NS_PREFIX .. "CooldownVisuals")
-    EVENT_MANAGER:UnregisterForUpdate(UPDATE_NS_PREFIX .. "OrbAnimation")
-    m_loopsRegistered = false
+    UnregisterLoopUpdate("coreStatus")
+    UnregisterLoopUpdate("cooldownVisuals")
+    UnregisterLoopUpdate("orbAnimation")
+    local CooldownUtils = SkillBar.CooldownUtils
+    if CooldownUtils and CooldownUtils.ResetCooldownVisualArming then
+        CooldownUtils.ResetCooldownVisualArming()
+    end
 end
 
 --- Enables or disables the periodic update loops (idempotent).
 --- Called from ResourceOrbFrames.ApplySettings on module enable/disable.
 ---@param enabled boolean Whether the loops should be running
+local function AnyLoopRegistered()
+    return m_loopRegistered.coreStatus or m_loopRegistered.cooldownVisuals or m_loopRegistered.orbAnimation
+end
+
 function Events.SetLoopsEnabled(enabled)
     TraceOrbEvents("resource_orbs.loops", enabled and "enable_requested" or "disable_requested", {
-        registered = m_loopsRegistered,
+        registered = AnyLoopRegistered(),
         hasTicks = m_loopTicks ~= nil,
     })
     if enabled then
+        m_cooldownScanNeeded = true
         RegisterLoopUpdates()
     else
         UnregisterLoopUpdates()
     end
-    TraceOrbEvents("resource_orbs.loops", enabled and "enabled" or "disabled", { registered = m_loopsRegistered })
+    TraceOrbEvents("resource_orbs.loops", enabled and "enabled" or "disabled", { registered = AnyLoopRegistered() })
 end
 
 --- Registers periodic update ticks for status, cooldowns, and orb animation.
@@ -403,8 +448,17 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
     end
 
     -- Cooldown visual tick (16ms): smoother reveal animation for front/back bars.
+    -- The armed latch skips the per-button scan entirely when no ability is on
+    -- cooldown, cutting idle work on the hot path (BUI-DEEPDIVE-001 P2).
     local function CooldownVisualTick()
         if not IsModuleEnabled() then return end
+        local CooldownUtils = SkillBar.CooldownUtils
+        local armed = not (CooldownUtils and CooldownUtils.IsCooldownVisualsArmed)
+            or CooldownUtils.IsCooldownVisualsArmed()
+        if not armed and not m_cooldownScanNeeded then
+            return
+        end
+        m_cooldownScanNeeded = false
         SkillBar.UpdateBackBarCooldowns(rootFrame)
         local frontBarCfg = GetLiveSettings().customFrontBar
         if frontBarCfg and frontBarCfg.m_enabled then
@@ -439,8 +493,9 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
         cooldownVisuals = CooldownVisualTick,
         orbAnimation = AnimationTick,
     }
+    m_cooldownScanNeeded = true
     RegisterLoopUpdates()
-    TraceOrbEvents("resource_orbs.loops", "setup_end", { registered = m_loopsRegistered })
+    TraceOrbEvents("resource_orbs.loops", "setup_end", { registered = AnyLoopRegistered() })
 end
 
 --- Registers HUD/HUDUI scene-showing callbacks to keep native action bar hidden.

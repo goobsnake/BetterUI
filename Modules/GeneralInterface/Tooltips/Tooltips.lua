@@ -11,6 +11,10 @@ local TooltipRuntime = Tooltips._runtime or {}
 Tooltips._runtime = TooltipRuntime
 
 local function GetCurrentSceneName()
+    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    if utils and type(utils.GetCurrentSceneName) == "function" then
+        return utils.GetCurrentSceneName()
+    end
     if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
         local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
         if ok then return sceneName end
@@ -21,6 +25,12 @@ end
 local function TraceTooltip(event, phase, data, category)
     local L = BETTERUI and BETTERUI.Log or nil
     if not (L and type(L.TraceEvent) == "function") then return end
+    local categories = L.CATEGORY or {}
+    local traceCategory = category or categories.GENERAL
+    if type(L.EnabledFor) == "function" and L.LEVEL and L.LEVEL.DEBUG
+        and not L.EnabledFor(L.LEVEL.DEBUG, traceCategory) then
+        return
+    end
     data = data or {}
     data.module = data.module or "GeneralInterface"
     data.feature = data.feature or "tooltips"
@@ -31,8 +41,7 @@ local function TraceTooltip(event, phase, data, category)
     if type(L.SetLastAction) == "function" then
         L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
     end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(category or categories.GENERAL, event, phase, data)
+    L.TraceEvent(traceCategory, event, phase, data)
 end
 
 local function SetGuildStoreErrorSuppressed(isSuppressed)

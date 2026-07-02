@@ -621,3 +621,4 @@ sequenceDiagram
 1. Use `BETTERUI.Inventory.CleanupEnhancedTooltip()` when switching away from enhanced views
 2. Custom elements (status labels, dividers) should be explicitly hidden during cleanup
 3. Anchor adjustments should be reset when tooltip is cleared
+4. Pair `BETTERUI.Inventory.EnableTooltipMouseWheel()` with `BETTERUI.Inventory.RestoreTooltipMouseWheel()` during teardown when BetterUI owns the mouse-enable mutation

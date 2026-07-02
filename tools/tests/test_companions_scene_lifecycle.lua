@@ -89,6 +89,17 @@ BETTERUI = {
                 end,
             },
         },
+        Utils = {
+            InstallNativeSceneRedirect = function(options)
+                registeredEvents[options.namespace .. ":" .. tostring(options.openEventId)] = function()
+                    if type(options.showFn) == "function" then
+                        options.showFn()
+                    elseif SCENE_MANAGER and SCENE_MANAGER.Show then
+                        SCENE_MANAGER:Show(options.sceneName)
+                    end
+                end
+            end,
+        },
     },
     Interface = {
         SearchMixin = {},

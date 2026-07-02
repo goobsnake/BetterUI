@@ -21,6 +21,12 @@ local OVERRIDDEN_STYLE_KEYS = {
     "bodyDescription",
 }
 local stockTooltipStyles = nil
+local tooltipMouseWheelState = {
+    tip = nil,
+    tipScroll = nil,
+    tipMouseEnabled = nil,
+    tipScrollMouseEnabled = nil,
+}
 
 local function SnapshotStockTooltipStyles()
     if stockTooltipStyles or ZO_TOOLTIP_STYLES == nil then
@@ -91,11 +97,25 @@ function BETTERUI.Inventory.ApplyTooltipStyles()
     }
 end
 
+local function CaptureMouseEnabled(control)
+    if control and type(control.IsMouseEnabled) == "function" then
+        return control:IsMouseEnabled() == true
+    end
+    return nil
+end
+
 --- Enables mouse wheel scrolling for the left-side tooltip container.
 function BETTERUI.Inventory.EnableTooltipMouseWheel()
     local tip = ZO_GamepadTooltipTopLevelLeftTooltipContainerTip
     local tipScroll = ZO_GamepadTooltipTopLevelLeftTooltipContainerTipScroll
     if tip and tipScroll then
+        if tooltipMouseWheelState.tip ~= tip or tooltipMouseWheelState.tipScroll ~= tipScroll then
+            tooltipMouseWheelState.tip = tip
+            tooltipMouseWheelState.tipScroll = tipScroll
+            tooltipMouseWheelState.tipMouseEnabled = CaptureMouseEnabled(tip)
+            tooltipMouseWheelState.tipScrollMouseEnabled = CaptureMouseEnabled(tipScroll)
+        end
+
         tip:SetMouseEnabled(true)
         tipScroll:SetMouseEnabled(true)
         if not tip._betteruiMouseWheelHooked then
@@ -115,17 +135,41 @@ function BETTERUI.Inventory.EnableTooltipMouseWheel()
 
             if type(ZO_PostHookHandler) == "function" then
                 ZO_PostHookHandler(tip, "OnMouseWheel", OnTooltipMouseWheel)
+                tip._betteruiMouseWheelHandlerMode = "posthook"
             else
                 local previousHandler = tip.GetHandler and tip:GetHandler("OnMouseWheel") or nil
+                tip._betteruiPreviousMouseWheelHandler = previousHandler
                 tip:SetHandler("OnMouseWheel", function(self, delta)
                     if type(previousHandler) == "function" then
                         previousHandler(self, delta)
                     end
                     OnTooltipMouseWheel(self, delta)
                 end)
+                tip._betteruiMouseWheelHandlerMode = "sethandler"
             end
             tip._betteruiMouseWheelHooked = true
         end
+    end
+end
+
+--- Restores the native left-side tooltip mouse state captured before BetterUI enabled wheel scrolling.
+--- When the client exposes only ZO_PostHookHandler the scroll callback itself stays installed, but
+--- restoring the original mouse-enabled flags suppresses wheel delivery on stock tooltip controls.
+---@return nil
+function BETTERUI.Inventory.RestoreTooltipMouseWheel()
+    local tip = tooltipMouseWheelState.tip
+    local tipScroll = tooltipMouseWheelState.tipScroll
+    if tip and tip.SetMouseEnabled and tooltipMouseWheelState.tipMouseEnabled ~= nil then
+        tip:SetMouseEnabled(tooltipMouseWheelState.tipMouseEnabled)
+    end
+    if tipScroll and tipScroll.SetMouseEnabled and tooltipMouseWheelState.tipScrollMouseEnabled ~= nil then
+        tipScroll:SetMouseEnabled(tooltipMouseWheelState.tipScrollMouseEnabled)
+    end
+
+    if tip and tip._betteruiMouseWheelHooked and tip._betteruiMouseWheelHandlerMode == "sethandler" and tip.SetHandler then
+        tip:SetHandler("OnMouseWheel", tip._betteruiPreviousMouseWheelHandler)
+        tip._betteruiMouseWheelHooked = false
+        tip._betteruiMouseWheelHandlerMode = nil
     end
 end
 
@@ -161,6 +205,8 @@ end
 function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
+
+    BETTERUI.Inventory.RestoreTooltipMouseWheel()
 
     if container and container._betterUiStatus then
         container._betterUiStatus:SetHidden(true)

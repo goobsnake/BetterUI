@@ -78,6 +78,14 @@ BETTERUI = {
             end,
         },
         Dialogs = {
+            GetCurrentInfo = function(name)
+                return registrations[name]
+            end,
+            Register = function(name, info)
+                registrations[name] = info
+                registerCounts[name] = (registerCounts[name] or 0) + 1
+                return true
+            end,
             CreateParametricActionEntry = function(name, actionId)
                 return {
                     template = "entry",

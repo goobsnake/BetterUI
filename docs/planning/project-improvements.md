@@ -26,4 +26,3 @@ All implementation phases (1–10) and the host validation/docs/review gate are 
     - one combat/HUD sample showing `resource_orbs.ultimate`, `resource_orbs.bar_swap`, and `resource_orbs.cast` records when those in-game actions are available;
     - one `tools/builog-monitor/monitor.sh digest --last <n>` run over the session, reviewed by the user's AI assistant before release/tag.
   - Gates **release/tag only** — the branch is commit-ready on host validation alone. On success, migrate this item; on failure, record findings as a remediation phase.
-

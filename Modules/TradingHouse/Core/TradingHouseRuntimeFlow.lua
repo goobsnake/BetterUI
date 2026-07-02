@@ -39,6 +39,28 @@ local function CopyTracePayload(data)
     return payload
 end
 
+local function GetCurrentDialogInfo(dialogName)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if dialogs and type(dialogs.GetCurrentInfo) == "function" then
+        return dialogs.GetCurrentInfo(dialogName)
+    end
+    return nil
+end
+
+local function RegisterTradingHouseDialog(dialogName, dialogInfo)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if not (dialogs and type(dialogs.Register) == "function") then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.dialog", "register_skipped", {
+            fn = "RegisterTradingHouseDialog",
+            feature = "trading-house-dialogs",
+            dialogName = dialogName,
+            reason = "missingDialogRegistry",
+        })
+        return false
+    end
+    return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
+end
+
 local function WatchdogExpectOperation(operation, timeoutMs, context)
     local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
     if watchdog and type(watchdog.Expect) == "function" then
@@ -602,11 +624,8 @@ function TH.TakeOverNativeTradingHouse()
 end
 
 function TH.RegisterCreateListingDialog()
-    local priorDialog = ESO_Dialogs and ESO_Dialogs[CREATE_LISTING_DIALOG_NAME] or nil
+    local priorDialog = GetCurrentDialogInfo(CREATE_LISTING_DIALOG_NAME)
     if priorDialog and priorDialog._betteruiTradingHouseCreateListing then
-        return
-    end
-    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then
         return
     end
 
@@ -1002,7 +1021,7 @@ function TH.RegisterCreateListingDialog()
             },
         },
     }
-    ZO_Dialogs_RegisterCustomDialog(CREATE_LISTING_DIALOG_NAME, dialogInfo)
+    RegisterTradingHouseDialog(CREATE_LISTING_DIALOG_NAME, dialogInfo)
 end
 
 function TH.OnOpenTradingHouse()

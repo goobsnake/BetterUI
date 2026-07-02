@@ -16,6 +16,18 @@ local function assert_true(value, message)
     assert_eq(value, true, message)
 end
 
+local function assert_contains(haystack, needle, label)
+    if not haystack:find(needle, 1, true) then
+        error(label .. "\nMissing: " .. needle)
+    end
+end
+
+local function assert_not_contains(haystack, needle, label)
+    if haystack:find(needle, 1, true) then
+        error(label .. "\nUnexpected: " .. needle)
+    end
+end
+
 print("test_vendor_native_store_rebuild_source")
 
 ZO_MODE_STORE_BUY = 1
@@ -277,6 +289,23 @@ do
     assert_eq(cleanupContexts[2], "OnCloseStore:afterSweep", "cleanup emits after-sweep context")
     assert_eq(safeContexts[1], "Vendor.OnCloseStore:NativeOnHide", "cleanup preserves explicit safe-call context")
     assert_eq(#storeManager.activeComponents, 0, "cleanup clears native active components")
+end
+
+do
+    local source = assert((function()
+        local handle = assert(io.open("Modules/Vendor/Core/Bridge/VendorNativeStoreBridge.lua", "r"))
+        local contents = handle:read("*a")
+        handle:close()
+        return contents
+    end)())
+
+    assert_not_contains(source, "UnregisterForEvent(EVENT_OPEN_STORE)",
+        "TakeOverScene no longer unregisters native open event")
+    assert_not_contains(source, "UnregisterForEvent(EVENT_CLOSE_STORE)",
+        "TakeOverScene no longer unregisters native close event")
+    assert_contains(source, "vendor.native_store_takeover", "TakeOverScene has suppression trace hook channel")
+    assert_contains(source, "event_hook_installed", "TakeOverScene installs native-event suppression hooks")
+    assert_contains(source, "IsBetterUIVendorSceneActive", "TakeOverScene suppresses native callbacks only while vendor scene owns store")
 end
 
 print("  OK")

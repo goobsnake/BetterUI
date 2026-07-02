@@ -24,6 +24,83 @@ local smoothedRemainCache = sharedCooldownCaches.smoothedRemainBySlotCategory
 
 local CooldownUtils = {}
 
+-- Cooldown-visual arming state (BUI-DEEPDIVE-001 P2). FrontBarCooldowns and
+-- BackBarManager report button transitions so the 16ms tick can be registered
+-- only while at least one cooldown is active.
+local activeCooldownCount = 0
+local cooldownVisualsArmed = false
+local cooldownVisualArmingGeneration = 0
+
+local function UpdateArmedState()
+    cooldownVisualsArmed = activeCooldownCount > 0
+end
+
+--- Report a button entering or leaving cooldown state. Arms/disarms the 16ms
+--- cooldown-visual tick accordingly.
+---@param active boolean true when a button begins showing a cooldown, false when it stops
+function CooldownUtils.NotifyCooldownActiveState(active)
+    if active then
+        activeCooldownCount = activeCooldownCount + 1
+        UpdateArmedState()
+    else
+        if activeCooldownCount > 0 then
+            activeCooldownCount = activeCooldownCount - 1
+        end
+        UpdateArmedState()
+    end
+end
+
+---@return boolean armed Whether the cooldown-visual loop should be registered
+function CooldownUtils.IsCooldownVisualsArmed()
+    return cooldownVisualsArmed
+end
+
+--- Reset the active-cooldown counter, e.g. on module disable or zone change.
+function CooldownUtils.ResetCooldownVisualArming()
+    activeCooldownCount = 0
+    cooldownVisualArmingGeneration = cooldownVisualArmingGeneration + 1
+    UpdateArmedState()
+end
+
+---@return number generation Current arming generation for per-button transition latches
+function CooldownUtils.GetCooldownVisualArmingGeneration()
+    return cooldownVisualArmingGeneration
+end
+
+--- Reports a single button's active/inactive cooldown state. The generation
+--- check re-arms buttons that were already marked active before
+--- ResetCooldownVisualArming() cleared the aggregate counter.
+---@param button table|nil Button control carrying BetterUI cooldown latch fields
+---@param active boolean true when the button currently shows a cooldown
+---@return boolean changed True when the aggregate armed state was updated
+function CooldownUtils.ReportButtonCooldownState(button, active)
+    if not button then
+        return false
+    end
+
+    local generation = cooldownVisualArmingGeneration
+    if active then
+        if button._betteruiLastCooldownState ~= true
+            or button._betteruiCooldownArmGeneration ~= generation then
+            button._betteruiLastCooldownState = true
+            button._betteruiCooldownArmGeneration = generation
+            CooldownUtils.NotifyCooldownActiveState(true)
+            return true
+        end
+        return false
+    end
+
+    if button._betteruiLastCooldownState == true then
+        button._betteruiLastCooldownState = false
+        button._betteruiCooldownArmGeneration = generation
+        CooldownUtils.NotifyCooldownActiveState(false)
+        return true
+    end
+
+    button._betteruiCooldownArmGeneration = generation
+    return false
+end
+
 -- Numeric composite key (hotbarCategory * 1000 + slotIndex) avoids per-tick
 -- string.format allocations in the 16ms cooldown hot path. Slot indices are
 -- well below 1000, so the composite is collision-free.

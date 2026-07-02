@@ -40,6 +40,10 @@ assert_not_contains(setupSource, "GetNameplateOptions",
     "GeneralInterface setup no longer owns Nameplates settings composition")
 assert_not_contains(setupSource, "SI_BETTERUI_NAMEPLATES_HEADER",
     "GeneralInterface panel no longer renders a Nameplates submenu")
+assert_not_contains(setupSource, "type(ZO_PostHook) == \"function\" and ZO_PostHook or ZO_PreHook",
+    "GeneralInterface setup no longer falls back to ZO_PreHook")
+assert_contains(setupSource, "if type(ZO_PostHook) ~= \"function\" then",
+    "GeneralInterface setup requires ZO_PostHook before installing mail-delete hook")
 
 assert_contains(nameplatesSource, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates runtime resolves from the dedicated Nameplates module namespace")

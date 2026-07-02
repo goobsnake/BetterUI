@@ -469,7 +469,7 @@ function CastBar:Initialize(parent)
         m_defaultCastBarStateCaptured = true
     end
     HideDefaultCastBar()
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED,
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED,
         HideDefaultCastBar)
 
     local function ResolveCastDisplayData(slotIndex, hotbar)
@@ -504,7 +504,7 @@ function CastBar:Initialize(parent)
         return abilityName, castDurationMs, isChanneled, showCountdown, castFillColor, castDepthColor
     end
 
-    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "SlotAbilityUsed",
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("BETTERUI_ResourceOrbFrames", NAME .. "SlotAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
             if not IsResourceOrbFramesEnabled() then
                 TraceDisabledGateOnce(TraceCastBar, "resource_orbs.cast_bar", "CastBar.EVENT_ACTION_SLOT_ABILITY_USED")
@@ -546,7 +546,7 @@ function CastBar:Initialize(parent)
             self:OnCastStart("player", name, duration, isChanneled, showCountdown, castFillColor, castDepthColor)
         end, REGISTER_FILTER_UNIT_TAG, "player")
 
-    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "CastColorPowerProbe",
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("BETTERUI_ResourceOrbFrames", NAME .. "CastColorPowerProbe",
         EVENT_POWER_UPDATE, function(_, unitTag, powerPoolIndex, powerType, powerValue)
             if not IsResourceOrbFramesEnabled() then
                 TraceDisabledGateOnce(TraceCastBar, "resource_orbs.cast_bar", "CastBar.EVENT_POWER_UPDATE")
@@ -665,7 +665,7 @@ function MountStaminaBar:Initialize(parent)
         self.maxValue = max
     end
 
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "MountStaminaMount", EVENT_MOUNTED_STATE_CHANGED,
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "MountStaminaMount", EVENT_MOUNTED_STATE_CHANGED,
         function(_, isMounted)
             if not IsResourceOrbFramesEnabled() then
                 TraceDisabledGateOnce(TraceMountStamina, "resource_orbs.mount_stamina", "MountStaminaBar.EVENT_MOUNTED_STATE_CHANGED")
@@ -674,7 +674,7 @@ function MountStaminaBar:Initialize(parent)
             self:OnMountedStateChanged(isMounted)
         end)
 
-    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "MountStaminaPower", EVENT_POWER_UPDATE,
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("BETTERUI_ResourceOrbFrames", NAME .. "MountStaminaPower", EVENT_POWER_UPDATE,
         function(_, unitTag, powerPoolIndex, powerType, powerValue, powerMax)
             if not IsResourceOrbFramesEnabled() then
                 TraceDisabledGateOnce(TraceMountStamina, "resource_orbs.mount_stamina", "MountStaminaBar.EVENT_POWER_UPDATE")

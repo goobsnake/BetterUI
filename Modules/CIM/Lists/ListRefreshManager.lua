@@ -424,10 +424,46 @@ function BETTERUI.CIM.Lists.ListRefreshManager:MarkDirty()
     end
 end
 
----@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:ClearDirty()
     self.isDirty = false
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh clear dirty")
     end
+end
+
+-- SHARED MOVE-PREVIOUS HEADER WRAPPER
+-- Extracted from Banking.lua, CompanionsRuntime.lua, VendorBootstrapRuntime.lua.
+-- Wraps list.MovePrevious to enter the header/search bar on a failed upward move
+-- (list at top). Instance-level wrap of BetterUI-owned list objects; no shared-class
+-- mutation, so cross-addon safe. The _betteruiMovePreviousWrapperInstalled guard
+-- prevents double-wrapping.
+
+--- @param list table List control with a MovePrevious method
+--- @param onTopExit fun()? Callback invoked when MovePrevious fails (list at top).
+---        If nil, the wrapper still consumes the failed move (returns true) to prevent
+---        the default parametric list boundary sound.
+function BETTERUI.CIM.Lists.WrapMovePreviousToHeader(list, onTopExit)
+    if not (list and type(list.MovePrevious) == "function") then
+        return false
+    end
+    if list._betteruiMovePreviousWrapperInstalled then
+        return true
+    end
+
+    -- Direct assignment is intentional: ZO_PostHook does not expose the original
+    -- return value, which we need to detect a failed move (list at top).
+    -- The _betteruiMovePreviousWrapperInstalled guard prevents double-wrapping.
+    local originalMovePrevious = list.MovePrevious
+    list._betteruiMovePreviousWrapperInstalled = true
+    list.MovePrevious = function(self, allowWrapping, suppressFailSound)
+        local didMove = originalMovePrevious(self, allowWrapping, suppressFailSound)
+        if didMove then
+            return true
+        end
+        if type(onTopExit) == "function" then
+            onTopExit(self)
+        end
+        return true
+    end
+    return true
 end
