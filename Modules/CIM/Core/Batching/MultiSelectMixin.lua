@@ -27,6 +27,29 @@ local function DefaultGetList(self)
     return self.list or self.itemList
 end
 
+local function NewBatchLifecycleId()
+    local L = BETTERUI and BETTERUI.Log
+    if L and type(L.NewFlow) == "function" then
+        return L.NewFlow("batch")
+    end
+    return nil
+end
+
+local function TraceBatchLifecycle(event, phase, data)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then
+        return
+    end
+    if L.IsActive and not L.IsActive() then
+        return
+    end
+
+    data = data or {}
+    data.feature = data.feature or "cim-batch"
+    data.fn = data.fn or "CIM.MultiSelectMixin.ProcessBatchThrottled"
+    L.TraceEvent(L.CATEGORY.BATCH, event or "cim.batch", phase, data)
+end
+
 local function NormalizeConfig(config)
     local rawConfig = type(config) == "table" and config or {}
 
@@ -232,6 +255,9 @@ function Mixin.ProcessBatchThrottled(self, request)
     local action = request.actionName
     local options = request.options
     local onBatchComplete = request.onComplete
+    local lifecycleOptions = type(options) == "table" and type(options.lifecycle) == "table" and options.lifecycle or nil
+    local lifecycleEvent = lifecycleOptions and lifecycleOptions.eventName or "cim.batch"
+    local lifecycleModule = lifecycleOptions and lifecycleOptions.module or nil
 
     local shouldNormalizeItems = true
     if type(options) == "table" and type(options.lifecycle) == "table" then
@@ -257,6 +283,7 @@ function Mixin.ProcessBatchThrottled(self, request)
         if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "Batch re-entry rejected: pipeline already active") end
         return
     end
+    local batchId = NewBatchLifecycleId()
 
     -- Pipeline token: monotonically increasing counter that invalidates stale timers
     self.batchPipelineToken = (self.batchPipelineToken or 0) + 1
@@ -456,6 +483,17 @@ function Mixin.ProcessBatchThrottled(self, request)
     self.batchAbortRequested = false
     self.batchSuppressUiUpdates = suppressUiUpdates and true or nil
 
+    TraceBatchLifecycle(lifecycleEvent, "begin", {
+        batchId = batchId,
+        module = lifecycleModule,
+        action = action,
+        totalSteps = totalItems,
+        serverBound = isServerBound == true,
+        awaitInventoryAck = awaitInventoryAck == true,
+        showProgress = showProgress == true,
+        pipelineToken = pipelineToken,
+    })
+
     local displayName = action or GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS"))
     if self._multiSelectConfig and self._multiSelectConfig.refreshKeybinds then
         self._multiSelectConfig.refreshKeybinds(self)
@@ -491,6 +529,18 @@ function Mixin.ProcessBatchThrottled(self, request)
             abortReason = stopReason,
             pipelineToken = pipelineToken,
         }
+
+        TraceBatchLifecycle(lifecycleEvent, stopReason and "abort" or "end", {
+            batchId = batchId,
+            module = lifecycleModule,
+            action = action,
+            totalSteps = totalItems,
+            processedCount = processedCount,
+            processedCost = processedCost,
+            abortReason = stopReason,
+            elapsedMs = elapsedMs,
+            pipelineToken = pipelineToken,
+        })
 
         if BETTERUI.Log and BETTERUI.Log.IsActive() then
             BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.BATCH, "batch summary logged", self_ref.lastBatchSummary)
@@ -657,10 +707,15 @@ function Mixin.ProcessBatchThrottled(self, request)
             actionQueued = false
             local skipToNext = false
 
+            local stepStatus = "skipped"
+            local stepReason = nil
             if bagId and slotIndex then
                 local stepResult = BatchConfig.NormalizeBatchStepResult(stepFn(bagId, slotIndex, itemData))
+                stepStatus = stepResult.status
+                stepReason = stepResult.reason
                 if stepResult.status == BatchConfig.BATCH_STEP_STATUS.STOPPED then
                     stopReason = stepResult.reason or "bagFull"
+                    stepReason = stopReason
                 elseif stepResult.status == BatchConfig.BATCH_STEP_STATUS.SKIPPED then
                     consecutiveQueuedActions = 0; skipToNext = true
                 else
@@ -676,8 +731,20 @@ function Mixin.ProcessBatchThrottled(self, request)
                     BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.BATCH, "batch step executed", {index = index, processed = processedCount, status = stepResult.status, action = action})
                 end
             else
+                stepReason = "missingSlot"
                 consecutiveQueuedActions = 0
             end
+            TraceBatchLifecycle(lifecycleEvent, "step", {
+                batchId = batchId,
+                module = lifecycleModule,
+                action = action,
+                stepIndex = index,
+                totalSteps = totalItems,
+                processedCount = processedCount,
+                status = stepStatus,
+                stepReason = stepReason,
+                pipelineToken = pipelineToken,
+            })
 
             if stopReason then finishBatch(); return end
             if not skipToNext then break end

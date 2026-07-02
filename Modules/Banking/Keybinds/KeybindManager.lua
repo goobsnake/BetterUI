@@ -127,7 +127,7 @@ local function BeginCurrencyTransferFlow(self, message, data)
     if L and L.IsActive and L.IsActive() and L.FlowBegin then
         data = data or {}
         data.mode = self and self.currentMode
-        return L.FlowBegin("bankCurrencyTransfer", L.CATEGORY.ACTION, message, data)
+        return L.FlowBegin("bankCurrencyTransfer", L.CATEGORY.TRANSFER, message, data)
     end
     return nil
 end
@@ -135,14 +135,14 @@ end
 local function EndCurrencyTransferFlow(flow, message, data)
     local L = BETTERUI.Log
     if flow and L and L.FlowEnd then
-        L.FlowEnd(flow, L.CATEGORY.ACTION, message, data)
+        L.FlowEnd(flow, L.CATEGORY.TRANSFER, message, data)
     end
 end
 
-local function LogBankKeybindState(message, data)
+local function LogBankKeybindState(message, data, category)
     local L = BETTERUI.Log
     if L and L.Debug then
-        L.Debug(L.CATEGORY.STATE, message, data)
+        L.Debug(category or L.CATEGORY.STATE, message, data)
     end
 end
 
@@ -165,7 +165,7 @@ local function TraceBankCurrencyAction(phase, data)
     if not (L and L.TraceEvent) then return end
     data = data or {}
     data.feature = data.feature or "currencyTransfer"
-    L.TraceEvent(L.CATEGORY.ACTION, "bank.currency_transfer", phase, data)
+    L.TraceEvent(L.CATEGORY.TRANSFER, "bank.currency_transfer", phase, data)
 end
 
 local function ReadCurrencyAmount(currencyType, location)
@@ -186,6 +186,46 @@ local function CurrencySnapshot(currencyType, fromLocation, toLocation, prefix)
         [prefix .. "From"] = ReadCurrencyAmount(currencyType, fromLocation),
         [prefix .. "To"] = ReadCurrencyAmount(currencyType, toLocation),
     }
+end
+
+local function IsLogPrivacyMode()
+    local L = BETTERUI.Log
+    return L and L.GetPrivacyMode and L.GetPrivacyMode() == true
+end
+
+local function CurrencyAmountForLog(amount)
+    if IsLogPrivacyMode() then
+        return nil
+    end
+    return amount
+end
+
+local function CurrencyDelta(afterValue, beforeValue)
+    if type(afterValue) == "number" and type(beforeValue) == "number" then
+        return afterValue - beforeValue
+    end
+    return nil
+end
+
+local function AddCurrencySnapshotFields(payload, before, postCall, settled)
+    payload = payload or {}
+    before = before or {}
+    postCall = postCall or {}
+    settled = settled or {}
+    if IsLogPrivacyMode() then
+        payload.postCallFromDelta = CurrencyDelta(postCall.postCallFrom, before.beforeFrom)
+        payload.postCallToDelta = CurrencyDelta(postCall.postCallTo, before.beforeTo)
+        payload.settledFromDelta = CurrencyDelta(settled.settledFrom, before.beforeFrom)
+        payload.settledToDelta = CurrencyDelta(settled.settledTo, before.beforeTo)
+    else
+        payload.beforeFrom = before.beforeFrom
+        payload.beforeTo = before.beforeTo
+        payload.postCallFrom = postCall.postCallFrom
+        payload.postCallTo = postCall.postCallTo
+        payload.settledFrom = settled.settledFrom
+        payload.settledTo = settled.settledTo
+    end
+    return payload
 end
 
 local function GetPrimaryTransferLabel(self)
@@ -461,7 +501,7 @@ local function CreateCoreNavigationKeybinds(self)
                     TraceBankKeybind("bank.upgrade", "blocked", {
                         reason = "cannotAfford",
                         cost = cost,
-                        carriedGold = GetCarriedCurrencyAmount(CURT_MONEY),
+                        carriedGold = CurrencyAmountForLog(GetCarriedCurrencyAmount(CURT_MONEY)),
                     })
                     BETTERUI.CIM.UserAlertText("Banking.Keybinds", GetString(rawget(_G, "SI_BUY_BANK_SPACE_CANNOT_AFFORD")))
                 else
@@ -470,7 +510,7 @@ local function CreateCoreNavigationKeybinds(self)
                     -- manages its own keybind layer, so no teardown is needed here.
                     TraceBankKeybind("bank.upgrade", "dialog_show", {
                         cost = cost,
-                        carriedGold = GetCarriedCurrencyAmount(CURT_MONEY),
+                        carriedGold = CurrencyAmountForLog(GetCarriedCurrencyAmount(CURT_MONEY)),
                         currentUpgrade = GetCurrentBankUpgrade and GetCurrentBankUpgrade() or nil,
                         maxUpgrade = GetMaxBankUpgrade and GetMaxBankUpgrade() or nil,
                     })
@@ -668,7 +708,7 @@ local function CreateTransferKeybinds(self)
                         mode = self.currentMode,
                         stackCount = stackCount,
                         guild = isGuildBankMode,
-                    })
+                    }, "TRANSFER")
                     if stackCount > 1 and not isGuildBankMode then
                         self:ShowQuantityDialog(self.currentMode == LIST_DEPOSIT)
                     else
@@ -793,38 +833,29 @@ local function CreateCurrencySelectorKeybinds(self)
                     end
                 end
                 local before = CurrencySnapshot(currencyType, fromLocation, toLocation, "before")
-                TraceBankKeybind("bank.currency_transfer", "before", {
+                TraceBankKeybind("bank.currency_transfer", "before", AddCurrencySnapshotFields({
                     currencyType = currencyType, amount = amount, mode = self.currentMode,
-                    from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
-                    beforeTo = before.beforeTo, guild = isGuildBankMode,
-                })
+                    from = fromLocation, to = toLocation, guild = isGuildBankMode,
+                }, before))
                 local okTransfer, transferResult = pcall(TransferCurrency, currencyType, amount, fromLocation, toLocation)
                 local postCall = CurrencySnapshot(currencyType, fromLocation, toLocation, "postCall")
                 if not okTransfer or transferResult == false then
-                    EndCurrencyTransferFlow(flow, "bank currency transfer failed", {
+                    EndCurrencyTransferFlow(flow, "bank currency transfer failed", AddCurrencySnapshotFields({
                         currencyType = currencyType,
                         amount = amount,
                         guild = isGuildBankMode,
                         from = fromLocation,
                         to = toLocation,
                         reason = okTransfer and "transfer_returned_false" or tostring(transferResult),
-                        beforeFrom = before.beforeFrom,
-                        beforeTo = before.beforeTo,
-                        postCallFrom = postCall.postCallFrom,
-                        postCallTo = postCall.postCallTo,
-                    })
-                    TraceBankKeybind("bank.currency_transfer", "end", {
+                    }, before, postCall))
+                    TraceBankKeybind("bank.currency_transfer", "end", AddCurrencySnapshotFields({
                         status = "failed", currencyType = currencyType, amount = amount,
-                        from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
-                        beforeTo = before.beforeTo, postCallFrom = postCall.postCallFrom,
-                        postCallTo = postCall.postCallTo,
-                    })
-                    TraceBankCurrencyAction("failed", {
+                        from = fromLocation, to = toLocation,
+                    }, before, postCall))
+                    TraceBankCurrencyAction("failed", AddCurrencySnapshotFields({
                         currencyType = currencyType, amount = amount, guild = isGuildBankMode,
                         from = fromLocation, to = toLocation, reason = okTransfer and "transfer_returned_false" or tostring(transferResult),
-                        beforeFrom = before.beforeFrom, beforeTo = before.beforeTo,
-                        postCallFrom = postCall.postCallFrom, postCallTo = postCall.postCallTo,
-                    })
+                    }, before, postCall))
                     return
                 end
                 if currencySelector and currencySelector.HideSelector then
@@ -832,29 +863,21 @@ local function CreateCurrencySelectorKeybinds(self)
                 end
                 self:RefreshFooter()
                 UpdateKeybindGroup(self.coreKeybinds)
-                EndCurrencyTransferFlow(flow, "bank currency transfer completed", {
+                EndCurrencyTransferFlow(flow, "bank currency transfer completed", AddCurrencySnapshotFields({
                     currencyType = currencyType,
                     amount = amount,
                     guild = isGuildBankMode,
                     from = fromLocation,
                     to = toLocation,
-                    beforeFrom = before.beforeFrom,
-                    beforeTo = before.beforeTo,
-                    postCallFrom = postCall.postCallFrom,
-                    postCallTo = postCall.postCallTo,
-                })
-                TraceBankKeybind("bank.currency_transfer", "end", {
+                }, before, postCall))
+                TraceBankKeybind("bank.currency_transfer", "end", AddCurrencySnapshotFields({
                     status = "requested", currencyType = currencyType, amount = amount,
-                    from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
-                    beforeTo = before.beforeTo, postCallFrom = postCall.postCallFrom,
-                    postCallTo = postCall.postCallTo,
-                })
-                TraceBankCurrencyAction("requested", {
+                    from = fromLocation, to = toLocation,
+                }, before, postCall))
+                TraceBankCurrencyAction("requested", AddCurrencySnapshotFields({
                     currencyType = currencyType, amount = amount, guild = isGuildBankMode,
-                    from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
-                    beforeTo = before.beforeTo, postCallFrom = postCall.postCallFrom,
-                    postCallTo = postCall.postCallTo,
-                })
+                    from = fromLocation, to = toLocation,
+                }, before, postCall))
                 if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
                     BETTERUI.Banking.Tasks:Schedule("currencyTransferSettled", 100, function()
                         local settled = CurrencySnapshot(currencyType, fromLocation, toLocation, "settled")
@@ -882,32 +905,28 @@ local function CreateCurrencySelectorKeybinds(self)
                                 refreshError = refreshError or tostring(keybindErr)
                             end
                         end
-                        TraceBankKeybind("bank.currency_transfer", "settled", {
+                        TraceBankKeybind("bank.currency_transfer", "settled", AddCurrencySnapshotFields({
                             currencyType = currencyType, amount = amount, from = fromLocation,
-                            to = toLocation, beforeFrom = before.beforeFrom, beforeTo = before.beforeTo,
-                            settledFrom = settled.settledFrom, settledTo = settled.settledTo,
+                            to = toLocation,
                             refreshedFooter = refreshedFooter, refreshedTooltip = false,
                             keybindRefresh = keybindRefresh, refreshOk = refreshOk,
                             refreshError = refreshError,
-                        })
-                        TraceBankCurrencyAction("completed", {
+                        }, before, nil, settled))
+                        TraceBankCurrencyAction("completed", AddCurrencySnapshotFields({
                             currencyType = currencyType, amount = amount, guild = isGuildBankMode,
-                            from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
-                            beforeTo = before.beforeTo, settledFrom = settled.settledFrom,
-                            settledTo = settled.settledTo, refreshedFooter = refreshedFooter,
+                            from = fromLocation, to = toLocation, refreshedFooter = refreshedFooter,
                             refreshedTooltip = false, keybindRefresh = keybindRefresh,
                             refreshOk = refreshOk, refreshError = refreshError,
-                        })
+                        }, before, nil, settled))
                     end)
                 else
-                    TraceBankCurrencyAction("completed", {
+                    local settledFallback = { settledFrom = postCall.postCallFrom, settledTo = postCall.postCallTo }
+                    TraceBankCurrencyAction("completed", AddCurrencySnapshotFields({
                         currencyType = currencyType, amount = amount, guild = isGuildBankMode,
-                        from = fromLocation, to = toLocation, beforeFrom = before.beforeFrom,
-                        beforeTo = before.beforeTo, settledFrom = postCall.postCallFrom,
-                        settledTo = postCall.postCallTo, refreshedFooter = true,
+                        from = fromLocation, to = toLocation, refreshedFooter = true,
                         refreshedTooltip = false, keybindRefresh = "core", refreshOk = true,
                         reason = "noScheduler",
-                    })
+                    }, before, nil, settledFallback))
                 end
             end,
         }
@@ -1079,7 +1098,7 @@ function BETTERUI.Banking.Class:AddKeybinds()
     if BETTERUI.Log then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "add keybinds")
     end
-    TraceBankKeybind("bank.keybind_groups", "before_add", {
+    TraceBankKeybind("bank.keybind_groups.keybind_add", "begin", {
         mode = self.currentMode,
         core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
@@ -1094,7 +1113,7 @@ function BETTERUI.Banking.Class:AddKeybinds()
     EnsureKeybindGroupAdded(self.coreKeybinds)
     self:UpdateActions()
     self:EnsureHeaderKeybindsActive()
-    TraceBankKeybind("bank.keybind_groups", "after_add", {
+    TraceBankKeybind("bank.keybind_groups.keybind_add", "end", {
         mode = self.currentMode,
         core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
@@ -1111,14 +1130,14 @@ function BETTERUI.Banking.Class:RemoveKeybinds()
     if BETTERUI.Log then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "remove keybinds")
     end
-    TraceBankKeybind("bank.keybind_groups", "before_remove", {
+    TraceBankKeybind("bank.keybind_groups.keybind_remove", "begin", {
         mode = self.currentMode,
         core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
     })
     RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
     RemoveKeybindGroupIfPresent(self.coreKeybinds)
-    TraceBankKeybind("bank.keybind_groups", "after_remove", {
+    TraceBankKeybind("bank.keybind_groups.keybind_remove", "end", {
         mode = self.currentMode,
         core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,

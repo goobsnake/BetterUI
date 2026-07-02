@@ -245,7 +245,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             ZO_ClearNumericallyIndexedTable(parametricList)
 
             local targetData = self:GetList() and self:GetList().selectedData or nil
-            TraceBankingActionDialog("bank.action_dialog", "setup_before", {
+            TraceBankingActionDialog("bank.action_dialog", "begin", {
                 mode = self.currentMode,
                 target = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(targetData, "target") or nil,
                 selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(self.list, "selection") or nil,
@@ -354,7 +354,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             end
 
             dialog:setupFunc()
-            TraceBankingActionDialog("bank.action_dialog", "setup_after", {
+            TraceBankingActionDialog("bank.action_dialog", "end", {
                 mode = self.currentMode,
                 entryCount = #parametricList,
                 selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(dialog.entryList, "dialog") or nil,
@@ -376,7 +376,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                     main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
                 })
             end
-            TraceBankingActionDialog("bank.action_dialog", "finish_before", {
+            TraceBankingActionDialog("bank.action_dialog.finish", "begin", {
                 mode = self.currentMode,
                 closeCause = closeCause,
                 headerSort = self.isInHeaderSortMode == true,
@@ -389,7 +389,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             if not pendingHeaderSort then
                 self:RefreshItemActions()
             end
-            TraceBankingActionDialog("bank.action_dialog", "finish_after", {
+            TraceBankingActionDialog("bank.action_dialog.finish", "end", {
                 mode = self.currentMode,
                 closeCause = closeCause,
                 headerSort = self.isInHeaderSortMode == true,

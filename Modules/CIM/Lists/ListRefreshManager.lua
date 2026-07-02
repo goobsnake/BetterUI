@@ -18,6 +18,8 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 --- @field batchProcessor BETTERUI.CIM.Lists.BatchProcessor|nil Optional batch processor
 --- @field isDirty boolean Whether a refresh is pending
 --- @field pendingRefreshCallId number|nil zo_callLater handle for pending refresh
+--- @field pendingRefreshFlow string|nil Flow id carried by the pending coalesced refresh
+--- @field pendingRefreshCoalescedCount integer Number of queue calls coalesced into the pending refresh
 --- @field savedPosition integer|nil Last saved scroll position
 --- @field savedUniqueId string|nil Last saved item uniqueId for position restoration
 BETTERUI.CIM.Lists.ListRefreshManager = ZO_Object:Subclass()
@@ -36,6 +38,26 @@ local function SafeDescribeListSelection(list, phase)
         if ok then selectedIndex = index end
     end
     return { phase = phase, selectedIndex = selectedIndex, reason = "describeHelperUnavailable" }
+end
+
+local function NormalizeRefreshOptions(savePosition, options)
+    if type(savePosition) == "table" and options == nil then
+        options = savePosition
+        savePosition = options.savePosition
+    end
+    return savePosition, options or {}
+end
+
+local function AddRefreshTraceContext(data, options)
+    options = options or {}
+    local coalescedCount = options.coalescedCount or 0
+    data.flow = options.flow
+    data.source = options.source
+    data.reason = options.reason
+    data.token = options.token
+    data.coalesced = coalescedCount > 0
+    data.coalescedCount = coalescedCount
+    return data
 end
 
 ---@param ... any
@@ -57,13 +79,19 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     self.isDirty = false
     self.pendingRefreshCallId = nil
     self.refreshToken = 0
+    self.pendingRefreshFlow = nil
+    self.pendingRefreshSource = nil
+    self.pendingRefreshReason = nil
+    self.pendingRefreshToken = nil
+    self.pendingRefreshCoalescedCount = 0
     self.savedPosition = nil
     self.savedUniqueId = nil
 end
 
 ---@param list table
+---@param options BetterUIListRefreshTraceOptions|nil
 ---@return nil
-function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
+function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list, options)
     if not list then return end
 
     self.savedPosition = list:GetSelectedIndex() or 1
@@ -74,20 +102,24 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
         self.savedUniqueId = nil
     end
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh save position", { savedPosition = self.savedPosition, savedUniqueId = self.savedUniqueId })
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh save position", AddRefreshTraceContext({
+            savedPosition = self.savedPosition,
+            savedUniqueId = self.savedUniqueId,
+        }, options))
     end
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "saved", {
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "saved", AddRefreshTraceContext({
             selected = SafeDescribeListSelection(list, "saved"),
             savedPosition = self.savedPosition,
             savedUniqueId = self.savedUniqueId,
-        })
+        }, options))
     end
 end
 
 ---@param list table
+---@param options BetterUIListRefreshTraceOptions|nil
 ---@return boolean, boolean?
-function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
+function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list, options)
     if not list then return false, false end
 
     local targetIndex = nil
@@ -125,13 +157,13 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     local numItems = list:GetNumItems() or 0
     if numItems == 0 then
         if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", AddRefreshTraceContext({
                 restored = false,
                 restoredById = restoredById == true,
                 method = nil,
                 restoreReason = "empty",
-                reason = "empty",
-            })
+                failureReason = "empty",
+            }, options))
         end
         return false, restoredById
     end
@@ -147,37 +179,37 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     if list.SetSelectedIndex then
         list:SetSelectedIndex(targetIndex)
         if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", AddRefreshTraceContext({
                 restored = true, method = restoredById and "id" or "index", targetIndex = targetIndex,
                 restoredById = restoredById == true,
                 restoreReason = restoreReason,
                 selected = SafeDescribeListSelection(list, "after"),
-            })
+            }, options))
         end
         return true, restoredById
     elseif list.SetSelectedDataIndex then
         list:SetSelectedDataIndex(targetIndex)
         if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", AddRefreshTraceContext({
                 restored = true, method = restoredById and "id" or "index", targetIndex = targetIndex,
                 restoredById = restoredById == true,
                 restoreReason = restoreReason,
                 selected = SafeDescribeListSelection(list, "after"),
-            })
+            }, options))
         end
         return true, restoredById
     end
 
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", {
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", AddRefreshTraceContext({
             restored = false,
             method = nil,
             targetIndex = targetIndex,
             restoredById = restoredById == true,
             restoreReason = restoreReason,
-            reason = "missingSelectionSetter",
+            failureReason = "missingSelectionSetter",
             selected = SafeDescribeListSelection(list, "after"),
-        })
+        }, options))
     end
     return false, restoredById
 end
@@ -185,19 +217,55 @@ end
 ---@param list table
 ---@param refreshFn fun()
 ---@param savePosition boolean?
+---@param options BetterUIListRefreshTraceOptions|nil
 ---@return nil
-function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, savePosition)
+function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, savePosition, options)
+    savePosition, options = NormalizeRefreshOptions(savePosition, options)
     local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "queue refresh", { numItems = numItems, coalesceDelay = self.coalesceDelay }) end
+    local hadPendingRefresh = self.pendingRefreshCallId ~= nil
+    local coalescedCount = hadPendingRefresh and ((self.pendingRefreshCoalescedCount or 0) + 1) or 0
+
+    self.pendingRefreshFlow = options.flow or self.pendingRefreshFlow
+    self.pendingRefreshSource = options.source or self.pendingRefreshSource
+    self.pendingRefreshReason = options.reason or self.pendingRefreshReason
+    self.pendingRefreshToken = options.token or self.pendingRefreshToken
+    self.pendingRefreshCoalescedCount = coalescedCount
+
+    local traceFlow = self.pendingRefreshFlow
+    local traceSource = self.pendingRefreshSource
+    local traceReason = self.pendingRefreshReason
+    local traceToken = self.pendingRefreshToken
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "queue refresh", {
+        numItems = numItems,
+        coalesceDelay = self.coalesceDelay,
+        flow = traceFlow,
+        source = traceSource,
+        reason = traceReason,
+        token = traceToken,
+        coalesced = hadPendingRefresh,
+        coalescedCount = coalescedCount,
+    }) end
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "queued", {
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "queued", AddRefreshTraceContext({
             numItems = numItems, coalesceDelay = self.coalesceDelay, savePosition = savePosition ~= false,
             selected = SafeDescribeListSelection(list, "before"),
-        })
+        }, {
+            flow = traceFlow,
+            source = traceSource,
+            reason = traceReason,
+            token = traceToken,
+            coalescedCount = coalescedCount,
+        }))
     end
 
     if savePosition ~= false then
-        self:SavePosition(list)
+        self:SavePosition(list, {
+            flow = traceFlow,
+            source = traceSource,
+            reason = traceReason,
+            token = traceToken,
+            coalescedCount = coalescedCount,
+        })
     end
 
     self.isDirty = true
@@ -219,15 +287,29 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
         end
         self.pendingRefreshCallId = nil
         if self.isDirty then
-            self:ExecuteRefresh(list, refreshFn)
+            local executeOptions = {
+                flow = self.pendingRefreshFlow,
+                source = self.pendingRefreshSource,
+                reason = self.pendingRefreshReason,
+                token = self.pendingRefreshToken,
+                coalescedCount = self.pendingRefreshCoalescedCount or 0,
+            }
+            self.pendingRefreshFlow = nil
+            self.pendingRefreshSource = nil
+            self.pendingRefreshReason = nil
+            self.pendingRefreshToken = nil
+            self.pendingRefreshCoalescedCount = 0
+            self:ExecuteRefresh(list, refreshFn, executeOptions)
         end
     end, self.coalesceDelay)
 end
 
 ---@param list table
 ---@param refreshFn fun()
+---@param options BetterUIListRefreshTraceOptions|nil
 ---@return nil
-function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
+function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn, options)
+    options = options or {}
     self.isDirty = false
     local beforeCount = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
 
@@ -237,14 +319,25 @@ function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     end
 
     -- Restore position after refresh
-    local success, restoredById = self:RestorePosition(list)
+    local success, restoredById = self:RestorePosition(list, options)
     local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "execute refresh", { numItems = numItems, restoredById = restoredById == true, coalesceDelay = self.coalesceDelay }) end
+    local coalescedCount = options.coalescedCount or 0
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "execute refresh", {
+        numItems = numItems,
+        restoredById = restoredById == true,
+        coalesceDelay = self.coalesceDelay,
+        flow = options.flow,
+        source = options.source,
+        reason = options.reason,
+        token = options.token,
+        coalesced = coalescedCount > 0,
+        coalescedCount = coalescedCount,
+    }) end
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "executed", {
+        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "executed", AddRefreshTraceContext({
             beforeCount = beforeCount, afterCount = numItems, restored = success == true,
             restoredById = restoredById == true, selected = SafeDescribeListSelection(list, "after"),
-        })
+        }, options))
     end
 end
 
@@ -258,6 +351,11 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
         zo_removeCallLater(self.pendingRefreshCallId)
         self.pendingRefreshCallId = nil
     end
+    self.pendingRefreshFlow = nil
+    self.pendingRefreshSource = nil
+    self.pendingRefreshReason = nil
+    self.pendingRefreshToken = nil
+    self.pendingRefreshCoalescedCount = 0
     self.isDirty = false
 end
 

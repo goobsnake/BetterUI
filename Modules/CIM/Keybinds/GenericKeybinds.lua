@@ -37,7 +37,7 @@ local function InvokeKeybind(scope, keybind, action, callback, data)
     end
     data = data or {}
     data.action = action
-    TraceKeybind(scope, keybind, "start", data)
+    TraceKeybind(scope, keybind, "begin", data)
     local r1, r2, r3 = callback()
     data.handled = r1 ~= false
     data.reason = r2
@@ -309,7 +309,7 @@ BuildTriggerKeybinds = function(contract)
             end
             local speed = GetSpeed()
             local selectedBefore = GetSelectedIndex(list)
-            TraceListTrigger("previous", "start", list, {
+            TraceListTrigger("previous", "begin", list, {
                 jumpByCategory = jumpByCategory,
                 speed = speed,
                 selectedBefore = selectedBefore,
@@ -357,7 +357,7 @@ BuildTriggerKeybinds = function(contract)
             end
             local speed = GetSpeed()
             local selectedBefore = GetSelectedIndex(list)
-            TraceListTrigger("next", "start", list, {
+            TraceListTrigger("next", "begin", list, {
                 jumpByCategory = jumpByCategory,
                 speed = speed,
                 selectedBefore = selectedBefore,

@@ -72,9 +72,9 @@ assert_true(listRefreshManager:find("BETTERUI%.CIM%.Lists%.ListRefreshManager = 
     "ListRefreshManager defines the shared refresh manager class")
 assert_true(listRefreshManager:find("BetterUIListRefreshManagerOptions") ~= nil,
     "ListRefreshManager initialize docs use the shared options type alias")
-assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:SavePosition%(list%)") ~= nil,
+assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:SavePosition%(list, options%)") ~= nil,
     "ListRefreshManager exposes SavePosition")
-assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:QueueRefresh%(list, refreshFn, savePosition%)") ~= nil,
+assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:QueueRefresh%(list, refreshFn, savePosition, options%)") ~= nil,
     "ListRefreshManager exposes QueueRefresh")
 assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:IsDirty%(%)") ~= nil,
     "ListRefreshManager exposes IsDirty")

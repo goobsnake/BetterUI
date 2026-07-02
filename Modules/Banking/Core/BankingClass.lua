@@ -524,7 +524,7 @@ end
 ---@param window BETTERUI.Banking.Class|table|nil
 ---@param options table|nil
 ---@return nil
-function BETTERUI.Banking.RefreshWindowView(window, options)
+local function RefreshWindowViewNow(window, options)
     if not window then
         return
     end
@@ -588,6 +588,31 @@ function BETTERUI.Banking.RefreshWindowView(window, options)
     if options.refreshKeybinds == true and window.RefreshActiveKeybinds then
         window:RefreshActiveKeybinds()
     end
+end
+
+---@param window BETTERUI.Banking.Class|table|nil
+---@param options table|nil
+---@return nil
+function BETTERUI.Banking.RefreshWindowView(window, options)
+    if not window then
+        return
+    end
+
+    options = options or {}
+    local refreshManager = BETTERUI.Banking and BETTERUI.Banking.RefreshManager or nil
+    if options.coalesce == true and refreshManager and type(refreshManager.QueueRefresh) == "function" then
+        refreshManager:QueueRefresh(window.list, function()
+            RefreshWindowViewNow(window, options)
+        end, options.savePosition, {
+            flow = options.flow,
+            source = options.source or "bank.RefreshWindowView",
+            reason = options.reason,
+            token = options.token,
+        })
+        return
+    end
+
+    RefreshWindowViewNow(window, options)
 end
 
 ---@param suppressed boolean

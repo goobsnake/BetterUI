@@ -70,12 +70,14 @@ local depositCurrencyCalls = {}
 local logEvents = {}
 local depositPolicyCalls = {}
 local transferCurrencyShouldFail = false
+local logPrivacyMode = false
 
 local guildBankMode = false
 local guildBankLoading = false
 local currentBank = BAG_BANK
 local nextBankUpgradePrice = 1000
 local carriedCurrency = 5000
+local currencyAmounts = {}
 local guildCount = 2
 local batchProcessing = false
 local guildTransferAllowed = true
@@ -124,11 +126,17 @@ local function resetGlobals()
     logEvents = {}
     depositPolicyCalls = {}
     transferCurrencyShouldFail = false
+    logPrivacyMode = false
     guildBankMode = false
     guildBankLoading = false
     currentBank = BAG_BANK
     nextBankUpgradePrice = 1000
     carriedCurrency = 5000
+    currencyAmounts = {
+        [CURRENCY_LOCATION_CHARACTER] = 1000,
+        [CURRENCY_LOCATION_BANK] = 2000,
+        [CURRENCY_LOCATION_GUILD_BANK] = 3000,
+    }
     guildCount = 2
     batchProcessing = false
     guildTransferAllowed = true
@@ -195,6 +203,8 @@ function TransferCurrency(currencyType, amount, fromLocation, toLocation)
     if transferCurrencyShouldFail then
         return false
     end
+    currencyAmounts[fromLocation] = (currencyAmounts[fromLocation] or 0) - amount
+    currencyAmounts[toLocation] = (currencyAmounts[toLocation] or 0) + amount
 end
 
 function WithdrawCurrencyFromBank(currencyType, amount)
@@ -397,7 +407,7 @@ BETTERUI = {
         end,
     },
     Log = {
-        CATEGORY = { ACTION = "ACTION", STATE = "STATE", KEYBIND = "KEYBIND" },
+        CATEGORY = { ACTION = "ACTION", TRANSFER = "TRANSFER", STATE = "STATE", KEYBIND = "KEYBIND" },
         IsActive = function() return true end,
         FlowBegin = function(kind, category, message, data)
             local flow = "flow-" .. tostring(#logEvents + 1)
@@ -418,6 +428,12 @@ BETTERUI = {
         end,
         TraceEvent = function(category, event, phase, data)
             table.insert(logEvents, { category = category, event = event, phase = phase, data = data })
+        end,
+        GetPrivacyMode = function()
+            return logPrivacyMode
+        end,
+        GetCurrencyAmountForLocation = function(_, location)
+            return currencyAmounts[location]
         end,
         Warn = function(category, message, data)
             table.insert(logEvents, { category = category, message = message, data = data })
@@ -638,11 +654,19 @@ assertEqual("search-group", removedGroups[1], "AddKeybinds removes the search ke
 assertEqual(window.withdrawDepositKeybinds, addedGroups[1], "AddKeybinds adds withdraw/deposit keybinds")
 assertEqual(window.coreKeybinds, addedGroups[2], "AddKeybinds adds core keybinds")
 assertEqual(1, window.headerKeybindsEnsured, "AddKeybinds re-evaluates header keybind activation")
+assertTrue(hasTraceEvent("bank.keybind_groups.keybind_add", "begin"),
+    "AddKeybinds traces keybind_add begin")
+assertTrue(hasTraceEvent("bank.keybind_groups.keybind_add", "end"),
+    "AddKeybinds traces keybind_add end")
 
 removedGroups = {}
 window:RemoveKeybinds()
 assertEqual(window.withdrawDepositKeybinds, removedGroups[1], "RemoveKeybinds removes withdraw/deposit keybinds")
 assertEqual(window.coreKeybinds, removedGroups[2], "RemoveKeybinds removes core keybinds")
+assertTrue(hasTraceEvent("bank.keybind_groups.keybind_remove", "begin"),
+    "RemoveKeybinds traces keybind_remove begin")
+assertTrue(hasTraceEvent("bank.keybind_groups.keybind_remove", "end"),
+    "RemoveKeybinds traces keybind_remove end")
 
 resetGlobals()
 window = createWindow()
@@ -836,6 +860,30 @@ assertEqual(CURT_MONEY, transferCalls[1].currencyType, "Personal deposit uses Tr
 assertEqual(CURRENCY_LOCATION_CHARACTER, transferCalls[1].fromLocation, "Personal deposit transfers from the character")
 assertEqual(CURRENCY_LOCATION_BANK, transferCalls[1].toLocation, "Personal deposit transfers to the bank")
 assertEqual(0, #depositCurrencyCalls, "Personal deposit no longer calls the deprecated DepositCurrencyIntoBank alias")
+
+transferCalls = {}
+logEvents = {}
+logPrivacyMode = true
+currencyAmounts[CURRENCY_LOCATION_CHARACTER] = 1000
+currencyAmounts[CURRENCY_LOCATION_BANK] = 2000
+window.selector.value = 25
+window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
+currencySelectorPrimary.callback()
+local privateRequested = findTraceEvent("bank.currency_transfer", "requested")
+assertTrue(privateRequested ~= nil, "Privacy currency transfer emits requested trace")
+assertEqual(-25, privateRequested.data.postCallFromDelta, "Privacy requested trace includes from delta")
+assertEqual(25, privateRequested.data.postCallToDelta, "Privacy requested trace includes to delta")
+assertEqual(nil, privateRequested.data.beforeFrom, "Privacy requested trace omits beforeFrom")
+assertEqual(nil, privateRequested.data.beforeTo, "Privacy requested trace omits beforeTo")
+assertEqual(nil, privateRequested.data.postCallFrom, "Privacy requested trace omits postCallFrom")
+assertEqual(nil, privateRequested.data.postCallTo, "Privacy requested trace omits postCallTo")
+local privateCompleted = findTraceEvent("bank.currency_transfer", "completed")
+assertTrue(privateCompleted ~= nil, "Privacy currency transfer emits completed trace")
+assertEqual(-25, privateCompleted.data.settledFromDelta, "Privacy completed trace includes settled from delta")
+assertEqual(25, privateCompleted.data.settledToDelta, "Privacy completed trace includes settled to delta")
+assertEqual(nil, privateCompleted.data.settledFrom, "Privacy completed trace omits settledFrom")
+assertEqual(nil, privateCompleted.data.settledTo, "Privacy completed trace omits settledTo")
+logPrivacyMode = false
 
 transferCalls = {}
 logEvents = {}

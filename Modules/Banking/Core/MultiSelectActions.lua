@@ -386,7 +386,13 @@ local BANK_TRANSFER_BATCH_OPTIONS = BatchConfig.ComposeBatchOptions(
         adaptiveThreshold = 6,
         adaptiveStepMs = 16,
         jitterMs = 18,
-    })
+    }),
+    {
+        lifecycle = {
+            eventName = "bank.batch",
+            module = "Banking",
+        },
+    }
 )
 
 -- BANKING-SPECIFIC BATCH OPERATIONS

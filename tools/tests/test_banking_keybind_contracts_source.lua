@@ -216,6 +216,36 @@ assert_contains(
 
 assert_contains(
     keybindManager,
+    "local function CurrencyAmountForLog(amount)",
+    "Banking keybind traces route absolute balance payloads through the privacy gate"
+)
+
+assert_contains(
+    keybindManager,
+    "carriedGold = CurrencyAmountForLog(GetCarriedCurrencyAmount(CURT_MONEY))",
+    "Banking upgrade traces omit carriedGold when builog privacy is on"
+)
+
+assert_contains(
+    keybindManager,
+    "payload.postCallFromDelta = CurrencyDelta(postCall.postCallFrom, before.beforeFrom)",
+    "Banking currency privacy traces emit post-call from delta"
+)
+
+assert_contains(
+    keybindManager,
+    "payload.settledToDelta = CurrencyDelta(settled.settledTo, before.beforeTo)",
+    "Banking currency privacy traces emit settled to delta"
+)
+
+assert_contains(
+    keybindManager,
+    "payload.beforeFrom = before.beforeFrom",
+    "Banking currency absolute balance fields stay in the non-privacy branch"
+)
+
+assert_contains(
+    keybindManager,
     "local canTransfer, denialText = CanUsePrimaryTransfer(self)",
     "Primary transfer callback re-checks the enabled transfer contract before moving"
 )

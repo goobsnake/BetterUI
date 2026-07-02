@@ -31,6 +31,17 @@ CURRENCY_LOCATION_BANK = 2
 CURRENCY_LOCATION_GUILD_BANK = 3
 EVENT_INVENTORY_SINGLE_SLOT_UPDATE = "EVENT_INVENTORY_SINGLE_SLOT_UPDATE"
 
+ZO_Object = {}
+function ZO_Object:Subclass()
+    local cls = {}
+    cls.__index = cls
+    setmetatable(cls, { __index = self })
+    return cls
+end
+function ZO_Object.New(cls)
+    return setmetatable({}, cls)
+end
+
 local testsPassed = 0
 local testsFailed = 0
 
@@ -48,8 +59,10 @@ local playedSounds = {}
 local guildWithdrawCalls = {}
 local guildDepositCalls = {}
 local scheduledTasks = {}
+local listRefreshLaters = {}
 local frameTimeMs = 0
 local showingDialog = false
+local playerIsBanking = true
 local currentBank = BAG_BANK
 local currentBankingBag = BAG_BANK
 local depositAllowed = true
@@ -61,6 +74,25 @@ local sceneHiddenCount = 0
 local platformDialogsShown = {}
 local keybindOps = {}
 local userAlertTexts = {}
+local logEvents = {}
+local refreshQueueCalls = {}
+
+function zo_callLater(fn, ms)
+    listRefreshLaters[#listRefreshLaters + 1] = { fn = fn, ms = ms, cancelled = false }
+    return #listRefreshLaters
+end
+
+function zo_removeCallLater(id)
+    if listRefreshLaters[id] then
+        listRefreshLaters[id].cancelled = true
+    end
+end
+
+PLAYER_INVENTORY = {
+    IsBanking = function()
+        return playerIsBanking
+    end,
+}
 
 local function assertTrue(condition, message)
     if condition then
@@ -73,6 +105,18 @@ end
 
 local function assertEqual(expected, actual, message)
     assertTrue(expected == actual, string.format("%s (expected %s, got %s)", message, tostring(expected), tostring(actual)))
+end
+
+local function assertNotNil(value, message)
+    assertTrue(value ~= nil, message)
+end
+
+local function readFile(path)
+    local handle = io.open(path, "r")
+    if not handle then return "" end
+    local content = handle:read("*a") or ""
+    handle:close()
+    return content
 end
 
 local function resetState()
@@ -90,8 +134,10 @@ local function resetState()
     guildWithdrawCalls = {}
     guildDepositCalls = {}
     scheduledTasks = {}
+    listRefreshLaters = {}
     frameTimeMs = 0
     showingDialog = false
+    playerIsBanking = true
     currentBank = BAG_BANK
     currentBankingBag = BAG_BANK
     depositAllowed = true
@@ -103,6 +149,12 @@ local function resetState()
     platformDialogsShown = {}
     keybindOps = {}
     userAlertTexts = {}
+    logEvents = {}
+    refreshQueueCalls = {}
+    if BETTERUI and BETTERUI.Banking then
+        BETTERUI.Banking.RefreshManager = nil
+        BETTERUI.Banking.Window = nil
+    end
     -- Clear any lingering pending transfer state from TransferActions module locals
     frameTimeMs = 600000
     if BETTERUI and BETTERUI.Banking and BETTERUI.Banking.SweepStaleTransfers then
@@ -130,6 +182,10 @@ end
 
 function FindFirstEmptySlotInBag(bagId)
     return emptySlots[bagId]
+end
+
+function DoesBagHaveSpaceFor(destinationBag)
+    return emptySlots[destinationBag] ~= nil or stackableSlots[destinationBag] ~= nil
 end
 
 function IsESOPlusSubscriber()
@@ -335,11 +391,27 @@ BETTERUI = {
             end,
         },
         Tasks = {
-            Schedule = function(_, _, delayMs, callback)
-                table.insert(scheduledTasks, { delay = delayMs, callback = callback })
+            Schedule = function(_, taskName, delayMs, callback)
+                table.insert(scheduledTasks, { taskName = taskName, delay = delayMs, callback = callback })
             end,
         },
         RefreshWindowView = function(window, options)
+            options = options or {}
+            local refreshManager = BETTERUI.Banking.RefreshManager
+            if options.coalesce == true and refreshManager and type(refreshManager.QueueRefresh) == "function" then
+                refreshManager:QueueRefresh(window.list, function()
+                    BETTERUI.Banking.RefreshWindowView(window, {
+                        preferredCategoryKey = options.preferredCategoryKey,
+                        refreshKeybinds = options.refreshKeybinds,
+                    })
+                end, options.savePosition, {
+                    flow = options.flow,
+                    source = options.source,
+                    reason = options.reason,
+                    token = options.token,
+                })
+                return
+            end
             if window.RefreshTransferView then
                 window:RefreshTransferView(options or {})
                 return
@@ -367,9 +439,47 @@ BETTERUI = {
         },
         Class = {},
     },
+    Log = {
+        CATEGORY = {
+            ACTION = "ACTION",
+            LIST = "LIST",
+            TRANSFER = "TRANSFER",
+            STATE = "STATE",
+            KEYBIND = "KEYBIND",
+        },
+        LEVEL = { DEBUG = 2, INFO = 3, WARN = 4, ERROR = 5 },
+        IsActive = function() return true end,
+        TraceEvent = function(category, event, phase, data, level)
+            table.insert(logEvents, { kind = "TraceEvent", category = category, event = event, phase = phase, data = data, level = level })
+        end,
+        Trace = function(category, message, data)
+            table.insert(logEvents, { kind = "Trace", category = category, message = message, data = data })
+        end,
+        FlowBegin = function(kind, category, message, data)
+            local flow = kind .. "#test"
+            table.insert(logEvents, { kind = "FlowBegin", category = category, flow = flow, message = message, data = data })
+            return flow
+        end,
+        FlowEnd = function(flow, category, message, data)
+            table.insert(logEvents, { kind = "FlowEnd", category = category, flow = flow, message = message, data = data })
+        end,
+        Warn = function(category, message, data)
+            table.insert(logEvents, { kind = "Warn", category = category, message = message, data = data })
+        end,
+        Info = function(category, message, data)
+            table.insert(logEvents, { kind = "Info", category = category, message = message, data = data })
+        end,
+        Debug = function(category, message, data)
+            table.insert(logEvents, { kind = "Debug", category = category, message = message, data = data })
+        end,
+        DescribeListSelection = function() return "selection" end,
+        DescribeItem = function(_, prefix) return tostring(prefix or "item") end,
+        GetCurrencyAmountForLocation = function() return 0 end,
+    },
     CIM = {
         CONST = {
             TIMING = {
+                CATEGORY_REFRESH_COALESCE_MS = 10,
                 MOVE_COALESCE_DELAY_MS = 80,
             },
         },
@@ -383,6 +493,38 @@ BETTERUI = {
             GetOrCreateState = function(self)
                 self.headerNavigationState = self.headerNavigationState or {}
                 return self.headerNavigationState
+            end,
+        },
+        DeferredTask = {
+            CreateManager = function()
+                return {}
+            end,
+            CreateLazyManagerProxy = function()
+                return BETTERUI.Banking.Tasks
+            end,
+        },
+        GenericWindow = {
+            Subclass = ZO_Object.Subclass,
+            New = function(cls)
+                return setmetatable({}, { __index = cls })
+            end,
+        },
+        ItemTaxonomy = {
+            BANK_CATEGORY_DEFS = {},
+        },
+        MultiSelectManager = {
+            Create = function()
+                return {}
+            end,
+        },
+        MultiSelectMixin = {
+            Apply = function() end,
+            EnterSelectionMode = function() end,
+            ExitSelectionMode = function() end,
+            BindDelegates = function(target, names)
+                for _, name in ipairs(names or {}) do
+                    target[name] = target[name] or function() return false end
+                end
             end,
         },
         Utils = {
@@ -404,6 +546,8 @@ BETTERUI = {
     },
 }
 
+dofile("Modules/CIM/Lists/ListRefreshManager.lua")
+dofile("Modules/Banking/Core/BankingClass.lua")
 dofile("Modules/Banking/Currency/CurrencySelector.lua")
 dofile("Modules/Banking/Actions/TransferActions.lua")
 
@@ -421,6 +565,7 @@ local function createWindow()
         savePositions = 0,
         refreshedLists = 0,
         rebuiltHeaders = 0,
+        sceneShowing = true,
         list = {
             Activate = function() window.listActivated = true end,
             Deactivate = function() window.listDeactivated = true end,
@@ -476,15 +621,85 @@ local function createWindow()
         SaveListPosition = function(self)
             self.savePositions = self.savePositions + 1
         end,
+        IsSceneShowing = function(self)
+            return self.sceneShowing == true
+        end,
         UpdateSpinnerConfirmation = function(self, isActive, list)
             table.insert(self.confirmationUpdates, { isActive = isActive, list = list })
         end,
     }
+    window.list.count = 3
+    window.list.selectedIndex = 1
+    window.list.GetNumItems = function(self)
+        return self.count
+    end
+    window.list.GetSelectedIndex = function(self)
+        return self.selectedIndex
+    end
+    window.list.GetDataForDataIndex = function(_, index)
+        return index == 1 and selectedData or nil
+    end
+    window.list.SetSelectedIndex = function(self, index)
+        self.selectedIndex = index
+    end
 
     return setmetatable(window, { __index = BETTERUI.Banking.Class })
 end
 
+local function hasLogEvent(kind, category, event, phase)
+    for _, entry in ipairs(logEvents) do
+        if entry.kind == kind
+            and (category == nil or entry.category == category)
+            and (event == nil or entry.event == event)
+            and (phase == nil or entry.phase == phase) then
+            return true
+        end
+    end
+    return false
+end
+
+local function findLogEvent(kind, category, event, phase)
+    for _, entry in ipairs(logEvents) do
+        if entry.kind == kind
+            and (category == nil or entry.category == category)
+            and (event == nil or entry.event == event)
+            and (phase == nil or entry.phase == phase) then
+            return entry
+        end
+    end
+    return nil
+end
+
+local function findScheduledTask(taskName)
+    for _, task in ipairs(scheduledTasks) do
+        if task.taskName == taskName then
+            return task
+        end
+    end
+    return nil
+end
+
+local function installRecordingRefreshManager()
+    BETTERUI.Banking.RefreshManager = BETTERUI.CIM.Lists.ListRefreshManager:New({ coalesceDelay = 25 })
+    local originalQueueRefresh = BETTERUI.Banking.RefreshManager.QueueRefresh
+    function BETTERUI.Banking.RefreshManager:QueueRefresh(list, refreshFn, savePosition, options)
+        table.insert(refreshQueueCalls, { list = list, savePosition = savePosition, options = options })
+        return originalQueueRefresh(self, list, refreshFn, savePosition, options)
+    end
+    return BETTERUI.Banking.RefreshManager
+end
+
 print("\n=== Banking transfer actions ===\n")
+
+local transferActionsSource = readFile("Modules/Banking/Actions/TransferActions.lua")
+local directStart = transferActionsSource:find("local function ExecuteDirectTransfer", 1, true)
+local directEnd = directStart and transferActionsSource:find("function BETTERUI.Banking.TryTransferInventorySlot", directStart, true) or nil
+local directBody = directStart and directEnd and transferActionsSource:sub(directStart, directEnd) or ""
+local directRequested = directBody:find('TraceBankTransfer("bank.item_transfer", "requested"', 1, true) or math.huge
+local directFlowEnd = directBody:find('EndBankTransferFlow(flow, "bank transfer direct requested"', directRequested, true) or math.huge
+local directRefreshDecision = directBody:find('TraceBankTransfer("bank.item_transfer", "refresh_decision"', 1, true) or math.huge
+assertTrue(directRequested < directFlowEnd and directFlowEnd < directRefreshDecision,
+    "Direct cursor transfer logs requested and ends the flow before refresh_decision")
 
 resetState()
 local window = createWindow()
@@ -492,13 +707,106 @@ selectedData = { bagId = BAG_GUILDBANK, slotIndex = 9 }
 emptySlots[BAG_BACKPACK] = 10
 currentBankingBag = BAG_GUILDBANK
 window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
+installRecordingRefreshManager()
 window:MoveItem(window.list, 2)
 assertEqual(9, guildWithdrawCalls[1], "Guild withdraw moves the selected guild slot")
 assertEqual(1, #playedSounds, "Guild withdraw plays pickup sound")
 assertEqual(100, scheduledTasks[1].delay, "Guild withdraw schedules a coalesced refresh")
 scheduledTasks[1].callback()
+assertEqual(1, #refreshQueueCalls, "Coalesced bank refresh routes through the ListRefreshManager")
+assertEqual("bankTransfer#test", refreshQueueCalls[1].options and refreshQueueCalls[1].options.flow,
+    "Coalesced bank refresh preserves the transfer flow id")
+assertEqual("moveCoalesce", refreshQueueCalls[1].options and refreshQueueCalls[1].options.reason,
+    "Coalesced bank refresh records its scheduling reason")
+assertEqual(1, #listRefreshLaters, "Real ListRefreshManager schedules the refresh callback")
+assertEqual(0, window.rebuiltHeaders, "Coalesced refresh waits for the ListRefreshManager callback")
+listRefreshLaters[1].fn()
 assertEqual(1, window.rebuiltHeaders, "Coalesced refresh rebuilds header categories")
 assertEqual(1, window.refreshedLists, "Coalesced refresh refreshes the list")
+assertEqual(2, window.currentCategoryIndex, "Coalesced refresh preserves the selected bank category")
+local savedRefreshTrace = findLogEvent("TraceEvent", "LIST", "list.refresh", "saved")
+local restoredRefreshTrace = findLogEvent("TraceEvent", "LIST", "list.refresh", "restore_end")
+assertEqual("bankTransfer#test", savedRefreshTrace and savedRefreshTrace.data and savedRefreshTrace.data.flow,
+    "ListRefreshManager saved trace carries the transfer flow id")
+assertEqual("bankTransfer#test", restoredRefreshTrace and restoredRefreshTrace.data and restoredRefreshTrace.data.flow,
+    "ListRefreshManager restore trace carries the transfer flow id")
+
+resetState()
+window = createWindow()
+BETTERUI.Banking.Window = window
+installRecordingRefreshManager()
+currentBankingBag = BAG_BANK
+window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
+emptySlots[BAG_BACKPACK] = 12
+local directOk, directReason = BETTERUI.Banking.TryTransferInventorySlot({ bagId = BAG_BANK, slotIndex = 4 })
+assertTrue(directOk == true, "Direct cursor transfer succeeds in banking mode")
+assertEqual(nil, directReason, "Direct cursor transfer has no failure reason")
+local directRefreshDecision = findLogEvent("TraceEvent", "TRANSFER", "bank.item_transfer", "refresh_decision")
+assertEqual("directCursor", directRefreshDecision and directRefreshDecision.data and directRefreshDecision.data.transferPath,
+    "Direct cursor transfer records its refresh decision path")
+assertEqual(true, directRefreshDecision and directRefreshDecision.data and directRefreshDecision.data.refreshScheduled,
+    "Direct cursor transfer schedules an active bank-window refresh")
+local directRefreshTask = findScheduledTask("moveCoalesce")
+assertNotNil(directRefreshTask, "Direct cursor transfer schedules the move coalesce refresh")
+assertEqual(0, #refreshQueueCalls, "Direct cursor refresh waits for the coalesce task")
+directRefreshTask.callback()
+assertEqual(1, #refreshQueueCalls, "Direct cursor refresh routes through the ListRefreshManager")
+assertEqual("bankTransfer#test", refreshQueueCalls[1].options and refreshQueueCalls[1].options.flow,
+    "Direct cursor refresh preserves the transfer flow id")
+assertEqual(1, #listRefreshLaters, "Direct cursor refresh schedules the ListRefreshManager callback")
+listRefreshLaters[1].fn()
+assertEqual(1, window.rebuiltHeaders, "Direct cursor refresh rebuilds header categories")
+assertEqual(1, window.refreshedLists, "Direct cursor refresh refreshes the list")
+
+resetState()
+window = createWindow()
+BETTERUI.Banking.Window = window
+installRecordingRefreshManager()
+currentBankingBag = BAG_BANK
+window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
+emptySlots[BAG_BACKPACK] = 12
+local delayedHiddenOk = BETTERUI.Banking.TryTransferInventorySlot({ bagId = BAG_BANK, slotIndex = 6 })
+assertTrue(delayedHiddenOk == true, "Direct cursor transfer succeeds before a delayed close")
+local delayedHiddenTask = findScheduledTask("moveCoalesce")
+assertNotNil(delayedHiddenTask, "Direct cursor transfer schedules a refresh before a delayed close")
+window.sceneShowing = false
+delayedHiddenTask.callback()
+assertEqual(0, #refreshQueueCalls, "Delayed direct cursor refresh skips after the bank window closes")
+assertEqual(false, window._suppressListUpdates == true, "Delayed direct cursor refresh clears its suppression token after close")
+
+resetState()
+window = createWindow()
+BETTERUI.Banking.Window = window
+installRecordingRefreshManager()
+currentBankingBag = BAG_BANK
+window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
+emptySlots[BAG_BACKPACK] = 12
+local delayedSwapOk = BETTERUI.Banking.TryTransferInventorySlot({ bagId = BAG_BANK, slotIndex = 7 })
+assertTrue(delayedSwapOk == true, "Direct cursor transfer succeeds before the active bank window swaps")
+local delayedSwapTask = findScheduledTask("moveCoalesce")
+assertNotNil(delayedSwapTask, "Direct cursor transfer schedules a refresh before the active bank window swaps")
+BETTERUI.Banking.Window = createWindow()
+delayedSwapTask.callback()
+assertEqual(0, #refreshQueueCalls, "Delayed direct cursor refresh skips after the active bank window is replaced")
+assertEqual(false, window._suppressListUpdates == true, "Delayed direct cursor refresh clears its suppression token after swap")
+
+resetState()
+window = createWindow()
+window.sceneShowing = false
+BETTERUI.Banking.Window = window
+installRecordingRefreshManager()
+currentBankingBag = BAG_BANK
+window.currentMode = BETTERUI.Banking.LIST_WITHDRAW
+emptySlots[BAG_BACKPACK] = 12
+local hiddenDirectOk = BETTERUI.Banking.TryTransferInventorySlot({ bagId = BAG_BANK, slotIndex = 5 })
+assertTrue(hiddenDirectOk == true, "Hidden-window direct cursor transfer still requests the move")
+local hiddenRefreshDecision = findLogEvent("TraceEvent", "TRANSFER", "bank.item_transfer", "refresh_decision")
+assertEqual("inactiveWindow", hiddenRefreshDecision and hiddenRefreshDecision.data and hiddenRefreshDecision.data.refreshReason,
+    "Hidden-window direct cursor transfer records inactive refresh reason")
+assertEqual(false, hiddenRefreshDecision and hiddenRefreshDecision.data and hiddenRefreshDecision.data.refreshScheduled,
+    "Hidden-window direct cursor transfer does not schedule an active bank-window refresh")
+assertEqual(nil, findScheduledTask("moveCoalesce"), "Hidden-window direct cursor transfer skips move coalesce refresh")
+assertEqual(0, #refreshQueueCalls, "Hidden-window direct cursor transfer does not queue a list refresh")
 
 resetState()
 window = createWindow()
@@ -562,6 +870,10 @@ assertEqual("RequestMoveItem", secureMoves[1].name, "Deposit uses RequestMoveIte
 assertEqual(BAG_BANK, secureMoves[1].args[3], "Deposit targets the current bank bag")
 assertEqual(33, secureMoves[1].args[4], "Deposit uses the resolved empty bank slot")
 assertEqual(5, secureMoves[1].args[5], "Deposit forwards the requested quantity")
+assertTrue(hasLogEvent("FlowBegin", "TRANSFER"), "Deposit transfer flow begins under TRANSFER")
+assertTrue(hasLogEvent("FlowEnd", "TRANSFER"), "Deposit transfer flow ends under TRANSFER")
+assertTrue(hasLogEvent("TraceEvent", "TRANSFER", "bank.item_transfer", "move_requested"),
+    "Deposit transfer TraceEvent uses TRANSFER")
 
 resetState()
 window = createWindow()
@@ -638,12 +950,6 @@ window = createWindow()
 selectedData = { bagId = BAG_BACKPACK, slotIndex = 6 }
 window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
 emptySlots[BAG_BANK] = 33
-assertEqual(false, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "No pending transfer before move")
-window:MoveItem(window.list, 1)
-assertEqual(true, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Pending transfer set after deposit")
-assertEqual(1, #secureMoves, "Deposit RequestMoveItem issued once")
-
--- Simulate slot-update event clearing the marker
 BETTERUI.CIM.EventRegistry = {
     Register = function(moduleName, namespace, eventId, callback)
         _G["_test_event_" .. eventId] = callback
@@ -652,9 +958,23 @@ BETTERUI.CIM.EventRegistry = {
 dofile("Modules/Banking/Actions/TransferActions.lua")
 local slotUpdateCallback = _G["_test_event_" .. EVENT_INVENTORY_SINGLE_SLOT_UPDATE]
 assertTrue(type(slotUpdateCallback) == "function", "EVENT_INVENTORY_SINGLE_SLOT_UPDATE callback registered")
+assertEqual(false, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "No pending transfer before move")
+window:MoveItem(window.list, 1)
+assertEqual(true, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Pending transfer set after deposit")
+assertEqual(1, #secureMoves, "Deposit RequestMoveItem issued once")
+
+-- Simulate slot-update event clearing the marker
 if type(slotUpdateCallback) == "function" then
     slotUpdateCallback(nil, BAG_BACKPACK, 6)
     assertEqual(false, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Pending cleared by slot-update event")
+    local confirmed = findLogEvent("TraceEvent", "TRANSFER", "bank.item_transfer", "confirmed")
+    assertTrue(confirmed ~= nil, "Slot update emits confirmed transfer trace")
+    assertEqual("bankTransfer#test", confirmed and confirmed.data and confirmed.data.flow,
+        "Confirmed transfer keeps the original flow id")
+    assertEqual(0, confirmed and confirmed.data and confirmed.data.pendingRemaining,
+        "Confirmed transfer records pending remaining count")
+    assertEqual(BETTERUI.Log.LEVEL.INFO, confirmed and confirmed.level,
+        "Confirmed transfer is emitted at INFO")
 end
 
 -- Stale sweep clears after timeout
@@ -668,6 +988,14 @@ assertEqual(true, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Pending 
 frameTimeMs = 5100
 BETTERUI.Banking.SweepStaleTransfers()
 assertEqual(false, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Stale sweep clears timed-out pending marker")
+local expired = findLogEvent("TraceEvent", "TRANSFER", "bank.item_transfer", "expired")
+assertTrue(expired ~= nil, "Stale sweep emits expired transfer trace")
+assertEqual("bankTransfer#test", expired and expired.data and expired.data.flow,
+    "Expired transfer keeps the original flow id")
+assertEqual(0, expired and expired.data and expired.data.pendingRemaining,
+    "Expired transfer records pending remaining count")
+assertEqual(BETTERUI.Log.LEVEL.WARN, expired and expired.level,
+    "Expired transfer is emitted at WARN")
 
 -- Keybind enabled-callback returns false while pending
 resetState()

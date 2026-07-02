@@ -723,9 +723,17 @@ local function BankingSnapshotKeybindPresent(descriptor)
     return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
 end
 
+local function RegisterBankingWatchScenes(watch)
+    if not (watch and watch.RegisterViewScene) then return end
+    watch.RegisterViewScene("banking", BETTERUI_BANKING_SCENE_NAME or "gamepad_banking")
+    watch.RegisterViewScene("banking", BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING")
+end
+
 local function RegisterBankingSnapshotProvider()
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
-    if not (watch and watch.RegisterSnapshotProvider) then return end
+    if not watch then return end
+    RegisterBankingWatchScenes(watch)
+    if not watch.RegisterSnapshotProvider then return end
     watch.RegisterSnapshotProvider("banking", function()
         local window = BETTERUI.Banking and BETTERUI.Banking.Window or nil
         if not window then return "window=0" end

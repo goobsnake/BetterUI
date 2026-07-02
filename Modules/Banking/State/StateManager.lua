@@ -6,9 +6,16 @@ local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
 
+local function RegisterBankingWatchScenes(watch)
+    if not (watch and watch.RegisterViewScene) then return end
+    watch.RegisterViewScene("banking", BETTERUI_BANKING_SCENE_NAME or "gamepad_banking")
+    watch.RegisterViewScene("banking", BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING")
+end
+
 local function SetBankingWatchView(mode)
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
     if not (watch and type(watch.SetView) == "function") then return end
+    RegisterBankingWatchScenes(watch)
     watch.SetView(mode == LIST_WITHDRAW and "banking.withdraw" or "banking.deposit")
 end
 

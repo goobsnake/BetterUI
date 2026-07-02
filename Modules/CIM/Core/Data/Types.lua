@@ -186,6 +186,14 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field useBatching boolean|nil
 ---@field batchProcessor BETTERUI.CIM.Lists.BatchProcessor|nil
 
+---@class BetterUIListRefreshTraceOptions
+---@field flow string|nil
+---@field source string|nil
+---@field reason string|nil
+---@field token any
+---@field savePosition boolean|nil
+---@field coalescedCount integer|nil
+
 ---@class BetterUIHeaderSortColumnDef
 ---@field name string Display name shown in the header row
 ---@field key string Stable column identifier
