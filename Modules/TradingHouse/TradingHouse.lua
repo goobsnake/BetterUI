@@ -49,7 +49,9 @@ end
 
 local function RegisterTradingHouseSnapshotProvider()
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
-    if not (watch and watch.RegisterSnapshotProvider) then return end
+    if not watch then return end
+    if watch.RegisterViewScene then watch.RegisterViewScene("th", BETTERUI_TRADING_HOUSE_SCENE_NAME or "BETTERUI_TradingHouse") end
+    if not watch.RegisterSnapshotProvider then return end
     watch.RegisterSnapshotProvider("tradingHouse", function()
         local instance = TH.instance
         if not instance then

@@ -23,14 +23,36 @@ local function TraceListings(event, phase, thInstance, data, category)
     end
 end
 
+local function NewTradingHouseOpId()
+    local L = BETTERUI and BETTERUI.Log
+    if L and type(L.NewFlow) == "function" then
+        return L.NewFlow("thOp")
+    end
+    return "untracked"
+end
+
 local function TracePendingCancelDialog(phase, reason)
     local pending = Listings.pendingCancelTrace
     if not pending then return false end
     if reason ~= nil then
         pending.reason = reason
     end
+    if phase == "confirm" and pending.thOperation == "cancel_listing" and TH.BeginPendingOperation then
+        pending.opId = TH.BeginPendingOperation("cancel_listing", "trading_house.cancel_listing", {
+            fn = "TradingHouse.ListingsComponent.TracePendingCancelDialog",
+            feature = "trading-house-listings",
+            opId = pending.opId,
+            listingIndex = pending.confirmedIndex or pending.listingIndex,
+            price = pending.price,
+            stackCount = pending.stackCount,
+            item = pending.item,
+        })
+    end
     TraceListings("trading_house.cancel_listing_dialog", phase, TH.instance, pending,
         BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+    if phase == "cancel" and pending.thOperation and TH.ClearPendingOperation then
+        TH.ClearPendingOperation(pending.thOperation)
+    end
     Listings.pendingCancelTrace = nil
     return true
 end
@@ -99,10 +121,6 @@ function Listings:Activate(thInstance)
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE)
     -- Request fresh listing data from server
     if RequestTradingHouseListings then
-        TraceListings("trading_house.listings", "request", thInstance, {
-            fn = "TradingHouse.ListingsComponent.Activate",
-            reason = "activate",
-        })
         RequestTradingHouseListings()
         TraceListings("trading_house.listings", "requested", thInstance, {
             fn = "TradingHouse.ListingsComponent.Activate",
@@ -156,11 +174,16 @@ function Listings:OnPrimaryAction(thInstance)
         return
     end
 
-    TraceListings("trading_house.cancel_listing", "request", thInstance, {
+    local price = ds.purchasePrice or 0
+    local item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name
+    local opId = NewTradingHouseOpId()
+
+    TraceListings("trading_house.cancel_listing", "begin", thInstance, {
         fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
         listingIndex = listingIndex,
-        price = ds.purchasePrice or 0,
-        item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        price = price,
+        opId = opId,
+        item = item,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
 
     -- ZOS gamepad cancel flow (tradinghouse_listings_gamepad.lua): the gamepad
@@ -172,14 +195,16 @@ function Listings:OnPrimaryAction(thInstance)
         displayQuality = ds.quality,
         currencyType = CURT_MONEY,
     }
-    local price = ds.purchasePrice or 0
     EnsureCancelDialogHooks()
     Listings.pendingCancelTrace = {
         fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
         dialog = "TRADING_HOUSE_CONFIRM_REMOVE_LISTING",
+        thOperation = "cancel_listing",
+        opId = opId,
         listingIndex = listingIndex,
         price = price,
-        item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        stackCount = ds.stackCount or 1,
+        item = item,
     }
     if ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog then
         ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog(dialogItemData,
@@ -190,13 +215,16 @@ function Listings:OnPrimaryAction(thInstance)
             path = "nativeGamepadConfirmation",
             listingIndex = listingIndex,
             price = price,
-            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+            opId = opId,
+            item = item,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     else
         ZO_Dialogs_ShowGamepadDialog("TRADING_HOUSE_CONFIRM_REMOVE_LISTING", {
             listingIndex = listingIndex,
             stackCount = dialogItemData.stackCount,
             price = price,
+            thOperation = "cancel_listing",
+            opId = opId,
         })
         TraceListings("trading_house.cancel_listing_dialog", "shown", thInstance, {
             fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
@@ -204,7 +232,8 @@ function Listings:OnPrimaryAction(thInstance)
             path = "fallbackDialog",
             listingIndex = listingIndex,
             price = price,
-            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+            opId = opId,
+            item = item,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     end
     TraceListings("trading_house.cancel_listing_dialog", "awaiting_choice", thInstance, Listings.pendingCancelTrace,
@@ -223,8 +252,17 @@ function Listings:BuildList(thInstance)
         fn = "TradingHouse.ListingsComponent.BuildList",
         listingCount = numListings,
     })
-    if numListings == 0 then return end
+    if numListings == 0 then
+        TraceListings("th.list", "end", thInstance, {
+            fn = "TradingHouse.ListingsComponent.BuildList",
+            mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+            count = 0,
+            listingCount = numListings,
+        })
+        return
+    end
 
+    local renderedCount = 0
     for i = 1, numListings do
         -- API 50 return order: icon, itemName, displayQuality, stackCount,
         -- sellerName, timeRemaining, salePrice, currencyType, itemUniqueId,
@@ -287,6 +325,13 @@ function Listings:BuildList(thInstance)
             end
 
             list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+            renderedCount = renderedCount + 1
         end
     end
+    TraceListings("th.list", "end", thInstance, {
+        fn = "TradingHouse.ListingsComponent.BuildList",
+        mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+        count = renderedCount,
+        listingCount = numListings,
+    })
 end

@@ -14,6 +14,14 @@ local function TraceBrowse(event, phase, thInstance, data, category)
     end
 end
 
+local function NewTradingHouseOpId()
+    local L = BETTERUI and BETTERUI.Log
+    if L and type(L.NewFlow) == "function" then
+        return L.NewFlow("thOp")
+    end
+    return "untracked"
+end
+
 -- Shared narration text helper avoids a per-entry closure allocation.
 local function GetEntryNarrationText(entryData)
     local ds = entryData:GetDataSource()
@@ -34,8 +42,22 @@ local function TracePendingBuyDialog(phase, reason)
     if reason ~= nil then
         pending.reason = reason
     end
+    if phase == "confirm" and pending.thOperation == "buy" and TH.BeginPendingOperation then
+        pending.opId = TH.BeginPendingOperation("buy", "trading_house.buy", {
+            fn = "TradingHouse.BrowseComponent.TracePendingBuyDialog",
+            feature = "trading-house-browse",
+            opId = pending.opId,
+            tradingHouseIndex = pending.tradingHouseIndex,
+            price = pending.price,
+            stackCount = pending.stackCount,
+            item = pending.item,
+        })
+    end
     TraceBrowse("trading_house.buy_dialog", phase, TH.instance, pending,
         BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+    if phase == "cancel" and pending.thOperation and TH.ClearPendingOperation then
+        TH.ClearPendingOperation(pending.thOperation)
+    end
     Browse.pendingBuyTrace = nil
     return true
 end
@@ -156,6 +178,7 @@ function Browse:OnPrimaryAction(thInstance)
 
     local tradingHouseIndex = ds.tradingHouseIndex
     local price = ds.purchasePrice or 0
+    local item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name
     if not tradingHouseIndex or price <= 0 then
         TraceBrowse("trading_house.buy", "blocked", thInstance, {
             fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
@@ -167,7 +190,7 @@ function Browse:OnPrimaryAction(thInstance)
         return
     end
 
-    TraceBrowse("trading_house.buy", "request", thInstance, {
+    TraceBrowse("trading_house.buy", "begin", thInstance, {
         fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
         tradingHouseIndex = tradingHouseIndex,
         price = price,
@@ -200,6 +223,8 @@ function Browse:OnPrimaryAction(thInstance)
         return
     end
 
+    local opId = NewTradingHouseOpId()
+
     -- ZOS gamepad purchase flow (tradinghouse_browseresults_gamepad.lua): stage
     -- the pending purchase, then show the native gamepad confirm dialog whose
     -- buttons call ConfirmPendingItemPurchase/ClearPendingItemPurchase.
@@ -209,16 +234,20 @@ function Browse:OnPrimaryAction(thInstance)
             fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
             tradingHouseIndex = tradingHouseIndex,
             price = price,
-            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+            opId = opId,
+            item = item,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
     end
     EnsureBuyDialogHooks()
     Browse.pendingBuyTrace = {
         fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
         dialog = "TRADING_HOUSE_CONFIRM_BUY_ITEM",
+        thOperation = "buy",
+        opId = opId,
         tradingHouseIndex = tradingHouseIndex,
         price = price,
-        item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+        stackCount = ds.stackCount or 1,
+        item = item,
     }
 
     local dialogItemData = {
@@ -237,7 +266,8 @@ function Browse:OnPrimaryAction(thInstance)
             path = "nativeGamepadConfirmation",
             tradingHouseIndex = tradingHouseIndex,
             price = price,
-            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+            opId = opId,
+            item = item,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     else
         ZO_Dialogs_ShowGamepadDialog("TRADING_HOUSE_CONFIRM_BUY_ITEM", {
@@ -251,7 +281,8 @@ function Browse:OnPrimaryAction(thInstance)
             path = "fallbackDialog",
             tradingHouseIndex = tradingHouseIndex,
             price = price,
-            item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name,
+            opId = opId,
+            item = item,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     end
     TraceBrowse("trading_house.buy_dialog", "awaiting_choice", thInstance, Browse.pendingBuyTrace,
@@ -337,19 +368,29 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
         Browse.searchPending = true
         Browse.deferredSearchToken = Browse.deferredSearchToken + 1
         local token = Browse.deferredSearchToken
+        local opId = TH.BeginPendingOperation and TH.BeginPendingOperation("search", "trading_house.search", {
+            fn = "TradingHouse.BrowseComponent.ExecuteSearch",
+            feature = "trading-house-browse",
+            page = Browse.currentPage,
+            reason = "nativeSearchNotReady",
+            deferredToken = token,
+            deferred = true,
+        }, false) or nil
         TraceBrowse("trading_house.search", "deferred", TH.instance, {
             fn = "TradingHouse.BrowseComponent.ExecuteSearch",
             page = Browse.currentPage,
             reason = "nativeSearchNotReady",
             reuseLastExecutedSearchFilters = useLastExecutedSearchFilters == true,
             deferredToken = token,
+            opId = opId,
         })
         TRADING_HOUSE_SEARCH:DoSearchWhenReady()
-        TraceBrowse("trading_house.search", "deferred_requested", TH.instance, {
+        TraceBrowse("trading_house.search", "queued", TH.instance, {
             fn = "TradingHouse.BrowseComponent.ExecuteSearch",
             page = Browse.currentPage,
             reason = "nativeSearchNotReady",
             deferredToken = token,
+            opId = opId,
             searchPending = Browse.searchPending == true,
         })
         local later = rawget(_G, "zo_callLater")
@@ -362,7 +403,11 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
                         page = Browse.currentPage,
                         reason = "nativeSearchNotReadyTimeout",
                         deferredToken = token,
+                        opId = opId,
                     })
+                    if TH.ClearPendingOperation then
+                        TH.ClearPendingOperation("search")
+                    end
                 end
             end, 10000)
         else
@@ -374,8 +419,12 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
                 reason = "missingScheduler",
                 deferredToken = token,
                 invalidatedToken = Browse.deferredSearchToken,
+                opId = opId,
                 searchPendingAfter = Browse.searchPending == true,
             })
+            if TH.ClearPendingOperation then
+                TH.ClearPendingOperation("search")
+            end
         end
         return true
     end
@@ -383,14 +432,15 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
     Browse.searchPending = true
     Browse.deferredSearchToken = Browse.deferredSearchToken + 1
     local token = Browse.deferredSearchToken
-    TraceBrowse("trading_house.search", "request", TH.instance, {
+    local opId = TH.BeginPendingOperation and TH.BeginPendingOperation("search", "trading_house.search", {
         fn = "TradingHouse.BrowseComponent.ExecuteSearch",
+        feature = "trading-house-browse",
         page = Browse.currentPage,
         sortType = TRADING_HOUSE_SORT_SALE_PRICE,
         sortAscending = true,
         reuseLastExecutedSearchFilters = useLastExecutedSearchFilters == true,
         deferredToken = token,
-    })
+    }, false) or nil
     ExecuteTradingHouseSearch(Browse.currentPage, TRADING_HOUSE_SORT_SALE_PRICE, true,
         useLastExecutedSearchFilters == true)
     TraceBrowse("trading_house.search", "requested", TH.instance, {
@@ -400,6 +450,7 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
         sortAscending = true,
         reuseLastExecutedSearchFilters = useLastExecutedSearchFilters == true,
         deferredToken = token,
+        opId = opId,
     })
     return true
 end
@@ -510,7 +561,15 @@ function Browse:BuildList(thInstance)
     -- Stale results (e.g. after a guild switch) reference tradingHouseIndex
     -- rows that are no longer purchasable; render nothing until a fresh
     -- search response arrives.
-    if Browse.resultsInvalidated then return end
+    if Browse.resultsInvalidated then
+        TraceBrowse("th.list", "end", thInstance, {
+            fn = "TradingHouse.BrowseComponent.BuildList",
+            mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+            count = 0,
+            reason = "resultsInvalidated",
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+        return
+    end
 
     -- API 50: GetNumTradingHouseSearchResults was removed; the on-page result
     -- count is the first return of GetTradingHouseSearchResultsInfo().
@@ -525,8 +584,17 @@ function Browse:BuildList(thInstance)
         hasMorePages = Browse.hasMorePages == true,
         resultsInvalidated = Browse.resultsInvalidated == true,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
-    if numResults == 0 then return end
+    if numResults == 0 then
+        TraceBrowse("th.list", "end", thInstance, {
+            fn = "TradingHouse.BrowseComponent.BuildList",
+            mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+            count = 0,
+            resultCount = numResults,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+        return
+    end
 
+    local renderedCount = 0
     for i = 1, numResults do
         local icon, itemName, displayQuality, stackCount, sellerName, timeRemaining,
               purchasePrice, currencyType, itemUniqueId, purchasePricePerUnit
@@ -581,6 +649,14 @@ function Browse:BuildList(thInstance)
             end
 
             list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+            renderedCount = renderedCount + 1
         end
     end
+    TraceBrowse("th.list", "end", thInstance, {
+        fn = "TradingHouse.BrowseComponent.BuildList",
+        mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+        count = renderedCount,
+        resultCount = numResults,
+        page = Browse.currentPage,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
 end

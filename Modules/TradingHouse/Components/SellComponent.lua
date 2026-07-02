@@ -192,6 +192,13 @@ function Sell:OnPrimaryAction(thInstance)
         defaultPrice = 100
     end
 
+    local L = BETTERUI and BETTERUI.Log
+    local opId = nil
+    if L and type(L.NewFlow) == "function" then
+        opId = L.NewFlow("thOp")
+    end
+    opId = opId or "untracked"
+
     ZO_Dialogs_ShowGamepadDialog("BETTERUI_TRADING_HOUSE_CREATE_LISTING", {
         bagId        = bagId,
         slotIndex    = slotIndex,
@@ -200,6 +207,8 @@ function Sell:OnPrimaryAction(thInstance)
         itemLink     = itemLink,
         icon         = icon,
         defaultPrice = defaultPrice,
+        thOperation  = "create_listing",
+        opId         = opId,
     })
     TraceSell("trading_house.create_listing_dialog", "shown", thInstance, {
         fn = "TradingHouse.SellComponent.OnPrimaryAction",
@@ -208,6 +217,7 @@ function Sell:OnPrimaryAction(thInstance)
         slotIndex = slotIndex,
         stackCount = stackCount,
         defaultPrice = defaultPrice,
+        opId = opId,
         item = itemName,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
 end
@@ -228,6 +238,7 @@ function Sell:BuildList(thInstance)
         bagSlots = bagSlots,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
 
+    local renderedCount = 0
     for slotIndex = 0, bagSlots - 1 do
         -- Skip empty slots
         local stackCount = GetSlotStackSize(bagId, slotIndex)
@@ -302,8 +313,15 @@ function Sell:BuildList(thInstance)
                     end
 
                     list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+                    renderedCount = renderedCount + 1
                 end
             end
         end
     end
+    TraceSell("th.list", "end", thInstance, {
+        fn = "TradingHouse.SellComponent.BuildList",
+        mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+        count = renderedCount,
+        bagSlots = bagSlots,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
 end

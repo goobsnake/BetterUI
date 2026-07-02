@@ -53,6 +53,13 @@ local function GetTHModeName(mode)
     return tostring(mode or "<none>")
 end
 
+local function SetTradingHouseWatchView(mode)
+    local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+    if not (watch and type(watch.SetView) == "function") then return end
+    if watch.RegisterViewScene then watch.RegisterViewScene("th", BETTERUI_TRADING_HOUSE_SCENE_NAME or "BETTERUI_TradingHouse") end
+    watch.SetView("th." .. GetTHModeName(mode):lower())
+end
+
 local function CountTHList(instance)
     local dataList = instance and instance.list and instance.list.dataList
     return type(dataList) == "table" and #dataList or nil
@@ -158,6 +165,7 @@ function BETTERUI.TradingHouse.Class:SetMode(mode)
             oldMode = oldMode,
             targetMode = mode,
         })
+        SetTradingHouseWatchView(mode)
         return
     end
 
@@ -183,6 +191,14 @@ function BETTERUI.TradingHouse.Class:SetMode(mode)
     end
 
     self.currentMode = mode
+    SetTradingHouseWatchView(mode)
+    TraceTH(L and L.CATEGORY.NAV, "th.mode", "changed", self, {
+        old = oldMode,
+        ["new"] = mode,
+        oldMode = oldMode,
+        targetMode = mode,
+        trigger = "SetMode",
+    })
     TraceTH(L and L.CATEGORY.LIFECYCLE, "trading_house.mode", "applied", self, {
         oldMode = oldMode,
         targetMode = mode,
