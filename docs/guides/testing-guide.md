@@ -27,6 +27,7 @@ Located in `tools/tests/`, these test files can be run without ESO:
 | `test_settings_group_resets.lua` | SettingsReset | Per-group reset isolation |
 | `test_settings_reset.lua` | SettingsReset | Full reset, partial reset, defaults |
 | `test_tooltip_helpers.lua` | Tooltips | Tooltip formatting, nil handling, restore/teardown helpers |
+| `test_lang_escape_hygiene.lua` | lang/*.lua | Raw-text scan: rejects `\u{}`/`\x` escapes ESO's Lua 5.1 can't parse, invalid UTF-8 bytes, double-escaped `\\ddd` writer corruption |
 
 > The table above lists the original core-utility suites. The harness now ships a much larger set of module/contract suites under `tools/tests/` (run them all via `run_all_tests.lua`).
 
