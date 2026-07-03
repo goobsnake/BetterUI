@@ -39,6 +39,7 @@ local resourceOrbModule = read_file("Modules/ResourceOrbFrames/Module.lua")
 local writsModule = read_file("Modules/Writs/Module.lua")
 local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
 local nameplatesModule = read_file("Modules/Nameplates/Nameplates.lua")
+local nameplatesPositioning = read_file("Modules/Nameplates/Positioning.lua")
 local nameplatesSettings = read_file("Modules/Nameplates/Settings.lua")
 local inventoryFormatting = read_file("Modules/Inventory/Lists/InventoryEntryFormatting.lua")
 
@@ -133,10 +134,14 @@ assert_not_contains(nameplatesSettings, "Nameplates.Settings.RegisterPanel = Ini
     "Nameplates settings helper no longer owns panel registration")
 assert_not_contains(nameplatesSettings, "function Nameplates.InitModule(m_options)",
     "Nameplates settings helper no longer owns InitModule defaults")
-assert_not_contains(nameplatesSettings, "local ClampNameplateSize = Nameplates.ClampNameplateSize",
+assert_not_contains(nameplatesSettings, "local clampNameplateSize = Nameplates.ClampNameplateSize",
     "Nameplates settings must not capture runtime helpers before manifest dependents load")
 assert_contains(nameplatesModule, 'BETTERUI.CIM.RegisterModulePanelWithLogging(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates setup uses the shared panel registration helper")
+assert_contains(nameplatesModule, "ApplyNameplatePositioning(settings)",
+    "Nameplates runtime applies movable compass/reticle positioning with current settings")
+assert_contains(nameplatesPositioning, "function Positioning.ApplyCurrentSettings(settings)",
+    "Nameplates positioning helper exposes an apply-current-settings bridge")
 
 assert_contains(resourceOrbModule, 'function ResourceOrbFrames.Setup()',
     "ResourceOrbFrames exposes an explicit setup-time hook")

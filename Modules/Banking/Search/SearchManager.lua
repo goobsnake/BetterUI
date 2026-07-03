@@ -66,7 +66,11 @@ end
 
 function BETTERUI.Banking.Class:ExitSearchMode()
     if not self._searchModeActive then return end
+    if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Cancel then
+        BETTERUI.Banking.Tasks:Cancel("searchKeybindCleanup")
+    end
     self._searchModeActive = false
+    self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "exit search") end
 
     if self.textSearchKeybindStripDescriptor then
@@ -116,8 +120,15 @@ function BETTERUI.Banking.Class:OnHeaderEntered()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()
 
+        self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
+        local cleanupToken = self._searchKeybindCleanupToken
         BETTERUI.Banking.Tasks:Schedule("searchKeybindCleanup", 20, function()
-            if not self._searchModeActive or not KEYBIND_STRIP then return end
+            if cleanupToken ~= self._searchKeybindCleanupToken
+                or not self._searchModeActive
+                or not KEYBIND_STRIP
+                or (self.IsSceneShowing and not self:IsSceneShowing()) then
+                return
+            end
 
             -- Remove only this module's own keybind groups, snapshotting what
             -- was removed so ExitSearchMode restores exactly that.

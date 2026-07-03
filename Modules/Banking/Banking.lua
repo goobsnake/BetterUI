@@ -20,6 +20,39 @@ local function IsGuildBankRedirectEnabled()
     return true
 end
 
+local function IsGuildBankInteractionActive()
+    if type(GetInteractionType) ~= "function" then
+        return true, "missing_get_interaction_type", nil
+    end
+
+    local interactionType = GetInteractionType()
+    if interactionType == nil then
+        return false, "no_active_interaction", nil
+    end
+
+    local expectedTypes = {}
+    if rawget(_G, "INTERACTION_GUILDBANK") ~= nil then
+        expectedTypes[#expectedTypes + 1] = rawget(_G, "INTERACTION_GUILDBANK")
+    end
+    if rawget(_G, "INTERACTION_GUILD_BANK") ~= nil then
+        expectedTypes[#expectedTypes + 1] = rawget(_G, "INTERACTION_GUILD_BANK")
+    end
+    local guildInteraction = BETTERUI.Banking and BETTERUI.Banking.GUILD_BANK_INTERACTION
+    if type(guildInteraction) == "table" and type(guildInteraction.interactTypes) == "table" then
+        for _, expected in ipairs(guildInteraction.interactTypes) do
+            expectedTypes[#expectedTypes + 1] = expected
+        end
+    end
+
+    for _, expected in ipairs(expectedTypes) do
+        if interactionType == expected then
+            return true, nil, interactionType
+        end
+    end
+
+    return false, "interaction_mismatch", interactionType
+end
+
 local function ShowGuildBankRedirectedScene(source)
     local sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME
     if not IsGuildBankRedirectEnabled() then
@@ -50,9 +83,21 @@ local function ShowGuildBankRedirectedScene(source)
         return
     end
 
+    local interactionActive, interactionReason, interactionType = IsGuildBankInteractionActive()
+    if not interactionActive then
+        TraceBankState("bank.guild_scene_redirect", "skipped", {
+            reason = interactionReason or "interaction_inactive",
+            sceneName = sceneName,
+            source = source,
+            interactionType = interactionType,
+        })
+        return
+    end
+
     TraceBankState("bank.guild_scene_redirect", "show_fallback", {
         sceneName = sceneName,
         source = source,
+        interactionType = interactionType,
     })
     sceneManager:Show(sceneName)
 end

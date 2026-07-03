@@ -7,6 +7,8 @@ local SETTINGS_OWNER = (BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES and BETTERUI.CI
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
 local DEFAULT_NAMEPLATE_SIZE = 16
+local POSITION_OFFSET_MIN = -600
+local POSITION_OFFSET_MAX = 600
 
 local function GetCurrentSceneName()
     local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
@@ -72,6 +74,18 @@ local function ClampNameplateSize(value, fallback)
 end
 
 Nameplates.ClampNameplateSize = ClampNameplateSize
+
+local function ClampPositionOffset(value)
+    local clampInteger = BETTERUI and BETTERUI.ClampInteger
+    if type(clampInteger) == "function" then
+        return clampInteger(value, POSITION_OFFSET_MIN, POSITION_OFFSET_MAX, 0)
+    end
+    local numeric = tonumber(value) or 0
+    numeric = math.floor(numeric + 0.5)
+    if numeric < POSITION_OFFSET_MIN then return POSITION_OFFSET_MIN end
+    if numeric > POSITION_OFFSET_MAX then return POSITION_OFFSET_MAX end
+    return numeric
+end
 
 ---@type BetterUIModuleArchetypeSettingsOwner
 Nameplates.ARCHETYPE = SETTINGS_OWNER
@@ -143,6 +157,13 @@ Nameplates.DEFAULTS = {
     font = "$(BOLD_FONT)", -- Uses ESO's localized font for CJK support
     style = FONT_STYLE_SOFT_SHADOW_THIN or 5,
     size = DEFAULT_NAMEPLATE_SIZE,
+    nameplatePositionsUnlocked = false,
+    moveCompassFrame = false,
+    compassFrameOffsetX = 0,
+    compassFrameOffsetY = 0,
+    moveReticlePrompt = false,
+    reticlePromptOffsetX = 0,
+    reticlePromptOffsetY = 0,
 }
 
 local STYLE_STRING_TO_ENUM = {
@@ -291,6 +312,8 @@ local function CountActiveNameplateRules(settings)
     if settings and settings.font ~= nil then count = count + 1 end
     if settings and settings.style ~= nil then count = count + 1 end
     if settings and settings.size ~= nil then count = count + 1 end
+    if settings and settings.moveCompassFrame == true then count = count + 1 end
+    if settings and settings.moveReticlePrompt == true then count = count + 1 end
     return count
 end
 
@@ -315,7 +338,7 @@ local function RegisterNameplateSnapshotProvider()
     end
     watch.RegisterSnapshotProvider("nameplates", function()
         local settings = GetSettings()
-        return string.format("enabled=%s activeRules=%s font=%s style=%s size=%s captured=%s kb=%s gp=%s",
+        return string.format("enabled=%s activeRules=%s font=%s style=%s size=%s captured=%s kb=%s gp=%s positionsUnlocked=%s compass=%s:%s,%s reticle=%s:%s,%s",
             tostring(settings and settings.m_enabled),
             tostring(CountActiveNameplateRules(settings)),
             tostring(settings and settings.font),
@@ -323,8 +346,22 @@ local function RegisterNameplateSnapshotProvider()
             tostring(settings and settings.size),
             tostring(originalFontsCaptured),
             tostring(originalKeyboardFont ~= nil),
-            tostring(originalGamepadFont ~= nil))
+            tostring(originalGamepadFont ~= nil),
+            tostring(settings and settings.nameplatePositionsUnlocked),
+            tostring(settings and settings.moveCompassFrame),
+            tostring(settings and settings.compassFrameOffsetX),
+            tostring(settings and settings.compassFrameOffsetY),
+            tostring(settings and settings.moveReticlePrompt),
+            tostring(settings and settings.reticlePromptOffsetX),
+            tostring(settings and settings.reticlePromptOffsetY))
     end)
+end
+
+local function ApplyNameplatePositioning(settings)
+    local positioning = Nameplates.Positioning
+    if positioning and type(positioning.ApplyCurrentSettings) == "function" then
+        positioning.ApplyCurrentSettings(settings)
+    end
 end
 
 local function CaptureOriginalNameplateFonts()
@@ -518,10 +555,14 @@ local function SetupEvents(enabled, suppressCleanupLog)
                 font = settings and settings.font,
                 style = settings and settings.style,
                 size = settings and settings.size,
+                positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
+                moveCompassFrame = settings and settings.moveCompassFrame,
+                moveReticlePrompt = settings and settings.moveReticlePrompt,
             })
             if settings.m_enabled then
                 ApplyNameplateFont(settings.font, settings.style, settings.size)
             end
+            ApplyNameplatePositioning(settings)
         end)
         BETTERUI.CIM.EventRegistry.Register("Nameplates", "BetterUI_Nameplates_GamepadChange",
             EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
@@ -533,10 +574,14 @@ local function SetupEvents(enabled, suppressCleanupLog)
                     font = settings and settings.font,
                     style = settings and settings.style,
                     size = settings and settings.size,
+                    positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
+                    moveCompassFrame = settings and settings.moveCompassFrame,
+                    moveReticlePrompt = settings and settings.moveReticlePrompt,
                 })
                 if settings.m_enabled then
                     ApplyNameplateFont(settings.font, settings.style, settings.size)
                 end
+                ApplyNameplatePositioning(settings)
             end)
     else
         BETTERUI.CIM.EventRegistry.UnregisterAll("Nameplates", suppressCleanupLog)
@@ -625,7 +670,15 @@ function Nameplates.Setup()
         font = settings and settings.font,
         style = settings and settings.style,
         size = settings and settings.size,
+        positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
+        moveCompassFrame = settings and settings.moveCompassFrame,
+        compassFrameOffsetX = settings and settings.compassFrameOffsetX,
+        compassFrameOffsetY = settings and settings.compassFrameOffsetY,
+        moveReticlePrompt = settings and settings.moveReticlePrompt,
+        reticlePromptOffsetX = settings and settings.reticlePromptOffsetX,
+        reticlePromptOffsetY = settings and settings.reticlePromptOffsetY,
     })
+    ApplyNameplatePositioning(settings)
     if settings.m_enabled then
         TraceNameplateVisibility(true, "setup")
         ApplyNameplateFont(settings.font, settings.style, settings.size)
@@ -650,10 +703,15 @@ function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
             font = settings and settings.font,
             style = settings and settings.style,
             size = settings and settings.size,
+            positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
+            moveCompassFrame = settings and settings.moveCompassFrame,
+            moveReticlePrompt = settings and settings.moveReticlePrompt,
         })
+        ApplyNameplatePositioning(settings)
         ApplyNameplateFont(settings.font, settings.style, settings.size)
     else
         TraceNameplates("nameplates.enabled_changed", "apply_disabled", { fn = "Nameplates.OnEnabledChanged" })
+        ApplyNameplatePositioning({ m_enabled = false })
         ResetToDefaults()
     end
 end
@@ -667,7 +725,15 @@ function Nameplates.ApplyCurrentSettings()
         font = settings and settings.font,
         style = settings and settings.style,
         size = settings and settings.size,
+        positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
+        moveCompassFrame = settings and settings.moveCompassFrame,
+        compassFrameOffsetX = settings and settings.compassFrameOffsetX,
+        compassFrameOffsetY = settings and settings.compassFrameOffsetY,
+        moveReticlePrompt = settings and settings.moveReticlePrompt,
+        reticlePromptOffsetX = settings and settings.reticlePromptOffsetX,
+        reticlePromptOffsetY = settings and settings.reticlePromptOffsetY,
     })
+    ApplyNameplatePositioning(settings)
     if settings.m_enabled then
         ApplyNameplateFont(settings.font, settings.style, settings.size)
     end
@@ -687,8 +753,22 @@ function Nameplates.InitModule(m_options)
     if m_options.font == nil then m_options.font = defaults.font end
     if m_options.style == nil then m_options.style = defaults.style end
     if m_options.size == nil then m_options.size = defaults.size end
+    if m_options.nameplatePositionsUnlocked == nil then m_options.nameplatePositionsUnlocked = defaults.nameplatePositionsUnlocked end
+    if m_options.moveCompassFrame == nil then m_options.moveCompassFrame = defaults.moveCompassFrame end
+    if m_options.compassFrameOffsetX == nil then m_options.compassFrameOffsetX = defaults.compassFrameOffsetX end
+    if m_options.compassFrameOffsetY == nil then m_options.compassFrameOffsetY = defaults.compassFrameOffsetY end
+    if m_options.moveReticlePrompt == nil then m_options.moveReticlePrompt = defaults.moveReticlePrompt end
+    if m_options.reticlePromptOffsetX == nil then m_options.reticlePromptOffsetX = defaults.reticlePromptOffsetX end
+    if m_options.reticlePromptOffsetY == nil then m_options.reticlePromptOffsetY = defaults.reticlePromptOffsetY end
     m_options.style = NormalizeStyleValue(m_options.style)
     m_options.size = ClampNameplateSize(m_options.size, defaults.size)
+    m_options.nameplatePositionsUnlocked = m_options.nameplatePositionsUnlocked == true
+    m_options.moveCompassFrame = m_options.moveCompassFrame == true
+    m_options.compassFrameOffsetX = ClampPositionOffset(m_options.compassFrameOffsetX)
+    m_options.compassFrameOffsetY = ClampPositionOffset(m_options.compassFrameOffsetY)
+    m_options.moveReticlePrompt = m_options.moveReticlePrompt == true
+    m_options.reticlePromptOffsetX = ClampPositionOffset(m_options.reticlePromptOffsetX)
+    m_options.reticlePromptOffsetY = ClampPositionOffset(m_options.reticlePromptOffsetY)
 
     local currentLang = GetCVar("language.2") or "en"
     local languageGroup = ResolveLanguageGroup(currentLang)
@@ -712,6 +792,13 @@ function Nameplates.InitModule(m_options)
         font = m_options.font,
         style = m_options.style,
         size = m_options.size,
+        positionsUnlocked = m_options.nameplatePositionsUnlocked,
+        moveCompassFrame = m_options.moveCompassFrame,
+        compassFrameOffsetX = m_options.compassFrameOffsetX,
+        compassFrameOffsetY = m_options.compassFrameOffsetY,
+        moveReticlePrompt = m_options.moveReticlePrompt,
+        reticlePromptOffsetX = m_options.reticlePromptOffsetX,
+        reticlePromptOffsetY = m_options.reticlePromptOffsetY,
     })
     return m_options
 end

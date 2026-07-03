@@ -57,6 +57,7 @@ local function GetDefaults()
         enableIndependentOrbOffset = false,
         orbOffsetX = 0,
         orbOffsetY = 0,
+        elementPositionsUnlocked = false,
         -- Only m_enabled is read from saved settings; all front bar layout
         -- values (offsets, button sizes, spacing) come from the layout config
         -- in Constants.lua (BETTERUI_ORB_FRAMES.bars.customFrontBar).
@@ -79,6 +80,7 @@ end
 -- Import shared utilities (canonical definitions in SettingsAccessor.lua)
 local ClampInteger = BETTERUI.ClampInteger
 local ClampNumber = BETTERUI.ClampNumber
+local ELEMENT_POSITION_KEYS = { "leftOrb", "rightOrb", "skillBars", "xpBar", "mountBar", "castBar", "quickslot", "companionUltimate" }
 
 local function CloneTable(value)
     if type(value) ~= "table" then
@@ -108,6 +110,49 @@ local function MergeMissingDefaults(target, defaults)
     return target
 end
 
+local function AnyLegacyElementUnlocked(m_options)
+    local ep = m_options and m_options.elementPositions
+    if type(ep) ~= "table" then
+        return false
+    end
+    for _, k in ipairs(ELEMENT_POSITION_KEYS) do
+        if type(ep[k]) == "table" and ep[k].locked == false then
+            return true
+        end
+    end
+    return false
+end
+
+local function AddOffsetToElementPosition(elementPositions, key, offsetX, offsetY)
+    if type(elementPositions) ~= "table" then
+        return
+    end
+    if type(elementPositions[key]) ~= "table" then
+        elementPositions[key] = { locked = true, offsetX = 0, offsetY = 0 }
+    end
+    local ep = elementPositions[key]
+    ep.offsetX = (tonumber(ep.offsetX) or 0) + offsetX
+    ep.offsetY = (tonumber(ep.offsetY) or 0) + offsetY
+end
+
+local function MigrateLegacyIndependentOrbOffset(m_options)
+    if type(m_options) ~= "table" or m_options.enableIndependentOrbOffset ~= true then
+        return
+    end
+
+    local offsetX = tonumber(m_options.orbOffsetX) or 0
+    local offsetY = tonumber(m_options.orbOffsetY) or 0
+    if offsetX ~= 0 or offsetY ~= 0 then
+        for _, k in ipairs({ "leftOrb", "rightOrb", "xpBar", "mountBar" }) do
+            AddOffsetToElementPosition(m_options.elementPositions, k, offsetX, offsetY)
+        end
+    end
+
+    m_options.enableIndependentOrbOffset = false
+    m_options.orbOffsetX = 0
+    m_options.orbOffsetY = 0
+end
+
 local function NormalizeNumericSettings(m_options, defaults)
     if type(m_options) ~= "table" then
         return
@@ -128,8 +173,7 @@ local function NormalizeNumericSettings(m_options, defaults)
 
     local ep = m_options.elementPositions
     if type(ep) == "table" then
-        local keys = { "leftOrb", "rightOrb", "skillBars", "xpBar", "mountBar", "castBar", "quickslot", "companionUltimate" }
-        for _, k in ipairs(keys) do
+        for _, k in ipairs(ELEMENT_POSITION_KEYS) do
             if type(ep[k]) == "table" then
                 ep[k].offsetX = ClampInteger(ep[k].offsetX, -600, 600, 0)
                 ep[k].offsetY = ClampInteger(ep[k].offsetY, -600, 600, 0)
@@ -166,6 +210,8 @@ end
 local function InitializeDefaults(m_options)
     m_options = m_options or {}
     local defaults = GetDefaults()
+    local shouldBackfillGlobalUnlock = m_options.elementPositionsUnlocked == nil
+    local legacyGlobalUnlock = AnyLegacyElementUnlocked(m_options)
 
     -- Retire legacy setting now that custom texture switching is removed.
     m_options.useCustomTextures = nil
@@ -175,6 +221,9 @@ local function InitializeDefaults(m_options)
         if key ~= "customFrontBar" and key ~= "elementPositions" and m_options[key] == nil then
             m_options[key] = value
         end
+    end
+    if shouldBackfillGlobalUnlock then
+        m_options.elementPositionsUnlocked = legacyGlobalUnlock
     end
 
     -- Deep merge for customFrontBar
@@ -190,6 +239,8 @@ local function InitializeDefaults(m_options)
     else
         MergeMissingDefaults(m_options.elementPositions, defaults.elementPositions)
     end
+
+    MigrateLegacyIndependentOrbOffset(m_options)
 
     -- Migration/sanitization: normalize persisted numeric settings to current slider limits.
     NormalizeNumericSettings(m_options, defaults)

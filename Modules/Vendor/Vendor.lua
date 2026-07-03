@@ -1214,19 +1214,76 @@ local function OnOpenFence(_, enableSell, enableLaunder)
         })
 end
 
+local OnCloseStore
+
 local function OnStableInteractStart()
+    local gamepadPreferred
+    if type(IsInGamepadPreferredMode) == "function" then
+        gamepadPreferred = IsInGamepadPreferredMode()
+    end
+    TraceVendorEvent("vendor.stable_event", "received", {
+        fn = "Vendor.OnStableInteractStart",
+        event = "EVENT_STABLE_INTERACT_START",
+        gamepadPreferred = gamepadPreferred,
+    })
+    if not IsVendorModuleEnabled() or gamepadPreferred == false then
+        Vendor._openedInGamepadMode = false
+        TraceVendorEvent("vendor.stable_event", "skipped", {
+            fn = "Vendor.OnStableInteractStart",
+            event = "EVENT_STABLE_INTERACT_START",
+            reason = not IsVendorModuleEnabled() and "moduleDisabled" or "keyboardMode",
+        })
+        return
+    end
+    if Vendor._openedInGamepadMode == true
+        and Vendor.instance
+        and Vendor.instance.IsSceneShowing
+        and Vendor.instance:IsSceneShowing() then
+        TraceVendorEvent("vendor.stable_event", "skipped", {
+            fn = "Vendor.OnStableInteractStart",
+            event = "EVENT_STABLE_INTERACT_START",
+            reason = "alreadyOpen",
+        })
+        return
+    end
+
     VendorLifecycleRuntime:SetInteractionState({
         isStableInteraction = true,
     })
+    Vendor._openedInGamepadMode = true
+    ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
+        .OpenStore({
+            runtime = VendorLifecycleRuntime,
+            nativeStoreBridge = ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge"),
+            instance = Vendor.instance,
+            state = {
+                isStableInteraction = true,
+            },
+            options = {
+                interactionType = GetInteractionType and GetInteractionType() or nil,
+                interactionVendor = INTERACTION_VENDOR,
+                interactionStable = INTERACTION_STABLE,
+                isNativeStableModeActive = IsNativeStableModeActive,
+                shouldUseNativeStoreFallback = Vendor.ModePolicy and Vendor.ModePolicy.ShouldUseNativeStoreFallback or nil,
+            }
+        })
 end
 
 local function OnStableInteractEnd()
+    TraceVendorEvent("vendor.stable_event", "received", {
+        fn = "Vendor.OnStableInteractEnd",
+        event = "EVENT_STABLE_INTERACT_END",
+        openedInGamepadMode = Vendor._openedInGamepadMode,
+    })
+    if Vendor._openedInGamepadMode == true then
+        OnCloseStore()
+    end
     VendorLifecycleRuntime:SetInteractionState({
         isStableInteraction = false,
     })
 end
 
-local function OnCloseStore()
+OnCloseStore = function()
     TraceVendorEvent("vendor.store_event", "close_received", {
         fn = "Vendor.OnCloseStore",
         event = "EVENT_CLOSE_STORE",
@@ -1253,17 +1310,22 @@ local function OnCloseStore()
         })
         return
     end
+    local closeWasStable = Vendor.IsStableInteraction and Vendor.IsStableInteraction() == true
     Vendor._openedInGamepadMode = false
     TraceVendorEvent("vendor.store_event", "close_requested", {
         fn = "Vendor.OnCloseStore",
         event = "EVENT_CLOSE_STORE",
         openedInGamepadMode = Vendor._openedInGamepadMode,
+        isStableInteraction = closeWasStable,
     })
     ResolveVendorRuntimeDependency("InteractionRuntime", "interaction runtime")
         .CloseStore({
             runtime = VendorLifecycleRuntime,
             nativeStoreBridge = ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge"),
             instance = Vendor.instance,
+            state = {
+                isStableInteraction = closeWasStable,
+            },
         })
 end
 
@@ -1280,11 +1342,17 @@ local function OnInventoryUpdated()
     if not instance then return end
     if not sceneShowing then return end
 
+    local preserveSearchFocus = (instance._searchModeActive == true or instance._searchHeaderActive == true)
+        and instance.textSearchHeaderFocus
+        and instance.textSearchHeaderFocus.IsActive
+        and instance.textSearchHeaderFocus:IsActive() == true
+
     -- Coalesce rapid updates
     TraceVendorEvent("vendor.inventory_update", "scheduled", {
         fn = "Vendor.OnInventoryUpdated",
         feature = "vendor-refresh",
         delayMs = 100,
+        preserveSearchFocus = preserveSearchFocus == true,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
     if not (Vendor.Tasks and Vendor.Tasks.Cancel and Vendor.Tasks.Schedule) then
         TraceVendorEvent("vendor.inventory_update", "schedule_skipped", {
@@ -1297,21 +1365,40 @@ local function OnInventoryUpdated()
     Vendor.Tasks:Cancel("listRefresh")
     Vendor.Tasks:Schedule("listRefresh", 100, function()
         if Vendor.instance and Vendor.instance:IsSceneShowing() then
+            local refreshInstance = Vendor.instance
+            local previousPreserveSearchFocus = refreshInstance._preserveSearchFocusDuringRefresh
+            if preserveSearchFocus and (refreshInstance._searchModeActive or refreshInstance._searchHeaderActive) then
+                refreshInstance._preserveSearchFocusDuringRefresh = true
+            end
             TraceVendorEvent("vendor.inventory_update", "refresh_begin", {
                 fn = "Vendor.OnInventoryUpdated:listRefresh",
                 feature = "vendor-refresh",
                 selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(Vendor.instance.list, "vendor-list") or nil,
                 keybinds = DescribeVendorKeybinds(Vendor.instance),
+                preserveSearchFocus = refreshInstance._preserveSearchFocusDuringRefresh == true,
             }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
-            Vendor.instance:RefreshList()
-            if Vendor.instance.RefreshVendorFooter then
-                Vendor.instance:RefreshVendorFooter()
+            refreshInstance:RefreshList()
+            if preserveSearchFocus then
+                refreshInstance._preserveSearchFocusDuringRefresh = previousPreserveSearchFocus
+                if refreshInstance.textSearchHeaderFocus
+                    and refreshInstance.textSearchHeaderFocus.Activate
+                    and (not refreshInstance.textSearchHeaderFocus.IsActive
+                        or not refreshInstance.textSearchHeaderFocus:IsActive()) then
+                    refreshInstance.textSearchHeaderFocus:Activate()
+                end
+                if refreshInstance.SetTextSearchFocused then
+                    refreshInstance:SetTextSearchFocused(true)
+                end
+            end
+            if refreshInstance.RefreshVendorFooter then
+                refreshInstance:RefreshVendorFooter()
             end
             TraceVendorEvent("vendor.inventory_update", "refresh_end", {
                 fn = "Vendor.OnInventoryUpdated:listRefresh",
                 feature = "vendor-refresh",
-                selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(Vendor.instance.list, "vendor-list") or nil,
-                keybinds = DescribeVendorKeybinds(Vendor.instance),
+                selected = BETTERUI.Log and BETTERUI.Log.DescribeListSelection and BETTERUI.Log.DescribeListSelection(refreshInstance.list, "vendor-list") or nil,
+                keybinds = DescribeVendorKeybinds(refreshInstance),
+                preserveSearchFocus = preserveSearchFocus == true,
             }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
         else
             TraceVendorEvent("vendor.inventory_update", "refresh_skipped", {

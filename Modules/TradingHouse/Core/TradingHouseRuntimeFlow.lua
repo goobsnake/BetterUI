@@ -495,9 +495,88 @@ function TH.ResetBrowseState()
 end
 
 function TH.ShowScene()
-    if SCENE_MANAGER then
-        SCENE_MANAGER:Show(BETTERUI_TRADING_HOUSE_SCENE_NAME)
+    if not SCENE_MANAGER then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "show_skipped", {
+            fn = "TradingHouse.ShowScene",
+            feature = "trading-house-scene",
+            reason = "missingSceneManager",
+        })
+        return false, "missingSceneManager"
     end
+    SCENE_MANAGER:Show(BETTERUI_TRADING_HOUSE_SCENE_NAME)
+    return true
+end
+
+function TH.HandOffToNativeTradingHouse(reason, data)
+    data = data or {}
+    TH.RestoreNativeSceneAlias()
+    TH.nativeHandoffActive = false
+    TH.nativeHandoffNeedsBetterUICleanup = false
+
+    local nativeTH = rawget(_G, "TRADING_HOUSE_GAMEPAD")
+    if not nativeTH then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.native_handoff", "skipped", {
+            fn = "TradingHouse.HandOffToNativeTradingHouse",
+            feature = "trading-house-scene",
+            reason = reason or "unknown",
+            missingNativeTradingHouse = true,
+        })
+        return false
+    end
+
+    local ok, err
+    if type(nativeTH.OpenTradingHouse) == "function" then
+        ok, err = pcall(nativeTH.OpenTradingHouse, nativeTH)
+    elseif SCENE_MANAGER and nativeTH.sceneName then
+        ok, err = pcall(function() SCENE_MANAGER:Show(nativeTH.sceneName) end)
+    else
+        ok, err = false, "missingNativeOpen"
+    end
+
+    if ok == true then
+        TH.nativeHandoffActive = true
+        TH.nativeHandoffNeedsBetterUICleanup = data.betterUiCleanupPending == true
+    end
+
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.native_handoff",
+        ok and "open_driven" or "open_failed", {
+            fn = "TradingHouse.HandOffToNativeTradingHouse",
+            feature = "trading-house-scene",
+            reason = reason or "unknown",
+            interactionType = data.interactionType,
+            cleanupPending = data.betterUiCleanupPending == true,
+            error = ok and nil or tostring(err),
+        })
+    return ok == true
+end
+
+function TH.CloseNativeTradingHouseHandoff(reason)
+    if TH.nativeHandoffActive ~= true then
+        return false, false
+    end
+
+    local nativeTH = rawget(_G, "TRADING_HOUSE_GAMEPAD")
+    local cleanupPending = TH.nativeHandoffNeedsBetterUICleanup == true
+    TH.nativeHandoffActive = false
+    TH.nativeHandoffNeedsBetterUICleanup = false
+    local ok, err
+    if nativeTH and type(nativeTH.CloseTradingHouse) == "function" then
+        ok, err = pcall(nativeTH.CloseTradingHouse, nativeTH)
+    elseif nativeTH and SCENE_MANAGER and nativeTH.sceneName then
+        ok, err = pcall(function() SCENE_MANAGER:Hide(nativeTH.sceneName) end)
+    else
+        ok, err = false, "missingNativeClose"
+    end
+
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.native_handoff",
+        ok and "close_driven" or "close_failed", {
+            fn = "TradingHouse.CloseNativeTradingHouseHandoff",
+            feature = "trading-house-scene",
+            reason = reason or "unknown",
+            cleanupPending = cleanupPending,
+            error = ok and nil or tostring(err),
+        })
+    return ok == true, cleanupPending
 end
 
 function TH.ScheduleOwnershipReassert()
@@ -1037,6 +1116,9 @@ function TH.OnOpenTradingHouse()
             feature = "trading-house-scene",
             reason = "noInstance",
         })
+        TH.HandOffToNativeTradingHouse("noInstance", {
+            interactionType = GetInteractionType and GetInteractionType() or nil,
+        })
         return
     end
 
@@ -1048,7 +1130,9 @@ function TH.OnOpenTradingHouse()
             reason = "interactionTypeMismatch",
             interactionType = interactionType,
         })
-        TH.RestoreNativeSceneAlias()
+        TH.HandOffToNativeTradingHouse("interactionTypeMismatch", {
+            interactionType = interactionType,
+        })
         return
     end
 
@@ -1069,7 +1153,24 @@ function TH.OnOpenTradingHouse()
     TH.instance:SetMode(MODE.BROWSE)
     TH.instance:UpdateTabHeader()
     TH.ResetBrowseState()
-    TH.ShowScene()
+    local showOk, showReason = TH.ShowScene()
+    if not showOk then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "open_skipped", {
+            fn = "TradingHouse.OnOpenTradingHouse",
+            feature = "trading-house-scene",
+            reason = showReason or "showSceneFailed",
+        })
+        local handoffOk = TH.HandOffToNativeTradingHouse(showReason or "showSceneFailed", {
+            interactionType = interactionType,
+            betterUiCleanupPending = true,
+        })
+        if not handoffOk then
+            DisassociateSearchFeatures()
+            TH.ResetBrowseState()
+            TH.AliasSceneToBetterUI()
+        end
+        return
+    end
     TH.ScheduleOwnershipReassert()
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "open_shown", {
         fn = "TradingHouse.OnOpenTradingHouse",
@@ -1084,6 +1185,10 @@ function TH.OnCloseTradingHouse()
         feature = "trading-house-scene",
         sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false,
     })
+    local nativeClosed, cleanupPending = TH.CloseNativeTradingHouseHandoff("closeEvent")
+    if nativeClosed and not cleanupPending then
+        return
+    end
     if TH.Tasks then
         TH.Tasks:Cancel("sceneOwnershipOpen")
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "reassert_cancelled", {

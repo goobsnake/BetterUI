@@ -78,7 +78,7 @@ BETTERUI_ORB_FRAMES = {
         customBackBar = {
             offsetY = -5,
         },
-        quickslot = { x = 276, y = -35 },
+        quickslot = { x = 270, y = -48 },
         bottom = {
             gamepadY = -15,
             keyboardY = -15,

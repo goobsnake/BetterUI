@@ -362,6 +362,18 @@ dofile("Modules/CIM/Core/Data/SearchManager.lua")
 dofile("Modules/CIM/Core/Settings/SettingsFactory.lua")
 
 do
+    local settingsFactorySource = read_file("Modules/CIM/Core/Settings/SettingsFactory.lua")
+    assert_true(settingsFactorySource:find("local function SettingsControlTraceEnabled", 1, true) ~= nil,
+        "SettingsFactory centralizes high-volume settings.control trace gating")
+    assert_true(settingsFactorySource:find("return L.EnabledFor(levels.TRACE, L.CATEGORY.SETTINGS)", 1, true) ~= nil,
+        "SettingsFactory only emits non-error settings.control phases at TRACE verbosity")
+    assert_true(settingsFactorySource:find('TraceSettingsControl("registered"', 1, true) ~= nil,
+        "SettingsFactory gates settings.control registered traces behind TRACE")
+    assert_true(settingsFactorySource:find('TraceSettings("settings.control", "get_error"', 1, true) ~= nil,
+        "SettingsFactory keeps settings.control error traces visible outside TRACE")
+end
+
+do
     local owner = {
         list = {
             GetNumItems = function()

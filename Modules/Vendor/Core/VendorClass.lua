@@ -906,6 +906,10 @@ function BETTERUI.Vendor.Class:DetachUnexpectedSearchHeaderFocus(reason)
 
     self._searchModeActive = false
     self._searchHeaderActive = false
+    self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
+    if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
+        BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
+    end
 
     if hadSearchFocus then
         LogVendorDebug(
@@ -1327,6 +1331,7 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     end
     self._searchModeActive = false
     self._searchHeaderActive = false
+    self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
 
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         TraceVendorKeybindLayer("remove_before", self, self.textSearchKeybindStripDescriptor, {
@@ -1384,6 +1389,11 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     if self.NormalizeDirectionalInputOwnership then
         self:NormalizeDirectionalInputOwnership("ExitSearchMode")
     end
+    if self.RefreshVendorHeader and not self._refreshingVendorHeaderAfterSearchExit then
+        self._refreshingVendorHeaderAfterSearchExit = true
+        self:RefreshVendorHeader()
+        self._refreshingVendorHeaderAfterSearchExit = nil
+    end
 end
 
 BETTERUI.Vendor.Class.LeaveSearchMode = BETTERUI.Vendor.Class.ExitSearchMode
@@ -1403,8 +1413,14 @@ function BETTERUI.Vendor.Class:OnHeaderEntered()
         self:EnterSearchMode()
 
         BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
+        self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
+        local cleanupToken = self._searchKeybindCleanupToken
         BETTERUI.Vendor.Tasks:Schedule("searchKeybindCleanup", 20, function()
-            if not self._searchModeActive or not KEYBIND_STRIP then
+            if cleanupToken ~= self._searchKeybindCleanupToken
+                or not self._searchModeActive
+                or not self._searchHeaderActive
+                or not KEYBIND_STRIP
+                or (self.scene and self.scene.IsShowing and not self.scene:IsShowing()) then
                 return
             end
 
@@ -1423,7 +1439,10 @@ function BETTERUI.Vendor.Class:OnHeaderEntered()
                 removedGroupCount = self._searchRemovedKeybindGroups and #self._searchRemovedKeybindGroups or 0,
             })
 
-            if self._searchModeActive and self.textSearchKeybindStripDescriptor then
+            if cleanupToken == self._searchKeybindCleanupToken
+                and self._searchModeActive
+                and self._searchHeaderActive
+                and self.textSearchKeybindStripDescriptor then
                 TraceVendorKeybindLayer("add_before", self, self.textSearchKeybindStripDescriptor, {
                     reason = "searchKeybindCleanup",
                     keybindLabel = "vendor-search",
@@ -1529,6 +1548,20 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:EnsureListInputActive()
+    if self._preserveSearchFocusDuringRefresh
+        and (self._searchModeActive or self._searchHeaderActive) then
+        return
+    end
+
+    if (self._searchModeActive or self._searchHeaderActive)
+        and not self._preserveSearchFocusDuringRefresh
+        and not self._exitSearchModeInProgress then
+        self._exitSearchModeInProgress = true
+        self:ExitSearchMode()
+        self._exitSearchModeInProgress = nil
+        return
+    end
+
     -- Only activate list input when the scene is actually showing.
     if self.scene and not self.scene:IsShowing() then
         return

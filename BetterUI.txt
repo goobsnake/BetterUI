@@ -127,6 +127,7 @@ Modules\GeneralInterface\Tooltips\Tooltips.lua
 Modules\GeneralInterface\Tooltips\CraftingPriceTooltip.lua
 
 ; Module: Nameplates (CIM-dependent interface module)
+Modules\Nameplates\Positioning.lua
 Modules\Nameplates\Settings.lua
 Modules\Nameplates\Nameplates.lua
 

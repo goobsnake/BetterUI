@@ -926,8 +926,9 @@ end
 --- Forces a showing tooltip to re-render in stock mode after enhancements were
 --- disabled (PB-003). First reverses enhanced control-instance state (custom
 --- status label, shifted body/scroll anchors) via CleanupEnhancedTooltip, then
---- drives the native UpdateTooltipEquippedText stock branch so the visible item
---- reverts immediately instead of only on the next hover.
+--- refreshes the BetterUI stock fallback price/body state while leaving the
+--- native tooltip top area untouched. Native AddTopLinesToTopSection has
+--- already painted that section when enhancements are disabled.
 local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
     local normalizedTooltipType = tonumber(tooltipType) or tooltipType
     if normalizedTooltipType == nil then
@@ -984,7 +985,8 @@ local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
                 fn = "ScheduleTooltipEquippedStockRelayout.task",
                 tooltipType = normalizedTooltipType,
                 cleaned = type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function",
-                refreshed = type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function",
+                nativeTopAreaPreserved = true,
+                stockFallbackRefreshed = type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function",
             })
         else
             TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {

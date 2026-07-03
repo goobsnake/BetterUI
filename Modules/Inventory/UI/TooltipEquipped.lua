@@ -411,20 +411,37 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             local statusFontStr = "$(MEDIUM_FONT)|" .. statusFontSize .. "|shadow"
 
             customLabel:SetFont(statusFontStr)
-            customLabel:SetText(fullText)
-            customLabel:SetHidden(false)
+            container._betterUiStatusOwned = true
 
-            -- Physically shift the tooltip body to prevent overlap with our custom header.
-            if tooltip then
-                tooltip:ClearAnchors()
-                tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, BETTERUI.CIM.CONST.LAYOUT.TOOLTIP.BODY_OFFSET_Y_ENHANCED)
-            end
-            if bottomRail then
-                bottomRail:ClearAnchors()
-                -- Anchor below custom label with reduced padding (0) per user request
-                bottomRail:SetAnchor(TOPLEFT, customLabel, BOTTOMLEFT, 0, 0)
-                bottomRail:SetAnchor(TOPRIGHT, customLabel, BOTTOMRIGHT, 0, 0)
-                bottomRail:SetHidden(false)
+            if fullText ~= "" then
+                customLabel:SetText(fullText)
+                customLabel:SetHidden(false)
+
+                -- Physically shift the tooltip body to prevent overlap with our custom header.
+                if tooltip then
+                    tooltip:ClearAnchors()
+                    tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, BETTERUI.CIM.CONST.LAYOUT.TOOLTIP.BODY_OFFSET_Y_ENHANCED)
+                end
+                if bottomRail then
+                    bottomRail:ClearAnchors()
+                    -- Anchor below custom label with reduced padding (0) per user request
+                    bottomRail:SetAnchor(TOPLEFT, customLabel, BOTTOMLEFT, 0, 0)
+                    bottomRail:SetAnchor(TOPRIGHT, customLabel, BOTTOMRIGHT, 0, 0)
+                    bottomRail:SetHidden(false)
+                end
+            else
+                customLabel:SetText("")
+                customLabel:SetHidden(true)
+                if tooltip then
+                    tooltip:ClearAnchors()
+                    tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 0)
+                end
+                if bottomRail then
+                    bottomRail:ClearAnchors()
+                    bottomRail:SetAnchor(TOPLEFT, container, TOPLEFT, 0, ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y or 0)
+                    bottomRail:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0, ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y or 0)
+                    bottomRail:SetHidden(false)
+                end
             end
         else
             -- RESET: If disabled/empty, restore native layout (0 offset)
@@ -554,8 +571,9 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     statusLabelValue:SetFont(STOCK_TOOLTIP_BODY_FONT)
                 end
             else
-                -- Non-equipped item - CLEAR the status label so it doesn't persist
-                GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
+                -- Native/default tooltip rendering owns the top/status area.
+                -- Clearing it here runs after ESOUI paints the tooltip and strips
+                -- the Equipped/header lines in default-tooltip mode.
             end
         end
     end

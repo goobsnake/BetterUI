@@ -40,6 +40,16 @@ EVENT_OPEN_GUILD_BANK = 1001
 EVENT_CLOSE_GUILD_BANK = 1002
 EVENT_GUILD_BANK_SELECTED = 1003
 EVENT_GUILD_BANK_ITEMS_READY = 1004
+EVENT_GUILD_BANK_DESELECTED = 1005
+EVENT_GUILD_BANK_ITEM_ADDED = 1006
+EVENT_GUILD_BANK_ITEM_REMOVED = 1007
+EVENT_GUILD_BANK_UPDATED_QUANTITY = 1008
+EVENT_GUILD_BANK_OPEN_ERROR = 1009
+EVENT_GUILD_BANKED_MONEY_UPDATE = 1010
+EVENT_GUILD_RANKS_CHANGED = 1011
+EVENT_GUILD_MEMBER_RANK_CHANGED = 1012
+EVENT_GUILD_SELF_LEFT_GUILD = 1013
+INTERACTION_GUILDBANK = 1014
 
 BETTERUI_BANKING_SCENE_NAME = "betterui_banking"
 BETTERUI_GUILD_BANKING_SCENE_NAME = "betterui_guild_banking"
@@ -83,6 +93,7 @@ local eventRegistrations = {}
 local unregisteredEvents = {}
 local shownSceneName = nil
 local hiddenSceneName = nil
+local currentInteractionType = INTERACTION_GUILDBANK
 
 local function assertTrue(condition, message)
     if condition then
@@ -110,6 +121,13 @@ local function assertTableEquals(expected, actual, message)
     assertTrue(ok, message)
 end
 
+local function readFile(path)
+    local handle = assert(io.open(path, "r"))
+    local content = handle:read("*a")
+    handle:close()
+    return content
+end
+
 function GetBankingBag()
     return bankingBag
 end
@@ -129,6 +147,10 @@ end
 
 function GetSelectedGuildBankId()
     return selectedGuildId
+end
+
+function GetInteractionType()
+    return currentInteractionType
 end
 
 function GetDisplayName()
@@ -250,7 +272,17 @@ local function createWindow()
         footerFragment = "footer_fragment",
         scene = { name = BETTERUI_BANKING_SCENE_NAME },
         coreKeybinds = { "core" },
+        currentMode = 1,
+        lastPositions = {},
         list = {},
+    }
+
+    window.headerGeneric = {
+        tabBar = {
+            SetSelectedIndexWithoutAnimation = function(_, index)
+                window.headerSelectedIndex = index
+            end,
+        },
     }
 
     function window.list:Clear()
@@ -259,6 +291,10 @@ local function createWindow()
 
     function window.list:Commit()
         window.listCommitCount = window.listCommitCount + 1
+    end
+
+    function window.list:Activate()
+        window.listActivated = true
     end
 
     function window:ComputeVisibleBankCategories()
@@ -286,6 +322,14 @@ local function createWindow()
         self:ComputeVisibleBankCategories()
         self:RebuildHeaderCategories()
         self:RefreshList()
+    end
+
+    function window:RefreshTransferView(options)
+        self.refreshTransferViewCount = (self.refreshTransferViewCount or 0) + 1
+        self.readySawBankCategories = self.bankCategories ~= nil and #self.bankCategories > 0
+        self.readySawCurrentCategoryIndex = self.currentCategoryIndex
+        self.readySawHeaderRebuiltCount = self.rebuildHeaderCategoriesCount
+        self:RefreshCategoryView(options)
     end
 
     function window:RefreshFooter()
@@ -326,6 +370,26 @@ local function createWindow()
 
     function window:SetupUnifiedFooter()
         self.setupUnifiedFooterCalled = true
+    end
+
+    function window:RefreshActiveKeybinds()
+        self.refreshActiveKeybindsCount = (self.refreshActiveKeybindsCount or 0) + 1
+    end
+
+    function window:AddKeybinds()
+        self.addKeybindsCount = (self.addKeybindsCount or 0) + 1
+    end
+
+    function window:UpdateExternalAddons(enabled)
+        self.externalAddonsEnabled = enabled
+    end
+
+    function window:IsBatchProcessing()
+        return false
+    end
+
+    function window:AreListUpdatesSuppressed()
+        return self._suppressListUpdates == true
     end
 
     return window
@@ -377,6 +441,10 @@ BETTERUI = {
         ReadTransferContextSnapshot = function()
             return BETTERUI.Banking.GetTransferContext()
         end,
+        SetRuntimeBankBags = function(currentUsedBank, lastUsedBank)
+            BETTERUI.Banking.RuntimeState.currentUsedBank = currentUsedBank
+            BETTERUI.Banking.RuntimeState.lastUsedBank = lastUsedBank
+        end,
         RefreshWindowView = function(window, options)
             if window.RefreshTransferView then
                 window:RefreshTransferView(options or {})
@@ -420,12 +488,28 @@ BETTERUI = {
         CreateSearchKeybindDescriptor = function()
             return {}
         end,
+        Tasks = {
+            Cancel = function() end,
+            Schedule = function(_, _, _, callback)
+                if type(callback) == "function" then
+                    callback()
+                end
+            end,
+            IsPending = function()
+                return false
+            end,
+        },
     },
     Interface = {
         UpdateKeybindGroup = function(descriptor)
             if descriptor then
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
             end
+        end,
+    },
+    Utils = {
+        IsBankingSceneShowing = function()
+            return true
         end,
     },
     CIM = {
@@ -521,8 +605,21 @@ EVENT_MANAGER = {
     end,
 }
 
+SHARED_INVENTORY = {
+    RegisterCallback = function() end,
+    UnregisterCallback = function() end,
+}
+
+CALLBACK_MANAGER = {
+    RegisterCallback = function() end,
+    UnregisterCallback = function() end,
+}
+
 function zo_callLater(callback)
     callback()
+end
+
+function zo_removeCallLater(_)
 end
 
 ZO_InteractScene = {
@@ -792,6 +889,7 @@ local function resetInitState(enableGuildBank)
     unregisteredEvents = {}
     shownSceneName = nil
     hiddenSceneName = nil
+    currentInteractionType = INTERACTION_GUILDBANK
     activeWindow = createWindow()
     activeWindow.scene = { name = "window_personal_scene" }
     BETTERUI.Banking.Class.New = function()
@@ -851,11 +949,48 @@ shownSceneName = nil
 eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT_ITEMS_READY:" .. tostring(EVENT_GUILD_BANK_ITEMS_READY)]()
 assertEqual(BETTERUI_GUILD_BANKING_SCENE_NAME, shownSceneName,
     "Guild bank ready event can recover the BetterUI guild scene")
+shownSceneName = nil
+currentInteractionType = nil
+eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT_ITEMS_READY:" .. tostring(EVENT_GUILD_BANK_ITEMS_READY)]()
+assertEqual(nil, shownSceneName,
+    "Guild bank fallback does not show BetterUI scene after the guild-bank interaction ends")
+currentInteractionType = INTERACTION_GUILDBANK
 assertEqual(1, refreshManagerCalls, "Init configures the refresh manager")
 assertEqual(1, quantityDialogCalls, "Init configures the quantity dialog")
 assertEqual(1, sceneInterceptionCalls, "Init installs scene interception")
 assertTrue(BETTERUI.Banking.Window.setupUnifiedFooterCalled == true, "Init configures unified footer")
 assertEqual(2, #narrationCalls, "Init registers narration for personal and guild scenes")
+
+dofile("Modules/Banking/Scene/BankingSceneLifecycle.lua")
+local sceneLifecycleSource = readFile("Modules/Banking/Scene/BankingSceneLifecycle.lua")
+local onSceneShowingIndex = sceneLifecycleSource:find("function BETTERUI%.Banking%.Class:OnSceneShowing", 1, false)
+local registerIndex = sceneLifecycleSource:find("RegisterGuildBankSceneEvents%(GuildBank%)", onSceneShowingIndex or 1, false)
+local selectIndex = sceneLifecycleSource:find("ZO_SharedInventory_SelectAccessibleGuildBank%(guildId%)", onSceneShowingIndex or 1, false)
+local initializeIndex = sceneLifecycleSource:find("InitializeBankSceneCategories%(self%)", onSceneShowingIndex or 1, false)
+assertTrue(initializeIndex ~= nil and selectIndex ~= nil and initializeIndex < selectIndex,
+    "Guild bank scene initializes categories before native guild-bank selection")
+assertTrue(registerIndex ~= nil and selectIndex ~= nil and registerIndex < selectIndex,
+    "Guild bank scene registers ready/update handlers before native guild-bank selection")
+assertTrue(sceneLifecycleSource:find("RegisterGuildBankSceneEvents%(GuildBank%)", registerIndex + 1, false) == nil,
+    "Guild bank scene registers ready/update handlers once during scene showing")
+
+resetGuildBankState()
+bankingBag = BAG_GUILDBANK
+selectedGuildId = 55
+guildNames[55] = "Guild One"
+local selectedGuildBankDuringScene = nil
+ZO_SharedInventory_SelectAccessibleGuildBank = function(guildId)
+    selectedGuildBankDuringScene = guildId
+    local readyHandler = eventRegistrations[BETTERUI_GUILD_BANKING_SCENE_NAME .. ":" .. tostring(EVENT_GUILD_BANK_ITEMS_READY)]
+    assertTrue(type(readyHandler) == "function", "Guild bank ready handler is registered before native selection")
+    readyHandler()
+end
+BETTERUI.Banking.Class.OnSceneShowing(activeWindow, true)
+assertEqual(55, selectedGuildBankDuringScene, "Guild scene selects the current guild bank")
+assertTrue(activeWindow.readySawBankCategories == true, "Synchronous guild ready sees initialized categories")
+assertEqual(1, activeWindow.readySawCurrentCategoryIndex, "Synchronous guild ready sees initialized category index")
+assertTrue((activeWindow.readySawHeaderRebuiltCount or 0) >= 1, "Synchronous guild ready sees rebuilt header categories")
+ZO_SharedInventory_SelectAccessibleGuildBank = nil
 
 local callbacks = lifecycleRegistrations[1].callbacks
 local callbackWindow = {

@@ -160,16 +160,32 @@ local function InitSettingsPanel(mId, moduleName)
         scale = CreateSettingContract("scale", 1),
         offsetX = CreateSettingContract("offsetX", 0),
         offsetY = CreateSettingContract("offsetY", 0),
-        enableIndependentOrbOffset = CreateSettingContract("enableIndependentOrbOffset", false),
-        orbOffsetX = CreateSettingContract("orbOffsetX", 0),
-        orbOffsetY = CreateSettingContract("orbOffsetY", 0),
+        elementPositionsUnlocked = CreateSettingContract("elementPositionsUnlocked", false),
     }
+    do
+        local setUnlocked = generalContracts.elementPositionsUnlocked.set
+        generalContracts.elementPositionsUnlocked.set = function(v)
+            local unlocked = v == true
+            local previous = generalContracts.elementPositionsUnlocked.get()
+            setUnlocked(unlocked)
+            local drag = BETTERUI.ResourceOrbFrames.Drag
+            if drag and type(drag.SetAllElementsUnlocked) == "function" then
+                drag.SetAllElementsUnlocked(unlocked, GetLiveResourceOrbSettings)
+            end
+            TraceResourceOrbSettingsReset("element_positions_global_unlock_toggle", {
+                previousUnlocked = previous == true,
+                unlocked = unlocked,
+                updatedHandles = drag and type(drag.SetAllElementsUnlocked) == "function",
+            })
+        end
+    end
 
     local sharedContracts = {
         getSettings = GetResourceOrbSettings,
         getLiveSettings = GetLiveResourceOrbSettings,
         resetSettingsGroup = ResetSettingsGroup,
         applySettings = Apply,
+        globalUnlock = generalContracts.elementPositionsUnlocked,
     }
 
     local ELEMENT_POSITION_KEYS = {
@@ -198,6 +214,7 @@ local function InitSettingsPanel(mId, moduleName)
         TraceDrag("resource_orbs.element_positions", "global_reset", { fn = "ResourceOrbFrames.ResetElementPositions", count = #ELEMENT_POSITION_KEYS })
         TraceResourceOrbSettingsReset("element_positions_reset_begin", { count = #ELEMENT_POSITION_KEYS })
         settings.elementPositions = CreateDefaultElementPositions()
+        settings.elementPositionsUnlocked = false
         local drag = BETTERUI.ResourceOrbFrames.Drag
         for _, elemKey in ipairs(ELEMENT_POSITION_KEYS) do
             local previous = previousPositions and previousPositions[elemKey]
@@ -207,11 +224,11 @@ local function InitSettingsPanel(mId, moduleName)
                 previousOffsetX = previous and previous.offsetX,
                 previousOffsetY = previous and previous.offsetY,
                 usesLiveSettings = true,
-                updatedHandle = drag and drag.SetElementLocked ~= nil,
+                updatedHandle = drag and drag.SetAllElementsUnlocked ~= nil,
             })
-            if drag and drag.SetElementLocked then
-                drag.SetElementLocked(elemKey, true, GetLiveResourceOrbSettings)
-            end
+        end
+        if drag and type(drag.SetAllElementsUnlocked) == "function" then
+            drag.SetAllElementsUnlocked(false, GetLiveResourceOrbSettings)
         end
         if drag and type(drag.RefreshSettingsPanel) == "function" then
             drag.RefreshSettingsPanel()
@@ -225,23 +242,24 @@ local function InitSettingsPanel(mId, moduleName)
             locked = {
                 get = function()
                     local s = GetResourceOrbSettings()
-                    local ep = s and s.elementPositions and s.elementPositions[elemKey]
-                    return ep == nil or ep.locked ~= false
+                    return not (s and s.elementPositionsUnlocked == true)
                 end,
                 set = function(v)
                     local s = EnsureResourceOrbSettings()
                     if s and s.elementPositions and s.elementPositions[elemKey] then
-                        local previous = s.elementPositions[elemKey].locked
+                        local previous = s.elementPositionsUnlocked == true
+                        s.elementPositionsUnlocked = v ~= true
                         s.elementPositions[elemKey].locked = v
                         TraceResourceOrbSettingsReset("element_lock_toggle", {
                             elemKey = elemKey,
-                            previousLocked = previous,
+                            previousUnlocked = previous,
                             locked = v,
+                            unlocked = s.elementPositionsUnlocked == true,
                             usesLiveSettings = true,
                         })
                         local drag = BETTERUI.ResourceOrbFrames.Drag
-                        if drag and drag.SetElementLocked then
-                            drag.SetElementLocked(elemKey, v, GetLiveResourceOrbSettings)
+                        if drag and type(drag.SetAllElementsUnlocked) == "function" then
+                            drag.SetAllElementsUnlocked(s.elementPositionsUnlocked == true, GetLiveResourceOrbSettings)
                         end
                         Apply()
                     else
@@ -427,41 +445,11 @@ local function InitSettingsPanel(mId, moduleName)
             type = "checkbox",
             name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET_TOOLTIP")),
-            getFunc = generalContracts.enableIndependentOrbOffset.get,
-            setFunc = generalContracts.enableIndependentOrbOffset.set,
+            getFunc = generalContracts.elementPositionsUnlocked.get,
+            setFunc = generalContracts.elementPositionsUnlocked.set,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-            default = generalContracts.enableIndependentOrbOffset.default,
+            default = generalContracts.elementPositionsUnlocked.default,
             width = "full",
-        },
-        {
-            type = "slider",
-            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y_TOOLTIP")),
-            min = -300,
-            max = 300,
-            step = 5,
-            getFunc = generalContracts.orbOffsetY.get,
-            setFunc = generalContracts.orbOffsetY.set,
-            disabled = function()
-                return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
-                    or not generalContracts.enableIndependentOrbOffset.get()
-            end,
-            default = generalContracts.orbOffsetY.default,
-        },
-        {
-            type = "slider",
-            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X_TOOLTIP")),
-            min = -300,
-            max = 300,
-            step = 5,
-            getFunc = generalContracts.orbOffsetX.get,
-            setFunc = generalContracts.orbOffsetX.set,
-            disabled = function()
-                return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
-                    or not generalContracts.enableIndependentOrbOffset.get()
-            end,
-            default = generalContracts.orbOffsetX.default,
         },
         {
             type = "button",
@@ -472,6 +460,7 @@ local function InitSettingsPanel(mId, moduleName)
                     { key = "scale", value = 1 },
                     { key = "offsetX", value = 0 },
                     { key = "offsetY", value = 0 },
+                    { key = "elementPositionsUnlocked", value = false },
                     { key = "enableIndependentOrbOffset", value = false },
                     { key = "orbOffsetX", value = 0 },
                     { key = "orbOffsetY", value = 0 },

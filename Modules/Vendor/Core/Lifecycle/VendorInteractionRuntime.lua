@@ -737,7 +737,8 @@ local function OpenStoreInternal(state, deps, publishState)
     end
 
     local allowNativeStableFallback = interactionType == nil
-    state.isStableInteraction = interactionType == resolved.interactionStable
+    state.isStableInteraction = state.isStableInteraction == true
+        or interactionType == resolved.interactionStable
         or (allowNativeStableFallback and resolved.isNativeStableModeActive())
     TraceVendorScene("begin", state, {
         interactionType = interactionType,

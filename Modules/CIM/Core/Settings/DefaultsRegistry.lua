@@ -21,7 +21,7 @@ BETTERUI.Defaults.FirstInstall = {
     Inventory = true,         -- Core feature, showcase
     Banking = true,           -- Core feature, showcase
     Vendor = true,            -- Core feature, enhanced vendor/fence
-    TradingHouse = false,     -- Enhanced guild store / trading house (under development)
+    TradingHouse = true,      -- Enhanced guild store / trading house
     Companions = true,        -- Companion equipment manager
     GeneralInterface = true,  -- Enhanced tooltips, QoL
     ResourceOrbFrames = true, -- Per user request
@@ -200,6 +200,13 @@ BETTERUI.Defaults.Modules = {
         font = "$(BOLD_FONT)", -- Uses ESO's localized font for CJK support
         style = FONT_STYLE_SOFT_SHADOW_THIN or 5,
         size = 16,
+        nameplatePositionsUnlocked = false,
+        moveCompassFrame = false,
+        compassFrameOffsetX = 0,
+        compassFrameOffsetY = 0,
+        moveReticlePrompt = false,
+        reticlePromptOffsetX = 0,
+        reticlePromptOffsetY = 0,
     },
 
     -- WRITS MODULE (minimal settings)

@@ -103,6 +103,17 @@ local function SetHandleVisual(handle, locked)
     end
 end
 
+local function AreElementPositionsUnlocked(settings)
+    return settings and settings.elementPositionsUnlocked == true
+end
+
+local function RefreshAllHandleVisuals(unlocked)
+    local locked = unlocked ~= true
+    for _, handle in pairs(m_handles) do
+        SetHandleVisual(handle, locked)
+    end
+end
+
 local function GetBetterUISettingsPanel()
     for _, panelId in ipairs(SETTINGS_PANEL_IDS) do
         local panel = rawget(_G, panelId)
@@ -370,10 +381,7 @@ function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallba
 
     local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
     local s = liveSettingsGetter and liveSettingsGetter()
-    local locked = true
-    if s and s.elementPositions and s.elementPositions[elemKey] then
-        locked = s.elementPositions[elemKey].locked ~= false
-    end
+    local locked = not AreElementPositionsUnlocked(s)
     SetHandleVisual(handle, locked)
 
     local dragState = {}
@@ -390,10 +398,10 @@ function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallba
             return
         end
         local ep = settings.elementPositions and settings.elementPositions[elemKey]
-        if not ep or ep.locked ~= false then
+        if not ep or not AreElementPositionsUnlocked(settings) then
             TraceDrag("resource_orbs.element_drag", "start_skipped", {
                 elemKey = elemKey,
-                reason = ep and "locked" or "missingElementPosition",
+                reason = ep and "globalLock" or "missingElementPosition",
             })
             return
         end
@@ -474,6 +482,26 @@ function Drag.DetachDragHandle(elemKey)
     return true
 end
 
+function Drag.SetAllElementsUnlocked(unlocked, settingsGetter)
+    local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
+    local s = liveSettingsGetter and liveSettingsGetter()
+    local previous = s and s.elementPositionsUnlocked == true
+    if s then
+        s.elementPositionsUnlocked = unlocked == true
+    end
+    RefreshAllHandleVisuals(unlocked == true)
+    TraceDrag("resource_orbs.element_global_lock", "toggled", {
+        unlocked = unlocked == true,
+        previousUnlocked = previous == true,
+        handleCount = (function()
+            local count = 0
+            for _ in pairs(m_handles) do count = count + 1 end
+            return count
+        end)(),
+        hasSettings = s ~= nil,
+    })
+end
+
 function Drag.SetElementLocked(elemKey, locked, settingsGetter)
     local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
     local s = liveSettingsGetter and liveSettingsGetter()
@@ -481,9 +509,17 @@ function Drag.SetElementLocked(elemKey, locked, settingsGetter)
     if s and s.elementPositions and s.elementPositions[elemKey] then
         changed = s.elementPositions[elemKey].locked ~= locked
         s.elementPositions[elemKey].locked = locked
+        s.elementPositionsUnlocked = locked ~= true
     end
-    SetHandleVisual(m_handles[elemKey], locked)
-    TraceDrag("resource_orbs.element_lock", "toggled", { elemKey = elemKey, locked = locked == true, changed = changed == true, hasHandle = m_handles[elemKey] ~= nil })
+    RefreshAllHandleVisuals(s and s.elementPositionsUnlocked == true)
+    TraceDrag("resource_orbs.element_lock", "toggled", {
+        elemKey = elemKey,
+        locked = locked == true,
+        unlocked = s and s.elementPositionsUnlocked == true,
+        changed = changed == true,
+        hasHandle = m_handles[elemKey] ~= nil,
+        legacySingleElementCall = true,
+    })
 end
 
 function Drag.GetOffset(elemKey, settingsGetter)

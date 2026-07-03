@@ -24,6 +24,28 @@ local function DescribeKeybinds(descriptor, label)
     return nil
 end
 
+local function ShouldPreserveSearchFocus(instance)
+    if not instance then
+        return false
+    end
+    if instance._preserveSearchFocusDuringRefresh == true then
+        return true
+    end
+    if instance.textSearchHeaderFocus and instance.textSearchHeaderFocus.IsActive then
+        local ok, active = pcall(function() return instance.textSearchHeaderFocus:IsActive() end)
+        if ok and active == true then
+            return true
+        end
+    end
+    if instance.IsHeaderFocused then
+        local ok, active = pcall(function() return instance:IsHeaderFocused() end)
+        if ok and active == true then
+            return true
+        end
+    end
+    return false
+end
+
 ---@param instance BETTERUI.Vendor.Class
 ---@param deps table
 ---@return nil
@@ -43,7 +65,7 @@ function BootstrapRuntime.InitializeList(instance, deps)
             and instance.list.IsActive and instance.list:IsActive() then
             instance:OnItemSelectedChange(list, selectedData)
             instance:UpdateScrollIndicator(list)
-            if not instance._preserveSearchFocusDuringRefresh then
+            if not ShouldPreserveSearchFocus(instance) then
                 instance:OnSearchFocusLost()
             end
             return

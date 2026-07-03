@@ -540,7 +540,7 @@ for _, control in ipairs((pageByKey.Nameplates and pageByKey.Nameplates.controls
         nameplateEnableControlCount = nameplateEnableControlCount + 1
     end
 end
-assert_eq(1, nameplateEnableControlCount, "Nameplates tab keeps only the master enable gate")
+assert_eq(1, nameplateEnableControlCount, "Nameplates tab keeps one master enable gate")
 assert_true((pageByKey.Banking and pageByKey.Banking.controls[2].disabled) == nil,
     "module master toggle remains available when the module is off")
 assert_true(addonPanels["BETTERUI_Modules"] ~= nil, "master settings panel registers once")
@@ -1297,6 +1297,7 @@ BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 BETTERUI.ResourceOrbFrames.Utils = BETTERUI.ResourceOrbFrames.Utils or { Settings = {} }
 
 local dragLiveSettings = {
+    elementPositionsUnlocked = true,
     elementPositions = {
         castBar = { locked = false, offsetX = 0, offsetY = 0 },
     },

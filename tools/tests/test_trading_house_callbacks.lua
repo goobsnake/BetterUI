@@ -86,6 +86,13 @@ function EVENT_MANAGER:RegisterForEvent(name, eventCode, callback)
     self.handlers[name] = { eventCode = eventCode, callback = callback }
 end
 
+function EVENT_MANAGER:UnregisterForEvent(name, eventCode)
+    local entry = self.handlers[name]
+    if entry and entry.eventCode == eventCode then
+        self.handlers[name] = nil
+    end
+end
+
 local function getRegisteredCallback(name)
     local entry = EVENT_MANAGER.handlers[name]
     return entry and entry.callback or nil
@@ -372,8 +379,9 @@ TRADING_HOUSE_SEARCH = {
 
 -- Guild selection mocks.
 local selectedGuildId = nil
+local currentInteractionType = INTERACTION_TRADINGHOUSE
 function GetInteractionType()
-    return INTERACTION_TRADINGHOUSE
+    return currentInteractionType
 end
 function GetSelectedTradingHouseGuildId()
     return selectedGuildId
@@ -400,6 +408,28 @@ end
 function GetCurrencyAmount()
     return 1000
 end
+
+local nativeOpenCount = 0
+local nativeCloseCount = 0
+local nativeOpenFails = false
+local nativeCloseFails = false
+TRADING_HOUSE_GAMEPAD = {
+    sceneName = "gamepad_trading_house",
+    OpenTradingHouse = function()
+        nativeOpenCount = nativeOpenCount + 1
+        if nativeOpenFails then
+            error("native open failed")
+        end
+        nativeScene.showing = true
+    end,
+    CloseTradingHouse = function()
+        nativeCloseCount = nativeCloseCount + 1
+        if nativeCloseFails then
+            error("native close failed")
+        end
+        nativeScene.showing = false
+    end,
+}
 
 dofile("Modules/TradingHouse/Core/TradingHouseRuntime.lua")
 dofile("Modules/TradingHouse/Core/TradingHouseRuntimeFlow.lua")
@@ -523,6 +553,66 @@ assert_eq(selectedGuildId, GetGuildId(1),
 TH.OnCloseTradingHouse()
 assert_eq(disassociated, true,
     "OnCloseTradingHouse disassociates search features")
+
+local savedInstance = TH.instance
+TH.instance = nil
+nativeOpenCount = 0
+nativeCloseCount = 0
+disassociated = false
+TH.OnOpenTradingHouse()
+assert_eq(nativeOpenCount, 1,
+    "OnOpenTradingHouse hands off to native trading house when BetterUI has no instance")
+assert_eq(TH.nativeHandoffActive, true,
+    "Native handoff remains active until the matching close event")
+TH.OnCloseTradingHouse()
+assert_eq(nativeCloseCount, 1,
+    "OnCloseTradingHouse drives native close after a native handoff")
+assert_eq(TH.nativeHandoffActive, false,
+    "Native handoff flag clears after native close")
+assert_eq(disassociated, false,
+    "Native-only handoff skips BetterUI search cleanup")
+
+nativeOpenFails = true
+nativeOpenCount = 0
+TH.OnOpenTradingHouse()
+assert_eq(nativeOpenCount, 1,
+    "OnOpenTradingHouse attempts native open when BetterUI has no instance")
+assert_eq(TH.nativeHandoffActive, false,
+    "Failed native open does not leave handoff active")
+nativeOpenFails = false
+TH.instance = savedInstance
+
+currentInteractionType = 999
+nativeOpenCount = 0
+TH.OnOpenTradingHouse()
+assert_eq(nativeOpenCount, 1,
+    "OnOpenTradingHouse hands off to native trading house on interaction mismatch")
+currentInteractionType = INTERACTION_TRADINGHOUSE
+TH.OnCloseTradingHouse()
+
+local savedShowScene = TH.ShowScene
+TH.ShowScene = function()
+    return false, "forcedShowFailure"
+end
+disassociated = false
+associatedFeatures = nil
+nativeOpenCount = 0
+nativeCloseCount = 0
+nativeCloseFails = true
+TH.OnOpenTradingHouse()
+assert_eq(nativeOpenCount, 1,
+    "OnOpenTradingHouse hands off after a BetterUI show failure")
+assert_eq(TH.nativeHandoffActive, true,
+    "Successful native open remains active after BetterUI show failure")
+TH.OnCloseTradingHouse()
+assert_eq(nativeCloseCount, 1,
+    "OnCloseTradingHouse attempts native close after BetterUI show failure")
+assert_eq(disassociated, true,
+    "OnCloseTradingHouse runs BetterUI cleanup when native close fails after show failure")
+assert_eq(TH.nativeHandoffActive, false,
+    "Native handoff flag clears after failed native close")
+nativeCloseFails = false
+TH.ShowScene = savedShowScene
 
 -- Timeout handlers clear pending search state.
 TH.BrowseComponent.searchPending = true

@@ -1329,6 +1329,61 @@ assertEqual(false, nativeStatusSurface.bottomRail:IsHidden(),
 assertEqual(44, nativeStatusSurface.tooltip._anchors[1].y,
     "PB-003: default tooltip cleanup does not re-anchor native body layout")
 
+print("\nTest: PB-003 default UpdateTooltipEquippedText preserves native status text")
+local nativeUpdateSurface = buildMockTooltipSurface("PB003_NATIVE_UPDATE", 2)
+nativeUpdateSurface.container.statusLabel = newMockControl(CT_LABEL)
+nativeUpdateSurface.container.statusLabelValue = newMockControl(CT_LABEL)
+nativeUpdateSurface.container.statusLabelVisualLayer = newMockControl(CT_LABEL)
+nativeUpdateSurface.container.statusLabelValueForVisualLayer = newMockControl(CT_LABEL)
+nativeUpdateSurface.container.bottomRail = nativeUpdateSurface.bottomRail
+nativeUpdateSurface.container.statusLabel:SetText("Equipped")
+nativeUpdateSurface.container.statusLabelValue:SetText("Backup")
+nativeUpdateSurface.container.statusLabel:SetHidden(false)
+nativeUpdateSurface.container.statusLabelValue:SetHidden(false)
+
+local nativeUpdateClearCalls = 0
+local previousUpdateClearStatusLabel = GAMEPAD_TOOLTIPS.ClearStatusLabel
+GAMEPAD_TOOLTIPS.ClearStatusLabel = function(_, tooltipType)
+    nativeUpdateClearCalls = nativeUpdateClearCalls + 1
+    local surface = pbControls[tooltipType]
+    if surface and surface.container then
+        surface.container.statusLabel:SetText("")
+        surface.container.statusLabelValue:SetText("")
+    end
+end
+
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = false
+BETTERUI.Inventory.UpdateTooltipEquippedText("PB003_NATIVE_UPDATE", nil)
+GAMEPAD_TOOLTIPS.ClearStatusLabel = previousUpdateClearStatusLabel
+
+assertEqual(0, nativeUpdateClearCalls,
+    "PB-003: default tooltip equipped updater does not call ESOUI ClearStatusLabel for non-equipped items")
+assertEqual("Equipped", nativeUpdateSurface.container.statusLabel:GetText(),
+    "PB-003: default tooltip equipped updater preserves native status label text")
+assertEqual("Backup", nativeUpdateSurface.container.statusLabelValue:GetText(),
+    "PB-003: default tooltip equipped updater preserves native status value text")
+
+print("\nTest: PB-003 enhanced UpdateTooltipEquippedText clears stale BetterUI status when no status content remains")
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = true
+local enhancedStaleSurface = buildMockTooltipSurface("PB003_ENHANCED_STALE", 2)
+enhancedStaleSurface.tooltip._betterui_itemLink = "item:set-unlocked"
+BETTERUI.Inventory.UpdateTooltipEquippedText("PB003_ENHANCED_STALE", nil)
+assertEqual(false, enhancedStaleSurface.container._betterUiStatus:IsHidden(),
+    "PB-003: enhanced tooltip status is visible when BetterUI has status content")
+assertContains(enhancedStaleSurface.container._betterUiStatus:GetText(), "Collected",
+    "PB-003: enhanced tooltip status renders the BetterUI-owned set-collection line")
+assertEqual(120, enhancedStaleSurface.tooltip._anchors[1].y,
+    "PB-003: enhanced tooltip status shifts the body only while status content exists")
+
+enhancedStaleSurface.tooltip._betterui_itemLink = nil
+BETTERUI.Inventory.UpdateTooltipEquippedText("PB003_ENHANCED_STALE", nil)
+assertEqual("", enhancedStaleSurface.container._betterUiStatus:GetText(),
+    "PB-003: enhanced tooltip updater clears stale BetterUI status text")
+assertEqual(true, enhancedStaleSurface.container._betterUiStatus:IsHidden(),
+    "PB-003: enhanced tooltip updater hides empty BetterUI status labels")
+assertEqual(0, enhancedStaleSurface.tooltip._anchors[1].y,
+    "PB-003: enhanced tooltip updater restores body offset when BetterUI status content disappears")
+
 print("\nTest: PB-003 repeated enhancements on/off loop accumulates no drift")
 local driftSurface = buildMockTooltipSurface("PB003_DRIFT", 3)
 local driftStatus = newMockControl(CT_LABEL)

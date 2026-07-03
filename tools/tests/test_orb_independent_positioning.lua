@@ -120,33 +120,41 @@ assertTrue(orchestratorSource:find("decoupledAnchors = true") ~= nil,
 local defaultsSource = read_file("Modules/ResourceOrbFrames/Settings/Defaults.lua")
 assertTrue(defaultsSource ~= nil, "Defaults.lua readable")
 
+assertTrue(defaultsSource:find("elementPositionsUnlocked = false") ~= nil,
+    "Defaults: global element unlock defaults to false")
 assertTrue(defaultsSource:find("enableIndependentOrbOffset = false") ~= nil,
-    "Defaults: enableIndependentOrbOffset defaults to false")
+    "Defaults: legacy enableIndependentOrbOffset remains readable for migration")
 assertTrue(defaultsSource:find("orbOffsetX = 0") ~= nil,
-    "Defaults: orbOffsetX defaults to 0")
+    "Defaults: legacy orbOffsetX remains readable for migration")
 assertTrue(defaultsSource:find("orbOffsetY = 0") ~= nil,
-    "Defaults: orbOffsetY defaults to 0")
+    "Defaults: legacy orbOffsetY remains readable for migration")
+assertTrue(defaultsSource:find("local function MigrateLegacyIndependentOrbOffset%(m_options%)") ~= nil,
+    "Defaults: legacy independent orb offset migrates into element positions")
+assertTrue(defaultsSource:find("m_options%.elementPositionsUnlocked = legacyGlobalUnlock") ~= nil,
+    "Defaults: legacy per-element unlocked state backfills the global unlock")
 
--- Test 8: Module defines the setting contracts
+-- Test 8: Module defines the global unlock contract and retires the legacy UI contracts
 local moduleSource = read_file("Modules/ResourceOrbFrames/Module.lua")
 assertTrue(moduleSource ~= nil, "Module.lua readable")
 
-assertTrue(moduleSource:find("enableIndependentOrbOffset = CreateSettingContract%(") ~= nil,
-    "Module: enableIndependentOrbOffset contract exists")
-assertTrue(moduleSource:find("orbOffsetX = CreateSettingContract%(") ~= nil,
-    "Module: orbOffsetX contract exists")
-assertTrue(moduleSource:find("orbOffsetY = CreateSettingContract%(") ~= nil,
-    "Module: orbOffsetY contract exists")
+assertTrue(moduleSource:find("elementPositionsUnlocked = CreateSettingContract%(\"elementPositionsUnlocked\", false%)") ~= nil,
+    "Module: global element unlock contract exists")
+assertTrue(moduleSource:find("drag%.SetAllElementsUnlocked%(unlocked, GetLiveResourceOrbSettings%)") ~= nil,
+    "Module: global element unlock updates all drag handles")
+assertTrue(moduleSource:find("enableIndependentOrbOffset = CreateSettingContract%(") == nil,
+    "Module: legacy independent orb offset no longer has a visible settings contract")
+assertTrue(moduleSource:find("orbOffsetX = CreateSettingContract%(") == nil,
+    "Module: legacy orbOffsetX no longer has a visible settings contract")
+assertTrue(moduleSource:find("orbOffsetY = CreateSettingContract%(") == nil,
+    "Module: legacy orbOffsetY no longer has a visible settings contract")
 
--- Test 9: UI controls exist and are gated by the toggle
+-- Test 9: UI controls expose one global unlock and remove the legacy orb sliders
 assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET") ~= nil,
-    "Module: Independent orb offset checkbox exists")
-assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y") ~= nil,
-    "Module: orbOffsetY slider exists")
-assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X") ~= nil,
-    "Module: orbOffsetX slider exists")
-assertTrue(moduleSource:find("not generalContracts%.enableIndependentOrbOffset%.get%(") ~= nil,
-    "Module: Sliders disabled when toggle is off")
+    "Module: global unlock checkbox reuses the legacy independent-orb string ID")
+assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y") == nil,
+    "Module: legacy orbOffsetY slider is no longer rendered")
+assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X") == nil,
+    "Module: legacy orbOffsetX slider is no longer rendered")
 
 -- Test 10: Mouse drag positioning must write through live settings. The
 -- remote interface.log showed delta_applied changed=true followed by drag
@@ -188,10 +196,10 @@ assertTrue(moduleSource:find("getLiveSettings = GetLiveResourceOrbSettings") ~= 
     "Module: shared contracts expose live settings")
 assertTrue(moduleSource:find("usesLiveSettings = true") ~= nil,
     "Module: element reset/lock traces record live-settings usage")
-assertTrue(moduleSource:find("drag%.SetElementLocked%(elemKey, true, GetLiveResourceOrbSettings%)") ~= nil,
-    "Module: reset-all updates drag lock state through live settings")
-assertTrue(moduleSource:find("drag%.SetElementLocked%(elemKey, v, GetLiveResourceOrbSettings%)") ~= nil,
-    "Module: lock toggle updates drag lock state through live settings")
+assertTrue(moduleSource:find("drag%.SetAllElementsUnlocked%(false, GetLiveResourceOrbSettings%)") ~= nil,
+    "Module: reset-all locks all drag handles through the global live setting")
+assertTrue(moduleSource:find("drag%.SetAllElementsUnlocked%(s%.elementPositionsUnlocked == true, GetLiveResourceOrbSettings%)") ~= nil,
+    "Module: legacy lock toggle maps to the global live setting")
 
 local settingsSubmenusSource2 = read_file("Modules/ResourceOrbFrames/Settings/SettingsSubmenus.lua")
 assertTrue(settingsSubmenusSource2 ~= nil, "SettingsSubmenus.lua readable")
@@ -199,8 +207,12 @@ assertTrue(settingsSubmenusSource2:find("shared%.getLiveSettings") ~= nil,
     "SettingsSubmenus: ResetElemPos prefers the shared live settings getter")
 assertTrue(settingsSubmenusSource2:find("drag%.ResetOffset%(k, liveGetter, nil%)") ~= nil,
     "SettingsSubmenus: ResetElemPos calls Drag.ResetOffset with the live settings getter")
-assertTrue(settingsSubmenusSource2:find("drag%.SetElementLocked%(k, true, liveGetter%)") ~= nil,
-    "SettingsSubmenus: ResetElemPos locks the element via the live settings getter")
+assertTrue(settingsSubmenusSource2:find("local function AreElementPositionsUnlocked%(shared%)") ~= nil,
+    "SettingsSubmenus: element sliders are gated by the global unlock")
+assertTrue(settingsSubmenusSource2:find("drag%.SetElementLocked%(k, true, liveGetter%)") == nil,
+    "SettingsSubmenus: ResetElemPos no longer mutates per-element lock state")
+assertTrue(settingsSubmenusSource2:find("getFunc = c%.locked%.get") == nil,
+    "SettingsSubmenus: per-element lock checkboxes are no longer rendered")
 assertTrue(settingsSubmenusSource2:find("usesLiveSettings = usesLiveSettings") ~= nil,
     "SettingsSubmenus: ResetElemPos trace records live-settings usage")
 assertTrue(settingsSubmenusSource2:find("local s = shared and shared%.getSettings and shared%.getSettings%(%)") == nil,

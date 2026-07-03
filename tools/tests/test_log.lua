@@ -425,11 +425,26 @@ fileLines = {}
 Log.FlowEnd(flow, Log.CATEGORY.ACTION, "done")
 check(#fileLines == 1 and fileLines[1]:find("[flow end]", 1, true) ~= nil
     and fileLines[1]:find("flow=" .. flow, 1, true) ~= nil, "FlowEnd emits an end envelope with flow=<id>")
+check(Log.GetLastAction() and Log.GetLastAction().flow == nil,
+    "FlowEnd clears the ambient last-action flow")
 check(#watchdogResolutions == 1
     and watchdogResolutions[1].kind == "flow"
     and watchdogResolutions[1].key == flow
     and watchdogResolutions[1].outcome == "ended",
     "FlowEnd resolves the matching watchdog expectation")
+
+Log.SetLastAction({ flow = "nameplates.init", message = "nameplates.init:end" })
+fileLines = {}
+Log.TraceEvent(Log.CATEGORY.LIFECYCLE, "nameplates.init", "end", { source = "test" })
+check(fileLines[1] and fileLines[1]:find('flow="nameplates.init"', 1, true) ~= nil,
+    "TraceEvent phase=end emits the ending event with its ambient flow")
+check(Log.GetLastAction() and Log.GetLastAction().flow == nil,
+    "TraceEvent phase=end clears the ambient wrapper-style flow")
+fileLines = {}
+Log.TraceEvent(Log.CATEGORY.LIFECYCLE, "bank.item_transfer", "requested", { source = "test" })
+check(fileLines[1] and fileLines[1]:find("nameplates.init", 1, true) == nil,
+    "TraceEvent after phase=end does not inherit the ended flow")
+
 fileLines = {}; watchdogExpectations = {}
 Log.ApplyPreset("info")
 Log.FlowBegin("infoOnly", Log.CATEGORY.ACTION, "info-only flow")

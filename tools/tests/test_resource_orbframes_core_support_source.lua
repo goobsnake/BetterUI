@@ -51,10 +51,10 @@ assert_true(constantsSource:find("BETTERUI_ORB_FRAMES = %{%s*") ~= nil,
 local quickslotBlock = constantsSource:match("quickslot = %{%s*.-%s*%},")
 local quickslotX = quickslotBlock and tonumber(quickslotBlock:match("x = ([%-0-9]+)"))
 local quickslotY = quickslotBlock and tonumber(quickslotBlock:match("y = ([%-0-9]+)"))
-assert_true(quickslotX == 276,
-    "ROF Constants quickslot default sits a few pixels left of the previous lower-row placement")
-assert_true(quickslotY == -35,
-    "ROF Constants quickslot default centers the icon between the top and bottom skill rows")
+assert_true(quickslotX == 270,
+    "ROF Constants quickslot default sits a few pixels farther left of the lower-row placement")
+assert_true(quickslotY == -48,
+    "ROF Constants quickslot default raises the icon between the top and bottom skill rows")
 
 local animationsSource = read_file("Modules/ResourceOrbFrames/Core/OrbAnimations.lua")
 assert_true(animationsSource:find("function Animations%.AnimateDimensions%(rootFrame, targetScale, targetOffsetX, targetOffsetY%)") ~= nil,
@@ -188,6 +188,30 @@ assert_true(resourceOrbFramesSource:find("GetROFTasks%(%):Schedule%(") ~= nil,
 
 assert_true(resourceOrbFramesSource:find("ResourceOrbFrames%.EnsureTaskManager = EnsureResourceOrbFramesTaskManager") ~= nil,
     "ROF root still exposes EnsureTaskManager after the lazy-binding refactor")
+
+local moduleSource = read_file("Modules/ResourceOrbFrames/Module.lua")
+assert_true(moduleSource:find('elementPositionsUnlocked = CreateSettingContract%("elementPositionsUnlocked", false%)') ~= nil,
+    "ROF settings module exposes a global element-position unlock contract")
+assert_true(moduleSource:find("drag%.SetAllElementsUnlocked%(unlocked, GetLiveResourceOrbSettings%)") ~= nil,
+    "ROF global unlock setting refreshes all drag handles")
+assert_true(moduleSource:find('generalContracts%.elementPositionsUnlocked%.get') ~= nil,
+    "ROF top-level position unlock checkbox reads the global unlock contract")
+assert_false(moduleSource:find('getFunc = generalContracts%.enableIndependentOrbOffset%.get') ~= nil,
+    "ROF settings panel no longer exposes the legacy independent orb offset toggle")
+
+local submenuSource = read_file("Modules/ResourceOrbFrames/Settings/SettingsSubmenus.lua")
+assert_true(submenuSource:find("local function AreElementPositionsUnlocked%(shared%)") ~= nil,
+    "ROF settings submenus gate element sliders from the global unlock")
+assert_true(submenuSource:find("shared%.globalUnlock%.get") ~= nil,
+    "ROF settings submenus render one shared unlock control for element positions")
+assert_false(submenuSource:find("getFunc = c%.locked%.get") ~= nil,
+    "ROF settings submenus no longer render per-element lock checkboxes")
+
+local elementDragSource = read_file("Modules/ResourceOrbFrames/Core/ElementDrag.lua")
+assert_true(elementDragSource:find("function Drag%.SetAllElementsUnlocked%(unlocked, settingsGetter%)") ~= nil,
+    "ROF element drag exposes a global handle unlock helper")
+assert_true(elementDragSource:find('reason = ep and "globalLock" or "missingElementPosition"') ~= nil,
+    "ROF element drag rejects mouse-down while the global lock is active")
 
 if failed > 0 then
     error(string.format("test_resource_orbframes_core_support_source.lua failed with %d failure(s)", failed))

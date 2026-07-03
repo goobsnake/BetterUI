@@ -428,6 +428,16 @@ end
 ---@return table|nil
 function Log.GetLastAction() return lastAction end
 
+---@param flow string|nil
+function Log.ClearLastActionFlow(flow)
+    if type(lastAction) ~= "table" then return end
+    local normalizedFlow = flow and normalizeLogToken(flow, "?") or nil
+    if normalizedFlow ~= nil and lastAction.flow ~= normalizedFlow then
+        return
+    end
+    lastAction.flow = nil
+end
+
 -- Render + route a record whose gate has ALREADY passed (see EnabledFor). Keeping
 -- the sink-mask read and rendering out of the gate keeps EnabledFor cheap, and
 -- skips renderData() entirely when payload capture is off.
@@ -554,6 +564,9 @@ function Log.TraceEvent(category, event, phase, data, level)
     local la = lastAction
     if payload.flow == nil and type(la) == "table" and la.flow then payload.flow = la.flow end
     emit(level or Log.LEVEL.DEBUG, category, "event=" .. event .. " phase=" .. phase, payload)
+    if phase == "end" then
+        Log.ClearLastActionFlow(event)
+    end
 end
 
 -- Flow envelopes: correlate the records of one multi-step operation. FlowBegin allocates
@@ -585,8 +598,10 @@ end
 
 function Log.FlowEnd(flow, category, message, data)
     local msg = (message ~= nil) and normalizeLogText(message, "flow") or "flow"
+    local normalizedFlow = normalizeLogToken(flow, "?")
     emit(Log.LEVEL.DEBUG, category or Log.CATEGORY.GENERAL,
-        msg .. " [flow end] flow=" .. normalizeLogToken(flow, "?"), data)
+        msg .. " [flow end] flow=" .. normalizedFlow, data)
+    Log.ClearLastActionFlow(normalizedFlow)
     local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
     if watchdog and type(watchdog.Resolve) == "function" then
         pcall(watchdog.Resolve, "flow", flow, "ended")

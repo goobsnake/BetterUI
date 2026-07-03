@@ -346,11 +346,27 @@ local function SettingsTraceEnabled()
     return type(L.TraceEvent) == "function"
 end
 
+local function SettingsControlTraceEnabled()
+    local L = BETTERUI.Log
+    if not L then return false end
+    local levels = type(L.LEVEL) == "table" and L.LEVEL or nil
+    if L.EnabledFor and levels and L.CATEGORY then
+        return L.EnabledFor(levels.TRACE, L.CATEGORY.SETTINGS)
+    end
+    return false
+end
+
 local function TraceSettings(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
     local levels = type(L.LEVEL) == "table" and L.LEVEL or nil
     L.TraceEvent(L.CATEGORY.SETTINGS, event, phase, data or {}, levels and levels.INFO or nil)
+end
+
+local function TraceSettingsControl(phase, data)
+    if SettingsControlTraceEnabled() then
+        TraceSettings("settings.control", phase, data)
+    end
 end
 
 local function CountControls(controls)
@@ -397,7 +413,7 @@ local function InstrumentSettingControls(controls, panelId, parentPath)
     for index, control in ipairs(controls) do
         if type(control) == "table" then
             local controlPath = parentPath and (parentPath .. "." .. tostring(index)) or tostring(index)
-            TraceSettings("settings.control", "registered", BuildControlTraceData(panelId, control, controlPath))
+            TraceSettingsControl("registered", BuildControlTraceData(panelId, control, controlPath))
             if type(control.getFunc) == "function" and not control.__buiGetFuncInstrumented then
                 local originalGetFunc = control.getFunc
                 control.getFunc = function(...)
@@ -408,7 +424,7 @@ local function InstrumentSettingControls(controls, panelId, parentPath)
                         }))
                         error(results[1], 2)
                     end
-                    TraceSettings("settings.control", "get", BuildControlTraceData(panelId, control, controlPath, {
+                    TraceSettingsControl("get", BuildControlTraceData(panelId, control, controlPath, {
                         value = DescribePackedResults(results),
                     }))
                     return unpack(results, 1, results.n)
@@ -418,13 +434,13 @@ local function InstrumentSettingControls(controls, panelId, parentPath)
             if type(control.setFunc) == "function" and not control.__buiSetFuncInstrumented then
                 local originalSetFunc = control.setFunc
                 control.setFunc = function(...)
-                    local captureValues = SettingsTraceEnabled()
+                    local captureValues = SettingsControlTraceEnabled()
                     local oldValue = nil
                     if captureValues and type(control.getFunc) == "function" then
                         local oldResults = CapturePcallResults(pcall(control.getFunc))
                         oldValue = oldResults.ok and DescribePackedResults(oldResults) or ("error:" .. tostring(oldResults[1]))
                     end
-                    TraceSettings("settings.control", "set_before", BuildControlTraceData(panelId, control, controlPath, {
+                    TraceSettingsControl("set_before", BuildControlTraceData(panelId, control, controlPath, {
                         oldValue = oldValue,
                         newValue = DescribeSettingsValues(...),
                     }))
@@ -442,7 +458,7 @@ local function InstrumentSettingControls(controls, panelId, parentPath)
                         local newResults = CapturePcallResults(pcall(control.getFunc))
                         newValue = newResults.ok and DescribePackedResults(newResults) or ("error:" .. tostring(newResults[1]))
                     end
-                    TraceSettings("settings.control", "set_after", BuildControlTraceData(panelId, control, controlPath, {
+                    TraceSettingsControl("set_after", BuildControlTraceData(panelId, control, controlPath, {
                         oldValue = oldValue,
                         newValue = newValue,
                         result = DescribePackedResults(results),
@@ -454,7 +470,7 @@ local function InstrumentSettingControls(controls, panelId, parentPath)
             if type(control.func) == "function" and not control.__buiFuncInstrumented then
                 local originalFunc = control.func
                 control.func = function(...)
-                    TraceSettings("settings.control", "button_before", BuildControlTraceData(panelId, control, controlPath, {
+                    TraceSettingsControl("button_before", BuildControlTraceData(panelId, control, controlPath, {
                         args = DescribeSettingsValues(...),
                     }))
                     local results = CapturePcallResults(pcall(originalFunc, ...))
@@ -464,7 +480,7 @@ local function InstrumentSettingControls(controls, panelId, parentPath)
                         }))
                         error(results[1], 2)
                     end
-                    TraceSettings("settings.control", "button_after", BuildControlTraceData(panelId, control, controlPath, {
+                    TraceSettingsControl("button_after", BuildControlTraceData(panelId, control, controlPath, {
                         result = DescribePackedResults(results),
                     }))
                     return unpack(results, 1, results.n)
@@ -475,12 +491,9 @@ local function InstrumentSettingControls(controls, panelId, parentPath)
                 local originalDisabled = control.disabled
                 control.disabled = function(...)
                     local result = originalDisabled(...)
-                    if BETTERUI.Log and BETTERUI.Log.EnabledFor
-                        and BETTERUI.Log.EnabledFor(BETTERUI.Log.LEVEL.TRACE, BETTERUI.Log.CATEGORY.SETTINGS) then
-                        TraceSettings("settings.control", "disabled", BuildControlTraceData(panelId, control, controlPath, {
-                            result = result == true,
-                        }))
-                    end
+                    TraceSettingsControl("disabled", BuildControlTraceData(panelId, control, controlPath, {
+                        result = result == true,
+                    }))
                     return result
                 end
                 control.__buiDisabledInstrumented = true
@@ -489,12 +502,9 @@ local function InstrumentSettingControls(controls, panelId, parentPath)
                 local originalWarning = control.warning
                 control.warning = function(...)
                     local result = originalWarning(...)
-                    if BETTERUI.Log and BETTERUI.Log.EnabledFor
-                        and BETTERUI.Log.EnabledFor(BETTERUI.Log.LEVEL.TRACE, BETTERUI.Log.CATEGORY.SETTINGS) then
-                        TraceSettings("settings.control", "warning", BuildControlTraceData(panelId, control, controlPath, {
-                            result = DescribeSettingsValue(result),
-                        }))
-                    end
+                    TraceSettingsControl("warning", BuildControlTraceData(panelId, control, controlPath, {
+                        result = DescribeSettingsValue(result),
+                    }))
                     return result
                 end
                 control.__buiWarningInstrumented = true

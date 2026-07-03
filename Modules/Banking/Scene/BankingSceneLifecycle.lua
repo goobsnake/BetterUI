@@ -16,6 +16,49 @@ local GUILD_BANK_EVENTS = {
     EVENT_GUILD_SELF_LEFT_GUILD,
 }
 
+local function RegisterGuildBankSceneEvents(GuildBank)
+    if not GuildBank or not EVENT_MANAGER then
+        return
+    end
+
+    GuildBank.RegisterGuildSelectorDialog()
+    local ns = BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING"
+    -- HIDING -> SHOWING can re-enter without OnSceneHidden running, which would
+    -- leak the previous guild-bank event registrations. Unregister first.
+    for _, event in ipairs(GUILD_BANK_EVENTS) do
+        EVENT_MANAGER:UnregisterForEvent(ns, event)
+    end
+    local eventHandlers = {
+        [EVENT_GUILD_BANK_SELECTED]         = GuildBank.OnGuildBankSelected,
+        [EVENT_GUILD_BANK_DESELECTED]       = GuildBank.OnGuildBankDeselected,
+        [EVENT_GUILD_BANK_ITEMS_READY]      = GuildBank.OnGuildBankReady,
+        [EVENT_GUILD_BANK_ITEM_ADDED]       = GuildBank.OnGuildBankUpdated,
+        [EVENT_GUILD_BANK_ITEM_REMOVED]     = GuildBank.OnGuildBankUpdated,
+        [EVENT_GUILD_BANK_UPDATED_QUANTITY]  = GuildBank.OnGuildBankUpdated,
+        [EVENT_GUILD_BANK_OPEN_ERROR]       = GuildBank.OnGuildBankOpenError,
+        [EVENT_GUILD_BANKED_MONEY_UPDATE]   = GuildBank.OnGuildBankedMoneyUpdate,
+        [EVENT_GUILD_RANKS_CHANGED]         = GuildBank.OnGuildRanksChanged,
+        [EVENT_GUILD_MEMBER_RANK_CHANGED]   = GuildBank.OnGuildMemberRankChanged,
+        [EVENT_GUILD_SELF_LEFT_GUILD]       = GuildBank.OnGuildSelfLeft,
+    }
+    for _, event in ipairs(GUILD_BANK_EVENTS) do
+        EVENT_MANAGER:RegisterForEvent(ns, event, eventHandlers[event])
+        if BETTERUI.Log then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = event })
+        end
+    end
+end
+
+local function InitializeBankSceneCategories(window)
+    window.bankCategories = window:ComputeVisibleBankCategories()
+    window.currentCategoryIndex = 1
+    window.lastPositions[window.currentMode] = 1
+    window:RebuildHeaderCategories()
+    if window.headerGeneric and window.headerGeneric.tabBar then
+        window.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, true)
+    end
+end
+
 
 --- Scene showing handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
@@ -49,12 +92,22 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
         self.isGuildBankMode = true
+        -- Guild bank: clear stale data before selecting because native selection
+        -- can fire ITEMS_READY synchronously and populate the list immediately.
+        self.list:Clear()
+        self.list:Commit()
+        self:SetTitle(GuildBank.GetHeaderTitle())
+        -- Build categories/header before native selection because the selector
+        -- can fire ITEMS_READY synchronously into GuildBank.OnGuildBankReady.
+        InitializeBankSceneCategories(self)
+        -- Register before selecting the guild bank; the native selector can fire
+        -- ITEMS_READY synchronously, and missing that event leaves the list empty.
+        RegisterGuildBankSceneEvents(GuildBank)
         -- Select the accessible guild bank and trigger data loading
         local guildId = GuildBank.GetSelectedGuildId()
         if ZO_SharedInventory_SelectAccessibleGuildBank and guildId > 0 then
             ZO_SharedInventory_SelectAccessibleGuildBank(guildId)
         end
-        self:SetTitle(GuildBank.GetHeaderTitle())
 
         -- Check base permissions on scene entry
         local depositDenied = GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT)
@@ -66,20 +119,11 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     else
         self.isGuildBankMode = false
         self:SetTitle("|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r")
+        InitializeBankSceneCategories(self)
     end
 
-    self.bankCategories = self:ComputeVisibleBankCategories()
-    self.currentCategoryIndex = 1
-    self.lastPositions[self.currentMode] = 1
-    self:RebuildHeaderCategories()
-    if self.headerGeneric and self.headerGeneric.tabBar then
-        self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, true)
-    end
     if self.isGuildBankMode then
-        -- Guild bank: clear stale data and defer list refresh until
-        -- EVENT_GUILD_BANK_ITEMS_READY fires via OnGuildBankReady.
-        self.list:Clear()
-        self.list:Commit()
+        -- Guild bank: list refresh is driven by EVENT_GUILD_BANK_ITEMS_READY.
         self:RefreshActiveKeybinds()
     else
         -- Always refresh on show to avoid stale rows when switching between
@@ -196,35 +240,6 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     end
     CALLBACK_MANAGER:RegisterCallback("OnGamepadDialogHidden", self._onDialogHiddenCallback)
 
-    -- Register guild bank events when in guild bank mode
-    if self.isGuildBankMode and GuildBank then
-        GuildBank.RegisterGuildSelectorDialog()
-        local ns = BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING"
-        -- HIDING -> SHOWING can re-enter without OnSceneHidden running, which would
-        -- leak the previous guild-bank event registrations. Unregister first.
-        for _, event in ipairs(GUILD_BANK_EVENTS) do
-            EVENT_MANAGER:UnregisterForEvent(ns, event)
-        end
-        local eventHandlers = {
-            [EVENT_GUILD_BANK_SELECTED]         = GuildBank.OnGuildBankSelected,
-            [EVENT_GUILD_BANK_DESELECTED]       = GuildBank.OnGuildBankDeselected,
-            [EVENT_GUILD_BANK_ITEMS_READY]      = GuildBank.OnGuildBankReady,
-            [EVENT_GUILD_BANK_ITEM_ADDED]       = GuildBank.OnGuildBankUpdated,
-            [EVENT_GUILD_BANK_ITEM_REMOVED]     = GuildBank.OnGuildBankUpdated,
-            [EVENT_GUILD_BANK_UPDATED_QUANTITY]  = GuildBank.OnGuildBankUpdated,
-            [EVENT_GUILD_BANK_OPEN_ERROR]       = GuildBank.OnGuildBankOpenError,
-            [EVENT_GUILD_BANKED_MONEY_UPDATE]   = GuildBank.OnGuildBankedMoneyUpdate,
-            [EVENT_GUILD_RANKS_CHANGED]         = GuildBank.OnGuildRanksChanged,
-            [EVENT_GUILD_MEMBER_RANK_CHANGED]   = GuildBank.OnGuildMemberRankChanged,
-            [EVENT_GUILD_SELF_LEFT_GUILD]       = GuildBank.OnGuildSelfLeft,
-        }
-        for _, event in ipairs(GUILD_BANK_EVENTS) do
-            EVENT_MANAGER:RegisterForEvent(ns, event, eventHandlers[event])
-            if BETTERUI.Log then
-                BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = event })
-            end
-        end
-    end
 end
 
 --- Aborts any in-flight batch before cleanup.

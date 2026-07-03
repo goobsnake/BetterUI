@@ -175,6 +175,42 @@ do
     assert_eq(options.customFrontBar.keyboard, nil, "custom front bar keyboard layout defaults are pruned")
 end
 
+do
+    local defaults = BETTERUI.ResourceOrbFrames.GetDefaults()
+    assert_eq(defaults.elementPositionsUnlocked, false, "global element unlock defaults to locked")
+end
+
+do
+    local options = BETTERUI.ResourceOrbFrames.InitModule({
+        elementPositions = {
+            leftOrb = { locked = false, offsetX = 3, offsetY = 4 },
+        },
+    })
+
+    assert_eq(options.elementPositionsUnlocked, true,
+        "legacy per-element unlocked saved state backfills the global unlock setting")
+end
+
+do
+    local options = BETTERUI.ResourceOrbFrames.InitModule({
+        enableIndependentOrbOffset = true,
+        orbOffsetX = 10,
+        orbOffsetY = -5,
+        elementPositions = {
+            leftOrb = { locked = true, offsetX = 1, offsetY = 2 },
+        },
+    })
+
+    assert_eq(options.enableIndependentOrbOffset, false, "legacy independent orb setting is retired after migration")
+    assert_eq(options.orbOffsetX, 0, "legacy orb X offset is consumed after migration")
+    assert_eq(options.orbOffsetY, 0, "legacy orb Y offset is consumed after migration")
+    assert_eq(options.elementPositions.leftOrb.offsetX, 11, "legacy orb X offset migrates into left orb position")
+    assert_eq(options.elementPositions.leftOrb.offsetY, -3, "legacy orb Y offset migrates into left orb position")
+    assert_eq(options.elementPositions.rightOrb.offsetX, 10, "legacy orb X offset migrates into right orb position")
+    assert_eq(options.elementPositions.xpBar.offsetY, -5, "legacy orb Y offset migrates into XP bar position")
+    assert_eq(options.elementPositions.mountBar.offsetX, 10, "legacy orb X offset migrates into mount bar position")
+end
+
 print("[ResourceOrbFrames.InitModule fallback when defaults init is unavailable]")
 
 do
@@ -208,6 +244,7 @@ do
     assert_eq(registeredPanel.panelData.title, "Resource Orb Frames Settings", "Setup uses the expected panel title")
     assert_true(capturedSharedContracts.skillBars ~= nil, "skill bar submenu receives shared contracts")
     assert_true(type(capturedSharedContracts.skillBars.getSettings) == "function", "shared contracts expose a settings getter")
+    assert_true(type(capturedSharedContracts.skillBars.globalUnlock) == "table", "shared contracts expose the global position unlock")
     assert_true(type(capturedSharedContracts.skillBars.resetSettingsGroup) == "function", "shared contracts expose resetSettingsGroup")
     assert_eq(capturedSharedContracts.orderedCount, #registeredPanel.optionsTable, "submenu ordering runs on final options table")
     assert_true(#registeredPanel.optionsTable >= 5, "Setup builds multiple submenu entries")

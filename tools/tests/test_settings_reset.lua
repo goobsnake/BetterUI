@@ -60,7 +60,7 @@ function BETTERUI.Defaults.ApplyFirstInstallDefaults(settings)
     settings.Modules.Vendor = settings.Modules.Vendor or {}
     settings.Modules.Vendor.m_enabled = true
     settings.Modules.TradingHouse = settings.Modules.TradingHouse or {}
-    settings.Modules.TradingHouse.m_enabled = false
+    settings.Modules.TradingHouse.m_enabled = true
     settings.Modules.Companions = settings.Modules.Companions or {}
     settings.Modules.Companions.m_enabled = true
     settings.Modules.Writs = settings.Modules.Writs or {}
@@ -229,7 +229,7 @@ assertEqual("trading", BETTERUI.SavedVars.Modules.TradingHouse.tradingHouseDefau
 assertEqual("companions", BETTERUI.SavedVars.Modules.Companions.companionsDefault, "Companions defaults restored")
 assertEqual(true, BETTERUI.SavedVars.Modules.Inventory.m_enabled, "First-install enabled defaults re-applied")
 assertEqual(true, BETTERUI.SavedVars.Modules.Vendor.m_enabled, "Vendor enabled defaults re-applied")
-assertEqual(false, BETTERUI.SavedVars.Modules.TradingHouse.m_enabled, "TradingHouse disabled defaults re-applied")
+assertEqual(true, BETTERUI.SavedVars.Modules.TradingHouse.m_enabled, "TradingHouse enabled defaults re-applied")
 assertEqual(true, BETTERUI.SavedVars.Modules.Companions.m_enabled, "Companions enabled defaults re-applied")
 assertEqual(false, BETTERUI.SavedVars.Modules.Writs.m_enabled, "First-install disabled defaults re-applied")
 assertNil(BETTERUI.SavedVars.Modules.LegacyModule, "Legacy module settings cleared")
@@ -258,7 +258,7 @@ assertEqual("trading", BETTERUI.GlobalVars.Modules.TradingHouse.tradingHouseDefa
 assertEqual("companions", BETTERUI.GlobalVars.Modules.Companions.companionsDefault, "Global companions defaults restored")
 assertEqual(true, BETTERUI.GlobalVars.Modules.Inventory.m_enabled, "Global first-install enabled defaults re-applied")
 assertEqual(true, BETTERUI.GlobalVars.Modules.Vendor.m_enabled, "Global vendor enabled defaults re-applied")
-assertEqual(false, BETTERUI.GlobalVars.Modules.TradingHouse.m_enabled, "Global trading house disabled defaults re-applied")
+assertEqual(true, BETTERUI.GlobalVars.Modules.TradingHouse.m_enabled, "Global trading house enabled defaults re-applied")
 assertEqual(true, BETTERUI.GlobalVars.Modules.Companions.m_enabled, "Global companions enabled defaults re-applied")
 assertEqual(false, BETTERUI.GlobalVars.Modules.Writs.m_enabled, "Global first-install disabled defaults re-applied")
 assertNil(BETTERUI.GlobalVars.Modules.LegacyModule, "Global legacy module settings cleared")

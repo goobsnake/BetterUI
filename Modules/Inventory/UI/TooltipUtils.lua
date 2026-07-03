@@ -215,6 +215,7 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     if container and container._betterUiStatus then
         container._betterUiStatus:SetHidden(true)
         container._betterUiStatus:SetText("")
+        container._betterUiStatusOwned = false
     end
 
     if container then

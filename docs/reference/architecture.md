@@ -1,7 +1,7 @@
 # BetterUI Architecture Overview
 
 > **Audience**: Developers working on the BetterUI codebase.
-> **Last Updated**: 2026-06-30
+> **Last Updated**: 2026-07-03
 
 ---
 
@@ -154,6 +154,7 @@ GeneralInterface/
 ```
 Nameplates/
 ├── Nameplates.lua         # settings-owner canonical root (runtime + setup + init + panel seam)
+├── Positioning.lua         # Movable compass/reticle name-surface anchoring
 └── Settings.lua           # Nameplates-owned settings-options helper seam
 ```
 
@@ -266,7 +267,7 @@ BETTERUI = {
 |--------|------------|----------------|---------------------------|---------|
 | **CIM** | Constants, ConstantsUI, Module | Core/{Batching, Data, Diagnostics, Integration, Lifecycle, Presentation, Settings, Window}, UI, Lists, Actions, Dialogs, Keybinds | Required | Shared infrastructure, runtime setup, batch orchestration, market/research services |
 | **GeneralInterface** | Module, Setup | Tooltips | Requires CIM; registry-managed module | Tooltip enhancements and shared interface hooks |
-| **Nameplates** | Nameplates, Settings | (root-only) | Requires CIM; registry-managed module | Nameplate font/style customization and lifecycle wiring |
+| **Nameplates** | Nameplates, Positioning, Settings | (root-owned helpers) | Requires CIM; registry-managed module | Nameplate font/style customization, compass/reticle positioning, and lifecycle wiring |
 | **Inventory** | Constants, Module, Inventory, Loader | Core, UI, Lists, Actions, Keybinds, State, Dialogs, Scene, Settings | Requires CIM | Enhanced inventory with categories/search |
 | **Banking** | Constants, Module, Banking | Core, Lists, Actions, Keybinds, Search, State, Scene, UI, Dialogs | Requires CIM | Bank/house/guild bank interface |
 | **Vendor** | Module, Vendor | Core, Components, Settings | Requires CIM | Store/fence workflows plus namespaced vendor helpers |
@@ -526,6 +527,7 @@ end
 | `CooldownUtils.lua` | ResourceOrbFrames/SkillBar/ | Shared cooldown state/timing helpers |
 | `Tooltips.lua` | GeneralInterface/Tooltips/ | Tooltip rendering, market prices, research display |
 | `Nameplates.lua` | Nameplates/ | Nameplate runtime ownership and setup |
+| `Positioning.lua` | Nameplates/ | Compass/reticle name-surface positioning helper |
 | `BankListManager.lua` | Banking/Lists/ | Banking list and keybind management |
 | `VendorKeybinds.lua` | Vendor/Core/ | Vendor keybind descriptor construction and keybind trace wrapping |
 

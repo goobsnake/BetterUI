@@ -285,6 +285,42 @@ do
 end
 
 -- ============================================================================
+-- M8: TradingHouse enabled default for existing saved vars
+-- ============================================================================
+
+print("\n=== Migration 8: TradingHouse enabled default ===\n")
+
+do
+    local settings = { Modules = { TradingHouse = { m_enabled = false } } }
+    RunSettingsMigrations(settings)
+    assert_equal(false, settings.Modules.TradingHouse.m_enabled,
+        "M8: explicit saved TradingHouse disable is preserved")
+    assert_true(settings.Migrations.TradingHouseEnabledDefault20260703, "M8: migration marker is written")
+end
+
+do
+    local settings = {
+        Migrations = { TradingHouseEnabledDefault20260703 = true },
+        Modules = { TradingHouse = { m_enabled = false } },
+    }
+    RunSettingsMigrations(settings)
+    assert_equal(false, settings.Modules.TradingHouse.m_enabled,
+        "M8: later explicit TradingHouse disable is preserved after marker")
+end
+
+do
+    local settings = { Modules = { TradingHouse = {} } }
+    RunSettingsMigrations(settings)
+    assert_true(settings.Modules.TradingHouse.m_enabled, "M8: missing TradingHouse m_enabled is created enabled")
+end
+
+do
+    local settings = { Modules = {} }
+    RunSettingsMigrations(settings)
+    assert_true(settings.Modules.TradingHouse.m_enabled, "M8: missing TradingHouse settings are created enabled")
+end
+
+-- ============================================================================
 -- EDGE CASES
 -- ============================================================================
 

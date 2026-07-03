@@ -379,6 +379,13 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field font string|nil
 ---@field style number|string|nil
 ---@field size number|nil
+---@field nameplatePositionsUnlocked boolean|nil
+---@field moveCompassFrame boolean|nil
+---@field compassFrameOffsetX number|nil
+---@field compassFrameOffsetY number|nil
+---@field moveReticlePrompt boolean|nil
+---@field reticlePromptOffsetX number|nil
+---@field reticlePromptOffsetY number|nil
 
 ---@class BetterUIWritsSettings
 ---@field m_enabled boolean|nil
@@ -541,6 +548,13 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---| "font"
 ---| "style"
 ---| "size"
+---| "nameplatePositionsUnlocked"
+---| "moveCompassFrame"
+---| "compassFrameOffsetX"
+---| "compassFrameOffsetY"
+---| "moveReticlePrompt"
+---| "reticlePromptOffsetX"
+---| "reticlePromptOffsetY"
 
 ---@alias BetterUINameplatesSettingValue string|number|boolean|nil
 

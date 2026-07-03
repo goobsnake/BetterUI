@@ -58,6 +58,13 @@ local function assert_eq(actual, expected, label)
     end
 end
 
+local function read_file(path)
+    local handle = assert(io.open(path, "r"))
+    local content = handle:read("*a")
+    handle:close()
+    return content
+end
+
 local function ResolveNativeModeForVendorMode(mode)
     if mode == MODE.BUY then
         return ZO_MODE_STORE_BUY
@@ -197,8 +204,9 @@ local function GetActiveTabs()
     return tabs
 end
 
-local function OnOpenStore()
-    isStableInteraction = false
+local function OnOpenStore(options)
+    options = options or {}
+    isStableInteraction = options.seedStable == true
     Vendor._sessionHasBuyMode = false
 
     local interactionType = currentInteractionType
@@ -248,6 +256,116 @@ do
         "normal vendor with stale native stable mode does not re-enter stable interaction")
     assert_eq(IsNativeStableModeActive(), false,
         "normal vendor rebuild strips stale stable mode from native active components")
+end
+
+do
+    OnCloseStore()
+    storeManager.activeComponents = {}
+    currentInteractionType = nil
+    local stableTabs = OnOpenStore({ seedStable = true })
+    assert_eq(stableTabs[2].mode, MODE.STABLE,
+        "stable event open preserves explicit stable interaction state when interaction type is unavailable")
+    assert_eq(isStableInteraction, true,
+        "stable event open does not get overwritten by nil interaction type")
+end
+
+do
+    local previousBetterUI = BETTERUI
+    BETTERUI = {
+        Vendor = {
+            MODE = MODE,
+            _sessionHasBuyMode = false,
+        },
+    }
+
+    dofile("Modules/Vendor/Core/Lifecycle/VendorInteractionRuntime.lua")
+
+    local publishedStableAtEnsure = false
+    local ensureCount = 0
+    local appliedMode = nil
+    local shown = false
+    local scheduledMode = nil
+    local runtime = {
+        SetInteractionState = function(self, state)
+            self.state = {
+                isStableInteraction = state.isStableInteraction == true,
+                isFenceInteraction = state.isFenceInteraction == true,
+                sessionHasBuyMode = state.sessionHasBuyMode == true,
+            }
+            BETTERUI.Vendor._publishedStable = state.isStableInteraction == true
+        end,
+    }
+
+    local state = BETTERUI.Vendor.InteractionRuntime.OpenStore({
+        runtime = runtime,
+        state = {
+            isStableInteraction = true,
+        },
+        deps = {
+            instance = {},
+            resetInteractionState = function() end,
+            getInteractionType = function() return nil end,
+            interactionVendor = INTERACTION_VENDOR,
+            interactionStable = INTERACTION_STABLE,
+            isNativeStableModeActive = function() return false end,
+            restoreSceneAlias = function() end,
+            aliasSceneToBetterUI = function() end,
+            ensureComponents = function()
+                ensureCount = ensureCount + 1
+                publishedStableAtEnsure = BETTERUI.Vendor._publishedStable == true
+            end,
+            resolveTargetMode = function() return MODE.STABLE end,
+            applyResolvedMode = function(mode)
+                appliedMode = mode
+            end,
+            scheduleOpenStoreSync = function(mode)
+                scheduledMode = mode
+            end,
+            showScene = function()
+                shown = true
+            end,
+            logVendorDebug = function() end,
+            getStoreManager = function() return nil end,
+        },
+    })
+
+    assert_eq(state.isStableInteraction, true,
+        "real InteractionRuntime.OpenStore preserves an explicit stable seed with nil interaction type")
+    assert_eq(publishedStableAtEnsure, true,
+        "real InteractionRuntime.OpenStore publishes stable state before native component rebuild")
+    assert_eq(ensureCount, 1,
+        "real InteractionRuntime.OpenStore rebuilds native components once for seeded stable opens")
+    assert_eq(appliedMode, MODE.STABLE,
+        "real InteractionRuntime.OpenStore resolves and applies stable mode for seeded stable opens")
+    assert_eq(shown, true,
+        "real InteractionRuntime.OpenStore shows the BetterUI vendor scene for seeded stable opens")
+    assert_eq(scheduledMode, MODE.STABLE,
+        "real InteractionRuntime.OpenStore schedules stable open sync for seeded stable opens")
+
+    BETTERUI = previousBetterUI
+end
+
+do
+    local vendorSource = read_file("Modules/Vendor/Vendor.lua")
+    local stableStart = vendorSource:find("local function OnStableInteractStart", 1, true)
+    assert_eq(stableStart ~= nil, true,
+        "Vendor exposes a stablemaster start handler")
+    assert_eq(vendorSource:find("EVENT_STABLE_INTERACT_START", stableStart or 1, true) ~= nil, true,
+        "Vendor registers stablemaster start events")
+    assert_eq(vendorSource:find(".OpenStore({", stableStart or 1, true) ~= nil, true,
+        "Vendor stablemaster start routes through the BetterUI vendor open flow")
+    assert_eq(vendorSource:find("IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil", stableStart or 1, true) == nil, true,
+        "Vendor stablemaster start preserves a false gamepad-mode result instead of collapsing it to nil")
+    assert_eq(vendorSource:find("gamepadPreferred = IsInGamepadPreferredMode()", stableStart or 1, true) ~= nil, true,
+        "Vendor stablemaster start reads gamepad-mode preference without boolean coalescing")
+    assert_eq(vendorSource:find("function OnCloseStore()", 1, true) == nil, true,
+        "Vendor close handler stays assigned to the forward-declared local instead of a global function")
+    assert_eq(vendorSource:find("OnCloseStore = function()", 1, true) ~= nil, true,
+        "Vendor close handler uses explicit local assignment form for stablemaster end callbacks")
+    assert_eq(vendorSource:find("local closeWasStable = Vendor.IsStableInteraction", 1, true) ~= nil, true,
+        "Vendor close handler snapshots stable state before clearing the open flag")
+    assert_eq(vendorSource:find("isStableInteraction = closeWasStable", 1, true) ~= nil, true,
+        "Vendor close handler passes the stable seed into InteractionRuntime.CloseStore")
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

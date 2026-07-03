@@ -358,8 +358,20 @@ do
         "Vendor search cleanup removes only vendor-owned keybind groups")
     assert_true(vendorSource:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searchRemovedKeybindGroups%)") ~= nil,
         "Vendor ExitSearchMode restores exactly the groups the cleanup removed")
+    assert_true(vendorSource:find("_searchKeybindCleanupToken", 1, true) ~= nil,
+        "Vendor search cleanup uses a generation token to ignore stale deferred callbacks")
+    assert_true(vendorSource:find("cleanupToken ~= self._searchKeybindCleanupToken", 1, true) ~= nil,
+        "Vendor deferred search cleanup aborts when search mode has exited")
+    assert_true(vendorSource:find("if self._preserveSearchFocusDuringRefresh", 1, true) ~= nil,
+        "Vendor list-input activation preserves search focus during search text refresh")
+    assert_true(vendorSource:find("_refreshingVendorHeaderAfterSearchExit", 1, true) ~= nil,
+        "Vendor search exit refreshes the header strip after search focus leaves")
     assert_true(bankingSource:find("KEYBIND_STRIP%.keybindButtonGroups") == nil,
         "Banking search cleanup never reads the nonexistent keybindButtonGroups field")
+    assert_true(bankingSource:find("_searchKeybindCleanupToken", 1, true) ~= nil,
+        "Banking search cleanup uses a generation token to ignore stale deferred callbacks")
+    assert_true(bankingSource:find("cleanupToken ~= self._searchKeybindCleanupToken", 1, true) ~= nil,
+        "Banking deferred search cleanup aborts when search mode has exited")
     assert_true(vendorBootstrapSource:find("HandleVendorSearchChanged%(editOrText%)") == nil,
         "Vendor bootstrap search bridge consumes the normalized string payload")
 
@@ -372,6 +384,275 @@ do
         "Inventory class uses the explicit SearchMixin.AddSearch seam")
     assert_true(inventoryClassSource:find("Inventory%.search%.getText") == nil,
         "Inventory search callback consumes the normalized string payload")
+end
+
+-- Banking mirrors Vendor's stale deferred keybind-cleanup protection.
+do
+    local previousBanking = BETTERUI.Banking
+    local previousKeybindStrip = KEYBIND_STRIP
+
+    local addedGroups = {}
+    local scheduled = {}
+    BETTERUI.Banking = {
+        Class = {},
+        EnsureKeybindGroupAdded = function(group)
+            addedGroups[#addedGroups + 1] = group
+        end,
+        Tasks = {
+            Schedule = function(_, name, _, callback)
+                scheduled[name] = callback
+            end,
+            Cancel = function() end,
+        },
+    }
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent = function() end
+    BETTERUI.Interface.RemoveOwnedKeybindGroups = function()
+        return { "removed-core" }
+    end
+    BETTERUI.Interface.RestoreKeybindGroups = function() end
+    BETTERUI.Interface.UpdateKeybindGroup = function() end
+    KEYBIND_STRIP = {}
+
+    dofile("Modules/Banking/Search/SearchManager.lua")
+
+    local function countSearchKeybindAdds()
+        local count = 0
+        for _, group in ipairs(addedGroups) do
+            if group == "bank-search" then
+                count = count + 1
+            end
+        end
+        return count
+    end
+
+    local banking = setmetatable({
+        textSearchHeaderControl = { IsHidden = function() return false end },
+        textSearchHeaderFocus = {
+            active = false,
+            IsActive = function(self) return self.active == true end,
+            Activate = function(self) self.active = true end,
+            Deactivate = function(self) self.active = false end,
+        },
+        coreKeybinds = "bank-core",
+        withdrawDepositKeybinds = "bank-transfer",
+        currencyKeybinds = "bank-currency",
+        textSearchKeybindStripDescriptor = "bank-search",
+        IsSceneShowing = function() return true end,
+        RefreshActiveKeybinds = function() end,
+        EnsureHeaderKeybindsActive = function() end,
+        UpdateActions = function() end,
+        SetTextSearchFocused = function(self, value) self.searchFocused = value end,
+    }, { __index = BETTERUI.Banking.Class })
+
+    banking:OnHeaderEntered()
+    local staleCleanup = scheduled.searchKeybindCleanup
+    local searchAddCountAfterEnter = countSearchKeybindAdds()
+    banking:ExitSearchMode()
+    staleCleanup()
+    assert_eq(countSearchKeybindAdds(), searchAddCountAfterEnter,
+        "Banking stale search cleanup does not re-add the search keybind after exit")
+
+    banking:OnHeaderEntered()
+    local activeCleanup = scheduled.searchKeybindCleanup
+    local searchAddCountBeforeCleanup = countSearchKeybindAdds()
+    activeCleanup()
+    assert_eq(countSearchKeybindAdds(), searchAddCountBeforeCleanup + 1,
+        "Banking active search cleanup can add the search keybind for the current generation")
+
+    BETTERUI.Banking = previousBanking
+    KEYBIND_STRIP = previousKeybindStrip
+end
+
+-- Vendor search refreshes must not drop focus while each typed character
+-- refreshes the list.
+do
+    local previousVendor = BETTERUI.Vendor
+    local previousLog = BETTERUI.Log
+    local previousKeybindStrip = KEYBIND_STRIP
+    local previousSceneManager = SCENE_MANAGER
+
+    BETTERUI.Vendor = {
+        MODE = {
+            BUY = 1,
+            SELL = 2,
+            SELL_VENGEANCE = 3,
+            REPAIR = 4,
+            BUYBACK = 5,
+            FENCE_SELL = 6,
+            FENCE_LAUNDER = 7,
+            STABLE = 8,
+        },
+        VENDOR_INTERACTION = 1,
+        ResolveModeName = function(mode) return tostring(mode) end,
+        ResolveModeIcon = function(_) return "" end,
+        ResolveNativeStoreMode = function(mode) return mode end,
+        ModePolicy = {
+            BuildActiveModeSet = function() return {} end,
+            IsSellBuybackOnlyModeSet = function() return false end,
+        },
+        ControllerRuntime = {},
+        PresentationRuntime = {},
+        ExecuteSafely = function(_, fn, ...)
+            return fn(...)
+        end,
+    }
+    BETTERUI.CIM.CONST = BETTERUI.CIM.CONST or {
+        HEADER_LAYOUT = { COLUMNS = {} },
+        LAYOUT = { COLUMNS = {} },
+    }
+    BETTERUI.CIM.GenericWindow = {
+        Subclass = function()
+            return {}
+        end,
+        New = function(class)
+            return setmetatable({}, { __index = class })
+        end,
+    }
+    BETTERUI.CIM.DeferredTask = {
+        CreateManager = function()
+            return {}
+        end,
+        CreateLazyManagerProxy = function()
+            return {
+                Cancel = function() end,
+            }
+        end,
+    }
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent = function() end
+    BETTERUI.Interface.RestoreKeybindGroups = function() end
+    BETTERUI.Interface.EnsureKeybindGroupAdded = function() end
+    BETTERUI.CIM.Lists = nil
+    BETTERUI.Log = nil
+    KEYBIND_STRIP = {}
+    SCENE_MANAGER = {
+        GetScene = function()
+            return { IsShowing = function() return true end }
+        end,
+    }
+
+    dofile("Modules/Vendor/Core/VendorClass.lua")
+    dofile("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
+
+    do
+        local refreshCount = 0
+        local realExitVendor = setmetatable({
+            _searchModeActive = true,
+            _searchHeaderActive = true,
+            textSearchHeaderFocus = {
+                IsActive = function() return false end,
+            },
+            EnsureHeaderKeybindsActive = function() end,
+            EnsureListInputActive = function() end,
+            NormalizeDirectionalInputOwnership = function() end,
+            RefreshVendorHeader = function()
+                refreshCount = refreshCount + 1
+            end,
+        }, { __index = BETTERUI.Vendor.Class })
+
+        BETTERUI.Vendor.Class.ExitSearchMode(realExitVendor)
+        assert_eq(refreshCount, 1, "vendor search exit refreshes the header strip immediately")
+        assert_eq(realExitVendor._refreshingVendorHeaderAfterSearchExit, nil,
+            "vendor search-exit header refresh guard is cleared")
+    end
+
+    local function buildVendorSearchInstance()
+        local exitCalls = 0
+        local vendor = setmetatable({
+            searchQuery = "",
+            _searchModeActive = true,
+            _searchHeaderActive = true,
+            textSearchHeaderFocus = {
+                active = false,
+                IsActive = function(self) return self.active == true end,
+                Activate = function(self) self.active = true end,
+            },
+        }, { __index = BETTERUI.Vendor.Class })
+
+        function vendor:ExitSearchMode()
+            exitCalls = exitCalls + 1
+            self._searchModeActive = false
+            self._searchHeaderActive = false
+        end
+
+        function vendor:RefreshList()
+            self.refreshListCalls = (self.refreshListCalls or 0) + 1
+            self:EnsureListInputActive()
+        end
+
+        function vendor:SetTextSearchFocused(value)
+            self.textSearchFocused = value
+        end
+
+        return vendor, function() return exitCalls end
+    end
+
+    local preservedVendor, preservedExitCalls = buildVendorSearchInstance()
+    preservedVendor:OnSearchTextChanged("n")
+    assert_eq(preservedVendor.searchQuery, "n", "vendor search stores normalized search text")
+    assert_eq(preservedVendor.refreshListCalls, 1, "vendor search refreshes once for typed text")
+    assert_eq(preservedExitCalls(), 0, "vendor search refresh preserve path does not exit search mode")
+    assert_eq(preservedVendor._searchModeActive, true, "vendor search mode remains active during preserve refresh")
+    assert_eq(preservedVendor.textSearchHeaderFocus.active, true, "vendor search focus is restored after refresh")
+    assert_eq(preservedVendor.textSearchFocused, true, "vendor search focus flag is restored after refresh")
+
+    local exitVendor, exitCalls = buildVendorSearchInstance()
+    exitVendor._preserveSearchFocusDuringRefresh = false
+    exitVendor:EnsureListInputActive()
+    assert_eq(exitCalls(), 1, "vendor list input exits search mode outside preserve refresh")
+    assert_eq(exitVendor._exitSearchModeInProgress, nil, "vendor list-input exit guard is cleared")
+
+    local function buildBootstrapInstance(headerFocusActive)
+        local callback
+        local focusLostCalls = 0
+        local list = {
+            IsActive = function() return true end,
+            SetOnSelectedDataChangedCallback = function(_, fn) callback = fn end,
+        }
+        local instance = {
+            _searchModeActive = true,
+            _searchHeaderActive = true,
+            textSearchHeaderFocus = {
+                IsActive = function() return headerFocusActive == true end,
+            },
+            SetupList = function(self)
+                self.list = list
+            end,
+            AddTemplate = function() end,
+            InitializeCategoryHeader = function() end,
+            InitializeScrollIndicator = function() end,
+            OnItemSelectedChange = function(self)
+                self.selectionChanged = (self.selectionChanged or 0) + 1
+            end,
+            UpdateScrollIndicator = function(self)
+                self.scrollUpdated = (self.scrollUpdated or 0) + 1
+            end,
+            OnSearchFocusLost = function()
+                focusLostCalls = focusLostCalls + 1
+            end,
+        }
+
+        BETTERUI.Vendor.BootstrapRuntime.InitializeList(instance, {
+            rowSetup = function() end,
+            addColumns = function() end,
+        })
+
+        return instance, list, function() return callback end, function() return focusLostCalls end
+    end
+
+    local focusedInstance, focusedList, getFocusedCallback, focusedLostCalls = buildBootstrapInstance(true)
+    getFocusedCallback()(focusedList, { name = "Sword" })
+    assert_eq(focusedInstance.selectionChanged, 1, "vendor deferred refresh still updates selection")
+    assert_eq(focusedLostCalls(), 0, "vendor deferred refresh keeps search focus when header focus is active")
+
+    local unfocusedInstance, unfocusedList, getUnfocusedCallback, unfocusedLostCalls = buildBootstrapInstance(false)
+    getUnfocusedCallback()(unfocusedList, { name = "Axe" })
+    assert_eq(unfocusedInstance.selectionChanged, 1, "vendor list selection callback runs when search focus is gone")
+    assert_eq(unfocusedLostCalls(), 1, "vendor list selection exits search when header focus is no longer active")
+
+    BETTERUI.Vendor = previousVendor
+    BETTERUI.Log = previousLog
+    KEYBIND_STRIP = previousKeybindStrip
+    SCENE_MANAGER = previousSceneManager
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

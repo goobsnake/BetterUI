@@ -32,6 +32,7 @@ local types = read_file("Modules/CIM/Core/Data/Types.lua")
 local generalInterface = read_file("Modules/GeneralInterface/Module.lua")
 local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
 local nameplates = read_file("Modules/Nameplates/Nameplates.lua")
+local positioning = read_file("Modules/Nameplates/Positioning.lua")
 local settings = read_file("Modules/Nameplates/Settings.lua")
 local contributingGuide = read_file("docs/guides/contributing-guide.md")
 local architectureDoc = read_file("docs/reference/architecture.md")
@@ -84,6 +85,16 @@ assert_contains(nameplates, 'BETTERUI.CIM.RegisterModulePanelWithLogging(Namepla
     "Nameplates setup registers a dedicated Nameplates settings panel")
 assert_not_contains(nameplates, "TrackPanelRegistration(panelReason)",
     "Nameplates setup no longer duplicates the shared panel registration diagnostics boilerplate")
+assert_contains(positioning, "Nameplates.Positioning = Positioning",
+    "Nameplates positioning helper stays under the dedicated Nameplates namespace")
+assert_contains(positioning, '"ZO_CompassFrame"',
+    "Nameplates positioning helper targets the ESO compass frame control")
+assert_contains(positioning, '"ZO_ReticleContainerInteract"',
+    "Nameplates positioning helper targets the ESO reticle interaction prompt")
+assert_contains(positioning, "handle:SetParent(hostControl)",
+    "Nameplates positioning drag handles are reused when the active host control changes")
+assert_not_contains(positioning, "handles[key] = nil",
+    "Nameplates positioning does not drop handles and recreate duplicate named controls")
 assert_contains(settings, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates settings bind through the dedicated Nameplates module namespace")
 assert_not_contains(settings, "Nameplates.Settings.RegisterPanel = InitPanel",
@@ -100,5 +111,7 @@ assert_contains(architectureDoc, "| `settings-owner` | `Module.lua` **or** `<Mod
     "Architecture doc allows both settings-owner canonical root shapes")
 assert_contains(architectureDoc, "`Nameplates` (`Nameplates.lua`)",
     "Architecture doc records Nameplates.lua as the active Nameplates canonical root")
+assert_contains(architectureDoc, "| **Nameplates** | Nameplates, Positioning, Settings |",
+    "Architecture doc records the Nameplates positioning helper")
 
 print("  OK")

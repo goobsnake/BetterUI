@@ -62,6 +62,19 @@ end
 
 local function GetElemPosContract(shared, key) return shared and shared.elemPos and shared.elemPos[key] end
 
+local function AreElementPositionsUnlocked(shared)
+    local globalUnlock = shared and shared.globalUnlock
+    if globalUnlock and type(globalUnlock.get) == "function" then
+        return globalUnlock.get() == true
+    end
+    local settings = GetSharedSettings(shared)
+    return settings and settings.elementPositionsUnlocked == true
+end
+
+local function IsElementPositionControlDisabled(shared)
+    return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") or not AreElementPositionsUnlocked(shared)
+end
+
 local function GetSharedLiveSettingsGetter(shared)
     if shared and type(shared.getLiveSettings) == "function" then
         return shared.getLiveSettings, true
@@ -92,11 +105,6 @@ local function ResetElemPos(shared, keys)
                 ep.offsetX = 0
                 ep.offsetY = 0
             end
-            if drag and drag.SetElementLocked then
-                drag.SetElementLocked(k, true, liveGetter)
-            else
-                ep.locked = true
-            end
             ep = s.elementPositions[k]
             TraceDrag("resource_orbs.element_position", "reset_element", {
                 fn = "SettingsSubmenus.ResetElemPos",
@@ -109,7 +117,7 @@ local function ResetElemPos(shared, keys)
                 offsetY = ep and ep.offsetY,
                 usesLiveSettings = usesLiveSettings,
                 viaDragReset = drag and drag.ResetOffset ~= nil,
-                updatedHandle = drag and drag.SetElementLocked ~= nil,
+                unlocked = s.elementPositionsUnlocked == true,
             })
         end
     else
@@ -124,13 +132,12 @@ local function ResetElemPos(shared, keys)
     RefreshSettingsPanel()
 end
 
-local function BuildElemPosControls(label, c, resetFunc)
+local function BuildElemPosControls(shared, label, c, resetFunc)
     if not c then return {} end
     local resetLabel = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_RESET_POSITION"))
     return {
-        { type = "checkbox", name = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_LOCK_LABEL")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_LOCK_TOOLTIP")), getFunc = c.locked.get, setFunc = c.locked.set, width = "full" },
-        { type = "slider", name = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_X_LABEL")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_X_TOOLTIP")), min = -600, max = 600, step = 1, getFunc = c.offsetX.get, setFunc = c.offsetX.set, width = "full" },
-        { type = "slider", name = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_Y_LABEL")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_Y_TOOLTIP")), min = -600, max = 600, step = 1, getFunc = c.offsetY.get, setFunc = c.offsetY.set, width = "full" },
+        { type = "slider", name = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_X_LABEL")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_X_TOOLTIP")), min = -600, max = 600, step = 1, getFunc = c.offsetX.get, setFunc = c.offsetX.set, disabled = function() return IsElementPositionControlDisabled(shared) end, width = "full" },
+        { type = "slider", name = label .. ": " .. GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_Y_LABEL")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_OFFSET_Y_TOOLTIP")), min = -600, max = 600, step = 1, getFunc = c.offsetY.get, setFunc = c.offsetY.set, disabled = function() return IsElementPositionControlDisabled(shared) end, width = "full" },
         { type = "button", name = resetLabel, tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_RESET_POSITION_TOOLTIP")), func = resetFunc, disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end, width = "half" },
     }
 end
@@ -139,10 +146,22 @@ local function InsertElemPosSectionBeforeTrailingButton(controls, shared, entrie
     local trailing = type(controls[#controls]) == "table" and controls[#controls].type == "button" and controls[#controls] or nil
     if trailing then controls[#controls] = nil end
     controls[#controls + 1] = { type = "header", name = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_POSITION_HEADER")) }
+    if shared and shared.globalUnlock then
+        controls[#controls + 1] = {
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET_TOOLTIP")),
+            getFunc = shared.globalUnlock.get,
+            setFunc = shared.globalUnlock.set,
+            disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+            default = shared.globalUnlock.default,
+            width = "full",
+        }
+    end
     for _, entry in ipairs(entries) do
         local entryKey = entry.key
         local resetFunc = function() ResetElemPos(shared, { entryKey }) end
-        for _, ctrl in ipairs(BuildElemPosControls(entry.label, GetElemPosContract(shared, entryKey), resetFunc)) do
+        for _, ctrl in ipairs(BuildElemPosControls(shared, entry.label, GetElemPosContract(shared, entryKey), resetFunc)) do
             controls[#controls + 1] = ctrl
         end
     end

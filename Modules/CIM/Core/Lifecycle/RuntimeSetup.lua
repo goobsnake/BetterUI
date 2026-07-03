@@ -166,6 +166,28 @@ local function RunSettingsMigrations(settings)
         end
     end
 
+    -- Phase: migration-8-tradinghouse-enable-default
+    -- Migration 8: TradingHouse now owns the guild store scene by default.
+    -- Fill missing module settings for existing profiles, but preserve an
+    -- explicit saved false because older profiles cannot distinguish a user
+    -- opt-out from the former disabled default.
+    do
+        if type(settings.Migrations) ~= "table" then
+            settings.Migrations = {}
+        end
+        if settings.Migrations.TradingHouseEnabledDefault20260703 ~= true then
+            local tradingHouseSettings = settings.Modules["TradingHouse"]
+            if type(tradingHouseSettings) ~= "table" then
+                tradingHouseSettings = {}
+                settings.Modules["TradingHouse"] = tradingHouseSettings
+            end
+            if tradingHouseSettings.m_enabled == nil then
+                tradingHouseSettings.m_enabled = true
+            end
+            settings.Migrations.TradingHouseEnabledDefault20260703 = true
+        end
+    end
+
     -- Phase: migration-3-marketprice-move
     -- Migration 3: Move market-price row toggle from Inventory -> GeneralInterface
     --- @deprecated Inventory.showMarketPrice is transitional; moved to GeneralInterface since v3.04

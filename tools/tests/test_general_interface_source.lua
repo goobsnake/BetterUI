@@ -21,6 +21,7 @@ print("test_general_interface_source")
 
 local moduleSource = read_file("Modules/GeneralInterface/Module.lua")
 local setupSource = read_file("Modules/GeneralInterface/Setup.lua")
+local tooltipsSource = read_file("Modules/GeneralInterface/Tooltips/Tooltips.lua")
 local nameplatesSource = read_file("Modules/Nameplates/Nameplates.lua")
 local nameplateSettingsSource = read_file("Modules/Nameplates/Settings.lua")
 local bootstrapSource = read_file("BetterUI.lua")
@@ -44,6 +45,15 @@ assert_not_contains(setupSource, "type(ZO_PostHook) == \"function\" and ZO_PostH
     "GeneralInterface setup no longer falls back to ZO_PreHook")
 assert_contains(setupSource, "if type(ZO_PostHook) ~= \"function\" then",
     "GeneralInterface setup requires ZO_PostHook before installing mail-delete hook")
+local stockRelayoutStart = assert(tooltipsSource:find("local function ScheduleTooltipEquippedStockRelayout", 1, true))
+local stockRelayoutEnd = assert(tooltipsSource:find("local function ClearTooltipEnhancementState", stockRelayoutStart, true))
+local stockRelayoutSource = tooltipsSource:sub(stockRelayoutStart, stockRelayoutEnd)
+assert_contains(stockRelayoutSource, "UpdateTooltipEquippedText(normalizedTooltipType, nil)",
+    "Default tooltip stock relayout still refreshes BetterUI's stock fallback price/body state")
+assert_contains(stockRelayoutSource, "nativeTopAreaPreserved = true",
+    "Default tooltip stock relayout logs that native top area is preserved")
+assert_contains(stockRelayoutSource, "stockFallbackRefreshed =",
+    "Default tooltip stock relayout logs that BetterUI stock fallback state is refreshed")
 
 assert_contains(nameplatesSource, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates runtime resolves from the dedicated Nameplates module namespace")
@@ -81,7 +91,7 @@ assert_not_contains(contributingGuide, "`runtime-facade`:",
     "Contributing guide no longer uses the legacy runtime-facade archetype label")
 assert_contains(architectureDoc, "| **GeneralInterface** | Module, Setup | Tooltips | Requires CIM; registry-managed module |",
     "Architecture doc reflects GeneralInterface as a registry-managed CIM-dependent module")
-assert_contains(architectureDoc, "| **Nameplates** | Nameplates, Settings | (root-only) | Requires CIM; registry-managed module |",
+assert_contains(architectureDoc, "| **Nameplates** | Nameplates, Positioning, Settings | (root-owned helpers) | Requires CIM; registry-managed module |",
     "Architecture doc reflects Nameplates as a registry-managed CIM-dependent module")
 
 print("  OK")

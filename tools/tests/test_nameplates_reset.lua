@@ -9,6 +9,7 @@ Usage:
 -- Keep direct coverage wiring near the top so desloppify links this regression
 -- test to the production files even though the real dofile calls happen later.
 if false then
+    dofile("Modules/Nameplates/Positioning.lua")
     dofile("Modules/Nameplates/Settings.lua")
     dofile("Modules/Nameplates/Nameplates.lua")
 end
@@ -159,6 +160,7 @@ end
 
 print("\n=== Nameplates Reset Tests ===\n")
 
+dofile("Modules/Nameplates/Positioning.lua")
 dofile("Modules/Nameplates/Settings.lua")
 dofile("Modules/Nameplates/Nameplates.lua")
 
@@ -184,28 +186,63 @@ assertEqual(true, unregisterSuppressLog, "Reset-triggered disable suppresses eve
 
 print("\nTest: Nameplate settings options drive live updates")
 local options = BETTERUI.Nameplates.GetSettingsOptions()
-assertEqual(6, #options, "Nameplate settings expose description, toggles, and reset button")
+assertEqual(16, #options, "Nameplate settings expose text, position controls, and reset buttons")
 
 local enabledOption = options[2]
 local sizeOption = options[5]
-local resetButton = options[6]
+local unlockPositions = options[8]
+local moveCompass = options[9]
+local compassX = options[10]
+local moveReticle = options[12]
+local reticleY = options[14]
+local resetPositionsButton = options[15]
+local resetButton = options[16]
 
 enabledOption.setFunc(true)
 assertEqual(true, BETTERUI.Settings.Modules.Nameplates.m_enabled, "Enabled checkbox updates saved settings")
 assertEqual(false, sizeOption.disabled(), "Size slider stays enabled while nameplates are enabled")
+assertEqual(false, unlockPositions.disabled(), "Position unlock is available while nameplates are enabled")
+unlockPositions.setFunc(true)
+moveCompass.setFunc(true)
+compassX.setFunc(75)
+moveReticle.setFunc(true)
+reticleY.setFunc(-35)
+assertEqual(true, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked, "Unlock checkbox updates saved settings")
+assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Compass mover checkbox updates saved settings")
+assertEqual(75, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetX, "Compass X slider updates saved settings")
+assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveReticlePrompt, "Reticle mover checkbox updates saved settings")
+assertEqual(-35, BETTERUI.Settings.Modules.Nameplates.reticlePromptOffsetY, "Reticle Y slider updates saved settings")
 
 enabledOption.setFunc(false)
 assertEqual(false, BETTERUI.Settings.Modules.Nameplates.m_enabled, "Enabled checkbox can disable nameplates")
 assertEqual(true, sizeOption.disabled(), "Size slider disables itself when nameplates are disabled")
+assertEqual(true, compassX.disabled(), "Position sliders disable themselves when nameplates are disabled")
 
 BETTERUI.Settings.Modules.Nameplates.font = "EsoUI/Common/Fonts/TrajanPro-Regular.otf"
 BETTERUI.Settings.Modules.Nameplates.style = FONT_STYLE_NORMAL
 BETTERUI.Settings.Modules.Nameplates.size = 64
 enabledOption.setFunc(true)
+resetPositionsButton.func()
+assertEqual(false, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked, "Position reset relocks movement")
+assertEqual(false, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Position reset disables compass movement")
+assertEqual(0, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetX, "Position reset clears compass X")
+assertEqual(false, BETTERUI.Settings.Modules.Nameplates.moveReticlePrompt, "Position reset disables reticle movement")
+assertEqual(0, BETTERUI.Settings.Modules.Nameplates.reticlePromptOffsetY, "Position reset clears reticle Y")
+BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked = true
+BETTERUI.Settings.Modules.Nameplates.moveCompassFrame = true
+BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetY = 88
+BETTERUI.Settings.Modules.Nameplates.moveReticlePrompt = true
+BETTERUI.Settings.Modules.Nameplates.reticlePromptOffsetX = -44
+applyCurrentSettingsCalls = 0
 resetButton.func()
 assertEqual(BETTERUI.Nameplates.DEFAULTS.font, BETTERUI.Settings.Modules.Nameplates.font, "Reset restores the default font")
 assertEqual(BETTERUI.Nameplates.DEFAULTS.style, BETTERUI.Settings.Modules.Nameplates.style, "Reset restores the default style")
 assertEqual(BETTERUI.Nameplates.DEFAULTS.size, BETTERUI.Settings.Modules.Nameplates.size, "Reset restores the default size")
+assertEqual(BETTERUI.Nameplates.DEFAULTS.nameplatePositionsUnlocked, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked, "Reset restores position lock")
+assertEqual(BETTERUI.Nameplates.DEFAULTS.moveCompassFrame, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Reset restores compass mover toggle")
+assertEqual(BETTERUI.Nameplates.DEFAULTS.compassFrameOffsetY, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetY, "Reset restores compass Y offset")
+assertEqual(BETTERUI.Nameplates.DEFAULTS.moveReticlePrompt, BETTERUI.Settings.Modules.Nameplates.moveReticlePrompt, "Reset restores reticle mover toggle")
+assertEqual(BETTERUI.Nameplates.DEFAULTS.reticlePromptOffsetX, BETTERUI.Settings.Modules.Nameplates.reticlePromptOffsetX, "Reset restores reticle X offset")
 assertEqual(1, applyCurrentSettingsCalls, "Reset reapplies the current nameplate settings")
 
 print("\nTest: Lifecycle apply path migrates legacy string style settings before getters read them")
