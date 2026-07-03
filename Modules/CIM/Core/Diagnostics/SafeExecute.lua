@@ -153,30 +153,6 @@ function BETTERUI.CIM.SafeExecute(context, fn, ...)
     return ok, result
 end
 
----@param path string Dot-separated path relative to BETTERUI for optional lookup only (e.g. "ExternalAddon.Callback")
----@return any|nil value The resolved value, or nil if any segment is missing
-local function ResolveOptionalBetterUIPath(path)
-    local node = BETTERUI
-    for segment in path:gmatch("[^%.]+") do
-        node = node[segment]
-        if node == nil then return nil end
-    end
-    return node
-end
-
----@param path string Dot-separated path to an optional function on BETTERUI
----@param ... any Arguments to pass to the resolved function
----@return boolean ok true if the function was found and called
----@return any|nil result The function's return value, or nil if not found
-local function CallOptionalBetterUIPath(path, ...)
-    local fn = ResolveOptionalBetterUIPath(path)
-    if type(fn) ~= "function" then
-        return false, "optional_path_missing"
-    end
-
-    return BETTERUI.CIM.SafeExecute("OptionalPath: " .. path, fn, ...)
-end
-
 --- Unified user-facing error notification with structured logging.
 --- Accepts either a string ID or pre-resolved text so callers do not need a
 --- second text-only helper for the same error path.

@@ -262,9 +262,6 @@ BETTERUI.CIM.SearchBar.GetConstants = BETTERUI.CIM.GetSearchBarConstants
 -- BETTERUI_CURRENCY_COLUMNS table below is not used by that layout path.
 BETTERUI_MAX_VISIBLE_CURRENCIES = 13
 
--- Total available currencies in the system
-BETTERUI_TOTAL_CURRENCIES = 13
-
 -- Footer currency layout positions (X coordinates for each column)
 BETTERUI_CURRENCY_COLUMNS = { 190, 350, 510, 670, 830, 990 }
 
@@ -431,9 +428,6 @@ BETTERUI_HEADER_TABBAR_Y_OFFSET = 25          -- Tab bar vertical offset from he
 BETTERUI_HEADER_TABBAR_HEIGHT = 100           -- Tab bar strip height; larger values push list start lower.
 BETTERUI_HEADER_Y_OFFSET = 26                 -- Global header block offset from scene anchor (+ down, - up).
 BETTERUI_HEADER_TABBAR_LIST_Y_OFFSET = 75     -- Gap between tab bar and list region; larger = more breathing room.
-BETTERUI_HEADER_SELECTED_BG_WIDTH = 50        -- Width of selected tab highlight background.
-BETTERUI_HEADER_SELECTED_BG_HEIGHT = 25       -- Height of selected tab highlight background.
-BETTERUI_HEADER_SELECTED_BG_Y_OFFSET = 32     -- Selected background alignment relative to tab labels (+ down, - up).
 BETTERUI_HEADER_BUMPER_ICON_SIZE = 60         -- LB/RB bumper icon size (square dimensions).
 BETTERUI_HEADER_BUMPER_ICON_Y_OFFSET = 5      -- Bumper icon vertical alignment (+ down, - up).
 BETTERUI_HEADER_EQUIP_ROW_Y_OFFSET = -5       -- Equip icon row nudge (+ down, - up); more negative raises row.

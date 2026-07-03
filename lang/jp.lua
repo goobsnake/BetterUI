@@ -616,7 +616,6 @@ ZO_CreateStringId("SI_BETTERUI_TH_SEARCH_COOLDOWN", "\u{691c}\u{7d22}\u{306f}\u{
 ZO_CreateStringId("SI_BETTERUI_TH_NO_GUILD", "\u{30ae}\u{30eb}\u{30c9}\u{306a}\u{3057}")
 ZO_CreateStringId("SI_BETTERUI_TH_LIST_ITEM", "\u{51fa}\u{54c1}\u{3092}\u{4f5c}\u{6210}")
 ZO_CreateStringId("SI_BETTERUI_TH_CANCEL_LISTING", "\u{51fa}\u{54c1}\u{3092}\u{30ad}\u{30e3}\u{30f3}\u{30bb}\u{30eb}")
-ZO_CreateStringId("SI_BETTERUI_TH_CANNOT_LIST_BOUND", "\u{30d0}\u{30a4}\u{30f3}\u{30c9}\u{3055}\u{308c}\u{305f}\u{30a2}\u{30a4}\u{30c6}\u{30e0}\u{306f}\u{53d6}\u{5f15}\u{6240}\u{306b}\u{51fa}\u{54c1}\u{3067}\u{304d}\u{307e}\u{305b}\u{3093}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_TH_ENTER_PRICE", "\u{51fa}\u{54c1}\u{4fa1}\u{683c}\u{3092}\u{5165}\u{529b}\u{3057}\u{3066}\u{304f}\u{3060}\u{3055}\u{3044}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_HEADER", "\u{4e00}\u{822c}")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_DESC", "\u{53d6}\u{5f15}\u{6240}\u{3067}\u{306e}BetterUI\u{306e}\u{52d5}\u{4f5c}\u{3092}\u{8a2d}\u{5b9a}\u{3057}\u{307e}\u{3059}\u{3002}\u{3053}\u{308c}\u{3089}\u{306e}\u{8a2d}\u{5b9a}\u{306f}\u{30b2}\u{30fc}\u{30e0}\u{30d1}\u{30c3}\u{30c9}UI\u{306b}\u{306e}\u{307f}\u{9069}\u{7528}\u{3055}\u{308c}\u{307e}\u{3059}\u{3002}")

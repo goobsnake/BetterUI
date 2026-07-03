@@ -615,7 +615,6 @@ ZO_CreateStringId("SI_BETTERUI_TH_SEARCH_COOLDOWN", "Die Suche hat eine Abklingz
 ZO_CreateStringId("SI_BETTERUI_TH_NO_GUILD", "Keine Gilde")
 ZO_CreateStringId("SI_BETTERUI_TH_LIST_ITEM", "Angebot erstellen")
 ZO_CreateStringId("SI_BETTERUI_TH_CANCEL_LISTING", "Angebot stornieren")
-ZO_CreateStringId("SI_BETTERUI_TH_CANNOT_LIST_BOUND", "Gebundene Gegenst\xe4nde k\xf6nnen nicht im Handelshaus angeboten werden.")
 ZO_CreateStringId("SI_BETTERUI_TH_ENTER_PRICE", "Bitte gib einen Preis f\xfcr das Angebot ein.")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_HEADER", "Allgemein")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_DESC", "Konfiguriere das BetterUI-Handelshaus. Diese Einstellungen gelten nur f\xfcr die Gamepad-Oberfl\xe4che.")

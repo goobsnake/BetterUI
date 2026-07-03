@@ -616,7 +616,6 @@ ZO_CreateStringId("SI_BETTERUI_TH_SEARCH_COOLDOWN", "La recherche est en recharg
 ZO_CreateStringId("SI_BETTERUI_TH_NO_GUILD", "Pas de guilde")
 ZO_CreateStringId("SI_BETTERUI_TH_LIST_ITEM", "Cr\xe9er une annonce")
 ZO_CreateStringId("SI_BETTERUI_TH_CANCEL_LISTING", "Annuler l'annonce")
-ZO_CreateStringId("SI_BETTERUI_TH_CANNOT_LIST_BOUND", "Les objets li\xe9s ne peuvent pas \xeatre mis en vente sur l'h\xf4tel des ventes.")
 ZO_CreateStringId("SI_BETTERUI_TH_ENTER_PRICE", "Veuillez entrer un prix pour l'annonce.")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_HEADER", "G\xe9n\xe9ral")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_DESC", "Configurer le comportement de BetterUI \xe0 l'h\xf4tel des ventes. Ces param\xe8tres s'appliquent uniquement \xe0 l'interface manette.")

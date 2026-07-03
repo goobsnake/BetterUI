@@ -4,38 +4,11 @@ Purpose: Vertical Parametric Scroll List implementation.
          Extends ZO_ParametricScrollList with custom gradient fading.
 ]]
 
-local DEFAULT_EXPECTED_ENTRY_HEIGHT = 30
-local DEFAULT_EXPECTED_HEADER_HEIGHT = 24
-local MINIMUM_ALLOWED_FADE_GRADIENT = 32
 local LIST_ORIENTATION = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BETTERUI.CIM.ListGlobals.ORIENTATION) or
 {
     VERTICAL = true,
     HORIZONTAL = false,
 }
-local DEFAULT_GRADIENT_SIZE = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BETTERUI.CIM.ListGlobals.DEFAULT_GRADIENT_SIZE) or
-{
-    VERTICAL = 32,
-    HORIZONTAL = 32,
-}
-
-
---- Gets the relevant dimension (Height/Width) based on list orientation.
----
-local function GetControlDimensionForMode(mode, control)
-    return mode == LIST_ORIENTATION.VERTICAL and control:GetHeight() or control:GetWidth()
-end
-
---- Gets the starting edge (Top/Left) based on list orientation.
----
-local function GetStartOfControl(mode, control)
-    return mode == LIST_ORIENTATION.VERTICAL and control:GetTop() or control:GetLeft()
-end
-
---- Gets the ending edge (Bottom/Right) based on list orientation.
----
-local function GetEndOfControl(mode, control)
-    return mode == LIST_ORIENTATION.VERTICAL and control:GetBottom() or control:GetRight()
-end
 
 -- CLASS: BETTERUI_VerticalParametricScrollList
 -- Customized Vertical Scroll List with enhanced Gradient Fading logic.

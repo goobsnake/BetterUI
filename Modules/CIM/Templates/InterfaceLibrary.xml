@@ -22,10 +22,6 @@
 
     <Controls>
         <!-- Reusable Anchor and Dimension Patterns -->
-        <Control name="BETTERUI_CenteredInParent_Anchors" virtual="true">
-            <AnchorFill />
-        </Control>
-
         <Control name="BETTERUI_LeftMenuEntry_Anchors" virtual="true">
             <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
@@ -172,39 +168,6 @@
                     horizontalAlignment="CENTER" verticalAlignment="CENTER">
                     <Anchor point="TOPLEFT" offsetX="18" offsetY="-2" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-22" offsetY="0" />
-                </Label>
-            </Controls>
-        </Control>
-
-        <Control name="BETTERUI_SpinnerContainerTemplate" virtual="true">
-            <OnInitialized>
-                ZO_GamepadLabeledQuantitySpinnerContainerTemplate_Initialize(self)
-            </OnInitialized>
-
-            <Controls>
-                <Backdrop name="$(parent)Highlight" inherits="ZO_GamepadWhiteOutlineHighlight">
-                    <Anchor point="TOPLEFT" offsetX="-20" />
-                    <Anchor point="BOTTOMRIGHT" offsetX="20" />
-                </Backdrop>
-
-                <Label name="$(parent)Label" text="SI_GAMEPAD_QUANTITY_SPINNER_TEMPLATE_LABEL"
-                    font="ZoFontGamepad27"
-                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL"
-                    modifyTextType="UPPERCASE">
-                    <Anchor point="LEFT" />
-                </Label>
-
-                <Control name="$(parent)Spinner" inherits="BETTERUI_GamepadSpinner">
-                    <Anchor point="CENTER" />
-                    <Dimensions x="97" y="42" />
-                    <Controls>
-                        <Label name="$(parent)Display" font="ZoFontGamepad42" override="true" />
-                    </Controls>
-                </Control>
-
-                <Label name="$(parent)Price" horizontalAlignment="RIGHT" hidden="true"
-                    inherits="ZO_CurrencyTemplate">
-                    <Anchor point="RIGHT" />
                 </Label>
             </Controls>
         </Control>

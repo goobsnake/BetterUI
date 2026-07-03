@@ -151,17 +151,5 @@
             </Controls>
         </Control>
 
-        <!-- Template Wrapper for Footer -->
-        <Control name="BETTERUI_GamepadScreenFooterContainer" virtual="true">
-            <Dimensions y="40" />
-            <Controls>
-                <Control name="$(parent)Footer" inherits="BETTERUI_GamepadGenericScreenFooter">
-                    <OnInitialized>
-                        self:GetParent().footer = self
-                    </OnInitialized>
-                </Control>
-            </Controls>
-        </Control>
-
     </Controls>
 </GuiXml>

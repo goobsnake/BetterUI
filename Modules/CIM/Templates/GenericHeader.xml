@@ -434,17 +434,5 @@
             </Controls>
         </Control>
 
-        <Control name="BETTERUI_Header_BrowseResults_Container" virtual="true">
-            <Dimensions y="115" x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
-            <Controls>
-                <Control name="$(parent)Header" inherits="BETTERUI_Header_BrowseResults">
-                    <Dimensions y="115" x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
-                    <OnInitialized>
-                        self:GetParent().header = self
-                    </OnInitialized>
-                </Control>
-            </Controls>
-        </Control>
-
     </Controls>
 </GuiXml>

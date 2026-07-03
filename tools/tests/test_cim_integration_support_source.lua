@@ -219,10 +219,6 @@ assert_true(headerSortIntegration:find("return HeaderSortIntegration%.PeekContro
     "HeaderSortIntegration getter delegates to side-effect-free peek behavior")
 
 local safeExecute = read_file("Modules/CIM/Core/Diagnostics/SafeExecute.lua")
-assert_true(safeExecute:find("local function ResolveOptionalBetterUIPath%(path%)") ~= nil,
-    "SafeExecute keeps optional BETTERUI path resolution private")
-assert_true(safeExecute:find("local function CallOptionalBetterUIPath%(path, %.%.%.%)") ~= nil,
-    "SafeExecute keeps optional BETTERUI dispatch private")
 assert_true(safeExecute:find("function BETTERUI%.CIM%.TryResolve") == nil,
     "SafeExecute no longer exports TryResolve")
 assert_true(safeExecute:find("function BETTERUI%.CIM%.TryCall") == nil,

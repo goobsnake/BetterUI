@@ -614,7 +614,6 @@ ZO_CreateStringId("SI_BETTERUI_TH_SEARCH_COOLDOWN", "La b\xfasqueda est\xe1 en t
 ZO_CreateStringId("SI_BETTERUI_TH_NO_GUILD", "Sin gremio")
 ZO_CreateStringId("SI_BETTERUI_TH_LIST_ITEM", "Crear oferta")
 ZO_CreateStringId("SI_BETTERUI_TH_CANCEL_LISTING", "Cancelar oferta")
-ZO_CreateStringId("SI_BETTERUI_TH_CANNOT_LIST_BOUND", "Los objetos vinculados no se pueden publicar en la casa de comercio.")
 ZO_CreateStringId("SI_BETTERUI_TH_ENTER_PRICE", "Por favor introduce un precio para la oferta.")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_HEADER", "General")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_DESC", "Configura el comportamiento de BetterUI en la casa de comercio. Estos ajustes se aplican solo a la interfaz de mando.")

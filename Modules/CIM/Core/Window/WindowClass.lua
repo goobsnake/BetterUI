@@ -91,9 +91,6 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTempl
 
     self:DeactivateSpinner()
 
-    self.header.MoveNext = function() self:OnTabNext() end
-    self.header.MovePrev = function() self:OnTabPrev() end
-
     self.header.columns = {}
 
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "initialize window", { tlw_name = tlw_name, template = template, hasSpinner = self.spinner ~= nil }) end
@@ -193,7 +190,6 @@ end
 ---@param setupCallback fun(control: table, data: table, selected: boolean)
 ---@param controlPoolPrefix string|nil Short pooled-control name prefix; keeps generated names under the engine limit
 function BETTERUI.Interface.Window:SetupList(rowTemplate, setupCallback, controlPoolPrefix)
-    self.itemListTemplate = rowTemplate
     self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction,
         nil, controlPoolPrefix)
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "list template", { template = rowTemplate }) end
@@ -377,12 +373,6 @@ function BETTERUI.Interface.Window:ToggleScene()
     else
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.GENERAL, "[Window] ToggleScene called but no sceneName or scene is set") end
     end
-end
-
-function BETTERUI.Interface.Window:OnTabNext()
-end
-
-function BETTERUI.Interface.Window:OnTabPrev()
 end
 
 --- Apply Search Mixin

@@ -702,7 +702,6 @@ ZO_CreateStringId("SI_BETTERUI_TH_SEARCH_COOLDOWN", "Search is on cooldown. Plea
 ZO_CreateStringId("SI_BETTERUI_TH_NO_GUILD", "No Guild")
 ZO_CreateStringId("SI_BETTERUI_TH_LIST_ITEM", "Create Listing")
 ZO_CreateStringId("SI_BETTERUI_TH_CANCEL_LISTING", "Cancel Listing")
-ZO_CreateStringId("SI_BETTERUI_TH_CANNOT_LIST_BOUND", "Bound items cannot be listed on the trading house.")
 ZO_CreateStringId("SI_BETTERUI_TH_ENTER_PRICE", "Please enter a price for the listing.")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_HEADER", "General")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_DESC", "Trading House behavior. Gamepad UI only.")

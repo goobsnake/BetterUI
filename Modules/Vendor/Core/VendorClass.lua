@@ -1963,13 +1963,6 @@ function BETTERUI.Vendor.Class:FlushListUpdates()
     end
 end
 
----@return boolean isFence True if current mode is a fence mode
-function BETTERUI.Vendor.Class:IsFenceMode()
-    local mode = self:GetCurrentMode()
-    return mode == BETTERUI.Vendor.MODE.FENCE_SELL
-        or mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER
-end
-
 ---@return number currencyType1 Primary currency type
 ---@return number|nil currencyType2 Secondary currency type, or nil
 function BETTERUI.Vendor.Class:GetStoreCurrencyTypes()

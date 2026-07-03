@@ -616,7 +616,6 @@ ZO_CreateStringId("SI_BETTERUI_TH_SEARCH_COOLDOWN", "\u{641c}\u{7d22}\u{6b63}\u{
 ZO_CreateStringId("SI_BETTERUI_TH_NO_GUILD", "\u{65e0}\u{516c}\u{4f1a}")
 ZO_CreateStringId("SI_BETTERUI_TH_LIST_ITEM", "\u{521b}\u{5efa}\u{6302}\u{5355}")
 ZO_CreateStringId("SI_BETTERUI_TH_CANCEL_LISTING", "\u{53d6}\u{6d88}\u{6302}\u{5355}")
-ZO_CreateStringId("SI_BETTERUI_TH_CANNOT_LIST_BOUND", "\u{5df2}\u{7ed1}\u{5b9a}\u{7684}\u{7269}\u{54c1}\u{65e0}\u{6cd5}\u{5728}\u{4ea4}\u{6613}\u{6240}\u{6302}\u{5355}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_TH_ENTER_PRICE", "\u{8bf7}\u{8f93}\u{5165}\u{6302}\u{5355}\u{4ef7}\u{683c}\u{3002}")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_HEADER", "\u{5e38}\u{89c4}")
 ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_DESC", "\u{914d}\u{7f6e}BetterUI\u{4ea4}\u{6613}\u{6240}\u{884c}\u{4e3a}\u{3002}\u{8fd9}\u{4e9b}\u{8bbe}\u{7f6e}\u{4ec5}\u{9002}\u{7528}\u{4e8e}\u{624b}\u{67c4}\u{754c}\u{9762}\u{3002}")

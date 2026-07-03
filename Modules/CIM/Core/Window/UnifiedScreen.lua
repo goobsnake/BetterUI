@@ -91,26 +91,6 @@ function BETTERUI.CIM.UnifiedScreen:RefreshFooter()
     end
 end
 
---- Called when screen is about to show. Sets footer mode.
-function BETTERUI.CIM.UnifiedScreen:OnShowing()
-    -- Ensure footer controller is set up
-    if not self.unifiedFooterController then
-        self:SetupUnifiedFooter()
-    end
-
-    -- Apply footer mode when showing
-    if self.unifiedFooterController then
-        self.unifiedFooterController:SetMode(self.footerMode)
-    end
-    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unified screen showing", { footerMode = self.footerMode }) end
-end
-
---- Called when screen is about to hide.
---- Override in subclasses for cleanup.
-function BETTERUI.CIM.UnifiedScreen:OnHiding()
-    -- Subclasses can override for cleanup
-end
-
 -- SCENE HANDLER MIXIN METHODS
 -- These provide common scene state handling for Inventory/Banking
 

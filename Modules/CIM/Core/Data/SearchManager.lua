@@ -15,7 +15,6 @@ BETTERUI.Interface = BETTERUI.Interface or {}
 ---@field headerGeneric table|nil
 ---@field movementController table|nil
 ---@field headerFocus table|nil
----@field textSearchCallback fun(text: string)?|nil
 ---@field _searchHeaderActive boolean|nil
 ---@field _searchModeActive boolean|nil
 ---@field GetHeaderNarration fun(self: BetterUISearchContext): table?|nil
@@ -418,8 +417,6 @@ function BETTERUI.Interface.SearchMixin.AddSearch(self, textSearchKeybindStripDe
     if ZO_TextSearch_Header_Gamepad then
         self.textSearchHeaderFocus = ZO_TextSearch_Header_Gamepad:New(self.textSearchHeaderControl,
             callback)
-        -- Keep the callback so callers can recreate the control under GuiRoot if needed
-        self.textSearchCallback = callback
         -- Treat this as the header focus control for the window
         if not self.headerFocus then
             self.headerFocus = self.textSearchHeaderFocus
