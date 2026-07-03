@@ -769,7 +769,7 @@ ZO_CreateStringId("SI_BETTERUI_STATCOMP_QUALITY", "Quality")
 ZO_CreateStringId("SI_BETTERUI_STATCOMP_SET", "Set")
 ZO_CreateStringId("SI_BETTERUI_STATCOMP_ENCHANT", "Enchant")
 ZO_CreateStringId("SI_BETTERUI_STATCOMP_ENCHANT_CHANGED", "changed")
-ZO_CreateStringId("SI_BETTERUI_STATCOMP_EMPTY_SLOT", "Empty slot \u{2014} equip to gain stats")
+ZO_CreateStringId("SI_BETTERUI_STATCOMP_EMPTY_SLOT", "Empty slot — equip to gain stats")
 ZO_CreateStringId("SI_BETTERUI_STATCOMP_NO_CHANGE", "No stat change")
 
 -- Secure Action / Item Move Failures
