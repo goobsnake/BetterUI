@@ -217,10 +217,12 @@ check(logMessageLint:find("PHASE_PATTERNS", 1, true) ~= nil
     and logMessageLint:find("TraceListTrigger", 1, true) ~= nil
     and logMessageLint:find("TraceKeybind", 1, true) ~= nil
     and logMessageLint:find("TraceBankCurrencyAction", 1, true) ~= nil
+    and logMessageLint:find("TraceBankState", 1, true) ~= nil
     and logMessageLint:find("TraceVendorEvent", 1, true) ~= nil
     and logMessageLint:find("TraceVendor", 1, true) ~= nil
     and logMessageLint:find("TraceVendorBatch", 1, true) ~= nil
     and logMessageLint:find("TraceVendorBootstrap", 1, true) ~= nil
+    and logMessageLint:find("TraceNativeStoreBridge", 1, true) ~= nil
     and logMessageLint:find("TraceBrowse", 1, true) ~= nil
     and logMessageLint:find("TraceSell", 1, true) ~= nil
     and logMessageLint:find("TraceListings", 1, true) ~= nil
@@ -247,6 +249,11 @@ local ready = true
 TraceVendorEvent("vendor.mode", "begin", {})
 TraceTHFlow(nil, "tradinghouse.listing", ready and "blocked" or "completed", {})
 TraceCompanionRuntime("companion.state", ready and "begin" or "completed", {})
+TraceBankState("bank.currency_ui_refresh", ready and "completed" or "failed", {})
+TraceNativeStoreBridge("vendor.native_store_cleanup", "begin", {})
+TraceNativeStoreBridge("vendor.native_store_cleanup",
+    ready and "blocked" or "completed", {})
+TraceVendorBootstrap("vendor.bootstrap", ready and "begin" or "completed", {})
 ]])
 check(lintCanonicalOk
     and lintCanonicalOutput:find("OK: no terse log messages found.", 1, true) ~= nil,
@@ -265,6 +272,26 @@ check(lintLegacyOk
     and lintLegacyOutput:find("WARN legacy TraceCompanionRuntime phase \"showing_end\"", 1, true) ~= nil
     and lintLegacyOutput:find("WARN: 5 approved legacy TraceEvent phase(s) remain.", 1, true) ~= nil,
     "log message lint warns but passes approved legacy wrapper phases")
+local lintExtendedLegacyOutput, lintExtendedLegacyOk = runLintFixture([[
+local ready = true
+TraceBankState("bank.open", "event", {})
+TraceNativeStoreBridge("vendor.open_store_sync", "mode_applied", {})
+TraceNativeStoreBridge("vendor.open_store_sync", ready and "retry" or "give_up", {})
+TraceNativeStoreBridge("vendor.native_store_takeover",
+    ready and "native_open_suppressed" or "native_open_fallback", {})
+TraceVendorBootstrap("vendor.scene", ready and "showing_begin" or "showing_end", {})
+]])
+check(lintExtendedLegacyOk
+    and lintExtendedLegacyOutput:find("WARN legacy TraceBankState phase \"event\"", 1, true) ~= nil
+    and lintExtendedLegacyOutput:find("WARN legacy TraceNativeStoreBridge phase \"mode_applied\"", 1, true) ~= nil
+    and lintExtendedLegacyOutput:find("WARN legacy TraceNativeStoreBridge phase \"retry\"", 1, true) ~= nil
+    and lintExtendedLegacyOutput:find("WARN legacy TraceNativeStoreBridge phase \"give_up\"", 1, true) ~= nil
+    and lintExtendedLegacyOutput:find("WARN legacy TraceNativeStoreBridge phase \"native_open_suppressed\"", 1, true) ~= nil
+    and lintExtendedLegacyOutput:find("WARN legacy TraceNativeStoreBridge phase \"native_open_fallback\"", 1, true) ~= nil
+    and lintExtendedLegacyOutput:find("WARN legacy TraceVendorBootstrap phase \"showing_begin\"", 1, true) ~= nil
+    and lintExtendedLegacyOutput:find("WARN legacy TraceVendorBootstrap phase \"showing_end\"", 1, true) ~= nil
+    and lintExtendedLegacyOutput:find("WARN: 8 approved legacy TraceEvent phase(s) remain.", 1, true) ~= nil,
+    "log message lint covers newer wrapper families and multiline conditional phases")
 local lintUnknownOutput, lintUnknownOk = runLintFixture([[
 TraceVendorEvent("vendor.mode", "banana_phase", {})
 ]])

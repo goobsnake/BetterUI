@@ -13,7 +13,9 @@ local function TraceGeneralInterface(event, phase, data, category)
 	if not L or type(L.TraceEvent) ~= "function" then return end
 	local categories = L.CATEGORY or {}
 	local traceCategory = category or categories.GENERAL
-	if L.EnabledFor and not L.EnabledFor(L.LEVEL.TRACE, traceCategory) then return end
+	-- Preflight at DEBUG to mirror the TraceEvent default emit level below; a
+	-- TRACE-level gate would drop records under DEBUG-threshold presets.
+	if L.EnabledFor and L.LEVEL and not L.EnabledFor(L.LEVEL.DEBUG, traceCategory) then return end
 	local payload = data or {}
 	local inputAnchorDetail = payload._inputAnchorDetail == true
 	payload._inputAnchorDetail = nil

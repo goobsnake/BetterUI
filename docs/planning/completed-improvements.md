@@ -1,5 +1,10 @@
 # Completed Improvements
 
+## [Completed] BUI-BUILOG-LINT-001 — trace-phase lint wrapper coverage (2026-07-02)
+**Summary**: Closed the review finding that `tools/lint/lint_log_messages.lua` did not scan every trace wrapper family now carrying AI-facing builog phase records. The phase linter now covers `TraceBankState`, `TraceVendorBootstrap` conditional phases, and `TraceNativeStoreBridge`, including the split-call conditional shape used by the Vendor native-store bridge. Existing non-canonical Banking/Vendor bridge phases surfaced by the new coverage are explicitly triaged through the approved-legacy WARN path so the monitor contract remains visible without forcing noisy phase churn.
+**Source Issue/Phase**: BUI-BUILOG-LINT-001 (`project-improvements.md`)
+**Related Files/Tests**: `tools/lint/lint_log_messages.lua`, `tools/tests/test_builog_flow_source.lua`, `docs/planning/project-improvements.md`. Validation: `test_validate(luac_syntax)` passed for touched Lua files, targeted `test_validate(lua_run, tools/tests/test_builog_flow_source.lua)` passed, and `test_validate(lua_run, tools/lint/lint_log_messages.lua)` passed against the current module tree.
+
 ## [Completed] BUI-DEEPDIVE-002 — implementation review remediation (2026-07-02)
 **Summary**: Closed the follow-up review findings from commit `d1e4e5ac`. Vendor native-store takeover now removes the dead method-prehook installer and replaces the native `STORE_WINDOW_GAMEPAD.control` open/close callbacks with BetterUI-owned wrappers that suppress native handling only while BetterUI owns the flow, route disabled/non-owned opens and closes through public native fallback helpers in `VendorInteractionRuntime`, preserve specialized native scenes, and gate Vendor event handlers when the module is disabled. The native fallback open path now mirrors ESOUI's component list including Vengeance sell mode.
 

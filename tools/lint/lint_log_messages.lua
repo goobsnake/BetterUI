@@ -124,6 +124,15 @@ local APPROVED_LEGACY_PHASE = {
     native_allowed = true,
     native_callback_dispatched = true,
     native_callback_failed = true,
+    native_close_fallback = true,
+    native_close_fallback_skipped = true,
+    native_close_suppressed = true,
+    native_onhide = true,
+    native_onhide_skipped = true,
+    native_open_fallback = true,
+    native_open_fallback_skipped = true,
+    native_open_suppressed = true,
+    native_specialized_scene_preserved = true,
     not_ready = true,
     offsets_applied = true,
     player_activated = true,
@@ -160,6 +169,7 @@ local APPROVED_LEGACY_PHASE = {
     state_skipped = true,
     stopped = true,
     suppression_decision = true,
+    synced = true,
     system_skipped = true,
     template_error = true,
     timeline_created = true,
@@ -198,12 +208,16 @@ local APPROVED_LEGACY_PHASE = {
     close_skipped = true,
     closed = true,
     coalesced = true,
+    complete = true,
     complete_reached = true,
     committed = true,
     confirm = true,
     confirm_begin = true,
     confirm_rejected = true,
     continue = true,
+    control_event_hook_cached = true,
+    control_event_hook_installed = true,
+    control_event_hook_skipped = true,
     cleared = true,
     deactivate = true,
     deactivate_after = true,
@@ -217,8 +231,10 @@ local APPROVED_LEGACY_PHASE = {
     dialog_show = true,
     duplicate_overwrite = true,
     end_error = true,
+    ensure_components = true,
     enter_attempted = true,
     enter_skipped = true,
+    event = true,
     error = true,
     finished = true,
     flushed = true,
@@ -226,6 +242,7 @@ local APPROVED_LEGACY_PHASE = {
     guard_exit = true,
     guild_requested = true,
     guild_slot_update = true,
+    give_up = true,
     handoff_cleanup = true,
     header_refreshed = true,
     hidden = true,
@@ -239,6 +256,7 @@ local APPROVED_LEGACY_PHASE = {
     invalidated = true,
     list_refreshed = true,
     list_refresh_skipped = true,
+    mode_applied = true,
     move_requested = true,
     no_active_writ = true,
     next_skipped = true,
@@ -274,10 +292,12 @@ local APPROVED_LEGACY_PHASE = {
     refreshed = true,
     refresh_skipped = true,
     register_skipped = true,
+    registration_skipped = true,
     registered = true,
     remove_after = true,
     remove_before = true,
     render = true,
+    retry = true,
     request = true,
     refresh_decision = true,
     refresh_scheduled = true,
@@ -346,10 +366,18 @@ local PHASE_PATTERNS = {
     { label = "TraceListTrigger", pattern = 'TraceListTrigger%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
     { label = "TraceKeybind", pattern = 'TraceKeybind%s*%(%s*[^,]+%s*,%s*[^,]+%s*,%s*"([^"]+)"' },
     { label = "TraceBankCurrencyAction", pattern = 'TraceBankCurrencyAction%s*%(%s*"([^"]+)"' },
+    { label = "TraceBankState", pattern = 'TraceBankState%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceBankState", pattern = 'TraceBankState%s*%(%s*"[^"]+"%s*,%s*[^,]-and%s*"([^"]+)"' },
+    { label = "TraceBankState", pattern = 'TraceBankState%s*%(%s*"[^"]+"%s*,%s*[^,]-or%s*"([^"]+)"' },
     { label = "TraceVendorEvent", pattern = 'TraceVendorEvent%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
     { label = "TraceVendor", pattern = 'TraceVendor%s*%(%s*[^,]+%s*,%s*"[^"]+"%s*,%s*"([^"]+)"' },
     { label = "TraceVendorBatch", pattern = 'TraceVendorBatch%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
     { label = "TraceVendorBootstrap", pattern = 'TraceVendorBootstrap%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceVendorBootstrap", pattern = 'TraceVendorBootstrap%s*%(%s*"[^"]+"%s*,%s*[^,]-and%s*"([^"]+)"' },
+    { label = "TraceVendorBootstrap", pattern = 'TraceVendorBootstrap%s*%(%s*"[^"]+"%s*,%s*[^,]-or%s*"([^"]+)"' },
+    { label = "TraceNativeStoreBridge", pattern = 'TraceNativeStoreBridge%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
+    { label = "TraceNativeStoreBridge", pattern = 'TraceNativeStoreBridge%s*%(%s*"[^"]+"%s*,%s*[^,]-and%s*"([^"]+)"' },
+    { label = "TraceNativeStoreBridge", pattern = 'TraceNativeStoreBridge%s*%(%s*"[^"]+"%s*,%s*[^,]-or%s*"([^"]+)"' },
     { label = "TraceBrowse", pattern = 'TraceBrowse%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
     { label = "TraceSell", pattern = 'TraceSell%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
     { label = "TraceListings", pattern = 'TraceListings%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
@@ -381,6 +409,10 @@ local PHASE_PATTERNS = {
     { label = "TraceDrag", pattern = 'TraceDrag%s*%(%s*"[^"]+"%s*,%s*"([^"]+)"' },
     { label = "TraceDrag", pattern = 'TraceDrag%s*%(%s*"[^"]+"%s*,%s*[^,]-and%s*"([^"]+)"' },
     { label = "TraceDrag", pattern = 'TraceDrag%s*%(%s*"[^"]+"%s*,%s*[^,]-or%s*"([^"]+)"' },
+}
+
+local PHASE_CONTINUATION_PATTERNS = {
+    { label = "TraceNativeStoreBridge", pattern = 'TraceNativeStoreBridge%s*%(%s*"[^"]+"%s*,%s*$' },
 }
 
 -- A "terse" message: a single identifier token (letters/digits/underscore), no space,
@@ -437,6 +469,7 @@ for _, path in ipairs(files) do
     if fh then
         local lineNo = 0
         local inBlock = false
+        local pendingPhaseLabel = nil
         for line in fh:lines() do
             lineNo = lineNo + 1
             -- Strip comments so example Log calls in docs aren't flagged. Crude but fine
@@ -453,6 +486,12 @@ for _, path in ipairs(files) do
                 else scan = scan:sub(1, open - 1); inBlock = true end
             end
             scan = scan:gsub("%-%-.*$", "") -- line comment
+            if pendingPhaseLabel then
+                for phase in scan:gmatch('"([^"]+)"') do
+                    checkPhase(path, lineNo, phase, pendingPhaseLabel)
+                end
+                pendingPhaseLabel = nil
+            end
             for msg in scan:gmatch(CALL) do
                 if isTerse(msg) then
                     total = total + 1
@@ -463,6 +502,11 @@ for _, path in ipairs(files) do
             for _, phasePattern in ipairs(PHASE_PATTERNS) do
                 for phase in scan:gmatch(phasePattern.pattern) do
                     checkPhase(path, lineNo, phase, phasePattern.label)
+                end
+            end
+            for _, continuationPattern in ipairs(PHASE_CONTINUATION_PATTERNS) do
+                if scan:match(continuationPattern.pattern) then
+                    pendingPhaseLabel = continuationPattern.label
                 end
             end
         end

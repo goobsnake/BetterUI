@@ -236,11 +236,15 @@ local function MigrateLegacyStyleSetting(context)
     end
 
     local originalStyle = liveSettings.style
-    liveSettings.style = NormalizeStyleValue(originalStyle)
-    TraceNameplates("nameplates.settings", "style_migrated", {
+    local normalizedStyle = NormalizeStyleValue(originalStyle)
+    if normalizedStyle == originalStyle then
+        return
+    end
+    liveSettings.style = normalizedStyle
+    TraceNameplates("nameplates.settings", "changed", {
         fn = context,
         originalStyle = originalStyle,
-        migratedStyle = liveSettings.style,
+        migratedStyle = normalizedStyle,
     })
 end
 
