@@ -352,6 +352,8 @@ do
         "Vendor search callback consumes the normalized string payload")
     assert_true(vendorSource:find("KEYBIND_STRIP%.keybindButtonGroups") == nil,
         "Vendor search cleanup never reads the nonexistent keybindButtonGroups field")
+    assert_true(vendorSource:find("_searchTextChangedInProgress", 1, true) ~= nil,
+        "Vendor search text updates guard against re-entrant focus callbacks")
     assert_true(vendorSource:find("BETTERUI%.Interface%.RemoveOwnedKeybindGroups%(") ~= nil,
         "Vendor search cleanup removes only vendor-owned keybind groups")
     assert_true(vendorSource:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searchRemovedKeybindGroups%)") ~= nil,

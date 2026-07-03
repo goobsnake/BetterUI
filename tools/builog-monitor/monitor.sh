@@ -331,6 +331,22 @@ function sort_records(    i, j, current) {
     recordOrder[j + 1] = current
   }
 }
+function track_sequence(sid, seq,    numericSeq, expected, missingEnd, missingRange) {
+  if (sid == "" || seq !~ /^[0-9]+$/) return
+  numericSeq = seq + 0
+  if (!(sid in lastSeqBySid)) {
+    lastSeqBySid[sid] = numericSeq
+    return
+  }
+  expected = lastSeqBySid[sid] + 1
+  if (numericSeq > expected) {
+    missingEnd = numericSeq - 1
+    missingRange = expected
+    if (missingEnd > expected) missingRange = missingRange ".." missingEnd
+    sequenceGaps[++sequenceGapCount] = "sid=" sid " missing=" missingRange " beforeSeq=" numericSeq
+  }
+  if (numericSeq > lastSeqBySid[sid]) lastSeqBySid[sid] = numericSeq
+}
 function process_record(r,    corr, summary, event, phase, body, level, category, dropped) {
   corr = recordCorr[r]
   summary = recordSummary[r]
@@ -340,6 +356,7 @@ function process_record(r,    corr, summary, event, phase, body, level, category
   level = recordLevel[r]
   category = recordCategory[r]
 
+  track_sequence(recordSid[r], recordSeq[r])
   remember_group(corr, summary, event, phase)
 
   if (event == "anomaly") anomalies[++anomalyCount] = summary
@@ -426,7 +443,7 @@ END {
   }
   for (i = 1; i <= recordCount; i++) process_record(recordOrder[i])
   print "=== builog digest ==="
-  print "records=" (recordCount + 0) " groups=" (groupCount + 0) " anomalies=" (anomalyCount + 0) " warnings=" (warnErrorCount + 0) " realLuaErrors=" (realErrorCount + 0) " droppedRecords=" (droppedRecords + 0)
+  print "records=" (recordCount + 0) " groups=" (groupCount + 0) " anomalies=" (anomalyCount + 0) " warnings=" (warnErrorCount + 0) " realLuaErrors=" (realErrorCount + 0) " droppedRecords=" (droppedRecords + 0) " sequenceGaps=" (sequenceGapCount + 0)
 
   print ""
   print "session preamble info:"
@@ -437,6 +454,11 @@ END {
   print "session reports:"
   if (sessionReportCount == 0) print "  none"
   for (i = 1; i <= sessionReportCount; i++) print "  " sessionReports[i]
+
+  print ""
+  print "sequence gaps:"
+  if (sequenceGapCount == 0) print "  none"
+  for (i = 1; i <= sequenceGapCount; i++) print "  " sequenceGaps[i]
 
   print ""
   print "timelines:"

@@ -38,6 +38,8 @@ GAMEPAD_DIALOGS = { PARAMETRIC = "PARAMETRIC" }
 TEXT_ALIGN_CENTER = "center"
 EVENT_OPEN_GUILD_BANK = 1001
 EVENT_CLOSE_GUILD_BANK = 1002
+EVENT_GUILD_BANK_SELECTED = 1003
+EVENT_GUILD_BANK_ITEMS_READY = 1004
 
 BETTERUI_BANKING_SCENE_NAME = "betterui_banking"
 BETTERUI_GUILD_BANKING_SCENE_NAME = "betterui_guild_banking"
@@ -833,10 +835,22 @@ assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(
     "Init registers a guild bank open redirect event")
 assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_CLOSE_GUILD_BANK)] ~= nil,
     "Init registers a guild bank close redirect event")
+assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT_SELECTED:" .. tostring(EVENT_GUILD_BANK_SELECTED)] ~= nil,
+    "Init registers a guild bank selected fallback redirect event")
+assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT_ITEMS_READY:" .. tostring(EVENT_GUILD_BANK_ITEMS_READY)] ~= nil,
+    "Init registers a guild bank ready fallback redirect event")
 eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_OPEN_GUILD_BANK)]()
 assertEqual(BETTERUI_GUILD_BANKING_SCENE_NAME, shownSceneName, "Guild bank open event shows the BetterUI guild scene")
 eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_CLOSE_GUILD_BANK)]()
 assertEqual(BETTERUI_GUILD_BANKING_SCENE_NAME, hiddenSceneName, "Guild bank close event hides the BetterUI guild scene")
+shownSceneName = nil
+eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT_SELECTED:" .. tostring(EVENT_GUILD_BANK_SELECTED)]()
+assertEqual(BETTERUI_GUILD_BANKING_SCENE_NAME, shownSceneName,
+    "Guild bank selected event can recover the BetterUI guild scene")
+shownSceneName = nil
+eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT_ITEMS_READY:" .. tostring(EVENT_GUILD_BANK_ITEMS_READY)]()
+assertEqual(BETTERUI_GUILD_BANKING_SCENE_NAME, shownSceneName,
+    "Guild bank ready event can recover the BetterUI guild scene")
 assertEqual(1, refreshManagerCalls, "Init configures the refresh manager")
 assertEqual(1, quantityDialogCalls, "Init configures the quantity dialog")
 assertEqual(1, sceneInterceptionCalls, "Init installs scene interception")

@@ -196,17 +196,21 @@ local function RestoreStockLabelFonts(tooltipControl)
     end
 end
 
---- Reverses ALL enhanced-tooltip control-instance mutations so toggling
---- enhancements off restores stock layout/fonts in-session (PB-003).
---- Total + idempotent: hides and clears the custom status label, fully resets
---- the native body/bottomRail/scroll anchors to stock (mirroring the stock
---- else-branch in TooltipEquipped.UpdateTooltipEquippedText), and re-applies the
---- stock body font to the tooltip child labels. Repeated on/off never drifts.
+--- Reverses BetterUI-owned enhanced-tooltip control-instance mutations so
+--- toggling enhancements off restores stock layout/fonts in-session (PB-003).
+--- Idempotent: hides and clears custom BetterUI labels, resets layout only when
+--- BetterUI had shifted it, and preserves ESOUI's native status label/top rail
+--- when default tooltip rendering owns that section.
 function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
 
     BETTERUI.Inventory.RestoreTooltipMouseWheel()
+
+    local hasBetterUiStatus = container and container._betterUiStatus ~= nil
+    local hasBetterUiComparison = container and
+        (container._betterUiComparison ~= nil or container._betterUiComparisonDivider ~= nil)
+    local shouldResetEnhancedLayout = hasBetterUiStatus or hasBetterUiComparison
 
     if container and container._betterUiStatus then
         container._betterUiStatus:SetHidden(true)
@@ -227,32 +231,38 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
             container._betterUiNativePriceLabel:SetHidden(true)
             container._betterUiNativePriceLabel:SetText("")
         end
-        -- Reset the bottomRail divider to its stock anchor (mirrors the stock
-        -- else-branch in TooltipEquipped.UpdateTooltipEquippedText) instead of
-        -- leaving it hidden/anchored under our custom status label.
-        if bottomRail then
-            bottomRail:ClearAnchors()
-            bottomRail:SetAnchor(TOPLEFT, container, TOPLEFT, 0,
-                rawget(_G, "ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y") or 0)
-            bottomRail:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0,
-                rawget(_G, "ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y") or 0)
-            bottomRail:SetHidden(false)
-        end
-        if scrollTooltip then
-            scrollTooltip:ClearAnchors()
+        if shouldResetEnhancedLayout then
+            -- Reset the bottomRail divider to its stock anchor (mirrors the
+            -- stock else-branch in TooltipEquipped.UpdateTooltipEquippedText)
+            -- instead of leaving it hidden/anchored under our custom status
+            -- label. Native/default tooltip status owns this rail itself.
             if bottomRail then
-                scrollTooltip:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, 0)
-            else
-                scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0, BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y)
+                bottomRail:ClearAnchors()
+                bottomRail:SetAnchor(TOPLEFT, container, TOPLEFT, 0,
+                    rawget(_G, "ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y") or 0)
+                bottomRail:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0,
+                    rawget(_G, "ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y") or 0)
+                bottomRail:SetHidden(false)
             end
-            scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
+            if scrollTooltip then
+                scrollTooltip:ClearAnchors()
+                if bottomRail then
+                    scrollTooltip:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, 0)
+                else
+                    scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0, BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y)
+                end
+                scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
+            end
         end
     end
 
     if tooltip then
-        tooltip:ClearAnchors()
-        tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 0)
-        -- Re-apply the stock body font to reverse ApplyTooltipLabelFonts.
+        if shouldResetEnhancedLayout then
+            tooltip:ClearAnchors()
+            tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 0)
+        end
+        -- Re-apply the stock body font to reverse ApplyTooltipLabelFonts, even
+        -- when no BetterUI status/comparison layout was created.
         RestoreStockLabelFonts(tooltip)
         -- Clear cached item data
         tooltip._betterui_itemLink = nil
@@ -260,9 +270,6 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
         tooltip._betterui_slotIndex = nil
         tooltip._betterui_storeStackCount = nil
         tooltip._betterui_priceRendered = nil
-    end
-    if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearStatusLabel then
-        GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
     end
 end
 

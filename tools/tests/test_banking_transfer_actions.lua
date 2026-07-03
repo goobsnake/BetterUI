@@ -877,6 +877,26 @@ assertTrue(hasLogEvent("TraceEvent", "TRANSFER", "bank.item_transfer", "move_req
 
 resetState()
 window = createWindow()
+selectedData = { bagId = BAG_BACKPACK, slotIndex = 17 }
+slotStacks["1:17"] = 1
+window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
+emptySlots[BAG_BANK] = 33
+window:MoveItem(window.list, 1)
+assertEqual(1, BETTERUI.Banking.CountPendingTransfers(), "Deposit transfer starts with one pending marker")
+local settleSweepTask = findScheduledTask("transferSettleSweep")
+assertNotNil(settleSweepTask, "Deposit transfer schedules a pre-timeout settlement sweep")
+slotStacks["1:17"] = 0
+frameTimeMs = 4800
+settleSweepTask.callback()
+assertEqual(0, BETTERUI.Banking.CountPendingTransfers(), "Source-empty settlement clears the pending marker before timeout")
+local settledTransfer = findLogEvent("TraceEvent", "TRANSFER", "bank.item_transfer", "confirmed")
+assertEqual("source_empty", settledTransfer and settledTransfer.data and settledTransfer.data.reason,
+    "Source-empty settlement records a confirmed transfer reason")
+assertEqual(nil, findLogEvent("TraceEvent", "TRANSFER", "bank.item_transfer", "expired"),
+    "Source-empty settlement does not emit an expired transfer warning")
+
+resetState()
+window = createWindow()
 selectedData = { bagId = BAG_BACKPACK, slotIndex = 6 }
 window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
 stackableSlots[BAG_BANK] = 44
@@ -982,6 +1002,7 @@ resetState()
 window = createWindow()
 selectedData = { bagId = BAG_BACKPACK, slotIndex = 6 }
 window.currentMode = BETTERUI.Banking.LIST_DEPOSIT
+slotStacks["1:6"] = 1
 emptySlots[BAG_BANK] = 33
 window:MoveItem(window.list, 1)
 assertEqual(true, BETTERUI.Banking.IsTransferPending(BAG_BACKPACK, 6), "Pending still active before timeout")

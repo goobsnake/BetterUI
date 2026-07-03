@@ -463,6 +463,10 @@ assertTrue(guildBankAdapter:match("RuntimeState%.currentUsedBank") == nil,
 assertTrue(guildBankAdapter:match("GetBankingBag%(") == nil,
     "GuildBankAdapter no longer bypasses bank-state helpers via GetBankingBag")
 
+local bankingConstants = readFile("Modules/Banking/Constants.lua")
+assertTrue(bankingConstants:match("GUILD_BANKING_INTERACTION") ~= nil,
+    "Banking guild-bank scene prefers the current ESOUI guild-bank interaction wrapper")
+
 local itemDataProcessor = readFile("Modules/CIM/Lists/ItemDataProcessor.lua")
 assertTrue(itemDataProcessor:match("function BETTERUI%.CIM%.InitializeSharedItemVisualData") ~= nil,
     "CIM exposes the shared item visual initializer")

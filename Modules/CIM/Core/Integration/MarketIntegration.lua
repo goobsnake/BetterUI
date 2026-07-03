@@ -274,7 +274,6 @@ local function FetchTTCPriceInfo(itemLink)
         if itemInfoType == "table" or itemInfoType == "userdata" then
             local priceInfo = CallOptionalAddon(getPriceInfo, TamrielTradeCentrePrice, itemInfo)
             if type(priceInfo) == "table" then
-                TTC_FALLBACK_NOTICE.malformed.warned = false
                 return priceInfo
             end
 
@@ -282,7 +281,6 @@ local function FetchTTCPriceInfo(itemLink)
             if itemInfoLink then
                 priceInfo = CallOptionalAddon(getPriceInfo, TamrielTradeCentrePrice, itemInfoLink)
                 if type(priceInfo) == "table" then
-                    TTC_FALLBACK_NOTICE.malformed.warned = false
                     return priceInfo
                 end
             end

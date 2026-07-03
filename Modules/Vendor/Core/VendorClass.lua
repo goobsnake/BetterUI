@@ -581,7 +581,38 @@ end
 ---@param active boolean
 ---@return nil
 function SetTabBarVisualActive(tabBar, active)
-    if not tabBar or tabBar.active == active then
+    if not tabBar then
+        return
+    end
+
+    if active then
+        if tabBar.Activate then
+            tabBar:Activate()
+        else
+            tabBar.active = true
+            tabBar.dirty = false
+
+            local onActivatedChanged = (tabBar.GetOnActivatedChangedFunction and tabBar:GetOnActivatedChangedFunction())
+                or tabBar.onActivatedChangedFunction
+            if onActivatedChanged then
+                onActivatedChanged(tabBar, true)
+            end
+        end
+
+        if tabBar.keybindStripDescriptor and BETTERUI.Interface then
+            BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+        end
+        ReleaseDirectionalInputRegistrations(tabBar, true)
+        if tabBar.RefreshVisible then
+            tabBar:RefreshVisible()
+        end
+        if tabBar.Commit then
+            tabBar:Commit()
+        end
+        return
+    end
+
+    if tabBar.active == false and not tabBar.dirty then
         return
     end
 
@@ -1427,7 +1458,29 @@ function BETTERUI.Vendor.Class:OnSearchTextChanged(searchText)
         end
     end
     self.searchQuery = normalized
+    if self._searchTextChangedInProgress then
+        return
+    end
+
+    local preserveSearchFocus = self._searchModeActive == true or self._searchHeaderActive == true
+    local previousPreserveSearchFocus = self._preserveSearchFocusDuringRefresh
+    self._searchTextChangedInProgress = true
+    if preserveSearchFocus then
+        self._preserveSearchFocusDuringRefresh = true
+    end
     self:RefreshList()
+    if preserveSearchFocus then
+        self._preserveSearchFocusDuringRefresh = previousPreserveSearchFocus
+        if self.textSearchHeaderFocus
+            and self.textSearchHeaderFocus.Activate
+            and (not self.textSearchHeaderFocus.IsActive or not self.textSearchHeaderFocus:IsActive()) then
+            self.textSearchHeaderFocus:Activate()
+        end
+        if self.SetTextSearchFocused then
+            self:SetTextSearchFocused(true)
+        end
+    end
+    self._searchTextChangedInProgress = nil
 end
 
 ---@return nil

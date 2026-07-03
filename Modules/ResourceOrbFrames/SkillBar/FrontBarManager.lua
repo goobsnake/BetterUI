@@ -4,6 +4,7 @@ Purpose: Manages the Front Bar layout, updates, keybinds, and usability.
 
 Related modules (loaded before this file):
   CooldownUtils.lua         — Shared cooldown state and rendering helpers
+  ActivationHighlight.lua  — Shared action-slot proc highlight animation helpers
   FrontBarPressFeedback.lua — Press feedback bounce/flash system
   FrontBarCooldowns.lua     — Cooldown smoothing and per-frame cooldown updates
 ]]
@@ -18,6 +19,7 @@ local GetSettings = Utils.GetSettings
 -- 100ms tick). Read-only by convention.
 local GetLiveSettings = (Utils.Settings and Utils.Settings.GetLive) or Utils.GetSettings
 local CooldownUtils = SkillBar.CooldownUtils
+local ActivationHighlight = SkillBar.ActivationHighlight
 local CONST = SkillBar.CONST or {}
 local COOLDOWN_DURATION_THRESHOLD = CONST.COOLDOWN_DURATION_THRESHOLD or 1500
 -- Canonical keybind constants (SkillBar/Constants.lua)
@@ -347,7 +349,12 @@ local function UpdateFrontBar(rootFrame)
             btn.hotbarCategory = activeCategory
             local highlight = btn:GetNamedChild("ActivationHighlight")
             if highlight then
-                highlight:SetHidden(not (hasHighlight and isUsable))
+                local showHighlight = hasHighlight and isUsable and slotTexture and slotTexture ~= ""
+                if ActivationHighlight and ActivationHighlight.Update then
+                    ActivationHighlight.Update(highlight, mapping.slot, activeCategory, showHighlight)
+                else
+                    highlight:SetHidden(not showHighlight)
+                end
             end
             table.insert(traceSlots, {
                 buttonName = mapping.buttonName,

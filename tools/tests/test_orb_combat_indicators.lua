@@ -78,7 +78,7 @@ BETTERUI_ORB_FRAMES = {
         customBackBar = {
             offsetY = -5,
         },
-        quickslot = { x = 285, y = 0 },
+        quickslot = { x = 276, y = -35 },
         bottom = {
             gamepadY = -15,
             keyboardY = -15,
@@ -236,7 +236,7 @@ BETTERUI.ResourceOrbFrames.CombatIndicators.ApplyCombatIndicators(fallbackRoot, 
 
 local expectedFrontBarY = BETTERUI_ORB_FRAMES.bars.bottom.gamepadY + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetY
 local expectedBackBarY = BETTERUI_ORB_FRAMES.bars.top.gamepadY + BETTERUI_ORB_FRAMES.bars.shiftY + BETTERUI_ORB_FRAMES.bars.customBackBar.offsetY
-local expectedQuickslotY = (expectedFrontBarY + expectedBackBarY) / 2
+local expectedQuickslotY = ((expectedFrontBarY + expectedBackBarY) / 2) + BETTERUI_ORB_FRAMES.bars.quickslot.y
 local expectedQuickslotX = BETTERUI_ORB_FRAMES.bars.quickslot.x + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetX
 local expectedQuickslotButtonSize = BETTERUI_ORB_FRAMES.slots.gamepad.width
 assert_eq(icon.anchor[2], fallbackBg, "combat icon fallback anchors to BgMiddle")

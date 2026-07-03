@@ -39,7 +39,12 @@ BETTERUI.Banking.BANKING_INTERACTION = {
 
 BETTERUI_GUILD_BANKING_SCENE_NAME = "BETTERUI_GUILD_BANKING"
 
+local guildBankingInteraction = rawget(_G, "GUILD_BANKING_INTERACTION")
+if type(guildBankingInteraction) ~= "table" then
+    guildBankingInteraction = nil
+end
+
 BETTERUI.Banking.GUILD_BANK_INTERACTION = {
-    type = "GuildBanking",
-    interactTypes = { INTERACTION_GUILDBANK },
+    type = guildBankingInteraction and guildBankingInteraction.type or "GuildBanking",
+    interactTypes = guildBankingInteraction and guildBankingInteraction.interactTypes or { INTERACTION_GUILDBANK },
 }

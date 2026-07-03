@@ -43,7 +43,9 @@ function BootstrapRuntime.InitializeList(instance, deps)
             and instance.list.IsActive and instance.list:IsActive() then
             instance:OnItemSelectedChange(list, selectedData)
             instance:UpdateScrollIndicator(list)
-            instance:OnSearchFocusLost()
+            if not instance._preserveSearchFocusDuringRefresh then
+                instance:OnSearchFocusLost()
+            end
             return
         end
         instance:OnItemSelectedChange(list, selectedData)

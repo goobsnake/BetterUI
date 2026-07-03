@@ -183,4 +183,68 @@ do
     assert_eq(tabs[2].mode, MODE.BUYBACK, "second active tab resolves to buyback")
 end
 
+do
+    local stableTabs = {
+        { mode = MODE.BUY, name = "Buy" },
+        { mode = MODE.REPAIR, name = "Repair" },
+        { mode = MODE.STABLE, name = "Stable" },
+    }
+    local storeManager = {
+        activeComponents = {
+            {
+                GetStoreMode = function()
+                    return ZO_MODE_STORE_BUY
+                end,
+            },
+            {
+                GetStoreMode = function()
+                    return ZO_MODE_STORE_STABLE
+                end,
+            },
+        },
+    }
+
+    local tabs = ModePolicy.GetActiveTabs({
+        stableTabs = stableTabs,
+        isStableInteraction = true,
+        sessionHasBuyMode = false,
+        storeManager = storeManager,
+    })
+    local initialMode, shouldRememberBuyMode = ModePolicy.ResolveInitialStoreMode({
+        tabs = tabs,
+        isStableInteraction = true,
+        storeManager = storeManager,
+    })
+
+    assert_eq(initialMode, MODE.STABLE,
+        "stable interactions prefer the stable-training mode even when buy is also available")
+    assert_eq(shouldRememberBuyMode, true,
+        "stable interactions remember buy availability for the buy/stable toggle")
+end
+
+do
+    local stableTabs = {
+        { mode = MODE.BUY, name = "Buy" },
+        { mode = MODE.REPAIR, name = "Repair" },
+        { mode = MODE.STABLE, name = "Stable" },
+    }
+
+    local tabs = ModePolicy.GetActiveTabs({
+        stableTabs = stableTabs,
+        isStableInteraction = true,
+        sessionHasBuyMode = false,
+        storeManager = nil,
+    })
+    local initialMode, shouldRememberBuyMode = ModePolicy.ResolveInitialStoreMode({
+        tabs = tabs,
+        isStableInteraction = true,
+        storeManager = nil,
+    })
+
+    assert_eq(initialMode, MODE.STABLE,
+        "stable interactions prefer stable mode before native store modes are populated")
+    assert_eq(shouldRememberBuyMode, true,
+        "stable interactions remember buy availability before native store modes are populated")
+end
+
 print("  OK")

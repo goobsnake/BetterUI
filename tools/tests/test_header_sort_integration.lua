@@ -374,6 +374,82 @@ do
 end
 
 do
+    -- If an auxiliary owner descriptor was active without the main descriptor,
+    -- header-sort exit must not manufacture the absent main group.
+    KEYBIND_STRIP.added = {}
+    KEYBIND_STRIP.removed = {}
+    KEYBIND_STRIP.groups = {}
+    local owner = buildOwner()
+    local tabBarGroup = { id = "tabbar-only" }
+    KEYBIND_STRIP:AddKeybindButtonGroup(tabBarGroup)
+
+    local integration = HeaderSortIntegration.Install(owner, {
+        list = owner.list,
+        columns = {
+            { key = "name" },
+        },
+        callbacks = {
+            onSortChanged = function() end,
+        },
+        keybinds = {
+            mainDescriptor = owner.coreKeybinds,
+            ownedDescriptors = { tabBarGroup },
+        },
+    })
+
+    HeaderSortIntegration.EnsureController(integration)
+    HeaderSortIntegration.EnterHeaderMode(integration)
+    assert_true(KEYBIND_STRIP.groups[owner.coreKeybinds] == nil,
+        "enter header mode leaves an absent main descriptor absent")
+    assert_true(KEYBIND_STRIP.groups[tabBarGroup] == nil,
+        "enter header mode suspends the auxiliary owner descriptor")
+
+    HeaderSortIntegration.ExitHeaderMode(integration)
+    assert_true(KEYBIND_STRIP.groups[tabBarGroup] == true,
+        "exit header mode restores the auxiliary owner descriptor")
+    assert_true(KEYBIND_STRIP.groups[owner.coreKeybinds] == nil,
+        "exit header mode does not add an absent main descriptor")
+end
+
+do
+    -- Vendor header reactivation can rebuild/swap keybind groups after the
+    -- generic restore pass. Header-sort exit must leave the owner's main group
+    -- present after navigation reactivation has finished.
+    KEYBIND_STRIP.added = {}
+    KEYBIND_STRIP.removed = {}
+    KEYBIND_STRIP.groups = {}
+    local owner = buildOwner()
+    KEYBIND_STRIP:AddKeybindButtonGroup(owner.coreKeybinds)
+
+    local integration = HeaderSortIntegration.Install(owner, {
+        list = owner.list,
+        columns = {
+            { key = "name" },
+        },
+        callbacks = {
+            onSortChanged = function() end,
+        },
+        keybinds = {
+            mainDescriptor = owner.coreKeybinds,
+        },
+        navigation = {
+            deactivate = function()
+            end,
+            reactivate = function()
+                KEYBIND_STRIP:RemoveKeybindButtonGroup(owner.coreKeybinds)
+            end,
+        },
+    })
+
+    HeaderSortIntegration.EnsureController(integration)
+    HeaderSortIntegration.EnterHeaderMode(integration)
+    HeaderSortIntegration.ExitHeaderMode(integration)
+
+    assert_true(KEYBIND_STRIP.groups[owner.coreKeybinds] == true,
+        "exit header mode restores owner keybinds after navigation reactivation")
+end
+
+do
     local legacyController = { id = "legacy" }
     assert_true(HeaderSortIntegration.GetController({ sortController = legacyController }) == legacyController,
         "get controller falls back to legacy sortController")

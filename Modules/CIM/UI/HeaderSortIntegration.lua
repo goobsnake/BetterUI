@@ -619,24 +619,35 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
     local suspendedGroups = integration.suspendedKeybindGroups
     integration.suspendedKeybindGroups = nil
     local restoreGroups = BETTERUI.Interface and BETTERUI.Interface.RestoreKeybindGroups
+    local mainDescriptor = integration.keybinds and integration.keybinds.mainDescriptor
+    local mainRestoredDuringExit = false
+    if suspendedGroups and mainDescriptor then
+        for _, suspendedGroup in ipairs(suspendedGroups) do
+            if suspendedGroup == mainDescriptor then
+                mainRestoredDuringExit = true
+                break
+            end
+        end
+    end
     local restorePath = "none"
     if suspendedGroups and #suspendedGroups > 0 then
         restorePath = "suspended"
         if restoreGroups then
             restoreGroups(suspendedGroups)
         end
-    elseif integration.keybinds.mainDescriptor then
+    elseif mainDescriptor then
         restorePath = "fallbackMain"
-        BETTERUI.Interface.EnsureKeybindGroupAdded(integration.keybinds.mainDescriptor)
+        mainRestoredDuringExit = true
+        BETTERUI.Interface.EnsureKeybindGroupAdded(mainDescriptor)
         if BETTERUI.Interface.UpdateKeybindGroup then
-            BETTERUI.Interface.UpdateKeybindGroup(integration.keybinds.mainDescriptor)
+            BETTERUI.Interface.UpdateKeybindGroup(mainDescriptor)
         end
     end
     local restoreRefresh = "none"
     if BETTERUI.Interface.UpdateCurrentKeybindGroups and BETTERUI.Interface.UpdateCurrentKeybindGroups() then
         restoreRefresh = "current"
-    elseif integration.keybinds.mainDescriptor and BETTERUI.Interface.UpdateKeybindGroup then
-        BETTERUI.Interface.UpdateKeybindGroup(integration.keybinds.mainDescriptor)
+    elseif mainDescriptor and BETTERUI.Interface.UpdateKeybindGroup then
+        BETTERUI.Interface.UpdateKeybindGroup(mainDescriptor)
         restoreRefresh = "main"
     end
     if BETTERUI.Log then
@@ -645,14 +656,10 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
             scene = DescribeOwnerScene(owner),
             restored = DescribeDescriptors(suspendedGroups, "restored"),
             restorePath = restorePath,
-            main = DescribeDescriptor(integration.keybinds.mainDescriptor, "main"),
-            stripHasMain = HasKeybindGroup(integration.keybinds.mainDescriptor),
+            main = DescribeDescriptor(mainDescriptor, "main"),
+            stripHasMain = HasKeybindGroup(mainDescriptor),
             refresh = restoreRefresh,
         })
-    end
-
-    if owner.EnsureHeaderKeybindsActive then
-        owner:EnsureHeaderKeybindsActive()
     end
 
     if integration.navigation.reactivate then
@@ -660,6 +667,31 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
     end
 
     RestoreActiveList(integration)
+
+    if owner.EnsureHeaderKeybindsActive then
+        owner:EnsureHeaderKeybindsActive()
+    end
+
+    local finalRefresh = "none"
+    if mainDescriptor and (mainRestoredDuringExit or HasKeybindGroup(mainDescriptor)) then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(mainDescriptor)
+        if BETTERUI.Interface.UpdateKeybindGroup then
+            BETTERUI.Interface.UpdateKeybindGroup(mainDescriptor)
+            finalRefresh = "main"
+        end
+    end
+    if BETTERUI.Interface.UpdateCurrentKeybindGroups and BETTERUI.Interface.UpdateCurrentKeybindGroups() then
+        finalRefresh = "current"
+    end
+    if BETTERUI.Log then
+        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "header sort owner keybinds finalized", {
+            fn = "HeaderSortIntegration.ExitHeaderMode",
+            scene = DescribeOwnerScene(owner),
+            main = DescribeDescriptor(mainDescriptor, "main"),
+            stripHasMain = HasKeybindGroup(mainDescriptor),
+            refresh = finalRefresh,
+        })
+    end
 
     if integration.callbacks.onExitHeaderMode then
         BETTERUI.CIM.SafeExecute("HeaderSortIntegration:onExitHeaderMode", integration.callbacks.onExitHeaderMode, owner, controller)

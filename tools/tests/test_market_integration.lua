@@ -144,6 +144,28 @@ assert_eq(ttcInfo.suggestedPrice, 4, "source price info preserves TTC suggested 
 assert_eq(ttcInfo.enabled, true, "source price info reports GeneralInterface enablement")
 assert_eq(ttcInfo.available, true, "source price info reports addon availability")
 
+local ttcWarningCount = 0
+local ttcMode = "success"
+BETTERUI.Log = {
+    CATEGORY = { GENERAL = "GENERAL" },
+    Warn = function()
+        ttcWarningCount = ttcWarningCount + 1
+    end,
+}
+TamrielTradeCentrePrice.GetPriceInfo = function(_, itemRef)
+    if ttcMode == "success" and type(itemRef) == "table" and itemRef.itemLink then
+        return { Avg = 3 }
+    end
+    return nil
+end
+ttcMode = "fail"
+BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo("ttc", "|H1:item:malformed1|h", 1, moduleSettings.GeneralInterface)
+ttcMode = "success"
+BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo("ttc", "|H1:item:valid|h", 1, moduleSettings.GeneralInterface)
+ttcMode = "fail"
+BETTERUI.CIM.MarketIntegration.GetSourcePriceInfo("ttc", "|H1:item:malformed2|h", 1, moduleSettings.GeneralInterface)
+assert_eq(ttcWarningCount, 1, "TTC malformed fallback warning is latched across intermittent successful calls")
+
 local tooltipSource = read_file("Modules/GeneralInterface/Tooltips/Tooltips.lua")
 assert_contains(tooltipSource, "marketIntegration.GetSourcePriceInfo(",
     "tooltips route market source lookups through MarketIntegration")

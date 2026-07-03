@@ -157,6 +157,7 @@ Modules\ResourceOrbFrames\SkillBar\Constants.lua
 Modules\ResourceOrbFrames\SkillBar\CooldownUtils.lua
 Modules\ResourceOrbFrames\SkillBar\TooltipManager.lua
 Modules\ResourceOrbFrames\SkillBar\UltimateManager.lua
+Modules\ResourceOrbFrames\SkillBar\ActivationHighlight.lua
 Modules\ResourceOrbFrames\SkillBar\BackBarManager.lua
 Modules\ResourceOrbFrames\SkillBar\FrontBarPressFeedback.lua
 Modules\ResourceOrbFrames\SkillBar\FrontBarCooldowns.lua

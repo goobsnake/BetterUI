@@ -456,14 +456,17 @@ function ModePolicy.ResolveStableInitialStoreMode(request)
     local modeSet = ModePolicy.BuildActiveModeSet(request.tabs)
     local nativeModeSet = ModePolicy.GetNativeActiveModeSet(request.storeManager)
     local nativeModesReady = next(nativeModeSet) ~= nil
-    local shouldRememberBuyMode = nativeModesReady and modeSet[mode.BUY] == true or false
+    local shouldRememberBuyMode = modeSet[mode.BUY] == true
 
-    if modeSet[mode.BUY] then
-        return mode.BUY, true
-    end
     local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
     if nativeModesReady and stableMode and nativeModeSet[stableMode] then
         return mode.STABLE, shouldRememberBuyMode
+    end
+    if modeSet[mode.STABLE] then
+        return mode.STABLE, shouldRememberBuyMode
+    end
+    if modeSet[mode.BUY] then
+        return mode.BUY, true
     end
     if modeSet[mode.REPAIR] then
         return mode.REPAIR, shouldRememberBuyMode
@@ -516,11 +519,17 @@ function ModePolicy.GetActiveTabs(context)
     local fallbackTabs = context.isStableInteraction
         and (context.stableTabs or {})
         or CollectAvailableTabs(context.vendorTabs or {}, context.isModeTabAvailable)
+    local nativeModeSet = ModePolicy.GetNativeActiveModeSet(context.storeManager)
+    local nativeModesReady = next(nativeModeSet) ~= nil
+    local includeBuyFromSession = context.sessionHasBuyMode == true
+    if context.isStableInteraction and not nativeModesReady then
+        includeBuyFromSession = false
+    end
     return ModePolicy.GetStoreActiveTabs({
         sourceTabs = sourceTabs,
         fallbackTabs = fallbackTabs,
-        includeBuyFromSession = context.sessionHasBuyMode == true,
-        includeStableRepair = context.isStableInteraction == true,
+        includeBuyFromSession = includeBuyFromSession,
+        includeStableRepair = context.isStableInteraction == true and nativeModesReady,
         isModeTabAvailable = context.isModeTabAvailable,
         storeManager = context.storeManager,
     })

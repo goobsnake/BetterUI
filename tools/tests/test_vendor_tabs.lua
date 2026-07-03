@@ -21,6 +21,12 @@ BETTERUI = {
             SELL_VENGEANCE = 8,
         },
     },
+    Interface = {
+        removedGroups = {},
+        RemoveKeybindGroupIfPresent = function(group)
+            BETTERUI.Interface.removedGroups[#BETTERUI.Interface.removedGroups + 1] = group
+        end,
+    },
 }
 
 ZO_MODE_STORE_BUY = 10
@@ -260,8 +266,41 @@ local function CountDirectionalInputRegistrations(obj)
     return registrationCount
 end
 
+local ReleaseDirectionalInputRegistrations
+
 local function SetTabBarVisualActive(tabBar, active)
-    if not tabBar or tabBar.active == active then
+    if not tabBar then
+        return
+    end
+
+    if active then
+        if tabBar.Activate then
+            tabBar:Activate()
+        else
+            tabBar.active = true
+            tabBar.dirty = false
+
+            local onActivatedChanged = (tabBar.GetOnActivatedChangedFunction and tabBar:GetOnActivatedChangedFunction())
+                or tabBar.onActivatedChangedFunction
+            if onActivatedChanged then
+                onActivatedChanged(tabBar, true)
+            end
+        end
+
+        if tabBar.keybindStripDescriptor and BETTERUI.Interface then
+            BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+        end
+        ReleaseDirectionalInputRegistrations(tabBar, true)
+        if tabBar.RefreshVisible then
+            tabBar:RefreshVisible()
+        end
+        if tabBar.Commit then
+            tabBar:Commit()
+        end
+        return
+    end
+
+    if tabBar.active == false and not tabBar.dirty then
         return
     end
 
@@ -282,7 +321,7 @@ local function SetTabBarVisualActive(tabBar, active)
     end
 end
 
-local function ReleaseDirectionalInputRegistrations(obj, includeMovementController)
+function ReleaseDirectionalInputRegistrations(obj, includeMovementController)
     if not obj then
         return 0
     end
@@ -998,6 +1037,7 @@ print("[DirectionalInput header cleanup]")
 do
     local headerMovementController = { id = "headerMovementController" }
     local tabBar = {
+        keybindStripDescriptor = "vendor-header-tabbar",
         movementController = headerMovementController,
         activationChanges = {},
         refreshVisibleCalls = 0,
@@ -1029,10 +1069,12 @@ do
 
     table.insert(DIRECTIONAL_INPUT.inputObjects, headerMovementController)
     EnsureHeaderKeybindsActive({ tabBar = tabBar }, true, false)
-    assert_eq(tabBar.activated, 0, "header helper does not activate tab bar directional input")
+    assert_eq(tabBar.activated, 1, "header helper runs the real tab bar activation path for active visuals")
     assert_eq(tabBar.active, true, "header helper keeps tab bar visually active")
     assert_eq(DIRECTIONAL_INPUT:IsListening(headerMovementController), false,
-        "header helper clears header movement-controller registrations")
+        "header helper clears header movement-controller registrations after visual activation")
+    assert_eq(BETTERUI.Interface.removedGroups[#BETTERUI.Interface.removedGroups], "vendor-header-tabbar",
+        "header helper removes the header tab bar keybind group after visual activation")
     assert_eq(tabBar.refreshVisibleCalls, 1, "header helper refreshes header visuals")
     assert_eq(tabBar.commitCalls, 1, "header helper commits header visuals")
 end

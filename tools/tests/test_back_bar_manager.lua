@@ -68,12 +68,52 @@ DT_HIGH = 2
 ACTIVE_WEAPON_PAIR_MAIN = 1
 HOTBAR_CATEGORY_PRIMARY = 10
 HOTBAR_CATEGORY_BACKUP = 11
+ANIMATION_TEXTURE = "ANIMATION_TEXTURE"
+ANIMATION_PLAYBACK_LOOP = "LOOP"
+LOOP_INDEFINITELY = -1
+
+function CreateSimpleAnimation(animationType, control)
+    local timeline = {
+        playCount = 0,
+        stopCount = 0,
+        playbackType = nil,
+        loopCount = nil,
+        PlayFromStart = function(self)
+            self.playCount = self.playCount + 1
+        end,
+        Stop = function(self)
+            self.stopCount = self.stopCount + 1
+        end,
+        SetPlaybackType = function(self, playbackType, loopCount)
+            self.playbackType = playbackType
+            self.loopCount = loopCount
+        end,
+    }
+    return {
+        animationType = animationType,
+        control = control,
+        timeline = timeline,
+        SetImageData = function(self, cellsWide, cellsHigh)
+            self.imageData = { cellsWide, cellsHigh }
+        end,
+        SetFramerate = function(self, framerate)
+            self.framerate = framerate
+        end,
+        GetTimeline = function(self)
+            return self.timeline
+        end,
+    }
+end
 
 local currentLevel = 50
 local unlockedLevel = 15
 local activeWeaponPair = ACTIVE_WEAPON_PAIR_MAIN
 local isGamepad = false
 local slotTextures = {}
+local activationAnimationTextures = {}
+local activationHighlights = {}
+local costFailures = {}
+local stateFailures = {}
 local tooltipCalls = {}
 local resetCalls = {}
 local cooldownWindows = {}
@@ -91,7 +131,20 @@ function GetActiveWeaponPairInfo()
 end
 
 function GetSlotTexture(slotIndex, hotbarCategory)
-    return slotTextures[tostring(slotIndex) .. "_" .. tostring(hotbarCategory)] or ""
+    local key = tostring(slotIndex) .. "_" .. tostring(hotbarCategory)
+    return slotTextures[key] or "", nil, activationAnimationTextures[key]
+end
+
+function ActionSlotHasActivationHighlight(slotIndex, hotbarCategory)
+    return activationHighlights[tostring(slotIndex) .. "_" .. tostring(hotbarCategory)] or false
+end
+
+function ActionSlotHasCostFailure(slotIndex, hotbarCategory)
+    return costFailures[tostring(slotIndex) .. "_" .. tostring(hotbarCategory)] or false
+end
+
+function ActionSlotHasNonCostStateFailure(slotIndex, hotbarCategory)
+    return stateFailures[tostring(slotIndex) .. "_" .. tostring(hotbarCategory)] or false
 end
 
 function GetSlotBoundId(slotIndex)
@@ -170,6 +223,10 @@ local function NewControl(name)
         return self.hidden
     end
 
+    function control:IsControlHidden()
+        return self.hidden
+    end
+
     function control:SetAlpha(value)
         self.alpha = value
     end
@@ -241,6 +298,8 @@ local function NewButton(name)
     button.children.Icon = NewControl(name .. "Icon")
     button.children.Backdrop = NewControl(name .. "Backdrop")
     button.children.Border = NewControl(name .. "Border")
+    button.children.ActivationHighlight = NewControl(name .. "ActivationHighlight")
+    button.children.ActivationHighlight:SetHidden(true)
     button.children.CooldownOverlay = NewControl(name .. "CooldownOverlay")
     button.children.CooldownEdge = NewControl(name .. "CooldownEdge")
     button.children.CooldownText = NewControl(name .. "CooldownText")
@@ -262,6 +321,7 @@ SkillBar.SetupButtonTooltip = function(button, slotIndex)
     table.insert(tooltipCalls, { button = button.name, slotIndex = slotIndex })
 end
 
+dofile("Modules/ResourceOrbFrames/SkillBar/ActivationHighlight.lua")
 dofile("Modules/ResourceOrbFrames/SkillBar/BackBarManager.lua")
 
 local internals = SkillBar._BackBarInternals
@@ -302,6 +362,8 @@ assert_true(backBarContainer.hidden, "back bar update hides the container when t
 settings.hideBackBar = false
 activeWeaponPair = ACTIVE_WEAPON_PAIR_MAIN
 slotTextures["3_" .. HOTBAR_CATEGORY_BACKUP] = "icon-3"
+activationAnimationTextures["3_" .. HOTBAR_CATEGORY_BACKUP] = "back-proc-animation"
+activationHighlights["3_" .. HOTBAR_CATEGORY_BACKUP] = true
 slotTextures["8_" .. HOTBAR_CATEGORY_BACKUP] = "icon-8"
 SkillBar.UpdateBackBar(rootFrame)
 assert_true(not backBarContainer.hidden, "back bar update shows the container when enabled")
@@ -309,6 +371,41 @@ assert_eq(backBarContainer.children.Button1.children.Icon.texture, "icon-3", "ba
 assert_eq(backBarContainer.children.Button1.children.Icon.alpha, settings.backBarOpacity, "back bar update applies the configured icon opacity")
 assert_eq(backBarContainer.children.Button1.slotIndex, 3, "back bar update stores the source slot index on the button")
 assert_eq(backBarContainer.children.Button1.hotbarCategory, HOTBAR_CATEGORY_BACKUP, "back bar update stores the active back bar category on the button")
+local backProcHighlight = backBarContainer.children.Button1.children.ActivationHighlight
+assert_true(not backProcHighlight.hidden, "back bar update shows activation highlights for ready back-bar slots")
+assert_eq(backProcHighlight.texture, "back-proc-animation",
+    "back bar activation highlight uses the slot animation texture")
+assert_true(backProcHighlight.animation ~= nil, "back bar activation highlight creates a texture animation")
+if backProcHighlight.animation then
+    assert_eq(backProcHighlight.animation.imageData[1], 64,
+        "back bar activation highlight is configured as a 64-frame horizontal animation")
+    assert_eq(backProcHighlight.animation.framerate, 30,
+        "back bar activation highlight uses the native action-button framerate")
+    assert_eq(backProcHighlight.animation.timeline.playbackType, ANIMATION_PLAYBACK_LOOP,
+        "back bar activation highlight loops like the native action button")
+    assert_eq(backProcHighlight.animation.timeline.playCount, 1,
+        "back bar activation highlight starts the texture animation")
+end
+
+costFailures["3_" .. HOTBAR_CATEGORY_BACKUP] = true
+SkillBar.UpdateBackBar(rootFrame)
+assert_true(backProcHighlight.hidden,
+    "back bar update suppresses activation highlights while cost failure is active")
+costFailures["3_" .. HOTBAR_CATEGORY_BACKUP] = false
+
+stateFailures["3_" .. HOTBAR_CATEGORY_BACKUP] = true
+SkillBar.UpdateBackBar(rootFrame)
+assert_true(backProcHighlight.hidden,
+    "back bar update suppresses activation highlights while state failure is active")
+stateFailures["3_" .. HOTBAR_CATEGORY_BACKUP] = false
+
+activationAnimationTextures["3_" .. HOTBAR_CATEGORY_BACKUP] = nil
+SkillBar.UpdateBackBar(rootFrame)
+assert_true(backProcHighlight.hidden,
+    "back bar update hides activation highlights when the native animation texture is missing")
+assert_eq(backProcHighlight.texture, nil,
+    "back bar activation highlight clears stale animation texture when native data is missing")
+activationAnimationTextures["3_" .. HOTBAR_CATEGORY_BACKUP] = "back-proc-animation"
 
 isGamepad = false
 SkillBar.UpdateBackBarLayout(rootFrame)

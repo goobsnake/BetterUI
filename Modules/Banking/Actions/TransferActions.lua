@@ -2,10 +2,13 @@ local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 local _pendingTransfers = {}
 local PENDING_TRANSFER_TIMEOUT_MS = 5000
+local PENDING_TRANSFER_SOURCE_EMPTY_SETTLE_MS = 250
+local PENDING_TRANSFER_SETTLE_SWEEP_MS = PENDING_TRANSFER_TIMEOUT_MS - PENDING_TRANSFER_SOURCE_EMPTY_SETTLE_MS
 local MarkTransferPending
 local SweepStaleTransfers
 local MaybeRefreshAfterTransfer
 local IsActiveBankingWindow
+local ScheduleTransferSweeps
 
 local function BeginBankTransferFlow(message, data)
     local L = BETTERUI.Log
@@ -316,9 +319,6 @@ local function ExecuteDirectTransfer(bag, index, data)
     end
 
     MarkTransferPending(bag, index, flow)
-    if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
-        BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
-    end
     local window = BETTERUI.Banking and BETTERUI.Banking.Window or nil
     local refreshScheduled = false
     local refreshReason = window and "inactiveWindow" or "missingWindow"
@@ -336,6 +336,7 @@ local function ExecuteDirectTransfer(bag, index, data)
         refreshReason = refreshReason,
         suppressed = window and window._suppressListUpdates == true or false,
     })
+    ScheduleTransferSweeps()
     return true
 end
 
@@ -523,6 +524,44 @@ local function WatchdogResolveTransfer(key, outcome)
     end
 end
 
+local function IsSourceSlotEmpty(bagId, slotIndex)
+    if bagId == nil or slotIndex == nil or type(GetSlotStackSize) ~= "function" then
+        return false
+    end
+    local ok, stackCount = pcall(GetSlotStackSize, bagId, slotIndex)
+    return ok and tonumber(stackCount) ~= nil and tonumber(stackCount) <= 0
+end
+
+local function TrySettleClearedSource(key, entry, bagId, slotIndex, now, source)
+    local timestamp = PendingTimestamp(entry)
+    if not timestamp then
+        return false
+    end
+    local ageMs = now - timestamp
+    if ageMs < PENDING_TRANSFER_SOURCE_EMPTY_SETTLE_MS or not IsSourceSlotEmpty(bagId, slotIndex) then
+        return false
+    end
+
+    _pendingTransfers[key] = nil
+    WatchdogResolveTransfer(key, "confirmed")
+    TraceBankTransfer("bank.item_transfer", "confirmed", bagId, slotIndex, {
+        source = source,
+        reason = "source_empty",
+        ageMs = ageMs,
+        flow = PendingFlow(entry),
+        pendingRemaining = CountPendingTransfersRaw(),
+    }, BETTERUI.Log and BETTERUI.Log.LEVEL and BETTERUI.Log.LEVEL.INFO or nil)
+    return true
+end
+
+function ScheduleTransferSweeps()
+    if not (BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule) then
+        return
+    end
+    BETTERUI.Banking.Tasks:Schedule("transferSettleSweep", PENDING_TRANSFER_SETTLE_SWEEP_MS, SweepStaleTransfers)
+    BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
+end
+
 function MarkTransferPending(bagId, slotIndex, flow)
     if bagId == nil or slotIndex == nil then
         TraceBankTransfer("bank.item_transfer", "pending_mark_skipped", bagId, slotIndex, {
@@ -562,6 +601,9 @@ local function IsTransferPending(bagId, slotIndex)
         return false
     end
     local now = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or timestamp
+    if TrySettleClearedSource(key, entry, bagId, slotIndex, now, "IsTransferPending") then
+        return false
+    end
     if (now - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
         _pendingTransfers[key] = nil
         WatchdogResolveTransfer(key, "expired")
@@ -581,11 +623,15 @@ function SweepStaleTransfers()
     local now = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
     for key, entry in pairs(_pendingTransfers) do
         local timestamp = PendingTimestamp(entry)
-        if (now - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
+        local bagId, slotIndex = key:match("^([^:]+):([^:]+)$")
+        bagId = tonumber(bagId)
+        slotIndex = tonumber(slotIndex)
+        if TrySettleClearedSource(key, entry, bagId, slotIndex, now, "SweepStaleTransfers") then
+            -- settled by source-slot state
+        elseif (now - timestamp) > PENDING_TRANSFER_TIMEOUT_MS then
             _pendingTransfers[key] = nil
             WatchdogResolveTransfer(key, "expired")
-            local bagId, slotIndex = key:match("^([^:]+):([^:]+)$")
-            TraceBankTransfer("bank.item_transfer", "expired", tonumber(bagId), tonumber(slotIndex), {
+            TraceBankTransfer("bank.item_transfer", "expired", bagId, slotIndex, {
                 source = "SweepStaleTransfers",
                 ageMs = now - timestamp,
                 timeoutMs = PENDING_TRANSFER_TIMEOUT_MS,
@@ -667,7 +713,7 @@ local function RequestMoveAndRefresh(self, fromBag, fromBagIndex, toBag, toBagIn
         refreshReason = refreshReason,
         suppressed = self and self._suppressListUpdates == true,
     }))
-    BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
+    ScheduleTransferSweeps()
     return true
 end
 
@@ -762,9 +808,7 @@ local function ExecuteGuildBankMove(self, transferService, fromBag, fromBagIndex
         refreshReason = refreshReason,
         suppressed = self and self._suppressListUpdates == true,
     }))
-    if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Schedule then
-        BETTERUI.Banking.Tasks:Schedule("transferStaleSweep", PENDING_TRANSFER_TIMEOUT_MS + 100, SweepStaleTransfers)
-    end
+    ScheduleTransferSweeps()
 end
 
 local function ExecutePersonalOrHouseMove(self, transferContext, transferService, fromBag, fromBagIndex, fromBagItemLink,

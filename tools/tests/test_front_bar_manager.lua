@@ -99,6 +99,42 @@ LEFT = "LEFT"
 RIGHT = "RIGHT"
 CENTER = "CENTER"
 BOTTOM = "BOTTOM"
+ANIMATION_TEXTURE = "ANIMATION_TEXTURE"
+ANIMATION_PLAYBACK_LOOP = "LOOP"
+LOOP_INDEFINITELY = -1
+
+function CreateSimpleAnimation(animationType, control)
+    local timeline = {
+        playCount = 0,
+        stopCount = 0,
+        playbackType = nil,
+        loopCount = nil,
+        PlayFromStart = function(self)
+            self.playCount = self.playCount + 1
+        end,
+        Stop = function(self)
+            self.stopCount = self.stopCount + 1
+        end,
+        SetPlaybackType = function(self, playbackType, loopCount)
+            self.playbackType = playbackType
+            self.loopCount = loopCount
+        end,
+    }
+    return {
+        animationType = animationType,
+        control = control,
+        timeline = timeline,
+        SetImageData = function(self, cellsWide, cellsHigh)
+            self.imageData = { cellsWide, cellsHigh }
+        end,
+        SetFramerate = function(self, framerate)
+            self.framerate = framerate
+        end,
+        GetTimeline = function(self)
+            return self.timeline
+        end,
+    }
+end
 
 local tooltipCalls = {}
 local keybindCalls = {}
@@ -106,6 +142,7 @@ local quickslotAnchorCalls = 0
 local quickslotStateCalls = {}
 local pressFeedbackCalls = {}
 local texturesBySlot = {}
+local activationAnimationTextures = {}
 local activationHighlights = {}
 local costFailures = {}
 local stateFailures = {}
@@ -132,7 +169,8 @@ function GetCurrentQuickslot()
 end
 
 function GetSlotTexture(slotIndex, hotbarCategory)
-    return texturesBySlot[tostring(slotIndex) .. "_" .. tostring(hotbarCategory)] or ""
+    local key = tostring(slotIndex) .. "_" .. tostring(hotbarCategory)
+    return texturesBySlot[key] or "", nil, activationAnimationTextures[key]
 end
 
 function ActionSlotHasActivationHighlight(slotIndex, hotbarCategory)
@@ -353,6 +391,10 @@ local function NewControl(name)
         return self.hidden
     end
 
+    function control:IsControlHidden()
+        return self.hidden
+    end
+
     function control:SetTexture(value)
         self.texture = value
     end
@@ -393,6 +435,7 @@ local function NewButton(name)
     button.children.Icon = NewControl(name .. "Icon")
     button.children.UnusableOverlay = NewControl(name .. "UnusableOverlay")
     button.children.ActivationHighlight = NewControl(name .. "ActivationHighlight")
+    button.children.ActivationHighlight:SetHidden(true)
     button.children.ButtonText = NewControl(name .. "ButtonText")
     button.children.ButtonText.name = name .. "ButtonText"
     button.children.LeftKeybind = NewControl(name .. "LeftKeybind")
@@ -452,6 +495,7 @@ SkillBar.SetPressFeedbackBaseSize = function(button, width, height)
     })
 end
 
+dofile("Modules/ResourceOrbFrames/SkillBar/ActivationHighlight.lua")
 dofile("Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua")
 
 local internals = SkillBar._FrontBarInternals
@@ -550,10 +594,33 @@ assert_true(count_trace("resource_orbs.native_action_bar", "restored") == 1,
     "restore native action bar emits a builog trace")
 
 texturesBySlot["3_" .. activeHotbarCategory] = "front-icon-3"
+activationAnimationTextures["3_" .. activeHotbarCategory] = "front-proc-animation"
 activationHighlights["3_" .. activeHotbarCategory] = true
 SkillBar.UpdateFrontBar(rootFrame)
 assert_eq(frontBarContainer.children.Button1.children.Icon.texture, "front-icon-3", "front bar update applies slot textures")
 assert_true(not frontBarContainer.children.Button1.children.ActivationHighlight.hidden, "front bar update shows activation highlights for usable slots")
+local frontProcHighlight = frontBarContainer.children.Button1.children.ActivationHighlight
+assert_eq(frontProcHighlight.texture, "front-proc-animation",
+    "front bar activation highlight uses the slot animation texture")
+assert_true(frontProcHighlight.animation ~= nil, "front bar activation highlight creates a texture animation")
+if frontProcHighlight.animation then
+    assert_eq(frontProcHighlight.animation.imageData[1], 64,
+        "front bar activation highlight is configured as a 64-frame horizontal animation")
+    assert_eq(frontProcHighlight.animation.framerate, 30,
+        "front bar activation highlight uses the native action-button framerate")
+    assert_eq(frontProcHighlight.animation.timeline.playbackType, ANIMATION_PLAYBACK_LOOP,
+        "front bar activation highlight loops like the native action button")
+    assert_eq(frontProcHighlight.animation.timeline.playCount, 1,
+        "front bar activation highlight starts the texture animation")
+end
+
+activationAnimationTextures["3_" .. activeHotbarCategory] = nil
+SkillBar.UpdateFrontBar(rootFrame)
+assert_true(frontProcHighlight.hidden,
+    "front bar update hides activation highlights when the native animation texture is missing")
+assert_eq(frontProcHighlight.texture, nil,
+    "front bar activation highlight clears stale animation texture when native data is missing")
+activationAnimationTextures["3_" .. activeHotbarCategory] = "front-proc-animation"
 
 costFailures["3_" .. activeHotbarCategory] = true
 slotCooldowns["3_" .. activeHotbarCategory] = { remainMs = 0, durationMs = 0, isGlobalCooldown = false }

@@ -48,6 +48,13 @@ assert_true(constantsSource:find("BETTERUI%.ResourceOrbFrames%.CONST%.ORBS_DIMEN
     "ROF Constants defines the orb dimensions table")
 assert_true(constantsSource:find("BETTERUI_ORB_FRAMES = %{%s*") ~= nil,
     "ROF Constants defines the root BETTERUI_ORB_FRAMES configuration")
+local quickslotBlock = constantsSource:match("quickslot = %{%s*.-%s*%},")
+local quickslotX = quickslotBlock and tonumber(quickslotBlock:match("x = ([%-0-9]+)"))
+local quickslotY = quickslotBlock and tonumber(quickslotBlock:match("y = ([%-0-9]+)"))
+assert_true(quickslotX == 276,
+    "ROF Constants quickslot default sits a few pixels left of the previous lower-row placement")
+assert_true(quickslotY == -35,
+    "ROF Constants quickslot default centers the icon between the top and bottom skill rows")
 
 local animationsSource = read_file("Modules/ResourceOrbFrames/Core/OrbAnimations.lua")
 assert_true(animationsSource:find("function Animations%.AnimateDimensions%(rootFrame, targetScale, targetOffsetX, targetOffsetY%)") ~= nil,

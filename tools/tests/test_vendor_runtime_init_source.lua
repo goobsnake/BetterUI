@@ -106,6 +106,56 @@ assert_true(type(BootstrapRuntime.CreateScene) == "function", "bootstrap runtime
 assert_true(type(BootstrapRuntime.RegisterSceneLifecycle) == "function", "bootstrap runtime exposes scene lifecycle registration")
 
 do
+    local selectionCallback
+    local focusLostCalls = 0
+    local selectionCalls = 0
+    local indicatorCalls = 0
+    local instance = {
+        _searchModeActive = true,
+        _preserveSearchFocusDuringRefresh = true,
+        list = {
+            active = true,
+            SetOnSelectedDataChangedCallback = function(_, callback)
+                selectionCallback = callback
+            end,
+            IsActive = function(self)
+                return self.active == true
+            end,
+        },
+        SetupList = function(self)
+            return self.list
+        end,
+        AddTemplate = function()
+        end,
+        InitializeCategoryHeader = function()
+        end,
+        InitializeScrollIndicator = function()
+        end,
+        OnItemSelectedChange = function()
+            selectionCalls = selectionCalls + 1
+        end,
+        UpdateScrollIndicator = function()
+            indicatorCalls = indicatorCalls + 1
+        end,
+        OnSearchFocusLost = function()
+            focusLostCalls = focusLostCalls + 1
+        end,
+    }
+
+    BootstrapRuntime.InitializeList(instance, {
+        rowSetup = function()
+        end,
+        addColumns = function()
+        end,
+    })
+
+    selectionCallback(instance.list, { id = "filtered-row" })
+    assert_eq(selectionCalls, 1, "search refresh selection changes still update selection state")
+    assert_eq(indicatorCalls, 1, "search refresh selection changes still update scroll indicators")
+    assert_eq(focusLostCalls, 0, "search text refresh preserves edit-box focus during list rebuild")
+end
+
+do
     local openStoreOk = pcall(function()
         InteractionRuntime.OpenStore("invalid")
     end)

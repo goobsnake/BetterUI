@@ -10,6 +10,79 @@ local TraceBankState = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
 
 local GUILD_BANK_SCENE_REDIRECT_EVENT_NAME = "BETTERUI_GUILD_BANK_SCENE_REDIRECT"
 
+local function IsGuildBankRedirectEnabled()
+    if BETTERUI.Banking.GetSetting("enableGuildBank") == false then
+        return false
+    end
+    if type(IsInGamepadPreferredMode) == "function" then
+        return IsInGamepadPreferredMode() == true
+    end
+    return true
+end
+
+local function ShowGuildBankRedirectedScene(source)
+    local sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME
+    if not IsGuildBankRedirectEnabled() then
+        TraceBankState("bank.guild_scene_redirect", "bypassed", {
+            reason = "module_disabled_or_keyboard",
+            sceneName = sceneName,
+            source = source,
+        })
+        return
+    end
+
+    local sceneManager = rawget(_G, "SCENE_MANAGER")
+    if not (sceneManager and sceneManager.Show and sceneName) then
+        TraceBankState("bank.guild_scene_redirect", "skipped", {
+            reason = "missing_scene_api",
+            sceneName = sceneName,
+            source = source,
+        })
+        return
+    end
+
+    if sceneManager.IsShowing and sceneManager:IsShowing(sceneName) then
+        TraceBankState("bank.guild_scene_redirect", "skipped", {
+            reason = "already_showing",
+            sceneName = sceneName,
+            source = source,
+        })
+        return
+    end
+
+    TraceBankState("bank.guild_scene_redirect", "show_fallback", {
+        sceneName = sceneName,
+        source = source,
+    })
+    sceneManager:Show(sceneName)
+end
+
+local function InstallGuildBankFallbackRedirect(eventId, suffix, source)
+    if not (EVENT_MANAGER and eventId) then
+        TraceBankState("bank.guild_scene_redirect", "fallback_skipped", {
+            hasEventManager = EVENT_MANAGER ~= nil,
+            hasEvent = eventId ~= nil,
+            sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
+            source = source,
+        })
+        return
+    end
+
+    local namespace = GUILD_BANK_SCENE_REDIRECT_EVENT_NAME .. suffix
+    EVENT_MANAGER:UnregisterForEvent(namespace, eventId)
+    EVENT_MANAGER:RegisterForEvent(namespace, eventId, function(...)
+        TraceBankState("bank.guild_scene_redirect", "fallback_event", {
+            sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
+            source = source,
+        })
+        if type(zo_callLater) == "function" then
+            zo_callLater(function() ShowGuildBankRedirectedScene(source) end, 0)
+        else
+            ShowGuildBankRedirectedScene(source)
+        end
+    end)
+end
+
 local function InstallGuildBankSceneRedirect()
     BETTERUI.CIM.Utils.InstallNativeSceneRedirect({
         namespace = GUILD_BANK_SCENE_REDIRECT_EVENT_NAME,
@@ -17,11 +90,14 @@ local function InstallGuildBankSceneRedirect()
         closeEventId = EVENT_CLOSE_GUILD_BANK,
         sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
         sceneObject = function() return BETTERUI_GUILD_BANKING_SCENE end,
-        isEnabled = function() return BETTERUI.Banking.GetSetting("enableGuildBank") ~= false end,
+        isEnabled = IsGuildBankRedirectEnabled,
         traceFn = function(event, phase, data)
             TraceBankState("bank.guild_" .. event, phase, data)
         end,
     })
+
+    InstallGuildBankFallbackRedirect(rawget(_G, "EVENT_GUILD_BANK_SELECTED"), "_SELECTED", "guild_bank_selected")
+    InstallGuildBankFallbackRedirect(rawget(_G, "EVENT_GUILD_BANK_ITEMS_READY"), "_ITEMS_READY", "guild_bank_items_ready")
 end
 
 local function ReadCurrencyAmount(currencyType, location)

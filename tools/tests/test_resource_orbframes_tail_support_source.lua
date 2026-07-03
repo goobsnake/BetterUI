@@ -14,6 +14,7 @@ if false then
     dofile("Modules/ResourceOrbFrames/Settings/SettingsSubmenus.lua")
     dofile("Modules/ResourceOrbFrames/SkillBar/Constants.lua")
     dofile("Modules/ResourceOrbFrames/SkillBar/CooldownUtils.lua")
+    dofile("Modules/ResourceOrbFrames/SkillBar/ActivationHighlight.lua")
     dofile("Modules/ResourceOrbFrames/SkillBar/Coordinator.lua")
     dofile("Modules/ResourceOrbFrames/SkillBar/TooltipManager.lua")
     dofile("Modules/ResourceOrbFrames/SkillBar/UltimateManager.lua")
@@ -127,6 +128,27 @@ assert_true(cooldownUtilsSource:find("function CooldownUtils%.ApplyLinearVisuals
     "CooldownUtils exposes ApplyLinearVisuals")
 assert_true(cooldownUtilsSource:find("SkillBar%.CooldownUtils = CooldownUtils") ~= nil,
     "CooldownUtils exports itself onto the SkillBar namespace")
+
+local activationHighlightSource = read_file("Modules/ResourceOrbFrames/SkillBar/ActivationHighlight.lua")
+assert_true(activationHighlightSource:find("function ActivationHighlight%.Update%(control, slotIndex, hotbarCategory, showHighlight%)") ~= nil,
+    "ActivationHighlight exposes the shared update helper")
+assert_true(activationHighlightSource:find("GetSlotTexture%(slotIndex, hotbarCategory%)") ~= nil,
+    "ActivationHighlight reads the slot activation animation texture from GetSlotTexture")
+assert_true(activationHighlightSource:find("animation:SetImageData%(64, 1%)") ~= nil,
+    "ActivationHighlight uses ESOUI's 64-frame action-button animation layout")
+assert_true(activationHighlightSource:find("timeline:SetPlaybackType%(ANIMATION_PLAYBACK_LOOP, LOOP_INDEFINITELY%)") ~= nil,
+    "ActivationHighlight loops activation highlight animations")
+assert_true(activationHighlightSource:find("SkillBar%.ActivationHighlight = ActivationHighlight") ~= nil,
+    "ActivationHighlight exports itself onto the SkillBar namespace")
+
+local manifestSource = read_file("BetterUI.txt")
+local activationIndex = manifestSource:find("Modules\\ResourceOrbFrames\\SkillBar\\ActivationHighlight.lua", 1, true)
+local backIndex = manifestSource:find("Modules\\ResourceOrbFrames\\SkillBar\\BackBarManager.lua", 1, true)
+local frontIndex = manifestSource:find("Modules\\ResourceOrbFrames\\SkillBar\\FrontBarManager.lua", 1, true)
+assert_true(activationIndex ~= nil and backIndex ~= nil and activationIndex < backIndex,
+    "Manifest loads ActivationHighlight before BackBarManager")
+assert_true(activationIndex ~= nil and frontIndex ~= nil and activationIndex < frontIndex,
+    "Manifest loads ActivationHighlight before FrontBarManager")
 
 local coordinatorSource = read_file("Modules/ResourceOrbFrames/SkillBar/Coordinator.lua")
 assert_true(coordinatorSource:find("SkillBar%.UpdateBarPositions = UpdateBarPositions") ~= nil,

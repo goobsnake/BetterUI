@@ -1262,6 +1262,73 @@ end
 assertEqual(true, allStockFonts,
     "PB-003: CleanupEnhancedTooltip restores the stock body font on every child label")
 
+print("\nTest: PB-003 CleanupEnhancedTooltip restores fonts without BetterUI-owned layout")
+local fontsOnlySurface = buildMockTooltipSurface("PB003_FONTS_ONLY", 2)
+fontsOnlySurface.tooltip:ClearAnchors()
+fontsOnlySurface.tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 44)
+for i = 1, fontsOnlySurface.tooltip:GetNumChildren() do
+    fontsOnlySurface.tooltip:GetChild(i):SetFont("$(MEDIUM_FONT)|24|soft-shadow-thick")
+end
+
+BETTERUI.Inventory.CleanupEnhancedTooltip("PB003_FONTS_ONLY")
+
+local fontsOnlyRestored = true
+for i = 1, fontsOnlySurface.tooltip:GetNumChildren() do
+    if fontsOnlySurface.tooltip:GetChild(i):GetFont() ~= "ZoFontGamepad34" then
+        fontsOnlyRestored = false
+    end
+end
+assertEqual(true, fontsOnlyRestored,
+    "PB-003: CleanupEnhancedTooltip restores stock body fonts even without BetterUI labels")
+assertEqual(44, fontsOnlySurface.tooltip._anchors[1].y,
+    "PB-003: fonts-only cleanup does not re-anchor native/default tooltip layout")
+
+print("\nTest: PB-003 CleanupEnhancedTooltip preserves native status text in default tooltip mode")
+local nativeStatusSurface = buildMockTooltipSurface("PB003_NATIVE_STATUS", 2)
+nativeStatusSurface.container.statusLabel = newMockControl(CT_LABEL)
+nativeStatusSurface.container.statusLabelValue = newMockControl(CT_LABEL)
+nativeStatusSurface.container.statusLabelVisualLayer = newMockControl(CT_LABEL)
+nativeStatusSurface.container.statusLabelValueForVisualLayer = newMockControl(CT_LABEL)
+nativeStatusSurface.container.bottomRail = nativeStatusSurface.bottomRail
+nativeStatusSurface.container.statusLabel:SetText("Equipped")
+nativeStatusSurface.container.statusLabelValue:SetText("Main Hand")
+nativeStatusSurface.container.statusLabel:SetHidden(false)
+nativeStatusSurface.container.statusLabelValue:SetHidden(false)
+nativeStatusSurface.bottomRail:SetHidden(false)
+nativeStatusSurface.tooltip:ClearAnchors()
+nativeStatusSurface.tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 44)
+
+local nativeClearCalls = 0
+local previousClearStatusLabel = GAMEPAD_TOOLTIPS.ClearStatusLabel
+GAMEPAD_TOOLTIPS.ClearStatusLabel = function(_, tooltipType)
+    nativeClearCalls = nativeClearCalls + 1
+    local surface = pbControls[tooltipType]
+    if surface and surface.container then
+        surface.container.statusLabel:SetText("")
+        surface.container.statusLabelValue:SetText("")
+        surface.container.statusLabel:SetHidden(true)
+        surface.container.statusLabelValue:SetHidden(true)
+        surface.container.bottomRail:SetHidden(true)
+    end
+end
+
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = false
+BETTERUI.Inventory.CleanupEnhancedTooltip("PB003_NATIVE_STATUS")
+GAMEPAD_TOOLTIPS.ClearStatusLabel = previousClearStatusLabel
+
+assertEqual(0, nativeClearCalls,
+    "PB-003: default tooltip cleanup does not call ESOUI ClearStatusLabel")
+assertEqual("Equipped", nativeStatusSurface.container.statusLabel:GetText(),
+    "PB-003: default tooltip cleanup preserves native status label text")
+assertEqual("Main Hand", nativeStatusSurface.container.statusLabelValue:GetText(),
+    "PB-003: default tooltip cleanup preserves native status value text")
+assertEqual(false, nativeStatusSurface.container.statusLabel:IsHidden(),
+    "PB-003: default tooltip cleanup leaves native status label visible")
+assertEqual(false, nativeStatusSurface.bottomRail:IsHidden(),
+    "PB-003: default tooltip cleanup leaves the native bottomRail visible")
+assertEqual(44, nativeStatusSurface.tooltip._anchors[1].y,
+    "PB-003: default tooltip cleanup does not re-anchor native body layout")
+
 print("\nTest: PB-003 repeated enhancements on/off loop accumulates no drift")
 local driftSurface = buildMockTooltipSurface("PB003_DRIFT", 3)
 local driftStatus = newMockControl(CT_LABEL)

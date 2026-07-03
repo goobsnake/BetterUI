@@ -50,6 +50,7 @@ local function runDigestFixture(args)
         "2026-07-02T06:00:05Z |cff0000Lua Error: [BUI] 150 sid=a1b2c3d4 seq=6 WARN LOG | dropped=3 reason=rate_limit|r",
         "2026-07-02T06:00:06Z |cff0000Lua Error: [BUI] 160 sid=a1b2c3d4 seq=7 INFO SCREENSHOT | event=screenshot phase=saved flow=bankTransfer#1 id=shot#1 requested=true correlation=\"fifo\" filename=Screenshot_20260702_060006.png|r",
         "2026-07-02T06:00:07Z |cff0000Lua Error: [BUI] 170 sid=a1b2c3d4 seq=8 INFO STATE | event=session phase=report scheduled=9 dropped=3 suppressed=0 pending=0 errorCount=1 retainedErrors=1 anomalyDetected=1 anomalyResolved=0 unresolvedFlows=1 screenshots=1|r",
+        "2026-07-02T06:00:07Z |cff0000Lua Error: [BUI] 175 sid=a1b2c3d4 seq=10 DEBUG STATE | event=session phase=heartbeat|r",
         "2026-07-02T06:00:08Z Lua Error: real addon failure",
         "",
     }, "\n")
@@ -148,6 +149,9 @@ check(digestOutput:find("drop summaries:", 1, true) ~= nil
     and digestOutput:find("session preamble info:", 1, true) ~= nil
     and digestOutput:find("session reports:", 1, true) ~= nil,
     "digest includes drop, screenshot, preamble, and report sections")
+check(digestOutput:find("sequence gaps:", 1, true) ~= nil
+    and digestOutput:find("sid=a1b2c3d4 missing=9 beforeSeq=10", 1, true) ~= nil,
+    "digest reports missing BUI sequence ranges")
 
 local sinceOutput, sinceOk = runDigestFixture("--since 2026-07-02T06:00:05Z --last 200")
 check(sinceOk, "monitor digest --since runs successfully against a fixture log")

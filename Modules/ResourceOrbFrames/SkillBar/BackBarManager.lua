@@ -13,6 +13,7 @@ local FindControl = Utils.FindControl
 local GetLiveSettings = (Utils.Settings and Utils.Settings.GetLive) or Utils.GetSettings
 local ClampTextSize = Utils.ClampTextSize
 local CooldownUtils = SkillBar.CooldownUtils
+local ActivationHighlight = SkillBar.ActivationHighlight
 local CONST = SkillBar.CONST or {}
 
 -- Cached control references (populated by CacheBackBarControls during addon init)
@@ -123,23 +124,44 @@ local function UpdateBackBar(rootFrame)
 
     local slots = BACK_BAR_SLOTS
     local visibleSlots = 0
+    local highlightedSlots = 0
 
     for i, slotIndex in ipairs(slots) do
         local btn = FindControl(backBarContainer, 'Button' .. i)
         if btn then
             local iconControl = FindControl(btn, 'Icon')
             local icon = GetSlotTexture(slotIndex, backBarCategory)
+            local hasIcon = icon and icon ~= ''
 
             if iconControl then
-                if icon and icon ~= '' then
+                if hasIcon then
                     iconControl:SetTexture(icon)
                     iconControl:SetHidden(false)
                     iconControl:SetAlpha(backBarOpacity)
                 else
                     iconControl:SetHidden(true)
                 end
-                if icon and icon ~= '' then
+                if hasIcon then
                     visibleSlots = visibleSlots + 1
+                end
+            end
+
+            local highlight = btn:GetNamedChild("ActivationHighlight")
+            if highlight then
+                local hasHighlight = type(ActionSlotHasActivationHighlight) == "function"
+                    and ActionSlotHasActivationHighlight(slotIndex, backBarCategory) or false
+                local hasCostFailure = type(ActionSlotHasCostFailure) == "function"
+                    and ActionSlotHasCostFailure(slotIndex, backBarCategory) or false
+                local hasStateFailure = type(ActionSlotHasNonCostStateFailure) == "function"
+                    and ActionSlotHasNonCostStateFailure(slotIndex, backBarCategory) or false
+                local showHighlight = hasIcon and hasHighlight and not hasCostFailure and not hasStateFailure
+                if ActivationHighlight and ActivationHighlight.Update then
+                    ActivationHighlight.Update(highlight, slotIndex, backBarCategory, showHighlight)
+                else
+                    highlight:SetHidden(not showHighlight)
+                end
+                if showHighlight then
+                    highlightedSlots = highlightedSlots + 1
                 end
             end
 
@@ -161,6 +183,7 @@ local function UpdateBackBar(rootFrame)
         opacity = backBarOpacity,
         slotCount = #slots,
         visibleSlots = visibleSlots,
+        highlightedSlots = highlightedSlots,
     })
 end
 
