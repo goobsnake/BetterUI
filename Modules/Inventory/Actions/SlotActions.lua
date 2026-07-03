@@ -29,13 +29,6 @@ function BETTERUI.Inventory.RegisterSlotAction(id, config)
     return true
 end
 
---- Unregisters a previously registered custom slot action.
----@param id string Action identifier to unregister
----@return nil
-function BETTERUI.Inventory.UnregisterSlotAction(id)
-    m_customActions[id] = nil
-end
-
 BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 
 --- Inserts a primary action at the front of the slot actions table.

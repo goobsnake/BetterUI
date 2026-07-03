@@ -631,7 +631,6 @@ function Log.WriteLazy(level, category, message, dataFn)
     end
     dispatch(level, category, message, data)
 end
-function Log.DebugLazy(category, message, dataFn) Log.WriteLazy(Log.LEVEL.DEBUG, category, message, dataFn) end
 function Log.TraceLazy(category, message, dataFn) Log.WriteLazy(Log.LEVEL.TRACE, category, message, dataFn) end
 
 -- Configuration API ---------------------------------------------------------
@@ -665,12 +664,6 @@ end
 ---@param on boolean
 function Log.SetCategoryEnabled(category, on)
     categoryDisabled[category] = (on and nil) or true
-end
-
----@param category string
----@return boolean
-function Log.IsCategoryEnabled(category)
-    return not categoryDisabled[category]
 end
 
 --- Whether optional `data`/payload arguments are rendered into log lines. The

@@ -101,16 +101,6 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTempl
     self:InitializeList()
 end
 
---- Sets the spinner's range and current value.
----@param max integer
----@param value integer
-function BETTERUI.Interface.Window:SetSpinnerValue(max, value)
-    if not self.spinner then return end
-    self.spinner:SetMinMax(1, max)
-    self.spinner:SetValue(value)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "set spinner value", { max = max, value = value }) end
-end
-
 --- Shows and activates the spinner, deactivating the main list.
 function BETTERUI.Interface.Window:ActivateSpinner()
     if not self.spinner then return end
@@ -217,14 +207,6 @@ function BETTERUI.Interface.Window:AddTemplate(rowTemplate, setupCallback, contr
     self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction,
         nil, controlPoolPrefix)
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "list template", { template = rowTemplate }) end
-end
-
---- Adds a single entry to the list and commits.
----@param data table
-function BETTERUI.Interface.Window:AddEntryToList(data)
-    self:GetList():AddEntry(self.itemListTemplate, data)
-    self:GetList():Commit()
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "add entry", {}) end
 end
 
 --- Initializes keybinds for the window.

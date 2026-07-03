@@ -170,21 +170,8 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field sceneCheck fun(): boolean|nil
 ---@field onApply fun(instance: table, pendingCategoryIndex: integer)|nil
 
----@class BetterUIBatchProcessorInitOptions
----@field initialBatchSize integer|nil
----@field remainingBatchSize integer|nil
----@field batchDelay integer|nil
-
----@class BetterUIBatchProcessorStartOptions
----@field context table|nil
----@field onProcessItem fun(item: any, index: integer, context: table)|nil
----@field onComplete fun(context: table)|nil
----@field isActiveCheck fun(): boolean|nil
-
 ---@class BetterUIListRefreshManagerOptions
 ---@field coalesceDelay integer|nil
----@field useBatching boolean|nil
----@field batchProcessor BETTERUI.CIM.Lists.BatchProcessor|nil
 
 ---@class BetterUIListRefreshTraceOptions
 ---@field flow string|nil

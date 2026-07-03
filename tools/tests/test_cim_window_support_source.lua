@@ -14,7 +14,6 @@ if false then
     dofile("Modules/CIM/Core/Window/WindowClass.lua")
     dofile("Modules/CIM/Dialogs/DialogRegistry.lua")
     dofile("Modules/CIM/Keybinds/GenericKeybinds.lua")
-    dofile("Modules/CIM/Lists/BatchProcessor.lua")
 end
 
 local passed = 0
@@ -93,24 +92,6 @@ assert_true(genericKeybinds:find('keybind = "UI_SHORTCUT_LEFT_TRIGGER"') ~= nil,
     "GenericKeybinds defines the left trigger descriptor")
 assert_true(genericKeybinds:find('keybind = "UI_SHORTCUT_RIGHT_TRIGGER"') ~= nil,
     "GenericKeybinds defines the right trigger descriptor")
-
-local batchProcessor = read_file("Modules/CIM/Lists/BatchProcessor.lua")
-assert_true(batchProcessor:find("BETTERUI%.CIM%.Lists%.BatchProcessor = ZO_Object:Subclass%(%)") ~= nil,
-    "BatchProcessor defines the shared batch processor class")
-assert_true(batchProcessor:find("function BETTERUI%.CIM%.Lists%.BatchProcessor:Initialize%(options%)") ~= nil,
-    "BatchProcessor exposes Initialize")
-assert_true(batchProcessor:find("function BETTERUI%.CIM%.Lists%.BatchProcessor:Start%(data, options%)") ~= nil,
-    "BatchProcessor exposes Start")
-assert_true(batchProcessor:find("BetterUIBatchProcessorInitOptions") ~= nil,
-    "BatchProcessor initialize docs use the shared init options type alias")
-assert_true(batchProcessor:find("BetterUIBatchProcessorStartOptions") ~= nil,
-    "BatchProcessor start docs use the shared runtime options type alias")
-assert_true(batchProcessor:find("function BETTERUI%.CIM%.Lists%.BatchProcessor:ProcessBatch%(%)") ~= nil,
-    "BatchProcessor exposes ProcessBatch")
-assert_true(batchProcessor:find("function BETTERUI%.CIM%.Lists%.BatchProcessor:Cancel%(%)") ~= nil,
-    "BatchProcessor exposes Cancel")
-assert_true(batchProcessor:find("function BETTERUI%.CIM%.Lists%.BatchProcessor:IsActive%(%)") ~= nil,
-    "BatchProcessor exposes IsActive")
 
 if failed > 0 then
     error(string.format("test_cim_window_support_source.lua failed with %d failure(s)", failed))

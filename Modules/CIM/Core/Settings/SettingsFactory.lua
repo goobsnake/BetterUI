@@ -336,16 +336,6 @@ local function ResolveControlTraceName(control)
     return nil
 end
 
-local function SettingsTraceEnabled()
-    local L = BETTERUI.Log
-    if not L then return false end
-    local levels = type(L.LEVEL) == "table" and L.LEVEL or nil
-    if L.EnabledFor and levels and L.CATEGORY then
-        return L.EnabledFor(levels.INFO, L.CATEGORY.SETTINGS)
-    end
-    return type(L.TraceEvent) == "function"
-end
-
 local function SettingsControlTraceEnabled()
     local L = BETTERUI.Log
     if not L then return false end

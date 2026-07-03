@@ -200,29 +200,6 @@ function BETTERUI.Inventory.Class:GetCategoryItemCount(nonEquipableFilterType)
     return count
 end
 
---- Checks for any junk items in the backpack.
---- @return boolean
-function BETTERUI.Inventory.Class:HasAnyJunkInBackpack()
-    -- Prefer shared inventory cache
-    local backpack = self:GetCachedSlotData(BAG_BACKPACK)
-    if backpack then
-        for _, slotData in ipairs(backpack) do
-            if slotData and slotData.isJunk == true then
-                return true
-            end
-        end
-    end
-
-    -- Fallback
-    local size = GetBagSize(BAG_BACKPACK) or 0
-    for slotIndex = 0, size - 1 do
-        if IsItemJunk(BAG_BACKPACK, slotIndex) then
-            return true
-        end
-    end
-    return false
-end
-
 --- Counts junk items in the backpack for category badge display.
 function BETTERUI.Inventory.Class:CountJunkInBackpack()
     -- Prefer shared inventory cache; a zero count from a present cache is a

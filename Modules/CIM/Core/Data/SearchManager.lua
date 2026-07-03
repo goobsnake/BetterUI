@@ -455,25 +455,6 @@ function BETTERUI.Interface.SearchMixin.AddSearch(self, textSearchKeybindStripDe
     end
 end
 
---- Checks if the search entry field is hidden.
----@param self BetterUISearchContext
----@return boolean
-function BETTERUI.Interface.SearchMixin.IsTextSearchEntryHidden(self)
-    if self.textSearchHeaderControl then
-        return self.textSearchHeaderControl:IsHidden()
-    end
-    return true
-end
-
---- Sets the visibility of the search entry field.
----@param self BetterUISearchContext
----@param isHidden boolean
-function BETTERUI.Interface.SearchMixin.SetTextSearchEntryHidden(self, isHidden)
-    if self.textSearchHeaderControl then
-        self.textSearchHeaderControl:SetHidden(isHidden)
-    end
-end
-
 --- Sets focus state of the search entry.
 ---@param self BetterUISearchContext
 ---@param isFocused boolean
@@ -499,38 +480,6 @@ function BETTERUI.Interface.SearchMixin.GetActiveList(self)
     return self.list
 end
 
---- Activates the search header mode.
----@param self BetterUISearchContext
-function BETTERUI.Interface.SearchMixin.ActivateSearchHeader(self)
-    local text = self.searchQuery or ""
-    local list = BETTERUI.Interface.SearchMixin.GetActiveList(self)
-    local n = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "search header activated", { textLen = #text, numItems = n }) end
-
-    if self.textSearchHeaderFocus and not self._searchHeaderActive then
-        self._searchHeaderActive = true
-        self.textSearchHeaderFocus:Activate()
-        -- Call BringWindowToFront if available (optional method, use guard clause)
-        if self.textSearchHeaderControl and self.textSearchHeaderControl.BringWindowToFront then
-            self.textSearchHeaderControl:BringWindowToFront()
-        end
-    end
-end
-
---- Deactivates the search header mode.
----@param self BetterUISearchContext
-function BETTERUI.Interface.SearchMixin.DeactivateSearchHeader(self)
-    local text = self.searchQuery or ""
-    local list = BETTERUI.Interface.SearchMixin.GetActiveList(self)
-    local n = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "search header deactivated", { textLen = #text, numItems = n }) end
-
-    if self.textSearchHeaderFocus and self._searchHeaderActive then
-        self._searchHeaderActive = false
-        self.textSearchHeaderFocus:Deactivate()
-    end
-end
-
 --- Checks if search header is currently active.
 ---@param self BetterUISearchContext
 ---@return boolean
@@ -544,13 +493,6 @@ function BETTERUI.Interface.SearchMixin.ClearSearchText(self)
     if self.textSearchHeaderFocus then
         self.textSearchHeaderFocus:ClearText()
     end
-end
-
---- Checks if the search box has input focus.
----@param self BetterUISearchContext
----@return boolean
-function BETTERUI.Interface.SearchMixin.IsSearchFocused(self)
-    return self.textSearchHeaderFocus and self.textSearchHeaderFocus:HasFocus()
 end
 
 -- SEARCH FOCUS HANDLERS MIXIN

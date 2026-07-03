@@ -4,7 +4,6 @@ Purpose: Unified list refresh management with batching, position restoration,
          and dirty state coalescing to eliminate scattered RefreshList implementations.
 
 Used By: Inventory/Lists/ItemListManager.lua, Banking/Banking.lua
-Dependencies: BatchProcessor.lua, GenericListManager.lua
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -14,8 +13,6 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 
 --- @class BETTERUI.CIM.Lists.ListRefreshManager : ZO_Object
 --- @field coalesceDelay integer Refresh coalescing delay in ms
---- @field useBatching boolean Whether to use BatchProcessor for refreshes
---- @field batchProcessor BETTERUI.CIM.Lists.BatchProcessor|nil Optional batch processor
 --- @field isDirty boolean Whether a refresh is pending
 --- @field pendingRefreshCallId number|nil zo_callLater handle for pending refresh
 --- @field pendingRefreshFlow string|nil Flow id carried by the pending coalesced refresh
@@ -97,8 +94,6 @@ end
 function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     options = options or {}
     self.coalesceDelay = options.coalesceDelay or BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS
-    self.useBatching = options.useBatching or false
-    self.batchProcessor = options.batchProcessor
 
     self.isDirty = false
     self.pendingRefreshCallId = nil
@@ -421,13 +416,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:MarkDirty()
     self.isDirty = true
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh mark dirty")
-    end
-end
-
-function BETTERUI.CIM.Lists.ListRefreshManager:ClearDirty()
-    self.isDirty = false
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh clear dirty")
     end
 end
 

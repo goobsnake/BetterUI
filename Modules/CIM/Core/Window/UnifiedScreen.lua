@@ -84,22 +84,6 @@ function BETTERUI.CIM.UnifiedScreen:SetupUnifiedFooter()
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "setup unified footer", { hasController = self.unifiedFooterController ~= nil }) end
 end
 
---- Changes the footer display mode.
----@param mode integer
-function BETTERUI.CIM.UnifiedScreen:SetFooterMode(mode)
-    self.footerMode = mode
-    if self.unifiedFooterController then
-        self.unifiedFooterController:SetMode(mode)
-    end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "set footer mode", { mode = mode }) end
-end
-
---- Returns the current footer mode.
----@return integer
-function BETTERUI.CIM.UnifiedScreen:GetFooterMode()
-    return self.footerMode
-end
-
 --- Triggers a footer content refresh.
 function BETTERUI.CIM.UnifiedScreen:RefreshFooter()
     if self.unifiedFooterController then
@@ -129,61 +113,6 @@ end
 
 -- SCENE HANDLER MIXIN METHODS
 -- These provide common scene state handling for Inventory/Banking
-
---- Common SCENE_SHOWING handler logic.
---- Subclasses can call this then add module-specific logic.
-function BETTERUI.CIM.UnifiedScreen:HandleSceneShowing()
-    -- Ensure footer controller is set up
-    if not self.unifiedFooterController then
-        self:SetupUnifiedFooter()
-    end
-
-    -- Apply footer mode
-    if self.unifiedFooterController then
-        self.unifiedFooterController:SetMode(self.footerMode)
-    end
-
-    -- Hide external toolbars
-    BETTERUI.CIM.Utils.SetExternalToolbarHidden(true)
-
-    -- Call subclass OnShowing if implemented
-    if self.OnShowing then
-        self:OnShowing()
-    end
-    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unified screen showing", { footerMode = self.footerMode }) end
-end
-
---- Common SCENE_HIDING handler logic.
-function BETTERUI.CIM.UnifiedScreen:HandleSceneHiding()
-    -- Restore external toolbars
-    BETTERUI.CIM.Utils.SetExternalToolbarHidden(false)
-
-    -- Call subclass OnHiding if implemented
-    if self.OnHiding then
-        self:OnHiding()
-    end
-    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unified screen hidden", {}) end
-end
-
---- Common SCENE_HIDDEN handler logic.
-function BETTERUI.CIM.UnifiedScreen:HandleSceneHidden()
-    -- Clear keybinds
-    if self.ClearActiveKeybinds then
-        self:ClearActiveKeybinds()
-    end
-
-    -- Restore external toolbars (redundant safety)
-    BETTERUI.CIM.Utils.SetExternalToolbarHidden(false)
-
-    -- Clear search state if applicable
-    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
-    if searchMixin and searchMixin.CallSearchLifecycle then
-        searchMixin.CallSearchLifecycle(self, "clear")
-    elseif self.ClearSearchInput then
-        self:ClearSearchInput()
-    end
-    if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "unified screen hidden", {}) end
-end
 
 -- KEYBIND MANAGEMENT METHODS
 
@@ -268,13 +197,6 @@ function BETTERUI.CIM.UnifiedScreen:RefreshKeybinds()
 end
 
 -- SEARCH FOCUS LOGIC
-
---- Initializes search focus behavior for the screen.
----@param searchKeybindDescriptor BetterUIKeybindDescriptorGroup
-function BETTERUI.CIM.UnifiedScreen:SetupSearchFocus(searchKeybindDescriptor)
-    self.searchKeybindDescriptor = searchKeybindDescriptor
-    self._searchModeActive = false
-end
 
 --- Activates search mode keybinds and state.
 function BETTERUI.CIM.UnifiedScreen:EnterSearchMode()

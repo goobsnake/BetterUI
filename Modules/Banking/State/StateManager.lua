@@ -144,17 +144,6 @@ function BETTERUI.Banking.Class:ReturnToSaved()
     self.list:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
 end
 
-function BETTERUI.Banking.Class:UpdateSingleItem(bagId, slotIndex)
-    -- Rebuild the list from the shared inventory cache rather than mutating
-    -- the parametric list internals while it's animating/moving.
-    self:RefreshList()
-end
-
-function BETTERUI.Banking.Class:RemoveItemStack(itemIndex)
-    -- Avoid directly mutating the parametric list while it may be moving; just refresh.
-    self:RefreshList()
-end
-
 function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "toggle list", { toWithdraw = toWithdraw })

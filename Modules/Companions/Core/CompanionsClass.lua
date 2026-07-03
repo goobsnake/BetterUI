@@ -209,10 +209,6 @@ function BETTERUI.Companions.Class:ExitSearchMode()
     })
 end
 
-function BETTERUI.Companions.Class:EnterSearchFocus()
-    self:EnterSearchMode()
-end
-
 function BETTERUI.Companions.Class:ExitSearchFocus()
     self:ExitSearchMode()
 end

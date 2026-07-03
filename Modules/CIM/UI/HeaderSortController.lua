@@ -138,10 +138,6 @@ function BETTERUI.CIM.UI.HeaderSortController:GetCurrentColumnIndex()
     return self.currentColumnIndex
 end
 
-function BETTERUI.CIM.UI.HeaderSortController:GetCurrentColumn()
-    return self.columns[self.currentColumnIndex]
-end
-
 function BETTERUI.CIM.UI.HeaderSortController:ToggleSort()
     if #self.columns == 0 then
         TraceHeaderSortController(self, "toggle_skipped", { reason = "noColumns" })
@@ -476,22 +472,6 @@ function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelC
             end)
         end
     end
-    self:UpdateVisuals()
-end
-
-function BETTERUI.CIM.UI.HeaderSortController:RefreshColumnLabels(headerContainer, columnNamePattern)
-    if not headerContainer then return end
-
-    -- Route through SetColumnLabel + UpdateVisuals so the arrow texture and
-    -- selection styling stay the single source of truth (no text-markup arrows).
-    for i in ipairs(self.columns) do
-        local labelName = string.format(columnNamePattern, i)
-        local labelControl = headerContainer:GetNamedChild(labelName)
-        if labelControl then
-            self:SetColumnLabel(i, labelControl)
-        end
-    end
-
     self:UpdateVisuals()
 end
 

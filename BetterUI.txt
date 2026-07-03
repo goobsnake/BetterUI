@@ -95,7 +95,6 @@ Modules\CIM\Lists\ParametricScrollListTemplates.lua
 Modules\CIM\Lists\VerticalScrollList.lua
 Modules\CIM\Lists\HorizontalScrollList.lua
 Modules\CIM\Lists\TabBarScrollList.lua
-Modules\CIM\Lists\SubList.lua
 Modules\CIM\Lists\ParametricListScreen.lua
 Modules\CIM\Core\Window\UnifiedScreen.lua
 Modules\CIM\Templates\InterfaceLibrary.xml
@@ -114,7 +113,6 @@ Modules\CIM\Keybinds\ActionContext.lua
 Modules\CIM\Dialogs\DialogRegistry.lua
 Modules\CIM\Lists\GenericListManager.lua
 Modules\CIM\Lists\ItemDataProcessor.lua
-Modules\CIM\Lists\BatchProcessor.lua
 Modules\CIM\Lists\ListRefreshManager.lua
 Modules\CIM\Module.lua
 

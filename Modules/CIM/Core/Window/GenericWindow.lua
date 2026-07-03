@@ -36,10 +36,6 @@ function BETTERUI.CIM.GenericWindow:GetCurrentCategoryKey()
     return self.currentCategoryKey
 end
 
-function BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey(categoryKey)
-    self.currentCategoryKey = categoryKey
-end
-
 --- Saves the current category's list position via the shared PositionManager
 --- (records both the selected index and the item uniqueId for robust restore).
 --- @param categoryKey string|nil Category key (defaults to currentCategoryKey)

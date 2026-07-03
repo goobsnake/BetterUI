@@ -87,16 +87,6 @@ function Localization.IsFontLocalizedForLanguage(fontPath)
     return not Localization.IsFontWesternOnly(fontPath)
 end
 
----@param context string?
----@return string
-function Localization.GetLocalizedFontDefault(context)
-    if context == "bold" then
-        return "$(BOLD_FONT)"
-    else
-        return "$(GAMEPAD_MEDIUM_FONT)"
-    end
-end
-
 ---@param fontPath string?
 ---@return string?
 function Localization.GetFontCompatibilityWarning(fontPath)

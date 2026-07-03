@@ -295,20 +295,6 @@ function BETTERUI_TabBarScrollList:Commit(dontReselect)
     self:RefreshPips()
 end
 
---- Enables/Disables Pip (Dot) indicators.
----@param enabled boolean
----@param divider table?
-function BETTERUI_TabBarScrollList:SetPipsEnabled(enabled, divider)
-    self.pipsEnabled = enabled
-    if not divider then
-        divider = self.control:GetNamedChild("Divider")
-    end
-    if not self.pips and enabled then
-        self.pips = ZO_GamepadPipCreator:New(divider)
-    end
-    self:RefreshPips()
-end
-
 --- Updates Pip indicators based on selection.
 function BETTERUI_TabBarScrollList:RefreshPips()
     if not self.pipsEnabled then

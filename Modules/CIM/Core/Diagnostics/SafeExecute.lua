@@ -177,19 +177,6 @@ local function CallOptionalBetterUIPath(path, ...)
     return BETTERUI.CIM.SafeExecute("OptionalPath: " .. path, fn, ...)
 end
 
----@param context string Descriptive label for logging
----@param path string Dot-separated path to an optional function on BETTERUI
----@param ... any Arguments to pass to the resolved function
----@return boolean ok true when the function exists and executes without error
----@return any result Function return value, missing-path reason, or error text
-function BETTERUI.CIM.SafeExecuteOptionalPath(context, path, ...)
-    local ok, result = CallOptionalBetterUIPath(path, ...)
-    if not ok and result == "optional_path_missing" and type(BETTERUI.Debug) == "function" then
-        BETTERUI.Debug(string.format("[Warn] %s: Optional path missing (%s)", context, tostring(path)))
-    end
-    return ok, result
-end
-
 --- Unified user-facing error notification with structured logging.
 --- Accepts either a string ID or pre-resolved text so callers do not need a
 --- second text-only helper for the same error path.

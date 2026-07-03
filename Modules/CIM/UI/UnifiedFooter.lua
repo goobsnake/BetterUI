@@ -61,11 +61,6 @@ function UnifiedFooterController:SetMode(mode)
     end
 end
 
----@return integer
-function UnifiedFooterController:GetMode()
-    return self.mode
-end
-
 --- Refreshes the footer based on current mode.
 function UnifiedFooterController:Refresh()
     if not self._initialized or not self.footer then
@@ -120,11 +115,6 @@ function UnifiedFooterController:ApplyModeStyles()
         -- Currency/Inventory mode styling (if any)
         -- Future: Could prioritize player-relevant currencies
     end
-end
-
----@return boolean
-function UnifiedFooterController:IsInitialized()
-    return self._initialized
 end
 
 -- MODULE REGISTRATION

@@ -83,12 +83,6 @@ function ResearchCache.GetResearchLive()
     return GetCachedResearchTraitsLive()
 end
 
---- Returns shared research traits as a snapshot copy.
----@return table traits The cached research-trait matrix snapshot
-function ResearchCache.GetResearchSnapshot()
-    return ResearchCache.GetResearch()
-end
-
 --- Explicitly refreshes research traits from the game API.
 --- This method is intentionally side-effecting and rewrites `BETTERUI.ResearchTraits`.
 ---@return table traits The rebuilt research-trait matrix

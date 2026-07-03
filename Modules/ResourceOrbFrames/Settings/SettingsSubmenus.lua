@@ -11,18 +11,6 @@ if not ROF then return end
 BETTERUI.ResourceOrbFrames.SettingsSubmenus = {}
 local Submenus = BETTERUI.ResourceOrbFrames.SettingsSubmenus
 
-local function TraceSettingsSubmenu(event, phase, data)
-    local L = BETTERUI and BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
-    data = data or {}
-    data.module = "ResourceOrbFrames"
-    data.feature = data.feature or "settingsSubmenus"
-    data.fn = data.fn or "ResourceOrbFrames.SettingsSubmenus"
-    data["function"] = data["function"] or data.fn
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.SETTINGS or categories.GENERAL or categories.STATE, event, phase, data)
-end
-
 local function TraceDrag(event, phase, data)
     local L = BETTERUI and BETTERUI.Log
     if not (L and L.TraceEvent) then return end

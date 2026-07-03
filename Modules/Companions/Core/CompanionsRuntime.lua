@@ -66,18 +66,6 @@ local function SetCompanionWatchView(label)
     end
 end
 
-local function ShowBetterUICompanionScene()
-    if not (SCENE_MANAGER and SCENE_MANAGER.Show and BETTERUI_COMPANION_EQUIP_SCENE_NAME and Companions.instance and Companions.instance.scene) then
-        return
-    end
-    if SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing(BETTERUI_COMPANION_EQUIP_SCENE_NAME) then
-        SetCompanionWatchView("companions.list")
-        return
-    end
-    SetCompanionWatchView("companions.list")
-    SCENE_MANAGER:Show(BETTERUI_COMPANION_EQUIP_SCENE_NAME)
-end
-
 local function InstallCompanionSceneRedirect()
     BETTERUI.CIM.Utils.InstallNativeSceneRedirect({
         namespace = EVENT_NS .. "_SceneRedirect",

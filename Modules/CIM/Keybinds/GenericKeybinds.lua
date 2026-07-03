@@ -190,18 +190,6 @@ end
 
 -- KEYBIND GROUP HELPERS
 
----@param keybindGroup table The keybind group to mutate
----@param navigationType number|nil Optional navigation event type
-function BETTERUI.CIM.Keybinds.AddBackNavigation(keybindGroup, navigationType)
-    if BETTERUI.Log then
-        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "keybind: back navigation added")
-    end
-    ZO_Gamepad_AddBackNavigationKeybindDescriptors(
-        keybindGroup,
-        navigationType or GAME_NAVIGATION_TYPE_BUTTON
-    )
-end
-
 local function ResolveList(listOrGetter)
     local listWrapper = listOrGetter
     if type(listWrapper) == "function" then

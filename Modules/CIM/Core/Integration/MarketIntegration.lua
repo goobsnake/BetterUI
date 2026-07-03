@@ -460,12 +460,6 @@ function MarketIntegration.GetPriorityOrder(settings)
     return CloneArray(PRIORITY_ORDERS[key] or PRIORITY_ORDERS.mm_att_ttc)
 end
 
---- Returns the mutable priority-order table referenced by the selected key.
-function MarketIntegration.GetPriorityOrderLive(settings)
-    local key = GetPriorityKey(settings)
-    return CloneArray(PRIORITY_ORDERS[key] or PRIORITY_ORDERS.mm_att_ttc)
-end
-
 ---@param itemLink string?
 ---@param stackCount integer?
 ---@return table

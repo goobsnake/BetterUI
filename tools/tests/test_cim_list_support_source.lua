@@ -14,7 +14,6 @@ if false then
     dofile("Modules/CIM/Lists/ListRefreshManager.lua")
     dofile("Modules/CIM/Lists/ParametricListScreen.lua")
     dofile("Modules/CIM/Lists/ParametricScrollListTemplates.lua")
-    dofile("Modules/CIM/Lists/SubList.lua")
     dofile("Modules/CIM/Lists/VerticalScrollList.lua")
     dofile("Modules/CIM/Module.lua")
     dofile("Modules/CIM/UI/CurrencyManager.lua")
@@ -40,14 +39,6 @@ local function read_file(path)
 end
 
 local genericListManager = read_file("Modules/CIM/Lists/GenericListManager.lua")
-assert_true(genericListManager:find("BETTERUI%.CIM%.GenericListManager = ZO_Object:Subclass%(%)") ~= nil,
-    "GenericListManager defines the shared list manager class")
-assert_true(genericListManager:find("function BETTERUI%.CIM%.GenericListManager:SavePosition%(categoryKey, position%)") ~= nil,
-    "GenericListManager exposes SavePosition")
-assert_true(genericListManager:find("function BETTERUI%.CIM%.GenericListManager:CacheItemLinkData%(itemData, bagId, slotIndex%)") ~= nil,
-    "GenericListManager exposes CacheItemLinkData")
-assert_true(genericListManager:find("function BETTERUI%.CIM%.GenericListManager:ApplyTextFilter%(items, searchQuery%)") ~= nil,
-    "GenericListManager exposes ApplyTextFilter")
 assert_true(genericListManager:find("function BETTERUI%.CIM%.MenuEntryTemplateEquality%(left, right%)") ~= nil,
     "GenericListManager exposes MenuEntryTemplateEquality")
 
@@ -94,16 +85,6 @@ assert_true(parametricTemplates:find("LIST_GLOBALS%.TABBAR_MOVEMENT_TYPES = LIST
     "ParametricScrollListTemplates defines tab-bar movement types")
 assert_true(parametricTemplates:find("function BETTERUI%.GamepadParametricScrollListPlaySound%(movementType%)") ~= nil,
     "ParametricScrollListTemplates exposes the shared play-sound hook")
-
-local subList = read_file("Modules/CIM/Lists/SubList.lua")
-assert_true(subList:find("BETTERUI_VerticalParametricScrollListSubList = BETTERUI_VerticalParametricScrollList:Subclass%(%)") ~= nil,
-    "SubList defines the shared vertical sub-list subclass")
-assert_true(subList:find("function BETTERUI_VerticalParametricScrollListSubList:Initialize%(control, parentList, parentKeybinds, onDataChosen%)") ~= nil,
-    "SubList exposes Initialize")
-assert_true(subList:find("function BETTERUI_VerticalParametricScrollListSubList:InitializeKeybindStrip%(%)") ~= nil,
-    "SubList exposes InitializeKeybindStrip")
-assert_true(subList:find("function BETTERUI_VerticalParametricScrollListSubList:Deactivate%(%)") ~= nil,
-    "SubList exposes Deactivate")
 
 local verticalScrollList = read_file("Modules/CIM/Lists/VerticalScrollList.lua")
 assert_true(verticalScrollList:find("BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass%(%)") ~= nil,

@@ -113,13 +113,6 @@ function OptionalAddons.ResolveKey(addonKeyOrGlobal)
     return GLOBAL_TO_KEY[addonKeyOrGlobal] or MANIFEST_TO_KEY[addonKeyOrGlobal]
 end
 
-function OptionalAddons.GetKeyForGlobal(globalName)
-    if type(globalName) ~= "string" or globalName == "" then
-        return nil
-    end
-    return GLOBAL_TO_KEY[globalName]
-end
-
 function OptionalAddons.GetGlobalName(addonKeyOrGlobal)
     local resolvedKey = OptionalAddons.ResolveKey(addonKeyOrGlobal)
     local addonDef = resolvedKey and ADDON_DEFS[resolvedKey] or nil
@@ -216,11 +209,3 @@ function OptionalAddons.IsLoaded(addonKeyOrGlobal)
     return OptionalAddons.GetGlobal(addonKeyOrGlobal) ~= nil
 end
 
-function OptionalAddons.AnyLoaded(addonKeys)
-    for _, addonKeyOrGlobal in ipairs(addonKeys or {}) do
-        if OptionalAddons.IsLoaded(addonKeyOrGlobal) then
-            return true
-        end
-    end
-    return false
-end

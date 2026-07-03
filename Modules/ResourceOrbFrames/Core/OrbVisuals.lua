@@ -155,12 +155,6 @@ function BetterUIOrbBar:GetValue()
     return self.currentValue
 end
 
----@return number min Minimum value
----@return number max Maximum value
-function BetterUIOrbBar:GetMinMax()
-    return self.minValue, self.maxValue
-end
-
 ---@return number max Maximum value
 function BetterUIOrbBar:GetMax()
     return self.maxValue

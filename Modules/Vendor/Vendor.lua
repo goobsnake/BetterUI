@@ -1668,17 +1668,3 @@ end
 
 -- PUBLIC API
 
---- Check if the Vendor module has been initialized.
----@return boolean initialized True if Init() has completed
-function BETTERUI.Vendor.IsInitialized()
-    return Vendor.initialized == true
-end
-
---- Check if a store is currently open.
----@return boolean isOpen True if the vendor scene is showing
-function BETTERUI.Vendor.IsStoreOpen()
-    if Vendor.instance and Vendor.instance:IsSceneShowing() then
-        return true
-    end
-    return false
-end

@@ -59,7 +59,6 @@ local files = {
             "---@class BetterUIUnifiedScreen",
             "---@return BetterUIUnifiedScreen",
             "---@param keybindDescriptor BetterUIKeybindDescriptorGroup%?",
-            "---@param searchKeybindDescriptor BetterUIKeybindDescriptorGroup",
         },
         forbidden = {
             "---@return table",
