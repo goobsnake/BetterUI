@@ -145,8 +145,6 @@ local function ResolveDirectionalInputEntry(obj, control)
         MatchesDirectionalOwner(vendor, "Vendor.instance")
         MatchesDirectionalOwner(vendor.list, "Vendor.list")
         MatchesDirectionalOwner(vendor.movementController, "Vendor.movementController")
-        MatchesDirectionalOwner(vendor.spinner, "Vendor.spinner")
-        MatchesDirectionalOwner(vendor.spinner and vendor.spinner.spinner, "Vendor.spinner.spinner")
         MatchesDirectionalOwner(vendor.headerFocus, "Vendor.headerFocus")
         MatchesDirectionalOwner(vendor.headerFocus and vendor.headerFocus.movementController,
             "Vendor.headerFocus.movementController")

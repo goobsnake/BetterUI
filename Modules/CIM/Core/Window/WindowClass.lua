@@ -4,7 +4,7 @@ Purpose: Base window class for gamepad inventory/banking screens.
 
 
 Provides core abstractions shared across BetterUI's gamepad screens,
-including window management, spinner utilities, and scene integration.
+including window management and scene integration.
 
 Note: Scene creation is NOT done here - each module (Banking, etc.) should
 create its own scene and call InitializeFragment/InitializeScene.
@@ -24,7 +24,6 @@ BETTERUI.Interface = BETTERUI.Interface or {}
 ---@field scene table|nil
 ---@field fragment table|nil
 ---@field footerFragment table|nil
----@field spinner table|nil
 ---@field headerSortController table|nil
 ---@field sortController table|nil
 ---@field mainKeybindStripDescriptor BetterUIKeybindDescriptorGroup|nil

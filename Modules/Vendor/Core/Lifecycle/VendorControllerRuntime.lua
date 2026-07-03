@@ -303,7 +303,6 @@ function ControllerRuntime.ForceReleaseDirectionalInput(instance, deps)
 
     SafeDeactivate(instance, true)
     SafeDeactivate(instance.list, true, true)
-    deps.releaseSpinnerDirectionalInput(instance.spinner)
     deps.releaseHeaderDirectionalInput(instance.headerGeneric, "Vendor.ForceReleaseDirectionalInput:HeaderGeneric")
     deps.releaseHeaderDirectionalInput(instance.header, "Vendor.ForceReleaseDirectionalInput:Header")
     SafeDeactivate(instance.textSearchHeaderFocus, true)

@@ -439,9 +439,7 @@ local function NormalizeDirectionalInputOwnership(context)
         end)
     end
 
-    if context.confirmationMode then
-        Allow(context.spinner, true)
-    elseif context.searchModeActive or context.searchHeaderActive then
+    if context.searchModeActive or context.searchHeaderActive then
         Allow(context.textSearchHeaderFocus, true)
         Allow(context.headerFocus, true)
         Allow(context.textSearchHeaderControl, true)
@@ -509,7 +507,7 @@ local function EnsureListInputActive(context)
         list:Activate()
     end
 
-    if not context.confirmationMode and not context.searchModeActive and not context.searchHeaderActive then
+    if not context.searchModeActive and not context.searchHeaderActive then
         NormalizeDirectionalInputOwnership(context)
     end
 end
@@ -519,7 +517,7 @@ local function DeferredNormalizeDirectionalInputOwnership(context)
         return 0
     end
 
-    if context.confirmationMode or context.searchModeActive or context.searchHeaderActive then
+    if context.searchModeActive or context.searchHeaderActive then
         return 0
     end
 

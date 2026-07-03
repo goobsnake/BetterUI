@@ -711,7 +711,6 @@ end
 local function ShouldAllowVendorDeferredNormalization(screen)
     return screen
         and screen.IsSceneShowing and screen:IsSceneShowing()
-        and not screen.confirmationMode
         and not screen._searchModeActive
         and not screen._searchHeaderActive
         and not HasVisibleGamepadDialog()
@@ -974,9 +973,7 @@ function BETTERUI.Vendor.Class:NormalizeDirectionalInputOwnership(reason)
         end)
     end
 
-    if self.confirmationMode then
-        Allow(self.spinner, true)
-    elseif (self._searchModeActive or self._searchHeaderActive) and SupportsVendorHeaderSearch(self) then
+    if (self._searchModeActive or self._searchHeaderActive) and SupportsVendorHeaderSearch(self) then
         Allow(self.textSearchHeaderFocus, true)
         Allow(self.headerFocus, true)
         Allow(self.textSearchHeaderControl, true)
@@ -1655,7 +1652,7 @@ function BETTERUI.Vendor.Class:EnsureListInputActive()
         list:Activate()
     end
 
-    if self.NormalizeDirectionalInputOwnership and not self.confirmationMode
+    if self.NormalizeDirectionalInputOwnership
         and not self._searchModeActive and not self._searchHeaderActive then
         self:NormalizeDirectionalInputOwnership("EnsureListInputActive")
         if self.ScheduleDirectionalInputNormalization then
