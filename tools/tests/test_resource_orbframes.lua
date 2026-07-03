@@ -508,10 +508,10 @@ assert_eq(skillCalls.RestoreNativeActionBar, 1, "native bar restore shows the de
 assert_eq(fragmentCalls[#fragmentCalls].hidden, false, "native bar restore clears the ResourceOrbFrames attribute fragment hide reason")
 
 ResourceOrbFrames.Initialize(rootFrame)
-assert_true(registeredEvents["ResourceOrbFrames_InitSetup"] ~= nil, "initialize registers a deferred setup callback for player activation")
-registeredEvents["ResourceOrbFrames_InitSetup"].callback()
+assert_true(registeredEvents["BETTERUI_ResourceOrbFrames_InitSetup"] ~= nil, "initialize registers a deferred setup callback for player activation")
+registeredEvents["BETTERUI_ResourceOrbFrames_InitSetup"].callback()
 
-assert_eq(eventUnregisters[1].name, "ResourceOrbFrames_InitSetup", "deferred initialization unregisters the one-shot player activated callback")
+assert_eq(eventUnregisters[1].name, "BETTERUI_ResourceOrbFrames_InitSetup", "deferred initialization unregisters the one-shot player activated callback")
 assert_eq(skillCalls.ApplyActionBarSkin, 1, "deferred initialization reapplies the action bar skin")
 assert_true((skillCalls.UpdateFrontBar or 0) >= 1, "deferred initialization refreshes the front bar")
 assert_true((skillCalls.UpdateFrontBarQuickslot or 0) >= 1, "deferred initialization refreshes the quickslot button")

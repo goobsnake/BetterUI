@@ -9,7 +9,7 @@ if not BETTERUI.ResourceOrbFrames.Visuals then BETTERUI.ResourceOrbFrames.Visual
 
 local Visuals = BETTERUI.ResourceOrbFrames.Visuals
 local Animations = BETTERUI.ResourceOrbFrames.Animations
-local NAME = "ResourceOrbFrames"
+local NAME = "BETTERUI_ResourceOrbFrames"
 local DEFAULT_SHIELD_ELECTRIC_COLOR = { 0.4, 0.9, 1, 1 }
 
 --- ORB_CONFIG: Per-powertype orb fill texture-coordinate configuration.

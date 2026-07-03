@@ -13,7 +13,7 @@ local Bars = nil
 local SkillBar = nil
 local Events = nil
 
-local NAME = "ResourceOrbFrames"
+local NAME = "BETTERUI_ResourceOrbFrames"
 local BARS  -- resolved after Constants.lua loads (in Initialize)
 local XP_NO_ORNAMENT_FALLBACK_OFFSET_X = -350
 local MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X = 350
@@ -751,7 +751,7 @@ local function RegisterDynamicEvents(control)
     TraceROF("resource_orbs.events", "register_begin", {
         fn = "ResourceOrbFrames.RegisterDynamicEvents",
         hasControl = control ~= nil,
-    })    
+    })
     -- Layout force update (skip during weapon swap animation to prevent orb shifting)
     -- P2(compatibility): This callback stays registered while the module is
     -- disabled; it early-exits via SkipDisabledCallback, but it still runs on
@@ -1162,7 +1162,7 @@ function ResourceOrbFrames.Initialize(control)
             fn = "ResourceOrbFrames.EVENT_PLAYER_ACTIVATED:init",
         })
         -- Unregister through the registry so its bookkeeping stays accurate.
-        BETTERUI.CIM.EventRegistry.Unregister("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
+        BETTERUI.CIM.EventRegistry.Unregister("BETTERUI_ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
 
         GetROFTasks():Schedule("initModuleSetup", BETTERUI.CIM.CONST.TIMING.DEFERRED_INIT_MS, function()
             local settings = GetSettings()

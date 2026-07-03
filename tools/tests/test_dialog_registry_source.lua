@@ -43,6 +43,8 @@ assert_true(registrySource:find("ZO_Dialogs_RegisterCustomDialog", 1, true) ~= n
     "DialogRegistry owns the raw ZO dialog registration API")
 assert_true(registrySource:find("ESO_Dialogs[", 1, true) ~= nil,
     "DialogRegistry owns raw ESO_Dialogs table access")
+assert_true(registrySource:find("dialog ownership changed before re-register", 1, true) == nil,
+    "DialogRegistry does not emit a duplicate secondary ownership warning")
 
 for _, path in ipairs(moduleFiles) do
     local source = read_file(path)

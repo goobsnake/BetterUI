@@ -8,7 +8,7 @@ if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
 if not BETTERUI.ResourceOrbFrames.Bars then BETTERUI.ResourceOrbFrames.Bars = {} end
 
 local Bars = BETTERUI.ResourceOrbFrames.Bars
-local NAME = "ResourceOrbFrames"
+local NAME = "BETTERUI_ResourceOrbFrames"
 local BARS = BETTERUI.ResourceOrbFrames.CONST.BARS
 local XP = BARS.XP
 local CAST = BARS.CAST

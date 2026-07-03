@@ -240,6 +240,99 @@ do
 end
 
 do
+    local originalSceneManager = SCENE_MANAGER
+    local originalIsInGamepadPreferredMode = IsInGamepadPreferredMode
+    local originalIsStoreEmpty = IsStoreEmpty
+    local originalCanStoreRepair = CanStoreRepair
+    local originalIsCurrentCampaignVengeanceRuleset = IsCurrentCampaignVengeanceRuleset
+    local originalVengeanceEnabled = ZO_VENGEANCE_BAG_SELL_ENABLED
+    local originalReleaseDialog = ZO_Dialogs_ReleaseDialog
+    local originalModeBuy = ZO_MODE_STORE_BUY
+    local originalModeSell = ZO_MODE_STORE_SELL
+    local originalModeSellVengeance = ZO_MODE_STORE_SELL_VENGEANCE
+    local originalModeBuyBack = ZO_MODE_STORE_BUY_BACK
+    local originalModeRepair = ZO_MODE_STORE_REPAIR
+    local originalSceneName = GAMEPAD_STORE_SCENE_NAME
+
+    ZO_MODE_STORE_BUY = 1
+    ZO_MODE_STORE_SELL = 2
+    ZO_MODE_STORE_SELL_VENGEANCE = 3
+    ZO_MODE_STORE_BUY_BACK = 4
+    ZO_MODE_STORE_REPAIR = 5
+    GAMEPAD_STORE_SCENE_NAME = "gamepad_store"
+    ZO_VENGEANCE_BAG_SELL_ENABLED = true
+    IsInGamepadPreferredMode = function() return true end
+    IsStoreEmpty = function() return false end
+    CanStoreRepair = function() return true end
+    IsCurrentCampaignVengeanceRuleset = function() return true end
+
+    local setActiveCalls = {}
+    local sceneCalls = {}
+    local releasedDialogs = {}
+    local deactivateTextSearchCalls = 0
+    local storeManager = {
+        SetActiveComponents = function(_, modes, searchContext)
+            setActiveCalls[#setActiveCalls + 1] = {
+                modes = modes,
+                searchContext = searchContext,
+            }
+        end,
+        DeactivateTextSearch = function()
+            deactivateTextSearchCalls = deactivateTextSearchCalls + 1
+        end,
+    }
+    SCENE_MANAGER = {
+        Show = function(_, sceneName)
+            sceneCalls[#sceneCalls + 1] = "show:" .. tostring(sceneName)
+        end,
+        Hide = function(_, sceneName)
+            sceneCalls[#sceneCalls + 1] = "hide:" .. tostring(sceneName)
+        end,
+    }
+    ZO_Dialogs_ReleaseDialog = function(dialogName)
+        releasedDialogs[#releasedDialogs + 1] = dialogName
+    end
+
+    local bridge = BuildBridge({})
+    local deps = {
+        nativeStoreBridge = bridge,
+        getStoreManager = function()
+            return storeManager
+        end,
+        safeCall = function(_, fn, ...)
+            fn(...)
+            return true
+        end,
+    }
+
+    InteractionRuntime.ShowNativeStore({ deps = deps })
+    assert_eq(setActiveCalls[1].searchContext, "storeTextSearch",
+        "ShowNativeStore rebuilds native components with native search context")
+    assert_eq(table.concat(setActiveCalls[1].modes, ","), "1,2,3,4,5",
+        "ShowNativeStore mirrors ESOUI native store modes including vengeance and repair")
+    assert_eq(sceneCalls[1], "show:gamepad_store", "ShowNativeStore shows the native gamepad store scene")
+
+    InteractionRuntime.HideNativeStore({ deps = deps })
+    assert_eq(releasedDialogs[1], "REPAIR_ALL", "HideNativeStore releases the native repair dialog")
+    assert_eq(deactivateTextSearchCalls, 1, "HideNativeStore deactivates native text search")
+    assert_eq(sceneCalls[2], "hide:gamepad_store", "HideNativeStore hides the native gamepad store scene")
+
+    SCENE_MANAGER = originalSceneManager
+    IsInGamepadPreferredMode = originalIsInGamepadPreferredMode
+    IsStoreEmpty = originalIsStoreEmpty
+    CanStoreRepair = originalCanStoreRepair
+    IsCurrentCampaignVengeanceRuleset = originalIsCurrentCampaignVengeanceRuleset
+    ZO_VENGEANCE_BAG_SELL_ENABLED = originalVengeanceEnabled
+    ZO_Dialogs_ReleaseDialog = originalReleaseDialog
+    ZO_MODE_STORE_BUY = originalModeBuy
+    ZO_MODE_STORE_SELL = originalModeSell
+    ZO_MODE_STORE_SELL_VENGEANCE = originalModeSellVengeance
+    ZO_MODE_STORE_BUY_BACK = originalModeBuyBack
+    ZO_MODE_STORE_REPAIR = originalModeRepair
+    GAMEPAD_STORE_SCENE_NAME = originalSceneName
+end
+
+do
     local calls = {}
     local runtime = BuildRuntime(calls)
     local bridge = BuildBridge(calls)

@@ -525,7 +525,7 @@ function GuildBank.RegisterGuildSelectorDialog()
         },
         title = {
             text = GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL")),
-        },        
+        },
         setup = function(dialog)
             local currentGuildId = GetSelectedGuildBankId()
             local parametricList = {}

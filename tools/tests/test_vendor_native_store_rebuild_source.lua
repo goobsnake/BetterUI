@@ -36,6 +36,8 @@ ZO_MODE_STORE_REPAIR = 3
 ZO_MODE_STORE_BUY_BACK = 4
 ZO_MODE_STORE_STABLE = 5
 ZO_MODE_STORE_SELL_VENGEANCE = 6
+EVENT_OPEN_STORE = 101
+EVENT_CLOSE_STORE = 102
 
 local diDeactivations = {}
 DIRECTIONAL_INPUT = {
@@ -126,9 +128,17 @@ BETTERUI = {
                 callback()
             end,
         },
+        InteractionRuntime = {
+            FindSpecializedNativeScene = function()
+                return nil, nil
+            end,
+        },
         LogDebug = function()
         end,
     },
+    GetModuleEnabled = function(moduleName)
+        return moduleName == "Vendor"
+    end,
 }
 
 local function CreateComponent(mode)
@@ -154,9 +164,22 @@ local function BuildStoreManager()
     local setModeCalls = {}
     local initializeStoreCalls = 0
     local tabBarDeactivated = 0
+    local registeredControlEvents = {}
+    local unregisteredControlEvents = {}
 
     local manager = {
         sceneName = "gamepad_store",
+        control = {
+            RegisterForEvent = function(_, eventId, callback)
+                registeredControlEvents[eventId] = callback
+                return true
+            end,
+            UnregisterForEvent = function(_, eventId)
+                unregisteredControlEvents[#unregisteredControlEvents + 1] = eventId
+                registeredControlEvents[eventId] = nil
+                return true
+            end,
+        },
         components = {
             [ZO_MODE_STORE_BUY] = CreateComponent(ZO_MODE_STORE_BUY),
             [ZO_MODE_STORE_SELL] = CreateComponent(ZO_MODE_STORE_SELL),
@@ -213,7 +236,7 @@ local function BuildStoreManager()
         return initializeStoreCalls
     end, function()
         return tabBarDeactivated
-    end
+    end, registeredControlEvents, unregisteredControlEvents
 end
 
 dofile("Modules/Vendor/Core/Bridge/VendorNativeStoreBridge.lua")
@@ -292,6 +315,49 @@ do
 end
 
 do
+    local storeManager, _, _, _, _, registeredControlEvents, unregisteredControlEvents = BuildStoreManager()
+    STORE_WINDOW_GAMEPAD = storeManager
+    local nativeOpenFallbacks = 0
+    local nativeCloseFallbacks = 0
+    BETTERUI.Vendor.InteractionRuntime.ShowNativeStore = function(request)
+        nativeOpenFallbacks = nativeOpenFallbacks + 1
+        assert_eq(request.deps.storeManager, storeManager, "native open fallback receives the taken-over store manager")
+    end
+    BETTERUI.Vendor.InteractionRuntime.HideNativeStore = function(request)
+        nativeCloseFallbacks = nativeCloseFallbacks + 1
+        assert_eq(request.deps.storeManager, storeManager, "native close fallback receives the taken-over store manager")
+    end
+
+    NativeStoreBridge.TakeOverScene({ scene = {} })
+
+    assert_eq(unregisteredControlEvents[1], EVENT_OPEN_STORE,
+        "takeover unregisters the native open control callback before installing the wrapper")
+    assert_eq(unregisteredControlEvents[2], EVENT_CLOSE_STORE,
+        "takeover unregisters the native close control callback before installing the wrapper")
+    assert_eq(type(registeredControlEvents[EVENT_OPEN_STORE]), "function",
+        "takeover installs a replacement open control callback")
+    assert_eq(type(registeredControlEvents[EVENT_CLOSE_STORE]), "function",
+        "takeover installs a replacement close control callback")
+
+    registeredControlEvents[EVENT_OPEN_STORE]()
+    registeredControlEvents[EVENT_CLOSE_STORE]()
+    assert_eq(nativeOpenFallbacks, 0, "enabled Vendor module suppresses native open callback for BetterUI flow")
+    assert_eq(nativeCloseFallbacks, 0, "enabled Vendor module suppresses native close callback for BetterUI flow")
+
+    BETTERUI.GetModuleEnabled = function()
+        return false
+    end
+    registeredControlEvents[EVENT_OPEN_STORE]()
+    registeredControlEvents[EVENT_CLOSE_STORE]()
+    assert_eq(nativeOpenFallbacks, 1, "disabled Vendor module routes open callback to native fallback")
+    assert_eq(nativeCloseFallbacks, 1, "disabled Vendor module routes close callback to native fallback")
+
+    BETTERUI.GetModuleEnabled = function(moduleName)
+        return moduleName == "Vendor"
+    end
+end
+
+do
     local source = assert((function()
         local handle = assert(io.open("Modules/Vendor/Core/Bridge/VendorNativeStoreBridge.lua", "r"))
         local contents = handle:read("*a")
@@ -299,13 +365,21 @@ do
         return contents
     end)())
 
-    assert_not_contains(source, "UnregisterForEvent(EVENT_OPEN_STORE)",
-        "TakeOverScene no longer unregisters native open event")
-    assert_not_contains(source, "UnregisterForEvent(EVENT_CLOSE_STORE)",
-        "TakeOverScene no longer unregisters native close event")
+    assert_not_contains(source, "local methods = { \"OnOpenStore\", \"OnCloseStore\", \"OpenStore\", \"CloseStore\" }",
+        "TakeOverScene no longer prehooks nonexistent ZO_GamepadStoreManager methods")
+    assert_not_contains(source, "ZO_PreHook(storeManager, methodName",
+        "TakeOverScene does not use dynamic native store method prehooks")
     assert_contains(source, "vendor.native_store_takeover", "TakeOverScene has suppression trace hook channel")
-    assert_contains(source, "event_hook_installed", "TakeOverScene installs native-event suppression hooks")
-    assert_contains(source, "IsBetterUIVendorSceneActive", "TakeOverScene suppresses native callbacks only while vendor scene owns store")
+    assert_contains(source, "InstallNativeStoreControlEventHandlers",
+        "TakeOverScene installs replacement control event handlers")
+    assert_contains(source, "control:UnregisterForEvent(openEvent)",
+        "TakeOverScene explicitly unregisters the native open control callback")
+    assert_contains(source, "control_event_hook_installed",
+        "TakeOverScene traces replacement control event installation")
+    assert_contains(source, "ShouldBetterUIOwnNativeStoreOpenEvent",
+        "TakeOverScene suppresses native callbacks only when BetterUI owns store flow")
+    assert_contains(source, "ShowNativeStoreFallback",
+        "TakeOverScene routes non-BetterUI open events through native fallback")
 end
 
 print("  OK")

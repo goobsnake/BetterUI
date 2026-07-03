@@ -1073,6 +1073,13 @@ function BETTERUI.Vendor.Class:CycleTabs(direction)
     self:CycleModeTabs(direction)
 end
 
+local function IsVendorModuleEnabled()
+    if type(BETTERUI.GetModuleEnabled) == "function" then
+        return BETTERUI.GetModuleEnabled("Vendor") == true
+    end
+    return true
+end
+
 -- EVENT HANDLERS
 
 local function OnOpenStore()
@@ -1082,6 +1089,16 @@ local function OnOpenStore()
         event = "EVENT_OPEN_STORE",
         gamepadPreferred = gamepadPreferred,
     })
+    if not IsVendorModuleEnabled() then
+        Vendor._openedInGamepadMode = false
+        TraceVendorEvent("vendor.store_event", "skipped", {
+            fn = "Vendor.OnOpenStore",
+            event = "EVENT_OPEN_STORE",
+            reason = "moduleDisabled",
+            openedInGamepadMode = Vendor._openedInGamepadMode,
+        })
+        return
+    end
     -- Native ZO_GamepadStoreManager gates its OnOpenStore on gamepad-preferred
     -- mode; in keyboard mode the keyboard store owns the interaction and our
     -- gamepad scene must not take over. Remember that we opened so the matching
@@ -1154,6 +1171,16 @@ local function OnOpenFence(_, enableSell, enableLaunder)
         enableLaunder = enableLaunder,
         gamepadPreferred = gamepadPreferred,
     })
+    if not IsVendorModuleEnabled() then
+        Vendor._openedInGamepadMode = false
+        TraceVendorEvent("vendor.fence_event", "skipped", {
+            fn = "Vendor.OnOpenFence",
+            event = "EVENT_OPEN_FENCE",
+            reason = "moduleDisabled",
+            openedInGamepadMode = Vendor._openedInGamepadMode,
+        })
+        return
+    end
     -- Same gamepad-mode gate as OnOpenStore (native parity).
     if gamepadPreferred == false then
         Vendor._openedInGamepadMode = false
@@ -1205,6 +1232,15 @@ local function OnCloseStore()
         event = "EVENT_CLOSE_STORE",
         openedInGamepadMode = Vendor._openedInGamepadMode,
     })
+    if not IsVendorModuleEnabled() then
+        Vendor._openedInGamepadMode = false
+        TraceVendorEvent("vendor.store_event", "close_skipped", {
+            fn = "Vendor.OnCloseStore",
+            event = "EVENT_CLOSE_STORE",
+            reason = "moduleDisabled",
+        })
+        return
+    end
     -- Unlike the open handlers, close is NOT gated on the current preferred
     -- mode: a store opened in gamepad mode must still clean up even if the
     -- player switched to keyboard mid-interaction. Only skip when we never

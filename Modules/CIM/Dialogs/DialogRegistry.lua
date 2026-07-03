@@ -172,17 +172,6 @@ function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
         })
     end
 
-    local registered = BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName]
-    if registered and registered.info and previousInfo ~= registered.info and previousInfo ~= nil then
-        local L = BETTERUI.Log
-        if L and L.Warn then
-            L.Warn(L.CATEGORY.DIALOG or L.CATEGORY.GENERAL, "dialog ownership changed before re-register", {
-                dialog = dialogName,
-                ownerLost = true,
-            })
-        end
-    end
-
     -- Register with ZO_Dialogs
     if ZO_Dialogs_RegisterCustomDialog then
         ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)

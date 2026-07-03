@@ -639,10 +639,15 @@ end
 ---@param resolved table Resolved dependency table from ResolveDeps
 ---@return nil
 local function ShowNativeStore(resolved)
+    if IsInGamepadPreferredMode and not IsInGamepadPreferredMode() then
+        return
+    end
+
     local storeManager = resolved.getStoreManager and resolved.getStoreManager() or nil
     if storeManager and type(storeManager.SetActiveComponents) == "function" then
         local modeBuy = rawget(_G, "ZO_MODE_STORE_BUY")
         local modeSell = rawget(_G, "ZO_MODE_STORE_SELL")
+        local modeSellVengeance = rawget(_G, "ZO_MODE_STORE_SELL_VENGEANCE")
         local modeBuyBack = rawget(_G, "ZO_MODE_STORE_BUY_BACK")
         local componentTable = {}
         if not (IsStoreEmpty and IsStoreEmpty()) and modeBuy then
@@ -650,6 +655,11 @@ local function ShowNativeStore(resolved)
         end
         if modeSell then
             componentTable[#componentTable + 1] = modeSell
+        end
+        if IsCurrentCampaignVengeanceRuleset and IsCurrentCampaignVengeanceRuleset()
+            and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED")
+            and modeSellVengeance then
+            componentTable[#componentTable + 1] = modeSellVengeance
         end
         if modeBuyBack then
             componentTable[#componentTable + 1] = modeBuyBack
@@ -670,6 +680,40 @@ local function ShowNativeStore(resolved)
     if SCENE_MANAGER and type(SCENE_MANAGER.Show) == "function" then
         resolved.safeCall("Vendor.OpenStore:ShowNativeStoreScene", SCENE_MANAGER.Show, SCENE_MANAGER, nativeSceneName)
     end
+end
+
+local function HideNativeStore(resolved)
+    if IsInGamepadPreferredMode and not IsInGamepadPreferredMode() then
+        return
+    end
+
+    if type(ZO_Dialogs_ReleaseDialog) == "function" then
+        resolved.safeCall("Vendor.CloseStore:NativeReleaseRepairDialog",
+            ZO_Dialogs_ReleaseDialog, "REPAIR_ALL")
+    end
+
+    local storeManager = resolved.getStoreManager and resolved.getStoreManager() or nil
+    if storeManager and type(storeManager.DeactivateTextSearch) == "function" then
+        resolved.safeCall("Vendor.CloseStore:NativeDeactivateTextSearch",
+            storeManager.DeactivateTextSearch, storeManager)
+    end
+
+    local nativeSceneName = rawget(_G, "GAMEPAD_STORE_SCENE_NAME") or "gamepad_store"
+    if SCENE_MANAGER and type(SCENE_MANAGER.Hide) == "function" then
+        resolved.safeCall("Vendor.CloseStore:HideNativeStoreScene", SCENE_MANAGER.Hide, SCENE_MANAGER, nativeSceneName)
+    end
+end
+
+function InteractionRuntime.ShowNativeStore(request)
+    request = RequireRequestTable(request, "Vendor.InteractionRuntime.ShowNativeStore")
+    local deps = request.deps or request
+    ShowNativeStore(ResolveDeps(deps))
+end
+
+function InteractionRuntime.HideNativeStore(request)
+    request = RequireRequestTable(request, "Vendor.InteractionRuntime.HideNativeStore")
+    local deps = request.deps or request
+    HideNativeStore(ResolveDeps(deps))
 end
 
 local function OpenStoreInternal(state, deps, publishState)

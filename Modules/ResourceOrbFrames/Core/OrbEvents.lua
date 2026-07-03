@@ -9,11 +9,11 @@ if not BETTERUI.ResourceOrbFrames.Events then BETTERUI.ResourceOrbFrames.Events 
 
 local Events = BETTERUI.ResourceOrbFrames.Events
 local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
-local NAME = "ResourceOrbFrames"
+local NAME = "BETTERUI_ResourceOrbFrames"
 -- Collision-safe namespace for EVENT_MANAGER RegisterForUpdate loop names.
 -- Every other module prefixes its update-loop names with BETTERUI_/BetterUI_;
 -- mirror that here so the bare module name cannot collide with another addon.
-local UPDATE_NS_PREFIX = "BETTERUI_ResourceOrbFrames"
+local UPDATE_NS_PREFIX = NAME
 local COOLDOWN_VISUAL_TICK_MS = 16
 local CORE_STATUS_TICK_MS = 100
 local ANIMATION_TICK_MS = 33 -- 30fps
@@ -260,12 +260,17 @@ function Events.SetupVisibilityFragments(rootFrame)
         DeferredEnforceHide(100)
     end
 
+    local function OnPlayerAlive()
+        UpdateDeathFragment()
+        DeferredEnforceHide(100)
+    end
+
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
     end
 
     BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_PlayerDead", EVENT_PLAYER_DEAD, OnPlayerDead)
-    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_PlayerAlive", EVENT_PLAYER_ALIVE, UpdateDeathFragment)
+    BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_PlayerAlive", EVENT_PLAYER_ALIVE, OnPlayerAlive)
 
     BETTERUI.CIM.EventRegistry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_Reincarnated", EVENT_PLAYER_REINCARNATED,
         function()
@@ -360,6 +365,43 @@ local LOOP_UPDATE_SUFFIX = {
 -- Forces one cooldown scan after the module is enabled so that cooldowns which
 -- started while the loop was unregistered are discovered immediately.
 local m_cooldownScanNeeded = false
+local m_cooldownEventHandlersRegistered = false
+
+function Events.RequestCooldownVisualScan()
+    m_cooldownScanNeeded = true
+end
+
+local function RegisterCooldownScanEvents()
+    if m_cooldownEventHandlersRegistered then return end
+    local registry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
+    if not registry then return end
+
+    local function RequestCooldownScanFromEvent()
+        Events.RequestCooldownVisualScan()
+    end
+
+    local registeredAny = false
+    local abilityUsedEvent = rawget(_G, "EVENT_ACTION_SLOT_ABILITY_USED")
+    if abilityUsedEvent ~= nil then
+        if type(registry.RegisterFiltered) == "function" and rawget(_G, "REGISTER_FILTER_UNIT_TAG") ~= nil then
+            registry.RegisterFiltered("BETTERUI_ResourceOrbFrames", NAME .. "_CooldownAbilityUsed",
+                abilityUsedEvent, RequestCooldownScanFromEvent, REGISTER_FILTER_UNIT_TAG, "player")
+        elseif type(registry.Register) == "function" then
+            registry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_CooldownAbilityUsed",
+                abilityUsedEvent, RequestCooldownScanFromEvent)
+        end
+        registeredAny = true
+    end
+
+    local cooldownUpdateEvent = rawget(_G, "EVENT_ACTION_UPDATE_COOLDOWNS")
+    if cooldownUpdateEvent ~= nil and type(registry.Register) == "function" then
+        registry.Register("BETTERUI_ResourceOrbFrames", NAME .. "_CooldownUpdate",
+            cooldownUpdateEvent, RequestCooldownScanFromEvent)
+        registeredAny = true
+    end
+
+    m_cooldownEventHandlersRegistered = registeredAny
+end
 
 local function RegisterLoopUpdate(name)
     if m_loopRegistered[name] or not m_loopTicks or not m_loopTicks[name] then return end
@@ -494,6 +536,7 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
         orbAnimation = AnimationTick,
     }
     m_cooldownScanNeeded = true
+    RegisterCooldownScanEvents()
     RegisterLoopUpdates()
     TraceOrbEvents("resource_orbs.loops", "setup_end", { registered = AnyLoopRegistered() })
 end

@@ -382,9 +382,9 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 							refreshScheduled = true
 							BETTERUI.Inventory.Tasks:Schedule("destroyRefresh",
 								BETTERUI.CIM.CONST.TIMING.LIST_DESTRUCTION_DELAY_MS, function()
-								if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
-								GAMEPAD_INVENTORY:RefreshItemList()
-							end
+									if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+										GAMEPAD_INVENTORY:RefreshItemList()
+									end
 							end)
 						end
 						local released = ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_CONFIRM_DESTROY_DIALOG")

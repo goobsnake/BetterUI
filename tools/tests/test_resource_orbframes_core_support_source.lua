@@ -110,26 +110,42 @@ assert_true(eventsSource:find('EventRegistry%.Register%("BETTERUI_ResourceOrbFra
     "OrbEvents uses BETTERUI_ prefixed EventRegistry namespaces")
 assert_true(eventsSource:find('EventRegistry%.Register%("ResourceOrbFrames"') == nil,
     "OrbEvents has no bare ResourceOrbFrames EventRegistry namespaces")
+assert_true(eventsSource:find('local NAME = "BETTERUI_ResourceOrbFrames"', 1, true) ~= nil,
+    "OrbEvents prefixes its EVENT_MANAGER namespace suffixes")
+assert_true(eventsSource:find('local NAME = "ResourceOrbFrames"', 1, true) == nil,
+    "OrbEvents does not build EVENT_MANAGER namespaces from the bare module name")
 assert_true(eventsSource:find("function Events%.SetLoopsEnabled%(enabled%)") ~= nil,
     "OrbEvents exposes SetLoopsEnabled")
+assert_true(eventsSource:find("function Events%.RequestCooldownVisualScan%(%)") ~= nil,
+    "OrbEvents exposes an event-level cooldown scan rearm helper")
+assert_true(eventsSource:find("EVENT_ACTION_UPDATE_COOLDOWNS", 1, true) ~= nil,
+    "OrbEvents listens for cooldown update events so idle latches can rearm")
+assert_true(eventsSource:find('NAME %.%. "_CooldownAbilityUsed"') ~= nil,
+    "OrbEvents registers ability-used cooldown scan requests under a prefixed namespace")
 assert_true(eventsSource:find("IsCooldownVisualsArmed") ~= nil,
     "OrbEvents references the cooldown visuals armed latch")
 assert_true(eventsSource:find("L%.EnabledFor%(L%.LEVEL%.DEBUG, L%.CATEGORY%.STATE%)") ~= nil,
     "OrbEvents trace wrapper preflights with EnabledFor before building payload")
 assert_true(eventsSource:find('NAME %.%. "_PlayerDead"') ~= nil,
     "OrbEvents consolidates EVENT_PLAYER_DEAD under a single namespace")
+assert_true(eventsSource:find('NAME %.%. "_PlayerAlive", EVENT_PLAYER_ALIVE, OnPlayerAlive') ~= nil,
+    "OrbEvents re-enforces native hide state on EVENT_PLAYER_ALIVE")
 
 local orbBarsSource = read_file("Modules/ResourceOrbFrames/Core/OrbBars.lua")
 assert_true(orbBarsSource:find('EventRegistry%.Register%("BETTERUI_ResourceOrbFrames"') ~= nil,
     "OrbBars uses BETTERUI_ prefixed EventRegistry namespaces")
 assert_true(orbBarsSource:find('EventRegistry%.Register%("ResourceOrbFrames"') == nil,
     "OrbBars has no bare ResourceOrbFrames EventRegistry namespaces")
+assert_true(orbBarsSource:find('local NAME = "BETTERUI_ResourceOrbFrames"', 1, true) ~= nil,
+    "OrbBars prefixes its EVENT_MANAGER namespace suffixes")
 
 local orbVisualsSource = read_file("Modules/ResourceOrbFrames/Core/OrbVisuals.lua")
 assert_true(orbVisualsSource:find('EventRegistry%.RegisterFiltered%("BETTERUI_ResourceOrbFrames"') ~= nil,
     "OrbVisuals uses BETTERUI_ prefixed EventRegistry namespaces")
 assert_true(orbVisualsSource:find('EventRegistry%.RegisterFiltered%("ResourceOrbFrames"') == nil,
     "OrbVisuals has no bare ResourceOrbFrames EventRegistry namespaces")
+assert_true(orbVisualsSource:find('local NAME = "BETTERUI_ResourceOrbFrames"', 1, true) ~= nil,
+    "OrbVisuals prefixes its EVENT_MANAGER namespace suffixes")
 
 local frontBarCooldownsSource = read_file("Modules/ResourceOrbFrames/SkillBar/FrontBarCooldowns.lua")
 assert_true(frontBarCooldownsSource:find("L%.EnabledFor%(L%.LEVEL%.DEBUG, L%.CATEGORY%.ACTION%)") ~= nil,
@@ -148,6 +164,10 @@ assert_true(resourceOrbFramesSource:find('EventRegistry%.Register%("ResourceOrbF
     "ROF root has no bare ResourceOrbFrames EventRegistry namespaces")
 assert_true(resourceOrbFramesSource:find('EventRegistry%.RegisterFiltered%("ResourceOrbFrames"') == nil,
     "ROF root has no bare ResourceOrbFrames filtered EventRegistry namespaces")
+assert_true(resourceOrbFramesSource:find('local NAME = "BETTERUI_ResourceOrbFrames"', 1, true) ~= nil,
+    "ROF root prefixes its EVENT_MANAGER namespace suffixes")
+assert_true(resourceOrbFramesSource:find('EventRegistry.Unregister("BETTERUI_ResourceOrbFrames", NAME .. "_InitSetup"', 1, true) ~= nil,
+    "ROF root unregisters the one-shot init handler using the tracked module key")
 assert_true(resourceOrbFramesSource:find("local function GetROFDeferredTaskRuntime%(%)") ~= nil,
     "ROF root resolves DeferredTask through a lazy runtime getter")
 assert_true(resourceOrbFramesSource:find("local function GetROFTasks%(%)") ~= nil,

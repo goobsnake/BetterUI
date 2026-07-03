@@ -12,7 +12,8 @@ local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "OnCloseStore:beforeSweep"
 local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "OnCloseStore:afterSweep"
 local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.OnCloseStore:NativeOnHide"
 local updateDirectionalInputHookedManagers = setmetatable({}, { __mode = "k" })
-local nativeStoreEventHookedManagers = setmetatable({}, { __mode = "k" })
+local nativeStoreControlEventManagers = setmetatable({}, { __mode = "k" })
+local NATIVE_STORE_EVENT_NAMESPACE = "BETTERUI_VendorNativeStore"
 
 local function LogVendorDebug(flagName, category, message)
     if Vendor.LogDebug then
@@ -37,16 +38,26 @@ local function GetVendorExecuteSafely()
     return executor
 end
 
-local function IsBetterUIVendorSceneActive()
+local function IsVendorModuleEnabled()
     if type(BETTERUI.GetModuleEnabled) == "function" and BETTERUI.GetModuleEnabled("Vendor") ~= true then
         return false
     end
-    local nativeScene = Vendor.nativeStoreScene
-    if nativeScene and type(nativeScene.IsShowing) == "function" then
-        local ok, isShowing = pcall(nativeScene.IsShowing, nativeScene)
-        return ok and isShowing == true
+    return true
+end
+
+local function IsGamepadStoreEventAllowed()
+    return not IsInGamepadPreferredMode or IsInGamepadPreferredMode() == true
+end
+
+local function GetSpecializedNativeSceneState()
+    local runtime = Vendor.InteractionRuntime
+    if runtime and type(runtime.FindSpecializedNativeScene) == "function" then
+        local ok, sceneName, sceneState = pcall(runtime.FindSpecializedNativeScene)
+        if ok and sceneName then
+            return sceneName, sceneState
+        end
     end
-    return false
+    return nil, nil
 end
 
 local function IsDirectionalInputListening(obj)
@@ -189,49 +200,147 @@ local function SweepDirectionalInput(storeManager, includeComponentLists)
     end
 end
 
-local function InstallNativeStoreSuppressionHooks(storeManager)
-    if type(storeManager) ~= "table" or type(ZO_PreHook) ~= "function" then
+local function ShouldBetterUIOwnNativeStoreOpenEvent()
+    if not IsGamepadStoreEventAllowed() then
+        return false, "keyboardMode"
+    end
+    if not IsVendorModuleEnabled() then
+        return false, "moduleDisabled"
+    end
+    local specializedSceneName, specializedSceneState = GetSpecializedNativeSceneState()
+    if specializedSceneName then
+        return false, "specializedNativeScene", {
+            specializedSceneName = specializedSceneName,
+            specializedSceneState = specializedSceneState,
+        }
+    end
+    return true, "betteruiOwned"
+end
+
+local function ShouldBetterUIOwnNativeStoreCloseEvent()
+    if not IsGamepadStoreEventAllowed() then
+        return false, "keyboardMode"
+    end
+    if not IsVendorModuleEnabled() then
+        return false, "moduleDisabled"
+    end
+    if Vendor._openedInGamepadMode == false then
+        return false, "notOpenedInGamepadMode"
+    end
+    return true, "betteruiOwned"
+end
+
+local function ShowNativeStoreFallback(storeManager, reason, extra)
+    if reason == "specializedNativeScene" then
+        NativeStoreBridge.RestoreSceneAlias()
+        TraceNativeStoreBridge("vendor.native_store_takeover", "native_specialized_scene_preserved", {
+            fn = "NativeStoreBridge.ShowNativeStoreFallback",
+            reason = reason,
+            specializedSceneName = extra and extra.specializedSceneName or nil,
+            specializedSceneState = extra and extra.specializedSceneState or nil,
+        })
         return
     end
 
-    local managerHooks = nativeStoreEventHookedManagers[storeManager]
-    if managerHooks == nil then
-        managerHooks = {
-            OnOpenStore = false,
-            OnCloseStore = false,
-            OpenStore = false,
-            CloseStore = false,
-        }
-        nativeStoreEventHookedManagers[storeManager] = managerHooks
+    local runtime = Vendor.InteractionRuntime
+    if runtime and type(runtime.ShowNativeStore) == "function" then
+        runtime.ShowNativeStore({
+            deps = {
+                nativeStoreBridge = NativeStoreBridge,
+                storeManager = storeManager,
+            },
+        })
+        return
     end
 
-    local methods = { "OnOpenStore", "OnCloseStore", "OpenStore", "CloseStore" }
-    for _, methodName in ipairs(methods) do
-        if not managerHooks[methodName] then
-            if type(storeManager[methodName]) == "function" then
-                ZO_PreHook(storeManager, methodName, function()
-                    return IsBetterUIVendorSceneActive()
-                end)
-                managerHooks[methodName] = true
-                TraceNativeStoreBridge("vendor.native_store_takeover", "event_hook_installed", {
-                    fn = "NativeStoreBridge.TakeOverScene",
-                    method = methodName,
-                })
-            else
-                TraceNativeStoreBridge("vendor.native_store_takeover", "event_hook_skipped", {
-                    fn = "NativeStoreBridge.TakeOverScene",
-                    method = methodName,
-                    reason = "missing method",
-                })
-            end
-        else
-            TraceNativeStoreBridge("vendor.native_store_takeover", "event_hook_cached", {
-                fn = "NativeStoreBridge.TakeOverScene",
-                method = methodName,
-            })
-        end
+    TraceNativeStoreBridge("vendor.native_store_takeover", "native_open_fallback_skipped", {
+        fn = "NativeStoreBridge.ShowNativeStoreFallback",
+        reason = "missingInteractionRuntime",
+        trigger = reason,
+    })
+end
+
+local function HideNativeStoreFallback(storeManager, reason)
+    local runtime = Vendor.InteractionRuntime
+    if runtime and type(runtime.HideNativeStore) == "function" then
+        runtime.HideNativeStore({
+            deps = {
+                nativeStoreBridge = NativeStoreBridge,
+                storeManager = storeManager,
+            },
+        })
+        return
     end
-    nativeStoreEventHookedManagers[storeManager] = managerHooks
+
+    TraceNativeStoreBridge("vendor.native_store_takeover", "native_close_fallback_skipped", {
+        fn = "NativeStoreBridge.HideNativeStoreFallback",
+        reason = "missingInteractionRuntime",
+        trigger = reason,
+    })
+end
+
+local function InstallNativeStoreControlEventHandlers(storeManager)
+    local control = type(storeManager) == "table" and storeManager.control or nil
+    local openEvent = rawget(_G, "EVENT_OPEN_STORE")
+    local closeEvent = rawget(_G, "EVENT_CLOSE_STORE")
+    if not control
+        or type(control.RegisterForEvent) ~= "function"
+        or type(control.UnregisterForEvent) ~= "function"
+        or openEvent == nil
+        or closeEvent == nil then
+        TraceNativeStoreBridge("vendor.native_store_takeover", "control_event_hook_skipped", {
+            fn = "NativeStoreBridge.TakeOverScene",
+            reason = not control and "missingControl" or "missingControlEventApi",
+        })
+        return
+    end
+
+    if nativeStoreControlEventManagers[storeManager] then
+        TraceNativeStoreBridge("vendor.native_store_takeover", "control_event_hook_cached", {
+            fn = "NativeStoreBridge.TakeOverScene",
+            namespace = NATIVE_STORE_EVENT_NAMESPACE,
+        })
+        return
+    end
+
+    control:UnregisterForEvent(openEvent)
+    control:UnregisterForEvent(closeEvent)
+    control:RegisterForEvent(openEvent, function()
+        local betterUIOwnsEvent, reason, extra = ShouldBetterUIOwnNativeStoreOpenEvent()
+        TraceNativeStoreBridge("vendor.native_store_takeover",
+            betterUIOwnsEvent and "native_open_suppressed" or "native_open_fallback", {
+                fn = NATIVE_STORE_EVENT_NAMESPACE .. "_Open",
+                reason = reason,
+                specializedSceneName = extra and extra.specializedSceneName or nil,
+                specializedSceneState = extra and extra.specializedSceneState or nil,
+            })
+        if betterUIOwnsEvent then
+            return
+        end
+        ShowNativeStoreFallback(storeManager, reason, extra)
+    end)
+    control:RegisterForEvent(closeEvent, function()
+        local betterUIOwnsEvent, reason = ShouldBetterUIOwnNativeStoreCloseEvent()
+        TraceNativeStoreBridge("vendor.native_store_takeover",
+            betterUIOwnsEvent and "native_close_suppressed" or "native_close_fallback", {
+                fn = NATIVE_STORE_EVENT_NAMESPACE .. "_Close",
+                reason = reason,
+            })
+        if betterUIOwnsEvent then
+            return
+        end
+        HideNativeStoreFallback(storeManager, reason)
+    end)
+
+    nativeStoreControlEventManagers[storeManager] = {
+        control = control,
+        openEvent = openEvent,
+        closeEvent = closeEvent,
+    }
+    TraceNativeStoreBridge("vendor.native_store_takeover", "control_event_hook_installed", {
+        fn = "NativeStoreBridge.TakeOverScene",
+        namespace = NATIVE_STORE_EVENT_NAMESPACE,
+    })
 end
 
 local function BuildRebuildPlan(snapshot)
@@ -483,7 +592,7 @@ function NativeStoreBridge.TakeOverScene(instance)
             end
         end
 
-        InstallNativeStoreSuppressionHooks(storeManager)
+        InstallNativeStoreControlEventHandlers(storeManager)
     end
 
     NativeStoreBridge.AliasSceneToBetterUI(instance)

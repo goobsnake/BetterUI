@@ -15,10 +15,29 @@ BETTERUI = {
     },
     CIM = {
         EventRegistry = {
-            Register = function() end,
+            Register = function(_, namespace, eventId, callback)
+                registeredEvents[namespace] = {
+                    eventId = eventId,
+                    callback = callback,
+                }
+                return true
+            end,
+            RegisterFiltered = function(_, namespace, eventId, callback, filterType, filterValue)
+                registeredEvents[namespace] = {
+                    eventId = eventId,
+                    callback = callback,
+                    filterType = filterType,
+                    filterValue = filterValue,
+                }
+                return true
+            end,
         },
     },
 }
+
+EVENT_ACTION_SLOT_ABILITY_USED = 1001
+EVENT_ACTION_UPDATE_COOLDOWNS = 1002
+REGISTER_FILTER_UNIT_TAG = 2001
 
 local liveSettings = {
     m_enabled = true,
@@ -34,6 +53,7 @@ BETTERUI.ResourceOrbFrames.Utils.Settings = {
     end,
 }
 
+registeredEvents = {}
 local registeredUpdates = {}
 EVENT_MANAGER = {
     RegisterForUpdate = function(_, name, intervalMs, callback)
@@ -153,13 +173,33 @@ do
     assert_eq(backBarCalls, 1, "disarmed cooldown tick skips back bar scan")
     assert_eq(frontBarCalls, 1, "disarmed cooldown tick skips front bar scan")
 
+    local abilityUsedRegistration = registeredEvents["BETTERUI_ResourceOrbFrames_CooldownAbilityUsed"]
+    assert_true(type(abilityUsedRegistration and abilityUsedRegistration.callback) == "function",
+        "setup registers ability-used cooldown scan requests")
+    assert_eq(abilityUsedRegistration.filterType, REGISTER_FILTER_UNIT_TAG,
+        "ability-used cooldown scan registration is filtered to player events")
+
+    abilityUsedRegistration.callback(EVENT_ACTION_SLOT_ABILITY_USED, 3)
+    cooldownUpdate.callback()
+    assert_eq(backBarCalls, 2, "ability-used event rearms a disarmed cooldown scan")
+    assert_eq(frontBarCalls, 2, "ability-used event scans the front bar after rearming")
+
+    local cooldownUpdateRegistration = registeredEvents["BETTERUI_ResourceOrbFrames_CooldownUpdate"]
+    assert_true(type(cooldownUpdateRegistration and cooldownUpdateRegistration.callback) == "function",
+        "setup registers cooldown-update scan requests")
+
+    cooldownUpdateRegistration.callback(EVENT_ACTION_UPDATE_COOLDOWNS)
+    cooldownUpdate.callback()
+    assert_eq(backBarCalls, 3, "cooldown-update event rearms a disarmed cooldown scan")
+    assert_eq(frontBarCalls, 3, "cooldown-update event scans the front bar after rearming")
+
     -- When armed, the tick should scan both bars again.
     BETTERUI.ResourceOrbFrames.SkillBar.CooldownUtils.IsCooldownVisualsArmed = function()
         return true
     end
     cooldownUpdate.callback()
-    assert_eq(backBarCalls, 2, "armed cooldown tick runs back bar scan")
-    assert_eq(frontBarCalls, 2, "armed cooldown tick runs front bar scan")
+    assert_eq(backBarCalls, 4, "armed cooldown tick runs back bar scan")
+    assert_eq(frontBarCalls, 4, "armed cooldown tick runs front bar scan")
 
     -- Module disable unregisters the loop.
     Events.SetLoopsEnabled(false)
