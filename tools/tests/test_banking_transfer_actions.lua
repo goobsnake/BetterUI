@@ -560,7 +560,6 @@ local function createWindow()
         selectorHidden = true,
         moved = {},
         removeKeybindsCount = 0,
-        confirmationUpdates = {},
         quantityDialogs = {},
         savePositions = 0,
         refreshedLists = 0,
@@ -623,9 +622,6 @@ local function createWindow()
         end,
         IsSceneShowing = function(self)
             return self.sceneShowing == true
-        end,
-        UpdateSpinnerConfirmation = function(self, isActive, list)
-            table.insert(self.confirmationUpdates, { isActive = isActive, list = list })
         end,
     }
     window.list.count = 3
@@ -958,11 +954,7 @@ window.scene = {
     end,
 }
 window:CancelWithdrawDeposit(window.list)
-assertEqual(1, sceneHiddenCount, "CancelWithdrawDeposit closes the scene outside confirmation mode")
-
-window.confirmationMode = true
-window:CancelWithdrawDeposit(window.list)
-assertEqual(false, window.confirmationUpdates[1].isActive, "CancelWithdrawDeposit disables confirmation mode through spinner update")
+assertEqual(1, sceneHiddenCount, "CancelWithdrawDeposit closes the scene")
 
 -- Pending transfer state tests (PB-007)
 resetState()

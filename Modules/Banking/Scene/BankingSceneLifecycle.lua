@@ -288,9 +288,6 @@ function BETTERUI.Banking.Class:OnSceneHidden()
 
     local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     BETTERUI.Banking.SetRuntimeBankBags(nil, transferContext.interactionBag)
-    if self.confirmationMode then
-        self:UpdateSpinnerConfirmation(false, self.list)
-    end
 
     -- Force-hide currency selector
     if self.selector and self.selector.control then
@@ -312,7 +309,6 @@ function BETTERUI.Banking.Class:OnSceneHidden()
             self.coreKeybinds,
             self.currencyKeybinds,
             self.currencySelectorKeybinds,
-            self.spinnerKeybindStripDescriptor,
             self.mainKeybindStripDescriptor,
             self._activeHeaderSortKeybindDescriptor,
             self.headerSortKeybindDescriptor,

@@ -194,7 +194,6 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     footer:GetNamedChild("DepositButtonLabel"):SetColor(unpack(isWithdraw and BETTERUI_BANK_INACTIVE_LABEL_COLOR or activeColor))
     footer:GetNamedChild("WithdrawButtonLabel"):SetColor(unpack(isWithdraw and activeColor or BETTERUI_BANK_INACTIVE_LABEL_COLOR))
     BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
-    --BETTERUI.Interface.UpdateKeybindGroup(self.spinnerKeybindStripDescriptor)
     self:RefreshList()
     state.justToggledMode = false
 end

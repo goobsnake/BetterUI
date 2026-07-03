@@ -946,15 +946,9 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 end
 
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
-    local DEACTIVATE_SPINNER = false
-    if not self.confirmationMode then
-        if self.scene and self.scene.IsShowing and self.scene:IsShowing() then
-            SCENE_MANAGER:HideCurrentScene()
-        end
-        return
+    if self.scene and self.scene.IsShowing and self.scene:IsShowing() then
+        SCENE_MANAGER:HideCurrentScene()
     end
-
-    self:UpdateSpinnerConfirmation(DEACTIVATE_SPINNER, list)
 end
 
 function BETTERUI.Banking.Class:ShowActions()

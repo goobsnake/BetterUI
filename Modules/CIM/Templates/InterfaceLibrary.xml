@@ -133,45 +133,6 @@
 
         <!-- SPINNER -->
 
-        <Control name="BETTERUI_SpinnerButtons" virtual="true">
-            <Controls>
-                <Button name="$(parent)Decrease">
-                    <Dimensions x="20" y="32" />
-                    <Anchor point="LEFT" />
-                    <Textures normal="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_left_up.dds"
-                        pressed="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_left_down.dds"
-                        disabled="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_left_disabled.dds" />
-                    <OnClicked>
-                        local spinner = BETTERUI.Banking and BETTERUI.Banking.Window and BETTERUI.Banking.Window.spinner and BETTERUI.Banking.Window.spinner.spinner
-                        if spinner then spinner:ModifyValue(-1) end
-                    </OnClicked>
-                </Button>
-
-                <Button name="$(parent)Increase">
-                    <Dimensions x="20" y="32" />
-                    <Anchor point="RIGHT" />
-                    <Textures normal="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_right_up.dds"
-                        pressed="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_right_down.dds"
-                        disabled="EsoUI/Art/Miscellaneous/Gamepad/spinner_arrow_right_disabled.dds" />
-                    <OnClicked>
-                        local spinner = BETTERUI.Banking and BETTERUI.Banking.Window and BETTERUI.Banking.Window.spinner and BETTERUI.Banking.Window.spinner.spinner
-                        if spinner then spinner:ModifyValue(1) end
-                    </OnClicked>
-                </Button>
-            </Controls>
-        </Control>
-
-        <Control name="BETTERUI_GamepadSpinner"
-            inherits="BETTERUI_SpinnerButtons ZO_GamepadSpinnerStyle" virtual="true">
-            <Controls>
-                <Label name="$(parent)Display" font="ZoFontGamepadCondensed34"
-                    horizontalAlignment="CENTER" verticalAlignment="CENTER">
-                    <Anchor point="TOPLEFT" offsetX="18" offsetY="-2" />
-                    <Anchor point="BOTTOMRIGHT" offsetX="-22" offsetY="0" />
-                </Label>
-            </Controls>
-        </Control>
-
         <Control name="BETTERUI_GoldSpinnerContainerTemplate" virtual="true">
             <Controls>
 

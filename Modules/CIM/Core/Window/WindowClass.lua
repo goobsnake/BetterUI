@@ -29,14 +29,6 @@ BETTERUI.Interface = BETTERUI.Interface or {}
 ---@field sortController table|nil
 ---@field mainKeybindStripDescriptor BetterUIKeybindDescriptorGroup|nil
 ---@field coreKeybinds BetterUIKeybindDescriptorGroup|nil
----@field triggerSpinnerBinds BetterUIKeybindDescriptorGroup|nil
-
---- Wraps an integer value within min/max bounds
---- @private
-local function WrapInt(value, min, max)
-    return (zo_floor(value) - min) % (max - min + 1) + min
-end
-
 
 BETTERUI.Interface.Window = ZO_Object:Subclass()
 
@@ -54,9 +46,7 @@ end
 --- Purpose: Sets up the physical UI control and child references.
 --- Mechanics:
 --- 1. Creates the physical UI control from 'BETTERUI_GenericInterface' virtual template.
---- 2. Finds and caches references to child controls (Header, Footer, Spinner).
---- 3. Initializes the spinner and wraps its range function.
---- 4. Sets up header navigation callbacks.
+--- 2. Finds and caches references to child controls (Header, Footer).
 ---
 --- Scene/fragment setup is NOT done here. Subclasses should:
 --- 1. Create their own scene (e.g., ZO_InteractScene:New(...))
@@ -73,83 +63,11 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTempl
     self.header = self.control:GetNamedChild("ContainerHeader") --[[@as BETTERUI_WindowHeader]]
     self.footer = self.control:GetNamedChild("ContainerFooter")
 
-    -- Safely get spinner control from the hierarchy
-    local containerList = self.control:GetNamedChild("ContainerList")
-    self.spinner = containerList and containerList:GetNamedChild("SpinnerContainer")
-
-    if self.spinner and self.spinner.InitializeSpinner then
-        self.spinner:InitializeSpinner()
-
-        -- Wrap the spinner's max and min values
-        if self.spinner.spinner then
-            self.spinner.spinner.constrainRangeFunc = WrapInt
-        end
-
-        -- Stop the spinner inheriting the scrollList's alpha, allowing the list to be deactivated correctly
-        self.spinner:SetInheritAlpha(false)
-    end
-
-    self:DeactivateSpinner()
-
     self.header.columns = {}
 
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "initialize window", { tlw_name = tlw_name, template = template, hasSpinner = self.spinner ~= nil }) end
+    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "initialize window", { tlw_name = tlw_name, template = template }) end
 
     self:InitializeList()
-end
-
---- Shows and activates the spinner, deactivating the main list.
-function BETTERUI.Interface.Window:ActivateSpinner()
-    if not self.spinner then return end
-    self.spinner:SetHidden(false)
-    self.spinner:Activate()
-    if (self:GetList() ~= nil) then self:GetList():Deactivate() end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "spinner active", { active = true }) end
-end
-
---- Hides and deactivates the spinner, reactivating the main list.
-function BETTERUI.Interface.Window:DeactivateSpinner()
-    if self.spinner then
-        self.spinner:SetValue(1)
-        self.spinner:SetHidden(true)
-        self.spinner:Deactivate()
-    end
-    if (self:GetList() ~= nil) then self:GetList():Activate() end
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "spinner active", { active = false }) end
-end
-
---- Toggles spinner confirmation mode.
----@param activateSpinner boolean
----@param list table?
-function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, list)
-    self.confirmationMode = activateSpinner
-    if activateSpinner then
-        self:ActivateSpinner()
-    else
-        self:DeactivateSpinner()
-    end
-
-    if list then
-        list:RefreshVisible()
-        list:SetDirectionalInputEnabled(not activateSpinner)
-    end
-    self:ApplySpinnerMinMax(activateSpinner)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.ACTION, "spinner confirmation", { active = activateSpinner }) end
-end
-
---- Updates keybinds when spinner is toggled.
----@param toggleValue boolean
-function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
-    -- Safely toggle a spinner-specific keybind group if one is explicitly provided by a subclass.
-    -- Many modules (e.g., Banking) manage spinner keybinds themselves; in those cases this is a no-op.
-    if not self.triggerSpinnerBinds or next(self.triggerSpinnerBinds) == nil then return end
-    if toggleValue then
-        -- Spinner just activated: show its keybinds (if provided by the subclass)
-        BETTERUI.Interface.EnsureKeybindGroupAdded(self.triggerSpinnerBinds)
-    else
-        -- Spinner deactivated: remove spinner keybinds (if present)
-        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.triggerSpinnerBinds)
-    end
 end
 
 --- Gets the current primary list.
@@ -217,7 +135,6 @@ function BETTERUI.Interface.Window:InitializeKeybind()
 
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON) -- "Back"
 
-    self.triggerSpinnerBinds = {}
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "initialize keybinds", {}) end
 end
 
