@@ -1547,6 +1547,26 @@ function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
 end
 
 ---@return nil
+function BETTERUI.Vendor.Class:RefreshVendorHeader()
+    local tabBar = self.headerGeneric and self.headerGeneric.tabBar
+    if not tabBar then
+        return
+    end
+
+    if not ShouldShowVendorHeaderTabBar(self._vendorHeaderEntryCount) then
+        ReleaseHeaderDirectionalInput(self.headerGeneric, "Vendor.RefreshVendorHeader:HeaderGenericHidden")
+        ReleaseHeaderDirectionalInput(self.header, "Vendor.RefreshVendorHeader:HeaderHidden")
+        SetTabBarVisualActive(tabBar, false)
+        return
+    end
+
+    SetTabBarVisualActive(tabBar, true)
+    if self.RefreshVendorHeaderCarouselLayout then
+        self:RefreshVendorHeaderCarouselLayout()
+    end
+end
+
+---@return nil
 function BETTERUI.Vendor.Class:EnsureListInputActive()
     if self._preserveSearchFocusDuringRefresh
         and (self._searchModeActive or self._searchHeaderActive) then

@@ -38,9 +38,11 @@ The host-fixable source work for guild bank, guild store, stablemaster, vendor/b
 ### BUI-REGR-L4-VERIFY-001C: Live regression verification — tooltip and quickslot
 
 - [ ] Task: L4 verify default-tooltip mode no longer strips the native top/equipped area after initial paint; confirm `general_interface.tooltip_stock_relayout nativeTopAreaPreserved=true`. (est: 5 min)
+- [ ] Task: L4 verify enhanced-tooltip mode by hovering an equipped item, then a non-equipped item; no stale "Equipped" header may remain. (est: 5 min)
 - [ ] Task: L4 verify quickslot default placement with both skill bars visible. (est: 5 min)
 
 ### BUI-REGR-L4-VERIFY-001D: Live regression verification — builog and nameplates
 
 - [ ] Task: Re-scan a fresh builog session to confirm stale `nameplates.init` flow attribution is gone and `settings.control` no longer dominates default verbosity. (est: 5 min)
 - [ ] Task: L4 verify compass/reticle positioning survives keyboard/gamepad switches and interact/non-interact prompt swaps without stale offsets or duplicate drag handles. (est: 5 min)
+

@@ -534,23 +534,59 @@ do
     dofile("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
 
     do
-        local refreshCount = 0
+        assert_true(type(BETTERUI.Vendor.Class.EnsureHeaderKeybindsActive) == "function",
+            "vendor search lifecycle uses a production EnsureHeaderKeybindsActive method")
+        assert_true(type(BETTERUI.Vendor.Class.EnsureListInputActive) == "function",
+            "vendor search lifecycle uses a production EnsureListInputActive method")
+        assert_true(type(BETTERUI.Vendor.Class.NormalizeDirectionalInputOwnership) == "function",
+            "vendor search lifecycle uses a production NormalizeDirectionalInputOwnership method")
+        assert_true(type(BETTERUI.Vendor.Class.RefreshVendorHeader) == "function",
+            "vendor search lifecycle uses a production RefreshVendorHeader method")
+
+        local updateAnchorCalls = 0
+        local tabBar = {
+            active = false,
+            dirty = true,
+            selectedIndex = 2,
+            RefreshVisible = function(self)
+                self.refreshVisibleCalls = (self.refreshVisibleCalls or 0) + 1
+            end,
+            Commit = function(self)
+                self.commitCalls = (self.commitCalls or 0) + 1
+            end,
+            UpdateAnchors = function(self, selectedIndex, animate, _force, _skipSound)
+                updateAnchorCalls = updateAnchorCalls + 1
+                self.lastSelectedIndex = selectedIndex
+                self.lastAnimate = animate
+            end,
+        }
         local realExitVendor = setmetatable({
             _searchModeActive = true,
             _searchHeaderActive = true,
+            _vendorHeaderEntryCount = 1,
+            headerGeneric = { tabBar = tabBar },
             textSearchHeaderFocus = {
                 IsActive = function() return false end,
             },
-            EnsureHeaderKeybindsActive = function() end,
-            EnsureListInputActive = function() end,
-            NormalizeDirectionalInputOwnership = function() end,
-            RefreshVendorHeader = function()
-                refreshCount = refreshCount + 1
+            EnsureHeaderKeybindsActive = function(self)
+                self.headerInputEnsured = true
+            end,
+            EnsureListInputActive = function(self)
+                self.listInputEnsured = true
+            end,
+            NormalizeDirectionalInputOwnership = function(self, reason)
+                self.normalizedReason = reason
             end,
         }, { __index = BETTERUI.Vendor.Class })
 
         BETTERUI.Vendor.Class.ExitSearchMode(realExitVendor)
-        assert_eq(refreshCount, 1, "vendor search exit refreshes the header strip immediately")
+        assert_eq(updateAnchorCalls, 1, "vendor search exit refreshes the production header carousel immediately")
+        assert_eq(tabBar.active, true, "vendor search exit reactivates the header tab bar")
+        assert_eq(tabBar.lastSelectedIndex, 2, "vendor search exit preserves the selected header index")
+        assert_eq(realExitVendor.headerInputEnsured, true, "vendor search exit restores header input ownership")
+        assert_eq(realExitVendor.listInputEnsured, true, "vendor search exit restores list input ownership")
+        assert_eq(realExitVendor.normalizedReason, "ExitSearchMode",
+            "vendor search exit normalizes directional-input ownership")
         assert_eq(realExitVendor._refreshingVendorHeaderAfterSearchExit, nil,
             "vendor search-exit header refresh guard is cleared")
     end

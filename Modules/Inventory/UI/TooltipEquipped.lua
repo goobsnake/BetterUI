@@ -35,6 +35,18 @@ local function GetRegisteredGamepadTooltip(tooltipType)
     return tooltip, container
 end
 
+local function ClearBetterUiOwnedStatusLabel(tooltipType, container)
+    if not (container and container._betterUiStatusOwned == true) then
+        return false
+    end
+
+    if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearStatusLabel then
+        GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
+    end
+    container._betterUiStatusOwned = false
+    return true
+end
+
 --[[
 Function: BETTERUI.Inventory.UpdateTooltipEquippedText
 Intercepts and customizes the 'Equipped' tooltip header.
@@ -185,9 +197,6 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
         if enhancementsEnabled then
             -- A. Use Custom Label
-            -- Hide native labels first
-            GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
-
             -- Construct Full Text
             local fullText = ""
 
@@ -411,9 +420,12 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             local statusFontStr = "$(MEDIUM_FONT)|" .. statusFontSize .. "|shadow"
 
             customLabel:SetFont(statusFontStr)
-            container._betterUiStatusOwned = true
 
             if fullText ~= "" then
+                if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearStatusLabel then
+                    GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
+                end
+                container._betterUiStatusOwned = true
                 customLabel:SetText(fullText)
                 customLabel:SetHidden(false)
 
@@ -430,6 +442,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     bottomRail:SetHidden(false)
                 end
             else
+                ClearBetterUiOwnedStatusLabel(tooltipType, container)
                 customLabel:SetText("")
                 customLabel:SetHidden(true)
                 if tooltip then
@@ -564,6 +577,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             if equipSlot then
                 -- Equipped item - show EQUIPPED header with slot text (Main Hand, etc.)
                 GAMEPAD_TOOLTIPS:SetStatusLabelText(tooltipType, headerText, valueText)
+                container._betterUiStatusOwned = true
 
                 -- Reduce font size of the slot text (StatusLabelValue) for cleaner appearance
                 local statusLabelValue = container and container:GetNamedChild("StatusLabelValue")
@@ -571,9 +585,9 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     statusLabelValue:SetFont(STOCK_TOOLTIP_BODY_FONT)
                 end
             else
-                -- Native/default tooltip rendering owns the top/status area.
-                -- Clearing it here runs after ESOUI paints the tooltip and strips
-                -- the Equipped/header lines in default-tooltip mode.
+                -- Native/default tooltip rendering owns the top/status area unless
+                -- a previous BetterUI render explicitly claimed it.
+                ClearBetterUiOwnedStatusLabel(tooltipType, container)
             end
         end
     end

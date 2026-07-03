@@ -1363,6 +1363,46 @@ assertEqual("Equipped", nativeUpdateSurface.container.statusLabel:GetText(),
 assertEqual("Backup", nativeUpdateSurface.container.statusLabelValue:GetText(),
     "PB-003: default tooltip equipped updater preserves native status value text")
 
+print("\nTest: PB-003 default equipped-to-non-equipped clears BetterUI-owned status")
+local defaultOwnedSurface = buildMockTooltipSurface("PB003_DEFAULT_OWNED_STATUS", 2)
+defaultOwnedSurface.container.statusLabel = newMockControl(CT_LABEL)
+defaultOwnedSurface.container.statusLabelValue = defaultOwnedSurface.statusLabelValue
+local defaultOwnedClearCalls = 0
+local previousDefaultOwnedClearStatusLabel = GAMEPAD_TOOLTIPS.ClearStatusLabel
+local previousDefaultOwnedSetStatusLabelText = GAMEPAD_TOOLTIPS.SetStatusLabelText
+GAMEPAD_TOOLTIPS.ClearStatusLabel = function(_, tooltipType)
+    defaultOwnedClearCalls = defaultOwnedClearCalls + 1
+    local surface = pbControls[tooltipType]
+    if surface and surface.container then
+        surface.container.statusLabel:SetText("")
+        surface.container.statusLabelValue:SetText("")
+    end
+end
+GAMEPAD_TOOLTIPS.SetStatusLabelText = function(_, tooltipType, headerText, valueText)
+    local surface = pbControls[tooltipType]
+    if surface and surface.container then
+        surface.container.statusLabel:SetText(headerText)
+        surface.container.statusLabelValue:SetText(valueText)
+    end
+end
+
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = false
+BETTERUI.Inventory.UpdateTooltipEquippedText("PB003_DEFAULT_OWNED_STATUS", EQUIP_SLOT_MAIN_HAND)
+assertEqual(true, defaultOwnedSurface.container._betterUiStatusOwned == true,
+    "PB-003: default equipped updater records BetterUI native-status ownership")
+BETTERUI.Inventory.UpdateTooltipEquippedText("PB003_DEFAULT_OWNED_STATUS", nil)
+GAMEPAD_TOOLTIPS.ClearStatusLabel = previousDefaultOwnedClearStatusLabel
+GAMEPAD_TOOLTIPS.SetStatusLabelText = previousDefaultOwnedSetStatusLabelText
+
+assertEqual(1, defaultOwnedClearCalls,
+    "PB-003: default non-equipped updater clears BetterUI-owned native status exactly once")
+assertEqual("", defaultOwnedSurface.container.statusLabel:GetText(),
+    "PB-003: default non-equipped updater clears stale BetterUI-owned status header")
+assertEqual("", defaultOwnedSurface.container.statusLabelValue:GetText(),
+    "PB-003: default non-equipped updater clears stale BetterUI-owned status value")
+assertEqual(false, defaultOwnedSurface.container._betterUiStatusOwned == true,
+    "PB-003: default non-equipped updater releases status ownership after clearing")
+
 print("\nTest: PB-003 enhanced UpdateTooltipEquippedText clears stale BetterUI status when no status content remains")
 BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = true
 local enhancedStaleSurface = buildMockTooltipSurface("PB003_ENHANCED_STALE", 2)
@@ -1383,6 +1423,69 @@ assertEqual(true, enhancedStaleSurface.container._betterUiStatus:IsHidden(),
     "PB-003: enhanced tooltip updater hides empty BetterUI status labels")
 assertEqual(0, enhancedStaleSurface.tooltip._anchors[1].y,
     "PB-003: enhanced tooltip updater restores body offset when BetterUI status content disappears")
+assertEqual(false, enhancedStaleSurface.container._betterUiStatusOwned == true,
+    "PB-003: enhanced tooltip updater releases BetterUI status ownership when content disappears")
+
+print("\nTest: PB-003 enhanced equipped-to-non-equipped clears BetterUI-owned native status")
+local enhancedOwnedClearCalls = 0
+local previousOwnedClearStatusLabel = GAMEPAD_TOOLTIPS.ClearStatusLabel
+local previousOwnedSetStatusLabelText = GAMEPAD_TOOLTIPS.SetStatusLabelText
+local previousEquippedIndicator = ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText
+GAMEPAD_TOOLTIPS.ClearStatusLabel = function(_, tooltipType)
+    enhancedOwnedClearCalls = enhancedOwnedClearCalls + 1
+    local surface = pbControls[tooltipType]
+    if surface and surface.container then
+        local statusLabel = surface.container.statusLabel
+        local statusLabelValue = surface.container.statusLabelValue or surface.statusLabelValue
+        if statusLabel then
+            statusLabel:SetText("")
+            statusLabel:SetHidden(true)
+        end
+        if statusLabelValue then
+            statusLabelValue:SetText("")
+            statusLabelValue:SetHidden(true)
+        end
+    end
+end
+GAMEPAD_TOOLTIPS.SetStatusLabelText = function(_, tooltipType, headerText, valueText)
+    local surface = pbControls[tooltipType]
+    if surface and surface.container then
+        surface.container.statusLabel = surface.container.statusLabel or newMockControl(CT_LABEL)
+        surface.container.statusLabelValue = surface.container.statusLabelValue or surface.statusLabelValue or newMockControl(CT_LABEL)
+        surface.container.statusLabel:SetText(headerText)
+        surface.container.statusLabelValue:SetText(valueText)
+        surface.container.statusLabel:SetHidden(false)
+        surface.container.statusLabelValue:SetHidden(false)
+    end
+end
+ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText = function(tooltipType, _equipSlot)
+    GAMEPAD_TOOLTIPS:SetStatusLabelText(tooltipType, "Equipped", "Main Hand")
+end
+
+local enhancedOwnedSurface = buildMockTooltipSurface("PB003_ENHANCED_OWNED_STATUS", 2)
+enhancedOwnedSurface.container.statusLabel = newMockControl(CT_LABEL)
+enhancedOwnedSurface.container.statusLabelValue = enhancedOwnedSurface.statusLabelValue
+BETTERUI.Inventory.UpdateTooltipEquippedText("PB003_ENHANCED_OWNED_STATUS", EQUIP_SLOT_MAIN_HAND)
+assertEqual(true, enhancedOwnedSurface.container._betterUiStatusOwned == true,
+    "PB-003: enhanced equipped tooltip records BetterUI status ownership")
+
+-- Simulate ESOUI repainting the native status after BetterUI has drawn the
+-- enhanced header; the following non-equipped render must clear only because
+-- BetterUI owns the previous status area.
+GAMEPAD_TOOLTIPS:SetStatusLabelText("PB003_ENHANCED_OWNED_STATUS", "Equipped", "Main Hand")
+BETTERUI.Inventory.UpdateTooltipEquippedText("PB003_ENHANCED_OWNED_STATUS", nil)
+GAMEPAD_TOOLTIPS.ClearStatusLabel = previousOwnedClearStatusLabel
+GAMEPAD_TOOLTIPS.SetStatusLabelText = previousOwnedSetStatusLabelText
+ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText = previousEquippedIndicator
+
+assertEqual(2, enhancedOwnedClearCalls,
+    "PB-003: enhanced equipped-to-non-equipped transition clears BetterUI-owned native status")
+assertEqual("", enhancedOwnedSurface.container.statusLabel:GetText(),
+    "PB-003: enhanced non-equipped updater clears stale native status header")
+assertEqual("", enhancedOwnedSurface.container.statusLabelValue:GetText(),
+    "PB-003: enhanced non-equipped updater clears stale native status value")
+assertEqual(false, enhancedOwnedSurface.container._betterUiStatusOwned == true,
+    "PB-003: enhanced non-equipped updater releases status ownership after clearing")
 
 print("\nTest: PB-003 repeated enhancements on/off loop accumulates no drift")
 local driftSurface = buildMockTooltipSurface("PB003_DRIFT", 3)
