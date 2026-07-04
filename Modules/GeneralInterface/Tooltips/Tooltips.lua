@@ -968,17 +968,62 @@ local function ScheduleDuplicateAddonCleanup(tooltipControl)
     if tooltipControl then tooltipControl._betteruiPendingDuplicateCleanupId = callId end
 end
 
---- Forces a showing tooltip to re-render in stock mode after enhancements were
---- disabled (PB-003). First reverses enhanced control-instance state (custom
---- status label, shifted body/scroll anchors) via CleanupEnhancedTooltip, then
---- refreshes the BetterUI stock fallback price/body state while leaving the
---- native tooltip top area untouched. Native AddTopLinesToTopSection has
---- already painted that section when enhancements are disabled.
-local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType, itemLink, bagId, slotIndex, storeStackCount)
+local function IsControlVisible(control)
+    if not control then
+        return false
+    end
+    if type(control.IsHidden) ~= "function" then
+        return true
+    end
+    local ok, hidden = pcall(control.IsHidden, control)
+    return ok and hidden == false
+end
+
+local function GetTooltipContainer(tooltipType)
+    if not (tooltipType and GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.GetTooltipContainer) then
+        return nil
+    end
+    local ok, container = pcall(function()
+        return GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
+    end)
+    return ok and container or nil
+end
+
+local function HasEnhancedTooltipControls(tooltipType)
+    local container = GetTooltipContainer(tooltipType)
+    if not container then
+        return false
+    end
+    return container._betterUiStatusOwned == true
+        or IsControlVisible(container._betterUiStatus)
+        or IsControlVisible(container._betterUiComparison)
+end
+
+local function ResolveEquippedTooltipSlot(itemLink, bagId, slotIndex)
+    local wornBagId = rawget(_G, "BAG_WORN")
+    if wornBagId == nil or slotIndex == nil then
+        return nil
+    end
+    if bagId == wornBagId then
+        return slotIndex
+    end
+    if itemLink and type(GetItemLink) == "function" then
+        local ok, equippedLink = pcall(GetItemLink, wornBagId, slotIndex)
+        if ok and equippedLink == itemLink then
+            return slotIndex
+        end
+    end
+    return nil
+end
+
+--- Applies BetterUI's stock-mode additions during the LayoutItem post-hook.
+--- This keeps native tooltip content stable: no delayed task mutates a tooltip
+--- that ESOUI has already made visible.
+local function ApplyTooltipEquippedStockLayout(tooltipControl, tooltipType, itemLink, bagId, slotIndex, storeStackCount)
     local normalizedTooltipType = tonumber(tooltipType) or tooltipType
     if normalizedTooltipType == nil then
         TraceTooltip("general_interface.tooltip_stock_relayout", "skipped", {
-            fn = "ScheduleTooltipEquippedStockRelayout",
+            fn = "ApplyTooltipEquippedStockLayout",
             reason = "invalidTooltipType",
             tooltipType = tooltipType,
         })
@@ -986,81 +1031,67 @@ local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType,
     end
 
     local tooltipRef = tooltipControl
-    local capturedItemLink = itemLink
-    local capturedBagId = bagId
-    local capturedSlotIndex = slotIndex
-    local capturedStoreStackCount = storeStackCount
-    if tooltipControl and tooltipControl._betteruiPendingStockRelayoutId and zo_removeCallLater then
-        zo_removeCallLater(tooltipControl._betteruiPendingStockRelayoutId)
-        TraceTooltip("general_interface.tooltip_stock_relayout", "coalesced", {
-            fn = "ScheduleTooltipEquippedStockRelayout",
+    local visibleOk, hidden = tooltipRef and pcall(function() return tooltipRef:IsHidden() end)
+    if not tooltipRef or not visibleOk or hidden then
+        TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {
+            fn = "ApplyTooltipEquippedStockLayout",
+            reason = (not tooltipRef or not visibleOk) and "controlInvalid" or "hidden",
+            tooltipType = normalizedTooltipType,
+            error = visibleOk == false and tostring(hidden) or nil,
+        })
+        return
+    end
+    if IsIncompatibleSceneActive() then
+        TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {
+            fn = "ApplyTooltipEquippedStockLayout",
+            reason = "sceneIncompatible",
+            tooltipType = normalizedTooltipType,
+        })
+        return
+    end
+
+    if BETTERUI.CIM.SharedItemSupport then
+        local cleaned = false
+        local hasEnhancedControls = HasEnhancedTooltipControls(normalizedTooltipType)
+        if type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function"
+            and hasEnhancedControls
+            and not (tooltipRef and tooltipRef._betteruiStockCleanupApplied) then
+            TraceTooltipContentCleared(tooltipRef, tooltipType, "ApplyTooltipEquippedStockLayout", true)
+            cleaned = BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType, true) == true
+            if tooltipRef then
+                tooltipRef._betteruiStockCleanupApplied = true
+            end
+        end
+        if tooltipRef and itemLink then
+            tooltipRef._betterui_itemLink = itemLink
+            tooltipRef._betterui_bagId = bagId
+            tooltipRef._betterui_slotIndex = slotIndex
+            tooltipRef._betterui_storeStackCount = storeStackCount
+            tooltipRef._betterui_priceRendered = false
+        end
+
+        local equipSlot = ResolveEquippedTooltipSlot(itemLink, bagId, slotIndex)
+        local updated = type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function"
+        if updated then
+            BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(normalizedTooltipType, equipSlot)
+            MarkTooltipContentAppended(tooltipRef, "equipped-stock", "ApplyTooltipEquippedStockLayout", normalizedTooltipType)
+        end
+        TraceTooltip("general_interface.tooltip_stock_relayout", "updated", {
+            fn = "ApplyTooltipEquippedStockLayout",
+            tooltipType = normalizedTooltipType,
+            cleaned = cleaned,
+            hasEnhancedControls = hasEnhancedControls,
+            equipSlot = equipSlot,
+            nativeTopAreaPreserved = true,
+            stockFallbackRefreshed = updated,
+        })
+    else
+        TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {
+            fn = "ApplyTooltipEquippedStockLayout",
+            reason = "missingSharedItemSupport",
             tooltipType = normalizedTooltipType,
         })
     end
-    TraceTooltip("general_interface.tooltip_stock_relayout", "scheduled", {
-        fn = "ScheduleTooltipEquippedStockRelayout",
-        tooltipType = normalizedTooltipType,
-        delayMs = 1,
-    })
-    local callId = zo_callLater(function()
-        if tooltipRef then tooltipRef._betteruiPendingStockRelayoutId = nil end
-        local visibleOk, hidden = tooltipRef and pcall(function() return tooltipRef:IsHidden() end)
-        if not tooltipRef or not visibleOk or hidden then
-            TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {
-                fn = "ScheduleTooltipEquippedStockRelayout.task",
-                reason = (not tooltipRef or not visibleOk) and "controlInvalid" or "hidden",
-                tooltipType = normalizedTooltipType,
-                error = visibleOk == false and tostring(hidden) or nil,
-            })
-            return
-        end
-        if IsIncompatibleSceneActive() then
-            TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {
-                fn = "ScheduleTooltipEquippedStockRelayout.task",
-                reason = "sceneIncompatible",
-                tooltipType = normalizedTooltipType,
-            })
-            return
-        end
-
-        if BETTERUI.CIM.SharedItemSupport then
-            local cleaned = false
-            if type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function"
-                and not (tooltipRef and tooltipRef._betteruiStockCleanupApplied) then
-                TraceTooltipContentCleared(tooltipRef, tooltipType, "ScheduleTooltipEquippedStockRelayout.task", true)
-                BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType, true)
-                cleaned = true
-                if tooltipRef then
-                    tooltipRef._betteruiStockCleanupApplied = true
-                end
-            end
-            if tooltipRef and capturedItemLink then
-                tooltipRef._betterui_itemLink = capturedItemLink
-                tooltipRef._betterui_bagId = capturedBagId
-                tooltipRef._betterui_slotIndex = capturedSlotIndex
-                tooltipRef._betterui_storeStackCount = capturedStoreStackCount
-                tooltipRef._betterui_priceRendered = false
-            end
-            if type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
-                BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(normalizedTooltipType, nil)
-                MarkTooltipContentAppended(tooltipRef, "equipped-stock", "ScheduleTooltipEquippedStockRelayout.task", normalizedTooltipType)
-            end
-            TraceTooltip("general_interface.tooltip_stock_relayout", "updated", {
-                fn = "ScheduleTooltipEquippedStockRelayout.task",
-                tooltipType = normalizedTooltipType,
-                cleaned = cleaned,
-                nativeTopAreaPreserved = true,
-                stockFallbackRefreshed = type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function",
-            })
-        else
-            TraceTooltip("general_interface.tooltip_stock_relayout", "aborted", {
-                fn = "ScheduleTooltipEquippedStockRelayout.task",
-                reason = "missingSharedItemSupport",
-                tooltipType = normalizedTooltipType,
-            })
-        end
-    end, 1)
-    if tooltipControl then tooltipControl._betteruiPendingStockRelayoutId = callId end
 end
 
 local function ClearTooltipEnhancementState(tooltipControl, tooltipType, preserveItemData, clearedBy)
@@ -1073,14 +1104,16 @@ local function ClearTooltipEnhancementState(tooltipControl, tooltipType, preserv
         tooltipControl._betterui_priceRendered = nil
     end
 
-    if tooltipType and BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" then
+    local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
+    local canCleanupSharedSupport = enhancementsEnabled or HasEnhancedTooltipControls(tooltipType)
+    if canCleanupSharedSupport and tooltipType and BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" then
         BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType, preserveItemData == true)
     end
     TraceTooltip("general_interface.tooltip_state", "cleared", {
         fn = "ClearTooltipEnhancementState",
         tooltipType = tooltipType,
         hasTooltipControl = tooltipControl ~= nil,
-        cleanedSharedSupport = tooltipType and BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" or false,
+        cleanedSharedSupport = canCleanupSharedSupport and tooltipType and BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" or false,
     })
 end
 
@@ -1246,8 +1279,8 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
         -- Gate enhanced per-label fonts + equipped-header refresh on the setting.
         -- When enhancements are toggled OFF, re-applying enhanced fonts/anchors on
         -- the next layout would re-introduce the styling the user just disabled
-        -- (PB-003). Instead, drive a stock-mode relayout so the visible tooltip
-        -- reverts in-session without waiting for a relog.
+        -- (PB-003). Stock-mode additions run synchronously here so the
+        -- visible tooltip does not jitter after ESOUI lays it out.
         if enhancementsEnabled then
             self._betteruiStockCleanupApplied = nil
             ApplyTooltipLabelFonts(self)
@@ -1263,7 +1296,7 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
             })
         else
             RestoreTooltipLabelFonts(self)
-            ScheduleTooltipEquippedStockRelayout(
+            ApplyTooltipEquippedStockLayout(
                 self,
                 capturedTooltipType,
                 itemLink,
@@ -1276,7 +1309,7 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
                 tooltipType = capturedTooltipType,
                 hasItemLink = itemLink ~= nil,
                 enhancementsEnabled = false,
-                scheduledStockRelayout = true,
+                appliedStockLayout = true,
             })
         end
     end)

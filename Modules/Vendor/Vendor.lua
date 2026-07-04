@@ -584,6 +584,64 @@ local function RunVendorCloseCleanup(instance)
     end
 end
 
+local function ReadInteractionCameraPreviewActive()
+    local preview = rawget(_G, "ITEM_PREVIEW_GAMEPAD")
+    if not (preview and type(preview.IsInteractionCameraPreviewEnabled) == "function") then
+        return nil
+    end
+    local ok, active = pcall(preview.IsInteractionCameraPreviewEnabled, preview)
+    if not ok then
+        return nil
+    end
+    return active == true
+end
+
+local function SyncVendorPreviewState(instance, active)
+    if not instance then
+        return false
+    end
+    local nextActive = active
+    if nextActive == nil then
+        nextActive = ReadInteractionCameraPreviewActive()
+    end
+    if nextActive ~= nil then
+        instance._betteruiVendorPreviewActive = nextActive == true
+    end
+    return instance._betteruiVendorPreviewActive == true
+end
+
+local function IsVendorPreviewActive(instance)
+    local cameraActive = ReadInteractionCameraPreviewActive()
+    if cameraActive ~= nil then
+        if instance then
+            instance._betteruiVendorPreviewActive = cameraActive == true
+        end
+        return cameraActive == true
+    end
+    return instance and instance._betteruiVendorPreviewActive == true or false
+end
+
+local function EndActiveVendorPreview(instance, stableInteraction)
+    if not IsVendorPreviewActive(instance) then
+        SyncVendorPreviewState(instance, false)
+        return false
+    end
+
+    local ended = false
+    if Vendor.SelectionRuntime and type(Vendor.SelectionRuntime.ToggleSelectionPreview) == "function" then
+        Vendor.SelectionRuntime.ToggleSelectionPreview(instance, stableInteraction == true)
+        ended = true
+    else
+        local preview = rawget(_G, "ITEM_PREVIEW_GAMEPAD")
+        if preview and type(preview.EndCurrentPreview) == "function" then
+            preview:EndCurrentPreview()
+            ended = true
+        end
+    end
+    SyncVendorPreviewState(instance, false)
+    return ended
+end
+
 Vendor.ResetRuntimeState = ResetActiveVendorRuntimeState
 Vendor.CancelRuntimeTasks = CancelVendorRuntimeTasks
 
@@ -1625,6 +1683,9 @@ local function ExposeVendorRuntimeHelpers()
     Vendor.HasVendorBuyInventory = HasVendorBuyInventory
     Vendor.ResolveInitialStoreMode = ResolveInitialStoreMode
     Vendor.RunLifecycleCloseCleanup = RunVendorCloseCleanup
+    Vendor.IsPreviewActive = IsVendorPreviewActive
+    Vendor.SyncPreviewState = SyncVendorPreviewState
+    Vendor.EndActivePreview = EndActiveVendorPreview
     Vendor.UpdateSceneManagerStoreAlias = function()
         ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge")
             .UpdateSceneManagerStoreAlias(Vendor.instance)

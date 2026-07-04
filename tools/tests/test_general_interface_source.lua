@@ -45,15 +45,15 @@ assert_not_contains(setupSource, "type(ZO_PostHook) == \"function\" and ZO_PostH
     "GeneralInterface setup no longer falls back to ZO_PreHook")
 assert_contains(setupSource, "if type(ZO_PostHook) ~= \"function\" then",
     "GeneralInterface setup requires ZO_PostHook before installing mail-delete hook")
-local stockRelayoutStart = assert(tooltipsSource:find("local function ScheduleTooltipEquippedStockRelayout", 1, true))
-local stockRelayoutEnd = assert(tooltipsSource:find("local function ClearTooltipEnhancementState", stockRelayoutStart, true))
-local stockRelayoutSource = tooltipsSource:sub(stockRelayoutStart, stockRelayoutEnd)
-assert_contains(stockRelayoutSource, "UpdateTooltipEquippedText(normalizedTooltipType, nil)",
-    "Default tooltip stock relayout still refreshes BetterUI's stock fallback price/body state")
-assert_contains(stockRelayoutSource, "nativeTopAreaPreserved = true",
-    "Default tooltip stock relayout logs that native top area is preserved")
-assert_contains(stockRelayoutSource, "stockFallbackRefreshed =",
-    "Default tooltip stock relayout logs that BetterUI stock fallback state is refreshed")
+local stockLayoutStart = assert(tooltipsSource:find("local function ApplyTooltipEquippedStockLayout", 1, true))
+local stockLayoutEnd = assert(tooltipsSource:find("local function ClearTooltipEnhancementState", stockLayoutStart, true))
+local stockLayoutSource = tooltipsSource:sub(stockLayoutStart, stockLayoutEnd)
+assert_contains(stockLayoutSource, "UpdateTooltipEquippedText(normalizedTooltipType, equipSlot)",
+    "Default tooltip stock layout refreshes BetterUI's stock fallback with a per-item equipped decision")
+assert_contains(stockLayoutSource, "nativeTopAreaPreserved = true",
+    "Default tooltip stock layout logs that native top area is preserved")
+assert_contains(stockLayoutSource, "stockFallbackRefreshed =",
+    "Default tooltip stock layout logs that BetterUI stock fallback state is refreshed")
 
 assert_contains(nameplatesSource, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates runtime resolves from the dedicated Nameplates module namespace")

@@ -83,6 +83,42 @@ local function HasVisibleGamepadDialog()
     return (hiddenOk and hidden == false) or false
 end
 
+local function IsVendorPreviewActive(Vendor, vendorInstance)
+    if Vendor and type(Vendor.IsPreviewActive) == "function" then
+        return Vendor.IsPreviewActive(vendorInstance) == true
+    end
+    if ITEM_PREVIEW_GAMEPAD and type(ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled) == "function" then
+        local ok, active = pcall(ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled, ITEM_PREVIEW_GAMEPAD)
+        return ok and active == true
+    end
+    return vendorInstance and vendorInstance._betteruiVendorPreviewActive == true or false
+end
+
+local function EndVendorPreview(Vendor, vendorInstance, stableInteraction)
+    if Vendor and type(Vendor.EndActivePreview) == "function" then
+        return Vendor.EndActivePreview(vendorInstance, stableInteraction == true) == true
+    end
+    if Vendor and Vendor.SelectionRuntime and type(Vendor.SelectionRuntime.ToggleSelectionPreview) == "function" then
+        Vendor.SelectionRuntime.ToggleSelectionPreview(vendorInstance, stableInteraction == true)
+        return true
+    end
+    if ITEM_PREVIEW_GAMEPAD and type(ITEM_PREVIEW_GAMEPAD.EndCurrentPreview) == "function" then
+        ITEM_PREVIEW_GAMEPAD:EndCurrentPreview()
+        return true
+    end
+    return false
+end
+
+local function SyncVendorPreviewState(Vendor, vendorInstance, active)
+    if Vendor and type(Vendor.SyncPreviewState) == "function" then
+        return Vendor.SyncPreviewState(vendorInstance, active)
+    end
+    if vendorInstance and active ~= nil then
+        vendorInstance._betteruiVendorPreviewActive = active == true
+    end
+    return vendorInstance and vendorInstance._betteruiVendorPreviewActive == true or false
+end
+
 local function IsVendorSearchInputActive(vendorInstance)
     if not vendorInstance then
         return false
@@ -540,6 +576,18 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
             end,
             callback = function()
                 local key = "UI_SHORTCUT_RIGHT_STICK"
+                local previewActive = IsVendorPreviewActive(Vendor, vendorInstance)
+                if previewActive then
+                    ExecuteVendorKeybindAction(ctx, key, "end_preview", function()
+                        EndVendorPreview(Vendor, vendorInstance, isStableInteraction())
+                        SyncVendorPreviewState(Vendor, vendorInstance, false)
+                        if vendorInstance and vendorInstance.EnsureListInputActive then
+                            vendorInstance:EnsureListInputActive()
+                        end
+                        UpdateCurrentKeybindGroups()
+                    end, { result = "ended" })
+                    return
+                end
                 if not (Vendor.SelectionRuntime and Vendor.SelectionRuntime.ToggleSelectionPreview) then
                     TraceVendorKeybind(ctx, key, "skipped", {
                         action = "toggle_preview",
@@ -549,6 +597,7 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
                 end
                 ExecuteVendorKeybindAction(ctx, key, "toggle_preview", function()
                     Vendor.SelectionRuntime.ToggleSelectionPreview(vendorInstance, isStableInteraction())
+                    SyncVendorPreviewState(Vendor, vendorInstance)
                 end, { result = "toggled" })
             end,
         },
@@ -571,6 +620,18 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
             name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = function()
+                if IsVendorPreviewActive(Vendor, vendorInstance) then
+                    ExecuteVendorKeybindAction(ctx, "UI_SHORTCUT_NEGATIVE", "end_preview", function()
+                        EndVendorPreview(Vendor, vendorInstance, isStableInteraction())
+                        SyncVendorPreviewState(Vendor, vendorInstance, false)
+                        if vendorInstance and vendorInstance.EnsureListInputActive then
+                            vendorInstance:EnsureListInputActive()
+                        end
+                        UpdateCurrentKeybindGroups()
+                    end, { result = "ended" })
+                    return
+                end
+
                 local ms = Vendor.multiSelectManager
                 local action = ms and ms:IsActive() and "multi_select_exit" or "close_scene"
                 ExecuteVendorKeybindAction(ctx, "UI_SHORTCUT_NEGATIVE", action, function()

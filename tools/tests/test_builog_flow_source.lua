@@ -114,6 +114,7 @@ local nameplates = readFile("Modules/Nameplates/Nameplates.lua")
 local nameplateSettings = readFile("Modules/Nameplates/Settings.lua")
 local vendor = readFile("Modules/Vendor/Vendor.lua")
 local vendorKeybinds = readFile("Modules/Vendor/Core/VendorKeybinds.lua")
+local vendorBootstrap = readFile("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
 local vendorBuy = readFile("Modules/Vendor/Components/BuyComponent.lua")
 local vendorSell = readFile("Modules/Vendor/Components/SellComponent.lua")
 local vendorRepair = readFile("Modules/Vendor/Components/RepairComponent.lua")
@@ -433,6 +434,16 @@ check(bankingKeybinds:find("WrapBankingKeybindGroup(self.coreKeybinds)", 1, true
     and companionListManager:find("WrapCompanionHeaderKeybindGroup(tabBar.keybindStripDescriptor)", 1, true) ~= nil
     and generalSetup:find("WrapGeneralInterfaceKeybind(descriptor, \"mail_delete\")", 1, true) ~= nil,
     "keybind construction sites wrap the live descriptor groups, not just helper definitions")
+local vendorBackPreviewIndex = vendorKeybinds:find("if IsVendorPreviewActive(Vendor, vendorInstance) then", 1, true)
+local vendorBackCloseIndex = vendorBackPreviewIndex and vendorKeybinds:find("close_scene", vendorBackPreviewIndex, true)
+check(vendorBackPreviewIndex ~= nil
+    and vendorBackCloseIndex ~= nil
+    and vendorBackPreviewIndex < vendorBackCloseIndex
+    and vendorKeybinds:find("EndVendorPreview(Vendor, vendorInstance, isStableInteraction())", 1, true) ~= nil
+    and vendor:find("Vendor.EndActivePreview = EndActiveVendorPreview", 1, true) ~= nil
+    and vendorBootstrap:find("Vendor.SyncPreviewState(screen)", 1, true) ~= nil
+    and vendorBootstrap:find("Vendor.SyncPreviewState(screen, false)", 1, true) ~= nil,
+    "vendor Back ends active item preview before the scene-close branch")
 check(countPlain(companionDialogs, "WrapCompanionDialogKeybind({") >= 6
     and companionDialogs:find("}, \"batch_destroy_cancel\")", 1, true) ~= nil
     and companionDialogs:find("}, \"batch_destroy_confirm\")", 1, true) ~= nil

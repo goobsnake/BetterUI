@@ -201,6 +201,17 @@ end
 BETTERUI.Inventory.STOCK_TOOLTIP_BODY_FONT = STOCK_TOOLTIP_BODY_FONT
 BETTERUI.Inventory.RestoreStockLabelFonts = RestoreStockLabelFonts
 
+local function IsBetterUiControlVisible(control)
+    if not control then
+        return false
+    end
+    if type(control.IsHidden) ~= "function" then
+        return true
+    end
+    local ok, hidden = pcall(control.IsHidden, control)
+    return ok and hidden == false
+end
+
 --- Reverses BetterUI-owned enhanced-tooltip control-instance mutations so
 --- toggling enhancements off restores stock layout/fonts in-session (PB-003).
 --- Idempotent: hides and clears custom BetterUI labels, resets layout only when
@@ -212,10 +223,25 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType, preserveItemData
 
     BETTERUI.Inventory.RestoreTooltipMouseWheel()
 
-    local hasBetterUiStatus = container and container._betterUiStatus ~= nil
-    local hasBetterUiComparison = container and
-        (container._betterUiComparison ~= nil or container._betterUiComparisonDivider ~= nil)
+    local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
+    local hasBetterUiStatus = container and
+        (container._betterUiStatusOwned == true or IsBetterUiControlVisible(container._betterUiStatus))
+    local hasBetterUiComparison = container and IsBetterUiControlVisible(container._betterUiComparison)
     local shouldResetEnhancedLayout = hasBetterUiStatus or hasBetterUiComparison
+
+    if enhancementsEnabled == false and not shouldResetEnhancedLayout then
+        if tooltip then
+            RestoreStockLabelFonts(tooltip)
+            if not preserveItemData then
+                tooltip._betterui_itemLink = nil
+                tooltip._betterui_bagId = nil
+                tooltip._betterui_slotIndex = nil
+                tooltip._betterui_storeStackCount = nil
+                tooltip._betterui_priceRendered = nil
+            end
+        end
+        return false
+    end
 
     if container and container._betterUiStatus then
         if container._betterUiStatusOwned == true and GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearStatusLabel then
@@ -282,6 +308,7 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType, preserveItemData
             tooltip._betterui_priceRendered = nil
         end
     end
+    return true
 end
 
 --- Returns true if item stat comparison is enabled (requires both enhanced tooltips and the comparison toggle).

@@ -256,6 +256,9 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.RegisterCallback then
                 if not screen.onItemPreviewRefreshActionsCallback then
                     screen.onItemPreviewRefreshActionsCallback = function()
+                        if Vendor.SyncPreviewState then
+                            Vendor.SyncPreviewState(screen)
+                        end
                         if screen.RefreshVendorActionKeybinds then
                             screen:RefreshVendorActionKeybinds()
                         else
@@ -295,6 +298,9 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.UnregisterCallback and screen.onItemPreviewRefreshActionsCallback then
                 ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", screen.onItemPreviewRefreshActionsCallback)
+            end
+            if Vendor.SyncPreviewState then
+                Vendor.SyncPreviewState(screen, false)
             end
             local currentMode = screen:GetCurrentMode()
             if currentMode and screen.list then

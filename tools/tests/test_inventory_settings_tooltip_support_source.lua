@@ -72,6 +72,17 @@ assert_true(tooltipEquippedSource:find("function BETTERUI%.Inventory%.UpdateTool
 assert_true(tooltipEquippedSource:find("tooltip%._betterui_priceRendered = true") ~= nil,
     "TooltipEquipped marks price rendering ownership on the tooltip")
 
+local generalTooltipsSource = read_file("Modules/GeneralInterface/Tooltips/Tooltips.lua")
+assert_true(generalTooltipsSource:find("local function ApplyTooltipEquippedStockLayout%(") ~= nil,
+    "General tooltips apply stock additions synchronously")
+assert_true(generalTooltipsSource:find("ScheduleTooltipEquippedStockRelayout", 1, true) == nil,
+    "General tooltips do not defer stock relayout after LayoutItem")
+assert_true(generalTooltipsSource:find("ResolveEquippedTooltipSlot", 1, true) ~= nil
+        and generalTooltipsSource:find("BAG_WORN", 1, true) ~= nil,
+    "General tooltips derive stock equipped headers from worn item state")
+assert_true(generalTooltipsSource:find("HasEnhancedTooltipControls%(tooltipType%)") ~= nil,
+    "General tooltips gate stock cleanup on BetterUI-owned controls")
+
 local tooltipUtilsSource = read_file("Modules/Inventory/UI/TooltipUtils.lua")
 assert_true(tooltipUtilsSource:find("function BETTERUI%.Inventory%.ApplyTooltipStyles%(%)") ~= nil,
     "TooltipUtils exposes ApplyTooltipStyles")
