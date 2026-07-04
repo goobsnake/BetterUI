@@ -68,13 +68,40 @@ local function TraceTooltipContentCleared(tooltipControl, tooltipType, clearedBy
     if not lifecycle then
         return
     end
-    tooltipControl._betteruiTooltipContentLifecycle = nil
 
     local now = TooltipNowMs()
     local ageMs = now - (lifecycle.appendedAtMs or now)
     local L = BETTERUI and BETTERUI.Log
+    local traceLevel = L and L.LEVEL and L.LEVEL.TRACE
+
+    -- A preserving clear does NOT strip BetterUI's content: it is the stock
+    -- re-layout cycle (native ClearLines then re-append of the SAME item while
+    -- enhancements are off) or an enhanced->stock handoff that keeps the item
+    -- data. Commit 9fd32a5 preserved the item-data bookkeeping across these
+    -- clears but the content-lifecycle marker was still consumed and flagged,
+    -- so every vendor.sell re-layout still emitted an immediate strip-after-append
+    -- WARN. Keep the marker (the next layout's MarkTooltipContentAppended refreshes
+    -- it) and downgrade to a TRACE "preserved" record so the routine cycle is not
+    -- mis-detected as a content clear.
+    if preserveItemData == true then
+        TraceTooltip("general_interface.tooltip_content", "changed", {
+            fn = "TraceTooltipContentCleared",
+            action = "preserved",
+            section = lifecycle.section,
+            appendedBy = lifecycle.appendedBy,
+            clearedBy = clearedBy,
+            tooltipType = tooltipType or lifecycle.tooltipType,
+            ageMs = ageMs,
+            immediate = false,
+            preserveItemData = true,
+        }, nil, traceLevel)
+        return
+    end
+
+    tooltipControl._betteruiTooltipContentLifecycle = nil
+
     local immediate = ageMs < TOOLTIP_IMMEDIATE_CLEAR_MS
-    local level = immediate and (L and L.LEVEL and L.LEVEL.WARN) or (L and L.LEVEL and L.LEVEL.TRACE)
+    local level = immediate and (L and L.LEVEL and L.LEVEL.WARN) or traceLevel
     TraceTooltip("general_interface.tooltip_content", immediate and "detected" or "changed", {
         fn = "TraceTooltipContentCleared",
         action = "cleared",
@@ -84,7 +111,7 @@ local function TraceTooltipContentCleared(tooltipControl, tooltipType, clearedBy
         tooltipType = tooltipType or lifecycle.tooltipType,
         ageMs = ageMs,
         immediate = immediate,
-        preserveItemData = preserveItemData == true,
+        preserveItemData = false,
     }, nil, level)
 end
 
