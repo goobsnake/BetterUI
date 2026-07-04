@@ -1271,9 +1271,46 @@ end
 
 BETTERUI.Vendor.Class.IsHeaderActive = BETTERUI.Vendor.Class.IsHeaderFocused
 
+--- Header focus loss (joystick-leave, forced release, scene churn) happens
+--- inside ZO focus objects with NO callback, so any of them can strand the
+--- scene with search keybinds owning input and the list's movement controller
+--- unregistered. Wrap Deactivate on BOTH focus objects (the screen headerFocus
+--- used by scroll-into-header and the linked text-search focus) so every focus
+--- loss funnels through the same recovery as an explicit exit.
+---@return nil
+function BETTERUI.Vendor.Class:EnsureHeaderFocusLossRecovery()
+    local vendorInstance = self
+    local function wrap(focusObject)
+        if not focusObject or focusObject._betteruiDeactivateWrapped
+            or type(focusObject.Deactivate) ~= "function" then
+            return
+        end
+        focusObject._betteruiDeactivateWrapped = true
+        local originalDeactivate = focusObject.Deactivate
+        focusObject.Deactivate = function(fo, ...)
+            local result = originalDeactivate(fo, ...)
+            if not vendorInstance._betteruiSearchFocusExitInProgress then
+                vendorInstance._betteruiSearchFocusExitInProgress = true
+                if vendorInstance._searchModeActive or vendorInstance._searchHeaderActive then
+                    ExecuteSafely("Vendor.HeaderFocusDeactivate:ExitSearchMode",
+                        vendorInstance.ExitSearchMode, vendorInstance)
+                elseif vendorInstance.EnsureListInputActive then
+                    ExecuteSafely("Vendor.HeaderFocusDeactivate:EnsureListInputActive",
+                        vendorInstance.EnsureListInputActive, vendorInstance)
+                end
+                vendorInstance._betteruiSearchFocusExitInProgress = nil
+            end
+            return result
+        end
+    end
+    wrap(self.headerFocus)
+    wrap(self.textSearchHeaderFocus)
+end
+
 --- Requests focus for the search header.
 ---@return nil
 function BETTERUI.Vendor.Class:RequestHeaderFocus()
+    self:EnsureHeaderFocusLossRecovery()
     if self.OnHeaderEntered then
         self:OnHeaderEntered()
     else
@@ -1282,6 +1319,27 @@ function BETTERUI.Vendor.Class:RequestHeaderFocus()
 end
 
 BETTERUI.Vendor.Class.RequestEnterHeader = BETTERUI.Vendor.Class.RequestHeaderFocus
+
+--- Joystick-leave runs the BASE parametric screen's leave path, which knows
+--- nothing about vendor search-mode bookkeeping; route it through the same
+--- restoration explicit exits use so the list always regains the stick.
+---@return nil
+function BETTERUI.Vendor.Class:RequestLeaveHeader()
+    local base = ZO_Gamepad_ParametricList_Screen
+        and ZO_Gamepad_ParametricList_Screen.RequestLeaveHeader
+    if base then
+        ExecuteSafely("Vendor.RequestLeaveHeader:base", base, self)
+    elseif self.headerFocus and self.headerFocus.Deactivate then
+        ExecuteSafely("Vendor.RequestLeaveHeader:deactivateHeaderFocus",
+            self.headerFocus.Deactivate, self.headerFocus)
+    end
+
+    if self._searchModeActive or self._searchHeaderActive then
+        self:ExitSearchMode()
+    elseif self.EnsureListInputActive then
+        self:EnsureListInputActive()
+    end
+end
 
 --- Repositions the search control under the header title.
 ---@return nil
@@ -1307,31 +1365,7 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
     self._searchModeActive = true
     self._searchHeaderActive = true
 
-    -- Leaving the search field with the joystick deactivates the header focus
-    -- object with NO callback, stranding the scene in search mode with the
-    -- list's movement controller unregistered (dead stick). Wrap the focus
-    -- object's Deactivate once so any focus loss exits search mode and
-    -- re-arms list input through the same path B-press exit uses.
-    local focusObject = self.textSearchHeaderFocus
-    if focusObject and not focusObject._betteruiDeactivateWrapped
-        and type(focusObject.Deactivate) == "function" then
-        focusObject._betteruiDeactivateWrapped = true
-        local originalDeactivate = focusObject.Deactivate
-        local vendorInstance = self
-        focusObject.Deactivate = function(fo, ...)
-            local result = originalDeactivate(fo, ...)
-            if not vendorInstance._betteruiSearchFocusExitInProgress
-                and (vendorInstance._searchModeActive or vendorInstance._searchHeaderActive) then
-                vendorInstance._betteruiSearchFocusExitInProgress = true
-                if vendorInstance.ExitSearchMode then
-                    ExecuteSafely("Vendor.SearchFocusDeactivate:ExitSearchMode",
-                        vendorInstance.ExitSearchMode, vendorInstance)
-                end
-                vendorInstance._betteruiSearchFocusExitInProgress = nil
-            end
-            return result
-        end
-    end
+    self:EnsureHeaderFocusLossRecovery()
 
     if self.coreKeybinds and KEYBIND_STRIP then
         TraceVendorKeybindLayer("remove_before", self, self.coreKeybinds, {

@@ -195,10 +195,9 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
         {
             keybind = "UI_SHORTCUT_LEFT_SHOULDER",
             ethereal = true,
-            visible = function()
-                local canCycle = CanCycleVendorHeader(vendorInstance, getActiveTabs)
-                return canCycle == true
-            end,
+            -- No visible() gate: the strip evaluates it at group-add time,
+            -- before the header exists, and never re-registers the binding.
+            -- Ethereal keeps it out of the footer; the callback self-guards.
             callback = function()
                 local canCycle, reason = CanCycleVendorHeader(vendorInstance, getActiveTabs)
                 if not canCycle then
@@ -216,10 +215,7 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
         {
             keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
             ethereal = true,
-            visible = function()
-                local canCycle = CanCycleVendorHeader(vendorInstance, getActiveTabs)
-                return canCycle == true
-            end,
+            -- No visible() gate: see the LEFT_SHOULDER descriptor above.
             callback = function()
                 local canCycle, reason = CanCycleVendorHeader(vendorInstance, getActiveTabs)
                 if not canCycle then
