@@ -191,6 +191,11 @@ do
 
     editBox.handlers.OnKeyDown(editBox, nil, nil, nil, nil, "UI_SHORTCUT_DOWN")
     assert_contains(calls, "exit", "shortcut down exits via canonical contract")
+
+    assert_true(type(editBox.handlers.OnShortcut) == "function",
+        "shortcut handler is installed even when the edit box had no original OnShortcut handler")
+    editBox.handlers.OnShortcut(editBox, "UI_SHORTCUT_DOWN")
+    assert_contains(calls, "exit", "gamepad shortcut down exits via canonical contract")
 end
 
 -- AddSearch should always normalize callback payloads to strings.
@@ -344,6 +349,7 @@ do
 
     local vendorSource = read_file("Modules/Vendor/Core/VendorClass.lua")
     local vendorBootstrapSource = read_file("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
+    local vendorKeybindsSource = read_file("Modules/Vendor/Core/VendorKeybinds.lua")
     assert_true(vendorSource:find('BETTERUI%.CIM%.TryCall%("Interface%.Window%.ClearSearchText"') == nil,
         "Vendor search manager avoids string-path clear dispatch")
     assert_true(vendorSource:find("Interface%.Window%.OnEnterHeader") == nil,
@@ -373,6 +379,32 @@ do
         "Vendor list-input activation preserves search focus during search text refresh")
     assert_true(vendorSource:find("_refreshingVendorHeaderAfterSearchExit", 1, true) ~= nil,
         "Vendor search exit refreshes the header strip after search focus leaves")
+    assert_true(vendorSource:find("RequestLeaveHeader", 1, true) ~= nil,
+        "Vendor search exit asks the base screen to leave header focus like Inventory")
+    assert_true(vendorBootstrapSource:find("screen:EnsureListInputActive()", 1, true) ~= nil,
+        "Vendor scene show reasserts item-list gamepad input after rebuilding the list")
+    assert_true(vendorBootstrapSource:find('screen:RefreshCoreKeybindOwnership("sceneShowing")', 1, true) ~= nil,
+        "Vendor scene show reasserts the core LB/RB keybind group after rebuilding the list")
+    assert_true(vendorBootstrapSource:find("autoEnterOnListStart = false", 1, true) ~= nil,
+        "Vendor list-top navigation routes to the search lifecycle instead of header sort")
+    assert_true(vendorSource:find("ExitHeaderSortMode", 1, true) ~= nil,
+        "Vendor search exit clears header sort mode before restoring list input")
+    assert_true(vendorKeybindsSource:find("return vendorInstance._searchModeActive == true or vendorInstance._searchHeaderActive == true", 1, true) ~= nil,
+        "Vendor shoulder cycling uses explicit search lifecycle flags instead of stale focus-object state")
+    assert_true(vendorSource:find("function BETTERUI.Vendor.Class:SetSearchDirectionalInputUpdate", 1, true) ~= nil,
+        "Vendor search installs a scoped directional-input object while search owns focus")
+    assert_true(vendorSource:find("function BETTERUI.Vendor.Class:EnsureSearchMovementController", 1, true) ~= nil,
+        "Vendor search owns a movement controller for joystick search-header navigation")
+    assert_true(vendorSource:find("GetGamepadLeftStickY(GAMEPAD_INCLUDE_DEADZONE)", 1, true) ~= nil,
+        "Vendor search reads only the gamepad left stick instead of the unsafe DPad-backed base path")
+    assert_true(vendorSource:find("function BETTERUI.Vendor.Class:UpdateSearchDirectionalInput", 1, true) ~= nil,
+        "Vendor search handles search-header directional input without calling the base updater")
+    assert_true(vendorSource:find("DIRECTIONAL_INPUT:Activate(inputObject, control)", 1, true) ~= nil,
+        "Vendor search registers a scoped directional-input listener for focused search")
+    assert_true(vendorSource:find("ZO_Gamepad_ParametricList_Screen.UpdateDirectionalInput", 1, true) == nil,
+        "Vendor search avoids the base UpdateDirectionalInput path that can hit private key state")
+    assert_true(vendorSource:find("OnUpdate", 1, true) == nil,
+        "Vendor search does not use a control OnUpdate bridge for joystick handling")
     assert_true(bankingSource:find("KEYBIND_STRIP%.keybindButtonGroups") == nil,
         "Banking search cleanup never reads the nonexistent keybindButtonGroups field")
     assert_true(bankingSource:find("_searchKeybindCleanupToken", 1, true) ~= nil,
@@ -477,6 +509,9 @@ do
     local previousLog = BETTERUI.Log
     local previousKeybindStrip = KEYBIND_STRIP
     local previousSceneManager = SCENE_MANAGER
+    local deferredTasks = {}
+    local keybindAddCalls = 0
+    local keybindUpdateCalls = 0
 
     BETTERUI.Vendor = {
         MODE = {
@@ -521,13 +556,21 @@ do
         end,
         CreateLazyManagerProxy = function()
             return {
-                Cancel = function() end,
+                Cancel = function(_, name) deferredTasks[name] = nil end,
+                Schedule = function(_, name, delayMs, fn)
+                    deferredTasks[name] = { delayMs = delayMs, fn = fn }
+                end,
             }
         end,
     }
     BETTERUI.Interface.RemoveKeybindGroupIfPresent = function() end
     BETTERUI.Interface.RestoreKeybindGroups = function() end
-    BETTERUI.Interface.EnsureKeybindGroupAdded = function() end
+    BETTERUI.Interface.EnsureKeybindGroupAdded = function()
+        keybindAddCalls = keybindAddCalls + 1
+    end
+    BETTERUI.Interface.UpdateKeybindGroup = function()
+        keybindUpdateCalls = keybindUpdateCalls + 1
+    end
     BETTERUI.CIM.Lists = nil
     BETTERUI.Log = nil
     KEYBIND_STRIP = {}
@@ -539,6 +582,111 @@ do
 
     dofile("Modules/Vendor/Core/VendorClass.lua")
     dofile("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
+
+    do
+        local originalDirectionalInput = DIRECTIONAL_INPUT
+        local originalMovementController = ZO_MovementController
+        local originalMovementDirection = MOVEMENT_CONTROLLER_DIRECTION_VERTICAL
+        local originalMoveNext = MOVEMENT_CONTROLLER_MOVE_NEXT
+        local originalMovePrevious = MOVEMENT_CONTROLLER_MOVE_PREVIOUS
+        local originalLeftStick = ZO_DI_LEFT_STICK
+        local originalLeftStickNoKeyboard = ZO_DI_LEFT_STICK_NO_KEYBOARD
+        local originalIncludeDeadzone = GAMEPAD_INCLUDE_DEADZONE
+        local originalGetLeftStickY = GetGamepadLeftStickY
+        local movementController
+        local consumed
+        local activatedObject
+        local deactivatedObject
+        local lastDeadzoneFlag
+
+        MOVEMENT_CONTROLLER_DIRECTION_VERTICAL = "vertical"
+        MOVEMENT_CONTROLLER_MOVE_NEXT = "next"
+        MOVEMENT_CONTROLLER_MOVE_PREVIOUS = "previous"
+        ZO_DI_LEFT_STICK = "left_stick"
+        ZO_DI_LEFT_STICK_NO_KEYBOARD = "left_stick_no_keyboard"
+        GAMEPAD_INCLUDE_DEADZONE = "include_deadzone"
+        GetGamepadLeftStickY = function(includeDeadzone)
+            lastDeadzoneFlag = includeDeadzone
+            return 0.75
+        end
+        DIRECTIONAL_INPUT = {
+            listening = {},
+            Activate = function(self, object)
+                self.listening[object] = true
+                activatedObject = object
+            end,
+            Deactivate = function(self, object)
+                self.listening[object] = nil
+                deactivatedObject = object
+            end,
+            IsListening = function(self, object)
+                return self.listening[object] == true
+            end,
+            Consume = function(_, ...)
+                consumed = { ... }
+            end,
+        }
+        ZO_MovementController = {
+            New = function(_, direction, _, stickYGetter)
+                movementController = {
+                    direction = direction,
+                    stickYGetter = stickYGetter,
+                    nextResult = MOVEMENT_CONTROLLER_MOVE_NEXT,
+                    CheckMovement = function(self)
+                        self.lastStickY = self.stickYGetter()
+                        return self.nextResult
+                    end,
+                }
+                return movementController
+            end,
+        }
+        local control = {
+            IsControlHidden = function() return false end,
+        }
+        local exitCalls = 0
+        local vendor = setmetatable({
+            textSearchHeaderControl = control,
+            _searchModeActive = true,
+            _searchHeaderActive = true,
+            IsSceneShowing = function() return true end,
+            ExitSearchMode = function(self)
+                exitCalls = exitCalls + 1
+                self._searchModeActive = false
+                self._searchHeaderActive = false
+            end,
+        }, { __index = BETTERUI.Vendor.Class })
+
+        assert_true(vendor:SetSearchDirectionalInputUpdate(true, "test"),
+            "vendor search installs a scoped directional-input listener while search owns focus")
+        assert_eq(activatedObject, vendor._betteruiVendorSearchDirectionalInputObject,
+            "vendor search activates its scoped directional-input object")
+        assert_eq(movementController.direction, MOVEMENT_CONTROLLER_DIRECTION_VERTICAL,
+            "vendor search movement controller is vertical-only")
+        activatedObject:UpdateDirectionalInput()
+        assert_eq(exitCalls, 1,
+            "vendor search directional-input listener exits search on joystick down")
+        assert_eq(lastDeadzoneFlag, GAMEPAD_INCLUDE_DEADZONE,
+            "vendor search left-stick polling includes the gamepad deadzone flag")
+        assert_eq(movementController.lastStickY, 0.75,
+            "vendor search movement controller uses the safe left-stick getter")
+        assert_eq(consumed[1], ZO_DI_LEFT_STICK,
+            "vendor search consumes the left-stick input after handling movement")
+        assert_eq(consumed[2], ZO_DI_LEFT_STICK_NO_KEYBOARD,
+            "vendor search consumes the no-keyboard left-stick input after handling movement")
+        vendor:SetSearchDirectionalInputUpdate(false, "test")
+        assert_eq(deactivatedObject, vendor._betteruiVendorSearchDirectionalInputObject,
+            "vendor search deactivates its scoped directional-input object when search exits")
+
+        DIRECTIONAL_INPUT = originalDirectionalInput
+        ZO_MovementController = originalMovementController
+        MOVEMENT_CONTROLLER_DIRECTION_VERTICAL = originalMovementDirection
+        MOVEMENT_CONTROLLER_MOVE_NEXT = originalMoveNext
+        MOVEMENT_CONTROLLER_MOVE_PREVIOUS = originalMovePrevious
+        ZO_DI_LEFT_STICK = originalLeftStick
+        ZO_DI_LEFT_STICK_NO_KEYBOARD = originalLeftStickNoKeyboard
+        GAMEPAD_INCLUDE_DEADZONE = originalIncludeDeadzone
+        GetGamepadLeftStickY = originalGetLeftStickY
+    end
 
     do
         assert_true(type(BETTERUI.Vendor.Class.EnsureHeaderKeybindsActive) == "function",
@@ -570,11 +718,27 @@ do
         local realExitVendor = setmetatable({
             _searchModeActive = true,
             _searchHeaderActive = true,
+            isInHeaderSortMode = true,
             _vendorHeaderEntryCount = 1,
+            coreKeybinds = { { keybind = "BETTERUI_VENDOR_BUY" } },
+            scene = { IsShowing = function() return true end },
             headerGeneric = { tabBar = tabBar },
+            headerActive = true,
+            requestLeaveHeaderCalls = 0,
             textSearchHeaderFocus = {
                 IsActive = function() return false end,
             },
+            IsHeaderActive = function(self)
+                return self.headerActive == true
+            end,
+            RequestLeaveHeader = function(self)
+                self.requestLeaveHeaderCalls = self.requestLeaveHeaderCalls + 1
+                self.headerActive = false
+            end,
+            ExitHeaderSortMode = function(self)
+                self.exitHeaderSortCalls = (self.exitHeaderSortCalls or 0) + 1
+                self.isInHeaderSortMode = false
+            end,
             EnsureHeaderKeybindsActive = function(self)
                 self.headerInputEnsured = true
             end,
@@ -587,6 +751,14 @@ do
         }, { __index = BETTERUI.Vendor.Class })
 
         BETTERUI.Vendor.Class.ExitSearchMode(realExitVendor)
+        assert_eq(realExitVendor.requestLeaveHeaderCalls, 1,
+            "vendor search exit asks the base screen to leave header focus")
+        assert_eq(realExitVendor.headerActive, false,
+            "vendor search exit clears base header focus before restoring list input")
+        assert_eq(realExitVendor.exitHeaderSortCalls, 1,
+            "vendor search exit clears any stale header sort ownership")
+        assert_eq(realExitVendor.isInHeaderSortMode, false,
+            "vendor search exit leaves header sort mode before restoring list input")
         assert_eq(updateAnchorCalls, 1, "vendor search exit refreshes the production header carousel immediately")
         assert_eq(tabBar.active, true, "vendor search exit reactivates the header tab bar")
         assert_eq(tabBar.lastSelectedIndex, 2, "vendor search exit preserves the selected header index")
@@ -594,8 +766,69 @@ do
         assert_eq(realExitVendor.listInputEnsured, true, "vendor search exit restores list input ownership")
         assert_eq(realExitVendor.normalizedReason, "ExitSearchMode",
             "vendor search exit normalizes directional-input ownership")
+        assert_eq(keybindAddCalls, 1, "vendor search exit immediately restores the core keybind group")
+        assert_eq(keybindUpdateCalls, 1, "vendor search exit immediately updates the core keybind group")
+        assert_true(deferredTasks.coreKeybindRefresh ~= nil,
+            "vendor search exit schedules a deferred core keybind refresh")
+        assert_eq(deferredTasks.coreKeybindRefresh.delayMs, 0,
+            "vendor search exit refreshes core keybinds on the next frame")
+        deferredTasks.coreKeybindRefresh.fn()
+        assert_eq(keybindAddCalls, 2, "deferred vendor search exit re-adds the core keybind group")
+        assert_eq(keybindUpdateCalls, 2, "deferred vendor search exit updates the core keybind group")
+        assert_eq(realExitVendor.normalizedReason, "exitSearchMode:deferred",
+            "deferred vendor search exit normalizes directional-input ownership again")
         assert_eq(realExitVendor._refreshingVendorHeaderAfterSearchExit, nil,
             "vendor search-exit header refresh guard is cleared")
+    end
+
+    do
+        local originalBase = ZO_Gamepad_ParametricList_Screen
+        ZO_Gamepad_ParametricList_Screen = {
+            RequestEnterHeader = function(self)
+                self.requestEnterHeaderCalls = (self.requestEnterHeaderCalls or 0) + 1
+                if self.OnEnterHeader then
+                    self:OnEnterHeader()
+                end
+            end,
+        }
+
+        local vendor = setmetatable({
+            headerFocus = { IsActive = function() return false end },
+            textSearchHeaderFocus = { IsActive = function() return false end },
+            textSearchHeaderControl = { IsHidden = function() return false end },
+            EnterSearchMode = function(self)
+                self.enterSearchModeCalls = (self.enterSearchModeCalls or 0) + 1
+            end,
+        }, { __index = BETTERUI.Vendor.Class })
+
+        vendor:RequestHeaderFocus()
+        assert_eq(vendor.requestEnterHeaderCalls, 1,
+            "vendor search entry uses base RequestEnterHeader so joystick-down can leave search")
+        assert_eq(vendor.enterSearchModeCalls, 1,
+            "vendor base RequestEnterHeader still reaches vendor search mode through OnEnterHeader")
+        ZO_Gamepad_ParametricList_Screen = originalBase
+    end
+
+    do
+        deferredTasks.coreKeybindRefresh = nil
+        local leaveVendor = setmetatable({
+            _searchModeActive = true,
+            _searchHeaderActive = true,
+            coreKeybinds = { { keybind = "BETTERUI_VENDOR_BUY" } },
+            scene = { IsShowing = function() return true end },
+        }, { __index = BETTERUI.Vendor.Class })
+
+        function leaveVendor:ExitSearchMode()
+            self._searchModeActive = false
+            self._searchHeaderActive = false
+            self.exitedSearchMode = true
+        end
+
+        BETTERUI.Vendor.Class.OnLeaveHeader(leaveVendor)
+        assert_eq(leaveVendor.exitedSearchMode, true,
+            "vendor header leave exits search mode")
+        assert_true(deferredTasks.coreKeybindRefresh ~= nil,
+            "vendor header leave schedules a deferred core keybind refresh")
     end
 
     local function buildVendorSearchInstance()

@@ -22,7 +22,11 @@ BETTERUI = {
         },
     },
     Interface = {
+        addedGroups = {},
         removedGroups = {},
+        EnsureKeybindGroupAdded = function(group)
+            BETTERUI.Interface.addedGroups[#BETTERUI.Interface.addedGroups + 1] = group
+        end,
         RemoveKeybindGroupIfPresent = function(group)
             BETTERUI.Interface.removedGroups[#BETTERUI.Interface.removedGroups + 1] = group
         end,
@@ -288,7 +292,7 @@ local function SetTabBarVisualActive(tabBar, active)
         end
 
         if tabBar.keybindStripDescriptor and BETTERUI.Interface then
-            BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+            BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
         end
         ReleaseDirectionalInputRegistrations(tabBar, true)
         if tabBar.RefreshVisible then
@@ -613,6 +617,13 @@ local function DeactivateListInput(list)
         list:Deactivate()
     end
     ReleaseDirectionalInputRegistrations(list, true)
+end
+
+local function read_file(path)
+    local handle = assert(io.open(path, "r"))
+    local content = handle:read("*a") or ""
+    handle:close()
+    return content
 end
 
 -- Helpers to set state for tests
@@ -1033,6 +1044,34 @@ end
 print("[DirectionalInput header cleanup]")
 
 do
+    local vendorClassSource = read_file("Modules/Vendor/Core/VendorClass.lua")
+    local requestHeaderStart = vendorClassSource:find("function BETTERUI%.Vendor%.Class:RequestHeaderFocus%(%)")
+    local requestHeaderEnd = vendorClassSource:find("BETTERUI%.Vendor%.Class%.RequestEnterHeader =", requestHeaderStart or 1)
+    local requestHeaderSource = vendorClassSource:sub(requestHeaderStart or 1, (requestHeaderEnd or (#vendorClassSource + 1)) - 1)
+    assert_eq(requestHeaderSource:find("ZO_Gamepad_ParametricList_Screen") ~= nil, true,
+        "production vendor RequestHeaderFocus delegates to the ESOUI parametric header lifecycle")
+    assert_eq(requestHeaderSource:find("RequestEnterHeader") ~= nil, true,
+        "production vendor RequestHeaderFocus enters search through base RequestEnterHeader")
+
+    local vendorBootstrapSource = read_file("Modules/Vendor/Core/VendorBootstrapRuntime.lua")
+    local movePreviousStart = vendorBootstrapSource:find("WrapMovePreviousToHeader")
+    local movePreviousEnd = vendorBootstrapSource:find("deps%.addColumns", movePreviousStart or 1)
+    local movePreviousSource = vendorBootstrapSource:sub(movePreviousStart or 1, (movePreviousEnd or (#vendorBootstrapSource + 1)) - 1)
+    local requestFocusPos = movePreviousSource:find("instance:RequestHeaderFocus%(")
+    local onHeaderPos = movePreviousSource:find("instance:OnHeaderEntered%(")
+    assert_eq(requestFocusPos ~= nil, true,
+        "vendor MovePrevious wrapper prefers the canonical RequestHeaderFocus lifecycle")
+    assert_eq(onHeaderPos == nil or requestFocusPos < onHeaderPos, true,
+        "vendor MovePrevious wrapper does not bypass base header focus with OnHeaderEntered")
+
+    local ensureHeaderStart = vendorClassSource:find("function BETTERUI%.Vendor%.Class:EnsureHeaderKeybindsActive%(%)")
+    local refreshHeaderStart = vendorClassSource:find("function BETTERUI%.Vendor%.Class:RefreshVendorHeader%(%)")
+    local ensureHeaderSource = vendorClassSource:sub(ensureHeaderStart or 1, (refreshHeaderStart or (#vendorClassSource + 1)) - 1)
+    assert_eq(ensureHeaderSource:find("RemoveKeybindGroupIfPresent%(tabBar%.keybindStripDescriptor%)") == nil, true,
+        "production vendor header helper keeps the native tabbar keybind group registered for LB/RB")
+    assert_eq(vendorClassSource:find("EnsureKeybindGroupAdded%(tabBar%.keybindStripDescriptor%)") ~= nil, true,
+        "production vendor tabbar activation explicitly ensures the native tabbar keybind group")
+
     local headerMovementController = { id = "headerMovementController" }
     local tabBar = {
         keybindStripDescriptor = "vendor-header-tabbar",
@@ -1071,8 +1110,8 @@ do
     assert_eq(tabBar.active, true, "header helper keeps tab bar visually active")
     assert_eq(DIRECTIONAL_INPUT:IsListening(headerMovementController), false,
         "header helper clears header movement-controller registrations after visual activation")
-    assert_eq(BETTERUI.Interface.removedGroups[#BETTERUI.Interface.removedGroups], "vendor-header-tabbar",
-        "header helper removes the header tab bar keybind group after visual activation")
+    assert_eq(BETTERUI.Interface.addedGroups[#BETTERUI.Interface.addedGroups], "vendor-header-tabbar",
+        "header helper keeps the native header tab bar keybind group available for LB/RB")
     assert_eq(tabBar.refreshVisibleCalls, 1, "header helper refreshes header visuals")
     assert_eq(tabBar.commitCalls, 1, "header helper commits header visuals")
 end

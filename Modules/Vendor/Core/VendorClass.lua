@@ -529,7 +529,7 @@ end
 
 local ExecuteSafely = assert(Vendor.ExecuteSafely, "Vendor safe execute helper must load before VendorClass")
 
-local LogVendorDebug = Vendor.LogDebug
+local LogVendorDebug = Vendor.LogDebug or function() end
 
 local function TraceVendorKeybindLayer(phase, instance, descriptor, data)
     local L = BETTERUI and BETTERUI.Log
@@ -596,6 +596,19 @@ local function CountDirectionalInputRegistrations(obj)
     return registrationCount
 end
 
+local function GetVendorSearchStickY()
+    if type(GetGamepadLeftStickY) == "function" then
+        return GetGamepadLeftStickY(GAMEPAD_INCLUDE_DEADZONE) or 0
+    end
+    if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.GetY then
+        local ok, y = pcall(DIRECTIONAL_INPUT.GetY, DIRECTIONAL_INPUT, ZO_DI_LEFT_STICK_NO_KEYBOARD)
+        if ok then
+            return y or 0
+        end
+    end
+    return 0
+end
+
 ---@param tabBar table|nil
 ---@param active boolean
 ---@return nil
@@ -618,8 +631,8 @@ function SetTabBarVisualActive(tabBar, active)
             end
         end
 
-        if tabBar.keybindStripDescriptor and BETTERUI.Interface then
-            BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+        if tabBar.keybindStripDescriptor and BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded then
+            BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
         end
         ReleaseDirectionalInputRegistrations(tabBar, true)
         if tabBar.RefreshVisible then
@@ -862,6 +875,116 @@ function BETTERUI.Vendor.Class:ForceReleaseDirectionalInput()
 end
 
 ---@param reason string|nil
+---@return boolean ready
+function BETTERUI.Vendor.Class:EnsureSearchMovementController(reason)
+    if self._betteruiVendorSearchMovementController then
+        return true
+    end
+
+    if ZO_MovementController then
+        self._betteruiVendorSearchMovementController = ZO_MovementController:New(
+            MOVEMENT_CONTROLLER_DIRECTION_VERTICAL,
+            nil,
+            GetVendorSearchStickY
+        )
+        return true
+    end
+
+    LogVendorDebug(
+        "DIRECTIONAL_INPUT",
+        "VendorDI",
+        string.format("EnsureSearchMovementController missing reason=%s", tostring(reason or "unknown"))
+    )
+    return false
+end
+
+---@param reason string|nil
+---@return boolean updated
+function BETTERUI.Vendor.Class:UpdateDirectionalInput(reason)
+    LogVendorDebug(
+        "DIRECTIONAL_INPUT",
+        "VendorDI",
+        string.format("UpdateDirectionalInput skipped reason=%s", tostring(reason or "unknown"))
+    )
+    return false
+end
+
+---@param reason string|nil
+---@return boolean handled
+function BETTERUI.Vendor.Class:UpdateSearchDirectionalInput(reason)
+    if not (self._searchModeActive or self._searchHeaderActive or (self.IsHeaderFocused and self:IsHeaderFocused())) then
+        return false
+    end
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        return false
+    end
+    if not self:EnsureSearchMovementController(reason or "searchDirectionalInput") then
+        return false
+    end
+
+    local result = self._betteruiVendorSearchMovementController:CheckMovement()
+    if result == MOVEMENT_CONTROLLER_MOVE_NEXT then
+        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Consume then
+            DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK, ZO_DI_LEFT_STICK_NO_KEYBOARD)
+        end
+        if self.ExitSearchMode then
+            self:ExitSearchMode()
+        end
+        return true
+    elseif result == MOVEMENT_CONTROLLER_MOVE_PREVIOUS then
+        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Consume then
+            DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK, ZO_DI_LEFT_STICK_NO_KEYBOARD)
+        end
+        return true
+    end
+    return false
+end
+
+---@param enabled boolean
+---@param reason string|nil
+---@return boolean installed
+function BETTERUI.Vendor.Class:SetSearchDirectionalInputUpdate(enabled, reason)
+    local inputObject = self._betteruiVendorSearchDirectionalInputObject
+    if inputObject and DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT.Deactivate then
+        local safety = 0
+        while DIRECTIONAL_INPUT:IsListening(inputObject) and safety < 4 do
+            DIRECTIONAL_INPUT:Deactivate(inputObject)
+            safety = safety + 1
+        end
+    end
+
+    if enabled ~= true then
+        return false
+    end
+
+    if not self:EnsureSearchMovementController(reason or "setSearchDirectionalInputUpdate") then
+        return false
+    end
+    if not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Activate) then
+        return false
+    end
+
+    local control = self.textSearchHeaderControl or self.control or rawget(_G, "GuiRoot")
+    if not (control and control.IsControlHidden ~= nil) then
+        return false
+    end
+
+    if not inputObject then
+        inputObject = { owner = self }
+        function inputObject:UpdateDirectionalInput()
+            local owner = self.owner
+            if owner and owner.UpdateSearchDirectionalInput then
+                owner:UpdateSearchDirectionalInput("searchDirectionalInput")
+            end
+        end
+        self._betteruiVendorSearchDirectionalInputObject = inputObject
+    end
+    inputObject.owner = self
+    DIRECTIONAL_INPUT:Activate(inputObject, control)
+    return true
+end
+
+---@param reason string|nil
 ---@return boolean detached
 function BETTERUI.Vendor.Class:DetachUnexpectedSearchHeaderFocus(reason)
     if SupportsVendorHeaderSearch(self) then
@@ -1061,6 +1184,114 @@ function BETTERUI.Vendor.Class:ScheduleDirectionalInputNormalization(reason, del
     end)
 end
 
+---@param reason string|nil
+---@return boolean refreshed
+function BETTERUI.Vendor.Class:RefreshCoreKeybindOwnership(reason)
+    if self._searchModeActive or self._searchHeaderActive then
+        return false
+    end
+    if self.scene and self.scene.IsShowing and not self.scene:IsShowing() then
+        return false
+    end
+    if not (self.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded) then
+        return false
+    end
+
+    TraceVendorKeybindLayer("refresh_before", self, self.coreKeybinds, {
+        feature = "vendor-core-keybind-refresh",
+        reason = reason or "unknown",
+        keybindLabel = "vendor-core",
+    })
+    BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
+    if BETTERUI.Interface.UpdateKeybindGroup then
+        BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
+    end
+    TraceVendorKeybindLayer("refresh_after", self, self.coreKeybinds, {
+        feature = "vendor-core-keybind-refresh",
+        reason = reason or "unknown",
+        keybindLabel = "vendor-core",
+    })
+    return true
+end
+
+---@param reason string|nil
+---@param delayMs number|nil
+---@return nil
+function BETTERUI.Vendor.Class:ScheduleCoreKeybindRefresh(reason, delayMs)
+    local tasks = BETTERUI.Vendor and BETTERUI.Vendor.Tasks
+    if not (tasks and tasks.Cancel and tasks.Schedule) then
+        self:RefreshCoreKeybindOwnership(reason or "scheduleUnavailable")
+        return
+    end
+
+    tasks:Cancel("coreKeybindRefresh")
+    tasks:Schedule("coreKeybindRefresh", delayMs or 0, function()
+        if self.RefreshCoreKeybindOwnership then
+            self:RefreshCoreKeybindOwnership(string.format("%s:deferred", tostring(reason or "unknown")))
+        end
+        if self.NormalizeDirectionalInputOwnership and not self._searchModeActive and not self._searchHeaderActive then
+            self:NormalizeDirectionalInputOwnership(string.format("%s:deferred", tostring(reason or "unknown")))
+        end
+    end)
+end
+
+---@param reason string|nil
+---@return boolean refreshed
+function BETTERUI.Vendor.Class:RefreshSceneEntryKeybindOwnership(reason)
+    reason = reason or "sceneEntry"
+    if self._searchModeActive or self._searchHeaderActive then
+        return false
+    end
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        return false
+    end
+
+    if self.RefreshVendorHeader then
+        self:RefreshVendorHeader()
+    end
+    if self.ActivateHeader then
+        self:ActivateHeader()
+    end
+    if self.EnsureHeaderKeybindsActive then
+        self:EnsureHeaderKeybindsActive()
+    end
+    if self.EnsureListInputActive then
+        self:EnsureListInputActive()
+    elseif self.list and self.list.Activate and (not self.list.IsActive or not self.list:IsActive()) then
+        self.list:Activate()
+    end
+
+    local refreshed = false
+    if self.RefreshCoreKeybindOwnership then
+        refreshed = self:RefreshCoreKeybindOwnership(reason) == true
+    end
+    if self.RefreshVendorActionKeybinds then
+        self:RefreshVendorActionKeybinds()
+    elseif BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups then
+        BETTERUI.Interface.UpdateCurrentKeybindGroups()
+    end
+    if self.NormalizeDirectionalInputOwnership then
+        self:NormalizeDirectionalInputOwnership(reason)
+    end
+    return refreshed
+end
+
+---@param reason string|nil
+---@param delayMs number|nil
+---@return nil
+function BETTERUI.Vendor.Class:ScheduleSceneEntryKeybindRefresh(reason, delayMs)
+    local tasks = BETTERUI.Vendor and BETTERUI.Vendor.Tasks
+    if not (tasks and tasks.Cancel and tasks.Schedule) then
+        self:RefreshSceneEntryKeybindOwnership(reason or "sceneEntry:scheduleUnavailable")
+        return
+    end
+
+    tasks:Cancel("sceneEntryKeybindRefresh")
+    tasks:Schedule("sceneEntryKeybindRefresh", delayMs or 0, function()
+        self:RefreshSceneEntryKeybindOwnership(string.format("%s:deferred", tostring(reason or "sceneEntry")))
+    end)
+end
+
 ---@return number mode Current vendor mode constant
 function BETTERUI.Vendor.Class:GetCurrentMode()
     return self.currentMode or BETTERUI.Vendor.MODE.BUY
@@ -1179,6 +1410,22 @@ function BETTERUI.Vendor.Class:InitializeCategoryHeader()
     BETTERUI.GenericHeader.Initialize(self.headerGeneric, ZO_GAMEPAD_HEADER_TABBAR_CREATE)
 end
 
+---@return nil
+function BETTERUI.Vendor.Class:ActivateHeader()
+    if self.headerGeneric and ZO_GamepadGenericHeader_Activate then
+        ExecuteSafely("Vendor.ActivateHeader:GenericHeader", ZO_GamepadGenericHeader_Activate, self.headerGeneric)
+    end
+
+    local tabBar = self.headerGeneric and self.headerGeneric.tabBar
+    if tabBar and tabBar.SetSelectedIndexWithoutAnimation then
+        local selectedIndex = tabBar.targetSelectedIndex or self.currentCategoryIndex or tabBar.selectedIndex or 1
+        tabBar:SetSelectedIndexWithoutAnimation(selectedIndex, true, false)
+    end
+    if self.EnsureHeaderKeybindsActive then
+        self:EnsureHeaderKeybindsActive()
+    end
+end
+
 ---@param mode number
 ---@return table[] categories
 function BETTERUI.Vendor.Class:GetModeCategories(mode)
@@ -1265,6 +1512,15 @@ end
 
 BETTERUI.Vendor.Class.ClearTextSearch = BETTERUI.Vendor.Class.ClearSearchInput
 
+---@param isFocused boolean
+---@return nil
+function BETTERUI.Vendor.Class:SetTextSearchFocused(isFocused)
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    if searchMixin and searchMixin.SetTextSearchFocused then
+        searchMixin.SetTextSearchFocused(self, isFocused == true)
+    end
+end
+
 --- Checks whether search/header focus is active.
 ---@return boolean focused
 function BETTERUI.Vendor.Class:IsHeaderFocused()
@@ -1278,9 +1534,98 @@ end
 
 BETTERUI.Vendor.Class.IsHeaderActive = BETTERUI.Vendor.Class.IsHeaderFocused
 
+---@return table|nil list
+function BETTERUI.Vendor.Class:GetCurrentList()
+    return self._currentList or self.list
+end
+
+---@return boolean hidden
+function BETTERUI.Vendor.Class:IsTextSearchEntryHidden()
+    local control = self.textSearchHeaderControl
+    return not control or (control.IsHidden and control:IsHidden() == true) or false
+end
+
+---@return boolean canEnter
+function BETTERUI.Vendor.Class:CanEnterHeader()
+    return not self:IsTextSearchEntryHidden()
+end
+
+---@return boolean canLeave
+function BETTERUI.Vendor.Class:CanLeaveHeader()
+    return true
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:DeactivateCurrentList()
+    self._currentList = self.list or self._currentList
+    if self.DeactivateListInput then
+        self:DeactivateListInput()
+        return
+    end
+
+    local list = self:GetCurrentList()
+    if list and list.Deactivate and (not list.IsActive or list:IsActive()) then
+        list:Deactivate()
+    end
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:ActivateCurrentList()
+    self._currentList = self.list or self._currentList
+    if self.EnsureListInputActive then
+        self:EnsureListInputActive()
+        return
+    end
+
+    local list = self:GetCurrentList()
+    if list and list.Activate and (not list.IsActive or not list:IsActive()) then
+        list:Activate()
+    end
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:RemoveListKeybinds()
+    if self.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent then
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
+    end
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:AddListKeybinds()
+    if self.RefreshCoreKeybindOwnership then
+        self:RefreshCoreKeybindOwnership("AddListKeybinds")
+    elseif self.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
+    end
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:RefreshKeybinds()
+    if self.RefreshVendorActionKeybinds then
+        self:RefreshVendorActionKeybinds()
+    elseif BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups then
+        BETTERUI.Interface.UpdateCurrentKeybindGroups()
+    end
+end
+
 --- Requests focus for the search header.
 ---@return nil
 function BETTERUI.Vendor.Class:RequestHeaderFocus()
+    if self._requestingVendorHeaderFocus then
+        return
+    end
+
+    local baseRequestEnterHeader = ZO_Gamepad_ParametricList_Screen
+        and ZO_Gamepad_ParametricList_Screen.RequestEnterHeader
+    if baseRequestEnterHeader and self.headerFocus then
+        self._requestingVendorHeaderFocus = true
+        local ok = ExecuteSafely("Vendor.RequestHeaderFocus:RequestEnterHeader", baseRequestEnterHeader, self)
+        self._requestingVendorHeaderFocus = nil
+        if ok ~= false then
+            return
+        end
+    end
+
     if self.OnHeaderEntered then
         self:OnHeaderEntered()
     else
@@ -1289,6 +1634,39 @@ function BETTERUI.Vendor.Class:RequestHeaderFocus()
 end
 
 BETTERUI.Vendor.Class.RequestEnterHeader = BETTERUI.Vendor.Class.RequestHeaderFocus
+
+---@return nil
+function BETTERUI.Vendor.Class:RequestLeaveHeader()
+    if self._requestingVendorHeaderLeave then
+        return
+    end
+
+    local baseRequestLeaveHeader = ZO_Gamepad_ParametricList_Screen
+        and ZO_Gamepad_ParametricList_Screen.RequestLeaveHeader
+    if baseRequestLeaveHeader and self.headerFocus then
+        self._requestingVendorHeaderLeave = true
+        local ok = ExecuteSafely("Vendor.RequestLeaveHeader:RequestLeaveHeader", baseRequestLeaveHeader, self)
+        self._requestingVendorHeaderLeave = nil
+        if ok ~= false then
+            return
+        end
+    end
+
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then
+        self.textSearchHeaderFocus:Deactivate()
+    end
+    if self.OnLeaveHeader then
+        self:OnLeaveHeader()
+    else
+        self:ExitSearchMode()
+    end
+    if self.ActivateCurrentList then
+        self:ActivateCurrentList()
+    end
+    if self.RefreshKeybinds then
+        self:RefreshKeybinds()
+    end
+end
 
 --- Repositions the search control under the header title.
 ---@return nil
@@ -1316,6 +1694,10 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
     if self.textSearchHeaderControl.IsHidden and self.textSearchHeaderControl:IsHidden() then
         TraceVendorSearchFocus("skipped", self, reason, { skipReason = "hiddenSearchControl" })
         return
+    end
+
+    if self.isInHeaderSortMode and self.ExitHeaderSortMode then
+        ExecuteSafely("Vendor.EnterSearchMode:ExitHeaderSortMode", self.ExitHeaderSortMode, self)
     end
 
     TraceVendorSearchFocus("begin", self, reason, {
@@ -1347,6 +1729,10 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
         self:SetTextSearchFocused(true)
     end
 
+    if self.SetSearchDirectionalInputUpdate then
+        self:SetSearchDirectionalInputUpdate(true, "EnterSearchMode")
+    end
+
     if self.NormalizeDirectionalInputOwnership then
         self:NormalizeDirectionalInputOwnership("EnterSearchMode")
     end
@@ -1368,6 +1754,12 @@ function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
         and self.textSearchHeaderFocus.IsActive
         and self.textSearchHeaderFocus:IsActive()
         or false
+    local headerWasActive = self._searchModeActive == true
+        or self._searchHeaderActive == true
+        or focusActive == true
+    if self.IsHeaderActive and self:IsHeaderActive() then
+        headerWasActive = true
+    end
     local searchKeybindPresent = self.textSearchKeybindStripDescriptor
         and BETTERUI.Interface.HasKeybindGroup
         and BETTERUI.Interface.HasKeybindGroup(self.textSearchKeybindStripDescriptor)
@@ -1404,6 +1796,19 @@ function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
     if self.SetTextSearchFocused then
         self:SetTextSearchFocused(false)
     end
+    if headerWasActive
+        and self.RequestLeaveHeader
+        and not self._requestingVendorSearchHeaderLeave then
+        self._requestingVendorSearchHeaderLeave = true
+        ExecuteSafely("Vendor.RestoreSearchFocus:RequestLeaveHeader", self.RequestLeaveHeader, self)
+        self._requestingVendorSearchHeaderLeave = nil
+    end
+    if self.isInHeaderSortMode and self.ExitHeaderSortMode then
+        ExecuteSafely("Vendor.RestoreSearchFocus:ExitHeaderSortMode", self.ExitHeaderSortMode, self)
+    end
+    if self.SetSearchDirectionalInputUpdate then
+        self:SetSearchDirectionalInputUpdate(false, reason)
+    end
 
     -- Legacy cleanup guard: new search focus no longer snapshots/removes
     -- vendor-owned groups, but clear any pre-existing snapshot defensively.
@@ -1426,10 +1831,7 @@ function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
         self._searchRemovedKeybindGroups = nil
     end
     if self.coreKeybinds then
-        BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
-        if BETTERUI.Interface.UpdateKeybindGroup then
-            BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
-        end
+        self:RefreshCoreKeybindOwnership(reason .. ":immediate")
     end
 
     if self.EnsureHeaderKeybindsActive then
@@ -1453,6 +1855,9 @@ function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
         keybindLabel = "vendor-core",
     })
     self._restoringVendorSearchFocus = nil
+    if self.ScheduleCoreKeybindRefresh then
+        self:ScheduleCoreKeybindRefresh(reason, 0)
+    end
 end
 
 --- Compatibility delegate for old search-mode ownership call sites.
@@ -1500,6 +1905,9 @@ function BETTERUI.Vendor.Class:OnLeaveHeader()
         ExecuteSafely("Vendor.OnLeaveHeader:base", base, self)
     end
     self:ExitSearchMode()
+    if self.ScheduleCoreKeybindRefresh then
+        self:ScheduleCoreKeybindRefresh("OnLeaveHeader", 0)
+    end
 end
 
 --- Handles text updates from search edit box callbacks. Callbacks may pass
@@ -1571,22 +1979,28 @@ function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
         self:DetachUnexpectedSearchHeaderFocus("EnsureHeaderKeybindsActive")
     end
 
-    -- Vendor uses core shoulder keybinds for tab cycling; do not register the
-    -- header tab bar on DIRECTIONAL_INPUT or it can steal focus from the item list.
+    -- Keep the tabbar's native LB/RB keybind group, but strip its directional
+    -- input registrations so joystick focus stays on the item list.
     ReleaseHeaderDirectionalInput(self.headerGeneric, "Vendor.EnsureHeaderKeybindsActive:HeaderGeneric")
     ReleaseHeaderDirectionalInput(self.header, "Vendor.EnsureHeaderKeybindsActive:Header")
-    if tabBar.keybindStripDescriptor and KEYBIND_STRIP then
-        TraceVendorKeybindLayer("remove_before", self, tabBar.keybindStripDescriptor, {
-            reason = "ensureHeaderKeybindsActive",
-            keybindLabel = "vendor-header-tabbar",
-        })
-        BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
-        TraceVendorKeybindLayer("remove_after", self, tabBar.keybindStripDescriptor, {
-            reason = "ensureHeaderKeybindsActive",
-            keybindLabel = "vendor-header-tabbar",
-        })
+
+    local descriptor = tabBar.keybindStripDescriptor
+    local carouselMissing = descriptor
+        and BETTERUI.Interface
+        and BETTERUI.Interface.HasKeybindGroup
+        and not BETTERUI.Interface.HasKeybindGroup(descriptor)
+
+    if carouselMissing and tabBar.Deactivate and tabBar.Activate then
+        tabBar:Deactivate()
+        tabBar:Activate()
+    else
+        SetTabBarVisualActive(tabBar, true)
     end
-    SetTabBarVisualActive(tabBar, true)
+
+    if descriptor and BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
+    end
+    ReleaseDirectionalInputRegistrations(tabBar, true)
 end
 
 ---@return nil
@@ -1622,6 +2036,9 @@ function BETTERUI.Vendor.Class:EnsureListInputActive()
         self._exitSearchModeInProgress = true
         self:ExitSearchMode()
         self._exitSearchModeInProgress = nil
+        if self.ScheduleCoreKeybindRefresh then
+            self:ScheduleCoreKeybindRefresh("EnsureListInputActive:searchExit", 0)
+        end
         return
     end
 

@@ -85,10 +85,10 @@ function BootstrapRuntime.InitializeList(instance, deps)
         -- identical pattern that was duplicated in Banking, Companions, and Vendor.
         if BETTERUI.CIM.Lists and BETTERUI.CIM.Lists.WrapMovePreviousToHeader then
             BETTERUI.CIM.Lists.WrapMovePreviousToHeader(instance.list, function()
-                if instance.OnHeaderEntered then
-                    instance:OnHeaderEntered()
-                elseif instance.RequestHeaderFocus then
+                if instance.RequestHeaderFocus then
                     instance:RequestHeaderFocus()
+                elseif instance.OnHeaderEntered then
+                    instance:OnHeaderEntered()
                 end
             end)
         end
@@ -186,7 +186,11 @@ function BootstrapRuntime.InitializeInteractiveSurfaces(instance, deps)
                 keybinds = {
                     mainDescriptor = instance.coreKeybinds,
                 },
-                autoEnterOnListStart = true,
+                -- Inventory-style search owns list-top navigation in Vendor.
+                -- Header-sort auto entry can run before the search wrapper and
+                -- leave header-sort keybind/input ownership active underneath
+                -- search focus.
+                autoEnterOnListStart = false,
             })
             BETTERUI.CIM.UI.HeaderSortIntegration.EnsureController(integration)
         end)
@@ -242,10 +246,24 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             if screen.ForceReleaseDirectionalInput then
                 screen:ForceReleaseDirectionalInput()
             end
+            screen._searchModeActive = false
+            screen._searchHeaderActive = false
+            if screen.SetSearchDirectionalInputUpdate then
+                screen:SetSearchDirectionalInputUpdate(false, "sceneShowing")
+            end
             screen:ApplyNativeStoreMode(screen:GetCurrentMode())
             screen:RefreshVendorFooter()
             screen:InitializeScrollIndicator()
             screen:RefreshList()
+            if screen.ActivateHeader then
+                screen:ActivateHeader()
+            end
+            if screen.EnsureListInputActive then
+                screen:EnsureListInputActive()
+            end
+            if screen.RefreshCoreKeybindOwnership then
+                screen:RefreshCoreKeybindOwnership("sceneShowing")
+            end
             screen:EnsureHeaderKeybindsActive()
             screen:EnsureColumnHeadersVisible()
             if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.RegisterCallback then
@@ -277,6 +295,9 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 keybinds = DescribeKeybinds(screen and screen.coreKeybinds, "vendor-core"),
                 refreshed = refreshed == true,
             })
+            if screen.ScheduleSceneEntryKeybindRefresh then
+                screen:ScheduleSceneEntryKeybindRefresh("sceneShowing", 40)
+            end
             TraceVendorBootstrap("vendor.bootstrap", "showing_complete", {
                 currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
                 hasList = screen.list ~= nil,

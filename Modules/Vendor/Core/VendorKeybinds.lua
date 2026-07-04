@@ -123,20 +123,10 @@ local function IsVendorSearchInputActive(vendorInstance)
     if not vendorInstance then
         return false
     end
-    if vendorInstance._searchModeActive or vendorInstance._searchHeaderActive then
-        return true
-    end
-
-    -- The search field stays visible for the whole scene; only a FOCUSED
-    -- search may block input routing, so fall back to the focus object's
-    -- active state rather than control visibility (which made every guard
-    -- using this helper report "searchActive" permanently).
-    local focusObject = vendorInstance.textSearchHeaderFocus
-    if focusObject and type(focusObject.IsActive) == "function" then
-        local ok, active = pcall(focusObject.IsActive, focusObject)
-        return (ok and active == true) or false
-    end
-    return false
+    -- Vendor search focus objects can remain active after the base header
+    -- handoff. The lifecycle flags are the canonical ownership signal; using
+    -- focus-object state here blocks LB/RB with stale "searchActive" results.
+    return vendorInstance._searchModeActive == true or vendorInstance._searchHeaderActive == true
 end
 
 local function CanCycleVendorHeader(vendorInstance, getActiveTabs)

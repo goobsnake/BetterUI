@@ -296,15 +296,19 @@ local function run_vendor_keybind_anchor_behavior()
         isStableInteraction = function() return false end,
     })
     local primary
+    local shoulder_previous
     local clear_search
     for _, entry in ipairs(group) do
         if entry.keybind == "UI_SHORTCUT_PRIMARY" then
             primary = entry
+        elseif entry.keybind == "UI_SHORTCUT_LEFT_SHOULDER" then
+            shoulder_previous = entry
         elseif entry.keybind == "UI_SHORTCUT_QUATERNARY" then
             clear_search = entry
         end
     end
     if not primary then error("Primary keybind entry missing from built Vendor group") end
+    if not shoulder_previous then error("Left-shoulder keybind entry missing from built Vendor group") end
     if not clear_search then error("Clear-search keybind entry missing from built Vendor group") end
 
     primary.callback()
@@ -318,6 +322,25 @@ local function run_vendor_keybind_anchor_behavior()
     if not (trace_events[2] and trace_events[2].data and trace_events[2].data._inputAnchorDetail == true) then
         error("Vendor keybind detail event is marked as input-anchor detail")
     end
+
+    local cycle_calls = 0
+    vendor_instance._vendorHeaderEntryCount = 2
+    vendor_instance._searchModeActive = false
+    vendor_instance._searchHeaderActive = false
+    vendor_instance.textSearchHeaderFocus = {
+        IsActive = function()
+            return true
+        end,
+    }
+    vendor_instance.CycleTabs = function(_, direction)
+        cycle_calls = cycle_calls + 1
+        vendor_instance.lastCycleDirection = direction
+    end
+    shoulder_previous.callback()
+    assert_equals(cycle_calls, 1,
+        "Vendor shoulder cycling ignores stale focus-object active state when search lifecycle flags are clear")
+    assert_equals(vendor_instance.lastCycleDirection, -1,
+        "Vendor left shoulder cycles to the previous category when search is not active")
 
     local clear_calls = 0
     vendor_instance.textSearchHeaderControl = { IsHidden = function() return false end }
