@@ -539,35 +539,16 @@ do
         ExecuteSafely = function(_, fn, ...)
             return fn(...)
         end,
-        ReleaseDirectionalInputRegistrations = function(obj, includeMovementController)
+        ReleaseDirectionalInputRegistrations = function(obj)
             if not obj or not DIRECTIONAL_INPUT or not DIRECTIONAL_INPUT.IsListening or not DIRECTIONAL_INPUT.Deactivate then
                 return 0
             end
 
             local releasedCount = 0
-            local releasedCandidates = {}
-            local function releaseCandidate(candidate)
-                if not candidate or releasedCandidates[candidate] then
-                    return
-                end
-                releasedCandidates[candidate] = true
-
-                local safety = 0
-                while DIRECTIONAL_INPUT:IsListening(candidate) and safety < 8 do
-                    DIRECTIONAL_INPUT:Deactivate(candidate)
-                    releasedCount = releasedCount + 1
-                    safety = safety + 1
-                end
+            while DIRECTIONAL_INPUT:IsListening(obj) do
+                DIRECTIONAL_INPUT:Deactivate(obj)
+                releasedCount = releasedCount + 1
             end
-
-            releaseCandidate(obj)
-            releaseCandidate(obj.spinner)
-            if includeMovementController then
-                releaseCandidate(obj.movementController)
-                releaseCandidate(obj.horizontalMovementController)
-                releaseCandidate(obj.verticalMovementController)
-            end
-
             return releasedCount
         end,
     }
