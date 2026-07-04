@@ -82,6 +82,14 @@ local function LogInventoryDialogRestore(message, data, warn)
 end
 
 
+local function IsInventorySceneShowingForRefresh(inv)
+    return (inv and inv.scene and inv.scene.IsShowing and inv.scene:IsShowing())
+        or (BETTERUI.CIM and BETTERUI.CIM.Utils
+            and BETTERUI.CIM.Utils.IsInventorySceneShowing
+            and BETTERUI.CIM.Utils.IsInventorySceneShowing())
+end
+
+
 -- CACHING & DATA MANAGEMENT
 
 --- @type table<string|number, table>
@@ -236,8 +244,9 @@ itself, we intercept ALL refresh calls - both from our code and ESO's base class
 References: Called by ESO base class in selection callbacks.
 ]]
 --- Refreshes the keybind strip (override with guards).
-function BETTERUI.Inventory.Class:RefreshKeybinds()
+function BETTERUI.Inventory.Class:RefreshKeybinds(reason)
     local L = BETTERUI.Log
+    local refreshReason = reason or "main"
     local sceneShowing = not (self.scene and self.scene.IsShowing) or self.scene:IsShowing()
     if not sceneShowing then
         local stripHasMain = BETTERUI.Interface.HasKeybindGroup(self.mainKeybindStripDescriptor)
@@ -338,7 +347,7 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
     -- set via SetActiveKeybinds, so we update that directly.
     if L and L.TraceEvent then
         L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "before", {
-            reason = "main",
+            reason = refreshReason,
             main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
             selection = L.DescribeListSelection and L.DescribeListSelection(self.itemList or self.list, "selection") or nil,
         })
@@ -348,12 +357,12 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
     end
     if L and L.TraceEvent then
         L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "after", {
-            reason = "main",
+            reason = refreshReason,
             main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
             selection = L.DescribeListSelection and L.DescribeListSelection(self.itemList or self.list, "selection") or nil,
         })
     end
-    LogInventoryKeybindRefresh(self, "main")
+    LogInventoryKeybindRefresh(self, refreshReason)
 end
 
 
@@ -367,7 +376,7 @@ we prevent itemActions from updating keybinds during header sort mode.
 References: Called on every selection change via selection callbacks.
 ]]
 --- Sets the selected inventory data (override with guards).
-function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
+function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData, forceRefresh)
     local nowMs = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
     local inPrimaryActionTransition = self._primaryActionTransitionExpiresMs
         and nowMs <= self._primaryActionTransitionExpiresMs
@@ -399,7 +408,8 @@ function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
     -- same row during list rebuild + selection callback chains. Coalesce these duplicates
     -- so itemActions doesn't churn KEYBIND_STRIP with identical remove/re-add cycles.
     local previousFingerprint = self._lastSetSelectedInventoryDataFingerprint
-    if self._lastSetSelectedInventoryDataFrame == nowMs
+    if not forceRefresh
+        and self._lastSetSelectedInventoryDataFrame == nowMs
         and previousFingerprint == selectionFingerprint then
         self:SetSelectedItemUniqueId(inventoryData)
         return
@@ -496,6 +506,75 @@ function BETTERUI.Inventory.Class:RefreshItemActions()
     end
 
     ZO_GamepadInventory.RefreshItemActions(self)
+end
+
+--- Re-runs item action resolution for the current row and refreshes BetterUI's
+--- keybind strip. Used when an action-slot update changes the selected item's
+--- quickslot state without changing the visible list selection.
+function BETTERUI.Inventory.Class:RefreshCurrentSelectionActions(reason)
+    if not IsInventorySceneShowingForRefresh(self) then
+        self._pendingActionSlotRefresh = true
+        return false
+    end
+
+    local selectedData = nil
+    local selectedList = nil
+    if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+        selectedList = self.craftBagList
+        selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+    elseif self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+        selectedList = self.itemList
+        selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+    elseif self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
+        selectedList = self:GetCurrentList()
+        selectedData = selectedList and BETTERUI.Inventory.Utils.SafeGetTargetData(selectedList)
+        if selectedData and selectedList == self.categoryList then
+            selectedData = self:GenerateItemSlotData(selectedData)
+        end
+    end
+
+    if selectedList and not selectedData then
+        local innerList = selectedList.list or selectedList
+        local dataList = innerList and innerList.dataList
+        if dataList and #dataList > 0 then
+            local selectedIndex
+            if innerList.GetSelectedIndex then
+                selectedIndex = innerList:GetSelectedIndex()
+            else
+                selectedIndex = innerList.selectedIndex
+            end
+            if type(selectedIndex) ~= "number" or selectedIndex < 1 or selectedIndex > #dataList then
+                selectedIndex = self._preserveIndex or 1
+            end
+            selectedIndex = zo_clamp(selectedIndex, 1, #dataList)
+
+            if innerList.SetSelectedIndexWithoutAnimation then
+                innerList:SetSelectedIndexWithoutAnimation(selectedIndex, true, false)
+            elseif selectedList.SetSelectedIndexWithoutAnimation then
+                selectedList:SetSelectedIndexWithoutAnimation(selectedIndex, true, false)
+            end
+            selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(selectedList)
+        end
+    end
+
+    if not selectedList then
+        return false
+    end
+
+    self._pendingActionSlotRefresh = nil
+    if selectedData and self.SetSelectedInventoryData then
+        self:SetSelectedInventoryData(selectedData, true)
+    end
+
+    if self.RefreshItemActions then
+        self:RefreshItemActions()
+    end
+
+    if not self.isInHeaderSortMode and self.RefreshKeybinds then
+        self:RefreshKeybinds(reason or "actionSlotUpdated")
+    end
+
+    return true
 end
 
 --- Leaves header focus (override with list nil guards).
@@ -722,10 +801,31 @@ function BETTERUI.Inventory.Class:Initialize(control)
         end
     end
 
+    local function RefreshActionSlotSelection(reason)
+        local inventory = control._betteruiInventoryInstance or self
+        if inventory and inventory.RefreshCurrentSelectionActions then
+            inventory:RefreshCurrentSelectionActions(reason or "actionSlotUpdated")
+        end
+    end
+
     -- Do not intercept base destroy cancel events to avoid input blockage.
     if not control._betteruiInventoryVisualLayerRegistered then
         control._betteruiInventoryVisualLayerRegistered = true
         control:RegisterForEvent(EVENT_VISUAL_LAYER_CHANGED, RefreshVisualLayer)
+    end
+    if EVENT_ACTION_SLOT_UPDATED and not control._betteruiInventoryActionSlotRegistered then
+        control._betteruiInventoryActionSlotRegistered = true
+        control:RegisterForEvent(EVENT_ACTION_SLOT_UPDATED, function()
+            RefreshActionSlotSelection("actionSlotUpdated")
+        end)
+    end
+    if self.scene and self.scene.RegisterCallback and not self._betteruiInventoryActionSlotSceneHooked then
+        self._betteruiInventoryActionSlotSceneHooked = true
+        self.scene:RegisterCallback("StateChange", function(_, newState)
+            if newState == SCENE_SHOWN and self._pendingActionSlotRefresh then
+                RefreshActionSlotSelection("actionSlotReturn")
+            end
+        end)
     end
     if not control._betteruiInventoryOnUpdateHooked then
         control._betteruiInventoryOnUpdateHooked = true

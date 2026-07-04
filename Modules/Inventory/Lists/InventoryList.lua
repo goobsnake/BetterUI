@@ -291,6 +291,22 @@ local function ApplySelectionVisualState(control, data, selected)
     end
 end
 
+local function ResetEntryStatusIconControl(control, childName)
+    local statusControl = control and control:GetNamedChild(childName)
+    if not statusControl then
+        return
+    end
+
+    statusControl:SetHidden(true)
+    if statusControl.SetAlpha then statusControl:SetAlpha(1) end
+    if statusControl.SetColor then statusControl:SetColor(1, 1, 1, 1) end
+end
+
+local function ResetEntryStatusIcons(control)
+    ResetEntryStatusIconControl(control, "StatusIndicator")
+    ResetEntryStatusIconControl(control, "EquippedMain")
+end
+
 local function ApplyDynamicIconSizing(control, moduleName)
     local iconControl = control:GetNamedChild("Icon")
     local equipIconControl = control:GetNamedChild("EquippedMain")
@@ -316,6 +332,108 @@ local function ApplyDynamicIconSizing(control, moduleName)
     equipIconControl:SetDimensions(equipIconWidth, equipIconHeight)
 end
 
+local function HidePooledStatusControl(statusControl)
+    if statusControl and statusControl.SetHidden then
+        statusControl:SetHidden(true)
+    end
+end
+
+local POOLED_STATUS_CONTROL_NAMES = {
+    "StatusIndicator",
+    "StatusIcon",
+    "EquippedMain",
+    "NewStatusIndicator",
+    "NewStatus",
+    "NewIcon",
+    "IsNew",
+}
+
+local POOLED_STATUS_CONTROL_FIELDS = {
+    "statusIndicator",
+    "statusIcon",
+    "equippedMain",
+    "newStatusIndicator",
+    "newStatus",
+    "newIcon",
+    "isNew",
+}
+
+local function IsPooledStatusControlVisible(statusControl)
+    if not (statusControl and type(statusControl.IsHidden) == "function") then
+        return false
+    end
+    local ok, hidden = pcall(statusControl.IsHidden, statusControl)
+    return ok and hidden == false
+end
+
+local function DescribeStatusControl(statusControl, name)
+    local L = BETTERUI and BETTERUI.Log
+    if L and type(L.DescribeControl) == "function" then
+        return L.DescribeControl(statusControl, name)
+    end
+    return tostring(name or "statusControl")
+end
+
+local function WarnPooledStatusIconBleed(control)
+    local inventory = BETTERUI and BETTERUI.Inventory
+    if not (control and inventory) or inventory._pooledStatusIconBleedWarned == true then
+        return
+    end
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and type(L.IsActive) == "function" and L.IsActive() == true and type(L.TraceEvent) == "function") then
+        return
+    end
+
+    local stale = {}
+    if control.GetNamedChild then
+        for _, name in ipairs(POOLED_STATUS_CONTROL_NAMES) do
+            local statusControl = control:GetNamedChild(name)
+            if IsPooledStatusControlVisible(statusControl) then
+                stale[#stale + 1] = DescribeStatusControl(statusControl, name)
+            end
+        end
+    end
+    for _, fieldName in ipairs(POOLED_STATUS_CONTROL_FIELDS) do
+        local statusControl = control[fieldName]
+        if IsPooledStatusControlVisible(statusControl) then
+            stale[#stale + 1] = DescribeStatusControl(statusControl, fieldName)
+        end
+    end
+    if #stale == 0 then
+        return
+    end
+
+    inventory._pooledStatusIconBleedWarned = true
+    L.TraceEvent(L.CATEGORY.LIST, "inventory.row_recycle_status_icon", "detected", {
+        fn = "ResetPooledRowStatusControls",
+        row = L.DescribeControl and L.DescribeControl(control, "row") or nil,
+        staleControls = table.concat(stale, ","),
+    }, L.LEVEL.WARN)
+end
+
+local function ResetPooledRowStatusControls(control)
+    if not control then return end
+
+    WarnPooledStatusIconBleed(control)
+
+    if control.GetNamedChild then
+        HidePooledStatusControl(control:GetNamedChild("StatusIndicator"))
+        HidePooledStatusControl(control:GetNamedChild("StatusIcon"))
+        HidePooledStatusControl(control:GetNamedChild("EquippedMain"))
+        HidePooledStatusControl(control:GetNamedChild("NewStatusIndicator"))
+        HidePooledStatusControl(control:GetNamedChild("NewStatus"))
+        HidePooledStatusControl(control:GetNamedChild("NewIcon"))
+        HidePooledStatusControl(control:GetNamedChild("IsNew"))
+    end
+    HidePooledStatusControl(control.statusIndicator)
+    HidePooledStatusControl(control.statusIcon)
+    HidePooledStatusControl(control.equippedMain)
+    HidePooledStatusControl(control.newStatusIndicator)
+    HidePooledStatusControl(control.newStatus)
+    HidePooledStatusControl(control.newIcon)
+    HidePooledStatusControl(control.isNew)
+end
+
 --- Configures a shared gamepad inventory entry (row).
 --- Purpose: The main render function. Populates all displayed data for a row.
 ---@param control table UI control for the entry row
@@ -326,7 +444,9 @@ end
 ---@param active boolean Whether the entry is active
 ---@return nil
 function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
+    ResetPooledRowStatusControls(control)
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
+    ResetEntryStatusIcons(control)
 
     local entryContext = ResolveEntryContext(data)
     if not entryContext then
@@ -439,6 +559,7 @@ function BETTERUI.Inventory.List:Initialize(control, options)
             ZO_Inventory_BindSlot(data, resolvedSlotType, data.slotIndex, data.bagId)
         end
         AssignEntryListModuleName(data, self.listModuleName)
+        ResetPooledRowStatusControls(rowControl)
 
         local didHandleSetup = false
         if self.entrySetupCallback then
