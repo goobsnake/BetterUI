@@ -6,9 +6,31 @@ Nameplates.Positioning = Positioning
 
 local OFFSET_MIN = -600
 local OFFSET_MAX = 600
-local HANDLE_SIZE = 42
+local HANDLE_SIZE = 110
+local HANDLE_DRAW_LEVEL = 520
 local PLACEHOLDER_WIDTH = 190
-local PLACEHOLDER_HEIGHT = 42
+local PLACEHOLDER_HEIGHT = 132
+local HANDLE_LABEL_HEIGHT = 22
+local HANDLE_LABEL_TOP_OFFSET = 4
+local HANDLE_ICON_SCALE = 0.6
+local HANDLE_ICON_MIN_SIZE = 46
+local HANDLE_ICON_MAX_SIZE = 64
+local HANDLE_ICON_DRAW_LEVEL = 521
+local HANDLE_ARROW_MIN_SIZE = 18
+local HANDLE_ARROW_MAX_SIZE = 28
+local HANDLE_ARROW_SCALE = 0.42
+local HANDLE_ARROW_OFFSET_SCALE = 0.24
+local HANDLE_ARROW_SHADOW_OFFSET = 2
+local HANDLE_ARROW_SHADOW_ALPHA = 0.6
+local HANDLE_ARROW_SHADOW_DRAW_LEVEL = 522
+local HANDLE_ARROW_ALPHA = 0.88
+local HANDLE_ARROW_FACE_DRAW_LEVEL = 523
+local HANDLE_ICON_TEXTURES = {
+    { key = "Left", texture = "EsoUI/Art/Housing/housing_precisionControlIcon_left.dds", x = -1, y = 0 },
+    { key = "Right", texture = "EsoUI/Art/Housing/housing_precisionControlIcon_right.dds", x = 1, y = 0 },
+    { key = "Up", texture = "EsoUI/Art/Housing/housing_precisionControlIcon_up.dds", x = 0, y = -1 },
+    { key = "Down", texture = "EsoUI/Art/Housing/housing_precisionControlIcon_down.dds", x = 0, y = 1 },
+}
 
 local ResolveTargetBarControl
 local ResolvePlayerInteractControl
@@ -126,6 +148,7 @@ end
 EnsureDescriptorDefaults()
 
 local handles = {}
+local handleIcons = {}
 local dragStates = {}
 local lastKnownHandleAnchors = {}
 local refreshDriver = nil
@@ -237,6 +260,60 @@ local function SafeMethodCall(object, methodName, ...)
     local ok, result = pcall(method, object, ...)
     if ok then return result end
     return nil
+end
+
+local function CallControl(control, methodName)
+    if not control then return nil, nil end
+    local okMethod, method = pcall(function() return control[methodName] end)
+    if not okMethod or type(method) ~= "function" then return nil, nil end
+    local ok, a, b = pcall(method, control)
+    if ok then return a, b end
+    return nil, nil
+end
+
+local function ClampNumber(value, minValue, maxValue, fallback)
+    value = tonumber(value)
+    if not value then return fallback end
+    if value < minValue then return minValue end
+    if value > maxValue then return maxValue end
+    return value
+end
+
+local function RoundSize(size)
+    return zo_round and zo_round(size) or math.floor(size + 0.5)
+end
+
+local function GetControlDimensions(control)
+    local width, height = CallControl(control, "GetDimensions")
+    if not width then width = CallControl(control, "GetWidth") end
+    if not height then height = CallControl(control, "GetHeight") end
+    return tonumber(width), tonumber(height)
+end
+
+local function GetControlName(control)
+    if not control then return nil end
+    if type(control) ~= "table" and type(control) ~= "userdata" then return tostring(control) end
+    local okGetName, getName = pcall(function() return control.GetName end)
+    if okGetName and type(getName) == "function" then
+        local ok, name = pcall(getName, control)
+        if ok and name ~= nil then return tostring(name) end
+    end
+    return nil
+end
+
+local function GetHandleVisualDimensions(descriptor, placeholder, hostControl)
+    local width, height
+    if placeholder then
+        width = descriptor and descriptor.placeholderWidth or PLACEHOLDER_WIDTH
+        height = descriptor and descriptor.placeholderHeight or PLACEHOLDER_HEIGHT
+    else
+        width, height = GetControlDimensions(hostControl)
+    end
+
+    local minHeight = placeholder and PLACEHOLDER_HEIGHT or HANDLE_SIZE
+    width = RoundSize(math.max(tonumber(width) or HANDLE_SIZE, HANDLE_SIZE))
+    height = RoundSize(math.max(tonumber(height) or minHeight, minHeight))
+    return width, height
 end
 
 local function ResolveControl(name)
@@ -614,6 +691,103 @@ local function ApplyDragDelta(key, descriptor, dragState, dx, dy, forceRefresh)
     return changed
 end
 
+local function SetTextureGuarded(textureControl, texturePath)
+    if not textureControl then return false end
+    local okMethod, setTexture = pcall(function() return textureControl.SetTexture end)
+    if not okMethod or type(setTexture) ~= "function" then return false end
+    return pcall(setTexture, textureControl, texturePath)
+end
+
+local function EnsureHandleIcon(handle)
+    if not handle then return nil end
+    if handleIcons[handle] then return handleIcons[handle] end
+
+    local windowManager = rawget(_G, "WINDOW_MANAGER")
+    local controlType = rawget(_G, "CT_CONTROL")
+    local textureType = rawget(_G, "CT_TEXTURE")
+    if not (windowManager and type(windowManager.CreateControl) == "function" and controlType and textureType) then
+        return nil
+    end
+
+    local handleName = GetControlName(handle) or "BetterUI_NameplatePosition_DragHandle"
+    local okIcon, icon = pcall(function()
+        return windowManager:CreateControl(handleName .. "MoveIcon", handle, controlType)
+    end)
+    if not (okIcon and icon) then
+        return nil
+    end
+
+    if icon.SetMouseEnabled then icon:SetMouseEnabled(false) end
+    if icon.SetDrawLayer then icon:SetDrawLayer(rawget(_G, "DL_OVERLAY")) end
+    if icon.SetDrawLevel then icon:SetDrawLevel(HANDLE_ICON_DRAW_LEVEL) end
+
+    local data = { control = icon, parts = {} }
+    for _, def in ipairs(HANDLE_ICON_TEXTURES) do
+        local okShadow, shadow = pcall(function()
+            return windowManager:CreateControl(handleName .. "MoveIconShadow" .. def.key, icon, textureType)
+        end)
+        if okShadow and shadow then
+            SetTextureGuarded(shadow, def.texture)
+            if shadow.SetMouseEnabled then shadow:SetMouseEnabled(false) end
+            if shadow.SetDrawLayer then shadow:SetDrawLayer(rawget(_G, "DL_OVERLAY")) end
+            if shadow.SetDrawLevel then shadow:SetDrawLevel(HANDLE_ARROW_SHADOW_DRAW_LEVEL) end
+            data.parts[#data.parts + 1] = { control = shadow, x = def.x, y = def.y, shadow = true }
+        end
+
+        local okFace, face = pcall(function()
+            return windowManager:CreateControl(handleName .. "MoveIcon" .. def.key, icon, textureType)
+        end)
+        if okFace and face then
+            SetTextureGuarded(face, def.texture)
+            if face.SetMouseEnabled then face:SetMouseEnabled(false) end
+            if face.SetDrawLayer then face:SetDrawLayer(rawget(_G, "DL_OVERLAY")) end
+            if face.SetDrawLevel then face:SetDrawLevel(HANDLE_ARROW_FACE_DRAW_LEVEL) end
+            data.parts[#data.parts + 1] = { control = face, x = def.x, y = def.y, shadow = false }
+        end
+    end
+
+    handleIcons[handle] = data
+    return data
+end
+
+local function ConfigureIconPart(parent, part, size, offset, hidden)
+    local control = part and part.control
+    if not control then return end
+    if control.SetDimensions then control:SetDimensions(size, size) end
+    if control.ClearAnchors then control:ClearAnchors() end
+    local center = rawget(_G, "CENTER")
+    if control.SetAnchor and center then
+        local shadowOffset = part.shadow and HANDLE_ARROW_SHADOW_OFFSET or 0
+        control:SetAnchor(center, parent, center, (part.x or 0) * offset + shadowOffset, (part.y or 0) * offset + shadowOffset)
+    end
+    if control.SetColor then
+        control:SetColor(0, 0, 0, hidden and 0 or (part.shadow and HANDLE_ARROW_SHADOW_ALPHA or HANDLE_ARROW_ALPHA))
+    end
+    if control.SetHidden then control:SetHidden(hidden) end
+end
+
+local function UpdateHandleIconVisual(handle, visible)
+    local data = EnsureHandleIcon(handle)
+    if not data or not data.control then return end
+
+    local handleWidth, handleHeight = GetControlDimensions(handle)
+    local handleSize = math.min(handleWidth or HANDLE_SIZE, handleHeight or HANDLE_SIZE)
+    local iconSize = ClampNumber(handleSize * HANDLE_ICON_SCALE, HANDLE_ICON_MIN_SIZE, HANDLE_ICON_MAX_SIZE, HANDLE_ICON_MAX_SIZE)
+    local arrowSize = ClampNumber(iconSize * HANDLE_ARROW_SCALE, HANDLE_ARROW_MIN_SIZE, HANDLE_ARROW_MAX_SIZE, HANDLE_ARROW_MAX_SIZE)
+    local hidden = visible ~= true
+
+    if data.control.SetDimensions then data.control:SetDimensions(iconSize, iconSize) end
+    if data.control.ClearAnchors then data.control:ClearAnchors() end
+    local center = rawget(_G, "CENTER")
+    if data.control.SetAnchor and center then data.control:SetAnchor(center, handle, center, 0, 0) end
+    if data.control.SetHidden then data.control:SetHidden(hidden) end
+    if data.control.SetAlpha then data.control:SetAlpha(hidden and 0 or 1) end
+
+    for _, part in ipairs(data.parts) do
+        ConfigureIconPart(data.control, part, arrowSize, iconSize * HANDLE_ARROW_OFFSET_SCALE, hidden)
+    end
+end
+
 local function EnsureHandleLabel(handle)
     if not (handle and rawget(_G, "WINDOW_MANAGER") and rawget(_G, "CT_LABEL")) then
         return nil
@@ -640,28 +814,29 @@ local function EnsureHandleLabel(handle)
     return label
 end
 
-local function ConfigureHandleVisual(handle, descriptor, visible, placeholder)
+local function ConfigureHandleVisual(handle, descriptor, visible, placeholder, hostControl)
     if not handle then
         return
     end
-    local width = placeholder and (descriptor.placeholderWidth or PLACEHOLDER_WIDTH) or HANDLE_SIZE
-    local height = placeholder and (descriptor.placeholderHeight or PLACEHOLDER_HEIGHT) or HANDLE_SIZE
+    local width, height = GetHandleVisualDimensions(descriptor, placeholder, hostControl)
     if handle.SetDimensions then handle:SetDimensions(width, height) end
     if handle.SetDrawLayer then handle:SetDrawLayer(rawget(_G, "DL_OVERLAY")) end
-    if handle.SetDrawLevel then handle:SetDrawLevel(520) end
+    if handle.SetDrawLevel then handle:SetDrawLevel(HANDLE_DRAW_LEVEL) end
     if handle.SetMouseEnabled then handle:SetMouseEnabled(visible == true) end
     if handle.SetHidden then handle:SetHidden(visible ~= true) end
     if handle.SetCenterColor then handle:SetCenterColor(0.15, 0.45, 1, placeholder and 0.28 or 0.20) end
     if handle.SetEdgeColor then handle:SetEdgeColor(0.35, 0.70, 1, 0.95) end
+    UpdateHandleIconVisual(handle, visible == true)
 
     local label = EnsureHandleLabel(handle)
     if label then
         if label.SetText then label:SetText(descriptor.label or "HUD Element") end
         if label.SetHidden then label:SetHidden(not (visible == true and placeholder == true)) end
+        if label.SetDimensions then label:SetDimensions(math.max(width - 8, 1), HANDLE_LABEL_HEIGHT) end
         if label.ClearAnchors then label:ClearAnchors() end
         if label.SetAnchor then
-            label:SetAnchor(rawget(_G, "TOPLEFT") or rawget(_G, "TOP"), handle, rawget(_G, "TOPLEFT") or rawget(_G, "TOP"), 4, 0)
-            label:SetAnchor(rawget(_G, "BOTTOMRIGHT") or rawget(_G, "BOTTOM"), handle, rawget(_G, "BOTTOMRIGHT") or rawget(_G, "BOTTOM"), -4, 0)
+            local top = rawget(_G, "TOP") or rawget(_G, "CENTER")
+            if top then label:SetAnchor(top, handle, top, 0, HANDLE_LABEL_TOP_OFFSET) end
         end
     end
 end
@@ -864,7 +1039,7 @@ SetHandleState = function(key, descriptor, settings, entries)
     end
     local handle = EnsureHandle(key, descriptor, useLiveHost and hostControl or nil)
     local placeholder = visible and not useLiveHost
-    ConfigureHandleVisual(handle, descriptor, visible, placeholder)
+    ConfigureHandleVisual(handle, descriptor, visible, placeholder, useLiveHost and hostControl or nil)
     if not (handle and visible) then
         return
     end
