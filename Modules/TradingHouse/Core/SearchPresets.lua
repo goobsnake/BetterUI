@@ -20,6 +20,8 @@ local TH = BETTERUI.TradingHouse
 TH.SearchPresets = {}
 local Presets = TH.SearchPresets
 
+local MODULE_NAME = "TradingHouse"
+local PRESETS_KEY = "searchPresets"
 local MAX_PRESETS = 20
 
 -- Schema version stamped onto each saved preset. Presets carrying an API
@@ -40,15 +42,70 @@ local TracePresets = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
 
 -- PRESET STORAGE
 
+local function CountPresets(presets)
+    if type(presets) ~= "table" then
+        return 0
+    end
+    return #presets
+end
+
+local function TracePresetState(event, phase, data)
+    local L = BETTERUI.Log
+    data = data or {}
+    if data.presetCount == nil then
+        data.presetCount = CountPresets(Presets.GetAll and Presets.GetAll() or nil)
+    end
+    if L and L.TraceEvent then
+        local categories = L.CATEGORY or {}
+        local levels = L.LEVEL or {}
+        L.TraceEvent(categories.STATE or "STATE", event, phase, data, levels.INFO)
+    else
+        TracePresets(event, phase, data)
+    end
+end
+
+local function GetLiveTradingHouseSettings()
+    if type(BETTERUI.EnsureModuleSettings) == "function" then
+        return BETTERUI.EnsureModuleSettings(MODULE_NAME)
+    end
+
+    BETTERUI.Settings = BETTERUI.Settings or {}
+    BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
+    if type(BETTERUI.Settings.Modules[MODULE_NAME]) ~= "table" then
+        BETTERUI.Settings.Modules[MODULE_NAME] = {}
+    end
+    return BETTERUI.Settings.Modules[MODULE_NAME]
+end
+
+local function GetLivePresetList()
+    local settings = GetLiveTradingHouseSettings()
+    if type(settings[PRESETS_KEY]) ~= "table" then
+        settings[PRESETS_KEY] = {}
+    end
+    return settings[PRESETS_KEY]
+end
+
+local function PersistPresetList(presets)
+    if type(presets) ~= "table" then
+        return false
+    end
+
+    local settings = GetLiveTradingHouseSettings()
+    settings[PRESETS_KEY] = presets
+
+    if type(TH.SetSetting) == "function" then
+        return TH.SetSetting(PRESETS_KEY, presets) ~= false
+    end
+    if type(BETTERUI.SetSetting) == "function" then
+        return BETTERUI.SetSetting(MODULE_NAME, PRESETS_KEY, presets) ~= false
+    end
+    return true
+end
+
 --- Gets the saved presets list from module settings.
 ---@return table[] presets Array of {name, searchTable, description} entries
 function Presets.GetAll()
-    local saved = TH.GetSetting("searchPresets")
-    if type(saved) ~= "table" then
-        saved = {}
-        TH.SetSetting("searchPresets", saved)
-    end
-    return saved
+    return GetLivePresetList()
 end
 
 --- Saves the current search criteria as a named preset.
@@ -56,19 +113,23 @@ end
 ---@return boolean success True if saved successfully
 function Presets.SaveCurrent(name)
     TracePresets("trading_house.presets", "save_begin", { fn = "Presets.SaveCurrent", name = name })
+    TracePresetState("trading_house.presets.save", "begin", { fn = "Presets.SaveCurrent", name = name })
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SEARCH, "search preset saved", { name = name })
     end
     if not name or name == "" then
         TracePresets("trading_house.presets", "save_skipped", { fn = "Presets.SaveCurrent", reason = "missingName" })
+        TracePresetState("trading_house.presets.save", "skipped", { fn = "Presets.SaveCurrent", reason = "missingName" })
         return false
     end
     if not TRADING_HOUSE_SEARCH then
         TracePresets("trading_house.presets", "save_skipped", { fn = "Presets.SaveCurrent", reason = "missingSearch" })
+        TracePresetState("trading_house.presets.save", "skipped", { fn = "Presets.SaveCurrent", name = name, reason = "missingSearch" })
         return false
     end
     if not TRADING_HOUSE_SEARCH.features then
         TracePresets("trading_house.presets", "save_skipped", { fn = "Presets.SaveCurrent", reason = "missingFeatures" })
+        TracePresetState("trading_house.presets.save", "skipped", { fn = "Presets.SaveCurrent", name = name, reason = "missingFeatures" })
         BETTERUI.CIM.UserAlertText("TH:PresetUnavailable",
             GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_UNAVAILABLE")) or "Search features are not available")
         return false
@@ -77,6 +138,7 @@ function Presets.SaveCurrent(name)
     local searchTable = TRADING_HOUSE_SEARCH:CreateSearchTable()
     if not searchTable then
         TracePresets("trading_house.presets", "save_skipped", { fn = "Presets.SaveCurrent", reason = "missingSearchTable" })
+        TracePresetState("trading_house.presets.save", "skipped", { fn = "Presets.SaveCurrent", name = name, reason = "missingSearchTable" })
         return false
     end
 
@@ -97,8 +159,13 @@ function Presets.SaveCurrent(name)
         apiVersion = CurrentSchemaVersion(),
     })
 
-    TH.SetSetting("searchPresets", presets)
+    if not PersistPresetList(presets) then
+        TracePresets("trading_house.presets", "save_skipped", { fn = "Presets.SaveCurrent", name = name, presetCount = #presets, reason = "persistFailed" })
+        TracePresetState("trading_house.presets.save", "skipped", { fn = "Presets.SaveCurrent", name = name, presetCount = #presets, reason = "persistFailed" })
+        return false
+    end
     TracePresets("trading_house.presets", "saved", { fn = "Presets.SaveCurrent", name = name, presetCount = #presets, description = description, apiVersion = CurrentSchemaVersion() })
+    TracePresetState("trading_house.presets.save", "end", { fn = "Presets.SaveCurrent", name = name, presetCount = #presets, description = description, apiVersion = CurrentSchemaVersion() })
     return true
 end
 
@@ -107,6 +174,7 @@ end
 ---@return boolean success True if loaded successfully
 function Presets.Load(index)
     TracePresets("trading_house.presets", "load_begin", { fn = "Presets.Load", index = index })
+    TracePresetState("trading_house.presets.load", "begin", { fn = "Presets.Load", index = index })
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SEARCH, "search preset loaded", { index = index })
     end
@@ -114,14 +182,17 @@ function Presets.Load(index)
     local preset = presets[index]
     if not preset or not preset.searchTable then
         TracePresets("trading_house.presets", "load_skipped", { fn = "Presets.Load", index = index, reason = "missingPresetOrSearchTable" })
+        TracePresetState("trading_house.presets.load", "skipped", { fn = "Presets.Load", index = index, presetCount = #presets, reason = "missingPresetOrSearchTable" })
         return false
     end
     if not TRADING_HOUSE_SEARCH then
         TracePresets("trading_house.presets", "load_skipped", { fn = "Presets.Load", index = index, presetName = preset.name, reason = "missingSearch" })
+        TracePresetState("trading_house.presets.load", "skipped", { fn = "Presets.Load", index = index, presetName = preset.name, presetCount = #presets, reason = "missingSearch" })
         return false
     end
     if not TRADING_HOUSE_SEARCH.features then
         TracePresets("trading_house.presets", "load_skipped", { fn = "Presets.Load", index = index, presetName = preset.name, reason = "missingFeatures" })
+        TracePresetState("trading_house.presets.load", "skipped", { fn = "Presets.Load", index = index, presetName = preset.name, presetCount = #presets, reason = "missingFeatures" })
         BETTERUI.CIM.UserAlertText("TH:PresetUnavailable",
             GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_UNAVAILABLE")) or "Search features are not available")
         return false
@@ -132,6 +203,7 @@ function Presets.Load(index)
     -- LoadSearchTable, so it must fail gracefully rather than crash the addon.
     if type(preset.searchTable) ~= "table" then
         TracePresets("trading_house.presets", "load_skipped", { fn = "Presets.Load", index = index, presetName = preset.name, reason = "corruptSearchTable" })
+        TracePresetState("trading_house.presets.load", "skipped", { fn = "Presets.Load", index = index, presetName = preset.name, presetCount = #presets, reason = "corruptSearchTable" })
         BETTERUI.CIM.UserAlertText("TH:PresetCorrupt",
             GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_CORRUPT")) or "This preset could not be loaded")
         return false
@@ -143,6 +215,7 @@ function Presets.Load(index)
     local current = CurrentSchemaVersion()
     if preset.apiVersion ~= nil and current ~= nil and preset.apiVersion ~= current then
         TracePresets("trading_house.presets", "load_skipped", { fn = "Presets.Load", index = index, presetName = preset.name, reason = "apiVersionMismatch", presetApiVersion = preset.apiVersion, currentApiVersion = current })
+        TracePresetState("trading_house.presets.load", "skipped", { fn = "Presets.Load", index = index, presetName = preset.name, presetCount = #presets, reason = "apiVersionMismatch", presetApiVersion = preset.apiVersion, currentApiVersion = current })
         BETTERUI.CIM.UserAlertText("TH:PresetIncompatible",
             GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_INCOMPATIBLE")) or "This preset is from a different game version")
         return false
@@ -158,11 +231,13 @@ function Presets.Load(index)
         end)
     if not ok then
         TracePresets("trading_house.presets", "load_failed", { fn = "Presets.Load", index = index, presetName = preset.name, reason = "safeExecuteFailed" })
+        TracePresetState("trading_house.presets.load", "skipped", { fn = "Presets.Load", index = index, presetName = preset.name, presetCount = #presets, reason = "safeExecuteFailed" })
         BETTERUI.CIM.UserAlertText("TH:PresetCorrupt",
             GetString(rawget(_G, "SI_BETTERUI_TH_PRESET_CORRUPT")) or "This preset could not be loaded")
         return false
     end
     TracePresets("trading_house.presets", "loaded", { fn = "Presets.Load", index = index, presetName = preset.name, apiVersion = preset.apiVersion })
+    TracePresetState("trading_house.presets.load", "end", { fn = "Presets.Load", index = index, presetName = preset.name, presetCount = #presets, apiVersion = preset.apiVersion })
     return true
 end
 
@@ -171,14 +246,21 @@ end
 ---@return boolean success True if deleted
 function Presets.Delete(index)
     local presets = Presets.GetAll()
+    TracePresetState("trading_house.presets.delete", "begin", { fn = "Presets.Delete", index = index, presetCount = #presets })
     if not presets[index] then
         TracePresets("trading_house.presets", "delete_skipped", { fn = "Presets.Delete", index = index, reason = "missingPreset" })
+        TracePresetState("trading_house.presets.delete", "skipped", { fn = "Presets.Delete", index = index, presetCount = #presets, reason = "missingPreset" })
         return false
     end
     local presetName = presets[index].name
     table.remove(presets, index)
-    TH.SetSetting("searchPresets", presets)
+    if not PersistPresetList(presets) then
+        TracePresets("trading_house.presets", "delete_skipped", { fn = "Presets.Delete", index = index, presetName = presetName, presetCount = #presets, reason = "persistFailed" })
+        TracePresetState("trading_house.presets.delete", "skipped", { fn = "Presets.Delete", index = index, presetName = presetName, presetCount = #presets, reason = "persistFailed" })
+        return false
+    end
     TracePresets("trading_house.presets", "deleted", { fn = "Presets.Delete", index = index, presetName = presetName, presetCount = #presets })
+    TracePresetState("trading_house.presets.delete", "end", { fn = "Presets.Delete", index = index, presetName = presetName, presetCount = #presets })
     return true
 end
 

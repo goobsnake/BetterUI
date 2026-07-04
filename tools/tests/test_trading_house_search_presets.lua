@@ -37,6 +37,12 @@ function BETTERUI.TradingHouse.SetSetting(key, value)
     settings[key] = value
 end
 
+-- SearchPresets mutates the LIVE module-settings table (GetSetting returns
+-- detached clones at runtime); hand it the same table the stubs use.
+function BETTERUI.EnsureModuleSettings(moduleName)
+    return settings
+end
+
 function BETTERUI.CIM.UserAlertText(id, text)
     alerts[#alerts + 1] = { id = id, text = text }
 end
