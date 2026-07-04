@@ -99,6 +99,13 @@ local TH_HEADER_SHOULDER_KEYBINDS = {
     UI_SHORTCUT_RIGHT_SHOULDER = true,
 }
 
+local TH_HEADER_TAB_TEMPLATE = "ZO_GamepadTabBarTemplate"
+
+local function GetTHCarouselConst(key)
+    local carousel = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.CAROUSEL or nil
+    return carousel and carousel[key] or nil
+end
+
 local function GetTHString(primaryIdName, fallbackIdName, fallback)
     local id = rawget(_G, primaryIdName)
     if id ~= nil and GetString then
@@ -164,7 +171,6 @@ local function EnsureTHHeaderGeneric(headerGeneric)
     return headerGeneric.controls ~= nil
         and BETTERUI.GenericHeader ~= nil
         and BETTERUI.GenericHeader.Refresh ~= nil
-        and BETTERUI.GenericHeader.AddToList ~= nil
 end
 
 local function FindTHHeaderTabIndex(mode, tabs)
@@ -195,9 +201,9 @@ local function EnsureTHHeaderData(instance)
         tabBarData = { parent = instance },
         carouselConfig = {
             enabled = (not TH.GetSetting) or (TH.GetSetting("enableCarousel") ~= false),
-            startOffset = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.CAROUSEL and BETTERUI.CIM.CONST.CAROUSEL.startOffset or nil,
-            verticalOffset = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.CAROUSEL and BETTERUI.CIM.CONST.CAROUSEL.verticalOffset or nil,
-            itemSpacing = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.CAROUSEL and BETTERUI.CIM.CONST.CAROUSEL.itemSpacing or nil,
+            startOffset = GetTHCarouselConst("startOffset"),
+            verticalOffset = GetTHCarouselConst("verticalOffset"),
+            itemSpacing = GetTHCarouselConst("itemSpacing"),
         },
         onSelectedChanged = function(list, selectedData)
             if instance._suppressTradingHouseHeaderSelection then return end
@@ -210,6 +216,36 @@ local function EnsureTHHeaderData(instance)
         end,
     }
     return instance.tradingHouseHeaderData
+end
+
+local function RefreshTHHeaderCarouselConfig(headerData)
+    headerData.carouselConfig = headerData.carouselConfig or {}
+    headerData.carouselConfig.enabled = (not TH.GetSetting) or (TH.GetSetting("enableCarousel") ~= false)
+    headerData.carouselConfig.startOffset = GetTHCarouselConst("startOffset")
+    headerData.carouselConfig.verticalOffset = GetTHCarouselConst("verticalOffset")
+    headerData.carouselConfig.itemSpacing = GetTHCarouselConst("itemSpacing")
+end
+
+local function BuildTHHeaderTabEntries(tabs)
+    local entries = {}
+    for i = 1, #tabs do
+        local tab = tabs[i]
+        local text = tab.name()
+        local entryData = ZO_GamepadEntryData and ZO_GamepadEntryData:New(text, tab.icon) or { text = text, icon = tab.icon }
+        entryData.mode = tab.mode
+        entryData.text = text
+        entryData.icon = tab.icon
+        entryData.template = TH_HEADER_TAB_TEMPLATE
+        entryData.canSelect = true
+        if entryData.SetIconTintOnSelection then
+            entryData:SetIconTintOnSelection(true)
+        end
+        if entryData.SetFontScaleOnSelection then
+            entryData:SetFontScaleOnSelection(false)
+        end
+        entries[#entries + 1] = entryData
+    end
+    return entries
 end
 
 local function SetTHHeaderTabBarHidden(headerGeneric, hidden)
@@ -256,28 +292,10 @@ function BETTERUI.TradingHouse.Class:UpdateTabHeader()
     local headerGeneric = GetTHHeaderGeneric(self)
     if not EnsureTHHeaderGeneric(headerGeneric) then return end
     local headerData = EnsureTHHeaderData(self)
-    headerData.carouselConfig.enabled = (not TH.GetSetting) or (TH.GetSetting("enableCarousel") ~= false)
+    RefreshTHHeaderCarouselConfig(headerData)
+    headerData.tabBarEntries = BuildTHHeaderTabEntries(tabs)
 
     self._suppressTradingHouseHeaderSelection = true
-    if not headerGeneric.tabBar then
-        BETTERUI.GenericHeader.Refresh(headerGeneric, headerData, true)
-    end
-    if headerGeneric.tabBar then
-        headerGeneric.tabBar:Clear()
-    end
-
-    if ZO_GamepadEntryData then
-        for i = 1, #tabs do
-            local tab = tabs[i]
-            local entryData = ZO_GamepadEntryData:New(tab.name(), tab.icon)
-            entryData.mode = tab.mode
-            if entryData.SetIconTintOnSelection then
-                entryData:SetIconTintOnSelection(true)
-            end
-            BETTERUI.GenericHeader.AddToList(headerGeneric, entryData)
-        end
-    end
-
     BETTERUI.GenericHeader.Refresh(headerGeneric, headerData, true)
     SetTHHeaderTabBarHidden(headerGeneric, false)
 
