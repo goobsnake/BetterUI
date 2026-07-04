@@ -52,9 +52,7 @@ Modules\CIM\Core\Diagnostics\Names.lua
 Modules\CIM\Core\Diagnostics\DebugInfo.lua
 Modules\CIM\Core\Diagnostics\WatchMode.lua
 Modules\CIM\Core\Diagnostics\BuilogCommands.lua
-Modules\CIM\Core\Diagnostics\Perf.lua
 Modules\CIM\Core\Diagnostics\DebugCommands.lua
-Modules\CIM\Core\Diagnostics\PerformanceProfiler.lua
 Modules\CIM\Core\Diagnostics\SceneLog.lua
 Modules\CIM\Core\Settings\SettingsAccessor.lua
 Modules\CIM\Core\Settings\SettingsReset.lua

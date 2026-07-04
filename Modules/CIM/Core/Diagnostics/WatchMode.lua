@@ -264,6 +264,21 @@ function Watch.RegisterSnapshotProvider(name, fn)
     snapshotProviders[name] = fn
 end
 
+--- Snapshot helper: returns 1 when a keybind-group descriptor is currently
+--- registered with the game's keybind system, else 0. Shared by every module's
+--- snapshot provider so the `keybind*` digest fields stay byte-identical across
+--- Banking/Inventory/TradingHouse/Vendor/Companions. Call-time safe: guards
+--- BETTERUI.Interface so a partial-load caller can never raise.
+---@param descriptor table|nil
+---@return number
+function Watch.KeybindPresent(descriptor)
+    local Interface = BETTERUI.Interface
+    if Interface and Interface.HasKeybindGroup then
+        return Interface.HasKeybindGroup(descriptor) and 1 or 0
+    end
+    return 0
+end
+
 --- Emit one STATE snapshot now (heartbeat + aggregated provider values). Public so a
 --- command or test can force one; also driven by the periodic timer.
 function Watch.Snapshot()

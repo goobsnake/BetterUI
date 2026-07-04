@@ -76,6 +76,21 @@ local m_nonCostFailureLastSeenMsBySlotCategory = {}
 local TARGET_FAILURE_CAST_HOLD_MS = 200
 local NON_COST_FAILURE_CAST_HOLD_MS = 250
 
+-- Preflight predicate for hot-path dedup-key construction (TRACE-002B): callers
+-- check this before building table.concat trace keys on per-tick paths.
+local function ShouldTraceFrontBar()
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and L.TraceEvent) then return false end
+    if type(L.EnabledFor) ~= "function" then return true end
+    local categories = L.CATEGORY or {}
+    local levels = L.LEVEL or {}
+    local level = levels.DEBUG
+    if type(level) ~= "number" then
+        return type(L.IsActive) ~= "function" or L.IsActive()
+    end
+    return L.EnabledFor(level, categories.ACTION or categories.STATE)
+end
+
 local function TraceFrontBar(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
@@ -423,6 +438,9 @@ local function UpdateFrontBarUsability(rootFrame, isCasting)
                 if unusableOverlay then
                     unusableOverlay:SetHidden(not (unusable and not hasActiveCooldown))
                 end
+                -- Preflight before building the dedup key so the per-100ms
+                -- table.concat only runs while tracing is active (TRACE-002B).
+                if ShouldTraceFrontBar() then
                 local stateTraceKey = table.concat({
                     tostring(mapping.slot),
                     tostring(activeCategory),
@@ -448,6 +466,7 @@ local function UpdateFrontBarUsability(rootFrame, isCasting)
                         unusable = unusable,
                         overlayVisible = unusable and not hasActiveCooldown,
                     })
+                end
                 end
             end
         end

@@ -220,6 +220,14 @@ Watch.RegisterSnapshotProvider("boom", function() error("nope") end)
 local okCall = pcall(Watch.Snapshot)
 check(okCall, "Snapshot survives an erroring provider")
 
+-- KeybindPresent: the shared snapshot helper backing every module's `keybind*`
+-- digest field. Returns a 1/0 numeric and is call-time safe when Interface is absent.
+check(Watch.KeybindPresent(nil) == 0, "KeybindPresent returns 0 when no keybind interface is loaded")
+BETTERUI.Interface = { HasKeybindGroup = function(d) return d ~= nil end }
+check(Watch.KeybindPresent({}) == 1, "KeybindPresent returns 1 when the descriptor is a registered group")
+check(Watch.KeybindPresent(nil) == 0, "KeybindPresent returns 0 when HasKeybindGroup reports absent")
+BETTERUI.Interface = nil
+
 -- Curated auto-mute applies via SetCategoryEnabled when active.
 Watch.SetMutedCategories({ "PERF" })
 check(cap.mutes["PERF"] == true, "SetMutedCategories mutes the category while active")

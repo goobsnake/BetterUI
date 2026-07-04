@@ -627,7 +627,7 @@ local function SnapshotInventoryVisible(inv)
 end
 
 local function SnapshotKeybindPresent(descriptor)
-	return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
+	return BETTERUI.WatchMode.KeybindPresent(descriptor)
 end
 
 local function RegisterInventorySnapshotProvider()

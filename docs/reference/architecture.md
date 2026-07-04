@@ -131,10 +131,10 @@ CIM/
 │   ├── Settings/          # DefaultsRegistry, metadata, factory, accessor
 │   └── Window/            # WindowClass, GenericWindow, UnifiedScreen
 ├── UI/                    # BatchOverlay, GenericHeader/Footer, sort + scroll helpers
-├── Lists/                 # ItemDataProcessor, BatchProcessor, list managers
+├── Lists/                 # ItemDataProcessor, ListRefreshManager, list managers
 ├── Actions/               # GenericSlotActions.lua, ActionDialogUtils.lua
 ├── Keybinds/              # Generic keybind helpers
-├── Dialogs/               # DialogRegistry.lua
+├── Dialogs/               # DialogRegistry.lua, DialogRestore.lua
 ├── Templates/             # Shared XML templates
 └── Images/                # Shared UI assets
 ```

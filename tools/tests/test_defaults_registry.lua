@@ -168,26 +168,15 @@ assert_true(comp.bindOnEquipProtection, "Companions.bindOnEquipProtection defaul
 assert_true(comp.enableCompanionJunk, "Companions.enableCompanionJunk defaults true")
 
 -- ============================================================================
--- TESTS: DestructiveSettings
--- ============================================================================
-
-print("\nTest: DestructiveSettings identification")
-assert_true(BETTERUI.Defaults.IsDestructive("Inventory", "quickDestroy"), "quickDestroy is destructive")
-assert_true(BETTERUI.Defaults.IsDestructive("Inventory", "enableBatchDestroy"), "enableBatchDestroy is destructive")
-assert_true(BETTERUI.Defaults.IsDestructive("GeneralInterface", "removeDeleteDialog"), "removeDeleteDialog is destructive")
-assert_false(BETTERUI.Defaults.IsDestructive("Inventory", "enableCarousel"), "enableCarousel is NOT destructive")
-assert_false(BETTERUI.Defaults.IsDestructive("NonExistent", "key"), "Unknown module is NOT destructive")
-
--- ============================================================================
 -- TESTS: Utility Functions
 -- ============================================================================
+-- BUI-CLEAN-002: the dead IsDestructive/GetDefault accessors and the
+-- write-only DestructiveSettings table were removed as production-dead.
 
-print("\nTest: GetDefault returns correct value")
-assert_true(BETTERUI.Defaults.GetDefault("Inventory", "enableCarousel"), "GetDefault Inventory.enableCarousel")
-assert_false(BETTERUI.Defaults.GetDefault("Inventory", "quickDestroy"), "GetDefault Inventory.quickDestroy")
-assert_equal(50, BETTERUI.Defaults.GetDefault("CIM", "rhScrollSpeed"), "GetDefault CIM.rhScrollSpeed")
-assert_nil(BETTERUI.Defaults.GetDefault("NonExistent", "key"), "GetDefault returns nil for unknown module")
-assert_nil(BETTERUI.Defaults.GetDefault("Inventory", "nonExistentKey"), "GetDefault returns nil for unknown key")
+print("\nTest: dead accessors stay removed")
+assert_nil(BETTERUI.Defaults.IsDestructive, "IsDestructive stays removed")
+assert_nil(BETTERUI.Defaults.GetDefault, "GetDefault stays removed")
+assert_nil(BETTERUI.Defaults.DestructiveSettings, "DestructiveSettings table stays removed")
 
 print("\nTest: GetModuleDefaults returns module table")
 local invDefaults = BETTERUI.Defaults.GetModuleDefaults("Inventory")

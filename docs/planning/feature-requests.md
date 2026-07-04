@@ -1,6 +1,6 @@
 # Feature Requests Backlog
 
-Last Updated: 2026-06-19
+Last Updated: 2026-07-03
 Status: Active
 
 This document tracks durable BetterUI feature gaps and parity opportunities discovered from ESO gamepad workflow audits.
@@ -64,14 +64,6 @@ This document tracks durable BetterUI feature gaps and parity opportunities disc
 
 ## In-Game Validation Checkpoints
 
-The 2026-06-19 backlog-drain shipped these as **first-cut** implementations (unit-tested + cross-model
-reviewed; full Lua suite green). They are functionally complete in code but need the maintainer's in-game
-gamepad validation/iteration before being considered final — when that pass is scheduled:
-
-1. `PLT-003` Category-position persistence now restores by item uniqueId (GenericWindow → PositionManager). Verify Banking/Backpack cursor lands on the same item after reordering/refresh.
-2. `PLT-006` Narration-broadening capability (footer-currency/mode/category/keybind providers + `NarrateActionKeybinds`) shipped in `NarrationHelper`; wire each scene's providers into its `RegisterListNarration` call and confirm with a screen reader (verbosity/timing).
-3. `INV-003` Companion equipment item-preview action — confirm preview opens/exits cleanly and the keybind reads sensibly.
-4. `TRC-002` Vendor buy keeps single-item default; `Vendor.ClampPurchaseQuantity` is ready — wire a quantity spinner/dialog and verify clamp to stack/affordability.
-5. `TRC-003` Guild-store browse filter dialog (name/category/price/quality/level) — verify the name filter applies on first search (async gate added) and polish the dialog into dropdowns.
-6. `TRC-004` Create-listing digit price entry (`ZO_CurrencySelector_Gamepad`) — verify activation/input/teardown for large prices.
-7. `TRC-005` Stable active-mount icon + no-mount warning — confirm the icon resolves and the warning reads well.
+None open. The 2026-06-19 backlog-drain first-cut checkpoints (`PLT-003`, `PLT-006`, `INV-003`,
+`TRC-002`, `TRC-003`, `TRC-004`, `TRC-005`) were all closed on 2026-07-03 via host code spot-checks
+(fix applied for the TRC-004 price-selector input-capture leak; see `completed-improvements.md`).

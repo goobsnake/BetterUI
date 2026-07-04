@@ -781,7 +781,7 @@ local function BankingSnapshotVisible(window)
 end
 
 local function BankingSnapshotKeybindPresent(descriptor)
-    return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
+    return BETTERUI.WatchMode.KeybindPresent(descriptor)
 end
 
 local function RegisterBankingSnapshotProvider()

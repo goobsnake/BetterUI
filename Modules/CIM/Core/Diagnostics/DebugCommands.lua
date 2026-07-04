@@ -439,19 +439,6 @@ local function InspectMemory()
         d("  DeferredTask not available")
     end
 
-    d("|cffcc00[Performance Profiler]|r")
-    if BETTERUI.CIM.Profiler and BETTERUI.CIM.Profiler.IsEnabled and BETTERUI.CIM.Profiler.IsEnabled() then
-        local timings = BETTERUI.CIM.Profiler.GetTimings and BETTERUI.CIM.Profiler.GetTimings() or {}
-        local counters = BETTERUI.CIM.Profiler.GetCounters and BETTERUI.CIM.Profiler.GetCounters() or {}
-        local timingCount, counterCount = 0, 0
-        for _ in pairs(timings) do timingCount = timingCount + 1 end
-        for _ in pairs(counters) do counterCount = counterCount + 1 end
-        d(string.format("  Tracked operations: %d", timingCount))
-        d(string.format("  Tracked counters: %d", counterCount))
-    else
-        d("  Profiler disabled")
-    end
-
     local memKB = collectgarbage("count")
     d("|cffcc00[Lua Memory]|r")
     d(string.format("  Approximate usage: %.1f KB", memKB))
@@ -629,35 +616,6 @@ function Debug.RegisterCommands()
         InspectControl(args)
     end)
 
-    RegisterDebugSlashCommand("/buiprofile", function(args)
-        if not EnsureDebugModeForCommand("/buiprofile") then
-            return
-        end
-
-        if args == "start" then
-            if BETTERUI.CIM.Profiler then
-                BETTERUI.CIM.Profiler.Enable(true)
-                d("|c00ccff[BetterUI]|r Profiler started")
-            end
-        elseif args == "stop" then
-            if BETTERUI.CIM.Profiler then
-                BETTERUI.CIM.Profiler.Enable(false)
-                d("|c00ccff[BetterUI]|r Profiler stopped")
-            end
-        elseif args == "report" then
-            if BETTERUI.CIM.Profiler then
-                BETTERUI.CIM.Profiler.Report()
-            end
-        elseif args == "reset" then
-            if BETTERUI.CIM.Profiler then
-                BETTERUI.CIM.Profiler.Reset()
-                d("|c00ccff[BetterUI]|r Profiler reset")
-            end
-        else
-            d("|c00ccff[BetterUI]|r Usage: /buiprofile [start|stop|report|reset]")
-        end
-    end)
-
     RegisterDebugSlashCommand("/buiflag", function(args)
         if not EnsureDebugModeForCommand("/buiflag") then
             return
@@ -734,7 +692,6 @@ function Debug.RegisterCommands()
         d("  /buimemory - Memory and cache diagnostics")
         d("  /buibatch - Last batch operation diagnostics")
         d("  /buicontrol <name> - Inspect a control")
-        d("  /buiprofile [start|stop|report|reset] - Performance profiler")
         d("  /buiflag [flag] [on|off] - Toggle debug flags")
         d("  /buihelp - Show this help")
     end)

@@ -1,8 +1,13 @@
 # BetterUI Logging & Observability Strategy
 
 Status: **implemented strategy and calibration reference.** Produced by a 4-model collaboration (Claude + GPT-5.5 +
-Kimi + Gemini 3.1 Pro) across **four adversarial rounds** with ESOUI + BetterUI source evidence. Round
-working notes: `docs/tmp/logging-observability-*` (safe to delete once this lands).
+Kimi + Gemini 3.1 Pro) across **four adversarial rounds** with ESOUI + BetterUI source evidence. (The round
+working notes formerly under `docs/tmp/` were deleted in the 2026-07-03 hygiene pass.)
+
+> **2026-07-03 note:** the `Perf.lua` markers referenced in §4 and roadmap phase 7 were retired
+> (BUI-CLEAN-001) — the perf-marker system never gained production producers and was removed along
+> with `PerformanceProfiler.lua` and the `/buiprofile` command. PERF-category budgets and the
+> capture/watch machinery described elsewhere in this document remain live.
 
 ## 0. North star & the one mechanism
 **Real-time capture during play-testing, monitored LIVE by an AI tailing `live/Logs/interface.log`, is THE

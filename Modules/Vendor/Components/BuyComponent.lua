@@ -419,11 +419,13 @@ local function GetStoreRowsCached(vendorInstance)
 end
 
 -- PB-017: The empty-buy-list retry is owned solely by VendorControllerRuntime
--- (single "buyListRetry" task, limit 20 @ 180ms, sharing instance._buyListRetryCount).
--- BuyComponent previously scheduled a competing "buyListRetry" (limit 3 @ 80ms x n)
--- from BuildList that shared the same counter, so the controller's retry budget was
--- consumed twice per refresh. BuildList now leaves the retry to the controller, which
--- fires whenever the built list is empty (see VendorControllerRuntime list_refresh).
+-- (single "buyListRetry" task sharing instance._buyListRetryCount): up to 20
+-- retries @ 180ms while the list builds empty, short-circuited at
+-- BUY_EMPTY_STORE_RETRY_LIMIT (8) when the native store itself reports zero
+-- items (a genuinely empty store never repopulates). BuyComponent previously
+-- scheduled a competing "buyListRetry" (limit 3 @ 80ms x n) from BuildList that
+-- shared the same counter, so the controller's retry budget was consumed twice
+-- per refresh. BuildList now leaves the retry to the controller entirely.
 
 local function GetStoreItemCategoryName(itemLink)
     if not itemLink or itemLink == "" then

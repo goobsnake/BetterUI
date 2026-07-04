@@ -67,8 +67,12 @@ assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshM
     "ListRefreshManager exposes SavePosition")
 assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:QueueRefresh%(list, refreshFn, savePosition, options%)") ~= nil,
     "ListRefreshManager exposes QueueRefresh")
-assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:IsDirty%(%)") ~= nil,
-    "ListRefreshManager exposes IsDirty")
+-- BUI-CLEAN-002: the read-only IsDirty accessor was removed as production-dead
+-- (the isDirty field and live MarkDirty writer remain).
+assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:IsDirty%(%)") == nil,
+    "ListRefreshManager no longer exposes the dead IsDirty accessor")
+assert_true(listRefreshManager:find("function BETTERUI%.CIM%.Lists%.ListRefreshManager:MarkDirty%(%)") ~= nil,
+    "ListRefreshManager keeps the live MarkDirty writer")
 
 local parametricListScreen = read_file("Modules/CIM/Lists/ParametricListScreen.lua")
 assert_true(parametricListScreen:find("BETTERUI_Gamepad_ParametricList_Screen = ZO_Gamepad_ParametricList_Screen:Subclass%(%)") ~= nil,

@@ -44,7 +44,7 @@ local function GetTradingHouseSnapshotSelectionToken(list)
 end
 
 local function IsTradingHouseSnapshotKeybindPresent(descriptor)
-    return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
+    return BETTERUI.WatchMode.KeybindPresent(descriptor)
 end
 
 local function RegisterTradingHouseSnapshotProvider()

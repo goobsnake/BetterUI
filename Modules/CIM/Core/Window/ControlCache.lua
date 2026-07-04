@@ -8,36 +8,9 @@ Purpose: Provides reusable control caching pattern to avoid repeated GetNamedChi
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.ControlCache = {}
 
---- Creates a lazy-caching child control lookup closure.
---- @param parent table The parent UI control
---- @return fun(childName: string): table|nil cacheLookup Cached GetNamedChild lookup
-function BETTERUI.CIM.ControlCache.Create(parent)
-    local cache = {}
-    return function(childName)
-        if not cache[childName] then
-            cache[childName] = parent:GetNamedChild(childName)
-            if cache[childName] == nil and BETTERUI.Log then
-                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.GENERAL, "control cache miss", { childName = childName, hit = false })
-            end
-        end
-        return cache[childName]
-    end
-end
-
---- Eagerly caches a list of child controls by name.
---- @param parent table The parent UI control
---- @param childNames string[] Array of child control names to cache
---- @return table<string, table|nil> cache Map of name to control
-function BETTERUI.CIM.ControlCache.CacheChildren(parent, childNames)
-    local cache = {}
-    local nilCount = 0
-    for _, name in ipairs(childNames) do
-        cache[name] = parent:GetNamedChild(name)
-        if cache[name] == nil then nilCount = nilCount + 1 end
-    end
-    if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.GENERAL, "cache children", { count = #childNames, nilCount = nilCount }) end
-    return cache
-end
+-- BUI-CLEAN-002: the generic Create (lazy lookup closure) and CacheChildren
+-- (eager name-list cache) exports were removed as production-dead; the button
+-- cache below is the live surface (ControlUtils + skill-bar consumers).
 
 --- Caches all standard button child controls (Icon, Cooldown, StackCount, etc.).
 --- @param button table|nil The button control to cache children for

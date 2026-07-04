@@ -267,28 +267,7 @@ BETTERUI.Defaults.Modules = {
 -- Settings that can cause data loss or require special warning UI
 -- Format: "ModuleName.settingKey" = true
 
-BETTERUI.Defaults.DestructiveSettings = {
-    ["Inventory.quickDestroy"] = true,
-    ["Inventory.enableBatchDestroy"] = true,
-    ["GeneralInterface.removeDeleteDialog"] = true,
-}
-
 -- UTILITY FUNCTIONS
-
---- Checks if a setting is marked as destructive.
-function BETTERUI.Defaults.IsDestructive(moduleName, settingKey)
-    local key = moduleName .. "." .. settingKey
-    return BETTERUI.Defaults.DestructiveSettings[key] == true
-end
-
---- Gets the default value for a specific module setting.
-function BETTERUI.Defaults.GetDefault(moduleName, settingKey)
-    local moduleDefaults = BETTERUI.Defaults.Modules[moduleName]
-    if moduleDefaults then
-        return moduleDefaults[settingKey]
-    end
-    return nil
-end
 
 --- Gets all default values for a module.
 function BETTERUI.Defaults.GetModuleDefaults(moduleName)

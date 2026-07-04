@@ -44,11 +44,6 @@ Files:
   raising high-volume trace detail.
 - `SafeExecute.lua` — `pcall` wrapper; caught errors and missing-function faults
   route through `BETTERUI.Log.Error("SAFE", ...)`.
-- `Perf.lua` — live lightweight performance markers gated by
-  `Log.EnabledFor(DEBUG, PERF)`; use `Perf.Begin`/`Perf.End` or `Perf.Measure`
-  when a play-test needs slow-operation landmarks in builog.
-- `PerformanceProfiler.lua` — dormant legacy profiling helpers kept for future
-  developer debugging; it has no active runtime consumers.
 - `DebugCommands.lua` — `/buidebug`, `/buiscene` developer trace commands.
 - `DeveloperDebug.lua` — developer-only debug toggles.
 - `FeatureFlags.lua` — runtime feature-flag system for safer rollouts.

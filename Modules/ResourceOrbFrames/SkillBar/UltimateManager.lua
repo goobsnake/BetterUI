@@ -254,6 +254,9 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
                         StopUltimateReadyAnimations(ultBtn)
                     end
                 end
+                -- Preflight before building the dedup key so the per-100ms
+                -- table.concat only runs while tracing is active (TRACE-002B).
+                if ShouldTraceUltimate() then
                 local traceKey = table.concat({
                     tostring(currentUltimate),
                     tostring(abilityCost),
@@ -270,6 +273,7 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
                         fillPercent = fillPercent,
                         ready = readyState,
                     })
+                end
                 end
             else
                 if ultBtn.appliedFillHidden ~= true then

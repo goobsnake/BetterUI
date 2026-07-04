@@ -224,7 +224,7 @@ end
 
 --- Resets the general settings for the GeneralInterface module.
 local function ResetGeneralInterfaceGeneralSettings()
-    TraceGeneralSetting("general", "reset_begin", { fn = "ResetGeneralInterfaceGeneralSettings" })
+    TraceGeneralSetting("general", "reset_begin", { feature = "settings-reset", resetName = "general", fn = "ResetGeneralInterfaceGeneralSettings" })
     SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "general")
     SettingsApi.ResetModuleSettingsByGroup("CIM", "generalInterfaceGeneral")
 
@@ -235,21 +235,21 @@ local function ResetGeneralInterfaceGeneralSettings()
             (generalInterfaceSettings and generalInterfaceSettings.chatHistory) or 200
         )
     end
-    TraceGeneralSetting("general", "reset_end", { fn = "ResetGeneralInterfaceGeneralSettings", chatHistory = generalInterfaceSettings and generalInterfaceSettings.chatHistory })
+    TraceGeneralSetting("general", "reset_end", { feature = "settings-reset", resetName = "general", fn = "ResetGeneralInterfaceGeneralSettings", chatHistory = generalInterfaceSettings and generalInterfaceSettings.chatHistory })
 end
 
 --- Resets the market integration settings to defaults.
 local function ResetMarketIntegrationSettings()
-    TraceGeneralSetting("marketIntegration", "reset_begin", { fn = "ResetMarketIntegrationSettings" })
+    TraceGeneralSetting("marketIntegration", "reset_begin", { feature = "settings-reset", resetName = "marketIntegration", fn = "ResetMarketIntegrationSettings" })
     SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "marketIntegration")
 
     RefreshInventoryAndBankingLists()
-    TraceGeneralSetting("marketIntegration", "reset_end", { fn = "ResetMarketIntegrationSettings" })
+    TraceGeneralSetting("marketIntegration", "reset_end", { feature = "settings-reset", resetName = "marketIntegration", fn = "ResetMarketIntegrationSettings" })
 end
 
 --- Resets the enhanced tooltip settings to defaults.
 local function ResetEnhancedTooltipSettings()
-    TraceGeneralSetting("enhancedTooltips", "reset_begin", { fn = "ResetEnhancedTooltipSettings" })
+    TraceGeneralSetting("enhancedTooltips", "reset_begin", { feature = "settings-reset", resetName = "enhancedTooltips", fn = "ResetEnhancedTooltipSettings" })
     SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "enhancedTooltips")
     SettingsApi.ResetModuleSettingsByGroup("CIM", "enhancedTooltips")
 
@@ -266,7 +266,7 @@ local function ResetEnhancedTooltipSettings()
         end
     end
     RefreshInventoryAndBankingLists()
-    TraceGeneralSetting("enhancedTooltips", "reset_end", { fn = "ResetEnhancedTooltipSettings", enhancementsEnabled = cimSettings and cimSettings.enableTooltipEnhancements == true, relayoutRequested = BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" or false })
+    TraceGeneralSetting("enhancedTooltips", "reset_end", { feature = "settings-reset", resetName = "enhancedTooltips", fn = "ResetEnhancedTooltipSettings", enhancementsEnabled = cimSettings and cimSettings.enableTooltipEnhancements == true, relayoutRequested = BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" or false })
 end
 
 -- SHARED HELPERS EXPORT

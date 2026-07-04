@@ -26,6 +26,14 @@ local function GetCurrentSceneName()
     return nil
 end
 
+-- Preflight predicate for hot-path dedup-key construction (TRACE-002B): callers
+-- check this before building table.concat trace keys on per-tick paths.
+local function ShouldTraceFrontCooldown()
+    local L = BETTERUI.Log
+    if not (L and L.TraceEvent and L.EnabledFor and L.CATEGORY and L.LEVEL) then return false end
+    return L.EnabledFor(L.LEVEL.DEBUG, L.CATEGORY.ACTION)
+end
+
 local function TraceFrontCooldown(event, phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent and L.EnabledFor and L.CATEGORY and L.LEVEL) then return end
@@ -204,30 +212,34 @@ local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settin
     end
     buttonControl.quickslotCount = count
     buttonControl.quickslotEmpty = isEmpty
-    local traceState = table.concat({
-        tostring(slotIndex),
-        tostring(hotbarCategory),
-        tostring(slotType),
-        tostring(count),
-        tostring(showCount),
-        tostring(isEmpty),
-        tostring(countText ~= nil),
-        tostring(unusableOverlay ~= nil),
-    }, ":")
-    if buttonControl._betteruiQuickslotCountTraceState ~= traceState then
-        buttonControl._betteruiQuickslotCountTraceState = traceState
-        TraceFrontCooldown("resource_orbs.quickslot_count", "state", {
-            fn = "SkillBar.UpdateQuickslotCountAndEmptyState",
-            slot = slotIndex,
-            category = hotbarCategory,
-            slotType = slotType,
-            isItemSlot = isItemSlot,
-            count = count,
-            showCount = showCount,
-            empty = isEmpty,
-            hasCountText = countText ~= nil,
-            hasUnusableOverlay = unusableOverlay ~= nil,
-        })
+    -- Preflight before building the dedup key so the per-tick table.concat
+    -- only runs while tracing is active (TRACE-002B).
+    if ShouldTraceFrontCooldown() then
+        local traceState = table.concat({
+            tostring(slotIndex),
+            tostring(hotbarCategory),
+            tostring(slotType),
+            tostring(count),
+            tostring(showCount),
+            tostring(isEmpty),
+            tostring(countText ~= nil),
+            tostring(unusableOverlay ~= nil),
+        }, ":")
+        if buttonControl._betteruiQuickslotCountTraceState ~= traceState then
+            buttonControl._betteruiQuickslotCountTraceState = traceState
+            TraceFrontCooldown("resource_orbs.quickslot_count", "state", {
+                fn = "SkillBar.UpdateQuickslotCountAndEmptyState",
+                slot = slotIndex,
+                category = hotbarCategory,
+                slotType = slotType,
+                isItemSlot = isItemSlot,
+                count = count,
+                showCount = showCount,
+                empty = isEmpty,
+                hasCountText = countText ~= nil,
+                hasUnusableOverlay = unusableOverlay ~= nil,
+            })
+        end
     end
     return isEmpty
 end

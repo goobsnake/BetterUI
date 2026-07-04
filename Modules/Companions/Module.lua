@@ -103,7 +103,7 @@ local function GetCompanionSnapshotCategory(instance)
 end
 
 local function IsCompanionSnapshotKeybindPresent(descriptor)
-    return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
+    return BETTERUI.WatchMode.KeybindPresent(descriptor)
 end
 
 local function RegisterCompanionSnapshotProvider()

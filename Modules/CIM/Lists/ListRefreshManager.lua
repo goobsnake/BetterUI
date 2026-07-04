@@ -406,11 +406,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
     self.isDirty = false
 end
 
----@return boolean
-function BETTERUI.CIM.Lists.ListRefreshManager:IsDirty()
-    return self.isDirty
-end
-
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:MarkDirty()
     self.isDirty = true
