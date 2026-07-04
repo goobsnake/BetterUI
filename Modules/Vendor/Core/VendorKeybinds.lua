@@ -195,9 +195,13 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
         {
             keybind = "UI_SHORTCUT_LEFT_SHOULDER",
             ethereal = true,
-            -- No visible() gate: the strip evaluates it at group-add time,
-            -- before the header exists, and never re-registers the binding.
-            -- Ethereal keeps it out of the footer; the callback self-guards.
+            -- Diagnostic session 2026-07-03 (sid a3979583): the live strip
+            -- group held only the five NAMED descriptors — nameless entries
+            -- are dropped before the strip registers them, and TH's working
+            -- shoulder binds all carry names. Named + ethereal = registered
+            -- but not rendered. No visible() gate: it is evaluated once at
+            -- group-add time, before the header exists.
+            name = GetString(rawget(_G, "SI_GAMEPAD_PAGED_LIST_PAGE_LEFT_NARRATION")) or "Previous Category",
             callback = function()
                 local canCycle, reason = CanCycleVendorHeader(vendorInstance, getActiveTabs)
                 if not canCycle then
@@ -215,7 +219,8 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
         {
             keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
             ethereal = true,
-            -- No visible() gate: see the LEFT_SHOULDER descriptor above.
+            -- Named + ethereal: see the LEFT_SHOULDER descriptor above.
+            name = GetString(rawget(_G, "SI_GAMEPAD_PAGED_LIST_PAGE_RIGHT_NARRATION")) or "Next Category",
             callback = function()
                 local canCycle, reason = CanCycleVendorHeader(vendorInstance, getActiveTabs)
                 if not canCycle then
