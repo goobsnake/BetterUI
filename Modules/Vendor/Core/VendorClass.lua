@@ -998,11 +998,7 @@ function BETTERUI.Vendor.Class:DetachUnexpectedSearchHeaderFocus(reason)
         return false
     end
 
-    if self._searchModeActive or self._searchHeaderActive or self._searchRemovedKeybindGroups then
-        if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
-            BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
-        end
-        self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
+    if self._searchModeActive or self._searchHeaderActive then
         if self.RestoreSearchModeKeybindOwnership then
             self:RestoreSearchModeKeybindOwnership("detachUnexpectedSearchHeaderFocus")
         end
@@ -1055,15 +1051,8 @@ function BETTERUI.Vendor.Class:DetachUnexpectedSearchHeaderFocus(reason)
         self.headerFocus = nil
     end
 
-    -- Invalidate any legacy scheduled cleanup left over from the old search
-    -- ownership path before clearing the detached focus references.
-    self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
-    if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
-        BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
-    end
     self._searchModeActive = false
     self._searchHeaderActive = false
-    self._searchRemovedKeybindGroups = nil
 
     if hadSearchFocus then
         LogVendorDebug(
@@ -1704,10 +1693,6 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
         keybindLabel = "vendor-search",
     })
 
-    if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
-        BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
-    end
-    self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
     self._searchModeActive = true
     self._searchHeaderActive = true
 
@@ -1767,8 +1752,7 @@ function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
     if not self._searchModeActive
         and not self._searchHeaderActive
         and not focusActive
-        and not searchKeybindPresent
-        and not self._searchRemovedKeybindGroups then
+        and not searchKeybindPresent then
         TraceVendorSearchFocus("skipped", self, reason, { skipReason = "inactive" })
         return
     end
@@ -1778,10 +1762,6 @@ function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
         keybindLabel = "vendor-search",
     })
 
-    if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
-        BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
-    end
-    self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
     self._searchModeActive = false
     self._searchHeaderActive = false
 
@@ -1810,26 +1790,6 @@ function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
         self:SetSearchDirectionalInputUpdate(false, reason)
     end
 
-    -- Legacy cleanup guard: new search focus no longer snapshots/removes
-    -- vendor-owned groups, but clear any pre-existing snapshot defensively.
-    if self._searchRemovedKeybindGroups then
-        TraceVendorKeybindLayer("begin", self, nil, {
-            feature = "vendor-search-focus",
-            fn = "Vendor.SearchFocus",
-            reason = reason,
-            keybindLabel = "legacy-removed-groups",
-            restoredGroupCount = #self._searchRemovedKeybindGroups,
-        })
-        BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
-        TraceVendorKeybindLayer("end", self, nil, {
-            feature = "vendor-search-focus",
-            fn = "Vendor.SearchFocus",
-            reason = reason,
-            keybindLabel = "legacy-removed-groups",
-            restoredGroupCount = #self._searchRemovedKeybindGroups,
-        })
-        self._searchRemovedKeybindGroups = nil
-    end
     if self.coreKeybinds then
         self:RefreshCoreKeybindOwnership(reason .. ":immediate")
     end

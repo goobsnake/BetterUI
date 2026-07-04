@@ -369,10 +369,12 @@ do
         "Vendor search exit funnels through the unified RestoreSearchFocus")
     assert_true(vendorSource:find("_restoringVendorSearchFocus", 1, true) ~= nil,
         "Vendor search restore is reentrancy-guarded")
-    assert_true(vendorSource:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searchRemovedKeybindGroups%)") ~= nil,
-        "Vendor ExitSearchMode restores exactly the groups the cleanup removed")
-    assert_true(vendorSource:find("_searchKeybindCleanupToken", 1, true) ~= nil,
-        "Vendor search cleanup uses a generation token to ignore stale deferred callbacks")
+    assert_true(vendorSource:find("_searchRemovedKeybindGroups", 1, true) == nil,
+        "Vendor search has no stale removed-group restore branch after the additive search port")
+    assert_true(vendorSource:find("searchKeybindCleanup", 1, true) == nil,
+        "Vendor search has no stale deferred cleanup task after the additive search port")
+    assert_true(vendorSource:find("_searchKeybindCleanupToken", 1, true) == nil,
+        "Vendor search has no stale cleanup generation token after the additive search port")
     assert_true(vendorSource:find("ZO_Gamepad_ParametricList_Screen.OnLeaveHeader", 1, true) ~= nil,
         "Vendor OnLeaveHeader runs the base parametric leave before search restore")
     assert_true(vendorSource:find("if self._preserveSearchFocusDuringRefresh", 1, true) ~= nil,
