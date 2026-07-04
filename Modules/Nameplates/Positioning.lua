@@ -59,11 +59,25 @@ local tracePositioningBase = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
     }
     or function() end
 
-local function TracePositioning(phase, data)
+local function TracePositioning(phase, data, level)
     data = data or {}
     data.fn = data.fn or "Nameplates.Positioning"
     data["function"] = data["function"] or data.fn
-    tracePositioningBase("nameplates.positioning", phase, data)
+    tracePositioningBase("nameplates.positioning", phase, data, nil, level)
+end
+
+local function DescribeControl(control, label)
+    local L = BETTERUI and BETTERUI.Log
+    if L and type(L.DescribeControl) == "function" then
+        return L.DescribeControl(control, label)
+    end
+    local prefix = label and (tostring(label) .. ":") or ""
+    if control == nil then return prefix .. "nil" end
+    local ok, name = pcall(function()
+        if control.GetName then return control:GetName() end
+        return nil
+    end)
+    return prefix .. ((ok and name and name ~= "") and tostring(name) or "<" .. type(control) .. ">")
 end
 
 local function ClampOffset(value)
@@ -139,10 +153,12 @@ local function ReadControlAnchors(control, controlName, descriptor)
         local okCount, count = pcall(function() return control:GetNumAnchors() end)
         if okCount and type(count) == "number" then
             for i = 0, count - 1 do
-                local ok, point, relativeTo, relativePoint, offsetX, offsetY = pcall(function()
+                -- GetAnchor returns isValidAnchor FIRST (zo_anchor.lua:82); binding
+                -- point to that boolean shifted every field and crashed SetAnchor.
+                local ok, isValid, point, relativeTo, relativePoint, offsetX, offsetY = pcall(function()
                     return control:GetAnchor(i)
                 end)
-                if ok and point ~= nil then
+                if ok and isValid == true and point ~= nil then
                     anchors[#anchors + 1] = {
                         point = point,
                         relativeTo = relativeTo,
@@ -247,6 +263,66 @@ local function RestoreAnchors(control, controlName, descriptor)
     control._betteruiNameplateAppliedOffsetX = nil
     control._betteruiNameplateAppliedOffsetY = nil
     return true
+end
+
+local function GetControlParent(control)
+    if not (control and type(control.GetParent) == "function") then
+        return nil
+    end
+    local ok, parent = pcall(control.GetParent, control)
+    if ok then return parent end
+    return nil
+end
+
+local function GetExpectedRoot(controlName, descriptor)
+    if not (descriptor and type(descriptor.fallback) == "function") then
+        return nil
+    end
+    local ok, fallback = pcall(descriptor.fallback, controlName)
+    if ok and type(fallback) == "table" then
+        return fallback.relativeTo
+    end
+    return nil
+end
+
+local function GetEffectiveAnchorParent(control, controlName, descriptor)
+    if not control then
+        return nil
+    end
+    local anchors = ReadControlAnchors(control, controlName, descriptor)
+    for _, anchor in ipairs(anchors or {}) do
+        if anchor.relativeTo ~= nil then
+            return anchor.relativeTo
+        end
+    end
+    return nil
+end
+
+local function TraceAnchorChain(control, controlName, descriptor, action)
+    local L = BETTERUI and BETTERUI.Log
+    if not (L and type(L.IsActive) == "function" and L.IsActive() == true and type(L.TraceEvent) == "function") then
+        return
+    end
+
+    local expectedRoot = GetExpectedRoot(controlName, descriptor)
+    local parent = GetControlParent(control)
+    local effectiveAnchorParent = GetEffectiveAnchorParent(control, controlName, descriptor)
+    local parentMatches = expectedRoot == nil or parent == expectedRoot
+    local level = parentMatches and (L.LEVEL and L.LEVEL.TRACE) or (L.LEVEL and L.LEVEL.WARN)
+    if not level then
+        return
+    end
+
+    L.TraceEvent(L.CATEGORY.STATE, "nameplates.anchor_chain", parentMatches and "snapshot" or "detected", {
+        fn = "Nameplates.Positioning.TraceAnchorChain",
+        action = action,
+        controlName = controlName,
+        control = DescribeControl(control, "control"),
+        parent = DescribeControl(parent, "parent"),
+        expectedRoot = DescribeControl(expectedRoot, "expectedRoot"),
+        effectiveAnchorParent = DescribeControl(effectiveAnchorParent, "anchorParent"),
+        parentMatches = parentMatches,
+    }, level)
 end
 
 local function GetMousePosition()
@@ -403,9 +479,11 @@ local function ApplyDescriptor(key, descriptor, settings)
         if enabled then
             if SetAnchorsWithOffset(control, controlName, descriptor, offsetX, offsetY) then
                 applied = applied + 1
+                TraceAnchorChain(control, controlName, descriptor, "applied")
             end
         elseif RestoreAnchors(control, controlName, descriptor) then
             restored = restored + 1
+            TraceAnchorChain(control, controlName, descriptor, "restored")
         end
     end
     SetHandleState(key, descriptor, settings)
@@ -463,8 +541,24 @@ function Positioning.IsPositionControlDisabled(elementKey)
     local settings = GetSettings()
     local descriptor = DESCRIPTORS[elementKey]
     if not descriptor then return true end
-    return not (IsModuleEnabled(settings)
-        and GetSetting(settings, descriptor.enabledKey) == true
-        and ArePositionsUnlocked(settings))
+    -- Sliders are enabled whenever the module is on and the element toggle is on;
+    -- nameplatePositionsUnlocked only gates the drag handles, not the manual sliders.
+    local moduleEnabled = IsModuleEnabled(settings)
+    local elementEnabled = GetSetting(settings, descriptor.enabledKey) == true
+    local unlocked = ArePositionsUnlocked(settings)
+    local disabled = not (moduleEnabled and elementEnabled)
+    if disabled then
+        local L = BETTERUI and BETTERUI.Log
+        local traceLevel = L and L.LEVEL and L.LEVEL.TRACE
+        TracePositioning("blocked", {
+            fn = "Nameplates.Positioning.IsPositionControlDisabled",
+            elementKey = elementKey,
+            enabledKey = descriptor.enabledKey,
+            moduleEnabled = moduleEnabled,
+            elementEnabled = elementEnabled,
+            unlocked = unlocked,
+            disabled = disabled,
+        }, traceLevel)
+    end
+    return disabled
 end
-
