@@ -757,8 +757,17 @@ local function UpdateFrontBarLayout(rootFrame)
         compBtn.cooldownRevealHeight = ultimateSize
         compBtn:ClearAnchors()
         if bgMiddle then
+            -- Match the companion's height to the quickslot's rendered line
+            -- (its slider excluded) so the two buttons sit level by default;
+            -- the companion's own fine-tune and slider adjust from there.
+            local companionAnchorY
+            if quickslotAnchorY ~= nil then
+                companionAnchorY = quickslotAnchorY - qsY + offsetY + cuY
+            else
+                companionAnchorY = baseY + offsetY + barOffsetY + cuY
+            end
             compBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX + barOffsetX + cuX,
-                baseY + offsetY + barOffsetY + cuY)
+                companionAnchorY)
         end
         local flipCard = compBtn:GetNamedChild("FlipCard")
         if flipCard then flipCard:SetDimensions(ultimateInnerSize, ultimateInnerSize) end

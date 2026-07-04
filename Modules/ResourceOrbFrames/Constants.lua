@@ -152,11 +152,11 @@ BETTERUI_ORB_FRAMES = {
             },
             quickslotButton = {
                 offsetX = 0, -- Quickslot horizontal (+ right, - left)
-                offsetY = 6, -- Quickslot vertical (+ down, - up)
+                offsetY = 9, -- Quickslot vertical (+ down, - up)
             },
             companionButton = {
-                offsetX = 0,  -- Companion horizontal (+ right, - left)
-                offsetY = -9, -- Companion vertical (+ down, - up)
+                offsetX = 0, -- Companion horizontal (+ right, - left)
+                offsetY = 0, -- Companion vertical from the quickslot line (+ down, - up)
             },
 
             -- Mode-specific sizing (nil = use slots config)

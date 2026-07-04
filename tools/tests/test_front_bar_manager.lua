@@ -654,7 +654,7 @@ local expectedBackBarY = BETTERUI_ORB_FRAMES.bars.top.gamepadY + BETTERUI_ORB_FR
 local expectedQuickslotY = ((expectedFrontBarY + expectedBackBarY) / 2) + BETTERUI_ORB_FRAMES.bars.quickslot.y + BETTERUI_ORB_FRAMES.bars.customFrontBar.quickslotButton.offsetY
 assert_eq(frontBarContainer.children.QuickslotButton.anchor[5], expectedQuickslotY, "front bar layout positions quickslot vertically between the skill bars")
 assert_eq(frontBarContainer.children.CompanionButton.anchor[4], BETTERUI_ORB_FRAMES.bars.companionUltimate.x + BETTERUI_ORB_FRAMES.bars.customFrontBar.companionButton.offsetX + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetX, "front bar layout positions the companion button relative to the orb frame plus the whole-bar offset")
-assert_eq(frontBarContainer.children.CompanionButton.anchor[5], BETTERUI_ORB_FRAMES.bars.companionUltimate.y + BETTERUI_ORB_FRAMES.bars.customFrontBar.companionButton.offsetY + BETTERUI_ORB_FRAMES.bars.customFrontBar.offsetY, "front bar layout applies the whole-bar Y offset to the companion button")
+assert_eq(frontBarContainer.children.CompanionButton.anchor[5], expectedQuickslotY + BETTERUI_ORB_FRAMES.bars.customFrontBar.companionButton.offsetY, "front bar layout levels the companion button on the quickslot line plus its own fine-tune")
 assert_true(frontBarContainer.children.UltimateButton.glowAnimation ~= nil, "front bar layout rebuilds the ultimate glow animation")
 assert_true(#pressFeedbackCalls >= 7, "front bar layout refreshes press-feedback sizing for all front bar buttons")
 
