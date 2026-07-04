@@ -1307,6 +1307,32 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
     self._searchModeActive = true
     self._searchHeaderActive = true
 
+    -- Leaving the search field with the joystick deactivates the header focus
+    -- object with NO callback, stranding the scene in search mode with the
+    -- list's movement controller unregistered (dead stick). Wrap the focus
+    -- object's Deactivate once so any focus loss exits search mode and
+    -- re-arms list input through the same path B-press exit uses.
+    local focusObject = self.textSearchHeaderFocus
+    if focusObject and not focusObject._betteruiDeactivateWrapped
+        and type(focusObject.Deactivate) == "function" then
+        focusObject._betteruiDeactivateWrapped = true
+        local originalDeactivate = focusObject.Deactivate
+        local vendorInstance = self
+        focusObject.Deactivate = function(fo, ...)
+            local result = originalDeactivate(fo, ...)
+            if not vendorInstance._betteruiSearchFocusExitInProgress
+                and (vendorInstance._searchModeActive or vendorInstance._searchHeaderActive) then
+                vendorInstance._betteruiSearchFocusExitInProgress = true
+                if vendorInstance.ExitSearchMode then
+                    ExecuteSafely("Vendor.SearchFocusDeactivate:ExitSearchMode",
+                        vendorInstance.ExitSearchMode, vendorInstance)
+                end
+                vendorInstance._betteruiSearchFocusExitInProgress = nil
+            end
+            return result
+        end
+    end
+
     if self.coreKeybinds and KEYBIND_STRIP then
         TraceVendorKeybindLayer("remove_before", self, self.coreKeybinds, {
             reason = "enterSearchMode",
@@ -1632,9 +1658,13 @@ function BETTERUI.Vendor.Class:EnsureListInputActive()
     local controllerRegistrationCount = CountDirectionalInputRegistrations(list.movementController)
     local listListening = listRegistrationCount > 0
     local controllerListening = controllerRegistrationCount > 0
+    local isListActive = not list.IsActive or list:IsActive()
+    -- A list that reports active with NO directional registrations is the
+    -- dead-stick state left after header/search focus consumed and released
+    -- the movement controller: force a reset so Activate re-registers input.
     local shouldResetListInput = listRegistrationCount > 1 or controllerRegistrationCount > 1
         or (controllerListening and not listListening)
-    local isListActive = not list.IsActive or list:IsActive()
+        or (isListActive and not listListening and not controllerListening)
 
     if shouldResetListInput then
         local releasedCount = ReleaseDirectionalInputRegistrations(list, true)

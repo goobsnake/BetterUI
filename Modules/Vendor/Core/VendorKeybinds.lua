@@ -127,10 +127,14 @@ local function IsVendorSearchInputActive(vendorInstance)
         return true
     end
 
-    local searchControl = vendorInstance.textSearchHeaderControl
-    if searchControl and type(searchControl.IsHidden) == "function" then
-        local ok, hidden = pcall(searchControl.IsHidden, searchControl)
-        return (ok and hidden == false) or false
+    -- The search field stays visible for the whole scene; only a FOCUSED
+    -- search may block input routing, so fall back to the focus object's
+    -- active state rather than control visibility (which made every guard
+    -- using this helper report "searchActive" permanently).
+    local focusObject = vendorInstance.textSearchHeaderFocus
+    if focusObject and type(focusObject.IsActive) == "function" then
+        local ok, active = pcall(focusObject.IsActive, focusObject)
+        return (ok and active == true) or false
     end
     return false
 end
