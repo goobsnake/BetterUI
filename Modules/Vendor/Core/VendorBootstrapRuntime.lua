@@ -31,6 +31,12 @@ local function ShouldPreserveSearchFocus(instance)
     if instance._preserveSearchFocusDuringRefresh == true then
         return true
     end
+    if instance.list and instance.list.IsActive then
+        local ok, active = pcall(function() return instance.list:IsActive() end)
+        if ok and active == true then
+            return false
+        end
+    end
     if instance.textSearchHeaderFocus and instance.textSearchHeaderFocus.IsActive then
         local ok, active = pcall(function() return instance.textSearchHeaderFocus:IsActive() end)
         if ok and active == true then

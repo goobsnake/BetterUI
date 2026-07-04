@@ -11,6 +11,10 @@ local function IsStableTrainingRow(ds)
     return ds and ds.trainingType ~= nil
 end
 
+local STABLE_TRAINING_PROGRESS_WIDTH = 72
+local STABLE_TRAINING_PROGRESS_HEIGHT = 8
+local STABLE_TRAINING_PROGRESS_GAP = 8
+
 ---@param ds table
 ---@return string
 local function ResolveStableTrainingTypeText(ds)
@@ -61,7 +65,8 @@ end
 
 ---@param control table
 ---@param ds table
-local function ConfigureStableTrainingProgress(control, ds)
+---@param statControl table|nil
+local function ConfigureStableTrainingProgress(control, ds, statControl)
     local trainingProgress = control:GetNamedChild("TrainingProgress")
     local trainingProgressBackdrop = control:GetNamedChild("TrainingProgressBackdrop")
     if not trainingProgress then
@@ -80,8 +85,39 @@ local function ConfigureStableTrainingProgress(control, ds)
         return
     end
 
+    local anchorTarget = statControl or control:GetNamedChild("Stat")
+    if anchorTarget then
+        if trainingProgressBackdrop then
+            if trainingProgressBackdrop.ClearAnchors then
+                trainingProgressBackdrop:ClearAnchors()
+            end
+            if trainingProgressBackdrop.SetDimensions then
+                trainingProgressBackdrop:SetDimensions(STABLE_TRAINING_PROGRESS_WIDTH, STABLE_TRAINING_PROGRESS_HEIGHT)
+            end
+            if trainingProgressBackdrop.SetAnchor then
+                trainingProgressBackdrop:SetAnchor(LEFT, anchorTarget, RIGHT, STABLE_TRAINING_PROGRESS_GAP, 0)
+            end
+        end
+
+        if trainingProgress.ClearAnchors then
+            trainingProgress:ClearAnchors()
+        end
+        if trainingProgress.SetDimensions then
+            trainingProgress:SetDimensions(STABLE_TRAINING_PROGRESS_WIDTH, STABLE_TRAINING_PROGRESS_HEIGHT)
+        end
+        if trainingProgress.SetAnchor then
+            local progressAnchor = trainingProgressBackdrop or anchorTarget
+            local relativePoint = trainingProgressBackdrop and LEFT or RIGHT
+            local offsetX = trainingProgressBackdrop and 0 or STABLE_TRAINING_PROGRESS_GAP
+            trainingProgress:SetAnchor(LEFT, progressAnchor, relativePoint, offsetX, 0)
+        end
+    end
+
+    local clampedProgress = progressCurrent
+    if clampedProgress < 0 then clampedProgress = 0 end
+    if clampedProgress > progressMax then clampedProgress = progressMax end
     trainingProgress:SetMinMax(0, progressMax)
-    trainingProgress:SetValue(zo_min(progressCurrent, progressMax))
+    trainingProgress:SetValue(clampedProgress)
     trainingProgress:SetColor(196 / 255, 166 / 255, 77 / 255, 1)
 end
 
@@ -91,6 +127,9 @@ local function ResetStableTrainingProgress(control)
     local trainingProgressBackdrop = control:GetNamedChild("TrainingProgressBackdrop")
     if trainingProgress then
         trainingProgress:SetHidden(true)
+        if trainingProgress.SetValue then
+            trainingProgress:SetValue(0)
+        end
     end
     if trainingProgressBackdrop then
         trainingProgressBackdrop:SetHidden(true)
@@ -145,7 +184,7 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
         statControl:SetText(ResolveStableTrainingStatText(ds))
         valueControl:SetColor(1, 1, 1, 1)
         valueControl:SetText(ResolveStableTrainingValueText(ds))
-        ConfigureStableTrainingProgress(control, ds)
+        ConfigureStableTrainingProgress(control, ds, statControl)
     else
         -- ItemType column
         local typeName = ds.bestGamepadItemCategoryName or ds.bestItemTypeName or ""

@@ -69,6 +69,54 @@ local function UpdateCurrentKeybindGroups()
     end
 end
 
+local function HasVisibleGamepadDialog()
+    if type(GetControl) ~= "function" then
+        return false
+    end
+
+    local ok, gamepadDialog = pcall(GetControl, "ZO_DialogGamepad1")
+    if not ok or not gamepadDialog or type(gamepadDialog.IsHidden) ~= "function" then
+        return false
+    end
+
+    local hiddenOk, hidden = pcall(gamepadDialog.IsHidden, gamepadDialog)
+    return (hiddenOk and hidden == false) or false
+end
+
+local function IsVendorSearchInputActive(vendorInstance)
+    if not vendorInstance then
+        return false
+    end
+    if vendorInstance._searchModeActive or vendorInstance._searchHeaderActive then
+        return true
+    end
+
+    local searchControl = vendorInstance.textSearchHeaderControl
+    if searchControl and type(searchControl.IsHidden) == "function" then
+        local ok, hidden = pcall(searchControl.IsHidden, searchControl)
+        return (ok and hidden == false) or false
+    end
+    return false
+end
+
+local function CanCycleVendorHeader(vendorInstance, getActiveTabs)
+    if IsVendorSearchInputActive(vendorInstance) then
+        return false, "searchActive"
+    end
+    if HasVisibleGamepadDialog() then
+        return false, "dialogVisible"
+    end
+
+    if vendorInstance and vendorInstance._vendorHeaderEntryCount and vendorInstance._vendorHeaderEntryCount > 1 then
+        return true
+    end
+    local activeTabs = getActiveTabs() or {}
+    if #activeTabs > 1 then
+        return true
+    end
+    return false, "singleTab"
+end
+
 function VendorKeybinds.Describe(instance)
     local L = BETTERUI and BETTERUI.Log
     if not (L and L.DescribeKeybindDescriptors and instance) then
@@ -108,15 +156,18 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
             keybind = "UI_SHORTCUT_LEFT_SHOULDER",
             ethereal = true,
             visible = function()
-                if vendorInstance.headerGeneric and vendorInstance.headerGeneric.tabBar then
-                    return false
-                end
-                if vendorInstance._vendorHeaderEntryCount and vendorInstance._vendorHeaderEntryCount > 1 then
-                    return true
-                end
-                return #getActiveTabs() > 1
+                local canCycle = CanCycleVendorHeader(vendorInstance, getActiveTabs)
+                return canCycle == true
             end,
             callback = function()
+                local canCycle, reason = CanCycleVendorHeader(vendorInstance, getActiveTabs)
+                if not canCycle then
+                    TraceVendorKeybind(ctx, "UI_SHORTCUT_LEFT_SHOULDER", "skipped", {
+                        action = "cycle_tabs_previous",
+                        reason = reason,
+                    })
+                    return
+                end
                 ExecuteVendorKeybindAction(ctx, "UI_SHORTCUT_LEFT_SHOULDER", "cycle_tabs_previous", function()
                     vendorInstance:CycleTabs(-1)
                 end, { result = "cycled", direction = "previous" })
@@ -126,15 +177,18 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
             keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
             ethereal = true,
             visible = function()
-                if vendorInstance.headerGeneric and vendorInstance.headerGeneric.tabBar then
-                    return false
-                end
-                if vendorInstance._vendorHeaderEntryCount and vendorInstance._vendorHeaderEntryCount > 1 then
-                    return true
-                end
-                return #getActiveTabs() > 1
+                local canCycle = CanCycleVendorHeader(vendorInstance, getActiveTabs)
+                return canCycle == true
             end,
             callback = function()
+                local canCycle, reason = CanCycleVendorHeader(vendorInstance, getActiveTabs)
+                if not canCycle then
+                    TraceVendorKeybind(ctx, "UI_SHORTCUT_RIGHT_SHOULDER", "skipped", {
+                        action = "cycle_tabs_next",
+                        reason = reason,
+                    })
+                    return
+                end
                 ExecuteVendorKeybindAction(ctx, "UI_SHORTCUT_RIGHT_SHOULDER", "cycle_tabs_next", function()
                     vendorInstance:CycleTabs(1)
                 end, { result = "cycled", direction = "next" })

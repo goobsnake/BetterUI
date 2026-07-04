@@ -856,6 +856,16 @@ function BETTERUI.Vendor.Class:DetachUnexpectedSearchHeaderFocus(reason)
         return false
     end
 
+    if self._searchModeActive or self._searchHeaderActive or self._searchRemovedKeybindGroups then
+        if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
+            BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
+        end
+        self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
+        if self.RestoreSearchModeKeybindOwnership then
+            self:RestoreSearchModeKeybindOwnership("detachUnexpectedSearchHeaderFocus")
+        end
+    end
+
     local function ClearHeader(header)
         if not header then
             return
@@ -903,12 +913,28 @@ function BETTERUI.Vendor.Class:DetachUnexpectedSearchHeaderFocus(reason)
         self.headerFocus = nil
     end
 
-    self._searchModeActive = false
-    self._searchHeaderActive = false
+    -- Cancel the deferred keybind cleanup before testing flags so the
+    -- scheduled task cannot fire and conflict with the restoration below.
     self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
     if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
         BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
     end
+    -- When search mode was active, restore keybinds using the same path as
+    -- ExitSearchMode so the scene is never left without working input.
+    if self._searchModeActive or self._searchHeaderActive then
+        if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+            BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
+        end
+        if self._searchRemovedKeybindGroups then
+            BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
+            self._searchRemovedKeybindGroups = nil
+        end
+        if self.coreKeybinds then
+            BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
+        end
+    end
+    self._searchModeActive = false
+    self._searchHeaderActive = false
 
     if hadSearchFocus then
         LogVendorDebug(
@@ -1317,32 +1343,25 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
     end
 end
 
---- Exits text-search mode and restores list/core keybind ownership.
+--- Restores search-mode keybind ownership without changing search/header flags.
+---@param reason string|nil
 ---@return nil
-function BETTERUI.Vendor.Class:ExitSearchMode()
-    if not self._searchModeActive and not self._searchHeaderActive then
-        return
-    end
-    if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
-        BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
-    end
-    self._searchModeActive = false
-    self._searchHeaderActive = false
-    self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
-
+function BETTERUI.Vendor.Class:RestoreSearchModeKeybindOwnership(reason)
+    reason = reason or "exitSearchMode"
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         TraceVendorKeybindLayer("remove_before", self, self.textSearchKeybindStripDescriptor, {
-            reason = "exitSearchMode",
+            reason = reason,
             keybindLabel = "vendor-search",
         })
         BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
         TraceVendorKeybindLayer("remove_after", self, self.textSearchKeybindStripDescriptor, {
-            reason = "exitSearchMode",
+            reason = reason,
             keybindLabel = "vendor-search",
         })
     end
 
-    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate and self.textSearchHeaderFocus:IsActive() then
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate
+        and (not self.textSearchHeaderFocus.IsActive or self.textSearchHeaderFocus:IsActive()) then
         self.textSearchHeaderFocus:Deactivate()
     end
     if self.SetTextSearchFocused then
@@ -1355,27 +1374,43 @@ function BETTERUI.Vendor.Class:ExitSearchMode()
     -- Restore exactly the groups the search-mode cleanup removed.
     if self._searchRemovedKeybindGroups then
         TraceVendorKeybindLayer("restore_before", self, nil, {
-            reason = "exitSearchMode",
+            reason = reason,
             restoredGroupCount = #self._searchRemovedKeybindGroups,
         })
         BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
         TraceVendorKeybindLayer("restore_after", self, nil, {
-            reason = "exitSearchMode",
+            reason = reason,
             restoredGroupCount = #self._searchRemovedKeybindGroups,
         })
         self._searchRemovedKeybindGroups = nil
     end
     if self.coreKeybinds then
         TraceVendorKeybindLayer("add_before", self, self.coreKeybinds, {
-            reason = "exitSearchMode",
+            reason = reason,
             keybindLabel = "vendor-core",
         })
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
         TraceVendorKeybindLayer("add_after", self, self.coreKeybinds, {
-            reason = "exitSearchMode",
+            reason = reason,
             keybindLabel = "vendor-core",
         })
     end
+end
+
+--- Exits text-search mode and restores list/core keybind ownership.
+---@return nil
+function BETTERUI.Vendor.Class:ExitSearchMode()
+    if not self._searchModeActive and not self._searchHeaderActive and not self._searchRemovedKeybindGroups then
+        return
+    end
+    if BETTERUI.Vendor.Tasks and BETTERUI.Vendor.Tasks.Cancel then
+        BETTERUI.Vendor.Tasks:Cancel("searchKeybindCleanup")
+    end
+    self._searchModeActive = false
+    self._searchHeaderActive = false
+    self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
+
+    self:RestoreSearchModeKeybindOwnership("exitSearchMode")
 
     if self.EnsureHeaderKeybindsActive then
         self:EnsureHeaderKeybindsActive()
@@ -1667,13 +1702,21 @@ function BETTERUI.Vendor.Class:InitializeScrollIndicator()
         return
     end
 
-    BETTERUI.CIM.ScrollIndicator.Setup(self.list.control, {
+    local scrollIndicator = BETTERUI.CIM.ScrollIndicator
+    scrollIndicator.Setup(self.list.control, {
         listObject = self.list,
         offsetX = 25,
         offsetTopY = -5,
         offsetBottomY = -10,
         visibleItems = BETTERUI.CIM.CONST.UI.BANKING_VISIBLE_ITEMS or 10,
     })
+    -- Show restores the container visibility that Hide (called on scene hide)
+    -- cleared; Setup's fast path for existing instances does not unhide it.
+    if scrollIndicator.Show then
+        scrollIndicator.Show(self.list.control)
+    elseif scrollIndicator.Update then
+        scrollIndicator.Update(self.list.control)
+    end
 end
 
 ---@return nil
@@ -1711,7 +1754,12 @@ function BETTERUI.Vendor.Class:UpdateScrollIndicator(list)
         return
     end
 
-    BETTERUI.CIM.ScrollIndicator.Update(listControl)
+    local scrollIndicator = BETTERUI.CIM.ScrollIndicator
+    if scrollIndicator.Show then
+        scrollIndicator.Show(listControl)
+    else
+        scrollIndicator.Update(listControl)
+    end
 end
 
 ---@return nil

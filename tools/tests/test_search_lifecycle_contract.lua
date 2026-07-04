@@ -678,7 +678,11 @@ do
     local focusedInstance, focusedList, getFocusedCallback, focusedLostCalls = buildBootstrapInstance(true)
     getFocusedCallback()(focusedList, { name = "Sword" })
     assert_eq(focusedInstance.selectionChanged, 1, "vendor deferred refresh still updates selection")
-    assert_eq(focusedLostCalls(), 0, "vendor deferred refresh keeps search focus when header focus is active")
+    -- A selection change while the list is ACTIVE means the user navigated the
+    -- list; a lingering "active" header focus is stale in that state and must
+    -- not preserve search mode (live deadlock repro, 2026-07-03). Programmatic
+    -- refreshes preserve focus via _preserveSearchFocusDuringRefresh instead.
+    assert_eq(focusedLostCalls(), 1, "vendor list selection change exits search even when header focus is stale-active")
 
     local unfocusedInstance, unfocusedList, getUnfocusedCallback, unfocusedLostCalls = buildBootstrapInstance(false)
     getUnfocusedCallback()(unfocusedList, { name = "Axe" })
