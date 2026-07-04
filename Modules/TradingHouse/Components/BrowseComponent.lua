@@ -365,6 +365,8 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
         and TRADING_HOUSE_SEARCH
         and TRADING_HOUSE_SEARCH.CanPerformSearch
         and TRADING_HOUSE_SEARCH.DoSearchWhenReady
+        and TRADING_HOUSE_SEARCH.features
+        and TRADING_HOUSE_SEARCH.features.nameSearchFeature
         and not TRADING_HOUSE_SEARCH:CanPerformSearch() then
         Browse.searchPending = true
         Browse.deferredSearchToken = Browse.deferredSearchToken + 1

@@ -339,6 +339,7 @@ function Presets.ShowLoadDialog()
                 },
                 {
                     text = L("SI_BETTERUI_TH_DELETE"),
+                    keybind = "DIALOG_RESET",
                     callback = function(dialog)
                         local targetData = dialog.entryList and dialog.entryList:GetTargetData()
                         TracePresets("trading_house.presets_dialog", "delete_confirm", { fn = "Presets.ShowLoadDialog", presetIndex = targetData and targetData.presetIndex or nil })
