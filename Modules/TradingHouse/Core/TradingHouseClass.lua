@@ -164,6 +164,7 @@ function BETTERUI.TradingHouse.Class:SetMode(mode)
             targetMode = mode,
         })
         SetTradingHouseWatchView(mode)
+        if self.UpdateTabHeader then self:UpdateTabHeader() end
         return
     end
 
@@ -213,6 +214,9 @@ function BETTERUI.TradingHouse.Class:SetMode(mode)
             oldMode = oldMode,
         })
     end
+
+    -- Mode changes can originate outside the tab bar; keep header selection/title aligned.
+    if self.UpdateTabHeader then self:UpdateTabHeader() end
 
     -- Update keybinds for new mode
     if self:IsSceneShowing() then
