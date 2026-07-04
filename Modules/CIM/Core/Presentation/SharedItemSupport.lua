@@ -122,10 +122,10 @@ function SharedItemSupport.RestoreTooltipStyles()
     end
 end
 
-function SharedItemSupport.CleanupEnhancedTooltip(tooltipType)
+function SharedItemSupport.CleanupEnhancedTooltip(tooltipType, preserveItemData)
     local cleanupEnhancedTooltip = tooltipSupport.cleanupEnhancedTooltip
     if type(cleanupEnhancedTooltip) == "function" then
-        return cleanupEnhancedTooltip(tooltipType)
+        return cleanupEnhancedTooltip(tooltipType, preserveItemData)
     end
 end
 

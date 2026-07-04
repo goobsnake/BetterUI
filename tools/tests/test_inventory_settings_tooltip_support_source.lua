@@ -77,7 +77,7 @@ assert_true(tooltipUtilsSource:find("function BETTERUI%.Inventory%.ApplyTooltipS
     "TooltipUtils exposes ApplyTooltipStyles")
 assert_true(tooltipUtilsSource:find("function BETTERUI%.Inventory%.EnableTooltipMouseWheel%(%)") ~= nil,
     "TooltipUtils exposes EnableTooltipMouseWheel")
-assert_true(tooltipUtilsSource:find("function BETTERUI%.Inventory%.CleanupEnhancedTooltip%(tooltipType%)") ~= nil,
+assert_true(tooltipUtilsSource:find("function BETTERUI%.Inventory%.CleanupEnhancedTooltip%(tooltipType, preserveItemData%)") ~= nil,
     "TooltipUtils exposes CleanupEnhancedTooltip")
 assert_true(tooltipUtilsSource:find("function BETTERUI%.Inventory%.IsItemComparisonEnabled%(%)") ~= nil,
     "TooltipUtils exposes IsItemComparisonEnabled")

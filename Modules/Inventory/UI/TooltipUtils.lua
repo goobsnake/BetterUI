@@ -206,7 +206,7 @@ BETTERUI.Inventory.RestoreStockLabelFonts = RestoreStockLabelFonts
 --- Idempotent: hides and clears custom BetterUI labels, resets layout only when
 --- BetterUI had shifted it, and preserves ESOUI's native status label/top rail
 --- when default tooltip rendering owns that section.
-function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
+function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType, preserveItemData)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
 
@@ -218,6 +218,9 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     local shouldResetEnhancedLayout = hasBetterUiStatus or hasBetterUiComparison
 
     if container and container._betterUiStatus then
+        if container._betterUiStatusOwned == true and GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearStatusLabel then
+            GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
+        end
         container._betterUiStatus:SetHidden(true)
         container._betterUiStatus:SetText("")
         container._betterUiStatusOwned = false
@@ -270,12 +273,14 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
         -- Re-apply the stock body font to reverse ApplyTooltipLabelFonts, even
         -- when no BetterUI status/comparison layout was created.
         RestoreStockLabelFonts(tooltip)
-        -- Clear cached item data
-        tooltip._betterui_itemLink = nil
-        tooltip._betterui_bagId = nil
-        tooltip._betterui_slotIndex = nil
-        tooltip._betterui_storeStackCount = nil
-        tooltip._betterui_priceRendered = nil
+        if not preserveItemData then
+            -- Clear cached item data
+            tooltip._betterui_itemLink = nil
+            tooltip._betterui_bagId = nil
+            tooltip._betterui_slotIndex = nil
+            tooltip._betterui_storeStackCount = nil
+            tooltip._betterui_priceRendered = nil
+        end
     end
 end
 

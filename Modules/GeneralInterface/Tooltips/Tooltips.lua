@@ -21,6 +21,73 @@ local TraceTooltip = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
     }
     or function() end
 
+local TOOLTIP_IMMEDIATE_CLEAR_MS = 200
+
+local function TooltipNowMs()
+    local fn = rawget(_G, "GetGameTimeMilliseconds")
+    if type(fn) ~= "function" then return 0 end
+    local ok, value = pcall(fn)
+    return ok and tonumber(value) or 0
+end
+
+local function IsTooltipLogActive()
+    local L = BETTERUI and BETTERUI.Log
+    return L and type(L.IsActive) == "function" and L.IsActive() == true
+end
+
+local function MarkTooltipContentAppended(tooltipControl, section, appendedBy, tooltipType)
+    if not (tooltipControl and IsTooltipLogActive()) then
+        return
+    end
+
+    local appendedAtMs = TooltipNowMs()
+    tooltipControl._betteruiTooltipContentLifecycle = {
+        section = section,
+        appendedBy = appendedBy,
+        tooltipType = tooltipType,
+        appendedAtMs = appendedAtMs,
+    }
+    local L = BETTERUI and BETTERUI.Log
+    local traceLevel = L and L.LEVEL and L.LEVEL.TRACE
+    TraceTooltip("general_interface.tooltip_content", "changed", {
+        fn = "MarkTooltipContentAppended",
+        action = "appended",
+        section = section,
+        by = appendedBy,
+        tooltipType = tooltipType,
+        atMs = appendedAtMs,
+    }, nil, traceLevel)
+end
+
+local function TraceTooltipContentCleared(tooltipControl, tooltipType, clearedBy, preserveItemData)
+    if not (tooltipControl and IsTooltipLogActive()) then
+        return
+    end
+
+    local lifecycle = tooltipControl._betteruiTooltipContentLifecycle
+    if not lifecycle then
+        return
+    end
+    tooltipControl._betteruiTooltipContentLifecycle = nil
+
+    local now = TooltipNowMs()
+    local ageMs = now - (lifecycle.appendedAtMs or now)
+    local L = BETTERUI and BETTERUI.Log
+    local immediate = ageMs < TOOLTIP_IMMEDIATE_CLEAR_MS
+    local level = immediate and (L and L.LEVEL and L.LEVEL.WARN) or (L and L.LEVEL and L.LEVEL.TRACE)
+    TraceTooltip("general_interface.tooltip_content", immediate and "detected" or "changed", {
+        fn = "TraceTooltipContentCleared",
+        action = "cleared",
+        section = lifecycle.section,
+        appendedBy = lifecycle.appendedBy,
+        clearedBy = clearedBy,
+        tooltipType = tooltipType or lifecycle.tooltipType,
+        ageMs = ageMs,
+        immediate = immediate,
+        preserveItemData = preserveItemData == true,
+    }, nil, level)
+end
+
 local function SetGuildStoreErrorSuppressed(isSuppressed)
     TooltipRuntime.guildStoreErrorSuppressed = isSuppressed == true
     BETTERUI.CIM._gsErrorSuppress = TooltipRuntime.guildStoreErrorSuppressed and 1 or 0
@@ -847,6 +914,7 @@ local function ScheduleTooltipEquippedRefresh(tooltipControl, itemLink, tooltipT
 
         if BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
             BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(normalizedTooltipType, nil)
+            MarkTooltipContentAppended(tooltipRef, "pricing/equipped", "ScheduleTooltipEquippedRefresh.task", normalizedTooltipType)
             TraceTooltip("general_interface.tooltip_refresh", "updated", {
                 fn = "ScheduleTooltipEquippedRefresh.task",
                 itemLink = capturedItemLink,
@@ -906,7 +974,7 @@ end
 --- refreshes the BetterUI stock fallback price/body state while leaving the
 --- native tooltip top area untouched. Native AddTopLinesToTopSection has
 --- already painted that section when enhancements are disabled.
-local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
+local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType, itemLink, bagId, slotIndex, storeStackCount)
     local normalizedTooltipType = tonumber(tooltipType) or tooltipType
     if normalizedTooltipType == nil then
         TraceTooltip("general_interface.tooltip_stock_relayout", "skipped", {
@@ -918,6 +986,10 @@ local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
     end
 
     local tooltipRef = tooltipControl
+    local capturedItemLink = itemLink
+    local capturedBagId = bagId
+    local capturedSlotIndex = slotIndex
+    local capturedStoreStackCount = storeStackCount
     if tooltipControl and tooltipControl._betteruiPendingStockRelayoutId and zo_removeCallLater then
         zo_removeCallLater(tooltipControl._betteruiPendingStockRelayoutId)
         TraceTooltip("general_interface.tooltip_stock_relayout", "coalesced", {
@@ -952,16 +1024,31 @@ local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
         end
 
         if BETTERUI.CIM.SharedItemSupport then
-            if type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" then
-                BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType)
+            local cleaned = false
+            if type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function"
+                and not (tooltipRef and tooltipRef._betteruiStockCleanupApplied) then
+                TraceTooltipContentCleared(tooltipRef, tooltipType, "ScheduleTooltipEquippedStockRelayout.task", true)
+                BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType, true)
+                cleaned = true
+                if tooltipRef then
+                    tooltipRef._betteruiStockCleanupApplied = true
+                end
+            end
+            if tooltipRef and capturedItemLink then
+                tooltipRef._betterui_itemLink = capturedItemLink
+                tooltipRef._betterui_bagId = capturedBagId
+                tooltipRef._betterui_slotIndex = capturedSlotIndex
+                tooltipRef._betterui_storeStackCount = capturedStoreStackCount
+                tooltipRef._betterui_priceRendered = false
             end
             if type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
                 BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(normalizedTooltipType, nil)
+                MarkTooltipContentAppended(tooltipRef, "equipped-stock", "ScheduleTooltipEquippedStockRelayout.task", normalizedTooltipType)
             end
             TraceTooltip("general_interface.tooltip_stock_relayout", "updated", {
                 fn = "ScheduleTooltipEquippedStockRelayout.task",
                 tooltipType = normalizedTooltipType,
-                cleaned = type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function",
+                cleaned = cleaned,
                 nativeTopAreaPreserved = true,
                 stockFallbackRefreshed = type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function",
             })
@@ -976,8 +1063,9 @@ local function ScheduleTooltipEquippedStockRelayout(tooltipControl, tooltipType)
     if tooltipControl then tooltipControl._betteruiPendingStockRelayoutId = callId end
 end
 
-local function ClearTooltipEnhancementState(tooltipControl, tooltipType)
-    if tooltipControl then
+local function ClearTooltipEnhancementState(tooltipControl, tooltipType, preserveItemData, clearedBy)
+    TraceTooltipContentCleared(tooltipControl, tooltipType, clearedBy or "ClearTooltipEnhancementState", preserveItemData)
+    if tooltipControl and not preserveItemData then
         tooltipControl._betterui_itemLink = nil
         tooltipControl._betterui_bagId = nil
         tooltipControl._betterui_slotIndex = nil
@@ -986,7 +1074,7 @@ local function ClearTooltipEnhancementState(tooltipControl, tooltipType)
     end
 
     if tooltipType and BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" then
-        BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType)
+        BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType, preserveItemData == true)
     end
     TraceTooltip("general_interface.tooltip_state", "cleared", {
         fn = "ClearTooltipEnhancementState",
@@ -1002,8 +1090,12 @@ local function InstallClearLinesHook(tooltipControl, state, tooltipType)
     end
 
     ZO_PostHook(tooltipControl, "ClearLines", function(self, ...)
-        ClearTooltipEnhancementState(self, tooltipType)
-        ResetInventoryHookState(state)
+        local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
+        local preserveStockLayoutState = enhancementsEnabled == false and state.pendingItemLink ~= nil
+        ClearTooltipEnhancementState(self, tooltipType, preserveStockLayoutState, "ClearLines")
+        if not preserveStockLayoutState then
+            ResetInventoryHookState(state)
+        end
         TraceTooltip("general_interface.tooltip_state", "clear_lines", {
             fn = "ClearLines",
             tooltipType = tooltipType,
@@ -1017,7 +1109,7 @@ local function InstallBagLayoutHook(tooltipControl, layoutBagName, state, toolti
     ZO_PreHook(tooltipControl, layoutBagName, function(self, ...)
         if IsIncompatibleSceneActive() then
             state.skipEnhancementForLayout = true
-            ClearTooltipEnhancementState(self, tooltipType)
+            ClearTooltipEnhancementState(self, tooltipType, false, tostring(layoutBagName))
             ResetInventoryHookState(state)
             TraceTooltip("general_interface.tooltip_hook", "bag_layout_skipped", {
                 fn = tostring(layoutBagName),
@@ -1042,7 +1134,7 @@ local function InstallStoreLayoutHook(tooltipControl, layoutStoreName, state, to
     ZO_PreHook(tooltipControl, layoutStoreName, function(self, ...)
         if IsIncompatibleSceneActive() then
             state.skipEnhancementForLayout = true
-            ClearTooltipEnhancementState(self, tooltipType)
+            ClearTooltipEnhancementState(self, tooltipType, false, tostring(layoutStoreName))
             ResetInventoryHookState(state)
             TraceTooltip("general_interface.tooltip_hook", "store_layout_skipped", {
                 fn = tostring(layoutStoreName),
@@ -1078,7 +1170,7 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
         state.pendingTooltipType = nil
 
         if state.skipEnhancementForLayout then
-            ClearTooltipEnhancementState(self, tooltipType)
+            ClearTooltipEnhancementState(self, tooltipType, false, tostring(layoutItemName))
             TraceTooltip("general_interface.tooltip_hook", "item_layout_skipped", {
                 fn = tostring(layoutItemName),
                 reason = "sceneIncompatible",
@@ -1107,7 +1199,7 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
 
         if not IsLikelyItemLink(itemLink) then
             state.skipEnhancementForLayout = true
-            ClearTooltipEnhancementState(self, tooltipType)
+            ClearTooltipEnhancementState(self, tooltipType, false, tostring(layoutItemName))
             TraceTooltip("general_interface.tooltip_hook", "item_layout_skipped", {
                 fn = tostring(layoutItemName),
                 reason = "notItemLink",
@@ -1157,6 +1249,7 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
         -- (PB-003). Instead, drive a stock-mode relayout so the visible tooltip
         -- reverts in-session without waiting for a relog.
         if enhancementsEnabled then
+            self._betteruiStockCleanupApplied = nil
             ApplyTooltipLabelFonts(self)
             ScheduleTooltipEquippedRefresh(self, itemLink, capturedTooltipType)
             ScheduleDuplicateAddonCleanup(self)
@@ -1170,7 +1263,14 @@ local function InstallItemLayoutHooks(tooltipControl, layoutItemName, state, too
             })
         else
             RestoreTooltipLabelFonts(self)
-            ScheduleTooltipEquippedStockRelayout(self, capturedTooltipType)
+            ScheduleTooltipEquippedStockRelayout(
+                self,
+                capturedTooltipType,
+                itemLink,
+                state.bagId or self._betterui_bagId,
+                state.slotIndex or self._betterui_slotIndex,
+                state.storeStackCount or self._betterui_storeStackCount
+            )
             TraceTooltip("general_interface.tooltip_hook", "item_layout_end", {
                 fn = tostring(layoutItemName),
                 tooltipType = capturedTooltipType,
