@@ -699,9 +699,8 @@ local function UpdateFrontBarLayout(rootFrame)
         SetPressFeedbackBaseSize(ultBtn, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize)
     end
 
-    -- Whole-bar offset (customFrontBar.offsetX/offsetY). The container anchor
-    -- uses it below; quickslot/companion anchor to BgMiddle directly, so they
-    -- must add it themselves to move with the bar.
+    -- Layout base offset (customFrontBar.offsetX/offsetY) is shared with this skin.
+    -- Per-element offsets keep quickslot/companion independent from skillBars.
     local barOffsetX = frontBarLayoutConfig.offsetX or 0
     local barOffsetY = frontBarLayoutConfig.offsetY or 0
     local settings = GetLiveSettings() or {}
@@ -712,6 +711,7 @@ local function UpdateFrontBarLayout(rootFrame)
     local frontBarBaseY = GetModeBarY(barsCfg.bottom, isGamePad, -15)
     local frontBarX = barOffsetX + 10 + sbX
     local frontBarY = frontBarBaseY + barOffsetY + sbY
+    local independentFrontBarY = frontBarBaseY + barOffsetY
     local quickslotMidpointY = nil
     local quickslotBackBarY = nil
     local quickslotAnchorY = nil
@@ -728,7 +728,7 @@ local function UpdateFrontBarLayout(rootFrame)
         qsBtn.cooldownRevealHeight = buttonSize
         qsBtn:ClearAnchors()
         if bgMiddle then
-            quickslotMidpointY, quickslotBackBarY = ResolveQuickslotMidpointY(barsCfg, frontBarY, sbY, isGamePad)
+            quickslotMidpointY, quickslotBackBarY = ResolveQuickslotMidpointY(barsCfg, independentFrontBarY, 0, isGamePad)
             if quickslotMidpointY ~= nil then
                 quickslotAnchorY = quickslotMidpointY + baseY + offsetY + qsY
             else

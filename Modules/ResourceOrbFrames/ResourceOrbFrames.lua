@@ -804,8 +804,8 @@ local function RegisterDynamicEvents(control)
             SkillBar.CacheBackBarControls(m_rootFrame)
         end
 
-        -- Replay the post-skin setup sequence. SetParent is intentionally NOT repeated:
-        -- ApplyTemplateToControl does not destroy/recreate controls.
+        -- Replay the post-skin setup sequence. ApplyTemplateToControl does not
+        -- recreate controls; detached buttons reassert their root anchors below.
         local cfg = GetFrontBarConfig()
         if cfg and cfg.m_enabled then
             SkillBar.UpdateFrontBar(m_rootFrame)
@@ -909,7 +909,7 @@ local function RegisterDynamicEvents(control)
             })
             if cfg and cfg.m_enabled then
                 SkillBar.UpdateFrontBarCompanion(control)
-            end
+                end
             TraceROF("resource_orbs.companion", "layout_scheduled", {
                 fn = "ResourceOrbFrames.EVENT_ACTIVE_COMPANION_STATE_CHANGED",
                 task = "companionLayout",
@@ -935,7 +935,7 @@ local function RegisterDynamicEvents(control)
             })
             if cfg and cfg.m_enabled then
                 SkillBar.UpdateFrontBarQuickslot(control)
-            end
+                end
             TraceROF("resource_orbs.quickslot", "changed_end", {
                 fn = "ResourceOrbFrames.EVENT_ACTIVE_QUICKSLOT_CHANGED",
                 frontBarUpdated = cfg and cfg.m_enabled,
@@ -1102,9 +1102,9 @@ local function SetupModule(control)
         SetupFrontBarHandlers(control)
     end
 
-    -- Cache front/back bar control references after the skin is applied and
-    -- the quickslot/companion buttons are reparented, so the 16ms cooldown
-    -- loops read cached children instead of GetNamedChild fallbacks.
+    -- Cache front/back bar control references after the skin is applied, so
+    -- the 16ms cooldown loops read cached children instead of GetNamedChild
+    -- fallbacks.
     if SkillBar.CacheFrontBarControls then
         SkillBar.CacheFrontBarControls(control)
     end
