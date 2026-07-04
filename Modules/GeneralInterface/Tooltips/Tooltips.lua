@@ -1123,14 +1123,15 @@ local function InstallClearLinesHook(tooltipControl, state, tooltipType)
     end
 
     ZO_PostHook(tooltipControl, "ClearLines", function(self, ...)
-        local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
         -- pendingItemLink is only a pre->post layout handoff (nil between
         -- layouts), so the periodic native ClearLines while IDLING on an item
         -- always saw nil and stripped stock content just to re-append it next
         -- layout (the clear-after-append WARN storm). The control's seeded
-        -- _betterui_itemLink is the persistent displayed-item truth.
-        local preserveStockLayoutState = enhancementsEnabled == false
-            and (state.pendingItemLink ~= nil or self._betterui_itemLink ~= nil)
+        -- _betterui_itemLink is the persistent displayed-item truth. Preserve
+        -- that displayed-item metadata in both stock and enhanced layouts;
+        -- non-item layouts clear it before their later ClearLines pass.
+        local hasDisplayedItem = state.pendingItemLink ~= nil or self._betterui_itemLink ~= nil
+        local preserveStockLayoutState = hasDisplayedItem
         ClearTooltipEnhancementState(self, tooltipType, preserveStockLayoutState, "ClearLines")
         if not preserveStockLayoutState then
             ResetInventoryHookState(state)

@@ -419,6 +419,62 @@ tooltipControl._betterui_storeStackCount = 4
 tooltipControl:LayoutItem("item:stack")
 assertEqual(4, tooltipControl._betterui_storeStackCount, "Hook reuses tooltip-seeded store stack count")
 
+print("\nTest: ClearLines preserves displayed item state while enhanced tooltips are enabled")
+local enhancedClearPreserveArgs = {}
+local origEnhancedClearCleanup = BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip
+local origEnhancedClearUpdate = BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText
+local previousEnhancementsEnabled = BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements
+
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = true
+BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip = function(tooltipType, preserveItemData)
+    enhancedClearPreserveArgs[#enhancedClearPreserveArgs + 1] = {
+        tooltipType = tooltipType,
+        preserveItemData = preserveItemData,
+    }
+end
+BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText = function() end
+
+local enhancedClearTooltip = {
+    LayoutItem = function() end,
+    LayoutBagItem = function() end,
+    LayoutStoreItemFromLink = function() end,
+    ClearLines = function() end,
+    GetNumChildren = function() return 0 end,
+    GetChild = function() return nil end,
+    IsHidden = function() return false end,
+}
+
+BETTERUI.InventoryHook({
+    tooltipControl = enhancedClearTooltip,
+    tooltipType = "mockEnhancedClearTooltip",
+    method = "LayoutItem",
+    linkFunc = function(itemLink)
+        return itemLink
+    end,
+    method2 = "LayoutBagItem",
+    linkFunc2 = function()
+        return 5, 6
+    end,
+    method3 = "LayoutStoreItemFromLink",
+    linkFunc3 = function() return nil, nil end,
+})
+
+enhancedClearTooltip:LayoutBagItem()
+enhancedClearTooltip:LayoutItem("item:enhanced-clear")
+enhancedClearTooltip:ClearLines()
+
+local lastEnhancedClearCleanup = enhancedClearPreserveArgs[#enhancedClearPreserveArgs]
+assertEqual("item:enhanced-clear", enhancedClearTooltip._betterui_itemLink,
+    "ClearLines keeps the displayed item link during enhanced item tooltip cleanup")
+assertEqual(5, enhancedClearTooltip._betterui_bagId,
+    "ClearLines keeps displayed item bag context during enhanced item tooltip cleanup")
+assertEqual(true, lastEnhancedClearCleanup and lastEnhancedClearCleanup.preserveItemData,
+    "ClearLines asks shared cleanup to preserve displayed item data when an item is active")
+
+BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip = origEnhancedClearCleanup
+BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText = origEnhancedClearUpdate
+BETTERUI.Settings.Modules.CIM.enableTooltipEnhancements = previousEnhancementsEnabled
+
 print("\nTest: Inventory hook clears stale enhancement state for non-item layouts")
 local cleanupCalls = 0
 local updateCalls = 0

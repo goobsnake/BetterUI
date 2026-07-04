@@ -55,6 +55,16 @@ assert_contains(stockLayoutSource, "nativeTopAreaPreserved = true",
 assert_contains(stockLayoutSource, "stockFallbackRefreshed =",
     "Default tooltip stock layout logs that BetterUI stock fallback state is refreshed")
 
+local clearLinesStart = assert(tooltipsSource:find("local function InstallClearLinesHook", 1, true))
+local clearLinesEnd = assert(tooltipsSource:find("local function InstallBagLayoutHook", clearLinesStart, true))
+local clearLinesSource = tooltipsSource:sub(clearLinesStart, clearLinesEnd)
+assert_contains(clearLinesSource, "local hasDisplayedItem = state.pendingItemLink ~= nil or self._betterui_itemLink ~= nil",
+    "ClearLines preserves displayed-item tooltip metadata regardless of the enhancements toggle")
+assert_contains(clearLinesSource, "local preserveStockLayoutState = hasDisplayedItem",
+    "ClearLines passes displayed-item preservation into enhancement cleanup")
+assert_not_contains(clearLinesSource, "enhancementsEnabled == false",
+    "ClearLines preservation is not gated to disabled enhanced tooltips")
+
 assert_contains(nameplatesSource, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates runtime resolves from the dedicated Nameplates module namespace")
 assert_not_contains(nameplatesSource, "GeneralInterface.Nameplates = Nameplates",
