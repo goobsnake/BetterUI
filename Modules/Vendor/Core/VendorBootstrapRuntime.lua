@@ -67,7 +67,7 @@ function BootstrapRuntime.InitializeList(instance, deps)
         "BUI_StableRow"
     )
     instance.list:SetOnSelectedDataChangedCallback(function(list, selectedData)
-        if instance._searchModeActive and instance.list
+        if (instance._searchModeActive or instance._searchHeaderActive) and instance.list
             and instance.list.IsActive and instance.list:IsActive() then
             instance:OnItemSelectedChange(list, selectedData)
             instance:UpdateScrollIndicator(list)
@@ -140,13 +140,8 @@ function BootstrapRuntime.InitializeSearch(instance)
                     end
                 end
                 searchHandlerRevision = searchCallbackRevision
-                BETTERUI.Interface.UpdateCurrentKeybindGroups()
-            end,
-            enterHeaderFn = function(window)
-                if window.RequestHeaderFocus then
-                    window:RequestHeaderFocus()
-                else
-                    window:EnterSearchMode()
+                if window.textSearchKeybindStripDescriptor and BETTERUI.Interface.UpdateKeybindGroup then
+                    BETTERUI.Interface.UpdateKeybindGroup(window.textSearchKeybindStripDescriptor)
                 end
             end,
         })

@@ -354,14 +354,21 @@ do
         "Vendor search cleanup never reads the nonexistent keybindButtonGroups field")
     assert_true(vendorSource:find("_searchTextChangedInProgress", 1, true) ~= nil,
         "Vendor search text updates guard against re-entrant focus callbacks")
-    assert_true(vendorSource:find("BETTERUI%.Interface%.RemoveOwnedKeybindGroups%(") ~= nil,
-        "Vendor search cleanup removes only vendor-owned keybind groups")
+    -- Inventory-model port (2026-07-04): search focus is ADDITIVE — the search
+    -- keybind group stacks on top of the core group, so no owned-group removal
+    -- (and no deferred cleanup task) may exist in the vendor source anymore.
+    assert_true(vendorSource:find("BETTERUI%.Interface%.RemoveOwnedKeybindGroups%(") == nil,
+        "Vendor search focus is additive: owned-group removal must not return")
+    assert_true(vendorSource:find("function BETTERUI%.Vendor%.Class:RestoreSearchFocus") ~= nil,
+        "Vendor search exit funnels through the unified RestoreSearchFocus")
+    assert_true(vendorSource:find("_restoringVendorSearchFocus", 1, true) ~= nil,
+        "Vendor search restore is reentrancy-guarded")
     assert_true(vendorSource:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searchRemovedKeybindGroups%)") ~= nil,
         "Vendor ExitSearchMode restores exactly the groups the cleanup removed")
     assert_true(vendorSource:find("_searchKeybindCleanupToken", 1, true) ~= nil,
         "Vendor search cleanup uses a generation token to ignore stale deferred callbacks")
-    assert_true(vendorSource:find("cleanupToken ~= self._searchKeybindCleanupToken", 1, true) ~= nil,
-        "Vendor deferred search cleanup aborts when search mode has exited")
+    assert_true(vendorSource:find("ZO_Gamepad_ParametricList_Screen.OnLeaveHeader", 1, true) ~= nil,
+        "Vendor OnLeaveHeader runs the base parametric leave before search restore")
     assert_true(vendorSource:find("if self._preserveSearchFocusDuringRefresh", 1, true) ~= nil,
         "Vendor list-input activation preserves search focus during search text refresh")
     assert_true(vendorSource:find("_refreshingVendorHeaderAfterSearchExit", 1, true) ~= nil,
