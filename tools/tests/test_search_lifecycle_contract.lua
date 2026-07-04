@@ -539,6 +539,37 @@ do
         ExecuteSafely = function(_, fn, ...)
             return fn(...)
         end,
+        ReleaseDirectionalInputRegistrations = function(obj, includeMovementController)
+            if not obj or not DIRECTIONAL_INPUT or not DIRECTIONAL_INPUT.IsListening or not DIRECTIONAL_INPUT.Deactivate then
+                return 0
+            end
+
+            local releasedCount = 0
+            local releasedCandidates = {}
+            local function releaseCandidate(candidate)
+                if not candidate or releasedCandidates[candidate] then
+                    return
+                end
+                releasedCandidates[candidate] = true
+
+                local safety = 0
+                while DIRECTIONAL_INPUT:IsListening(candidate) and safety < 8 do
+                    DIRECTIONAL_INPUT:Deactivate(candidate)
+                    releasedCount = releasedCount + 1
+                    safety = safety + 1
+                end
+            end
+
+            releaseCandidate(obj)
+            releaseCandidate(obj.spinner)
+            if includeMovementController then
+                releaseCandidate(obj.movementController)
+                releaseCandidate(obj.horizontalMovementController)
+                releaseCandidate(obj.verticalMovementController)
+            end
+
+            return releasedCount
+        end,
     }
     BETTERUI.CIM.CONST = BETTERUI.CIM.CONST or {
         HEADER_LAYOUT = { COLUMNS = {} },
@@ -599,7 +630,9 @@ do
         local consumed
         local activatedObject
         local deactivatedObject
+        local deactivatedCounts = {}
         local lastDeadzoneFlag
+        local strayInputObject = {}
 
         MOVEMENT_CONTROLLER_DIRECTION_VERTICAL = "vertical"
         MOVEMENT_CONTROLLER_MOVE_NEXT = "next"
@@ -612,12 +645,15 @@ do
             return 0.75
         end
         DIRECTIONAL_INPUT = {
-            listening = {},
+            inputObjects = { strayInputObject },
+            listening = { [strayInputObject] = true },
             Activate = function(self, object)
                 self.listening[object] = true
+                self.inputObjects[#self.inputObjects + 1] = object
                 activatedObject = object
             end,
             Deactivate = function(self, object)
+                deactivatedCounts[object] = (deactivatedCounts[object] or 0) + 1
                 self.listening[object] = nil
                 deactivatedObject = object
             end,
@@ -648,6 +684,8 @@ do
         local exitCalls = 0
         local vendor = setmetatable({
             textSearchHeaderControl = control,
+            textSearchHeaderFocus = {},
+            textSearchKeybindStripDescriptor = {},
             _searchModeActive = true,
             _searchHeaderActive = true,
             IsSceneShowing = function() return true end,
@@ -664,6 +702,13 @@ do
             "vendor search activates its scoped directional-input object")
         assert_eq(movementController.direction, MOVEMENT_CONTROLLER_DIRECTION_VERTICAL,
             "vendor search movement controller is vertical-only")
+        vendor:NormalizeDirectionalInputOwnership("test")
+        assert_true(DIRECTIONAL_INPUT:IsListening(vendor._betteruiVendorSearchDirectionalInputObject),
+            "vendor search normalization preserves the scoped directional-input listener")
+        assert_eq(deactivatedCounts[vendor._betteruiVendorSearchDirectionalInputObject], nil,
+            "vendor search normalization does not release the scoped directional-input listener")
+        assert_true(DIRECTIONAL_INPUT:IsListening(strayInputObject) == false,
+            "vendor search normalization still releases unrelated directional-input listeners")
         activatedObject:UpdateDirectionalInput()
         assert_eq(exitCalls, 1,
             "vendor search directional-input listener exits search on joystick down")

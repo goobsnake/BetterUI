@@ -1118,6 +1118,7 @@ function BETTERUI.Vendor.Class:NormalizeDirectionalInputOwnership(reason)
     end
 
     if (self._searchModeActive or self._searchHeaderActive) and SupportsVendorHeaderSearch(self) then
+        Allow(self._betteruiVendorSearchDirectionalInputObject, true)
         Allow(self.textSearchHeaderFocus, true)
         Allow(self.headerFocus, true)
         Allow(self.textSearchHeaderControl, true)
