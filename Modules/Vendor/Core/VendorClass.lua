@@ -1271,46 +1271,9 @@ end
 
 BETTERUI.Vendor.Class.IsHeaderActive = BETTERUI.Vendor.Class.IsHeaderFocused
 
---- Header focus loss (joystick-leave, forced release, scene churn) happens
---- inside ZO focus objects with NO callback, so any of them can strand the
---- scene with search keybinds owning input and the list's movement controller
---- unregistered. Wrap Deactivate on BOTH focus objects (the screen headerFocus
---- used by scroll-into-header and the linked text-search focus) so every focus
---- loss funnels through the same recovery as an explicit exit.
----@return nil
-function BETTERUI.Vendor.Class:EnsureHeaderFocusLossRecovery()
-    local vendorInstance = self
-    local function wrap(focusObject)
-        if not focusObject or focusObject._betteruiDeactivateWrapped
-            or type(focusObject.Deactivate) ~= "function" then
-            return
-        end
-        focusObject._betteruiDeactivateWrapped = true
-        local originalDeactivate = focusObject.Deactivate
-        focusObject.Deactivate = function(fo, ...)
-            local result = originalDeactivate(fo, ...)
-            if not vendorInstance._betteruiSearchFocusExitInProgress then
-                vendorInstance._betteruiSearchFocusExitInProgress = true
-                if vendorInstance._searchModeActive or vendorInstance._searchHeaderActive then
-                    ExecuteSafely("Vendor.HeaderFocusDeactivate:ExitSearchMode",
-                        vendorInstance.ExitSearchMode, vendorInstance)
-                elseif vendorInstance.EnsureListInputActive then
-                    ExecuteSafely("Vendor.HeaderFocusDeactivate:EnsureListInputActive",
-                        vendorInstance.EnsureListInputActive, vendorInstance)
-                end
-                vendorInstance._betteruiSearchFocusExitInProgress = nil
-            end
-            return result
-        end
-    end
-    wrap(self.headerFocus)
-    wrap(self.textSearchHeaderFocus)
-end
-
 --- Requests focus for the search header.
 ---@return nil
 function BETTERUI.Vendor.Class:RequestHeaderFocus()
-    self:EnsureHeaderFocusLossRecovery()
     if self.OnHeaderEntered then
         self:OnHeaderEntered()
     else
@@ -1319,27 +1282,6 @@ function BETTERUI.Vendor.Class:RequestHeaderFocus()
 end
 
 BETTERUI.Vendor.Class.RequestEnterHeader = BETTERUI.Vendor.Class.RequestHeaderFocus
-
---- Joystick-leave runs the BASE parametric screen's leave path, which knows
---- nothing about vendor search-mode bookkeeping; route it through the same
---- restoration explicit exits use so the list always regains the stick.
----@return nil
-function BETTERUI.Vendor.Class:RequestLeaveHeader()
-    local base = ZO_Gamepad_ParametricList_Screen
-        and ZO_Gamepad_ParametricList_Screen.RequestLeaveHeader
-    if base then
-        ExecuteSafely("Vendor.RequestLeaveHeader:base", base, self)
-    elseif self.headerFocus and self.headerFocus.Deactivate then
-        ExecuteSafely("Vendor.RequestLeaveHeader:deactivateHeaderFocus",
-            self.headerFocus.Deactivate, self.headerFocus)
-    end
-
-    if self._searchModeActive or self._searchHeaderActive then
-        self:ExitSearchMode()
-    elseif self.EnsureListInputActive then
-        self:EnsureListInputActive()
-    end
-end
 
 --- Repositions the search control under the header title.
 ---@return nil
@@ -1364,8 +1306,6 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
     end
     self._searchModeActive = true
     self._searchHeaderActive = true
-
-    self:EnsureHeaderFocusLossRecovery()
 
     if self.coreKeybinds and KEYBIND_STRIP then
         TraceVendorKeybindLayer("remove_before", self, self.coreKeybinds, {
@@ -1692,13 +1632,9 @@ function BETTERUI.Vendor.Class:EnsureListInputActive()
     local controllerRegistrationCount = CountDirectionalInputRegistrations(list.movementController)
     local listListening = listRegistrationCount > 0
     local controllerListening = controllerRegistrationCount > 0
-    local isListActive = not list.IsActive or list:IsActive()
-    -- A list that reports active with NO directional registrations is the
-    -- dead-stick state left after header/search focus consumed and released
-    -- the movement controller: force a reset so Activate re-registers input.
     local shouldResetListInput = listRegistrationCount > 1 or controllerRegistrationCount > 1
         or (controllerListening and not listListening)
-        or (isListActive and not listListening and not controllerListening)
+    local isListActive = not list.IsActive or list:IsActive()
 
     if shouldResetListInput then
         local releasedCount = ReleaseDirectionalInputRegistrations(list, true)
