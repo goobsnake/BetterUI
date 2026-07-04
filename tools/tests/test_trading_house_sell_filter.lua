@@ -72,6 +72,13 @@ function CanSellOnTradingHouse(guildId)
     return canSellByGuild[guildId] == true
 end
 
+-- Mirror the shared section helper (Core/PriceEntry.lua) the component now
+-- routes its permission gate through; the test does not load that file.
+function BETTERUI.TradingHouse.IsTradingHouseSellPermittedForCurrentGuild()
+    local guildId = GetSelectedTradingHouseGuildId()
+    return CanSellOnTradingHouse(guildId), guildId, nil, nil
+end
+
 local listingCounts = { current = 0, max = 30 }
 function GetTradingHouseListingCounts()
     return listingCounts.current, listingCounts.max

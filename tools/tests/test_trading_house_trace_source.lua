@@ -117,8 +117,8 @@ assert_contains(browse, "opId = opId",
     "browse traces carry the generated opId")
 assert_contains(browse, "TH.ClearPendingOperation(\"search\")",
     "deferred search timeout clears the pending search operation")
-assert_count(browse, "TraceBrowse(\"th.list\", \"end\"", 3,
-    "browse list build emits bounded aggregate th.list end outcomes")
+assert_count(browse, "TraceBrowse(\"th.list\", \"end\"", 4,
+    "browse list build emits bounded aggregate th.list end outcomes (invalidated, empty, missing API, success)")
 assert_contains(browse, "local renderedCount = 0",
     "browse list build tracks rendered rows once per rebuild")
 assert_contains(browse, "renderedCount = renderedCount + 1",
@@ -138,8 +138,8 @@ assert_contains(flow, "}, false) or data.opId",
     "runtime confirm registration does not duplicate the requested trace")
 assert_count(flow, "TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION, \"trading_house.create_listing\", \"requested\"", 1,
     "create-listing submit emits exactly one requested trace")
-assert_count(sell, "TraceSell(\"th.list\", \"end\"", 1,
-    "sell list build emits one aggregate th.list end outcome")
+assert_count(sell, "TraceSell(\"th.list\", \"end\"", 2,
+    "sell list build emits bounded aggregate th.list end outcomes (permission-blocked, success)")
 assert_contains(sell, "local renderedCount = 0",
     "sell list build tracks rendered rows once per rebuild")
 assert_contains(sell, "renderedCount = renderedCount + 1",
@@ -155,8 +155,8 @@ assert_contains(listings, "thOperation = \"cancel_listing\"",
     "cancel-listing dialog state carries the pending operation name")
 assert_contains(listings, "opId = opId",
     "cancel-listing traces carry the generated opId")
-assert_count(listings, "TraceListings(\"th.list\", \"end\"", 2,
-    "listings list build emits bounded aggregate th.list end outcomes")
+assert_count(listings, "TraceListings(\"th.list\", \"end\"", 3,
+    "listings list build emits bounded aggregate th.list end outcomes (permission-blocked, empty, success)")
 assert_contains(listings, "local renderedCount = 0",
     "listings list build tracks rendered rows once per rebuild")
 assert_contains(listings, "renderedCount = renderedCount + 1",

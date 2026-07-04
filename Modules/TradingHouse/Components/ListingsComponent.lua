@@ -12,6 +12,7 @@ local TH = BETTERUI.TradingHouse
 TH.ListingsComponent = {}
 local Listings = TH.ListingsComponent
 Listings.pendingCancelTrace = nil
+Listings.sortByTimeAscending = true
 local cancelDialogHooksInstalled = false
 
 local function TraceListings(event, phase, thInstance, data, category)
@@ -21,6 +22,84 @@ local function TraceListings(event, phase, thInstance, data, category)
         data.fn = data.fn or "TradingHouse.ListingsComponent"
         TH.Trace(category or (BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST), event, phase, thInstance or TH.instance, data)
     end
+end
+
+local function HeaderText(stringIdName, fallback)
+    local stringId = rawget(_G, stringIdName)
+    if stringId ~= nil and type(GetString) == "function" then
+        local text = GetString(stringId)
+        if text and text ~= "" then
+            return text
+        end
+    end
+    return fallback
+end
+
+local function SafeGetIndexedString(prefix, value)
+    if type(GetString) ~= "function" or value == nil then
+        return ""
+    end
+    return GetString(prefix, value) or ""
+end
+
+local LISTINGS_COLUMNS = {
+    { text = HeaderText("SI_BETTERUI_INV_HEADER_NAME", "NAME"), align = LEFT },
+    { text = "TIME", align = LEFT },
+    { text = "UNIT", align = RIGHT },
+    { text = "", align = RIGHT },
+    { text = "TOTAL", align = RIGHT },
+}
+
+local function ApplyListingsHeaders(thInstance)
+    if TH.InstallTradingHouseSectionRowSetup then
+        TH.InstallTradingHouseSectionRowSetup()
+    end
+    if TH.SetTradingHouseSectionHeaders then
+        TH.SetTradingHouseSectionHeaders(thInstance, LISTINGS_COLUMNS)
+    end
+end
+
+local function ClearListingsSectionState(thInstance)
+    if TH.RestoreTradingHouseSectionHeaders then
+        TH.RestoreTradingHouseSectionHeaders(thInstance)
+    end
+    if TH.SetTradingHousePermissionMessage then
+        TH.SetTradingHousePermissionMessage(thInstance, false)
+    end
+end
+
+local function IsListingsPermissionBlocked(thInstance)
+    if not TH.IsTradingHouseSellPermittedForCurrentGuild then
+        return false
+    end
+    local canSell, guildId, guildName, guildIndex = TH.IsTradingHouseSellPermittedForCurrentGuild()
+    if canSell then
+        return false
+    end
+    TraceListings("trading_house.listings_permission", "blocked", thInstance, {
+        fn = "TradingHouse.ListingsComponent.IsListingsPermissionBlocked",
+        guildId = guildId,
+        guildName = guildName,
+        guildIndex = guildIndex,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+    return true
+end
+
+local function FormatColumnCurrency(value)
+    if TH.FormatTradingHouseColumnCurrency then
+        return TH.FormatTradingHouseColumnCurrency(value)
+    end
+    if BETTERUI and BETTERUI.FormatAbbreviatedNumber then
+        return BETTERUI.FormatAbbreviatedNumber(value)
+    end
+    return tostring(value or 0)
+end
+
+local function FormatTimeRemaining(timeRemaining)
+    if TH.FormatTradingHouseListingTimeRemaining then
+        return TH.FormatTradingHouseListingTimeRemaining(timeRemaining)
+    end
+    return tostring(timeRemaining or 0)
 end
 
 local function NewTradingHouseOpId()
@@ -37,7 +116,7 @@ local function TracePendingCancelDialog(phase, reason)
     if reason ~= nil then
         pending.reason = reason
     end
-    if phase == "confirm" and pending.thOperation == "cancel_listing" and TH.BeginPendingOperation then
+    if phase == "confirm" and pending.thOperation == "cancel_listing" and type(TH.BeginPendingOperation) == "function" then
         pending.opId = TH.BeginPendingOperation("cancel_listing", "trading_house.cancel_listing", {
             fn = "TradingHouse.ListingsComponent.TracePendingCancelDialog",
             feature = "trading-house-listings",
@@ -50,7 +129,7 @@ local function TracePendingCancelDialog(phase, reason)
     end
     TraceListings("trading_house.cancel_listing_dialog", phase, TH.instance, pending,
         BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
-    if phase == "cancel" and pending.thOperation and TH.ClearPendingOperation then
+    if phase == "cancel" and pending.thOperation and type(TH.ClearPendingOperation) == "function" then
         TH.ClearPendingOperation(pending.thOperation)
     end
     Listings.pendingCancelTrace = nil
@@ -116,12 +195,13 @@ end
 
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Listings:Activate(thInstance)
+    ApplyListingsHeaders(thInstance)
     TraceListings("trading_house.listings", "activate", thInstance, {
         fn = "TradingHouse.ListingsComponent.Activate",
         hasRequestApi = RequestTradingHouseListings ~= nil,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE)
     -- Request fresh listing data from server
-    if RequestTradingHouseListings then
+    if type(RequestTradingHouseListings) == "function" then
         RequestTradingHouseListings()
         TraceListings("trading_house.listings", "requested", thInstance, {
             fn = "TradingHouse.ListingsComponent.Activate",
@@ -134,23 +214,41 @@ end
 ---@param thInstance BETTERUI.TradingHouse.Class
 function Listings:Deactivate(thInstance)
     TracePendingCancelDialog("cancel", "componentDeactivated")
+    ClearListingsSectionState(thInstance)
 end
 
 -- PRIMARY ACTION
 
 ---@return string name Localized action label
 function Listings:GetPrimaryActionName()
-    return GetString(rawget(_G, "SI_BETTERUI_TH_CANCEL_LISTING") or "SI_TRADING_HOUSE_CANCEL_LISTING")
+    return HeaderText("SI_BETTERUI_TH_CANCEL_LISTING", HeaderText("SI_TRADING_HOUSE_CANCEL_LISTING", "Cancel Listing"))
 end
 
 ---@param thInstance BETTERUI.TradingHouse.Class
 ---@return boolean enabled True if cancellation is possible
 function Listings:IsPrimaryActionEnabled(thInstance)
+    if IsListingsPermissionBlocked(thInstance) then
+        return false
+    end
     local selectedData = GetTargetRowData(thInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
     return ds.listingIndex ~= nil
+end
+
+---@param thInstance BETTERUI.TradingHouse.Class|nil
+---@return boolean ascending True when the next list rebuild sorts soonest first
+function Listings:ToggleSortByTime(thInstance)
+    self.sortByTimeAscending = not (self.sortByTimeAscending == true)
+    TraceListings("trading_house.listings_sort", "applied", thInstance, {
+        fn = "TradingHouse.ListingsComponent.ToggleSortByTime",
+        ascending = self.sortByTimeAscending == true,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
+    if thInstance and thInstance.RefreshList then
+        thInstance:RefreshList()
+    end
+    return self.sortByTimeAscending == true
 end
 
 ---@param thInstance BETTERUI.TradingHouse.Class
@@ -175,7 +273,16 @@ function Listings:OnPrimaryAction(thInstance)
         return
     end
 
-    local price = ds.purchasePrice or 0
+    if IsListingsPermissionBlocked(thInstance) then
+        TraceListings("trading_house.cancel_listing", "blocked", thInstance, {
+            fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
+            reason = "guildCannotSell",
+            listingIndex = listingIndex,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.ACTION)
+        return
+    end
+
+    local price = ds.listingPrice or ds.purchasePrice or ds.stackSellPrice or 0
     local item = BETTERUI.Log and BETTERUI.Log.DescribeItem and BETTERUI.Log.DescribeItem(ds, "selected") or ds.name
     local opId = NewTradingHouseOpId()
 
@@ -207,7 +314,7 @@ function Listings:OnPrimaryAction(thInstance)
         stackCount = ds.stackCount or 1,
         item = item,
     }
-    if ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog then
+    if type(ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog) == "function" then
         ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog(dialogItemData,
             "TRADING_HOUSE_CONFIRM_REMOVE_LISTING", price, ds.icon)
         TraceListings("trading_house.cancel_listing_dialog", "shown", thInstance, {
@@ -219,7 +326,7 @@ function Listings:OnPrimaryAction(thInstance)
             opId = opId,
             item = item,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
-    else
+    elseif type(ZO_Dialogs_ShowGamepadDialog) == "function" then
         ZO_Dialogs_ShowGamepadDialog("TRADING_HOUSE_CONFIRM_REMOVE_LISTING", {
             listingIndex = listingIndex,
             stackCount = dialogItemData.stackCount,
@@ -236,6 +343,17 @@ function Listings:OnPrimaryAction(thInstance)
             opId = opId,
             item = item,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+    else
+        Listings.pendingCancelTrace = nil
+        TraceListings("trading_house.cancel_listing_dialog", "blocked", thInstance, {
+            fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
+            reason = "missingDialogApi",
+            listingIndex = listingIndex,
+            price = price,
+            opId = opId,
+            item = item,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
+        return
     end
     TraceListings("trading_house.cancel_listing_dialog", "awaiting_choice", thInstance, Listings.pendingCancelTrace,
         BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
@@ -248,10 +366,35 @@ function Listings:BuildList(thInstance)
     local list = thInstance.list
     if not list then return end
 
-    local numListings = GetNumTradingHouseListings and GetNumTradingHouseListings() or 0
+    ApplyListingsHeaders(thInstance)
+    if IsListingsPermissionBlocked(thInstance) then
+        if TH.SetTradingHousePermissionMessage then
+            TH.SetTradingHousePermissionMessage(thInstance, true, TH.GetTradingHouseNoPermissionText and TH.GetTradingHouseNoPermissionText())
+        end
+        TraceListings("th.list", "end", thInstance, {
+            fn = "TradingHouse.ListingsComponent.BuildList",
+            mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+            count = 0,
+            reason = "guildCannotSell",
+        })
+        return
+    elseif TH.SetTradingHousePermissionMessage then
+        TH.SetTradingHousePermissionMessage(thInstance, false)
+    end
+
+    if type(GetNumTradingHouseListings) ~= "function" or type(GetTradingHouseListingItemInfo) ~= "function" then
+        TraceListings("trading_house.listings_list", "skipped", thInstance, {
+            fn = "TradingHouse.ListingsComponent.BuildList",
+            reason = "missingListingsApi",
+        })
+        return
+    end
+
+    local numListings = GetNumTradingHouseListings() or 0
     TraceListings("trading_house.listings_list", "build", thInstance, {
         fn = "TradingHouse.ListingsComponent.BuildList",
         listingCount = numListings,
+        sortByTimeAscending = self.sortByTimeAscending ~= false,
     })
     if numListings == 0 then
         TraceListings("th.list", "end", thInstance, {
@@ -263,76 +406,108 @@ function Listings:BuildList(thInstance)
         return
     end
 
-    local renderedCount = 0
+    local rows = {}
     for i = 1, numListings do
         -- API 50 return order: icon, itemName, displayQuality, stackCount,
         -- sellerName, timeRemaining, salePrice, currencyType, itemUniqueId,
         -- salePricePerUnit.
-        local icon, itemName, displayQuality, stackCount, _, timeRemaining, price, _, itemUniqueId
+        local icon, itemName, displayQuality, stackCount, _, timeRemaining, price, _, itemUniqueId, salePricePerUnit
             = GetTradingHouseListingItemInfo(i)
 
         -- Cancelled/empty listings can report stackCount 0; skip them.
         if itemName and itemName ~= "" and (stackCount or 0) > 0 then
-            local itemLink = GetTradingHouseListingItemLink and GetTradingHouseListingItemLink(i) or nil
+            local itemLink = type(GetTradingHouseListingItemLink) == "function" and GetTradingHouseListingItemLink(i) or nil
             local quality  = displayQuality or ITEM_DISPLAY_QUALITY_NORMAL
+            local totalPrice = price or 0
+            local displayStack = stackCount or 1
 
             -- Category
             local bestCategoryName = ""
-            if itemLink and GetItemLinkItemType then
+            if itemLink and type(GetItemLinkItemType) == "function" then
                 local itemType = GetItemLinkItemType(itemLink)
                 if itemType and itemType ~= ITEMTYPE_NONE then
-                    bestCategoryName = GetString("SI_ITEMTYPE", itemType)
+                    bestCategoryName = SafeGetIndexedString("SI_ITEMTYPE", itemType)
                 end
             end
 
             -- Trait
             local traitName = nil
-            if itemLink and GetItemLinkTraitInfo then
+            if itemLink and type(GetItemLinkTraitInfo) == "function" then
                 local traitType = GetItemLinkTraitInfo(itemLink)
                 if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE then
-                    traitName = string.upper(GetString("SI_ITEMTRAITTYPE", traitType))
+                    traitName = string.upper(SafeGetIndexedString("SI_ITEMTRAITTYPE", traitType))
                 end
             end
 
             -- Unit price
-            local unitPrice = 0
-            if price and stackCount and stackCount > 0 then
-                unitPrice = math.floor(price / stackCount)
+            local unitPrice = tonumber(salePricePerUnit) or 0
+            if unitPrice <= 0 and totalPrice and displayStack and displayStack > 0 then
+                unitPrice = math.floor(totalPrice / displayStack)
             end
+            local timeText = FormatTimeRemaining(timeRemaining)
 
             local itemData = {
                 listingIndex   = i,
-                name           = zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName),
+                name           = type(zo_strformat) == "function" and zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName) or itemName,
                 icon           = icon,
-                stackCount     = stackCount or 1,
-                purchasePrice  = price or 0,
-                unitPrice      = unitPrice,
+                stackCount     = displayStack,
+                listingPrice   = totalPrice,
+                stackSellPrice = totalPrice,
+                suggestedUnitPrice = unitPrice,
                 quality        = quality,
                 timeRemaining  = timeRemaining,
+                timeRemainingText = timeText,
                 itemLink       = itemLink,
                 itemUniqueId   = itemUniqueId,
-                traitName      = traitName,
-                bestGamepadItemCategoryName = bestCategoryName,
+                traitName      = FormatColumnCurrency(unitPrice),
+                bestGamepadItemCategoryName = timeText,
                 statValue      = "",
+                thColumnMode   = "listings",
+                thColumn1Text  = timeText,
+                thColumn1Align = LEFT,
+                thUnitText     = FormatColumnCurrency(unitPrice),
+                thSpacerText   = "",
+                thTotalText    = FormatColumnCurrency(totalPrice),
+                originalTraitName = traitName,
+                originalBestGamepadItemCategoryName = bestCategoryName,
             }
 
-            local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
-            entry:SetDataSource(itemData)
-            entry.narrationText = GetEntryNarrationText
-
-            if quality then
-                local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
-                entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-            end
-
-            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
-            renderedCount = renderedCount + 1
+            rows[#rows + 1] = itemData
         end
+    end
+
+    local sortAscending = self.sortByTimeAscending ~= false
+    table.sort(rows, function(left, right)
+        local leftTime = tonumber(left.timeRemaining) or 0
+        local rightTime = tonumber(right.timeRemaining) or 0
+        if leftTime == rightTime then
+            return tostring(left.name or "") < tostring(right.name or "")
+        end
+        if sortAscending then
+            return leftTime < rightTime
+        end
+        return leftTime > rightTime
+    end)
+
+    local renderedCount = 0
+    for _, itemData in ipairs(rows) do
+        local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
+        entry:SetDataSource(itemData)
+        entry.narrationText = GetEntryNarrationText
+
+        if itemData.quality and type(GetItemQualityColor) == "function" and ZO_ColorDef and ZO_ColorDef.New then
+            local r, g, b = GetItemQualityColor(itemData.quality):UnpackRGBA()
+            entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
+        end
+
+        list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+        renderedCount = renderedCount + 1
     end
     TraceListings("th.list", "end", thInstance, {
         fn = "TradingHouse.ListingsComponent.BuildList",
         mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
         count = renderedCount,
         listingCount = numListings,
+        sortByTimeAscending = sortAscending,
     })
 end

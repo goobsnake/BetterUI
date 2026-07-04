@@ -28,12 +28,199 @@ local function GetEntryNarrationText(entryData)
     return ds and ds.name or ""
 end
 
+local BROWSE_SORT_KEY_UNIT = "unit"
+local BROWSE_SORT_ASC_ARROW = " ▲"
+local BROWSE_SORT_DESC_ARROW = " ▼"
+
+local function GetHeaderLabel(stringIdName, fallback)
+    local stringId = rawget(_G, stringIdName)
+    if stringId and type(GetString) == "function" then
+        local text = GetString(stringId)
+        if text and text ~= "" then
+            return text
+        end
+    end
+    return fallback
+end
+
+local function GetBrowseHeaderLabel(baseText, sortKey)
+    if sortKey == BROWSE_SORT_KEY_UNIT then
+        return baseText .. (Browse.sortAscending == false and BROWSE_SORT_DESC_ARROW or BROWSE_SORT_ASC_ARROW)
+    end
+    return baseText
+end
+
+local function GetHeaderColumnAnchor(thInstance)
+    local header = thInstance and thInstance.header
+    if not (header and header.GetNamedChild) then
+        return nil
+    end
+    return header:GetNamedChild("HeaderTabBar") or header:GetNamedChild("HeaderColumnBar")
+end
+
+local function GetHeaderColumnOffset(columnIndex)
+    local headerLayout = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.HEADER_LAYOUT
+    local columns = headerLayout and headerLayout.COLUMNS
+    local orderedOffsets = {
+        columns and columns.NAME or 80,
+        columns and columns.TYPE or 592,
+        columns and columns.TRAIT or 852,
+        columns and columns.STAT or 1042,
+        columns and columns.VALUE or 1192,
+    }
+    return orderedOffsets[columnIndex]
+end
+
+local function ApplyHeaderColumnAnchor(label, anchor, columnIndex)
+    if not (label and anchor and label.SetAnchor and rawget(_G, "LEFT") and rawget(_G, "BOTTOMLEFT")) then
+        return
+    end
+    if label.ClearAnchors then
+        label:ClearAnchors()
+    end
+    local layout = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.LAYOUT
+    local offsetY = layout and layout.COLUMN_HEADER_Y_OFFSET or 109
+    label:SetAnchor(LEFT, anchor, BOTTOMLEFT, GetHeaderColumnOffset(columnIndex), offsetY)
+
+    local widths = layout and layout.COLUMN_WIDTHS
+    if widths and label.SetDimensions then
+        label:SetDimensions(widths[columnIndex] or 100, 30)
+    end
+end
+
+local function ApplyHeaderColumnSet(thInstance, columns, modeKey, phase)
+    local headerColumns = thInstance and thInstance.header and thInstance.header.columns
+    if type(headerColumns) ~= "table" then
+        return false
+    end
+    if thInstance._betteruiTHHeaderMode == modeKey then
+        return true
+    end
+
+    local anchor = GetHeaderColumnAnchor(thInstance)
+    for i, label in ipairs(headerColumns) do
+        local column = columns[i]
+        if label then
+            ApplyHeaderColumnAnchor(label, anchor, i)
+            local hidden = not column or column.hidden == true
+            if label.SetText then
+                label:SetText(hidden and "" or (column.text or ""))
+            end
+            if label.SetHidden then
+                label:SetHidden(hidden)
+            end
+            if label.SetMouseEnabled then
+                label:SetMouseEnabled(not hidden and column.mouseEnabled ~= false)
+            end
+        end
+    end
+
+    thInstance._betteruiTHHeaderMode = modeKey
+    TraceBrowse("trading_house.browse_columns", phase or "configured", thInstance, {
+        fn = "TradingHouse.BrowseComponent.ApplyHeaderColumnSet",
+        modeKey = modeKey,
+        sortKey = Browse.sortKey,
+        sortAscending = Browse.sortAscending ~= false,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+    return true
+end
+
+local function ConfigureBrowseColumns(thInstance)
+    local modeKey = "browse:" .. (Browse.sortAscending == false and "desc" or "asc")
+    return ApplyHeaderColumnSet(thInstance, {
+        { text = "NAME" },
+        { text = "TIME" },
+        { text = "", hidden = true, mouseEnabled = false },
+        { text = GetBrowseHeaderLabel("UNIT", BROWSE_SORT_KEY_UNIT) },
+        { text = "TOTAL" },
+    }, modeKey, "browse")
+end
+
+local function RestoreDefaultColumns(thInstance)
+    return ApplyHeaderColumnSet(thInstance, {
+        { text = GetHeaderLabel("SI_BETTERUI_INV_HEADER_NAME", "NAME") },
+        { text = GetHeaderLabel("SI_BETTERUI_INV_HEADER_TYPE", "TYPE") },
+        { text = GetHeaderLabel("SI_BETTERUI_INV_HEADER_TRAIT", "TRAIT") },
+        { text = GetHeaderLabel("SI_BETTERUI_INV_HEADER_STAT", "STAT") },
+        { text = GetHeaderLabel("SI_BETTERUI_INV_HEADER_VALUE", "VALUE") },
+    }, "default", "restored")
+end
+
+local function GetTradingHouseBrowseSortType()
+    return rawget(_G, "TRADING_HOUSE_SORT_SALE_PRICE_PER_UNIT")
+        or rawget(_G, "TRADING_HOUSE_SORT_SALE_PRICE")
+end
+
+local function NormalizeItemName(itemName)
+    if type(itemName) ~= "string" or itemName == "" then
+        return nil
+    end
+    local itemNameFormat = rawget(_G, "SI_TOOLTIP_ITEM_NAME")
+    if itemNameFormat and type(zo_strformat) == "function" then
+        return zo_strformat(itemNameFormat, itemName)
+    end
+    return itemName
+end
+
+local function ResolveUnitPrice(purchasePricePerUnit, purchasePrice, stackCount)
+    local unitPrice = tonumber(purchasePricePerUnit)
+    if unitPrice and unitPrice > 0 then
+        return unitPrice
+    end
+
+    local total = tonumber(purchasePrice) or 0
+    local stack = tonumber(stackCount) or 0
+    if total > 0 and stack > 0 then
+        return total / stack
+    end
+    return 0
+end
+
+local function CompareBrowseRows(left, right)
+    local leftPrice = left and tonumber(left.unitPrice) or nil
+    local rightPrice = right and tonumber(right.unitPrice) or nil
+    if leftPrice ~= rightPrice then
+        if leftPrice == nil then return false end
+        if rightPrice == nil then return true end
+        if Browse.sortAscending == false then
+            return leftPrice > rightPrice
+        end
+        return leftPrice < rightPrice
+    end
+
+    local leftName = string.lower(tostring(left and left.name or ""))
+    local rightName = string.lower(tostring(right and right.name or ""))
+    if leftName ~= rightName then
+        return leftName < rightName
+    end
+
+    return (tonumber(left and left.tradingHouseIndex) or 0) < (tonumber(right and right.tradingHouseIndex) or 0)
+end
+
+local function SortBrowseRows(rows)
+    if type(rows) == "table" and #rows > 1 then
+        table.sort(rows, CompareBrowseRows)
+    end
+end
+
+local function RefreshBrowseListForSort(thInstance)
+    if not (thInstance and thInstance.RefreshList) then
+        return
+    end
+    if thInstance.GetCurrentMode and thInstance:GetCurrentMode() ~= TH.MODE.BROWSE then
+        return
+    end
+    thInstance:RefreshList()
+end
+
 Browse.currentPage = 0
 Browse.hasMorePages = false
 Browse.searchPending = false
 Browse.resultsInvalidated = false
 Browse.deferredSearchToken = 0
 Browse.pendingBuyTrace = nil
+Browse.sortKey = BROWSE_SORT_KEY_UNIT
+Browse.sortAscending = true
 local buyDialogHooksInstalled = false
 
 local function TracePendingBuyDialog(phase, reason)
@@ -134,6 +321,7 @@ function Browse:Activate(thInstance)
         hasMorePages = Browse.hasMorePages == true,
         resultsInvalidated = Browse.resultsInvalidated == true,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIFECYCLE)
+    ConfigureBrowseColumns(thInstance)
     thInstance:RefreshList()
 end
 
@@ -151,6 +339,48 @@ function Browse:Deactivate(thInstance)
         searchPendingAfter = Browse.searchPending == true,
         deferredToken = Browse.deferredSearchToken,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIFECYCLE)
+    RestoreDefaultColumns(thInstance)
+end
+
+function Browse:SetSort(sortKey, ascending, thInstance)
+    if type(sortKey) == "boolean" then
+        thInstance = ascending
+        ascending = sortKey
+        sortKey = BROWSE_SORT_KEY_UNIT
+    elseif type(sortKey) == "table" then
+        thInstance = sortKey
+        sortKey = BROWSE_SORT_KEY_UNIT
+        ascending = Browse.sortAscending
+    elseif type(ascending) == "table" and thInstance == nil then
+        thInstance = ascending
+        ascending = Browse.sortAscending
+    end
+
+    sortKey = sortKey or BROWSE_SORT_KEY_UNIT
+    if sortKey ~= BROWSE_SORT_KEY_UNIT then
+        TraceBrowse("trading_house.browse_sort", "blocked", thInstance or TH.instance, {
+            fn = "TradingHouse.BrowseComponent.SetSort",
+            reason = "unsupportedSortKey",
+            sortKey = sortKey,
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.SORT)
+        return false
+    end
+
+    Browse.sortKey = BROWSE_SORT_KEY_UNIT
+    Browse.sortAscending = ascending ~= false
+    local target = thInstance or TH.instance
+    ConfigureBrowseColumns(target)
+    TraceBrowse("trading_house.browse_sort", "changed", target, {
+        fn = "TradingHouse.BrowseComponent.SetSort",
+        sortKey = Browse.sortKey,
+        sortAscending = Browse.sortAscending,
+    }, BETTERUI.Log and BETTERUI.Log.CATEGORY.SORT)
+    RefreshBrowseListForSort(target)
+    return true
+end
+
+function Browse:CycleSort(thInstance)
+    return Browse:SetSort(BROWSE_SORT_KEY_UNIT, Browse.sortAscending == false, thInstance or TH.instance)
 end
 
 function Browse:GetPrimaryActionName()
@@ -435,22 +665,24 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
     Browse.searchPending = true
     Browse.deferredSearchToken = Browse.deferredSearchToken + 1
     local token = Browse.deferredSearchToken
+    local sortType = GetTradingHouseBrowseSortType()
+    local sortAscending = Browse.sortAscending ~= false
     local opId = TH.BeginPendingOperation and TH.BeginPendingOperation("search", "trading_house.search", {
         fn = "TradingHouse.BrowseComponent.ExecuteSearch",
         feature = "trading-house-browse",
         page = Browse.currentPage,
-        sortType = TRADING_HOUSE_SORT_SALE_PRICE,
-        sortAscending = true,
+        sortType = sortType,
+        sortAscending = sortAscending,
         reuseLastExecutedSearchFilters = useLastExecutedSearchFilters == true,
         deferredToken = token,
     }, false) or nil
-    ExecuteTradingHouseSearch(Browse.currentPage, TRADING_HOUSE_SORT_SALE_PRICE, true,
+    ExecuteTradingHouseSearch(Browse.currentPage, sortType, sortAscending,
         useLastExecutedSearchFilters == true)
     TraceBrowse("trading_house.search", "requested", TH.instance, {
         fn = "TradingHouse.BrowseComponent.ExecuteSearch",
         page = Browse.currentPage,
-        sortType = TRADING_HOUSE_SORT_SALE_PRICE,
-        sortAscending = true,
+        sortType = sortType,
+        sortAscending = sortAscending,
         reuseLastExecutedSearchFilters = useLastExecutedSearchFilters == true,
         deferredToken = token,
         opId = opId,
@@ -560,6 +792,7 @@ end
 function Browse:BuildList(thInstance)
     local list = thInstance.list
     if not list then return end
+    ConfigureBrowseColumns(thInstance)
 
     -- Stale results (e.g. after a guild switch) reference tradingHouseIndex
     -- rows that are no longer purchasable; render nothing until a fresh
@@ -597,21 +830,34 @@ function Browse:BuildList(thInstance)
         return
     end
 
-    local renderedCount = 0
+    if type(GetTradingHouseSearchResultItemInfo) ~= "function" then
+        TraceBrowse("th.list", "end", thInstance, {
+            fn = "TradingHouse.BrowseComponent.BuildList",
+            mode = thInstance.GetCurrentMode and thInstance:GetCurrentMode() or nil,
+            count = 0,
+            resultCount = numResults,
+            reason = "missingSearchResultInfo",
+        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+        return
+    end
+
+    local rows = {}
     for i = 1, numResults do
         local icon, itemName, displayQuality, stackCount, sellerName, timeRemaining,
               purchasePrice, currencyType, itemUniqueId, purchasePricePerUnit
               = GetTradingHouseSearchResultItemInfo(i)
 
         -- Purchased results return stackCount 0 and must not re-render as buyable.
-        if itemName and itemName ~= "" and (stackCount or 0) > 0 then
+        local normalizedName = NormalizeItemName(itemName)
+        local stack = tonumber(stackCount) or 0
+        if normalizedName and stack > 0 then
             local itemLink = GetTradingHouseSearchResultItemLink and GetTradingHouseSearchResultItemLink(i) or nil
-            local quality = displayQuality or ITEM_DISPLAY_QUALITY_NORMAL
+            local quality = displayQuality or rawget(_G, "ITEM_DISPLAY_QUALITY_NORMAL") or 1
 
             local bestCategoryName = ""
             if itemLink and GetItemLinkItemType then
                 local itemType = GetItemLinkItemType(itemLink)
-                if itemType and itemType ~= ITEMTYPE_NONE then
+                if itemType and itemType ~= rawget(_G, "ITEMTYPE_NONE") and type(GetString) == "function" then
                     bestCategoryName = GetString("SI_ITEMTYPE", itemType)
                 end
             end
@@ -626,15 +872,15 @@ function Browse:BuildList(thInstance)
 
             local itemData = {
                 tradingHouseIndex = i,
-                name             = zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName),
+                name             = normalizedName,
                 icon             = icon,
-                stackCount       = stackCount or 1,
-                purchasePrice    = purchasePrice or 0,
-                unitPrice        = purchasePricePerUnit or (purchasePrice and stackCount and stackCount > 0 and math.floor(purchasePrice / stackCount) or 0),
-                currencyType     = currencyType or CURT_MONEY,
+                stackCount       = stack,
+                purchasePrice    = tonumber(purchasePrice) or 0,
+                unitPrice        = ResolveUnitPrice(purchasePricePerUnit, purchasePrice, stack),
+                currencyType     = currencyType or rawget(_G, "CURT_MONEY"),
                 quality          = quality,
                 sellerName       = sellerName or "",
-                timeRemaining    = timeRemaining,
+                timeRemaining    = tonumber(timeRemaining) or 0,
                 itemLink         = itemLink,
                 itemUniqueId     = itemUniqueId,
                 traitName        = traitName,
@@ -642,18 +888,30 @@ function Browse:BuildList(thInstance)
                 statValue        = "",
             }
 
-            local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
-            entry:SetDataSource(itemData)
-            entry.narrationText = GetEntryNarrationText
+            rows[#rows + 1] = itemData
+        end
+    end
 
-            if quality then
-                local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
+    SortBrowseRows(rows)
+
+    local renderedCount = 0
+    for _, itemData in ipairs(rows) do
+        local quality = itemData.quality
+
+        local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
+        entry:SetDataSource(itemData)
+        entry.narrationText = GetEntryNarrationText
+
+        if quality and type(GetItemQualityColor) == "function" then
+            local color = GetItemQualityColor(quality)
+            if color and color.UnpackRGBA and ZO_ColorDef then
+                local r, g, b = color:UnpackRGBA()
                 entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
             end
-
-            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
-            renderedCount = renderedCount + 1
         end
+
+        list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+        renderedCount = renderedCount + 1
     end
     TraceBrowse("th.list", "end", thInstance, {
         fn = "TradingHouse.BrowseComponent.BuildList",
@@ -661,5 +919,7 @@ function Browse:BuildList(thInstance)
         count = renderedCount,
         resultCount = numResults,
         page = Browse.currentPage,
+        sortKey = Browse.sortKey,
+        sortAscending = Browse.sortAscending ~= false,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
 end
