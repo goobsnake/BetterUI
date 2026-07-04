@@ -20,6 +20,15 @@ local function Out(msg)
     end
 end
 
+local function RegisterStringId(name, value)
+    local createStringId = G("ZO_CreateStringId")
+    if type(createStringId) == "function" then pcall(createStringId, name, value) end
+end
+
+RegisterStringId("SI_BINDING_NAME_BETTERUI_NEEDS_REVIEW", "BetterUI: Flag for Review")
+
+local reviewRequestCounter = 0
+
 local function PrintStatus()
     local L = BETTERUI.Log
     Out(string.format("InterfaceLog: %s | popups: %s | path: %s",
@@ -346,6 +355,135 @@ local function HandleLayoutCommand(raw)
     Out("Layout snapshot not emitted: " .. tostring(type(result) == "table" and result.reason or "unavailable") .. ". Use /builog layout [" .. tostring(available) .. "].")
 end
 
+local function NextReviewRequestId()
+    reviewRequestCounter = reviewRequestCounter + 1
+    return reviewRequestCounter
+end
+
+local function GetActiveSceneName()
+    local sceneManager = G("SCENE_MANAGER")
+    if not sceneManager then return "unknown" end
+
+    if type(sceneManager.GetCurrentSceneName) == "function" then
+        local ok, name = pcall(sceneManager.GetCurrentSceneName, sceneManager)
+        if ok and type(name) == "string" and name ~= "" then return name end
+    end
+
+    if type(sceneManager.GetCurrentScene) == "function" then
+        local okScene, scene = pcall(sceneManager.GetCurrentScene, sceneManager)
+        if okScene and scene ~= nil then
+            local okMethod, getName = pcall(function() return scene.GetName end)
+            if okMethod and type(getName) == "function" then
+                local okName, name = pcall(getName, scene)
+                if okName and type(name) == "string" and name ~= "" then return name end
+            end
+            local okField, fieldName = pcall(function() return scene.name end)
+            if okField and type(fieldName) == "string" and fieldName ~= "" then return fieldName end
+        end
+    end
+
+    return "unknown"
+end
+
+local function TraceReviewRequest(phase, payload)
+    local L = BETTERUI.Log
+    if not (L and type(L.TraceEvent) == "function") then return false end
+    local categories = L.CATEGORY or {}
+    local levels = L.LEVEL or {}
+    return pcall(L.TraceEvent, categories.STATE or "STATE", "review.requested", phase, payload, levels.INFO)
+end
+
+local function CaptureNeedsReviewLayout()
+    local summary = { phase = "skipped", emitted = 0, skipped = 0, visited = 0 }
+    local S = BETTERUI.CIM and BETTERUI.CIM.LayoutSnapshot
+    if not (S and type(S.Snapshot) == "function") then
+        summary.reason = "layoutUnavailable"
+        return summary
+    end
+
+    local ok, emitted, result = pcall(function()
+        local success, snapshotResult = S.Snapshot(nil)
+        return success, snapshotResult
+    end)
+    if not ok then
+        summary.reason = "layoutError"
+        summary.error = tostring(emitted)
+        return summary
+    end
+    if emitted and type(result) == "table" then
+        summary.phase = "end"
+        summary.snapshot = result.snapshot
+        summary.root = result.root
+        summary.rootGlobal = result.rootGlobal
+        summary.emitted = tonumber(result.emitted) or 0
+        summary.skipped = tonumber(result.skipped) or 0
+        summary.visited = tonumber(result.visited) or 0
+        return summary
+    end
+
+    summary.reason = type(result) == "table" and result.reason or "unavailable"
+    summary.available = type(result) == "table" and result.available or nil
+    return summary
+end
+
+local function CaptureNeedsReviewScreenshot()
+    local summary = { phase = "skipped" }
+    local S = BETTERUI.CIM and BETTERUI.CIM.Screenshot
+    if not (S and type(S.RequestManual) == "function") then
+        summary.reason = "screenshotUnavailable"
+        return summary
+    end
+
+    local ok, requested, reason, screenshotRequestId = pcall(S.RequestManual, "needs-review")
+    if not ok then
+        summary.reason = "screenshotError"
+        summary.error = tostring(requested)
+        return summary
+    end
+    if requested then
+        summary.phase = "end"
+        summary.status = tostring(reason or "requested")
+        summary.id = screenshotRequestId
+        return summary
+    end
+
+    summary.reason = tostring(reason or "unavailable")
+    return summary
+end
+
+local function HandleNeedsReview()
+    local requestId = NextReviewRequestId()
+    local sceneName = GetActiveSceneName()
+
+    pcall(TraceReviewRequest, "begin", {
+        requestId = requestId,
+        scene = sceneName,
+    })
+
+    local layout = CaptureNeedsReviewLayout()
+    local screenshot = CaptureNeedsReviewScreenshot()
+
+    pcall(TraceReviewRequest, "end", {
+        requestId = requestId,
+        scene = sceneName,
+        layoutPhase = layout.phase,
+        layoutSnapshot = layout.snapshot,
+        layoutRoot = layout.root,
+        layoutRootGlobal = layout.rootGlobal,
+        layoutEmitted = layout.emitted,
+        layoutSkipped = layout.skipped,
+        layoutVisited = layout.visited,
+        layoutReason = layout.reason,
+        screenshotPhase = screenshot.phase,
+        screenshotStatus = screenshot.status,
+        screenshotReason = screenshot.reason,
+        screenshotRequestId = screenshot.id,
+    })
+
+    Out(string.format("Needs-review request #%d recorded.", requestId))
+    return requestId, layout, screenshot
+end
+
 local function HandleCommand(args)
     local raw = tostring(args or ""):gsub("^%s+", ""):gsub("%s+$", "")
 
@@ -431,6 +569,8 @@ local function HandleCommand(args)
         HandleScreenshotCommand(raw)
     elseif args == "layout" or args:match("^layout%s+") then
         HandleLayoutCommand(raw)
+    elseif args == "review" then
+        HandleNeedsReview()
     elseif args == "report" then
         EmitSessionReport()
     elseif args == "status" then
@@ -445,7 +585,7 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | privacy on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | layout [inventory|vendor|tradinghouse|orbs] | snapshot | report | check|test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | privacy on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | review | screenshot [label] | screenshot auto off|error|warn | layout [inventory|vendor|tradinghouse|orbs] | snapshot | report | check|test | status")
     end
 end
 
@@ -516,6 +656,8 @@ end
 BuilogCommands.Out = Out
 BuilogCommands.PrintStatus = PrintStatus
 BuilogCommands.EmitSessionReport = EmitSessionReport
+BuilogCommands.FlagNeedsReview = HandleNeedsReview
+BuilogCommands.HandleNeedsReview = HandleNeedsReview
 BuilogCommands.HandleCommand = HandleCommand
 BuilogCommands.HandleHealthCommand = HandleHealthCommand
 BuilogCommands.Register = Register
