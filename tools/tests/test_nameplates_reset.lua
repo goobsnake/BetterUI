@@ -186,17 +186,22 @@ assertEqual(true, unregisterSuppressLog, "Reset-triggered disable suppresses eve
 
 print("\nTest: Nameplate settings options drive live updates")
 local options = BETTERUI.Nameplates.GetSettingsOptions()
-assertEqual(16, #options, "Nameplate settings expose text, position controls, and reset buttons")
+-- The position movers relocated to the General tab (2026-07-04): the panel
+-- keeps only the text controls + appearance reset, and the movers are
+-- exposed for the General composer via GetPositionSettingsOptions().
+assertEqual(6, #options, "Nameplate settings keep text controls and the appearance reset button")
+local positionOptions = BETTERUI.Nameplates.GetPositionSettingsOptions()
+assertEqual(8, #positionOptions, "Position movers are exposed for the General tab composer")
 
 local enabledOption = options[2]
 local sizeOption = options[5]
-local unlockPositions = options[8]
-local moveCompass = options[9]
-local compassX = options[10]
-local moveReticle = options[12]
-local reticleY = options[14]
-local resetPositionsButton = options[15]
-local resetButton = options[16]
+local unlockPositions = positionOptions[1]
+local moveCompass = positionOptions[2]
+local compassX = positionOptions[3]
+local moveReticle = positionOptions[5]
+local reticleY = positionOptions[7]
+local resetPositionsButton = positionOptions[8]
+local resetButton = options[6]
 
 enabledOption.setFunc(true)
 assertEqual(true, BETTERUI.Settings.Modules.Nameplates.m_enabled, "Enabled checkbox updates saved settings")
@@ -238,11 +243,14 @@ resetButton.func()
 assertEqual(BETTERUI.Nameplates.DEFAULTS.font, BETTERUI.Settings.Modules.Nameplates.font, "Reset restores the default font")
 assertEqual(BETTERUI.Nameplates.DEFAULTS.style, BETTERUI.Settings.Modules.Nameplates.style, "Reset restores the default style")
 assertEqual(BETTERUI.Nameplates.DEFAULTS.size, BETTERUI.Settings.Modules.Nameplates.size, "Reset restores the default size")
-assertEqual(BETTERUI.Nameplates.DEFAULTS.nameplatePositionsUnlocked, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked, "Reset restores position lock")
-assertEqual(BETTERUI.Nameplates.DEFAULTS.moveCompassFrame, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Reset restores compass mover toggle")
-assertEqual(BETTERUI.Nameplates.DEFAULTS.compassFrameOffsetY, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetY, "Reset restores compass Y offset")
-assertEqual(BETTERUI.Nameplates.DEFAULTS.moveReticlePrompt, BETTERUI.Settings.Modules.Nameplates.moveReticlePrompt, "Reset restores reticle mover toggle")
-assertEqual(BETTERUI.Nameplates.DEFAULTS.reticlePromptOffsetX, BETTERUI.Settings.Modules.Nameplates.reticlePromptOffsetX, "Reset restores reticle X offset")
+-- Position keys belong to the General-tab movers now: the appearance reset
+-- must NOT touch them (the dedicated resetPositions button, asserted above,
+-- owns that), so cross-tab tuning survives an appearance reset.
+assertEqual(true, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked, "Appearance reset leaves position lock alone")
+assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Appearance reset leaves compass mover alone")
+assertEqual(88, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetY, "Appearance reset leaves compass Y offset alone")
+assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveReticlePrompt, "Appearance reset leaves reticle mover alone")
+assertEqual(-44, BETTERUI.Settings.Modules.Nameplates.reticlePromptOffsetX, "Appearance reset leaves reticle X offset alone")
 assertEqual(1, applyCurrentSettingsCalls, "Reset reapplies the current nameplate settings")
 
 print("\nTest: Lifecycle apply path migrates legacy string style settings before getters read them")

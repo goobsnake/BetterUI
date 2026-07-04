@@ -20,6 +20,23 @@ local ResetGeneralInterfaceGeneralSettings = H.ResetGeneralInterfaceGeneralSetti
 local ResetMarketIntegrationSettings = H.ResetMarketIntegrationSettings
 local ResetEnhancedTooltipSettings = H.ResetEnhancedTooltipSettings
 
+local function CreateStringIdIfMissing(stringId, value)
+    if rawget(_G, stringId) == nil and type(ZO_CreateStringId) == "function" then
+        ZO_CreateStringId(stringId, value)
+    end
+end
+
+CreateStringIdIfMissing("SI_BETTERUI_GENERAL_UI_ELEMENT_POSITIONS_HEADER", "UI ELEMENT POSITIONS")
+CreateStringIdIfMissing(
+    "SI_BETTERUI_GENERAL_UI_ELEMENT_POSITIONS_DESC",
+    "Adjust supported HUD element positions, including compass and reticle prompt movers, from the General settings tab."
+)
+CreateStringIdIfMissing("SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES", "Show UI Position Drag Handles")
+CreateStringIdIfMissing(
+    "SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES_TOOLTIP",
+    "Shows draggable handles for supported HUD elements while position controls are enabled."
+)
+
 local function SetModuleSetting(moduleName, key, value)
     if type(BETTERUI.SetSetting) == "function" then
         return BETTERUI.SetSetting(moduleName, key, value)
@@ -271,6 +288,24 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             width = "half",
         },
     }
+
+    local uiElementPositionControls = {
+        {
+            type = "description",
+            key = "uiElementPositionsDescription",
+            text = GetString(rawget(_G, "SI_BETTERUI_GENERAL_UI_ELEMENT_POSITIONS_DESC")),
+            width = "full",
+        },
+    }
+    local nameplates = BETTERUI.Nameplates
+    if nameplates and type(nameplates.GetPositionSettingsOptions) == "function" then
+        local positionControls = nameplates.GetPositionSettingsOptions()
+        if type(positionControls) == "table" then
+            for _, control in ipairs(positionControls) do
+                table.insert(uiElementPositionControls, control)
+            end
+        end
+    end
 
     local marketIntegrationControls = {
         {
@@ -629,6 +664,13 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 
     table.insert(generalControls, {
         type = "submenu",
+        key = "uiElementPositions",
+        name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_UI_ELEMENT_POSITIONS_HEADER")),
+        controls = uiElementPositionControls,
+    })
+
+    table.insert(generalControls, {
+        type = "submenu",
         key = "marketIntegration",
         name = GetString(rawget(_G, "SI_BETTERUI_MARKET_INTEGRATION_HEADER")),
         controls = marketIntegrationControls,
@@ -644,6 +686,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
     WrapGeneralInterfaceSettingControls(generalControls, "general")
     TraceGeneralSetting("settings_options", "built", {
         generalControls = #generalControls,
+        uiElementPositionControls = #uiElementPositionControls,
         marketIntegrationControls = #marketIntegrationControls,
         enhancedTooltipControls = #enhancedTooltipControls,
     })

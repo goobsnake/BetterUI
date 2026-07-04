@@ -7,6 +7,18 @@ local DEFAULT_NAMEPLATE_SIZE = 16
 local POSITION_OFFSET_MIN = -600
 local POSITION_OFFSET_MAX = 600
 
+local function CreateNameplatesStringIdIfMissing(stringId, value)
+    if rawget(_G, stringId) == nil and type(ZO_CreateStringId) == "function" then
+        ZO_CreateStringId(stringId, value)
+    end
+end
+
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES", "Show UI Position Drag Handles")
+CreateNameplatesStringIdIfMissing(
+    "SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES_TOOLTIP",
+    "Shows draggable handles for supported HUD elements while position controls are enabled."
+)
+
 -- Nameplates.ClampNameplateSize is always present by the time the settings panel
 -- invokes this at runtime, so the former inline fallback was unreachable (BUI-CONS-004).
 local function ClampNameplateSize(value, fallback)
@@ -91,93 +103,196 @@ local function ApplyCurrentNameplateSettings(settingName, value)
     end
 end
 
+local function GetPositionDefault(key)
+    local defaults = Nameplates.DEFAULTS or {}
+    if defaults[key] ~= nil then
+        return defaults[key]
+    end
+    return key:find("Offset", 1, true) and 0 or false
+end
+
+local function GetBooleanSetting(key)
+    local settings = GetNameplateSettings()
+    if settings and settings[key] ~= nil then
+        return settings[key] == true
+    end
+    return GetPositionDefault(key) == true
+end
+
+local function GetOffsetSetting(key)
+    local settings = GetNameplateSettings()
+    return ClampPositionOffset(settings and settings[key] or GetPositionDefault(key))
+end
+
+local function SetPositionSettingValue(key, value)
+    local settings = EnsureNameplateSettings()
+    if not settings then
+        TraceNameplateSetting(key, "set_rejected", {
+            fn = "Nameplates.Settings.SetPositionSettingValue",
+            reason = "settingsUnavailable",
+            value = value,
+        })
+        return
+    end
+    local normalized = key:find("Offset", 1, true) and ClampPositionOffset(value) or value == true
+    TraceNameplateSetting(key, "set_begin", {
+        fn = "Nameplates.Settings.SetPositionSettingValue",
+        previous = settings[key],
+        value = normalized,
+    })
+    settings[key] = normalized
+    TraceNameplateSetting(key, "set_end", {
+        fn = "Nameplates.Settings.SetPositionSettingValue",
+        value = settings[key],
+    })
+    ApplyCurrentNameplateSettings(key, normalized)
+end
+
+-- Positioning.IsPositionControlDisabled is always present (Positioning loads
+-- before Settings), so the former inline fallback was unreachable (BUI-CONS-004).
+local function IsPositionSliderDisabled(elementKey)
+    return Nameplates.Positioning.IsPositionControlDisabled(elementKey)
+end
+
+local function ResetPositionSettings()
+    local settings = EnsureNameplateSettings()
+    if not settings then
+        TraceNameplateSetting("resetPositions", "set_rejected", {
+            fn = "Nameplates.Settings.ResetPositionSettings",
+            reason = "settingsUnavailable",
+        })
+        return
+    end
+    local positioning = Nameplates.Positioning
+    TraceNameplateSetting("resetPositions", "set_begin", {
+        fn = "Nameplates.Settings.ResetPositionSettings",
+        moveCompassFrame = settings.moveCompassFrame,
+        compassFrameOffsetX = settings.compassFrameOffsetX,
+        compassFrameOffsetY = settings.compassFrameOffsetY,
+        moveReticlePrompt = settings.moveReticlePrompt,
+        reticlePromptOffsetX = settings.reticlePromptOffsetX,
+        reticlePromptOffsetY = settings.reticlePromptOffsetY,
+    })
+    -- Positioning.ResetOffsets owns the field reset + reapply; the former
+    -- field-by-field else was unreachable since Positioning loads first (BUI-CONS-004).
+    if positioning and type(positioning.ResetOffsets) == "function" then
+        positioning.ResetOffsets(settings)
+    end
+    TraceNameplateSetting("resetPositions", "set_end", {
+        fn = "Nameplates.Settings.ResetPositionSettings",
+        moveCompassFrame = settings.moveCompassFrame,
+        compassFrameOffsetX = settings.compassFrameOffsetX,
+        compassFrameOffsetY = settings.compassFrameOffsetY,
+        moveReticlePrompt = settings.moveReticlePrompt,
+        reticlePromptOffsetX = settings.reticlePromptOffsetX,
+        reticlePromptOffsetY = settings.reticlePromptOffsetY,
+    })
+end
+
+function Nameplates.GetPositionSettingsOptions()
+    return {
+        {
+            type = "checkbox",
+            key = "nameplatePositionsUnlocked",
+            name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES_TOOLTIP")),
+            default = GetPositionDefault("nameplatePositionsUnlocked"),
+            getFunc = function() return GetBooleanSetting("nameplatePositionsUnlocked") end,
+            setFunc = function(value) SetPositionSettingValue("nameplatePositionsUnlocked", value) end,
+            disabled = function() return not IsNameplateEnabled() end,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            key = "moveCompassFrame",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_COMPASS")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP")),
+            default = GetPositionDefault("moveCompassFrame"),
+            getFunc = function() return GetBooleanSetting("moveCompassFrame") end,
+            setFunc = function(value) SetPositionSettingValue("moveCompassFrame", value) end,
+            disabled = function() return not IsNameplateEnabled() end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "compassFrameOffsetX",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_X")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("compassFrameOffsetX"),
+            getFunc = function() return GetOffsetSetting("compassFrameOffsetX") end,
+            setFunc = function(value) SetPositionSettingValue("compassFrameOffsetX", value) end,
+            disabled = function() return IsPositionSliderDisabled("compass") end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "compassFrameOffsetY",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_Y")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_Y_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("compassFrameOffsetY"),
+            getFunc = function() return GetOffsetSetting("compassFrameOffsetY") end,
+            setFunc = function(value) SetPositionSettingValue("compassFrameOffsetY", value) end,
+            disabled = function() return IsPositionSliderDisabled("compass") end,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            key = "moveReticlePrompt",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_RETICLE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_RETICLE_TOOLTIP")),
+            default = GetPositionDefault("moveReticlePrompt"),
+            getFunc = function() return GetBooleanSetting("moveReticlePrompt") end,
+            setFunc = function(value) SetPositionSettingValue("moveReticlePrompt", value) end,
+            disabled = function() return not IsNameplateEnabled() end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "reticlePromptOffsetX",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RETICLE_OFFSET_X")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("reticlePromptOffsetX"),
+            getFunc = function() return GetOffsetSetting("reticlePromptOffsetX") end,
+            setFunc = function(value) SetPositionSettingValue("reticlePromptOffsetX", value) end,
+            disabled = function() return IsPositionSliderDisabled("reticle") end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "reticlePromptOffsetY",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RETICLE_OFFSET_Y")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_Y_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("reticlePromptOffsetY"),
+            getFunc = function() return GetOffsetSetting("reticlePromptOffsetY") end,
+            setFunc = function(value) SetPositionSettingValue("reticlePromptOffsetY", value) end,
+            disabled = function() return IsPositionSliderDisabled("reticle") end,
+            width = "full",
+        },
+        {
+            type = "button",
+            key = "resetPositions",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_POSITIONS")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_POSITIONS_TOOLTIP")),
+            func = ResetPositionSettings,
+            disabled = function() return not IsNameplateEnabled() end,
+            width = "half",
+        },
+    }
+end
+
 function Nameplates.GetSettingsOptions()
-    local function GetPositionDefault(key)
-        local defaults = Nameplates.DEFAULTS or {}
-        if defaults[key] ~= nil then
-            return defaults[key]
-        end
-        return key:find("Offset", 1, true) and 0 or false
-    end
-
-    local function GetBooleanSetting(key)
-        local settings = GetNameplateSettings()
-        if settings and settings[key] ~= nil then
-            return settings[key] == true
-        end
-        return GetPositionDefault(key) == true
-    end
-
-    local function GetOffsetSetting(key)
-        local settings = GetNameplateSettings()
-        return ClampPositionOffset(settings and settings[key] or GetPositionDefault(key))
-    end
-
-    local function SetSettingValue(key, value)
-        local settings = EnsureNameplateSettings()
-        if not settings then
-            TraceNameplateSetting(key, "set_rejected", {
-                fn = "Nameplates.Settings.SetSettingValue",
-                reason = "settingsUnavailable",
-                value = value,
-            })
-            return
-        end
-        local normalized = key:find("Offset", 1, true) and ClampPositionOffset(value) or value == true
-        TraceNameplateSetting(key, "set_begin", {
-            fn = "Nameplates.Settings.SetSettingValue",
-            previous = settings[key],
-            value = normalized,
-        })
-        settings[key] = normalized
-        TraceNameplateSetting(key, "set_end", {
-            fn = "Nameplates.Settings.SetSettingValue",
-            value = settings[key],
-        })
-        ApplyCurrentNameplateSettings(key, normalized)
-    end
-
-    -- Positioning.IsPositionControlDisabled is always present (Positioning loads
-    -- before Settings), so the former inline fallback was unreachable (BUI-CONS-004).
-    local function IsPositionSliderDisabled(elementKey)
-        return Nameplates.Positioning.IsPositionControlDisabled(elementKey)
-    end
-
-    local function ResetPositionSettings()
-        local settings = EnsureNameplateSettings()
-        if not settings then
-            TraceNameplateSetting("resetPositions", "set_rejected", {
-                fn = "Nameplates.Settings.ResetPositionSettings",
-                reason = "settingsUnavailable",
-            })
-            return
-        end
-        local positioning = Nameplates.Positioning
-        TraceNameplateSetting("resetPositions", "set_begin", {
-            fn = "Nameplates.Settings.ResetPositionSettings",
-            moveCompassFrame = settings.moveCompassFrame,
-            compassFrameOffsetX = settings.compassFrameOffsetX,
-            compassFrameOffsetY = settings.compassFrameOffsetY,
-            moveReticlePrompt = settings.moveReticlePrompt,
-            reticlePromptOffsetX = settings.reticlePromptOffsetX,
-            reticlePromptOffsetY = settings.reticlePromptOffsetY,
-        })
-        -- Positioning.ResetOffsets owns the field reset + reapply; the former
-        -- field-by-field else was unreachable since Positioning loads first (BUI-CONS-004).
-        if positioning and type(positioning.ResetOffsets) == "function" then
-            positioning.ResetOffsets(settings)
-        end
-        TraceNameplateSetting("resetPositions", "set_end", {
-            fn = "Nameplates.Settings.ResetPositionSettings",
-            moveCompassFrame = settings.moveCompassFrame,
-            compassFrameOffsetX = settings.compassFrameOffsetX,
-            compassFrameOffsetY = settings.compassFrameOffsetY,
-            moveReticlePrompt = settings.moveReticlePrompt,
-            reticlePromptOffsetX = settings.reticlePromptOffsetX,
-            reticlePromptOffsetY = settings.reticlePromptOffsetY,
-        })
-    end
-
     return {
         {
             type = "description",
@@ -351,106 +466,6 @@ function Nameplates.GetSettingsOptions()
             width = "full",
         },
         {
-            type = "header",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_POSITION_HEADER")),
-            width = "full",
-        },
-        {
-            type = "description",
-            text = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_POSITION_DESC")),
-            width = "full",
-        },
-        {
-            type = "checkbox",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS_TOOLTIP")),
-            default = GetPositionDefault("nameplatePositionsUnlocked"),
-            getFunc = function() return GetBooleanSetting("nameplatePositionsUnlocked") end,
-            setFunc = function(value) SetSettingValue("nameplatePositionsUnlocked", value) end,
-            disabled = function() return not IsNameplateEnabled() end,
-            width = "full",
-        },
-        {
-            type = "checkbox",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_COMPASS")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP")),
-            default = GetPositionDefault("moveCompassFrame"),
-            getFunc = function() return GetBooleanSetting("moveCompassFrame") end,
-            setFunc = function(value) SetSettingValue("moveCompassFrame", value) end,
-            disabled = function() return not IsNameplateEnabled() end,
-            width = "full",
-        },
-        {
-            type = "slider",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_X")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP")),
-            min = POSITION_OFFSET_MIN,
-            max = POSITION_OFFSET_MAX,
-            step = 1,
-            default = GetPositionDefault("compassFrameOffsetX"),
-            getFunc = function() return GetOffsetSetting("compassFrameOffsetX") end,
-            setFunc = function(value) SetSettingValue("compassFrameOffsetX", value) end,
-            disabled = function() return IsPositionSliderDisabled("compass") end,
-            width = "full",
-        },
-        {
-            type = "slider",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_Y")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_Y_TOOLTIP")),
-            min = POSITION_OFFSET_MIN,
-            max = POSITION_OFFSET_MAX,
-            step = 1,
-            default = GetPositionDefault("compassFrameOffsetY"),
-            getFunc = function() return GetOffsetSetting("compassFrameOffsetY") end,
-            setFunc = function(value) SetSettingValue("compassFrameOffsetY", value) end,
-            disabled = function() return IsPositionSliderDisabled("compass") end,
-            width = "full",
-        },
-        {
-            type = "checkbox",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_RETICLE")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_RETICLE_TOOLTIP")),
-            default = GetPositionDefault("moveReticlePrompt"),
-            getFunc = function() return GetBooleanSetting("moveReticlePrompt") end,
-            setFunc = function(value) SetSettingValue("moveReticlePrompt", value) end,
-            disabled = function() return not IsNameplateEnabled() end,
-            width = "full",
-        },
-        {
-            type = "slider",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RETICLE_OFFSET_X")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP")),
-            min = POSITION_OFFSET_MIN,
-            max = POSITION_OFFSET_MAX,
-            step = 1,
-            default = GetPositionDefault("reticlePromptOffsetX"),
-            getFunc = function() return GetOffsetSetting("reticlePromptOffsetX") end,
-            setFunc = function(value) SetSettingValue("reticlePromptOffsetX", value) end,
-            disabled = function() return IsPositionSliderDisabled("reticle") end,
-            width = "full",
-        },
-        {
-            type = "slider",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RETICLE_OFFSET_Y")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_Y_TOOLTIP")),
-            min = POSITION_OFFSET_MIN,
-            max = POSITION_OFFSET_MAX,
-            step = 1,
-            default = GetPositionDefault("reticlePromptOffsetY"),
-            getFunc = function() return GetOffsetSetting("reticlePromptOffsetY") end,
-            setFunc = function(value) SetSettingValue("reticlePromptOffsetY", value) end,
-            disabled = function() return IsPositionSliderDisabled("reticle") end,
-            width = "full",
-        },
-        {
-            type = "button",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_POSITIONS")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_POSITIONS_TOOLTIP")),
-            func = ResetPositionSettings,
-            disabled = function() return not IsNameplateEnabled() end,
-            width = "half",
-        },
-        {
             type = "button",
             name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP")),
@@ -470,13 +485,6 @@ function Nameplates.GetSettingsOptions()
                     previousFont = settings.font,
                     previousStyle = settings.style,
                     previousSize = settings.size,
-                    previousPositionsUnlocked = settings.nameplatePositionsUnlocked,
-                    previousMoveCompassFrame = settings.moveCompassFrame,
-                    previousCompassFrameOffsetX = settings.compassFrameOffsetX,
-                    previousCompassFrameOffsetY = settings.compassFrameOffsetY,
-                    previousMoveReticlePrompt = settings.moveReticlePrompt,
-                    previousReticlePromptOffsetX = settings.reticlePromptOffsetX,
-                    previousReticlePromptOffsetY = settings.reticlePromptOffsetY,
                     defaultFont = defaults and defaults.font,
                     defaultStyle = defaults and defaults.style,
                     defaultSize = defaults and defaults.size,
@@ -484,24 +492,11 @@ function Nameplates.GetSettingsOptions()
                 settings.font = defaults.font
                 settings.style = defaults.style
                 settings.size = defaults.size
-                -- Position fields (unlock + compass/reticle offsets) reset through the
-                -- single Positioning owner; their defaults are all 0/false, matching
-                -- ResetOffsets exactly (BUI-CONS-004).
-                if Nameplates.Positioning and type(Nameplates.Positioning.ResetOffsets) == "function" then
-                    Nameplates.Positioning.ResetOffsets(settings)
-                end
                 TraceNameplateSetting("reset", "set_end", {
                     fn = "Nameplates.Settings.reset.func",
                     font = settings.font,
                     style = settings.style,
                     size = settings.size,
-                    positionsUnlocked = settings.nameplatePositionsUnlocked,
-                    moveCompassFrame = settings.moveCompassFrame,
-                    compassFrameOffsetX = settings.compassFrameOffsetX,
-                    compassFrameOffsetY = settings.compassFrameOffsetY,
-                    moveReticlePrompt = settings.moveReticlePrompt,
-                    reticlePromptOffsetX = settings.reticlePromptOffsetX,
-                    reticlePromptOffsetY = settings.reticlePromptOffsetY,
                 })
                 ApplyCurrentNameplateSettings("reset", "defaults")
             end,
