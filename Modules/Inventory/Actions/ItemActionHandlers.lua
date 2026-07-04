@@ -2,7 +2,6 @@ if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
 if not BETTERUI.Inventory.ActionHandlers then BETTERUI.Inventory.ActionHandlers = {} end
 
 local ActionHandlers = BETTERUI.Inventory.ActionHandlers
-local actionDialogRestoreSequence = 0
 
 local function RequireDestroyPolicyAuthorizer()
     local inventory = BETTERUI and BETTERUI.Inventory or nil
@@ -88,6 +87,10 @@ end
 local questActionFilterWarnings = {}
 
 local function IsQuestActionTarget(target, caller)
+    if BETTERUI.Inventory.Utils.HasQuestItemMarkers(target) then
+        return true
+    end
+
     if type(target) ~= "table" then
         return false
     end
@@ -95,20 +98,6 @@ local function IsQuestActionTarget(target, caller)
     local dataSource = target.dataSource or target
     if type(dataSource) ~= "table" then
         return false
-    end
-
-    local function IsQuestUniqueId(uniqueId)
-        return type(uniqueId) == "string" and uniqueId:find("^quest:") ~= nil
-    end
-
-    if target.isQuestItem == true
-        or dataSource.isQuestItem == true
-        or dataSource.questIndex ~= nil
-        or (SLOT_TYPE_QUEST_ITEM ~= nil and target.slotType == SLOT_TYPE_QUEST_ITEM)
-        or (SLOT_TYPE_QUEST_ITEM ~= nil and dataSource.slotType == SLOT_TYPE_QUEST_ITEM)
-        or IsQuestUniqueId(target.uniqueId)
-        or IsQuestUniqueId(dataSource.uniqueId) then
-        return true
     end
 
     if type(ZO_InventoryUtils_DoesNewItemMatchFilterType) ~= "function" or ITEMFILTERTYPE_QUEST == nil then
@@ -144,27 +133,11 @@ local function ResolveActionText(row)
     return row.text or row.name or row.actionName
 end
 
+-- Shared dialog-restore trace helper (see Modules/CIM/Dialogs/DialogRestore.lua).
+-- Resolved at call time so harnesses that load this file without CIM stay loadable.
 local function LogActionDialogRestore(message, data, warn)
-    local L = BETTERUI.Log
-    if not L then return end
-    if L.TraceEvent then
-        local phase = "state"
-        if message and message:find("complete", 1, true) then
-            phase = "complete"
-        elseif message and message:find("waiting", 1, true) then
-            phase = "waiting"
-        elseif message and message:find("skipped", 1, true) then
-            phase = "skipped"
-        elseif message and message:find("abandoned", 1, true) then
-            phase = "abandoned"
-        end
-        L.TraceEvent(L.CATEGORY.STATE, "inventory.action_dialog.restore", phase, data, warn and L.LEVEL.WARN or L.LEVEL.INFO)
-    end
-    if warn and L.Warn then
-        L.Warn(L.CATEGORY.STATE, message, data)
-    elseif L.Debug then
-        L.Debug(L.CATEGORY.STATE, message, data)
-    end
+    local restore = BETTERUI.CIM and BETTERUI.CIM.DialogRestore
+    if restore and restore.Log then return restore.Log(message, data, warn) end
 end
 
 local function TraceInventoryActionDialog(event, phase, data)
@@ -336,6 +309,88 @@ local function CanDestroyTargetData(targetData)
     end
 
     return RequireDestroyPolicyAuthorizer()(bagId, slotIndex, slotType) == true
+end
+
+-- Shared destroy-confirm handler for the action dialog. Both the BetterUI-managed
+-- destroy row and the native "Destroy" action name funnel through here; callers pass
+-- their already-resolved targetData plus their own trace `source` label so the emitted
+-- traces stay identical to the pre-consolidation call sites.
+local function HandleDestroyConfirmForTarget(self, targetData, source)
+    if not targetData then
+        TraceInventoryDestroyAction("blocked", nil, {
+            source = source,
+            reason = "missingTarget",
+            actionMode = self.actionMode,
+        })
+        return
+    end
+    local okSlot, bag, slot = pcall(ZO_Inventory_GetBagAndIndex, targetData)
+    if not okSlot or not bag or not slot then
+        TraceInventoryDestroyAction("blocked", targetData, {
+            source = source,
+            reason = "invalidSlot",
+            actionMode = self.actionMode,
+            error = okSlot and nil or tostring(bag),
+        })
+        return
+    end
+    if bag and slot then
+        local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
+        TraceInventoryDestroyAction("action_dialog_selected", targetData, {
+            source = source,
+            quickDestroy = quick,
+        })
+        if not CanDestroyTargetData(targetData) then
+            TraceInventoryDestroyAction("blocked", targetData, {
+                source = source,
+                reason = "protectionPolicy",
+                quickDestroy = quick,
+            })
+            return
+        end
+        local released = ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+        local ds = targetData.dataSource or targetData
+        local slotType = ds and ds.slotType or targetData.slotType
+        local link = GetItemLink(bag, slot)
+        TraceInventoryDestroyAction("action_dialog_released", targetData, {
+            source = source,
+            quickDestroy = quick,
+            releaseReturned = released ~= nil,
+        })
+        if quick then
+            TraceInventoryDestroyAction("quick_requested", targetData, {
+                source = source,
+                slotType = slotType,
+            })
+            BETTERUI.Inventory.TryDestroyItem(bag, slot, true, false, slotType)
+        else
+            local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, slot, targetData)
+            TraceInventoryDestroyAction("confirm_dialog_request", targetData, {
+                source = source,
+                slotType = slotType,
+                itemLink = link,
+                expectedSlotIdentity = expectedSlotIdentity,
+                dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
+            })
+            local shownDialog = ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+                {
+                    bagId = bag,
+                    slotIndex = slot,
+                    slotType = slotType,
+                    itemLink = link,
+                    expectedSlotIdentity = expectedSlotIdentity,
+                }, nil, true, true)
+            TraceInventoryDestroyAction("confirm_dialog_show", targetData, {
+                source = source,
+                slotType = slotType,
+                itemLink = link,
+                expectedSlotIdentity = expectedSlotIdentity,
+                dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
+                showReturnedDialog = shownDialog ~= nil,
+                showingAfter = ZO_Dialogs_IsShowing and ZO_Dialogs_IsShowing("BETTERUI_CONFIRM_DESTROY_DIALOG") == true or nil,
+            })
+        end
+    end
 end
 
 function ActionHandlers.OnSetup(self, dialog, data)
@@ -673,21 +728,10 @@ function ActionHandlers.OnFinish(self, dialog)
         return true
     end
 
-    if RestoreInventoryAfterDialog() then
-        return
-    end
-
-    local retriesRemaining = 120
-    actionDialogRestoreSequence = actionDialogRestoreSequence + 1
-    local retryTaskName = "actionDialogFinishRestore_" ..
-        tostring((GetGameTimeMilliseconds and GetGameTimeMilliseconds()) or 0) ..
-        "_" .. tostring(actionDialogRestoreSequence)
-    local function RetryRestore()
-        if RestoreInventoryAfterDialog() then
-            return
-        end
-        retriesRemaining = retriesRemaining - 1
-        if retriesRemaining <= 0 then
+    BETTERUI.CIM.DialogRestore.Schedule(self, RestoreInventoryAfterDialog, {
+        taskName = "actionDialogFinishRestore",
+        sequenceKey = "actionDialogFinishRestore",
+        onAbandon = function(retryTaskName)
             LogActionDialogRestore("inventory dialog finish restore abandoned", {
                 actionMode = self.actionMode,
                 closeCause = closeCause,
@@ -695,16 +739,8 @@ function ActionHandlers.OnFinish(self, dialog)
                 pendingHeaderSort = self._pendingHeaderSortFromDialog == true,
                 retryTaskName = retryTaskName,
             }, true)
-            return
-        end
-        if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
-            BETTERUI.Inventory.Tasks:Schedule(retryTaskName, 50, RetryRestore)
-        else
-            zo_callLater(RetryRestore, 50)
-        end
-    end
-
-    RetryRestore()
+        end,
+    })
 end
 
 function ActionHandlers.OnConfirm(self, dialog)
@@ -892,81 +928,7 @@ function ActionHandlers.OnConfirm(self, dialog)
         else
             targetData = ResolveCurrentTarget(self)
         end
-        if not targetData then
-            TraceInventoryDestroyAction("blocked", nil, {
-                source = "managed",
-                reason = "missingTarget",
-                actionMode = self.actionMode,
-            })
-            return
-        end
-        local okSlot, bag, slot = pcall(ZO_Inventory_GetBagAndIndex, targetData)
-        if not okSlot or not bag or not slot then
-            TraceInventoryDestroyAction("blocked", targetData, {
-                source = "managed",
-                reason = "invalidSlot",
-                actionMode = self.actionMode,
-                error = okSlot and nil or tostring(bag),
-            })
-            return
-        end
-        if bag and slot then
-            local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
-            TraceInventoryDestroyAction("action_dialog_selected", targetData, {
-                source = "managed",
-                quickDestroy = quick,
-            })
-            if not CanDestroyTargetData(targetData) then
-                TraceInventoryDestroyAction("blocked", targetData, {
-                    source = "managed",
-                    reason = "protectionPolicy",
-                    quickDestroy = quick,
-                })
-                return
-            end
-            local released = ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-            local ds = targetData.dataSource or targetData
-            local slotType = ds and ds.slotType or targetData.slotType
-            local link = GetItemLink(bag, slot)
-            TraceInventoryDestroyAction("action_dialog_released", targetData, {
-                source = "managed",
-                quickDestroy = quick,
-                releaseReturned = released ~= nil,
-            })
-            if quick then
-                TraceInventoryDestroyAction("quick_requested", targetData, {
-                    source = "managed",
-                    slotType = slotType,
-                })
-                BETTERUI.Inventory.TryDestroyItem(bag, slot, true, false, slotType)
-            else
-                local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, slot, targetData)
-                TraceInventoryDestroyAction("confirm_dialog_request", targetData, {
-                    source = "managed",
-                    slotType = slotType,
-                    itemLink = link,
-                    expectedSlotIdentity = expectedSlotIdentity,
-                    dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
-                })
-                local shownDialog = ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
-                    {
-                        bagId = bag,
-                        slotIndex = slot,
-                        slotType = slotType,
-                        itemLink = link,
-                        expectedSlotIdentity = expectedSlotIdentity,
-                    }, nil, true, true)
-                TraceInventoryDestroyAction("confirm_dialog_show", targetData, {
-                    source = "managed",
-                    slotType = slotType,
-                    itemLink = link,
-                    expectedSlotIdentity = expectedSlotIdentity,
-                    dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
-                    showReturnedDialog = shownDialog ~= nil,
-                    showingAfter = ZO_Dialogs_IsShowing and ZO_Dialogs_IsShowing("BETTERUI_CONFIRM_DESTROY_DIALOG") == true or nil,
-                })
-            end
-        end
+        HandleDestroyConfirmForTarget(self, targetData, "managed")
         return
     end
 
@@ -996,82 +958,7 @@ function ActionHandlers.OnConfirm(self, dialog)
     end
 
     if selectedActionName == GetString(SI_ITEM_ACTION_DESTROY) then
-        local targetData = ResolveCurrentTarget(self)
-        if not targetData then
-            TraceInventoryDestroyAction("blocked", nil, {
-                source = "native_action_name",
-                reason = "missingTarget",
-                actionMode = self.actionMode,
-            })
-            return
-        end
-        local okSlot, bag, slot = pcall(ZO_Inventory_GetBagAndIndex, targetData)
-        if not okSlot or not bag or not slot then
-            TraceInventoryDestroyAction("blocked", targetData, {
-                source = "native_action_name",
-                reason = "invalidSlot",
-                actionMode = self.actionMode,
-                error = okSlot and nil or tostring(bag),
-            })
-            return
-        end
-        if bag and slot then
-            local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
-            TraceInventoryDestroyAction("action_dialog_selected", targetData, {
-                source = "native_action_name",
-                quickDestroy = quick,
-            })
-            if not CanDestroyTargetData(targetData) then
-                TraceInventoryDestroyAction("blocked", targetData, {
-                    source = "native_action_name",
-                    reason = "protectionPolicy",
-                    quickDestroy = quick,
-                })
-                return
-            end
-            local released = ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-            local ds = targetData.dataSource or targetData
-            local slotType = ds and ds.slotType or targetData.slotType
-            local link = GetItemLink(bag, slot)
-            TraceInventoryDestroyAction("action_dialog_released", targetData, {
-                source = "native_action_name",
-                quickDestroy = quick,
-                releaseReturned = released ~= nil,
-            })
-            if quick then
-                TraceInventoryDestroyAction("quick_requested", targetData, {
-                    source = "native_action_name",
-                    slotType = slotType,
-                })
-                BETTERUI.Inventory.TryDestroyItem(bag, slot, true, false, slotType)
-            else
-                local expectedSlotIdentity = BETTERUI.Inventory.Utils.CaptureSlotIdentity(bag, slot, targetData)
-                TraceInventoryDestroyAction("confirm_dialog_request", targetData, {
-                    source = "native_action_name",
-                    slotType = slotType,
-                    itemLink = link,
-                    expectedSlotIdentity = expectedSlotIdentity,
-                    dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
-                })
-                local shownDialog = ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
-                    {
-                        bagId = bag,
-                        slotIndex = slot,
-                        slotType = slotType,
-                        itemLink = link,
-                        expectedSlotIdentity = expectedSlotIdentity,
-                    }, nil, true, true)
-                TraceInventoryDestroyAction("confirm_dialog_show", targetData, {
-                    source = "native_action_name",
-                    slotType = slotType,
-                    itemLink = link,
-                    expectedSlotIdentity = expectedSlotIdentity,
-                    dialogName = "BETTERUI_CONFIRM_DESTROY_DIALOG",
-                    showReturnedDialog = shownDialog ~= nil,
-                    showingAfter = ZO_Dialogs_IsShowing and ZO_Dialogs_IsShowing("BETTERUI_CONFIRM_DESTROY_DIALOG") == true or nil,
-                })
-            end
-        end
+        HandleDestroyConfirmForTarget(self, ResolveCurrentTarget(self), "native_action_name")
         return
     end
 
@@ -1190,10 +1077,7 @@ function ActionHandlers.OnConfirm(self, dialog)
                 if bag and slot then
                     local secureOk = CallSecureProtected("UseItem", bag, slot)
                     if not secureOk then
-                        local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
-                        BETTERUI.CIM.UserNotify("ItemActionHandlers:UseItem",
-                            (failedStringId and GetString(failedStringId))
-                            or "The action could not be completed.")
+                        BETTERUI.CIM.UserNotifySecureActionFailed("ItemActionHandlers:UseItem")
                     end
                     TraceInventoryConfirmBranch(secureOk and "after" or "blocked", "use_or_special", targetData, {
                         source = "action_dialog",

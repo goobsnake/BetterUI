@@ -158,30 +158,6 @@ minLevel, maxLevel, isCP = Filters.NormalizeLevelFilter(nil, nil, false)
 assert_eq(minLevel, 0, "Nil normal min defaults to 0")
 assert_eq(maxLevel, 50, "Nil normal max defaults to GetMaxLevel")
 
-print("[BuildNameHashFilter]")
-resetState()
-matchResults[7] = {
-    { name = "A", hash = 11 },
-    { name = "B", hash = 22 },
-    { name = "C", hash = 33 },
-    { name = "D", hash = 44 },
-    { name = "E", hash = 55 },
-    { name = "F", hash = 66 },
-}
-local nameFilter = Filters.BuildNameHashFilter(7)
-assert_not_nil(nameFilter, "Name filter built from task id")
-assert_eq(nameFilter.filterType, TRADING_HOUSE_FILTER_TYPE_NAME_HASH, "Uses name-hash filter type")
-assert_eq(#nameFilter.values, 5, "Capped to max exact terms")
-assert_eq(nameFilter.values[1], 11, "First hash included")
-assert_eq(nameFilter.values[5], 55, "Fifth hash included")
-
-nameFilter = Filters.BuildNameHashFilter(nil)
-assert_eq(nameFilter, nil, "Nil task id returns nil")
-
-matchResults[8] = {}
-nameFilter = Filters.BuildNameHashFilter(8)
-assert_eq(nameFilter, nil, "Empty results return nil")
-
 print("[ApplyFilterTable]")
 resetState()
 Filters.ApplyFilterTable(mockSearch, { filterType = TRADING_HOUSE_FILTER_TYPE_PRICE, min = 100, max = 200 })

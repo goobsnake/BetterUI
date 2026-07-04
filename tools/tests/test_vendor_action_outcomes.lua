@@ -100,18 +100,30 @@ check(vendor:find("local function ScrubVendorPrivacy", 1, true) ~= nil
 
 for name, spec in pairs(files) do
     local content = readFile(spec.path)
-    check(content:find('Vendor.TraceActionRequested("' .. spec.event .. '"', 1, true) ~= nil,
+    -- BUI-CONS-008: components may route the requested -> engine call -> settled
+    -- envelope through Vendor.DispatchTracedAction, which calls the same shared
+    -- helpers and threads goldBefore internally (see VendorModePolicy pin below).
+    local usesDispatch = content:find('Vendor.DispatchTracedAction("' .. spec.event .. '"', 1, true) ~= nil
+    check(usesDispatch
+        or content:find('Vendor.TraceActionRequested("' .. spec.event .. '"', 1, true) ~= nil,
         name .. " emits requested through the shared helper")
-    check(content:find('Vendor.ScheduleActionSettled("' .. spec.event .. '"', 1, true) ~= nil,
+    check(usesDispatch
+        or content:find('Vendor.ScheduleActionSettled("' .. spec.event .. '"', 1, true) ~= nil,
         name .. " schedules settled through the shared helper")
     check(content:find('"' .. spec.event .. '", "request"', 1, true) == nil
         and content:find('"' .. spec.event .. '", "requested"', 1, true) == nil,
         name .. " does not keep legacy immediate request/requested traces beside outcomes")
     for _, field in ipairs(spec.fields) do
-        check(content:find(field, 1, true) ~= nil,
+        check(content:find(field, 1, true) ~= nil
+            or (usesDispatch and field == "goldBefore"),
             name .. " outcome payload includes " .. field)
     end
 end
+
+local modePolicy = readFile("Modules/Vendor/Core/Policy/VendorModePolicy.lua")
+check(modePolicy:find("local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested(event, traceData) or nil", 1, true) ~= nil
+    and modePolicy:find("Vendor.ScheduleActionSettled(event, traceData, goldBefore)", 1, true) ~= nil,
+    "DispatchTracedAction threads goldBefore between the shared requested/settled helpers")
 
 local fenceSell = readFile("Modules/Vendor/Components/FenceSellComponent.lua")
 check(fenceSell:find("local unitPrice = ds.sellPrice", 1, true) ~= nil

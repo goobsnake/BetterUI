@@ -599,3 +599,150 @@ end
 Vendor.ResolveModeName = ModePolicy.ResolveModeName
 Vendor.ResolveModeIcon = ModePolicy.ResolveModeIcon
 Vendor.ResolveNativeStoreMode = ModePolicy.ResolveNativeStoreMode
+
+-- SHARED VENDOR COMPONENT HELPERS (BUI-CONS-008)
+-- Extracted from the per-tab components to remove byte-identical duplication.
+-- VendorModePolicy loads before every vendor component and both batch files
+-- (BetterUI.txt), so these are available at component load/runtime without a
+-- manifest change. All engine globals are referenced at call time.
+
+--- Build and append a standard vendor list entry (ZO_GamepadEntryData with the
+--- item sub-entry template, narration, and quality name colors). Shared by the
+--- buy/buyback/repair/sell/fence list builders.
+---@param list table List control exposing AddEntry
+---@param entryData table Row data source (name/icon/quality/...)
+---@return table|nil entry The created entry, or nil when inputs are missing
+function Vendor.AddItemRow(list, entryData)
+    if not (list and entryData) then
+        return nil
+    end
+    local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
+    entry:SetDataSource(entryData)
+    entry.narrationText = function() return entryData.name end
+    if entryData.quality then
+        local r, g, b = GetItemQualityColor(entryData.quality):UnpackRGBA()
+        entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
+    end
+    list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+    return entry
+end
+
+--- Wrap an engine action call in the standard vendor trace envelope
+--- (TraceActionRequested -> engine call -> ScheduleActionSettled). The caller
+--- supplies the event name and trace payload so per-component trace output is
+--- byte-for-byte unchanged.
+---@param event string Trace event name (e.g. "vendor.buy")
+---@param traceData table Trace payload
+---@param fn fun() Zero-arg closure performing the engine call
+function Vendor.DispatchTracedAction(event, traceData, fn)
+    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested(event, traceData) or nil
+    fn()
+    if Vendor.ScheduleActionSettled then
+        Vendor.ScheduleActionSettled(event, traceData, goldBefore)
+    end
+end
+
+--- Authorize a vendor inventory action through the shared protection seam.
+---@param actionType any Vendor.ACTION.* identifier
+---@param bagId number|nil
+---@param slotIndex number|nil
+---@param vendorInstance table|nil
+---@return boolean allowed
+---@return any reason Deny reason when not allowed
+function Vendor.AuthorizeAction(actionType, bagId, slotIndex, vendorInstance)
+    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
+    assert(type(authorizeInventoryAction) == "function",
+        "Vendor.AuthorizeInventoryAction must load before Vendor authorized actions")
+    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
+    return allowed == true, reason
+end
+
+--- True when the player's carried gold is at the wallet maximum. Selling for
+--- gold while at the cap fails server-side, so the regular sell flows must
+--- block first (mirrors native ZO_GamepadStoreSell:CanSell). Fence sell/launder
+--- do NOT use this because stolen-goods sales do not credit the gold wallet.
+---@return boolean atCap
+function Vendor.IsAtGoldCap()
+    if type(GetMaxPossibleCurrency) ~= "function" then
+        return false
+    end
+    local carried = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    local maxPossible = GetMaxPossibleCurrency(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    return maxPossible > 0 and carried >= maxPossible
+end
+
+--- True when every currency charge for a store entry is affordable. Gold and
+--- alt-currency charges are independent (alt-currency entries report
+--- price == 0, not nil), so each charge is checked on its own. Carry/inventory
+--- space is intentionally NOT covered here.
+---@param instance table Vendor instance exposing CanAfford
+---@param ds table Store entry data source
+---@return boolean affordable
+function Vendor.CanAffordStoreEntry(instance, ds)
+    if not (instance and ds) then
+        return false
+    end
+    -- Defensive: when the instance carries no CanAfford (limited callers/mocks)
+    -- treat affordability as satisfied, matching the batch-count guard.
+    if type(instance.CanAfford) ~= "function" then
+        return true
+    end
+    local price = ds.price or 0
+    if price > 0 then
+        local currencyType = ds.currencyType or CURT_MONEY
+        if currencyType == CURT_NONE then
+            currencyType = CURT_MONEY
+        end
+        if not instance:CanAfford(price, currencyType) then
+            return false
+        end
+    end
+    local price1 = ds.currencyQuantity1 or 0
+    local currencyType1 = ds.currencyType1
+    if price1 > 0 and currencyType1 and currencyType1 ~= CURT_NONE
+        and not instance:CanAfford(price1, currencyType1) then
+        return false
+    end
+    local price2 = ds.currencyQuantity2 or 0
+    local currencyType2 = ds.currencyType2
+    if price2 > 0 and currencyType2 and currencyType2 ~= CURT_NONE then
+        return instance:CanAfford(price2, currencyType2)
+    end
+    return true
+end
+
+--- Build a per-refresh memoizing getter. One vendor refresh calls GetCategories
+--- and BuildList back to back; both need the same bag/store scan, so the result
+--- is computed at most once per render frame (keyed by GetFrameTimeMilliseconds).
+--- Without a frame clock (test harness) the result is never reused.
+---@param computeFn fun(...): any Producer invoked to (re)compute the value
+---@return fun(...): any getter Frame-memoized getter forwarding varargs to computeFn
+---@return fun() invalidate Drops any cached value
+function Vendor.PerRefreshCache(computeFn)
+    local cachedValue = nil
+    local cachedFrameMs = nil
+
+    local function invalidate()
+        cachedValue = nil
+        cachedFrameMs = nil
+    end
+
+    local function get(...)
+        local frameMs = (type(GetFrameTimeMilliseconds) == "function") and GetFrameTimeMilliseconds() or nil
+        if frameMs and cachedValue ~= nil and cachedFrameMs == frameMs then
+            return cachedValue
+        end
+        local value = computeFn(...)
+        if frameMs then
+            cachedValue = value
+            cachedFrameMs = frameMs
+        else
+            -- No frame clock (test harness): never reuse a stale result.
+            cachedValue = nil
+            cachedFrameMs = nil
+        end
+        return value
+    end
+
+    return get, invalidate
+end

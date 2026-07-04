@@ -45,17 +45,25 @@ local DESCRIPTORS = {
 local handles = {}
 local dragStates = {}
 
+-- Positioning tracer keeps its fn/function payload and STATE-first category; the
+-- shared MakeTracer base owns the guard + module/feature. It emits no
+-- scene/gamepad/last-action, so those includes stay off (BUI-CONS-002).
+local tracePositioningBase = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "Nameplates",
+        feature = "positioning",
+        category = (BETTERUI.Log.CATEGORY or {}).STATE or (BETTERUI.Log.CATEGORY or {}).SETTINGS or "STATE",
+        includeScene = false,
+        includeGamepad = false,
+        setLastAction = false,
+    }
+    or function() end
+
 local function TracePositioning(phase, data)
-    if not (BETTERUI and BETTERUI.Log and BETTERUI.Log.TraceEvent) then
-        return
-    end
     data = data or {}
-    data.module = data.module or "Nameplates"
-    data.feature = data.feature or "positioning"
     data.fn = data.fn or "Nameplates.Positioning"
     data["function"] = data["function"] or data.fn
-    local categories = BETTERUI.Log.CATEGORY or {}
-    BETTERUI.Log.TraceEvent(categories.STATE or categories.SETTINGS, "nameplates.positioning", phase, data)
+    tracePositioningBase("nameplates.positioning", phase, data)
 end
 
 local function ClampOffset(value)
@@ -249,11 +257,11 @@ local function GetMousePosition()
 end
 
 local function RefreshSettingsPanel()
+    -- BETTERUI has no LAM panel (BETTERUI.settingsPanel is never assigned anywhere),
+    -- so the former LAM-RefreshPanel fallback was dead (BUI-CONS-004).
     local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
     if settingsApi and type(settingsApi.RefreshPanel) == "function" then
         settingsApi.RefreshPanel()
-    elseif CALLBACK_MANAGER and type(CALLBACK_MANAGER.FireCallbacks) == "function" then
-        CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", BETTERUI.settingsPanel)
     end
 end
 

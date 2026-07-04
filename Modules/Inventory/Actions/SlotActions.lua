@@ -507,11 +507,6 @@ local function ExecuteVisibilityFunction(actionName, visibilityFunction)
     return ok and visible == true
 end
 
-BETTERUI.Inventory.SlotActionsVisibilityHelpers = {
-    ExecuteVisibilityFunction = ExecuteVisibilityFunction,
-    LogVisibilityFailure = LogVisibilityFailure,
-}
-
 local function IsActionEntryVisible(actionEntry)
     local visibilityFunction = actionEntry and actionEntry[VISIBILITY_FUNCTION]
     if not visibilityFunction then

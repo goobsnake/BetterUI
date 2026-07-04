@@ -441,6 +441,14 @@ BETTERUI = {
         ReadTransferContextSnapshot = function()
             return BETTERUI.Banking.GetTransferContext()
         end,
+        GetWindow = function()
+            return BETTERUI.Banking and BETTERUI.Banking.Window or nil
+        end,
+        RegisterWatchScenes = function(watch)
+            if not (watch and watch.RegisterViewScene) then return end
+            watch.RegisterViewScene("banking", BETTERUI_BANKING_SCENE_NAME or "gamepad_banking")
+            watch.RegisterViewScene("banking", BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING")
+        end,
         SetRuntimeBankBags = function(currentUsedBank, lastUsedBank)
             BETTERUI.Banking.RuntimeState.currentUsedBank = currentUsedBank
             BETTERUI.Banking.RuntimeState.lastUsedBank = lastUsedBank

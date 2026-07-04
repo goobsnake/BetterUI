@@ -10,6 +10,24 @@ BETTERUI = {
         CONST = {
             ICON_SIZE_SMALL = 16,
         },
+        Utils = {
+            -- Mirrors BETTERUI.Inventory.Utils.HasQuestItemMarkers (Core/Utils.lua): the
+            -- intrinsic quest-marker predicate BETTERUI_IconSetup now delegates to. Base
+            -- markers only, so it never touches the native filter (asserted below).
+            HasQuestItemMarkers = function(itemData)
+                if type(itemData) ~= "table" then return false end
+                local source = itemData.dataSource or itemData
+                if type(source) ~= "table" then return false end
+                local function isQuestUid(u) return type(u) == "string" and u:find("^quest:") ~= nil end
+                return itemData.isQuestItem == true
+                    or source.isQuestItem == true
+                    or source.questIndex ~= nil
+                    or (SLOT_TYPE_QUEST_ITEM ~= nil and itemData.slotType == SLOT_TYPE_QUEST_ITEM)
+                    or (SLOT_TYPE_QUEST_ITEM ~= nil and source.slotType == SLOT_TYPE_QUEST_ITEM)
+                    or isQuestUid(itemData.uniqueId)
+                    or isQuestUid(source.uniqueId)
+            end,
+        },
     },
     CIM = {
         CONST = {

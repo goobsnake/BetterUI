@@ -193,6 +193,24 @@ function CooldownUtils.ApplyLinearVisuals(cooldownEdge, cooldownOverlay, _, rema
     return 0.5
 end
 
+function CooldownUtils.ApplyCooldownTextStyle(label, textSize, color, applyFont)
+    local r, g, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
+    if label.appliedTextSize == textSize and label.appliedTextR == r
+        and label.appliedTextG == g and label.appliedTextB == b
+        and label.appliedTextA == a then
+        return
+    end
+    label.appliedTextSize = textSize
+    label.appliedTextR, label.appliedTextG, label.appliedTextB, label.appliedTextA = r, g, b, a
+    label:SetDrawLayer(DL_OVERLAY)
+    label:SetDrawTier(DT_HIGH)
+    label:SetDrawLevel(10)
+    if applyFont then
+        label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
+    end
+    label:SetColor(r, g, b, a)
+end
+
 function CooldownUtils.ResetSmoothedRemaining(stateKey)
     resetCalls[stateKey] = true
 end

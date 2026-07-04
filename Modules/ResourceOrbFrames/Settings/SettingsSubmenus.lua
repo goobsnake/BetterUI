@@ -11,17 +11,8 @@ if not ROF then return end
 BETTERUI.ResourceOrbFrames.SettingsSubmenus = {}
 local Submenus = BETTERUI.ResourceOrbFrames.SettingsSubmenus
 
-local function TraceDrag(event, phase, data)
-    local L = BETTERUI and BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
-    data = data or {}
-    data.module = data.module or "ResourceOrbFrames"
-    data.feature = data.feature or "element-drag"
-    data.fn = data.fn or "ElementDrag"
-    data["function"] = data["function"] or data.fn
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.STATE or categories.GENERAL, event, phase, data)
-end
+-- Shared element-drag tracer (BUI-CONS-002), defined once on ROF Utils.
+local TraceDrag = ROF.Utils and ROF.Utils.TraceDrag or function() end
 
 local function GetSharedSettings(shared)
     return shared and shared.getSettings and shared.getSettings() or nil

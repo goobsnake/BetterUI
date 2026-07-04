@@ -13,7 +13,18 @@ Usage:
 
 BETTERUI = {
     TradingHouse = {},
-    CIM = {},
+    CIM = {
+        Utils = {
+            -- Mirrors BETTERUI.CIM.Utils.SafeGetTargetData (BUI-CONS-001): the
+            -- shared focused-row resolver the TH components now delegate to.
+            SafeGetTargetData = function(list)
+                if not list then return nil end
+                if type(list.GetTargetData) == "function" then return list:GetTargetData() end
+                if type(list.GetSelectedData) == "function" then return list:GetSelectedData() end
+                return list.targetData or list.selectedData
+            end,
+        },
+    },
 }
 
 local passed = 0

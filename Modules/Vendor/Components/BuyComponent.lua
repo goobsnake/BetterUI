@@ -418,52 +418,12 @@ local function GetStoreRowsCached(vendorInstance)
     return rows
 end
 
-local function ScheduleBuyListRetry(vendorInstance, reason)
-    if not (vendorInstance and BETTERUI.Vendor and BETTERUI.Vendor.Tasks) then
-        TraceBuyList("vendor.buy_list_retry", "skipped", vendorInstance, {
-            reason = reason or "missingTaskQueue",
-        })
-        return
-    end
-
-    local retryCount = (vendorInstance._buyListRetryCount or 0) + 1
-    if retryCount > 3 then
-        TraceBuyList("vendor.buy_list_retry", "skipped", vendorInstance, {
-            reason = reason or "maxRetries",
-            retryCount = retryCount,
-        })
-        return
-    end
-
-    vendorInstance._buyListRetryCount = retryCount
-    BETTERUI.Vendor.Tasks:Cancel("buyListRetry")
-    BETTERUI.Vendor.Tasks:Schedule("buyListRetry", 80 * retryCount, function()
-        if Vendor.ShouldAbortDeferredVendorRefresh
-            and Vendor.ShouldAbortDeferredVendorRefresh(vendorInstance, Vendor.MODE.BUY) then
-            TraceBuyList("vendor.buy_list_retry", "aborted", vendorInstance, {
-                reason = "deferredRefreshAborted",
-                retryCount = retryCount,
-            })
-            return
-        end
-
-        cachedStoreRows = nil
-        cachedStoreRowsFrameMs = nil
-        if vendorInstance.ApplyNativeStoreMode then
-            vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
-        end
-        TraceBuyList("vendor.buy_list_retry", "refresh", vendorInstance, {
-            reason = reason,
-            retryCount = retryCount,
-        })
-        vendorInstance:RefreshList()
-    end)
-    TraceBuyList("vendor.buy_list_retry", "scheduled", vendorInstance, {
-        reason = reason,
-        retryCount = retryCount,
-        delayMs = 80 * retryCount,
-    })
-end
+-- PB-017: The empty-buy-list retry is owned solely by VendorControllerRuntime
+-- (single "buyListRetry" task, limit 20 @ 180ms, sharing instance._buyListRetryCount).
+-- BuyComponent previously scheduled a competing "buyListRetry" (limit 3 @ 80ms x n)
+-- from BuildList that shared the same counter, so the controller's retry budget was
+-- consumed twice per refresh. BuildList now leaves the retry to the controller, which
+-- fires whenever the built list is empty (see VendorControllerRuntime list_refresh).
 
 local function GetStoreItemCategoryName(itemLink)
     if not itemLink or itemLink == "" then
@@ -596,64 +556,10 @@ function Buy:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_BUY"))
 end
 
----@param vendorInstance BETTERUI.Vendor.Class
----@param ds table Store entry data source
----@return boolean affordable True if all currencies for the entry are covered
-local function CanAffordStoreEntry(vendorInstance, ds)
-    -- Gold and alt-currency charges are independent: alt-currency entries
-    -- report price == 0 (not nil), so each charge is checked on its own.
-    local price = ds.price or 0
-    if price > 0 then
-        local currencyType = ds.currencyType or CURT_MONEY
-        if currencyType == CURT_NONE then
-            currencyType = CURT_MONEY
-        end
-        if not vendorInstance:CanAfford(price, currencyType) then
-            return false
-        end
-    end
-
-    local price1 = ds.currencyQuantity1 or 0
-    local currencyType1 = ds.currencyType1
-    if price1 > 0 and currencyType1 and currencyType1 ~= CURT_NONE
-        and not vendorInstance:CanAfford(price1, currencyType1) then
-        return false
-    end
-
-    -- Some store entries also charge a secondary currency; every charge must
-    -- be affordable for the purchase to succeed.
-    local price2 = ds.currencyQuantity2 or 0
-    local currencyType2 = ds.currencyType2
-    if price2 > 0 and currencyType2 and currencyType2 ~= CURT_NONE then
-        return vendorInstance:CanAfford(price2, currencyType2)
-    end
-    return true
-end
-
---- Clamp a purchase request to what is actually available and affordable.
----@param requested integer Quantity the user/UI asked for
----@param stackAvailable integer Maximum stack the store offers
----@param unitPrice number Cost per unit (0 for free items)
----@param money number Player's current balance for the item's currency
----@return integer quantity Final clamped quantity (0 if unaffordable or invalid)
-local function ClampPurchaseQuantity(requested, stackAvailable, unitPrice, money)
-    requested = tonumber(requested) or 0
-    stackAvailable = tonumber(stackAvailable) or 0
-    unitPrice = tonumber(unitPrice) or 0
-    money = tonumber(money) or 0
-
-    if requested <= 0 or stackAvailable <= 0 then
-        return 0
-    end
-
-    local maxByStack = math.max(1, stackAvailable)
-    local maxByMoney = (unitPrice <= 0) and maxByStack or math.floor(money / unitPrice)
-    local maxAffordable = math.max(0, math.min(maxByStack, maxByMoney))
-
-    return math.min(requested, maxAffordable)
-end
-
-Vendor.ClampPurchaseQuantity = Vendor.ClampPurchaseQuantity or ClampPurchaseQuantity
+-- BUI-CONS-008: store-entry affordability is unified in Vendor.CanAffordStoreEntry
+-- (VendorModePolicy), shared with BatchActionCounts and VendorBatchRuntime.
+-- BUI-CLEAN-002: the reserved Vendor.ClampPurchaseQuantity quantity-spinner
+-- helper was removed (the buy flow hardcodes quantity = 1).
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 ---@return boolean enabled True if a buy action is possible
@@ -669,7 +575,7 @@ function Buy:IsPrimaryActionEnabled(vendorInstance)
         return false
     end
 
-    return CanAffordStoreEntry(vendorInstance, ds)
+    return Vendor.CanAffordStoreEntry(vendorInstance, ds)
         and vendorInstance:CanCarry(ds.itemLink)
 end
 
@@ -718,7 +624,7 @@ function Buy:OnPrimaryAction(vendorInstance)
     end
 
     -- Validate affordability (both currencies) one more time
-    if not CanAffordStoreEntry(vendorInstance, ds) then
+    if not Vendor.CanAffordStoreEntry(vendorInstance, ds) then
         TraceBuyBlocked(vendorInstance, "cannotAfford", ds)
         BETTERUI.CIM.UserAlertText("Buy:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
@@ -732,9 +638,8 @@ function Buy:OnPrimaryAction(vendorInstance)
         return
     end
 
-    -- Default to a single-item purchase (matches native intent and the buy
-    -- primary-action contract). A future interactive quantity spinner can pass
-    -- its chosen value through Vendor.ClampPurchaseQuantity to buy a full stack.
+    -- Buy flow is a single-item purchase (matches native intent and the buy
+    -- primary-action contract).
     local quantity = 1
 
     local L = BETTERUI.Log
@@ -752,12 +657,9 @@ function Buy:OnPrimaryAction(vendorInstance)
         currencyType = ds.currencyType,
         item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
     }
-    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.buy", traceData) or nil
-
-    BuyStoreItem(entryIndex, quantity)
-    if Vendor.ScheduleActionSettled then
-        Vendor.ScheduleActionSettled("vendor.buy", traceData, goldBefore)
-    end
+    Vendor.DispatchTracedAction("vendor.buy", traceData, function()
+        BuyStoreItem(entryIndex, quantity)
+    end)
 end
 
 -- LIST BUILDING
@@ -791,7 +693,8 @@ function Buy:BuildList(vendorInstance)
             categoryKey = activeCategory and activeCategory.key or nil,
             hasSearchQuery = searchQuery ~= nil,
         })
-        ScheduleBuyListRetry(vendorInstance, "emptyRows")
+        -- PB-017: retry is owned by VendorControllerRuntime; do not schedule a
+        -- competing "buyListRetry" here (it double-consumed the shared counter).
         return
     end
 
@@ -848,17 +751,7 @@ function Buy:BuildList(vendorInstance)
                 end
             end
 
-            local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
-            entry:SetDataSource(itemData)
-            entry.narrationText = function() return itemData.name end
-
-            -- Set quality color
-            if itemData.quality then
-                local r, g, b = GetItemQualityColor(itemData.quality):UnpackRGBA()
-                entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-            end
-
-            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+            Vendor.AddItemRow(list, itemData)
             addedCount = addedCount + 1
         end
     end

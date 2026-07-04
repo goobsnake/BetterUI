@@ -18,7 +18,24 @@ end
 
 BETTERUI = {
     Vendor = {},
+    -- BUI-CONS-004: DefaultSafeCall (used when a block omits deps.safeCall) now
+    -- routes through Vendor.ExecuteSafely, a thin delegator over the
+    -- unconditional BETTERUI.CIM.SafeExecute. Provide both so the fallback safe
+    -- call resolves exactly as it does in production; the spy-override block
+    -- below still replaces Vendor.ExecuteSafely directly.
+    CIM = {
+        SafeExecute = function(_context, fn, ...)
+            if type(fn) ~= "function" then
+                return false, "No function provided"
+            end
+            return pcall(fn, ...)
+        end,
+    },
 }
+
+BETTERUI.Vendor.ExecuteSafely = function(context, fn, ...)
+    return BETTERUI.CIM.SafeExecute(context, fn, ...)
+end
 
 dofile("Modules/Vendor/Core/Lifecycle/VendorInteractionRuntime.lua")
 

@@ -282,18 +282,6 @@ assert_true(safeExecuteCalls[#safeExecuteCalls] == "SlotActions.visibility:Inspe
         or safeExecuteCalls[#safeExecuteCalls - 1] == "SlotActions.visibility:Destroy",
     "Visibility checks route through CIM.SafeExecute with action-specific context")
 
-local originalSafeExecute = BETTERUI.CIM.SafeExecute
-BETTERUI.CIM.SafeExecute = nil
-debugMessages = {}
-local fallbackVisible = BETTERUI.Inventory.SlotActionsVisibilityHelpers.ExecuteVisibilityFunction("Destroy", function()
-    error("fallback visibility exploded")
-end)
-assert_equal(false, fallbackVisible, "Visibility fallback stays fail-closed when CIM.SafeExecute is unavailable")
-assert_true(type(debugMessages[#debugMessages]) == "string"
-        and debugMessages[#debugMessages]:find("visibility check failed for Destroy", 1, true) ~= nil,
-    "Visibility fallback logs the failure context when SafeExecute is unavailable")
-BETTERUI.CIM.SafeExecute = originalSafeExecute
-
 local junkStub = {
     m_slotActions = {
         { "Link to Chat", function() end }

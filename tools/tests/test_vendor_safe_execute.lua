@@ -1,7 +1,9 @@
 --[[
 File: tools/tests/test_vendor_safe_execute.lua
-Purpose: Unit tests for the shared vendor safe-execution helper so the
-         centralized fallback/notifier behavior stays stable.
+Purpose: Unit tests for the shared vendor safe-execution helper. BUI-CONS-004
+         collapsed Vendor.ExecuteSafely to a thin delegator over
+         BETTERUI.CIM.SafeExecute (which is defined unconditionally in
+         production), so these tests pin the delegation contract.
 Usage:
   lua tools/tests/test_vendor_safe_execute.lua
 ]]
@@ -11,14 +13,7 @@ BETTERUI = {
     CIM = {},
 }
 
-local notified = {}
 local safeExecuteCalls = {}
-
-local function reset()
-    notified = {}
-    safeExecuteCalls = {}
-    BETTERUI.CIM.SafeExecute = nil
-end
 
 local passed = 0
 local failed = 0
@@ -36,48 +31,43 @@ local function assert_true(value, label)
     assert_equal(true, value == true, label)
 end
 
-BETTERUI.CIM.UserNotify = function(context, message)
-    notified[#notified + 1] = { context = context, message = message }
+-- Production CIM.SafeExecute contract: (ok, result-or-error). Record calls so we
+-- can assert the delegator forwards context/fn/args verbatim.
+BETTERUI.CIM.SafeExecute = function(context, fn, ...)
+    safeExecuteCalls[#safeExecuteCalls + 1] = { context = context, argc = select("#", ...) }
+    if type(fn) ~= "function" then
+        return false, "No function provided"
+    end
+    local ok, result = pcall(fn, ...)
+    if not ok then
+        return false, result
+    end
+    return true, result
 end
 
 dofile("Modules/Vendor/Core/VendorSafeExecute.lua")
 
-reset()
-BETTERUI.CIM.SafeExecute = function(context, fn, ...)
-    safeExecuteCalls[#safeExecuteCalls + 1] = context
-    return true, fn(...)
-end
+-- Delegates a successful call and preserves the returned results + context/args.
 local okProxy, resultProxy = BETTERUI.Vendor.ExecuteSafely("Vendor.SafeExecute:Proxy", function(a, b)
     return a + b
 end, 2, 3)
-assert_true(okProxy, "Vendor.ExecuteSafely delegates through BETTERUI.CIM.SafeExecute when available")
+assert_true(okProxy, "Vendor.ExecuteSafely delegates through BETTERUI.CIM.SafeExecute")
 assert_equal(5, resultProxy, "Vendor.ExecuteSafely preserves delegated results")
 assert_equal(1, #safeExecuteCalls, "Vendor.ExecuteSafely calls the CIM safe executor once")
-assert_equal("Vendor.SafeExecute:Proxy", safeExecuteCalls[1], "Vendor.ExecuteSafely preserves the delegated context")
-assert_equal(0, #notified, "Vendor.ExecuteSafely does not notify on delegated success")
+assert_equal("Vendor.SafeExecute:Proxy", safeExecuteCalls[1].context, "Vendor.ExecuteSafely preserves the delegated context")
+assert_equal(2, safeExecuteCalls[1].argc, "Vendor.ExecuteSafely forwards trailing arguments to the CIM executor")
 
-reset()
-local okFallback, resultFallback = BETTERUI.Vendor.ExecuteSafely("Vendor.SafeExecute:Fallback", function()
-    return "ok"
-end)
-assert_true(okFallback, "Vendor.ExecuteSafely succeeds through direct fallback execution")
-assert_equal("ok", resultFallback, "Vendor.ExecuteSafely returns fallback results")
-assert_equal(0, #notified, "Vendor.ExecuteSafely does not notify on fallback success")
-
-reset()
+-- Delegates error handling to CIM.SafeExecute (returns false + error text).
 local okError, resultError = BETTERUI.Vendor.ExecuteSafely("Vendor.SafeExecute:Error", function()
     error("boom")
 end)
-assert_equal(false, okError, "Vendor.ExecuteSafely returns false on fallback failure")
-assert_true(type(resultError) == "string", "Vendor.ExecuteSafely returns the Lua error text on fallback failure")
-assert_equal(1, #notified, "Vendor.ExecuteSafely notifies exactly once on fallback failure")
-assert_equal("Vendor.SafeExecute:Error", notified[1].context, "Vendor.ExecuteSafely reports the failing context")
+assert_equal(false, okError, "Vendor.ExecuteSafely returns false when the delegated call fails")
+assert_true(type(resultError) == "string", "Vendor.ExecuteSafely returns the delegated error text")
 
-reset()
+-- Delegates the missing-callback case to CIM.SafeExecute.
 local okMissing, resultMissing = BETTERUI.Vendor.ExecuteSafely("Vendor.SafeExecute:Missing", nil)
-assert_equal(false, okMissing, "Vendor.ExecuteSafely rejects nil functions")
+assert_equal(false, okMissing, "Vendor.ExecuteSafely rejects nil functions via the CIM executor")
 assert_equal("No function provided", resultMissing, "Vendor.ExecuteSafely preserves the missing-callback reason")
-assert_equal(0, #notified, "Vendor.ExecuteSafely does not notify for missing functions")
 
 if failed > 0 then
     error(string.format("test_vendor_safe_execute.lua failed with %d failure(s)", failed))

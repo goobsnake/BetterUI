@@ -34,16 +34,12 @@ function BETTERUI.Inventory.GetFilterComparator(filterType)
     end
 end
 
-local DEFAULT_GAMEPAD_ITEM_SORT =
-{
+-- Craft bag inserts a bestItemTypeName tiebreaker between category and name; shared base
+-- chain lives in Core/Utils.lua.
+local DEFAULT_GAMEPAD_ITEM_SORT = BETTERUI.Inventory.Utils.BuildGamepadItemSort({
     bestGamepadItemCategoryName = { tiebreaker = "bestItemTypeName" },
     bestItemTypeName = { tiebreaker = "name" },
-    name = { tiebreaker = "requiredLevel" },
-    requiredLevel = { tiebreaker = "requiredChampionPoints", isNumeric = true },
-    requiredChampionPoints = { tiebreaker = "iconFile", isNumeric = true },
-    iconFile = { tiebreaker = "uniqueId" },
-    uniqueId = { isId64 = true },
-}
+})
 
 local function BETTERUI_CraftList_DefaultItemSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT,

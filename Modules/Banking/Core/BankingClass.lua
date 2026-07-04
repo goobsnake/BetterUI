@@ -383,6 +383,44 @@ function BETTERUI.Banking.IsActionableTransferEntry(entryData)
     return stackCount > 0
 end
 
+--- Canonical resolver for a banking window's current category key.
+--- Prefers the GetCurrentCategoryKey() method and falls back to the bounded
+--- bankCategories/currentCategoryIndex walk for method-less windows/tests.
+---@param window BETTERUI.Banking.Class|table|nil
+---@return string|nil
+function BETTERUI.Banking.ResolveWindowCategoryKey(window)
+    if not window then
+        return nil
+    end
+    if window.GetCurrentCategoryKey then
+        return window:GetCurrentCategoryKey()
+    end
+    local categories = window.bankCategories
+    if not categories or #categories == 0 then
+        return nil
+    end
+    local index = window.currentCategoryIndex or 1
+    if index > #categories then
+        return nil
+    end
+    local category = categories[index]
+    return category and category.key or nil
+end
+
+---@return BETTERUI.Banking.Class|table|nil
+function BETTERUI.Banking.GetWindow()
+    return BETTERUI.Banking and BETTERUI.Banking.Window or nil
+end
+
+--- Registers the banking view/scene pairs with the watch-mode registry.
+---@param watch table|nil
+---@return nil
+function BETTERUI.Banking.RegisterWatchScenes(watch)
+    if not (watch and watch.RegisterViewScene) then return end
+    watch.RegisterViewScene("banking", BETTERUI_BANKING_SCENE_NAME or "gamepad_banking")
+    watch.RegisterViewScene("banking", BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING")
+end
+
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
 local BankingDeferredTask = assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask,
@@ -532,12 +570,7 @@ local function RefreshWindowViewNow(window, options)
     options = options or {}
     local preferredCategoryKey = options.preferredCategoryKey
     if preferredCategoryKey == nil then
-        if window.GetCurrentCategoryKey then
-            preferredCategoryKey = window:GetCurrentCategoryKey()
-        elseif window.bankCategories and window.currentCategoryIndex and window.currentCategoryIndex <= #window.bankCategories then
-            local currentCategory = window.bankCategories[window.currentCategoryIndex]
-            preferredCategoryKey = currentCategory and currentCategory.key or nil
-        end
+        preferredCategoryKey = BETTERUI.Banking.ResolveWindowCategoryKey(window)
     end
 
     if window.RefreshTransferView then

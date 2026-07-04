@@ -109,20 +109,16 @@ end
 
 -- SEARCH FOCUS HELPERS
 
-local function TraceCompanionClass(event, phase, data)
-    local L = BETTERUI and BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
-    data = data or {}
-    data.module = "Companions"
-    data.feature = data.feature or "companion-search"
-    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
-    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if L.SetLastAction then
-        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
-    end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.KEYBIND or categories.ACTION, event, phase, data)
-end
+-- Search-focus tracer via the shared MakeTracer (BUI-CONS-002): module/feature/
+-- scene/gamepad/table-form last-action match the former copy; category is KEYBIND
+-- (ACTION fallback). Scene now resolves through CIM.Utils.
+local TraceCompanionClass = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "Companions",
+        feature = "companion-search",
+        category = (BETTERUI.Log.CATEGORY or {}).KEYBIND or (BETTERUI.Log.CATEGORY or {}).ACTION or "KEYBIND",
+    }
+    or function() end
 
 function BETTERUI.Companions.Class:EnterSearchMode()
     if not self.textSearchHeaderControl or self.textSearchHeaderControl:IsHidden() then

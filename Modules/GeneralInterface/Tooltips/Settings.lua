@@ -33,29 +33,9 @@ local function SetModuleSetting(moduleName, key, value)
     return false
 end
 
-local function GetCurrentSceneName()
-    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
-        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
-        if ok then return sceneName end
-    end
-    return nil
-end
-
-local function TraceGeneralSetting(settingName, phase, data)
-    local L = BETTERUI and BETTERUI.Log or nil
-    if not L or type(L.TraceEvent) ~= "function" then return end
-    local payload = data or {}
-    payload.module = "GeneralInterface"
-    payload.feature = "settings"
-    payload.setting = settingName
-    payload.scene = GetCurrentSceneName()
-    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if type(L.SetLastAction) == "function" then
-        L.SetLastAction("GeneralInterface.settings." .. tostring(settingName))
-    end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.SETTING or categories.GENERAL, "general_interface.setting", phase, payload)
-end
+-- Settings tracer (with its scene lookup) is owned by SettingsHelpers now
+-- (BUI-CONS-002 / BUI-CONS-003).
+local TraceGeneralSetting = H.TraceGeneralSetting
 
 local function ResolveSettingTraceName(control, groupKey)
     if type(control) ~= "table" then return groupKey or "unknown" end

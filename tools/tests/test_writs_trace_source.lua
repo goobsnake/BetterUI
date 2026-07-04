@@ -62,7 +62,7 @@ print("test_writs_trace_source")
 local core = read_file("Modules/Writs/Core/Writ.lua")
 local module = read_file("Modules/Writs/Module.lua")
 
-assert_contains(core, "local function TraceWritState(trigger, craftType, data)",
+assert_contains(core, "function Writs.TraceWritState(trigger, craftType, data)",
     "Writ core exposes a state-envelope helper")
 assert_contains(core, "TraceWrit(\"writs.state\", \"changed\", data, BETTERUI.Log and BETTERUI.Log.CATEGORY.STATE)",
     "Writ core state envelope uses STATE/writs.state changed")
@@ -114,8 +114,8 @@ assert_not_contains(objectives, "writs.state",
 
 assert_contains(module, "local function TraceWritState(trigger, craftType, data)",
     "Writ module exposes a state-envelope helper for event handlers")
-assert_contains(module, "TraceWritEvent(\"writs.state\", \"changed\", data, BETTERUI.Log and BETTERUI.Log.CATEGORY.STATE)",
-    "Writ module state envelope uses STATE/writs.state changed")
+assert_contains(module, "return Writs.TraceWritState(trigger, craftType, data)",
+    "Writ module state envelope delegates to the shared Writ core helper")
 assert_contains(module, "TraceWritState(\"station_closed\"",
     "OnCloseCraftStation emits station_closed state")
 assert_contains(module, "TraceWritState(\"craft_completed_immediate\"",

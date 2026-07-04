@@ -460,26 +460,10 @@ assert_eq(type(statusReceivedCallback), "function", "status received callback is
 assert_eq(type(moneyUpdateCallback), "function", "money update callback is registered")
 assert_eq(type(inventoryUpdateCallback), "function", "inventory update callback is registered")
 
-local tabsCopy = TH.GetTabs()
-tabsCopy[1].mode = TH.MODE.LISTINGS
-tabsCopy[2].name = function()
-    return "Hijacked"
-end
-tabsCopy[#tabsCopy + 1] = {
-    mode = 999,
-    name = function()
-        return "Injected"
-    end,
-}
-local canonicalTabs = TH.GetTabs()
-assert_eq(#canonicalTabs, 3, "GetTabs returns a copied tab list")
-assert_eq(canonicalTabs[1].mode, TH.MODE.BROWSE, "GetTabs copy mutation does not alter canonical tab modes")
-assert_eq(canonicalTabs[2].name() == "Hijacked", false, "GetTabs copy mutation does not alter canonical tab names")
-
 TH.instance:SetMode(TH.MODE.BROWSE)
 TH.instance:CycleTabs(1)
 assert_eq(TH.instance:GetCurrentMode(), TH.MODE.SELL,
-    "tab cycling still follows the canonical tab order after caller mutations")
+    "tab cycling follows the canonical tab order")
 
 -- U50: search results arrive through the response event with the
 -- TRADING_HOUSE_RESULT_SEARCH_PENDING response type.

@@ -111,6 +111,7 @@ Modules\CIM\Keybinds\InputAnchor.lua
 Modules\CIM\Keybinds\GenericKeybinds.lua
 Modules\CIM\Keybinds\ActionContext.lua
 Modules\CIM\Dialogs\DialogRegistry.lua
+Modules\CIM\Dialogs\DialogRestore.lua
 Modules\CIM\Lists\GenericListManager.lua
 Modules\CIM\Lists\ItemDataProcessor.lua
 Modules\CIM\Lists\ListRefreshManager.lua

@@ -336,6 +336,16 @@ BETTERUI = {
         ReadTransferContextSnapshot = function()
             return BETTERUI.Banking.GetTransferContext()
         end,
+        ResolveWindowCategoryKey = function(window)
+            if not window then return nil end
+            if window.GetCurrentCategoryKey then return window:GetCurrentCategoryKey() end
+            local categories = window.bankCategories
+            if not categories or #categories == 0 then return nil end
+            local index = window.currentCategoryIndex or 1
+            if index > #categories then return nil end
+            local category = categories[index]
+            return category and category.key or nil
+        end,
         GetTransferService = function()
             return BETTERUI.Banking.Transfer
         end,

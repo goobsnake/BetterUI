@@ -19,12 +19,7 @@ end
 function BETTERUI.Banking.Class:RequestJunkCategoryRefresh(delayMs, preferredCategoryKey)
     local requestedCategoryKey = preferredCategoryKey
     if not requestedCategoryKey then
-        if self.GetCurrentCategoryKey then
-            requestedCategoryKey = self:GetCurrentCategoryKey()
-        elseif self.bankCategories and self.currentCategoryIndex then
-            local currentCategory = self.bankCategories[self.currentCategoryIndex]
-            requestedCategoryKey = currentCategory and currentCategory.key or nil
-        end
+        requestedCategoryKey = BETTERUI.Banking.ResolveWindowCategoryKey(self)
     end
 
     BETTERUI.Banking.Tasks:Schedule("junkCategoryRefresh", delayMs or 140, function()
@@ -120,11 +115,6 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 
     local function CanUnjunkWithPolicy(bagId, slotIndex)
         return RequireProtectionPolicyMethod("CanUnjunkItem")(bagId, slotIndex) == true
-    end
-
-    local function GetCurrentCategoryKey()
-        local category = self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1] or nil
-        return category and category.key or nil
     end
 
     local function CanShowBankingJunkActions(targetData)
@@ -223,15 +213,15 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         TraceBankingActionDialog("bank.junk_toggle", "before", {
             requestedJunk = shouldMarkAsJunk == true,
             wasJunk = isCurrentlyJunk == true,
-            categoryKey = GetCurrentCategoryKey(),
+            categoryKey = BETTERUI.Banking.ResolveWindowCategoryKey(self),
             target = DescribeBankTarget(targetData),
         })
         SetItemIsJunk(targetData.bagId, targetData.slotIndex, shouldMarkAsJunk)
-        self:RequestJunkCategoryRefresh(140, GetCurrentCategoryKey())
+        self:RequestJunkCategoryRefresh(140, BETTERUI.Banking.ResolveWindowCategoryKey(self))
         TraceBankingActionDialog("bank.junk_toggle", "after", {
             requestedJunk = shouldMarkAsJunk == true,
             refreshScheduled = true,
-            categoryKey = GetCurrentCategoryKey(),
+            categoryKey = BETTERUI.Banking.ResolveWindowCategoryKey(self),
             target = DescribeBankTarget(targetData),
         })
         return true

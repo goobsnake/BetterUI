@@ -1,9 +1,3 @@
-local function NotifySecureActionFailed(context)
-    local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
-    BETTERUI.CIM.UserNotify(context,
-        (failedStringId and GetString(failedStringId)) or "The action could not be completed.")
-end
-
 local function TraceInventoryEquip(phase, bagId, slotIndex, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
@@ -71,7 +65,7 @@ local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
             route = "equipSlotDialog",
         })
         if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.ACTION, "RequestMoveItem failed via CallSecureProtected", {bagId = bagId, slotIndex = slotIndex, targetSlot = targetSlot}) end
-        NotifySecureActionFailed("EquipAction:EquipMove")
+        BETTERUI.CIM.UserNotifySecureActionFailed("EquipAction:EquipMove")
         return false
     end
     TraceInventoryEquip("requested", bagId, slotIndex, {
@@ -152,7 +146,7 @@ local function AttemptCompanionEquipPatch()
                             quantity = 1,
                             route = "companion",
                         })
-                        NotifySecureActionFailed("EquipAction:EquipCompanion")
+                        BETTERUI.CIM.UserNotifySecureActionFailed("EquipAction:EquipCompanion")
                     else
                         TraceInventoryEquip("requested", sourceBag, sourceSlot, {
                             targetBag = BAG_COMPANION_WORN,
@@ -335,7 +329,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
                     quantity = 1,
                     route = "costume",
                 })
-                NotifySecureActionFailed("EquipAction:EquipCostume")
+                BETTERUI.CIM.UserNotifySecureActionFailed("EquipAction:EquipCostume")
             else
                 TraceInventoryEquip("requested", bagId, slotIndex, {
                     targetBag = BAG_WORN,

@@ -13,19 +13,25 @@ local OptionalAddons = BETTERUI.CIM and BETTERUI.CIM.OptionalAddons
 assert(SettingsApi and SettingsApi.GetSettingDefault and SettingsApi.ResetModuleSettingsByGroup,
     "BetterUI: CIM.Settings metadata helpers must load before GeneralInterface tooltip settings helpers")
 
-local function TraceGeneralSetting(resetName, phase, data)
+-- Canonical GeneralInterface settings tracer (BUI-CONS-002 / BUI-CONS-003).
+-- Single definition owned by SettingsHelpers and consumed by Settings.lua so the
+-- two former copies collapse to one. Scene comes from the shared CIM util instead
+-- of a local reimplementation. Callers may override `feature` via the data table.
+local function TraceGeneralSetting(settingName, phase, data)
     local L = BETTERUI and BETTERUI.Log or nil
-    if not (L and L.TraceEvent) then return end
-    data = data or {}
-    data.module = "GeneralInterface"
-    data.feature = "settings-reset"
-    data.resetName = resetName
-    data.fn = data.fn or resetName
+    if not L or type(L.TraceEvent) ~= "function" then return end
+    local payload = data or {}
+    payload.module = "GeneralInterface"
+    payload.feature = payload.feature or "settings"
+    payload.setting = settingName
+    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
+    payload.scene = utils and utils.GetCurrentSceneName and utils.GetCurrentSceneName() or nil
+    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
     if type(L.SetLastAction) == "function" then
-        L.SetLastAction({ flow = "general_interface.setting", message = tostring(resetName) .. ":" .. tostring(phase) })
+        L.SetLastAction("GeneralInterface.settings." .. tostring(settingName))
     end
     local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.SETTINGS or categories.GENERAL, "general_interface.setting", phase, data)
+    L.TraceEvent(categories.SETTING or categories.GENERAL, "general_interface.setting", phase, payload)
 end
 
 --- Applies tooltip visual settings from the current configuration.
@@ -267,6 +273,7 @@ end
 -- These locals are exported to global namespace so Settings.lua can access them.
 
 BETTERUI.GeneralInterface._SettingsHelpers = {
+    TraceGeneralSetting = TraceGeneralSetting,
     ApplyTooltipVisualSettings = ApplyTooltipVisualSettings,
     RestoreTooltipVisualSettings = RestoreTooltipVisualSettings,
     CleanupTooltipEnhancementArtifacts = CleanupTooltipEnhancementArtifacts,

@@ -244,6 +244,35 @@ BETTERUI = {
     },
 }
 
+-- BUI-CONS-001/008: shared helpers the migrated components now call. Mirror the
+-- VendorModePolicy/CIM implementations so isolated component tests still pass.
+BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
+BETTERUI.CIM.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData or function(list)
+    if not list then return nil end
+    if list.GetTargetData then return list:GetTargetData() end
+    if list.GetSelectedData then return list:GetSelectedData() end
+    if list.targetData ~= nil then return list.targetData end
+    return list.selectedData
+end
+BETTERUI.Vendor.AddItemRow = BETTERUI.Vendor.AddItemRow or function(list, entryData)
+    if not (list and entryData) then return nil end
+    local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
+    entry:SetDataSource(entryData)
+    entry.narrationText = function() return entryData.name end
+    if entryData.quality then
+        local r, g, b = GetItemQualityColor(entryData.quality):UnpackRGBA()
+        entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
+    end
+    list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+    return entry
+end
+BETTERUI.Vendor.DispatchTracedAction = BETTERUI.Vendor.DispatchTracedAction or function(event, traceData, fn)
+    local V = BETTERUI.Vendor
+    local goldBefore = V.TraceActionRequested and V.TraceActionRequested(event, traceData) or nil
+    fn()
+    if V.ScheduleActionSettled then V.ScheduleActionSettled(event, traceData, goldBefore) end
+end
+
 dofile("Modules/Vendor/Components/BuybackComponent.lua")
 dofile("Modules/Vendor/Components/RepairComponent.lua")
 

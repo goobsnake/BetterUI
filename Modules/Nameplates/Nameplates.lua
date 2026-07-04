@@ -10,35 +10,29 @@ local DEFAULT_NAMEPLATE_SIZE = 16
 local POSITION_OFFSET_MIN = -600
 local POSITION_OFFSET_MAX = 600
 
-local function GetCurrentSceneName()
-    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
-    if utils and type(utils.GetCurrentSceneName) == "function" then
-        return utils.GetCurrentSceneName()
-    end
-    if SCENE_MANAGER and SCENE_MANAGER.GetCurrentScene then
-        local scene = SCENE_MANAGER:GetCurrentScene()
-        if scene and scene.GetName then
-            return scene:GetName()
-        end
-    end
-    return nil
-end
+-- Per-event category routing stays here; the shared MakeTracer base owns the
+-- guard, module/feature, and scene (via CIM.Utils = BUI-CONS-003). gamepad keeps
+-- its historical `gamepadMode` key (base omits gamepad), and the last-action tag
+-- is emitted unconditionally as before, so setLastAction stays off on the base.
+local traceNameplatesBase = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "Nameplates",
+        feature = "nameplates",
+        category = (BETTERUI.Log.CATEGORY or {}).SETTINGS or "SETTINGS",
+        includeGamepad = false,
+        setLastAction = false,
+    }
+    or function() end
 
 local function TraceNameplates(event, phase, data)
-    if not (BETTERUI and BETTERUI.Log and BETTERUI.Log.TraceEvent) then
-        return
-    end
     data = data or {}
-    data.module = data.module or "Nameplates"
-    data.feature = data.feature or "nameplates"
-    data.scene = data.scene or GetCurrentSceneName()
     if data.gamepadMode == nil and type(IsInGamepadPreferredMode) == "function" then
         data.gamepadMode = IsInGamepadPreferredMode()
     end
-    if BETTERUI.Log.SetLastAction then
+    if BETTERUI.Log and BETTERUI.Log.SetLastAction then
         BETTERUI.Log.SetLastAction({ flow = event, message = event .. ":" .. phase })
     end
-    local categories = BETTERUI.Log.CATEGORY or {}
+    local categories = (BETTERUI.Log and BETTERUI.Log.CATEGORY) or {}
     local category = categories.SETTINGS
     if event == "nameplates.event" then
         category = categories.STATE or categories.LIFECYCLE or categories.SETTINGS
@@ -49,7 +43,7 @@ local function TraceNameplates(event, phase, data)
         or event == "nameplates.events" then
         category = categories.LIFECYCLE or categories.STATE or categories.SETTINGS
     end
-    BETTERUI.Log.TraceEvent(category, event, phase, data)
+    traceNameplatesBase(event, phase, data, category)
 end
 
 local function ClampNameplateSize(value, fallback)

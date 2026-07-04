@@ -62,10 +62,8 @@ function CooldownUtils.ResetCooldownVisualArming()
     UpdateArmedState()
 end
 
----@return number generation Current arming generation for per-button transition latches
-function CooldownUtils.GetCooldownVisualArmingGeneration()
-    return cooldownVisualArmingGeneration
-end
+-- CooldownUtils.GetCooldownVisualArmingGeneration was removed as production-dead
+-- (BUI-CLEAN-002); the generation counter stays internal to the arming latches below.
 
 --- Reports a single button's active/inactive cooldown state. The generation
 --- check re-arms buttons that were already marked active before
@@ -273,6 +271,33 @@ function CooldownUtils.ApplyLinearVisuals(cooldownEdge, cooldownOverlay, revealC
     end
 
     return percentComplete
+end
+
+--- Applies static cooldown text styling (draw order, font, color), latched so the
+--- per-frame tick only re-applies it when style-affecting settings change (same
+--- pattern as ApplyUltimateNumberStyle). Shared by the front and back bars
+--- (BUI-CONS-011); `applyFont` lets a bar opt out of resizing the label font.
+---@param label table Cooldown text label control
+---@param textSize number Clamped cooldown text size
+---@param color table Cooldown text color {r, g, b, a}
+---@param applyFont boolean Whether this label's font follows the text size
+function CooldownUtils.ApplyCooldownTextStyle(label, textSize, color, applyFont)
+    local r, g, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
+    if label.appliedTextSize == textSize and label.appliedTextR == r
+        and label.appliedTextG == g and label.appliedTextB == b
+        and label.appliedTextA == a then
+        return
+    end
+    label.appliedTextSize = textSize
+    label.appliedTextR, label.appliedTextG, label.appliedTextB, label.appliedTextA = r, g, b, a
+
+    label:SetDrawLayer(DL_OVERLAY)
+    label:SetDrawTier(DT_HIGH)
+    label:SetDrawLevel(10)
+    if applyFont then
+        label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
+    end
+    label:SetColor(r, g, b, a)
 end
 
 CooldownUtils.HideLinearVisuals = HideLinearVisuals

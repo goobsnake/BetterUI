@@ -123,7 +123,7 @@ BETTERUI = {
             end,
         },
     },
-    Banking = { Class = {} },
+    Banking = { Class = {}, GetWindow = function() return BETTERUI.Banking and BETTERUI.Banking.Window or nil end },
 }
 
 local list = {

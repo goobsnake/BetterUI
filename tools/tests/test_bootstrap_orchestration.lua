@@ -634,8 +634,9 @@ assert_true(betterUiSource:find("BETTERUI.RaiseNativeError", 1, true) ~= nil
     and utilitiesSource:find("RaiseNativeError", 1, true) ~= nil
     and utilitiesSource:find("chatRouter", 1, true) == nil,
     "DebugError writes to builog or native errors without leaking to chat")
-assert_true(betterUiSource:find("SI_BETTERUI_BUILOG_POPUPS", 1, true) == nil,
-    "builog settings do not expose a popup toggle that can leak generated breadcrumbs")
+-- The retired "suppress error popups" toggle guard was removed together with its
+-- now-unused lang key (BUI-CLEAN-002) so the host can drop the key with zero
+-- references; builog no longer exposes a popup toggle.
 assert_true(betterUiSource:find("CloneControlForModuleTab", 1, true) ~= nil
     and betterUiSource:find("CombineModuleDisabled", 1, true) ~= nil
     and betterUiSource:find("clone.disabledLabel = CombineModuleDisabled", 1, true) ~= nil,
@@ -1338,6 +1339,15 @@ _G.GetFrameTimeMilliseconds = function() return 0 end
 
 dofile("Modules/ResourceOrbFrames/Core/ElementDrag.lua")
 local Drag = BETTERUI.ResourceOrbFrames.Drag
+-- Drag.GetOffset was removed as production-dead (BUI-CLEAN-002); this local helper
+-- reads the live table exactly as GetOffset did so the drag-persistence assertions
+-- below still hold.
+local function readDragOffset(elemKey)
+    local positions = dragLiveSettings.elementPositions
+    local ep = positions and positions[elemKey]
+    if ep then return ep.offsetX or 0, ep.offsetY or 0 end
+    return 0, 0
+end
 local dragHost = WINDOW_MANAGER:CreateControl("DragHost", nil, CT_BACKDROP)
 local dragApplyCalls = 0
 local dragHandle = Drag.AttachDragHandle(dragHost, "castBar", dragSnapshotGetter, function() dragApplyCalls = dragApplyCalls + 1 end)
@@ -1347,19 +1357,19 @@ dragMouseX, dragMouseY = 100, 100
 dragHandle.handlers["OnMouseDown"](dragHandle, MOUSE_BUTTON_INDEX_LEFT)
 dragMouseX, dragMouseY = 120, 130
 dragHandle.handlers["OnUpdate"]()
-local dragX, dragY = Drag.GetOffset("castBar", dragSnapshotGetter)
+local dragX, dragY = readDragOffset("castBar")
 assert_eq(dragX, 20, "drag writes offsetX to live settings even when getter returns a clone")
 assert_eq(dragY, 30, "drag writes offsetY to live settings even when getter returns a clone")
 assert_eq(dragApplyCalls, 1, "drag applyCallback fires when offset changes")
 
 dragMouseX, dragMouseY = 120, 130
 dragHandle.handlers["OnMouseUp"](dragHandle, MOUSE_BUTTON_INDEX_LEFT)
-dragX, dragY = Drag.GetOffset("castBar", dragSnapshotGetter)
+dragX, dragY = readDragOffset("castBar")
 assert_eq(dragX, 20, "mouse up preserves offsetX in live settings")
 assert_eq(dragY, 30, "mouse up preserves offsetY in live settings")
 
 Drag.ResetOffset("castBar", dragSnapshotGetter)
-dragX, dragY = Drag.GetOffset("castBar", dragSnapshotGetter)
+dragX, dragY = readDragOffset("castBar")
 assert_eq(dragX, 0, "ResetOffset clears offsetX in live settings")
 assert_eq(dragY, 0, "ResetOffset clears offsetY in live settings")
 

@@ -69,8 +69,6 @@ local function RegisterTradingHouseSnapshotProvider()
             tostring(CountTradingHouseSnapshotRows(instance.list)),
             tostring(GetTradingHouseSnapshotSelectedIndex(instance.list)),
             tostring(GetTradingHouseSnapshotSelectionToken(instance.list)),
-            tostring(instance._suppressListUpdates == true),
-            tostring(instance._isDirty == true),
             instance.searchQuery and #tostring(instance.searchQuery) or 0,
             tostring(browse and browse.currentPage or nil),
             tostring(browse and browse.searchPending == true or false),

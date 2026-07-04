@@ -140,6 +140,32 @@ BETTERUI = {
         ReadTransferContextSnapshot = function()
             return BETTERUI.Banking.GetTransferContext()
         end,
+        GetWindow = function()
+            return BETTERUI.Banking and BETTERUI.Banking.Window or nil
+        end,
+        ResolveWindowCategoryKey = function(window)
+            if not window then return nil end
+            if window.GetCurrentCategoryKey then return window:GetCurrentCategoryKey() end
+            local categories = window.bankCategories
+            if not categories or #categories == 0 then return nil end
+            local index = window.currentCategoryIndex or 1
+            if index > #categories then return nil end
+            local category = categories[index]
+            return category and category.key or nil
+        end,
+        IsActionableTransferEntry = function(entryData)
+            if not entryData then return false end
+            if ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated
+                and ZO_GamepadBanking.IsEntryDataCurrencyRelated(entryData) then
+                return false
+            end
+            local rawData = entryData.dataSource or entryData
+            local bagId = rawData and rawData.bagId or nil
+            local slotIndex = rawData and rawData.slotIndex or nil
+            if bagId == nil or slotIndex == nil then return false end
+            local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+            return stackCount > 0
+        end,
         EnsureTransferService = function()
             BETTERUI.Banking.Transfer = BETTERUI.Banking.Transfer or {}
             return BETTERUI.Banking.Transfer

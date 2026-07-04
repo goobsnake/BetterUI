@@ -11,7 +11,9 @@ local WRIT_CONTEXT_REFRESH = "Writs:RefreshActiveWrits"
 local WRIT_CONTEXT_SHOW = "Writs:ShowForCraftType"
 local Writs = BETTERUI.Writs
 
-local function TraceWrit(event, phase, data, category)
+-- Shared Writs tracer skeleton (BUI-CONS-002). Writ.lua owns BETTERUI.Writs and
+-- loads first, so Module.lua reuses this instead of a near-identical copy.
+function Writs.Trace(event, phase, data, category)
 	local L = BETTERUI.Log
 	if not (L and L.TraceEvent) then return end
 	data = data or {}
@@ -22,6 +24,7 @@ local function TraceWrit(event, phase, data, category)
 	data["function"] = data["function"] or data.fn
 	L.TraceEvent(category or L.CATEGORY.LIFECYCLE, event, phase, data)
 end
+local TraceWrit = Writs.Trace
 
 local function CurrentWritSceneName()
 	return SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
@@ -43,13 +46,15 @@ local function SetWritWatchView(label)
 	end
 end
 
-local function CountWritSnapshotEntries()
+-- Snapshot/visibility helpers shared with Module.lua (BUI-CONS-010).
+function Writs.CountWritSnapshotEntries()
 	local count = 0
 	for _ in pairs(Writs.List or {}) do
 		count = count + 1
 	end
 	return count
 end
+local CountWritSnapshotEntries = Writs.CountWritSnapshotEntries
 
 local function IsWritSnapshotPanelHidden(panel)
 	if not (panel and panel.IsHidden) then return nil end
@@ -57,7 +62,7 @@ local function IsWritSnapshotPanelHidden(panel)
 	return ok and hidden or nil
 end
 
-local function CountCompletedWritObjectives()
+function Writs.CountCompletedWritObjectives()
 	local count = 0
 	for _, writEntry in pairs(Writs.List or {}) do
 		local summary = writEntry and writEntry.objectiveSummary
@@ -67,15 +72,19 @@ local function CountCompletedWritObjectives()
 	end
 	return count
 end
+local CountCompletedWritObjectives = Writs.CountCompletedWritObjectives
 
-local function IsWritPanelVisible()
+function Writs.IsWritPanelVisible()
 	local panel = m_writsPanel or rawget(_G, "BETTERUI_WritsPanel")
 	local hidden = IsWritSnapshotPanelHidden(panel)
 	if hidden == nil then return nil end
 	return hidden ~= true
 end
+local IsWritPanelVisible = Writs.IsWritPanelVisible
 
-local function TraceWritState(trigger, craftType, data)
+-- Emits the writs.state trace with the active/completed/visibility snapshot
+-- (BUI-CONS-002 / BUI-CONS-010); shared with Module.lua.
+function Writs.TraceWritState(trigger, craftType, data)
 	data = data or {}
 	data.craftType = data.craftType or craftType
 	data.activeWritCount = data.activeWritCount or CountWritSnapshotEntries()
@@ -87,6 +96,7 @@ local function TraceWritState(trigger, craftType, data)
 	data.feature = data.feature or "writ-state"
 	TraceWrit("writs.state", "changed", data, BETTERUI.Log and BETTERUI.Log.CATEGORY.STATE)
 end
+local TraceWritState = Writs.TraceWritState
 
 local function RegisterWritSnapshotProvider()
 	local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode

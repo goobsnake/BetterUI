@@ -17,20 +17,9 @@ local Filters = TH.BrowseFilters
 -- Pending filter spec applied during the next ExecuteSearch.
 Filters.pendingSpec = nil
 
-local function TraceFilters(event, phase, data)
-    local L = BETTERUI and BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
-    data = data or {}
-    data.module = "TradingHouse"
-    data.feature = "browse-filters"
-    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
-    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if L.SetLastAction then
-        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
-    end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.SEARCH or categories.ACTION, event, phase, data)
-end
+local TraceFilters = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{ module = "TradingHouse", feature = "browse-filters", category = BETTERUI.Log.CATEGORY.SEARCH }
+    or function() end
 
 -- PURE HELPERS ----------------------------------------------------------------
 
@@ -90,38 +79,6 @@ function Filters.NormalizeLevelFilter(minLevel, maxLevel, isChampionRank)
     end
 
     return minLevel, maxLevel, isChampionRank == true
-end
-
---- Build a name-hash filter table from a completed MatchTradingHouseItemNames
---- task id. Returns nil when there are no usable results.
----@param taskId number|nil
----@return table|nil filter {filterType, values}
-function Filters.BuildNameHashFilter(taskId)
-    if not taskId then return nil end
-    if not GetNumMatchTradingHouseItemNamesResults then return nil end
-
-    local numResults = GetNumMatchTradingHouseItemNamesResults(taskId)
-    if not numResults or numResults <= 0 then return nil end
-
-    local maxExactTerms = (GetMaxTradingHouseFilterExactTerms
-        and GetMaxTradingHouseFilterExactTerms(TRADING_HOUSE_FILTER_TYPE_NAME_HASH))
-        or numResults
-
-    local hashes = {}
-    for i = 1, math.min(numResults, maxExactTerms) do
-        if GetMatchTradingHouseItemNamesResult then
-            local _, hash = GetMatchTradingHouseItemNamesResult(taskId, i)
-            if hash then
-                table.insert(hashes, hash)
-            end
-        end
-    end
-
-    if #hashes == 0 then return nil end
-    return {
-        filterType = TRADING_HOUSE_FILTER_TYPE_NAME_HASH,
-        values = hashes,
-    }
 end
 
 --- Apply a single filter table to a search object or directly to the engine.
@@ -309,36 +266,6 @@ local function ParseBoolean(text)
     return nil
 end
 
-local function ChainPriorDialogSetup(priorDialog, setup)
-    return function(dialog, ...)
-        if priorDialog and type(priorDialog.setup) == "function" then
-            priorDialog.setup(dialog, ...)
-        end
-        return setup(dialog, ...)
-    end
-end
-
-local function GetCurrentDialogInfo(dialogName)
-    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
-    if dialogs and type(dialogs.GetCurrentInfo) == "function" then
-        return dialogs.GetCurrentInfo(dialogName)
-    end
-    return nil
-end
-
-local function RegisterFilterDialog(dialogName, dialogInfo)
-    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
-    if not (dialogs and type(dialogs.Register) == "function") then
-        TraceFilters("trading_house.filters_dialog", "register_skipped", {
-            fn = "RegisterFilterDialog",
-            reason = "missingDialogRegistry",
-            dialogName = dialogName,
-        })
-        return false
-    end
-    return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
-end
-
 --- Registers and shows a first-cut filter-entry dialog. Numeric fields accept
 --- plain numbers; quality/category are choice indices. The maintainer can
 --- replace this with a polished gamepad UI later.
@@ -348,7 +275,8 @@ function Filters.ShowFilterDialog()
         return
     end
 
-    local priorDialog = GetCurrentDialogInfo(FILTER_DIALOG_NAME)
+    local Dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    local priorDialog = Dialogs and Dialogs.GetCurrentInfo and Dialogs.GetCurrentInfo(FILTER_DIALOG_NAME) or nil
     if not (priorDialog and priorDialog._betteruiTradingHouseFilterDialog) then
         local function AddTextField(labelKey, fieldKey, numeric)
             return {
@@ -397,9 +325,9 @@ function Filters.ShowFilterDialog()
             title = {
                 text = L("SI_BETTERUI_TH_FILTER_TITLE") or "Edit Search Filters",
             },
-            setup = ChainPriorDialogSetup(priorDialog, function(dialog)
+            setup = function(dialog)
                 dialog:setupFunc()
-            end),
+            end,
             parametricList = {
                 AddTextField("SI_BETTERUI_TH_FILTER_NAME", "nameText", false),
                 AddTextField("SI_BETTERUI_TH_FILTER_PRICE_MIN", "priceMin", true),
@@ -432,7 +360,7 @@ function Filters.ShowFilterDialog()
                 },
             },
         }
-        if not RegisterFilterDialog(FILTER_DIALOG_NAME, dialogInfo) then
+        if not (Dialogs and Dialogs.RegisterWithPriorChain and Dialogs.RegisterWithPriorChain(FILTER_DIALOG_NAME, dialogInfo)) then
             TraceFilters("trading_house.filters_dialog", "show_skipped", {
                 fn = "Filters.ShowFilterDialog",
                 reason = "registryRejected",

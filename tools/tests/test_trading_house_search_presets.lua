@@ -125,6 +125,22 @@ function BETTERUI.CIM.Dialogs.Register(name, info)
     return true
 end
 
+-- Mirrors CIM.Dialogs.RegisterWithPriorChain (BUI-CONS-007): register with
+-- prior-setup chaining; the harness only needs registration + return contract.
+function BETTERUI.CIM.Dialogs.RegisterWithPriorChain(name, info)
+    local prior = registeredDialogs[name]
+    if prior and prior.setup and info and info.setup then
+        local priorSetup = prior.setup
+        local ownSetup = info.setup
+        info.setup = function(...)
+            priorSetup(...)
+            return ownSetup(...)
+        end
+    end
+    registeredDialogs[name] = info
+    return true, prior
+end
+
 function ZO_Dialogs_ShowGamepadDialog(name, data)
     shownDialogs[#shownDialogs + 1] = { name = name, data = data }
 end

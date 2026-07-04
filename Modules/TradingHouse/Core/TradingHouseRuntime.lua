@@ -20,20 +20,9 @@ local TH_TABS = {
     { mode = MODE.LISTINGS, name = function() return GetString(rawget(_G, "SI_BETTERUI_TH_TAB_LISTINGS")) end },
 }
 
-local function TraceTHRuntime(event, phase, data)
-    local L = BETTERUI and BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
-    data = data or {}
-    data.module = "TradingHouse"
-    data.feature = data.feature or "trading-house"
-    data.scene = data.scene or (SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName()) or nil
-    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if L.SetLastAction then
-        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
-    end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.ACTION or categories.GENERAL, event, phase, data)
-end
+local TraceTHRuntime = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{ module = "TradingHouse", feature = "trading-house", category = BETTERUI.Log.CATEGORY.ACTION }
+    or function() end
 
 local function WrapTradingHouseKeybindGroup(group)
     local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
@@ -42,18 +31,6 @@ local function WrapTradingHouseKeybindGroup(group)
         return anchor.WrapGroup(group, "TradingHouse")
     end
     return group
-end
-
----@return THTabDef[] tabs
-function TH.GetTabs()
-    local tabs = {}
-    for index, tab in ipairs(TH_TABS) do
-        tabs[index] = {
-            mode = tab.mode,
-            name = tab.name,
-        }
-    end
-    return tabs
 end
 
 ---@param instance BETTERUI.TradingHouse.Class
@@ -166,8 +143,6 @@ function TH.RegisterSceneLifecycle(instance)
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
-            screen._suppressListUpdates = false
-            screen._isDirty = false
         end,
         onHidden = function(screen)
             local component = screen:GetActiveComponent()
@@ -204,17 +179,12 @@ function TH.BuildCoreKeybinds(thInstance)
                 if component and component.IsPrimaryActionEnabled then
                     return component:IsPrimaryActionEnabled(thInstance)
                 end
-                -- Match the components: focused row via GetTargetData first,
-                -- falling back to GetSelectedData.
-                local list = thInstance.list
-                local selectedData = nil
-                if list then
-                    if list.GetTargetData then
-                        selectedData = list:GetTargetData()
-                    else
-                        selectedData = list:GetSelectedData()
-                    end
-                end
+                -- Match the components: resolve the focused row through the
+                -- shared CIM helper (GetListTargetData alias, else SafeGetTargetData).
+                local getTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils
+                    and (BETTERUI.CIM.Utils.GetListTargetData or BETTERUI.CIM.Utils.SafeGetTargetData)
+                local selectedData = (type(getTargetData) == "function")
+                    and getTargetData(thInstance.list) or nil
                 return selectedData ~= nil
             end,
         },

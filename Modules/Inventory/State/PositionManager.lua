@@ -143,48 +143,39 @@ function BETTERUI.Inventory.SaveListPosition(self)
     BETTERUI.CIM.PositionManager.SavePosition(subModuleKey, key, currentList)
 
     -- Also update the fields that SwitchActiveList reads for restoration
+    -- The craft-bag and backpack branches saved to different field names but were
+    -- otherwise identical; drive both from the field-name set selected by isCraftBag.
+    local categoryKeyField, categoryIndexField, positionsByKeyField, uniqueByKeyField
     if isCraftBag then
-        self.savedCraftBagCategoryKey = key
-        self.savedCraftBagCategoryIndex = self.categoryList.selectedIndex
-        if currentList then
-            local selectedIndex = currentList.selectedIndex
-                or (currentList.list and currentList.list.selectedIndex)
-            if selectedIndex then
-                self.savedCraftBagPositionsByKey = self.savedCraftBagPositionsByKey or {}
-                self.savedCraftBagPositionsByKey[key] = selectedIndex
-            end
-            -- Save uniqueId for precise item restoration
-            local selectedData = currentList.selectedData
-                or (currentList.list and currentList.list.selectedData)
-            if selectedData then
-                local uid = (selectedData.dataSource and selectedData.dataSource.uniqueId)
-                    or selectedData.uniqueId
-                if uid then
-                    self.savedCraftBagSelectedItemUniqueByKey = self.savedCraftBagSelectedItemUniqueByKey or {}
-                    self.savedCraftBagSelectedItemUniqueByKey[key] = uid
-                end
-            end
-        end
+        categoryKeyField = "savedCraftBagCategoryKey"
+        categoryIndexField = "savedCraftBagCategoryIndex"
+        positionsByKeyField = "savedCraftBagPositionsByKey"
+        uniqueByKeyField = "savedCraftBagSelectedItemUniqueByKey"
     else
-        self.savedInventoryCategoryKey = key
-        self.savedInventoryCategoryIndex = self.categoryList.selectedIndex
-        if currentList then
-            local selectedIndex = currentList.selectedIndex
-                or (currentList.list and currentList.list.selectedIndex)
-            if selectedIndex then
-                self.savedInventoryPositionsByKey = self.savedInventoryPositionsByKey or {}
-                self.savedInventoryPositionsByKey[key] = selectedIndex
-            end
-            -- Save uniqueId for precise item restoration
-            local selectedData = currentList.selectedData
-                or (currentList.list and currentList.list.selectedData)
-            if selectedData then
-                local uid = (selectedData.dataSource and selectedData.dataSource.uniqueId)
-                    or selectedData.uniqueId
-                if uid then
-                    self.savedInventorySelectedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey or {}
-                    self.savedInventorySelectedItemUniqueByKey[key] = uid
-                end
+        categoryKeyField = "savedInventoryCategoryKey"
+        categoryIndexField = "savedInventoryCategoryIndex"
+        positionsByKeyField = "savedInventoryPositionsByKey"
+        uniqueByKeyField = "savedInventorySelectedItemUniqueByKey"
+    end
+
+    self[categoryKeyField] = key
+    self[categoryIndexField] = self.categoryList.selectedIndex
+    if currentList then
+        local selectedIndex = currentList.selectedIndex
+            or (currentList.list and currentList.list.selectedIndex)
+        if selectedIndex then
+            self[positionsByKeyField] = self[positionsByKeyField] or {}
+            self[positionsByKeyField][key] = selectedIndex
+        end
+        -- Save uniqueId for precise item restoration
+        local selectedData = currentList.selectedData
+            or (currentList.list and currentList.list.selectedData)
+        if selectedData then
+            local uid = (selectedData.dataSource and selectedData.dataSource.uniqueId)
+                or selectedData.uniqueId
+            if uid then
+                self[uniqueByKeyField] = self[uniqueByKeyField] or {}
+                self[uniqueByKeyField][key] = uid
             end
         end
     end

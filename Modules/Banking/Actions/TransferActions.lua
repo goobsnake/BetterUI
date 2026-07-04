@@ -70,22 +70,6 @@ local function WarnBankTransferBlocked(reason, bag, slot, extra)
     L.Warn(L.CATEGORY.TRANSFER, "bank transfer blocked", extra)
 end
 
----@return BetterUIBankingTransferContext
-local function ReadTransferContextSnapshot()
-    local readTransferContextSnapshot = BETTERUI.Banking and BETTERUI.Banking.ReadTransferContextSnapshot or nil
-    if type(readTransferContextSnapshot) == "function" then
-        return readTransferContextSnapshot()
-    end
-    return {
-        kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
-        interactionBag = BAG_BANK,
-        depositTargetBag = BAG_BANK,
-        withdrawSourceBags = { BAG_BANK, BAG_SUBSCRIBER_BANK },
-        sourceIsFurnitureVault = false,
-        targetIsFurnitureVault = false,
-    }
-end
-
 local function RequireTransferService()
     local requireTransferService = BETTERUI.Banking and BETTERUI.Banking.RequireTransferService or nil
     if type(requireTransferService) ~= "function" then
@@ -117,13 +101,7 @@ local function RefreshBankListAfterTransfer(self, delayMs, flow, options)
         })
     end
 
-    local previousCategoryKey
-    if self.GetCurrentCategoryKey then
-        previousCategoryKey = self:GetCurrentCategoryKey()
-    elseif self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
-        local prevCat = self.bankCategories[self.currentCategoryIndex]
-        previousCategoryKey = prevCat and prevCat.key or nil
-    end
+    local previousCategoryKey = BETTERUI.Banking.ResolveWindowCategoryKey(self)
 
     BETTERUI.Banking.Tasks:Schedule("moveCoalesce", delayMs or BETTERUI.CIM.CONST.TIMING.MOVE_COALESCE_DELAY_MS,
         function()
@@ -202,7 +180,7 @@ end
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank(targetBankBag)
     if targetBankBag == nil then
-        targetBankBag = ReadTransferContextSnapshot().depositTargetBag or BAG_BANK
+        targetBankBag = BETTERUI.Banking.ReadTransferContextSnapshot().depositTargetBag or BAG_BANK
     end
 
     if targetBankBag == BAG_BANK then
@@ -224,31 +202,6 @@ local function FindEmptySlotInBank(targetBankBag)
         return targetBankBag, emptySlotIndex
     end
     return nil, nil
-end
-
-local function IsActionableBankSlotEntry(entryData)
-    local isActionableTransferEntry = BETTERUI.Banking and BETTERUI.Banking.IsActionableTransferEntry or nil
-    if type(isActionableTransferEntry) == "function" then
-        return isActionableTransferEntry(entryData)
-    end
-
-    if not entryData then
-        return false
-    end
-    if ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated and
-        ZO_GamepadBanking.IsEntryDataCurrencyRelated(entryData) then
-        return false
-    end
-
-    local rawData = entryData.dataSource or entryData
-    local bagId = rawData and rawData.bagId or nil
-    local slotIndex = rawData and rawData.slotIndex or nil
-    if bagId == nil or slotIndex == nil then
-        return false
-    end
-
-    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
-    return stackCount > 0
 end
 
 ---@param targetBankBag number
@@ -349,7 +302,7 @@ function BETTERUI.Banking.TryTransferInventorySlot(inventorySlot)
     end
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    local transferContext = ReadTransferContextSnapshot()
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     local isGuildBankMode = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "try transfer inventory slot", {
@@ -906,7 +859,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
-    local transferContext = ReadTransferContextSnapshot()
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     local transferService, transferServiceReason = RequireTransferService()
     if not transferService then
         TraceBankTransfer("bank.item_transfer", "skipped", fromBag, fromBagIndex, {
@@ -954,7 +907,7 @@ end
 function BETTERUI.Banking.Class:ShowActions()
     local list = self:GetList()
     local targetData = list and list.selectedData or nil
-    if not IsActionableBankSlotEntry(targetData) then
+    if not BETTERUI.Banking.IsActionableTransferEntry(targetData) then
         return
     end
     local bagId, slotIndex

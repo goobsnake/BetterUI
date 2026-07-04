@@ -100,9 +100,8 @@ function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
 end
 
 --- Counts craft bag items for every filter type in a single pass for the
---- category badges. Single-pass replacement for calling
---- GetCraftBagCategoryItemCount once per category: each item is bucketed by
---- its filterData entries, which is exactly the membership test
+--- category badges (replacing a per-category counting call): each item is
+--- bucketed by its filterData entries, which is exactly the membership test
 --- ZO_InventoryUtils_DoesNewItemMatchFilterType applies for non-nil filters.
 ---@return table<number, number> countsByFilterType Item counts keyed by filter type
 ---@return number totalCount Total craft bag item count (the "All" category)
@@ -134,23 +133,4 @@ function BETTERUI.Inventory.Class:GetCraftBagCategoryItemCounts()
         end
     end
     return countsByFilterType, totalCount
-end
-
---- Counts items in the Craft Bag matching a filter type for category badge display.
----@param filterType number|nil Filter type constant, or nil for all items
----@return number count Number of items matching the filter
-function BETTERUI.Inventory.Class:GetCraftBagCategoryItemCount(filterType)
-    local count = 0
-    local virtualItems = SHARED_INVENTORY:GetBagCache(BAG_VIRTUAL)
-    if virtualItems then
-        for _, itemData in pairs(virtualItems) do
-            if filterType == nil then
-                -- "All" category - count everything
-                count = count + 1
-            elseif ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, filterType) then
-                count = count + 1
-            end
-        end
-    end
-    return count
 end

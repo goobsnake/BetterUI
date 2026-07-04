@@ -34,20 +34,9 @@ local function L(stringIdName)
     return GetString(rawget(_G, stringIdName) or stringIdName)
 end
 
-local function TracePresets(event, phase, data)
-    local log = BETTERUI and BETTERUI.Log
-    if not (log and log.TraceEvent) then return end
-    data = data or {}
-    data.module = "TradingHouse"
-    data.feature = "search-presets"
-    data.scene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
-    data.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if log.SetLastAction then
-        log.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
-    end
-    local categories = log.CATEGORY or {}
-    log.TraceEvent(categories.SEARCH or categories.ACTION, event, phase, data)
-end
+local TracePresets = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{ module = "TradingHouse", feature = "search-presets", category = BETTERUI.Log.CATEGORY.SEARCH }
+    or function() end
 
 -- PRESET STORAGE
 
@@ -198,46 +187,13 @@ end
 local SAVE_DIALOG_NAME = "BETTERUI_TH_SAVE_SEARCH_PRESET"
 local LOAD_DIALOG_NAME = "BETTERUI_TH_LOAD_SEARCH_PRESET"
 
-local function GetCurrentDialogInfo(dialogName)
-    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
-    if dialogs and type(dialogs.GetCurrentInfo) == "function" then
-        return dialogs.GetCurrentInfo(dialogName)
-    end
-    return nil
-end
-
-local function RegisterPresetDialog(dialogName, markerKey, dialogInfo)
-    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
-    if not (dialogs and type(dialogs.Register) == "function") then
-        TracePresets("trading_house.presets_dialog", "register_skipped", {
-            fn = "RegisterPresetDialog",
-            dialogName = dialogName,
-            reason = "missingDialogRegistry",
-        })
-        return false
-    end
-    local priorDialog = GetCurrentDialogInfo(dialogName)
-    if priorDialog and priorDialog[markerKey] then
-        return true
-    end
-    local setup = dialogInfo.setup
-    if priorDialog and type(priorDialog.setup) == "function" then
-        dialogInfo.setup = function(dialog, ...)
-            priorDialog.setup(dialog, ...)
-            if type(setup) == "function" then
-                return setup(dialog, ...)
-            end
-        end
-    end
-    dialogInfo[markerKey] = true
-    return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
-end
-
 --- Registers and shows the save-preset dialog (text input for name).
 function Presets.ShowSaveDialog()
-    local saveDialog = GetCurrentDialogInfo(SAVE_DIALOG_NAME)
+    local Dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    local saveDialog = Dialogs and Dialogs.GetCurrentInfo and Dialogs.GetCurrentInfo(SAVE_DIALOG_NAME) or nil
     if not (saveDialog and saveDialog._betteruiTradingHouseSavePresetDialog) then
-        if not RegisterPresetDialog(SAVE_DIALOG_NAME, "_betteruiTradingHouseSavePresetDialog", {
+        local registered = Dialogs and Dialogs.RegisterWithPriorChain and Dialogs.RegisterWithPriorChain(SAVE_DIALOG_NAME, {
+            _betteruiTradingHouseSavePresetDialog = true,
             canQueue = true,
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
@@ -288,7 +244,8 @@ function Presets.ShowSaveDialog()
                     end,
                 },
             },
-        }) then
+        })
+        if not registered then
             TracePresets("trading_house.presets_dialog", "save_show_skipped", {
                 fn = "Presets.ShowSaveDialog",
                 reason = "registryRejected",
@@ -303,9 +260,11 @@ end
 
 --- Registers and shows the load-preset dialog (list of saved presets).
 function Presets.ShowLoadDialog()
-    local loadDialog = GetCurrentDialogInfo(LOAD_DIALOG_NAME)
+    local Dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    local loadDialog = Dialogs and Dialogs.GetCurrentInfo and Dialogs.GetCurrentInfo(LOAD_DIALOG_NAME) or nil
     if not (loadDialog and loadDialog._betteruiTradingHouseLoadPresetDialog) then
-        if not RegisterPresetDialog(LOAD_DIALOG_NAME, "_betteruiTradingHouseLoadPresetDialog", {
+        local registered = Dialogs and Dialogs.RegisterWithPriorChain and Dialogs.RegisterWithPriorChain(LOAD_DIALOG_NAME, {
+            _betteruiTradingHouseLoadPresetDialog = true,
             canQueue = true,
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
@@ -394,7 +353,8 @@ function Presets.ShowLoadDialog()
                     end,
                 },
             },
-        }) then
+        })
+        if not registered then
             TracePresets("trading_house.presets_dialog", "load_show_skipped", {
                 fn = "Presets.ShowLoadDialog",
                 reason = "registryRejected",

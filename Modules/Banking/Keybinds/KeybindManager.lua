@@ -9,83 +9,6 @@ local function GetCurrencySelector()
     return BETTERUI.Banking and BETTERUI.Banking.CurrencySelector
 end
 
-local function RemoveKeybindGroupIfPresent(descriptor)
-    local removeGroup = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent
-    if type(removeGroup) == "function" then
-        return removeGroup(descriptor)
-    end
-    return false
-end
-
-local function EnsureKeybindGroupAdded(descriptor)
-    local ensureGroup = BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded
-    if type(ensureGroup) == "function" then
-        return ensureGroup(descriptor)
-    end
-    return false
-end
-
-local function UpdateKeybindGroup(descriptor)
-    local updateGroup = BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup
-    if type(updateGroup) == "function" then
-        return updateGroup(descriptor)
-    end
-    return false
-end
-
-local function GetEntryBagAndSlot(entryData)
-    local resolveListEntrySlot = BETTERUI.Banking and BETTERUI.Banking.ResolveListEntrySlot or nil
-    if type(resolveListEntrySlot) == "function" then
-        local bagId, slotIndex = resolveListEntrySlot(entryData)
-        return bagId, slotIndex
-    end
-
-    local rawData = entryData and (entryData.dataSource or entryData) or nil
-    if not rawData then
-        return nil, nil
-    end
-    return rawData.bagId, rawData.slotIndex
-end
-
-local function IsActionableListEntry(entryData)
-    local isActionableTransferEntry = BETTERUI.Banking and BETTERUI.Banking.IsActionableTransferEntry or nil
-    if type(isActionableTransferEntry) == "function" then
-        return isActionableTransferEntry(entryData)
-    end
-
-    if not entryData then
-        return false
-    end
-    if ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated and
-        ZO_GamepadBanking.IsEntryDataCurrencyRelated(entryData) then
-        return false
-    end
-
-    local bagId, slotIndex = GetEntryBagAndSlot(entryData)
-    if bagId == nil or slotIndex == nil then
-        return false
-    end
-
-    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
-    return stackCount > 0
-end
-
----@return BetterUIBankingTransferContext
-local function ReadTransferContextSnapshot()
-    local readTransferContextSnapshot = BETTERUI.Banking and BETTERUI.Banking.ReadTransferContextSnapshot or nil
-    if type(readTransferContextSnapshot) == "function" then
-        return readTransferContextSnapshot()
-    end
-    return {
-        kind = BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK,
-        interactionBag = BAG_BANK,
-        depositTargetBag = BAG_BANK,
-        withdrawSourceBags = { BAG_BANK, BAG_SUBSCRIBER_BANK },
-        sourceIsFurnitureVault = false,
-        targetIsFurnitureVault = false,
-    }
-end
-
 local function GetSelectedBankEntry(self)
     local list = self.list or (self.GetList and self:GetList()) or nil
     return list and list:GetSelectedData() or nil
@@ -115,7 +38,7 @@ local ResolveGuildBankTransferKeybindState
 ---@return boolean isGuildBankMode
 ---@return boolean isMainBankContext
 local function ResolveKeybindTransferContext(self)
-    local transferContext = ReadTransferContextSnapshot()
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     local isGuildBankMode = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
     local isMainBankContext = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_MAIN_BANK
         and transferContext.interactionBag == BAG_BANK
@@ -291,7 +214,7 @@ local function CanUseTransferPolicy(self, bagId, slotIndex)
         return true
     end
 
-    local transferContext = ReadTransferContextSnapshot()
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
     local targetBag = transferContext and transferContext.depositTargetBag or BAG_BANK
     local transferService = BETTERUI.Banking and BETTERUI.Banking.GetTransferService and BETTERUI.Banking.GetTransferService()
     local canDepositIntoBank = transferService and transferService.CanDepositIntoBank or nil
@@ -319,7 +242,7 @@ local function CanUsePrimaryTransfer(self)
     end
 
     local selectedData = GetSelectedBankEntry(self)
-    local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
+    local bagId, slotIndex = BETTERUI.Banking.ResolveListEntrySlot(selectedData)
     local hasSelection = self.list and not self.list:IsEmpty() and selectedData ~= nil and bagId ~= nil and slotIndex ~= nil
     if not hasSelection then
         TraceBankKeybind("bank.primary_transfer", "blocked", {
@@ -412,12 +335,12 @@ local function CreateCoreNavigationKeybinds(self)
                     self:ClearSearchInput()
                 end
                 if self.textSearchKeybindStripDescriptor then
-                    RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
+                    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
                 end
                 if self.coreKeybinds then
-                    RemoveKeybindGroupIfPresent(self.coreKeybinds)
-                    EnsureKeybindGroupAdded(self.coreKeybinds)
-                    UpdateKeybindGroup(self.coreKeybinds)
+                    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
+                    BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
+                    BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
                 end
                 self:RefreshActiveKeybinds()
             end,
@@ -539,7 +462,7 @@ local function CreateCoreNavigationKeybinds(self)
                 if IsSelectionToggleMode(self) then
                     return self.multiSelectManager:HasSelections()
                 end
-                return IsActionableListEntry(GetSelectedBankEntry(self))
+                return BETTERUI.Banking.IsActionableTransferEntry(GetSelectedBankEntry(self))
             end,
             callback = function()
                 if self:IsBatchProcessing() then
@@ -551,7 +474,7 @@ local function CreateCoreNavigationKeybinds(self)
                     return
                 end
                 local selectedData = GetSelectedBankEntry(self)
-                if not IsActionableListEntry(selectedData) then
+                if not BETTERUI.Banking.IsActionableTransferEntry(selectedData) then
                     return
                 end
                 self:SaveListPosition()
@@ -586,7 +509,7 @@ local function CreateCoreNavigationKeybinds(self)
                     })
                     return
                 end
-                local transferContext = ReadTransferContextSnapshot()
+                local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
                 local transferSourceBankBag = transferContext.interactionBag or BAG_BANK
                 local targetBags = {}
                 if self.currentMode == LIST_WITHDRAW then
@@ -647,7 +570,7 @@ local function CreateCoreNavigationKeybinds(self)
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
                 local selectedData = GetSelectedBankEntry(self)
-                if not IsActionableListEntry(selectedData) then
+                if not BETTERUI.Banking.IsActionableTransferEntry(selectedData) then
                     return false
                 end
                 return self.list and not self.list:IsEmpty()
@@ -706,7 +629,7 @@ local function CreateTransferKeybinds(self)
                 if selectedData then
                     local stackCount = selectedData.stackCount or 1
                     local _, isGuildBankMode = ResolveKeybindTransferContext(self)
-                    local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
+                    local bagId, slotIndex = BETTERUI.Banking.ResolveListEntrySlot(selectedData)
                     LogBankKeybindState("bank primary transfer invoked", {
                         bag = bagId,
                         slot = slotIndex,
@@ -867,7 +790,7 @@ local function CreateCurrencySelectorKeybinds(self)
                     currencySelector.HideSelector(self)
                 end
                 self:RefreshFooter()
-                UpdateKeybindGroup(self.coreKeybinds)
+                BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
                 EndCurrencyTransferFlow(flow, "bank currency transfer completed", AddCurrencySnapshotFields({
                     currencyType = currencyType,
                     amount = amount,
@@ -900,7 +823,7 @@ local function CreateCurrencySelectorKeybinds(self)
                         end
                         if self.coreKeybinds then
                             local okKeybind, keybindErr = pcall(function()
-                                UpdateKeybindGroup(self.coreKeybinds)
+                                BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
                             end)
                             if okKeybind then
                                 keybindRefresh = "core"
@@ -1001,7 +924,7 @@ end
 ResolveGuildBankTransferKeybindState = function(self)
     local selectedData = self.list and self.list:GetSelectedData()
     local _, isGuildBankMode = ResolveKeybindTransferContext(self)
-    if not (isGuildBankMode and IsActionableListEntry(selectedData)) then
+    if not (isGuildBankMode and BETTERUI.Banking.IsActionableTransferEntry(selectedData)) then
         return true, nil
     end
 
@@ -1014,7 +937,7 @@ ResolveGuildBankTransferKeybindState = function(self)
         return true, nil
     end
 
-    local bagId, slotIndex = GetEntryBagAndSlot(selectedData)
+    local bagId, slotIndex = BETTERUI.Banking.ResolveListEntrySlot(selectedData)
     local mode = self.currentMode == LIST_WITHDRAW and LIST_WITHDRAW or LIST_DEPOSIT
     local allowed, _, denialText = resolveDecision(mode, bagId, slotIndex)
     return allowed, denialText
@@ -1083,7 +1006,7 @@ function BETTERUI.Banking.Class:UpdateActions()
 
     -- Set itemActions only for actionable inventory items.
     -- Faux rows (currency/header/empty labels) can crash ESO slot action discovery.
-    if not IsActionableListEntry(targetData) then
+    if not BETTERUI.Banking.IsActionableTransferEntry(targetData) then
         self.itemActions:SetInventorySlot(nil)
         TraceBankKeybind("bank.item_actions", "cleared", {
             reason = "nonActionableSelection",
@@ -1110,12 +1033,12 @@ function BETTERUI.Banking.Class:AddKeybinds()
         search = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.textSearchKeybindStripDescriptor, "search") or nil,
     })
     if self.textSearchKeybindStripDescriptor then
-        RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
-    RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
-    RemoveKeybindGroupIfPresent(self.coreKeybinds)
-    EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
-    EnsureKeybindGroupAdded(self.coreKeybinds)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
+    BETTERUI.Interface.EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
+    BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
     self:UpdateActions()
     self:EnsureHeaderKeybindsActive()
     TraceBankKeybind("bank.keybind_groups.keybind_add", "end", {
@@ -1140,8 +1063,8 @@ function BETTERUI.Banking.Class:RemoveKeybinds()
         core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         transfer = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.withdrawDepositKeybinds, "transfer") or nil,
     })
-    RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
-    RemoveKeybindGroupIfPresent(self.coreKeybinds)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
     TraceBankKeybind("bank.keybind_groups.keybind_remove", "end", {
         mode = self.currentMode,
         core = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptors and BETTERUI.Log.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,

@@ -3,10 +3,9 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 local GeneralInterface = BETTERUI.GeneralInterface
 GeneralInterface.Settings = GeneralInterface.Settings or {}
 
-local function GetCurrentSceneName()
-	local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
-	return utils and utils.GetCurrentSceneName and utils.GetCurrentSceneName() or nil
-end
+-- Scene name via the shared CIM utility (BUI-CONS-003).
+local GetCurrentSceneName = (BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.GetCurrentSceneName)
+	or function() return nil end
 
 local function TraceGeneralInterface(event, phase, data, category)
 	local L = BETTERUI and BETTERUI.Log or nil

@@ -57,31 +57,21 @@ local function ResolveBatchOptions(batchOptions)
 end
 Internal.ResolveBatchOptions = ResolveBatchOptions
 
+-- BUI-CONS-008: authorization assert-wrapper unified in Vendor.AuthorizeAction
+-- (batch actions authorize against the active Vendor.instance).
 local function AuthorizeVendorInventoryAction(actionType, bagId, slotIndex)
-    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
-    assert(type(authorizeInventoryAction) == "function",
-        "Vendor.AuthorizeInventoryAction must load before Vendor batch inventory actions")
-    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, Vendor.instance)
-    return allowed == true, reason
+    return Vendor.AuthorizeAction(actionType, bagId, slotIndex, Vendor.instance)
 end
 
 local function IsSellMode(mode)
     return mode == MODE.SELL or (MODE.SELL_VENGEANCE ~= nil and mode == MODE.SELL_VENGEANCE)
 end
 
---- True when carried gold is at the wallet maximum. Selling for gold while at
---- the cap fails server-side, so a regular-sell batch must halt before issuing
---- doomed SellInventoryItem calls. Mirrors SellComponent's IsAtGoldCap (and the
---- native ZO_GamepadStoreSell:CanSell gate); fence sell/launder do NOT use this
---- because stolen-goods sales do not credit the seller's gold wallet.
----@return boolean atCap
+-- BUI-CONS-008: gold-cap detection is unified in Vendor.IsAtGoldCap. A
+-- regular-sell batch must halt before issuing doomed SellInventoryItem calls;
+-- fence sell/launder do NOT use this (stolen-goods sales do not credit gold).
 local function IsAtGoldCap()
-    if type(GetMaxPossibleCurrency) ~= "function" then
-        return false
-    end
-    local carried = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
-    local maxPossible = GetMaxPossibleCurrency(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
-    return maxPossible > 0 and carried >= maxPossible
+    return Vendor.IsAtGoldCap()
 end
 
 local function DescribeBatchItem(ds)
@@ -193,28 +183,9 @@ function BatchRuntime.ExecuteBatchAction(mode, itemData)
         end
         local vendorInstance = Vendor.instance
         if vendorInstance then
-            -- Mirror BuyComponent: gold and alt-currency charges are
-            -- independent (alt-currency entries report price == 0, not nil).
-            local price = ds.price or 0
-            if price > 0 then
-                local currencyType = ds.currencyType or CURT_MONEY
-                if currencyType == CURT_NONE then
-                    currencyType = CURT_MONEY
-                end
-                if not vendorInstance:CanAfford(price, currencyType) then
-                    return batchStepSkipped()
-                end
-            end
-            local price1 = ds.currencyQuantity1 or 0
-            local currencyType1 = ds.currencyType1
-            if price1 > 0 and currencyType1 and currencyType1 ~= CURT_NONE
-                and not vendorInstance:CanAfford(price1, currencyType1) then
-                return batchStepSkipped()
-            end
-            local price2 = ds.currencyQuantity2 or 0
-            local currencyType2 = ds.currencyType2
-            if price2 > 0 and currencyType2 and currencyType2 ~= CURT_NONE
-                and not vendorInstance:CanAfford(price2, currencyType2) then
+            -- BUI-CONS-008: store-entry affordability is unified in
+            -- Vendor.CanAffordStoreEntry (independent gold/alt-currency charges).
+            if not Vendor.CanAffordStoreEntry(vendorInstance, ds) then
                 return batchStepSkipped()
             end
             -- CanCarry mirrors native CanCarry: craft-bag-virtual items and

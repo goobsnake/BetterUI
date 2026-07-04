@@ -6,16 +6,10 @@ local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
 
-local function RegisterBankingWatchScenes(watch)
-    if not (watch and watch.RegisterViewScene) then return end
-    watch.RegisterViewScene("banking", BETTERUI_BANKING_SCENE_NAME or "gamepad_banking")
-    watch.RegisterViewScene("banking", BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING")
-end
-
 local function SetBankingWatchView(mode)
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
     if not (watch and type(watch.SetView) == "function") then return end
-    RegisterBankingWatchScenes(watch)
+    BETTERUI.Banking.RegisterWatchScenes(watch)
     watch.SetView(mode == LIST_WITHDRAW and "banking.withdraw" or "banking.deposit")
 end
 
@@ -156,19 +150,8 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 
     self:SaveListPosition()
 
-    -- Capture the category KEY from CURRENT mode before switching
-    local prevCategoryKey = nil
-    if self.GetCurrentCategoryKey then
-        prevCategoryKey = self:GetCurrentCategoryKey()
-    else
-        local prevCategoryIndex = self.currentCategoryIndex or 1
-        if self.bankCategories and prevCategoryIndex <= #self.bankCategories then
-            local prevCat = self.bankCategories[prevCategoryIndex]
-            if prevCat then
-                prevCategoryKey = prevCat.key
-            end
-        end
-    end
+    -- Capture the category KEY from CURRENT mode before switching (BUI-CONS-004)
+    local prevCategoryKey = BETTERUI.Banking.ResolveWindowCategoryKey(self)
 
     self.currentMode = toWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
     SetBankingWatchView(self.currentMode)

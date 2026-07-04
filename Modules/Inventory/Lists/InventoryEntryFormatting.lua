@@ -352,21 +352,8 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     end
 
     local dataSource = data.dataSource
-    local function IsQuestSlotType(slotType)
-        return SLOT_TYPE_QUEST_ITEM ~= nil and slotType == SLOT_TYPE_QUEST_ITEM
-    end
-
-    local function IsQuestUniqueId(uniqueId)
-        return type(uniqueId) == "string" and uniqueId:find("^quest:") ~= nil
-    end
-
-    local isQuestEntry = data.isQuestItem == true
-        or dataSource.isQuestItem == true
-        or dataSource.questIndex ~= nil
-        or IsQuestSlotType(data.slotType)
-        or IsQuestSlotType(dataSource.slotType)
-        or IsQuestUniqueId(data.uniqueId)
-        or IsQuestUniqueId(dataSource.uniqueId)
+    -- Shared intrinsic quest-marker check (this path has no native filter fallback).
+    local isQuestEntry = BETTERUI.Inventory.Utils.HasQuestItemMarkers(data)
     local hasEquippedVisualState = data.isEquippedInCurrentCategory == true
         or data.isEquippedInAnotherCategory == true
         or data.equipSlot ~= nil

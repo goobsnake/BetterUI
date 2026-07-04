@@ -59,36 +59,6 @@ local function L(stringIdName)
     return GetString(rawget(_G, stringIdName) or stringIdName)
 end
 
-local function GetCurrentDialogInfo(dialogName)
-    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
-    if dialogs and type(dialogs.GetCurrentInfo) == "function" then
-        return dialogs.GetCurrentInfo(dialogName)
-    end
-    return nil
-end
-
-local function RegisterPriceDialog(dialogName, dialogInfo)
-    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
-    if not (dialogs and type(dialogs.Register) == "function") then
-        TracePriceEntry("trading_house.price_entry", "register_skipped", {
-            fn = "RegisterPriceDialog",
-            reason = "missingDialogRegistry",
-            dialog = dialogName,
-        }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
-        return false
-    end
-    return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
-end
-
-local function ChainPriorDialogSetup(priorDialog, setup)
-    return function(dialog, ...)
-        if priorDialog and type(priorDialog.setup) == "function" then
-            priorDialog.setup(dialog, ...)
-        end
-        return setup(dialog, ...)
-    end
-end
-
 --- Show a first-cut digit-spinner price selector. onConfirm receives the
 --- clamped price chosen by the player.
 ---@param defaultPrice number
@@ -124,7 +94,8 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
     maxPrice = tonumber(maxPrice) or (MAX_PLAYER_CURRENCY or 999999999)
     defaultPrice = PriceEntry.ClampListingPrice(defaultPrice, minPrice, maxPrice)
 
-    local priorDialog = GetCurrentDialogInfo(DIGIT_PRICE_DIALOG)
+    local Dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    local priorDialog = Dialogs and Dialogs.GetCurrentInfo and Dialogs.GetCurrentInfo(DIGIT_PRICE_DIALOG) or nil
     if not (priorDialog and priorDialog._betteruiTradingHouseDigitPriceDialog) then
         local dialogInfo = {
             _betteruiTradingHouseDigitPriceDialog = true,
@@ -135,9 +106,21 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
             title = {
                 text = L("SI_BETTERUI_TH_PRICE_LABEL") or "SI_TRADING_HOUSE_POSTING_PRICE",
             },
-            setup = ChainPriorDialogSetup(priorDialog, function(dialog)
+            -- Balance ZO_CurrencySelector_Gamepad activation: the parametric row
+            -- deactivates the selector on unfocus, but a dialog dismissed while
+            -- the row is focused may not fire that unfocus. Deactivate on close
+            -- so input capture is always released (mirrors the create-listing
+            -- dialog's _activeSlider teardown).
+            finishedCallback = function(dialog)
+                local dialogData = dialog and dialog.data
+                if dialogData and dialogData._priceSelector and dialogData._priceSelector.Deactivate then
+                    dialogData._priceSelector:Deactivate()
+                    dialogData._priceSelector = nil
+                end
+            end,
+            setup = function(dialog)
                 dialog:setupFunc()
-            end),
+            end,
             parametricList = {
                 {
                     template = "ZO_GamepadCurrencySelectorTemplate",
@@ -212,7 +195,7 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
                 },
             },
         }
-        if not RegisterPriceDialog(DIGIT_PRICE_DIALOG, dialogInfo) then
+        if not (Dialogs and Dialogs.RegisterWithPriorChain and Dialogs.RegisterWithPriorChain(DIGIT_PRICE_DIALOG, dialogInfo)) then
             TracePriceEntry("trading_house.price_entry", "show_rejected", {
                 fn = "TradingHouse.PriceEntry.ShowDigitPriceDialog",
                 reason = "registryRejected",

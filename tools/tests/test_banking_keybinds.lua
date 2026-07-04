@@ -297,6 +297,27 @@ BETTERUI = {
         ReadTransferContextSnapshot = function()
             return BETTERUI.Banking.GetTransferContext()
         end,
+        ResolveListEntrySlot = function(entryData)
+            local rawData = entryData and (entryData.dataSource or entryData) or nil
+            if not rawData then return nil, nil, nil end
+            local bagId = rawData.bagId
+            local slotIndex = rawData.slotIndex
+            if bagId == nil or slotIndex == nil then return nil, nil, rawData end
+            return bagId, slotIndex, rawData
+        end,
+        IsActionableTransferEntry = function(entryData)
+            if not entryData then return false end
+            if ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated
+                and ZO_GamepadBanking.IsEntryDataCurrencyRelated(entryData) then
+                return false
+            end
+            local rawData = entryData.dataSource or entryData
+            local bagId = rawData and rawData.bagId or nil
+            local slotIndex = rawData and rawData.slotIndex or nil
+            if bagId == nil or slotIndex == nil then return false end
+            local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+            return stackCount > 0
+        end,
         GetTransferService = function()
             return BETTERUI.Banking.Transfer
         end,

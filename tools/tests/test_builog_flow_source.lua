@@ -69,11 +69,13 @@ print("\n=== builog flow instrumentation source contract ===\n")
 
 local slotActions = readFile("Modules/Inventory/Actions/SlotActions.lua")
 local itemActions = readFile("Modules/Inventory/Actions/ItemActionHandlers.lua")
+local dialogRestore = readFile("Modules/CIM/Dialogs/DialogRestore.lua")
 local destroyAction = readFile("Modules/Inventory/Actions/DestroyAction.lua")
 local actionHooks = readFile("Modules/Inventory/Actions/ActionDialogHooks.lua")
 local transferActions = readFile("Modules/Banking/Actions/TransferActions.lua")
 local inventory = readFile("Modules/Inventory/Inventory.lua")
 local banking = readFile("Modules/Banking/Banking.lua")
+local bankingClass = readFile("Modules/Banking/Core/BankingClass.lua")
 local keybinds = readFile("Modules/Inventory/Core/InventoryClass.lua")
 local inventorySceneLifecycle = readFile("Modules/Inventory/Scene/InventorySceneLifecycle.lua")
 local inventoryKeybinds = readFile("Modules/Inventory/Keybinds/InventoryKeybinds.lua")
@@ -507,10 +509,11 @@ check(watchMode:find("function Watch.RegisterViewScene", 1, true) ~= nil
     and watchMode:find('view:sub(1, 8) == "banking."', 1, true) == nil,
     "watch mode uses registered view/scene pairs instead of hardcoded inventory/banking branches")
 check(inventory:find('RegisterViewScene("inventory"', 1, true) ~= nil
-    and banking:find('RegisterViewScene("banking"', 1, true) ~= nil
-    and banking:find("BETTERUI_GUILD_BANKING_SCENE_NAME", 1, true) ~= nil
+    and bankingClass:find('RegisterViewScene("banking"', 1, true) ~= nil
+    and bankingClass:find("BETTERUI_GUILD_BANKING_SCENE_NAME", 1, true) ~= nil
+    and banking:find("BETTERUI.Banking.RegisterWatchScenes", 1, true) ~= nil
     and inventoryState:find('RegisterViewScene("inventory"', 1, true) ~= nil
-    and bankingState:find('RegisterViewScene("banking"', 1, true) ~= nil,
+    and bankingState:find("BETTERUI.Banking.RegisterWatchScenes", 1, true) ~= nil,
     "inventory and banking register their watch view scene pairs before setting views")
 check(inventoryState:find("SetInventoryWatchView", 1, true) ~= nil
     and bankingState:find("SetBankingWatchView", 1, true) ~= nil,
@@ -534,14 +537,14 @@ check(keybinds:find("inventory dialog restore complete", 1, true) ~= nil
     "dialog restore attempts log their eventual state/keybind outcome")
 check(itemActions:find("pendingHeaderSort", 1, true) ~= nil
     and bankingActions:find("pendingHeaderSort", 1, true) ~= nil
-    and itemActions:find('"inventory.action_dialog.restore"', 1, true) ~= nil,
+    and dialogRestore:find('"inventory.action_dialog.restore"', 1, true) ~= nil,
     "sort action-dialog handoff avoids transient keybind restore and logs restore state")
 check(headerSortIntegration:find("header sort list preserved", 1, true) ~= nil
     and headerSortIntegration:find("suspendList", 1, true) ~= nil,
     "header sort mode logs list preservation and keeps list suspension explicitly opt-in")
 check(itemActions:find("inventory dialog finish restore waiting", 1, true) ~= nil
     and keybinds:find("inventory dialog restore waiting", 1, true) ~= nil
-    and keybinds:find("inventoryDialogRestoreSequence", 1, true) ~= nil,
+    and keybinds:find("sequenceKey", 1, true) ~= nil,
     "dialog restore retry waits and unique task names are observable")
 check(keybinds:find("hasStrip", 1, true) ~= nil and keybinds:find("updated =", 1, true) ~= nil,
     "inventory keybind logs distinguish missing strip from successful update")
@@ -705,17 +708,19 @@ check(vendorRepair:find('"vendor.repair"', 1, true) ~= nil
     "vendor repair, repair-all confirmation, and batch ack/step progression are traceable")
 check(vendorBuy:find('"vendor.buy"', 1, true) ~= nil
     and vendorBuy:find('"blocked"', 1, true) ~= nil
-    and vendorBuy:find('Vendor.TraceActionRequested("vendor.buy"', 1, true) ~= nil
-    and vendorBuy:find('Vendor.ScheduleActionSettled("vendor.buy"', 1, true) ~= nil
-    and vendorBuy:find("goldBefore", 1, true) ~= nil
+    -- BUI-CONS-008: buy routes the requested/settled envelope (incl. goldBefore
+    -- threading) through Vendor.DispatchTracedAction in VendorModePolicy.lua.
+    and vendorBuy:find('Vendor.DispatchTracedAction("vendor.buy"', 1, true) ~= nil
     and vendorBuy:find("expectedPrice", 1, true) ~= nil
     and vendorBuy:find('"cannotAfford"', 1, true) ~= nil
     and vendorBuy:find('"cannotCarry"', 1, true) ~= nil
     and vendorBuy:find("IsPrimaryActionEnabled", 1, true) ~= nil
     and vendorSell:find('"vendor.sell"', 1, true) ~= nil
     and vendorSell:find('"blocked"', 1, true) ~= nil
-    and vendorSell:find('Vendor.TraceActionRequested("vendor.sell"', 1, true) ~= nil
-    and vendorSell:find('Vendor.ScheduleActionSettled("vendor.sell"', 1, true) ~= nil
+    -- BUI-CONS-008: the direct sell envelope routes through DispatchTracedAction;
+    -- the sell_all_junk path keeps the literal requested/settled pair.
+    and vendorSell:find('Vendor.DispatchTracedAction("vendor.sell"', 1, true) ~= nil
+    and vendorSell:find('Vendor.ScheduleActionSettled("vendor.sell_all_junk"', 1, true) ~= nil
     and vendorSell:find("goldBefore", 1, true) ~= nil
     and vendorSell:find("expectedPrice", 1, true) ~= nil
     and vendorSell:find('"goldCap"', 1, true) ~= nil
@@ -815,7 +820,7 @@ check(tooltips:find("sourceSummary", 1, true) ~= nil
     and generalSetup:find("direct_delete_dispatched", 1, true) ~= nil
     and generalSetup:find("retry_scheduled", 1, true) ~= nil
     and generalSetup:find("InstallCraftingPriceTooltipHooks", 1, true) ~= nil
-    and craftingPriceTooltip:find("flow = event", 1, true) ~= nil,
+    and craftingPriceTooltip:find("BETTERUI.Log.MakeTracer{", 1, true) ~= nil,
     "general interface tooltip sources, bag context, mail delete, crafting hook retry, and tooltip action records are traceable")
 check(tooltips:find("source_failed", 1, true) ~= nil
     and tooltips:find("renderedSources", 1, true) ~= nil

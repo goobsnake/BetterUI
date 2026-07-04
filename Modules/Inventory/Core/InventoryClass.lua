@@ -74,30 +74,12 @@ local function LogInventoryKeybindRefresh(inv, mode)
         })
 end
 
+-- Shared dialog-restore trace helper (see Modules/CIM/Dialogs/DialogRestore.lua).
+-- Resolved at call time so harnesses that load this file without CIM stay loadable.
 local function LogInventoryDialogRestore(message, data, warn)
-    local L = BETTERUI.Log
-    if not L then return end
-    if L.TraceEvent then
-        local phase = "state"
-        if message and message:find("complete", 1, true) then
-            phase = "complete"
-        elseif message and message:find("waiting", 1, true) then
-            phase = "waiting"
-        elseif message and message:find("skipped", 1, true) then
-            phase = "skipped"
-        elseif message and message:find("abandoned", 1, true) then
-            phase = "abandoned"
-        end
-        L.TraceEvent(L.CATEGORY.STATE, "inventory.action_dialog.restore", phase, data, warn and L.LEVEL.WARN or L.LEVEL.INFO)
-    end
-    if warn and L.Warn then
-        L.Warn(L.CATEGORY.STATE, message, data)
-    elseif L.Debug then
-        L.Debug(L.CATEGORY.STATE, message, data)
-    end
+    local restore = BETTERUI.CIM and BETTERUI.CIM.DialogRestore
+    if restore and restore.Log then return restore.Log(message, data, warn) end
 end
-
-local inventoryDialogRestoreSequence = 0
 
 
 -- CACHING & DATA MANAGEMENT
@@ -541,16 +523,10 @@ Mechanism: Waits until dialogs fully close, then restores active keybinds,
 param: taskName (string|nil) - Optional task identifier prefix for retries.
 ]]
 function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
-    local retriesRemaining = 120
-    inventoryDialogRestoreSequence = inventoryDialogRestoreSequence + 1
-    local retryTaskName = (taskName or "inventoryDialogRestore")
-        .. "_"
-        .. tostring((GetGameTimeMilliseconds and GetGameTimeMilliseconds()) or 0)
-        .. "_"
-        .. tostring(inventoryDialogRestoreSequence)
     local waitLogged = false
 
-    local function TryRestore()
+    -- retryTaskName / retriesRemaining are supplied by DialogRestore.Schedule below.
+    local function TryRestore(retryTaskName, retriesRemaining)
         if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
             if not waitLogged then
                 waitLogged = true
@@ -667,35 +643,18 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
         return true
     end
 
-    if TryRestore() then
-        return true
-    end
-
-    local function RetryRestore()
-        if TryRestore() then
-            return
-        end
-
-        retriesRemaining = retriesRemaining - 1
-        if retriesRemaining <= 0 then
+    return BETTERUI.CIM.DialogRestore.Schedule(self, TryRestore, {
+        taskName = taskName or "inventoryDialogRestore",
+        sequenceKey = "inventoryDialogRestore",
+        onAbandon = function(retryTaskName)
             LogInventoryDialogRestore("inventory dialog restore abandoned", {
                 task = taskName or "inventoryDialogRestore",
                 actionMode = self.actionMode,
                 reason = "retry_exhausted",
                 retryTaskName = retryTaskName,
             }, true)
-            return
-        end
-
-        if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
-            BETTERUI.Inventory.Tasks:Schedule(retryTaskName, 50, RetryRestore)
-        else
-            zo_callLater(RetryRestore, 50)
-        end
-    end
-
-    RetryRestore()
-    return false
+        end,
+    })
 end
 
 --------------------------------------------------------------------------------

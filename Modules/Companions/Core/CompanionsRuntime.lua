@@ -604,7 +604,10 @@ local function TraceCompanionKeybind(phase, instance, data)
     L.TraceEvent((L.CATEGORY or {}).KEYBIND or (L.CATEGORY or {}).ACTION, "companions.keybind", phase, data)
 end
 
-local function WrapCompanionKeybindGroup(group)
+-- Shared companion keybind-group wrapper (BUI-CONS-010). Defined once on the
+-- Companions table (CompanionsRuntime loads before CompanionListManager) and
+-- reused there instead of a byte-identical copy.
+function Companions.WrapKeybindGroup(group)
     local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
     local anchor = keybinds and keybinds.InputAnchor
     if anchor and type(anchor.WrapGroup) == "function" then
@@ -612,6 +615,7 @@ local function WrapCompanionKeybindGroup(group)
     end
     return group
 end
+local WrapCompanionKeybindGroup = Companions.WrapKeybindGroup
 
 function Companions.BuildCoreKeybinds(instance)
     return WrapCompanionKeybindGroup({

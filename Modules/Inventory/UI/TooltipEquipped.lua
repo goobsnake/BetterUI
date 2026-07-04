@@ -9,9 +9,9 @@ Purpose: Enhanced tooltip display for equipped items.
 if BETTERUI == nil then BETTERUI = {} end
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 
--- Stock gamepad tooltip body font. Restored when tooltip enhancements are disabled
--- so body labels do not keep the enlarged enhanced font size (PB-003).
-local STOCK_TOOLTIP_BODY_FONT = "ZoFontGamepad34"
+-- The stock gamepad tooltip body font (BETTERUI.Inventory.STOCK_TOOLTIP_BODY_FONT) and
+-- the stock-font restore loop now live in TooltipUtils.lua (loaded after this file);
+-- both are referenced at runtime below so load order does not matter.
 -- Stock gamepad tooltip price font used in the native-fallback price label.
 local STOCK_TOOLTIP_PRICE_FONT = "ZoFontGamepad27"
 local DEFAULT_FONT_SIZE = 24
@@ -474,14 +474,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
             -- Restore stock body font so toggling enhancements off reverts any
             -- enlarged per-label fonts set by the enabled branch.
-            if tooltip then
-                for i = 1, tooltip:GetNumChildren() do
-                    local child = tooltip:GetChild(i)
-                    if child and child:GetType() == CT_LABEL then
-                        child:SetFont(STOCK_TOOLTIP_BODY_FONT)
-                    end
-                end
-            end
+            BETTERUI.Inventory.RestoreStockLabelFonts(tooltip)
         end
 
         --[[
@@ -582,7 +575,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 -- Reduce font size of the slot text (StatusLabelValue) for cleaner appearance
                 local statusLabelValue = container and container:GetNamedChild("StatusLabelValue")
                 if statusLabelValue then
-                    statusLabelValue:SetFont(STOCK_TOOLTIP_BODY_FONT)
+                    statusLabelValue:SetFont(BETTERUI.Inventory.STOCK_TOOLTIP_BODY_FONT)
                 end
             else
                 -- Native/default tooltip rendering owns the top/status area unless

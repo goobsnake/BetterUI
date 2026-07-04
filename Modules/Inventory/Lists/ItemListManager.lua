@@ -13,15 +13,9 @@ local FindActionSlotMatchingItem = FindActionSlotMatchingItem
 local INVENTORY_LIST_MODULE_NAME = "Inventory"
 local NormalizeIdentityValue = BETTERUI.Inventory.Utils and BETTERUI.Inventory.Utils.NormalizeIdentityValue
 
---- @param left {uniqueId: userdata}
---- @param right {uniqueId: userdata}
---- @return boolean
-local function MenuEntryTemplateEquality(left, right)
-    -- Convert to string to ensure consistent comparison even if userdata instances differ.
-    local leftId = left and left.uniqueId and NormalizeIdentityValue(left.uniqueId)
-    local rightId = right and right.uniqueId and NormalizeIdentityValue(right.uniqueId)
-    return leftId ~= nil and leftId == rightId
-end
+-- Nil-safe uniqueId equality shared with the backpack list; see Core/Utils.lua for why
+-- this hardened version is used instead of the naive CIM raw-== equality.
+local MenuEntryTemplateEquality = BETTERUI.Inventory.Utils.MenuEntryTemplateEquality
 
 --- @param list table Scroll list instance
 local function SetupItemList(list)
@@ -45,25 +39,9 @@ local function SetupItemList(list)
     )
 end
 
---- @param filteredEquipSlot number|nil
---- @param nonEquipableFilterType number|nil ITEMFILTERTYPE_* constant
---- @return fun(itemData: table): boolean
-local function GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
-    return function(itemData)
-        if nonEquipableFilterType then
-            -- Special-case companion items: companion filter should only match companion actorCategory
-            if nonEquipableFilterType == ITEMFILTERTYPE_COMPANION then
-                return itemData and itemData.actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION
-            end
-
-            return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, nonEquipableFilterType)
-                or (itemData.equipType == EQUIP_TYPE_POISON and nonEquipableFilterType == ITEMFILTERTYPE_WEAPONS)
-        else
-            -- for "All"
-            return true
-        end
-    end
-end
+-- The item-filter comparator (companion/poison special cases) is defined once as the
+-- pcall-guarded BETTERUI.Inventory.Class:GetItemDataFilterComparator in
+-- ItemListFiltering.lua; the empty/count helpers below invoke it through self.
 
 
 --- Initializes the Item List.
@@ -149,7 +127,7 @@ end
 --- @param nonEquipableFilterType number|nil
 --- @return boolean
 function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipableFilterType)
-    local baseComparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
+    local baseComparator = self:GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
 
     -- Check cache for worn items
     local worn = self:GetCachedSlotData(BAG_WORN)
@@ -174,7 +152,7 @@ end
 --- @param nonEquipableFilterType number|nil ITEMFILTERTYPE_* constant
 --- @return number count
 function BETTERUI.Inventory.Class:GetCategoryItemCount(nonEquipableFilterType)
-    local baseComparator = GetItemDataFilterComparator(nil, nonEquipableFilterType)
+    local baseComparator = self:GetItemDataFilterComparator(nil, nonEquipableFilterType)
     local count = 0
 
     -- Count worn items

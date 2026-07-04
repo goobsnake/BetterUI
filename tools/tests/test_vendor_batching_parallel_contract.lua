@@ -157,6 +157,39 @@ BETTERUI = {
     },
 }
 
+-- BUI-CONS-008: shared helpers VendorBatchRuntime now delegates to. Mirror the
+-- VendorModePolicy implementations so this isolated batch test still passes.
+BETTERUI.Vendor.IsAtGoldCap = BETTERUI.Vendor.IsAtGoldCap or function()
+    if type(GetMaxPossibleCurrency) ~= "function" then return false end
+    local carried = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    local maxPossible = GetMaxPossibleCurrency(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    return maxPossible > 0 and carried >= maxPossible
+end
+BETTERUI.Vendor.AuthorizeAction = BETTERUI.Vendor.AuthorizeAction or function(actionType, bagId, slotIndex, vendorInstance)
+    local f = BETTERUI.Vendor.AuthorizeInventoryAction
+    assert(type(f) == "function", "Vendor.AuthorizeInventoryAction must load")
+    local allowed, reason = f(actionType, bagId, slotIndex, vendorInstance)
+    return allowed == true, reason
+end
+BETTERUI.Vendor.CanAffordStoreEntry = BETTERUI.Vendor.CanAffordStoreEntry or function(instance, ds)
+    if not (instance and ds) then return false end
+    if type(instance.CanAfford) ~= "function" then return true end
+    local price = ds.price or 0
+    if price > 0 then
+        local currencyType = ds.currencyType or CURT_MONEY
+        if currencyType == CURT_NONE then currencyType = CURT_MONEY end
+        if not instance:CanAfford(price, currencyType) then return false end
+    end
+    local price1 = ds.currencyQuantity1 or 0
+    if price1 > 0 and ds.currencyType1 and ds.currencyType1 ~= CURT_NONE
+        and not instance:CanAfford(price1, ds.currencyType1) then return false end
+    local price2 = ds.currencyQuantity2 or 0
+    if price2 > 0 and ds.currencyType2 and ds.currencyType2 ~= CURT_NONE then
+        return instance:CanAfford(price2, ds.currencyType2)
+    end
+    return true
+end
+
 dofile("Modules/CIM/Core/Batching/BatchConfig.lua")
 dofile("Modules/Vendor/Core/VendorBatchRuntime.lua")
 

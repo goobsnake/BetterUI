@@ -39,27 +39,6 @@ local function CopyTracePayload(data)
     return payload
 end
 
-local function GetCurrentDialogInfo(dialogName)
-    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
-    if dialogs and type(dialogs.GetCurrentInfo) == "function" then
-        return dialogs.GetCurrentInfo(dialogName)
-    end
-    return nil
-end
-
-local function RegisterTradingHouseDialog(dialogName, dialogInfo)
-    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
-    if not (dialogs and type(dialogs.Register) == "function") then
-        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG, "trading_house.dialog", "register_skipped", {
-            fn = "RegisterTradingHouseDialog",
-            feature = "trading-house-dialogs",
-            dialogName = dialogName,
-            reason = "missingDialogRegistry",
-        })
-        return false
-    end
-    return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
-end
 
 local function WatchdogExpectOperation(operation, timeoutMs, context)
     local watchdog = BETTERUI.CIM and BETTERUI.CIM.Watchdog
@@ -294,15 +273,6 @@ local function ComputeListingPriceBreakdown(price)
 end
 
 local CREATE_LISTING_DIALOG_NAME = "BETTERUI_TRADING_HOUSE_CREATE_LISTING"
-
-local function ChainPriorDialogSetup(priorDialog, setup)
-    return function(dialog, ...)
-        if priorDialog and type(priorDialog.setup) == "function" then
-            priorDialog.setup(dialog, ...)
-        end
-        return setup(dialog, ...)
-    end
-end
 
 local function SetTHSceneAlias(sceneObject)
     TH.activeTHSceneObject = sceneObject
@@ -703,7 +673,8 @@ function TH.TakeOverNativeTradingHouse()
 end
 
 function TH.RegisterCreateListingDialog()
-    local priorDialog = GetCurrentDialogInfo(CREATE_LISTING_DIALOG_NAME)
+    local Dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    local priorDialog = Dialogs and Dialogs.GetCurrentInfo and Dialogs.GetCurrentInfo(CREATE_LISTING_DIALOG_NAME) or nil
     if priorDialog and priorDialog._betteruiTradingHouseCreateListing then
         return
     end
@@ -768,6 +739,37 @@ function TH.RegisterCreateListingDialog()
         valueLabel:SetText(text)
     end
 
+    -- The exact-digit-price row is a redundant alternative to the price slider
+    -- when the slider is already exact (defaultPrice <= 10000); it is inserted
+    -- into parametricList conditionally by dialogInfo.setup, gated on
+    -- PriceEntry.ShouldOfferDigitEntry(dialogData.defaultPrice).
+    local digitPriceEntry = {
+        template = "ZO_GamepadGuildStoreBrowseSelectableEntryTemplate",
+        text = GetString(rawget(_G, "SI_BETTERUI_TH_DIGIT_PRICE") or "Enter Exact Price"),
+        templateData = {
+            labelText = GetString(rawget(_G, "SI_BETTERUI_TH_DIGIT_PRICE") or "Enter Exact Price"),
+            isSelectableEntry = true,
+            onSelectedCallback = function()
+                local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.PARAMETRIC)
+                local dialogData = dialog and dialog.data
+                if not dialogData then
+                    return
+                end
+                local currentPrice = dialogData.selectedPrice or dialogData.defaultPrice or 100
+                if TH.PriceEntry and TH.PriceEntry.ShowDigitPriceDialog then
+                    TH.PriceEntry.ShowDigitPriceDialog(currentPrice, 1, 999999999, function(newPrice)
+                        dialogData.selectedPrice = newPrice
+                    end)
+                end
+            end,
+            setup = function(control, data, selected)
+                if control.label then
+                    control.label:SetText(data.labelText)
+                end
+            end,
+        },
+    }
+
     local dialogInfo = {
         _betteruiTradingHouseCreateListing = true,
         canQueue = true,
@@ -810,9 +812,19 @@ function TH.RegisterCreateListingDialog()
         title = {
             text = rawget(_G, "SI_BETTERUI_TH_LIST_ITEM") or SI_TRADING_HOUSE_POST_ITEM,
         },
-        setup = ChainPriorDialogSetup(priorDialog, function(dialog)
+        setup = function(dialog)
+            -- Gate the exact-digit-price row per item: the coarse price slider
+            -- is already exact for ranges <= 10000, so only offer the digit
+            -- selector for larger default prices (PriceEntry.ShouldOfferDigitEntry).
+            local dialogData = dialog and dialog.data
+            local defaultPrice = dialogData and dialogData.defaultPrice or 0
+            local offerDigit = TH.PriceEntry and TH.PriceEntry.ShouldOfferDigitEntry
+                and TH.PriceEntry.ShouldOfferDigitEntry(defaultPrice) or false
+            if dialog.info and dialog.info.parametricList then
+                dialog.info.parametricList[3] = offerDigit and digitPriceEntry or nil
+            end
             dialog:setupFunc()
-        end),
+        end,
         parametricList = {
             {
                 template = "ZO_GamepadGuildStoreBrowseSliderTemplate",
@@ -881,32 +893,6 @@ function TH.RegisterCreateListingDialog()
                             UpdateSliderValueLabel(control, value, true, true)
                         end)
                         UpdateSliderActivation(control, dialogData, selected)
-                    end,
-                },
-            },
-            {
-                template = "ZO_GamepadGuildStoreBrowseSelectableEntryTemplate",
-                text = GetString(rawget(_G, "SI_BETTERUI_TH_DIGIT_PRICE") or "Enter Exact Price"),
-                templateData = {
-                    labelText = GetString(rawget(_G, "SI_BETTERUI_TH_DIGIT_PRICE") or "Enter Exact Price"),
-                    isSelectableEntry = true,
-                    onSelectedCallback = function()
-                        local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.PARAMETRIC)
-                        local dialogData = dialog and dialog.data
-                        if not dialogData then
-                            return
-                        end
-                        local currentPrice = dialogData.selectedPrice or dialogData.defaultPrice or 100
-                        if TH.PriceEntry and TH.PriceEntry.ShowDigitPriceDialog then
-                            TH.PriceEntry.ShowDigitPriceDialog(currentPrice, 1, 999999999, function(newPrice)
-                                dialogData.selectedPrice = newPrice
-                            end)
-                        end
-                    end,
-                    setup = function(control, data, selected)
-                        if control.label then
-                            control.label:SetText(data.labelText)
-                        end
                     end,
                 },
             },
@@ -1100,7 +1086,9 @@ function TH.RegisterCreateListingDialog()
             },
         },
     }
-    RegisterTradingHouseDialog(CREATE_LISTING_DIALOG_NAME, dialogInfo)
+    if Dialogs and Dialogs.RegisterWithPriorChain then
+        Dialogs.RegisterWithPriorChain(CREATE_LISTING_DIALOG_NAME, dialogInfo)
+    end
 end
 
 function TH.OnOpenTradingHouse()

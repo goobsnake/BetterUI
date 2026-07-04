@@ -395,46 +395,29 @@ function Class:ShowCraftBagBatchActionsMenu()
     local parametricList = {}
 
     -- Select All
-    local selectAllEntry = ZO_GamepadEntryData:New(BETTERUI.CIM.Keybinds.GetSelectAllLabel())
-    selectAllEntry:SetIconTintOnSelection(true)
-    selectAllEntry.setup = ZO_SharedGamepadEntry_OnSetup
-    selectAllEntry.callback = function()
-        self:SelectAllCraftBagItems()
-    end
-    table.insert(parametricList, {
-        template = "ZO_GamepadItemEntryTemplate",
-        entryData = selectAllEntry,
-    })
+    table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
+        BETTERUI.CIM.Keybinds.GetSelectAllLabel(),
+        function() self:SelectAllCraftBagItems() end
+    ))
 
     -- Retrieve
     local retrieveLabel = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG")), selectedCount)
-    local retrieveEntry = ZO_GamepadEntryData:New(retrieveLabel)
-    retrieveEntry:SetIconTintOnSelection(true)
-    retrieveEntry.setup = ZO_SharedGamepadEntry_OnSetup
-    retrieveEntry.callback = function()
-        self:BatchRetrieve()
-    end
-    table.insert(parametricList, {
-        template = "ZO_GamepadItemEntryTemplate",
-        entryData = retrieveEntry,
-    })
+    table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
+        retrieveLabel,
+        function() self:BatchRetrieve() end
+    ))
 
     -- Deselect All
-    local deselectLabel = BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount)
-    local deselectEntry = ZO_GamepadEntryData:New(deselectLabel)
-    deselectEntry:SetIconTintOnSelection(true)
-    deselectEntry.setup = ZO_SharedGamepadEntry_OnSetup
-    deselectEntry.callback = function()
-        ZO_Dialogs_ReleaseDialog("BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG")
-        zo_callLater(function()
-            if TraceDeferredGuardExit("BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG", "exitCraftBagSelectionMode", self.craftBagMultiSelectManager) then return end
-            self:ExitCraftBagSelectionMode()
-        end, 50)
-    end
-    table.insert(parametricList, {
-        template = "ZO_GamepadItemEntryTemplate",
-        entryData = deselectEntry,
-    })
+    table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
+        BETTERUI.CIM.Keybinds.GetDeselectAllLabel(selectedCount),
+        function()
+            ZO_Dialogs_ReleaseDialog("BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG")
+            zo_callLater(function()
+                if TraceDeferredGuardExit("BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG", "exitCraftBagSelectionMode", self.craftBagMultiSelectManager) then return end
+                self:ExitCraftBagSelectionMode()
+            end, 50)
+        end
+    ))
 
     _craftBagDialogInfo.parametricList = parametricList
     TraceInventoryBatch("show_dialog", {

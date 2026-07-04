@@ -56,7 +56,7 @@ end
 local function ShowGuildBankRedirectedScene(source)
     local sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME
     if not IsGuildBankRedirectEnabled() then
-        TraceBankState("bank.guild_scene_redirect", "bypassed", {
+        TraceBankState("bank.guild_scene_redirect", "skipped", {
             reason = "module_disabled_or_keyboard",
             sceneName = sceneName,
             source = source,
@@ -94,7 +94,8 @@ local function ShowGuildBankRedirectedScene(source)
         return
     end
 
-    TraceBankState("bank.guild_scene_redirect", "show_fallback", {
+    TraceBankState("bank.guild_scene_redirect", "requested", {
+        path = "show_fallback",
         sceneName = sceneName,
         source = source,
         interactionType = interactionType,
@@ -104,7 +105,8 @@ end
 
 local function InstallGuildBankFallbackRedirect(eventId, suffix, source)
     if not (EVENT_MANAGER and eventId) then
-        TraceBankState("bank.guild_scene_redirect", "fallback_skipped", {
+        TraceBankState("bank.guild_scene_redirect", "skipped", {
+            reason = "fallback_event_unavailable",
             hasEventManager = EVENT_MANAGER ~= nil,
             hasEvent = eventId ~= nil,
             sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
@@ -116,7 +118,8 @@ local function InstallGuildBankFallbackRedirect(eventId, suffix, source)
     local namespace = GUILD_BANK_SCENE_REDIRECT_EVENT_NAME .. suffix
     EVENT_MANAGER:UnregisterForEvent(namespace, eventId)
     EVENT_MANAGER:RegisterForEvent(namespace, eventId, function(...)
-        TraceBankState("bank.guild_scene_redirect", "fallback_event", {
+        TraceBankState("bank.guild_scene_redirect", "fired", {
+            trigger = "fallback_event",
             sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
             source = source,
         })
@@ -781,16 +784,10 @@ local function BankingSnapshotKeybindPresent(descriptor)
     return BETTERUI.Interface.HasKeybindGroup(descriptor) and 1 or 0
 end
 
-local function RegisterBankingWatchScenes(watch)
-    if not (watch and watch.RegisterViewScene) then return end
-    watch.RegisterViewScene("banking", BETTERUI_BANKING_SCENE_NAME or "gamepad_banking")
-    watch.RegisterViewScene("banking", BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING")
-end
-
 local function RegisterBankingSnapshotProvider()
     local watch = BETTERUI.CIM and BETTERUI.CIM.WatchMode
     if not watch then return end
-    RegisterBankingWatchScenes(watch)
+    BETTERUI.Banking.RegisterWatchScenes(watch)
     if not watch.RegisterSnapshotProvider then return end
     watch.RegisterSnapshotProvider("banking", function()
         local window = BETTERUI.Banking and BETTERUI.Banking.Window or nil

@@ -10,32 +10,17 @@ local Vendor = BETTERUI.Vendor
 Vendor.SellVengeanceComponent = Vendor.SellVengeanceComponent or {}
 local SellVengeance = Vendor.SellVengeanceComponent
 
---- Resolve the focused row the same way the Vendor keybind strip does
---- (GetTargetData when available, falling back to GetSelectedData).
----@param vendorInstance BETTERUI.Vendor.Class|nil
----@return table|nil rowData
-local function GetTargetRowData(vendorInstance)
-    local list = vendorInstance and vendorInstance.list
-    if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
-    end
-    return list:GetSelectedData()
-end
+-- BUI-CONS-001: focused-row resolution uses BETTERUI.CIM.Utils.SafeGetTargetData.
 
+-- BUI-CONS-008: authorization assert-wrapper unified in Vendor.AuthorizeAction.
 local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstance)
-    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
-    assert(type(authorizeInventoryAction) == "function",
-        "Vendor.AuthorizeInventoryAction must load before Vendor sell vengeance actions")
-    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
-    return allowed == true, reason
+    return Vendor.AuthorizeAction(actionType, bagId, slotIndex, vendorInstance)
 end
 
+-- BUI-CONS-008: the vengeance-availability predicate is owned by Vendor.lua and
+-- exposed as Vendor.IsSellVengeanceModeAvailable; delegate to it.
 local function IsSellVengeanceAvailable()
-    return rawget(_G, "BAG_VENGEANCE") ~= nil
-        and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") == true
-        and type(IsCurrentCampaignVengeanceRuleset) == "function"
-        and IsCurrentCampaignVengeanceRuleset()
+    return Vendor.IsSellVengeanceModeAvailable and Vendor.IsSellVengeanceModeAvailable() or false
 end
 
 local function GetVengeanceBagId()
@@ -82,28 +67,11 @@ local function BuildSellableVengeanceItems()
 end
 
 -- One refresh pass calls GetCategories and BuildList back to back, each of
--- which needs the sellable vengeance rows; cache them per frame so the bag
--- snapshot is built once per refresh instead of once per caller.
-local cachedVengeanceRows = nil
-local cachedVengeanceRowsFrameMs = nil
-
-local function GetSellableVengeanceRowsCached()
-    local frameMs = (type(GetFrameTimeMilliseconds) == "function") and GetFrameTimeMilliseconds() or nil
-    if frameMs and cachedVengeanceRows and cachedVengeanceRowsFrameMs == frameMs then
-        return cachedVengeanceRows
-    end
-
-    local rows = BuildSellableVengeanceItems()
-    if frameMs then
-        cachedVengeanceRows = rows
-        cachedVengeanceRowsFrameMs = frameMs
-    else
-        -- No frame clock (test harness): never reuse stale rows.
-        cachedVengeanceRows = nil
-        cachedVengeanceRowsFrameMs = nil
-    end
-    return rows
-end
+-- which needs the sellable vengeance rows; the shared per-refresh memoize
+-- (BUI-CONS-008) builds the bag snapshot once per frame instead of once per
+-- caller. No frame clock (test harness) => never reuse a stale snapshot.
+local GetSellableVengeanceRowsCached, invalidateVengeanceRows =
+    Vendor.PerRefreshCache(BuildSellableVengeanceItems)
 
 function SellVengeance:Activate(vendorInstance)
     vendorInstance:RefreshList()
@@ -112,8 +80,7 @@ end
 function SellVengeance:Deactivate(_vendorInstance)
     -- Drop the per-frame row cache so a stale row set can never be reused
     -- after the tab deactivates.
-    cachedVengeanceRows = nil
-    cachedVengeanceRowsFrameMs = nil
+    invalidateVengeanceRows()
 end
 
 function SellVengeance:GetPrimaryActionName()
@@ -125,7 +92,7 @@ function SellVengeance:IsPrimaryActionEnabled(vendorInstance)
         return false
     end
 
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then
         return false
     end
@@ -145,7 +112,7 @@ function SellVengeance:OnPrimaryAction(vendorInstance)
         return
     end
 
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then
         return
     end
@@ -184,12 +151,9 @@ function SellVengeance:OnPrimaryAction(vendorInstance)
         currencyType = rawget(_G, "CURT_MONEY"),
         item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
     }
-    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.sell_vengeance", traceData) or nil
-
-    SellInventoryItem(bagId, slotIndex, stackSize)
-    if Vendor.ScheduleActionSettled then
-        Vendor.ScheduleActionSettled("vendor.sell_vengeance", traceData, goldBefore)
-    end
+    Vendor.DispatchTracedAction("vendor.sell_vengeance", traceData, function()
+        SellInventoryItem(bagId, slotIndex, stackSize)
+    end)
 end
 
 function SellVengeance:GetCategories(_vendorInstance)
@@ -241,18 +205,7 @@ function SellVengeance:BuildList(vendorInstance)
                 statValue = slot.statValue or "",
             }
 
-            local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
-            entry:SetDataSource(entryData)
-            entry.narrationText = function()
-                return entryData.name
-            end
-
-            if quality then
-                local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
-                entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-            end
-
-            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+            Vendor.AddItemRow(list, entryData)
         end
     end
 end

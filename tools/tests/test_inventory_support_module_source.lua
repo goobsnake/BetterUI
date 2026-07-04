@@ -52,8 +52,6 @@ assert_true(categorySource:find("RegisterCategorySupport") == nil,
     "CategoryDefinitions no longer registers SharedItemSupport at import time")
 assert_true(categorySource:find("function BETTERUI%.Inventory%.Categories%.DoesItemMatchCategory%(itemData, category%)") ~= nil,
     "CategoryDefinitions exposes DoesItemMatchCategory")
-assert_true(categorySource:find("function BETTERUI%.Inventory%.Categories%.GetCategoryTypeFromWeaponType%(bagId, slotIndex%)") ~= nil,
-    "CategoryDefinitions exposes GetCategoryTypeFromWeaponType")
 
 local multiSelectSource = read_file("Modules/Inventory/Core/InventoryMultiSelect.lua")
 assert_true(multiSelectSource:find("MultiSelectMixin%.BindDelegates%(Class, %{%s*") ~= nil,

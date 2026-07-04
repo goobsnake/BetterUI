@@ -156,7 +156,7 @@ function BETTERUI.CIM.Utils.InstallNativeSceneRedirect(options)
 
     local function ShowRedirectedScene(...)
         if not ShouldRedirect() then
-            TraceSceneRedirect(options.traceFn, "bypassed", { reason = "module_disabled", sceneName = sceneName })
+            TraceSceneRedirect(options.traceFn, "skipped", { reason = "module_disabled", sceneName = sceneName })
             return
         end
         if type(options.onOpen) == "function" then

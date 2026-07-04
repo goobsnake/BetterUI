@@ -39,24 +39,11 @@ local function NormalizeSceneName(sceneName)
     return sceneName and tostring(sceneName):lower():gsub("%s+", "") or nil
 end
 
+-- Scene name routed through the shared CIM utility via ROF Utils (BUI-CONS-003).
+-- Resolved at call time so harnesses with partial Utils stubs stay loadable (BUI-CONS-003).
 local function GetCurrentSceneName()
-    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
-    if utils and type(utils.GetCurrentSceneName) == "function" then
-        return utils.GetCurrentSceneName()
-    end
-    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
-        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
-        if ok and sceneName ~= nil then
-            return sceneName
-        end
-    end
-    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentScene) == "function" then
-        local ok, scene = pcall(function() return SCENE_MANAGER:GetCurrentScene() end)
-        if ok and scene and type(scene.GetName) == "function" then
-            local nameOk, sceneName = pcall(function() return scene:GetName() end)
-            if nameOk then return sceneName end
-        end
-    end
+    local utils = BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.Utils
+    if utils and utils.GetCurrentSceneName then return utils.GetCurrentSceneName() end
     return nil
 end
 

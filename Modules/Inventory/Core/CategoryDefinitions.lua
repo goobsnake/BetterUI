@@ -232,24 +232,6 @@ end
 -- These functions are shared between Inventory and Banking modules for consistent
 -- item categorization and description generation.
 
---- Maps a weapon item to its gamepad weapon category constant.
-function BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType(bagId, slotIndex)
-    local weaponType = GetItemWeaponType(bagId, slotIndex)
-    if weaponType == WEAPONTYPE_AXE or weaponType == WEAPONTYPE_HAMMER or weaponType == WEAPONTYPE_SWORD or weaponType == WEAPONTYPE_DAGGER then
-        return GAMEPAD_WEAPON_CATEGORY_ONE_HANDED_MELEE
-    elseif weaponType == WEAPONTYPE_TWO_HANDED_SWORD or weaponType == WEAPONTYPE_TWO_HANDED_AXE or weaponType == WEAPONTYPE_TWO_HANDED_HAMMER then
-        return GAMEPAD_WEAPON_CATEGORY_TWO_HANDED_MELEE
-    elseif weaponType == WEAPONTYPE_FIRE_STAFF or weaponType == WEAPONTYPE_FROST_STAFF or weaponType == WEAPONTYPE_LIGHTNING_STAFF then
-        return GAMEPAD_WEAPON_CATEGORY_DESTRUCTION_STAFF
-    elseif weaponType == WEAPONTYPE_HEALING_STAFF then
-        return GAMEPAD_WEAPON_CATEGORY_RESTORATION_STAFF
-    elseif weaponType == WEAPONTYPE_BOW then
-        return GAMEPAD_WEAPON_CATEGORY_TWO_HANDED_BOW
-    elseif weaponType ~= WEAPONTYPE_NONE then
-        return GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED
-    end
-end
-
 --- Computes the best category description string for an item.
 function BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
     local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)

@@ -69,8 +69,6 @@ assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:Initial
     "CraftBagListManager exposes InitializeCraftBagList")
 assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:RefreshCraftBagList%(%)") ~= nil,
     "CraftBagListManager exposes RefreshCraftBagList")
-assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:GetCraftBagCategoryItemCount%(filterType%)") ~= nil,
-    "CraftBagListManager exposes GetCraftBagCategoryItemCount")
 assert_true(craftBagListSource:find("function BETTERUI%.Inventory%.Class:GetCraftBagCategoryItemCounts%(%)") ~= nil,
     "CraftBagListManager exposes the single-pass GetCraftBagCategoryItemCounts")
 

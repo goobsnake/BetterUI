@@ -270,6 +270,26 @@ do
     assert_eq(secondMode, Vendor.MODE.BUYBACK, "toggle pair includes buyback for sell+buyback stores")
 end
 
+-- BUI-CONS-001/008: VendorModePolicy (dofiled above) supplies the shared
+-- Vendor helpers (AddItemRow/DispatchTracedAction/AuthorizeAction/PerRefreshCache).
+-- Add the CIM target-data seam and the vengeance-availability predicate the
+-- migrated SellVengeanceComponent now delegates to.
+BETTERUI.CIM = BETTERUI.CIM or {}
+BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
+BETTERUI.CIM.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData or function(list)
+    if not list then return nil end
+    if list.GetTargetData then return list:GetTargetData() end
+    if list.GetSelectedData then return list:GetSelectedData() end
+    if list.targetData ~= nil then return list.targetData end
+    return list.selectedData
+end
+BETTERUI.Vendor.IsSellVengeanceModeAvailable = BETTERUI.Vendor.IsSellVengeanceModeAvailable or function()
+    return rawget(_G, "BAG_VENGEANCE") ~= nil
+        and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") == true
+        and type(IsCurrentCampaignVengeanceRuleset) == "function"
+        and IsCurrentCampaignVengeanceRuleset()
+end
+
 dofile("Modules/Vendor/Components/SellVengeanceComponent.lua")
 
 do

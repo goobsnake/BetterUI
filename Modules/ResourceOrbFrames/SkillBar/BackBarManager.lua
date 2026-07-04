@@ -304,27 +304,14 @@ local function SetupBackBarTooltips(rootFrame)
     end
 end
 
---- Applies static cooldown text styling (draw order, font, color), latched so
---- the per-frame tick only re-applies it when style-affecting settings change
---- (same pattern as ApplyUltimateNumberStyle in UltimateManager.lua).
----@param label table Cooldown text label control
----@param textSize number Clamped cooldown text size
----@param color table Cooldown text color {r, g, b, a}
-local function ApplyCooldownTextStyle(label, textSize, color)
-    local r, g, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
-    if label.appliedTextSize == textSize and label.appliedTextR == r
-        and label.appliedTextG == g and label.appliedTextB == b
-        and label.appliedTextA == a then
-        return
+-- Cooldown text styling now lives in CooldownUtils (BUI-CONS-011). The back bar
+-- always resizes its label font, so the call site passes applyFont = true.
+-- Resolved at call time so test harnesses with partial CooldownUtils stubs
+-- stay loadable.
+local function ApplyCooldownTextStyle(label, textSize, color, applyFont)
+    if CooldownUtils and CooldownUtils.ApplyCooldownTextStyle then
+        CooldownUtils.ApplyCooldownTextStyle(label, textSize, color, applyFont)
     end
-    label.appliedTextSize = textSize
-    label.appliedTextR, label.appliedTextG, label.appliedTextB, label.appliedTextA = r, g, b, a
-
-    label:SetDrawLayer(DL_OVERLAY)
-    label:SetDrawTier(DT_HIGH)
-    label:SetDrawLevel(10)
-    label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
-    label:SetColor(r, g, b, a)
 end
 
 --- Updates back bar cooldown overlays, text, and reveal animations.
@@ -393,7 +380,7 @@ local function UpdateBackBarCooldowns(rootFrame)
 
                     cooldownText:SetHidden(false)
                     cooldownText:SetText(string.format("%.1f", visualRemainMs / 1000))
-                    ApplyCooldownTextStyle(cooldownText, cooldownSize, cooldownColor)
+                    ApplyCooldownTextStyle(cooldownText, cooldownSize, cooldownColor, true)
                 else
                     local cooldownStateChanged = CooldownUtils.ReportButtonCooldownState
                         and CooldownUtils.ReportButtonCooldownState(button, false)

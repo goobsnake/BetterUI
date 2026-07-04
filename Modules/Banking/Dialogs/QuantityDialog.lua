@@ -17,10 +17,6 @@ References: Called by Banking keybinds when partial stack move is requested.
 
 BETTERUI_BANK_QUANTITY_DIALOG = "BETTERUI_BANK_QUANTITY_DIALOG"
 
-local function GetBankingWindow()
-    return BETTERUI.Banking and BETTERUI.Banking.Window
-end
-
 local function TraceQuantityDialog(phase, data)
     local L = BETTERUI.Log
     if not (L and L.TraceEvent) then return end
@@ -36,7 +32,7 @@ local function ShouldTraceSliderPreview(dialog, value)
 end
 
 local function ClearQuantityDialogSuppression(result, data, forceTrace)
-    local window = GetBankingWindow()
+    local window = BETTERUI.Banking.GetWindow()
     local hadSuppression = window and window._suppressListUpdates == true or false
     if window and type(window.SetListUpdatesSuppressed) == "function" then
         window:SetListUpdatesSuppressed(false)
@@ -328,7 +324,7 @@ function BETTERUI.Banking.InitializeQuantityDialog()
                     end
                     quantity = zo_clamp(quantity, 1, math.min(liveStackCount, data.sliderMax or liveStackCount))
 
-                    local window = GetBankingWindow()
+                    local window = BETTERUI.Banking.GetWindow()
                     local moveRequested = false
                     if window and window.MoveItem then
                         moveRequested = true

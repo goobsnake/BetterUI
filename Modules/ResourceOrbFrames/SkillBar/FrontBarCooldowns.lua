@@ -19,15 +19,10 @@ local SKILL_TEXT_SIZE_MAX = 30
 
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
+-- Scene name routed through the shared CIM utility via ROF Utils (BUI-CONS-003).
+-- Resolved at call time so harnesses with partial Utils stubs stay loadable (BUI-CONS-003).
 local function GetCurrentSceneName()
-    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
-    if utils and type(utils.GetCurrentSceneName) == "function" then
-        return utils.GetCurrentSceneName()
-    end
-    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
-        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
-        if ok then return sceneName end
-    end
+    if Utils and Utils.GetCurrentSceneName then return Utils.GetCurrentSceneName() end
     return nil
 end
 
@@ -154,29 +149,15 @@ local function ApplyQuickslotCountStyle(buttonControl, countText, settings)
     AnchorQuickslotCountText(buttonControl, countText)
 end
 
---- Applies static cooldown timer text styling (draw layer/tier/level, font,
---- color), latched so the 16ms tick only re-applies it on settings change.
----@param label table Timer text label control
----@param textSize number Clamped cooldown text size
----@param color table Cooldown text color {r, g, b, a}
----@param applyFont boolean Whether this label's font follows the text size
+-- Cooldown timer text styling now lives in CooldownUtils (BUI-CONS-011); the
+-- front bar passes applyFont per label (true for the primary timer, false for the
+-- alt-timer whose font is fixed). Resolved at call time so test harnesses that
+-- load this file without the full SkillBar namespace stay loadable.
 local function ApplyCooldownTextStyle(label, textSize, color, applyFont)
-    local r, g, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
-    if label.appliedTextSize == textSize and label.appliedTextR == r
-        and label.appliedTextG == g and label.appliedTextB == b
-        and label.appliedTextA == a then
-        return
+    local utils = CooldownUtils or (SkillBar and SkillBar.CooldownUtils)
+    if utils and utils.ApplyCooldownTextStyle then
+        utils.ApplyCooldownTextStyle(label, textSize, color, applyFont)
     end
-    label.appliedTextSize = textSize
-    label.appliedTextR, label.appliedTextG, label.appliedTextB, label.appliedTextA = r, g, b, a
-
-    label:SetDrawLayer(DL_OVERLAY)
-    label:SetDrawTier(DT_HIGH)
-    label:SetDrawLevel(10)
-    if applyFont then
-        label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
-    end
-    label:SetColor(r, g, b, a)
 end
 
 --- Updates quickslot stack count and empty-slot visuals.

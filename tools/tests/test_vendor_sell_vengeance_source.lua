@@ -50,8 +50,10 @@ assert_contains(constantsLua, "VENDOR_SELL_VENGEANCE", "shared module constants 
 assert_contains(batchCountsLua, "MODE.SELL_VENGEANCE", "batch action counts treat SellVengeance as sell-capable")
 
 assert_contains(componentLua, "BAG_VENGEANCE", "SellVengeance component reads BAG_VENGEANCE")
-assert_contains(componentLua, "IsCurrentCampaignVengeanceRuleset", "SellVengeance component guards on vengeance ruleset")
-assert_contains(componentLua, "ZO_VENGEANCE_BAG_SELL_ENABLED", "SellVengeance component guards on bag sell enablement")
+assert_contains(componentLua, "Vendor.IsSellVengeanceModeAvailable and Vendor.IsSellVengeanceModeAvailable()",
+    "SellVengeance component delegates availability to the canonical Vendor predicate (BUI-CONS-008)")
+assert_contains(vendorLua, "IsCurrentCampaignVengeanceRuleset", "Vendor availability predicate guards on vengeance ruleset")
+assert_contains(vendorLua, "ZO_VENGEANCE_BAG_SELL_ENABLED", "Vendor availability predicate guards on bag sell enablement")
 assert_contains(componentLua, "SellInventoryItem", "SellVengeance component sells items through SellInventoryItem")
 assert_contains(componentLua, "Vendor.NormalizeSearchQuery and Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery)",
     "SellVengeance component uses the canonical vendor search normalizer")

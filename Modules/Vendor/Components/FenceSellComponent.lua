@@ -9,56 +9,25 @@ local Vendor = BETTERUI.Vendor
 Vendor.FenceSellComponent = Vendor.FenceSellComponent or {}
 local FenceSell = Vendor.FenceSellComponent
 
---- Resolve the focused row the same way the Vendor keybind strip does
---- (GetTargetData when available, falling back to GetSelectedData).
----@param vendorInstance BETTERUI.Vendor.Class|nil
----@return table|nil rowData
-local function GetTargetRowData(vendorInstance)
-    local list = vendorInstance and vendorInstance.list
-    if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
-    end
-    return list:GetSelectedData()
-end
+-- BUI-CONS-001: focused-row resolution uses BETTERUI.CIM.Utils.SafeGetTargetData.
 
+-- BUI-CONS-008: authorization assert-wrapper unified in Vendor.AuthorizeAction.
 local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstance)
-    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
-    assert(type(authorizeInventoryAction) == "function",
-        "Vendor.AuthorizeInventoryAction must load before Vendor fence sell actions")
-    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
-    return allowed == true, reason
+    return Vendor.AuthorizeAction(actionType, bagId, slotIndex, vendorInstance)
 end
 
 -- One refresh pass calls GetCategories and BuildList back to back, each of
--- which needs the stolen-item scan; cache the stolen slot indices per frame
--- so the backpack is walked once per refresh instead of once per caller.
-local cachedStolenSlots = nil
-local cachedStolenSlotsFrameMs = nil
-
-local function GetStolenSlotsCached()
-    local frameMs = (type(GetFrameTimeMilliseconds) == "function") and GetFrameTimeMilliseconds() or nil
-    if frameMs and cachedStolenSlots and cachedStolenSlotsFrameMs == frameMs then
-        return cachedStolenSlots
-    end
-
+-- which needs the stolen-item scan; the shared per-refresh memoize
+-- (BUI-CONS-008) walks the backpack once per frame instead of once per caller.
+local GetStolenSlotsCached, invalidateStolenSlots = Vendor.PerRefreshCache(function()
     local slots = {}
     for slotIndex = 0, (GetBagSize(BAG_BACKPACK) or 0) - 1 do
         if IsItemStolen(BAG_BACKPACK, slotIndex) then
             slots[#slots + 1] = slotIndex
         end
     end
-
-    if frameMs then
-        cachedStolenSlots = slots
-        cachedStolenSlotsFrameMs = frameMs
-    else
-        -- No frame clock (test harness): never reuse stale slots.
-        cachedStolenSlots = nil
-        cachedStolenSlotsFrameMs = nil
-    end
     return slots
-end
+end)
 
 -- ACTIVATE / DEACTIVATE
 
@@ -71,8 +40,7 @@ end
 function FenceSell:Deactivate(vendorInstance)
     -- Drop the per-frame stolen-slot cache so a stale scan can never be
     -- reused after the tab deactivates.
-    cachedStolenSlots = nil
-    cachedStolenSlotsFrameMs = nil
+    invalidateStolenSlots()
 end
 
 -- HELPERS
@@ -114,7 +82,7 @@ end
 ---@param vendorInstance BETTERUI.Vendor.Class
 ---@return boolean enabled True if fence sell is possible
 function FenceSell:IsPrimaryActionEnabled(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -130,7 +98,7 @@ end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:OnPrimaryAction(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then return end
     local ds = selectedData.dataSource or selectedData
 
@@ -191,12 +159,9 @@ function FenceSell:OnPrimaryAction(vendorInstance)
         currencyType = rawget(_G, "CURT_MONEY"),
         item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
     }
-    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.fence_sell", traceData) or nil
-
-    SellInventoryItem(bagId, slotIndex, quantity)
-    if Vendor.ScheduleActionSettled then
-        Vendor.ScheduleActionSettled("vendor.fence_sell", traceData, goldBefore)
-    end
+    Vendor.DispatchTracedAction("vendor.fence_sell", traceData, function()
+        SellInventoryItem(bagId, slotIndex, quantity)
+    end)
 end
 
 -- LIST BUILDING
@@ -243,21 +208,14 @@ function FenceSell:BuildList(vendorInstance)
                 statValue        = "",
             }
 
-            local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
-            entry:SetDataSource(entryData)
-            entry.narrationText = function() return entryData.name end
+            local entry = Vendor.AddItemRow(list, entryData)
 
-            if quality then
-                local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
-                entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-            end
-
-            -- Mark artifact items visually
-            if isArtifact then
+            -- Mark artifact items visually. The list holds the entry by
+            -- reference, so setting this after AddEntry (inside AddItemRow) is
+            -- equivalent to the previous pre-AddEntry ordering.
+            if isArtifact and entry then
                 entry:SetIconDesaturation(0.5) -- Dim artifact items
             end
-
-            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
         end
     end
 end

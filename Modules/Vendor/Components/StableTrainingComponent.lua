@@ -5,18 +5,7 @@ Purpose: Stable training tab component for the Vendor module.
 
 local Vendor = BETTERUI.Vendor
 
---- Resolve the focused row the same way the Vendor keybind strip does
---- (GetTargetData when available, falling back to GetSelectedData).
----@param vendorInstance BETTERUI.Vendor.Class|nil
----@return table|nil rowData
-local function GetTargetRowData(vendorInstance)
-    local list = vendorInstance and vendorInstance.list
-    if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
-    end
-    return list:GetSelectedData()
-end
+-- BUI-CONS-001: focused-row resolution uses BETTERUI.CIM.Utils.SafeGetTargetData.
 
 local STABLE_TRAIN_ORDER = {
     RIDING_TRAIN_SPEED,
@@ -157,7 +146,7 @@ function StableTraining:GetPrimaryActionName()
 end
 
 function StableTraining:IsPrimaryActionEnabled(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then
         return false
     end
@@ -179,7 +168,7 @@ function StableTraining:GetCategories(_vendorInstance)
 end
 
 function StableTraining:OnPrimaryAction(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then
         return
     end

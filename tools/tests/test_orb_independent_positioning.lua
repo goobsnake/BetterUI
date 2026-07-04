@@ -151,10 +151,10 @@ assertTrue(moduleSource:find("orbOffsetY = CreateSettingContract%(") == nil,
 -- Test 9: UI controls expose one global unlock and remove the legacy orb sliders
 assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OFFSET") ~= nil,
     "Module: global unlock checkbox reuses the legacy independent-orb string ID")
-assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_Y") == nil,
-    "Module: legacy orbOffsetY slider is no longer rendered")
-assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_ORB_OFFSET_X") == nil,
-    "Module: legacy orbOffsetX slider is no longer rendered")
+-- The legacy per-axis orb-offset slider source guards were retired together with
+-- their now-unused lang keys (BUI-CLEAN-002); the global unlock checkbox assertion
+-- above remains the current guard. Keeping the removed key literals out of the
+-- test lets the host drop them from lang with zero references.
 
 -- Test 10: Mouse drag positioning must write through live settings. The
 -- remote interface.log showed delta_applied changed=true followed by drag
@@ -209,8 +209,6 @@ assertTrue(settingsSubmenusSource2:find("drag%.ResetOffset%(k, liveGetter, nil%)
     "SettingsSubmenus: ResetElemPos calls Drag.ResetOffset with the live settings getter")
 assertTrue(settingsSubmenusSource2:find("local function AreElementPositionsUnlocked%(shared%)") ~= nil,
     "SettingsSubmenus: element sliders are gated by the global unlock")
-assertTrue(settingsSubmenusSource2:find("drag%.SetElementLocked%(k, true, liveGetter%)") == nil,
-    "SettingsSubmenus: ResetElemPos no longer mutates per-element lock state")
 assertTrue(settingsSubmenusSource2:find("getFunc = c%.locked%.get") == nil,
     "SettingsSubmenus: per-element lock checkboxes are no longer rendered")
 assertTrue(settingsSubmenusSource2:find("usesLiveSettings = usesLiveSettings") ~= nil,

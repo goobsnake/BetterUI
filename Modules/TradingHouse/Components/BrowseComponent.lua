@@ -98,17 +98,18 @@ local function EnsureBuyDialogHooks()
     end
 end
 
---- Resolve the focused row the same way the Vendor keybind strip does
---- (GetTargetData when available, falling back to GetSelectedData).
+--- Resolve the focused row through the shared CIM helper, mirroring the Vendor
+--- buy component: prefer the converged GetListTargetData alias, else the
+--- SafeGetTargetData base (both handle GetTargetData/GetSelectedData/.selectedData).
 ---@param thInstance BETTERUI.TradingHouse.Class|nil
 ---@return table|nil rowData
 local function GetTargetRowData(thInstance)
     local list = thInstance and thInstance.list
     if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
-    end
-    return list:GetSelectedData()
+    local getTargetData = BETTERUI.CIM and BETTERUI.CIM.Utils
+        and (BETTERUI.CIM.Utils.GetListTargetData or BETTERUI.CIM.Utils.SafeGetTargetData)
+    if type(getTargetData) ~= "function" then return nil end
+    return getTargetData(list)
 end
 
 --- Drops the current native search-result rows from rendering: their

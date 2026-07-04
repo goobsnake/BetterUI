@@ -34,13 +34,13 @@ local sourceChecks = {
     {
         path = "Modules/Banking/Core/MultiSelectActions.lua",
         forbidden = 'TryResolve%("Banking%.Window"%)',
-        required = "local%s+function%s+GetBankingWindow%(",
+        required = "BETTERUI%.Banking%.GetWindow%(",
         label = "banking multi-select uses direct Banking.Window seam",
     },
     {
         path = "Modules/Banking/Dialogs/QuantityDialog.lua",
         forbidden = 'TryResolve%("Banking%.Window"%)',
-        required = "local%s+function%s+GetBankingWindow%(",
+        required = "BETTERUI%.Banking%.GetWindow%(",
         label = "banking quantity dialog uses direct Banking.Window seam",
     },
     {

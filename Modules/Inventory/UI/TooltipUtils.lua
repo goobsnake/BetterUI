@@ -196,6 +196,11 @@ local function RestoreStockLabelFonts(tooltipControl)
     end
 end
 
+-- Exported so the equipped-tooltip path shares this stock font + restore loop instead
+-- of re-inlining its own copy.
+BETTERUI.Inventory.STOCK_TOOLTIP_BODY_FONT = STOCK_TOOLTIP_BODY_FONT
+BETTERUI.Inventory.RestoreStockLabelFonts = RestoreStockLabelFonts
+
 --- Reverses BetterUI-owned enhanced-tooltip control-instance mutations so
 --- toggling enhancements off restores stock layout/fonts in-session (PB-003).
 --- Idempotent: hides and clears custom BetterUI labels, resets layout only when

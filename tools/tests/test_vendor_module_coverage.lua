@@ -378,39 +378,35 @@ do
 end
 
 do
+    -- BUI-CONS-004: Vendor.ExecuteSafely is a thin delegator over
+    -- BETTERUI.CIM.SafeExecute (unconditional in production; the old inline
+    -- pcall/notify fallback was removed). Install a production-shaped executor
+    -- and assert the delegation preserves failure/error text and multi-return.
     local originalSafeExecute = BETTERUI.CIM.SafeExecute
-    local originalUserNotify = BETTERUI.CIM.UserNotify
-    BETTERUI.CIM.SafeExecute = nil
-    BETTERUI.CIM.UserNotify = nil
+    BETTERUI.CIM.SafeExecute = function(_context, fn, ...)
+        if type(fn) ~= "function" then
+            return false, "No function provided"
+        end
+        return pcall(fn, ...)
+    end
 
-    local okWithoutNotifier, errWithoutNotifier = BETTERUI.Vendor.ExecuteSafely("VendorSafeExecute:withoutNotifier", function()
+    local okError, errError = BETTERUI.Vendor.ExecuteSafely("VendorSafeExecute:error", function()
         error("original vendor fallback error")
     end)
-    assertTrue(okWithoutNotifier == false, "vendor safe execute fallback returns failure when notifier is absent")
-    assertTrue(type(errWithoutNotifier) == "string" and string.find(errWithoutNotifier, "original vendor fallback error", 1, true) ~= nil,
-        "vendor safe execute fallback preserves the original error when notifier is absent")
-
-    BETTERUI.CIM.UserNotify = function()
-        error("notifier failure should not replace original")
-    end
-    local okNotifierThrows, errNotifierThrows = BETTERUI.Vendor.ExecuteSafely("VendorSafeExecute:notifierThrows", function()
-        error("original vendor fallback error 2")
-    end)
-    assertTrue(okNotifierThrows == false, "vendor safe execute fallback returns failure when notifier throws")
-    assertTrue(type(errNotifierThrows) == "string" and string.find(errNotifierThrows, "original vendor fallback error 2", 1, true) ~= nil,
-        "vendor safe execute fallback preserves the original error when notifier throws")
+    assertTrue(okError == false, "vendor safe execute delegates failure through CIM.SafeExecute")
+    assertTrue(type(errError) == "string" and string.find(errError, "original vendor fallback error", 1, true) ~= nil,
+        "vendor safe execute delegation preserves the original error text")
 
     local okMultiReturn, firstValue, secondValue, thirdValue = BETTERUI.Vendor.ExecuteSafely("VendorSafeExecute:multiReturn",
         function()
             return "a", "b", "c"
         end)
-    assertTrue(okMultiReturn == true, "vendor safe execute fallback succeeds for successful calls")
-    assertEqual("a", firstValue, "vendor safe execute fallback preserves first return value")
-    assertEqual("b", secondValue, "vendor safe execute fallback preserves second return value")
-    assertEqual("c", thirdValue, "vendor safe execute fallback preserves third return value")
+    assertTrue(okMultiReturn == true, "vendor safe execute delegation succeeds for successful calls")
+    assertEqual("a", firstValue, "vendor safe execute delegation preserves first return value")
+    assertEqual("b", secondValue, "vendor safe execute delegation preserves second return value")
+    assertEqual("c", thirdValue, "vendor safe execute delegation preserves third return value")
 
     BETTERUI.CIM.SafeExecute = originalSafeExecute
-    BETTERUI.CIM.UserNotify = originalUserNotify
 end
 
 do
@@ -432,7 +428,14 @@ do
     local originalHasVendorBuyInventory = BETTERUI.Vendor.HasVendorBuyInventory
     local originalIsSellVengeanceModeAvailable = BETTERUI.Vendor.IsSellVengeanceModeAvailable
 
-    BETTERUI.CIM.SafeExecute = nil
+    -- BUI-CONS-004: install a production-shaped safe executor (the old nil-forced
+    -- fallback was removed); the native-store rebuild guard routes through it.
+    BETTERUI.CIM.SafeExecute = function(_context, fn, ...)
+        if type(fn) ~= "function" then
+            return false, "No function provided"
+        end
+        return pcall(fn, ...)
+    end
     BETTERUI.CIM.UserNotify = function()
     end
     _G.CanStoreRepair = function()

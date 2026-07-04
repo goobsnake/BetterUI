@@ -9,18 +9,8 @@ local Vendor = BETTERUI.Vendor
 Vendor.RepairComponent = Vendor.RepairComponent or {}
 local Repair = Vendor.RepairComponent
 
---- Resolve the focused row the same way the Vendor keybind strip does
---- (GetTargetData when available, falling back to GetSelectedData).
----@param vendorInstance BETTERUI.Vendor.Class|nil
----@return table|nil rowData
-local function GetTargetRowData(vendorInstance)
-    local list = vendorInstance and vendorInstance.list
-    if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
-    end
-    return list:GetSelectedData()
-end
+-- BUI-CONS-001: focused-row resolution uses the shared
+-- BETTERUI.CIM.Utils.SafeGetTargetData (mirrors BuyComponent's CIM path).
 
 local function TraceRepair(event, phase, data)
     local L = BETTERUI and BETTERUI.Log or nil
@@ -112,7 +102,7 @@ end
 ---@param vendorInstance BETTERUI.Vendor.Class
 ---@return boolean enabled True if repair is affordable and needed
 function Repair:IsPrimaryActionEnabled(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -122,7 +112,7 @@ end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:OnPrimaryAction(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then
         TraceRepair("vendor.repair", "blocked", {
             fn = "Vendor.RepairComponent.OnPrimaryAction",
@@ -184,12 +174,9 @@ function Repair:OnPrimaryAction(vendorInstance)
         currencyType = rawget(_G, "CURT_MONEY"),
         item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
     }
-    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.repair", traceData) or nil
-
-    RepairItem(bagId, slotIndex)
-    if Vendor.ScheduleActionSettled then
-        Vendor.ScheduleActionSettled("vendor.repair", traceData, goldBefore)
-    end
+    Vendor.DispatchTracedAction("vendor.repair", traceData, function()
+        RepairItem(bagId, slotIndex)
+    end)
 end
 
 -- REPAIR ALL
@@ -328,16 +315,7 @@ function Repair:BuildList(vendorInstance)
                         ),
                     }
 
-                    local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
-                    entry:SetDataSource(entryData)
-                    entry.narrationText = function() return entryData.name end
-
-                    if entryData.quality then
-                        local r, g, b = GetItemQualityColor(entryData.quality):UnpackRGBA()
-                        entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-                    end
-
-                    list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+                    Vendor.AddItemRow(list, entryData)
                 end
             end
         end

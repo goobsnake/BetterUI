@@ -15,6 +15,12 @@ end
 BETTERUI = {
     Inventory = {},
     CIM = {
+        -- InventoryClass.lua aliases BETTERUI.CIM.DialogRestore.Log at load time
+        -- (shared restore scheduler in Modules/CIM/Dialogs/DialogRestore.lua).
+        DialogRestore = {
+            Log = function() end,
+            Schedule = function() end,
+        },
         DeferredTask = {
             CreateManager = function()
                 return {}

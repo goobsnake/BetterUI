@@ -48,9 +48,7 @@ local function BETTERUI_TryPlaceInventoryItemInEmptySlot(targetBag)
 		if not placed then
 			-- A failed placement leaves the picked-up stack stranded on the cursor.
 			ClearCursor()
-			local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
-			BETTERUI.CIM.UserNotify("InventoryDialogs:PlaceFailed",
-				(failedStringId and GetString(failedStringId)) or "The action could not be completed.")
+			BETTERUI.CIM.UserNotifySecureActionFailed("InventoryDialogs:PlaceFailed")
 		end
 	else
 		local errorStringId = (targetBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL
@@ -238,9 +236,7 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 							hasDialogData = dialogData ~= nil,
 							hasQuantity = quantity ~= nil,
 						})
-						local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
-						BETTERUI.CIM.UserNotify("InventoryDialogs:SplitMissingData",
-							(failedStringId and GetString(failedStringId)) or "The action could not be completed.")
+						BETTERUI.CIM.UserNotifySecureActionFailed("InventoryDialogs:SplitMissingData")
 						return
 					end
 
@@ -264,9 +260,7 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 						BETTERUI_TryPlaceInventoryItemInEmptySlot(dialogData.bagId)
 					else
 						-- Nothing was picked up, so there is no cursor item to clear.
-						local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
-						BETTERUI.CIM.UserNotify("InventoryDialogs:SplitPickupFailed",
-							(failedStringId and GetString(failedStringId)) or "The action could not be completed.")
+						BETTERUI.CIM.UserNotifySecureActionFailed("InventoryDialogs:SplitPickupFailed")
 					end
 				end,
 			},

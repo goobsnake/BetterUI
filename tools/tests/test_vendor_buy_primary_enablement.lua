@@ -264,6 +264,46 @@ BETTERUI = {
 }
 
 dofile("Modules/CIM/Core/Data/ItemTaxonomy.lua")
+
+-- BUI-CONS-008: shared helpers BuyComponent now delegates to. Mirror the
+-- VendorModePolicy implementations so this isolated test still passes.
+BETTERUI.Vendor.AddItemRow = BETTERUI.Vendor.AddItemRow or function(list, entryData)
+    if not (list and entryData) then return nil end
+    local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
+    entry:SetDataSource(entryData)
+    entry.narrationText = function() return entryData.name end
+    if entryData.quality then
+        local r, g, b = GetItemQualityColor(entryData.quality):UnpackRGBA()
+        entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
+    end
+    list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+    return entry
+end
+BETTERUI.Vendor.DispatchTracedAction = BETTERUI.Vendor.DispatchTracedAction or function(event, traceData, fn)
+    local V = BETTERUI.Vendor
+    local goldBefore = V.TraceActionRequested and V.TraceActionRequested(event, traceData) or nil
+    fn()
+    if V.ScheduleActionSettled then V.ScheduleActionSettled(event, traceData, goldBefore) end
+end
+BETTERUI.Vendor.CanAffordStoreEntry = BETTERUI.Vendor.CanAffordStoreEntry or function(instance, ds)
+    if not (instance and ds) then return false end
+    if type(instance.CanAfford) ~= "function" then return true end
+    local price = ds.price or 0
+    if price > 0 then
+        local currencyType = ds.currencyType or CURT_MONEY
+        if currencyType == CURT_NONE then currencyType = CURT_MONEY end
+        if not instance:CanAfford(price, currencyType) then return false end
+    end
+    local price1 = ds.currencyQuantity1 or 0
+    if price1 > 0 and ds.currencyType1 and ds.currencyType1 ~= CURT_NONE
+        and not instance:CanAfford(price1, ds.currencyType1) then return false end
+    local price2 = ds.currencyQuantity2 or 0
+    if price2 > 0 and ds.currencyType2 and ds.currencyType2 ~= CURT_NONE then
+        return instance:CanAfford(price2, ds.currencyType2)
+    end
+    return true
+end
+
 dofile("Modules/Vendor/Components/BuyComponent.lua")
 
 local Buy = BETTERUI.Vendor.BuyComponent
@@ -387,6 +427,31 @@ do
     scheduledTasks.buyActivateRefresh.callback()
     assertEq(applyModeCalls[#applyModeCalls], BETTERUI.Vendor.MODE.BUY, "deferred buy refresh reapplies the native buy mode")
     assertEq(refreshCount, 2, "deferred buy refresh runs the vendor refresh a second time")
+end
+
+do
+    -- PB-017: BuyComponent no longer owns the empty-buy retry. When the store
+    -- yields zero rows, Buy:BuildList must NOT schedule the "buyListRetry" task
+    -- nor advance the shared _buyListRetryCount -- VendorControllerRuntime is the
+    -- single retry owner (one counter, one task name, limit 20 @ 180ms). This
+    -- pins that both entry points converge on the controller's retry.
+    local savedNum = GetNumStoreItems
+    local savedInfo = GetStoreEntryInfo
+    GetNumStoreItems = function() return 0 end
+    GetStoreEntryInfo = function() return nil end
+
+    scheduledTasks.buyListRetry = nil
+    local vendor = newVendor()
+    vendor._buyListRetryCount = 0
+    Buy:BuildList(vendor)
+
+    assertEq(scheduledTasks.buyListRetry, nil,
+        "PB-017: BuyComponent does not schedule a competing buyListRetry on empty rows")
+    assertEq(vendor._buyListRetryCount, 0,
+        "PB-017: BuyComponent leaves the shared retry counter for the controller to own")
+
+    GetNumStoreItems = savedNum
+    GetStoreEntryInfo = savedInfo
 end
 
 print(string.format("test_vendor_buy_primary_enablement.lua: %d assertions passed", testsPassed))

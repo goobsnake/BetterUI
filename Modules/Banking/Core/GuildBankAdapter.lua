@@ -27,10 +27,6 @@ local function TraceGuildBank(event, phase, data)
     L.TraceEvent(categories.STATE or categories.ACTION, event, phase, data)
 end
 
-local function GetBankingWindow()
-    return BETTERUI.Banking and BETTERUI.Banking.Window
-end
-
 local function GetGuildBankRuntimeState()
     local getMutableGuildBankRuntimeState = BETTERUI.Banking and BETTERUI.Banking.GetMutableGuildBankRuntimeState or nil
     if type(getMutableGuildBankRuntimeState) == "function" then
@@ -295,7 +291,7 @@ function GuildBank.OnGuildBankSelected()
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "guild bank selected")
     end
     GuildBank.SetLoading(true)
-    local window = GetBankingWindow()
+    local window = BETTERUI.Banking.GetWindow()
     if window then
         if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearTooltip then
             GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
@@ -312,7 +308,7 @@ function GuildBank.OnGuildBankSelected()
 end
 
 function GuildBank.OnGuildBankDeselected()
-    local window = GetBankingWindow()
+    local window = BETTERUI.Banking.GetWindow()
     if window and window.list then
         window.list:Clear()
         window.list:Commit()
@@ -329,7 +325,7 @@ function GuildBank.OnGuildBankReady()
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "guild bank ready")
     end
     GuildBank.SetLoading(false)
-    local window = GetBankingWindow()
+    local window = BETTERUI.Banking.GetWindow()
     if window then
         window:SetListUpdatesSuppressed(false)
         BETTERUI.Banking.RefreshWindowView(window)
@@ -347,7 +343,7 @@ function GuildBank.OnGuildBankReady()
 end
 
 function GuildBank.OnGuildBankUpdated()
-    local window = GetBankingWindow()
+    local window = BETTERUI.Banking.GetWindow()
     if window and not GuildBank.IsLoading() then
         BETTERUI.Banking.RefreshWindowView(window)
         TraceGuildBank("bank.guild_bank", "updated", {
@@ -368,7 +364,7 @@ end
 ---@return nil
 function GuildBank.OnGuildBankOpenError()
     GuildBank.SetLoading(false)
-    local window = GetBankingWindow()
+    local window = BETTERUI.Banking.GetWindow()
     if window then
         window:SetListUpdatesSuppressed(false)
         if window.list then
@@ -387,7 +383,7 @@ end
 --- Called when guild banked money is updated. Refreshes footer and lists.
 ---@return nil
 function GuildBank.OnGuildBankedMoneyUpdate()
-    local window = GetBankingWindow()
+    local window = BETTERUI.Banking.GetWindow()
     if window then
         BETTERUI.Banking.RefreshWindowView(window)
         if window.RefreshFooter then
@@ -407,7 +403,7 @@ end
 ---@param guildId integer The guild whose ranks changed
 function GuildBank.OnGuildRanksChanged(_, guildId)
     if guildId == GetSelectedGuildBankId() then
-        local window = GetBankingWindow()
+        local window = BETTERUI.Banking.GetWindow()
         if window then
             if window.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup then
                 BETTERUI.Interface.UpdateKeybindGroup(window.coreKeybinds)
@@ -437,7 +433,7 @@ end
 ---@param displayName string The member's display name
 function GuildBank.OnGuildMemberRankChanged(_, guildId, displayName)
     if guildId == GetSelectedGuildBankId() and displayName == GetDisplayName() then
-        local window = GetBankingWindow()
+        local window = BETTERUI.Banking.GetWindow()
         if window then
             if window.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup then
                 BETTERUI.Interface.UpdateKeybindGroup(window.coreKeybinds)
@@ -576,7 +572,7 @@ function GuildBank.RegisterGuildSelectorDialog()
                     if selected and selected.guildId then
                         GuildBank.ChangeGuildBank(selected.guildId)
                         -- Update title immediately
-                        local window = GetBankingWindow()
+                        local window = BETTERUI.Banking.GetWindow()
                         if window then
                             window:SetTitle(GuildBank.GetHeaderTitle())
                         end

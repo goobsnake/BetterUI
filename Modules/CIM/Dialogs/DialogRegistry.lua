@@ -44,6 +44,23 @@ local function GetCurrentDialogInfo(dialogName)
     return nil
 end
 
+--- Wrap a dialog setup so any prior owner's setup runs first, then the new one.
+--- The inner setup is optional so a caller can preserve a foreign prior setup
+--- even when it supplies no setup of its own.
+---@param priorDialog table|nil
+---@param setup function|nil
+---@return function
+local function ChainPriorDialogSetup(priorDialog, setup)
+    return function(dialog, ...)
+        if priorDialog and type(priorDialog.setup) == "function" then
+            priorDialog.setup(dialog, ...)
+        end
+        if type(setup) == "function" then
+            return setup(dialog, ...)
+        end
+    end
+end
+
 ---@param dialog table|nil
 ---@param value number|nil
 ---@return boolean
@@ -189,6 +206,29 @@ function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
     }
 
     return true
+end
+
+--- Register a dialog while chaining any prior owner's setup into its setup.
+--- Consolidates the GetCurrentDialogInfo + ChainPriorDialogSetup + Register
+--- scaffold that dialog owners previously hand-rolled. Returns the prior dialog
+--- info as a second value so callers can inspect prior ownership if needed.
+---@param dialogName string
+---@param dialogInfo table Dialog definition; a setup function (its own or the
+---       prior owner's) is wrapped so the prior setup runs first.
+---@param options {overwrite: boolean?}? Defaults to { overwrite = true }.
+---@return boolean registered
+---@return table|nil priorDialog
+function BETTERUI.CIM.Dialogs.RegisterWithPriorChain(dialogName, dialogInfo, options)
+    local priorDialog = GetCurrentDialogInfo(dialogName)
+    if type(dialogInfo) == "table" then
+        local hasSetup = type(dialogInfo.setup) == "function"
+        local priorHasSetup = priorDialog ~= nil and type(priorDialog.setup) == "function"
+        if hasSetup or priorHasSetup then
+            dialogInfo.setup = ChainPriorDialogSetup(priorDialog, dialogInfo.setup)
+        end
+    end
+    local registered = BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options or { overwrite = true })
+    return registered, priorDialog
 end
 
 ---@param dialogName string

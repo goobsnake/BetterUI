@@ -2,14 +2,9 @@ if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 
 local Companions = BETTERUI.Companions
 
-local function WrapCompanionHeaderKeybindGroup(group)
-    local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
-    local anchor = keybinds and keybinds.InputAnchor
-    if anchor and type(anchor.WrapGroup) == "function" then
-        return anchor.WrapGroup(group, "Companions")
-    end
-    return group
-end
+-- Shared companion keybind-group wrapper, owned by CompanionsRuntime (BUI-CONS-010).
+local WrapCompanionHeaderKeybindGroup = Companions.WrapKeybindGroup
+    or function(group) return group end
 
 local function IsDirectionalInputListening(obj)
     if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening) then
@@ -254,15 +249,20 @@ function BETTERUI.Companions.Class:InitializeCategoryHeader()
     self.currentCategoryIndex = self.currentCategoryIndex or 1
 end
 
+-- Category header title: the current category name, or the module title for the
+-- "all" category / no selection. Single source for RefreshCategoryTitle and the
+-- RebuildCategoryHeader titleText closure (BUI-CONS-010).
+local function ComputeCategoryTitle(instance)
+    local cat = instance:GetCurrentCategory()
+    if cat and cat.name and cat.key ~= "all" then
+        return zo_strformat("<<1>>", cat.name)
+    end
+    return GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE")
+end
+
 function BETTERUI.Companions.Class:RefreshCategoryTitle()
     if not self.headerGeneric then return end
-    local cat = self:GetCurrentCategory()
-    local titleText
-    if cat and cat.name and cat.key ~= "all" then
-        titleText = zo_strformat("<<1>>", cat.name)
-    else
-        titleText = GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE")
-    end
+    local titleText = ComputeCategoryTitle(self)
     if BETTERUI.GenericHeader and BETTERUI.GenericHeader.SetTitleText then
         BETTERUI.GenericHeader.SetTitleText(self.headerGeneric, titleText)
     end
@@ -391,11 +391,7 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
 
     self.companionHeaderData = self.companionHeaderData or {}
     self.companionHeaderData.titleText = function()
-        local cat = self:GetCurrentCategory()
-        if cat and cat.name and cat.key ~= "all" then
-            return zo_strformat("<<1>>", cat.name)
-        end
-        return GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE")
+        return ComputeCategoryTitle(self)
     end
     self.companionHeaderData.tabBarData = { parent = self, onNext = function(_, successful) if successful then self:OnTabNext() end end, onPrev = function(_, successful) if successful then self:OnTabPrev() end end }
     self.companionHeaderData.carouselConfig = {

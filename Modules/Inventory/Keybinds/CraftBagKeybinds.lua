@@ -8,12 +8,6 @@ local function GetNowMilliseconds()
     return GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
 end
 
-local function NotifySecureActionFailed(context)
-    local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
-    BETTERUI.CIM.UserNotify(context,
-        (failedStringId and GetString(failedStringId)) or "The action could not be completed.")
-end
-
 local function NormalizeActionName(actionName)
     if type(actionName) ~= "string" then
         return actionName
@@ -326,7 +320,7 @@ local function ExecuteTargetUse(target)
     local bag, slot = ZO_Inventory_GetBagAndIndex(dataSource)
     if bag and slot then
         if not CallSecureProtected("UseItem", bag, slot) then
-            NotifySecureActionFailed("CraftBagKeybinds:UseItem")
+            BETTERUI.CIM.UserNotifySecureActionFailed("CraftBagKeybinds:UseItem")
         end
     end
 end
@@ -735,7 +729,7 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
             return true, nil, "equip"
         else
             if not CallSecureProtected("UseItem", target.bagId, target.slotIndex) then
-                NotifySecureActionFailed("CraftBagKeybinds:PrimaryUseItem")
+                BETTERUI.CIM.UserNotifySecureActionFailed("CraftBagKeybinds:PrimaryUseItem")
                 return false, "secureUseFailed", "useItem"
             end
             return true, nil, "useItem"
@@ -833,7 +827,7 @@ function InventoryKeybinds.HandleSecondaryKeybind(self)
         if slotNum then
             StartSecondaryActionTransition(self, InventoryKeybinds.GetSecondaryKeybindName(self))
             if not CallSecureProtected("ClearSlot", slotNum, hotbarCategory) then
-                NotifySecureActionFailed("CraftBagKeybinds:QuickslotClear")
+                BETTERUI.CIM.UserNotifySecureActionFailed("CraftBagKeybinds:QuickslotClear")
             end
             if SOUNDS and PlaySound then
                 PlaySound(SOUNDS.GAMEPAD_MENU_BACK)

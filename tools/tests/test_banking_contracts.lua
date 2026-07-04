@@ -452,8 +452,8 @@ assertTrue(guildBankAdapter:match("BETTERUI%.Banking%.ResolveActiveTransferMode"
     "GuildBankAdapter no longer reads transfer context inline")
 assertTrue(guildBankAdapter:match("GetTransferContext") == nil,
     "GuildBankAdapter no longer reads transfer-context fields directly")
-assertTrue(guildBankAdapter:match("local function GetBankingWindow%(") ~= nil,
-    "GuildBankAdapter reads banking window through a single local accessor")
+assertTrue(guildBankAdapter:match("BETTERUI%.Banking%.GetWindow%(") ~= nil,
+    "GuildBankAdapter reads banking window through the canonical Banking.GetWindow accessor")
 assertTrue(guildBankAdapter:match("local window = BETTERUI%.Banking%.Window") == nil,
     "GuildBankAdapter no longer reads banking window inline at call-sites")
 assertTrue(containsTransferSnapshotReader(guildBankAdapter),

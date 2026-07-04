@@ -138,13 +138,8 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 
     -- Register for SHARED_INVENTORY callbacks
     local function RebuildCategoriesAndRefreshList()
-        local previousCategoryKey = nil
-        if self.GetCurrentCategoryKey then
-            previousCategoryKey = self:GetCurrentCategoryKey()
-        elseif self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
-            local prevCat = self.bankCategories[self.currentCategoryIndex]
-            previousCategoryKey = prevCat and prevCat.key or nil
-        end
+        -- Canonical category-key resolution (BUI-CONS-004).
+        local previousCategoryKey = BETTERUI.Banking.ResolveWindowCategoryKey(self)
 
         if self.RefreshTransferView then
             self:RefreshTransferView({

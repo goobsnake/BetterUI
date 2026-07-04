@@ -9,40 +9,18 @@ local Vendor = BETTERUI.Vendor
 Vendor.SellComponent = Vendor.SellComponent or {}
 local Sell = Vendor.SellComponent
 
---- Resolve the focused row the same way the Vendor keybind strip does
---- (GetTargetData when available, falling back to GetSelectedData).
----@param vendorInstance BETTERUI.Vendor.Class|nil
----@return table|nil rowData
-local function GetTargetRowData(vendorInstance)
-    local list = vendorInstance and vendorInstance.list
-    if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
-    end
-    return list:GetSelectedData()
-end
+-- BUI-CONS-001: focused-row resolution uses BETTERUI.CIM.Utils.SafeGetTargetData.
 
 local SELL_CATEGORY_DEFS = BETTERUI.CIM.ItemTaxonomy.VENDOR_SELL_CATEGORY_DEFS
 
+-- BUI-CONS-008: authorization assert-wrapper unified in Vendor.AuthorizeAction.
 local function AuthorizeVendorAction(actionType, bagId, slotIndex, vendorInstance)
-    local authorizeInventoryAction = Vendor.AuthorizeInventoryAction
-    assert(type(authorizeInventoryAction) == "function",
-        "Vendor.AuthorizeInventoryAction must load before Vendor sell actions")
-    local allowed, reason = authorizeInventoryAction(actionType, bagId, slotIndex, vendorInstance)
-    return allowed == true, reason
+    return Vendor.AuthorizeAction(actionType, bagId, slotIndex, vendorInstance)
 end
 
---- True when the player's carried gold is at the maximum the wallet can hold.
---- Selling for gold while at the cap fails server-side, so the sell actions
---- must block first (mirrors native ZO_GamepadStoreSell:CanSell).
----@return boolean atCap
+-- BUI-CONS-008: gold-cap detection unified in Vendor.IsAtGoldCap.
 local function IsAtGoldCap()
-    if type(GetMaxPossibleCurrency) ~= "function" then
-        return false
-    end
-    local carried = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
-    local maxPossible = GetMaxPossibleCurrency(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
-    return maxPossible > 0 and carried >= maxPossible
+    return Vendor.IsAtGoldCap()
 end
 
 --- Localized "at the gold cap" alert text, preferring the native store-failure
@@ -187,7 +165,7 @@ local function TraceSellBlocked(vendorInstance, reason, ds, extra)
 end
 
 function Sell:IsPrimaryActionEnabled(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -213,7 +191,7 @@ function Sell:IsPrimaryActionEnabled(vendorInstance)
 end
 
 function Sell:OnPrimaryAction(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then
         TraceSellBlocked(vendorInstance, "noSelection")
         return
@@ -263,12 +241,9 @@ function Sell:OnPrimaryAction(vendorInstance)
         currencyType = rawget(_G, "CURT_MONEY"),
         item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
     }
-    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.sell", traceData) or nil
-
-    SellInventoryItem(bagId, slotIndex, stackSize)
-    if Vendor.ScheduleActionSettled then
-        Vendor.ScheduleActionSettled("vendor.sell", traceData, goldBefore)
-    end
+    Vendor.DispatchTracedAction("vendor.sell", traceData, function()
+        SellInventoryItem(bagId, slotIndex, stackSize)
+    end)
 end
 
 function Sell:SellAllJunk(vendorInstance)
@@ -409,16 +384,7 @@ function Sell:BuildList(vendorInstance)
                 statValue        = slot.statValue or "",
             }
 
-            local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
-            entry:SetDataSource(entryData)
-            entry.narrationText = function() return entryData.name end
-
-            if quality then
-                local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
-                entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-            end
-
-            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+            Vendor.AddItemRow(list, entryData)
         end
     end
 end

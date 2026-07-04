@@ -79,17 +79,8 @@ local function InitSettingsPanel(mId, moduleName)
         L.TraceEvent(categories.SETTINGS or categories.GENERAL or "SETTINGS", "resource_orbs.settings_reset", phase, data)
     end
 
-    local function TraceDrag(event, phase, data)
-        local L = BETTERUI and BETTERUI.Log
-        if not (L and L.TraceEvent) then return end
-        data = data or {}
-        data.module = data.module or "ResourceOrbFrames"
-        data.feature = data.feature or "element-drag"
-        data.fn = data.fn or "ElementDrag"
-        data["function"] = data["function"] or data.fn
-        local categories = L.CATEGORY or {}
-        L.TraceEvent(categories.STATE or categories.GENERAL, event, phase, data)
-    end
+    -- Shared element-drag tracer (BUI-CONS-002), defined once on ROF Utils.
+    local TraceDrag = BETTERUI.ResourceOrbFrames.Utils and BETTERUI.ResourceOrbFrames.Utils.TraceDrag or function() end
 
     local function ResetSettingsGroup(keyDefaults)
         local settings = EnsureResourceOrbSettings()

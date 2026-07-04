@@ -6,27 +6,24 @@ Purpose: Tooltip, list-refresh, and row-construction logic for companion equipme
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 local Companions = BETTERUI.Companions
 
-local function GetCurrentSceneName()
-    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
-        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
-        if ok then return sceneName end
-    end
-    return nil
-end
+-- Item-list tracer keeps its string-form last-action and per-call category
+-- (BUI-CONS-002); the shared MakeTracer base owns the guard/module/feature/
+-- scene(CIM.Utils = BUI-CONS-003)/gamepad boilerplate, mirroring CompanionActions.
+local traceCompanionListBase = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "Companions",
+        feature = "item_list",
+        category = (BETTERUI.Log.CATEGORY or {}).LIST or (BETTERUI.Log.CATEGORY or {}).GENERAL or "LIST",
+        setLastAction = false,
+    }
+    or function() end
 
 local function TraceCompanionList(event, phase, data, category)
     local L = BETTERUI and BETTERUI.Log or nil
-    if not L or type(L.TraceEvent) ~= "function" then return end
-    local payload = data or {}
-    payload.module = "Companions"
-    payload.feature = "item_list"
-    payload.scene = GetCurrentSceneName()
-    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if type(L.SetLastAction) == "function" then
+    if L and type(L.SetLastAction) == "function" then
         L.SetLastAction(event)
     end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(category or categories.LIST or categories.GENERAL, event, phase, payload)
+    traceCompanionListBase(event, phase, data, category)
 end
 
 local function GetCompanionTraitName(bagId, slotIndex)

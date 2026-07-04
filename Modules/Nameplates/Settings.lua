@@ -7,34 +7,10 @@ local DEFAULT_NAMEPLATE_SIZE = 16
 local POSITION_OFFSET_MIN = -600
 local POSITION_OFFSET_MAX = 600
 
-local function GetCurrentSceneName()
-    if SCENE_MANAGER and SCENE_MANAGER.GetCurrentScene then
-        local scene = SCENE_MANAGER:GetCurrentScene()
-        if scene and scene.GetName then
-            return scene:GetName()
-        end
-    end
-    return nil
-end
-
+-- Nameplates.ClampNameplateSize is always present by the time the settings panel
+-- invokes this at runtime, so the former inline fallback was unreachable (BUI-CONS-004).
 local function ClampNameplateSize(value, fallback)
-    if type(Nameplates.ClampNameplateSize) == "function" then
-        return Nameplates.ClampNameplateSize(value, fallback)
-    end
-
-    local numeric = tonumber(value)
-    if not numeric then
-        return fallback
-    end
-
-    local rounded = math.floor(numeric + 0.5)
-    if rounded < NAMEPLATE_SIZE_MIN then
-        return NAMEPLATE_SIZE_MIN
-    end
-    if rounded > NAMEPLATE_SIZE_MAX then
-        return NAMEPLATE_SIZE_MAX
-    end
-    return rounded
+    return Nameplates.ClampNameplateSize(value, fallback)
 end
 
 local function ClampPositionOffset(value)
@@ -62,26 +38,32 @@ local function IsNameplateEnabled()
     return settings and settings.m_enabled == true
 end
 
+-- Setting tracer keeps its setting/enabled/gamepadMode payload and settingName-keyed
+-- last-action; the shared MakeTracer base owns the guard, module/feature, and scene
+-- via CIM.Utils (BUI-CONS-002 / BUI-CONS-003).
+local traceNameplateSettingBase = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "Nameplates",
+        feature = "nameplates",
+        category = (BETTERUI.Log.CATEGORY or {}).SETTINGS or "SETTINGS",
+        includeGamepad = false,
+        setLastAction = false,
+    }
+    or function() end
+
 local function TraceNameplateSetting(settingName, phase, data)
-    if not (BETTERUI and BETTERUI.Log and BETTERUI.Log.TraceEvent) then
-        return
-    end
     data = data or {}
-    data.module = data.module or "Nameplates"
-    data.feature = data.feature or "nameplates"
     data.setting = data.setting or settingName
-    data.scene = data.scene or GetCurrentSceneName()
     if data.enabled == nil then
         data.enabled = IsNameplateEnabled()
     end
     if data.gamepadMode == nil and type(IsInGamepadPreferredMode) == "function" then
         data.gamepadMode = IsInGamepadPreferredMode()
     end
-    if BETTERUI.Log.SetLastAction then
+    if BETTERUI.Log and BETTERUI.Log.SetLastAction then
         BETTERUI.Log.SetLastAction({ flow = "nameplates.setting", message = tostring(settingName) .. ":" .. phase })
     end
-    local categories = BETTERUI.Log.CATEGORY or {}
-    BETTERUI.Log.TraceEvent(categories.SETTINGS, "nameplates.setting", phase, data)
+    traceNameplateSettingBase("nameplates.setting", phase, data)
 end
 
 local function NotifyNameplateToggleChanged(value, suppressCleanupLog)
@@ -155,12 +137,10 @@ function Nameplates.GetSettingsOptions()
         ApplyCurrentNameplateSettings(key, normalized)
     end
 
+    -- Positioning.IsPositionControlDisabled is always present (Positioning loads
+    -- before Settings), so the former inline fallback was unreachable (BUI-CONS-004).
     local function IsPositionSliderDisabled(elementKey)
-        local positioning = Nameplates.Positioning
-        if positioning and type(positioning.IsPositionControlDisabled) == "function" then
-            return positioning.IsPositionControlDisabled(elementKey)
-        end
-        return not IsNameplateEnabled() or not GetBooleanSetting("nameplatePositionsUnlocked")
+        return Nameplates.Positioning.IsPositionControlDisabled(elementKey)
     end
 
     local function ResetPositionSettings()
@@ -182,17 +162,10 @@ function Nameplates.GetSettingsOptions()
             reticlePromptOffsetX = settings.reticlePromptOffsetX,
             reticlePromptOffsetY = settings.reticlePromptOffsetY,
         })
+        -- Positioning.ResetOffsets owns the field reset + reapply; the former
+        -- field-by-field else was unreachable since Positioning loads first (BUI-CONS-004).
         if positioning and type(positioning.ResetOffsets) == "function" then
             positioning.ResetOffsets(settings)
-        else
-            settings.nameplatePositionsUnlocked = false
-            settings.moveCompassFrame = false
-            settings.compassFrameOffsetX = 0
-            settings.compassFrameOffsetY = 0
-            settings.moveReticlePrompt = false
-            settings.reticlePromptOffsetX = 0
-            settings.reticlePromptOffsetY = 0
-            ApplyCurrentNameplateSettings("resetPositions", "defaults")
         end
         TraceNameplateSetting("resetPositions", "set_end", {
             fn = "Nameplates.Settings.ResetPositionSettings",
@@ -511,13 +484,12 @@ function Nameplates.GetSettingsOptions()
                 settings.font = defaults.font
                 settings.style = defaults.style
                 settings.size = defaults.size
-                settings.nameplatePositionsUnlocked = defaults.nameplatePositionsUnlocked
-                settings.moveCompassFrame = defaults.moveCompassFrame
-                settings.compassFrameOffsetX = defaults.compassFrameOffsetX
-                settings.compassFrameOffsetY = defaults.compassFrameOffsetY
-                settings.moveReticlePrompt = defaults.moveReticlePrompt
-                settings.reticlePromptOffsetX = defaults.reticlePromptOffsetX
-                settings.reticlePromptOffsetY = defaults.reticlePromptOffsetY
+                -- Position fields (unlock + compass/reticle offsets) reset through the
+                -- single Positioning owner; their defaults are all 0/false, matching
+                -- ResetOffsets exactly (BUI-CONS-004).
+                if Nameplates.Positioning and type(Nameplates.Positioning.ResetOffsets) == "function" then
+                    Nameplates.Positioning.ResetOffsets(settings)
+                end
                 TraceNameplateSetting("reset", "set_end", {
                     fn = "Nameplates.Settings.reset.func",
                     font = settings.font,

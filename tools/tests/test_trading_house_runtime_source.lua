@@ -42,8 +42,8 @@ local manifestSource = read_file("BetterUI.txt")
 
 assert_contains(runtimeSource, "function TH.RegisterSceneLifecycle(instance)",
     "Trading House runtime helper owns scene lifecycle registration")
-assert_contains(runtimeSource, "---@return THTabDef[] tabs",
-    "Trading House runtime helper annotates the tab definition export")
+assert_not_contains(runtimeSource, "function TH.GetTabs(",
+    "Trading House runtime helper no longer exposes the dead test-only GetTabs export")
 assert_contains(runtimeSource, "---@param instance BETTERUI.TradingHouse.Class",
     "Trading House runtime helper annotates exported helpers with the trading house instance type")
 assert_contains(runtimeSource, "---@return nil",

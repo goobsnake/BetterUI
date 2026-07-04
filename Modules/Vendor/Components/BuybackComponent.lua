@@ -9,18 +9,8 @@ local Vendor = BETTERUI.Vendor
 Vendor.BuybackComponent = Vendor.BuybackComponent or {}
 local Buyback = Vendor.BuybackComponent
 
---- Resolve the focused row the same way the Vendor keybind strip does
---- (GetTargetData when available, falling back to GetSelectedData).
----@param vendorInstance BETTERUI.Vendor.Class|nil
----@return table|nil rowData
-local function GetTargetRowData(vendorInstance)
-    local list = vendorInstance and vendorInstance.list
-    if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
-    end
-    return list:GetSelectedData()
-end
+-- BUI-CONS-001: focused-row resolution uses the shared
+-- BETTERUI.CIM.Utils.SafeGetTargetData (mirrors BuyComponent's CIM path).
 
 local function GetBuybackItemCategoryName(itemLink)
     if not itemLink or itemLink == "" then
@@ -49,7 +39,7 @@ function Buyback:GetPrimaryActionName()
 end
 
 function Buyback:IsPrimaryActionEnabled(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
@@ -58,7 +48,7 @@ function Buyback:IsPrimaryActionEnabled(vendorInstance)
 end
 
 function Buyback:OnPrimaryAction(vendorInstance)
-    local selectedData = GetTargetRowData(vendorInstance)
+    local selectedData = BETTERUI.CIM.Utils.SafeGetTargetData(vendorInstance and vendorInstance.list)
     if not selectedData then return end
     local ds = selectedData.dataSource or selectedData
 
@@ -96,12 +86,9 @@ function Buyback:OnPrimaryAction(vendorInstance)
         currencyType = rawget(_G, "CURT_MONEY"),
         item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
     }
-    local goldBefore = Vendor.TraceActionRequested and Vendor.TraceActionRequested("vendor.buyback", traceData) or nil
-
-    BuybackItem(entryIndex)
-    if Vendor.ScheduleActionSettled then
-        Vendor.ScheduleActionSettled("vendor.buyback", traceData, goldBefore)
-    end
+    Vendor.DispatchTracedAction("vendor.buyback", traceData, function()
+        BuybackItem(entryIndex)
+    end)
 end
 
 function Buyback:BuildList(vendorInstance)
@@ -136,16 +123,7 @@ function Buyback:BuildList(vendorInstance)
                 statValue         = "",
             }
 
-            local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
-            entry:SetDataSource(entryData)
-            entry.narrationText = function() return entryData.name end
-
-            if quality then
-                local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
-                entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-            end
-
-            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+            Vendor.AddItemRow(list, entryData)
         end
     end
 end

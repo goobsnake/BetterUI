@@ -53,12 +53,6 @@ local function EnsureLegacyEquipSlotDialogAlias()
     BETTERUI_EQUIP_SLOT_DIALOG = Inventory.GetEquipSlotDialogName()
 end
 
-local function NotifySecureActionFailed(context)
-    local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
-    BETTERUI.CIM.UserNotify(context,
-        (failedStringId and GetString(failedStringId)) or "The action could not be completed.")
-end
-
 local function InitializeSecureWheelHooks()
     local assignableUtilityWheelGamepad = ZO_AssignableUtilityWheel_Gamepad
     if assignableUtilityWheelGamepad and not BETTERUI._secureWheelHooked then
@@ -72,12 +66,12 @@ local function InitializeSecureWheelHooks()
                 if pendingSlotData.actionId then
                     if not CallSecureProtected("SelectSlotSimpleAction", pendingSlotData.slotType,
                             pendingSlotData.actionId, actionSlotIndex, hotbarCategory) then
-                        NotifySecureActionFailed("Inventory:SelectSlotSimpleAction")
+                        BETTERUI.CIM.UserNotifySecureActionFailed("Inventory:SelectSlotSimpleAction")
                     end
                 elseif pendingSlotData.bagId and pendingSlotData.itemSlotIndex then
                     if not CallSecureProtected("SelectSlotItem", pendingSlotData.bagId, pendingSlotData.itemSlotIndex,
                             actionSlotIndex, hotbarCategory) then
-                        NotifySecureActionFailed("Inventory:SelectSlotItem")
+                        BETTERUI.CIM.UserNotifySecureActionFailed("Inventory:SelectSlotItem")
                     end
                 end
 

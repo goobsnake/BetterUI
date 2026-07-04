@@ -9,7 +9,6 @@ BETTERUI.Vendor = BETTERUI.Vendor or {}
 local Vendor = BETTERUI.Vendor
 Vendor.InteractionRuntime = Vendor.InteractionRuntime or {}
 local InteractionRuntime = Vendor.InteractionRuntime
-local unpackCompat = table.unpack or unpack
 local CLOSE_STORE_BEFORE_SWEEP_CONTEXT = "CloseStore:beforeSweep"
 local CLOSE_STORE_AFTER_SWEEP_CONTEXT = "CloseStore:afterSweep"
 local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.CloseStore:NativeOnHide"
@@ -219,13 +218,6 @@ end
 
 InteractionRuntime.PurgeNativeHandoffKeybindInterference = PurgeNativeHandoffKeybindInterference
 
-local function PackResults(...)
-    return {
-        n = select("#", ...),
-        ...
-    }
-end
-
 local function DefaultShowVendorScene()
     if SCENE_MANAGER then
         SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
@@ -265,25 +257,10 @@ local function DefaultSafeCall(context, fn, ...)
         safeContext = tostring(safeContext)
     end
 
-    if Vendor.ExecuteSafely then
-        return Vendor.ExecuteSafely(safeContext, fn, ...)
-    end
-    if type(fn) ~= "function" then
-        return false, "No function provided"
-    end
-
-    local results = PackResults(pcall(fn, ...))
-    local ok = results[1]
-    if not ok then
-        local err = results[2]
-        local userNotify = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.UserNotify
-        if type(userNotify) == "function" then
-            pcall(userNotify, safeContext, tostring(err))
-        end
-        return false, err
-    end
-
-    return true, unpackCompat(results, 2, results.n)
+    -- BUI-CONS-004: Vendor.ExecuteSafely is defined unconditionally
+    -- (VendorSafeExecute.lua) and VendorClass asserts it at load, so the former
+    -- inline pcall/notify fallback was unreachable.
+    return Vendor.ExecuteSafely(safeContext, fn, ...)
 end
 
 local function BuildInteractionState(seed)

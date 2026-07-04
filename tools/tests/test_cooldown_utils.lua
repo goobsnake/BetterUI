@@ -269,10 +269,9 @@ do
     assert_eq(CooldownUtils.ReportButtonCooldownState(button, true), false,
         "same generation does not double-count an already active button")
 
-    local generationBeforeReset = CooldownUtils.GetCooldownVisualArmingGeneration()
+    -- GetCooldownVisualArmingGeneration was removed (BUI-CLEAN-002); the reset +
+    -- re-arm behavior below still exercises the generation latch indirectly.
     CooldownUtils.ResetCooldownVisualArming()
-    assert_eq(CooldownUtils.GetCooldownVisualArmingGeneration(), generationBeforeReset + 1,
-        "reset advances the button latch generation")
     assert_eq(CooldownUtils.ReportButtonCooldownState(button, true), true,
         "active button re-arms after aggregate reset even when its local state is still active")
     assert_eq(CooldownUtils.IsCooldownVisualsArmed(), true,

@@ -53,10 +53,6 @@ local Transfer = (BETTERUI.Banking and BETTERUI.Banking.EnsureTransferService an
 local TRANSFER_DENIAL_ALERT = 1
 local TRANSFER_DENIAL_TOAST = 2
 
-local function GetBankingWindow()
-    return BETTERUI.Banking and BETTERUI.Banking.Window
-end
-
 local function IsBankingSceneShowing()
     local utils = BETTERUI.Utils
     if utils and type(utils.IsBankingSceneShowing) == "function" then
@@ -664,7 +660,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                                 TraceBankingBatch("dialog_dismiss_guard_exit", { reason = "sceneNotShowing" })
                                 return
                             end
-                            local window = GetBankingWindow()
+                            local window = BETTERUI.Banking.GetWindow()
                             local updateGroup = BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup
                             if window and updateGroup then
                                 updateGroup(window.coreKeybinds)

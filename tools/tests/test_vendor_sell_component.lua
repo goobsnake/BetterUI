@@ -64,6 +64,35 @@ SHARED_INVENTORY = {
     end,
 }
 
+-- BUI-CONS-001/008: shared helpers SellComponent now delegates to. Mirror the
+-- VendorModePolicy/CIM implementations so this isolated test still passes.
+BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
+BETTERUI.CIM.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData or function(list)
+    if not list then return nil end
+    if list.GetTargetData then return list:GetTargetData() end
+    if list.GetSelectedData then return list:GetSelectedData() end
+    if list.targetData ~= nil then return list.targetData end
+    return list.selectedData
+end
+BETTERUI.Vendor.AuthorizeAction = BETTERUI.Vendor.AuthorizeAction or function(actionType, bagId, slotIndex, vendorInstance)
+    local f = BETTERUI.Vendor.AuthorizeInventoryAction
+    assert(type(f) == "function", "Vendor.AuthorizeInventoryAction must load")
+    local allowed, reason = f(actionType, bagId, slotIndex, vendorInstance)
+    return allowed == true, reason
+end
+BETTERUI.Vendor.IsAtGoldCap = BETTERUI.Vendor.IsAtGoldCap or function()
+    if type(GetMaxPossibleCurrency) ~= "function" then return false end
+    local carried = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    local maxPossible = GetMaxPossibleCurrency(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    return maxPossible > 0 and carried >= maxPossible
+end
+BETTERUI.Vendor.DispatchTracedAction = BETTERUI.Vendor.DispatchTracedAction or function(event, traceData, fn)
+    local V = BETTERUI.Vendor
+    local goldBefore = V.TraceActionRequested and V.TraceActionRequested(event, traceData) or nil
+    fn()
+    if V.ScheduleActionSettled then V.ScheduleActionSettled(event, traceData, goldBefore) end
+end
+
 dofile("Modules/Vendor/Components/SellComponent.lua")
 
 print("[Vendor sell component shared category seam]")

@@ -19,28 +19,16 @@ local _hookInstallRetryCallId = nil
 local _hookInstallRetryCount = 0
 local MAX_HOOK_INSTALL_RETRIES = 5
 
-local function GetCurrentSceneName()
-    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
-        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
-        if ok then return sceneName end
-    end
-    return nil
-end
-
-local function TraceCraftingPriceTooltip(event, phase, data)
-    local L = BETTERUI and BETTERUI.Log or nil
-    if not L or type(L.TraceEvent) ~= "function" then return end
-    local payload = data or {}
-    payload.module = "GeneralInterface"
-    payload.feature = "crafting_price_tooltip"
-    payload.scene = GetCurrentSceneName()
-    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if type(L.SetLastAction) == "function" then
-        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
-    end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.GENERAL, event, phase, payload)
-end
+-- Crafting-price tooltip tracer via the shared MakeTracer (BUI-CONS-002 /
+-- BUI-CONS-003): module/feature/scene(CIM.Utils)/gamepad/table-form last-action
+-- all match the former hand-rolled copy; category is GENERAL.
+local TraceCraftingPriceTooltip = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "GeneralInterface",
+        feature = "crafting_price_tooltip",
+        category = (BETTERUI.Log.CATEGORY or {}).GENERAL or "GENERAL",
+    }
+    or function() end
 
 ---@return boolean
 local function IsCraftingMarketPriceEnabled()

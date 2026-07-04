@@ -61,17 +61,9 @@ local function IsQuestItemData(itemData)
         return false
     end
 
-    local function IsQuestUniqueId(uniqueId)
-        return type(uniqueId) == "string" and uniqueId:find("^quest:") ~= nil
-    end
-
-    return itemData.isQuestItem == true
-        or source.isQuestItem == true
-        or source.questIndex ~= nil
-        or (SLOT_TYPE_QUEST_ITEM ~= nil and itemData.slotType == SLOT_TYPE_QUEST_ITEM)
-        or (SLOT_TYPE_QUEST_ITEM ~= nil and source.slotType == SLOT_TYPE_QUEST_ITEM)
-        or IsQuestUniqueId(itemData.uniqueId)
-        or IsQuestUniqueId(source.uniqueId)
+    -- Shared intrinsic-marker check, then this module's native quest-filter fallback
+    -- (kept local so its LIST-category warning routing is preserved).
+    return BETTERUI.Inventory.Utils.HasQuestItemMarkers(itemData)
         or SafeDoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_QUEST, "ItemListFiltering.IsQuestItemData")
 end
 

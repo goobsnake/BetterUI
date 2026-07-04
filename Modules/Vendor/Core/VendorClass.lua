@@ -1946,12 +1946,9 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
     selectionRuntime.HandleSelection(self, selectedData, IsStableInteractionActive())
 end
 
----@return nil
-function BETTERUI.Vendor.Class:SuppressListUpdates()
-    self._suppressListUpdates = true
-    self._isDirty = false
-end
-
+-- BUI-CLEAN-002: VendorClass:SuppressListUpdates was removed (zero callers set
+-- _suppressListUpdates true). The _suppressListUpdates field and FlushListUpdates
+-- remain; bootstrap clears the flag directly (VendorBootstrapRuntime).
 ---@return nil
 function BETTERUI.Vendor.Class:FlushListUpdates()
     self._suppressListUpdates = false

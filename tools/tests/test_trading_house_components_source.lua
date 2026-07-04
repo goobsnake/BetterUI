@@ -116,10 +116,10 @@ assert_true(classSource:find("function BETTERUI%.TradingHouse%.Class:RegisterCom
     "TradingHouseClass exposes RegisterComponent")
 assert_true(classSource:find("function BETTERUI%.TradingHouse%.Class:RefreshList%(%)") ~= nil,
     "TradingHouseClass exposes RefreshList")
-assert_true(classSource:find("function BETTERUI%.TradingHouse%.Class:SuppressListUpdates%(%)") ~= nil,
-    "TradingHouseClass exposes SuppressListUpdates")
-assert_true(classSource:find("function BETTERUI%.TradingHouse%.Class:FlushListUpdates%(%)") ~= nil,
-    "TradingHouseClass exposes FlushListUpdates")
+assert_true(classSource:find("function BETTERUI%.TradingHouse%.Class:SuppressListUpdates%(%)") == nil,
+    "TradingHouseClass no longer exposes the dead SuppressListUpdates method")
+assert_true(classSource:find("function BETTERUI%.TradingHouse%.Class:FlushListUpdates%(%)") == nil,
+    "TradingHouseClass no longer exposes the dead FlushListUpdates method")
 assert_true(classSource:find("function BETTERUI%.TradingHouse%.Class:CanAfford%(cost, currencyType%)") ~= nil,
     "TradingHouseClass exposes CanAfford")
 assert_true(classSource:find("function BETTERUI%.TradingHouse%.Class:HasInventorySpace%(%)") ~= nil,

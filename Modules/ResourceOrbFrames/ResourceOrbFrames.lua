@@ -70,13 +70,11 @@ local function BuildElementOffsetSummary(settings)
     return table.concat(parts, ";")
 end
 
+-- Scene name routed through the shared CIM utility via ROF Utils (BUI-CONS-003).
+-- Resolved at call time so harnesses with partial Utils stubs stay loadable.
 local function GetCurrentSceneName()
-    if SCENE_MANAGER and SCENE_MANAGER.GetCurrentScene then
-        local scene = SCENE_MANAGER:GetCurrentScene()
-        if scene and scene.GetName then
-            return scene:GetName()
-        end
-    end
+    local utils = BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.Utils
+    if utils and utils.GetCurrentSceneName then return utils.GetCurrentSceneName() end
     return nil
 end
 
@@ -131,17 +129,8 @@ local function TraceROF(event, phase, data, category)
     BETTERUI.Log.TraceEvent(category or categories.STATE, event, phase, data)
 end
 
-local function TraceDrag(event, phase, data)
-    local L = BETTERUI and BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
-    data = data or {}
-    data.module = data.module or "ResourceOrbFrames"
-    data.feature = data.feature or "element-drag"
-    data.fn = data.fn or "ElementDrag"
-    data["function"] = data["function"] or data.fn
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.STATE or categories.GENERAL, event, phase, data)
-end
+-- Shared element-drag tracer (BUI-CONS-002), defined once on ROF Utils.
+local TraceDrag = BETTERUI.ResourceOrbFrames.Utils and BETTERUI.ResourceOrbFrames.Utils.TraceDrag or function() end
 
 local function RunTraceWithoutLastAction(callback)
     m_traceLastActionSuppressionDepth = m_traceLastActionSuppressionDepth + 1

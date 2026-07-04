@@ -233,3 +233,25 @@ Utils.ScaleForBorder = Layout.ScaleForBorder
 Utils.CalculateFillDimensions = Layout.CalculateFillDimensions
 Utils.GetNamedChildDirect = Controls.GetNamedChildDirect
 Utils.GetFrontBarButtonControl = Controls.GetFrontBarButtonControl
+
+--- Current scene name via the shared CIM utility (BUI-CONS-003 re-export). Keeps
+--- the ROF module's dependency on CIM narrow to this one file.
+---@return string|nil sceneName
+function Utils.GetCurrentSceneName()
+    local cim = BETTERUI.CIM and BETTERUI.CIM.Utils
+    return cim and cim.GetCurrentSceneName and cim.GetCurrentSceneName() or nil
+end
+
+-- Shared element-drag tracer (BUI-CONS-002). Single definition consumed by
+-- ElementDrag, SettingsSubmenus, ResourceOrbFrames, and Module, replacing four
+-- byte-identical hand-rolled copies. Category matches the prior wrappers (STATE,
+-- GENERAL fallback). Drag deltas fire at high frequency, so last-action tagging
+-- stays off as before.
+Utils.TraceDrag = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "ResourceOrbFrames",
+        feature = "element-drag",
+        category = (BETTERUI.Log.CATEGORY or {}).STATE or "STATE",
+        setLastAction = false,
+    }
+    or function() end

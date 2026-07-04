@@ -31,17 +31,8 @@ local SETTINGS_PANEL_IDS = {
     "BETTERUI_ResourceOrbFrames",
 }
 
-local function TraceDrag(event, phase, data)
-    local L = BETTERUI and BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
-    data = data or {}
-    data.module = data.module or "ResourceOrbFrames"
-    data.feature = data.feature or "element-drag"
-    data.fn = data.fn or "ElementDrag"
-    data["function"] = data["function"] or data.fn
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.STATE or categories.GENERAL, event, phase, data)
-end
+-- Shared element-drag tracer (BUI-CONS-002), defined once on ROF Utils.
+local TraceDrag = ResourceOrbFrames.Utils and ResourceOrbFrames.Utils.TraceDrag or function() end
 
 local function GetControlName(control)
     if not control then return nil end
@@ -502,34 +493,9 @@ function Drag.SetAllElementsUnlocked(unlocked, settingsGetter)
     })
 end
 
-function Drag.SetElementLocked(elemKey, locked, settingsGetter)
-    local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
-    local s = liveSettingsGetter and liveSettingsGetter()
-    local changed = false
-    if s and s.elementPositions and s.elementPositions[elemKey] then
-        changed = s.elementPositions[elemKey].locked ~= locked
-        s.elementPositions[elemKey].locked = locked
-        s.elementPositionsUnlocked = locked ~= true
-    end
-    RefreshAllHandleVisuals(s and s.elementPositionsUnlocked == true)
-    TraceDrag("resource_orbs.element_lock", "toggled", {
-        elemKey = elemKey,
-        locked = locked == true,
-        unlocked = s and s.elementPositionsUnlocked == true,
-        changed = changed == true,
-        hasHandle = m_handles[elemKey] ~= nil,
-        legacySingleElementCall = true,
-    })
-end
-
-function Drag.GetOffset(elemKey, settingsGetter)
-    local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
-    local s = liveSettingsGetter and liveSettingsGetter()
-    if s and s.elementPositions and s.elementPositions[elemKey] then
-        return s.elementPositions[elemKey].offsetX or 0, s.elementPositions[elemKey].offsetY or 0
-    end
-    return 0, 0
-end
+-- Drag.SetElementLocked and Drag.GetOffset were removed as production-dead
+-- (BUI-CLEAN-002). The global lock (SetAllElementsUnlocked) is the only lock path,
+-- and offsets are read straight from settings.elementPositions where needed.
 
 function Drag.ResetOffset(elemKey, settingsGetter, applyCallback)
     local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)

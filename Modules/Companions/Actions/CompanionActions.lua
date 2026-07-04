@@ -1,33 +1,24 @@
 if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
 
-local function GetCurrentSceneName()
-    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
-    if utils and type(utils.GetCurrentSceneName) == "function" then
-        return utils.GetCurrentSceneName()
-    end
-    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
-        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
-        if ok then
-            return sceneName
-        end
-    end
-    return nil
-end
+-- Actions tracer keeps its string-form last-action (BUI-CONS-002); the shared
+-- MakeTracer base owns the guard/module/feature/scene(CIM.Utils = BUI-CONS-003)/
+-- gamepad boilerplate, so the former local scene reimplementation is gone.
+local traceCompanionActionBase = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "Companions",
+        feature = "actions",
+        category = (BETTERUI.Log.CATEGORY or {}).ACTION or (BETTERUI.Log.CATEGORY or {}).GENERAL or "ACTION",
+        setLastAction = false,
+    }
+    or function() end
 
 local function TraceCompanionAction(event, phase, data)
     local L = BETTERUI and BETTERUI.Log or nil
-    if not L or type(L.TraceEvent) ~= "function" then return end
-    local payload = data or {}
-    payload.module = "Companions"
-    payload.feature = "actions"
-    payload.scene = GetCurrentSceneName()
-    payload.gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode() or nil
-    if type(L.SetLastAction) == "function" then
+    if L and type(L.SetLastAction) == "function" then
         L.SetLastAction(event)
     end
-    local categories = L.CATEGORY or {}
-    L.TraceEvent(categories.ACTION or categories.GENERAL, event, phase, payload)
+    traceCompanionActionBase(event, phase, data)
 end
 local function GetProtectionPolicy()
     local policy = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy or nil

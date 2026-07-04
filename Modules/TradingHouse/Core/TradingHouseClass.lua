@@ -124,8 +124,6 @@ BETTERUI.TradingHouse.Trace = BETTERUI.TradingHouse.Trace or TraceTH
 ---@field list table|nil Parametric list control
 ---@field coreKeybinds table Core keybind button group
 ---@field tabKeybinds table Tab navigation keybind button group
----@field _suppressListUpdates boolean Whether list refreshes are suppressed
----@field _isDirty boolean Whether list needs refresh after suppression ends
 BETTERUI.TradingHouse.Class = BETTERUI.CIM.GenericWindow:Subclass()
 
 ---@param ... any Arguments forwarded to GenericWindow:New
@@ -256,27 +254,15 @@ end
 --- Clears and rebuilds the list from the active component's BuildList.
 function BETTERUI.TradingHouse.Class:RefreshList()
     local L = BETTERUI.Log
-    if self._suppressListUpdates then
-        self._isDirty = true
-        TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "skipped", self, {
-            reason = "suppressed",
-            isDirty = true,
-        })
-        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "TH list update suppressed/missing") end
-        return
-    end
-
     if not self.list then
         TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "skipped", self, {
             reason = "missingList",
         })
-        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "TH list update suppressed/missing") end
+        if BETTERUI.Log then BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.LIST, "TH list update skipped -> list missing") end
         return
     end
 
-    TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "begin", self, {
-        isDirty = self._isDirty == true,
-    })
+    TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "begin", self, nil)
     self.list:Clear()
 
     local component = self:GetActiveComponent()
@@ -293,32 +279,12 @@ function BETTERUI.TradingHouse.Class:RefreshList()
     end
 
     self.list:Commit()
-    self._isDirty = false
     TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "committed", self, {
         rowCount = CountTHList(self),
     })
     TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "end", self, {
         rowCount = CountTHList(self),
     })
-end
-
---- Suppresses list refreshes until FlushListUpdates is called.
-function BETTERUI.TradingHouse.Class:SuppressListUpdates()
-    self._suppressListUpdates = true
-    self._isDirty = false
-    TraceTH(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.list_updates", "suppressed", self, nil)
-end
-
---- Releases suppressed list updates and refreshes if dirty.
-function BETTERUI.TradingHouse.Class:FlushListUpdates()
-    local wasDirty = self._isDirty == true
-    self._suppressListUpdates = false
-    TraceTH(BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST, "trading_house.list_updates", "flushed", self, {
-        wasDirty = wasDirty,
-    })
-    if self._isDirty then
-        self:RefreshList()
-    end
 end
 
 -- STORE QUERIES

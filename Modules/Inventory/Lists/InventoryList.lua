@@ -19,15 +19,10 @@ KEY RESPONSIBILITIES:
 -- Default template for inventory list entries
 local DEFAULT_TEMPLATE = "BETTERUI_GamepadItemSubEntryTemplate"
 
-local DEFAULT_GAMEPAD_ITEM_SORT =
-{
+-- Backpack sorts category -> name directly; shared base chain lives in Core/Utils.lua.
+local DEFAULT_GAMEPAD_ITEM_SORT = BETTERUI.Inventory.Utils.BuildGamepadItemSort({
     bestGamepadItemCategoryName = { tiebreaker = "name" },
-    name = { tiebreaker = "requiredLevel" },
-    requiredLevel = { tiebreaker = "requiredChampionPoints", isNumeric = true },
-    requiredChampionPoints = { tiebreaker = "iconFile", isNumeric = true },
-    iconFile = { tiebreaker = "uniqueId" },
-    uniqueId = { isId64 = true },
-}
+})
 
 --- Default item sort comparator for gamepad inventory.
 --- Purpose: Sorts items based on Best Category Name -> Name -> Level -> Champion Points -> Icon -> ID.
@@ -100,14 +95,9 @@ local function NormalizeEntryUniqueId(value)
     return tostring(value)
 end
 
---- Nil-safe uniqueId equality (mirrors ItemListManager.MenuEntryTemplateEquality):
---- raw == would return true when both ids are nil and can mis-compare distinct
---- id64 userdata instances.
-local function MenuEntryTemplateEquality(left, right)
-    local leftId = left and NormalizeEntryUniqueId(left.uniqueId)
-    local rightId = right and NormalizeEntryUniqueId(right.uniqueId)
-    return leftId ~= nil and leftId == rightId
-end
+--- Nil-safe uniqueId equality shared with the item list; see Core/Utils.lua for why
+--- this hardened version is used instead of the naive CIM raw-== equality.
+local MenuEntryTemplateEquality = BETTERUI.Inventory.Utils.MenuEntryTemplateEquality
 
 local function NormalizeInventoryTypes(inventoryType)
     if type(inventoryType) == "table" then

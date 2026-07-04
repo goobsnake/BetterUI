@@ -47,56 +47,22 @@ local function IsWritsModuleEnabled()
     return BETTERUI.GetModuleEnabled("Writs")
 end
 
+-- Thin wrapper over the shared Writs tracer (BUI-CONS-002): Module keeps only its
+-- module-specific feature/fn defaults; the guard/scene/skeleton live in Writ.lua.
+-- Resolved at call time so harnesses that load Module.lua alone stay loadable.
 local function TraceWritEvent(event, phase, data, category)
-    local L = BETTERUI.Log
-    if not (L and L.TraceEvent) then return end
+    if not Writs.Trace then return end
     data = data or {}
-    data.module = data.module or "Writs"
-    data.scene = data.scene or (SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil)
     data.feature = data.feature or "writ-events"
     data.fn = data.fn or "Writs.Module"
-    data["function"] = data["function"] or data.fn
-    L.TraceEvent(category or L.CATEGORY.LIFECYCLE, event, phase, data)
+    return Writs.Trace(event, phase, data, category)
 end
 
-local function CountActiveWrits()
-    local count = 0
-    for _ in pairs(Writs.List or {}) do
-        count = count + 1
-    end
-    return count
-end
-
-local function CountCompletedWritObjectives()
-    local count = 0
-    for _, writEntry in pairs(Writs.List or {}) do
-        local summary = writEntry and writEntry.objectiveSummary
-        if type(summary) == "table" and type(summary.completeCount) == "number" then
-            count = count + summary.completeCount
-        end
-    end
-    return count
-end
-
-local function IsWritPanelVisible()
-    local panel = rawget(_G, "BETTERUI_WritsPanel")
-    if not (panel and panel.IsHidden) then return nil end
-    local ok, hidden = pcall(function() return panel:IsHidden() end)
-    if not ok then return nil end
-    return hidden ~= true
-end
-
+-- writs.state tracing plus its active/completed/visibility snapshot helpers are
+-- owned by Writ.lua now (BUI-CONS-002 / BUI-CONS-010).
 local function TraceWritState(trigger, craftType, data)
-    data = data or {}
-    data.craftType = data.craftType or craftType
-    data.activeWritCount = data.activeWritCount or CountActiveWrits()
-    data.completedCount = data.completedCount or CountCompletedWritObjectives()
-    if data.panelVisible == nil then
-        data.panelVisible = IsWritPanelVisible()
-    end
-    data.trigger = data.trigger or trigger
-    data.feature = data.feature or "writ-state"
-    TraceWritEvent("writs.state", "changed", data, BETTERUI.Log and BETTERUI.Log.CATEGORY.STATE)
+    if not Writs.TraceWritState then return end
+    return Writs.TraceWritState(trigger, craftType, data)
 end
 
 local function OnCraftStation(_, craftId)

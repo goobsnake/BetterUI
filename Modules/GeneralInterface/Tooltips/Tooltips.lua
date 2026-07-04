@@ -10,39 +10,16 @@ local Tooltips = GeneralInterface.Tooltips
 local TooltipRuntime = Tooltips._runtime or {}
 Tooltips._runtime = TooltipRuntime
 
-local function GetCurrentSceneName()
-    local utils = BETTERUI.CIM and BETTERUI.CIM.Utils
-    if utils and type(utils.GetCurrentSceneName) == "function" then
-        return utils.GetCurrentSceneName()
-    end
-    if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentSceneName) == "function" then
-        local ok, sceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
-        if ok then return sceneName end
-    end
-    return nil
-end
-
-local function TraceTooltip(event, phase, data, category)
-    local L = BETTERUI and BETTERUI.Log or nil
-    if not (L and type(L.TraceEvent) == "function") then return end
-    local categories = L.CATEGORY or {}
-    local traceCategory = category or categories.GENERAL
-    if type(L.EnabledFor) == "function" and L.LEVEL and L.LEVEL.DEBUG
-        and not L.EnabledFor(L.LEVEL.DEBUG, traceCategory) then
-        return
-    end
-    data = data or {}
-    data.module = data.module or "GeneralInterface"
-    data.feature = data.feature or "tooltips"
-    data.scene = data.scene or GetCurrentSceneName()
-    if data.gamepad == nil and IsInGamepadPreferredMode then
-        data.gamepad = IsInGamepadPreferredMode()
-    end
-    if type(L.SetLastAction) == "function" then
-        L.SetLastAction({ flow = event, message = tostring(event) .. ":" .. tostring(phase) })
-    end
-    L.TraceEvent(traceCategory, event, phase, data)
-end
+-- Tooltip tracer via the shared MakeTracer (BUI-CONS-002 / BUI-CONS-003):
+-- module/feature/scene(CIM.Utils)/gamepad/last-action and the DEBUG preflight all
+-- match the former copy; category defaults to GENERAL and honors a per-call override.
+local TraceTooltip = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
+    and BETTERUI.Log.MakeTracer{
+        module = "GeneralInterface",
+        feature = "tooltips",
+        category = (BETTERUI.Log.CATEGORY or {}).GENERAL or "GENERAL",
+    }
+    or function() end
 
 local function SetGuildStoreErrorSuppressed(isSuppressed)
     TooltipRuntime.guildStoreErrorSuppressed = isSuppressed == true

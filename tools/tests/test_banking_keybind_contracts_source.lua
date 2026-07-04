@@ -36,7 +36,7 @@ local guildBankAdapter = read_file("Modules/Banking/Core/GuildBankAdapter.lua")
 
 assert_contains(
     transferActions,
-    "local function ReadTransferContextSnapshot()",
+    "BETTERUI.Banking.ReadTransferContextSnapshot()",
     "TransferActions resolves transfer destination through the canonical transfer-context reader"
 )
 
@@ -126,7 +126,7 @@ assert_not_contains(
 
 assert_contains(
     keybindManager,
-    "local function ReadTransferContextSnapshot()",
+    "BETTERUI.Banking.ReadTransferContextSnapshot()",
     "KeybindManager resolves keybind state through the canonical Banking transfer snapshot seam"
 )
 

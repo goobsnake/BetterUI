@@ -235,6 +235,33 @@ ZO_SharedGamepadEntry_OnSetup = function() end
 
 BETTERUI.CIM.MenuEntryTemplateEquality = function() end
 
+-- InventoryList now sources its equality + sort schema from the shared Inventory.Utils
+-- helpers (Core/Utils.lua, loaded before the lists in production). Stub them here since
+-- this harness dofiles InventoryList.lua directly without Core/Utils.
+BETTERUI.Inventory.Utils.MenuEntryTemplateEquality = function(left, right)
+    local function normId(entry)
+        if not entry or entry.uniqueId == nil then return nil end
+        local normalize = BETTERUI.Inventory.Utils.NormalizeIdentityValue
+        return (normalize and normalize(entry.uniqueId)) or tostring(entry.uniqueId)
+    end
+    local leftId = normId(left)
+    local rightId = normId(right)
+    return leftId ~= nil and leftId == rightId
+end
+BETTERUI.Inventory.Utils.BuildGamepadItemSort = function(categoryHead)
+    local schema = {
+        name = { tiebreaker = "requiredLevel" },
+        requiredLevel = { tiebreaker = "requiredChampionPoints", isNumeric = true },
+        requiredChampionPoints = { tiebreaker = "iconFile", isNumeric = true },
+        iconFile = { tiebreaker = "uniqueId" },
+        uniqueId = { isId64 = true },
+    }
+    for key, value in pairs(categoryHead or {}) do
+        schema[key] = value
+    end
+    return schema
+end
+
 ZO_GamepadEntryData = {}
 
 function ZO_GamepadEntryData:New(name, iconFile)

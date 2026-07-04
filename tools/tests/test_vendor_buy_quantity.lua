@@ -45,46 +45,16 @@ end
 
 dofile("Modules/Vendor/Components/BuyComponent.lua")
 
-print("[Vendor buy quantity clamp]")
+print("[Vendor buy quantity clamp removal pin]")
 
-local clamp = BETTERUI.Vendor.ClampPurchaseQuantity
-assert_eq(type(clamp), "function", "ClampPurchaseQuantity is exposed on Vendor")
-
--- Normal purchase within budget
-assert_eq(clamp(10, 10, 5, 100), 10, "can afford whole stack")
-
--- Budget-limited
-assert_eq(clamp(10, 10, 5, 25), 5, "clamped by money")
-
--- Stack-limited
-assert_eq(clamp(20, 10, 5, 1000), 10, "clamped by stack available")
-
--- Cannot afford even one
-assert_eq(clamp(10, 10, 5, 4), 0, "unaffordable single unit returns 0")
-
--- Free item
-assert_eq(clamp(10, 10, 0, 0), 10, "free item buys whole stack")
-
--- Zero requested
-assert_eq(clamp(0, 10, 5, 100), 0, "zero requested returns 0")
-
--- Negative requested
-assert_eq(clamp(-5, 10, 5, 100), 0, "negative requested returns 0")
-
--- Zero stack available
-assert_eq(clamp(10, 0, 5, 100), 0, "zero stack available returns 0")
-
--- Nil arguments treated as zero
-assert_eq(clamp(nil, 10, 5, 100), 0, "nil requested treated as 0")
-assert_eq(clamp(10, nil, 5, 100), 0, "nil stack treated as 0")
-assert_eq(clamp(10, 10, nil, 100), 10, "nil unit price treated as free")
-assert_eq(clamp(10, 10, 5, nil), 0, "nil money treated as 0")
-
--- Large numbers
-assert_eq(clamp(1000, 1000, 1, 500), 500, "large quantities clamped by budget")
-
--- Unit price larger than money but exactly divisible
-assert_eq(clamp(10, 10, 10, 100), 10, "exact budget buys whole stack")
+-- BUI-CLEAN-002: Vendor.ClampPurchaseQuantity was removed. It was reserved for a
+-- future quantity spinner but had no callers; the buy flow hardcodes quantity=1.
+-- Pin the removal so the dead helper is not silently reintroduced, and confirm
+-- BuyComponent still loads cleanly without it.
+assert_eq(BETTERUI.Vendor.ClampPurchaseQuantity, nil,
+    "ClampPurchaseQuantity is removed from the Vendor surface")
+assert_eq(type(BETTERUI.Vendor.BuyComponent), "table",
+    "BuyComponent still loads without the quantity-clamp helper")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

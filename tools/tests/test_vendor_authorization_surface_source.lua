@@ -269,6 +269,55 @@ BETTERUI.CIM.BatchConfig = {
 
 dofile("Modules/Vendor/Module.lua")
 dofile("Modules/CIM/Actions/ProtectionPolicy.lua")
+
+-- BUI-CONS-001/008: shared helpers the migrated components + batch runtime now
+-- call. Defined before the component dofiles because the fence/vengeance
+-- components bind Vendor.PerRefreshCache at load. Mirror VendorModePolicy/CIM.
+BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
+BETTERUI.CIM.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData or function(list)
+    if not list then return nil end
+    if list.GetTargetData then return list:GetTargetData() end
+    if list.GetSelectedData then return list:GetSelectedData() end
+    if list.targetData ~= nil then return list.targetData end
+    return list.selectedData
+end
+BETTERUI.Vendor.AuthorizeAction = BETTERUI.Vendor.AuthorizeAction or function(actionType, bagId, slotIndex, vendorInstance)
+    local f = BETTERUI.Vendor.AuthorizeInventoryAction
+    assert(type(f) == "function", "Vendor.AuthorizeInventoryAction must load")
+    local allowed, reason = f(actionType, bagId, slotIndex, vendorInstance)
+    return allowed == true, reason
+end
+BETTERUI.Vendor.IsAtGoldCap = BETTERUI.Vendor.IsAtGoldCap or function()
+    if type(GetMaxPossibleCurrency) ~= "function" then return false end
+    local carried = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    local maxPossible = GetMaxPossibleCurrency(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+    return maxPossible > 0 and carried >= maxPossible
+end
+BETTERUI.Vendor.DispatchTracedAction = BETTERUI.Vendor.DispatchTracedAction or function(event, traceData, fn)
+    local V = BETTERUI.Vendor
+    local goldBefore = V.TraceActionRequested and V.TraceActionRequested(event, traceData) or nil
+    fn()
+    if V.ScheduleActionSettled then V.ScheduleActionSettled(event, traceData, goldBefore) end
+end
+BETTERUI.Vendor.IsSellVengeanceModeAvailable = BETTERUI.Vendor.IsSellVengeanceModeAvailable or function()
+    return rawget(_G, "BAG_VENGEANCE") ~= nil
+        and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") == true
+        and type(IsCurrentCampaignVengeanceRuleset) == "function"
+        and IsCurrentCampaignVengeanceRuleset()
+end
+BETTERUI.Vendor.PerRefreshCache = BETTERUI.Vendor.PerRefreshCache or function(computeFn)
+    local cachedValue, cachedFrameMs
+    local function invalidate() cachedValue, cachedFrameMs = nil, nil end
+    local function get(...)
+        local frameMs = (type(GetFrameTimeMilliseconds) == "function") and GetFrameTimeMilliseconds() or nil
+        if frameMs and cachedValue ~= nil and cachedFrameMs == frameMs then return cachedValue end
+        local value = computeFn(...)
+        if frameMs then cachedValue, cachedFrameMs = value, frameMs else cachedValue, cachedFrameMs = nil, nil end
+        return value
+    end
+    return get, invalidate
+end
+
 dofile("Modules/Vendor/Components/SellComponent.lua")
 dofile("Modules/Vendor/Components/FenceSellComponent.lua")
 dofile("Modules/Vendor/Components/FenceLaunderComponent.lua")

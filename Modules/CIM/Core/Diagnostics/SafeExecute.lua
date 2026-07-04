@@ -180,6 +180,17 @@ function BETTERUI.CIM.UserNotify(context, message, sound)
     end
 end
 
+--- Notify the user that a secure/protected engine action failed to run.
+--- Shared replacement for the per-module NotifySecureActionFailed copies; uses the
+--- SI_BETTERUI_SECURE_ACTION_FAILED string with an English fallback when the id is
+--- unresolved (e.g. pre-load or a stripped build).
+---@param context string Descriptive label for error logging (e.g., "Inventory:SelectSlotItem")
+function BETTERUI.CIM.UserNotifySecureActionFailed(context)
+    local failedStringId = rawget(_G, "SI_BETTERUI_SECURE_ACTION_FAILED")
+    BETTERUI.CIM.UserNotify(context,
+        (failedStringId and GetString(failedStringId)) or "The action could not be completed.")
+end
+
 --- Unified user-facing informational notification (non-error).
 --- Wraps ZO_AlertNoSuppression for consistent logging of user feedback.
 ---@param context string Descriptive label for logging (e.g., "Buy:CannotAfford")

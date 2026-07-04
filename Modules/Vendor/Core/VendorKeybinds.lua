@@ -31,12 +31,9 @@ end
 local function ExecuteVendorKeybindAction(ctx, key, action, fn, endData)
     TraceVendorKeybind(ctx, key, "begin", { action = action })
     local Vendor = ctx.Vendor
-    local ok, result
-    if type(Vendor.ExecuteSafely) == "function" then
-        ok, result = Vendor.ExecuteSafely("Vendor.Keybind:" .. tostring(action), fn)
-    else
-        ok, result = pcall(fn)
-    end
+    -- BUI-CONS-004: Vendor.ExecuteSafely is defined unconditionally
+    -- (VendorSafeExecute.lua), so the raw pcall fallback was unreachable.
+    local ok, result = Vendor.ExecuteSafely("Vendor.Keybind:" .. tostring(action), fn)
     if not ok then
         TraceVendorKeybind(ctx, key, "failed", {
             action = action,
@@ -371,12 +368,14 @@ function VendorKeybinds.BuildCoreKeybinds(vendorInstance, deps)
                         ZO_Dialogs_ShowGamepadDialog("BETTERUI_VENDOR_BATCH_DIALOG")
                         return "dialog_shown"
                     end
-                    local ok, result
-                    if type(Vendor.ExecuteSafely) == "function" then
-                        ok, result = Vendor.ExecuteSafely("Vendor.Keybind:batch_dialog", showBatchDialog)
-                    else
-                        ok, result = pcall(showBatchDialog)
-                    end
+                    -- BUI-CONS-004: Vendor.ExecuteSafely is always present, so the
+                    -- raw pcall fallback (a re-duplication of
+                    -- ExecuteVendorKeybindAction's safe-call) was unreachable. The
+                    -- surrounding begin/end/skipped tracing is intentionally kept
+                    -- as-is: it distinguishes dialog_shown from dialogUnavailable,
+                    -- which ExecuteVendorKeybindAction's fixed "dispatched" phase
+                    -- would not preserve.
+                    local ok, result = Vendor.ExecuteSafely("Vendor.Keybind:batch_dialog", showBatchDialog)
                     if not ok then
                         TraceVendorKeybind(ctx, key, "failed", {
                             action = "batch_dialog",

@@ -7,37 +7,12 @@ Purpose: Provide the shared safe-execution helper used across vendor runtime
 BETTERUI.Vendor = BETTERUI.Vendor or {}
 local Vendor = BETTERUI.Vendor
 
-local unpackCompat = table.unpack or unpack
-
-local function PackResults(...)
-    return {
-        n = select("#", ...),
-        ...
-    }
-end
-
+-- BUI-CONS-004: BETTERUI.CIM.SafeExecute is defined unconditionally
+-- (Modules/CIM/Core/Diagnostics/SafeExecute.lua) and every vendor runtime path
+-- runs after CIM loads, so the former pcall/notify fallback body was
+-- unreachable. ExecuteSafely is now a thin delegator to the CIM safe executor;
+-- VendorClass asserts Vendor.ExecuteSafely at load, so vendor callers still fail
+-- closed if this helper is ever missing.
 function Vendor.ExecuteSafely(context, fn, ...)
-    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute then
-        return BETTERUI.CIM.SafeExecute(context, fn, ...)
-    end
-
-    if type(fn) ~= "function" then
-        if BETTERUI and BETTERUI.Log then
-            BETTERUI.Log.Warn(BETTERUI.Log.CATEGORY.SAFE, string.format("[Error] %s: No function provided", tostring(context)))
-        end
-        return false, "No function provided"
-    end
-
-    local results = PackResults(pcall(fn, ...))
-    local ok = results[1]
-    if not ok then
-        local err = results[2]
-        local userNotify = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.UserNotify
-        if type(userNotify) == "function" then
-            pcall(userNotify, context, tostring(err))
-        end
-        return false, err
-    end
-
-    return true, unpackCompat(results, 2, results.n)
+    return BETTERUI.CIM.SafeExecute(context, fn, ...)
 end
