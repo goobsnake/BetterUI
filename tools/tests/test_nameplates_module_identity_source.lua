@@ -91,7 +91,7 @@ assert_contains(positioning, '"ZO_CompassFrame"',
     "Nameplates positioning helper targets the ESO compass frame control")
 assert_contains(positioning, '"ZO_ReticleContainerInteract"',
     "Nameplates positioning helper targets the ESO reticle interaction prompt")
-assert_contains(positioning, "handle:SetParent(hostControl)",
+assert_contains(positioning, "handle:SetParent(parent)",
     "Nameplates positioning drag handles are reused when the active host control changes")
 assert_not_contains(positioning, "handles[key] = nil",
     "Nameplates positioning does not drop handles and recreate duplicate named controls")
