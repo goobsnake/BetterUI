@@ -189,7 +189,24 @@ Replay-grade flows should answer these questions from the log alone:
 | Anomaly watchdog | `WARN STATE | event=anomaly phase=detected` or `phase=overflow` when expected flow/list/operation follow-ups do not resolve. |
 | Combat/HUD state | Coalesced `resource_orbs.ultimate`, `resource_orbs.bar_swap`, `resource_orbs.cast`, and `resource_orbs.combat` transitions plus snapshot `resourceOrbs` fields; never per-frame spam. |
 | Nameplates | Coalesced `nameplates.visibility` and `nameplates.refresh` records with rule/reason/counts plus snapshot active-rule counts. |
+| Tooltip lifecycle | BetterUI-appended tooltip content records append/clear owner and `ageMs`; `WARN GENERAL event=general_interface.tooltip_content phase=detected` flags immediate strip-after-append clears. |
+| Input/keybind refresh | `WARN KEYBIND event=input.hold_keybind_refresh phase=detected` identifies keybind strip refreshes that occur while a hold-style keybind callback is active. |
+| Row recycle hygiene | `WARN LIST event=inventory.row_recycle_status_icon phase=detected` is one-shot per session and names visible pooled status controls before reset hides them. |
+| Anchor drift | `STATE event=nameplates.anchor_chain phase=snapshot` records effective anchor parents after layout; `phase=detected` warns when control parent diverges from the expected root. |
+| Settings disabled predicates | Disabled Nameplates position controls trace module enabled, element toggle, unlock flag, and final disabled result. |
 | Session report | `/builog report` emits `INFO STATE | event=session phase=report` with sink, error, watchdog, unresolved-flow, and screenshot counters for host digest closeout. |
+
+### Recent Defect-Class Guardrails
+
+- Tooltip clears emit `event=general_interface.tooltip_content_clear phase=completed` with
+  `clearer`, `section`, and `ageMs`; clears under 200 ms also emit a WARN.
+- Held-input keybind refresh interference emits `WARN KEYBIND | keybind refresh during held input`
+  with the active input anchor and descriptor summary.
+- Nameplate position settings disabled predicates emit TRACE `nameplates.positioning`
+  snapshots with module/element/unlock inputs; applied anchors emit TRACE parent snapshots
+  and WARN on parent drift.
+- Inventory pooled-row setup emits a one-shot `WARN LIST | pooled row status icon left visible`
+  when a recycled row still has a status/new/equipped icon visible before setup resets it.
 
 ## Adding Or Changing Builog Records
 

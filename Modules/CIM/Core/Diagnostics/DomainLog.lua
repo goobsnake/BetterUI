@@ -219,6 +219,29 @@ function DomainLog.DescribeListSelection(list, label)
         DomainLog.DescribeItem(okData and selectedData or nil, "selected"))
 end
 
+---@param control table|userdata|nil
+---@param label string|nil
+---@return string
+function DomainLog.DescribeControl(control, label)
+    local prefix = label and (normalizeLogToken(label, "control") .. ":") or ""
+    if control == nil then return prefix .. "nil" end
+
+    local valueType = type(control)
+    if valueType ~= "table" and valueType ~= "userdata" then
+        return prefix .. "<" .. valueType .. ">"
+    end
+
+    local okName, name = pcall(function()
+        if control.GetName then return control:GetName() end
+        return nil
+    end)
+    if okName and name and name ~= "" then
+        return prefix .. normalizeLogToken(name, "control")
+    end
+
+    return prefix .. "<" .. valueType .. ">"
+end
+
 function DomainLog.GetCurrencyAmountForLocation(currencyType, location)
     local getCurrencyAmount = G("GetCurrencyAmount")
     if type(getCurrencyAmount) == "function" then

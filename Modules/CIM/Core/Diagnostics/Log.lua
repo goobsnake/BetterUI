@@ -190,6 +190,7 @@ Log.DescribeKeybindDescriptors = DomainLog.DescribeKeybindDescriptors
 Log.CountKeybindDescriptors = DomainLog.CountKeybindDescriptors
 Log.DescribeItem = DomainLog.DescribeItem
 Log.DescribeListSelection = DomainLog.DescribeListSelection
+Log.DescribeControl = DomainLog.DescribeControl
 Log.GetCurrencyAmountForLocation = DomainLog.GetCurrencyAmountForLocation
 
 -- Render the optional data argument for a log line. A record-style table (named

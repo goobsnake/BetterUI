@@ -11,6 +11,9 @@ BETTERUI.CIM.Keybinds.InputAnchor = InputAnchor
 
 local WRAPPED = "_betteruiInputAnchorWrapped"
 local ORIGINAL = "_betteruiInputAnchorOriginalCallback"
+local REFRESH_HOOKED = "_betteruiInputAnchorRefreshHooksInstalled"
+
+local activeInput = nil
 
 local function normalizeToken(value, fallback)
     local text = tostring(value or fallback or "keybind")
@@ -80,6 +83,84 @@ local function resolveBinding(keybind)
     return nil
 end
 
+local function nowMs()
+    local fn = rawget(_G, "GetGameTimeMilliseconds")
+    if type(fn) ~= "function" then return 0 end
+    local ok, value = pcall(fn)
+    return ok and tonumber(value) or 0
+end
+
+local function nameContainsHold(name)
+    if type(name) ~= "string" then return false end
+    return name:lower():find("hold", 1, true) ~= nil
+end
+
+local function isHoldDescriptor(entry, actionName)
+    if not entry then return false end
+    if entry.isHold == true or entry.hold == true or entry.holdTime ~= nil or entry.holdTimeMs ~= nil then
+        return true
+    end
+    if entry.holdName ~= nil then
+        return true
+    end
+    -- Never evaluate function-typed name resolvers (InputAnchor contract):
+    -- only literal strings participate in the hold heuristic.
+    if nameContainsHold(actionName) or nameContainsHold(entry.name) then
+        return true
+    end
+    return false
+end
+
+function InputAnchor.NoteKeybindRefresh(apiName, descriptor)
+    if not (activeInput and activeInput.isHold) then
+        return
+    end
+    if activeInput.refreshWarned then
+        return
+    end
+
+    local L = getLog()
+    local warnLevel = L and L.LEVEL and L.LEVEL.WARN
+    if not enabledFor(L, warnLevel) or type(L.TraceEvent) ~= "function" then return end
+    activeInput.refreshWarned = true
+
+    local startedAtMs = activeInput.startedAtMs or nowMs()
+    local payload = {
+        module = activeInput.module,
+        action = activeInput.action,
+        keybind = activeInput.keybind,
+        api = apiName,
+        ageMs = nowMs() - startedAtMs,
+    }
+    if L.DescribeKeybindDescriptors then
+        payload.keybinds = L.DescribeKeybindDescriptors(descriptor, "refresh")
+    end
+    L.TraceEvent(L.CATEGORY.KEYBIND, "input.hold_keybind_refresh", "detected", payload, warnLevel)
+end
+
+local function installRefreshHooks()
+    local interface = BETTERUI and BETTERUI.Interface
+    if not interface or interface[REFRESH_HOOKED] == true then return end
+
+    local originalUpdateGroup = interface.UpdateKeybindGroup
+    if type(originalUpdateGroup) == "function" then
+        interface.UpdateKeybindGroup = function(descriptor, ...)
+            InputAnchor.NoteKeybindRefresh("UpdateKeybindGroup", descriptor)
+            return originalUpdateGroup(descriptor, ...)
+        end
+    end
+
+    local originalUpdateCurrent = interface.UpdateCurrentKeybindGroups
+    if type(originalUpdateCurrent) == "function" then
+        interface.UpdateCurrentKeybindGroups = function(...)
+            InputAnchor.NoteKeybindRefresh("UpdateCurrentKeybindGroups", nil)
+            return originalUpdateCurrent(...)
+        end
+    end
+
+    interface[REFRESH_HOOKED] = true
+end
+
 local function emitAnchor(entry, moduleName, actionName)
     local L = getLog()
     local infoLevel = L and L.LEVEL and L.LEVEL.INFO
@@ -123,7 +204,26 @@ function InputAnchor.Wrap(descriptorEntry, options)
     descriptorEntry[WRAPPED] = true
     descriptorEntry.callback = function(...)
         emitAnchor(descriptorEntry, moduleName, actionName)
-        return callback(...)
+        -- Hold-refresh detection needs activeInput scoped across the dispatch;
+        -- only pay for the pcall envelope when the WARN could actually emit.
+        local L = getLog()
+        local warnLevel = L and L.LEVEL and L.LEVEL.WARN
+        if not (enabledFor(L, warnLevel) and isHoldDescriptor(descriptorEntry, actionName)) then
+            return callback(...)
+        end
+        local previousInput = activeInput
+        activeInput = {
+            module = moduleName,
+            action = actionName,
+            keybind = descriptorEntry.keybind,
+            isHold = true,
+            startedAtMs = nowMs(),
+            refreshWarned = false,
+        }
+        local results = { pcall(callback, ...) }
+        activeInput = previousInput
+        if not results[1] then error(results[2], 0) end
+        return unpack(results, 2)
     end
     return descriptorEntry
 end
@@ -133,6 +233,7 @@ end
 ---@return table descriptor
 function InputAnchor.WrapGroup(descriptor, moduleName)
     if type(descriptor) ~= "table" then return descriptor end
+    installRefreshHooks()
     for _, entry in ipairs(descriptor) do
         if type(entry) == "table" then
             InputAnchor.Wrap(entry, { module = moduleName })
