@@ -320,6 +320,32 @@ local function DumpRecords(getter, n, label)
     end
 end
 
+local function HandleLayoutCommand(raw)
+    local S = BETTERUI.CIM and BETTERUI.CIM.LayoutSnapshot
+    if not (S and type(S.Snapshot) == "function") then Out("Layout snapshot service not loaded.") return end
+
+    local name = raw:match("^[Ll][Aa][Yy][Oo][Uu][Tt]%s*(.*)$") or ""
+    name = name:gsub("^%s+", ""):gsub("%s+$", "")
+    if name == "" then name = nil end
+
+    local ok, emitted, result = pcall(function()
+        local success, snapshotResult = S.Snapshot(name)
+        return success, snapshotResult
+    end)
+    if not ok then
+        Out("Layout snapshot failed.")
+        return
+    end
+    if emitted and type(result) == "table" then
+        Out(string.format("Layout snapshot %s emitted (%d controls, %d skipped).",
+            tostring(result.snapshot or name or "visible"), tonumber(result.emitted) or 0, tonumber(result.skipped) or 0))
+        return
+    end
+
+    local available = (type(result) == "table" and result.available) or "inventory|vendor|tradinghouse|orbs"
+    Out("Layout snapshot not emitted: " .. tostring(type(result) == "table" and result.reason or "unavailable") .. ". Use /builog layout [" .. tostring(available) .. "].")
+end
+
 local function HandleCommand(args)
     local raw = tostring(args or ""):gsub("^%s+", ""):gsub("%s+$", "")
 
@@ -403,6 +429,8 @@ local function HandleCommand(args)
         StartCapture(tonumber(args:match("(%d+)")))
     elseif args == "screenshot" or args:match("^screenshot%s+") then
         HandleScreenshotCommand(raw)
+    elseif args == "layout" or args:match("^layout%s+") then
+        HandleLayoutCommand(raw)
     elseif args == "report" then
         EmitSessionReport()
     elseif args == "status" then
@@ -417,7 +445,7 @@ local function HandleCommand(args)
         else Out("Watch mode not loaded.") end
     else
         PrintStatus()
-        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | privacy on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | snapshot | report | check|test | status")
+        Out("Usage: /builog on|off | preset off|info|watch|debug|trace|inspect | chat on|off | popups on|off | privacy on|off | level <lvl> | mark <text> | recent [n] | errors [n] | capture [secs] | screenshot [label] | screenshot auto off|error|warn | layout [inventory|vendor|tradinghouse|orbs] | snapshot | report | check|test | status")
     end
 end
 
