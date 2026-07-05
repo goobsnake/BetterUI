@@ -585,18 +585,18 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
     end)
 
     -- OnShortcut: Handle UI shortcuts (e.g., gamepad equivalents)
-    if state.origOnShortcut then
-        editBox:SetHandler("OnShortcut", function(eb, shortcut)
-            local handlerState = eb._betteruiSearchEditBoxHandlerState or state
-            local owner = handlerState.owner
+    editBox:SetHandler("OnShortcut", function(eb, shortcut)
+        local handlerState = eb._betteruiSearchEditBoxHandlerState or state
+        local owner = handlerState.owner
+        if handlerState.origOnShortcut then
             local handled = handlerState.origOnShortcut(eb, shortcut)
             if handled then return handled end
-            if not owner or not handlerState.isSceneShowing() then return end
+        end
+        if not owner or not handlerState.isSceneShowing() then return end
 
-            if shortcut == "UI_SHORTCUT_DOWN" then
-                handlerState.onExitFocus(owner)
-                return true
-            end
-        end)
-    end
+        if shortcut == "UI_SHORTCUT_DOWN" then
+            handlerState.onExitFocus(owner)
+            return true
+        end
+    end)
 end
