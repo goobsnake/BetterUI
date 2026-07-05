@@ -29,12 +29,7 @@ end
 CreateStringIdIfMissing("SI_BETTERUI_GENERAL_UI_ELEMENT_POSITIONS_HEADER", "UI ELEMENT POSITIONS")
 CreateStringIdIfMissing(
     "SI_BETTERUI_GENERAL_UI_ELEMENT_POSITIONS_DESC",
-    "Adjust supported HUD element positions, including compass, target bar, and player-interact movers, from the General settings tab."
-)
-CreateStringIdIfMissing("SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES", "Show UI Position Drag Handles")
-CreateStringIdIfMissing(
-    "SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES_TOOLTIP",
-    "Shows draggable handles for supported HUD elements while position controls are enabled."
+    "Adjust supported HUD element positions, including compass, target bar, and player-interact movers, from the General Interface settings tab."
 )
 
 local function SetModuleSetting(moduleName, key, value)
@@ -134,6 +129,25 @@ local function WrapGeneralInterfaceSettingControls(controls, groupKey)
     end
 end
 
+local function BuildEnhancedNameplatesControls()
+    local nameplates = BETTERUI.Nameplates
+    local getSettingsOptions = nameplates and nameplates.GetSettingsOptions
+    if type(getSettingsOptions) ~= "function" then
+        return {}
+    end
+
+    local sourceControls = getSettingsOptions()
+    local controls = {}
+    if type(sourceControls) ~= "table" then
+        return controls
+    end
+
+    for _, control in ipairs(sourceControls) do
+        controls[#controls + 1] = control
+    end
+    return controls
+end
+
 function BETTERUI.GeneralInterface.GetSettingsOptions()
     local styleTraitIcon = ""
     local icons = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS
@@ -210,7 +224,24 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 
     local generalControls = {
         {
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_ENABLE_GLOBAL_SETTINGS")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP")),
+            getFunc = function()
+                return BETTERUI.SavedVars and BETTERUI.SavedVars.useAccountWide or false
+            end,
+            setFunc = function(value)
+                if BETTERUI.SavedVars then
+                    BETTERUI.SavedVars.useAccountWide = value
+                end
+            end,
+            width = "full",
+            requiresReload = true,
+            sortAlwaysFirst = true,
+        },
+        {
             type = "editbox",
+            key = "chatHistory",
             name = GetString(rawget(_G, "SI_BETTERUI_CHAT_HISTORY")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_CHAT_HISTORY_TOOLTIP")),
             getFunc = function()
@@ -458,6 +489,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
     }
 
+    local enhancedNameplatesControls = BuildEnhancedNameplatesControls()
+
     local enhancedTooltipControls = {
         {
             type = "description",
@@ -679,6 +712,15 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         controls = marketIntegrationControls,
     })
 
+    if #enhancedNameplatesControls > 0 then
+        table.insert(generalControls, {
+            type = "submenu",
+            key = "enhancedNameplates",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_HEADER")),
+            controls = enhancedNameplatesControls,
+        })
+    end
+
     table.insert(generalControls, {
         type = "submenu",
         key = "enhancedTooltips",
@@ -691,6 +733,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         generalControls = #generalControls,
         uiElementPositionControls = #uiElementPositionControls,
         marketIntegrationControls = #marketIntegrationControls,
+        enhancedNameplatesControls = #enhancedNameplatesControls,
         enhancedTooltipControls = #enhancedTooltipControls,
     })
     return generalControls

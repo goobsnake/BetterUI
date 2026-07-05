@@ -217,7 +217,7 @@ dofile("Modules/CIM/Core/Settings/SettingsReset.lua")
 BETTERUI.SavedVars.useAccountWide = false
 BETTERUI.Settings = BETTERUI.SavedVars
 
-print("Test: ResetAllSettingsToDefaults resets only character settings when global settings are disabled")
+print("Test: ResetAllSettingsToDefaults resets character and account-wide settings when global settings are disabled")
 BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
 
 assertEqual(false, BETTERUI.SavedVars.useAccountWide, "Character settings reset useAccountWide to default")
@@ -239,18 +239,22 @@ assertEqual(1, featureResetCount, "Feature flag caches reset once")
 assertEqual(1, updateCIMStateCount, "CIM state refreshed once")
 assertEqual(1, nameplatesDisabledCount, "Nameplates disable hook ran for character reset")
 assertEqual(true, lastNameplatesSuppressCleanupLog, "Character reset suppresses nameplate cleanup chat")
-assertEqual(true, BETTERUI.GlobalVars.useAccountWide, "Inactive global settings keep their prior scope flag")
-assertEqual(true, BETTERUI.GlobalVars.Modules.Inventory.staleInventoryValue, "Inactive global settings remain untouched")
-assertEqual(true, BETTERUI.GlobalVars.FeatureFlags.TEST, "Inactive global feature flags remain untouched")
+assertEqual(false, BETTERUI.GlobalVars.useAccountWide, "Global settings reset useAccountWide to default")
+assertEqual("inventory", BETTERUI.GlobalVars.Modules.Inventory.inventoryDefault, "Global inventory defaults restored")
+assertNil(BETTERUI.GlobalVars.Modules.Inventory.staleInventoryValue, "Global stale inventory setting cleared")
+assertTrue(next(BETTERUI.GlobalVars.FeatureFlags) == nil, "Global feature flags cleared")
 
-print("\nTest: ResetAllSettingsToDefaults resets only account-wide settings when global settings are enabled")
+print("\nTest: ResetAllSettingsToDefaults resets all settings and returns to character scope when global settings are enabled")
 resetFixture()
 BETTERUI.SavedVars.useAccountWide = true
 BETTERUI.Settings = BETTERUI.GlobalVars
 BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
 
-assertEqual(true, BETTERUI.SavedVars.useAccountWide, "Character scope keeps global-settings toggle enabled")
-assertEqual(BETTERUI.GlobalVars, BETTERUI.Settings, "Active settings remain account-wide")
+assertEqual(false, BETTERUI.SavedVars.useAccountWide, "Character scope resets global-settings toggle to default")
+assertEqual(false, BETTERUI.GlobalVars.useAccountWide, "Account-wide scope flag also resets to default")
+assertEqual(BETTERUI.SavedVars, BETTERUI.Settings, "Active settings switch back to character defaults")
+assertEqual("inventory", BETTERUI.SavedVars.Modules.Inventory.inventoryDefault, "Character inventory defaults restored")
+assertNil(BETTERUI.SavedVars.Modules.Inventory.staleInventoryValue, "Character stale inventory setting cleared")
 assertEqual("inventory", BETTERUI.GlobalVars.Modules.Inventory.inventoryDefault, "Global inventory defaults restored")
 assertEqual(42, BETTERUI.GlobalVars.Modules.Banking.bankingDefault, "Global banking defaults restored")
 assertEqual("vendor", BETTERUI.GlobalVars.Modules.Vendor.vendorDefault, "Global vendor defaults restored")
@@ -264,8 +268,7 @@ assertEqual(false, BETTERUI.GlobalVars.Modules.Writs.m_enabled, "Global first-in
 assertNil(BETTERUI.GlobalVars.Modules.LegacyModule, "Global legacy module settings cleared")
 assertNil(BETTERUI.GlobalVars.LegacyTopLevel, "Global legacy top-level settings cleared")
 assertTrue(next(BETTERUI.GlobalVars.FeatureFlags) == nil, "Global feature flags cleared")
-assertEqual(true, BETTERUI.SavedVars.Modules.Inventory.staleInventoryValue, "Inactive character settings remain untouched")
-assertEqual(true, BETTERUI.SavedVars.FeatureFlags.TEST, "Inactive character feature flags remain untouched")
+assertTrue(next(BETTERUI.SavedVars.FeatureFlags) == nil, "Character feature flags cleared")
 assertEqual(1, featureResetCount, "Feature flag caches reset once for global reset")
 assertEqual(1, updateCIMStateCount, "CIM state refreshed once for global reset")
 assertEqual(1, nameplatesDisabledCount, "Nameplates disable hook ran for global reset")

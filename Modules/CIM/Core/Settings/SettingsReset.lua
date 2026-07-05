@@ -208,8 +208,8 @@ end
 
 --- Resets all BetterUI settings to their default values.
 function BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
-    local targetStore = GetActiveSettingsStore()
-    if type(targetStore) ~= "table" then
+    local activeStore = GetActiveSettingsStore()
+    if type(activeStore) ~= "table" then
         TraceSettingsReset("all_reset_skipped", { reason = "missingActiveStore" })
         return
     end
@@ -217,10 +217,35 @@ function BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
     TraceSettingsReset("all_reset_begin", {
         hasSavedVars = type(BETTERUI.SavedVars) == "table",
         hasGlobalVars = type(BETTERUI.GlobalVars) == "table",
-        activeKeyCount = CountTableKeys(GetRawStoreData(targetStore)),
+        activeKeyCount = CountTableKeys(GetRawStoreData(activeStore)),
     })
 
-    ResetSettingsStore(targetStore)
+    local stores = {}
+    local seenStores = {}
+    local function AddStore(store)
+        if type(store) ~= "table" or seenStores[store] then
+            return
+        end
+        stores[#stores + 1] = store
+        seenStores[store] = true
+    end
+
+    AddStore(BETTERUI.SavedVars)
+    AddStore(BETTERUI.GlobalVars)
+    AddStore(activeStore)
+
+    local defaultUseAccountWide = (BETTERUI.DefaultSettings and BETTERUI.DefaultSettings.useAccountWide) == true
+    for _, store in ipairs(stores) do
+        ResetSettingsStore(store)
+        local rawStore = GetRawStoreData(store)
+        rawStore.useAccountWide = defaultUseAccountWide
+        store.useAccountWide = defaultUseAccountWide
+    end
+
+    local targetStore = defaultUseAccountWide and BETTERUI.GlobalVars or BETTERUI.SavedVars
+    if type(targetStore) ~= "table" then
+        targetStore = activeStore
+    end
     BETTERUI.Settings = targetStore
 
     local nameplatesSettings = targetStore.Modules and targetStore.Modules["Nameplates"]
@@ -248,6 +273,8 @@ function BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
         restoredNameplates = restoredNameplates,
         resetFeatureFlags = resetFeatureFlags,
         updatedCimState = updatedCimState,
+        resetStoreCount = #stores,
+        useAccountWide = defaultUseAccountWide,
         moduleCount = targetStore.Modules and CountTableKeys(targetStore.Modules) or 0,
     })
 end

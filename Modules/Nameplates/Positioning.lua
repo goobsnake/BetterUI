@@ -237,9 +237,6 @@ local DESCRIPTORS = {
 local function EnsureDescriptorDefaults()
     Nameplates.DEFAULTS = Nameplates.DEFAULTS or {}
     local defaults = Nameplates.DEFAULTS
-    if defaults.nameplatePositionsUnlocked == nil then
-        defaults.nameplatePositionsUnlocked = false
-    end
     for _, descriptor in pairs(DESCRIPTORS) do
         if defaults[descriptor.enabledKey] == nil then defaults[descriptor.enabledKey] = false end
         if defaults[descriptor.xKey] == nil then defaults[descriptor.xKey] = 0 end
@@ -330,10 +327,6 @@ local function IsPositioningEnabled(settings)
     return settings ~= nil
 end
 
-local function ArePositionsUnlocked(settings)
-    return settings and settings.nameplatePositionsUnlocked == true
-end
-
 local function GetSetting(settings, key)
     if settings and settings[key] ~= nil then
         return settings[key]
@@ -343,6 +336,16 @@ local function GetSetting(settings, key)
         return defaults[key]
     end
     return nil
+end
+
+local function HasActivePositioning(settings)
+    if not settings then return false end
+    for _, descriptor in pairs(DESCRIPTORS) do
+        if GetSetting(settings, descriptor.enabledKey) == true then
+            return true
+        end
+    end
+    return false
 end
 
 local function SafeFunctionCall(fn, ...)
@@ -784,7 +787,7 @@ end
 
 local function ApplyDragDelta(key, descriptor, dragState, dx, dy, forceRefresh)
     local settings = EnsureSettings()
-    if not (settings and ArePositionsUnlocked(settings)) then
+    if not (settings and GetSetting(settings, descriptor.enabledKey) == true) then
         return false
     end
     local nextX = ClampOffset((dragState.baseX or 0) + dx)
@@ -1140,7 +1143,7 @@ local function EnsureHandle(key, descriptor, hostControl)
         handle:SetHandler("OnMouseDown", function(self, button)
             if button ~= (rawget(_G, "MOUSE_BUTTON_INDEX_LEFT") or 1) then return end
             local settings = EnsureSettings()
-            if not (IsPositioningEnabled(settings) and GetSetting(settings, descriptor.enabledKey) == true and ArePositionsUnlocked(settings)) then
+            if not (IsPositioningEnabled(settings) and GetSetting(settings, descriptor.enabledKey) == true) then
                 TracePositioning("drag_skipped", { key = key, reason = "lockedOrDisabled" })
                 return
             end
@@ -1304,7 +1307,6 @@ SetHandleState = function(key, descriptor, settings, entries)
     local hostControl, hostEntry, liveVisible, resolvedEntries = FindPrimaryControl(descriptor, entries)
     local visible = IsPositioningEnabled(settings)
         and GetSetting(settings, descriptor.enabledKey) == true
-        and ArePositionsUnlocked(settings)
     local useLiveHost = false
     if not visible and not handles[key] then
         return
@@ -1351,7 +1353,7 @@ local function EnsureRefreshDriver()
             self._betteruiNameplateNextRefresh = now + 250
         end
         local settings = GetSettings()
-        if not ArePositionsUnlocked(settings) then
+        if not HasActivePositioning(settings) then
             return
         end
         if Positioning.ApplyCurrentSettings then
@@ -1405,7 +1407,7 @@ local function ApplyDescriptor(key, descriptor, settings)
             scale = scale,
             applied = applied,
             restored = restored,
-            unlocked = ArePositionsUnlocked(settings),
+            markerEnabled = enabled,
         })
     end
 end
@@ -1537,7 +1539,6 @@ function Positioning.ResetOffsets(settings)
         TracePositioning("reset_skipped", { reason = "missingSettings" })
         return false
     end
-    settings.nameplatePositionsUnlocked = false
     for _, descriptor in pairs(DESCRIPTORS) do
         settings[descriptor.enabledKey] = false
         settings[descriptor.xKey] = 0
@@ -1550,8 +1551,8 @@ function Positioning.ResetOffsets(settings)
     return true
 end
 
--- Resets one element's offsets and scale without touching its Move toggle
--- or any other element.
+-- Resets one element's offsets, scale, and Move toggle without touching any
+-- other element.
 function Positioning.ResetElementOffsets(elementKey)
     local descriptor = DESCRIPTORS[elementKey]
     local settings = EnsureSettings()
@@ -1559,21 +1560,20 @@ function Positioning.ResetElementOffsets(elementKey)
         TracePositioning("element_reset_skipped", { key = elementKey })
         return false
     end
+    settings[descriptor.enabledKey] = false
     settings[descriptor.xKey] = 0
     settings[descriptor.yKey] = 0
     if descriptor.scaleKey then settings[descriptor.scaleKey] = 1 end
     ApplyDescriptor(elementKey, descriptor, settings)
     ChainGoldenPursuitsToQuestTracker(settings)
     RefreshSettingsPanel()
-    TracePositioning("element_reset", { key = elementKey })
+    TracePositioning("element_reset", { key = elementKey, enabled = false })
     return true
 end
 
 function Positioning.GetDefaults()
     local defaults = EnsureDescriptorDefaults()
-    local clone = {
-        nameplatePositionsUnlocked = defaults.nameplatePositionsUnlocked,
-    }
+    local clone = {}
     for _, descriptor in pairs(DESCRIPTORS) do
         clone[descriptor.enabledKey] = defaults[descriptor.enabledKey]
         clone[descriptor.xKey] = defaults[descriptor.xKey]
@@ -1592,7 +1592,6 @@ function Positioning.IsPositionControlDisabled(elementKey)
     -- not gate manual positioning controls.
     local moduleEnabled = IsPositioningEnabled(settings)
     local elementEnabled = GetSetting(settings, descriptor.enabledKey) == true
-    local unlocked = ArePositionsUnlocked(settings)
     local disabled = not (moduleEnabled and elementEnabled)
     if disabled then
         local L = BETTERUI and BETTERUI.Log
@@ -1603,7 +1602,6 @@ function Positioning.IsPositionControlDisabled(elementKey)
             enabledKey = descriptor.enabledKey,
             moduleEnabled = moduleEnabled,
             elementEnabled = elementEnabled,
-            unlocked = unlocked,
             disabled = disabled,
         }, traceLevel)
     end

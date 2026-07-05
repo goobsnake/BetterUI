@@ -71,11 +71,11 @@ local function IsCompanionItem(bagId, slotIndex)
     return GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION
 end
 
--- Companion-screen callers pass settingsModule = "Companions" (toggle defaults true).
+-- Companion-screen callers pass settingsModule = "Companions" (toggle defaults false).
 -- Every other context keeps the Inventory FCO companion-junk gate (defaults false).
 local function IsCompanionJunkEnabled(settingsModule)
     if settingsModule == "Companions" then
-        return BETTERUI.GetSetting("Companions", "enableCompanionJunk", true) == true
+        return BETTERUI.GetSetting("Companions", "enableCompanionJunk", false) == true
     end
     return BETTERUI.GetSetting("Inventory", "enableCompanionJunk", false) == true
 end

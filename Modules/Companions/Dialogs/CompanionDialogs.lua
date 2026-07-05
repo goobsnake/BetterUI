@@ -356,7 +356,7 @@ local function RegisterCompanionBatchDialog()
                         BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED), "unlock"))
                 end
 
-                if destroyCount > 0 and Companions.GetSetting("batchDestroy") ~= false then
+                if destroyCount > 0 and Companions.GetSetting("batchDestroy") == true then
                     table.insert(parametricList,
                         BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_DESTROY), "destroy"))
                 end

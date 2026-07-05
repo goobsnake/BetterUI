@@ -453,21 +453,26 @@ local function InitSettingsPanel(mId, moduleName)
         {
             type = "button",
             name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_GENERAL_RESET_TOOLTIP")),
             func = function()
                 ResetSettingsGroup({
                     { key = "scale", value = 1 },
                     { key = "offsetX", value = 0 },
                     { key = "offsetY", value = 0 },
-                    { key = "elementPositionsUnlocked", value = false },
-                    { key = "enableIndependentOrbOffset", value = false },
-                    { key = "orbOffsetX", value = 0 },
-                    { key = "orbOffsetY", value = 0 },
                 })
-                ResetElementPositions(EnsureResourceOrbSettings())
-                Apply()
+                generalContracts.elementPositionsUnlocked.set(false)
             end,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+            width = "half",
+        },
+        {
+            type = "description",
+            text = " ",
+            width = "full",
+        },
+        {
+            type = "description",
+            text = " ",
             width = "half",
         },
         {

@@ -200,7 +200,6 @@ BETTERUI.Defaults.Modules = {
         font = "$(BOLD_FONT)", -- Uses ESO's localized font for CJK support
         style = FONT_STYLE_SOFT_SHADOW_THIN or 5,
         size = 16,
-        nameplatePositionsUnlocked = false,
         moveCompassFrame = false,
         compassFrameOffsetX = 0,
         compassFrameOffsetY = 0,
@@ -262,10 +261,11 @@ BETTERUI.Defaults.Modules = {
     -- COMPANIONS MODULE
     Companions = {
         enableCompanionEquipment = true,
+        enableCarousel = true,
         quickDestroy = false,
-        batchDestroy = true,
+        batchDestroy = false,
         bindOnEquipProtection = true,
-        enableCompanionJunk = true,
+        enableCompanionJunk = false,
 
         -- Icon Visibility (all on by default)
         showIconEnchantment = true,

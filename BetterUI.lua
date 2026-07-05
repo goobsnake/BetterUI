@@ -36,12 +36,13 @@ if BETTERUI.DebugError == nil then
 	end
 end
 
-local SAVED_VARS_SCHEMA_VERSION = 2.89
+local SAVED_VARS_SCHEMA_VERSION = 2.90
 
 ---@class ModuleRegistryEntry
 ---@field name string The unique name of the module (used for settings keys)
 ---@field namespace string The namespace key in BETTERUI table
 ---@field required boolean|nil Whether this module is required (always enabled)
+---@field alwaysLoad boolean|nil Whether this module is loaded without a user-facing master toggle
 ---@field dependsOnCIM boolean|nil Whether the module requires the CIM shared platform
 ---@field condition function|nil Optional condition function that must return true to load
 ---@field loadOverride function|nil Optional function that forces loading while the module toggle is off (cross-module features owned by this module)
@@ -75,7 +76,7 @@ local MODULE_REGISTRY = {
 
 	-- CIM-dependent interface and feature modules
 	{ name = "Writs", namespace = "Writs", dependsOnCIM = true },
-	{ name = "GeneralInterface", namespace = "GeneralInterface", dependsOnCIM = true },
+	{ name = "GeneralInterface", namespace = "GeneralInterface", dependsOnCIM = true, alwaysLoad = true },
 	{
 		name = "Nameplates",
 		namespace = "Nameplates",
@@ -89,8 +90,7 @@ local MODULE_REGISTRY = {
 			if not settings then
 				return false
 			end
-			return settings.nameplatePositionsUnlocked == true
-				or settings.moveCompassFrame == true
+			return settings.moveCompassFrame == true
 				or settings.moveTargetBar == true
 				or settings.movePlayerInteract == true
 				or settings.moveQuestTracker == true
@@ -147,7 +147,7 @@ BETTERUI.DefaultSettings = {
 function BETTERUI.UpdateCIMState()
 	local shouldEnable = false
 	for _, entry in ipairs(MODULE_REGISTRY) do
-		if entry.dependsOnCIM and BETTERUI.GetModuleEnabled(entry.name) then
+		if entry.dependsOnCIM and (entry.alwaysLoad == true or BETTERUI.GetModuleEnabled(entry.name)) then
 			shouldEnable = true
 			break
 		end
@@ -167,8 +167,6 @@ local MODULE_TOGGLE_BLUEPRINTS = {
 	{ moduleName = "Vendor", nameStringId = "SI_BETTERUI_ENABLE_VENDOR", tooltipStringId = "SI_BETTERUI_ENABLE_VENDOR_TOOLTIP", updatesCIM = true },
 	{ moduleName = "Companions", nameStringId = "SI_BETTERUI_ENABLE_COMPANIONS", tooltipStringId = "SI_BETTERUI_ENABLE_COMPANIONS_TOOLTIP", updatesCIM = true },
 	{ moduleName = "TradingHouse", nameStringId = "SI_BETTERUI_ENABLE_TRADING_HOUSE", tooltipStringId = "SI_BETTERUI_ENABLE_TRADING_HOUSE_TOOLTIP", updatesCIM = true },
-	{ moduleName = "GeneralInterface", nameStringId = "SI_BETTERUI_ENABLE_TOOLTIPS", tooltipStringId = "SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", updatesCIM = true },
-	{ moduleName = "Nameplates", nameStringId = "SI_BETTERUI_NAMEPLATES_ENABLED", tooltipStringId = "SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", updatesCIM = true },
 	{ moduleName = "Inventory", nameStringId = "SI_BETTERUI_ENABLE_INVENTORY", tooltipStringId = "SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", updatesCIM = true },
 	{ moduleName = "ResourceOrbFrames", nameStringId = "SI_BETTERUI_ENABLE_ORBS", tooltipStringId = "SI_BETTERUI_ENABLE_ORBS_TOOLTIP", updatesCIM = true },
 	{ moduleName = "Writs", nameStringId = "SI_BETTERUI_ENABLE_WRITS", tooltipStringId = "SI_BETTERUI_ENABLE_WRITS_TOOLTIP", updatesCIM = true },
@@ -184,8 +182,6 @@ local MODULE_TAB_LABEL_STRING_IDS = {
 	Vendor = "SI_BETTERUI_SETTINGS_TAB_VENDOR",
 	Companions = "SI_BETTERUI_SETTINGS_TAB_COMPANIONS",
 	TradingHouse = "SI_BETTERUI_SETTINGS_TAB_TRADING",
-	GeneralInterface = "SI_BETTERUI_SETTINGS_TAB_INTERFACE",
-	Nameplates = "SI_BETTERUI_SETTINGS_TAB_NAMEPLATES",
 	Inventory = "SI_BETTERUI_SETTINGS_TAB_INVENTORY",
 	ResourceOrbFrames = "SI_BETTERUI_SETTINGS_TAB_RESOURCE_ORBS",
 	Writs = "SI_BETTERUI_SETTINGS_TAB_WRITS",
@@ -399,7 +395,7 @@ local function CombineModuleDisabled(moduleName, existingDisabled)
 	end
 end
 
-local function CloneControlForModuleTab(moduleName, control)
+local function CloneControlForModuleTab(moduleName, control, skipModuleDisabledGate)
 	if type(control) ~= "table" then
 		return control
 	end
@@ -414,8 +410,12 @@ local function CloneControlForModuleTab(moduleName, control)
 	if type(control.controls) == "table" then
 		clone.controls = {}
 		for index, child in ipairs(control.controls) do
-			clone.controls[index] = CloneControlForModuleTab(moduleName, child)
+			clone.controls[index] = CloneControlForModuleTab(moduleName, child, skipModuleDisabledGate)
 		end
+	end
+
+	if skipModuleDisabledGate then
+		return clone
 	end
 
 	if clone.type == "submenu" then
@@ -436,7 +436,7 @@ local function TraceSettingsPanel(event, phase, data)
 	L.TraceEvent(L.CATEGORY.SETTINGS, event, phase, data or {}, L.LEVEL.INFO)
 end
 
-local function BuildModuleSettingsTabControls(moduleName, optionsData)
+local function BuildModuleSettingsTabControls(moduleName, optionsData, skipModuleDisabledGate)
 	local controls = {}
 	local redundantGateControls = 0
 	if type(optionsData) ~= "table" then
@@ -447,7 +447,7 @@ local function BuildModuleSettingsTabControls(moduleName, optionsData)
 		if IsRedundantModuleGateControl(moduleName, control) then
 			redundantGateControls = redundantGateControls + 1
 		else
-			controls[#controls + 1] = CloneControlForModuleTab(moduleName, control)
+			controls[#controls + 1] = CloneControlForModuleTab(moduleName, control, skipModuleDisabledGate)
 		end
 	end
 	return controls, redundantGateControls
@@ -490,6 +490,24 @@ local function BuildRegisteredModulePanelMap(modulePanels)
 	end
 
 	return panelByModuleName, skippedCore, skippedUnknown
+end
+
+local function AppendMergedGeneralInterfaceControls(generalControls)
+	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
+	local getRegisteredPanels = settingsApi and settingsApi.GetRegisteredModulePanels
+	if type(getRegisteredPanels) ~= "function" then
+		return 0, 0
+	end
+
+	local panelByModuleName = BuildRegisteredModulePanelMap(getRegisteredPanels())
+	local panel = panelByModuleName.GeneralInterface
+	if not panel then
+		return 0, 0
+	end
+
+	local controls, redundantGateControls = BuildModuleSettingsTabControls("GeneralInterface", panel.optionsData or {}, true)
+	AppendControls(generalControls, controls)
+	return #controls, redundantGateControls
 end
 
 local function BuildModuleSettingsTabPages()
@@ -1807,29 +1825,7 @@ function BETTERUI.InitModuleOptions()
 	local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
 	local controlPanel
 
-	local generalControls = {
-		{
-			type = "header",
-			name = GetStringByName("SI_BETTERUI_MASTER_SETTINGS_HEADER"),
-			width = "full",
-		},
-		{
-			type = "description",
-			text = GetStringByName("SI_BETTERUI_ENABLED_MODULE_SETTINGS_DESC"),
-			width = "full",
-		},
-		{
-			type = "checkbox",
-			name = GetStringByName("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS"),
-			tooltip = GetStringByName("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP"),
-			getFunc = function() return BETTERUI.SavedVars.useAccountWide end,
-			setFunc = function(value)
-				BETTERUI.SavedVars.useAccountWide = value
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-	}
+	local generalControls = {}
 
 	local cimDebug = BETTERUI.CIM and BETTERUI.CIM.Debug
 	local showDeveloperSettings = cimDebug
@@ -1884,12 +1880,19 @@ function BETTERUI.InitModuleOptions()
 		end
 	end
 
+	AppendMergedGeneralInterfaceControls(generalControls)
+
 	table.insert(generalControls, {
 		type = "divider",
 		width = "full",
 	})
 	AppendBuilogSettingsPanel(generalControls)
 
+	table.insert(generalControls, {
+		type = "description",
+		text = " ",
+		width = "half",
+	})
 	table.insert(generalControls, {
 		type = "button",
 		name = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL"),
@@ -1900,13 +1903,13 @@ function BETTERUI.InitModuleOptions()
 				settingsApi.ResetAllSettingsToDefaults()
 			end
 		end,
-		width = "full",
+		width = "half",
 	})
 
 	local pages = {
 		{
 			key = "General",
-			name = GetStringByName("SI_BETTERUI_SETTINGS_TAB_GENERAL"),
+			name = GetStringByName("SI_BETTERUI_SETTINGS_TAB_GENERAL_INTERFACE"),
 			controls = generalControls,
 		},
 	}
@@ -2257,7 +2260,7 @@ local function ShouldSetupKeyboardModeModule(entry)
 		return false
 	end
 
-	if not (BETTERUI.GetModuleEnabled(entry.name) or IsModuleLoadOverrideActive(entry)) then
+	if not (entry.alwaysLoad == true or BETTERUI.GetModuleEnabled(entry.name) or IsModuleLoadOverrideActive(entry)) then
 		return false
 	end
 
@@ -2302,7 +2305,7 @@ local function ShouldLoadModule(entry)
 		return true
 	end
 
-	if not (BETTERUI.GetModuleEnabled(entry.name) or IsModuleLoadOverrideActive(entry)) then
+	if not (entry.alwaysLoad == true or BETTERUI.GetModuleEnabled(entry.name) or IsModuleLoadOverrideActive(entry)) then
 		return false
 	end
 
@@ -2363,6 +2366,7 @@ local function LoadConfiguredModules()
 				module = entry.name,
 				namespace = entry.namespace,
 				required = entry.required == true,
+				alwaysLoad = entry.alwaysLoad == true,
 				enabled = entry.required == true or BETTERUI.GetModuleEnabled(entry.name) == true,
 				dependsOnCIM = entry.dependsOnCIM == true,
 				cimEnabled = BETTERUI.GetModuleEnabled("CIM") == true,

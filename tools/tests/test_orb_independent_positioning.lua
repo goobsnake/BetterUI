@@ -156,7 +156,26 @@ assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OF
 -- above remains the current guard. Keeping the removed key literals out of the
 -- test lets the host drop them from lang with zero references.
 
--- Test 10: Mouse drag positioning must write through live settings. The
+-- Test 10: Top-level Reset General resets top-level frame settings and the
+-- unlock-all-position gate without touching stored per-element offsets.
+assertTrue(moduleSource:find('{ key = "scale", value = 1 }', 1, true) ~= nil,
+    "Module: Resource Orb Frames reset restores scale")
+assertTrue(moduleSource:find('{ key = "offsetX", value = 0 }', 1, true) ~= nil,
+    "Module: Resource Orb Frames reset restores root X offset")
+assertTrue(moduleSource:find('{ key = "offsetY", value = 0 }', 1, true) ~= nil,
+    "Module: Resource Orb Frames reset restores root Y offset")
+assertTrue(moduleSource:find("generalContracts.elementPositionsUnlocked.set(false)", 1, true) ~= nil,
+    "Module: top-level general reset restores the global position unlock default")
+assertTrue(moduleSource:find('{ key = "enableIndependentOrbOffset", value = false }', 1, true) == nil,
+    "Module: top-level general reset does not reset migrated independent position state")
+assertTrue(count_occurrences(moduleSource, "ResetElementPositions%(EnsureResourceOrbSettings%(%)%)") == 1,
+    "Module: only Reset All Positions invokes the element-position reset")
+assertTrue(moduleSource:find('type = "description",\n            text = " ",\n            width = "full"', 1, true) ~= nil,
+    "Module: Reset All Positions has a full-width spacer row before right-side placement")
+assertTrue(moduleSource:find('type = "description",\n            text = " ",\n            width = "half"', 1, true) ~= nil,
+    "Module: Reset All Positions has a half-width left spacer for right-side placement")
+
+-- Test 11: Mouse drag positioning must write through live settings. The
 -- remote interface.log showed delta_applied changed=true followed by drag
 -- end offsetX/offsetY=0, which is the signature of mutating a detached
 -- settings snapshot.
@@ -173,7 +192,7 @@ assertTrue(orchestratorSource:find("local quickslotButton = FindControl%(m_rootF
 assertTrue(orchestratorSource:find("custom_buttons_resolved") ~= nil,
     "Orchestrator: quickslot/companion drag host resolution emits builog trace")
 
--- Test 11: Drag-driven full layouts must also reassert native ESO action bar
+-- Test 12: Drag-driven full layouts must also reassert native ESO action bar
 -- suppression, otherwise the default bar can bleed into the custom bars when
 -- movement/settings changes wake native UI controls.
 assertTrue(orchestratorSource:find("local SuppressNativeBars") ~= nil,
@@ -187,7 +206,7 @@ assertTrue(orchestratorSource:find("SuppressNativeBars%(\"EVENT_ACTION_SLOTS_FUL
 assertTrue(orchestratorSource:find("SuppressNativeBars%(\"EVENT_ACTION_SLOT_UPDATED\"%)") ~= nil,
     "Orchestrator: single action-slot update reasserts native bar suppression")
 
--- Test 12: Per-element Reset Position must use the live settings contract and
+-- Test 13: Per-element Reset Position must use the live settings contract and
 -- canonical Drag.ResetOffset path so offset persistence, handle state, and
 -- builog reset/reset_end traces stay aligned.
 assertTrue(moduleSource:find("GetLiveResourceOrbSettings = SettingsUtils%.GetLive or SettingsUtils%.Ensure") ~= nil,
@@ -215,6 +234,76 @@ assertTrue(settingsSubmenusSource2:find("usesLiveSettings = usesLiveSettings") ~
     "SettingsSubmenus: ResetElemPos trace records live-settings usage")
 assertTrue(settingsSubmenusSource2:find("local s = shared and shared%.getSettings and shared%.getSettings%(%)") == nil,
     "SettingsSubmenus: ResetElemPos no longer mutates the detached shared.getSettings() snapshot")
+assertTrue(settingsSubmenusSource2:find("local trailing = type%(controls%[#controls%]%)") == nil,
+    "SettingsSubmenus: section resets stay above Position instead of being trailed below it")
+assertTrue(settingsSubmenusSource2:find("if trailing then controls%[#controls %+ 1%] = trailing end") == nil,
+    "SettingsSubmenus: frame reset buttons are not appended after Position reset buttons")
+assertTrue(settingsSubmenusSource2:find("local trailingButtons", 1, true) == nil,
+    "SettingsSubmenus: Skill Bars section reset buttons are not detached during section sorting")
+assertTrue(settingsSubmenusSource2:find("SI_BETTERUI_COOLDOWN_RESET", 1, true) ~= nil,
+    "SettingsSubmenus: Cooldown has an independent reset button")
+assertTrue(settingsSubmenusSource2:find("SI_BETTERUI_QUICKSLOT_RESET", 1, true) ~= nil,
+    "SettingsSubmenus: Quickslot has an independent reset button")
+assertTrue(settingsSubmenusSource2:find("SI_BETTERUI_ORB_VISUALS_RESET", 1, true) ~= nil,
+    "SettingsSubmenus: Orb Visuals has an independent reset button")
+assertTrue(settingsSubmenusSource2:find("SI_BETTERUI_ORB_TEXT_RESET", 1, true) ~= nil,
+    "SettingsSubmenus: Orb Text keeps its independent reset button")
+assertTrue(settingsSubmenusSource2:find("SI_BETTERUI_BACK_BAR_RESET", 1, true) ~= nil,
+    "SettingsSubmenus: Back Bar has an independent reset button")
+assertTrue(settingsSubmenusSource2:find("SI_BETTERUI_ULTIMATE_DISPLAY_RESET", 1, true) ~= nil,
+    "SettingsSubmenus: Ultimate Display has an independent reset button")
+assertTrue(settingsSubmenusSource2:find("SI_BETTERUI_COMBAT_INDICATORS_RESET", 1, true) ~= nil,
+    "SettingsSubmenus: Combat Indicators has an independent reset button")
+assertTrue(settingsSubmenusSource2:find('type = "description",\n                text = " ",\n                width = "full"', 1, true) ~= nil,
+    "SettingsSubmenus: Ultimate Display reset leaves full-width spacing below the slider section")
+local function ButtonBlockAfter(sourceText, marker)
+    local _, blockStart = sourceText:find(marker, 1, true)
+    assertTrue(blockStart ~= nil, "SettingsSubmenus: marker exists: " .. tostring(marker))
+    local _, blockEnd = sourceText:find('width = "half"', blockStart, true)
+    return sourceText:sub(blockStart, blockEnd or #sourceText)
+end
+
+local cooldownResetBlock = ButtonBlockAfter(settingsSubmenusSource2, "SI_BETTERUI_COOLDOWN_RESET")
+assertTrue(cooldownResetBlock:find("cooldownTextSize", 1, true) ~= nil,
+    "SettingsSubmenus: Reset Cooldown restores cooldown text size")
+assertTrue(cooldownResetBlock:find("cooldownTextColor", 1, true) ~= nil,
+    "SettingsSubmenus: Reset Cooldown restores cooldown text color")
+assertTrue(cooldownResetBlock:find("quickslotText", 1, true) == nil,
+    "SettingsSubmenus: Reset Cooldown does not reset quickslot text settings")
+assertTrue(cooldownResetBlock:find("showQuickslot", 1, true) == nil,
+    "SettingsSubmenus: Reset Cooldown does not reset quickslot visibility settings")
+
+local quickslotResetBlock = ButtonBlockAfter(settingsSubmenusSource2, "SI_BETTERUI_QUICKSLOT_RESET")
+assertTrue(quickslotResetBlock:find("showQuickslotCooldown", 1, true) ~= nil,
+    "SettingsSubmenus: Reset Quickslot restores quickslot cooldown visibility")
+assertTrue(quickslotResetBlock:find("showQuickslotCount", 1, true) ~= nil,
+    "SettingsSubmenus: Reset Quickslot restores quickslot count visibility")
+assertTrue(quickslotResetBlock:find("quickslotTextSize", 1, true) ~= nil,
+    "SettingsSubmenus: Reset Quickslot restores quickslot text size")
+assertTrue(quickslotResetBlock:find("quickslotTextColor", 1, true) ~= nil,
+    "SettingsSubmenus: Reset Quickslot restores quickslot text color")
+assertTrue(quickslotResetBlock:find("cooldownText", 1, true) == nil,
+    "SettingsSubmenus: Reset Quickslot does not reset skill cooldown settings")
+
+local _, ultimateHeaderEnd = settingsSubmenusSource2:find("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", 1, true)
+local resetAllStart = settingsSubmenusSource2:find("SI_BETTERUI_RESET_SKILL_BAR", ultimateHeaderEnd or 1, true)
+local combatHeaderStart = settingsSubmenusSource2:find("SI_BETTERUI_COMBAT_INDICATORS_HEADER", ultimateHeaderEnd or 1, true)
+assertTrue(resetAllStart ~= nil and combatHeaderStart ~= nil and resetAllStart < combatHeaderStart,
+    "SettingsSubmenus: Reset All Skill Bar lives inside the Ultimate Display section before sorting")
+local resetAllSkillBarBlock = ButtonBlockAfter(settingsSubmenusSource2, "SI_BETTERUI_RESET_SKILL_BAR")
+assertTrue(resetAllSkillBarBlock:find("cooldownTextSize", 1, true) ~= nil
+    and resetAllSkillBarBlock:find("quickslotTextSize", 1, true) ~= nil
+    and resetAllSkillBarBlock:find("backBarOpacity", 1, true) ~= nil
+    and resetAllSkillBarBlock:find("showUltimateNumber", 1, true) ~= nil
+    and resetAllSkillBarBlock:find("showQuickslotCooldown", 1, true) ~= nil
+    and resetAllSkillBarBlock:find("showCombatGlow", 1, true) ~= nil,
+    "SettingsSubmenus: Reset All Skill Bar restores every skill-bar setting group")
+
+local _, orbTextResetStart = settingsSubmenusSource2:find("SI_BETTERUI_ORB_TEXT_RESET", 1, true)
+local _, orbTextResetEnd = settingsSubmenusSource2:find("width = \"half\"", orbTextResetStart or 1, true)
+local orbTextResetBlock = settingsSubmenusSource2:sub(orbTextResetStart or 1, orbTextResetEnd or #settingsSubmenusSource2)
+assertTrue(orbTextResetBlock:find("orbAnimFlow", 1, true) == nil,
+    "SettingsSubmenus: Reset Orb Text no longer resets visual settings")
 
 local frontBarSource = read_file("Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua")
 assertTrue(frontBarSource ~= nil, "FrontBarManager.lua readable")

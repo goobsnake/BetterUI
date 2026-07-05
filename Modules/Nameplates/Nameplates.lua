@@ -163,7 +163,6 @@ Nameplates.DEFAULTS = {
     font = "$(BOLD_FONT)", -- Uses ESO's localized font for CJK support
     style = FONT_STYLE_SOFT_SHADOW_THIN or 5,
     size = DEFAULT_NAMEPLATE_SIZE,
-    nameplatePositionsUnlocked = false,
     moveCompassFrame = false,
     compassFrameOffsetX = 0,
     compassFrameOffsetY = 0,
@@ -376,7 +375,7 @@ local function RegisterNameplateSnapshotProvider()
     end
     watch.RegisterSnapshotProvider("nameplates", function()
         local settings = GetSettings()
-        return string.format("enabled=%s activeRules=%s font=%s style=%s size=%s captured=%s kb=%s gp=%s positionsUnlocked=%s compass=%s:%s,%s@%s target=%s:%s,%s@%s playerInteract=%s:%s,%s@%s quest=%s:%s,%s@%s group=%s:%s,%s@%s",
+        return string.format("enabled=%s activeRules=%s font=%s style=%s size=%s captured=%s kb=%s gp=%s compass=%s:%s,%s@%s target=%s:%s,%s@%s playerInteract=%s:%s,%s@%s quest=%s:%s,%s@%s group=%s:%s,%s@%s",
             tostring(settings and settings.m_enabled),
             tostring(CountActiveNameplateRules(settings)),
             tostring(settings and settings.font),
@@ -385,7 +384,6 @@ local function RegisterNameplateSnapshotProvider()
             tostring(originalFontsCaptured),
             tostring(originalKeyboardFont ~= nil),
             tostring(originalGamepadFont ~= nil),
-            tostring(settings and settings.nameplatePositionsUnlocked),
             tostring(settings and settings.moveCompassFrame),
             tostring(settings and settings.compassFrameOffsetX),
             tostring(settings and settings.compassFrameOffsetY),
@@ -616,7 +614,6 @@ local function SetupEvents(enabled, suppressCleanupLog)
                 font = settings and settings.font,
                 style = settings and settings.style,
                 size = settings and settings.size,
-                positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
                 moveCompassFrame = settings and settings.moveCompassFrame,
             })
             if settings and settings.m_enabled then
@@ -634,7 +631,6 @@ local function SetupEvents(enabled, suppressCleanupLog)
                     font = settings and settings.font,
                     style = settings and settings.style,
                     size = settings and settings.size,
-                    positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
                     moveCompassFrame = settings and settings.moveCompassFrame,
                 })
                 if settings and settings.m_enabled then
@@ -729,7 +725,6 @@ function Nameplates.Setup()
         font = settings and settings.font,
         style = settings and settings.style,
         size = settings and settings.size,
-        positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
         moveCompassFrame = settings and settings.moveCompassFrame,
         compassFrameOffsetX = settings and settings.compassFrameOffsetX,
         compassFrameOffsetY = settings and settings.compassFrameOffsetY,
@@ -759,7 +754,6 @@ function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
             font = settings and settings.font,
             style = settings and settings.style,
             size = settings and settings.size,
-            positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
             moveCompassFrame = settings and settings.moveCompassFrame,
         })
         ApplyNameplatePositioning(settings)
@@ -780,7 +774,6 @@ function Nameplates.ApplyCurrentSettings()
         font = settings and settings.font,
         style = settings and settings.style,
         size = settings and settings.size,
-        positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
         moveCompassFrame = settings and settings.moveCompassFrame,
         compassFrameOffsetX = settings and settings.compassFrameOffsetX,
         compassFrameOffsetY = settings and settings.compassFrameOffsetY,
@@ -806,7 +799,6 @@ function Nameplates.InitModule(m_options)
     if m_options.font == nil then m_options.font = defaults.font end
     if m_options.style == nil then m_options.style = defaults.style end
     if m_options.size == nil then m_options.size = defaults.size end
-    if m_options.nameplatePositionsUnlocked == nil then m_options.nameplatePositionsUnlocked = defaults.nameplatePositionsUnlocked end
     if m_options.moveCompassFrame == nil then m_options.moveCompassFrame = defaults.moveCompassFrame end
     if m_options.compassFrameOffsetX == nil then m_options.compassFrameOffsetX = defaults.compassFrameOffsetX end
     if m_options.compassFrameOffsetY == nil then m_options.compassFrameOffsetY = defaults.compassFrameOffsetY end
@@ -824,7 +816,6 @@ function Nameplates.InitModule(m_options)
     if m_options.groupFramesOffsetY == nil then m_options.groupFramesOffsetY = defaults.groupFramesOffsetY end
     m_options.style = NormalizeStyleValue(m_options.style)
     m_options.size = ClampNameplateSize(m_options.size, defaults.size)
-    m_options.nameplatePositionsUnlocked = m_options.nameplatePositionsUnlocked == true
     m_options.moveCompassFrame = m_options.moveCompassFrame == true
     m_options.compassFrameOffsetX = ClampPositionOffset(m_options.compassFrameOffsetX)
     m_options.compassFrameOffsetY = ClampPositionOffset(m_options.compassFrameOffsetY)
@@ -868,7 +859,6 @@ function Nameplates.InitModule(m_options)
         font = m_options.font,
         style = m_options.style,
         size = m_options.size,
-        positionsUnlocked = m_options.nameplatePositionsUnlocked,
         moveCompassFrame = m_options.moveCompassFrame,
         compassFrameOffsetX = m_options.compassFrameOffsetX,
         compassFrameOffsetY = m_options.compassFrameOffsetY,

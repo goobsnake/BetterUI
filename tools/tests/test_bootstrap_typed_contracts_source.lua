@@ -32,6 +32,12 @@ assert_contains(types, '---| "Companions"',
     "ModuleName aliases include Companions")
 assert_contains(types, '---@class BetterUIInventorySettings: BetterUISharedFontSettings',
     "typed inventory settings contract exists")
+assert_contains(types, '---@class BetterUICompanionsSettings: BetterUISharedFontSettings',
+    "typed companion settings contract exists")
+assert_contains(types, '---@field enableCarousel boolean|nil',
+    "typed settings contracts include carousel fields")
+assert_contains(types, '---@alias BetterUICompanionsSettingKey',
+    "typed companion setting-key alias exists")
 assert_contains(types, '---@class BetterUIInventoryRowData: SlotData',
     "typed inventory row payload exists")
 assert_contains(types, '---@class BetterUIInventoryEntryData',

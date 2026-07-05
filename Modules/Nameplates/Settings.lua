@@ -13,11 +13,6 @@ local function CreateNameplatesStringIdIfMissing(stringId, value)
     end
 end
 
-CreateNameplatesStringIdIfMissing("SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES", "Show UI Position Drag Handles")
-CreateNameplatesStringIdIfMissing(
-    "SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES_TOOLTIP",
-    "Shows draggable handles for supported HUD elements while position controls are enabled."
-)
 CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_MOVE_TARGET_BAR", "Move Target/NPC Bar")
 CreateNameplatesStringIdIfMissing(
     "SI_BETTERUI_NAMEPLATES_MOVE_TARGET_BAR_TOOLTIP",
@@ -55,10 +50,14 @@ CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_TARGET_BAR_SCALE", "Ta
 CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_PLAYER_INTERACT_SCALE", "Player Interact Prompt Scale")
 CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_QUEST_TRACKER_SCALE", "Quest Tracker Scale")
 CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_GROUP_FRAMES_SCALE", "Companion & Group Scale")
-CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_RESET_ELEMENT", "Reset This Element")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_RESET_COMPASS_POSITION", "Reset Compass Position")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_RESET_TARGET_POSITION", "Reset Target Position")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_RESET_INTERACT_POSITION", "Reset Interact Position")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_RESET_QUEST_TRACKER_POSITION", "Reset Quest Position")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_RESET_GROUP_POSITION", "Reset Group Position")
 CreateNameplatesStringIdIfMissing(
     "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP",
-    "Reset this element's position offsets and scale to their defaults. The Move toggle is left as-is."
+    "Reset this element's position offsets and scale to their defaults, then turn its Move toggle off."
 )
 
 -- Nameplates.ClampNameplateSize is always present by the time the settings panel
@@ -284,17 +283,6 @@ function Nameplates.GetPositionSettingsOptions()
     return {
         {
             type = "checkbox",
-            key = "nameplatePositionsUnlocked",
-            name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES_TOOLTIP")),
-            default = GetPositionDefault("nameplatePositionsUnlocked"),
-            getFunc = function() return GetBooleanSetting("nameplatePositionsUnlocked") end,
-            setFunc = function(value) SetPositionSettingValue("nameplatePositionsUnlocked", value) end,
-            disabled = function() return false end,
-            width = "full",
-        },
-        {
-            type = "checkbox",
             key = "moveCompassFrame",
             name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_COMPASS")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP")),
@@ -350,7 +338,7 @@ function Nameplates.GetPositionSettingsOptions()
         {
             type = "button",
             key = "resetCompassFrame",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_COMPASS_POSITION")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
             func = function() ResetElementPosition("compass") end,
             disabled = function() return IsPositionSliderDisabled("compass") end,
@@ -413,7 +401,7 @@ function Nameplates.GetPositionSettingsOptions()
         {
             type = "button",
             key = "resetTargetBar",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_TARGET_POSITION")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
             func = function() ResetElementPosition("targetBar") end,
             disabled = function() return IsPositionSliderDisabled("targetBar") end,
@@ -476,7 +464,7 @@ function Nameplates.GetPositionSettingsOptions()
         {
             type = "button",
             key = "resetPlayerInteract",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_INTERACT_POSITION")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
             func = function() ResetElementPosition("playerInteract") end,
             disabled = function() return IsPositionSliderDisabled("playerInteract") end,
@@ -539,7 +527,7 @@ function Nameplates.GetPositionSettingsOptions()
         {
             type = "button",
             key = "resetQuestTracker",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_QUEST_TRACKER_POSITION")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
             func = function() ResetElementPosition("questTracker") end,
             disabled = function() return IsPositionSliderDisabled("questTracker") end,
@@ -602,10 +590,20 @@ function Nameplates.GetPositionSettingsOptions()
         {
             type = "button",
             key = "resetGroupFrames",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_GROUP_POSITION")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
             func = function() ResetElementPosition("groupFrames") end,
             disabled = function() return IsPositionSliderDisabled("groupFrames") end,
+            width = "half",
+        },
+        {
+            type = "description",
+            text = " ",
+            width = "full",
+        },
+        {
+            type = "description",
+            text = " ",
             width = "half",
         },
         {
@@ -808,27 +806,36 @@ function Nameplates.GetSettingsOptions()
                 end
 
                 local defaults = Nameplates.DEFAULTS
+                local defaultEnabled = BETTERUI.CIM.Settings.GetSettingDefault(
+                    "Nameplates",
+                    "m_enabled",
+                    (defaults and defaults.m_enabled) or false
+                )
                 TraceNameplateSetting("reset", "set_begin", {
                     fn = "Nameplates.Settings.reset.func",
+                    previousEnabled = settings.m_enabled,
                     previousFont = settings.font,
                     previousStyle = settings.style,
                     previousSize = settings.size,
+                    defaultEnabled = defaultEnabled,
                     defaultFont = defaults and defaults.font,
                     defaultStyle = defaults and defaults.style,
                     defaultSize = defaults and defaults.size,
                 })
+                settings.m_enabled = defaultEnabled == true
                 settings.font = defaults.font
                 settings.style = defaults.style
                 settings.size = defaults.size
                 TraceNameplateSetting("reset", "set_end", {
                     fn = "Nameplates.Settings.reset.func",
+                    enabled = settings.m_enabled,
                     font = settings.font,
                     style = settings.style,
                     size = settings.size,
                 })
-                ApplyCurrentNameplateSettings("reset", "defaults")
+                NotifyNameplateToggleChanged(settings.m_enabled, true)
             end,
-            disabled = function() return not IsNameplateEnabled() end,
+            disabled = function() return false end,
             width = "half",
         },
     }

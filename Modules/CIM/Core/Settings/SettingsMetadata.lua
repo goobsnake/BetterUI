@@ -220,6 +220,14 @@ local SETTINGS_METADATA_REGISTRY = {
     },
 
     Companions = {
+        enableCarousel = {
+            labelStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV,
+            tooltipStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
         quickDestroy = {
             labelStringId = SI_BETTERUI_INV_QUICK_DESTROY,
             tooltipStringId = SI_BETTERUI_INV_QUICK_DESTROY_TOOLTIP,
@@ -231,7 +239,7 @@ local SETTINGS_METADATA_REGISTRY = {
         batchDestroy = {
             labelStringId = SI_BETTERUI_INV_BATCH_DESTROY,
             tooltipStringId = SI_BETTERUI_INV_BATCH_DESTROY_TOOLTIP,
-            defaultValue = true,
+            defaultValue = false,
             dependency = nil,
             sortGroup = "general",
             resetGroup = "general",
@@ -247,7 +255,7 @@ local SETTINGS_METADATA_REGISTRY = {
         enableCompanionJunk = {
             labelStringId = SI_BETTERUI_INV_COMPANION_JUNK,
             tooltipStringId = SI_BETTERUI_INV_COMPANION_JUNK_TOOLTIP,
-            defaultValue = true,
+            defaultValue = false,
             dependency = nil,
             sortGroup = "general",
             resetGroup = "general",
@@ -418,14 +426,6 @@ local SETTINGS_METADATA_REGISTRY = {
             dependency = nil,
             sortGroup = "general",
             resetGroup = "general",
-        },
-        nameplatePositionsUnlocked = {
-            labelStringId = SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS,
-            tooltipStringId = SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS_TOOLTIP,
-            defaultValue = false,
-            dependency = nil,
-            sortGroup = "positioning",
-            resetGroup = "positioning",
         },
         moveCompassFrame = {
             labelStringId = SI_BETTERUI_NAMEPLATES_MOVE_COMPASS,

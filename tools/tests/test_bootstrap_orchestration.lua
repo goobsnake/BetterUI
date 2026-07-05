@@ -94,14 +94,14 @@ local enabledModules = {
 
 local stringMap = {
     SI_BETTERUI_MASTER_SETTINGS_TITLE = "Master Settings",
-    SI_BETTERUI_MASTER_SETTINGS_HEADER = "General Settings",
-    SI_BETTERUI_ENABLED_MODULE_SETTINGS_DESC = "Each tab has its module toggle and settings. Disabled modules remain available.",
+    SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC = "Configure general interface behavior and BetterUI addon functionality.",
+    SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER = "General",
     SI_BETTERUI_SETTINGS_TAB_GENERAL = "General",
+    SI_BETTERUI_SETTINGS_TAB_GENERAL_INTERFACE = "General Interface",
     SI_BETTERUI_SETTINGS_TAB_BANKING = "Banking",
     SI_BETTERUI_SETTINGS_TAB_VENDOR = "Vendor",
     SI_BETTERUI_SETTINGS_TAB_COMPANIONS = "Companions",
     SI_BETTERUI_SETTINGS_TAB_TRADING = "Trading",
-    SI_BETTERUI_SETTINGS_TAB_INTERFACE = "Interface",
     SI_BETTERUI_SETTINGS_TAB_NAMEPLATES = "Nameplates",
     SI_BETTERUI_SETTINGS_TAB_INVENTORY = "Inventory",
     SI_BETTERUI_SETTINGS_TAB_RESOURCE_ORBS = "Resource Orbs",
@@ -118,8 +118,6 @@ local stringMap = {
     SI_BETTERUI_ENABLE_COMPANIONS_TOOLTIP = "Companions tooltip",
     SI_BETTERUI_ENABLE_TRADING_HOUSE = "Enable Trading House",
     SI_BETTERUI_ENABLE_TRADING_HOUSE_TOOLTIP = "Trading House tooltip",
-    SI_BETTERUI_ENABLE_TOOLTIPS = "Enable General Interface",
-    SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP = "General Interface tooltip",
     SI_BETTERUI_NAMEPLATES_ENABLED = "Enable Nameplates",
     SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP = "Nameplates tooltip",
     SI_BETTERUI_ENABLE_INVENTORY = "Enable Inventory",
@@ -128,7 +126,7 @@ local stringMap = {
     SI_BETTERUI_ENABLE_ORBS_TOOLTIP = "Resource Orb tooltip",
     SI_BETTERUI_ENABLE_WRITS = "Enable Writs",
     SI_BETTERUI_ENABLE_WRITS_TOOLTIP = "Writs tooltip",
-    SI_BETTERUI_MASTER_RESET_ALL = "Reset All",
+    SI_BETTERUI_MASTER_RESET_ALL = "Reset All Settings",
     SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP = "Reset all settings",
 }
 
@@ -521,9 +519,11 @@ end
 
 assert_eq("custom", tabControl.type, "master settings panel uses a custom tab window control")
 assert_eq("General", pages[1] and pages[1].key, "General tab is first for module-agnostic settings")
-assert_eq("General", pages[1] and pages[1].name, "General tab uses localized label text")
+assert_eq("General Interface", pages[1] and pages[1].name, "General tab uses merged localized label text")
 assert_eq("Trading", pageByKey.TradingHouse and pageByKey.TradingHouse.name,
     "module tabs use short localized labels")
+assert_true(pageByKey.GeneralInterface == nil,
+    "GeneralInterface settings merge into the General Interface tab instead of creating an Interface tab")
 assert_eq("General", pageByKey.Banking and pageByKey.Banking.controls[1].name,
     "Banking tab starts with its General section")
 assert_eq("Enable Banking", pageByKey.Banking and pageByKey.Banking.controls[2].name,
@@ -534,13 +534,8 @@ assert_eq("Enable Writs", pageByKey.Writs and pageByKey.Writs.controls[2].name,
     "Writs master module toggle is inside General")
 assert_true(pageByKey.Inventory ~= nil and pageByKey.ResourceOrbFrames ~= nil,
     "module tab list includes configured module pages")
-local nameplateEnableControlCount = 0
-for _, control in ipairs((pageByKey.Nameplates and pageByKey.Nameplates.controls) or {}) do
-    if control.name == "Enable Nameplates" then
-        nameplateEnableControlCount = nameplateEnableControlCount + 1
-    end
-end
-assert_eq(1, nameplateEnableControlCount, "Nameplates tab keeps one master enable gate")
+assert_true(pageByKey.Nameplates == nil,
+    "Nameplates settings merge into the General Interface tab instead of creating a separate Nameplates tab")
 assert_true((pageByKey.Banking and pageByKey.Banking.controls[2].disabled) == nil,
     "module master toggle remains available when the module is off")
 assert_true(addonPanels["BETTERUI_Modules"] ~= nil, "master settings panel registers once")
@@ -573,6 +568,14 @@ assert_true(betterUiSource:find("local pageParent = ReadControlField(lamPanel, \
     and betterUiSource:find("container.panel = lamPanel or tabControl", 1, true) ~= nil
     and betterUiSource:find("container:SetAnchor(TOPLEFT, tabControl, BOTTOMLEFT, 0, 10)", 1, true) ~= nil,
     "tab pages are S'rendarr-style siblings under the LAM scroll, not children of the tab custom control")
+local resetAllIndex = assert(betterUiSource:find('name = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL")', 1, true))
+local resetAllLeadIn = betterUiSource:sub(math.max(1, resetAllIndex - 160), resetAllIndex)
+local resetAllBlock = betterUiSource:sub(resetAllIndex, resetAllIndex + 360)
+assert_true(resetAllLeadIn:find('type = "description"', 1, true) ~= nil
+    and resetAllLeadIn:find('text = " "', 1, true) ~= nil
+    and resetAllLeadIn:find('width = "half"', 1, true) ~= nil
+    and resetAllBlock:find('width = "half"', 1, true) ~= nil,
+    "Reset All Settings is paired with a half-width spacer so it sits on the right side")
 assert_true(betterUiSource:find("local controlPanel", 1, true) ~= nil
     and betterUiSource:find("controlPanel = LAM:RegisterAddonPanel(panelId, panelData)", 1, true) ~= nil
     and betterUiSource:find("RegisterSettingsTabsLamCallbacks(controlPanel, pages)", 1, true) ~= nil
@@ -715,7 +718,7 @@ gamepadCallback(nil, true)
 assert_eq(setupCounts.Companions, 2, "gamepad mode switch reloads companions when bootstrap resets")
 assert_eq(setupCounts.TradingHouse, 2, "gamepad mode switch reloads trading house when bootstrap resets")
 
-print("\nTest: Nameplates no longer depends on GeneralInterface enablement")
+print("\nTest: GeneralInterface no longer depends on its retired master enablement")
 runtimeSetupCalls = 0
 ensureLifecycleRuntimeStateCalls = 0
 researchCalls = 0
@@ -737,7 +740,7 @@ resetSetupState()
 inGamepadPreferredMode = true
 local standaloneNameplatesResult = BETTERUI.Initialize(EVENT_ADD_ON_LOADED, BETTERUI.name)
 assert_true(standaloneNameplatesResult, "bootstrap succeeds when Nameplates runs without GeneralInterface")
-assert_eq(setupCounts.GeneralInterface, nil, "general interface setup is skipped when disabled")
+assert_eq(setupCounts.GeneralInterface, 1, "general interface setup still runs after its master toggle is retired")
 assert_eq(setupCounts.Nameplates, 1, "nameplates setup still runs when GeneralInterface is disabled")
 enabledModules.GeneralInterface = true
 
@@ -759,6 +762,10 @@ setSavedVarsResults({
         Inventory = {
             showMarketPrice = false,
         },
+        Companions = {},
+        Nameplates = {
+            nameplatePositionsUnlocked = true,
+        },
     },
 }, {
     useAccountWide = false,
@@ -778,6 +785,22 @@ assert_eq(BETTERUI.Settings.Modules.Inventory.showMarketPrice, nil,
     "keyboard initialize clears the legacy Inventory market-price key")
 assert_eq(BETTERUI.Settings.Modules.Tooltips, nil,
     "keyboard initialize removes the legacy Tooltips module key")
+assert_eq(BETTERUI.Settings.Modules.Companions.batchDestroy, true,
+    "keyboard initialize preserves old companion batch-destroy behavior for existing profiles")
+assert_eq(BETTERUI.Settings.Modules.Companions.enableCompanionJunk, true,
+    "keyboard initialize preserves old companion junk behavior for existing profiles")
+assert_eq(BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked, nil,
+    "keyboard initialize removes the retired Nameplates global position unlock key")
+assert_eq(BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, true,
+    "keyboard initialize migrates legacy Nameplates position unlock to the compass mover")
+assert_eq(BETTERUI.Settings.Modules.Nameplates.moveTargetBar, true,
+    "keyboard initialize migrates legacy Nameplates position unlock to the target mover")
+assert_eq(BETTERUI.Settings.Modules.Nameplates.movePlayerInteract, true,
+    "keyboard initialize migrates legacy Nameplates position unlock to the interact mover")
+assert_eq(BETTERUI.Settings.Modules.Nameplates.moveQuestTracker, true,
+    "keyboard initialize migrates legacy Nameplates position unlock to the quest mover")
+assert_eq(BETTERUI.Settings.Modules.Nameplates.moveGroupFrames, true,
+    "keyboard initialize migrates legacy Nameplates position unlock to the group mover")
 
 print("\nTest: Gamepad initialize runs runtime setup on selected account-wide settings")
 runtimeSetupCalls = 0

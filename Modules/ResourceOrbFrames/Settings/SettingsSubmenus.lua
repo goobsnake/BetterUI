@@ -121,9 +121,7 @@ local function BuildElemPosControls(shared, label, c, resetFunc)
     }
 end
 
-local function InsertElemPosSectionBeforeTrailingButton(controls, shared, entries)
-    local trailing = type(controls[#controls]) == "table" and controls[#controls].type == "button" and controls[#controls] or nil
-    if trailing then controls[#controls] = nil end
+local function InsertElemPosSection(controls, shared, entries)
     controls[#controls + 1] = { type = "header", name = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_POSITION_HEADER")) }
     if shared and shared.globalUnlock then
         controls[#controls + 1] = {
@@ -144,7 +142,6 @@ local function InsertElemPosSectionBeforeTrailingButton(controls, shared, entrie
             controls[#controls + 1] = ctrl
         end
     end
-    if trailing then controls[#controls + 1] = trailing end
 end
 
 local function WrapLayoutRefresh(setFunc)
@@ -189,6 +186,19 @@ function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
                 width = "full",
             },
             {
+                type = "button",
+                name = GetString(rawget(_G, "SI_BETTERUI_COOLDOWN_RESET")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
+                func = function()
+                    ResetSharedSettingsGroup(shared, {
+                        { key = "cooldownTextSize", value = 27 },
+                        { key = "cooldownTextColor", isColor = true, colorFallback = { 0.86, 0.84, 0.13, 1 } },
+                    })
+                end,
+                disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+                width = "half",
+            },
+            {
                 type = "header",
                 name = GetString(rawget(_G, "SI_BETTERUI_QUICKSLOTS_HEADER")),
             },
@@ -220,6 +230,21 @@ function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_QUICKSLOT_COLOR_TOOLTIP")),
                 getFunc = quickslot.text.color.get, setFunc = quickslot.text.color.set,
                 width = "full",
+            },
+            {
+                type = "button",
+                name = GetString(rawget(_G, "SI_BETTERUI_QUICKSLOT_RESET")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
+                func = function()
+                    ResetSharedSettingsGroup(shared, {
+                        { key = "showQuickslotCooldown", value = true },
+                        { key = "showQuickslotCount", value = true },
+                        { key = "quickslotTextSize", value = 27 },
+                        { key = "quickslotTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
+                    })
+                end,
+                disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+                width = "half",
             },
             {
                 type = "header",
@@ -259,6 +284,20 @@ function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
                 width = "full",
             },
             {
+                type = "button",
+                name = GetString(rawget(_G, "SI_BETTERUI_BACK_BAR_RESET")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
+                func = function()
+                    ResetSharedSettingsGroup(shared, {
+                        { key = "backBarOpacity", value = 1 },
+                        { key = "hideBackBar", value = false },
+                        { key = "weaponSwapAnimation", value = true },
+                    })
+                end,
+                disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+                width = "half",
+            },
+            {
                 type = "header",
                 name = GetString(rawget(_G, "SI_BETTERUI_ULTIMATE_DISPLAY_HEADER")),
             },
@@ -293,6 +332,56 @@ function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
                 width = "full",
             },
             {
+                type = "button",
+                name = GetString(rawget(_G, "SI_BETTERUI_ULTIMATE_DISPLAY_RESET")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
+                func = function()
+                    ResetSharedSettingsGroup(shared, {
+                        { key = "showUltimateNumber", value = true },
+                        { key = "ultimateTextSize", value = 27 },
+                        { key = "ultimateTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
+                    })
+                end,
+                disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+                width = "half",
+            },
+            {
+                type = "description",
+                text = " ",
+                width = "full",
+            },
+            {
+                type = "description",
+                text = " ",
+                width = "half",
+            },
+            {
+                type = "button",
+                name = GetString(rawget(_G, "SI_BETTERUI_RESET_SKILL_BAR")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
+                func = function()
+                    ResetSharedSettingsGroup(shared, {
+                        { key = "cooldownTextSize", value = 27 },
+                        { key = "cooldownTextColor", isColor = true, colorFallback = { 0.86, 0.84, 0.13, 1 } },
+                        { key = "quickslotTextSize", value = 27 },
+                        { key = "quickslotTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
+                        { key = "backBarOpacity", value = 1 },
+                        { key = "hideBackBar", value = false },
+                        { key = "weaponSwapAnimation", value = true },
+                        { key = "showUltimateNumber", value = true },
+                        { key = "ultimateTextSize", value = 27 },
+                        { key = "ultimateTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
+                        { key = "showQuickslotCooldown", value = true },
+                        { key = "showQuickslotCount", value = true },
+                        { key = "showCombatGlow", value = true },
+                        { key = "showCombatIcon", value = true },
+                        { key = "playCombatAudio", value = true },
+                    })
+                end,
+                disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+                width = "half",
+            },
+            {
                 type = "header",
                 name = GetString(rawget(_G, "SI_BETTERUI_COMBAT_INDICATORS_HEADER")),
             },
@@ -319,21 +408,10 @@ function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
             },
             {
                 type = "button",
-                name = GetString(rawget(_G, "SI_BETTERUI_RESET_SKILL_BAR")),
+                name = GetString(rawget(_G, "SI_BETTERUI_COMBAT_INDICATORS_RESET")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
                 func = function()
                     ResetSharedSettingsGroup(shared, {
-                        { key = "cooldownTextSize", value = 27 },
-                        { key = "cooldownTextColor", isColor = true, colorFallback = { 0.86, 0.84, 0.13, 1 } },
-                        { key = "quickslotTextSize", value = 27 },
-                        { key = "quickslotTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                        { key = "backBarOpacity", value = 1 },
-                        { key = "hideBackBar", value = false },
-                        { key = "weaponSwapAnimation", value = true },
-                        { key = "showUltimateNumber", value = true },
-                        { key = "ultimateTextSize", value = 27 },
-                        { key = "ultimateTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                        { key = "showQuickslotCooldown", value = true },
-                        { key = "showQuickslotCount", value = true },
                         { key = "showCombatGlow", value = true },
                         { key = "showCombatIcon", value = true },
                         { key = "playCombatAudio", value = true },
@@ -344,7 +422,7 @@ function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
             },
         },
     }
-    InsertElemPosSectionBeforeTrailingButton(submenu.controls, shared, {
+    InsertElemPosSection(submenu.controls, shared, {
         { label = "Skill Bars", key = "skillBars" },
         { label = "Quickslot", key = "quickslot" },
         { label = "Companion Ult.", key = "companionUltimate" },
@@ -418,6 +496,22 @@ function Submenus.BuildOrbTextSubmenu(orbText, shared)
                 width = "full",
             },
             {
+                type = "button",
+                name = GetString(rawget(_G, "SI_BETTERUI_ORB_VISUALS_RESET")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
+                func = function()
+                    ResetSharedSettingsGroup(shared, {
+                        { key = "orbAnimFlow", value = true },
+                        { key = "hideLeftOrnament", value = false },
+                        { key = "hideRightOrnament", value = false },
+                        { key = "leftOrbSizeScale", value = 1.0 },
+                        { key = "rightOrbSizeScale", value = 1.0 },
+                    })
+                end,
+                disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+                width = "half",
+            },
+            {
                 type = "header",
                 name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER")),
             },
@@ -435,11 +529,6 @@ function Submenus.BuildOrbTextSubmenu(orbText, shared)
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
                 func = function()
                     ResetSharedSettingsGroup(shared, {
-                        { key = "orbAnimFlow", value = true },
-                        { key = "hideLeftOrnament", value = false },
-                        { key = "hideRightOrnament", value = false },
-                        { key = "leftOrbSizeScale", value = 1.0 },
-                        { key = "rightOrbSizeScale", value = 1.0 },
                         { key = "healthTextSize", value = 20 },
                         { key = "healthTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
                         { key = "magickaTextSize", value = 20 },
@@ -455,7 +544,7 @@ function Submenus.BuildOrbTextSubmenu(orbText, shared)
             },
         },
     }
-    InsertElemPosSectionBeforeTrailingButton(submenu.controls, shared, {
+    InsertElemPosSection(submenu.controls, shared, {
         { label = "Health Orb", key = "leftOrb" },
         { label = "Resource Orb", key = "rightOrb" },
     }, { "leftOrb", "rightOrb" })
@@ -508,13 +597,13 @@ function Submenus.BuildBarSubmenus(bars, shared)
                 disabled = function() local s = GetSharedSettings(shared); return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and s and s.mountStaminaBarEnabled == true) end, width = "half" },
         },
     }
-    InsertElemPosSectionBeforeTrailingButton(xpSubmenu.controls, shared, {
+    InsertElemPosSection(xpSubmenu.controls, shared, {
         { label = "XP Bar", key = "xpBar" },
     }, { "xpBar" })
-    InsertElemPosSectionBeforeTrailingButton(castSubmenu.controls, shared, {
+    InsertElemPosSection(castSubmenu.controls, shared, {
         { label = "Cast Bar", key = "castBar" },
     }, { "castBar" })
-    InsertElemPosSectionBeforeTrailingButton(mountSubmenu.controls, shared, {
+    InsertElemPosSection(mountSubmenu.controls, shared, {
         { label = "Mount Bar", key = "mountBar" },
     }, { "mountBar" })
     return xpSubmenu, castSubmenu, mountSubmenu
@@ -546,24 +635,6 @@ end
 local function SortSubmenuHeaderSectionsAlphabetically(controls)
     if type(controls) ~= "table" then
         return
-    end
-
-    local trailingButtons = {}
-    local positionResetName = GetString(rawget(_G, "SI_BETTERUI_ROF_ELEM_RESET_POSITION"))
-    local function IsPositionResetButton(control)
-        return type(control) == "table"
-            and control.type == "button"
-            and type(control.name) == "string"
-            and control.name:find(positionResetName, 1, true) ~= nil
-    end
-    while #controls > 0 do
-        local lastControl = controls[#controls]
-        if type(lastControl) == "table" and lastControl.type == "button" and not IsPositionResetButton(lastControl) then
-            table.insert(trailingButtons, 1, lastControl)
-            table.remove(controls, #controls)
-        else
-            break
-        end
     end
 
     local sections = {}
@@ -604,10 +675,6 @@ local function SortSubmenuHeaderSectionsAlphabetically(controls)
             table.insert(rebuilt, control)
         end
     end
-    for _, control in ipairs(trailingButtons) do
-        table.insert(rebuilt, control)
-    end
-
     for i = 1, #controls do
         controls[i] = nil
     end

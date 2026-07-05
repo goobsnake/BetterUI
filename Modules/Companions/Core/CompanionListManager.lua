@@ -394,8 +394,9 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
         return ComputeCategoryTitle(self)
     end
     self.companionHeaderData.tabBarData = { parent = self, onNext = function(_, successful) if successful then self:OnTabNext() end end, onPrev = function(_, successful) if successful then self:OnTabPrev() end end }
+    local isCarousel = (not Companions.GetSetting) or (Companions.GetSetting("enableCarousel") ~= false)
     self.companionHeaderData.carouselConfig = {
-        enabled = true,
+        enabled = isCarousel,
         startOffset = 705,
         verticalOffset = -1,
     }
@@ -473,7 +474,11 @@ function BETTERUI.Companions.Class:CycleCategory(delta)
     local previousTarget = self.list and self.list.GetTargetData and self.list:GetTargetData() or nil
     local previousDs = previousTarget and (previousTarget.dataSource or previousTarget) or nil
     local nextIndex = previousIndex + delta
-    if nextIndex > #categories then
+    if Companions.GetSetting and Companions.GetSetting("enableCarousel") == false then
+        if nextIndex < 1 or nextIndex > #categories then
+            return
+        end
+    elseif nextIndex > #categories then
         nextIndex = 1
     elseif nextIndex < 1 then
         nextIndex = #categories

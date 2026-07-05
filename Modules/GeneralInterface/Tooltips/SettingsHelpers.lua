@@ -227,6 +227,9 @@ local function ResetGeneralInterfaceGeneralSettings()
     TraceGeneralSetting("general", "reset_begin", { feature = "settings-reset", resetName = "general", fn = "ResetGeneralInterfaceGeneralSettings" })
     SettingsApi.ResetModuleSettingsByGroup("GeneralInterface", "general")
     SettingsApi.ResetModuleSettingsByGroup("CIM", "generalInterfaceGeneral")
+    if type(BETTERUI.SavedVars) == "table" then
+        BETTERUI.SavedVars.useAccountWide = (BETTERUI.DefaultSettings and BETTERUI.DefaultSettings.useAccountWide) == true
+    end
 
     local generalInterfaceSettings = GetModuleSettings("GeneralInterface")
     local generalInterface = BETTERUI.GeneralInterface
@@ -235,7 +238,7 @@ local function ResetGeneralInterfaceGeneralSettings()
             (generalInterfaceSettings and generalInterfaceSettings.chatHistory) or 200
         )
     end
-    TraceGeneralSetting("general", "reset_end", { feature = "settings-reset", resetName = "general", fn = "ResetGeneralInterfaceGeneralSettings", chatHistory = generalInterfaceSettings and generalInterfaceSettings.chatHistory })
+    TraceGeneralSetting("general", "reset_end", { feature = "settings-reset", resetName = "general", fn = "ResetGeneralInterfaceGeneralSettings", chatHistory = generalInterfaceSettings and generalInterfaceSettings.chatHistory, useAccountWide = BETTERUI.SavedVars and BETTERUI.SavedVars.useAccountWide })
 end
 
 --- Resets the market integration settings to defaults.

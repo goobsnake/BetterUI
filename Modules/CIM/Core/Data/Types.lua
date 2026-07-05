@@ -336,6 +336,7 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 
 ---@class BetterUICompanionsSettings: BetterUISharedFontSettings
 ---@field enableCompanionEquipment boolean|nil
+---@field enableCarousel boolean|nil
 ---@field quickDestroy boolean|nil
 ---@field batchDestroy boolean|nil
 ---@field bindOnEquipProtection boolean|nil
@@ -366,7 +367,6 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field font string|nil
 ---@field style number|string|nil
 ---@field size number|nil
----@field nameplatePositionsUnlocked boolean|nil
 ---@field moveCompassFrame boolean|nil
 ---@field compassFrameOffsetX number|nil
 ---@field compassFrameOffsetY number|nil
@@ -513,6 +513,7 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@alias BetterUICompanionsSettingKey
 ---| BetterUISharedFontSettingKey
 ---| "enableCompanionEquipment"
+---| "enableCarousel"
 ---| "quickDestroy"
 ---| "batchDestroy"
 ---| "bindOnEquipProtection"
@@ -549,7 +550,6 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---| "font"
 ---| "style"
 ---| "size"
----| "nameplatePositionsUnlocked"
 ---| "moveCompassFrame"
 ---| "compassFrameOffsetX"
 ---| "compassFrameOffsetY"

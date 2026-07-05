@@ -57,6 +57,26 @@ assert_not_contains(
     "self.currentCategoryIndex = index",
     "Companions GetCurrentCategory no longer mutates currentCategoryIndex"
 )
+assert_contains(
+    companionSource,
+    "local isCarousel = (not Companions.GetSetting) or (Companions.GetSetting(\"enableCarousel\") ~= false)",
+    "Companions category header reads the carousel setting"
+)
+assert_contains(
+    companionSource,
+    "enabled = isCarousel",
+    "Companions category header passes the carousel setting into GenericHeader"
+)
+assert_contains(
+    companionSource,
+    "if Companions.GetSetting and Companions.GetSetting(\"enableCarousel\") == false then",
+    "Companions category cycling branches for non-carousel mode"
+)
+assert_contains(
+    companionSource,
+    "if nextIndex < 1 or nextIndex > #categories then\n            return",
+    "Companions non-carousel category cycling stops at the edges"
+)
 
 assert_contains(
     vendorSource,

@@ -139,7 +139,6 @@ print("\nTest: Nameplates defaults")
 local np = BETTERUI.Defaults.Modules.Nameplates
 assert_false(np.m_enabled, "Nameplates.m_enabled defaults false")
 assert_equal(16, np.size, "Nameplates.size defaults to 16")
-assert_false(np.nameplatePositionsUnlocked, "Nameplates position movement defaults locked")
 assert_false(np.moveCompassFrame, "Nameplates compass mover defaults disabled")
 assert_equal(0, np.compassFrameOffsetX, "Nameplates compass X offset defaults zero")
 assert_equal(0, np.compassFrameOffsetY, "Nameplates compass Y offset defaults zero")
@@ -165,10 +164,11 @@ assert_nil(next(th.searchPresets), "TradingHouse.searchPresets starts empty")
 print("\nTest: Companions defaults")
 local comp = BETTERUI.Defaults.Modules.Companions
 assert_true(comp.enableCompanionEquipment, "Companions.enableCompanionEquipment defaults true")
+assert_true(comp.enableCarousel, "Companions.enableCarousel defaults true")
 assert_false(comp.quickDestroy, "Companions.quickDestroy defaults false")
-assert_true(comp.batchDestroy, "Companions.batchDestroy defaults true")
+assert_false(comp.batchDestroy, "Companions.batchDestroy defaults false")
 assert_true(comp.bindOnEquipProtection, "Companions.bindOnEquipProtection defaults true")
-assert_true(comp.enableCompanionJunk, "Companions.enableCompanionJunk defaults true")
+assert_false(comp.enableCompanionJunk, "Companions.enableCompanionJunk defaults false")
 
 -- ============================================================================
 -- TESTS: Utility Functions

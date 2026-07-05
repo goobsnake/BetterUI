@@ -24,16 +24,20 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
         if instance.RefreshCompanionFooter then
             instance:RefreshCompanionFooter()
         end
+        if instance.RebuildCategoryHeader then
+            instance:RebuildCategoryHeader()
+        end
     end
 
     local function ResetCompanionGeneralSettings()
         if not (BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup
                 and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Companions", "general")) then
             Companions.SetSetting("enableCompanionEquipment", true)
+            Companions.SetSetting("enableCarousel", true)
             Companions.SetSetting("quickDestroy", false)
-            Companions.SetSetting("batchDestroy", true)
+            Companions.SetSetting("batchDestroy", false)
             Companions.SetSetting("bindOnEquipProtection", true)
-            Companions.SetSetting("enableCompanionJunk", true)
+            Companions.SetSetting("enableCompanionJunk", false)
         end
         RefreshCompanionWindow()
     end
@@ -63,13 +67,17 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
             requiresReload = true,
         },
         {
-            type = "button",
-            name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET_TOOLTIP")),
-            func = function()
-                ResetCompanionGeneralSettings()
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_ENABLE_CAROUSEL_NAV")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP")),
+            getFunc = function()
+                return Companions.GetSetting("enableCarousel") ~= false
             end,
-            width = "half",
+            setFunc = function(value)
+                Companions.SetSetting("enableCarousel", value)
+                RefreshCompanionWindow()
+            end,
+            width = "full",
         },
         {
             type = "checkbox",
@@ -88,7 +96,7 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
             name = GetString(rawget(_G, "SI_BETTERUI_INV_BATCH_DESTROY") or "Batch Destroy"),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_BATCH_DESTROY_TOOLTIP") or "Allow batch-destroying selected companion items."),
             getFunc = function()
-                return Companions.GetSetting("batchDestroy") ~= false
+                return Companions.GetSetting("batchDestroy") == true
             end,
             setFunc = function(value)
                 Companions.SetSetting("batchDestroy", value)
@@ -100,7 +108,7 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
             name = GetString(rawget(_G, "SI_BETTERUI_INV_BOE_PROTECTION") or "Bind-on-Equip Protection"),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_BOE_PROTECTION_TOOLTIP") or "Show a confirmation dialog before equipping tradable companion items."),
             getFunc = function()
-                return Companions.GetSetting("bindOnEquipProtection") ~= false
+                return Companions.GetSetting("bindOnEquipProtection") == true
             end,
             setFunc = function(value)
                 Companions.SetSetting("bindOnEquipProtection", value)
@@ -112,13 +120,22 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
             name = GetString(rawget(_G, "SI_BETTERUI_INV_COMPANION_JUNK") or "Enable Companion Junk"),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_COMPANION_JUNK_TOOLTIP") or "Allow marking companion items as junk."),
             getFunc = function()
-                return Companions.GetSetting("enableCompanionJunk") ~= false
+                return Companions.GetSetting("enableCompanionJunk") == true
             end,
             setFunc = function(value)
                 Companions.SetSetting("enableCompanionJunk", value)
                 RefreshCompanionWindow()
             end,
             width = "full",
+        },
+        {
+            type = "button",
+            name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET_TOOLTIP")),
+            func = function()
+                ResetCompanionGeneralSettings()
+            end,
+            width = "half",
         },
     }
 

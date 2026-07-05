@@ -218,6 +218,53 @@ local function RunSettingsMigrations(settings)
         end
     end
 
+    -- Migration 9: Companion destructive/default-on settings changed for new
+    -- installs; preserve old nil-as-enabled behavior for existing profiles.
+    do
+        if type(settings.Migrations) ~= "table" then
+            settings.Migrations = {}
+        end
+        if settings.Migrations.CompanionGeneralDefaults20260705 ~= true then
+            if settings.firstInstall ~= true then
+                local companionSettings = settings.Modules["Companions"]
+                if type(companionSettings) ~= "table" then
+                    companionSettings = {}
+                    settings.Modules["Companions"] = companionSettings
+                end
+                if companionSettings.batchDestroy == nil then
+                    companionSettings.batchDestroy = true
+                end
+                if companionSettings.enableCompanionJunk == nil then
+                    companionSettings.enableCompanionJunk = true
+                end
+            end
+            settings.Migrations.CompanionGeneralDefaults20260705 = true
+        end
+    end
+
+    -- Migration 10: The retired global Nameplates position unlock became
+    -- per-element Move toggles. Preserve legacy users by enabling each mover
+    -- once, then remove the orphaned global key.
+    do
+        if type(settings.Migrations) ~= "table" then
+            settings.Migrations = {}
+        end
+        if settings.Migrations.NameplatePositionUnlock20260705 ~= true then
+            local nameplateSettings = settings.Modules["Nameplates"]
+            if type(nameplateSettings) == "table" and nameplateSettings.nameplatePositionsUnlocked == true then
+                nameplateSettings.moveCompassFrame = true
+                nameplateSettings.moveTargetBar = true
+                nameplateSettings.movePlayerInteract = true
+                nameplateSettings.moveQuestTracker = true
+                nameplateSettings.moveGroupFrames = true
+            end
+            if type(nameplateSettings) == "table" then
+                nameplateSettings.nameplatePositionsUnlocked = nil
+            end
+            settings.Migrations.NameplatePositionUnlock20260705 = true
+        end
+    end
+
     if BETTERUI.Log then
         local modulesCount = 0
         for _ in pairs(settings.Modules) do modulesCount = modulesCount + 1 end

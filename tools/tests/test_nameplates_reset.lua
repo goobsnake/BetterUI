@@ -38,6 +38,14 @@ function GetString(value)
     return tostring(value)
 end
 
+SI_BETTERUI_NAMEPLATES_RESET_COMPASS_POSITION = "Reset Compass Position"
+SI_BETTERUI_NAMEPLATES_RESET_TARGET_POSITION = "Reset Target Position"
+SI_BETTERUI_NAMEPLATES_RESET_INTERACT_POSITION = "Reset Interact Position"
+SI_BETTERUI_NAMEPLATES_RESET_QUEST_TRACKER_POSITION = "Reset Quest Position"
+SI_BETTERUI_NAMEPLATES_RESET_GROUP_POSITION = "Reset Group Position"
+SI_BETTERUI_NAMEPLATES_RESET = "Reset Nameplates"
+SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP = "Reset Enhanced Nameplates on/off, font, style, and size to defaults."
+
 function GetCVar(name)
     if name == "language.2" then
         return currentLang
@@ -191,10 +199,17 @@ local options = BETTERUI.Nameplates.GetSettingsOptions()
 -- exposed for the General composer via GetPositionSettingsOptions().
 assertEqual(6, #options, "Nameplate settings keep text controls and the appearance reset button")
 local positionOptions = BETTERUI.Nameplates.GetPositionSettingsOptions()
-assertEqual(27, #positionOptions, "Position movers are exposed for the General tab composer without the reticle prompt")
+assertEqual(28, #positionOptions, "Position movers keep the reset-all button one line below the final element reset")
 
 local enabledOption = options[2]
 local sizeOption = options[5]
+local function HasPositionOption(optionKey)
+    for _, option in ipairs(positionOptions) do
+        if option.key == optionKey then return true end
+    end
+    return false
+end
+
 local function FindPositionOption(optionKey)
     for _, option in ipairs(positionOptions) do
         if option.key == optionKey then return option end
@@ -202,7 +217,8 @@ local function FindPositionOption(optionKey)
     error("position option not found: " .. tostring(optionKey))
 end
 
-local unlockPositions = FindPositionOption("nameplatePositionsUnlocked")
+assertEqual(false, HasPositionOption("nameplatePositionsUnlocked"),
+    "Position marker visibility is gated by each element Move toggle instead of a separate checkbox")
 local moveCompass = FindPositionOption("moveCompassFrame")
 local compassX = FindPositionOption("compassFrameOffsetX")
 local moveTargetBar = FindPositionOption("moveTargetBar")
@@ -215,20 +231,44 @@ local moveGroupFrames = FindPositionOption("moveGroupFrames")
 local groupFramesY = FindPositionOption("groupFramesOffsetY")
 local compassScale = FindPositionOption("compassFrameScale")
 local resetPositionsButton = FindPositionOption("resetPositions")
+assertEqual(false, moveCompass.default, "Compass mover defaults off for first install")
+assertEqual(false, moveTargetBar.default, "Target/NPC bar mover defaults off for first install")
+assertEqual(false, movePlayerInteract.default, "Player-interact mover defaults off for first install")
+assertEqual(false, moveQuestTracker.default, "Quest mover defaults off for first install")
+assertEqual(false, moveGroupFrames.default, "Companion/group mover defaults off for first install")
+assertEqual("Reset Compass Position", FindPositionOption("resetCompassFrame").name,
+    "Compass reset label names the element")
+assertEqual("Reset Target Position", FindPositionOption("resetTargetBar").name,
+    "Target reset label names the element")
+assertEqual("Reset Interact Position", FindPositionOption("resetPlayerInteract").name,
+    "Interact reset label names the element")
+assertEqual("Reset Quest Position", FindPositionOption("resetQuestTracker").name,
+    "Quest tracker reset label names the element")
+assertEqual("Reset Group Position", FindPositionOption("resetGroupFrames").name,
+    "Group reset label names the element")
+assertEqual("description", positionOptions[#positionOptions - 2].type,
+    "Reset-all button is preceded by a full-width blank spacer row")
+assertEqual("full", positionOptions[#positionOptions - 2].width,
+    "Reset-all spacer row forces the button down to a new row")
+assertEqual("description", positionOptions[#positionOptions - 1].type,
+    "Reset-all button is preceded by a blank half-width spacer")
+assertEqual("half", positionOptions[#positionOptions - 1].width,
+    "Reset-all left spacer keeps the button on the right side")
+assertEqual("resetPositions", positionOptions[#positionOptions].key,
+    "Reset-all button is placed after the spacer rows")
 local resetButton = options[6]
+assertEqual("Reset Nameplates", resetButton.name, "Nameplates reset button has the merged reset label")
+assertEqual(false, resetButton.disabled(), "Nameplates reset remains available when Enhanced Nameplates is off")
 
 enabledOption.setFunc(true)
 assertEqual(true, BETTERUI.Settings.Modules.Nameplates.m_enabled, "Enabled checkbox updates saved settings")
 assertEqual(false, sizeOption.disabled(), "Size slider stays enabled while nameplates are enabled")
-assertEqual(false, unlockPositions.disabled(), "Position unlock is available while nameplates are enabled")
-unlockPositions.setFunc(true)
 moveCompass.setFunc(true)
 compassX.setFunc(75)
 moveTargetBar.setFunc(true)
 targetBarY.setFunc(42)
 movePlayerInteract.setFunc(true)
 playerInteractX.setFunc(-18)
-assertEqual(true, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked, "Unlock checkbox updates saved settings")
 assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Compass mover checkbox updates saved settings")
 assertEqual(75, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetX, "Compass X slider updates saved settings")
 assertEqual(nil, BETTERUI.Settings.Modules.Nameplates.moveReticlePrompt, "Reticle mover checkbox is no longer seeded by position settings")
@@ -250,14 +290,27 @@ assertEqual(1.25, BETTERUI.Settings.Modules.Nameplates.compassFrameScale, "Compa
 FindPositionOption("resetCompassFrame").func()
 assertEqual(0, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetX, "Element reset clears compass X")
 assertEqual(1, BETTERUI.Settings.Modules.Nameplates.compassFrameScale, "Element reset restores compass scale")
-assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Element reset leaves the compass Move toggle alone")
+assertEqual(false, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Element reset disables the compass Move toggle")
 assertEqual(42, BETTERUI.Settings.Modules.Nameplates.targetBarOffsetY, "Element reset leaves other elements untouched")
+FindPositionOption("resetTargetBar").func()
+assertEqual(false, BETTERUI.Settings.Modules.Nameplates.moveTargetBar, "Element reset disables the target/NPC bar Move toggle")
+assertEqual(0, BETTERUI.Settings.Modules.Nameplates.targetBarOffsetY, "Element reset clears target/NPC bar Y")
+FindPositionOption("resetPlayerInteract").func()
+assertEqual(false, BETTERUI.Settings.Modules.Nameplates.movePlayerInteract, "Element reset disables the player-interact Move toggle")
+assertEqual(0, BETTERUI.Settings.Modules.Nameplates.playerInteractOffsetX, "Element reset clears player-interact X")
+FindPositionOption("resetQuestTracker").func()
+assertEqual(false, BETTERUI.Settings.Modules.Nameplates.moveQuestTracker, "Element reset disables the quest Move toggle")
+assertEqual(0, BETTERUI.Settings.Modules.Nameplates.questTrackerOffsetX, "Element reset clears quest X")
+FindPositionOption("resetGroupFrames").func()
+assertEqual(false, BETTERUI.Settings.Modules.Nameplates.moveGroupFrames, "Element reset disables the companion/group Move toggle")
+assertEqual(0, BETTERUI.Settings.Modules.Nameplates.groupFramesOffsetY, "Element reset clears companion/group Y")
 
 enabledOption.setFunc(false)
 assertEqual(false, BETTERUI.Settings.Modules.Nameplates.m_enabled, "Enabled checkbox can disable nameplates")
 assertEqual(true, sizeOption.disabled(), "Size slider disables itself when nameplates are disabled")
-assertEqual(false, unlockPositions.disabled(), "General HUD position unlock remains available when Enhanced Nameplates is disabled")
 assertEqual(false, moveCompass.disabled(), "Compass mover toggle remains available when Enhanced Nameplates is disabled")
+assertEqual(true, compassX.disabled(), "Position sliders disable when their HUD element movement is reset off")
+moveCompass.setFunc(true)
 assertEqual(false, compassX.disabled(), "Position sliders remain enabled when their HUD element is enabled")
 
 BETTERUI.Settings.Modules.Nameplates.font = "EsoUI/Common/Fonts/TrajanPro-Regular.otf"
@@ -265,7 +318,8 @@ BETTERUI.Settings.Modules.Nameplates.style = FONT_STYLE_NORMAL
 BETTERUI.Settings.Modules.Nameplates.size = 64
 enabledOption.setFunc(true)
 resetPositionsButton.func()
-assertEqual(false, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked, "Position reset relocks movement")
+assertEqual(nil, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked,
+    "Position reset does not recreate the retired global position unlock")
 assertEqual(false, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Position reset disables compass movement")
 assertEqual(0, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetX, "Position reset clears compass X")
 assertEqual(false, BETTERUI.Settings.Modules.Nameplates.moveTargetBar, "Position reset disables target/NPC bar movement")
@@ -273,7 +327,6 @@ assertEqual(0, BETTERUI.Settings.Modules.Nameplates.targetBarOffsetY, "Position 
 assertEqual(false, BETTERUI.Settings.Modules.Nameplates.movePlayerInteract, "Position reset disables player-interact movement")
 assertEqual(0, BETTERUI.Settings.Modules.Nameplates.playerInteractOffsetX, "Position reset clears player-interact X")
 assertEqual(1, BETTERUI.Settings.Modules.Nameplates.compassFrameScale, "Position reset restores the compass scale")
-BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked = true
 BETTERUI.Settings.Modules.Nameplates.moveCompassFrame = true
 BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetY = 88
 BETTERUI.Settings.Modules.Nameplates.moveTargetBar = true
@@ -282,22 +335,25 @@ BETTERUI.Settings.Modules.Nameplates.movePlayerInteract = true
 BETTERUI.Settings.Modules.Nameplates.playerInteractOffsetY = -55
 applyCurrentSettingsCalls = 0
 resetButton.func()
+assertEqual(false, BETTERUI.Settings.Modules.Nameplates.m_enabled, "Reset restores the Enhanced Nameplates toggle default")
 assertEqual(BETTERUI.Nameplates.DEFAULTS.font, BETTERUI.Settings.Modules.Nameplates.font, "Reset restores the default font")
 assertEqual(BETTERUI.Nameplates.DEFAULTS.style, BETTERUI.Settings.Modules.Nameplates.style, "Reset restores the default style")
 assertEqual(BETTERUI.Nameplates.DEFAULTS.size, BETTERUI.Settings.Modules.Nameplates.size, "Reset restores the default size")
--- Position keys belong to the General-tab movers now: the appearance reset
+-- Position keys belong to the General-tab movers now: the Nameplates reset
 -- must NOT touch them (the dedicated resetPositions button, asserted above,
--- owns that), so cross-tab tuning survives an appearance reset.
-assertEqual(true, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked, "Appearance reset leaves position lock alone")
-assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Appearance reset leaves compass mover alone")
-assertEqual(88, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetY, "Appearance reset leaves compass Y offset alone")
-assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveTargetBar, "Appearance reset leaves target/NPC bar mover alone")
-assertEqual(33, BETTERUI.Settings.Modules.Nameplates.targetBarOffsetX, "Appearance reset leaves target/NPC bar X offset alone")
-assertEqual(true, BETTERUI.Settings.Modules.Nameplates.movePlayerInteract, "Appearance reset leaves player-interact mover alone")
-assertEqual(-55, BETTERUI.Settings.Modules.Nameplates.playerInteractOffsetY, "Appearance reset leaves player-interact Y offset alone")
-assertEqual(1, applyCurrentSettingsCalls, "Reset reapplies the current nameplate settings")
+-- owns that), so cross-tab tuning survives a Nameplates reset.
+assertEqual(nil, BETTERUI.Settings.Modules.Nameplates.nameplatePositionsUnlocked,
+    "Nameplates reset leaves the retired global position unlock absent")
+assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveCompassFrame, "Nameplates reset leaves compass mover alone")
+assertEqual(88, BETTERUI.Settings.Modules.Nameplates.compassFrameOffsetY, "Nameplates reset leaves compass Y offset alone")
+assertEqual(true, BETTERUI.Settings.Modules.Nameplates.moveTargetBar, "Nameplates reset leaves target/NPC bar mover alone")
+assertEqual(33, BETTERUI.Settings.Modules.Nameplates.targetBarOffsetX, "Nameplates reset leaves target/NPC bar X offset alone")
+assertEqual(true, BETTERUI.Settings.Modules.Nameplates.movePlayerInteract, "Nameplates reset leaves player-interact mover alone")
+assertEqual(-55, BETTERUI.Settings.Modules.Nameplates.playerInteractOffsetY, "Nameplates reset leaves player-interact Y offset alone")
+assertEqual(0, applyCurrentSettingsCalls, "Reset routes through the nameplate enabled-change path")
 
 print("\nTest: Lifecycle apply path migrates legacy string style settings before getters read them")
+BETTERUI.Settings.Modules.Nameplates.m_enabled = true
 BETTERUI.Settings.Modules.Nameplates.style = "outline"
 realApplyCurrentSettings()
 assertEqual(FONT_STYLE_OUTLINE, BETTERUI.Settings.Modules.Nameplates.style,

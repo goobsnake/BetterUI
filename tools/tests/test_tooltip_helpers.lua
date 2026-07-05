@@ -941,13 +941,19 @@ local mmIntegrationToggle = requireOptionByKey(
     "checkbox",
     "MM integration toggle is exposed by a stable key"
 )
+local chatHistoryOption = requireOptionByKey(
+    settingsOptions,
+    "chatHistory",
+    "editbox",
+    "Chat history editbox is exposed by a stable key"
+)
 
 assertEqual(true, attIntegrationToggle.getFunc(), "ATT toggle resolves availability through metadata dependencies")
 assertEqual(false, attIntegrationToggle.disabled(), "ATT toggle remains enabled when metadata dependency addon exists")
 assertEqual(false, mmIntegrationToggle.getFunc(), "MM toggle reports false when metadata dependency addon is missing")
 assertEqual(true, mmIntegrationToggle.disabled(), "MM toggle disables when metadata dependency addon is missing")
 
-settingsOptions[1].setFunc("6000")
+chatHistoryOption.setFunc("6000")
 assertEqual(5000, BETTERUI.Settings.Modules.GeneralInterface.chatHistory, "Chat history editbox clamps to the supported maximum")
 assertEqual(5000, maxHistoryLines, "Chat history editbox updates the live chat buffer")
 

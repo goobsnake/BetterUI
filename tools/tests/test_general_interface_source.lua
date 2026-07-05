@@ -21,10 +21,13 @@ print("test_general_interface_source")
 
 local moduleSource = read_file("Modules/GeneralInterface/Module.lua")
 local setupSource = read_file("Modules/GeneralInterface/Setup.lua")
+local generalSettingsSource = read_file("Modules/GeneralInterface/Tooltips/Settings.lua")
+local generalSettingsHelpersSource = read_file("Modules/GeneralInterface/Tooltips/SettingsHelpers.lua")
 local tooltipsSource = read_file("Modules/GeneralInterface/Tooltips/Tooltips.lua")
 local nameplatesSource = read_file("Modules/Nameplates/Nameplates.lua")
 local nameplateSettingsSource = read_file("Modules/Nameplates/Settings.lua")
 local bootstrapSource = read_file("BetterUI.lua")
+local englishLocale = read_file("lang/en.lua")
 local contributingGuide = read_file("docs/guides/contributing-guide.md")
 local architectureDoc = read_file("docs/reference/architecture.md")
 
@@ -109,6 +112,43 @@ assert_not_contains(bootstrapSource, "BETTERUI.GeneralInterface.Nameplates = BET
     "Bootstrap no longer publishes GeneralInterface.Nameplates compatibility aliases")
 assert_not_contains(bootstrapSource, 'depends = "GeneralInterface"',
     "Bootstrap no longer hard-couples Nameplates setup to GeneralInterface")
+assert_not_contains(bootstrapSource, "SI_BETTERUI_MASTER_SETTINGS_HEADER",
+    "Bootstrap no longer renders a separate General Settings header before the merged General section")
+assert_not_contains(bootstrapSource, "SI_BETTERUI_ENABLED_MODULE_SETTINGS_DESC",
+    "Bootstrap no longer renders the retired master General description")
+local globalSettingsIndex = assert(generalSettingsSource:find("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS", 1, true))
+local chatHistoryIndex = assert(generalSettingsSource:find("SI_BETTERUI_CHAT_HISTORY", 1, true))
+if chatHistoryIndex < globalSettingsIndex then
+    error("Use Global Settings must be authored before Chat History in the General section")
+end
+assert_contains(generalSettingsSource, "sortAlwaysFirst = true",
+    "Use Global Settings is pinned above the alphabetized General controls")
+assert_contains(generalSettingsHelpersSource, "BETTERUI.SavedVars.useAccountWide = (BETTERUI.DefaultSettings and BETTERUI.DefaultSettings.useAccountWide) == true",
+    "General reset restores the Use Global Settings checkbox to its default")
+assert_not_contains(englishLocale, "Tooltip content and market integrations.",
+    "Enhanced Tooltips description no longer claims ownership of market integration settings")
+assert_contains(englishLocale, "Customize enhanced tooltip content, style and trait details, and font size.",
+    "Enhanced Tooltips description focuses on tooltip-specific behavior")
+assert_contains(generalSettingsSource, "local function BuildEnhancedNameplatesControls()",
+    "General Interface settings import the Nameplates settings controls for a merged dropdown")
+assert_contains(generalSettingsSource, 'key = "enhancedNameplates"',
+    "General Interface settings define an Enhanced Nameplates submenu")
+assert_contains(generalSettingsSource, 'name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_HEADER"))',
+    "Enhanced Nameplates submenu uses the localized Enhanced Nameplates header")
+local enhancedNameplatesIndex = assert(generalSettingsSource:find('key = "enhancedNameplates"', 1, true))
+local enhancedTooltipsIndex = assert(generalSettingsSource:find('key = "enhancedTooltips"', 1, true))
+if enhancedTooltipsIndex < enhancedNameplatesIndex then
+    error("Enhanced Nameplates submenu must be authored before Enhanced Tooltips")
+end
+local nameplateOptionsStart = assert(nameplateSettingsSource:find("function Nameplates.GetSettingsOptions()", 1, true))
+local nameplateDescriptionIndex = assert(nameplateSettingsSource:find("SI_BETTERUI_NAMEPLATES_DESC", nameplateOptionsStart, true))
+local nameplateEnableIndex = assert(nameplateSettingsSource:find("SI_BETTERUI_NAMEPLATES_ENABLED", nameplateOptionsStart, true))
+if nameplateEnableIndex < nameplateDescriptionIndex then
+    error("Enhanced Nameplates description must be the first control in the dropdown")
+end
+local nameplateOpeningControls = nameplateSettingsSource:sub(nameplateOptionsStart, nameplateEnableIndex)
+assert_not_contains(nameplateOpeningControls, 'type = "header"',
+    "Enhanced Nameplates dropdown opens with its description instead of a nested General header")
 assert_contains(contributingGuide, "`settings-owner`: one canonical root file owns both runtime and settings seams.",
     "Contributing guide documents that settings-owner modules keep a single canonical root owner")
 assert_not_contains(contributingGuide, "`settings-owner`: `Module.lua` is the canonical root and also owns the package's settings surface.",

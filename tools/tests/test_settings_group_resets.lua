@@ -106,19 +106,21 @@ assertEqual(true, BETTERUI.Settings.Modules.Vendor.abbreviateVendorCurrency, "Ve
 print("\nTest: Companions general reset restores equipment safety settings")
 BETTERUI.Settings.Modules.Companions = {
     enableCompanionEquipment = false,
+    enableCarousel = false,
     quickDestroy = true,
-    batchDestroy = false,
+    batchDestroy = true,
     bindOnEquipProtection = false,
-    enableCompanionJunk = false,
+    enableCompanionJunk = true,
 }
 
 BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Companions", "general")
 
 assertEqual(true, BETTERUI.Settings.Modules.Companions.enableCompanionEquipment, "Companions enableCompanionEquipment reset")
+assertEqual(true, BETTERUI.Settings.Modules.Companions.enableCarousel, "Companions enableCarousel reset")
 assertEqual(false, BETTERUI.Settings.Modules.Companions.quickDestroy, "Companions quickDestroy reset")
-assertEqual(true, BETTERUI.Settings.Modules.Companions.batchDestroy, "Companions batchDestroy reset")
+assertEqual(false, BETTERUI.Settings.Modules.Companions.batchDestroy, "Companions batchDestroy reset")
 assertEqual(true, BETTERUI.Settings.Modules.Companions.bindOnEquipProtection, "Companions bindOnEquipProtection reset")
-assertEqual(true, BETTERUI.Settings.Modules.Companions.enableCompanionJunk, "Companions enableCompanionJunk reset")
+assertEqual(false, BETTERUI.Settings.Modules.Companions.enableCompanionJunk, "Companions enableCompanionJunk reset")
 
 print("\nTest: GeneralInterface enhanced tooltip reset restores migrated tooltip defaults")
 BETTERUI.Settings.Modules.GeneralInterface = {

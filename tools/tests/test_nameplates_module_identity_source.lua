@@ -54,12 +54,14 @@ assert_contains(bootstrap, "BETTERUI.Nameplates = BETTERUI.Nameplates or {}",
     "Bootstrap initializes Nameplates as a first-class module namespace")
 assert_not_contains(bootstrap, "BETTERUI.GeneralInterface.Nameplates = BETTERUI.Nameplates",
     "Bootstrap no longer publishes a GeneralInterface.Nameplates compatibility alias")
-assert_contains(bootstrap, 'moduleName = "Nameplates"',
-    "Master module toggles expose Nameplates as a first-class module toggle")
+assert_not_contains(bootstrap, '{ moduleName = "Nameplates", nameStringId = "SI_BETTERUI_NAMEPLATES_ENABLED"',
+    "Nameplates no longer renders as a separate module tab toggle")
 assert_contains(bootstrap, 'loadOverride = function()',
     "The Nameplates registry entry declares a positioning load override")
-assert_contains(bootstrap, 'settings.nameplatePositionsUnlocked == true',
-    "The Nameplates load override keys off the drag-handle unlock toggle")
+assert_not_contains(bootstrap, 'settings.nameplatePositionsUnlocked == true',
+    "The Nameplates load override no longer keys off a separate drag-handle unlock toggle")
+assert_contains(bootstrap, 'settings.moveCompassFrame == true',
+    "The Nameplates load override keys off the compass mover toggle")
 assert_contains(bootstrap, 'settings.movePlayerInteract == true',
     "The Nameplates load override keys off the player-interact mover toggle")
 assert_contains(bootstrap, 'BETTERUI.GetModuleEnabled(entry.name) or IsModuleLoadOverrideActive(entry)',

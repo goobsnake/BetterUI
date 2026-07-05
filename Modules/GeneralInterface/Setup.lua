@@ -564,12 +564,6 @@ function GeneralInterface.Setup()
 	TraceGeneralInterface("general_interface.setup", "begin", { fn = "Setup" })
 	BETTERUI.CIM.RegisterModulePanelWithLogging(GeneralInterface, "GeneralInterface", "General", "General Interface")
 
-	-- Only apply hooks/logic when the GeneralInterface module toggle is enabled.
-	if not BETTERUI.GetModuleEnabled("GeneralInterface") then
-		TraceGeneralInterface("general_interface.setup", "skipped", { fn = "Setup", reason = "moduleDisabled" })
-		return
-	end
-
 	-- Do not override ZO_IsIngameUI here.
 	-- Replacing shared global helpers can taint protected gamepad callstacks.
 

@@ -33,9 +33,10 @@ local tradingHouseState = {
 
 local companionsState = {
     enableCompanionEquipment = false,
+    enableCarousel = true,
     quickDestroy = true,
     batchDestroy = false,
-    bindOnEquipProtection = false,
+    bindOnEquipProtection = true,
     enableCompanionJunk = false,
 }
 
@@ -122,6 +123,7 @@ local companionsInstance = {
     sceneShowing = true,
     refreshListCount = 0,
     refreshFooterCount = 0,
+    rebuildCategoryHeaderCount = 0,
 }
 
 function companionsInstance:IsSceneShowing()
@@ -134,6 +136,10 @@ end
 
 function companionsInstance:RefreshCompanionFooter()
     self.refreshFooterCount = self.refreshFooterCount + 1
+end
+
+function companionsInstance:RebuildCategoryHeader()
+    self.rebuildCategoryHeaderCount = self.rebuildCategoryHeaderCount + 1
 end
 
 local inventoryWindow = {
@@ -435,6 +441,18 @@ local function findControl(controls, name)
     return nil
 end
 
+local function findControlIndex(controls, name)
+    if type(controls) ~= "table" then
+        return nil
+    end
+    for index, control in ipairs(controls) do
+        if control.name == name then
+            return index
+        end
+    end
+    return nil
+end
+
 print("\n=== Module Settings Panel Tests ===\n")
 
 dofile("Modules/Banking/Settings/SettingsPanel.lua")
@@ -519,14 +537,38 @@ print("\nTest: Companions settings panel refreshes junk toggle and reset callbac
 BETTERUI.Companions.Settings.RegisterPanel("Companions", "Companions")
 local companionsControls = optionControls["BETTERUI_Companions"]
 local junkToggle = findControl(companionsControls, SI_BETTERUI_INV_COMPANION_JUNK)
+local batchDestroyToggle = findControl(companionsControls, SI_BETTERUI_INV_BATCH_DESTROY)
+local boeProtectionToggle = findControl(companionsControls, SI_BETTERUI_INV_BOE_PROTECTION)
+local companionsCarouselToggle = findControl(companionsControls, SI_BETTERUI_ENABLE_CAROUSEL_NAV)
 local companionsReset = findControl(companionsControls, SI_BETTERUI_GENERAL_RESET)
 assertTrue(junkToggle ~= nil, "Companion junk toggle registered")
+assertTrue(batchDestroyToggle ~= nil, "Companion batch destroy toggle registered")
+assertTrue(boeProtectionToggle ~= nil, "Companion bind-on-equip protection toggle registered")
+assertTrue(companionsCarouselToggle ~= nil, "Companion carousel toggle registered")
+assertTrue((findControlIndex(companionsControls, SI_BETTERUI_GENERAL_RESET) or 0) >
+    (findControlIndex(companionsControls, SI_BETTERUI_INV_COMPANION_JUNK) or 999),
+    "Companions reset button is below the General section checkboxes")
+assertEqual(true, companionsCarouselToggle.getFunc(), "Companion carousel defaults on")
+assertEqual(false, batchDestroyToggle.getFunc(), "Companion batch destroy defaults off")
+assertEqual(true, boeProtectionToggle.getFunc(), "Companion bind-on-equip protection defaults on")
+assertEqual(false, junkToggle.getFunc(), "Companion junk defaults off")
+companionsCarouselToggle.setFunc(false)
+assertEqual(false, companionsState.enableCarousel, "Companion carousel toggle stores setting")
+assertTrue(companionsInstance.rebuildCategoryHeaderCount > 0, "Companion carousel toggle rebuilds header")
 junkToggle.setFunc(true)
 assertEqual(true, companionsState.enableCompanionJunk, "Companion junk toggle stores setting")
 assertTrue(companionsInstance.refreshListCount > 0, "Companion junk toggle refreshes list")
 companionsState.enableCompanionEquipment = false
+companionsState.enableCarousel = false
+companionsState.batchDestroy = true
+companionsState.bindOnEquipProtection = false
+companionsState.enableCompanionJunk = true
 companionsReset.func()
 assertEqual(true, companionsState.enableCompanionEquipment, "Companions reset restores equipment setting")
+assertEqual(true, companionsState.enableCarousel, "Companions reset restores carousel")
+assertEqual(false, companionsState.batchDestroy, "Companions reset disables batch destroy")
+assertEqual(true, companionsState.bindOnEquipProtection, "Companions reset restores bind-on-equip protection")
+assertEqual(false, companionsState.enableCompanionJunk, "Companions reset disables companion junk")
 
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", testsPassed))
