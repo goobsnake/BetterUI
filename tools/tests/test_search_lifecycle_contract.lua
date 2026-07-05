@@ -391,8 +391,12 @@ do
         "Vendor list-top navigation routes to the search lifecycle instead of header sort")
     assert_true(vendorSource:find("ExitHeaderSortMode", 1, true) ~= nil,
         "Vendor search exit clears header sort mode before restoring list input")
-    assert_true(vendorKeybindsSource:find("return vendorInstance._searchModeActive == true or vendorInstance._searchHeaderActive == true", 1, true) ~= nil,
-        "Vendor shoulder cycling uses explicit search lifecycle flags instead of stale focus-object state")
+    assert_true(vendorKeybindsSource:find("if not (vendorInstance._searchModeActive == true or vendorInstance._searchHeaderActive == true) then", 1, true) ~= nil,
+        "Vendor shoulder cycling uses explicit search lifecycle flags as the primary ownership signal")
+    assert_true(vendorKeybindsSource:find("IsVendorListInputActive(vendorInstance) and not IsVendorSearchEditFocused(vendorInstance)", 1, true) ~= nil,
+        "Vendor shoulder cycling overrides stale search flags when the list actively owns input and no search edit is focused")
+    assert_true(vendorKeybindsSource:find("HealStaleVendorSearchFlags", 1, true) ~= nil,
+        "Vendor shoulder cycling heals stale search flags so downstream flag consumers recover")
     assert_true(vendorSource:find("function BETTERUI.Vendor.Class:SetSearchDirectionalInputUpdate", 1, true) ~= nil,
         "Vendor search installs a scoped directional-input object while search owns focus")
     assert_true(vendorSource:find("function BETTERUI.Vendor.Class:EnsureSearchMovementController", 1, true) ~= nil,

@@ -119,6 +119,28 @@ local function SyncVendorPreviewState(Vendor, vendorInstance, active)
     return vendorInstance and vendorInstance._betteruiVendorPreviewActive == true or false
 end
 
+local function IsVendorListInputActive(vendorInstance)
+    local list = vendorInstance and vendorInstance.list
+    if not (list and type(list.IsActive) == "function") then
+        return false
+    end
+    local ok, active = pcall(list.IsActive, list)
+    return ok and active == true
+end
+
+local function IsVendorSearchEditFocused(vendorInstance)
+    local focus = vendorInstance and vendorInstance.textSearchHeaderFocus
+    if not (focus and type(focus.GetEditBox) == "function") then
+        return false
+    end
+    local okEdit, editBox = pcall(focus.GetEditBox, focus)
+    if not (okEdit and editBox and type(editBox.HasFocus) == "function") then
+        return false
+    end
+    local okFocus, focused = pcall(editBox.HasFocus, editBox)
+    return okFocus and focused == true
+end
+
 local function IsVendorSearchInputActive(vendorInstance)
     if not vendorInstance then
         return false
@@ -126,13 +148,45 @@ local function IsVendorSearchInputActive(vendorInstance)
     -- Vendor search focus objects can remain active after the base header
     -- handoff. The lifecycle flags are the canonical ownership signal; using
     -- focus-object state here blocks LB/RB with stale "searchActive" results.
-    return vendorInstance._searchModeActive == true or vendorInstance._searchHeaderActive == true
+    if not (vendorInstance._searchModeActive == true or vendorInstance._searchHeaderActive == true) then
+        return false
+    end
+    -- The flags go stale in the opposite direction too: when the base
+    -- parametric screen hands focus back to the item list without running
+    -- the OnLeaveHeader exit path (scene-entry race), both flags stay true
+    -- for the rest of the visit and LB/RB dead-ends with "searchActive"
+    -- until the user touches the search bar or re-enters the scene. Gamepad
+    -- input has a single owner: an actively focused list with no focused
+    -- search edit box means search input is NOT active, whatever the flags
+    -- or the (equally stale-prone) focus objects claim.
+    if IsVendorListInputActive(vendorInstance) and not IsVendorSearchEditFocused(vendorInstance) then
+        return false
+    end
+    return true
+end
+
+local function HealStaleVendorSearchFlags(vendorInstance)
+    if not vendorInstance then
+        return
+    end
+    if not (vendorInstance._searchModeActive == true or vendorInstance._searchHeaderActive == true) then
+        return
+    end
+    -- Reachable only when IsVendorSearchInputActive already ruled the flags
+    -- stale; run the full search-exit restore so every other flag consumer
+    -- (core keybind refresh, directional-input normalization) recovers too.
+    if type(vendorInstance.RestoreSearchFocus) == "function" then
+        pcall(vendorInstance.RestoreSearchFocus, vendorInstance, "staleSearchFlagsShoulderHeal")
+    elseif type(vendorInstance.OnSearchFocusLost) == "function" then
+        pcall(vendorInstance.OnSearchFocusLost, vendorInstance)
+    end
 end
 
 local function CanCycleVendorHeader(vendorInstance, getActiveTabs)
     if IsVendorSearchInputActive(vendorInstance) then
         return false, "searchActive"
     end
+    HealStaleVendorSearchFlags(vendorInstance)
     if HasVisibleGamepadDialog() then
         return false, "dialogVisible"
     end

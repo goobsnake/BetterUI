@@ -291,9 +291,6 @@ local function SetTabBarVisualActive(tabBar, active)
             end
         end
 
-        if tabBar.keybindStripDescriptor and BETTERUI.Interface then
-            BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
-        end
         ReleaseDirectionalInputRegistrations(tabBar, true)
         if tabBar.RefreshVisible then
             tabBar:RefreshVisible()
@@ -596,6 +593,17 @@ local function DetachUnexpectedSearchHeaderFocus(context)
     return true
 end
 
+local function SuppressTabBarShoulderKeybinds(tabBar)
+    local descriptor = tabBar and tabBar.keybindStripDescriptor
+    if not descriptor or (type(descriptor) == "table" and next(descriptor) == nil) then
+        return
+    end
+    if BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent then
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(descriptor)
+    end
+    tabBar.keybindStripDescriptor = {}
+end
+
 local function EnsureHeaderKeybindsActive(header, sceneShowing, isInHeaderSortMode)
     local tabBar = header and header.tabBar
     if isInHeaderSortMode or not sceneShowing or not tabBar then
@@ -603,6 +611,7 @@ local function EnsureHeaderKeybindsActive(header, sceneShowing, isInHeaderSortMo
     end
 
     ReleaseHeaderDirectionalInput(header)
+    SuppressTabBarShoulderKeybinds(tabBar)
     SetTabBarVisualActive(tabBar, true)
 end
 
@@ -1067,10 +1076,12 @@ do
     local ensureHeaderStart = vendorClassSource:find("function BETTERUI%.Vendor%.Class:EnsureHeaderKeybindsActive%(%)")
     local refreshHeaderStart = vendorClassSource:find("function BETTERUI%.Vendor%.Class:RefreshVendorHeader%(%)")
     local ensureHeaderSource = vendorClassSource:sub(ensureHeaderStart or 1, (refreshHeaderStart or (#vendorClassSource + 1)) - 1)
-    assert_eq(ensureHeaderSource:find("RemoveKeybindGroupIfPresent%(tabBar%.keybindStripDescriptor%)") == nil, true,
-        "production vendor header helper keeps the native tabbar keybind group registered for LB/RB")
-    assert_eq(vendorClassSource:find("EnsureKeybindGroupAdded%(tabBar%.keybindStripDescriptor%)") ~= nil, true,
-        "production vendor tabbar activation explicitly ensures the native tabbar keybind group")
+    assert_eq(ensureHeaderSource:find("SuppressTabBarShoulderKeybinds") ~= nil, true,
+        "production vendor header helper suppresses the tab bar shoulder group: the core group is the single LB/RB owner")
+    assert_eq(vendorClassSource:find("EnsureKeybindGroupAdded%(tabBar%.keybindStripDescriptor%)") == nil, true,
+        "production vendor code never adds the tab bar keybind group (ZOS strips displace duplicate shoulder owners)")
+    assert_eq(vendorClassSource:find("function BETTERUI%.Vendor%.Class:SuppressTabBarShoulderKeybinds%(%)") ~= nil, true,
+        "production vendor owns the SuppressTabBarShoulderKeybinds helper")
 
     local headerMovementController = { id = "headerMovementController" }
     local tabBar = {
@@ -1105,13 +1116,24 @@ do
     }
 
     table.insert(DIRECTIONAL_INPUT.inputObjects, headerMovementController)
+    local addedGroupsBefore = #BETTERUI.Interface.addedGroups
     EnsureHeaderKeybindsActive({ tabBar = tabBar }, true, false)
     assert_eq(tabBar.activated, 1, "header helper runs the real tab bar activation path for active visuals")
     assert_eq(tabBar.active, true, "header helper keeps tab bar visually active")
     assert_eq(DIRECTIONAL_INPUT:IsListening(headerMovementController), false,
         "header helper clears header movement-controller registrations after visual activation")
-    assert_eq(BETTERUI.Interface.addedGroups[#BETTERUI.Interface.addedGroups], "vendor-header-tabbar",
-        "header helper keeps the native header tab bar keybind group available for LB/RB")
+    assert_eq(BETTERUI.Interface.removedGroups[#BETTERUI.Interface.removedGroups], "vendor-header-tabbar",
+        "header helper evicts the tab bar shoulder keybind group (vendor core group is the single LB/RB owner)")
+    local tabBarGroupAdded = false
+    for i = addedGroupsBefore + 1, #BETTERUI.Interface.addedGroups do
+        if BETTERUI.Interface.addedGroups[i] == "vendor-header-tabbar" then
+            tabBarGroupAdded = true
+        end
+    end
+    assert_eq(tabBarGroupAdded, false,
+        "header helper never adds the tab bar shoulder keybind group to the strip")
+    assert_eq(type(tabBar.keybindStripDescriptor) == "table" and next(tabBar.keybindStripDescriptor) == nil, true,
+        "header helper leaves a valid-but-empty descriptor for unguarded native activation paths")
     assert_eq(tabBar.refreshVisibleCalls, 1, "header helper refreshes header visuals")
     assert_eq(tabBar.commitCalls, 1, "header helper commits header visuals")
 end

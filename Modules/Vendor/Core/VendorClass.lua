@@ -631,9 +631,8 @@ function SetTabBarVisualActive(tabBar, active)
             end
         end
 
-        if tabBar.keybindStripDescriptor and BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded then
-            BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
-        end
+        -- Never (re)add the tab bar's own keybind group here: the vendor
+        -- core group is the single LB/RB owner (SuppressTabBarShoulderKeybinds).
         ReleaseDirectionalInputRegistrations(tabBar, true)
         if tabBar.RefreshVisible then
             tabBar:RefreshVisible()
@@ -1398,6 +1397,7 @@ function BETTERUI.Vendor.Class:InitializeCategoryHeader()
     end
 
     BETTERUI.GenericHeader.Initialize(self.headerGeneric, ZO_GAMEPAD_HEADER_TABBAR_CREATE)
+    self:SuppressTabBarShoulderKeybinds()
 end
 
 ---@return nil
@@ -1914,6 +1914,30 @@ function BETTERUI.Vendor.Class:OnSearchTextChanged(searchText)
     self._searchTextChangedInProgress = nil
 end
 
+--- The vendor core group (VendorKeybinds.BuildCoreKeybinds) is the single
+--- owner of the LB/RB shoulder keybinds. The tab bar's own carousel group
+--- must never enter the strip: ZOS resolves duplicate keybinds by REMOVING
+--- the earlier button with no restore (ZO_KeybindStrip:HandleDuplicateAddKeybind),
+--- so a second shoulder group makes LB/RB ownership ping-pong across header
+--- refreshes and can leave the shoulders owned by nobody -- the core group
+--- stays "present" at group level while its displaced buttons are gone, so
+--- every ensure call no-ops. CycleTabs drives the same MovePrevious/MoveNext
+--- the carousel callbacks would, with search/dialog gating and tracing.
+---@return nil
+function BETTERUI.Vendor.Class:SuppressTabBarShoulderKeybinds()
+    local tabBar = self.headerGeneric and self.headerGeneric.tabBar
+    local descriptor = tabBar and tabBar.keybindStripDescriptor
+    if not descriptor or (type(descriptor) == "table" and next(descriptor) == nil) then
+        return
+    end
+    if BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent then
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(descriptor)
+    end
+    -- Empty group, not nil: native tab bar activation paths add the
+    -- descriptor unguarded, so keep a valid-but-empty table for them.
+    tabBar.keybindStripDescriptor = {}
+end
+
 ---@return nil
 function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
     -- Guard against premature DIRECTIONAL_INPUT registration during scene
@@ -1940,27 +1964,14 @@ function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
         self:DetachUnexpectedSearchHeaderFocus("EnsureHeaderKeybindsActive")
     end
 
-    -- Keep the tabbar's native LB/RB keybind group, but strip its directional
-    -- input registrations so joystick focus stays on the item list.
+    -- Strip the tab bar's directional input registrations so joystick focus
+    -- stays on the item list, and keep its shoulder keybind group out of the
+    -- strip entirely (single-owner LB/RB; see SuppressTabBarShoulderKeybinds).
     ReleaseHeaderDirectionalInput(self.headerGeneric, "Vendor.EnsureHeaderKeybindsActive:HeaderGeneric")
     ReleaseHeaderDirectionalInput(self.header, "Vendor.EnsureHeaderKeybindsActive:Header")
 
-    local descriptor = tabBar.keybindStripDescriptor
-    local carouselMissing = descriptor
-        and BETTERUI.Interface
-        and BETTERUI.Interface.HasKeybindGroup
-        and not BETTERUI.Interface.HasKeybindGroup(descriptor)
-
-    if carouselMissing and tabBar.Deactivate and tabBar.Activate then
-        tabBar:Deactivate()
-        tabBar:Activate()
-    else
-        SetTabBarVisualActive(tabBar, true)
-    end
-
-    if descriptor and BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded then
-        BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
-    end
+    self:SuppressTabBarShoulderKeybinds()
+    SetTabBarVisualActive(tabBar, true)
     ReleaseDirectionalInputRegistrations(tabBar, true)
 end
 
