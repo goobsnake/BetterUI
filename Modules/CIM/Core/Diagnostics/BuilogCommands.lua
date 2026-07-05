@@ -484,9 +484,6 @@ local function HandleNeedsReview()
     return requestId, layout, screenshot
 end
 
-local NEEDS_REVIEW_KEYBIND = "BETTERUI_NEEDS_REVIEW"
-local needsReviewKeybindGroup = nil
-
 local function TraceNeedsReviewKeybind(phase, data)
     local L = BETTERUI and BETTERUI.Log or nil
     if not (L and type(L.TraceEvent) == "function") then return end
@@ -497,20 +494,16 @@ local function TraceNeedsReviewKeybind(phase, data)
     pcall(L.TraceEvent, category, "review.keybind", phase, data)
 end
 
-local function GetNeedsReviewBindingName()
-    local stringId = G("SI_BINDING_NAME_BETTERUI_NEEDS_REVIEW")
-    local getString = G("GetString")
-    if stringId ~= nil and type(getString) == "function" then
-        local ok, value = pcall(getString, stringId)
-        if ok and value ~= nil and value ~= "" then
-            return value
-        end
-    end
-    return "BetterUI: Flag for Review"
-end
-
 local function DispatchNeedsReviewKeybind(origin)
-    origin = tostring(origin or "keybind-strip")
+    origin = tostring(origin or "keybind")
+    -- Gate the hotkey to active diagnostic sessions: with builog off the key is
+    -- idle -- no capture, no screenshot. The /builog review command stays ungated
+    -- because typing it is already explicit intent.
+    if not (InterfaceLog and InterfaceLog.IsEnabled and InterfaceLog.IsEnabled()) then
+        TraceNeedsReviewKeybind("gated", { origin = origin, reason = "builogDisabled" })
+        Out("Flag for Review is idle -- enable diagnostics first with /builog on.")
+        return false
+    end
     TraceNeedsReviewKeybind("begin", { origin = origin })
     local ok, requestId, layout, screenshot = pcall(HandleNeedsReview)
     TraceNeedsReviewKeybind(ok and "end" or "failed", {
@@ -522,74 +515,6 @@ local function DispatchNeedsReviewKeybind(origin)
         return requestId, layout, screenshot
     end
     return false
-end
-
-local function GetNeedsReviewKeybindGroup()
-    if needsReviewKeybindGroup then
-        return needsReviewKeybindGroup
-    end
-    needsReviewKeybindGroup = {
-        alignment = G("KEYBIND_STRIP_ALIGN_RIGHT"),
-        {
-            name = GetNeedsReviewBindingName,
-            keybind = NEEDS_REVIEW_KEYBIND,
-            ethereal = true,
-            disabledDuringSceneHiding = true,
-            callback = DispatchNeedsReviewKeybind,
-        },
-    }
-    return needsReviewKeybindGroup
-end
-
-function BuilogCommands.EnsureNeedsReviewKeybindGroup(origin)
-    local strip = G("KEYBIND_STRIP")
-    local group = GetNeedsReviewKeybindGroup()
-    if not strip then
-        return false, "missingKeybindStrip"
-    end
-    if type(strip.HasKeybindButtonGroup) == "function" then
-        local okHas, hasGroup = pcall(strip.HasKeybindButtonGroup, strip, group)
-        if okHas and hasGroup == true then
-            if type(strip.UpdateKeybindButtonGroup) == "function" then
-                pcall(strip.UpdateKeybindButtonGroup, strip, group)
-            end
-            return true, "present"
-        end
-    end
-    if type(strip.AddKeybindButtonGroup) ~= "function" then
-        return false, "missingAddKeybindButtonGroup"
-    end
-    local okAdd, added = pcall(strip.AddKeybindButtonGroup, strip, group)
-    if okAdd and added ~= false then
-        if type(strip.UpdateKeybindButtonGroup) == "function" then
-            pcall(strip.UpdateKeybindButtonGroup, strip, group)
-        end
-        TraceNeedsReviewKeybind("ensured", { origin = origin or "unknown" })
-        return true, "added"
-    end
-    TraceNeedsReviewKeybind("skipped", {
-        origin = origin or "unknown",
-        reason = okAdd and "addReturnedFalse" or tostring(added),
-    })
-    return false, okAdd and "addReturnedFalse" or tostring(added)
-end
-
-function BuilogCommands.RemoveNeedsReviewKeybindGroup()
-    local strip = G("KEYBIND_STRIP")
-    if not strip then return false end
-    local group = needsReviewKeybindGroup
-    if not group then return false end
-    if type(strip.HasKeybindButtonGroup) == "function" then
-        local okHas, hasGroup = pcall(strip.HasKeybindButtonGroup, strip, group)
-        if okHas and hasGroup ~= true then
-            return false
-        end
-    end
-    if type(strip.RemoveKeybindButtonGroup) ~= "function" then
-        return false
-    end
-    local okRemove, removed = pcall(strip.RemoveKeybindButtonGroup, strip, group)
-    return okRemove and removed ~= false
 end
 
 local function HandleCommand(args)

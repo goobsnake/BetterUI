@@ -6,4 +6,21 @@
             </Action>
         </Category>
     </Layer>
+    <!--
+        In gamepad/CIM UI scenes the GENERAL-layer binding above never fires: the
+        engine pushes its GamepadUIMode layer with allowFallthrough="false", which
+        swallows every non-whitelisted action. The USER_INTERFACE_SHORTCUTS layer,
+        however, IS active in those scenes (it is how the keybind strip receives its
+        keys), so we mirror the action into it with a hidden twin that inherits the
+        player's real binding -- the same ZOS pattern as LOOT_EXIT (inheritsBindFrom
+        UI_SHORTCUT_EXIT) and SIEGE_ESCAPE. The player still binds ONE key
+        (BETTERUI_NEEDS_REVIEW); this twin fires the same capture from inside scenes.
+    -->
+    <Layer name="SI_KEYBINDINGS_LAYER_USER_INTERFACE_SHORTCUTS">
+        <Category name="SI_KEYBINDINGS_CATEGORY_GENERAL">
+            <Action name="BETTERUI_NEEDS_REVIEW_UI" inheritsBindFrom="BETTERUI_NEEDS_REVIEW" hideAction="true">
+                <Down>BETTERUI.CIM.BuilogCommands.FlagNeedsReview()</Down>
+            </Action>
+        </Category>
+    </Layer>
 </Bindings>
