@@ -22,23 +22,36 @@ end
 local m_handles = {}
 local m_handleHosts = {}
 local m_handleIcons = {}
-local HANDLE_SIZE = 110
-local HANDLE_MIN_SIZE = 96
-local HANDLE_OVERLAP_MIN_SIZE = 80
-local HANDLE_OVERLAP_PADDING = 4
-local HANDLE_ICON_SCALE = 0.6
-local HANDLE_ICON_MIN_SIZE = 46
-local HANDLE_ICON_MAX_SIZE = 64
-local HANDLE_ARROW_MIN_SIZE = 18
-local HANDLE_ARROW_MAX_SIZE = 28
-local HANDLE_ARROW_SCALE = 0.42
-local HANDLE_ARROW_OFFSET_SCALE = 0.24
-local HANDLE_ARROW_ALPHA = 0.88
+local m_handleLabels = {}
+local m_handleFills = {}
+-- ESO cannot destroy controls and CreateControl returns nil for duplicate
+-- names, so detached handles are pooled by name for safe re-attachment.
+local m_handleControlPool = {}
+local HANDLE_SIZE = 64
+local HANDLE_MATCH_MIN_WIDTH = 40
+local HANDLE_MATCH_MIN_HEIGHT = 32
+local HANDLE_MATCH_MAX_WIDTH = 560
+local HANDLE_MATCH_MAX_HEIGHT = 220
+local HANDLE_LABEL_HEIGHT = 26
+local HANDLE_ICON_DRAW_LEVEL = 512
+local HANDLE_ARROW_MIN_SIZE = 14
+local HANDLE_ARROW_MAX_SIZE = 44
+local HANDLE_ARROW_SCALE = 0.35
+local HANDLE_ARROW_SLIM = 0.7
+local HANDLE_ARROW_EDGE_INSET = 2
+local HANDLE_ARROW_SHADOW_OFFSET = 2
+local HANDLE_ARROW_SHADOW_ALPHA = 0.6
+local HANDLE_ARROW_SHADOW_DRAW_LEVEL = 513
+local HANDLE_ARROW_ALPHA = 1
+local HANDLE_ARROW_FACE_DRAW_LEVEL = 514
+-- Native gold ESO arrow art. The housing precision icons carry baked-in
+-- per-axis colors; the earlier "invisible arrows" were the GuiRoot
+-- render-list bug, not these textures.
 local HANDLE_ICON_TEXTURES = {
-    { key = "Left", texture = "EsoUI/Art/Housing/housing_precisionControlIcon_left.dds", x = -1, y = 0 },
-    { key = "Right", texture = "EsoUI/Art/Housing/housing_precisionControlIcon_right.dds", x = 1, y = 0 },
-    { key = "Up", texture = "EsoUI/Art/Housing/housing_precisionControlIcon_up.dds", x = 0, y = -1 },
-    { key = "Down", texture = "EsoUI/Art/Housing/housing_precisionControlIcon_down.dds", x = 0, y = 1 },
+    { key = "Left", texture = "EsoUI/Art/Buttons/leftArrow_up.dds", x = -1, y = 0 },
+    { key = "Right", texture = "EsoUI/Art/Buttons/rightArrow_up.dds", x = 1, y = 0 },
+    { key = "Up", texture = "EsoUI/Art/Buttons/scrollbox_upArrow_up.dds", x = 0, y = -1 },
+    { key = "Down", texture = "EsoUI/Art/Buttons/scrollbox_downArrow_up.dds", x = 0, y = 1 },
 }
 local DRAG_THRESHOLD = 2
 local DRAG_REFRESH_INTERVAL_MS = 75
@@ -47,6 +60,18 @@ local OFFSET_MAX = 600
 local SETTINGS_PANEL_IDS = {
     "BETTERUI_Modules",
     "BETTERUI_ResourceOrbFrames",
+}
+-- Box labels resolve through lang strings with short English fallbacks
+-- sized to fit their boxes.
+local ELEMENT_LABELS = {
+    leftOrb = { stringId = "SI_BETTERUI_MOVER_LABEL_LEFT_ORB", fallback = "Left Orb" },
+    rightOrb = { stringId = "SI_BETTERUI_MOVER_LABEL_RIGHT_ORB", fallback = "Right Orb" },
+    skillBars = { stringId = "SI_BETTERUI_MOVER_LABEL_SKILL_BARS", fallback = "Skill Bars" },
+    xpBar = { stringId = "SI_BETTERUI_MOVER_LABEL_XP_BAR", fallback = "XP Bar" },
+    mountBar = { stringId = "SI_BETTERUI_MOVER_LABEL_MOUNT_STAMINA", fallback = "Mnt Stam" },
+    castBar = { stringId = "SI_BETTERUI_MOVER_LABEL_CAST_BAR", fallback = "Cast Bar" },
+    quickslot = { stringId = "SI_BETTERUI_MOVER_LABEL_QUICKSLOT", fallback = "Quickslot" },
+    companionUltimate = { stringId = "SI_BETTERUI_MOVER_LABEL_COMPANION_ULTIMATE", fallback = "Comp. Ult" },
 }
 
 -- Shared element-drag tracer (BUI-CONS-002), defined once on ROF Utils.
@@ -101,42 +126,99 @@ local function GetControlCenter(control)
     return nil, nil
 end
 
-local function GetElementSizedHandleSize(hostControl)
-    local width, height = GetControlDimensions(hostControl)
-    if width and height and width > 0 and height > 0 then
-        return math.min(width, height)
-    end
-    return nil
-end
+-- The health orb host is padded by ornament art, so its box borrows the
+-- resource orb's footprint to keep the twin orb handles identical.
+local ELEMENT_DIMENSION_TWINS = { leftOrb = "rightOrb" }
 
-local function WouldOverlapExistingHandle(hostControl, size)
-    local centerX, centerY = GetControlCenter(hostControl)
-    if not centerX or not centerY then return false end
-    for elemKey, existingHost in pairs(m_handleHosts) do
-        local otherCenterX, otherCenterY = GetControlCenter(existingHost)
-        local otherWidth, otherHeight = GetControlDimensions(m_handles[elemKey])
-        if otherCenterX and otherCenterY and otherWidth and otherHeight then
-            local overlapsX = math.abs(centerX - otherCenterX) < ((size + otherWidth) / 2) + HANDLE_OVERLAP_PADDING
-            local overlapsY = math.abs(centerY - otherCenterY) < ((size + otherHeight) / 2) + HANDLE_OVERLAP_PADDING
-            if overlapsX and overlapsY then return true end
+-- Optional per-element span controls (options.spanControls at attach): the
+-- box covers the union rect of these controls instead of just the host,
+-- e.g. the skill bars box runs from the first skill icon to the ultimate.
+local m_handleSpans = {}
+
+local function GetSpanRect(controls)
+    local left, top, right, bottom
+    for _, spanControl in ipairs(controls or {}) do
+        -- Hidden span members (e.g. a hidden secondary skill bar) must not
+        -- stretch the box; only currently-present controls count.
+        local hiddenOk, isHidden = pcall(function()
+            return type(spanControl.IsHidden) == "function" and spanControl:IsHidden() == true
+        end)
+        local width, height = GetControlDimensions(spanControl)
+        local centerX, centerY = GetControlCenter(spanControl)
+        if not (hiddenOk and isHidden)
+            and width and height and centerX and centerY and width > 0 and height > 0 then
+            local l, t = centerX - width / 2, centerY - height / 2
+            local r, b = centerX + width / 2, centerY + height / 2
+            if not left or l < left then left = l end
+            if not top or t < top then top = t end
+            if not right or r > right then right = r end
+            if not bottom or b > bottom then bottom = b end
         end
     end
-    return false
+    if not left then return nil end
+    return left, top, right, bottom
 end
 
-local function GetHandleSize(hostControl)
-    local elementSize = GetElementSizedHandleSize(hostControl)
-    local size = elementSize and ClampNumber(elementSize, HANDLE_MIN_SIZE, HANDLE_SIZE, HANDLE_SIZE) or HANDLE_SIZE
-    if elementSize and WouldOverlapExistingHandle(hostControl, size) then
-        -- Host-sized fallback keeps adjacent orb handles from merging into one large hit box.
-        size = ClampNumber(elementSize, HANDLE_OVERLAP_MIN_SIZE, HANDLE_SIZE, size)
+-- Handles mirror the represented element's footprint; the clamps keep tiny
+-- buttons grabbable and wide bars from flooding the HUD. Hosts with no rect
+-- yet fall back to a default square.
+local function GetHandleDimensions(hostControl, elemKey)
+    local width, height
+    local spanLeft, spanTop, spanRight, spanBottom = GetSpanRect(elemKey and m_handleSpans[elemKey])
+    if spanLeft then
+        width, height = spanRight - spanLeft, spanBottom - spanTop
+    else
+        local twinKey = elemKey and ELEMENT_DIMENSION_TWINS[elemKey]
+        local twinHost = twinKey and m_handleHosts[twinKey]
+        if twinHost then
+            hostControl = twinHost
+        end
+        width, height = GetControlDimensions(hostControl)
     end
-    return zo_round and zo_round(size) or math.floor(size + 0.5)
+    width = tonumber(width) or 0
+    height = tonumber(height) or 0
+    if width <= 0 or height <= 0 then
+        return HANDLE_SIZE, HANDLE_SIZE
+    end
+    width = ClampNumber(width, HANDLE_MATCH_MIN_WIDTH, HANDLE_MATCH_MAX_WIDTH, HANDLE_SIZE)
+    height = ClampNumber(height, HANDLE_MATCH_MIN_HEIGHT, HANDLE_MATCH_MAX_HEIGHT, HANDLE_SIZE)
+    local round = zo_round or function(v) return math.floor(v + 0.5) end
+    return round(width), round(height)
 end
 
 local function SetTextureGuarded(textureControl, texturePath)
     if not textureControl or not textureControl.SetTexture then return false end
     return pcall(textureControl.SetTexture, textureControl, texturePath)
+end
+
+local function HumanizeElementKey(elemKey)
+    local label = tostring(elemKey or "HUD Element")
+    label = label:gsub("(%l)(%u)", "%1 %2")
+    label = label:gsub("^%l", string.upper)
+    return label
+end
+
+local function ResolveMoverLabel(stringIdName, fallback)
+    local stringId = rawget(_G, stringIdName)
+    local getString = rawget(_G, "GetString")
+    if stringId ~= nil and type(getString) == "function" then
+        local ok, value = pcall(getString, stringId)
+        if ok and value ~= nil and value ~= "" then
+            return value
+        end
+    end
+    return fallback
+end
+
+local function ResolveHandleLabel(elemKey, options)
+    if options and type(options.label) == "string" and options.label ~= "" then
+        return options.label
+    end
+    local entry = ELEMENT_LABELS[elemKey]
+    if entry then
+        return ResolveMoverLabel(entry.stringId, entry.fallback)
+    end
+    return HumanizeElementKey(elemKey)
 end
 
 local function EnsureHandleIcon(handle)
@@ -147,28 +229,70 @@ local function EnsureHandleIcon(handle)
     local icon = WINDOW_MANAGER:CreateControl(handleName .. "MoveIcon", handle, CT_CONTROL)
     if icon.SetMouseEnabled then icon:SetMouseEnabled(false) end
     if icon.SetDrawLayer then icon:SetDrawLayer(DL_OVERLAY) end
-    if icon.SetDrawLevel then icon:SetDrawLevel(512) end
+    if icon.SetDrawTier and DT_HIGH then icon:SetDrawTier(DT_HIGH) end
+    if icon.SetDrawLevel then icon:SetDrawLevel(HANDLE_ICON_DRAW_LEVEL) end
 
     local data = { control = icon, parts = {} }
     for _, def in ipairs(HANDLE_ICON_TEXTURES) do
-        local texture = WINDOW_MANAGER:CreateControl(handleName .. "MoveIcon" .. def.key, icon, CT_TEXTURE)
-        SetTextureGuarded(texture, def.texture)
-        if texture.SetMouseEnabled then texture:SetMouseEnabled(false) end
-        if texture.SetDrawLayer then texture:SetDrawLayer(DL_OVERLAY) end
-        if texture.SetDrawLevel then texture:SetDrawLevel(513) end
-        data.parts[#data.parts + 1] = { control = texture, x = def.x, y = def.y }
+        local shadow = WINDOW_MANAGER:CreateControl(handleName .. "MoveIconShadow" .. def.key, icon, CT_TEXTURE)
+        SetTextureGuarded(shadow, def.texture)
+        if shadow.SetMouseEnabled then shadow:SetMouseEnabled(false) end
+        if shadow.SetDrawLayer then shadow:SetDrawLayer(DL_OVERLAY) end
+        if shadow.SetDrawTier and DT_HIGH then shadow:SetDrawTier(DT_HIGH) end
+        if shadow.SetDrawLevel then shadow:SetDrawLevel(HANDLE_ARROW_SHADOW_DRAW_LEVEL) end
+        data.parts[#data.parts + 1] = { control = shadow, x = def.x, y = def.y, shadow = true }
+
+        local face = WINDOW_MANAGER:CreateControl(handleName .. "MoveIcon" .. def.key, icon, CT_TEXTURE)
+        SetTextureGuarded(face, def.texture)
+        if face.SetMouseEnabled then face:SetMouseEnabled(false) end
+        if face.SetDrawLayer then face:SetDrawLayer(DL_OVERLAY) end
+        if face.SetDrawTier and DT_HIGH then face:SetDrawTier(DT_HIGH) end
+        if face.SetDrawLevel then face:SetDrawLevel(HANDLE_ARROW_FACE_DRAW_LEVEL) end
+        data.parts[#data.parts + 1] = { control = face, x = def.x, y = def.y, shadow = false }
     end
     m_handleIcons[handle] = data
     return data
 end
 
-local function ConfigureIconPart(parent, part, size, offset, hidden)
+-- Each arrow hugs the box edge it points at (left arrow on the left edge,
+-- up arrow on the top edge, ...) instead of clustering at the center, and
+-- is slimmed along its pointing axis so opposing pairs read as chevrons.
+local function ConfigureIconPart(parent, part, sideSize, vertSize, insets, hidden)
     local control = part and part.control
     if not control then return end
-    if control.SetDimensions then control:SetDimensions(size, size) end
+    local point = CENTER
+    local offsetX, offsetY = 0, 0
+    local width, height
+    if (part.x or 0) < 0 then
+        point = rawget(_G, "LEFT") or CENTER
+        offsetX = insets.side
+        width, height = math.floor(sideSize * HANDLE_ARROW_SLIM + 0.5), sideSize
+    elseif (part.x or 0) > 0 then
+        point = rawget(_G, "RIGHT") or CENTER
+        offsetX = -insets.side
+        width, height = math.floor(sideSize * HANDLE_ARROW_SLIM + 0.5), sideSize
+    elseif (part.y or 0) < 0 then
+        point = rawget(_G, "TOP") or CENTER
+        offsetY = insets.top
+        width, height = vertSize, math.floor(vertSize * HANDLE_ARROW_SLIM + 0.5)
+    else
+        point = rawget(_G, "BOTTOM") or CENTER
+        offsetY = -insets.bottom
+        width, height = vertSize, math.floor(vertSize * HANDLE_ARROW_SLIM + 0.5)
+    end
+    if control.SetDimensions then control:SetDimensions(width, height) end
     if control.ClearAnchors then control:ClearAnchors() end
-    if control.SetAnchor then control:SetAnchor(CENTER, parent, CENTER, (part.x or 0) * offset, (part.y or 0) * offset) end
-    if control.SetColor then control:SetColor(0, 0, 0, hidden and 0 or HANDLE_ARROW_ALPHA) end
+    if control.SetAnchor and point then
+        local shadowOffset = part.shadow and HANDLE_ARROW_SHADOW_OFFSET or 0
+        control:SetAnchor(point, parent, point, offsetX + shadowOffset, offsetY + shadowOffset)
+    end
+    if control.SetColor then
+        if part.shadow then
+            control:SetColor(0, 0, 0, hidden and 0 or HANDLE_ARROW_SHADOW_ALPHA)
+        else
+            control:SetColor(0.98, 0.78, 0.24, hidden and 0 or HANDLE_ARROW_ALPHA)
+        end
+    end
     if control.SetHidden then control:SetHidden(hidden) end
 end
 
@@ -177,19 +301,68 @@ local function UpdateHandleIconVisual(handle, locked)
     if not data or not data.control then return end
 
     local handleWidth, handleHeight = GetControlDimensions(handle)
-    local handleSize = math.min(handleWidth or HANDLE_SIZE, handleHeight or HANDLE_SIZE)
-    local iconSize = ClampNumber(handleSize * HANDLE_ICON_SCALE, HANDLE_ICON_MIN_SIZE, HANDLE_ICON_MAX_SIZE, HANDLE_ICON_MAX_SIZE)
-    local arrowSize = ClampNumber(iconSize * HANDLE_ARROW_SCALE, HANDLE_ARROW_MIN_SIZE, HANDLE_ARROW_MAX_SIZE, HANDLE_ARROW_MAX_SIZE)
+    handleWidth = tonumber(handleWidth) or HANDLE_SIZE
+    handleHeight = tonumber(handleHeight) or HANDLE_SIZE
+    local minDim = math.min(handleWidth, handleHeight)
+    local base = ClampNumber(minDim * HANDLE_ARROW_SCALE, HANDLE_ARROW_MIN_SIZE, HANDLE_ARROW_MAX_SIZE, HANDLE_ARROW_MAX_SIZE)
+    -- Per-axis caps: each opposing pair (slimmed along its pointing axis)
+    -- must fit its axis with a center gap so arrows never merge.
+    local sideSize = math.max(math.min(base, math.floor((handleWidth - 12) / (2 * HANDLE_ARROW_SLIM)), handleHeight - 4), 8)
+    local vertSize = math.max(math.min(base, math.floor((handleHeight - 12) / (2 * HANDLE_ARROW_SLIM)), handleWidth - 4), 8)
     local hidden = locked == true
 
-    if data.control.SetDimensions then data.control:SetDimensions(iconSize, iconSize) end
+    -- The icon container spans the whole box so each arrow can hug its edge.
+    local topLeft = rawget(_G, "TOPLEFT")
+    local bottomRight = rawget(_G, "BOTTOMRIGHT")
     if data.control.ClearAnchors then data.control:ClearAnchors() end
-    if data.control.SetAnchor then data.control:SetAnchor(CENTER, handle, CENTER, 0, 0) end
+    if data.control.SetAnchor and topLeft and bottomRight then
+        data.control:SetAnchor(topLeft, handle, topLeft, 0, 0)
+        data.control:SetAnchor(bottomRight, handle, bottomRight, 0, 0)
+    end
     if data.control.SetHidden then data.control:SetHidden(hidden) end
     if data.control.SetAlpha then data.control:SetAlpha(hidden and 0 or 1) end
 
+    local insets = {
+        side = HANDLE_ARROW_EDGE_INSET,
+        top = HANDLE_ARROW_EDGE_INSET,
+        bottom = HANDLE_ARROW_EDGE_INSET,
+    }
     for _, part in ipairs(data.parts) do
-        ConfigureIconPart(data.control, part, arrowSize, iconSize * HANDLE_ARROW_OFFSET_SCALE, hidden)
+        ConfigureIconPart(data.control, part, sideSize, vertSize, insets, hidden)
+    end
+end
+
+local function EnsureHandleLabel(handle)
+    if not handle then return nil end
+    if m_handleLabels[handle] then return m_handleLabels[handle] end
+    if not (WINDOW_MANAGER and CT_LABEL) then return nil end
+
+    local handleName = GetControlName(handle) or "BetterUI_DragHandle"
+    local label = WINDOW_MANAGER:CreateControl(handleName .. "Label", handle, CT_LABEL)
+    if label.SetMouseEnabled then label:SetMouseEnabled(false) end
+    if label.SetFont then label:SetFont("$(BOLD_FONT)|16|soft-shadow-thin") end
+    if label.SetHorizontalAlignment and TEXT_ALIGN_CENTER then label:SetHorizontalAlignment(TEXT_ALIGN_CENTER) end
+    if label.SetVerticalAlignment and TEXT_ALIGN_CENTER then label:SetVerticalAlignment(TEXT_ALIGN_CENTER) end
+    if label.SetColor then label:SetColor(0.85, 0.95, 1, 1) end
+    if label.SetDrawLayer then label:SetDrawLayer(DL_OVERLAY) end
+    if label.SetDrawTier and DT_HIGH then label:SetDrawTier(DT_HIGH) end
+    if label.SetDrawLevel then label:SetDrawLevel(515) end
+    m_handleLabels[handle] = label
+    return label
+end
+
+local function UpdateHandleLabelVisual(handle, locked)
+    local label = EnsureHandleLabel(handle)
+    if not label then return end
+    local width = (GetControlDimensions(handle))
+    width = tonumber(width) or HANDLE_SIZE
+    if label.SetText then label:SetText(handle._betteruiResourceOrbDragLabel or "HUD Element") end
+    if label.SetHidden then label:SetHidden(locked == true) end
+    if label.SetDimensions then label:SetDimensions(math.max(width - 12, 120), HANDLE_LABEL_HEIGHT) end
+    if label.ClearAnchors then label:ClearAnchors() end
+    if label.SetAnchor then
+        -- Centered so the four edge arrows surround the element name.
+        label:SetAnchor(CENTER, handle, CENTER, 0, 0)
     end
 end
 
@@ -220,16 +393,127 @@ local function GetMouseXY()
     return 0, 0
 end
 
+local function IsControlHidden(control)
+    if control and type(control.IsHidden) == "function" then
+        local ok, hidden = pcall(control.IsHidden, control)
+        if ok then return hidden == true end
+    end
+    return false
+end
+
+local function GetResolvableControlCenter(control)
+    if control and type(control.GetCenter) == "function" then
+        local ok, x, y = pcall(control.GetCenter, control)
+        if ok and type(x) == "number" and type(y) == "number" and (x ~= 0 or y ~= 0) then
+            return x, y
+        end
+    end
+    return nil
+end
+
+local function AnchorHandle(handle, hostControl, elemKey)
+    if not (handle and handle.SetAnchor) then return end
+    local guiRoot = rawget(_G, "GuiRoot")
+    -- Hidden hosts keep their layout rect, so the handle can hold the element's
+    -- real position; only a host with no resolvable rect (never laid out or
+    -- missing) falls back to screen center so the box stays grabbable.
+    local relativeTo = hostControl
+    if not hostControl or (IsControlHidden(hostControl) and not GetResolvableControlCenter(hostControl)) then
+        relativeTo = guiRoot or hostControl
+    end
+    if not relativeTo then return end
+    -- Span-derived boxes recenter on the union rect of their span controls.
+    local offsetX, offsetY = 0, 0
+    local spanLeft, spanTop, spanRight, spanBottom = GetSpanRect(elemKey and m_handleSpans[elemKey])
+    if spanLeft then
+        local relCenterX, relCenterY = GetControlCenter(relativeTo)
+        if relCenterX and relCenterY then
+            offsetX = (spanLeft + spanRight) / 2 - relCenterX
+            offsetY = (spanTop + spanBottom) / 2 - relCenterY
+        end
+    end
+    if handle.ClearAnchors then handle:ClearAnchors() end
+    handle:SetAnchor(CENTER, relativeTo, CENTER, offsetX, offsetY)
+end
+
+local m_handleLayer = nil
+
+-- ESO only renders top-level windows and their descendants; a plain control
+-- parented straight to GuiRoot never enters the render list, which is why
+-- GuiRoot-rooted handles had perfect state but drew nothing. All handles
+-- live under one dedicated always-shown top-level window instead.
+local function EnsureHandleLayer()
+    if m_handleLayer then return m_handleLayer end
+    if not (WINDOW_MANAGER and type(WINDOW_MANAGER.CreateTopLevelWindow) == "function") then
+        return nil
+    end
+    local layer = WINDOW_MANAGER:CreateTopLevelWindow("BetterUI_OrbMoverLayer")
+    if not layer then return nil end
+    if layer.SetMouseEnabled then layer:SetMouseEnabled(false) end
+    if layer.SetHidden then layer:SetHidden(false) end
+    if layer.SetDrawLayer then layer:SetDrawLayer(DL_OVERLAY) end
+    if layer.SetDrawTier and DT_HIGH then layer:SetDrawTier(DT_HIGH) end
+    if layer.SetDimensions then layer:SetDimensions(1, 1) end
+    if layer.SetAnchor and CENTER then
+        layer:SetAnchor(CENTER, rawget(_G, "GuiRoot"), CENTER, 0, 0)
+    end
+    m_handleLayer = layer
+    return layer
+end
+
+-- The box body is drawn with untextured CT_TEXTURE rects: ZOS renders those
+-- as solid color fills (housing editor translation indicators do the same),
+-- while a Lua-created CT_BACKDROP renders nothing without texture files —
+-- which is why the previous backdrop-based box never appeared in game.
+local function EnsureHandleFill(handle)
+    if not handle then return nil end
+    if m_handleFills[handle] then return m_handleFills[handle] end
+    local topLeft = rawget(_G, "TOPLEFT")
+    local bottomRight = rawget(_G, "BOTTOMRIGHT")
+    if not (WINDOW_MANAGER and CT_TEXTURE and topLeft and bottomRight) then return nil end
+    local handleName = GetControlName(handle) or "BetterUI_DragHandle"
+
+    local function CreatePart(suffix, level, r, g, b, a, inset)
+        local part = WINDOW_MANAGER:CreateControl(handleName .. suffix, handle, CT_TEXTURE)
+        if not part then return nil end
+        if part.SetMouseEnabled then part:SetMouseEnabled(false) end
+        if part.SetAnchor then
+            part:SetAnchor(topLeft, handle, topLeft, -inset, -inset)
+            part:SetAnchor(bottomRight, handle, bottomRight, inset, inset)
+        end
+        if part.SetDrawLayer then part:SetDrawLayer(DL_OVERLAY) end
+        if part.SetDrawTier and DT_HIGH then part:SetDrawTier(DT_HIGH) end
+        if part.SetDrawLevel then part:SetDrawLevel(level) end
+        if part.SetColor then part:SetColor(r, g, b, a) end
+        return part
+    end
+
+    local data = {
+        border = CreatePart("BorderFill", 510, 0.78, 0.88, 1, 0.55, 2),
+        fill = CreatePart("Fill", 511, 0.72, 0.82, 0.95, 0.10, 0),
+    }
+    m_handleFills[handle] = data
+    return data
+end
+
 local function SetHandleVisual(handle, locked)
     if not handle then return end
+    local fills = EnsureHandleFill(handle)
+    if fills then
+        if fills.border and fills.border.SetHidden then fills.border:SetHidden(locked == true) end
+        if fills.fill and fills.fill.SetHidden then fills.fill:SetHidden(locked == true) end
+    end
     local alpha = locked and 0 or 0.15
     local hasBackdropColor = handle.SetCenterColor or handle.SetEdgeColor
     -- Backdrop alpha stays faint without dimming the child move icon.
     if handle.SetCenterColor then
-        handle:SetCenterColor(1, 1, 1, alpha)
+        handle:SetCenterColor(0.15, 0.45, 1, alpha)
     end
     if handle.SetEdgeColor then
-        handle:SetEdgeColor(1, 1, 1, alpha)
+        handle:SetEdgeColor(0.35, 0.70, 1, locked and 0 or 0.85)
+    end
+    if handle.SetHidden then
+        handle:SetHidden(false)
     end
     if handle.SetColor then
         handle:SetColor(1, 1, 1, hasBackdropColor and 1 or alpha)
@@ -241,16 +525,46 @@ local function SetHandleVisual(handle, locked)
         handle:SetMouseEnabled(not locked)
     end
     UpdateHandleIconVisual(handle, locked)
+    UpdateHandleLabelVisual(handle, locked)
 end
 
 local function AreElementPositionsUnlocked(settings)
     return settings and settings.elementPositionsUnlocked == true
 end
 
+-- Engine-side render snapshot so interface.log shows what actually drew,
+-- independent of what the visual setters were asked to do.
+local function TraceHandleVisualState(elemKey, handle, locked, origin)
+    if not handle then return end
+    local width, height = GetControlDimensions(handle)
+    local centerX, centerY = GetControlCenter(handle)
+    TraceDrag("resource_orbs.element_drag_handle", "visual_state", {
+        elemKey = elemKey,
+        origin = origin,
+        locked = locked == true,
+        width = width,
+        height = height,
+        centerX = centerX,
+        centerY = centerY,
+        hidden = CallControl(handle, "IsHidden"),
+        alpha = CallControl(handle, "GetAlpha"),
+        drawTier = CallControl(handle, "GetDrawTier"),
+        drawLevel = CallControl(handle, "GetDrawLevel"),
+        parent = GetControlName(CallControl(handle, "GetParent")),
+    })
+end
+
 local function RefreshAllHandleVisuals(unlocked)
     local locked = unlocked ~= true
-    for _, handle in pairs(m_handles) do
+    for elemKey, handle in pairs(m_handles) do
+        -- Hosts may have been laid out after attach; keep the box matched
+        -- to the element's current footprint on every lock refresh.
+        if handle.SetDimensions then
+            handle:SetDimensions(GetHandleDimensions(m_handleHosts[elemKey], elemKey))
+        end
+        AnchorHandle(handle, m_handleHosts[elemKey], elemKey)
         SetHandleVisual(handle, locked)
+        TraceHandleVisualState(elemKey, handle, locked, "global_lock_refresh")
     end
 end
 
@@ -484,7 +798,7 @@ local function ApplyDragOffset(elemKey, settingsGetter, dragState, dx, dy, apply
     return changed
 end
 
-function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallback)
+function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallback, options)
     if not hostControl or not elemKey then
         TraceDrag("resource_orbs.element_drag_handle", "attach_skipped", {
             elemKey = elemKey,
@@ -513,11 +827,27 @@ function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallba
         elemKey = elemKey,
     })
     local handleName = "BetterUI_DragHandle_" .. elemKey
-    local handle = WINDOW_MANAGER:CreateControl(handleName, hostControl, CT_BACKDROP)
-    local handleSize = GetHandleSize(hostControl)
-    handle:SetDimensions(handleSize, handleSize)
-    handle:SetAnchor(CENTER, hostControl, CENTER, 0, 0)
+    local handleParent = EnsureHandleLayer() or rawget(_G, "GuiRoot") or hostControl
+    local handle = m_handleControlPool[handleName]
+    if handle then
+        if handle.SetParent then handle:SetParent(handleParent) end
+    else
+        handle = WINDOW_MANAGER:CreateControl(handleName, handleParent, CT_BACKDROP)
+        if handle then m_handleControlPool[handleName] = handle end
+    end
+    if not handle then
+        TraceDrag("resource_orbs.element_drag_handle", "attach_failed", {
+            elemKey = elemKey,
+            reason = "createControlFailed",
+        })
+        return nil
+    end
+    handle._betteruiResourceOrbDragLabel = ResolveHandleLabel(elemKey, options)
+    m_handleSpans[elemKey] = options and options.spanControls or nil
+    handle:SetDimensions(GetHandleDimensions(hostControl, elemKey))
+    AnchorHandle(handle, hostControl, elemKey)
     handle:SetDrawLayer(DL_OVERLAY)
+    if handle.SetDrawTier and DT_HIGH then handle:SetDrawTier(DT_HIGH) end
     handle:SetDrawLevel(510)
 
     local liveSettingsGetter = ResolveLiveSettingsGetter(settingsGetter)
@@ -592,6 +922,7 @@ function Drag.AttachDragHandle(hostControl, elemKey, settingsGetter, applyCallba
     m_handles[elemKey] = handle
     m_handleHosts[elemKey] = hostControl
     TraceDrag("resource_orbs.element_drag_handle", "attached", { elemKey = elemKey, hostControl = GetControlName(hostControl) })
+    TraceHandleVisualState(elemKey, handle, locked, "attach")
     return handle
 end
 
@@ -615,9 +946,11 @@ function Drag.DetachDragHandle(elemKey)
     if handle.SetHidden then
         handle:SetHidden(true)
     end
-    m_handleIcons[handle] = nil
+    -- m_handleIcons/m_handleLabels stay cached: the pooled control and its
+    -- named children survive detach and are revived verbatim on re-attach.
     m_handles[elemKey] = nil
     m_handleHosts[elemKey] = nil
+    m_handleSpans[elemKey] = nil
     TraceDrag("resource_orbs.element_drag_handle", "detached", {
         elemKey = elemKey,
     })

@@ -162,7 +162,7 @@ assertTrue(moduleSource:find("SI_BETTERUI_RESOURCE_ORB_FRAMES_INDEPENDENT_ORB_OF
 -- settings snapshot.
 assertTrue(orchestratorSource:find("local GetLiveSettings = SettingsUtils%.GetLive or GetSettings") ~= nil,
     "Orchestrator: live settings getter is available")
-assertTrue(orchestratorSource:find("drag%.AttachDragHandle%(hostControl, elemKey, GetLiveSettings, ApplyFullLayout%)") ~= nil,
+assertTrue(orchestratorSource:find("drag%.AttachDragHandle%(hostControl, elemKey, GetLiveSettings, ApplyFullLayout, options%)") ~= nil,
     "Orchestrator: drag handles mutate live settings")
 assertTrue(orchestratorSource:find("local settings = GetLiveSettings%(%) or {}") ~= nil,
     "Orchestrator: layout reads live element offsets after drag mutation")

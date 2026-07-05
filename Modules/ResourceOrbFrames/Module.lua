@@ -159,7 +159,11 @@ local function InitSettingsPanel(mId, moduleName)
             local unlocked = v == true
             local previous = generalContracts.elementPositionsUnlocked.get()
             setUnlocked(unlocked)
-            local drag = BETTERUI.ResourceOrbFrames.Drag
+            local rof = BETTERUI.ResourceOrbFrames
+            if unlocked and type(rof.AttachElementDragHandles) == "function" then
+                rof.AttachElementDragHandles()
+            end
+            local drag = rof.Drag
             if drag and type(drag.SetAllElementsUnlocked) == "function" then
                 drag.SetAllElementsUnlocked(unlocked, GetLiveResourceOrbSettings)
             end
@@ -248,7 +252,11 @@ local function InitSettingsPanel(mId, moduleName)
                             unlocked = s.elementPositionsUnlocked == true,
                             usesLiveSettings = true,
                         })
-                        local drag = BETTERUI.ResourceOrbFrames.Drag
+                        local rof = BETTERUI.ResourceOrbFrames
+                        if s.elementPositionsUnlocked == true and type(rof.AttachElementDragHandles) == "function" then
+                            rof.AttachElementDragHandles()
+                        end
+                        local drag = rof.Drag
                         if drag and type(drag.SetAllElementsUnlocked) == "function" then
                             drag.SetAllElementsUnlocked(s.elementPositionsUnlocked == true, GetLiveResourceOrbSettings)
                         end

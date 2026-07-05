@@ -41,6 +41,7 @@ local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
 local nameplatesModule = read_file("Modules/Nameplates/Nameplates.lua")
 local nameplatesPositioning = read_file("Modules/Nameplates/Positioning.lua")
 local nameplatesSettings = read_file("Modules/Nameplates/Settings.lua")
+local resourceOrbElementDrag = read_file("Modules/ResourceOrbFrames/Core/ElementDrag.lua")
 local inventoryFormatting = read_file("Modules/Inventory/Lists/InventoryEntryFormatting.lua")
 
 assert_contains(accessorSource, "function BETTERUI.CIM.ApplyModuleSharedSettingsStatics(",
@@ -130,6 +131,10 @@ assert_contains(nameplatesModule, "Nameplates.Settings.RegisterPanel = InitPanel
     "Nameplates root binds dedicated panel construction through InitPanel")
 assert_contains(nameplatesModule, "function Nameplates.InitModule(m_options)",
     "Nameplates root owns InitModule defaults/migration behavior")
+assert_contains(nameplatesModule, "moveTargetBar = false,",
+    "Nameplates root defaults include the target/NPC bar mover")
+assert_contains(nameplatesModule, "movePlayerInteract = false,",
+    "Nameplates root defaults include the player-interact mover")
 assert_not_contains(nameplatesSettings, "Nameplates.Settings.RegisterPanel = InitPanel",
     "Nameplates settings helper no longer owns panel registration")
 assert_not_contains(nameplatesSettings, "function Nameplates.InitModule(m_options)",
@@ -139,9 +144,29 @@ assert_not_contains(nameplatesSettings, "local clampNameplateSize = Nameplates.C
 assert_contains(nameplatesModule, 'BETTERUI.CIM.RegisterModulePanelWithLogging(Nameplates, "Nameplates", "Nameplates", "Nameplates")',
     "Nameplates setup uses the shared panel registration helper")
 assert_contains(nameplatesModule, "ApplyNameplatePositioning(settings)",
-    "Nameplates runtime applies movable compass/reticle positioning with current settings")
+    "Nameplates runtime applies movable HUD positioning with current settings")
 assert_contains(nameplatesPositioning, "function Positioning.ApplyCurrentSettings(settings)",
     "Nameplates positioning helper exposes an apply-current-settings bridge")
+assert_contains(nameplatesPositioning, "local HANDLE_SIZE = 64",
+    "Nameplates mover handles stay compact enough for live HUD overlays")
+assert_contains(nameplatesPositioning, "local HANDLE_MATCH_MAX_WIDTH = 560",
+    "Nameplates mover boxes match element footprints but cap wide hosts instead of covering the screen")
+assert_contains(nameplatesPositioning, "local HANDLE_ARROW_EDGE_INSET = 2",
+    "Nameplates move arrows hug the box edges instead of clustering at the center")
+assert_contains(nameplatesPositioning, "and AnchorsMatch(ReadControlAnchors(control, controlName, descriptor), applyAnchors, offsetX, offsetY) then",
+    "Nameplates unlocked refresh skips unchanged anchor reapply diagnostics")
+assert_contains(nameplatesPositioning, "if applied > 0 or restored > 0 then",
+    "Nameplates positioning logs only actual apply/restore transitions")
+assert_contains(nameplatesPositioning, 'local playerToPlayer = rawget(_G, "PLAYER_TO_PLAYER")',
+    "Nameplates player-interact mover resolves ESOUI's PLAYER_TO_PLAYER prompt container")
+assert_contains(nameplatesSettings, 'key = "moveTargetBar"',
+    "Nameplates position settings expose the target/NPC bar mover")
+assert_contains(nameplatesSettings, 'key = "movePlayerInteract"',
+    "Nameplates position settings expose the player-interact mover")
+assert_contains(nameplatesSettings, 'IsPositionSliderDisabled("targetBar")',
+    "Nameplates target-bar position sliders use the targetBar descriptor gate")
+assert_contains(nameplatesSettings, 'IsPositionSliderDisabled("playerInteract")',
+    "Nameplates player-interact position sliders use the playerInteract descriptor gate")
 
 assert_contains(resourceOrbModule, 'function ResourceOrbFrames.Setup()',
     "ResourceOrbFrames exposes an explicit setup-time hook")
@@ -154,6 +179,12 @@ assert_contains(resourceOrbModule, 'ResourceOrbFrames.Settings.RegisterPanel = I
 assert_contains(resourceOrbModule,
     'BETTERUI.CIM.RegisterModulePanelWithLogging(ResourceOrbFrames, "ResourceOrbFrames", "ResourceOrbFrames",',
     "ResourceOrbFrames setup uses the shared panel registration helper")
+assert_contains(resourceOrbElementDrag, "local HANDLE_SIZE = 64",
+    "Resource orb drag handles stay compact enough for clustered HUD elements")
+assert_contains(resourceOrbElementDrag, "local HANDLE_ARROW_EDGE_INSET = 2",
+    "Resource orb move icon separates directional arrows so they do not read as one cross")
+assert_contains(resourceOrbElementDrag, "handle:SetCenterColor(0.15, 0.45, 1, alpha)",
+    "Resource orb drag handles use the same blue backdrop treatment as nameplate movers")
 assert_contains(writsModule, 'local THIN_ENTRYPOINT = ARCHETYPES.THIN_ENTRYPOINT or "thin-entrypoint"',
     "Writs resolves the thin-entrypoint archetype from shared archetype constants")
 assert_contains(writsModule, "Writs.ROOT_CONTRACT = {",

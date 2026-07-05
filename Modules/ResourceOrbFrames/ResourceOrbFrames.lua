@@ -579,7 +579,7 @@ local function AttachElementDragHandles()
 
     local attachedCount = 0
     local skippedCount = 0
-    local function attach(hostControl, elemKey)
+    local function attach(hostControl, elemKey, options)
         TraceDrag("resource_orbs.element_drag_handles", "attach_call", { fn = "ResourceOrbFrames.AttachElementDragHandles", elemKey = elemKey, hasHostControl = hostControl ~= nil })
         if not hostControl then
             skippedCount = skippedCount + 1
@@ -600,7 +600,7 @@ local function AttachElementDragHandles()
             })
             return
         end
-        local handle = drag.AttachDragHandle(hostControl, elemKey, GetLiveSettings, ApplyFullLayout)
+        local handle = drag.AttachDragHandle(hostControl, elemKey, GetLiveSettings, ApplyFullLayout, options)
         if handle then
             attachedCount = attachedCount + 1
         else
@@ -639,9 +639,25 @@ local function AttachElementDragHandles()
         hasCompanion = companionButton ~= nil,
     })
 
-    attach(FindControl(m_rootFrame, 'OrbHealth'), "leftOrb")
+    -- rightOrb attaches first so leftOrb's dimension twin can borrow its
+    -- footprint immediately (the health orb host is padded by ornament art).
     attach(FindControl(m_rootFrame, 'OrbResource'), "rightOrb")
-    attach(m_frontBarContainer or actionBarContainer, "skillBars")
+    attach(FindControl(m_rootFrame, 'OrbHealth'), "leftOrb")
+    -- The skill bars box spans both bars from the first skill icon through
+    -- the ultimate, not just the front bar container's own rect.
+    local skillBarsHost = m_frontBarContainer or actionBarContainer
+    local skillBarSpan = { skillBarsHost }
+    -- The secondary bar joins the span only while shown (hidden span members
+    -- are skipped at measure time, so hideBackBar keeps the box single-row).
+    if m_backBarContainer then skillBarSpan[#skillBarSpan + 1] = m_backBarContainer end
+    local getBarButton = ControlUtils and ControlUtils.GetFrontBarButtonControl
+    if getBarButton then
+        local firstSkillButton = getBarButton(m_rootFrame, m_frontBarContainer, "Button1")
+        local ultimateButton = getBarButton(m_rootFrame, m_frontBarContainer, "UltimateButton")
+        if firstSkillButton then skillBarSpan[#skillBarSpan + 1] = firstSkillButton end
+        if ultimateButton then skillBarSpan[#skillBarSpan + 1] = ultimateButton end
+    end
+    attach(skillBarsHost, "skillBars", { spanControls = skillBarSpan })
     attach(m_experienceBar and m_experienceBar.control, "xpBar")
     attach(m_mountStaminaBar and m_mountStaminaBar.control, "mountBar")
     attach(m_castBar and m_castBar.control, "castBar")
@@ -653,6 +669,10 @@ local function AttachElementDragHandles()
         skippedCount = skippedCount,
     })
 end
+
+-- Hosts created after module setup (cast/mount/companion bars) have no handle
+-- yet; Module.lua re-runs this on unlock so every movable box exists by then.
+ResourceOrbFrames.AttachElementDragHandles = AttachElementDragHandles
 
 -- INITIALIZATION HELPERS
 
