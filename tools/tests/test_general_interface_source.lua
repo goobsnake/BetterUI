@@ -65,6 +65,24 @@ assert_contains(clearLinesSource, "local preserveStockLayoutState = hasDisplayed
 assert_not_contains(clearLinesSource, "enhancementsEnabled == false",
     "ClearLines preservation is not gated to disabled enhanced tooltips")
 
+-- Regression: the tooltip content-lifecycle clear must be preserve-aware so the
+-- stock re-layout cycle (native ClearLines then re-append of the SAME item while
+-- enhancements are off) is not mis-detected as an immediate strip-after-append
+-- (the vendor.sell WARN storm). A preserving clear keeps the lifecycle marker and
+-- downgrades to a TRACE "preserved" record instead of a WARN "cleared".
+local clearTraceStart = assert(tooltipsSource:find("local function TraceTooltipContentCleared", 1, true))
+local clearTraceEnd = assert(tooltipsSource:find("local function SetGuildStoreErrorSuppressed", clearTraceStart, true))
+local clearTraceSource = tooltipsSource:sub(clearTraceStart, clearTraceEnd)
+assert_contains(clearTraceSource, "if preserveItemData == true then",
+    "Tooltip content-clear trace branches on the preserve flag before flagging a clear")
+assert_contains(clearTraceSource, "action = \"preserved\"",
+    "Preserving tooltip clears emit a 'preserved' record instead of a strip-after-append warning")
+local preserveBranchIndex = assert(clearTraceSource:find("if preserveItemData == true then", 1, true))
+local markerResetIndex = assert(clearTraceSource:find("tooltipControl._betteruiTooltipContentLifecycle = nil", 1, true))
+if markerResetIndex < preserveBranchIndex then
+    error("Preserving clears must keep the lifecycle marker: the marker reset must follow the preserve-branch return")
+end
+
 assert_contains(nameplatesSource, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates runtime resolves from the dedicated Nameplates module namespace")
 assert_not_contains(nameplatesSource, "GeneralInterface.Nameplates = Nameplates",
