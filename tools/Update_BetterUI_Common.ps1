@@ -40,6 +40,78 @@ function Test-BetterUIDeployExcludedPath {
     return $false
 }
 
+function Remove-BetterUIDeployPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    if ($IsLinux) {
+        & rm -rf -- $Path
+        if ($LASTEXITCODE -eq 0 -and -not (Test-Path -LiteralPath $Path)) {
+            return
+        }
+
+        Start-Sleep -Milliseconds 250
+        $gio = Get-Command gio -ErrorAction SilentlyContinue
+        if ($gio) {
+            $items = @(
+                Get-ChildItem -LiteralPath $Path -Force -Recurse -ErrorAction SilentlyContinue |
+                    Sort-Object { $_.FullName.Length } -Descending
+            )
+            foreach ($item in $items) {
+                if (Test-Path -LiteralPath $item.FullName) {
+                    & $gio.Source remove $item.FullName 2>$null
+                }
+            }
+            if (Test-Path -LiteralPath $Path) {
+                & $gio.Source remove $Path 2>$null
+            }
+            Start-Sleep -Milliseconds 250
+            if (-not (Test-Path -LiteralPath $Path)) {
+                return
+            }
+        }
+    }
+
+    Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $Path) {
+        $remaining = @(Get-ChildItem -LiteralPath $Path -Force -Recurse -ErrorAction SilentlyContinue)
+        if ((Test-Path -LiteralPath $Path -PathType Container) -and $remaining.Count -eq 0) {
+            return
+        }
+        throw "Failed to remove deploy path: $Path"
+    }
+}
+
+function New-BetterUIDeployDirectory {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        throw 'Deploy directory path cannot be empty.'
+    }
+
+    if ($IsLinux) {
+        & mkdir -p -- $Path
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to create deploy directory: $Path"
+        }
+    } else {
+        New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop | Out-Null
+    }
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+        throw "Deploy directory missing after creation: $Path"
+    }
+}
+
 function Remove-BetterUIDeployExcludedArtifacts {
     param(
         [Parameter(Mandatory = $true)]
@@ -56,19 +128,9 @@ function Remove-BetterUIDeployExcludedArtifacts {
 
     foreach ($artifact in $excludedArtifacts) {
         $artifactPath = $artifact.FullName
-        $removeFailed = $false
-        if ($IsLinux) {
-            & rm -rf -- $artifactPath
-            $removeFailed = $LASTEXITCODE -ne 0
-        } else {
-            try {
-                Remove-Item -LiteralPath $artifactPath -Recurse -Force -ErrorAction Stop
-            } catch {
-                $removeFailed = $true
-            }
-        }
-
-        if ($removeFailed -or (Test-Path -LiteralPath $artifactPath)) {
+        try {
+            Remove-BetterUIDeployPath -Path $artifactPath
+        } catch {
             Write-Warning "Excluded deploy artifact could not be removed: $artifactPath"
         }
     }
@@ -213,16 +275,13 @@ function Copy-BetterUIAddon {
     }
 
     if (Test-Path -LiteralPath $Target) {
-        if ($IsLinux) {
-            & rm -rf -- $Target
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to remove existing target directory: $Target"
-            }
-        } else {
-            Remove-Item -LiteralPath $Target -Recurse -Force
+        try {
+            Remove-BetterUIDeployPath -Path $Target
+        } catch {
+            Write-Warning "Deploy target could not be fully removed; overlaying files instead: $Target"
         }
     }
-    New-Item -ItemType Directory -Path $Target -Force | Out-Null
+    New-BetterUIDeployDirectory -Path $Target
 
     $sourceRoot = (Resolve-Path -LiteralPath $SourceDir).Path
     $items = Get-ChildItem -LiteralPath $SourceDir -Force -Recurse |
@@ -235,13 +294,13 @@ function Copy-BetterUIAddon {
         $destinationPath = Join-PathSegments -Root $Target -Segments $relativeSegments
 
         if ($item.PSIsContainer) {
-            New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
+            New-BetterUIDeployDirectory -Path $destinationPath
             continue
         }
 
         $destinationParent = Split-Path $destinationPath -Parent
         if (-not (Test-Path -LiteralPath $destinationParent -PathType Container)) {
-            New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
+            New-BetterUIDeployDirectory -Path $destinationParent
         }
 
         if ($IsLinux) {
