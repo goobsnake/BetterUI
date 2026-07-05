@@ -767,7 +767,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_POSITION_DESC", "Bewegt ESOs Kompassra
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS", "Namensanzeigen-Positionen entsperren")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS_TOOLTIP", "Erlaubt, bewegbare Namensanzeigen-Flaechen zu ziehen oder mit Positionsreglern anzupassen.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS", "Kompassrahmen verschieben")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "Wendet den Kompassrahmen-Versatz an, solange erweiterte Namensanzeigen aktiviert sind.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "Wendet den Kompassrahmen-Versatz unabhängig von der Texteinstellung der erweiterten Namensanzeigen an.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_X", "Kompassrahmen X")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_Y", "Kompassrahmen Y")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP", "Von ESOs Standardposition nach links oder rechts verschieben.")

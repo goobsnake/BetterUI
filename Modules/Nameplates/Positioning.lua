@@ -90,28 +90,37 @@ local DESCRIPTORS = {
             local compass = rawget(_G, "ZO_Compass")
             local frame = rawget(_G, "ZO_CompassFrame")
             if not (compass and frame) then return end
-            if compass._betteruiCompassScaleApplied == scale then return end
-            compass._betteruiCompassScaleApplied = scale
-            if type(compass.SetScale) == "function" then
-                pcall(compass.SetScale, compass, 1)
-            end
             local okWidth, width = pcall(frame.GetWidth, frame)
             local okHeight, height = pcall(frame.GetHeight, frame)
-            if not (okWidth and okHeight and type(width) == "number" and type(height) == "number") then return end
+            if not (okWidth and okHeight and type(width) == "number" and type(height) == "number"
+                and width > 0 and height > 0) then
+                return
+            end
+            -- Cache by scale AND frame size, and only after a successful
+            -- re-anchor, so a zero-size frame at first apply or a later
+            -- layout change at the same scale still gets reapplied.
+            local cacheKey = string.format("%.3f:%.1f:%.1f", scale, width, height)
+            if compass._betteruiCompassScaleApplied == cacheKey then return end
             local topLeft = rawget(_G, "TOPLEFT")
             local bottomRight = rawget(_G, "BOTTOMRIGHT")
             if not (compass.ClearAnchors and compass.SetAnchor and topLeft and bottomRight) then return end
+            if type(compass.SetScale) == "function" then
+                pcall(compass.SetScale, compass, 1)
+            end
             -- The frame scales around its top-center anchor: rendered rect is
             -- narrower by width*(1-s) split across both sides and shorter by
             -- height*(1-s) at the bottom. At scale 1 these collapse to the
             -- default full-frame anchors.
             local dx = width * (1 - scale) / 2
             local dy = height * (1 - scale)
-            pcall(function()
+            local reanchored = pcall(function()
                 compass:ClearAnchors()
                 compass:SetAnchor(topLeft, frame, topLeft, dx, 0)
                 compass:SetAnchor(bottomRight, frame, bottomRight, -dx, -dy)
             end)
+            if reanchored then
+                compass._betteruiCompassScaleApplied = cacheKey
+            end
         end,
         controls = { "ZO_CompassFrame" },
         placeholderWidth = 140,

@@ -768,7 +768,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_POSITION_DESC", "Перемещает 
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS", "Разблокировать положение табличек имен")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS_TOOLTIP", "Позволяет перетаскивать перемещаемые элементы табличек имен или настраивать их ползунками положения.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS", "Переместить рамку компаса")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "Применяет смещение рамки компаса, пока включены улучшенные таблички имен.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "Применяет смещение рамки компаса независимо от настройки текста улучшенных табличек имен.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_X", "Рамка компаса X")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_Y", "Рамка компаса Y")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP", "Сдвигает влево или вправо от стандартного положения ESO.")

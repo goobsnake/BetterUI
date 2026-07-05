@@ -226,7 +226,10 @@ local function EnsureHandleIcon(handle)
     if m_handleIcons[handle] then return m_handleIcons[handle] end
 
     local handleName = GetControlName(handle) or "BetterUI_DragHandle"
+    -- CreateControl returns nil on duplicate names; skip nil children rather
+    -- than hard-erroring (ConfigureIconPart tolerates missing part controls).
     local icon = WINDOW_MANAGER:CreateControl(handleName .. "MoveIcon", handle, CT_CONTROL)
+    if not icon then return nil end
     if icon.SetMouseEnabled then icon:SetMouseEnabled(false) end
     if icon.SetDrawLayer then icon:SetDrawLayer(DL_OVERLAY) end
     if icon.SetDrawTier and DT_HIGH then icon:SetDrawTier(DT_HIGH) end
@@ -235,20 +238,24 @@ local function EnsureHandleIcon(handle)
     local data = { control = icon, parts = {} }
     for _, def in ipairs(HANDLE_ICON_TEXTURES) do
         local shadow = WINDOW_MANAGER:CreateControl(handleName .. "MoveIconShadow" .. def.key, icon, CT_TEXTURE)
-        SetTextureGuarded(shadow, def.texture)
-        if shadow.SetMouseEnabled then shadow:SetMouseEnabled(false) end
-        if shadow.SetDrawLayer then shadow:SetDrawLayer(DL_OVERLAY) end
-        if shadow.SetDrawTier and DT_HIGH then shadow:SetDrawTier(DT_HIGH) end
-        if shadow.SetDrawLevel then shadow:SetDrawLevel(HANDLE_ARROW_SHADOW_DRAW_LEVEL) end
-        data.parts[#data.parts + 1] = { control = shadow, x = def.x, y = def.y, shadow = true }
+        if shadow then
+            SetTextureGuarded(shadow, def.texture)
+            if shadow.SetMouseEnabled then shadow:SetMouseEnabled(false) end
+            if shadow.SetDrawLayer then shadow:SetDrawLayer(DL_OVERLAY) end
+            if shadow.SetDrawTier and DT_HIGH then shadow:SetDrawTier(DT_HIGH) end
+            if shadow.SetDrawLevel then shadow:SetDrawLevel(HANDLE_ARROW_SHADOW_DRAW_LEVEL) end
+            data.parts[#data.parts + 1] = { control = shadow, x = def.x, y = def.y, shadow = true }
+        end
 
         local face = WINDOW_MANAGER:CreateControl(handleName .. "MoveIcon" .. def.key, icon, CT_TEXTURE)
-        SetTextureGuarded(face, def.texture)
-        if face.SetMouseEnabled then face:SetMouseEnabled(false) end
-        if face.SetDrawLayer then face:SetDrawLayer(DL_OVERLAY) end
-        if face.SetDrawTier and DT_HIGH then face:SetDrawTier(DT_HIGH) end
-        if face.SetDrawLevel then face:SetDrawLevel(HANDLE_ARROW_FACE_DRAW_LEVEL) end
-        data.parts[#data.parts + 1] = { control = face, x = def.x, y = def.y, shadow = false }
+        if face then
+            SetTextureGuarded(face, def.texture)
+            if face.SetMouseEnabled then face:SetMouseEnabled(false) end
+            if face.SetDrawLayer then face:SetDrawLayer(DL_OVERLAY) end
+            if face.SetDrawTier and DT_HIGH then face:SetDrawTier(DT_HIGH) end
+            if face.SetDrawLevel then face:SetDrawLevel(HANDLE_ARROW_FACE_DRAW_LEVEL) end
+            data.parts[#data.parts + 1] = { control = face, x = def.x, y = def.y, shadow = false }
+        end
     end
     m_handleIcons[handle] = data
     return data
@@ -339,6 +346,7 @@ local function EnsureHandleLabel(handle)
 
     local handleName = GetControlName(handle) or "BetterUI_DragHandle"
     local label = WINDOW_MANAGER:CreateControl(handleName .. "Label", handle, CT_LABEL)
+    if not label then return nil end
     if label.SetMouseEnabled then label:SetMouseEnabled(false) end
     if label.SetFont then label:SetFont("$(BOLD_FONT)|16|soft-shadow-thin") end
     if label.SetHorizontalAlignment and TEXT_ALIGN_CENTER then label:SetHorizontalAlignment(TEXT_ALIGN_CENTER) end

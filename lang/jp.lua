@@ -768,7 +768,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_POSITION_DESC", "BetterUI要素と重�
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS", "ネームプレート位置のロック解除")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS_TOOLTIP", "移動可能なネームプレート要素をドラッグまたは位置スライダーで調整できるようにします。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS", "コンパスフレームを移動")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "強化ネームプレートが有効な間、コンパスフレームのオフセットを適用します。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "強化ネームプレートのテキスト設定に関係なく、コンパスフレームのオフセットを適用します。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_X", "コンパスフレーム X")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_Y", "コンパスフレーム Y")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP", "ESOの既定位置から左右に移動します。")

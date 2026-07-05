@@ -590,16 +590,9 @@ local function AttachElementDragHandles()
             })
             return
         end
-        if drag.GetHandle and drag.GetHandle(elemKey) then
-            skippedCount = skippedCount + 1
-            TraceROF("resource_orbs.element_drag_handles", "attach_skipped", {
-                fn = "ResourceOrbFrames.AttachElementDragHandles",
-                elemKey = elemKey,
-                reason = "alreadyAttached",
-                hostControl = DescribeControlForTrace(hostControl, elemKey),
-            })
-            return
-        end
+        -- No already-attached skip: AttachDragHandle reattaches through the
+        -- handle pool, so repeat calls refresh host, span, and label state
+        -- (e.g. the back bar container appearing after the first attach).
         local handle = drag.AttachDragHandle(hostControl, elemKey, GetLiveSettings, ApplyFullLayout, options)
         if handle then
             attachedCount = attachedCount + 1

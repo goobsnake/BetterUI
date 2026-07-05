@@ -766,7 +766,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_POSITION_DESC", "Mueve el marco de bru
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS", "Desbloquear posiciones de nombres")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS_TOOLTIP", "Permite arrastrar las superficies movibles de nombres o ajustarlas con sus controles deslizantes de posicion.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS", "Mover marco de brujula")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "Aplica el desplazamiento del marco de brujula mientras Nombres mejorados esta activado.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "Aplica el desplazamiento del marco de brujula independientemente del ajuste de texto de Nombres mejorados.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_X", "Marco de brujula X")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_Y", "Marco de brujula Y")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP", "Mueve a la izquierda o a la derecha desde la posicion predeterminada de ESO.")

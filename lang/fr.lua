@@ -768,7 +768,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_POSITION_DESC", "Deplace le cadre de b
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS", "Deverrouiller les positions des noms")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_UNLOCK_POSITIONS_TOOLTIP", "Permet de faire glisser les surfaces de noms deplacables ou de les ajuster avec leurs curseurs de position.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS", "Deplacer le cadre de boussole")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "Applique le decalage du cadre de boussole lorsque les noms ameliores sont actives.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_MOVE_COMPASS_TOOLTIP", "Applique le decalage du cadre de boussole independamment du reglage de texte des noms ameliores.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_X", "Cadre de boussole X")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_COMPASS_OFFSET_Y", "Cadre de boussole Y")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP", "Deplace vers la gauche ou la droite depuis la position par defaut d'ESO.")
