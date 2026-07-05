@@ -165,6 +165,14 @@ local function GetOrderLabel(dataEntry)
     return GetString(dataEntry.orderStr)
 end
 
+local function GetCurrencyEnabledDefault(dataEntry)
+    local defaultPreset = BETTERUI.CURRENCY_PRESETS and BETTERUI.CURRENCY_PRESETS.default
+    if type(defaultPreset) == "table" and defaultPreset[dataEntry.settingKey] ~= nil then
+        return defaultPreset[dataEntry.settingKey] == true
+    end
+    return dataEntry.id ~= "seals" and dataEntry.id ~= "tomepoints"
+end
+
 local function SafeRefresh(headerToo)
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY_ROOT_SCENE and GAMEPAD_INVENTORY_ROOT_SCENE.IsShowing and GAMEPAD_INVENTORY_ROOT_SCENE:IsShowing() then
         if headerToo and GAMEPAD_INVENTORY.RefreshHeader then
@@ -311,8 +319,8 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
             choicesValues = { "default", "pvp", "crafter", "events", "custom" },
             getFunc = function()
                 local settings = GetInventorySettings()
-                if not settings then return "custom" end
-                return settings.currencyPreset or "custom"
+                if not settings then return "default" end
+                return settings.currencyPreset or "default"
             end,
             setFunc = function(value)
                 local settings = EnsureInventorySettings()
@@ -324,6 +332,7 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                 RecomputeCurrencyOrderString()
                 SafeRefresh(true)
             end,
+            default = "default",
             width = "full",
             scrollable = true,
         },
@@ -341,20 +350,17 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
             table.insert(controls, {
                 type = "checkbox",
                 name = GetCurrencyLabel(data),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_DESC")),
                 getFunc = function()
                     local settings = GetInventorySettings()
                     if not settings then
-                        return data.id ~= "seals" and
-                            data.id ~= "tomepoints"
-                    end -- defaults logic
-                    -- Default behavior if nil is usually true, except for newer currencies maybe?
-                    -- In original code, 'getFunc' returned 'inv[k] ~= false' which implies default true.
-                    -- Except 'Seals' and 'TomePoints' returned '== true' which implies default false.
-                    if data.id == "seals" or data.id == "tomepoints" then
-                        return settings[data.settingKey] == true
-                    else
-                        return settings[data.settingKey] ~= false
+                        return GetCurrencyEnabledDefault(data)
                     end
+                    local value = settings[data.settingKey]
+                    if value == nil then
+                        return GetCurrencyEnabledDefault(data)
+                    end
+                    return value == true
                 end,
                 setFunc = function(value)
                     local settings = EnsureInventorySettings()
@@ -373,6 +379,7 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                     SetCurrencySetting(settings, "currencyPreset", "custom", "currencyToggle")
                     SafeRefresh(true)
                 end,
+                default = GetCurrencyEnabledDefault(data),
                 width = "half",
             })
 
@@ -380,6 +387,7 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
             table.insert(controls, {
                 type = "dropdown",
                 name = GetOrderLabel(data),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_DESC")),
                 choices = CURRENCY_ORDER_CHOICES,
                 choicesValues = CURRENCY_ORDER_VALUES,
                 disabled = function()
@@ -388,11 +396,10 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                         return true
                     end
                     local val = settings[data.settingKey]
-                    if data.id == "seals" or data.id == "tomepoints" then
-                        return val ~= true
-                    else
-                        return val == false
+                    if val == nil then
+                        return not GetCurrencyEnabledDefault(data)
                     end
+                    return val ~= true
                 end,
                 getFunc = function()
                     local settings = GetInventorySettings()
@@ -409,6 +416,7 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                     RecomputeCurrencyOrderString()
                     SafeRefresh(true)
                 end,
+                default = data.defaultOrder,
                 width = "half",
             })
         end

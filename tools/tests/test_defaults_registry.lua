@@ -124,6 +124,13 @@ local cim = BETTERUI.Defaults.Modules.CIM
 assert_equal(50, cim.rhScrollSpeed, "CIM.rhScrollSpeed defaults to 50")
 assert_equal(24, cim.tooltipSize, "CIM.tooltipSize defaults to 24")
 assert_true(cim.enableTooltipEnhancements, "CIM.enableTooltipEnhancements defaults true")
+assert_false(cim.interfaceLogEnabled, "CIM.interfaceLogEnabled defaults false")
+assert_equal("", cim.interfaceLogPreset, "CIM.interfaceLogPreset defaults empty")
+assert_equal("", cim.interfaceLogMinLevel, "CIM.interfaceLogMinLevel defaults empty")
+assert_equal("off", cim.interfaceLogScreenshotAutoMode, "CIM.interfaceLogScreenshotAutoMode defaults off")
+assert_false(cim.interfaceLogChat, "CIM.interfaceLogChat defaults false")
+assert_true(cim.interfaceLogSuppressPopups, "CIM.interfaceLogSuppressPopups defaults true")
+assert_false(cim.interfaceLogPrivacy, "CIM.interfaceLogPrivacy defaults false")
 
 print("\nTest: ResourceOrbFrames defaults")
 local rof = BETTERUI.Defaults.Modules.ResourceOrbFrames

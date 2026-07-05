@@ -281,7 +281,7 @@ local SETTINGS_METADATA_REGISTRY = {
         },
         removeDeleteDialog = {
             labelStringId = SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM,
-            tooltipStringId = nil,
+            tooltipStringId = SI_BETTERUI_REMOVE_DELETE_WARNING,
             defaultValue = false,
             dependency = nil,
             sortGroup = "general",
@@ -646,8 +646,9 @@ function BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, fallbac
     end
 
     local defaultsApi = BETTERUI.Defaults
-    if defaultsApi and type(defaultsApi.GetDefault) == "function" then
-        local registryDefault = defaultsApi.GetDefault(moduleName, settingKey)
+    if defaultsApi and type(defaultsApi.GetModuleDefaults) == "function" then
+        local defaults = defaultsApi.GetModuleDefaults(moduleName)
+        local registryDefault = defaults and defaults[settingKey]
         if registryDefault ~= nil then
             return CloneDefaultValue(registryDefault)
         end

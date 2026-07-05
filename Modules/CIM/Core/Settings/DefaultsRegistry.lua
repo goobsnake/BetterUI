@@ -123,10 +123,17 @@ BETTERUI.Defaults.Modules = {
 
     -- CIM (Common Interface Module) CORE SETTINGS
     CIM = {
-        rhScrollSpeed = 50,               -- Right-hand tooltip scroll speed
-        tooltipSize = 24,                 -- Tooltip font size
-        enableTooltipEnhancements = true, -- Enable enhanced tooltip formatting
-        enhanceCompat = false,            -- Enhanced compatibility mode
+        rhScrollSpeed = 50,                  -- Right-hand tooltip scroll speed
+        tooltipSize = 24,                    -- Tooltip font size
+        enableTooltipEnhancements = true,    -- Enable enhanced tooltip formatting
+        enhanceCompat = false,               -- Enhanced compatibility mode
+        interfaceLogEnabled = false,         -- Builog disabled by default
+        interfaceLogPreset = "",            -- Plain/off persisted preset state
+        interfaceLogMinLevel = "",          -- Use logger default until customized
+        interfaceLogScreenshotAutoMode = "off",
+        interfaceLogChat = false,            -- Legacy chat logging remains disabled
+        interfaceLogSuppressPopups = true,   -- Keep debug popups suppressed by default
+        interfaceLogPrivacy = false,         -- Privacy redaction opt-in
     },
 
     -- RESOURCE ORB FRAMES MODULE

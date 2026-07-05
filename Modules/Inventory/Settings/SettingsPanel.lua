@@ -95,6 +95,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 				return BETTERUI.Inventory.GetSetting("quickDestroy")
 			end,
 			setFunc = function(value) BETTERUI.Inventory.SetSetting("quickDestroy", value) end,
+			default = false,
 			width = "full",
 		},
 		-- Batch Destroy (multi-select)
@@ -108,6 +109,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 				return BETTERUI.Inventory.GetSetting("enableBatchDestroy")
 			end,
 			setFunc = function(value) BETTERUI.Inventory.SetSetting("enableBatchDestroy", value) end,
+			default = false,
 			width = "full",
 		},
 		{
@@ -128,6 +130,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 					end
 				end
 			end,
+			default = true,
 			width = "full",
 		},
 		{
@@ -141,6 +144,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 				BETTERUI.Inventory.SetSetting("useTriggersForSkip", value)
 				ApplyTriggerMode(value)
 			end,
+			default = false,
 			width = "full",
 		},
 		{
@@ -159,6 +163,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 				ApplyTriggerMode(BETTERUI.Inventory.GetSetting("useTriggersForSkip"))
 			end,
 			disabled = function() return not BETTERUI.Inventory.GetSetting("useTriggersForSkip") end,
+			default = 10,
 			width = "full",
 			sortAlwaysLast = true,
 		},
@@ -170,6 +175,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 				return BETTERUI.Inventory.GetSetting("bindOnEquipProtection")
 			end,
 			setFunc = function(value) BETTERUI.Inventory.SetSetting("bindOnEquipProtection", value) end,
+			default = true,
 			width = "full",
 		},
 	}
@@ -189,6 +195,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 				inv:RefreshItemActions()
 			end
 		end,
+		default = false,
 		width = "full",
 	})
 	table.insert(optionsTable, {

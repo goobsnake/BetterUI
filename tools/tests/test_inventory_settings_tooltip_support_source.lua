@@ -52,6 +52,10 @@ assert_true(settingsPanelSource:find("CreateIconCustomizationSubmenuOption") ~= 
 assert_true(settingsPanelSource:find("BETTERUI%.Inventory%.Settings%.GetCurrencyOptions%(%)") ~= nil,
     "SettingsPanel appends the currency options packet")
 
+local currencySettingsSource = read_file("Modules/Inventory/Settings/CurrencySettings.lua")
+assert_true(currencySettingsSource:find("BETTERUI%.CURRENCY_PRESETS and BETTERUI%.CURRENCY_PRESETS%.default") ~= nil,
+    "Currency setting defaults read from the canonical default preset")
+
 local positionManagerSource = read_file("Modules/Inventory/State/PositionManager.lua")
 assert_true(positionManagerSource:find("function BETTERUI%.Inventory%.GetCategoryKey%(categoryData%)") ~= nil,
     "PositionManager exposes GetCategoryKey")

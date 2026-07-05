@@ -423,9 +423,9 @@ function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
         },
     }
     InsertElemPosSection(submenu.controls, shared, {
-        { label = "Skill Bars", key = "skillBars" },
-        { label = "Quickslot", key = "quickslot" },
-        { label = "Companion Ult.", key = "companionUltimate" },
+        { label = GetString(rawget(_G, "SI_BETTERUI_MOVER_LABEL_SKILL_BARS")), key = "skillBars" },
+        { label = GetString(rawget(_G, "SI_BETTERUI_MOVER_LABEL_QUICKSLOT")), key = "quickslot" },
+        { label = GetString(rawget(_G, "SI_BETTERUI_MOVER_LABEL_COMPANION_ULTIMATE")), key = "companionUltimate" },
     }, { "skillBars", "quickslot", "companionUltimate" })
     return submenu
 end

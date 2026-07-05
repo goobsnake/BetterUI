@@ -74,6 +74,7 @@ function TH.Settings.RegisterPanel(mId, moduleName)
             TH.SetSetting("enableCarousel", value)
             RefreshTHWindow()
         end,
+        default = true,
         width = "full",
     }
 

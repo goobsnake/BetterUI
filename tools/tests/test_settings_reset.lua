@@ -76,6 +76,13 @@ end
 
 function BETTERUI.CIM.InitModule(options)
     options.cimDefault = "cim"
+    options.interfaceLogEnabled = false
+    options.interfaceLogPreset = ""
+    options.interfaceLogMinLevel = ""
+    options.interfaceLogScreenshotAutoMode = "off"
+    options.interfaceLogChat = false
+    options.interfaceLogSuppressPopups = true
+    options.interfaceLogPrivacy = false
     return options
 end
 
@@ -160,6 +167,15 @@ local function buildStore(useAccountWideValue)
                 style = 99,
                 size = 44,
             },
+            CIM = {
+                interfaceLogEnabled = true,
+                interfaceLogPreset = "debug",
+                interfaceLogMinLevel = "trace",
+                interfaceLogScreenshotAutoMode = "warn",
+                interfaceLogChat = true,
+                interfaceLogSuppressPopups = false,
+                interfaceLogPrivacy = true,
+            },
             LegacyModule = {
                 staleModule = true,
             },
@@ -227,6 +243,13 @@ assertEqual(42, BETTERUI.SavedVars.Modules.Banking.bankingDefault, "Banking defa
 assertEqual("vendor", BETTERUI.SavedVars.Modules.Vendor.vendorDefault, "Vendor defaults restored")
 assertEqual("trading", BETTERUI.SavedVars.Modules.TradingHouse.tradingHouseDefault, "TradingHouse defaults restored")
 assertEqual("companions", BETTERUI.SavedVars.Modules.Companions.companionsDefault, "Companions defaults restored")
+assertEqual(false, BETTERUI.SavedVars.Modules.CIM.interfaceLogEnabled, "Builog enabled resets to default")
+assertEqual("", BETTERUI.SavedVars.Modules.CIM.interfaceLogPreset, "Builog preset resets to default")
+assertEqual("", BETTERUI.SavedVars.Modules.CIM.interfaceLogMinLevel, "Builog min level resets to default")
+assertEqual("off", BETTERUI.SavedVars.Modules.CIM.interfaceLogScreenshotAutoMode, "Builog screenshot auto resets to default")
+assertEqual(false, BETTERUI.SavedVars.Modules.CIM.interfaceLogChat, "Builog chat surface resets to default")
+assertEqual(true, BETTERUI.SavedVars.Modules.CIM.interfaceLogSuppressPopups, "Builog popup suppression resets to default")
+assertEqual(false, BETTERUI.SavedVars.Modules.CIM.interfaceLogPrivacy, "Builog privacy mode resets to default")
 assertEqual(true, BETTERUI.SavedVars.Modules.Inventory.m_enabled, "First-install enabled defaults re-applied")
 assertEqual(true, BETTERUI.SavedVars.Modules.Vendor.m_enabled, "Vendor enabled defaults re-applied")
 assertEqual(true, BETTERUI.SavedVars.Modules.TradingHouse.m_enabled, "TradingHouse enabled defaults re-applied")
@@ -241,6 +264,8 @@ assertEqual(1, nameplatesDisabledCount, "Nameplates disable hook ran for charact
 assertEqual(true, lastNameplatesSuppressCleanupLog, "Character reset suppresses nameplate cleanup chat")
 assertEqual(false, BETTERUI.GlobalVars.useAccountWide, "Global settings reset useAccountWide to default")
 assertEqual("inventory", BETTERUI.GlobalVars.Modules.Inventory.inventoryDefault, "Global inventory defaults restored")
+assertEqual(false, BETTERUI.GlobalVars.Modules.CIM.interfaceLogEnabled, "Global builog enabled resets to default")
+assertEqual("off", BETTERUI.GlobalVars.Modules.CIM.interfaceLogScreenshotAutoMode, "Global builog screenshot auto resets to default")
 assertNil(BETTERUI.GlobalVars.Modules.Inventory.staleInventoryValue, "Global stale inventory setting cleared")
 assertTrue(next(BETTERUI.GlobalVars.FeatureFlags) == nil, "Global feature flags cleared")
 
@@ -260,6 +285,13 @@ assertEqual(42, BETTERUI.GlobalVars.Modules.Banking.bankingDefault, "Global bank
 assertEqual("vendor", BETTERUI.GlobalVars.Modules.Vendor.vendorDefault, "Global vendor defaults restored")
 assertEqual("trading", BETTERUI.GlobalVars.Modules.TradingHouse.tradingHouseDefault, "Global trading defaults restored")
 assertEqual("companions", BETTERUI.GlobalVars.Modules.Companions.companionsDefault, "Global companions defaults restored")
+assertEqual(false, BETTERUI.GlobalVars.Modules.CIM.interfaceLogEnabled, "Global builog enabled resets to default")
+assertEqual("", BETTERUI.GlobalVars.Modules.CIM.interfaceLogPreset, "Global builog preset resets to default")
+assertEqual("", BETTERUI.GlobalVars.Modules.CIM.interfaceLogMinLevel, "Global builog min level resets to default")
+assertEqual("off", BETTERUI.GlobalVars.Modules.CIM.interfaceLogScreenshotAutoMode, "Global builog screenshot auto resets to default")
+assertEqual(false, BETTERUI.GlobalVars.Modules.CIM.interfaceLogChat, "Global builog chat surface resets to default")
+assertEqual(true, BETTERUI.GlobalVars.Modules.CIM.interfaceLogSuppressPopups, "Global builog popup suppression resets to default")
+assertEqual(false, BETTERUI.GlobalVars.Modules.CIM.interfaceLogPrivacy, "Global builog privacy mode resets to default")
 assertEqual(true, BETTERUI.GlobalVars.Modules.Inventory.m_enabled, "Global first-install enabled defaults re-applied")
 assertEqual(true, BETTERUI.GlobalVars.Modules.Vendor.m_enabled, "Global vendor enabled defaults re-applied")
 assertEqual(true, BETTERUI.GlobalVars.Modules.TradingHouse.m_enabled, "Global trading house enabled defaults re-applied")

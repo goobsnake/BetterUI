@@ -1759,6 +1759,7 @@ local function AppendBuilogSettingsPanel(optionsTable)
 					local interfaceLog = GetBuilogInterfaceLog()
 					if interfaceLog and interfaceLog.SetLoggingEnabled then interfaceLog.SetLoggingEnabled(value) end
 				end,
+				default = false,
 				width = "full",
 			},
 			{
@@ -1773,6 +1774,7 @@ local function AppendBuilogSettingsPanel(optionsTable)
 					local interfaceLog = GetBuilogInterfaceLog()
 					if interfaceLog and interfaceLog.ApplyLogPreset then interfaceLog.ApplyLogPreset(value) end
 				end,
+				default = "off",
 				width = "full",
 			},
 			{
@@ -1783,12 +1785,13 @@ local function AppendBuilogSettingsPanel(optionsTable)
 				choicesValues = BUILOG_LEVEL_VALUES,
 				getFunc = function()
 					local interfaceLog = GetBuilogInterfaceLog()
-					return interfaceLog and interfaceLog.GetMinLevelName and interfaceLog.GetMinLevelName() or "info"
+					return interfaceLog and interfaceLog.GetMinLevelName and interfaceLog.GetMinLevelName() or "trace"
 				end,
 				setFunc = function(value)
 					local interfaceLog = GetBuilogInterfaceLog()
 					if interfaceLog and interfaceLog.SetMinLevelSetting then interfaceLog.SetMinLevelSetting(value) end
 				end,
+				default = "trace",
 				width = "full",
 			},
 			{
@@ -1805,6 +1808,7 @@ local function AppendBuilogSettingsPanel(optionsTable)
 					local interfaceLog = GetBuilogInterfaceLog()
 					if interfaceLog and interfaceLog.SetScreenshotAutoMode then interfaceLog.SetScreenshotAutoMode(value) end
 				end,
+				default = "off",
 				width = "full",
 			},
 			{

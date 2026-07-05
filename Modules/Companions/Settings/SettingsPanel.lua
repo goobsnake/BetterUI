@@ -63,6 +63,7 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
             setFunc = function(value)
                 Companions.SetSetting("enableCompanionEquipment", value)
             end,
+            default = true,
             width = "full",
             requiresReload = true,
         },
@@ -77,6 +78,7 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
                 Companions.SetSetting("enableCarousel", value)
                 RefreshCompanionWindow()
             end,
+            default = true,
             width = "full",
         },
         {
@@ -89,6 +91,7 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
             setFunc = function(value)
                 Companions.SetSetting("quickDestroy", value)
             end,
+            default = false,
             width = "full",
         },
         {
@@ -101,6 +104,7 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
             setFunc = function(value)
                 Companions.SetSetting("batchDestroy", value)
             end,
+            default = false,
             width = "full",
         },
         {
@@ -108,11 +112,12 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
             name = GetString(rawget(_G, "SI_BETTERUI_INV_BOE_PROTECTION") or "Bind-on-Equip Protection"),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_BOE_PROTECTION_TOOLTIP") or "Show a confirmation dialog before equipping tradable companion items."),
             getFunc = function()
-                return Companions.GetSetting("bindOnEquipProtection") == true
+                return Companions.GetSetting("bindOnEquipProtection") ~= false
             end,
             setFunc = function(value)
                 Companions.SetSetting("bindOnEquipProtection", value)
             end,
+            default = true,
             width = "full",
         },
         {
@@ -126,6 +131,7 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
                 Companions.SetSetting("enableCompanionJunk", value)
                 RefreshCompanionWindow()
             end,
+            default = false,
             width = "full",
         },
         {

@@ -270,6 +270,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         {
             type = "checkbox",
             name = GetString(rawget(_G, "SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_REMOVE_DELETE_WARNING")),
             warning = GetString(rawget(_G, "SI_BETTERUI_REMOVE_DELETE_WARNING")),
             getFunc = function()
                 local settings = GetModuleSettings("GeneralInterface")
@@ -306,6 +307,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                 end
             end,
             disabled = function() return not IsCIMEnabled() end,
+            default = GetMetadataDefault("CIM", "rhScrollSpeed", 50),
             width = "full",
         },
 

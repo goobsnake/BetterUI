@@ -347,6 +347,13 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field tooltipSize number|nil
 ---@field enableTooltipEnhancements boolean|nil
 ---@field enhanceCompat boolean|nil
+---@field interfaceLogEnabled boolean|nil
+---@field interfaceLogPreset string|nil
+---@field interfaceLogMinLevel string|nil
+---@field interfaceLogScreenshotAutoMode string|nil
+---@field interfaceLogChat boolean|nil
+---@field interfaceLogSuppressPopups boolean|nil
+---@field interfaceLogPrivacy boolean|nil
 ---@field m_enabled boolean|nil
 
 ---@class BetterUIGeneralInterfaceSettings

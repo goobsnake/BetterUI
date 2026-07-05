@@ -76,6 +76,7 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             Vendor.SetSetting("enableCarousel", value)
             RefreshVendorWindow()
         end,
+        default = true,
         width = "full",
     }
 
@@ -91,6 +92,7 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             Vendor.SetSetting("enableBatchJunkSell", value)
             RefreshVendorWindow()
         end,
+        default = true,
         width = "full",
     }
     -- Abbreviate Currency
@@ -105,6 +107,7 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             Vendor.SetSetting("abbreviateVendorCurrency", value)
             RefreshVendorWindow()
         end,
+        default = true,
         width = "full",
     }
     optionsData[#optionsData + 1] = {

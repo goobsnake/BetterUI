@@ -163,8 +163,9 @@ local function ResolveSettingDefault(moduleName, key, fallback)
     end
 
     local defaultsApi = BETTERUI.Defaults
-    if defaultsApi and defaultsApi.GetDefault then
-        local defaultValue = defaultsApi.GetDefault(moduleName, key)
+    if defaultsApi and type(defaultsApi.GetModuleDefaults) == "function" then
+        local defaults = defaultsApi.GetModuleDefaults(moduleName)
+        local defaultValue = defaults and defaults[key]
         if defaultValue ~= nil then
             return defaultValue
         end

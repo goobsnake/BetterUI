@@ -73,6 +73,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
             setFunc = function(value)
                 BETTERUI.Banking.SetSetting("enableGuildBank", value)
             end,
+            default = true,
             width = "full",
             requiresReload = true,
         },
@@ -91,6 +92,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
                     bankingWindow:RebuildHeaderCategories()
                 end
             end,
+            default = true,
             width = "full",
         },
         {
@@ -104,6 +106,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
                 BETTERUI.Banking.SetSetting("useTriggersForSkip", value)
                 ApplyTriggerMode(value)
             end,
+            default = false,
             width = "full",
         },
         {
@@ -122,6 +125,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
                 ApplyTriggerMode(BETTERUI.Banking.GetSetting("useTriggersForSkip"))
             end,
             disabled = function() return not BETTERUI.Banking.GetSetting("useTriggersForSkip") end,
+            default = 10,
             width = "full",
             sortAlwaysLast = true,
         },
