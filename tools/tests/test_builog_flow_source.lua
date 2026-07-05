@@ -103,6 +103,8 @@ local domainLog = readFile("Modules/CIM/Core/Diagnostics/DomainLog.lua")
 local logCore = readFile("Modules/CIM/Core/Diagnostics/Log.lua")
 local interfaceLog = readFile("Modules/CIM/Core/Diagnostics/InterfaceLog.lua")
 local builogCommands = readFile("Modules/CIM/Core/Diagnostics/BuilogCommands.lua")
+local bindings = readFile("Bindings.xml")
+local keybindHelpers = readFile("Modules/CIM/Core/Presentation/KeybindHelpers.lua")
 local companionActions = readFile("Modules/Companions/Actions/CompanionActions.lua")
 local companionDialogs = readFile("Modules/Companions/Dialogs/CompanionDialogs.lua")
 local companionModule = readFile("Modules/Companions/Module.lua")
@@ -361,16 +363,34 @@ local logIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\Log.lua", 1, tr
 local watchdogIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\Watchdog.lua", 1, true)
 local watchModeIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\WatchMode.lua", 1, true)
 local builogCommandsIndex = manifest:find("Modules\\CIM\\Core\\Diagnostics\\BuilogCommands.lua", 1, true)
+local bindingsIndex = manifest:find("Bindings.xml", 1, true)
+local keybindHelpersIndex = manifest:find("Modules\\CIM\\Core\\Presentation\\KeybindHelpers.lua", 1, true)
 check(domainLogIndex ~= nil
     and logIndex ~= nil
     and watchdogIndex ~= nil
     and watchModeIndex ~= nil
     and builogCommandsIndex ~= nil
+    and bindingsIndex ~= nil
+    and keybindHelpersIndex ~= nil
     and domainLogIndex < logIndex
     and logIndex < watchdogIndex
     and watchdogIndex < watchModeIndex
-    and watchModeIndex < builogCommandsIndex,
-    "DomainLog/Log/Watchdog/WatchMode/BuilogCommands load in dependency order")
+    and watchModeIndex < builogCommandsIndex
+    and builogCommandsIndex < bindingsIndex
+    and bindingsIndex < keybindHelpersIndex,
+    "DomainLog/Log/Watchdog/WatchMode/BuilogCommands/Bindings/KeybindHelpers load in dependency order")
+check(bindings:find('Action name="BETTERUI_NEEDS_REVIEW"', 1, true) ~= nil
+    and bindings:find("BETTERUI.CIM.BuilogCommands.FlagNeedsReview()", 1, true) ~= nil
+    and builogCommands:find('local NEEDS_REVIEW_KEYBIND = "BETTERUI_NEEDS_REVIEW"', 1, true) ~= nil
+    and builogCommands:find("function BuilogCommands.EnsureNeedsReviewKeybindGroup(origin)", 1, true) ~= nil
+    and builogCommands:find("ethereal = true", 1, true) ~= nil
+    and builogCommands:find("callback = DispatchNeedsReviewKeybind", 1, true) ~= nil
+    and builogCommands:find('pcall(L.TraceEvent, category, "review.keybind", phase, data)', 1, true) ~= nil
+    and builogCommands:find('origin = tostring(origin or "keybind-strip")', 1, true) ~= nil
+    and builogCommands:find('return DispatchNeedsReviewKeybind("global-binding")', 1, true) ~= nil
+    and keybindHelpers:find("EnsureNeedsReviewKeybindGroup(\"add-group\")", 1, true) ~= nil
+    and keybindHelpers:find("EnsureNeedsReviewKeybindGroup(\"existing-group\")", 1, true) ~= nil,
+    "needs-review is available through both the global binding and shared BetterUI UI-scene keybind groups")
 check(domainLog:find("function DomainLog.DescribeItem", 1, true) ~= nil
     and domainLog:find("function DomainLog.DescribeKeybindDescriptor", 1, true) ~= nil
     and logCore:find("Log.DescribeItem = DomainLog.DescribeItem", 1, true) ~= nil

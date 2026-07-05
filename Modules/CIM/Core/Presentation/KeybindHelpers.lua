@@ -63,18 +63,43 @@ function BETTERUI.Interface.UpdateCurrentKeybindGroups()
     return ok and updated ~= false
 end
 
+local needsReviewKeybindEnsuring = false
+
+local function EnsureNeedsReviewKeybindGroup(origin)
+    if needsReviewKeybindEnsuring then return end
+    local commands = BETTERUI.CIM and BETTERUI.CIM.BuilogCommands or nil
+    local ensure = commands and commands.EnsureNeedsReviewKeybindGroup or nil
+    if type(ensure) ~= "function" then return end
+    needsReviewKeybindEnsuring = true
+    local ok, ensured, reason = pcall(ensure, origin)
+    needsReviewKeybindEnsuring = false
+    if not ok then
+        WarnKeybindHelper("needs-review keybind ensure failed", {
+            fn = "KeybindHelpers.EnsureNeedsReviewKeybindGroup",
+            error = tostring(ensured),
+        })
+    elseif ensured ~= true then
+        TraceKeybindHelper("needs-review keybind ensure skipped", {
+            fn = "KeybindHelpers.EnsureNeedsReviewKeybindGroup",
+            reason = reason,
+        })
+    end
+end
+
 ---@param descriptor table?
 ---@return boolean addedOrUpdated
 function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     if not descriptor then return false end
     if BETTERUI.Interface.HasKeybindGroup(descriptor) then
         BETTERUI.Interface.UpdateKeybindGroup(descriptor)
+        EnsureNeedsReviewKeybindGroup("existing-group")
         return true
     end
 
     local ok, added = InvokeKeybindStrip("AddKeybindButtonGroup", descriptor)
     if ok and added ~= false then
         BETTERUI.Interface.UpdateKeybindGroup(descriptor)
+        EnsureNeedsReviewKeybindGroup("add-group")
         return true
     end
 
