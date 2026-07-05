@@ -1431,7 +1431,7 @@ local function IsChainedTracker(tracker)
     return false
 end
 
-local function ApplyPrimaryOnlyAnchor(tracker)
+local function ApplyPrimaryOnlyAnchor(tracker, globalName)
     local control = tracker and tracker.control
     if not (control and control.ClearAnchors and type(tracker.GetPrimaryAnchor) == "function") then
         return false
@@ -1443,6 +1443,21 @@ local function ApplyPrimaryOnlyAnchor(tracker)
     local reanchored = pcall(function()
         control:ClearAnchors()
         primary:AddToControl(control)
+        -- Gamepad Golden Pursuits left-aligns under the zone story tracker
+        -- once the screen-edge pin is gone, drifting right of the quest
+        -- column (its vanilla gamepad primary is TOPLEFT->BOTTOMLEFT).
+        -- Mirror the vanilla ANCHOR_CONSTRAINS_X secondary against the zone
+        -- story tracker instead of GuiRoot -- same target as the primary,
+        -- so still no new anchor edges -- to keep it right-aligned with the
+        -- quest container. Keyboard left-aligns natively and needs nothing.
+        if globalName == "PROMOTIONAL_EVENT_TRACKER" and IsGamepadPreferred() then
+            local zoneStory = rawget(_G, "ZO_ZoneStoryTracker")
+            local right = rawget(_G, "RIGHT")
+            local constrainsX = rawget(_G, "ANCHOR_CONSTRAINS_X")
+            if zoneStory and right and constrainsX and control.SetAnchor then
+                control:SetAnchor(right, zoneStory, right, 0, 0, constrainsX)
+            end
+        end
     end)
     return reanchored
 end
@@ -1457,7 +1472,7 @@ local function ChainGoldenPursuitsToQuestTracker(settings)
         local control = tracker and tracker.control
         if control then
             if chained then
-                if ApplyPrimaryOnlyAnchor(tracker) then
+                if ApplyPrimaryOnlyAnchor(tracker, globalName) then
                     control._betteruiChainedToQuest = true
                 end
             elseif control._betteruiChainedToQuest then
