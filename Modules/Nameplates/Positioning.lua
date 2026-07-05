@@ -82,44 +82,55 @@ local DESCRIPTORS = {
         yKey = "compassFrameOffsetY",
         scaleKey = "compassFrameScale",
         label = ResolveMoverLabel("SI_BETTERUI_MOVER_LABEL_COMPASS", "Compass"),
-        -- ZO_Compass (the pin strip) must never be SetScale'd: the C compass
-        -- control positions markers with unscaled math and sprays them across
-        -- the screen when its control scale changes. Resizing the strip to the
-        -- frame's rendered rect keeps markers inside the scaled border.
+        -- Never SetScale the compass frame or the pin strip: the C compass
+        -- control lays pins out with unscaled math and sprays them across
+        -- the screen. ZOS sizes the compass through dimensions instead (the
+        -- gamepad template is just a taller frame, and CompassFrame's boss
+        -- bar branch resizes via SetHeight), so the scale slider resizes
+        -- ZO_CompassFrame and the strip, pin container, and border textures
+        -- all follow through their vanilla anchors.
         applyScale = function(scale)
-            local compass = rawget(_G, "ZO_Compass")
             local frame = rawget(_G, "ZO_CompassFrame")
-            if not (compass and frame) then return end
+            if not (frame and frame.GetWidth and frame.GetHeight and frame.SetDimensions) then return end
             local okWidth, width = pcall(frame.GetWidth, frame)
             local okHeight, height = pcall(frame.GetHeight, frame)
             if not (okWidth and okHeight and type(width) == "number" and type(height) == "number"
                 and width > 0 and height > 0) then
                 return
             end
-            -- Cache by scale AND frame size, and only after a successful
-            -- re-anchor, so a zero-size frame at first apply or a later
-            -- layout change at the same scale still gets reapplied.
-            local cacheKey = string.format("%.3f:%.1f:%.1f", scale, width, height)
-            if compass._betteruiCompassScaleApplied == cacheKey then return end
-            local topLeft = rawget(_G, "TOPLEFT")
-            local bottomRight = rawget(_G, "BOTTOMRIGHT")
-            if not (compass.ClearAnchors and compass.SetAnchor and topLeft and bottomRight) then return end
-            if type(compass.SetScale) == "function" then
-                pcall(compass.SetScale, compass, 1)
+            -- Track base (vanilla) dims per axis: whenever the current size
+            -- differs from what we last applied, ZOS re-asserted that axis
+            -- (screen resize -> UpdateWidth, template swap -> height), so
+            -- adopt it as the new base. Per-axis adoption keeps a ZOS width
+            -- reassert from polluting the base height with a scaled value,
+            -- which would compound scale on every refresh tick.
+            local base = frame._betteruiCompassBaseDims
+            local applied = frame._betteruiCompassAppliedDims
+            if not (base and applied) then
+                base = { w = width, h = height }
+            else
+                base = { w = base.w, h = base.h }
+                if math.abs(width - applied.w) > 0.5 then base.w = width end
+                if math.abs(height - applied.h) > 0.5 then base.h = height end
             end
-            -- The frame scales around its top-center anchor: rendered rect is
-            -- narrower by width*(1-s) split across both sides and shorter by
-            -- height*(1-s) at the bottom. At scale 1 these collapse to the
-            -- default full-frame anchors.
-            local dx = width * (1 - scale) / 2
-            local dy = height * (1 - scale)
-            local reanchored = pcall(function()
-                compass:ClearAnchors()
-                compass:SetAnchor(topLeft, frame, topLeft, dx, 0)
-                compass:SetAnchor(bottomRight, frame, bottomRight, -dx, -dy)
+            frame._betteruiCompassBaseDims = base
+            local targetW = base.w * scale
+            local targetH = base.h * scale
+            if math.abs(width - targetW) <= 0.5 and math.abs(height - targetH) <= 0.5 then
+                frame._betteruiCompassAppliedDims = { w = width, h = height }
+                return
+            end
+            local resized = pcall(function()
+                frame:SetDimensions(targetW, targetH)
+                -- End caps carry fixed template heights; resize them the
+                -- same way ZOS's boss-bar branch does.
+                local left = frame.GetNamedChild and frame:GetNamedChild("Left")
+                local right = frame.GetNamedChild and frame:GetNamedChild("Right")
+                if left and left.SetHeight then left:SetHeight(targetH) end
+                if right and right.SetHeight then right:SetHeight(targetH) end
             end)
-            if reanchored then
-                compass._betteruiCompassScaleApplied = cacheKey
+            if resized then
+                frame._betteruiCompassAppliedDims = { w = targetW, h = targetH }
             end
         end,
         controls = { "ZO_CompassFrame" },
@@ -1371,7 +1382,9 @@ local function ApplyDescriptor(key, descriptor, settings)
         end
         -- Scale rides the same enable gate; disabled elements return to the
         -- game's default scale. Skip no-op writes to avoid per-tick churn.
-        if control and descriptor.scaleKey and type(control.SetScale) == "function" then
+        -- Descriptors with a custom applyScale own scaling entirely: the
+        -- compass frame must never be SetScale'd on top of being resized.
+        if control and descriptor.scaleKey and not descriptor.applyScale and type(control.SetScale) == "function" then
             local targetScale = enabled and scale or 1
             local okCurrent, currentScale = pcall(control.GetScale, control)
             if not okCurrent or type(currentScale) ~= "number" or math.abs(currentScale - targetScale) > 0.001 then
@@ -1397,39 +1410,72 @@ local function ApplyDescriptor(key, descriptor, settings)
     end
 end
 
--- The Golden Pursuits tracker has no mover of its own: while the quest
--- tracker mover is on, it is hard-anchored below the quest panel so the
--- pair moves as one in both keyboard and gamepad mode (ZOS otherwise pins
--- its X to the screen edge on gamepad).
+-- The Golden Pursuits tracker has no mover of its own. In vanilla the HUD
+-- trackers form one anchor stack (quest container -> zone story -> Golden
+-- Pursuits), so they already follow the quest tracker vertically; only an
+-- ANCHOR_CONSTRAINS_X secondary anchor pins their X to the screen edge.
+-- While the quest mover is on, re-apply each tracker's own primary anchor
+-- WITHOUT that secondary so the stack follows the moved quest panel
+-- horizontally too. Never anchor these trackers to the quest panel itself:
+-- the panel sits upstream of them in the stack, so that closes an anchor
+-- cycle and the engine drops the quest panel from layout entirely.
+local CHAINED_TRACKER_GLOBALS = { "ZONE_STORY_TRACKER", "PROMOTIONAL_EVENT_TRACKER" }
+
+local function IsChainedTracker(tracker)
+    if not tracker then return false end
+    for _, globalName in ipairs(CHAINED_TRACKER_GLOBALS) do
+        if tracker == rawget(_G, globalName) then
+            return true
+        end
+    end
+    return false
+end
+
+local function ApplyPrimaryOnlyAnchor(tracker)
+    local control = tracker and tracker.control
+    if not (control and control.ClearAnchors and type(tracker.GetPrimaryAnchor) == "function") then
+        return false
+    end
+    local okPrimary, primary = pcall(tracker.GetPrimaryAnchor, tracker)
+    if not (okPrimary and primary and type(primary.AddToControl) == "function") then
+        return false
+    end
+    local reanchored = pcall(function()
+        control:ClearAnchors()
+        primary:AddToControl(control)
+    end)
+    return reanchored
+end
+
 local function ChainGoldenPursuitsToQuestTracker(settings)
     settings = settings or GetSettings()
     local quest = DESCRIPTORS.questTracker
     if not (settings and quest) then return end
-    local golden = rawget(_G, "ZO_PromotionalEventTracker_TL")
-    local questPanel = rawget(_G, "ZO_FocusedQuestTrackerPanel")
-    if not (golden and questPanel) then return end
-    if GetSetting(settings, quest.enabledKey) == true then
-        local topRight = rawget(_G, "TOPRIGHT")
-        local bottomRight = rawget(_G, "BOTTOMRIGHT")
-        if not (topRight and bottomRight and golden.ClearAnchors and golden.SetAnchor) then return end
-        pcall(function()
-            golden:ClearAnchors()
-            golden:SetAnchor(topRight, questPanel, bottomRight, 0, 10)
-        end)
-        golden._betteruiChainedToQuest = true
-    elseif golden._betteruiChainedToQuest then
-        golden._betteruiChainedToQuest = nil
-        -- Hand anchor ownership back to ZOS once the quest mover turns off.
-        local tracker = rawget(_G, "PROMOTIONAL_EVENT_TRACKER")
-        if tracker and type(tracker.RefreshAnchors) == "function" then
-            pcall(tracker.RefreshAnchors, tracker)
+    local chained = IsPositioningEnabled(settings) and GetSetting(settings, quest.enabledKey) == true
+    for _, globalName in ipairs(CHAINED_TRACKER_GLOBALS) do
+        local tracker = rawget(_G, globalName)
+        local control = tracker and tracker.control
+        if control then
+            if chained then
+                if ApplyPrimaryOnlyAnchor(tracker) then
+                    control._betteruiChainedToQuest = true
+                end
+            elseif control._betteruiChainedToQuest then
+                control._betteruiChainedToQuest = nil
+                -- Hand anchor ownership back to ZOS once the quest mover
+                -- turns off.
+                if type(tracker.RefreshAnchors) == "function" then
+                    pcall(tracker.RefreshAnchors, tracker)
+                end
+            end
         end
     end
 end
 
--- The Golden Pursuits tracker (ZO_HUDTracker_Base) re-asserts its own
--- screen-edge anchors on every activity update; reapply the mover offset
--- right after so the tracker stays where the user put it.
+-- The chained trackers (ZO_HUDTracker_Base subclasses) re-assert their
+-- screen-edge anchors on every activity update and platform style swap;
+-- strip the X pin again right after so they keep following the moved
+-- quest panel.
 local goldenPursuitsHookInstalled = false
 local goldenPursuitsReapplying = false
 local function EnsureGoldenPursuitsHook()
@@ -1446,7 +1492,7 @@ local function EnsureGoldenPursuitsHook()
         if goldenPursuitsReapplying then
             return
         end
-        if not (tracker and tracker.control) or tracker.control ~= rawget(_G, "ZO_PromotionalEventTracker_TL") then
+        if not IsChainedTracker(tracker) then
             return
         end
         local settings = GetSettings()

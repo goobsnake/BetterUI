@@ -100,6 +100,18 @@ assert_contains(positioning, "Nameplates.Positioning = Positioning",
     "Nameplates positioning helper stays under the dedicated Nameplates namespace")
 assert_contains(positioning, '"ZO_CompassFrame"',
     "Nameplates positioning helper targets the ESO compass frame control")
+assert_contains(positioning, "frame:SetDimensions(targetW, targetH)",
+    "Compass scaling resizes the frame the way ZOS does (dimensions, not scale)")
+assert_not_contains(positioning, "SetScale, compass",
+    "Compass pin strip is never SetScale'd; C-side pin math sprays markers across the screen")
+assert_contains(positioning, "not descriptor.applyScale and type(control.SetScale)",
+    "Descriptors with a custom applyScale are excluded from the generic SetScale path")
+assert_contains(positioning, 'CHAINED_TRACKER_GLOBALS = { "ZONE_STORY_TRACKER", "PROMOTIONAL_EVENT_TRACKER" }',
+    "Quest-follow chain strips the X pin on both zone story and Golden Pursuits trackers")
+assert_not_contains(positioning, "questPanel, bottomRight",
+    "HUD trackers are never anchored to the quest panel; that closes an anchor cycle that drops the panel")
+assert_contains(positioning, "primary:AddToControl(control)",
+    "Chained trackers reuse ZOS's own primary anchor without the screen-edge secondary")
 assert_contains(positioning, '"ZO_TargetUnitFramereticleover"',
     "Nameplates positioning helper targets the ESO target/NPC bar control")
 assert_contains(positioning, '"ZO_PlayerToPlayerAreaPromptContainer"',
