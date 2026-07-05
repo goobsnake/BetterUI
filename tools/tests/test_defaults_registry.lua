@@ -143,9 +143,12 @@ assert_false(np.nameplatePositionsUnlocked, "Nameplates position movement defaul
 assert_false(np.moveCompassFrame, "Nameplates compass mover defaults disabled")
 assert_equal(0, np.compassFrameOffsetX, "Nameplates compass X offset defaults zero")
 assert_equal(0, np.compassFrameOffsetY, "Nameplates compass Y offset defaults zero")
-assert_false(np.moveReticlePrompt, "Nameplates reticle mover defaults disabled")
-assert_equal(0, np.reticlePromptOffsetX, "Nameplates reticle X offset defaults zero")
-assert_equal(0, np.reticlePromptOffsetY, "Nameplates reticle Y offset defaults zero")
+assert_false(np.moveTargetBar, "Nameplates target/NPC bar mover defaults disabled")
+assert_equal(0, np.targetBarOffsetX, "Nameplates target/NPC bar X offset defaults zero")
+assert_equal(0, np.targetBarOffsetY, "Nameplates target/NPC bar Y offset defaults zero")
+assert_false(np.movePlayerInteract, "Nameplates player-interact mover defaults disabled")
+assert_equal(0, np.playerInteractOffsetX, "Nameplates player-interact X offset defaults zero")
+assert_equal(0, np.playerInteractOffsetY, "Nameplates player-interact Y offset defaults zero")
 
 print("\nTest: Vendor defaults")
 local vendor = BETTERUI.Defaults.Modules.Vendor

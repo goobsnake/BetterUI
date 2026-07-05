@@ -44,6 +44,7 @@ local SAVED_VARS_SCHEMA_VERSION = 2.89
 ---@field required boolean|nil Whether this module is required (always enabled)
 ---@field dependsOnCIM boolean|nil Whether the module requires the CIM shared platform
 ---@field condition function|nil Optional condition function that must return true to load
+---@field loadOverride function|nil Optional function that forces loading while the module toggle is off (cross-module features owned by this module)
 ---@field preSetup function|nil Optional function to call before Setup (e.g., for hooks)
 ---@field depends string|nil Name of another module that must be enabled for this to load
 
@@ -79,6 +80,22 @@ local MODULE_REGISTRY = {
 		name = "Nameplates",
 		namespace = "Nameplates",
 		dependsOnCIM = true,
+		-- Nameplates owns the General-tab HUD movers (compass, target bar,
+		-- player interact); positioning must load even when the Enhanced
+		-- Nameplates text toggle is off.
+		loadOverride = function()
+			local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
+			local settings = modules and modules["Nameplates"]
+			if not settings then
+				return false
+			end
+			return settings.nameplatePositionsUnlocked == true
+				or settings.moveCompassFrame == true
+				or settings.moveTargetBar == true
+				or settings.movePlayerInteract == true
+				or settings.moveQuestTracker == true
+				or settings.moveGroupFrames == true
+		end,
 	},
 	{ name = "ResourceOrbFrames", namespace = "ResourceOrbFrames", dependsOnCIM = true },
 }
@@ -2223,12 +2240,24 @@ local function LoadSavedVarsWithFallback(loaderName, loader)
 	return MigrateSavedVars(NormalizeSavedVars(result))
 end
 
+---@param entry ModuleRegistryEntry The registry entry to evaluate
+---@return boolean Whether the entry's loadOverride forces loading despite a disabled toggle
+local function IsModuleLoadOverrideActive(entry)
+	if type(entry.loadOverride) ~= "function" then
+		return false
+	end
+	if BETTERUI._sessionDisabledModules and BETTERUI._sessionDisabledModules[entry.name] then
+		return false
+	end
+	return entry.loadOverride() == true
+end
+
 local function ShouldSetupKeyboardModeModule(entry)
 	if entry.name == "CIM" then
 		return false
 	end
 
-	if not BETTERUI.GetModuleEnabled(entry.name) then
+	if not (BETTERUI.GetModuleEnabled(entry.name) or IsModuleLoadOverrideActive(entry)) then
 		return false
 	end
 
@@ -2273,7 +2302,7 @@ local function ShouldLoadModule(entry)
 		return true
 	end
 
-	if not BETTERUI.GetModuleEnabled(entry.name) then
+	if not (BETTERUI.GetModuleEnabled(entry.name) or IsModuleLoadOverrideActive(entry)) then
 		return false
 	end
 

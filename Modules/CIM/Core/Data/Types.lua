@@ -370,9 +370,23 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@field moveCompassFrame boolean|nil
 ---@field compassFrameOffsetX number|nil
 ---@field compassFrameOffsetY number|nil
----@field moveReticlePrompt boolean|nil
----@field reticlePromptOffsetX number|nil
----@field reticlePromptOffsetY number|nil
+---@field moveTargetBar boolean|nil
+---@field targetBarOffsetX number|nil
+---@field targetBarOffsetY number|nil
+---@field movePlayerInteract boolean|nil
+---@field playerInteractOffsetX number|nil
+---@field playerInteractOffsetY number|nil
+---@field moveQuestTracker boolean|nil
+---@field questTrackerOffsetX number|nil
+---@field questTrackerOffsetY number|nil
+---@field moveGroupFrames boolean|nil
+---@field groupFramesOffsetX number|nil
+---@field groupFramesOffsetY number|nil
+---@field compassFrameScale number|nil
+---@field targetBarScale number|nil
+---@field playerInteractScale number|nil
+---@field questTrackerScale number|nil
+---@field groupFramesScale number|nil
 
 ---@class BetterUIWritsSettings
 ---@field m_enabled boolean|nil
@@ -539,9 +553,23 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---| "moveCompassFrame"
 ---| "compassFrameOffsetX"
 ---| "compassFrameOffsetY"
----| "moveReticlePrompt"
----| "reticlePromptOffsetX"
----| "reticlePromptOffsetY"
+---| "moveTargetBar"
+---| "targetBarOffsetX"
+---| "targetBarOffsetY"
+---| "movePlayerInteract"
+---| "playerInteractOffsetX"
+---| "playerInteractOffsetY"
+---| "moveQuestTracker"
+---| "questTrackerOffsetX"
+---| "questTrackerOffsetY"
+---| "moveGroupFrames"
+---| "groupFramesOffsetX"
+---| "groupFramesOffsetY"
+---| "compassFrameScale"
+---| "targetBarScale"
+---| "playerInteractScale"
+---| "questTrackerScale"
+---| "groupFramesScale"
 
 ---@alias BetterUINameplatesSettingValue string|number|boolean|nil
 

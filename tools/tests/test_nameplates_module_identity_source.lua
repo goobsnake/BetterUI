@@ -34,6 +34,9 @@ local generalInterfaceSetup = read_file("Modules/GeneralInterface/Setup.lua")
 local nameplates = read_file("Modules/Nameplates/Nameplates.lua")
 local positioning = read_file("Modules/Nameplates/Positioning.lua")
 local settings = read_file("Modules/Nameplates/Settings.lua")
+local defaultsRegistry = read_file("Modules/CIM/Core/Settings/DefaultsRegistry.lua")
+local settingsMetadata = read_file("Modules/CIM/Core/Settings/SettingsMetadata.lua")
+local englishLocale = read_file("lang/en.lua")
 local contributingGuide = read_file("docs/guides/contributing-guide.md")
 local architectureDoc = read_file("docs/reference/architecture.md")
 
@@ -53,6 +56,14 @@ assert_not_contains(bootstrap, "BETTERUI.GeneralInterface.Nameplates = BETTERUI.
     "Bootstrap no longer publishes a GeneralInterface.Nameplates compatibility alias")
 assert_contains(bootstrap, 'moduleName = "Nameplates"',
     "Master module toggles expose Nameplates as a first-class module toggle")
+assert_contains(bootstrap, 'loadOverride = function()',
+    "The Nameplates registry entry declares a positioning load override")
+assert_contains(bootstrap, 'settings.nameplatePositionsUnlocked == true',
+    "The Nameplates load override keys off the drag-handle unlock toggle")
+assert_contains(bootstrap, 'settings.movePlayerInteract == true',
+    "The Nameplates load override keys off the player-interact mover toggle")
+assert_contains(bootstrap, 'BETTERUI.GetModuleEnabled(entry.name) or IsModuleLoadOverrideActive(entry)',
+    "Module loading honors loadOverride so HUD movers survive a disabled Enhanced Nameplates toggle")
 
 assert_not_contains(generalInterface, "GetNameplatesNamespace",
     "GeneralInterface no longer exports Nameplates namespace ownership seams")
@@ -89,12 +100,58 @@ assert_contains(positioning, "Nameplates.Positioning = Positioning",
     "Nameplates positioning helper stays under the dedicated Nameplates namespace")
 assert_contains(positioning, '"ZO_CompassFrame"',
     "Nameplates positioning helper targets the ESO compass frame control")
-assert_contains(positioning, '"ZO_ReticleContainerInteract"',
-    "Nameplates positioning helper targets the ESO reticle interaction prompt")
+assert_contains(positioning, '"ZO_TargetUnitFramereticleover"',
+    "Nameplates positioning helper targets the ESO target/NPC bar control")
+assert_contains(positioning, '"ZO_PlayerToPlayerAreaPromptContainer"',
+    "Nameplates positioning helper targets the ESO player interact control")
+assert_not_contains(positioning, '"ZO_ReticleContainerInteract"',
+    "Nameplates positioning no longer targets the reticle prompt")
+assert_not_contains(positioning, "moveReticlePrompt",
+    "Nameplates positioning no longer owns a reticle mover descriptor")
+assert_contains(positioning, 'local parent = EnsureHandleLayer() or rawget(_G, "GuiRoot") or hostControl',
+    "Nameplates positioning drag handles are rooted outside transient live controls")
+assert_contains(positioning, 'windowManager:CreateTopLevelWindow("BetterUI_NameplateMoverLayer")',
+    "Nameplates positioning handles live under a top-level window; GuiRoot children never enter ESO's render list")
 assert_contains(positioning, "handle:SetParent(parent)",
     "Nameplates positioning drag handles are reused when the active host control changes")
 assert_not_contains(positioning, "handles[key] = nil",
     "Nameplates positioning does not drop handles and recreate duplicate named controls")
+assert_contains(positioning, "local useLiveHost = false",
+    "Nameplates positioning keeps unlocked drag handles on stable placeholder anchors")
+assert_contains(positioning, "relativeTo = rawget(_G, \"GuiRoot\")",
+    "Nameplates positioning hidden-frame fallbacks anchor to GuiRoot instead of transient prompt containers")
+assert_not_contains(positioning, "UI-TooltipCenter.dds",
+    "Nameplates positioning keeps the engine-default color-fill backdrop (texture overrides regressed visibility)")
+assert_not_contains(positioning, "SetEdgeTexture",
+    "Nameplates positioning does not override the backdrop edge texture")
+assert_contains(positioning, "handle:SetHidden(false)",
+    "Nameplates positioning keeps handle roots alive so unlock can restore hidden HUD movers")
+assert_not_contains(positioning, "handle:SetHidden(visible ~= true)",
+    "Nameplates positioning does not hard-hide drag handle roots while locked")
+assert_not_contains(positioning, "IsModuleEnabled",
+    "General HUD positioning is not gated by the Enhanced Nameplates text toggle")
+assert_contains(settings, "disabled = function() return false end",
+    "General HUD positioning controls remain available without enabling Enhanced Nameplates")
+assert_contains(positioning, "EsoUI/Art/Buttons/leftArrow_up.dds",
+    "Nameplates positioning uses native gold ESO arrow art for drag handles")
+assert_contains(positioning, "EsoUI/Art/Buttons/scrollbox_downArrow_up.dds",
+    "Nameplates positioning keeps all four native gold arrow directions")
+assert_not_contains(positioning, "housing_precisionControlIcon",
+    "Nameplates positioning avoids the housing icons' baked-in per-axis colors")
+assert_not_contains(positioning, "SetTextureRotation",
+    "Nameplates positioning uses native directional arrow art instead of runtime texture rotation")
+assert_not_contains(nameplates, "moveReticlePrompt",
+    "Nameplates runtime no longer carries reticle mover settings")
+assert_not_contains(settings, "moveReticlePrompt",
+    "Nameplates settings UI no longer exposes reticle mover settings")
+assert_not_contains(types, "moveReticlePrompt",
+    "CIM types no longer declare reticle mover settings")
+assert_not_contains(defaultsRegistry, "moveReticlePrompt",
+    "CIM defaults no longer seed reticle mover settings")
+assert_not_contains(settingsMetadata, "SI_BETTERUI_NAMEPLATES_MOVE_RETICLE",
+    "CIM settings metadata no longer references reticle mover strings")
+assert_not_contains(englishLocale, "SI_BETTERUI_NAMEPLATES_MOVE_RETICLE",
+    "English locale no longer defines reticle mover strings")
 assert_contains(settings, "local Nameplates = BETTERUI.Nameplates",
     "Nameplates settings bind through the dedicated Nameplates module namespace")
 assert_not_contains(settings, "Nameplates.Settings.RegisterPanel = InitPanel",

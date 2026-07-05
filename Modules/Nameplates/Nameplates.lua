@@ -7,8 +7,8 @@ local SETTINGS_OWNER = (BETTERUI.CIM and BETTERUI.CIM.ARCHETYPES and BETTERUI.CI
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
 local DEFAULT_NAMEPLATE_SIZE = 16
-local POSITION_OFFSET_MIN = -600
-local POSITION_OFFSET_MAX = 600
+local POSITION_OFFSET_MIN = -1500
+local POSITION_OFFSET_MAX = 1500
 
 -- Per-event category routing stays here; the shared MakeTracer base owns the
 -- guard, module/feature, and scene (via CIM.Utils = BUI-CONS-003). gamepad keeps
@@ -78,6 +78,18 @@ local function ClampPositionOffset(value)
     numeric = math.floor(numeric + 0.5)
     if numeric < POSITION_OFFSET_MIN then return POSITION_OFFSET_MIN end
     if numeric > POSITION_OFFSET_MAX then return POSITION_OFFSET_MAX end
+    return numeric
+end
+
+-- Mirrors the Resource Orb Frames scale slider range.
+local POSITION_SCALE_MIN = 0.75
+local POSITION_SCALE_MAX = 1.75
+
+local function ClampPositionScale(value)
+    local numeric = tonumber(value)
+    if numeric == nil then return 1 end
+    if numeric < POSITION_SCALE_MIN then return POSITION_SCALE_MIN end
+    if numeric > POSITION_SCALE_MAX then return POSITION_SCALE_MAX end
     return numeric
 end
 
@@ -155,9 +167,23 @@ Nameplates.DEFAULTS = {
     moveCompassFrame = false,
     compassFrameOffsetX = 0,
     compassFrameOffsetY = 0,
-    moveReticlePrompt = false,
-    reticlePromptOffsetX = 0,
-    reticlePromptOffsetY = 0,
+    moveTargetBar = false,
+    targetBarOffsetX = 0,
+    targetBarOffsetY = 0,
+    movePlayerInteract = false,
+    playerInteractOffsetX = 0,
+    playerInteractOffsetY = 0,
+    moveQuestTracker = false,
+    questTrackerOffsetX = 0,
+    questTrackerOffsetY = 0,
+    moveGroupFrames = false,
+    groupFramesOffsetX = 0,
+    groupFramesOffsetY = 0,
+    compassFrameScale = 1,
+    targetBarScale = 1,
+    playerInteractScale = 1,
+    questTrackerScale = 1,
+    groupFramesScale = 1,
 }
 
 local STYLE_STRING_TO_ENUM = {
@@ -298,6 +324,7 @@ local originalGamepadFont = nil
 local originalGamepadStyle = nil
 local originalFontsCaptured = false
 local lastNameplatesVisible = nil
+local nameplateEventsRegistered = nil
 
 local function CountActiveNameplateRules(settings)
     if not (settings and settings.m_enabled == true) then return 0 end
@@ -307,8 +334,25 @@ local function CountActiveNameplateRules(settings)
     if settings and settings.style ~= nil then count = count + 1 end
     if settings and settings.size ~= nil then count = count + 1 end
     if settings and settings.moveCompassFrame == true then count = count + 1 end
-    if settings and settings.moveReticlePrompt == true then count = count + 1 end
+    if settings and settings.moveTargetBar == true then count = count + 1 end
+    if settings and settings.movePlayerInteract == true then count = count + 1 end
+    if settings and settings.moveQuestTracker == true then count = count + 1 end
+    if settings and settings.moveGroupFrames == true then count = count + 1 end
     return count
+end
+
+local function HasActivePositioning(settings)
+    return settings
+        and (settings.moveCompassFrame == true
+            or settings.moveTargetBar == true
+            or settings.movePlayerInteract == true
+            or settings.moveQuestTracker == true
+            or settings.moveGroupFrames == true)
+        or false
+end
+
+local function ShouldRegisterNameplateEvents(settings)
+    return settings and (settings.m_enabled == true or HasActivePositioning(settings)) or false
 end
 
 local function TraceNameplateVisibility(visible, reason)
@@ -332,7 +376,7 @@ local function RegisterNameplateSnapshotProvider()
     end
     watch.RegisterSnapshotProvider("nameplates", function()
         local settings = GetSettings()
-        return string.format("enabled=%s activeRules=%s font=%s style=%s size=%s captured=%s kb=%s gp=%s positionsUnlocked=%s compass=%s:%s,%s reticle=%s:%s,%s",
+        return string.format("enabled=%s activeRules=%s font=%s style=%s size=%s captured=%s kb=%s gp=%s positionsUnlocked=%s compass=%s:%s,%s@%s target=%s:%s,%s@%s playerInteract=%s:%s,%s@%s quest=%s:%s,%s@%s group=%s:%s,%s@%s",
             tostring(settings and settings.m_enabled),
             tostring(CountActiveNameplateRules(settings)),
             tostring(settings and settings.font),
@@ -345,9 +389,23 @@ local function RegisterNameplateSnapshotProvider()
             tostring(settings and settings.moveCompassFrame),
             tostring(settings and settings.compassFrameOffsetX),
             tostring(settings and settings.compassFrameOffsetY),
-            tostring(settings and settings.moveReticlePrompt),
-            tostring(settings and settings.reticlePromptOffsetX),
-            tostring(settings and settings.reticlePromptOffsetY))
+            tostring(settings and settings.compassFrameScale),
+            tostring(settings and settings.moveTargetBar),
+            tostring(settings and settings.targetBarOffsetX),
+            tostring(settings and settings.targetBarOffsetY),
+            tostring(settings and settings.targetBarScale),
+            tostring(settings and settings.movePlayerInteract),
+            tostring(settings and settings.playerInteractOffsetX),
+            tostring(settings and settings.playerInteractOffsetY),
+            tostring(settings and settings.playerInteractScale),
+            tostring(settings and settings.moveQuestTracker),
+            tostring(settings and settings.questTrackerOffsetX),
+            tostring(settings and settings.questTrackerOffsetY),
+            tostring(settings and settings.questTrackerScale),
+            tostring(settings and settings.moveGroupFrames),
+            tostring(settings and settings.groupFramesOffsetX),
+            tostring(settings and settings.groupFramesOffsetY),
+            tostring(settings and settings.groupFramesScale))
     end)
 end
 
@@ -535,13 +593,22 @@ local function ApplyNameplateFont(font, style, size)
 end
 
 local function SetupEvents(enabled, suppressCleanupLog)
+    local shouldRegister = enabled == true
+    if nameplateEventsRegistered == shouldRegister then
+        return
+    end
+    nameplateEventsRegistered = shouldRegister
     TraceNameplates("nameplates.events", enabled and "register" or "unregister", {
         fn = "Nameplates.SetupEvents",
         enabled = enabled,
         suppressCleanupLog = suppressCleanupLog,
     })
-    if enabled then
-        BETTERUI.CIM.EventRegistry.Register("Nameplates", "BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
+    local eventRegistry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
+    if shouldRegister then
+        if not (eventRegistry and eventRegistry.Register) then
+            return
+        end
+        eventRegistry.Register("Nameplates", "BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
             local settings = GetSettings()
             TraceNameplates("nameplates.event", "player_activated", {
                 fn = "Nameplates.EVENT_PLAYER_ACTIVATED",
@@ -551,14 +618,13 @@ local function SetupEvents(enabled, suppressCleanupLog)
                 size = settings and settings.size,
                 positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
                 moveCompassFrame = settings and settings.moveCompassFrame,
-                moveReticlePrompt = settings and settings.moveReticlePrompt,
             })
-            if settings.m_enabled then
+            if settings and settings.m_enabled then
                 ApplyNameplateFont(settings.font, settings.style, settings.size)
             end
             ApplyNameplatePositioning(settings)
         end)
-        BETTERUI.CIM.EventRegistry.Register("Nameplates", "BetterUI_Nameplates_GamepadChange",
+        eventRegistry.Register("Nameplates", "BetterUI_Nameplates_GamepadChange",
             EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
             function()
                 local settings = GetSettings()
@@ -570,15 +636,14 @@ local function SetupEvents(enabled, suppressCleanupLog)
                     size = settings and settings.size,
                     positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
                     moveCompassFrame = settings and settings.moveCompassFrame,
-                    moveReticlePrompt = settings and settings.moveReticlePrompt,
                 })
-                if settings.m_enabled then
+                if settings and settings.m_enabled then
                     ApplyNameplateFont(settings.font, settings.style, settings.size)
                 end
                 ApplyNameplatePositioning(settings)
             end)
-    else
-        BETTERUI.CIM.EventRegistry.UnregisterAll("Nameplates", suppressCleanupLog)
+    elseif eventRegistry and eventRegistry.UnregisterAll then
+        eventRegistry.UnregisterAll("Nameplates", suppressCleanupLog)
     end
 end
 
@@ -668,15 +733,12 @@ function Nameplates.Setup()
         moveCompassFrame = settings and settings.moveCompassFrame,
         compassFrameOffsetX = settings and settings.compassFrameOffsetX,
         compassFrameOffsetY = settings and settings.compassFrameOffsetY,
-        moveReticlePrompt = settings and settings.moveReticlePrompt,
-        reticlePromptOffsetX = settings and settings.reticlePromptOffsetX,
-        reticlePromptOffsetY = settings and settings.reticlePromptOffsetY,
     })
     ApplyNameplatePositioning(settings)
-    if settings.m_enabled then
+    SetupEvents(ShouldRegisterNameplateEvents(settings))
+    if settings and settings.m_enabled then
         TraceNameplateVisibility(true, "setup")
         ApplyNameplateFont(settings.font, settings.style, settings.size)
-        SetupEvents(true)
     end
     TraceNameplates("nameplates.setup", "end", { fn = "Nameplates.Setup", enabled = settings and settings.m_enabled })
 end
@@ -688,10 +750,10 @@ function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
         suppressCleanupLog = suppressCleanupLog,
     })
     TraceNameplateVisibility(m_enabled == true, "enabledChanged")
-    SetupEvents(m_enabled, suppressCleanupLog)
+    local settings = GetSettings()
+    SetupEvents(ShouldRegisterNameplateEvents(settings), suppressCleanupLog)
     if m_enabled then
         MigrateLegacyStyleSetting("Nameplates.OnEnabledChanged")
-        local settings = GetSettings()
         TraceNameplates("nameplates.enabled_changed", "apply_enabled", {
             fn = "Nameplates.OnEnabledChanged",
             font = settings and settings.font,
@@ -699,13 +761,12 @@ function Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
             size = settings and settings.size,
             positionsUnlocked = settings and settings.nameplatePositionsUnlocked,
             moveCompassFrame = settings and settings.moveCompassFrame,
-            moveReticlePrompt = settings and settings.moveReticlePrompt,
         })
         ApplyNameplatePositioning(settings)
         ApplyNameplateFont(settings.font, settings.style, settings.size)
     else
         TraceNameplates("nameplates.enabled_changed", "apply_disabled", { fn = "Nameplates.OnEnabledChanged" })
-        ApplyNameplatePositioning({ m_enabled = false })
+        ApplyNameplatePositioning(settings)
         ResetToDefaults()
     end
 end
@@ -713,7 +774,7 @@ end
 function Nameplates.ApplyCurrentSettings()
     MigrateLegacyStyleSetting("Nameplates.ApplyCurrentSettings")
     local settings = GetSettings()
-    TraceNameplates("nameplates.apply_current", settings.m_enabled and "apply" or "skipped", {
+    TraceNameplates("nameplates.apply_current", settings and settings.m_enabled and "apply" or "skipped", {
         fn = "Nameplates.ApplyCurrentSettings",
         enabled = settings and settings.m_enabled,
         font = settings and settings.font,
@@ -723,12 +784,10 @@ function Nameplates.ApplyCurrentSettings()
         moveCompassFrame = settings and settings.moveCompassFrame,
         compassFrameOffsetX = settings and settings.compassFrameOffsetX,
         compassFrameOffsetY = settings and settings.compassFrameOffsetY,
-        moveReticlePrompt = settings and settings.moveReticlePrompt,
-        reticlePromptOffsetX = settings and settings.reticlePromptOffsetX,
-        reticlePromptOffsetY = settings and settings.reticlePromptOffsetY,
     })
     ApplyNameplatePositioning(settings)
-    if settings.m_enabled then
+    SetupEvents(ShouldRegisterNameplateEvents(settings), true)
+    if settings and settings.m_enabled then
         ApplyNameplateFont(settings.font, settings.style, settings.size)
     end
 end
@@ -751,18 +810,41 @@ function Nameplates.InitModule(m_options)
     if m_options.moveCompassFrame == nil then m_options.moveCompassFrame = defaults.moveCompassFrame end
     if m_options.compassFrameOffsetX == nil then m_options.compassFrameOffsetX = defaults.compassFrameOffsetX end
     if m_options.compassFrameOffsetY == nil then m_options.compassFrameOffsetY = defaults.compassFrameOffsetY end
-    if m_options.moveReticlePrompt == nil then m_options.moveReticlePrompt = defaults.moveReticlePrompt end
-    if m_options.reticlePromptOffsetX == nil then m_options.reticlePromptOffsetX = defaults.reticlePromptOffsetX end
-    if m_options.reticlePromptOffsetY == nil then m_options.reticlePromptOffsetY = defaults.reticlePromptOffsetY end
+    if m_options.moveTargetBar == nil then m_options.moveTargetBar = defaults.moveTargetBar end
+    if m_options.targetBarOffsetX == nil then m_options.targetBarOffsetX = defaults.targetBarOffsetX end
+    if m_options.targetBarOffsetY == nil then m_options.targetBarOffsetY = defaults.targetBarOffsetY end
+    if m_options.movePlayerInteract == nil then m_options.movePlayerInteract = defaults.movePlayerInteract end
+    if m_options.playerInteractOffsetX == nil then m_options.playerInteractOffsetX = defaults.playerInteractOffsetX end
+    if m_options.playerInteractOffsetY == nil then m_options.playerInteractOffsetY = defaults.playerInteractOffsetY end
+    if m_options.moveQuestTracker == nil then m_options.moveQuestTracker = defaults.moveQuestTracker end
+    if m_options.questTrackerOffsetX == nil then m_options.questTrackerOffsetX = defaults.questTrackerOffsetX end
+    if m_options.questTrackerOffsetY == nil then m_options.questTrackerOffsetY = defaults.questTrackerOffsetY end
+    if m_options.moveGroupFrames == nil then m_options.moveGroupFrames = defaults.moveGroupFrames end
+    if m_options.groupFramesOffsetX == nil then m_options.groupFramesOffsetX = defaults.groupFramesOffsetX end
+    if m_options.groupFramesOffsetY == nil then m_options.groupFramesOffsetY = defaults.groupFramesOffsetY end
     m_options.style = NormalizeStyleValue(m_options.style)
     m_options.size = ClampNameplateSize(m_options.size, defaults.size)
     m_options.nameplatePositionsUnlocked = m_options.nameplatePositionsUnlocked == true
     m_options.moveCompassFrame = m_options.moveCompassFrame == true
     m_options.compassFrameOffsetX = ClampPositionOffset(m_options.compassFrameOffsetX)
     m_options.compassFrameOffsetY = ClampPositionOffset(m_options.compassFrameOffsetY)
-    m_options.moveReticlePrompt = m_options.moveReticlePrompt == true
-    m_options.reticlePromptOffsetX = ClampPositionOffset(m_options.reticlePromptOffsetX)
-    m_options.reticlePromptOffsetY = ClampPositionOffset(m_options.reticlePromptOffsetY)
+    m_options.moveTargetBar = m_options.moveTargetBar == true
+    m_options.targetBarOffsetX = ClampPositionOffset(m_options.targetBarOffsetX)
+    m_options.targetBarOffsetY = ClampPositionOffset(m_options.targetBarOffsetY)
+    m_options.movePlayerInteract = m_options.movePlayerInteract == true
+    m_options.playerInteractOffsetX = ClampPositionOffset(m_options.playerInteractOffsetX)
+    m_options.playerInteractOffsetY = ClampPositionOffset(m_options.playerInteractOffsetY)
+    m_options.moveQuestTracker = m_options.moveQuestTracker == true
+    m_options.questTrackerOffsetX = ClampPositionOffset(m_options.questTrackerOffsetX)
+    m_options.questTrackerOffsetY = ClampPositionOffset(m_options.questTrackerOffsetY)
+    m_options.moveGroupFrames = m_options.moveGroupFrames == true
+    m_options.groupFramesOffsetX = ClampPositionOffset(m_options.groupFramesOffsetX)
+    m_options.groupFramesOffsetY = ClampPositionOffset(m_options.groupFramesOffsetY)
+    m_options.compassFrameScale = ClampPositionScale(m_options.compassFrameScale)
+    m_options.targetBarScale = ClampPositionScale(m_options.targetBarScale)
+    m_options.playerInteractScale = ClampPositionScale(m_options.playerInteractScale)
+    m_options.questTrackerScale = ClampPositionScale(m_options.questTrackerScale)
+    m_options.groupFramesScale = ClampPositionScale(m_options.groupFramesScale)
 
     local currentLang = GetCVar("language.2") or "en"
     local languageGroup = ResolveLanguageGroup(currentLang)
@@ -790,9 +872,12 @@ function Nameplates.InitModule(m_options)
         moveCompassFrame = m_options.moveCompassFrame,
         compassFrameOffsetX = m_options.compassFrameOffsetX,
         compassFrameOffsetY = m_options.compassFrameOffsetY,
-        moveReticlePrompt = m_options.moveReticlePrompt,
-        reticlePromptOffsetX = m_options.reticlePromptOffsetX,
-        reticlePromptOffsetY = m_options.reticlePromptOffsetY,
+        moveTargetBar = m_options.moveTargetBar,
+        targetBarOffsetX = m_options.targetBarOffsetX,
+        targetBarOffsetY = m_options.targetBarOffsetY,
+        movePlayerInteract = m_options.movePlayerInteract,
+        playerInteractOffsetX = m_options.playerInteractOffsetX,
+        playerInteractOffsetY = m_options.playerInteractOffsetY,
     })
     return m_options
 end

@@ -29,7 +29,7 @@ end
 CreateStringIdIfMissing("SI_BETTERUI_GENERAL_UI_ELEMENT_POSITIONS_HEADER", "UI ELEMENT POSITIONS")
 CreateStringIdIfMissing(
     "SI_BETTERUI_GENERAL_UI_ELEMENT_POSITIONS_DESC",
-    "Adjust supported HUD element positions, including compass and reticle prompt movers, from the General settings tab."
+    "Adjust supported HUD element positions, including compass, target bar, and player-interact movers, from the General settings tab."
 )
 CreateStringIdIfMissing("SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES", "Show UI Position Drag Handles")
 CreateStringIdIfMissing(
@@ -667,6 +667,9 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         key = "uiElementPositions",
         name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_UI_ELEMENT_POSITIONS_HEADER")),
         controls = uiElementPositionControls,
+        -- Authored order groups each mover's toggle directly above its X/Y
+        -- sliders; alphabetical auto-sort would interleave them.
+        disableAutoSort = true,
     })
 
     table.insert(generalControls, {

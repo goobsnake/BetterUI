@@ -4,8 +4,8 @@ local Nameplates = BETTERUI.Nameplates
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
 local DEFAULT_NAMEPLATE_SIZE = 16
-local POSITION_OFFSET_MIN = -600
-local POSITION_OFFSET_MAX = 600
+local POSITION_OFFSET_MIN = -1500
+local POSITION_OFFSET_MAX = 1500
 
 local function CreateNameplatesStringIdIfMissing(stringId, value)
     if rawget(_G, stringId) == nil and type(ZO_CreateStringId) == "function" then
@@ -17,6 +17,48 @@ CreateNameplatesStringIdIfMissing("SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HAN
 CreateNameplatesStringIdIfMissing(
     "SI_BETTERUI_GENERAL_SHOW_UI_POSITION_DRAG_HANDLES_TOOLTIP",
     "Shows draggable handles for supported HUD elements while position controls are enabled."
+)
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_MOVE_TARGET_BAR", "Move Target/NPC Bar")
+CreateNameplatesStringIdIfMissing(
+    "SI_BETTERUI_NAMEPLATES_MOVE_TARGET_BAR_TOOLTIP",
+    "Apply the target/NPC bar offset independent of the Enhanced Nameplates text setting."
+)
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_TARGET_BAR_OFFSET_X", "Target/NPC Bar X")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_TARGET_BAR_OFFSET_Y", "Target/NPC Bar Y")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_MOVE_PLAYER_INTERACT", "Move Player Interact Prompt")
+CreateNameplatesStringIdIfMissing(
+    "SI_BETTERUI_NAMEPLATES_MOVE_PLAYER_INTERACT_TOOLTIP",
+    "Apply the player interact prompt offset independent of the Enhanced Nameplates text setting."
+)
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_PLAYER_INTERACT_OFFSET_X", "Player Interact Prompt X")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_PLAYER_INTERACT_OFFSET_Y", "Player Interact Prompt Y")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_MOVE_QUEST_TRACKER", "Move Quest Tracker")
+CreateNameplatesStringIdIfMissing(
+    "SI_BETTERUI_NAMEPLATES_MOVE_QUEST_TRACKER_TOOLTIP",
+    "Apply the quest tracker offset independent of the Enhanced Nameplates text setting."
+)
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_QUEST_TRACKER_OFFSET_X", "Quest Tracker X")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_QUEST_TRACKER_OFFSET_Y", "Quest Tracker Y")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_MOVE_GROUP_FRAMES", "Move Companion & Group Frames")
+CreateNameplatesStringIdIfMissing(
+    "SI_BETTERUI_NAMEPLATES_MOVE_GROUP_FRAMES_TOOLTIP",
+    "Apply the companion and group frame offset independent of the Enhanced Nameplates text setting."
+)
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_GROUP_FRAMES_OFFSET_X", "Companion & Group X")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_GROUP_FRAMES_OFFSET_Y", "Companion & Group Y")
+CreateNameplatesStringIdIfMissing(
+    "SI_BETTERUI_NAMEPLATES_SCALE_TOOLTIP",
+    "Scale this element between 75% and 175% of its default size."
+)
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_COMPASS_SCALE", "Compass Frame Scale")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_TARGET_BAR_SCALE", "Target/NPC Bar Scale")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_PLAYER_INTERACT_SCALE", "Player Interact Prompt Scale")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_QUEST_TRACKER_SCALE", "Quest Tracker Scale")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_GROUP_FRAMES_SCALE", "Companion & Group Scale")
+CreateNameplatesStringIdIfMissing("SI_BETTERUI_NAMEPLATES_RESET_ELEMENT", "Reset This Element")
+CreateNameplatesStringIdIfMissing(
+    "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP",
+    "Reset this element's position offsets and scale to their defaults. The Move toggle is left as-is."
 )
 
 -- Nameplates.ClampNameplateSize is always present by the time the settings panel
@@ -124,6 +166,23 @@ local function GetOffsetSetting(key)
     return ClampPositionOffset(settings and settings[key] or GetPositionDefault(key))
 end
 
+-- Mirrors the Resource Orb Frames scale slider range.
+local POSITION_SCALE_MIN = 0.75
+local POSITION_SCALE_MAX = 1.75
+
+local function ClampPositionScale(value)
+    local numeric = tonumber(value)
+    if numeric == nil then return 1 end
+    if numeric < POSITION_SCALE_MIN then return POSITION_SCALE_MIN end
+    if numeric > POSITION_SCALE_MAX then return POSITION_SCALE_MAX end
+    return numeric
+end
+
+local function GetScaleSetting(key)
+    local settings = GetNameplateSettings()
+    return ClampPositionScale(settings and settings[key] or GetPositionDefault(key))
+end
+
 local function SetPositionSettingValue(key, value)
     local settings = EnsureNameplateSettings()
     if not settings then
@@ -134,7 +193,14 @@ local function SetPositionSettingValue(key, value)
         })
         return
     end
-    local normalized = key:find("Offset", 1, true) and ClampPositionOffset(value) or value == true
+    local normalized
+    if key:find("Offset", 1, true) then
+        normalized = ClampPositionOffset(value)
+    elseif key:find("Scale", 1, true) then
+        normalized = ClampPositionScale(value)
+    else
+        normalized = value == true
+    end
     TraceNameplateSetting(key, "set_begin", {
         fn = "Nameplates.Settings.SetPositionSettingValue",
         previous = settings[key],
@@ -154,6 +220,13 @@ local function IsPositionSliderDisabled(elementKey)
     return Nameplates.Positioning.IsPositionControlDisabled(elementKey)
 end
 
+local function ResetElementPosition(elementKey)
+    local positioning = Nameplates.Positioning
+    if positioning and type(positioning.ResetElementOffsets) == "function" then
+        positioning.ResetElementOffsets(elementKey)
+    end
+end
+
 local function ResetPositionSettings()
     local settings = EnsureNameplateSettings()
     if not settings then
@@ -169,9 +242,18 @@ local function ResetPositionSettings()
         moveCompassFrame = settings.moveCompassFrame,
         compassFrameOffsetX = settings.compassFrameOffsetX,
         compassFrameOffsetY = settings.compassFrameOffsetY,
-        moveReticlePrompt = settings.moveReticlePrompt,
-        reticlePromptOffsetX = settings.reticlePromptOffsetX,
-        reticlePromptOffsetY = settings.reticlePromptOffsetY,
+        moveTargetBar = settings.moveTargetBar,
+        targetBarOffsetX = settings.targetBarOffsetX,
+        targetBarOffsetY = settings.targetBarOffsetY,
+        movePlayerInteract = settings.movePlayerInteract,
+        playerInteractOffsetX = settings.playerInteractOffsetX,
+        playerInteractOffsetY = settings.playerInteractOffsetY,
+        moveQuestTracker = settings.moveQuestTracker,
+        questTrackerOffsetX = settings.questTrackerOffsetX,
+        questTrackerOffsetY = settings.questTrackerOffsetY,
+        moveGroupFrames = settings.moveGroupFrames,
+        groupFramesOffsetX = settings.groupFramesOffsetX,
+        groupFramesOffsetY = settings.groupFramesOffsetY,
     })
     -- Positioning.ResetOffsets owns the field reset + reapply; the former
     -- field-by-field else was unreachable since Positioning loads first (BUI-CONS-004).
@@ -183,9 +265,18 @@ local function ResetPositionSettings()
         moveCompassFrame = settings.moveCompassFrame,
         compassFrameOffsetX = settings.compassFrameOffsetX,
         compassFrameOffsetY = settings.compassFrameOffsetY,
-        moveReticlePrompt = settings.moveReticlePrompt,
-        reticlePromptOffsetX = settings.reticlePromptOffsetX,
-        reticlePromptOffsetY = settings.reticlePromptOffsetY,
+        moveTargetBar = settings.moveTargetBar,
+        targetBarOffsetX = settings.targetBarOffsetX,
+        targetBarOffsetY = settings.targetBarOffsetY,
+        movePlayerInteract = settings.movePlayerInteract,
+        playerInteractOffsetX = settings.playerInteractOffsetX,
+        playerInteractOffsetY = settings.playerInteractOffsetY,
+        moveQuestTracker = settings.moveQuestTracker,
+        questTrackerOffsetX = settings.questTrackerOffsetX,
+        questTrackerOffsetY = settings.questTrackerOffsetY,
+        moveGroupFrames = settings.moveGroupFrames,
+        groupFramesOffsetX = settings.groupFramesOffsetX,
+        groupFramesOffsetY = settings.groupFramesOffsetY,
     })
 end
 
@@ -199,7 +290,7 @@ function Nameplates.GetPositionSettingsOptions()
             default = GetPositionDefault("nameplatePositionsUnlocked"),
             getFunc = function() return GetBooleanSetting("nameplatePositionsUnlocked") end,
             setFunc = function(value) SetPositionSettingValue("nameplatePositionsUnlocked", value) end,
-            disabled = function() return not IsNameplateEnabled() end,
+            disabled = function() return false end,
             width = "full",
         },
         {
@@ -210,7 +301,7 @@ function Nameplates.GetPositionSettingsOptions()
             default = GetPositionDefault("moveCompassFrame"),
             getFunc = function() return GetBooleanSetting("moveCompassFrame") end,
             setFunc = function(value) SetPositionSettingValue("moveCompassFrame", value) end,
-            disabled = function() return not IsNameplateEnabled() end,
+            disabled = function() return false end,
             width = "full",
         },
         {
@@ -242,43 +333,280 @@ function Nameplates.GetPositionSettingsOptions()
             width = "full",
         },
         {
+            type = "slider",
+            key = "compassFrameScale",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_COMPASS_SCALE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_SCALE_TOOLTIP")),
+            min = 0.75,
+            max = 1.75,
+            step = 0.05,
+            decimals = 2,
+            default = GetPositionDefault("compassFrameScale"),
+            getFunc = function() return GetScaleSetting("compassFrameScale") end,
+            setFunc = function(value) SetPositionSettingValue("compassFrameScale", value) end,
+            disabled = function() return IsPositionSliderDisabled("compass") end,
+            width = "full",
+        },
+        {
+            type = "button",
+            key = "resetCompassFrame",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
+            func = function() ResetElementPosition("compass") end,
+            disabled = function() return IsPositionSliderDisabled("compass") end,
+            width = "half",
+        },
+        {
             type = "checkbox",
-            key = "moveReticlePrompt",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_RETICLE")),
-            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_RETICLE_TOOLTIP")),
-            default = GetPositionDefault("moveReticlePrompt"),
-            getFunc = function() return GetBooleanSetting("moveReticlePrompt") end,
-            setFunc = function(value) SetPositionSettingValue("moveReticlePrompt", value) end,
-            disabled = function() return not IsNameplateEnabled() end,
+            key = "moveTargetBar",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_TARGET_BAR")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_TARGET_BAR_TOOLTIP")),
+            default = GetPositionDefault("moveTargetBar"),
+            getFunc = function() return GetBooleanSetting("moveTargetBar") end,
+            setFunc = function(value) SetPositionSettingValue("moveTargetBar", value) end,
+            disabled = function() return false end,
             width = "full",
         },
         {
             type = "slider",
-            key = "reticlePromptOffsetX",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RETICLE_OFFSET_X")),
+            key = "targetBarOffsetX",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_TARGET_BAR_OFFSET_X")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP")),
             min = POSITION_OFFSET_MIN,
             max = POSITION_OFFSET_MAX,
             step = 1,
-            default = GetPositionDefault("reticlePromptOffsetX"),
-            getFunc = function() return GetOffsetSetting("reticlePromptOffsetX") end,
-            setFunc = function(value) SetPositionSettingValue("reticlePromptOffsetX", value) end,
-            disabled = function() return IsPositionSliderDisabled("reticle") end,
+            default = GetPositionDefault("targetBarOffsetX"),
+            getFunc = function() return GetOffsetSetting("targetBarOffsetX") end,
+            setFunc = function(value) SetPositionSettingValue("targetBarOffsetX", value) end,
+            disabled = function() return IsPositionSliderDisabled("targetBar") end,
             width = "full",
         },
         {
             type = "slider",
-            key = "reticlePromptOffsetY",
-            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RETICLE_OFFSET_Y")),
+            key = "targetBarOffsetY",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_TARGET_BAR_OFFSET_Y")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_Y_TOOLTIP")),
             min = POSITION_OFFSET_MIN,
             max = POSITION_OFFSET_MAX,
             step = 1,
-            default = GetPositionDefault("reticlePromptOffsetY"),
-            getFunc = function() return GetOffsetSetting("reticlePromptOffsetY") end,
-            setFunc = function(value) SetPositionSettingValue("reticlePromptOffsetY", value) end,
-            disabled = function() return IsPositionSliderDisabled("reticle") end,
+            default = GetPositionDefault("targetBarOffsetY"),
+            getFunc = function() return GetOffsetSetting("targetBarOffsetY") end,
+            setFunc = function(value) SetPositionSettingValue("targetBarOffsetY", value) end,
+            disabled = function() return IsPositionSliderDisabled("targetBar") end,
             width = "full",
+        },
+        {
+            type = "slider",
+            key = "targetBarScale",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_TARGET_BAR_SCALE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_SCALE_TOOLTIP")),
+            min = 0.75,
+            max = 1.75,
+            step = 0.05,
+            decimals = 2,
+            default = GetPositionDefault("targetBarScale"),
+            getFunc = function() return GetScaleSetting("targetBarScale") end,
+            setFunc = function(value) SetPositionSettingValue("targetBarScale", value) end,
+            disabled = function() return IsPositionSliderDisabled("targetBar") end,
+            width = "full",
+        },
+        {
+            type = "button",
+            key = "resetTargetBar",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
+            func = function() ResetElementPosition("targetBar") end,
+            disabled = function() return IsPositionSliderDisabled("targetBar") end,
+            width = "half",
+        },
+        {
+            type = "checkbox",
+            key = "movePlayerInteract",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_PLAYER_INTERACT")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_PLAYER_INTERACT_TOOLTIP")),
+            default = GetPositionDefault("movePlayerInteract"),
+            getFunc = function() return GetBooleanSetting("movePlayerInteract") end,
+            setFunc = function(value) SetPositionSettingValue("movePlayerInteract", value) end,
+            disabled = function() return false end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "playerInteractOffsetX",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_PLAYER_INTERACT_OFFSET_X")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("playerInteractOffsetX"),
+            getFunc = function() return GetOffsetSetting("playerInteractOffsetX") end,
+            setFunc = function(value) SetPositionSettingValue("playerInteractOffsetX", value) end,
+            disabled = function() return IsPositionSliderDisabled("playerInteract") end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "playerInteractOffsetY",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_PLAYER_INTERACT_OFFSET_Y")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_Y_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("playerInteractOffsetY"),
+            getFunc = function() return GetOffsetSetting("playerInteractOffsetY") end,
+            setFunc = function(value) SetPositionSettingValue("playerInteractOffsetY", value) end,
+            disabled = function() return IsPositionSliderDisabled("playerInteract") end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "playerInteractScale",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_PLAYER_INTERACT_SCALE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_SCALE_TOOLTIP")),
+            min = 0.75,
+            max = 1.75,
+            step = 0.05,
+            decimals = 2,
+            default = GetPositionDefault("playerInteractScale"),
+            getFunc = function() return GetScaleSetting("playerInteractScale") end,
+            setFunc = function(value) SetPositionSettingValue("playerInteractScale", value) end,
+            disabled = function() return IsPositionSliderDisabled("playerInteract") end,
+            width = "full",
+        },
+        {
+            type = "button",
+            key = "resetPlayerInteract",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
+            func = function() ResetElementPosition("playerInteract") end,
+            disabled = function() return IsPositionSliderDisabled("playerInteract") end,
+            width = "half",
+        },
+        {
+            type = "checkbox",
+            key = "moveQuestTracker",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_QUEST_TRACKER")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_QUEST_TRACKER_TOOLTIP")),
+            default = GetPositionDefault("moveQuestTracker"),
+            getFunc = function() return GetBooleanSetting("moveQuestTracker") end,
+            setFunc = function(value) SetPositionSettingValue("moveQuestTracker", value) end,
+            disabled = function() return false end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "questTrackerOffsetX",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_QUEST_TRACKER_OFFSET_X")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("questTrackerOffsetX"),
+            getFunc = function() return GetOffsetSetting("questTrackerOffsetX") end,
+            setFunc = function(value) SetPositionSettingValue("questTrackerOffsetX", value) end,
+            disabled = function() return IsPositionSliderDisabled("questTracker") end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "questTrackerOffsetY",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_QUEST_TRACKER_OFFSET_Y")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_Y_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("questTrackerOffsetY"),
+            getFunc = function() return GetOffsetSetting("questTrackerOffsetY") end,
+            setFunc = function(value) SetPositionSettingValue("questTrackerOffsetY", value) end,
+            disabled = function() return IsPositionSliderDisabled("questTracker") end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "questTrackerScale",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_QUEST_TRACKER_SCALE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_SCALE_TOOLTIP")),
+            min = 0.75,
+            max = 1.75,
+            step = 0.05,
+            decimals = 2,
+            default = GetPositionDefault("questTrackerScale"),
+            getFunc = function() return GetScaleSetting("questTrackerScale") end,
+            setFunc = function(value) SetPositionSettingValue("questTrackerScale", value) end,
+            disabled = function() return IsPositionSliderDisabled("questTracker") end,
+            width = "full",
+        },
+        {
+            type = "button",
+            key = "resetQuestTracker",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
+            func = function() ResetElementPosition("questTracker") end,
+            disabled = function() return IsPositionSliderDisabled("questTracker") end,
+            width = "half",
+        },
+        {
+            type = "checkbox",
+            key = "moveGroupFrames",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_GROUP_FRAMES")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_MOVE_GROUP_FRAMES_TOOLTIP")),
+            default = GetPositionDefault("moveGroupFrames"),
+            getFunc = function() return GetBooleanSetting("moveGroupFrames") end,
+            setFunc = function(value) SetPositionSettingValue("moveGroupFrames", value) end,
+            disabled = function() return false end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "groupFramesOffsetX",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_GROUP_FRAMES_OFFSET_X")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_X_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("groupFramesOffsetX"),
+            getFunc = function() return GetOffsetSetting("groupFramesOffsetX") end,
+            setFunc = function(value) SetPositionSettingValue("groupFramesOffsetX", value) end,
+            disabled = function() return IsPositionSliderDisabled("groupFrames") end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "groupFramesOffsetY",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_GROUP_FRAMES_OFFSET_Y")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_OFFSET_Y_TOOLTIP")),
+            min = POSITION_OFFSET_MIN,
+            max = POSITION_OFFSET_MAX,
+            step = 1,
+            default = GetPositionDefault("groupFramesOffsetY"),
+            getFunc = function() return GetOffsetSetting("groupFramesOffsetY") end,
+            setFunc = function(value) SetPositionSettingValue("groupFramesOffsetY", value) end,
+            disabled = function() return IsPositionSliderDisabled("groupFrames") end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            key = "groupFramesScale",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_GROUP_FRAMES_SCALE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_SCALE_TOOLTIP")),
+            min = 0.75,
+            max = 1.75,
+            step = 0.05,
+            decimals = 2,
+            default = GetPositionDefault("groupFramesScale"),
+            getFunc = function() return GetScaleSetting("groupFramesScale") end,
+            setFunc = function(value) SetPositionSettingValue("groupFramesScale", value) end,
+            disabled = function() return IsPositionSliderDisabled("groupFrames") end,
+            width = "full",
+        },
+        {
+            type = "button",
+            key = "resetGroupFrames",
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_ELEMENT_TOOLTIP")),
+            func = function() ResetElementPosition("groupFrames") end,
+            disabled = function() return IsPositionSliderDisabled("groupFrames") end,
+            width = "half",
         },
         {
             type = "button",
@@ -286,7 +614,7 @@ function Nameplates.GetPositionSettingsOptions()
             name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_POSITIONS")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_POSITIONS_TOOLTIP")),
             func = ResetPositionSettings,
-            disabled = function() return not IsNameplateEnabled() end,
+            disabled = function() return false end,
             width = "half",
         },
     }
