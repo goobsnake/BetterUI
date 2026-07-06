@@ -424,6 +424,16 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
         tooltip._betterui_slotIndex = slotIndex
         tooltip._betterui_itemLink = GetItemLink(bagId, slotIndex)
         tooltip._betterui_storeStackCount = nil
+    elseif tooltip then
+        -- Quest items (bagId == nil) reach here. Clear the cached enhanced-item
+        -- data, or the stale _betterui_itemLink from the previously focused
+        -- category (e.g. Quickslots) survives and the UpdateTooltipEquippedText(
+        -- GAMEPAD_LEFT_TOOLTIP, nil) call below re-renders that previous item's
+        -- enhanced top section over the quest tooltip.
+        tooltip._betterui_bagId = nil
+        tooltip._betterui_slotIndex = nil
+        tooltip._betterui_itemLink = nil
+        tooltip._betterui_storeStackCount = nil
     end
 
     if selectedData.isEquippedInCurrentCategory or selectedData.isEquippedInAnotherCategory or selectedData.equipSlot then
