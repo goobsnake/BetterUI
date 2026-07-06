@@ -837,3 +837,4 @@ ZO_CreateStringId("SI_BETTERUI_TH_FILTERS_UNAVAILABLE", "浏览筛选器不可�
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "此预设无法加载")
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "此预设来自不同的游戏版本")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "全部修复")
+ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "已分配")

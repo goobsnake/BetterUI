@@ -874,3 +874,4 @@ ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_RESET", "Reset Combat Indicator
 ZO_CreateStringId("SI_BETTERUI_COOLDOWN_RESET", "Reset Cooldown")
 ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_RESET", "Reset Quickslot")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_GENERAL_RESET_TOOLTIP", "Reset frame scale, offset, and the unlock all positions setting to defaults.")
+ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "Assigned")

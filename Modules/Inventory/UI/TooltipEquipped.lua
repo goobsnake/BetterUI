@@ -174,6 +174,19 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
         end
     end
 
+    -- Quickslot assignment: consumables shown in the Quickslots category are not
+    -- gear-equipped (equipSlot is nil), so surface an "Assigned" header styled like
+    -- the "Equipped" header when the focused item currently occupies a quickslot.
+    if enhancementsEnabled and equipSlot == nil and headerText == "" and valueText == ""
+        and tooltip and tooltip._betterui_bagId and tooltip._betterui_slotIndex then
+        local quickslotHotbar = rawget(_G, "HOTBAR_CATEGORY_QUICKSLOT_WHEEL")
+        local findActionSlot = rawget(_G, "FindActionSlotMatchingItem")
+        if quickslotHotbar and findActionSlot
+            and findActionSlot(tooltip._betterui_bagId, tooltip._betterui_slotIndex, quickslotHotbar) then
+            headerText = GetString(rawget(_G, "SI_BETTERUI_ASSIGNED"))
+        end
+    end
+
     -- 3. Custom Label Logic
     if container then
         local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
@@ -185,7 +198,16 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             local horizontalPadding = 12
             label:SetAnchor(TOPLEFT, container, TOPLEFT, horizontalPadding, yOffset)
             label:SetAnchor(TOPRIGHT, container, TOPRIGHT, -horizontalPadding, yOffset)
-            label:SetMaxLineCount(4)
+            -- 0 = unlimited lines. Width is already fully constrained by the TOPLEFT +
+            -- TOPRIGHT anchors above, so multi-source market pricing (TTC/MM/ATT, plus a
+            -- separate stack-total line) each renders on its own line instead of
+            -- overflowing a fixed 4-line cap and being ellipsized. bottomRail anchors to
+            -- this label's bottom and the Tip scroll body is pinned to the container
+            -- bottom, so a taller label shrinks the description scroll rather than
+            -- overflowing (mirrors the native-fallback price label below and
+            -- TooltipUtils.lua's comparison label). ELLIPSIS wrap kept as a graceful
+            -- backstop for pathological line counts.
+            label:SetMaxLineCount(0)
             label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
             label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
             -- Default color (Header Color)

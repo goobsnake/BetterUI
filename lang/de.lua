@@ -836,3 +836,4 @@ ZO_CreateStringId("SI_BETTERUI_TH_FILTERS_UNAVAILABLE", "Suchfilter sind nicht v
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "Dieses Preset konnte nicht geladen werden")
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "Dieses Preset stammt aus einer anderen Spielversion")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "Alles reparieren")
+ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "Zugewiesen")

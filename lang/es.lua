@@ -835,3 +835,4 @@ ZO_CreateStringId("SI_BETTERUI_TH_FILTERS_UNAVAILABLE", "Los filtros de búsqued
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "No se pudo cargar este preajuste")
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "Este preajuste es de una versión distinta del juego")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "Reparar todo")
+ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "Asignado")

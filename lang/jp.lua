@@ -837,3 +837,4 @@ ZO_CreateStringId("SI_BETTERUI_TH_FILTERS_UNAVAILABLE", "閲覧フィルター�
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "このプリセットを読み込めませんでした")
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "このプリセットは別のゲームバージョン用です")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "すべて修理")
+ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "割り当て済み")

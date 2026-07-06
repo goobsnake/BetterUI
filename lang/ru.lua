@@ -837,3 +837,4 @@ ZO_CreateStringId("SI_BETTERUI_TH_FILTERS_UNAVAILABLE", "Фильтры прос
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "Не удалось загрузить этот пресет")
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "Этот пресет создан для другой версии игры")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "Починить всё")
+ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "Назначено")
