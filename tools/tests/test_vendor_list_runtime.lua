@@ -171,6 +171,11 @@ local vendorInstance = {
         selectedDataNotifications = selectedDataNotifications + 1
         self.lastSelectedData = selectedDataArg
     end,
+    RefreshCoreKeybindOwnership = function(self, reason)
+        self.coreKeybindRefreshCount = (self.coreKeybindRefreshCount or 0) + 1
+        self.coreKeybindRefreshReason = reason
+        return true
+    end,
     UpdateScrollIndicator = function(self, listArg)
         self.lastScrollIndicatorList = listArg
     end,
@@ -209,7 +214,9 @@ assert_true(vendorInstance.headersVisible == true, "controller runtime restores 
 assert_true(vendorInstance.listInputEnsured == true, "controller runtime restores list input when the scene is showing")
 assert_eq(selectedDataNotifications, 1, "controller runtime replays item-selection change handlers")
 assert_eq(vendorInstance.lastSelectedData.dataSource.entryIndex, 11, "controller runtime notifies selection handlers with the restored target row")
-assert_eq(keybindUpdates, 1, "controller runtime refreshes keybinds after rebuilding the list")
+assert_eq(vendorInstance.coreKeybindRefreshCount, 1, "controller runtime re-ensures core keybind ownership after rebuilding the list")
+assert_eq(vendorInstance.coreKeybindRefreshReason, "listRefresh", "controller runtime records the list-refresh keybind ownership reason")
+assert_eq(keybindUpdates, 0, "controller runtime avoids blind keybind refresh when owner refresh is available")
 assert_eq(vendorInstance.lastScrollIndicatorList, list, "controller runtime refreshes the scroll indicator")
 
 local emptyList = {

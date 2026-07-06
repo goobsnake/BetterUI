@@ -57,11 +57,16 @@ local interaction = read_file("Modules/Vendor/Core/Lifecycle/VendorInteractionRu
 local controller = read_file("Modules/Vendor/Core/Lifecycle/VendorControllerRuntime.lua")
 local mode_policy = read_file("Modules/Vendor/Core/Policy/VendorModePolicy.lua")
 local vendor = read_file("Modules/Vendor/Vendor.lua")
+local vendor_class = read_file("Modules/Vendor/Core/VendorClass.lua")
 local vendor_keybinds = read_file("Modules/Vendor/Core/VendorKeybinds.lua")
 local manifest = read_file("BetterUI.txt")
 
 assert_before(manifest, "Modules\\Vendor\\Core\\VendorKeybinds.lua", "Modules\\Vendor\\Vendor.lua",
     "Manifest loads VendorKeybinds before Vendor.lua")
+assert_contains(vendor_class, "type(I.GetActiveKeybindStateIndex) == \"function\"",
+    "Vendor keybind-layer trace records the active keybind state")
+assert_contains(vendor_class, "data.liveKeybinds = liveKeybinds",
+    "Vendor keybind-layer trace records the live visible keybind strip")
 
 assert_contains(interaction, "local function TraceVendorScene(phase, state, data)",
     "Vendor interaction runtime exposes a scene-envelope helper")

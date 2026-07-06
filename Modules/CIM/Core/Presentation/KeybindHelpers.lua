@@ -23,6 +23,22 @@ local function WarnKeybindHelper(event, data)
     end
 end
 
+--- HOT-path gate for the expensive KEYBIND diagnostics below: the membership and
+--- live-strip probes issue engine calls (HasKeybindButton per button,
+--- GetOrderedNarratableKeybindButtonInfo for the whole strip), so callers must
+--- only build the trace payload when the log is actually active (see Log.lua
+--- IsActive guidance). Fails OPEN when Log.IsActive is unavailable so behavior
+--- matches an always-on logger and the unit-test harness.
+---@return boolean active
+local function KeybindTraceActive()
+    local L = BETTERUI.Log
+    if not (L and L.Trace) then return false end
+    if type(L.IsActive) ~= "function" then return true end
+    local ok, active = pcall(L.IsActive)
+    if not ok then return true end
+    return active ~= false
+end
+
 local function InvokeKeybindStrip(methodName, ...)
     local strip = GetKeybindStrip()
     local method = strip and strip[methodName]
@@ -41,47 +57,214 @@ local function InvokeKeybindStrip(methodName, ...)
     return true, result
 end
 
+local function GetActiveKeybindStateIndex()
+    local strip = GetKeybindStrip()
+    local method = strip and strip.GetTopKeybindStateIndex
+    if type(method) ~= "function" then
+        return nil
+    end
+
+    local ok, stateIndex = pcall(method, strip)
+    if not ok then
+        WarnKeybindHelper("keybind state read failed", {
+            fn = "KeybindHelpers.GetActiveKeybindStateIndex",
+            error = tostring(stateIndex),
+        })
+        return nil
+    end
+    if type(stateIndex) == "number" then
+        return stateIndex
+    end
+    return nil
+end
+
+local function InvokeKeybindStripWithState(methodName, stateIndex, descriptor)
+    if descriptor ~= nil then
+        if stateIndex ~= nil then
+            return InvokeKeybindStrip(methodName, descriptor, stateIndex)
+        end
+        return InvokeKeybindStrip(methodName, descriptor)
+    end
+    if stateIndex ~= nil then
+        return InvokeKeybindStrip(methodName, stateIndex)
+    end
+    return InvokeKeybindStrip(methodName)
+end
+
+local function SafeToken(value)
+    value = tostring(value or "?")
+    value = value:gsub("[%c,;%[%]]", " ")
+    value = value:gsub("%s+", " ")
+    return value:sub(1, 40)
+end
+
+local function DescribeLiveKeybinds()
+    local strip = GetKeybindStrip()
+    local method = strip and strip.GetOrderedNarratableKeybindButtonInfo
+    if type(method) ~= "function" then return nil end
+
+    local ok, keybinds = pcall(method, strip)
+    if not ok then return "error" end
+    if type(keybinds) ~= "table" then return "n=0[]" end
+
+    local parts = {}
+    for i = 1, #keybinds do
+        if #parts >= 8 then break end
+        local entry = keybinds[i]
+        if type(entry) == "table" then
+            local keybindName = SafeToken(entry.keybindName or "?"):sub(1, 18)
+            local name = SafeToken(entry.name or "?"):sub(1, 28)
+            local enabled = (entry.enabled == false) and "0" or "1"
+            parts[#parts + 1] = keybindName .. ":" .. name .. ":e" .. enabled
+        else
+            parts[#parts + 1] = SafeToken(type(entry)):sub(1, 18)
+        end
+    end
+
+    return string.format("n=%d[%s]", #keybinds, table.concat(parts, ";"))
+end
+
+function BETTERUI.Interface.GetActiveKeybindStateIndex()
+    return GetActiveKeybindStateIndex()
+end
+
+function BETTERUI.Interface.DescribeActiveKeybinds()
+    return DescribeLiveKeybinds()
+end
+
+---@param descriptor table?
+---@return boolean present
+local function HasKeybindGroupInState(descriptor, stateIndex)
+    if not descriptor then return false end
+    local ok, present = InvokeKeybindStripWithState("HasKeybindButtonGroup", stateIndex, descriptor)
+    return ok and present == true
+end
+
 ---@param descriptor table?
 ---@return boolean present
 function BETTERUI.Interface.HasKeybindGroup(descriptor)
+    return HasKeybindGroupInState(descriptor, GetActiveKeybindStateIndex())
+end
+
+---@param descriptor table?
+---@return boolean updated
+local function UpdateKeybindGroupInState(descriptor, stateIndex)
     if not descriptor then return false end
-    local ok, present = InvokeKeybindStrip("HasKeybindButtonGroup", descriptor)
-    return ok and present == true
+    local ok, updated = InvokeKeybindStripWithState("UpdateKeybindButtonGroup", stateIndex, descriptor)
+    return ok and updated ~= false
 end
 
 ---@param descriptor table?
 ---@return boolean updated
 function BETTERUI.Interface.UpdateKeybindGroup(descriptor)
-    if not descriptor then return false end
-    local ok, updated = InvokeKeybindStrip("UpdateKeybindButtonGroup", descriptor)
-    return ok and updated ~= false
+    return UpdateKeybindGroupInState(descriptor, GetActiveKeybindStateIndex())
 end
 
 ---@return boolean updated
 function BETTERUI.Interface.UpdateCurrentKeybindGroups()
-    local ok, updated = InvokeKeybindStrip("UpdateCurrentKeybindButtonGroups")
+    local ok, updated = InvokeKeybindStripWithState("UpdateCurrentKeybindButtonGroups", GetActiveKeybindStateIndex())
     return ok and updated ~= false
+end
+
+--- DIAGNOSTIC (inventory->vendor keybind loss): compact string of each keyed
+--- button's ACTUAL presence on the strip -- 1=present, 0=absent, ?=HasKeybindButton
+--- API unavailable; a trailing "e" marks an ethereal/invisible entry. ZOS
+--- HandleDuplicateAddKeybind can evict a group's button on a duplicate-key add
+--- WITHOUT clearing the group entry, so group-level presence alone hides the
+--- failure; this reports button-level truth. Every caller wraps the trace in
+--- KeybindTraceActive(), so these engine probes are built only when logging is
+--- active and logging-off players pay nothing.
+---@param descriptor table?
+---@return string membership
+local function DescribeKeybindGroupMembership(descriptor, stateIndex)
+    local strip = GetKeybindStrip()
+    local hasButtonFn = strip ~= nil and type(strip.HasKeybindButton) == "function"
+    local parts = {}
+    if descriptor then
+        for _, entry in ipairs(descriptor) do
+            if type(entry) == "table" and entry.keybind ~= nil then
+                local mark = "?"
+                if hasButtonFn then
+                    local ok, present = pcall(strip.HasKeybindButton, strip, entry, stateIndex)
+                    mark = (ok and present == true) and "1" or "0"
+                end
+                if entry.ethereal == true then mark = mark .. "e" end
+                parts[#parts + 1] = tostring(entry.keybind) .. "=" .. mark
+            end
+        end
+    end
+    return table.concat(parts, ",")
+end
+
+local function AddKeybindDiagnostics(data, descriptor, stateIndex)
+    data = data or {}
+    data.stateIndex = stateIndex
+    data.topStateIndex = stateIndex
+    data.stateSource = stateIndex ~= nil and "top" or "legacy-default"
+    if type(stateIndex) == "number" then
+        data.savedStateCount = math.max(0, stateIndex - 1)
+    end
+    if descriptor ~= nil and data.buttons == nil then
+        data.buttons = DescribeKeybindGroupMembership(descriptor, stateIndex)
+    end
+    if data.liveKeybinds == nil then
+        data.liveKeybinds = DescribeLiveKeybinds()
+    end
+    return data
 end
 
 ---@param descriptor table?
 ---@return boolean addedOrUpdated
 function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     if not descriptor then return false end
-    if BETTERUI.Interface.HasKeybindGroup(descriptor) then
-        BETTERUI.Interface.UpdateKeybindGroup(descriptor)
+    local stateIndex = GetActiveKeybindStateIndex()
+
+    -- DIAGNOSTIC read-back: capture button membership on entry and after the
+    -- add/update branch so an inventory->vendor repro reveals whether the vendor
+    -- coreKeybinds PRIMARY/SECONDARY/TERTIARY/QUATERNARY buttons truly land. The
+    -- read-back issues engine calls, so every trace is gated on KeybindTraceActive()
+    -- and skipped entirely (built or emitted) when logging is off.
+    if KeybindTraceActive() then
+        TraceKeybindHelper("keybind group ensure enter", AddKeybindDiagnostics({
+            fn = "KeybindHelpers.EnsureKeybindGroupAdded",
+            groupPresent = HasKeybindGroupInState(descriptor, stateIndex),
+        }, descriptor, stateIndex))
+    end
+
+    if HasKeybindGroupInState(descriptor, stateIndex) then
+        UpdateKeybindGroupInState(descriptor, stateIndex)
+        if KeybindTraceActive() then
+            TraceKeybindHelper("keybind group ensure done", AddKeybindDiagnostics({
+                fn = "KeybindHelpers.EnsureKeybindGroupAdded",
+                branch = "update",
+                groupPresent = HasKeybindGroupInState(descriptor, stateIndex),
+            }, descriptor, stateIndex))
+        end
         return true
     end
 
-    local ok, added = InvokeKeybindStrip("AddKeybindButtonGroup", descriptor)
+    local ok, added = InvokeKeybindStripWithState("AddKeybindButtonGroup", stateIndex, descriptor)
     if ok and added ~= false then
-        BETTERUI.Interface.UpdateKeybindGroup(descriptor)
+        UpdateKeybindGroupInState(descriptor, stateIndex)
+        if KeybindTraceActive() then
+            TraceKeybindHelper("keybind group ensure done", AddKeybindDiagnostics({
+                fn = "KeybindHelpers.EnsureKeybindGroupAdded",
+                branch = "add",
+                addResult = added,
+                groupPresent = HasKeybindGroupInState(descriptor, stateIndex),
+            }, descriptor, stateIndex))
+        end
         return true
     end
 
-    TraceKeybindHelper("keybind group add skipped", {
-        fn = "KeybindHelpers.EnsureKeybindGroupAdded",
-        hasDescriptor = descriptor ~= nil,
-    })
+    if KeybindTraceActive() then
+        TraceKeybindHelper("keybind group add skipped", AddKeybindDiagnostics({
+            fn = "KeybindHelpers.EnsureKeybindGroupAdded",
+            hasDescriptor = descriptor ~= nil,
+            addOk = ok,
+            addResult = added,
+        }, descriptor, stateIndex))
+    end
     return false
 end
 
@@ -90,12 +273,13 @@ end
 function BETTERUI.Interface.RemoveKeybindGroupIfPresent(descriptor)
     if not descriptor then return false end
     local strip = GetKeybindStrip()
+    local stateIndex = GetActiveKeybindStateIndex()
     if strip and type(strip.HasKeybindButtonGroup) == "function"
-        and not BETTERUI.Interface.HasKeybindGroup(descriptor) then
+        and not HasKeybindGroupInState(descriptor, stateIndex) then
         return false
     end
 
-    local ok, removed = InvokeKeybindStrip("RemoveKeybindButtonGroup", descriptor)
+    local ok, removed = InvokeKeybindStripWithState("RemoveKeybindButtonGroup", stateIndex, descriptor)
     return ok and removed ~= false
 end
 

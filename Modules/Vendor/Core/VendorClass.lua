@@ -534,6 +534,12 @@ local LogVendorDebug = Vendor.LogDebug or function() end
 local function TraceVendorKeybindLayer(phase, instance, descriptor, data)
     local L = BETTERUI and BETTERUI.Log
     if not (L and L.TraceEvent) then return end
+    -- The describe/state probes below issue engine calls; skip the whole payload
+    -- when logging is off (fail OPEN if IsActive is unavailable, e.g. test stubs).
+    if type(L.IsActive) == "function" then
+        local activeOk, active = pcall(L.IsActive)
+        if activeOk and active == false then return end
+    end
     data = data or {}
     data.module = "Vendor"
     data.scene = BETTERUI_VENDOR_SCENE_NAME
@@ -545,6 +551,21 @@ local function TraceVendorKeybindLayer(phase, instance, descriptor, data)
     end
     if descriptor and data.keybinds == nil and L.DescribeKeybindDescriptors then
         data.keybinds = L.DescribeKeybindDescriptors(descriptor, data.keybindLabel or "vendor-keybinds")
+    end
+    local I = BETTERUI and BETTERUI.Interface
+    if I and data.stateIndex == nil and type(I.GetActiveKeybindStateIndex) == "function" then
+        local ok, stateIndex = pcall(I.GetActiveKeybindStateIndex)
+        if ok then
+            data.stateIndex = stateIndex
+            data.topStateIndex = stateIndex
+            if type(stateIndex) == "number" then
+                data.savedStateCount = math.max(0, stateIndex - 1)
+            end
+        end
+    end
+    if I and data.liveKeybinds == nil and type(I.DescribeActiveKeybinds) == "function" then
+        local ok, liveKeybinds = pcall(I.DescribeActiveKeybinds)
+        if ok then data.liveKeybinds = liveKeybinds end
     end
     local category = L.CATEGORY and (L.CATEGORY.KEYBIND or L.CATEGORY.LIFECYCLE) or nil
     L.TraceEvent(category, "vendor.keybind_layer", phase, data)

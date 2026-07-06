@@ -619,8 +619,13 @@ function ControllerRuntime.RefreshList(instance, deps)
             keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
             reason = "listRefresh",
         })
-        local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
-        local refreshed = updateCurrentKeybinds and updateCurrentKeybinds() or false
+        local refreshed = false
+        if type(instance.RefreshCoreKeybindOwnership) == "function" then
+            refreshed = instance:RefreshCoreKeybindOwnership("listRefresh") == true
+        else
+            local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+            refreshed = updateCurrentKeybinds and updateCurrentKeybinds() or false
+        end
         TraceVendor(L and L.CATEGORY.ACTION, "vendor.keybinds", "refresh_after", instance, {
             keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
             refreshed = refreshed == true,

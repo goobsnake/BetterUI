@@ -185,11 +185,11 @@ assert_true(keybindHelpers:find("BETTERUI%.Interface = BETTERUI%.Interface or %{
     "KeybindHelpers initializes the shared interface helper table")
 assert_true(keybindHelpers:find("function BETTERUI%.Interface%.EnsureKeybindGroupAdded%(descriptor%)") ~= nil,
     "KeybindHelpers exposes EnsureKeybindGroupAdded")
-assert_true(keybindHelpers:find('InvokeKeybindStrip%("AddKeybindButtonGroup", descriptor%)') ~= nil,
+assert_true(keybindHelpers:find('InvokeKeybindStripWithState%("AddKeybindButtonGroup", stateIndex, descriptor%)') ~= nil,
     "KeybindHelpers adds missing keybind groups through guarded dispatch")
-assert_true(keybindHelpers:find('InvokeKeybindStrip%("UpdateKeybindButtonGroup", descriptor%)') ~= nil,
+assert_true(keybindHelpers:find('InvokeKeybindStripWithState%("UpdateKeybindButtonGroup", stateIndex, descriptor%)') ~= nil,
     "KeybindHelpers refreshes keybind groups through guarded dispatch")
-assert_true(keybindHelpers:find('InvokeKeybindStrip%("HasKeybindButtonGroup", descriptor%)') ~= nil,
+assert_true(keybindHelpers:find('InvokeKeybindStripWithState%("HasKeybindButtonGroup", stateIndex, descriptor%)') ~= nil,
     "KeybindHelpers dedupes through the public HasKeybindButtonGroup API")
 assert_true(keybindHelpers:find("function BETTERUI%.Interface%.UpdateCurrentKeybindGroups%(%)") ~= nil,
     "KeybindHelpers exposes guarded current-keybind refresh")
