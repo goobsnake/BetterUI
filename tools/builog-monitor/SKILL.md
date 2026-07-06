@@ -5,7 +5,7 @@ description: >
   report bugs, errors, and anything that looks wrong. Use when the user wants you to
   monitor a play-test for N minutes, verify a fix in-game, or interpret BetterUI's
   [BUI] log lines. Covers the /builog presets (inspect/trace/watch/debug), local and
-  remote SMB log locations, how to decipher each line, and the timed monitor loop.
+  remote (CIFS-mounted) log locations, how to decipher each line, and the timed monitor loop.
 ---
 
 # BetterUI live-log monitor (`/builog` + interface.log)
@@ -88,38 +88,30 @@ Default (this user's Proton/Steam install):
 
 Use the **remote** log instead of the local Proton log when the user says they are testing
 on another computer, asks for remote monitoring, or the local log is not changing during the
-reported play-test. The remote Live log URI is:
+reported play-test. The remote machine (`goobers`) is a permanent kernel CIFS mount at
+`/mnt/eso`, so the remote Live log is a plain filesystem path:
 ```
-smb://goobers/elder%20scrolls%20online/live/Logs/interface.log
+/mnt/eso/live/Logs/interface.log
 ```
 
-The helper script resolves this for you on Linux/GVFS: it accepts `remote`, the raw
-`smb://...` URI, a mounted filesystem path, or `BUILOG_INTERFACE_LOG`. Prefer the `remote`
-alias for AI monitoring on the shared test machine:
+The helper accepts `remote` (resolves to the path above), a filesystem path, or
+`BUILOG_INTERFACE_LOG`. Prefer the `remote` alias for AI monitoring on the shared test
+machine:
 ```
 tools/builog-monitor/monitor.sh <minutes> [interval_seconds] remote
 ```
-Use `BUILOG_REMOTE_INTERFACE_LOG` only when the remote URI changes. On non-Linux hosts, mount
-or open the share first and pass the resulting filesystem path.
+Set `BUILOG_REMOTE_INTERFACE_LOG` only if the mount lives somewhere other than `/mnt/eso`.
+On non-Linux hosts, mount/open the share first and pass the resulting filesystem path.
 
-If the helper cannot find the remote log, manually verify the GVFS mount/path:
+If the remote log is missing, confirm the CIFS mount is up (do **not** use GNOME "Connect to
+Server"/GVFS — that is the deprecated `smb://` path; use the `/mnt/eso` kernel CIFS mount):
 ```
-gio mount 'smb://goobers/elder%20scrolls%20online' 2>/dev/null || true
-for root in /run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*; do
-  log="$root/live/Logs/interface.log"
-  [ -f "$log" ] && printf '%s\n' "$log" && break
-done
+findmnt /mnt/eso || sudo mount /mnt/eso
+[ -f /mnt/eso/live/Logs/interface.log ] && echo found
 ```
-GVFS may expose either decoded or URI-encoded share names; both are valid:
-```
-/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder scrolls online/live/Logs/interface.log
-/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder%20scrolls%20online/live/Logs/interface.log
-```
-
-If no path prints, the share is not mounted for this user, the remote ESO client has not
-created `interface.log` yet, or the remote machine/share is unavailable. Ask the user to run
-`/builog preset inspect` on the test machine, then retry after ESO writes at least one line.
-Always quote the discovered path because the share name may contain spaces.
+If the mount is up but the file is absent, the remote ESO client has not created
+`interface.log` yet: ask the user to run `/builog preset inspect` on the test machine, then
+retry after ESO writes at least one line.
 
 Other installs:
 - Windows: `<Documents>\Elder Scrolls Online\live\Logs\interface.log`
@@ -133,25 +125,17 @@ has written at least one line this session (any Lua error, or `/builog on`).
 Screenshot folders follow the same local/remote `live/` root:
 ```
 /mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots
-smb://goobers/elder%20scrolls%20online/live/Screenshots
+/mnt/eso/live/Screenshots
 ```
 The helper resolves screenshots the same way it resolves `interface.log`: pass `remote`, pass
-the raw `smb://.../live/Screenshots` URI, pass a mounted filesystem path, or set
-`BUILOG_SCREENSHOT_DIR`. Use `BUILOG_REMOTE_SCREENSHOT_DIR` only when the remote screenshot URI
-changes. On non-Linux hosts, mount/open the share first and pass the resulting filesystem path.
+a mounted filesystem path, or set `BUILOG_SCREENSHOT_DIR`. Set `BUILOG_REMOTE_SCREENSHOT_DIR`
+only if the mount lives somewhere other than `/mnt/eso`. On non-Linux hosts, mount/open the
+share first and pass the resulting filesystem path.
 
-If the helper cannot list remote screenshots, verify the same GVFS mount root used for the log:
+If the remote screenshots are missing, confirm the same `/mnt/eso` CIFS mount used for the log:
 ```
-gio mount 'smb://goobers/elder%20scrolls%20online' 2>/dev/null || true
-for root in /run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*; do
-  shots="$root/live/Screenshots"
-  [ -d "$shots" ] && printf '%s\n' "$shots" && break
-done
-```
-Valid mounted screenshot paths mirror the log examples:
-```
-/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder scrolls online/live/Screenshots
-/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder%20scrolls%20online/live/Screenshots
+findmnt /mnt/eso || sudo mount /mnt/eso
+[ -d /mnt/eso/live/Screenshots ] && echo found
 ```
 
 ## Step 3 — run the timed monitor or digest
@@ -166,21 +150,16 @@ Remote example for the shared test machine:
 ```
 tools/builog-monitor/monitor.sh <minutes> [interval_seconds] remote
 ```
-Raw remote URI also works:
+An explicit mounted path also works:
 ```
-tools/builog-monitor/monitor.sh <minutes> [interval_seconds] 'smb://goobers/elder%20scrolls%20online/live/Logs/interface.log'
+tools/builog-monitor/monitor.sh <minutes> [interval_seconds] /mnt/eso/live/Logs/interface.log
 ```
-Manual fallback after discovering the mounted path:
+To pin both the log and screenshots to the mount explicitly:
 ```
-LOG=""
-SCREENSHOTS=""
-for root in /run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*; do
-  log="$root/live/Logs/interface.log"
-  shots="$root/live/Screenshots"
-  [ -f "$log" ] && { LOG="$log"; SCREENSHOTS="$shots"; break; }
-done
-[ -n "$LOG" ] || { echo "remote interface.log not found"; exit 1; }
-BUILOG_INTERFACE_LOG="$LOG" BUILOG_SCREENSHOT_DIR="$SCREENSHOTS" tools/builog-monitor/monitor.sh <minutes> [interval_seconds]
+[ -f /mnt/eso/live/Logs/interface.log ] || { echo "remote interface.log not found"; exit 1; }
+BUILOG_INTERFACE_LOG=/mnt/eso/live/Logs/interface.log \
+BUILOG_SCREENSHOT_DIR=/mnt/eso/live/Screenshots \
+  tools/builog-monitor/monitor.sh <minutes> [interval_seconds]
 ```
 - `minutes` — how long to watch (the user's number; fractional ok).
 - `interval_seconds` — **default 10** (a good back-and-forth cadence). Drop to **5** to pin a
@@ -190,7 +169,7 @@ BUILOG_INTERFACE_LOG="$LOG" BUILOG_SCREENSHOT_DIR="$SCREENSHOTS" tools/builog-mo
   `BUILOG_SCREENSHOT_DIR` or a path derived from `log_path`; pass `remote` to use the remote
   shared-machine screenshot folder.
   Local default: `/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots`
-  Remote default: `smb://goobers/elder%20scrolls%20online/live/Screenshots`
+  Remote default: `/mnt/eso/live/Screenshots`
 
 The monitor reads only lines appended **after** it starts, so confirm a preset is already
 active (Step 1) before launching; for earlier history `grep '\[BUI\]'` the file directly. Have
@@ -203,9 +182,9 @@ errors with messages**, normal/priority rate-limit dropped-record totals, parse-
 own `WARN`/`ERROR` breadcrumbs, `SCREENSHOT` markers plus latest screenshot files when
 available, and a 10-line trail. A `===== totals =====` footer closes it.
 
-The helper prints both `requested log:` and resolved `log:` when it is resolving `remote` or
-an `smb://` URI. If it errors, do not silently fall back to the local Proton log; fix the
-remote mount/path or ask the user to create the remote log with `/builog preset inspect`.
+The helper prints both `requested log:` and resolved `log:` when it is resolving the `remote`
+alias. If it errors, do not silently fall back to the local Proton log; fix the `/mnt/eso`
+mount or ask the user to create the remote log with `/builog preset inspect`.
 
 For completed logs, run digest mode before raw reading:
 ```

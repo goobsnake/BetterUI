@@ -225,11 +225,11 @@ what happened around a player-initiated screenshot. If a host process joins late
 saved marker, match the marker's ISO timestamp to the newest file mtime in the screenshots
 folder. Local default:
 `/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots`.
-Remote default: `smb://goobers/elder%20scrolls%20online/live/Screenshots`. The bundled
+Remote default: `/mnt/eso/live/Screenshots`. The bundled
 monitor accepts an optional fourth argument or `BUILOG_SCREENSHOT_DIR` for that folder.
-Remote screenshot access uses the same SMB/GVFS connection as the remote `interface.log`;
-mount `smb://goobers/elder%20scrolls%20online` first, then use the mounted
-`.../live/Screenshots` path if the `remote` alias cannot resolve it automatically.
+Remote screenshot access uses the same `/mnt/eso` kernel CIFS mount as the remote `interface.log`;
+ensure `/mnt/eso` is mounted (`findmnt /mnt/eso || sudo mount /mnt/eso`), then use the mounted
+`/mnt/eso/live/Screenshots` path if the `remote` alias cannot resolve it automatically.
 Auto capture and user/client saved-event markers can include private UI/chat/account
 context through the screenshot file itself; leave auto capture `off` except during the
 current play-test window.

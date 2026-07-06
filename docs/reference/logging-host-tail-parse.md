@@ -130,9 +130,9 @@ backslash-escaped, and capped at 48 characters in both privacy and non-privacy m
   If a saved event is missed, correlate by the marker ISO timestamp and the newest file mtime
   in the local screenshots folder
   `/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots`
-  or remote screenshots folder `smb://goobers/elder%20scrolls%20online/live/Screenshots`.
-  Remote screenshot access uses the same SMB/GVFS mount root as remote `interface.log`
-  (`/run/user/$(id -u)/gvfs/smb-share:server=goobers,share=elder*/live/Screenshots`).
+  or remote screenshots folder `/mnt/eso/live/Screenshots`.
+  Remote screenshot access uses the same `/mnt/eso` kernel CIFS mount as remote `interface.log`
+  (`/mnt/eso/live/Screenshots`).
 - **`WARN LOG | dropped=<n> reason=rate_limit`** or
   **`WARN LOG | dropped=<n> reason=priority_rate_limit`** — the file-sink budget shed `n`
   normal or replay-critical records in a burst. Coverage gap, not an error. Priority records

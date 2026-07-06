@@ -11,21 +11,20 @@
 #   minutes          how long to watch (default 2). Fractional ok (e.g. 0.5).
 #   interval_seconds seconds between samples (default 10). 5 to pinpoint a repro,
 #                    15-20 for long/quiet sessions.
-#   log_path         path to interface.log, raw smb:// URI, or "remote".
+#   log_path         path to interface.log, a mounted filesystem path, or "remote".
 #                    Default: $BUILOG_INTERFACE_LOG, else the Proton/Steam path below.
-#                    Remote alias/URI default:
-#                      smb://goobers/elder%20scrolls%20online/live/Logs/interface.log
+#                    Remote alias default (goobers CIFS mount at /mnt/eso):
+#                      /mnt/eso/live/Logs/interface.log
 #                    Override for other OSes:
 #                      Windows: <Documents>/Elder Scrolls Online/live/Logs/interface.log
 #                      macOS:   ~/Documents/Elder Scrolls Online/live/Logs/interface.log
-#   screenshot_dir   path/URI to live/Screenshots, or "remote". Default: derived from
-#                    log_path, or $BUILOG_SCREENSHOT_DIR when set. Resolution mirrors
-#                    log_path: raw smb:// URIs are mapped through the GVFS mount, and
-#                    "remote" uses $BUILOG_REMOTE_SCREENSHOT_DIR.
+#   screenshot_dir   path to live/Screenshots, or "remote". Default: derived from
+#                    log_path, or $BUILOG_SCREENSHOT_DIR when set. "remote" uses
+#                    $BUILOG_REMOTE_SCREENSHOT_DIR (default /mnt/eso/live/Screenshots).
 #                    Local default:
 #                      /mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots
 #                    Remote default:
-#                      smb://goobers/elder%20scrolls%20online/live/Screenshots
+#                      /mnt/eso/live/Screenshots
 #   digest           parse an existing log window into timelines, anomalies, real Lua
 #                    errors, drop summaries, screenshots, and optional JSONL records.
 #
@@ -49,10 +48,10 @@ fi
 MINUTES="${1:-2}"
 INTERVAL="${2:-10}"
 DEFAULT_LOG="/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Logs/interface.log"
-REMOTE_LOG="${BUILOG_REMOTE_INTERFACE_LOG:-smb://goobers/elder%20scrolls%20online/live/Logs/interface.log}"
+REMOTE_LOG="${BUILOG_REMOTE_INTERFACE_LOG:-/mnt/eso/live/Logs/interface.log}"
 LOG_REQUEST="${3:-${BUILOG_INTERFACE_LOG:-$DEFAULT_LOG}}"
 DEFAULT_SCREENSHOT_DIR="/mnt/steamstorage/SteamLibrary/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/live/Screenshots"
-REMOTE_SCREENSHOT_DIR="${BUILOG_REMOTE_SCREENSHOT_DIR:-smb://goobers/elder%20scrolls%20online/live/Screenshots}"
+REMOTE_SCREENSHOT_DIR="${BUILOG_REMOTE_SCREENSHOT_DIR:-/mnt/eso/live/Screenshots}"
 SCREENSHOT_REQUEST="${4:-${BUILOG_SCREENSHOT_DIR:-}}"
 
 die() {
@@ -60,100 +59,12 @@ die() {
   exit 1
 }
 
-uri_decode() {
-  local value="${1//+/ }"
-  printf '%b' "${value//%/\\x}"
-}
-
-find_gvfs_smb_root() {
-  local server="$1"
-  local share_segment="$2"
-  local share_name="$3"
-  local gvfs_dir="/run/user/$(id -u)/gvfs"
-  local candidate root name mounted_server mounted_share decoded_mounted_share
-
-  for candidate in \
-    "$gvfs_dir/smb-share:server=$server,share=$share_name" \
-    "$gvfs_dir/smb-share:server=$server,share=$share_segment"; do
-    [ -d "$candidate" ] && printf '%s\n' "$candidate" && return 0
-  done
-
-  [ -d "$gvfs_dir" ] || return 1
-
-  for root in "$gvfs_dir"/smb-share:server="$server",share=*; do
-    [ -d "$root" ] || continue
-    name="${root##*/}"
-    mounted_server="${name#smb-share:server=}"
-    mounted_server="${mounted_server%%,share=*}"
-    mounted_share="${name#*,share=}"
-    decoded_mounted_share="$(uri_decode "$mounted_share")"
-
-    if [ "${mounted_server,,}" = "${server,,}" ] && {
-      [ "$mounted_share" = "$share_segment" ] || [ "$decoded_mounted_share" = "$share_name" ]
-    }; then
-      printf '%s\n' "$root"
-      return 0
-    fi
-  done
-
-  return 1
-}
-
-resolve_smb_uri() {
-  local uri="$1"
-  local rest server path_part share_segment share_name relative_part relative_path share_uri gvfs_root
-
-  [ "$(uname -s)" = "Linux" ] || die "SMB URI resolution requires Linux/GVFS; mount the share and pass the filesystem path instead."
-
-  rest="${uri#smb://}"
-  [ "$rest" != "$uri" ] && [ -n "$rest" ] || die "invalid SMB URI: $uri"
-  case "$rest" in
-    */*) ;;
-    *) die "SMB URI must include a share name: $uri" ;;
-  esac
-
-  server="${rest%%/*}"
-  path_part="${rest#*/}"
-  share_segment="${path_part%%/*}"
-  [ -n "$server" ] && [ -n "$share_segment" ] || die "invalid SMB URI: $uri"
-
-  share_name="$(uri_decode "$share_segment")"
-  if [ "$path_part" = "$share_segment" ]; then
-    relative_path=""
-  else
-    relative_part="${path_part#*/}"
-    relative_path="$(uri_decode "$relative_part")"
-  fi
-
-  gvfs_root="$(find_gvfs_smb_root "$server" "$share_segment" "$share_name" || true)"
-  if [ -z "$gvfs_root" ] && command -v gio >/dev/null 2>&1; then
-    share_uri="smb://$server/$share_segment"
-    printf 'BUILOG MONITOR: mounting SMB share root: %s\n' "$share_uri" >&2
-    gio mount "$share_uri" >/dev/null 2>&1 || true
-    gvfs_root="$(find_gvfs_smb_root "$server" "$share_segment" "$share_name" || true)"
-  fi
-
-  if [ -z "$gvfs_root" ]; then
-    gvfs_root="/run/user/$(id -u)/gvfs/smb-share:server=$server,share=$share_name"
-  fi
-
-  if [ -n "$relative_path" ]; then
-    printf '%s/%s\n' "$gvfs_root" "$relative_path"
-  else
-    printf '%s\n' "$gvfs_root"
-  fi
-}
-
 resolve_log_request() {
   local request="$1"
   case "$request" in
     remote|REMOTE|--remote) request="$REMOTE_LOG" ;;
   esac
-
-  case "$request" in
-    smb://*) resolve_smb_uri "$request" ;;
-    *) printf '%s\n' "$request" ;;
-  esac
+  printf '%s\n' "$request"
 }
 
 derive_screenshot_dir() {
@@ -166,11 +77,8 @@ derive_screenshot_dir() {
   esac
 
   case "$LOG_REQUEST" in
-    remote|REMOTE|--remote|smb://*)
-      case "$REMOTE_SCREENSHOT_DIR" in
-        smb://*) resolve_smb_uri "$REMOTE_SCREENSHOT_DIR" ;;
-        *) printf '%s\n' "$REMOTE_SCREENSHOT_DIR" ;;
-      esac
+    remote|REMOTE|--remote)
+      printf '%s\n' "$REMOTE_SCREENSHOT_DIR"
       ;;
     *)
       printf '%s\n' "$DEFAULT_SCREENSHOT_DIR"
@@ -186,7 +94,6 @@ resolve_screenshot_request() {
 
   case "$request" in
     "") derive_screenshot_dir "$LOG" ;;
-    smb://*) resolve_smb_uri "$request" ;;
     *) printf '%s\n' "$request" ;;
   esac
 }
