@@ -1,7 +1,16 @@
 Set-StrictMode -Version Latest
 
+# Windows PowerShell 5.1 predates the $IsWindows/$IsLinux/$IsMacOS automatic variables
+# (PowerShell 6+). Define them so Set-StrictMode does not error when this runs under 5.1.
+if (-not (Test-Path variable:IsWindows)) {
+    $IsWindows = $true
+    $IsLinux = $false
+    $IsMacOS = $false
+}
+
 $BetterUIDeployExcludeItems = @(
     '.agent_workspace',
+    '.claude',
     '.zff-mcp-backups',
     '.worktrees',
     '.git',
@@ -50,41 +59,29 @@ function Remove-BetterUIDeployPath {
         return
     }
 
+    # Safety: never recursively delete a filesystem / drive root. Guards against a
+    # mis-set -DestinationDir or -NetworkShareDir turning this into `rm -rf /`.
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $pathRoot = [System.IO.Path]::GetPathRoot($fullPath)
+    if ($fullPath.TrimEnd('/', '\') -eq $pathRoot.TrimEnd('/', '\')) {
+        throw "Refusing to recursively delete a filesystem root: $Path"
+    }
+
     if ($IsLinux) {
+        # Kernel CIFS and local (ext4) mounts support recursive delete directly.
+        # NOTE: never deploy over a GNOME "Connect to Server" / GVFS mount
+        # (/run/user/<uid>/gvfs/smb-share:...). gvfsd-smb fails rmdir with EINVAL
+        # ("Invalid argument"), so stale directories survive every deploy. Mount the
+        # share with the kernel CIFS client instead.
         & rm -rf -- $Path
         if ($LASTEXITCODE -eq 0 -and -not (Test-Path -LiteralPath $Path)) {
             return
-        }
-
-        Start-Sleep -Milliseconds 250
-        $gio = Get-Command gio -ErrorAction SilentlyContinue
-        if ($gio) {
-            $items = @(
-                Get-ChildItem -LiteralPath $Path -Force -Recurse -ErrorAction SilentlyContinue |
-                    Sort-Object { $_.FullName.Length } -Descending
-            )
-            foreach ($item in $items) {
-                if (Test-Path -LiteralPath $item.FullName) {
-                    & $gio.Source remove $item.FullName 2>$null
-                }
-            }
-            if (Test-Path -LiteralPath $Path) {
-                & $gio.Source remove $Path 2>$null
-            }
-            Start-Sleep -Milliseconds 250
-            if (-not (Test-Path -LiteralPath $Path)) {
-                return
-            }
         }
     }
 
     Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
     if (Test-Path -LiteralPath $Path) {
-        $remaining = @(Get-ChildItem -LiteralPath $Path -Force -Recurse -ErrorAction SilentlyContinue)
-        if ((Test-Path -LiteralPath $Path -PathType Container) -and $remaining.Count -eq 0) {
-            return
-        }
-        throw "Failed to remove deploy path: $Path"
+        throw "Failed to remove existing deploy target: $Path. A file may be locked (is ESO running?), or the share lacks delete permission."
     }
 }
 
@@ -112,30 +109,6 @@ function New-BetterUIDeployDirectory {
     }
 }
 
-function Remove-BetterUIDeployExcludedArtifacts {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Target
-    )
-
-    if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
-        return
-    }
-
-    $excludedArtifacts = Get-ChildItem -LiteralPath $Target -Force -Directory -Recurse -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -in $BetterUIDeployExcludeItems } |
-        Sort-Object { $_.FullName.Length } -Descending
-
-    foreach ($artifact in $excludedArtifacts) {
-        $artifactPath = $artifact.FullName
-        try {
-            Remove-BetterUIDeployPath -Path $artifactPath
-        } catch {
-            Write-Warning "Excluded deploy artifact could not be removed: $artifactPath"
-        }
-    }
-}
-
 function Join-PathSegments {
     param(
         [Parameter(Mandatory = $true)]
@@ -151,72 +124,29 @@ function Join-PathSegments {
     return $path
 }
 
-function Get-GvfsSmbMountRoot {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$GvfsDir,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Server,
-
-        [Parameter(Mandatory = $true)]
-        [string]$ShareSegment,
-
-        [Parameter(Mandatory = $true)]
-        [string]$ShareName
-    )
-
-    $candidateRoots = @(
-        "$GvfsDir/smb-share:server=$Server,share=$ShareName",
-        "$GvfsDir/smb-share:server=$Server,share=$ShareSegment"
-    ) | Select-Object -Unique
-
-    foreach ($candidate in $candidateRoots) {
-        if (Test-Path -LiteralPath $candidate -PathType Container) {
-            return $candidate
-        }
-    }
-
-    if (-not (Test-Path -LiteralPath $GvfsDir -PathType Container)) {
-        return $null
-    }
-
-    return Get-ChildItem -LiteralPath $GvfsDir -Directory -ErrorAction SilentlyContinue |
-        Where-Object {
-            if ($_.Name -notmatch '^smb-share:server=([^,]+),share=(.+)$') {
-                return $false
-            }
-
-            $mountedServer = $Matches[1]
-            $mountedShare = $Matches[2]
-            $decodedMountedShare = [System.Uri]::UnescapeDataString($mountedShare)
-
-            return ($mountedServer -ieq $Server) -and (
-                ($mountedShare -ieq $ShareSegment) -or
-                ($decodedMountedShare -ieq $ShareName)
-            )
-        } |
-        Select-Object -ExpandProperty FullName -First 1
-}
-
 function Resolve-BetterUINetworkSharePath {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path
     )
 
+    # Already a local path or a mounted share (e.g. a kernel CIFS mountpoint such as
+    # /mnt/eso/live/AddOns/BetterUI). Use as-is.
     if ($Path -notmatch '^smb://') {
         return $Path
     }
 
+    # smb:// URLs are only translated on Windows, where UNC paths are handled natively
+    # by the OS. On Linux we deliberately do NOT auto-mount via GVFS: gvfsd-smb cannot
+    # delete directories (rmdir -> EINVAL) and leaves stale addon files behind. Mount
+    # the share with the kernel CIFS client and pass the mountpoint instead.
     $uri = [System.Uri]$Path
     $segments = @($uri.AbsolutePath.Trim('/') -split '/' | Where-Object { $_ })
     if ($segments.Count -lt 1) {
         throw "SMB URI must include a share name: $Path"
     }
 
-    $shareSegment = $segments[0]
-    $shareName = [System.Uri]::UnescapeDataString($shareSegment)
+    $shareName = [System.Uri]::UnescapeDataString($segments[0])
     $relativeSegments = @(
         $segments |
             Select-Object -Skip 1 |
@@ -227,38 +157,13 @@ function Resolve-BetterUINetworkSharePath {
         return Join-PathSegments -Root "\\$($uri.Host)\$shareName" -Segments $relativeSegments
     }
 
-    if ($IsLinux) {
-        $uid = id -u
-        $gvfsDir = "/run/user/$uid/gvfs"
-        $gvfsRoot = Get-GvfsSmbMountRoot `
-            -GvfsDir $gvfsDir `
-            -Server $uri.Host `
-            -ShareSegment $shareSegment `
-            -ShareName $shareName
-
-        if (-not $gvfsRoot) {
-            $gio = Get-Command gio -ErrorAction SilentlyContinue
-            if ($gio) {
-                $shareUri = "smb://$($uri.Host)/$shareSegment"
-                Write-Host "Mounting network share: $shareUri" -ForegroundColor Yellow
-                & $gio.Source mount $shareUri | Out-Null
-            }
-
-            $gvfsRoot = Get-GvfsSmbMountRoot `
-                -GvfsDir $gvfsDir `
-                -Server $uri.Host `
-                -ShareSegment $shareSegment `
-                -ShareName $shareName
-        }
-
-        if (-not $gvfsRoot) {
-            $gvfsRoot = "$gvfsDir/smb-share:server=$($uri.Host),share=$shareName"
-        }
-
-        return Join-PathSegments -Root $gvfsRoot -Segments $relativeSegments
-    }
-
-    return $Path
+    throw @"
+smb:// share paths are not supported on Linux: GNOME 'Connect to Server' uses the
+GVFS userspace SMB backend, which fails to delete directories (EINVAL) and leaves
+stale addon files behind. Mount the share with the kernel CIFS client and pass the
+mountpoint instead, e.g. -NetworkShareDir '/mnt/eso/live/AddOns/BetterUI'.
+The CIFS mount needs the 'noperm' option, or non-root writes are denied client-side.
+"@
 }
 
 function Copy-BetterUIAddon {
@@ -274,12 +179,11 @@ function Copy-BetterUIAddon {
         throw 'Target directory cannot be empty.'
     }
 
+    # Replace the target wholesale so files deleted/renamed in the repo never linger.
+    # A removal failure is fatal by design: it was previously swallowed and the files
+    # overlaid, which silently let stale addon files accumulate.
     if (Test-Path -LiteralPath $Target) {
-        try {
-            Remove-BetterUIDeployPath -Path $Target
-        } catch {
-            Write-Warning "Deploy target could not be fully removed; overlaying files instead: $Target"
-        }
+        Remove-BetterUIDeployPath -Path $Target
     }
     New-BetterUIDeployDirectory -Path $Target
 
@@ -304,7 +208,7 @@ function Copy-BetterUIAddon {
         }
 
         if ($IsLinux) {
-            # Copy-Item is unreliable on GVFS SMB mounts; use native cp per file.
+            # Native cp is robust across CIFS and local (ext4) mounts.
             & cp -- $item.FullName $destinationPath
             if ($LASTEXITCODE -ne 0) {
                 throw "Failed to copy deploy file: $($item.FullName) -> $destinationPath"
@@ -318,7 +222,6 @@ function Copy-BetterUIAddon {
         }
     }
 
-    Remove-BetterUIDeployExcludedArtifacts -Target $Target
     Write-Host "Files copied successfully to: $Target" -ForegroundColor Green
 }
 
