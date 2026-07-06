@@ -1,124 +1,106 @@
 Current Release - v3.07 Changes:
 
-[INDENT]DIAGNOSTICS & LOGGING:
-1. Added: Retuned log presets for live troubleshooting — /builog preset off|info|watch|debug|trace|inspect. "info" = milestones + problems (FPS-safe during live play); "watch" = a curated stream built for reading in real time (by you or an AI) straight out of Interface.log; "inspect" = watch enrichment at trace depth; "debug"/"trace" = the action flow / everything. Optional `/builog privacy on` redacts player/zone/addon names, item names, and absolute currency balances while preserving replay-safe ids, counts, deltas, and flow context.
-2. Added: The "watch" and "inspect" streams self-describe — every line carries the current scene/view, the active multi-step operation, and your last action; they open with a session preamble, emit periodic inventory/banking/keybind/list/combat state snapshots, and bracket key user flows such as keybind presses, junk toggles, bank transfers, vendor actions, Trading House searches, and combat/HUD transitions with begin/end or stable event markers. Inventory, banking, vendor/fence, Trading House, writs, resource orbs, nameplates, and dialog flows now surface compact action, keybind, scene/mode, list-refresh, blocked-transfer, currency-transfer, anomaly, and state landmarks so an AI tailing Interface.log can tell where a play-test flow progressed or stalled. /builog mark "<note>" annotates the live stream, /builog capture grabs the next few seconds in full detail, and the input anchor records `event=input.keybind phase=fired` for module keybind callbacks.
-3. Improved: Logs are now plain-language across the whole addon — ~400 terse messages were rewritten into self-describing events, and control/scene/category lookups resolve human names instead of raw pointers/indices. Missing controls and swallowed faults now name what was missing, under what, and the source file:line; a lint enforces the convention going forward.
-4. Added: In-chat diagnostics without tailing a file — /buihealth (preset, recent-error count, file-sink budget/pending/drops, scene-logger + watch/anomaly state), /builog recent|errors (recent breadcrumbs / the WARN+ERROR ring), /builog report (session counters for host digest closeout), and per-operation timing markers. Everything stays inert and crash-safe when logging is off; active log lines now normalize raw separators so host parsers keep one field boundary, capped records end with `truncated=1`, and the monitor reports summed dropped-record totals from normal `reason=rate_limit` and priority `reason=priority_rate_limit` `dropped=N` summaries. The host monitor also has `monitor.sh digest` and JSONL modes for reviewing completed logs without installing new tools.
+*** This is a huge update: three brand-new modules (Vendor & Fence, Companion Equipment, Guild Store), full Guild Bank support, gamepad screen-reader narration, movable HUD elements, and a built-in diagnostics suite — plus a large wave of fixes and performance work across the addon. ***
+
+[INDENT]VENDOR & FENCE (NEW MODULE):
+1. Added: Complete BetterUI gamepad interface for merchants — buy, sell, buy back, and repair through the familiar BetterUI list layout with category headers, text search, and column sorting (name, type, trait, stat, value)
+2. Added: Fence support — sell and launder stolen goods with daily-limit tracking and automatic clamping as you approach the fence cap
+3. Added: Multi-select batch selling, laundering, and buyback — batches stop with clear feedback at the gold cap, re-verify every item at the moment it is acted on, and pace themselves to respect server rate limits
+4. Added: Stablemaster support — train riding speed, stamina, and carrying capacity with training progress bars
+5. Added: Store preview — try store items on your character or your active companion before buying
+6. Added: Affordability that respects the correct currency and its stored location — alternate-currency rows show their proper currency icon, and buy/sell actions are cleanly disabled when an item can't be carried or purchase requirements aren't met
+7. Added: Buy/sell list toggles, a dedicated Sell Vengeance tab when the Vengeance ruleset is active, per-mode saved list positions, and an abbreviated currency display option
+8. Added: Vendor lists refresh automatically when antiquity leads are acquired or collectible states change; repair failures surface a clear alert
+
+COMPANION EQUIPMENT (NEW MODULE):
+9. Added: Manage companion gear in a single BetterUI list combining equipped and backpack items, with category filters (All, Weapons, Apparel, Jewelry, Equipped, Junk, Stolen), text search, and column sorting
+10. Added: Equip and unequip with correct handling of locked slots and two-handed weapon constraints
+11. Added: Tooltips indicate what your companion currently has equipped and compare candidate items against it; list rows show item cooldowns
+12. Added: Bind-on-Equip confirmation (toggleable) before equipping tradeable companion items
+13. Added: Full action set — preview, split stack, lock/unlock, junk/unjunk, and destroy (with optional quick-destroy), plus multi-select batch operations
+
+GUILD STORE (NEW MODULE):
+14. Added: Full BetterUI gamepad Guild Store with Browse, Sell, and Listings tabs on the standard BetterUI header tab bar
+15. Added: Browse with price, level, Champion Points, quality, and item-type filters, editable directly with gamepad controls
+16. Added: Up to 20 named saved-search presets that persist across sessions and load safely across versions
+17. Added: The sell flow shows posting fee, house cut, and expected profit in real time before you confirm; listing is gated by your remaining listing cap; the price slider reaches exact values for low- and mid-priced items
+18. Added: Listings tab with cancel confirmation; browse results show time remaining, unit price, and purchase price colored by affordability
+19. Added: Guild cycling on LB/RB with automatic result refresh; searches stay associated with the active guild store and recover cleanly from response timeouts and guild switches
+20. Added: Bind-on-Pickup-but-still-tradeable items appear in the sell list, and per-guild sell permissions are respected
+
+GUILD BANK (NEW — BANKING):
+21. Added: Full guild bank support in BetterUI Banking — deposit and withdraw items with guild-specific category navigation and permission/access checks
+22. Added: Guild bank gold deposits and withdrawals, plus multi-select batch item transfers with whole-stack and bank-full handling
+
+ACCESSIBILITY (NEW):
+23. Added: Gamepad screen-reader narration across BetterUI — Inventory, Banking, Vendor, Guild Store, and Companion lists narrate selected items, category changes, footer info, and keybinds; narration is error-isolated so a faulty callback can never interrupt the readout
+
+MOVABLE HUD ELEMENTS (NEW):
+24. Added: Freely reposition HUD elements by dragging — mover boxes with large 4-way-arrow handles for orbs, skill bars, XP/cast/mount bars, quickslot, companion ultimate, the target bar, interaction prompts, the compass, the quest tracker, and group frames
+25. Added: Per-element offset and scale sliders, a lock setting to prevent accidental drags, and per-element position resets (kept separate from appearance resets) in the "UI Element Positions" settings section
+26. Added: Independent orb positioning — orbs, their ornaments, and attached bars move as anchored groups so composites never split apart
+
+DIAGNOSTICS & LOGGING (NEW):
+27. Added: /builog log presets for live troubleshooting (off | info | watch | debug | trace | inspect) — "info" is FPS-safe milestones-and-problems, "watch"/"inspect" are curated, self-describing streams built to be read straight out of Interface.log (by you or an AI); everything stays inert and crash-safe when off
+28. Added: The live stream brackets real gameplay flows (keybind presses, junk toggles, bank transfers, vendor actions, Guild Store searches, combat/HUD transitions) with begin/end markers, periodic state snapshots, and a session preamble; /builog mark "<note>" annotates the stream and /builog capture grabs the next few seconds in full detail
+29. Added: /buihealth and /builog recent | errors | report for in-chat diagnostics without leaving the game — recent breadcrumbs, the warning/error ring, and session counters
+30. Added: A bindable one-press "Needs Review" capture that drops a marker, an AI-readable UI layout snapshot, and a screenshot in one keypress while /builog logging is enabled, plus /builog review, layout, and screenshot commands
+31. Added: Optional privacy mode (/builog privacy on) redacts player, zone, addon, and item names and absolute currency balances while preserving replay-safe context
+
+INVENTORY & CRAFT BAG:
+32. Added: Item stat comparison against your currently equipped gear on inventory, bank, and companion screens
+33. Fixed: Quest items behave correctly across the board — "Show in Quest Journal" works, quest rows render fully in pooled lists, and stale tooltip data and item errors on quest items are gone
+34. Fixed: Marking a single item as Junk from the Actions menu no longer breaks LB/RB category-carousel paging afterward
+35. Fixed: After opening a container, the primary (A) keybind shows the correct Use/Junk action instead of a stale one
+36. Improved: "New item" indicators are tracked more safely and clear when you leave the screen, so new-item flashes no longer stick around incorrectly
+37. Improved: Entering a category plays the standard forward navigation sound, and the header refreshes immediately when a currency cap changes
+38. Fixed: Recycled list rows fully reset their status and equipped icons, eliminating icon bleed between rows; quickslot assignments refresh primary actions immediately
+39. Fixed: Eliminated interface.log control-name truncation warnings caused by the inventory's internal control names
+
+TOOLTIPS:
+40. Added: Quickslotted consumables show an "Assigned" tooltip header, styled like the "Equipped" header
+41. Added: Aggregated market prices on crafting and improvement result tooltips, with a settings toggle
+42. Improved: Market-price lines are no longer cut off — every enabled price source (TTC / MM / ATT) renders in full
+43. Fixed: Turning off enhanced tooltips restores the stock gamepad tooltip layout and fonts immediately — including the currently open tooltip — without a /reloadui
+44. Fixed: The set-collection "Collected / Uncollected / Reconstructed" status shows again and no longer clips or overlaps when many status tags stack on lower resolutions
+45. Fixed: BetterUI no longer suppresses other addons' (or the native) top-section tooltip lines outside the contexts BetterUI actually enhances
+
+BANKING:
+46. Improved: Item and currency transfers report clear outcomes — confirmed, blocked, or failed — so you always know what actually moved
+47. Fixed: Currency deposits and withdrawals use the current ESO currency-transfer API, keeping them working if the older compatibility functions are removed
+48. Fixed: A list refresh queued while leaving the bank no longer fires after the screen closes, and leaving during "Select All" can no longer reopen the batch menu
+
+RESOURCE ORBS & HUD:
+49. Fixed: The ultimate orb fill meter and insufficient-ultimate overlay reflect the real ability cost of the slotted ultimate
+50. Fixed: Cooldown display honors the engine's global-cooldown flag — the GCD is hidden (matching the action bar) while genuine short cooldowns display, and radial cooldowns restart correctly on same-duration refreshes
+51. Fixed: Orbs no longer freeze in a skewed position when the orb-flow animation is turned off
+
+HEADERS & NAVIGATION:
+52. Fixed: Switching header tabs fires the selection change exactly once, eliminating duplicate refreshes when paging the top tab bar in any module
+53. Fixed: The clear-sort (X) keybind stays available while a column sort is active, even after moving the cursor to a different column
 
 CORE & COMPATIBILITY:
-5. Updated: API version bumped to Update 50 (101050) for full compatibility with the current ESO live build
-6. Improved: Optional market and category addons (MasterMerchant, ArkadiusTradeTools, TamrielTradeCentre, AutoCategory) are now fully isolated — a missing, changed, or erroring third-party addon can no longer crash BetterUI list rendering.
-7. Improved: Saved settings are validated and migrated on load, so corrupt or missing saved data falls back to safe defaults instead of faulting during startup.
-
-GUILD STORE (TRADING HOUSE):
-8. Improved: Search now stays associated with the active guild store and recovers cleanly after response timeouts, guild switches, and status updates
-9. Added: Listing flow now shows the posting fee and expected profit before you confirm a sale
-10. Fixed: Listing is now gated by your remaining listing cap, and saved search presets are guarded against invalid or stale state
-
-VENDOR:
-11. Added: Purchase affordability now respects the correct stored currency location, so alternate-currency prices show as affordable when you actually can afford them
-12. Fixed: Buy and sell actions are now correctly gated by whether the item can be carried and by gamepad-mode context, preventing dead or misleading keybinds
-13. Fixed: Vendor dialogs are now released when the store closes, and repair failures surface a clear alert
-14. Improved: Vendor item lists refresh automatically when antiquity leads are acquired or collectible state changes, keeping availability accurate
-
-COMPANIONS:
-15. Fixed: Equip rules now respect locked slots and two-handed weapon constraints
-16. Added: Tooltips now indicate which items are currently equipped on the companion, and cooldown information is displayed
-17. Fixed: New-item status is cleared correctly, and a Bind-on-Equip confirmation fallback prevents accidental binding
-
-PERFORMANCE:
-18. Improved: List rebuilds across Inventory, Banking, Vendor, and Companions are faster and allocate less, reducing hitches on large bags
-
-INVENTORY (continued):
-19. Fixed: Marking a single item as Junk from the Actions menu no longer breaks LB/RB category-carousel paging afterward
-20. Fixed: After opening a container, the primary (A) keybind now shows the correct Use/Junk action instead of a stale one
-21. Fixed: Eliminated interface.log control-name truncation warnings by shortening the inventory's internal control names
-
-TOOLTIPS (continued):
-22. Fixed: Turning off enhanced tooltips now restores the stock gamepad tooltip layout and fonts immediately, without needing a /reloadui or relog
-23. Fixed: Enhanced tooltips again show the set-collection "Collected / Uncollected / Reconstructed" status
-
-GUILD STORE (TRADING HOUSE, continued):
-24. Fixed: Items that are Bind-on-Pickup but still tradeable are no longer hidden from the sell list, and the per-guild sell-permission gate is now respected
-25. Fixed: Switching guilds while the Guild Store is closed no longer triggers off-screen listing requests or rebuilds
-26. Fixed: The create-listing price slider can now reach exact prices for low- and mid-value items
-27. Fixed: Saved search presets are now version-stamped and load safely, so corrupt or cross-version presets fail gracefully instead of erroring
-
-VENDOR (continued):
-28. Fixed: "Buy All" now skips locked and requirement-failing store entries, matching single-item buy rules
-29. Fixed: Alternate-currency buy rows now display their correct currency icon
-
-CORE & COMPATIBILITY (continued):
-30. Improved: Eliminated direct global monkey-patching across all modules — BetterUI now uses `ZO_PostHook` and `_G` cooperative chains so other addons' hooks on the same functions remain intact. `SetHandler` calls that would overwrite other addons' handlers are replaced with `ZO_PostHookHandler` plus idempotency guards.
-31. Improved: Fixed callback accumulation on scene re-entry — `RegisterForEvent`, `CALLBACK_MANAGER:RegisterCallback`, `SHARED_INVENTORY:RegisterCallback`, and LAM panel registration are now idempotent; unregister-before-register prevents stale listener buildup across scene transitions.
-32. Improved: Guarded all deferred callbacks (`zo_callLater`) against stale execution after module disable or scene change; batch pipeline token races are prevented, and `BatchOverlay` delayed animations now cancel before reschedule on rapid show/hide sequences.
-
-VENDOR (continued):
-33. Improved: Batch buy/sell pacing no longer counts skipped (no-op) steps against the server rate limit, so large batches complete more smoothly
-
-COMPANIONS (continued):
-34. Fixed: Hardened companion item-destroy eligibility checks against acting on the wrong item
-
-RESOURCE ORB FRAMES:
-35. Fixed: The ultimate orb fill meter and the insufficient-ultimate overlay now reflect the real ability cost of the slotted ultimate
+54. Updated: API version bumped to Update 50 (101050) for full compatibility with the current ESO live build
+55. Improved: Optional market and category addons (MasterMerchant, ArkadiusTradeTools, TamrielTradeCentre, AutoCategory) are fully isolated — a missing, changed, or erroring third-party addon can no longer break BetterUI, and their failures are logged instead of silently blanking price or category columns
+56. Improved: Saved settings are validated and migrated on load, so corrupt or missing saved data falls back to safe defaults instead of faulting during startup
+57. Improved: Eliminated global monkey-patching across all modules in favor of cooperative hooks, so other addons' hooks on the same functions keep working alongside BetterUI
+58. Improved: Event and callback registrations are idempotent across scene re-entry, and deferred callbacks are guarded against firing after a module is disabled or a scene changes
+59. Fixed: The "skip mail delete confirmation" setting now actually takes effect (it previously hooked a path that never ran on the live gamepad inbox)
 
 STABILITY:
-36. Improved: Batch Junk, Unmark Junk, Lock, Unlock, and vendor sell/launder operations now re-verify each item at the moment they act, so an item that shifts into a freed slot mid-batch is never acted on by mistake
+60. Improved: Batch operations (Junk, Unmark Junk, Lock, Unlock, sell/launder) re-verify each item at the moment they act, and selections survive list refreshes — an item shifting into a freed slot mid-batch can never be acted on by mistake
+61. Improved: Item-destroy authorization fails safe whenever slot data or the engine's destroy-eligibility check is unavailable — a degraded slot can never authorize a destroy
+62. Improved: Hardened rarely-hit paths (power reads, footer refresh, dialog narration, cooldown comparisons, saved-search dialogs) against missing engine return values
 
-HEADERS (INVENTORY / BANKING / VENDOR / COMPANIONS):
-37. Fixed: Switching the active tab in a module header now fires the selection change exactly once, eliminating duplicate refreshes and redundant work when paging the top tab bar
-38. Fixed: Selecting a header tab without its slide animation no longer leaks a stray animation flag, so suppressed-animation tab changes behave consistently
+PERFORMANCE:
+63. Improved: List rebuilds across Inventory, Banking, Vendor, and Companions are faster and allocate less, reducing hitches on large bags
+64. Improved: The HUD no longer redoes styling, text, and anchor work every frame — orb bars, the cast bar, mounted stamina, skill-bar cooldown timers, quickslot counts, and the ultimate fill meter update only when something actually changed
 
-VENDOR (continued):
-39. Fixed: A multi-select Sell or Sell-Vengeance batch now stops with clear feedback when it would exceed the gold cap, instead of firing a run of sales that the server silently rejects (fence and launder are unaffected)
+SETTINGS:
+65. Added: Archival Fortunes currency display option for the inventory footer and bank currency selector
 
-BANKING (continued):
-40. Fixed: Depositing and withdrawing currency at the personal bank now uses the current ESO currency-transfer path, keeping it working if the older compatibility functions are removed
-
-INVENTORY (continued):
-41. Improved: Entering an inventory category now plays the standard forward navigation sound, and the header refreshes immediately when a currency cap changes, matching native behavior
-
-RESOURCE ORB FRAMES (continued):
-42. Improved: The experience and resource orb bars no longer redo full styling and text work every HUD frame — font, size, anchors, and label/value text are now latched and only re-applied when they actually change, removing continuous per-frame string allocation and control churn
-
-TOOLTIPS (continued):
-43. Fixed: Enhanced gamepad tooltips no longer suppress other addons' (or the native) top-section tooltip lines outside BetterUI-enhanced contexts — the set-collection tag and third-party top lines are preserved everywhere except where BetterUI actually renders its enhancement
-
-COMPATIBILITY (continued):
-44. Fixed: Internal resource-orb update registrations are now namespace-prefixed, preventing rare collisions with other addons that register an update loop of the same name
-
-STABILITY (continued):
-45. Improved: Hardened several rarely-hit code paths (ultimate/XP power reads, banking and footer refresh, quantity-dialog narration, companion cooldown comparison, and saved-search dialogs) against missing optional engine return values, preventing Lua errors in edge cases
-
-INVENTORY (shared-module migration repair):
-46. Fixed: Major regression repaired in the gamepad inventory — it again opens to the category list (instead of the craft bag), with category tab icons, LB/RB tab paging, the footer keybinds, the MAIN/BACKUP equipped-weapon icons, and the search bar all restored; the inventory and craft bag are once again separate lists
-47. Fixed: Currency values (gold, Tel Var, transmute crystals, and the rest) once again populate along the bottom of the inventory
-48. Fixed: Item icons across the inventory, craft bag, bank, and vendor no longer pulse/animate — they render as static icons again
-49. Fixed: The VALUE column's market prices are shown in gold again instead of red
-50. Fixed: Column sort (Actions menu -> Sort) works correctly — the sort keybinds now appear and stay while sorting, pressing Sort repeatedly no longer drops the A button, and backing out returns to the inventory with its keybinds intact and lets you re-enter sort afterward
-
-CIM & MODULE HARDENING (reliability pass):
-51. Fixed: A gamepad screen's core keybind group could be silently dropped when the screen built its keybinds after the scene was created — the group is now resolved at show time so it always appears
-52. Fixed: Re-opening a screen could stack duplicate lifecycle handlers (double refresh/cleanup work) — handlers are now properly unregistered and guarded against double-registration
-53. Fixed: The clear-sort (X) keybind now stays available based on whether a sort is active, so you can clear a column sort even after moving the cursor to a different column
-54. Fixed: Item-destroy authorization now fails safe when a slot's data is incomplete, so a degraded slot can never authorize a destroy without the engine's eligibility check
-55. Fixed: The mail delete-confirmation bypass setting now actually takes effect (it previously hooked a path that never ran on the live gamepad inbox)
-56. Fixed: Resource orbs no longer stay frozen in a skewed position when the orb-flow animation is turned off — the orb textures reset cleanly
-57. Fixed: Resource-orb cooldown display now uses the engine's global-cooldown flag to hide the GCD instead of a time threshold, matching the action bar and correctly showing real short cooldowns
-58. Fixed: The equipped/banked tooltip status line is now bounded with padding so a dense stack of status tags (Lock, Bound, Stolen, Junk, set-collection, counts) can't overlap on lower resolutions
-59. Improved: Gamepad screen-reader narration is hardened so an error inside a narration callback can no longer interrupt the readout
-60. Improved: Gamepad screen-reader narration now queues from BetterUI list navigation for Inventory, Banking, Vendor, Trading House, and Companions; Inventory also uses the correct gamepad root scene name so narrated item changes fire after /reloadui
-61. Improved: Several internal cleanup paths were hardened — coalesced UI timers are cancelled on teardown, list-refresh cancellation is wired into scene cleanup, sort decoration is nil-guarded, settings reads return detached copies (mutate through the setter to persist), and the inventory batch dialogs are registered through the shared dialog system
-
-CIM & MODULE HARDENING (review remediation):
-62. Fixed: A Banking list refresh that was already queued when you leave the bank no longer fires after the screen closes — the module's refresh timer is now cancelled and multi-select is exited on teardown; leaving during a "Select All" likewise can no longer reopen the batch menu against a closed screen
-63. Improved: Scene show/hide cleanup is more resilient — keybind add/remove, task cancellation, and event-unregister steps are each error-isolated, so one failing step can no longer abort the rest of the teardown
-64. Improved: When an optional market or item-category addon errors, the fault is now logged for diagnostics instead of silently blanking the price/category column
-65. Improved: Additional HUD per-frame work is latched — the cast bar, mounted-stamina bar, skill-bar cooldown timers, quickslot/stack counts, and the ultimate fill meter now skip redundant text, anchor, and sprite updates when nothing has changed
-66. Fixed: Header sort and category-navigation callbacks are error-isolated so a faulty owner callback can no longer strand the keybind strip, tab bar, or category-change state; added guards for missing column labels, navigation getters, and corrupt saved module settings
-67. Fixed: Turning off enhanced tooltips now reverts the current tooltip's enlarged body text to the stock font immediately (without needing to re-open it), and equipped-item tooltips stay safe when the General Interface module is disabled
-68. Improved: Item-destroy authorization now also fails safe if the engine's destroy-eligibility check itself is unavailable, and multi-select identity stamps survive a list refresh so the batch Lock/Junk/Destroy safety re-check keeps working after the list updates mid-selection
+LOCALIZATION:
+66. Added: Full localization for every new module and feature (Vendor, Guild Store, Companions, Guild Bank, HUD movers) across all 7 supported locales (de, en, es, fr, jp, ru, zh)
 [/INDENT]
 
 

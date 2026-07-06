@@ -1,16 +1,17 @@
 [SIZE="4"][B][COLOR="darkorange"]BetterUI - Gamepad Interface Overhaul[/COLOR][/B][/SIZE]
 
-BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, configurable layouts, and high-impact quality-of-life upgrades for Inventory, Banking, and Resource Frames.
+BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, configurable layouts, and high-impact quality-of-life upgrades across Inventory, Banking (including Guild Bank), Vendors, the Guild Store, Companions, and your HUD.
 
-[COLOR="darkorange"][SIZE="3"][B]Current Release Highlights[/B][/SIZE][/COLOR]
+[COLOR="darkorange"][SIZE="3"][B]Current Release Highlights (v3.07)[/B][/SIZE][/COLOR]
 [LIST]
-[*]Major system architecture migration offering increased UI performance and error handling
-[*]Complete modernization of Resource Orb Frames with new high-res textures, fluid animations, and combat indicators
-[*]New high-fidelity scroll indicators and gradient selection highlights for precise, full-row visibility
-[*]Unified header-sort controllers with intuitive visual indicators and convenient Y-menu sort actions
-[*]Inventory, Craft Bag and Banking multi-select actions with smart quantity dialogs and capacity monitoring
-[*]Language-aware font system preserving localized text behavior across multiple languages
-[*]Currency refresh: Trade Bars terminology update, Seals of Endeavor, and Tome Points support
+[*][B]NEW[/B] Vendor & Fence module — buy, sell, buy back, repair, fence, launder, and train your mount through the full BetterUI interface
+[*][B]NEW[/B] Guild Store module — browse with rich filters and saved search presets, sell with a real-time fee/profit preview, and manage your listings
+[*][B]NEW[/B] Companion Equipment module — manage companion gear with search, sorting, batch actions, and Bind-on-Equip protection
+[*][B]NEW[/B] Full Guild Bank support in Banking, including gold transfers and batch item moves
+[*][B]NEW[/B] Gamepad screen-reader narration for BetterUI's list screens (Inventory, Banking, Vendor, Guild Store, Companions)
+[*][B]NEW[/B] Movable HUD — drag orbs, bars, and frames anywhere, with per-element offset/scale controls and a position lock
+[*][B]NEW[/B] Built-in diagnostics (/builog, /buihealth) with an optional privacy mode
+[*]Faster list rebuilds, lower per-frame HUD overhead, and hardened compatibility with other addons
 [/LIST]
 
 [COLOR="darkorange"][SIZE="3"][B]Requirements[/B][/SIZE][/COLOR]
@@ -23,8 +24,10 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 
 [COLOR="darkorange"][SIZE="3"][B]General Interface Highlights[/B][/SIZE][/COLOR]
 [LIST]
-[*]Optional market pricing in tooltips via [URL="https://esoui.com/downloads/info1752-ArkadiusTradeTools.html"]ATT[/URL], [URL="https://esoui.com/downloads/info928-MasterMerchant.html"]Master Merchant[/URL], and [URL="https://esoui.com/downloads/info1245-TamrielTradeCentre.html"]TTC[/URL] with per-addon toggles, priority ordering, and guild store error suppression
-[*]Enhanced tooltips with master toggle, trait/style research indicators, and collection binding and junk status
+[*]Optional market pricing in tooltips via [URL="https://esoui.com/downloads/info1752-ArkadiusTradeTools.html"]ATT[/URL], [URL="https://esoui.com/downloads/info928-MasterMerchant.html"]Master Merchant[/URL], and [URL="https://esoui.com/downloads/info1245-TamrielTradeCentre.html"]TTC[/URL] with per-addon toggles, priority ordering, and full isolation — a broken or missing pricing addon can never break BetterUI
+[*]Enhanced tooltips with master toggle, trait/style research indicators, collection/binding/junk status, and an "Assigned" header for quickslotted items
+[*]Item stat comparison against your currently equipped gear on inventory, bank, and companion screens
+[*]Market prices on crafting and improvement result tooltips (toggleable)
 [*]Tooltip font scaling and multiple readability options
 [*]Configurable input scroll speed and trigger skip controls
 [*]Extended chat history buffer (up to 5,000 lines)
@@ -32,9 +35,43 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 [*]Account-wide or character-specific settings mode
 [/LIST]
 
-[COLOR="darkorange"][SIZE="3"][B]Resource Orb Frames[/B][/SIZE][/COLOR]
+[COLOR="darkorange"][SIZE="3"][B]Vendor & Fence (NEW)[/B][/SIZE][/COLOR]
+[LIST]
+[*]Buy, sell, buy back, and repair at any merchant through the full BetterUI list layout with category headers, search, and column sorting
+[*]Fence and launder stolen goods with daily-limit tracking and automatic clamping at the cap
+[*]Multi-select batch sell/launder/buyback with gold-cap protection, per-item re-verification, and server-friendly pacing
+[*]Stablemaster support — train riding speed, stamina, and capacity with progress bars
+[*]Store preview — try items on your character or active companion before buying
+[*]Currency-aware affordability with correct icons for alternate-currency items; buy and sell actions are cleanly gated by carry space and purchase requirements
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Guild Store (NEW)[/B][/SIZE][/COLOR]
+[LIST]
+[*]Browse, Sell, and Listings tabs on the standard BetterUI header bar
+[*]Search filters for price, level, Champion Points, quality, and item type — plus up to 20 named search presets that persist across sessions
+[*]Real-time posting fee, house cut, and expected-profit preview before you confirm a listing
+[*]Listing cap awareness, per-guild sell permissions, and affordability-colored results
+[*]Quick guild cycling on LB/RB with automatic search refresh
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Companion Equipment (NEW)[/B][/SIZE][/COLOR]
+[LIST]
+[*]One list for equipped and backpack companion gear with category filters, search, and column sorting
+[*]Safe equip/unequip honoring locked slots and two-handed constraints
+[*]Tooltips compare candidates against currently equipped companion gear; rows show item cooldowns
+[*]Bind-on-Equip protection prompt for tradeable items (toggleable)
+[*]Preview, split, lock, junk, destroy, and multi-select batch actions
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Accessibility (NEW)[/B][/SIZE][/COLOR]
+[LIST]
+[*]Gamepad screen-reader narration for BetterUI's list screens — Inventory, Banking, Vendor, Guild Store, and Companions — narrating selected items, categories, footer info, and keybinds
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Resource Orb Frames & Movable HUD[/B][/SIZE][/COLOR]
 [LIST]
 [*]Optional ARPG-style orb interface for Health, Magicka, Stamina, and Damage Shields
+[*][B]NEW[/B] Freely movable HUD elements — drag boxes with 4-way-arrow handles for orbs, skill bars, XP/cast/mount bars, quickslot, companion ultimate, target bar, interaction prompts, compass, quest tracker, and group frames — with per-element offset/scale sliders, lock toggle, and per-element resets
 [*]Toggleable XP/Champion bar, Cast bar (with always-show mode), and Mount stamina bar
 [*]Dual weapon-bar presentation with back-bar opacity control and weapon swap animation
 [*]Smooth orb resource fill animations with configurable flow toggle
@@ -49,13 +86,14 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 [LIST]
 [*]Custom font family, style, and size controls
 [*]Independent tuning for player and NPC readability
+[*]Movable quest, target, and group frames with scale sliders
 [/LIST]
 
 [COLOR="darkorange"][SIZE="3"][B]Revamped Gamepad Inventory[/B][/SIZE][/COLOR]
 [LIST]
 [*]Expanded category model (All, Equipped, Weapons, Apparel, Jewelry, Consumables, Materials, Furnishings, Junk, Stolen)
 [*]ESO+ Craft Bag support with multi-select retrieve/stow workflows and partial-stack quantity dialogs
-[*]Persistent currency footer with 12-slot support, visibility toggles, and preset profiles (PvP, Crafter, Events)
+[*]Persistent currency footer with 13-slot support, visibility toggles, and preset profiles (PvP, Crafter, Events) — including Tome Points and Archival Fortunes
 [*]Quickslot wheel assignment directly from our Inventory
 [*]Safer deletion flow with side-panel confirmation, optional quick-destroy mode, and opt-in batch destroy for multi-selected items
 [*]Bind-on-Equip protection warning before equipping tradeable items
@@ -69,8 +107,12 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 
 [COLOR="darkorange"][SIZE="3"][B]Revamped Gamepad Banking[/B][/SIZE][/COLOR]
 [LIST]
-[*]Enhanced personal bank and home storage workflows
+[*]Enhanced personal bank, house bank, and home storage workflows
+[*][B]NEW[/B] Full Guild Bank support — deposit/withdraw with guild-aware categories, permission checks, gold transfers, and batch item moves
+[*]Furniture Vault support with "Stow All Furniture" and full category navigation
 [*]Banking multi-select support for batch withdraw/deposit actions
+[*]Mark/Unmark Junk from the bank via the Y-menu, with batch support
+[*]Clear transfer outcomes (confirmed, blocked, or failed) so you always know what moved
 [*]Persistent category behavior and layout matching the Inventory model
 [*]Item icon customization submenu matching Inventory with toggleable status indicators
 [*]Search filtering and clear indicators for known/unknown recipes and motifs
@@ -81,6 +123,14 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 [COLOR="darkorange"][SIZE="3"][B]Daily Writ Integration[/B][/SIZE][/COLOR]
 [LIST]
 [*]Shows daily writ objectives and progress at crafting stations
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Diagnostics & Troubleshooting (NEW)[/B][/SIZE][/COLOR]
+[LIST]
+[*]/builog log presets (off | info | watch | debug | trace | inspect) stream self-describing diagnostics to Interface.log — FPS-safe and fully inert when off
+[*]/buihealth plus /builog recent | errors | report for in-chat diagnostics without leaving the game
+[*]One-press bindable "Needs Review" capture (marker + layout snapshot + screenshot) while logging is enabled, plus the /builog review command
+[*]Optional privacy mode redacts names and balances while keeping reports useful
 [/LIST]
 
 [COLOR="darkorange"][SIZE="3"][B]Project Links[/B][/SIZE][/COLOR]
