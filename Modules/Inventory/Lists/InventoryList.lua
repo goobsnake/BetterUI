@@ -450,13 +450,27 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     local entryContext = ResolveEntryContext(data)
     if not entryContext then
-        local columnControls = ResolveEntryColumnControls(control, ResolveColumnFont(ResolveEntryModuleName(data)))
+        local moduleName = ResolveEntryModuleName(data)
+        local columnControls = ResolveEntryColumnControls(control, ResolveColumnFont(moduleName))
         if columnControls then
             columnControls.itemType:SetText(data.bestItemTypeName or "")
             columnControls.trait:SetText("-")
             columnControls.stat:SetText("-")
             columnControls.value:SetText("-")
         end
+        -- Virtual/quest rows (bag=nil) have no entry context, but they are still
+        -- pooled parametric-list rows. The stock render below is skipped for them,
+        -- so drive per-row visual state here or recycled controls bleed the previous
+        -- category's item into quest rows: the main icon (data:GetIcon is populated
+        -- by ItemDataProcessor's AddIcon), the cooldown swipe, the selection bar, and
+        -- the icon geometry -- ApplyDynamicIconSizing sets the icon's dimensions and its
+        -- offset from the name label, so skipping it leaves the pooled control's prior
+        -- icon spacing and crowds the quest name. Status/equipped icons are already
+        -- cleared by the resets above.
+        BETTERUI_SharedGamepadEntryIconSetup(control.icon, control.stackCountLabel, data, selected)
+        BETTERUI_CooldownSetup(control, data)
+        ApplySelectionVisualState(control, data, selected)
+        ApplyDynamicIconSizing(control, moduleName)
         return
     end
 
