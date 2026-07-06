@@ -183,7 +183,13 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
         local findActionSlot = rawget(_G, "FindActionSlotMatchingItem")
         if quickslotHotbar and findActionSlot
             and findActionSlot(tooltip._betterui_bagId, tooltip._betterui_slotIndex, quickslotHotbar) then
-            headerText = GetString(rawget(_G, "SI_BETTERUI_ASSIGNED"))
+            -- Guard the addon string: if SI_BETTERUI_ASSIGNED is ever unregistered,
+            -- rawget/GetString could yield nil/"" and the later headerText concat would
+            -- error -- only adopt it when it resolves to real text.
+            local assignedText = GetString(rawget(_G, "SI_BETTERUI_ASSIGNED"))
+            if assignedText and assignedText ~= "" then
+                headerText = assignedText
+            end
         end
     end
 
@@ -198,16 +204,15 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             local horizontalPadding = 12
             label:SetAnchor(TOPLEFT, container, TOPLEFT, horizontalPadding, yOffset)
             label:SetAnchor(TOPRIGHT, container, TOPRIGHT, -horizontalPadding, yOffset)
-            -- 0 = unlimited lines. Width is already fully constrained by the TOPLEFT +
-            -- TOPRIGHT anchors above, so multi-source market pricing (TTC/MM/ATT, plus a
-            -- separate stack-total line) each renders on its own line instead of
-            -- overflowing a fixed 4-line cap and being ellipsized. bottomRail anchors to
-            -- this label's bottom and the Tip scroll body is pinned to the container
-            -- bottom, so a taller label shrinks the description scroll rather than
-            -- overflowing (mirrors the native-fallback price label below and
-            -- TooltipUtils.lua's comparison label). ELLIPSIS wrap kept as a graceful
-            -- backstop for pathological line counts.
-            label:SetMaxLineCount(0)
+            -- Bounded high cap (12): multi-source market pricing (TTC/MM/ATT plus a
+            -- separate stack-total line) needs several lines and must not be truncated
+            -- at the old 4-line cap. Width stays constrained by the TOPLEFT + TOPRIGHT
+            -- anchors, so each price wraps onto its own line; bottomRail anchors to this
+            -- label's bottom and the Tip scroll body is pinned to the container bottom,
+            -- so a taller label shrinks the description scroll. The cap stays bounded
+            -- (not 0/unlimited) so a pathological line count degrades via ELLIPSIS
+            -- instead of pushing bottomRail past the tooltip container.
+            label:SetMaxLineCount(12)
             label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
             label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
             -- Default color (Header Color)
