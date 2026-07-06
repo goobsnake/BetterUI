@@ -352,11 +352,27 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     self.selectedDataCallback = BETTERUI.Banking.Class.OnItemSelectedChange
 
+    local function QueueBankingNarration()
+        local narration = BETTERUI.CIM and BETTERUI.CIM.Narration
+        local queueSceneNarration = narration and narration.QueueSceneNarration
+        if type(queueSceneNarration) ~= "function" then return end
+
+        local sceneName = nil
+        if SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName then
+            local ok, currentSceneName = pcall(function() return SCENE_MANAGER:GetCurrentSceneName() end)
+            if ok then sceneName = currentSceneName end
+        end
+        if sceneName == BETTERUI_BANKING_SCENE_NAME or sceneName == BETTERUI_GUILD_BANKING_SCENE_NAME then
+            queueSceneNarration(sceneName)
+        end
+    end
+
     local function SelectionChangedCallback(list, selectedData)
         if self._searchModeActive and self.list and self.list.IsActive and self.list:IsActive() then
             if selectedData and self.selectedDataCallback then
                 local selectedControl = list:GetSelectedControl()
                 self:selectedDataCallback(selectedControl, selectedData)
+                QueueBankingNarration()
             end
             self:OnSearchFocusLost()
             return
@@ -365,6 +381,9 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         local selectedControl = list:GetSelectedControl()
         if self.selectedDataCallback then
             self:selectedDataCallback(selectedControl, selectedData)
+        end
+        if selectedData then
+            QueueBankingNarration()
         end
 
         if list and list.control and BETTERUI.CIM.ScrollIndicator then

@@ -17,6 +17,13 @@ local NormalizeIdentityValue = BETTERUI.Inventory.Utils and BETTERUI.Inventory.U
 -- this hardened version is used instead of the naive CIM raw-== equality.
 local MenuEntryTemplateEquality = BETTERUI.Inventory.Utils.MenuEntryTemplateEquality
 
+local function QueueInventoryNarration()
+    local queueSceneNarration = BETTERUI.Inventory and BETTERUI.Inventory.QueueSceneNarration
+    if type(queueSceneNarration) == "function" then
+        queueSceneNarration()
+    end
+end
+
 --- @param list table Scroll list instance
 local function SetupItemList(list)
     -- Short controlPoolPrefix keeps generated pooled-control names (parent scroll
@@ -58,6 +65,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
             self.currentlySelectedData = selectedData
 
             self:SetSelectedInventoryData(selectedData)
+            QueueInventoryNarration()
 
             -- Debounce Tooltip Update (Removed immediate call to prevent scroll lag).
             -- Schedule() auto-cancels any pending "tooltipUpdate", so rapid

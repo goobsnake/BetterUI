@@ -475,7 +475,7 @@ function Inventory.Setup()
 
 	-- Register narration for Inventory scene (ACC-001)
 	local narrOk = TryRegisterInventoryNarration(
-		"gamepadInventory",
+		Inventory.GetNarrationSceneName(),
 		function()
 			return GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.currentlySelectedData
 		end,

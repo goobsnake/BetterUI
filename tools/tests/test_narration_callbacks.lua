@@ -16,14 +16,23 @@ BETTERUI = { CIM = {} }
 BETTERUI.CIM.SafeExecute = function(tag, fn) fn() end
 
 SCREEN_NARRATION_MANAGER = {
+    customObjectNarrationInfo = {},
     CreateNarratableObject = function(self, text) return { text = text } end,
-    RegisterCustomObject = function(self, name, info) end,
+    RegisterCustomObject = function(self, name, info)
+        self.customObjectNarrationInfo[name] = info
+    end,
+    QueueCustomEntry = function(self, name, narrateHeader)
+        local info = self.customObjectNarrationInfo[name]
+        if not info then error("missing custom object") end
+        self.lastQueued = { name = name, narrateHeader = narrateHeader, narrationType = info.narrationType }
+    end,
 }
 
 SCENE_MANAGER = {
     GetCurrentSceneName = function(self) return "test_scene" end,
 }
 
+NARRATION_TYPE_UI_SCREEN = 1
 ITEM_DISPLAY_QUALITY_TRASH = 1
 ITEMFILTERTYPE_JUNK = 5
 
@@ -57,6 +66,7 @@ print("\n=== NarrationHelper Callback Safety Tests (PLT-006) ===\n")
 local captured = {}
 SCREEN_NARRATION_MANAGER.RegisterCustomObject = function(self, name, info)
     captured[name] = info
+    self.customObjectNarrationInfo[name] = info
 end
 
 -- ============================================================================
@@ -67,6 +77,7 @@ captured = {}
 Narration.RegisterListNarration("test_scene", function() return nil end)
 local info = captured["test_scene"]
 check(info ~= nil, "RegisterListNarration registers a narration info object")
+check(info.narrationType == NARRATION_TYPE_UI_SCREEN, "RegisterListNarration marks custom object as UI screen narration")
 
 SCENE_MANAGER.GetCurrentSceneName = function(self) return "test_scene" end
 check(info.canNarrate() == true, "canNarrate returns true when scene matches")
@@ -166,6 +177,7 @@ local nilResult = (function()
     local nilCaptured = {}
     SCREEN_NARRATION_MANAGER.RegisterCustomObject = function(self, name, info)
         nilCaptured[name] = info
+        self.customObjectNarrationInfo[name] = info
     end
     Narration.RegisterListNarration("nil_sm_scene", function() return nil end)
     local nilInfo = nilCaptured["nil_sm_scene"]
@@ -176,6 +188,28 @@ local nilResult = (function()
 end)()
 SCENE_MANAGER = savedSM
 check(nilResult == false, "canNarrate returns false when SCENE_MANAGER is nil")
+
+-- ============================================================================
+-- QueueSceneNarration: guarded custom-object queue call
+-- ============================================================================
+
+captured = {}
+SCREEN_NARRATION_MANAGER.customObjectNarrationInfo = {}
+SCREEN_NARRATION_MANAGER.lastQueued = nil
+Narration.RegisterListNarration("queue_scene", function() return nil end)
+local queued = Narration.QueueSceneNarration("queue_scene", true)
+check(queued == true, "QueueSceneNarration calls QueueCustomEntry for a registered scene")
+check(SCREEN_NARRATION_MANAGER.lastQueued and SCREEN_NARRATION_MANAGER.lastQueued.name == "queue_scene",
+    "QueueSceneNarration passes the scene name to QueueCustomEntry")
+check(SCREEN_NARRATION_MANAGER.lastQueued and SCREEN_NARRATION_MANAGER.lastQueued.narrateHeader == true,
+    "QueueSceneNarration forwards the narrateHeader flag")
+check(SCREEN_NARRATION_MANAGER.lastQueued and SCREEN_NARRATION_MANAGER.lastQueued.narrationType == NARRATION_TYPE_UI_SCREEN,
+    "QueueSceneNarration queues a UI screen narration type")
+
+SCREEN_NARRATION_MANAGER.lastQueued = nil
+local missingQueued = Narration.QueueSceneNarration("not_registered")
+check(missingQueued == false, "QueueSceneNarration does not throw for an unregistered scene")
+check(SCREEN_NARRATION_MANAGER.lastQueued == nil, "QueueSceneNarration skips unregistered scenes")
 
 -- ============================================================================
 -- SUMMARY

@@ -3,6 +3,13 @@ File: Modules/Inventory/Lists/CraftBagListManager.lua
 Purpose: Manages the Craft Bag list for the Inventory module.
 ]]
 
+local function QueueInventoryNarration()
+    local queueSceneNarration = BETTERUI.Inventory and BETTERUI.Inventory.QueueSceneNarration
+    if type(queueSceneNarration) == "function" then
+        queueSceneNarration()
+    end
+end
+
 --- Initializes the craft bag list.
 --- Purpose: Sets up the visual scroll list for the craft bag.
 ---@return nil
@@ -18,6 +25,9 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
                 self:SetSelectedInventoryData(selectedData)
                 -- Ensure selectedItemUniqueId is set for craftbag items (needed for Y-button visibility)
                 self:SetSelectedItemUniqueId(selectedData)
+                if currentList == list then
+                    QueueInventoryNarration()
+                end
                 if list and list.GetParametricList then
                     list:GetParametricList():RefreshVisible()
                 end

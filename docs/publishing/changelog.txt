@@ -108,16 +108,17 @@ CIM & MODULE HARDENING (reliability pass):
 57. Fixed: Resource-orb cooldown display now uses the engine's global-cooldown flag to hide the GCD instead of a time threshold, matching the action bar and correctly showing real short cooldowns
 58. Fixed: The equipped/banked tooltip status line is now bounded with padding so a dense stack of status tags (Lock, Bound, Stolen, Junk, set-collection, counts) can't overlap on lower resolutions
 59. Improved: Gamepad screen-reader narration is hardened so an error inside a narration callback can no longer interrupt the readout
-60. Improved: Several internal cleanup paths were hardened — coalesced UI timers are cancelled on teardown, list-refresh cancellation is wired into scene cleanup, sort decoration is nil-guarded, settings reads return detached copies (mutate through the setter to persist), and the inventory batch dialogs are registered through the shared dialog system
+60. Improved: Gamepad screen-reader narration now queues from BetterUI list navigation for Inventory, Banking, Vendor, Trading House, and Companions; Inventory also uses the correct gamepad root scene name so narrated item changes fire after /reloadui
+61. Improved: Several internal cleanup paths were hardened — coalesced UI timers are cancelled on teardown, list-refresh cancellation is wired into scene cleanup, sort decoration is nil-guarded, settings reads return detached copies (mutate through the setter to persist), and the inventory batch dialogs are registered through the shared dialog system
 
 CIM & MODULE HARDENING (review remediation):
-61. Fixed: A Banking list refresh that was already queued when you leave the bank no longer fires after the screen closes — the module's refresh timer is now cancelled and multi-select is exited on teardown; leaving during a "Select All" likewise can no longer reopen the batch menu against a closed screen
-62. Improved: Scene show/hide cleanup is more resilient — keybind add/remove, task cancellation, and event-unregister steps are each error-isolated, so one failing step can no longer abort the rest of the teardown
-63. Improved: When an optional market or item-category addon errors, the fault is now logged for diagnostics instead of silently blanking the price/category column
-64. Improved: Additional HUD per-frame work is latched — the cast bar, mounted-stamina bar, skill-bar cooldown timers, quickslot/stack counts, and the ultimate fill meter now skip redundant text, anchor, and sprite updates when nothing has changed
-65. Fixed: Header sort and category-navigation callbacks are error-isolated so a faulty owner callback can no longer strand the keybind strip, tab bar, or category-change state; added guards for missing column labels, navigation getters, and corrupt saved module settings
-66. Fixed: Turning off enhanced tooltips now reverts the current tooltip's enlarged body text to the stock font immediately (without needing to re-open it), and equipped-item tooltips stay safe when the General Interface module is disabled
-67. Improved: Item-destroy authorization now also fails safe if the engine's destroy-eligibility check itself is unavailable, and multi-select identity stamps survive a list refresh so the batch Lock/Junk/Destroy safety re-check keeps working after the list updates mid-selection
+62. Fixed: A Banking list refresh that was already queued when you leave the bank no longer fires after the screen closes — the module's refresh timer is now cancelled and multi-select is exited on teardown; leaving during a "Select All" likewise can no longer reopen the batch menu against a closed screen
+63. Improved: Scene show/hide cleanup is more resilient — keybind add/remove, task cancellation, and event-unregister steps are each error-isolated, so one failing step can no longer abort the rest of the teardown
+64. Improved: When an optional market or item-category addon errors, the fault is now logged for diagnostics instead of silently blanking the price/category column
+65. Improved: Additional HUD per-frame work is latched — the cast bar, mounted-stamina bar, skill-bar cooldown timers, quickslot/stack counts, and the ultimate fill meter now skip redundant text, anchor, and sprite updates when nothing has changed
+66. Fixed: Header sort and category-navigation callbacks are error-isolated so a faulty owner callback can no longer strand the keybind strip, tab bar, or category-change state; added guards for missing column labels, navigation getters, and corrupt saved module settings
+67. Fixed: Turning off enhanced tooltips now reverts the current tooltip's enlarged body text to the stock font immediately (without needing to re-open it), and equipped-item tooltips stay safe when the General Interface module is disabled
+68. Improved: Item-destroy authorization now also fails safe if the engine's destroy-eligibility check itself is unavailable, and multi-select identity stamps survive a list refresh so the batch Lock/Junk/Destroy safety re-check keeps working after the list updates mid-selection
 [/INDENT]
 
 

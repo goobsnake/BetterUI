@@ -6,6 +6,14 @@ local Companions = BETTERUI.Companions
 local WrapCompanionHeaderKeybindGroup = Companions.WrapKeybindGroup
     or function(group) return group end
 
+local function QueueCompanionNarration()
+    local narration = BETTERUI.CIM and BETTERUI.CIM.Narration
+    local queueSceneNarration = narration and narration.QueueSceneNarration
+    if type(queueSceneNarration) == "function" then
+        queueSceneNarration(BETTERUI_COMPANION_EQUIP_SCENE_NAME)
+    end
+end
+
 local function IsDirectionalInputListening(obj)
     if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening) then
         return false
@@ -699,6 +707,9 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
             if self:IsSceneShowing() then
                 self:UpdateItemTooltips(selectedData)
                 self:PrepareNextClearNewStatus(selectedData)
+                if selectedData then
+                    QueueCompanionNarration()
+                end
                 if self.coreKeybinds then
                     BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
                 end

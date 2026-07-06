@@ -1,6 +1,6 @@
 # Project Improvements
 
-Last Updated: 2026-07-03
+Last Updated: 2026-07-06
 Status: Active
 
 ## Purpose
@@ -23,3 +23,9 @@ Execution plan (mapped against the tree at commit `4e773a50`; re-verify line anc
 - Related but separate (do NOT bundle): unifying the three near-identical markup-strip sort helpers (`NormalizeModuleToggleSortName` BetterUI.lua:205-231 + two siblings in `SettingsFactory.lua:20-38,105-125`) is behavior-sensitive (sort order) — no function named `StripUIMarkupForSort` exists.
 
 - [ ] Task: Execute the extraction per the plan above as a solo slice; host runs full suite + luac + pins, then an in-game settings-panel smoke check (open settings, switch tabs, toggle a module, confirm tab refresh). (est: 60 min + in-game check)
+
+### ACC-010: Finish gamepad screen-narration in-game acceptance
+
+ACC-010 source Phases 1-3 are implemented and archived in `completed-improvements.md`. User in-game acceptance now confirms Vendor, Banking, and Inventory narrate per item scrolled after the Inventory scene-name follow-up. Remaining work is manual acceptance for the two custom screens not yet confirmed in-game: Trading House and Companions. Phase 4 native parametric-list migration remains optional/deferred and is not required to close the minimal trigger patch.
+
+- [ ] Task: In-game acceptance: open Trading House and Companions with gamepad screen narration enabled, scroll their main lists, and confirm each narrates per item scrolled without fast-scroll spam. If both pass, remove this ACC-010 remainder from `project-improvements.md`; if either fails, reopen only the failing screen path in `accessibility-narration-plan.md`. (est: 1 in-game session)

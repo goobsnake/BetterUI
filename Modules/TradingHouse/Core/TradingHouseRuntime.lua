@@ -33,6 +33,14 @@ local function FormatTHRuntimeString(idName, fallback, ...)
     return fallback or ""
 end
 
+local function QueueTradingHouseNarration()
+    local narration = BETTERUI.CIM and BETTERUI.CIM.Narration
+    local queueSceneNarration = narration and narration.QueueSceneNarration
+    if type(queueSceneNarration) == "function" then
+        queueSceneNarration(BETTERUI_TRADING_HOUSE_SCENE_NAME)
+    end
+end
+
 ---@alias THTabDef {mode: number, name: fun(): string}
 ---@alias TradingHouseSelectionPayload {dataSource: table|nil, bagId: integer|nil, slotIndex: integer|nil}
 ---@alias TradingHouseSceneLifecyclePayload {keybinds: table[], taskManager: table|nil, onShowing: fun(screen: BETTERUI.TradingHouse.Class), onHiding: fun(screen: BETTERUI.TradingHouse.Class), onHidden: fun(screen: BETTERUI.TradingHouse.Class)}
@@ -222,6 +230,9 @@ function TH.SetupSelectionTooltip(instance)
         ---@param selectedData TradingHouseSelectionPayload|nil
         instance.list:SetOnSelectedDataChangedCallback(function(_, selectedData)
             local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+            if selectedData then
+                QueueTradingHouseNarration()
+            end
             TraceTHRuntime("trading_house.selection", "changed", {
                 fn = "TH.SetupSelectionTooltip",
                 mode = instance.GetCurrentMode and instance:GetCurrentMode() or nil,

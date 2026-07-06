@@ -33,6 +33,18 @@ BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 -- tested in v2.x and caused more issues than this direct override.
 ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 
+function BETTERUI.Inventory.GetNarrationSceneName()
+    return rawget(_G, "ZO_GAMEPAD_INVENTORY_SCENE_NAME") or "gamepad_inventory_root"
+end
+
+function BETTERUI.Inventory.QueueSceneNarration()
+    local narration = BETTERUI.CIM and BETTERUI.CIM.Narration
+    local queueSceneNarration = narration and narration.QueueSceneNarration
+    if type(queueSceneNarration) == "function" then
+        queueSceneNarration(BETTERUI.Inventory.GetNarrationSceneName())
+    end
+end
+
 -- Validated Globals for Core
 -- GAMEPAD_INVENTORY_ROOT_SCENE must be global because Module.lua needs to add fragments to it
 

@@ -91,6 +91,55 @@ local function PatchMouseInteractivity(searchControl, focusHandler)
     end
 end
 
+local function GetListNarrationData(currentList)
+    if not currentList then return nil end
+    if currentList.GetTargetData then
+        local ok, data = pcall(function() return currentList:GetTargetData() end)
+        if ok and data then
+            return data.dataSource or data
+        end
+    end
+    local data = currentList.selectedData
+    return data and (data.dataSource or data) or nil
+end
+
+local function AppendSelectedItemSearchNarration(narrations, currentList)
+    local data = GetListNarrationData(currentList)
+    if not data then return end
+
+    if data.name then
+        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(data.name))
+    end
+
+    if data.quality and GetString then
+        local qualityString = GetString("SI_ITEMQUALITY", data.quality)
+        if qualityString and qualityString ~= "" then
+            ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(qualityString))
+        end
+    end
+
+    if data.stackCount and data.stackCount > 1 then
+        local stackFormat = GetString(rawget(_G, "SI_BETTERUI_NARRATION_STACK_COUNT_FORMAT")) or "Stack of <<1>>"
+        local stackText = zo_strformat(stackFormat, data.stackCount)
+        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(stackText))
+    end
+
+    if data.bestItemCategoryName then
+        ZO_AppendNarration(narrations,
+            SCREEN_NARRATION_MANAGER:CreateNarratableObject(data.bestItemCategoryName))
+    end
+
+    if data.isEquippedInCurrentCategory then
+        local equippedText = GetString(rawget(_G, "SI_BETTERUI_NARRATION_EQUIPPED")) or "Equipped"
+        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(equippedText))
+    end
+
+    if data.isJunk then
+        local junkText = GetString(rawget(_G, "SI_BETTERUI_NARRATION_JUNK")) or "Marked as junk"
+        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(junkText))
+    end
+end
+
 --- Registers narration logic for the search header and selected list items.
 local function RegisterNarrationHandler(window, focusHandler)
     if SCREEN_NARRATION_MANAGER and focusHandler then
@@ -111,46 +160,8 @@ local function RegisterNarrationHandler(window, focusHandler)
                         noItemText = currentList:GetNoItemText()
                     end
                     ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(noItemText))
-                end
-                return narrations
-            end,
-            selectedItemNarrationFunction = function()
-                local narrations = {}
-                local currentList = window:GetList()
-                if currentList and currentList.selectedData then
-                    local data = currentList.selectedData
-
-                    if data.name then
-                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(data.name))
-                    end
-
-                    if data.quality and GetString then
-                        local qualityString = GetString("SI_ITEMQUALITY", data.quality)
-                        if qualityString and qualityString ~= "" then
-                            ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(qualityString))
-                        end
-                    end
-
-                    if data.stackCount and data.stackCount > 1 then
-                        local stackFormat = GetString(rawget(_G, "SI_BETTERUI_NARRATION_STACK_COUNT_FORMAT")) or "Stack of <<1>>"
-                        local stackText = zo_strformat(stackFormat, data.stackCount)
-                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(stackText))
-                    end
-
-                    if data.bestItemCategoryName then
-                        ZO_AppendNarration(narrations,
-                            SCREEN_NARRATION_MANAGER:CreateNarratableObject(data.bestItemCategoryName))
-                    end
-
-                    if data.isEquippedInCurrentCategory then
-                        local equippedText = GetString(rawget(_G, "SI_BETTERUI_NARRATION_EQUIPPED")) or "Equipped"
-                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(equippedText))
-                    end
-
-                    if data.isJunk then
-                        local junkText = GetString(rawget(_G, "SI_BETTERUI_NARRATION_JUNK")) or "Marked as junk"
-                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(junkText))
-                    end
+                else
+                    AppendSelectedItemSearchNarration(narrations, currentList)
                 end
                 return narrations
             end,

@@ -618,9 +618,19 @@ function BETTERUI.Inventory.List:Initialize(control, options)
         })
     end
 
+    local function QueueInventoryNarration()
+        local queueSceneNarration = BETTERUI.Inventory and BETTERUI.Inventory.QueueSceneNarration
+        if type(queueSceneNarration) == "function" then
+            queueSceneNarration()
+        end
+    end
+
     local function SelectionChangedCallback(list, selectedData)
         if self.selectedDataCallback then
             self.selectedDataCallback(list, selectedData)
+        end
+        if selectedData then
+            QueueInventoryNarration()
         end
         if selectedData then
             BETTERUI.Inventory.NewItemTracker.PrepareFromSelectedData(selectedData)
@@ -636,7 +646,11 @@ function BETTERUI.Inventory.List:Initialize(control, options)
         if self.isDirty then
             self:RefreshList()
         elseif self.selectedDataCallback then
-            self.selectedDataCallback(self.list, self.list:GetTargetData())
+            local targetData = self.list and self.list.GetTargetData and self.list:GetTargetData() or nil
+            self.selectedDataCallback(self.list, targetData)
+            if targetData then
+                QueueInventoryNarration()
+            end
         end
         self:Activate()
     end

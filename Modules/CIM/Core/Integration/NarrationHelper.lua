@@ -22,6 +22,10 @@ BETTERUI.CIM.Narration = BETTERUI.CIM.Narration or {}
 local Narration = BETTERUI.CIM.Narration
 local bankingModeLabels = {}
 
+local function GetUIScreenNarrationType()
+    return rawget(_G, "NARRATION_TYPE_UI_SCREEN")
+end
+
 function Narration.RegisterBankingModeLabels(labelsByMode)
     bankingModeLabels = {}
     if type(labelsByMode) ~= "table" then
@@ -199,6 +203,25 @@ local function AppendProviderNarrations(narrations, providers)
     end
 end
 
+--- Queues the custom narration object registered for a BetterUI scene.
+---@param sceneName string
+---@param narrateHeader boolean?
+---@return boolean queued True when the engine queue call was attempted successfully.
+function Narration.QueueSceneNarration(sceneName, narrateHeader)
+    if not sceneName or not SCREEN_NARRATION_MANAGER then return false end
+
+    local queueCustomEntry = SCREEN_NARRATION_MANAGER.QueueCustomEntry
+    if type(queueCustomEntry) ~= "function" then return false end
+
+    local registry = SCREEN_NARRATION_MANAGER.customObjectNarrationInfo
+    if type(registry) == "table" and registry[sceneName] == nil then
+        return false
+    end
+
+    local ok = pcall(queueCustomEntry, SCREEN_NARRATION_MANAGER, sceneName, narrateHeader)
+    return ok == true
+end
+
 --- Registers a parametric list with SCREEN_NARRATION_MANAGER for item narration.
 ---@param sceneName string
 ---@param getSelectedDataFn fun(): table?
@@ -210,6 +233,7 @@ function Narration.RegisterListNarration(sceneName, getSelectedDataFn, getTitleF
     if not sceneName or not getSelectedDataFn then return end
 
     local narrationInfo = {
+        narrationType = GetUIScreenNarrationType(),
         canNarrate = function()
             local ok, result = pcall(function()
                 return SCENE_MANAGER:GetCurrentSceneName() == sceneName

@@ -24,6 +24,14 @@ local function DescribeKeybinds(descriptor, label)
     return nil
 end
 
+local function QueueVendorNarration()
+    local narration = BETTERUI.CIM and BETTERUI.CIM.Narration
+    local queueSceneNarration = narration and narration.QueueSceneNarration
+    if type(queueSceneNarration) == "function" then
+        queueSceneNarration(BETTERUI_VENDOR_SCENE_NAME)
+    end
+end
+
 local function ShouldPreserveSearchFocus(instance)
     if not instance then
         return false
@@ -70,6 +78,9 @@ function BootstrapRuntime.InitializeList(instance, deps)
         if (instance._searchModeActive or instance._searchHeaderActive) and instance.list
             and instance.list.IsActive and instance.list:IsActive() then
             instance:OnItemSelectedChange(list, selectedData)
+            if selectedData then
+                QueueVendorNarration()
+            end
             instance:UpdateScrollIndicator(list)
             if not ShouldPreserveSearchFocus(instance) then
                 instance:OnSearchFocusLost()
@@ -77,6 +88,9 @@ function BootstrapRuntime.InitializeList(instance, deps)
             return
         end
         instance:OnItemSelectedChange(list, selectedData)
+        if selectedData then
+            QueueVendorNarration()
+        end
         instance:UpdateScrollIndicator(list)
     end)
     if instance.list then
