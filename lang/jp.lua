@@ -838,3 +838,7 @@ ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "このプリセットを読�
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "このプリセットは別のゲームバージョン用です")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "すべて修理")
 ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "割り当て済み")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "複数個購入の確認")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "<<2>>を<<1>>個、<<3>>で購入しますか？")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "購入確認をスキップ")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "有効にすると、複数個（2個以上）の購入が確認ダイアログなしで即座に行われます。")

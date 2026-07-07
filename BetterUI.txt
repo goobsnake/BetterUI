@@ -286,6 +286,7 @@ Modules\Vendor\Components\FenceSellComponent.lua
 Modules\Vendor\Components\FenceLaunderComponent.lua
 Modules\Vendor\Core\VendorKeybinds.lua
 Modules\Vendor\Vendor.lua
+Modules\Vendor\Dialogs\BuyConfirmDialog.lua
 Modules\Vendor\Settings\SettingsPanel.lua
 
 ; Module: Companions (INV-004)

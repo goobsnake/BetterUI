@@ -836,3 +836,7 @@ ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "No se pudo cargar este preaj
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "Este preajuste es de una versión distinta del juego")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "Reparar todo")
 ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "Asignado")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "Confirmar compra de varias unidades")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "¿Comprar <<1>>x <<2>> por <<3>>?")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "Omitir confirmación de compra")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "Cuando está activado, las compras de varias unidades (más de una) se realizan de inmediato sin diálogo de confirmación.")

@@ -240,6 +240,7 @@ BETTERUI.Defaults.Modules = {
         enableCarousel = true, -- Modern tab navigation
         enableBatchJunkSell = true, -- Batch sell-all-junk confirmation
         abbreviateVendorCurrency = true,
+        skipBuyConfirm = false, -- Skip the multi-quantity (>1) buy confirmation dialog
 
         -- Icon Visibility (all on by default)
         showIconEnchantment = true,

@@ -837,3 +837,7 @@ ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "Dieses Preset konnte nicht g
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "Dieses Preset stammt aus einer anderen Spielversion")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "Alles reparieren")
 ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "Zugewiesen")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "Mehrfachkauf bestätigen")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "<<1>>x <<2>> für <<3>> kaufen?")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "Kaufbestätigung überspringen")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "Wenn aktiviert, werden Mehrfachkäufe (mehr als einer) sofort ohne Bestätigungsdialog getätigt.")

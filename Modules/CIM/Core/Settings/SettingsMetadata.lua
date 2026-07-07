@@ -206,6 +206,14 @@ local SETTINGS_METADATA_REGISTRY = {
             sortGroup = "general",
             resetGroup = "general",
         },
+        skipBuyConfirm = {
+            labelStringId = SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM,
+            tooltipStringId = SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP,
+            defaultValue = false,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
     },
 
     TradingHouse = {

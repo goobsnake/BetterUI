@@ -838,3 +838,7 @@ ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "Не удалось загр
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "Этот пресет создан для другой версии игры")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "Починить всё")
 ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "Назначено")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "Подтвердить покупку нескольких")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "Купить <<1>>x <<2>> за <<3>>?")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "Пропускать подтверждение покупки")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "Если включено, покупка нескольких предметов (более одного) выполняется сразу без диалога подтверждения.")

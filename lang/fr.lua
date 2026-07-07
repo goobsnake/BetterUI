@@ -838,3 +838,7 @@ ZO_CreateStringId("SI_BETTERUI_TH_PRESET_CORRUPT", "Ce préréglage n'a pas pu �
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_INCOMPATIBLE", "Ce préréglage provient d'une autre version du jeu")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "Tout réparer")
 ZO_CreateStringId("SI_BETTERUI_ASSIGNED", "Assigné")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "Confirmer l'achat multiple")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "Acheter <<1>>x <<2>> pour <<3>> ?")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "Ignorer la confirmation d'achat")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "Lorsqu'activé, les achats multiples (plus d'un) sont effectués immédiatement sans dialogue de confirmation.")

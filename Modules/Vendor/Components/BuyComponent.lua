@@ -702,6 +702,25 @@ function Buy:OnPrimaryAction(vendorInstance)
         end
     end
 
+    -- Multi-quantity purchases get a confirmation dialog (item + quantity +
+    -- running total) unless the user enabled skipBuyConfirm. Single-item buys
+    -- stay immediate. The Confirm button re-enters PerformVendorBuy, which
+    -- re-clamps to the live max, so the deferred purchase is still safe.
+    if quantity > 1 and Vendor.GetSetting("skipBuyConfirm") ~= true and Vendor.ShowBuyConfirmation then
+        local shown = Vendor.ShowBuyConfirmation({
+            itemName = ds.name,
+            quantity = quantity,
+            totalPrice = (ds.price or 0) * quantity,
+            currencyType = ds.currencyType1 or ds.currencyType,
+            onConfirm = function()
+                PerformVendorBuy(vendorInstance, entryIndex, ds, quantity)
+            end,
+        })
+        if shown then
+            return
+        end
+    end
+
     PerformVendorBuy(vendorInstance, entryIndex, ds, quantity)
 end
 

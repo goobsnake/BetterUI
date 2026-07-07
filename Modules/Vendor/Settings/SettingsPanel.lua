@@ -48,6 +48,7 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             Vendor.SetSetting("enableCarousel", true)
             Vendor.SetSetting("enableBatchJunkSell", true)
             Vendor.SetSetting("abbreviateVendorCurrency", true)
+            Vendor.SetSetting("skipBuyConfirm", false)
         end
         RefreshVendorWindow()
     end
@@ -108,6 +109,21 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             RefreshVendorWindow()
         end,
         default = true,
+        width = "full",
+    }
+    -- Skip Buy Confirmation (multi-quantity purchases)
+    optionsData[#optionsData + 1] = {
+        type = "checkbox",
+        name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM") or "SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM"),
+        tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP") or "SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP"),
+        getFunc = function()
+            return Vendor.GetSetting("skipBuyConfirm") == true
+        end,
+        setFunc = function(value)
+            Vendor.SetSetting("skipBuyConfirm", value)
+            RefreshVendorWindow()
+        end,
+        default = false,
         width = "full",
     }
     optionsData[#optionsData + 1] = {
