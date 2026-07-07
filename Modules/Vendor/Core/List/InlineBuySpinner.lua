@@ -40,6 +40,9 @@ BETTERUI.Vendor = BETTERUI.Vendor or {}
 local InlineBuySpinner = {
     _control = nil,        -- the shared overlay control (ZO_GamepadQuantitySpinner mixin)
     _attached = false,     -- currently attached to a row?
+    _attachedEntryIndex = nil, -- store entryIndex of the attached row (preserve qty across same-entry re-attach)
+    _dialArmed = false,    -- true once the stick returned to neutral post-attach (blocks phantom held-stick dials)
+    _movementController = nil, -- lazy horizontal ZO_MovementController; dropped on Detach for zeroed accumulation
     _min = 1,
     _max = 1,
     _unitPrice = 0,
@@ -61,6 +64,10 @@ local SPINNER_LEFT_NUDGE = -40
 -- plain left-aligned Value text: the ZO_CurrencyTemplate carries a small internal left inset
 -- that otherwise sits the total a few px right of the other rows' values.
 local PRICE_LEFT_NUDGE = -8
+-- The dial "arms" only after the analog stick returns within this magnitude of neutral
+-- since the last attach, so a stick still held from a list scroll / selection change can't
+-- fire a phantom +/-1 on the first attached frame (GAMEPAD_INCLUDE_DEADZONE reports 0 at rest).
+local DIAL_NEUTRAL_EPSILON = 0.1
 -- Existing row cells the spinner borrows: the Stat cell hosts the < n > dial and
 -- the Value cell hosts the running total. Both are hidden while attached and
 -- restored on detach. Named children only -> reusable by any BetterUI list scene.
@@ -251,20 +258,36 @@ function InlineBuySpinner:Attach(parent, rowControl, params)
         return false
     end
 
+    -- Preserve the dialed quantity when RE-attaching to the SAME entry (a same-row
+    -- reselect or a background list refresh must not snap the user's choice back to 1).
+    -- Capture before SetMinMax, which may clamp the live value.
+    local sameEntry = self._attached and self._attachedEntryIndex ~= nil
+        and params.entryIndex ~= nil and self._attachedEntryIndex == params.entryIndex
+    local preservedValue = nil
+    if sameEntry then
+        local current = control:GetValue()
+        if type(current) == "number" then
+            preservedValue = current
+        end
+    end
+
     self._min = params.min or 1
     self._max = params.max
     self._unitPrice = params.unitPrice or 0
     self._currencyType = params.currencyType
     self._onValueChanged = params.onValueChanged
 
-    -- Configure range + currency, then reset to the minimum for a fresh row.
+    -- Configure range + currency, then set the value: the preserved dial for the same
+    -- entry (clamped to the possibly-changed max), else the minimum for a fresh row.
     -- SetupCurrency + SetValue drive the mixin's OnValueChanged, which renders the
     -- running total (red if unaffordable) into the Price child.
     control:SetMinMax(self._min, self._max)
     control:SetupCurrency(self._unitPrice, self._currencyType)
-    control:SetValue(self._min)
+    control:SetValue(preservedValue and Clamp(preservedValue, self._min, self._max) or self._min)
 
     self._attached = true
+    self._attachedEntryIndex = params.entryIndex
+    self._dialArmed = false
     self:AnchorToRow(rowControl, statCell, valueCell)
     control:SetHidden(false)
     -- Borrow the Stat cell (dial) + Value cell (total): hide the row's own text in
@@ -279,6 +302,12 @@ end
 ---@return nil
 function InlineBuySpinner:Detach()
     self._attached = false
+    self._attachedEntryIndex = nil
+    self._dialArmed = false
+    -- Drop the movement controller so the next attach starts from zeroed accumulation
+    -- (it is rebuilt lazily); with arm-on-neutral this stops a stick held across a
+    -- selection change from carrying stale dial state onto the next row.
+    self._movementController = nil
     self._onValueChanged = nil
     self:RestoreRowContent()
     local control = self._control
@@ -405,32 +434,45 @@ function InlineBuySpinner:HandleDirectionalInput(verticalResult)
     if not self:IsAttached() then
         return false
     end
-    -- Returning true here SKIPS the list's up/down move, so we must dial ONLY when the
-    -- user is clearly pushing sideways. Otherwise scrolling the item list "hiccups" -- a
-    -- swallowed step plus an unintended quantity change -- whenever the stick drifts
-    -- horizontally during a vertical push. Two guards, either one defers to the list:
-    --   1. The list already resolved a vertical move this frame -> it wins.
-    --   2. Else |stickX| must dominate |stickY| (a more-than-45-degrees-sideways push),
-    --      which also covers the gaps between the list's hold-repeat steps.
-    local noChange = rawget(_G, "MOVEMENT_CONTROLLER_NO_CHANGE") or 0
-    if verticalResult ~= nil and verticalResult ~= noChange then
-        return false
-    end
-    local absX = GetBuyQuantityStickX()
-    if absX < 0 then absX = -absX end
-    local absY = GetBuyQuantityStickY()
-    if absY < 0 then absY = -absY end
-    if absX <= absY then
-        return false
-    end
     local controller = self:EnsureMovementController()
     if not controller then
         return false
     end
+    -- Advance the controller EVERY attached frame -- even when we won't dial -- so it
+    -- observes neutral (zero-magnitude) frames and resets its own accumulation/debt.
+    -- ZO_MovementController:CheckMovement only clears its repeat state on a zero reading,
+    -- so short-circuiting before this call left stale debt that dropped/delayed the next dial.
     local result = controller:CheckMovement()
+
+    local absX = GetBuyQuantityStickX()
+    if absX < 0 then absX = -absX end
+    local absY = GetBuyQuantityStickY()
+    if absY < 0 then absY = -absY end
+
+    -- Arm-on-neutral: after each attach, ignore dialing until the stick has returned to
+    -- (near) neutral once, so a stick still held from the selection change / list scroll
+    -- can't make a fresh controller fire a phantom step on the first attached frame.
+    if not self._dialArmed then
+        if absX < DIAL_NEUTRAL_EPSILON and absY < DIAL_NEUTRAL_EPSILON then
+            self._dialArmed = true
+        end
+        return false
+    end
+
+    -- Returning true here SKIPS the list's up/down move, so dial ONLY on a clearly-sideways
+    -- push. Otherwise scrolling the item list "hiccups" whenever the stick drifts sideways
+    -- during a vertical push. Two guards, either one defers to the list:
+    --   1. The list already resolved a vertical move this frame -> it wins.
+    --   2. Else |stickX| must dominate |stickY| (a more-than-45-degrees-sideways push).
+    local noChange = rawget(_G, "MOVEMENT_CONTROLLER_NO_CHANGE") or 0
+    if verticalResult ~= nil and verticalResult ~= noChange then
+        return false
+    end
+    if absX <= absY then
+        return false
+    end
     -- ESO's horizontal movement controller maps positive magnitude (stick RIGHT) to
-    -- MOVE_PREVIOUS and negative (LEFT) to MOVE_NEXT. The user wants RIGHT to increment
-    -- and LEFT to decrement, so: MOVE_PREVIOUS (right) -> +1, MOVE_NEXT (left) -> -1.
+    -- MOVE_PREVIOUS and negative (LEFT) to MOVE_NEXT: RIGHT increments, LEFT decrements.
     if result == rawget(_G, "MOVEMENT_CONTROLLER_MOVE_PREVIOUS") then
         self:Adjust(1)
         return true
@@ -495,6 +537,7 @@ function InlineBuySpinner:UpdateForSelection(instance, selectedData)
         max = max,
         unitPrice = ds.price,
         currencyType = ds.currencyType1,
+        entryIndex = entryIndex,
     })
 end
 
