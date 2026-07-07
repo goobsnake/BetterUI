@@ -233,7 +233,18 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
             keybind = "UI_SHORTCUT_DOWN",
             disabledDuringSceneHiding = true,
             visible = function()
-                return HasVisibleSearchControl()
+                -- The "drop into the list" hint maps to UI_SHORTCUT_DOWN, a keyboard arrow-key
+                -- action. On gamepad it is UNBOUND (you drop into the list with the stick via
+                -- UpdateSearchDirectionalInput), so the strip rendered a useless "Not Bound: Down"
+                -- entry. Hide it in gamepad-preferred mode; keyboard (where it is bound) keeps it.
+                if not HasVisibleSearchControl() then
+                    return false
+                end
+                local inGamepadMode = rawget(_G, "IsInGamepadPreferredMode")
+                if type(inGamepadMode) == "function" and inGamepadMode() then
+                    return false
+                end
+                return true
             end,
             callback = function()
                 BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "exit")
