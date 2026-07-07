@@ -9,6 +9,7 @@
 
 **2026-03-14**: Refreshed after codebase audit; corrected file references to match current module layout.
 **2026-04-11**: Added full vendor directional-input incident guidance covering joystick lock-up, dimmed lists, and accelerated scrolling.
+**2026-07-06**: Added inline buy-spinner scene-hide detach case + spinner-reuse checklist under the vendor directional-input incident (input-mode flags on polled/custom-handler widgets must clear on hide).
 **2026-06-12**: Added slot-identity-in-CIM, gamepad dialog keybind Push/Pop, `GetSlotAbilityCost` argument order, symmetric tooltip-enhancement teardown, and `ProtectionPolicy.CanDestroyItem` slotType gotchas (v3.06 fix batch).
 **2026-06-12** (MPR-3): Added `BETTERUI_TabBarScrollList` single-dispatch ownership, `SetSelectedIndexWithoutAnimation` `forceAnimation` mapping, modern `TransferCurrency` over deprecated deposit/withdraw aliases, and per-batch gold-cap re-check gotchas (ZO_-native drift review).
 **2026-06-13** (MPR-4): Added per-frame HUD bar latching, scene-gated tooltip top-line suppression, `BETTERUI_`-prefixed event/update registrations, and the reload-gated native-takeover (no-runtime-teardown) model gotchas (performance / addon-compat / nil-hardening review).
@@ -371,6 +372,21 @@ If any of these are revisited later, retest all of the original failure modes:
 2. dimmed item list
 3. accelerated item scroll
 4. dimmed header/tab bar
+
+#### Inline Buy Spinner Scene-Hide Detach (2026-07-06)
+
+The vendor inline buy-quantity spinner (`Modules/Vendor/Core/List/InlineBuySpinner.lua`) reproduced symptom (1) — joystick up/down dead in later scenes after leaving the vendor — **without registering a `DIRECTIONAL_INPUT` owner**. The spinner never calls `Activate()`/`AttachAndShowSpinner()` and only *polls* a `ZO_MovementController`, so it has no direct DI ownership. The leak was subtler and matches the durable rules above:
+
+- The spinner routes the vendor list's per-frame directional input through a per-instance `ZO_ParametricScrollList:SetCustomDirectionInputHandler`. That handler is gated by an input-mode flag, `_attached`.
+- `_attached` was set on every stackable-row selection but never cleared on scene-hide (logged **307 attach / 6 detach**). The vendor parametric list can itself linger on the global DI stack, so its `UpdateDirectionalInput` kept invoking the still-`_attached` handler in later scenes, which kept engaging the dial logic instead of bowing out.
+- Fix: `InlineBuySpinner:Detach()` (idempotent — clears `_attached`, restores the borrowed Stat/Value cells, hides + un-anchors the overlay) is now called from **both** the vendor `onHiding` and `onHidden` cleanup blocks, right after the `CIM.SceneCleanup.*` calls. Confirmed in-game.
+
+Durable takeaway: "clear every input-mode flag symmetrically on hide" (root cause #2) applies to **polled / custom-handler widgets too**, not just objects that call `DIRECTIONAL_INPUT:Activate`. A stuck flag gating a persisting list handler locks input just as effectively as an orphaned owner.
+
+**Reusing the spinner in another scene (Banking withdraw/deposit, guild bank/store, inventory split):** `InlineBuySpinner` is deliberately generic (borrows any row's `Stat`/`Value` cells, no vendor-specific coupling), but its cleanup is NOT automatic. For **every** scene that attaches it you MUST:
+1. Wire `BETTERUI.Vendor.InlineBuySpinner:Detach()` into that scene's `onHiding` **and** `onHidden` cleanup (or the shared `CIM.SceneCleanup` path), exactly as `VendorBootstrapRuntime` does — a scene that attaches the spinner but forgets the scene-hide detach will reproduce this exact global-stack lock.
+2. Confirm attach/detach counts stay roughly balanced under `/builog` (the vendor bug showed 307 attach / 6 detach).
+3. Only ever *poll* the movement controller; never `Activate()` the ZOS spinner or the controller (that would add a real DI owner AND, for the D-pad device, trip the protected `IsKeyDown` — see the IsKeyDown Security Error note).
 
 ---
 

@@ -274,6 +274,7 @@ Modules\Vendor\Core\Lifecycle\VendorControllerRuntime.lua
 Modules\Vendor\Core\Presentation\VendorPresentationRuntime.lua
 Modules\Vendor\Core\VendorClass.lua
 Modules\Vendor\Core\List\VendorRowSetup.lua
+Modules\Vendor\Core\List\InlineBuySpinner.lua
 Modules\Vendor\Core\List\BatchActionCounts.lua
 Modules\Vendor\Components\BuyComponent.lua
 Modules\Vendor\Components\SellComponent.lua

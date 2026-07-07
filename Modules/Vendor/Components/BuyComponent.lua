@@ -560,8 +560,10 @@ end
 
 -- BUI-CONS-008: store-entry affordability is unified in Vendor.CanAffordStoreEntry
 -- (VendorModePolicy), shared with BatchActionCounts and VendorBatchRuntime.
--- BUI-CLEAN-002: the reserved Vendor.ClampPurchaseQuantity quantity-spinner
--- helper was removed (the buy flow hardcodes quantity = 1).
+-- The buy flow supports multi-quantity purchases: entries with
+-- GetStoreEntryMaxBuyable > 1 get the inline STAT-column quantity spinner
+-- (BETTERUI.Vendor.InlineBuySpinner); OnPrimaryAction reads its dialed value.
+-- Quantity clamping lives in PerformVendorBuy (guards a stale spinner value).
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 ---@return boolean enabled True if a buy action is possible
@@ -597,6 +599,54 @@ local function TraceBuyBlocked(vendorInstance, reason, ds, extra)
         extra.item = extra.item or (L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name)
     end
     L.TraceEvent(L.CATEGORY.ACTION, "vendor.buy", "blocked", extra)
+end
+
+--- Performs the traced BuyStoreItem for the given entry + quantity, clamped to
+--- the live GetStoreEntryMaxBuyable so a stale spinner value can never
+--- over-purchase (gold/space may have changed while the spinner was open).
+---@param vendorInstance BETTERUI.Vendor.Class
+---@param entryIndex integer
+---@param ds table Store entry data source
+---@param quantity integer
+local function PerformVendorBuy(vendorInstance, entryIndex, ds, quantity)
+    quantity = quantity or 1
+    local getMaxBuyable = rawget(_G, "GetStoreEntryMaxBuyable")
+    if getMaxBuyable then
+        local liveMax = getMaxBuyable(entryIndex)
+        if type(liveMax) == "number" then
+            if liveMax < 1 then
+                -- Gold spent or bags filled since the action began: nothing is
+                -- buyable right now, so never issue a zero/over-quantity purchase.
+                TraceBuyBlocked(vendorInstance, "noneBuyable", ds, { liveMax = liveMax, requested = quantity })
+                BETTERUI.CIM.UserAlertText("Buy:CannotAfford",
+                    GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
+                return
+            end
+            if quantity > liveMax then
+                quantity = liveMax
+            end
+        end
+    end
+    if quantity < 1 then quantity = 1 end
+
+    local L = BETTERUI.Log
+    local traceData = {
+        module = "Vendor",
+        scene = BETTERUI_VENDOR_SCENE_NAME,
+        feature = "vendor-buy",
+        fn = "Vendor.BuyComponent.PerformVendorBuy",
+        ["function"] = "Vendor.BuyComponent.PerformVendorBuy",
+        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
+        entryIndex = entryIndex,
+        quantity = quantity,
+        expectedPrice = ds and ds.price or nil,
+        price = ds and ds.price or nil,
+        currencyType = ds and ds.currencyType or nil,
+        item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or (ds and ds.name),
+    }
+    Vendor.DispatchTracedAction("vendor.buy", traceData, function()
+        BuyStoreItem(entryIndex, quantity)
+    end)
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -640,28 +690,19 @@ function Buy:OnPrimaryAction(vendorInstance)
         return
     end
 
-    -- Buy flow is a single-item purchase (matches native intent and the buy
-    -- primary-action contract).
+    -- Quantity comes from the inline spinner overlay when it is dialed on this
+    -- focused stackable row (BUY mode, GetStoreEntryMaxBuyable > 1); otherwise a
+    -- single item. PerformVendorBuy re-clamps to the live max before BuyStoreItem.
     local quantity = 1
+    local inlineSpinner = BETTERUI.Vendor and BETTERUI.Vendor.InlineBuySpinner
+    if inlineSpinner and inlineSpinner:IsAttached() then
+        local dialed = inlineSpinner:GetQuantity()
+        if type(dialed) == "number" and dialed >= 1 then
+            quantity = dialed
+        end
+    end
 
-    local L = BETTERUI.Log
-    local traceData = {
-        module = "Vendor",
-        scene = BETTERUI_VENDOR_SCENE_NAME,
-        feature = "vendor-buy",
-        fn = "Vendor.BuyComponent.OnPrimaryAction",
-        ["function"] = "Vendor.BuyComponent.OnPrimaryAction",
-        mode = vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() or nil,
-        entryIndex = entryIndex,
-        quantity = quantity,
-        expectedPrice = ds.price,
-        price = ds.price,
-        currencyType = ds.currencyType,
-        item = L and L.DescribeItem and L.DescribeItem(ds, "selected") or ds.name,
-    }
-    Vendor.DispatchTracedAction("vendor.buy", traceData, function()
-        BuyStoreItem(entryIndex, quantity)
-    end)
+    PerformVendorBuy(vendorInstance, entryIndex, ds, quantity)
 end
 
 -- LIST BUILDING

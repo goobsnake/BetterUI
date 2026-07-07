@@ -93,6 +93,21 @@ function BootstrapRuntime.InitializeList(instance, deps)
         end
         instance:UpdateScrollIndicator(list)
     end)
+
+    -- Route the parametric list's per-frame directional input through the inline
+    -- buy spinner: while the overlay is attached it consumes LEFT/RIGHT to dial the
+    -- quantity (returning true), and returns false otherwise so UP/DOWN row
+    -- navigation is untouched. SetCustomDirectionInputHandler(handler) calls the
+    -- handler with the list's vertical result each frame (zo_parametricscrolllist).
+    if instance.list.SetCustomDirectionInputHandler then
+        instance.list:SetCustomDirectionInputHandler(function(verticalResult)
+            local inlineSpinner = BETTERUI.Vendor and BETTERUI.Vendor.InlineBuySpinner
+            if inlineSpinner and inlineSpinner.HandleDirectionalInput then
+                return inlineSpinner:HandleDirectionalInput(verticalResult)
+            end
+            return false
+        end)
+    end
     if instance.list then
         instance.list.owner = instance
         -- Use the shared CIM.Lists.WrapMovePreviousToHeader helper extracted from the
@@ -368,6 +383,13 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
                 BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
             end
+            -- Symmetric scene-hide cleanup for the inline buy spinner: detach it so its
+            -- input-mode state (_attached) and borrowed-cell masking never survive the scene.
+            -- Tribal-knowledge rule (2026-04-11 vendor DI incident): every mode flag that
+            -- changes input behavior MUST be cleared in scene cleanup, symmetrically on hide.
+            if BETTERUI.Vendor and BETTERUI.Vendor.InlineBuySpinner and BETTERUI.Vendor.InlineBuySpinner.Detach then
+                BETTERUI.Vendor.InlineBuySpinner:Detach()
+            end
             if GAMEPAD_TOOLTIPS then
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
                 GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
@@ -404,6 +426,13 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
                 BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
                 BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
+            end
+            -- Symmetric scene-hide cleanup for the inline buy spinner: detach it so its
+            -- input-mode state (_attached) and borrowed-cell masking never survive the scene.
+            -- Tribal-knowledge rule (2026-04-11 vendor DI incident): every mode flag that
+            -- changes input behavior MUST be cleared in scene cleanup, symmetrically on hide.
+            if BETTERUI.Vendor and BETTERUI.Vendor.InlineBuySpinner and BETTERUI.Vendor.InlineBuySpinner.Detach then
+                BETTERUI.Vendor.InlineBuySpinner:Detach()
             end
             local component = screen:GetActiveComponent()
             if component and component.Deactivate then

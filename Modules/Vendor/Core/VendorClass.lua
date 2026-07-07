@@ -2413,6 +2413,10 @@ end
 function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
     local selectionRuntime = assert(BETTERUI.Vendor.SelectionRuntime, "Vendor selection runtime must load before selection updates")
     selectionRuntime.HandleSelection(self, selectedData, IsStableInteractionActive())
+    -- Show/hide the inline buy-quantity spinner overlay for the new selection.
+    if BETTERUI.Vendor.InlineBuySpinner then
+        BETTERUI.Vendor.InlineBuySpinner:UpdateForSelection(self, selectedData)
+    end
 end
 
 -- BUI-CLEAN-002: VendorClass:SuppressListUpdates was removed (zero callers set

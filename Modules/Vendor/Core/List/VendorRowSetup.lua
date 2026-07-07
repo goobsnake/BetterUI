@@ -302,4 +302,18 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
             data
         )
     end
+
+    -- Inline buy-quantity spinner: it "replaces" the focused stackable row by
+    -- hiding that row's own name/columns/icon and drawing its bar over it. Make
+    -- every row-setup authoritative so a recycled pooled control never keeps the
+    -- hidden state: re-mask + re-glue the selected+attached row (Reanchor hides the
+    -- new row's content); restore any other control that still carries the mask.
+    local inlineSpinner = BETTERUI.Vendor.InlineBuySpinner
+    if inlineSpinner and inlineSpinner.IsAttached then
+        if selected and inlineSpinner:IsAttached() then
+            inlineSpinner:Reanchor(control)
+        elseif inlineSpinner.IsRowMasked and inlineSpinner:IsRowMasked(control) then
+            inlineSpinner:RestoreRowContent()
+        end
+    end
 end
