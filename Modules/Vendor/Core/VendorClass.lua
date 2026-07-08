@@ -1196,7 +1196,7 @@ end
 
 ---@param reason string|nil
 ---@return boolean refreshed
-function BETTERUI.Vendor.Class:RefreshCoreKeybindOwnership(reason)
+function BETTERUI.Vendor.Class:RefreshCoreKeybindOwnership(reason, force)
     if self._searchModeActive or self._searchHeaderActive then
         return false
     end
@@ -1211,7 +1211,23 @@ function BETTERUI.Vendor.Class:RefreshCoreKeybindOwnership(reason)
         feature = "vendor-core-keybind-refresh",
         reason = reason or "unknown",
         keybindLabel = "vendor-core",
+        force = force == true,
     })
+    -- Force path (scene entry): the native gamepad store registers its OWN keybind
+    -- group on the SAME UI_SHORTCUT_* keys during the scene transition (the
+    -- currentScene="" moment). ZOS HandleDuplicateAddKeybind resolves the overlap by
+    -- EVICTING whichever group was added first, with NO restore, so whoever adds
+    -- LAST wins. A plain EnsureKeybindGroupAdded then no-ops while our group is still
+    -- "present" at group level but its buttons are displaced, leaving the strip
+    -- collapsed to just Back. Removing first guarantees a clean re-add that reclaims
+    -- every button and makes coreKeybinds the last (winning) owner. Only the two
+    -- scene-entry callers pass force=true; hot per-refresh paths keep the cheap path
+    -- to avoid re-adding the group on every list refresh. Root cause traced via the
+    -- keybind-displace-probe on 2026-07-07 (displacer = our own coreKeybinds via
+    -- EnsureKeybindGroupAdded; displaced = native store buttons added at scene="").
+    if force and BETTERUI.Interface.RemoveKeybindGroupIfPresent then
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
+    end
     BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
     if BETTERUI.Interface.UpdateKeybindGroup then
         BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
@@ -1273,7 +1289,9 @@ function BETTERUI.Vendor.Class:RefreshSceneEntryKeybindOwnership(reason)
 
     local refreshed = false
     if self.RefreshCoreKeybindOwnership then
-        refreshed = self:RefreshCoreKeybindOwnership(reason) == true
+        -- force=true: scene-entry reclaim. Runs after the transition settles, so a
+        -- clean Remove+Add here wins the last-add race against the native store group.
+        refreshed = self:RefreshCoreKeybindOwnership(reason, true) == true
     end
     if self.RefreshVendorActionKeybinds then
         self:RefreshVendorActionKeybinds()
@@ -1300,6 +1318,38 @@ function BETTERUI.Vendor.Class:ScheduleSceneEntryKeybindRefresh(reason, delayMs)
     tasks:Schedule("sceneEntryKeybindRefresh", delayMs or 0, function()
         self:RefreshSceneEntryKeybindOwnership(string.format("%s:deferred", tostring(reason or "sceneEntry")))
     end)
+end
+
+-- The native gamepad store re-establishes its keybinds on a DELAY after the
+-- BetterUI scene shows: ensureStoreComponentsOnOpen fires at ~120ms
+-- (VendorNativeStoreBridge) and the native store manager registers again around
+-- the SCENE_SHOWN transition -- both AFTER the single 40ms scene-entry reclaim.
+-- ZOS last-add-wins-no-restore then leaves our core group displaced (strip
+-- collapses to just Back) with nothing scheduled to reclaim it. Re-assert
+-- ownership across the whole native settle window so BetterUI is always the last
+-- writer. Bounded (<1s), force=true (clean Remove+Add reclaims displaced
+-- buttons), and each tick self-no-ops via RefreshCoreKeybindOwnership's
+-- scene-showing guard once the vendor is left. Cancelled + rescheduled on every
+-- entry so stale ticks from a prior visit never fire late.
+local CORE_KEYBIND_SETTLE_DELAYS = { 70, 150, 260, 420, 650, 950 }
+
+---@param reason string|nil
+---@return nil
+function BETTERUI.Vendor.Class:ScheduleCoreKeybindSettleSweep(reason)
+    local tasks = BETTERUI.Vendor and BETTERUI.Vendor.Tasks
+    if not (tasks and tasks.Cancel and tasks.Schedule) then
+        return
+    end
+    for i = 1, #CORE_KEYBIND_SETTLE_DELAYS do
+        local taskId = "coreKeybindSettle" .. i
+        local settleReason = string.format("%s:settle%d", tostring(reason or "sceneShowing"), i)
+        tasks:Cancel(taskId)
+        tasks:Schedule(taskId, CORE_KEYBIND_SETTLE_DELAYS[i], function()
+            if self.RefreshCoreKeybindOwnership then
+                self:RefreshCoreKeybindOwnership(settleReason, true)
+            end
+        end)
+    end
 end
 
 ---@return number mode Current vendor mode constant

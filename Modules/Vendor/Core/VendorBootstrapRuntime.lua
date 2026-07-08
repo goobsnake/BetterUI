@@ -291,7 +291,9 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 screen:EnsureListInputActive()
             end
             if screen.RefreshCoreKeybindOwnership then
-                screen:RefreshCoreKeybindOwnership("sceneShowing")
+                -- force=true: clean Remove+Add so our core group wins the last-add
+                -- race against the native store group added during the transition.
+                screen:RefreshCoreKeybindOwnership("sceneShowing", true)
             end
             screen:EnsureHeaderKeybindsActive()
             screen:EnsureColumnHeadersVisible()
@@ -326,6 +328,13 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             })
             if screen.ScheduleSceneEntryKeybindRefresh then
                 screen:ScheduleSceneEntryKeybindRefresh("sceneShowing", 40)
+            end
+            -- The 40ms reclaim above wins the entry, but the native store
+            -- re-registers its keybinds later (ensureStoreComponentsOnOpen @120ms
+            -- + the post-SHOWN native registration) and clobbers us. Re-assert
+            -- across the native settle window so we are always the last writer.
+            if screen.ScheduleCoreKeybindSettleSweep then
+                screen:ScheduleCoreKeybindSettleSweep("sceneShowing")
             end
             TraceVendorBootstrap("vendor.bootstrap", "showing_complete", {
                 currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
