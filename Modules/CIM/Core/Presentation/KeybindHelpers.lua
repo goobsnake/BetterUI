@@ -146,6 +146,30 @@ function BETTERUI.Interface.HasKeybindGroup(descriptor)
     return HasKeybindGroupInState(descriptor, GetActiveKeybindStateIndex())
 end
 
+--- True when the group's button for `keybind` is currently ON the strip in the
+--- active keybind state -- i.e. the group still OWNS that key rather than having
+--- had it displaced by another group's duplicate add (see the
+--- HandleDuplicateAddKeybind note on DescribeKeybindGroupMembership below). This
+--- is the button-level truth HasKeybindGroup (group-level) cannot see: a group
+--- can stay "present" while its buttons are evicted. Read-only; issues one
+--- HasKeybindButton engine call for the matched entry.
+---@param descriptor table? keybind group descriptor (array of entries)
+---@param keybind string engine keybind action name, e.g. "UI_SHORTCUT_PRIMARY"
+---@return boolean present
+function BETTERUI.Interface.IsGroupKeybindButtonPresent(descriptor, keybind)
+    if not (descriptor and keybind) then return false end
+    local strip = GetKeybindStrip()
+    if not (strip and type(strip.HasKeybindButton) == "function") then return false end
+    local stateIndex = GetActiveKeybindStateIndex()
+    for _, entry in ipairs(descriptor) do
+        if type(entry) == "table" and entry.keybind == keybind then
+            local ok, present = pcall(strip.HasKeybindButton, strip, entry, stateIndex)
+            return (ok and present == true) or false
+        end
+    end
+    return false
+end
+
 ---@param descriptor table?
 ---@return boolean updated
 local function UpdateKeybindGroupInState(descriptor, stateIndex)

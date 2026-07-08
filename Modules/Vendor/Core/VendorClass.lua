@@ -1203,6 +1203,14 @@ function BETTERUI.Vendor.Class:RefreshCoreKeybindOwnership(reason, force)
     if self.scene and self.scene.IsShowing and not self.scene:IsShowing() then
         return false
     end
+    -- A gamepad dialog (e.g. the multi-quantity buy confirm) pushes its OWN keybind
+    -- state, so reclaiming here would register the vendor core group into the
+    -- dialog's state and fight its Confirm/Cancel buttons. Skip while a dialog owns
+    -- the layer; the post-dialog keybind refresh restores the vendor strip. Flagged
+    -- by the 2026-07-07 delegated review (kimi + copilot) as the one real gap.
+    if HasVisibleGamepadDialog() then
+        return false
+    end
     if not (self.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded) then
         return false
     end
@@ -1327,11 +1335,46 @@ end
 -- ZOS last-add-wins-no-restore then leaves our core group displaced (strip
 -- collapses to just Back) with nothing scheduled to reclaim it. Re-assert
 -- ownership across the whole native settle window so BetterUI is always the last
--- writer. Bounded (<1s), force=true (clean Remove+Add reclaims displaced
--- buttons), and each tick self-no-ops via RefreshCoreKeybindOwnership's
--- scene-showing guard once the vendor is left. Cancelled + rescheduled on every
--- entry so stale ticks from a prior visit never fire late.
+-- writer. Bounded (<1s) and each tick self-no-ops via RefreshCoreKeybindOwnership's
+-- scene-showing/dialog guards once the vendor is left or a dialog owns the layer.
+-- Cancelled + rescheduled on every entry so stale ticks from a prior visit never
+-- fire late.
+--
+-- Early exit (2026-07-07 review follow-up): a tick first checks
+-- IsCoreKeybindOwnershipHealthy. An already-owned strip skips the churny
+-- Remove+Add, and once ownership is stable for CORE_KEYBIND_SETTLE_STABLE_TICKS
+-- consecutive ticks AT/AFTER CORE_KEYBIND_SETTLE_EARLY_EXIT_FROM the remaining
+-- ticks are cancelled -- so a clean entry stops early (answering "do they stop
+-- when good?") while a genuinely-clobbered one still gets the full sweep.
 local CORE_KEYBIND_SETTLE_DELAYS = { 70, 150, 260, 420, 650, 950 }
+-- Only allow the early exit once the native clobber window (~120ms + post-SHOWN)
+-- has certainly passed (index 4 == 420ms), so a "healthy" reading during the
+-- pre-clobber lull can never cancel the ticks that reclaim after the native
+-- re-registers. Ticks 1-4 therefore always run; only 5-6 are early-cancellable.
+local CORE_KEYBIND_SETTLE_EARLY_EXIT_FROM = 4
+local CORE_KEYBIND_SETTLE_STABLE_TICKS = 2
+
+--- Cheap "is our core group still the owner?" probe for the settle sweep's early
+--- exit. True only when the group is registered AND our Buy button
+--- (UI_SHORTCUT_PRIMARY) is still on the strip. PRIMARY carries a visible() gate
+--- (isPrimaryActionAllowed), so a legitimately-hidden Buy (empty/no-buy store)
+--- reads as not-healthy and the sweep simply keeps reclaiming -- the worst case is
+--- the prior unconditional behavior, never a premature stop that misses the native
+--- clobber. Checking the button (not group) level is what makes this reliable: the
+--- collapse leaves the group "present" while its buttons are displaced, and Back
+--- (NEGATIVE) survives the collapse so it would false-positive here.
+---@return boolean healthy
+function BETTERUI.Vendor.Class:IsCoreKeybindOwnershipHealthy()
+    local iface = BETTERUI.Interface
+    if not (self.coreKeybinds and iface) then
+        return false
+    end
+    if iface.HasKeybindGroup and not iface.HasKeybindGroup(self.coreKeybinds) then
+        return false
+    end
+    return iface.IsGroupKeybindButtonPresent ~= nil
+        and iface.IsGroupKeybindButtonPresent(self.coreKeybinds, "UI_SHORTCUT_PRIMARY") == true
+end
 
 ---@param reason string|nil
 ---@return nil
@@ -1340,15 +1383,49 @@ function BETTERUI.Vendor.Class:ScheduleCoreKeybindSettleSweep(reason)
     if not (tasks and tasks.Cancel and tasks.Schedule) then
         return
     end
-    for i = 1, #CORE_KEYBIND_SETTLE_DELAYS do
+    self._coreKeybindSettleStable = 0
+    local total = #CORE_KEYBIND_SETTLE_DELAYS
+    for i = 1, total do
         local taskId = "coreKeybindSettle" .. i
         local settleReason = string.format("%s:settle%d", tostring(reason or "sceneShowing"), i)
         tasks:Cancel(taskId)
         tasks:Schedule(taskId, CORE_KEYBIND_SETTLE_DELAYS[i], function()
-            if self.RefreshCoreKeybindOwnership then
-                self:RefreshCoreKeybindOwnership(settleReason, true)
-            end
+            self:RunCoreKeybindSettleTick(i, total, settleReason)
         end)
+    end
+end
+
+--- One settle-sweep tick. Skips the reclaim when ownership is already healthy and
+--- cancels the remaining ticks once it has been healthy for
+--- CORE_KEYBIND_SETTLE_STABLE_TICKS consecutive ticks at/after the early-exit
+--- index; otherwise force-reclaims and resets the stability streak.
+---@param index integer 1-based tick index into CORE_KEYBIND_SETTLE_DELAYS
+---@param total integer total number of scheduled ticks
+---@param reason string per-tick trace reason
+---@return nil
+function BETTERUI.Vendor.Class:RunCoreKeybindSettleTick(index, total, reason)
+    -- Left the vendor mid-sweep: bail without disturbing the stability streak
+    -- (Tasks:CancelAll on scene hide also cancels the pending ticks). The health
+    -- probe would otherwise read the wrong scene's keybind state.
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        return
+    end
+    if self.IsCoreKeybindOwnershipHealthy and self:IsCoreKeybindOwnershipHealthy() then
+        self._coreKeybindSettleStable = (self._coreKeybindSettleStable or 0) + 1
+        if index >= CORE_KEYBIND_SETTLE_EARLY_EXIT_FROM
+            and self._coreKeybindSettleStable >= CORE_KEYBIND_SETTLE_STABLE_TICKS then
+            local tasks = BETTERUI.Vendor and BETTERUI.Vendor.Tasks
+            if tasks and tasks.Cancel then
+                for j = index + 1, total do
+                    tasks:Cancel("coreKeybindSettle" .. j)
+                end
+            end
+        end
+        return
+    end
+    self._coreKeybindSettleStable = 0
+    if self.RefreshCoreKeybindOwnership then
+        self:RefreshCoreKeybindOwnership(reason, true)
     end
 end
 
