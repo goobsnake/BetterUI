@@ -619,8 +619,20 @@ function ControllerRuntime.RefreshList(instance, deps)
             keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(instance.coreKeybinds, "core") or nil,
             reason = "listRefresh",
         })
+        -- Post-list-refresh core-keybind re-assertion, routed through the COALESCED path.
+        -- That path is health-gated (RefreshVendorActionKeybinds only skips when
+        -- IsCoreKeybindGroupFullyOwned): so when the native store has re-grabbed our
+        -- LEFT/RIGHT_SHOULDER (category cycle) after the RefreshList, ownership is NOT
+        -- fully owned -> this runs and reclaims them (fixing the LB/RB regression); when
+        -- nothing was displaced it coalesces against the OnItemSelectedChange refresh
+        -- above (this reassertion firing un-coalesced per RefreshList was the dominant
+        -- list-construction storm source). The fully-owned gate is what makes it safe to
+        -- coalesce here -- an earlier un-gated version suppressed the reclaim.
         local refreshed = false
-        if type(instance.RefreshCoreKeybindOwnership) == "function" then
+        if type(instance.RefreshVendorActionKeybinds) == "function" then
+            instance:RefreshVendorActionKeybinds(true)
+            refreshed = true
+        elseif type(instance.RefreshCoreKeybindOwnership) == "function" then
             refreshed = instance:RefreshCoreKeybindOwnership("listRefresh") == true
         else
             local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups

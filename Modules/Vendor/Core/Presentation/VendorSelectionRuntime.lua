@@ -51,7 +51,10 @@ local function FinalizeSelectionUpdate(instance, selectedData, isStableInteracti
             instance:UpdateVendorStorePreview(selectedData)
         end
     end
-    instance:RefreshVendorActionKeybinds()
+    -- Per-selection path: coalesce redundant same-frame refreshes (ESO fires this
+    -- callback several times within one frame during a list rebuild). Genuine
+    -- selection/mode changes carry a different fingerprint and still refresh.
+    instance:RefreshVendorActionKeybinds(true)
 end
 
 local function HandleEmptySelection(instance, isStableInteraction)

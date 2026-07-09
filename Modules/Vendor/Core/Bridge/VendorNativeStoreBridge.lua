@@ -14,6 +14,7 @@ local CLOSE_STORE_NATIVE_ON_HIDE_CONTEXT = "Vendor.OnCloseStore:NativeOnHide"
 local updateDirectionalInputHookedManagers = setmetatable({}, { __mode = "k" })
 local nativeStoreControlEventManagers = setmetatable({}, { __mode = "k" })
 local NATIVE_STORE_EVENT_NAMESPACE = "BETTERUI_VendorNativeStore"
+local nativeKeybindSuppressionInstalled = false
 
 local function LogVendorDebug(flagName, category, message)
     if Vendor.LogDebug then
@@ -563,10 +564,86 @@ function NativeStoreBridge.UpdateSceneManagerStoreAlias(instance)
     end
 end
 
+-- Native-store keybind suppression -- SOLID root-cause fix for the "collapse to
+-- [Back]" / dead LB/RB race (replaces the reactive settle sweep, not adds to it).
+--
+-- The native gamepad store re-registers its component keybind descriptors on the
+-- SAME UI_SHORTCUT keys as BetterUI's vendor-core group whenever it (re)syncs its
+-- components -- via ZO_GamepadStoreComponent:Show (esoui storewindowcomponent_
+-- gamepad.lua:24-27) and ZO_GamepadStoreManager:ActivateActiveComponent ->
+-- activeComponent:AddKeybinds (storewindow_gamepad.lua:144). ZOS'
+-- HandleDuplicateAddKeybind is last-add-wins, so the native add EVICTS BetterUI's
+-- Buy/Toggle/Multi (strip collapses to [Back]) and its list-trigger descriptors
+-- (ZO_Gamepad_AddListTriggerKeybindDescriptors, storewindowbuy_gamepad.lua:119)
+-- shadow our LB/RB category-cycle. BetterUI owns this scene and does NOT use the
+-- native store's keybinds (buy is driven by BuyComponent + the vendor-core group),
+-- so the correct fix is to suppress the native adds AT SOURCE while our scene is
+-- showing. Blocking AddKeybindButtonGroup is COMPLETE: UpdateKeybindButtonGroup
+-- (the list-refresh path) only touches groups already in keybindGroups, so it
+-- no-ops when the group was never added (esoui zo_keybindstrip.lua:621).
+local function IsBetterUIVendorSceneShowing()
+    if not SCENE_MANAGER then return false end
+    local sceneName = rawget(_G, "BETTERUI_VENDOR_SCENE_NAME")
+    if not sceneName then return false end
+    local scene = SCENE_MANAGER:GetScene(sceneName)
+    return scene ~= nil and type(scene.IsShowing) == "function" and scene:IsShowing() == true
+end
+
+local function IsNativeStoreKeybindDescriptor(descriptor)
+    if type(descriptor) ~= "table" then return false end
+    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
+    if not storeManager or type(storeManager.components) ~= "table" then return false end
+    for _, component in pairs(storeManager.components) do
+        if type(component) == "table"
+            and (component.keybindStripDescriptor == descriptor
+                or component.confirmKeybindStripDescriptor == descriptor) then
+            return true
+        end
+    end
+    return false
+end
+
+-- Installed once, globally, and gated on the scene so it is pure passthrough
+-- outside the BetterUI vendor scene (native store keeps working when it legitimately
+-- owns the strip). No uninstall -> no teardown race; the gate makes it inert.
+local function InstallNativeStoreKeybindSuppression()
+    if nativeKeybindSuppressionInstalled then return end
+    local strip = rawget(_G, "KEYBIND_STRIP")
+    if type(strip) ~= "table" or type(strip.AddKeybindButtonGroup) ~= "function"
+        or type(ZO_PreHook) ~= "function" then
+        TraceNativeStoreBridge("vendor.native_store_keybind_suppression", "install_skipped", {
+            fn = "NativeStoreBridge.InstallNativeStoreKeybindSuppression",
+            reason = "missing KEYBIND_STRIP or ZO_PreHook",
+        })
+        return
+    end
+    -- ZO_PreHook: returning true SKIPS the original add. Skip only when OUR vendor
+    -- scene owns the strip AND the descriptor belongs to a native store component;
+    -- every other add (BetterUI's own vendor-core group included) passes through.
+    ZO_PreHook(strip, "AddKeybindButtonGroup", function(_, descriptor)
+        if not IsBetterUIVendorSceneShowing() then return false end
+        if IsNativeStoreKeybindDescriptor(descriptor) then
+            TraceNativeStoreBridge("vendor.native_store_keybind_suppression", "blocked", {
+                fn = "NativeStoreBridge.AddKeybindButtonGroup",
+            })
+            return true
+        end
+        return false
+    end)
+    nativeKeybindSuppressionInstalled = true
+    TraceNativeStoreBridge("vendor.native_store_keybind_suppression", "install", {
+        fn = "NativeStoreBridge.InstallNativeStoreKeybindSuppression",
+    })
+end
+
 function NativeStoreBridge.TakeOverScene(instance)
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.LIFECYCLE, "NativeStoreBridge: TakeOverScene")
     end
+    -- Suppress native-store keybind re-registration at source (see block above the
+    -- function). Installed once, globally; inert unless our vendor scene is showing.
+    InstallNativeStoreKeybindSuppression()
+
     Vendor.nativeStoreScene = Vendor.nativeStoreScene or (SCENE_MANAGER and SCENE_MANAGER:GetScene("gamepad_store"))
 
     local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")

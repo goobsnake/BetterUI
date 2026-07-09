@@ -690,15 +690,57 @@ function Buy:OnPrimaryAction(vendorInstance)
         return
     end
 
-    -- Quantity comes from the inline spinner overlay when it is dialed on this
-    -- focused stackable row (BUY mode, GetStoreEntryMaxBuyable > 1); otherwise a
-    -- single item. PerformVendorBuy re-clamps to the live max before BuyStoreItem.
-    local quantity = 1
+    -- Two-stage buy matching the default store: the FIRST Buy press on a stackable
+    -- (GetStoreEntryMaxBuyable > 1) reveals the inline quantity spinner (dialing
+    -- mode) instead of purchasing; the SECOND Buy press (while dialing THIS entry)
+    -- executes it. A max==1 row buys immediately on the first press.
     local inlineSpinner = BETTERUI.Vendor and BETTERUI.Vendor.InlineBuySpinner
-    if inlineSpinner and inlineSpinner:IsAttached() then
+    local getMaxBuyable = rawget(_G, "GetStoreEntryMaxBuyable")
+    local maxBuyable = getMaxBuyable and getMaxBuyable(entryIndex) or 1
+
+    if inlineSpinner and type(maxBuyable) == "number" and maxBuyable > 1
+        and not inlineSpinner:IsDialingEntry(entryIndex) then
+        if inlineSpinner:BeginDialing(vendorInstance, selectedData) then
+            -- Reveal the dialing-only keybinds (L2/R2 Min/Max) now that the spinner
+            -- is up. If BeginDialing declined, fall through to a direct qty=1 buy.
+            if vendorInstance.RefreshVendorActionKeybinds then
+                vendorInstance:RefreshVendorActionKeybinds()
+            end
+            -- Dialing pins the selection, so no further selection-change refresh fires.
+            -- Native re-registration is suppressed at source (NativeStoreBridge keybind
+            -- prehook), so one deferred core reclaim settles ownership after the dialing
+            -- keybinds go in -- no multi-tick sweep needed.
+            if vendorInstance.ScheduleCoreKeybindRefresh then
+                vendorInstance:ScheduleCoreKeybindRefresh("dialingEntry", 0)
+            end
+            return
+        end
+    end
+
+    -- Quantity comes from the inline spinner when it is dialing THIS entry;
+    -- otherwise a single item. PerformVendorBuy re-clamps to the live max.
+    local quantity = 1
+    if inlineSpinner and inlineSpinner:IsDialingEntry(entryIndex) then
         local dialed = inlineSpinner:GetQuantity()
         if type(dialed) == "number" and dialed >= 1 then
             quantity = dialed
+        end
+    end
+
+    -- Exits dialing mode after a COMMITTED purchase (detach spinner + restore the
+    -- browse keybinds). A cancelled confirm dialog leaves the spinner up so the
+    -- user can re-dial.
+    local function finishDialing()
+        if inlineSpinner and inlineSpinner:IsAttached() then
+            inlineSpinner:Detach()
+            if vendorInstance.RefreshVendorActionKeybinds then
+                vendorInstance:RefreshVendorActionKeybinds()
+            end
+            -- Native re-registration is suppressed at source, so one deferred core
+            -- reclaim settles the browse strip after detaching the spinner.
+            if vendorInstance.ScheduleCoreKeybindRefresh then
+                vendorInstance:ScheduleCoreKeybindRefresh("dialingExit", 0)
+            end
         end
     end
 
@@ -714,6 +756,7 @@ function Buy:OnPrimaryAction(vendorInstance)
             currencyType = ds.currencyType1 or ds.currencyType,
             onConfirm = function()
                 PerformVendorBuy(vendorInstance, entryIndex, ds, quantity)
+                finishDialing()
             end,
         })
         if shown then
@@ -722,6 +765,7 @@ function Buy:OnPrimaryAction(vendorInstance)
     end
 
     PerformVendorBuy(vendorInstance, entryIndex, ds, quantity)
+    finishDialing()
 end
 
 -- LIST BUILDING

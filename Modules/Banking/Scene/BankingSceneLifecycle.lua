@@ -237,7 +237,41 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 
 end
 
---- Aborts any in-flight batch before cleanup.
+--- Removes every Banking keybind group from the strip. Called on BOTH scene HIDING
+--- and HIDDEN (idempotent) to match the Inventory gold-standard teardown, so banking
+--- keybinds cannot be clicked during the hide animation and never leak onto the next
+--- scene.
+local function RemoveBankingKeybindsForSceneExit(self, phase)
+    if not KEYBIND_STRIP then
+        return
+    end
+    local keybindGroups = {
+        self.textSearchKeybindStripDescriptor,
+        self.withdrawDepositKeybinds,
+        self.coreKeybinds,
+        self.currencyKeybinds,
+        self.currencySelectorKeybinds,
+        self.mainKeybindStripDescriptor,
+        self._activeHeaderSortKeybindDescriptor,
+        self.headerSortKeybindDescriptor,
+    }
+    for _, group in ipairs(keybindGroups) do
+        if group then
+            if BETTERUI.Log then
+                BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "bank scene remove keybind", {
+                    fn = "Banking:OnScene" .. tostring(phase),
+                    descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "remove") or tostring(group),
+                })
+            end
+            BETTERUI.Interface.RemoveKeybindGroupIfPresent(group)
+        end
+    end
+    self._activeHeaderSortKeybindDescriptor = nil
+end
+
+--- Aborts any in-flight batch before cleanup, then removes keybinds + deactivates
+--- list input immediately (Inventory gold-standard) so nothing on the strip is
+--- clickable during the hide animation.
 function BETTERUI.Banking.Class:OnSceneHiding()
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hiding", { isBatchProcessing = self:IsBatchProcessing() })
@@ -245,6 +279,8 @@ function BETTERUI.Banking.Class:OnSceneHiding()
     if self:IsBatchProcessing() then
         self:RequestBatchAbort()
     end
+    RemoveBankingKeybindsForSceneExit(self, "Hiding")
+    BETTERUI.CIM.SceneCleanup.DeactivateLists(self)
 end
 
 --- Scene hidden handler called by SceneLifecycleManager.
@@ -296,31 +332,8 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     BETTERUI.CIM.SceneCleanup.ClearSearchState(self)
     self.confirmationMode = false
 
-    -- Remove all keybind groups
-    if KEYBIND_STRIP then
-        local keybindGroups = {
-            self.textSearchKeybindStripDescriptor,
-            self.withdrawDepositKeybinds,
-            self.coreKeybinds,
-            self.currencyKeybinds,
-            self.currencySelectorKeybinds,
-            self.mainKeybindStripDescriptor,
-            self._activeHeaderSortKeybindDescriptor,
-            self.headerSortKeybindDescriptor,
-        }
-        for _, group in ipairs(keybindGroups) do
-            if group then
-                if BETTERUI.Log then
-                    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "bank scene remove keybind", {
-                        fn = "Banking:OnSceneHidden",
-                        descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "remove") or tostring(group),
-                    })
-                end
-                BETTERUI.Interface.RemoveKeybindGroupIfPresent(group)
-            end
-        end
-        self._activeHeaderSortKeybindDescriptor = nil
-    end
+    -- Remove all keybind groups (shared helper; also runs on OnSceneHiding)
+    RemoveBankingKeybindsForSceneExit(self, "Hidden")
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
 
     self:UpdateExternalAddons(false)
@@ -360,6 +373,15 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         end
         if SCENE_MANAGER:IsShowing("gamepad_inventory_root") then
             return
+        end
+        -- Never hijack an intentional exit: if the player has already queued a
+        -- different scene as next, let it proceed instead of forcing inventory on top.
+        local nextScene = SCENE_MANAGER.GetNextScene and SCENE_MANAGER:GetNextScene()
+        if nextScene and nextScene.GetName then
+            local nextSceneName = nextScene:GetName()
+            if nextSceneName and nextSceneName ~= "" and nextSceneName ~= "gamepad_inventory_root" then
+                return
+            end
         end
 
         local currentSceneName = SCENE_MANAGER:GetCurrentSceneName()

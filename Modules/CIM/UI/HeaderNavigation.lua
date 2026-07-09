@@ -92,13 +92,20 @@ function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
             return
         end
 
+        -- Capture pending index - don't update immediately to prevent corruption
+        local pendingCategoryIndex = list.selectedIndex or 1
+
+        -- Refresh storms can re-fire the same selected index while the first
+        -- deferred apply is still pending; restarting would starve that apply.
+        if state._pendingApplyCallId and state.pendingCategoryIndex == pendingCategoryIndex then
+            TraceHeaderNavigation("skipped", { fn = "CreateCoalescedHandler", reason = "samePendingIndex", newIdx = pendingCategoryIndex })
+            return
+        end
+
         -- Save position BEFORE switching (unless CycleCategory already did)
         if not NavState.IsCycling(state) and options.onSave then
             BETTERUI.CIM.SafeExecute("HeaderNavigation:onSave", options.onSave, instance)
         end
-
-        -- Capture pending index - don't update immediately to prevent corruption
-        local pendingCategoryIndex = list.selectedIndex or 1
 
         local prevIdx = instance.currentCategoryIndex or 1
         local delta = pendingCategoryIndex - prevIdx

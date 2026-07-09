@@ -78,5 +78,11 @@ assert_contains(classSource, "getCategoryKey = GetVendorCategoryKey,",
     "VendorClass supplies category position keys through the controller runtime contract")
 assert_contains(classSource, "resolveModeEmptyStateText = ResolveModeEmptyStateText,",
     "VendorClass supplies empty-state policy through the controller runtime contract")
+assert_not_contains(classSource, "function BETTERUI.Vendor.Class:RunCoreKeybindSettleTick",
+    "Vendor settle-sweep machinery removed -- native keybind suppression at source is the real fix")
+assert_contains(classSource, "return iface.IsGroupKeybindButtonOwnedBySelf(self.coreKeybinds, \"UI_SHORTCUT_NEGATIVE\")\n        and iface.IsGroupKeybindButtonOwnedBySelf(self.coreKeybinds, \"UI_SHORTCUT_LEFT_SHOULDER\")\n        and iface.IsGroupKeybindButtonOwnedBySelf(self.coreKeybinds, \"UI_SHORTCUT_RIGHT_SHOULDER\")",
+    "Vendor full-ownership gate checks identity ownership for Back and both category shoulders")
+assert_not_contains(classSource, "return iface.IsGroupKeybindButtonPresent(self.coreKeybinds, \"UI_SHORTCUT_LEFT_SHOULDER\")",
+    "Vendor full-ownership gate must not use key-presence-only checks for LB/RB")
 
 print("  OK")

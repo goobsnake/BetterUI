@@ -148,6 +148,41 @@ assert_true(BETTERUI.Interface.UpdateCurrentKeybindGroups(), "current keybind re
 assert_equal(1, KEYBIND_STRIP.currentUpdates, "current keybind refresh count recorded")
 assert_equal(2, KEYBIND_STRIP.lastCurrentUpdateStateIndex, "current keybind refresh targets the active keybind state")
 
+local ownershipDescriptor = {
+    { keybind = "UI_SHORTCUT_LEFT_SHOULDER", name = "Previous", ethereal = true },
+    { keybind = "UI_SHORTCUT_RIGHT_SHOULDER", name = "Next", ethereal = true },
+}
+KEYBIND_STRIP.GetKeybindState = function()
+    return nil
+end
+KEYBIND_STRIP.keybinds = {
+    UI_SHORTCUT_LEFT_SHOULDER = ownershipDescriptor[1],
+    UI_SHORTCUT_RIGHT_SHOULDER = { keybindButtonDescriptor = ownershipDescriptor[2] },
+}
+assert_true(BETTERUI.Interface.IsGroupKeybindButtonOwnedBySelf(ownershipDescriptor, "UI_SHORTCUT_LEFT_SHOULDER"),
+    "identity helper accepts an ethereal descriptor owned by the group")
+assert_true(BETTERUI.Interface.IsGroupKeybindButtonOwnedBySelf(ownershipDescriptor, "UI_SHORTCUT_RIGHT_SHOULDER"),
+    "identity helper accepts a button whose descriptor belongs to the group")
+KEYBIND_STRIP.keybinds.UI_SHORTCUT_LEFT_SHOULDER = { keybind = "UI_SHORTCUT_LEFT_SHOULDER", name = "Native Previous" }
+assert_false(BETTERUI.Interface.IsGroupKeybindButtonOwnedBySelf(ownershipDescriptor, "UI_SHORTCUT_LEFT_SHOULDER"),
+    "identity helper rejects a different descriptor for the same key")
+
+KEYBIND_STRIP.stateButtons = {
+    UI_SHORTCUT_RIGHT_SHOULDER = ownershipDescriptor[2],
+}
+KEYBIND_STRIP.GetKeybindState = function(self, stateIndex)
+    if stateIndex == 2 then
+        return { individualButtons = self.stateButtons }
+    end
+    return nil
+end
+assert_true(BETTERUI.Interface.IsGroupKeybindButtonOwnedBySelf(ownershipDescriptor, "UI_SHORTCUT_RIGHT_SHOULDER"),
+    "identity helper accepts ownership in the active keybind state")
+KEYBIND_STRIP.stateButtons.UI_SHORTCUT_RIGHT_SHOULDER = { keybind = "UI_SHORTCUT_RIGHT_SHOULDER", name = "Native Next" }
+assert_false(BETTERUI.Interface.IsGroupKeybindButtonOwnedBySelf(ownershipDescriptor, "UI_SHORTCUT_RIGHT_SHOULDER"),
+    "identity helper rejects state ownership by another descriptor")
+KEYBIND_STRIP.GetKeybindState = nil
+
 KEYBIND_STRIP.UpdateKeybindButtonGroup = function()
     error("synthetic keybind failure")
 end

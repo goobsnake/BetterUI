@@ -487,10 +487,80 @@ end
 --- (re)attaching or detaching accordingly. Only BUY-mode store entries with a live
 --- GetStoreEntryMaxBuyable > 1 get the spinner (store entryIndex and sell slotIndex
 --- can collide, so the buy-mode gate is required).
+--- True when the spinner is dialing a specific store entry (the entry the user
+--- pressed Buy on). Distinguishes the FIRST Buy press (reveal spinner) from the
+--- SECOND (execute the purchase).
+---@param entryIndex integer|nil
+---@return boolean
+function InlineBuySpinner:IsDialingEntry(entryIndex)
+    return self:IsAttached() and entryIndex ~= nil and self._attachedEntryIndex == entryIndex
+end
+
+--- Enters dialing mode: attaches the inline spinner to the currently focused BUY
+--- row when it is a stackable buyable (GetStoreEntryMaxBuyable > 1). Called from
+--- the Buy keybind (NOT on plain selection) so the spinner stays hidden until the
+--- user presses Buy, matching the default store. Returns true when dialing began.
+---@param instance BETTERUI.Vendor.Class
+---@param selectedData table|nil
+---@return boolean started
+function InlineBuySpinner:BeginDialing(instance, selectedData)
+    if not instance then
+        return false
+    end
+
+    local buyMode = rawget(_G, "ZO_MODE_STORE_BUY")
+    local currentMode = instance.GetCurrentMode and instance:GetCurrentMode() or nil
+    if not (buyMode and currentMode == buyMode) then
+        return false
+    end
+
+    local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+    local entryIndex = ds and (ds.entryIndex or ds.slotIndex) or nil
+    if not entryIndex then
+        return false
+    end
+
+    local getMax = rawget(_G, "GetStoreEntryMaxBuyable")
+    local maxBuyable = getMax and getMax(entryIndex) or 0
+    if type(maxBuyable) ~= "number" or maxBuyable <= 1 then
+        return false
+    end
+
+    local list = instance.list
+    local rowControl = list and list.GetSelectedControl and list:GetSelectedControl() or nil
+    local parent = list and list.control or nil
+    if not (rowControl and parent) then
+        return false
+    end
+
+    -- 999 display cap (MAX_STORE_WINDOW_STACK_QUANTITY), matching the native store.
+    local cap = rawget(_G, "MAX_STORE_WINDOW_STACK_QUANTITY") or 999
+    local max = maxBuyable
+    if max > cap then
+        max = cap
+    end
+
+    return self:Attach(parent, rowControl, {
+        min = 1,
+        max = max,
+        unitPrice = ds.price,
+        currencyType = ds.currencyType1,
+        entryIndex = entryIndex,
+    })
+end
+
+--- Maintains an ACTIVE dialing session across selection changes. The spinner is
+--- revealed only by the Buy press (BeginDialing), never by plain selection, so
+--- this ONLY cancels dialing -- when focus leaves the dialed entry, BUY mode ends,
+--- or the entry stops being a stackable buyable. While the same dialed entry stays
+--- focused the row-control glue is handled authoritatively by VendorEntrySetup.
 ---@param instance BETTERUI.Vendor.Class
 ---@param selectedData table|nil
 ---@return nil
 function InlineBuySpinner:UpdateForSelection(instance, selectedData)
+    if not self:IsAttached() then
+        return
+    end
     if not instance then
         self:Detach()
         return
@@ -505,7 +575,8 @@ function InlineBuySpinner:UpdateForSelection(instance, selectedData)
 
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
     local entryIndex = ds and (ds.entryIndex or ds.slotIndex) or nil
-    if not entryIndex then
+    if not entryIndex or entryIndex ~= self._attachedEntryIndex then
+        -- Focus moved off the dialed row (or onto a non-entry row): cancel dialing.
         self:Detach()
         return
     end
@@ -514,31 +585,7 @@ function InlineBuySpinner:UpdateForSelection(instance, selectedData)
     local maxBuyable = getMax and getMax(entryIndex) or 0
     if type(maxBuyable) ~= "number" or maxBuyable <= 1 then
         self:Detach()
-        return
     end
-
-    local list = instance.list
-    local rowControl = list and list.GetSelectedControl and list:GetSelectedControl() or nil
-    local parent = list and list.control or nil
-    if not (rowControl and parent) then
-        self:Detach()
-        return
-    end
-
-    -- 999 display cap (MAX_STORE_WINDOW_STACK_QUANTITY), matching the native store.
-    local cap = rawget(_G, "MAX_STORE_WINDOW_STACK_QUANTITY") or 999
-    local max = maxBuyable
-    if max > cap then
-        max = cap
-    end
-
-    self:Attach(parent, rowControl, {
-        min = 1,
-        max = max,
-        unitPrice = ds.price,
-        currencyType = ds.currencyType1,
-        entryIndex = entryIndex,
-    })
 end
 
 --- Re-anchors the (already attached) overlay to a freshly set-up row control.

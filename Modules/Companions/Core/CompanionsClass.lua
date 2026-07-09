@@ -177,12 +177,20 @@ function BETTERUI.Companions.Class:ExitSearchMode()
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
-    -- Restore exactly the groups the search-mode cleanup removed.
+    -- Restore exactly the groups the search-mode cleanup removed -- but ONLY while
+    -- the scene is still showing. ExitSearchMode also runs during scene teardown
+    -- (onHiding -> CallCompanionSearchLifecycle "exit"); by then SceneLifecycleManager
+    -- has already removed our groups, so re-adding here would leak the Companions
+    -- keybinds onto the next scene (Inventory/Banking). Still clear the saved-group
+    -- state either way so a later entry can never restore a stale set.
+    local sceneShowing = (not self.IsSceneShowing) or self:IsSceneShowing()
     if self._searchRemovedKeybindGroups then
-        BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
+        if sceneShowing then
+            BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
+        end
         self._searchRemovedKeybindGroups = nil
     end
-    if self.coreKeybinds and KEYBIND_STRIP then
+    if sceneShowing and self.coreKeybinds and KEYBIND_STRIP then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
     end
     if self.textSearchHeaderFocus then
@@ -303,7 +311,10 @@ function BETTERUI.Companions.Class:IsClearNewItemActuallyNew()
 end
 
 function BETTERUI.Companions.Class:TrySetClearNewFlag(callId)
-    if self.clearNewStatusCallId == callId and self:IsClearNewItemActuallyNew() then
+    -- Reject a nil callId: a cancelled timer clears clearNewStatusCallId to nil, and
+    -- zo_callLater passes nil for callId, so `nil == nil` would otherwise fire a stale
+    -- timer against a hidden scene.
+    if callId and self.clearNewStatusCallId == callId and self:IsClearNewItemActuallyNew() then
         self.clearNewStatusOnSelectionChanged = true
     end
 end
@@ -317,6 +328,11 @@ end
 
 function BETTERUI.Companions.Class:TryClearNewStatusOnHidden()
     self:TryClearNewStatus()
+    -- Cancel the pending 200ms selection timer so it can't fire against a hidden
+    -- scene. Remove BEFORE clearing the id, or the handle is lost.
+    if self.clearNewStatusCallId then
+        zo_removeCallLater(self.clearNewStatusCallId)
+    end
     self.clearNewStatusCallId = nil
     self.clearNewStatusBagId = nil
     self.clearNewStatusSlotIndex = nil

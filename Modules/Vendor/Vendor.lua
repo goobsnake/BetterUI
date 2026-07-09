@@ -1649,10 +1649,34 @@ local function TakeOverNativeStoreScene(instance)
     ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").TakeOverScene(instance)
 end
 
+local function RegisterSceneEntryKeybindRecovery(instance)
+    local scene = SCENE_MANAGER and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
+    if not (scene and scene.RegisterCallback) or instance._sceneEntryKeybindRecoveryRegistered then
+        return
+    end
+
+    instance._sceneEntryKeybindRecoveryRegistered = true
+    scene:RegisterCallback("StateChange", function(_, newState)
+        local sceneShown = rawget(_G, "SCENE_SHOWN") or "shown"
+        if newState ~= sceneShown then
+            return
+        end
+
+        -- Vendor can re-enter from Inventory after the native store re-adds its
+        -- duplicate core keys; arm the scene-entry reclaim path, not search-exit.
+        if instance.ScheduleSceneEntryKeybindRefresh then
+            instance:ScheduleSceneEntryKeybindRefresh("sceneShown", 40)
+        elseif instance.RefreshSceneEntryKeybindOwnership then
+            instance:RefreshSceneEntryKeybindOwnership("sceneShown")
+        end
+    end)
+end
+
 local function RegisterVendorSceneLifecycle(instance)
     ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").RegisterSceneLifecycle(instance, {
         taskManager = Vendor.Tasks,
     })
+    RegisterSceneEntryKeybindRecovery(instance)
 end
 
 local function RegisterVendorEvents(eventManager)

@@ -326,15 +326,12 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 keybinds = DescribeKeybinds(screen and screen.coreKeybinds, "vendor-core"),
                 refreshed = refreshed == true,
             })
+            -- Native keybind re-registration is now suppressed at source
+            -- (NativeStoreBridge KEYBIND_STRIP.AddKeybindButtonGroup prehook), so the
+            -- single deterministic scene-entry reclaim is sufficient -- no multi-tick
+            -- settle sweep needed to re-win a race that can no longer happen.
             if screen.ScheduleSceneEntryKeybindRefresh then
                 screen:ScheduleSceneEntryKeybindRefresh("sceneShowing", 40)
-            end
-            -- The 40ms reclaim above wins the entry, but the native store
-            -- re-registers its keybinds later (ensureStoreComponentsOnOpen @120ms
-            -- + the post-SHOWN native registration) and clobbers us. Re-assert
-            -- across the native settle window so we are always the last writer.
-            if screen.ScheduleCoreKeybindSettleSweep then
-                screen:ScheduleCoreKeybindSettleSweep("sceneShowing")
             end
             TraceVendorBootstrap("vendor.bootstrap", "showing_complete", {
                 currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,

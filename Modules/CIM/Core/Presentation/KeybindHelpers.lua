@@ -170,6 +170,42 @@ function BETTERUI.Interface.IsGroupKeybindButtonPresent(descriptor, keybind)
     return false
 end
 
+--- Like IsGroupKeybindButtonPresent, but IDENTITY-accurate: true only when OUR
+--- descriptor entry -- not merely SOME group's button for that key -- currently owns
+--- the key on the strip. ESOUI's HasKeybindButton only tests
+--- state.individualButtons[key] ~= nil (ANY owner), so a native-store duplicate add
+--- for the same key reads as "present" even after it displaced us
+--- (HandleDuplicateAddKeybind = last-add-wins). This probes the OWNING descriptor:
+--- AddKeybindButtonStack stores the descriptor itself in state.individualButtons[key],
+--- and the non-state self.keybinds[key] is either the ethereal descriptor or a button
+--- whose .keybindButtonDescriptor links back to it. Read-only.
+---@param descriptor table? keybind group descriptor (array of entries)
+---@param keybind string engine keybind action name, e.g. "UI_SHORTCUT_PRIMARY"
+---@return boolean ownedBySelf
+function BETTERUI.Interface.IsGroupKeybindButtonOwnedBySelf(descriptor, keybind)
+    if not (descriptor and keybind) then return false end
+    local strip = GetKeybindStrip()
+    if not strip then return false end
+    local stateIndex = GetActiveKeybindStateIndex()
+    for _, entry in ipairs(descriptor) do
+        if type(entry) == "table" and entry.keybind == keybind then
+            local ok, owned = pcall(function()
+                local state = strip.GetKeybindState and strip:GetKeybindState(stateIndex) or nil
+                if state and state.individualButtons then
+                    return state.individualButtons[entry.keybind] == entry
+                end
+                local owner = strip.keybinds and strip.keybinds[entry.keybind] or nil
+                if owner == entry then
+                    return true
+                end
+                return owner ~= nil and owner.keybindButtonDescriptor == entry
+            end)
+            return (ok and owned == true) or false
+        end
+    end
+    return false
+end
+
 ---@param descriptor table?
 ---@return boolean updated
 local function UpdateKeybindGroupInState(descriptor, stateIndex)
@@ -188,6 +224,45 @@ end
 function BETTERUI.Interface.UpdateCurrentKeybindGroups()
     local ok, updated = InvokeKeybindStripWithState("UpdateCurrentKeybindButtonGroups", GetActiveKeybindStateIndex())
     return ok and updated ~= false
+end
+
+--- Same-frame keybind-refresh coalescing primitive (shared across CIM scenes).
+--- ESO's ZO_Gamepad_ParametricList_Screen re-fires a list's selection callback
+--- several times WITHIN A SINGLE FRAME during a rebuild/commit, and each fire drives
+--- a full keybind refresh -- the per-selection "refresh storm" (Inventory documents
+--- it as "A-Button Burn"). This collapses those duplicates: it returns true (skip)
+--- only when asked to refresh again in the SAME frame for the SAME fingerprint. A
+--- different frame, a changed fingerprint, force=true, or a nil fingerprint always
+--- returns false, so a legitimate change is never suppressed -- in particular it
+--- does NOT coalesce across frames, preserving Inventory's deliberate transition-frame
+--- double refresh. Callers supply a scene-specific fingerprint (selection identity
+--- plus anything the keybinds depend on: mode, multi-select, etc.) and the last
+--- frame/fingerprint is stashed on `owner` (the scene instance). Generalizes the
+--- inline dedup in Inventory's SetSelectedInventoryData.
+---@param owner table scene instance used to stash the last frame + fingerprint
+---@param fingerprint string? scene-specific selection fingerprint; nil = never skip
+---@param force boolean? true bypasses the dedup (scene entry, displacement reclaim, transitions)
+---@return boolean skip true when this refresh is a redundant same-frame duplicate
+function BETTERUI.Interface.ShouldSkipRedundantKeybindRefresh(owner, fingerprint, force)
+    if not owner or fingerprint == nil then
+        return false
+    end
+    local nowMs = (GetFrameTimeMilliseconds and GetFrameTimeMilliseconds()) or 0
+    if force ~= true
+        and owner._kbRefreshFrame == nowMs
+        and owner._kbRefreshFingerprint == fingerprint then
+        if KeybindTraceActive() then
+            TraceKeybindHelper("keybind refresh coalesced", {
+                fn = "KeybindHelpers.ShouldSkipRedundantKeybindRefresh",
+                fingerprint = fingerprint,
+                frameMs = nowMs,
+            })
+        end
+        return true
+    end
+    owner._kbRefreshFrame = nowMs
+    owner._kbRefreshFingerprint = fingerprint
+    return false
 end
 
 --- DIAGNOSTIC (inventory->vendor keybind loss): compact string of each keyed

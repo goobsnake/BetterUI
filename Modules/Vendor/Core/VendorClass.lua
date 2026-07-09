@@ -434,6 +434,32 @@ local function CreateVendorHeaderSelectionHandler(instance, headerModel, headerN
             return
         end
 
+        -- A mode transition must never be deferred through the coalesced
+        -- category path. In the unified buy header, landing on a BUY category
+        -- entry while the active mode is Repair/Buyback has to switch back to
+        -- BUY *synchronously* -- exactly like landing on a mode tab does above.
+        -- The only other place this switch-back lives is the deferred coalesced
+        -- onApply below, and the routine list/tooltip refresh storm keeps
+        -- cancelling+rescheduling it (interface.log seq 8642-8723: the header
+        -- callback re-fires every refresh -- newIdx is a header index, offset by
+        -- the two Buyback/Repair mode tabs, vs prevIdx a category index -- so
+        -- StartCategoryChange restarts and the pending onApply never settles).
+        -- While the user is actively cycling LB/RB, each press re-arms that
+        -- cancel/reschedule, so SetMode(BUY) never fires: the mode stays REPAIR
+        -- while the carousel walks the BUY categories (the mode<->category
+        -- desync). Do the switch here; pure intra-mode category cycling still
+        -- coalesces below.
+        if headerModel.useUnifiedBuyHeader
+            and instance:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY
+            and (selectedEntry.categoryMode or headerModel.mode) == BETTERUI.Vendor.MODE.BUY then
+            local buyCategoryIndex = selectedEntry.categoryIndex or 1
+            VendorModePolicy.EnsureModeCategories(instance, BETTERUI.Vendor.MODE.BUY)
+            VendorModePolicy.SetSelectedCategoryIndex(instance, BETTERUI.Vendor.MODE.BUY, buyCategoryIndex)
+            instance.currentCategoryIndex = buyCategoryIndex
+            instance:SetMode(BETTERUI.Vendor.MODE.BUY)
+            return
+        end
+
         if coalescedCategoryHandler then
             coalescedCategoryHandler(instance, list, selectedEntry)
             return
@@ -1215,6 +1241,27 @@ function BETTERUI.Vendor.Class:RefreshCoreKeybindOwnership(reason, force)
         return false
     end
 
+    -- Self-heal displacement: a native-store duplicate PRIMARY/NEGATIVE add can evict
+    -- our Buy/Back MID-scene (after a purchase, list refresh, or search exit) while the
+    -- group stays "present", and the cheap Update path then no-ops forever. Back
+    -- (UI_SHORTCUT_NEGATIVE) has no visible() gate, so IsCoreKeybindGroupDisplaced (Back
+    -- missing while the group is present) is an unambiguous displacement signal --
+    -- escalate to a clean force Remove+Add even when the caller asked for the cheap
+    -- path. Fixes the 2026-07-07 spinner-on-A repro: strip stuck at n=2[Toggle,Multi].
+    --
+    -- DELIBERATELY Back-only, NOT a fully-owned (LB/RB) check. The ethereal LB/RB
+    -- shoulders are TRANSIENTLY absent during the search-header teardown; escalating to
+    -- a force Remove+Add at that instant RACES the native store's re-registration
+    -- (HandleDuplicateAddKeybind lets whoever adds LAST win), and the native store wins
+    -- -> our whole group is displaced (Back jumps to the native right-slot, LB/RB fall
+    -- through to the native no-op). That was the 2026-07-08 search-exit TOGGLE bug: one
+    -- exit forced (fully-owned=false mid-teardown) and broke it, the next exit did the
+    -- cheap Update (fully-owned=true) and restored it. Back survives the teardown, so the
+    -- cheap Update reclaims correctly without re-opening the race.
+    if not force and self.IsCoreKeybindGroupDisplaced and self:IsCoreKeybindGroupDisplaced() then
+        force = true
+    end
+
     TraceVendorKeybindLayer("refresh_before", self, self.coreKeybinds, {
         feature = "vendor-core-keybind-refresh",
         reason = reason or "unknown",
@@ -1328,105 +1375,46 @@ function BETTERUI.Vendor.Class:ScheduleSceneEntryKeybindRefresh(reason, delayMs)
     end)
 end
 
--- The native gamepad store re-establishes its keybinds on a DELAY after the
--- BetterUI scene shows: ensureStoreComponentsOnOpen fires at ~120ms
--- (VendorNativeStoreBridge) and the native store manager registers again around
--- the SCENE_SHOWN transition -- both AFTER the single 40ms scene-entry reclaim.
--- ZOS last-add-wins-no-restore then leaves our core group displaced (strip
--- collapses to just Back) with nothing scheduled to reclaim it. Re-assert
--- ownership across the whole native settle window so BetterUI is always the last
--- writer. Bounded (<1s) and each tick self-no-ops via RefreshCoreKeybindOwnership's
--- scene-showing/dialog guards once the vendor is left or a dialog owns the layer.
--- Cancelled + rescheduled on every entry so stale ticks from a prior visit never
--- fire late.
---
--- Early exit (2026-07-07 review follow-up): a tick first checks
--- IsCoreKeybindOwnershipHealthy. An already-owned strip skips the churny
--- Remove+Add, and once ownership is stable for CORE_KEYBIND_SETTLE_STABLE_TICKS
--- consecutive ticks AT/AFTER CORE_KEYBIND_SETTLE_EARLY_EXIT_FROM the remaining
--- ticks are cancelled -- so a clean entry stops early (answering "do they stop
--- when good?") while a genuinely-clobbered one still gets the full sweep.
-local CORE_KEYBIND_SETTLE_DELAYS = { 70, 150, 260, 420, 650, 950 }
--- Only allow the early exit once the native clobber window (~120ms + post-SHOWN)
--- has certainly passed (index 4 == 420ms), so a "healthy" reading during the
--- pre-clobber lull can never cancel the ticks that reclaim after the native
--- re-registers. Ticks 1-4 therefore always run; only 5-6 are early-cancellable.
-local CORE_KEYBIND_SETTLE_EARLY_EXIT_FROM = 4
-local CORE_KEYBIND_SETTLE_STABLE_TICKS = 2
-
---- Cheap "is our core group still the owner?" probe for the settle sweep's early
---- exit. True only when the group is registered AND our Buy button
---- (UI_SHORTCUT_PRIMARY) is still on the strip. PRIMARY carries a visible() gate
---- (isPrimaryActionAllowed), so a legitimately-hidden Buy (empty/no-buy store)
---- reads as not-healthy and the sweep simply keeps reclaiming -- the worst case is
---- the prior unconditional behavior, never a premature stop that misses the native
---- clobber. Checking the button (not group) level is what makes this reliable: the
---- collapse leaves the group "present" while its buttons are displaced, and Back
---- (NEGATIVE) survives the collapse so it would false-positive here.
----@return boolean healthy
-function BETTERUI.Vendor.Class:IsCoreKeybindOwnershipHealthy()
+--- True when our core group is registered but its always-visible Back button
+--- (UI_SHORTCUT_NEGATIVE) has been evicted from the strip -- the unambiguous
+--- signature of a native-store duplicate-add displacement. Back has no visible()
+--- gate, so its absence WHILE the group is present is never legitimate (unlike the
+--- Buy/PRIMARY sentinel, which can be legitimately hidden). Returns false when the
+--- group is entirely absent -- EnsureKeybindGroupAdded's add branch handles that
+--- case, no force reclaim needed.
+---@return boolean displaced
+function BETTERUI.Vendor.Class:IsCoreKeybindGroupDisplaced()
     local iface = BETTERUI.Interface
-    if not (self.coreKeybinds and iface) then
+    if not (self.coreKeybinds and iface and iface.HasKeybindGroup and iface.IsGroupKeybindButtonPresent) then
         return false
     end
-    if iface.HasKeybindGroup and not iface.HasKeybindGroup(self.coreKeybinds) then
+    if not iface.HasKeybindGroup(self.coreKeybinds) then
         return false
     end
-    return iface.IsGroupKeybindButtonPresent ~= nil
-        and iface.IsGroupKeybindButtonPresent(self.coreKeybinds, "UI_SHORTCUT_PRIMARY") == true
+    return not iface.IsGroupKeybindButtonPresent(self.coreKeybinds, "UI_SHORTCUT_NEGATIVE")
 end
 
----@param reason string|nil
----@return nil
-function BETTERUI.Vendor.Class:ScheduleCoreKeybindSettleSweep(reason)
-    local tasks = BETTERUI.Vendor and BETTERUI.Vendor.Tasks
-    if not (tasks and tasks.Cancel and tasks.Schedule) then
-        return
+--- True only when the core group is present AND every key the native store can steal
+--- is currently OURS: LEFT/RIGHT_SHOULDER (category cycle) + NEGATIVE (Back). These are
+--- the always-on keys (ethereal shoulders + un-gated Back), so any one displaced means
+--- ownership is not intact. PRIMARY is intentionally excluded: it has a visible() gate
+--- and can be legitimately hidden, which must not read as displacement. Used to gate
+--- refresh coalescing so a redundant same-frame refresh is skipped ONLY when ownership is
+--- fully intact -- a refresh that would reclaim a displaced key is never coalesced away
+--- (the LB/RB-navigation regression). Read-only identity probes; ESOUI's
+--- HasKeybindButton is key-presence-only and cannot answer this question.
+---@return boolean fullyOwned
+function BETTERUI.Vendor.Class:IsCoreKeybindGroupFullyOwned()
+    local iface = BETTERUI.Interface
+    if not (self.coreKeybinds and iface and iface.HasKeybindGroup and iface.IsGroupKeybindButtonOwnedBySelf) then
+        return false
     end
-    self._coreKeybindSettleStable = 0
-    local total = #CORE_KEYBIND_SETTLE_DELAYS
-    for i = 1, total do
-        local taskId = "coreKeybindSettle" .. i
-        local settleReason = string.format("%s:settle%d", tostring(reason or "sceneShowing"), i)
-        tasks:Cancel(taskId)
-        tasks:Schedule(taskId, CORE_KEYBIND_SETTLE_DELAYS[i], function()
-            self:RunCoreKeybindSettleTick(i, total, settleReason)
-        end)
+    if not iface.HasKeybindGroup(self.coreKeybinds) then
+        return false
     end
-end
-
---- One settle-sweep tick. Skips the reclaim when ownership is already healthy and
---- cancels the remaining ticks once it has been healthy for
---- CORE_KEYBIND_SETTLE_STABLE_TICKS consecutive ticks at/after the early-exit
---- index; otherwise force-reclaims and resets the stability streak.
----@param index integer 1-based tick index into CORE_KEYBIND_SETTLE_DELAYS
----@param total integer total number of scheduled ticks
----@param reason string per-tick trace reason
----@return nil
-function BETTERUI.Vendor.Class:RunCoreKeybindSettleTick(index, total, reason)
-    -- Left the vendor mid-sweep: bail without disturbing the stability streak
-    -- (Tasks:CancelAll on scene hide also cancels the pending ticks). The health
-    -- probe would otherwise read the wrong scene's keybind state.
-    if self.IsSceneShowing and not self:IsSceneShowing() then
-        return
-    end
-    if self.IsCoreKeybindOwnershipHealthy and self:IsCoreKeybindOwnershipHealthy() then
-        self._coreKeybindSettleStable = (self._coreKeybindSettleStable or 0) + 1
-        if index >= CORE_KEYBIND_SETTLE_EARLY_EXIT_FROM
-            and self._coreKeybindSettleStable >= CORE_KEYBIND_SETTLE_STABLE_TICKS then
-            local tasks = BETTERUI.Vendor and BETTERUI.Vendor.Tasks
-            if tasks and tasks.Cancel then
-                for j = index + 1, total do
-                    tasks:Cancel("coreKeybindSettle" .. j)
-                end
-            end
-        end
-        return
-    end
-    self._coreKeybindSettleStable = 0
-    if self.RefreshCoreKeybindOwnership then
-        self:RefreshCoreKeybindOwnership(reason, true)
-    end
+    return iface.IsGroupKeybindButtonOwnedBySelf(self.coreKeybinds, "UI_SHORTCUT_NEGATIVE")
+        and iface.IsGroupKeybindButtonOwnedBySelf(self.coreKeybinds, "UI_SHORTCUT_LEFT_SHOULDER")
+        and iface.IsGroupKeybindButtonOwnedBySelf(self.coreKeybinds, "UI_SHORTCUT_RIGHT_SHOULDER")
 end
 
 ---@return number mode Current vendor mode constant
@@ -2383,9 +2371,69 @@ function BETTERUI.Vendor.Class:DeactivateHeaderKeybinds()
 end
 
 ---@return nil
-function BETTERUI.Vendor.Class:RefreshVendorActionKeybinds()
+--- Fingerprint of everything the core keybinds' labels/visibility depend on:
+--- current mode + selected entry identity + multi-select state. Used by the
+--- shared same-frame refresh-coalescing primitive so a burst of identical
+--- selection callbacks (ESO re-fires several within one frame during a list
+--- rebuild) collapses to a single refresh, while any genuine change still refreshes.
+---@return string fingerprint
+function BETTERUI.Vendor.Class:GetKeybindRefreshFingerprint()
+    local mode = self.GetCurrentMode and self:GetCurrentMode() or "?"
+    local list = self.list
+    local ds = nil
+    if list then
+        if list.GetTargetData then
+            ds = list:GetTargetData()
+        else
+            ds = list.selectedData
+        end
+    end
+    ds = ds and (ds.dataSource or ds) or nil
+    local entry = ds and (ds.entryIndex or ds.listingIndex or ds.slotIndex) or nil
+    local ms = BETTERUI.Vendor and BETTERUI.Vendor.multiSelectManager
+    local msActive = (ms and ms.IsActive and ms:IsActive()) and 1 or 0
+    return string.format(
+        "%s|%s|%s|%s|%s",
+        tostring(mode),
+        tostring(entry or ""),
+        tostring(ds and ds.bagId or ""),
+        tostring(ds and ds.slotIndex or ""),
+        tostring(msActive)
+    )
+end
+
+--- @param coalesce boolean? when true (the per-selection path), skip this refresh
+---   if it is a redundant same-frame duplicate for the same selection fingerprint.
+---   Explicit callers (buy, dialing, scene entry) omit it and always refresh.
+function BETTERUI.Vendor.Class:RefreshVendorActionKeybinds(coalesce)
     if self.IsSceneShowing and not self:IsSceneShowing() then
         return
+    end
+    -- Collapse the per-selection refresh STORM: ESO re-fires the selection callback
+    -- several times within one frame during a list rebuild, and each fire lands here.
+    -- The selection path passes coalesce=true so same-frame duplicates for the same
+    -- fingerprint are dropped via the shared primitive; a different frame or a changed
+    -- fingerprint still refreshes, so a genuine selection/mode change is never lost.
+    if coalesce and BETTERUI.Interface and BETTERUI.Interface.ShouldSkipRedundantKeybindRefresh then
+        -- Coalesce ONLY when ownership is fully intact. If the native store has stolen
+        -- any always-on key (LB/RB category cycle, Back), this refresh is a NEEDED reclaim,
+        -- not a redundant duplicate: pass force=true so it is never skipped. force also
+        -- records the frame/fingerprint, so once ownership is restored later same-frame
+        -- duplicates still coalesce. This is what makes the dedup safe -- an earlier naive
+        -- version coalesced a reclaim away and broke LB/RB navigation after a buy/list switch.
+        local fullyOwned = (not self.IsCoreKeybindGroupFullyOwned) or self:IsCoreKeybindGroupFullyOwned()
+        local fingerprint = self.GetKeybindRefreshFingerprint and self:GetKeybindRefreshFingerprint() or nil
+        if BETTERUI.Interface.ShouldSkipRedundantKeybindRefresh(self, fingerprint, not fullyOwned) then
+            return
+        end
+    end
+    -- Route through the core-ownership refresh so a mid-scene native-store
+    -- displacement (evicted Buy/Back) self-heals here too: RefreshCoreKeybindOwnership
+    -- escalates to a force reclaim when it detects the group is displaced. This path
+    -- fires on every selection change, so plain list navigation now restores a
+    -- collapsed strip -- UpdateCurrentKeybindGroups alone cannot re-add evicted buttons.
+    if self.RefreshCoreKeybindOwnership then
+        self:RefreshCoreKeybindOwnership("actionKeybinds")
     end
     BETTERUI.Interface.UpdateCurrentKeybindGroups()
 end
