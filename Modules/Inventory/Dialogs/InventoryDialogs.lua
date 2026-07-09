@@ -309,6 +309,9 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 			dialogType = GAMEPAD_DIALOGS.BASIC,
 			allowRightStickPassThrough = true,
 		},
+		-- Restore BetterUI keybind/list ownership on close so LB/RB category
+		-- navigation keeps working after cancelling or confirming the prompt.
+		OnHiddenCallback = self:BuildDialogRestoreOnHidden("confirmDestroyDialogPostHideRefresh"),
 		title = {
 			text = function(dialog)
 				return GetString(SI_PROMPT_TITLE_DESTROY_ITEM_PROMPT)
@@ -425,6 +428,8 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
 	local existingNoChoice = existingDialogInfo and existingDialogInfo.noChoiceCallback
 	local existingPrimary = GetDialogButtonCallback(existingDialogInfo, "DIALOG_PRIMARY")
 	local existingNegative = GetDialogButtonCallback(existingDialogInfo, "DIALOG_NEGATIVE")
+	local existingHidden = existingDialogInfo and existingDialogInfo.OnHiddenCallback
+	local restoreOnHidden = self:BuildDialogRestoreOnHidden("armoryDestroyDialogPostHideRefresh")
 
 	local function ReleaseDialog(destroyItem, source)
 		TraceInventoryDialog("inventory.armory_destroy_dialog", destroyItem and "confirm" or "cancel", {
@@ -444,6 +449,15 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
 			dialogType = GAMEPAD_DIALOGS.BASIC,
 			allowRightStickPassThrough = true,
 		},
+		-- Chain any prior native OnHiddenCallback, then (managed path only) restore
+		-- BetterUI keybind/list ownership so LB/RB category navigation keeps working
+		-- after the armory-destroy prompt closes.
+		OnHiddenCallback = function(dialog)
+			CallPreviousDialogCallback(existingHidden, dialog)
+			if dialog and dialog._betteruiManaged then
+				restoreOnHidden(dialog)
+			end
+		end,
 		setup = function(dialog)
 			local isManaged = IsInventoryDialogManagedScene()
 			dialog._betteruiManaged = isManaged == true

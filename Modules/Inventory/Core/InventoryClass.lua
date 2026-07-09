@@ -748,6 +748,28 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
     })
 end
 
+--[[
+Function: BuildDialogRestoreOnHidden
+Description: Returns an OnHiddenCallback that re-asserts BetterUI inventory
+             keybind/list ownership after a blocking dialog closes.
+Rationale: Blocking dialogs (destroy / batch-destroy / armory-destroy) deactivate
+           the header tab bar, so on close the native GAMEPAD_INVENTORY reclaims
+           the LB/RB category triggers and category navigation breaks (e.g. after
+           cancelling a destroy prompt). Mirrors the split-stack dialog restore.
+param: taskName (string|nil) - DialogRestore task identifier.
+]]
+function BETTERUI.Inventory.Class:BuildDialogRestoreOnHidden(taskName)
+    return function(dialog)
+        local inv = GAMEPAD_INVENTORY
+        local inventorySceneShowing = BETTERUI.CIM and BETTERUI.CIM.Utils
+            and BETTERUI.CIM.Utils.IsInventorySceneShowing
+            and BETTERUI.CIM.Utils.IsInventorySceneShowing()
+        if inventorySceneShowing and inv and inv.RestoreStateAfterDialog then
+            inv:RestoreStateAfterDialog(taskName or "inventoryDialogPostHideRefresh")
+        end
+    end
+end
+
 --------------------------------------------------------------------------------
 -- INITIALIZATION
 

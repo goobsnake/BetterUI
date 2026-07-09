@@ -592,12 +592,29 @@ end
 local function IsNativeStoreKeybindDescriptor(descriptor)
     if type(descriptor) ~= "table" then return false end
     local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
-    if not storeManager or type(storeManager.components) ~= "table" then return false end
-    for _, component in pairs(storeManager.components) do
-        if type(component) == "table"
-            and (component.keybindStripDescriptor == descriptor
-                or component.confirmKeybindStripDescriptor == descriptor) then
-            return true
+    if type(storeManager) ~= "table" then return false end
+    -- The native gamepad store is a ZO_Gamepad_ParametricList_BagsSearch_Screen, whose
+    -- OnEnterHeader adds STORE_WINDOW_GAMEPAD.textSearchKeybindStripDescriptor
+    -- (UI_SHORTCUT_PRIMARY "Select" + UI_SHORTCUT_NEGATIVE "Back") to the strip with NO
+    -- IsShowing() guard whenever the store list re-enters its text-search header. Our
+    -- EnsureComponents/list rebuild triggers that on scroll, LB/RB cycle, and search exit,
+    -- so the [Select;Back] group evicted our vendor-core down to n=2[Select;Back] and the
+    -- reactive refresh then flickered it back (confirmed in-game 2026-07-09: 0 component
+    -- "blocked" events, refresh_before always n=2[A:Select;B:Back]). It is NOT one of the
+    -- component descriptors below, so block it at source too: while OUR vendor scene owns
+    -- the strip the native store header keybind is never wanted (BetterUI vendor drives
+    -- search via its own descriptor + EnterSearchMode). Identity match only -> our own
+    -- distinct descriptor tables and every non-store add still pass through.
+    if storeManager.textSearchKeybindStripDescriptor == descriptor then
+        return true
+    end
+    if type(storeManager.components) == "table" then
+        for _, component in pairs(storeManager.components) do
+            if type(component) == "table"
+                and (component.keybindStripDescriptor == descriptor
+                    or component.confirmKeybindStripDescriptor == descriptor) then
+                return true
+            end
         end
     end
     return false

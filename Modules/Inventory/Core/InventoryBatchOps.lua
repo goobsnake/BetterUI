@@ -365,6 +365,9 @@ function Class:InitializeBatchDestroyDialog()
             dialogType = GAMEPAD_DIALOGS.BASIC,
             allowRightStickPassThrough = true,
         },
+        -- Restore BetterUI keybind/list ownership on close so LB/RB category
+        -- navigation keeps working after cancelling or confirming the prompt.
+        OnHiddenCallback = self:BuildDialogRestoreOnHidden("batchDestroyDialogPostHideRefresh"),
         title = {
             text = function(dialog)
                 return GetString(SI_PROMPT_TITLE_DESTROY_ITEMS)

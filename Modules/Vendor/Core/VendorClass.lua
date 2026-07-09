@@ -1927,6 +1927,20 @@ function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
         self:SetSearchDirectionalInputUpdate(false, reason)
     end
 
+    -- EnterSearchMode adds textSearchKeybindStripDescriptor at the header-navigation
+    -- keybind state, but focusing the edit box then PUSHES a text-entry state
+    -- ([Accept;Cancel]) on top. When exit begins the active state is still that pushed
+    -- state, so the RemoveKeybindGroupIfPresent above -- which targets
+    -- GetActiveKeybindStateIndex() -- no-ops and our [Select;Back] search group survives
+    -- in the header-nav state. The core reclaim below then only SHADOWS it via
+    -- last-add-wins, leaving a stray RIGHT-aligned Back that re-surfaces as "B jumps to
+    -- the far right on search exit" (confirmed in-game 2026-07-09). RequestLeaveHeader
+    -- above has now popped back to the state the group actually lives in, so remove it
+    -- again here before the reclaim. Idempotent: a no-op if the earlier removal took.
+    if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
+    end
+
     if self.coreKeybinds then
         self:RefreshCoreKeybindOwnership(reason .. ":immediate")
     end

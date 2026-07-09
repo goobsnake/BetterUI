@@ -151,15 +151,18 @@ local function IsVendorSearchInputActive(vendorInstance)
     if not (vendorInstance._searchModeActive == true or vendorInstance._searchHeaderActive == true) then
         return false
     end
-    -- The flags go stale in the opposite direction too: when the base
-    -- parametric screen hands focus back to the item list without running
-    -- the OnLeaveHeader exit path (scene-entry race), both flags stay true
-    -- for the rest of the visit and LB/RB dead-ends with "searchActive"
-    -- until the user touches the search bar or re-enters the scene. Gamepad
-    -- input has a single owner: an actively focused list with no focused
-    -- search edit box means search input is NOT active, whatever the flags
-    -- or the (equally stale-prone) focus objects claim.
-    if IsVendorListInputActive(vendorInstance) and not IsVendorSearchEditFocused(vendorInstance) then
+    -- The flags also go stale TRUE on first vendor entry: the base parametric
+    -- screen activates the search header, then hands focus back to the item
+    -- list without running the OnLeaveHeader exit path (a scene-entry race), so
+    -- the flags stay set for the whole visit and LB/RB category cycling
+    -- dead-ends with "searchActive" until the scene is re-entered. The
+    -- authoritative signal for "the user is really in search input" is the
+    -- search edit box holding ENGINE focus (editBox:HasFocus). If it is not
+    -- focused, search is not active -- do NOT also require the list to be active
+    -- first, because on first entry the list focus is not established yet, which
+    -- is exactly what trapped LB/RB. An actively focused list is likewise a
+    -- definitive "not in search" signal (covers the reverse handoff race).
+    if not IsVendorSearchEditFocused(vendorInstance) or IsVendorListInputActive(vendorInstance) then
         return false
     end
     return true
