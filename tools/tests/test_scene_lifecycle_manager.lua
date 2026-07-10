@@ -278,6 +278,117 @@ do
     assert_equal(1, count, "same-scene re-registration replaces rather than stacks")
 end
 
+-- Test 11: mutable keybindsResolver returning A on SHOWING and B later still removes A.
+print("\nTest: mutable keybindsResolver removes the SHOWING snapshot even when resolver changes")
+reset()
+do
+    local scene11 = MockScene()
+    local screen11 = { scene = scene11 }
+    local groupA = { name = "A" }
+    local groupB = { name = "B" }
+    local resolverResult = { groupA }
+    BETTERUI.CIM.SceneLifecycle.Register(screen11, {
+        keybindsResolver = function() return resolverResult end,
+    })
+    scene11:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    assert_equal(1, #addedGroups, "SHOWING adds one group")
+    assert_equal(groupA, addedGroups[1], "SHOWING adds group A")
+    resolverResult[1] = groupB
+    scene11:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
+    assert_equal(1, #removedGroups, "HIDING removes exactly the SHOWING snapshot")
+    assert_equal(groupA, removedGroups[1], "HIDING removes group A, not the later-resolved group B")
+end
+
+-- Test 12: multi-scene registration identifies the captured firing scene after screen.scene mutates.
+print("\nTest: captured registered scene is identified after screen.scene mutates")
+reset()
+do
+    local loggedScenes = {}
+    BETTERUI.Log = {
+        CATEGORY = { SCENE = "scene", KEYBIND = "keybind" },
+        Trace = function(cat, msg, ctx)
+            if ctx and ctx.scene then table.insert(loggedScenes, ctx.scene) end
+        end,
+        Info = function(cat, msg, ctx)
+            if ctx and ctx.scene then table.insert(loggedScenes, ctx.scene) end
+        end,
+        Warn = function(...) end,
+        DescribeKeybindDescriptor = function(group, action) return tostring(group) end,
+        DescribeKeybindDescriptors = function(groups, prefix) return tostring(#(groups or {})) end,
+    }
+    local scene12a = MockScene()
+    local scene12b = MockScene()
+    function scene12a:GetName() return "CapturedSceneA" end
+    function scene12b:GetName() return "CapturedSceneB" end
+    local screen12 = { scene = scene12a }
+    BETTERUI.CIM.SceneLifecycle.Register(screen12, {})
+    screen12.scene = scene12b
+    BETTERUI.CIM.SceneLifecycle.Register(screen12, {})
+    loggedScenes = {}
+    scene12a:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    assert_equal("CapturedSceneA", loggedScenes[1], "firing sceneA is identified by captured registered scene")
+    BETTERUI.Log = nil
+end
+
+-- Test 13: HIDDEN re-cancels tasks and cleans the SHOWING snapshot (direct-HIDDEN fallback).
+print("\nTest: HIDDEN re-cancels tasks and cleans the SHOWING snapshot")
+reset()
+do
+    local scene13 = MockScene()
+    local screen13 = { scene = scene13 }
+    local group13 = { name = "snapshotGroup" }
+    local cancelCount = 0
+    local taskManager = { CancelAll = function(self) cancelCount = cancelCount + 1 end }
+    BETTERUI.CIM.SceneLifecycle.Register(screen13, {
+        keybinds = { group13 },
+        taskManager = taskManager,
+    })
+    scene13:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    assert_equal(1, #addedGroups, "SHOWING adds the snapshot group")
+    scene13:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
+    assert_equal(1, cancelCount, "HIDING calls CancelAll once")
+    assert_equal(1, #removedGroups, "HIDING removes the snapshot group")
+    scene13:triggerStateChange(SCENE_HIDING, SCENE_HIDDEN)
+    assert_equal(2, cancelCount, "HIDDEN re-cancels tasks")
+    assert_equal(1, #removedGroups, "no over-remove from HIDDEN after HIDING")
+
+    -- Direct-HIDDEN fallback: skip HIDING and go straight from SHOWING to HIDDEN.
+    reset()
+    cancelCount = 0
+    scene13:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    assert_equal(1, #addedGroups, "direct-fallback SHOWING adds the group")
+    scene13:triggerStateChange(SCENE_SHOWING, SCENE_HIDDEN)
+    assert_equal(1, #removedGroups, "direct HIDDEN cleans the SHOWING snapshot")
+    assert_equal(group13, removedGroups[1], "direct HIDDEN removes the correct snapshot group")
+    assert_equal(1, cancelCount, "direct HIDDEN cancels tasks")
+end
+
+-- Test 14: HIDING→SHOWING re-entry uses a new snapshot without leaking/over-removing.
+print("\nTest: HIDING→SHOWING re-entry uses a new snapshot without leaking/over-removing")
+reset()
+do
+    local scene14 = MockScene()
+    local screen14 = { scene = scene14 }
+    local groupA = { name = "entryA" }
+    local groupB = { name = "entryB" }
+    local resolverResult = { groupA }
+    BETTERUI.CIM.SceneLifecycle.Register(screen14, {
+        keybindsResolver = function() return resolverResult end,
+    })
+    scene14:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    assert_equal(1, #addedGroups, "first SHOWING adds one group")
+    assert_equal(groupA, addedGroups[1], "first SHOWING adds group A")
+    scene14:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
+    assert_equal(1, #removedGroups, "HIDING removes group A")
+    resolverResult = { groupB }
+    scene14:triggerStateChange(SCENE_HIDING, SCENE_SHOWING)
+    assert_equal(2, #addedGroups, "re-entry SHOWING adds group B")
+    assert_equal(groupB, addedGroups[2], "re-entry SHOWING adds the new group B")
+    scene14:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
+    assert_equal(2, #removedGroups, "final HIDING removes exactly one group")
+    assert_equal(groupB, removedGroups[2], "final HIDING removes group B, not A again")
+end
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================

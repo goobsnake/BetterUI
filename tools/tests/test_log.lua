@@ -193,6 +193,50 @@ check(fileLines[1]
     and fileLines[1]:find('src="manual.lua:1"', 1, true) ~= nil,
     "ERROR preserves explicit caller and src context")
 
+-- Payload copies must read ordinary stored fields without consulting caller-controlled
+-- __pairs. A hostile iterator must not suppress WARN/ERROR/TraceEvent records or their
+-- established context/event schemas.
+local pairsProbe = 0
+local hostilePairsPayload = setmetatable({
+    ordinary = 17,
+    caller = "hostile-explicit",
+    src = "hostile.lua:9",
+    traceVersion = 23,
+    ["raw field"] = "kept",
+}, {
+    __pairs = function()
+        pairsProbe = pairsProbe + 1
+        error("hostile payload __pairs")
+    end,
+})
+
+fileLines = {}
+local hostileWarnOk = pcall(Log.Warn, Log.CATEGORY.GENERAL, "hostile warn", hostilePairsPayload)
+check(hostileWarnOk and pairsProbe == 0 and #fileLines == 1
+    and fileLines[1]:find("ordinary=17", 1, true) ~= nil
+    and fileLines[1]:find('caller="hostile-explicit"', 1, true) ~= nil
+    and fileLines[1]:find('src="hostile.lua:9"', 1, true) ~= nil,
+    "WARN bypasses hostile __pairs and preserves ordinary/context fields")
+
+fileLines = {}
+local hostileErrorOk = pcall(Log.Error, Log.CATEGORY.GENERAL, "hostile error", hostilePairsPayload)
+check(hostileErrorOk and pairsProbe == 0 and #fileLines == 1
+    and fileLines[1]:find("ordinary=17", 1, true) ~= nil
+    and fileLines[1]:find('caller="hostile-explicit"', 1, true) ~= nil
+    and fileLines[1]:find('src="hostile.lua:9"', 1, true) ~= nil,
+    "ERROR bypasses hostile __pairs and preserves ordinary/context fields")
+
+fileLines = {}
+local hostileTraceOk = pcall(Log.TraceEvent, Log.CATEGORY.GENERAL,
+    "hostile.event", "state", hostilePairsPayload)
+check(hostileTraceOk and pairsProbe == 0 and #fileLines == 1
+    and fileLines[1]:find("ordinary=17", 1, true) ~= nil
+    and fileLines[1]:find('raw_field="kept"', 1, true) ~= nil
+    and fileLines[1]:find("traceVersion=23", 1, true) ~= nil
+    and fileLines[1]:find('eventName="hostile.event"', 1, true) ~= nil
+    and fileLines[1]:find('phaseName="state"', 1, true) ~= nil,
+    "TraceEvent bypasses hostile __pairs and preserves payload/event schema")
+
 -- Category gating drops TRACE/DEBUG but never WARN/ERROR.
 fileLines = {}
 Log.SetCategoryEnabled(Log.CATEGORY.LIST, false)
@@ -444,6 +488,84 @@ fileLines = {}
 Log.TraceEvent(Log.CATEGORY.LIFECYCLE, "bank.item_transfer", "requested", { source = "test" })
 check(fileLines[1] and fileLines[1]:find("nameplates.init", 1, true) == nil,
     "TraceEvent after phase=end does not inherit the ended flow")
+
+-- ============================================================================
+-- BUI-STAB-001 Phase 6: TraceEvent exact builog gating.
+-- When a record is dropped, TraceEvent must return BEFORE copying/normalizing the
+-- payload (zero enrichment) yet still release the ambient flow on a phase=end. A
+-- hostile payload KEY (a raising __tostring) is the probe + robustness case: its
+-- metamethod fires ONLY if the payload copy runs (it normalizes keys), and even then
+-- it must never escape the log call.
+-- ============================================================================
+local keyProbe = 0
+local hostileKey = setmetatable({}, { __tostring = function()
+    keyProbe = keyProbe + 1
+    error("hostile key __tostring")
+end })
+local function hostilePayload() return { [hostileKey] = true, ordinary = 1 } end
+
+-- Gated ON (watch): the payload copy normalizes keys (probe fires) and the record emits,
+-- surviving the hostile key without raising.
+Log.ApplyPreset("watch")
+keyProbe = 0; fileLines = {}
+local okOnTrace = pcall(Log.TraceEvent, Log.CATEGORY.SCENE, "probe.event", "state", hostilePayload())
+check(okOnTrace and keyProbe >= 1 and #fileLines == 1,
+    "TraceEvent enabled copies payload keys, emits, and survives a hostile key __tostring")
+
+-- Inactive: returns before the payload copy -- the hostile key is never stringified (zero
+-- enrichment) and nothing emits, never raising.
+setLogging(false)
+keyProbe = 0; fileLines = {}
+local okOffTrace = pcall(Log.TraceEvent, Log.CATEGORY.SCENE, "probe.event", "state", hostilePayload())
+check(okOffTrace and keyProbe == 0 and #fileLines == 0,
+    "TraceEvent inactive performs zero payload enrichment and never raises")
+setLogging(true)
+
+-- Below min level: TraceEvent's DEFAULT level is DEBUG; flooring at INFO drops it before
+-- any payload copy. An explicit INFO level at/above the floor DOES render.
+Log.ApplyPreset("watch")
+Log.SetMinLevel(Log.LEVEL.INFO)
+keyProbe = 0; fileLines = {}
+Log.TraceEvent(Log.CATEGORY.SCENE, "probe.event", "state", hostilePayload())
+check(keyProbe == 0 and #fileLines == 0, "TraceEvent below min level performs zero enrichment")
+keyProbe = 0; fileLines = {}
+Log.TraceEvent(Log.CATEGORY.SCENE, "probe.event", "state", hostilePayload(), Log.LEVEL.INFO)
+check(keyProbe >= 1 and #fileLines == 1, "TraceEvent at/above min level renders enrichment")
+Log.SetMinLevel(Log.LEVEL.TRACE)
+
+-- Disabled category drops a DEBUG-default TraceEvent before enrichment.
+Log.ApplyPreset("watch")
+Log.SetCategoryEnabled(Log.CATEGORY.NAV, false)
+keyProbe = 0; fileLines = {}
+Log.TraceEvent(Log.CATEGORY.NAV, "probe.event", "state", hostilePayload())
+check(keyProbe == 0 and #fileLines == 0, "TraceEvent in a disabled category performs zero enrichment")
+Log.SetCategoryEnabled(Log.CATEGORY.NAV, true)
+
+-- Sink off at the record's level drops it (no file, no chat) before enrichment.
+Log.ApplyPreset("watch")
+Log.SetSink(Log.LEVEL.DEBUG, "file", false)
+keyProbe = 0; fileLines = {}
+Log.TraceEvent(Log.CATEGORY.SCENE, "probe.event", "state", hostilePayload())
+check(keyProbe == 0 and #fileLines == 0, "TraceEvent with the level sink off performs zero enrichment")
+Log.SetSink(Log.LEVEL.DEBUG, "file", true)
+
+-- Flow-state: a phase=end releases the ambient wrapper flow EVEN when the record is gated
+-- off, so a dropped end never leaks flow correlation into a later emitted record.
+Log.ApplyPreset("info") -- floors at INFO: a default-DEBUG TraceEvent is dropped
+Log.SetLastAction({ flow = "drop.flow", message = "drop.flow:end" })
+check(Log.GetLastAction() and Log.GetLastAction().flow == "drop.flow",
+    "precondition: ambient wrapper flow is set before the gated-off end")
+fileLines = {}
+Log.TraceEvent(Log.CATEGORY.SCENE, "drop.flow", "end", { a = 1 })
+check(#fileLines == 0, "gated-off TraceEvent phase=end emits nothing")
+check(Log.GetLastAction() and Log.GetLastAction().flow == nil,
+    "TraceEvent phase=end clears the ambient flow even when the record is gated off")
+-- A gated-off NON-end phase leaves the ambient flow intact.
+Log.SetLastAction({ flow = "keep.flow", message = "keep.flow:begin" })
+Log.TraceEvent(Log.CATEGORY.SCENE, "keep.flow", "begin", { a = 1 })
+check(Log.GetLastAction() and Log.GetLastAction().flow == "keep.flow",
+    "gated-off TraceEvent non-end phase preserves the ambient flow")
+Log.ApplyPreset("watch")
 
 fileLines = {}; watchdogExpectations = {}
 Log.ApplyPreset("info")

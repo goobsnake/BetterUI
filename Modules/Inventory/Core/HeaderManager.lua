@@ -254,7 +254,6 @@ local function ExitSearchFocus(self)
     -- Add back main keybinds
     if self.mainKeybindStripDescriptor then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
-        BETTERUI.Interface.UpdateKeybindGroup(self.mainKeybindStripDescriptor)
     end
 
     if L and L.TraceEvent then

@@ -459,6 +459,7 @@ BETTERUI = {
         },
         LEVEL = { DEBUG = 2, INFO = 3, WARN = 4, ERROR = 5 },
         IsActive = function() return true end,
+        EnabledFor = function() return true end,
         TraceEvent = function(category, event, phase, data, level)
             table.insert(logEvents, { kind = "TraceEvent", category = category, event = event, phase = phase, data = data, level = level })
         end,

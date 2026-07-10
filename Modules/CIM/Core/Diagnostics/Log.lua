@@ -69,6 +69,21 @@ for i = 1, #LEVEL_NAME do sinks[i] = defaultMask() end
 local categoryDisabled = {}
 
 local function G(name) return rawget(_G, name) end
+local rawNext = next
+
+-- Copy only a table's own stored fields. Using cached `next` rather than `pairs`
+-- keeps logging independent of a caller-controlled __pairs metamethod; the returned
+-- plain table is safe for the normal rendering path.
+local function safeShallowCopy(data, normalizeKey)
+    local payload = {}
+    if type(data) ~= "table" then return payload end
+    local key, value = rawNext(data, nil)
+    while key ~= nil do
+        payload[normalizeKey and normalizeKey(key) or key] = value
+        key, value = rawNext(data, key)
+    end
+    return payload
+end
 
 -- tostring that can never raise (a hostile/missing __tostring must not break a log call).
 -- Defined early so the payload path (Summarize/renderData) can use it too.
@@ -259,9 +274,7 @@ function Log.MakeTracer(options)
 
         local payload = {}
         if type(data) == "table" then
-            for k, v in pairs(data) do
-                payload[k] = v
-            end
+            payload = safeShallowCopy(data)
         elseif data ~= nil then
             payload.value = data
         end
@@ -516,11 +529,13 @@ local function captureWarnErrorSource()
 end
 
 local function withWarnErrorContext(message, data)
-    local payload = {}
+    local payload
     if type(data) == "table" then
-        for key, value in pairs(data) do payload[key] = value end
+        payload = safeShallowCopy(data)
     elseif data ~= nil then
-        payload.value = data
+        payload = { value = data }
+    else
+        payload = {}
     end
     if payload.caller == nil then
         payload.caller = "log:" .. normalizeLogToken(message, "warn"):sub(1, 48)
@@ -550,21 +565,38 @@ function Log.Error(category, message, data) emit(Log.LEVEL.ERROR, category, mess
 ---@param data table|any|nil
 ---@param level number|nil
 function Log.TraceEvent(category, event, phase, data, level)
-    category = category or Log.CATEGORY.GENERAL
+    -- Resolve the EFFECTIVE routing (default DEBUG level / GENERAL category) and run the
+    -- exact gate BEFORE any payload copy/normalization: when the record would be dropped,
+    -- iterating and re-tokenizing `data` is pure waste (a hot UI path can call this
+    -- thousands of times/frame). event/phase are cheap tokens and are still normalized so
+    -- the flow-state contract below is exact.
+    local emitCategory = category or Log.CATEGORY.GENERAL
+    local emitLevel = level or Log.LEVEL.DEBUG
     event = normalizeLogToken(event, "unknown")
     phase = normalizeLogToken(phase or "state", "state")
-    local payload = {}
+    if not Log.EnabledFor(emitLevel, emitCategory) then
+        -- Flow-state must stay exact even when the record is dropped: a phase=end still
+        -- releases the ambient wrapper flow so a gated-off end never leaks flow correlation
+        -- into a later record that IS emitted.
+        if phase == "end" then
+            Log.ClearLastActionFlow(event)
+        end
+        return
+    end
+    local payload
     if type(data) == "table" then
-        for k, v in pairs(data) do payload[normalizeLogToken(k, "field")] = v end
+        payload = safeShallowCopy(data, function(key) return normalizeLogToken(key, "field") end)
     elseif data ~= nil then
-        payload.value = data
+        payload = { value = data }
+    else
+        payload = {}
     end
     payload.traceVersion = payload.traceVersion or Log.EVENT_SCHEMA
     payload.eventName = event
     payload.phaseName = phase
     local la = lastAction
     if payload.flow == nil and type(la) == "table" and la.flow then payload.flow = la.flow end
-    emit(level or Log.LEVEL.DEBUG, category, "event=" .. event .. " phase=" .. phase, payload)
+    emit(emitLevel, emitCategory, "event=" .. event .. " phase=" .. phase, payload)
     if phase == "end" then
         Log.ClearLastActionFlow(event)
     end

@@ -458,6 +458,40 @@ do
     assert_eq(0, #((STORE_WINDOW_GAMEPAD or {}).activeComponents or {}), "close-store event clears native active components in fallback close path")
 end
 
+do
+    resetHarness()
+    vendorInstance.refreshFooterCount = 0
+    BETTERUI.Interface = { UpdateCurrentKeybindGroups = function() return true end }
+    local recordedTasks = {}
+    BETTERUI.Vendor.Tasks = {
+        Cancel = function(_, key) recordedTasks[#recordedTasks + 1] = { action = "cancel", key = key } end,
+        Schedule = function(_, key, delay, callback)
+            recordedTasks[#recordedTasks + 1] = { action = "schedule", key = key, delay = delay }
+            if callback then callback() end
+        end,
+        CancelAll = function() end,
+    }
+
+    eventCallbacks[EVENT_MONEY_UPDATE]()
+
+    local scheduledListRefresh = false
+    local scheduledFooterRefresh = false
+    for _, entry in ipairs(recordedTasks) do
+        if entry.action == "schedule" and entry.key == "listRefresh" then
+            scheduledListRefresh = true
+        end
+        if entry.action == "schedule" and entry.key == "footerRefresh" then
+            scheduledFooterRefresh = true
+        end
+    end
+    assert_eq(scheduledListRefresh, false,
+        "vendor money update does not schedule a full list refresh")
+    assert_eq(scheduledFooterRefresh, true,
+        "vendor money update schedules a footer refresh")
+    assert_eq(vendorInstance.refreshFooterCount, 1,
+        "vendor money update refreshes the footer")
+end
+
 print(string.format("test_vendor_root_lifecycle_runtime.lua: %d passed", passed))
 if failed > 0 then
     print(string.format("test_vendor_root_lifecycle_runtime.lua: %d failed", failed))

@@ -40,6 +40,14 @@ do
         isInHeaderSortMode = true,
         _searchModeActive = true,
         _searchHeaderActive = true,
+        _searchTextChangedInProgress = true,
+        _preserveSearchFocusDuringRefresh = true,
+        _exitSearchModeInProgress = true,
+        _requestingVendorHeaderFocus = true,
+        _requestingVendorHeaderLeave = true,
+        _requestingVendorSearchHeaderLeave = true,
+        _restoringVendorSearchFocus = true,
+        _refreshingVendorHeaderAfterSearchExit = true,
         textSearchHeaderFocus = {
             Deactivate = function()
                 searchDeactivated = searchDeactivated + 1
@@ -63,6 +71,14 @@ do
     assert_eq(screen.isInHeaderSortMode, false, "cleanup clears header sort mode")
     assert_eq(screen._searchModeActive, false, "cleanup clears search mode flag")
     assert_eq(screen._searchHeaderActive, false, "cleanup clears search header flag")
+    assert_eq(screen._searchTextChangedInProgress, nil, "cleanup clears search change guard")
+    assert_eq(screen._preserveSearchFocusDuringRefresh, nil, "cleanup clears search focus preservation guard")
+    assert_eq(screen._exitSearchModeInProgress, nil, "cleanup clears search exit guard")
+    assert_eq(screen._requestingVendorHeaderFocus, nil, "cleanup clears vendor header focus guard")
+    assert_eq(screen._requestingVendorHeaderLeave, nil, "cleanup clears vendor header leave guard")
+    assert_eq(screen._requestingVendorSearchHeaderLeave, nil, "cleanup clears vendor search header leave guard")
+    assert_eq(screen._restoringVendorSearchFocus, nil, "cleanup clears vendor search focus restore guard")
+    assert_eq(screen._refreshingVendorHeaderAfterSearchExit, nil, "cleanup clears vendor post-search refresh guard")
     assert_eq(searchDeactivated, 1, "cleanup deactivates search focus")
     assert_eq(tabBarDeactivated, 1, "cleanup deactivates header tab bar")
     assert_true(screen.searchFocused == false, "cleanup clears search focus state")

@@ -37,6 +37,8 @@ print("test_trading_house_runtime_source")
 local entrySource = read_file("Modules/TradingHouse/TradingHouse.lua")
 local runtimeSource = read_file("Modules/TradingHouse/Core/TradingHouseRuntime.lua")
 local flowSource = read_file("Modules/TradingHouse/Core/TradingHouseRuntimeFlow.lua")
+local classSource = read_file("Modules/TradingHouse/Core/TradingHouseClass.lua")
+local settingsSource = read_file("Modules/TradingHouse/Settings/SettingsPanel.lua")
 local browseSource = read_file("Modules/TradingHouse/Components/BrowseComponent.lua")
 local manifestSource = read_file("BetterUI.txt")
 
@@ -70,6 +72,18 @@ assert_contains(flowSource, "function TH.OnTradingHouseResponseTimeout()",
     "Trading House flow helper owns response timeout handler")
 assert_contains(flowSource, "function TH.OnTradingHouseOperationTimeout()",
     "Trading House flow helper owns operation timeout handler")
+assert_contains(flowSource, "function TH.GetKeybindRefreshFingerprint()",
+    "Trading House flow helper owns the label-relevant keybind state fingerprint")
+assert_contains(flowSource, "iface.ShouldSkipRedundantKeybindRefresh(TH.instance, fingerprint, force == true)",
+    "Trading House global keybind refreshes use same-frame state-equivalence coalescing")
+assert_not_contains(classSource, "BETTERUI.Interface.UpdateCurrentKeybindGroups",
+    "Trading House mode changes route global refreshes through the coalescing helper")
+assert_contains(classSource, "BETTERUI.TradingHouse.RefreshCurrentTradingHouseKeybinds",
+    "Trading House mode changes use the shared fingerprinted keybind refresh")
+assert_not_contains(settingsSource, "BETTERUI.Interface.UpdateCurrentKeybindGroups",
+    "Trading House settings do not bypass the shared keybind refresh helper")
+assert_contains(settingsSource, 'TH.RefreshCurrentTradingHouseKeybinds("TradingHouse.Settings:RefreshTHWindow", "settingsChanged", true)',
+    "Trading House settings force their distinct external state refresh")
 assert_contains(flowSource, "function TH.OnSelectedTradingHouseGuildChanged()",
     "Trading House flow helper owns selected-guild-changed handler")
 assert_contains(flowSource, "function TH.OnTradingHouseStatusReceived()",

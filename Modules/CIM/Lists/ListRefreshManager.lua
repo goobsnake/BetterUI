@@ -24,6 +24,20 @@ BETTERUI.CIM.Lists.ListRefreshManager = ZO_Object:Subclass()
 
 local nextRefreshManagerId = 0
 
+local function IsListDebugLoggingEnabled()
+    local log = BETTERUI and BETTERUI.Log or nil
+    if not (log and type(log.EnabledFor) == "function") then
+        return false
+    end
+
+    local debugLevel = log.LEVEL and log.LEVEL.DEBUG or nil
+    local listCategory = log.CATEGORY and log.CATEGORY.LIST or nil
+    if debugLevel == nil or listCategory == nil then
+        return false
+    end
+    return log.EnabledFor(debugLevel, listCategory) == true
+end
+
 local function SafeDescribeListSelection(list, phase)
     local log = BETTERUI and BETTERUI.Log or nil
     if log and type(log.DescribeListSelection) == "function" then
@@ -123,13 +137,15 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list, options)
     else
         self.savedUniqueId = nil
     end
-    if BETTERUI.Log and BETTERUI.Log.IsActive() then
+
+    local debugLoggingEnabled = IsListDebugLoggingEnabled()
+    if debugLoggingEnabled and BETTERUI.Log.Trace then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh save position", AddRefreshTraceContext({
             savedPosition = self.savedPosition,
             savedUniqueId = self.savedUniqueId,
         }, options))
     end
-    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+    if debugLoggingEnabled and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "saved", AddRefreshTraceContext({
             selected = SafeDescribeListSelection(list, "saved"),
             savedPosition = self.savedPosition,
@@ -144,6 +160,7 @@ end
 function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list, options)
     if not list then return false, false end
 
+    local debugLoggingEnabled = IsListDebugLoggingEnabled()
     local targetIndex = nil
     local restoredById = false
     local restoreReason = nil
@@ -151,7 +168,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list, options)
     -- Try to find by uniqueId first
     if self.savedUniqueId then
         local numItemsForSearch = list:GetNumItems() or 0
-        if BETTERUI.Log and BETTERUI.Log.IsActive() then
+        if debugLoggingEnabled and BETTERUI.Log.Trace then
             BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh restore search by id", { savedUniqueId = self.savedUniqueId, numItems = numItemsForSearch })
         end
         for i = 1, numItemsForSearch do
@@ -178,7 +195,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list, options)
     -- Clamp to valid range
     local numItems = list:GetNumItems() or 0
     if numItems == 0 then
-        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        if debugLoggingEnabled and BETTERUI.Log.TraceEvent then
             BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", AddRefreshTraceContext({
                 restored = false,
                 restoredById = restoredById == true,
@@ -200,7 +217,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list, options)
     -- Set the position
     if list.SetSelectedIndex then
         list:SetSelectedIndex(targetIndex)
-        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        if debugLoggingEnabled and BETTERUI.Log.TraceEvent then
             BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", AddRefreshTraceContext({
                 restored = true, method = restoredById and "id" or "index", targetIndex = targetIndex,
                 restoredById = restoredById == true,
@@ -211,7 +228,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list, options)
         return true, restoredById
     elseif list.SetSelectedDataIndex then
         list:SetSelectedDataIndex(targetIndex)
-        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+        if debugLoggingEnabled and BETTERUI.Log.TraceEvent then
             BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", AddRefreshTraceContext({
                 restored = true, method = restoredById and "id" or "index", targetIndex = targetIndex,
                 restoredById = restoredById == true,
@@ -222,7 +239,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list, options)
         return true, restoredById
     end
 
-    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+    if debugLoggingEnabled and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "restore_end", AddRefreshTraceContext({
             restored = false,
             method = nil,
@@ -243,7 +260,11 @@ end
 ---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, savePosition, options)
     savePosition, options = NormalizeRefreshOptions(savePosition, options)
-    local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+    local debugLoggingEnabled = IsListDebugLoggingEnabled()
+    local numItems = nil
+    if debugLoggingEnabled then
+        numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+    end
     local hadPendingRefresh = self.pendingRefreshCallId ~= nil
     local coalescedCount = hadPendingRefresh and ((self.pendingRefreshCoalescedCount or 0) + 1) or 0
 
@@ -257,37 +278,45 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
     local traceSource = self.pendingRefreshSource
     local traceReason = self.pendingRefreshReason
     local traceToken = self.pendingRefreshToken
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "queue refresh", {
-        numItems = numItems,
-        coalesceDelay = self.coalesceDelay,
-        flow = traceFlow,
-        source = traceSource,
-        reason = traceReason,
-        token = traceToken,
-        coalesced = hadPendingRefresh,
-        coalescedCount = coalescedCount,
-    }) end
-    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "queued", AddRefreshTraceContext({
-            numItems = numItems, coalesceDelay = self.coalesceDelay, savePosition = savePosition ~= false,
-            selected = SafeDescribeListSelection(list, "before"),
-        }, {
-            flow = traceFlow,
-            source = traceSource,
-            reason = traceReason,
-            token = traceToken,
-            coalescedCount = coalescedCount,
-        }))
+    if debugLoggingEnabled then
+        if BETTERUI.Log.Trace then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "queue refresh", {
+                numItems = numItems,
+                coalesceDelay = self.coalesceDelay,
+                flow = traceFlow,
+                source = traceSource,
+                reason = traceReason,
+                token = traceToken,
+                coalesced = hadPendingRefresh,
+                coalescedCount = coalescedCount,
+            })
+        end
+        if BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "queued", AddRefreshTraceContext({
+                numItems = numItems, coalesceDelay = self.coalesceDelay, savePosition = savePosition ~= false,
+                selected = SafeDescribeListSelection(list, "before"),
+            }, {
+                flow = traceFlow,
+                source = traceSource,
+                reason = traceReason,
+                token = traceToken,
+                coalescedCount = coalescedCount,
+            }))
+        end
     end
 
     if savePosition ~= false then
-        self:SavePosition(list, {
-            flow = traceFlow,
-            source = traceSource,
-            reason = traceReason,
-            token = traceToken,
-            coalescedCount = coalescedCount,
-        })
+        local saveOptions = nil
+        if debugLoggingEnabled then
+            saveOptions = {
+                flow = traceFlow,
+                source = traceSource,
+                reason = traceReason,
+                token = traceToken,
+                coalescedCount = coalescedCount,
+            }
+        end
+        self:SavePosition(list, saveOptions)
     end
 
     self.isDirty = true
@@ -313,7 +342,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
     -- Schedule coalesced refresh
     self.pendingRefreshCallId = zo_callLater(function()
         if refreshToken ~= self.refreshToken then
-            if BETTERUI.Log and BETTERUI.Log.IsActive() then
+            if IsListDebugLoggingEnabled() and BETTERUI.Log.Trace then
                 BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "refresh stale token", { expected = refreshToken, actual = self.refreshToken })
             end
             WatchdogResolveRefresh(watchdogKey, "stale")
@@ -355,7 +384,11 @@ end
 function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn, options)
     options = options or {}
     self.isDirty = false
-    local beforeCount = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+    local debugLoggingEnabled = IsListDebugLoggingEnabled()
+    local beforeCount = nil
+    if debugLoggingEnabled then
+        beforeCount = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+    end
 
     -- Execute the refresh function
     if refreshFn then
@@ -364,24 +397,28 @@ function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn, o
 
     -- Restore position after refresh
     local success, restoredById = self:RestorePosition(list, options)
-    local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
-    local coalescedCount = options.coalescedCount or 0
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "execute refresh", {
-        numItems = numItems,
-        restoredById = restoredById == true,
-        coalesceDelay = self.coalesceDelay,
-        flow = options.flow,
-        source = options.source,
-        reason = options.reason,
-        token = options.token,
-        coalesced = coalescedCount > 0,
-        coalescedCount = coalescedCount,
-    }) end
-    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "executed", AddRefreshTraceContext({
-            beforeCount = beforeCount, afterCount = numItems, restored = success == true,
-            restoredById = restoredById == true, selected = SafeDescribeListSelection(list, "after"),
-        }, options))
+    if debugLoggingEnabled then
+        local numItems = list and type(list.GetNumItems) == "function" and list:GetNumItems() or 0
+        local coalescedCount = options.coalescedCount or 0
+        if BETTERUI.Log.Trace then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "execute refresh", {
+                numItems = numItems,
+                restoredById = restoredById == true,
+                coalesceDelay = self.coalesceDelay,
+                flow = options.flow,
+                source = options.source,
+                reason = options.reason,
+                token = options.token,
+                coalesced = coalescedCount > 0,
+                coalescedCount = coalescedCount,
+            })
+        end
+        if BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.LIST, "list.refresh", "executed", AddRefreshTraceContext({
+                beforeCount = beforeCount, afterCount = numItems, restored = success == true,
+                restoredById = restoredById == true, selected = SafeDescribeListSelection(list, "after"),
+            }, options))
+        end
     end
     WatchdogResolveRefresh(options.watchdogKey, "executed")
 end

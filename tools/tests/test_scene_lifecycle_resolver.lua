@@ -161,7 +161,7 @@ do
 
     BETTERUI.CIM.SceneLifecycle.Unregister(screenB)
     assert_equal(0, sceneB:handlerCount(), "Unregister removes the handler")
-    assert_equal(nil, screenB._sceneLifecycleHandle, "handle cleared after Unregister")
+    assert_true(next(screenB._sceneLifecycleHandles or {}) == nil, "per-scene handle cleared after Unregister")
 end
 
 -- Unregister with nothing registered is a safe no-op.

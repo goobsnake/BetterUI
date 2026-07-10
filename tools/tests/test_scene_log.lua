@@ -45,11 +45,19 @@ function d(msg) chatLines[#chatLines + 1] = msg end
 
 -- Togglable logging facade stub.
 local logActive = false
+-- BUI-STAB-001 Phase 6: SceneLog gates its transition/keybind enrichment behind the exact
+-- render decision (EnabledFor at the record's level AND payload capture on). Both default
+-- to "on" so the existing enrichment assertions hold; the probe tests toggle them to prove
+-- disabled/below-level paths perform zero enrichment.
+local enabledForResult = true
+local payloadCaptureOn = true
 local infoCalls = {}
 BETTERUI.Log = {
     CATEGORY = { SCENE = "SCENE", GENERAL = "GENERAL" },
     LEVEL = { TRACE = 1, DEBUG = 2, INFO = 3, WARN = 4, ERROR = 5 },
     IsActive = function() return logActive end,
+    EnabledFor = function(_, _) return enabledForResult end,
+    GetPayloadCapture = function() return payloadCaptureOn end,
     -- SceneLog tiers SHOWN/HIDDEN -> Info (milestones), SHOWING/HIDING -> Debug. Capture
     -- BOTH into one ordered list (with a level tag) so transition-count + verb assertions
     -- stay level-agnostic, while a few checks assert the tier.
@@ -213,6 +221,57 @@ check(type(SLASH_COMMANDS["/buiscene"]) == "function", "/buiscene registered")
 chatLines = {}
 local okCmd = pcall(SLASH_COMMANDS["/buiscene"])
 check(okCmd and #chatLines > 0, "/buiscene runs and prints")
+
+-- (9b) BUI-STAB-001 Phase 6 exact enrichment gate: a gated-off level (EnabledFor false) or
+-- payload-capture-off builds ZERO transition/keybind enrichment -- CurrentSceneName() and
+-- WatchMode.DescribeActiveKeybinds() are never invoked and no data table is passed -- while
+-- the recent-scene ring STILL advances unconditionally.
+local kbProbe = 0
+local curProbe = 0
+local origGetCurrentSceneName = fakeSceneManager.GetCurrentSceneName
+fakeSceneManager.GetCurrentSceneName = function(self)
+    curProbe = curProbe + 1
+    return self.currentScene
+end
+BETTERUI.CIM.WatchMode = {
+    DescribeActiveKeybinds = function() kbProbe = kbProbe + 1; return "n=0[]" end,
+}
+logActive = true
+
+-- Level gated off entirely (EnabledFor false).
+enabledForResult = false
+payloadCaptureOn = true
+infoCalls = {}; kbProbe = 0; curProbe = 0
+handler(bankScene, SCENE_HIDDEN, SCENE_SHOWING)
+check(kbProbe == 0 and curProbe == 0, "gated-off scene level performs zero payload/keybind enrichment")
+check(lastInfo() ~= nil and lastInfo().data == nil, "gated-off scene transition passes no data table")
+local gatedRing = SL.GetRecentChronological()
+check(gatedRing[#gatedRing] ~= nil and gatedRing[#gatedRing].verb == "showing",
+    "recent-scene ring records the transition even when enrichment is gated off")
+
+-- Level passes but payload capture is off (e.g. would-be message-only line): zero enrichment.
+enabledForResult = true
+payloadCaptureOn = false
+infoCalls = {}; kbProbe = 0; curProbe = 0
+handler(bankScene, SCENE_SHOWING, SCENE_SHOWN)
+check(kbProbe == 0 and curProbe == 0, "payload-capture-off scene transition performs zero enrichment")
+check(lastInfo() ~= nil and lastInfo().data == nil, "payload-capture-off scene transition passes no data table")
+
+-- Fully enabled with capture on: enrichment is built exactly once, carrying cur + keybinds.
+enabledForResult = true
+payloadCaptureOn = true
+infoCalls = {}; kbProbe = 0; curProbe = 0
+handler(bankScene, SCENE_HIDDEN, SCENE_SHOWING)
+check(kbProbe == 1 and curProbe == 1, "enabled scene transition with capture builds enrichment exactly once")
+check(lastInfo() ~= nil and lastInfo().data ~= nil
+    and lastInfo().data.cur == "hud" and lastInfo().data.keybinds == "n=0[]",
+    "enabled scene transition carries cur + keybind enrichment")
+
+-- Restore harness state for the remaining tests.
+fakeSceneManager.GetCurrentSceneName = origGetCurrentSceneName
+BETTERUI.CIM.WatchMode = nil
+enabledForResult = true
+payloadCaptureOn = true
 
 -- (10) Nil-safety: loading with no SCENE_MANAGER must not error and must not register.
 SCENE_MANAGER = nil

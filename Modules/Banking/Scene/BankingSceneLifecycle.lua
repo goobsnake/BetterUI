@@ -59,6 +59,61 @@ local function InitializeBankSceneCategories(window)
     end
 end
 
+-- BUI-STAB-001 Phase 5: the hidden-scene recovery (see OnSceneHidden) is
+-- generation-bound. Every SHOWING/HIDING transition bumps the generation so a
+-- recovery callback scheduled during a prior HIDDEN cannot fire after the scene
+-- has re-entered or begun another transition -- even in a HIDING -> SHOWING
+-- re-entry where the zo_callLater handle path is missed. The generation guard is
+-- the authoritative invalidation; the handle removal is the fast path.
+local function InvalidateBankingSceneRecovery(self)
+    self._bankingSceneRecoverGeneration = (self._bankingSceneRecoverGeneration or 0) + 1
+    if self._bankingSceneRecoverCallLaterId then
+        zo_removeCallLater(self._bankingSceneRecoverCallLaterId)
+        self._bankingSceneRecoverCallLaterId = nil
+    end
+end
+
+-- Returns true when either BetterUI bank scene (personal or guild) is already
+-- active (current), showing, requested (its own scene state is showing/shown), or
+-- queued as the next scene. In that case a BetterUI bank scene has re-engaged and
+-- the player is NOT stranded, so the hidden-scene recovery must stand down instead
+-- of forcing inventory on top of a valid bank scene.
+local function IsBetterUIBankSceneEngaged()
+    if not SCENE_MANAGER then
+        return false
+    end
+    local currentSceneName = SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName()
+    local nextScene = SCENE_MANAGER.GetNextScene and SCENE_MANAGER:GetNextScene()
+    local nextSceneName = nextScene and nextScene.GetName and nextScene:GetName() or nil
+    local sceneNames = { BETTERUI_BANKING_SCENE_NAME, BETTERUI_GUILD_BANKING_SCENE_NAME }
+    for _, name in ipairs(sceneNames) do
+        if name and name ~= "" then
+            if currentSceneName == name then
+                return true
+            end
+            if nextSceneName == name then
+                return true
+            end
+            if SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing(name) then
+                return true
+            end
+            local scene = SCENE_MANAGER.GetScene and SCENE_MANAGER:GetScene(name)
+            if scene then
+                if scene.IsShowing and scene:IsShowing() then
+                    return true
+                end
+                if scene.GetState then
+                    local state = scene:GetState()
+                    if state == SCENE_SHOWING or state == SCENE_SHOWN then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
 
 --- Scene showing handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
@@ -71,13 +126,10 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     -- suppression. Always clear it on scene entry.
     self:SetListUpdatesSuppressed(false)
 
-    -- Cancel any pending scene-recovery zo_callLater from a previous hidden
-    -- transition; a HIDING -> SHOWING re-entry would otherwise let the stale
-    -- callback fire after the scene is active again.
-    if self._bankingSceneRecoverCallLaterId then
-        zo_removeCallLater(self._bankingSceneRecoverCallLaterId)
-        self._bankingSceneRecoverCallLaterId = nil
-    end
+    -- Cancel + generation-invalidate any pending scene-recovery zo_callLater from a
+    -- previous hidden transition; a HIDING -> SHOWING re-entry would otherwise let
+    -- the stale callback fire after the scene is active again (BUI-STAB-001 Phase 5).
+    InvalidateBankingSceneRecovery(self)
 
     -- Ensure currency selector is hidden on scene entry
     if self.selector and self.selector.control then
@@ -276,6 +328,10 @@ function BETTERUI.Banking.Class:OnSceneHiding()
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hiding", { isBatchProcessing = self:IsBatchProcessing() })
     end
+    -- Invalidate any pending hidden-scene recovery; a fresh HIDING supersedes it and
+    -- OnSceneHidden will schedule a new generation-bound recovery if the exit
+    -- completes (BUI-STAB-001 Phase 5).
+    InvalidateBankingSceneRecovery(self)
     if self:IsBatchProcessing() then
         self:RequestBatchAbort()
     end
@@ -363,8 +419,27 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     -- Reset category positions when leaving the bank
     self.lastPositionsByCategory = {}
 
-    self._bankingSceneRecoverCallLaterId = zo_callLater(function()
+    -- BUI-STAB-001 Phase 5: schedule a generation-bound recovery. If the gamepad
+    -- bank is genuinely stranded (still open but the scene machinery left no valid
+    -- scene showing) force gamepad inventory so the player is not stuck on a dead
+    -- screen. Any SHOWING/HIDING before this fires bumps the generation (and clears
+    -- the handle), neutralizing this callback.
+    if self._bankingSceneRecoverCallLaterId then
+        zo_removeCallLater(self._bankingSceneRecoverCallLaterId)
         self._bankingSceneRecoverCallLaterId = nil
+    end
+    self._bankingSceneRecoverGeneration = (self._bankingSceneRecoverGeneration or 0) + 1
+    local recoverGeneration = self._bankingSceneRecoverGeneration
+    local recoverCallLaterId
+    recoverCallLaterId = zo_callLater(function()
+        if self._bankingSceneRecoverCallLaterId == recoverCallLaterId then
+            self._bankingSceneRecoverCallLaterId = nil
+        end
+        -- Generation guard: a scene SHOWING/HIDING after this was scheduled bumps
+        -- the generation, so a stale callback that survived handle removal no-ops.
+        if self._bankingSceneRecoverGeneration ~= recoverGeneration then
+            return
+        end
         if not IsInGamepadPreferredMode() then
             return
         end
@@ -383,19 +458,27 @@ function BETTERUI.Banking.Class:OnSceneHidden()
                 return
             end
         end
+        -- Reject the recovery when either BetterUI bank scene is active/showing/
+        -- requested/next: the bank re-engaged a BetterUI scene, so we are not
+        -- stranded and must not force inventory over it.
+        if IsBetterUIBankSceneEngaged() then
+            return
+        end
 
+        -- Inventory is shown only for the genuinely stranded case: bank still open
+        -- but the current scene is a dead/bare state, not a BetterUI bank scene.
         local currentSceneName = SCENE_MANAGER:GetCurrentSceneName()
         local shouldRecoverToInventory = (currentSceneName == nil)
             or (currentSceneName == "")
             or (currentSceneName == "hud")
             or (currentSceneName == "hudui")
             or (currentSceneName == "gamepad_banking")
-            or (currentSceneName == BETTERUI_BANKING_SCENE_NAME)
 
         if shouldRecoverToInventory then
             SCENE_MANAGER:Show("gamepad_inventory_root")
         end
     end, 25)
+    self._bankingSceneRecoverCallLaterId = recoverCallLaterId
 end
 
 --- Handles visibility of supported external addon elements.

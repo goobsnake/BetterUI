@@ -639,9 +639,6 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
         restorePath = "fallbackMain"
         mainRestoredDuringExit = true
         BETTERUI.Interface.EnsureKeybindGroupAdded(mainDescriptor)
-        if BETTERUI.Interface.UpdateKeybindGroup then
-            BETTERUI.Interface.UpdateKeybindGroup(mainDescriptor)
-        end
     end
     local restoreRefresh = "none"
     if BETTERUI.Interface.UpdateCurrentKeybindGroups and BETTERUI.Interface.UpdateCurrentKeybindGroups() then
@@ -675,10 +672,7 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
     local finalRefresh = "none"
     if mainDescriptor and (mainRestoredDuringExit or HasKeybindGroup(mainDescriptor)) then
         BETTERUI.Interface.EnsureKeybindGroupAdded(mainDescriptor)
-        if BETTERUI.Interface.UpdateKeybindGroup then
-            BETTERUI.Interface.UpdateKeybindGroup(mainDescriptor)
-            finalRefresh = "main"
-        end
+        finalRefresh = "main"
     end
     if BETTERUI.Interface.UpdateCurrentKeybindGroups and BETTERUI.Interface.UpdateCurrentKeybindGroups() then
         finalRefresh = "current"

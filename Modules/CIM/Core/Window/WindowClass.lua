@@ -249,7 +249,12 @@ function BETTERUI.Interface.Window:InitializeScene(scene)
     BETTERUI.CIM.SceneLifecycle.Register(self, {
         keybindsResolver = function()
             local groups = {}
-            if self.coreKeybinds then groups[#groups + 1] = self.coreKeybinds end
+            -- Banking owns its scene-entry keybinds via :AddKeybinds(); prevent
+            -- the generic lifecycle from adding coreKeybinds before Banking can
+            -- remove/re-add them.
+            if not self._bankingOwnsCoreKeybinds and self.coreKeybinds then
+                groups[#groups + 1] = self.coreKeybinds
+            end
             return groups
         end,
         taskManager = self.taskManager or BETTERUI.CIM.Tasks,

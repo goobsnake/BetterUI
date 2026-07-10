@@ -385,16 +385,16 @@ do
         "Vendor search exit asks the base screen to leave header focus like Inventory")
     assert_true(vendorBootstrapSource:find("screen:EnsureListInputActive()", 1, true) ~= nil,
         "Vendor scene show reasserts item-list gamepad input after rebuilding the list")
-    assert_true(vendorBootstrapSource:find('screen:RefreshCoreKeybindOwnership("sceneShowing")', 1, true) ~= nil,
-        "Vendor scene show reasserts the core LB/RB keybind group after rebuilding the list")
+    assert_true(vendorBootstrapSource:find('screen:RefreshCoreKeybindOwnership("sceneShowing", true)', 1, true) ~= nil,
+        "Vendor scene show force-reclaims the core LB/RB keybind group after rebuilding the list")
     assert_true(vendorBootstrapSource:find("autoEnterOnListStart = false", 1, true) ~= nil,
         "Vendor list-top navigation routes to the search lifecycle instead of header sort")
     assert_true(vendorSource:find("ExitHeaderSortMode", 1, true) ~= nil,
         "Vendor search exit clears header sort mode before restoring list input")
     assert_true(vendorKeybindsSource:find("if not (vendorInstance._searchModeActive == true or vendorInstance._searchHeaderActive == true) then", 1, true) ~= nil,
         "Vendor shoulder cycling uses explicit search lifecycle flags as the primary ownership signal")
-    assert_true(vendorKeybindsSource:find("IsVendorListInputActive(vendorInstance) and not IsVendorSearchEditFocused(vendorInstance)", 1, true) ~= nil,
-        "Vendor shoulder cycling overrides stale search flags when the list actively owns input and no search edit is focused")
+    assert_true(vendorKeybindsSource:find("if not IsVendorSearchEditFocused(vendorInstance) or IsVendorListInputActive(vendorInstance) then", 1, true) ~= nil,
+        "Vendor shoulder cycling overrides stale search flags when edit focus is absent or the list actively owns input")
     assert_true(vendorKeybindsSource:find("HealStaleVendorSearchFlags", 1, true) ~= nil,
         "Vendor shoulder cycling heals stale search flags so downstream flag consumers recover")
     assert_true(vendorSource:find("function BETTERUI.Vendor.Class:SetSearchDirectionalInputUpdate", 1, true) ~= nil,
@@ -799,14 +799,14 @@ do
         assert_eq(realExitVendor.normalizedReason, "ExitSearchMode",
             "vendor search exit normalizes directional-input ownership")
         assert_eq(keybindAddCalls, 1, "vendor search exit immediately restores the core keybind group")
-        assert_eq(keybindUpdateCalls, 1, "vendor search exit immediately updates the core keybind group")
+        assert_eq(keybindUpdateCalls, 0, "vendor search exit does not update a core group that was absent")
         assert_true(deferredTasks.coreKeybindRefresh ~= nil,
             "vendor search exit schedules a deferred core keybind refresh")
         assert_eq(deferredTasks.coreKeybindRefresh.delayMs, 0,
             "vendor search exit refreshes core keybinds on the next frame")
         deferredTasks.coreKeybindRefresh.fn()
         assert_eq(keybindAddCalls, 2, "deferred vendor search exit re-adds the core keybind group")
-        assert_eq(keybindUpdateCalls, 2, "deferred vendor search exit updates the core keybind group")
+        assert_eq(keybindUpdateCalls, 0, "deferred vendor search exit does not update a core group that was absent")
         assert_eq(realExitVendor.normalizedReason, "exitSearchMode:deferred",
             "deferred vendor search exit normalizes directional-input ownership again")
         assert_eq(realExitVendor._refreshingVendorHeaderAfterSearchExit, nil,

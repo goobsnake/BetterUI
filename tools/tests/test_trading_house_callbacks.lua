@@ -20,6 +20,19 @@ BETTERUI = {
     CIM = {},
 }
 
+local keybindFrame = 1
+local keybindRefreshStates = {}
+local keybindRefreshFingerprints = {}
+BETTERUI.Interface.ShouldSkipRedundantKeybindRefresh = function(owner, fingerprint, force)
+    keybindRefreshFingerprints[#keybindRefreshFingerprints + 1] = fingerprint
+    local previous = keybindRefreshStates[owner]
+    keybindRefreshStates[owner] = { frame = keybindFrame, fingerprint = fingerprint }
+    return force ~= true
+        and previous ~= nil
+        and previous.frame == keybindFrame
+        and previous.fingerprint == fingerprint
+end
+
 local TH = BETTERUI.TradingHouse
 
 local passed = 0
@@ -477,6 +490,22 @@ cooldownCallback()
 assert_eq(KEYBIND_STRIP.updateCount, 1,
     "cooldown callback refreshes keybind state while scene is showing")
 
+-- Same-frame global refreshes coalesce only while their state fingerprint is
+-- equivalent. A distinct pending-state transition must refresh immediately.
+local burstStart = KEYBIND_STRIP.updateCount
+cooldownCallback()
+assert_eq(KEYBIND_STRIP.updateCount, burstStart,
+    "same-frame equivalent Trading House keybind refresh burst is coalesced")
+local equivalentFingerprint = keybindRefreshFingerprints[#keybindRefreshFingerprints]
+TH.BrowseComponent.searchPending = true
+cooldownCallback()
+assert_eq(KEYBIND_STRIP.updateCount, burstStart + 1,
+    "same-frame Trading House pending-state change refreshes immediately")
+local changedFingerprint = keybindRefreshFingerprints[#keybindRefreshFingerprints]
+assert_eq(equivalentFingerprint == changedFingerprint, false,
+    "Trading House keybind fingerprint changes with label-relevant pending state")
+TH.BrowseComponent.searchPending = false
+
 local scheduleCount = #TH.Tasks.scheduled
 responseCallback(nil, 0, TRADING_HOUSE_RESULT_SUCCESS)
 assert_eq(#TH.Tasks.scheduled, scheduleCount + 1,
@@ -518,12 +547,13 @@ assert_eq(#TH.Tasks.scheduled, scheduleCount,
 
 scene.showing = false
 scheduleCount = #TH.Tasks.scheduled
+local visibleKeybindRefreshCount = KEYBIND_STRIP.updateCount
 listingCallback()
 cooldownCallback()
 responseCallback(nil, 0, TRADING_HOUSE_RESULT_SUCCESS)
 assert_eq(#TH.Tasks.scheduled, scheduleCount,
     "hidden scene blocks callback-driven refresh scheduling")
-assert_eq(KEYBIND_STRIP.updateCount, 1,
+assert_eq(KEYBIND_STRIP.updateCount, visibleKeybindRefreshCount,
     "hidden scene blocks cooldown keybind refresh")
 
 -- Open/close search-feature association contract.
@@ -651,18 +681,19 @@ TH.instance:SetMode(TH.MODE.LISTINGS)
 statusReceivedCallback()
 -- The mock RequestTradingHouseListings is a no-op; the test verifies no error.
 
--- Money update refreshes footer and schedules list refresh while showing.
+-- Money update refreshes footer and keybind enabled states while showing.
+-- Row data does not depend on wallet state, so no full list refresh is scheduled.
 TH.instance:SetMode(TH.MODE.BROWSE)
 local footerCount = TH.instance.refreshFooterCount
+local keybindCount = KEYBIND_STRIP.updateCount
 scheduleCount = #TH.Tasks.scheduled
 moneyUpdateCallback()
--- +2: the handler refreshes the footer directly, and this harness's
--- Tasks:Schedule stub runs the scheduled list refresh synchronously,
--- which refreshes the footer again.
-assert_eq(TH.instance.refreshFooterCount, footerCount + 2,
-    "money update refreshes footer while scene is showing")
-assert_eq(#TH.Tasks.scheduled, scheduleCount + 1,
-    "money update schedules list refresh while scene is showing")
+assert_eq(TH.instance.refreshFooterCount, footerCount + 1,
+    "money update refreshes footer directly while scene is showing")
+assert_eq(KEYBIND_STRIP.updateCount, keybindCount + 1,
+    "money update refreshes keybind enabled states while scene is showing")
+assert_eq(#TH.Tasks.scheduled, scheduleCount,
+    "money update does not schedule a full list refresh")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

@@ -1221,43 +1221,24 @@ function BETTERUI.Vendor.Class:ScheduleDirectionalInputNormalization(reason, del
 end
 
 ---@param reason string|nil
+---@param force boolean|nil
+---@param skipGroupUpdate boolean|nil
 ---@return boolean refreshed
-function BETTERUI.Vendor.Class:RefreshCoreKeybindOwnership(reason, force)
+function BETTERUI.Vendor.Class:RefreshCoreKeybindOwnership(reason, force, skipGroupUpdate)
     if self._searchModeActive or self._searchHeaderActive then
         return false
     end
     if self.scene and self.scene.IsShowing and not self.scene:IsShowing() then
         return false
     end
-    -- A gamepad dialog (e.g. the multi-quantity buy confirm) pushes its OWN keybind
-    -- state, so reclaiming here would register the vendor core group into the
-    -- dialog's state and fight its Confirm/Cancel buttons. Skip while a dialog owns
-    -- the layer; the post-dialog keybind refresh restores the vendor strip. Flagged
-    -- by the 2026-07-07 delegated review (kimi + copilot) as the one real gap.
     if HasVisibleGamepadDialog() then
         return false
     end
-    if not (self.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.EnsureKeybindGroupAdded) then
+
+    local iface = BETTERUI.Interface
+    if not (self.coreKeybinds and iface and iface.EnsureKeybindGroupAdded) then
         return false
     end
-
-    -- Self-heal displacement: a native-store duplicate PRIMARY/NEGATIVE add can evict
-    -- our Buy/Back MID-scene (after a purchase, list refresh, or search exit) while the
-    -- group stays "present", and the cheap Update path then no-ops forever. Back
-    -- (UI_SHORTCUT_NEGATIVE) has no visible() gate, so IsCoreKeybindGroupDisplaced (Back
-    -- missing while the group is present) is an unambiguous displacement signal --
-    -- escalate to a clean force Remove+Add even when the caller asked for the cheap
-    -- path. Fixes the 2026-07-07 spinner-on-A repro: strip stuck at n=2[Toggle,Multi].
-    --
-    -- DELIBERATELY Back-only, NOT a fully-owned (LB/RB) check. The ethereal LB/RB
-    -- shoulders are TRANSIENTLY absent during the search-header teardown; escalating to
-    -- a force Remove+Add at that instant RACES the native store's re-registration
-    -- (HandleDuplicateAddKeybind lets whoever adds LAST win), and the native store wins
-    -- -> our whole group is displaced (Back jumps to the native right-slot, LB/RB fall
-    -- through to the native no-op). That was the 2026-07-08 search-exit TOGGLE bug: one
-    -- exit forced (fully-owned=false mid-teardown) and broke it, the next exit did the
-    -- cheap Update (fully-owned=true) and restored it. Back survives the teardown, so the
-    -- cheap Update reclaims correctly without re-opening the race.
     if not force and self.IsCoreKeybindGroupDisplaced and self:IsCoreKeybindGroupDisplaced() then
         force = true
     end
@@ -1268,25 +1249,23 @@ function BETTERUI.Vendor.Class:RefreshCoreKeybindOwnership(reason, force)
         keybindLabel = "vendor-core",
         force = force == true,
     })
-    -- Force path (scene entry): the native gamepad store registers its OWN keybind
-    -- group on the SAME UI_SHORTCUT_* keys during the scene transition (the
-    -- currentScene="" moment). ZOS HandleDuplicateAddKeybind resolves the overlap by
-    -- EVICTING whichever group was added first, with NO restore, so whoever adds
-    -- LAST wins. A plain EnsureKeybindGroupAdded then no-ops while our group is still
-    -- "present" at group level but its buttons are displaced, leaving the strip
-    -- collapsed to just Back. Removing first guarantees a clean re-add that reclaims
-    -- every button and makes coreKeybinds the last (winning) owner. Only the two
-    -- scene-entry callers pass force=true; hot per-refresh paths keep the cheap path
-    -- to avoid re-adding the group on every list refresh. Root cause traced via the
-    -- keybind-displace-probe on 2026-07-07 (displacer = our own coreKeybinds via
-    -- EnsureKeybindGroupAdded; displaced = native store buttons added at scene="").
-    if force and BETTERUI.Interface.RemoveKeybindGroupIfPresent then
-        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
+
+    local groupPresent = iface.HasKeybindGroup and iface.HasKeybindGroup(self.coreKeybinds) == true
+    if force then
+        if iface.RemoveKeybindGroupIfPresent then
+            iface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
+        end
+        groupPresent = false
     end
-    BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
-    if BETTERUI.Interface.UpdateKeybindGroup then
-        BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
+
+    if groupPresent then
+        if not skipGroupUpdate and iface.UpdateKeybindGroup then
+            iface.UpdateKeybindGroup(self.coreKeybinds)
+        end
+    else
+        iface.EnsureKeybindGroupAdded(self.coreKeybinds)
     end
+
     TraceVendorKeybindLayer("refresh_after", self, self.coreKeybinds, {
         feature = "vendor-core-keybind-refresh",
         reason = reason or "unknown",
@@ -1313,65 +1292,6 @@ function BETTERUI.Vendor.Class:ScheduleCoreKeybindRefresh(reason, delayMs)
         if self.NormalizeDirectionalInputOwnership and not self._searchModeActive and not self._searchHeaderActive then
             self:NormalizeDirectionalInputOwnership(string.format("%s:deferred", tostring(reason or "unknown")))
         end
-    end)
-end
-
----@param reason string|nil
----@return boolean refreshed
-function BETTERUI.Vendor.Class:RefreshSceneEntryKeybindOwnership(reason)
-    reason = reason or "sceneEntry"
-    if self._searchModeActive or self._searchHeaderActive then
-        return false
-    end
-    if self.IsSceneShowing and not self:IsSceneShowing() then
-        return false
-    end
-
-    if self.RefreshVendorHeader then
-        self:RefreshVendorHeader()
-    end
-    if self.ActivateHeader then
-        self:ActivateHeader()
-    end
-    if self.EnsureHeaderKeybindsActive then
-        self:EnsureHeaderKeybindsActive()
-    end
-    if self.EnsureListInputActive then
-        self:EnsureListInputActive()
-    elseif self.list and self.list.Activate and (not self.list.IsActive or not self.list:IsActive()) then
-        self.list:Activate()
-    end
-
-    local refreshed = false
-    if self.RefreshCoreKeybindOwnership then
-        -- force=true: scene-entry reclaim. Runs after the transition settles, so a
-        -- clean Remove+Add here wins the last-add race against the native store group.
-        refreshed = self:RefreshCoreKeybindOwnership(reason, true) == true
-    end
-    if self.RefreshVendorActionKeybinds then
-        self:RefreshVendorActionKeybinds()
-    elseif BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups then
-        BETTERUI.Interface.UpdateCurrentKeybindGroups()
-    end
-    if self.NormalizeDirectionalInputOwnership then
-        self:NormalizeDirectionalInputOwnership(reason)
-    end
-    return refreshed
-end
-
----@param reason string|nil
----@param delayMs number|nil
----@return nil
-function BETTERUI.Vendor.Class:ScheduleSceneEntryKeybindRefresh(reason, delayMs)
-    local tasks = BETTERUI.Vendor and BETTERUI.Vendor.Tasks
-    if not (tasks and tasks.Cancel and tasks.Schedule) then
-        self:RefreshSceneEntryKeybindOwnership(reason or "sceneEntry:scheduleUnavailable")
-        return
-    end
-
-    tasks:Cancel("sceneEntryKeybindRefresh")
-    tasks:Schedule("sceneEntryKeybindRefresh", delayMs or 0, function()
-        self:RefreshSceneEntryKeybindOwnership(string.format("%s:deferred", tostring(reason or "sceneEntry")))
     end)
 end
 
@@ -1837,10 +1757,16 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
         self:DeactivateListInput()
     end
 
-    if self.textSearchKeybindStripDescriptor then
-        BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
-        if BETTERUI.Interface.UpdateKeybindGroup then
-            BETTERUI.Interface.UpdateKeybindGroup(self.textSearchKeybindStripDescriptor)
+    local iface = BETTERUI.Interface
+    if self.textSearchKeybindStripDescriptor and iface then
+        local searchGroupPresent = iface.HasKeybindGroup
+            and iface.HasKeybindGroup(self.textSearchKeybindStripDescriptor) == true
+        if searchGroupPresent then
+            if iface.UpdateKeybindGroup then
+                iface.UpdateKeybindGroup(self.textSearchKeybindStripDescriptor)
+            end
+        elseif iface.EnsureKeybindGroupAdded then
+            iface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
         end
     end
 
@@ -2386,10 +2312,11 @@ end
 
 ---@return nil
 --- Fingerprint of everything the core keybinds' labels/visibility depend on:
---- current mode + selected entry identity + multi-select state. Used by the
---- shared same-frame refresh-coalescing primitive so a burst of identical
---- selection callbacks (ESO re-fires several within one frame during a list
---- rebuild) collapses to a single refresh, while any genuine change still refreshes.
+--- current mode + selected entry identity + multi-select selected count +
+--- inline-buy quantity/affordability. Used by the shared same-frame
+--- refresh-coalescing primitive so a burst of identical selection callbacks
+--- (ESO re-fires several within one frame during a list rebuild) collapses
+--- to a single refresh, while any genuine label change still refreshes.
 ---@return string fingerprint
 function BETTERUI.Vendor.Class:GetKeybindRefreshFingerprint()
     local mode = self.GetCurrentMode and self:GetCurrentMode() or "?"
@@ -2406,50 +2333,70 @@ function BETTERUI.Vendor.Class:GetKeybindRefreshFingerprint()
     local entry = ds and (ds.entryIndex or ds.listingIndex or ds.slotIndex) or nil
     local ms = BETTERUI.Vendor and BETTERUI.Vendor.multiSelectManager
     local msActive = (ms and ms.IsActive and ms:IsActive()) and 1 or 0
+    local msSelectedCount = (msActive == 1 and ms.GetSelectedCount) and ms:GetSelectedCount() or 0
+
+    local inlineSpinner = BETTERUI.Vendor and BETTERUI.Vendor.InlineBuySpinner
+    local inlineQuantity = ""
+    local inlineAffordable = ""
+    if inlineSpinner and inlineSpinner:IsAttached() then
+        local quantity = inlineSpinner:GetQuantity()
+        inlineQuantity = tostring(quantity or "")
+        if ds and type(self.CanAfford) == "function" then
+            local unitPrice = ds.price or 0
+            local totalPrice = (type(quantity) == "number" and unitPrice > 0)
+                and (unitPrice * quantity)
+                or unitPrice
+            local currencyType = ds.currencyType or CURT_MONEY
+            local ok, affordable = pcall(self.CanAfford, self, totalPrice, currencyType)
+            inlineAffordable = (ok and affordable == true) and "1" or "0"
+        end
+    end
+
     return string.format(
-        "%s|%s|%s|%s|%s",
+        "%s|%s|%s|%s|%s|%s|%s|%s",
         tostring(mode),
         tostring(entry or ""),
         tostring(ds and ds.bagId or ""),
         tostring(ds and ds.slotIndex or ""),
-        tostring(msActive)
+        tostring(msActive),
+        tostring(msSelectedCount),
+        inlineQuantity,
+        inlineAffordable
     )
 end
 
 --- @param coalesce boolean? when true (the per-selection path), skip this refresh
 ---   if it is a redundant same-frame duplicate for the same selection fingerprint.
----   Explicit callers (buy, dialing, scene entry) omit it and always refresh.
+---   Explicit callers (buy and dialing) omit it and always refresh.
 function BETTERUI.Vendor.Class:RefreshVendorActionKeybinds(coalesce)
     if self.IsSceneShowing and not self:IsSceneShowing() then
         return
     end
-    -- Collapse the per-selection refresh STORM: ESO re-fires the selection callback
-    -- several times within one frame during a list rebuild, and each fire lands here.
-    -- The selection path passes coalesce=true so same-frame duplicates for the same
-    -- fingerprint are dropped via the shared primitive; a different frame or a changed
-    -- fingerprint still refreshes, so a genuine selection/mode change is never lost.
-    if coalesce and BETTERUI.Interface and BETTERUI.Interface.ShouldSkipRedundantKeybindRefresh then
-        -- Coalesce ONLY when ownership is fully intact. If the native store has stolen
-        -- any always-on key (LB/RB category cycle, Back), this refresh is a NEEDED reclaim,
-        -- not a redundant duplicate: pass force=true so it is never skipped. force also
-        -- records the frame/fingerprint, so once ownership is restored later same-frame
-        -- duplicates still coalesce. This is what makes the dedup safe -- an earlier naive
-        -- version coalesced a reclaim away and broke LB/RB navigation after a buy/list switch.
-        local fullyOwned = (not self.IsCoreKeybindGroupFullyOwned) or self:IsCoreKeybindGroupFullyOwned()
+    if self._searchModeActive or self._searchHeaderActive or HasVisibleGamepadDialog() then
+        return
+    end
+
+    local iface = BETTERUI.Interface
+    local updateCurrentKeybinds = iface and iface.UpdateCurrentKeybindGroups
+    if type(updateCurrentKeybinds) ~= "function" then
+        return
+    end
+
+    local fullyOwned = (not self.IsCoreKeybindGroupFullyOwned) or self:IsCoreKeybindGroupFullyOwned()
+    if coalesce and iface.ShouldSkipRedundantKeybindRefresh then
         local fingerprint = self.GetKeybindRefreshFingerprint and self:GetKeybindRefreshFingerprint() or nil
-        if BETTERUI.Interface.ShouldSkipRedundantKeybindRefresh(self, fingerprint, not fullyOwned) then
+        if iface.ShouldSkipRedundantKeybindRefresh(self, fingerprint, not fullyOwned) then
             return
         end
     end
-    -- Route through the core-ownership refresh so a mid-scene native-store
-    -- displacement (evicted Buy/Back) self-heals here too: RefreshCoreKeybindOwnership
-    -- escalates to a force reclaim when it detects the group is displaced. This path
-    -- fires on every selection change, so plain list navigation now restores a
-    -- collapsed strip -- UpdateCurrentKeybindGroups alone cannot re-add evicted buttons.
+
     if self.RefreshCoreKeybindOwnership then
-        self:RefreshCoreKeybindOwnership("actionKeybinds")
+        -- The required global refresh below updates labels for intact groups, so the
+        -- per-group update is redundant. Displaced ownership takes the forced
+        -- Remove+Add path before that global refresh and is never coalesced away.
+        self:RefreshCoreKeybindOwnership("actionKeybinds", not fullyOwned, true)
     end
-    BETTERUI.Interface.UpdateCurrentKeybindGroups()
+    updateCurrentKeybinds()
 end
 
 ---@return nil

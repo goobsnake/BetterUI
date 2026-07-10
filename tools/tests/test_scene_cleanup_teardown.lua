@@ -126,6 +126,50 @@ do
     BETTERUI.CIM.HeaderNavigation = nil
 end
 
+print("\nTest: list deactivation deduplicates direct, wrapped, and alias references")
+do
+    local primaryCalls = 0
+    local selectorCalls = 0
+    local wrappedCalls = 0
+    local innerCalls = 0
+    local primary = { Deactivate = function() primaryCalls = primaryCalls + 1 end }
+    local selector = { Deactivate = function() selectorCalls = selectorCalls + 1 end }
+    local inner = { Deactivate = function() innerCalls = innerCalls + 1 end }
+    local wrapped
+    wrapped = {
+        list = inner,
+        Deactivate = function()
+            wrappedCalls = wrappedCalls + 1
+            wrapped.list = nil
+        end,
+    }
+    local screen = { list = primary, selector = selector }
+
+    BETTERUI.CIM.SceneCleanup.DeactivateLists(
+        screen,
+        primary,
+        selector,
+        wrapped,
+        wrapped
+    )
+
+    assert_equal(1, primaryCalls, "primary list deactivated once")
+    assert_equal(1, selectorCalls, "selector deactivated once")
+    assert_equal(1, wrappedCalls, "wrapper deactivated once")
+    assert_equal(1, innerCalls, "wrapped inner list deactivated once")
+end
+
+print("\nTest: self-referential list wrapper deactivates once")
+do
+    local calls = 0
+    local list = { Deactivate = function() calls = calls + 1 end }
+    list.list = list
+
+    BETTERUI.CIM.SceneCleanup.DeactivateLists({ list = list }, list)
+
+    assert_equal(1, calls, "self-referential list deactivated once")
+end
+
 -- Cleanup with a bare screen (no managers/descriptors) is a safe no-op.
 print("\nTest: cleanup with bare screen does not crash")
 do

@@ -229,10 +229,8 @@ local function UpdateKeybindsForSelection(self, isCurrencyRow)
     BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.withdrawDepositKeybinds)
     if isCurrencyRow then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.currencyKeybinds)
-        BETTERUI.Interface.UpdateKeybindGroup(self.currencyKeybinds)
     else
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
-        BETTERUI.Interface.UpdateKeybindGroup(self.withdrawDepositKeybinds)
     end
     BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then

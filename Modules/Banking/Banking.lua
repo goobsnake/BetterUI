@@ -266,6 +266,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         BETTERUI.Banking.BANKING_INTERACTION
     )
     self:InitializeFragment()
+    self._bankingOwnsCoreKeybinds = true
     self:InitializeScene(BETTERUI_BANKING_SCENE)
 
     self:InitializeKeybind()
@@ -700,7 +701,9 @@ function BETTERUI.Banking.Init()
         local personalScene = BETTERUI.Banking.Window.scene
         BETTERUI.Banking.Window.scene = BETTERUI_GUILD_BANKING_SCENE
         BETTERUI.CIM.SceneLifecycle.Register(BETTERUI.Banking.Window, {
-            keybinds = { BETTERUI.Banking.Window.coreKeybinds },
+            -- Banking:AddKeybinds owns scene-entry keybinds; keep the lifecycle from
+            -- pre-adding coreKeybinds before Banking removes/re-adds them.
+            keybinds = {},
             taskManager = BETTERUI.Banking.Tasks,
             onShowing = function(screen, wasPushed)
                 BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)

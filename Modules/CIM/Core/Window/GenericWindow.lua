@@ -132,7 +132,6 @@ function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
     -- And ensure main keybinds are present
     if self.mainKeybindStripDescriptor then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
-        BETTERUI.Interface.UpdateKeybindGroup(self.mainKeybindStripDescriptor)
     end
 end
 

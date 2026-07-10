@@ -130,6 +130,36 @@ local function assertEqual(expected, actual, message)
     assertTrue(expected == actual, string.format("%s (expected %s, got %s)", message, tostring(expected), tostring(actual)))
 end
 
+local function countImmediateEnsureUpdatePairs(source)
+    local lines = {}
+    for line in source:gmatch("[^\r\n]+") do
+        table.insert(lines, line)
+    end
+    local count = 0
+    for i = 1, #lines do
+        local ensureArg = lines[i]:match("EnsureKeybindGroupAdded%s*%((.-)%);?%s*$")
+        if ensureArg then
+            ensureArg = ensureArg:gsub("^%s*(.-)%s*$", "%1")
+            for j = i + 1, math.min(i + 5, #lines) do
+                local trimmed = lines[j]:match("^%s*(.-)%s*$")
+                if trimmed == "" or trimmed:match("^%-%-") then
+                    -- skip blank/comment lines between the calls
+                else
+                    local updateArg = trimmed:match("UpdateKeybindGroup%s*%((.-)%);?$")
+                    if updateArg then
+                        updateArg = updateArg:gsub("^%s*(.-)%s*$", "%1")
+                        if updateArg == ensureArg then
+                            count = count + 1
+                        end
+                    end
+                    break
+                end
+            end
+        end
+    end
+    return count
+end
+
 local function readFile(path)
     local file = assert(io.open(path, "r"))
     local content = file:read("*a")
@@ -474,6 +504,46 @@ assertTrue(itemDataProcessor:match("function BETTERUI%.CIM%.InitializeSharedItem
 local inventoryListManager = readFile("Modules/Inventory/Lists/ItemListManager.lua")
 assertTrue(inventoryListManager:match("BETTERUI%.CIM%.InitializeSharedItemVisualData%(self, itemData%)") ~= nil,
     "Inventory visual initialization delegates to the shared CIM helper")
+
+-- BUI-STAB-001 Phase 3 source contract: no immediate EnsureKeybindGroupAdded→UpdateKeybindGroup duplicates.
+local keybindManagerSource = readFile("Modules/Banking/Keybinds/KeybindManager.lua")
+local bankRowSetupSource = readFile("Modules/Banking/Lists/BankRowSetup.lua")
+local bankingSearchSource = readFile("Modules/Banking/Search/SearchManager.lua")
+local genericWindowSource = readFile("Modules/CIM/Core/Window/GenericWindow.lua")
+local headerSortIntegrationSource = readFile("Modules/CIM/UI/HeaderSortIntegration.lua")
+local inventoryHeaderSource = readFile("Modules/Inventory/Core/HeaderManager.lua")
+assertEqual(0, countImmediateEnsureUpdatePairs(keybindManagerSource), "KeybindManager has no EnsureKeybindGroupAdded→UpdateKeybindGroup duplicate loops")
+assertEqual(0, countImmediateEnsureUpdatePairs(bankRowSetupSource), "BankRowSetup has no EnsureKeybindGroupAdded→UpdateKeybindGroup duplicate loops")
+assertEqual(0, countImmediateEnsureUpdatePairs(bankingSearchSource), "SearchManager has no EnsureKeybindGroupAdded→UpdateKeybindGroup duplicate loops")
+assertEqual(0, countImmediateEnsureUpdatePairs(genericWindowSource), "GenericWindow has no EnsureKeybindGroupAdded→UpdateKeybindGroup duplicate loops")
+assertEqual(0, countImmediateEnsureUpdatePairs(headerSortIntegrationSource), "HeaderSortIntegration has no EnsureKeybindGroupAdded→UpdateKeybindGroup duplicate loops")
+assertEqual(0, countImmediateEnsureUpdatePairs(inventoryHeaderSource), "Inventory HeaderManager has no EnsureKeybindGroupAdded→UpdateKeybindGroup duplicate loops")
+
+-- BUI-STAB-001 Phase 3 ownership contract: Banking:AddKeybinds owns scene-entry keybinds.
+local windowClassSource = readFile("Modules/CIM/Core/Window/WindowClass.lua")
+local bankingSource = readFile("Modules/Banking/Banking.lua")
+assertTrue(windowClassSource:match("_bankingOwnsCoreKeybinds") ~= nil, "WindowClass keybindsResolver consults the Banking ownership flag")
+local windowClassResolverSource = windowClassSource:match(
+    "keybindsResolver%s*=%s*function%s*%(%s*%)%s*([%s%S]-)%s*end,"
+)
+assertTrue(windowClassResolverSource ~= nil, "WindowClass scene lifecycle registers a keybindsResolver callback")
+assertTrue(windowClassResolverSource:match("if%s+not%s+self%._bankingOwnsCoreKeybinds%s+and%s+self%.coreKeybinds%s*then") ~= nil,
+    "WindowClass keybindsResolver gates core keybind registration on ownership")
+local windowClassResolverFactory = (loadstring or load)(
+    "return function(self)\n" .. (windowClassResolverSource or "") .. "\nend"
+)
+assertTrue(type(windowClassResolverFactory) == "function", "WindowClass keybindsResolver block is executable Lua")
+if type(windowClassResolverFactory) == "function" then
+    local resolver = windowClassResolverFactory()
+    assertEqual(0, #resolver({ _bankingOwnsCoreKeybinds = true, coreKeybinds = { "core" } }),
+        "WindowClass resolver can return an empty group list for owned scenes")
+    assertEqual(1, #resolver({ _bankingOwnsCoreKeybinds = false, coreKeybinds = { "core" } }),
+        "WindowClass resolver returns bank-owned core keybinds when ownership is not claimed")
+    assertEqual(0, #resolver({ _bankingOwnsCoreKeybinds = true, coreKeybinds = nil }),
+        "WindowClass resolver remains empty when no core keybinds exist")
+end
+assertTrue(bankingSource:match("_bankingOwnsCoreKeybinds%s*=%s*true") ~= nil, "Banking window declares core keybind ownership before InitializeScene")
+assertTrue(bankingSource:match("keybinds%s*=%s*{%s*BETTERUI%.Banking%.Window%.coreKeybinds%s*}") == nil, "Guild bank scene lifecycle no longer pre-adds core keybinds")
 
 print("\n=== Test Summary ===")
 print("Passed: " .. testsPassed)

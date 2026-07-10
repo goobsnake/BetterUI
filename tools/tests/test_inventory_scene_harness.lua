@@ -620,6 +620,110 @@ assertEqual("BETTERUI_BATCH_DESTROY_DIALOG", dialogCalls[1].name, "BatchDestroy 
 assertEqual(1, dialogCalls[1].data.itemCount, "BatchDestroy only forwards destroyable items into the dialog payload")
 assertEqual(60, dialogCalls[1].data.itemsToDestroy[1].slotIndex, "BatchDestroy payload keeps the destroyable slot coordinates")
 
+print("\nTest: Inventory keybind diagnostics construct descriptors only behind the exact gate")
+local keybindProbeCounts = {}
+local keybindPresent = {}
+local traceEnabled = false
+local payloadCaptureEnabled = true
+local removalSucceeds = true
+local lastOwnershipWarning = nil
+
+local function resetKeybindProbes(group)
+    keybindProbeCounts = { describe = 0, scene = 0, has = 0, trace = 0, warn = 0 }
+    keybindPresent = { [group] = true }
+    lastOwnershipWarning = nil
+end
+
+BETTERUI.Interface = {
+    HasKeybindGroup = function(group)
+        keybindProbeCounts.has = keybindProbeCounts.has + 1
+        return keybindPresent[group] == true
+    end,
+    RemoveKeybindGroupIfPresent = function(group)
+        if removalSucceeds then keybindPresent[group] = nil end
+    end,
+}
+BETTERUI.Log = {
+    LEVEL = { DEBUG = 2, WARN = 4 },
+    CATEGORY = { KEYBIND = "KEYBIND", SCENE = "SCENE", LIFECYCLE = "LIFECYCLE", STATE = "STATE" },
+    EnabledFor = function(level)
+        if level == 2 then return traceEnabled end
+        return level == 4
+    end,
+    GetPayloadCapture = function() return payloadCaptureEnabled end,
+    DescribeKeybindDescriptor = function(_, label)
+        keybindProbeCounts.describe = keybindProbeCounts.describe + 1
+        return tostring(label) .. ":descriptor"
+    end,
+    TraceEvent = function(_, _, _, data)
+        keybindProbeCounts.trace = keybindProbeCounts.trace + 1
+        keybindProbeCounts.lastTrace = data
+        if data.descriptorLabel then keybindProbeCounts.removalTrace = data end
+    end,
+    Warn = function(_, _, data)
+        keybindProbeCounts.warn = keybindProbeCounts.warn + 1
+        lastOwnershipWarning = data
+    end,
+    Info = function() end,
+}
+SCENE_MANAGER = {
+    GetCurrentSceneName = function()
+        keybindProbeCounts.scene = keybindProbeCounts.scene + 1
+        return "inventory"
+    end,
+    GetNextScene = function()
+        keybindProbeCounts.scene = keybindProbeCounts.scene + 1
+        return "hud"
+    end,
+}
+BETTERUI.CIM.Utils.SetExternalToolbarHidden = function() end
+BETTERUI.Inventory.Tasks = { Cancel = function() end }
+ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
+SCENE_HIDING = 2
+dofile("Modules/Inventory/Scene/InventorySceneLifecycle.lua")
+
+local function runKeybindHidingScenario()
+    local group = {}
+    resetKeybindProbes(group)
+    local instance = {
+        mainKeybindStripDescriptor = group,
+        IsBatchProcessing = function() return false end,
+        Deactivate = function() end,
+        DeactivateHeader = function() end,
+        SaveListPosition = function() end,
+    }
+    local handler = BETTERUI.Inventory.RegisterSceneLifecycle(instance)
+    handler(0, SCENE_HIDING)
+    return keybindProbeCounts
+end
+
+traceEnabled = false; payloadCaptureEnabled = true; removalSucceeds = true
+local disabledCounts = runKeybindHidingScenario()
+assertTrue(disabledCounts.describe == 0 and disabledCounts.scene == 0
+    and disabledCounts.has == 2 and disabledCounts.trace == 0,
+    "Disabled ownership traces perform zero diagnostic probes (only two operational presence checks)")
+
+traceEnabled = true; payloadCaptureEnabled = false; removalSucceeds = true
+local captureOffCounts = runKeybindHidingScenario()
+assertTrue(captureOffCounts.describe == 0 and captureOffCounts.scene == 0
+    and captureOffCounts.has == 2 and captureOffCounts.trace == 0,
+    "Capture-off ownership traces perform zero diagnostic probes (only two operational presence checks)")
+
+traceEnabled = true; payloadCaptureEnabled = true; removalSucceeds = true
+local enabledCounts = runKeybindHidingScenario()
+assertTrue(enabledCounts.describe == 10 and enabledCounts.scene == 6
+    and enabledCounts.has == 11 and enabledCounts.trace == 3,
+    "Enabled ownership traces perform the exact descriptor/scene/presence enrichment counts")
+assertTrue(enabledCounts.removalTrace and enabledCounts.removalTrace.descriptorLabel == "main"
+    and enabledCounts.removalTrace.descriptor == "main:descriptor",
+    "Gated descriptor construction preserves the emitted ownership payload schema")
+
+traceEnabled = true; payloadCaptureEnabled = false; removalSucceeds = false
+local warningCounts = runKeybindHidingScenario()
+assertTrue(warningCounts.warn == 1 and warningCounts.describe == 4 and warningCounts.scene == 2
+    and lastOwnershipWarning and lastOwnershipWarning.descriptor == "main:descriptor",
+    "Capture-off failed removal still enriches and emits the ownership WARN")
+
 if testsFailed > 0 then
     error(string.format("test_inventory_scene_harness.lua failed with %d failure(s)", testsFailed))
 end

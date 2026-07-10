@@ -340,7 +340,6 @@ local function CreateCoreNavigationKeybinds(self)
                 if self.coreKeybinds then
                     BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.coreKeybinds)
                     BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
-                    BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
                 end
                 self:RefreshActiveKeybinds()
             end,

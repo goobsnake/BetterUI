@@ -924,6 +924,362 @@ assertEqual(window, window.selectedDataCallbackArgs.self, "RefreshActiveKeybinds
 assertEqual("selected-control", window.selectedDataCallbackArgs.control, "RefreshActiveKeybinds forwards the selected control")
 assertEqual(window.list.selectedData, window.selectedDataCallbackArgs.data, "RefreshActiveKeybinds forwards the selected data")
 
+-- BUI-STAB-001 Phase 3 behavior contract: keybind-operation counts must not
+-- duplicate the EnsureKeybindGroupAdded refresh with an immediate UpdateKeybindGroup.
+do
+    local savedInterface = {
+        EnsureKeybindGroupAdded = BETTERUI.Interface.EnsureKeybindGroupAdded,
+        UpdateKeybindGroup = BETTERUI.Interface.UpdateKeybindGroup,
+        RemoveKeybindGroupIfPresent = BETTERUI.Interface.RemoveKeybindGroupIfPresent,
+        RestoreKeybindGroups = BETTERUI.Interface.RestoreKeybindGroups,
+    }
+    local savedBankingEnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
+    local savedBetterUIUtils = BETTERUI.Utils
+    local savedSharedItemSupport = BETTERUI.CIM.SharedItemSupport
+    local savedSafeExecute = BETTERUI.CIM.SafeExecute
+    local savedSetTooltipWidth = BETTERUI.CIM.SetTooltipWidth
+    local savedCIMConst = BETTERUI.CIM.CONST
+    local savedZOColorDef = ZO_ColorDef
+    local savedGamepadTooltips = GAMEPAD_TOOLTIPS
+    local savedLeftTooltip = GAMEPAD_LEFT_TOOLTIP
+    local savedRightTooltip = GAMEPAD_RIGHT_TOOLTIP
+    local savedGetItemLink = GetItemLink
+    local savedHasKeybindButtonGroup = KEYBIND_STRIP.HasKeybindButtonGroup
+    local oldSceneHidden = SCENE_HIDDEN
+    local oldSceneShowing = SCENE_SHOWING
+    local oldSceneHiding = SCENE_HIDING
+
+    local present = {}
+    local opsAdded = {}
+    local opsRemoved = {}
+    local opsUpdated = {}
+
+    KEYBIND_STRIP.HasKeybindButtonGroup = function(_, group)
+        return present[group] == true
+    end
+
+    BETTERUI.Interface.EnsureKeybindGroupAdded = function(group)
+        if not group then return false end
+        if not present[group] then
+            present[group] = true
+            table.insert(opsAdded, group)
+        end
+        table.insert(opsUpdated, group)
+        return true
+    end
+
+    BETTERUI.Interface.UpdateKeybindGroup = function(group)
+        table.insert(opsUpdated, group)
+        return true
+    end
+
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent = function(group)
+        if present[group] then
+            present[group] = nil
+            table.insert(opsRemoved, group)
+            return true
+        end
+        return false
+    end
+
+    BETTERUI.Interface.RestoreKeybindGroups = function(groups)
+        if not groups then return end
+        for _, group in ipairs(groups) do
+            BETTERUI.Interface.EnsureKeybindGroupAdded(group)
+        end
+    end
+
+    SCENE_HIDDEN = SCENE_HIDDEN or "hidden"
+    SCENE_SHOWING = SCENE_SHOWING or "showing"
+    SCENE_HIDING = SCENE_HIDING or "hiding"
+
+    BETTERUI.CIM.SafeExecute = function(_, fn, ...)
+        return fn(...)
+    end
+    BETTERUI.CIM.SetTooltipWidth = function() end
+    BETTERUI.CIM.CONST = BETTERUI.CIM.CONST or {}
+    BETTERUI.CIM.CONST.LAYOUT = BETTERUI.CIM.CONST.LAYOUT or { PANEL = { WIDTH = 1024, ZO_WIDTH = 1024 } }
+
+    -- BankingClass normally installs this alias before SearchManager loads.
+    -- Recreate that manifest order after installing the counting seam so the
+    -- module-local helper records the exact operations under test.
+    BETTERUI.Banking.EnsureKeybindGroupAdded = BETTERUI.Interface.EnsureKeybindGroupAdded
+    dofile("Modules/Banking/Search/SearchManager.lua")
+    ZO_ColorDef = { New = function(_, hex) return { hex = hex } end }
+    BETTERUI.Utils = { IsBankingSceneShowing = function() return true end }
+    BETTERUI.CIM.SharedItemSupport = {
+        CleanupEnhancedTooltip = function() end,
+        UpdateTooltipEquippedText = function() end,
+        IsItemComparisonEnabled = function() return false end,
+        ShowComparisonOnTooltip = function() end,
+    }
+    GAMEPAD_LEFT_TOOLTIP = "left-tooltip"
+    GAMEPAD_RIGHT_TOOLTIP = "right-tooltip"
+    GAMEPAD_TOOLTIPS = {
+        ClearLines = function() end,
+        LayoutBagItem = function() return true end,
+        GetTooltip = function() return {} end,
+        GetTooltipContainer = function() return {} end,
+        Reset = function() end,
+    }
+    GetItemLink = function() return "item-link" end
+    dofile("Modules/Banking/Lists/BankRowSetup.lua")
+    dofile("Modules/CIM/Core/Lifecycle/SceneLifecycleManager.lua")
+
+    local function makeScene(name)
+        local scene = {
+            _name = name,
+            _handlers = {},
+        }
+        function scene:RegisterCallback(event, fn)
+            self._handlers[event] = self._handlers[event] or {}
+            table.insert(self._handlers[event], fn)
+        end
+        function scene:UnregisterCallback(event, fn)
+            local handlers = self._handlers[event]
+            if not handlers then return end
+            for i = #handlers, 1, -1 do
+                if handlers[i] == fn then
+                    table.remove(handlers, i)
+                end
+            end
+        end
+        function scene:triggerStateChange(oldState, newState)
+            for _, fn in ipairs(self._handlers["StateChange"] or {}) do
+                fn(oldState, newState)
+            end
+        end
+        function scene:GetName()
+            return self._name
+        end
+        return scene
+    end
+
+    local function resolveOwnedBankingCore(window)
+        if not window._bankingOwnsCoreKeybinds and window.coreKeybinds then
+            return { window.coreKeybinds }
+        end
+        return {}
+    end
+
+    local function clearOpHistory()
+        for i = #opsAdded, 1, -1 do table.remove(opsAdded) end
+        for i = #opsRemoved, 1, -1 do table.remove(opsRemoved) end
+        for i = #opsUpdated, 1, -1 do table.remove(opsUpdated) end
+    end
+
+    local function clearPresent()
+        for k in pairs(present) do present[k] = nil end
+    end
+
+    local function resetOps()
+        clearPresent()
+        clearOpHistory()
+    end
+
+    local function countIn(tbl, group)
+        local n = 0
+        for _, g in ipairs(tbl) do
+            if g == group then n = n + 1 end
+        end
+        return n
+    end
+
+    -- SearchManager: exiting search mode must not double-refresh core keybinds.
+    resetOps()
+    local w = createWindow()
+    w.textSearchKeybindStripDescriptor = "search-group"
+    w.withdrawDepositKeybinds = { "withdraw" }
+    w.coreKeybinds = { "core" }
+    w._searchModeActive = true
+    w._searchRemovedKeybindGroups = { w.withdrawDepositKeybinds }
+    local exitSearchMode = BETTERUI.Banking.Class.SEARCH_LIFECYCLE
+        and BETTERUI.Banking.Class.SEARCH_LIFECYCLE.exit
+    if exitSearchMode then
+        w[exitSearchMode](w)
+    else
+        w:ExitSearchMode()
+    end
+    assertEqual(1, countIn(opsUpdated, w.coreKeybinds), "ExitSearchMode updates core keybinds exactly once")
+    assertEqual(1, countIn(opsUpdated, w.withdrawDepositKeybinds), "ExitSearchMode restores withdraw/deposit keybinds exactly once")
+
+    -- KeybindManager: clear-search callback must not double-refresh core keybinds.
+    resetOps()
+    local w2 = createWindow()
+    w2.textSearchKeybindStripDescriptor = "search-group"
+    w2.textSearchHeaderControl = { IsHidden = function() return false end }
+    w2:InitializeKeybind()
+    local clearSearchEntry = nil
+    for _, entry in ipairs(w2.coreKeybinds) do
+        if entry.keybind == "CLEAR_SEARCH" then
+            clearSearchEntry = entry
+            break
+        end
+    end
+    assertTrue(clearSearchEntry ~= nil, "Clear-search keybind entry exists")
+    present[w2.coreKeybinds] = true
+    clearSearchEntry.callback()
+    assertEqual(1, countIn(opsUpdated, w2.coreKeybinds), "Clear-search callback updates core keybinds exactly once")
+
+    -- Scene lifecycle ownership ordering: Banking-owned personal bank should not receive
+    -- a resolver-owned core group, while guild mode should.
+    resetOps()
+    local personalScene = makeScene("betterui_banking")
+    local personalWindow = createWindow()
+    personalWindow.sceneName = "betterui_banking"
+    personalWindow.scene = personalScene
+    personalWindow.coreKeybinds = { "core-personal" }
+    personalWindow.withdrawDepositKeybinds = { "transfer-personal" }
+    personalWindow.textSearchKeybindStripDescriptor = { "search-personal" }
+    personalWindow._bankingOwnsCoreKeybinds = true
+    personalWindow.OnSceneShowing = function(self)
+        self:AddKeybinds()
+    end
+    personalWindow.OnSceneHiding = function(self)
+        self:RemoveKeybinds()
+    end
+    present[personalWindow.textSearchKeybindStripDescriptor] = true
+    BETTERUI.CIM.SceneLifecycle.Register(personalWindow, {
+        keybindsResolver = function()
+            return resolveOwnedBankingCore(personalWindow)
+        end,
+        onShowing = function(screen, wasPushed)
+            if screen.OnSceneShowing then
+                screen:OnSceneShowing(wasPushed)
+            end
+        end,
+        onHiding = function(screen)
+            if screen.OnSceneHiding then
+                screen:OnSceneHiding()
+            end
+        end,
+    })
+    personalScene:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    assertEqual(2, #opsAdded, "personal scene entry adds exactly two keybinds")
+    assertEqual(personalWindow.withdrawDepositKeybinds, opsAdded[1], "personal scene entry registers transfer before core")
+    assertEqual(personalWindow.coreKeybinds, opsAdded[2], "personal scene entry registers core after transfer")
+    assertEqual(1, countIn(opsAdded, personalWindow.withdrawDepositKeybinds), "personal scene entry adds transfer keybinds exactly once")
+    assertEqual(1, countIn(opsAdded, personalWindow.coreKeybinds), "personal scene entry adds core keybinds exactly once")
+    assertEqual(personalWindow.textSearchKeybindStripDescriptor, opsRemoved[1], "personal scene entry clears search strip before adding managed groups")
+    assertTrue(present[personalWindow.textSearchKeybindStripDescriptor] == nil, "personal scene entry removes search keybind ownership")
+    assertTrue(present[personalWindow.withdrawDepositKeybinds] == true, "personal scene entry leaves transfer keybind ownership present")
+    assertTrue(present[personalWindow.coreKeybinds] == true, "personal scene entry leaves core keybind ownership present")
+
+    clearOpHistory()
+    personalScene:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
+    assertEqual(personalWindow.withdrawDepositKeybinds, opsRemoved[1], "personal scene exit removes transfer keybinds first")
+    assertEqual(personalWindow.coreKeybinds, opsRemoved[2], "personal scene exit removes core keybinds second")
+    assertTrue(present[personalWindow.coreKeybinds] == nil, "personal scene exit clears final core keybind ownership")
+    assertTrue(present[personalWindow.withdrawDepositKeybinds] == nil, "personal scene exit clears final transfer keybind ownership")
+
+    resetOps()
+    local guildScene = makeScene("betterui_guild_banking")
+    local guildWindow = createWindow()
+    guildWindow.sceneName = "betterui_guild_banking"
+    guildWindow.scene = guildScene
+    guildWindow.coreKeybinds = { "core-guild" }
+    guildWindow.withdrawDepositKeybinds = { "transfer-guild" }
+    guildWindow.textSearchKeybindStripDescriptor = { "search-guild" }
+    guildWindow._bankingOwnsCoreKeybinds = true
+    guildWindow.OnSceneShowing = function(self)
+        self:AddKeybinds()
+    end
+    guildWindow.OnSceneHiding = function(self)
+        self:RemoveKeybinds()
+    end
+    present[guildWindow.textSearchKeybindStripDescriptor] = true
+    BETTERUI.CIM.SceneLifecycle.Register(guildWindow, {
+        -- Banking.lua registers the guild scene with keybinds = {}; AddKeybinds is
+        -- the sole owner for both personal and guild scenes.
+        keybinds = {},
+        onShowing = function(screen, wasPushed)
+            if screen.OnSceneShowing then
+                screen:OnSceneShowing(wasPushed)
+            end
+        end,
+        onHiding = function(screen)
+            if screen.OnSceneHiding then
+                screen:OnSceneHiding()
+            end
+        end,
+    })
+    guildScene:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    assertEqual(2, #opsAdded, "guild scene entry adds exactly two managed keybind groups")
+    assertEqual(guildWindow.withdrawDepositKeybinds, opsAdded[1], "guild scene entry registers transfer before core")
+    assertEqual(guildWindow.coreKeybinds, opsAdded[2], "guild scene entry registers core after transfer")
+    assertEqual(1, countIn(opsAdded, guildWindow.withdrawDepositKeybinds), "guild scene entry adds transfer keybinds exactly once")
+    assertEqual(1, countIn(opsAdded, guildWindow.coreKeybinds), "guild scene entry adds core keybinds exactly once")
+    assertEqual(guildWindow.textSearchKeybindStripDescriptor, opsRemoved[1], "guild scene entry clears search strip before adding managed groups")
+    assertTrue(present[guildWindow.textSearchKeybindStripDescriptor] == nil, "guild scene entry removes search keybind ownership")
+    assertTrue(present[guildWindow.withdrawDepositKeybinds] == true, "guild scene entry leaves transfer keybind ownership present")
+    assertTrue(present[guildWindow.coreKeybinds] == true, "guild scene entry leaves core keybind ownership present")
+
+    clearOpHistory()
+    guildScene:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
+    assertEqual(guildWindow.withdrawDepositKeybinds, opsRemoved[1], "guild scene exit removes transfer keybinds first")
+    assertEqual(guildWindow.coreKeybinds, opsRemoved[2], "guild scene exit removes core keybinds second")
+    assertTrue(present[guildWindow.coreKeybinds] == nil, "guild scene exit clears final core keybind ownership")
+    assertTrue(present[guildWindow.withdrawDepositKeybinds] == nil, "guild scene exit clears final transfer keybind ownership")
+
+    -- BankRowSetup: selection changes must not double-refresh currency/transfer keybinds.
+    resetOps()
+    local w3 = createWindow()
+    w3.bankCategories = { { key = "all" } }
+    w3.currentCategoryIndex = 1
+    w3.coreKeybinds = { "core" }
+    w3.currencyKeybinds = { "currency" }
+    w3.withdrawDepositKeybinds = { "transfer" }
+    w3.textSearchHeaderControl = { IsHidden = function() return true end }
+    w3.RefreshCurrencyTooltip = function() end
+    local savedUpdateActions = BETTERUI.Banking.Class.UpdateActions
+    local updateActionCalls = 0
+    w3.UpdateActions = function(self)
+        updateActionCalls = updateActionCalls + 1
+        return savedUpdateActions(self)
+    end
+    -- Currency row
+    clearPresent()
+    updateActionCalls = 0
+    BETTERUI.Banking.Class.OnItemSelectedChange(w3, w3.list, { isCurrency = true, currencyType = CURT_MONEY, keybindLabel = "Gold" })
+    assertEqual(1, updateActionCalls, "Currency-row selection uses full UpdateActions path once")
+    assertEqual(0, #w3.itemActions.slots, "Currency-row selection clears non-actionable item actions")
+    assertEqual(1, countIn(opsUpdated, w3.currencyKeybinds), "Currency-row selection updates currency keybinds exactly once")
+    assertEqual(0, countIn(opsUpdated, w3.withdrawDepositKeybinds), "Currency-row selection does not touch transfer keybinds")
+    -- Item row
+    resetOps()
+    clearPresent()
+    updateActionCalls = 0
+    w3.itemActions.slots = {}
+    w3.list.selectedData = { bagId = BAG_BANK, slotIndex = 1, stackCount = 4 }
+    slotStacks["2:1"] = 4
+    BETTERUI.Banking.Class.OnItemSelectedChange(w3, w3.list, w3.list.selectedData)
+    assertEqual(1, updateActionCalls, "Item-row selection uses full UpdateActions path once")
+    assertEqual(1, #w3.itemActions.slots, "Item-row selection updates item-actions on actionable entries")
+    assertEqual(1, countIn(opsUpdated, w3.withdrawDepositKeybinds), "Item-row selection updates transfer keybinds exactly once")
+    assertEqual(0, countIn(opsUpdated, w3.currencyKeybinds), "Item-row selection does not touch currency keybinds")
+
+    -- Restore original stubs so the remainder of the harness behaves as before.
+    BETTERUI.Interface.EnsureKeybindGroupAdded = savedInterface.EnsureKeybindGroupAdded
+    BETTERUI.Interface.UpdateKeybindGroup = savedInterface.UpdateKeybindGroup
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent = savedInterface.RemoveKeybindGroupIfPresent
+    BETTERUI.Interface.RestoreKeybindGroups = savedInterface.RestoreKeybindGroups
+    BETTERUI.Banking.EnsureKeybindGroupAdded = savedBankingEnsureKeybindGroupAdded
+    BETTERUI.Utils = savedBetterUIUtils
+    BETTERUI.CIM.SharedItemSupport = savedSharedItemSupport
+    BETTERUI.CIM.SafeExecute = savedSafeExecute
+    BETTERUI.CIM.SetTooltipWidth = savedSetTooltipWidth
+    BETTERUI.CIM.CONST = savedCIMConst
+    SCENE_HIDDEN = oldSceneHidden
+    SCENE_SHOWING = oldSceneShowing
+    SCENE_HIDING = oldSceneHiding
+    ZO_ColorDef = savedZOColorDef
+    GAMEPAD_TOOLTIPS = savedGamepadTooltips
+    GAMEPAD_LEFT_TOOLTIP = savedLeftTooltip
+    GAMEPAD_RIGHT_TOOLTIP = savedRightTooltip
+    GetItemLink = savedGetItemLink
+    KEYBIND_STRIP.HasKeybindButtonGroup = savedHasKeybindButtonGroup
+end
+
 print("\n=== Test Summary ===")
 print("Passed: " .. testsPassed)
 print("Failed: " .. testsFailed)

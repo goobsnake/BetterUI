@@ -114,6 +114,14 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     -- 3. Deactivate search focus to release DIRECTIONAL_INPUT
     screen._searchModeActive = false
     screen._searchHeaderActive = false
+    screen._searchTextChangedInProgress = nil
+    screen._preserveSearchFocusDuringRefresh = nil
+    screen._exitSearchModeInProgress = nil
+    screen._requestingVendorHeaderFocus = nil
+    screen._requestingVendorHeaderLeave = nil
+    screen._requestingVendorSearchHeaderLeave = nil
+    screen._restoringVendorSearchFocus = nil
+    screen._refreshingVendorHeaderAfterSearchExit = nil
     if screen.textSearchHeaderFocus then
         if screen.textSearchHeaderFocus.Deactivate then
             screen.textSearchHeaderFocus:Deactivate()
@@ -170,33 +178,30 @@ function BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, ...)
     if not screen then return end
 
     local listCount = 0
+    local deactivated = {}
 
-    -- Deactivate primary list if present
-    if screen.list and screen.list.Deactivate then
-        screen.list:Deactivate()
-        listCount = listCount + 1
-    end
-
-    -- Deactivate selector if present (Banking pattern)
-    if screen.selector and screen.selector.Deactivate then
-        screen.selector:Deactivate()
-        listCount = listCount + 1
-    end
-
-    -- Deactivate any additional lists passed as varargs
-    for i = 1, select("#", ...) do
-        local list = select(i, ...)
-        if list then
-            if list.Deactivate then
-                list:Deactivate()
-                listCount = listCount + 1
-            end
-            -- Handle wrapper pattern (list.list)
-            if list.list and list.list.Deactivate then
-                list.list:Deactivate()
-                listCount = listCount + 1
-            end
+    local function DeactivateOnce(list)
+        if list and list.Deactivate and not deactivated[list] then
+            deactivated[list] = true
+            list:Deactivate()
+            listCount = listCount + 1
         end
+    end
+
+    local function DeactivateCandidate(list)
+        if not list then return end
+        local wrappedList = list.list
+        DeactivateOnce(list)
+        if wrappedList ~= list then
+            DeactivateOnce(wrappedList)
+        end
+    end
+
+    DeactivateCandidate(screen.list)
+    DeactivateCandidate(screen.selector)
+
+    for i = 1, select("#", ...) do
+        DeactivateCandidate(select(i, ...))
     end
 
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "lists deactivated", { lists = listCount }) end

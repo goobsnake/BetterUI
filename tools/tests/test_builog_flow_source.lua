@@ -101,6 +101,7 @@ local headerSortIntegration = readFile("Modules/CIM/UI/HeaderSortIntegration.lua
 local headerSortKeybinds = readFile("Modules/CIM/UI/HeaderSortKeybinds.lua")
 local domainLog = readFile("Modules/CIM/Core/Diagnostics/DomainLog.lua")
 local logCore = readFile("Modules/CIM/Core/Diagnostics/Log.lua")
+local sceneLog = readFile("Modules/CIM/Core/Diagnostics/SceneLog.lua")
 local interfaceLog = readFile("Modules/CIM/Core/Diagnostics/InterfaceLog.lua")
 local builogCommands = readFile("Modules/CIM/Core/Diagnostics/BuilogCommands.lua")
 local bindings = readFile("Bindings.xml")
@@ -893,6 +894,44 @@ check(bankingKeybinds:find('"bank.primary_transfer"', 1, true) ~= nil
     and itemActions:find("enter_skipped", 1, true) ~= nil
     and bankingActions:find("enter_skipped", 1, true) ~= nil,
     "pending bank transfers and header-sort scheduler failure exits are traceable")
+
+-- BUI-STAB-001 Phase 6: exact builog gating. Log.TraceEvent must run the EnabledFor gate
+-- before copying/normalizing its payload, yet still release the ambient flow on a dropped
+-- phase=end. SceneLog gates its transition/keybind enrichment at the record's exact level
+-- (EnabledFor + payload capture) while advancing the recent-scene ring unconditionally.
+-- Inventory scene/keybind enrichment is gated before construction at its exact levels while
+-- preserving WARN visibility.
+check(logCore:find("local emitLevel = level or Log.LEVEL.DEBUG", 1, true) ~= nil
+    and logCore:find("if not Log.EnabledFor(emitLevel, emitCategory) then", 1, true) ~= nil
+    and containsAfter(logCore, "if not Log.EnabledFor(emitLevel, emitCategory) then", 'if phase == "end" then')
+    and containsAfter(logCore, "if not Log.EnabledFor(emitLevel, emitCategory) then", "Log.ClearLastActionFlow(event)"),
+    "Log.TraceEvent gates on the effective level/category before payload copy and clears phase=end flow when dropped")
+check(logCore:find("local rawNext = next", 1, true) ~= nil
+    and logCore:find("local function safeShallowCopy(data, normalizeKey)", 1, true) ~= nil
+    and containsAfter(logCore, "local function withWarnErrorContext", "payload = safeShallowCopy(data)")
+    and logCore:find('payload = safeShallowCopy(data, function(key) return normalizeLogToken(key, "field") end)', 1, true) ~= nil,
+    "WARN/ERROR and TraceEvent payload copies share the metatable-independent shallow-copy path")
+check(sceneLog:find("PushRing({ scene = name, verb = verb, t = Now() })", 1, true) ~= nil
+    and sceneLog:find("L.EnabledFor(level, L.CATEGORY.SCENE)", 1, true) ~= nil
+    and sceneLog:find("L.GetPayloadCapture()", 1, true) ~= nil
+    and containsAfter(sceneLog, "PushRing({ scene = name", "if enrich then")
+    and containsAfter(sceneLog, "if enrich then", "cur = CurrentSceneName()"),
+    "SceneLog advances the recent-scene ring unconditionally and gates the payload/keybind enrichment behind the exact level")
+check(inventorySceneLifecycle:find("if L.EnabledFor and not L.EnabledFor(L.LEVEL.DEBUG, category) then return end", 1, true) ~= nil
+    and inventorySceneLifecycle:find("L.EnabledFor(L.LEVEL.WARN, L.CATEGORY.KEYBIND)", 1, true) ~= nil
+    and inventorySceneLifecycle:find("local warnRenders = warn and L.Warn", 1, true) ~= nil
+    and inventorySceneLifecycle:find("if descriptorGroup ~= nil then", 1, true) ~= nil
+    and containsAfter(inventorySceneLifecycle, "if not (traceRenders or warnRenders) then", "if descriptorGroup ~= nil then")
+    and inventorySceneLifecycle:find("}, afterPresent, group)", 1, true) ~= nil
+    and inventorySceneLifecycle:find("descriptor = DescribeKeybindGroup(group, label)", 1, true) == nil
+    and inventorySceneLifecycle:find('"inventory keybind ownership warning"', 1, true) ~= nil,
+    "inventory scene/keybind ownership enrichment is gated before construction while WARN visibility is preserved")
+check(keybinds:find("local function KeybindTraceWillRender(L, category)", 1, true) ~= nil
+    and keybinds:find("KeybindTraceWillRender(L, L.CATEGORY.KEYBIND)", 1, true) ~= nil
+    and keybinds:find("KeybindTraceWillRender(L, L.CATEGORY.STATE)", 1, true) ~= nil
+    and keybinds:find("L.EnabledFor(L.LEVEL.WARN, L.CATEGORY.KEYBIND)", 1, true) ~= nil
+    and keybinds:find("inventory keybind refresh outside scene removed stale group", 1, true) ~= nil,
+    "inventory keybind refresh gates describe/selection enrichment at the exact level while keeping the stale-group WARN")
 
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", passed))

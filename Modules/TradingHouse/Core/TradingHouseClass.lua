@@ -224,8 +224,9 @@ function BETTERUI.TradingHouse.Class:SetMode(mode)
             reason = "modeChanged",
             keybinds = L and L.DescribeKeybindDescriptors and L.DescribeKeybindDescriptors(self.coreKeybinds, "core") or nil,
         })
-        local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
-        local refreshed = updateCurrentKeybinds and updateCurrentKeybinds() or false
+        local refreshCurrentKeybinds = BETTERUI.TradingHouse.RefreshCurrentTradingHouseKeybinds
+        local refreshed = refreshCurrentKeybinds
+            and refreshCurrentKeybinds("TradingHouse.Class:SetMode", "modeChanged") or false
         TraceTH(L and L.CATEGORY.ACTION, "trading_house.keybinds", "refresh_after", self, {
             reason = "modeChanged",
             refreshed = refreshed == true,

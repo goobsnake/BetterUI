@@ -250,6 +250,31 @@ function BootstrapRuntime.CreateScene(instance)
     scene:AddFragment(instance.footerFragment)
 end
 
+local function UnregisterItemPreviewCallback(screen)
+    if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.UnregisterCallback
+        and screen and screen.onItemPreviewRefreshActionsCallback then
+        ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", screen.onItemPreviewRefreshActionsCallback)
+    end
+end
+
+local function RunSharedVendorInputCleanup(screen)
+    if not screen or screen._vendorSharedInputCleanupApplied then
+        return false
+    end
+
+    -- Mark first so callbacks triggered during cleanup cannot re-enter this pass.
+    screen._vendorSharedInputCleanupApplied = true
+    if BETTERUI.CIM and BETTERUI.CIM.SceneCleanup then
+        BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
+        BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
+        BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
+    end
+    if BETTERUI.Vendor and BETTERUI.Vendor.InlineBuySpinner and BETTERUI.Vendor.InlineBuySpinner.Detach then
+        BETTERUI.Vendor.InlineBuySpinner:Detach()
+    end
+    return true
+end
+
 ---@param instance BETTERUI.Vendor.Class
 ---@param deps table
 ---@return nil
@@ -268,6 +293,7 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 keybinds = DescribeKeybinds(screen and screen.coreKeybinds, "vendor-core"),
             })
             screen._vendorCloseCleanupApplied = false
+            screen._vendorSharedInputCleanupApplied = false
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             if screen.ReleaseNativeStoreInputOwnership then
                 screen:ReleaseNativeStoreInputOwnership()
@@ -326,13 +352,6 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 keybinds = DescribeKeybinds(screen and screen.coreKeybinds, "vendor-core"),
                 refreshed = refreshed == true,
             })
-            -- Native keybind re-registration is now suppressed at source
-            -- (NativeStoreBridge KEYBIND_STRIP.AddKeybindButtonGroup prehook), so the
-            -- single deterministic scene-entry reclaim is sufficient -- no multi-tick
-            -- settle sweep needed to re-win a race that can no longer happen.
-            if screen.ScheduleSceneEntryKeybindRefresh then
-                screen:ScheduleSceneEntryKeybindRefresh("sceneShowing", 40)
-            end
             TraceVendorBootstrap("vendor.bootstrap", "showing_complete", {
                 currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
                 hasList = screen.list ~= nil,
@@ -347,9 +366,7 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                 currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
             })
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
-            if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.UnregisterCallback and screen.onItemPreviewRefreshActionsCallback then
-                ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", screen.onItemPreviewRefreshActionsCallback)
-            end
+            UnregisterItemPreviewCallback(screen)
             if Vendor.SyncPreviewState then
                 Vendor.SyncPreviewState(screen, false)
             end
@@ -384,18 +401,7 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             TraceVendorBootstrap("vendor.keybind_layer", "remove_after", {
                 currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
             })
-            if BETTERUI.CIM and BETTERUI.CIM.SceneCleanup then
-                BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
-                BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
-                BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
-            end
-            -- Symmetric scene-hide cleanup for the inline buy spinner: detach it so its
-            -- input-mode state (_attached) and borrowed-cell masking never survive the scene.
-            -- Tribal-knowledge rule (2026-04-11 vendor DI incident): every mode flag that
-            -- changes input behavior MUST be cleared in scene cleanup, symmetrically on hide.
-            if BETTERUI.Vendor and BETTERUI.Vendor.InlineBuySpinner and BETTERUI.Vendor.InlineBuySpinner.Detach then
-                BETTERUI.Vendor.InlineBuySpinner:Detach()
-            end
+            RunSharedVendorInputCleanup(screen)
             if GAMEPAD_TOOLTIPS then
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
                 GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
@@ -415,6 +421,7 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
             TraceVendorBootstrap("vendor.scene", "hidden_begin", {
                 currentMode = screen.GetCurrentMode and screen:GetCurrentMode() or nil,
             })
+            UnregisterItemPreviewCallback(screen)
             if Vendor.RunLifecycleCloseCleanup then
                 Vendor.RunLifecycleCloseCleanup(screen)
             else
@@ -428,18 +435,7 @@ function BootstrapRuntime.RegisterSceneLifecycle(instance, deps)
                     screen:ForceReleaseDirectionalInput()
                 end
             end
-            if BETTERUI.CIM and BETTERUI.CIM.SceneCleanup then
-                BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
-                BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
-                BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
-            end
-            -- Symmetric scene-hide cleanup for the inline buy spinner: detach it so its
-            -- input-mode state (_attached) and borrowed-cell masking never survive the scene.
-            -- Tribal-knowledge rule (2026-04-11 vendor DI incident): every mode flag that
-            -- changes input behavior MUST be cleared in scene cleanup, symmetrically on hide.
-            if BETTERUI.Vendor and BETTERUI.Vendor.InlineBuySpinner and BETTERUI.Vendor.InlineBuySpinner.Detach then
-                BETTERUI.Vendor.InlineBuySpinner:Detach()
-            end
+            RunSharedVendorInputCleanup(screen)
             local component = screen:GetActiveComponent()
             if component and component.Deactivate then
                 component:Deactivate(screen)

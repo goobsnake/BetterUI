@@ -111,11 +111,14 @@ end
 local function OnSceneStateChanged(scene, oldState, newState)
     -- INERT-WHEN-OFF: cheap memoized union gate (InterfaceLog /builog OR DEBUG_LOGGING).
     -- Returns before any string build / table alloc when logging is off.
-    if not (BETTERUI.Log and BETTERUI.Log.IsActive()) then return end
+    local L = BETTERUI.Log
+    if not (L and L.IsActive and L.IsActive()) then return end
 
     -- ESO scenes are USERDATA, not tables -- resolve through Names.Scene (handles string/
     -- table/userdata + pcall-guards the :GetName() call) so native scene transitions don't
     -- all collapse to "<unknown>". Fall back to a bare resolve if Names isn't loaded yet.
+    -- name + verbs are needed by BOTH the recent-scene ring and the self-describing message,
+    -- so they are resolved unconditionally once logging is active.
     local N = BETTERUI.CIM and BETTERUI.CIM.Names
     local name = (N and N.Scene and N.Scene(scene))
         or (type(scene) == "string" and scene)
@@ -123,38 +126,60 @@ local function OnSceneStateChanged(scene, oldState, newState)
     local verb = STATE_NAME[newState] or ("state(" .. tostring(newState) .. ")")
     local fromVerb = STATE_NAME[oldState] or ("state(" .. tostring(oldState) .. ")")
 
+    -- Recent-scene ring advances UNCONDITIONALLY: it backs /buiscene regardless of the
+    -- level gate, so it must never depend on the enrichment decision below.
     PushRing({ scene = name, verb = verb, t = Now() })
 
     -- Self-describing message: name + the from->to transition live in the MESSAGE (not
     -- only the data table), because the 'debug' preset drops the data table at dispatch.
     -- from/to are human verbs (showing/shown/hiding/hidden), never raw state constants.
     local msg = "scene " .. name .. " " .. verb .. " (from " .. fromVerb .. ")"
-    local wasHidden = (SCENE_HIDDEN ~= nil and oldState == SCENE_HIDDEN)
-    local data = {
-        scene = name,
-        from = fromVerb,
-        to = verb,
-        wasHidden = wasHidden,
-        -- Backward-compatible alias for existing log consumers.
-        wasPushed = wasHidden,
-        cur = CurrentSceneName(),
-    }
-    local W = BETTERUI.CIM and BETTERUI.CIM.WatchMode
-    if W and type(W.DescribeActiveKeybinds) == "function" then
-        local ok, keybinds = pcall(W.DescribeActiveKeybinds)
-        if ok then data.keybinds = keybinds end
-    end
 
     -- Tier by settledness: SHOWN/HIDDEN are the milestones a user cares about (INFO --
     -- survive the 'info' preset); SHOWING/HIDING are intermediate flow (DEBUG). When the
     -- constants are absent (test harness / partial client) default to INFO so nothing is
     -- silently lost.
-    if SCENE_SHOWN == nil and SCENE_HIDDEN == nil then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, msg, data)
-    elseif newState == SCENE_SHOWN or newState == SCENE_HIDDEN then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, msg, data)
+    local level
+    if (SCENE_SHOWN == nil and SCENE_HIDDEN == nil)
+        or newState == SCENE_SHOWN or newState == SCENE_HIDDEN then
+        level = L.LEVEL.INFO
     else
-        BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SCENE, msg, data)
+        level = L.LEVEL.DEBUG
+    end
+
+    -- Exact enrichment gate: build the transition payload + WatchMode keybind summary ONLY
+    -- when a record at THIS level would actually render it (passes EnabledFor AND payload
+    -- capture is on -- INFO/DEBUG never bypass capture the way WARN/ERROR do). When gated
+    -- off, the CurrentSceneName()/DescribeActiveKeybinds() probes are never paid; the
+    -- message-only line still emits and the ring already advanced. Missing gate fns (older
+    -- Log / harness) default to enriching so behavior is preserved.
+    local enrich = true
+    if L.EnabledFor then enrich = L.EnabledFor(level, L.CATEGORY.SCENE) and true or false end
+    if enrich and L.GetPayloadCapture then enrich = L.GetPayloadCapture() and true or false end
+
+    local data = nil
+    if enrich then
+        local wasHidden = (SCENE_HIDDEN ~= nil and oldState == SCENE_HIDDEN)
+        data = {
+            scene = name,
+            from = fromVerb,
+            to = verb,
+            wasHidden = wasHidden,
+            -- Backward-compatible alias for existing log consumers.
+            wasPushed = wasHidden,
+            cur = CurrentSceneName(),
+        }
+        local W = BETTERUI.CIM and BETTERUI.CIM.WatchMode
+        if W and type(W.DescribeActiveKeybinds) == "function" then
+            local ok, keybinds = pcall(W.DescribeActiveKeybinds)
+            if ok then data.keybinds = keybinds end
+        end
+    end
+
+    if level == L.LEVEL.INFO then
+        L.Info(L.CATEGORY.SCENE, msg, data)
+    else
+        L.Debug(L.CATEGORY.SCENE, msg, data)
     end
 end
 

@@ -85,7 +85,6 @@ function BETTERUI.Banking.Class:ExitSearchMode()
 
     if self.coreKeybinds then
         EnsureKeybindGroupAdded(self.coreKeybinds)
-        BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
     end
 
     self:RefreshActiveKeybinds()

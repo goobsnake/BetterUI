@@ -33,12 +33,20 @@ end
 local function TraceInventorySceneCallback(event, phase, data)
 	local L = BETTERUI.Log
 	if not (L and L.TraceEvent) then return end
+	local categories = L.CATEGORY or {}
+	local category = categories.LIFECYCLE or categories.SCENE
+	-- Exact gate: drop the whole trace before touching `data` when a DEBUG record at this
+	-- category would not emit (the wrapper defaults to DEBUG). The current-scene lookup is
+	-- built only when the payload will actually render (capture on), so a dropped/
+	-- capture-off record performs zero scene enrichment.
+	if L.EnabledFor and not L.EnabledFor(L.LEVEL.DEBUG, category) then return end
 	data = data or {}
 	data.fn = data.fn or "InventorySceneLifecycle"
 	data.scene = ZO_GAMEPAD_INVENTORY_SCENE_NAME
-	data.currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
-	local categories = L.CATEGORY or {}
-	L.TraceEvent(categories.LIFECYCLE or categories.SCENE, event, phase, data)
+	if not L.GetPayloadCapture or L.GetPayloadCapture() then
+		data.currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
+	end
+	L.TraceEvent(category, event, phase, data)
 end
 
 local function RegisterSharedInventoryCallback(callbackName, callback)
@@ -76,14 +84,30 @@ local function DescribeKeybindGroup(group, label)
 	return L and L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(group, label) or tostring(group)
 end
 
-local function TraceInventoryKeybindOwnership(self, phase, data, warn)
+local function TraceInventoryKeybindOwnership(self, phase, data, warn, descriptorGroup)
 	local L = BETTERUI.Log
 	if not L then return end
+	-- Exact gate: the scene/current-next/keybind-describe/strip-presence enrichment below is
+	-- built ONLY when something will actually render it -- the DEBUG ownership trace at its
+	-- level with payload capture on, OR a WARN that must stay visible (WARN renders its
+	-- payload regardless of capture). When nothing renders, skip ALL enrichment (zero probe
+	-- cost: no GetCurrentSceneName/GetNextScene/HasKeybindGroup/DescribeKeybindDescriptor
+	-- calls). Missing gate fns (harness) default to enriching so behavior is preserved.
+	local traceRenders = (not L.EnabledFor or L.EnabledFor(L.LEVEL.DEBUG, L.CATEGORY.KEYBIND))
+		and (not L.GetPayloadCapture or L.GetPayloadCapture())
+	local warnRenders = warn and L.Warn
+		and (not L.EnabledFor or L.EnabledFor(L.LEVEL.WARN, L.CATEGORY.KEYBIND))
+	if not (traceRenders or warnRenders) then
+		return
+	end
 	data = data or {}
 	data.fn = data.fn or "InventorySceneLifecycle"
 	data.scene = ZO_GAMEPAD_INVENTORY_SCENE_NAME
 	data.currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil
 	data.nextScene = SCENE_MANAGER and SCENE_MANAGER.GetNextScene and SCENE_MANAGER:GetNextScene() or nil
+	if descriptorGroup ~= nil then
+		data.descriptor = DescribeKeybindGroup(descriptorGroup, data.descriptorLabel)
+	end
 	data.main = DescribeKeybindGroup(self and self.mainKeybindStripDescriptor, "main")
 	data.active = DescribeKeybindGroup(self and self.activeKeybindDescriptor, "active")
 	data.search = DescribeKeybindGroup(self and self.textSearchKeybindStripDescriptor, "search")
@@ -113,11 +137,10 @@ local function RemoveInventoryKeybindGroup(self, group, label, phase)
 	local afterPresent = IsKeybindGroupPresent(group)
 	TraceInventoryKeybindOwnership(self, phase, {
 		descriptorLabel = label,
-		descriptor = DescribeKeybindGroup(group, label),
 		beforePresent = beforePresent,
 		afterPresent = afterPresent,
 		removed = beforePresent and not afterPresent,
-	}, afterPresent)
+	}, afterPresent, group)
 	return beforePresent and not afterPresent
 end
 

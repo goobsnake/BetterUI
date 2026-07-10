@@ -147,8 +147,12 @@ function TraceVendorEvent(event, phase, data, category)
     data.functionName = data.functionName or data.fn
     data.mode = currentMode
     data.modeName = data.modeName or (currentMode ~= nil and Vendor.ResolveModeName and Vendor.ResolveModeName(currentMode)) or nil
-    data.isFenceInteraction = data.isFenceInteraction ~= nil and data.isFenceInteraction or isFenceInteraction
-    data.isStableInteraction = data.isStableInteraction ~= nil and data.isStableInteraction or isStableInteraction
+    if data.isFenceInteraction == nil then
+        data.isFenceInteraction = isFenceInteraction
+    end
+    if data.isStableInteraction == nil then
+        data.isStableInteraction = isStableInteraction
+    end
     data.batchProcessing = Vendor._batchProcessing == true
     ScrubVendorPrivacy(data)
     L.TraceEvent(category or L.CATEGORY.LIFECYCLE, event, phase, data)
@@ -1649,34 +1653,10 @@ local function TakeOverNativeStoreScene(instance)
     ResolveVendorRuntimeDependency("NativeStoreBridge", "native store bridge").TakeOverScene(instance)
 end
 
-local function RegisterSceneEntryKeybindRecovery(instance)
-    local scene = SCENE_MANAGER and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
-    if not (scene and scene.RegisterCallback) or instance._sceneEntryKeybindRecoveryRegistered then
-        return
-    end
-
-    instance._sceneEntryKeybindRecoveryRegistered = true
-    scene:RegisterCallback("StateChange", function(_, newState)
-        local sceneShown = rawget(_G, "SCENE_SHOWN") or "shown"
-        if newState ~= sceneShown then
-            return
-        end
-
-        -- Vendor can re-enter from Inventory after the native store re-adds its
-        -- duplicate core keys; arm the scene-entry reclaim path, not search-exit.
-        if instance.ScheduleSceneEntryKeybindRefresh then
-            instance:ScheduleSceneEntryKeybindRefresh("sceneShown", 40)
-        elseif instance.RefreshSceneEntryKeybindOwnership then
-            instance:RefreshSceneEntryKeybindOwnership("sceneShown")
-        end
-    end)
-end
-
 local function RegisterVendorSceneLifecycle(instance)
     ResolveVendorRuntimeDependency("BootstrapRuntime", "bootstrap runtime").RegisterSceneLifecycle(instance, {
         taskManager = Vendor.Tasks,
     })
-    RegisterSceneEntryKeybindRecovery(instance)
 end
 
 local function RegisterVendorEvents(eventManager)

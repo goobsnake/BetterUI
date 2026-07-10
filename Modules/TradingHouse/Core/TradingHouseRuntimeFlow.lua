@@ -194,7 +194,52 @@ local function TracePendingOperationTimeout(timeoutType)
     TracePendingOperationFailure("timeout", timeoutType)
 end
 
-local function RefreshCurrentTradingHouseKeybinds(fn, reason)
+local function ReadTradingHouseKeybindSelectionFingerprint(instance)
+    local list = instance and instance.list
+    if not (list and type(list.GetTargetData) == "function") then
+        return ""
+    end
+    local ok, selected = pcall(list.GetTargetData, list)
+    if not ok then
+        return "error"
+    end
+    local data = selected and (selected.dataSource or selected) or nil
+    if not data then
+        return ""
+    end
+    return table.concat({
+        tostring(data.entryIndex or data.listingIndex or ""),
+        tostring(data.bagId or ""),
+        tostring(data.slotIndex or ""),
+        tostring(data.itemUniqueId or data.uniqueId or ""),
+    }, ":")
+end
+
+function TH.GetKeybindRefreshFingerprint()
+    local instance = TH.instance
+    local browse = TH.BrowseComponent
+    local cooldownActive = false
+    if type(GetTradingHouseCooldownRemaining) == "function" then
+        local ok, value = pcall(GetTradingHouseCooldownRemaining)
+        cooldownActive = ok and type(value) == "number" and value > 0 or false
+    end
+    local guildId = GetSelectedTradingHouseGuildId and GetSelectedTradingHouseGuildId() or ""
+    local mode = instance and instance.GetCurrentMode and instance:GetCurrentMode() or ""
+    local activeComponent = instance and instance.GetActiveComponent and instance:GetActiveComponent() or nil
+    return table.concat({
+        tostring(mode),
+        tostring(activeComponent or ""),
+        tostring(guildId or ""),
+        tostring(browse and browse.searchPending == true or false),
+        tostring(browse and browse.deferredSearchToken or ""),
+        tostring(browse and browse.currentPage or ""),
+        tostring(browse and browse.hasMorePages == true or false),
+        tostring(cooldownActive),
+        ReadTradingHouseKeybindSelectionFingerprint(instance),
+    }, "|")
+end
+
+function TH.RefreshCurrentTradingHouseKeybinds(fn, reason, force)
     local sceneShowing = TH.instance and TH.instance.IsSceneShowing and TH.instance:IsSceneShowing() or false
     if not sceneShowing then
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
@@ -209,7 +254,8 @@ local function RefreshCurrentTradingHouseKeybinds(fn, reason)
         return false
     end
 
-    local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
+    local iface = BETTERUI.Interface
+    local updateCurrentKeybinds = iface and iface.UpdateCurrentKeybindGroups
     if type(updateCurrentKeybinds) ~= "function" then
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
             fn = fn,
@@ -221,10 +267,25 @@ local function RefreshCurrentTradingHouseKeybinds(fn, reason)
         return false
     end
 
+    local fingerprint = TH.GetKeybindRefreshFingerprint()
+    if iface.ShouldSkipRedundantKeybindRefresh
+        and iface.ShouldSkipRedundantKeybindRefresh(TH.instance, fingerprint, force == true) then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
+            fn = fn,
+            feature = "trading-house-keybinds",
+            reason = reason,
+            skipReason = "sameFrameEquivalent",
+            fingerprint = fingerprint,
+            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
+        })
+        return false
+    end
+
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
         fn = fn,
         feature = "trading-house-keybinds",
         reason = reason,
+        fingerprint = fingerprint,
         searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
     })
     if not updateCurrentKeybinds() then
@@ -241,6 +302,7 @@ local function RefreshCurrentTradingHouseKeybinds(fn, reason)
         fn = fn,
         feature = "trading-house-keybinds",
         reason = reason,
+        fingerprint = fingerprint,
         searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
     })
     return true
@@ -1222,7 +1284,7 @@ end
 
 function TH.OnSearchCooldownUpdate()
     if TH.instance and TH.instance:IsSceneShowing() then
-        RefreshCurrentTradingHouseKeybinds("TradingHouse.OnSearchCooldownUpdate", "searchCooldownUpdate")
+        TH.RefreshCurrentTradingHouseKeybinds("TradingHouse.OnSearchCooldownUpdate", "searchCooldownUpdate")
     else
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_skipped", {
             fn = "TradingHouse.OnSearchCooldownUpdate",
@@ -1312,7 +1374,7 @@ function TH.OnTradingHouseResponse(_, responseType, result)
             searchPendingAfter = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
             deferredToken = TH.BrowseComponent and TH.BrowseComponent.deferredSearchToken or nil,
         })
-        RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseResponse", "searchResponseFailed")
+        TH.RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseResponse", "searchResponseFailed")
     end
     -- Failed search responses are already alerted by ZOS (alerthandlers.lua
     -- listens to EVENT_TRADING_HOUSE_RESPONSE_RECEIVED); avoid a duplicate.
@@ -1355,24 +1417,7 @@ function TH.OnTradingHouseError(_, errorCode)
         TH.BrowseComponent.searchPending = false
         TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
     end
-    if TH.instance and TH.instance:IsSceneShowing() and KEYBIND_STRIP then
-        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_before", {
-            fn = "TradingHouse.OnTradingHouseError",
-            feature = "trading-house-keybinds",
-            reason = "tradingHouseError",
-            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-        })
-        local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
-        if updateCurrentKeybinds then
-            updateCurrentKeybinds()
-        end
-        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.KEYBIND, "trading_house.keybinds", "refresh_after", {
-            fn = "TradingHouse.OnTradingHouseError",
-            feature = "trading-house-keybinds",
-            reason = "tradingHouseError",
-            searchPending = TH.BrowseComponent and TH.BrowseComponent.searchPending == true,
-        })
-    end
+    TH.RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseError", "tradingHouseError")
 end
 
 function TH.OnListingOperation()
@@ -1419,7 +1464,7 @@ function TH.OnTradingHouseResponseTimeout()
         TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
     end
     TracePendingOperationTimeout("responseTimeout")
-    RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseResponseTimeout", "responseTimeout")
+    TH.RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseResponseTimeout", "responseTimeout")
 end
 
 function TH.OnTradingHouseOperationTimeout()
@@ -1436,7 +1481,7 @@ function TH.OnTradingHouseOperationTimeout()
         TH.BrowseComponent.deferredSearchToken = (TH.BrowseComponent.deferredSearchToken or 0) + 1
     end
     TracePendingOperationTimeout("operationTimeout")
-    RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseOperationTimeout", "operationTimeout")
+    TH.RefreshCurrentTradingHouseKeybinds("TradingHouse.OnTradingHouseOperationTimeout", "operationTimeout")
 end
 
 function TH.OnSelectedTradingHouseGuildChanged()
@@ -1472,7 +1517,9 @@ function TH.OnSelectedTradingHouseGuildChanged()
     if TH.BrowseComponent and TH.BrowseComponent.InvalidateResults then
         TH.BrowseComponent:InvalidateResults()
     end
-    if TH.instance:GetCurrentMode() == MODE.LISTINGS and RequestTradingHouseListings then
+    -- RefreshList rebuilds cached listing rows but does not request new server
+    -- data; guild changes in LISTINGS mode own exactly one explicit request here.
+    if mode == MODE.LISTINGS and RequestTradingHouseListings then
         RequestTradingHouseListings()
     end
     TH.instance:UpdateTabHeader()
@@ -1504,8 +1551,9 @@ function TH.OnTradingHouseStatusReceived()
 end
 
 function TH.OnMoneyUpdate()
-    -- EVENT_MONEY_UPDATE: refresh the gold footer and schedule a list refresh
-    -- while the trading house scene is showing.
+    -- EVENT_MONEY_UPDATE: refresh the gold footer and keybind enabled states
+    -- while the trading house scene is showing. Row data does not depend on
+    -- wallet state, so skip the full list rebuild.
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.CURRENCY, "trading_house.money_update", "received", {
         fn = "TradingHouse.OnMoneyUpdate",
         feature = "trading-house-currency",
@@ -1525,7 +1573,9 @@ function TH.OnMoneyUpdate()
         carriedGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_CHARACTER")) or nil,
         bankGold = BETTERUI.Log and BETTERUI.Log.GetCurrencyAmountForLocation and BETTERUI.Log.GetCurrencyAmountForLocation(rawget(_G, "CURT_MONEY"), rawget(_G, "CURRENCY_LOCATION_BANK")) or nil,
     })
-    TH.ScheduleListRefresh()
+    -- Keybind enabled states (e.g., Browse buy action affordability) depend on
+    -- wallet state. Force the refresh because the fingerprint lacks currency.
+    TH.RefreshCurrentTradingHouseKeybinds("TradingHouse.OnMoneyUpdate", "moneyUpdate", true)
 end
 
 function TH.RegisterEvents(eventManager)

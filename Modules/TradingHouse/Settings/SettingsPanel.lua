@@ -36,9 +36,10 @@ function TH.Settings.RegisterPanel(mId, moduleName)
         if instance.UpdateTabHeader then
             instance:UpdateTabHeader()
         end
-        local updateCurrentKeybinds = BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups
-        if updateCurrentKeybinds then
-            updateCurrentKeybinds()
+        if TH.RefreshCurrentTradingHouseKeybinds then
+            -- Settings are external to the runtime fingerprint; never coalesce
+            -- their explicit label refresh with an earlier same-frame state.
+            TH.RefreshCurrentTradingHouseKeybinds("TradingHouse.Settings:RefreshTHWindow", "settingsChanged", true)
         end
     end
 
