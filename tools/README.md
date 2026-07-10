@@ -60,4 +60,11 @@ Both update scripts share `Update_BetterUI_Common.ps1` for copy behavior and SMB
 ```powershell
 .\Update_BetterUI.ps1
 .\Update_BetterUI_PTS.ps1
+.\Update_BetterUI.ps1 -DryRun
 ```
+
+On Linux, both scripts require `rsync` and use an incremental mirror. Only
+changed/new paths are transferred;
+destination files and folders that no longer exist in the source are removed after
+the transfer. Use `-DryRun` to preview the rsync itemized changes without modifying
+the local or CIFS targets.

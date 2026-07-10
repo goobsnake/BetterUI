@@ -30,6 +30,39 @@ $BetterUIDeployExcludeItems = @(
     '.package_tmp'
 )
 
+function Get-BetterUIRelativePath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Root,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    # System.IO.Path.GetRelativePath is unavailable in Windows PowerShell 5.1.
+    # Deploy traversal only accepts descendants, so a validated prefix trim is enough.
+    $rootFullPath = [System.IO.Path]::GetFullPath($Root)
+    $pathFullPath = [System.IO.Path]::GetFullPath($Path)
+    $rootComparable = $rootFullPath.TrimEnd('/', '\')
+    $separator = [string][System.IO.Path]::DirectorySeparatorChar
+    $rootPrefix = if ([string]::IsNullOrEmpty($rootComparable)) {
+        [System.IO.Path]::GetPathRoot($rootFullPath)
+    } else {
+        $rootComparable + $separator
+    }
+    $comparison = if ($IsWindows) {
+        [System.StringComparison]::OrdinalIgnoreCase
+    } else {
+        [System.StringComparison]::Ordinal
+    }
+
+    if (-not $pathFullPath.StartsWith($rootPrefix, $comparison)) {
+        throw "Deploy path is outside the source root: $Path"
+    }
+
+    return $pathFullPath.Substring($rootPrefix.Length)
+}
+
 function Test-BetterUIDeployExcludedPath {
     param(
         [Parameter(Mandatory = $true)]
@@ -39,7 +72,7 @@ function Test-BetterUIDeployExcludedPath {
         [string]$Path
     )
 
-    $relativePath = [System.IO.Path]::GetRelativePath($SourceRoot, $Path)
+    $relativePath = Get-BetterUIRelativePath -Root $SourceRoot -Path $Path
     $segments = @($relativePath -split '[\\/]') | Where-Object { $_ }
     foreach ($segment in $segments) {
         if ($segment -in $BetterUIDeployExcludeItems) {
@@ -60,28 +93,140 @@ function Remove-BetterUIDeployPath {
     }
 
     # Safety: never recursively delete a filesystem / drive root. Guards against a
-    # mis-set -DestinationDir or -NetworkShareDir turning this into `rm -rf /`.
+    # mis-set -DestinationDir or -NetworkShareDir erasing an entire volume.
     $fullPath = [System.IO.Path]::GetFullPath($Path)
     $pathRoot = [System.IO.Path]::GetPathRoot($fullPath)
     if ($fullPath.TrimEnd('/', '\') -eq $pathRoot.TrimEnd('/', '\')) {
         throw "Refusing to recursively delete a filesystem root: $Path"
     }
 
-    if ($IsLinux) {
-        # Kernel CIFS and local (ext4) mounts support recursive delete directly.
-        # NOTE: never deploy over a GNOME "Connect to Server" / GVFS mount
-        # (/run/user/<uid>/gvfs/smb-share:...). gvfsd-smb fails rmdir with EINVAL
-        # ("Invalid argument"), so stale directories survive every deploy. Mount the
-        # share with the kernel CIFS client instead.
-        & rm -rf -- $Path
-        if ($LASTEXITCODE -eq 0 -and -not (Test-Path -LiteralPath $Path)) {
-            return
-        }
-    }
-
     Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
     if (Test-Path -LiteralPath $Path) {
         throw "Failed to remove existing deploy target: $Path. A file may be locked (is ESO running?), or the share lacks delete permission."
+    }
+}
+
+function Assert-BetterUIDeployTarget {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SourceDir,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Target
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Target)) {
+        throw 'Target directory cannot be empty.'
+    }
+
+    $targetCandidate = [System.IO.Path]::GetFullPath($Target)
+    $targetCandidateRoot = [System.IO.Path]::GetPathRoot($targetCandidate)
+    $currentCandidate = $targetCandidateRoot
+    $candidateSegments = @(
+        $targetCandidate.Substring($targetCandidateRoot.Length) -split '[\\/]' |
+            Where-Object { $_ }
+    )
+    foreach ($segment in $candidateSegments) {
+        $currentCandidate = Join-Path $currentCandidate $segment
+        if (-not (Test-Path -LiteralPath $currentCandidate)) {
+            break
+        }
+        $candidateItem = Get-Item -LiteralPath $currentCandidate -Force
+        if (($candidateItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Source and target directory trees must not overlap through symbolic-link targets: $Target"
+        }
+    }
+
+    $sourceFullPath = (Resolve-Path -LiteralPath $SourceDir).Path
+    $targetFullPath = if (Test-Path -LiteralPath $Target) {
+        $targetItem = Get-Item -LiteralPath $Target -Force
+        $targetItem.FullName
+    } else {
+        [System.IO.Path]::GetFullPath($Target)
+    }
+    $targetRoot = [System.IO.Path]::GetPathRoot($targetFullPath)
+    $sourceComparable = $sourceFullPath.TrimEnd('/', '\')
+    $targetComparable = $targetFullPath.TrimEnd('/', '\')
+    $targetRootComparable = $targetRoot.TrimEnd('/', '\')
+
+    if ($targetComparable -eq $targetRootComparable) {
+        throw "Refusing to synchronize a filesystem root: $Target"
+    }
+
+    $comparison = if ($IsWindows) {
+        [System.StringComparison]::OrdinalIgnoreCase
+    } else {
+        [System.StringComparison]::Ordinal
+    }
+    if ([string]::Equals($sourceComparable, $targetComparable, $comparison)) {
+        throw "Source and target directories must be different: $SourceDir"
+    }
+
+    $separator = [string][System.IO.Path]::DirectorySeparatorChar
+    $sourcePrefix = $sourceComparable + $separator
+    $targetPrefix = $targetComparable + $separator
+    if ($targetComparable.StartsWith($sourcePrefix, $comparison) -or
+        $sourceComparable.StartsWith($targetPrefix, $comparison)) {
+        throw "Source and target directory trees must not overlap: $SourceDir -> $Target"
+    }
+
+    return $targetComparable
+}
+
+function Invoke-BetterUIRsync {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SourceDir,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Target,
+
+        [switch]$DryRun
+    )
+
+    $rsync = Get-Command rsync -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $rsync) {
+        throw "rsync is required for Linux BetterUI deployment. Install rsync and retry."
+    }
+
+    $sourceRoot = (Resolve-Path -LiteralPath $SourceDir).Path.TrimEnd('/', '\')
+    $targetRoot = Assert-BetterUIDeployTarget -SourceDir $sourceRoot -Target $Target
+    $rsyncArgs = @(
+        '-rlt',
+        '--delete',
+        '--delete-delay',
+        '--delete-excluded',
+        '--delay-updates',
+        '--omit-dir-times',
+        '--modify-window=1',
+        '--itemize-changes',
+        '--human-readable'
+    )
+
+    foreach ($excludedItem in $BetterUIDeployExcludeItems) {
+        $rsyncArgs += "--exclude=$excludedItem"
+    }
+    if ($DryRun) {
+        $rsyncArgs += '--dry-run'
+    }
+
+    # Trailing separators synchronize directory contents instead of nesting the
+    # repository and target directories. Array splatting preserves spaces literally.
+    $rsyncArgs += '--'
+    $rsyncArgs += "$sourceRoot/"
+    $rsyncArgs += "$targetRoot/"
+
+    & $rsync.Source @rsyncArgs
+    $rsyncExitCode = $LASTEXITCODE
+    if ($rsyncExitCode -ne 0) {
+        throw "rsync deployment failed with exit code ${rsyncExitCode}: $sourceRoot -> $targetRoot"
+    }
+
+    if ($DryRun) {
+        Write-Host "Dry run completed for: $targetRoot" -ForegroundColor Yellow
+    } else {
+        Write-Host "Files synchronized successfully to: $targetRoot" -ForegroundColor Green
     }
 }
 
@@ -95,14 +240,7 @@ function New-BetterUIDeployDirectory {
         throw 'Deploy directory path cannot be empty.'
     }
 
-    if ($IsLinux) {
-        & mkdir -p -- $Path
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to create deploy directory: $Path"
-        }
-    } else {
-        New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop | Out-Null
-    }
+    New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop | Out-Null
 
     if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
         throw "Deploy directory missing after creation: $Path"
@@ -172,20 +310,29 @@ function Copy-BetterUIAddon {
         [string]$SourceDir,
 
         [Parameter(Mandatory = $true)]
-        [string]$Target
+        [string]$Target,
+
+        [switch]$DryRun
     )
 
-    if ([string]::IsNullOrWhiteSpace($Target)) {
-        throw 'Target directory cannot be empty.'
+    $targetRoot = Assert-BetterUIDeployTarget -SourceDir $SourceDir -Target $Target
+
+    if ($IsLinux) {
+        Invoke-BetterUIRsync -SourceDir $SourceDir -Target $targetRoot -DryRun:$DryRun
+        return
     }
 
-    # Replace the target wholesale so files deleted/renamed in the repo never linger.
-    # A removal failure is fatal by design: it was previously swallowed and the files
-    # overlaid, which silently let stale addon files accumulate.
-    if (Test-Path -LiteralPath $Target) {
-        Remove-BetterUIDeployPath -Path $Target
+    if ($DryRun) {
+        Write-Host "Dry run: Windows deployment would replace $targetRoot" -ForegroundColor Yellow
+        return
     }
-    New-BetterUIDeployDirectory -Path $Target
+
+    # Windows retains the existing replace behavior because rsync is not a standard
+    # PowerShell dependency there. Linux uses the incremental mirror above.
+    if (Test-Path -LiteralPath $targetRoot) {
+        Remove-BetterUIDeployPath -Path $targetRoot
+    }
+    New-BetterUIDeployDirectory -Path $targetRoot
 
     $sourceRoot = (Resolve-Path -LiteralPath $SourceDir).Path
     $items = Get-ChildItem -LiteralPath $SourceDir -Force -Recurse |
@@ -193,9 +340,9 @@ function Copy-BetterUIAddon {
         Sort-Object { $_.FullName.Length }
 
     foreach ($item in $items) {
-        $relativePath = [System.IO.Path]::GetRelativePath($sourceRoot, $item.FullName)
+        $relativePath = Get-BetterUIRelativePath -Root $sourceRoot -Path $item.FullName
         $relativeSegments = @($relativePath -split '[\\/]') | Where-Object { $_ }
-        $destinationPath = Join-PathSegments -Root $Target -Segments $relativeSegments
+        $destinationPath = Join-PathSegments -Root $targetRoot -Segments $relativeSegments
 
         if ($item.PSIsContainer) {
             New-BetterUIDeployDirectory -Path $destinationPath
@@ -207,22 +354,14 @@ function Copy-BetterUIAddon {
             New-BetterUIDeployDirectory -Path $destinationParent
         }
 
-        if ($IsLinux) {
-            # Native cp is robust across CIFS and local (ext4) mounts.
-            & cp -- $item.FullName $destinationPath
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to copy deploy file: $($item.FullName) -> $destinationPath"
-            }
-        } else {
-            Copy-Item -LiteralPath $item.FullName -Destination $destinationPath -Force -ErrorAction Stop
-        }
+        Copy-Item -LiteralPath $item.FullName -Destination $destinationPath -Force -ErrorAction Stop
 
         if (-not (Test-Path -LiteralPath $destinationPath -PathType Leaf)) {
             throw "Deploy file missing after copy: $destinationPath"
         }
     }
 
-    Write-Host "Files copied successfully to: $Target" -ForegroundColor Green
+    Write-Host "Files copied successfully to: $targetRoot" -ForegroundColor Green
 }
 
 function Invoke-BetterUIDeploy {
@@ -233,14 +372,16 @@ function Invoke-BetterUIDeploy {
         [Parameter(Mandatory = $true)]
         [string]$DestinationDir,
 
-        [string]$NetworkShareDir
+        [string]$NetworkShareDir,
+
+        [switch]$DryRun
     )
 
     if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
         throw "Source directory not found: $SourceDir"
     }
 
-    Copy-BetterUIAddon -SourceDir $SourceDir -Target $DestinationDir
+    Copy-BetterUIAddon -SourceDir $SourceDir -Target $DestinationDir -DryRun:$DryRun
 
     if ([string]::IsNullOrWhiteSpace($NetworkShareDir)) {
         return
@@ -249,7 +390,7 @@ function Invoke-BetterUIDeploy {
     $resolvedNetworkShareDir = Resolve-BetterUINetworkSharePath -Path $NetworkShareDir
     $shareParent = Split-Path $resolvedNetworkShareDir -Parent
     if (Test-Path -LiteralPath $shareParent) {
-        Copy-BetterUIAddon -SourceDir $SourceDir -Target $resolvedNetworkShareDir
+        Copy-BetterUIAddon -SourceDir $SourceDir -Target $resolvedNetworkShareDir -DryRun:$DryRun
     } else {
         Write-Warning "Network share not accessible (is it mounted?): $NetworkShareDir -> $resolvedNetworkShareDir"
     }

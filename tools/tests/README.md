@@ -77,6 +77,7 @@ BetterUI follows a 4-level testing strategy:
 | Log Parse Contract | `test_log_parse_contract.lua` | Golden `[BUI]` line shape for host parsers |
 | Builog Flow Source | `test_builog_flow_source.lua` | Source-level replay landmarks for live diagnosis |
 | Builog Monitor Source | `test_builog_monitor_source.lua` | Host monitor parser and output contracts |
+| BetterUI Updater Source | `test_update_betterui_source.lua` | Incremental rsync deployment contract and safety guards |
 | WatchMode | `test_watchmode.lua` | Watch/inspect context, snapshots, and lifecycle behavior |
 
 ## How to Run Tests
@@ -94,6 +95,13 @@ bash tools/tests/validate_planning.sh
 lua tools/tests/test_safe_execute.lua
 lua tools/tests/test_deferred_task.lua
 ```
+
+### Run the Linux updater integration test
+```bash
+pwsh -File tools/tests/test_update_betterui_deploy.ps1
+```
+
+The updater integration test uses temporary local directories and requires `rsync`.
 
 ### Run Lua Tests via Test Runner
 ```bash

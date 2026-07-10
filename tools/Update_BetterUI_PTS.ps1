@@ -3,9 +3,9 @@
 Deploys BetterUI addon files to the ESO PTS AddOns directory.
 
 .DESCRIPTION
-Copies the repository addon payload to the local ESO PTS addon folder and, when
-available, the PTS BetterUI folder on the configured SMB share. Existing target
-folders are replaced to avoid stale addon files.
+Synchronizes the repository addon payload to the local ESO PTS addon folder and,
+when available, the PTS BetterUI folder on the configured SMB share. Linux uses
+rsync to transfer only changes and remove destination paths absent from the source.
 
 Supports both Windows and Linux (Steam/Proton). Defaults are auto-detected based
 on the operating system.
@@ -22,6 +22,9 @@ path (kernel CIFS mountpoint), defaulting to /mnt/eso/pts/AddOns/BetterUI; on Wi
 it defaults to smb://goobers/elder%20scrolls%20online/pts/AddOns/BetterUI (resolved to
 a native UNC path). Skipped with a warning if the share is not mounted/accessible.
 
+.PARAMETER DryRun
+Shows the Linux rsync changes without modifying either deployment target.
+
 .EXAMPLE
 .\Update_BetterUI_PTS.ps1
 
@@ -34,7 +37,8 @@ pwsh ./tools/Update_BetterUI_PTS.ps1   # Linux (Ubuntu 24.04 / Steam Proton)
 param(
     [string]$SourceDir = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
     [string]$DestinationDir,
-    [string]$NetworkShareDir
+    [string]$NetworkShareDir,
+    [switch]$DryRun
 )
 
 Set-StrictMode -Version Latest
@@ -66,4 +70,5 @@ if (-not $NetworkShareDir) {
 Invoke-BetterUIDeploy `
     -SourceDir $SourceDir `
     -DestinationDir $DestinationDir `
-    -NetworkShareDir $NetworkShareDir
+    -NetworkShareDir $NetworkShareDir `
+    -DryRun:$DryRun
