@@ -1230,11 +1230,15 @@ do
     w3.currencyKeybinds = { "currency" }
     w3.withdrawDepositKeybinds = { "transfer" }
     w3.textSearchHeaderControl = { IsHidden = function() return true end }
-    w3.RefreshCurrencyTooltip = function() end
+    local selectionOrder = {}
+    w3.RefreshCurrencyTooltip = function()
+        selectionOrder[#selectionOrder + 1] = "tooltip"
+    end
     local savedUpdateActions = BETTERUI.Banking.Class.UpdateActions
     local updateActionCalls = 0
     w3.UpdateActions = function(self)
         updateActionCalls = updateActionCalls + 1
+        selectionOrder[#selectionOrder + 1] = "actions"
         return savedUpdateActions(self)
     end
     -- Currency row
@@ -1242,6 +1246,10 @@ do
     updateActionCalls = 0
     BETTERUI.Banking.Class.OnItemSelectedChange(w3, w3.list, { isCurrency = true, currencyType = CURT_MONEY, keybindLabel = "Gold" })
     assertEqual(1, updateActionCalls, "Currency-row selection uses full UpdateActions path once")
+    assertEqual("actions", selectionOrder[1],
+        "Currency-row selection clears item actions before rendering the guild summary tooltip")
+    assertEqual("tooltip", selectionOrder[2],
+        "Currency-row selection leaves the guild summary tooltip as the final tooltip operation")
     assertEqual(0, #w3.itemActions.slots, "Currency-row selection clears non-actionable item actions")
     assertEqual(1, countIn(opsUpdated, w3.currencyKeybinds), "Currency-row selection updates currency keybinds exactly once")
     assertEqual(0, countIn(opsUpdated, w3.withdrawDepositKeybinds), "Currency-row selection does not touch transfer keybinds")

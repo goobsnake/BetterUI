@@ -128,8 +128,8 @@ function CurrencySelector.RefreshCurrencyTooltip(self)
         if not tooltip then return end
         tooltip:ClearLines()
 
-        local guildId = GetSelectedGuildBankId and GetSelectedGuildBankId() or 0
-        local guildName = (guildId > 0) and GetGuildName(guildId) or GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL"))
+        local guildId = GuildBank.GetSelectedGuildId()
+        local guildName = GuildBank.GetSelectedGuildName()
 
         local guildBankGold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_GUILD_BANK) or 0
         local carriedGold = GetCarriedCurrencyAmount(CURT_MONEY) or 0

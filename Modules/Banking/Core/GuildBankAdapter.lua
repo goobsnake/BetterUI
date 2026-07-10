@@ -227,6 +227,21 @@ function GuildBank.GetPermissionDenial(mode)
     return nil
 end
 
+--- Returns a denial only when the current mode permits neither item nor gold
+--- transfers. Item and gold permissions are intentionally independent in ESO.
+---@param mode integer LIST_WITHDRAW or LIST_DEPOSIT
+---@return {reason: string, stringId: integer|nil, text: string}|nil
+function GuildBank.GetListPermissionDenial(mode)
+    local itemDenial = GuildBank.GetPermissionDenial(mode)
+    if not itemDenial then
+        return nil
+    end
+    if not GuildBank.GetGoldPermissionDenial(mode) then
+        return nil
+    end
+    return itemDenial
+end
+
 function GuildBank.GetHeaderTitle()
     if GuildBank.IsGuildBankMode() then
         local guildName = GuildBank.GetSelectedGuildName()
@@ -298,6 +313,18 @@ function GuildBank.OnGuildBankSelected()
         end
         window:SetListUpdatesSuppressed(true)
     end
+    local selectedGuildId = GuildBank.GetSelectedGuildId()
+    if zo_callLater then
+        zo_callLater(function()
+            if GuildBank.IsLoading()
+                and GuildBank.IsGuildBankMode()
+                and (not BETTERUI.Utils or not BETTERUI.Utils.IsBankingSceneShowing
+                    or BETTERUI.Utils.IsBankingSceneShowing())
+                and GuildBank.GetSelectedGuildId() == selectedGuildId then
+                GuildBank.RefreshSelectedBankView()
+            end
+        end, 0)
+    end
     TraceGuildBank("bank.guild_bank", "selected", {
         fn = "GuildBank.OnGuildBankSelected",
         guildId = GuildBank.GetSelectedGuildId(),
@@ -320,19 +347,34 @@ function GuildBank.OnGuildBankDeselected()
     })
 end
 
-function GuildBank.OnGuildBankReady()
-    if BETTERUI.Log then
-        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "guild bank ready")
-    end
+--- Refreshes the selected guild bank from the current shared-inventory cache.
+--- The native gamepad scene performs this immediately after requesting guild
+--- selection, so this path must not depend exclusively on ITEMS_READY firing.
+---@return nil
+function GuildBank.RefreshSelectedBankView()
     GuildBank.SetLoading(false)
     local window = BETTERUI.Banking.GetWindow()
     if window then
         window:SetListUpdatesSuppressed(false)
         BETTERUI.Banking.RefreshWindowView(window)
+        if window.SetTitle then
+            window:SetTitle(GuildBank.GetHeaderTitle())
+        end
+        if window.RefreshCurrencyTooltip then
+            window:RefreshCurrencyTooltip()
+        end
         if window.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup then
             BETTERUI.Interface.UpdateKeybindGroup(window.coreKeybinds)
         end
     end
+end
+
+function GuildBank.OnGuildBankReady()
+    if BETTERUI.Log then
+        BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "guild bank ready")
+    end
+    GuildBank.RefreshSelectedBankView()
+    local window = BETTERUI.Banking.GetWindow()
     TraceGuildBank("bank.guild_bank", "ready", {
         fn = "GuildBank.OnGuildBankReady",
         guildId = GuildBank.GetSelectedGuildId(),
@@ -388,6 +430,9 @@ function GuildBank.OnGuildBankedMoneyUpdate()
         BETTERUI.Banking.RefreshWindowView(window)
         if window.RefreshFooter then
             window:RefreshFooter()
+        end
+        if window.RefreshCurrencyTooltip then
+            window:RefreshCurrencyTooltip()
         end
     end
     TraceGuildBank("bank.guild_bank", "money_updated", {

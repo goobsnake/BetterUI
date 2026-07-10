@@ -360,7 +360,11 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
             and activeCategory.key == "all"
 
         if isCurrencyRow then
+            -- SetInventorySlot(nil) clears the tooltip. Run that action refresh
+            -- first so the guild/currency summary is the final tooltip render.
+            self:UpdateActions()
             HandleCurrencyRowSelection(self)
+            return
         else
             UpdateKeybindsForSelection(self, false)
             HandleItemRowSelection(selectedData)

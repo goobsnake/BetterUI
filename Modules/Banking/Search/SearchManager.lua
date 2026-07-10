@@ -77,18 +77,8 @@ function BETTERUI.Banking.Class:ExitSearchMode()
         BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
 
-    -- Restore exactly the groups the search-mode cleanup removed.
-    if self._searchRemovedKeybindGroups then
-        BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
-        self._searchRemovedKeybindGroups = nil
-    end
-
-    if self.coreKeybinds then
-        EnsureKeybindGroupAdded(self.coreKeybinds)
-    end
-
-    self:RefreshActiveKeybinds()
-
+    -- Deactivation pops the header's keybind state. Restore list-owned groups
+    -- only after that pop so they land in the active scene state.
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate and self.textSearchHeaderFocus:IsActive() then
         self.textSearchHeaderFocus:Deactivate()
     end
@@ -96,6 +86,26 @@ function BETTERUI.Banking.Class:ExitSearchMode()
     if self.SetTextSearchFocused then
         self:SetTextSearchFocused(false)
     end
+
+    local restoredGroups = {}
+    if self._searchRemovedKeybindGroups then
+        for _, group in ipairs(self._searchRemovedKeybindGroups) do
+            restoredGroups[group] = true
+        end
+        BETTERUI.Interface.RestoreKeybindGroups(self._searchRemovedKeybindGroups)
+        self._searchRemovedKeybindGroups = nil
+    end
+
+    -- Fast exits can occur before deferred cleanup snapshots anything, even
+    -- though EnterSearchMode already removed both canonical list groups.
+    if self.withdrawDepositKeybinds and not restoredGroups[self.withdrawDepositKeybinds] then
+        EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
+    end
+    if self.coreKeybinds and not restoredGroups[self.coreKeybinds] then
+        EnsureKeybindGroupAdded(self.coreKeybinds)
+    end
+
+    self:RefreshActiveKeybinds()
 
     self:EnsureHeaderKeybindsActive()
     self:UpdateActions()

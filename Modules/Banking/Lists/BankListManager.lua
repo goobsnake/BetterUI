@@ -149,6 +149,23 @@ function BETTERUI.Banking.Class:RefreshList()
         self:UpdateHeaderTitle()
     end
 
+    local GuildBank = BETTERUI.Banking.GuildBank
+    local itemPermissionDenial = isGuildBankActive and GuildBank
+        and GuildBank.GetPermissionDenial(self.currentMode) or nil
+    local permissionDenial = isGuildBankActive and GuildBank
+        and GuildBank.GetListPermissionDenial(self.currentMode) or nil
+    if permissionDenial then
+        self.list:SetNoItemText(permissionDenial.text)
+        self.list:Commit()
+        if self.UpdateActions then
+            self:UpdateActions()
+        end
+        if self.RefreshFooter then
+            self:RefreshFooter()
+        end
+        return
+    end
+
     local modeText = self.currentMode == LIST_WITHDRAW and GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW"))
         or GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
     modeText = zo_strformat("<<Z:1>>", modeText)
@@ -236,7 +253,9 @@ function BETTERUI.Banking.Class:RefreshList()
     end
 
     local filteredDataTable
-    if reusableSnapshot then
+    if itemPermissionDenial then
+        filteredDataTable = {}
+    elseif reusableSnapshot then
         filteredDataTable = {}
         for i = 1, #reusableSnapshot do
             local snapshotItemData = reusableSnapshot[i]
@@ -351,6 +370,8 @@ function BETTERUI.Banking.Class:RefreshList()
 
     if self.searchQuery and self.searchQuery ~= "" then
         self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
+    elseif itemPermissionDenial then
+        self.list:SetNoItemText(itemPermissionDenial.text)
     else
         self.list:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_EMPTY")))
     end

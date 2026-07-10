@@ -148,26 +148,27 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         -- can fire ITEMS_READY synchronously and populate the list immediately.
         self.list:Clear()
         self.list:Commit()
-        self:SetTitle(GuildBank.GetHeaderTitle())
         -- Build categories/header before native selection because the selector
         -- can fire ITEMS_READY synchronously into GuildBank.OnGuildBankReady.
         InitializeBankSceneCategories(self)
         -- Register before selecting the guild bank; the native selector can fire
         -- ITEMS_READY synchronously, and missing that event leaves the list empty.
         RegisterGuildBankSceneEvents(GuildBank)
-        -- Select the accessible guild bank and trigger data loading
+        -- Delegate even a zero saved ID to the native helper; it owns the
+        -- accessible-guild fallback and selects the first available guild.
         local guildId = GuildBank.GetSelectedGuildId()
-        if ZO_SharedInventory_SelectAccessibleGuildBank and guildId > 0 then
+        GuildBank.SetLoading(true)
+        if ZO_SharedInventory_SelectAccessibleGuildBank then
             ZO_SharedInventory_SelectAccessibleGuildBank(guildId)
         end
-
-        -- Check base permissions on scene entry
-        local depositDenied = GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT)
-        local withdrawDenied = GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_WITHDRAW)
-        if depositDenied and withdrawDenied then
-            -- Cannot deposit or withdraw — show warning but allow viewing
-            if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SCENE, "Guild bank: no deposit or withdraw permission") end
+        -- Match the native gamepad scene's immediate RefreshGuildBank call.
+        -- ITEMS_READY remains authoritative for later asynchronous updates,
+        -- but cached data and same-guild re-entry must render without it.
+        if GuildBank.IsLoading() then
+            GuildBank.RefreshSelectedBankView()
         end
+
+        -- RefreshList owns the localized permission empty-state for the active mode.
     else
         self.isGuildBankMode = false
         self:SetTitle("|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r")
@@ -175,7 +176,6 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     end
 
     if self.isGuildBankMode then
-        -- Guild bank: list refresh is driven by EVENT_GUILD_BANK_ITEMS_READY.
         self:RefreshActiveKeybinds()
     else
         -- Always refresh on show to avoid stale rows when switching between

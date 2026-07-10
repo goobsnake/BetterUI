@@ -18,6 +18,8 @@ BAG_SUBSCRIBER_BANK = 6
 
 GUILD_PERMISSION_BANK_DEPOSIT = 11
 GUILD_PERMISSION_BANK_WITHDRAW = 12
+GUILD_PERMISSION_BANK_WITHDRAW_GOLD = 13
+GUILD_PRIVILEGE_BANK_DEPOSIT = 14
 
 SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER = "SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER"
 SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS = "SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS"
@@ -62,6 +64,7 @@ local selectedGuildId = 0
 local selectorGuildId = 0
 local guildNames = {}
 local permissionMatrix = {}
+local privilegeMatrix = {}
 local stringValues = {
     [SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER] = "Guild Bank",
     [SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS] = "No withdraw",
@@ -139,6 +142,11 @@ end
 function DoesPlayerHaveGuildPermission(guildId, permission)
     local guildPermissions = permissionMatrix[guildId] or {}
     return guildPermissions[permission] == true
+end
+
+function DoesGuildHavePrivilege(guildId, privilege)
+    local guildPrivileges = privilegeMatrix[guildId] or {}
+    return guildPrivileges[privilege] == true
 end
 
 function GetGuildBankMinDepositMembers()
@@ -264,6 +272,7 @@ local function createWindow()
         listCommitCount = 0,
         refreshListCount = 0,
         refreshFooterCount = 0,
+        refreshCurrencyTooltipCount = 0,
         rebuildHeaderCategoriesCount = 0,
         computeVisibleCategoriesCount = 0,
         title = nil,
@@ -334,6 +343,10 @@ local function createWindow()
 
     function window:RefreshFooter()
         self.refreshFooterCount = self.refreshFooterCount + 1
+    end
+
+    function window:RefreshCurrencyTooltip()
+        self.refreshCurrencyTooltipCount = self.refreshCurrencyTooltipCount + 1
     end
 
     function window:SetTitle(title)
@@ -658,6 +671,7 @@ local function resetGuildBankState()
     selectorGuildId = 0
     guildNames = {}
     permissionMatrix = {}
+    privilegeMatrix = {}
     tooltipClears = 0
     updateKeybindCalls = 0
     releasedDialogName = nil
@@ -742,6 +756,16 @@ assertEqual(SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS, depositDenial.stringId
     "Structured deposit denial keeps deposit-specific string id")
 assertEqual("No deposit 10", depositDenial.text,
     "Structured deposit denial includes localized text with member requirement")
+permissionMatrix[90][GUILD_PERMISSION_BANK_WITHDRAW_GOLD] = true
+assertEqual(nil, BETTERUI.Banking.GuildBank.GetListPermissionDenial(BETTERUI.Banking.LIST_WITHDRAW),
+    "Gold-only withdraw permission keeps the guild currency list available")
+permissionMatrix[90][GUILD_PERMISSION_BANK_WITHDRAW_GOLD] = false
+assertEqual("No withdraw",
+    BETTERUI.Banking.GuildBank.GetListPermissionDenial(BETTERUI.Banking.LIST_WITHDRAW).text,
+    "Total guild withdraw denial supplies the localized empty-state message")
+privilegeMatrix[90] = { [GUILD_PRIVILEGE_BANK_DEPOSIT] = true }
+assertEqual(nil, BETTERUI.Banking.GuildBank.GetListPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT),
+    "Guild deposit privilege keeps gold deposits available when item deposits are denied")
 bankingBag = BAG_BANK
 assertEqual(nil, BETTERUI.Banking.GuildBank.GetPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT),
     "Personal bank has no structured permission denial")
@@ -804,6 +828,8 @@ assertEqual(1, BETTERUI.Banking.Window.computeVisibleCategoriesCount, "Guild ban
 assertEqual(1, BETTERUI.Banking.Window.rebuildHeaderCategoriesCount, "Guild bank ready rebuilds header categories")
 assertEqual(1, BETTERUI.Banking.Window.refreshListCount, "Guild bank ready refreshes the list")
 assertEqual(1, updateKeybindCalls, "Guild bank ready updates keybinds")
+assertEqual(1, BETTERUI.Banking.Window.refreshCurrencyTooltipCount,
+    "Guild bank ready refreshes the selected guild summary tooltip")
 
 resetGuildBankState()
 BETTERUI.Banking.GuildBank.OnGuildBankUpdated()
@@ -970,7 +996,15 @@ assertTrue(BETTERUI.Banking.Window.setupUnifiedFooterCalled == true, "Init confi
 assertEqual(2, #narrationCalls, "Init registers narration for personal and guild scenes")
 
 dofile("Modules/Banking/Scene/BankingSceneLifecycle.lua")
+BETTERUI.CIM.ItemTaxonomy = BETTERUI.CIM.ItemTaxonomy or { BANK_CATEGORY_DEFS = {} }
+BETTERUI.CIM.SharedItemSupport = BETTERUI.CIM.SharedItemSupport or {}
+BETTERUI.CIM.SharedItemSupport.GetBestItemCategoryDescription =
+    BETTERUI.CIM.SharedItemSupport.GetBestItemCategoryDescription or function() return "Item" end
+BETTERUI.CIM.CONST = BETTERUI.CIM.CONST or {}
+BETTERUI.CIM.CONST.MODULES = BETTERUI.CIM.CONST.MODULES or { BANKING = "Banking" }
+dofile("Modules/Banking/Lists/BankListManager.lua")
 local sceneLifecycleSource = readFile("Modules/Banking/Scene/BankingSceneLifecycle.lua")
+local bankListManagerSource = readFile("Modules/Banking/Lists/BankListManager.lua")
 local onSceneShowingIndex = sceneLifecycleSource:find("function BETTERUI%.Banking%.Class:OnSceneShowing", 1, false)
 local registerIndex = sceneLifecycleSource:find("RegisterGuildBankSceneEvents%(GuildBank%)", onSceneShowingIndex or 1, false)
 local selectIndex = sceneLifecycleSource:find("ZO_SharedInventory_SelectAccessibleGuildBank%(guildId%)", onSceneShowingIndex or 1, false)
@@ -981,6 +1015,45 @@ assertTrue(registerIndex ~= nil and selectIndex ~= nil and registerIndex < selec
     "Guild bank scene registers ready/update handlers before native guild-bank selection")
 assertTrue(sceneLifecycleSource:find("RegisterGuildBankSceneEvents%(GuildBank%)", registerIndex + 1, false) == nil,
     "Guild bank scene registers ready/update handlers once during scene showing")
+assertTrue(bankListManagerSource:find("GuildBank%.GetListPermissionDenial%(self%.currentMode%)") ~= nil,
+    "Guild bank list resolves total active-mode permission denial")
+assertTrue(bankListManagerSource:find("SetNoItemText%(permissionDenial%.text%)") ~= nil,
+    "Guild bank list displays the localized permission denial instead of a synthetic currency row")
+
+resetGuildBankState()
+bankingBag = BAG_GUILDBANK
+BETTERUI.Banking.RuntimeState.currentUsedBank = BAG_GUILDBANK
+selectedGuildId = 90
+permissionMatrix[90] = {
+    [GUILD_PERMISSION_BANK_DEPOSIT] = false,
+    [GUILD_PERMISSION_BANK_WITHDRAW] = false,
+}
+local permissionList = {
+    addedEntries = 0,
+    IsActive = function() return false end,
+    Deactivate = function() end,
+    Clear = function() end,
+    AddEntry = function(self) self.addedEntries = self.addedEntries + 1 end,
+    SetNoItemText = function(self, text) self.noItemText = text end,
+    Commit = function(self) self.committed = true end,
+}
+local permissionWindow = {
+    list = permissionList,
+    currentMode = BETTERUI.Banking.LIST_WITHDRAW,
+    UpdateActions = function(self) self.actionsUpdated = true end,
+    RefreshFooter = function(self) self.footerRefreshed = true end,
+}
+BETTERUI.Banking.Class.RefreshList(permissionWindow)
+assertEqual("No withdraw", permissionList.noItemText,
+    "Inaccessible guild bank renders the localized permission message")
+assertEqual(0, permissionList.addedEntries,
+    "Inaccessible guild bank does not add currency or item rows")
+assertTrue(permissionList.committed == true,
+    "Inaccessible guild bank commits its permission empty-state")
+assertTrue(permissionWindow.actionsUpdated == true,
+    "Inaccessible guild bank clears stale item actions")
+assertTrue(permissionWindow.footerRefreshed == true,
+    "Inaccessible guild bank refreshes footer state")
 
 resetGuildBankState()
 bankingBag = BAG_GUILDBANK
@@ -998,6 +1071,31 @@ assertEqual(55, selectedGuildBankDuringScene, "Guild scene selects the current g
 assertTrue(activeWindow.readySawBankCategories == true, "Synchronous guild ready sees initialized categories")
 assertEqual(1, activeWindow.readySawCurrentCategoryIndex, "Synchronous guild ready sees initialized category index")
 assertTrue((activeWindow.readySawHeaderRebuiltCount or 0) >= 1, "Synchronous guild ready sees rebuilt header categories")
+assertEqual(1, activeWindow.refreshListCount,
+    "Synchronous guild ready is not followed by a duplicate fallback refresh")
+ZO_SharedInventory_SelectAccessibleGuildBank = nil
+
+resetGuildBankState()
+bankingBag = BAG_GUILDBANK
+local zeroSavedGuildIdPassedToSelector = nil
+ZO_SharedInventory_SelectAccessibleGuildBank = function(guildId)
+    zeroSavedGuildIdPassedToSelector = guildId
+    selectedGuildId = 55
+end
+BETTERUI.Banking.Class.OnSceneShowing(activeWindow, true)
+assertEqual(0, zeroSavedGuildIdPassedToSelector,
+    "Guild scene delegates a zero saved ID to the native accessible-guild fallback")
+assertTrue(activeWindow.refreshListCount >= 1,
+    "Guild scene immediately refreshes cached guild-bank data without waiting for ITEMS_READY")
+local delayedSelectedHandler = eventRegistrations[
+    BETTERUI_GUILD_BANKING_SCENE_NAME .. ":" .. tostring(EVENT_GUILD_BANK_SELECTED)]
+assertTrue(type(delayedSelectedHandler) == "function",
+    "Guild selected handler remains registered for delayed native selection")
+delayedSelectedHandler()
+assertFalse(BETTERUI.Banking.GuildBank.IsLoading(),
+    "Delayed guild selected event cannot strand loading when ITEMS_READY is absent")
+assertFalse(activeWindow._suppressListUpdates,
+    "Delayed guild selected event cannot strand list suppression when ITEMS_READY is absent")
 ZO_SharedInventory_SelectAccessibleGuildBank = nil
 
 local callbacks = lifecycleRegistrations[1].callbacks

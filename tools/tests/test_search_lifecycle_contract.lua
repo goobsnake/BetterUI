@@ -438,6 +438,7 @@ do
 
     local addedGroups = {}
     local scheduled = {}
+    local exitOrder = {}
     BETTERUI.Banking = {
         Class = {},
         EnsureKeybindGroupAdded = function(group)
@@ -454,7 +455,9 @@ do
     BETTERUI.Interface.RemoveOwnedKeybindGroups = function()
         return { "removed-core" }
     end
-    BETTERUI.Interface.RestoreKeybindGroups = function() end
+    BETTERUI.Interface.RestoreKeybindGroups = function()
+        exitOrder[#exitOrder + 1] = "restore"
+    end
     BETTERUI.Interface.UpdateKeybindGroup = function() end
     KEYBIND_STRIP = {}
 
@@ -476,7 +479,10 @@ do
             active = false,
             IsActive = function(self) return self.active == true end,
             Activate = function(self) self.active = true end,
-            Deactivate = function(self) self.active = false end,
+            Deactivate = function(self)
+                self.active = false
+                exitOrder[#exitOrder + 1] = "deactivate"
+            end,
         },
         coreKeybinds = "bank-core",
         withdrawDepositKeybinds = "bank-transfer",
@@ -493,6 +499,12 @@ do
     local staleCleanup = scheduled.searchKeybindCleanup
     local searchAddCountAfterEnter = countSearchKeybindAdds()
     banking:ExitSearchMode()
+    assert_eq(exitOrder[1], "deactivate",
+        "Banking search exit pops header focus before restoring list keybind groups")
+    assert_true(addedGroups[#addedGroups - 1] == "bank-transfer",
+        "Banking fast search exit restores the transfer group even before deferred cleanup runs")
+    assert_true(addedGroups[#addedGroups] == "bank-core",
+        "Banking fast search exit restores the core group even before deferred cleanup runs")
     staleCleanup()
     assert_eq(countSearchKeybindAdds(), searchAddCountAfterEnter,
         "Banking stale search cleanup does not re-add the search keybind after exit")
@@ -503,6 +515,12 @@ do
     activeCleanup()
     assert_eq(countSearchKeybindAdds(), searchAddCountBeforeCleanup + 1,
         "Banking active search cleanup can add the search keybind for the current generation")
+    exitOrder = {}
+    banking:ExitSearchMode()
+    assert_eq(exitOrder[1], "deactivate",
+        "Banking normal search exit pops header focus before restoring list keybind groups")
+    assert_eq(exitOrder[2], "restore",
+        "Banking normal search exit restores removed groups only after the header state pop")
 
     BETTERUI.Banking = previousBanking
     KEYBIND_STRIP = previousKeybindStrip
