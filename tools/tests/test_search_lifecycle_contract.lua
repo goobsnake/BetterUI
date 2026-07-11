@@ -123,6 +123,10 @@ local function buildScreen()
         calls[#calls + 1] = "exit"
     end
 
+    function screen:SetTextSearchFocused(value)
+        calls[#calls + 1] = value and "focus" or "unfocus"
+    end
+
     function screen:IsHeaderFocused()
         calls[#calls + 1] = "headerActive"
         return self.headerActive == true
@@ -157,21 +161,37 @@ do
     assert_contains(calls, "clear", "canonical clear handler is invoked")
 end
 
--- Descriptor callbacks should use the canonical clear/exit contract instead of alias-only names.
+-- Search focus owns only Select, Back, and X Clear Search, matching the
+-- gamepad search contract instead of leaking list actions into header focus.
 do
     local screen, _, calls = buildScreen()
     local descriptors = BETTERUI.Interface.CreateSearchKeybindDescriptor(screen)
 
-    descriptors[2].callback()
-    assert_contains(calls, "clear", "negative keybind clears via canonical contract when query exists")
-
-    screen.searchQuery = ""
-    descriptors[2].callback()
-    assert_contains(calls, "exit", "negative keybind exits via canonical contract when query empty")
+    assert_eq(descriptors[1].alignment, KEYBIND_STRIP_ALIGN_LEFT,
+        "search Select keybind uses the left-aligned navigation lane")
+    assert_eq(descriptors[2].alignment, KEYBIND_STRIP_ALIGN_LEFT,
+        "search Back/Clear keybind stays adjacent to Select in the left-aligned lane")
 
     descriptors[1].callback()
+    assert_contains(calls, "focus", "primary keybind keeps focus in the search edit box")
+
+    descriptors[2].callback()
+    assert_contains(calls, "exit", "negative keybind always backs out of search focus")
+    assert_eq(screen.searchQuery, "needle", "negative keybind does not clear populated search text")
+
+    assert_eq(descriptors[3].keybind, "UI_SHORTCUT_SECONDARY",
+        "search clear action uses the gamepad X button")
+    assert_true(descriptors[3].visible(), "search clear action is visible while query text exists")
     descriptors[3].callback()
-    assert_contains(calls, "exit", "primary/down keybinds exit via canonical contract")
+    assert_contains(calls, "clear", "X clears search via the canonical contract")
+    assert_eq(screen.searchQuery, "", "X clear action resets the search query")
+
+    assert_true(not descriptors[3].visible(), "search clear action hides when the query is empty")
+    assert_true(descriptors[4] ~= nil, "search descriptor retains the down-navigation entry")
+    if descriptors[4] then
+        descriptors[4].callback()
+        assert_contains(calls, "exit", "down keybind exits via the canonical contract")
+    end
 end
 
 -- Edit-box focus handlers should use the canonical request-enter and exit methods.
@@ -437,12 +457,17 @@ do
     local previousKeybindStrip = KEYBIND_STRIP
 
     local addedGroups = {}
+    local removedGroups = {}
     local scheduled = {}
     local exitOrder = {}
+    local enterOrder = {}
     BETTERUI.Banking = {
         Class = {},
         EnsureKeybindGroupAdded = function(group)
             addedGroups[#addedGroups + 1] = group
+            if group == "bank-search" then
+                enterOrder[#enterOrder + 1] = "keybind"
+            end
         end,
         Tasks = {
             Schedule = function(_, name, _, callback)
@@ -451,7 +476,9 @@ do
             Cancel = function() end,
         },
     }
-    BETTERUI.Interface.RemoveKeybindGroupIfPresent = function() end
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent = function(group)
+        removedGroups[#removedGroups + 1] = group
+    end
     BETTERUI.Interface.RemoveOwnedKeybindGroups = function()
         return { "removed-core" }
     end
@@ -478,7 +505,10 @@ do
         textSearchHeaderFocus = {
             active = false,
             IsActive = function(self) return self.active == true end,
-            Activate = function(self) self.active = true end,
+            Activate = function(self)
+                self.active = true
+                enterOrder[#enterOrder + 1] = "focus"
+            end,
             Deactivate = function(self)
                 self.active = false
                 exitOrder[#exitOrder + 1] = "deactivate"
@@ -496,6 +526,10 @@ do
     }, { __index = BETTERUI.Banking.Class })
 
     banking:OnHeaderEntered()
+    assert_eq(enterOrder[1], "focus",
+        "Banking activates header focus before installing search keybind ownership")
+    assert_eq(enterOrder[2], "keybind",
+        "Banking installs search keybind ownership into the active header state")
     local staleCleanup = scheduled.searchKeybindCleanup
     local searchAddCountAfterEnter = countSearchKeybindAdds()
     banking:ExitSearchMode()
@@ -521,6 +555,41 @@ do
         "Banking normal search exit pops header focus before restoring list keybind groups")
     assert_eq(exitOrder[2], "restore",
         "Banking normal search exit restores removed groups only after the header state pop")
+
+    local preservedDuringRefresh = false
+    banking._searchModeActive = true
+    banking.SaveListPosition = function() end
+    banking.RefreshList = function(self)
+        preservedDuringRefresh = self._preserveSearchFocusDuringRefresh == true
+    end
+    banking:OnSearchTextChanged("h")
+    assert_true(preservedDuringRefresh,
+        "Banking text-driven list refresh preserves search keybind ownership")
+    assert_true(banking._preserveSearchFocusDuringRefresh ~= true,
+        "Banking clears the refresh-preservation guard after the list commit")
+
+    -- A stale search descriptor can still own B after focus teardown has already
+    -- cleared the mode flag. Exit must remain idempotent so that no-op Back
+    -- ownership is removed and the normal scene navigation group is reclaimed.
+    addedGroups = {}
+    removedGroups = {}
+    banking._searchModeActive = false
+    banking.textSearchHeaderFocus.active = false
+    banking:ExitSearchMode()
+    assert_contains(removedGroups, "bank-search",
+        "Banking stale search exit removes the descriptor that can swallow Back")
+    assert_contains(addedGroups, "bank-core",
+        "Banking stale search exit reclaims the normal Back navigation group")
+
+    local backCalls = 0
+    banking.searchQuery = ""
+    banking.CancelWithdrawDeposit = function()
+        backCalls = backCalls + 1
+    end
+    local staleDescriptors = BETTERUI.Interface.CreateSearchKeybindDescriptor(banking)
+    staleDescriptors[2].callback()
+    assert_eq(backCalls, 1,
+        "Banking stale search Back continues through the normal scene navigation callback")
 
     BETTERUI.Banking = previousBanking
     KEYBIND_STRIP = previousKeybindStrip

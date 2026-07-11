@@ -157,15 +157,17 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         -- Delegate even a zero saved ID to the native helper; it owns the
         -- accessible-guild fallback and selects the first available guild.
         local guildId = GuildBank.GetSelectedGuildId()
-        GuildBank.SetLoading(true)
+        GuildBank.BeginSceneSelection(guildId)
         if ZO_SharedInventory_SelectAccessibleGuildBank then
             ZO_SharedInventory_SelectAccessibleGuildBank(guildId)
         end
         -- Match the native gamepad scene's immediate RefreshGuildBank call.
-        -- ITEMS_READY remains authoritative for later asynchronous updates,
-        -- but cached data and same-guild re-entry must render without it.
+        -- This can render cached rows on same-guild re-entry, but deliberately
+        -- keeps loading/suppression intact until ITEMS_READY (or bounded recovery).
         if GuildBank.IsLoading() then
-            GuildBank.RefreshSelectedBankView()
+            BETTERUI.Banking.RefreshWindowView(self)
+            self:SetTitle(GuildBank.GetHeaderTitle())
+            self:RefreshCurrencyTooltip()
         end
 
         -- RefreshList owns the localized permission empty-state for the active mode.

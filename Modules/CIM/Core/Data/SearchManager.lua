@@ -199,30 +199,48 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
                 return HasVisibleSearchControl()
             end,
             callback = function()
-                BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "exit")
+                if context and type(context.SetTextSearchFocused) == "function" then
+                    context:SetTextSearchFocused(true)
+                else
+                    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "requestEnter")
+                end
             end,
         },
         {
             name = function()
-                local hasText = context and context.searchQuery and tostring(context.searchQuery) ~= ""
-                if hasText then
-                    return GetString(rawget(_G, "SI_BETTERUI_CLEAR_SEARCH")) or GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION"))
-                end
                 return GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION"))
             end,
-            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            -- Match ESOUI's parametric search descriptor: Back/Clear belongs in
+            -- the same left navigation lane as Select so the pair stays adjacent.
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
             keybind = "UI_SHORTCUT_NEGATIVE",
             disabledDuringSceneHiding = true,
             visible = function()
                 return HasVisibleSearchControl()
             end,
             callback = function()
-                local hasText = HasSearchText()
-                if hasText then
-                    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "clear")
-                else
-                    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "exit")
+                local exitedActiveSearch = BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "exit")
+                -- A descriptor displaced into the list state can still receive
+                -- Back after search focus has already ended. Let scene-specific
+                -- contexts complete their normal Back action after cleanup.
+                if exitedActiveSearch == false and context
+                    and type(context.HandleSearchBackFallback) == "function" then
+                    context:HandleSearchBackFallback()
                 end
+            end,
+        },
+        {
+            name = function()
+                return GetString(rawget(_G, "SI_BETTERUI_CLEAR_SEARCH"))
+            end,
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            keybind = "UI_SHORTCUT_SECONDARY",
+            disabledDuringSceneHiding = true,
+            visible = function()
+                return HasVisibleSearchControl() and HasSearchText()
+            end,
+            callback = function()
+                BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "clear")
             end,
         },
         {

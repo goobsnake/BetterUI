@@ -6,6 +6,7 @@ BETTERUI.Banking.GuildBank = {}
 local GuildBank = BETTERUI.Banking.GuildBank
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT = BETTERUI.Banking.LIST_DEPOSIT
+local GUILD_SELECTION_RECOVERY_DELAY_MS = 2000
 local ProtectionPolicy = assert(
     BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy,
     "BetterUI: CIM.ProtectionPolicy must load before Banking/Core/GuildBankAdapter"
@@ -34,11 +35,22 @@ local function GetGuildBankRuntimeState()
     end
 
     BETTERUI.Banking.RuntimeState = BETTERUI.Banking.RuntimeState or {}
-    BETTERUI.Banking.RuntimeState.guildBank = BETTERUI.Banking.RuntimeState.guildBank or { isLoading = false }
+    BETTERUI.Banking.RuntimeState.guildBank = BETTERUI.Banking.RuntimeState.guildBank or {
+        isLoading = false,
+        pendingGuildId = 0,
+    }
     if BETTERUI.Banking.RuntimeState.guildBank.isLoading == nil then
         BETTERUI.Banking.RuntimeState.guildBank.isLoading = false
     end
     return BETTERUI.Banking.RuntimeState.guildBank
+end
+
+
+local function GetActiveGuildBankId()
+    if GetSelectedGuildBankId then
+        return GetSelectedGuildBankId() or 0
+    end
+    return 0
 end
 
 local function ReadTransferContextSnapshot()
@@ -77,9 +89,17 @@ function GuildBank.IsGuildBankMode()
 end
 
 function GuildBank.GetSelectedGuildId()
-    -- U50 API: GetSelectedGuildBankId() is the canonical accessor.
-    if GetSelectedGuildBankId then
-        return GetSelectedGuildBankId() or 0
+    -- The native accessor is authoritative once selection completes. During
+    -- scene entry it legitimately returns zero, so retain the requested guild
+    -- and then fall back to the selector manager's saved preference, matching
+    -- ZO_GuildBank_Gamepad:OnSceneShowing.
+    local activeGuildId = GetActiveGuildBankId()
+    if activeGuildId > 0 then
+        return activeGuildId
+    end
+    local pendingGuildId = GetGuildBankRuntimeState().pendingGuildId or 0
+    if pendingGuildId > 0 then
+        return pendingGuildId
     end
     if ZO_GUILD_SELECTOR_MANAGER and ZO_GUILD_SELECTOR_MANAGER.GetSelectedGuildBankId then
         return ZO_GUILD_SELECTOR_MANAGER:GetSelectedGuildBankId() or 0
@@ -184,9 +204,9 @@ function GuildBank.GetGoldPermissionDenial(mode)
     end
 
     if mode == LIST_DEPOSIT and not GuildBank.CanDepositGold() then
-        -- CanDepositGold fails on the guild-level deposit privilege (guild too
-        -- small), so use the privilege-specific denial string.
-        local stringId = rawget(_G, "SI_INVENTORY_ERROR_GUILD_BANK_NO_DEPOSIT_PRIVILEGES")
+        -- The gamepad string owns the localized member-count placeholder used by
+        -- the native guild-bank scene.
+        local stringId = rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS")
         return {
             reason = reasonCode,
             stringId = stringId,
@@ -247,7 +267,7 @@ function GuildBank.GetHeaderTitle()
         local guildName = GuildBank.GetSelectedGuildName()
         local formatId = rawget(_G, "SI_BETTERUI_GUILD_BANK_TITLE_FORMAT")
         local title = formatId and zo_strformat(GetString(formatId), guildName)
-            or (guildName .. " Bank")
+            or (guildName .. " - " .. GetString(rawget(_G, "SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER")))
         return "|c0066FF" .. title .. "|r"
     end
     return "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r"
@@ -266,11 +286,47 @@ function GuildBank.SetLoading(loading)
     })
 end
 
+local function ScheduleSelectionRecovery(requestedGuildId, selectionGeneration)
+    if not zo_callLater then return end
+    zo_callLater(function()
+        local runtimeState = GetGuildBankRuntimeState()
+        if runtimeState.selectionGeneration ~= selectionGeneration
+            or not GuildBank.IsLoading() then
+            return
+        end
+
+        local activeGuildId = GetActiveGuildBankId()
+        local selectionMatches = activeGuildId > 0
+            and (not requestedGuildId or requestedGuildId <= 0 or activeGuildId == requestedGuildId)
+        if not selectionMatches then
+            -- The request was rejected or never became active. Drop its pending
+            -- identity before restoring the prior/empty bank context.
+            runtimeState.pendingGuildId = 0
+        end
+        TraceGuildBank("bank.guild_selector", "selection_recovered", {
+            fn = "ScheduleSelectionRecovery",
+            requestedGuildId = requestedGuildId,
+            activeGuildId = activeGuildId,
+            selectionMatches = selectionMatches,
+            reason = "nativeEventTimeout",
+        })
+        GuildBank.RefreshSelectedBankView()
+    end, GUILD_SELECTION_RECOVERY_DELAY_MS)
+end
+
+function GuildBank.BeginSceneSelection(guildBankId)
+    local runtimeState = GetGuildBankRuntimeState()
+    runtimeState.pendingGuildId = guildBankId and guildBankId > 0 and guildBankId or 0
+    runtimeState.selectionGeneration = (runtimeState.selectionGeneration or 0) + 1
+    GuildBank.SetLoading(true)
+    ScheduleSelectionRecovery(guildBankId, runtimeState.selectionGeneration)
+end
+
 function GuildBank.ChangeGuildBank(guildBankId)
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.ACTION, "change guild bank", { guildId = guildBankId })
     end
-    local currentGuildId = GetSelectedGuildBankId()
+    local currentGuildId = GetActiveGuildBankId()
     TraceGuildBank("bank.guild_selector", "change_requested", {
         fn = "GuildBank.ChangeGuildBank",
         requestedGuildId = guildBankId,
@@ -278,20 +334,41 @@ function GuildBank.ChangeGuildBank(guildBankId)
         changed = guildBankId ~= currentGuildId,
     })
     if guildBankId ~= currentGuildId then
+        local runtimeState = GetGuildBankRuntimeState()
+        runtimeState.pendingGuildId = guildBankId
+        runtimeState.selectionGeneration = (runtimeState.selectionGeneration or 0) + 1
+        local selectionGeneration = runtimeState.selectionGeneration
         GuildBank.SetLoading(true)
-        if ZO_GUILD_SELECTOR_MANAGER and ZO_GUILD_SELECTOR_MANAGER.SetSelectedGuildBankId then
-            ZO_GUILD_SELECTOR_MANAGER:SetSelectedGuildBankId(guildBankId)
+        local selectorManager = ZO_GUILD_SELECTOR_MANAGER
+        local managerReady = selectorManager ~= nil
+            and (not selectorManager.IsReady or selectorManager:IsReady())
+        if managerReady and selectorManager.SetSelectedGuildBankId then
+            selectorManager:SetSelectedGuildBankId(guildBankId)
             TraceGuildBank("bank.guild_selector", "native_selection_set", {
                 fn = "GuildBank.ChangeGuildBank",
                 requestedGuildId = guildBankId,
+                path = "selectorManager",
+            })
+        elseif SelectGuildBank then
+            -- ZO_GuildSelectorManager intentionally no-ops until it is ready.
+            -- The engine selector is the native fallback used by shared inventory.
+            SelectGuildBank(guildBankId)
+            TraceGuildBank("bank.guild_selector", "native_selection_set", {
+                fn = "GuildBank.ChangeGuildBank",
+                requestedGuildId = guildBankId,
+                path = "engineFallback",
+                managerReady = managerReady,
             })
         else
+            runtimeState.pendingGuildId = 0
+            GuildBank.SetLoading(false)
             TraceGuildBank("bank.guild_selector", "native_selection_skipped", {
                 fn = "GuildBank.ChangeGuildBank",
-                reason = "missingGuildSelectorManager",
+                reason = "missingNativeSelector",
                 requestedGuildId = guildBankId,
             })
         end
+        ScheduleSelectionRecovery(guildBankId, selectionGeneration)
     else
         TraceGuildBank("bank.guild_selector", "change_skipped", {
             fn = "GuildBank.ChangeGuildBank",
@@ -301,29 +378,23 @@ function GuildBank.ChangeGuildBank(guildBankId)
     end
 end
 
-function GuildBank.OnGuildBankSelected()
+function GuildBank.OnGuildBankSelected(_, guildId)
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "guild bank selected")
     end
+    local runtimeState = GetGuildBankRuntimeState()
+    runtimeState.selectionGeneration = (runtimeState.selectionGeneration or 0) + 1
+    if guildId and guildId > 0 then
+        runtimeState.pendingGuildId = guildId
+    end
     GuildBank.SetLoading(true)
+    ScheduleSelectionRecovery(guildId or GuildBank.GetSelectedGuildId(), runtimeState.selectionGeneration)
     local window = BETTERUI.Banking.GetWindow()
     if window then
         if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearTooltip then
             GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
         end
         window:SetListUpdatesSuppressed(true)
-    end
-    local selectedGuildId = GuildBank.GetSelectedGuildId()
-    if zo_callLater then
-        zo_callLater(function()
-            if GuildBank.IsLoading()
-                and GuildBank.IsGuildBankMode()
-                and (not BETTERUI.Utils or not BETTERUI.Utils.IsBankingSceneShowing
-                    or BETTERUI.Utils.IsBankingSceneShowing())
-                and GuildBank.GetSelectedGuildId() == selectedGuildId then
-                GuildBank.RefreshSelectedBankView()
-            end
-        end, 0)
     end
     TraceGuildBank("bank.guild_bank", "selected", {
         fn = "GuildBank.OnGuildBankSelected",
@@ -352,6 +423,10 @@ end
 --- selection, so this path must not depend exclusively on ITEMS_READY firing.
 ---@return nil
 function GuildBank.RefreshSelectedBankView()
+    local runtimeState = GetGuildBankRuntimeState()
+    if GetActiveGuildBankId() > 0 then
+        runtimeState.pendingGuildId = 0
+    end
     GuildBank.SetLoading(false)
     local window = BETTERUI.Banking.GetWindow()
     if window then
@@ -373,6 +448,9 @@ function GuildBank.OnGuildBankReady()
     if BETTERUI.Log then
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "guild bank ready")
     end
+    local runtimeState = GetGuildBankRuntimeState()
+    runtimeState.selectionGeneration = (runtimeState.selectionGeneration or 0) + 1
+    runtimeState.pendingGuildId = 0
     GuildBank.RefreshSelectedBankView()
     local window = BETTERUI.Banking.GetWindow()
     TraceGuildBank("bank.guild_bank", "ready", {
@@ -405,6 +483,9 @@ end
 --- Called when guild bank open fails. Clears loading state.
 ---@return nil
 function GuildBank.OnGuildBankOpenError()
+    local runtimeState = GetGuildBankRuntimeState()
+    runtimeState.selectionGeneration = (runtimeState.selectionGeneration or 0) + 1
+    runtimeState.pendingGuildId = 0
     GuildBank.SetLoading(false)
     local window = BETTERUI.Banking.GetWindow()
     if window then
@@ -447,7 +528,7 @@ end
 ---@param _ any Unused event parameter
 ---@param guildId integer The guild whose ranks changed
 function GuildBank.OnGuildRanksChanged(_, guildId)
-    if guildId == GetSelectedGuildBankId() then
+    if guildId == GuildBank.GetSelectedGuildId() then
         local window = BETTERUI.Banking.GetWindow()
         if window then
             if window.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup then
@@ -466,7 +547,7 @@ function GuildBank.OnGuildRanksChanged(_, guildId)
         TraceGuildBank("bank.guild_permissions", "ranks_changed_skipped", {
             fn = "GuildBank.OnGuildRanksChanged",
             guildId = guildId,
-            selectedGuildId = GetSelectedGuildBankId(),
+            selectedGuildId = GuildBank.GetSelectedGuildId(),
             reason = "notSelectedGuild",
         })
     end
@@ -477,7 +558,7 @@ end
 ---@param guildId integer The guild where the rank changed
 ---@param displayName string The member's display name
 function GuildBank.OnGuildMemberRankChanged(_, guildId, displayName)
-    if guildId == GetSelectedGuildBankId() and displayName == GetDisplayName() then
+    if guildId == GuildBank.GetSelectedGuildId() and displayName == GetDisplayName() then
         local window = BETTERUI.Banking.GetWindow()
         if window then
             if window.coreKeybinds and BETTERUI.Interface and BETTERUI.Interface.UpdateKeybindGroup then
@@ -568,7 +649,9 @@ function GuildBank.RegisterGuildSelectorDialog()
             text = GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL")),
         },
         setup = function(dialog)
-            local currentGuildId = GetSelectedGuildBankId()
+            -- The engine active ID is zero during scene entry and selection
+            -- handoff; the adapter also knows the pending/saved guild identity.
+            local currentGuildId = GuildBank.GetSelectedGuildId()
             local parametricList = {}
             local numGuilds = GetNumGuilds()
             for i = 1, numGuilds do

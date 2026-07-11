@@ -132,6 +132,26 @@ local function InstallGuildBankFallbackRedirect(eventId, suffix, source)
 end
 
 local function InstallGuildBankSceneRedirect()
+    -- The native gamepad guild-bank control also listens for EVENT_OPEN_GUILD_BANK
+    -- and shows gamepad_guild_bank. Replacing that ZO_InteractScene one frame
+    -- later hides it and ends the shared guild-bank interaction before our scene
+    -- can select a guild. BetterUI owns the open event while this replacement is
+    -- enabled, matching the existing vendor-scene takeover contract.
+    local nativeGuildBank = rawget(_G, "GAMEPAD_GUILD_BANK")
+    local nativeControl = nativeGuildBank and nativeGuildBank.control or nil
+    if nativeControl and type(nativeControl.UnregisterForEvent) == "function" then
+        nativeControl:UnregisterForEvent(EVENT_OPEN_GUILD_BANK)
+        TraceBankState("bank.guild_scene_redirect", "native_open_suppressed", {
+            sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
+            nativeSceneName = "gamepad_guild_bank",
+        })
+    else
+        TraceBankState("bank.guild_scene_redirect", "native_open_suppression_skipped", {
+            reason = "missing_native_control",
+            sceneName = BETTERUI_GUILD_BANKING_SCENE_NAME,
+        })
+    end
+
     BETTERUI.CIM.Utils.InstallNativeSceneRedirect({
         namespace = GUILD_BANK_SCENE_REDIRECT_EVENT_NAME,
         openEventId = EVENT_OPEN_GUILD_BANK,
@@ -327,9 +347,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     if self.AddSearch then
         self:AddSearch(self.textSearchKeybindStripDescriptor, function(searchText)
-            self.searchQuery = searchText
-            self:SaveListPosition()
-            self:RefreshList()
+            self:OnSearchTextChanged(searchText)
         end)
         if self.PositionSearchControl then
             self:PositionSearchControl()
@@ -338,10 +356,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, {
         isSceneShowing = BETTERUI.Utils.IsBankingSceneShowing,
-        onTextChanged = function(window, txt)
-            window.searchQuery = txt
-            window:RefreshList()
-        end,
         enterHeaderFn = function(window)
             if window.RequestHeaderFocus then
                 window:RequestHeaderFocus()
@@ -370,6 +384,9 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     local function SelectionChangedCallback(list, selectedData)
         if self._searchModeActive and self.list and self.list.IsActive and self.list:IsActive() then
+            if self._preserveSearchFocusDuringRefresh then
+                return
+            end
             if selectedData and self.selectedDataCallback then
                 local selectedControl = list:GetSelectedControl()
                 self:selectedDataCallback(selectedControl, selectedData)

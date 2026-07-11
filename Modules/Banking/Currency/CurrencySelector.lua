@@ -113,20 +113,27 @@ end
 ---@return nil
 function CurrencySelector.RefreshCurrencyTooltip(self)
     if not BETTERUI.Utils.IsBankingSceneShowing() then return end
+    local GuildBank = BETTERUI.Banking.GuildBank
+    local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
     local list = self:GetList()
-    if not list or not list.selectedData or not list.selectedData.currencyType then return end
+    -- Guild identity, capacity, and banked gold are scene-level information and
+    -- must remain visible even when the selected guild has no item permission or
+    -- while its item rows are still loading. Personal-bank currency details stay
+    -- tied to the currency row.
+    if not isGuildBank
+        and (not list or not list.selectedData or not list.selectedData.currencyType) then
+        return
+    end
 
     GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_LEFT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_RIGHT_TOOLTIP)
 
-    local GuildBank = BETTERUI.Banking.GuildBank
-    if GuildBank and GuildBank.IsGuildBankMode() then
+    if isGuildBank then
         -- No LayoutBankCurrencies call here: U50 removed its currency-list
         -- argument, and the custom guild layout below rebuilds the tooltip
         -- from scratch (ClearLines) anyway.
         local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
         if not tooltip then return end
-        tooltip:ClearLines()
 
         local guildId = GuildBank.GetSelectedGuildId()
         local guildName = GuildBank.GetSelectedGuildName()
@@ -177,6 +184,12 @@ function CurrencySelector.RefreshCurrencyTooltip(self)
         mainSection:AddSection(goldSection)
 
         tooltip:AddSection(mainSection)
+        -- Tooltip controls can remain hidden after the native guild-bank scene is
+        -- suppressed or after an empty/no-permission selection. The summary is
+        -- scene-level information, so make its pane visible explicitly.
+        if tooltip.SetHidden then
+            tooltip:SetHidden(false)
+        end
     else
         -- U50: LayoutBankCurrencies takes no currency-list argument.
         GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP)

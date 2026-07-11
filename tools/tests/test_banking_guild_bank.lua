@@ -15,6 +15,10 @@ BAG_BACKPACK = 1
 BAG_BANK = 2
 BAG_GUILDBANK = 3
 BAG_SUBSCRIBER_BANK = 6
+CURT_MONEY = 20
+CURT_TELVAR_STONES = 21
+CURT_ALLIANCE_POINTS = 22
+CURT_WRIT_VOUCHERS = 23
 
 GUILD_PERMISSION_BANK_DEPOSIT = 11
 GUILD_PERMISSION_BANK_WITHDRAW = 12
@@ -62,6 +66,9 @@ local testsFailed = 0
 local bankingBag = BAG_BANK
 local selectedGuildId = 0
 local selectorGuildId = 0
+local selectorReady = true
+local nativeSelectedGuildId = nil
+local scheduledCallbacks = {}
 local guildNames = {}
 local permissionMatrix = {}
 local privilegeMatrix = {}
@@ -97,6 +104,15 @@ local unregisteredEvents = {}
 local shownSceneName = nil
 local hiddenSceneName = nil
 local currentInteractionType = INTERACTION_GUILDBANK
+local nativeGuildBankControlUnregisters = {}
+
+GAMEPAD_GUILD_BANK = {
+    control = {
+        UnregisterForEvent = function(_, eventId)
+            nativeGuildBankControlUnregisters[#nativeGuildBankControlUnregisters + 1] = eventId
+        end,
+    },
+}
 
 local function assertTrue(condition, message)
     if condition then
@@ -157,6 +173,11 @@ function GetSelectedGuildBankId()
     return selectedGuildId
 end
 
+function SelectGuildBank(guildId)
+    nativeSelectedGuildId = guildId
+    selectedGuildId = guildId
+end
+
 function GetInteractionType()
     return currentInteractionType
 end
@@ -197,7 +218,11 @@ function GetString(id)
 end
 
 function zo_strformat(template, ...)
-    return string.format(template, ...)
+    local values = { ... }
+    local formatted = tostring(template):gsub("<<(%d+)>>", function(index)
+        return tostring(values[tonumber(index)] or "")
+    end)
+    return string.format(formatted, ...)
 end
 
 function ZO_ClearTable(tbl)
@@ -232,6 +257,9 @@ GUILD_BANK_SELECT = {
 }
 
 ZO_GUILD_SELECTOR_MANAGER = {
+    IsReady = function()
+        return selectorReady
+    end,
     GetSelectedGuildBankId = function()
         return selectorGuildId
     end,
@@ -636,8 +664,12 @@ CALLBACK_MANAGER = {
     UnregisterCallback = function() end,
 }
 
-function zo_callLater(callback)
-    callback()
+function zo_callLater(callback, delayMs)
+    if not delayMs or delayMs == 0 then
+        callback()
+        return
+    end
+    scheduledCallbacks[#scheduledCallbacks + 1] = { callback = callback, delayMs = delayMs }
 end
 
 function zo_removeCallLater(_)
@@ -669,6 +701,9 @@ local function resetGuildBankState()
     bankingBag = BAG_BANK
     selectedGuildId = 0
     selectorGuildId = 0
+    selectorReady = true
+    nativeSelectedGuildId = nil
+    scheduledCallbacks = {}
     guildNames = {}
     permissionMatrix = {}
     privilegeMatrix = {}
@@ -699,6 +734,10 @@ assertTrue(BETTERUI.Banking.GuildBank.IsGuildBankMode(), "Guild banking scene sh
 resetGuildBankState()
 selectedGuildId = 12
 assertEqual(12, BETTERUI.Banking.GuildBank.GetSelectedGuildId(), "Canonical GetSelectedGuildBankId API wins when available")
+selectedGuildId = 0
+selectorGuildId = 34
+assertEqual(34, BETTERUI.Banking.GuildBank.GetSelectedGuildId(),
+    "Selector preference is used while the native guild bank has not selected yet")
 -- U50: GetSelectedGuildBankId() is the canonical API; remove it to exercise fallbacks.
 local savedGetSelectedGuildBankId = GetSelectedGuildBankId
 GetSelectedGuildBankId = nil
@@ -714,6 +753,9 @@ GUILD_BANK_SELECT = {
     end,
 }
 ZO_GUILD_SELECTOR_MANAGER = {
+    IsReady = function()
+        return selectorReady
+    end,
     GetSelectedGuildBankId = function()
         return selectorGuildId
     end,
@@ -763,6 +805,11 @@ permissionMatrix[90][GUILD_PERMISSION_BANK_WITHDRAW_GOLD] = false
 assertEqual("No withdraw",
     BETTERUI.Banking.GuildBank.GetListPermissionDenial(BETTERUI.Banking.LIST_WITHDRAW).text,
     "Total guild withdraw denial supplies the localized empty-state message")
+local goldDepositDenial = BETTERUI.Banking.GuildBank.GetGoldPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT)
+assertEqual(SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS, goldDepositDenial.stringId,
+    "Guild gold deposit denial uses the gamepad localized string")
+assertEqual("No deposit 10", goldDepositDenial.text,
+    "Guild gold deposit denial formats the native member requirement")
 privilegeMatrix[90] = { [GUILD_PRIVILEGE_BANK_DEPOSIT] = true }
 assertEqual(nil, BETTERUI.Banking.GuildBank.GetListPermissionDenial(BETTERUI.Banking.LIST_DEPOSIT),
     "Guild deposit privilege keeps gold deposits available when item deposits are denied")
@@ -797,7 +844,7 @@ assertEqual("|c0066FFBank|r", BETTERUI.Banking.GuildBank.GetHeaderTitle(), "Pers
 bankingBag = BAG_GUILDBANK
 selectedGuildId = 55
 guildNames[55] = "Guild One"
-assertEqual("|c0066FFGuild One Bank|r", BETTERUI.Banking.GuildBank.GetHeaderTitle(), "Guild header includes guild name")
+assertEqual("|c0066FFGuild One - Guild Bank|r", BETTERUI.Banking.GuildBank.GetHeaderTitle(), "Guild header includes guild name")
 
 resetGuildBankState()
 assertFalse(BETTERUI.Banking.GuildBank.IsLoading(), "Guild bank loading starts false")
@@ -807,6 +854,48 @@ selectedGuildId = 10
 BETTERUI.Banking.GuildBank.ChangeGuildBank(11)
 assertEqual(11, selectedGuildId, "Changing guild bank updates selected guild ID")
 assertTrue(BETTERUI.Banking.GuildBank.IsLoading(), "Changing guild bank enables loading")
+
+resetGuildBankState()
+bankingBag = BAG_GUILDBANK
+selectedGuildId = 0
+selectorGuildId = 55
+selectorReady = false
+BETTERUI.Banking.GuildBank.ChangeGuildBank(88)
+assertEqual(88, nativeSelectedGuildId,
+    "Changing guild bank falls back to the native selector when the manager is not ready")
+assertTrue(BETTERUI.Banking.GuildBank.IsLoading(),
+    "Native selector fallback keeps loading active until the bank event completes")
+assertTrue(#scheduledCallbacks > 0,
+    "Guild selection arms a bounded recovery when native events do not arrive")
+if #scheduledCallbacks > 0 then
+    scheduledCallbacks[#scheduledCallbacks].callback()
+end
+assertFalse(BETTERUI.Banking.GuildBank.IsLoading(),
+    "Guild selection recovery restores keybind availability after a missing native event")
+assertFalse(BETTERUI.Banking.Window._suppressListUpdates,
+    "Guild selection recovery restores list input after a missing native event")
+assertTrue(updateKeybindCalls > 0,
+    "Guild selection recovery updates the live keybind group")
+
+resetGuildBankState()
+bankingBag = BAG_GUILDBANK
+selectedGuildId = 55
+selectorGuildId = 55
+selectorReady = false
+guildNames[55] = "Guild One"
+local savedSelectGuildBank = SelectGuildBank
+SelectGuildBank = function(guildId)
+    nativeSelectedGuildId = guildId
+end
+BETTERUI.Banking.GuildBank.ChangeGuildBank(88)
+scheduledCallbacks[#scheduledCallbacks].callback()
+assertEqual(55, BETTERUI.Banking.GuildBank.GetSelectedGuildId(),
+    "Rejected guild selection recovery drops the requested guild identity")
+assertFalse(BETTERUI.Banking.GuildBank.IsLoading(),
+    "Rejected guild selection recovery restores scene input")
+assertTrue(BETTERUI.Banking.Window.refreshListCount > 0,
+    "Rejected guild selection recovery refreshes the actual active guild")
+SelectGuildBank = savedSelectGuildBank
 
 resetGuildBankState()
 BETTERUI.Banking.GuildBank.OnGuildBankSelected()
@@ -850,6 +939,8 @@ resetGuildBankState()
 BETTERUI.Banking.GuildBank.OnGuildBankedMoneyUpdate()
 assertEqual(1, BETTERUI.Banking.Window.refreshListCount, "Money updates refresh the list")
 assertEqual(1, BETTERUI.Banking.Window.refreshFooterCount, "Money updates refresh the footer")
+assertEqual(1, BETTERUI.Banking.Window.refreshCurrencyTooltipCount,
+    "Money updates refresh the guild bank summary tooltip")
 
 resetGuildBankState()
 selectedGuildId = 77
@@ -881,6 +972,7 @@ resetGuildBankState()
 BETTERUI.Banking.GuildBank.RegisterGuildSelectorDialog()
 assertTrue(ESO_Dialogs.BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD ~= nil, "Guild selector dialog is registered")
 local dialog = ESO_Dialogs.BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD
+selectorGuildId = 88
 local setupInvoked = 0
 local fakeDialog
 fakeDialog = {
@@ -902,12 +994,14 @@ fakeDialog = {
 dialog.setup(fakeDialog)
 assertEqual(1, setupInvoked, "Dialog setup delegates to dialog setup function")
 assertTrue(fakeDialog.selectedByEval == true, "Dialog setup selects the active guild entry")
+assertTrue(fakeDialog.info.parametricList[2].entryData.isCurrentGuild == true,
+    "Dialog marks the selector manager's saved guild when the engine active ID is temporarily zero")
 selectedGuildId = 77
 guildNames[88] = "Guild Two"
 bankingBag = BAG_GUILDBANK
 dialog.buttons[1].callback(fakeDialog)
 assertEqual(88, selectedGuildId, "Dialog primary callback changes guild bank")
-assertEqual("|c0066FFGuild Two Bank|r", activeWindow.title, "Dialog callback refreshes title with current guild header")
+assertEqual("|c0066FFGuild Two - Guild Bank|r", activeWindow.title, "Dialog callback refreshes title with current guild header")
 
 print("\n=== Banking.Init ===\n")
 
@@ -924,6 +1018,7 @@ local function resetInitState(enableGuildBank)
     shownSceneName = nil
     hiddenSceneName = nil
     currentInteractionType = INTERACTION_GUILDBANK
+    nativeGuildBankControlUnregisters = {}
     activeWindow = createWindow()
     activeWindow.scene = { name = "window_personal_scene" }
     BETTERUI.Banking.Class.New = function()
@@ -963,6 +1058,8 @@ assertEqual(1, #lifecycleRegistrations, "Init registers guild bank lifecycle cal
 assertTrue(lifecycleRegistrations[1].scene == BETTERUI_GUILD_BANKING_SCENE, "Lifecycle registration targets guild scene")
 assertEqual("window_personal_scene", BETTERUI.Banking.Window.scene.name, "Init restores personal scene after lifecycle registration")
 assertTrue(SCENE_MANAGER.scenes["gamepad_guild_bank"] == vanillaGuildScene, "Init leaves the vanilla guild bank scene entry untouched")
+assertEqual(EVENT_OPEN_GUILD_BANK, nativeGuildBankControlUnregisters[1],
+    "Init suppresses the native guild-bank open listener before installing the BetterUI redirect")
 assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_OPEN_GUILD_BANK)] ~= nil,
     "Init registers a guild bank open redirect event")
 assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_CLOSE_GUILD_BANK)] ~= nil,
@@ -1042,6 +1139,7 @@ local permissionWindow = {
     currentMode = BETTERUI.Banking.LIST_WITHDRAW,
     UpdateActions = function(self) self.actionsUpdated = true end,
     RefreshFooter = function(self) self.footerRefreshed = true end,
+    RefreshCurrencyTooltip = function(self) self.tooltipRefreshed = true end,
 }
 BETTERUI.Banking.Class.RefreshList(permissionWindow)
 assertEqual("No withdraw", permissionList.noItemText,
@@ -1054,6 +1152,40 @@ assertTrue(permissionWindow.actionsUpdated == true,
     "Inaccessible guild bank clears stale item actions")
 assertTrue(permissionWindow.footerRefreshed == true,
     "Inaccessible guild bank refreshes footer state")
+assertTrue(permissionWindow.tooltipRefreshed == true,
+    "Inaccessible guild bank still renders the selected guild summary tooltip")
+
+permissionMatrix[90][GUILD_PERMISSION_BANK_WITHDRAW_GOLD] = true
+local goldOnlyList = {
+    addedEntries = 0,
+    dataList = {},
+    IsActive = function() return false end,
+    Deactivate = function() end,
+    Activate = function() end,
+    Clear = function() end,
+    AddEntry = function(self) self.addedEntries = self.addedEntries + 1 end,
+    SetNoItemText = function() end,
+    Commit = function() end,
+}
+local goldOnlyWindow = {
+    list = goldOnlyList,
+    currentMode = BETTERUI.Banking.LIST_WITHDRAW,
+    currentCategoryIndex = 1,
+    bankCategories = { { key = "all", name = "All Items" } },
+    _categoryScanSlotData = { frame = 1, bags = { BAG_GUILDBANK }, data = {} },
+    ReturnToSaved = function() end,
+    UpdateActions = function() end,
+    RefreshFooter = function() end,
+}
+local savedFrameTime = GetFrameTimeMilliseconds
+local savedBuildCurrencyEntry = BETTERUI.Banking.BuildCurrencyTransferEntryData
+GetFrameTimeMilliseconds = function() return 1 end
+BETTERUI.Banking.BuildCurrencyTransferEntryData = function() return { currencyType = CURT_MONEY } end
+BETTERUI.Banking.Class.RefreshList(goldOnlyWindow)
+GetFrameTimeMilliseconds = savedFrameTime
+BETTERUI.Banking.BuildCurrencyTransferEntryData = savedBuildCurrencyEntry
+assertEqual(1, goldOnlyList.addedEntries,
+    "Item-denied but gold-permitted guild bank renders its gold transfer row")
 
 resetGuildBankState()
 bankingBag = BAG_GUILDBANK
@@ -1092,10 +1224,15 @@ local delayedSelectedHandler = eventRegistrations[
 assertTrue(type(delayedSelectedHandler) == "function",
     "Guild selected handler remains registered for delayed native selection")
 delayedSelectedHandler()
+assertTrue(BETTERUI.Banking.GuildBank.IsLoading(),
+    "Guild selected event keeps accessible item banks loading until ITEMS_READY")
+assertTrue(activeWindow._suppressListUpdates,
+    "Guild selected event keeps item actions suppressed until ITEMS_READY")
+scheduledCallbacks[#scheduledCallbacks].callback()
 assertFalse(BETTERUI.Banking.GuildBank.IsLoading(),
-    "Delayed guild selected event cannot strand loading when ITEMS_READY is absent")
+    "Bounded recovery restores loading when ITEMS_READY is absent")
 assertFalse(activeWindow._suppressListUpdates,
-    "Delayed guild selected event cannot strand list suppression when ITEMS_READY is absent")
+    "Bounded recovery restores list input when ITEMS_READY is absent")
 ZO_SharedInventory_SelectAccessibleGuildBank = nil
 
 local callbacks = lifecycleRegistrations[1].callbacks
@@ -1124,6 +1261,8 @@ assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(
     "Init skips guild bank open redirect when disabled")
 assertTrue(eventRegistrations["BETTERUI_GUILD_BANK_SCENE_REDIRECT:" .. tostring(EVENT_CLOSE_GUILD_BANK)] == nil,
     "Init skips guild bank close redirect when disabled")
+assertEqual(0, #nativeGuildBankControlUnregisters,
+    "Init leaves the native guild-bank open listener registered when BetterUI guild bank is disabled")
 assertEqual(1, refreshManagerCalls, "Shared init steps still run when guild bank disabled")
 
 print("\n=== Test Summary ===")

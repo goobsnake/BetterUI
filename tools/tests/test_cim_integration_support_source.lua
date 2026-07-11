@@ -439,6 +439,7 @@ do
     local descriptors = BETTERUI.Interface.CreateSearchKeybindDescriptor(searchContext)
     descriptors[1].callback()
     descriptors[2].callback()
+    descriptors[3].callback()
     searchContext.searchQuery = ""
     descriptors[2].callback()
 
@@ -476,7 +477,7 @@ do
     })
     editBox.handlers.OnFocusGained(editBox)
 
-    assert_eq(table.concat(lifecycleCalls, ","), "exit,clear,exit,requestEnter,requestEnter",
+    assert_eq(table.concat(lifecycleCalls, ","), "requestEnter,exit,clear,exit,requestEnter,requestEnter",
         "SearchMixin routes search descriptor callbacks and focus registration through the canonical lifecycle")
 end
 

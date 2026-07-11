@@ -42,6 +42,7 @@ local stowAllFurnitureCount = 0
 local releasedDialogCount = 0
 local setJunkCalls = {}
 local linkedItems = {}
+local dialogShowing = false
 
 local function assertTrue(condition, message)
     if condition then
@@ -70,6 +71,11 @@ local function resetState()
     releasedDialogCount = 0
     setJunkCalls = {}
     linkedItems = {}
+    dialogShowing = false
+end
+
+function ZO_Dialogs_IsShowingDialog()
+    return dialogShowing
 end
 
 local function findEntryByFlag(entries, flag)
@@ -230,6 +236,20 @@ BETTERUI = {
         Class = {},
     },
     CIM = {
+        DialogRestore = {
+            Schedule = function(_, tryFn, options)
+                local completed = tryFn(options.taskName, 1)
+                if not completed then
+                    scheduledTasks[options.taskName] = {
+                        delay = 50,
+                        callback = function()
+                            return tryFn(options.taskName, 0)
+                        end,
+                    }
+                end
+                return completed
+            end,
+        },
         HeaderNavigation = {
             GetOrCreateState = function(self)
                 self.headerNavigationState = self.headerNavigationState or {}
@@ -492,7 +512,16 @@ assertEqual(1, stowAllFurnitureCount, "Action dialog can stow all furniture")
 
 sceneShowing = true
 window.isInHeaderSortMode = false
+dialogShowing = true
 callbackHandlers.BETTERUI_EVENT_ACTION_DIALOG_FINISH(dialog)
+assertEqual(0, window.addKeybindsCount,
+    "Action dialog finish waits for the dialog keybind state to pop")
+assertTrue(scheduledTasks.bankingActionDialogRestore ~= nil,
+    "Action dialog finish schedules a bounded ownership restore")
+dialogShowing = false
+if scheduledTasks.bankingActionDialogRestore then
+    scheduledTasks.bankingActionDialogRestore.callback()
+end
 assertEqual(1, window.addKeybindsCount, "Action dialog finish restores banking keybinds")
 
 print("\n=== Test Summary ===")

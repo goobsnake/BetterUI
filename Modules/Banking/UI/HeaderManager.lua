@@ -43,6 +43,16 @@ function BETTERUI.Banking.Class:UpdateHeaderTitle()
         titleText = GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE"))
     end
 
+    local GuildBank = BETTERUI.Banking.GuildBank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        local guildTitle = GuildBank.GetHeaderTitle()
+        if cat and cat.name then
+            titleText = zo_strformat("<<1>> - <<2>>", guildTitle, cat.name)
+        else
+            titleText = guildTitle
+        end
+    end
+
     if self.SetTitle then
         self:SetTitle(titleText)
     elseif self.titleControl and self.titleControl.SetText then
@@ -81,17 +91,28 @@ function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
         return
     end
 
-    if tabBar.Activate and not tabBar.active then
+    local descriptor = tabBar.keybindStripDescriptor
+    local hasKeybindGroup = BETTERUI.Interface and BETTERUI.Interface.HasKeybindGroup
+    local carouselMissing = descriptor and hasKeybindGroup and not hasKeybindGroup(descriptor)
+
+    -- Parametric dialogs pop a keybind-state snapshot after their finish callback.
+    -- That can leave tabBar.active stale-true while its ethereal LB/RB group is
+    -- absent. A real lifecycle cycle reclaims ownership without duplicating it.
+    if carouselMissing and tabBar.Deactivate and tabBar.Activate then
+        tabBar:Deactivate()
+        tabBar:Activate()
+    elseif tabBar.Activate and not tabBar.active then
         tabBar:Activate()
     end
 
-    if tabBar.keybindStripDescriptor then
-        BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
+    if descriptor then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     end
     TraceBankHeader("bank.header_keybinds", "active", {
         fn = "EnsureHeaderKeybindsActive",
         activated = tabBar.Activate ~= nil,
-        hasDescriptor = tabBar.keybindStripDescriptor ~= nil,
+        hasDescriptor = descriptor ~= nil,
+        carouselMissing = carouselMissing == true,
     })
 end
 

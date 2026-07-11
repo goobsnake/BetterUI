@@ -210,6 +210,17 @@ local function UpdateKeybindsForSelection(self, isCurrencyRow)
         return
     end
 
+    local searchModeActive = self._searchModeActive == true
+        or (self.IsHeaderFocused and self:IsHeaderFocused() == true)
+    if searchModeActive then
+        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.selection_keybinds", "skipped", {
+                reason = "searchFocus",
+            })
+        end
+        return
+    end
+
     local selectionModeActive = self.multiSelectManager and self.multiSelectManager:IsActive()
     if selectionModeActive then
         isCurrencyRow = false

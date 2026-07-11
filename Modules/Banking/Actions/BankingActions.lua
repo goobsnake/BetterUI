@@ -355,7 +355,24 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function ActionDialogFinish(dialog)
         UnregisterDialogSelectionCallback(dialog)
         local closeCause = dialog and dialog._betteruiCloseCause or "dismissed"
-        if BETTERUI.Utils.IsBankingSceneShowing() then
+        local waitLogged = false
+        local function RestoreBankingAfterDialog()
+            if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
+                if not waitLogged then
+                    waitLogged = true
+                    TraceBankingActionDialog("bank.action_dialog.finish", "waiting", {
+                        mode = self.currentMode,
+                        closeCause = closeCause,
+                        reason = "dialogShowing",
+                    })
+                end
+                return false
+            end
+
+            if not BETTERUI.Utils.IsBankingSceneShowing() then
+                return true
+            end
+
             local pendingHeaderSort = self._pendingHeaderSortFromDialog == true
             if BETTERUI.Log then
                 BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "bank dialog finish restore", {
@@ -387,6 +404,25 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 skippedKeybindRestore = pendingHeaderSort,
                 main = BETTERUI.Log and BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
             })
+            return true
+        end
+
+        local dialogRestore = BETTERUI.CIM and BETTERUI.CIM.DialogRestore
+        if dialogRestore and dialogRestore.Schedule then
+            dialogRestore.Schedule(self, RestoreBankingAfterDialog, {
+                taskName = "bankingActionDialogRestore",
+                sequenceKey = "bankingActionDialogRestore",
+                onAbandon = function(retryTaskName)
+                    TraceBankingActionDialog("bank.action_dialog.finish", "abandoned", {
+                        mode = self.currentMode,
+                        closeCause = closeCause,
+                        reason = "retryExhausted",
+                        retryTaskName = retryTaskName,
+                    })
+                end,
+            })
+        else
+            RestoreBankingAfterDialog()
         end
     end
 

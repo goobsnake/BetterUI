@@ -51,12 +51,14 @@ function BETTERUI.Banking.Class:EnterSearchMode()
         self:ExitHeaderSortMode()
     end
 
-    if self.textSearchKeybindStripDescriptor then
-        EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
-    end
-
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Activate and not self.textSearchHeaderFocus:IsActive() then
         self.textSearchHeaderFocus:Activate()
+    end
+
+    -- Header focus pushes its own keybind state. Install the search group only
+    -- after that state is active so A/B/X cannot be stranded in the list state.
+    if self.textSearchKeybindStripDescriptor then
+        EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
     end
 
     if self.SetTextSearchFocused then
@@ -65,7 +67,10 @@ function BETTERUI.Banking.Class:EnterSearchMode()
 end
 
 function BETTERUI.Banking.Class:ExitSearchMode()
-    if not self._searchModeActive then return end
+    local headerFocusActive = self.textSearchHeaderFocus
+        and self.textSearchHeaderFocus.IsActive
+        and self.textSearchHeaderFocus:IsActive() == true
+    local wasSearchActive = self._searchModeActive == true or headerFocusActive == true
     if BETTERUI.Banking.Tasks and BETTERUI.Banking.Tasks.Cancel then
         BETTERUI.Banking.Tasks:Cancel("searchKeybindCleanup")
     end
@@ -85,6 +90,13 @@ function BETTERUI.Banking.Class:ExitSearchMode()
 
     if self.SetTextSearchFocused then
         self:SetTextSearchFocused(false)
+    end
+
+    -- Scene teardown also calls this method after clearing the mode flag. In
+    -- that state remove stale search ownership, but never re-add list keybinds.
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        self._searchRemovedKeybindGroups = nil
+        return wasSearchActive
     end
 
     local restoredGroups = {}
@@ -109,6 +121,13 @@ function BETTERUI.Banking.Class:ExitSearchMode()
 
     self:EnsureHeaderKeybindsActive()
     self:UpdateActions()
+    return wasSearchActive
+end
+
+function BETTERUI.Banking.Class:HandleSearchBackFallback()
+    if self.CancelWithdrawDeposit then
+        self:CancelWithdrawDeposit(self.list)
+    end
 end
 
 function BETTERUI.Banking.Class:PositionSearchControl()
@@ -170,5 +189,11 @@ function BETTERUI.Banking.Class:OnSearchTextChanged(searchText)
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SEARCH, "search text changed", { query = searchText })
     end
     self.searchQuery = searchText
+    local previousPreserve = self._preserveSearchFocusDuringRefresh == true
+    self._preserveSearchFocusDuringRefresh = true
+    if self.SaveListPosition then
+        self:SaveListPosition()
+    end
     self:RefreshList()
+    self._preserveSearchFocusDuringRefresh = previousPreserve or nil
 end

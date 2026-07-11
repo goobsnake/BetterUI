@@ -262,6 +262,9 @@ BETTERUI = {
             KEYBIND_STRIP:UpdateKeybindButtonGroup(group)
             return true
         end,
+        HasKeybindGroup = function(group)
+            return KEYBIND_STRIP:HasKeybindButtonGroup(group)
+        end,
     },
     Banking = {
         LIST_WITHDRAW = 1,
@@ -932,6 +935,7 @@ do
         UpdateKeybindGroup = BETTERUI.Interface.UpdateKeybindGroup,
         RemoveKeybindGroupIfPresent = BETTERUI.Interface.RemoveKeybindGroupIfPresent,
         RestoreKeybindGroups = BETTERUI.Interface.RestoreKeybindGroups,
+        HasKeybindGroup = BETTERUI.Interface.HasKeybindGroup,
     }
     local savedBankingEnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
     local savedBetterUIUtils = BETTERUI.Utils
@@ -988,6 +992,9 @@ do
             BETTERUI.Interface.EnsureKeybindGroupAdded(group)
         end
     end
+    BETTERUI.Interface.HasKeybindGroup = function(group)
+        return present[group] == true
+    end
 
     SCENE_HIDDEN = SCENE_HIDDEN or "hidden"
     SCENE_SHOWING = SCENE_SHOWING or "showing"
@@ -1005,6 +1012,7 @@ do
     -- module-local helper records the exact operations under test.
     BETTERUI.Banking.EnsureKeybindGroupAdded = BETTERUI.Interface.EnsureKeybindGroupAdded
     dofile("Modules/Banking/Search/SearchManager.lua")
+    dofile("Modules/Banking/UI/HeaderManager.lua")
     ZO_ColorDef = { New = function(_, hex) return { hex = hex } end }
     BETTERUI.Utils = { IsBankingSceneShowing = function() return true end }
     BETTERUI.CIM.SharedItemSupport = {
@@ -1102,6 +1110,37 @@ do
     end
     assertEqual(1, countIn(opsUpdated, w.coreKeybinds), "ExitSearchMode updates core keybinds exactly once")
     assertEqual(1, countIn(opsUpdated, w.withdrawDepositKeybinds), "ExitSearchMode restores withdraw/deposit keybinds exactly once")
+
+    -- Header carousel ownership can be absent after a parametric dialog pops
+    -- while the tab bar's active flag remains stale-true.
+    resetOps()
+    local carousel = { "carousel" }
+    local deactivateCalls = 0
+    local activateCalls = 0
+    local headerWindow = setmetatable({
+        headerGeneric = {
+            tabBar = {
+                active = true,
+                keybindStripDescriptor = carousel,
+                Deactivate = function(self)
+                    deactivateCalls = deactivateCalls + 1
+                    self.active = false
+                end,
+                Activate = function(self)
+                    activateCalls = activateCalls + 1
+                    self.active = true
+                    present[carousel] = true
+                end,
+            },
+        },
+    }, { __index = BETTERUI.Banking.Class })
+    headerWindow:EnsureHeaderKeybindsActive()
+    assertEqual(1, deactivateCalls,
+        "Missing LB/RB group forces a real tab-bar deactivation cycle")
+    assertEqual(1, activateCalls,
+        "Missing LB/RB group reactivates the category carousel")
+    assertTrue(present[carousel] == true,
+        "Header ownership recovery leaves the LB/RB group registered")
 
     -- KeybindManager: clear-search callback must not double-refresh core keybinds.
     resetOps()
@@ -1266,11 +1305,28 @@ do
     assertEqual(1, countIn(opsUpdated, w3.withdrawDepositKeybinds), "Item-row selection updates transfer keybinds exactly once")
     assertEqual(0, countIn(opsUpdated, w3.currencyKeybinds), "Item-row selection does not touch currency keybinds")
 
+    -- A text-driven list refresh can surface a new selected row while the edit
+    -- box remains focused. List selection must not reclaim transfer/currency
+    -- ownership from the A/B/X search descriptor in that state.
+    resetOps()
+    clearPresent()
+    w3._searchModeActive = true
+    w3.textSearchHeaderControl = { IsHidden = function() return false end }
+    BETTERUI.Banking.Class.OnItemSelectedChange(w3, w3.list, w3.list.selectedData)
+    assertEqual(0, countIn(opsUpdated, w3.withdrawDepositKeybinds),
+        "Search-focused item selection does not update transfer keybinds")
+    assertEqual(0, countIn(opsUpdated, w3.currencyKeybinds),
+        "Search-focused item selection does not update currency keybinds")
+    assertEqual(0, countIn(opsAdded, w3.withdrawDepositKeybinds),
+        "Search-focused item selection does not add Withdraw/Deposit ownership")
+    w3._searchModeActive = false
+
     -- Restore original stubs so the remainder of the harness behaves as before.
     BETTERUI.Interface.EnsureKeybindGroupAdded = savedInterface.EnsureKeybindGroupAdded
     BETTERUI.Interface.UpdateKeybindGroup = savedInterface.UpdateKeybindGroup
     BETTERUI.Interface.RemoveKeybindGroupIfPresent = savedInterface.RemoveKeybindGroupIfPresent
     BETTERUI.Interface.RestoreKeybindGroups = savedInterface.RestoreKeybindGroups
+    BETTERUI.Interface.HasKeybindGroup = savedInterface.HasKeybindGroup
     BETTERUI.Banking.EnsureKeybindGroupAdded = savedBankingEnsureKeybindGroupAdded
     BETTERUI.Utils = savedBetterUIUtils
     BETTERUI.CIM.SharedItemSupport = savedSharedItemSupport

@@ -163,6 +163,9 @@ function BETTERUI.Banking.Class:RefreshList()
         if self.RefreshFooter then
             self:RefreshFooter()
         end
+        if self.RefreshCurrencyTooltip then
+            self:RefreshCurrencyTooltip()
+        end
         return
     end
 
