@@ -45,6 +45,76 @@ function BETTERUI.Companions.Class:New(...)
     return obj
 end
 
+--- Builds the Companion scene on the same physical shell used by Inventory.
+function BETTERUI.Companions.Class:Initialize(tlwName, sceneName)
+    self.windowName = tlwName
+    self.sceneName = sceneName
+    self.positionModuleKey = "GenericWindow:" .. tostring(sceneName or tlwName or "default")
+    self.currentCategoryKey = nil
+
+    self.control = BETTERUI.WindowManager:CreateControlFromVirtual(
+        tlwName, GuiRoot, "BETTERUI_Gamepad_ParametricList_Screen")
+    local mask = self.control:GetNamedChild("Mask")
+    local container = mask and mask:GetNamedChild("Container")
+    assert(container, "BetterUI: Companion Inventory shell is missing its Container")
+    self.control.container = container
+
+    self.header = container:GetNamedChild("HeaderContainer")
+    local listContainer = container:GetNamedChild("ListContainer")
+    self.footer = container:GetNamedChild("FooterContainer")
+    self.headerGeneric = self.header and self.header:GetNamedChild("Header")
+    local listControl = listContainer and listContainer:GetNamedChild("List")
+    assert(self.header and self.headerGeneric and self.footer and listControl,
+        "BetterUI: Companion Inventory shell hierarchy is incomplete")
+
+    self.header.columns = {}
+    self.list = BETTERUI_VerticalItemParametricScrollList:New(listControl)
+    self.list.owner = self
+    if self.list.SetAlignToScreenCenter then
+        self.list:SetAlignToScreenCenter(true, 30)
+    end
+
+    self.footerMode = BETTERUI.CIM.UnifiedFooter.MODE.CURRENCY
+    self:SetupUnifiedFooter()
+end
+
+local COMPANION_COLUMN_CONTROL_NAMES = {
+    "Column1Label", "Column2Label", "Column4Label", "Column6Label", "Column5Label",
+}
+
+--- Reuses Inventory's XML-owned column labels without re-anchoring them.
+function BETTERUI.Companions.Class:AddColumn(columnName, xOffset)
+    local columnIndex = #self.header.columns + 1
+    local columnBar = self.headerGeneric and self.headerGeneric:GetNamedChild("ColumnBar")
+    local controlName = COMPANION_COLUMN_CONTROL_NAMES[columnIndex]
+    local label = columnBar and controlName and columnBar:GetNamedChild(controlName)
+    if not label then return end
+
+    self.header.columns[columnIndex] = label
+    label:SetText(columnName)
+    label:SetMouseEnabled(true)
+    label.columnIndex = columnIndex
+    label.owner = self
+
+    local widths = BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS
+    label:SetDimensions(widths[columnIndex] or 100, 30)
+    if not label._betteruiColumnMouseUpHooked then
+        label._betteruiColumnMouseUpHooked = true
+        ZO_PostHookHandler(label, "OnMouseUp", function(control, button, upInside)
+            if not (upInside and button == MOUSE_BUTTON_INDEX_LEFT) then return end
+            local owner = control.owner
+            local integration = BETTERUI.CIM and BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortIntegration
+            local controller = (integration and integration.EnsureControllerForOwner
+                    and integration.EnsureControllerForOwner(owner))
+                or (owner and (owner.headerSortController or owner.sortController))
+            if controller then
+                controller:ToggleSortForColumn(control.columnIndex)
+                PlaySound(SOUNDS.DEFAULT_CLICK)
+            end
+        end)
+    end
+end
+
 ---@return boolean showing True if the companion scene is currently showing
 function BETTERUI.Companions.Class:IsSceneShowing()
     local scene = SCENE_MANAGER and SCENE_MANAGER:GetScene(BETTERUI_COMPANION_EQUIP_SCENE_NAME)
@@ -52,59 +122,53 @@ function BETTERUI.Companions.Class:IsSceneShowing()
     return scene:IsShowing()
 end
 
--- FOOTER
+-- FOOTER / EQUIPMENT HEADER
 
---- Initializes the companion footer — hides banking controls, shows companion info.
-function BETTERUI.Companions.Class:InitCompanionFooter()
-    -- P2(compatibility): The footer controls (Withdraw/Deposit/DividerCentre)
-    -- come from the GenericWindow virtual template. If that template is ever
-    -- shared with Banking/Vendor, mutating handlers/icons/labels here without
-    -- capturing and restoring the original state on scene hide would leak
-    -- companion-specific changes into those scenes. Consider adding a restore
-    -- pass hooked to the scene's StateChange/Hidden callback.
-    local footerRoot = self.footer and self.footer:GetNamedChild("Footer")
-    if not footerRoot then return end
+function BETTERUI.Companions.Class:SetupUnifiedFooter()
+    local footerContainer = self.control.container:GetNamedChild("FooterContainer")
+    if not (footerContainer and footerContainer.unifiedFooter) then return end
 
-    -- Hide the centre vertical divider
-    local dividerCentre = footerRoot:GetNamedChild("DividerCentre")
-    if dividerCentre then dividerCentre:SetHidden(true) end
-
-    -- LEFT SIDE: Companion name
-    local withdraw = footerRoot:GetNamedChild("Withdraw")
-    if withdraw then
-        local btn = withdraw:GetNamedChild("Button")
-        if btn then
-            btn:SetHandler("OnClicked", nil)
-            local label = btn:GetNamedChild("Label")
-            if label then
-                label:SetText(GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE"))
-            end
-        end
-        local icon = withdraw:GetNamedChild("Icon")
-        if icon then
-            icon:SetTexture("esoui/art/companion/gamepad/gp_companion_menu_icon.dds")
-        end
+    self.unifiedFooterController = footerContainer.unifiedFooter
+    if not self.unifiedFooterController._initialized and footerContainer.footer
+        and self.unifiedFooterController.SetupFooter then
+        self.unifiedFooterController:SetupFooter(footerContainer.footer)
     end
+    self.unifiedFooterController:SetMode(BETTERUI.CIM.UnifiedFooter.MODE.CURRENCY)
+    self.unifiedFooterController:Refresh()
+end
 
-    -- RIGHT SIDE: Bag capacity
-    local deposit = footerRoot:GetNamedChild("Deposit")
-    if deposit then
-        local btn = deposit:GetNamedChild("Button")
-        if btn then
-            btn:SetHandler("OnClicked", nil)
-            local label = btn:GetNamedChild("Label")
-            if label then
-                label:SetText(GetString(rawget(_G, "SI_BETTERUI_FOOTER_BAG_CAPACITY") or "SI_BETTERUI_FOOTER_BAG_CAPACITY"))
-                label:SetColor(1, 1, 1, 1)
-            end
-        end
-        local icon = deposit:GetNamedChild("Icon")
-        if icon then
-            icon:SetTexture("esoui/art/inventory/gamepad/gp_inventory_icon_all.dds")
-        end
+function BETTERUI.Companions.Class:RefreshCompanionFooter()
+    if self.unifiedFooterController then
+        self.unifiedFooterController:Refresh()
     end
+end
 
-    self:RefreshCompanionFooter()
+local function GetCompanionHeaderControl(instance, name)
+    local titleContainer = instance.headerGeneric and instance.headerGeneric:GetNamedChild("TitleContainer")
+    return titleContainer and titleContainer:GetNamedChild(name)
+end
+
+function BETTERUI.Companions.Class:SetCompanionHeaderControlHidden(name, hidden)
+    local control = GetCompanionHeaderControl(self, name)
+    if control then control:SetHidden(hidden) end
+end
+
+function BETTERUI.Companions.Class:RefreshCompanionWeaponHeader()
+    if not (self.headerGeneric and BETTERUI.GenericHeader and GetWornItemInfo) then return end
+
+    local _, mainIcon = GetWornItemInfo(BAG_COMPANION_WORN, EQUIP_SLOT_MAIN_HAND)
+    local _, offIcon = GetWornItemInfo(BAG_COMPANION_WORN, EQUIP_SLOT_OFF_HAND)
+    BETTERUI.GenericHeader.SetEquipText(self.headerGeneric, true)
+    BETTERUI.GenericHeader.SetEquippedIcons(self.headerGeneric, mainIcon, offIcon, nil)
+
+    self:SetCompanionHeaderControlHidden("EquipText", false)
+    self:SetCompanionHeaderControlHidden("MainHandIcon", false)
+    self:SetCompanionHeaderControlHidden("OffHandIcon", false)
+    self:SetCompanionHeaderControlHidden("PoisonIcon", true)
+    self:SetCompanionHeaderControlHidden("BackupEquipText", true)
+    self:SetCompanionHeaderControlHidden("BackupMainHandIcon", true)
+    self:SetCompanionHeaderControlHidden("BackupOffHandIcon", true)
+    self:SetCompanionHeaderControlHidden("BackupPoisonIcon", true)
 end
 
 -- SEARCH FOCUS HELPERS
@@ -340,54 +404,3 @@ function BETTERUI.Companions.Class:TryClearNewStatusOnHidden()
     self.clearNewStatusOnSelectionChanged = nil
 end
 
---- Refreshes companion footer values (companion name, bag capacity).
-function BETTERUI.Companions.Class:RefreshCompanionFooter()
-    local footerRoot = self.footer and self.footer:GetNamedChild("Footer")
-    if not footerRoot then return end
-
-    -- LEFT SIDE: Active companion name
-    local companionName = ""
-    local withdraw = footerRoot:GetNamedChild("Withdraw")
-    if withdraw then
-        local btn = withdraw:GetNamedChild("Button")
-        if btn then
-            local spaceLabel = btn:GetNamedChild("SpaceLabel")
-            if spaceLabel then
-                if HasActiveCompanion and HasActiveCompanion() then
-                    local defId = GetActiveCompanionDefId and GetActiveCompanionDefId()
-                    if defId and GetCompanionName then
-                        companionName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetCompanionName(defId))
-                    end
-                end
-                spaceLabel:SetText(companionName ~= "" and companionName or "-")
-            end
-        end
-    end
-
-    -- RIGHT SIDE: Bag capacity
-    local bagUsed = GetNumBagUsedSlots(BAG_BACKPACK)
-    local bagSize = GetBagSize(BAG_BACKPACK)
-    local deposit = footerRoot:GetNamedChild("Deposit")
-    if deposit then
-        local btn = deposit:GetNamedChild("Button")
-        if btn then
-            local spaceLabel = btn:GetNamedChild("SpaceLabel")
-            if spaceLabel then
-                spaceLabel:SetText(
-                    "|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t " ..
-                    zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
-                        bagUsed, bagSize))
-            end
-        end
-    end
-    if BETTERUI.Log and BETTERUI.Log.TraceEvent then
-        BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.STATE, "companions.footer", "refreshed", {
-            module = "Companions",
-            feature = "footer",
-            fn = "RefreshCompanionFooter",
-            companionName = companionName ~= "" and companionName or nil,
-            bagUsed = bagUsed,
-            bagSize = bagSize,
-        })
-    end
-end

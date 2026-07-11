@@ -86,26 +86,44 @@ assert_true(source:find('elseif actionId == "split" then') ~= nil
     "CompanionActions routes split actions through the split-stack dialog helper")
 assert_true(dialogSource:find("Companions%.ExecuteAction%(actionId, itemData%)") ~= nil,
     "Companion batch dialog routes protected batch actions through CompanionActions")
-assert_true(source:find("TWO_HANDED_WEAPON_TYPES") ~= nil,
-    "ResolveCompanionEquipSlot classifies two-handed weapon types")
+assert_true(source:find("TWO_HANDED_WEAPON_TYPES", 1, true) == nil,
+    "Companion equip routing uses canonical equip types instead of a weapon allowlist")
+assert_true(source:find("function Companions%.GetCompanionEquipSlotChoices%(bagId, slotIndex%)") ~= nil,
+    "CompanionActions exposes explicit equip-slot choices")
+assert_true(source:find("candidates = %{ EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND %}") ~= nil,
+    "One-handed companion weapons expose main and off-hand choices")
+assert_true(source:find("equipType == EQUIP_TYPE_TWO_HAND or equipType == EQUIP_TYPE_MAIN_HAND") ~= nil,
+    "Two-handed and main-hand-only equipment target main hand")
+assert_true(source:find("elseif equipType == EQUIP_TYPE_OFF_HAND then") ~= nil,
+    "Off-hand-only equipment targets off hand")
 assert_true(source:find("IsLockedWeaponSlot and IsLockedWeaponSlot%(equipSlot%)") ~= nil,
-    "ResolveCompanionEquipSlot skips locked weapon slots")
-assert_true(source:find("isTwoHanded and equipSlot ~= EQUIP_SLOT_MAIN_HAND") ~= nil,
-    "ResolveCompanionEquipSlot restricts two-handed weapons to MAIN_HAND")
+    "Companion equip choices skip locked weapon slots")
+assert_true(source:find("function Companions%.IsCompanionItemIdentityCurrent") ~= nil,
+    "Delayed companion dialogs revalidate source identity")
+assert_true(source:find("function Companions%.CaptureCompanionItemIdentity") ~= nil,
+    "Action dialogs can capture companion item identity before opening")
+assert_true(source:find("expectedIdentity = expectedIdentity or Companions%.CaptureCompanionItemIdentity") ~= nil,
+    "Explicit-slot equip captures identity before any dialog")
 assert_true(source:find("BETTERUI_COMPANIONS_CONFIRM_EQUIP_BOE") ~= nil,
     "CompanionActions registers a local BoE confirm dialog fallback")
--- ESO ships no "CONFIRM_EQUIP_BOE" dialog, so the old native-reuse probe was dead code that
--- always fell through to the custom dialog. The equip path must use the custom dialog directly.
 assert_true(source:find('"CONFIRM_EQUIP_BOE"', 1, true) == nil,
     "TryEquipCompanionItem no longer probes the nonexistent native CONFIRM_EQUIP_BOE dialog")
-assert_true(source:find("local dialogName = ", 1, true) == nil,
-    "TryEquipCompanionItem no longer branches on a probed native dialog name")
-assert_true(source:find("ZO_Dialogs_ShowPlatformDialog%(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, %{ callback = DoEquip") ~= nil,
-    "TryEquipCompanionItem shows the custom BoE confirm dialog directly")
+assert_true(source:find("ZO_Dialogs_ShowPlatformDialog%(COMPANION_CONFIRM_EQUIP_BOE_DIALOG") ~= nil,
+    "TryEquipCompanionItemToSlot shows the custom BoE dialog")
 assert_true(source:find("FindFirstEmptySlotInBag%(BAG_BACKPACK%)") ~= nil,
     "TryUnequipCompanionItem finds the destination slot via FindFirstEmptySlotInBag")
 assert_true(source:find("GetNumBagFreeSlots%(BAG_BACKPACK%)") == nil,
     "TryUnequipCompanionItem avoids redundant GetNumBagFreeSlots pre-check")
+assert_true(source:find('CallSecureProtected("RequestMoveItem",', 1, true) ~= nil,
+    "Companion equip and unequip route protected moves through CallSecureProtected")
+assert_true(source:find('type(RequestMoveItem)', 1, true) == nil,
+    "Companion equipment never probes the protected RequestMoveItem global directly")
+assert_true(source:find("local firstCompatibleSlot") ~= nil,
+    "Non-weapon companion equipment resolves a deterministic compatible slot")
+assert_true(source:find('id = "sort"', 1, true) ~= nil,
+    "Companion action menu exposes intentional header-sort entry")
+assert_true(source:find('Companions.RequestHeaderSortAfterDialog()', 1, true) ~= nil,
+    "Companion sort action defers header ownership until its action dialog closes")
 
 if failed > 0 then
     error(string.format("test_companion_actions_source.lua failed with %d failure(s)", failed))

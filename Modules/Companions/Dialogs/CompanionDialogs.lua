@@ -2,6 +2,11 @@ if not BETTERUI.Companions then return end
 local Companions = BETTERUI.Companions
 
 local function IsCompanionSceneShowing()
+    local screen = Companions and Companions.instance
+    if screen and type(screen.IsSceneShowing) == "function" then
+        return screen:IsSceneShowing() == true
+    end
+
     local sceneName = rawget(_G, "BETTERUI_COMPANION_EQUIP_SCENE_NAME") or "BETTERUI_CompanionEquipment"
     if SCENE_MANAGER and SCENE_MANAGER.GetScene then
         local scene = SCENE_MANAGER:GetScene(sceneName)
@@ -63,6 +68,7 @@ end
 local COMPANION_BATCH_DESTROY_DIALOG = "BETTERUI_COMPANION_BATCH_DESTROY_DIALOG"
 local COMPANION_ACTION_DIALOG = "BETTERUI_COMPANION_ACTION_DIALOG"
 local COMPANION_BATCH_DIALOG = "BETTERUI_COMPANION_BATCH_DIALOG"
+local COMPANION_EQUIP_SLOT_DIALOG = "BETTERUI_COMPANION_EQUIP_SLOT_DIALOG"
 
 local function GetDialogRegistry()
     return BETTERUI.CIM and BETTERUI.CIM.Dialogs or nil
@@ -86,6 +92,51 @@ local function RegisterCompanionDialog(dialogName, dialogInfo)
     end
     return dialogs.Register(dialogName, dialogInfo, { overwrite = true })
 end
+
+local function RestoreCompanionDialogKeybindOwnership()
+    local attemptsRemaining = 60
+
+    local function RestoreWhenDialogsClose()
+        local screen = Companions and Companions.instance
+        if not screen or not screen.IsSceneShowing or not screen:IsSceneShowing() then
+            return
+        end
+
+        if type(ZO_Dialogs_IsShowingDialog) == "function" and ZO_Dialogs_IsShowingDialog() then
+            attemptsRemaining = attemptsRemaining - 1
+            if attemptsRemaining <= 0 then return end
+
+            if Companions.Tasks and type(Companions.Tasks.Schedule) == "function" then
+                Companions.Tasks:Schedule(
+                    "restoreDialogKeybindOwnership", 10, RestoreWhenDialogsClose)
+            elseif type(zo_callLater) == "function" then
+                zo_callLater(RestoreWhenDialogsClose, 10)
+            end
+            return
+        end
+
+        if type(screen.EnsureListInputActive) == "function" then
+            screen:EnsureListInputActive()
+        end
+        if type(screen.EnsureHeaderKeybindsActive) == "function" then
+            screen:EnsureHeaderKeybindsActive()
+        end
+
+        local interface = BETTERUI and BETTERUI.Interface
+        if interface and type(interface.EnsureKeybindGroupAdded) == "function" and screen.coreKeybinds then
+            interface.EnsureKeybindGroupAdded(screen.coreKeybinds)
+        end
+        if interface and type(interface.UpdateCurrentKeybindGroups) == "function" then
+            interface.UpdateCurrentKeybindGroups()
+        end
+    end
+
+    if Companions.Tasks and type(Companions.Tasks.Cancel) == "function" then
+        Companions.Tasks:Cancel("restoreDialogKeybindOwnership")
+    end
+    RestoreWhenDialogsClose()
+end
+Companions.RestoreDialogKeybindOwnership = RestoreCompanionDialogKeybindOwnership
 
 --- Destroys the given slot descriptors via the quick path, staggered to avoid
 --- flooding the server with destroy requests.
@@ -140,6 +191,7 @@ local function RegisterCompanionBatchDestroyDialog()
 
     RegisterCompanionDialog(COMPANION_BATCH_DESTROY_DIALOG, {
         canQueue = true,
+        finishedCallback = RestoreCompanionDialogKeybindOwnership,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
         title = {
             text = function()
@@ -241,6 +293,7 @@ local function RegisterCompanionActionDialog()
 
     RegisterCompanionDialog(COMPANION_ACTION_DIALOG, {
         canQueue = true,
+        finishedCallback = RestoreCompanionDialogKeybindOwnership,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = { text = SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
         parametricList = {},
@@ -288,8 +341,23 @@ local function RegisterCompanionActionDialog()
                     })
                     if selected and selected.actionId then
                         local data = dialog.data
-                        if data and data.selectedData then
-                            Companions.ExecuteAction(selected.actionId, data.selectedData)
+                        local selectedData = data and data.selectedData
+                        local dataSource = selectedData
+                            and (selectedData.dataSource or selectedData)
+                            or nil
+                        local identityCurrent = dataSource
+                            and type(Companions.IsCompanionItemIdentityCurrent) == "function"
+                            and Companions.IsCompanionItemIdentityCurrent(
+                                dataSource.bagId,
+                                dataSource.slotIndex,
+                                data.expectedIdentity)
+                        if identityCurrent then
+                            Companions.ExecuteAction(selected.actionId, selectedData)
+                        else
+                            TraceCompanionDialog(
+                                COMPANION_ACTION_DIALOG,
+                                "stale_identity_rejected",
+                                { actionId = selected.actionId })
                         end
                     end
                 end,
@@ -305,6 +373,7 @@ local function RegisterCompanionBatchDialog()
 
     RegisterCompanionDialog(COMPANION_BATCH_DIALOG, {
         canQueue = true,
+        finishedCallback = RestoreCompanionDialogKeybindOwnership,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = { text = SI_BETTERUI_INV_BATCH_ACTIONS or SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
             setup = function(dialog)
@@ -442,7 +511,69 @@ local function RegisterCompanionBatchDialog()
     })
 end
 
+local function GetCompanionEquipSlotText(equipSlot)
+    if equipSlot == EQUIP_SLOT_MAIN_HAND then
+        return GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP_PROMPT_MAIN"))
+    end
+    return GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP"))
+end
+
+local function RegisterCompanionEquipSlotDialog()
+    if GetCurrentDialogInfo(COMPANION_EQUIP_SLOT_DIALOG) then return true end
+    return RegisterCompanionDialog(COMPANION_EQUIP_SLOT_DIALOG, {
+        canQueue = true,
+        finishedCallback = RestoreCompanionDialogKeybindOwnership,
+        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
+        title = { text = SI_BETTERUI_INV_EQUIPSLOT_TITLE },
+        parametricList = {},
+        setup = function(dialog)
+            local parametricList = dialog.info.parametricList
+            ZO_ClearNumericallyIndexedTable(parametricList)
+            for _, equipSlot in ipairs(dialog.data and dialog.data.equipSlots or {}) do
+                local entry = BETTERUI.CIM.Dialogs.CreateParametricActionEntry(
+                    GetCompanionEquipSlotText(equipSlot), "equipSlot")
+                entry.entryData.equipSlot = equipSlot
+                table.insert(parametricList, entry)
+            end
+            dialog:setupFunc()
+        end,
+        buttons = {
+            WrapCompanionDialogKeybind({
+                text = SI_DIALOG_CANCEL,
+                keybind = "DIALOG_NEGATIVE",
+                callback = function() end,
+            }, "equip_slot_cancel"),
+            WrapCompanionDialogKeybind({
+                text = SI_GAMEPAD_SELECT_OPTION,
+                keybind = "DIALOG_PRIMARY",
+                callback = function(dialog)
+                    local selected = dialog.entryList and GetDialogListTargetData(dialog.entryList) or nil
+                    local data = dialog.data or {}
+                    if not (selected and selected.equipSlot) then return false end
+                    return Companions.TryEquipCompanionItemToSlot(
+                        data.bagId, data.slotIndex, selected.equipSlot, data.expectedIdentity)
+                end,
+            }, "equip_slot_confirm"),
+        },
+    })
+end
+
+function Companions.ShowCompanionEquipSlotDialog(bagId, slotIndex, equipSlots, expectedIdentity)
+    if not RegisterCompanionEquipSlotDialog()
+        or type(ZO_Dialogs_ShowGamepadDialog) ~= "function" then
+        return false
+    end
+    ZO_Dialogs_ShowGamepadDialog(COMPANION_EQUIP_SLOT_DIALOG, {
+        bagId = bagId,
+        slotIndex = slotIndex,
+        equipSlots = equipSlots,
+        expectedIdentity = expectedIdentity,
+    })
+    return true
+end
+
 function Companions.RegisterDialogs()
+    RegisterCompanionEquipSlotDialog()
     RegisterCompanionActionDialog()
     RegisterCompanionBatchDialog()
     RegisterCompanionBatchDestroyDialog()

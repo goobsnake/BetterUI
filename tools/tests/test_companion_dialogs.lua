@@ -32,6 +32,11 @@ local destroyDialogCalls = {}
 local shownGamepadDialogs = {}
 local lockCalls = {}
 local junkCalls = {}
+local restoreCounts = { list = 0, header = 0, add = 0, update = 0 }
+local dialogShowing = false
+local pendingDialogRestore = nil
+local identityCurrent = true
+local equipSlotCalls = {}
 
 local selectedItems = {
     { bagId = 1, slotIndex = 10 },
@@ -97,8 +102,34 @@ BETTERUI = {
             end,
         },
     },
+    Interface = {
+        EnsureKeybindGroupAdded = function()
+            restoreCounts.add = restoreCounts.add + 1
+        end,
+        UpdateCurrentKeybindGroups = function()
+            restoreCounts.update = restoreCounts.update + 1
+            return true
+        end,
+    },
     Companions = {
+        Tasks = {
+            Cancel = function() pendingDialogRestore = nil end,
+            Schedule = function(_, _, _, callback)
+                pendingDialogRestore = callback
+            end,
+        },
         instance = {
+            sceneShowing = true,
+            coreKeybinds = {},
+            IsSceneShowing = function(self)
+                return self.sceneShowing == true
+            end,
+            EnsureListInputActive = function()
+                restoreCounts.list = restoreCounts.list + 1
+            end,
+            EnsureHeaderKeybindsActive = function()
+                restoreCounts.header = restoreCounts.header + 1
+            end,
             list = {
                 GetNumItems = function()
                     return multiSelect.numItems
@@ -149,6 +180,18 @@ BETTERUI = {
                 end
             end
         end,
+        IsCompanionItemIdentityCurrent = function()
+            return identityCurrent
+        end,
+        TryEquipCompanionItemToSlot = function(bagId, slotIndex, equipSlot, expectedIdentity)
+            table.insert(equipSlotCalls, {
+                bagId = bagId,
+                slotIndex = slotIndex,
+                equipSlot = equipSlot,
+                expectedIdentity = expectedIdentity,
+            })
+            return true
+        end,
         GetSetting = function(key)
             return BETTERUI.Companions.settings[key]
         end,
@@ -162,7 +205,12 @@ BETTERUI = {
     },
 }
 
-GAMEPAD_DIALOGS = { PARAMETRIC = 1 }
+GAMEPAD_DIALOGS = { PARAMETRIC = 1, BASIC = 2 }
+EQUIP_SLOT_MAIN_HAND = 11
+EQUIP_SLOT_OFF_HAND = 12
+SI_BETTERUI_INV_EQUIP_PROMPT_MAIN = "main hand"
+SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP = "off hand"
+SI_BETTERUI_INV_EQUIPSLOT_TITLE = "choose hand"
 SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND = "action"
 SI_DIALOG_CANCEL = "cancel"
 SI_GAMEPAD_SELECT_OPTION = "select"
@@ -205,6 +253,10 @@ function ZO_Dialogs_ShowGamepadDialog(name, data)
     table.insert(shownGamepadDialogs, { name = name, data = data })
 end
 
+function ZO_Dialogs_IsShowingDialog()
+    return dialogShowing
+end
+
 function SetItemPlayerLocked(bagId, slotIndex, locked)
     table.insert(lockCalls, { bagId = bagId, slotIndex = slotIndex, locked = locked })
 end
@@ -234,10 +286,64 @@ BETTERUI.Companions.RegisterDialogs()
 assert_eq(registerCounts["BETTERUI_COMPANION_ACTION_DIALOG"], 1, "action dialog registration is idempotent")
 assert_eq(registerCounts["BETTERUI_COMPANION_BATCH_DIALOG"], 1, "batch dialog registration is idempotent")
 
+local equipDialog = registrations["BETTERUI_COMPANION_EQUIP_SLOT_DIALOG"]
+local equipRuntimeDialog = {
+    data = {
+        bagId = 4,
+        slotIndex = 40,
+        equipSlots = { EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND },
+        expectedIdentity = "weapon-item",
+    },
+    info = equipDialog,
+    setupFunc = function() end,
+}
+equipDialog.setup(equipRuntimeDialog)
+assert_eq(equipDialog.parametricList[2].entryData.equipSlot, EQUIP_SLOT_OFF_HAND,
+    "equip slot setup stores the slot on selected entry data")
+equipRuntimeDialog.entryList = {
+    GetTargetData = function()
+        return equipDialog.parametricList[2].entryData
+    end,
+}
+equipDialog.buttons[2].callback(equipRuntimeDialog)
+assert_eq(#equipSlotCalls, 1, "equip slot callback executes the selected hand")
+assert_eq(equipSlotCalls[1].equipSlot, EQUIP_SLOT_OFF_HAND,
+    "equip slot callback forwards the selected off hand")
+
 local actionDialog = registrations["BETTERUI_COMPANION_ACTION_DIALOG"]
+assert_true(type(actionDialog.finishedCallback) == "function",
+    "action dialog restores companion keybind ownership after it is hidden")
+if type(actionDialog.finishedCallback) == "function" then
+    actionDialog.finishedCallback({})
+end
+assert_eq(restoreCounts.list, 1, "dialog completion restores companion list input")
+assert_eq(restoreCounts.header, 1, "dialog completion restores companion header keybinds")
+assert_eq(restoreCounts.add, 1, "dialog completion restores companion core keybind group")
+assert_eq(restoreCounts.update, 1, "dialog completion refreshes current keybind groups")
+
+dialogShowing = true
+if type(actionDialog.finishedCallback) == "function" then
+    actionDialog.finishedCallback({})
+end
+assert_eq(restoreCounts.list, 1,
+    "dialog completion does not restore underlying input while a chained dialog is showing")
+assert_true(type(pendingDialogRestore) == "function",
+    "dialog completion defers keybind restoration across chained dialogs")
+dialogShowing = false
+pendingDialogRestore()
+assert_eq(restoreCounts.list, 2,
+    "deferred dialog completion restores input after the final dialog closes")
+
+BETTERUI.Companions.instance.sceneShowing = false
+if type(actionDialog.finishedCallback) == "function" then
+    actionDialog.finishedCallback({})
+end
+assert_eq(restoreCounts.list, 2, "dialog completion does not restore list input after scene hide")
+assert_eq(restoreCounts.update, 2, "dialog completion does not refresh keybinds after scene hide")
+BETTERUI.Companions.instance.sceneShowing = true
 local actionData = { bagId = 3, slotIndex = 30 }
 local actionRuntimeDialog = {
-    data = { selectedData = actionData },
+    data = { selectedData = actionData, expectedIdentity = "action-item" },
     info = actionDialog,
     entryList = {
         GetTargetData = function()
@@ -256,8 +362,21 @@ assert_eq(#executedActions, 1, "action callback executes selected action")
 assert_eq(executedActions[1].actionId, "link", "action callback forwards action id")
 assert_eq(executedActions[1].selectedData, actionData, "action callback forwards selected item data")
 assert_eq(dialogSetupCalls, 1, "action setup triggers dialog setup function")
+identityCurrent = false
+actionDialog.buttons[2].callback(actionRuntimeDialog)
+assert_eq(#executedActions, 1, "action callback rejects a stale slot identity")
+identityCurrent = true
 
 local batchDialog = registrations["BETTERUI_COMPANION_BATCH_DIALOG"]
+assert_true(type(batchDialog.finishedCallback) == "function",
+    "batch dialog restores companion keybind ownership after it is hidden")
+if type(batchDialog.finishedCallback) == "function" then
+    batchDialog.finishedCallback({})
+end
+assert_eq(restoreCounts.list, 3, "batch dialog completion restores companion list input")
+assert_eq(restoreCounts.header, 3, "batch dialog completion restores companion header keybinds")
+assert_eq(restoreCounts.add, 3, "batch dialog completion restores companion core keybind group")
+assert_eq(restoreCounts.update, 3, "batch dialog completion refreshes current keybind groups")
 batchDialog.parametricList = batchDialog.parametricList or {}
 local batchRuntimeDialog = {
     info = batchDialog,
@@ -309,6 +428,15 @@ assert_eq(shownGamepadDialogs[1].data.itemCount, 2, "batch confirmation reports 
 assert_eq(#destroyCalls, 0, "batch destroy does not hard destroy before confirmation")
 
 local batchDestroyDialog = registrations["BETTERUI_COMPANION_BATCH_DESTROY_DIALOG"]
+assert_true(type(batchDestroyDialog.finishedCallback) == "function",
+    "batch destroy dialog restores companion keybind ownership after it is hidden")
+if type(batchDestroyDialog.finishedCallback) == "function" then
+    batchDestroyDialog.finishedCallback({})
+end
+assert_eq(restoreCounts.list, 4, "batch destroy completion restores companion list input")
+assert_eq(restoreCounts.header, 4, "batch destroy completion restores companion header keybinds")
+assert_eq(restoreCounts.add, 4, "batch destroy completion restores companion core keybind group")
+assert_eq(restoreCounts.update, 4, "batch destroy completion refreshes current keybind groups")
 assert_true(batchDestroyDialog ~= nil, "registers companion batch destroy dialog")
 batchDestroyDialog.buttons[2].callback({ data = shownGamepadDialogs[1].data })
 assert_eq(#destroyCalls, 2, "confirming the batch destroy dialog quick-destroys each selected item")

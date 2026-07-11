@@ -11,10 +11,11 @@ BETTERUI.CIM.LayoutSnapshot = LayoutSnapshot
 local DEFAULT_MAX_DEPTH = 3
 local DEFAULT_MAX_CONTROLS = 60
 
-local SNAPSHOT_ORDER = { "inventory", "vendor", "tradinghouse", "orbs" }
+local SNAPSHOT_ORDER = { "inventory", "vendor", "companions", "tradinghouse", "orbs" }
 local SNAPSHOT_REGISTRY = {
     inventory = { globals = { "BUI_GpInv" } },
     vendor = { globals = { "BETTERUI_VendorWindow", "BETTERUI_VENDOR" } },
+    companions = { globals = { "BUI_GpCmp" } },
     tradinghouse = { globals = { "BETTERUI_TradingHouseWindow", "BETTERUI_TradingHouse" } },
     orbs = { globals = { "ResourceOrbFrames" } },
 }

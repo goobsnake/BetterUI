@@ -136,6 +136,14 @@ local function ResolveActionEligibility(actionId, selectedData)
     elseif actionId == "unequip" then
         if slotIndex == nil then return false, "missingSlot" end
         return ds.isEquipped == true, ds.isEquipped == true and nil or "notEquipped"
+    elseif actionId == "sort" then
+        local screen = Companions.instance
+        local list = screen and screen.list
+        local canSort = screen ~= nil
+            and type(Companions.RequestHeaderSortAfterDialog) == "function"
+            and list ~= nil
+            and (not list.IsEmpty or not list:IsEmpty())
+        return canSort, canSort and nil or "sortUnavailable"
     elseif actionId == "preview" then
         local canPreview = Companions.CanPreviewCompanionItem(bagId, slotIndex)
         return canPreview, canPreview and nil or "notPreviewable"
@@ -167,77 +175,104 @@ function Companions.CanExecuteAction(actionId, selectedData)
     return ResolveActionEligibility(actionId, selectedData)
 end
 
-local TWO_HANDED_WEAPON_TYPES = {
-    [WEAPONTYPE_TWO_HANDED_SWORD] = true,
-    [WEAPONTYPE_TWO_HANDED_AXE] = true,
-    [WEAPONTYPE_TWO_HANDED_HAMMER] = true,
-    [WEAPONTYPE_FIRE_STAFF] = true,
-    [WEAPONTYPE_FROST_STAFF] = true,
-    [WEAPONTYPE_LIGHTNING_STAFF] = true,
-    [WEAPONTYPE_HEALING_STAFF] = true,
-    [WEAPONTYPE_BOW] = true,
-}
-
-local function IsTwoHandedWeapon(bagId, slotIndex)
-    if not GetItemWeaponType then return false end
-    local weaponType = GetItemWeaponType(bagId, slotIndex)
-    return TWO_HANDED_WEAPON_TYPES[weaponType] == true
+function Companions.CaptureCompanionItemIdentity(bagId, slotIndex)
+    if type(GetItemUniqueId) ~= "function" then return nil end
+    return GetItemUniqueId(bagId, slotIndex)
 end
 
-function Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
+function Companions.IsCompanionItemIdentityCurrent(bagId, slotIndex, expectedIdentity)
+    if expectedIdentity == nil or type(GetItemUniqueId) ~= "function" then return false end
+    local currentIdentity = GetItemUniqueId(bagId, slotIndex)
+    if currentIdentity == nil then return false end
+    if type(AreId64sEqual) == "function" then
+        return AreId64sEqual(currentIdentity, expectedIdentity)
+    end
+    return tostring(currentIdentity) == tostring(expectedIdentity)
+end
+
+local function IsCompanionEquipSlotCompatible(equipSlot, equipType)
+    if equipSlot == nil or type(ZO_Character_DoesEquipSlotUseEquipType) ~= "function" then
+        return false
+    end
+    if IsLockedWeaponSlot and IsLockedWeaponSlot(equipSlot) then
+        return false
+    end
+    return ZO_Character_DoesEquipSlotUseEquipType(equipSlot, equipType) == true
+end
+
+function Companions.GetCompanionEquipSlotChoices(bagId, slotIndex)
     local equipType = GetItemEquipType and GetItemEquipType(bagId, slotIndex) or nil
     if equipType == nil or equipType == 0 or equipType == EQUIP_TYPE_INVALID then
-        TraceCompanionAction("companions.equip_slot", "rejected", { fn = "ResolveCompanionEquipSlot", reason = "invalidEquipType", bagId = bagId, slotIndex = slotIndex, equipType = equipType })
-        return nil
+        return {}
     end
-    if not ZO_Character_EnumerateOrderedEquipSlots or not ZO_Character_DoesEquipSlotUseEquipType then
-        TraceCompanionAction("companions.equip_slot", "rejected", { fn = "ResolveCompanionEquipSlot", reason = "missingEquipSlotApi", bagId = bagId, slotIndex = slotIndex, equipType = equipType })
-        return nil
+
+    local candidates = {}
+    if equipType == EQUIP_TYPE_ONE_HAND then
+        candidates = { EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND }
+    elseif equipType == EQUIP_TYPE_TWO_HAND or equipType == EQUIP_TYPE_MAIN_HAND then
+        candidates = { EQUIP_SLOT_MAIN_HAND }
+    elseif equipType == EQUIP_TYPE_OFF_HAND then
+        candidates = { EQUIP_SLOT_OFF_HAND }
+    else
+        if type(ZO_Character_EnumerateOrderedEquipSlots) ~= "function" then
+            return {}
+        end
+        for _, equipSlot in ZO_Character_EnumerateOrderedEquipSlots(BAG_COMPANION_WORN) do
+            candidates[#candidates + 1] = equipSlot
+        end
     end
-    local isTwoHanded = IsTwoHandedWeapon(bagId, slotIndex)
+
+    local choices = {}
     local firstCompatibleSlot = nil
-    for _, equipSlot in ZO_Character_EnumerateOrderedEquipSlots(BAG_COMPANION_WORN) do
-        if ZO_Character_DoesEquipSlotUseEquipType(equipSlot, equipType) then
-            -- Skip locked weapon slots.
-            if IsLockedWeaponSlot and IsLockedWeaponSlot(equipSlot) then
-                -- locked: cannot equip here
-            -- Two-handed weapons must target MAIN_HAND only.
-            elseif isTwoHanded and equipSlot ~= EQUIP_SLOT_MAIN_HAND then
-                -- off-hand / backup off-hand is invalid for two-handed weapons
+    for _, equipSlot in ipairs(candidates) do
+        if IsCompanionEquipSlotCompatible(equipSlot, equipType) then
+            if equipType == EQUIP_TYPE_ONE_HAND then
+                choices[#choices + 1] = equipSlot
             else
-                if not firstCompatibleSlot then
-                    firstCompatibleSlot = equipSlot
-                end
+                firstCompatibleSlot = firstCompatibleSlot or equipSlot
                 if not HasItemInSlot or not HasItemInSlot(BAG_COMPANION_WORN, equipSlot) then
-                    TraceCompanionAction("companions.equip_slot", "selected", { fn = "ResolveCompanionEquipSlot", source = "emptyCompatible", bagId = bagId, slotIndex = slotIndex, equipType = equipType, equipSlot = equipSlot, twoHanded = isTwoHanded })
-                    return equipSlot
+                    return { equipSlot }
                 end
             end
         end
     end
-    TraceCompanionAction("companions.equip_slot", "selected", { fn = "ResolveCompanionEquipSlot", source = "fallbackCompatible", bagId = bagId, slotIndex = slotIndex, equipType = equipType, equipSlot = firstCompatibleSlot, twoHanded = isTwoHanded })
-    return firstCompatibleSlot
+    if equipType ~= EQUIP_TYPE_ONE_HAND and firstCompatibleSlot then
+        return { firstCompatibleSlot }
+    end
+    return choices
 end
 
-local function DoEquipCompanionItem(bagId, slotIndex)
-    TraceCompanionAction("companions.equip", "secure_move_begin", { fn = "DoEquipCompanionItem", bagId = bagId, slotIndex = slotIndex })
-    local equipSlot = Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
-    if not equipSlot then
-        NotifySecureMoveFailed("Companions:ResolveEquipSlot")
-        TraceCompanionAction("companions.equip", "secure_move_rejected", { fn = "DoEquipCompanionItem", reason = "noEquipSlot", bagId = bagId, slotIndex = slotIndex })
+function Companions.ResolveCompanionEquipSlot(bagId, slotIndex)
+    local choices = Companions.GetCompanionEquipSlotChoices(bagId, slotIndex)
+    return #choices == 1 and choices[1] or nil
+end
+
+local function MoveCompanionItemNow(bagId, slotIndex, equipSlot, expectedIdentity)
+    if not Companions.IsCompanionItemIdentityCurrent(bagId, slotIndex, expectedIdentity) then
+        TraceCompanionAction("companions.equip", "move_rejected", {
+            reason = "staleItemIdentity", bagId = bagId, slotIndex = slotIndex, equipSlot = equipSlot,
+        })
         return false
     end
-    if CallSecureProtected then
-        if not CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1) then
-            NotifySecureMoveFailed("Companions:Equip")
-            TraceCompanionAction("companions.equip", "secure_move_failed", { fn = "DoEquipCompanionItem", bagId = bagId, slotIndex = slotIndex, destinationBag = BAG_COMPANION_WORN, destinationSlot = equipSlot })
-            return false
-        end
-        TraceCompanionAction("companions.equip", "secure_move_requested", { fn = "DoEquipCompanionItem", bagId = bagId, slotIndex = slotIndex, destinationBag = BAG_COMPANION_WORN, destinationSlot = equipSlot })
-        return true
+    if GetItemActorCategory
+        and GetItemActorCategory(bagId, slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+        return false
     end
-    TraceCompanionAction("companions.equip", "secure_move_rejected", { fn = "DoEquipCompanionItem", reason = "missingCallSecureProtected", bagId = bagId, slotIndex = slotIndex, destinationBag = BAG_COMPANION_WORN, destinationSlot = equipSlot })
-    return false
+    local equipType = GetItemEquipType and GetItemEquipType(bagId, slotIndex) or nil
+    if not equipType or not IsCompanionEquipSlotCompatible(equipSlot, equipType) then
+        return false
+    end
+    if type(CallSecureProtected) ~= "function"
+        or not CallSecureProtected("RequestMoveItem",
+            bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1) then
+        NotifySecureMoveFailed("Companions:Equip")
+        return false
+    end
+
+    TraceCompanionAction("companions.equip", "move_requested", {
+        bagId = bagId, slotIndex = slotIndex, destinationSlot = equipSlot,
+    })
+    return true
 end
 
 local COMPANION_CONFIRM_EQUIP_BOE_DIALOG = "BETTERUI_COMPANIONS_CONFIRM_EQUIP_BOE"
@@ -246,91 +281,92 @@ local function EnsureCompanionEquipBoEDialogRegistered()
     local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs or nil
     if dialogs and type(dialogs.GetCurrentInfo) == "function"
         and dialogs.GetCurrentInfo(COMPANION_CONFIRM_EQUIP_BOE_DIALOG) then
-        return
+        return true
     end
-    if not (dialogs and type(dialogs.Register) == "function") then
-        TraceCompanionAction("companions.equip_boe_dialog", "register_skipped", {
-            fn = "EnsureCompanionEquipBoEDialogRegistered",
-            dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG,
-            reason = "missingDialogRegistry",
-        })
-        return
-    end
-    local dialogInfo = {
+    if not (dialogs and type(dialogs.Register) == "function") then return false end
+
+    return dialogs.Register(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, {
         canQueue = true,
-        gamepadInfo = {
-            dialogType = GAMEPAD_DIALOGS.BASIC,
-        },
-        title = {
-            text = SI_DIALOG_CONFIRM_BINDING_ITEM_TITLE,
-        },
-        mainText = {
-            text = SI_DIALOG_CONFIRM_EQUIPPING_ITEM_BODY,
-        },
+        finishedCallback = function()
+            if type(Companions.RestoreDialogKeybindOwnership) == "function" then
+                Companions.RestoreDialogKeybindOwnership()
+            end
+        end,
+        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
+        title = { text = SI_DIALOG_CONFIRM_BINDING_ITEM_TITLE },
+        mainText = { text = SI_DIALOG_CONFIRM_EQUIPPING_ITEM_BODY },
         buttons = {
             {
                 text = SI_DIALOG_ACCEPT,
                 callback = function(dialog)
                     local data = dialog and dialog.data or {}
-                    TraceCompanionAction("companions.equip_boe_dialog", "accepted", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG, bagId = data.bagId, slotIndex = data.slotIndex, itemLink = data.itemLink })
-                    local callback = data.callback
-                    if type(callback) == "function" then
-                        return callback()
-                    end
-                    TraceCompanionAction("companions.equip_boe_dialog", "callback_missing", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG, bagId = data.bagId, slotIndex = data.slotIndex, itemLink = data.itemLink })
+                    return MoveCompanionItemNow(
+                        data.bagId, data.slotIndex, data.equipSlot, data.expectedIdentity)
                 end,
             },
             {
                 text = SI_DIALOG_CANCEL,
-                callback = function(dialog)
-                    local data = dialog and dialog.data or {}
-                    TraceCompanionAction("companions.equip_boe_dialog", "cancelled", { fn = "EnsureCompanionEquipBoEDialogRegistered", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG, bagId = data.bagId, slotIndex = data.slotIndex, itemLink = data.itemLink })
-                end,
+                callback = function() end,
             },
         },
-    }
-    if not dialogs.Register(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, dialogInfo) then
-        TraceCompanionAction("companions.equip_boe_dialog", "register_skipped", {
-            fn = "EnsureCompanionEquipBoEDialogRegistered",
-            dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG,
-            reason = "registryRejected",
-        })
+    }) == true
+end
+
+function Companions.TryEquipCompanionItemToSlot(bagId, slotIndex, equipSlot, expectedIdentity)
+    expectedIdentity = expectedIdentity or Companions.CaptureCompanionItemIdentity(bagId, slotIndex)
+    if expectedIdentity == nil then return false end
+
+    local equipType = GetItemEquipType and GetItemEquipType(bagId, slotIndex) or nil
+    if not equipType or not IsCompanionEquipSlotCompatible(equipSlot, equipType) then
+        return false
     end
+
+    if ZO_InventorySlot_WillItemBecomeBoundOnEquip
+        and ZO_InventorySlot_WillItemBecomeBoundOnEquip(bagId, slotIndex)
+        and Companions.GetSetting("bindOnEquipProtection") ~= false then
+        if not EnsureCompanionEquipBoEDialogRegistered()
+            or type(ZO_Dialogs_ShowPlatformDialog) ~= "function" then
+            return false
+        end
+        local itemLink = GetItemLink and GetItemLink(bagId, slotIndex) or ""
+        ZO_Dialogs_ShowPlatformDialog(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, {
+            bagId = bagId,
+            slotIndex = slotIndex,
+            equipSlot = equipSlot,
+            expectedIdentity = expectedIdentity,
+            itemLink = itemLink,
+        }, { mainTextParams = { itemLink } })
+        return true
+    end
+
+    return MoveCompanionItemNow(bagId, slotIndex, equipSlot, expectedIdentity)
 end
 
 function Companions.TryEquipCompanionItem(bagId, slotIndex)
-    TraceCompanionAction("companions.equip", "requested", { fn = "TryEquipCompanionItem", bagId = bagId, slotIndex = slotIndex })
-    if bagId == nil or slotIndex == nil then
-        TraceCompanionAction("companions.equip", "rejected", { fn = "TryEquipCompanionItem", reason = "missingSlot", bagId = bagId, slotIndex = slotIndex })
+    TraceCompanionAction("companions.equip", "requested", {
+        fn = "TryEquipCompanionItem", bagId = bagId, slotIndex = slotIndex,
+    })
+    if bagId == nil or slotIndex == nil then return false end
+    if GetItemActorCategory
+        and GetItemActorCategory(bagId, slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
         return false
     end
-    if GetItemActorCategory and GetItemActorCategory(bagId, slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
-        TraceCompanionAction("companions.equip", "rejected", { fn = "TryEquipCompanionItem", reason = "notCompanionItem", bagId = bagId, slotIndex = slotIndex, actorCategory = GetItemActorCategory(bagId, slotIndex) })
-        return false
-    end
-    local function DoEquip()
-        return DoEquipCompanionItem(bagId, slotIndex)
-    end
-    if ZO_InventorySlot_WillItemBecomeBoundOnEquip and ZO_InventorySlot_WillItemBecomeBoundOnEquip(bagId, slotIndex) then
-        if Companions.GetSetting("bindOnEquipProtection") ~= false then
-            local itemLink = GetItemLink(bagId, slotIndex)
-            -- BetterUI uses a queued, companion-specific BoE confirm dialog (custom callback
-            -- contract + canQueue) rather than native CONFIRM_EQUIP_ITEM.
-            EnsureCompanionEquipBoEDialogRegistered()
-            if type(ZO_Dialogs_ShowPlatformDialog) ~= "function" then
-                TraceCompanionAction("companions.equip_boe_dialog", "rejected", { fn = "TryEquipCompanionItem", reason = "missingDialogApi", bagId = bagId, slotIndex = slotIndex, itemLink = itemLink })
-                return false
-            end
-            ZO_Dialogs_ShowPlatformDialog(COMPANION_CONFIRM_EQUIP_BOE_DIALOG, { callback = DoEquip, bagId = bagId, slotIndex = slotIndex, itemLink = itemLink }, { mainTextParams = { itemLink } })
-            TraceCompanionAction("companions.equip_boe_dialog", "shown", { fn = "TryEquipCompanionItem", dialog = COMPANION_CONFIRM_EQUIP_BOE_DIALOG, bagId = bagId, slotIndex = slotIndex, itemLink = itemLink })
-            return true
-        end
-    end
-    local moved = DoEquip()
-    TraceCompanionAction("companions.equip", "result", { fn = "TryEquipCompanionItem", bagId = bagId, slotIndex = slotIndex, requested = moved })
-    return moved
-end
 
+    local expectedIdentity = Companions.CaptureCompanionItemIdentity(bagId, slotIndex)
+    if expectedIdentity == nil then return false end
+    local equipSlots = Companions.GetCompanionEquipSlotChoices(bagId, slotIndex)
+    if #equipSlots == 0 then
+        NotifySecureMoveFailed("Companions:ResolveEquipSlot")
+        return false
+    end
+    if #equipSlots > 1 then
+        if type(Companions.ShowCompanionEquipSlotDialog) ~= "function" then return false end
+        return Companions.ShowCompanionEquipSlotDialog(
+            bagId, slotIndex, equipSlots, expectedIdentity) == true
+    end
+    return Companions.TryEquipCompanionItemToSlot(
+        bagId, slotIndex, equipSlots[1], expectedIdentity)
+end
 function Companions.TryUnequipCompanionItem(slotIndex)
     TraceCompanionAction("companions.unequip", "requested", { fn = "TryUnequipCompanionItem", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex })
     if slotIndex == nil then
@@ -347,16 +383,14 @@ function Companions.TryUnequipCompanionItem(slotIndex)
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY") or "SI_BETTERUI_VENDOR_CANNOT_CARRY"))
         return false
     end
-    if CallSecureProtected then
-        if not CallSecureProtected("RequestMoveItem", BAG_COMPANION_WORN, slotIndex, BAG_BACKPACK, destinationSlot, 1) then
-            NotifySecureMoveFailed("Companions:Unequip")
-            TraceCompanionAction("companions.unequip", "secure_move_failed", { fn = "TryUnequipCompanionItem", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
-            return false
-        end
-        TraceCompanionAction("companions.unequip", "secure_move_requested", { fn = "TryUnequipCompanionItem", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
+    if type(CallSecureProtected) == "function"
+        and CallSecureProtected("RequestMoveItem",
+            BAG_COMPANION_WORN, slotIndex, BAG_BACKPACK, destinationSlot, 1) then
+        TraceCompanionAction("companions.unequip", "move_requested", { fn = "TryUnequipCompanionItem", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
         return true
     end
-    TraceCompanionAction("companions.unequip", "rejected", { fn = "TryUnequipCompanionItem", reason = "missingCallSecureProtected", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
+    NotifySecureMoveFailed("Companions:Unequip")
+    TraceCompanionAction("companions.unequip", "move_rejected", { fn = "TryUnequipCompanionItem", reason = "secureMoveFailed", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
     return false
 end
 
@@ -510,6 +544,17 @@ function Companions.BuildActionList(selectedData)
         table.insert(actions, { id = "equip", name = GetString(SI_ITEM_ACTION_EQUIP) })
     end
 
+    -- Sorting is an intentional Actions-menu command. Companion list input
+    -- must not silently hand ownership to the header sort controller.
+    local canSort, sortReason = Companions.CanExecuteAction("sort", ds)
+    eligibility.sort = { allowed = canSort == true, reason = sortReason }
+    if canSort then
+        table.insert(actions, {
+            id = "sort",
+            name = GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT") or "SI_BETTERUI_HEADER_SORT"),
+        })
+    end
+
     -- Preview
     local canPreview, previewReason = Companions.CanExecuteAction("preview", ds)
     eligibility.preview = { allowed = canPreview == true, reason = previewReason }
@@ -595,6 +640,8 @@ function Companions.ExecuteAction(actionId, selectedData)
         result = Companions.TryEquipCompanionItem(bagId, slotIndex)
     elseif actionId == "unequip" then
         result = Companions.TryUnequipCompanionItem(slotIndex)
+    elseif actionId == "sort" then
+        result = Companions.RequestHeaderSortAfterDialog()
     elseif actionId == "preview" then
         result = Companions.TryPreviewCompanionItem(bagId, slotIndex)
     elseif actionId == "destroy" then

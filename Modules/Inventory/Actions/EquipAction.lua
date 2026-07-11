@@ -77,155 +77,16 @@ local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
     return true
 end
 
-local COMPANION_EQUIP_PATCH_EVENT_NAME = "BETTERUI_CompanionEquipPatch"
-local COMPANION_EQUIP_PATCH_RETRY_MS = 400
-local companionEquipPatchQueued = false
-local companionEquipPatchRetryPending = false
-
-local function UnregisterCompanionEquipPatchEvent()
-    local eventRegistry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
-    if eventRegistry and type(eventRegistry.Unregister) == "function" then
-        eventRegistry.Unregister("Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED)
-        TraceInventoryEquip("event_unregistered", nil, nil, {
-            route = "companion",
-            event = COMPANION_EQUIP_PATCH_EVENT_NAME,
-            eventCode = EVENT_PLAYER_ACTIVATED,
-            registry = "CIM.EventRegistry",
-            queued = companionEquipPatchQueued == true,
-        })
-    elseif EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
-        EVENT_MANAGER:UnregisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED)
-        TraceInventoryEquip("event_unregistered", nil, nil, {
-            route = "companion",
-            event = COMPANION_EQUIP_PATCH_EVENT_NAME,
-            eventCode = EVENT_PLAYER_ACTIVATED,
-            registry = "EVENT_MANAGER",
-            queued = companionEquipPatchQueued == true,
-        })
-    end
-end
-
 local function GetEquipSlotDialogName()
     assert(BETTERUI.Inventory and BETTERUI.Inventory.GetEquipSlotDialogName,
         "BetterUI: Inventory.GetEquipSlotDialogName must load before EquipAction")
     return BETTERUI.Inventory.GetEquipSlotDialogName()
 end
 
-local function AttemptCompanionEquipPatch()
-    local class = _G["ZO_CompanionEquipment_Gamepad"]
-    if not class then
-        return false
-    end
-    if class._betterui_tryEquipPatched then
-        return true
-    end
-    if type(class.TryEquipItem) ~= "function" or type(ZO_PreHook) ~= "function" then
-        return false
-    end
-    ZO_PreHook(class, "TryEquipItem", function(self, inventorySlot)
-        if self and self.selectedEquipSlot and inventorySlot then
-            local sourceBag, sourceSlot = ZO_Inventory_GetBagAndIndex(inventorySlot)
-            if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Companion TryEquipItem hook fired", {sourceBag = sourceBag, sourceSlot = sourceSlot}) end
-            if sourceBag and sourceSlot then
-                TraceInventoryEquip("companion_hook", sourceBag, sourceSlot, {
-                    targetBag = BAG_COMPANION_WORN,
-                    targetSlot = self.selectedEquipSlot,
-                })
-                local function DoEquip()
-                    TraceInventoryEquip("move_requested", sourceBag, sourceSlot, {
-                        targetBag = BAG_COMPANION_WORN,
-                        targetSlot = self.selectedEquipSlot,
-                        quantity = 1,
-                        route = "companion",
-                    })
-                    if not CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, BAG_COMPANION_WORN,
-                            self.selectedEquipSlot, 1) then
-                        TraceInventoryEquip("request_failed", sourceBag, sourceSlot, {
-                            targetBag = BAG_COMPANION_WORN,
-                            targetSlot = self.selectedEquipSlot,
-                            quantity = 1,
-                            route = "companion",
-                        })
-                        BETTERUI.CIM.UserNotifySecureActionFailed("EquipAction:EquipCompanion")
-                    else
-                        TraceInventoryEquip("requested", sourceBag, sourceSlot, {
-                            targetBag = BAG_COMPANION_WORN,
-                            targetSlot = self.selectedEquipSlot,
-                            quantity = 1,
-                            route = "companion",
-                        })
-                    end
-                end
-                if ZO_InventorySlot_WillItemBecomeBoundOnEquip(sourceBag, sourceSlot) then
-                    local itemDisplayQuality = GetItemDisplayQuality(sourceBag, sourceSlot)
-                    local itemDisplayQualityColor = GetItemQualityColor(itemDisplayQuality)
-                    TraceInventoryEquip("boe_prompted", sourceBag, sourceSlot, {
-                        dialog = "CONFIRM_EQUIP_ITEM",
-                        route = "companion",
-                    })
-                    ZO_Dialogs_ShowPlatformDialog("CONFIRM_EQUIP_ITEM", { onAcceptCallback = DoEquip },
-                        { mainTextParams = { itemDisplayQualityColor:Colorize(GetItemName(sourceBag, sourceSlot)) } })
-                else
-                    TraceInventoryEquip("boe_skipped", sourceBag, sourceSlot, {
-                        route = "companion",
-                    })
-                    DoEquip()
-                end
-                return true
-            end
-        end
-
-        return false
-    end)
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "raw hook installed", { method = "TryEquipItem", target = type(class) }) end
-    class._betterui_tryEquipPatched = true
-    if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIFECYCLE, "companion equip patch installed") end
-    return true
-end
-
+-- Companion equipment owns its canonical direct RequestMoveItem flow.
+-- Keep this export as a compatibility no-op for older call sites.
 local function EnsureCompanionEquipPatched()
-    if AttemptCompanionEquipPatch() then
-        UnregisterCompanionEquipPatchEvent()
-        companionEquipPatchQueued = false
-        companionEquipPatchRetryPending = false
-        return true
-    end
-    if not companionEquipPatchQueued then
-        local eventRegistry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
-        local function OnPlayerActivated()
-            UnregisterCompanionEquipPatchEvent()
-            companionEquipPatchQueued = false
-            EnsureCompanionEquipPatched()
-        end
-
-        local registryName = nil
-        if eventRegistry and type(eventRegistry.Register) == "function" then
-            companionEquipPatchQueued = eventRegistry.Register(
-                "Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated) == true
-            registryName = "CIM.EventRegistry"
-        elseif EVENT_MANAGER and EVENT_MANAGER.RegisterForEvent then
-            companionEquipPatchQueued = true
-            EVENT_MANAGER:RegisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
-            registryName = "EVENT_MANAGER"
-        end
-        if companionEquipPatchQueued and registryName then
-            TraceInventoryEquip("event_registered", nil, nil, {
-                route = "companion",
-                event = COMPANION_EQUIP_PATCH_EVENT_NAME,
-                eventCode = EVENT_PLAYER_ACTIVATED,
-                registry = registryName,
-            })
-        end
-    end
-    if not companionEquipPatchRetryPending and BETTERUI.Inventory.Tasks then
-        companionEquipPatchRetryPending = true
-
-        BETTERUI.Inventory.Tasks:Schedule("companionEquipPatchRetry", COMPANION_EQUIP_PATCH_RETRY_MS, function()
-            companionEquipPatchRetryPending = false
-            EnsureCompanionEquipPatched()
-        end)
-    end
-    return false
+    return true
 end
 
 BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched

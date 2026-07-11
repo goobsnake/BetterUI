@@ -57,6 +57,16 @@ assert_true(source:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searc
     "CompanionsClass ExitSearchMode restores exactly the groups the cleanup removed")
 assert_true(source:find("function BETTERUI%.Companions%.Class:RefreshCompanionFooter%(%)") ~= nil,
     "CompanionsClass exposes RefreshCompanionFooter")
+assert_true(source:find('"BETTERUI_Gamepad_ParametricList_Screen"', 1, true) ~= nil,
+    "CompanionsClass instantiates the Inventory parametric screen")
+assert_true(source:find("BETTERUI.CIM.UnifiedFooter.MODE.CURRENCY", 1, true) ~= nil,
+    "CompanionsClass selects the Inventory currency footer")
+assert_true(source:find('GetNamedChild("Withdraw")', 1, true) == nil,
+    "CompanionsClass no longer repurposes Banking withdraw controls")
+assert_true(source:find('GetNamedChild("Deposit")', 1, true) == nil,
+    "CompanionsClass no longer repurposes Banking deposit controls")
+assert_true(source:find("function BETTERUI%.Companions%.Class:RefreshCompanionWeaponHeader%(%)") ~= nil,
+    "CompanionsClass refreshes companion main and off-hand header icons")
 assert_true(source:find("function BETTERUI%.Companions%.Class:PrepareNextClearNewStatus%(selectedData%)") ~= nil,
     "CompanionsClass exposes PrepareNextClearNewStatus")
 assert_true(source:find("function BETTERUI%.Companions%.Class:TryClearNewStatus%(%)") ~= nil,

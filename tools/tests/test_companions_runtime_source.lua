@@ -38,6 +38,7 @@ local moduleSource = read_file("Modules/Companions/Module.lua")
 local runtimeSource = read_file("Modules/Companions/Core/CompanionsRuntime.lua")
 local listManagerSource = read_file("Modules/Companions/Core/CompanionListManager.lua")
 local itemListSource = read_file("Modules/Companions/Core/CompanionItemList.lua")
+local layoutSnapshotSource = read_file("Modules/CIM/Core/Diagnostics/LayoutSnapshot.lua")
 local manifestSource = read_file("BetterUI.txt")
 
 assert_contains(runtimeSource, "function Companions.InitializeRuntime()",
@@ -83,6 +84,10 @@ assert_not_contains(moduleSource, "Companions.instance.coreKeybinds =",
     "Companions Module.lua no longer wires runtime keybinds directly")
 assert_contains(manifestSource, "Modules\\Companions\\Core\\CompanionsRuntime.lua",
     "Addon manifest loads the new Companions runtime helper")
+local runtimeManifestIndex = assert(manifestSource:find("Modules\\Companions\\Core\\CompanionsRuntime.lua", 1, true))
+local listManagerManifestIndex = assert(manifestSource:find("Modules\\Companions\\Core\\CompanionListManager.lua", 1, true))
+assert(runtimeManifestIndex < listManagerManifestIndex,
+    "Companions runtime must load before CompanionListManager snapshots its keybind wrapper")
 assert_contains(runtimeSource, "CallCompanionSearchLifecycle(instance, \"clear\")",
     "Companions runtime keybinds clear search through the canonical search lifecycle")
 assert_contains(runtimeSource, "CallCompanionSearchLifecycle(instance, \"requestEnter\")",
@@ -107,6 +112,59 @@ assert_contains(itemListSource, "GetItemCooldownInfo(BAG_BACKPACK, slotIndex)",
     "Companion item list reads cooldown info for backpack items")
 assert_contains(itemListSource, "entry:SetCooldown(remaining, duration)",
     "Companion item list applies cooldown overlays to list entries")
+
+assert_not_contains(listManagerSource, "AlignCompanionListToHeader",
+    "Companion list positioning is owned by the Inventory XML shell")
+assert_not_contains(runtimeSource, "COMPANION_ROW_LABEL_OFFSET_X",
+    "Companion rows do not retain scene-specific name offsets")
+assert_not_contains(runtimeSource, "COMPANION_ROW_ICON_OFFSET_X",
+    "Companion rows do not retain scene-specific icon offsets")
+assert_not_contains(runtimeSource, "COMPANION_ROW_COLUMN_ADJUST_X",
+    "Companion rows do not retain scene-specific column offsets")
+assert_contains(runtimeSource, "BETTERUI_SharedGamepadEntry_OnSetup,",
+    "Companion list installs the exact shared Inventory row setup")
+assert_contains(runtimeSource, "autoEnterOnListStart = false",
+    "Companion sort mode is entered intentionally instead of taking over at the list boundary")
+assert_contains(runtimeSource, "function Companions.RequestHeaderSortAfterDialog()",
+    "Companion action-dialog sorting defers ownership until the dialog closes")
+assert_contains(runtimeSource, "if attempts <= 0 then",
+    "Companion sort deferral stops when a dialog outlives the retry budget")
+assert_contains(runtimeSource, 'reason = "dialogCloseTimeout"',
+    "Companion sort deferral records the timeout instead of taking keybind ownership")
+assert_contains(listManagerSource, 'iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds"',
+    "Companion Junk category uses the shipped ESOUI junk texture")
+assert_not_contains(listManagerSource, "gp_inventory_icon_junk.dds",
+    "Companion Junk category does not reference the missing gamepad texture")
+assert_contains(listManagerSource, 'iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds"',
+    "Companion Stolen category uses the same shipped texture as Inventory")
+assert_not_contains(listManagerSource, "gp_inventory_icon_stolen.dds",
+    "Companion Stolen category does not reference the missing texture")
+assert_not_contains(listManagerSource, "COMPANION_CAROUSEL_START_OFFSET",
+    "Companion category carousel inherits Inventory defaults")
+assert_not_contains(listManagerSource, "countBadgeOffsetY",
+    "Companion category badges inherit Inventory alignment")
+assert_contains(listManagerSource, 'preset = "INVENTORY"',
+    "Companion search placement uses the Inventory preset")
+assert_contains(listManagerSource, "headerOnly = true",
+    "Companion search placement resolves against the Inventory header")
+assert_not_contains(listManagerSource, "label:ClearAnchors()",
+    "Companion column headers preserve Inventory XML anchors")
+assert_contains(listManagerSource, "self.list.maxOffset = 30",
+    "Companion list uses Inventory list tuning")
+assert_contains(listManagerSource, "local headerPaddingScale = 0.75",
+    "Companion list uses Inventory header padding")
+assert_contains(runtimeSource, '"BUI_GpCmp"',
+    "Companion runtime uses the short Inventory-shell root name")
+assert_not_contains(runtimeSource, "CompanionFooterDummy",
+    "Companion currency footer remains inside the visible Inventory shell")
+assert_contains(runtimeSource, "EVENT_MONEY_UPDATE",
+    "Companion currency footer refreshes when carried money changes")
+assert_contains(runtimeSource, "EVENT_CURRENCY_UPDATE",
+    "Companion currency footer refreshes when account currencies change")
+assert_contains(layoutSnapshotSource, '"companions"',
+    "Layout snapshots include the Companion scene in visible-root discovery")
+assert_contains(layoutSnapshotSource, 'companions = { globals = { "BUI_GpCmp" } }',
+    "Layout snapshots resolve the Companion window root")
 -- Companion entryData must carry slotType (matching native companionequipment_gamepad.lua,
 -- which calls ZO_InventorySlot_SetType(entryData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)) so the
 -- engine destroy-eligibility probe in CIM.ProtectionPolicy.CanDestroyItem actually runs

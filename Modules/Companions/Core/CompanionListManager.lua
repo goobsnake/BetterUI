@@ -163,13 +163,13 @@ local CATEGORY_DEFINITIONS = {
         key = "junk",
         nameStringId = SI_BETTERUI_INV_ITEM_JUNK,
         filterType = -2, -- custom
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_junk.dds",
+        iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds",
     },
     {
         key = "stolen",
         nameStringId = SI_BETTERUI_INV_ITEM_STOLEN,
         filterType = -3, -- custom
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolen.dds",
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds",
     },
 }
 
@@ -405,8 +405,6 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
     local isCarousel = (not Companions.GetSetting) or (Companions.GetSetting("enableCarousel") ~= false)
     self.companionHeaderData.carouselConfig = {
         enabled = isCarousel,
-        startOffset = 705,
-        verticalOffset = -1,
     }
     self.companionHeaderData.onSelectedChanged = function(list)
         if self._suppressCompanionHeaderSelection then
@@ -451,6 +449,7 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
     end
 
     BETTERUI.GenericHeader.Refresh(headerGeneric, self.companionHeaderData, false)
+    self:RefreshCompanionWeaponHeader()
 
     if headerGeneric.tabBar then
         local selectedIndex = zo_clamp(self.currentCategoryIndex or 1, 1, #categories)
@@ -569,39 +568,19 @@ function BETTERUI.Companions.Class:PositionSearchControl()
 
     -- Shared anchoring lives in CIM SearchManager (loaded before this module).
     BETTERUI.Interface.PositionSearchControl(self, {
-        preset = "BANKING",
-        fallbackY = 8,
+        preset = "INVENTORY",
+        headerOnly = true,
+        titleChildNames = { "TitleContainer", "Header", "HeaderContainer", "HeaderTitle", "HeaderBar", "ContainerHeader" },
+        safeExecuteContext = "Companions.search.anchor",
     })
 end
 
 function BETTERUI.Companions.Class:EnsureColumnHeadersVisible()
-    if not (self.header and self.header.columns) then
-        return
-    end
-
-    local HDR_COL = BETTERUI.CIM.CONST.HEADER_LAYOUT.COLUMNS
-    local COLUMN_KEYS = { "NAME", "TYPE", "TRAIT", "STAT", "VALUE" }
-    local anchorTarget = (self.header and self.header:GetNamedChild("HeaderTabBar"))
-        or (self.headerGeneric and self.headerGeneric:GetNamedChild("TabBar"))
-        or (self.header and self.header:GetNamedChild("HeaderColumnBar"))
-
-    -- Companions uses a custom list anchor; this offset keeps labels aligned with row content.
-    local COLUMN_OFFSET_DELTA = 24
-
+    if not (self.header and self.header.columns) then return end
     for _, label in ipairs(self.header.columns) do
         if label then
-            local columnIndex = label.columnIndex
-            local key = columnIndex and COLUMN_KEYS[columnIndex]
-            local xOffset = key and HDR_COL[key]
-            if anchorTarget and xOffset then
-                label:ClearAnchors()
-                label:SetAnchor(LEFT, anchorTarget, BOTTOMLEFT, xOffset + COLUMN_OFFSET_DELTA, BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET)
-            end
             label:SetHidden(false)
             label:SetAlpha(1)
-            if label.SetDrawLayer then
-                label:SetDrawLayer(DL_OVERLAY)
-            end
         end
     end
 end
@@ -684,6 +663,19 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
         self.list:SetFixedCenterOffset(-50)
     end
 
+    self.list.maxOffset = 30
+
+    local headerPaddingScale = 0.75
+    if self.list.SetHeaderPadding and GAMEPAD_HEADER_DEFAULT_PADDING and GAMEPAD_HEADER_SELECTED_PADDING then
+        self.list:SetHeaderPadding(
+            GAMEPAD_HEADER_DEFAULT_PADDING * headerPaddingScale,
+            GAMEPAD_HEADER_SELECTED_PADDING * headerPaddingScale
+        )
+    end
+    if self.list.SetUniversalPostPadding and GAMEPAD_DEFAULT_POST_PADDING then
+        self.list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * headerPaddingScale)
+    end
+
     if self.list.SetNoItemText then
         self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_EMPTY_LIST") or "SI_BETTERUI_EMPTY_LIST"))
     end
@@ -721,10 +713,10 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
     if self.list.control and BETTERUI.CIM and BETTERUI.CIM.ScrollIndicator then
         BETTERUI.CIM.ScrollIndicator.Setup(self.list.control, {
             listObject = self.list,
-            offsetX = 5,
-            offsetTopY = -8,
+            offsetX = 25,
+            offsetTopY = -5,
             offsetBottomY = -10,
-            visibleItems = 12,
+            visibleItems = BETTERUI.CIM.CONST.UI.BANKING_VISIBLE_ITEMS or 10,
         })
     end
 end

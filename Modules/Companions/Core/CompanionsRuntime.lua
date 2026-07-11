@@ -90,6 +90,9 @@ local function RefreshVisibleCompanionScene(screen, options)
     screen:RefreshCategories()
     screen:RefreshList()
     screen:RefreshCompanionFooter()
+    if screen.RefreshCompanionWeaponHeader then
+        screen:RefreshCompanionWeaponHeader()
+    end
 
     if options and options.refreshTitle then
         screen:RefreshCategoryTitle()
@@ -133,23 +136,6 @@ local function PatchCompanionListMovePrevious(instance)
     BETTERUI.CIM.Lists.WrapMovePreviousToHeader(instance and instance.list, function()
         CallCompanionSearchLifecycle(instance, "requestEnter")
     end)
-end
-
-local function ConfigureCompanionListLayout(instance)
-    local listControl = instance.list and instance.list.control
-    local headerGeneric = instance.headerGeneric
-    if not (listControl and headerGeneric) then
-        return
-    end
-
-    local container = instance.control and instance.control:GetNamedChild("Container")
-    local footer = container and container:GetNamedChild("Footer")
-    local footerFooter = footer and footer:GetNamedChild("Footer")
-    listControl:ClearAnchors()
-    listControl:SetAnchor(TOPLEFT, headerGeneric, BOTTOMLEFT, 20, 15)
-    if footerFooter then
-        listControl:SetAnchor(BOTTOMRIGHT, footerFooter, TOPRIGHT, 0, -8)
-    end
 end
 
 local function InitializeCompanionMultiSelect(instance)
@@ -208,7 +194,6 @@ local function InitializeCompanionList(instance)
     instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), headerColumns.VALUE)
     instance:RefreshCategories()
     instance:EnsureColumnHeadersVisible()
-    ConfigureCompanionListLayout(instance)
 end
 
 local function RegisterCompanionNarration()
@@ -225,7 +210,7 @@ function Companions.InitializeRuntime()
     Companions.RegisterDialogs()
 
     local instance = Companions.Class:New(
-        "BETTERUI_CompanionWindow", BETTERUI_COMPANION_EQUIP_SCENE_NAME)
+        "BUI_GpCmp", BETTERUI_COMPANION_EQUIP_SCENE_NAME)
     Companions.instance = instance
     instance:SetTitle(
         "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE") .. "|r")
@@ -246,7 +231,10 @@ function Companions.InitializeRuntime()
     instance.sortSetupError = not sortOk and sortErr or nil
     Companions.CreateScene(instance)
     Companions.RegisterSceneLifecycle(instance)
-    instance:InitCompanionFooter()
+    instance:RefreshCompanionFooter()
+    if instance.RefreshCompanionWeaponHeader then
+        instance:RefreshCompanionWeaponHeader()
+    end
     RegisterCompanionNarration()
     Companions.RegisterEvents(EVENT_MANAGER)
 
@@ -258,6 +246,72 @@ function Companions.InitializeRuntime()
     end
 
     return instance
+end
+
+function Companions.RequestHeaderSortAfterDialog()
+    local instance = Companions.instance
+    if not (instance
+        and type(instance.EnterHeaderSortMode) == "function"
+        and instance.IsSceneShowing
+        and instance:IsSceneShowing()) then
+        TraceCompanionRuntime("companions.sort", "enter_rejected", {
+            reason = "sceneOrSortUnavailable",
+        })
+        return false
+    end
+
+    local attempts = 60
+    instance._pendingHeaderSortFromDialog = true
+
+    local function EnterWhenDialogClosed()
+        attempts = attempts - 1
+        if not instance:IsSceneShowing() then
+            instance._pendingHeaderSortFromDialog = nil
+            TraceCompanionRuntime("companions.sort", "enter_skipped", {
+                reason = "sceneHidden",
+                attemptsRemaining = attempts,
+            })
+            return
+        end
+
+        local dialogIsShowing = ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog()
+        if dialogIsShowing then
+            if attempts <= 0 then
+                instance._pendingHeaderSortFromDialog = nil
+                TraceCompanionRuntime("companions.sort", "enter_skipped", {
+                    reason = "dialogCloseTimeout",
+                    attemptsRemaining = attempts,
+                })
+                return
+            end
+            if Companions.Tasks and Companions.Tasks.Schedule then
+                Companions.Tasks:Schedule("enterHeaderSortAfterDialog", 10, EnterWhenDialogClosed)
+                return
+            elseif type(zo_callLater) == "function" then
+                zo_callLater(EnterWhenDialogClosed, 10)
+                return
+            end
+            instance._pendingHeaderSortFromDialog = nil
+            TraceCompanionRuntime("companions.sort", "enter_skipped", {
+                reason = "missingScheduler",
+                attemptsRemaining = attempts,
+            })
+            return
+        end
+
+        instance._pendingHeaderSortFromDialog = nil
+        local entered = instance:EnterHeaderSortMode()
+        TraceCompanionRuntime("companions.sort", "enter_attempted", {
+            entered = entered == true,
+            attemptsRemaining = attempts,
+        })
+    end
+
+    if Companions.Tasks and Companions.Tasks.Cancel then
+        Companions.Tasks:Cancel("enterHeaderSortAfterDialog")
+    end
+    EnterWhenDialogClosed()
+    return true
 end
 
 function Companions.SetupSort(instance)
@@ -288,7 +342,7 @@ function Companions.SetupSort(instance)
             keybinds = {
                 mainDescriptor = instance.coreKeybinds,
             },
-            autoEnterOnListStart = true,
+            autoEnterOnListStart = false,
         })
         headerSortIntegration.EnsureController(integration)
     end)
@@ -307,12 +361,6 @@ function Companions.CreateScene(instance)
     instance.fragment = ZO_SimpleSceneFragment:New(instance.control)
     instance.fragment:SetHideOnSceneHidden(true)
 
-    local companionFooterDummy = BETTERUI.WindowManager:CreateControl(
-        "BETTERUI_CompanionFooterDummy", GuiRoot, CT_CONTROL)
-    companionFooterDummy:SetHidden(true)
-    instance.footerFragment = ZO_SimpleSceneFragment:New(companionFooterDummy)
-    instance.footerFragment:SetHideOnSceneHidden(true)
-
     local scene = ZO_InteractScene:New(BETTERUI_COMPANION_EQUIP_SCENE_NAME, SCENE_MANAGER, Companions.COMPANION_INTERACTION)
     instance.scene = scene
 
@@ -323,7 +371,6 @@ function Companions.CreateScene(instance)
     scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
     scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
     scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
-    scene:AddFragment(instance.footerFragment)
 
     scene:RegisterCallback("StateChange", function(_, newState)
         if not Companions.instance then
@@ -331,6 +378,10 @@ function Companions.CreateScene(instance)
         end
         if newState == SCENE_SHOWN then
             Companions.instance:EnsureColumnHeadersVisible()
+            Companions.instance:RefreshCompanionFooter()
+            if Companions.instance.RefreshCompanionWeaponHeader then
+                Companions.instance:RefreshCompanionWeaponHeader()
+            end
             Companions.instance:EnsureListInputActive()
             Companions.instance:UpdateItemTooltips(Companions.instance.list and Companions.instance.list:GetTargetData())
         end
@@ -519,6 +570,14 @@ local function OnInventoryUpdated(eventCode, bagId, slotIndex)
     end)
 end
 
+local function OnCompanionCurrencyUpdated()
+    local screen = Companions.instance
+    if screen and screen:IsSceneShowing()
+        and type(screen.RefreshCompanionFooter) == "function" then
+        screen:RefreshCompanionFooter()
+    end
+end
+
 function Companions.RegisterEvents(eventManager)
     if not eventManager then
         return
@@ -547,6 +606,21 @@ function Companions.RegisterEvents(eventManager)
         EVENT_INVENTORY_FULL_UPDATE, OnInventoryUpdated)
     if BETTERUI.Log then
         BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_INVENTORY_FULL_UPDATE" })
+    end
+
+    local currencyEvents = {
+        { suffix = "_MoneyUpdate", eventCode = EVENT_MONEY_UPDATE },
+        { suffix = "_CurrencyUpdate", eventCode = EVENT_CURRENCY_UPDATE },
+        { suffix = "_AlliancePointUpdate", eventCode = EVENT_ALLIANCE_POINT_UPDATE },
+        { suffix = "_TelVarUpdate", eventCode = EVENT_TELVAR_STONE_UPDATE },
+    }
+    for _, currencyEvent in ipairs(currencyEvents) do
+        if currencyEvent.eventCode then
+            eventManager:RegisterForEvent(
+                EVENT_NS .. currencyEvent.suffix,
+                currencyEvent.eventCode,
+                OnCompanionCurrencyUpdated)
+        end
     end
 
     if BETTERUI.Log then
@@ -711,11 +785,26 @@ function Companions.BuildCoreKeybinds(instance)
                     return
                 end
                 local selectedData = instance.list and instance.list:GetSelectedData()
-                if selectedData and ZO_Dialogs_ShowGamepadDialog then
-                    ZO_Dialogs_ShowGamepadDialog("BETTERUI_COMPANION_ACTION_DIALOG", { selectedData = selectedData })
+                local dataSource = selectedData and (selectedData.dataSource or selectedData) or nil
+                local expectedIdentity = dataSource
+                    and type(Companions.CaptureCompanionItemIdentity) == "function"
+                    and Companions.CaptureCompanionItemIdentity(
+                        dataSource.bagId, dataSource.slotIndex)
+                    or nil
+                if selectedData and expectedIdentity and ZO_Dialogs_ShowGamepadDialog then
+                    ZO_Dialogs_ShowGamepadDialog("BETTERUI_COMPANION_ACTION_DIALOG", {
+                        selectedData = selectedData,
+                        expectedIdentity = expectedIdentity,
+                    })
                     TraceCompanionKeybind("actions_dialog_shown", instance, { keybind = "UI_SHORTCUT_TERTIARY", dialog = "BETTERUI_COMPANION_ACTION_DIALOG" })
                 else
-                    TraceCompanionKeybind("actions_skipped", instance, { keybind = "UI_SHORTCUT_TERTIARY", reason = selectedData and "missingDialogApi" or "noSelection" })
+                    local reason = not selectedData and "noSelection"
+                        or not expectedIdentity and "missingItemIdentity"
+                        or "missingDialogApi"
+                    TraceCompanionKeybind("actions_skipped", instance, {
+                        keybind = "UI_SHORTCUT_TERTIARY",
+                        reason = reason,
+                    })
                 end
             end,
         },
