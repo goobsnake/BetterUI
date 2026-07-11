@@ -40,11 +40,18 @@ local listManagerSource = read_file("Modules/Companions/Core/CompanionListManage
 local itemListSource = read_file("Modules/Companions/Core/CompanionItemList.lua")
 local layoutSnapshotSource = read_file("Modules/CIM/Core/Diagnostics/LayoutSnapshot.lua")
 local manifestSource = read_file("BetterUI.txt")
+local searchManagerSource = read_file("Modules/CIM/Core/Data/SearchManager.lua")
 
 assert_contains(runtimeSource, "function Companions.InitializeRuntime()",
     "Companions runtime helper owns the single runtime bootstrap entrypoint")
 assert_contains(runtimeSource, "function Companions.CreateScene(instance)",
     "Companions runtime helper owns scene creation")
+assert_contains(runtimeSource, "ZO_COMPANION_MANAGER:GetInteraction()",
+    "Companion scene reuses the native companion interaction contract")
+assert_contains(runtimeSource, "SHARED_INVENTORY:GetOrCreateBagCache(BAG_BACKPACK)",
+    "Companion runtime initializes the backpack shared-inventory cache")
+assert_contains(runtimeSource, "SHARED_INVENTORY:GetOrCreateBagCache(BAG_COMPANION_WORN)",
+    "Companion runtime initializes the worn shared-inventory cache")
 assert_contains(runtimeSource, "EVENT_OPEN_COMPANION_MENU",
     "Companions runtime opens the BetterUI scene from the native companion open event")
 assert_not_contains(runtimeSource, "SCENE_MANAGER.scenes[\"companionEquipmentGamepad\"] =",
@@ -92,6 +99,12 @@ assert_contains(runtimeSource, "CallCompanionSearchLifecycle(instance, \"clear\"
     "Companions runtime keybinds clear search through the canonical search lifecycle")
 assert_contains(runtimeSource, "CallCompanionSearchLifecycle(instance, \"requestEnter\")",
     "Companions runtime keybinds enter search through the canonical search lifecycle")
+assert_contains(runtimeSource, "if not BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(window) then",
+    "Companion edit-box focus avoids recursively re-entering the active search lifecycle")
+assert_contains(runtimeSource, "onAcceptSearch = function(window)",
+    "Companion search edit box routes accept through the scene lifecycle")
+assert_contains(searchManagerSource, 'editBox:SetHandler("OnEnter"',
+    "Shared search edit-box handlers expose the native accept event")
 assert_contains(listManagerSource, "searchMixin.CallSearchLifecycle(self, \"exit\")",
     "Companion list manager exits search through the canonical lifecycle")
 assert_contains(listManagerSource, "local function EnsureListDirectionalInputRegistration(list, listRegistrationCount)",
@@ -145,22 +158,41 @@ assert_not_contains(listManagerSource, "countBadgeOffsetY",
     "Companion category badges inherit Inventory alignment")
 assert_contains(listManagerSource, 'preset = "INVENTORY"',
     "Companion search placement uses the Inventory preset")
-assert_contains(listManagerSource, "headerOnly = true",
-    "Companion search placement resolves against the Inventory header")
+assert_contains(listManagerSource, "headerOnly = false",
+    "Companion search placement resolves against the concrete generic header")
 assert_not_contains(listManagerSource, "label:ClearAnchors()",
     "Companion column headers preserve Inventory XML anchors")
 assert_contains(listManagerSource, "self.list.maxOffset = 30",
     "Companion list uses Inventory list tuning")
 assert_contains(listManagerSource, "local headerPaddingScale = 0.75",
     "Companion list uses Inventory header padding")
-assert_contains(runtimeSource, '"BUI_GpCmp"',
-    "Companion runtime uses the short Inventory-shell root name")
+assert_contains(runtimeSource, "BUI_GpCmp, BETTERUI_COMPANION_EQUIP_SCENE_NAME",
+    "Companion runtime consumes the XML-created Inventory-shell root")
 assert_not_contains(runtimeSource, "CompanionFooterDummy",
     "Companion currency footer remains inside the visible Inventory shell")
 assert_contains(runtimeSource, "EVENT_MONEY_UPDATE",
     "Companion currency footer refreshes when carried money changes")
 assert_contains(runtimeSource, "EVENT_CURRENCY_UPDATE",
     "Companion currency footer refreshes when account currencies change")
+assert_contains(runtimeSource, 'SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate"',
+    "Companion runtime observes the native shared-inventory single-slot reconciliation path")
+assert_contains(runtimeSource, 'SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate"',
+    "Companion runtime observes the native shared-inventory full reconciliation path")
+assert_contains(runtimeSource, "if screen._searchModeActive then",
+    "Full Companion refreshes preserve search ownership instead of reactivating the list")
+assert_contains(runtimeSource, "not Companions._sharedInventoryCallbacksRegistered",
+    "Companion shared-inventory callback registration is idempotent")
+do
+    local searchOwnedCategoryPaths = 0
+    for _ in listManagerSource:gmatch("if self%._searchModeActive then") do
+        searchOwnedCategoryPaths = searchOwnedCategoryPaths + 1
+    end
+    if searchOwnedCategoryPaths < 2 then
+        error("Both direct category cycling and tab-bar selection must preserve search ownership")
+    end
+end
+assert_contains(listManagerSource, "self:DeactivateListInput()",
+    "Companion category changes keep the list dimmed while search owns focus")
 assert_contains(layoutSnapshotSource, '"companions"',
     "Layout snapshots include the Companion scene in visible-root discovery")
 assert_contains(layoutSnapshotSource, 'companions = { globals = { "BUI_GpCmp" } }',

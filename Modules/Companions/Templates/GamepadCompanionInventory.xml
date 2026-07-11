@@ -1,0 +1,13 @@
+<GuiXml>
+    <Controls>
+        <!-- Materialize the shared Inventory shell during XML loading. Creating the
+             hidden virtual template dynamically leaves inherited visual children
+             unavailable to the live Companion scene on ESO's UI runtime. -->
+        <TopLevelControl name="BUI_GpCmp"
+            inherits="BETTERUI_Gamepad_ParametricList_Screen">
+            <OnInitialized>
+                -- Initialization is handled by BETTERUI.Companions.InitializeRuntime().
+            </OnInitialized>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

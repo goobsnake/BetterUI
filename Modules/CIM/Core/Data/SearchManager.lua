@@ -199,6 +199,12 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
                 return HasVisibleSearchControl()
             end,
             callback = function()
+                if BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(context) then
+                    local accepted = BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "accept")
+                    if accepted ~= nil then
+                        return accepted
+                    end
+                end
                 if context and type(context.SetTextSearchFocused) == "function" then
                     context:SetTextSearchFocused(true)
                 else
@@ -360,6 +366,7 @@ end
 BETTERUI.Interface.SearchMixin = {}
 
 local SEARCH_LIFECYCLE_CANONICAL_METHODS = {
+    accept = "AcceptSearchAndReturnToList",
     clear = "ClearSearchInput",
     exit = "ExitSearchMode",
     headerActive = "IsHeaderFocused",
@@ -537,7 +544,7 @@ end
 
 --- Sets up focus, text change, and navigation handlers for the search edit box.
 ---@param self BetterUISearchContext
----@param options {isSceneShowing: fun(): boolean, onTextChanged: fun(self: BetterUISearchContext, text: string)?, onExitFocus: fun(self: BetterUISearchContext)?, enterHeaderFn: fun(self: BetterUISearchContext)?}?
+---@param options {isSceneShowing: fun(): boolean, onTextChanged: fun(self: BetterUISearchContext, text: string)?, onExitFocus: fun(self: BetterUISearchContext)?, onAcceptSearch: fun(self: BetterUISearchContext)?, enterHeaderFn: fun(self: BetterUISearchContext)?}?
 function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
     if not self.textSearchHeaderFocus then return end
     local editBox = self.textSearchHeaderFocus:GetEditBox()
@@ -549,6 +556,7 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
         state = {
             origOnFocusGained = editBox:GetHandler("OnFocusGained"),
             origOnFocusLost = editBox:GetHandler("OnFocusLost"),
+            origOnEnter = editBox:GetHandler("OnEnter"),
             origOnTextChanged = editBox:GetHandler("OnTextChanged"),
             origOnKeyDown = editBox:GetHandler("OnKeyDown"),
             origOnShortcut = editBox:GetHandler("OnShortcut"),
@@ -562,6 +570,7 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
     state.onExitFocus = options.onExitFocus or function(owner)
         BETTERUI.Interface.SearchMixin.CallSearchLifecycle(owner, "exit")
     end
+    state.onAcceptSearch = options.onAcceptSearch
     state.enterHeaderFn = options.enterHeaderFn
 
     if state.handlersInstalled then return end
@@ -577,6 +586,24 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
             handlerState.enterHeaderFn(owner)
         elseif not BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(owner) then
             BETTERUI.Interface.SearchMixin.CallSearchLifecycle(owner, "requestEnter")
+        end
+    end)
+
+    -- OnEnter is the edit box's gamepad/keyboard accept event. Only scenes
+    -- that provide an explicit accept callback consume it.
+    editBox:SetHandler("OnEnter", function(eb)
+        local handlerState = eb._betteruiSearchEditBoxHandlerState or state
+        local owner = handlerState.owner
+        if owner and handlerState.isSceneShowing() and handlerState.onAcceptSearch then
+            -- Accept before the inherited gamepad edit-box handler calls
+            -- LoseFocus. This keeps the scene lifecycle in charge of restoring
+            -- list and carousel ownership instead of relying on focus loss.
+            local accepted = handlerState.onAcceptSearch(owner)
+            if accepted then return true end
+        end
+        if handlerState.origOnEnter then
+            local handled = handlerState.origOnEnter(eb)
+            if handled then return handled end
         end
     end)
 
@@ -618,7 +645,10 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
         end
         if not owner or not handlerState.isSceneShowing() then return end
 
-        if command == "UI_SHORTCUT_DOWN" then
+        if command == "UI_SHORTCUT_PRIMARY" and handlerState.onAcceptSearch then
+            handlerState.onAcceptSearch(owner)
+            return true
+        elseif command == "UI_SHORTCUT_DOWN" then
             handlerState.onExitFocus(owner)
             return true
         end
@@ -634,7 +664,10 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
         end
         if not owner or not handlerState.isSceneShowing() then return end
 
-        if shortcut == "UI_SHORTCUT_DOWN" then
+        if shortcut == "UI_SHORTCUT_PRIMARY" and handlerState.onAcceptSearch then
+            handlerState.onAcceptSearch(owner)
+            return true
+        elseif shortcut == "UI_SHORTCUT_DOWN" then
             handlerState.onExitFocus(owner)
             return true
         end

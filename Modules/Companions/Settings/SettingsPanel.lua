@@ -19,7 +19,7 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
         end
 
         if instance.RefreshList then
-            instance:RefreshList()
+            instance:RefreshList({ preserveCurrentPosition = true })
         end
         if instance.RefreshCompanionFooter then
             instance:RefreshCompanionFooter()

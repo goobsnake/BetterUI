@@ -290,6 +290,7 @@ Modules\Vendor\Dialogs\BuyConfirmDialog.lua
 Modules\Vendor\Settings\SettingsPanel.lua
 
 ; Module: Companions (INV-004)
+Modules\Companions\Templates\GamepadCompanionInventory.xml
 Modules\Companions\Core\CompanionsClass.lua
 Modules\Companions\Core\CompanionsRuntime.lua
 Modules\Companions\Core\CompanionListManager.lua

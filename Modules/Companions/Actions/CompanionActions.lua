@@ -56,6 +56,12 @@ local function CanUnjunkItem(bagId, slotIndex)
     return RequireProtectionPolicyMethod("CanUnjunkItem")(bagId, slotIndex) == true
 end
 
+local function IsCompanionActorItem(bagId, slotIndex)
+    return type(GetItemActorCategory) == "function"
+        and GetItemActorCategory(bagId, slotIndex)
+            == GAMEPLAY_ACTOR_CATEGORY_COMPANION
+end
+
 local function RequireInventoryDestroyExecutor()
     local inventory = BETTERUI and BETTERUI.Inventory or nil
     local destroyExecutor = inventory and inventory.TryDestroyItem or nil
@@ -64,20 +70,45 @@ local function RequireInventoryDestroyExecutor()
     return destroyExecutor
 end
 
---- Alerts the user when a secure RequestMoveItem call is rejected by the client.
+--- Alerts the user when an equipment request cannot be submitted.
 ---@param context string Logging context label
-local function NotifySecureMoveFailed(context)
-    TraceCompanionAction("companions.secure_move", "failed", { fn = "NotifySecureMoveFailed", context = context })
+local function NotifyEquipmentRequestFailed(context)
+    TraceCompanionAction("companions.equipment_request", "failed", { fn = "NotifyEquipmentRequestFailed", context = context })
     local stringId = rawget(_G, "SI_BETTERUI_ITEM_MOVE_FAILED")
     BETTERUI.CIM.UserNotify(context, stringId and GetString(stringId) or "Item move request failed")
 end
 
-local function SetCompanionItemLockState(bagId, slotIndex, locked)
-    if SetItemIsPlayerLocked then
-        SetItemIsPlayerLocked(bagId, slotIndex, locked)
-        return true
+--- Submit an engine request through the protected bridge only when ESO marks
+--- that exact API protected. Equipment uses the public RequestEquipItem API;
+--- private RequestMoveItem calls from add-on code invalidate the call stack.
+--- Other request APIs can vary by client/API version.
+---@return boolean submitted
+---@return string route
+local function SubmitCompanionRequest(functionName, directFunction, forceProtected, ...)
+    local isProtected = forceProtected == true
+        or (type(IsProtectedFunction) == "function"
+            and IsProtectedFunction(functionName) == true)
+    if isProtected then
+        if type(CallSecureProtected) ~= "function" then
+            return false, "missingSecureBridge"
+        end
+        return CallSecureProtected(functionName, ...) == true, "protected"
     end
-    return false
+    if type(directFunction) ~= "function" then
+        return false, "missingDirectApi"
+    end
+    directFunction(...)
+    return true, "direct"
+end
+
+local function SetCompanionItemLockState(bagId, slotIndex, locked)
+    local submitted, route = SubmitCompanionRequest(
+        "SetItemIsPlayerLocked", rawget(_G, "SetItemIsPlayerLocked"), false,
+        bagId, slotIndex, locked)
+    if not submitted then return false, route end
+    local changed = type(IsItemPlayerLocked) ~= "function"
+        or IsItemPlayerLocked(bagId, slotIndex) == locked
+    return changed, route
 end
 
 function Companions.CanPreviewCompanionItem(bagId, slotIndex)
@@ -157,9 +188,15 @@ local function ResolveActionEligibility(actionId, selectedData)
         local canUnlock = CanUnlockItem(bagId, slotIndex)
         return canUnlock, canUnlock and nil or "cannotUnlock"
     elseif actionId == "junk" then
+        if IsCompanionActorItem(bagId, slotIndex) then
+            return false, "unsupportedCompanionActor"
+        end
         local canJunk = CanJunkItem(bagId, slotIndex)
         return canJunk, canJunk and nil or "cannotJunk"
     elseif actionId == "unjunk" then
+        if IsCompanionActorItem(bagId, slotIndex) then
+            return false, "unsupportedCompanionActor"
+        end
         local canUnjunk = CanUnjunkItem(bagId, slotIndex)
         return canUnjunk, canUnjunk and nil or "cannotUnjunk"
     elseif actionId == "split" then
@@ -262,15 +299,24 @@ local function MoveCompanionItemNow(bagId, slotIndex, equipSlot, expectedIdentit
     if not equipType or not IsCompanionEquipSlotCompatible(equipSlot, equipType) then
         return false
     end
-    if type(CallSecureProtected) ~= "function"
-        or not CallSecureProtected("RequestMoveItem",
-            bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1) then
-        NotifySecureMoveFailed("Companions:Equip")
+    -- RequestMoveItem is private and only callable by ESO's trusted UI stack.
+    -- RequestEquipItem is the documented public actor-aware equipment API and
+    -- accepts BAG_COMPANION_WORN plus the explicitly selected equipment slot.
+    local submitted, route = SubmitCompanionRequest(
+        "RequestEquipItem", rawget(_G, "RequestEquipItem"), false,
+        bagId, slotIndex, BAG_COMPANION_WORN, equipSlot)
+    if not submitted then
+        NotifyEquipmentRequestFailed("Companions:Equip")
+        TraceCompanionAction("companions.equip", "request_rejected", {
+            bagId = bagId, slotIndex = slotIndex, wornBag = BAG_COMPANION_WORN,
+            equipSlot = equipSlot, route = route,
+        })
         return false
     end
 
-    TraceCompanionAction("companions.equip", "move_requested", {
-        bagId = bagId, slotIndex = slotIndex, destinationSlot = equipSlot,
+    TraceCompanionAction("companions.equip", "request_submitted", {
+        bagId = bagId, slotIndex = slotIndex, wornBag = BAG_COMPANION_WORN,
+        equipSlot = equipSlot, route = route,
     })
     return true
 end
@@ -356,7 +402,7 @@ function Companions.TryEquipCompanionItem(bagId, slotIndex)
     if expectedIdentity == nil then return false end
     local equipSlots = Companions.GetCompanionEquipSlotChoices(bagId, slotIndex)
     if #equipSlots == 0 then
-        NotifySecureMoveFailed("Companions:ResolveEquipSlot")
+        NotifyEquipmentRequestFailed("Companions:ResolveEquipSlot")
         return false
     end
     if #equipSlots > 1 then
@@ -367,31 +413,46 @@ function Companions.TryEquipCompanionItem(bagId, slotIndex)
     return Companions.TryEquipCompanionItemToSlot(
         bagId, slotIndex, equipSlots[1], expectedIdentity)
 end
-function Companions.TryUnequipCompanionItem(slotIndex)
-    TraceCompanionAction("companions.unequip", "requested", { fn = "TryUnequipCompanionItem", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex })
-    if slotIndex == nil then
-        TraceCompanionAction("companions.unequip", "rejected", { fn = "TryUnequipCompanionItem", reason = "missingSlot", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex })
+function Companions.TryUnequipCompanionItem(bagId, slotIndex)
+    TraceCompanionAction("companions.unequip", "requested", {
+        fn = "TryUnequipCompanionItem", wornBag = bagId, equipSlot = slotIndex,
+    })
+    if bagId ~= BAG_COMPANION_WORN or slotIndex == nil then
+        TraceCompanionAction("companions.unequip", "rejected", {
+            fn = "TryUnequipCompanionItem",
+            reason = bagId ~= BAG_COMPANION_WORN and "invalidWornBag" or "missingSlot",
+            wornBag = bagId, equipSlot = slotIndex,
+        })
         return false
     end
-    -- FindFirstEmptySlotInBag(bagId) -> nilable slotIndex; slot 0 may be occupied.
-    -- Use a single lookup to avoid a TOCTOU between GetNumBagFreeSlots and
-    -- finding the actual empty slot.
-    local destinationSlot = FindFirstEmptySlotInBag and FindFirstEmptySlotInBag(BAG_BACKPACK) or nil
-    if destinationSlot == nil then
-        TraceCompanionAction("companions.unequip", "rejected", { fn = "TryUnequipCompanionItem", reason = "backpackFull", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK })
-        BETTERUI.CIM.UserAlertText("Companions:BagFull",
-            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY") or "SI_BETTERUI_VENDOR_CANNOT_CARRY"))
+    if type(HasItemInSlot) == "function"
+        and not HasItemInSlot(bagId, slotIndex) then
+        TraceCompanionAction("companions.unequip", "rejected", {
+            fn = "TryUnequipCompanionItem", reason = "emptyWornSlot",
+            wornBag = bagId, equipSlot = slotIndex,
+        })
         return false
     end
-    if type(CallSecureProtected) == "function"
-        and CallSecureProtected("RequestMoveItem",
-            BAG_COMPANION_WORN, slotIndex, BAG_BACKPACK, destinationSlot, 1) then
-        TraceCompanionAction("companions.unequip", "move_requested", { fn = "TryUnequipCompanionItem", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
-        return true
+
+    -- Native inventory slot actions do not move worn items into a guessed
+    -- backpack slot. RequestUnequipItem owns destination selection, bag-full
+    -- reporting, and equipment validation for BAG_COMPANION_WORN.
+    local submitted, route = SubmitCompanionRequest(
+        "RequestUnequipItem", rawget(_G, "RequestUnequipItem"), false,
+        bagId, slotIndex)
+    if not submitted then
+        NotifyEquipmentRequestFailed("Companions:Unequip")
+        TraceCompanionAction("companions.unequip", "request_rejected", {
+            fn = "TryUnequipCompanionItem", reason = route,
+            wornBag = bagId, equipSlot = slotIndex, route = route,
+        })
+        return false
     end
-    NotifySecureMoveFailed("Companions:Unequip")
-    TraceCompanionAction("companions.unequip", "move_rejected", { fn = "TryUnequipCompanionItem", reason = "secureMoveFailed", sourceBag = BAG_COMPANION_WORN, slotIndex = slotIndex, destinationBag = BAG_BACKPACK, destinationSlot = destinationSlot })
-    return false
+    TraceCompanionAction("companions.unequip", "request_submitted", {
+        fn = "TryUnequipCompanionItem", wornBag = bagId,
+        equipSlot = slotIndex, route = route,
+    })
+    return true
 end
 
 function Companions.IsCompanionItemLocked(bagId, slotIndex)
@@ -416,8 +477,8 @@ function Companions.ToggleCompanionItemLock(bagId, slotIndex)
         TraceCompanionAction("companions.lock_toggle", "rejected", { fn = "ToggleCompanionItemLock", bagId = bagId, slotIndex = slotIndex, locked = locked, targetLocked = not locked })
         return false
     end
-    local changed = SetCompanionItemLockState(bagId, slotIndex, not locked)
-    TraceCompanionAction("companions.lock_toggle", "result", { fn = "ToggleCompanionItemLock", bagId = bagId, slotIndex = slotIndex, locked = locked, targetLocked = not locked, changed = changed })
+    local changed, route = SetCompanionItemLockState(bagId, slotIndex, not locked)
+    TraceCompanionAction("companions.lock_toggle", "result", { fn = "ToggleCompanionItemLock", bagId = bagId, slotIndex = slotIndex, locked = locked, targetLocked = not locked, changed = changed, route = route })
     return changed
 end
 
@@ -429,6 +490,13 @@ function Companions.IsCompanionItemJunk(bagId, slotIndex)
 end
 
 function Companions.ToggleCompanionItemJunk(bagId, slotIndex)
+    if IsCompanionActorItem(bagId, slotIndex) then
+        TraceCompanionAction("companions.junk_toggle", "rejected", {
+            fn = "ToggleCompanionItemJunk", reason = "unsupportedCompanionActor",
+            bagId = bagId, slotIndex = slotIndex,
+        })
+        return false
+    end
     if not SetItemIsJunk then
         TraceCompanionAction("companions.junk_toggle", "rejected", { fn = "ToggleCompanionItemJunk", reason = "missingJunkApi", bagId = bagId, slotIndex = slotIndex })
         return false
@@ -450,8 +518,10 @@ function Companions.ToggleCompanionItemJunk(bagId, slotIndex)
     end
 
     SetItemIsJunk(bagId, slotIndex, not junk)
-    TraceCompanionAction("companions.junk_toggle", "result", { fn = "ToggleCompanionItemJunk", bagId = bagId, slotIndex = slotIndex, junk = junk, targetJunk = not junk, changed = true })
-    return true
+    local changed = type(IsItemJunk) ~= "function"
+        or IsItemJunk(bagId, slotIndex) == (not junk)
+    TraceCompanionAction("companions.junk_toggle", "result", { fn = "ToggleCompanionItemJunk", bagId = bagId, slotIndex = slotIndex, junk = junk, targetJunk = not junk, changed = changed, route = "direct" })
+    return changed
 end
 
 function Companions.ShowCompanionDestroyDialog(bagId, slotIndex, slotType)
@@ -639,7 +709,7 @@ function Companions.ExecuteAction(actionId, selectedData)
     if actionId == "equip" then
         result = Companions.TryEquipCompanionItem(bagId, slotIndex)
     elseif actionId == "unequip" then
-        result = Companions.TryUnequipCompanionItem(slotIndex)
+        result = Companions.TryUnequipCompanionItem(bagId, slotIndex)
     elseif actionId == "sort" then
         result = Companions.RequestHeaderSortAfterDialog()
     elseif actionId == "preview" then

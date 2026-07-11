@@ -118,6 +118,29 @@ do
     assert_equal(2, result, "RestorePosition: finds by uniqueId")
 end
 
+-- RestorePosition matches equivalent Id64 values across rebuilt slot data
+print("\n-- RestorePosition Id64 equivalence --")
+do
+    local savedId = { value = "same-item" }
+    local rebuiltId = { value = "same-item" }
+    AreId64sEqual = function(left, right)
+        return left.value == right.value
+    end
+
+    PM.SavePosition("Id64Test", "k:all", {
+        selectedIndex = 3,
+        selectedData = { uniqueId = savedId },
+    })
+    local result = PM.RestorePosition("Id64Test", "k:all", nil, {
+        { uniqueId = { value = "other" } },
+        { uniqueId = rebuiltId },
+        { uniqueId = { value = "third" } },
+    })
+    assert_equal(2, result,
+        "RestorePosition: equivalent Id64 values preserve selection after an item moves bags")
+    AreId64sEqual = nil
+end
+
 -- RestorePosition uniqueId match at index 1 (stale saved index must not override)
 print("\n-- RestorePosition uniqueId at index 1 --")
 do

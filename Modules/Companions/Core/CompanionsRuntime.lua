@@ -87,6 +87,14 @@ local function RefreshVisibleCompanionScene(screen, options)
         return false
     end
 
+    if options and options.preserveCurrentPosition then
+        local currentCategory = screen:GetCurrentCategory()
+        if currentCategory and screen.list then
+            BETTERUI.CIM.PositionManager.SavePosition(
+                "Companions", currentCategory.key, screen.list)
+        end
+    end
+
     screen:RefreshCategories()
     screen:RefreshList()
     screen:RefreshCompanionFooter()
@@ -104,7 +112,12 @@ local function RefreshVisibleCompanionScene(screen, options)
         screen:EnsureHeaderKeybindsActive()
     end
 
-    screen:EnsureListInputActive()
+    if screen._searchModeActive then
+        screen:DeactivateListInput()
+        screen:EnsureHeaderKeybindsActive()
+    else
+        screen:EnsureListInputActive()
+    end
 
     if options and options.positionSearch and screen.PositionSearchControl then
         screen:PositionSearchControl()
@@ -160,7 +173,7 @@ local function InitializeCompanionSearch(instance)
                 or (queryOrControl and queryOrControl.GetText and queryOrControl:GetText())
                 or ""
             instance.searchQuery = query
-            instance:RefreshList()
+            instance:RefreshList({ preserveCurrentPosition = true })
         end
     )
 
@@ -170,7 +183,12 @@ local function InitializeCompanionSearch(instance)
                 return instance and instance:IsSceneShowing()
             end,
             enterHeaderFn = function(window)
-                CallCompanionSearchLifecycle(window, "requestEnter")
+                if not BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(window) then
+                    CallCompanionSearchLifecycle(window, "requestEnter")
+                end
+            end,
+            onAcceptSearch = function(window)
+                return window:AcceptSearchAndReturnToList()
             end,
         })
     end
@@ -210,7 +228,7 @@ function Companions.InitializeRuntime()
     Companions.RegisterDialogs()
 
     local instance = Companions.Class:New(
-        "BUI_GpCmp", BETTERUI_COMPANION_EQUIP_SCENE_NAME)
+        BUI_GpCmp, BETTERUI_COMPANION_EQUIP_SCENE_NAME)
     Companions.instance = instance
     instance:SetTitle(
         "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE") .. "|r")
@@ -332,7 +350,7 @@ function Companions.SetupSort(instance)
             },
             callbacks = {
                 onSortChanged = function()
-                    instance:RefreshList()
+                    instance:RefreshList({ preserveCurrentPosition = true })
                 end,
             },
             controllerContract = {
@@ -361,7 +379,12 @@ function Companions.CreateScene(instance)
     instance.fragment = ZO_SimpleSceneFragment:New(instance.control)
     instance.fragment:SetHideOnSceneHidden(true)
 
-    local scene = ZO_InteractScene:New(BETTERUI_COMPANION_EQUIP_SCENE_NAME, SCENE_MANAGER, Companions.COMPANION_INTERACTION)
+    local interactionInfo = assert(
+        ZO_COMPANION_MANAGER and type(ZO_COMPANION_MANAGER.GetInteraction) == "function"
+            and ZO_COMPANION_MANAGER:GetInteraction(),
+        "BetterUI: native companion interaction is unavailable")
+    local scene = ZO_InteractScene:New(
+        BETTERUI_COMPANION_EQUIP_SCENE_NAME, SCENE_MANAGER, interactionInfo)
     instance.scene = scene
 
     scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
@@ -560,7 +583,9 @@ local function OnInventoryUpdated(eventCode, bagId, slotIndex)
         delayMs = 100,
     })
     Companions.Tasks:Schedule("listRefresh", 100, function()
-        local refreshed = RefreshVisibleCompanionScene(Companions.instance)
+        local refreshed = RefreshVisibleCompanionScene(Companions.instance, {
+            preserveCurrentPosition = true,
+        })
         TraceCompanionRuntime("companions.inventory_update", refreshed and "refresh_complete" or "refresh_skipped", {
             eventCode = eventCode,
             bagId = bagId,
@@ -568,6 +593,12 @@ local function OnInventoryUpdated(eventCode, bagId, slotIndex)
             reason = refreshed and nil or "sceneHiddenOrMissing",
         })
     end)
+end
+
+-- Native companion equipment listens to SHARED_INVENTORY reconciliation
+-- callbacks. Route those through the same coalesced refresh path as raw events.
+local function OnSharedInventoryUpdated(bagId, slotIndex)
+    OnInventoryUpdated(nil, bagId, slotIndex)
 end
 
 local function OnCompanionCurrencyUpdated()
@@ -606,6 +637,25 @@ function Companions.RegisterEvents(eventManager)
         EVENT_INVENTORY_FULL_UPDATE, OnInventoryUpdated)
     if BETTERUI.Log then
         BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "event registered", { event = "EVENT_INVENTORY_FULL_UPDATE" })
+    end
+
+    if SHARED_INVENTORY
+        and type(SHARED_INVENTORY.GetOrCreateBagCache) == "function" then
+        SHARED_INVENTORY:GetOrCreateBagCache(BAG_BACKPACK)
+        SHARED_INVENTORY:GetOrCreateBagCache(BAG_COMPANION_WORN)
+    end
+
+    if not Companions._sharedInventoryCallbacksRegistered
+        and SHARED_INVENTORY
+        and type(SHARED_INVENTORY.RegisterCallback) == "function" then
+        SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", OnSharedInventoryUpdated)
+        SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", OnSharedInventoryUpdated)
+        Companions._sharedInventoryCallbacksRegistered = true
+        if BETTERUI.Log then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.LIFECYCLE, "shared inventory callbacks registered", {
+                callbacks = "SingleSlotInventoryUpdate,FullInventoryUpdate",
+            })
+        end
     end
 
     local currencyEvents = {
@@ -717,7 +767,7 @@ function Companions.BuildCoreKeybinds(instance)
                     local selectedData = instance.list and instance.list:GetSelectedData()
                     if selectedData then
                         ms:ToggleSelection(selectedData)
-                        instance:RefreshList()
+                        instance:RefreshList({ preserveCurrentPosition = true })
                         instance:EnsureListInputActive()
                     end
                     TraceCompanionKeybind("primary_multiselect_toggle", instance, { keybind = "UI_SHORTCUT_PRIMARY", hadSelection = selectedData ~= nil })
@@ -736,7 +786,7 @@ function Companions.BuildCoreKeybinds(instance)
                     return
                 end
                 if ds.isEquipped then
-                    Companions.TryUnequipCompanionItem(slotIndex)
+                    Companions.TryUnequipCompanionItem(bagId, slotIndex)
                     TraceCompanionKeybind("primary_requested", instance, { keybind = "UI_SHORTCUT_PRIMARY", action = "unequip", slotIndex = slotIndex })
                 else
                     Companions.TryEquipCompanionItem(bagId, slotIndex)
@@ -869,7 +919,7 @@ function Companions.BuildCoreKeybinds(instance)
                     ms:EnterSelectionMode()
                     TraceCompanionKeybind("multiselect_enter", instance, { keybind = "UI_SHORTCUT_QUINARY" })
                 end
-                instance:RefreshList()
+                instance:RefreshList({ preserveCurrentPosition = true })
                 instance:EnsureListInputActive()
                 BETTERUI.Interface.UpdateCurrentKeybindGroups()
             end,
@@ -895,7 +945,7 @@ function Companions.BuildCoreKeybinds(instance)
                     return
                 end
                 ms:ExitSelectionMode()
-                instance:RefreshList()
+                instance:RefreshList({ preserveCurrentPosition = true })
                 instance:EnsureListInputActive()
                 BETTERUI.Interface.UpdateCurrentKeybindGroups()
                 TraceCompanionKeybind("cancel_end", instance, { keybind = "UI_SHORTCUT_RIGHT_STICK" })
@@ -909,7 +959,7 @@ function Companions.BuildCoreKeybinds(instance)
                 local ms = Companions.multiSelectManager
                 if ms and ms:IsActive() then
                     ms:ExitSelectionMode()
-                    instance:RefreshList()
+                    instance:RefreshList({ preserveCurrentPosition = true })
                     instance:EnsureListInputActive()
                     BETTERUI.Interface.UpdateCurrentKeybindGroups()
                     TraceCompanionKeybind("back_cancelled_multiselect", instance, { keybind = "UI_SHORTCUT_NEGATIVE" })

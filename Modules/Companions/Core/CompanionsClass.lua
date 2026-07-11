@@ -33,6 +33,7 @@ BETTERUI.Companions.Tasks = BETTERUI.Companions.Tasks or CompanionsDeferredTask.
 ---@class BETTERUI.Companions.Class : BETTERUI.CIM.GenericWindow
 BETTERUI.Companions.Class = BETTERUI.CIM.GenericWindow:Subclass()
 BETTERUI.Companions.Class.SEARCH_LIFECYCLE = {
+    accept = "AcceptSearchAndReturnToList",
     clear = "ClearSearchInput",
     exit = "ExitSearchMode",
     headerActive = "IsHeaderFocused",
@@ -45,31 +46,45 @@ function BETTERUI.Companions.Class:New(...)
     return obj
 end
 
---- Builds the Companion scene on the same physical shell used by Inventory.
-function BETTERUI.Companions.Class:Initialize(tlwName, sceneName)
-    self.windowName = tlwName
+--- Builds the Companion scene from the same XML-materialized shell used by Inventory.
+function BETTERUI.Companions.Class:Initialize(control, sceneName)
+    assert(control, "BetterUI: BUI_GpCmp XML control must load before Companion initialization")
+    self.windowName = control.GetName and control:GetName() or "BUI_GpCmp"
     self.sceneName = sceneName
-    self.positionModuleKey = "GenericWindow:" .. tostring(sceneName or tlwName or "default")
+    self.positionModuleKey = "GenericWindow:" .. tostring(sceneName or self.windowName or "default")
     self.currentCategoryKey = nil
 
-    self.control = BETTERUI.WindowManager:CreateControlFromVirtual(
-        tlwName, GuiRoot, "BETTERUI_Gamepad_ParametricList_Screen")
+    self.control = control
     local mask = self.control:GetNamedChild("Mask")
     local container = mask and mask:GetNamedChild("Container")
     assert(container, "BetterUI: Companion Inventory shell is missing its Container")
     self.control.container = container
 
     self.header = container:GetNamedChild("HeaderContainer")
-    local listContainer = container:GetNamedChild("ListContainer")
+    local templateListContainer = container:GetNamedChild("ListContainer")
     self.footer = container:GetNamedChild("FooterContainer")
-    self.headerGeneric = self.header and self.header:GetNamedChild("Header")
-    local listControl = listContainer and listContainer:GetNamedChild("List")
-    assert(self.header and self.headerGeneric and self.footer and listControl,
+    self.headerGeneric = self.header and (self.header.header or self.header:GetNamedChild("Header"))
+    assert(self.header and self.headerGeneric and self.footer and templateListContainer,
         "BetterUI: Companion Inventory shell hierarchy is incomplete")
+
+    -- Inventory materializes its active Main list after the static screen shell
+    -- loads. Do the same here; the template-owned ListContainer is only a shell
+    -- placeholder and does not participate in Inventory's live list lifecycle.
+    templateListContainer:SetHidden(true)
+    local listContainer = CreateControlFromVirtual(
+        "$(parent)Main",
+        self.control.container,
+        "BETTERUI_Gamepad_ParametricList_Screen_ListContainer"
+    )
+    listContainer:SetHidden(false)
+    self.listContainer = listContainer
+    local listControl = listContainer.list or listContainer:GetNamedChild("List")
+    assert(listControl, "BetterUI: Companion Main list control was not materialized")
 
     self.header.columns = {}
     self.list = BETTERUI_VerticalItemParametricScrollList:New(listControl)
     self.list.owner = self
+    self.list.alignToScreenCenterExpectedEntryHalfHeight = 15
     if self.list.SetAlignToScreenCenter then
         self.list:SetAlignToScreenCenter(true, 30)
     end
@@ -133,6 +148,7 @@ function BETTERUI.Companions.Class:SetupUnifiedFooter()
         and self.unifiedFooterController.SetupFooter then
         self.unifiedFooterController:SetupFooter(footerContainer.footer)
     end
+    self.unifiedFooterController:SetCapacityBagId(BAG_COMPANION_WORN)
     self.unifiedFooterController:SetMode(BETTERUI.CIM.UnifiedFooter.MODE.CURRENCY)
     self.unifiedFooterController:Refresh()
 end
@@ -153,11 +169,31 @@ function BETTERUI.Companions.Class:SetCompanionHeaderControlHidden(name, hidden)
     if control then control:SetHidden(hidden) end
 end
 
+local EMPTY_WEAPON_SLOT_TEXTURES = {
+    [EQUIP_SLOT_MAIN_HAND] = "EsoUI/Art/CharacterWindow/gearSlot_mainHand.dds",
+    [EQUIP_SLOT_OFF_HAND] = "EsoUI/Art/CharacterWindow/gearSlot_offHand.dds",
+}
+
+local function GetCompanionWeaponHeaderIcon(hasItem, icon, equipSlot)
+    if hasItem and icon and icon ~= "" then
+        return icon
+    end
+    if ZO_Character_GetEmptyEquipSlotTexture then
+        local emptyIcon = ZO_Character_GetEmptyEquipSlotTexture(equipSlot)
+        if emptyIcon and emptyIcon ~= "" then
+            return emptyIcon
+        end
+    end
+    return EMPTY_WEAPON_SLOT_TEXTURES[equipSlot]
+end
+
 function BETTERUI.Companions.Class:RefreshCompanionWeaponHeader()
     if not (self.headerGeneric and BETTERUI.GenericHeader and GetWornItemInfo) then return end
 
-    local _, mainIcon = GetWornItemInfo(BAG_COMPANION_WORN, EQUIP_SLOT_MAIN_HAND)
-    local _, offIcon = GetWornItemInfo(BAG_COMPANION_WORN, EQUIP_SLOT_OFF_HAND)
+    local mainHasItem, mainIcon = GetWornItemInfo(BAG_COMPANION_WORN, EQUIP_SLOT_MAIN_HAND)
+    local offHasItem, offIcon = GetWornItemInfo(BAG_COMPANION_WORN, EQUIP_SLOT_OFF_HAND)
+    mainIcon = GetCompanionWeaponHeaderIcon(mainHasItem, mainIcon, EQUIP_SLOT_MAIN_HAND)
+    offIcon = GetCompanionWeaponHeaderIcon(offHasItem, offIcon, EQUIP_SLOT_OFF_HAND)
     BETTERUI.GenericHeader.SetEquipText(self.headerGeneric, true)
     BETTERUI.GenericHeader.SetEquippedIcons(self.headerGeneric, mainIcon, offIcon, nil)
 
@@ -184,6 +220,101 @@ local TraceCompanionClass = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
     }
     or function() end
 
+local function GetCompanionSearchStickY()
+    -- Use ESOUI's directional-input arbitration first so consumed input and
+    -- mostly-horizontal stick movement cannot leak into the vertical search
+    -- transition. The raw stick query remains a compatibility fallback.
+    if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.GetY then
+        local ok, value = pcall(
+            DIRECTIONAL_INPUT.GetY,
+            DIRECTIONAL_INPUT,
+            ZO_DI_LEFT_STICK_NO_KEYBOARD
+        )
+        if ok then
+            return value or 0
+        end
+    end
+    if type(GetGamepadLeftStickY) == "function" then
+        return GetGamepadLeftStickY(GAMEPAD_INCLUDE_DEADZONE) or 0
+    end
+    return 0
+end
+
+function BETTERUI.Companions.Class:EnsureSearchMovementController()
+    if self._companionSearchMovementController then
+        return true
+    end
+    if not ZO_MovementController then
+        return false
+    end
+    self._companionSearchMovementController = ZO_MovementController:New(
+        MOVEMENT_CONTROLLER_DIRECTION_VERTICAL,
+        nil,
+        GetCompanionSearchStickY
+    )
+    return true
+end
+
+function BETTERUI.Companions.Class:UpdateSearchDirectionalInput()
+    if not (self._searchModeActive or self._searchHeaderActive) or not self:IsSceneShowing() then
+        return false
+    end
+    if not self:EnsureSearchMovementController() then
+        return false
+    end
+
+    local result = self._companionSearchMovementController:CheckMovement()
+    if result == MOVEMENT_CONTROLLER_MOVE_NEXT then
+        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Consume then
+            DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK, ZO_DI_LEFT_STICK_NO_KEYBOARD)
+        end
+        return self:AcceptSearchAndReturnToList()
+    elseif result == MOVEMENT_CONTROLLER_MOVE_PREVIOUS then
+        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Consume then
+            DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK, ZO_DI_LEFT_STICK_NO_KEYBOARD)
+        end
+        return true
+    end
+    return false
+end
+
+function BETTERUI.Companions.Class:SetSearchDirectionalInputUpdate(enabled)
+    local inputObject = self._companionSearchDirectionalInputObject
+    if inputObject and DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening
+        and DIRECTIONAL_INPUT.Deactivate then
+        local safety = 0
+        while DIRECTIONAL_INPUT:IsListening(inputObject) and safety < 4 do
+            DIRECTIONAL_INPUT:Deactivate(inputObject)
+            safety = safety + 1
+        end
+    end
+    if enabled ~= true then
+        return false
+    end
+    if not self:EnsureSearchMovementController()
+        or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Activate) then
+        return false
+    end
+
+    local control = self.textSearchHeaderControl or self.control
+    if not control then
+        return false
+    end
+    if not inputObject then
+        inputObject = { owner = self }
+        function inputObject:UpdateDirectionalInput()
+            local owner = self.owner
+            if owner then
+                owner:UpdateSearchDirectionalInput()
+            end
+        end
+        self._companionSearchDirectionalInputObject = inputObject
+    end
+    inputObject.owner = self
+    DIRECTIONAL_INPUT:Activate(inputObject, control)
+    return true
+end
+
 function BETTERUI.Companions.Class:EnterSearchMode()
     if not self.textSearchHeaderControl or self.textSearchHeaderControl:IsHidden() then
         TraceCompanionClass("companions.search_mode", "enter_skipped", {
@@ -193,15 +324,37 @@ function BETTERUI.Companions.Class:EnterSearchMode()
         })
         return
     end
+    if self._searchModeActive or self._searchHeaderActive then
+        TraceCompanionClass("companions.search_mode", "enter_skipped", {
+            fn = "Companions.Class:EnterSearchMode",
+            reason = "alreadyActive",
+        })
+        return
+    end
     TraceCompanionClass("companions.search_mode", "enter_begin", {
         fn = "Companions.Class:EnterSearchMode",
-        hadSearchMode = self._searchModeActive == true,
-        hadHeaderActive = self._searchHeaderActive == true,
+        hadSearchMode = false,
+        hadHeaderActive = false,
         hasSearchKeybinds = self.textSearchKeybindStripDescriptor ~= nil,
         hasCoreKeybinds = self.coreKeybinds ~= nil,
     })
+
+    -- Claim lifecycle ownership before Activate/TakeFocus. Taking edit-box focus
+    -- synchronously fires OnFocusGained, which routes back through OnHeaderEntered.
+    self._searchModeActive = true
+    self._searchHeaderActive = true
+
+    -- Match Inventory's RequestEnterHeader path: the list must be inactive while
+    -- the search header owns focus. Deactivation also applies the standard dimmed
+    -- parametric-list presentation and prevents refresh selection callbacks from
+    -- returning focus to the rows.
+    self:DeactivateListInput()
+    self:SetSearchDirectionalInputUpdate(true)
+
     if self.textSearchHeaderFocus then
-        self.textSearchHeaderFocus:Activate()
+        if not self.textSearchHeaderFocus.IsActive or not self.textSearchHeaderFocus:IsActive() then
+            self.textSearchHeaderFocus:Activate()
+        end
         if self.SetTextSearchFocused then
             self:SetTextSearchFocused(true)
         end
@@ -215,8 +368,9 @@ function BETTERUI.Companions.Class:EnterSearchMode()
             addedSearch = true,
         })
     end
-    self._searchModeActive = true
-    self._searchHeaderActive = true
+    -- Search and the category carousel coexist in Inventory. Keep the tab bar's
+    -- LB/RB group registered while only the item-action group is displaced.
+    self:EnsureHeaderKeybindsActive()
     TraceCompanionClass("companions.search_mode", "entered", {
         fn = "Companions.Class:EnterSearchMode",
         searchModeActive = self._searchModeActive == true,
@@ -238,6 +392,13 @@ function BETTERUI.Companions.Class:ExitSearchMode()
         hadHeaderActive = self._searchHeaderActive == true,
         hasRemovedGroups = self._searchRemovedKeybindGroups ~= nil,
     })
+
+    -- Clear lifecycle ownership before Deactivate/LoseFocus. Those calls
+    -- synchronously fire OnFocusLost, which otherwise re-enters this method.
+    self._searchModeActive = false
+    self._searchHeaderActive = false
+    self:SetSearchDirectionalInputUpdate(false)
+
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
@@ -263,9 +424,8 @@ function BETTERUI.Companions.Class:ExitSearchMode()
     if self.SetTextSearchFocused then
         self:SetTextSearchFocused(false)
     end
-    self._searchModeActive = false
-    self._searchHeaderActive = false
     self:EnsureListInputActive()
+    self:EnsureHeaderKeybindsActive()
     if self.coreKeybinds and KEYBIND_STRIP then
         BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
     end
@@ -275,6 +435,14 @@ function BETTERUI.Companions.Class:ExitSearchMode()
         searchHeaderActive = self._searchHeaderActive == true,
         hasCoreKeybinds = self.coreKeybinds ~= nil,
     })
+end
+
+function BETTERUI.Companions.Class:AcceptSearchAndReturnToList()
+    if not self._searchModeActive and not self._searchHeaderActive then
+        return false
+    end
+    self:ExitSearchMode()
+    return true
 end
 
 function BETTERUI.Companions.Class:ExitSearchFocus()
@@ -308,6 +476,9 @@ end
 --- Enters search mode and schedules a keybind strip cleanup (matching Banking/Vendor).
 function BETTERUI.Companions.Class:OnHeaderEntered()
     if not (self.textSearchHeaderControl and not self.textSearchHeaderControl:IsHidden()) then
+        return
+    end
+    if self._searchModeActive or self._searchHeaderActive then
         return
     end
     self:EnterSearchMode()

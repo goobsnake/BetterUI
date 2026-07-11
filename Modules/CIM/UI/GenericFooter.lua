@@ -39,9 +39,11 @@ function BETTERUI.GenericFooter:Refresh()
     local bankLabel = GetLabelControl(footer, "BankLabel")
 
     if cwLabel then
+        local capacityBagId = self.capacityBagId or BAG_BACKPACK
         local bagText = zo_strformat("<<1>> (<<2>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t",
             GetString(rawget(_G, "SI_BETTERUI_FOOTER_BAG_CAPACITY")),
-            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK)))
+            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
+                GetNumBagUsedSlots(capacityBagId), GetBagSize(capacityBagId)))
 
         if footer._stringCache.bag ~= bagText then
             cwLabel:SetText(bagText)

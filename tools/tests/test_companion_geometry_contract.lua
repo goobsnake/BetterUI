@@ -17,10 +17,30 @@ local classSource = read_file("Modules/Companions/Core/CompanionsClass.lua")
 local runtimeSource = read_file("Modules/Companions/Core/CompanionsRuntime.lua")
 local listSource = read_file("Modules/Companions/Core/CompanionListManager.lua")
 local screenXml = read_file("Modules/CIM/Templates/ParametricScrollListTemplates.xml")
+local companionXml = read_file("Modules/Companions/Templates/GamepadCompanionInventory.xml")
 local headerXml = read_file("Modules/CIM/Templates/GenericHeader.xml")
+local manifestSource = read_file("BetterUI.txt")
 
-assert_contains(classSource, '"BETTERUI_Gamepad_ParametricList_Screen"',
-    "Companion geometry starts from the Inventory parametric screen")
+assert_contains(companionXml, '<TopLevelControl name="BUI_GpCmp"',
+    "Companion owns a statically materialized top-level control")
+assert_contains(companionXml, 'inherits="BETTERUI_Gamepad_ParametricList_Screen"',
+    "Companion top-level control inherits the Inventory parametric screen")
+assert_contains(manifestSource, "Modules\\Companions\\Templates\\GamepadCompanionInventory.xml",
+    "Companion top-level XML loads before runtime initialization")
+assert_contains(runtimeSource, "Companions.Class:New(\n        BUI_GpCmp,",
+    "Companion runtime passes the XML-created control to the class")
+assert_not_contains(classSource, '"BETTERUI_Gamepad_ParametricList_Screen")',
+    "Companion must not instantiate the hidden Inventory screen template dynamically")
+assert_contains(classSource, '"$(parent)Main",',
+    "Companion materializes an Inventory-style Main list container")
+assert_contains(classSource, '"BETTERUI_Gamepad_ParametricList_Screen_ListContainer"',
+    "Companion Main list uses Inventory's list-container template")
+assert_contains(classSource, "templateListContainer:SetHidden(true)",
+    "Companion hides the unused list container inherited with the static shell")
+assert_contains(classSource, "self.list.alignToScreenCenterExpectedEntryHalfHeight = 15",
+    "Companion uses Inventory's selected-row centering hint")
+assert_contains(listSource, "headerOnly = false",
+    "Companion search anchors from the concrete generic header like Inventory")
 assert_contains(classSource, 'container:GetNamedChild("HeaderContainer")',
     "Companion resolves the shared Inventory header container")
 assert_contains(classSource, 'container:GetNamedChild("ListContainer")',

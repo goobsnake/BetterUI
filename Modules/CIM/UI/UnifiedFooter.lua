@@ -32,6 +32,7 @@ function UnifiedFooterController:Initialize(control)
     self.control = control
     self.footer = nil
     self.mode = BETTERUI.CIM.UnifiedFooter.MODE.CURRENCY
+    self.capacityBagId = nil
     self._initialized = false
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.FOOTER, "unified footer init", { controlName = control and control.GetName and control:GetName() or "nil" })
@@ -61,6 +62,11 @@ function UnifiedFooterController:SetMode(mode)
     end
 end
 
+---@param bagId integer|nil nil restores the Inventory backpack default
+function UnifiedFooterController:SetCapacityBagId(bagId)
+    self.capacityBagId = bagId
+end
+
 --- Refreshes the footer based on current mode.
 function UnifiedFooterController:Refresh()
     if not self._initialized or not self.footer then
@@ -76,6 +82,7 @@ function UnifiedFooterController:Refresh()
         footer = self.footer,
         control = self.control,
         container = self.control.container or self.control,
+        capacityBagId = self.capacityBagId,
     }
 
     -- Reuse GenericFooter's refresh implementation

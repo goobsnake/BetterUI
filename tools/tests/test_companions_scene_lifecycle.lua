@@ -26,6 +26,7 @@ local registeredEvents = {}
 local scheduledTasks = {}
 local hideCurrentSceneCalls = 0
 local tooltipWidthCalls = {}
+local savedPositions = {}
 
 local function noop() end
 
@@ -73,7 +74,13 @@ BETTERUI = {
             end,
         },
         PositionManager = {
-            SavePosition = noop,
+            SavePosition = function(moduleName, categoryKey, list)
+                savedPositions[#savedPositions + 1] = {
+                    moduleName = moduleName,
+                    categoryKey = categoryKey,
+                    list = list,
+                }
+            end,
         },
         Narration = {},
         UI = {
@@ -177,6 +184,16 @@ SCENE_MANAGER = {
     scenes = {},
 }
 
+local nativeCompanionInteraction = {
+    type = "Companion",
+    interactTypes = { INTERACTION_COMPANION_MENU },
+}
+ZO_COMPANION_MANAGER = {
+    GetInteraction = function()
+        return nativeCompanionInteraction
+    end,
+}
+
 function SCENE_MANAGER:HideCurrentScene()
     hideCurrentSceneCalls = hideCurrentSceneCalls + 1
 end
@@ -239,6 +256,7 @@ function BETTERUI.Companions.Class:New(_, _)
     local obj = {
         refreshCategoriesCount = 0,
         refreshListCount = 0,
+        refreshListOptions = {},
         refreshFooterCount = 0,
         refreshTitleCount = 0,
         ensureColumnsCount = 0,
@@ -277,8 +295,9 @@ function BETTERUI.Companions.Class:New(_, _)
     function obj:EnsureColumnHeadersVisible()
         self.ensureColumnsCount = self.ensureColumnsCount + 1
     end
-    function obj:RefreshList()
+    function obj:RefreshList(options)
         self.refreshListCount = self.refreshListCount + 1
+        self.refreshListOptions[#self.refreshListOptions + 1] = options
     end
     function obj:RefreshCompanionFooter()
         self.refreshFooterCount = self.refreshFooterCount + 1
@@ -380,9 +399,15 @@ assert_eq(instance.refreshFooterCount, refreshFooterBeforeActivation + 1, "activ
 
 local inventoryCallback = registeredEvents["BetterUI_Companions_InvUpdate"]
 assert_true(type(inventoryCallback) == "function", "inventory refresh callback is registered")
+local savedPositionsBeforeInventory = #savedPositions
 inventoryCallback()
 assert_true(scheduledTasks[#scheduledTasks] == "listRefresh", "inventory refresh coalesces work through the task scheduler")
 assert_eq(instance.refreshListCount, 3, "inventory refresh re-renders the companion list")
+assert_eq(#savedPositions, savedPositionsBeforeInventory + 1,
+    "inventory updates capture the live Companion selection before rebuilding categories")
+local inventorySavedPosition = savedPositions[#savedPositions]
+assert_eq(inventorySavedPosition and inventorySavedPosition.categoryKey, "all",
+    "inventory refresh saves the active Companion category")
 assert_eq(instance.updateTooltipCount, 3, "inventory refresh also updates the selected tooltip")
 
 local deactivatedCallback = registeredEvents["BetterUI_Companions_CompDeactivated"]

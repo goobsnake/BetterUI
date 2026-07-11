@@ -427,7 +427,12 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
         self:RefreshCategoryTitle()
 
         if self:IsSceneShowing() then
-            self:EnsureListInputActive()
+            if self._searchModeActive then
+                self:DeactivateListInput()
+                self:EnsureHeaderKeybindsActive()
+            else
+                self:EnsureListInputActive()
+            end
             self:UpdateItemTooltips(self.list and self.list:GetTargetData())
         end
     end
@@ -491,11 +496,22 @@ function BETTERUI.Companions.Class:CycleCategory(delta)
         nextIndex = #categories
     end
 
+    if previousCategory and self.list then
+        BETTERUI.CIM.PositionManager.SavePosition("Companions", previousCategory.key, self.list)
+    end
+
     self.currentCategoryIndex = nextIndex
     self:RefreshList()
     self:RefreshCategoryTitle()
     if self:IsSceneShowing() then
-        self:EnsureListInputActive()
+        if self._searchModeActive then
+            -- Category cycling remains available through the header carousel, but
+            -- search keeps ownership of directional input and the list stays dimmed.
+            self:DeactivateListInput()
+            self:EnsureHeaderKeybindsActive()
+        else
+            self:EnsureListInputActive()
+        end
         self:UpdateItemTooltips(self.list and self.list:GetTargetData())
     end
 
@@ -542,7 +558,14 @@ function BETTERUI.Companions.Class:EnsureHeaderKeybindsActive()
         return
     end
 
-    if tabBar.Activate and not tabBar.active then
+    local carouselMissing = tabBar.keybindStripDescriptor
+        and not BETTERUI.Interface.HasKeybindGroup(tabBar.keybindStripDescriptor)
+    if tabBar.active and carouselMissing and tabBar.Deactivate then
+        -- A focus-loss callback can leave the visual active flag set after the
+        -- keybind group was removed. Reset the carousel before reactivation.
+        tabBar:Deactivate()
+    end
+    if tabBar.Activate and (not tabBar.active or carouselMissing) then
         tabBar:Activate()
     end
 
@@ -569,7 +592,7 @@ function BETTERUI.Companions.Class:PositionSearchControl()
     -- Shared anchoring lives in CIM SearchManager (loaded before this module).
     BETTERUI.Interface.PositionSearchControl(self, {
         preset = "INVENTORY",
-        headerOnly = true,
+        headerOnly = false,
         titleChildNames = { "TitleContainer", "Header", "HeaderContainer", "HeaderTitle", "HeaderBar", "ContainerHeader" },
         safeExecuteContext = "Companions.search.anchor",
     })

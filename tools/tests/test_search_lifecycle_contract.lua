@@ -92,6 +92,7 @@ local function buildScreen()
     local editBox = buildEditBox("needle")
     local screen = {
         SEARCH_LIFECYCLE = {
+            accept = "AcceptSearchAndReturnToList",
             clear = "ClearSearchInput",
             exit = "ExitSearchMode",
             headerActive = "IsHeaderFocused",
@@ -112,6 +113,12 @@ local function buildScreen()
             end,
         },
     }
+
+    function screen:AcceptSearchAndReturnToList()
+        calls[#calls + 1] = "accept"
+        self.headerActive = false
+        return true
+    end
 
     function screen:ClearSearchInput()
         calls[#calls + 1] = "clear"
@@ -175,6 +182,10 @@ do
     descriptors[1].callback()
     assert_contains(calls, "focus", "primary keybind keeps focus in the search edit box")
 
+    screen.headerActive = true
+    descriptors[1].callback()
+    assert_contains(calls, "accept", "primary keybind accepts an already-focused search")
+
     descriptors[2].callback()
     assert_contains(calls, "exit", "negative keybind always backs out of search focus")
     assert_eq(screen.searchQuery, "needle", "negative keybind does not clear populated search text")
@@ -201,6 +212,9 @@ do
         isSceneShowing = function()
             return true
         end,
+        onAcceptSearch = function(owner)
+            return owner:AcceptSearchAndReturnToList()
+        end,
     })
 
     editBox.handlers.OnFocusGained(editBox)
@@ -209,13 +223,74 @@ do
     editBox.handlers.OnFocusLost(editBox)
     assert_contains(calls, "exit", "focus lost exits via canonical contract")
 
+    editBox.handlers.OnEnter(editBox)
+    assert_contains(calls, "accept", "edit-box enter accepts search and returns to the list")
+
+    editBox.handlers.OnKeyDown(editBox, nil, nil, nil, nil, "UI_SHORTCUT_PRIMARY")
+    assert_contains(calls, "accept", "primary keydown accepts search")
+
     editBox.handlers.OnKeyDown(editBox, nil, nil, nil, nil, "UI_SHORTCUT_DOWN")
     assert_contains(calls, "exit", "shortcut down exits via canonical contract")
 
     assert_true(type(editBox.handlers.OnShortcut) == "function",
         "shortcut handler is installed even when the edit box had no original OnShortcut handler")
+    editBox.handlers.OnShortcut(editBox, "UI_SHORTCUT_PRIMARY")
+    assert_contains(calls, "accept", "gamepad primary shortcut accepts search")
     editBox.handlers.OnShortcut(editBox, "UI_SHORTCUT_DOWN")
     assert_contains(calls, "exit", "gamepad shortcut down exits via canonical contract")
+end
+
+-- Companion accept must run before the inherited gamepad edit-box OnEnter,
+-- whose LoseFocus callback would otherwise exit search first.
+do
+    local screen, editBox, calls = buildScreen()
+    local inheritedOnEnterCalls = 0
+    screen.headerActive = true
+    screen.listInputActive = false
+    screen.headerKeybindsActive = false
+
+    function screen:ExitSearchMode()
+        calls[#calls + 1] = "exit"
+        self.headerActive = false
+        self.listInputActive = true
+        self.headerKeybindsActive = true
+    end
+
+    function screen:AcceptSearchAndReturnToList()
+        calls[#calls + 1] = "accept"
+        self:ExitSearchMode()
+        return true
+    end
+
+    function editBox:LoseFocus()
+        self.handlers.OnFocusLost(self)
+    end
+
+    editBox.handlers.OnEnter = function(eb)
+        inheritedOnEnterCalls = inheritedOnEnterCalls + 1
+        eb:LoseFocus()
+    end
+
+    BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(screen, {
+        isSceneShowing = function()
+            return true
+        end,
+        onAcceptSearch = function(owner)
+            return owner:AcceptSearchAndReturnToList()
+        end,
+    })
+
+    editBox.handlers.OnEnter(editBox)
+    assert_eq(inheritedOnEnterCalls, 0,
+        "search accept owns OnEnter before the inherited LoseFocus handler")
+    assert_eq(calls[#calls - 1], "accept",
+        "search accept transition begins before focus loss")
+    assert_eq(calls[#calls], "exit",
+        "search accept transition exits through the scene lifecycle")
+    assert_true(screen.listInputActive,
+        "search accept restores item-list input ownership")
+    assert_true(screen.headerKeybindsActive,
+        "search accept restores LB/RB carousel ownership")
 end
 
 -- AddSearch should always normalize callback payloads to strings.
@@ -805,6 +880,116 @@ do
         ZO_DI_LEFT_STICK_NO_KEYBOARD = originalLeftStickNoKeyboard
         GAMEPAD_INCLUDE_DEADZONE = originalIncludeDeadzone
         GetGamepadLeftStickY = originalGetLeftStickY
+    end
+
+    do
+        local originalDirectionalInput = DIRECTIONAL_INPUT
+        local originalMovementController = ZO_MovementController
+        local originalMovementDirection = MOVEMENT_CONTROLLER_DIRECTION_VERTICAL
+        local originalMoveNext = MOVEMENT_CONTROLLER_MOVE_NEXT
+        local originalMovePrevious = MOVEMENT_CONTROLLER_MOVE_PREVIOUS
+        local originalLeftStick = ZO_DI_LEFT_STICK
+        local originalLeftStickNoKeyboard = ZO_DI_LEFT_STICK_NO_KEYBOARD
+        local originalGetLeftStickY = GetGamepadLeftStickY
+        local originalMainHand = EQUIP_SLOT_MAIN_HAND
+        local originalOffHand = EQUIP_SLOT_OFF_HAND
+        local activatedObject
+        local consumed
+        local movementController
+        local directionalQueryInput
+        local rawStickCalls = 0
+        local acceptCalls = 0
+
+        BETTERUI.Companions = {}
+        EQUIP_SLOT_MAIN_HAND = "main_hand"
+        EQUIP_SLOT_OFF_HAND = "off_hand"
+        dofile("Modules/Companions/Core/CompanionsClass.lua")
+
+        MOVEMENT_CONTROLLER_DIRECTION_VERTICAL = "vertical"
+        MOVEMENT_CONTROLLER_MOVE_NEXT = "next"
+        MOVEMENT_CONTROLLER_MOVE_PREVIOUS = "previous"
+        ZO_DI_LEFT_STICK = "left_stick"
+        ZO_DI_LEFT_STICK_NO_KEYBOARD = "left_stick_no_keyboard"
+        GetGamepadLeftStickY = function()
+            rawStickCalls = rawStickCalls + 1
+            return 0.75
+        end
+        DIRECTIONAL_INPUT = {
+            listening = {},
+            GetY = function(_, input)
+                directionalQueryInput = input
+                return 0.75
+            end,
+            Activate = function(self, object)
+                self.listening[object] = true
+                activatedObject = object
+            end,
+            Deactivate = function(self, object)
+                self.listening[object] = nil
+            end,
+            IsListening = function(self, object)
+                return self.listening[object] == true
+            end,
+            Consume = function(_, ...)
+                consumed = { ... }
+            end,
+        }
+        ZO_MovementController = {
+            New = function(_, direction, _, stickYGetter)
+                movementController = {
+                    direction = direction,
+                    stickYGetter = stickYGetter,
+                    CheckMovement = function(self)
+                        self.lastStickY = self.stickYGetter()
+                        return MOVEMENT_CONTROLLER_MOVE_NEXT
+                    end,
+                }
+                return movementController
+            end,
+        }
+
+        local companion = setmetatable({
+            textSearchHeaderControl = { IsControlHidden = function() return false end },
+            _searchModeActive = true,
+            _searchHeaderActive = true,
+            IsSceneShowing = function() return true end,
+            AcceptSearchAndReturnToList = function(self)
+                acceptCalls = acceptCalls + 1
+                self._searchModeActive = false
+                self._searchHeaderActive = false
+                return true
+            end,
+        }, { __index = BETTERUI.Companions.Class })
+
+        assert_true(companion:SetSearchDirectionalInputUpdate(true),
+            "companion search installs a scoped directional-input listener")
+        activatedObject:UpdateDirectionalInput()
+        assert_eq(acceptCalls, 1,
+            "companion joystick down accepts search and returns to the list")
+        assert_eq(movementController.direction, MOVEMENT_CONTROLLER_DIRECTION_VERTICAL,
+            "companion search movement controller is vertical-only")
+        assert_eq(directionalQueryInput, ZO_DI_LEFT_STICK_NO_KEYBOARD,
+            "companion search honors ESOUI directional-input arbitration")
+        assert_eq(rawStickCalls, 0,
+            "companion search does not bypass directional-input arbitration")
+        assert_eq(consumed[1], ZO_DI_LEFT_STICK,
+            "companion search consumes the left-stick input after handling movement")
+        assert_eq(consumed[2], ZO_DI_LEFT_STICK_NO_KEYBOARD,
+            "companion search consumes the no-keyboard left-stick input after handling movement")
+        companion:SetSearchDirectionalInputUpdate(false)
+        assert_true(not DIRECTIONAL_INPUT:IsListening(companion._companionSearchDirectionalInputObject),
+            "companion search releases its directional-input listener")
+
+        DIRECTIONAL_INPUT = originalDirectionalInput
+        ZO_MovementController = originalMovementController
+        MOVEMENT_CONTROLLER_DIRECTION_VERTICAL = originalMovementDirection
+        MOVEMENT_CONTROLLER_MOVE_NEXT = originalMoveNext
+        MOVEMENT_CONTROLLER_MOVE_PREVIOUS = originalMovePrevious
+        ZO_DI_LEFT_STICK = originalLeftStick
+        ZO_DI_LEFT_STICK_NO_KEYBOARD = originalLeftStickNoKeyboard
+        GetGamepadLeftStickY = originalGetLeftStickY
+        EQUIP_SLOT_MAIN_HAND = originalMainHand
+        EQUIP_SLOT_OFF_HAND = originalOffHand
     end
 
     do

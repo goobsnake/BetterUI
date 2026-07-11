@@ -352,7 +352,13 @@ local function RegisterCompanionActionDialog()
                                 dataSource.slotIndex,
                                 data.expectedIdentity)
                         if identityCurrent then
-                            Companions.ExecuteAction(selected.actionId, selectedData)
+                            local actionExecuted = Companions.ExecuteAction(
+                                selected.actionId, selectedData)
+                            TraceCompanionDialog(
+                                COMPANION_ACTION_DIALOG,
+                                actionExecuted and "action_executed" or "action_rejected",
+                                { actionId = selected.actionId })
+                            return actionExecuted
                         else
                             TraceCompanionDialog(
                                 COMPANION_ACTION_DIALOG,

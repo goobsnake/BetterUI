@@ -204,12 +204,20 @@ function BETTERUI.Companions.Class:ApplySortToList()
     TraceCompanionList("companions.sort", "end", { fn = "ApplySortToList", sortKey = sortKey, sortOrder = sortOrder, count = #self.list.dataList, firstBag = firstData and firstData.bagId or nil, firstSlot = firstData and firstData.slotIndex or nil, firstName = firstData and firstData.name or nil })
 end
 
+---@param options { preserveCurrentPosition: boolean }|nil
 ---@return boolean ok
 ---@return string|nil errorMessage
-function BETTERUI.Companions.Class:RefreshList()
+function BETTERUI.Companions.Class:RefreshList(options)
     if not self.list then
         TraceCompanionList("companions.list_refresh", "skipped", { fn = "RefreshList", reason = "missingList" })
         return true
+    end
+
+    local currentCategory = self:GetCurrentCategory()
+    if options and options.preserveCurrentPosition
+        and currentCategory and self.list then
+        BETTERUI.CIM.PositionManager.SavePosition(
+            "Companions", currentCategory.key, self.list)
     end
 
     self._isRefreshing = true
@@ -218,14 +226,13 @@ function BETTERUI.Companions.Class:RefreshList()
     local ok, result = boundary.ExecuteBoundary("Companions.RefreshList", function()
         self.list:Clear()
 
-        local currentCategory = self:GetCurrentCategory()
         local filterType = currentCategory and currentCategory.filterType or nil
 
         self:BuildEquippedItems(filterType)
         self:BuildBackpackItems(filterType)
 
         self:ApplySortToList()
-        self.list:Commit()
+        self.list:Commit(true, true)
         TraceCompanionList("companions.list_refresh", "committed", { fn = "RefreshList", category = currentCategory and currentCategory.key or nil, filterType = filterType, count = self.list.dataList and #self.list.dataList or 0 })
         self:EnsureColumnHeadersVisible()
         self:UpdateScrollIndicator(self.list)
@@ -233,8 +240,8 @@ function BETTERUI.Companions.Class:RefreshList()
         -- Restore selection
         if currentCategory and self.list and self.list.dataList then
             local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition("Companions", currentCategory.key, self.list, self.list.dataList)
-            if self.list.SetSelectedIndex then
-                self.list:SetSelectedIndex(targetIndex)
+            if self.list.SetSelectedIndexWithoutAnimation then
+                self.list:SetSelectedIndexWithoutAnimation(targetIndex, true, false)
                 TraceCompanionList("companions.selection", "restored", { fn = "RefreshList", category = currentCategory.key, selectedIndex = targetIndex, count = self.list.dataList and #self.list.dataList or 0 })
             end
         end

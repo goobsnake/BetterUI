@@ -30,6 +30,15 @@ local function TracePositionEvent(event, phase, message, data)
     end
 end
 
+local function AreUniqueIdsEqual(left, right)
+    if left == nil or right == nil then return false end
+    if type(AreId64sEqual) == "function" then
+        local ok, equal = pcall(AreId64sEqual, left, right)
+        if ok then return equal == true end
+    end
+    return tostring(left) == tostring(right)
+end
+
 -- CATEGORY KEY GENERATION
 
 ---@param categoryData table|nil Category data with filterType, onClickDirection, key, text, or index
@@ -142,7 +151,7 @@ function BETTERUI.CIM.PositionManager.RestorePosition(moduleName, categoryKey, l
     if saved.uniqueId then
         for i, data in ipairs(dataList) do
             local rawData = data.dataSource or data
-            if rawData.uniqueId == saved.uniqueId then
+            if AreUniqueIdsEqual(rawData.uniqueId, saved.uniqueId) then
                 targetIndex = i
                 foundByUniqueId = true
                 break

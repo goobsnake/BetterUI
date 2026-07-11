@@ -39,7 +39,7 @@ assert_true(source:find("function Companions%.CanExecuteAction%(actionId, select
     "CompanionActions exposes CanExecuteAction")
 assert_true(source:find("function Companions%.TryEquipCompanionItem%(bagId, slotIndex%)") ~= nil,
     "CompanionActions exposes TryEquipCompanionItem")
-assert_true(source:find("function Companions%.TryUnequipCompanionItem%(slotIndex%)") ~= nil,
+assert_true(source:find("function Companions%.TryUnequipCompanionItem%(bagId, slotIndex%)") ~= nil,
     "CompanionActions exposes TryUnequipCompanionItem")
 assert_true(source:find("function Companions%.ToggleCompanionItemLock%(bagId, slotIndex%)") ~= nil,
     "CompanionActions exposes ToggleCompanionItemLock")
@@ -86,6 +86,9 @@ assert_true(source:find('elseif actionId == "split" then') ~= nil
     "CompanionActions routes split actions through the split-stack dialog helper")
 assert_true(dialogSource:find("Companions%.ExecuteAction%(actionId, itemData%)") ~= nil,
     "Companion batch dialog routes protected batch actions through CompanionActions")
+assert_true(dialogSource:find("local actionExecuted = Companions%.ExecuteAction%(") ~= nil
+        and dialogSource:find("return actionExecuted") ~= nil,
+    "Companion action dialog propagates the selected action result")
 assert_true(source:find("TWO_HANDED_WEAPON_TYPES", 1, true) == nil,
     "Companion equip routing uses canonical equip types instead of a weapon allowlist")
 assert_true(source:find("function Companions%.GetCompanionEquipSlotChoices%(bagId, slotIndex%)") ~= nil,
@@ -110,14 +113,20 @@ assert_true(source:find('"CONFIRM_EQUIP_BOE"', 1, true) == nil,
     "TryEquipCompanionItem no longer probes the nonexistent native CONFIRM_EQUIP_BOE dialog")
 assert_true(source:find("ZO_Dialogs_ShowPlatformDialog%(COMPANION_CONFIRM_EQUIP_BOE_DIALOG") ~= nil,
     "TryEquipCompanionItemToSlot shows the custom BoE dialog")
-assert_true(source:find("FindFirstEmptySlotInBag%(BAG_BACKPACK%)") ~= nil,
-    "TryUnequipCompanionItem finds the destination slot via FindFirstEmptySlotInBag")
-assert_true(source:find("GetNumBagFreeSlots%(BAG_BACKPACK%)") == nil,
-    "TryUnequipCompanionItem avoids redundant GetNumBagFreeSlots pre-check")
-assert_true(source:find('CallSecureProtected("RequestMoveItem",', 1, true) ~= nil,
-    "Companion equip and unequip route protected moves through CallSecureProtected")
-assert_true(source:find('type(RequestMoveItem)', 1, true) == nil,
-    "Companion equipment never probes the protected RequestMoveItem global directly")
+assert_true(source:find('"RequestEquipItem", rawget%(_G, "RequestEquipItem"%), false') ~= nil,
+    "Companion equip uses ESO's public actor-aware equipment request")
+assert_true(source:find('"RequestMoveItem", rawget%(_G, "RequestMoveItem"%)') == nil,
+    "Companion equip never calls the private RequestMoveItem API from addon code")
+assert_true(source:find('"RequestUnequipItem", rawget%(_G, "RequestUnequipItem"%), false') ~= nil,
+    "Companion unequip uses ESO's dedicated request with runtime protection detection")
+assert_true(source:find("IsProtectedFunction%(functionName%)") ~= nil,
+    "Companion request dispatch detects the live ESO protected-function contract")
+assert_true(source:find("CallSecureProtected%(functionName") ~= nil,
+    "Protected companion requests route through CallSecureProtected")
+assert_true(source:find('"SetItemIsPlayerLocked", rawget%(_G, "SetItemIsPlayerLocked"%)') ~= nil,
+    "Companion lock mutations use the runtime protected-function route")
+assert_true(source:find('reason = "unsupportedCompanionActor"') ~= nil,
+    "Companion junk actions fail closed because ESO suppresses them")
 assert_true(source:find("local firstCompatibleSlot") ~= nil,
     "Non-weapon companion equipment resolves a deterministic compatible slot")
 assert_true(source:find('id = "sort"', 1, true) ~= nil,

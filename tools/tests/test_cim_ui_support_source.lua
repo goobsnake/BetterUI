@@ -127,6 +127,10 @@ assert_true(unifiedFooter:find("function UnifiedFooterController:SetupFooter%(fo
     "UnifiedFooter exposes SetupFooter")
 assert_true(unifiedFooter:find("function UnifiedFooterController:SetMode%(mode%)") ~= nil,
     "UnifiedFooter exposes SetMode")
+assert_true(unifiedFooter:find("function UnifiedFooterController:SetCapacityBagId%(bagId%)") ~= nil,
+    "UnifiedFooter exposes a screen-local capacity bag override")
+assert_true(unifiedFooter:find("capacityBagId = self%.capacityBagId") ~= nil,
+    "UnifiedFooter forwards capacity context without mutating GenericFooter globals")
 assert_true(unifiedFooter:find("function UnifiedFooterController:Refresh%(%)") ~= nil,
     "UnifiedFooter exposes Refresh")
 assert_true(unifiedFooter:find("function BETTERUI%.CIM%.UnifiedFooter%.Create%(control%)") ~= nil,
