@@ -268,6 +268,7 @@ function BETTERUI.Companions.Class:New(_, _)
         deactivateHeaderCount = 0,
         forceReleaseCount = 0,
         initFooterCount = 0,
+        clearSearchCount = 0,
         control = newControlTree(),
         headerGeneric = {},
         list = {
@@ -328,6 +329,10 @@ function BETTERUI.Companions.Class:New(_, _)
     end
     function obj:InitCompanionFooter()
         self.initFooterCount = self.initFooterCount + 1
+    end
+    function obj:ClearSearchInput()
+        self.clearSearchCount = self.clearSearchCount + 1
+        self.searchQuery = ""
     end
     function obj:IsSceneShowing()
         local scene = SCENE_MANAGER.scenes[sceneName]
@@ -415,8 +420,11 @@ assert_true(type(deactivatedCallback) == "function", "companion deactivation cal
 deactivatedCallback()
 assert_eq(hideCurrentSceneCalls, 1, "companion deactivation hides the scene when it is visible")
 
+instance.searchQuery = "needle"
 instance.sceneLifecycle.onHiding(instance)
 assert_eq(tooltipWidthCalls[#tooltipWidthCalls], 80, "scene hiding restores the default tooltip width")
+assert_eq(instance.searchQuery, "", "scene hiding clears the Companion search query")
+assert_eq(instance.clearSearchCount, 1, "scene hiding clears the visible Companion search text")
 assert_eq(instance.deactivateListCount, 1, "scene hiding deactivates list input")
 assert_eq(instance.deactivateHeaderCount, 1, "scene hiding deactivates header keybinds")
 assert_eq(instance.forceReleaseCount, 1, "scene hiding force-releases directional input owners")

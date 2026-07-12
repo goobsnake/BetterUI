@@ -138,6 +138,8 @@ assert_contains(runtimeSource, "BETTERUI_SharedGamepadEntry_OnSetup,",
     "Companion list installs the exact shared Inventory row setup")
 assert_contains(runtimeSource, "autoEnterOnListStart = false",
     "Companion sort mode is entered intentionally instead of taking over at the list boundary")
+assert_contains(runtimeSource, "controller:SetColumnLabel(columnIndex, labelControl)",
+    "Companion sort binds Inventory column labels so brackets and direction arrows can render")
 assert_contains(runtimeSource, "function Companions.RequestHeaderSortAfterDialog()",
     "Companion action-dialog sorting defers ownership until the dialog closes")
 assert_contains(runtimeSource, "if attempts <= 0 then",

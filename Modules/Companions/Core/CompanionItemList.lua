@@ -128,17 +128,19 @@ end
 
 -- SORT COMPARATORS
 
+local function CompareCompanionNames(a, b)
+    local nameA = (a.dataSource and a.dataSource.name) or a.name or ""
+    local nameB = (b.dataSource and b.dataSource.name) or b.name or ""
+    return nameA < nameB
+end
+
 local COMPANION_SORT_COMPARATORS = {
-    name = function(a, b)
-        local nameA = (a.dataSource and a.dataSource.name) or a.name or ""
-        local nameB = (b.dataSource and b.dataSource.name) or b.name or ""
-        return nameA < nameB
-    end,
+    name = CompareCompanionNames,
     type = function(a, b)
         local typeA = (a.dataSource and a.dataSource.bestItemTypeName) or ""
         local typeB = (b.dataSource and b.dataSource.bestItemTypeName) or ""
         if typeA == typeB then
-            return COMPANION_SORT_COMPARATORS.name(a, b)
+            return CompareCompanionNames(a, b)
         end
         return typeA < typeB
     end,
@@ -151,7 +153,7 @@ local COMPANION_SORT_COMPARATORS = {
             return blankA < blankB
         end
         if traitA == traitB then
-            return COMPANION_SORT_COMPARATORS.name(a, b)
+            return CompareCompanionNames(a, b)
         end
         return traitA < traitB
     end,
@@ -164,7 +166,7 @@ local COMPANION_SORT_COMPARATORS = {
         if statA ~= statB then
             return statA > statB
         end
-        return COMPANION_SORT_COMPARATORS.name(a, b)
+        return CompareCompanionNames(a, b)
     end,
     value = function(a, b)
         local valA = (a.dataSource and a.dataSource.sellPrice) or 0
@@ -172,7 +174,7 @@ local COMPANION_SORT_COMPARATORS = {
         if valA ~= valB then
             return valA > valB
         end
-        return COMPANION_SORT_COMPARATORS.name(a, b)
+        return CompareCompanionNames(a, b)
     end,
 }
 
@@ -238,12 +240,14 @@ function BETTERUI.Companions.Class:RefreshList(options)
         self:UpdateScrollIndicator(self.list)
 
         -- Restore selection
-        if currentCategory and self.list and self.list.dataList then
+        if currentCategory and self.list and self.list.dataList and #self.list.dataList > 0 then
             local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition("Companions", currentCategory.key, self.list, self.list.dataList)
             if self.list.SetSelectedIndexWithoutAnimation then
                 self.list:SetSelectedIndexWithoutAnimation(targetIndex, true, false)
                 TraceCompanionList("companions.selection", "restored", { fn = "RefreshList", category = currentCategory.key, selectedIndex = targetIndex, count = self.list.dataList and #self.list.dataList or 0 })
             end
+        else
+            self:UpdateItemTooltips(nil)
         end
 
         -- Refresh multi-select visuals

@@ -513,8 +513,18 @@ end
 
 function BETTERUI.Companions.Class:ClearSearchInput()
     self.searchQuery = ""
-    if self.ClearSearchText then
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    if searchMixin and searchMixin.ClearSearchText then
+        searchMixin.ClearSearchText(self)
+    elseif self.ClearSearchText then
         self:ClearSearchText()
+    end
+    local sceneShowing = (not self.IsSceneShowing) or self:IsSceneShowing()
+    if sceneShowing and self.EnsureHeaderKeybindsActive then
+        self:EnsureHeaderKeybindsActive()
+        if BETTERUI.Interface.UpdateCurrentKeybindGroups then
+            BETTERUI.Interface.UpdateCurrentKeybindGroups()
+        end
     end
 end
 

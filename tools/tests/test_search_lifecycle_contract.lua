@@ -961,6 +961,22 @@ do
             end,
         }, { __index = BETTERUI.Companions.Class })
 
+        local clearedSearchText = false
+        local ensuredHeaderNavigation = false
+        companion.searchQuery = "needle"
+        companion.textSearchHeaderFocus = {
+            ClearText = function()
+                clearedSearchText = true
+            end,
+        }
+        companion.EnsureHeaderKeybindsActive = function()
+            ensuredHeaderNavigation = true
+        end
+        companion:ClearSearchInput()
+        assert_eq(companion.searchQuery, "", "companion clear resets the search query")
+        assert_true(clearedSearchText, "companion clear resets the visible search text")
+        assert_true(ensuredHeaderNavigation, "companion clear restores LB/RB category navigation")
+
         assert_true(companion:SetSearchDirectionalInputUpdate(true),
             "companion search installs a scoped directional-input listener")
         activatedObject:UpdateDirectionalInput()

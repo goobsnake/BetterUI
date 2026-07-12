@@ -362,7 +362,15 @@ function Companions.SetupSort(instance)
             },
             autoEnterOnListStart = false,
         })
-        headerSortIntegration.EnsureController(integration)
+        local controller = headerSortIntegration.EnsureController(integration)
+        if controller and type(controller.SetColumnLabel) == "function"
+            and instance.header and instance.header.columns then
+            for columnIndex, labelControl in ipairs(instance.header.columns) do
+                if labelControl then
+                    controller:SetColumnLabel(columnIndex, labelControl)
+                end
+            end
+        end
     end)
     if not ok then
         return false, string.format("[Companions] Header sort setup failed: %s", tostring(err))
@@ -490,6 +498,9 @@ function Companions.RegisterSceneLifecycle(instance)
                 Companions.multiSelectManager:ExitSelectionMode()
             end
             CallCompanionSearchLifecycle(Companions.instance, "exit")
+            if screen.ClearSearchInput then
+                screen:ClearSearchInput()
+            end
             local category = screen:GetCurrentCategory()
             if category and screen.list then
                 BETTERUI.CIM.PositionManager.SavePosition("Companions", category.key, screen.list)
