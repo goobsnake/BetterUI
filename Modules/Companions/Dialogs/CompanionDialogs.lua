@@ -381,30 +381,42 @@ local function RegisterCompanionBatchDialog()
         canQueue = true,
         finishedCallback = RestoreCompanionDialogKeybindOwnership,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
-        title = { text = SI_BETTERUI_INV_BATCH_ACTIONS or SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
-            setup = function(dialog)
-                local parametricList = dialog.info.parametricList
-                ZO_ClearNumericallyIndexedTable(parametricList)
+        title = { text = SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
+        parametricList = {},
+        setup = function(dialog)
+            local parametricList = dialog.info.parametricList
+            ZO_ClearNumericallyIndexedTable(parametricList)
 
-                local ms = Companions.multiSelectManager
-                if ms then
-                    local items = ms:GetSelectedItems()
-                    local listCount = Companions.instance and Companions.instance.list and Companions.instance.list:GetNumItems() or 0
-                    local allSelected = #items > 0 and ms:GetSelectedCount() == listCount
-                    TraceCompanionDialog(COMPANION_BATCH_DIALOG, "setup", {
-                        fn = "RegisterCompanionBatchDialog",
-                        itemCount = #items,
-                        selectedCount = ms:GetSelectedCount(),
-                        listCount = listCount,
-                        allSelected = allSelected,
-                    })
+            local ms = Companions.multiSelectManager
+            if ms then
+                local items = ms:GetSelectedItems()
+                local listCount = Companions.instance and Companions.instance.list and Companions.instance.list:GetNumItems() or 0
+                local allSelected = #items > 0 and ms:GetSelectedCount() == listCount
+                TraceCompanionDialog(COMPANION_BATCH_DIALOG, "setup", {
+                    fn = "RegisterCompanionBatchDialog",
+                    itemCount = #items,
+                    selectedCount = ms:GetSelectedCount(),
+                    listCount = listCount,
+                    allSelected = allSelected,
+                })
                 if not allSelected then
+                    local selectAllLabel = BETTERUI.CIM.Keybinds
+                        and BETTERUI.CIM.Keybinds.GetSelectAllLabel
+                        and BETTERUI.CIM.Keybinds.GetSelectAllLabel()
+                        or GetString(rawget(_G, "SI_BETTERUI_INV_MARK_ALL") or "SI_BETTERUI_INV_MARK_ALL")
                     table.insert(parametricList,
-                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_BETTERUI_INV_MARK_ALL or "Mark All"), "selectAll"))
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(
+                            selectAllLabel, "selectAll"))
                 end
                 if ms:GetSelectedCount() > 0 then
+                    local deselectAllLabel = BETTERUI.CIM.Keybinds
+                        and BETTERUI.CIM.Keybinds.GetDeselectAllLabel
+                        and BETTERUI.CIM.Keybinds.GetDeselectAllLabel(ms:GetSelectedCount())
+                        or GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_DESELECT_ALL")
+                            or "SI_BETTERUI_INV_ACTION_DESELECT_ALL")
                     table.insert(parametricList,
-                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_BETTERUI_INV_ACTION_DESELECT_ALL or "Deselect All"), "deselectAll"))
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(
+                            deselectAllLabel, "deselectAll"))
                 end
 
                 local junkCount = CountEligibleActionTargets("junk", items)

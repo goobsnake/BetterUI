@@ -759,7 +759,14 @@ function Companions.BuildCoreKeybinds(instance)
             name = function()
                 local ms = Companions.multiSelectManager
                 if ms and ms:IsActive() then
-                    return GetString(SI_GAMEPAD_SELECT_OPTION)
+                    local selectedData = instance.list and instance.list:GetSelectedData()
+                    local keybinds = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+                    if keybinds and keybinds.GetMultiSelectToggleLabel then
+                        return keybinds.GetMultiSelectToggleLabel(ms, selectedData)
+                    end
+                    return ms:IsSelected(selectedData)
+                        and GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM") or "SI_BETTERUI_DESELECT_ITEM")
+                        or GetString(SI_GAMEPAD_SELECT_OPTION)
                 end
                 local selectedData = instance.list and instance.list:GetSelectedData()
                 if selectedData then
@@ -817,10 +824,6 @@ function Companions.BuildCoreKeybinds(instance)
         },
         {
             name = function()
-                local ms = Companions.multiSelectManager
-                if ms and ms:IsActive() then
-                    return GetString(rawget(_G, "SI_BETTERUI_INV_BATCH_ACTIONS") or "SI_BETTERUI_INV_BATCH_ACTIONS")
-                end
                 return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
@@ -828,10 +831,6 @@ function Companions.BuildCoreKeybinds(instance)
                 local selectedData = instance.list and instance.list:GetSelectedData()
                 if not selectedData then
                     return false
-                end
-                local ms = Companions.multiSelectManager
-                if ms and ms:IsActive() then
-                    return ms:HasSelections()
                 end
                 return true
             end,
@@ -928,38 +927,18 @@ function Companions.BuildCoreKeybinds(instance)
                     TraceCompanionKeybind("multiselect_exit", instance, { keybind = "UI_SHORTCUT_QUINARY" })
                 else
                     ms:EnterSelectionMode()
-                    TraceCompanionKeybind("multiselect_enter", instance, { keybind = "UI_SHORTCUT_QUINARY" })
+                    local selectedData = instance.list and instance.list:GetSelectedData()
+                    if selectedData then
+                        ms:ToggleSelection(selectedData)
+                    end
+                    TraceCompanionKeybind("multiselect_enter", instance, {
+                        keybind = "UI_SHORTCUT_QUINARY",
+                        selectedCurrent = selectedData ~= nil,
+                    })
                 end
                 instance:RefreshList({ preserveCurrentPosition = true })
                 instance:EnsureListInputActive()
                 BETTERUI.Interface.UpdateCurrentKeybindGroups()
-            end,
-        },
-        {
-            name = function()
-                local ms = Companions.multiSelectManager
-                if ms and ms:IsActive() then
-                    return GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT_CANCEL") or "SI_BETTERUI_MULTI_SELECT_CANCEL")
-                end
-                return nil
-            end,
-            keybind = "UI_SHORTCUT_RIGHT_STICK",
-            visible = function()
-                local ms = Companions.multiSelectManager
-                return ms and ms:IsActive() or false
-            end,
-            callback = function()
-                TraceCompanionKeybind("cancel_begin", instance, { keybind = "UI_SHORTCUT_RIGHT_STICK" })
-                local ms = Companions.multiSelectManager
-                if not ms or not ms:IsActive() then
-                    TraceCompanionKeybind("cancel_skipped", instance, { keybind = "UI_SHORTCUT_RIGHT_STICK", reason = "notActive" })
-                    return
-                end
-                ms:ExitSelectionMode()
-                instance:RefreshList({ preserveCurrentPosition = true })
-                instance:EnsureListInputActive()
-                BETTERUI.Interface.UpdateCurrentKeybindGroups()
-                TraceCompanionKeybind("cancel_end", instance, { keybind = "UI_SHORTCUT_RIGHT_STICK" })
             end,
         },
         {

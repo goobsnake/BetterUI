@@ -41,6 +41,7 @@ local itemListSource = read_file("Modules/Companions/Core/CompanionItemList.lua"
 local layoutSnapshotSource = read_file("Modules/CIM/Core/Diagnostics/LayoutSnapshot.lua")
 local manifestSource = read_file("BetterUI.txt")
 local searchManagerSource = read_file("Modules/CIM/Core/Data/SearchManager.lua")
+local dialogSource = read_file("Modules/Companions/Dialogs/CompanionDialogs.lua")
 
 assert_contains(runtimeSource, "function Companions.InitializeRuntime()",
     "Companions runtime helper owns the single runtime bootstrap entrypoint")
@@ -68,6 +69,24 @@ assert_contains(runtimeSource, "function BETTERUI.Companions.Class:TryEquipItem(
     "Companions class runtime helper owns TryEquipItem")
 assert_contains(runtimeSource, "function Companions.BuildCoreKeybinds(instance)",
     "Companions runtime helper owns keybind construction")
+assert_contains(runtimeSource, "keybinds.GetMultiSelectToggleLabel(ms, selectedData)",
+    "Companion A keybind reports Select or Deselect for the highlighted row")
+assert_contains(runtimeSource, "ms:EnterSelectionMode()",
+    "Companion hold-Y enters multi-select mode")
+assert_contains(runtimeSource, "ms:ToggleSelection(selectedData)",
+    "Companion hold-Y immediately selects the highlighted row")
+assert_not_contains(runtimeSource, 'keybind = "UI_SHORTCUT_RIGHT_STICK"',
+    "Companion multi-select does not expose a separate right-stick selection mechanism")
+assert_not_contains(runtimeSource, 'SI_BETTERUI_INV_BATCH_ACTIONS',
+    "Companion Y keybind remains Actions while multi-select is active")
+assert_contains(dialogSource, 'title = { text = SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND }',
+    "Companion multi-select dialog uses the Inventory Actions title")
+assert_contains(dialogSource, "parametricList = {},",
+    "Companion multi-select dialog provides a concrete parametric list")
+assert_contains(dialogSource, "BETTERUI.CIM.Keybinds.GetSelectAllLabel",
+    "Companion multi-select dialog exposes Select All")
+assert_contains(dialogSource, "BETTERUI.CIM.Keybinds.GetDeselectAllLabel(ms:GetSelectedCount())",
+    "Companion multi-select dialog exposes Deselect All")
 assert_contains(runtimeSource, "instance.sortSetupDegraded = not sortOk",
     "Companions runtime degrades sorting instead of aborting on sort setup failure")
 assert_not_contains(runtimeSource, "return nil, sortErr",
