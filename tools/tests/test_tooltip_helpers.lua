@@ -1293,13 +1293,23 @@ local statusLabel = newMockControl(CT_LABEL)
 statusLabel:SetText("ENHANCED STATUS TEXT")
 statusLabel:SetHidden(false)
 cleanupSurface.container._betterUiStatus = statusLabel
+cleanupSurface.container._betterUiStatusOwned = true
+cleanupSurface.bottomRail:SetHidden(false)
 cleanupSurface.tooltip:ClearAnchors()
 cleanupSurface.tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 120) -- enhanced body offset
 for i = 1, cleanupSurface.tooltip:GetNumChildren() do
     cleanupSurface.tooltip:GetChild(i):SetFont("$(MEDIUM_FONT)|24|soft-shadow-thick")
 end
 
+local previousCleanupClearStatusLabel = GAMEPAD_TOOLTIPS.ClearStatusLabel
+GAMEPAD_TOOLTIPS.ClearStatusLabel = function(_, tooltipType)
+    local surface = pbControls[tooltipType]
+    if surface then
+        surface.bottomRail:SetHidden(true)
+    end
+end
 BETTERUI.Inventory.CleanupEnhancedTooltip("PB003_CLEANUP")
+GAMEPAD_TOOLTIPS.ClearStatusLabel = previousCleanupClearStatusLabel
 
 assertEqual(false, leftTooltipTip:IsMouseEnabled(),
     "PB-003: CleanupEnhancedTooltip restores mouse input state captured before tooltip wheel enhancement")
@@ -1311,6 +1321,8 @@ assertEqual("", cleanupSurface.container._betterUiStatus:GetText(),
     "PB-003: CleanupEnhancedTooltip clears the _betterUiStatus text")
 assertEqual(true, cleanupSurface.container._betterUiStatus:IsHidden(),
     "PB-003: CleanupEnhancedTooltip hides the _betterUiStatus label")
+assertEqual(true, cleanupSurface.bottomRail:IsHidden(),
+    "PB-003: CleanupEnhancedTooltip does not resurrect the cleared BetterUI status divider")
 -- Body anchor reset to stock (offsetY 0).
 local bodyAnchor = cleanupSurface.tooltip._anchors[1]
 assertEqual(true, bodyAnchor ~= nil and bodyAnchor.y == 0,

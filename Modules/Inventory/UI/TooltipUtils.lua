@@ -267,17 +267,15 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType, preserveItemData
             container._betterUiNativePriceLabel:SetText("")
         end
         if shouldResetEnhancedLayout then
-            -- Reset the bottomRail divider to its stock anchor (mirrors the
-            -- stock else-branch in TooltipEquipped.UpdateTooltipEquippedText)
-            -- instead of leaving it hidden/anchored under our custom status
-            -- label. Native/default tooltip status owns this rail itself.
+            -- Restore only the bottomRail anchors BetterUI changed. Its visibility
+            -- belongs to ESOUI: ClearStatusLabel hides a stale BetterUI-owned rail,
+            -- while native equipped layouts may already have left their rail visible.
             if bottomRail then
                 bottomRail:ClearAnchors()
                 bottomRail:SetAnchor(TOPLEFT, container, TOPLEFT, 0,
                     rawget(_G, "ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y") or 0)
                 bottomRail:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0,
                     rawget(_G, "ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y") or 0)
-                bottomRail:SetHidden(false)
             end
             if scrollTooltip then
                 scrollTooltip:ClearAnchors()
