@@ -548,7 +548,7 @@ function BETTERUI.Companions.Class:OnTabPrev()
     self:CycleCategory(-1)
 end
 
-function BETTERUI.Companions.Class:EnsureHeaderKeybindsActive()
+function BETTERUI.Companions.Class:EnsureHeaderKeybindsActive(forceReactivate)
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if not tabBar then
         return
@@ -560,9 +560,11 @@ function BETTERUI.Companions.Class:EnsureHeaderKeybindsActive()
 
     local carouselMissing = tabBar.keybindStripDescriptor
         and not BETTERUI.Interface.HasKeybindGroup(tabBar.keybindStripDescriptor)
-    if tabBar.active and carouselMissing and tabBar.Deactivate then
+    if tabBar.active and (carouselMissing or forceReactivate) and tabBar.Deactivate then
         -- A focus-loss callback can leave the visual active flag set after the
-        -- keybind group was removed. Reset the carousel before reactivation.
+        -- keybind group was removed. Search clear can also leave the registered
+        -- group stale even though it still appears present. Reset the carousel
+        -- before reactivation in either case.
         tabBar:Deactivate()
     end
     if tabBar.Activate and (not tabBar.active or carouselMissing) then
@@ -665,6 +667,7 @@ function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
 
     SafeDeactivate("self", self, true)
     SafeDeactivate("list", self.list, true, true)
+    SafeDeactivate("searchDirectionalInput", self._companionSearchDirectionalInputObject, true)
     ReleaseHeaderDirectionalInput(self.headerGeneric, errors)
     ReleaseHeaderDirectionalInput(self.header, errors)
     SafeDeactivate("textSearchHeaderFocus", self.textSearchHeaderFocus, true)

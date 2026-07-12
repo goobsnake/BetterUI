@@ -963,19 +963,23 @@ do
 
         local clearedSearchText = false
         local ensuredHeaderNavigation = false
+        local forcedHeaderReactivation = false
         companion.searchQuery = "needle"
         companion.textSearchHeaderFocus = {
             ClearText = function()
                 clearedSearchText = true
             end,
         }
-        companion.EnsureHeaderKeybindsActive = function()
+        companion.EnsureHeaderKeybindsActive = function(_, forceReactivate)
             ensuredHeaderNavigation = true
+            forcedHeaderReactivation = forceReactivate == true
         end
         companion:ClearSearchInput()
         assert_eq(companion.searchQuery, "", "companion clear resets the search query")
         assert_true(clearedSearchText, "companion clear resets the visible search text")
         assert_true(ensuredHeaderNavigation, "companion clear restores LB/RB category navigation")
+        assert_true(forcedHeaderReactivation,
+            "companion clear recycles stale LB/RB category navigation ownership")
 
         assert_true(companion:SetSearchDirectionalInputUpdate(true),
             "companion search installs a scoped directional-input listener")
@@ -992,9 +996,13 @@ do
             "companion search consumes the left-stick input after handling movement")
         assert_eq(consumed[2], ZO_DI_LEFT_STICK_NO_KEYBOARD,
             "companion search consumes the no-keyboard left-stick input after handling movement")
-        companion:SetSearchDirectionalInputUpdate(false)
+        -- A focus-loss callback may clear both flags before ExitSearchMode runs.
+        -- The exit path must still release the real scoped DI owner.
+        companion._searchModeActive = false
+        companion._searchHeaderActive = false
+        companion:ExitSearchMode()
         assert_true(not DIRECTIONAL_INPUT:IsListening(companion._companionSearchDirectionalInputObject),
-            "companion search releases its directional-input listener")
+            "companion search releases its directional-input listener even after focus clears its flags")
 
         DIRECTIONAL_INPUT = originalDirectionalInput
         ZO_MovementController = originalMovementController

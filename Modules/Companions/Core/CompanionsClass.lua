@@ -380,6 +380,10 @@ end
 
 function BETTERUI.Companions.Class:ExitSearchMode()
     if not self._searchModeActive and not self._searchHeaderActive then
+        -- Focus callbacks can clear the lifecycle flags before the scoped stick
+        -- listener is released. Teardown must follow actual DI ownership rather
+        -- than treating the flags as proof that cleanup already happened.
+        self:SetSearchDirectionalInputUpdate(false)
         TraceCompanionClass("companions.search_mode", "exit_skipped", {
             fn = "Companions.Class:ExitSearchMode",
             reason = "notActive",
@@ -521,7 +525,10 @@ function BETTERUI.Companions.Class:ClearSearchInput()
     end
     local sceneShowing = (not self.IsSceneShowing) or self:IsSceneShowing()
     if sceneShowing and self.EnsureHeaderKeybindsActive then
-        self:EnsureHeaderKeybindsActive()
+        -- ClearText can synchronously transfer focus back to the item list while
+        -- ESO still considers the carousel keybind group registered. Recycle the
+        -- tab bar so its LB/RB callbacks are freshly registered for list focus.
+        self:EnsureHeaderKeybindsActive(true)
         if BETTERUI.Interface.UpdateCurrentKeybindGroups then
             BETTERUI.Interface.UpdateCurrentKeybindGroups()
         end
@@ -584,4 +591,3 @@ function BETTERUI.Companions.Class:TryClearNewStatusOnHidden()
     self.clearNewStatusUniqueId = nil
     self.clearNewStatusOnSelectionChanged = nil
 end
-
