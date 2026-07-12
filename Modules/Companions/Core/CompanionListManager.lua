@@ -61,11 +61,18 @@ end
 local function ReleaseHeaderDirectionalInput(header, errors)
     if not header then return end
     local boundary = Companions.GetBoundary()
-    local candidates = {
-        header.headerFocus,
-        header.tabBar,
-        header.tabBar and header.tabBar.control,
-    }
+    -- Do not construct this as a sparse array: ipairs stops at the first nil.
+    -- Companion headers commonly have no headerFocus while tabBar is active.
+    local candidates = {}
+    if header.headerFocus then
+        candidates[#candidates + 1] = header.headerFocus
+    end
+    if header.tabBar then
+        candidates[#candidates + 1] = header.tabBar
+        if header.tabBar.control then
+            candidates[#candidates + 1] = header.tabBar.control
+        end
+    end
     for _, candidate in ipairs(candidates) do
         if candidate then
             local candidateLabel = candidate == header.headerFocus and "headerFocus" or candidate == header.tabBar and "tabBar" or "tabBarControl"
@@ -558,16 +565,21 @@ function BETTERUI.Companions.Class:EnsureHeaderKeybindsActive(forceReactivate)
         return
     end
 
+    if forceReactivate and tabBar.keybindStripDescriptor then
+        -- Search clear only needs fresh shoulder-keybind ownership. Cycling an
+        -- already-active tab bar also cycles its global directional-input owner,
+        -- which can duplicate or leak joystick ownership into the HUD.
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(tabBar.keybindStripDescriptor)
+    end
+
     local carouselMissing = tabBar.keybindStripDescriptor
         and not BETTERUI.Interface.HasKeybindGroup(tabBar.keybindStripDescriptor)
-    if tabBar.active and (carouselMissing or forceReactivate) and tabBar.Deactivate then
+    if tabBar.active and carouselMissing and not forceReactivate and tabBar.Deactivate then
         -- A focus-loss callback can leave the visual active flag set after the
-        -- keybind group was removed. Search clear can also leave the registered
-        -- group stale even though it still appears present. Reset the carousel
-        -- before reactivation in either case.
+        -- keybind group was removed. Reset the carousel before reactivation.
         tabBar:Deactivate()
     end
-    if tabBar.Activate and (not tabBar.active or carouselMissing) then
+    if tabBar.Activate and (not tabBar.active or (carouselMissing and not forceReactivate)) then
         tabBar:Activate()
     end
 

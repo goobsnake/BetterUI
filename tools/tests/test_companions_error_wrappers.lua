@@ -148,16 +148,30 @@ local list = {
     end,
 }
 
-DIRECTIONAL_INPUT.inputObjects = { list }
+local tabBarDeactivateCount = 0
+local tabBar = {
+    IsActive = function()
+        return true
+    end,
+    Deactivate = function()
+        tabBarDeactivateCount = tabBarDeactivateCount + 1
+    end,
+}
+
+DIRECTIONAL_INPUT.inputObjects = { list, tabBar }
 
 local teardownHarness = setmetatable({
     list = list,
+    -- Reproduces the live Companion shape: headerFocus is nil while tabBar owns DI.
+    headerGeneric = { tabBar = tabBar },
 }, { __index = BETTERUI.Companions.Class })
 
 local teardownOk, teardownErr = teardownHarness:ForceReleaseDirectionalInput()
 assert_eq(teardownOk, false, "ForceReleaseDirectionalInput preserves teardown failures")
 assert_contains(teardownErr, "[Companions] ForceReleaseDirectionalInput failed:", "teardown failures use the same stable wrapper contract")
 assert_eq(countRegistrations(list), 0, "ForceReleaseDirectionalInput still releases directional input registrations")
+assert_eq(tabBarDeactivateCount, 1, "ForceReleaseDirectionalInput deactivates a tab bar when headerFocus is nil")
+assert_eq(countRegistrations(tabBar), 0, "ForceReleaseDirectionalInput releases tab-bar directional input when headerFocus is nil")
 
 BETTERUI.CIM.UI = {
     HeaderSortIntegration = {
