@@ -37,6 +37,7 @@ local dialogShowing = false
 local pendingDialogRestore = nil
 local identityCurrent = true
 local equipSlotCalls = {}
+local multiSelectRefreshCount = 0
 
 local selectedItems = {
     { bagId = 1, slotIndex = 10 },
@@ -60,10 +61,12 @@ end
 
 function multiSelect:SelectAll()
     self.selectAllCount = self.selectAllCount + 1
+    self.selectedCount = self.numItems
 end
 
 function multiSelect:ClearSelections()
     self.clearSelectionsCount = self.clearSelectionsCount + 1
+    self.selectedCount = 0
 end
 
 BETTERUI = {
@@ -129,6 +132,9 @@ BETTERUI = {
             end,
             EnsureHeaderKeybindsActive = function()
                 restoreCounts.header = restoreCounts.header + 1
+            end,
+            RefreshList = function()
+                multiSelectRefreshCount = multiSelectRefreshCount + 1
             end,
             list = {
                 GetNumItems = function()
@@ -394,12 +400,22 @@ batchDialog.setup(batchRuntimeDialog)
 assert_true(#batchDialog.parametricList >= 6, "batch setup includes core action entries")
 batchDialog.buttons[2].callback(batchRuntimeDialog)
 assert_eq(multiSelect.selectAllCount, 1, "batch callback handles selectAll")
+assert_eq(multiSelectRefreshCount, 1, "selectAll refreshes companion row selection visuals")
+batchDialog.setup(batchRuntimeDialog)
+local selectAllStillPresent = false
+for _, entry in ipairs(batchDialog.parametricList) do
+    if entry.entryData and entry.entryData.actionId == "selectAll" then
+        selectAllStillPresent = true
+    end
+end
+assert_true(selectAllStillPresent, "Select All remains present after every row is selected")
 
 batchRuntimeDialog.entryList.GetTargetData = function()
     return { actionId = "deselectAll" }
 end
 batchDialog.buttons[2].callback(batchRuntimeDialog)
 assert_eq(multiSelect.clearSelectionsCount, 1, "batch callback handles deselectAll")
+assert_eq(multiSelectRefreshCount, 2, "deselectAll refreshes companion row selection visuals")
 
 batchRuntimeDialog.entryList.GetTargetData = function()
     return { actionId = "lock" }
@@ -433,10 +449,10 @@ assert_true(type(batchDestroyDialog.finishedCallback) == "function",
 if type(batchDestroyDialog.finishedCallback) == "function" then
     batchDestroyDialog.finishedCallback({})
 end
-assert_eq(restoreCounts.list, 4, "batch destroy completion restores companion list input")
+assert_eq(restoreCounts.list, 6, "batch destroy completion restores companion list input")
 assert_eq(restoreCounts.header, 4, "batch destroy completion restores companion header keybinds")
 assert_eq(restoreCounts.add, 4, "batch destroy completion restores companion core keybind group")
-assert_eq(restoreCounts.update, 4, "batch destroy completion refreshes current keybind groups")
+assert_eq(restoreCounts.update, 6, "batch destroy completion refreshes current keybind groups")
 assert_true(batchDestroyDialog ~= nil, "registers companion batch destroy dialog")
 batchDestroyDialog.buttons[2].callback({ data = shownGamepadDialogs[1].data })
 assert_eq(#destroyCalls, 2, "confirming the batch destroy dialog quick-destroys each selected item")

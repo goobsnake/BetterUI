@@ -399,15 +399,13 @@ local function RegisterCompanionBatchDialog()
                     listCount = listCount,
                     allSelected = allSelected,
                 })
-                if not allSelected then
-                    local selectAllLabel = BETTERUI.CIM.Keybinds
-                        and BETTERUI.CIM.Keybinds.GetSelectAllLabel
-                        and BETTERUI.CIM.Keybinds.GetSelectAllLabel()
-                        or GetString(rawget(_G, "SI_BETTERUI_INV_MARK_ALL") or "SI_BETTERUI_INV_MARK_ALL")
-                    table.insert(parametricList,
-                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(
-                            selectAllLabel, "selectAll"))
-                end
+                local selectAllLabel = BETTERUI.CIM.Keybinds
+                    and BETTERUI.CIM.Keybinds.GetSelectAllLabel
+                    and BETTERUI.CIM.Keybinds.GetSelectAllLabel()
+                    or GetString(rawget(_G, "SI_BETTERUI_INV_MARK_ALL") or "SI_BETTERUI_INV_MARK_ALL")
+                table.insert(parametricList,
+                    BETTERUI.CIM.Dialogs.CreateParametricActionEntry(
+                        selectAllLabel, "selectAll"))
                 if ms:GetSelectedCount() > 0 then
                     local deselectAllLabel = BETTERUI.CIM.Keybinds
                         and BETTERUI.CIM.Keybinds.GetDeselectAllLabel
@@ -481,6 +479,16 @@ local function RegisterCompanionBatchDialog()
                             selectedCountBefore = beforeCount,
                             selectedCountAfter = ms:GetSelectedCount(),
                         })
+                        local instance = Companions.instance
+                        if instance and instance.RefreshList then
+                            instance:RefreshList({ preserveCurrentPosition = true })
+                        end
+                        if instance and instance.EnsureListInputActive then
+                            instance:EnsureListInputActive()
+                        end
+                        if BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups then
+                            BETTERUI.Interface.UpdateCurrentKeybindGroups()
+                        end
                         return
                     elseif actionId == "deselectAll" then
                         local beforeCount = ms:GetSelectedCount()
@@ -490,6 +498,16 @@ local function RegisterCompanionBatchDialog()
                             selectedCountBefore = beforeCount,
                             selectedCountAfter = ms:GetSelectedCount(),
                         })
+                        local instance = Companions.instance
+                        if instance and instance.RefreshList then
+                            instance:RefreshList({ preserveCurrentPosition = true })
+                        end
+                        if instance and instance.EnsureListInputActive then
+                            instance:EnsureListInputActive()
+                        end
+                        if BETTERUI.Interface and BETTERUI.Interface.UpdateCurrentKeybindGroups then
+                            BETTERUI.Interface.UpdateCurrentKeybindGroups()
+                        end
                         return
                     end
 
