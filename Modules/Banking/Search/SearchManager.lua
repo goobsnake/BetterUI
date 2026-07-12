@@ -2,6 +2,23 @@
 
 local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
 
+local function GetBankingSearchStickY()
+    if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.GetY then
+        local ok, value = pcall(
+            DIRECTIONAL_INPUT.GetY,
+            DIRECTIONAL_INPUT,
+            ZO_DI_LEFT_STICK_NO_KEYBOARD
+        )
+        if ok then
+            return value or 0
+        end
+    end
+    if type(GetGamepadLeftStickY) == "function" then
+        return GetGamepadLeftStickY(GAMEPAD_INCLUDE_DEADZONE) or 0
+    end
+    return 0
+end
+
 BETTERUI.Banking.Class.SEARCH_LIFECYCLE = {
     clear = "ClearSearchInput",
     exit = "ExitSearchMode",
@@ -35,6 +52,80 @@ function BETTERUI.Banking.Class:RequestHeaderFocus()
     end
 end
 
+function BETTERUI.Banking.Class:EnsureSearchMovementController()
+    if self._bankingSearchMovementController then
+        return true
+    end
+    if not ZO_MovementController then
+        return false
+    end
+    self._bankingSearchMovementController = ZO_MovementController:New(
+        MOVEMENT_CONTROLLER_DIRECTION_VERTICAL,
+        nil,
+        GetBankingSearchStickY
+    )
+    return true
+end
+
+function BETTERUI.Banking.Class:SetSearchDirectionalInputUpdate(enabled)
+    local inputObject = self._bankingSearchDirectionalInputObject
+    if inputObject and DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening
+        and DIRECTIONAL_INPUT.Deactivate then
+        local safety = 0
+        while DIRECTIONAL_INPUT:IsListening(inputObject) and safety < 4 do
+            DIRECTIONAL_INPUT:Deactivate(inputObject)
+            safety = safety + 1
+        end
+    end
+    if enabled ~= true then
+        return false
+    end
+    if not self:EnsureSearchMovementController()
+        or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Activate) then
+        return false
+    end
+
+    local control = self.textSearchHeaderControl or self.control
+    if not control then
+        return false
+    end
+    if not inputObject then
+        inputObject = { owner = self }
+        function inputObject:UpdateDirectionalInput()
+            if self.owner then
+                self.owner:UpdateSearchDirectionalInput()
+            end
+        end
+        self._bankingSearchDirectionalInputObject = inputObject
+    end
+    inputObject.owner = self
+    DIRECTIONAL_INPUT:Activate(inputObject, control)
+    return true
+end
+
+function BETTERUI.Banking.Class:UpdateSearchDirectionalInput()
+    if not self._searchModeActive
+        or (self.IsSceneShowing and not self:IsSceneShowing())
+        or not self:EnsureSearchMovementController() then
+        return false
+    end
+
+    local result = self._bankingSearchMovementController:CheckMovement()
+    if result == MOVEMENT_CONTROLLER_MOVE_NEXT then
+        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Consume then
+            DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK, ZO_DI_LEFT_STICK_NO_KEYBOARD)
+        end
+        self:ExitSearchMode()
+        return true
+    elseif result == MOVEMENT_CONTROLLER_MOVE_PREVIOUS then
+        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Consume then
+            DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK, ZO_DI_LEFT_STICK_NO_KEYBOARD)
+        end
+        return true
+    end
+    return false
+end
+
 function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
@@ -51,6 +142,15 @@ function BETTERUI.Banking.Class:EnterSearchMode()
         self:ExitHeaderSortMode()
     end
 
+    -- Match Inventory header focus: the item list remains visible but inactive,
+    -- which applies the standard dimmed/out-of-focus presentation and prevents
+    -- selection callbacks from stealing search ownership.
+    if self.list and self.list.Deactivate
+        and (not self.list.IsActive or self.list:IsActive()) then
+        self.list:Deactivate()
+    end
+    self:SetSearchDirectionalInputUpdate(true)
+
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Activate and not self.textSearchHeaderFocus:IsActive() then
         self.textSearchHeaderFocus:Activate()
     end
@@ -61,12 +161,37 @@ function BETTERUI.Banking.Class:EnterSearchMode()
         EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
     end
 
+    -- The search focus pushes a new keybind state. Re-add the independent
+    -- category carousel there so LB/RB continues to work during text entry.
+    self:EnsureHeaderKeybindsActive()
+
     if self.SetTextSearchFocused then
         self:SetTextSearchFocused(true)
     end
 end
 
+---Reassert search ownership after a list rebuild (for example, LB/RB category
+---navigation). Committing a parametric list can reactivate it and displace the
+---pushed search keybind state even though the edit box still owns focus.
+---@return boolean maintained
+function BETTERUI.Banking.Class:MaintainSearchFocusAfterListRefresh()
+    if not self._searchModeActive then
+        return false
+    end
+
+    if self.list and self.list.Deactivate
+        and (not self.list.IsActive or self.list:IsActive()) then
+        self.list:Deactivate()
+    end
+    if self.textSearchKeybindStripDescriptor then
+        EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
+    end
+    self:EnsureHeaderKeybindsActive()
+    return true
+end
+
 function BETTERUI.Banking.Class:ExitSearchMode()
+    local listHadInput = self.list and self.list.IsActive and self.list:IsActive() == true
     local headerFocusActive = self.textSearchHeaderFocus
         and self.textSearchHeaderFocus.IsActive
         and self.textSearchHeaderFocus:IsActive() == true
@@ -75,6 +200,7 @@ function BETTERUI.Banking.Class:ExitSearchMode()
         BETTERUI.Banking.Tasks:Cancel("searchKeybindCleanup")
     end
     self._searchModeActive = false
+    self:SetSearchDirectionalInputUpdate(false)
     self._searchKeybindCleanupToken = (self._searchKeybindCleanupToken or 0) + 1
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "exit search") end
 
@@ -86,6 +212,13 @@ function BETTERUI.Banking.Class:ExitSearchMode()
     -- only after that pop so they land in the active scene state.
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate and self.textSearchHeaderFocus:IsActive() then
         self.textSearchHeaderFocus:Deactivate()
+    end
+
+    -- Deactivation pops the header keybind-state snapshot, which can restore a
+    -- search descriptor captured before the first removal. Clear it again so
+    -- its Back binding cannot compete with the core scene Back binding.
+    if self.textSearchKeybindStripDescriptor then
+        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
     end
 
     if self.SetTextSearchFocused then
@@ -117,11 +250,19 @@ function BETTERUI.Banking.Class:ExitSearchMode()
         EnsureKeybindGroupAdded(self.coreKeybinds)
     end
 
+    if self.list and self.list.Activate
+        and (not self.list.IsActive or not self.list:IsActive()) then
+        self.list:Activate()
+    end
+
     self:RefreshActiveKeybinds()
 
     self:EnsureHeaderKeybindsActive()
     self:UpdateActions()
-    return wasSearchActive
+    -- If list input was already active, a stale search descriptor consumed B.
+    -- Report no active search ownership so the shared descriptor falls through
+    -- to HandleSearchBackFallback and closes the guild-bank scene.
+    return wasSearchActive and not listHadInput
 end
 
 function BETTERUI.Banking.Class:HandleSearchBackFallback()
@@ -178,6 +319,7 @@ function BETTERUI.Banking.Class:OnHeaderEntered()
 
             if self._searchModeActive and self.textSearchKeybindStripDescriptor then
                 EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
+                self:EnsureHeaderKeybindsActive()
             end
         end)
     end

@@ -198,8 +198,11 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
         end
 
         local hasBagSlot = bagId ~= nil and slotIndex ~= nil
-        local itemData = data.cached_itemLink or dS.cached_itemLink
-        if not itemData and hasBagSlot then
+        local itemData = data.cached_itemLink
+        if type(itemData) ~= "string" or itemData == "" then
+            itemData = dS.cached_itemLink
+        end
+        if (type(itemData) ~= "string" or itemData == "") and hasBagSlot then
             itemData = GetItemLink(bagId, slotIndex)
         end
 

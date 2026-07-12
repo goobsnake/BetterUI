@@ -475,6 +475,7 @@ local function createList(selectedData, selectedControl)
         selectedData = selectedData,
         selectedControl = selectedControl,
         empty = false,
+        active = true,
         GetSelectedData = function(self)
             return self.selectedData
         end,
@@ -483,6 +484,17 @@ local function createList(selectedData, selectedControl)
         end,
         IsEmpty = function(self)
             return self.empty
+        end,
+        IsActive = function(self)
+            return self.active
+        end,
+        Activate = function(self)
+            self.active = true
+            self.activateCount = (self.activateCount or 0) + 1
+        end,
+        Deactivate = function(self)
+            self.active = false
+            self.deactivateCount = (self.deactivateCount or 0) + 1
         end,
     }
 end
@@ -1110,6 +1122,99 @@ do
     end
     assertEqual(1, countIn(opsUpdated, w.coreKeybinds), "ExitSearchMode updates core keybinds exactly once")
     assertEqual(1, countIn(opsUpdated, w.withdrawDepositKeybinds), "ExitSearchMode restores withdraw/deposit keybinds exactly once")
+
+    -- Search focus mirrors Inventory: list input is dimmed/deactivated, the
+    -- carousel remains registered in the pushed search state, and exit restores
+    -- both list focus and Back ownership.
+    resetOps()
+    local searchWindow = createWindow()
+    searchWindow.textSearchKeybindStripDescriptor = { "search" }
+    searchWindow.withdrawDepositKeybinds = { "withdraw" }
+    searchWindow.coreKeybinds = { "core" }
+    searchWindow.textSearchHeaderFocus = {
+        active = false,
+        IsActive = function(self) return self.active end,
+        Activate = function(self) self.active = true end,
+        Deactivate = function(self)
+            self.active = false
+            -- Simulate PopKeybindGroupState restoring a snapshot that still
+            -- contained the search descriptor.
+            present[searchWindow.textSearchKeybindStripDescriptor] = true
+        end,
+    }
+    searchWindow.SetTextSearchFocused = function() end
+    searchWindow:EnterSearchMode()
+    assertTrue(searchWindow.list.active == false,
+        "EnterSearchMode deactivates and dims the banking item list")
+    assertEqual(1, searchWindow.headerKeybindsEnsured or 0,
+        "EnterSearchMode keeps LB/RB category ownership in the search keybind state")
+
+    -- Category changes rebuild and commit the list. Search must reclaim focus
+    -- after that refresh so the rows remain dimmed and its Back handler stays
+    -- in the active keybind state.
+    searchWindow.list.active = true
+    local maintainedSearchFocus = searchWindow:MaintainSearchFocusAfterListRefresh()
+    assertTrue(maintainedSearchFocus == true,
+        "Active search reports ownership after a category list refresh")
+    assertTrue(searchWindow.list.active == false,
+        "Category list refresh keeps banking rows dimmed during search")
+    assertTrue(present[searchWindow.textSearchKeybindStripDescriptor] == true,
+        "Category list refresh restores search Back ownership")
+
+    searchWindow:ExitSearchMode()
+    assertTrue(searchWindow.list.active == true,
+        "ExitSearchMode restores banking list input focus")
+    assertTrue(present[searchWindow.coreKeybinds] == true,
+        "ExitSearchMode restores the core Back keybind group")
+    assertTrue(present[searchWindow.textSearchKeybindStripDescriptor] ~= true,
+        "ExitSearchMode removes search Back ownership restored by the header state pop")
+
+    -- A stale search descriptor can survive after list input has already
+    -- displaced search focus. Its B callback must clean up and then fall
+    -- through to normal scene Back instead of consuming the press.
+    resetOps()
+    local staleSearchWindow = createWindow()
+    staleSearchWindow.textSearchHeaderControl = { IsHidden = function() return false end }
+    staleSearchWindow.textSearchKeybindStripDescriptor = { "search" }
+    staleSearchWindow.withdrawDepositKeybinds = { "withdraw" }
+    staleSearchWindow.coreKeybinds = { "core" }
+    staleSearchWindow._searchModeActive = true
+    staleSearchWindow.SetTextSearchFocused = function() end
+    staleSearchWindow.list.active = true
+    local exitedStaleSearch = staleSearchWindow:ExitSearchMode()
+    if exitedStaleSearch == false then
+        staleSearchWindow:HandleSearchBackFallback()
+    end
+    assertEqual(1, staleSearchWindow.cancelWithdrawDepositCount,
+        "Stale search Back falls through to normal guild-bank scene Back")
+
+    -- Analog stick down exits search and releases the scoped directional-input
+    -- listener before restoring list/keybind ownership.
+    local savedDirectionalInput = DIRECTIONAL_INPUT
+    local savedMoveNext = MOVEMENT_CONTROLLER_MOVE_NEXT
+    local consumedSearchStick = 0
+    DIRECTIONAL_INPUT = {
+        Consume = function() consumedSearchStick = consumedSearchStick + 1 end,
+    }
+    MOVEMENT_CONTROLLER_MOVE_NEXT = 1
+    local joystickSearchWindow = createWindow()
+    joystickSearchWindow._searchModeActive = true
+    joystickSearchWindow.IsSceneShowing = function() return true end
+    joystickSearchWindow._bankingSearchMovementController = {
+        CheckMovement = function() return MOVEMENT_CONTROLLER_MOVE_NEXT end,
+    }
+    joystickSearchWindow.SetSearchDirectionalInputUpdate = function(self, enabled)
+        self.searchDirectionalInputEnabled = enabled
+    end
+    joystickSearchWindow:UpdateSearchDirectionalInput()
+    assertTrue(joystickSearchWindow._searchModeActive == false,
+        "Joystick down leaves guild-bank search mode")
+    assertEqual(false, joystickSearchWindow.searchDirectionalInputEnabled,
+        "Joystick search exit releases its directional-input listener")
+    assertEqual(1, consumedSearchStick,
+        "Joystick search transition consumes the triggering stick movement")
+    DIRECTIONAL_INPUT = savedDirectionalInput
+    MOVEMENT_CONTROLLER_MOVE_NEXT = savedMoveNext
 
     -- Header carousel ownership can be absent after a parametric dialog pops
     -- while the tab bar's active flag remains stale-true.

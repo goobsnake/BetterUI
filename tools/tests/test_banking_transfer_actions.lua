@@ -967,6 +967,19 @@ window.scene = {
 window:CancelWithdrawDeposit(window.list)
 assertEqual(1, sceneHiddenCount, "CancelWithdrawDeposit closes the scene")
 
+resetState()
+window = createWindow()
+window.scene = {
+    -- The live guild-bank singleton can retain a stale scene reference even
+    -- while this window's keybind group owns the active scene.
+    IsShowing = function()
+        return false
+    end,
+}
+window:CancelWithdrawDeposit(window.list)
+assertEqual(1, sceneHiddenCount,
+    "CancelWithdrawDeposit closes the active scene despite a stale cached scene reference")
+
 -- Pending transfer state tests (PB-007)
 resetState()
 window = createWindow()

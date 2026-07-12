@@ -291,10 +291,9 @@ local function HandleItemRowSelection(selectedData)
     local itemLink = ResolveSelectedItemLink(selectedData, bagId, slotIndex)
 
     if bagId ~= nil and slotIndex ~= nil then
-        local didLayout = GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, bagId, slotIndex)
-        if not didLayout and itemLink and GAMEPAD_TOOLTIPS.LayoutItem then
-            GAMEPAD_TOOLTIPS:LayoutItem(GAMEPAD_LEFT_TOOLTIP, itemLink)
-        end
+        -- ESOUI's LayoutBagItem intentionally has no return value. Do not treat
+        -- its nil result as failure and replace the native bag tooltip layout.
+        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, bagId, slotIndex)
     elseif itemLink and GAMEPAD_TOOLTIPS.LayoutItem then
         GAMEPAD_TOOLTIPS:LayoutItem(GAMEPAD_LEFT_TOOLTIP, itemLink)
     else

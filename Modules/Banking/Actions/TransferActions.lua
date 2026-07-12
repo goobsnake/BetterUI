@@ -899,7 +899,11 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 end
 
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
-    if self.scene and self.scene.IsShowing and self.scene:IsShowing() then
+    -- This callback is only installed while Banking owns the active keybind
+    -- state. The cached scene reference can lag the redirected guild-bank scene,
+    -- so matching ESOUI's default Back behavior is more reliable than gating on
+    -- self.scene:IsShowing().
+    if SCENE_MANAGER and SCENE_MANAGER.HideCurrentScene then
         SCENE_MANAGER:HideCurrentScene()
     end
 end

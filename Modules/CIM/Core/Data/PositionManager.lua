@@ -15,6 +15,8 @@ BETTERUI.CIM.PositionManager = {}
 ---@class SavedPosition
 ---@field index number Saved list index
 ---@field uniqueId string|nil Unique item ID for robust restoration
+---@field bagId number|nil Saved bag for exact slot restoration
+---@field slotIndex number|nil Saved slot for exact slot restoration
 
 -- Internal storage: { [moduleName] = { [categoryKey] = { index = N, uniqueId = "..." } } }
 local _storage = {}
@@ -105,6 +107,8 @@ function BETTERUI.CIM.PositionManager.SavePosition(moduleName, categoryKey, list
     _storage[moduleName][categoryKey] = {
         index = itemIndex,
         uniqueId = itemUniqueId,
+        bagId = rawSelectedData and rawSelectedData.bagId or nil,
+        slotIndex = rawSelectedData and rawSelectedData.slotIndex or nil,
     }
     TracePositionEvent("list.position", "saved", "save list position", {
         moduleName = moduleName,
@@ -112,6 +116,8 @@ function BETTERUI.CIM.PositionManager.SavePosition(moduleName, categoryKey, list
         index = itemIndex,
         uniqueId = itemUniqueId,
         hasUniqueId = itemUniqueId ~= nil,
+        bagId = rawSelectedData and rawSelectedData.bagId or nil,
+        slotIndex = rawSelectedData and rawSelectedData.slotIndex or nil,
     })
 end
 
@@ -146,22 +152,40 @@ function BETTERUI.CIM.PositionManager.RestorePosition(moduleName, categoryKey, l
 
     local targetIndex = 1
     local foundByUniqueId = false
+    local foundBySlot = false
+    local uniqueIdMatchIndex = nil
+    local uniqueIdMatchCount = 0
 
-    -- Try to find by uniqueId first (most accurate)
-    if saved.uniqueId then
+    -- A bag/slot pair is the exact identity while navigating categories. This
+    -- matters because ESO can expose the same uniqueId for multiple item rows.
+    if saved.bagId ~= nil and saved.slotIndex ~= nil then
         for i, data in ipairs(dataList) do
             local rawData = data.dataSource or data
-            if AreUniqueIdsEqual(rawData.uniqueId, saved.uniqueId) then
+            if rawData.bagId == saved.bagId and rawData.slotIndex == saved.slotIndex then
                 targetIndex = i
-                foundByUniqueId = true
+                foundBySlot = true
                 break
             end
         end
-        -- If uniqueId wasn't found, fall back to saved index
-        if not foundByUniqueId and saved.index then
+    end
+
+    -- A unique ID remains useful when an item moves, but only when it identifies
+    -- exactly one row. Ambiguous IDs must not jump selection to the first match.
+    if not foundBySlot and saved.uniqueId then
+        for i, data in ipairs(dataList) do
+            local rawData = data.dataSource or data
+            if AreUniqueIdsEqual(rawData.uniqueId, saved.uniqueId) then
+                uniqueIdMatchCount = uniqueIdMatchCount + 1
+                uniqueIdMatchIndex = i
+            end
+        end
+        if uniqueIdMatchCount == 1 then
+            targetIndex = uniqueIdMatchIndex
+            foundByUniqueId = true
+        elseif saved.index then
             targetIndex = saved.index
         end
-    elseif saved.index then
+    elseif not foundBySlot and saved.index then
         targetIndex = saved.index
     end
 
@@ -175,6 +199,8 @@ function BETTERUI.CIM.PositionManager.RestorePosition(moduleName, categoryKey, l
         savedIndex = saved.index,
         savedUniqueId = saved.uniqueId,
         foundByUniqueId = foundByUniqueId,
+        foundBySlot = foundBySlot,
+        uniqueIdMatchCount = uniqueIdMatchCount,
         itemCount = #dataList,
     })
     return targetIndex

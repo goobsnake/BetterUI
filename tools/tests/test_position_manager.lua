@@ -84,6 +84,17 @@ do
     assert_equal("abc123", saved.uniqueId, "SavePosition: saves uniqueId")
 end
 
+-- SavePosition records an exact bag/slot identity
+do
+    PM.SavePosition("Inventory", "f:slot", {
+        selectedIndex = 4,
+        selectedData = { uniqueId = "duplicate", bagId = 3, slotIndex = 230 },
+    })
+    local saved = PM.GetSavedPosition("Inventory", "f:slot")
+    assert_equal(3, saved.bagId, "SavePosition: saves bagId")
+    assert_equal(230, saved.slotIndex, "SavePosition: saves slotIndex")
+end
+
 -- SavePosition with nil inputs
 print("\n-- SavePosition nil guards --")
 do
@@ -93,6 +104,37 @@ do
     -- These should all be no-ops, no errors
     tests_passed = tests_passed + 1
     print("  [OK] SavePosition: handles nil inputs without error")
+end
+
+
+-- Duplicate unique IDs use exact bag/slot instead of the first matching row
+print("\n-- RestorePosition duplicate uniqueId exact slot --")
+do
+    PM.SavePosition("DuplicateSlot", "k:companion", {
+        selectedIndex = 3,
+        selectedData = { uniqueId = "shared", bagId = 3, slotIndex = 896 },
+    })
+    local result = PM.RestorePosition("DuplicateSlot", "k:companion", nil, {
+        { uniqueId = "shared", bagId = 3, slotIndex = 230 },
+        { uniqueId = "other", bagId = 3, slotIndex = 400 },
+        { uniqueId = "shared", bagId = 3, slotIndex = 896 },
+    })
+    assert_equal(3, result, "RestorePosition: exact bag/slot wins for duplicate unique IDs")
+end
+
+-- If an exact slot is unavailable, an ambiguous unique ID preserves row position
+print("\n-- RestorePosition ambiguous uniqueId index fallback --")
+do
+    PM.SavePosition("DuplicateIndex", "k:materials", {
+        selectedIndex = 2,
+        selectedData = { uniqueId = "shared", bagId = 3, slotIndex = 99 },
+    })
+    local result = PM.RestorePosition("DuplicateIndex", "k:materials", nil, {
+        { uniqueId = "shared", bagId = 3, slotIndex = 1 },
+        { uniqueId = "other", bagId = 3, slotIndex = 2 },
+        { uniqueId = "shared", bagId = 3, slotIndex = 3 },
+    })
+    assert_equal(2, result, "RestorePosition: ambiguous unique ID falls back to saved index")
 end
 
 -- GetSavedPosition with no data

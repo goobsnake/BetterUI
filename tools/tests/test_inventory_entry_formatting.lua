@@ -110,6 +110,10 @@ function IsItemBound()
     return true
 end
 
+function GetItemLink()
+    return "|H1:item:live-slot|h"
+end
+
 SCENE_MANAGER = {
     scenes = {},
     GetScene = function(self, sceneName)
@@ -242,6 +246,32 @@ assert_contains(label.text, "|t32:32:stolen.dds|t", "Stolen icon uses scaled pro
 assert_contains(label.text, "|t32:32:unbound.dds|t", "Unbound icon uses scaled production size")
 assert_contains(label.text, "Lockpick", "Item name included in label")
 assert_contains(label.text, "|cFFFFFF(2)|r", "Stack count appended to label")
+
+print("\nTest: Empty cached link falls back to live slot metadata")
+label = makeLabel()
+local emptyCachedLinkData = {
+    text = "Companion's Arm Cops",
+    stolen = false,
+    stackCount = 1,
+    quality = 2,
+    cached_itemLink = "",
+    cached_isRecipeAndUnknown = false,
+    cached_isBookAndUnknown = false,
+    cached_isTraitResearchable = false,
+    cached_isUnbound = true,
+    meetsUsageRequirements = true,
+    GetNameColor = function()
+        return makeColor(1, 1, 1, 1)
+    end,
+    dataSource = {
+        bagId = 3,
+        slotIndex = 896,
+        cached_itemLink = "",
+    },
+}
+BETTERUI_SharedGamepadEntryLabelSetup(label, emptyCachedLinkData, false)
+assert_contains(label.text, "unbound.dds",
+    "Empty cached item link does not suppress guild-bank item status icons")
 
 print("\nTest: Icon toggle settings suppress disabled inline icons")
 moduleSettings.Inventory.showIconUnboundItem = false

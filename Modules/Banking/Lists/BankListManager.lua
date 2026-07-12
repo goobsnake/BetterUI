@@ -107,6 +107,29 @@ end
 BETTERUI.Banking.BuildAllBankCategories = BuildAllBankCategories
 BETTERUI.Banking.ResolveBagsAndSlotType = ResolveBagsAndSlotType
 
+--- Uses the same eligibility contract for category counts and rendered rows.
+--- Guild-bank deposits cannot accept stolen, bound, tradeable-BOP, or
+--- player-locked items; withdraw and personal-bank flows retain their existing
+--- rules.
+function BETTERUI.Banking.IsItemEligibleForTransfer(self, itemData, transferContext)
+    if not itemData or itemData.stolen then return false end
+
+    transferContext = transferContext or BETTERUI.Banking.ReadTransferContextSnapshot()
+    local isGuildBankDeposit = transferContext.kind == BETTERUI.Banking.TRANSFER_MODE_GUILD_BANK
+        and self.currentMode ~= LIST_WITHDRAW
+    if not isGuildBankDeposit then return true end
+
+    local bagId, slotIndex = itemData.bagId, itemData.slotIndex
+    if IsItemBound and IsItemBound(bagId, slotIndex) then return false end
+    if IsItemBoPAndTradeable and IsItemBoPAndTradeable(bagId, slotIndex) then return false end
+    if itemData.isPlayerLocked == true then return false end
+    if IsItemPlayerLocked and bagId ~= nil and slotIndex ~= nil
+        and IsItemPlayerLocked(bagId, slotIndex) then
+        return false
+    end
+    return true
+end
+
 -- LIST MANAGEMENT
 -- Note: ComputeVisibleBankCategories is defined in CategoryManager.lua (loads after this file)
 
@@ -216,22 +239,8 @@ function BETTERUI.Banking.Class:RefreshList()
 
     local checkingBags, slotType = ResolveBagsAndSlotType(self)
 
-    local GuildBankMode = isGuildBankActive
     local function IsNotStolenItem(itemData)
-        if itemData.stolen then return false end
-        -- Guild bank deposit filter: reject bound and BOP-tradeable items
-        if GuildBankMode and self.currentMode ~= LIST_WITHDRAW then
-            if IsItemBound and IsItemBound(itemData.bagId, itemData.slotIndex) then
-                return false
-            end
-            if IsItemBoPAndTradeable and IsItemBoPAndTradeable(itemData.bagId, itemData.slotIndex) then
-                return false
-            end
-            if itemData.isPlayerLocked then
-                return false
-            end
-        end
-        return true
+        return BETTERUI.Banking.IsItemEligibleForTransfer(self, itemData, transferContext)
     end
 
     -- Reuse the slot-data snapshot ComputeVisibleBankCategories just took when
@@ -307,18 +316,31 @@ function BETTERUI.Banking.Class:RefreshList()
 
             itemData.isEquippedInCurrentCategory = nil
 
-            if not itemData.cached_itemLink then
+            if type(itemData.cached_itemLink) ~= "string" or itemData.cached_itemLink == "" then
                 local itemLink = getItemLink(itemData.bagId, itemData.slotIndex)
-                itemData.cached_itemLink = itemLink
-                itemData.cached_itemType = itemLink and getItemLinkItemType(itemLink) or nil
-                itemData.cached_setItem = itemLink and getItemLinkSetInfo(itemLink, false) or nil
-                itemData.cached_hasEnchantment = itemLink and getItemLinkEnchantInfo(itemLink) or nil
-                itemData.cached_isRecipeAndUnknown = (itemData.cached_itemType == ITEMTYPE_RECIPE)
-                    and not (itemLink and isItemLinkRecipeKnown(itemLink))
-                itemData.cached_isBookKnown = itemLink and isItemLinkBookKnown(itemLink) or nil
-                itemData.cached_isUnbound = not isItemBound(itemData.bagId, itemData.slotIndex)
-                    and not itemData.stolen
-                    and itemData.quality ~= ITEM_QUALITY_TRASH
+                if type(itemLink) == "string" and itemLink ~= "" then
+                    itemData.cached_itemLink = itemLink
+                    itemData.cached_itemType = getItemLinkItemType(itemLink)
+                    itemData.cached_setItem = getItemLinkSetInfo(itemLink, false)
+                    itemData.cached_hasEnchantment = getItemLinkEnchantInfo(itemLink)
+                    itemData.cached_isRecipeAndUnknown = (itemData.cached_itemType == ITEMTYPE_RECIPE)
+                        and not isItemLinkRecipeKnown(itemLink)
+                    itemData.cached_isBookKnown = isItemLinkBookKnown(itemLink)
+                    itemData.cached_isUnbound = not isItemBound(itemData.bagId, itemData.slotIndex)
+                        and not itemData.stolen
+                        and itemData.quality ~= ITEM_QUALITY_TRASH
+                else
+                    -- Empty links are a transient ESO cache state, not a valid
+                    -- cache entry. Leave derived fields unset so the next list
+                    -- refresh retries and row formatting can use the live slot.
+                    itemData.cached_itemLink = nil
+                    itemData.cached_itemType = nil
+                    itemData.cached_setItem = nil
+                    itemData.cached_hasEnchantment = nil
+                    itemData.cached_isRecipeAndUnknown = nil
+                    itemData.cached_isBookKnown = nil
+                    itemData.cached_isUnbound = nil
+                end
             end
 
             tempDataTable[#tempDataTable + 1] = itemData
@@ -396,6 +418,9 @@ function BETTERUI.Banking.Class:RefreshList()
     end
     if entryCount == 0 then
         self.list:Deactivate()
+    elseif self.MaintainSearchFocusAfterListRefresh
+        and self:MaintainSearchFocusAfterListRefresh() then
+        -- Search owns directional input; keep the rebuilt rows dimmed.
     elseif BETTERUI.Utils.IsBankingSceneShowing() then
         self.list:Activate()
     end

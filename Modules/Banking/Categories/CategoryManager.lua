@@ -12,7 +12,8 @@ local function DoesItemMatchBankCategory(itemData, category)
 end
 
 function CategoryManager.ComputeVisibleBankCategories(self)
-    local isFurnitureVault = BETTERUI.Banking.ReadTransferContextSnapshot().targetIsFurnitureVault == true
+    local transferContext = BETTERUI.Banking.ReadTransferContextSnapshot()
+    local isFurnitureVault = transferContext.targetIsFurnitureVault == true
     local allCategories = BETTERUI.Banking.BuildAllBankCategories(isFurnitureVault)
     local visibility = {}
     local itemCounts = {}
@@ -26,16 +27,16 @@ function CategoryManager.ComputeVisibleBankCategories(self)
     end
 
     local bags = BETTERUI.Banking.ResolveBagsAndSlotType(self)
-    local function IsNotStolenItem(itemData)
-        return not itemData.stolen
+    local function IsEligibleItem(itemData)
+        return BETTERUI.Banking.IsItemEligibleForTransfer(self, itemData, transferContext)
     end
 
-    local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
+    local data = SHARED_INVENTORY:GenerateFullSlotData(IsEligibleItem, unpack(bags))
 
     -- Share this snapshot with the RefreshList that immediately follows in
     -- every category-rebuild path. RefreshList consumes and clears it, and
-    -- only reuses it within the same frame over the same bags, so a stale
-    -- snapshot can never replace a fresh scan (see BankListManager).
+    -- only reuses it within the same frame over the same bags. The snapshot is
+    -- already filtered by the same eligibility contract as the rendered list.
     self._categoryScanSlotData = {
         data = data,
         bags = bags,

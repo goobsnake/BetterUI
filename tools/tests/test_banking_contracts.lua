@@ -462,12 +462,20 @@ assertTrue(
     "BankingSceneLifecycle writes through the shared Banking runtime-state helpers")
 
 local bankRowSetup = readFile("Modules/Banking/Lists/BankRowSetup.lua")
+assertTrue(bankRowSetup:match("local didLayout = GAMEPAD_TOOLTIPS:LayoutBagItem") == nil,
+    "BankRowSetup does not interpret LayoutBagItem's nil return as a failed tooltip layout")
 assertTrue(containsTransferSnapshotReader(bankRowSetup),
     "BankRowSetup resolves selection context through the canonical transfer snapshot")
 assertTrue(bankRowSetup:match("BETTERUI%.Banking%.ResolveActiveTransferMode") == nil,
     "BankRowSetup no longer reads the shared transfer context bag directly")
 assertTrue(bankRowSetup:match("RuntimeState%.currentUsedBank") == nil,
     "BankRowSetup no longer reads Banking runtime state directly")
+
+local bankListManager = readFile("Modules/Banking/Lists/BankListManager.lua")
+assertTrue(bankListManager:match('type%(itemData%.cached_itemLink%) ~= "string" or itemData%.cached_itemLink == ""') ~= nil,
+    "BankListManager retries missing and empty cached item links")
+assertTrue(bankListManager:match("itemData%.cached_itemLink = nil") ~= nil,
+    "BankListManager does not retain transient empty item links")
 
 local currencySelector = readFile("Modules/Banking/Currency/CurrencySelector.lua")
 assertTrue(currencySelector:match("GetTransferContext") == nil,
