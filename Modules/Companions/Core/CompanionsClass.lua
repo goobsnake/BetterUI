@@ -532,6 +532,22 @@ function BETTERUI.Companions.Class:ClearSearchInput()
         if BETTERUI.Interface.UpdateCurrentKeybindGroups then
             BETTERUI.Interface.UpdateCurrentKeybindGroups()
         end
+        -- ClearSearchText refreshes the list synchronously, but ESO can finish a
+        -- focus/keybind transition immediately afterward and replace our strip
+        -- with its Back-only group. Reclaim ownership after that transition has
+        -- settled, while remaining strictly scene/search-state guarded.
+        BETTERUI.Companions.Tasks:Schedule("searchClearKeybindRestore", 20, function()
+            if not self:IsSceneShowing() or self._searchModeActive or self._searchHeaderActive then
+                return
+            end
+            if self.coreKeybinds then
+                BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
+            end
+            self:EnsureHeaderKeybindsActive()
+            if BETTERUI.Interface.UpdateCurrentKeybindGroups then
+                BETTERUI.Interface.UpdateCurrentKeybindGroups()
+            end
+        end)
     end
 end
 

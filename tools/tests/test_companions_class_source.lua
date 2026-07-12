@@ -88,6 +88,15 @@ assert_true(exitSearchSource:find("self:EnsureHeaderKeybindsActive()", 1, true) 
     "Companion search exit restores LB/RB carousel ownership")
 assert_true(source:find("KEYBIND_STRIP%.keybindButtonGroups") == nil,
     "CompanionsClass never reads the nonexistent keybindButtonGroups field")
+local clearSearchStart = assert(source:find("function BETTERUI.Companions.Class:ClearSearchInput()", 1, true))
+local clearSearchEnd = assert(source:find("function BETTERUI.Companions.Class:ClearTextSearch()", clearSearchStart, true))
+local clearSearchSource = source:sub(clearSearchStart, clearSearchEnd - 1)
+assert_true(clearSearchSource:find('Tasks:Schedule("searchClearKeybindRestore", 20', 1, true) ~= nil,
+    "Companion search clear defers keybind ownership recovery until focus settles")
+assert_true(clearSearchSource:find("BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)", 1, true) ~= nil,
+    "Companion search clear reclaims the full core keybind group")
+assert_true(clearSearchSource:find("self:EnsureHeaderKeybindsActive()", 1, true) ~= nil,
+    "Companion search clear restores shoulder navigation with the core strip")
 assert_true(source:find("BETTERUI%.Interface%.RemoveOwnedKeybindGroups%(") ~= nil,
     "CompanionsClass search cleanup removes only companion-owned keybind groups")
 assert_true(source:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%._searchRemovedKeybindGroups%)") ~= nil,
