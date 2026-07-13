@@ -187,6 +187,47 @@ local Sell = BETTERUI.TradingHouse.SellComponent
 
 -- TESTS ----------------------------------------------------------------------
 
+print("[Sell:ResolveSellDisplayPrices market-price setting]")
+local marketPricesEnabled = false
+BETTERUI.TradingHouse.GetSetting = function(key)
+    if key == "useMarketPricesInSellList" then
+        return marketPricesEnabled
+    end
+    return nil
+end
+BETTERUI.CIM.MarketIntegration = {
+    GetMarketPriceInfo = function(itemLink, quantity)
+        return {
+            hasData = true,
+            unitPrice = 123.6,
+        }
+    end,
+}
+
+local marketUnit, marketTotal, usesMarketPrice =
+    Sell.ResolveSellDisplayPrices("|H1:item:market|h|h", 4, 50)
+assert_eq(marketUnit, nil, "Disabled setting preserves the suggested unit display")
+assert_eq(marketTotal, 50, "Disabled setting preserves the suggested total")
+assert_eq(usesMarketPrice, false, "Disabled setting does not mark market pricing")
+
+marketPricesEnabled = true
+marketUnit, marketTotal, usesMarketPrice =
+    Sell.ResolveSellDisplayPrices("|H1:item:market|h|h", 4, 50)
+assert_eq(marketUnit, 124, "Market unit price is rounded to the nearest gold")
+assert_eq(marketTotal, 496, "Market total equals rounded unit price times quantity")
+assert_eq(usesMarketPrice, true, "Available market data marks market pricing")
+
+BETTERUI.CIM.MarketIntegration.GetMarketPriceInfo = function()
+    return { hasData = false, unitPrice = 0 }
+end
+marketUnit, marketTotal, usesMarketPrice =
+    Sell.ResolveSellDisplayPrices("|H1:item:no-market|h|h", 4, 50)
+assert_eq(marketUnit, nil, "Missing market data preserves the suggested unit display")
+assert_eq(marketTotal, 50, "Missing market data preserves the suggested total")
+assert_eq(usesMarketPrice, false, "Missing market data does not mark market pricing")
+
+marketPricesEnabled = false
+
 print("[Sell:BuildList engine-authority filter]")
 resetState()
 -- Slot 2 is NOT sellable per the engine; everything else is.

@@ -217,6 +217,31 @@ assert_not_nil(priceRangeSet, "Price range passed to native feature")
 assert_eq(qualityChoice, 3, "Quality choice passed to native feature")
 assert_eq(categoryChoice, 2, "Category choice passed to native feature")
 
+local methodFeatures = GAMEPAD_TRADING_HOUSE_BROWSE.features
+GAMEPAD_TRADING_HOUSE_BROWSE = {
+    GetFeatures = function() return methodFeatures end,
+}
+nameTextSet = nil
+assert_true(Filters.SetBrowseFilterSpec({ nameText = "ancestor silk" }),
+    "GetFeatures method exposes native browse features")
+assert_eq(nameTextSet, "ancestor silk", "GetFeatures result drives native name filter")
+
+GAMEPAD_TRADING_HOUSE_BROWSE = nil
+local createdFeatureKeys = {}
+local associatedFeatures = nil
+ZO_TradingHouse_CreateGamepadFeature = function(key)
+    createdFeatureKeys[#createdFeatureKeys + 1] = key
+    return { ResetSearch = function() end }
+end
+TRADING_HOUSE_SEARCH.AssociateWithSearchFeatures = function(_, features)
+    associatedFeatures = features
+end
+local standaloneFeatures = Filters._GetBrowseFeatures()
+assert_not_nil(standaloneFeatures, "standalone native feature set is created")
+assert_eq(#createdFeatureKeys, 4, "all four ESOUI gamepad browse features are created")
+assert_eq(associatedFeatures, standaloneFeatures,
+    "standalone features are associated with TRADING_HOUSE_SEARCH")
+
 Filters.ApplyPendingFilters(TRADING_HOUSE_SEARCH)
 assert_eq(#appliedFilters, 1, "Pending level filter applied directly")
 assert_eq(appliedFilters[1].filterType, TRADING_HOUSE_FILTER_TYPE_LEVEL, "Pending level filter uses LEVEL type")
@@ -231,6 +256,47 @@ Filters.SetBrowseFilterSpec({
 })
 Filters.ApplyPendingFilters(TRADING_HOUSE_SEARCH)
 assert_eq(appliedFilters[1].filterType, TRADING_HOUSE_FILTER_TYPE_CHAMPION_POINTS, "CP flag switches filter type")
+
+print("[Native hierarchy and input lifecycle source contract]")
+local sourceFile = assert(io.open("Modules/TradingHouse/Core/BrowseFilterDialog.lua", "r"))
+local filterSource = sourceFile:read("*a")
+sourceFile:close()
+assert_true(filterSource:find("CaptureNativeFeatureEntries", 1, true) ~= nil,
+    "filter dialog captures native progressive feature rows")
+assert_true(filterSource:find("features.searchCategoryFeature", 1, true) ~= nil,
+    "category feature drives contextual child filters")
+assert_true(filterSource:find("ZO_GAMEPAD_COMBO_BOX_HIGHLIGHTED_FONT", 1, true) ~= nil,
+    "focused dropdown uses the native highlighted font")
+assert_true(filterSource:find("ZO_GAMEPAD_COMBO_BOX_FONT", 1, true) ~= nil,
+    "unfocused dropdown uses the native normal font")
+assert_true(filterSource:find("finishedCallback = function(dialog)", 1, true) ~= nil,
+    "filter dialog has unconditional input cleanup")
+assert_true(filterSource:find("_activeDropdown", 1, true) ~= nil,
+    "active dropdown ownership is tracked across dialog close")
+assert_true(filterSource:find("_ownedDropdowns", 1, true) ~= nil,
+    "all dialog dropdown controls remain owned until close")
+assert_true(filterSource:find("dropdown.HideDropdown", 1, true) ~= nil,
+    "dialog close hides the shared gamepad dropdown control")
+assert_true(filterSource:find('keybind = "UI_SHORTCUT_RIGHT_STICK"', 1, true) ~= nil,
+    "filter reset retains the native right-stick assignment")
+assert_true(filterSource:find("RestoreTradingHouseFocus", 1, true) ~= nil,
+    "dialog close restores the owning Trading House scene focus")
+assert_true(filterSource:find("instance:UpdateTabHeader()", 1, true) ~= nil,
+    "dialog close rebuilds the Trading House header carousel")
+assert_true(filterSource:find("instance.list.Activate", 1, true) ~= nil,
+    "dialog close reactivates the results list")
+
+local runtimeFile = assert(io.open("Modules/TradingHouse/Core/TradingHouseRuntime.lua", "r"))
+local runtimeSource = runtimeFile:read("*a")
+runtimeFile:close()
+assert_true(runtimeSource:find('action = "changeGuild"', 1, true) ~= nil,
+    "tertiary keybind retains native change-guild behavior")
+assert_true(runtimeSource:find("GetTHCurrentMode(thInstance) == MODE.BROWSE", 1, true) ~= nil,
+    "edit-filters action remains available throughout browse flows")
+assert_true(runtimeSource:find('keybind = "UI_SHORTCUT_RIGHT_TRIGGER"', 1, true) ~= nil,
+    "next-page action retains native right-trigger assignment")
+assert_true(runtimeSource:find('keybind = "UI_SHORTCUT_LEFT_TRIGGER"', 1, true) ~= nil,
+    "previous-page action retains native left-trigger assignment")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

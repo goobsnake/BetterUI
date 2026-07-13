@@ -94,12 +94,9 @@ local TH_PAGE_FOOTER_KEYBIND_RETARGETS = {
     UI_SHORTCUT_QUINARY = "UI_SHORTCUT_LEFT_TRIGGER",
 }
 
-local TH_HEADER_SHOULDER_KEYBINDS = {
-    UI_SHORTCUT_LEFT_SHOULDER = true,
-    UI_SHORTCUT_RIGHT_SHOULDER = true,
-}
-
 local TH_HEADER_TAB_TEMPLATE = "ZO_GamepadTabBarTemplate"
+local TH_CAROUSEL_START_OFFSET = 705
+local TH_CAROUSEL_VERTICAL_OFFSET = -1
 
 local function GetTHCarouselConst(key)
     local carousel = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.CAROUSEL or nil
@@ -122,8 +119,10 @@ local function GetTHString(primaryIdName, fallbackIdName, fallback)
     return fallback
 end
 
-local function GetTHHeaderTabs()
+local function GetTHHeaderTabs(instance)
     local mode = TH.MODE or {}
+    local currentMode = instance and instance.GetCurrentMode and instance:GetCurrentMode() or nil
+    local browse = TH.BrowseComponent
     local tabs = {}
     if mode.BROWSE then
         tabs[#tabs + 1] = {
@@ -146,6 +145,26 @@ local function GetTHHeaderTabs()
             name = function() return GetTHString("SI_BETTERUI_TH_TAB_LISTINGS", "SI_TRADING_HOUSE_MODE_LISTINGS", "Listings") end,
         }
     end
+
+    -- Browse result filters are a secondary category layer. Keep the three
+    -- Trading House modes visible at all times, then append only the populated
+    -- item categories for the active results page. The Browse mode itself is
+    -- the persistent All Items entry, so do not duplicate __all.
+    if currentMode == mode.BROWSE and browse and browse.GetResultCategories then
+        local resultCategories = browse:GetResultCategories() or {}
+        for _, category in ipairs(resultCategories) do
+            if category.key ~= "__all" then
+                local categoryKey = category.key
+                local categoryName = category.name
+                tabs[#tabs + 1] = {
+                    mode = mode.BROWSE,
+                    categoryKey = categoryKey,
+                    icon = category.icon,
+                    name = function() return categoryName end,
+                }
+            end
+        end
+    end
     return tabs
 end
 
@@ -153,8 +172,12 @@ local function GetTHHeaderGeneric(instance)
     if not instance then return nil end
     if instance.headerGeneric then return instance.headerGeneric end
 
-    local header = instance.header
-    local headerGeneric = header and (header.header or (header.GetNamedChild and header:GetNamedChild("Header"))) or nil
+    -- WindowClass.header is the outer ContainerHeader. GenericHeader operates
+    -- on its nested Header control, which owns TitleContainer and TabBar.
+    local headerContainer = instance.header
+    local headerGeneric = headerContainer and headerContainer.header
+        or (headerContainer and headerContainer.GetNamedChild
+            and headerContainer:GetNamedChild("Header"))
     if headerGeneric then
         instance.headerGeneric = headerGeneric
     end
@@ -174,15 +197,20 @@ local function EnsureTHHeaderGeneric(headerGeneric)
 end
 
 local function FindTHHeaderTabIndex(mode, tabs)
+    local selectedCategory = TH.BrowseComponent and TH.BrowseComponent.selectedResultCategoryKey or nil
     for i = 1, #tabs do
-        if tabs[i].mode == mode then return i end
+        if tabs[i].categoryKey and tabs[i].categoryKey == selectedCategory then return i end
+    end
+    for i = 1, #tabs do
+        if not tabs[i].categoryKey and tabs[i].mode == mode then return i end
     end
     return 1
 end
 
 local function BuildTHHeaderTitle(instance, tabs)
     local currentMode = instance and instance.GetCurrentMode and instance:GetCurrentMode() or nil
-    local tab = tabs[FindTHHeaderTabIndex(currentMode, tabs)]
+    local modeTabs = GetTHHeaderTabs(nil)
+    local tab = modeTabs[FindTHHeaderTabIndex(currentMode, modeTabs)]
     local tabName = tab and tab.name and tab.name() or ""
     local guildName = instance and instance.GetCurrentGuildName and instance:GetCurrentGuildName() or nil
     if guildName and guildName ~= "" then
@@ -196,13 +224,13 @@ local function EnsureTHHeaderData(instance)
 
     instance.tradingHouseHeaderData = {
         titleText = function()
-            return BuildTHHeaderTitle(instance, GetTHHeaderTabs())
+            return BuildTHHeaderTitle(instance, GetTHHeaderTabs(instance))
         end,
         tabBarData = { parent = instance },
         carouselConfig = {
             enabled = (not TH.GetSetting) or (TH.GetSetting("enableCarousel") ~= false),
-            startOffset = GetTHCarouselConst("startOffset"),
-            verticalOffset = GetTHCarouselConst("verticalOffset"),
+            startOffset = TH_CAROUSEL_START_OFFSET,
+            verticalOffset = TH_CAROUSEL_VERTICAL_OFFSET,
             itemSpacing = GetTHCarouselConst("itemSpacing"),
         },
         onSelectedChanged = function(list, selectedData)
@@ -210,6 +238,19 @@ local function EnsureTHHeaderData(instance)
             local data = selectedData or (list and list.GetTargetData and list:GetTargetData()) or nil
             data = data and (data.dataSource or data) or nil
             local mode = data and data.mode or nil
+            local categoryKey = data and data.categoryKey or nil
+            if categoryKey and TH.BrowseComponent and TH.BrowseComponent.SetResultCategory then
+                TH.BrowseComponent:SetResultCategory(categoryKey, instance)
+                return
+            end
+            if mode == TH.MODE.BROWSE and TH.BrowseComponent
+                and TH.BrowseComponent.SetResultCategory then
+                if instance.GetCurrentMode and instance:GetCurrentMode() == TH.MODE.BROWSE then
+                    TH.BrowseComponent:SetResultCategory("__all", instance)
+                else
+                    TH.BrowseComponent.selectedResultCategoryKey = "__all"
+                end
+            end
             if mode and instance.GetCurrentMode and mode ~= instance:GetCurrentMode() then
                 instance:SetMode(mode)
             end
@@ -221,8 +262,8 @@ end
 local function RefreshTHHeaderCarouselConfig(headerData)
     headerData.carouselConfig = headerData.carouselConfig or {}
     headerData.carouselConfig.enabled = (not TH.GetSetting) or (TH.GetSetting("enableCarousel") ~= false)
-    headerData.carouselConfig.startOffset = GetTHCarouselConst("startOffset")
-    headerData.carouselConfig.verticalOffset = GetTHCarouselConst("verticalOffset")
+    headerData.carouselConfig.startOffset = TH_CAROUSEL_START_OFFSET
+    headerData.carouselConfig.verticalOffset = TH_CAROUSEL_VERTICAL_OFFSET
     headerData.carouselConfig.itemSpacing = GetTHCarouselConst("itemSpacing")
 end
 
@@ -233,6 +274,9 @@ local function BuildTHHeaderTabEntries(tabs)
         local text = tab.name()
         local entryData = ZO_GamepadEntryData and ZO_GamepadEntryData:New(text, tab.icon) or { text = text, icon = tab.icon }
         entryData.mode = tab.mode
+        entryData.categoryKey = tab.categoryKey
+        -- Page-derived item categories are white filters; primary modes stay gold.
+        entryData.filterType = tab.categoryKey ~= nil
         entryData.text = text
         entryData.icon = tab.icon
         entryData.template = TH_HEADER_TAB_TEMPLATE
@@ -267,19 +311,8 @@ local function ScrubTHPageFooterKeybinds(group)
     end
 end
 
-local function HideTHTabFooterKeybinds(group)
-    if type(group) ~= "table" then return end
-    for i = 1, #group do
-        local descriptor = group[i]
-        if type(descriptor) == "table" and TH_HEADER_SHOULDER_KEYBINDS[descriptor.keybind] then
-            descriptor.name = nil
-            descriptor.ethereal = true
-        end
-    end
-end
-
 function BETTERUI.TradingHouse.Class:UpdateTabHeader()
-    local tabs = GetTHHeaderTabs()
+    local tabs = GetTHHeaderTabs(self)
     if #tabs == 0 then return end
 
     self._tradingHouseHeaderEntryCount = #tabs
@@ -300,6 +333,14 @@ function BETTERUI.TradingHouse.Class:UpdateTabHeader()
     SetTHHeaderTabBarHidden(headerGeneric, false)
 
     if headerGeneric.tabBar then
+        -- Unlike Inventory's CategoryListManager, Trading House has no
+        -- separate category list feeding GenericHeader.AddToList. Rebuild the
+        -- carousel explicitly whenever the server result page changes.
+        headerGeneric.tabBar:Clear()
+        for _, entryData in ipairs(headerData.tabBarEntries) do
+            BETTERUI.GenericHeader.AddToList(headerGeneric, entryData)
+        end
+        headerGeneric.tabBar:Commit(true)
         if headerGeneric.tabBar.SetSelectedIndexWithoutAnimation then
             headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(selectedIndex, true, true)
         elseif headerGeneric.tabBar.SetSelectedIndex then
@@ -360,6 +401,20 @@ function BETTERUI.TradingHouse.Init()
         BETTERUI.TradingHouse.THEntrySetup,
         "BUI_ItemRow"
     )
+    -- The tooltip selection chevron sits above GuiRoot's geometric center.
+    -- Match Inventory/Banking's visual selection lane and give dense Trading
+    -- House result rows the same readable breathing room.
+    if TH.instance.list and TH.instance.list.SetFixedCenterOffset then
+        TH.instance.list:SetFixedCenterOffset(-50)
+    end
+    if TH.instance.list then
+        local tradingHousePostPadding = 15
+        if TH.instance.list.SetUniversalPostPadding then
+            TH.instance.list:SetUniversalPostPadding(tradingHousePostPadding)
+        else
+            TH.instance.list.universalPostPadding = tradingHousePostPadding
+        end
+    end
     TH.SetupSelectionTooltip(TH.instance)
 
     local COL = BETTERUI.CIM.CONST.LAYOUT.COLUMNS
@@ -370,9 +425,6 @@ function BETTERUI.TradingHouse.Init()
     TH.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_VALUE")), COL[5])
 
     TH.instance.coreKeybinds = TH.BuildCoreKeybinds(TH.instance)
-    TH.instance.tabKeybinds = TH.BuildTabKeybinds(TH.instance)
-    ScrubTHPageFooterKeybinds(TH.instance.coreKeybinds)
-    HideTHTabFooterKeybinds(TH.instance.tabKeybinds)
     TH.instance:UpdateTabHeader()
 
     TH.CreateScene(TH.instance)

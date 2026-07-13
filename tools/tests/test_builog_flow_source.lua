@@ -132,6 +132,7 @@ local tradingHouseFlow = readFile("Modules/TradingHouse/Core/TradingHouseRuntime
 local tradingHouseBrowse = readFile("Modules/TradingHouse/Components/BrowseComponent.lua")
 local tradingHouseListings = readFile("Modules/TradingHouse/Components/ListingsComponent.lua")
 local tradingHouseFilters = readFile("Modules/TradingHouse/Core/BrowseFilters.lua")
+local tradingHouseFilterDialog = readFile("Modules/TradingHouse/Core/BrowseFilterDialog.lua")
 local tradingHousePrice = readFile("Modules/TradingHouse/Core/PriceEntry.lua")
 local orbBars = readFile("Modules/ResourceOrbFrames/Core/OrbBars.lua")
 local orbBarUpdates = readFile("Modules/ResourceOrbFrames/Core/OrbBarUpdates.lua")
@@ -793,7 +794,7 @@ check(tradingHouseBrowse:find('"trading_house.buy_dialog"', 1, true) ~= nil
     and tradingHouseListings:find('"trading_house.cancel_listing_dialog"', 1, true) ~= nil
     and tradingHouseListings:find("TracePendingCancelDialog", 1, true) ~= nil
     and tradingHouseListings:find("dialogReleased", 1, true) ~= nil
-    and tradingHouseFilters:find("field_setup", 1, true) ~= nil
+    and tradingHouseFilterDialog:find("field_setup", 1, true) ~= nil
     and tradingHousePrice:find("selector_created", 1, true) ~= nil,
     "trading house buy/cancel dialogs, filter fields, and price selector setup are traceable")
 check(tradingHouseFlow:find("RegisterCreateListingDialog", 1, true) ~= nil

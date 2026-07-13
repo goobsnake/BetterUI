@@ -842,3 +842,5 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "Confirmer l'achat mul
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "Acheter <<1>>x <<2>> pour <<3>> ?")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "Ignorer la confirmation d'achat")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "Lorsqu'activé, les achats multiples (plus d'un) sont effectués immédiatement sans dialogue de confirmation.")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES", "Utiliser les prix du marché dans la liste de vente")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES_TOOLTIP", "Affiche le prix du marché à l’unité et la valeur marchande totale ajustée à la quantité dans la liste de vente du marchand de guilde. En l’absence de données, la valeur de vente normale est utilisée.")

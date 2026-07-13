@@ -332,6 +332,7 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 
 ---@class BetterUITradingHouseSettings: BetterUISharedFontSettings
 ---@field enableCarousel boolean|nil
+---@field useMarketPricesInSellList boolean|nil
 ---@field searchPresets table|nil
 
 ---@class BetterUICompanionsSettings: BetterUISharedFontSettings
@@ -513,6 +514,7 @@ BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOINT = BETTERUI.CIM.ARCHETYPES.THIN_ENTRYPOIN
 ---@alias BetterUITradingHouseSettingKey
 ---| BetterUISharedFontSettingKey
 ---| "enableCarousel"
+---| "useMarketPricesInSellList"
 ---| "searchPresets"
 
 ---@alias BetterUITradingHouseSettingValue BetterUISharedFontSettingValue|table

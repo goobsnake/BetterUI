@@ -382,6 +382,51 @@ function BETTERUI.Interface.RemoveKeybindGroupIfPresent(descriptor)
     return ok and removed ~= false
 end
 
+--- Purges one caller-owned descriptor from the live strip and every saved
+--- keybind state. Combo boxes and dialogs restore saved states when they close;
+--- removing only the top state lets an older snapshot resurrect stale input.
+---@param descriptor table?
+---@return boolean removed
+---@return integer removedStateCount
+function BETTERUI.Interface.RemoveKeybindGroupFromAllStates(descriptor)
+    if not descriptor then return false, 0 end
+    local strip = GetKeybindStrip()
+    if not (strip and type(strip.RemoveKeybindButtonGroup) == "function") then
+        return false, 0
+    end
+
+    local topStateIndex = GetActiveKeybindStateIndex()
+    if type(topStateIndex) ~= "number" then
+        local ok, removed = InvokeKeybindStrip("RemoveKeybindButtonGroup", descriptor)
+        return ok and removed ~= false, (ok and removed ~= false) and 1 or 0
+    end
+
+    local removedStateCount = 0
+    for stateIndex = 1, topStateIndex do
+        local present = true
+        if type(strip.HasKeybindButtonGroup) == "function" then
+            local ok, hasGroup = pcall(strip.HasKeybindButtonGroup, strip, descriptor, stateIndex)
+            present = ok and hasGroup == true
+        end
+        if present then
+            local ok, removed = InvokeKeybindStripWithState(
+                "RemoveKeybindButtonGroup", stateIndex, descriptor)
+            if ok and removed ~= false then
+                removedStateCount = removedStateCount + 1
+            end
+        end
+    end
+
+    if KeybindTraceActive() then
+        TraceKeybindHelper("keybind group purged from all states", {
+            fn = "KeybindHelpers.RemoveKeybindGroupFromAllStates",
+            removedStateCount = removedStateCount,
+            topStateIndex = topStateIndex,
+        })
+    end
+    return removedStateCount > 0, removedStateCount
+end
+
 --- Removes only the caller-owned keybind groups from the strip, skipping
 --- keepDescriptor. Returns the descriptors actually removed so the caller can
 --- later restore exactly those via RestoreKeybindGroups. Never touches groups

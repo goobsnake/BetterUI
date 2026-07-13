@@ -133,9 +133,35 @@ function TH.SetTradingHouseSectionHeaders(thInstance, labels)
                 label and label.GetText and label:GetText() or nil
         end
     end
+    local header = thInstance and thInstance.header
+    local anchor = header and header.GetNamedChild
+        and (header:GetNamedChild("HeaderColumnBar") or header:GetNamedChild("HeaderTabBar")) or nil
+    local layout = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.LAYOUT
+    local rowColumns = layout and layout.COLUMNS or nil
+    local nameOffset = rowColumns and rowColumns.SUBMENU and rowColumns.SUBMENU.OFFSET_X or 70
+    local offsets = {
+        nameOffset,
+        nameOffset + (rowColumns and rowColumns.TYPE and rowColumns.TYPE.OFFSET_X or 513),
+        nameOffset + (rowColumns and rowColumns.TRAIT and rowColumns.TRAIT.OFFSET_X or 773),
+        nameOffset + (rowColumns and rowColumns.STAT and rowColumns.STAT.OFFSET_X or 963),
+        nameOffset + (rowColumns and rowColumns.VALUE and rowColumns.VALUE.OFFSET_X or 1113),
+    }
+    local widths = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.LAYOUT
+        and BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS or nil
+    local offsetY = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.LAYOUT
+        and BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET or 109
     for i, label in ipairs(columns) do
         local spec = labels and labels[i] or nil
         local text = type(spec) == "table" and spec.text or spec
+        local columnOffset = type(spec) == "table" and spec.offset or offsets[i]
+        local columnWidth = type(spec) == "table" and spec.width or (widths and widths[i])
+        if label and anchor and label.ClearAnchors and label.SetAnchor then
+            label:ClearAnchors()
+            label:SetAnchor(LEFT, anchor, BOTTOMLEFT, columnOffset, offsetY)
+        end
+        if label and columnWidth and label.SetDimensions then
+            label:SetDimensions(columnWidth, 30)
+        end
         if label and label.SetText then
             label:SetText(text or "")
         end
@@ -143,7 +169,7 @@ function TH.SetTradingHouseSectionHeaders(thInstance, labels)
             label:SetHidden(text == nil or text == "")
         end
         if label and label.SetHorizontalAlignment then
-            label:SetHorizontalAlignment(type(spec) == "table" and spec.align or LEFT)
+            label:SetHorizontalAlignment(type(spec) == "table" and spec.align or TEXT_ALIGN_LEFT)
         end
     end
     return true
@@ -163,7 +189,7 @@ function TH.RestoreTradingHouseSectionHeaders(thInstance)
             label:SetHidden(false)
         end
         if label and label.SetHorizontalAlignment then
-            label:SetHorizontalAlignment(LEFT)
+            label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
         end
     end
     return true
@@ -226,8 +252,38 @@ local function ApplyColumnText(control, childName, text, align)
     local child = GetBuiRowChild(control, childName)
     if not child then return end
     if child.SetText then child:SetText(text or "") end
-    if child.SetHorizontalAlignment then child:SetHorizontalAlignment(align or LEFT) end
+    -- SetHorizontalAlignment consumes TEXT_ALIGN_* values, not anchor-point
+    -- constants such as RIGHT.
+    if align == RIGHT then
+        align = TEXT_ALIGN_RIGHT
+    elseif align == LEFT then
+        align = TEXT_ALIGN_LEFT
+    end
+    if child.SetHorizontalAlignment then
+        child:SetHorizontalAlignment(align or TEXT_ALIGN_LEFT)
+    end
     if child.SetColor then child:SetColor(1, 1, 1, 1) end
+end
+
+local SELL_ROW_COLUMNS = {
+    ItemType = { offset = 450, width = 100 },
+    Trait = { offset = 795, width = 180 },
+    Value = { offset = 1050, width = 100 },
+}
+
+local function ApplySellColumnGeometry(control)
+    local label = GetBuiRowChild(control, "Label")
+    if not label then return end
+    for childName, geometry in pairs(SELL_ROW_COLUMNS) do
+        local child = GetBuiRowChild(control, childName)
+        if child and child.ClearAnchors and child.SetAnchor then
+            child:ClearAnchors()
+            child:SetAnchor(LEFT, label, LEFT, geometry.offset, 0)
+        end
+        if child and child.SetWidth then
+            child:SetWidth(geometry.width)
+        end
+    end
 end
 
 function TH.InstallTradingHouseSectionRowSetup()
@@ -245,11 +301,15 @@ function TH.InstallTradingHouseSectionRowSetup()
             return
         end
 
+        if ds.thColumnMode == "sell" then
+            ApplySellColumnGeometry(control)
+        end
+
         -- Section rows reuse the inventory template but need TH-specific value columns.
-        ApplyColumnText(control, "ItemType", ds.thColumn1Text or "", ds.thColumn1Align or RIGHT)
-        ApplyColumnText(control, "Trait", ds.thUnitText or "", RIGHT)
-        ApplyColumnText(control, "Stat", ds.thSpacerText or "", RIGHT)
-        ApplyColumnText(control, "Value", ds.thTotalText or "", RIGHT)
+        ApplyColumnText(control, "ItemType", ds.thColumn1Text or "", ds.thColumn1Align or TEXT_ALIGN_RIGHT)
+        ApplyColumnText(control, "Trait", ds.thUnitText or "", TEXT_ALIGN_RIGHT)
+        ApplyColumnText(control, "Stat", ds.thSpacerText or "", TEXT_ALIGN_RIGHT)
+        ApplyColumnText(control, "Value", ds.thTotalText or "", TEXT_ALIGN_RIGHT)
     end
     TH._betteruiSectionRowSetupInstalled = true
     TracePriceEntry("trading_house.section_row_setup", "installed", {

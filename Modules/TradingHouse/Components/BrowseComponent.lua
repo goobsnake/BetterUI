@@ -55,7 +55,7 @@ local function GetHeaderColumnAnchor(thInstance)
     if not (header and header.GetNamedChild) then
         return nil
     end
-    return header:GetNamedChild("HeaderTabBar") or header:GetNamedChild("HeaderColumnBar")
+    return header:GetNamedChild("HeaderColumnBar") or header:GetNamedChild("HeaderTabBar")
 end
 
 local function GetHeaderColumnOffset(columnIndex)
@@ -112,6 +112,9 @@ local function ApplyHeaderColumnSet(thInstance, columns, modeKey, phase)
             if label.SetMouseEnabled then
                 label:SetMouseEnabled(not hidden and column.mouseEnabled ~= false)
             end
+            if label.SetHorizontalAlignment then
+                label:SetHorizontalAlignment(column and column.align or TEXT_ALIGN_LEFT)
+            end
         end
     end
 
@@ -128,11 +131,11 @@ end
 local function ConfigureBrowseColumns(thInstance)
     local modeKey = "browse:" .. (Browse.sortAscending == false and "desc" or "asc")
     return ApplyHeaderColumnSet(thInstance, {
-        { text = "NAME" },
-        { text = "TIME" },
+        { text = "NAME", align = TEXT_ALIGN_LEFT },
+        { text = "TIME", align = TEXT_ALIGN_LEFT },
         { text = "", hidden = true, mouseEnabled = false },
-        { text = GetBrowseHeaderLabel("UNIT", BROWSE_SORT_KEY_UNIT) },
-        { text = "TOTAL" },
+        { text = GetBrowseHeaderLabel("UNIT", BROWSE_SORT_KEY_UNIT), align = TEXT_ALIGN_RIGHT },
+        { text = "TOTAL", align = TEXT_ALIGN_RIGHT },
     }, modeKey, "browse")
 end
 
@@ -160,6 +163,38 @@ local function NormalizeItemName(itemName)
         return zo_strformat(itemNameFormat, itemName)
     end
     return itemName
+end
+
+local function GetResultCategoryDefinition(itemLink)
+    local taxonomy = BETTERUI.CIM and BETTERUI.CIM.ItemTaxonomy
+    local definitions = taxonomy and taxonomy.BANK_CATEGORY_DEFS or {}
+    local filterType = itemLink and type(GetItemLinkFilterTypeInfo) == "function"
+        and GetItemLinkFilterTypeInfo(itemLink) or nil
+    local fallbackDefinition = nil
+
+    for order, definition in ipairs(definitions) do
+        if definition.key == "misc" then
+            fallbackDefinition = definition
+        elseif definition.key ~= "all" and definition.filterType == filterType then
+            return definition, order
+        end
+    end
+
+    return fallbackDefinition or {
+        key = "misc",
+        nameStringId = rawget(_G, "SI_BETTERUI_INV_ITEM_MISC"),
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds",
+    }, #definitions + 1
+end
+
+local function GetResultCategoryName(definition)
+    if definition and definition.nameStringId and type(GetString) == "function" then
+        local name = GetString(definition.nameStringId)
+        if name and name ~= "" then
+            return name
+        end
+    end
+    return definition and definition.key or "Miscellaneous"
 end
 
 local function ResolveUnitPrice(purchasePricePerUnit, purchasePrice, stackCount)
@@ -217,6 +252,8 @@ Browse.currentPage = 0
 Browse.hasMorePages = false
 Browse.searchPending = false
 Browse.resultsInvalidated = false
+Browse.resultCategories = Browse.resultCategories or {}
+Browse.selectedResultCategoryKey = Browse.selectedResultCategoryKey or "__all"
 Browse.deferredSearchToken = 0
 Browse.pendingBuyTrace = nil
 Browse.sortKey = BROWSE_SORT_KEY_UNIT
@@ -749,6 +786,9 @@ function Browse:OnSearchResultsReceived(thInstance)
     Browse.deferredSearchToken = (Browse.deferredSearchToken or 0) + 1
     Browse.hasMorePages = false
     Browse.resultsInvalidated = false
+    -- Each server page has its own result-category set. Begin on All Items and
+    -- rebuild the carousel from the rows returned for this page.
+    Browse.selectedResultCategoryKey = "__all"
 
     -- API 50: GetNumTradingHouseSearchResultsPages was removed. Paging state
     -- now comes from GetTradingHouseSearchResultsInfo() which returns
@@ -771,6 +811,9 @@ function Browse:OnSearchResultsReceived(thInstance)
     if thInstance and thInstance:IsSceneShowing() and
        thInstance:GetCurrentMode() == TH.MODE.BROWSE then
         thInstance:RefreshList()
+        if thInstance.UpdateTabHeader then
+            thInstance:UpdateTabHeader()
+        end
         TraceBrowse("trading_house.search_results", "list_refreshed", thInstance, {
             fn = "TradingHouse.BrowseComponent.OnSearchResultsReceived",
             page = Browse.currentPage,
@@ -853,6 +896,7 @@ function Browse:BuildList(thInstance)
         if normalizedName and stack > 0 then
             local itemLink = GetTradingHouseSearchResultItemLink and GetTradingHouseSearchResultItemLink(i) or nil
             local quality = displayQuality or rawget(_G, "ITEM_DISPLAY_QUALITY_NORMAL") or 1
+            local resultCategory, resultCategoryOrder = GetResultCategoryDefinition(itemLink)
 
             local bestCategoryName = ""
             if itemLink and GetItemLinkItemType then
@@ -885,6 +929,10 @@ function Browse:BuildList(thInstance)
                 itemUniqueId     = itemUniqueId,
                 traitName        = traitName,
                 bestGamepadItemCategoryName = bestCategoryName,
+                resultCategoryKey = resultCategory.key,
+                resultCategoryName = GetResultCategoryName(resultCategory),
+                resultCategoryIcon = resultCategory.iconFile,
+                resultCategoryOrder = resultCategoryOrder,
                 statValue        = "",
             }
 
@@ -893,6 +941,52 @@ function Browse:BuildList(thInstance)
     end
 
     SortBrowseRows(rows)
+
+    local categoryByKey = {}
+    local categories = {
+        {
+            key = "__all",
+            name = GetResultCategoryName(BETTERUI.CIM.ItemTaxonomy.BANK_CATEGORY_DEFS[1]),
+            icon = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
+            order = 0,
+        },
+    }
+    for _, itemData in ipairs(rows) do
+        local key = itemData.resultCategoryKey
+        if not categoryByKey[key] then
+            categoryByKey[key] = true
+            categories[#categories + 1] = {
+                key = key,
+                name = itemData.resultCategoryName,
+                icon = itemData.resultCategoryIcon,
+                order = itemData.resultCategoryOrder,
+            }
+        end
+    end
+    table.sort(categories, function(a, b)
+        if a.key == b.key then return false end
+        if a.key == "__all" then return true end
+        if b.key == "__all" then return false end
+        return (a.order or 999) < (b.order or 999)
+    end)
+    Browse.resultCategories = categories
+
+    local selectedCategory = Browse.selectedResultCategoryKey or "__all"
+    local selectedExists = selectedCategory == "__all" or categoryByKey[selectedCategory] == true
+    if not selectedExists then
+        selectedCategory = "__all"
+        Browse.selectedResultCategoryKey = selectedCategory
+    end
+
+    if selectedCategory ~= "__all" then
+        local filteredRows = {}
+        for _, itemData in ipairs(rows) do
+            if itemData.resultCategoryKey == selectedCategory then
+                filteredRows[#filteredRows + 1] = itemData
+            end
+        end
+        rows = filteredRows
+    end
 
     local renderedCount = 0
     for _, itemData in ipairs(rows) do
@@ -910,7 +1004,7 @@ function Browse:BuildList(thInstance)
             end
         end
 
-        list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+        list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry, nil, nil, 30, 30)
         renderedCount = renderedCount + 1
     end
     TraceBrowse("th.list", "end", thInstance, {
@@ -922,4 +1016,15 @@ function Browse:BuildList(thInstance)
         sortKey = Browse.sortKey,
         sortAscending = Browse.sortAscending ~= false,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+end
+
+function Browse:GetResultCategories()
+    return Browse.resultCategories or {}
+end
+
+function Browse:SetResultCategory(categoryKey, thInstance)
+    Browse.selectedResultCategoryKey = categoryKey or "__all"
+    if thInstance and thInstance.RefreshList then
+        thInstance:RefreshList()
+    end
 end

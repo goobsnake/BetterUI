@@ -13,12 +13,37 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 --- @field GetListTargetData fun(list: table): table|nil
 BETTERUI.Inventory.Utils = BETTERUI.Inventory.Utils or {}
 
+local function IsInventorySceneShowing(parent)
+    local scene = parent and parent.scene
+    if not (scene and type(scene.IsShowing) == "function") then
+        return false
+    end
+    local ok, showing = pcall(scene.IsShowing, scene)
+    return ok and showing == true
+end
+
 ---@param parent table Inventory instance with categoryList
 ---@param step number Navigation step (+1 or -1)
 local function CycleCategoryTab(parent, step)
+    -- Ethereal carousel descriptors can survive a foreign scene's keybind-state
+    -- transition. A stale LB/RB callback must not refresh the hidden inventory
+    -- and reclaim DIRECTIONAL_INPUT.
+    if not IsInventorySceneShowing(parent) then
+        if BETTERUI.Log and BETTERUI.Log.TraceEvent then
+            BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND,
+                "inventory.category_keybind", "blocked", {
+                    fn = "Inventory.Utils.CycleCategoryTab",
+                    reason = "sceneNotShowing",
+                    step = step,
+                    currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName
+                        and SCENE_MANAGER:GetCurrentSceneName() or nil,
+                })
+        end
+        return false
+    end
     if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.NAV, "CycleCategoryTab bumper navigation", {step = step}) end
     if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
-        return
+        return false
     end
 
     BETTERUI.CIM.HeaderNavigation.CycleCategory(parent, step, {
@@ -37,6 +62,7 @@ local function CycleCategoryTab(parent, step)
             parent:ToSavedPosition()
         end,
     })
+    return true
 end
 
 --- Callback for Right Bumper (Next) navigation.
@@ -45,8 +71,8 @@ end
 --- @param parent table Inventory instance with categoryList
 --- @param successful boolean Whether the bumper press was successful
 function BETTERUI.Inventory.Utils.OnTabNext(parent, successful)
-    if not successful then return end
-    CycleCategoryTab(parent, 1)
+    if not successful then return false end
+    return CycleCategoryTab(parent, 1)
 end
 
 --- Callback for Left Bumper (Previous) navigation.
@@ -55,8 +81,8 @@ end
 --- @param parent table Inventory instance with categoryList
 --- @param successful boolean Whether the bumper press was successful
 function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
-    if not successful then return end
-    CycleCategoryTab(parent, -1)
+    if not successful then return false end
+    return CycleCategoryTab(parent, -1)
 end
 
 BETTERUI.Inventory.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData

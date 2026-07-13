@@ -40,11 +40,11 @@ local function SafeGetIndexedString(prefix, value)
 end
 
 local SELL_COLUMNS = {
-    { text = HeaderText("SI_BETTERUI_INV_HEADER_NAME", "NAME"), align = LEFT },
-    { text = "QTY", align = RIGHT },
-    { text = "UNIT", align = RIGHT },
-    { text = "", align = RIGHT },
-    { text = "TOTAL", align = RIGHT },
+    { text = HeaderText("SI_BETTERUI_INV_HEADER_NAME", "NAME"), align = TEXT_ALIGN_LEFT, offset = 58, width = 500 },
+    { text = "QTY", align = TEXT_ALIGN_RIGHT, offset = 516, width = 100 },
+    { text = "UNIT", align = TEXT_ALIGN_RIGHT, offset = 704, width = 180 },
+    { text = "", align = TEXT_ALIGN_RIGHT },
+    { text = "TOTAL", align = TEXT_ALIGN_RIGHT, offset = 1047, width = 100 },
 }
 
 local function ApplySellHeaders(thInstance)
@@ -102,6 +102,29 @@ local function FormatColumnUnit(totalPrice, quantity)
     end
     return FormatColumnCurrency(math.floor((tonumber(totalPrice) or 0) / quantity))
 end
+
+local function ResolveSellDisplayPrices(itemLink, quantity, fallbackTotal)
+    quantity = math.max(1, tonumber(quantity) or 1)
+    if not (TH.GetSetting and TH.GetSetting("useMarketPricesInSellList") == true) then
+        return nil, fallbackTotal, false
+    end
+
+    local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
+    if not (marketIntegration and type(marketIntegration.GetMarketPriceInfo) == "function") then
+        return nil, fallbackTotal, false
+    end
+
+    local priceInfo = marketIntegration.GetMarketPriceInfo(itemLink, quantity)
+    local unitPrice = priceInfo and tonumber(priceInfo.unitPrice) or nil
+    if not unitPrice or unitPrice <= 0 then
+        return nil, fallbackTotal, false
+    end
+
+    unitPrice = math.floor(unitPrice + 0.5)
+    return unitPrice, unitPrice * quantity, true
+end
+
+Sell.ResolveSellDisplayPrices = ResolveSellDisplayPrices
 
 local function CalculateSuggestedPostPrice(bagId, slotIndex, stackCount, sellPrice)
     local defaultPrice = 100
@@ -423,6 +446,11 @@ function Sell:BuildList(thInstance)
                         end
                     end
 
+                    local marketUnitPrice, displayTotalPrice, usesMarketPrice =
+                        ResolveSellDisplayPrices(itemLink, displayStack, suggestedPrice)
+                    local displayUnitText = marketUnitPrice and FormatColumnCurrency(marketUnitPrice)
+                        or FormatColumnUnit(suggestedPrice, displayStack)
+
                     local itemData = {
                         bagId        = bagId,
                         slotIndex    = slotIndex,
@@ -439,9 +467,10 @@ function Sell:BuildList(thInstance)
                         thColumnMode = "sell",
                         thColumn1Text = tostring(displayStack),
                         thColumn1Align = RIGHT,
-                        thUnitText = FormatColumnUnit(suggestedPrice, displayStack),
+                        thUnitText = displayUnitText,
                         thSpacerText = "",
-                        thTotalText = FormatColumnCurrency(suggestedPrice),
+                        thTotalText = FormatColumnCurrency(displayTotalPrice),
+                        usesMarketPrice = usesMarketPrice,
                         originalTraitName = traitName,
                         originalStatValue = statValue,
                         originalBestGamepadItemCategoryName = bestCategoryName,
@@ -456,7 +485,7 @@ function Sell:BuildList(thInstance)
                         entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
                     end
 
-                    list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+                    list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry, nil, nil, 30, 30)
                     renderedCount = renderedCount + 1
                 end
             end

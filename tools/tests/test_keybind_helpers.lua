@@ -144,6 +144,31 @@ assert_equal(2, KEYBIND_STRIP.lastRemoveStateIndex, "present descriptor is remov
 assert_false(BETTERUI.Interface.RemoveKeybindGroupIfPresent(descriptor), "absent descriptor removal is skipped")
 assert_equal(1, #KEYBIND_STRIP.removed, "absent descriptor is not removed twice")
 
+local stackedDescriptor = {
+    { keybind = "UI_SHORTCUT_LEFT_SHOULDER", name = "Previous", ethereal = true },
+    { keybind = "UI_SHORTCUT_RIGHT_SHOULDER", name = "Next", ethereal = true },
+}
+KEYBIND_STRIP.stateGroups = {
+    [1] = { [stackedDescriptor] = true },
+    [2] = { [stackedDescriptor] = true },
+}
+KEYBIND_STRIP.HasKeybindButtonGroup = function(self, group, stateIndex)
+    return self.stateGroups[stateIndex] and self.stateGroups[stateIndex][group] == true
+end
+KEYBIND_STRIP.RemoveKeybindButtonGroup = function(self, group, stateIndex)
+    local groups = self.stateGroups[stateIndex]
+    if not (groups and groups[group]) then return false end
+    groups[group] = nil
+    return true
+end
+local purged, purgedCount = BETTERUI.Interface.RemoveKeybindGroupFromAllStates(stackedDescriptor)
+assert_true(purged, "all-state removal reports a purged descriptor")
+assert_equal(2, purgedCount, "all-state removal purges saved and live keybind states")
+assert_false(KEYBIND_STRIP.stateGroups[1][stackedDescriptor] == true,
+    "saved dropdown snapshot no longer owns the descriptor")
+assert_false(KEYBIND_STRIP.stateGroups[2][stackedDescriptor] == true,
+    "live keybind state no longer owns the descriptor")
+
 assert_true(BETTERUI.Interface.UpdateCurrentKeybindGroups(), "current keybind refresh is forwarded")
 assert_equal(1, KEYBIND_STRIP.currentUpdates, "current keybind refresh count recorded")
 assert_equal(2, KEYBIND_STRIP.lastCurrentUpdateStateIndex, "current keybind refresh targets the active keybind state")

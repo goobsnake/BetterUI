@@ -840,3 +840,5 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "Confirmar compra de v
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "¿Comprar <<1>>x <<2>> por <<3>>?")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "Omitir confirmación de compra")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "Cuando está activado, las compras de varias unidades (más de una) se realizan de inmediato sin diálogo de confirmación.")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES", "Usar precios de mercado en la lista de venta")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES_TOOLTIP", "Muestra el precio de mercado por unidad y el valor total de mercado ajustado por cantidad en la lista de venta del comerciante del gremio. Si no hay datos de mercado, usa el valor de venta normal.")

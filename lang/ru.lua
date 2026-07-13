@@ -842,3 +842,5 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "Подтвердит�
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "Купить <<1>>x <<2>> за <<3>>?")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "Пропускать подтверждение покупки")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "Если включено, покупка нескольких предметов (более одного) выполняется сразу без диалога подтверждения.")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES", "Использовать рыночные цены в списке продажи")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES_TOOLTIP", "Показывает рыночную цену за единицу и общую рыночную стоимость с учетом количества в списке продажи гильдейского торговца. При отсутствии рыночных данных используется обычная стоимость продажи.")

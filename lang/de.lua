@@ -841,3 +841,5 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "Mehrfachkauf bestäti
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "<<1>>x <<2>> für <<3>> kaufen?")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "Kaufbestätigung überspringen")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "Wenn aktiviert, werden Mehrfachkäufe (mehr als einer) sofort ohne Bestätigungsdialog getätigt.")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES", "Marktpreise in der Verkaufsliste verwenden")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES_TOOLTIP", "Zeigt den Marktpreis pro Einheit und den an die Menge angepassten Gesamtmarktwert in der Gildenhändler-Verkaufsliste. Ohne Marktdaten wird der normale Verkaufswert verwendet.")

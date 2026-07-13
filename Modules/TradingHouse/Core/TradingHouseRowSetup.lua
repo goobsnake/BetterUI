@@ -161,6 +161,16 @@ function BETTERUI.TradingHouse.THEntrySetup(control, data, selected, reselecting
     -- Label setup (shared with inventory/banking)
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
 
+    -- Trading House rows need more air between the 32px artwork and the item
+    -- name than the shared default provides. Move only the artwork left so
+    -- the name and data-column anchors remain aligned with their headers.
+    local iconControl = control.icon
+        or (control.GetNamedChild and control:GetNamedChild("Icon"))
+    if iconControl and control.label and iconControl.ClearAnchors and iconControl.SetAnchor then
+        iconControl:ClearAnchors()
+        iconControl:SetAnchor(CENTER, control.label, LEFT, -40, 0)
+    end
+
     local ds = data.dataSource or data
 
     -- Column controls

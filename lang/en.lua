@@ -879,3 +879,5 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "Confirm Multi-Quantit
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "Buy <<1>>x <<2>> for <<3>>?")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "Skip Buy Confirmation")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "When enabled, multi-quantity purchases (more than one) are made immediately without a confirmation dialog.")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES", "Use Market Prices in Sell List")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES_TOOLTIP", "Show market unit price and quantity-adjusted total market value in the Guild Trader Sell list. Falls back to the normal sell value when no market data is available.")

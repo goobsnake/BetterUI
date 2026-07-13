@@ -301,13 +301,30 @@ end
 function TH.RegisterSceneLifecycle(instance)
     ---@type TradingHouseSceneLifecyclePayload
     local lifecyclePayload = {
-        keybinds = { instance.coreKeybinds, instance.tabKeybinds },
+        -- The carousel owns its ethereal LB/RB group, just like Inventory.
+        -- Registering a second Trading House shoulder group caused duplicate
+        -- mode/category moves and stale input ownership after scene exit.
+        keybinds = { instance.coreKeybinds },
         taskManager = TH.Tasks,
         onShowing = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             screen:RefreshTHFooter()
             screen:RefreshList()
             screen:UpdateTabHeader()
+            local headerContainer = screen.header
+            local header = headerContainer and (headerContainer.header
+                or (headerContainer.GetNamedChild and headerContainer:GetNamedChild("Header")))
+            if header and header.tabBar and header.tabBar.Activate then
+                header.tabBar:Activate()
+                local selectedIndex = header.tabBar.targetSelectedIndex
+                    or header.tabBar.selectedIndex or 1
+                if header.tabBar.SetSelectedIndexWithoutAnimation then
+                    header.tabBar:SetSelectedIndexWithoutAnimation(selectedIndex, true, true)
+                end
+            end
+            if screen.list and screen.list.Activate then
+                screen.list:Activate()
+            end
             if screen.list and GAMEPAD_TOOLTIPS then
                 local selectedData = screen.list:GetTargetData()
                 local ds = selectedData and (selectedData.dataSource or selectedData) or nil
@@ -321,8 +338,26 @@ function TH.RegisterSceneLifecycle(instance)
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+            local headerContainer = screen.header
+            local header = headerContainer and (headerContainer.header
+                or (headerContainer.GetNamedChild and headerContainer:GetNamedChild("Header")))
+            if header and header.tabBar and header.tabBar.Deactivate then
+                header.tabBar:Deactivate()
+            end
+            if screen.list and screen.list.Deactivate then
+                screen.list:Deactivate()
+            end
         end,
         onHidden = function(screen)
+            local headerContainer = screen.header
+            local header = headerContainer and (headerContainer.header
+                or (headerContainer.GetNamedChild and headerContainer:GetNamedChild("Header")))
+            if header and header.tabBar and header.tabBar.Deactivate then
+                header.tabBar:Deactivate()
+            end
+            if screen.list and screen.list.Deactivate then
+                screen.list:Deactivate()
+            end
             local component = screen:GetActiveComponent()
             if component and component.Deactivate then
                 component:Deactivate(screen)
@@ -359,6 +394,9 @@ function TH.BuildCoreKeybinds(thInstance)
                 if IsTHBrowseResultsSection(thInstance) then
                     return GetTHListTargetData(thInstance) ~= nil
                 end
+                if GetTHCurrentMode(thInstance) == MODE.LISTINGS then
+                    return false
+                end
                 if GetTHCurrentMode(thInstance) == MODE.BROWSE then
                     return GetTHListTargetData(thInstance) ~= nil
                 end
@@ -384,8 +422,8 @@ function TH.BuildCoreKeybinds(thInstance)
         },
         {
             name = function()
-                if IsTHBrowseResultsSection(thInstance) then
-                    return GetTHRuntimeString("SI_TRADING_HOUSE_SEARCH_FROM_ITEM", nil, "Search For Item")
+                if GetTHCurrentMode(thInstance) == MODE.LISTINGS then
+                    return GetTHRuntimeString("SI_GAMEPAD_TRADING_HOUSE_LISTING_REMOVE", nil, "Remove Listing")
                 elseif IsTHBrowseFiltersSection(thInstance) then
                     return GetTHRuntimeString("SI_GAMEPAD_TRADE_SUBMIT", "SI_BETTERUI_TH_SEARCH", "Submit")
                 end
@@ -394,17 +432,17 @@ function TH.BuildCoreKeybinds(thInstance)
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()
                 return IsTHBrowseFiltersSection(thInstance)
-                    or (IsTHBrowseResultsSection(thInstance) and (GetTHListTargetData(thInstance) or {}).itemLink ~= nil)
+                    or (GetTHCurrentMode(thInstance) == MODE.LISTINGS and GetTHListTargetData(thInstance) ~= nil)
             end,
             enabled = function()
-                if IsTHBrowseResultsSection(thInstance) then
-                    return (GetTHListTargetData(thInstance) or {}).itemLink ~= nil
+                if GetTHCurrentMode(thInstance) == MODE.LISTINGS then
+                    return TH.ListingsComponent and TH.ListingsComponent:IsPrimaryActionEnabled(thInstance)
                 end
                 return CanTHSubmitBrowseSearch()
             end,
             callback = function()
-                if IsTHBrowseResultsSection(thInstance) then
-                    SearchForSelectedTHItem(thInstance)
+                if GetTHCurrentMode(thInstance) == MODE.LISTINGS and TH.ListingsComponent then
+                    TH.ListingsComponent:OnPrimaryAction(thInstance)
                 elseif TH.BrowseComponent and type(TH.BrowseComponent.ExecuteSearch) == "function" then
                     TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_SECONDARY", { action = "submitSearch" })
                     TH.BrowseComponent:ExecuteSearch()
@@ -415,20 +453,17 @@ function TH.BuildCoreKeybinds(thInstance)
         },
         {
             name = function()
-                if IsTHBrowseFiltersSection(thInstance) then
-                    return GetTHRuntimeString("SI_BETTERUI_TH_PRESETS", nil, "Presets")
-                end
-                return ""
+                return GetTHRuntimeString("SI_TRADING_HOUSE_GUILD_HEADER", nil, "Guild")
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
-                return IsTHBrowseFiltersSection(thInstance)
-                    and TH.SearchPresets ~= nil
-                    and type(TH.SearchPresets.ShowLoadDialog) == "function"
+                return GetNumTradingHouseGuilds and GetNumTradingHouseGuilds() > 1
             end,
             callback = function()
-                TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_TERTIARY", { action = "loadPreset" })
-                TH.SearchPresets.ShowLoadDialog()
+                TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_TERTIARY", { action = "changeGuild" })
+                if ZO_Dialogs_ShowPlatformDialog then
+                    ZO_Dialogs_ShowPlatformDialog("TRADING_HOUSE_CHANGE_ACTIVE_GUILD")
+                end
             end,
         },
         {
@@ -465,7 +500,7 @@ function TH.BuildCoreKeybinds(thInstance)
             end,
             keybind = rawget(_G, "UI_SHORTCUT_LEFT_STICK") or "UI_SHORTCUT_LEFT_STICK",
             visible = function()
-                return IsTHBrowseFiltersSection(thInstance)
+                return GetTHCurrentMode(thInstance) == MODE.BROWSE
                     and TH.BrowseFilters ~= nil
                     and type(TH.BrowseFilters.ShowFilterDialog) == "function"
             end,
@@ -478,39 +513,25 @@ function TH.BuildCoreKeybinds(thInstance)
             end,
         },
         {
+            name = function()
+                return GetTHRuntimeString("SI_TRADING_HOUSE_SEARCH_FROM_ITEM", nil, "Search For Item")
+            end,
+            keybind = "UI_SHORTCUT_QUATERNARY",
+            visible = function()
+                local mode = GetTHCurrentMode(thInstance)
+                return (IsTHBrowseResultsSection(thInstance) or mode == MODE.SELL or mode == MODE.LISTINGS)
+                    and (GetTHListTargetData(thInstance) or {}).itemLink ~= nil
+            end,
+            callback = function()
+                SearchForSelectedTHItem(thInstance)
+            end,
+        },
+        {
             name = GetTHRuntimeString("SI_GAMEPAD_BACK_OPTION", nil, "Back"),
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = function()
                 TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_NEGATIVE", { action = "back" })
                 SCENE_MANAGER:HideCurrentScene()
-            end,
-        },
-        {
-            name = function()
-                return GetTHRuntimeString("SI_BETTERUI_TH_GUILD_PREV", nil, "Previous Guild")
-            end,
-            keybind = "UI_SHORTCUT_LEFT_TRIGGER",
-            ethereal = true,
-            visible = function()
-                return GetNumTradingHouseGuilds and GetNumTradingHouseGuilds() > 1
-            end,
-            callback = function()
-                TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_LEFT_TRIGGER", { action = "previousGuild" })
-                thInstance:CycleGuild(-1)
-            end,
-        },
-        {
-            name = function()
-                return GetTHRuntimeString("SI_BETTERUI_TH_GUILD_NEXT", nil, "Next Guild")
-            end,
-            keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
-            ethereal = true,
-            visible = function()
-                return GetNumTradingHouseGuilds and GetNumTradingHouseGuilds() > 1
-            end,
-            callback = function()
-                TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_RIGHT_TRIGGER", { action = "nextGuild" })
-                thInstance:CycleGuild(1)
             end,
         },
         {
@@ -530,7 +551,7 @@ function TH.BuildCoreKeybinds(thInstance)
             name = function()
                 return GetTHRuntimeString("SI_TRADING_HOUSE_RESULTS_NEXT_PAGE", "SI_BETTERUI_TH_NEXT_PAGE", "Next")
             end,
-            keybind = "UI_SHORTCUT_QUATERNARY",
+            keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
             visible = function()
                 return IsTHBrowseResultsSection(thInstance)
                     and TH.BrowseComponent
@@ -550,7 +571,7 @@ function TH.BuildCoreKeybinds(thInstance)
             name = function()
                 return GetTHRuntimeString("SI_TRADING_HOUSE_RESULTS_PREVIOUS_PAGE", "SI_BETTERUI_TH_PREV_PAGE", "Previous")
             end,
-            keybind = "UI_SHORTCUT_QUINARY",
+            keybind = "UI_SHORTCUT_LEFT_TRIGGER",
             visible = function()
                 return IsTHBrowseResultsSection(thInstance)
                     and TH.BrowseComponent
@@ -575,23 +596,25 @@ function TH.BuildTabKeybinds(thInstance)
     return WrapTradingHouseKeybindGroup({
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
-            name = GetTHRuntimeString("SI_GAMEPAD_PAGED_LIST_PAGE_LEFT_NARRATION", nil, "Previous"),
+            name = nil,
             keybind = "UI_SHORTCUT_LEFT_SHOULDER",
+            ethereal = true,
             callback = function()
                 thInstance:CycleTabs(-1)
             end,
             enabled = function()
-                return #TH_TABS > 1
+                return (thInstance._tradingHouseHeaderEntryCount or 0) > 1
             end,
         },
         {
-            name = GetTHRuntimeString("SI_GAMEPAD_PAGED_LIST_PAGE_RIGHT_NARRATION", nil, "Next"),
+            name = nil,
             keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
+            ethereal = true,
             callback = function()
                 thInstance:CycleTabs(1)
             end,
             enabled = function()
-                return #TH_TABS > 1
+                return (thInstance._tradingHouseHeaderEntryCount or 0) > 1
             end,
         },
     })

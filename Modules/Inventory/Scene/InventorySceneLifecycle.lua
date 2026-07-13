@@ -186,6 +186,19 @@ end
 
 local function RemoveInventoryKeybindsForSceneExit(self, phase)
 	TraceInventoryKeybindOwnership(self, phase .. "_before", {})
+	local tabBar = self and self.header and self.header.tabBar or nil
+	local carouselDescriptor = tabBar and tabBar.keybindStripDescriptor or nil
+	if tabBar and tabBar.Deactivate then
+		-- Deactivate is the authoritative owner teardown: it clears both the
+		-- tab-bar active flag and its ethereal LB/RB keybind group.
+		tabBar:Deactivate()
+	end
+	local purgeCarousel = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupFromAllStates
+	if carouselDescriptor and type(purgeCarousel) == "function" then
+		purgeCarousel(carouselDescriptor)
+	else
+		RemoveInventoryKeybindGroup(self, carouselDescriptor, "carousel", phase .. "_carousel")
+	end
 	local integration = self and self._headerSortIntegration
 	if integration and integration.activeKeybindDescriptor then
 		RemoveInventoryKeybindGroup(self, integration.activeKeybindDescriptor, "header", phase .. "_header")

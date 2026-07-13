@@ -156,9 +156,45 @@ end
 
 -- FEATURE ACCESS --------------------------------------------------------------
 
+local standaloneBrowseFeatures
+
+local function CreateStandaloneBrowseFeatures()
+    if standaloneBrowseFeatures then return standaloneBrowseFeatures end
+    if type(ZO_TradingHouse_CreateGamepadFeature) ~= "function" then return nil end
+
+    local features = {
+        nameSearchFeature = ZO_TradingHouse_CreateGamepadFeature("NameSearch"),
+        searchCategoryFeature = ZO_TradingHouse_CreateGamepadFeature("SearchCategory"),
+        priceRangeFeature = ZO_TradingHouse_CreateGamepadFeature("PriceRange"),
+        qualityFeature = ZO_TradingHouse_CreateGamepadFeature("Quality"),
+    }
+    if not (features.nameSearchFeature and features.searchCategoryFeature
+        and features.priceRangeFeature and features.qualityFeature) then
+        return nil
+    end
+
+    for _, feature in pairs(features) do
+        if feature.ResetSearch then
+            TryCall(feature.ResetSearch, feature)
+        end
+    end
+    standaloneBrowseFeatures = features
+
+    local search = rawget(_G, "TRADING_HOUSE_SEARCH")
+    if search and search.AssociateWithSearchFeatures then
+        TryCall(search.AssociateWithSearchFeatures, search, features)
+    end
+    return standaloneBrowseFeatures
+end
+
 local function GetBrowseFeatures()
     local browse = rawget(_G, "GAMEPAD_TRADING_HOUSE_BROWSE")
-    return browse and browse.features
+    if browse and browse.GetFeatures then
+        local features = SafeCall(browse.GetFeatures, browse)
+        if features then return features end
+    end
+    if browse and browse.features then return browse.features end
+    return CreateStandaloneBrowseFeatures()
 end
 
 local function GetFirstSubcategoryKey(categoryParams)
@@ -331,395 +367,10 @@ function Filters.ApplyPendingFilters(search)
     return applied
 end
 
--- MINIMAL FILTER DIALOG -------------------------------------------------------
-
-local FILTER_DIALOG_NAME = "BETTERUI_TRADING_HOUSE_FILTER_DIALOG"
-
-local function L(stringIdName, fallback)
-    return SafeString(fallback or stringIdName, rawget(_G, stringIdName) or stringIdName)
-end
-
-local function ParseNumber(text)
-    if not text or text == "" then return nil end
-    return tonumber(text)
-end
-
---- Registers and shows a first-cut filter-entry dialog. Numeric fields accept
---- plain numbers; quality/category use native gamepad dropdown rows.
-function Filters.ShowFilterDialog()
-    if not ZO_Dialogs_ShowGamepadDialog then
-        TraceFilters("trading_house.filters_dialog", "show_skipped", { fn = "Filters.ShowFilterDialog", reason = "missingDialogApi" })
-        return
-    end
-
-    local Dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
-    local priorDialog = Dialogs and Dialogs.GetCurrentInfo and Dialogs.GetCurrentInfo(FILTER_DIALOG_NAME) or nil
-    if not (priorDialog and priorDialog._betteruiTradingHouseFilterDialog) then
-        local function GetDialog()
-            if type(ZO_GenericGamepadDialog_GetControl) == "function" and GAMEPAD_DIALOGS then
-                return SafeCall(ZO_GenericGamepadDialog_GetControl, GAMEPAD_DIALOGS.PARAMETRIC)
-            end
-            return nil
-        end
-
-        local function GetFeaturePriceRange(features)
-            local priceFeature = features and features.priceRangeFeature
-            if priceFeature and priceFeature.GetPriceRange then
-                return SafeCall(priceFeature.GetPriceRange, priceFeature)
-            end
-            return nil, nil
-        end
-
-        local function GetSelectedQualityIndex(features)
-            local qualityFeature = features and features.qualityFeature
-            if qualityFeature and qualityFeature.GetSelectedChoiceIndex then
-                return SafeCall(qualityFeature.GetSelectedChoiceIndex, qualityFeature) or 1
-            end
-            return qualityFeature and qualityFeature.selectedChoiceIndex or 1
-        end
-
-        local function GetSelectedCategoryIndex(features)
-            local categoryFeature = features and features.searchCategoryFeature
-            local selectedParams = categoryFeature and categoryFeature.GetCategoryParams
-                and SafeCall(categoryFeature.GetCategoryParams, categoryFeature) or nil
-            local selectedSubcategory = categoryFeature and categoryFeature.GetSubcategoryKey
-                and SafeCall(categoryFeature.GetSubcategoryKey, categoryFeature) or nil
-            local choices = BuildCategoryChoices()
-
-            for index, choice in ipairs(choices) do
-                if choice.categoryParams and choice.categoryParams == selectedParams then
-                    if not selectedSubcategory or selectedSubcategory == choice.subcategoryKey then
-                        return index
-                    end
-                elseif choice.categoryKey == "AllItems" and not selectedParams then
-                    return index
-                end
-            end
-
-            return 1
-        end
-
-        local function BuildQualityChoices(features)
-            local choices = {}
-            local qualityFeature = features and features.qualityFeature
-            local params = qualityFeature and qualityFeature.featureParams
-            if params and params.GetNumChoices and params.GetChoiceDisplayName then
-                local numChoices = SafeCall(params.GetNumChoices, params) or 0
-                for choiceIndex = 1, numChoices do
-                    local displayName = SafeCall(params.GetChoiceDisplayName, params, choiceIndex)
-                    if displayName and displayName ~= "" then
-                        table.insert(choices, { displayName = displayName, choiceIndex = choiceIndex })
-                    end
-                end
-            end
-
-            if #choices == 0 then
-                local anyText = SafeString("Any Quality", rawget(_G, "SI_TRADING_HOUSE_BROWSE_QUALITY_ANY") or "SI_TRADING_HOUSE_BROWSE_QUALITY_ANY")
-                table.insert(choices, { displayName = anyText, choiceIndex = 1 })
-
-                local qualityConstants = {
-                    rawget(_G, "ITEM_DISPLAY_QUALITY_TRASH"),
-                    rawget(_G, "ITEM_DISPLAY_QUALITY_NORMAL"),
-                    rawget(_G, "ITEM_DISPLAY_QUALITY_MAGIC"),
-                    rawget(_G, "ITEM_DISPLAY_QUALITY_ARCANE"),
-                    rawget(_G, "ITEM_DISPLAY_QUALITY_ARTIFACT"),
-                    rawget(_G, "ITEM_DISPLAY_QUALITY_LEGENDARY"),
-                }
-                for _, displayQuality in ipairs(qualityConstants) do
-                    if displayQuality ~= nil then
-                        local qualityText = SafeString(tostring(displayQuality), "SI_ITEMQUALITY", displayQuality)
-                        local color = SafeCall(GetItemQualityColor, displayQuality)
-                        if color and color.Colorize then
-                            qualityText = SafeCall(color.Colorize, color, qualityText) or qualityText
-                        end
-                        table.insert(choices, { displayName = qualityText, choiceIndex = #choices + 1 })
-                    end
-                end
-            end
-
-            return choices
-        end
-
-        local function PopulateInitialDialogData(data)
-            if data._betteruiInitialized then return end
-
-            local features = GetBrowseFeatures()
-            local nameFeature = features and features.nameSearchFeature
-            if nameFeature and nameFeature.GetSearchText then
-                data.nameText = SafeCall(nameFeature.GetSearchText, nameFeature) or ""
-            else
-                data.nameText = ""
-            end
-
-            data.priceMin, data.priceMax = GetFeaturePriceRange(features)
-            data.qualityIndex = GetSelectedQualityIndex(features)
-            data.categoryIndex = GetSelectedCategoryIndex(features)
-            data._betteruiInitialized = true
-        end
-
-        local function ResetDialogData(data)
-            data.nameText = ""
-            data.priceMin = nil
-            data.priceMax = nil
-            data.qualityIndex = 1
-            data.categoryIndex = 1
-            data._betteruiInitialized = true
-        end
-
-        local function AddTextField(labelKey, fieldKey, numeric)
-            return {
-                template = "ZO_Gamepad_GenericDialog_Parametric_TextFieldItem",
-                headerTemplate = "ZO_GamepadMenuEntryFullWidthHeaderTemplate",
-                header = L(labelKey),
-                text = L(labelKey),
-                templateData = {
-                    setup = function(control, data, selected, reselectingDuringRebuild, enabled, active)
-                        if control.highlight then
-                            control.highlight:SetHidden(not selected)
-                        end
-                        if control.editBoxControl and control.editBoxControl.SetText then
-                            local dialog = data and data.dialog or GetDialog()
-                            local value = dialog and dialog.data and dialog.data[fieldKey] or nil
-                            control.editBoxControl.textChangedCallback = data.textChangedCallback
-                            if control.editBoxControl.SetDefaultText then
-                                control.editBoxControl:SetDefaultText(L(labelKey))
-                            end
-                            if numeric and control.editBoxControl.SetMaxInputChars then
-                                control.editBoxControl:SetMaxInputChars(9)
-                            end
-                            control.editBoxControl:SetText(value ~= nil and tostring(value) or "")
-                            TraceFilters("trading_house.filters_dialog", "field_setup", {
-                                fn = "Filters.ShowFilterDialog",
-                                field = fieldKey,
-                                selected = selected == true,
-                                restored = value ~= nil,
-                            })
-                        end
-                    end,
-                    textChangedCallback = function(control)
-                        local dialog = GetDialog()
-                        if dialog and dialog.data then
-                            local text = control:GetText()
-                            if numeric then
-                                dialog.data[fieldKey] = ParseNumber(text)
-                            else
-                                dialog.data[fieldKey] = text
-                            end
-                        end
-                    end,
-                    callback = function(dialog)
-                        local targetControl = dialog and dialog.entryList and dialog.entryList.GetTargetControl
-                            and dialog.entryList:GetTargetControl() or nil
-                        local editBox = targetControl and targetControl.editBoxControl or nil
-                        if editBox and editBox.TakeFocus then
-                            editBox:TakeFocus()
-                        end
-                    end,
-                    narrationText = rawget(_G, "ZO_GetDefaultParametricListEditBoxNarrationText"),
-                },
-            }
-        end
-
-        local function AddDropdownField(labelKey, fieldKey, buildChoices)
-            return {
-                template = "ZO_GamepadDropdownItem",
-                headerTemplate = "ZO_GamepadMenuEntryFullWidthHeaderTemplate",
-                header = L(labelKey),
-                templateData = {
-                    setup = function(control, data, selected)
-                        local dialog = data and data.dialog or GetDialog()
-                        local dialogData = dialog and dialog.data or {}
-                        local dropdown = control and control.dropdown or nil
-                        if not dropdown then return end
-
-                        if ZO_GAMEPAD_COMPONENT_COLORS then
-                            local unselectedColor = ZO_GAMEPAD_COMPONENT_COLORS.UNSELECTED_INACTIVE
-                            local selectedColor = ZO_GAMEPAD_COMPONENT_COLORS.SELECTED_ACTIVE
-                            if dropdown.SetNormalColor and unselectedColor and unselectedColor.UnpackRGB then
-                                local ok, r, g, b = TryCall(unselectedColor.UnpackRGB, unselectedColor)
-                                if ok then TryCall(dropdown.SetNormalColor, dropdown, r, g, b) end
-                            end
-                            if dropdown.SetHighlightedColor and selectedColor and selectedColor.UnpackRGB then
-                                local ok, r, g, b = TryCall(selectedColor.UnpackRGB, selectedColor)
-                                if ok then TryCall(dropdown.SetHighlightedColor, dropdown, r, g, b) end
-                            end
-                            TryCall(dropdown.SetSelectedItemTextColor, dropdown, selected)
-                        end
-
-                        TryCall(dropdown.SetSortsItems, dropdown, false)
-                        TryCall(dropdown.ClearItems, dropdown)
-
-                        local choices = buildChoices(GetBrowseFeatures())
-                        local function OnChoiceSelected(comboBox, entryText, entry)
-                            local activeDialog = GetDialog()
-                            if activeDialog and activeDialog.data then
-                                activeDialog.data[fieldKey] = entry.choiceIndex
-                            end
-                        end
-
-                        local selectedIndex = tonumber(dialogData[fieldKey]) or 1
-                        local entryToSelect = nil
-                        for index, choice in ipairs(choices) do
-                            local entry = SafeCall(dropdown.CreateItemEntry, dropdown, choice.displayName, OnChoiceSelected)
-                            if entry then
-                                entry.choiceIndex = choice.choiceIndex or index
-                                TryCall(dropdown.AddItem, dropdown, entry)
-                                if entry.choiceIndex == selectedIndex then
-                                    entryToSelect = entry
-                                end
-                            end
-                        end
-
-                        TryCall(dropdown.UpdateItems, dropdown)
-                        local IGNORE_CALLBACK = true
-                        if entryToSelect and dropdown.TrySelectItemByData then
-                            TryCall(dropdown.TrySelectItemByData, dropdown, entryToSelect, IGNORE_CALLBACK)
-                        elseif dropdown.SelectItemByIndex then
-                            TryCall(dropdown.SelectItemByIndex, dropdown, selectedIndex, IGNORE_CALLBACK)
-                        elseif dropdown.SelectFirstItem then
-                            TryCall(dropdown.SelectFirstItem, dropdown)
-                        end
-
-                        if SCREEN_NARRATION_MANAGER and SCREEN_NARRATION_MANAGER.RegisterDialogDropdown then
-                            TryCall(SCREEN_NARRATION_MANAGER.RegisterDialogDropdown, SCREEN_NARRATION_MANAGER, dialog, dropdown)
-                        end
-
-                        TraceFilters("trading_house.filters_dialog", "field_setup", {
-                            fn = "Filters.ShowFilterDialog",
-                            field = fieldKey,
-                            selected = selected == true,
-                            restored = dialogData[fieldKey] ~= nil,
-                            optionCount = #choices,
-                        })
-                    end,
-                    callback = function(dialog)
-                        local targetControl = dialog and dialog.entryList and dialog.entryList.GetTargetControl
-                            and dialog.entryList:GetTargetControl() or nil
-                        local dropdown = targetControl and targetControl.dropdown or nil
-                        if dropdown and dropdown.Activate then
-                            TryCall(dropdown.Activate, dropdown)
-                        end
-                    end,
-                    narrationText = rawget(_G, "ZO_GetDefaultParametricListDropdownNarrationText"),
-                },
-            }
-        end
-
-        local function SubmitDialog(dialog)
-            local data = dialog and dialog.data or {}
-            -- Blank price boxes must explicitly reset the native price feature;
-            -- omitted nils would leave a previous range untouched.
-            local spec = {
-                nameText = data.nameText or "",
-                priceMin = data.priceMin or 0,
-                priceMax = data.priceMax or 0,
-                qualityIndex = data.qualityIndex or 1,
-                categoryIndex = data.categoryIndex or 1,
-            }
-
-            TraceFilters("trading_house.filters_dialog", "confirm", { fn = "Filters.ShowFilterDialog", data = spec })
-            if Filters.SetBrowseFilterSpec(spec) then
-                if TH.BrowseComponent then
-                    TraceFilters("trading_house.filters_dialog", "execute_search", { fn = "Filters.ShowFilterDialog" })
-                    TH.BrowseComponent:ExecuteSearch()
-                end
-            end
-            if ZO_Dialogs_ReleaseDialogOnButtonPress then
-                ZO_Dialogs_ReleaseDialogOnButtonPress(FILTER_DIALOG_NAME)
-            end
-        end
-
-        local dialogInfo = {
-            _betteruiTradingHouseFilterDialog = true,
-            canQueue = true,
-            blockDialogReleaseOnPress = true,
-            gamepadInfo = {
-                dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
-            },
-            title = {
-                text = L("SI_BETTERUI_TH_FILTER_TITLE", "Edit Search Filters"),
-            },
-            setup = function(dialog)
-                dialog.data = dialog.data or {}
-                PopulateInitialDialogData(dialog.data)
-                dialog:setupFunc()
-            end,
-            parametricList = {
-                AddTextField("SI_BETTERUI_TH_FILTER_NAME", "nameText", false),
-                AddDropdownField("SI_BETTERUI_TH_FILTER_CATEGORY", "categoryIndex", BuildCategoryChoices),
-                AddTextField("SI_BETTERUI_TH_FILTER_PRICE_MIN", "priceMin", true),
-                AddTextField("SI_BETTERUI_TH_FILTER_PRICE_MAX", "priceMax", true),
-                AddDropdownField("SI_BETTERUI_TH_FILTER_QUALITY", "qualityIndex", BuildQualityChoices),
-            },
-            buttons = {
-                {
-                    keybind = "DIALOG_PRIMARY",
-                    text = SI_GAMEPAD_SELECT_OPTION,
-                    visible = function(dialog)
-                        local targetData = dialog and dialog.entryList and dialog.entryList.GetTargetData
-                            and dialog.entryList:GetTargetData() or nil
-                        return targetData and targetData.callback ~= nil
-                    end,
-                    enabled = function(dialog)
-                        local targetData = dialog and dialog.entryList and dialog.entryList.GetTargetData
-                            and dialog.entryList:GetTargetData() or nil
-                        if targetData and targetData.enabled ~= nil then
-                            if type(targetData.enabled) == "function" then
-                                return targetData.enabled(dialog)
-                            end
-                            return targetData.enabled
-                        end
-                        return true
-                    end,
-                    callback = function(dialog)
-                        local targetData = dialog and dialog.entryList and dialog.entryList.GetTargetData
-                            and dialog.entryList:GetTargetData() or nil
-                        if targetData and targetData.callback then
-                            targetData.callback(dialog)
-                        end
-                    end,
-                },
-                {
-                    keybind = "DIALOG_NEGATIVE",
-                    text = SI_DIALOG_CANCEL,
-                    callback = function()
-                        TraceFilters("trading_house.filters_dialog", "cancel", { fn = "Filters.ShowFilterDialog" })
-                        if ZO_Dialogs_ReleaseDialogOnButtonPress then
-                            ZO_Dialogs_ReleaseDialogOnButtonPress(FILTER_DIALOG_NAME)
-                        end
-                    end,
-                },
-                {
-                    keybind = "DIALOG_SECONDARY",
-                    text = SI_DIALOG_CONFIRM,
-                    callback = SubmitDialog,
-                },
-                {
-                    keybind = "DIALOG_RESET",
-                    text = L("SI_TRADING_HOUSE_RESET_SEARCH", "Reset"),
-                    callback = function(dialog)
-                        dialog.data = dialog.data or {}
-                        ResetDialogData(dialog.data)
-                        TraceFilters("trading_house.filters_dialog", "reset", { fn = "Filters.ShowFilterDialog" })
-                        if dialog.setupFunc then
-                            dialog:setupFunc()
-                        end
-                        if SCREEN_NARRATION_MANAGER and SCREEN_NARRATION_MANAGER.QueueDialog then
-                            TryCall(SCREEN_NARRATION_MANAGER.QueueDialog, SCREEN_NARRATION_MANAGER, dialog)
-                        end
-                    end,
-                },
-            },
-        }
-        if not (Dialogs and Dialogs.RegisterWithPriorChain and Dialogs.RegisterWithPriorChain(FILTER_DIALOG_NAME, dialogInfo)) then
-            TraceFilters("trading_house.filters_dialog", "show_skipped", {
-                fn = "Filters.ShowFilterDialog",
-                reason = "registryRejected",
-            })
-            return
-        end
-    end
-
-    TraceFilters("trading_house.filters_dialog", "shown", { fn = "Filters.ShowFilterDialog" })
-    ZO_Dialogs_ShowGamepadDialog(FILTER_DIALOG_NAME, {})
-end
+-- Dialog implementation lives in BrowseFilterDialog.lua; expose only the
+-- bounded helpers it needs so the pure filter/application module stays focused.
+Filters._TryCall = TryCall
+Filters._SafeCall = SafeCall
+Filters._SafeString = SafeString
+Filters._GetBrowseFeatures = GetBrowseFeatures
+Filters._BuildCategoryChoices = BuildCategoryChoices

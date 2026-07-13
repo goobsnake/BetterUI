@@ -40,6 +40,7 @@ local flowSource = read_file("Modules/TradingHouse/Core/TradingHouseRuntimeFlow.
 local classSource = read_file("Modules/TradingHouse/Core/TradingHouseClass.lua")
 local settingsSource = read_file("Modules/TradingHouse/Settings/SettingsPanel.lua")
 local browseSource = read_file("Modules/TradingHouse/Components/BrowseComponent.lua")
+local priceEntrySource = read_file("Modules/TradingHouse/Core/PriceEntry.lua")
 local manifestSource = read_file("BetterUI.txt")
 
 assert_contains(runtimeSource, "function TH.RegisterSceneLifecycle(instance)",
@@ -127,8 +128,72 @@ assert_contains(entrySource, "TH.RegisterCreateListingDialog()",
     "TradingHouse.lua delegates dialog registration to the runtime helper")
 assert_contains(entrySource, "TH.BuildCoreKeybinds(TH.instance)",
     "TradingHouse.lua delegates core keybind construction to the runtime helper")
-assert_contains(entrySource, "TH.BuildTabKeybinds(TH.instance)",
-    "TradingHouse.lua delegates tab keybind construction to the runtime helper")
+assert_not_contains(entrySource, "TH.BuildTabKeybinds(TH.instance)",
+    "TradingHouse.lua leaves LB/RB ownership exclusively with the generic carousel")
+assert_contains(runtimeSource, "ethereal = true",
+    "Trading House keeps carousel LB/RB functional but ethereal outside the footer strip")
+assert_contains(runtimeSource, "keybinds = { instance.coreKeybinds }",
+    "Trading House does not register a duplicate shoulder-navigation group")
+assert_contains(runtimeSource, "header.tabBar:Activate()",
+    "Trading House activates the header carousel for full-bright selected visuals")
+assert_contains(runtimeSource, "header.tabBar:Deactivate()",
+    "Trading House releases carousel keybind ownership when its scene closes")
+assert_contains(entrySource, "browse:GetResultCategories()",
+    "Browse mode builds its header carousel from the current result page categories")
+assert_contains(entrySource, 'category.key ~= "__all"',
+    "Trading House keeps Browse as the persistent All Items mode without a duplicate category")
+assert_contains(entrySource, "tabs[#tabs + 1] = {",
+    "Trading House appends populated result filters after its persistent mode tabs")
+assert_contains(entrySource, 'TH.BrowseComponent:SetResultCategory("__all", instance)',
+    "Selecting the persistent Browse mode restores the unfiltered result list")
+assert_contains(entrySource, "SetFixedCenterOffset(-50)",
+    "Trading House aligns its selected row with the tooltip-side selection chevron")
+assert_contains(entrySource, "tradingHousePostPadding = 15",
+    "Trading House uses the requested fifteen-pixel base row spacing")
+assert_contains(entrySource, "SetUniversalPostPadding(tradingHousePostPadding)",
+    "Trading House rows retain readable vertical separation")
+assert_contains(browseSource, 'entry, nil, nil, 30, 30)',
+    "Trading House Browse adds pronounced selected-row separation")
+assert_contains(read_file("Modules/TradingHouse/Components/SellComponent.lua"), 'entry, nil, nil, 30, 30)',
+    "Trading House Sell adds pronounced selected-row separation")
+assert_contains(read_file("Modules/TradingHouse/Components/SellComponent.lua"), 'GetMarketPriceInfo(itemLink, quantity)',
+    "Trading House Sell reuses the tooltip market-price integration")
+assert_contains(read_file("Modules/TradingHouse/Components/SellComponent.lua"), 'unitPrice * quantity',
+    "Trading House Sell calculates total market value from unit price and quantity")
+assert_contains(read_file("Modules/TradingHouse/Settings/SettingsPanel.lua"), 'useMarketPricesInSellList',
+    "Trading House settings expose the Sell-list market-price toggle")
+assert_contains(read_file("Modules/TradingHouse/Components/ListingsComponent.lua"), 'entry, nil, nil, 30, 30)',
+    "Trading House Listings adds pronounced selected-row separation")
+assert_contains(entrySource, "entryData.filterType = tab.categoryKey ~= nil",
+    "Trading House renders dynamic result categories white while persistent modes remain gold")
+assert_contains(priceEntrySource, "align == RIGHT",
+    "Trading House normalizes legacy anchor alignment constants for section row values")
+assert_contains(priceEntrySource, "TEXT_ALIGN_RIGHT",
+    "Trading House right-aligns Sell quantity and price values with their headers")
+assert_contains(priceEntrySource, 'ds.thColumnMode == "sell"',
+    "Trading House applies compact column geometry only to Sell rows")
+assert_contains(priceEntrySource, "ApplySellColumnGeometry(control)",
+    "Trading House separates Sell quantity, unit price, and total lanes")
+assert_contains(priceEntrySource, "Trait = { offset = 795, width = 180 }",
+    "Trading House centers Sell unit prices between quantity and total")
+assert_contains(entrySource, "TH.BrowseComponent:SetResultCategory(categoryKey, instance)",
+    "Trading House category-carousel changes filter the current browse results")
+assert_contains(browseSource, 'Browse.selectedResultCategoryKey = "__all"',
+    "Each received result page resets the local category selection to All Items")
+assert_contains(browseSource, "Browse.resultCategories = categories",
+    "Browse list construction publishes page-derived categories for the header")
+assert_contains(browseSource, "GetItemLinkFilterTypeInfo(itemLink)",
+    "Browse results use the ESO item-link filter API for semantic categories")
+assert_contains(browseSource, "taxonomy.BANK_CATEGORY_DEFS",
+    "Browse results reuse the shared inventory and banking category taxonomy")
+assert_contains(browseSource, "resultCategoryIcon = resultCategory.iconFile",
+    "Browse result categories use stable taxonomy artwork")
+assert_not_contains(browseSource, "icon = itemData.icon",
+    "Browse category icons never inherit arbitrary first-result item artwork")
+assert_contains(runtimeSource, "screen.list:Activate()",
+    "Trading House activates its item list once when the scene is shown")
+assert_not_contains(browseSource, "thInstance.list:Activate()",
+    "Category changes do not repeatedly reacquire directional input")
 assert_contains(entrySource, "TH.TakeOverNativeTradingHouse()",
     "TradingHouse.lua delegates native scene takeover to the runtime helper")
 assert_contains(entrySource, "TH.RegisterSceneLifecycle(TH.instance)",

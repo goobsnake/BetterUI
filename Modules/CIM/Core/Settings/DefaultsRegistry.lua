@@ -255,6 +255,7 @@ BETTERUI.Defaults.Modules = {
     TradingHouse = {
         -- Display Features
         enableCarousel = true, -- Modern tab navigation
+        useMarketPricesInSellList = false,
 
         -- Icon Visibility (all on by default)
         showIconEnchantment = true,

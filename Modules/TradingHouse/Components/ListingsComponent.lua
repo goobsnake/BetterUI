@@ -43,11 +43,11 @@ local function SafeGetIndexedString(prefix, value)
 end
 
 local LISTINGS_COLUMNS = {
-    { text = HeaderText("SI_BETTERUI_INV_HEADER_NAME", "NAME"), align = LEFT },
-    { text = "TIME", align = LEFT },
-    { text = "UNIT", align = RIGHT },
-    { text = "", align = RIGHT },
-    { text = "TOTAL", align = RIGHT },
+    { text = HeaderText("SI_BETTERUI_INV_HEADER_NAME", "NAME"), align = TEXT_ALIGN_LEFT },
+    { text = "TIME", align = TEXT_ALIGN_LEFT },
+    { text = "UNIT", align = TEXT_ALIGN_RIGHT },
+    { text = "", align = TEXT_ALIGN_RIGHT },
+    { text = "TOTAL", align = TEXT_ALIGN_RIGHT },
 }
 
 local function ApplyListingsHeaders(thInstance)
@@ -500,7 +500,7 @@ function Listings:BuildList(thInstance)
             entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
         end
 
-        list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+        list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry, nil, nil, 30, 30)
         renderedCount = renderedCount + 1
     end
     TraceListings("th.list", "end", thInstance, {

@@ -225,6 +225,14 @@ local SETTINGS_METADATA_REGISTRY = {
             sortGroup = "general",
             resetGroup = "general",
         },
+        useMarketPricesInSellList = {
+            labelStringId = SI_BETTERUI_TH_SELL_MARKET_PRICES,
+            tooltipStringId = SI_BETTERUI_TH_SELL_MARKET_PRICES_TOOLTIP,
+            defaultValue = false,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
     },
 
     Companions = {

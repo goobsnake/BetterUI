@@ -165,7 +165,11 @@ assert_true(vendor.abbreviateVendorCurrency, "Vendor.abbreviateVendorCurrency de
 print("\nTest: TradingHouse defaults")
 local th = BETTERUI.Defaults.Modules.TradingHouse
 assert_true(th.enableCarousel, "TradingHouse.enableCarousel defaults true")
+assert_false(th.useMarketPricesInSellList,
+    "TradingHouse.useMarketPricesInSellList defaults false")
 assert_not_nil(th.searchPresets, "TradingHouse.searchPresets defaults table exists")
+assert_nil(BETTERUI.Defaults.Modules.Vendor.useMarketPricesInSellList,
+    "Sell-list market pricing is not registered as a Vendor setting")
 assert_nil(next(th.searchPresets), "TradingHouse.searchPresets starts empty")
 
 print("\nTest: Companions defaults")

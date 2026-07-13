@@ -47,6 +47,7 @@ function TH.Settings.RegisterPanel(mId, moduleName)
         if not (BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup
                 and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("TradingHouse", "general")) then
             TH.SetSetting("enableCarousel", true)
+            TH.SetSetting("useMarketPricesInSellList", false)
         end
         RefreshTHWindow()
     end
@@ -76,6 +77,21 @@ function TH.Settings.RegisterPanel(mId, moduleName)
             RefreshTHWindow()
         end,
         default = true,
+        width = "full",
+    }
+
+    optionsData[#optionsData + 1] = {
+        type = "checkbox",
+        name = GetString(rawget(_G, "SI_BETTERUI_TH_SELL_MARKET_PRICES")),
+        tooltip = GetString(rawget(_G, "SI_BETTERUI_TH_SELL_MARKET_PRICES_TOOLTIP")),
+        getFunc = function()
+            return TH.GetSetting("useMarketPricesInSellList") == true
+        end,
+        setFunc = function(value)
+            TH.SetSetting("useMarketPricesInSellList", value)
+            RefreshTHWindow()
+        end,
+        default = false,
         width = "full",
     }
 

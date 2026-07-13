@@ -842,3 +842,5 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_TITLE", "複数個購入の確
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CONFIRM_BUY_FORMAT", "<<2>>を<<1>>個、<<3>>で購入しますか？")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM", "購入確認をスキップ")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_SKIP_BUY_CONFIRM_TOOLTIP", "有効にすると、複数個（2個以上）の購入が確認ダイアログなしで即座に行われます。")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES", "販売リストで市場価格を使用")
+ZO_CreateStringId("SI_BETTERUI_TH_SELL_MARKET_PRICES_TOOLTIP", "ギルド商人の販売リストに市場単価と数量に応じた市場総額を表示します。市場データがない場合は通常の売却価格を使用します。")
