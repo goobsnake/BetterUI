@@ -43,6 +43,9 @@ function BETTERUI.TradingHouse.InitModule(m_options)
     if m_options.m_enabled == nil then
         m_options.m_enabled = true
     end
+    if m_options.showMarketPrice == nil then
+        m_options.showMarketPrice = false
+    end
 
     return m_options
 end
