@@ -2,9 +2,10 @@
 File: Modules/TradingHouse/Core/TradingHouseClass.lua
 Purpose: Core class definition and mode-routing for the Trading House module.
 
-Component-tab model following the Vendor pattern: each tab is a separate
-"mode" with its own list builder and primary action. The active mode is
-tracked in self.currentMode, changed via SetMode().
+Component-mode model following the Vendor pattern: Browse, Sell, and My
+Listings each own a list builder, category set, and primary action. The active
+mode is tracked in self.currentMode and switched independently from LB/RB
+category navigation.
 
 ESO Reference: ZO_GamepadTradingHouse in
   esoui/ingame/tradinghouse/gamepad/tradinghouse_gamepad.lua
@@ -268,6 +269,9 @@ function BETTERUI.TradingHouse.Class:RefreshList()
     end
 
     TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "begin", self, nil)
+    if BETTERUI.TradingHouse.ListSearch then
+        BETTERUI.TradingHouse.ListSearch.UpdateNoItemText(self)
+    end
     self.list:Clear()
 
     local component = self:GetActiveComponent()
@@ -284,6 +288,9 @@ function BETTERUI.TradingHouse.Class:RefreshList()
     end
 
     self.list:Commit()
+    if self.MaintainListSearchFocus then
+        self:MaintainListSearchFocus()
+    end
     TraceTH(L and L.CATEGORY.LIST, "trading_house.list_refresh", "committed", self, {
         rowCount = CountTHList(self),
     })

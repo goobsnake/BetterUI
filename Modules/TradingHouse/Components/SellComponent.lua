@@ -11,6 +11,8 @@ local TH = BETTERUI.TradingHouse
 -- COMPONENT TABLE
 TH.SellComponent = {}
 local Sell = TH.SellComponent
+Sell.categories = Sell.categories or {}
+Sell.selectedCategoryKey = Sell.selectedCategoryKey or "__all"
 
 local function TraceSell(event, phase, thInstance, data, category)
     if type(TH.Trace) == "function" then
@@ -43,8 +45,8 @@ local SELL_COLUMNS = {
     { text = HeaderText("SI_BETTERUI_INV_HEADER_NAME", "NAME"), align = TEXT_ALIGN_LEFT, offset = 58, width = 500 },
     { text = "QTY", align = TEXT_ALIGN_RIGHT, offset = 516, width = 100 },
     { text = "UNIT", align = TEXT_ALIGN_RIGHT, offset = 704, width = 180 },
-    { text = "", align = TEXT_ALIGN_RIGHT },
-    { text = "TOTAL", align = TEXT_ALIGN_RIGHT, offset = 1047, width = 100 },
+    { text = "TOTAL", align = TEXT_ALIGN_RIGHT, offset = 922, width = 140 },
+    { text = "MARKET", align = TEXT_ALIGN_RIGHT, offset = 1117, width = 140 },
 }
 
 local function ApplySellHeaders(thInstance)
@@ -104,24 +106,12 @@ local function FormatColumnUnit(totalPrice, quantity)
 end
 
 local function ResolveSellDisplayPrices(itemLink, quantity, fallbackTotal)
-    quantity = math.max(1, tonumber(quantity) or 1)
-    if not (TH.GetSetting and TH.GetSetting("useMarketPricesInSellList") == true) then
+    if type(TH.ResolveTradingHouseMarketPrices) ~= "function" then
         return nil, fallbackTotal, false
     end
-
-    local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
-    if not (marketIntegration and type(marketIntegration.GetMarketPriceInfo) == "function") then
-        return nil, fallbackTotal, false
-    end
-
-    local priceInfo = marketIntegration.GetMarketPriceInfo(itemLink, quantity)
-    local unitPrice = priceInfo and tonumber(priceInfo.unitPrice) or nil
-    if not unitPrice or unitPrice <= 0 then
-        return nil, fallbackTotal, false
-    end
-
-    unitPrice = math.floor(unitPrice + 0.5)
-    return unitPrice, unitPrice * quantity, true
+    local unitPrice, marketTotal, hasMarketPrice =
+        TH.ResolveTradingHouseMarketPrices(itemLink, quantity)
+    return unitPrice, marketTotal or fallbackTotal, hasMarketPrice
 end
 
 Sell.ResolveSellDisplayPrices = ResolveSellDisplayPrices
@@ -357,6 +347,7 @@ end
 function Sell:BuildList(thInstance)
     local list = thInstance.list
     if not list then return end
+    Sell.categories = nil
 
     ApplySellHeaders(thInstance)
     if IsSellPermissionBlocked(thInstance) then
@@ -390,7 +381,7 @@ function Sell:BuildList(thInstance)
         bagSlots = bagSlots,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
 
-    local renderedCount = 0
+    local rows = {}
     for slotIndex = 0, bagSlots - 1 do
         -- Skip empty slots
         local stackCount = type(GetSlotStackSize) == "function" and GetSlotStackSize(bagId, slotIndex) or 0
@@ -446,10 +437,9 @@ function Sell:BuildList(thInstance)
                         end
                     end
 
-                    local marketUnitPrice, displayTotalPrice, usesMarketPrice =
+                    local _, marketTotalPrice, usesMarketPrice =
                         ResolveSellDisplayPrices(itemLink, displayStack, suggestedPrice)
-                    local displayUnitText = marketUnitPrice and FormatColumnCurrency(marketUnitPrice)
-                        or FormatColumnUnit(suggestedPrice, displayStack)
+                    local displayUnitText = FormatColumnUnit(suggestedPrice, displayStack)
 
                     local itemData = {
                         bagId        = bagId,
@@ -468,28 +458,37 @@ function Sell:BuildList(thInstance)
                         thColumn1Text = tostring(displayStack),
                         thColumn1Align = RIGHT,
                         thUnitText = displayUnitText,
-                        thSpacerText = "",
-                        thTotalText = FormatColumnCurrency(displayTotalPrice),
+                        thTotalText = FormatColumnCurrency(suggestedPrice),
+                        thMarketText = TH.FormatTradingHouseMarketValue(marketTotalPrice, usesMarketPrice),
                         usesMarketPrice = usesMarketPrice,
                         originalTraitName = traitName,
                         originalStatValue = statValue,
                         originalBestGamepadItemCategoryName = bestCategoryName,
                     }
 
-                    local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
-                    entry:SetDataSource(itemData)
-                    entry.narrationText = GetEntryNarrationText
-
-                    if quality and type(GetItemQualityColor) == "function" and ZO_ColorDef and ZO_ColorDef.New then
-                        local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
-                        entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-                    end
-
-                    list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry, nil, nil, 30, 30)
-                    renderedCount = renderedCount + 1
+                    rows[#rows + 1] = TH.ListCategories.Annotate(itemData)
                 end
             end
         end
+    end
+
+    rows = TH.ListCategories.Prepare(Sell, rows)
+    if TH.ListSearch then
+        rows = TH.ListSearch.FilterRows(thInstance, rows)
+    end
+    local renderedCount = 0
+    for _, itemData in ipairs(rows) do
+        local entry = ZO_GamepadEntryData:New(itemData.name, itemData.icon)
+        entry:SetDataSource(itemData)
+        entry.narrationText = GetEntryNarrationText
+
+        if itemData.quality and type(GetItemQualityColor) == "function" and ZO_ColorDef and ZO_ColorDef.New then
+            local r, g, b = GetItemQualityColor(itemData.quality):UnpackRGBA()
+            entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
+        end
+
+        list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry, nil, nil, 30, 30)
+        renderedCount = renderedCount + 1
     end
     TraceSell("th.list", "end", thInstance, {
         fn = "TradingHouse.SellComponent.BuildList",
@@ -497,4 +496,12 @@ function Sell:BuildList(thInstance)
         count = renderedCount,
         bagSlots = bagSlots,
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
+end
+
+function Sell:GetCategories()
+    return TH.ListCategories.Get(Sell)
+end
+
+function Sell:SetCategory(categoryKey, thInstance)
+    TH.ListCategories.Set(Sell, categoryKey, thInstance)
 end

@@ -187,15 +187,19 @@ GAMEPAD_TRADING_HOUSE_BROWSE = {
     features = {
         nameSearchFeature = {
             SetSearchText = function(self, text) nameTextSet = text end,
+            ResetSearch = function(self) self.resetCount = (self.resetCount or 0) + 1 end,
         },
         priceRangeFeature = {
             SetPriceRange = function(self, min, max) priceRangeSet = { min = min, max = max } end,
+            ResetSearch = function(self) self.resetCount = (self.resetCount or 0) + 1 end,
         },
         qualityFeature = {
             SelectChoice = function(self, index) qualityChoice = index end,
+            ResetSearch = function(self) self.resetCount = (self.resetCount or 0) + 1 end,
         },
         searchCategoryFeature = {
             SelectChoice = function(self, index) categoryChoice = index end,
+            ResetSearch = function(self) self.resetCount = (self.resetCount or 0) + 1 end,
         },
     }
 }
@@ -225,6 +229,25 @@ nameTextSet = nil
 assert_true(Filters.SetBrowseFilterSpec({ nameText = "ancestor silk" }),
     "GetFeatures method exposes native browse features")
 assert_eq(nameTextSet, "ancestor silk", "GetFeatures result drives native name filter")
+
+Filters.pendingSpec = { levelMin = 10, levelMax = 20 }
+local associatedResetFeatures = nil
+TRADING_HOUSE_SEARCH.AssociateWithSearchFeatures = function(_, features)
+    associatedResetFeatures = features
+end
+assert_true(Filters.ResetSearch(), "ResetSearch clears every native browse feature")
+assert_eq(Filters.pendingSpec, nil, "ResetSearch clears BetterUI-only pending filters")
+assert_eq(methodFeatures.nameSearchFeature.resetCount, 1, "ResetSearch clears the persistent name field")
+assert_eq(methodFeatures.searchCategoryFeature.resetCount, 1, "ResetSearch clears the selected category")
+assert_eq(methodFeatures.qualityFeature.resetCount, 1, "ResetSearch clears the selected quality")
+assert_eq(methodFeatures.priceRangeFeature.resetCount, 1, "ResetSearch clears the selected price range")
+assert_eq(associatedResetFeatures, methodFeatures,
+    "ResetSearch re-associates the exact edited feature set with TRADING_HOUSE_SEARCH")
+Filters.SetBrowseFilterSpec({
+    levelMin = 10,
+    levelMax = 40,
+    isChampionRank = false,
+})
 
 GAMEPAD_TRADING_HOUSE_BROWSE = nil
 local createdFeatureKeys = {}
@@ -277,8 +300,10 @@ assert_true(filterSource:find("_ownedDropdowns", 1, true) ~= nil,
     "all dialog dropdown controls remain owned until close")
 assert_true(filterSource:find("dropdown.HideDropdown", 1, true) ~= nil,
     "dialog close hides the shared gamepad dropdown control")
-assert_true(filterSource:find('keybind = "UI_SHORTCUT_RIGHT_STICK"', 1, true) ~= nil,
-    "filter reset retains the native right-stick assignment")
+assert_true(filterSource:find('keybind = "DIALOG_RESET"', 1, true) ~= nil,
+    "filter reset uses the generic gamepad dialog reset binding")
+assert_true(filterSource:find('keybind = "UI_SHORTCUT_RIGHT_STICK"', 1, true) == nil,
+    "filter dialog does not bypass generic dialog keybind routing")
 assert_true(filterSource:find("RestoreTradingHouseFocus", 1, true) ~= nil,
     "dialog close restores the owning Trading House scene focus")
 assert_true(filterSource:find("instance:UpdateTabHeader()", 1, true) ~= nil,
@@ -290,9 +315,17 @@ local runtimeFile = assert(io.open("Modules/TradingHouse/Core/TradingHouseRuntim
 local runtimeSource = runtimeFile:read("*a")
 runtimeFile:close()
 assert_true(runtimeSource:find('action = "changeGuild"', 1, true) ~= nil,
-    "tertiary keybind retains native change-guild behavior")
-assert_true(runtimeSource:find("GetTHCurrentMode(thInstance) == MODE.BROWSE", 1, true) ~= nil,
-    "edit-filters action remains available throughout browse flows")
+    "ordinary Y retains native change-guild behavior")
+assert_true(runtimeSource:find(
+    'TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_QUINARY", { action = "editFilters" })',
+    1, true) ~= nil,
+    "Quinary owns the edit-filters action")
+assert_true(runtimeSource:find("handlesKeyUp = true", 1, true) == nil,
+    "Guild and Edit Filters use independent descriptors without hold multiplexing")
+assert_true(runtimeSource:find('keybind = "UI_SHORTCUT_LEFT_STICK"', 1, true) ~= nil,
+    "left stick switches to one inactive Trading House list")
+assert_true(runtimeSource:find('keybind = "UI_SHORTCUT_RIGHT_STICK"', 1, true) ~= nil,
+    "right stick switches to the other inactive Trading House list")
 assert_true(runtimeSource:find('keybind = "UI_SHORTCUT_RIGHT_TRIGGER"', 1, true) ~= nil,
     "next-page action retains native right-trigger assignment")
 assert_true(runtimeSource:find('keybind = "UI_SHORTCUT_LEFT_TRIGGER"', 1, true) ~= nil,

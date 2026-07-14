@@ -493,6 +493,9 @@ function TH.AliasSceneToBetterUI()
 end
 
 function TH.ResetBrowseState()
+    if TH.BrowseFilters and TH.BrowseFilters.ResetSearch then
+        TH.BrowseFilters.ResetSearch()
+    end
     if TH.BrowseComponent then
         TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SEARCH, "trading_house.browse_state", "reset_begin", {
             fn = "TradingHouse.ResetBrowseState",
@@ -1215,8 +1218,8 @@ function TH.OnOpenTradingHouse()
             betterUiCleanupPending = true,
         })
         if not handoffOk then
-            DisassociateSearchFeatures()
             TH.ResetBrowseState()
+            DisassociateSearchFeatures()
             TH.AliasSceneToBetterUI()
         end
         return
@@ -1258,8 +1261,8 @@ function TH.OnCloseTradingHouse()
 
     -- Mirror native close flow (tradinghouse_gamepad.lua:509): disassociate
     -- search features and reset the search singleton's pending state.
-    DisassociateSearchFeatures()
     TH.ResetBrowseState()
+    DisassociateSearchFeatures()
 
     TH.AliasSceneToBetterUI()
     TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene", "close_complete", {

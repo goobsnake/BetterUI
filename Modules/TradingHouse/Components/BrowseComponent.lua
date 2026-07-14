@@ -71,7 +71,7 @@ local function GetHeaderColumnOffset(columnIndex)
     return orderedOffsets[columnIndex]
 end
 
-local function ApplyHeaderColumnAnchor(label, anchor, columnIndex)
+local function ApplyHeaderColumnAnchor(label, anchor, columnIndex, column)
     if not (label and anchor and label.SetAnchor and rawget(_G, "LEFT") and rawget(_G, "BOTTOMLEFT")) then
         return
     end
@@ -80,11 +80,12 @@ local function ApplyHeaderColumnAnchor(label, anchor, columnIndex)
     end
     local layout = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.LAYOUT
     local offsetY = layout and layout.COLUMN_HEADER_Y_OFFSET or 109
-    label:SetAnchor(LEFT, anchor, BOTTOMLEFT, GetHeaderColumnOffset(columnIndex), offsetY)
+    local columnOffset = column and column.offset or GetHeaderColumnOffset(columnIndex)
+    label:SetAnchor(LEFT, anchor, BOTTOMLEFT, columnOffset, offsetY)
 
     local widths = layout and layout.COLUMN_WIDTHS
-    if widths and label.SetDimensions then
-        label:SetDimensions(widths[columnIndex] or 100, 30)
+    if label.SetDimensions then
+        label:SetDimensions((column and column.width) or (widths and widths[columnIndex]) or 100, 30)
     end
 end
 
@@ -98,10 +99,13 @@ local function ApplyHeaderColumnSet(thInstance, columns, modeKey, phase)
     end
 
     local anchor = GetHeaderColumnAnchor(thInstance)
+    if not anchor then
+        return false
+    end
     for i, label in ipairs(headerColumns) do
         local column = columns[i]
         if label then
-            ApplyHeaderColumnAnchor(label, anchor, i)
+            ApplyHeaderColumnAnchor(label, anchor, i, column)
             local hidden = not column or column.hidden == true
             if label.SetText then
                 label:SetText(hidden and "" or (column.text or ""))
@@ -131,11 +135,13 @@ end
 local function ConfigureBrowseColumns(thInstance)
     local modeKey = "browse:" .. (Browse.sortAscending == false and "desc" or "asc")
     return ApplyHeaderColumnSet(thInstance, {
-        { text = "NAME", align = TEXT_ALIGN_LEFT },
-        { text = "TIME", align = TEXT_ALIGN_LEFT },
-        { text = "", hidden = true, mouseEnabled = false },
-        { text = GetBrowseHeaderLabel("UNIT", BROWSE_SORT_KEY_UNIT), align = TEXT_ALIGN_RIGHT },
-        { text = "TOTAL", align = TEXT_ALIGN_RIGHT },
+        { text = "NAME", align = TEXT_ALIGN_LEFT, offset = 58, width = 500 },
+        { text = "TIME", align = TEXT_ALIGN_RIGHT, offset = 516, width = 100 },
+        -- The Browse sort indicator follows UNIT inside this right-aligned label;
+        -- compensate so the visible UNIT text matches the Sell header position.
+        { text = GetBrowseHeaderLabel("UNIT", BROWSE_SORT_KEY_UNIT), align = TEXT_ALIGN_RIGHT, offset = 719, width = 180 },
+        { text = "TOTAL", align = TEXT_ALIGN_RIGHT, offset = 922, width = 140 },
+        { text = "MARKET", align = TEXT_ALIGN_RIGHT, offset = 1117, width = 140 },
     }, modeKey, "browse")
 end
 
@@ -163,38 +169,6 @@ local function NormalizeItemName(itemName)
         return zo_strformat(itemNameFormat, itemName)
     end
     return itemName
-end
-
-local function GetResultCategoryDefinition(itemLink)
-    local taxonomy = BETTERUI.CIM and BETTERUI.CIM.ItemTaxonomy
-    local definitions = taxonomy and taxonomy.BANK_CATEGORY_DEFS or {}
-    local filterType = itemLink and type(GetItemLinkFilterTypeInfo) == "function"
-        and GetItemLinkFilterTypeInfo(itemLink) or nil
-    local fallbackDefinition = nil
-
-    for order, definition in ipairs(definitions) do
-        if definition.key == "misc" then
-            fallbackDefinition = definition
-        elseif definition.key ~= "all" and definition.filterType == filterType then
-            return definition, order
-        end
-    end
-
-    return fallbackDefinition or {
-        key = "misc",
-        nameStringId = rawget(_G, "SI_BETTERUI_INV_ITEM_MISC"),
-        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds",
-    }, #definitions + 1
-end
-
-local function GetResultCategoryName(definition)
-    if definition and definition.nameStringId and type(GetString) == "function" then
-        local name = GetString(definition.nameStringId)
-        if name and name ~= "" then
-            return name
-        end
-    end
-    return definition and definition.key or "Miscellaneous"
 end
 
 local function ResolveUnitPrice(purchasePricePerUnit, purchasePrice, stackCount)
@@ -252,8 +226,8 @@ Browse.currentPage = 0
 Browse.hasMorePages = false
 Browse.searchPending = false
 Browse.resultsInvalidated = false
-Browse.resultCategories = Browse.resultCategories or {}
-Browse.selectedResultCategoryKey = Browse.selectedResultCategoryKey or "__all"
+Browse.categories = Browse.categories or {}
+Browse.selectedCategoryKey = Browse.selectedCategoryKey or "__all"
 Browse.deferredSearchToken = 0
 Browse.pendingBuyTrace = nil
 Browse.sortKey = BROWSE_SORT_KEY_UNIT
@@ -605,6 +579,9 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
     -- without this, category filters and loaded presets are inert. Page
     -- flips skip it and reuse the last executed filters instead.
     if not useLastExecutedSearchFilters then
+        if TH.BrowseFilters and TH.BrowseFilters.AssociateSearchFeatures then
+            TH.BrowseFilters.AssociateSearchFeatures()
+        end
         -- Fresh searches always start at page 0; native dispatches with
         -- targetPage or 0 (tradinghouse_shared.lua) and only page flips
         -- carry a page forward.
@@ -727,6 +704,39 @@ function Browse:ExecuteSearch(useLastExecutedSearchFilters)
     return true
 end
 
+---@param itemLink string
+---@param thInstance BETTERUI.TradingHouse.Class|nil
+---@return boolean dispatched
+function Browse:SearchForItemLink(itemLink, thInstance)
+    if type(itemLink) ~= "string" or itemLink == "" then
+        return false
+    end
+    if not (TRADING_HOUSE_SEARCH and type(TRADING_HOUSE_SEARCH.LoadSearchItem) == "function") then
+        TraceBrowse("trading_house.search_item", "blocked", thInstance or TH.instance, {
+            fn = "TradingHouse.BrowseComponent.SearchForItemLink",
+            reason = "missingLoadSearchItem",
+        })
+        return false
+    end
+
+    if TH.BrowseFilters and TH.BrowseFilters.AssociateSearchFeatures then
+        TH.BrowseFilters.AssociateSearchFeatures()
+    end
+    TRADING_HOUSE_SEARCH:LoadSearchItem(itemLink)
+
+    local instance = thInstance or TH.instance
+    if instance and instance.GetCurrentMode and instance:GetCurrentMode() ~= TH.MODE.BROWSE
+        and instance.SetMode then
+        instance:SetMode(TH.MODE.BROWSE)
+    end
+
+    TraceBrowse("trading_house.search_item", "loaded", instance, {
+        fn = "TradingHouse.BrowseComponent.SearchForItemLink",
+        itemLink = itemLink,
+    })
+    return Browse:ExecuteSearch()
+end
+
 function Browse:NextPage(thInstance)
     if not Browse.hasMorePages then
         TraceBrowse("trading_house.page", "next_skipped", thInstance, {
@@ -788,7 +798,7 @@ function Browse:OnSearchResultsReceived(thInstance)
     Browse.resultsInvalidated = false
     -- Each server page has its own result-category set. Begin on All Items and
     -- rebuild the carousel from the rows returned for this page.
-    Browse.selectedResultCategoryKey = "__all"
+    Browse.selectedCategoryKey = "__all"
 
     -- API 50: GetNumTradingHouseSearchResultsPages was removed. Paging state
     -- now comes from GetTradingHouseSearchResultsInfo() which returns
@@ -835,6 +845,10 @@ end
 function Browse:BuildList(thInstance)
     local list = thInstance.list
     if not list then return end
+    Browse.categories = nil
+    if TH.InstallTradingHouseSectionRowSetup then
+        TH.InstallTradingHouseSectionRowSetup()
+    end
     ConfigureBrowseColumns(thInstance)
 
     -- Stale results (e.g. after a guild switch) reference tradingHouseIndex
@@ -896,8 +910,6 @@ function Browse:BuildList(thInstance)
         if normalizedName and stack > 0 then
             local itemLink = GetTradingHouseSearchResultItemLink and GetTradingHouseSearchResultItemLink(i) or nil
             local quality = displayQuality or rawget(_G, "ITEM_DISPLAY_QUALITY_NORMAL") or 1
-            local resultCategory, resultCategoryOrder = GetResultCategoryDefinition(itemLink)
-
             local bestCategoryName = ""
             if itemLink and GetItemLinkItemType then
                 local itemType = GetItemLinkItemType(itemLink)
@@ -914,13 +926,15 @@ function Browse:BuildList(thInstance)
                 end
             end
 
+            local resolvedUnitPrice = ResolveUnitPrice(purchasePricePerUnit, purchasePrice, stack)
+            local resolvedPurchasePrice = tonumber(purchasePrice) or 0
             local itemData = {
                 tradingHouseIndex = i,
                 name             = normalizedName,
                 icon             = icon,
                 stackCount       = stack,
-                purchasePrice    = tonumber(purchasePrice) or 0,
-                unitPrice        = ResolveUnitPrice(purchasePricePerUnit, purchasePrice, stack),
+                purchasePrice    = resolvedPurchasePrice,
+                unitPrice        = resolvedUnitPrice,
                 currencyType     = currencyType or rawget(_G, "CURT_MONEY"),
                 quality          = quality,
                 sellerName       = sellerName or "",
@@ -929,63 +943,24 @@ function Browse:BuildList(thInstance)
                 itemUniqueId     = itemUniqueId,
                 traitName        = traitName,
                 bestGamepadItemCategoryName = bestCategoryName,
-                resultCategoryKey = resultCategory.key,
-                resultCategoryName = GetResultCategoryName(resultCategory),
-                resultCategoryIcon = resultCategory.iconFile,
-                resultCategoryOrder = resultCategoryOrder,
                 statValue        = "",
+                thColumnMode     = "browse",
+                thColumn1Text    = TH.FormatTradingHouseListingTimeRemaining(timeRemaining),
+                thColumn1Align   = RIGHT,
+                thUnitText       = TH.FormatTradingHouseColumnCurrency(resolvedUnitPrice),
+                thTotalText      = TH.FormatTradingHouseColumnCurrency(resolvedPurchasePrice),
+                thMarketText     = TH.FormatTradingHouseMarketTotal
+                    and TH.FormatTradingHouseMarketTotal(itemLink, stack) or "-",
             }
 
-            rows[#rows + 1] = itemData
+            rows[#rows + 1] = TH.ListCategories.Annotate(itemData)
         end
     end
 
     SortBrowseRows(rows)
-
-    local categoryByKey = {}
-    local categories = {
-        {
-            key = "__all",
-            name = GetResultCategoryName(BETTERUI.CIM.ItemTaxonomy.BANK_CATEGORY_DEFS[1]),
-            icon = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
-            order = 0,
-        },
-    }
-    for _, itemData in ipairs(rows) do
-        local key = itemData.resultCategoryKey
-        if not categoryByKey[key] then
-            categoryByKey[key] = true
-            categories[#categories + 1] = {
-                key = key,
-                name = itemData.resultCategoryName,
-                icon = itemData.resultCategoryIcon,
-                order = itemData.resultCategoryOrder,
-            }
-        end
-    end
-    table.sort(categories, function(a, b)
-        if a.key == b.key then return false end
-        if a.key == "__all" then return true end
-        if b.key == "__all" then return false end
-        return (a.order or 999) < (b.order or 999)
-    end)
-    Browse.resultCategories = categories
-
-    local selectedCategory = Browse.selectedResultCategoryKey or "__all"
-    local selectedExists = selectedCategory == "__all" or categoryByKey[selectedCategory] == true
-    if not selectedExists then
-        selectedCategory = "__all"
-        Browse.selectedResultCategoryKey = selectedCategory
-    end
-
-    if selectedCategory ~= "__all" then
-        local filteredRows = {}
-        for _, itemData in ipairs(rows) do
-            if itemData.resultCategoryKey == selectedCategory then
-                filteredRows[#filteredRows + 1] = itemData
-            end
-        end
-        rows = filteredRows
+    rows = TH.ListCategories.Prepare(Browse, rows)
+    if TH.ListSearch then
+        rows = TH.ListSearch.FilterRows(thInstance, rows)
     end
 
     local renderedCount = 0
@@ -1018,13 +993,15 @@ function Browse:BuildList(thInstance)
     }, BETTERUI.Log and BETTERUI.Log.CATEGORY.LIST)
 end
 
-function Browse:GetResultCategories()
-    return Browse.resultCategories or {}
+function Browse:GetCategories()
+    return TH.ListCategories.Get(Browse)
 end
 
-function Browse:SetResultCategory(categoryKey, thInstance)
-    Browse.selectedResultCategoryKey = categoryKey or "__all"
-    if thInstance and thInstance.RefreshList then
-        thInstance:RefreshList()
-    end
+function Browse:SetCategory(categoryKey, thInstance)
+    TH.ListCategories.Set(Browse, categoryKey, thInstance)
 end
+
+-- Compatibility aliases for saved integrations that used the first Browse-only
+-- category implementation.
+Browse.GetResultCategories = Browse.GetCategories
+Browse.SetResultCategory = Browse.SetCategory

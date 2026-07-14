@@ -72,6 +72,42 @@ function TH.FormatTradingHouseColumnUnitPrice(totalPrice, quantity)
     return TH.FormatTradingHouseColumnCurrency(math.floor((tonumber(totalPrice) or 0) / quantity))
 end
 
+function TH.ResolveTradingHouseMarketPrices(itemLink, quantity)
+    quantity = math.max(1, tonumber(quantity) or 1)
+    if not (TH.GetSetting and TH.GetSetting("useMarketPricesInSellList") == true) then
+        return nil, nil, false
+    end
+
+    local marketIntegration = BETTERUI.CIM and BETTERUI.CIM.MarketIntegration
+    if not (marketIntegration and type(marketIntegration.GetMarketPriceInfo) == "function") then
+        return nil, nil, false
+    end
+
+    local priceInfo = marketIntegration.GetMarketPriceInfo(itemLink, quantity)
+    local unitPrice = priceInfo and tonumber(priceInfo.unitPrice) or nil
+    if not unitPrice or unitPrice <= 0 then
+        return nil, nil, false
+    end
+
+    unitPrice = math.floor(unitPrice + 0.5)
+    return unitPrice, unitPrice * quantity, true
+end
+
+function TH.FormatTradingHouseMarketValue(marketTotal, hasMarketPrice)
+    if not hasMarketPrice then
+        return "-"
+    end
+    -- Market values deliberately omit the currency formatter. ESO's gamepad
+    -- currency markup embeds both a coin icon and its own amount color, which
+    -- overrides the gold color applied to the Market column label.
+    return FormatColumnNumber(marketTotal)
+end
+
+function TH.FormatTradingHouseMarketTotal(itemLink, quantity)
+    local _, marketTotal, hasMarketPrice = TH.ResolveTradingHouseMarketPrices(itemLink, quantity)
+    return TH.FormatTradingHouseMarketValue(marketTotal, hasMarketPrice)
+end
+
 function TH.FormatTradingHouseListingTimeRemaining(timeRemaining)
     timeRemaining = math.max(0, math.floor(tonumber(timeRemaining) or 0))
     local days = math.floor(timeRemaining / 86400)
@@ -248,9 +284,10 @@ local function GetBuiRowChild(control, name)
     return cache[name] or nil
 end
 
-local function ApplyColumnText(control, childName, text, align)
+local function ApplyColumnText(control, childName, text, align, useMarketPriceColor)
     local child = GetBuiRowChild(control, childName)
     if not child then return end
+    if child.SetHidden then child:SetHidden(text == nil or text == "") end
     if child.SetText then child:SetText(text or "") end
     -- SetHorizontalAlignment consumes TEXT_ALIGN_* values, not anchor-point
     -- constants such as RIGHT.
@@ -262,23 +299,34 @@ local function ApplyColumnText(control, childName, text, align)
     if child.SetHorizontalAlignment then
         child:SetHorizontalAlignment(align or TEXT_ALIGN_LEFT)
     end
-    if child.SetColor then child:SetColor(1, 1, 1, 1) end
+    if child.SetColor then
+        if useMarketPriceColor then
+            child:SetColor(1, 0.749019, 0, 1)
+        else
+            child:SetColor(1, 1, 1, 1)
+        end
+    end
 end
 
-local SELL_ROW_COLUMNS = {
+local TRADING_HOUSE_ROW_COLUMNS = {
     ItemType = { offset = 450, width = 100 },
     Trait = { offset = 795, width = 180 },
-    Value = { offset = 1050, width = 100 },
+    Stat = { offset = 965, width = 140 },
+    Value = { offset = 1165, width = 140 },
 }
 
-local function ApplySellColumnGeometry(control)
+local function ApplyTradingHouseColumnGeometry(control, hasMarketPrice)
     local label = GetBuiRowChild(control, "Label")
     if not label then return end
-    for childName, geometry in pairs(SELL_ROW_COLUMNS) do
+    for childName, geometry in pairs(TRADING_HOUSE_ROW_COLUMNS) do
         local child = GetBuiRowChild(control, childName)
         if child and child.ClearAnchors and child.SetAnchor then
             child:ClearAnchors()
-            child:SetAnchor(LEFT, label, LEFT, geometry.offset, 0)
+            local offset = geometry.offset
+            if childName == "Value" and hasMarketPrice then
+                offset = offset - 20
+            end
+            child:SetAnchor(LEFT, label, LEFT, offset, 0)
         end
         if child and child.SetWidth then
             child:SetWidth(geometry.width)
@@ -301,15 +349,16 @@ function TH.InstallTradingHouseSectionRowSetup()
             return
         end
 
-        if ds.thColumnMode == "sell" then
-            ApplySellColumnGeometry(control)
-        end
+        local marketText = ds.thMarketText or "-"
+        local hasMarketPrice = marketText ~= "-"
+        ApplyTradingHouseColumnGeometry(control, hasMarketPrice)
 
         -- Section rows reuse the inventory template but need TH-specific value columns.
         ApplyColumnText(control, "ItemType", ds.thColumn1Text or "", ds.thColumn1Align or TEXT_ALIGN_RIGHT)
         ApplyColumnText(control, "Trait", ds.thUnitText or "", TEXT_ALIGN_RIGHT)
-        ApplyColumnText(control, "Stat", ds.thSpacerText or "", TEXT_ALIGN_RIGHT)
-        ApplyColumnText(control, "Value", ds.thTotalText or "", TEXT_ALIGN_RIGHT)
+        ApplyColumnText(control, "Stat", ds.thTotalText or "", TEXT_ALIGN_RIGHT)
+        ApplyColumnText(control, "Value", marketText, TEXT_ALIGN_RIGHT,
+            hasMarketPrice)
     end
     TH._betteruiSectionRowSetupInstalled = true
     TracePriceEntry("trading_house.section_row_setup", "installed", {

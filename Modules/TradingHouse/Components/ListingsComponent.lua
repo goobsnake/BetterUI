@@ -11,6 +11,8 @@ local TH = BETTERUI.TradingHouse
 -- COMPONENT TABLE
 TH.ListingsComponent = {}
 local Listings = TH.ListingsComponent
+Listings.categories = Listings.categories or {}
+Listings.selectedCategoryKey = Listings.selectedCategoryKey or "__all"
 Listings.pendingCancelTrace = nil
 Listings.sortByTimeAscending = true
 local cancelDialogHooksInstalled = false
@@ -43,11 +45,11 @@ local function SafeGetIndexedString(prefix, value)
 end
 
 local LISTINGS_COLUMNS = {
-    { text = HeaderText("SI_BETTERUI_INV_HEADER_NAME", "NAME"), align = TEXT_ALIGN_LEFT },
-    { text = "TIME", align = TEXT_ALIGN_LEFT },
-    { text = "UNIT", align = TEXT_ALIGN_RIGHT },
-    { text = "", align = TEXT_ALIGN_RIGHT },
-    { text = "TOTAL", align = TEXT_ALIGN_RIGHT },
+    { text = HeaderText("SI_BETTERUI_INV_HEADER_NAME", "NAME"), align = TEXT_ALIGN_LEFT, offset = 58, width = 500 },
+    { text = "TIME", align = TEXT_ALIGN_RIGHT, offset = 516, width = 100 },
+    { text = "UNIT", align = TEXT_ALIGN_RIGHT, offset = 704, width = 180 },
+    { text = "TOTAL", align = TEXT_ALIGN_RIGHT, offset = 922, width = 140 },
+    { text = "MARKET", align = TEXT_ALIGN_RIGHT, offset = 1117, width = 140 },
 }
 
 local function ApplyListingsHeaders(thInstance)
@@ -365,6 +367,7 @@ end
 function Listings:BuildList(thInstance)
     local list = thInstance.list
     if not list then return end
+    Listings.categories = nil
 
     ApplyListingsHeaders(thInstance)
     if IsListingsPermissionBlocked(thInstance) then
@@ -464,15 +467,16 @@ function Listings:BuildList(thInstance)
                 statValue      = "",
                 thColumnMode   = "listings",
                 thColumn1Text  = timeText,
-                thColumn1Align = LEFT,
+                thColumn1Align = RIGHT,
                 thUnitText     = FormatColumnCurrency(unitPrice),
-                thSpacerText   = "",
                 thTotalText    = FormatColumnCurrency(totalPrice),
+                thMarketText   = TH.FormatTradingHouseMarketTotal
+                    and TH.FormatTradingHouseMarketTotal(itemLink, displayStack) or "-",
                 originalTraitName = traitName,
                 originalBestGamepadItemCategoryName = bestCategoryName,
             }
 
-            rows[#rows + 1] = itemData
+            rows[#rows + 1] = TH.ListCategories.Annotate(itemData)
         end
     end
 
@@ -488,6 +492,11 @@ function Listings:BuildList(thInstance)
         end
         return leftTime > rightTime
     end)
+
+    rows = TH.ListCategories.Prepare(Listings, rows)
+    if TH.ListSearch then
+        rows = TH.ListSearch.FilterRows(thInstance, rows)
+    end
 
     local renderedCount = 0
     for _, itemData in ipairs(rows) do
@@ -510,4 +519,12 @@ function Listings:BuildList(thInstance)
         listingCount = numListings,
         sortByTimeAscending = sortAscending,
     })
+end
+
+function Listings:GetCategories()
+    return TH.ListCategories.Get(Listings)
+end
+
+function Listings:SetCategory(categoryKey, thInstance)
+    TH.ListCategories.Set(Listings, categoryKey, thInstance)
 end

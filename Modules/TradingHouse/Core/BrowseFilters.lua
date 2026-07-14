@@ -158,6 +158,7 @@ end
 
 local standaloneBrowseFeatures
 
+---@return table|nil
 local function CreateStandaloneBrowseFeatures()
     if standaloneBrowseFeatures then return standaloneBrowseFeatures end
     if type(ZO_TradingHouse_CreateGamepadFeature) ~= "function" then return nil end
@@ -187,6 +188,7 @@ local function CreateStandaloneBrowseFeatures()
     return standaloneBrowseFeatures
 end
 
+---@return table|nil
 local function GetBrowseFeatures()
     local browse = rawget(_G, "GAMEPAD_TRADING_HOUSE_BROWSE")
     if browse and browse.GetFeatures then
@@ -195,6 +197,31 @@ local function GetBrowseFeatures()
     end
     if browse and browse.features then return browse.features end
     return CreateStandaloneBrowseFeatures()
+end
+
+---@return table|nil features
+function Filters.AssociateSearchFeatures()
+    local features = GetBrowseFeatures()
+    local search = rawget(_G, "TRADING_HOUSE_SEARCH")
+    if features and search and search.AssociateWithSearchFeatures then
+        TryCall(search.AssociateWithSearchFeatures, search, features)
+    end
+    return features
+end
+
+---@return boolean reset
+function Filters.ResetSearch()
+    local features = Filters.AssociateSearchFeatures()
+    if not features then
+        return false
+    end
+    for _, feature in pairs(features) do
+        if feature and feature.ResetSearch then
+            TryCall(feature.ResetSearch, feature)
+        end
+    end
+    Filters.pendingSpec = nil
+    return true
 end
 
 local function GetFirstSubcategoryKey(categoryParams)
@@ -273,7 +300,7 @@ function Filters.SetBrowseFilterSpec(spec)
         levelMax = spec.levelMax,
         isChampionRank = spec.isChampionRank,
     })
-    local features = GetBrowseFeatures()
+    local features = Filters.AssociateSearchFeatures()
     if not features then
         TraceFilters("trading_house.filters", "set_skipped", {
             fn = "Filters.SetBrowseFilterSpec",

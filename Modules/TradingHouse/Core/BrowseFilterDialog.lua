@@ -71,6 +71,9 @@ function Filters.ShowFilterDialog()
         local function RestoreTradingHouseFocus()
             local instance = TH.instance
             if not (instance and instance.IsSceneShowing and instance:IsSceneShowing()) then return end
+            if TH.ReleaseForeignCarouselKeybinds then
+                TH.ReleaseForeignCarouselKeybinds()
+            end
             if instance.UpdateTabHeader then
                 instance:UpdateTabHeader()
             end
@@ -640,7 +643,7 @@ function Filters.ShowFilterDialog()
                     callback = SubmitDialog,
                 },
                 {
-                    keybind = "UI_SHORTCUT_RIGHT_STICK",
+                    keybind = "DIALOG_RESET",
                     text = L("SI_TRADING_HOUSE_RESET_SEARCH", "Reset"),
                     callback = function(dialog)
                         dialog.data = dialog.data or {}

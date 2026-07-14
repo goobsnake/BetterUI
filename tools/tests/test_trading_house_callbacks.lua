@@ -153,6 +153,11 @@ BETTERUI.CIM.CONST = {
     },
 }
 
+BETTERUI.GenericHeader = {
+    Refresh = function() end,
+    AddToList = function() end,
+}
+
 KEYBIND_STRIP = {
     updateCount = 0,
 }
@@ -212,11 +217,16 @@ function TH.BrowseComponent:OnSearchResultsReceived(instance)
 end
 
 TH.SellComponent = {}
-TH.ListingsComponent = {}
+local listingSortCycleCount = 0
+TH.ListingsComponent = {
+    CycleSortType = function() listingSortCycleCount = listingSortCycleCount + 1 end,
+}
 TH.THEntrySetup = function()
 end
 
 local Class = {}
+local listSearchInitializeCount = 0
+local listSearchPositionCount = 0
 
 function Class:New(windowName, sceneName)
     local obj = {
@@ -227,22 +237,39 @@ function Class:New(windowName, sceneName)
         refreshListCount = 0,
         refreshFooterCount = 0,
         updateTabHeaderCount = 0,
+        activeComponent = {
+            selectedCategoryKey = "__all",
+            GetCategories = function()
+                return {
+                    { key = "__all", name = "All Items", icon = "all.dds" },
+                }
+            end,
+        },
+        headerGeneric = {
+            controls = {},
+            tabBar = {
+                Clear = function() end,
+                Commit = function() end,
+                SetSelectedIndexWithoutAnimation = function() end,
+            },
+        },
         list = {
             Clear = function()
             end,
             Commit = function()
             end,
-            GetTargetData = function()
-                return nil
+            GetTargetData = function(self)
+                return self.targetData
             end,
-            GetSelectedData = function()
-                return nil
+            GetSelectedData = function(self)
+                return self.targetData
             end,
         },
     }
     setmetatable(obj, { __index = self })
 
     function obj:SetTitle(_)
+        self.updateTabHeaderCount = self.updateTabHeaderCount + 1
     end
 
     function obj:RegisterComponent(_, _)
@@ -265,12 +292,16 @@ function Class:New(windowName, sceneName)
         return self.currentMode
     end
 
-    function obj:UpdateTabHeader()
-        self.updateTabHeaderCount = self.updateTabHeaderCount + 1
+    function obj:GetActiveComponent()
+        return self.activeComponent
     end
 
-    function obj:GetActiveComponent()
-        return nil
+    function obj:InitializeListSearch()
+        listSearchInitializeCount = listSearchInitializeCount + 1
+    end
+
+    function obj:PositionListSearchControl()
+        listSearchPositionCount = listSearchPositionCount + 1
     end
 
     function obj:RefreshList()
@@ -424,6 +455,7 @@ end
 
 local nativeOpenCount = 0
 local nativeCloseCount = 0
+local nativeSearchHistoryCount = 0
 local nativeOpenFails = false
 local nativeCloseFails = false
 TRADING_HOUSE_GAMEPAD = {
@@ -442,6 +474,9 @@ TRADING_HOUSE_GAMEPAD = {
         end
         nativeScene.showing = false
     end,
+    EnterSearchHistory = function()
+        nativeSearchHistoryCount = nativeSearchHistoryCount + 1
+    end,
 }
 
 dofile("Modules/TradingHouse/Core/TradingHouseRuntime.lua")
@@ -449,6 +484,10 @@ dofile("Modules/TradingHouse/Core/TradingHouseRuntimeFlow.lua")
 dofile("Modules/TradingHouse/TradingHouse.lua")
 
 TH.Init()
+assert_eq(listSearchInitializeCount, 1,
+    "Trading House init wires per-list search exactly once")
+assert_eq(listSearchPositionCount, 1,
+    "Initial category-header refresh positions the per-list search box")
 local cooldownCallback = getRegisteredCallback("BetterUI_TradingHouse_Cooldown")
 local responseCallback = getRegisteredCallback("BetterUI_TradingHouse_Response")
 local responseTimeoutCallback = getRegisteredCallback("BetterUI_TradingHouse_ResponseTimeout")
@@ -474,9 +513,136 @@ assert_eq(type(moneyUpdateCallback), "function", "money update callback is regis
 assert_eq(type(inventoryUpdateCallback), "function", "inventory update callback is registered")
 
 TH.instance:SetMode(TH.MODE.BROWSE)
-TH.instance:CycleTabs(1)
+local leftMode, rightMode = TH.GetAlternateModeBindings(TH.MODE.BROWSE)
+assert_eq(leftMode, nil,
+    "Browse hides the L3 return-to-Browse action")
+assert_eq(rightMode.mode, TH.MODE.SELL,
+    "Browse maps R3 to Sell")
+leftMode, rightMode = TH.GetAlternateModeBindings(TH.MODE.LISTINGS)
+assert_eq(leftMode.mode, TH.MODE.BROWSE,
+    "My Listings maps L3 back to Browse")
+assert_eq(rightMode.mode, TH.MODE.SELL,
+    "My Listings maps R3 to Sell")
+leftMode, rightMode = TH.GetAlternateModeBindings(TH.MODE.SELL)
+assert_eq(leftMode.mode, TH.MODE.BROWSE,
+    "Sell maps L3 back to Browse")
+assert_eq(rightMode.mode, TH.MODE.LISTINGS,
+    "Sell maps R3 to My Listings")
+
+local coreKeybinds = TH.BuildCoreKeybinds(TH.instance)
+local function FindKeybind(keybind)
+    for _, descriptor in ipairs(coreKeybinds) do
+        if type(descriptor) == "table" and descriptor.keybind == keybind then
+            return descriptor
+        end
+    end
+end
+
+local function CountKeybinds(keybind)
+    local count = 0
+    for _, descriptor in ipairs(coreKeybinds) do
+        if type(descriptor) == "table" and descriptor.keybind == keybind then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+local leftStick = FindKeybind("UI_SHORTCUT_LEFT_STICK")
+local rightStick = FindKeybind("UI_SHORTCUT_RIGHT_STICK")
+assert_eq(leftStick.name(), "", "Browse has no L3 label")
+assert_eq(type(leftStick.visible), "function", "L3 provides mode-aware visibility")
+assert_eq(leftStick.visible and leftStick.visible(), false, "Browse hides L3")
+assert_eq(rightStick.name(), "Sell", "Browse R3 label names Sell")
+rightStick.callback()
 assert_eq(TH.instance:GetCurrentMode(), TH.MODE.SELL,
-    "tab cycling follows the canonical tab order")
+    "Browse R3 callback loads Sell")
+assert_eq(leftStick.visible and leftStick.visible(), true, "Sell exposes L3 Browse")
+assert_eq(leftStick.name(), "Browse", "Sell maps Browse onto L3")
+assert_eq(rightStick.name(), "My Listings", "Sell rotates My Listings onto R3")
+rightStick.callback()
+assert_eq(TH.instance:GetCurrentMode(), TH.MODE.LISTINGS,
+    "Sell R3 callback loads My Listings")
+assert_eq(leftStick.name(), "Browse", "My Listings keeps Browse on L3")
+assert_eq(rightStick.name(), "Sell", "My Listings rotates Sell onto R3")
+leftStick.callback()
+assert_eq(TH.instance:GetCurrentMode(), TH.MODE.BROWSE,
+    "My Listings L3 callback returns to Browse")
+assert_eq(leftStick.visible and leftStick.visible(), false, "Returning to Browse hides L3 again")
+
+TH.instance:SetMode(TH.MODE.BROWSE)
+local filterOpenCount = 0
+local guildOpenCount = 0
+TH.BrowseFilters = {
+    ShowFilterDialog = function() filterOpenCount = filterOpenCount + 1 end,
+}
+GetNumTradingHouseGuilds = function() return 2 end
+ZO_Dialogs_ShowPlatformDialog = function() guildOpenCount = guildOpenCount + 1 end
+
+local function FindNamedKeybind(keybind, expectedName)
+    for _, descriptor in ipairs(coreKeybinds) do
+        if type(descriptor) == "table" and descriptor.keybind == keybind then
+            local name = type(descriptor.name) == "function" and descriptor.name() or descriptor.name
+            if name == expectedName then
+                return descriptor
+            end
+        end
+    end
+end
+
+local tertiary = FindNamedKeybind("UI_SHORTCUT_TERTIARY", "Guild")
+local editFilters = FindNamedKeybind("UI_SHORTCUT_QUINARY", "Edit Filters")
+assert_eq(type(tertiary), "table", "ordinary Y remains the Guild selector on Browse")
+assert_eq(CountKeybinds("UI_SHORTCUT_QUATERNARY"), 1, "core group owns exactly one Hold X descriptor")
+assert_eq(CountKeybinds("UI_SHORTCUT_QUINARY"), 1, "core group owns exactly one Hold Y descriptor")
+assert_eq(type(editFilters), "table", "Edit Filters uses the same Quinary binding as multi-select")
+if tertiary and editFilters then
+    assert_eq(tertiary.visible(), true, "Guild selector is visible on Browse")
+    assert_eq(editFilters.visible(), true, "Edit Filters is visible on Browse")
+    tertiary.callback()
+    assert_eq(guildOpenCount, 1, "ordinary Y opens Guild selection")
+    assert_eq(filterOpenCount, 0, "ordinary Y never opens Edit Filters")
+    editFilters.callback()
+    assert_eq(filterOpenCount, 1, "Quinary opens Edit Filters")
+
+    TH.instance:SetMode(TH.MODE.SELL)
+    assert_eq(tertiary.visible(), true, "Guild selector remains visible on Sell")
+    assert_eq(editFilters.visible(), false, "Edit Filters is hidden on Sell")
+    tertiary.callback()
+
+    TH.instance:SetMode(TH.MODE.LISTINGS)
+    assert_eq(tertiary.visible(), true, "Guild selector remains visible on My Listings")
+    assert_eq(editFilters.visible(), true, "My Listings reuses the Hold Y slot for sort")
+    tertiary.callback()
+    assert_eq(guildOpenCount, 3, "ordinary Y changes guild from every item list")
+end
+TH.instance:SetMode(TH.MODE.BROWSE)
+
+local holdX = FindKeybind("UI_SHORTCUT_QUATERNARY")
+local holdY = FindKeybind("UI_SHORTCUT_QUINARY")
+assert_eq(holdX.name(), "Recent Searches", "Browse Hold X is native Recent Searches")
+assert_eq(holdX.visible(), true, "Browse always exposes Recent Searches")
+holdX.callback()
+assert_eq(nativeOpenCount, 1, "Recent Searches hands off to the native Trading House")
+assert_eq(nativeSearchHistoryCount, 1, "Recent Searches enters the stock search-history section")
+TH.nativeHandoffActive = false
+TH.nativeHandoffNeedsBetterUICleanup = false
+nativeScene.showing = false
+TH.AliasSceneToBetterUI()
+
+TH.instance:SetMode(TH.MODE.SELL)
+TH.instance.list.targetData = { itemLink = "|H1:item:1|hItem|h" }
+assert_eq(holdX.name(), "Search For Item", "Sell Hold X remains Search For Item")
+assert_eq(holdY.visible(), false, "Sell hides the Hold Y Browse action")
+
+TH.instance:SetMode(TH.MODE.LISTINGS)
+assert_eq(holdX.name(), "Search For Item", "My Listings Hold X remains Search For Item")
+assert_eq(holdY.visible(), true, "My Listings reuses the single Hold Y slot for sort")
+holdY.callback()
+assert_eq(listingSortCycleCount, 1, "My Listings Hold Y cycles listing sort")
+
+TH.instance:SetMode(TH.MODE.BROWSE)
+TH.instance.list.targetData = nil
 
 -- U50: search results arrive through the response event with the
 -- TRADING_HOUSE_RESULT_SEARCH_PENDING response type.

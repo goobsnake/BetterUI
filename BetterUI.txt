@@ -247,12 +247,14 @@ Modules\Writs\Module.lua
 ; Module: Trading House (TH-001)
 Modules\TradingHouse\Module.lua
 Modules\TradingHouse\Core\TradingHouseClass.lua
+Modules\TradingHouse\Core\ListSearch.lua
 Modules\TradingHouse\Core\TradingHouseRowSetup.lua
 Modules\TradingHouse\Core\TradingHouseRuntime.lua
 Modules\TradingHouse\Core\TradingHouseRuntimeFlow.lua
 Modules\TradingHouse\Core\BrowseFilters.lua
 Modules\TradingHouse\Core\BrowseFilterDialog.lua
 Modules\TradingHouse\Core\PriceEntry.lua
+Modules\TradingHouse\Core\ListCategories.lua
 Modules\TradingHouse\Components\BrowseComponent.lua
 Modules\TradingHouse\Components\SellComponent.lua
 Modules\TradingHouse\Components\ListingsComponent.lua

@@ -41,17 +41,36 @@ local function QueueTradingHouseNarration()
     end
 end
 
----@alias THTabDef {mode: number, name: fun(): string}
+---@alias THModeDef {mode: number, name: fun(): string}
 ---@alias TradingHouseSelectionPayload {dataSource: table|nil, bagId: integer|nil, slotIndex: integer|nil}
 ---@alias TradingHouseSceneLifecyclePayload {keybinds: table[], taskManager: table|nil, onShowing: fun(screen: BETTERUI.TradingHouse.Class), onHiding: fun(screen: BETTERUI.TradingHouse.Class), onHidden: fun(screen: BETTERUI.TradingHouse.Class)}
 ---@alias TradingHouseKeybindGroup table
 
----@type THTabDef[]
-local TH_TABS = {
-    { mode = MODE.BROWSE,   name = function() return GetTHRuntimeString("SI_BETTERUI_TH_TAB_BROWSE", "SI_TRADING_HOUSE_MODE_BROWSE", "Browse") end },
-    { mode = MODE.SELL,     name = function() return GetTHRuntimeString("SI_BETTERUI_TH_TAB_SELL", "SI_TRADING_HOUSE_MODE_SELL", "Sell") end },
-    { mode = MODE.LISTINGS, name = function() return GetTHRuntimeString("SI_BETTERUI_TH_TAB_LISTINGS", "SI_TRADING_HOUSE_MODE_LISTINGS", "Listings") end },
+---@type table<number, THModeDef>
+local TH_MODE_DEFINITIONS = {
+    [MODE.BROWSE] = { mode = MODE.BROWSE, name = function() return GetTHRuntimeString("SI_BETTERUI_TH_TAB_BROWSE", "SI_TRADING_HOUSE_MODE_BROWSE", "Browse") end },
+    [MODE.LISTINGS] = { mode = MODE.LISTINGS, name = function() return GetTHRuntimeString("SI_BETTERUI_TH_TAB_LISTINGS", "SI_TRADING_HOUSE_MODE_LISTINGS", "My Listings") end },
+    [MODE.SELL] = { mode = MODE.SELL, name = function() return GetTHRuntimeString("SI_BETTERUI_TH_TAB_SELL", "SI_TRADING_HOUSE_MODE_SELL", "Sell") end },
 }
+
+---@param mode number
+---@return THModeDef|nil definition
+function TH.GetModeDefinition(mode)
+    return TH_MODE_DEFINITIONS[mode]
+end
+
+---@param currentMode number
+---@return THModeDef|nil leftMode, THModeDef|nil rightMode
+function TH.GetAlternateModeBindings(currentMode)
+    if currentMode == MODE.BROWSE then
+        return nil, TH_MODE_DEFINITIONS[MODE.SELL]
+    elseif currentMode == MODE.SELL then
+        return TH_MODE_DEFINITIONS[MODE.BROWSE], TH_MODE_DEFINITIONS[MODE.LISTINGS]
+    elseif currentMode == MODE.LISTINGS then
+        return TH_MODE_DEFINITIONS[MODE.BROWSE], TH_MODE_DEFINITIONS[MODE.SELL]
+    end
+    return nil, TH_MODE_DEFINITIONS[MODE.SELL]
+end
 
 local TraceTHRuntime = (BETTERUI.Log and BETTERUI.Log.MakeTracer)
     and BETTERUI.Log.MakeTracer{ module = "TradingHouse", feature = "trading-house", category = BETTERUI.Log.CATEGORY.ACTION }
@@ -153,7 +172,7 @@ local function SearchForSelectedTHItem(thInstance)
     end
 
     if TH.BrowseComponent and type(TH.BrowseComponent.SearchForItemLink) == "function" then
-        TH.BrowseComponent:SearchForItemLink(itemLink)
+        TH.BrowseComponent:SearchForItemLink(itemLink, thInstance)
     elseif type(TH.SearchForItemLink) == "function" then
         TH.SearchForItemLink(itemLink)
     elseif type(thInstance.SearchForItemLink) == "function" then
@@ -161,35 +180,91 @@ local function SearchForSelectedTHItem(thInstance)
     elseif TRADING_HOUSE_GAMEPAD and type(TRADING_HOUSE_GAMEPAD.SearchForItemLink) == "function" then
         TRADING_HOUSE_GAMEPAD:SearchForItemLink(itemLink)
     else
-        TraceTHKeybind(thInstance, "skipped", "UI_SHORTCUT_SECONDARY", { reason = "missingSearchForItemHandler" })
+        TraceTHKeybind(thInstance, "skipped", "UI_SHORTCUT_QUATERNARY", { reason = "missingSearchForItemHandler" })
         return
     end
-    TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_SECONDARY", { action = "searchForItem" })
+    TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_QUATERNARY", { action = "searchForItem" })
 end
 
-local function CanTHResetBrowseSearch()
-    local browse = TH.BrowseComponent or {}
-    local filters = TH.BrowseFilters or {}
-    return type(browse.ResetSearch) == "function"
-        or type(browse.ResetFilterValuesToDefaults) == "function"
-        or type(filters.ResetSearch) == "function"
-        or type(filters.ResetFilterValuesToDefaults) == "function"
-end
-
-local function ResetTHBrowseSearch(thInstance)
-    if TH.BrowseComponent and type(TH.BrowseComponent.ResetSearch) == "function" then
-        TH.BrowseComponent:ResetSearch(thInstance)
-    elseif TH.BrowseComponent and type(TH.BrowseComponent.ResetFilterValuesToDefaults) == "function" then
-        TH.BrowseComponent:ResetFilterValuesToDefaults(thInstance)
-    elseif TH.BrowseFilters and type(TH.BrowseFilters.ResetSearch) == "function" then
-        TH.BrowseFilters.ResetSearch(thInstance)
-    elseif TH.BrowseFilters and type(TH.BrowseFilters.ResetFilterValuesToDefaults) == "function" then
-        TH.BrowseFilters.ResetFilterValuesToDefaults(thInstance)
-    else
-        TraceTHKeybind(thInstance, "skipped", "UI_SHORTCUT_RIGHT_STICK", { reason = "missingResetHandler" })
-        return
+local function OpenTHRecentSearches(thInstance)
+    local nativeTradingHouse = rawget(_G, "TRADING_HOUSE_GAMEPAD")
+    if not (nativeTradingHouse and type(nativeTradingHouse.EnterSearchHistory) == "function") then
+        TraceTHKeybind(thInstance, "skipped", "UI_SHORTCUT_QUATERNARY", {
+            reason = "missingNativeSearchHistory",
+        })
+        return false
     end
-    TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_RIGHT_STICK", { action = "resetSearch" })
+
+    local handoffOk = false
+    if type(TH.HandOffToNativeTradingHouse) == "function" then
+        handoffOk = TH.HandOffToNativeTradingHouse("recentSearches", {
+            interactionType = GetInteractionType and GetInteractionType() or nil,
+        })
+    elseif type(nativeTradingHouse.OpenTradingHouse) == "function" then
+        handoffOk = pcall(nativeTradingHouse.OpenTradingHouse, nativeTradingHouse)
+    end
+    if handoffOk ~= true then
+        TraceTHKeybind(thInstance, "skipped", "UI_SHORTCUT_QUATERNARY", {
+            reason = "nativeHandoffFailed",
+        })
+        return false
+    end
+
+    local ok, err = pcall(nativeTradingHouse.EnterSearchHistory, nativeTradingHouse)
+    if not ok then
+        if BETTERUI.Log then
+            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "recent searches open failed", {
+                error = tostring(err),
+            })
+        end
+        return false
+    end
+    TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_QUATERNARY", {
+        action = "recentSearches",
+    })
+    return true
+end
+
+local function CanOpenTHBrowseFilters(thInstance)
+    return GetTHCurrentMode(thInstance) == MODE.BROWSE
+        and TH.BrowseFilters ~= nil
+        and type(TH.BrowseFilters.ShowFilterDialog) == "function"
+end
+
+local function OpenTHBrowseFilters(thInstance)
+    if not CanOpenTHBrowseFilters(thInstance) then
+        return false
+    end
+    TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_QUINARY", { action = "editFilters" })
+    local ok, err = pcall(TH.BrowseFilters.ShowFilterDialog)
+    if not ok and BETTERUI.Log then
+        BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "filter dialog opened", { error = err })
+    end
+    return ok
+end
+
+local function ChangeTradingHouseGuild(thInstance)
+    if not (GetNumTradingHouseGuilds and GetNumTradingHouseGuilds() > 1) then
+        return false
+    end
+    TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_TERTIARY", { action = "changeGuild" })
+    if ZO_Dialogs_ShowPlatformDialog then
+        ZO_Dialogs_ShowPlatformDialog("TRADING_HOUSE_CHANGE_ACTIVE_GUILD")
+        return true
+    end
+    return false
+end
+
+local function SwitchTradingHouseMode(thInstance, bindingIndex, keybind)
+    local leftMode, rightMode = TH.GetAlternateModeBindings(GetTHCurrentMode(thInstance))
+    local target = bindingIndex == 1 and leftMode or rightMode
+    if not (target and thInstance and thInstance.SetMode) then return end
+    TraceTHKeybind(thInstance, "activated", keybind, {
+        action = "switchMode",
+        targetMode = target.mode,
+        targetModeName = target.name(),
+    })
+    thInstance:SetMode(target.mode)
 end
 
 local function GetTHListingSortKeybindName()
@@ -222,6 +297,21 @@ function TH.RegisterComponents(instance)
     end
 end
 
+local function LayoutTradingHouseSelectionTooltip(ds)
+    if not GAMEPAD_TOOLTIPS then
+        return
+    end
+    if ds and ds.bagId and ds.slotIndex then
+        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
+    elseif ds and type(ds.itemLink) == "string" and ds.itemLink ~= ""
+        and type(GAMEPAD_TOOLTIPS.LayoutItem) == "function" then
+        GAMEPAD_TOOLTIPS:LayoutItem(GAMEPAD_LEFT_TOOLTIP, ds.itemLink)
+    else
+        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+    end
+    GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+end
+
 ---@param instance BETTERUI.TradingHouse.Class
 ---@return nil
 function TH.SetupSelectionTooltip(instance)
@@ -242,15 +332,7 @@ function TH.SetupSelectionTooltip(instance)
                 listingIndex = ds and (ds.index or ds.listingIndex) or nil,
                 hasTooltips = GAMEPAD_TOOLTIPS ~= nil,
             })
-            if not GAMEPAD_TOOLTIPS then
-                return
-            end
-            if ds and ds.bagId and ds.slotIndex then
-                GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
-            else
-                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-            end
-            GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+            LayoutTradingHouseSelectionTooltip(ds)
         end)
     end
 end
@@ -296,6 +378,21 @@ function TH.CreateScene(instance)
     return scene
 end
 
+---@return nil
+function TH.ReleaseForeignCarouselKeybinds()
+    local inventory = rawget(_G, "GAMEPAD_INVENTORY")
+    local tabBar = inventory and inventory.header and inventory.header.tabBar or nil
+    local descriptor = tabBar and tabBar.keybindStripDescriptor or nil
+    if tabBar and tabBar.Deactivate then
+        tabBar:Deactivate()
+    end
+    local removeFromAllStates = BETTERUI.Interface
+        and BETTERUI.Interface.RemoveKeybindGroupFromAllStates
+    if descriptor and type(removeFromAllStates) == "function" then
+        removeFromAllStates(descriptor)
+    end
+end
+
 ---@param instance BETTERUI.TradingHouse.Class
 ---@return nil
 function TH.RegisterSceneLifecycle(instance)
@@ -307,6 +404,8 @@ function TH.RegisterSceneLifecycle(instance)
         keybinds = { instance.coreKeybinds },
         taskManager = TH.Tasks,
         onShowing = function(screen)
+            if screen.ResetListSearch then screen:ResetListSearch() end
+            TH.ReleaseForeignCarouselKeybinds()
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             screen:RefreshTHFooter()
             screen:RefreshList()
@@ -325,18 +424,14 @@ function TH.RegisterSceneLifecycle(instance)
             if screen.list and screen.list.Activate then
                 screen.list:Activate()
             end
-            if screen.list and GAMEPAD_TOOLTIPS then
+            if screen.list then
                 local selectedData = screen.list:GetTargetData()
                 local ds = selectedData and (selectedData.dataSource or selectedData) or nil
-                if ds and ds.bagId and ds.slotIndex then
-                    GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
-                else
-                    GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-                end
-                GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+                LayoutTradingHouseSelectionTooltip(ds)
             end
         end,
         onHiding = function(screen)
+            if screen.ResetListSearch then screen:ResetListSearch() end
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             local headerContainer = screen.header
             local header = headerContainer and (headerContainer.header
@@ -460,69 +555,81 @@ function TH.BuildCoreKeybinds(thInstance)
                 return GetNumTradingHouseGuilds and GetNumTradingHouseGuilds() > 1
             end,
             callback = function()
-                TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_TERTIARY", { action = "changeGuild" })
-                if ZO_Dialogs_ShowPlatformDialog then
-                    ZO_Dialogs_ShowPlatformDialog("TRADING_HOUSE_CHANGE_ACTIVE_GUILD")
-                end
+                ChangeTradingHouseGuild(thInstance)
             end,
         },
         {
             name = function()
-                if not IsTHBrowseFiltersSection(thInstance) then return "" end
-                if CanTHResetBrowseSearch() then
-                    return GetTHRuntimeString("SI_TRADING_HOUSE_RESET_SEARCH", nil, "Reset Search")
+                if GetTHCurrentMode(thInstance) == MODE.LISTINGS then
+                    return GetTHListingSortKeybindName()
                 end
-                return GetTHRuntimeString("SI_BETTERUI_TH_SAVE_PRESET", nil, "Save Preset")
+                return GetTHRuntimeString("SI_BETTERUI_TH_FILTER_KEYBIND", nil, "Edit Filters")
+            end,
+            keybind = "UI_SHORTCUT_QUINARY",
+            visible = function()
+                if CanOpenTHBrowseFilters(thInstance) then
+                    return true
+                end
+                return GetTHCurrentMode(thInstance) == MODE.LISTINGS
+                    and TH.ListingsComponent ~= nil
+                    and type(TH.ListingsComponent.CycleSortType) == "function"
+            end,
+            callback = function()
+                if GetTHCurrentMode(thInstance) == MODE.LISTINGS then
+                    TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_QUINARY", {
+                        action = "changeListingSort",
+                    })
+                    TH.ListingsComponent:CycleSortType(thInstance)
+                    return
+                end
+                OpenTHBrowseFilters(thInstance)
+            end,
+        },
+        {
+            name = function()
+                local leftMode = TH.GetAlternateModeBindings(GetTHCurrentMode(thInstance))
+                return leftMode and leftMode.name() or ""
+            end,
+            keybind = "UI_SHORTCUT_LEFT_STICK",
+            visible = function()
+                return GetTHCurrentMode(thInstance) ~= MODE.BROWSE
+            end,
+            callback = function()
+                SwitchTradingHouseMode(thInstance, 1, "UI_SHORTCUT_LEFT_STICK")
+            end,
+        },
+        {
+            name = function()
+                local _, rightMode = TH.GetAlternateModeBindings(GetTHCurrentMode(thInstance))
+                return rightMode and rightMode.name() or ""
             end,
             keybind = "UI_SHORTCUT_RIGHT_STICK",
-            visible = function()
-                return IsTHBrowseFiltersSection(thInstance)
-                    and (CanTHResetBrowseSearch()
-                        or (TH.SearchPresets ~= nil and type(TH.SearchPresets.ShowSaveDialog) == "function"))
-            end,
             callback = function()
-                if CanTHResetBrowseSearch() then
-                    ResetTHBrowseSearch(thInstance)
-                else
-                    TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_RIGHT_STICK", { action = "savePreset" })
-                    TH.SearchPresets.ShowSaveDialog()
-                end
+                SwitchTradingHouseMode(thInstance, 2, "UI_SHORTCUT_RIGHT_STICK")
             end,
         },
         {
             name = function()
-                local id = rawget(_G, "SI_BETTERUI_TH_FILTER_KEYBIND")
-                if id and GetString then
-                    local ok, value = pcall(GetString, id)
-                    if ok and value and value ~= "" then return value end
+                if GetTHCurrentMode(thInstance) == MODE.BROWSE then
+                    return GetTHRuntimeString("SI_TRADING_HOUSE_SEARCH_HISTORY_TITLE", nil, "Recent Searches")
                 end
-                return "Edit Filters"
-            end,
-            keybind = rawget(_G, "UI_SHORTCUT_LEFT_STICK") or "UI_SHORTCUT_LEFT_STICK",
-            visible = function()
-                return GetTHCurrentMode(thInstance) == MODE.BROWSE
-                    and TH.BrowseFilters ~= nil
-                    and type(TH.BrowseFilters.ShowFilterDialog) == "function"
-            end,
-            callback = function()
-                TraceTHKeybind(thInstance, "activated", rawget(_G, "UI_SHORTCUT_LEFT_STICK") or "UI_SHORTCUT_LEFT_STICK", { action = "editFilters" })
-                local ok, err = pcall(TH.BrowseFilters.ShowFilterDialog)
-                if not ok and BETTERUI.Log then
-                    BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "filter dialog opened", { error = err })
-                end
-            end,
-        },
-        {
-            name = function()
                 return GetTHRuntimeString("SI_TRADING_HOUSE_SEARCH_FROM_ITEM", nil, "Search For Item")
             end,
             keybind = "UI_SHORTCUT_QUATERNARY",
             visible = function()
                 local mode = GetTHCurrentMode(thInstance)
-                return (IsTHBrowseResultsSection(thInstance) or mode == MODE.SELL or mode == MODE.LISTINGS)
+                if mode == MODE.BROWSE then
+                    return rawget(_G, "TRADING_HOUSE_GAMEPAD") ~= nil
+                        and type(TRADING_HOUSE_GAMEPAD.EnterSearchHistory) == "function"
+                end
+                return (mode == MODE.SELL or mode == MODE.LISTINGS)
                     and (GetTHListTargetData(thInstance) or {}).itemLink ~= nil
             end,
             callback = function()
+                if GetTHCurrentMode(thInstance) == MODE.BROWSE then
+                    OpenTHRecentSearches(thInstance)
+                    return
+                end
                 SearchForSelectedTHItem(thInstance)
             end,
         },
@@ -532,19 +639,6 @@ function TH.BuildCoreKeybinds(thInstance)
             callback = function()
                 TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_NEGATIVE", { action = "back" })
                 SCENE_MANAGER:HideCurrentScene()
-            end,
-        },
-        {
-            name = GetTHListingSortKeybindName,
-            keybind = "UI_SHORTCUT_RIGHT_STICK",
-            visible = function()
-                return GetTHCurrentMode(thInstance) == MODE.LISTINGS
-                    and TH.ListingsComponent ~= nil
-                    and type(TH.ListingsComponent.CycleSortType) == "function"
-            end,
-            callback = function()
-                TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_RIGHT_STICK", { action = "changeListingSort" })
-                TH.ListingsComponent:CycleSortType(thInstance)
             end,
         },
         {
@@ -618,49 +712,6 @@ function TH.BuildTabKeybinds(thInstance)
             end,
         },
     })
-end
-
-function BETTERUI.TradingHouse.Class:CycleTabs(direction)
-    if #TH_TABS <= 1 then
-        return
-    end
-
-    local currentMode = self:GetCurrentMode()
-    local currentIndex = 1
-    for i, tab in ipairs(TH_TABS) do
-        if tab.mode == currentMode then
-            currentIndex = i
-            break
-        end
-    end
-
-    local newIndex
-    if TH.GetSetting("enableCarousel") == false then
-        newIndex = currentIndex + direction
-        if newIndex < 1 or newIndex > #TH_TABS then
-            return
-        end
-    else
-        newIndex = ((currentIndex - 1 + direction) % #TH_TABS) + 1
-    end
-    self:SetMode(TH_TABS[newIndex].mode)
-    self:UpdateTabHeader()
-end
-
-function BETTERUI.TradingHouse.Class:UpdateTabHeader()
-    local currentMode = self:GetCurrentMode()
-
-    for _, tab in ipairs(TH_TABS) do
-        if tab.mode == currentMode then
-            local tabName = tab.name()
-            local guildName = self:GetCurrentGuildName()
-            local title = "|c0066FF" .. guildName .. "|r - " .. tabName
-            if self.header and self.header.SetTitle then
-                self.header:SetTitle(title)
-            end
-            break
-        end
-    end
 end
 
 function BETTERUI.TradingHouse.Class:CycleGuild(direction)

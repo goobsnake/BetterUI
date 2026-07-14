@@ -180,15 +180,37 @@ local function resetState()
     backpackSlots = 4
 end
 
+local marketPricesEnabled = false
+function BETTERUI.TradingHouse.ResolveTradingHouseMarketPrices(itemLink, quantity)
+    if not marketPricesEnabled then
+        return nil, nil, false
+    end
+    local marketIntegration = BETTERUI.CIM.MarketIntegration
+    local priceInfo = marketIntegration and marketIntegration.GetMarketPriceInfo(itemLink, quantity)
+    local unitPrice = priceInfo and tonumber(priceInfo.unitPrice) or nil
+    if not unitPrice or unitPrice <= 0 then
+        return nil, nil, false
+    end
+    unitPrice = math.floor(unitPrice + 0.5)
+    return unitPrice, unitPrice * quantity, true
+end
+
+function BETTERUI.TradingHouse.FormatTradingHouseMarketValue(value, hasMarketPrice)
+    if not hasMarketPrice then
+        return "-"
+    end
+    return tostring(math.floor(tonumber(value) or 0))
+end
+
 -- LOAD PRODUCTION SOURCE -----------------------------------------------------
 
+dofile("Modules/TradingHouse/Core/ListCategories.lua")
 dofile("Modules/TradingHouse/Components/SellComponent.lua")
 local Sell = BETTERUI.TradingHouse.SellComponent
 
 -- TESTS ----------------------------------------------------------------------
 
 print("[Sell:ResolveSellDisplayPrices market-price setting]")
-local marketPricesEnabled = false
 BETTERUI.TradingHouse.GetSetting = function(key)
     if key == "useMarketPricesInSellList" then
         return marketPricesEnabled
