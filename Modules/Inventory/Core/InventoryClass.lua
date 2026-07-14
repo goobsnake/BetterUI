@@ -281,10 +281,18 @@ function BETTERUI.Inventory.Class:RefreshKeybinds(reason)
         if stripHasMain then
             BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.mainKeybindStripDescriptor)
         end
+        -- GAMEPAD_GENERIC_HEADER.tabBar is shared across scenes. A delayed
+        -- Inventory refresh may run after Trading House has installed its own
+        -- carousel descriptor there, so hidden Inventory must never deactivate
+        -- or purge the shared tab bar. InventorySceneLifecycle performs the
+        -- authoritative carousel teardown while Inventory still owns it.
+        local stripHasCarousel = false
+        local carouselPurged = false
         if L then
             -- The stale-group WARN must stay visible even when the DEBUG skipped-trace is
             -- gated off; build the shared enrichment payload only when SOMETHING will render.
-            local warnRenders = stripHasMain and L.Warn
+            local removedStaleGroup = stripHasMain or stripHasCarousel or carouselPurged
+            local warnRenders = removedStaleGroup and L.Warn
                 and (not L.EnabledFor or L.EnabledFor(L.LEVEL.WARN, L.CATEGORY.KEYBIND))
             if KeybindTraceWillRender(L, L.CATEGORY.KEYBIND) or warnRenders then
                 local payload = {
@@ -293,14 +301,17 @@ function BETTERUI.Inventory.Class:RefreshKeybinds(reason)
                     scene = self.scene and self.scene.GetName and self.scene:GetName() or nil,
                     currentScene = SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName and SCENE_MANAGER:GetCurrentSceneName() or nil,
                     stripHadMain = stripHasMain,
+                    stripHadCarousel = stripHasCarousel,
+                    carouselPurged = carouselPurged,
                     main = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or nil,
                     active = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or nil,
                 }
                 if L.TraceEvent then
                     L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.keybind_refresh", "skipped", payload)
                 end
-                if stripHasMain and L.Warn then
-                    L.Warn(L.CATEGORY.KEYBIND, "inventory keybind refresh outside scene removed stale group", payload)
+                if removedStaleGroup and L.Warn then
+                    L.Warn(L.CATEGORY.KEYBIND,
+                        "inventory keybind refresh outside scene removed stale groups", payload)
                 elseif L.Debug then
                     L.Debug(L.CATEGORY.KEYBIND, "inventory keybind refresh skipped", payload)
                 end

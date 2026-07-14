@@ -131,17 +131,24 @@ local function RemoveInventoryKeybindGroup(self, group, label, phase)
 		return false
 	end
 	local beforePresent = IsKeybindGroupPresent(group)
-	if beforePresent then
+	local purgedFromAllStates = false
+	local removedStateCount = 0
+	local purgeAllStates = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupFromAllStates
+	if type(purgeAllStates) == "function" then
+		purgedFromAllStates, removedStateCount = purgeAllStates(group)
+	elseif beforePresent then
 		BETTERUI.Interface.RemoveKeybindGroupIfPresent(group)
 	end
 	local afterPresent = IsKeybindGroupPresent(group)
+	local removed = purgedFromAllStates == true or (beforePresent and not afterPresent)
 	TraceInventoryKeybindOwnership(self, phase, {
 		descriptorLabel = label,
 		beforePresent = beforePresent,
 		afterPresent = afterPresent,
-		removed = beforePresent and not afterPresent,
+		removed = removed,
+		removedStateCount = removedStateCount or 0,
 	}, afterPresent, group)
-	return beforePresent and not afterPresent
+	return removed
 end
 
 local function IsInventoryInstanceShowing(instance)

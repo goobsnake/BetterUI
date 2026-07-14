@@ -285,6 +285,53 @@ do
     assert_equal("craftBagList", switchedTo[#switchedTo], "Switch toggles into the craft bag when inventory is active")
 end
 
+print("-- RefreshKeybinds preserves the next scene's shared header carousel --")
+do
+    local mainDescriptor = {}
+    local carouselDescriptor = {}
+    local removedMain = 0
+    local purgedCarousel = 0
+    local deactivatedCarousel = 0
+
+    BETTERUI.Interface = {
+        HasKeybindGroup = function(descriptor)
+            return descriptor == mainDescriptor or descriptor == carouselDescriptor
+        end,
+        RemoveKeybindGroupIfPresent = function(descriptor)
+            if descriptor == mainDescriptor then
+                removedMain = removedMain + 1
+            end
+            return true
+        end,
+        RemoveKeybindGroupFromAllStates = function(descriptor)
+            if descriptor == carouselDescriptor then
+                purgedCarousel = purgedCarousel + 1
+            end
+            return true, 2
+        end,
+    }
+
+    local instance = setmetatable({
+        scene = { IsShowing = function() return false end },
+        mainKeybindStripDescriptor = mainDescriptor,
+        header = {
+            tabBar = {
+                active = true,
+                keybindStripDescriptor = carouselDescriptor,
+                Deactivate = function(self)
+                    self.active = false
+                    deactivatedCarousel = deactivatedCarousel + 1
+                end,
+            },
+        },
+    }, { __index = BETTERUI.Inventory.Class })
+
+    instance:RefreshKeybinds("hidden-test")
+    assert_equal(1, removedMain, "Hidden Inventory refresh removes its stale main keybind group")
+    assert_equal(0, deactivatedCarousel, "Hidden Inventory refresh does not deactivate the shared header carousel")
+    assert_equal(0, purgedCarousel, "Hidden Inventory refresh does not purge the next scene's carousel descriptor")
+end
+
 print("\n=== Summary ===")
 print(string.format("Passed: %d", tests_passed))
 print(string.format("Failed: %d", tests_failed))

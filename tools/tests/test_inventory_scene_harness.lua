@@ -682,9 +682,12 @@ ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 SCENE_HIDING = 2
 dofile("Modules/Inventory/Scene/InventorySceneLifecycle.lua")
 
-local function runKeybindHidingScenario()
+local function runKeybindHidingScenario(activeStatePresent)
     local group = {}
     resetKeybindProbes(group)
+    if activeStatePresent == false then
+        keybindPresent[group] = nil
+    end
     local instance = {
         mainKeybindStripDescriptor = group,
         IsBatchProcessing = function() return false end,
@@ -717,6 +720,17 @@ assertTrue(enabledCounts.describe == 10 and enabledCounts.scene == 6
 assertTrue(enabledCounts.removalTrace and enabledCounts.removalTrace.descriptorLabel == "main"
     and enabledCounts.removalTrace.descriptor == "main:descriptor",
     "Gated descriptor construction preserves the emitted ownership payload schema")
+
+BETTERUI.Interface.RemoveKeybindGroupFromAllStates = function(group)
+    keybindPresent[group] = nil
+    return true, 2
+end
+traceEnabled = true; payloadCaptureEnabled = true; removalSucceeds = true
+local savedStateCounts = runKeybindHidingScenario(false)
+assertTrue(savedStateCounts.removalTrace and savedStateCounts.removalTrace.removed == true
+    and savedStateCounts.removalTrace.removedStateCount == 2,
+    "Saved-state-only keybind purges report successful removal telemetry")
+BETTERUI.Interface.RemoveKeybindGroupFromAllStates = nil
 
 traceEnabled = true; payloadCaptureEnabled = false; removalSucceeds = false
 local warningCounts = runKeybindHidingScenario()

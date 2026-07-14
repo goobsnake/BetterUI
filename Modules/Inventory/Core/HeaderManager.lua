@@ -229,8 +229,24 @@ local function EnsureHeaderKeybindsActive(self)
 end
 
 --- @param self BetterUI_InventoryClass
+--- @return boolean
+local function IsInventorySceneShowing(self)
+    if type(self.IsSceneShowing) == "function" then
+        local ok, showing = pcall(self.IsSceneShowing, self)
+        return ok and showing == true
+    end
+    local scene = self.scene
+    if scene and type(scene.IsShowing) == "function" then
+        local ok, showing = pcall(scene.IsShowing, scene)
+        return ok and showing == true
+    end
+    return false
+end
+
+--- @param self BetterUI_InventoryClass
 local function ExitSearchFocus(self)
     local L = BETTERUI.Log
+    local sceneShowing = IsInventorySceneShowing(self)
     -- Skip if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
         if L and L.TraceEvent then
@@ -246,13 +262,21 @@ local function ExitSearchFocus(self)
         })
     end
 
-    -- Remove search keybinds first
+    -- Remove search keybinds first. When teardown invokes this after Inventory
+    -- has hidden, purge every saved keybind state: combo boxes and other
+    -- stacked UI can otherwise restore Inventory's Back-only search snapshot
+    -- over the next scene's keybind strip.
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-        BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
+        if not sceneShowing and BETTERUI.Interface.RemoveKeybindGroupFromAllStates then
+            BETTERUI.Interface.RemoveKeybindGroupFromAllStates(self.textSearchKeybindStripDescriptor)
+        else
+            BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
+        end
     end
 
-    -- Add back main keybinds
-    if self.mainKeybindStripDescriptor then
+    -- Search cleanup also runs during scene teardown. Never restore Inventory
+    -- keybind or list ownership after its scene has stopped showing.
+    if sceneShowing and self.mainKeybindStripDescriptor then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
     end
 
@@ -273,12 +297,12 @@ local function ExitSearchFocus(self)
     end
 
     -- Leave header if active
-    if self:IsHeaderActive() then
+    if sceneShowing and self:IsHeaderActive() then
         self:RequestLeaveHeader()
     end
 
     -- Activate the current list so it receives input
-    local currentList = self:GetCurrentList()
+    local currentList = sceneShowing and self:GetCurrentList() or nil
     if currentList then
         if currentList.Activate and (not currentList.IsActive or not currentList:IsActive()) then
             currentList:Activate()

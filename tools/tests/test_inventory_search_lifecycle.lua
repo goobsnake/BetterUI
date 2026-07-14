@@ -104,6 +104,48 @@ do
     assert_true(type(inventory.OnHeaderEntered) == "function", "canonical onEnter lifecycle is present on the class")
 end
 
+do
+    local removedKeybinds = 0
+    local purgedKeybinds = 0
+    local addedKeybinds = 0
+    local listActivations = 0
+    KEYBIND_STRIP = {}
+    BETTERUI.Interface.RemoveKeybindGroupIfPresent = function()
+        removedKeybinds = removedKeybinds + 1
+    end
+    BETTERUI.Interface.RemoveKeybindGroupFromAllStates = function()
+        purgedKeybinds = purgedKeybinds + 1
+    end
+    BETTERUI.Interface.EnsureKeybindGroupAdded = function()
+        addedKeybinds = addedKeybinds + 1
+    end
+
+    local inventory = setmetatable({
+        isInHeaderSortMode = false,
+        textSearchKeybindStripDescriptor = {},
+        mainKeybindStripDescriptor = {},
+        scene = { IsShowing = function() return false end },
+        IsHeaderActive = function() return true end,
+        RequestLeaveHeader = function()
+            error("hidden Inventory must not reclaim header ownership")
+        end,
+        GetCurrentList = function()
+            return {
+                Activate = function()
+                    listActivations = listActivations + 1
+                end,
+            }
+        end,
+    }, { __index = BETTERUI.Inventory.Class })
+
+    inventory:ExitSearchFocus()
+
+    assert_eq(removedKeybinds, 0, "hidden Inventory does not limit search cleanup to the active keybind state")
+    assert_eq(purgedKeybinds, 1, "hidden Inventory purges its search keybind group from all saved states")
+    assert_eq(addedKeybinds, 0, "hidden Inventory does not restore its main keybind group")
+    assert_eq(listActivations, 0, "hidden Inventory does not reactivate its item list")
+end
+
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)
